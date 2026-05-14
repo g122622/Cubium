@@ -35,8 +35,18 @@ void HurtFlashEffect::initialize()
         return;
     }
 
-    // 初始化受伤闪烁系统
-    // TODO: 加载受伤闪烁纹理
+    // 受伤闪烁效果通过着色器实现，不需要加载纹理资源。
+    //
+    // 实现方式：
+    // 1. EntityPipeline 通过 push constant 传递 hurtTime 和 deathTime 到着色器
+    // 2. entity.frag 中的 shouldApplyHurtEffect() 和 computeHurtFlashIntensity()
+    //    直接计算红色闪烁效果，使用 mix() 与基础颜色混合
+    //
+    // 这与 MC 1.16.5 的 OverlayTexture 方案不同：
+    // - MC 使用 16x16 动态纹理 + UV 采样
+    // - 本项目使用着色器内置计算，更高效且无需纹理资源
+    //
+    // 参考：shaders/entity.frag 中的受伤效果实现
 
     s_initialized = true;
 }
@@ -47,8 +57,7 @@ void HurtFlashEffect::cleanup()
         return;
     }
 
-    // 清理受伤闪烁系统资源
-    // TODO: 释放资源
+    // 无需清理资源，受伤闪烁效果通过着色器实现，不持有任何 GPU 资源。
 
     s_initialized = false;
 }
