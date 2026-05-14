@@ -25,7 +25,10 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/criteria/TriggerCriteria.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -144,11 +147,31 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     getTargetArg->addChild(getObjectiveArg);
     getPlayersNode->addChild(getTargetArg);
 
+    // /scoreboard players enable <target> <objective>
+    // 用于启用 trigger 类型目标，让玩家可以再次使用 /trigger 命令
+    auto enablePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
+    auto enableTargetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+    auto enableObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "objective", StringArgumentType::string());
+    enableObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enableTrigger(ctx); });
+    enableTargetArg->addChild(enableObjectiveArg);
+    enablePlayersNode->addChild(enableTargetArg);
+
+    // /scoreboard players list [target]
+    auto listPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
+    auto listTargetArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
+    listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listPlayers(ctx); });
+    listPlayersNode->addChild(listTargetArg);
+
     playersNode->addChild(setPlayersNode);
     playersNode->addChild(addPlayersNode);
     playersNode->addChild(removePlayersNode);
     playersNode->addChild(resetPlayersNode);
     playersNode->addChild(getPlayersNode);
+    playersNode->addChild(enablePlayersNode);
+    playersNode->addChild(listPlayersNode);
     scoreboardNode->addChild(playersNode);
 
     dispatcher.registerCommand(scoreboardNode);
@@ -463,6 +486,92 @@ i32 ScoreboardCommand::getScore(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << target << " has " << scoreObj->getScorePoints() << " in '" << objectiveName << "'";
+    source.sendMessage(ss.str());
+
+    return 1;
+}
+
+i32 ScoreboardCommand::enableTrigger(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
+
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    // 获取目标
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 检查判据是否为 trigger 类型
+    auto& criteria = objective->getCriteria();
+    if (criteria.getName() != scoreboard::TriggerCriteria::NAME) {
+        std::ostringstream ss;
+        ss << "Objective '" << objectiveName << "' is not a trigger objective";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 获取或创建分数（这会为玩家"准备"触发器）
+    auto* score = scoreboard->getOrCreateScore(target, *objective);
+    if (!score) {
+        source.sendMessage("Failed to create score");
+        return 0;
+    }
+
+    // 解锁触发器
+    score->setLocked(false);
+
+    std::ostringstream ss;
+    ss << "Enabled trigger '" << objectiveName << "' for " << target;
+    source.sendMessage(ss.str());
+
+    return 1;
+}
+
+i32 ScoreboardCommand::listPlayers(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string target = context.getArgument<std::string>("target");
+
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    // 获取玩家的所有目标名称
+    auto objectiveNames = scoreboard->getPlayerObjectives(target);
+    if (objectiveNames.empty()) {
+        std::ostringstream ss;
+        ss << target << " has no scores recorded";
+        source.sendMessage(ss.str());
+        return 1;
+    }
+
+    std::ostringstream ss;
+    ss << target << " has " << objectiveNames.size() << " score(s): ";
+    for (size_t i = 0; i < objectiveNames.size(); ++i) {
+        if (i > 0) ss << ", ";
+        auto* objective = scoreboard->getObjective(objectiveNames[i]);
+        auto* score = objective ? scoreboard->getScore(target, *objective) : nullptr;
+        if (score) {
+            ss << objectiveNames[i] << "=" << score->getScorePoints();
+        } else {
+            ss << objectiveNames[i];
+        }
+    }
     source.sendMessage(ss.str());
 
     return 1;

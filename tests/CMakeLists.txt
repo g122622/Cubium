@@ -1245,6 +1245,7 @@ add_executable(mc_command_tests
     server/command/CommandRegistryTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/TeamCommandTest.cpp
+    server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
 )

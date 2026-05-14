@@ -49,6 +49,8 @@ private:
     static i32 removeScore(CommandContext<ServerCommandSource>& context);
     static i32 resetScore(CommandContext<ServerCommandSource>& context);
     static i32 getScore(CommandContext<ServerCommandSource>& context);
+    static i32 enableTrigger(CommandContext<ServerCommandSource>& context);
+    static i32 listPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command
