@@ -51,7 +51,12 @@ namespace blocks {
  * - LIT: 是否点燃
  * - SIGNAL_FIRE: 是否为信号火（添加烟雾高度）
  * - WATERLOGGED: 是否被水淹没
- * - AGE: 熄灭进度（雨天时增加）
+ *
+ * 注意：MC 1.16.5 中营火没有 AGE 属性，也不会因为雨天而熄灭。
+ * 营火的熄灭方式：
+ * 1. 水接触（含水）
+ * 2. 铲子右键
+ * 3. 喷溅型水瓶
  *
  * 参考: net.minecraft.block.CampfireBlock
  */

@@ -89,6 +89,16 @@ public:
 private:
     CollisionShape m_xAxisShape;
     CollisionShape m_zAxisShape;
+
+    /**
+     * @brief 检查方块状态是否连接到传送门
+     *
+     * 检查是否是传送门方块或框架方块（黑曜石）
+     *
+     * @param state 方块状态
+     * @return 如果是传送门方块或框架方块返回 true
+     */
+    [[nodiscard]] bool isConnectedToPortal(const BlockState& state) const;
 };
 
 } // namespace blocks

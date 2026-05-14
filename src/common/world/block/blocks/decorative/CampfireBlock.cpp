@@ -39,11 +39,12 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
     , m_lightValue(lightValue)
 {
     // 创建状态容器
+    // 注意：MC 1.16.5 营火没有 AGE 属性，营火不会因为雨天而熄灭
+    // 只有普通火焰 (FireBlock) 会因为雨天逐渐熄灭
     auto container = StateContainer<Block, BlockState>::Builder(*this)
                          .add(BlockStateProperties::LIT())
                          .add(BlockStateProperties::SIGNAL_FIRE())
                          .add(BlockStateProperties::WATERLOGGED())
-                         .add(BlockStateProperties::AGE_0_4())
                          .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                              return std::make_unique<BlockState>(block, std::move(values), id);
                          });
@@ -53,8 +54,7 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
     setDefaultState(defaultState()
             .with(BlockStateProperties::LIT(), true)
             .with(BlockStateProperties::SIGNAL_FIRE(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::AGE_0_4(), 0));
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 营火形状（略小于完整方块）
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 7.0f, 16.0f);
@@ -107,9 +107,8 @@ void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
         return;
     }
 
-    // TODO: 检查雨水（如果上方无遮挡，增加AGE）
-    // 如果AGE达到4，熄灭
-    // 需要天气系统支持
+    // 注意：MC 1.16.5 营火不会因为雨天而熄灭，这是普通火焰(FireBlock)的行为
+    // 营火的熄灭方式只有：水接触、铲子右键、喷溅型水瓶
 
     // TODO: 烹饪食物逻辑
     // 需要方块实体支持
@@ -148,7 +147,7 @@ void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
 void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& state)
 {
     if (isLit(state)) {
-        BlockState newState = state.with(BlockStateProperties::LIT(), false).with(BlockStateProperties::AGE_0_4(), 0);
+        BlockState newState = state.with(BlockStateProperties::LIT(), false);
         world.setBlockState(pos, &newState, 3);
 
         // MC 1.16.5: 熄灭时播放音效
