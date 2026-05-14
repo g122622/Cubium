@@ -61,7 +61,7 @@ public:
 | 接口 | 已实现者 | 备注 |
 |------|----------|------|
 | `IAngerable` | TameableEntity, GolemEntity, EndermanEntity | 狼、铁傀儡、末影人已正确实现 |
-| `IRideable` | PigEntity, AbstractHorseEntity, StriderEntity | 猪、马类、炽足兽已实现 |
+| `IRideable` | PigEntity, AbstractHorseEntity, StriderEntity | 猪、马类、炽足兽已实现；ride() 方法正确设置 AI 移动速度 |
 | `IShearable` | SheepEntity, MooshroomEntity, SnowGolemEntity | 羊、哞菇、雪傀儡已实现 |
 | `IRangedAttackMob` | SkeletonEntity, BlazeEntity, WitherEntity | 已在实体中实现attackEntityWithRangedAttack |
 | `ICrossbowUser` | - | 接口已定义，待PiglinEntity/PillagerEntity实现 |
@@ -161,3 +161,66 @@ class PigEntity : public AnimalEntity, public IRideable {
 - 已补 `IFlinging.hpp/.cpp`，对齐 1.16.5 Hoglin / Zoglin 的撞飞型近战公共接口。
 - `IFlinging` 当前提供最小公共语义：攻击动画 tick 查询、成年个体的撞飞辅助、基于攻击伤害与击退属性的命中逻辑。
 - `BoostHelper` 用于猪和炽足兽的加速控制，与胡萝卜钓竿配合使用。
+
+## IRideable 速度设置逻辑
+
+### ride() 方法
+
+`IRideable::ride()` 方法处理骑乘实体的移动逻辑，包括速度设置：
+
+```cpp
+bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& travelVec)
+{
+    // ... 检查骑乘条件 ...
+
+    if (mount.canPassengerSteer()) {
+        // 获取骑乘速度（子类实现）
+        f32 speed = getSteeringSpeed();
+
+        // 加速计算（使用胡萝卜钓竿/诡异菌钓竿时）
+        if (helper.saddledRaw) {
+            f32 progress = helper.field_233611_b_ / helper.boostTimeRaw;
+            speed += speed * 1.15f * std::sin(progress * PI);
+        }
+
+        // 设置 AI 移动速度
+        mount.setAIMoveSpeed(speed);
+
+        // 调用移动
+        travelTowards(Vector3(0.0f, 0.0f, 1.0f));
+    }
+}
+```
+
+### 速度计算公式
+
+**猪 (PigEntity)**:
+- 基础速度：`MOVEMENT_SPEED = 0.25`
+- 骑乘速度：`speed * 0.225 = 0.05625`
+- 最大加速：`speed * 2.15 = 0.1209`
+
+**炽足兽 (StriderEntity)**:
+- 基础速度：`MOVEMENT_SPEED = 0.175`
+- 正常骑乘速度：`speed * 0.55 = 0.09625`
+- 寒冷骑乘速度：`speed * 0.23 = 0.04025`
+- 正常行走速度乘数：`1.0`
+- 寒冷行走速度乘数：`0.66`
+
+### 加速因子
+
+加速时使用正弦函数计算加速因子：
+```
+加速速度 = 基础速度 + 基础速度 * 1.15 * sin(progress * PI)
+```
+
+- `progress = 0` 或 `progress = 1`：无加速（sin(0) = sin(PI) = 0）
+- `progress = 0.5`：最大加速（sin(0.5 * PI) = 1.0）
+
+### 相关测试
+
+测试文件位于 `tests/common/entity/interfaces/IRideableTest.cpp`，包含：
+- 基础骑乘速度设置测试
+- 加速因子计算测试
+- 速度边界条件测试
+- 炽足兽特殊速度测试
+- BoostHelper 集成测试

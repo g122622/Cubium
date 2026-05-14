@@ -95,6 +95,8 @@ add_executable(mc_tests
     common/entity/core/BoostHelperTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
     common/entity/core/LivingEntityArrowCountTest.cpp
+    # IRideable 速度设置逻辑测试
+    common/entity/interfaces/IRideableTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
     # PlayerKilledEntityTrigger 触发器测试

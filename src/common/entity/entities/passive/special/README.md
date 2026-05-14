@@ -152,6 +152,17 @@ panda.setSneezeTimer(20); // 20 ticks = 1秒
 - **温度敏感**: 离开熔岩会发抖、减速
 - **鞍装备**: 需要鞍才能控制方向
 
+### 骑乘速度设置
+- 基础速度：`MOVEMENT_SPEED = 0.175`
+- **骑乘速度**：
+  - 正常状态：`speed * 0.55 = 0.09625`
+  - 寒冷状态：`speed * 0.23 = 0.04025`
+- **行走速度**：
+  - 正常状态：`speed * 1.0 = 0.175`
+  - 寒冷状态：`speed * 0.66 = 0.1155`
+- 在 `travel()` 中根据寒冷状态选择速度乘数并调用 `setAIMoveSpeed()`
+- 通过 `IRideable::ride()` 处理骑乘移动逻辑
+
 ### 接口实现
 ```cpp
 class StriderEntity : public AnimalEntity, public entity::IRideable {

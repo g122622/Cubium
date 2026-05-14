@@ -33,6 +33,12 @@ MobEntity
 - 生命值：10
 - 繁殖物品：胡萝卜、马铃薯、甜菜根
 - 可骑乘（鞍 + 胡萝卜钓竿）
+- **骑乘速度设置**：
+  - 基础速度：`MOVEMENT_SPEED = 0.25`
+  - 骑乘速度：`speed * 0.225 = 0.05625`
+  - 加速时使用正弦函数：`speed += speed * 1.15 * sin(progress * PI)`
+  - 在 `travel()` 中调用 `setAIMoveSpeed()` 设置 AI 移动速度
+  - 通过 `IRideable::ride()` 处理骑乘移动逻辑
 
 ### 牛 (CowEntity)
 - 生命值：10
