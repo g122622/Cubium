@@ -22,7 +22,7 @@ mob/
 | `TurtleEggBlock` | 海龟蛋 | EGGS_1_4, HATCH_0_2 | 完整实现 |
 | `InfestedBlock` | 被感染方块 | 无 | 完整实现 |
 | `SpawnerBlock` | 刷怪笼 | 无 | 基础框架 |
-| `DragonBreathBlock` | 龙息 | 无 | 基础框架 |
+| `DragonBreathBlock` | 龙息 | 无 | **完整实现** |
 
 ## 核心机制
 
@@ -114,6 +114,12 @@ mob/
 - [ ] 蜂蜜等级变化
 - [ ] 蜜蜂存储/释放
 - [ ] 与玻璃瓶/剪刀交互
+
+### DragonBreathBlock (已完成)
+- [x] onEntityCollision: 对碰撞的 LivingEntity 造成龙息伤害
+- [x] 服务端检查: 仅在服务端执行伤害逻辑
+- [x] 伤害类型: DamageSources::dragonBreath() (绕过护甲)
+- [x] 单元测试: 实体碰撞伤害、客户端不伤害、多类型实体测试
 
 ## 使用方法
 

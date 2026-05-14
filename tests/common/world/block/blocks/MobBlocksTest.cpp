@@ -25,6 +25,7 @@
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -797,4 +798,204 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SilverfishPositionCorrect)
     EXPECT_NEAR(spawned->x(), 100.5f, 0.01f);
     EXPECT_NEAR(spawned->y(), 50.0f, 0.01f);
     EXPECT_NEAR(spawned->z(), -199.5f, 0.01f);
+}
+
+// ==================== DragonBreathBlock 实体碰撞伤害测试 ====================
+
+/**
+ * @brief 测试用伤害追踪 LivingEntity
+ *
+ * 继承 LivingEntity 并追踪伤害调用
+ */
+class DamageTrackingLivingEntity : public LivingEntity {
+public:
+    DamageTrackingLivingEntity(LegacyEntityType type, EntityId id, IWorld* world = nullptr)
+        : LivingEntity(type, id, world)
+        , m_hurtCount(0)
+        , m_lastDamage(0.0f)
+        , m_lastDamageType(static_cast<DamageType>(255)) // 无效类型作为初始值
+    {}
+
+    bool hurt(DamageSource& source, f32 amount) override
+    {
+        m_hurtCount++;
+        m_lastDamage = amount;
+        m_lastDamageType = source.type();
+        return LivingEntity::hurt(source, amount);
+    }
+
+    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
+    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
+    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+
+    void tick() override {}
+    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 height() const override { return 1.8f; }
+    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+private:
+    i32 m_hurtCount;
+    f32 m_lastDamage;
+    DamageType m_lastDamageType;
+};
+
+class DragonBreathBlockCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        dragonBreath_ =
+            std::make_unique<DragonBreathBlock>(BlockProperties(Material::FIRE).hardness(0.0f).resistance(0.0f));
+    }
+
+    std::unique_ptr<DragonBreathBlock> dragonBreath_;
+    MobBlocksTestWorld world_;
+};
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_TakesDamage)
+{
+    // 设置服务端
+    world_.setClientSide(false);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 创建生物实体
+    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    entity.setPosition(0.5f, 0.0f, 0.5f);
+    entity.setHealth(20.0f);
+
+    // 触发碰撞
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+
+    // 验证：实体应该受到龙息伤害
+    EXPECT_EQ(entity.hurtCount(), 1);
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f);
+    EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath);
+}
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_ClientSide_NoDamage)
+{
+    // 设置客户端
+    world_.setClientSide(true);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 创建生物实体
+    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    entity.setPosition(0.5f, 0.0f, 0.5f);
+    entity.setHealth(20.0f);
+
+    // 触发碰撞
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+
+    // 验证：客户端不应该造成伤害
+    EXPECT_EQ(entity.hurtCount(), 0);
+    EXPECT_FLOAT_EQ(entity.health(), 20.0f);
+}
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_NonLivingEntity_NoDamage)
+{
+    // 设置服务端
+    world_.setClientSide(false);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 创建非生物实体（物品实体）
+    Entity item(LegacyEntityType::Item, EntityId(1));
+    item.setPosition(0.5f, 0.0f, 0.5f);
+
+    // 触发碰撞 - 不应该崩溃
+    EXPECT_NO_THROW({ dragonBreath_->onEntityCollision(state, world_, pos, item); });
+
+    // 非生物实体不应该受到伤害（方法内部检查 LivingEntity）
+}
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_MultipleDamage)
+{
+    // 设置服务端
+    world_.setClientSide(false);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 创建生物实体
+    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    entity.setPosition(0.5f, 0.0f, 0.5f);
+    entity.setHealth(20.0f);
+
+    // 触发多次碰撞（模拟持续站在龙息中）
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+
+    // 验证：每次碰撞都应该造成伤害
+    EXPECT_EQ(entity.hurtCount(), 3);
+}
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBypassesArmor)
+{
+    // 设置服务端
+    world_.setClientSide(false);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 创建生物实体
+    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    entity.setPosition(0.5f, 0.0f, 0.5f);
+    entity.setHealth(20.0f);
+
+    // 触发碰撞
+    dragonBreath_->onEntityCollision(state, world_, pos, entity);
+
+    // 验证：龙息伤害类型绕过护甲
+    // 伤害类型应该正确设置
+    EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath);
+    // 伤害值应该是 1.0
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f);
+}
+
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_AllTakeDamage)
+{
+    // 设置服务端
+    world_.setClientSide(false);
+
+    // 设置龙息方块
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = dragonBreath_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 测试不同类型的生物实体
+    std::vector<LegacyEntityType> entityTypes = {
+        LegacyEntityType::Pig,
+        LegacyEntityType::Cow,
+        LegacyEntityType::Zombie,
+        LegacyEntityType::Skeleton,
+        LegacyEntityType::Player,
+    };
+
+    for (size_t i = 0; i < entityTypes.size(); ++i) {
+        DamageTrackingLivingEntity entity(entityTypes[i], EntityId(static_cast<u32>(i + 1)), &world_);
+        entity.setPosition(0.5f, 0.0f, 0.5f);
+        entity.setHealth(20.0f);
+
+        dragonBreath_->onEntityCollision(state, world_, pos, entity);
+
+        EXPECT_EQ(entity.hurtCount(), 1) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take damage";
+        EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take 1.0 damage";
+        EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take dragon breath damage";
+    }
 }
