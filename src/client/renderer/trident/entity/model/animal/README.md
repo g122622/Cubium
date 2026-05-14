@@ -7,6 +7,7 @@
 | 文件 | 描述 |
 |------|------|
 | `AnimalModels.hpp/cpp` | 猪、牛、羊、鸡模型 |
+| `LlamaModel.hpp/cpp` | 羊驼模型 |
 
 ## 模型类
 
@@ -93,6 +94,55 @@ private:
 - 身体：8,8（4x6x3）
 - 翅膀：各 4x3
 - 腿部：各 1x3
+
+### LlamaModel（羊驼模型）
+
+```cpp
+class LlamaModel : public AgeableModel {
+public:
+    explicit LlamaModel(f32 scale = 0.0f);
+    
+    void render(f64 scale = 1.0f / 16.0f) override;
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
+    
+    void setHasChest(bool hasChest);  // 设置是否装备箱子
+    
+protected:
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
+    
+private:
+    std::shared_ptr<ModelRenderer> m_body;
+    std::shared_ptr<ModelRenderer> m_head;
+    std::shared_ptr<ModelRenderer> m_backRightLeg;
+    std::shared_ptr<ModelRenderer> m_backLeftLeg;
+    std::shared_ptr<ModelRenderer> m_frontRightLeg;
+    std::shared_ptr<ModelRenderer> m_frontLeftLeg;
+    std::shared_ptr<ModelRenderer> m_chest1;  // 左侧箱子
+    std::shared_ptr<ModelRenderer> m_chest2;  // 右侧箱子
+};
+```
+
+**纹理布局**（128x64）：
+- 头部主体：0,0（4x4x9）
+- 头部延伸：0,14（8x18x6）
+- 耳朵：17,0（3x3x2）x2
+- 身体：29,0（12x18x10）
+- 腿部：29,29（4x14x4）x4
+- 箱子：45,28（8x8x3）和 45,41（8x8x3）
+
+**颜色变体**：
+- Creamy（奶油色）：textures/entity/llama/creamy.png
+- White（白色）：textures/entity/llama/white.png
+- Brown（棕色）：textures/entity/llama/brown.png
+- Gray（灰色）：textures/entity/llama/gray.png
+
+**特性**：
+- 继承 AgeableModel，支持成年体和幼体渲染
+- 支持箱子装饰显示（成年且有箱子时）
+- 箱子部件使用身体作为父部件
 
 ## 动画特性
 

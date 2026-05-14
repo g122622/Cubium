@@ -7,6 +7,7 @@
 | 文件 | 描述 |
 |------|------|
 | `AnimalRenderers.hpp` | 猪、牛、羊、鸡渲染器 |
+| `LlamaRenderer.hpp/cpp` | 羊驼渲染器 |
 
 ## 渲染器类
 
@@ -74,6 +75,37 @@ public:
 - 翅膀拍动动画
 - 喙和鸡冠渲染
 
+### LlamaRenderer（羊驼渲染器）
+
+```cpp
+class LlamaRenderer : public EntityRenderer {
+public:
+    LlamaRenderer();
+    
+    void render(Entity& entity, f64 partialTicks) override;
+    ResourceLocation getEntityTexture(LlamaEntity& entity);
+    
+private:
+    LlamaModel m_model;
+    LlamaModel m_modelBaby;
+};
+
+void registerLlamaRenderer(EntityRendererManager& manager);
+```
+
+**特性**：
+- 阴影大小：0.7
+- 支持 4 种颜色变体：Creamy、White、Brown、Gray
+- 支持成年体和幼体渲染
+- 支持箱子装饰显示（通过 LlamaModel::setHasChest）
+
+**纹理选择逻辑**：
+```cpp
+static const char* colorNames[] = {"creamy", "white", "brown", "gray"};
+i32 variant = static_cast<i32>(entity.getColor());
+std::string textureName = "textures/entity/llama/" + colorNames[variant] + ".png";
+```
+
 ## 使用方法
 
 ```cpp
@@ -101,6 +133,7 @@ namespace mc::client::renderer::entity::renderer::animal {
     class CowRenderer;
     class SheepRenderer;
     class ChickenRenderer;
+    class LlamaRenderer;
 }
 ```
 
@@ -110,3 +143,4 @@ namespace mc::client::renderer::entity::renderer::animal {
 - MC 1.16.5 CowRenderer
 - MC 1.16.5 SheepRenderer
 - MC 1.16.5 ChickenRenderer
+- MC 1.16.5 LlamaRenderer

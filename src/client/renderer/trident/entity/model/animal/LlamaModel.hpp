@@ -62,6 +62,11 @@ public:
      */
     void setHasChest(bool hasChest) { m_hasChest = hasChest; }
 
+    /**
+     * @brief 获取是否装备箱子
+     */
+    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+
 protected:
     /**
      * @brief 获取头部部件

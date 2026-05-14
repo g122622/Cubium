@@ -290,6 +290,8 @@ add_executable(mc_tests
     client/renderer/test_cloud_renderer.cpp
     client/renderer/ChunkRendererStagingLayoutTest.cpp
     client/renderer/entity/AnimalModelTests.cpp
+    client/renderer/entity/LlamaModelTest.cpp
+    client/renderer/entity/LlamaRendererTest.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp
     client/renderer/entity/ShadowRendererTest.cpp
     client/renderer/entity/WorldTextRendererTest.cpp
@@ -922,6 +924,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
         # HeldBlockLayer 测试只测试 EndermanEntity 的方法，不需要 Vulkan 渲染层代码
         # 方块实体模型
