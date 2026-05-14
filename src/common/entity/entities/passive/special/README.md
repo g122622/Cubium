@@ -35,6 +35,32 @@ special/
 - 群体攻击
 - 螫刺后死亡
 
+### 繁殖系统
+- `isBreedingItem(itemStack)`: 检查物品是否可用于繁殖
+  - 使用 `ItemTags::FLOWERS()` 标签检查
+  - 支持17种花朵物品（小型13种 + 大型4种）
+- `spawnBaby(partner)`: 创建幼蜂
+  - 生成新的 BeeEntity 实例
+  - 设置为幼体状态 (`setChild(true)`)
+  - 位置设为父体位置附近
+
+### 花粉与螫刺状态
+- `hasNectar()` / `setHasNectar(bool)`: 花粉状态（携带花蜜）
+- `hasStung()` / `setHasStung(bool)`: 螫刺状态（螫刺后死亡）
+- `isFlying()` / `setFlying(bool)`: 飞行状态
+
+### 蜂巢与花朵系统
+- `setHivePos(pos)` / `getHivePos()`: 蜂巢位置
+- `hasHive()`: 是否有蜂巢
+- `setFlowerPos(pos)` / `getFlowerPos()`: 花朵位置
+- `hasFlower()`: 是否有花朵目标
+
+### 愤怒系统 (IAngerable 接口)
+- `isAngry()`: 是否愤怒
+- `getAngerTime()` / `setAngerTime(time)`: 愤怒计时器
+- `setAngry(angry)`: 设置愤怒状态
+- `updateAnger()`: 更新愤怒计时器（每 tick 递减）
+
 ### 行为
 | 优先级 | Goal | 说明 |
 |--------|------|------|
@@ -45,6 +71,23 @@ special/
 | 4 | FindBeehiveGoal | 寻找蜂巢 |
 | 5 | TemptGoal | 被花朵诱惑 |
 | 6 | FollowParentGoal | 幼体跟随父母 |
+
+### 属性
+| 属性 | 值 | 说明 |
+|------|-----|------|
+| MAX_HEALTH | 10.0 | 生命值 |
+| MOVEMENT_SPEED | 0.3 | 移动速度 |
+| FLYING_SPEED | 0.6 | 飞行速度 |
+| 眼睛高度 | 0.3 | - |
+
+### 测试覆盖
+- `tests/common/entity/entities/passive/special/BeeEntityTest.cpp`
+  - isBreedingItem 花朵检测测试（17种花朵 + 非花朵物品）
+  - spawnBaby 幼体生成测试
+  - 花粉/螫刺/飞行状态测试
+  - 蜂巢/花朵位置测试
+  - 属性和眼睛高度测试
+  - IAngerable 愤怒系统测试
 
 ## 狐狸 (FoxEntity)
 

@@ -34,6 +34,7 @@ item/
 │   └── README.md
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
+│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS等）
 │   └── README.md
 ├── items/                        # 具体物品实现
 │   ├── food/                     # 食物物品

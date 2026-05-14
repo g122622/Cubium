@@ -52,6 +52,8 @@ add_executable(mc_tests
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/tool/ShearsItemTest.cpp
+    # ItemTags 花朵标签测试
+    common/item/tag/ItemTagsTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/potion/PotionUtilsTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
@@ -82,6 +84,8 @@ add_executable(mc_tests
     common/entity/entities/passive/special/PandaEntityTest.cpp
     # PolarBearEntity IAngerable接口、站立警告、声音测试
     common/entity/entities/passive/special/PolarBearEntityTest.cpp
+    # BeeEntity 花朵繁殖、幼体生成、花粉/螫刺状态测试
+    common/entity/entities/passive/special/BeeEntityTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
