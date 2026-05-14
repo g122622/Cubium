@@ -26,8 +26,14 @@
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../../core/Types.hpp"
+#include "../../../../damage/DamageSource.hpp"
+#include "../../../../effect/EffectInstance.hpp"
+#include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/monster/basic/CreeperEntity.hpp"
+#include "../../../../entities/passive/fish/PufferfishEntity.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../EntitySenses.hpp"
@@ -267,6 +273,128 @@ bool RunAroundLikeCrazyGoal::findTarget()
         m_targetY = targetPos.y;
         m_targetZ = targetPos.z;
         return true;
+    }
+
+    return false;
+}
+
+// ============================================================================
+// PuffGoal
+// ============================================================================
+
+PuffGoal::PuffGoal(::mc::PufferfishEntity* fish)
+    : Goal() // 无互斥标志
+    , m_fish(fish)
+{
+    MC_ASSERT(fish != nullptr);
+}
+
+bool PuffGoal::shouldExecute()
+{
+    if (!m_fish || !m_fish->isAlive()) return false;
+    if (!m_fish->world()) return false;
+
+    // MC 1.16.5 PufferfishEntity.PuffGoal.shouldExecute():
+    // List<LivingEntity> list = this.fish.world.getEntitiesWithinAABB(
+    //     LivingEntity.class, this.fish.getBoundingBox().grow(2.0D), PufferfishEntity.ENEMY_MATCHER);
+    // return !list.isEmpty();
+
+    return findNearbyEnemy();
+}
+
+bool PuffGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 与 shouldExecute() 相同逻辑
+    return shouldExecute();
+}
+
+void PuffGoal::startExecuting()
+{
+    if (!m_fish) return;
+
+    // MC 1.16.5 PufferfishEntity.PuffGoal.startExecuting():
+    // this.fish.puffTimer = 1;
+    // this.fish.deflateTimer = 0;
+    m_fish->startPuffTimer();
+}
+
+void PuffGoal::resetTask()
+{
+    if (!m_fish) return;
+
+    // MC 1.16.5 PufferfishEntity.PuffGoal.resetTask():
+    // this.fish.puffTimer = 0;
+    m_fish->resetPuffTimer();
+    m_nearbyEnemy = nullptr;
+}
+
+bool PuffGoal::isEnemy(const LivingEntity* entity)
+{
+    if (!entity) return false;
+
+    // MC 1.16.5 ENEMY_MATCHER:
+    // if (entity == null) return false;
+    // if (!(entity instanceof PlayerEntity) || !entity.isSpectator() && !((PlayerEntity)entity).isCreative()) {
+    //     return entity.getCreatureAttribute() != CreatureAttribute.WATER;
+    // }
+    // return false;
+
+    // 检查是否为玩家
+    if (entity->legacyType() == LegacyEntityType::Player) {
+        // 需要使用 dynamic_cast 安全转换
+        const Player* player = dynamic_cast<const Player*>(entity);
+        if (player) {
+            // MC 1.16.5: 观察者模式或创造模式的玩家不是敌人
+            if (player->isSpectator() || player->isCreative()) {
+                return false;
+            }
+        }
+        return true; // 非观察者/创造模式的玩家是敌人
+    }
+
+    // MC 1.16.5: 检查生物属性是否为水生
+    // 水生生物不是敌人，其他生物是敌人
+    // 检查实体类型是否为水生生物
+    LegacyEntityType type = entity->legacyType();
+    switch (type) {
+        // 水生生物 - 不是敌人
+        case LegacyEntityType::Cod:
+        case LegacyEntityType::Salmon:
+        case LegacyEntityType::Pufferfish:
+        case LegacyEntityType::TropicalFish:
+        case LegacyEntityType::Squid:
+        case LegacyEntityType::Dolphin:
+        case LegacyEntityType::Turtle:
+            return false;
+        default:
+            // 其他所有生物都是敌人（包括怪物、陆地动物等）
+            return true;
+    }
+}
+
+bool PuffGoal::findNearbyEnemy()
+{
+    if (!m_fish || !m_fish->world()) return false;
+
+    m_nearbyEnemy = nullptr;
+
+    // 获取扩展 2 格的碰撞箱
+    AxisAlignedBB searchBox = m_fish->boundingBox().grow(DETECTION_RANGE);
+
+    // 获取范围内的所有生物实体
+    std::vector<Entity*> entities = m_fish->world()->getEntitiesInAABB(searchBox, m_fish);
+
+    for (Entity* entity : entities) {
+        if (!entity || !entity->isAlive()) continue;
+
+        // 只检测生物实体
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (!living) continue;
+
+        if (isEnemy(living)) {
+            m_nearbyEnemy = living;
+            return true;
+        }
     }
 
     return false;

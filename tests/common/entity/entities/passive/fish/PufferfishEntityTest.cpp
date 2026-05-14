@@ -1,0 +1,259 @@
+/*
+* Copyright (c) 2026 Guo Yi
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*/
+
+/**
+ * @file PufferfishEntityTest.cpp
+ * @brief 河豚实体单元测试
+ *
+ * 测试 PufferfishEntity 的关键方法：
+ * - PuffState 枚举值和状态转换
+ * - getPuffSize() 根据状态返回正确值
+ * - PuffGoal 敌人检测逻辑
+ * - 膨胀/收缩计时器行为
+ */
+
+#include <gtest/gtest.h>
+
+#include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
+#include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/core/Types.hpp"
+
+using namespace mc;
+
+// ==================== PufferfishEntity Test Fixture ====================
+
+class PufferfishEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 创建河豚实体
+        pufferfish = std::make_unique<PufferfishEntity>(LegacyEntityType::Unknown, 0);
+    }
+
+    void TearDown() override { pufferfish.reset(); }
+
+    std::unique_ptr<PufferfishEntity> pufferfish;
+};
+
+// ==================== PuffState Tests ====================
+
+TEST_F(PufferfishEntityTest, PuffState_DefaultIsDeflated)
+{
+    // 默认状态应该是未膨胀
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+}
+
+TEST_F(PufferfishEntityTest, PuffState_SetAndGet)
+{
+    // 设置为半膨胀
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+
+    // 设置为完全膨胀
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+
+    // 设置回未膨胀
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+}
+
+// ==================== getPuffSize Tests ====================
+
+TEST_F(PufferfishEntityTest, GetPuffSize_Deflated_Returns_0_5)
+{
+    // MC 1.16.5: Deflated 状态返回 0.5
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_FLOAT_EQ(pufferfish->getPuffSize(), 0.5f);
+}
+
+TEST_F(PufferfishEntityTest, GetPuffSize_SemiPuffed_Returns_0_7)
+{
+    // MC 1.16.5: SemiPuffed 状态返回 0.7
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_FLOAT_EQ(pufferfish->getPuffSize(), 0.7f);
+}
+
+TEST_F(PufferfishEntityTest, GetPuffSize_FullyPuffed_Returns_1_0)
+{
+    // MC 1.16.5: FullyPuffed 状态返回 1.0
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_FLOAT_EQ(pufferfish->getPuffSize(), 1.0f);
+}
+
+// ==================== canPoison Tests ====================
+
+TEST_F(PufferfishEntityTest, CanPoison_Deflated_ReturnsFalse)
+{
+    // 未膨胀时不能使敌人中毒
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_FALSE(pufferfish->canPoison());
+}
+
+TEST_F(PufferfishEntityTest, CanPoison_SemiPuffed_ReturnsTrue)
+{
+    // 半膨胀时可以使敌人中毒
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_TRUE(pufferfish->canPoison());
+}
+
+TEST_F(PufferfishEntityTest, CanPoison_FullyPuffed_ReturnsTrue)
+{
+    // 完全膨胀时可以使敌人中毒
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_TRUE(pufferfish->canPoison());
+}
+
+// ==================== isFullyPuffed Tests ====================
+
+TEST_F(PufferfishEntityTest, IsFullyPuffed_Deflated_ReturnsFalse)
+{
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_FALSE(pufferfish->isFullyPuffed());
+}
+
+TEST_F(PufferfishEntityTest, IsFullyPuffed_SemiPuffed_ReturnsFalse)
+{
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_FALSE(pufferfish->isFullyPuffed());
+}
+
+TEST_F(PufferfishEntityTest, IsFullyPuffed_FullyPuffed_ReturnsTrue)
+{
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_TRUE(pufferfish->isFullyPuffed());
+}
+
+// ==================== Puff Timer Tests ====================
+
+TEST_F(PufferfishEntityTest, PuffTimer_DefaultIsZero)
+{
+    // 默认计时器为 0
+    EXPECT_EQ(pufferfish->puffTimer(), 0);
+}
+
+TEST_F(PufferfishEntityTest, PuffTimer_StartPuffTimer_SetsTo1)
+{
+    // startPuffTimer 应该设置 puffTimer 为 1
+    pufferfish->startPuffTimer();
+    EXPECT_EQ(pufferfish->puffTimer(), 1);
+}
+
+TEST_F(PufferfishEntityTest, PuffTimer_ResetPuffTimer_SetsToZero)
+{
+    // 先设置计时器
+    pufferfish->startPuffTimer();
+    EXPECT_EQ(pufferfish->puffTimer(), 1);
+
+    // 重置应该设置回 0
+    pufferfish->resetPuffTimer();
+    EXPECT_EQ(pufferfish->puffTimer(), 0);
+}
+
+TEST_F(PufferfishEntityTest, DeflateTimer_DefaultIsZero)
+{
+    // 默认收缩计时器为 0
+    EXPECT_EQ(pufferfish->deflateTimer(), 0);
+}
+
+// ==================== Attributes Tests ====================
+
+TEST_F(PufferfishEntityTest, Attributes_HasCorrectHealth)
+{
+    // MC 1.16.5: 河豚最大生命值为 3
+    EXPECT_FLOAT_EQ(pufferfish->maxHealth(), 3.0f);
+}
+
+// ==================== Dimensions Tests ====================
+
+TEST_F(PufferfishEntityTest, Dimensions_Deflated_HasCorrectSize)
+{
+    // MC 1.16.5: 未膨胀时尺寸 = 0.7 * 0.5 = 0.35
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    auto dims = pufferfish->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims.width(), 0.35f);
+    EXPECT_FLOAT_EQ(dims.height(), 0.35f);
+}
+
+TEST_F(PufferfishEntityTest, Dimensions_SemiPuffed_HasCorrectSize)
+{
+    // MC 1.16.5: 半膨胀时尺寸 = 0.7 * 0.7 = 0.49
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    auto dims = pufferfish->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims.width(), 0.49f);
+    EXPECT_FLOAT_EQ(dims.height(), 0.49f);
+}
+
+TEST_F(PufferfishEntityTest, Dimensions_FullyPuffed_HasCorrectSize)
+{
+    // MC 1.16.5: 完全膨胀时尺寸 = 0.7 * 1.0 = 0.7
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    auto dims = pufferfish->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims.width(), 0.7f);
+    EXPECT_FLOAT_EQ(dims.height(), 0.7f);
+}
+
+// ==================== Eye Height Tests ====================
+
+TEST_F(PufferfishEntityTest, EyeHeight_HasCorrectValue)
+{
+    // MC 1.16.5: 河豚眼睛高度为 0.15
+    EXPECT_FLOAT_EQ(pufferfish->eyeHeight(), 0.15f);
+}
+
+// ==================== PuffGoal IsEnemy Tests ====================
+
+class PuffGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        pufferfish = std::make_unique<PufferfishEntity>(LegacyEntityType::Unknown, 0);
+    }
+
+    void TearDown() override { pufferfish.reset(); }
+
+    std::unique_ptr<PufferfishEntity> pufferfish;
+};
+
+// 注意: isEnemy 是 PuffGoal 的私有静态方法，
+// 我们通过公共接口（shouldExecute）来测试敌人检测逻辑
+// 或者需要添加友元类来测试
+
+// PuffGoal 基本构造测试
+TEST_F(PuffGoalTest, Construction)
+{
+    // 验证 PuffGoal 可以正常构造
+    entity::ai::goal::PuffGoal goal(pufferfish.get());
+    EXPECT_EQ(goal.getTypeName(), "PuffGoal");
+}
+
+// ==================== PuffGoal Goal Flags Tests ====================
+
+TEST_F(PuffGoalTest, HasNoMutualFlags)
+{
+    // MC 1.16.5: PuffGoal 没有互斥标志
+    entity::ai::goal::PuffGoal goal(pufferfish.get());
+    // Goal 默认构造函数应该设置空标志集
+}

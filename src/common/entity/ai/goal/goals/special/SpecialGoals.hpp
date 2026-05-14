@@ -33,6 +33,7 @@ class AbstractHorseEntity;
 class CreeperEntity;
 class Player;
 class LivingEntity;
+class PufferfishEntity;
 
 namespace entity::ai::goal {
 
@@ -174,6 +175,66 @@ public:
     bool shouldContinueExecuting() override { return false; }
     void startExecuting() override {}
     void tick() override {}
+};
+
+/**
+ * @brief 河豚膨胀目标
+ *
+ * 当检测到敌对生物或玩家靠近时触发膨胀行为。
+ *
+ * MC 1.16.5 参考: net.minecraft.entity.passive.fish.PufferfishEntity.PuffGoal
+ *
+ * 检测规则：
+ * - 检测碰撞箱向外扩展 2 格范围内的 LivingEntity
+ * - 玩家：非旁观者模式且非创造模式视为威胁
+ * - 其他生物：非水生生物（CreatureAttribute != Water）视为威胁
+ *
+ * 行为：
+ * - shouldExecute(): 检测范围内是否有威胁实体
+ * - startExecuting(): 开始膨胀计时器 (puffTimer = 1)
+ * - resetTask(): 重置膨胀计时器 (puffTimer = 0)
+ */
+class PuffGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param fish 河豚实体
+     */
+    explicit PuffGoal(::mc::PufferfishEntity* fish);
+
+    ~PuffGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "PuffGoal"; }
+
+private:
+    /**
+     * @brief 判断实体是否为河豚的威胁
+     *
+     * MC 1.16.5 ENEMY_MATCHER 谓词：
+     * - 玩家：非旁观者模式且非创造模式
+     * - 其他生物：非水生生物
+     *
+     * @param entity 生物实体
+     * @return 如果是威胁返回 true
+     */
+    [[nodiscard]] static bool isEnemy(const LivingEntity* entity);
+
+    /**
+     * @brief 查找附近的威胁实体
+     * @return 如果找到威胁实体返回 true
+     */
+    [[nodiscard]] bool findNearbyEnemy();
+
+    ::mc::PufferfishEntity* m_fish;
+    LivingEntity* m_nearbyEnemy = nullptr;
+
+    // MC 1.16.5 常量
+    static constexpr f32 DETECTION_RANGE = 2.0f; // 检测范围（碰撞箱向外扩展）
 };
 
 } // namespace entity::ai::goal

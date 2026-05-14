@@ -28,8 +28,7 @@
 namespace mc {
 namespace entity {
 
-// Forward declarations
-class Player;
+// Forward declarations (Player is in mc namespace, not mc::entity)
 
 /**
  * @brief 可跳跃骑乘接口 - 用于可以通过玩家输入控制跳跃的骑乘实体

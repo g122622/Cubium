@@ -82,6 +82,8 @@ add_executable(mc_tests
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
+    # PufferfishEntity 膨胀目标和敌人检测测试
+    common/entity/entities/passive/fish/PufferfishEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp

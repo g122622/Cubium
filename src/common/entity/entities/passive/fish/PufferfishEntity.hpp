@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,17 +18,23 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../core/EntitySize.hpp"
 #include "AbstractFishEntity.hpp"
 #include <memory>
 
 namespace mc {
+
+// Forward declaration
+namespace entity::ai::goal {
+class PuffGoal;
+}
 
 /**
  * @brief 河豚实体
@@ -36,8 +42,8 @@ namespace mc {
  * 有毒的海洋鱼类。
  *
  * 特性：
- * - 膨胀：玩家靠近时会膨胀
- * - 中毒：接触会导致中毒
+ * - 膨胀：玩家或敌对生物靠近时会膨胀
+ * - 中毒：膨胀状态下接触会导致中毒
  * - 掉落：河豚、骨头
  *
  * 音效：
@@ -95,13 +101,19 @@ public:
     /**
      * @brief 设置膨胀状态
      *
-     * 当状态变化时会自动播放膨胀/收缩音效。
+     * 当状态变化时会自动播放膨胀/收缩音效并刷新碰撞箱。
      */
     void setPuffState(PuffState state);
 
     /**
-     * @brief 获取膨胀尺寸
-     * 根据膨胀状态返回不同的碰撞箱大小
+     * @brief 获取膨胀尺寸缩放因子
+     *
+     * MC 1.16.5: getPuffSize(puffState)
+     * - Deflated: 0.5 (碰撞箱 0.35 x 0.35)
+     * - SemiPuffed: 0.7 (碰撞箱 0.49 x 0.49)
+     * - FullyPuffed: 1.0 (碰撞箱 0.7 x 0.7)
+     *
+     * @return 缩放因子
      */
     [[nodiscard]] f32 getPuffSize() const;
 
@@ -114,8 +126,36 @@ public:
 
     /**
      * @brief 是否会使接触者中毒
+     *
+     * MC 1.16.5: 在膨胀状态（非 Deflated）时会使接触者中毒。
      */
     [[nodiscard]] bool canPoison() const { return m_puffState != PuffState::Deflated; }
+
+    // ========== 膨胀计时器 ==========
+
+    /**
+     * @brief 开始膨胀计时
+     *
+     * 由 PuffGoal 调用，设置 puffTimer = 1 并重置 deflateTimer = 0。
+     */
+    void startPuffTimer();
+
+    /**
+     * @brief 重置膨胀计时器
+     *
+     * 由 PuffGoal 调用，设置 puffTimer = 0。
+     */
+    void resetPuffTimer();
+
+    /**
+     * @brief 获取膨胀计时器值
+     */
+    [[nodiscard]] i32 puffTimer() const { return m_puffTimer; }
+
+    /**
+     * @brief 获取收缩计时器值
+     */
+    [[nodiscard]] i32 deflateTimer() const { return m_deflateTimer; }
 
     // ========== 属性 ==========
 
@@ -123,6 +163,14 @@ public:
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.15f; }
+
+    /**
+     * @brief 获取动态尺寸
+     *
+     * MC 1.16.5: 根据膨胀状态动态计算碰撞箱尺寸。
+     * 基础尺寸 0.7 x 0.7，乘以 getPuffSize() 缩放因子。
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
 
     // ========== 音效 ==========
 
@@ -137,6 +185,9 @@ public:
     void tick() override;
 
 protected:
+    // ========== AI 注册 ==========
+    void registerGoals() override;
+
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
@@ -145,10 +196,21 @@ private:
     i32 m_puffTimer = 0;
     i32 m_deflateTimer = 0;
 
-    // MC 1.16.5: 收缩延迟常量
-    static constexpr i32 PUFF_DURATION = 60;            // 膨胀持续时间（ticks）
-    static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100; // 半膨胀到未膨胀的延迟
-    static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;     // 完全膨胀到半膨胀的延迟
+    // MC 1.16.5 常量
+    static constexpr i32 PUFF_SEMI_THRESHOLD = 40;       // 膨胀到半膨胀的阈值 (ticks)
+    static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100;  // 半膨胀到未膨胀的延迟
+    static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;      // 完全膨胀到半膨胀的延迟
+
+    /**
+     * @brief 检测并攻击附近敌人
+     *
+     * MC 1.16.5 livingTick() 中的攻击逻辑：
+     * 在膨胀状态时检测碰撞箱扩展 0.3 格范围内的 MobEntity。
+     */
+    void attackNearbyEnemies();
+
+    // PuffGoal 需要访问私有成员
+    friend class entity::ai::goal::PuffGoal;
 };
 
 } // namespace mc
