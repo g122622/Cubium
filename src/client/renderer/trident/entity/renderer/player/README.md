@@ -127,6 +127,30 @@ playerRenderer->renderLeftArm(player, partialTicks);
 - 攻击动画
 - 物品使用动画
 
+### renderRightArm / renderLeftArm 实现
+
+这两个方法内部调用 `PlayerModel::renderRightArm()` 和 `PlayerModel::renderLeftArm()`：
+
+```cpp
+void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
+{
+    // 设置模型可见性
+    setModelVisibilities(player);
+
+    // 重置动画状态（参考 MC 1.16.5 PlayerRenderer.renderItem）
+    m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
+    m_model.setSwingProgress(0.0f);
+    m_model.setCrouching(false);
+    m_model.setSwimming(false);
+    m_model.setSwimAnimation(0.0f);
+
+    // 渲染右手臂和右袖
+    m_model.renderRightArm(1.0 / 16.0);
+}
+```
+
+**参考**：MC 1.16.5 PlayerRenderer.renderRightArm/renderLeftArm
+
 ## 注意事项
 
 - 玩家模型需要在渲染前设置正确的可见性

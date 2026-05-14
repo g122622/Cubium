@@ -91,6 +91,35 @@ cape.rotationPointY = -0.85F;
 
 **参考**：MC 1.16.5 PlayerModel
 
+## 手臂单独渲染
+
+### renderRightArm / renderLeftArm
+
+用于第三人称视角的手臂渲染（如玩家皮肤预览、纸娃娃等）。
+
+```cpp
+// 渲染右手臂（仅手臂和袖子）
+playerModel->renderRightArm(1.0 / 16.0);
+
+// 渲染左手臂（仅手臂和袖子）
+playerModel->renderLeftArm(1.0 / 16.0);
+```
+
+**实现逻辑**（参考 MC 1.16.5 PlayerRenderer.renderItem）：
+
+1. 保存当前可见性状态
+2. 隐藏所有部件 (`setVisible(false)`)
+3. 仅显示目标手臂和袖子
+4. 重置手臂 X 轴旋转角度 (`rotateAngleX = 0.0F`)
+5. 渲染内层皮肤（手臂）
+6. 渲染外层皮肤（袖子）
+7. 恢复原始可见性状态
+
+**特点**：
+- 渲染时手臂水平伸出（X 轴旋转归零）
+- 同时渲染内层和外层皮肤
+- 自动恢复可见性状态，不影响后续渲染
+
 ## 命名空间
 
 ```cpp
