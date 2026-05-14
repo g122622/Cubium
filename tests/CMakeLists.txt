@@ -290,6 +290,8 @@ add_executable(mc_tests
     client/renderer/test_cloud_renderer.cpp
     client/renderer/ChunkRendererStagingLayoutTest.cpp
     client/renderer/entity/AnimalModelTests.cpp
+    client/renderer/entity/BipedModelTest.cpp
+    client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp

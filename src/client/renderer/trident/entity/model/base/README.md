@@ -18,14 +18,81 @@
 ```cpp
 class BipedModel : public EntityModel {
 protected:
-    std::shared_ptr<ModelRenderer> m_head;        // 头部
-    std::shared_ptr<ModelRenderer> m_headwear;    // 帽子层（第二层）
-    std::shared_ptr<ModelRenderer> m_body;        // 身体
-    std::shared_ptr<ModelRenderer> m_rightArm;    // 右臂
-    std::shared_ptr<ModelRenderer> m_leftArm;     // 左臂
-    std::shared_ptr<ModelRenderer> m_rightLeg;    // 右腿
-    std::shared_ptr<ModelRenderer> m_leftLeg;     // 左腿
+    std::shared_ptr<ModelRenderer> m_bipedHead;      // 头部
+    std::shared_ptr<ModelRenderer> m_bipedHeadwear;  // 帽子层（第二层）
+    std::shared_ptr<ModelRenderer> m_bipedBody;      // 身体
+    std::shared_ptr<ModelRenderer> m_bipedRightArm;  // 右臂
+    std::shared_ptr<ModelRenderer> m_bipedLeftArm;   // 左臂
+    std::shared_ptr<ModelRenderer> m_bipedRightLeg;  // 右腿
+    std::shared_ptr<ModelRenderer> m_bipedLeftLeg;   // 左腿
+
+    // 兼容性别名
+    std::shared_ptr<ModelRenderer>& m_head = m_bipedHead;
+    std::shared_ptr<ModelRenderer>& m_headwear = m_bipedHeadwear;
+    std::shared_ptr<ModelRenderer>& m_body = m_bipedBody;
+    std::shared_ptr<ModelRenderer>& m_rightArm = m_bipedRightArm;
+    std::shared_ptr<ModelRenderer>& m_leftArm = m_bipedLeftArm;
+    std::shared_ptr<ModelRenderer>& m_rightLeg = m_bipedRightLeg;
+    std::shared_ptr<ModelRenderer>& m_leftLeg = m_bipedLeftLeg;
 };
+```
+
+### 部件访问器
+
+BipedModel 提供以下访问器方法获取模型部件：
+
+```cpp
+std::shared_ptr<ModelRenderer> getModelHead();      // 获取头部
+std::shared_ptr<ModelRenderer> getModelHeadwear();  // 获取帽子层
+std::shared_ptr<ModelRenderer> getModelBody();      // 获取身体
+std::shared_ptr<ModelRenderer> getLeftArm();        // 获取左臂
+std::shared_ptr<ModelRenderer> getRightArm();       // 获取右臂
+std::shared_ptr<ModelRenderer> getLeftLeg();        // 获取左腿
+std::shared_ptr<ModelRenderer> getRightLeg();       // 获取右腿
+std::shared_ptr<ModelRenderer> getArmForSide(HandSide side); // 根据边获取手臂
+```
+
+### 可见性控制
+
+```cpp
+// 设置所有部件可见性
+void setVisible(bool visible);
+
+// 设置所有部件可见性（EntityModel 接口）
+void setAllVisible(bool visible);
+
+// 单个部件可见性
+model.getModelHead()->setVisible(true);
+model.getLeftArm()->setVisible(false);
+```
+
+### 盔甲槽位可见性（参考 MC 1.16.5 BipedArmorLayer.setModelSlotVisible）
+
+```cpp
+void setArmorSlotVisibility(BipedModel& model, ArmorSlot slot) {
+    model.setAllVisible(false);
+    
+    switch (slot) {
+        case ArmorSlot::Head:
+            model.getModelHead()->setVisible(true);
+            model.getModelHeadwear()->setVisible(true);
+            break;
+        case ArmorSlot::Chest:
+            model.getModelBody()->setVisible(true);
+            model.getLeftArm()->setVisible(true);
+            model.getRightArm()->setVisible(true);
+            break;
+        case ArmorSlot::Legs:
+            model.getModelBody()->setVisible(true);
+            model.getLeftLeg()->setVisible(true);
+            model.getRightLeg()->setVisible(true);
+            break;
+        case ArmorSlot::Feet:
+            model.getLeftLeg()->setVisible(true);
+            model.getRightLeg()->setVisible(true);
+            break;
+    }
+}
 ```
 
 ### 纹理布局

@@ -18,7 +18,27 @@
 - 护腿 (Legs)
 - 靴子 (Feet)
 
-支持皮革染色。
+### 特性
+
+- 支持皮革染色盔甲
+- 网格缓存机制避免每帧创建
+- 盔甲模型缓存（延迟初始化）
+
+### 盔甲槽位可见性（MC 1.16.5）
+
+| 槽位 | 显示的部件 |
+|------|-----------|
+| Head | head, headwear |
+| Chest | body, leftArm, rightArm |
+| Legs | body, leftLeg, rightLeg |
+| Feet | leftLeg, rightLeg |
+
+### 网格缓存
+
+`ArmorLayer` 使用 `ArmorMeshCache` 结构缓存每个槽位的网格：
+- 当装备物品变化时自动更新缓存
+- 使用 `EntityPipeline::createMesh()` 和 `updateMesh()` 管理网格
+- 避免每帧重新创建 GPU 缓冲区
 
 ## HeldItemLayer
 
