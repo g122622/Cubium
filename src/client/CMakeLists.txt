@@ -140,6 +140,7 @@ add_executable(minecraft-client
     renderer/trident/entity/model/animal/OcelotModel.cpp
     renderer/trident/entity/model/animal/CatModel.cpp
     renderer/trident/entity/model/animal/HorseModel.cpp
+    renderer/trident/entity/model/animal/LlamaModel.cpp
     renderer/trident/entity/model/animal/VillagerModel.cpp
     renderer/trident/entity/model/animal/RabbitModel.cpp
     renderer/trident/entity/model/animal/BatModel.cpp
@@ -172,6 +173,7 @@ add_executable(minecraft-client
     renderer/trident/entity/renderer/animal/OcelotRenderer.cpp
     renderer/trident/entity/renderer/animal/CatRenderer.cpp
     renderer/trident/entity/renderer/animal/HorseRenderer.cpp
+    renderer/trident/entity/renderer/animal/LlamaRenderer.cpp
     renderer/trident/entity/renderer/animal/VillagerRenderer.cpp
     renderer/trident/entity/renderer/player/PlayerRenderer.cpp
     renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp

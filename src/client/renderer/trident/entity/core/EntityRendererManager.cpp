@@ -25,6 +25,7 @@
 #include "../effect/fire/FireEffect.hpp"
 #include "../model/animal/CatModel.hpp"
 #include "../model/animal/HorseModel.hpp"
+#include "../model/animal/LlamaModel.hpp"
 #include "../model/animal/OcelotModel.hpp"
 #include "../model/animal/VillagerModel.hpp"
 #include "../model/animal/WolfModel.hpp"
@@ -38,6 +39,7 @@
 #include "../renderer/animal/AnimalRenderers.hpp"
 #include "../renderer/animal/CatRenderer.hpp"
 #include "../renderer/animal/HorseRenderer.hpp"
+#include "../renderer/animal/LlamaRenderer.hpp"
 #include "../renderer/animal/OcelotRenderer.hpp"
 #include "../renderer/animal/VillagerRenderer.hpp"
 #include "../renderer/animal/WolfRenderer.hpp"
@@ -544,7 +546,7 @@ void EntityRendererManager::initializeDefaults()
         return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
     });
     registerRenderer(ET::LLAMA, []() -> std::unique_ptr<EntityRenderer> {
-        return std::make_unique<HorseRenderer>(); // TODO: LlamaRenderer
+        return std::make_unique<LlamaRenderer>();
     });
     registerRenderer(ET::SKELETON_HORSE, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<HorseRenderer>(); // 复用 HorseRenderer
