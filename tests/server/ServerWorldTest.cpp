@@ -878,3 +878,60 @@ TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
     EXPECT_NE(world->entityManager().getEntity(id1), nullptr);
     EXPECT_NE(world->entityManager().getEntity(id3), nullptr);
 }
+
+// ============================================================================
+// 难度回调测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, Difficulty_ReturnsDefault_WithoutCallback)
+{
+    // 未设置回调时，返回默认值 Normal
+    EXPECT_EQ(world->difficulty(), Difficulty::Normal);
+}
+
+TEST_F(ServerWorldTest, Difficulty_ReturnsValueFromCallback)
+{
+    // 设置回调返回 Peaceful
+    world->setDifficultyCallback([]() { return Difficulty::Peaceful; });
+    EXPECT_EQ(world->difficulty(), Difficulty::Peaceful);
+
+    // 设置回调返回 Easy
+    world->setDifficultyCallback([]() { return Difficulty::Easy; });
+    EXPECT_EQ(world->difficulty(), Difficulty::Easy);
+
+    // 设置回调返回 Normal
+    world->setDifficultyCallback([]() { return Difficulty::Normal; });
+    EXPECT_EQ(world->difficulty(), Difficulty::Normal);
+
+    // 设置回调返回 Hard
+    world->setDifficultyCallback([]() { return Difficulty::Hard; });
+    EXPECT_EQ(world->difficulty(), Difficulty::Hard);
+}
+
+TEST_F(ServerWorldTest, Difficulty_DynamicChange)
+{
+    // 模拟动态修改难度
+    Difficulty currentDifficulty = Difficulty::Easy;
+    world->setDifficultyCallback([&currentDifficulty]() { return currentDifficulty; });
+
+    EXPECT_EQ(world->difficulty(), Difficulty::Easy);
+
+    // 模拟 /difficulty 命令修改
+    currentDifficulty = Difficulty::Hard;
+    EXPECT_EQ(world->difficulty(), Difficulty::Hard);
+
+    // 再次修改
+    currentDifficulty = Difficulty::Peaceful;
+    EXPECT_EQ(world->difficulty(), Difficulty::Peaceful);
+}
+
+TEST_F(ServerWorldTest, Difficulty_CallbackCanBeNull)
+{
+    // 设置回调
+    world->setDifficultyCallback([]() { return Difficulty::Hard; });
+    EXPECT_EQ(world->difficulty(), Difficulty::Hard);
+
+    // 清除回调（设置为空）
+    world->setDifficultyCallback(nullptr);
+    EXPECT_EQ(world->difficulty(), Difficulty::Normal); // 返回默认值
+}

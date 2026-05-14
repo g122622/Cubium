@@ -135,9 +135,11 @@ server/
 
 `ServerChunkManager` 除了提供传统的同步/异步区块访问外，还提供共享快照接口，供光照、发包等跨线程流程在持有数据时保持区块存活。
 
+`ServerWorld` 通过回调机制获取难度，允许运行时动态修改难度（如通过 `/difficulty` 命令）。难度回调由 `MinecraftServer` 在初始化时设置。
+
 | 类 | 职责 |
 |---|---|
-| `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气） |
+| `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气、难度回调） |
 | `ServerChunkManager` | 区块生命周期（加载、生成、卸载、取消），统一调度 |
 | `ChunkGenerateTask` | 区块生成任务，提交到 ServerWorkerPool 执行 |
 | `EntityTracker` | 实体可见性管理，基于距离追踪 |
