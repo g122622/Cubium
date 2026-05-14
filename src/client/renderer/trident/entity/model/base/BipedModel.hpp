@@ -150,6 +150,36 @@ public:
      */
     std::shared_ptr<ModelRenderer> getModelHead() { return m_bipedHead; }
 
+    /**
+     * @brief 获取帽子层模型
+     */
+    std::shared_ptr<ModelRenderer> getModelHeadwear() { return m_bipedHeadwear; }
+
+    /**
+     * @brief 获取身体模型
+     */
+    std::shared_ptr<ModelRenderer> getModelBody() { return m_bipedBody; }
+
+    /**
+     * @brief 获取右臂模型
+     */
+    std::shared_ptr<ModelRenderer> getRightArm() { return m_bipedRightArm; }
+
+    /**
+     * @brief 获取左臂模型
+     */
+    std::shared_ptr<ModelRenderer> getLeftArm() { return m_bipedLeftArm; }
+
+    /**
+     * @brief 获取右腿模型
+     */
+    std::shared_ptr<ModelRenderer> getRightLeg() { return m_bipedRightLeg; }
+
+    /**
+     * @brief 获取左腿模型
+     */
+    std::shared_ptr<ModelRenderer> getLeftLeg() { return m_bipedLeftLeg; }
+
 protected:
     /**
      * @brief 设置模型部件

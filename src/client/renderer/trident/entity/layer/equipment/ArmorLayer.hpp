@@ -36,6 +36,7 @@
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 class LivingEntity;
@@ -166,6 +167,8 @@ protected:
         // 获取盔甲物品
         const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
         if (!armorItem || armorItem->isEmpty()) {
+            // 物品为空，清除缓存
+            clearSlotCache(slot);
             return;
         }
 
@@ -184,19 +187,41 @@ protected:
         std::array<f64, 16> bodyPartTransform;
         getBodyPartTransform(slot, context, bodyPartTransform);
 
-        // 构建盔甲网格
-        auto [vertices, indices] =
-            item::ItemMeshBuilder::buildArmorMesh(*armorItem, static_cast<u32>(slot), bodyPartTransform);
+        // 获取或创建网格缓存
+        auto& meshCache = getMeshCache(slot);
+        u32 itemId = armorItem->getItem() ? armorItem->getItem()->itemId() : 0;
 
-        if (vertices.empty() || indices.empty()) {
-            return;
-        }
+        // 检查是否需要更新网格（物品变化或首次渲染）
+        bool needsUpdate = !meshCache.mesh.has_value() || meshCache.lastItemId != itemId ||
+            meshCache.lastSlot != static_cast<u32>(slot);
 
-        // 创建或更新网格
-        // TODO: 使用网格缓存避免每帧创建
-        auto result = pipeline.createMesh(vertices, indices);
-        if (!result.success()) {
-            return;
+        if (needsUpdate) {
+            // 构建新的盔甲网格
+            auto [vertices, indices] =
+                item::ItemMeshBuilder::buildArmorMesh(*armorItem, static_cast<u32>(slot), bodyPartTransform);
+
+            if (vertices.empty() || indices.empty()) {
+                clearSlotCache(slot);
+                return;
+            }
+
+            if (!meshCache.mesh.has_value()) {
+                // 创建新网格
+                auto result = pipeline.createMesh(vertices, indices);
+                if (!result.success()) {
+                    return;
+                }
+                meshCache.mesh = std::move(result.value());
+            } else {
+                // 更新现有网格
+                auto result = pipeline.updateMesh(meshCache.mesh.value(), vertices, indices);
+                if (!result.success()) {
+                    return;
+                }
+            }
+
+            meshCache.lastItemId = itemId;
+            meshCache.lastSlot = static_cast<u32>(slot);
         }
 
         // 获取实体位置
@@ -217,7 +242,7 @@ protected:
             deathTime = static_cast<f32>(entity.deathTime());
         }
 
-        pipeline.drawMesh(cmd, result.value(), bodyPartTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
+        pipeline.drawMesh(cmd, meshCache.mesh.value(), bodyPartTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
         spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
     }
@@ -316,24 +341,46 @@ protected:
         // 参考 MC 1.16.5 BipedArmorLayer:67-88
         switch (slot) {
             case ArmorSlot::Head:
-                // 头盔：显示头部
+                // 头盔：显示头部和帽子层
                 if (auto head = model.getModelHead()) {
                     head->setVisible(true);
                 }
+                if (auto headwear = model.getModelHeadwear()) {
+                    headwear->setVisible(true);
+                }
                 break;
             case ArmorSlot::Chest:
-                // 胸甲：显示身体和手臂
-                model.setVisible(true); // 显示身体
-                // TODO: 设置手臂可见性
+                // 胸甲：显示身体、左臂、右臂
+                if (auto body = model.getModelBody()) {
+                    body->setVisible(true);
+                }
+                if (auto leftArm = model.getLeftArm()) {
+                    leftArm->setVisible(true);
+                }
+                if (auto rightArm = model.getRightArm()) {
+                    rightArm->setVisible(true);
+                }
                 break;
             case ArmorSlot::Legs:
-                // 护腿：显示身体和腿部
-                model.setVisible(true); // 显示身体
-                // TODO: 设置腿部可见性
+                // 护腿：显示身体、左腿、右腿
+                if (auto body = model.getModelBody()) {
+                    body->setVisible(true);
+                }
+                if (auto leftLeg = model.getLeftLeg()) {
+                    leftLeg->setVisible(true);
+                }
+                if (auto rightLeg = model.getRightLeg()) {
+                    rightLeg->setVisible(true);
+                }
                 break;
             case ArmorSlot::Feet:
-                // 靴子：显示腿部
-                model.setVisible(true); // 显示腿部
+                // 靴子：显示左腿、右腿
+                if (auto leftLeg = model.getLeftLeg()) {
+                    leftLeg->setVisible(true);
+                }
+                if (auto rightLeg = model.getRightLeg()) {
+                    rightLeg->setVisible(true);
+                }
                 break;
         }
     }
@@ -374,11 +421,12 @@ protected:
 
     /**
      * @brief 获取盔甲模型
+     *
+     * 使用延迟初始化的模式缓存盔甲模型，避免每帧创建。
      */
     [[nodiscard]] virtual TModel& getArmorModel(ArmorSlot slot)
     {
-        // 返回对应的盔甲模型
-        // TODO: 实现盔甲模型缓存
+        // 返回对应的盔甲模型（已缓存）
         switch (slot) {
             case ArmorSlot::Head:
                 if (!m_headArmorModel) m_headArmorModel = std::make_unique<TModel>(0.0f);
@@ -420,11 +468,58 @@ protected:
 private:
     entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
 
-    // 盔甲模型（按部位）
+    // 盔甲模型（按部位）- 延迟初始化缓存
     std::unique_ptr<TModel> m_headArmorModel;
     std::unique_ptr<TModel> m_chestArmorModel;
     std::unique_ptr<TModel> m_legsArmorModel;
     std::unique_ptr<TModel> m_feetArmorModel;
+
+    /**
+     * @brief 盔甲网格缓存条目
+     *
+     * 缓存已创建的网格，避免每帧重新创建。
+     * 当装备的物品变化时更新缓存。
+     */
+    struct ArmorMeshCache {
+        std::optional<pipeline::EntityMesh> mesh; ///< 网格数据
+        u32 lastItemId = 0;                       ///< 上次渲染的物品ID
+        u32 lastSlot = 0;                         ///< 上次渲染的槽位
+    };
+
+    // 每个槽位的网格缓存
+    ArmorMeshCache m_headCache;
+    ArmorMeshCache m_chestCache;
+    ArmorMeshCache m_legsCache;
+    ArmorMeshCache m_feetCache;
+
+    /**
+     * @brief 获取指定槽位的网格缓存
+     */
+    ArmorMeshCache& getMeshCache(ArmorSlot slot)
+    {
+        switch (slot) {
+            case ArmorSlot::Head:
+                return m_headCache;
+            case ArmorSlot::Chest:
+                return m_chestCache;
+            case ArmorSlot::Legs:
+                return m_legsCache;
+            case ArmorSlot::Feet:
+            default:
+                return m_feetCache;
+        }
+    }
+
+    /**
+     * @brief 清除指定槽位的网格缓存
+     */
+    void clearSlotCache(ArmorSlot slot)
+    {
+        auto& cache = getMeshCache(slot);
+        cache.mesh.reset();
+        cache.lastItemId = 0;
+        cache.lastSlot = 0;
+    }
 };
 
 } // namespace mc::client::renderer::entity::layer::equipment
