@@ -390,7 +390,9 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 1. 概率检查决定是否尝试吃草
 2. 检测当前位置的草/高草丛或下方的草方块
 3. 播放吃草动画（40 ticks）
-4. 第 4 tick 时将草方块转为泥土，或移除草/高草丛
+4. 第 4 tick 时检查 mobGriefing 游戏规则：
+   - 如果 `mobGriefing = true`：将草方块转为泥土，或移除草/高草丛
+   - 如果 `mobGriefing = false`：只调用 eatGrassBonus 回调，不破坏方块
 5. 调用回调函数通知实体（如羊重新长毛、幼体加速成长）
 
 **互斥标志**: `Move`, `Look`, `Jump`
