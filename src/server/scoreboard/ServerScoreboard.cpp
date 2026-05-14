@@ -36,6 +36,14 @@
 namespace mc {
 namespace server {
 
+// 使用 mc::scoreboard 命名空间中的类型
+using ::mc::scoreboard::Scoreboard;
+using ::mc::scoreboard::ScoreObjective;
+using ::mc::scoreboard::Score;
+using ::mc::scoreboard::ScorePlayerTeam;
+using ::mc::scoreboard::DisplaySlot;
+using ::mc::scoreboard::DISPLAY_SLOT_COUNT;
+
 ServerScoreboard::ServerScoreboard(MinecraftServer& server)
     : m_server(server)
 {}
@@ -62,8 +70,8 @@ void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player)
     }
 
     // 发送所有显示槽位
-    for (size_t i = 0; i < scoreboard::DISPLAY_SLOT_COUNT; ++i) {
-        auto slot = static_cast<scoreboard::DisplaySlot>(i);
+    for (size_t i = 0; i < DISPLAY_SLOT_COUNT; ++i) {
+        auto slot = static_cast<DisplaySlot>(i);
         if (auto* objective = getObjectiveInDisplaySlot(slot)) {
             sendDisplayObjectiveToPlayer(slot, objective, player.playerId());
         }
@@ -100,7 +108,7 @@ void ServerScoreboard::sendToPlayer(PlayerId playerId, network::PacketType type,
     m_server.connectionManager().sendPacketToPlayer(playerId, type, payload);
 }
 
-void ServerScoreboard::sendObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId)
+void ServerScoreboard::sendObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Add);
 
@@ -109,7 +117,7 @@ void ServerScoreboard::sendObjectiveToPlayer(scoreboard::ScoreObjective& objecti
     sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendRemoveObjectiveToPlayer(scoreboard::ScoreObjective& objective, PlayerId playerId)
+void ServerScoreboard::sendRemoveObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Remove);
 
@@ -118,7 +126,7 @@ void ServerScoreboard::sendRemoveObjectiveToPlayer(scoreboard::ScoreObjective& o
     sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendScoreToPlayer(scoreboard::Score& score, PlayerId playerId)
+void ServerScoreboard::sendScoreToPlayer(Score& score, PlayerId playerId)
 {
     auto packet = createScorePacket(score, network::ScoreAction::Change);
 
@@ -141,7 +149,7 @@ void ServerScoreboard::sendRemoveScoreToPlayer(
 }
 
 void ServerScoreboard::sendDisplayObjectiveToPlayer(
-    scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective, PlayerId playerId)
+    DisplaySlot slot, ScoreObjective* objective, PlayerId playerId)
 {
     network::DisplayObjectivePacket packet;
     packet.setPosition(static_cast<i32>(slot));
@@ -152,7 +160,7 @@ void ServerScoreboard::sendDisplayObjectiveToPlayer(
     sendToPlayer(playerId, network::PacketType::DisplayObjective, ser.buffer());
 }
 
-void ServerScoreboard::sendTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId)
+void ServerScoreboard::sendTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
     auto packet = createTeamPacket(team, network::TeamAction::Create);
 
@@ -161,7 +169,7 @@ void ServerScoreboard::sendTeamToPlayer(scoreboard::ScorePlayerTeam& team, Playe
     sendToPlayer(playerId, network::PacketType::Teams, ser.buffer());
 }
 
-void ServerScoreboard::sendRemoveTeamToPlayer(scoreboard::ScorePlayerTeam& team, PlayerId playerId)
+void ServerScoreboard::sendRemoveTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
     auto packet = createTeamPacket(team, network::TeamAction::Remove);
 
@@ -199,7 +207,7 @@ void ServerScoreboard::load()
     }
 }
 
-void ServerScoreboard::onObjectiveAdded(scoreboard::ScoreObjective& objective)
+void ServerScoreboard::onObjectiveAdded(ScoreObjective& objective)
 {
     m_addedObjectives.insert(&objective);
 
@@ -213,7 +221,7 @@ void ServerScoreboard::onObjectiveAdded(scoreboard::ScoreObjective& objective)
     markDirty();
 }
 
-void ServerScoreboard::onObjectiveRemoved(scoreboard::ScoreObjective& objective)
+void ServerScoreboard::onObjectiveRemoved(ScoreObjective& objective)
 {
     m_addedObjectives.erase(&objective);
 
@@ -227,7 +235,7 @@ void ServerScoreboard::onObjectiveRemoved(scoreboard::ScoreObjective& objective)
     markDirty();
 }
 
-void ServerScoreboard::onObjectiveChanged(scoreboard::ScoreObjective& objective)
+void ServerScoreboard::onObjectiveChanged(ScoreObjective& objective)
 {
     // 广播给所有玩家
     auto packet = createObjectivePacket(objective, network::ObjectiveAction::Update);
@@ -239,7 +247,7 @@ void ServerScoreboard::onObjectiveChanged(scoreboard::ScoreObjective& objective)
     markDirty();
 }
 
-void ServerScoreboard::onScoreChanged(scoreboard::Score& score)
+void ServerScoreboard::onScoreChanged(Score& score)
 {
     // 广播给所有玩家
     auto packet = createScorePacket(score, network::ScoreAction::Change);
@@ -251,7 +259,7 @@ void ServerScoreboard::onScoreChanged(scoreboard::Score& score)
     markDirty();
 }
 
-void ServerScoreboard::onScoreRemoved(scoreboard::Score& score)
+void ServerScoreboard::onScoreRemoved(Score& score)
 {
     // 广播给所有玩家
     auto packet = createScorePacket(score, network::ScoreAction::Remove);
@@ -281,7 +289,7 @@ void ServerScoreboard::onPlayerRemoved(const std::string& playerName)
     markDirty();
 }
 
-void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, scoreboard::ScoreObjective& objective)
+void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, ScoreObjective& objective)
 {
     // 广播移除特定分数
     network::UpdateScorePacket packet;
@@ -296,7 +304,7 @@ void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, score
     markDirty();
 }
 
-void ServerScoreboard::onTeamAdded(scoreboard::ScorePlayerTeam& team)
+void ServerScoreboard::onTeamAdded(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Create);
@@ -308,7 +316,7 @@ void ServerScoreboard::onTeamAdded(scoreboard::ScorePlayerTeam& team)
     markDirty();
 }
 
-void ServerScoreboard::onTeamChanged(scoreboard::ScorePlayerTeam& team)
+void ServerScoreboard::onTeamChanged(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Update);
@@ -320,7 +328,7 @@ void ServerScoreboard::onTeamChanged(scoreboard::ScorePlayerTeam& team)
     markDirty();
 }
 
-void ServerScoreboard::onTeamRemoved(scoreboard::ScorePlayerTeam& team)
+void ServerScoreboard::onTeamRemoved(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
     auto packet = createTeamPacket(team, network::TeamAction::Remove);
@@ -332,7 +340,7 @@ void ServerScoreboard::onTeamRemoved(scoreboard::ScorePlayerTeam& team)
     markDirty();
 }
 
-void ServerScoreboard::onDisplaySlotChanged(scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective)
+void ServerScoreboard::onDisplaySlotChanged(DisplaySlot slot, ScoreObjective* objective)
 {
     // 广播给所有玩家
     network::DisplayObjectivePacket packet;
@@ -347,7 +355,7 @@ void ServerScoreboard::onDisplaySlotChanged(scoreboard::DisplaySlot slot, scoreb
 }
 
 network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
-    scoreboard::ScoreObjective& objective, network::ObjectiveAction action)
+    ScoreObjective& objective, network::ObjectiveAction action)
 {
     network::ScoreboardObjectivePacket packet;
 
@@ -369,7 +377,7 @@ network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
     return packet;
 }
 
-network::UpdateScorePacket ServerScoreboard::createScorePacket(scoreboard::Score& score, network::ScoreAction action)
+network::UpdateScorePacket ServerScoreboard::createScorePacket(Score& score, network::ScoreAction action)
 {
     network::UpdateScorePacket packet;
 
@@ -385,7 +393,7 @@ network::UpdateScorePacket ServerScoreboard::createScorePacket(scoreboard::Score
 }
 
 network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
-    scoreboard::DisplaySlot slot, scoreboard::ScoreObjective* objective)
+    DisplaySlot slot, ScoreObjective* objective)
 {
     network::DisplayObjectivePacket packet;
 
@@ -395,7 +403,7 @@ network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
     return packet;
 }
 
-network::TeamsPacket ServerScoreboard::createTeamPacket(scoreboard::ScorePlayerTeam& team, network::TeamAction action)
+network::TeamsPacket ServerScoreboard::createTeamPacket(ScorePlayerTeam& team, network::TeamAction action)
 {
     network::TeamsPacket packet;
 

@@ -35,17 +35,17 @@
 namespace mc {
 namespace command {
 
+// 使用 mc::server 命名空间中的 ServerScoreboard
+using ::mc::server::ServerScoreboard;
+
 // 辅助函数：获取服务端记分板
-static server::ServerScoreboard* getScoreboard(ServerCommandSource& source)
+static ServerScoreboard* getScoreboard(ServerCommandSource& source)
 {
     auto* server = source.server();
     if (!server) {
         return nullptr;
     }
-    auto& world = server->world();
-    // 暂时返回 nullptr，需要 ServerWorld 添加 scoreboard() 方法
-    // return world.scoreboard();
-    return nullptr;
+    return &server->scoreboard();
 }
 
 void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)

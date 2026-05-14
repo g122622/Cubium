@@ -288,6 +288,9 @@ void MinecraftServer::initializeCoreManagers()
     m_bannedIpList = std::make_unique<core::BannedIpList>();
     m_opListManager = std::make_unique<core::OpListManager>();
 
+    // 创建记分板
+    m_scoreboard = std::make_unique<ServerScoreboard>(*this);
+
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     m_dimensionManager->setDimensionChangeCallback(

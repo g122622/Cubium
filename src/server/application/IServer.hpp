@@ -59,6 +59,8 @@ class CommandRegistry;
 namespace mc::server {
 
 // 前向声明
+class ServerScoreboard;
+
 namespace core {
 class PlayerManager;
 class ConnectionManager;
@@ -265,6 +267,15 @@ public:
 
     [[nodiscard]] virtual mc::command::CommandRegistry& commandRegistry() = 0;
     [[nodiscard]] virtual const mc::command::CommandRegistry& commandRegistry() const = 0;
+
+    // ========== 记分板系统 ==========
+
+    /**
+     * @brief 获取服务端记分板
+     * @return 服务端记分板引用
+     */
+    [[nodiscard]] virtual ServerScoreboard& scoreboard() = 0;
+    [[nodiscard]] virtual const ServerScoreboard& scoreboard() const = 0;
 
     // ========== 配置 ==========
 

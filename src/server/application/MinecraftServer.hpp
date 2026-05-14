@@ -54,6 +54,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -258,6 +259,11 @@ public:
 
     [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return *m_commandRegistry; }
     [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return *m_commandRegistry; }
+
+    // ========== 记分板系统 ==========
+
+    [[nodiscard]] ServerScoreboard& scoreboard() override { return *m_scoreboard; }
+    [[nodiscard]] const ServerScoreboard& scoreboard() const override { return *m_scoreboard; }
 
     // ========== 配置 ==========
 
@@ -791,6 +797,9 @@ protected:
 
     // 命令
     std::unique_ptr<mc::command::CommandRegistry> m_commandRegistry;
+
+    // 记分板
+    std::unique_ptr<ServerScoreboard> m_scoreboard;
 
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
