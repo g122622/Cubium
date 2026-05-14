@@ -30,6 +30,10 @@ src/client/renderer/trident/chunk/
   - `generateMesh(..., neighbors, cancelSignal)`
   - `generateSplitMesh(..., neighbors, cancelSignal)`
   - `generateSectionMesh(..., neighbors, cancelSignal)`
+- 提供静态方法 `getDefaultBlockTintColor(blockState)` 获取方块的默认着色颜色：
+  - 用于没有世界/位置信息时的颜色解析（如末影人持有方块）
+  - 参考 MC 1.16.5 `BlockColors.getColor(state, null, null, 0)`
+  - 返回打包的 RGBA 颜色值
 
 ### ChunkRenderer
 

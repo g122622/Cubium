@@ -1016,6 +1016,64 @@ void ChunkMesher::clearBiomeColorCache()
     s_biomeColorBlender.clearCache();
 }
 
+u32 ChunkMesher::getDefaultBlockTintColor(const BlockState* block)
+{
+    if (!block) {
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    // 水体颜色 - 使用默认水颜色
+    if (block->isLiquid()) {
+        if (block->is(VanillaBlocks::WATER)) {
+            // 默认水颜色
+            return packRgb(world::biome::BiomeEffects::DEFAULT_WATER_COLOR);
+        }
+        // 岩浆不使用着色
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    // 树叶颜色处理
+    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES) || block->is(VanillaBlocks::JUNGLE_LEAVES) ||
+        block->is(VanillaBlocks::ACACIA_LEAVES) || block->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+        block->is(VanillaBlocks::SPRUCE_LEAVES) || block->is(VanillaBlocks::BIRCH_LEAVES);
+
+    if (isLeaves) {
+        // 云杉和桦树叶使用固定颜色
+        if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
+            return packRgb(client::BiomeColors::SPRUCE_LEAVES_COLOR);
+        }
+        if (block->is(VanillaBlocks::BIRCH_LEAVES)) {
+            return packRgb(client::BiomeColors::BIRCH_LEAVES_COLOR);
+        }
+
+        // 其他树叶使用 foliage colormap 中心点颜色
+        if (s_foliageColorMapLoaded) {
+            // colormap 中心点索引: (128 << 8) | 128 = 32896
+            // 对应 temperature=0.5, humidity=0.5
+            return packRgb(s_foliageColorMap[32896]);
+        }
+        // 默认树叶颜色
+        return packRgb(0x48B518); // FoliageColors.getDefault()
+    }
+
+    // 草方块和其他需要草颜色的方块
+    // 参考 MC 1.16.5 BlockTags.ENDERMAN_HOLDABLE 中需要着色的方块
+    if (block->is(VanillaBlocks::GRASS_BLOCK) || block->is(VanillaBlocks::SHORT_GRASS) ||
+        block->is(VanillaBlocks::TALL_GRASS)) {
+        // 草颜色使用 grass colormap 中心点颜色
+        if (s_grassColorMapLoaded) {
+            // colormap 中心点索引: (128 << 8) | 128 = 32896
+            // 对应 temperature=0.5, humidity=0.5
+            return packRgb(s_grassColorMap[32896]);
+        }
+        // 默认草颜色
+        return packRgb(0xFF757F); // GrassColors.getDefault() - 品红表示缺失
+    }
+
+    // 其他方块不使用着色
+    return packVertexColor(255, 255, 255, 255);
+}
+
 void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
     Face face,
     f64 x,

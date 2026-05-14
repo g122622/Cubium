@@ -1103,3 +1103,99 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
 
     EXPECT_FALSE(transparentMesh.empty());
 }
+
+// ============================================================================
+// ChunkMesher::getDefaultBlockTintColor 测试
+// ============================================================================
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于空指针返回白色
+ */
+TEST(GetDefaultBlockTintColor, NullBlockReturnsWhite)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(nullptr);
+
+    // 白色 = 0xFFFFFFFF
+    EXPECT_EQ(color, 0xFFFFFFFFu);
+}
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于石头（无着色）返回白色
+ */
+TEST(GetDefaultBlockTintColor, StoneReturnsWhite)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(&VanillaBlocks::STONE->defaultState());
+
+    // 石头不需要着色
+    EXPECT_EQ(color, 0xFFFFFFFFu);
+}
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于云杉树叶返回固定颜色
+ */
+TEST(GetDefaultBlockTintColor, SpruceLeavesReturnsFixedColor)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(&VanillaBlocks::SPRUCE_LEAVES->defaultState());
+
+    // 云杉树叶使用固定颜色 0x619961
+    const u8 r = color & 0xFFu;
+    const u8 g = (color >> 8) & 0xFFu;
+    const u8 b = (color >> 16) & 0xFFu;
+
+    EXPECT_EQ(r, 0x61u);
+    EXPECT_EQ(g, 0x99u);
+    EXPECT_EQ(b, 0x61u);
+}
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于桦树叶返回固定颜色
+ */
+TEST(GetDefaultBlockTintColor, BirchLeavesReturnsFixedColor)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(&VanillaBlocks::BIRCH_LEAVES->defaultState());
+
+    // 桦树叶使用固定颜色 0x80A755
+    // packRgb 将 RGB(0xRRGGBB) 打包为 R|(G<<8)|(B<<16)|255<<24
+    // 所以: 低字节=R, 次字节=G, 再次字节=B
+    const u8 r = color & 0xFFu;
+    const u8 g = (color >> 8) & 0xFFu;
+    const u8 b = (color >> 16) & 0xFFu;
+
+    EXPECT_EQ(r, 0x80u);
+    EXPECT_EQ(g, 0xA7u);
+    EXPECT_EQ(b, 0x55u);
+}
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于水返回默认水颜色
+ */
+TEST(GetDefaultBlockTintColor, WaterReturnsDefaultColor)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(&VanillaBlocks::WATER->defaultState());
+
+    // 水使用默认颜色 0x3F76E4
+    const u8 r = color & 0xFFu;
+    const u8 g = (color >> 8) & 0xFFu;
+    const u8 b = (color >> 16) & 0xFFu;
+
+    EXPECT_EQ(r, 0x3Fu);
+    EXPECT_EQ(g, 0x76u);
+    EXPECT_EQ(b, 0xE4u);
+}
+
+/**
+ * @brief 测试 getDefaultBlockTintColor 对于岩浆返回白色（不着色）
+ */
+TEST(GetDefaultBlockTintColor, LavaReturnsWhite)
+{
+    VanillaBlocks::initialize();
+    const u32 color = ChunkMesher::getDefaultBlockTintColor(&VanillaBlocks::LAVA->defaultState());
+
+    // 岩浆不使用着色
+    EXPECT_EQ(color, 0xFFFFFFFFu);
+}

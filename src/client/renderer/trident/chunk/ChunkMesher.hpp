@@ -227,6 +227,22 @@ public:
     static void clearBiomeColorCache();
 
     /**
+     * @brief 获取方块的默认着色颜色
+     *
+     * 用于没有世界/位置信息时的颜色解析，例如末影人持有方块的渲染。
+     * 参考 MC 1.16.5 BlockColors.getColor(state, null, null, 0)：
+     * - 草方块：返回 grass colormap 中心点颜色
+     * - 树叶（云杉/桦树）：返回固定颜色
+     * - 其他树叶：返回 foliage colormap 中心点颜色
+     * - 水：返回默认水颜色
+     * - 其他方块：返回白色 (0xFFFFFFFF)
+     *
+     * @param block 方块状态
+     * @return 打包的 RGBA 颜色值
+     */
+    [[nodiscard]] static u32 getDefaultBlockTintColor(const BlockState* block);
+
+    /**
      * @brief 采样指定坐标的合成光照（天空光/方块光取最大值）
      *
      * 用于区块网格构建阶段的光照查询。

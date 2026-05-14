@@ -69,6 +69,7 @@ public:
 - **SaddleLayer**: 鞍渲染（马、猪等）
 - **SheepWoolLayer**: 羊毛渲染（羊）
 - **ArrowLayer**: 箭矢附着渲染
+- **HeldBlockLayer**: 方块持有渲染（末影人），使用 `ChunkMesher::getDefaultBlockTintColor()` 获取方块默认着色颜色
 
 ### 效果层 (effect/)
 - **EnergyGlintLayer**: 附魔光效渲染

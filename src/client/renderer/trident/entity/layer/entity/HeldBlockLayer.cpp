@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "HeldBlockLayer.hpp"
 #include "../../core/AnimationContext.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
+#include "../../../chunk/ChunkMesher.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/world/block/Block.hpp"
@@ -129,14 +130,24 @@ void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockS
     // 在完整实现中，应该从参数获取实体位置
     Vector3f entityPos(0.0f, 0.0f, 0.0f);
 
-    // TODO: 从方块状态获取正确的纹理颜色
-    Vector4f overlayColor(1.0f, 1.0f, 1.0f, 1.0f);
+    // 获取方块默认着色颜色
+    // 参考 MC 1.16.5 HeldBlockLayer: 当末影人持有方块时，
+    // 由于没有世界/位置信息，使用 BlockColors.getColor(state, null, null, 0)
+    // 这会返回默认颜色（grass colormap 中心点、固定树叶颜色等）
+    const u32 tintColor = ChunkMesher::getDefaultBlockTintColor(&blockState);
+
+    // 从打包颜色提取 RGBA 分量
+    const f32 r = static_cast<f32>(tintColor & 0xFFu) / 255.0f;
+    const f32 g = static_cast<f32>((tintColor >> 8) & 0xFFu) / 255.0f;
+    const f32 b = static_cast<f32>((tintColor >> 16) & 0xFFu) / 255.0f;
+    const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
+    Vector4f overlayColor(r, g, b, a);
 
     pipeline.drawMesh(cmd, *mesh, blockTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
-    spdlog::trace("HeldBlockLayer: Rendered held block at ({}, {}, {})", x, y, z);
+    spdlog::trace("HeldBlockLayer: Rendered held block at ({}, {}, {}) with color ({}, {}, {}, {})",
+        x, y, z, r, g, b, a);
 
-    (void)blockState;
     (void)context;
 }
 

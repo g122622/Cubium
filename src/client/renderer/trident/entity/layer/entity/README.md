@@ -110,6 +110,10 @@ void ArrowLayer<TEntity, TModel>::render(TEntity& entity, ...):
 - 从 `EndermanEntity::isHoldingBlock()` 判断是否应该渲染
 - 方块位于末影人头部附近（Y偏移 0.6875）
 - 方块大小为 0.5x
+- **颜色渲染**：使用 `ChunkMesher::getDefaultBlockTintColor()` 获取方块默认着色颜色
+  - 参考 MC 1.16.5 `BlockColors.getColor(state, null, null, 0)`
+  - 末影人持有方块时没有世界/位置信息，因此使用默认颜色
+  - 支持的方块：草方块（默认草色）、树叶（云杉/桦树固定颜色，其他默认叶色）、水（默认水色）等
 
 ### 类型安全的实现
 
