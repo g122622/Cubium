@@ -9,6 +9,7 @@ src/server/command/commands/
 ├── ClearCommand.hpp / ClearCommand.cpp
 ├── DefaultGameModeCommand.hpp / DefaultGameModeCommand.cpp
 ├── DifficultyCommand.hpp / DifficultyCommand.cpp
+├── ExecuteCommand.hpp / ExecuteCommand.cpp
 ├── ExperienceCommand.hpp / ExperienceCommand.cpp
 ├── GameModeCommand.hpp / GameModeCommand.cpp
 ├── GiveCommand.hpp / GiveCommand.cpp
@@ -32,6 +33,16 @@ src/server/command/commands/
 - `ClearCommand.*`：清空背包，按玩家查询库存时走 `IServer::playerInventory()`。
 - `DefaultGameModeCommand.*`：设置服务器默认游戏模式。
 - `DifficultyCommand.*`：修改世界难度。
+- `ExecuteCommand.*`：执行嵌套命令，支持多种执行上下文修改。
+  - `/execute run <command>` - 直接执行命令
+  - `/execute as <entity> run <command>` - 以指定实体身份执行命令
+  - `/execute at <entity> run <command>` - 在指定实体位置执行命令
+  - `/execute positioned <pos> run <command>` - 在指定位置执行命令
+  - `/execute if block <pos> <block> run <command>` - 条件执行（方块检测）
+  - `/execute unless block <pos> <block> run <command>` - 反条件执行（方块检测）
+  - 使用 `StringArgumentType::greedyString()` 捕获剩余命令文本
+  - 通过 `ServerCommandSource::withPlayer()/withPosition()/withWorld()` 创建派生命令源
+  - 通过 `CommandRegistry::execute()` 执行嵌套命令
 - `ExperienceCommand.*`：管理经验值和等级。
 - `FillCommand.*`：填充区域方块。
   - 支持完整的方块状态属性解析（如 `oak_stairs[facing=east,half=top]`）
@@ -117,6 +128,7 @@ ClearCommand::registerTo(dispatcher);
 ## 测试用例
 
 - `tests/server/command/CommandRegistryTest.cpp`：覆盖命令注册、解析、执行和部分具体命令行为。
+- `tests/server/command/ExecuteCommandTest.cpp`：覆盖 /execute 命令的注册、权限检查、各子命令执行。
 
 ## Mermaid 图表
 

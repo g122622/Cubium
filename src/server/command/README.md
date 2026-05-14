@@ -930,6 +930,47 @@ public:
 - 随机分散玩家到指定区域内
 - 支持 @a、@p 等选择器
 
+#### ExecuteCommand - /execute 命令
+
+执行嵌套命令，支持修改执行上下文（实体身份、位置、条件等）。
+
+**用法：**
+
+- `/execute run <command>` - 直接执行命令
+- `/execute as <entity> run <command>` - 以指定实体身份执行命令
+- `/execute at <entity> run <command>` - 在指定实体位置执行命令
+- `/execute positioned <pos> run <command>` - 在指定位置执行命令
+- `/execute if block <pos> <block> run <command>` - 条件执行（方块检测）
+- `/execute unless block <pos> <block> run <command>` - 反条件执行（方块检测）
+
+**参数：**
+
+- `<entity>` - 实体选择器（如 `@p`、`@a` 或玩家名）
+- `<pos>` - 坐标位置（支持相对坐标 `~`）
+- `<block>` - 方块 ID（如 `stone`、`minecraft:dirt`）
+- `<command>` - 要执行的嵌套命令
+
+**权限等级：** 2
+
+**实现状态：** ✅ 部分实现
+
+**实现细节：**
+
+- 使用 `StringArgumentType::greedyString()` 捕获剩余命令文本
+- 通过 `ServerCommandSource::withPlayer()` 创建以目标身份执行的派生命令源
+- 通过 `ServerCommandSource::withPosition()` 和 `withWorld()` 修改执行位置
+- 通过 `CommandRegistry::execute()` 执行嵌套命令
+- 支持 `as` 和 `at` 对多个目标迭代执行，结果值为执行结果之和
+- 方块检测使用 `BlockRegistry::getBlock()` 解析方块 ID
+
+**待实现：**
+
+- `/execute in <dimension> run <command>` - 在指定维度执行
+- `/execute align <axes> run <command>` - 对齐坐标后执行
+- `/execute facing <pos/entity> run <command>` - 朝向指定方向执行
+- `/execute rotated <rot/as> run <command>` - 旋转后执行
+- `/execute anchored <anchor> run <command>` - 锚定后执行
+
 #### SpawnPointCommand - /spawnpoint 命令
 
 设置玩家的重生点。
