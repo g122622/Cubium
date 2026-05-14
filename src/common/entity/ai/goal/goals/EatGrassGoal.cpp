@@ -26,6 +26,7 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../world/gamerule/GameRules.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
@@ -137,14 +138,14 @@ void EatGrassGoal::eatGrass()
     }
 
     // MC 1.16.5: 检查 mobGriefing 游戏规则
-    // TODO: 添加游戏规则检查
-    // if (!m_world->getGameRules().getBoolean(GameRules::MOB_GRIEFING)) {
-    //     // 只调用 eatGrassBonus，不破坏方块
-    //     if (m_onEatGrass) {
-    //         m_onEatGrass();
-    //     }
-    //     return;
-    // }
+    // 参考: net.minecraft.entity.ai.goal.EatGrassGoal.tick()
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        // 只调用 eatGrassBonus，不破坏方块
+        if (m_onEatGrass) {
+            m_onEatGrass();
+        }
+        return;
+    }
 
     if (m_isEatingGrassBlock) {
         // 草方块 -> 泥土
