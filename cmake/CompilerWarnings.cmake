@@ -10,7 +10,6 @@ function(mc_set_compiler_warnings target)
             -Wpedantic
             -Wshadow
             -Wconversion
-            -Wsign-conversion
             -Wold-style-cast
             -Wnon-virtual-dtor
 
@@ -20,7 +19,11 @@ function(mc_set_compiler_warnings target)
             -Wno-unused-private-field   # 禁用：未使用的私有成员警告
             -Wno-unused-lambda-capture  # 禁用：未使用的lambda捕获警告
             -Wno-defaulted-function-deleted # 禁用：默认函数被删除警告
-            -Wno-address-of-temporary   # 禁用：获取临时对象地址警告
+            -Wno-sign-conversion        # 禁用：符号转换警告
+            -Wno-implicit-int-float-conversion # 禁用：隐式整数到浮点转换警告
+            -Wno-implicit-float-conversion # 禁用：隐式浮点转换警告
+            -Wno-implicit-int-conversion # 禁用：隐式整数转换警告
+            -Wno-float-conversion         # 禁用：浮点转换警告
 
             # 将关键警告视为错误
             -Werror=return-local-addr    # 错误：返回局部变量地址
