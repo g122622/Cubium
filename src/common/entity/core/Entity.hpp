@@ -50,6 +50,10 @@ class IWorld;
 class BlockState;
 class DamageSource;
 
+namespace scoreboard {
+class Team;
+} // namespace scoreboard
+
 /**
  * @brief 实体推动反应类型
  *
@@ -554,6 +558,19 @@ public:
      * @param glowing 是否发光
      */
     void setGlowing(bool glowing);
+
+    /**
+     * @brief 获取实体所属队伍
+     *
+     * 参考 MC 1.16.5: Entity.getTeam()
+     * 基类默认返回 nullptr。
+     * ServerPlayer 子类重写此方法，通过服务器记分板获取玩家所在队伍。
+     * TameableEntity 子类重写此方法，继承主人的队伍。
+     *
+     * @return 队伍指针，如果实体不在任何队伍返回 nullptr
+     */
+    [[nodiscard]] virtual scoreboard::Team* getTeam() { return nullptr; }
+    [[nodiscard]] virtual const scoreboard::Team* getTeam() const { return nullptr; }
 
     // ========== 尺寸 ==========
 

@@ -45,6 +45,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
+#include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -54,6 +55,7 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -661,6 +663,35 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     }
 
     return success;
+}
+
+// ========== 队伍系统实现 ==========
+
+scoreboard::Team* ServerPlayer::getTeam()
+{
+    // 参考 MC 1.16.5 Entity.getTeam()
+    // 通过服务器的记分板获取玩家所在队伍
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+
+    // 获取服务器的记分板
+    server::ServerScoreboard& serverScoreboard = m_server->scoreboard();
+    // ServerScoreboard 继承自 Scoreboard，可以直接调用 getPlayersTeam
+    return serverScoreboard.getPlayersTeam(username());
+}
+
+const scoreboard::Team* ServerPlayer::getTeam() const
+{
+    // 参考 MC 1.16.5 Entity.getTeam()
+    // 通过服务器的记分板获取玩家所在队伍
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+
+    // 获取服务器的记分板
+    const server::ServerScoreboard& serverScoreboard = m_server->scoreboard();
+    return serverScoreboard.getPlayersTeam(username());
 }
 
 } // namespace mc

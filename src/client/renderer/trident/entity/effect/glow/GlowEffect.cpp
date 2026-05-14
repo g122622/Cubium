@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,15 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "GlowEffect.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/scoreboard/core/Team.hpp"
+#include "common/util/text/TextStyle.hpp"
 
 namespace mc::client::renderer::entity::effect::glow {
 
@@ -64,11 +66,11 @@ void GlowEffect::cleanup()
 
 bool GlowEffect::hasGlowEffect(Entity& entity)
 {
-    // 参考 MC 1.16.5 发光效果判定
+    // 参考 MC 1.16.5 Entity.isGlowing() 发光效果判定
     // 检查实体是否有以下状态：
     // 1. 发光药水效果 (EffectType::Glowing) - LivingEntity 专用
     // 2. Entity 的发光标志（可能由其他来源设置，如团队规则）
-    // 3. 发光鱿鱼实体类型 - 通过实体类型检查（未实现）
+    // 3. 团队发光规则检查
 
     // 1. 检查 Entity 的发光标志（适用于所有实体）
     if (entity.isGlowing()) {
@@ -82,26 +84,57 @@ bool GlowEffect::hasGlowEffect(Entity& entity)
         }
     }
 
-    // TODO: 3. 发光鱿鱼实体类型检查
-    // TODO: 4. 团队发光规则检查
+    // 3. 团队发光规则检查
+    // 参考 MC 1.16.5: 实体的发光状态可以由团队规则控制
+    // 如果实体在团队中，团队可以设置成员的发光效果
+    // 当前实现：getTeam() 在 Entity 基类返回 nullptr，
+    // ServerPlayer 子类重写该方法通过记分板获取团队
+    // 注意：团队发光规则的具体实现需要额外的团队配置支持
+    // Team* team = entity.getTeam();
+    // if (team != nullptr) {
+    //     // 检查团队是否配置了发光效果
+    // }
+
+    // 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体
+    // MC 1.16.5 中不存在发光鱿鱼实体，因此不需要检查
 
     return false;
 }
 
 math::Vector4f GlowEffect::getGlowColor(Entity& entity)
 {
-    // 参考 MC 1.16.5 发光颜色
+    // 参考 MC 1.16.5 Entity.getTeamColor() 发光颜色
     // 默认颜色为白色 (1, 1, 1, 1)
     // 特殊情况：
-    // - 发光鱿鱼：青色 (0.3, 0.9, 0.9)
     // - 团队成员：团队颜色
+    // - 发光鱿鱼（MC 1.17+）：青色 (0.3, 0.9, 0.9)
 
-    // TODO: 从实体获取实际颜色
-    // 当前需要Entity类提供以下方法：
-    // - getTeamColor() 如果实体在团队中
-    // - 特殊实体类型的颜色
+    // 检查实体是否在团队中，使用团队颜色
+    scoreboard::Team* team = entity.getTeam();
+    if (team != nullptr) {
+        // 获取团队颜色
+        text::TextFormatting teamColor = team->getColor();
 
-    (void)entity;
+        // 将 TextFormatting 转换为 ARGB 颜色值
+        u32 argb = text::getFormattingColor(teamColor);
+
+        // 如果颜色有效（非白色默认值），返回团队颜色
+        if (argb != 0xFFFFFFFF && text::isColor(teamColor)) {
+            // 将 ARGB 转换为归一化的 Vector4f (RGBA, 0.0-1.0)
+            return math::Vector4f(
+                static_cast<f32>((argb >> 16) & 0xFF) / 255.0f, // R
+                static_cast<f32>((argb >> 8) & 0xFF) / 255.0f,  // G
+                static_cast<f32>(argb & 0xFF) / 255.0f,         // B
+                1.0f                                              // A
+            );
+        }
+    }
+
+    // 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体
+    // MC 1.16.5 中不存在发光鱿鱼实体，因此不需要检查
+    // 发光鱿鱼的颜色为青色 (0.3, 0.9, 0.9, 1.0)
+
+    // 默认白色
     return math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 

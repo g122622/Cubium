@@ -179,6 +179,19 @@ public:
      */
     [[nodiscard]] server::IServer* getServer() const { return m_server; }
 
+    // ========== 队伍系统 ==========
+
+    /**
+     * @brief 获取玩家所属队伍（重写 Entity 基类）
+     *
+     * 参考 MC 1.16.5: Entity.getTeam()
+     * 通过服务器的记分板系统获取玩家所在队伍。
+     *
+     * @return 队伍指针，如果玩家不在任何队伍返回 nullptr
+     */
+    [[nodiscard]] scoreboard::Team* getTeam() override;
+    [[nodiscard]] const scoreboard::Team* getTeam() const override;
+
     // ========== 类型转换 ==========
 
     /**

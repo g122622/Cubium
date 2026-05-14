@@ -39,7 +39,14 @@ namespace mc::client::renderer::entity::effect::glow {
  * @brief 发光效果管理器
  *
  * 参考 MC 1.16.5 发光轮廓效果
- * 用于渲染实体的发光轮廓（如发光鱿鱼、发光药水效果）。
+ * 用于渲染实体的发光轮廓（如发光药水效果、团队成员发光）。
+ *
+ * 发光效果来源：
+ * 1. 发光药水效果 (EffectType::Glowing)
+ * 2. Entity::isGlowing() 标志位
+ * 3. 团队规则（通过 Entity::getTeam() 获取团队颜色）
+ *
+ * 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体，MC 1.16.5 中不存在。
  */
 class GlowEffect {
 public:
