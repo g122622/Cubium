@@ -41,8 +41,10 @@ namespace mc {
  * - 强壮：高生命值和攻击力
  *
  * 参考 MC 1.16.5 GolemEntity
+ *
+ * 继承链：Entity -> LivingEntity -> MobEntity -> CreatureEntity -> GolemEntity
  */
-class GolemEntity : public MobEntity, public entity::IAngerable {
+class GolemEntity : public CreatureEntity, public entity::IAngerable {
 public:
     /**
      * @brief 构造函数

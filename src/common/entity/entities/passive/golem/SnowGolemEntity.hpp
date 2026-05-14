@@ -1,50 +1,54 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*
+* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../../../interfaces/IShearable.hpp"
 #include "GolemEntity.hpp"
 #include <memory>
 
 namespace mc {
 
+// Forward declarations
+class SnowballEntity;
+
 /**
  * @brief 雪傀儡实体
  *
- * 由玩家创造的傀儡。
+ * 由玩家创造的傀儡，用于保护玩家免受敌对生物攻击。
  *
  * 特性：
- * - 投掷雪球：攻击敌人
- * - 留下雪迹：行走时会留下雪层
- * - 融化：在高温生物群系或水中会融化
- * - 掉落：雪球
+ * - 投掷雪球：向敌对生物投掷雪球攻击
+ * - 留下雪迹：在寒冷生物群系行走时会留下雪层
+ * - 融化：在高温生物群系（温度 > 1.0）或水中会融化（受到伤害）
+ * - 掉落：雪球（0-15个）
  * - 南瓜头：可以用剪刀取下南瓜
  *
  * 参考 MC 1.16.5 SnowGolemEntity
  */
-class SnowGolemEntity : public GolemEntity, public entity::IShearable {
+class SnowGolemEntity : public GolemEntity, public entity::IShearable, public entity::IRangedAttackMob {
 public:
     /**
      * @brief 构造函数
@@ -81,17 +85,17 @@ public:
      */
     void setPumpkin(bool hasPumpkin) { m_hasPumpkin = hasPumpkin; }
 
-    // ========== IShearable接口实现 ==========
+    // ========== IShearable 接口实现 ==========
 
     /**
-     * @brief 检查是否可以被剪毛 (IShearable接口实现)
-     * @return 如果戴着南瓜返回true
+     * @brief 检查是否可以被剪毛
+     * @return 如果戴着南瓜返回 true
      */
     [[nodiscard]] bool isShearable() const override { return hasPumpkin(); }
 
     /**
-     * @brief 剪毛 (IShearable接口实现)
-     * @param player 执行剪毛的玩家
+     * @brief 剪毛
+     * @param player 执行剪毛的玩家（可为 nullptr）
      * @return 获得的南瓜物品
      */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
@@ -100,26 +104,32 @@ public:
 
     /**
      * @brief 是否会融化
-     * 检查当前环境是否会导致融化
+     * 检查当前环境是否会导致融化（高温生物群系或水中）
      */
     [[nodiscard]] bool willMelt() const;
 
-    /**
-     * @brief 获取融化计时器
-     */
-    [[nodiscard]] i32 getMeltTimer() const { return m_meltTimer; }
-
-    // ========== 攻击 ==========
+    // ========== 水敏感性 ==========
 
     /**
-     * @brief 获取攻击冷却
+     * @brief 雪傀儡对水敏感
+     * MC 1.16.5: isWaterSensitive() -> true
      */
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
+    [[nodiscard]] bool isWaterSensitive() const { return true; }
+
+    // ========== IRangedAttackMob 接口实现 ==========
 
     /**
-     * @brief 重置攻击冷却
+     * @brief 对目标进行远程攻击（投掷雪球）
+     * @param target 攻击目标
+     * @param charge 蓄力程度（雪傀儡不使用）
      */
-    void resetAttackCooldown() { m_attackCooldown = ATTACK_COOLDOWN; }
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+
+    /**
+     * @brief 获取攻击间隔
+     * @return 攻击间隔（ticks）
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return ATTACK_COOLDOWN; }
 
     // ========== 属性 ==========
 
@@ -138,6 +148,26 @@ public:
      */
     [[nodiscard]] f32 height() const override { return 1.9f; }
 
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取环境音效
+     * MC 1.16.5: entity.snow_golem.ambient
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * MC 1.16.5: entity.snow_golem.hurt
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * MC 1.16.5: entity.snow_golem.death
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -150,23 +180,34 @@ protected:
     void registerAttributes() override;
 
 private:
-    // 南瓜头
+    // ========== 私有方法 ==========
+
+    /**
+     * @brief 检查是否可以放置雪层
+     * MC 1.16.5: 用于 livingTick 中的雪层放置逻辑
+     */
+    [[nodiscard]] bool canPlaceSnow() const;
+
+    /**
+     * @brief 在脚下放置雪层
+     * MC 1.16.5: 在 4 个位置尝试放置雪
+     */
+    void placeSnowLayer();
+
+private:
+    // 南瓜头状态
     bool m_hasPumpkin = true;
 
     // 融化计时器
     i32 m_meltTimer = 0;
 
-    // 攻击冷却
-    i32 m_attackCooldown = 0;
-
-    // 雪层放置冷却
-    i32 m_snowPlaceCooldown = 0;
-
-    // 常量
-    static constexpr i32 ATTACK_COOLDOWN = 10;      // 雪球攻击冷却
-    static constexpr i32 SNOW_PLACE_INTERVAL = 20;  // 雪层放置间隔
-    static constexpr f32 SNOWBALL_DAMAGE = 0.0f;    // 雪球伤害（对烈焰人3）
-    static constexpr i32 MELT_DAMAGE_INTERVAL = 20; // 融化伤害间隔
+    // 常量 - MC 1.16.5 数值
+    static constexpr i32 ATTACK_COOLDOWN = 20;      // 雪球攻击冷却（1秒）
+    static constexpr f32 SNOWBALL_VELOCITY = 1.6f;  // 雪球速度
+    static constexpr f32 SNOWBALL_INACCURACY = 12.0f; // 雪球散布
+    static constexpr f32 MELT_TEMPERATURE = 1.0f;   // 融化温度阈值
+    static constexpr f32 SNOW_TEMPERATURE = 0.8f;   // 放置雪的温度阈值
+    static constexpr i32 MELT_DAMAGE_INTERVAL = 20; // 融化伤害间隔（1秒）
     static constexpr f32 MELT_DAMAGE = 1.0f;        // 融化伤害量
 };
 
