@@ -456,6 +456,12 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
    - `RecipeNetworkSerializer` 类提供配方序列化/反序列化
    - 支持有序合成、无序合成、熔炼、切石机、锻造台配方
 
-待实现功能：
+已实现功能（2026-05-15）：
 
-1. **配方书系统** - 配方解锁和配方书 UI
+1. **配方书系统** - ✅ 完成
+   - `RecipeBook` 基类 - 存储已解锁配方和新配方列表
+   - `RecipeBookStatus` 类 - GUI 状态管理（工作台、熔炉、高炉、烟熏炉）
+   - `ServerRecipeBook` 类 - 服务端扩展，支持 NBT 序列化
+   - `ServerPlayer::unlockRecipe()` - 解锁配方并触发成就
+   - `ServerPlayer::unlockRecipes()`/`lockRecipes()` - 批量操作
+   - `RecipeCommand` 完善 - `/recipe give/take` 命令实现

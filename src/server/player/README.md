@@ -599,7 +599,19 @@ TEST(ServerPlayerTest, InheritedFromPlayer) {
 | `GameProfile` | - | 玩家档案（未实现） |
 | `ServerStatsCounter` | - | 统计计数器（未实现） |
 | `PlayerAdvancements` | - | 成就系统（未实现） |
-| `RecipeBook` | - | 配方书（未实现） |
+**配方书系统详情**（2026-05-15）：
+
+`ServerPlayer` 新增配方书管理功能：
+- `getRecipeBook()` - 获取配方书引用（`ServerRecipeBook` 类型）
+- `unlockRecipe(recipeId)` - 解锁单个配方并触发成就
+- `unlockRecipes(recipes)` - 批量解锁配方
+- `lockRecipes(recipes)` - 批量锁定配方
+
+配方书支持：
+- 存储已解锁配方和新配方列表
+- 四种 GUI 状态（工作台、熔炉、高炉、烟熏炉）
+- NBT 序列化/反序列化（玩家数据持久化）
+- 与 `/recipe give/take` 命令集成
 
 ---
 
