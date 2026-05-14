@@ -181,6 +181,8 @@ public:
     [[nodiscard]] const server::core::OpListManager& opListManager() const override { return m_opListManager; }
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }

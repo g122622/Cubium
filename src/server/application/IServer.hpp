@@ -60,6 +60,7 @@ namespace mc::server {
 
 // 前向声明
 class ServerScoreboard;
+class CustomServerBossInfoManager;
 
 namespace core {
 class PlayerManager;
@@ -276,6 +277,15 @@ public:
      */
     [[nodiscard]] virtual ServerScoreboard& scoreboard() = 0;
     [[nodiscard]] virtual const ServerScoreboard& scoreboard() const = 0;
+
+    // ========== Boss 栏系统 ==========
+
+    /**
+     * @brief 获取自定义 Boss 栏管理器
+     * @return Boss 栏管理器引用
+     */
+    [[nodiscard]] virtual CustomServerBossInfoManager& bossBarManager() = 0;
+    [[nodiscard]] virtual const CustomServerBossInfoManager& bossBarManager() const = 0;
 
     // ========== 配置 ==========
 

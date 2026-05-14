@@ -518,6 +518,8 @@ add_executable(mc_tests
     server/scoreboard/TeamTest.cpp
     server/scoreboard/ScoreboardPersistenceTest.cpp
     server/scoreboard/GetTeamTest.cpp
+    # Boss 栏系统测试
+    server/bossbar/BossBarTest.cpp
     # 统计系统测试
     server/stats/StatisticsTest.cpp
 )
@@ -569,6 +571,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        # Boss 栏系统
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp

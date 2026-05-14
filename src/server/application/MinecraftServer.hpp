@@ -55,6 +55,7 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -264,6 +265,11 @@ public:
 
     [[nodiscard]] ServerScoreboard& scoreboard() override { return *m_scoreboard; }
     [[nodiscard]] const ServerScoreboard& scoreboard() const override { return *m_scoreboard; }
+
+    // ========== Boss 栏系统 ==========
+
+    [[nodiscard]] CustomServerBossInfoManager& bossBarManager() override { return *m_bossBarManager; }
+    [[nodiscard]] const CustomServerBossInfoManager& bossBarManager() const override { return *m_bossBarManager; }
 
     // ========== 配置 ==========
 
@@ -800,6 +806,9 @@ protected:
 
     // 记分板
     std::unique_ptr<ServerScoreboard> m_scoreboard;
+
+    // Boss 栏管理器
+    std::unique_ptr<CustomServerBossInfoManager> m_bossBarManager;
 
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;

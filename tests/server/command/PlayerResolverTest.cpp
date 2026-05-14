@@ -278,6 +278,8 @@ public:
 
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
+    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }

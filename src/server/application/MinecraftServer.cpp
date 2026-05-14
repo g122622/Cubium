@@ -292,6 +292,9 @@ void MinecraftServer::initializeCoreManagers()
     // 创建记分板
     m_scoreboard = std::make_unique<ServerScoreboard>(*this);
 
+    // 创建 Boss 栏管理器
+    m_bossBarManager = std::make_unique<CustomServerBossInfoManager>(*this);
+
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     m_dimensionManager->setDimensionChangeCallback(

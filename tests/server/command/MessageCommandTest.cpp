@@ -263,6 +263,8 @@ public:
     }
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }

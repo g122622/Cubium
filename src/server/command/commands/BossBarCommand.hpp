@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -26,6 +26,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <string>
 
 namespace mc {
 namespace command {
@@ -35,6 +36,22 @@ namespace command {
  *
  * 用法: /bossbar <add|remove|list|set|get> ...
  * 权限: 2 (游戏管理员)
+ *
+ * 子命令:
+ * - /bossbar add <id> <name> - 创建新的 Boss 栏
+ * - /bossbar remove <id> - 移除 Boss 栏
+ * - /bossbar list - 列出所有 Boss 栏
+ * - /bossbar set <id> name <name> - 设置名称
+ * - /bossbar set <id> color <color> - 设置颜色
+ * - /bossbar set <id> style <style> - 设置样式
+ * - /bossbar set <id> value <value> - 设置当前值
+ * - /bossbar set <id> max <max> - 设置最大值
+ * - /bossbar set <id> visible <visible> - 设置可见性
+ * - /bossbar set <id> players [<targets>] - 设置可见玩家
+ * - /bossbar get <id> value - 获取当前值
+ * - /bossbar get <id> max - 获取最大值
+ * - /bossbar get <id> visible - 获取可见性
+ * - /bossbar get <id> players - 获取可见玩家列表
  */
 class BossBarCommand {
 public:
@@ -44,8 +61,17 @@ private:
     static i32 addBossBar(CommandContext<ServerCommandSource>& context);
     static i32 removeBossBar(CommandContext<ServerCommandSource>& context);
     static i32 listBossBars(CommandContext<ServerCommandSource>& context);
-    static i32 setBossBar(CommandContext<ServerCommandSource>& context);
-    static i32 getBossBar(CommandContext<ServerCommandSource>& context);
+    static i32 setName(CommandContext<ServerCommandSource>& context);
+    static i32 setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr);
+    static i32 setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr);
+    static i32 setValue(CommandContext<ServerCommandSource>& context);
+    static i32 setMax(CommandContext<ServerCommandSource>& context);
+    static i32 setVisible(CommandContext<ServerCommandSource>& context);
+    static i32 setPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 getValue(CommandContext<ServerCommandSource>& context);
+    static i32 getMax(CommandContext<ServerCommandSource>& context);
+    static i32 getVisible(CommandContext<ServerCommandSource>& context);
+    static i32 getPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command
