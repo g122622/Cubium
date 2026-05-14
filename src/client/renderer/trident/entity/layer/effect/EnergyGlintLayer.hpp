@@ -155,11 +155,18 @@ void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
     Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用紫色发光颜色
+    // 参考 MC 1.16.5: 附魔光效使用紫色/蓝色光效 (0.5F, 0.0F, 1.0F, 0.5F)
     Vector4f overlayColor(0.5f, 0.0f, 1.0f, 0.5f);
 
-    // TODO: 需要设置叠加混合模式和光效纹理滚动
-    // 目前先使用普通渲染
+    // 切换到叠加混合模式（用于附魔光效）
+    // 参考 MC 1.16.5 EnergyLayer: 使用 RenderType.getEnergySwirl()
+    // 混合公式: src * srcAlpha + dst * 1 (加法混合)
+    pipeline.bind(cmd, pipeline::BlendMode::Additive);
+
     pipeline.drawMesh(cmd, result.value(), glintTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
+
+    // 恢复 Alpha 混合模式
+    pipeline.bind(cmd, pipeline::BlendMode::Alpha);
 
     spdlog::trace("EnergyGlintLayer: Rendered glint effect on entity");
 
@@ -241,7 +248,13 @@ f32 EnergyGlintLayer<TEntity>::calculateGlintOffset(f32 ageInTicks) const
 {
     // 光效滚动速度
     // 参考 MC 1.16.5 的光效动画
-    return std::fmod(ageInTicks * 0.01f, 1.0f);
+    // 使用 std::fmod 计算偏移，并确保结果在 [0, 1) 范围内
+    f32 offset = std::fmod(ageInTicks * 0.01f, 1.0f);
+    // 处理负数情况（虽然 ageInTicks 不应该为负，但为了健壮性）
+    if (offset < 0.0f) {
+        offset += 1.0f;
+    }
+    return offset;
 }
 
 template <typename TEntity>
