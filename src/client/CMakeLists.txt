@@ -453,6 +453,22 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
+    # 记分板
+    ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreObjective.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Score.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteriaRenderType.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScorePlayerTeam.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DummyCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TriggerCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DeathCountCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
 )
 
 target_link_libraries(minecraft-client

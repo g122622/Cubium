@@ -80,6 +80,7 @@ class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
 class ServerPlayerEntityManager;
+class ServerScoreboard;
 } // namespace mc::server
 
 namespace mc::server::sync {

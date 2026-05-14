@@ -55,6 +55,7 @@
 // Forward declaration for ServerPlayerEntityManager (only needed for interface declaration)
 namespace mc::server {
 class ServerPlayerEntityManager;
+class ServerScoreboard;
 }
 
 namespace mc::command {

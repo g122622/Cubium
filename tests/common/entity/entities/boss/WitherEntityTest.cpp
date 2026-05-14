@@ -365,31 +365,48 @@ TEST_F(WitherEntityTest, GetBossName_DefaultName)
     EXPECT_FALSE(wither.hasCustomName());
 }
 
-// 注意：以下测试由于 DataManager 静态初始化顺序问题暂时禁用
-// 当 Entity 基类的静态 DataParameter ID 与子类 createKey() 生成的 ID 冲突时
-// 会导致 bad_variant_access 错误
-// TODO: 修复 Entity 基类使用 createKey() 而非硬编码 ID
-
 TEST_F(WitherEntityTest, GetBossName_CustomName)
 {
-    // 此测试验证 getBossName() 在有自定义名称时的行为
-    // 由于 DataManager 静态初始化问题，暂时跳过
-    // 实现已在 WitherEntity.cpp 中验证：hasCustomName() ? customNameText() : "Wither"
-    GTEST_SKIP() << "Skipping due to DataManager static initialization order issue";
+    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 设置自定义名称
+    wither.setCustomName("Test Wither");
+
+    // 有自定义名称时返回自定义名称
+    EXPECT_TRUE(wither.hasCustomName());
+    EXPECT_EQ(wither.getBossName(), "Test Wither");
 }
 
 TEST_F(WitherEntityTest, GetBossName_EmptyCustomName)
 {
-    // 此测试验证空名称清除自定义名称
-    // 由于 DataManager 静态初始化问题，暂时跳过
-    GTEST_SKIP() << "Skipping due to DataManager static initialization order issue";
+    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 设置自定义名称
+    wither.setCustomName("Test Wither");
+    EXPECT_EQ(wither.getBossName(), "Test Wither");
+
+    // 设置空名称应该清除自定义名称
+    wither.setCustomName("");
+    EXPECT_FALSE(wither.hasCustomName());
+    EXPECT_EQ(wither.getBossName(), "Wither");
 }
 
 TEST_F(WitherEntityTest, GetBossName_ClearCustomName)
 {
-    // 此测试验证清除自定义名称后返回默认名称
-    // 由于 DataManager 静态初始化问题，暂时跳过
-    GTEST_SKIP() << "Skipping due to DataManager static initialization order issue";
+    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 设置自定义名称
+    wither.setCustomName("Custom Boss Name");
+    EXPECT_TRUE(wither.hasCustomName());
+    EXPECT_EQ(wither.getBossName(), "Custom Boss Name");
+
+    // 清除自定义名称（使用空字符串）
+    wither.setCustomName("");
+    EXPECT_FALSE(wither.hasCustomName());
+    EXPECT_EQ(wither.getBossName(), "Wither");
 }
 
 } // namespace
