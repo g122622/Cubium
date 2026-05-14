@@ -223,9 +223,55 @@ horse->setTamedBy(player);  // 设置主人，触发进度，显示爱心粒子
 horse->makeMad();  // 扬蹄 + 播放愤怒音效
 ```
 
+## 跳跃提升效果
+
+马类实体支持跳跃提升药水效果加成。当马拥有跳跃提升效果时，跳跃力度会根据效果等级增加。
+
+### 效果计算
+
+参考 MC 1.16.5 `AbstractHorseEntity.travel()` 第 716-727 行：
+
+```java
+if (this.isPotionActive(Effects.JUMP_BOOST)) {
+   d1 = d0 + (double)((float)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) * 0.1F);
+}
+```
+
+**公式**：`跳跃力度 = 基础跳跃力度 + 跳跃提升等级 × 0.1`
+
+| 跳跃提升等级 | 跳跃力度增量 |
+|-------------|-------------|
+| I           | +0.1        |
+| II          | +0.2        |
+| III         | +0.3        |
+| ...         | +等级×0.1   |
+
+### 实现位置
+
+- `AbstractHorseEntity::travel()` - 骑乘时的跳跃处理
+- `AbstractHorseEntity::performJump()` - 执行跳跃方法
+
+### 代码示例
+
+```cpp
+// 给马添加跳跃提升 II 效果
+entity::effect::EffectInstance jumpBoost(
+    entity::effect::EffectType::JumpBoost,  // 效果类型
+    200,                                      // 持续时间 (ticks)
+    1,                                        // amplifier (II = 1)
+    false,                                    // 是否环境效果
+    true                                      // 是否显示粒子
+);
+horse->addEffect(std::move(jumpBoost));
+
+// 检查效果等级
+i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
+// level = 2 (因为 amplifier + 1 = 2)
+```
+
 ## 测试用例
 
-马类实体的测试位于 `tests/entity/HorseSupportTypesTest.cpp` 和 `tests/entity/HorseAppearanceSupportTypesTest.cpp`。
+马类实体的测试位于 `tests/entity/HorseSupportTypesTest.cpp`、`tests/entity/HorseAppearanceSupportTypesTest.cpp` 和 `tests/entity/HorseJumpBoostTest.cpp`。
 
 ## 参考
 
