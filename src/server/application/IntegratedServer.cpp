@@ -188,6 +188,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
 
+    // 设置难度回调（从 MinecraftServer 获取难度）
+    m_world->setDifficultyCallback([this]() { return this->difficulty(); });
+
     // 设置 LootTableManager 引用（用于爆炸时生成方块掉落）
     m_world->setLootTableManager(&m_lootTableManager);
 

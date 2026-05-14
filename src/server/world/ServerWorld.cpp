@@ -1367,6 +1367,16 @@ DimensionType ServerWorld::getDimensionType() const
     }
 }
 
+Difficulty ServerWorld::difficulty() const
+{
+    // 如果设置了难度回调，使用回调获取难度
+    // 否则返回默认值 Normal
+    if (m_difficultyCallback) {
+        return m_difficultyCallback();
+    }
+    return Difficulty::Normal;
+}
+
 i32 ServerWorld::getMinBuildHeight() const
 {
     return world::MIN_BUILD_HEIGHT;

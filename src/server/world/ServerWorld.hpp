@@ -167,6 +167,18 @@ public:
     [[nodiscard]] core::TimeManager* timeManager() { return m_timeManager; }
     [[nodiscard]] const core::TimeManager* timeManager() const { return m_timeManager; }
 
+    // ========== 难度管理（设置外部难度回调） ==========
+
+    /**
+     * @brief 设置难度获取回调
+     *
+     * ServerWorld 不直接持有难度值，而是通过回调从 MinecraftServer 获取。
+     * 这样可以在运行时动态修改难度（如通过 /difficulty 命令）。
+     *
+     * @param callback 难度获取回调函数
+     */
+    void setDifficultyCallback(std::function<Difficulty()> callback) { m_difficultyCallback = std::move(callback); }
+
     // ========== 区块管理 ==========
 
     /**
@@ -281,7 +293,7 @@ public:
     [[nodiscard]] DimensionType getDimensionType() const;
     [[nodiscard]] u64 seed() const override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] Difficulty difficulty() const override;
     [[nodiscard]] bool isClientSide() override { return false; }
 
     // ========== 随机数生成器 ==========
@@ -735,6 +747,7 @@ private:
     std::unique_ptr<WeatherManager> m_weatherManager;
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr; // 外部引用，不拥有
+    std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
     Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点

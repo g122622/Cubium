@@ -187,10 +187,11 @@ void GuardianAttackGoal::tick()
         f32 damage = LASER_DAMAGE;
 
         // 困难模式额外伤害
-        // TODO: 从世界获取难度
-        // if (m_guardian->world()->difficulty() == Difficulty::Hard) {
-        //     damage += 2.0f;
-        // }
+        // 参考 MC 1.16.5 GuardianEntity.AttackGoal.tick()
+        // if (this.guardian.world.getDifficulty() == Difficulty.HARD) { f += 2.0F; }
+        if (m_guardian->world() != nullptr && m_guardian->world()->difficulty() == Difficulty::Hard) {
+            damage += 2.0f;
+        }
 
         // 远古守卫者额外伤害
         if (m_isElder) {

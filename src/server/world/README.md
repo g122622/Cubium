@@ -63,6 +63,8 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
     std::unique_ptr<WeatherManager> m_weatherManager;         // 天气管理器
     ItemPickupManager m_itemPickupManager;                    // 物品拾取管理器
     const loot::LootTableManager* m_lootTableManager;         // 掉落表管理器（用于爆炸掉落等）
+    core::TimeManager* m_timeManager;                         // 时间管理器（外部引用）
+    std::function<Difficulty()> m_difficultyCallback;         // 难度获取回调（从 MinecraftServer 获取）
 };
 
 // 调试世界检测
