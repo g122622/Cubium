@@ -65,6 +65,7 @@ private:
 | `unlockRecipe(recipeId)` | 解锁配方并触发成就 |
 | `getStats()` | 获取统计管理器 |
 | `getAdvancements()` | 获取成就进度管理器 |
+| `getTeam()` | 获取玩家所属队伍（重写 Entity 基类）|
 
 ---
 
@@ -157,6 +158,7 @@ graph TD
    - 世界关联
    - 在线状态
    - 消息发送接口
+   - 队伍系统（通过记分板获取队伍）
 
 ---
 
@@ -382,6 +384,13 @@ player->getWorld()->getChunk(x, z);  // 可能崩溃
 
 `ServerPlayer` 实现了配方解锁触发器：
 - `unlockRecipe(recipeId)` - 解锁配方并触发成就检查
+
+**队伍系统详情**（2026-05-15）：
+
+`ServerPlayer` 重写了 `Entity::getTeam()` 方法：
+- `getTeam()` - 通过服务器记分板获取玩家所在队伍
+- 返回 `Team*`，如果玩家不在任何队伍或无服务器则返回 `nullptr`
+- 用于发光效果颜色、友军伤害判断等功能
 
 触发器通过 `CriterionTriggers` 注册表管理：
 - `RecipeUnlockedTrigger` - 玩家解锁配方时触发

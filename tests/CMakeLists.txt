@@ -495,6 +495,7 @@ add_executable(mc_tests
     server/scoreboard/ScoreCriteriaTest.cpp
     server/scoreboard/TeamTest.cpp
     server/scoreboard/ScoreboardPersistenceTest.cpp
+    server/scoreboard/GetTeamTest.cpp
     # 统计系统测试
     server/stats/StatisticsTest.cpp
 )
