@@ -72,7 +72,7 @@ public:
      *
      * @param atlas 纹理图集指针
      */
-    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas);
+    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas) override;
 
 private:
     /**

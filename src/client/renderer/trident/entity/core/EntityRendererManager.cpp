@@ -350,6 +350,11 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 渲染层（盔甲、手持物品等）
         if (renderer && renderer->supportsLayers()) {
+            // 在渲染层之前，传递纹理图集给渲染器
+            // 这样层渲染器可以访问纹理UV区域信息进行UV重映射
+            if (m_textureAtlas && m_textureAtlas->isBuilt()) {
+                renderer->setTextureAtlas(m_textureAtlas);
+            }
             renderer->renderLayersPipelineClient(entity, cmd, context, *m_pipeline);
         }
 

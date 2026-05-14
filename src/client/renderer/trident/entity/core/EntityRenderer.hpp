@@ -42,6 +42,7 @@ class ClientEntity; // 前向声明
 
 namespace client::renderer::entity::pipeline {
 class EntityPipeline; // 前向声明
+class EntityTextureAtlas; // 前向声明
 }
 
 namespace client::renderer::entity::model {
@@ -166,6 +167,19 @@ public:
      * LivingEntity 渲染器返回 true。
      */
     [[nodiscard]] virtual bool supportsLayers() const { return false; }
+
+    /**
+     * @brief 设置纹理图集
+     *
+     * 用于层渲染器访问纹理UV区域信息。渲染器应在层渲染前将图集传递给需要的层。
+     * 默认实现为空，子类（如 VillagerRenderer）可重写以传递图集给层渲染器。
+     *
+     * @param atlas 纹理图集指针
+     */
+    virtual void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+    {
+        (void)atlas;
+    }
 
     // ========== 渲染属性 ==========
 
