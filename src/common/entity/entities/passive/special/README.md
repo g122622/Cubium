@@ -97,8 +97,33 @@ special/
   - 好斗 (Aggressive)
   - 虚弱 (Weak)
   - 棕色 (Brown)
-- 打喷嚏机制
+- 打喷嚏机制（幼年熊猫）
+  - 播放预喷嚏音效（第1 tick）
+  - 播放喷嚏音效（完成时）
+  - 生成喷嚏粒子
+  - 让周围10格内的成年熊猫跳跃
+  - 1/700概率掉落粘液球（需 doMobLoot 游戏规则）
 - 打滚行为
+- 吃竹子行为
+- 躺下行为（懒惰熊猫）
+
+### 打喷嚏机制
+```cpp
+// 设置打喷嚏状态（AI Goal 会调用）
+panda.setSneezing(true);
+panda.setSneezeTimer(20); // 20 ticks = 1秒
+
+// tick() 中自动处理:
+// 1. 计时器递减
+// 2. 第19 tick 播放预喷嚏音效
+// 3. 计时器归零时调用 onSneezeComplete()
+```
+
+### 喷嚏完成效果 (onSneezeComplete)
+1. 播放 `ENTITY_PANDA_SNEEZE` 音效
+2. 在熊猫头部前方生成 `Sneeze` 粒子
+3. 搜索周围10格内的成年熊猫，使其跳跃
+4. 检查游戏规则 `doMobLoot`，1/700概率掉落粘液球
 
 ### 基因遗传
 - 子代基因由父母基因随机决定
@@ -196,5 +221,23 @@ public:
   - 眼睛高度测试（成体/幼体差异）
   - 睡眠状态测试
   - 叼物品功能测试
+- **PandaEntityTest.cpp**: 熊猫实体测试（11 个测试）
+  - 性格测试
+    - 随机生成有效性格
+    - 性格枚举值验证
+  - 性格访问器测试
+    - set/getPersonality
+    - isLazy/isAggressive/isPlayful/isWorried/isWeak/isBrown
+  - 状态测试
+    - set/getSneezing
+    - set/getSneezeTimer
+    - set/getRolling
+    - set/getEating
+    - set/getLying
+  - 眼睛高度测试
+    - 成体眼睛高度 (1.2f)
+    - 幼体眼睛高度 (0.6f)
+  - 音效常量测试
+    - 所有熊猫音效事件定义验证
 - 蜜蜂授粉测试
 - 海龟出生地记忆测试

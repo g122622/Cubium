@@ -164,6 +164,16 @@ public:
     void setSneezing(bool sneezing) { m_sneezing = sneezing; }
 
     /**
+     * @brief 获取打喷嚏计时器
+     */
+    [[nodiscard]] i32 getSneezeTimer() const { return m_sneezeTimer; }
+
+    /**
+     * @brief 设置打喷嚏计时器
+     */
+    void setSneezeTimer(i32 timer) { m_sneezeTimer = timer; }
+
+    /**
      * @brief 是否正在吃东西
      */
     [[nodiscard]] bool isEating() const { return m_eating; }

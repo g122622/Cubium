@@ -77,6 +77,8 @@ add_executable(mc_tests
     common/entity/entities/passive/tamable/ParrotEntityTest.cpp
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
     common/entity/entities/passive/special/FoxEntityTest.cpp
+    # PandaEntity 打喷嚏、性格、状态测试
+    common/entity/entities/passive/special/PandaEntityTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
