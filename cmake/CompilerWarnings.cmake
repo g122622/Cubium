@@ -9,7 +9,6 @@ function(mc_set_compiler_warnings target)
             -Wextra
             -Wpedantic
             -Wshadow
-            -Wconversion
             -Wold-style-cast
             -Wnon-virtual-dtor
 
