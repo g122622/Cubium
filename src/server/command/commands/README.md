@@ -65,6 +65,17 @@ src/server/command/commands/
 - `TeleportCommand.*`：处理 `/tp` 与 `/teleport` 的传送逻辑。
 - `TimeCommand.*`：修改或查询游戏时间。
 - `WeatherCommand.*`：修改或查询天气状态。
+- `TeamCommand.*`：队伍系统管理命令。
+  - `/team add <team>`：创建新队伍
+  - `/team remove <team>`：移除队伍
+  - `/team list`：列出所有队伍
+  - `/team empty <team>`：清空队伍成员
+  - `/team join <team> <members>`：玩家加入队伍
+  - `/team leave <members>`：玩家离开队伍
+  - `/team modify <team> <property> <value>`：修改队伍属性
+    - 支持的属性：color, friendlyFire, seeFriendlyInvisibles, prefix, suffix, displayName, nametagVisibility, deathMessageVisibility, collisionRule
+- `ScoreboardCommand.*`：记分板目标管理。
+  - 通过 `IServer::scoreboard()` 获取服务端记分板实例
 
 ## 模块关系
 

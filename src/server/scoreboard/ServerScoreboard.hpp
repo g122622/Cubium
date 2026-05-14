@@ -36,7 +36,7 @@ namespace mc {
 class ServerPlayer;
 
 namespace server {
-class MinecraftServer;
+class IServer;
 }
 
 namespace scoreboard {
@@ -62,7 +62,7 @@ public:
      *
      * @param server Minecraft 服务器实例
      */
-    explicit ServerScoreboard(mc::server::MinecraftServer& server);
+    explicit ServerScoreboard(mc::server::IServer& server);
 
     /**
      * @brief 析构函数
@@ -249,7 +249,7 @@ private:
     [[nodiscard]] mc::network::TeamsPacket createTeamPacket(
         mc::scoreboard::ScorePlayerTeam& team, mc::network::TeamAction action);
 
-    mc::server::MinecraftServer& m_server;
+    mc::server::IServer& m_server;
 
     /// 数据管理器（可选，用于持久化）
     mc::scoreboard::ScoreboardDataManager* m_dataManager = nullptr;

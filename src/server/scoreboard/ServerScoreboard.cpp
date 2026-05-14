@@ -26,7 +26,7 @@
 #include "../../common/scoreboard/storage/ScoreboardDataManager.hpp"
 #include "../../common/util/text/ITextComponent.hpp"
 #include "../../common/util/text/StringTextComponent.hpp"
-#include "../application/MinecraftServer.hpp"
+#include "../application/IServer.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../core/PlayerManager.hpp"
 #include "../core/ServerPlayerData.hpp"
@@ -44,7 +44,7 @@ using ::mc::scoreboard::ScorePlayerTeam;
 using ::mc::scoreboard::DisplaySlot;
 using ::mc::scoreboard::DISPLAY_SLOT_COUNT;
 
-ServerScoreboard::ServerScoreboard(MinecraftServer& server)
+ServerScoreboard::ServerScoreboard(IServer& server)
     : m_server(server)
 {}
 

@@ -47,6 +47,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -145,6 +146,7 @@ public:
               m_config)
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
+        , m_scoreboard(*this)
     {
         Items::initialize();
     }
@@ -263,6 +265,9 @@ public:
 
     [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
+
+    [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
+    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
 
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
@@ -386,6 +391,7 @@ private:
     server::core::BannedIpList m_bannedIpList;
     server::core::OpListManager m_opListManager;
     mc::command::CommandRegistry m_commandRegistry;
+    server::ServerScoreboard m_scoreboard;
     std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };
 

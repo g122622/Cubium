@@ -30,6 +30,7 @@ src/server/application/
     - Player inventory access: `playerInventory(playerId)`
   - Sync managers access: `entitySyncManager()`, `chunkSendManager()`, `lightSyncManager()`
   - Command system access: `commandRegistry()`
+  - Scoreboard system access: `scoreboard()`
   - Configuration access: `viewDistance()`, `maxPlayers()`, `seed()`, `currentTick()`
 
 **Design Pattern:** Interface Segregation - provides clean abstraction for server types without exposing implementation details.

@@ -1218,6 +1218,7 @@ endif()
 add_executable(mc_command_tests
     server/command/CommandRegistryTest.cpp
     server/command/PlayerResolverTest.cpp
+    server/command/TeamCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
 )
@@ -1338,6 +1339,22 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
+        # 记分板系统
+        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreObjective.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Score.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteriaRenderType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScorePlayerTeam.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DummyCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TriggerCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DeathCountCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
 )
 
 target_link_libraries(mc_command_tests
