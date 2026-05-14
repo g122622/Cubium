@@ -254,6 +254,8 @@ add_executable(mc_tests
     server/core/BannedPlayerListTest.cpp
     server/core/BannedIpListTest.cpp
     server/core/OpListManagerTest.cpp
+    # PacketHandler 测试（载具输入、位置验证、实体交互、实体动作）
+    server/core/PacketHandlerTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # 维度管理器测试

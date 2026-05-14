@@ -674,6 +674,7 @@ opList.save();
 - 分发到对应处理方法
 - 处理登录、移动、心跳、传送确认、聊天等数据包
 - 提供事件回调机制
+- 处理载具输入、载具位置同步、实体交互、实体动作等数据包
 
 **主要方法：**
 | 方法 | 描述 |
@@ -687,6 +688,41 @@ opList.save();
 | `handleTeleportConfirm(sessionId, data, size)` | 处理传送确认 |
 | `handleKeepAlive(sessionId, data, size, currentTimeMs)` | 处理完整心跳响应（包含包头） |
 | `handleChatMessage(sessionId, data, size)` | 处理聊天消息 |
+| `handleUseEntity(sessionId, data, size)` | 处理实体交互 |
+| `setServer(server)` | 设置服务器接口指针 |
+| `getServer()` | 获取服务器接口指针 |
+
+**载具输入处理 (handlePlayerInput)：**
+- 通过 `IServer` 接口获取 `ServerPlayerEntityManager` 和 `ServerWorld`
+- 验证玩家是否正在骑乘
+- 获取载具实体并验证玩家是否为控制者
+- 设置玩家移动状态（`setMoveStrafing`、`setMoveForward`、`setJumping`、`setSneaking`）
+- 处理跳跃载具（`IJumpingMount` 接口）的跳跃输入
+
+**载具位置验证 (handleMoveVehicle)：**
+- 获取最底层载具（支持嵌套骑乘，如玩家骑马、马骑船）
+- 验证玩家是否是载具的控制者
+- 验证数据包有效性（坐标是否为有限数值）
+- 速度验证防止作弊（`MAX_VEHICLE_SPEED_SQ = 100.0`）
+- 更新载具位置和旋转
+- 同步玩家位置跟随载具
+
+**实体交互处理 (handleUseEntity)：**
+- 获取玩家实体和目标实体
+- 距离检查（创造模式跳过）
+- 处理三种交互类型：
+  - `Interact` - 右键交互（调用 `player->interactOn()`）
+  - `Attack` - 左键攻击（调用 `player->attack()`）
+  - `InteractAt` - 指定位置交互（简化实现）
+- 成功交互后触发挥手动画
+
+**实体动作处理 (handleEntityAction)：**
+- `PressShiftKey` - 设置潜行状态，骑乘时触发下马
+- `ReleaseShiftKey` - 释放潜行状态
+- `StartRidingJump` - 处理马跳跃蓄力（`IJumpingMount` 接口）
+- `StopRidingJump` - 停止马跳跃蓄力
+- `StartSprinting` - 开始疾跑
+- `StopSprinting` - 停止疾跑
 
 **处理结果枚举：**
 ```cpp
@@ -703,6 +739,19 @@ enum class PacketHandleResult {
 - `LoginFailCallback` - 登录失败回调
 - `DisconnectCallback` - 断开连接回调
 - `ChatCallback` - 聊天消息回调
+
+**依赖注入：**
+```cpp
+// PacketHandler 需要通过 setServer() 设置 IServer 指针
+// 以访问 ServerPlayerEntityManager 和 ServerWorld
+packetHandler.setServer(&server);
+```
+
+**参考 MC 1.16.5：**
+- `ServerPlayNetHandler.processInput()` - 玩家输入处理
+- `ServerPlayNetHandler.processVehicleMove()` - 载具移动验证
+- `ServerPlayNetHandler.processUseEntity()` - 实体交互
+- `ServerPlayNetHandler.processEntityAction()` - 实体动作
 
 ---
 
