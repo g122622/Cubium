@@ -57,6 +57,44 @@ public:
      */
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
 
+    /**
+     * @brief 设置帽子可见性
+     *
+     * 用于多层纹理渲染时控制基础帽子是否显示。
+     * 当职业帽子为 FULL 或 PARTIAL 时，可能需要隐藏基础帽子。
+     *
+     * 参考 MC 1.16.5 VillagerModel.setHatVisible
+     */
+    void setHatVisible(bool visible)
+    {
+        if (m_hat) {
+            m_hat->setVisible(visible);
+        }
+        if (m_hatBrim) {
+            m_hatBrim->setVisible(visible);
+        }
+    }
+
+    /**
+     * @brief 获取帽子模型
+     */
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHat() const { return m_hat; }
+
+    /**
+     * @brief 获取身体模型
+     */
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getBody() const { return m_body; }
+
+    /**
+     * @brief 获取衣服模型
+     */
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getClothing() const { return m_clothing; }
+
+    /**
+     * @brief 获取鼻子模型
+     */
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getNose() const { return m_nose; }
+
 protected:
     // 头部部件
     std::shared_ptr<ModelRenderer> m_head;    // 头部

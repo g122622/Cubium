@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,46 +18,36 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "VillagerRenderer.hpp"
-#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 
 VillagerRenderer::VillagerRenderer()
-    : m_model(0.0f)
 {
-    setShadowSize(0.5f);
+    m_shadowSize = 0.5f;
+    initLayers();
 }
 
-void VillagerRenderer::render(Entity& entity, f64 partialTicks)
+void VillagerRenderer::initLayers()
 {
-    // 计算动画参数
-    f64 limbSwing = 0.0;
-    f64 limbSwingAmount = 0.0;
-    f64 ageInTicks = static_cast<f64>(entity.ticksExisted());
-    f64 headYaw = entity.prevYaw() + (entity.yaw() - entity.prevYaw()) * partialTicks;
-    f64 headPitch = entity.prevPitch() + (entity.pitch() - entity.prevPitch()) * partialTicks;
-
-    m_model.setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, 1.0);
-    m_model.render(1.0 / 16.0);
-
-    // 渲染阴影
-    if (m_shadowSize > 0.0) {
-        renderShadow(entity, partialTicks);
-    }
+    // MC 1.16.5 VillagerRenderer 添加 VillagerLevelPendantLayer
+    // 该层负责渲染类型层、职业层和等级徽章层
+    addLayer<layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>>(*this, "villager");
 }
 
-ResourceLocation VillagerRenderer::getEntityTexture(::mc::VillagerEntity& entity)
+ResourceLocation VillagerRenderer::getEntityTexture(::mc::entity::VillagerEntity& entity)
 {
-    // TODO: 根据村民职业和生物群系选择纹理
+    // MC 1.16.5 VillagerRenderer.getEntityTexture():
+    // 只返回基础纹理，类型层和职业层由 VillagerLayer 渲染
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");
 }
 
-ResourceLocation VillagerRenderer::getEntityTexture(const ::mc::VillagerEntity& entity) const
+ResourceLocation VillagerRenderer::getEntityTexture(const ::mc::entity::VillagerEntity& entity) const
 {
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");

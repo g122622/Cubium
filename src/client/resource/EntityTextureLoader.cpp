@@ -139,6 +139,46 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
 const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTURES = {
     // 羊的毛皮层
     {"sheep", {"entity/sheep/sheep_fur"}},
+
+    // 村民多层纹理（MC 1.16.5 VillagerLevelPendantLayer）
+    // 类型层 - 根据生物群系
+    {"villager",
+        {"entity/villager/type/desert", "entity/villager/type/jungle", "entity/villager/type/plains",
+            "entity/villager/type/savanna", "entity/villager/type/snow", "entity/villager/type/swamp",
+            "entity/villager/type/taiga",
+            // 职业层 - 根据职业
+            "entity/villager/profession/none", "entity/villager/profession/armorer",
+            "entity/villager/profession/butcher", "entity/villager/profession/cartographer",
+            "entity/villager/profession/cleric", "entity/villager/profession/farmer",
+            "entity/villager/profession/fisherman", "entity/villager/profession/fletcher",
+            "entity/villager/profession/leatherworker", "entity/villager/profession/librarian",
+            "entity/villager/profession/mason", "entity/villager/profession/nitwit",
+            "entity/villager/profession/shepherd", "entity/villager/profession/toolsmith",
+            "entity/villager/profession/weaponsmith",
+            // 等级徽章层
+            "entity/villager/profession_level/stone", "entity/villager/profession_level/iron",
+            "entity/villager/profession_level/gold", "entity/villager/profession_level/emerald",
+            "entity/villager/profession_level/diamond"}},
+
+    // 僵尸村民多层纹理（与村民相同的层结构）
+    {"zombie_villager",
+        {"entity/zombie_villager/type/desert", "entity/zombie_villager/type/jungle",
+            "entity/zombie_villager/type/plains", "entity/zombie_villager/type/savanna",
+            "entity/zombie_villager/type/snow", "entity/zombie_villager/type/swamp",
+            "entity/zombie_villager/type/taiga",
+            // 职业层
+            "entity/zombie_villager/profession/none", "entity/zombie_villager/profession/armorer",
+            "entity/zombie_villager/profession/butcher", "entity/zombie_villager/profession/cartographer",
+            "entity/zombie_villager/profession/cleric", "entity/zombie_villager/profession/farmer",
+            "entity/zombie_villager/profession/fisherman", "entity/zombie_villager/profession/fletcher",
+            "entity/zombie_villager/profession/leatherworker", "entity/zombie_villager/profession/librarian",
+            "entity/zombie_villager/profession/mason", "entity/zombie_villager/profession/nitwit",
+            "entity/zombie_villager/profession/shepherd", "entity/zombie_villager/profession/toolsmith",
+            "entity/zombie_villager/profession/weaponsmith",
+            // 等级徽章层
+            "entity/zombie_villager/profession_level/stone", "entity/zombie_villager/profession_level/iron",
+            "entity/zombie_villager/profession_level/gold", "entity/zombie_villager/profession_level/emerald",
+            "entity/zombie_villager/profession_level/diamond"}},
 };
 
 } // namespace
