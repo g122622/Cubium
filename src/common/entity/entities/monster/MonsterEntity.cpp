@@ -161,18 +161,29 @@ void MonsterEntity::updateIdleTimeBasedOnBrightness()
 bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random)
 {
     // MC 1.16.5 MonsterEntity.isValidLightLevel()
-    // 检查天空光照
+    // 参考: net.minecraft.entity.monster.MonsterEntity.isValidLightLevel(IServerWorld, BlockPos, Random)
+
+    // 第一阶段：快速天空光照检查
+    // 如果天空光照 > random(0-31)，则太亮不能生成
     u8 skyLight = world.getSkyLight(pos);
     if (skyLight > random.nextInt(32)) {
         return false;
     }
 
-    // 检查方块光照
-    u8 light = world.getBlockLight(pos);
-    // TODO: 如果在雷暴天气，使用更低的亮度阈值
-    // if (world.isThundering()) {
-    //     light = world.getNeighborAwareLightSubtracted(pos, 10);
-    // }
+    // 第二阶段：综合光照检查
+    // MC 1.16.5: 在雷暴天气时使用固定的天空减暗值 10
+    // 否则使用当前时间的天空减暗值（通过 getLight 获取）
+    u8 light;
+    if (world.isThundering()) {
+        // 雷暴天气：使用邻居感知的光照计算，天空减暗值为 10
+        // 这使得即使在白天，雷暴天气下露天位置的光照也会很低
+        light = world.getNeighborAwareLightSubtracted(pos, 10);
+    } else {
+        // 正常天气：使用当前时间的天空减暗值
+        light = world.getLight(pos);
+    }
+
+    // 如果光照 <= random(0-7)，则足够黑暗可以生成
     return light <= random.nextInt(8);
 }
 

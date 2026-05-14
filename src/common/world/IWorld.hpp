@@ -33,6 +33,7 @@
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
 #include "explosion/ExplosionMode.hpp"
+#include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
 #include <memory>
 #include <vector>
@@ -399,6 +400,68 @@ public:
             skyLight = 0;
         }
         return std::max(blockLight, skyLight);
+    }
+
+    /**
+     * @brief 获取邻居感知的综合光照等级
+     *
+     * 这个方法在敌对生物生成检测时使用，特别是在雷暴天气。
+     * 如果当前位置可以看到天空（天空光照 >= 15），会检查邻居方块的天空光照。
+     * 如果邻居的天空光照更低，则使用更小的天空减暗因子。
+     *
+     * 参考: net.minecraft.world.IWorldReader#getNeighborAwareLightSubtracted
+     * 参考: net.minecraft.world.IWorldReader#getLight
+     *
+     * @param pos 方块位置
+     * @param skyDarkening 天空光照衰减值（0-15）
+     * @return 综合光照等级 (0-15)
+     */
+    [[nodiscard]] virtual u8 getNeighborAwareLightSubtracted(const BlockPos& pos, u32 skyDarkening) const
+    {
+        // MC 1.16.5: 检查坐标是否在有效范围内
+        // 世界边界检查: -30000000 到 30000000
+        constexpr i32 WORLD_BORDER_MIN = -30000000;
+        constexpr i32 WORLD_BORDER_MAX = 30000000;
+        if (pos.x < WORLD_BORDER_MIN || pos.x >= WORLD_BORDER_MAX || pos.z < WORLD_BORDER_MIN
+            || pos.z >= WORLD_BORDER_MAX) {
+            return 15; // 世界边界外返回最大亮度
+        }
+        return getLightSubtracted(pos, skyDarkening);
+    }
+
+    /**
+     * @brief 获取当前位置的综合光照等级
+     *
+     * 使用当前时间和天气计算的天空减暗因子。
+     * 这是 MC 1.16.5 中 IWorldReader.getLight(pos) 的实现方式。
+     *
+     * 参考: net.minecraft.world.IWorldReader#getLight(BlockPos)
+     *
+     * @param pos 方块位置
+     * @return 综合光照等级 (0-15)
+     */
+    [[nodiscard]] virtual u8 getLight(const BlockPos& pos) const
+    {
+        // MC 1.16.5: getNeighborAwareLightSubtracted(pos, getSkylightSubtracted())
+        return getNeighborAwareLightSubtracted(pos, static_cast<u32>(getSkyDarkening()));
+    }
+
+    /**
+     * @brief 获取当前天空减暗因子
+     *
+     * 根据当前时间和天气计算天空减暗因子。
+     * 用于计算综合光照等级。
+     *
+     * 参考: net.minecraft.world.World#getSkylightSubtracted
+     *
+     * @return 天空减暗因子 (0-11)
+     */
+    [[nodiscard]] virtual i32 getSkyDarkening() const
+    {
+        // 使用 InternalLightUtils 计算天空减暗因子
+        // 根据当前时间和天气状态
+        return InternalLightUtils::calculateSkyDarkening(
+            dayTime(), isRaining(), isThundering());
     }
 
     /**
