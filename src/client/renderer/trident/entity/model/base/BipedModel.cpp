@@ -559,4 +559,23 @@ f32 BipedModel::getArmAngleSq(f32 limbSwing)
     return -65.0f * limbSwing + limbSwing * limbSwing;
 }
 
+void BipedModel::translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const
+{
+    // 参考 MC 1.16.5 BipedModel.translateHand
+    // 调用手臂的 translateRotate 方法来构建变换矩阵
+    // Java: this.getArmForSide(sideIn).translateRotate(matrixStackIn);
+
+    const auto& arm = (handSide == HandSide::Left) ? m_bipedLeftArm : m_bipedRightArm;
+
+    if (!arm) {
+        // 如果手臂不存在，返回单位矩阵
+        outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+        return;
+    }
+
+    // 获取手臂的变换矩阵
+    // 参考 ModelRenderer::getTransformMatrix 的实现
+    arm->getTransformMatrix(outMatrix);
+}
+
 } // namespace mc::client::renderer::entity::model

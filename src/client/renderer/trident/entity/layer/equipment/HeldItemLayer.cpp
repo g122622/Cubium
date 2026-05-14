@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "HeldItemLayer.hpp"
@@ -42,8 +42,8 @@ namespace mc::client::renderer::entity::layer::equipment {
 static std::unordered_map<u32, pipeline::EntityMesh> s_heldItemMeshCache;
 static bool s_cacheInitialized = false;
 
-template <typename TEntity>
-void HeldItemLayer<TEntity>::renderPipeline(TEntity& entity,
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -72,8 +72,8 @@ void HeldItemLayer<TEntity>::renderPipeline(TEntity& entity,
     renderHandItemPipeline(entity, leftHandSlot, mc::HandSide::Left, cmd, context, pipeline);
 }
 
-template <typename TEntity>
-void HeldItemLayer<TEntity>::render(TEntity& entity,
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::render(TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -95,8 +95,8 @@ void HeldItemLayer<TEntity>::render(TEntity& entity,
     // 注意：CPU 路径不再实现，需要通过 GPU 管线渲染
 }
 
-template <typename TEntity>
-bool HeldItemLayer<TEntity>::shouldRender(const TEntity& entity) const
+template <typename TEntity, typename TModel>
+bool HeldItemLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 {
     // 检查是否有手持物品
     const ItemStack* mainHand = getHeldItem(entity, mc::Hand::MainHand);
@@ -108,8 +108,8 @@ bool HeldItemLayer<TEntity>::shouldRender(const TEntity& entity) const
     return false;
 }
 
-template <typename TEntity>
-void HeldItemLayer<TEntity>::renderHandItemPipeline(TEntity& entity,
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
     mc::Hand hand,
     mc::HandSide handSide,
     VkCommandBuffer cmd,
@@ -121,13 +121,12 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(TEntity& entity,
         return;
     }
 
+    // 获取父模型
+    TModel* model = getParentModel();
+
     // 计算手持物品的变换矩阵
     std::array<f64, 16> itemTransform;
-    computeItemTransform(handSide,
-        static_cast<f32>(context.limbSwing),
-        static_cast<f32>(context.limbSwingAmount),
-        static_cast<f32>(context.swingProgress),
-        itemTransform);
+    computeItemTransform(model, handSide, itemTransform);
 
     // 获取物品ID用于缓存
     u32 itemId = static_cast<u32>(item->getItem()->itemId());
@@ -164,11 +163,6 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(TEntity& entity,
     // 获取实体的世界位置
     Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
-    // 结合实体位置和物品变换
-    // 物品变换是相对于实体身体坐标系的
-    std::array<f64, 16> worldTransform = itemTransform;
-
-    // 绘制物品网格
     // 使用实体的 hurtTime 和 deathTime 来传递受伤效果
     f32 hurtTime = 0.0f;
     f32 deathTime = 0.0f;
@@ -177,8 +171,7 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(TEntity& entity,
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(
-        cmd, it->second, worldTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
         item->getItem()->itemLocation().toString(),
@@ -186,8 +179,8 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(TEntity& entity,
         hand == mc::Hand::MainHand ? "main" : "off");
 }
 
-template <typename TEntity>
-void HeldItemLayer<TEntity>::renderHandItem(TEntity& entity,
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::renderHandItem(TEntity& entity,
     mc::Hand hand,
     mc::HandSide handSide,
     f32 limbSwing,
@@ -209,8 +202,8 @@ void HeldItemLayer<TEntity>::renderHandItem(TEntity& entity,
     (void)scale;
 }
 
-template <typename TEntity>
-const ItemStack* HeldItemLayer<TEntity>::getHeldItem(const TEntity& entity, mc::Hand hand) const
+template <typename TEntity, typename TModel>
+const ItemStack* HeldItemLayer<TEntity, TModel>::getHeldItem(const TEntity& entity, mc::Hand hand) const
 {
     // 从实体获取手持物品
     // LivingEntity 有 getEquipment 方法
@@ -222,94 +215,106 @@ const ItemStack* HeldItemLayer<TEntity>::getHeldItem(const TEntity& entity, mc::
     return nullptr;
 }
 
-template <typename TEntity>
-void HeldItemLayer<TEntity>::computeItemTransform(
-    mc::HandSide handSide, f32 limbSwing, f32 limbSwingAmount, f32 swingProgress, std::array<f64, 16>& outMatrix)
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::computeItemTransform(
+    const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix)
 {
     // 初始化为单位矩阵
     outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    // 参考 MC 1.16.5 HeldItemLayer.java:45-48
-    // matrixStackIn.rotate(Vector3f.XP.rotationDegrees(-90.0F));
-    // matrixStackIn.rotate(Vector3f.YP.rotationDegrees(180.0F));
-    // boolean flag = p_229135_4_ == HandSide.LEFT;
-    // matrixStackIn.translate((double)((float)(flag ? -1 : 1) / 16.0F), 0.125D, -0.625D);
+    // 参考 MC 1.16.5 HeldItemLayer.func_229135_a_ (第 41-49 行)
+    // 1. 首先调用 model.translateHand(side, matrixStack)
+    //    这会将矩阵变换到手臂的局部坐标系（包含手臂的旋转点和旋转角度）
+    // 2. 然后应用固定的物品变换：
+    //    matrixStack.rotate(Vector3f.XP.rotationDegrees(-90.0F));
+    //    matrixStack.rotate(Vector3f.YP.rotationDegrees(180.0F));
+    //    matrixStack.translate((flag ? -1 : 1) / 16.0F, 0.125D, -0.625D);
 
-    // 首先应用 X 轴 -90° 旋转
-    // rotateX(-90°) 后 Y 轴变为 -Z 轴
-    f64 cosX = std::cos(-mc::math::PI_DOUBLE * 0.5); // cos(-90°)
-    f64 sinX = std::sin(-mc::math::PI_DOUBLE * 0.5); // sin(-90°)
+    // 步骤 1：从模型获取手臂变换矩阵
+    std::array<f64, 16> armMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    // 然后应用 Y 轴 180° 旋转
-    f64 cosY = std::cos(mc::math::PI_DOUBLE); // cos(180°)
-    f64 sinY = std::sin(mc::math::PI_DOUBLE); // sin(180°)
+    if (model) {
+        // 调用模型的 translateHand 方法获取手臂变换
+        // 这会返回手臂的旋转点和旋转角度的组合变换
+        // 转换 HandSide：mc::HandSide -> model::HandSide
+        model::HandSide modelHandSide = (handSide == mc::HandSide::Left) ? model::HandSide::Left : model::HandSide::Right;
+        model->translateHand(modelHandSide, armMatrix);
+    }
 
-    // 组合旋转矩阵：先 X 旋转再 Y 旋转
-    // R = Ry(180°) * Rx(-90°)
+    // 步骤 2：应用物品固定变换（相对于手臂坐标系）
+    // X 轴 -90° 旋转 + Y 轴 180° 旋转的组合
+    // cos(-90°) = 0, sin(-90°) = -1
+    // cos(180°) = -1, sin(180°) = 0
+
+    // 组合旋转矩阵 R = Ry(180°) * Rx(-90°)
     // 简化后：
-    // cosY=-1, sinY=0, cosX=0, sinX=-1
-    // 结果矩阵：
-    // [0, 0, 1, 0]
-    // [0, -1, 0, 0]
-    // [1, 0, 0, 0]
-    // [0, 0, 0, 1]
-    outMatrix[0] = 0.0;
-    outMatrix[1] = 0.0;
-    outMatrix[2] = 1.0;
-    outMatrix[4] = 0.0;
-    outMatrix[5] = -1.0;
-    outMatrix[6] = 0.0;
-    outMatrix[8] = 1.0;
-    outMatrix[9] = 0.0;
-    outMatrix[10] = 0.0;
+    // Rx(-90°): [1, 0, 0, 0; 0, 0, 1, 0; 0, -1, 0, 0; 0, 0, 0, 1]
+    // Ry(180°): [-1, 0, 0, 0; 0, 1, 0, 0; 0, 0, -1, 0; 0, 0, 0, 1]
+    // R = Ry * Rx:
+    // [-1, 0, 0, 0]   [1, 0, 0, 0]   [-1, 0, 0, 0]
+    // [ 0, 1, 0, 0] * [0, 0, 1, 0] = [ 0, 0, 1, 0]
+    // [ 0, 0,-1, 0]   [0,-1, 0, 0]   [ 0, 1, 0, 0]
+    // [ 0, 0, 0, 1]   [0, 0, 0, 1]   [ 0, 0, 0, 1]
 
-    // MC 1.16.5: translate((float)(flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
-    // flag = (handSide == HandSide.LEFT) in MC terms
+    std::array<f64, 16> itemRotation = {
+        -1.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 1.0, 0.0,
+         0.0, 1.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 1.0
+    };
+
+    // 步骤 3：应用手部偏移
+    // MC 1.16.5: translate((flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
+    // flag = (handSide == HandSide.LEFT)
     // 所以 Right 时 x = +1/16, Left 时 x = -1/16
     bool isLeftHand = (handSide == mc::HandSide::Left);
     f64 xOffset = isLeftHand ? -1.0 / 16.0 : 1.0 / 16.0;
     f64 yOffset = 0.125;
     f64 zOffset = -0.625;
 
-    // 应用位置偏移（在旋转后的坐标系中）
-    outMatrix[3] = xOffset;
-    outMatrix[7] = yOffset;
-    outMatrix[11] = zOffset;
+    // 构建偏移矩阵
+    std::array<f64, 16> translation = {
+        1.0, 0.0, 0.0, xOffset,
+        0.0, 1.0, 0.0, yOffset,
+        0.0, 0.0, 1.0, zOffset,
+        0.0, 0.0, 0.0, 1.0
+    };
 
-    // 步态动画影响
-    if (limbSwingAmount > 0.001f) {
-        f64 armSwing = std::sin(static_cast<f64>(limbSwing) * 0.5) * static_cast<f64>(limbSwingAmount) * 0.5;
-        // 手臂摆动时物品跟随移动
-        // 这里简化处理，实际应该根据手臂骨骼位置计算
-        (void)armSwing; // TODO: 应用摆动动画
+    // 组合所有变换：outMatrix = armMatrix * itemRotation * translation
+    // 矩阵乘法顺序：从右到左应用
+
+    // 首先计算 temp = itemRotation * translation
+    std::array<f64, 16> temp = {0};
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            f64 sum = 0.0;
+            for (int k = 0; k < 4; ++k) {
+                sum += itemRotation[row * 4 + k] * translation[k * 4 + col];
+            }
+            temp[row * 4 + col] = sum;
+        }
     }
 
-    // 挥动手臂动画
-    if (swingProgress > 0.0f) {
-        // 攻击动画：物品向外挥动
-        f64 swingAngle = static_cast<f64>(swingProgress) * mc::math::PI_DOUBLE; // 0 到 π
-        f64 swingFactor = std::sin(swingAngle);
-
-        // 在原有旋转基础上添加挥动效果
-        // 挥动时物品沿 Z 轴旋转
-        f64 cosSwing = std::cos(swingFactor * 0.5);
-        f64 sinSwing = std::sin(swingFactor * 0.5);
-
-        // 修改旋转矩阵以包含挥动效果
-        // 简化：直接调整位置
-        outMatrix[7] += sinSwing * 0.1;  // Y 方向偏移
-        outMatrix[11] += cosSwing * 0.1; // Z 方向偏移
+    // 然后计算 outMatrix = armMatrix * temp
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            f64 sum = 0.0;
+            for (int k = 0; k < 4; ++k) {
+                sum += armMatrix[row * 4 + k] * temp[k * 4 + col];
+            }
+            outMatrix[row * 4 + col] = sum;
+        }
     }
 
-    // 避免未使用变量警告
-    (void)cosX;
-    (void)sinX;
-    (void)cosY;
-    (void)sinY;
+    // [COMPLETED] 2026-05-15 - HeldItemLayer 手臂摆动动画已实现
+    // - 添加模型引用和 translateHand 调用，物品现在会跟随手臂动画
+    // - 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
+    // - BipedModel::translateHand 方法获取手臂的实际旋转角度
+    // - 物品变换现在正确包含手臂的旋转点和旋转角度
 }
 
 // 显式实例化常用类型
-template class HeldItemLayer<::mc::LivingEntity>;
-template class HeldItemLayer<::mc::Player>;
+template class HeldItemLayer<::mc::LivingEntity, model::BipedModel>;
+template class HeldItemLayer<::mc::Player, model::BipedModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

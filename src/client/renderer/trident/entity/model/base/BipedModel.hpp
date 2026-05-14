@@ -180,6 +180,17 @@ public:
      */
     std::shared_ptr<ModelRenderer> getLeftLeg() { return m_bipedLeftLeg; }
 
+    /**
+     * @brief 平移手部用于手持物品渲染
+     *
+     * 参考 MC 1.16.5 BipedModel.translateHand
+     * 将矩阵变换到手臂的局部坐标系，使手持物品跟随手臂动画。
+     *
+     * @param handSide 手侧（左手或右手）
+     * @param outMatrix 输出变换矩阵（4x4，行主序）
+     */
+    void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const;
+
 protected:
     /**
      * @brief 设置模型部件
