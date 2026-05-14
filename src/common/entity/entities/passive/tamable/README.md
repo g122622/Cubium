@@ -34,6 +34,7 @@ MobEntity
 - `setTamed(bool)` - 设置驯服状态
 - `getOwnerId()` - 获取主人ID
 - `setOwnerId(u64)` - 设置主人
+- `isTameItem(const ItemStack&)` - 检查物品是否可用于驯服（虚方法，子类重写）
 
 ### 坐下/站起
 - `isSitting()` - 检查是否坐下

@@ -380,6 +380,65 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 
 ---
 
+#### BegGoal - 乞求目标
+
+**职责**: 当玩家手持食物或驯服物品时，动物会看向玩家并乞求。主要用于狼（狗）的行为。
+
+**执行条件**: 附近有玩家手持驯服物品（仅已驯服动物）或繁殖物品（所有动物）
+
+**行为**:
+1. 检测玩家手持物品
+2. 看向玩家
+3. 播放乞求动画（头部摆动）
+
+**互斥标志**: `Look`
+
+**关键参数**:
+- `m_maxDistance`: 最大乞求距离 (默认 8.0f)
+- `m_targetPlayer`: 当前乞求目标
+
+**驯服物品检查逻辑** (MC 1.16.5 `BegGoal.hasTemptationItemInHand`):
+```cpp
+bool isPlayerHoldingFood(const Player* player) const {
+    // 检查主手和副手
+    for (Hand hand : {MainHand, OffHand}) {
+        ItemStack stack = player->getHeldItem(hand);
+        if (stack.isEmpty()) continue;
+        
+        // 已驯服的动物：对驯服物品和繁殖物品都乞求
+        if (m_entity->isTamed() && m_entity->isTameItem(stack)) {
+            return true;
+        }
+        // 所有动物：对繁殖物品乞求
+        if (m_entity->isBreedingItem(stack)) {
+            return true;
+        }
+    }
+    return false;
+}
+```
+
+**使用示例**:
+```cpp
+void WolfEntity::registerGoals() {
+    // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
+    // 参考 MC 1.16.5 WolfEntity.registerGoals() - BegGoal 优先级为 9
+    m_goalSelector.addGoal(9, std::make_unique<BegGoal>(this, 8.0f));
+}
+```
+
+**与 TemptGoal 的区别**:
+| 特性 | BegGoal | TemptGoal |
+|------|---------|-----------|
+| 行为 | 只看向玩家，不移动 | 跟随玩家移动 |
+| 适用动物 | 狼 | 牛、猪、羊等 |
+| 互斥标志 | `Look` | `Move`, `Look` |
+| 驯服物品支持 | 已驯服动物对驯服物品乞求 | 不检查驯服状态 |
+
+**参考**: MC 1.16.5 `net.minecraft.entity.ai.goal.BegGoal`
+
+---
+
 #### EatGrassGoal - 吃草目标
 
 **职责**: 使草食动物（如羊）吃草方块或草丛。
@@ -858,6 +917,23 @@ if (distSq < MAX_DISTANCE_SQ) { }
 | `CreeperSwellGoalBasicTest.AllGoalFlags_ReturnsAllFlags` | allGoalFlags 函数测试 |
 | `CreeperSwellGoalBasicTest.EnumSet_Operators` | EnumSet 运算符测试 |
 | `CreeperSwellGoalBasicTest.EnumSet_Intersects` | EnumSet 交集测试 |
+
+### BegGoalTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `BegGoalTestFixture.Wolf_IsPlayerHoldingFood_UntamedWolf_BoneReturnsFalse` | 未驯服狼对骨头不乞求 |
+| `BegGoalTestFixture.Wolf_IsPlayerHoldingFood_TamedWolf_BoneReturnsTrue` | 已驯服狼对骨头乞求 |
+| `BegGoalTestFixture.Wolf_IsPlayerHoldingFood_AnyWolf_MeatReturnsTrue` | 所有狼对肉类乞求 |
+| `BegGoalTestFixture.Cat_IsTameItem_CodAndSalmon` | 猫驯服物品测试 |
+| `BegGoalTestFixture.Parrot_IsTameItem_Seeds` | 鹦鹉驯服物品测试 |
+| `BegGoalTestFixture.TameableEntity_DefaultIsTameItem_ReturnsFalse` | 基类默认实现测试 |
+| `BegGoalTestFixture.BegGoal_Construction_ValidParameters` | BegGoal 构造测试 |
+| `BegGoalTestFixture.BegGoal_ShouldExecute_NoWorld_ReturnsFalse` | 无世界时返回 false |
+| `BegGoalTestFixture.IsTameItem_Override_CompileTimeCheck` | override 关键字多态测试 |
+| `BegGoalTestFixture.Wolf_TameItem_Vs_BreedingItem_Distinction` | 狼驯服/繁殖物品区分测试 |
+| `BegGoalTestFixture.Cat_TameItem_And_BreedingItem_Same` | 猫驯服/繁殖物品相同测试 |
+| `BegGoalTestFixture.Parrot_TameItem_Only_NoBreeding` | 鹦鹉只有驯服物品测试 |
 | `CreeperSwellGoalBasicTest.EnumSet_ForEach` | EnumSet 遍历测试 |
 
 ### GuardianAttackGoalTest.cpp
