@@ -80,6 +80,8 @@ add_executable(mc_tests
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
+    # PolarBearEntity IAngerable接口、站立警告、声音测试
+    common/entity/entities/passive/special/PolarBearEntityTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp

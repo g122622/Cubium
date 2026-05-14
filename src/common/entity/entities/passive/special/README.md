@@ -132,17 +132,75 @@ panda.setSneezeTimer(20); // 20 ticks = 1秒
 ## 北极熊 (PolarBearEntity)
 
 ### 特性
-- 幼崽跟随父母
-- 游泳行为
-- 攻击保护机制
-- 站立动画
+- **IAngerable 接口**: 实现愤怒管理系统，被攻击后会记住攻击者
+- **站立警告**: 近距离威胁时会后腿站立并发出警告声
+- **幼崽保护**: 成年熊会攻击靠近幼熊的玩家
+- **游泳行为**: 擅长游泳
+- **攻击反击**: 被攻击后会反击
+
+### 接口
+- 实现 `IAngerable` 接口
+
+### 愤怒系统 (IAngerable)
+```cpp
+// 设置/获取攻击目标
+void setAttackTarget(LivingEntity* target);
+LivingEntity* getAttackTarget() const;
+
+// 设置复仇目标（自动设置愤怒时间）
+void setRevengeTarget(LivingEntity* target);
+
+// 愤怒状态
+bool isAngry() const;
+void setAngry(bool angry);
+
+// 愤怒时间
+i32 getAngerTime() const;
+void setAngerTime(i32 time);
+void updateAnger();  // 每tick调用
+```
 
 ### 行为
 | 优先级 | Goal | 说明 |
 |--------|------|------|
 | 0 | SwimGoal | 在水中游泳 |
-| 1 | AttackGoal | 攻击目标 |
-| 2 | FollowParentGoal | 幼体跟随父母 |
+| 1 | PolarBearMeleeAttackGoal | 近战攻击（带站立警告） |
+| 1 | PolarBearPanicGoal | 恐慌逃跑（仅幼熊或着火） |
+| 4 | FollowParentGoal | 幼体跟随父母 |
+| 5 | RandomWalkingGoal | 随机漫步 |
+| 6 | LookAtGoal | 看向玩家 |
+| 7 | LookRandomlyGoal | 随机看向 |
+
+### 目标选择器
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | PolarBearHurtByTargetGoal | 被攻击后反击，幼熊呼唤成年熊 |
+| 2 | PolarBearAttackPlayerGoal | 保护幼崽攻击玩家 |
+| 3 | NearestAttackableTargetGoal<Player> | 有条件攻击玩家 |
+| 4 | NearestAttackableTargetGoal<FoxEntity> | 攻击狐狸 |
+
+### 声音事件
+- 环境音效：成年熊和幼熊使用不同音效
+- 受伤/死亡音效
+- 脚步声
+- 警告声（站立时播放）
+
+### 属性
+| 属性 | 值 | 说明 |
+|------|-----|------|
+| MAX_HEALTH | 30.0 | 生命值 |
+| FOLLOW_RANGE | 20.0 | 跟随范围 |
+| MOVEMENT_SPEED | 0.25 | 移动速度 |
+| ATTACK_DAMAGE | 6.0 | 攻击伤害 |
+
+### 常量
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| STAND_DURATION_MIN | 100 | 最小站立时间 (ticks) |
+| STAND_DURATION_MAX | 400 | 最大站立时间 (ticks) |
+| WARNING_SOUND_COOLDOWN | 40 | 警告声音冷却 (ticks) |
+| ANGER_TIME_MIN | 20 | 最小愤怒时间 (ticks) |
+| ANGER_TIME_MAX | 39 | 最大愤怒时间 (ticks) |
 
 ## 炽足兽 (StriderEntity)
 
@@ -209,7 +267,7 @@ public:
 
 ## 测试覆盖
 
-测试文件位于 `tests/entity/`，包含：
+测试文件位于 `tests/entity/` 和 `tests/common/entity/entities/passive/special/`，包含：
 - **StriderEntityTest.cpp**: 炽足兽实体测试（23 个测试）
   - getMountedYOffset 计算测试（11 个测试）
     - 基础偏移计算
@@ -232,6 +290,31 @@ public:
   - 眼睛高度测试（成体/幼体差异）
   - 睡眠状态测试
   - 叼物品功能测试
+- **PolarBearEntityTest.cpp**: 北极熊实体测试（20 个测试）
+  - 基本属性测试
+    - 构造函数默认值
+    - 成体/幼体眼睛高度差异
+    - 不可繁殖验证
+  - 站立状态测试
+    - 设置/清除站立状态
+    - 站立计时器设置
+  - 警告状态测试
+    - 设置/获取警告状态
+  - IAngerable 接口测试
+    - 设置愤怒状态
+    - 愤怒时间范围验证（20-39 ticks）
+    - 直接设置愤怒时间
+    - 设置攻击目标
+    - 清除复仇目标
+  - 声音事件测试
+    - 成体/幼体环境音效差异
+    - 受伤音效
+    - 死亡音效
+  - 属性测试
+    - 生命值、跟随范围、移动速度
+  - 随机性测试
+    - 愤怒时间随机变化
+    - 站立计时器随机变化
 - **PandaEntityTest.cpp**: 熊猫实体测试（17 个测试）
   - 性格测试
     - 随机生成有效性格
