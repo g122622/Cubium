@@ -295,17 +295,26 @@ public:
         const std::array<f64, 16>& parentMatrix,
         f64 scale = 1.0f / 16.0f) const;
 
-    // ========== 渲染（遗留接口，未来移除） ==========
+    // ========== 渲染（遗留接口，已废弃 - 使用 generateMesh 代替） ==========
 
     /**
-     * @brief 渲染模型
+     * @brief 渲染模型（已废弃）
+     *
+     * 此方法为遗留的 CPU 立即模式渲染接口，项目已改用 GPU 管线路径。
+     * 请使用 generateMesh() 生成网格数据，然后通过 EntityPipeline 提交到 GPU。
+     *
      * @param scale 缩放因子
+     * @deprecated 使用 generateMesh() 代替
      */
     void render(f64 scale = 1.0f / 16.0f);
 
     /**
-     * @brief 渲染时不进行旋转
+     * @brief 渲染时不进行旋转（已废弃）
+     *
+     * 此方法为遗留的 CPU 立即模式渲染接口，项目已改用 GPU 管线路径。
+     *
      * @param scale 缩放因子
+     * @deprecated 使用 generateMesh() 代替
      */
     void renderNoRotate(f64 scale = 1.0f / 16.0f);
 

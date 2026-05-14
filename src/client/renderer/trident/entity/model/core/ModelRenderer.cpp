@@ -493,8 +493,10 @@ void ModelRenderer::render(f64 scale)
         return;
     }
 
-    // TODO: 实际渲染逻辑
-    // 现在使用 generateMesh 来生成网格数据
+    // [NOT_NEEDED] 2026-05-15 - CPU 立即模式渲染已废弃
+    // 项目使用 GPU 管线路径（generateMesh -> EntityPipeline），不需要实现 CPU 渲染路径
+    // 此方法仅为遗留接口，所有运行时渲染都通过 renderWithPipeline() 完成
+    // 参见 EntityRendererManager::renderWithPipeline()
 
     (void)scale;
 
@@ -512,7 +514,8 @@ void ModelRenderer::renderNoRotate(f64 scale)
         return;
     }
 
-    // TODO: 渲染盒子（不应用旋转）
+    // [NOT_NEEDED] 2026-05-15 - CPU 立即模式渲染已废弃
+    // 原因同 render()，项目使用 GPU 管线路径
 
     (void)scale;
 
