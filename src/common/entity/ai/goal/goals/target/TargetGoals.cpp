@@ -29,6 +29,7 @@
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
+#include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../controller/LookController.hpp"
 #include <cmath>
@@ -210,6 +211,7 @@ void NearestAttackableTargetGoal<T>::startExecuting()
 template class NearestAttackableTargetGoal<LivingEntity>;
 template class NearestAttackableTargetGoal<MobEntity>;
 template class NearestAttackableTargetGoal<Player>;
+template class NearestAttackableTargetGoal<FoxEntity>;
 
 // ==================== HurtByTargetGoal ====================
 
