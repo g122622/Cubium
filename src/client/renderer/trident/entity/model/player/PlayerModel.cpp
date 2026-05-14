@@ -383,4 +383,102 @@ void PlayerModel::updateCapePosition(bool wearingChestplate, bool crouching)
     }
 }
 
+void PlayerModel::renderRightArm(f64 scale)
+{
+    // 参考 MC 1.16.5 PlayerRenderer.renderRightArm
+    // 仅渲染右臂和右袖外层
+    // 这是用于第三人称视角的手臂渲染
+
+    // 保存当前可见性状态
+    const bool rightArmVisible = m_rightArm ? m_rightArm->isVisible() : true;
+    const bool rightArmwearVisible = m_rightArmwear ? m_rightArmwear->isVisible() : true;
+
+    // 隐藏所有部件
+    setVisible(false);
+
+    // 仅显示右臂和右袖
+    if (m_rightArm) {
+        m_rightArm->setVisible(true);
+    }
+    if (m_rightArmwear) {
+        m_rightArmwear->setVisible(true);
+    }
+
+    // 重置手臂X轴旋转角度（MC 1.16.5: rendererArmIn.rotateAngleX = 0.0F）
+    // 这确保手臂水平伸出
+    if (m_rightArm) {
+        m_rightArm->setRotateAngleX(0.0f);
+    }
+    if (m_rightArmwear) {
+        m_rightArmwear->setRotateAngleX(0.0f);
+    }
+
+    // 渲染右臂（内层皮肤）
+    if (m_rightArm) {
+        m_rightArm->render(scale);
+    }
+
+    // 渲染右袖（外层皮肤）
+    if (m_rightArmwear) {
+        m_rightArmwear->render(scale);
+    }
+
+    // 恢复原始可见性状态
+    if (m_rightArm) {
+        m_rightArm->setVisible(rightArmVisible);
+    }
+    if (m_rightArmwear) {
+        m_rightArmwear->setVisible(rightArmwearVisible);
+    }
+}
+
+void PlayerModel::renderLeftArm(f64 scale)
+{
+    // 参考 MC 1.16.5 PlayerRenderer.renderLeftArm
+    // 仅渲染左臂和左袖外层
+    // 这是用于第三人称视角的手臂渲染
+
+    // 保存当前可见性状态
+    const bool leftArmVisible = m_leftArm ? m_leftArm->isVisible() : true;
+    const bool leftArmwearVisible = m_leftArmwear ? m_leftArmwear->isVisible() : true;
+
+    // 隐藏所有部件
+    setVisible(false);
+
+    // 仅显示左臂和左袖
+    if (m_leftArm) {
+        m_leftArm->setVisible(true);
+    }
+    if (m_leftArmwear) {
+        m_leftArmwear->setVisible(true);
+    }
+
+    // 重置手臂X轴旋转角度（MC 1.16.5: rendererArmIn.rotateAngleX = 0.0F）
+    // 这确保手臂水平伸出
+    if (m_leftArm) {
+        m_leftArm->setRotateAngleX(0.0f);
+    }
+    if (m_leftArmwear) {
+        m_leftArmwear->setRotateAngleX(0.0f);
+    }
+
+    // 渲染左臂（内层皮肤）
+    if (m_leftArm) {
+        m_leftArm->render(scale);
+    }
+
+    // 渲染左袖（外层皮肤）
+    if (m_leftArmwear) {
+        m_leftArmwear->render(scale);
+    }
+
+    // 恢复原始可见性状态
+    if (m_leftArm) {
+        m_leftArm->setVisible(leftArmVisible);
+    }
+    if (m_leftArmwear) {
+        m_leftArmwear->setVisible(leftArmwearVisible);
+    }
+}
+
 } // namespace mc::client::renderer::entity::model::player

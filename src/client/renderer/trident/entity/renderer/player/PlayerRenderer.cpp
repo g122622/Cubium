@@ -88,11 +88,22 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
     setModelVisibilities(player);
 
     // 重置动画状态
+    // 参考 MC 1.16.5 PlayerRenderer.renderItem:
+    // playermodel.swingProgress = 0.0F;
+    // playermodel.isSneak = false;
+    // playermodel.swimAnimation = 0.0F;
+    // playermodel.setRotationAngles(player, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
+    m_model.setSwingProgress(0.0f);
+    m_model.setCrouching(false);
+    m_model.setSwimming(false);
+    // 重置游泳动画（来自 BipedModel）
+    m_model.setSwimAnimation(0.0f);
 
-    // 仅渲染右臂和右袖外层
+    // 仅渲染右臂和右袖
     // 参考 MC 1.16.5 PlayerRenderer.renderRightArm
-    // TODO: 需要在 PlayerModel 中添加单独渲染手臂的方法
+    m_model.renderRightArm(1.0 / 16.0);
+
     (void)player;
     (void)partialTicks;
 }
@@ -103,11 +114,22 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
     setModelVisibilities(player);
 
     // 重置动画状态
+    // 参考 MC 1.16.5 PlayerRenderer.renderItem:
+    // playermodel.swingProgress = 0.0F;
+    // playermodel.isSneak = false;
+    // playermodel.swimAnimation = 0.0F;
+    // playermodel.setRotationAngles(player, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
+    m_model.setSwingProgress(0.0f);
+    m_model.setCrouching(false);
+    m_model.setSwimming(false);
+    // 重置游泳动画（来自 BipedModel）
+    m_model.setSwimAnimation(0.0f);
 
-    // 仅渲染左臂和左袖外层
+    // 仅渲染左臂和左袖
     // 参考 MC 1.16.5 PlayerRenderer.renderLeftArm
-    // TODO: 需要在 PlayerModel 中添加单独渲染手臂的方法
+    m_model.renderLeftArm(1.0 / 16.0);
+
     (void)player;
     (void)partialTicks;
 }

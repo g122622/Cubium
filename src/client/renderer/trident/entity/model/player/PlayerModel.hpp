@@ -135,6 +135,40 @@ public:
      */
     void copyAnglesToWear();
 
+    // ========== 手臂渲染（用于第三人称视角） ==========
+
+    /**
+     * @brief 渲染右手臂（仅手臂和袖子）
+     *
+     * 仅渲染右手臂和右袖外层，用于第三人称视角手臂渲染。
+     * 参考 MC 1.16.5 PlayerRenderer.renderRightArm
+     *
+     * 此方法会：
+     * 1. 隐藏所有其他部件
+     * 2. 仅显示右臂和右袖
+     * 3. 渲染右臂和右袖
+     * 4. 恢复原始可见性状态
+     *
+     * @param scale 缩放因子，默认 1/16
+     */
+    void renderRightArm(f64 scale = 1.0f / 16.0f);
+
+    /**
+     * @brief 渲染左手臂（仅手臂和袖子）
+     *
+     * 仅渲染左手臂和左袖外层，用于第三人称视角手臂渲染。
+     * 参考 MC 1.16.5 PlayerRenderer.renderLeftArm
+     *
+     * 此方法会：
+     * 1. 隐藏所有其他部件
+     * 2. 仅显示左臂和左袖
+     * 3. 渲染左臂和左袖
+     * 4. 恢复原始可见性状态
+     *
+     * @param scale 缩放因子，默认 1/16
+     */
+    void renderLeftArm(f64 scale = 1.0f / 16.0f);
+
     /**
      * @brief 平移手部用于第一人称渲染
      * 参考 MC 1.16.5 PlayerModel.translateHand
