@@ -30,6 +30,8 @@ namespace mc::client::renderer::entity::renderer::player {
  */
 class PlayerRenderer : public core::EntityRenderer {
 public:
+    using core::EntityRenderer::computeAnimationContext;
+
     /**
      * @brief 构造函数
      * @param slimArms 是否使用纤细手臂

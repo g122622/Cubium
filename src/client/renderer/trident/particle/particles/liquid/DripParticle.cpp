@@ -10,8 +10,8 @@ namespace mc::client::renderer::trident::particle::particles {
 
 DripParticle::DripParticle(const glm::vec3& pos, const glm::vec3& velocity, DripType type)
     : Particle(pos, velocity)
-    , m_hangPosition(pos)
     , m_type(type)
+    , m_hangPosition(pos)
 {
     // MC 1.16.5: DripParticle 基类构造
     // 尺寸 = 0.01 x 0.01

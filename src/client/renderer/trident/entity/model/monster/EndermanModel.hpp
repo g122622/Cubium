@@ -40,7 +40,7 @@ public:
     [[nodiscard]] bool isAttacking() const { return m_attacking; }
 
 private:
-    void setupParts();
+    void setupParts() override;
 
     bool m_carrying = false;   // 携带方块状态
     bool m_attacking = false;  // 尖叫/攻击状态

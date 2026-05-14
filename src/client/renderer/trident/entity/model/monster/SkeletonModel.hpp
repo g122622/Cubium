@@ -51,7 +51,7 @@ public:
     [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
 
 protected:
-    void setupParts();
+    void setupParts() override;
 
     ArmPose m_rightArmPose = ArmPose::Empty;
     ArmPose m_leftArmPose = ArmPose::Empty;

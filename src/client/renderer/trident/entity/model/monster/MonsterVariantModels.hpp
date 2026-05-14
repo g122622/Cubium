@@ -12,6 +12,8 @@ namespace mc::client::renderer::entity::model::monster {
  */
 class ZombieVillagerModel : public BipedModel {
 public:
+    using BipedModel::setupParts;
+
     ZombieVillagerModel();
     explicit ZombieVillagerModel(f32 scale, bool slim);
     ~ZombieVillagerModel() override = default;
@@ -35,6 +37,8 @@ private:
  */
 class DrownedModel : public BipedModel {
 public:
+    using BipedModel::setupParts;
+
     DrownedModel();
     explicit DrownedModel(f32 scale, bool slim);
     ~DrownedModel() override = default;

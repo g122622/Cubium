@@ -41,7 +41,7 @@ public:
     [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
 
 private:
-    void setupParts();
+    void setupParts() override;
 
     bool m_slim = false;        // 是否使用细长纹理
     bool m_isAggressive = false; // 是否处于攻击状态（影响手臂动画）
