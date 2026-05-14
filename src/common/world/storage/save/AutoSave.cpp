@@ -60,7 +60,6 @@ void AutoSave::setConfig(const AutoSaveConfig& config)
 void AutoSave::tick(u64 tickCount)
 {
     AutoSaveConfig config;
-    u64 lastSaveTick = 0;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -68,7 +67,6 @@ void AutoSave::tick(u64 tickCount)
             return;
         }
         config = m_config;
-        lastSaveTick = m_lastSaveTick;
     }
 
     if (!shouldSave(tickCount)) {

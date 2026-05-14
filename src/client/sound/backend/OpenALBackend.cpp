@@ -700,7 +700,7 @@ Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data) {
         return result.error();
     }
 
-    std::shared_ptr<OpenALBuffer> buffer = std::move(result.value());
+    std::shared_ptr<OpenALBuffer> buffer = result.value();
 
     // 存储缓冲区
     {

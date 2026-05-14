@@ -150,6 +150,9 @@ void ElementNode::categorizeAttributes() {
             case AttributeType::Event:
                 eventAttrs.push_back(attr);
                 break;
+            case AttributeType::Loop:
+            case AttributeType::Condition:
+                break;
         }
     }
 }
@@ -305,7 +308,6 @@ bool isValidBindingPath(const std::string& path) {
     }
 
     // 验证路径段
-    bool inSegment = false;
     bool hasSegmentChar = false;
 
     for (size_t i = start; i < path.size(); ++i) {
@@ -315,10 +317,8 @@ bool isValidBindingPath(const std::string& path) {
             if (!hasSegmentChar) {
                 return false; // 连续的点或点开头
             }
-            inSegment = false;
             hasSegmentChar = false;
         } else if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
-            inSegment = true;
             hasSegmentChar = true;
         } else {
             return false; // 无效字符

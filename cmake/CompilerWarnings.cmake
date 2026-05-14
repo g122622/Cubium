@@ -5,12 +5,9 @@ function(mc_set_compiler_warnings target)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         # GCC/Clang警告选项
         target_compile_options(${target} PRIVATE
-            -Wall
-            -Wextra
-            -Wpedantic
-            -Wshadow
-            -Wold-style-cast
-            -Wnon-virtual-dtor
+            -Werror=all
+            -Werror=extra
+            -Werror=pedantic
 
             # 禁用的警告
             -Wno-unused-parameter       # 禁用：未使用的参数警告
@@ -24,19 +21,30 @@ function(mc_set_compiler_warnings target)
             -Wno-implicit-int-conversion # 禁用：隐式整数转换警告
             -Wno-float-conversion         # 禁用：浮点转换警告
 
-            # 将关键警告视为错误
-            -Werror=return-local-addr    # 错误：返回局部变量地址
-            -Werror=uninitialized        # 错误：使用未初始化变量
-            -Werror=overloaded-virtual   # 错误：重载虚函数问题
-            -Werror=inconsistent-missing-override # 错误：不一致的缺失覆盖
-            -Werror=reorder-ctor       # 错误：构造函数成员初始化顺序与声明顺序不一致
-            -Werror=null-dereference   # 错误：空指针解引用
-            -Werror=non-virtual-dtor
-            -Werror=inconsistent-missing-destructor-override
-            -Werror=free-nonheap-object
-            -Werror=delete-non-virtual-dtor
-            -Werror=delete-incomplete
-            -Werror=return-stack-address
+            # 将关键警告视为错误。不用手动启用，因为 -Werror=all 已经包含了这些。
+            # -Werror=return-local-addr    # 错误：返回局部变量地址
+            # -Werror=uninitialized        # 错误：使用未初始化变量
+            # -Werror=overloaded-virtual   # 错误：重载虚函数问题
+            # -Werror=inconsistent-missing-override # 错误：不一致的缺失覆盖
+            # -Werror=reorder-ctor       # 错误：构造函数成员初始化顺序与声明顺序不一致
+            # -Werror=null-dereference   # 错误：空指针解引用
+            # -Werror=non-virtual-dtor
+            # -Werror=inconsistent-missing-destructor-override
+            # -Werror=free-nonheap-object
+            # -Werror=delete-non-virtual-dtor
+            # -Werror=delete-incomplete
+            # -Werror=return-stack-address
+            # -Werror=unused-but-set-variable
+            # -Werror=dangling-gsl
+            # -Werror=unused-function
+            # -Werror=nan-infinity-disabled
+            # -Werror=sign-compare
+            # -Werror=bitwise-op-parentheses
+            # -Werror=shadow
+            # -Werror=pessimizing-move
+            # -Werror=switch
+            # -Werror=old-style-cast
+            # -Werror=unused-result
         )
 
         # 可选：将所有警告视为错误

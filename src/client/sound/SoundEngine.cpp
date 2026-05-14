@@ -202,7 +202,7 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
         return 0;
     }
 
-    auto source = std::move(sourceResult.value());
+    auto source = sourceResult.value();
 
     // 配置音频源
     // 音量 = 实例音量 * 事件音量修正 * 定义音量

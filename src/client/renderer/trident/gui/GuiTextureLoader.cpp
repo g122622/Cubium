@@ -202,7 +202,6 @@ Result<void> GuiTextureLoader::loadAll(GuiTextureAtlas& atlas) {
     }
 
     // 尝试加载icons.png
-    bool hasIcons = false;
     std::vector<u8> iconsData;
     auto iconsResult = findTexture("minecraft:textures/gui/icons.png", iconsData);
     if (iconsResult.success()) {
@@ -213,7 +212,6 @@ Result<void> GuiTextureLoader::loadAll(GuiTextureAtlas& atlas) {
             if (!hasWidgets) {
                 atlas.setAtlasSize(width, height);
             }
-            hasIcons = true;
         }
     }
 

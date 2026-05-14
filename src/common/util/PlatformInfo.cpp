@@ -88,7 +88,7 @@ CpuInfo PlatformInfo::getCpuInfoWindows() {
 
     // 获取品牌字符串 (EAX=0x80000000 检查是否支持, 然后 EAX=0x80000002-0x80000004)
     __cpuid(cpuinfo, 0x80000000);
-    if (cpuinfo[0] >= 0x80000004) {
+    if (static_cast<u32>(cpuinfo[0]) >= 0x80000004U) {
         char brand[49] = {};
         __cpuid(reinterpret_cast<int*>(brand), 0x80000002);
         __cpuid(reinterpret_cast<int*>(brand + 16), 0x80000003);

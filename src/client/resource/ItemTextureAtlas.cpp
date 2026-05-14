@@ -114,12 +114,12 @@ Result<void> loadTexturePixels(
     if (pack.hasResource(mcmetaPath)) {
         const auto mcmetaResult = pack.readResource(mcmetaPath);
         if (mcmetaResult.success()) {
-            parseAnimatedFrameSizeFromMcmeta(
+            static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
                 mcmetaResult.value(),
                 outWidth,
                 outHeight,
                 outFrameWidth,
-                outFrameHeight);
+                outFrameHeight));
         }
     }
 

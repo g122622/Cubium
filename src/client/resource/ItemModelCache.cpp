@@ -99,7 +99,7 @@ void ItemModelCache::preloadModels() {
     // 遍历所有物品并预加载模型
     ItemRegistry::instance().forEachItem([this](::mc::Item& item) {
         u32 itemId = item.itemId();
-        getItemModel(itemId);
+        static_cast<void>(getItemModel(itemId));
     });
 }
 

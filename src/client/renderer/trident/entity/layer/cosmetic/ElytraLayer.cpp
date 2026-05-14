@@ -139,7 +139,6 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
     // 3. 速度向量 - 滑翔时的俯仰角
 
     // 默认角度
-    f32 angleX = DEFAULT_X_ANGLE;   // ~15度
     f32 angleZ = DEFAULT_Z_ANGLE;   // ~-15度
 
     bool isGliding = false;
@@ -186,14 +185,13 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
             }
 
             // 插值角度
-            angleX = f4 * GLIDING_X_ANGLE + (1.0f - f4) * DEFAULT_X_ANGLE;
             angleZ = f4 * GLIDING_Z_ANGLE + (1.0f - f4) * DEFAULT_Z_ANGLE;
         } else if (isCrouching) {
             // MC 1.16.5: 蹲伏时的角度
-            angleX = CROUCHING_X_ANGLE;
             angleZ = CROUCHING_Z_ANGLE;
         }
 
+        // 注意：X 轴前倾角尚未接入当前网格生成流程，后续若补齐姿态细节需要一并接入。
         // 注意：平滑角度插值需要架构调整
         // MC 1.16.5 中 AbstractClientPlayerEntity 有 rotateElytraX/Y/Z 字段
         // 当前项目的 ClientEntity 已有这些字段和 updateElytraAngles() 方法

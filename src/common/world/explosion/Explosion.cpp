@@ -138,9 +138,9 @@ void Explosion::calculateAffectedBlocks() {
                         // 如果强度仍然 > 0 且方块可被破坏
                         if (f > 0.0f && m_context->canDestroyBlock(*blockState, f)) {
                             // 添加到受影响方块列表（使用位置哈希去重）
-                            i64 posKey = static_cast<i64>(pos.x) & 0xFFFFFFLL |
-                                        (static_cast<i64>(pos.y) & 0xFFFFLL) << 24 |
-                                        (static_cast<i64>(pos.z) & 0xFFFFFFLL) << 40;
+                            i64 posKey = (static_cast<i64>(pos.x) & 0xFFFFFFLL) |
+                                        ((static_cast<i64>(pos.y) & 0xFFFFLL) << 24) |
+                                        ((static_cast<i64>(pos.z) & 0xFFFFFFLL) << 40);
                             affectedPositions.insert(posKey);
                         }
 

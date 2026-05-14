@@ -112,17 +112,6 @@ std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::stri
 }
 
 /**
- * @brief 安全获取 compound_tag 中的 long 值
- */
-std::optional<i64> tryGetLong(const nbt::tags::compound_tag& tag, const std::string& key) {
-    auto it = tag.value.find(key);
-    if (it != tag.value.end() && it->second->id() == nbt::TagId::Long) {
-        return dynamic_cast<const nbt::tags::long_tag&>(*it->second).value;
-    }
-    return std::nullopt;
-}
-
-/**
  * @brief 安全获取 compound_tag 中的 float 值
  */
 std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::string& key) {

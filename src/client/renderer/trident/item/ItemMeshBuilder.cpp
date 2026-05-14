@@ -45,28 +45,6 @@ resource::ItemDisplayContext toDisplayContext(ItemTransformType type) {
     }
 }
 
-// 将 glm::mat4 转换为 std::array<f64, 16>
-std::array<f64, 16> mat4ToArray(const glm::mat4& mat) {
-    std::array<f64, 16> result;
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            result[col * 4 + row] = static_cast<f64>(mat[col][row]);
-        }
-    }
-    return result;
-}
-
-// 将 std::array<f64, 16> 转换为 glm::mat4
-glm::mat4 arrayToMat4(const std::array<f64, 16>& arr) {
-    glm::mat4 mat;
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            mat[col][row] = static_cast<float>(arr[col * 4 + row]);
-        }
-    }
-    return mat;
-}
-
 } // namespace
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildHeldItemMesh(

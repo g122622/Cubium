@@ -241,16 +241,16 @@ Result<void> ResourceManager::loadAllResources() {
 
     // 加载方块状态
     for (auto& pack : m_resourcePacks) {
-        m_blockStateLoader.loadFromResourcePack(*pack);
+        static_cast<void>(m_blockStateLoader.loadFromResourcePack(*pack));
     }
 
     // 加载模型 (按需加载，不预加载)
     for (auto& pack : m_resourcePacks) {
-        m_modelLoader.loadFromResourcePack(*pack);
+        static_cast<void>(m_modelLoader.loadFromResourcePack(*pack));
     }
 
     // 烘焙模型
-    bakeAllModels();
+    static_cast<void>(bakeAllModels());
 
     // 注意：computeBlockAppearances 在 buildTextureAtlas 后调用
     // 因为需要纹理区域数据
@@ -327,12 +327,12 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                             if (pack->hasResource(mcmetaPath)) {
                                 const auto mcmetaResult = pack->readResource(mcmetaPath);
                                 if (mcmetaResult.success()) {
-                                    parseAnimatedFrameSizeFromMcmeta(
+                                    static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
                                         mcmetaResult.value(),
                                         static_cast<u32>(width),
                                         static_cast<u32>(height),
                                         frameWidth,
-                                        frameHeight);
+                                        frameHeight));
                                 }
                             }
 
@@ -581,7 +581,7 @@ const BakedBlockModel* ResourceManager::getBakedModel(
     // 烘焙模型
     // 首先需要设置资源包
     if (!m_resourcePacks.empty()) {
-        m_modelLoader.loadFromResourcePack(*m_resourcePacks[0]);
+        static_cast<void>(m_modelLoader.loadFromResourcePack(*m_resourcePacks[0]));
     }
 
     auto result = m_modelLoader.bakeModel(modelLocation);

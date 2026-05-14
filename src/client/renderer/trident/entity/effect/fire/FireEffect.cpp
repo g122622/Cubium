@@ -162,7 +162,7 @@ void FireEffect::renderFireLayers(
     //    - 每两层翻转 UV
     //    - 尺寸递减 (f1 *= 0.9)
     //    - 高度递减 (f3 -= 0.45)
-    //    - Z 偏移递增 (f5 += 0.03)
+    //    - Z 偏移递增
 
     f64 fireSize = static_cast<f64>(entity.width()) * 1.4;
     f64 height = static_cast<f64>(entity.height());
@@ -171,7 +171,6 @@ void FireEffect::renderFireLayers(
     f64 f1 = 0.5;           // 火焰半宽
     f64 f3 = height / fireSize;  // 高度迭代次数
     f64 f4 = 0.0;           // Y 偏移累计
-    f64 f5 = 0.0;           // Z 偏移
 
     // 绑定火焰纹理
     if (s_fireTextureView != VK_NULL_HANDLE && s_fireSampler != VK_NULL_HANDLE) {
@@ -277,7 +276,6 @@ void FireEffect::renderFireLayers(
         f3 -= 0.45;
         f4 += 0.45;
         f1 *= 0.9;
-        f5 += 0.03;
     }
 
     spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers", x, y, z, static_cast<i32>(height / fireSize / 0.45));

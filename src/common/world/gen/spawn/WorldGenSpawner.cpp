@@ -149,7 +149,6 @@ i32 WorldGenSpawner::spawnInitialMobs(
         i32 groupZ = startZ + random.nextInt(16);
 
         // 尝试多次找到合适的生成位置
-        bool spawnedAny = false;
         for (i32 attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; ++attempt) {
             // 获取生成高度
             i32 spawnY = getSpawnHeight(region, *entityType, groupX, groupZ);
@@ -176,7 +175,6 @@ i32 WorldGenSpawner::spawnInitialMobs(
                 spdlog::info("WorldGenSpawner: Spawned {} x {} at ({}, {}, {})",
                               spawned, entityType->name(), groupX, spawnY, groupZ);
                 totalSpawned += spawned;
-                spawnedAny = true;
                 break;  // 成功生成一组后继续下一组
             }
 
