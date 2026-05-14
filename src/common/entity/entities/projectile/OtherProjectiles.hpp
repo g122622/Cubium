@@ -141,7 +141,7 @@ private:
     /**
      * @brief 检测是否在水中
      */
-    [[nodiscard]] bool isInWater() const;
+    [[nodiscard]] bool isInWater() const override;
 
     /**
      * @brief 检测开放水域

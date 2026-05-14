@@ -511,7 +511,7 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data
         return;
     }
 
-    auto chunkData = std::shared_ptr<ChunkData>(std::move(result.value()));
+    auto chunkData = std::shared_ptr<ChunkData>(result.value());
 
     ClientChunk* chunk = getChunk(id);
     if (!chunk) {

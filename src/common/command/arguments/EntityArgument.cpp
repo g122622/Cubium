@@ -415,13 +415,11 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader) {
 
         // 检查是否有小数部分，但要区分 ".." 和 "."
         f64 fracPart = 0.0;
-        bool hasDecimal = false;
         if (reader.canRead() && reader.peek() == '.') {
             // 检查下一个字符是数字还是 '.'
             if (reader.canRead(2) && StringReader::isDigit(reader.peek(1))) {
                 // 这是小数点，读取小数部分
                 reader.skip(); // skip '.'
-                hasDecimal = true;
                 f64 decimalPlace = 0.1;
                 while (reader.canRead() && StringReader::isDigit(reader.peek())) {
                     fracPart += (reader.peek() - '0') * decimalPlace;

@@ -1089,7 +1089,7 @@ std::string SetAttributesFunction::generateUUID() {
         static_cast<u32>(part1 >> 32),                           // 8 hex digits
         static_cast<u16>((part1 >> 16) & 0xFFFF),                 // 4 hex digits
         static_cast<u16>((part1 & 0x0FFF) | 0x4000),             // 4 hex digits (version 4 UUID)
-        static_cast<u16>((part2 >> 48) & 0x3FFF | 0x8000),       // 4 hex digits (variant 1)
+        static_cast<u16>(((part2 >> 48) & 0x3FFF) | 0x8000),     // 4 hex digits (variant 1)
         static_cast<unsigned long long>(part2 & 0xFFFFFFFFFFFF)); // 12 hex digits
     return std::string(buf);
 }

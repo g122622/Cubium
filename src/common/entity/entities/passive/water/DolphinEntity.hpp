@@ -72,7 +72,7 @@ public:
     /**
      * @brief 设置跳跃状态
      */
-    void setJumping(bool jumping) { m_jumping = jumping; }
+    void setJumping(bool jumping) override { m_jumping = jumping; }
 
     /**
      * @brief 是否可以跳出水

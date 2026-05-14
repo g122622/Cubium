@@ -78,13 +78,13 @@ public:
      * MC 1.16.5: AbstractMinecartEntity.attackEntityFrom()
      * @note 矿车不继承LivingEntity，所以不重写hurt方法
      */
-    bool hurt(DamageSource& source, f32 amount);
+    bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 检查是否可以被碰撞
      * MC 1.16.5: canBeCollidedWith()
      */
-    [[nodiscard]] bool canBeCollidedWith() const { return isAlive(); }
+    [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
 
     /**
      * @brief 检查是否可以被推动
@@ -625,7 +625,7 @@ public:
      * @brief 重写伤害处理
      * MC 1.16.5: attackEntityFrom() 燃烧箭矢立即爆炸
      */
-    bool hurt(DamageSource& source, f32 amount);
+    bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 重写掉落物品逻辑

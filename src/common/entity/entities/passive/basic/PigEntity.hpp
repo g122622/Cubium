@@ -27,6 +27,9 @@ class DamageSource;
  */
 class PigEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
+    using LivingEntity::getEquipment;
+    using LivingEntity::setEquipment;
+
     PigEntity(LegacyEntityType type, EntityId id);
     ~PigEntity() override = default;
 

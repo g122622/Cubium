@@ -562,7 +562,7 @@ Result<void> LevelDatCodec::readDataCompound(
         return rootResult.error();
     }
 
-    outRoot = std::move(rootResult.value());
+    outRoot = rootResult.value();
 
     auto dataIt = outRoot->value.find("Data");
     if (dataIt == outRoot->value.end() || dataIt->second->id() != nbt::TagId::Compound) {

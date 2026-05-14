@@ -224,6 +224,8 @@ private:
  */
 class WanderingTraderEntity : public AbstractVillagerEntity {
 public:
+    using MobEntity::canDespawn;
+
     /**
      * @brief 工厂方法
      */

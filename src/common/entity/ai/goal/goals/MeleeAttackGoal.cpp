@@ -122,7 +122,7 @@ void MeleeAttackGoal::startExecuting() {
 
         if (auto* nav = m_creature->navigator()) {
             if (m_attackTarget) {
-                nav->moveTo(*m_attackTarget, m_speed);
+                static_cast<void>(nav->moveTo(*m_attackTarget, m_speed));
             }
         }
     }
@@ -155,7 +155,7 @@ void MeleeAttackGoal::tick() {
     // 检查是否需要重新计算路径
     if ((m_useLongMemory || m_creature->canSee(*m_attackTarget)) &&
         m_pathRecalculateTimer <= 0 &&
-        (m_targetX == 0.0 && m_targetY == 0.0 && m_targetZ == 0.0 ||
+        ((m_targetX == 0.0 && m_targetY == 0.0 && m_targetZ == 0.0) ||
          m_attackTarget->distanceSqTo(m_targetX, m_targetY, m_targetZ) >= 1.0 ||
          m_creature->getRandom().nextFloat() < 0.05f)) {
 

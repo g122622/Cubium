@@ -90,7 +90,7 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
         // 触发进度触发器
         // 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()
         if (player != nullptr) {
-            world.onBlockPlaced(static_cast<PlayerId>(player->id()), pos, actualState, &stack);
+            static_cast<void>(world.onBlockPlaced(static_cast<PlayerId>(player->id()), pos, actualState, &stack));
         }
     }
 

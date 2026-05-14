@@ -81,7 +81,7 @@ void FollowParentGoal::tick() {
 
         // MC 1.16.5: 使用 navigator.tryMoveToEntityLiving(parentAnimal, speed)
         if (auto* nav = m_childAnimal->navigator()) {
-            nav->moveTo(*m_parentAnimal, m_speed);
+            static_cast<void>(nav->moveTo(*m_parentAnimal, m_speed));
         }
     }
 }

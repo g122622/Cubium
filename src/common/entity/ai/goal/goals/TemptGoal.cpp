@@ -140,7 +140,7 @@ void TemptGoal::tick() {
     } else {
         // MC 1.16.5: 跟随玩家
         if (auto* nav = m_creature->navigator()) {
-            nav->moveTo(*m_temptingPlayer, m_speed);
+            static_cast<void>(nav->moveTo(*m_temptingPlayer, m_speed));
         }
     }
 }

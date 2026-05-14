@@ -5,6 +5,14 @@ find_package(GTest CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(OpenAL CONFIG REQUIRED)
 
+function(mc_disable_all_warnings_for_tests target)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${target} PRIVATE -w)
+    elseif(MSVC)
+        target_compile_options(${target} PRIVATE /W0)
+    endif()
+endfunction()
+
 # 通用测试可执行文件
 add_executable(mc_tests
     common/test_math.cpp
@@ -1013,7 +1021,7 @@ target_compile_definitions(mc_tests
         MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
-mc_set_compiler_warnings(mc_tests)
+mc_disable_all_warnings_for_tests(mc_tests)
 mc_copy_runtime_dlls(mc_tests)
 
 # 资源测试可执行文件
@@ -1064,7 +1072,7 @@ target_include_directories(mc_resource_tests
 )
 
 # stb_image 瀹炵幇鏀惧湪TextureAtlasBuilder.cpp涓?
-mc_set_compiler_warnings(mc_resource_tests)
+mc_disable_all_warnings_for_tests(mc_resource_tests)
 mc_copy_runtime_dlls(mc_resource_tests)
 
 # 鍙戠幇娴嬭瘯
@@ -1175,7 +1183,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/include
     )
 
-    mc_set_compiler_warnings(mc_trident_tests)
+    mc_disable_all_warnings_for_tests(mc_trident_tests)
     mc_copy_runtime_dlls(mc_trident_tests)
 
     mc_register_gtests(mc_trident_tests)
@@ -1345,7 +1353,7 @@ target_include_directories(mc_command_tests
         ${CMAKE_SOURCE_DIR}/include
 )
 
-mc_set_compiler_warnings(mc_command_tests)
+mc_disable_all_warnings_for_tests(mc_command_tests)
 mc_copy_runtime_dlls(mc_command_tests)
 
 mc_register_gtests(mc_command_tests)
@@ -1422,7 +1430,7 @@ target_include_directories(mc_village_tests
         ${CMAKE_SOURCE_DIR}/include
 )
 
-mc_set_compiler_warnings(mc_village_tests)
+mc_disable_all_warnings_for_tests(mc_village_tests)
 mc_copy_runtime_dlls(mc_village_tests)
 
 mc_register_gtests(mc_village_tests)

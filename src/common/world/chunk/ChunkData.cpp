@@ -611,7 +611,7 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
             if (sectionResult.failed()) {
                 return sectionResult.error();
             }
-            chunk->m_sections[i] = std::move(sectionResult.value());
+            chunk->m_sections[i] = sectionResult.value();
             offset += sectionSize;
         }
     }

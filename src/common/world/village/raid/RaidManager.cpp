@@ -138,10 +138,10 @@ void RaidManager::onPlayerEnterVillage(Player* player, village::Village* village
             i32 badOmenLevel = effect->getEffectLevel();
 
             // 移除玩家的不祥之兆效果
-            player->removeEffect(entity::effect::EffectType::BadOmen);
+            static_cast<void>(player->removeEffect(entity::effect::EffectType::BadOmen));
 
             // 尝试开始袭击
-            tryStartRaid(village->getCenter(), badOmenLevel);
+            static_cast<void>(tryStartRaid(village->getCenter(), badOmenLevel));
             // 袭击开始通知已由 tryStartRaid() 内部通过 onRaidStarted 回调处理
         }
     }
@@ -154,7 +154,7 @@ void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& c
     i32 badOmenLevel = checkBadOmen(village->getCenter());
     if (badOmenLevel > 0) {
         // 尝试开始袭击
-        tryStartRaid(village->getCenter(), badOmenLevel);
+        static_cast<void>(tryStartRaid(village->getCenter(), badOmenLevel));
         // 袭击开始通知已由 tryStartRaid() 内部通过 onRaidStarted 回调处理
     }
 }

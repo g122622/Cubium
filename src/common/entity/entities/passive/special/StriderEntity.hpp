@@ -29,6 +29,8 @@ class ItemStack;
  */
 class StriderEntity : public AnimalEntity, public entity::IRideable {
 public:
+    using Entity::canBeRidden;
+
     /**
      * @brief 构造函数
      * @param type 实体类型

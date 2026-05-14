@@ -94,7 +94,7 @@ Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id
     }
 
     // 注册到RecipeManager
-    if (!crafting::RecipeManager::instance().registerRecipe(std::move(recipeResult.value()))) {
+    if (!crafting::RecipeManager::instance().registerRecipe(recipeResult.value())) {
         return Error(ErrorCode::AlreadyExists,
                      "Recipe already registered: " + id.toString());
     }

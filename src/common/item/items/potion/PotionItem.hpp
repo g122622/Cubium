@@ -44,7 +44,7 @@ public:
     /**
      * @brief 是否有药水效果
      */
-    [[nodiscard]] bool hasEffect(const ItemStack& stack) const;
+    [[nodiscard]] bool hasEffect(const ItemStack& stack) const override;
 
     /**
      * @brief 获取翻译键

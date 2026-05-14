@@ -27,7 +27,8 @@ function(mc_set_compiler_warnings target)
             # 将关键警告视为错误
             -Werror=return-local-addr    # 错误：返回局部变量地址
             -Werror=uninitialized        # 错误：使用未初始化变量
-            -Werror=format               # 错误：格式字符串问题
+            -Werror=overloaded-virtual   # 错误：重载虚函数问题
+            -Werror=inconsistent-missing-override # 错误：不一致的缺失覆盖
         )
 
         # 可选：将所有警告视为错误

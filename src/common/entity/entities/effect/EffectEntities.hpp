@@ -33,7 +33,7 @@ public:
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     /**
      * @brief 检查是否显示基岩
@@ -96,7 +96,7 @@ public:
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     /**
      * @brief 设置是否只有效果（不造成伤害、不点燃方块）
@@ -192,7 +192,7 @@ public:
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     /**
      * @brief 设置效果半径
@@ -264,7 +264,7 @@ public:
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return !m_marker; }
-    [[nodiscard]] bool canBeCollidedWith() const { return !m_marker; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return !m_marker; }
 
     /**
      * @brief 检查是否有重力

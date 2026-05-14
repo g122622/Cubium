@@ -452,7 +452,7 @@ void ServerPlayer::sendSleepPacket(const BlockPos& bedPos) {
         network::PacketType::Sleep,
         payloadResult.value());
 
-    sendFullPacket(fullPacket);
+    static_cast<void>(sendFullPacket(fullPacket));
 }
 
 void ServerPlayer::sendWakeUpPacket() {
@@ -471,7 +471,7 @@ void ServerPlayer::sendWakeUpPacket() {
         network::PacketType::Sleep,
         payloadResult.value());
 
-    sendFullPacket(fullPacket);
+    static_cast<void>(sendFullPacket(fullPacket));
 }
 
 bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const {

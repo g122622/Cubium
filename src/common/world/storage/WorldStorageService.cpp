@@ -131,13 +131,13 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
         m_sessionLock.reset();
         return dbResult.error();
     }
-    m_db = std::move(dbResult.value());
+    m_db = dbResult.value();
 
     // 4. 初始化备份管理器
     if (config.enableBackup) {
         auto backupResult = BackupManager::open(backupPath);
         if (backupResult.success()) {
-            m_backupManager = std::move(backupResult.value());
+            m_backupManager = backupResult.value();
         } else {
             spdlog::warn("Failed to initialize backup manager: {}",
                          backupResult.error().message());

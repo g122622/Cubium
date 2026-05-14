@@ -84,7 +84,7 @@ void RandomWalkingGoal::startExecuting() {
     if (m_creature) {
         // MC 1.16.5: 使用 navigator.tryMoveToXYZ
         if (auto* nav = m_creature->navigator()) {
-            nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+            static_cast<void>(nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
         }
         // MC 1.16.5: 初始化超时计数器
         m_timeoutCounter = MAX_WALK_TIME;

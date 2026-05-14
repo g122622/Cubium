@@ -66,9 +66,9 @@ ItemStack::ItemStack(const ItemStack& other)
     , m_count(other.m_count)
     , m_damage(other.m_damage)
     , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
+    , m_enchantments(other.m_enchantments)
     , m_potionId(other.m_potionId)
-    , m_customData(other.m_customData)
-    , m_enchantments(other.m_enchantments) {
+    , m_customData(other.m_customData) {
     // 深拷贝 Lore
     for (const auto& line : other.m_lore) {
         m_lore.push_back(line ? line->deepCopy() : nullptr);
@@ -1047,4 +1047,3 @@ void ItemStack::mergeJsonObjects(nlohmann::json& target, const nlohmann::json& s
 }
 
 } // namespace mc
-

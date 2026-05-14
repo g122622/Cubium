@@ -71,7 +71,7 @@ void BreedGoal::tick() {
 
     // MC 1.16.5: 使用 navigator.tryMoveToEntityLiving(targetMate, moveSpeed)
     if (auto* nav = m_animal->navigator()) {
-        nav->moveTo(*m_targetMate, m_speed);
+        static_cast<void>(nav->moveTo(*m_targetMate, m_speed));
     }
 
     m_spawnBabyDelay++;

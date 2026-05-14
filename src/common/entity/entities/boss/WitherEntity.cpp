@@ -160,6 +160,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target) {
             isBlue = true;
         }
     }
+    static_cast<void>(isBlue);
 
     // TODO: 创建凋灵之首实体
     // auto skull = std::make_unique<WitherSkullEntity>(...);
@@ -251,13 +252,13 @@ void WitherEntity::updateHeadTargets() {
 
     for (i32 i = 1; i < 3; ++i) {
         // 检查更新时间
-        if (ticksExisted() < m_nextHeadUpdate[i - 1]) {
+        if (static_cast<i32>(ticksExisted()) < m_nextHeadUpdate[i - 1]) {
             continue;
         }
 
         // 设置下次更新时间：10-20 tick后
         math::Random rng = getRandom();
-        m_nextHeadUpdate[i - 1] = ticksExisted() + 10 + rng.nextInt(10);
+        m_nextHeadUpdate[i - 1] = static_cast<i32>(ticksExisted()) + 10 + rng.nextInt(10);
 
         // 获取当前追踪目标
         i32 currentTargetId = getWatchedTargetId(i);
@@ -273,7 +274,7 @@ void WitherEntity::updateHeadTargets() {
                         // 目标有效，发射凋灵之首
                         launchWitherSkullToEntity(i, livingTarget);
                         // 设置攻击冷却：40-60 tick
-                        m_nextHeadUpdate[i - 1] = ticksExisted() + 40 + rng.nextInt(20);
+                        m_nextHeadUpdate[i - 1] = static_cast<i32>(ticksExisted()) + 40 + rng.nextInt(20);
                         continue;
                     }
                 }

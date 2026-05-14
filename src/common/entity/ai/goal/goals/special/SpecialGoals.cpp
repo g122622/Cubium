@@ -157,7 +157,7 @@ void RunAroundLikeCrazyGoal::startExecuting() {
 
     // 移动到目标位置
     if (auto* nav = m_horse->navigator()) {
-        nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+        static_cast<void>(nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
     }
 }
 

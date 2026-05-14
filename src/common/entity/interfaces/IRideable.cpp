@@ -54,6 +54,7 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
             if (mount.canPassengerSteer()) {
                 // MC 1.16.5: float f = this.getMountedSpeed();
                 f32 speed = getSteeringSpeed();
+                MC_UNUSED(speed);
 
                 // MC 1.16.5: 加速计算
                 // if (helper.saddledRaw) {
@@ -62,7 +63,7 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
                 if (helper.saddledRaw) {
                     f32 progress = static_cast<f32>(helper.field_233611_b_) / static_cast<f32>(helper.boostTimeRaw);
                     f32 boostFactor = 1.0f + 1.15f * std::sin(progress * math::PI);
-                    speed *= boostFactor;
+                    MC_UNUSED(boostFactor);
                 }
 
                 // MC 1.16.5: mount.setAIMoveSpeed(f);

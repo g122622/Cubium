@@ -172,7 +172,7 @@ bool SleepManager::isBedSurroundedByMonsters(
 
         // 检查是否为敌对生物（MonsterEntity 或其子类）
         // 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
-        if (auto* monster = dynamic_cast<MonsterEntity*>(entity)) {
+        if (dynamic_cast<MonsterEntity*>(entity) != nullptr) {
             // 找到敌对生物
             return true;
         }

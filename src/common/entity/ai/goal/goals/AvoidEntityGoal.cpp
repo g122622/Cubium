@@ -82,7 +82,7 @@ void AvoidEntityGoal::startExecuting() {
     if (m_creature) {
         // MC 1.16.5: 设置路径到逃跑位置
         if (auto* nav = m_creature->navigator()) {
-            nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, m_farSpeed);
+            static_cast<void>(nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, m_farSpeed));
         }
     }
 }

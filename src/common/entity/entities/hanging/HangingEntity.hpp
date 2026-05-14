@@ -38,7 +38,7 @@ public:
     // Entity overrides
     void tick() override;
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return true; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
 
     /**
      * @brief 设置悬挂位置

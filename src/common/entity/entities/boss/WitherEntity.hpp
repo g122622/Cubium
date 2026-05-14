@@ -198,7 +198,7 @@ private:
      * @brief 更新AI任务
      * MC 1.16.5: updateAITasks()
      */
-    void updateAITasks();
+    void updateAITasks() override;
 
     /**
      * @brief 更新头部目标追踪

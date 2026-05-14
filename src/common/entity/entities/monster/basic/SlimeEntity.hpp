@@ -29,6 +29,8 @@ class LivingEntity;
  */
 class SlimeEntity : public MonsterEntity {
 public:
+	using Entity::onCollideWithPlayer;
+
 	/**
 	 * @brief 构造函数
 	 * @param type 实体类型
