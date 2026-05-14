@@ -16,7 +16,7 @@ namespace entity {
  */
 class ThrowableEntity : public ProjectileEntity {
 public:
-    virtual ~ThrowableEntity() = default;
+    ~ThrowableEntity() override = default;
 
     // ========== Entity 接口重写 ==========
 

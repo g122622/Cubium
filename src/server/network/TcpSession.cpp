@@ -8,8 +8,8 @@ namespace mc::server {
 
 TcpSession::TcpSession(SessionId id, TcpServer* server)
     : m_id(id)
-    , m_server(server)
     , m_state(SessionState::Connecting)
+    , m_server(server)
 {
     m_receiveBuffer.reserve(4096);
 }
@@ -138,5 +138,4 @@ std::vector<u8> TcpSession::takeNextSendBuffer() {
 }
 
 } // namespace mc::server
-
 

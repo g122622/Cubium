@@ -81,7 +81,7 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
         actualState = applyBlockStateFromNBT(pos, world, stack, *actualState);
 
         // 处理方块实体 NBT
-        onBlockPlaced(pos, world, player, stack, *actualState);
+        static_cast<void>(onBlockPlaced(pos, world, player, stack, *actualState));
 
         // 调用方块的 onBlockPlacedBy
         // 注意：需要使用 const_cast 因为 onBlockPlacedBy 是非 const 方法

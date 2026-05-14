@@ -30,22 +30,6 @@ IntegerGameRuleType createIntegerType(i32 defaultValue) {
     return IntegerGameRuleType(defaultValue);
 }
 
-// 布尔规则类型定义（带监听器）
-BooleanGameRuleType createBooleanTypeWithListener(
-    bool defaultValue,
-    GameRuleChangeListener<bool> listener
-) {
-    return BooleanGameRuleType(defaultValue, std::move(listener));
-}
-
-// 整数规则类型定义（带监听器）
-IntegerGameRuleType createIntegerTypeWithListener(
-    i32 defaultValue,
-    GameRuleChangeListener<i32> listener
-) {
-    return IntegerGameRuleType(defaultValue, std::move(listener));
-}
-
 // 规则类型注册表
 struct RuleRegistry {
     // 布尔规则类型

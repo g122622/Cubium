@@ -66,7 +66,8 @@ public:
 
     // ========== 硬度 ==========
 
-    [[nodiscard]] float getExplosionResistance() const {
+    [[nodiscard]] f32 getExplosionResistance(const BlockState& state) const override {
+        MC_UNUSED(state);
         // 在下界爆炸
         return 0.2f;
     }

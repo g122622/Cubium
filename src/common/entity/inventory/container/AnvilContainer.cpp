@@ -319,8 +319,6 @@ void AnvilContainer::updateRepairOutput() {
         baseRepairCost += input2.getRepairCost();
     }
 
-    bool hasChanges = false;
-
     if (!input2.isEmpty()) {
         // 检查是否是附魔书
         bool isEnchantedBook = input2.getItem() != nullptr &&
@@ -478,7 +476,6 @@ void AnvilContainer::updateRepairOutput() {
                 return;
             }
 
-            hasChanges = hasValidEnchantment;
         }
     }
 

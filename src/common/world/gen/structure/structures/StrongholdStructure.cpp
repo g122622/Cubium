@@ -221,8 +221,8 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
 
     // 计算角度
     math::Random rng(worldSeed);
-    rng.nextInt(); // 跳过一些值
-    rng.nextInt();
+    [[maybe_unused]] const i32 skippedValue0 = rng.nextInt(); // 跳过一些值
+    [[maybe_unused]] const i32 skippedValue1 = rng.nextInt();
 
     // 计算该要塞的角度
     f64 angleStep = 2.0 * mc::math::PI_DOUBLE / count;

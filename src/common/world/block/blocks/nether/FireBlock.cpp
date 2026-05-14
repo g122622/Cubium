@@ -168,8 +168,8 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     if (!isFireSource) {
         if (!areNeighborsFlammable(blockReader, pos)) {
             // 没有可燃邻居，检查下方是否有支撑
-            const BlockState* belowState = world.getBlockState(pos.down());
-            bool hasSolidBelow = belowState != nullptr && belowState->isSolidSide(world, pos.down(), Direction::Up);
+            const BlockState* supportState = world.getBlockState(pos.down());
+            bool hasSolidBelow = supportState != nullptr && supportState->isSolidSide(world, pos.down(), Direction::Up);
 
             if (!hasSolidBelow || age > 3) {
                 world.setBlockState(pos, nullptr, 3);

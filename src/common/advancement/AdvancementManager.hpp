@@ -129,7 +129,7 @@ public:
 
 private:
     AdvancementManager();
-    ~AdvancementManager() = default;
+    ~AdvancementManager() override = default;
 
     AdvancementList m_list;
 };

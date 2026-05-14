@@ -142,7 +142,7 @@ public:
 
     ChunkData();
     ChunkData(ChunkCoord x, ChunkCoord z);
-    ~ChunkData();
+    ~ChunkData() override;
 
     // 禁止拷贝
     ChunkData(const ChunkData&) = delete;

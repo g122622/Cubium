@@ -29,6 +29,14 @@ function(mc_set_compiler_warnings target)
             -Werror=uninitialized        # 错误：使用未初始化变量
             -Werror=overloaded-virtual   # 错误：重载虚函数问题
             -Werror=inconsistent-missing-override # 错误：不一致的缺失覆盖
+            -Werror=reorder-ctor       # 错误：构造函数成员初始化顺序与声明顺序不一致
+            -Werror=null-dereference   # 错误：空指针解引用
+            -Werror=non-virtual-dtor
+            -Werror=inconsistent-missing-destructor-override
+            -Werror=free-nonheap-object
+            -Werror=delete-non-virtual-dtor
+            -Werror=delete-incomplete
+            -Werror=return-stack-address
         )
 
         # 可选：将所有警告视为错误

@@ -63,7 +63,7 @@ struct RayTraceResult {
  */
 class ProjectileEntity : public Entity {
 public:
-    virtual ~ProjectileEntity() = default;
+    ~ProjectileEntity() override = default;
 
     // ========== Entity 接口重写 ==========
 

@@ -223,7 +223,12 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
         auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
         chunkManager->setWorkerPool(&m_computationWorkerPool);
         chunkManager->setViewDistance(config.viewDistance);
-        chunkManager->initialize();
+        auto chunkManagerInitResult = chunkManager->initialize();
+        if (chunkManagerInitResult.failed()) {
+            return Error(
+                ErrorCode::InitializationFailed,
+                "Failed to initialize chunk manager: " + chunkManagerInitResult.error().message());
+        }
         m_world->setChunkManager(std::move(chunkManager));
     }
 

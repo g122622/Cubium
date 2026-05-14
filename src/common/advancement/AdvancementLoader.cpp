@@ -112,11 +112,9 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
 
     auto it = path.begin();
     bool foundAdvancements = false;
-    bool foundData = false;
 
     for (; it != path.end(); ++it) {
         if (it->string() == "data") {
-            foundData = true;
             ++it;
             if (it != path.end()) {
                 namespaceName = it->string();

@@ -7,7 +7,7 @@
 #include "../core/ScorePlayerTeam.hpp"
 #include "../core/TeamEnums.hpp"
 #include "../core/ScoreCriteriaRenderType.hpp"
-#include "../../util/nbt/NBT.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include <string>
 #include <vector>
 #include <memory>

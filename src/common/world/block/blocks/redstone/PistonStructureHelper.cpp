@@ -19,8 +19,8 @@ PistonStructureHelper::PistonStructureHelper(
     , m_pistonPos(pistonPos)
     , m_facing(pistonFacing)
     , m_extending(extending)
-    , m_moveDirection(extending ? pistonFacing : Directions::opposite(pistonFacing))
-    , m_blockToMove(extending ? pistonPos.offset(pistonFacing) : pistonPos.offset(pistonFacing, 2)) {
+    , m_blockToMove(extending ? pistonPos.offset(pistonFacing) : pistonPos.offset(pistonFacing, 2))
+    , m_moveDirection(extending ? pistonFacing : Directions::opposite(pistonFacing)) {
 }
 
 bool PistonStructureHelper::canMove() {

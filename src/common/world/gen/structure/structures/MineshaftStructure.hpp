@@ -64,6 +64,8 @@ struct MineshaftConfig {
  */
 class MineshaftPiece : public StructurePiece {
 public:
+    using StructurePiece::buildComponent;
+
     MineshaftPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
                    MineshaftType mineshaftType);
 

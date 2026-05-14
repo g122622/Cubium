@@ -43,7 +43,7 @@ public:
     [[nodiscard]] bool isValidPosition(
         const BlockState& state,
         IBlockReader& world,
-        const BlockPos& pos) const;
+        const BlockPos& pos) const override;
 
     /**
      * @brief 邻居更新

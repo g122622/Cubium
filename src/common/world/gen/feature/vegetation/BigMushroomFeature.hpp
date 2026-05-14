@@ -40,6 +40,8 @@ struct BigMushroomFeatureConfig : public IFeatureConfig {
  */
 class BigMushroomFeature {
 public:
+    virtual ~BigMushroomFeature() = default;
+
     /**
      * @brief 放置巨型蘑菇特征
      * @param world 世界区域
@@ -111,6 +113,9 @@ protected:
  * 生成平顶的棕色巨型蘑菇
  */
 class BigBrownMushroomFeature : public BigMushroomFeature {
+public:
+    ~BigBrownMushroomFeature() override = default;
+
 protected:
     [[nodiscard]] i32 getCapRadius(
         i32 baseRadius,
@@ -133,6 +138,9 @@ protected:
  * 生成圆顶的红色巨型蘑菇
  */
 class BigRedMushroomFeature : public BigMushroomFeature {
+public:
+    ~BigRedMushroomFeature() override = default;
+
 protected:
     [[nodiscard]] i32 getCapRadius(
         i32 baseRadius,

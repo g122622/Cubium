@@ -120,7 +120,12 @@ BlockState SeaPickleBlock::updatePostPlacement(
     return state;
 }
 
-u8 SeaPickleBlock::getLightLevel(const BlockState& state) const {
+u8 SeaPickleBlock::getLightLevel(
+    const BlockState& state,
+    IWorld* world,
+    const BlockPos* pos) const {
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
     // 在水中时发光，亮度随数量增加
     bool waterlogged = state.get(BlockStateProperties::WATERLOGGED());
     if (!waterlogged) {

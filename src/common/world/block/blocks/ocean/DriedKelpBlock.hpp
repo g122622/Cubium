@@ -39,7 +39,17 @@ public:
      * @brief 获取易燃性
      * @return 易燃等级（0-100，越高越易燃）
      */
-    [[nodiscard]] i32 getFlammability() const { return 60; }
+    [[nodiscard]] i32 getFlammability(
+        const BlockState& state,
+        IWorld* world,
+        const BlockPos* pos,
+        Direction face) const override {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(face);
+        return 60;
+    }
 };
 
 } // namespace blocks

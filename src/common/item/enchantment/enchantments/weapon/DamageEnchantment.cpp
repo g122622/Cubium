@@ -55,7 +55,7 @@ f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const {
 
 bool DamageEnchantment::isCompatibleWith(const Enchantment& other) const {
     // 伤害类附魔之间互斥
-    if (const auto* damage = dynamic_cast<const DamageEnchantment*>(&other)) {
+    if (dynamic_cast<const DamageEnchantment*>(&other) != nullptr) {
         return false;
     }
     return Enchantment::isCompatibleWith(other);

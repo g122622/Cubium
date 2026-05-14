@@ -361,7 +361,7 @@ void CoralFeature::placeCoralBlock(
     const BlockPos& pos,
     blocks::CoralColor color) const
 {
-    placeCoralBase(world, pos, color, false);
+    [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
 }
 
 void CoralFeature::placeCoralFan(
@@ -532,7 +532,13 @@ void CoralMushroomFeature::generateCap(
                     if (random.nextFloat() < 0.1f) {
                         continue;  // 10%概率跳过
                     }
-                    placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
+                    [[maybe_unused]] const bool placed = placeCoralWithDecorations(
+                        world,
+                        random,
+                        capPos,
+                        color,
+                        isDead,
+                        includeDecorations);
                 }
             }
         }

@@ -123,7 +123,7 @@ public:
     [[nodiscard]] bool allowsMovement(
         const BlockState& state,
         IBlockReader& world,
-        const BlockPos& pos) const;
+        const BlockPos& pos) const override;
 
 protected:
     /**

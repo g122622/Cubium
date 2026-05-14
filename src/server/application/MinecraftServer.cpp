@@ -50,9 +50,9 @@ namespace mc::server {
 
 MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     : m_config(config)
-    , m_lootTableManager()
     , m_computationWorkerPool(-1, "ServerCompute")
     , m_ioWorkerPool(-1, "ServerIO")
+    , m_lootTableManager()
 {
 }
 

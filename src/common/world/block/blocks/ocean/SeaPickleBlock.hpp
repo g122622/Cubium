@@ -84,7 +84,10 @@ public:
      * @param state 方块状态
      * @return u8 发光等级（0-15）
      */
-    [[nodiscard]] u8 getLightLevel(const BlockState& state) const;
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override;
 
     // ========== 形状 ==========
 

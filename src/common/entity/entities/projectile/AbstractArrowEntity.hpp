@@ -33,7 +33,7 @@ enum class PickupStatus : u8 {
  */
 class AbstractArrowEntity : public ProjectileEntity {
 public:
-    virtual ~AbstractArrowEntity() = default;
+    ~AbstractArrowEntity() override = default;
 
     // ========== Entity 接口重写 ==========
 
