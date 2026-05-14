@@ -1098,6 +1098,43 @@ if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
 - `damageBuffer` 默认值 5.0，玩家在边界外 5 格内不受伤
 - 伤害公式：`max(1, floor(-(distance + buffer) * damagePerBlock))`
 
+### 24. MonsterEntity 光照等级检查 (isValidLightLevel)
+
+**问题**：怪物生成时的光照检查需要正确处理雷暴天气。
+
+**解决方案**：`MonsterEntity::isValidLightLevel()` 实现了 MC 1.16.5 的两阶段光照检查：
+
+```cpp
+bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random)
+{
+    // 第一阶段：快速天空光照检查
+    u8 skyLight = world.getSkyLight(pos);
+    if (skyLight > random.nextInt(32)) {
+        return false;
+    }
+
+    // 第二阶段：综合光照检查
+    u8 light;
+    if (world.isThundering()) {
+        // 雷暴天气：使用固定天空减暗值 10
+        // 这使得即使在白天，雷暴天气下露天位置的光照也会很低
+        light = world.getNeighborAwareLightSubtracted(pos, 10);
+    } else {
+        // 正常天气：使用当前时间的天空减暗值
+        light = world.getLight(pos);
+    }
+
+    return light <= random.nextInt(8);
+}
+```
+
+**要点**:
+- 第一阶段：天空光照 > random(0-31) 则太亮
+- 第二阶段：综合光照 <= random(0-7) 则足够暗
+- 雷暴天气使用固定的天空减暗值 10，允许怪物在白天生成
+- `getNeighborAwareLightSubtracted()` 包含世界边界检查（边界外返回 15）
+- `getLight()` 使用 `getSkyDarkening()` 计算当前时间的减暗值
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：
@@ -1126,6 +1163,7 @@ if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
 | `tests/common/item/special/BucketItemTest.cpp` | 桶物品与牛挤奶交互测试 |
 | `tests/common/entity/utils/ItemDropHelperTest.cpp` | 物品掉落速度和实体生成测试 |
 | `tests/common/entity/entities/monster/SlimeEntityTest.cpp` | 史莱姆尺寸系统、分裂机制、声音、伤害、经验值测试 |
+| `tests/common/world/LightLevelTest.cpp` | IWorld 光照计算方法测试（怪物生成光照检查） |
 
 ## 参考
 

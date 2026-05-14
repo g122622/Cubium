@@ -193,6 +193,9 @@ public:
     virtual u8 getBlockLight(i32 x, i32 y, i32 z) const = 0;
     virtual u8 getSkyLight(i32 x, i32 y, i32 z) const = 0;
     virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const;
+    virtual u8 getNeighborAwareLightSubtracted(const BlockPos& pos, u32 skyDarkening) const;
+    virtual u8 getLight(const BlockPos& pos) const;
+    virtual i32 getSkyDarkening() const;
     virtual f32 getBrightness(const BlockPos& pos) const;  // Returns 0.0-1.0
     virtual bool canSeeSky(const BlockPos& pos) const;  // Based on sky light >= 15
 
@@ -231,6 +234,8 @@ public:
 - `getBlockLight(const BlockPos&)`
 - `getSkyLight(const BlockPos&)`
 - `getLightSubtracted(const BlockPos&, u32 skyDarkening)`
+- `getNeighborAwareLightSubtracted(const BlockPos&, u32 skyDarkening)`
+- `getLight(const BlockPos&)`
 - `getBrightness(const BlockPos&)`
 - `isWithinWorldBounds(const BlockPos&)`
 
@@ -675,6 +680,48 @@ bool outdoor = world.canSeeSky(pos);  // Returns true if skyLight >= 15
 
 // Height query
 i32 height = world.getHeight(x, z);  // Top solid block
+
+// Light level calculation for mob spawning (MC 1.16.5)
+u8 light = world.getLight(pos);  // Uses current sky darkening
+u8 neighborLight = world.getNeighborAwareLightSubtracted(pos, 10);  // Thundering uses fixed darkening 10
+i32 darkening = world.getSkyDarkening();  // Calculate from dayTime, rain, thunder
+```
+
+**Light Calculation Methods (MC 1.16.5):**
+
+| Method | Purpose | Formula |
+|--------|---------|---------|
+| `getLightSubtracted(pos, skyDarkening)` | Basic light calculation | `max(blockLight, skyLight - skyDarkening)` |
+| `getNeighborAwareLightSubtracted(pos, skyDarkening)` | Light with world border check | Returns 15 outside bounds, otherwise `getLightSubtracted` |
+| `getLight(pos)` | Current light level | `getNeighborAwareLightSubtracted(pos, getSkyDarkening())` |
+| `getSkyDarkening()` | Sky darkening factor | Based on `dayTime`, `isRaining()`, `isThundering()` |
+
+**Sky Darkening Calculation:**
+
+The sky darkening factor determines how much the sky light is reduced:
+- Noon (dayTime=6000): darkening ≈ 0
+- Midnight (dayTime=18000): darkening ≈ 11
+- Rain: additional darkening
+- Thunder: darkening = 10 (fixed, allows monster spawning during day)
+
+**Monster Spawning Light check:**
+
+MC 1.16.5 uses a two-stage light check for monster spawning:
+
+```cpp
+// Stage 1: Quick sky light check
+if (skyLight > random.nextInt(32)) return false;
+
+// Stage 2: Comprehensive light check
+u8 light;
+if (world.isThundering()) {
+    // Thundering: fixed sky darkening of 10
+    light = world.getNeighborAwareLightSubtracted(pos, 10);
+} else {
+    // Normal: use current time-based sky darkening
+    light = world.getLight(pos);
+}
+return light <= random.nextInt(8);
 ```
 
 **canSeeSky Implementation:**
@@ -819,6 +866,7 @@ Tests are located in `tests/common/world/` and `tests/server/world/`:
 | `gen/WorldGenDeterminismTest.cpp` | Generation determinism |
 | `gen/test_vegetation_features.cpp` | Tree/vegetation features |
 | `border/WorldBorderTest.cpp` | World border size, center, damage, lerp |
+| `LightLevelTest.cpp` | Light calculation methods (getLightSubtracted, getNeighborAwareLightSubtracted, getLight, getSkyDarkening) |
 | `EntityManagerSpawnTest.cpp` | Entity spawning |
 | `EntityTrackerTest.cpp` | Entity tracking |
 | `ItemPickupManagerTest.cpp` | Item pickup |
