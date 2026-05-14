@@ -27,6 +27,9 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../VanillaBlocks.hpp"
 
 namespace mc {
@@ -51,9 +54,78 @@ BubbleColumnBlock::BubbleColumnBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::DRAG(), false));
 }
 
+// ========== 静态方法实现 ==========
+
+void BubbleColumnBlock::placeBubbleColumn(IWorld& world, const BlockPos& pos, bool drag)
+{
+    // MC 1.16.5: BubbleColumnBlock.placeBubbleColumn()
+    if (canHoldBubbleColumn(world, pos)) {
+        const BlockState& bubbleState = VanillaBlocks::BUBBLE_COLUMN->defaultState()
+            .with(BlockStateProperties::DRAG(), drag);
+        world.setBlockState(pos, &bubbleState, 2);
+    }
+}
+
+bool BubbleColumnBlock::canHoldBubbleColumn(const IWorld& world, const BlockPos& pos)
+{
+    // MC 1.16.5: BubbleColumnBlock.canHoldBubbleColumn()
+    // 条件：是水方块 + 流体等级 >= 8 + 是水源
+
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 必须是水方块
+    if (!state->is(VanillaBlocks::WATER)) {
+        return false;
+    }
+
+    // 检查流体状态
+    const fluid::FluidState* fluidState = state->getFluidState();
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return false;
+    }
+
+    // 流体等级 >= 8 且是水源
+    return fluidState->getLevel() >= 8 && fluidState->isSource();
+}
+
+bool BubbleColumnBlock::getDrag(const IWorld& world, const BlockPos& pos)
+{
+    // MC 1.16.5: BubbleColumnBlock.getDrag()
+    const BlockState* state = world.getBlockState(pos);
+
+    if (state == nullptr) {
+        return true; // 默认下拖
+    }
+
+    // 如果下方是气泡柱，继承其 DRAG 状态
+    if (VanillaBlocks::BUBBLE_COLUMN != nullptr && state->is(VanillaBlocks::BUBBLE_COLUMN)) {
+        return state->get(BlockStateProperties::DRAG());
+    }
+
+    // 如果下方是灵魂沙，返回 false（上推）
+    if (VanillaBlocks::SOUL_SAND != nullptr && state->is(VanillaBlocks::SOUL_SAND)) {
+        return false;
+    }
+
+    // 其他情况（包括岩浆块）返回 true（下拖）
+    return true;
+}
+
 bool BubbleColumnBlock::isDrag(const BlockState& state) const
 {
     return state.get(BlockStateProperties::DRAG());
+}
+
+void BubbleColumnBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // MC 1.16.5: BubbleColumnBlock.onBlockAdded()
+    // 气泡柱被添加时，在上方放置气泡柱
+    // DRAG 状态由下方方块决定
+    bool drag = getDrag(world, pos.down());
+    placeBubbleColumn(world, pos.up(), drag);
 }
 
 BlockState BubbleColumnBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -104,14 +176,21 @@ BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
     // MC 1.16.5: 气泡柱更新逻辑
-    // 1. 下方源变化时更新drag状态
-    // 2. 上方是水时调度tick传播气泡柱
+
+    // 检查位置有效性
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+    if (!isValidPosition(state, blockReader, currentPos)) {
+        // 位置无效，变成水
+        if (VanillaBlocks::WATER != nullptr) {
+            return VanillaBlocks::WATER->defaultState();
+        }
+        return state;
+    }
 
     if (facing == Direction::Down) {
-        // 下方方块变化，检查源是否变化
-        bool newDrag = checkSource(world, currentPos);
+        // 下方方块变化，更新 DRAG 状态
+        bool newDrag = getDrag(world, facingPos);
         if (newDrag != isDrag(state)) {
             return state.with(BlockStateProperties::DRAG(), newDrag);
         }
@@ -119,9 +198,11 @@ BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
 
     if (facing == Direction::Up) {
         // 上方方块变化
-        // 如果上方是水，需要将其转换为气泡柱
-        // 这通过tick方法处理，这里暂时不调度
-        // 实际MC中会调度一个tick来处理：world.scheduleBlockTick(currentPos, *this, 5);
+        if (!facingState.is(this) && canHoldBubbleColumn(world, facingPos)) {
+            // 上方是水（非气泡柱），调度 tick 传播气泡柱
+            // MC 1.16.5: world.getPendingBlockTicks().scheduleTick(currentPos, this, 5);
+            world.tickManager().scheduleBlockTick(currentPos, *this, 5);
+        }
     }
 
     return state;
@@ -152,34 +233,11 @@ void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     MC_UNUSED(random);
 
     // MC 1.16.5: 气泡柱传播逻辑
-    // 检查上方是否是水，如果是则放置气泡柱
+    // 在上方位置放置气泡柱，继承当前 DRAG 状态
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
+    bool currentDrag = isDrag(state);
 
-    if (aboveState != nullptr && aboveState->is(VanillaBlocks::WATER)) {
-        // 上方是水，需要放置气泡柱
-        bool currentDrag = isDrag(state);
-
-        // 获取默认的气泡柱状态
-        const BlockState& bubbleState = defaultState().with(BlockStateProperties::DRAG(), currentDrag);
-
-        // 设置方块（替换水）
-        world.setBlockState(abovePos, &bubbleState, 2);
-
-        // 为新放置的气泡柱调度tick以继续传播
-        // 注意：需要通过方块tick系统调度，这里暂时简化处理
-        // 实际应该: world.scheduleBlockTick(abovePos, *this, 5);
-    } else if (aboveState != nullptr && aboveState->is(this)) {
-        // 上方已经是气泡柱，更新其drag状态
-        bool currentDrag = isDrag(state);
-        bool aboveDrag = aboveState->get(BlockStateProperties::DRAG());
-
-        if (currentDrag != aboveDrag) {
-            // 状态不一致，更新上方的drag状态
-            const BlockState& newAboveState = aboveState->with(BlockStateProperties::DRAG(), currentDrag);
-            world.setBlockState(abovePos, &newAboveState, 2);
-        }
-    }
+    placeBubbleColumn(world, abovePos, currentDrag);
 }
 
 const CollisionShape& BubbleColumnBlock::getShape(const BlockState& state) const

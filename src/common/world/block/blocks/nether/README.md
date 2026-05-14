@@ -197,16 +197,31 @@ void NyliumBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
 岩浆块在水中会产生气泡柱：
 
+**MC 1.16.5 对齐**：
+- 当上方是水源方块时，自动生成下拖气泡柱 (DRAG=true)
+- 延迟 20 tick 后生成气泡柱
+- 邻居更新时检测上方是否变为水
+
 ```cpp
 void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-    if (aboveState != nullptr) {
-        const fluid::FluidState* fluidState = aboveState->getFluidState();
-        if (fluidState != nullptr && !fluidState->isEmpty() &&
-            fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-            // 生成气泡柱
-            // BubbleColumnBlock.placeBubbleColumn(world, abovePos, true);
+
+    // 调用 BubbleColumnBlock 的静态方法放置气泡柱
+    // true = DRAG（下拖气泡柱，由岩浆块产生）
+    BubbleColumnBlock::placeBubbleColumn(world, abovePos, true);
+}
+
+void MagmaBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
+                                  const BlockPos& neighborPos, bool isMoving) {
+    // 当上方有水时调度 tick
+    if (neighborPos.x == pos.x && neighborPos.y == pos.y + 1 && neighborPos.z == pos.z) {
+        const BlockState* aboveState = world.getBlockState(neighborPos);
+        if (aboveState != nullptr) {
+            const fluid::FluidState* fluidState = aboveState->getFluidState();
+            if (fluidState != nullptr && !fluidState->isEmpty() &&
+                fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                world.tickManager().scheduleBlockTick(pos, *this, 20);
+            }
         }
     }
 }

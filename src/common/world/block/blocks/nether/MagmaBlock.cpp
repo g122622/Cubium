@@ -27,6 +27,7 @@
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "../ocean/BubbleColumnBlock.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::blocks {
@@ -69,20 +70,14 @@ void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, mat
 {
     // 参考: MC 1.16.5 MagmaBlock.tick()
     // 在上方生成气泡柱
-    MC_UNUSED(state); // 暂时未使用
+    MC_UNUSED(state);
     MC_UNUSED(random);
 
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
 
-    if (aboveState != nullptr) {
-        const fluid::FluidState* fluidState = aboveState->getFluidState();
-        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-            // TODO: 当添加气泡柱方块后，这里应该生成气泡柱
-            // BubbleColumnBlock.placeBubbleColumn(world, abovePos, true);
-            spdlog::debug("MagmaBlock at ({}, {}, {}): would create bubble column", pos.x, pos.y, pos.z);
-        }
-    }
+    // 调用 BubbleColumnBlock 的静态方法放置气泡柱
+    // true = DRAG（下拖气泡柱，由岩浆块产生）
+    BubbleColumnBlock::placeBubbleColumn(world, abovePos, true);
 }
 
 void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
@@ -90,7 +85,7 @@ void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
 
     // 参考: MC 1.16.5 MagmaBlock.randomTick()
     // 在水中产生气泡效果
-    MC_UNUSED(state); // 暂时未使用
+    MC_UNUSED(state);
 
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -101,7 +96,7 @@ void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
             // 产生气泡粒子
             // world.addParticle(ParticleTypes::LARGE_SMOKE, ...)
             // world.playSound(SoundEvents::BLOCK_FIRE_EXTINGUISH, ...)
-            MC_UNUSED(random); // 目前不需要随机数，后续粒子位置需要
+            MC_UNUSED(random);
             spdlog::debug("MagmaBlock at ({}, {}, {}): bubble effect in water", pos.x, pos.y, pos.z);
         }
     }

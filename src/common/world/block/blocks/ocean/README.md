@@ -92,6 +92,44 @@ if (seagrass.canGrow(world, pos, state, false)) {
 - 重置摔落距离
 - tick 传播: 上方是水时转换为气泡柱
 
+#### 静态方法
+
+**placeBubbleColumn(IWorld, BlockPos, bool)**：
+- 在指定位置放置气泡柱方块
+- 自动检查位置是否为水源方块
+- 继承 DRAG 状态（true=下拖，false=上推）
+
+**canHoldBubbleColumn(IWorld, BlockPos)**：
+- 检查位置是否可以放置气泡柱
+- 条件：是水方块 + 流体等级 >= 8 + 是水源
+
+**getDrag(IBlockReader, BlockPos)**：
+- 获取指定位置下方方块的 DRAG 状态
+- 岩浆块 → true（下拖）
+- 灵魂沙 → false（上推）
+- 气泡柱 → 继承其 DRAG 状态
+- 其他 → true（默认下拖）
+
+#### 传播机制
+
+1. **MagmaBlock.tick()** → 调用 `placeBubbleColumn(world, pos.up(), true)`
+2. **BubbleColumnBlock.tick()** → 向上传播气泡柱
+3. **BubbleColumnBlock.onBlockAdded()** → 立即向上传播
+4. **BubbleColumnBlock.updatePostPlacement()** → 上方有水时调度 tick（延迟 5 tick）
+
+```cpp
+// 在岩浆块上方放置下拖气泡柱
+BubbleColumnBlock::placeBubbleColumn(world, magmaPos.up(), true);
+
+// 在灵魂沙上方放置上推气泡柱
+BubbleColumnBlock::placeBubbleColumn(world, soulSandPos.up(), false);
+
+// 检查是否可以放置气泡柱
+if (BubbleColumnBlock::canHoldBubbleColumn(world, pos)) {
+    // 该位置是水源，可以放置气泡柱
+}
+```
+
 ## 使用方法
 
 ```cpp

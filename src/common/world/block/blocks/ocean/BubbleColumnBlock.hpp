@@ -62,6 +62,47 @@ public:
     explicit BubbleColumnBlock(const BlockProperties& properties);
     ~BubbleColumnBlock() override = default;
 
+    // ========== 静态方法 ==========
+
+    /**
+     * @brief 放置气泡柱方块
+     *
+     * MC 1.16.5: BubbleColumnBlock.placeBubbleColumn(IWorld, BlockPos, boolean)
+     * 检查目标位置是否可以放置气泡柱，如果可以则设置气泡柱方块。
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @param drag 是否为下拖模式（true=岩浆块产生，false=灵魂沙产生）
+     */
+    static void placeBubbleColumn(IWorld& world, const BlockPos& pos, bool drag);
+
+    /**
+     * @brief 检查位置是否可以放置气泡柱
+     *
+     * MC 1.16.5: BubbleColumnBlock.canHoldBubbleColumn(IWorld, BlockPos)
+     * 条件：是水方块 + 流体等级 >= 8 + 是水源
+     *
+     * @param world 世界引用
+     * @param pos 检查位置
+     * @return 如果可以放置气泡柱返回 true
+     */
+    static bool canHoldBubbleColumn(const IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 获取气泡柱的 DRAG 状态
+     *
+     * MC 1.16.5: BubbleColumnBlock.getDrag(IBlockReader, BlockPos)
+     * 根据下方方块类型决定 DRAG 状态：
+     * - 下方是气泡柱：继承其 DRAG 状态
+     * - 下方是灵魂沙：返回 false（上推）
+     * - 其他（包括岩浆块）：返回 true（下拖）
+     *
+     * @param world 世界引用
+     * @param pos 当前位置（下方方块的位置）
+     * @return DRAG 状态
+     */
+    static bool getDrag(const IWorld& world, const BlockPos& pos);
+
     // ========== 状态属性 ==========
 
     /**
@@ -72,6 +113,13 @@ public:
     [[nodiscard]] bool isDrag(const BlockState& state) const;
 
     // ========== 放置逻辑 ==========
+
+    /**
+     * @brief 方块被添加到世界时
+     *
+     * MC 1.16.5: 气泡柱被添加时，在上方放置气泡柱
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
