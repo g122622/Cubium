@@ -37,6 +37,14 @@ fish/
 - `PufferfishEntity`
   - 继续继承 `AbstractFishEntity`。
   - 不进入群游层，保留河豚自己的膨胀/中毒语义。
+  - **膨胀行为 (MC 1.16.5)**:
+    - `PuffGoal`: 检测碰撞箱向外扩展 2 格范围内的敌人（非旁观者/创造模式玩家、非水生生物）
+    - `tick()`: 处理膨胀/收缩状态转换
+      - 膨胀: `puffTimer == 1` → SemiPuffed, `puffTimer > 40` → FullyPuffed
+      - 收缩: 完全膨胀→半膨胀延迟 60 ticks, 半膨胀→未膨胀延迟 100 ticks
+    - `attackNearbyEnemies()`: 膨胀状态下对接触的敌人造成伤害并施加中毒效果
+    - 动态碰撞箱: 根据膨胀状态返回不同尺寸 (0.35/0.49/0.7)
+    - 音效: 膨胀/收缩时播放 BLOW_UP/BLOW_OUT，刺击时播放 STING
 - `TropicalFishEntity`
   - 继承 `AbstractGroupFishEntity`。
   - 当前保留基础变种编码，桶数据和预定义花纹仍待补全。
@@ -137,6 +145,14 @@ if (abstractFish != nullptr) {
 - `preventDespawn()` 在消失检查中首先被调用，如果返回 `true` 则跳过整个消失逻辑
 
 ## 测试用例
+
+- `tests/common/entity/entities/passive/fish/PufferfishEntityTest.cpp`
+  - 覆盖膨胀状态枚举和状态转换。
+  - 覆盖 getPuffSize() 各状态返回正确值 (0.5/0.7/1.0)。
+  - 覆盖 canPoison/isFullyPuffed 判定。
+  - 覆盖膨胀/收缩计时器行为。
+  - 覆盖动态碰撞箱尺寸。
+  - 覆盖 PuffGoal 构造和目标类型名称。
 
 - `tests/entity/FishSupportTypesTest.cpp`
   - 覆盖群游层继承关系。

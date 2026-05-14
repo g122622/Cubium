@@ -228,6 +228,71 @@ void GuardianEntity::registerGoals() {
 
 ---
 
+### PuffGoal - 河豚膨胀目标
+
+**职责**: 控制河豚在检测到敌对生物或玩家靠近时触发膨胀行为。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.fish.PufferfishEntity.PuffGoal`
+
+**执行条件**:
+- 河豚存活
+- 检测到碰撞箱向外扩展 2 格范围内的威胁实体
+
+**威胁判定 (isEnemy)**:
+- **玩家**: 非旁观者模式且非创造模式视为威胁
+- **其他生物**: 非水生生物视为威胁（通过 LegacyEntityType 检查）
+  - 水生生物（不是威胁）: Cod, Salmon, Pufferfish, TropicalFish, Squid, Dolphin, Turtle
+  - 其他所有生物都是威胁
+
+**行为流程**:
+1. `shouldExecute()`: 检测范围内是否有威胁实体
+2. `shouldContinueExecuting()`: 持续检测（与 shouldExecute 相同逻辑）
+3. `startExecuting()`: 调用 `startPuffTimer()` 启动膨胀计时器
+4. `resetTask()`: 调用 `resetPuffTimer()` 重置计时器
+
+**PufferfishEntity.tick() 状态转换**:
+```
+Deflated → SemiPuffed: puffTimer == 1
+SemiPuffed → FullyPuffed: puffTimer > 40
+
+FullyPuffed → SemiPuffed: deflateTimer > 60
+SemiPuffed → Deflated: deflateTimer > 100
+```
+
+**攻击机制 (attackNearbyEnemies)**:
+- 膨胀状态时检测碰撞箱扩展 0.3 格范围内的敌人
+- 伤害 = 1 + puffState (1-3)
+- 中毒持续时间 = 60 * puffState ticks (60/120/180)
+- 播放刺击音效 (ENTITY_PUFFER_FISH_STING)
+
+**互斥标志**: 无（不与其他目标互斥）
+
+**使用示例**:
+```cpp
+void PufferfishEntity::registerGoals() {
+    AbstractFishEntity::registerGoals();
+    // 优先级 1: 膨胀目标
+    m_goalSelector.addGoal(1, std::make_unique<PuffGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| DETECTION_RANGE | 2.0f | 检测范围（碰撞箱向外扩展） |
+| PUFF_SEMI_THRESHOLD | 40 | 膨胀到半膨胀的阈值 (ticks) |
+| DEFLATE_FULL_TO_SEMI | 60 | 完全膨胀到半膨胀的延迟 |
+| DEFLATE_SEMI_TO_DEFLATE | 100 | 半膨胀到未膨胀的延迟 |
+
+**碰撞箱尺寸**:
+| 状态 | 缩放因子 | 碰撞箱尺寸 |
+|------|----------|-----------|
+| Deflated | 0.5 | 0.35 x 0.35 |
+| SemiPuffed | 0.7 | 0.49 x 0.49 |
+| FullyPuffed | 1.0 | 0.7 x 0.7 |
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -236,12 +301,14 @@ graph TD
     A --> C[RunAroundLikeCrazyGoal]
     A --> D[GuardianAttackGoal]
     A --> E[BlazeFireballAttackGoal]
-    A --> F[其他占位符目标]
+    A --> F[PuffGoal]
+    A --> G[其他占位符目标]
 
-    B --> G[CreeperEntity]
-    C --> H[AbstractHorseEntity]
-    D --> I[GuardianEntity]
-    E --> J[BlazeEntity]
+    B --> H[CreeperEntity]
+    C --> I[AbstractHorseEntity]
+    D --> J[GuardianEntity]
+    E --> K[BlazeEntity]
+    F --> L[PufferfishEntity]
 ```
 
 ---
@@ -358,6 +425,8 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | PrioritizedGoalTest.* | 优先级目标测试 |
 | CreeperSwellGoalBasicTest.* | 苦力怕膨胀目标常量测试 |
 | BlazeFireballAttackGoalBasicTest.* | 烈焰人火球攻击目标常量测试 |
+| PufferfishEntityTest.* | 河豚实体膨胀状态、计时器、尺寸测试 |
+| PuffGoalTest.* | 河豚膨胀目标构造和类型名称测试 |
 
 ---
 
