@@ -21,6 +21,7 @@ layer/
 ├── entity/                 # 实体特性层
 │   ├── SaddleLayer.hpp/cpp # 鞍层
 │   ├── SheepWoolLayer.hpp/cpp # 羊毛层
+│   ├── VillagerLayer.hpp   # 村民多层纹理层
 │   ├── ArrowLayer.hpp/cpp  # 箭矢附着层
 │   └── README.md
 └── effect/                 # 效果层
@@ -67,7 +68,8 @@ public:
 
 ### 实体特性层 (entity/)
 - **SaddleLayer**: 鞍渲染（马、猪等）
-- **SheepWoolLayer**: 羊毛渲染（羊）
+- **SheepWoolLayer**: 羊毛渲染（羊），支持染色羊毛和 jeb_ 彩虹羊
+- **VillagerLayer**: 村民多层纹理渲染，根据职业和生物群系叠加纹理
 - **ArrowLayer**: 箭矢附着渲染
 - **HeldBlockLayer**: 方块持有渲染（末影人），使用 `ChunkMesher::getDefaultBlockTintColor()` 获取方块默认着色颜色
 

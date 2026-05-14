@@ -292,6 +292,8 @@ add_executable(mc_tests
     client/renderer/entity/WorldTextRendererTest.cpp
     # HeldBlockLayer 末影人手持方块渲染层测试
     client/renderer/trident/entity/layer/entity/HeldBlockLayerTest.cpp
+    # VillagerLayer 村民多层纹理渲染层测试
+    client/renderer/trident/entity/layer/entity/VillagerLayerTest.cpp
     # EnergyGlintLayer 附魔光效渲染层测试
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     client/renderer/test_gui_item_color.cpp
