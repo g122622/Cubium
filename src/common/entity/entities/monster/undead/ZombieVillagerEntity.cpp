@@ -195,7 +195,12 @@ void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 t
     // 添加力量效果（持续整个治愈时间）
     // MC 1.16.5: 根据难度添加力量效果
     // 简单: 无力量, 普通: 力量 I, 困难: 力量 II
-    i32 strengthLevel = 0; // TODO: 从世界获取难度
+    // 参考: ZombieVillagerEntity.startConverting() - strengthLevel = max(difficultyId - 1, 0)
+    i32 strengthLevel = 0;
+    if (m_world != nullptr) {
+        i32 difficultyId = static_cast<i32>(m_world->difficulty());
+        strengthLevel = std::max(difficultyId - 1, 0);
+    }
     if (strengthLevel > 0) {
         addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Strength,
             time,
