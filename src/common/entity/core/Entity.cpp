@@ -1876,4 +1876,30 @@ bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
     return true;
 }
 
+// ============================================================================
+// 玩家交互
+// ============================================================================
+
+ActionResultType Entity::processInitialInteract(Player& player, Hand hand)
+{
+    // MC 1.16.5: Entity.processInitialInteract()
+    // 基类默认实现：返回 Pass，表示不处理交互
+    // 子类（如 MobEntity、BoatEntity、ItemFrameEntity 等）可重写此方法处理特定交互
+
+    (void)player;
+    (void)hand;
+    return ActionResultType::Pass;
+}
+
+ActionResultType Entity::applyPlayerInteraction(Player& player,
+    const Vector3& hitPosition, Hand hand)
+{
+    // MC 1.16.5: Entity.applyPlayerInteraction()
+    // 基类默认实现：直接调用 processInitialInteract
+    // 子类（如 ArmorStandEntity）可重写此方法处理基于点击位置的交互
+
+    (void)hitPosition; // 基类不使用点击位置
+    return processInitialInteract(player, hand);
+}
+
 } // namespace mc

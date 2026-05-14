@@ -25,6 +25,7 @@
 
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
+#include "../../item/core/ActionResult.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/AxisAlignedBB.hpp"
@@ -994,6 +995,42 @@ public:
         // 默认实现：无操作
         (void)player;
     }
+
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 处理玩家初始交互
+     *
+     * 参考 MC 1.16.5 Entity.processInitialInteract()
+     * 当玩家右键点击实体时首先调用此方法。
+     * 子类可重写此方法处理特定的交互行为（如骑乘、打开容器等）。
+     *
+     * 基类默认实现返回 Pass，表示不处理交互。
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    virtual ActionResultType processInitialInteract(class Player& player, Hand hand);
+
+    /**
+     * @brief 处理玩家指定位置的交互
+     *
+     * 参考 MC 1.16.5 Entity.applyPlayerInteraction()
+     * 当玩家右键点击实体的特定位置时调用。
+     * 基类默认调用 processInitialInteract。
+     * 子类可重写此方法处理基于点击位置的交互（如盔甲架装备槽）。
+     *
+     * hitPosition 是相对于实体坐标的局部坐标（0 到 实体尺寸 的范围），
+     * 可用于确定玩家点击的是实体的哪个部位。
+     *
+     * @param player 与此实体交互的玩家
+     * @param hitPosition 点击位置（相对于实体坐标系）
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    virtual ActionResultType applyPlayerInteraction(class Player& player,
+        const Vector3& hitPosition, Hand hand);
 
     // ========== 环境检测 ==========
 

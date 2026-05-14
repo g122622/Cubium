@@ -700,7 +700,8 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
 
         case network::UseEntityAction::InteractAt:
             // MC 1.16.5: 右键交互（指定具体位置）
-            // 参考: PlayerEntity.interactOn() 和 Entity.applyPlayerInteraction()
+            // 参考: Entity.applyPlayerInteraction()
+            // hitPosition 是相对于实体坐标的局部坐标，用于确定点击的是实体的哪个部位
             spdlog::trace("PacketHandler: Player {} INTERACT_AT entity {} pos=({},{},{}) hand={}",
                 playerId,
                 packet.entityId(),
@@ -708,10 +709,10 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
                 packet.hitY(),
                 packet.hitZ(),
                 static_cast<int>(packet.hand()));
-            // TODO: 实现指定位置的交互
-            // 需要在 Entity 类中添加 applyPlayerInteraction(player, hitPosition, hand) 方法
-            // 目前使用 interactOn 作为简化实现
-            actionResult = player->interactOn(*target, packet.hand());
+            {
+                Vector3 hitPosition(packet.hitX(), packet.hitY(), packet.hitZ());
+                actionResult = target->applyPlayerInteraction(*player, hitPosition, packet.hand());
+            }
             break;
     }
 
