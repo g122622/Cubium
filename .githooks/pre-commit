@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# 仅处理已暂存的 C++ 源文件，避免在提交时无关改动被带入。
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cpp|hpp)$' || true)
+
+if [ "${#files[@]}" -eq 0 ]; then
+    exit 0
+fi
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "pre-commit: clang-format 未安装或不在 PATH 中" >&2
+    exit 1
+fi
+
+for file in "${files[@]}"; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    clang-format -i -- "$file"
+    git add -- "$file"
+done
+
+echo "pre-commit: 已格式化 ${#files[@]} 个已暂存的 C++ 文件"
