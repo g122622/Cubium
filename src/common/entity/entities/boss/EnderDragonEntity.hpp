@@ -258,7 +258,17 @@ public:
 
     // ========== BossEntity 接口 ==========
 
-    [[nodiscard]] std::string getBossName() const override { return "Ender Dragon"; }
+    /**
+     * @brief 获取Boss名称（显示在生命条上）
+     * MC 1.16.5: 返回自定义名称或默认名称
+     */
+    [[nodiscard]] std::string getBossName() const override
+    {
+        if (hasCustomName()) {
+            return customNameText();
+        }
+        return "Ender Dragon";
+    }
     [[nodiscard]] f32 getHealthBarRange() const override { return 256.0f; }
     [[nodiscard]] u32 getHealthBarColor() const override { return 0x800080; } // 紫色
 

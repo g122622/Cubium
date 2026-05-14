@@ -108,7 +108,11 @@ bool WitherEntity::canRangedAttack() const
 
 std::string WitherEntity::getBossName() const
 {
-    // TODO: 返回自定义名称或默认名称
+    // MC 1.16.5: 返回自定义名称或默认名称
+    // 参考 WitherEntity 构造函数中 bossInfo 使用 getDisplayName()
+    if (hasCustomName()) {
+        return customNameText();
+    }
     return "Wither";
 }
 
