@@ -100,6 +100,7 @@ bool ClientDimensionManager::isDimensionAvailable(DimensionId dimension) const
 const DimensionType* ClientDimensionManager::getDimensionType(DimensionId dimension) const
 {
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
+    // TODO 未来可能需要支持更多维度，这里可以改成一个枚举 + 映射表来存储维度ID和维度类型的对应关系
     switch (dimension) {
         case 0: // Overworld
             return m_overworldType.get();
