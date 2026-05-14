@@ -976,15 +976,13 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     m_damage += static_cast<i32>(amount * 10.0f);
 
     // 8. 检查攻击者是否为创造模式玩家
-    // boolean flag = source.getTrueSource() instanceof PlayerEntity &&
-    // ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    // MC 1.16.5: boolean flag = source.getTrueSource() instanceof PlayerEntity &&
+    //     ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
     bool isCreative = false;
     Entity* attacker = source.source();
     if (attacker != nullptr && attacker->legacyType() == LegacyEntityType::Player) {
         Player* player = static_cast<Player*>(attacker);
-        // TODO: 当玩家创造模式检查实现后
-        // isCreative = player->isCreative();
-        MC_UNUSED(player);
+        isCreative = player->isCreative();
     }
 
     // 9. 检查是否应该摧毁矿车
