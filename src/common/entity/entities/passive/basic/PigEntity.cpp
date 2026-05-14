@@ -196,7 +196,7 @@ void PigEntity::travel(const Vector3& travelVec)
 
     // 设置 AI 移动速度
     f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
-    // setAIMoveSpeed(moveSpeed);  // TODO: 当 MobEntity 实现 setAIMoveSpeed 后添加
+    setAIMoveSpeed(moveSpeed);
 
     // 调用 IRideable::ride() 处理骑乘移动
     ride(*this, m_boostHelper, travelVec);
