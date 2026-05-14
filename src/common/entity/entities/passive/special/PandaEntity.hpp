@@ -250,7 +250,16 @@ public:
      */
     void playBiteSound();
 
-private:
+protected:
+    // ========== AI 目标注册 ==========
+    void registerGoals() override;
+
+    // ========== 属性注册 ==========
+    void registerAttributes() override;
+
+    // ========== 刻更新 ==========
+    void tick() override;
+
     /**
      * @brief 打喷嚏完成时调用
      *
@@ -263,16 +272,6 @@ private:
      * 参考 MC 1.16.5: PandaEntity.onSneeze()
      */
     void onSneezeComplete();
-
-protected:
-    // ========== AI 目标注册 ==========
-    void registerGoals() override;
-
-    // ========== 属性注册 ==========
-    void registerAttributes() override;
-
-    // ========== 刻更新 ==========
-    void tick() override;
 
 private:
     // 性格
