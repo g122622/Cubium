@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/player/SleepResult.hpp"
+#include "common/item/crafting/RecipeBook.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "server/stats/StatisticsManager.hpp"
@@ -241,11 +242,38 @@ public:
     /**
      * @brief 解锁配方（重写 Player 基类）
      *
-     * 触发 RecipeUnlockedTrigger 成就。
+     * 触发 RecipeUnlockedTrigger 成就，并更新配方书。
      *
      * @param recipeId 配方资源位置
      */
     void unlockRecipe(const ResourceLocation& recipeId) override;
+
+    /**
+     * @brief 获取配方书
+     * @return 配方书引用
+     */
+    [[nodiscard]] crafting::ServerRecipeBook& getRecipeBook() { return m_recipeBook; }
+    [[nodiscard]] const crafting::ServerRecipeBook& getRecipeBook() const { return m_recipeBook; }
+
+    /**
+     * @brief 批量解锁配方
+     *
+     * 解锁配方、标记为新配方、触发成就。
+     *
+     * @param recipes 配方ID列表
+     * @return 成功解锁的配方数量
+     */
+    size_t unlockRecipes(const std::vector<ResourceLocation>& recipes);
+
+    /**
+     * @brief 锁定配方
+     *
+     * 从配方书中移除配方。
+     *
+     * @param recipes 配方ID列表
+     * @return 成功锁定的配方数量
+     */
+    size_t lockRecipes(const std::vector<ResourceLocation>& recipes);
 
     /**
      * @brief 设置物品栏变更回调
@@ -379,6 +407,7 @@ private:
     server::IServer* m_server = nullptr;
     std::shared_ptr<server::PlayerAdvancements> m_advancements;
     server::stats::StatisticsManager m_statistics;
+    crafting::ServerRecipeBook m_recipeBook;  ///< 配方书
     bool m_online = true;
 };
 

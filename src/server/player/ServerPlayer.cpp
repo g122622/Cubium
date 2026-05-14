@@ -245,8 +245,30 @@ void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
         }
     }
 
-    // TODO: 更新配方书（当配方书系统实现后）
-    // m_recipeBook.unlock(recipeId);
+    // MC 1.16.5: 更新配方书
+    // 参考: net.minecraft.item.crafting.ServerRecipeBook.add()
+    m_recipeBook.unlock(recipeId);
+    m_recipeBook.markNew(recipeId);
+}
+
+size_t ServerPlayer::unlockRecipes(const std::vector<ResourceLocation>& recipes)
+{
+    return m_recipeBook.add(recipes.begin(), recipes.end(), [this](const ResourceLocation& recipeId) {
+        // 触发成就
+        if (m_advancements != nullptr) {
+            auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeUnlockedTrigger>();
+            if (trigger != nullptr) {
+                trigger->trigger(*m_advancements, [&recipeId](const advancement::RecipeUnlockedTriggerInstance& instance) {
+                    return instance.test(recipeId);
+                });
+            }
+        }
+    });
+}
+
+size_t ServerPlayer::lockRecipes(const std::vector<ResourceLocation>& recipes)
+{
+    return m_recipeBook.remove(recipes.begin(), recipes.end());
 }
 
 // ========== 睡眠系统实现 ==========

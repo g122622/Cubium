@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,17 +18,22 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "RecipeCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
 
 namespace mc {
@@ -78,9 +83,9 @@ i32 RecipeCommand::giveRecipe(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    std::string recipe = "*";
+    std::string recipeStr = "*";
     if (context.hasArgument("recipe")) {
-        recipe = context.getArgument<std::string>("recipe");
+        recipeStr = context.getArgument<std::string>("recipe");
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -89,22 +94,59 @@ i32 RecipeCommand::giveRecipe(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // 收集要解锁的配方ID列表
+    std::vector<ResourceLocation> recipesToGive;
+    if (recipeStr == "*") {
+        // 给予所有已注册的配方
+        auto allRecipes = crafting::RecipeManager::instance().getAllRecipes();
+        recipesToGive.reserve(allRecipes.size());
+        for (const auto* recipe : allRecipes) {
+            if (recipe != nullptr && !recipe->isDynamic()) {
+                recipesToGive.push_back(recipe->getId());
+            }
+        }
+    } else {
+        // 给予指定配方
+        ResourceLocation recipeId(recipeStr);
+        const auto* recipe = crafting::RecipeManager::instance().getRecipe(recipeId);
+        if (recipe == nullptr) {
+            source.sendError("Unknown recipe: " + recipeStr);
+            return 0;
+        }
+        if (recipe->isDynamic()) {
+            source.sendError("Cannot give dynamic recipe: " + recipeStr);
+            return 0;
+        }
+        recipesToGive.push_back(recipeId);
+    }
+
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto player = source.server()->playerManager().getPlayer(playerId);
-        if (player) {
-            // TODO: 实现配方解锁系统
+        // 通过 ServerPlayerEntityManager 获取 Player 实体
+        Player* player = source.server()->playerEntityManager().getPlayerEntity(playerId, *source.world());
+        if (player == nullptr) {
+            continue;
+        }
+
+        ServerPlayer* serverPlayer = player->asServerPlayer();
+        if (serverPlayer == nullptr) {
+            continue;
+        }
+
+        // 解锁配方
+        size_t unlocked = serverPlayer->unlockRecipes(recipesToGive);
+        if (unlocked > 0) {
             successCount++;
         }
     }
 
-    if (recipe == "*") {
+    if (recipeStr == "*") {
         std::ostringstream ss;
         ss << "Gave all recipes to " << successCount << " player(s)";
         source.sendMessage(ss.str());
     } else {
         std::ostringstream ss;
-        ss << "Gave recipe '" << recipe << "' to " << successCount << " player(s)";
+        ss << "Gave recipe '" << recipeStr << "' to " << successCount << " player(s)";
         source.sendMessage(ss.str());
     }
 
@@ -116,9 +158,9 @@ i32 RecipeCommand::takeRecipe(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    std::string recipe = "*";
+    std::string recipeStr = "*";
     if (context.hasArgument("recipe")) {
-        recipe = context.getArgument<std::string>("recipe");
+        recipeStr = context.getArgument<std::string>("recipe");
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -127,22 +169,55 @@ i32 RecipeCommand::takeRecipe(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // 收集要锁定的配方ID列表
+    std::vector<ResourceLocation> recipesToTake;
+    if (recipeStr == "*") {
+        // 从所有已注册配方中收集（需要锁定玩家已解锁的所有配方）
+        auto allRecipes = crafting::RecipeManager::instance().getAllRecipes();
+        recipesToTake.reserve(allRecipes.size());
+        for (const auto* recipe : allRecipes) {
+            if (recipe != nullptr && !recipe->isDynamic()) {
+                recipesToTake.push_back(recipe->getId());
+            }
+        }
+    } else {
+        // 锁定指定配方
+        ResourceLocation recipeId(recipeStr);
+        const auto* recipe = crafting::RecipeManager::instance().getRecipe(recipeId);
+        if (recipe == nullptr) {
+            source.sendError("Unknown recipe: " + recipeStr);
+            return 0;
+        }
+        recipesToTake.push_back(recipeId);
+    }
+
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto player = source.server()->playerManager().getPlayer(playerId);
-        if (player) {
-            // TODO: 实现配方解锁系统
+        // 通过 ServerPlayerEntityManager 获取 Player 实体
+        Player* player = source.server()->playerEntityManager().getPlayerEntity(playerId, *source.world());
+        if (player == nullptr) {
+            continue;
+        }
+
+        ServerPlayer* serverPlayer = player->asServerPlayer();
+        if (serverPlayer == nullptr) {
+            continue;
+        }
+
+        // 锁定配方
+        size_t locked = serverPlayer->lockRecipes(recipesToTake);
+        if (locked > 0) {
             successCount++;
         }
     }
 
-    if (recipe == "*") {
+    if (recipeStr == "*") {
         std::ostringstream ss;
         ss << "Took all recipes from " << successCount << " player(s)";
         source.sendMessage(ss.str());
     } else {
         std::ostringstream ss;
-        ss << "Took recipe '" << recipe << "' from " << successCount << " player(s)";
+        ss << "Took recipe '" << recipeStr << "' from " << successCount << " player(s)";
         source.sendMessage(ss.str());
     }
 
