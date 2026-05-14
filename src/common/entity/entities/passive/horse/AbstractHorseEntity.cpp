@@ -22,6 +22,8 @@
 */
 
 #include "AbstractHorseEntity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../effect/EffectType.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../network/packet/EntityPackets.hpp"
 #include "../../../../util/math/MathConstants.hpp"
@@ -312,8 +314,19 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
             f32 jumpPowerFactor = static_cast<f32>(m_jumpPower) / 100.0f;
             if (jumpPowerFactor > 0.0f && !m_isJumping && onGround()) {
                 // 计算跳跃力度
+                // MC 1.16.5 AbstractHorseEntity.travel():
+                // double d0 = this.getHorseJumpStrength() * (double)this.jumpPower * (double)this.getJumpFactor();
                 f64 jumpForce = static_cast<f64>(getJumpStrength() * jumpPowerFactor);
-                // TODO: 跳跃药水效果加成
+
+                // MC 1.16.5: 跳跃提升药水效果加成
+                // if (this.isPotionActive(Effects.JUMP_BOOST)) {
+                //     d1 = d0 + (double)((float)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) * 0.1F);
+                // }
+                const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
+                if (jumpBoostLevel > 0) {
+                    // 每级跳跃提升增加 0.1 的跳跃力度
+                    jumpForce += static_cast<f64>(static_cast<f32>(jumpBoostLevel) * 0.1f);
+                }
 
                 // 设置跳跃速度
                 setVelocity(velocityX(), static_cast<f32>(jumpForce), velocityZ());
@@ -404,6 +417,13 @@ void AbstractHorseEntity::performJump()
 
     // 计算跳跃力度
     f32 jumpForce = m_jumpStrength * jumpPowerFactor;
+
+    // MC 1.16.5: 跳跃提升药水效果加成
+    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
+    if (jumpBoostLevel > 0) {
+        // 每级跳跃提升增加 0.1 的跳跃力度
+        jumpForce += static_cast<f32>(jumpBoostLevel) * 0.1f;
+    }
 
     // 设置垂直速度
     setVelocity(velocityX(), jumpForce, velocityZ());

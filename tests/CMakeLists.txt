@@ -202,6 +202,7 @@ add_executable(mc_tests
     entity/HorseAppearanceSupportTypesTest.cpp
     entity/HorseSupportTypesTest.cpp
     entity/HorseTamingTest.cpp
+    entity/HorseJumpBoostTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
