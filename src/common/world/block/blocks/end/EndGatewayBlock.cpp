@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,11 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "EndGatewayBlock.hpp"
-#include "../../../IWorld.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "world/blockentity/interactive/EndGatewayEntity.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -33,13 +36,45 @@ EndGatewayBlock::EndGatewayBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
+std::unique_ptr<BlockEntity> EndGatewayBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::EndGatewayEntity>(pos);
+}
+
 void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
 {
     MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(entity);
-    // TODO: 折跃门传送逻辑
+
+    // 检查实体是否可以传送
+    // MC 1.16.5: 检查实体是否是旁观者、是否有乘客/正在骑乘
+    // 实际传送逻辑由 EndGatewayEntity::tick() 处理
+    // 这里只需要标记实体在折跃门内，方块实体会在 tick 中检测并处理
+
+    // 获取方块实体
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::EndGateway) {
+        return;
+    }
+
+    auto* gatewayEntity = static_cast<blockentity::EndGatewayEntity*>(blockEntity);
+
+    // 检查冷却状态 - 实体在冷却期间不会被传送
+    if (gatewayEntity->isCoolingDown()) {
+        return;
+    }
+
+    // 检查实体是否可以传送
+    // MC 1.16.5 EndGatewayTileEntity.func_242690_a:
+    // - 不是旁观者模式
+    // - 最低骑乘实体不是正在使用盾牌格挡（不适用于本项目）
+    if (!entity.canTeleport()) {
+        return;
+    }
+
+    // 传送实体
+    // 注意：传送逻辑在 EndGatewayEntity::teleportEntity 中实现
+    // 这里直接调用，因为实体已经进入方块
+    gatewayEntity->teleportEntity(world, entity);
 }
 
 const CollisionShape& EndGatewayBlock::getShape(const BlockState& state) const

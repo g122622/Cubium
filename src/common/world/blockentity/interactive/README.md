@@ -7,6 +7,7 @@
 ```
 interactive/
 ├── EnchantingTableEntity.hpp/cpp  # 附魔台
+├── EndGatewayEntity.hpp/cpp       # 末地折跃门
 ├── DispenserBlockEntity.hpp/cpp    # 发射器方块实体基类
 ├── DropperBlockEntity.hpp/cpp      # 投掷器方块实体（继承自DispenserBlockEntity）
 ├── PistonBlockEntity.hpp/cpp       # 活塞实体
@@ -39,6 +40,30 @@ interactive/
 
 每个有效书架增加1点附魔力量，最大15点。
 ```
+
+### EndGatewayEntity.hpp/cpp
+
+**职责**：末地折跃门方块实体。
+
+**主要功能**：
+- 将实体从末地主岛传送到外岛（或返回）
+- 传送冷却机制
+- 自动寻找或生成出口传送门
+
+**传送机制（MC 1.16.5）**：
+- 实体进入折跃门后立即被传送
+- 传送冷却 100 tick（触发后）
+- 触发后冷却时间 40 tick
+- 如果没有出口位置，会自动在约 1024 格外生成新传送门
+- 每 2400 tick 自动触发冷却（用于外岛返回的传送门刷新）
+
+**关键方法**：
+- `teleportEntity()` - 传送实体
+- `setExitPortal()` - 设置出口传送门位置
+- `isSpawning()` - 检查是否正在生成
+- `isCoolingDown()` - 检查是否在冷却中
+- `getSpawnPercent()` - 获取生成进度（用于客户端动画）
+- `getCooldownPercent()` - 获取冷却进度（用于客户端动画）
 
 ### DispenserBlockEntity.hpp/cpp
 
@@ -170,6 +195,8 @@ interactive/
 BlockEntity (基类)
 │
 ├── EnchantingTableEntity (附魔台)
+│
+├── EndGatewayEntity (末地折跃门)
 │
 ├── DispenserBlockEntity (发射器/投掷器)
 │

@@ -48,7 +48,13 @@ end/
 - **行为**：
   - 实体碰撞时触发折跃传送
   - 无碰撞箱
-- **TODO**：实现折跃门传送逻辑
+  - 关联 EndGatewayEntity 方块实体处理传送逻辑
+- **方块实体**：EndGatewayEntity
+  - 传送冷却：100 tick（触发后）
+  - 自动冷却周期：2400 tick
+  - 生成动画持续时间：200 tick
+  - 自动生成出口传送门（约 1024 格外）
+- **参考**：MC 1.16.5 `net.minecraft.block.EndGatewayBlock`
 
 ### ChorusPlantBlock（紫颂植物）
 

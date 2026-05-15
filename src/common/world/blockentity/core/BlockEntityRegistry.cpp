@@ -27,6 +27,7 @@
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
@@ -112,6 +113,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册告示牌方块实体
     registerType(BlockEntityType::Sign, [](const BlockPos& pos) { return std::make_unique<SignEntity>(pos); });
+
+    // 注册末地折跃门方块实体
+    registerType(
+        BlockEntityType::EndGateway, [](const BlockPos& pos) { return std::make_unique<blockentity::EndGatewayEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

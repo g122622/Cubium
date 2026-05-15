@@ -615,6 +615,7 @@ add_library(mc_common STATIC
     world/blockentity/core/LootableContainerBlockEntity.cpp
     world/blockentity/core/BlockEntityRegistry.cpp
     world/blockentity/interactive/EnchantingTableEntity.cpp
+    world/blockentity/interactive/EndGatewayEntity.cpp
     world/blockentity/interactive/DispenserBlockEntity.cpp
     world/blockentity/interactive/DropperBlockEntity.cpp
     world/blockentity/interactive/PistonBlockEntity.cpp
