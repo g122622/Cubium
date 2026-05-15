@@ -154,7 +154,7 @@ Entity
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
 | BlazeEntity | 烈焰人 | 火球攻击、飞行 | ✅ BlazeFireballAttackGoal 已实现 |
-| GhastEntity | 恶魂 | 火球攻击、飞行、大碰撞箱 | ⏳ 框架完成 |
+| GhastEntity | 恶魂 | 火球攻击、飞行、大碰撞箱 | ✅ shootFireball() 已实现 |
 | MagmaCubeEntity | 岩浆怪 | 分裂、岩浆免疫 | ⏳ 框架完成 |
 | PiglinEntity | 猪灵 | 交易、攻击玩家、惧怕灵魂火 | ⏳ 框架完成 |
 | PiglinBruteEntity | 猪灵蛮兵 | 高攻击力、不交易 | ⏳ 框架完成 |
