@@ -306,7 +306,7 @@ src/common/entity/
 
 所有游戏实体的基类，提供：
 - **位置与运动**：位置、速度、旋转、碰撞箱
-- **物理系统**：重力、碰撞检测、地面检测
+- **物理系统**：重力、碰撞检测、地面检测、步进高度（stepHeight）
 - **环境检测**：水中、岩浆中、着火状态
 - **乘客/骑乘系统**：多乘客支持、下车机制
 - **数据同步**：EntityDataManager 数据参数
@@ -317,6 +317,28 @@ src/common/entity/
 - **发光效果**：`isGlowing()` / `setGlowing()` 发光状态管理
 - **队伍系统**：`getTeam()` 获取实体所属队伍（虚拟方法，默认返回 nullptr）
 - **玩家交互**：`processInitialInteract()` / `applyPlayerInteraction()` 玩家右键交互处理
+
+**步进高度（stepHeight）**：
+
+实体可以自动走上多高的方块（无需跳跃）：
+
+```cpp
+// 获取步进高度
+f32 height = entity->stepHeight();
+
+// 设置步进高度
+entity->setStepHeight(1.0f);  // 可走上完整方块
+```
+
+| 实体类型 | stepHeight |
+|---------|------------|
+| LivingEntity（默认） | 0.6f |
+| IronGolemEntity | 1.0f |
+| AbstractHorseEntity | 1.0f |
+| EndermanEntity | 1.0f |
+| DrownedEntity | 1.0f |
+| RavagerEntity | 1.0f |
+| TurtleEntity | 1.0f |
 
 ```cpp
 // 创建实体

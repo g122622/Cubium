@@ -86,6 +86,79 @@ MC 1.16.5 `net.minecraft.entity.SpawnReason`
 
 ## 物理系统
 
+### 步进高度系统（MC 1.16.5）
+
+实体步进高度（stepHeight）决定实体可以自动走上多高的方块，无需跳跃。
+
+**核心实现**：
+
+```cpp
+class Entity {
+public:
+    // 获取步进高度
+    [[nodiscard]] virtual f32 stepHeight() const { return m_stepHeight; }
+    
+    // 设置步进高度
+    void setStepHeight(f32 height) { m_stepHeight = height; }
+    
+protected:
+    f32 m_stepHeight = 0.0f;  // 默认0.0f，LivingEntity设置为0.6f
+};
+```
+
+**实体步高值**（参考 MC 1.16.5）：
+
+| 实体类型 | stepHeight | 说明 |
+|---------|------------|------|
+| Entity（基类） | 0.0f | 默认无步进能力 |
+| LivingEntity | 0.6f | 生物默认值，可走上台阶 |
+| IronGolemEntity | 1.0f | 可走上完整方块 |
+| AbstractHorseEntity | 1.0f | 马、驴、骡等 |
+| EndermanEntity | 1.0f | 末影人 |
+| DrownedEntity | 1.0f | 溺尸 |
+| RavagerEntity | 1.0f | 劫掠兽 |
+| TurtleEntity | 1.0f | 海龟 |
+| ArmorStandEntity | 0.0f | 盔甲架无法步进 |
+
+**骑乘系统动态步高**（IRideable）：
+
+```cpp
+// 玩家骑乘时
+mount.setStepHeight(1.0f);  // 骑乘时步高增加到1.0
+
+// 下马后
+mount.setStepHeight(0.5f);  // 恢复到0.5
+```
+
+**使用示例**：
+
+```cpp
+// 在实体构造函数中设置步高
+IronGolemEntity::IronGolemEntity(LegacyEntityType type, EntityId id)
+    : GolemEntity(type, id)
+{
+    setStepHeight(1.0f);  // 铁傀儡可走上完整方块
+}
+
+// 运行时修改步高
+entity.setStepHeight(0.5f);
+```
+
+**物理引擎集成**：
+
+`PhysicsEngine::moveEntity()` 使用 `stepHeight` 参数实现自动步进：
+
+```cpp
+Vector3 actualMovement = physics->moveEntity(entityBox, desiredMovement, stepHeight());
+```
+
+步进逻辑参考 MC 1.16.5 `Entity.getAllowedMovement()`：
+1. 当水平方向被阻挡且在地面（或下落）时触发
+2. 先尝试向上移动 `stepHeight` 高度
+3. 然后尝试水平移动
+4. 最后下降回地面
+5. 选择水平移动距离最远的策略
+
 ### 移动与碰撞
 - `Entity::moveWithCollision()` - 带碰撞检测的移动，自动处理步进
 - `Entity::doBlockCollisions()` - 方块碰撞回调，在移动后触发 `onLanded` 和 `onEntityWalk`
