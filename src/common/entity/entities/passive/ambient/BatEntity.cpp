@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,10 +18,11 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "BatEntity.hpp"
+#include "../../../ai/goal/goals/special/BatGoals.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
@@ -69,49 +70,40 @@ void BatEntity::tick()
 {
     AmbientEntity::tick();
 
-    // MC 1.16.5: 检查是否是白天
-    // 参考 BatEntity.tick() 第109-132行
-    bool isDay = false;
-    if (m_world != nullptr) {
-        // dayTime() 返回一天中的时间 (0-23999)
-        // 白天: 0-11999, 夜晚: 12000-23999
-        i64 timeOfDay = m_world->dayTime() % 24000;
-        isDay = timeOfDay < 12000;
-    }
+    // 蝙蝠的飞行行为由AI目标系统控制
+    // BatRandomFlyGoal 和 BatRestGoal 处理所有行为
+    // 这里只需要处理一些状态同步
 
-    // 简化逻辑：随机决定是否休息
+    // MC 1.16.5: 蝙蝠飞行时的垂直阻尼
+    // 参考 BatEntity.tick() 第113行
+    // this.setMotion(this.getMotion().mul(1.0D, 0.6D, 1.0D));
     if (m_flying && !m_resting) {
-        m_flyTimer++;
-
-        // 检查是否可以休息
-        if (canRest()) {
-            math::Random rng = getRandom();
-            if (rng.nextInt(1, 100) == 1) {
-                m_resting = true;
-                m_flying = false;
-            }
-        }
+        // 飞行时Y轴速度保留60%
+        math::Vector3 vel = velocity();
+        setVelocity(vel.x, vel.y * 0.6f, vel.z);
     }
 
-    // 休息状态更新
+    // 休息状态下的位置对齐
     if (m_resting) {
-        // MC 1.16.5: 在夜间或附近有玩家时唤醒
-        // 暂时只检查白天/夜晚
-        if (isDay) {
-            // 白天保持休息
-        } else {
-            // 夜间唤醒并开始飞行
-            m_resting = false;
-            m_flying = true;
-        }
+        // 保持静止
+        setVelocity(math::Vector3(0.0f, 0.0f, 0.0f));
     }
 }
 
 void BatEntity::registerGoals()
 {
-    // TODO: 蝙蝠 AI 目标
-    // - BatFlyGoal: 随机飞行
-    // - BatRestGoal: 休息
+    // MC 1.16.5 蝙蝠AI目标
+    // 注意：MC原版蝙蝠实际上不使用传统AI目标系统，
+    // 而是在 updateAITasks() 中直接实现行为。
+    // 这里将其拆分为独立的Goal类以遵循项目架构风格。
+
+    // 优先级 0: 随机飞行目标
+    // 飞行时选择随机目标点，平滑转向飞行
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::BatRandomFlyGoal>(this));
+
+    // 优先级 1: 挂墙休息目标
+    // 白天尝试挂墙休息，玩家靠近或失去支撑时飞走
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::BatRestGoal>(this));
 }
 
 void BatEntity::registerAttributes()
