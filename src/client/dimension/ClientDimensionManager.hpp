@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -34,6 +36,19 @@ namespace mc {
 namespace client {
 class ClientWorld;
 }
+
+/**
+ * @brief 客户端维度信息结构体
+ *
+ * 存储从服务器接收的维度信息，包含维度属性。
+ */
+struct ClientDimensionInfo {
+    DimensionId id = 0;           ///< 维度ID (0=主世界, -1=下界, 1=末地)
+    std::string name;             ///< 维度名称 (如 "minecraft:overworld")
+    bool hasSkyLight = true;      ///< 是否有天空光照
+    bool hasCeiling = false;      ///< 是否有天花板
+    f32 ambientLight = 0.0f;      ///< 环境光照强度
+};
 
 /**
  * @brief 客户端维度管理器
@@ -62,11 +77,19 @@ public:
     // ========== 初始化 ==========
 
     /**
-     * @brief 初始化维度信息
+     * @brief 初始化维度信息（仅ID列表）
      *
-     * @param dimensionInfo 从服务器接收的维度信息
+     * @param dimensionInfo 从服务器接收的维度ID列表
+     * @deprecated 请使用 initialize(const std::vector<ClientDimensionInfo>&) 代替
      */
     void initialize(const std::vector<DimensionId>& dimensionInfo);
+
+    /**
+     * @brief 初始化维度信息（完整信息）
+     *
+     * @param dimensionInfo 从服务器接收的完整维度信息列表
+     */
+    void initialize(const std::vector<ClientDimensionInfo>& dimensionInfo);
 
     /**
      * @brief 重置状态
@@ -135,14 +158,27 @@ public:
     // ========== 维度信息 ==========
 
     /**
-     * @brief 获取可用维度列表
+     * @brief 获取可用维度ID列表
      */
-    [[nodiscard]] const std::vector<DimensionId>& availableDimensions() const { return m_availableDimensions; }
+    [[nodiscard]] const std::vector<DimensionId>& availableDimensions() const { return m_availableDimensionIds; }
+
+    /**
+     * @brief 获取可用维度信息列表
+     */
+    [[nodiscard]] const std::vector<ClientDimensionInfo>& availableDimensionInfos() const { return m_availableDimensions; }
 
     /**
      * @brief 检查维度是否可用
      */
     [[nodiscard]] bool isDimensionAvailable(DimensionId dimension) const;
+
+    /**
+     * @brief 获取维度信息
+     *
+     * @param dimension 维度ID
+     * @return 维度信息，如果维度不存在则返回 nullptr
+     */
+    [[nodiscard]] const ClientDimensionInfo* getDimensionInfo(DimensionId dimension) const;
 
     /**
      * @brief 获取维度类型
@@ -172,7 +208,14 @@ private:
     Vector3d m_targetPosition;
     TransitionState m_transitionState = TransitionState::None;
 
-    std::vector<DimensionId> m_availableDimensions;
+    // 完整的维度信息列表（从服务器接收）
+    std::vector<ClientDimensionInfo> m_availableDimensions;
+    // 维度ID列表（快速查找用）
+    std::vector<DimensionId> m_availableDimensionIds;
+    // 维度ID到维度信息的映射（快速查找用）
+    std::unordered_map<DimensionId, size_t> m_dimensionIndexMap;
+
+    // 预定义的维度类型（用于原版三个维度）
     std::unique_ptr<DimensionType> m_overworldType;
     std::unique_ptr<DimensionType> m_netherType;
     std::unique_ptr<DimensionType> m_endType;

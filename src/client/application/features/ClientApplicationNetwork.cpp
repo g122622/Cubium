@@ -1139,8 +1139,11 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onDimensionInfo =
         [this](const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions) {
             spdlog::info("Received DimensionInfo: {} dimensions available", dimensions.size());
-            // TODO: 更新维度管理器的可用维度列表
-            // 目前仅记录日志
+
+            // 转换为 ClientDimensionInfo 格式并更新维度管理器
+            std::vector<ClientDimensionInfo> dimensionInfos;
+            dimensionInfos.reserve(dimensions.size());
+
             for (const auto& [id, name, hasSkyLight, hasCeiling, ambientLight] : dimensions) {
                 spdlog::debug("  Dimension: id={}, name={}, hasSkyLight={}, hasCeiling={}, ambientLight={}",
                     static_cast<i32>(id),
@@ -1148,7 +1151,18 @@ void ClientApplication::setupNetworkCallbacks()
                     hasSkyLight,
                     hasCeiling,
                     ambientLight);
+
+                ClientDimensionInfo info;
+                info.id = id;
+                info.name = name;
+                info.hasSkyLight = hasSkyLight;
+                info.hasCeiling = hasCeiling;
+                info.ambientLight = ambientLight;
+                dimensionInfos.push_back(info);
             }
+
+            // 更新维度管理器
+            m_dimensionManager.initialize(dimensionInfos);
         };
 
     callbacks.onSpawnPosition = [this](i32 x, i32 y, i32 z, f32 angle) {

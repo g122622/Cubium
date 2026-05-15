@@ -40,6 +40,7 @@
 #include "../world/player/ClientPlayerPredictor.hpp"
 #include "../world/player/LocalPlayerIdentity.hpp"
 #include "client/application/ClientAppStateMachine.hpp"
+#include "client/dimension/ClientDimensionManager.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Result.hpp"
@@ -183,6 +184,12 @@ public:
      */
     [[nodiscard]] ClientAppStateMachine& stateMachine() noexcept { return m_stateMachine; }
     [[nodiscard]] const ClientAppStateMachine& stateMachine() const noexcept { return m_stateMachine; }
+
+    /**
+     * @brief 获取维度管理器
+     */
+    [[nodiscard]] ClientDimensionManager& dimensionManager() noexcept { return m_dimensionManager; }
+    [[nodiscard]] const ClientDimensionManager& dimensionManager() const noexcept { return m_dimensionManager; }
 
     // ========== 游戏会话管理 ==========
 
@@ -417,6 +424,9 @@ private:
 
     // 世界
     ClientWorld m_world;
+
+    // 维度管理器
+    ClientDimensionManager m_dimensionManager;
 
     // 物理系统
     std::unique_ptr<PhysicsEngine> m_physicsEngine;

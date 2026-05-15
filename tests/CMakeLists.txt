@@ -308,6 +308,7 @@ add_executable(mc_tests
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
     client/test_sound_handlers.cpp
+    client/test_client_dimension_manager.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
@@ -943,12 +944,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/api/Types.cpp
         # 射线检测
         ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
-        # 璁剧疆绯荤粺
+        # 设置系统
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
+        # 维度管理
+        ${CMAKE_SOURCE_DIR}/src/client/dimension/ClientDimensionManager.cpp
         # 网格构建线程池
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp
