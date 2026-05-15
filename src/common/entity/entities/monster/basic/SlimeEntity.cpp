@@ -33,6 +33,8 @@
 #include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/goal/goals/special/SlimeGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../passive/golem/IronGolemEntity.hpp"
+#include "../../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -260,19 +262,26 @@ void SlimeEntity::registerGoals()
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::SlimeHopGoal>(this));
 
     // 目标选择器
-    // 攻击玩家：距离 <= 10，高度差 <= 4
+    // MC 1.16.5 SlimeEntity.registerGoals():
+    // 优先级 1: 攻击玩家，距离 <= 10，需要视线，高度差 <= 4
+    // 优先级 3: 攻击铁傀儡，需要视线
     m_targetSelector.addGoal(1,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this, true, 10,
-            [](const LivingEntity* target) -> bool {
-                // 检查是否是玩家且高度差 <= 4
-                // 注：暂时简化实现，检查所有 LivingEntity
-                return target != nullptr && target->isAlive();
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
+            this,
+            true,   // checkSight
+            10,     // chance
+            [this](const LivingEntity* target) -> bool {
+                // MC 1.16.5: Y 轴高度差必须 <= 4.0 格
+                if (target == nullptr || !target->isAlive()) {
+                    return false;
+                }
+                f64 yDiff = std::abs(target->y() - this->y());
+                return yDiff <= 4.0;
             }));
-    // TODO: 当 Player 类型可用时，改为专门针对玩家
-    // m_targetSelector.addGoal(1, std::make_unique<NearestAttackableTargetGoal<Player>>(this, true, 10));
-    // TODO: 当 IronGolemEntity 可用时，添加攻击铁傀儡的目标
-    // m_targetSelector.addGoal(3, std::make_unique<NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(
+            this,
+            true));  // checkSight
 }
 
 void SlimeEntity::registerAttributes()

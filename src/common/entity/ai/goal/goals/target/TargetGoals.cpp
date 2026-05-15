@@ -30,6 +30,7 @@
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
+#include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../interfaces/IAngerable.hpp"
 #include "../../../controller/LookController.hpp"
@@ -213,6 +214,7 @@ template class NearestAttackableTargetGoal<LivingEntity>;
 template class NearestAttackableTargetGoal<MobEntity>;
 template class NearestAttackableTargetGoal<Player>;
 template class NearestAttackableTargetGoal<FoxEntity>;
+template class NearestAttackableTargetGoal<IronGolemEntity>;
 
 // ==================== HurtByTargetGoal ====================
 
