@@ -5,9 +5,10 @@ function(mc_set_compiler_warnings target)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         # GCC/Clang警告选项
         target_compile_options(${target} PRIVATE
-            -Werror=all
-            -Werror=extra
-            -Werror=pedantic
+            -Wall          # 启用一组常用警告
+            -Wextra        # 启用额外的警告
+            -pedantic      # 严格按照标准要求发出警告
+            -Werror        # 将所有上述警告升级为错误
 
             # 禁用的警告
             -Wno-unused-parameter       # 禁用：未使用的参数警告

@@ -136,7 +136,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
             palettes.resize(palettesList.size());
 
             for (size_t paletteIdx = 0; paletteIdx < palettesList.size(); ++paletteIdx) {
-                const nbt::Tag* paletteTag = palettesList[paletteIdx].get();
+                const auto& paletteTagPtr = palettesList[paletteIdx];
+                const nbt::Tag* paletteTag = paletteTagPtr.get();
                 if (paletteTag == nullptr || paletteTag->id() != nbt::TagId::List) {
                     continue;
                 }
@@ -145,7 +146,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 palette.reserve(paletteList.size());
 
                 for (size_t i = 0; i < paletteList.size(); ++i) {
-                    const nbt::Tag* entryTag = paletteList[i].get();
+                    const auto& entryTagPtr = paletteList[i];
+                    const nbt::Tag* entryTag = entryTagPtr.get();
                     MC_ASSERT_RELEASE(entryTag != nullptr);
                     const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryTag);
                     palette.push_back(parseBlockStateId(entry));
@@ -164,7 +166,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
             palette.reserve(paletteList.size());
 
             for (size_t i = 0; i < paletteList.size(); ++i) {
-                const nbt::Tag* entryTag = paletteList[i].get();
+                const auto& entryTagPtr = paletteList[i];
+                const nbt::Tag* entryTag = entryTagPtr.get();
                 MC_ASSERT_RELEASE(entryTag != nullptr);
                 const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryTag);
                 palette.push_back(parseBlockStateId(entry));
@@ -190,7 +193,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
             rawBlocks.reserve(blocksList.size());
 
             for (size_t i = 0; i < blocksList.size(); ++i) {
-                const nbt::Tag* blockEntryTag = blocksList[i].get();
+                const auto& blockEntryTagPtr = blocksList[i];
+                const nbt::Tag* blockEntryTag = blockEntryTagPtr.get();
                 MC_ASSERT_RELEASE(blockEntryTag != nullptr);
                 const auto& blockEntry = dynamic_cast<const nbt::CompoundTag&>(*blockEntryTag);
 
@@ -273,7 +277,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
         if (entitiesTag.id() == nbt::TagId::List) {
             auto& entitiesList = dynamic_cast<const nbt::ListTag&>(entitiesTag);
             for (size_t i = 0; i < entitiesList.size(); ++i) {
-                const nbt::Tag* entityEntryTag = entitiesList[i].get();
+                const auto& entityEntryTagPtr = entitiesList[i];
+                const nbt::Tag* entityEntryTag = entityEntryTagPtr.get();
                 MC_ASSERT_RELEASE(entityEntryTag != nullptr);
                 const auto& entityEntry = dynamic_cast<const nbt::CompoundTag&>(*entityEntryTag);
 
