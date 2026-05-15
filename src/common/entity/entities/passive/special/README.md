@@ -357,6 +357,20 @@ void TurtleEntity::layEgg();
 
 **参考**：MC 1.16.5 `TurtleEntity.LayEggGoal.tick()`
 
+### 移动物理 (travel方法)
+海龟在水陆两栖环境中具有不同的移动速度：
+
+**实现位置**：`TurtleEntity::travel()`
+
+**速度调整**：
+- **水中**：保持基础速度 0.25，并给予轻微上升动力 (+0.005 y)
+  - 远离出生地超过 16 格时：速度减半，最低 0.08
+  - 幼体在水中：速度降低为 1/3，最低 0.06
+- **陆地**：速度减半，最低 0.06（约为水中速度的 24%）
+- **空中**：保持当前 AI 速度（无额外调整）
+
+**参考**：MC 1.16.5 `TurtleEntity.travel()` 和 `MoveHelperController.updateSpeed()`
+
 ### 行为
 | 优先级 | Goal | 说明 |
 |--------|------|------|

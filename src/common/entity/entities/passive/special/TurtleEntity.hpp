@@ -196,6 +196,18 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 处理移动物理
+     *
+     * 海龟在水中和陆地有不同的移动速度：
+     * - 水中：正常速度 0.25，并给予轻微上升动力
+     * - 陆地：速度减半，最低 0.06
+     * - 幼体在水中：速度再降低
+     *
+     * 参考 MC 1.16.5: TurtleEntity.travel() 和 MoveHelperController.updateSpeed()
+     */
+    void travel(const Vector3& travelVec) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

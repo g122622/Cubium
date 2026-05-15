@@ -27,6 +27,9 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/Vector3.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
@@ -218,8 +221,65 @@ void TurtleEntity::registerAttributes()
     // 参考 MC 1.16.5 海龟属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    // 陆地上移动更慢
-    // TODO: 在陆地上时减慢速度
+    // MC 1.16.5: 海龟在陆地上移动较慢，通过 travel() 方法实现
+    // 陆地速度 = max(AIMoveSpeed / 2.0, 0.06F)，约为水中速度的 24%
+}
+
+void TurtleEntity::travel(const Vector3& travelVec)
+{
+    // MC 1.16.5: TurtleEntity.travel() 参考
+    // 原版在 MoveHelperController.updateSpeed() 中处理速度调整
+    // 我们在 travel() 中根据环境调整速度
+
+    // 获取基础移动速度
+    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
+
+    if (isInWater()) {
+        // MC 1.16.5: 水中移动
+        // 参考 TurtleEntity.travel() 和 MoveHelperController.updateSpeed()
+
+        // 计算实际速度
+        f32 swimSpeed = baseSpeed;
+
+        // 检查是否远离出生地超过 16 格
+        if (m_hasHomePos) {
+            Vector3 homePosF(static_cast<f32>(m_homePos.x) + 0.5f,
+                static_cast<f32>(m_homePos.y),
+                static_cast<f32>(m_homePos.z) + 0.5f);
+            f32 distanceSq = position().distanceSquared(homePosF);
+            if (distanceSq > 256.0f) { // 16 * 16 = 256
+                // 远离出生地时速度减半，最低 0.08F
+                swimSpeed = std::max(swimSpeed * 0.5f, 0.08f);
+            }
+        }
+
+        // 幼体在水中速度更低
+        if (isChild()) {
+            // MC 1.16.5: 幼体速度 = max(speed / 3.0, 0.06F)
+            swimSpeed = std::max(swimSpeed / 3.0f, 0.06f);
+        }
+
+        setAIMoveSpeed(swimSpeed);
+
+        // MC 1.16.5: 水中给予轻微上升动力
+        // 参考 MoveHelperController.updateSpeed():
+        // this.turtle.setMotion(this.turtle.getMotion().add(0.0D, 0.005D, 0.0D));
+        Vector3 vel = velocity();
+        vel.y += 0.005;
+        setVelocity(vel);
+    } else if (onGround()) {
+        // MC 1.16.5: 陆地移动
+        // 参考 MoveHelperController.updateSpeed():
+        // this.turtle.setAIMoveSpeed(Math.max(f / 2.0F, 0.06F));
+        f32 landSpeed = std::max(baseSpeed * 0.5f, 0.06f);
+        setAIMoveSpeed(landSpeed);
+    } else {
+        // 空中（跳跃或下落）：保持当前 AI 速度
+        // 不做额外调整
+    }
+
+    // 调用父类处理实际移动
+    AnimalEntity::travel(travelVec);
 }
 
 } // namespace mc
