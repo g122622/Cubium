@@ -364,6 +364,37 @@ public:
      */
     void travel(f32 strafing, f32 vertical, f32 forward) override;
 
+    /**
+     * @brief 更新乘客位置
+     *
+     * MC 1.16.5: AbstractHorseEntity.updatePassenger(Entity)
+     * 重写以处理扬蹄时的乘客位置偏移
+     *
+     * @param passenger 乘客实体
+     */
+    void updatePassengerPosition(Entity& passenger) override;
+
+    /**
+     * @brief 获取扬蹄动画进度（用于渲染插值）
+     * @param partialTicks 部分tick时间
+     * @return 扬蹄动画进度 (0.0-1.0)
+     */
+    [[nodiscard]] f32 getRearingAmount(f32 partialTicks) const;
+
+    /**
+     * @brief 获取低头吃草动画进度（用于渲染插值）
+     * @param partialTicks 部分tick时间
+     * @return 低头动画进度 (0.0-1.0)
+     */
+    [[nodiscard]] f32 getHeadLeanAmount(f32 partialTicks) const;
+
+    /**
+     * @brief 获取张嘴动画进度（用于渲染插值）
+     * @param partialTicks 部分tick时间
+     * @return 张嘴动画进度 (0.0-1.0)
+     */
+    [[nodiscard]] f32 getMouthOpennessAmount(f32 partialTicks) const;
+
 protected:
     using LivingEntity::getEquipment;
     using LivingEntity::setEquipment;

@@ -430,8 +430,136 @@ void AbstractHorseEntity::registerGoals()
 
 void AbstractHorseEntity::updateRiding()
 {
-    // TODO: 更新骑乘者位置
-    // TODO: 处理骑乘者控制
+    // MC 1.16.5: AbstractHorseEntity.tick() 中的动画更新逻辑
+
+    // 保存上一帧动画值
+    m_prevHeadLean = m_headLean;
+    m_prevRearingAmount = m_rearingAmount;
+    m_prevMouthOpenness = m_mouthOpenness;
+
+    // 更新低头吃草动画
+    // MC 1.16.5: headLean 动画更新
+    if (isEating()) {
+        m_headLean += (1.0f - m_headLean) * 0.4f + 0.05f;
+        if (m_headLean > 1.0f) {
+            m_headLean = 1.0f;
+        }
+    } else {
+        m_headLean += (0.0f - m_headLean) * 0.4f - 0.05f;
+        if (m_headLean < 0.0f) {
+            m_headLean = 0.0f;
+        }
+    }
+
+    // 更新扬蹄动画
+    // MC 1.16.5: rearingAmount 动画更新
+    if (isRearing()) {
+        // 扬蹄时重置低头动画
+        m_headLean = 0.0f;
+        m_prevHeadLean = m_headLean;
+
+        // 扬蹄动画渐入
+        m_rearingAmount += (1.0f - m_rearingAmount) * 0.4f + 0.05f;
+        if (m_rearingAmount > 1.0f) {
+            m_rearingAmount = 1.0f;
+        }
+    } else {
+        // 不再扬蹄时重置滑动标志
+        m_allowStandSliding = false;
+
+        // 扬蹄动画渐出（使用三次方实现平滑过渡）
+        m_rearingAmount += (0.8f * m_rearingAmount * m_rearingAmount * m_rearingAmount - m_rearingAmount) * 0.6f - 0.05f;
+        if (m_rearingAmount < 0.0f) {
+            m_rearingAmount = 0.0f;
+        }
+    }
+
+    // 更新张嘴动画
+    // MC 1.16.5: mouthOpenness 动画更新
+    if (isMouthOpen()) {
+        m_mouthOpenness += (1.0f - m_mouthOpenness) * 0.7f + 0.05f;
+        if (m_mouthOpenness > 1.0f) {
+            m_mouthOpenness = 1.0f;
+        }
+    } else {
+        m_mouthOpenness += (0.0f - m_mouthOpenness) * 0.7f - 0.05f;
+        if (m_mouthOpenness < 0.0f) {
+            m_mouthOpenness = 0.0f;
+        }
+    }
+
+    // 更新乘客位置
+    // MC 1.16.5: Entity.updatePassengers() 在 tick() 中调用
+    updatePassengers();
+}
+
+void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
+{
+    // MC 1.16.5: AbstractHorseEntity.updatePassenger(Entity)
+    // 首先调用父类的基础定位
+    Entity::updatePassengerPosition(passenger);
+
+    // 如果乘客是 MobEntity，同步 renderYawOffset
+    if (passenger.legacyType() == LegacyEntityType::Player) {
+        // 对于玩家，不需要同步 renderYawOffset（玩家自己管理朝向）
+    } else {
+        // 对于其他 MobEntity，同步 renderYawOffset
+        // 注意：这里需要检查 passenger 是否是 LivingEntity
+        // MC 1.16.5: if (passenger instanceof MobEntity) { this.renderYawOffset = mobentity.renderYawOffset; }
+        // 由于我们没有 MobEntity 的直接访问，这里跳过
+    }
+
+    // 扬蹄时调整乘客位置
+    // MC 1.16.5: if (this.prevRearingAmount > 0.0F) { ... }
+    if (m_prevRearingAmount > 0.0f) {
+        // 计算基于朝向的偏移
+        // MC 1.16.5: float f3 = MathHelper.sin(this.renderYawOffset * ((float)Math.PI / 180F));
+        //            float f = MathHelper.cos(this.renderYawOffset * ((float)Math.PI / 180F));
+        //            float f1 = 0.7F * this.prevRearingAmount;  // X方向偏移
+        //            float f2 = 0.15F * this.prevRearingAmount; // Y方向额外高度
+        f32 yawRad = math::toRadians(yaw());
+        f32 sinYaw = std::sin(yawRad);
+        f32 cosYaw = std::cos(yawRad);
+
+        f32 offsetX = 0.7f * m_prevRearingAmount;
+        f32 offsetY = 0.15f * m_prevRearingAmount;
+
+        // 计算新的乘客位置
+        // MC 1.16.5: passenger.setPosition(
+        //     this.getPosX() + (double)(f1 * f3),
+        //     this.getPosY() + this.getMountedYOffset() + passenger.getYOffset() + (double)f2,
+        //     this.getPosZ() - (double)(f1 * f)
+        // );
+        f64 passengerX = static_cast<f64>(x() + offsetX * sinYaw);
+        f64 passengerY = static_cast<f64>(y()) + getMountedYOffset() + passenger.getYOffset() + static_cast<f64>(offsetY);
+        f64 passengerZ = static_cast<f64>(z() - offsetX * cosYaw);
+
+        passenger.setPosition(static_cast<f32>(passengerX), static_cast<f32>(passengerY), static_cast<f32>(passengerZ));
+
+        // 如果乘客是 LivingEntity，同步 renderYawOffset
+        // MC 1.16.5: if (passenger instanceof LivingEntity) { ((LivingEntity)passenger).renderYawOffset = this.renderYawOffset; }
+        // 由于我们没有直接访问 LivingEntity 的 renderYawOffset setter，这里跳过
+        // renderYawOffset 的同步已在 travel() 方法中通过 setRotation() 实现
+    }
+}
+
+f32 AbstractHorseEntity::getRearingAmount(f32 partialTicks) const
+{
+    // MC 1.16.5: getRearingAmount(float partialTicks)
+    // MathHelper.lerp(partialTicks, prevRearingAmount, rearingAmount)
+    return math::lerp(m_prevRearingAmount, m_rearingAmount, partialTicks);
+}
+
+f32 AbstractHorseEntity::getHeadLeanAmount(f32 partialTicks) const
+{
+    // MC 1.16.5: getHeadLean(float partialTicks)
+    return math::lerp(m_prevHeadLean, m_headLean, partialTicks);
+}
+
+f32 AbstractHorseEntity::getMouthOpennessAmount(f32 partialTicks) const
+{
+    // MC 1.16.5: getMouthOpennessAngle(float partialTicks)
+    return math::lerp(m_prevMouthOpenness, m_mouthOpenness, partialTicks);
 }
 
 void AbstractHorseEntity::updateJumpPower()
