@@ -241,3 +241,28 @@ TEST_F(BlockTagsTest, UnderwaterBonemealsTagContainsExpectedBlocks)
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "fire_coral_fan")));
     EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "horn_coral_fan")));
 }
+
+// ============================================================================
+// STRIDER_WARM_BLOCKS Tests
+// ============================================================================
+
+TEST_F(BlockTagsTest, StriderWarmBlocksContainsLava)
+{
+    // 参考 MC 1.16.5: BlockTags.STRIDER_WARM_BLOCKS 只包含熔岩
+    EXPECT_TRUE(BlockTags::STRIDER_WARM_BLOCKS().contains(ResourceLocation("minecraft", "lava")));
+}
+
+TEST_F(BlockTagsTest, StriderWarmBlocksDoesNotContainWater)
+{
+    EXPECT_FALSE(BlockTags::STRIDER_WARM_BLOCKS().contains(ResourceLocation("minecraft", "water")));
+}
+
+TEST_F(BlockTagsTest, StriderWarmBlocksDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::STRIDER_WARM_BLOCKS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, StriderWarmBlocksIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::STRIDER_WARM_BLOCKS().getId(), ResourceLocation("minecraft", "strider_warm_blocks"));
+}

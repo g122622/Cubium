@@ -191,6 +191,13 @@ public:
     /// 参考 MC 1.16.5: BlockTags.UNDERWATER_BONEMEALS
     static BlockTag& UNDERWATER_BONEMEALS();
 
+    // ========== 炽足兽标签 ==========
+
+    /// 炽足兽温暖方块标签（熔岩方块）
+    /// 炽足兽在这些方块上不会感到寒冷
+    /// 参考 MC 1.16.5: BlockTags.STRIDER_WARM_BLOCKS
+    static BlockTag& STRIDER_WARM_BLOCKS();
+
     /**
      * @brief 初始化所有内置标签
      *

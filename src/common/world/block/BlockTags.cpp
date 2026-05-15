@@ -271,6 +271,15 @@ BlockTag& BlockTags::UNDERWATER_BONEMEALS()
     return *tag;
 }
 
+BlockTag& BlockTags::STRIDER_WARM_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "strider_warm_blocks"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -485,6 +494,13 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "fire_coral_fan"),
         ResourceLocation("minecraft", "horn_coral_fan")});
     tags[underwaterBonemeals->getId()] = std::move(underwaterBonemeals);
+
+    // 创建 STRIDER_WARM_BLOCKS 标签（炽足兽温暖方块）
+    // 参考 MC 1.16.5 BlockTags.STRIDER_WARM_BLOCKS
+    // 只包含熔岩方块
+    auto striderWarmBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "strider_warm_blocks"));
+    striderWarmBlocks->addAll({ResourceLocation("minecraft", "lava")});
+    tags[striderWarmBlocks->getId()] = std::move(striderWarmBlocks);
 
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));

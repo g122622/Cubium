@@ -28,6 +28,7 @@
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockTags.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
 #include "../../../../world/fluid/FluidTags.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -217,16 +218,17 @@ void StriderEntity::updateColdStatus()
         inLavaOrWarm = true;
     }
 
-    // TODO: 检查 BlockTags::STRIDER_WARM_BLOCKS
-    // 当前方块或下方方块是否为温暖方块（熔岩、营火等）
-    // const BlockState* currentState = m_world->getBlockState(currentPos);
-    // const BlockState* belowState = m_world->getBlockState(belowPos);
-    // if (currentState != nullptr && currentState->isIn(BlockTags::STRIDER_WARM_BLOCKS())) {
-    //     inLavaOrWarm = true;
-    // }
-    // if (belowState != nullptr && belowState->isIn(BlockTags::STRIDER_WARM_BLOCKS())) {
-    //     inLavaOrWarm = true;
-    // }
+    // 检查 BlockTags::STRIDER_WARM_BLOCKS
+    // 当前方块或下方方块是否为温暖方块（熔岩方块）
+    // 参考 MC 1.16.5 StriderEntity.func_234319_t_
+    const BlockState* currentState = m_world->getBlockState(currentPos);
+    const BlockState* belowState = m_world->getBlockState(belowPos);
+    if (currentState != nullptr && BlockTags::STRIDER_WARM_BLOCKS().contains(*currentState)) {
+        inLavaOrWarm = true;
+    }
+    if (belowState != nullptr && BlockTags::STRIDER_WARM_BLOCKS().contains(*belowState)) {
+        inLavaOrWarm = true;
+    }
 
     // 更新寒冷状态
     if (!inLavaOrWarm) {
