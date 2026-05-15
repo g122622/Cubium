@@ -23,20 +23,102 @@ misc/
 
 ## 下落方块
 
+FallingBlockEntity 是沙子、砾石等重力方块下落时创建的实体。参考 MC 1.16.5 `net.minecraft.block.FallingBlock`。
+
 ### 属性
 
-| 属性 | 默认值 | 说明 |
-|------|--------|------|
-| hurtEntities | false | 是否伤害实体 |
-| fallStartY | - | 下落起始Y坐标 |
-| placeBlock | true | 是否放置方块 |
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| m_blockId | u32 | 0 | 下落的方块ID |
+| m_hurtEntities | bool | false | 是否伤害实体（铁砧=true） |
+| m_placeBlock | bool | true | 是否应该放置方块 |
+| m_shouldDropItem | bool | true | 是否应该掉落物品 |
+| m_dontSetBlock | bool | false | 是否不放置方块（铁砧损坏时） |
+| m_fallStartY | f64 | 0.0 | 下落起始Y坐标（用于计算伤害） |
+| m_fallTime | i32 | 0 | 下落时间（tick） |
 
-### 行为
+### 常量
 
-- 受重力影响下落
-- 落地后尝试放置方块
-- 如果无法放置则掉落物品
-- 可配置是否伤害实体
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| HURT_AMOUNT | 2.0f | 每格下落伤害系数 |
+| MAX_HURT_AMOUNT | 40 | 最大伤害值（20颗心） |
+| MAX_FALL_TIME | 600 | 最大下落时间（30秒） |
+
+### 公共方法
+
+```cpp
+// 方块ID
+void setBlockId(u32 blockId);
+u32 getBlockId() const;
+
+// 伤害实体
+void setHurtEntities(bool hurt);
+bool shouldHurtEntities() const;
+
+// 下落起始位置
+void setFallStartPos(f64 y);
+
+// 放置/掉落控制
+bool shouldPlaceBlock() const;
+void setShouldDropItem(bool drop);
+bool shouldDropItem() const;
+void setDontSetBlock(bool dontSet);
+bool dontSetBlock() const;
+```
+
+### 行为流程
+
+1. **下落阶段**：
+   - 受重力影响（每tick Y速度-0.04）
+   - 空气阻力（每tick速度×0.98）
+   - 地面检测触发落地处理
+
+2. **落地处理** (`handleLanding()`)：
+   - 如果 `m_hurtEntities=true`：计算伤害并伤害碰撞箱内实体
+   - 如果 `m_dontSetBlock=true`：调用 `FallingBlock::onBroken()` 回调
+   - 否则尝试放置方块：
+     - 成功：调用 `FallingBlock::onEndFalling()` 回调
+     - 失败：掉落物品（如果 `shouldDropItem=true` 且游戏规则允许）
+
+3. **放置条件** (`tryPlaceBlock()`)：
+   - 下方方块不可穿透（非空气、非液体、非火焰）
+   - 目标位置可替换（空气或可替换材质）
+   - `setBlockState()` 成功
+
+4. **伤害计算** (`hurtEntities()`)：
+   - 伤害 = min((下落距离-1) × 2.0, 40)
+   - 铁砧使用 `DamageType::Anvil`，其他使用 `DamageType::FallingBlock`
+
+### 物品掉落
+
+当方块无法放置时：
+1. 检查 `shouldDropItem()` 标志
+2. 检查游戏规则 `doEntityDrops`
+3. 使用 `BlockItemRegistry` 获取方块对应物品
+4. 使用 `ItemDropHelper::spawnItemEntity()` 生成物品实体
+
+### 与 FallingBlock 方块的交互
+
+`FallingBlock` 基类定义了以下回调：
+
+```cpp
+virtual void onStartFalling(IWorld& world, const BlockPos& pos, FallingBlockEntity& entity);
+virtual void onEndFalling(IWorld& world, const BlockPos& pos, 
+                         const BlockState& fallingState, const BlockState& hitState, 
+                         FallingBlockEntity& entity);
+virtual void onBroken(IWorld& world, const BlockPos& pos, FallingBlockEntity& entity);
+```
+
+- **onStartFalling**：方块开始下落时调用（如铁砧设置伤害标志）
+- **onEndFalling**：方块成功放置时调用（如混凝土粉末遇水固化）
+- **onBroken**：方块无法放置时调用（如铁砧损坏音效）
+
+### 参考
+
+- MC 1.16.5 `net.minecraft.entity.item.FallingBlockEntity`
+- FallingBlock 基类：`src/common/world/block/blocks/FallingBlock.hpp`
+- 物品掉落：`src/common/entity/utils/ItemDropHelper.hpp`
 
 ## TNT实体
 
@@ -116,7 +198,7 @@ TNTEntity 已在 `VanillaEntities::doRegisterAll()` 中注册，实体类型为 
 
 | 组件 | 状态 |
 |------|------|
-| FallingBlockEntity | ⚠️ 框架完成，TODO需填充 |
+| FallingBlockEntity | ✅ 完成 - 下落、落地放置、物品掉落、伤害实体 |
 | TNTEntity | ✅ 完成 - 点燃、爆炸、物理、实体注册 |
 | EyeOfEnderEntity | ⚠️ 框架完成，TODO需填充 |
 | ConduitEntity | ✅ 已移除 - 功能已在 `blockentity/processing/ConduitEntity` 中完整实现 |
@@ -126,3 +208,12 @@ TNTEntity 已在 `VanillaEntities::doRegisterAll()` 中注册，实体类型为 
 **注意**：潮涌核心的功能不在本文件中，完整实现位于：
 - 方块实体：`src/common/world/blockentity/processing/ConduitEntity.hpp/cpp`
 - 方块：`src/common/world/block/blocks/ocean/ConduitBlock.hpp/cpp`
+
+## 测试覆盖
+
+FallingBlockEntity 测试位于 `tests/common/entity/entities/misc/FallingBlockEntityTest.cpp`，包含 19 个测试用例：
+- 默认构造、实体尺寸、不可推动、不可碰撞
+- 方块ID设置、伤害标志、下落起始位置
+- 掉落物品标志、不放置方块标志
+- 落地放置方块、无法放置时掉落物品
+- 游戏规则影响、重力应用、空气阻力、最大下落时间
