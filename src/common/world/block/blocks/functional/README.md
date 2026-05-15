@@ -173,7 +173,7 @@ Block (基类)
 - [x] ComposterBlock: 完整堆肥概率表、骨粉产出、玩家交互
 - [x] CauldronBlock: 水桶/玻璃瓶/水瓶交互、皮革盔甲清洗
 - [ ] CakeBlock: 食物恢复逻辑
-- [ ] BeaconBlock: 方块实体、效果范围计算
+- [x] BeaconBlock: 方块实体、效果范围计算、红石比较器信号（2026-05-15 完成）
 - [ ] BarrelBlock: 方块实体、容器GUI
 - [ ] LecternBlock: 方块实体、书籍交互
 - [ ] BellBlock: 动画系统、声音播放

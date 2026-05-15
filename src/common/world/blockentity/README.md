@@ -437,13 +437,13 @@ if (type == BlockEntityType::Unknown) {
 当前实现为框架基础，未来需要添加：
 
 1. **更多方块实体类型**
-   - ChestEntity - 箱子
-   - FurnaceEntity - 熔炉（需要 tick 处理燃烧逻辑）
-   - HopperEntity - 漏斗（需要 tick 处理物品传输）
-   - SignEntity - 告示牌（存储文本）
-   - BeaconEntity - 信标（需要 tick 处理效果）
+   - ChestEntity - 箱子 ✅
+   - FurnaceEntity - 熔炉（需要 tick 处理燃烧逻辑）✅
+   - HopperEntity - 漏斗（需要 tick 处理物品传输）✅
+   - SignEntity - 告示牌（存储文本）✅
+   - BeaconEntity - 信标（需要 tick 处理效果）✅ 红石比较器信号已实现
 
-2. **方块实体注册表**
+2. **方块实体注册表** ✅
    - 工厂方法注册
    - 从 JSON 创建方块实体
    - 支持模组自定义方块实体
