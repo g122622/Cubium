@@ -120,6 +120,26 @@ ClientDimensionManager::completeDimensionChange()
 | 发送 `ChangeDimensionPacket` | 接收并处理维度切换 |
 | 接收 `ConfirmDimensionChangePacket` | 发送确认包 |
 
+## 与 DimensionType 的关系
+
+`ClientDimensionManager` 与 `common/world/dimension/DimensionType` 类紧密协作：
+
+- **单一真相来源**: 所有维度属性（名称、天空光照、天花板、环境光等）在 `DimensionType` 类中定义
+- **属性获取**: `initialize()` 方法使用 `DimensionType::fromId()` 获取维度属性
+- **类型查询**: `getDimensionType()` 返回指向静态 `DimensionType` 实例的指针
+
+```
+DimensionType::fromId(id)  ──────┐
+                                  │
+ClientDimensionManager::         │ 同一数据来源
+    initialize(ids) ─────────────┤
+                                  │
+ClientDimensionManager::         │
+    getDimensionType(id) ────────┘
+```
+
+这种设计避免了维度属性在多处重复定义，确保维护时只需修改 `DimensionType` 类。
+
 ## 维度信息同步
 
 服务器通过 `DimensionInfoPacket` 发送可用维度列表，客户端通过 `onDimensionInfo` 回调接收：
@@ -148,9 +168,11 @@ callbacks.onDimensionInfo =
 
 | 方法 | 说明 |
 |------|------|
-| `initialize(const std::vector<DimensionId>&)` | 使用ID列表初始化（自动推断属性） |
+| `initialize(const std::vector<DimensionId>&)` | 使用ID列表初始化，内部调用 `DimensionType::fromId()` 获取维度属性 |
 | `initialize(const std::vector<ClientDimensionInfo>&)` | 使用完整维度信息初始化 |
 | `reset()` | 重置所有状态 |
+
+> **注意**: `initialize(const std::vector<DimensionId>&)` 方法使用 `DimensionType::fromId()` 获取维度名称、天空光照、天花板、环境光等属性，确保维度属性定义的单一真相来源。
 
 ### 当前维度
 
@@ -180,7 +202,9 @@ callbacks.onDimensionInfo =
 | `availableDimensionInfos()` | 获取完整维度信息列表 |
 | `isDimensionAvailable(id)` | 检查维度是否可用 |
 | `getDimensionInfo(id)` | 获取维度信息 |
-| `getDimensionType(id)` | 获取维度类型 |
+| `getDimensionType(id)` | 获取维度类型，使用静态变量存储，返回指针 |
+
+> **实现说明**: `getDimensionType()` 方法使用函数内静态变量存储预定义的维度类型实例（主世界、下界、末地），避免动态内存分配。对于未知的维度ID返回 `nullptr`。
 
 ### 渲染设置
 
