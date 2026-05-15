@@ -1,28 +1,30 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR THE DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../../core/Types.hpp"
 #include "TameableEntity.hpp"
 #include <memory>
@@ -221,6 +223,49 @@ protected:
     void onTamed(bool tamed) override;
 
 private:
+    // ========== 内部 AI Goal 类 ==========
+
+    /**
+     * @brief 猫的食物诱惑目标
+     *
+     * 继承自 TemptGoal，重写 shouldExecute() 使其只在未驯服时执行。
+     * 参考 MC 1.16.5 CatEntity.TemptGoal
+     */
+    class CatTemptGoal : public entity::ai::goal::TemptGoal {
+    public:
+        CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement);
+
+        [[nodiscard]] bool shouldExecute() override;
+
+    private:
+        CatEntity* m_cat;
+    };
+
+    /**
+     * @brief 猫的避开玩家目标
+     *
+     * 继承自 AvoidEntityGoal，重写使其只在未驯服时避开玩家。
+     * 参考 MC 1.16.5 CatEntity.AvoidPlayerGoal
+     */
+    class CatAvoidPlayerGoal : public entity::ai::goal::AvoidEntityGoal {
+    public:
+        CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDistance, f64 farSpeed, f64 nearSpeed);
+
+        [[nodiscard]] bool shouldExecute() override;
+        [[nodiscard]] bool shouldContinueExecuting() override;
+
+    private:
+        CatEntity* m_cat;
+    };
+
+    /**
+     * @brief 设置驯服后的 AI
+     *
+     * MC 1.16.5: setupTamedAI()
+     * 动态添加/移除 AvoidPlayerGoal
+     */
+    void setupTamedAI();
+
     // 皮肤类型
     CatType m_catType = CatType::Tabby;
 
@@ -233,8 +278,18 @@ private:
     // 礼物计时器
     i32 m_giftTimer = 0;
 
+    // AI Goal 指针（用于动态移除）
+    CatAvoidPlayerGoal* m_avoidPlayerGoal = nullptr;
+    CatTemptGoal* m_temptGoal = nullptr;
+
     // 常量
     static constexpr i32 GIFT_INTERVAL = 24000; // 礼物间隔（1200秒 = 20分钟）
+
+    // 猫的移动速度常量（MC 1.16.5）
+    static constexpr f64 TEMPT_SPEED = 0.6;       // 诱惑速度
+    static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
+    static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度
+    static constexpr f32 AVOID_DISTANCE = 16.0f;  // 逃避检测距离
 };
 
 } // namespace mc
