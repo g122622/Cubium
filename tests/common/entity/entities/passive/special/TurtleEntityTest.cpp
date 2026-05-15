@@ -26,6 +26,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -54,6 +56,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        Items::initialize();
     }
 };
 
@@ -407,6 +410,157 @@ TEST_F(TurtleEntityTest, TurtleEggBlock_HatchRange)
 
     BlockState stateOver = turtleEgg->withHatch(3);
     EXPECT_EQ(turtleEgg->getHatch(stateOver), 2);  // 最大值
+}
+
+// ============================================================================
+// 繁殖系统测试
+// 参考 MC 1.16.5: 海龟仅使用海草繁殖
+// ============================================================================
+
+TEST_F(TurtleEntityTest, IsBreedingItem_Seagrass_ReturnsTrue)
+{
+    // MC 1.16.5: 海龟仅接受海草作为繁殖物品
+    // 参考: net.minecraft.entity.passive.TurtleEntity.isBreedingItem()
+    TurtleEntity turtle(LegacyEntityType::Unknown, 1);
+
+    ItemStack seagrassStack(Items::SEAGRASS, 1);
+    EXPECT_TRUE(turtle.isBreedingItem(seagrassStack));
+}
+
+TEST_F(TurtleEntityTest, IsBreedingItem_OtherItems_ReturnsFalse)
+{
+    TurtleEntity turtle(LegacyEntityType::Unknown, 1);
+
+    // 小麦不能繁殖海龟
+    ItemStack wheatStack(Items::WHEAT, 1);
+    EXPECT_FALSE(turtle.isBreedingItem(wheatStack));
+
+    // 胡萝卜不能繁殖海龟
+    ItemStack carrotStack(Items::CARROT, 1);
+    EXPECT_FALSE(turtle.isBreedingItem(carrotStack));
+
+    // 苹果不能繁殖海龟
+    ItemStack appleStack(Items::APPLE, 1);
+    EXPECT_FALSE(turtle.isBreedingItem(appleStack));
+
+    // 鳕鱼不能繁殖海龟
+    ItemStack codStack(Items::COD, 1);
+    EXPECT_FALSE(turtle.isBreedingItem(codStack));
+
+    // 海带不能繁殖海龟（只有海草可以）
+    ItemStack kelpStack(Items::DRIED_KELP, 1);
+    EXPECT_FALSE(turtle.isBreedingItem(kelpStack));
+}
+
+TEST_F(TurtleEntityTest, IsBreedingItem_EmptyStack_ReturnsFalse)
+{
+    TurtleEntity turtle(LegacyEntityType::Unknown, 1);
+
+    ItemStack emptyStack(nullptr, 0);
+    EXPECT_FALSE(turtle.isBreedingItem(emptyStack));
+}
+
+TEST_F(TurtleEntityTest, CanBreed_WhenHasEgg_ReturnsFalse)
+{
+    // MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
+    // 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
+    // return super.canBreed() && !this.hasEgg();
+    TurtleEntity turtle(LegacyEntityType::Unknown, 1);
+
+    // 设置为成体
+    turtle.setChild(false);
+
+    // 没有蛋时可以繁殖
+    turtle.setHasEgg(false);
+    EXPECT_TRUE(turtle.canBreed());
+
+    // 有蛋时不能繁殖
+    turtle.setHasEgg(true);
+    EXPECT_FALSE(turtle.canBreed());
+}
+
+TEST_F(TurtleEntityTest, CanBreed_WhenChild_ReturnsFalse)
+{
+    // 幼体不能繁殖
+    TurtleEntity turtle(LegacyEntityType::Unknown, 1);
+    turtle.setChild(true);
+    turtle.setHasEgg(false);
+
+    EXPECT_FALSE(turtle.canBreed());
+}
+
+TEST_F(TurtleEntityTest, SpawnBaby_CreatesChildTurtle)
+{
+    TurtleEntity parent1(LegacyEntityType::Unknown, 1);
+    TurtleEntity parent2(LegacyEntityType::Unknown, 2);
+
+    parent1.setPosition(100.0f, 64.0f, -200.0f);
+
+    auto baby = parent1.spawnBaby(parent2);
+    ASSERT_NE(baby, nullptr);
+
+    // 验证是海龟实体
+    auto* babyTurtle = dynamic_cast<TurtleEntity*>(baby.get());
+    EXPECT_NE(babyTurtle, nullptr);
+
+    // 验证是幼体
+    EXPECT_TRUE(baby->isChild());
+}
+
+TEST_F(TurtleEntityTest, SpawnBaby_InheritsHomePos)
+{
+    // MC 1.16.5: 小海龟继承父母的出生地
+    // 这样小海龟长大后也会回到这里产卵
+    TurtleEntity parent1(LegacyEntityType::Unknown, 1);
+    TurtleEntity parent2(LegacyEntityType::Unknown, 2);
+
+    parent1.setPosition(100.0f, 64.0f, -200.0f);
+    BlockPos homePos(150, 65, -180);
+    parent1.setHomePos(homePos);
+
+    auto baby = parent1.spawnBaby(parent2);
+    ASSERT_NE(baby, nullptr);
+
+    auto* babyTurtle = dynamic_cast<TurtleEntity*>(baby.get());
+    ASSERT_NE(babyTurtle, nullptr);
+
+    // 验证继承了出生地
+    EXPECT_TRUE(babyTurtle->hasHomePos());
+    EXPECT_EQ(babyTurtle->getHomePos(), homePos);
+}
+
+TEST_F(TurtleEntityTest, SpawnBaby_WithoutHomePos_DoesNotHaveHomePos)
+{
+    // 父母没有出生地时，幼体也没有
+    TurtleEntity parent1(LegacyEntityType::Unknown, 1);
+    TurtleEntity parent2(LegacyEntityType::Unknown, 2);
+
+    parent1.setPosition(100.0f, 64.0f, -200.0f);
+    // 不设置 homePos
+
+    auto baby = parent1.spawnBaby(parent2);
+    ASSERT_NE(baby, nullptr);
+
+    auto* babyTurtle = dynamic_cast<TurtleEntity*>(baby.get());
+    ASSERT_NE(babyTurtle, nullptr);
+
+    // 验证没有出生地
+    EXPECT_FALSE(babyTurtle->hasHomePos());
+}
+
+TEST_F(TurtleEntityTest, SpawnBaby_PositionNearParent)
+{
+    TurtleEntity parent(LegacyEntityType::Unknown, 1);
+    parent.setPosition(100.0f, 64.0f, -200.0f);
+
+    auto baby = parent.spawnBaby(parent);
+    ASSERT_NE(baby, nullptr);
+
+    // 验证位置在父体附近
+    // 由于 spawnBaby 调用 setPosition(x(), y(), z())，位置应该与父体相同
+    EXPECT_FLOAT_EQ(baby->x(), 100.0f);
+    EXPECT_FLOAT_EQ(baby->y(), 64.0f);
+    EXPECT_FLOAT_EQ(baby->z(), -200.0f);
 }
 
 } // namespace

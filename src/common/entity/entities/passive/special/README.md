@@ -318,6 +318,20 @@ public:
 - 幼崽成长
 - 水陆两栖
 
+### 繁殖系统
+- `isBreedingItem(itemStack)`: 检查物品是否可用于繁殖
+  - 仅接受海草（SEAGRASS）作为繁殖物品
+  - 参考 MC 1.16.5: `item == Items.SEAGRASS`
+- `canBreed()`: 检查是否可以繁殖
+  - 继承父类 `AnimalEntity::canBreed()` 的检查（成体、非爱心状态）
+  - 额外检查：`!hasEgg()` - 有蛋的海龟不能繁殖
+  - 参考 MC 1.16.5: `return super.canBreed() && !this.hasEgg();`
+- `spawnBaby(partner)`: 生成幼体
+  - 创建新的 TurtleEntity 实例
+  - 设置为幼体状态 (`setChild(true)`)
+  - 继承父母的出生地 (`homePos`)
+  - 位置设为父体位置
+
 ### 产卵系统
 海龟产卵是完整的游戏循环：
 1. **交配获得蛋**：喂食海草后，母海龟设置 `hasEgg = true`
@@ -447,3 +461,8 @@ void TurtleEntity::layEgg();
     - 成年熊猫跳跃集成测试
 - 蜜蜂授粉测试
 - 海龟出生地记忆测试
+- 海龟繁殖系统测试
+  - isBreedingItem 海草检测测试
+  - canBreed 有蛋时返回 false 测试
+  - spawnBaby 幼体生成测试
+  - spawnBaby 出生地继承测试
