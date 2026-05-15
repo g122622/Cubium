@@ -158,6 +158,24 @@ bool LightEngineUtils::blocksLightInDirection(const BlockState& state, Direction
     return shapeFullyOccludesFace(shape, dir);
 }
 
+i32 LightEngineUtils::getLightBlockInto(IWorld& world,
+    const BlockState& sourceState,
+    const BlockPos& sourcePos,
+    const BlockState& targetState,
+    const BlockPos& targetPos,
+    Direction dir,
+    i32 targetOpacity)
+{
+    // MC 1.16.5 LightEngine.func_215613_a:
+    // 如果两侧面形状完全遮挡，则直接视为满阻挡；否则至少返回 1。
+    const i32 clampedOpacity = std::max(0, std::min(targetOpacity, 15));
+    if (facesHaveOcclusion(&world, sourceState, sourcePos, targetState, targetPos, dir, sourceState.getOpacity())) {
+        return 16;
+    }
+
+    return std::max(1, clampedOpacity);
+}
+
 bool LightEngineUtils::shapeFullyOccludesFace(const CollisionShape& shape, Direction face)
 {
     if (shape.isEmpty()) {

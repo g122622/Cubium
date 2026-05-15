@@ -399,6 +399,29 @@ public:
      */
     [[nodiscard]] static bool blocksLightInDirection(const BlockState& state, Direction dir);
 
+    /**
+     * @brief 计算光线从一个方块传播到相邻方块时的阻挡值
+     *
+     * 语义对齐 MC 1.16.5 `LightEngine.func_215613_a(...)`：
+     * 结合目标方块不透明度与两侧面遮挡形状，计算光线穿过边界时的有效阻挡。
+     *
+     * @param world 世界
+     * @param sourceState 光线发出方块的状态
+     * @param sourcePos 光线发出方块位置
+     * @param targetState 光线进入方块的状态
+     * @param targetPos 光线进入方块位置
+     * @param dir 光线传播方向（从 source 指向 target）
+     * @param targetOpacity 目标方块的不透明度缓存
+     * @return 有效阻挡值，范围至少为 1
+     */
+    [[nodiscard]] static i32 getLightBlockInto(IWorld& world,
+        const BlockState& sourceState,
+        const BlockPos& sourcePos,
+        const BlockState& targetState,
+        const BlockPos& targetPos,
+        Direction dir,
+        i32 targetOpacity);
+
 private:
     /**
      * @brief 检查碰撞形状是否在指定方向完全遮挡

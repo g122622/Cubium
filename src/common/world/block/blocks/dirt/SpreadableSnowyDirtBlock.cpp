@@ -30,6 +30,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../ice/SnowBlock.hpp"
 #include <spdlog/spdlog.h>
 
@@ -62,7 +63,7 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
     // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.randomTick()
 
     // 检查是否满足蔓延条件
-    if (!isSnowyConditions(world, pos, state)) {
+     if (!isSnowyConditions(world, pos, state)) {
         // 不满足条件，退化成泥土
         world.setBlockState(pos, &VanillaBlocks::DIRT->defaultState());
     } else {
@@ -143,8 +144,6 @@ BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state
 
 bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    (void)state;
-
     // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.isSnowyConditions()
     const BlockPos abovePos = pos.up();
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -169,12 +168,13 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& 
         }
     }
 
-    // 检查光照
-    const u8 skyLight = world.getSkyLight(abovePos);
-    const u8 blockLight = world.getBlockLight(abovePos);
-    const u8 lightLevel = std::max(skyLight, blockLight);
-
-    return lightLevel < 15; // 不是完全被阻挡就满足条件
+    // 对齐 MC 1.16.5 LightEngine.func_215613_a：
+    // 结合上方方块的不透明度与面遮挡形状，判断是否达到满阻挡。
+    static const BlockState* s_airState = &VanillaBlocks::AIR->defaultState();
+    const BlockState& resolvedAboveState = aboveState != nullptr ? *aboveState : *s_airState;
+    const i32 lightBlockInto = LightEngineUtils::getLightBlockInto(
+        world, state, pos, resolvedAboveState, abovePos, Direction::Up, resolvedAboveState.getOpacity());
+    return lightBlockInto < game::MAX_LIGHT_LEVEL;
 }
 
 bool SpreadableSnowyDirtBlock::isSnowyAndNotUnderwater(IWorld& world, const BlockPos& pos, const BlockState& state)
