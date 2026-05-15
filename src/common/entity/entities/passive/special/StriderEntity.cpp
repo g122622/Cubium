@@ -28,6 +28,7 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockTags.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
@@ -43,6 +44,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
 #include <cmath>
 
@@ -442,6 +444,21 @@ void StriderEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }
 
+void StriderEntity::die(DamageSource& cause)
+{
+    // MC 1.16.5 StriderEntity.dropInventory()
+    // 先调用父类 die()
+    AnimalEntity::die(cause);
+
+    // 如果有鞍，掉落鞍物品
+    if (hasSaddle() && m_world != nullptr && !m_world->isClientSide()) {
+        // 使用 ItemDropHelper 在实体位置生成鞍物品
+        ItemStack saddle(Items::SADDLE, 1);
+        math::Random rng = getRandom();
+        ItemDropHelper::spawnItemAtEntity(this, saddle, 0.0f, rng);
+    }
+}
+
 // ========== IRideable 接口额外方法 ==========
 
 bool StriderEntity::canBeRiddenInWater() const
@@ -449,6 +466,52 @@ bool StriderEntity::canBeRiddenInWater() const
     // MC 1.16.5: 炽足兽可以在熔岩中被骑乘
     // 但不能在水中被骑乘
     return false; // 水中不能骑乘
+}
+
+// ========== IEquipable 接口实现 ==========
+
+ItemStack StriderEntity::getEquipment(i32 slot) const
+{
+    // MC 1.16.5: 炽足兽只有一个鞍槽
+    if (slot != 0) {
+        return ItemStack::EMPTY;
+    }
+
+    // MC 1.16.5 StriderEntity 不存储实际的鞍 ItemStack，只存储布尔值
+    // 当有鞍时返回一个鞍物品堆
+    if (hasSaddle()) {
+        return ItemStack(Items::SADDLE, 1);
+    }
+
+    return ItemStack::EMPTY;
+}
+
+void StriderEntity::setEquipment(i32 slot, const ItemStack& item)
+{
+    // MC 1.16.5: 炽足兽只有一个鞍槽
+    if (slot != 0) {
+        return;
+    }
+
+    // MC 1.16.5: 设置鞍状态
+    // 注意：炽足兽不存储实际的物品，只存储布尔值
+    bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
+    setSaddle(isSaddle);
+}
+
+bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
+{
+    if (item.isEmpty()) {
+        return true; // 可以清空槽位
+    }
+
+    // MC 1.16.5: 炽足兽只能装备鞍，且只有槽位0
+    if (slot != 0) {
+        return false;
+    }
+
+    // 检查是否是鞍物品
+    return item.getItem() == Items::SADDLE;
 }
 
 } // namespace mc

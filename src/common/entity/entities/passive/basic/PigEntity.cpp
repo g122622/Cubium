@@ -25,6 +25,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
@@ -36,6 +37,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
 #include <memory>
 
@@ -271,6 +273,21 @@ void PigEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
 }
 
+void PigEntity::die(DamageSource& cause)
+{
+    // MC 1.16.5 PigEntity.dropInventory()
+    // 先调用父类 die()
+    AnimalEntity::die(cause);
+
+    // 如果有鞍，掉落鞍物品
+    if (hasSaddle() && m_world != nullptr && !m_world->isClientSide()) {
+        // 使用 ItemDropHelper 在实体位置生成鞍物品
+        ItemStack saddle(Items::SADDLE, 1);
+        math::Random rng = getRandom();
+        ItemDropHelper::spawnItemAtEntity(this, saddle, 0.0f, rng);
+    }
+}
+
 // ========== IEquipable 接口实现 ==========
 
 ItemStack PigEntity::getEquipment(i32 slot) const
@@ -279,8 +296,13 @@ ItemStack PigEntity::getEquipment(i32 slot) const
     if (slot != 0) {
         return ItemStack::EMPTY;
     }
-    // 返回鞍物品（如果有）
-    // TODO: 当物品系统完善后实现实际的库存存储
+
+    // MC 1.16.5 PigEntity 不存储实际的鞍 ItemStack，只存储布尔值
+    // 当有鞍时返回一个鞍物品堆
+    if (hasSaddle()) {
+        return ItemStack(Items::SADDLE, 1);
+    }
+
     return ItemStack::EMPTY;
 }
 
@@ -291,15 +313,14 @@ void PigEntity::setEquipment(i32 slot, const ItemStack& item)
         return;
     }
 
-    // 检查是否是鞍
+    // MC 1.16.5: 设置鞍状态
+    // 注意：猪不存储实际的物品，只存储布尔值
     bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
-
-    // 设置鞍状态
     setSaddle(isSaddle);
 
-    // MC 1.16.5: 存储鞍物品到槽位
-    // 当物品系统完善后，这里应该更新内部库存
-    MC_UNUSED(item);
+    // MC 1.16.5: 如果装备鞍，播放音效
+    // func_230266_a_ 方法会在设置鞍时播放音效
+    // 音效在 setSaddle 中或通过调用者处理
 }
 
 bool PigEntity::canEquip(const ItemStack& item, i32 slot) const

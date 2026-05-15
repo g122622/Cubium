@@ -166,6 +166,12 @@ protected:
 
     void tick() override;
 
+    /**
+     * @brief 死亡时掉落鞍
+     * MC 1.16.5 PigEntity.dropInventory()
+     */
+    void die(DamageSource& cause) override;
+
     // ========== 尺寸 ==========
 
     [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }

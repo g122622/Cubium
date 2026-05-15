@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../core/BoostHelper.hpp"
+#include "../../../interfaces/IEquipable.hpp"
 #include "../../../interfaces/IRideable.hpp"
 #include "../basic/AnimalEntity.hpp"
 #include <cmath>
@@ -50,9 +51,11 @@ class ItemStack;
  *
  * 参考 MC 1.16.5 StriderEntity
  */
-class StriderEntity : public AnimalEntity, public entity::IRideable {
+class StriderEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
     using Entity::canBeRidden;
+    using LivingEntity::getEquipment;
+    using LivingEntity::setEquipment;
 
     /**
      * @brief 构造函数
@@ -236,6 +239,12 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 死亡时掉落鞍
+     * MC 1.16.5 StriderEntity.dropInventory()
+     */
+    void die(DamageSource& cause) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -256,6 +265,32 @@ protected:
      * MC 1.16.5: func_234318_eL_()
      */
     void updateLavaWalking();
+
+    // ========== IEquipable 接口实现 ==========
+
+    /**
+     * @brief 获取装备槽数量
+     * MC 1.16.5: 炽足兽只有一个鞍槽
+     */
+    [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
+
+    /**
+     * @brief 获取指定槽位的装备
+     * @param slot 槽位索引 (0 = 鞍槽)
+     */
+    [[nodiscard]] ItemStack getEquipment(i32 slot) const override;
+
+    /**
+     * @brief 设置指定槽位的装备
+     * @param slot 槽位索引 (0 = 鞍槽)
+     */
+    void setEquipment(i32 slot, const ItemStack& item) override;
+
+    /**
+     * @brief 检查是否可以装备指定物品
+     * MC 1.16.5: 炽足兽只能装备鞍
+     */
+    [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
 
 private:
     // 熔岩状态
