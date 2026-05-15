@@ -94,6 +94,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<PlayerKilledEntityTrigger>());
     registerTrigger(std::make_unique<EntityKilledPlayerTrigger>());
     registerTrigger(std::make_unique<CuredZombieVillagerTrigger>());
+    registerTrigger(std::make_unique<PlayerInteractedWithEntityTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

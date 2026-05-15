@@ -32,9 +32,14 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
@@ -724,8 +729,24 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
             player->swing(packet.hand());
         }
 
-        // TODO: 触发成就
-        // CriterionTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(player, target, hand);
+        // MC 1.16.5: 触发 player_interacted_with_entity 成就
+        // 参考: CriteriaTriggers.PLAYER_ENTITY_INTERACTION.trigger(player, stack, entity)
+        auto* serverPlayer = player->asServerPlayer();
+        if (serverPlayer != nullptr) {
+            auto* advancements = serverPlayer->getAdvancements();
+            if (advancements != nullptr) {
+                auto* trigger = advancement::CriterionTriggers::instance()
+                    .getTrigger<advancement::PlayerInteractedWithEntityTrigger>();
+                if (trigger != nullptr) {
+                    ItemStack heldItem = player->getHeldItem(packet.hand());
+                    trigger->AbstractCriterionTrigger<advancement::PlayerInteractedWithEntityTriggerInstance>::trigger(
+                        *advancements,
+                        [&heldItem, &target](const advancement::PlayerInteractedWithEntityTriggerInstance& instance) {
+                            return instance.test(heldItem, *target);
+                        });
+                }
+            }
+        }
     }
 
     return PacketHandleResult::Success;

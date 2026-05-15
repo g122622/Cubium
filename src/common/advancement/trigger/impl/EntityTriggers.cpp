@@ -402,4 +402,95 @@ void VillagerTradeTrigger::trigger(ServerPlayer& player, const Entity& villager,
     MC_UNUSED(item);
 }
 
+// ========== PlayerInteractedWithEntityTriggerInstance ==========
+
+PlayerInteractedWithEntityTriggerInstance::PlayerInteractedWithEntityTriggerInstance(
+    ItemPredicate item, EntityPredicate entity)
+    : m_item(std::move(item))
+    , m_entity(std::move(entity))
+{}
+
+bool PlayerInteractedWithEntityTriggerInstance::test(const ItemStack& item, const Entity& entity) const
+{
+    if (!m_item.test(item)) {
+        return false;
+    }
+    if (!m_entity.test(entity)) {
+        return false;
+    }
+    return true;
+}
+
+Result<void> PlayerInteractedWithEntityTriggerInstance::fromJson(const nlohmann::json& json)
+{
+    if (json.is_null()) {
+        return {};
+    }
+
+    if (json.contains("item")) {
+        auto result = ItemPredicate::fromJson(json["item"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_item = result.value();
+    }
+
+    if (json.contains("entity")) {
+        auto result = EntityPredicate::fromJson(json["entity"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_entity = result.value();
+    }
+
+    return {};
+}
+
+nlohmann::json PlayerInteractedWithEntityTriggerInstance::conditionsToJson() const
+{
+    nlohmann::json json;
+
+    if (!m_item.isAny()) {
+        json["item"] = m_item.toJson();
+    }
+    if (!m_entity.isAny()) {
+        json["entity"] = m_entity.toJson();
+    }
+
+    return json;
+}
+
+// ========== PlayerInteractedWithEntityTrigger ==========
+
+Result<std::shared_ptr<ICriterionInstance>> PlayerInteractedWithEntityTrigger::fromJson(const nlohmann::json& json)
+{
+    auto instance = std::make_shared<PlayerInteractedWithEntityTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
+}
+
+void PlayerInteractedWithEntityTrigger::trigger(ServerPlayer& player, const ItemStack& item, const Entity& entity)
+{
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式触发检测：
+    //
+    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<PlayerInteractedWithEntityTrigger>();
+    // trigger->AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&item, &entity](const PlayerInteractedWithEntityTriggerInstance& instance) {
+    //         return instance.test(item, entity);
+    //     }
+    // );
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp
+    MC_UNUSED(player);
+    MC_UNUSED(item);
+    MC_UNUSED(entity);
+}
+
 } // namespace mc::advancement

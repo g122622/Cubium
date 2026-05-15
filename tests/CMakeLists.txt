@@ -116,6 +116,8 @@ add_executable(mc_tests
     advancement/PlacedBlockTriggerTest.cpp
     # CuredZombieVillagerTrigger 触发器测试
     advancement/CuredZombieVillagerTriggerTest.cpp
+    # PlayerInteractedWithEntityTrigger 触发器测试
+    advancement/PlayerInteractedWithEntityTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # ItemDropHelper 测试
@@ -920,6 +922,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/TickTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EntityTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻

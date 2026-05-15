@@ -117,6 +117,7 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | TameAnimalTrigger | `minecraft:tame_animal` | 完整实现（含服务端集成） |
 | PlayerKilledEntityTrigger | `minecraft:player_killed_entity` | 完整实现（含服务端集成） |
 | EntityKilledPlayerTrigger | `minecraft:entity_killed_player` | 完整实现 |
+| PlayerInteractedWithEntityTrigger | `minecraft:player_interacted_with_entity` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 

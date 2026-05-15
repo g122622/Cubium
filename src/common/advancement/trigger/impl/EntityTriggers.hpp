@@ -41,6 +41,7 @@ class BredAnimalsTriggerInstance;
 class SummonedEntityTriggerInstance;
 class CuredZombieVillagerTriggerInstance;
 class VillagerTradeTriggerInstance;
+class PlayerInteractedWithEntityTriggerInstance;
 
 /**
  * @brief 驯服动物触发器
@@ -222,6 +223,43 @@ public:
 private:
     EntityPredicate m_villager;
     ItemPredicate m_item;
+};
+
+/**
+ * @brief 玩家与实体交互触发器
+ *
+ * 当玩家与实体交互时触发（如右键点击实体）。
+ * 参考 MC 1.16.5: net.minecraft.advancements.criterion.PlayerEntityInteractionTrigger
+ */
+class PlayerInteractedWithEntityTrigger : public AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_interacted_with_entity";
+
+    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
+
+    void trigger(class ServerPlayer& player, const class ItemStack& item, const class Entity& entity);
+};
+
+/**
+ * @brief 玩家与实体交互触发器实例
+ */
+class PlayerInteractedWithEntityTriggerInstance : public CriterionInstance<PlayerInteractedWithEntityTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:player_interacted_with_entity";
+
+    PlayerInteractedWithEntityTriggerInstance() = default;
+    PlayerInteractedWithEntityTriggerInstance(ItemPredicate item, EntityPredicate entity);
+
+    [[nodiscard]] bool test(const class ItemStack& item, const class Entity& entity) const;
+
+    Result<void> fromJson(const nlohmann::json& json);
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+private:
+    ItemPredicate m_item;
+    EntityPredicate m_entity;
 };
 
 } // namespace advancement
