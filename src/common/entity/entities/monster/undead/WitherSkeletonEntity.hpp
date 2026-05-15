@@ -16,7 +16,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
 */
@@ -45,6 +45,11 @@ class LivingEntity;
  * - 免疫凋零效果
  * - 不会在阳光下燃烧
  * - 主动攻击猪灵
+ *
+ * MC 1.16.5 关键实现：
+ * - 重写 setCombatTask() 使用近战攻击而非远程
+ * - 重写 registerGoals() 添加攻击猪灵的目标
+ * - 重写 attackEntityAsMob() 施加凋零效果
  */
 class WitherSkeletonEntity : public AbstractSkeletonEntity {
 public:
@@ -58,6 +63,9 @@ public:
     WitherSkeletonEntity& operator=(WitherSkeletonEntity&&) = default;
 
     static std::unique_ptr<Entity> create(IWorld* world);
+
+    /// 凋零效果持续时间（ticks），MC 1.16.5: 200 ticks = 10 秒
+    static constexpr i32 WITHER_DURATION_TICKS = 200;
 
     /**
      * @brief 凋灵骷髅不使用远程攻击
@@ -83,6 +91,14 @@ public:
     bool attackEntityAsMob(LivingEntity& target) override;
 
     /**
+     * @brief 设置战斗目标
+     *
+     * 重写父类方法，凋灵骷髅始终使用近战攻击。
+     * MC 1.16.5: 凋灵骷髅装备石剑，setCombatTask() 会选择近战目标。
+     */
+    void setCombatTask() override;
+
+    /**
      * @brief 检查是否免疫凋零效果
      *
      * 参考 MC 1.16.5 WitherSkeletonEntity.isPotionApplicable()
@@ -103,9 +119,6 @@ protected:
 
 private:
     bool m_hasStoneSword = true;
-
-    /// 凋零效果持续时间（ticks），MC 1.16.5: 200 ticks = 10 秒
-    static constexpr i32 WITHER_DURATION_TICKS = 200;
 };
 
 } // namespace mc

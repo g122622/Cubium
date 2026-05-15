@@ -78,13 +78,31 @@ Entity
 
 ### 骷髅类 (AbstractSkeletonEntity)
 
+骷髅类实体采用 MC 1.16.5 的 `setCombatTask()` 模式来动态选择战斗目标：
+
+#### 战斗目标切换机制
+
+```
+AbstractSkeletonEntity
+├── m_rangedAttackGoal (RangedBowAttackGoal)
+├── m_meleeAttackGoal (MeleeAttackGoal)
+└── setCombatTask() -> 根据装备选择战斗目标
+    ├── 持弓 -> 添加 RangedBowAttackGoal (优先级 4)
+    └── 无弓 -> 添加 MeleeAttackGoal (优先级 4)
+```
+
+**设计要点：**
+- `registerGoals()` 只注册非战斗目标（移动、看向、目标选择等）
+- `setCombatTask()` 在构造函数末尾调用，动态添加战斗目标
+- 子类（如 WitherSkeletonEntity）重写 `setCombatTask()` 选择不同的战斗方式
+
 #### SkeletonEntity - 骷髅
 | 特性 | 说明 |
 |------|------|
-| 远程 | 使用弓箭进行远程攻击 |
+| 远程 | 使用弓箭进行远程攻击（RangedBowAttackGoal） |
 | 燃烧 | 在阳光下燃烧 |
 | 掉落 | 掉落骨头和箭矢 |
-| 战斗 | 会拉开距离射击 |
+| 战斗 | 会拉开距离射击、走位 |
 
 #### StrayEntity - 流浪者
 | 特性 | 说明 |
@@ -93,13 +111,18 @@ Entity
 | 减速 | 箭矢造成迟缓效果 |
 | 装备 | 生成时穿戴破旧装备 |
 | 掉落 | 掉落迟缓之箭 |
+| 远程 | 继承父类的远程攻击（RangedBowAttackGoal） |
 
 #### WitherSkeletonEntity - 凋灵骷髅
 | 特性 | 说明 |
 |------|------|
 | 下界 | 在下界要塞生成 |
-| 凋零 | 攻击造成凋零效果 |
-| 高攻 | 攻击伤害极高 |
+| 近战 | 使用石剑进行近战攻击（MeleeAttackGoal） |
+| 凋零 | 攻击造成凋零效果（200 ticks = 10 秒） |
+| 高攻 | 攻击伤害 4.0（普通骷髅 2.0） |
+| 免疫 | 免疫凋零效果 |
+| 阳光 | 不在阳光下燃烧 |
+| 仇恨 | 主动攻击猪灵 |
 | 掉落 | 掉落煤炭、骨头，稀有掉落凋灵骷髅头颅 |
 
 ## 治愈系统 (ZombieVillagerEntity)

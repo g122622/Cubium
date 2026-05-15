@@ -62,6 +62,8 @@ public:
     void resetTask() override;
     void tick() override;
 
+    [[nodiscard]] std::string getTypeName() const override { return "RangedAttackGoal"; }
+
 protected:
     /**
      * @brief 执行远程攻击
@@ -108,6 +110,8 @@ public:
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "RangedBowAttackGoal"; }
 
 protected:
     void performAttack(LivingEntity* target, f32 charge) override;

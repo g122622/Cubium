@@ -16,7 +16,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
 */
@@ -40,7 +40,17 @@ namespace mc {
 AbstractSkeletonEntity::AbstractSkeletonEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
+    // MC 1.16.5: 在构造函数中创建战斗目标（但不添加到选择器）
+    // setCombatTask() 会在 onInitialSpawn() 或需要时被调用
+    m_rangedAttackGoal = std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
+        this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX);
+
+    // MC 1.16.5: 近战目标是一个匿名子类，在 startExecuting/resetTask 中设置 aggro 状态
+    // 当前简化实现，使用标准 MeleeAttackGoal
+    m_meleeAttackGoal = std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false);
 }
+
+AbstractSkeletonEntity::~AbstractSkeletonEntity() = default;
 
 void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
@@ -75,12 +85,44 @@ void AbstractSkeletonEntity::tick()
     }
 }
 
+void AbstractSkeletonEntity::setCombatTask()
+{
+    // MC 1.16.5 AbstractSkeletonEntity.setCombatTask()
+    // 先移除所有战斗目标，再根据装备添加正确的目标
+
+    // 移除现有的战斗目标
+    if (m_rangedAttackGoal) {
+        m_goalSelector.removeGoal(m_rangedAttackGoal.get());
+    }
+    if (m_meleeAttackGoal) {
+        m_goalSelector.removeGoal(m_meleeAttackGoal.get());
+    }
+
+    // MC 1.16.5: 检查是否持有弓
+    // 当前简化实现：默认使用远程攻击
+    // 子类可以重写此方法来选择不同的战斗目标
+    //
+    // TODO: 当物品系统完善后，应该检查装备：
+    // ItemStack itemstack = getHeldItem(ProjectileHelper.getHandWith(this, Items.BOW));
+    // if (itemstack.getItem() == Items.BOW) {
+    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
+    // } else {
+    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
+    // }
+
+    // 默认使用远程攻击（普通骷髅和流浪者）
+    if (m_rangedAttackGoal) {
+        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
+    }
+}
+
 void AbstractSkeletonEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
     // MC 1.16.5 AbstractSkeletonEntity.registerGoals()
-    // 注意：凋灵骷髅会重写此方法使用近战攻击，不使用远程攻击
+    // 注意：战斗目标（远程/近战）通过 setCombatTask() 添加，不在这里注册
+    // 子类（如 WitherSkeletonEntity）可以重写 setCombatTask() 来选择近战
 
     // ========== 行为目标 (goalSelector) ==========
 
@@ -96,11 +138,8 @@ void AbstractSkeletonEntity::registerGoals()
     // TODO: AvoidEntityGoal<WolfEntity> 需要实现模板版本
     // m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::AvoidEntityGoal<WolfEntity>>(this, 6.0f, 1.0, 1.2));
 
-    // 优先级 4: 远程弓箭攻击
-    // 子类（如 WitherSkeletonEntity）可以移除此目标并添加近战攻击
-    m_goalSelector.addGoal(4,
-        std::make_unique<entity::ai::goal::RangedBowAttackGoal>(this, RANGED_ATTACK_SPEED,
-            ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX));
+    // 优先级 4: 战斗目标（通过 setCombatTask() 动态添加）
+    // 参考 setCombatTask()
 
     // 优先级 5: 避水随机行走
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));

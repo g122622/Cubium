@@ -16,7 +16,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
 */
@@ -25,6 +25,12 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+
+// Forward declarations
+namespace mc::entity::ai::goal {
+class RangedBowAttackGoal;
+class MeleeAttackGoal;
+}
 
 namespace mc {
 
@@ -35,20 +41,40 @@ namespace mc {
  * - 远程弓箭攻击接口
  * - 拉弓状态与攻击计时
  * - 骷髅系共通属性与基础目标注册
+ * - 动态战斗目标切换（setCombatTask 模式）
  *
  * 子类：
  * - SkeletonEntity: 普通骷髅，使用弓远程攻击
  * - StrayEntity: 流浪者，使用弓远程攻击，不在阳光下燃烧
  * - WitherSkeletonEntity: 凋灵骷髅，使用石剑近战攻击，施加凋零效果
+ *
+ * MC 1.16.5 关键设计：
+ * - registerGoals() 只注册非战斗目标（移动、看向、目标选择）
+ * - setCombatTask() 根据装备动态选择战斗目标（远程/近战）
+ * - 子类通过装备不同武器来影响 setCombatTask() 的选择
  */
 class AbstractSkeletonEntity : public MonsterEntity, public entity::IRangedAttackMob {
 public:
-    ~AbstractSkeletonEntity() override = default;
+    ~AbstractSkeletonEntity() override;
 
     AbstractSkeletonEntity(const AbstractSkeletonEntity&) = delete;
     AbstractSkeletonEntity& operator=(const AbstractSkeletonEntity&) = delete;
     AbstractSkeletonEntity(AbstractSkeletonEntity&&) = default;
     AbstractSkeletonEntity& operator=(AbstractSkeletonEntity&&) = default;
+
+    // ========== 常量 ==========
+    /// 这些常量在测试中需要访问
+
+    static constexpr i32 ATTACK_COOLDOWN = 60;       // 攻击冷却（ticks），3秒
+    static constexpr f32 ARROW_DAMAGE = 2.0f;        // 箭矢基础伤害
+    static constexpr f64 RANGED_ATTACK_SPEED = 1.0;  // 远程攻击移动速度
+    static constexpr f64 MELEE_ATTACK_SPEED = 1.2;   // 近战攻击移动速度
+    static constexpr i32 ATTACK_INTERVAL_MIN = 20;   // 最小攻击间隔（ticks）
+    static constexpr i32 ATTACK_INTERVAL_MAX = 40;   // 最大攻击间隔（ticks）
+    static constexpr f32 ATTACK_RADIUS = 15.0f;      // 远程攻击半径
+
+    /// 战斗目标优先级（MC 1.16.5: priority=4）
+    static constexpr i32 COMBAT_GOAL_PRIORITY = 4;
 
     // ========== IRangedAttackMob 接口实现 ==========
 
@@ -64,6 +90,20 @@ public:
 
     [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
     void setAttackCooldown(i32 cooldown) { m_attackCooldown = cooldown; }
+
+    // ========== 战斗目标管理 ==========
+
+    /**
+     * @brief 设置战斗目标
+     *
+     * MC 1.16.5: 根据装备动态选择战斗目标
+     * - 如果持有弓，使用 RangedBowAttackGoal
+     * - 否则使用 MeleeAttackGoal
+     *
+     * 此方法会先移除所有战斗目标，再根据装备添加正确的目标。
+     * 子类可以通过装备不同武器来影响战斗目标选择。
+     */
+    virtual void setCombatTask();
 
     // ========== 生命周期 ==========
 
@@ -81,14 +121,14 @@ protected:
     i32 m_attackTimer = 0;
     i32 m_attackCooldown = 0;
 
-    // ========== 常量 ==========
+    // ========== 战斗目标 ==========
+    /// 注意：这些目标指针在 GoalSelector 中被复制，所以需要通过原始指针操作
 
-    static constexpr i32 ATTACK_COOLDOWN = 60;   // 攻击冷却（ticks），3秒
-    static constexpr f32 ARROW_DAMAGE = 2.0f;     // 箭矢基础伤害
-    static constexpr f64 RANGED_ATTACK_SPEED = 1.0;  // 远程攻击移动速度
-    static constexpr i32 ATTACK_INTERVAL_MIN = 20;   // 最小攻击间隔（ticks）
-    static constexpr i32 ATTACK_INTERVAL_MAX = 40;   // 最大攻击间隔（ticks）
-    static constexpr f32 ATTACK_RADIUS = 15.0f;      // 远程攻击半径
+    /// 远程攻击目标（MC 1.16.5: aiArrowAttack）
+    std::unique_ptr<entity::ai::goal::RangedBowAttackGoal> m_rangedAttackGoal;
+
+    /// 近战攻击目标（MC 1.16.5: aiAttackOnCollide）
+    std::unique_ptr<entity::ai::goal::MeleeAttackGoal> m_meleeAttackGoal;
 };
 
 } // namespace mc

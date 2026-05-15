@@ -16,7 +16,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
 */
@@ -29,6 +29,7 @@
 #include "../../../effect/EffectType.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
+#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../nether/NetherEntities.hpp"
@@ -40,6 +41,9 @@ WitherSkeletonEntity::WitherSkeletonEntity(LegacyEntityType type, EntityId id)
 {
     registerGoals();
     registerAttributes();
+    // MC 1.16.5: 在 registerGoals() 之后设置战斗目标
+    // 凋灵骷髅使用近战攻击（重写的 setCombatTask 会选择 MeleeAttackGoal）
+    setCombatTask();
 }
 
 std::unique_ptr<Entity> WitherSkeletonEntity::create(IWorld* /*world*/)
@@ -49,21 +53,21 @@ std::unique_ptr<Entity> WitherSkeletonEntity::create(IWorld* /*world*/)
 
 void WitherSkeletonEntity::registerGoals()
 {
-    // 调用父类方法注册基础目标（游泳、被攻击反击等）
-    AbstractSkeletonEntity::registerGoals();
-
     // MC 1.16.5 WitherSkeletonEntity.registerGoals()
-    // 凋灵骷髅使用近战攻击，而不是远程攻击
-    // 优先级 2: 近战攻击目标（速度 1.2，使用长期记忆）
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.2, false));
+    // 注意：凋灵骷髅先添加攻击猪灵的目标，然后调用父类方法
+    // 但是父类的 registerGoals() 会添加非战斗目标（移动、看向等），不会添加战斗目标
+    // 战斗目标通过 setCombatTask() 添加
 
-    // MC 1.16.5: 凋灵骷髅主动攻击猪灵
     // 优先级 3: 攻击最近的猪灵（需要视线检查）
+    // MC 1.16.5: this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractPiglinEntity.class, true));
     m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AbstractPiglinEntity>>(
         this,
         true,  // checkSight - 需要视线检查
         0      // chance - 每tick都检查
     ));
+
+    // 调用父类方法注册基础目标（游泳、被攻击反击、移动、看向等）
+    AbstractSkeletonEntity::registerGoals();
 }
 
 void WitherSkeletonEntity::registerAttributes()
@@ -73,6 +77,26 @@ void WitherSkeletonEntity::registerAttributes()
     // MC 1.16.5 WitherSkeletonEntity.func_234277_m_()
     // 凋灵骷髅攻击伤害为 4.0（比普通骷髅的 2.0 高）
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+}
+
+void WitherSkeletonEntity::setCombatTask()
+{
+    // MC 1.16.5: 凋灵骷髅使用近战攻击
+    // 重写父类方法，不检查装备，始终使用近战
+    // 因为凋灵骷髅在 onInitialSpawn() 中被装备石剑
+
+    // 移除现有的战斗目标
+    if (m_rangedAttackGoal) {
+        m_goalSelector.removeGoal(m_rangedAttackGoal.get());
+    }
+    if (m_meleeAttackGoal) {
+        m_goalSelector.removeGoal(m_meleeAttackGoal.get());
+    }
+
+    // 凋灵骷髅始终使用近战攻击
+    if (m_meleeAttackGoal) {
+        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
+    }
 }
 
 bool WitherSkeletonEntity::attackEntityAsMob(LivingEntity& target)
