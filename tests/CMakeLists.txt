@@ -61,6 +61,7 @@ add_executable(mc_tests
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
+    common/item/special/OnAStickItemTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
