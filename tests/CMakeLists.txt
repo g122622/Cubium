@@ -97,6 +97,8 @@ add_executable(mc_tests
     common/entity/entities/passive/fish/PufferfishEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
+    # SpiderEntity AI 目标、光照敏感、中毒攻击测试
+    entity/SpiderEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
