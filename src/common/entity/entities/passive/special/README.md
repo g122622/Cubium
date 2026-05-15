@@ -380,6 +380,7 @@ void updateAnger();  // 每tick调用
 ### 特性
 - **熔岩行走**: 在熔岩表面行走，不沉入熔岩
 - **可骑乘**: 实现 `IRideable` 接口
+- **可装备鞍**: 实现 `IEquipable` 接口
 - **温度敏感**: 离开熔岩会发抖、减速
 - **鞍装备**: 需要鞍才能控制方向
 
@@ -396,7 +397,7 @@ void updateAnger();  // 每tick调用
 
 ### 接口实现
 ```cpp
-class StriderEntity : public AnimalEntity, public entity::IRideable {
+class StriderEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
     // IRideable 接口
     bool hasSaddle() const override;
@@ -407,8 +408,23 @@ public:
     bool boost() override;
     bool canBeSteered() const override;
     void travelTowards(const Vector3& travelVec) override;
+
+    // IEquipable 接口
+    i32 getEquipmentSlotCount() const override;
+    ItemStack getEquipment(i32 slot) const override;
+    void setEquipment(i32 slot, const ItemStack& item) override;
+    bool canEquip(const ItemStack& item, i32 slot) const override;
 };
 ```
+
+### 鞍系统 (IEquipable)
+炽足兽实现 `IEquipable` 接口，支持鞍的存储和掉落：
+
+- **存储方式**：不存储实际 ItemStack，只存储布尔值 `m_saddled`（MC 1.16.5 设计）
+- **getEquipment(0)**：有鞍时返回 `ItemStack(Items::SADDLE, 1)`
+- **setEquipment(0, saddle)**：设置鞍布尔状态
+- **canEquip(saddle, 0)**：只能装备鞍到槽位 0
+- **死亡掉落**：die() 中检查 hasSaddle() 并使用 ItemDropHelper 生成鞍物品实体
 
 ### 熔岩行走机制
 - 在熔岩表面时设置 `onGround = true`
@@ -564,7 +580,7 @@ void TurtleEntity::layEgg();
 ## 测试覆盖
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/entities/passive/special/`，包含：
-- **StriderEntityTest.cpp**: 炽足兽实体测试（23 个测试）
+- **StriderEntityTest.cpp**: 炽足兽实体测试（60+ 个测试）
   - getMountedYOffset 计算测试（11 个测试）
     - 基础偏移计算
     - 公式验证（MC 1.16.5 一致性）
@@ -577,6 +593,12 @@ void TurtleEntity::layEgg();
   - 基本属性测试（12 个测试）
     - 寒冷状态、鞍状态、熔岩表面状态
     - 骑乘状态、加速状态、高度访问器
+  - IEquipable 接口测试（12 个测试）
+    - 槽数量验证
+    - getEquipment 有鞍/无鞍返回值
+    - setEquipment 设置/清除鞍
+    - 无效槽位处理
+    - canEquip 鞍/非鞍物品验证
 - **FoxEntityTest.cpp**: 狐狸实体测试
   - 狐狸类型测试（默认类型、设置/获取）
   - 信任系统测试（添加、移除、最多 2 个、去重）

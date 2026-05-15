@@ -33,6 +33,13 @@ MobEntity
 - 生命值：10
 - 繁殖物品：胡萝卜、马铃薯、甜菜根
 - 可骑乘（鞍 + 胡萝卜钓竿）
+- **实现接口**：IRideable, IEquipable
+- **鞍系统**：
+  - 存储：不存储实际 ItemStack，只存储布尔值（MC 1.16.5 设计）
+  - getEquipment(0)：有鞍时返回 `ItemStack(Items::SADDLE, 1)`
+  - setEquipment(0, saddle)：设置鞍布尔状态
+  - canEquip(saddle, 0)：只能装备鞍到槽位 0
+  - 死亡掉落：die() 中检查 hasSaddle() 并掉落鞍物品
 - **骑乘速度设置**：
   - 基础速度：`MOVEMENT_SPEED = 0.25`
   - 骑乘速度：`speed * 0.225 = 0.05625`
@@ -123,3 +130,4 @@ if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2))
 | `tests/common/entity/entities/passive/basic/RabbitEntityTest.cpp` | 兔子行为测试 |
 | `tests/common/entity/entities/passive/basic/MooshroomEntityTest.cpp` | 哞菇完整测试：类型系统、雷击转换、音效播放、粒子生成、剪毛返回蘑菇、碗交互、繁殖类型遗传与变异（22个测试用例） |
 | `tests/entity/EatGrassGoalTest.cpp` | 验证羊颜色混合和吃草行为 |
+| `tests/entity/PigEntityTest.cpp` | 猪实体测试：IEquipable 接口（鞍存储）、IRideable 接口（骑乘同步）|

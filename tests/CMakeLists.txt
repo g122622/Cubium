@@ -247,6 +247,7 @@ add_executable(mc_tests
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
     entity/StriderEntityTest.cpp
+    entity/PigEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp

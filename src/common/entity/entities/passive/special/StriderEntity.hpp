@@ -245,27 +245,6 @@ public:
      */
     void die(DamageSource& cause) override;
 
-protected:
-    // ========== AI 目标注册 ==========
-    void registerGoals() override;
-
-    // ========== 属性注册 ==========
-    void registerAttributes() override;
-
-    // ========== 内部方法 ==========
-
-    /**
-     * @brief 更新寒冷状态
-     * MC 1.16.5: 检查是否在温暖环境中
-     */
-    void updateColdStatus();
-
-    /**
-     * @brief 更新熔岩行走物理
-     * MC 1.16.5: func_234318_eL_()
-     */
-    void updateLavaWalking();
-
     // ========== IEquipable 接口实现 ==========
 
     /**
@@ -291,6 +270,27 @@ protected:
      * MC 1.16.5: 炽足兽只能装备鞍
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
+
+protected:
+    // ========== AI 目标注册 ==========
+    void registerGoals() override;
+
+    // ========== 属性注册 ==========
+    void registerAttributes() override;
+
+    // ========== 内部方法 ==========
+
+    /**
+     * @brief 更新寒冷状态
+     * MC 1.16.5: 检查是否在温暖环境中
+     */
+    void updateColdStatus();
+
+    /**
+     * @brief 更新熔岩行走物理
+     * MC 1.16.5: func_234318_eL_()
+     */
+    void updateLavaWalking();
 
 private:
     // 熔岩状态
