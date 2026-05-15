@@ -179,6 +179,8 @@ add_executable(mc_tests
     common/world/blockentity/EndGatewayEntityTest.cpp
     # CampfireBlockEntity 营火方块实体测试（烹饪逻辑、槽位管理、序列化）
     common/world/blockentity/CampfireBlockEntityTest.cpp
+    # ShulkerBoxEntity 潜影盒测试（动画状态、比较器信号、防递归嵌套）
+    common/world/blockentity/ShulkerBoxEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp

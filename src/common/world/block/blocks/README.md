@@ -39,6 +39,8 @@ blocks/
 ├── EnchantingTableBlock.cpp # 附魔台方块实现
 ├── SignBlock.hpp            # 告示牌方块头文件
 ├── SignBlock.cpp            # 告示牌方块实现
+├── ShulkerBoxBlock.hpp      # 潜影盒方块头文件
+├── ShulkerBoxBlock.cpp      # 潜影盒方块实现
 ├── redstone/                # 红石方块子目录
 │   ├── README.md            # 红石方块文档
 │   ├── RedstoneBlock.hpp/cpp
@@ -403,6 +405,29 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 **状态数量**: 10个（5方向 × 2启用状态）
 
 **参考**: `net.minecraft.block.HopperBlock`
+
+---
+
+### ShulkerBoxBlock.hpp/cpp
+
+**职责**: 潜影盒方块实现，提供27格存储容器并支持防递归嵌套。
+
+**主要特性**:
+- 拥有`FACING`属性控制朝向（6个方向：上、下、北、南、东、西）
+- 创建`ShulkerBoxEntity`方块实体
+- 支持红石比较器信号输出（基于填充比例）
+- 打开时需要上方空间检测（防止被实体阻挡）
+- 防止将潜影盒放入另一个潜影盒（递归嵌套保护）
+
+**状态数量**: 6个（6朝向）
+
+**MC 1.16.5 对齐**:
+- 放置时朝向放置面
+- 打开动画（通过 ShulkerBoxEntity 管理）
+- 红石比较器信号 = floor(填充槽位数 / 27 * 14) + (有物品 ? 1 : 0)
+- ISidedInventory 支持漏斗从任意方向访问
+
+**参考**: `net.minecraft.block.ShulkerBoxBlock`
 
 ---
 

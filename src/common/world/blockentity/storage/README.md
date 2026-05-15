@@ -57,17 +57,26 @@ storage/
 **职责**：潜影盒方块实体。
 
 **主要功能**：
-- 27格物品存储
+- 27格物品存储（SHULKER_BOX_SIZE = 27）
 - 被破坏时保留物品（不掉落）
 - 可以被锁定（需要正确名称的物品打开）
-- 打开时有动画效果
+- 打开时有动画效果（AnimationStatus: Closed, Opening, Opened, Closing）
 - **ISidedInventory 接口支持**（漏斗可从任意方向访问所有槽位）
+- **红石比较器信号输出**（基于填充比例计算）
+- **防递归嵌套**（不能将潜影盒放入另一个潜影盒）
 
 **MC 1.16.5 对齐**：
 - 实体推动逻辑：打开/关闭时推动附近实体
 - FACING 属性缓存：避免每帧查询方块状态
 - 同步间隔：与原版一致
 - ISidedInventory：所有方向可访问所有槽位，但不能插入另一个潜影盒
+- 比较器信号：`signal = floor(填充槽位数 / 27 * 14) + (有物品 ? 1 : 0)`
+
+**关键方法**：
+- `getComparatorSignal(IWorld&)` - 计算红石比较器信号强度
+- `canInsertItem(slot, stack, direction)` - 检查物品是否可插入（含递归保护）
+- `canOpen(IWorld&)` - 检查是否可以打开（空间检测）
+- `tick(IWorld&)` - 更新动画状态和推动实体
 
 ### BarrelEntity.hpp/cpp
 
