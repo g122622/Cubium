@@ -396,6 +396,21 @@ public:
     void tick() override;
 
     /**
+     * @brief 处理玩家交互
+     *
+     * MC 1.16.5: AbstractHorseEntity.func_230254_b_()
+     * 处理玩家右键点击马匹时的交互：
+     * - 手持食物时：喂食
+     * - 空手且已驯服：打开背包
+     * - 空手且未驯服：尝试骑乘
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /**
      * @brief 骑乘移动处理
      * MC 1.16.5: travel(Vector3d)
      */

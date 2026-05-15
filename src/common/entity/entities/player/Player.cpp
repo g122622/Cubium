@@ -2141,14 +2141,14 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
     ItemStack itemstackCopy = itemstack; // 保存副本用于创造模式恢复
 
     // 3. 先调用实体的 processInitialInteract 方法
-    // TODO: ActionResultType entityResult = target.processInitialInteract(*this, hand);
-    // if (entityResult.isSuccessOrConsume()) {
-    //     // 创造模式恢复物品数量
-    //     if (isCreative() && itemstack.isEmpty()) {
-    //         inventory().setItem(hand == Hand::MainHand ? 0 : 40, itemstackCopy);
-    //     }
-    //     return entityResult;
-    // }
+    ActionResultType entityResult = target.processInitialInteract(*this, hand);
+    if (entityResult == ActionResultType::Success || entityResult == ActionResultType::Consume) {
+        // 创造模式恢复物品数量
+        if (isCreative() && itemstack.isEmpty()) {
+            inventory().setItem(hand == Hand::MainHand ? 0 : 40, itemstackCopy);
+        }
+        return entityResult;
+    }
 
     // 4. 如果实体不处理，尝试物品的 interactWithEntity
     if (!itemstack.isEmpty()) {

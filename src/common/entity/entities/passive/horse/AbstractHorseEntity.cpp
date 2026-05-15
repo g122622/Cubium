@@ -22,16 +22,7 @@
 */
 
 #include "AbstractHorseEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../effect/EffectType.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../network/packet/EntityPackets.hpp"
-#include "../../../../util/math/MathConstants.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/blockentity/core/SimpleInventory.hpp"
+
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
@@ -43,8 +34,20 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/DataParameter.hpp"
 #include "../../../core/Entity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
+#include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include <cmath>
 
 namespace mc {
@@ -283,6 +286,40 @@ bool AbstractHorseEntity::isTameItem(const ItemStack& itemStack) const
     // 子类应覆盖此方法
     (void)itemStack;
     return false;
+}
+
+ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
+{
+    // MC 1.16.5: AbstractHorseEntity.func_230254_b_()
+    // 处理玩家右键点击马匹时的交互
+
+    ItemStack itemStack = player.getHeldItem(hand);
+    const Item* item = itemStack.getItem();
+
+    // 1. 检查是否手持食物
+    if (item != nullptr && isFoodItem(itemStack)) {
+        // 调用 handleEating 处理喂食效果
+        bool hadEffect = handleEating(&player, itemStack);
+        if (hadEffect) {
+            // MC 1.16.5: 服务端返回 SUCCESS，客户端返回 CONSUME
+            if (m_world != nullptr && m_world->isClientSide()) {
+                return ActionResultType::Consume;
+            }
+            return ActionResultType::Success;
+        }
+    }
+
+    // 2. 未驯服的马可以被骑乘（驯服尝试）
+    if (!isTame()) {
+        // MC 1.16.5: 玩家尝试骑乘未驯服的马
+        // 这会触发 RunAroundLikeCrazyGoal
+        // 这里暂时返回 Pass，实际的骑乘逻辑由 processInitialInteract 的基类处理
+        return ActionResultType::Pass;
+    }
+
+    // 3. 已驯服的马可以装备鞍或打开背包
+    // TODO: 实现鞍装备和背包打开逻辑
+    return ActionResultType::Pass;
 }
 
 f32 AbstractHorseEntity::getSpeed() const

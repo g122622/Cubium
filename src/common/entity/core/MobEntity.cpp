@@ -22,6 +22,8 @@
 */
 
 #include "MobEntity.hpp"
+#include "../../core/Types.hpp"
+#include "../../item/core/ActionResult.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
@@ -36,6 +38,7 @@
 #include "../attribute/Attributes.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
 
@@ -407,6 +410,36 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
     }
 
     return attacked;
+}
+
+// ========== 玩家交互 ==========
+
+ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
+{
+    // MC 1.16.5: MobEntity.processInitialInteract()
+    if (!isAlive()) {
+        return ActionResultType::Pass;
+    }
+
+    // TODO: 检查拴绳（如果玩家手持拴绳）
+    // TODO: 检查命名牌
+    // TODO: 检查刷怪蛋
+
+    // 调用子类的交互逻辑
+    ActionResultType result = interactMob(player, hand);
+    if (result == ActionResultType::Success || result == ActionResultType::Consume) {
+        return result;
+    }
+
+    // 调用父类实现
+    return LivingEntity::processInitialInteract(player, hand);
+}
+
+ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
+{
+    // MC 1.16.5: MobEntity.func_230254_b_()
+    // 基类默认返回 Pass，子类可重写以处理特定交互
+    return ActionResultType::Pass;
 }
 
 } // namespace mc

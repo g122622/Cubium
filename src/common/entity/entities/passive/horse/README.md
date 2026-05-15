@@ -235,6 +235,57 @@ void setOwnerUuid(const std::string& uuid);  // 设置主人UUID
 | `isBred()` / `setBred(bool)` | 繁殖状态 |
 | `isMouthOpen()` / `setMouthOpen(bool)` | 嘴巴张开状态 |
 
+## 繁殖系统（MC 1.16.5）
+
+### 食物效果
+
+马类实体通过 `handleEating()` 方法处理食物效果：
+
+#### AbstractHorseEntity 食物效果
+| 食物 | 治疗 | 成长(ticks) | 驯服进度 | 触发繁殖 |
+|------|------|------------|---------|---------|
+| 小麦 | 2 | 20 | +3 | ❌ |
+| 糖 | 1 | 30 | +3 | ❌ |
+| 干草块 | 20 | 180 | 0 | ❌ |
+| 苹果 | 3 | 60 | +3 | ❌ |
+| 金胡萝卜 | 4 | 60 | +5 | ✅（需驯服）|
+| 金苹果 | 10 | 240 | +10 | ✅（需驯服）|
+| 附魔金苹果 | 10 | 240 | +10 | ✅（需驯服）|
+
+#### LlamaEntity 食物效果
+| 食物 | 治疗 | 成长(ticks) | 驯服进度 | 触发繁殖 |
+|------|------|------------|---------|---------|
+| 小麦 | 2 | 10 | +3 | ❌ |
+| 干草块 | 10 | 90 | +6 | ✅ |
+
+### 繁殖方法
+
+#### canMateWith()
+检查是否可以与另一动物交配：
+```cpp
+bool canMateWith(const AnimalEntity& other) const override;
+```
+- HorseEntity：马+马=马，马+驴=骡
+- DonkeyEntity：驴+驴=驴，驴+马=骡
+- LlamaEntity：羊驼+羊驼=羊驼（骡不育）
+
+#### spawnBaby()
+生成后代：
+```cpp
+std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+```
+- 属性遗传：`(parent1 + parent2 + random) / 3`
+- 颜色遗传（马）：4/9 父本，4/9 母本，1/9 随机
+- 强度遗传（羊驼）：`max(parent1, parent2) + random(0,1)`
+
+### 玩家交互
+
+玩家右键点击马匹时调用 `interactMob()`：
+
+1. **手持食物**：调用 `handleEating()` 处理喂食效果
+2. **未驯服**：尝试骑乘（驯服流程）
+3. **已驯服**：装备鞍或打开背包
+
 ## 骑乘更新系统
 
 ### updateRiding()
