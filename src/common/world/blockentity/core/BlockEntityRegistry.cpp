@@ -32,6 +32,7 @@
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
+#include "world/blockentity/processing/CampfireBlockEntity.hpp"
 #include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/blockentity/processing/FurnaceEntity.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
@@ -113,6 +114,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册告示牌方块实体
     registerType(BlockEntityType::Sign, [](const BlockPos& pos) { return std::make_unique<SignEntity>(pos); });
+
+    // 注册营火方块实体
+    registerType(
+        BlockEntityType::Campfire, [](const BlockPos& pos) { return std::make_unique<blockentity::CampfireBlockEntity>(pos); });
 
     // 注册末地折跃门方块实体
     registerType(

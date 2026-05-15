@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,22 +18,29 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../../blockentity/BlockEntityType.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
+#include <memory>
 
 namespace mc {
 
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
+class BlockEntity;
 
 namespace blocks {
 
@@ -51,6 +58,9 @@ namespace blocks {
  * - LIT: 是否点燃
  * - SIGNAL_FIRE: 是否为信号火（添加烟雾高度）
  * - WATERLOGGED: 是否被水淹没
+ * - FACING: 水平朝向（北、东、南、西）
+ *
+ * 方块实体：CampfireBlockEntity
  *
  * 注意：MC 1.16.5 中营火没有 AGE 属性，也不会因为雨天而熄灭。
  * 营火的熄灭方式：
@@ -92,6 +102,21 @@ public:
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 检查是否有方块实体
+     * @return 返回true，营火有方块实体
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    /**
+     * @brief 创建方块实体
+     * @param pos 方块位置
+     * @return 方块实体
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
@@ -119,6 +144,41 @@ public:
     [[nodiscard]] u8 getLightLevel(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键交互
+     *
+     * 可以向营火添加食物进行烹饪。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    // ========== 方块移除 ==========
+
+    /**
+     * @brief 方块被移除时调用
+     *
+     * 掉落营火中的所有物品。
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== 旋转/镜像 ==========
+
+    /**
+     * @brief 旋转方块状态
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像方块状态
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     // ========== 工具方法 ==========
 
     /**
@@ -132,6 +192,14 @@ public:
     [[nodiscard]] static bool isSignalFire(const BlockState& state)
     {
         return state.get(BlockStateProperties::SIGNAL_FIRE());
+    }
+
+    /**
+     * @brief 获取营火朝向
+     */
+    [[nodiscard]] static Direction getFacing(const BlockState& state)
+    {
+        return state.get(BlockStateProperties::HORIZONTAL_FACING());
     }
 
     /**
@@ -164,6 +232,14 @@ protected:
     CollisionShape m_shape;
     /// 光照等级（普通=15，灵魂=10）
     u8 m_lightValue;
+
+    /**
+     * @brief 检查下方是否是干草块
+     * @param world 世界
+     * @param pos 营火位置
+     * @return 如果下方是干草块返回true
+     */
+    [[nodiscard]] bool isHayBlock(IWorld& world, const BlockPos& pos) const;
 };
 
 /**

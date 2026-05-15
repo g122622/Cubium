@@ -1,6 +1,6 @@
 # 加工类方块实体模块
 
-提供熔炉、高炉、烟熏炉、信标、潮涌核心等加工类方块实体的实现。
+提供熔炉、高炉、烟熏炉、信标、潮涌核心、营火等加工类方块实体的实现。
 
 ## 目录结构
 
@@ -14,6 +14,7 @@ processing/
 ├── BrewingStandEntity.hpp/cpp     # 酿造台
 ├── BeaconEntity.hpp/cpp           # 信标
 ├── ConduitEntity.hpp/cpp          # 潮涌核心
+├── CampfireBlockEntity.hpp/cpp    # 营火方块实体
 └── README.md
 ```
 
@@ -220,6 +221,37 @@ i32 getComparatorSignal() const;
 - 目标追踪和持久化（参考 `ConduitTileEntity.findExistingTarget()`）
 - 使用范围查询而非全局 UUID 查找（因为只能攻击 8 格内目标）
 
+### CampfireBlockEntity.hpp/cpp
+
+**职责**：营火方块实体，实现食物烹饪功能。
+
+**特性**：
+- 4个烹饪槽位
+- 默认烹饪时间：600 tick（30秒）
+- 点燃时烹饪，熄灭时冷却（每tick冷却进度减少2）
+- 支持序列化保存/加载
+- 物品掉落功能（营火被破坏时）
+
+**状态管理**：
+- `m_inventory`：4个槽位的简单背包
+- `m_cookTimes`：每个槽位的已烹饪时间
+- `m_cookTimesTotal`：每个槽位的总烹饪时间
+
+**关键方法**：
+- `tick()` - 每tick更新（点燃时烹饪，熄灭时冷却）
+- `cookAndDrop()` - 烹饪食物并掉落完成的物品
+- `coolDown()` - 熄灭时冷却进度
+- `findMatchingRecipe()` - 查找匹配的营火烹饪配方
+- `addItem()` - 添加物品开始烹饪
+- `dropAllItems()` - 掉落所有物品
+- `getCookProgress()` - 获取烹饪进度（0.0 - 1.0）
+
+**MC 1.16.5 对齐**：
+- 参考 `CampfireTileEntity.cookAndDrop()`
+- 烹饪时间 600 tick（30秒）
+- 熄灭时冷却速度：每tick减少2
+- 与 CampfireCookingRecipe 配方系统集成
+
 ## 模块关系
 
 ```mermaid
@@ -382,6 +414,7 @@ void tick() {
 - `FurnaceInventoryTest.cpp` - 熔炉背包测试
 - `BrewingStandEntityTest.cpp` - 酿造台实体测试（含红石信号测试）
 - `BeaconEntityTest.cpp` - 信标实体测试（含红石信号测试）
+- `CampfireBlockEntityTest.cpp` - 营火方块实体测试
 - `SmeltingRecipeTest.cpp` - 熔炼配方测试
 
 ### 测试覆盖
@@ -409,6 +442,17 @@ void tick() {
 - 克隆测试
 - 红石比较器信号测试：等级0-4对应信号0-4
 - 共 32 个测试用例
+
+### 营火测试覆盖（CampfireBlockEntityTest）
+
+- 基础测试：创建、类型、位置、槽位数量、烹饪时间
+- 添加物品测试：空物品堆、成功添加、默认烹饪时间、填满槽位、满载拒绝
+- 配方查找测试：空物品堆、满载营火
+- 清空测试：重置所有槽位和烹饪时间
+- 烹饪进度测试：进度计算、空槽位
+- 序列化测试：保存/加载数据
+- 克隆测试：深拷贝验证
+- 共 26 个测试用例
 
 ## 燃烧时间数据（MC 1.16.5 对齐）
 

@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,23 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "CampfireBlock.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/processing/CampfireBlockEntity.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {
@@ -39,12 +46,12 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
     , m_lightValue(lightValue)
 {
     // 创建状态容器
-    // 注意：MC 1.16.5 营火没有 AGE 属性，营火不会因为雨天而熄灭
-    // 只有普通火焰 (FireBlock) 会因为雨天逐渐熄灭
+    // MC 1.16.5: 营火有 LIT, SIGNAL_FIRE, WATERLOGGED, FACING 四个属性
     auto container = StateContainer<Block, BlockState>::Builder(*this)
                          .add(BlockStateProperties::LIT())
                          .add(BlockStateProperties::SIGNAL_FIRE())
                          .add(BlockStateProperties::WATERLOGGED())
+                         .add(BlockStateProperties::HORIZONTAL_FACING())
                          .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                              return std::make_unique<BlockState>(block, std::move(values), id);
                          });
@@ -52,9 +59,10 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
 
     // 设置默认状态
     setDefaultState(defaultState()
-            .with(BlockStateProperties::LIT(), true)
-            .with(BlockStateProperties::SIGNAL_FIRE(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false));
+                        .with(BlockStateProperties::LIT(), true)
+                        .with(BlockStateProperties::SIGNAL_FIRE(), false)
+                        .with(BlockStateProperties::WATERLOGGED(), false)
+                        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
     // 营火形状（略小于完整方块）
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 7.0f, 16.0f);
@@ -71,11 +79,17 @@ BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context)
     // 如果在水中，默认不点燃
     bool lit = !waterlogged;
 
-    // 默认点燃，非信号火
+    // 检查下方是否是干草块（信号火）
+    bool signalFire = isHayBlock(const_cast<IWorld&>(world), pos);
+
+    // 获取放置朝向
+    Direction facing = context.horizontalDirection();
+
     return defaultState()
         .with(BlockStateProperties::LIT(), lit)
-        .with(BlockStateProperties::SIGNAL_FIRE(), false)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+        .with(BlockStateProperties::SIGNAL_FIRE(), signalFire)
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged)
+        .with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
 BlockState CampfireBlock::updatePostPlacement(const BlockState& state,
@@ -85,14 +99,20 @@ BlockState CampfireBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
-    MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
+    }
+
+    // MC 1.16.5: 当下方方块变化时，检查是否需要更新信号火状态
+    if (facing == Direction::Down) {
+        bool signalFire = isHayBlock(world, currentPos);
+        if (state.get(BlockStateProperties::SIGNAL_FIRE()) != signalFire) {
+            return state.with(BlockStateProperties::SIGNAL_FIRE(), signalFire);
+        }
     }
 
     return state;
@@ -110,8 +130,12 @@ void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     // 注意：MC 1.16.5 营火不会因为雨天而熄灭，这是普通火焰(FireBlock)的行为
     // 营火的熄灭方式只有：水接触、铲子右键、喷溅型水瓶
 
-    // TODO: 烹饪食物逻辑
-    // 需要方块实体支持
+    // 烹饪逻辑由 CampfireBlockEntity.tick() 处理
+}
+
+std::unique_ptr<BlockEntity> CampfireBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::CampfireBlockEntity>(pos);
 }
 
 const CollisionShape& CampfireBlock::getShape(const BlockState& state) const
@@ -130,6 +154,123 @@ u8 CampfireBlock::getLightLevel(const BlockState& state, IWorld* world, const Bl
         return m_lightValue;
     }
     return 0;
+}
+
+ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC 1.16.5: CampfireBlock.onBlockActivated()
+    // 玩家右键点击营火时，尝试添加食物进行烹饪
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 获取营火方块实体
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Campfire) {
+        return ActionResultType::Pass;
+    }
+
+    auto* campfire = static_cast<blockentity::CampfireBlockEntity*>(blockEntity);
+
+    // 获取玩家手中的物品
+    ItemStack& heldItem = player.getHeldItem(hand);
+
+    // 查找匹配的营火烹饪配方
+    auto recipeResult = campfire->findMatchingRecipe(heldItem);
+    if (recipeResult.has_value()) {
+        const crafting::CampfireCookingRecipe* recipe = recipeResult->first;
+        i32 cookTime = recipeResult->second;
+
+        // 添加物品到营火
+        // MC 1.16.5: 创造模式传入副本，生存模式传入原物品
+        if (campfire->addItem(heldItem, cookTime)) {
+            // 成功添加
+            // MC 1.16.5: 统计 INTERACT_WITH_CAMPFIRE
+            // player.addStat(Stats.INTERACT_WITH_CAMPFIRE);
+            return ActionResultType::Success;
+        }
+    }
+
+    return ActionResultType::Pass;
+}
+
+void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // MC 1.16.5: CampfireBlock.onReplaced()
+    // 方块被移除时，掉落所有烹饪中的物品
+
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Campfire) {
+        auto* campfire = static_cast<blockentity::CampfireBlockEntity*>(blockEntity);
+        campfire->dropAllItems(world);
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+const BlockState& CampfireBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // MC 1.16.5: 根据旋转改变朝向
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction newFacing = facing;
+
+    switch (rotation) {
+        case Rotation::Clockwise90:
+            newFacing = Directions::rotateY(facing);
+            break;
+        case Rotation::Clockwise180:
+            newFacing = Directions::opposite(facing);
+            break;
+        case Rotation::CounterClockwise90:
+            newFacing = Directions::rotateYCCW(facing);
+            break;
+        case Rotation::None:
+        default:
+            break;
+    }
+
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+}
+
+const BlockState& CampfireBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // MC 1.16.5: 根据镜像改变朝向
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction newFacing = facing;
+
+    switch (mirror) {
+        case Mirror::LeftRight:
+            // 南北镜像：东西互换
+            if (facing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (facing == Direction::West) {
+                newFacing = Direction::East;
+            }
+            break;
+        case Mirror::FrontBack:
+            // 前后镜像：南北互换
+            if (facing == Direction::North) {
+                newFacing = Direction::South;
+            } else if (facing == Direction::South) {
+                newFacing = Direction::North;
+            }
+            break;
+        case Mirror::None:
+        default:
+            break;
+    }
+
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
@@ -160,6 +301,19 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
+bool CampfireBlock::isHayBlock(IWorld& world, const BlockPos& pos) const
+{
+    // MC 1.16.5: 检查下方是否是干草块
+    BlockPos belowPos = pos.down();
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+
+    // 检查是否是干草块
+    return &belowState->getBlock() == VanillaBlocks::HAY_BLOCK;
+}
+
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) const
@@ -172,7 +326,8 @@ const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) c
 
 SoulCampfireBlock::SoulCampfireBlock(BlockProperties properties)
     : CampfireBlock(std::move(properties), 10) // 灵魂营火光照等级为10
-{}
+{
+}
 
 } // namespace blocks
 } // namespace mc

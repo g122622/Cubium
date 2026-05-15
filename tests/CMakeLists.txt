@@ -156,6 +156,8 @@ add_executable(mc_tests
     common/world/blockentity/SignEntityCommandTest.cpp
     # EndGatewayEntity 末地折跃门测试（类型注册、传送功能、序列化）
     common/world/blockentity/EndGatewayEntityTest.cpp
+    # CampfireBlockEntity 营火方块实体测试（烹饪逻辑、槽位管理、序列化）
+    common/world/blockentity/CampfireBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
