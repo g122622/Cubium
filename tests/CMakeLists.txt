@@ -431,6 +431,8 @@ add_executable(mc_tests
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
     common/resource/ResourcePackListSelfContainedTest.cpp
+    # 语言管理器测试
+    common/resource/LanguageManagerTest.cpp
     # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
     common/util/cache/CacheBenchmark.cpp
     # 鐢熺墿缇ょ郴灞傛祴璇?    common/world/biome/layer/BiomeLayerTest.cpp

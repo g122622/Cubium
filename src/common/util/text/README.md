@@ -11,7 +11,7 @@ text/
 ├── ITextComponent.hpp/cpp  # 文本组件接口
 ├── ITextComponentFwd.hpp   # 前向声明（用于避免循环依赖）
 ├── StringTextComponent.hpp # 纯文本组件
-├── TranslationTextComponent.hpp # 翻译键组件
+├── TranslationTextComponent.hpp/cpp # 翻译键组件
 └── TextParser.hpp/cpp      # § 代码解析器
 ```
 
@@ -112,6 +112,40 @@ root->append(std::make_unique<mc::text::StringTextComponent>(" ★"));
 - 聊天消息组合 - 多段不同样式文本
 - 物品描述 - 多行富文本
 
+### TranslationTextComponent
+
+翻译键文本组件，支持多语言：
+
+```cpp
+// 简单翻译
+auto text = std::make_unique<mc::text::TranslationTextComponent>("chat.type.text");
+
+// 带参数翻译
+auto text = std::make_unique<mc::text::TranslationTextComponent>("chat.type.announcement");
+text->addParam(std::make_unique<mc::text::StringTextComponent>("Server"));
+text->addParam(std::make_unique<mc::text::StringTextComponent>("Hello!"));
+// 如果语言文件中 "chat.type.announcement" = "[%s] %s"
+// 则 getUnformattedText() 返回 "[Server] Hello!"
+```
+
+**支持的占位符**：
+- `%s` - 顺序参数，按出现顺序替换
+- `%1$s`, `%2$s` - 位置参数，按索引指定位置
+- `%%` - 转义的百分号，输出 `%`
+
+**集成 LanguageManager**：
+
+```cpp
+// 在客户端初始化时设置语言管理器
+mc::LanguageManager& langManager = mc::LanguageManager::instance();
+langManager.loadLanguage(packList, "zh_cn");
+mc::text::TranslationTextComponent::setLanguageManager(&langManager);
+
+// 之后 TranslationTextComponent 会自动翻译
+auto text = std::make_unique<mc::text::TranslationTextComponent>("item.minecraft.diamond");
+std::cout << text->getUnformattedText();  // 输出: "钻石"
+```
+
 ### TextParser
 
 解析 § 代码格式文本：
@@ -141,12 +175,26 @@ std::string legacy = mc::text::TextParser::toLegacyFormat(*text);
 }
 ```
 
+**翻译组件 JSON 格式**：
+
+```json
+{
+  "translate": "chat.type.announcement",
+  "with": [
+    {"text": "Server"},
+    {"text": "Hello!"}
+  ],
+  "color": "yellow"
+}
+```
+
 ## 使用场景
 
 1. **告示牌文本** - SignEntity 使用 ITextComponent 存储 4 行文本
 2. **实体名称** - Entity 自定义名称使用 ITextComponent
 3. **聊天消息** - ChatMessage 使用 ITextComponent 存储富文本
 4. **物品描述** - ItemStack Lore 使用 ITextComponent 列表
+5. **队伍名称格式化** - ScorePlayerTeam::formatName() 使用样式继承
 
 ## 依赖关系
 
@@ -157,8 +205,37 @@ ITextComponent.hpp
     ├── TextStyle.hpp
     ├── StringTextComponent.hpp
     └── TranslationTextComponent.hpp
-TextParser.hpp
+        └── LanguageManager (可选)
+TextParser.hpp/cpp
     └── ITextComponent.hpp
+```
+
+## 与多语言系统的集成
+
+翻译系统由 `LanguageManager` 类提供：
+
+1. **加载语言文件**：从资源包加载 `assets/<namespace>/lang/<lang_code>.json`
+2. **翻译查询**：根据翻译键获取翻译文本
+3. **占位符替换**：支持 `%s` 和 `%1$s` 格式的参数替换
+4. **全局实例**：`LanguageManager::instance()` 提供全局访问
+
+```cpp
+// 加载语言
+mc::LanguageManager& lang = mc::LanguageManager::instance();
+lang.loadLanguage(packList, "zh_cn");
+
+// 简单翻译
+std::string text = lang.get("item.minecraft.diamond");  // "钻石"
+
+// 带参数翻译
+std::string chat = lang.get("chat.type.text", {"Player", "Hello"});
+// 如果 "chat.type.text" = "<%s> %s"，输出 "<Player> Hello"
+
+// 检查键是否存在
+if (lang.has("some.key")) { ... }
+
+// 获取可用语言列表
+auto languages = mc::LanguageManager::getAvailableLanguages(packList);
 ```
 
 ## 参考
@@ -169,3 +246,5 @@ TextParser.hpp
 - net.minecraft.util.text.Style
 - net.minecraft.util.text.event.ClickEvent
 - net.minecraft.util.text.event.HoverEvent
+- net.minecraft.client.resources.LanguageManager
+- net.minecraft.util.text.LanguageMap

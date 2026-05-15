@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -27,7 +27,12 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-namespace mc::text {
+namespace mc {
+
+// 前向声明
+class LanguageManager;
+
+namespace text {
 
 /**
  * @brief 翻译键文本组件
@@ -174,65 +179,41 @@ public:
      */
     void clearParams() { m_params.clear(); }
 
+    /**
+     * @brief 设置全局语言管理器
+     *
+     * TranslationTextComponent 会使用这个管理器进行翻译。
+     * 如果未设置，将使用 LanguageManager::instance() 单例。
+     *
+     * @param manager 语言管理器指针（生命周期由调用者管理）
+     */
+    static void setLanguageManager(LanguageManager* manager) { s_languageManager = manager; }
+
+    /**
+     * @brief 获取全局语言管理器
+     * @return 语言管理器指针，可能为 nullptr
+     */
+    static LanguageManager* getLanguageManager() { return s_languageManager; }
+
 private:
     std::string m_key;
     std::vector<std::unique_ptr<ITextComponent>> m_params;
+
+    /// 全局语言管理器指针（生命周期由外部管理）
+    static LanguageManager* s_languageManager;
+
+    /**
+     * @brief 获取翻译后的文本
+     * @return 翻译后的文本，如果找不到翻译则返回翻译键
+     */
+    [[nodiscard]] std::string getTranslatedText() const;
+
+    /**
+     * @brief 本地占位符替换（当无语言管理器时使用）
+     */
+    [[nodiscard]] static std::string replacePlaceholdersLocal(
+        const std::string& text, const std::vector<std::string>& params);
 };
 
-// ========== 内联实现 ==========
-
-inline std::string TranslationTextComponent::getUnformattedText() const
-{
-    // 在翻译系统实现前，返回翻译键作为占位符
-    // TODO: 集成翻译系统后，从翻译表获取翻译文本
-    std::string result = "[" + m_key + "]";
-
-    // 添加参数信息
-    for (size_t i = 0; i < m_params.size(); ++i) {
-        if (i == 0) {
-            result += "(";
-        } else {
-            result += ", ";
-        }
-        result += m_params[i]->getUnformattedText();
-    }
-    if (!m_params.empty()) {
-        result += ")";
-    }
-
-    // 添加子组件
-    for (const auto& sibling : m_siblings) {
-        result += sibling->getUnformattedText();
-    }
-
-    return result;
-}
-
-inline std::string TranslationTextComponent::getFormattedText() const
-{
-    // 在翻译系统实现前，返回翻译键作为占位符
-    std::string result = getStyleCodes(m_style);
-    result += "[" + m_key + "]";
-
-    // 添加参数信息
-    for (size_t i = 0; i < m_params.size(); ++i) {
-        if (i == 0) {
-            result += "(";
-        } else {
-            result += ", ";
-        }
-        result += m_params[i]->getFormattedText();
-    }
-    if (!m_params.empty()) {
-        result += ")";
-    }
-
-    // 添加子组件
-    for (const auto& sibling : m_siblings) {
-        result += sibling->getFormattedText();
-    }
-
-    return result;
-}
-
 } // namespace mc::text
+} // namespace mc
