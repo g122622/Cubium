@@ -244,6 +244,7 @@ public:
     TurtleMateGoal(TurtleEntity* turtle, f64 speed);
 
     [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] std::string getTypeName() const override { return "TurtleMateGoal"; }
 
 private:
     TurtleEntity* m_turtle;
@@ -266,6 +267,7 @@ public:
     TurtlePanicGoal(TurtleEntity* turtle, f64 speed);
 
     [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] std::string getTypeName() const override { return "TurtlePanicGoal"; }
 
 private:
     TurtleEntity* m_turtle;
@@ -287,11 +289,14 @@ public:
      */
     TurtleTemptGoal(TurtleEntity* turtle, f64 speed);
 
-private:
     /**
      * @brief 检查物品是否为海草
+     * @param stack 物品堆
+     * @return 是否为海草
      */
     static bool isSeagrass(const ItemStack& stack);
+
+    [[nodiscard]] std::string getTypeName() const override { return "TurtleTemptGoal"; }
 };
 
 /**
@@ -312,6 +317,7 @@ public:
     TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance);
 
     [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] std::string getTypeName() const override { return "TurtleWanderGoal"; }
 
 private:
     TurtleEntity* m_turtle;
