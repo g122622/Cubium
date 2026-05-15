@@ -228,6 +228,7 @@ add_library(mc_common STATIC
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp
     entity/ai/controller/JumpController.cpp
+    entity/ai/controller/VexMovementController.cpp
     entity/ai/goal/goals/SwimGoal.cpp
     entity/ai/goal/goals/RandomWalkingGoal.cpp
     entity/ai/goal/goals/LookAtGoal.cpp
@@ -257,6 +258,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/IronGolemGoals.cpp
     entity/ai/goal/goals/special/ShulkerGoals.cpp
     entity/ai/goal/goals/special/EvokerGoals.cpp
+    entity/ai/goal/goals/special/VexGoals.cpp
     entity/ai/goal/goals/special/TurtleGoals.cpp
     entity/ai/goal/goals/special/MoveToLavaGoal.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
