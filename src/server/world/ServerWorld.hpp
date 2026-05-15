@@ -288,6 +288,16 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getPlayers() const override;
+
+    // ========== 最近玩家查询 ==========
+
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) override;
+    [[nodiscard]] const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const override;
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) override;
+    [[nodiscard]] const Player* getClosestPlayer(
+        const Vector3& pos, f32 maxDistance, const Entity* exclude) const override;
+    [[nodiscard]] f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
+
     [[nodiscard]] DimensionId dimension() const override { return m_config.dimension; }
     [[nodiscard]] bool isUltraWarm() const override { return getDimensionType().ultraWarm(); }
     [[nodiscard]] DimensionType getDimensionType() const;

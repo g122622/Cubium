@@ -11,6 +11,7 @@
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../entities/passive/ambient/BatEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/block/BlockState.hpp"
@@ -350,10 +351,12 @@ bool BatRestGoal::shouldStopResting() const
 
     // 条件2：玩家靠近（4格内）
     // MC 1.16.5: BatEntity 第131-133行
-    // 需要检查附近是否有玩家
-    // 这里使用简化检查：通过 world()->getClosestPlayer() 检查
-    // 但该方法可能未实现，暂时跳过
-    // TODO: 当 world()->getClosestPlayer() 实现后添加检查
+    // 检查附近是否有玩家
+    constexpr f32 PLAYER_WAKE_DISTANCE = 4.0f;
+    Player* closestPlayer = m_bat->world()->getClosestPlayer(m_bat->position(), PLAYER_WAKE_DISTANCE);
+    if (closestPlayer != nullptr) {
+        return true; // 玩家靠近，唤醒
+    }
 
     // 条件3：失去支撑（上方不再是固体方块）
     if (!canRestAtCurrentPosition()) {
