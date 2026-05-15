@@ -206,6 +206,13 @@ public:
     // Entity queries
     virtual std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const = 0;
 
+    // 最近玩家查询（MC 1.16.5 World.getClosestPlayer）
+    virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f);
+    virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const;
+    virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude);
+    virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) const;
+    virtual f64 getClosestPlayerDistanceSq(const Vector3& pos) const;
+
     // 维度上下文
     virtual bool isUltraWarm() const = 0;
 

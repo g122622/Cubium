@@ -197,7 +197,40 @@ std::unique_ptr<Entity> removeEntity(EntityId id);
 // 获取实体（IWorld 接口）
 Entity* getEntity(EntityId id) override;
 const Entity* getEntity(EntityId id) const override;
+
+// 最近玩家查询（MC 1.16.5 World.getClosestPlayer）
+Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) override;
+const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const override;
+Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) override;
+const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) const override;
+f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
 ```
+
+**getClosestPlayer 方法说明**：
+
+这些方法用于查找指定位置最近的玩家，常用于：
+- 生物消失距离检查（DespawnManager）
+- 蝙蝠休息唤醒检测（BatGoals）
+- 实体目标选择和追踪
+
+```cpp
+// 示例：获取 16 格内最近的玩家
+Player* nearest = world->getClosestPlayer(entity.position(), 16.0f);
+
+// 示例：获取最近玩家距离（用于消失检查）
+f64 distSq = world->getClosestPlayerDistanceSq(mob.position());
+if (distSq > 128.0 * 128.0) {
+    mob.remove();  // 立即消失
+}
+
+// 示例：排除自身后查找最近玩家（用于 PVP 场景）
+Player* target = world->getClosestPlayer(attacker.position(), 64.0f, &attacker);
+```
+
+**注意事项**：
+- 观察者模式玩家不计入最近玩家
+- 如果没有玩家，`getClosestPlayer` 返回 `nullptr`，`getClosestPlayerDistanceSq` 返回 `std::numeric_limits<f64>::max()`
+- `maxDistance` 为 -1 时表示无距离限制
 
 **重要说明**：
 - `removeEntity()` 会自动从 `EntityTracker` 中移除实体追踪，调用者无需手动调用 `entityTracker().untrackEntity()`

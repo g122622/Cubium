@@ -23,6 +23,7 @@
 
 #include "server/world/ServerWorld.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -934,4 +935,184 @@ TEST_F(ServerWorldTest, Difficulty_CallbackCanBeNull)
     // 清除回调（设置为空）
     world->setDifficultyCallback(nullptr);
     EXPECT_EQ(world->difficulty(), Difficulty::Normal); // 返回默认值
+}
+
+// ============================================================================
+// getClosestPlayer 测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ReturnsNullptrWhenNoPlayers)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 没有玩家时应该返回 nullptr
+    Player* result = world->getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ReturnsNullptrWhenNoPlayersInRange)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建玩家并放置在远处
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setPosition(Vector3(1000.0f, 64.0f, 1000.0f));
+    player->setWorld(world.get());
+    world->spawnEntity(std::move(player));
+
+    // 在原点附近查找，距离限制 100 格
+    Player* result = world->getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ReturnsClosestPlayer)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建三个玩家
+    auto player1 = std::make_unique<Player>(EntityId(1), "Player1");
+    player1->setPosition(Vector3(10.0f, 64.0f, 0.0f)); // 距离原点 10 格
+    player1->setWorld(world.get());
+    EntityId id1 = player1->id();
+    world->spawnEntity(std::move(player1));
+
+    auto player2 = std::make_unique<Player>(EntityId(2), "Player2");
+    player2->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格（最近）
+    player2->setWorld(world.get());
+    EntityId id2 = player2->id();
+    world->spawnEntity(std::move(player2));
+
+    auto player3 = std::make_unique<Player>(EntityId(3), "Player3");
+    player3->setPosition(Vector3(20.0f, 64.0f, 0.0f)); // 距离原点 20 格
+    player3->setWorld(world.get());
+    world->spawnEntity(std::move(player3));
+
+    // 查找最近的玩家，应该是 Player2
+    Player* result = world->getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->id(), id2);
+    EXPECT_EQ(result->username(), "Player2");
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ExcludesSpectatorPlayers)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建一个观察者模式玩家（近）
+    auto spectator = std::make_unique<Player>(EntityId(1), "Spectator");
+    spectator->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
+    spectator->setGameMode(GameMode::Spectator); // 观察者模式
+    spectator->setWorld(world.get());
+    world->spawnEntity(std::move(spectator));
+
+    // 创建一个生存模式玩家（远）
+    auto survival = std::make_unique<Player>(EntityId(2), "Survival");
+    survival->setPosition(Vector3(15.0f, 64.0f, 0.0f)); // 距离原点 15 格
+    survival->setGameMode(GameMode::Survival);
+    survival->setWorld(world.get());
+    EntityId survivalId = survival->id();
+    world->spawnEntity(std::move(survival));
+
+    // 查找最近的玩家，应该是生存模式玩家（观察者被排除）
+    Player* result = world->getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->id(), survivalId);
+    EXPECT_EQ(result->username(), "Survival");
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ExcludesSpecifiedEntity)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建两个玩家
+    auto player1 = std::make_unique<Player>(EntityId(1), "Player1");
+    player1->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
+    player1->setWorld(world.get());
+    EntityId id1 = player1->id();
+    world->spawnEntity(std::move(player1));
+
+    auto player2 = std::make_unique<Player>(EntityId(2), "Player2");
+    player2->setPosition(Vector3(10.0f, 64.0f, 0.0f)); // 距离原点 10 格
+    player2->setWorld(world.get());
+    EntityId id2 = player2->id();
+    world->spawnEntity(std::move(player2));
+
+    // 获取 player1 实体指针
+    Entity* excludeEntity = world->getEntity(id1);
+    ASSERT_NE(excludeEntity, nullptr);
+
+    // 排除 player1 后查找，应该返回 player2
+    Player* result = world->getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f, excludeEntity);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->id(), id2);
+    EXPECT_EQ(result->username(), "Player2");
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayerDistanceSq_ReturnsMaxWhenNoPlayers)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 没有玩家时应该返回最大值
+    f64 distance = world->getClosestPlayerDistanceSq(Vector3(0.0f, 64.0f, 0.0f));
+    EXPECT_EQ(distance, std::numeric_limits<f64>::max());
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayerDistanceSq_ReturnsCorrectDistance)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建玩家在 (10, 64, 0)
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setPosition(Vector3(10.0f, 64.0f, 0.0f));
+    player->setWorld(world.get());
+    world->spawnEntity(std::move(player));
+
+    // 从原点查找，距离应该是 10^2 = 100
+    f64 distance = world->getClosestPlayerDistanceSq(Vector3(0.0f, 64.0f, 0.0f));
+    EXPECT_DOUBLE_EQ(distance, 100.0);
+
+    // 从 (5, 64, 0) 查找，距离应该是 5^2 = 25
+    distance = world->getClosestPlayerDistanceSq(Vector3(5.0f, 64.0f, 0.0f));
+    EXPECT_DOUBLE_EQ(distance, 25.0);
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayerDistanceSq_ExcludesSpectatorPlayers)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建一个观察者模式玩家（近）
+    auto spectator = std::make_unique<Player>(EntityId(1), "Spectator");
+    spectator->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
+    spectator->setGameMode(GameMode::Spectator);
+    spectator->setWorld(world.get());
+    world->spawnEntity(std::move(spectator));
+
+    // 创建一个生存模式玩家（远）
+    auto survival = std::make_unique<Player>(EntityId(2), "Survival");
+    survival->setPosition(Vector3(15.0f, 64.0f, 0.0f)); // 距离原点 15 格
+    survival->setGameMode(GameMode::Survival);
+    survival->setWorld(world.get());
+    world->spawnEntity(std::move(survival));
+
+    // 距离应该是 15^2 = 225（观察者被排除）
+    f64 distance = world->getClosestPlayerDistanceSq(Vector3(0.0f, 64.0f, 0.0f));
+    EXPECT_DOUBLE_EQ(distance, 225.0);
+}
+
+TEST_F(ServerWorldTest, GetClosestPlayer_ConstVersionWorks)
+{
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建玩家
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setPosition(Vector3(10.0f, 64.0f, 0.0f));
+    player->setWorld(world.get());
+    EntityId playerId = player->id();
+    world->spawnEntity(std::move(player));
+
+    // 使用 const 版本
+    const ServerWorld& constWorld = *world;
+    const Player* result = constWorld.getClosestPlayer(Vector3(0.0f, 64.0f, 0.0f), 100.0f);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->id(), playerId);
 }
