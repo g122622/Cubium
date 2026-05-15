@@ -39,6 +39,7 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/MoveToLavaGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -399,8 +400,8 @@ void StriderEntity::registerGoals()
 
     // 优先级 4: 寻找熔岩目标
     // MC 1.16.5: new StriderEntity.MoveToLavaGoal(this, 1.5D)
-    // TODO: 实现 MoveToLavaGoal
-    // m_goalSelector.addGoal(4, new MoveToLavaGoal(this, 1.5));
+    // [已完成] 当炽足兽离开熔岩时，自动寻找并移动到附近的熔岩 - 2026/05/16
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MoveToLavaGoal>(this, 1.5));
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));

@@ -280,6 +280,7 @@ add_executable(mc_tests
     entity/WalkNodeProcessorTests.cpp
     common/entity/ai/pathfinding/PathNavigatorTest.cpp
     entity/RandomWalkingGoalTest.cpp
+    common/entity/MoveToLavaGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp
