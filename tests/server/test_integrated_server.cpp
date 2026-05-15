@@ -320,3 +320,42 @@ TEST(IntegratedServerDisconnectTest, ServerStopClosesEndpoint)
     // 服务端销毁后，端点应该断开
     // 注意：这是未定义行为，但测试可以验证
 }
+
+// ============================================================================
+// 服务器类型检查测试
+// ============================================================================
+
+TEST(IntegratedServerTypeTest, IsIntegratedReturnsTrue)
+{
+    IntegratedServer server;
+    EXPECT_TRUE(server.isIntegrated());
+}
+
+TEST(IntegratedServerTypeTest, IsDedicatedReturnsFalse)
+{
+    IntegratedServer server;
+    EXPECT_FALSE(server.isDedicated());
+}
+
+TEST(IntegratedServerTypeTest, TypeMethodsWorkBeforeInitialization)
+{
+    IntegratedServer server;
+    // 类型检查方法应该在初始化前后都能正常工作
+    EXPECT_TRUE(server.isIntegrated());
+    EXPECT_FALSE(server.isDedicated());
+}
+
+TEST(IntegratedServerTypeTest, TypeMethodsWorkAfterInitialization)
+{
+    IntegratedServer server;
+    IntegratedServerConfig config;
+    config.seed = 1;
+
+    auto result = server.initialize(config);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_TRUE(server.isIntegrated());
+    EXPECT_FALSE(server.isDedicated());
+
+    server.stop();
+}

@@ -295,6 +295,7 @@ add_executable(mc_tests
     server/command/AttributeCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
+    server/command/PublishCommandTest.cpp
     server/command/ExecuteCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
