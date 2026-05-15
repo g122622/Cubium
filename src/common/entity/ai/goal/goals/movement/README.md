@@ -39,6 +39,44 @@ movement/
 1. 检测目标距离
 2. 如果距离合适，向目标方向跳跃
 
+#### MoveTowardsTargetGoal
+
+使生物向攻击目标移动。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.MoveTowardsTargetGoal`
+
+**关键参数**:
+- `m_creature`: 生物实体
+- `m_speed`: 移动速度
+- `m_maxTargetDistance`: 最大目标距离
+
+**执行条件**:
+- `shouldExecute()`: 有攻击目标 且 目标存活 且 目标在最大距离内
+- `shouldContinueExecuting()`: 目标存活 且 未超过最大距离
+
+**行为**:
+1. `startExecuting()`: 使用 `RandomPositionGenerator` 生成向目标移动的位置
+2. `tick()`: 持续向目标位置移动
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| 无 | - | 使用传入参数 |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void IronGolemEntity::registerGoals() {
+    // 优先级 2: 向目标移动（MC 1.16.5: 速度 0.9, 最大距离 32）
+    m_goalSelector.addGoal(2, std::make_unique<MoveTowardsTargetGoal>(this, 0.9, 32.0f));
+}
+```
+
+**依赖**:
+- 需要 `RandomPositionGenerator::findRandomTargetTowards()` 生成移动位置
+- 需要 `CreatureEntity` 提供导航和路径追踪能力
+
 ---
 
 ### FollowSchoolLeaderGoal.hpp/cpp

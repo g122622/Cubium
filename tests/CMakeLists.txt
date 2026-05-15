@@ -106,6 +106,8 @@ add_executable(mc_tests
     common/entity/entities/monster/SlimeEntityTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
+    # 铁傀儡 AI 目标测试
+    common/entity/IronGolemGoalsTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp

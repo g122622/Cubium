@@ -85,13 +85,59 @@ Entity -> LivingEntity -> MobEntity -> CreatureEntity -> GolemEntity
 
 ### IronGolemEntity.hpp / IronGolemEntity.cpp
 
-铁傀儡实体（TODO: 待完善）。
+铁傀儡实体，完整的 MC 1.16.5 实现。
 
-**计划特性：**
-- 近战攻击
-- 保护村民
-- 被攻击时愤怒
-- 生成机制
+**特性：**
+- **保护村民**：攻击威胁村民的敌对生物
+- **中立性**：对玩家中立（玩家创建的铁傀儡不攻击玩家）
+- **近战攻击**：强力近战攻击并击飞敌人
+- **举起手臂**：攻击时举起手臂动画
+- **展示花朵**：偶尔向村民展示罂粟花
+- **玩家创建**：可由玩家用方块建造生成
+
+**实现细节：**
+
+| 功能 | 方法 | MC 1.16.5 参考 |
+|------|------|----------------|
+| 近战攻击 | `attackEntityAsMob()` | 造成伤害并击飞 |
+| 持花状态 | `setHoldingRose()` | 持花 400 ticks |
+| 攻击检查 | `canAttackEntity()` | 不攻击苦力怕和玩家(玩家创建时) |
+| 手臂状态 | `isArmsRaised()` | 攻击动画 |
+
+**AI 目标：**
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 0 | `SwimGoal` | 游泳 |
+| 1 | `MeleeAttackGoal` | 近战攻击 (速度 1.0) |
+| 2 | `MoveTowardsTargetGoal` | 向目标移动 (速度 0.9, 距离 32) |
+| 5 | `ShowVillagerFlowerGoal` | 给村民展示花朵 |
+| 7 | `LookAtGoal` | 看向玩家 (距离 6) |
+| 8 | `LookRandomlyGoal` | 随机看向 |
+| 目标选择器 2 | `HurtByTargetGoal` | 被攻击后反击 |
+| 目标选择器 3 | `NearestAttackableTargetGoal<LivingEntity>` | 攻击敌对生物(排除苦力怕) |
+
+**属性值（MC 1.16.5）：**
+- 生命值：100.0
+- 移动速度：0.25
+- 击退抗性：1.0
+- 攻击伤害：7.0
+- 眼睛高度：2.1
+- 宽度：1.4
+- 高度：2.7
+
+**常量：**
+- `ATTACK_DURATION = 10` ticks（攻击动画持续时间）
+- `ATTACK_COOLDOWN = 20` ticks（攻击冷却）
+- `ATTACK_DAMAGE = 7.0f`（基础攻击伤害）
+- `KNOCKBACK = 1.5f`（击退力度）
+
+**IAngerable 接口实现：**
+- `getRevengeTarget()` / `setRevengeTarget()` - 复仇目标追踪
+- `getRevengeTimer()` - 复仇计时器
+- `isAngry()` / `setAngry()` - 愤怒状态
+- `getAngerTime()` / `setAngerTime()` - 愤怒时间
+- `MAX_ANGER_TIME = 600` ticks (30秒)
 
 ## 模块关系
 
@@ -182,8 +228,11 @@ if (golem->willMelt()) {
 
 ## 测试用例
 
-相关测试位于 `tests/common/entity/entities/passive/golem/SnowGolemEntityTest.cpp`：
+相关测试位于：
+- `tests/common/entity/entities/passive/golem/SnowGolemEntityTest.cpp`
+- `tests/common/entity/IronGolemGoalsTest.cpp`
 
+### 雪傀儡测试
 - 南瓜头状态测试
 - 剪切功能测试
 - 融化条件测试
@@ -193,6 +242,14 @@ if (golem->willMelt()) {
 - 水敏感性测试
 - 继承关系测试
 - 声音事件测试
+
+### 铁傀儡测试
+- ShowVillagerFlowerGoal 构造和类型名测试
+- MoveTowardsTargetGoal 构造和互斥标志测试
+- ResetAngerGoal 愤怒状态测试
+- IronGolemEntity 状态测试（手臂举起、持花、玩家创建标记）
+- IronGolemEntity 攻击检查测试（苦力怕排除）
+- IAngerable 接口测试（愤怒状态、复仇目标）
 
 ## 参考文档
 

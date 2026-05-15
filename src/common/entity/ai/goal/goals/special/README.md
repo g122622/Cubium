@@ -18,6 +18,10 @@ special/
 ├── DolphinGoals.cpp       # 海豚目标实现
 ├── PhantomGoals.hpp       # 幻翼目标头文件
 ├── PhantomGoals.cpp       # 幻翼目标实现
+├── SlimeGoals.hpp         # 史莱姆目标头文件
+├── SlimeGoals.cpp         # 史莱姆目标实现
+├── IronGolemGoals.hpp     # 铁傀儡目标头文件
+├── IronGolemGoals.cpp     # 铁傀儡目标实现
 └── README.md              # 本文档
 ```
 
@@ -805,6 +809,48 @@ void PhantomEntity::registerGoals() {
 
 ---
 
+### ShowVillagerFlowerGoal - 铁傀儡给村民展示花朵目标
+
+**职责**: 铁傀儡在白天随机向村民展示罂粟花。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.IronGolemEntity.ShowVillagerFlowerGoal`
+
+**执行条件**:
+- 白天时间 (isDaytime)
+- 1/8000 概率触发
+- 6 格范围内有村民
+
+**行为**:
+- `shouldExecute()`: 检查白天、概率和附近村民
+- `startExecuting()`: 设置持花状态，看向时间 400 ticks
+- `tick()`: 看向村民
+- `resetTask()`: 清除持花状态
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RANGE | 6.0f | 搜索村民范围 |
+| SEARCH_HEIGHT | 2.0f | 搜索村民高度 |
+| LOOK_DURATION | 400 | 看向持续时间 (ticks = 20秒) |
+| CHANCE | 8000 | 执行概率倒数 (1/8000) |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void IronGolemEntity::registerGoals() {
+    // 优先级 5: 给村民展示罂粟花
+    m_goalSelector.addGoal(5, std::make_unique<ShowVillagerFlowerGoal>(this));
+}
+```
+
+**依赖**:
+- 需要 IronGolemEntity 提供 `setHoldingRose()`, `world()`, `position()`, `boundingBox()`, `lookController()` 方法
+- 需要 VillagerEntity 存在
+- 需要 EntityUtils::findClosestEntity() 函数
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -966,6 +1012,8 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | BatGoalsTest.* | 蝙蝠目标测试（状态切换、飞行目标、休息目标） |
 | DolphinGoalsTest.* | 海豚目标测试（跳跃、寻宝、与玩家同游、玩物品） |
 | PhantomGoalsTest.* | 幻翼目标测试（攻击阶段切换、环绕飞行、俯冲攻击） |
+| SlimeGoalsTest.* | 史莱姆目标测试（漂浮、攻击、随机转向） |
+| IronGolemGoalsTest.* | 铁傀儡目标测试（展示花朵、移动追踪、重置愤怒） |
 
 ---
 
@@ -978,4 +1026,5 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 - Minecraft Java 1.16.5 `net.minecraft.entity.passive.BatEntity` (蝙蝠飞行和休息逻辑)
 - Minecraft Java 1.16.5 `net.minecraft.entity.passive.DolphinEntity` (海豚跳跃、寻宝、与玩家同游)
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.PhantomEntity` (幻翼环绕、俯冲攻击)
+- Minecraft Java 1.16.5 `net.minecraft.entity.passive.IronGolemEntity.ShowVillagerFlowerGoal` (铁傀儡送花)
 - 本项目 CLAUDE.md 文档
