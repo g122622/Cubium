@@ -161,6 +161,9 @@ public:
     void tick() override {}
     [[nodiscard]] bool isRunning() const override { return m_running; }
 
+    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
+    [[nodiscard]] bool isDedicated() const noexcept override { return true; }
+
     [[nodiscard]] server::core::PlayerManager& playerManager() override { return m_playerManager; }
     [[nodiscard]] const server::core::PlayerManager& playerManager() const override { return m_playerManager; }
     [[nodiscard]] server::core::ConnectionManager& connectionManager() override { return m_connectionManager; }

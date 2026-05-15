@@ -289,6 +289,18 @@ public:
 
     // ========== 配置 ==========
 
+    /**
+     * @brief 检查是否为集成服务器（单机模式）
+     * @return true 如果是 IntegratedServer
+     */
+    [[nodiscard]] virtual bool isIntegrated() const noexcept = 0;
+
+    /**
+     * @brief 检查是否为独立服务器（多人模式）
+     * @return true 如果是 StandaloneServer
+     */
+    [[nodiscard]] virtual bool isDedicated() const noexcept = 0;
+
     [[nodiscard]] virtual i32 viewDistance() const = 0;
     [[nodiscard]] virtual i32 maxPlayers() const = 0;
     [[nodiscard]] virtual u64 seed() const = 0;

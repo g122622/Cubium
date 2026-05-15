@@ -59,6 +59,13 @@ void PublishCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 PublishCommand::publishToWorld(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* server = source.server();
+
+    // 检查是否为集成服务器
+    if (!server->isIntegrated()) {
+        source.sendError("This command can only be used in singleplayer");
+        return 0;
+    }
 
     // 默认值
     i32 port = 25565;
@@ -70,14 +77,6 @@ i32 PublishCommand::publishToWorld(CommandContext<ServerCommandSource>& context)
     if (context.hasArgument("allowCheats")) {
         allowCheats = context.getArgument<bool>("allowCheats");
     }
-
-    // 检查是否为集成服务器
-    // TODO: 实现 isIntegrated() 方法
-    // auto server = source.server();
-    // if (!server->isIntegrated()) {
-    //     source.sendError("This command can only be used in singleplayer");
-    //     return 0;
-    // }
 
     std::ostringstream ss;
     ss << "Published world to LAN on port " << port;

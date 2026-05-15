@@ -70,6 +70,9 @@ public:
     [[nodiscard]] Result<void> initialize() override;
     void shutdown() override;
 
+    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
+    [[nodiscard]] bool isDedicated() const noexcept override { return true; }
+
 protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;

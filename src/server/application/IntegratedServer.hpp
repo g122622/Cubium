@@ -68,6 +68,9 @@ public:
     void shutdown() override;
     void requestStop() override;
 
+    [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
+    [[nodiscard]] bool isDedicated() const noexcept override { return false; }
+
 protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;
