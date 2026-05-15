@@ -118,6 +118,16 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | PlayerKilledEntityTrigger | `minecraft:player_killed_entity` | 完整实现（含服务端集成） |
 | EntityKilledPlayerTrigger | `minecraft:entity_killed_player` | 完整实现 |
 | PlayerInteractedWithEntityTrigger | `minecraft:player_interacted_with_entity` | 完整实现（含服务端集成） |
+| LocationTrigger | `minecraft:location` | 完整实现（含服务端集成） |
+| SleptInBedTrigger | `minecraft:slept_in_bed` | 完整实现（含服务端集成） |
+| HeroOfTheVillageTrigger | `minecraft:hero_of_the_village` | 完整实现（含服务端集成） |
+| VoluntaryExileTrigger | `minecraft:voluntary_exile` | 完整实现（含服务端集成） |
+| ConsumeItemTrigger | `minecraft:consume_item` | 完整实现 |
+| ItemDurabilityTrigger | `minecraft:item_durability_changed` | 完整实现 |
+| EnchantedItemTrigger | `minecraft:enchanted_item` | 完整实现 |
+| FilledBucketTrigger | `minecraft:filled_bucket` | 完整实现 |
+| PlacedBlockTrigger | `minecraft:placed_block` | 完整实现（含服务端集成） |
+| CuredZombieVillagerTrigger | `minecraft:cured_zombie_villager` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 

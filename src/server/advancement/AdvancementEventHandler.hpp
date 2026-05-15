@@ -27,8 +27,13 @@
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
+#include "common/advancement/trigger/impl/ItemTriggers.hpp"
+#include "common/advancement/trigger/impl/LocationTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/world/IWorld.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
@@ -109,6 +114,23 @@ public:
             event::ServerEventBus::instance().makeSubscription<event::CuredZombieVillagerEvent>(
                 [this](const event::CuredZombieVillagerEvent& e) { onCuredZombieVillager(e); });
 
+        // 订阅玩家睡眠事件
+        m_playerSleepSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerSleepEvent>(
+            [this](const event::PlayerSleepEvent& e) { onPlayerSleep(e); });
+
+        // 订阅效果变化事件
+        m_effectChangedSubscription = event::ServerEventBus::instance().makeSubscription<event::EffectChangedEvent>(
+            [this](const event::EffectChangedEvent& e) { onEffectChanged(e); });
+
+        // 订阅玩家位置事件
+        m_playerLocationSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLocationEvent>(
+            [this](const event::PlayerLocationEvent& e) { onPlayerLocation(e); });
+
+        // 订阅维度变化事件
+        m_dimensionChangeSubscription =
+            event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
+                [this](const event::DimensionChangeEvent& e) { onDimensionChange(e); });
+
         initialized_ = true;
     }
 
@@ -124,6 +146,10 @@ public:
         m_playerLoginSubscription.unsubscribe();
         m_blockPlaceSubscription.unsubscribe();
         m_curedZombieVillagerSubscription.unsubscribe();
+        m_playerSleepSubscription.unsubscribe();
+        m_effectChangedSubscription.unsubscribe();
+        m_playerLocationSubscription.unsubscribe();
+        m_dimensionChangeSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -348,6 +374,191 @@ private:
     }
 
     /**
+     * @brief 处理玩家睡眠事件
+     *
+     * 触发 SleptInBedTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.SLEPT_IN_BED.trigger()
+     */
+    void onPlayerSleep(const event::PlayerSleepEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SleptInBedTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 获取位置
+        mc::Vector3 pos = serverPlayer->position();
+
+        // 触发检测 - SleptInBedTrigger 继承自 LocationTrigger
+        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
+            *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
+                return instance.test(*world, pos.x, pos.y, pos.z);
+            });
+    }
+
+    /**
+     * @brief 处理效果变化事件
+     *
+     * 触发 HeroOfTheVillageTrigger 和 VoluntaryExileTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger()
+     */
+    void onEffectChanged(const event::EffectChangedEvent& e)
+    {
+        // 只处理添加效果的情况
+        if (!e.added || e.effect == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 获取位置
+        mc::Vector3 pos = serverPlayer->position();
+
+        // 根据效果类型触发相应的触发器
+        mc::entity::effect::EffectType effectType = e.effect->type();
+
+        // 村庄英雄效果
+        if (effectType == mc::entity::effect::EffectType::HeroOfTheVillage) {
+            auto* trigger =
+                mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::HeroOfTheVillageTrigger>();
+            if (trigger != nullptr) {
+                trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
+                    *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
+                        return instance.test(*world, pos.x, pos.y, pos.z);
+                    });
+            }
+        }
+        // 不祥之兆效果
+        else if (effectType == mc::entity::effect::EffectType::BadOmen) {
+            auto* trigger =
+                mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::VoluntaryExileTrigger>();
+            if (trigger != nullptr) {
+                trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
+                    *advancements, [world, &pos](const mc::advancement::LocationTriggerInstance& instance) {
+                        return instance.test(*world, pos.x, pos.y, pos.z);
+                    });
+            }
+        }
+    }
+
+    /**
+     * @brief 处理玩家位置事件
+     *
+     * 触发 LocationTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.LOCATION.trigger()
+     */
+    void onPlayerLocation(const event::PlayerLocationEvent& e)
+    {
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::LocationTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
+            *advancements, [world, &e](const mc::advancement::LocationTriggerInstance& instance) {
+                return instance.test(*world, e.position.x, e.position.y, e.position.z);
+            });
+    }
+
+    /**
+     * @brief 处理维度变化事件
+     *
+     * 触发 LocationTrigger（维度变化后检测新位置）。
+     * 参考 MC 1.16.5: 玩家传送后触发 location 触发器
+     */
+    void onDimensionChange(const event::DimensionChangeEvent& e)
+    {
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::LocationTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界（维度变化后玩家已在新维度）
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::LocationTriggerInstance>::trigger(
+            *advancements, [world, &e](const mc::advancement::LocationTriggerInstance& instance) {
+                return instance.test(*world, e.position.x, e.position.y, e.position.z);
+            });
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -383,6 +594,10 @@ private:
     event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
     event::ServerEventBus::Subscription<event::BlockPlaceEvent> m_blockPlaceSubscription;
     event::ServerEventBus::Subscription<event::CuredZombieVillagerEvent> m_curedZombieVillagerSubscription;
+    event::ServerEventBus::Subscription<event::PlayerSleepEvent> m_playerSleepSubscription;
+    event::ServerEventBus::Subscription<event::EffectChangedEvent> m_effectChangedSubscription;
+    event::ServerEventBus::Subscription<event::PlayerLocationEvent> m_playerLocationSubscription;
+    event::ServerEventBus::Subscription<event::DimensionChangeEvent> m_dimensionChangeSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

@@ -39,8 +39,11 @@ class Player;
 class BlockState;
 class DamageSource;
 class PlayerInventory;
-class EffectInstance;
 } // namespace mc
+
+namespace mc::entity::effect {
+class EffectInstance;
+} // namespace mc::entity::effect
 
 namespace mc::server::event {
 
@@ -438,11 +441,11 @@ struct EnchantItemEvent : ServerEvent {
  * @brief 效果变化事件
  */
 struct EffectChangedEvent : ServerEvent {
-    PlayerId playerId;            ///< 玩家ID
-    const EffectInstance* effect; ///< 效果实例
-    bool added;                   ///< true=添加效果，false=移除效果
+    PlayerId playerId;                              ///< 玩家ID
+    const entity::effect::EffectInstance* effect; ///< 效果实例
+    bool added;                                     ///< true=添加效果，false=移除效果
 
-    EffectChangedEvent(u64 tick, PlayerId pid, const EffectInstance* e, bool a)
+    EffectChangedEvent(u64 tick, PlayerId pid, const entity::effect::EffectInstance* e, bool a)
         : ServerEvent(tick)
         , playerId(pid)
         , effect(e)

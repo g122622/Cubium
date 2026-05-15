@@ -22,6 +22,8 @@
 */
 
 #include "ItemTriggers.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
@@ -63,7 +65,7 @@ nlohmann::json ConsumeItemTriggerInstance::conditionsToJson() const
 
 // ========== ConsumeItemTrigger ==========
 
-Result<std::shared_ptr<ConsumeItemTriggerInstance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json)
+Result<std::shared_ptr<ICriterionInstance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json)
 {
     auto instance = std::make_shared<ConsumeItemTriggerInstance>();
     auto result = instance->fromJson(json);
@@ -156,7 +158,7 @@ nlohmann::json ItemDurabilityTriggerInstance::conditionsToJson() const
 
 // ========== ItemDurabilityTrigger ==========
 
-Result<std::shared_ptr<ItemDurabilityTriggerInstance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json)
+Result<std::shared_ptr<ICriterionInstance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json)
 {
     auto instance = std::make_shared<ItemDurabilityTriggerInstance>();
     auto result = instance->fromJson(json);
@@ -229,7 +231,7 @@ nlohmann::json EnchantedItemTriggerInstance::conditionsToJson() const
 
 // ========== EnchantedItemTrigger ==========
 
-Result<std::shared_ptr<EnchantedItemTriggerInstance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json)
+Result<std::shared_ptr<ICriterionInstance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json)
 {
     auto instance = std::make_shared<EnchantedItemTriggerInstance>();
     auto result = instance->fromJson(json);
@@ -285,7 +287,7 @@ nlohmann::json FilledBucketTriggerInstance::conditionsToJson() const
 
 // ========== FilledBucketTrigger ==========
 
-Result<std::shared_ptr<FilledBucketTriggerInstance>> FilledBucketTrigger::fromJson(const nlohmann::json& json)
+Result<std::shared_ptr<ICriterionInstance>> FilledBucketTrigger::fromJson(const nlohmann::json& json)
 {
     auto instance = std::make_shared<FilledBucketTriggerInstance>();
     auto result = instance->fromJson(json);

@@ -22,6 +22,11 @@
 */
 
 #include "LocationTrigger.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+
+// 注意：trigger() 方法需要服务端模块支持
+// 服务端代码应通过事件系统触发
 
 namespace mc::advancement {
 
@@ -31,7 +36,7 @@ LocationTriggerInstance::LocationTriggerInstance(LocationPredicate location)
     : m_location(std::move(location))
 {}
 
-bool LocationTriggerInstance::test(const World& world, f64 x, f64 y, f64 z) const
+bool LocationTriggerInstance::test(const IWorld& world, f64 x, f64 y, f64 z) const
 {
     return m_location.test(world, x, y, z);
 }
@@ -57,7 +62,7 @@ nlohmann::json LocationTriggerInstance::conditionsToJson() const
 
 // ========== LocationTrigger ==========
 
-Result<std::shared_ptr<LocationTriggerInstance>> LocationTrigger::fromJson(const nlohmann::json& json)
+Result<std::shared_ptr<ICriterionInstance>> LocationTrigger::fromJson(const nlohmann::json& json)
 {
     auto instance = std::make_shared<LocationTriggerInstance>();
     auto result = instance->fromJson(json);
@@ -67,10 +72,10 @@ Result<std::shared_ptr<LocationTriggerInstance>> LocationTrigger::fromJson(const
     return instance;
 }
 
+// 注意：此方法在 common 模块中无法完整实现，因为需要 ServerPlayer 完整定义
+// 服务端应通过事件系统（AdvancementEventHandler）触发这些触发器
 void LocationTrigger::trigger(ServerPlayer& player)
 {
-    // [TODO 阶段2+3：事件系统集成] 获取玩家位置并检测条件
-    // 需要 ServerPlayer 提供位置和世界信息，由 LocationEvent 触发
     MC_UNUSED(player);
 }
 

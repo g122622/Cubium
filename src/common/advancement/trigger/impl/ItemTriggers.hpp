@@ -47,7 +47,7 @@ public:
 
     [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
-    [[nodiscard]] Result<std::shared_ptr<ConsumeItemTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class ItemStack& item);
 
@@ -84,7 +84,7 @@ public:
 
     [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
-    [[nodiscard]] Result<std::shared_ptr<ItemDurabilityTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class ItemStack& item, i32 oldDurability);
 };
@@ -121,7 +121,7 @@ public:
 
     [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
-    [[nodiscard]] Result<std::shared_ptr<EnchantedItemTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class ItemStack& item, i32 levels);
 };
@@ -157,7 +157,7 @@ public:
 
     [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
 
-    [[nodiscard]] Result<std::shared_ptr<FilledBucketTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class ItemStack& item);
 };

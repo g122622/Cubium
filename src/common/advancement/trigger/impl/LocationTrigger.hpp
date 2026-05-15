@@ -54,7 +54,7 @@ public:
     /**
      * @brief 从JSON反序列化实例
      */
-    [[nodiscard]] Result<std::shared_ptr<LocationTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /**
      * @brief 触发检测
@@ -103,7 +103,7 @@ public:
      * @param z Z坐标
      * @return 是否满足
      */
-    [[nodiscard]] bool test(const class World& world, f64 x, f64 y, f64 z) const;
+    [[nodiscard]] bool test(const class IWorld& world, f64 x, f64 y, f64 z) const;
 
     /**
      * @brief 从JSON解析

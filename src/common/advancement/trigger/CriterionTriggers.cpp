@@ -27,6 +27,8 @@
 #include "impl/EntityTriggers.hpp"
 #include "impl/ImpossibleTrigger.hpp"
 #include "impl/InventoryChangedTrigger.hpp"
+#include "impl/ItemTriggers.hpp"
+#include "impl/LocationTrigger.hpp"
 #include "impl/PlayerKilledEntityTrigger.hpp"
 #include "impl/TickTrigger.hpp"
 #include <spdlog/spdlog.h>
@@ -99,9 +101,17 @@ void CriterionTriggers::registerBuiltinTriggers()
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());
 
-    // [TODO 阶段3+4：触发器完善] 注册更多触发器
-    // registerTrigger(std::make_unique<LocationTrigger>());
-    // 等等...
+    // 注册位置相关触发器
+    registerTrigger(std::make_unique<LocationTrigger>());
+    registerTrigger(std::make_unique<SleptInBedTrigger>());
+    registerTrigger(std::make_unique<HeroOfTheVillageTrigger>());
+    registerTrigger(std::make_unique<VoluntaryExileTrigger>());
+
+    // 注册物品相关触发器
+    registerTrigger(std::make_unique<ConsumeItemTrigger>());
+    registerTrigger(std::make_unique<ItemDurabilityTrigger>());
+    registerTrigger(std::make_unique<EnchantedItemTrigger>());
+    registerTrigger(std::make_unique<FilledBucketTrigger>());
 
     spdlog::info("Registered {} builtin triggers", m_triggers.size());
 }
