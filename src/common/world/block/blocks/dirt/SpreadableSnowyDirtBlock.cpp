@@ -64,30 +64,24 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
     // 检查是否满足蔓延条件
     if (!isSnowyConditions(world, pos, state)) {
         // 不满足条件，退化成泥土
-        const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
-        if (dirtState != nullptr) {
-            world.setBlockState(pos, dirtState);
-        }
+        world.setBlockState(pos, &VanillaBlocks::DIRT->defaultState());
     } else {
         // 满足条件，尝试向周围蔓延
         // 需要 pos.up() 的光照 >= 9
-        u8 skyLight = world.getSkyLight(pos.x, pos.y + 1, pos.z);
-        u8 blockLight = world.getBlockLight(pos.x, pos.y + 1, pos.z);
-        u8 lightLevel = std::max(skyLight, blockLight);
+        const u8 skyLight = world.getSkyLight(pos.x, pos.y + 1, pos.z);
+        const u8 blockLight = world.getBlockLight(pos.x, pos.y + 1, pos.z);
+        const u8 lightLevel = std::max(skyLight, blockLight);
 
         if (lightLevel >= 9) {
             const BlockState* defaultState = &getDefaultState();
-            if (defaultState == nullptr) {
-                return;
-            }
 
             // 尝试向4个随机位置的泥土蔓延
             for (i32 i = 0; i < 4; ++i) {
-                i32 dx = random.nextInt(3) - 1; // -1, 0, 1
-                i32 dy = random.nextInt(5) - 3; // -3, -2, -1, 0, 1
-                i32 dz = random.nextInt(3) - 1; // -1, 0, 1
+                const i32 dx = random.nextInt(3) - 1; // -1, 0, 1
+                const i32 dy = random.nextInt(5) - 3; // -3, -2, -1, 0, 1
+                const i32 dz = random.nextInt(3) - 1; // -1, 0, 1
 
-                BlockPos targetPos(pos.x + dx, pos.y + dy, pos.z + dz);
+                const BlockPos targetPos(pos.x + dx, pos.y + dy, pos.z + dz);
 
                 // 检查目标位置是否为泥土
                 const BlockState* targetState = world.getBlockState(targetPos);
@@ -99,9 +93,9 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
                 if (isSnowyAndNotUnderwater(world, targetPos, *defaultState)) {
                     // 检查目标位置上方是否有雪
                     // 参考 MC 1.16.5: 蔓延时只检查 SNOW（雪层），不检查 SNOW_BLOCK（雪块）
-                    BlockPos abovePos(targetPos.x, targetPos.y + 1, targetPos.z);
+                    const BlockPos abovePos(targetPos.x, targetPos.y + 1, targetPos.z);
                     const BlockState* aboveState = world.getBlockState(abovePos);
-                    bool hasSnow = aboveState != nullptr && aboveState->is(VanillaBlocks::SNOW);
+                    const bool hasSnow = aboveState != nullptr && aboveState->is(VanillaBlocks::SNOW);
 
                     // 设置新方块状态，包含 SNOWY 属性
                     const BlockState* newState = &defaultState->with(SNOWY(), hasSnow);
@@ -151,25 +145,18 @@ BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state
 
 bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
+    (void)state;
 
     // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.isSnowyConditions()
-    BlockPos abovePos = pos.up();
+    const BlockPos abovePos = pos.up();
     const BlockState* aboveState = world.getBlockState(abovePos);
-
-    if (aboveState == nullptr || aboveState->isAir()) {
-        // 上方为空气，检查光照
-        u8 skyLight = world.getSkyLight(abovePos);
-        u8 blockLight = world.getBlockLight(abovePos);
-        u8 lightLevel = std::max(skyLight, blockLight);
-        return lightLevel < 15; // 不是完全被阻挡就满足条件
-    }
 
     // 检查是否为雪层且层数为1
     // MC 1.16.5: blockstate.isIn(Blocks.SNOW) && blockstate.get(SnowBlock.LAYERS) == 1
-    if (aboveState->is(VanillaBlocks::SNOW)) {
+    if (aboveState != nullptr && aboveState->is(VanillaBlocks::SNOW)) {
         // 检查 LAYERS 属性是否为 1
         // 使用 getOptional 安全获取，因为 SNOWY 状态会在这里被检查
-        std::optional<i32> layers = aboveState->getOptional(SnowBlock::LAYERS());
+        const std::optional<i32> layers = aboveState->getOptional(SnowBlock::LAYERS());
         if (layers.has_value() && layers.value() == 1) {
             return true; // 只有1层雪时满足条件
         }
@@ -177,15 +164,17 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& 
     }
 
     // 检查上方是否有完整水源
-    const fluid::FluidState* fluidState = aboveState->getFluidState();
-    if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getLevel() == 8) {
-        return false; // 上方有完整水源，不满足条件
+    if (aboveState != nullptr) {
+        const fluid::FluidState* fluidState = aboveState->getFluidState();
+        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getLevel() == 8) {
+            return false; // 上方有完整水源，不满足条件
+        }
     }
 
     // 检查光照
-    u8 skyLight = world.getSkyLight(abovePos);
-    u8 blockLight = world.getBlockLight(abovePos);
-    u8 lightLevel = std::max(skyLight, blockLight);
+    const u8 skyLight = world.getSkyLight(abovePos);
+    const u8 blockLight = world.getBlockLight(abovePos);
+    const u8 lightLevel = std::max(skyLight, blockLight);
 
     return lightLevel < 15; // 不是完全被阻挡就满足条件
 }
@@ -200,7 +189,7 @@ bool SpreadableSnowyDirtBlock::isSnowyAndNotUnderwater(IWorld& world, const Bloc
     }
 
     // 检查上方是否有水
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr) {
         const fluid::FluidState* fluidState = aboveState->getFluidState();
