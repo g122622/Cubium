@@ -88,9 +88,23 @@ template<typename TEntity>
 class LayerRenderer {
 public:
     virtual void render(TEntity& entity, f32 limbSwing, ...) = 0;
+    virtual void renderPipeline(TEntity& entity, VkCommandBuffer cmd,
+        const AnimationContext& context, EntityPipeline& pipeline) = 0;
     virtual bool shouldRender(const TEntity& entity) const { return true; }
 };
 ```
+
+主要层渲染器：
+
+| 层渲染器 | 类型 | 描述 |
+|---------|------|------|
+| HeldItemLayer | equipment | 手持物品渲染 |
+| HeadLayer | equipment | 头部物品（头盔、南瓜）渲染 |
+| ArmorLayer | equipment | 盔甲渲染 |
+| CapeLayer | cosmetic | 披风渲染 |
+| ElytraLayer | cosmetic | 鞘翅渲染 |
+| SaddleLayer | entity | 鞍渲染 |
+| EnergyGlintLayer | effect | 附魔光效 |
 
 ### AgeableModel
 

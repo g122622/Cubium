@@ -64,10 +64,23 @@ public:
   - 物品正确跟随手臂动画旋转和平移
   - 参考 MC 1.16.5 `HeldItemLayer.func_229135_a_`
 - **HeadLayer**: 头部物品渲染（头盔、南瓜等）
+  - `shouldRender()` 检查头部槽位是否有物品
+  - 使用父模型的 `getModelHead()` 获取头部变换
+  - 参考 MC 1.16.5 `HeadLayer`
 
 ### 外观层 (cosmetic/)
 - **CapeLayer**: 斗篷渲染
+  - `shouldRender()` 检查条件：
+    1. 玩家开启了 PlayerModelPart::Cape
+    2. 有披风纹理
+    3. 未穿戴鞘翅（鞘翅覆盖披风）
+  - 参考 MC 1.16.5 `CapeLayer`
 - **ElytraLayer**: 鞘翅渲染
+  - `shouldRender()` 检查条件：
+    1. 胸甲槽装备了鞘翅物品
+    2. 有鞘翅或披风纹理
+  - 动态角度计算：滑翔时根据俯仰角调整展开角度
+  - 参考 MC 1.16.5 `ElytraLayer`
 
 ### 实体特性层 (entity/)
 - **SaddleLayer**: 鞍渲染（马、猪等）
@@ -84,10 +97,18 @@ public:
 
 层渲染器按添加顺序依次渲染：
 1. 基础模型
-2. 装备层（盔甲、手持物品）
+2. 装备层（盔甲、手持物品、头部物品）
 3. 外观层（斗篷、鞘翅）
 4. 实体特性层（鞍、羊毛）
 5. 效果层（附魔光效、发光眼睛）
+
+MC 1.16.5 PlayerRenderer 层渲染器顺序：
+1. HeldItemLayer - 手持物品
+2. HeadLayer - 头部物品
+3. CapeLayer - 披风
+4. ElytraLayer - 鞘翅
+
+注意：披风在鞘翅之前渲染，这样鞘翅可以正确覆盖披风。
 
 ## 参考
 

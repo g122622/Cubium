@@ -351,6 +351,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/entity/VillagerLayerTest.cpp
     # EnergyGlintLayer 附魔光效渲染层测试
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
+    # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
+    client/renderer/entity/test_player_layers.cpp
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp

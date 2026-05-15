@@ -73,16 +73,83 @@ public:
 
 ### 玩家渲染器 (player/)
 
+玩家渲染器支持标准手臂和纤细手臂两种模式，并集成了多个层渲染器。
+
 ```cpp
-class PlayerRenderer : public LivingRenderer<PlayerEntity, PlayerModel> {
+class PlayerRenderer : public EntityRenderer,
+                        public IEntityRenderer<Player, PlayerModel> {
 public:
-    PlayerRenderer(bool slimArms = false);
-    ResourceLocation getEntityTexture(PlayerEntity& entity);
+    explicit PlayerRenderer(bool slimArms = false);
+    
+    // IEntityRenderer 接口
+    PlayerModel& getModel() override;
+    ResourceLocation getEntityTexture(Player& entity) override;
+    
+    // 纹理设置
+    void setSkinTexture(const TextureRegion* region);
+    void setCapeTexture(const TextureRegion* region);
+    void setElytraTexture(const TextureRegion* region);
+    
+    // 层渲染器支持
+    bool supportsLayers() const override { return true; }
+    void renderLayersPipeline(Entity& entity, VkCommandBuffer cmd,
+        const AnimationContext& context, EntityPipeline& pipeline) override;
     
 private:
-    void setupLayers();  // 添加盔甲层、手持物品层等
+    void setupLayers();  // 初始化层渲染器
 };
 ```
+
+#### 层渲染器配置
+
+MC 1.16.5 PlayerRenderer 按以下顺序设置层渲染器：
+
+```cpp
+void PlayerRenderer::setupLayers() {
+    // 1. 手持物品层
+    m_layers.push_back(std::make_unique<HeldItemLayer<Player>>());
+    
+    // 2. 头部物品层（头盔、南瓜等）
+    m_layers.push_back(std::make_unique<HeadLayer<Player, PlayerModel>>(*this));
+    
+    // 3. 披风层
+    m_layers.push_back(std::make_unique<CapeLayer>());
+    
+    // 4. 鞘翅层
+    m_layers.push_back(std::make_unique<ElytraLayer<Player>>());
+}
+```
+
+#### 纹理传递
+
+在 `renderLayersPipeline()` 中，纹理通过 `dynamic_cast` 传递给对应的层渲染器：
+
+```cpp
+void PlayerRenderer::renderLayersPipeline(...) {
+    for (auto& layer : m_layers) {
+        if (layer && layer->shouldRender(player)) {
+            // 传递披风纹理
+            if (m_capeRegion) {
+                auto* capeLayer = dynamic_cast<CapeLayer*>(layer.get());
+                if (capeLayer) capeLayer->setCapeTexture(m_capeRegion);
+            }
+            // 传递鞘翅纹理
+            if (m_elytraRegion || m_capeRegion) {
+                auto* elytraLayer = dynamic_cast<ElytraLayer<Player>*>(layer.get());
+                if (elytraLayer) {
+                    if (m_elytraRegion) elytraLayer->setElytraTexture(m_elytraRegion);
+                    if (m_capeRegion) elytraLayer->setCapeTexture(m_capeRegion);
+                }
+            }
+            layer->renderPipeline(player, cmd, context, pipeline);
+        }
+    }
+}
+```
+
+#### 参考文件
+- `PlayerRenderer.hpp/cpp` - 玩家渲染器实现
+- `tests/client/renderer/entity/test_player_layers.cpp` - 层渲染器单元测试
 
 ### 怪物渲染器 (monster/)
 
