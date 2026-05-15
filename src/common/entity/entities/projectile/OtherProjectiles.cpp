@@ -23,11 +23,15 @@
 
 #include "OtherProjectiles.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../effect/EffectInstance.hpp"
+#include "../../effect/EffectType.hpp"
 #include "../../entities/player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -398,8 +402,32 @@ i32 FishingBobberEntity::reelIn()
 
 ShulkerBulletEntity::ShulkerBulletEntity(LegacyEntityType type, EntityId id)
     : ProjectileEntity(type, id)
+    , m_direction(Direction::Up)
+    , m_targetDelta(0.0, 0.0, 0.0)
 {
     m_noGravity = true;
+    m_noClip = true; // 穿墙
+}
+
+ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis)
+    : ShulkerBulletEntity(LegacyEntityType::ShulkerBullet, 0)
+{
+    if (shooter) {
+        setShooter(shooter);
+        // 设置初始位置在潜影贝中心
+        BlockPos shooterPos(static_cast<i32>(std::floor(shooter->x())),
+            static_cast<i32>(std::floor(shooter->y())),
+            static_cast<i32>(std::floor(shooter->z())));
+        setPosition(shooterPos.x + 0.5, shooterPos.y + 0.5, shooterPos.z + 0.5);
+    }
+
+    m_target = target;
+    if (target) {
+        m_targetUuid = target->uuid();
+    }
+
+    m_direction = Direction::Up;
+    selectNextMoveDirection(axis);
 }
 
 std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
@@ -407,51 +435,269 @@ std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
     return std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void ShulkerBulletEntity::tick()
+void ShulkerBulletEntity::setTarget(Entity* target)
 {
-    // 更新飞行方向
-    updateDirection();
-
-    // 调用父类tick
-    ProjectileEntity::tick();
-
-    // 检查是否击中目标
-    if (m_target && m_target->isAlive()) {
-        // 计算到目标的方向
-        Vector3 dir(m_target->x() - m_position.x,
-            m_target->y() + m_target->eyeHeight() / 2.0f - m_position.y,
-            m_target->z() - m_position.z);
-        f32 dist = dir.length();
-        if (dist > 0.0f) {
-            dir = dir.normalized();
-            m_direction = dir;
-        }
-    } else {
-        // 目标消失，移除子弹
-        remove();
+    m_target = target;
+    if (target) {
+        m_targetUuid = target->uuid();
     }
 }
 
-void ShulkerBulletEntity::updateDirection()
+void ShulkerBulletEntity::setDirection(Direction dir)
 {
-    // 潜影贝子弹会沿轴向移动，并在需要时改变方向
-    m_flightSteps++;
+    m_direction = dir;
+}
 
-    // 每隔一段时间改变方向
-    if (m_flightSteps % 10 == 0) {
-        // 选择一个新的轴向方向
-        // TODO: 实现轴向移动逻辑
+void ShulkerBulletEntity::tick()
+{
+    // MC 1.16.5 ShulkerBulletEntity.tick()
+
+    // 服务端逻辑
+    if (m_world != nullptr) {
+        // 检查目标是否有效
+        Player* playerTarget = dynamic_cast<Player*>(m_target);
+        if (m_target == nullptr || !m_target->isAlive() ||
+            (playerTarget != nullptr && playerTarget->isSpectator())) {
+            // 目标无效，下落
+            if (!m_noGravity) {
+                m_velocity.y -= 0.04;
+            }
+        } else {
+            // 加速追踪
+            m_targetDelta.x = std::clamp(m_targetDelta.x * ACCELERATION, -1.0, 1.0);
+            m_targetDelta.y = std::clamp(m_targetDelta.y * ACCELERATION, -1.0, 1.0);
+            m_targetDelta.z = std::clamp(m_targetDelta.z * ACCELERATION, -1.0, 1.0);
+
+            // 向目标方向加速
+            m_velocity.x += (m_targetDelta.x - m_velocity.x) * 0.2;
+            m_velocity.y += (m_targetDelta.y - m_velocity.y) * 0.2;
+            m_velocity.z += (m_targetDelta.z - m_velocity.z) * 0.2;
+        }
+
+        // 执行射线检测
+        RayTraceResult hitResult = performRayTrace();
+        if (hitResult.type != RayTraceResultType::Miss) {
+            onImpact(hitResult);
+            return;
+        }
     }
+
+    // 更新位置
+    m_position.x += m_velocity.x;
+    m_position.y += m_velocity.y;
+    m_position.z += m_velocity.z;
+
+    // 更新旋转朝向运动方向
+    ProjectileEntity::updateRotation();
+
+    // 更新飞行逻辑
+    if (m_world != nullptr && m_target != nullptr && m_target->isAlive()) {
+        // 更新飞行步数
+        if (m_flightSteps > 0) {
+            m_flightSteps--;
+
+            // 步数用完时重新选择方向
+            if (m_flightSteps == 0) {
+                Axis excludeAxis = (m_direction != Direction::None) ? Directions::getAxis(m_direction) : Axis::Y;
+                selectNextMoveDirection(excludeAxis);
+            }
+        }
+
+        // 检查是否需要改变方向
+        if (m_direction != Direction::None) {
+            BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y)),
+                static_cast<i32>(std::floor(m_position.z)));
+            Axis axis = Directions::getAxis(m_direction);
+
+            // 检查前方是否有方块
+            BlockPos nextPos(currentPos.x + Directions::xOffset(m_direction),
+                currentPos.y + Directions::yOffset(m_direction),
+                currentPos.z + Directions::zOffset(m_direction));
+
+            const BlockState* nextState = m_world->getBlockState(nextPos);
+            if (nextState != nullptr && nextState->blocksMovement()) {
+                // 前方有方块，选择新方向
+                selectNextMoveDirection(axis);
+            } else {
+                // 检查是否与目标对齐
+                BlockPos targetPos(static_cast<i32>(std::floor(m_target->x())),
+                    static_cast<i32>(std::floor(m_target->y())),
+                    static_cast<i32>(std::floor(m_target->z())));
+                bool aligned = false;
+                switch (axis) {
+                    case Axis::X:
+                        aligned = (currentPos.x == targetPos.x);
+                        break;
+                    case Axis::Y:
+                        aligned = (currentPos.y == targetPos.y);
+                        break;
+                    case Axis::Z:
+                        aligned = (currentPos.z == targetPos.z);
+                        break;
+                }
+                if (aligned) {
+                    selectNextMoveDirection(axis);
+                }
+            }
+        }
+    }
+}
+
+void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
+{
+    // MC 1.16.5 ShulkerBulletEntity.selectNextMoveDirection()
+    f64 targetOffsetY = 0.5;
+    BlockPos targetPos;
+
+    if (m_target == nullptr) {
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)) - 1,
+            static_cast<i32>(std::floor(m_position.z)));
+    } else {
+        targetOffsetY = static_cast<f64>(m_target->height()) * 0.5;
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_target->x())),
+            static_cast<i32>(std::floor(m_target->y() + targetOffsetY)),
+            static_cast<i32>(std::floor(m_target->z())));
+    }
+
+    f64 targetX = targetPos.x + 0.5;
+    f64 targetY = targetPos.y + targetOffsetY;
+    f64 targetZ = targetPos.z + 0.5;
+
+    Direction newDirection = Direction::None;
+
+    // 如果距离足够近（<2格），直接向目标移动
+    BlockPos myPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
+    f64 distSq = static_cast<f64>(myPos.x - targetPos.x) * (myPos.x - targetPos.x) +
+                 static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
+                 static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
+
+    if (distSq >= 4.0 && m_world != nullptr) { // 距离 >= 2格
+        std::vector<Direction> possibleDirs;
+
+        // 收集可行方向
+        if (excludedAxis != Axis::X) {
+            if (myPos.x < targetPos.x) {
+                const BlockState* eastState = m_world->getBlockState(BlockPos(myPos.x + 1, myPos.y, myPos.z));
+                if (eastState == nullptr || !eastState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::East);
+                }
+            } else if (myPos.x > targetPos.x) {
+                const BlockState* westState = m_world->getBlockState(BlockPos(myPos.x - 1, myPos.y, myPos.z));
+                if (westState == nullptr || !westState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::West);
+                }
+            }
+        }
+
+        if (excludedAxis != Axis::Y) {
+            if (myPos.y < targetPos.y) {
+                const BlockState* upState = m_world->getBlockState(BlockPos(myPos.x, myPos.y + 1, myPos.z));
+                if (upState == nullptr || !upState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::Up);
+                }
+            } else if (myPos.y > targetPos.y) {
+                const BlockState* downState = m_world->getBlockState(BlockPos(myPos.x, myPos.y - 1, myPos.z));
+                if (downState == nullptr || !downState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::Down);
+                }
+            }
+        }
+
+        if (excludedAxis != Axis::Z) {
+            if (myPos.z < targetPos.z) {
+                const BlockState* southState = m_world->getBlockState(BlockPos(myPos.x, myPos.y, myPos.z + 1));
+                if (southState == nullptr || !southState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::South);
+                }
+            } else if (myPos.z > targetPos.z) {
+                const BlockState* northState = m_world->getBlockState(BlockPos(myPos.x, myPos.y, myPos.z - 1));
+                if (northState == nullptr || !northState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::North);
+                }
+            }
+        }
+
+        // 随机选择一个方向
+        if (!possibleDirs.empty()) {
+            math::Random& rng = m_world->getRandom();
+            newDirection = possibleDirs[rng.nextInt(static_cast<i32>(possibleDirs.size()))];
+        } else {
+            // 没有可行方向，随机选择
+            math::Random& rng = m_world->getRandom();
+            for (i32 i = 0; i < 5; ++i) {
+                Direction randomDir = static_cast<Direction>(rng.nextInt(6));
+                BlockPos testPos(myPos.x + Directions::xOffset(randomDir),
+                    myPos.y + Directions::yOffset(randomDir),
+                    myPos.z + Directions::zOffset(randomDir));
+                const BlockState* testState = m_world->getBlockState(testPos);
+                if (testState == nullptr || !testState->blocksMovement()) {
+                    newDirection = randomDir;
+                    break;
+                }
+            }
+        }
+
+        // 计算目标速度
+        if (newDirection != Direction::None) {
+            targetX = m_position.x + Directions::xOffset(newDirection);
+            targetY = m_position.y + Directions::yOffset(newDirection);
+            targetZ = m_position.z + Directions::zOffset(newDirection);
+        }
+    }
+
+    setDirection(newDirection);
+
+    // 计算速度增量
+    f64 dx = targetX - m_position.x;
+    f64 dy = targetY - m_position.y;
+    f64 dz = targetZ - m_position.z;
+    f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (dist == 0.0) {
+        m_targetDelta = Vector3d(0.0, 0.0, 0.0);
+    } else {
+        m_targetDelta = Vector3d(dx / dist * BULLET_SPEED, dy / dist * BULLET_SPEED, dz / dist * BULLET_SPEED);
+    }
+
+    // 设置飞行步数
+    if (m_world != nullptr) {
+        math::Random& rng = m_world->getRandom();
+        m_flightSteps = MIN_STEPS + rng.nextInt(MAX_STEPS_EXTRA) * 10;
+    }
+}
+
+[[nodiscard]] bool ShulkerBulletEntity::canHitEntity(const Entity& target) const
+{
+    // 不能击中发射者、noClip实体或自己
+    if (&target == this) {
+        return false;
+    }
+    if (target.noClip()) {
+        return false;
+    }
+    Entity* shooter = getShooter();
+    if (&target == shooter) {
+        return false;
+    }
+    return ProjectileEntity::canHitEntity(target);
 }
 
 void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
 {
+    // MC 1.16.5 ShulkerBulletEntity.onEntityHit()
     if (!result.hitEntity) {
         return;
     }
 
-    // 造成伤害并施加漂浮效果
-    mc::Entity* shooter = getShooter();
+    Entity* target = result.hitEntity;
+    Entity* shooter = getShooter();
+    LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
+
+    // 创建伤害源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, shooter, this, false);
@@ -459,18 +705,40 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
-    // TODO: target->attackEntityFrom(*damageSource, 4.0f);
+    // 造成伤害
+    bool damaged = target->hurt(*damageSource, DAMAGE);
 
-    // 施加漂浮效果
-    // if (target instanceof LivingEntity) {
-    //     ((LivingEntity)target).addEffect(new LevitationEffect(10 * 20, 1));
-    // }
+    if (damaged) {
+        // 应用荆棘附魔效果（如果发射者有）
+        // TODO: applyEnchantments(livingShooter, target);
 
-    remove();
+        // 对 LivingEntity 施加漂浮效果
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+        if (livingTarget != nullptr) {
+            // MC 1.16.5: 200 ticks = 10秒漂浮
+            livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Levitation,
+                static_cast<i32>(LEVITATION_DURATION),
+                0,  // amplifier = 0 (I级效果)
+                false,
+                true,
+                true));
+        }
+    }
 }
 
 void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
+    // MC 1.16.5: 命中方块时生成爆炸粒子
+    // TODO: 服务端粒子广播
+    playSound(SoundEvents::ENTITY_SHULKER_BULLET_HIT, 1.0f, 1.0f);
+}
+
+void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
+{
+    // 调用父类
+    ProjectileEntity::onImpact(result);
+
+    // 命中后移除
     remove();
 }
 

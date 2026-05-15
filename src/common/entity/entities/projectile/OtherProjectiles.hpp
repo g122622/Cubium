@@ -212,6 +212,11 @@ private:
  *
  * 潜影贝发射的跟踪子弹，造成漂浮效果。
  *
+ * 特性：
+ * - 沿轴向移动，追踪目标
+ * - 命中后造成4点伤害和10秒漂浮效果
+ * - 被击中时会消失并产生爆炸粒子
+ *
  * 参考 MC 1.16.5 ShulkerBulletEntity
  */
 class ShulkerBulletEntity : public ProjectileEntity {
@@ -222,9 +227,18 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
     /**
-     * @brief 构造函数
+     * @brief 默认构造函数
      */
     ShulkerBulletEntity(LegacyEntityType type, EntityId id);
+
+    /**
+     * @brief 带目标的构造函数
+     * @param world 世界
+     * @param shooter 发射者（潜影贝）
+     * @param target 目标实体
+     * @param axis 初始移动轴
+     */
+    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis);
 
     // ========== Entity 接口重写 ==========
 
@@ -233,31 +247,69 @@ public:
 
     void tick() override;
 
+    // ========== 投掷物属性 ==========
+
+    [[nodiscard]] bool isBurning() const { return false; }
+    [[nodiscard]] f32 getBrightness() const { return 1.0f; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+
     // ========== 潜影贝子弹方法 ==========
 
     /**
      * @brief 设置目标
      */
-    void setTarget(Entity* target) { m_target = target; }
+    void setTarget(Entity* target);
 
     /**
      * @brief 获取目标
      */
     [[nodiscard]] Entity* target() const { return m_target; }
 
+    /**
+     * @brief 获取当前移动方向
+     */
+    [[nodiscard]] Direction direction() const { return m_direction; }
+
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
+    void onImpact(const RayTraceResult& result) override;
+
+    /**
+     * @brief 检查是否可以命中指定实体
+     */
+    [[nodiscard]] bool canHitEntity(const Entity& target) const override;
 
 private:
     /**
-     * @brief 更新飞行方向
+     * @brief 选择下一个移动方向
+     * @param excludedAxis 排除的轴（避免反向移动）
      */
-    void updateDirection();
+    void selectNextMoveDirection(Axis excludedAxis);
 
-    Entity* m_target = nullptr; // 目标实体
-    Vector3 m_direction;        // 飞行方向
-    i32 m_flightSteps = 0;      // 飞行步数
+    /**
+     * @brief 设置移动方向
+     */
+    void setDirection(Direction dir);
+
+    /**
+     * @brief 更新飞行逻辑
+     */
+    void updateFlight();
+
+    Entity* m_target = nullptr;          ///< 目标实体
+    std::string m_targetUuid;            ///< 目标UUID（用于重新查找）
+    Direction m_direction = Direction::Up; ///< 当前移动方向
+    i32 m_flightSteps = 0;               ///< 剩余飞行步数
+    Vector3d m_targetDelta;              ///< 目标速度增量
+
+    // 常量
+    static constexpr f32 BULLET_SPEED = 0.15;    ///< 子弹速度
+    static constexpr f32 ACCELERATION = 1.025;   ///< 加速度因子
+    static constexpr i32 MIN_STEPS = 10;         ///< 最小飞行步数
+    static constexpr i32 MAX_STEPS_EXTRA = 5;    ///< 额外飞行步数范围
+    static constexpr f32 LEVITATION_DURATION = 200.0f; ///< 漂浮效果持续时间（ticks）
+    static constexpr f32 DAMAGE = 4.0f;          ///< 伤害值
 };
 
 /**

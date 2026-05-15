@@ -797,6 +797,15 @@ private:
                 .canSummon(true)
                 .build());
 
+        // 潜影贝子弹
+        registry.registerType(EntityTypes::SHULKER_BULLET,
+            EntityType::Builder(&entity::ShulkerBulletEntity::create, EntityClassification::Misc)
+                .size(0.3125f, 0.3125f)
+                .trackingRange(8)
+                .updateInterval(1) // 子弹需要频繁更新
+                .canSummon(true)
+                .build());
+
         // ========== 物品 ==========
         registry.registerType(EntityTypes::ITEM,
             EntityType::Builder(&ItemEntity::create, EntityClassification::Misc)
