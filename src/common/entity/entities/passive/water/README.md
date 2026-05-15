@@ -71,9 +71,67 @@ void WaterMobEntity::updateAirSupply() {
 
 - 游泳行为：快速游泳，可跳出水面
 - 宝藏寻找：喂食鱼后引导玩家到宝藏
+- 与玩家同游：跟随游泳玩家并给予"海豚的恩惠"效果
+- 玩物品：拾取水中物品并扔出玩耍
 - 救助行为：将溺水玩家推向水面
 - 群居行为：形成小群体
 - 掉落：生鳕鱼
+
+**AI 目标（MC 1.16.5 优先级）**:
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 浮出水面呼吸 |
+| 0 | FindWaterGoal | 寻找水源 |
+| 1 | SwimToTreasureGoal | 游向宝藏（喂食鱼后触发） |
+| 2 | SwimWithPlayerGoal | 与游泳玩家同游，给予海豚恩惠 |
+| 4 | RandomSwimmingGoal | 随机游泳 |
+| 4 | LookRandomlyGoal | 随机看向 |
+| 5 | LookAtGoal | 看向玩家 |
+| 5 | DolphinJumpGoal | 跳出水面 |
+| 6 | MeleeAttackGoal | 近战攻击 |
+| 8 | PlayWithItemsGoal | 玩物品 |
+| 9 | AvoidEntityGoal | 避开守卫者（待实现） |
+
+**宝藏寻找系统**:
+
+```cpp
+// 设置鱼标记（玩家喂食后调用）
+dolphin.setGotFish(true);
+
+// 检查是否得到鱼
+bool hasFish = dolphin.hasGotFish();
+
+// 设置宝藏位置
+dolphin.setTreasurePos(BlockPos(100, 50, 200));
+
+// 清除宝藏目标
+dolphin.clearTreasureTarget();
+```
+
+**海豚的恩惠效果**:
+
+当玩家在水中游泳时，附近的海豚会给予玩家 `DolphinsGrace` 效果，提高游泳速度。
+
+**导航辅助方法**:
+
+```cpp
+// 检查是否接近导航目标
+bool close = dolphin.closeToTarget();
+
+// 检查是否有路径
+bool hasPath = dolphin.hasPath();
+
+// 清除导航路径
+dolphin.clearNavigationPath();
+
+// 尝试移动到实体
+dolphin.tryMoveToEntity(targetEntity, speed);
+```
+
+**空气储备**:
+
+海豚有 4800 tick (4分钟) 的空气储备，远超普通水生生物的 300 tick。
 
 ### SquidEntity
 
@@ -135,17 +193,21 @@ Entity
 - [tests/common/entity/PlayerSwimTest.cpp](../../../../../../tests/common/entity/PlayerSwimTest.cpp) - 玩家游泳和溺水测试
 - [tests/common/test_entity_physics.cpp](../../../../../../tests/common/test_entity_physics.cpp) - 物理常量测试
 - [tests/common/entity/DolphinEntityTest.cpp](../../../../../../tests/common/entity/DolphinEntityTest.cpp) - 海豚实体测试
+- [tests/common/entity/DolphinGoalsTest.cpp](../../../../../../tests/common/entity/DolphinGoalsTest.cpp) - 海豚 AI 目标测试
 - [tests/common/entity/SquidGoalsTest.cpp](../../../../../../tests/common/entity/SquidGoalsTest.cpp) - 鱿鱼目标和移动向量测试
-
-## 待实现功能
-
-- 海豚 AI 目标（需要 AI 系统完善）
 
 ## 已实现功能
 
-### DolphinEntity（2026-05-10）
-- ✅ `canJumpOutOfWater()`: 检查海豚是否接近水面（上方有空气）
-- ✅ `isFoodItem()`: 检测鳕鱼、鲑鱼、河豚、热带鱼
+### DolphinEntity（2026-05-15）
+- ✅ `maxAir()`: 返回 4800 tick（4分钟）空气储备
+- ✅ `hasGotFish()` / `setGotFish()`: 鱼标记系统
+- ✅ `setTreasurePos()` / `getTreasurePos()` / `hasTreasureTarget()`: 宝藏目标管理
+- ✅ `setGuidingPlayer()` / `isGuidingPlayer()`: 引导玩家状态
+- ✅ `closeToTarget()` / `hasPath()` / `clearNavigationPath()`: 导航辅助方法
+- ✅ `DolphinJumpGoal`: 海豚跳出水面跳跃行为
+- ✅ `SwimToTreasureGoal`: 喂食后引导玩家到宝藏结构
+- ✅ `SwimWithPlayerGoal`: 跟随游泳玩家并给予海豚恩惠效果
+- ✅ `PlayWithItemsGoal`: 拾取水中物品并扔出玩耍
 
 ### WaterMobEntity（2026-05-10）
 - ✅ `isInWaterOrBubble()`: 检测实体是否在水中或气泡柱中，使用 `VanillaBlocks::BUBBLE_COLUMN` 检测气泡柱方块

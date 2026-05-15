@@ -95,6 +95,8 @@ add_executable(mc_tests
     common/entity/SquidGoalsTest.cpp
     # 蝙蝠 AI 目标测试
     common/entity/BatGoalsTest.cpp
+    # 海豚 AI 目标测试
+    common/entity/DolphinGoalsTest.cpp
     # PufferfishEntity 膨胀目标和敌人检测测试
     common/entity/entities/passive/fish/PufferfishEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
