@@ -28,9 +28,7 @@
 
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"
-#include <cmath>
 #include <cstddef>
-#include <limits>
 #include <glm/glm.hpp>
 #include <gtest/gtest.h>
 
@@ -44,7 +42,7 @@ TEST(DimensionRenderSettingsTest, OverworldSettings)
 {
     auto settings = DimensionRenderSettings::overworld();
 
-    EXPECT_TRUE(settings.hasClouds());
+    EXPECT_TRUE(settings.hasClouds);
     EXPECT_FLOAT_EQ(settings.cloudHeight, 192.0f);
     EXPECT_TRUE(settings.hasSky);
     EXPECT_FALSE(settings.hasCeiling);
@@ -59,8 +57,7 @@ TEST(DimensionRenderSettingsTest, NetherSettings)
 {
     auto settings = DimensionRenderSettings::nether();
 
-    EXPECT_FALSE(settings.hasClouds());
-    EXPECT_TRUE(std::isnan(settings.cloudHeight));
+    EXPECT_FALSE(settings.hasClouds);
     EXPECT_FALSE(settings.hasSky);
     EXPECT_TRUE(settings.hasCeiling);
     EXPECT_EQ(settings.fogType, FogType::None);
@@ -74,8 +71,7 @@ TEST(DimensionRenderSettingsTest, EndSettings)
 {
     auto settings = DimensionRenderSettings::end();
 
-    EXPECT_FALSE(settings.hasClouds());
-    EXPECT_TRUE(std::isnan(settings.cloudHeight));
+    EXPECT_FALSE(settings.hasClouds);
     EXPECT_FALSE(settings.hasSky);
     EXPECT_FALSE(settings.hasCeiling);
     EXPECT_EQ(settings.fogType, FogType::End);
@@ -89,23 +85,23 @@ TEST(DimensionRenderSettingsTest, DefaultSettings)
 {
     auto settings = DimensionRenderSettings::getDefault();
 
-    EXPECT_TRUE(settings.hasClouds());
+    EXPECT_TRUE(settings.hasClouds);
     EXPECT_FLOAT_EQ(settings.cloudHeight, 192.0f);
     EXPECT_TRUE(settings.hasSky);
 }
 
 /**
- * @brief 测试 hasClouds 方法
+ * @brief 测试 hasClouds 字段
  */
-TEST(DimensionRenderSettingsTest, HasCloudsMethod)
+TEST(DimensionRenderSettingsTest, HasCloudsField)
 {
     auto overworld = DimensionRenderSettings::overworld();
     auto nether = DimensionRenderSettings::nether();
     auto end = DimensionRenderSettings::end();
 
-    EXPECT_TRUE(overworld.hasClouds());
-    EXPECT_FALSE(nether.hasClouds());
-    EXPECT_FALSE(end.hasClouds());
+    EXPECT_TRUE(overworld.hasClouds);
+    EXPECT_FALSE(nether.hasClouds);
+    EXPECT_FALSE(end.hasClouds);
 }
 
 /**

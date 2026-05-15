@@ -160,7 +160,8 @@ manager.forEachDimension([](Dimension& dim) {
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `cloudHeight` | `f32` | 云高度（NaN 表示无云） |
+| `cloudHeight` | `f32` | 云高度（仅当 hasClouds 为 true 时有效） |
+| `hasClouds` | `bool` | 是否有云（下界和末地为 false） |
 | `hasSky` | `bool` | 是否有天空 |
 | `hasCeiling` | `bool` | 是否有天花板（下界为 true） |
 | `fogType` | `FogType` | 雾类型 |
@@ -173,8 +174,9 @@ manager.forEachDimension([](Dimension& dim) {
 - `end()` - 末地设置（无云，末地雾）
 - `getDefault()` - 默认设置（返回主世界）
 
-**成员方法**:
-- `hasClouds()` - 检查该维度是否有云（通过判断 cloudHeight 是否为 NaN）
+**注意事项**:
+- 由于项目使用 `-ffast-math` 编译选项，NaN 检测不可靠
+- 因此使用显式的 `hasClouds` 布尔字段而非 NaN 来表示是否有云
 
 ## 文件关系图
 
@@ -225,8 +227,6 @@ manager.forEachDimension([](Dimension& dim) {
 | 依赖 | 用途 |
 |------|------|
 | `common/core/Types.hpp` | 基础类型定义（`f32`, `u8`, `bool` 等） |
-| `<cmath>` | `std::isnan()` 用于检测 NaN |
-| `<limits>` | `std::numeric_limits<f32>::quiet_NaN()` |
 
 ### 使用方法
 
@@ -236,8 +236,8 @@ manager.forEachDimension([](Dimension& dim) {
 // 获取主世界渲染设置
 auto settings = DimensionRenderSettings::overworld();
 
-// 检查是否有云
-if (settings.hasClouds()) {
+// 检查是否有云（使用 hasClouds 字段，而非 NaN 检查）
+if (settings.hasClouds) {
     // 在 settings.cloudHeight 高度渲染云
     renderClouds(settings.cloudHeight);
 }
@@ -268,15 +268,13 @@ if (settings.hasNaturalLight) {
 
 ### 容易踩的坑
 
-1. **NaN 检查**: `cloudHeight` 使用 NaN 表示无云，必须使用 `std::isnan()` 检查，不能直接比较
+1. **-ffast-math 与 NaN 检测**: 项目使用 `-ffast-math` 编译选项，会破坏 IEEE 754 NaN 语义
    ```cpp
-   // 错误！NaN 不等于自身
-   if (settings.cloudHeight == settings.cloudHeight) { ... }
-
-   // 正确
+   // 错误！NaN 检测在 -ffast-math 下不可靠
    if (!std::isnan(settings.cloudHeight)) { ... }
-   // 或使用 hasClouds() 方法
-   if (settings.hasClouds()) { ... }
+
+   // 正确！使用显式的 hasClouds 布尔字段
+   if (settings.hasClouds) { ... }
    ```
 
 2. **与 DimensionSettings 混淆**: 注意区分 `DimensionRenderSettings`（渲染）和 `DimensionSettings`（生成）
@@ -301,7 +299,7 @@ if (settings.hasNaturalLight) {
 | `DimensionRenderSettingsTest.NetherSettings` | 测试下界设置（无云、有天花板、无自然光） |
 | `DimensionRenderSettingsTest.EndSettings` | 测试末地设置（无云、末地雾） |
 | `DimensionRenderSettingsTest.DefaultSettings` | 测试 `getDefault()` 返回主世界设置 |
-| `DimensionRenderSettingsTest.HasCloudsMethod` | 测试 `hasClouds()` 方法正确性 |
+| `DimensionRenderSettingsTest.HasCloudsField` | 测试 `hasClouds` 字段正确性 |
 | `DimensionRenderSettingsTest.FogTypeEnumValues` | 测试雾类型枚举值正确 |
 
 ## 传送系统

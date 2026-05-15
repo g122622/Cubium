@@ -24,8 +24,6 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include <cmath>
-#include <limits>
 
 namespace mc::world {
 
@@ -46,19 +44,27 @@ enum class FogType : u8 {
  * 定义各维度特有的渲染参数。
  * 参考 MC 1.16.5 DimensionRenderInfo。
  *
+ * 注意：由于项目使用 -ffast-math 编译选项，NaN 检测不可靠，
+ * 因此使用显式的布尔字段来表示云的存在性。
+ *
  * 使用示例:
  * @code
  * auto settings = DimensionRenderSettings::overworld();
  * float cloudHeight = settings.cloudHeight;
- * if (!std::isnan(cloudHeight)) {
+ * if (settings.hasClouds) {
  *     // 渲染云
  * }
  * @endcode
  */
 struct DimensionRenderSettings {
-    /// 云高度 (NaN 表示该维度无云)
-    /// 主世界: 192.0f, 下界/末地: NaN
+    /// 云高度 (仅当 hasClouds 为 true 时有效)
+    /// 主世界: 192.0f
     f32 cloudHeight;
+
+    /// 是否有云 (下界和末地为 false)
+    /// 注意：必须使用此字段而非 std::isnan(cloudHeight)，
+    /// 因为 -ffast-math 会破坏 NaN 检测
+    bool hasClouds;
 
     /// 是否有天空
     bool hasSky;
@@ -82,6 +88,7 @@ struct DimensionRenderSettings {
     {
         DimensionRenderSettings settings;
         settings.cloudHeight = 192.0f;
+        settings.hasClouds = true;
         settings.hasSky = true;
         settings.hasCeiling = false;
         settings.fogType = FogType::Normal;
@@ -96,7 +103,8 @@ struct DimensionRenderSettings {
     static DimensionRenderSettings nether()
     {
         DimensionRenderSettings settings;
-        settings.cloudHeight = std::numeric_limits<f32>::quiet_NaN();
+        settings.cloudHeight = 0.0f; // 无云时不使用此值
+        settings.hasClouds = false;
         settings.hasSky = false;
         settings.hasCeiling = true;
         settings.fogType = FogType::None;
@@ -111,7 +119,8 @@ struct DimensionRenderSettings {
     static DimensionRenderSettings end()
     {
         DimensionRenderSettings settings;
-        settings.cloudHeight = std::numeric_limits<f32>::quiet_NaN();
+        settings.cloudHeight = 0.0f; // 无云时不使用此值
+        settings.hasClouds = false;
         settings.hasSky = false;
         settings.hasCeiling = false;
         settings.fogType = FogType::End;
@@ -119,11 +128,6 @@ struct DimensionRenderSettings {
         settings.name = "end";
         return settings;
     }
-
-    /**
-     * @brief 检查该维度是否有云
-     */
-    [[nodiscard]] bool hasClouds() const { return !std::isnan(cloudHeight); }
 
     /**
      * @brief 获取默认维度设置 (主世界)

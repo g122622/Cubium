@@ -48,7 +48,6 @@
 #include "TridentSwapchain.hpp"
 #include "buffer/TridentBuffer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include <cmath>
 #include "pipeline/TridentPipeline.hpp"
 #include "render/DescriptorManager.hpp"
 #include "render/FrameManager.hpp"
@@ -599,10 +598,10 @@ Result<void> TridentEngine::render()
     // 参考 MC 1.16.5: WorldRenderer.renderClouds()
     // 云渲染需要满足两个条件：
     // 1. 云模式不为 Off（通过 m_cloudMode 控制，在 CloudRenderer::render 中检查）
-    // 2. 当前维度有云（云高度不为 NaN）
+    // 2. 当前维度有云（m_hasClouds 为 true）
     if (m_cloudRendererInitialized && m_cloudRenderer && m_skyRendererInitialized && m_skyRendererPtr) {
-        // 检查当前维度是否有云（NaN 表示无云维度，如下界和末地）
-        if (!std::isnan(m_cloudHeight)) {
+        // 检查当前维度是否有云
+        if (m_hasClouds) {
             glm::dvec3 cameraPos(0.0);
             if (m_frameContext.camera) {
                 cameraPos = m_frameContext.camera->position();
@@ -1201,9 +1200,10 @@ void TridentEngine::setCloudMode(cloud::CloudMode mode)
     }
 }
 
-void TridentEngine::setCloudHeight(f64 cloudHeight)
+void TridentEngine::setCloudHeight(f64 cloudHeight, bool hasClouds)
 {
     m_cloudHeight = cloudHeight;
+    m_hasClouds = hasClouds;
 }
 
 void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor)

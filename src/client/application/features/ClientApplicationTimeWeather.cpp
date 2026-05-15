@@ -97,9 +97,10 @@ void ClientApplication::updateCloudHeight()
     const DimensionId currentDim = m_dimensionManager.currentDimension();
     const world::DimensionRenderSettings settings = getDimensionRenderSettings(currentDim);
 
-    // 传递云高度到渲染器
-    // NaN 表示该维度无云（如下界和末地），渲染器会跳过云渲染
-    m_renderer->setCloudHeight(static_cast<f64>(settings.cloudHeight));
+    // 传递云高度和是否有云到渲染器
+    // 注意：由于项目使用 -ffast-math，NaN 检测不可靠，
+    // 因此使用显式的 hasClouds 布尔字段
+    m_renderer->setCloudHeight(static_cast<f64>(settings.cloudHeight), settings.hasClouds);
 }
 
 world::DimensionRenderSettings ClientApplication::getDimensionRenderSettings(DimensionId dimensionId) const

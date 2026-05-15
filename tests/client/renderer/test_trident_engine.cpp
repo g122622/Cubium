@@ -47,8 +47,6 @@
 #include "client/renderer/trident/core/texture/TridentTexture.hpp"
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"
-#include <cmath>
-#include <limits>
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
@@ -1053,31 +1051,19 @@ TEST_F(CloudHeightTest, CloudHeightDefaultValue)
     // 这里测试 DimensionRenderSettings 的默认值
     auto overworld = world::DimensionRenderSettings::overworld();
     EXPECT_FLOAT_EQ(overworld.cloudHeight, 192.0f);
-    EXPECT_TRUE(overworld.hasClouds());
+    EXPECT_TRUE(overworld.hasClouds);
 }
 
-TEST_F(CloudHeightTest, CloudHeightNaNIndicatesNoClouds)
+TEST_F(CloudHeightTest, CloudHeightFieldIndicatesNoClouds)
 {
-    // NaN 云高度表示该维度无云
+    // hasClouds 字段指示该维度是否有云
+    // 注意：由于项目使用 -ffast-math，NaN 检测不可靠，
+    // 因此使用显式的 hasClouds 布尔字段
     auto nether = world::DimensionRenderSettings::nether();
     auto end = world::DimensionRenderSettings::end();
 
-    EXPECT_TRUE(std::isnan(nether.cloudHeight));
-    EXPECT_TRUE(std::isnan(end.cloudHeight));
-    EXPECT_FALSE(nether.hasClouds());
-    EXPECT_FALSE(end.hasClouds());
-}
-
-TEST_F(CloudHeightTest, CloudHeightNaNCheck)
-{
-    // 测试 NaN 检查逻辑
-    f64 overworldHeight = 192.0;
-    f64 netherHeight = std::numeric_limits<f64>::quiet_NaN();
-    f64 endHeight = std::numeric_limits<f64>::quiet_NaN();
-
-    EXPECT_FALSE(std::isnan(overworldHeight));
-    EXPECT_TRUE(std::isnan(netherHeight));
-    EXPECT_TRUE(std::isnan(endHeight));
+    EXPECT_FALSE(nether.hasClouds);
+    EXPECT_FALSE(end.hasClouds);
 }
 
 TEST_F(CloudHeightTest, DimensionRenderSettingsForAllDimensions)
@@ -1088,7 +1074,7 @@ TEST_F(CloudHeightTest, DimensionRenderSettingsForAllDimensions)
     auto end = world::DimensionRenderSettings::end();
 
     // 主世界有云
-    EXPECT_TRUE(overworld.hasClouds());
+    EXPECT_TRUE(overworld.hasClouds);
     EXPECT_FLOAT_EQ(overworld.cloudHeight, 192.0f);
     EXPECT_TRUE(overworld.hasSky);
     EXPECT_FALSE(overworld.hasCeiling);
@@ -1096,16 +1082,14 @@ TEST_F(CloudHeightTest, DimensionRenderSettingsForAllDimensions)
     EXPECT_TRUE(overworld.hasNaturalLight);
 
     // 下界无云
-    EXPECT_FALSE(nether.hasClouds());
-    EXPECT_TRUE(std::isnan(nether.cloudHeight));
+    EXPECT_FALSE(nether.hasClouds);
     EXPECT_FALSE(nether.hasSky);
     EXPECT_TRUE(nether.hasCeiling);
     EXPECT_EQ(nether.fogType, world::FogType::None);
     EXPECT_FALSE(nether.hasNaturalLight);
 
     // 末地无云
-    EXPECT_FALSE(end.hasClouds());
-    EXPECT_TRUE(std::isnan(end.cloudHeight));
+    EXPECT_FALSE(end.hasClouds);
     EXPECT_FALSE(end.hasSky);
     EXPECT_FALSE(end.hasCeiling);
     EXPECT_EQ(end.fogType, world::FogType::End);

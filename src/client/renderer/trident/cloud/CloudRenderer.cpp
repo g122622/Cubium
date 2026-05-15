@@ -484,7 +484,9 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     CloudMode mode,
     u32 frameIndex)
 {
-    if (!m_initialized || mode == CloudMode::Off || std::isnan(m_cloudHeight)) {
+    // 注意：云渲染的存在性检查已在 TridentEngine::render() 中通过 m_hasClouds 完成
+    // 此处只需检查初始化状态和云模式
+    if (!m_initialized || mode == CloudMode::Off) {
         return;
     }
 
