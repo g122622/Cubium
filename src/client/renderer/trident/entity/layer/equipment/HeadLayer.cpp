@@ -25,6 +25,7 @@
 #include "../../../item/ItemMeshBuilder.hpp"
 #include "../../core/AnimationContext.hpp"
 #include "../../model/base/BipedModel.hpp"
+#include "../../model/player/PlayerModel.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -219,6 +220,6 @@ void HeadLayer<TEntity, TModel>::computeHeadTransform(f32 headYaw, f32 headPitch
 
 // 显式实例化常用类型
 template class HeadLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
-template class HeadLayer<::mc::Player, ::mc::client::renderer::entity::model::BipedModel>;
+template class HeadLayer<::mc::Player, ::mc::client::renderer::entity::model::player::PlayerModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

@@ -26,6 +26,7 @@
 #include "../../model/core/ModelRenderer.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -325,5 +326,6 @@ void ElytraLayer<TEntity>::setCapeTexture(const TextureRegion* region)
 
 // 显式实例化
 template class ElytraLayer<::mc::LivingEntity>;
+template class ElytraLayer<::mc::Player>;
 
 } // namespace mc::client::renderer::entity::layer::cosmetic

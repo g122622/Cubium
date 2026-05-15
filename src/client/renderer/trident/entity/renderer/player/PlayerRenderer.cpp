@@ -22,8 +22,12 @@
 */
 
 #include "PlayerRenderer.hpp"
+#include "../../layer/cosmetic/CapeLayer.hpp"
+#include "../../layer/cosmetic/ElytraLayer.hpp"
+#include "../../layer/equipment/HeadLayer.hpp"
 #include "../../layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <spdlog/spdlog.h>
 
 // 使用命名空间简化代码
@@ -75,8 +79,31 @@ void PlayerRenderer::renderLayersPipeline(
 {
     auto& player = static_cast<::mc::Player&>(entity);
 
+    // 在渲染层之前，将纹理传递给需要的层渲染器
+    // 由于层渲染器存储在基类指针向量中，我们需要使用 dynamic_cast 来设置纹理
     for (auto& layer : m_layers) {
         if (layer && layer->shouldRender(player)) {
+            // 尝试设置纹理（如果层支持）
+            // CapeLayer
+            if (m_capeRegion) {
+                auto* capeLayer = dynamic_cast<cosmetic::CapeLayer*>(layer.get());
+                if (capeLayer) {
+                    capeLayer->setCapeTexture(m_capeRegion);
+                }
+            }
+            // ElytraLayer
+            if (m_elytraRegion || m_capeRegion) {
+                auto* elytraLayer = dynamic_cast<cosmetic::ElytraLayer<::mc::Player>*>(layer.get());
+                if (elytraLayer) {
+                    if (m_elytraRegion) {
+                        elytraLayer->setElytraTexture(m_elytraRegion);
+                    }
+                    if (m_capeRegion) {
+                        elytraLayer->setCapeTexture(m_capeRegion);
+                    }
+                }
+            }
+
             layer->renderPipeline(player, cmd, context, pipeline);
         }
     }
@@ -259,6 +286,29 @@ f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const
     return static_cast<f64>(player.ticksExisted());
 }
 
+ResourceLocation PlayerRenderer::getEntityTexture(::mc::Player& entity)
+{
+    // 返回玩家皮肤纹理位置
+    // 如果设置了自定义纹理，使用纹理区域的位置
+    // 否则返回默认 Steve 皮肤
+    (void)entity;
+    if (m_skinRegion) {
+        // 使用皮肤纹理区域的位置
+        return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
+    }
+    // 返回默认 Steve 皮肤
+    return ResourceLocation("minecraft:textures/entity/steve.png");
+}
+
+ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) const
+{
+    (void)entity;
+    if (m_skinRegion) {
+        return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
+    }
+    return ResourceLocation("minecraft:textures/entity/steve.png");
+}
+
 void PlayerRenderer::setupLayers()
 {
     // 参考 MC 1.16.5 PlayerRenderer 构造函数
@@ -267,14 +317,18 @@ void PlayerRenderer::setupLayers()
     // 创建手持物品层渲染器（主手和副手）
     m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player>>());
 
-    // 头部物品层（头盔等）- TODO 暂时注释，等待完整实现
-    // m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player>>());
+    // 头部物品层（头盔等）
+    // 参考 MC 1.16.5: this.addLayer(new HeadLayer<>(this));
+    // HeadLayer 需要匹配 IEntityRenderer<Player, PlayerModel> 接口
+    m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player, model::player::PlayerModel>>(*this));
 
-    // 披风层 - TODO 暂时注释，等待完整实现
-    // m_layers.push_back(std::make_unique<cosmetic::CapeLayer<::mc::Player>>());
+    // 披风层
+    // 参考 MC 1.16.5: this.addLayer(new CapeLayer(this));
+    m_layers.push_back(std::make_unique<cosmetic::CapeLayer>());
 
-    // 鞘翅层 - TODO 暂时注释，等待完整实现
-    // m_layers.push_back(std::make_unique<cosmetic::ElytraLayer<::mc::Player>>());
+    // 鞘翅层
+    // 参考 MC 1.16.5: this.addLayer(new ElytraLayer<>(this));
+    m_layers.push_back(std::make_unique<cosmetic::ElytraLayer<::mc::Player>>());
 
     spdlog::debug("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
 }

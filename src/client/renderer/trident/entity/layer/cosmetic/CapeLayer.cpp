@@ -26,6 +26,8 @@
 #include "../../model/core/ModelRenderer.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
@@ -102,12 +104,29 @@ void CapeLayer::render(::mc::Player& entity,
 
 bool CapeLayer::shouldRender(const ::mc::Player& entity) const
 {
-    (void)entity;
-    // 检查玩家是否有斗篷纹理
-    // 在完整实现中，还需要检查：
-    // 1. 玩家档案中是否有 capeUrl
-    // 2. 是否在观察者模式（不可见）
-    return m_customCapeRegion != nullptr;
+    // 参考 MC 1.16.5 CapeLayer.shouldRender()
+    // 检查条件：
+    // 1. 玩家开启了披风显示（PlayerModelPart::Cape）
+    // 2. 玩家有披风纹理
+    // 3. 玩家没有穿戴鞘翅（鞘翅会覆盖披风）
+
+    // 检查是否开启了披风显示
+    if (!entity.isWearing(::mc::PlayerModelPart::Cape)) {
+        return false;
+    }
+
+    // 检查是否有披风纹理
+    if (m_customCapeRegion == nullptr) {
+        return false;
+    }
+
+    // 检查是否穿戴了鞘翅（鞘翅会覆盖披风）
+    const auto& chest = entity.getEquipment(::mc::EquipmentSlot::Chest);
+    if (!chest.isEmpty() && chest.getItem() == ::mc::Items::ELYTRA) {
+        return false;
+    }
+
+    return true;
 }
 
 f32 CapeLayer::calculateCapeSwing(
