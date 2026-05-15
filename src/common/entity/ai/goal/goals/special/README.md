@@ -997,6 +997,92 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 
 ---
 
+## EvokerGoals - 唤魔者专用目标
+
+包含唤魔者的尖牙攻击和召唤恼鬼目标。
+
+### EvokerAttackSpellGoal - 尖牙攻击目标
+
+**职责**: 控制唤魔者对目标发动尖牙攻击。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.SpellcastingIllagerEntity.SpellGoal` 子类
+
+**攻击模式**:
+
+| 模式 | 条件 | 尖牙排列 |
+|------|------|----------|
+| 近距离 | 目标距离 < 3 格 | 双圈（内圈5个，外圈8个） |
+| 远距离 | 目标距离 >= 3 格 | 直线16个尖牙 |
+
+**近距攻击参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| INNER_RADIUS | 1.5f | 内圈半径 |
+| INNER_COUNT | 5 | 内圈尖牙数 |
+| OUTER_RADIUS | 2.5f | 外圈半径 |
+| OUTER_COUNT | 8 | 外圈尖牙数 |
+
+**远距攻击参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| FANG_COUNT | 16 | 直线尖牙数 |
+| FANG_SPACING | 1.25f | 尖牙间距 |
+
+**施法参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| WARMUP_DELAY | 0 | 尖牙攻击无预热延迟 |
+| CASTING_TIME | 40 | 施法时间 (ticks) |
+| COOLDOWN | 100 | 冷却时间 (ticks) |
+
+### EvokerSummonSpellGoal - 召唤恼鬼目标
+
+**职责**: 控制唤魔者召唤恼鬼助战。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.EvokerEntity.SummonSpellGoal`
+
+**召唤条件**:
+- 周围恼鬼数量 < 8 个
+- 施法冷却已过
+
+**召唤参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| VEX_SUMMON_COUNT | 3 | 每次召唤数量 |
+| VEX_SEARCH_RANGE | 16.0f | 搜索恼鬼范围 |
+| MAX_VEX_COUNT | 8 | 最大恼鬼数量 |
+| MIN_LIFE_TIME | 600 | 最短生命 (ticks, 30秒) |
+| MAX_LIFE_TIME | 2400 | 最长生命 (ticks, 120秒) |
+| SPAWN_OFFSET_MIN | -2 | 生成位置偏移最小值 |
+| SPAWN_OFFSET_MAX | 2 | 生成位置偏移最大值 |
+| CASTING_TIME | 100 | 施法时间 (ticks) |
+| COOLDOWN | 340 | 冷却时间 (ticks) |
+
+**countNearbyVexes() 实现**:
+使用 `IWorld::getEntitiesInAABB()` 统计唤魔者周围 16 格内的恼鬼数量：
+
+```cpp
+i32 EvokerSummonSpellGoal::countNearbyVexes() const
+{
+    if (m_evoker == nullptr || m_evoker->world() == nullptr) {
+        return 0;
+    }
+    IWorld* world = m_evoker->world();
+    AxisAlignedBB searchBox = m_evoker->boundingBox().grow(16.0f);
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_evoker);
+    i32 vexCount = 0;
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->isRemoved()) continue;
+        if (entity->legacyType() == LegacyEntityType::Vex) vexCount++;
+    }
+    return vexCount;
+}
+```
+
+**互斥标志**: `Move`, `Look`
+
+---
+
 ## 涉及的测试用例
 
 | 测试名称 | 说明 |

@@ -110,6 +110,19 @@ void VexEntity::tick() {
 - 造成 1.0 点饥饿伤害
 - 恼鬼逐渐死亡
 
+### VexEntity::create() 实现
+
+恼鬼实体的 `create()` 工厂方法已修正为使用正确的 `LegacyEntityType::Vex` 类型：
+
+```cpp
+std::unique_ptr<VexEntity> VexEntity::create(EntityId id)
+{
+    return std::make_unique<VexEntity>(LegacyEntityType::Vex, id);
+}
+```
+
+**注意**: 之前版本使用了 `LegacyEntityType::Unknown`，导致 `countNearbyVexes()` 无法正确识别恼鬼类型。
+
 ### 参考 MC 1.16.5
 
 ```
