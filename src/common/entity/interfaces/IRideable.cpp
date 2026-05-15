@@ -61,7 +61,7 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
 
             // MC 1.16.5: mount.stepHeight = 1.0F;
             // 骑乘时步进高度增加到1.0，允许跨越1格高的方块
-            // mount.setStepHeight(1.0f);
+            mount.setStepHeight(1.0f);
 
             // MC 1.16.5: mount.jumpMovementFactor = mount.getAIMoveSpeed() * 0.1F;
             // 骑乘时跳跃移动因子基于AI移动速度
@@ -111,7 +111,7 @@ bool IRideable::ride(MobEntity& mount, BoostHelper& helper, const Vector3& trave
     // MC 1.16.5: 未被骑乘或无法控制时
     // mount.stepHeight = 0.5F;
     // mount.jumpMovementFactor = 0.02F;
-    // mount.setStepHeight(0.5f);
+    mount.setStepHeight(0.5f);
     // mount.setJumpMovementFactor(0.02f);
     travelTowards(travelVec);
     return false;

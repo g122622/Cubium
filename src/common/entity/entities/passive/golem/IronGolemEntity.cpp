@@ -47,8 +47,9 @@ namespace mc {
 IronGolemEntity::IronGolemEntity(LegacyEntityType type, EntityId id)
     : GolemEntity(type, id)
 {
-    // 设置步高（MC 1.16.5: stepHeight = 1.0F）
-    // TODO: 实现setStepHeight方法
+    // MC 1.16.5: IronGolemEntity 构造函数中设置 stepHeight = 1.0F
+    // 铁傀儡可以走上1格高的方块
+    setStepHeight(1.0f);
 
     // 注册 AI 目标
     registerGoals();

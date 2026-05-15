@@ -69,6 +69,9 @@ LivingEntity::LivingEntity(LegacyEntityType type, EntityId id, IWorld* world)
     : Entity(type, id, world)
     , m_combatTracker(this)
 {
+    // MC 1.16.5: LivingEntity 构造函数中设置 stepHeight = 0.6F
+    setStepHeight(physics::STEP_HEIGHT);
+
     // 初始化装备槽
     for (auto& slot : m_equipment) {
         slot = ItemStack();

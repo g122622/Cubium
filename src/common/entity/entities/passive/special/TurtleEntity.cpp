@@ -40,6 +40,10 @@ namespace mc {
 TurtleEntity::TurtleEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
 {
+    // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
+    // 海龟可以走上1格高的方块
+    setStepHeight(1.0f);
+
     // 注册 AI 目标
     registerGoals();
 

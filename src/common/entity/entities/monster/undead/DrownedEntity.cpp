@@ -30,6 +30,10 @@ namespace mc {
 DrownedEntity::DrownedEntity(LegacyEntityType type, EntityId id)
     : ZombieEntity(type, id)
 {
+    // MC 1.16.5: DrownedEntity 构造函数中设置 stepHeight = 1.0F
+    // 溺尸可以走上1格高的方块
+    setStepHeight(1.0f);
+
     // 注册属性
     registerAttributes();
 

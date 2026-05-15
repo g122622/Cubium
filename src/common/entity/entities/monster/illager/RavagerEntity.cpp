@@ -31,6 +31,10 @@ namespace mc {
 RavagerEntity::RavagerEntity(LegacyEntityType type, EntityId id)
     : AbstractRaiderEntity(type, id)
 {
+    // MC 1.16.5: RavagerEntity 构造函数中设置 stepHeight = 1.0F
+    // 劫掠兽可以走上1格高的方块
+    setStepHeight(1.0f);
+
     // 劫掠兽体型大 - 通过 width()/height() 设置
 }
 

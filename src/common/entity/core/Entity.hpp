@@ -615,9 +615,22 @@ public:
 
     /**
      * @brief 获取步进高度
-     * @return 实体可以自动步进的最大高度（玩家为0.6）
+     * @return 实体可以自动步进的最大高度（默认为0，LivingEntity默认为0.6）
      */
-    [[nodiscard]] virtual f32 stepHeight() const { return 0.0f; }
+    [[nodiscard]] virtual f32 stepHeight() const { return m_stepHeight; }
+
+    /**
+     * @brief 设置步进高度
+     *
+     * 参考 MC 1.16.5 Entity.stepHeight
+     * 用于设置实体可以自动步进的最大高度：
+     * - 玩家/大多数生物：0.6（可走上台阶）
+     * - 马、铁傀儡、末影人等：1.0（可走上完整方块）
+     * - 盔甲架：0.0（无法步进）
+     *
+     * @param height 步进高度
+     */
+    void setStepHeight(f32 height) { m_stepHeight = height; }
 
     // ========== 碰撞箱 ==========
 
@@ -1902,6 +1915,7 @@ protected:
     bool m_collidedHorizontally = false;
     bool m_collidedVertically = false;
     f32 m_fallDistance = 0.0f;
+    f32 m_stepHeight = 0.0f; // 步进高度，默认0.0f，LivingEntity设置为0.6f
 
     DimensionId m_dimension = 0;
     u32 m_ticksExisted = 0;

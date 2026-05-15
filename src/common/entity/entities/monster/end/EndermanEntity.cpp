@@ -38,6 +38,10 @@ EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
     // MC 1.16.5: 末影人不在阳光下燃烧
     setBurnsInDaylight(false);
 
+    // MC 1.16.5: EndermanEntity 构造函数中设置 stepHeight = 1.0F
+    // 末影人可以走上1格高的方块
+    setStepHeight(1.0f);
+
     // 注册 AI 目标
     registerGoals();
 
