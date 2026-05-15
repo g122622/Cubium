@@ -125,6 +125,16 @@ public:
     void setRevengeTarget(LivingEntity* target) override;
 
     /**
+     * @brief 获取复仇目标 (IAngerable接口实现)
+     */
+    [[nodiscard]] LivingEntity* getRevengeTarget() const override;
+
+    /**
+     * @brief 获取复仇计时器 (IAngerable接口实现)
+     */
+    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+
+    /**
      * @brief 是否愤怒 (IAngerable接口实现)
      */
     [[nodiscard]] bool isAngry() const override { return m_angry || m_angerTime > 0; }
@@ -252,6 +262,8 @@ protected:
 private:
     // IAngerable接口
     LivingEntity* m_attackTarget = nullptr;
+    std::optional<u64> m_revengeTargetId;
+    i32 m_revengeTimer = 0;
 
     // 愤怒状态
     bool m_angry = false;

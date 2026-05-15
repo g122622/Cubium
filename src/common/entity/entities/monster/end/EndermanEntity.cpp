@@ -22,12 +22,12 @@
 */
 
 #include "EndermanEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include <cmath>
 
 namespace mc {
@@ -89,7 +89,29 @@ void EndermanEntity::setRevengeTarget(LivingEntity* target)
     if (target != nullptr) {
         setAngry(true);
         m_angerTime = ANGER_DURATION;
+        m_revengeTargetId = target->id();
+        m_revengeTimer = ANGER_DURATION;
+    } else {
+        m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
     }
+}
+
+LivingEntity* EndermanEntity::getRevengeTarget() const
+{
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    // 从世界获取复仇目标
+    IWorld* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (!entity || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 void EndermanEntity::setAngry(bool angry)
@@ -226,6 +248,14 @@ void EndermanEntity::tick()
     // 更新瞬移冷却
     if (m_teleportCooldown > 0) {
         m_teleportCooldown--;
+    }
+
+    // 更新复仇计时器
+    if (m_revengeTimer > 0) {
+        m_revengeTimer--;
+        if (m_revengeTimer <= 0) {
+            m_revengeTargetId = std::nullopt;
+        }
     }
 
     // 更新愤怒时间

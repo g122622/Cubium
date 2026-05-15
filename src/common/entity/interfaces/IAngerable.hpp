@@ -65,6 +65,18 @@ public:
     virtual void setRevengeTarget(LivingEntity* target) = 0;
 
     /**
+     * @brief 获取复仇目标（最近攻击自己的实体）
+     * @return 复仇目标，可能为nullptr
+     */
+    virtual LivingEntity* getRevengeTarget() const = 0;
+
+    /**
+     * @brief 获取复仇计时器
+     * @return 复仇计时器值（ticks）
+     */
+    virtual i32 getRevengeTimer() const = 0;
+
+    /**
      * @brief 检查是否处于愤怒状态
      * @return 如果实体正在愤怒则返回true
      */

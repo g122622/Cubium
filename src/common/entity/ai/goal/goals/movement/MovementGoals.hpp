@@ -130,5 +130,41 @@ private:
     static constexpr f32 MAX_DISTANCE = 8.0f; // 最大跳跃距离
 };
 
+/**
+ * @brief 向目标移动目标
+ *
+ * 向攻击目标移动，但不执行攻击。
+ * 与MeleeAttackGoal不同，此目标只负责移动。
+ *
+ * 参考 MC 1.16.5 MoveTowardsTargetGoal
+ */
+class MoveTowardsTargetGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param creature 拥有此目标的生物
+     * @param speed 移动速度倍率
+     * @param maxTargetDistance 最大目标距离
+     */
+    MoveTowardsTargetGoal(CreatureEntity* creature, f64 speed, f32 maxTargetDistance);
+
+    ~MoveTowardsTargetGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    [[nodiscard]] std::string getTypeName() const override { return "MoveTowardsTargetGoal"; }
+
+private:
+    CreatureEntity* m_creature;
+    LivingEntity* m_targetEntity = nullptr;
+    f64 m_speed;
+    f32 m_maxTargetDistance;
+    f64 m_targetX = 0.0;
+    f64 m_targetY = 0.0;
+    f64 m_targetZ = 0.0;
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

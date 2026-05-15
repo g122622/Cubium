@@ -154,6 +154,16 @@ public:
     void setRevengeTarget(LivingEntity* target) override;
 
     /**
+     * @brief 获取复仇目标 (IAngerable)
+     */
+    [[nodiscard]] LivingEntity* getRevengeTarget() const override;
+
+    /**
+     * @brief 获取复仇计时器 (IAngerable)
+     */
+    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+
+    /**
      * @brief 是否愤怒 (IAngerable)
      */
     [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
@@ -234,8 +244,9 @@ private:
 
     // ========== 愤怒系统 ==========
     LivingEntity* m_attackTarget = nullptr;
+    std::optional<u64> m_revengeTargetId;
+    i32 m_revengeTimer = 0;
     i32 m_angerTime = 0;
-    std::optional<std::string> m_revengeTargetId;
 
     // ========== 常量 ==========
     static constexpr i32 STAND_DURATION_MIN = 100;    // 最小站立时间 (ticks)

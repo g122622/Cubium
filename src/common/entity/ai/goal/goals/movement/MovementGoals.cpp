@@ -25,11 +25,14 @@
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/Vector3.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../core/CreatureEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
 #include "../../../controller/MovementController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "../../../util/RandomPositionGenerator.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -234,6 +237,90 @@ void LeapAtTargetGoal::resetTask()
     m_leaped = false;
     if (m_mob) {
         m_mob->setJumping(false);
+    }
+}
+
+// ==================== MoveTowardsTargetGoal ====================
+
+MoveTowardsTargetGoal::MoveTowardsTargetGoal(CreatureEntity* creature, f64 speed, f32 maxTargetDistance)
+    : m_creature(creature)
+    , m_speed(speed)
+    , m_maxTargetDistance(maxTargetDistance)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
+}
+
+bool MoveTowardsTargetGoal::shouldExecute()
+{
+    if (!m_creature) return false;
+
+    // 获取攻击目标
+    LivingEntity* target = m_creature->attackTarget();
+    if (!target || !target->isAlive()) {
+        return false;
+    }
+
+    // 检查距离是否在最大范围内
+    f64 distSq = m_creature->distanceSqTo(*target);
+    f32 maxDistSq = m_maxTargetDistance * m_maxTargetDistance;
+    if (distSq > static_cast<f64>(maxDistSq)) {
+        return false;
+    }
+
+    // 使用 RandomPositionGenerator 找到朝向目标的随机位置
+    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards(this, 16, 7, target.getPositionVec())
+    auto* world = m_creature->world();
+    if (!world) return false;
+
+    Vector3 targetPos = target->position();
+    Vector3 randomPos;
+
+    // 使用 RandomPositionGenerator 找到朝向目标的位置
+    if (!entity::ai::util::RandomPositionGenerator::findRandomTargetTowards(
+            m_creature, 16, 7, targetPos, randomPos)) {
+        return false;
+    }
+
+    m_targetEntity = target;
+    m_targetX = randomPos.x;
+    m_targetY = randomPos.y;
+    m_targetZ = randomPos.z;
+    return true;
+}
+
+bool MoveTowardsTargetGoal::shouldContinueExecuting()
+{
+    if (!m_creature || !m_targetEntity) return false;
+
+    // 检查路径是否还在进行中
+    auto* nav = m_creature->navigator();
+    if (!nav || nav->noPath()) {
+        return false;
+    }
+
+    // 检查目标是否还活着
+    if (!m_targetEntity->isAlive()) {
+        return false;
+    }
+
+    // 检查距离是否仍在范围内
+    f64 distSq = m_creature->distanceSqTo(*m_targetEntity);
+    f32 maxDistSq = m_maxTargetDistance * m_maxTargetDistance;
+    return distSq < static_cast<f64>(maxDistSq);
+}
+
+void MoveTowardsTargetGoal::startExecuting()
+{
+    if (m_creature) {
+        m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+    }
+}
+
+void MoveTowardsTargetGoal::resetTask()
+{
+    m_targetEntity = nullptr;
+    if (m_creature) {
+        m_creature->clearNavigation();
     }
 }
 

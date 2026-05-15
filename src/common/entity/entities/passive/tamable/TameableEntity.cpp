@@ -69,10 +69,29 @@ void TameableEntity::setRevengeTarget(LivingEntity* target)
 {
     if (target != nullptr) {
         m_revengeTargetId = target->id();
+        m_revengeTimer = MAX_ANGER_TIME;
         setAngerTime(MAX_ANGER_TIME);
     } else {
         m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
     }
+}
+
+LivingEntity* TameableEntity::getRevengeTarget() const
+{
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    // 从世界获取复仇目标
+    IWorld* worldPtr = const_cast<IWorld*>(this->world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (!entity || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 void TameableEntity::setAngry(bool angry)

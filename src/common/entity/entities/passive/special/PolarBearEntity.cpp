@@ -141,11 +141,30 @@ void PolarBearEntity::setRevengeTarget(LivingEntity* target)
     if (target != nullptr) {
         math::Random rng = getRandom();
         m_angerTime = rng.nextInt(ANGER_TIME_MIN, ANGER_TIME_MAX);
-        m_revengeTargetId = target->uuid();
+        m_revengeTargetId = target->id();
+        m_revengeTimer = MAX_ANGER_TIME;
     } else {
         m_angerTime = 0;
         m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
     }
+}
+
+LivingEntity* PolarBearEntity::getRevengeTarget() const
+{
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    // 从世界获取复仇目标
+    IWorld* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (!entity || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 void PolarBearEntity::setAngry(bool angry)
@@ -157,6 +176,7 @@ void PolarBearEntity::setAngry(bool angry)
         m_angerTime = 0;
         m_attackTarget = nullptr;
         m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
     }
 }
 
@@ -166,6 +186,12 @@ void PolarBearEntity::updateAnger()
         --m_angerTime;
         if (m_angerTime <= 0) {
             m_attackTarget = nullptr;
+            m_revengeTargetId = std::nullopt;
+        }
+    }
+    if (m_revengeTimer > 0) {
+        --m_revengeTimer;
+        if (m_revengeTimer <= 0) {
             m_revengeTargetId = std::nullopt;
         }
     }

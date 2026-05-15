@@ -219,6 +219,16 @@ public:
     void setRevengeTarget(LivingEntity* target) override;
 
     /**
+     * @brief 获取复仇目标 (IAngerable)
+     */
+    [[nodiscard]] LivingEntity* getRevengeTarget() const override;
+
+    /**
+     * @brief 获取复仇计时器 (IAngerable)
+     */
+    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
+
+    /**
      * @brief 是否愤怒 (IAngerable)
      *
      * MC 1.16.5: return this.getAngerTime() > 0
@@ -313,6 +323,8 @@ private:
 
     // ========== 愤怒系统 ==========
     LivingEntity* m_attackTarget = nullptr;
+    std::optional<u64> m_revengeTargetId;
+    i32 m_revengeTimer = 0;
     i32 m_angerTime = 0; // 本地缓存，从 DataParameter 同步
     bool m_attacking = false;
     u64 m_targetPlayerId = 0;

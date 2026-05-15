@@ -44,6 +44,7 @@ class VillagerEntity;
  * - 击飞：攻击会将敌人击飞
  * - 生成：村民足够多时自然生成
  * - 掉落：铁锭、罂粟
+ * - 送花：偶尔给村民展示罂粟花
  *
  * 参考 MC 1.16.5 IronGolemEntity
  */
@@ -106,6 +107,24 @@ public:
      */
     void setPlayerCreated(bool created) { m_playerCreated = created; }
 
+    // ========== 送花状态 ==========
+
+    /**
+     * @brief 是否手持花朵（给村民展示罂粟花）
+     */
+    [[nodiscard]] bool isHoldingRose() const { return m_holdRoseTick > 0; }
+
+    /**
+     * @brief 获取持花倒计时
+     */
+    [[nodiscard]] i32 getHoldRoseTick() const { return m_holdRoseTick; }
+
+    /**
+     * @brief 设置手持花朵状态
+     * @param holding 是否手持花朵
+     */
+    void setHoldingRose(bool holding);
+
     // ========== 属性 ==========
 
     /**
@@ -127,6 +146,24 @@ public:
 
     void tick() override;
 
+    // ========== 战斗 ==========
+
+    /**
+     * @brief 近战攻击实体
+     * @param target 目标实体
+     * @return 是否成功攻击
+     */
+    bool attackEntityAsMob(LivingEntity& target) override;
+
+    // ========== 实体类型检查 ==========
+
+    /**
+     * @brief 检查是否可以攻击指定实体类型
+     * @param entityType 实体类型
+     * @return 是否可以攻击
+     */
+    [[nodiscard]] bool canAttackEntity(LegacyEntityType entityType) const;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -145,11 +182,14 @@ private:
     // 攻击冷却
     i32 m_attackCooldown = 0;
 
+    // 送花状态
+    i32 m_holdRoseTick = 0;
+
     // 常量
-    static constexpr i32 ATTACK_DURATION = 10; // 攻击动画持续时间
-    static constexpr i32 ATTACK_COOLDOWN = 20; // 攻击冷却
-    static constexpr f32 ATTACK_DAMAGE = 7.0f; // 攻击伤害
-    static constexpr f32 KNOCKBACK = 1.5f;     // 击退力度
+    static constexpr i32 ATTACK_DURATION = 10;  // 攻击动画持续时间
+    static constexpr i32 ATTACK_COOLDOWN = 20;  // 攻击冷却
+    static constexpr f32 ATTACK_DAMAGE = 7.0f;  // 攻击伤害
+    static constexpr f32 KNOCKBACK = 1.5f;      // 击退力度
 };
 
 } // namespace mc

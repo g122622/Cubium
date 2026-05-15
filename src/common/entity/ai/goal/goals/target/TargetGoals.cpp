@@ -31,6 +31,7 @@
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../interfaces/IAngerable.hpp"
 #include "../../../controller/LookController.hpp"
 #include <cmath>
 #include <limits>
@@ -430,5 +431,108 @@ void NonTamedTargetGoal<T>::startExecuting()
 {
     TargetGoal::startExecuting();
 }
+
+// ==================== ResetAngerGoal ====================
+
+template <typename T>
+ResetAngerGoal<T>::ResetAngerGoal(T* mob, bool alertOthers)
+    : m_mob(mob)
+    , m_alertOthers(alertOthers)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Target});
+}
+
+template <typename T>
+bool ResetAngerGoal<T>::shouldExecute()
+{
+    if (!m_mob) return false;
+
+    // MC 1.16.5: 检查 UNIVERSAL_ANGER 游戏规则和复仇条件
+    // 由于当前项目没有实现 UNIVERSAL_ANGER 游戏规则，简化实现
+    // 原版逻辑：return this.field_241383_a_.world.getGameRules().getBoolean(GameRules.UNIVERSAL_ANGER) && this.shouldGetRevengeOnPlayer();
+    // 当前简化：直接检查是否应该复仇
+    return shouldGetRevengeOnPlayer();
+}
+
+template <typename T>
+bool ResetAngerGoal<T>::shouldGetRevengeOnPlayer() const
+{
+    if (!m_mob) return false;
+
+    // MC 1.16.5: 检查复仇目标是否是玩家，并且复仇计时器更新
+    LivingEntity* revengeTarget = m_mob->getRevengeTarget();
+    if (!revengeTarget) return false;
+
+    // 检查复仇目标是否是玩家
+    Player* player = dynamic_cast<Player*>(revengeTarget);
+    if (!player) return false;
+
+    // 检查复仇计时器是否更新（避免重复触发）
+    i32 revengeTimer = m_mob->getRevengeTimer();
+    return revengeTimer > m_revengeTimer;
+}
+
+template <typename T>
+std::vector<T*> ResetAngerGoal<T>::getNearbySameTypeEntities() const
+{
+    std::vector<T*> result;
+    if (!m_mob) return result;
+
+    IWorld* world = m_mob->world();
+    if (!world) return result;
+
+    // MC 1.16.5: 获取 FOLLOW_RANGE 属性作为搜索范围
+    f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+
+    // 扩展碰撞箱
+    AxisAlignedBB searchBox = m_mob->boundingBox().expand(followRange, 10.0, followRange);
+
+    // 获取范围内所有实体
+    auto entities = world->getEntitiesInAABB(searchBox, nullptr);
+    for (Entity* entity : entities) {
+        // 跳过自己
+        if (entity == m_mob) continue;
+
+        // 检查是否是同类型
+        T* sameType = dynamic_cast<T*>(entity);
+        if (sameType) {
+            result.push_back(sameType);
+        }
+    }
+
+    return result;
+}
+
+template <typename T>
+void ResetAngerGoal<T>::startExecuting()
+{
+    if (!m_mob) return;
+
+    // 更新复仇计时器
+    m_revengeTimer = m_mob->getRevengeTimer();
+
+    // MC 1.16.5: func_241355_J__() 是 makeAngry() 或类似方法
+    // 重置愤怒时间并开始愤怒
+    m_mob->setAngry(false);
+    m_mob->setAngerTime(0);
+    m_mob->setAttackTarget(nullptr);
+
+    // 如果需要警醒其他同类实体
+    if (m_alertOthers) {
+        auto nearbyEntities = getNearbySameTypeEntities();
+        for (T* other : nearbyEntities) {
+            // 重置其他实体的愤怒
+            other->setAngry(false);
+            other->setAngerTime(0);
+            other->setAttackTarget(nullptr);
+        }
+    }
+
+    Goal::startExecuting();
+}
+
+// 显式实例化模板类
+// 注意：ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
+// 铁傀儡 IronGolemEntity、末影人 EndermanEntity 等在各自的文件中实例化
 
 } // namespace mc::entity::ai::goal

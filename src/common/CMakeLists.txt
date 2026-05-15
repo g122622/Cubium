@@ -254,6 +254,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/GuardianAttackGoal.cpp
     entity/ai/goal/goals/special/BlazeFireballAttackGoal.cpp
     entity/ai/goal/goals/special/PhantomGoals.cpp
+    entity/ai/goal/goals/special/IronGolemGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/VillagerGoals.cpp

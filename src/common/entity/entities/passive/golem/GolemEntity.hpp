@@ -67,6 +67,8 @@ public:
     void setAttackTarget(LivingEntity* target) override { m_attackTarget = target; }
     [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
     void setRevengeTarget(LivingEntity* target) override;
+    [[nodiscard]] LivingEntity* getRevengeTarget() const override;
+    [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
     [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
     void setAngry(bool angry) override;
     [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
@@ -89,6 +91,7 @@ private:
     // 愤怒系统
     LivingEntity* m_attackTarget = nullptr;
     i32 m_angerTime = 0;
+    i32 m_revengeTimer = 0;
     std::optional<u64> m_revengeTargetId;
 
     // 常量

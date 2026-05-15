@@ -157,7 +157,29 @@ void BeeEntity::setRevengeTarget(LivingEntity* target)
     m_attackTarget = target;
     if (target != nullptr) {
         setAngry(true);
+        m_revengeTargetId = target->id();
+        m_revengeTimer = MAX_ANGER_TIME;
+    } else {
+        m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
     }
+}
+
+LivingEntity* BeeEntity::getRevengeTarget() const
+{
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    // 从世界获取复仇目标
+    IWorld* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (!entity || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 void BeeEntity::updateAnger()
@@ -170,7 +192,12 @@ void BeeEntity::updateAnger()
             m_attackTarget = nullptr;
             m_attacking = false;
             m_targetPlayerId = 0;
+            m_revengeTargetId = std::nullopt;
         }
+    }
+    // 更新复仇计时器
+    if (m_revengeTimer > 0) {
+        m_revengeTimer--;
     }
 }
 

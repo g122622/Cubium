@@ -22,7 +22,8 @@
 */
 
 #include "GolemEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 
@@ -38,7 +39,28 @@ void GolemEntity::setRevengeTarget(LivingEntity* target)
     m_attackTarget = target;
     if (target) {
         m_angerTime = MAX_ANGER_TIME;
+        m_revengeTimer = MAX_ANGER_TIME;
+        m_revengeTargetId = target->id();
+    } else {
+        m_revengeTargetId = std::nullopt;
     }
+}
+
+LivingEntity* GolemEntity::getRevengeTarget() const
+{
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    // 从世界获取复仇目标
+    IWorld* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (!entity || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 void GolemEntity::setAngry(bool angry)

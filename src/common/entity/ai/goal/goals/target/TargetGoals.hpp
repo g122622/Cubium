@@ -23,7 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
+#include "core/Types.hpp"
+#include "entity/interfaces/IAngerable.hpp"
 #include "../../Goal.hpp"
 #include <functional>
 
@@ -222,6 +223,51 @@ public:
 
 private:
     T* m_targetEntity = nullptr;
+};
+
+/**
+ * @brief 重置愤怒目标
+ *
+ * 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标。
+ * 用于实现了 IAngerable 接口的实体（如铁傀儡、末影人等）。
+ *
+ * 参考 MC 1.16.5 ResetAngerGoal
+ */
+template <typename T>
+class ResetAngerGoal : public Goal {
+public:
+    static_assert(std::is_base_of<MobEntity, T>::value && std::is_base_of<entity::IAngerable, T>::value,
+        "ResetAngerGoal<T> requires T to be derived from both MobEntity and IAngerable");
+
+    /**
+     * @brief 构造函数
+     * @param mob 拥有此目标的实体
+     * @param alertOthers 是否警醒附近同类实体
+     */
+    ResetAngerGoal(T* mob, bool alertOthers);
+
+    ~ResetAngerGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+    [[nodiscard]] std::string getTypeName() const override { return "ResetAngerGoal"; }
+
+private:
+    T* m_mob;
+    bool m_alertOthers;
+    i32 m_revengeTimer = 0;
+
+    /**
+     * @brief 检查是否应该对玩家复仇
+     * @return 如果应该复仇则返回true
+     */
+    [[nodiscard]] bool shouldGetRevengeOnPlayer() const;
+
+    /**
+     * @brief 获取附近的同类实体
+     * @return 同类实体列表
+     */
+    [[nodiscard]] std::vector<T*> getNearbySameTypeEntities() const;
 };
 
 } // namespace entity::ai::goal
