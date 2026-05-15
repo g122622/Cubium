@@ -28,6 +28,8 @@
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/passive/basic/ChickenEntity.hpp"
+#include "../../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
@@ -215,6 +217,8 @@ void NearestAttackableTargetGoal<T>::startExecuting()
 template class NearestAttackableTargetGoal<LivingEntity>;
 template class NearestAttackableTargetGoal<MobEntity>;
 template class NearestAttackableTargetGoal<Player>;
+template class NearestAttackableTargetGoal<ChickenEntity>;
+template class NearestAttackableTargetGoal<TurtleEntity>;
 template class NearestAttackableTargetGoal<FoxEntity>;
 template class NearestAttackableTargetGoal<IronGolemEntity>;
 template class NearestAttackableTargetGoal<AbstractPiglinEntity>;
