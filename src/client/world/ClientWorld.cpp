@@ -573,6 +573,33 @@ void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z)
     ++m_chunksUnloaded;
 }
 
+void ClientWorld::clearChunks()
+{
+    // 1. 取消所有待处理的网格构建任务
+    if (m_meshBuildScheduler) {
+        m_meshBuildScheduler->cancelAll();
+    }
+
+    // 2. 调用区块卸载回调通知渲染器（移除 GPU 缓冲区）
+    if (m_chunkUnloadCallback) {
+        for (const auto& [chunkId, chunk] : m_chunks) {
+            (void)chunk; // 未使用
+            m_chunkUnloadCallback(chunkId);
+        }
+    }
+
+    // 3. 使所有生物群系颜色缓存失效
+    for (const auto& [chunkId, chunk] : m_chunks) {
+        (void)chunk; // 未使用
+        ChunkMesher::invalidateBiomeColorCache(chunkId.x, chunkId.z);
+    }
+
+    // 4. 清空区块映射
+    m_chunks.clear();
+
+    spdlog::info("[ClientWorld] Cleared all chunks for dimension change");
+}
+
 void ClientWorld::onTimeUpdate(i64 gameTime, i64 dayTime, bool daylightCycleEnabled)
 {
     m_prevDayTime = m_dayTime;

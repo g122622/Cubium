@@ -25,6 +25,7 @@
 
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
+#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -1125,14 +1126,71 @@ void ClientApplication::setupNetworkCallbacks()
             static_cast<i32>(gameMode),
             keepData);
 
-        // TODO: 实现完整的重生/维度切换逻辑
-        // 1. 如果维度改变，清空世界区块和实体
-        // 2. 重置玩家状态（如果 keepData 为 false）
-        // 3. 更新游戏模式
-        // 4. 更新预测器
-        // 目前仅更新玩家游戏模式
+        // 检测是否是维度切换
+        const DimensionId currentDim = m_dimensionManager.currentDimension();
+        const bool isDimensionChange = (currentDim != dimension);
+
+        if (isDimensionChange) {
+            spdlog::info("[Respawn] Dimension change: {} -> {}", static_cast<i32>(currentDim), static_cast<i32>(dimension));
+
+            // 1. 开始维度切换
+            m_dimensionManager.beginDimensionChange(dimension, Vector3d(0, 0, 0));
+
+            // 2. 清空世界区块
+            // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
+            // 当维度改变时创建新的 ClientWorld，这会清空所有区块
+            m_world.clearChunks();
+
+            // 3. 清空实体管理器（保留本地玩家）
+            // 参考 MC 1.16.5: this.world.removeAllEntities()
+            m_world.entityManager().clear();
+
+            // 4. 清理渲染器的区块缓冲
+            if (m_renderer && m_renderer->isChunkRendererInitialized()) {
+                m_renderer->chunkRenderer().clearChunks();
+            }
+
+            // 5. 完成维度切换
+            m_dimensionManager.completeDimensionChange();
+
+            // 6. 更新云高度和渲染参数
+            updateCloudHeight();
+
+            spdlog::info("[Respawn] Dimension change completed");
+        }
+
+        // 7. 更新游戏模式
         if (m_player) {
             m_player->setGameMode(gameMode);
+
+            // 8. 更新玩家维度属性
+            m_player->setDimension(dimension);
+
+            // 9. 如果 keepData 为 false（死亡重生），重置玩家状态
+            // 参考 MC 1.16.5 PlayerList.func_232644_a_():
+            // keepData=false 时调用 copyFrom(oldPlayer, false)，不保留背包和经验
+            // 然后设置生命值、饥饿值等
+            if (!keepData) {
+                m_player->respawn();
+            }
+        }
+
+        // 10. 重置预测器
+        // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
+        // 创建新的 ClientPlayerEntity 并重置位置预测
+        if (m_predictor && m_player) {
+            m_predictor->reset(
+                Vector3(m_player->position().x, m_player->position().y, m_player->position().z),
+                m_player->yaw(),
+                m_player->pitch()
+            );
+        }
+
+        // 11. 发送维度切换确认包（如果是维度切换）
+        // 参考 MC 1.16.5: 客户端需要发送确认包
+        if (isDimensionChange && m_networkClient) {
+            // TODO: 当 ConfirmDimensionChangePacket 发送方法实现后添加
+            // m_networkClient->sendConfirmDimensionChange(dimension);
         }
     };
 

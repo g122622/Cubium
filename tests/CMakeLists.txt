@@ -330,6 +330,9 @@ add_executable(mc_tests
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
     client/world/entity/ClientEntityTest.cpp
+    client/world/ClientWorldLightUpdateTest.cpp
+    # ClientWorld 区块清空测试（维度切换时使用）
+    client/world/ClientWorldClearChunksTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
     client/test_sound_handlers.cpp
