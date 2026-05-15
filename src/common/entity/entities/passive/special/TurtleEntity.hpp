@@ -173,6 +173,14 @@ public:
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     /**
+     * @brief 检查是否可以繁殖
+     *
+     * MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
+     * 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
+     */
+    [[nodiscard]] bool canBreed() const override;
+
+    /**
      * @brief 生成幼体
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;

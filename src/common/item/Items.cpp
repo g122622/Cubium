@@ -349,6 +349,7 @@ Item* Items::SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
 Item* Items::PHANTOM_MEMBRANE = nullptr;
+Item* Items::SEAGRASS = nullptr;
 // DRIED_KELP 已在食物部分声明
 
 // ============================================================================
@@ -1289,6 +1290,11 @@ void Items::registerAquaticMaterials()
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     PHANTOM_MEMBRANE =
         &registry.registerItem(ResourceLocation("minecraft:phantom_membrane"), ItemProperties().maxStackSize(64));
+
+    // 海草 - 海龟食物，也是水下装饰方块
+    // 参考: new BlockItem(Blocks.SEAGRASS, new Item.Properties().group(ItemGroup.DECORATIONS))
+    // 注意：海草物品从方块获取，使用 registerBlockBackedItem
+    SEAGRASS = &registerBlockBackedItem(registry, VanillaBlocks::SEAGRASS, "seagrass", ItemProperties().maxStackSize(64));
 
     // 注意：DRIED_KELP 已在 registerFood() 中注册为食物
 }

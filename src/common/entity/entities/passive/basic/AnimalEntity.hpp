@@ -83,8 +83,9 @@ public:
      * @brief 检查是否可以繁殖
      *
      * MC 1.16.5: 年龄为0且不处于爱心状态
+     * 子类可重写以添加额外条件（如海龟检查是否有蛋）
      */
-    [[nodiscard]] bool canBreed() const;
+    [[nodiscard]] virtual bool canBreed() const;
 
     /**
      * @brief 生成幼体

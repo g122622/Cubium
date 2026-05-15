@@ -306,6 +306,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_SAND, "red_sand");
     registerSimpleBlock(VanillaBlocks::DRIED_KELP_BLOCK, "dried_kelp_block");
     registerSimpleBlock(VanillaBlocks::SEA_PICKLE, "sea_pickle");
+    registerSimpleBlock(VanillaBlocks::SEAGRASS, "seagrass");
+    registerSimpleBlock(VanillaBlocks::TALL_SEAGRASS, "tall_seagrass");
     registerSimpleBlock(VanillaBlocks::BAMBOO, "bamboo");
 
     // 下界矿石

@@ -23,6 +23,7 @@
 
 #include "TurtleEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
@@ -78,21 +79,41 @@ bool TurtleEntity::isInWater() const
 
 bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // TODO: 检查是否是海草
-    // return itemStack.getItem() == Items::SEAGRASS;
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: 海龟仅接受海草作为繁殖物品
+    // 参考: net.minecraft.entity.passive.TurtleEntity.isBreedingItem()
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::SEAGRASS;
 }
 
-std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& partner)
+bool TurtleEntity::canBreed() const
 {
-    // TODO: 创建小海龟
-    // auto baby = std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    // baby->setHomePos(m_homePos); // 继承出生地
-    // return baby;
-    (void)partner;
-    return nullptr;
+    // MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
+    // 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
+    // return super.canBreed() && !this.hasEgg();
+    return AnimalEntity::canBreed() && !m_hasEgg;
+}
+
+std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
+{
+    // MC 1.16.5: TurtleEntity.createChild()
+    // 创建小海龟，继承出生地记忆
+    auto baby = std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 关键：小海龟继承父母的出生地
+    // 这样小海龟长大后也会回到这里产卵
+    // 参考 MC 1.16.5: TurtleEggBlock 孵化时调用 onInitialSpawn 设置出生地为蛋的位置
+    if (hasHomePos()) {
+        baby->setHomePos(m_homePos);
+    }
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void TurtleEntity::tick()

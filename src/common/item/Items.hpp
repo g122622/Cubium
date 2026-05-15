@@ -364,6 +364,7 @@ public:
     static Item* HEART_OF_THE_SEA; // 海洋之心 - 宝藏物品
     static Item* NAUTILUS_SHELL;   // 鹦鹉螺壳 - 溺尸掉落/钓鱼
     static Item* PHANTOM_MEMBRANE; // 幻翼膜 - 幻翼掉落
+    static Item* SEAGRASS;         // 海草 - 海龟食物
     // DRIED_KELP 在食物部分声明
 
     // ========================================================================
