@@ -33,6 +33,7 @@
  * - TridentTextureAtlas 纹理图集
  * - FrameManager 帧管理
  * - UniformManager Uniform 缓冲区管理
+ * - DimensionRenderSettings 维度渲染设置（云高度等）
  */
 
 #include "client/renderer/api/Types.hpp"
@@ -44,13 +45,17 @@
 #include "client/renderer/trident/core/render/FrameManager.hpp"
 #include "client/renderer/trident/core/render/UniformManager.hpp"
 #include "client/renderer/trident/core/texture/TridentTexture.hpp"
+#include "client/renderer/trident/cloud/CloudRenderer.hpp"
+#include "common/world/dimension/DimensionRenderSettings.hpp"
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client::renderer::trident;
+using namespace mc::client::renderer::trident::cloud;
 using namespace mc::client::renderer::api;
 
 // ============================================================================
@@ -1022,6 +1027,97 @@ TEST_F(ExtendedMeshDataTest, AddMultipleFaces)
 
     EXPECT_EQ(mesh.vertexCount(), 24u); // 6 面 * 4 顶点
     EXPECT_EQ(mesh.indexCount(), 36u);  // 6 面 * 6 索引
+}
+
+// ============================================================================
+// CloudHeight 测试
+// ============================================================================
+
+/**
+ * @brief 测试云高度设置
+ *
+ * 参考 MC 1.16.5 DimensionRenderInfo.func_239213_a_()：
+ * - 主世界: 有云 (云高度 192.0)
+ * - 下界: 无云 (NaN)
+ * - 末地: 无云 (NaN)
+ */
+class CloudHeightTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+};
+
+TEST_F(CloudHeightTest, CloudHeightDefaultValue)
+{
+    // TridentEngine 默认云高度为主世界值 192.0
+    // 由于无法直接实例化 TridentEngine（需要 Vulkan 环境），
+    // 这里测试 DimensionRenderSettings 的默认值
+    auto overworld = world::DimensionRenderSettings::overworld();
+    EXPECT_FLOAT_EQ(overworld.cloudHeight, 192.0f);
+    EXPECT_TRUE(overworld.hasClouds());
+}
+
+TEST_F(CloudHeightTest, CloudHeightNaNIndicatesNoClouds)
+{
+    // NaN 云高度表示该维度无云
+    auto nether = world::DimensionRenderSettings::nether();
+    auto end = world::DimensionRenderSettings::end();
+
+    EXPECT_TRUE(std::isnan(nether.cloudHeight));
+    EXPECT_TRUE(std::isnan(end.cloudHeight));
+    EXPECT_FALSE(nether.hasClouds());
+    EXPECT_FALSE(end.hasClouds());
+}
+
+TEST_F(CloudHeightTest, CloudHeightNaNCheck)
+{
+    // 测试 NaN 检查逻辑
+    f64 overworldHeight = 192.0;
+    f64 netherHeight = std::numeric_limits<f64>::quiet_NaN();
+    f64 endHeight = std::numeric_limits<f64>::quiet_NaN();
+
+    EXPECT_FALSE(std::isnan(overworldHeight));
+    EXPECT_TRUE(std::isnan(netherHeight));
+    EXPECT_TRUE(std::isnan(endHeight));
+}
+
+TEST_F(CloudHeightTest, DimensionRenderSettingsForAllDimensions)
+{
+    // 验证所有维度的渲染设置
+    auto overworld = world::DimensionRenderSettings::overworld();
+    auto nether = world::DimensionRenderSettings::nether();
+    auto end = world::DimensionRenderSettings::end();
+
+    // 主世界有云
+    EXPECT_TRUE(overworld.hasClouds());
+    EXPECT_FLOAT_EQ(overworld.cloudHeight, 192.0f);
+    EXPECT_TRUE(overworld.hasSky);
+    EXPECT_FALSE(overworld.hasCeiling);
+    EXPECT_EQ(overworld.fogType, world::FogType::Normal);
+    EXPECT_TRUE(overworld.hasNaturalLight);
+
+    // 下界无云
+    EXPECT_FALSE(nether.hasClouds());
+    EXPECT_TRUE(std::isnan(nether.cloudHeight));
+    EXPECT_FALSE(nether.hasSky);
+    EXPECT_TRUE(nether.hasCeiling);
+    EXPECT_EQ(nether.fogType, world::FogType::None);
+    EXPECT_FALSE(nether.hasNaturalLight);
+
+    // 末地无云
+    EXPECT_FALSE(end.hasClouds());
+    EXPECT_TRUE(std::isnan(end.cloudHeight));
+    EXPECT_FALSE(end.hasSky);
+    EXPECT_FALSE(end.hasCeiling);
+    EXPECT_EQ(end.fogType, world::FogType::End);
+    EXPECT_FALSE(end.hasNaturalLight);
+}
+
+TEST_F(CloudHeightTest, CloudModeEnumValues)
+{
+    // 验证 CloudMode 枚举值
+    EXPECT_EQ(static_cast<u8>(cloud::CloudMode::Off), 0);
+    EXPECT_EQ(static_cast<u8>(cloud::CloudMode::Fast), 1);
+    EXPECT_EQ(static_cast<u8>(cloud::CloudMode::Fancy), 2);
 }
 
 // main 函数由 gtest_main 库提供

@@ -238,9 +238,17 @@ Uniform 缓冲区管理：
 - **Fancy 模式**：渲染完整 3D 立方体云
 
 特性：
-- 云高度：主世界 192 格
+- 云高度根据维度动态设置：
+  - 主世界：192 格（有云）
+  - 下界：无云（NaN）
+  - 末地：无云（NaN）
 - 云随时间缓慢移动
 - 云颜色随时间和天气变化
+
+**维度云高度获取：**
+- 通过 `TridentEngine::setCloudHeight()` 设置当前维度的云高度
+- 使用 `std::isnan(cloudHeight)` 判断是否渲染云
+- 参考 MC 1.16.5 `WorldRenderer.renderClouds()` 和 `DimensionRenderInfo.func_239213_a_()`
 
 ### 4. entity/ - 实体渲染
 
