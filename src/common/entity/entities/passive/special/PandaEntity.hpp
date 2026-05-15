@@ -141,6 +141,53 @@ public:
      */
     [[nodiscard]] bool isBrown() const { return m_personality == Personality::Brown; }
 
+    // ========== 基因系统 ==========
+
+    /**
+     * @brief 获取主基因
+     */
+    [[nodiscard]] u8 getMainGene() const { return m_mainGene; }
+
+    /**
+     * @brief 设置主基因
+     */
+    void setMainGene(u8 gene) { m_mainGene = gene; }
+
+    /**
+     * @brief 获取隐藏基因
+     */
+    [[nodiscard]] u8 getHiddenGene() const { return m_hiddenGene; }
+
+    /**
+     * @brief 设置隐藏基因
+     */
+    void setHiddenGene(u8 gene) { m_hiddenGene = gene; }
+
+    /**
+     * @brief 根据主基因和隐藏基因计算表达的性格
+     * MC 1.16.5: Gene.func_221101_b()
+     */
+    [[nodiscard]] Personality calculateExpressedPersonality() const;
+
+    /**
+     * @brief 随机获取主基因或隐藏基因中的一个
+     * MC 1.16.5: getOneOfGenesRandomly()
+     */
+    [[nodiscard]] u8 getOneOfGenesRandomly(math::Random& rng) const;
+
+    /**
+     * @brief 从父母遗传基因
+     * MC 1.16.5: getGenesForChildFromParents()
+     * @param father 父本
+     * @param mother 母本（可能为 nullptr）
+     */
+    void inheritGenesFromParents(PandaEntity* father, PandaEntity* mother);
+
+    /**
+     * @brief 根据基因计算并设置性格
+     */
+    void updatePersonalityFromGenes();
+
     // ========== 行为状态 ==========
 
     /**

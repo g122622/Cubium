@@ -109,39 +109,115 @@ void PandaEntity::randomizePersonality()
 
 bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // TODO: 检查是否是竹子
+    // MC 1.16.5: 检查物品是否为竹子
+    // TODO: 当 Items::BAMBOO 注册后替换
     // return itemStack.getItem() == Items::BAMBOO;
     (void)itemStack;
     return false;
 }
 
+// ========== 基因系统实现 ==========
+
+PandaEntity::Personality PandaEntity::calculateExpressedPersonality() const
+{
+    // MC 1.16.5: Gene.func_221101_b()
+    // 根据主基因和隐藏基因计算表达的性格
+    // 特殊组合规则：
+    // - 如果主基因或隐藏基因是好斗(4)，则表达好斗
+    // - 如果主基因是懒惰(1)且隐藏基因是好斗(4)，则表达好斗懒惰
+    // - 否则表达主基因
+    u8 mainGene = m_mainGene;
+    u8 hiddenGene = m_hiddenGene;
+
+    // 好斗显性：任意一个基因是好斗就表达好斗
+    if (mainGene == static_cast<u8>(Personality::Aggressive) ||
+        hiddenGene == static_cast<u8>(Personality::Aggressive)) {
+        return Personality::Aggressive;
+    }
+
+    // 懒惰+好斗组合 → 好斗懒惰（隐藏性格）
+    if (mainGene == static_cast<u8>(Personality::Lazy) &&
+        hiddenGene == static_cast<u8>(Personality::Aggressive)) {
+        return Personality::AggressiveLazy;
+    }
+
+    // 棕色基因需要特殊处理
+    if (mainGene == static_cast<u8>(Personality::Brown)) {
+        return Personality::Brown;
+    }
+
+    // 默认表达主基因
+    return static_cast<Personality>(mainGene);
+}
+
+u8 PandaEntity::getOneOfGenesRandomly(math::Random& rng) const
+{
+    // MC 1.16.5: return this.rand.nextBoolean() ? this.getMainGene() : this.getHiddenGene();
+    return rng.nextBoolean() ? m_mainGene : m_hiddenGene;
+}
+
+void PandaEntity::inheritGenesFromParents(PandaEntity* father, PandaEntity* mother)
+{
+    if (m_world == nullptr) {
+        return;
+    }
+
+    math::Random& rng = m_world->getRandom();
+
+    if (mother == nullptr) {
+        // 只有父亲时，随机分配父亲的一个基因
+        if (rng.nextBoolean()) {
+            m_mainGene = father->getOneOfGenesRandomly(rng);
+            m_hiddenGene = static_cast<u8>(rng.nextInt(0, 5)); // 随机隐藏基因
+        } else {
+            m_mainGene = static_cast<u8>(rng.nextInt(0, 5)); // 随机主基因
+            m_hiddenGene = father->getOneOfGenesRandomly(rng);
+        }
+    } else {
+        // 双亲都有时，随机从父母各取一个基因
+        if (rng.nextBoolean()) {
+            m_mainGene = father->getOneOfGenesRandomly(rng);
+            m_hiddenGene = mother->getOneOfGenesRandomly(rng);
+        } else {
+            m_mainGene = mother->getOneOfGenesRandomly(rng);
+            m_hiddenGene = father->getOneOfGenesRandomly(rng);
+        }
+    }
+
+    // MC 1.16.5: 1/32 概率发生变异
+    if (rng.nextInt(32) == 0) {
+        m_mainGene = static_cast<u8>(rng.nextInt(0, 5));
+    }
+
+    if (rng.nextInt(32) == 0) {
+        m_hiddenGene = static_cast<u8>(rng.nextInt(0, 5));
+    }
+
+    // 更新表达性格
+    updatePersonalityFromGenes();
+}
+
+void PandaEntity::updatePersonalityFromGenes()
+{
+    m_personality = calculateExpressedPersonality();
+}
+
 std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
 {
-    // TODO: 创建小熊猫
-    // auto baby = std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    //
-    // // 遗传基因
-    // PandaEntity* parent = dynamic_cast<PandaEntity*>(&partner);
-    // if (parent) {
-    //     // 主基因从父母随机遗传
-    //     static std::random_device rd;
-    //     static std::mt19937 gen(rd());
-    //     std::uniform_int_distribution<int> dist(0, 1);
-    //     baby->m_mainGene = dist(gen) == 0 ? m_mainGene : parent->m_mainGene;
-    //     baby->m_hiddenGene = dist(gen) == 0 ? m_hiddenGene : parent->m_hiddenGene;
-    //
-    //     // 根据基因计算性格
-    //     // 变异概率 1/32
-    //     if (dist(gen) == 0 && dist(gen) == 0) {
-    //         std::uniform_int_distribution<u8> geneDist(0, 5);
-    //         baby->m_mainGene = geneDist(gen);
-    //     }
-    // }
-    //
-    // return baby;
-    (void)partner;
-    return nullptr;
+    // MC 1.16.5: PandaEntity.func_241840_a()
+    auto baby = std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置
+    baby->setPosition(x(), y(), z());
+
+    // 遗传基因
+    PandaEntity* parent = dynamic_cast<PandaEntity*>(&partner);
+    baby->inheritGenesFromParents(this, parent);
+
+    return baby;
 }
 
 void PandaEntity::tick()
