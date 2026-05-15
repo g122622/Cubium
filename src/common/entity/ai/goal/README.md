@@ -412,6 +412,129 @@ m_goalSelector.addGoal(8, std::make_unique<LookAtGoal>(
 - `m_scaredByMovement`: 是否被玩家移动吓跑
 - `TEMPT_COOLDOWN`: 诱惑冷却 (100 tick)
 
+**虚方法扩展**:
+
+`TemptGoal::isScaredByPlayerMovement()` 是虚方法，子类可以重写以实现自定义行为：
+
+```cpp
+// OcelotTemptGoal: 未信任时才害怕玩家移动
+class OcelotTemptGoal : public TemptGoal {
+protected:
+    bool isScaredByPlayerMovement() const override {
+        return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
+    }
+};
+```
+
+---
+
+### 特定实体的 AI Goal 子类
+
+某些实体需要特化版本的 Goal 类来实现独特行为。这些类通常作为实体类的内部类定义。
+
+#### OcelotAvoidPlayerGoal - 豹猫躲避玩家目标
+
+**职责**: 使豹猫在未信任时躲避玩家，信任后停止躲避。
+
+**继承**: `AvoidEntityGoal<Player>`
+
+**执行条件**: 
+- 豹猫未信任
+- 检测到玩家在避开距离内
+
+**行为**:
+1. 检查豹猫信任状态
+2. 如果已信任，不执行躲避
+3. 如果未信任，像普通 AvoidEntityGoal 一样躲避玩家
+
+**关键参数**:
+- `m_ocelot`: 豹猫实体引用
+- 检测距离: 16 格
+- 远距离逃避速度: 0.8
+- 近距离逃避速度: 1.33
+
+```cpp
+bool OcelotAvoidPlayerGoal::shouldExecute() {
+    if (m_ocelot == nullptr || m_ocelot->isTrusting()) {
+        return false;  // 信任后不再躲避
+    }
+    return AvoidEntityGoal::shouldExecute();
+}
+```
+
+#### OcelotTemptGoal - 豹猫诱惑目标
+
+**职责**: 豹猫被生鱼诱惑，但未信任时会被玩家快速移动吓跑。
+
+**继承**: `TemptGoal`
+
+**行为**:
+- 诱惑速度: 0.6
+- 诱惑物品: 生鳕鱼、生鲑鱼
+- 未信任时: 玩家快速移动会吓跑豹猫
+- 已信任后: 正常跟随，不被移动吓跑
+
+```cpp
+bool OcelotTemptGoal::isScaredByPlayerMovement() const {
+    // MC 1.16.5: 只有未信任的豹猫才会被玩家移动吓跑
+    return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
+}
+```
+
+#### OcelotAttackGoal - 豹猫攻击目标
+
+**职责**: 使豹猫跳跃攻击目标（小鸡、海龟）。
+
+**继承**: `Goal`
+
+**互斥标志**: `Move`, `Look`
+
+**执行条件**: 有攻击目标且目标存活
+
+**行为**:
+1. 追踪攻击目标
+2. 使用 LookController 看向目标
+3. 在攻击范围内时攻击
+4. 攻击冷却 20 ticks
+
+**关键参数**:
+- `m_attackCooldown`: 攻击冷却 (20 ticks)
+- `STOP_ATTACK_DISTANCE_SQ`: 停止追踪距离 (225 = 15*15)
+- 攻击范围计算: `(width * 2)^2 + targetWidth`
+
+```cpp
+void OcelotAttackGoal::tick() {
+    if (!m_target || !m_ocelot) return;
+    
+    // 看向目标
+    m_ocelot->lookController()->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+    
+    // 攻击冷却
+    if (m_attackCooldown > 0) {
+        m_attackCooldown--;
+    }
+    
+    // 计算攻击范围
+    f64 distSq = m_ocelot->distanceSqTo(*m_target);
+    f32 attackReachSq = (m_ocelot->width() * 2.0f) * (m_ocelot->width() * 2.0f) 
+                        + m_target->width();
+    
+    // 攻击
+    if (distSq <= attackReachSq && m_attackCooldown <= 0) {
+        m_attackCooldown = ATTACK_COOLDOWN_TICKS;
+        m_ocelot->attackEntityAsMob(*m_target);
+    }
+    
+    // 追踪
+    auto* nav = m_ocelot->navigator();
+    if (nav && !nav->noPath()) {
+        nav->moveTo(*m_target, 1.0);
+    }
+}
+```
+
+**参考**: MC 1.16.5 `net.minecraft.entity.passive.OcelotEntity`
+
 ---
 
 #### BegGoal - 乞求目标

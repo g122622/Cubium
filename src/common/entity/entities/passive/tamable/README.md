@@ -192,30 +192,147 @@ bool ParrotEntity::isTameItem(const ItemStack& itemStack) const {
 
 **注意**：熟鱼（熟鳕鱼、熟鲑鱼）**不能**用于繁殖豹猫。
 
-### 繁殖行为
+### 信任建立机制
+
+豹猫通过喂食生鱼建立信任，有 1/3 概率成功：
 
 ```cpp
-// OcelotEntity::isBreedingItem - 判断是否可用于繁殖
-bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
-    // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
+// OcelotEntity::interactMob - 玩家交互建立信任
+ActionResultType OcelotEntity::interactMob(Player& player, Hand hand) {
+    ItemStack itemStack = player.getHeldItem(hand);
     const Item* item = itemStack.getItem();
-    if (item == nullptr) {
-        return false;
+    
+    // 条件检查：
+    // 1. 诱惑目标正在运行（或为空）
+    // 2. 尚未信任
+    // 3. 手持繁殖物品（生鱼）
+    // 4. 玩家距离 < 9.0D (3格)
+    bool isTempting = (m_temptGoal == nullptr || m_temptGoal->isRunning());
+    bool isBreedingFood = item != nullptr && (item == Items::COD || item == Items::SALMON);
+    double distSq = player.distanceSqTo(*this);
+    
+    if (isTempting && !m_trusting && isBreedingFood && distSq < 9.0) {
+        itemStack.shrink(1);
+        
+        if (!m_world->isClientSide()) {
+            // MC 1.16.5: 1/3 概率建立信任
+            math::Random rng = getRandom();
+            if (rng.nextInt(3) == 0) {
+                setPlayerTrust(player.playerId(), true);
+                spawnTrustingParticles(true);  // 心形粒子
+            } else {
+                spawnTrustingParticles(false); // 烟雾粒子
+            }
+        }
+        return ActionResultType::Success;
     }
-    return item == Items::COD || item == Items::SALMON;
-}
-
-// OcelotEntity::spawnBaby - 生成幼体
-std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
-    // 创建一个新的豹猫实体，不需要继承父母特征
-    auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
-    baby->setChild(true);
-    baby->setPosition(x(), y(), z());
-    return baby;
+    
+    return AnimalEntity::interactMob(player, hand);
 }
 ```
+
+### AI 目标列表
+
+豹猫实现了完整的 AI 目标系统，符合 MC 1.16.5 原版行为：
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳（最高优先级） |
+| 3 | OcelotTemptGoal | 生鱼诱惑（未信任时被快速移动吓跑） |
+| 4 | OcelotAvoidPlayerGoal | 避开玩家（未信任时） |
+| 7 | LeapAtTargetGoal | 跳跃攻击目标 |
+| 8 | OcelotAttackGoal | 近战攻击（小鸡/海龟） |
+| 9 | BreedGoal | 繁殖 |
+| 10 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 |
+| 11 | LookAtGoal | 看向玩家 |
+| - | NearestAttackableTargetGoal<ChickenEntity> | 攻击目标选择器：小鸡 |
+| - | NearestAttackableTargetGoal<TurtleEntity> | 攻击目标选择器：海龟 |
+
+### 内部 AI Goal 类
+
+豹猫实现了三个内部 Goal 类来支持特有的行为：
+
+#### OcelotAvoidPlayerGoal
+
+继承自 `AvoidEntityGoal`，只在未信任时执行：
+
+```cpp
+class OcelotAvoidPlayerGoal : public AvoidEntityGoal {
+public:
+    OcelotAvoidPlayerGoal(OcelotEntity* ocelot, f32 avoidDistance, 
+                          f64 farSpeed, f64 nearSpeed);
+    bool shouldExecute() override;           // 只在未信任时返回 true
+    bool shouldContinueExecuting() override; // 只在未信任时返回 true
+};
+```
+
+- **检测距离**: 16 格
+- **远距离逃避速度**: 0.8
+- **近距离逃避速度**: 1.33（更快）
+- **动态管理**: 通过 `setupTrustingAI()` 在信任建立时移除
+
+#### OcelotTemptGoal
+
+继承自 `TemptGoal`，被快速移动吓跑的行为根据信任状态变化：
+
+```cpp
+class OcelotTemptGoal : public TemptGoal {
+public:
+    OcelotTemptGoal(OcelotEntity* ocelot, f64 speed, 
+                    ItemPredicate itemPredicate, bool scaredByMovement);
+protected:
+    bool isScaredByPlayerMovement() const override; // 未信任时才害怕
+};
+```
+
+- **诱惑速度**: 0.6
+- **诱惑物品**: COD、SALMON
+- **scaredByMovement**: true（但信任后不再害怕）
+
+#### OcelotAttackGoal
+
+继承自 `Goal`，实现豹猫特有的跳跃攻击：
+
+```cpp
+class OcelotAttackGoal : public Goal {
+public:
+    explicit OcelotAttackGoal(OcelotEntity* ocelot);
+    bool shouldExecute() override;
+    bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+};
+```
+
+- **互斥标志**: `Move`, `Look`
+- **攻击冷却**: 20 ticks
+- **停止追踪距离**: 15 格
+- **攻击范围**: `width * 2`
+
+### 动态 AI 管理
+
+豹猫实现了 `setupTrustingAI()` 方法来动态管理 AI：
+
+```cpp
+void OcelotEntity::setupTrustingAI() {
+    // MC 1.16.5: OcelotEntity.func_213529_dV()
+    if (m_avoidPlayerGoal == nullptr) {
+        m_avoidPlayerGoal = new OcelotAvoidPlayerGoal(
+            this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
+    }
+    
+    // 先移除已有的 AvoidPlayerGoal
+    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    
+    // 如果未信任，添加避开玩家目标
+    if (!m_trusting) {
+        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+    }
+}
+```
+
+此方法在信任状态改变时调用，确保信任后豹猫不再逃避玩家。
 
 ### 特殊属性
 
@@ -223,28 +340,11 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 |------|-----|------|
 | 生命值 | 10.0 | MC 1.16.5 豹猫生命值 |
 | 移动速度 | 0.3 | MC 1.16.5 豹猫移动速度 |
+| 攻击伤害 | 3.0 | MC 1.16.5 豹猫攻击伤害 |
 | 眼睛高度（成体） | 0.6 | 成年豹猫眼睛高度 |
 | 眼睛高度（幼体） | 0.3 | 幼年豹猫眼睛高度 |
-
-### 豹猫类型
-
-豹猫支持多种皮肤类型（MC 1.16.5 中这些类型用于驯服后的猫，豹猫本身只有野生类型）：
-
-| 类型 | 值 | 说明 |
-|------|-----|------|
-| Wild | 0 | 野生豹猫 |
-| Tuxedo | 1 | 黑白猫 |
-| Tabby | 2 | 虎斑猫 |
-| Red | 3 | 红猫 |
-| Siamese | 4 | 暹罗猫 |
-| British | 5 | 英短 |
-| Calico | 6 | 三花猫 |
-| Persian | 7 | 波斯猫 |
-| Ragdoll | 8 | 布偶猫 |
-| White | 9 | 白猫 |
-| Jellie | 10 | Jellie猫 |
-
-**参考**: `net.minecraft.entity.passive.OcelotEntity`
+| 摔落伤害免疫 | 是 | 豹猫免疫摔落伤害 |
+| 消失条件 | 信任后不消失 | 未信任豹猫 2400 tick 后可消失 |
 
 ## 猫实体系统（CatEntity）
 
