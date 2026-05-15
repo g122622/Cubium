@@ -265,6 +265,12 @@ private:
  *
  * 唤魔者召唤的尖牙攻击，从地下冒出造成伤害。
  *
+ * 特性：
+ * - 预热延迟：尖牙出现前有预热时间
+ * - 范围伤害：对碰撞箱内的生物造成魔法伤害
+ * - 队伍判断：不伤害唤魔者及其队友
+ * - 有限生命：攻击后自动消失
+ *
  * 参考 MC 1.16.5 EvokerFangsEntity
  */
 class EvokerFangsEntity : public Entity {
@@ -290,19 +296,49 @@ public:
 
     /**
      * @brief 设置所有者
+     * @param owner 所有者实体（唤魔者）
      */
     void setOwner(LivingEntity* owner) { m_owner = owner; }
 
     /**
      * @brief 获取所有者
+     * @return 所有者实体
      */
     [[nodiscard]] LivingEntity* owner() const { return m_owner; }
 
+    /**
+     * @brief 设置预热延迟
+     * @param delay 预热延迟（ticks）
+     */
+    void setWarmupDelay(i32 delay) { m_warmupDelay = delay; }
+
+    /**
+     * @brief 获取预热延迟
+     */
+    [[nodiscard]] i32 warmupDelay() const { return m_warmupDelay; }
+
+    /**
+     * @brief 获取动画进度
+     * @param partialTicks 部分tick时间
+     * @return 动画进度（0.0-1.0）
+     *
+     * 参考 MC 1.16.5 EvokerFangsEntity.getAnimationProgress()
+     */
+    [[nodiscard]] f32 getAnimationProgress(f32 partialTicks) const;
+
 private:
-    LivingEntity* m_owner = nullptr; // 所有者
-    i32 m_warmupDelay = 0;           // 预热延迟
-    bool m_sentAttackEvent = false;  // 是否已发送攻击事件
-    i32 m_ticksExisted = 0;          // 存在时间
+    /**
+     * @brief 对范围内实体造成伤害
+     *
+     * 参考 MC 1.16.5 EvokerFangsEntity.damage()
+     */
+    void damageEntities();
+
+    LivingEntity* m_owner = nullptr;     ///< 所有者（唤魔者）
+    i32 m_warmupDelay = 0;               ///< 预热延迟（ticks）
+    bool m_sentAttackEvent = false;      ///< 是否已发送攻击事件
+    i32 m_lifeTicks = 22;                ///< 生命时长（ticks），MC 1.16.5 默认22
+    bool m_clientSideAttackStarted = false; ///< 客户端攻击开始标志
 };
 
 /**

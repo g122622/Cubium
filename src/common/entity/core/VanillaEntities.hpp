@@ -96,7 +96,7 @@
 // #include "../entities/projectile/TridentEntity.hpp"
 // #include "../entities/projectile/ProjectileItemEntity.hpp"
 // #include "../entities/projectile/AbstractFireballEntity.hpp"
-// #include "../entities/projectile/OtherProjectiles.hpp"
+#include "../entities/projectile/OtherProjectiles.hpp"
 #include "../entities/item/ItemEntity.hpp"
 #include "../entities/misc/MiscEntities.hpp"
 #include "../entities/orb/ExperienceOrbEntity.hpp"
@@ -785,6 +785,15 @@ private:
                 .size(0.4f, 0.8f)
                 .trackingRange(8)
                 .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 唤魔者尖牙
+        registry.registerType(EntityTypes::EVOKER_FANGS,
+            EntityType::Builder(&entity::EvokerFangsEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.8f)
+                .trackingRange(8)
+                .updateInterval(1) // 尖牙需要频繁更新（攻击时序）
                 .canSummon(true)
                 .build());
 

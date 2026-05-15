@@ -31,6 +31,10 @@ namespace mc {
 
 /**
  * @brief 唤魔者实体
+ *
+ * 灾厄村民的一种，能够施放尖牙攻击和召唤恼鬼。
+ *
+ * 参考 MC 1.16.5 EvokerEntity
  */
 class EvokerEntity : public SpellcastingIllagerEntity {
 public:
@@ -50,7 +54,18 @@ public:
     void startCasting(i32 spellType);
     void finishCasting();
 
+    /**
+     * @brief 施放尖牙攻击
+     *
+     * 参考 MC 1.16.5 EvokerEntity.AttackSpellGoal.castSpell()
+     */
     void castFangsAttack();
+
+    /**
+     * @brief 召唤恼鬼
+     *
+     * 参考 MC 1.16.5 EvokerEntity.SummonSpellGoal.castSpell()
+     */
     void summonVex();
 
     [[nodiscard]] i32 getFangsCooldown() const { return m_fangsCooldown; }
@@ -66,6 +81,20 @@ protected:
     [[nodiscard]] const char* getSpellSoundId() const override { return "entity.evoker.cast_spell"; }
 
 private:
+    /**
+     * @brief 在指定位置生成尖牙
+     *
+     * 参考 MC 1.16.5 EvokerEntity.AttackSpellGoal.spawnFangs()
+     *
+     * @param posX X 坐标
+     * @param posZ Z 坐标
+     * @param minY 最小 Y 坐标
+     * @param maxY 最大 Y 坐标
+     * @param angle 尖牙朝向角度（弧度）
+     * @param warmupDelay 预热延迟（ticks）
+     */
+    void spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle, i32 warmupDelay);
+
     i32 m_fangsCooldown = 0;
     i32 m_summonCooldown = 0;
 

@@ -481,7 +481,7 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 EvokerFangsEntity::EvokerFangsEntity(LegacyEntityType type, EntityId id)
     : Entity(type, id)
 {
-    m_warmupDelay = 20; // 默认预热时间
+    m_warmupDelay = 0;
 }
 
 std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
@@ -493,27 +493,82 @@ void EvokerFangsEntity::tick()
 {
     Entity::tick();
 
-    m_ticksExisted++;
-
+    // MC 1.16.5 EvokerFangsEntity.tick()
+    // 服务端逻辑
     if (m_warmupDelay > 0) {
         m_warmupDelay--;
+    } else {
+        // warmupDelayTicks < 0 后开始攻击逻辑
+        if (m_warmupDelay == -8) {
+            // 在 -8 tick 时对范围内实体造成伤害
+            // 参考 MC 1.16.5: 第98-103行
+            damageEntities();
+        }
+
+        if (!m_sentAttackEvent) {
+            // 发送攻击事件给客户端（用于播放音效和粒子）
+            // MC 1.16.5: world.setEntityState(this, (byte)4)
+            m_sentAttackEvent = true;
+        }
+
+        m_lifeTicks--;
+        if (m_lifeTicks < 0) {
+            remove();
+        }
+    }
+}
+
+f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
+{
+    // MC 1.16.5 EvokerFangsEntity.getAnimationProgress()
+    if (!m_clientSideAttackStarted) {
+        return 0.0f;
+    } else {
+        i32 i = m_lifeTicks - 2;
+        return i <= 0 ? 1.0f : 1.0f - (static_cast<f32>(i) - partialTicks) / 20.0f;
+    }
+}
+
+void EvokerFangsEntity::damageEntities()
+{
+    // MC 1.16.5 EvokerFangsEntity.damage()
+    // 对碰撞箱扩展范围内的 LivingEntity 造成伤害
+    if (m_world == nullptr) {
         return;
     }
 
-    // 预热完成后开始攻击
-    if (!m_sentAttackEvent) {
-        // 播放攻击动画
-        // TODO: 生成尖牙动画
+    // 获取碰撞箱扩展 0.2 范围内的所有实体
+    AxisAlignedBB searchBox = m_boundingBox.expand(0.2f, 0.0f, 0.2f);
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
-        // 对范围内的实体造成伤害
-        // TODO: 检测并伤害范围内的实体
+    for (Entity* entity : entities) {
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (living == nullptr || living == m_owner) {
+            continue;
+        }
 
-        m_sentAttackEvent = true;
-    }
+        // 检查实体是否存活且非无敌
+        if (!living->isAlive() || living->isInvulnerable()) {
+            continue;
+        }
 
-    // 存在一段时间后消失
-    if (m_ticksExisted > 30) {
-        remove();
+        // 检查队伍关系：不伤害唤魔者及其队友
+        // MC 1.16.5: if (livingentity.isOnSameTeam(this.caster)) return;
+        // TODO: 当 Team 系统实现后启用队伍检查
+        // if (m_owner != nullptr && m_owner->isOnSameTeam(*living)) {
+        //     continue;
+        // }
+
+        // 造成魔法伤害
+        // MC 1.16.5: attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, caster), 6.0F)
+        if (m_owner != nullptr) {
+            auto damageSource = DamageSources::indirectMagic(this, m_owner);
+            living->hurt(damageSource, 6.0f);
+        } else {
+            // 如果没有所有者，使用普通魔法伤害
+            auto damageSource = DamageSources::magic();
+            living->hurt(damageSource, 6.0f);
+        }
     }
 }
 

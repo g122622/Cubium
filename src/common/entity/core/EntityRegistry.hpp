@@ -318,6 +318,7 @@ constexpr const char* DRAGON_FIREBALL = "minecraft:dragon_fireball";
 constexpr const char* WITHER_SKULL = "minecraft:wither_skull";
 constexpr const char* LLAMA_SPIT = "minecraft:llama_spit";
 constexpr const char* SHULKER_BULLET = "minecraft:shulker_bullet";
+constexpr const char* EVOKER_FANGS = "minecraft:evoker_fangs";
 constexpr const char* FISHING_BOBBER = "minecraft:fishing_bobber";
 constexpr const char* EYE_OF_ENDER = "minecraft:eye_of_ender";
 constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
