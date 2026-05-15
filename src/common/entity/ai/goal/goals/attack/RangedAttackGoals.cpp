@@ -23,16 +23,19 @@
 
 #include "RangedAttackGoals.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../../../../item/Items.hpp"
 #include "../../../../../item/core/Item.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../item/core/UseAction.hpp"
 #include "../../../../../item/items/weapon/BowItem.hpp"
+#include "../../../../../item/items/weapon/CrossbowItem.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../core/CreatureEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../interfaces/ICrossbowUser.hpp"
 #include "../../../../interfaces/IRangedAttackMob.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../controller/MovementController.hpp"
@@ -317,6 +320,269 @@ void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge)
     // 设置攻击冷却（弓箭专用逻辑）
     math::Random rng = m_mob->getRandom();
     m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin + 1);
+}
+
+// ==================== RangedCrossbowAttackGoal ====================
+
+RangedCrossbowAttackGoal::RangedCrossbowAttackGoal(MobEntity* mob, f64 speed, f32 attackRadius)
+    : m_mob(mob)
+    , m_speed(speed)
+    , m_attackRadius(attackRadius)
+    , m_attackRadiusSq(attackRadius * attackRadius)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
+}
+
+bool RangedCrossbowAttackGoal::shouldExecute()
+{
+    if (!m_mob) return false;
+
+    // MC 1.16.5: 检查是否持有弩
+    if (!isHoldingCrossbow()) return false;
+
+    LivingEntity* target = m_mob->attackTarget();
+    if (!target || !target->isAlive()) return false;
+
+    m_target = target;
+    return true;
+}
+
+bool RangedCrossbowAttackGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 继续执行条件
+    if (!m_mob || !m_target) return false;
+
+    // 目标仍然有效
+    if (!m_target->isAlive()) return false;
+
+    // 仍在追踪范围内
+    f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
+    if (distSq > static_cast<f64>(m_attackRadiusSq * 4.0f)) return false; // 2倍追踪距离
+
+    // 仍持有弩
+    return isHoldingCrossbow();
+}
+
+void RangedCrossbowAttackGoal::startExecuting()
+{
+    m_crossbowState = CrossbowState::Uncharged;
+    m_seenTime = 0;
+    m_chargeTime = 0;
+    m_cooldownTime = 0;
+    m_moveCooldown = 0;
+
+    // MC 1.16.5: 设置激怒状态
+    if (m_mob) {
+        m_mob->setAggroed(true);
+    }
+}
+
+void RangedCrossbowAttackGoal::resetTask()
+{
+    m_target = nullptr;
+    m_crossbowState = CrossbowState::Uncharged;
+    m_seenTime = 0;
+    m_chargeTime = 0;
+    m_cooldownTime = 0;
+    m_moveCooldown = 0;
+
+    if (m_mob) {
+        m_mob->setAggroed(false);
+        m_mob->stopActiveHand();
+
+        // 重置弩装填状态
+        entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
+        if (crossbowUser) {
+            crossbowUser->setChargingCrossbow(false);
+        }
+
+        m_mob->clearNavigation();
+    }
+}
+
+void RangedCrossbowAttackGoal::tick()
+{
+    if (!m_mob || !m_target) return;
+
+    // 更新视线时间
+    updateSeenTime();
+
+    // 看向目标
+    if (auto* lookCtrl = m_mob->lookController()) {
+        lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+    }
+
+    // 计算到目标的距离
+    f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
+
+    // MC 1.16.5: 移动逻辑
+    bool shouldMove = (distSq > static_cast<f64>(m_attackRadiusSq) || m_seenTime < MIN_SEEN_TIME)
+        && m_moveCooldown == 0;
+
+    if (shouldMove && m_crossbowState != CrossbowState::Charging) {
+        // 向目标移动
+        CreatureEntity* creature = dynamic_cast<CreatureEntity*>(m_mob);
+        if (creature) {
+            creature->tryMoveTo(m_target->x(), m_target->y(), m_target->z(), m_speed);
+        }
+        // 设置移动冷却
+        math::Random rng = m_mob->getRandom();
+        m_moveCooldown = MOVE_COOLDOWN_MIN + rng.nextInt(MOVE_COOLDOWN_MAX - MOVE_COOLDOWN_MIN + 1);
+    } else if (distSq <= static_cast<f64>(m_attackRadiusSq) && m_seenTime >= MIN_SEEN_TIME) {
+        // 在攻击范围内，停止移动
+        m_mob->clearNavigation();
+    }
+
+    // 更新移动冷却
+    if (m_moveCooldown > 0) {
+        --m_moveCooldown;
+    }
+
+    // 状态机处理
+    switch (m_crossbowState) {
+    case CrossbowState::Uncharged:
+        handleUnchargedState();
+        break;
+    case CrossbowState::Charging:
+        handleChargingState();
+        break;
+    case CrossbowState::Charged:
+        handleChargedState();
+        break;
+    case CrossbowState::ReadyToAttack:
+        handleReadyToAttackState();
+        break;
+    }
+}
+
+bool RangedCrossbowAttackGoal::isHoldingCrossbow() const
+{
+    if (!m_mob) return false;
+
+    const ItemStack& mainHand = m_mob->getMainHandItem();
+    const Item* item = mainHand.getItem();
+
+    // 检查是否是弩
+    return item != nullptr && item->getUseAction(mainHand) == UseAction::Crossbow;
+}
+
+void RangedCrossbowAttackGoal::updateSeenTime()
+{
+    if (!m_mob || !m_target) return;
+
+    bool canSee = m_mob->canSee(*m_target);
+
+    // MC 1.16.5: 递增/递减而不是重置
+    if (canSee) {
+        ++m_seenTime;
+    } else {
+        --m_seenTime;
+        if (m_seenTime < 0) m_seenTime = 0;
+    }
+}
+
+void RangedCrossbowAttackGoal::handleUnchargedState()
+{
+    // MC 1.16.5: 在攻击范围内且能看到目标时开始装填
+    if (m_seenTime >= MIN_SEEN_TIME && m_moveCooldown == 0) {
+        // 开始装填
+        m_mob->setActiveHand(Hand::MainHand);
+        m_crossbowState = CrossbowState::Charging;
+        m_chargeTime = 0;
+
+        // 设置装填状态
+        entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
+        if (crossbowUser) {
+            crossbowUser->setChargingCrossbow(true);
+        }
+    }
+}
+
+void RangedCrossbowAttackGoal::handleChargingState()
+{
+    // MC 1.16.5: 检查装填进度
+    const ItemStack& mainHand = m_mob->getMainHandItem();
+    const Item* item = mainHand.getItem();
+
+    if (item == nullptr || item->getUseAction(mainHand) != UseAction::Crossbow) {
+        // 弩丢失，重置状态
+        m_crossbowState = CrossbowState::Uncharged;
+        return;
+    }
+
+    // 获取装填时间
+    entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
+    i32 chargeTimeRequired = crossbowUser ? crossbowUser->getCrossbowChargeTime() : 25;
+
+    // 如果是玩家，需要考虑快速装填附魔
+    const item::CrossbowItem* crossbowItem = dynamic_cast<const item::CrossbowItem*>(item);
+    if (crossbowItem) {
+        chargeTimeRequired = item::CrossbowItem::getChargeTime(mainHand);
+    }
+
+    ++m_chargeTime;
+
+    // 检查是否装填完成
+    if (m_chargeTime >= chargeTimeRequired) {
+        // 装填完成
+        m_mob->stopActiveHand();
+
+        // 设置弩为已装填状态
+        if (crossbowItem) {
+            item::CrossbowItem::setCharged(const_cast<ItemStack&>(mainHand), true);
+        }
+
+        // 调用装填完成回调
+        if (crossbowUser) {
+            crossbowUser->setChargingCrossbow(false);
+            crossbowUser->onCrossbowLoadComplete(const_cast<ItemStack&>(mainHand));
+        }
+
+        m_crossbowState = CrossbowState::Charged;
+
+        // 设置装填后等待时间
+        math::Random rng = m_mob->getRandom();
+        m_cooldownTime = CHARGED_WAIT_MIN + rng.nextInt(CHARGED_WAIT_MAX - CHARGED_WAIT_MIN + 1);
+    }
+}
+
+void RangedCrossbowAttackGoal::handleChargedState()
+{
+    // MC 1.16.5: 等待一段时间后进入攻击状态
+    --m_cooldownTime;
+    if (m_cooldownTime <= 0) {
+        m_crossbowState = CrossbowState::ReadyToAttack;
+    }
+}
+
+void RangedCrossbowAttackGoal::handleReadyToAttackState()
+{
+    // MC 1.16.5: 看到目标时发射
+    bool canSee = m_mob->canSee(*m_target);
+    if (!canSee) {
+        // 看不到目标，重置到已装填状态等待
+        m_crossbowState = CrossbowState::Charged;
+        m_cooldownTime = CHARGED_WAIT_MIN;
+        return;
+    }
+
+    // 发射弩箭
+    ItemStack& mainHand = const_cast<ItemStack&>(m_mob->getMainHandItem());
+    entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
+
+    if (crossbowUser && isHoldingCrossbow()) {
+        // 发射（shootCrossbow 内部会根据弹药类型决定速度）
+        crossbowUser->shootCrossbow(m_target, mainHand, 1.0f);
+
+        // 清除装填状态
+        const item::CrossbowItem* crossbowItem = dynamic_cast<const item::CrossbowItem*>(mainHand.getItem());
+        if (crossbowItem) {
+            item::CrossbowItem::setCharged(mainHand, false);
+        }
+    }
+
+    // 重置状态
+    m_crossbowState = CrossbowState::Uncharged;
 }
 
 } // namespace mc::entity::ai::goal

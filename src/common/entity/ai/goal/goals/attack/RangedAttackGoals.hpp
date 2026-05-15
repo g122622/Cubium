@@ -125,5 +125,104 @@ private:
     static constexpr i32 STRAFE_THRESHOLD = 20; // 走位方向变化阈值（MC 1.16.5）
 };
 
+/**
+ * @brief 弩攻击目标状态枚举
+ *
+ * 参考 MC 1.16.5 RangedCrossbowAttackGoal.CrossbowState
+ */
+enum class CrossbowState : u8 {
+    Uncharged,      // 未装填
+    Charging,       // 装填中
+    Charged,        // 已装填
+    ReadyToAttack   // 准备攻击
+};
+
+/**
+ * @brief 弩远程攻击目标
+ *
+ * 使用弩进行远程攻击的AI目标。
+ * 需要实体实现ICrossbowUser接口。
+ *
+ * 状态机:
+ * - Uncharged: 等待进入攻击范围
+ * - Charging: 装填弩（25 ticks基础时间）
+ * - Charged: 装填完成，等待发射
+ * - ReadyToAttack: 发射弩箭
+ *
+ * 参考 MC 1.16.5 RangedCrossbowAttackGoal
+ */
+class RangedCrossbowAttackGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param mob 拥有此目标的生物
+     * @param speed 移动速度倍率
+     * @param attackRadius 攻击半径
+     */
+    RangedCrossbowAttackGoal(MobEntity* mob, f64 speed, f32 attackRadius);
+
+    ~RangedCrossbowAttackGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "RangedCrossbowAttackGoal"; }
+
+private:
+    /**
+     * @brief 检查实体是否持有弩
+     */
+    [[nodiscard]] bool isHoldingCrossbow() const;
+
+    /**
+     * @brief 检查视线并更新可见时间
+     */
+    void updateSeenTime();
+
+    /**
+     * @brief 处理未装填状态
+     */
+    void handleUnchargedState();
+
+    /**
+     * @brief 处理装填中状态
+     */
+    void handleChargingState();
+
+    /**
+     * @brief 处理已装填状态
+     */
+    void handleChargedState();
+
+    /**
+     * @brief 处理准备攻击状态
+     */
+    void handleReadyToAttackState();
+
+    MobEntity* m_mob;
+    LivingEntity* m_target = nullptr;
+    f64 m_speed;
+    f32 m_attackRadius;
+    f32 m_attackRadiusSq;
+
+    CrossbowState m_crossbowState = CrossbowState::Uncharged;
+    i32 m_seenTime = 0;           // 能看到目标的时间
+    i32 m_chargeTime = 0;         // 装填计时器
+    i32 m_cooldownTime = 0;       // 装填后等待时间
+    i32 m_moveCooldown = 0;       // 移动冷却
+
+    // MC 1.16.5 常量
+    static constexpr i32 MIN_SEEN_TIME = 5;          // 最小可见时间才开始攻击
+    static constexpr i32 CHARGED_WAIT_MIN = 20;      // 装填后最小等待时间
+    static constexpr i32 CHARGED_WAIT_MAX = 40;      // 装填后最大等待时间
+    static constexpr i32 MOVE_COOLDOWN_MIN = 20;     // 移动冷却最小值
+    static constexpr i32 MOVE_COOLDOWN_MAX = 40;     // 移动冷却最大值
+    static constexpr f32 ARROW_VELOCITY = 3.15f;     // 箭矢速度
+    static constexpr f32 FIREWORK_VELOCITY = 1.6f;   // 烟花速度
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

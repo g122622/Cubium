@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,19 +18,39 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "IllagerEntities.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
+#include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
+#include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "entity/ai/goal/goals/SwimGoal.hpp"
+#include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/core/EntityRegistry.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "entity/entities/projectile/OtherProjectiles.hpp"
+#include "entity/interfaces/ICrossbowUser.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/items/weapon/ArrowItem.hpp"
+#include "item/items/weapon/CrossbowItem.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "sound/SoundEvents.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include <cmath>
 
 namespace mc {
 
-// PillagerEntity
+// ==================== PillagerEntity ====================
+
 std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)
 {
     return std::make_unique<PillagerEntity>(LegacyEntityType::Pillager, EntityId(0));
@@ -42,29 +62,164 @@ PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
 
 void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
-    // TODO: 实现弩攻击逻辑
-    (void)target;
-    (void)charge;
+    // MC 1.16.5: 掠夺者使用弩进行远程攻击
+    // charge 参数对弩不重要，弩使用固定速度
+    MC_UNUSED(charge);
+
+    if (!target || !m_world) return;
+
+    // 获取主手弩
+    ItemStack& crossbow = const_cast<ItemStack&>(getMainHandItem());
+    const Item* item = crossbow.getItem();
+
+    // 检查是否是弩
+    if (item == nullptr || item->getUseAction(crossbow) != UseAction::Crossbow) {
+        return;
+    }
+
+    // 调用 shootCrossbow 发射弩箭
+    // MC 1.16.5: 掠夺者使用箭矢速度 1.6F
+    shootCrossbow(target, crossbow, 1.0f);
 }
 
 void PillagerEntity::onCrossbowLoadComplete(ItemStack& crossbow)
 {
-    // TODO: 实现弩装填完成逻辑
-    (void)crossbow;
+    // MC 1.16.5: 装填完成后的处理
+    // 重置空闲时间，防止立即消失
+    setIdleTime(0);
+
+    // 装填完成时播放音效（如果需要）
+    // 播放音效在 CrossbowItem 中已处理
+    MC_UNUSED(crossbow);
 }
 
 void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge)
 {
-    // TODO: 实现弩射击逻辑
-    (void)target;
-    (void)crossbow;
-    (void)charge;
+    if (!target || !m_world || !crossbow.getItem()) return;
+
+    MC_UNUSED(charge);
+
+    // MC 1.16.5: 从 ICrossbowUser 默认实现移植
+    // 计算弹道
+    f64 dx = target->x() - x();
+    f64 dz = target->z() - z();
+    f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+
+    // 目标高度偏移：目标眼睛高度的 1/3
+    // 弹道高度补偿：水平距离 * 0.2
+    f64 dy = (target->y() + target->height() * 0.3333333333333333) - (y() + eyeHeight() - 0.15) + horizontalDist * 0.2;
+
+    // 计算弹道偏移角度（多重射击支持）
+    // 掠夺者只有一支箭，偏移为 0
+    f32 projectileAngle = 0.0f;
+
+    // 确定速度
+    f32 velocity = 1.6f; // 掠夺者使用的速度
+    const item::CrossbowItem* crossbowItem = dynamic_cast<const item::CrossbowItem*>(crossbow.getItem());
+    if (crossbowItem && item::CrossbowItem::hasChargedProjectile(crossbow, Items::FIREWORK_ROCKET)) {
+        velocity = 1.6f; // 烟花速度
+    } else {
+        velocity = 3.15f; // 箭矢速度
+    }
+
+    // 计算难度相关的不精确度
+    // MC 1.16.5: inaccuracy = 14 - difficulty.getId() * 4
+    // Peaceful=0: 14, Easy=1: 10, Normal=2: 6, Hard=3: 2
+    // 目前简化为固定值 6（普通难度）
+    f32 inaccuracy = 6.0f;
+
+    // 创建箭矢实体
+    // MC 1.16.5: 掠夺者不消耗弹药，直接创建箭矢
+    auto arrow = std::make_unique<entity::ArrowEntity>(LegacyEntityType::Arrow, EntityId(0));
+    arrow->setWorld(m_world);
+    arrow->setPosition(x(), y() + eyeHeight() - 0.15, z());
+    arrow->setShooter(this);
+
+    // 设置箭矢属性
+    arrow->setShotFromCrossbow(true);
+    arrow->setDamage(5.0f); // 掠夺者箭矢伤害
+
+    // 计算发射方向（考虑偏移角度）
+    f32 yaw = this->yaw();
+    f32 pitch = this->pitch();
+
+    // 如果有目标，计算指向目标的方向
+    if (horizontalDist > 0.001) {
+        yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / math::PI) - 90.0f;
+        pitch = static_cast<f32>(std::atan2(dy, horizontalDist) * 180.0 / math::PI);
+    }
+
+    // 应用弹道偏移角度（用于多重射击）
+    if (projectileAngle != 0.0f) {
+        yaw += projectileAngle;
+    }
+
+    // 发射箭矢
+    arrow->shootFrom(*this, pitch, yaw, 0.0f, velocity, inaccuracy);
+
+    // 生成箭矢实体
+    m_world->spawnEntity(std::move(arrow));
+
+    // 播放发射音效
+    playSound(SoundEvents::ITEM_CROSSBOW_SHOOT, 1.0f, getRandom().nextFloat() * 0.4f + 0.8f);
+
+    // 清除弩的装填状态
+    if (crossbowItem) {
+        item::CrossbowItem::setCharged(crossbow, false);
+        item::CrossbowItem::clearProjectiles(crossbow);
+    }
 }
 
 void PillagerEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
-    // TODO: 添加掠夺者特有AI（弩攻击等）
+
+    // MC 1.16.5 PillagerEntity.registerGoals()
+    // 优先级 0: 游泳
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // 优先级 2: 寻找目标（袭击模式专用，这里简化处理）
+    // m_goalSelector.addGoal(2, std::make_unique<FindTargetGoal>(this, 10.0f));
+
+    // 优先级 3: 弩远程攻击
+    m_goalSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 8.0f));
+
+    // 优先级 8: 随机行走
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6));
+
+    // 优先级 9: 看向玩家
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
+        this, 15.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
+
+    // 优先级 10: 看向生物
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 15.0f));
+
+    // 目标选择器
+    // 优先级 1: 被攻击后反击并呼叫支援
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+
+    // 优先级 2: 攻击玩家
+    m_targetSelector.addGoal(
+        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
+
+    // 优先级 3: 攻击村民
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
+            [](const LivingEntity* entity) {
+                // 检查是否是村民
+                // TODO: 使用 VillagerEntity 类型检查
+                return entity != nullptr && entity->isAlive();
+            }));
+
+    // 优先级 3: 攻击铁傀儡
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
+            [](const LivingEntity* entity) {
+                // 检查是否是铁傀儡
+                // TODO: 使用 IronGolemEntity 类型检查
+                return entity != nullptr && entity->isAlive();
+            }));
 }
 
 void PillagerEntity::registerAttributes()
@@ -79,7 +234,8 @@ void PillagerEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
-// VindicatorEntity
+// ==================== VindicatorEntity ====================
+
 std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world)
 {
     return std::make_unique<VindicatorEntity>(LegacyEntityType::Vindicator, EntityId(0));
@@ -92,7 +248,54 @@ VindicatorEntity::VindicatorEntity(LegacyEntityType type, EntityId id)
 void VindicatorEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
-    // TODO: 添加卫道士特有AI（斧攻击等）
+
+    // MC 1.16.5 VindicatorEntity.registerGoals()
+    // 优先级 0: 游泳
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // 优先级 1: 破门（仅袭击模式，简化处理）
+    // m_goalSelector.addGoal(1, std::make_unique<BreakDoorGoal>(this, 6, ...));
+
+    // 优先级 2: 开门（袭击模式专用，简化处理）
+    // m_goalSelector.addGoal(2, std::make_unique<RaidOpenDoorGoal>(this));
+
+    // 优先级 3: 寻找目标（袭击模式专用，简化处理）
+    // m_goalSelector.addGoal(3, std::make_unique<FindTargetGoal>(this, 10.0f));
+
+    // 优先级 4: 近战攻击
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
+
+    // 优先级 8: 随机行走
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6));
+
+    // 优先级 9: 看向玩家
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
+        this, 3.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
+
+    // 优先级 10: 看向生物
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
+
+    // 目标选择器
+    // 优先级 1: 被攻击后反击并呼叫支援
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+
+    // 优先级 2: 攻击玩家
+    m_targetSelector.addGoal(
+        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
+
+    // 优先级 3: 攻击村民
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
+            [](const LivingEntity* entity) {
+                return entity != nullptr && entity->isAlive();
+            }));
+
+    // 优先级 3: 攻击铁傀儡
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
+            [](const LivingEntity* entity) {
+                return entity != nullptr && entity->isAlive();
+            }));
 }
 
 void VindicatorEntity::registerAttributes()
