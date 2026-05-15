@@ -1,0 +1,682 @@
+/*
+* Copyright (c) 2026 Guo Yi
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*/
+
+#include "DolphinGoals.hpp"
+#include "../../../../../entity/entities/passive/water/DolphinEntity.hpp"
+#include "../../../../../entity/entities/player/Player.hpp"
+#include "../../../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../../../entity/core/LivingEntity.hpp"
+#include "../../../../../entity/core/MobEntity.hpp"
+#include "../../../../../entity/effect/EffectInstance.hpp"
+#include "../../../../../entity/effect/EffectType.hpp"
+#include "../../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/fluid/Fluid.hpp"
+#include "../../../../../world/fluid/FluidTags.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/Direction.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
+#include <cmath>
+
+namespace mc {
+namespace entity::ai::goal {
+
+// ============================================================================
+// DolphinJumpGoal
+// ============================================================================
+
+DolphinJumpGoal::DolphinJumpGoal(DolphinEntity* dolphin, i32 chance)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Jump, GoalFlag::Move})
+    , m_dolphin(dolphin)
+    , m_chance(chance)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool DolphinJumpGoal::shouldExecute()
+{
+    // MC 1.16.5: 随机概率检查
+    math::Random rng = m_dolphin->getRandom();
+    if (rng.nextInt(m_chance) != 0) {
+        return false;
+    }
+
+    // 获取海豚朝向（从 yaw 计算）
+    f32 yaw = m_dolphin->yaw();
+    // 将 yaw 转换为方向向量
+    f32 yawRad = yaw * math::DEG_TO_RAD;
+    i32 dx = static_cast<i32>(std::round(std::sin(yawRad)));
+    i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
+
+    Vector3 pos = m_dolphin->position();
+    BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
+                     static_cast<i32>(std::floor(pos.y)),
+                     static_cast<i32>(std::floor(pos.z)));
+
+    // MC 1.16.5: 检查所有跳跃距离
+    for (i32 scale : JUMP_DISTANCES) {
+        if (!canJumpTo(blockPos, dx, dz, scale) || !isAirAbove(blockPos, dx, dz, scale)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool DolphinJumpGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 检查垂直速度和俯仰角
+    f32 vy = m_dolphin->velocityY();
+    bool hasVerticalMotion = (static_cast<f64>(vy) * vy >= 0.03);
+
+    // 检查俯仰角是否接近零
+    f32 pitch = m_dolphin->pitch();
+    bool pitchNearZero = (std::abs(pitch) < 10.0f);
+
+    // 检查是否在水中
+    bool inWater = m_dolphin->isInWater();
+
+    // 检查是否在地面上
+    bool onGround = m_dolphin->onGround();
+
+    // 继续执行的条件：有垂直运动 或 俯仰角不为零 或 不在水中 或 不在地面上
+    return (hasVerticalMotion || !pitchNearZero || !inWater) && !onGround;
+}
+
+void DolphinJumpGoal::startExecuting()
+{
+    // MC 1.16.5: 根据朝向设置跳跃速度
+    f32 yaw = m_dolphin->yaw();
+    f32 yawRad = yaw * math::DEG_TO_RAD;
+    i32 dx = static_cast<i32>(std::round(std::sin(yawRad)));
+    i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
+
+    // 设置跳跃速度 (水平 0.6, 垂直 0.7)
+    Vector3 vel = m_dolphin->velocity();
+    f32 vx = vel.x + static_cast<f32>(dx) * 0.6f;
+    f32 vy = 0.7f;
+    f32 vz = vel.z + static_cast<f32>(dz) * 0.6f;
+
+    m_dolphin->setVelocity(vx, vy, vz);
+
+    // 清除路径
+    m_dolphin->clearNavigationPath();
+
+    m_inWater = m_dolphin->isInWater();
+}
+
+void DolphinJumpGoal::resetTask()
+{
+    m_dolphin->setRotationPitch(0.0f);
+}
+
+void DolphinJumpGoal::tick()
+{
+    bool wasInWater = m_inWater;
+
+    if (!wasInWater) {
+        // 检查是否进入水中
+        IWorld* world = m_dolphin->world();
+        if (world != nullptr) {
+            Vector3 pos = m_dolphin->position();
+            BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
+                             static_cast<i32>(std::floor(pos.y)),
+                             static_cast<i32>(std::floor(pos.z)));
+            const fluid::FluidState* fluidState = world->getFluidState(blockPos);
+            m_inWater = fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+        }
+    }
+
+    // 刚入水时播放跳跃音效
+    if (m_inWater && !wasInWater) {
+        m_dolphin->playSound(SoundEvents::ENTITY_DOLPHIN_JUMP, 1.0f, 1.0f);
+    }
+
+    // MC 1.16.5: 调整俯仰角
+    Vector3 velocity = m_dolphin->velocity();
+    f64 vy = velocity.y;
+    f64 horizontalSpeed = std::sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+
+    if (vy * vy < 0.03 && m_dolphin->pitch() != 0.0f) {
+        // 缓慢恢复俯仰角
+        m_dolphin->setRotationPitch(
+            math::lerp(m_dolphin->pitch(), 0.0f, 0.2f)
+        );
+    } else {
+        // 根据运动方向计算俯仰角
+        f64 pitch = std::copysign(
+            std::acos(horizontalSpeed / velocity.length()) * (180.0 / math::PI),
+            -vy
+        );
+        m_dolphin->setRotationPitch(static_cast<f32>(pitch));
+    }
+}
+
+bool DolphinJumpGoal::canJumpTo(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    BlockPos targetPos(pos.x + dx * scale, pos.y, pos.z + dz * scale);
+
+    // 检查目标位置是否是水
+    const fluid::FluidState* fluidState = world->getFluidState(targetPos);
+    if (fluidState == nullptr || fluidState->isEmpty() || !fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+        return false;
+    }
+
+    // 检查目标位置是否有阻挡移动的方块
+    const BlockState* state = world->getBlockState(targetPos);
+    if (state != nullptr && state->getMaterial().blocksMovement()) {
+        return false;
+    }
+
+    return true;
+}
+
+bool DolphinJumpGoal::isAirAbove(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    // 检查目标位置上方一格和两格是否是空气
+    BlockPos above1(pos.x + dx * scale, pos.y + 1, pos.z + dz * scale);
+    BlockPos above2(pos.x + dx * scale, pos.y + 2, pos.z + dz * scale);
+
+    const BlockState* state1 = world->getBlockState(above1);
+    const BlockState* state2 = world->getBlockState(above2);
+
+    bool isAir1 = (state1 == nullptr || state1->isAir());
+    bool isAir2 = (state2 == nullptr || state2->isAir());
+
+    return isAir1 && isAir2;
+}
+
+// ============================================================================
+// SwimToTreasureGoal
+// ============================================================================
+
+SwimToTreasureGoal::SwimToTreasureGoal(DolphinEntity* dolphin)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_dolphin(dolphin)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool SwimToTreasureGoal::shouldExecute()
+{
+    // MC 1.16.5: 检查是否得到了鱼且空气充足
+    if (!m_dolphin->hasGotFish()) {
+        return false;
+    }
+
+    if (m_dolphin->air() < MIN_AIR) {
+        return false;
+    }
+
+    return true;
+}
+
+bool SwimToTreasureGoal::shouldContinueExecuting()
+{
+    if (m_failed) {
+        return false;
+    }
+
+    if (m_dolphin->air() < MIN_AIR) {
+        return false;
+    }
+
+    // 检查是否接近宝藏位置
+    BlockPos treasurePos = m_dolphin->getTreasurePos();
+    f64 dx = static_cast<f64>(treasurePos.x) - m_dolphin->x();
+    f64 dz = static_cast<f64>(treasurePos.z) - m_dolphin->z();
+    f64 distSq = dx * dx + dz * dz;
+
+    return distSq > static_cast<f64>(ARRIVE_DISTANCE * ARRIVE_DISTANCE);
+}
+
+void SwimToTreasureGoal::startExecuting()
+{
+    m_failed = false;
+    m_dolphin->clearNavigationPath();
+
+    // MC 1.16.5: 寻找附近的沉船或海底废墟
+    // 首先随机选择沉船或海底废墟
+    math::Random rng = m_dolphin->getRandom();
+    bool tryShipwreckFirst = rng.nextFloat() < 0.5f;
+
+    // TODO: 结构定位系统完善后启用真实搜索
+    // 目前使用占位实现
+    std::optional<BlockPos> treasurePos;
+
+    if (tryShipwreckFirst) {
+        treasurePos = findStructure(0); // 沉船
+        if (!treasurePos.has_value()) {
+            treasurePos = findStructure(1); // 海底废墟
+        }
+    } else {
+        treasurePos = findStructure(1); // 海底废墟
+        if (!treasurePos.has_value()) {
+            treasurePos = findStructure(0); // 沉船
+        }
+    }
+
+    if (treasurePos.has_value()) {
+        m_dolphin->setTreasurePos(treasurePos.value());
+    } else {
+        m_failed = true;
+    }
+}
+
+void SwimToTreasureGoal::resetTask()
+{
+    BlockPos treasurePos = m_dolphin->getTreasurePos();
+
+    // 检查是否到达宝藏
+    f64 dx = static_cast<f64>(treasurePos.x) - m_dolphin->x();
+    f64 dz = static_cast<f64>(treasurePos.z) - m_dolphin->z();
+    f64 distSq = dx * dx + dz * dz;
+
+    if (distSq <= static_cast<f64>(ARRIVE_DISTANCE * ARRIVE_DISTANCE) || m_failed) {
+        m_dolphin->setGotFish(false);
+    }
+}
+
+void SwimToTreasureGoal::tick()
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        m_failed = true;
+        return;
+    }
+
+    BlockPos treasurePos = m_dolphin->getTreasurePos();
+
+    // MC 1.16.5: 如果接近目标或路径结束，重新计算路径
+    if (m_dolphin->closeToTarget() || !m_dolphin->hasPath()) {
+        // 计算朝向宝藏的方向
+        Vector3 treasureCenter(
+            static_cast<f64>(treasurePos.x) + 0.5,
+            static_cast<f64>(treasurePos.y) + 0.5,
+            static_cast<f64>(treasurePos.z) + 0.5
+        );
+
+        // TODO: 使用 RandomPositionGenerator.findRandomTargetTowardsScaled
+        // 目前简化实现：直接向宝藏位置导航
+        bool hasPath = m_dolphin->tryMoveTo(
+            treasureCenter.x, treasureCenter.y, treasureCenter.z, 1.3
+        );
+
+        if (!hasPath) {
+            // 尝试不同高度
+            for (i32 yOffset = -2; yOffset <= 2; ++yOffset) {
+                hasPath = m_dolphin->tryMoveTo(
+                    treasureCenter.x,
+                    treasureCenter.y + yOffset,
+                    treasureCenter.z,
+                    1.3
+                );
+                if (hasPath) break;
+            }
+        }
+
+        if (!hasPath) {
+            m_failed = true;
+            return;
+        }
+
+        // 看向目标
+        m_dolphin->lookAt(treasureCenter.x, treasureCenter.y, treasureCenter.z);
+    }
+
+    // 随机播放粒子效果
+    math::Random rng = m_dolphin->getRandom();
+    if (rng.nextInt(80) == 0) {
+        // TODO: 在服务端触发粒子效果
+        // world->sendEntityEvent(m_dolphin, (byte)38);
+    }
+}
+
+std::optional<BlockPos> SwimToTreasureGoal::findStructure(i32 structureType) const
+{
+    // TODO: 当世界生成系统完善后，实现真实的结构搜索
+    // 目前返回空，表示未找到
+    // MC 1.16.5 使用 ServerWorld.func_241117_a_ 搜索结构
+    MC_UNUSED(structureType);
+    return std::nullopt;
+}
+
+// ============================================================================
+// SwimWithPlayerGoal
+// ============================================================================
+
+SwimWithPlayerGoal::SwimWithPlayerGoal(DolphinEntity* dolphin, f64 speed)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_dolphin(dolphin)
+    , m_speed(speed)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool SwimWithPlayerGoal::shouldExecute()
+{
+    m_targetPlayer = findSwimmingPlayer();
+    return m_targetPlayer != nullptr;
+}
+
+bool SwimWithPlayerGoal::shouldContinueExecuting()
+{
+    if (m_targetPlayer == nullptr) {
+        return false;
+    }
+
+    if (!m_targetPlayer->isSwimming()) {
+        return false;
+    }
+
+    f32 distSq = m_dolphin->distanceSqTo(*m_targetPlayer);
+    return static_cast<f64>(distSq) < MAX_DISTANCE_SQ;
+}
+
+void SwimWithPlayerGoal::startExecuting()
+{
+    if (m_targetPlayer != nullptr) {
+        // 给玩家添加海豚的恩惠效果
+        m_targetPlayer->addEffect(entity::effect::EffectInstance(
+            entity::effect::EffectType::DolphinsGrace,
+            EFFECT_DURATION,
+            0,     // amplifier = 0 (I级)
+            false, // ambient
+            true,  // visible
+            true   // showIcon
+        ));
+    }
+}
+
+void SwimWithPlayerGoal::resetTask()
+{
+    m_targetPlayer = nullptr;
+    m_dolphin->clearNavigationPath();
+}
+
+void SwimWithPlayerGoal::tick()
+{
+    if (m_targetPlayer == nullptr) {
+        return;
+    }
+
+    // 看向玩家
+    m_dolphin->lookAt(
+        m_targetPlayer->x(),
+        m_targetPlayer->y() + m_targetPlayer->eyeHeight(),
+        m_targetPlayer->z()
+    );
+
+    f32 distSq = m_dolphin->distanceSqTo(*m_targetPlayer);
+
+    if (static_cast<f64>(distSq) < CLOSE_DISTANCE_SQ) {
+        // 太近了，停止移动
+        m_dolphin->clearNavigationPath();
+    } else {
+        // 跟随玩家
+        m_dolphin->tryMoveToEntity(*m_targetPlayer, m_speed);
+    }
+
+    // 定期刷新海豚的恩惠效果
+    IWorld* world = m_dolphin->world();
+    if (world != nullptr && m_targetPlayer->isSwimming()) {
+        math::Random rng = m_dolphin->getRandom();
+        if (rng.nextInt(EFFECT_INTERVAL) == 0) {
+            m_targetPlayer->addEffect(entity::effect::EffectInstance(
+                entity::effect::EffectType::DolphinsGrace,
+                EFFECT_DURATION,
+                0,
+                false,
+                true,
+                true
+            ));
+        }
+    }
+}
+
+Player* SwimWithPlayerGoal::findSwimmingPlayer() const
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    // 获取附近所有实体
+    std::vector<Entity*> entities = world->getEntitiesInRange(
+        m_dolphin->position(),
+        SEARCH_RADIUS,
+        m_dolphin
+    );
+
+    Player* closestPlayer = nullptr;
+    f64 closestDist = SEARCH_RADIUS * SEARCH_RADIUS;
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        // 检查是否是玩家
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 检查是否在游泳
+        if (!player->isSwimming()) {
+            continue;
+        }
+
+        // 检查是否是攻击目标
+        LivingEntity* attackTarget = m_dolphin->attackTarget();
+        if (attackTarget == player) {
+            continue;
+        }
+
+        f32 distSq = m_dolphin->distanceSqTo(*player);
+        if (static_cast<f64>(distSq) < closestDist) {
+            closestDist = static_cast<f64>(distSq);
+            closestPlayer = player;
+        }
+    }
+
+    return closestPlayer;
+}
+
+// ============================================================================
+// PlayWithItemsGoal
+// ============================================================================
+
+PlayWithItemsGoal::PlayWithItemsGoal(DolphinEntity* dolphin)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_dolphin(dolphin)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool PlayWithItemsGoal::shouldExecute()
+{
+    u32 ticksExisted = m_dolphin->ticksExisted();
+    if (static_cast<i32>(ticksExisted) < m_cooldown) {
+        return false;
+    }
+
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    // 检查附近是否有物品
+    ItemEntity* item = findNearbyItem();
+    if (item != nullptr) {
+        return true;
+    }
+
+    // 检查是否手中持有物品
+    // TODO: 当 MobEntity 支持装备系统后检查主手物品
+    // 目前简化实现：只检查附近物品
+    return false;
+}
+
+void PlayWithItemsGoal::startExecuting()
+{
+    ItemEntity* item = findNearbyItem();
+    if (item != nullptr) {
+        m_dolphin->tryMoveToEntity(*item, 1.2);
+        m_dolphin->playSound(SoundEvents::ENTITY_DOLPHIN_PLAY, 1.0f, 1.0f);
+    }
+
+    m_cooldown = 0;
+}
+
+void PlayWithItemsGoal::resetTask()
+{
+    // TODO: 当 MobEntity 支持装备系统后，扔出手中物品
+    // 目前简化实现：不处理物品存储
+}
+
+void PlayWithItemsGoal::tick()
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // TODO: 完整的物品拾取和扔出逻辑
+    // 当 MobEntity 支持装备系统后实现：
+    // 1. 检查是否持有物品
+    // 2. 如果持有，扔出物品
+    // 3. 如果没有持有，查找附近物品并移动过去
+
+    ItemEntity* item = findNearbyItem();
+    if (item != nullptr) {
+        m_dolphin->tryMoveToEntity(*item, 1.2);
+    }
+}
+
+void PlayWithItemsGoal::throwItem(ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 在海豚眼睛位置略下方生成物品
+    f64 y = m_dolphin->y() + m_dolphin->eyeHeight() - 0.3;
+
+    // 计算扔出速度
+    math::Random rng = m_dolphin->getRandom();
+    f32 angle = rng.nextFloat() * math::TWO_PI;
+    f32 inaccuracy = 0.02f * rng.nextFloat();
+
+    // 基于海豚朝向计算速度
+    f32 yaw = m_dolphin->yaw();
+    f32 pitch = m_dolphin->pitch();
+    f32 cosYaw = std::cos(yaw * math::DEG_TO_RAD);
+    f32 sinYaw = std::sin(yaw * math::DEG_TO_RAD);
+    f32 cosPitch = std::cos(pitch * math::DEG_TO_RAD);
+    f32 sinPitch = std::sin(pitch * math::DEG_TO_RAD);
+
+    f32 vx = THROW_VELOCITY * (-sinYaw * cosPitch) + std::cos(angle) * inaccuracy;
+    f32 vy = THROW_VELOCITY * sinPitch * 1.5f;
+    f32 vz = THROW_VELOCITY * (cosYaw * cosPitch) + std::sin(angle) * inaccuracy;
+
+    // 生成物品实体
+    ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(
+        world,
+        stack,
+        m_dolphin->x(), y, m_dolphin->z(),
+        vx, vy, vz,
+        PICKUP_DELAY,
+        m_dolphin->uuid()
+    );
+
+    MC_UNUSED(itemEntity);
+}
+
+ItemEntity* PlayWithItemsGoal::findNearbyItem() const
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    // 获取附近所有实体
+    std::vector<Entity*> entities = world->getEntitiesInRange(
+        m_dolphin->position(),
+        SEARCH_RADIUS,
+        m_dolphin
+    );
+
+    ItemEntity* closestItem = nullptr;
+    f64 closestDist = SEARCH_RADIUS * SEARCH_RADIUS;
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        // 检查是否是物品实体
+        if (entity->legacyType() != LegacyEntityType::Item) {
+            continue;
+        }
+
+        ItemEntity* item = static_cast<ItemEntity*>(entity);
+
+        // MC 1.16.5: 物品必须在水中且可以被拾取
+        if (!item->isInWater()) {
+            continue;
+        }
+
+        if (!item->canBePickedUp()) {
+            continue;
+        }
+
+        f32 distSq = m_dolphin->distanceSqTo(*item);
+        if (static_cast<f64>(distSq) < closestDist) {
+            closestDist = static_cast<f64>(distSq);
+            closestItem = item;
+        }
+    }
+
+    return closestItem;
+}
+
+} // namespace entity::ai::goal
+} // namespace mc

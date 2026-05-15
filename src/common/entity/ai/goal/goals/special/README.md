@@ -14,6 +14,8 @@ special/
 ├── SquidGoals.cpp         # 鱿鱼目标实现
 ├── BatGoals.hpp           # 蝙蝠目标头文件
 ├── BatGoals.cpp           # 蝙蝠目标实现
+├── DolphinGoals.hpp       # 海豚目标头文件
+├── DolphinGoals.cpp       # 海豚目标实现
 └── README.md              # 本文档
 ```
 
@@ -181,7 +183,152 @@ void AbstractHorseEntity::registerGoals() {
 
 **MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.DolphinJumpGoal`
 
-**状态**: 占位符，待实现
+**执行条件**:
+- 随机概率触发 (1/chance)
+- 检查前方跳跃路径上有足够的水
+- 检查水面上方有足够的空气空间
+
+**行为**:
+- `shouldExecute()`: 随机概率检查 + 跳跃路径验证
+- `startExecuting()`: 根据朝向设置跳跃速度（水平 0.6, 垂直 0.7）
+- `tick()`: 在空中时调整俯仰角
+- `resetTask()`: 重置俯仰角为 0
+
+**跳跃距离检查** (`JUMP_DISTANCES = {0, 1, 4, 5, 6, 7}`):
+- 检查每个距离位置是否有水
+- 检查每个距离位置上方是否有空气
+
+**互斥标志**: `Jump`, `Move`
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| JUMP_DISTANCES | {0, 1, 4, 5, 6, 7} | 跳跃距离检查点 |
+| HORIZONTAL_SPEED | 0.6f | 水平跳跃速度 |
+| VERTICAL_SPEED | 0.7f | 垂直跳跃速度 |
+
+**使用示例**:
+```cpp
+void DolphinEntity::registerGoals() {
+    // 优先级 5: 跳跃
+    m_goalSelector.addGoal(5, std::make_unique<DolphinJumpGoal>(this, 10));
+}
+```
+
+---
+
+### SwimToTreasureGoal - 海豚游向宝藏目标
+
+**职责**: 当海豚被喂食鱼后，引导玩家到附近的宝藏结构。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.DolphinEntity.SwimToTreasureGoal`
+
+**执行条件**:
+- 海豚已经得到了鱼 (`hasGotFish = true`)
+- 空气值 >= 100
+
+**行为**:
+- `startExecuting()`: 寻找附近的沉船或海底废墟结构
+- `tick()`: 向宝藏位置游泳，如果接近目标则重新规划路径
+- `resetTask()`: 到达宝藏后清除鱼的标记
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MIN_AIR | 100 | 最小空气值要求 |
+| ARRIVE_DISTANCE | 4.0f | 到达距离 |
+| CLOSE_TO_TARGET_DISTANCE | 12.0f | 接近目标距离 |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void DolphinEntity::registerGoals() {
+    // 优先级 1: 游向宝藏
+    m_goalSelector.addGoal(1, std::make_unique<SwimToTreasureGoal>(this));
+}
+```
+
+---
+
+### SwimWithPlayerGoal - 海豚与玩家同游目标
+
+**职责**: 当玩家在水中游泳时，海豚会跟随玩家并给予"海豚的恩惠"效果。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.DolphinEntity.SwimWithPlayerGoal`
+
+**执行条件**:
+- 附近有正在游泳的玩家
+- 海豚的攻击目标不是该玩家
+
+**行为**:
+- `startExecuting()`: 给玩家添加海豚的恩惠效果
+- `tick()`: 跟随玩家，持续添加效果
+- `resetTask()`: 清除目标玩家
+
+**效果**:
+- 给予玩家 `DolphinsGrace` 效果 (游泳加速)
+- 效果持续时间: 100 ticks (5秒)
+- 效果刷新间隔: 每 6 ticks
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RADIUS | 10.0f | 搜索玩家半径 |
+| CLOSE_DISTANCE_SQ | 6.25f | 接近距离平方 (2.5²) |
+| MAX_DISTANCE_SQ | 256.0f | 最大距离平方 (16²) |
+| EFFECT_DURATION | 100 | 效果持续时间 (ticks) |
+| EFFECT_INTERVAL | 6 | 效果刷新间隔 (ticks) |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void DolphinEntity::registerGoals() {
+    // 优先级 2: 与玩家同游
+    m_goalSelector.addGoal(2, std::make_unique<SwimWithPlayerGoal>(this, 4.0));
+}
+```
+
+---
+
+### PlayWithItemsGoal - 海豚玩物品目标
+
+**职责**: 海豚会拾取水中的物品并扔出来玩。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.DolphinEntity.PlayWithItemsGoal`
+
+**执行条件**:
+- 冷却时间已过
+- 附近有可拾取的物品实体（在水中）
+- 或海豚正在手中持有物品
+
+**行为**:
+- `startExecuting()`: 向物品移动
+- `tick()`: 拾取物品或扔出物品
+- `resetTask()`: 扔出手中物品
+
+**物品选择条件**:
+- 物品必须在水中
+- 物品可以被拾取
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RADIUS | 8.0f | 搜索物品半径 |
+| THROW_VELOCITY | 0.3f | 扔出速度 |
+| PICKUP_DELAY | 40 | 扔出物品的拾取延迟 (ticks) |
+| MIN_COOLDOWN | 100 | 最小冷却时间 (ticks) |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void DolphinEntity::registerGoals() {
+    // 优先级 8: 玩物品
+    m_goalSelector.addGoal(8, std::make_unique<PlayWithItemsGoal>(this));
+}
+```
 
 ---
 
@@ -508,6 +655,7 @@ graph TD
     A --> F[PuffGoal]
     A --> G[SquidMoveRandomGoal]
     A --> H[SquidFleeGoal]
+<<<<<<< HEAD
     A --> J[BatRandomFlyGoal]
     A --> K[BatRestGoal]
     A --> I[其他占位符目标]
@@ -521,6 +669,25 @@ graph TD
     H --> Q
     J --> R[BatEntity]
     K --> R
+=======
+    A --> I[DolphinJumpGoal]
+    A --> J[SwimToTreasureGoal]
+    A --> K[SwimWithPlayerGoal]
+    A --> L[PlayWithItemsGoal]
+    A --> M[其他占位符目标]
+
+    B --> N[CreeperEntity]
+    C --> O[AbstractHorseEntity]
+    D --> P[GuardianEntity]
+    E --> Q[BlazeEntity]
+    F --> R[PufferfishEntity]
+    G --> S[SquidEntity]
+    H --> S
+    I --> T[DolphinEntity]
+    J --> T
+    K --> T
+    L --> T
+>>>>>>> a7730e85 (feat(entity): 实现海豚 AI 目标（DolphinJumpGoal, SwimToTreasureGoal, SwimWithPlayerGoal, PlayWithItemsGoal）)
 ```
 
 ---

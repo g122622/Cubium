@@ -160,24 +160,6 @@ private:
 };
 
 /**
- * @brief 海豚跳跃目标
- *
- * 海豚跳出水面跳跃。
- *
- * 参考 MC 1.16.5 DolphinJumpGoal
- */
-class DolphinJumpGoal : public Goal {
-public:
-    explicit DolphinJumpGoal(void* dolphin)
-        : Goal(EnumSet<GoalFlag>{GoalFlag::Jump})
-    {}
-    bool shouldExecute() override { return false; }
-    bool shouldContinueExecuting() override { return false; }
-    void startExecuting() override {}
-    void tick() override {}
-};
-
-/**
  * @brief 河豚膨胀目标
  *
  * 当检测到敌对生物或玩家靠近时触发膨胀行为。

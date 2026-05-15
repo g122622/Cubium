@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -41,10 +41,24 @@ class LivingEntity;
  *
  * 特性：
  * - 游泳：快速游泳，可以跳出水面
- * - 寻找宝藏：喂食鱼后会引导玩家到宝藏
- * - 救助：会将溺水的玩家推向水面
- * - 群居：会形成小群体
+ * - 寻找宝藏：喂食鱼后会引导玩家到宝藏（沉船或海底废墟）
+ * - 与玩家同游：跟随游泳玩家并给予"海豚的恩惠"效果
+ * - 玩物品：会拾取水中物品并扔出玩耍
  * - 掉落：生鳕鱼
+ *
+ * AI 目标（MC 1.16.5 优先级）：
+ * - 0: BreatheAirGoal - 浮出水面呼吸
+ * - 0: FindWaterGoal - 寻找水源
+ * - 1: SwimToTreasureGoal - 游向宝藏
+ * - 2: SwimWithPlayerGoal - 与玩家同游
+ * - 4: RandomSwimmingGoal - 随机游泳
+ * - 4: LookRandomlyGoal - 随机看向
+ * - 5: LookAtGoal - 看向玩家
+ * - 5: DolphinJumpGoal - 跳出水面
+ * - 6: MeleeAttackGoal - 近战攻击
+ * - 8: PlayWithItemsGoal - 玩物品
+ * - 8: FollowBoatGoal - 跟随船
+ * - 9: AvoidEntityGoal<GuardianEntity> - 避开守卫者
  *
  * 音效：
  * - ENTITY_DOLPHIN_AMBIENT: 陆地环境音
@@ -139,13 +153,55 @@ public:
      */
     [[nodiscard]] u64 getGuidedPlayerId() const { return m_guidedPlayerId; }
 
+    // ========== 鱼标记 ==========
+
+    /**
+     * @brief 是否得到了鱼
+     * MC 1.16.5: hasGotFish()
+     *
+     * 当玩家喂食鱼后设置为 true，海豚会引导玩家到宝藏。
+     */
+    [[nodiscard]] bool hasGotFish() const { return m_gotFish; }
+
+    /**
+     * @brief 设置得到鱼标记
+     * MC 1.16.5: setGotFish()
+     */
+    void setGotFish(bool gotFish) { m_gotFish = gotFish; }
+
     // ========== 食物 ==========
 
     /**
      * @brief 检查物品是否是食物
-     * 海豚吃鱼
+     * 海豚吃鱼（鳕鱼、鲑鱼、河豚、热带鱼）
      */
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const;
+
+    // ========== 导航辅助 ==========
+
+    /**
+     * @brief 检查是否接近导航目标
+     * MC 1.16.5: closeToTarget()
+     */
+    [[nodiscard]] bool closeToTarget() const;
+
+    /**
+     * @brief 检查是否有路径
+     */
+    [[nodiscard]] bool hasPath() const;
+
+    /**
+     * @brief 清除导航路径
+     */
+    void clearNavigationPath();
+
+    /**
+     * @brief 尝试移动到实体
+     * @param entity 目标实体
+     * @param speed 移动速度
+     * @return 是否成功开始移动
+     */
+    bool tryMoveToEntity(const Entity& entity, f64 speed);
 
     // ========== 属性 ==========
 
@@ -163,6 +219,12 @@ public:
      * @brief 获取实体高度
      */
     [[nodiscard]] f32 height() const override { return 0.6f; }
+
+    /**
+     * @brief 获取最大空气供应量
+     * MC 1.16.5: 海豚有 4800 tick (4分钟) 的空气储备
+     */
+    [[nodiscard]] i32 maxAir() const override { return MAX_AIR; }
 
     // ========== 音效 ==========
 
@@ -202,6 +264,9 @@ private:
     u64 m_guidedPlayerId = 0;
     i32 m_guideTimer = 0;
 
+    // 鱼标记（MC 1.16.5: GOT_FISH 数据参数）
+    bool m_gotFish = false;
+
     // 游泳计时器
     i32 m_swimTimer = 0;
 
@@ -209,6 +274,7 @@ private:
     static constexpr i32 GUIDE_DURATION = 1200; // 60秒引导时间
     static constexpr f32 SWIM_SPEED = 0.6f;
     static constexpr f32 JUMP_VELOCITY = 0.7f;
+    static constexpr i32 MAX_AIR = 4800; // 4分钟空气储备
 };
 
 } // namespace mc
