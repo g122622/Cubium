@@ -146,6 +146,40 @@ bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const
     return item == Items::BREAD || item == Items::POTATO || item == Items::CARROT || item == Items::BEETROOT;
 }
 
+bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
+{
+    // 参考 MC 1.16.5 VillagerEntity.func_230293_i_()
+    // 村民可以拾取的默认物品列表
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+
+    // 默认可拾取物品：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
+    static const Item* allowedItems[] = {
+        Items::BREAD,
+        Items::POTATO,
+        Items::CARROT,
+        Items::WHEAT,
+        Items::WHEAT_SEEDS,
+        Items::BEETROOT,
+        Items::BEETROOT_SEEDS
+    };
+
+    // 检查是否在默认列表中
+    for (const Item* allowedItem : allowedItems) {
+        if (item == allowedItem) {
+            // 还需要检查库存是否有空间
+            return m_inventory && m_inventory->canAddItem(itemStack);
+        }
+    }
+
+    // 农民职业额外可拾取：小麦、小麦种子、甜菜根种子、骨粉
+    // 注意：小麦、小麦种子、甜菜根种子已在上面检查
+    // 农民特有物品已在 MC 1.16.5 中通过 VillagerProfession.getSpecificItems() 实现
+    // 但本项目中农民职业特有物品就是上面列出的物品，所以无需额外检查
+
+    return false;
+}
+
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
 {
     auto child = std::make_unique<VillagerEntity>(LegacyEntityType::Unknown, 0);

@@ -93,6 +93,8 @@ add_executable(mc_tests
     common/entity/DolphinEntityTest.cpp
     # 鱿鱼 AI 目标测试
     common/entity/SquidGoalsTest.cpp
+    # 村民 AI 目标测试
+    common/entity/VillagerGoalsTest.cpp
     # 蝙蝠 AI 目标测试
     common/entity/BatGoalsTest.cpp
     # 海豚 AI 目标测试

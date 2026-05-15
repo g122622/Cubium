@@ -102,14 +102,14 @@ public:
      * @param stack 要添加的物品
      * @return 剩余未添加的物品（如果背包满了）
      */
-    ItemStack addItem(const ItemStack& stack);
+    ItemStack addItem(const ItemStack& stack) override;
 
     /**
      * @brief 检查是否可以添加物品
      * @param stack 要检查的物品
      * @return 如果可以完全添加返回true
      */
-    [[nodiscard]] bool canAddItem(const ItemStack& stack) const;
+    [[nodiscard]] bool canAddItem(const ItemStack& stack) const override;
 
     /**
      * @brief 从指定槽位提取物品

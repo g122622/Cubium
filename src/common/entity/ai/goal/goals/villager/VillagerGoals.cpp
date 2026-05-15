@@ -22,6 +22,7 @@
 */
 
 #include "VillagerGoals.hpp"
+#include "../../../../../item/Items.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
@@ -29,7 +30,10 @@
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/item/ItemEntity.hpp"
+#include "../../../../entities/monster/MonsterEntity.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../../interfaces/IMob.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../GoalConstants.hpp"
 #include <cmath>
@@ -437,8 +441,21 @@ bool GatherItemsGoal::shouldContinueExecuting()
     // 物品已被拾取或消失
     if (m_targetItem == 0) return false;
 
-    // 检查物品是否还存在
-    // TODO: 检查物品实体是否仍然有效
+    // 检查物品是否仍然有效
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetItem) : nullptr;
+    if (!entity) return false;
+
+    ItemEntity* item = dynamic_cast<ItemEntity*>(entity);
+    if (!item || !item->isAlive() || !item->canBePickedUp()) {
+        return false;
+    }
+
+    // 检查物品是否仍在范围内
+    f32 distSq = m_villager->distanceSqTo(*item);
+    if (distSq > PICKUP_RANGE * PICKUP_RANGE) {
+        return false;
+    }
+
     return true;
 }
 
@@ -468,26 +485,118 @@ void GatherItemsGoal::tick()
 
 void GatherItemsGoal::findNearbyItems()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        m_targetItem = 0;
+        return;
+    }
 
-    // TODO: 搜索附近的物品实体
-    // 目前不实现
     m_targetItem = 0;
+
+    // 使用 EntityUtils 查找最近的 ItemEntity
+    // 参考 MC 1.16.5 VillagerEntity 的拾取逻辑
+    ItemEntity* item = EntityUtils::findClosestEntity<ItemEntity>(
+        m_villager->world(),
+        m_villager->position(),
+        PICKUP_RANGE,
+        m_villager, // 排除自己（虽然村民不是 ItemEntity）
+        [this](ItemEntity* itemEntity) {
+            // 检查物品实体是否有效
+            if (!itemEntity || !itemEntity->isAlive()) return false;
+
+            // 检查是否可以被拾取（拾取延迟等）
+            if (!itemEntity->canBePickedUp()) return false;
+
+            // 检查村民是否想要这个物品
+            const ItemStack& stack = itemEntity->getItemStack();
+            if (stack.isEmpty()) return false;
+
+            // 使用 VillagerEntity::canPickUpItem 检查是否是村民可拾取的物品
+            return m_villager->canPickUpItem(stack);
+        });
+
+    if (item) {
+        m_targetItem = item->id();
+    }
 }
 
 void GatherItemsGoal::moveToItem()
 {
     if (!m_villager || m_targetItem == 0) return;
 
-    // TODO: 获取物品位置并移动
+    // 从世界获取实体
+    Entity* entity = m_villager->world()->getEntity(m_targetItem);
+    if (!entity) {
+        m_targetItem = 0;
+        return;
+    }
+
+    ItemEntity* item = dynamic_cast<ItemEntity*>(entity);
+    if (!item || !item->isAlive()) {
+        m_targetItem = 0;
+        return;
+    }
+
+    // 检查物品是否还能被拾取
+    if (!item->canBePickedUp()) {
+        m_targetItem = 0;
+        return;
+    }
+
+    // 移动到物品位置
+    // 参考 MC 1.16.5: 村民移动速度约 0.5
+    m_villager->tryMoveTo(item->x(), item->y(), item->z(), 0.5);
 }
 
 void GatherItemsGoal::pickupItem()
 {
     if (!m_villager || m_targetItem == 0) return;
 
-    // TODO: 拾取物品
-    m_targetItem = 0;
+    // 从世界获取实体
+    Entity* entity = m_villager->world()->getEntity(m_targetItem);
+    if (!entity) {
+        m_targetItem = 0;
+        return;
+    }
+
+    ItemEntity* item = dynamic_cast<ItemEntity*>(entity);
+    if (!item || !item->isAlive() || !item->canBePickedUp()) {
+        m_targetItem = 0;
+        return;
+    }
+
+    // 检查距离
+    f32 distSq = m_villager->distanceSqTo(*item);
+    if (distSq > PICKUP_DISTANCE * PICKUP_DISTANCE) {
+        return; // 还没到拾取距离
+    }
+
+    // 获取物品堆
+    ItemStack stack = item->getItemStack();
+    if (stack.isEmpty()) {
+        m_targetItem = 0;
+        return;
+    }
+
+    // 再次确认村民可以拾取这个物品
+    if (!m_villager->canPickUpItem(stack)) {
+        m_targetItem = 0;
+        return;
+    }
+
+    // 将物品添加到村民库存
+    // 参考 MC 1.16.5 VillagerEntity.updateEquipmentIfNeeded()
+    IInventory& inventory = m_villager->inventory();
+    ItemStack remaining = inventory.addItem(stack);
+
+    // 如果有剩余物品（库存满了），更新物品实体的数量
+    if (!remaining.isEmpty()) {
+        item->setItemStack(remaining);
+    } else {
+        // 完全拾取，移除物品实体
+        item->remove();
+    }
+
+    m_targetItem = 0; // 清除目标
 }
 
 // ============================================================================
@@ -595,7 +704,26 @@ bool AvoidHostileGoal::shouldContinueExecuting()
     // 敌对生物消失或距离足够远
     if (m_hostileEntity == 0) return false;
 
-    // TODO: 检查敌对生物是否仍然存在和追踪
+    // 检查敌对生物是否仍然存在
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_hostileEntity) : nullptr;
+    if (!entity) {
+        m_hostileEntity = 0;
+        return false;
+    }
+
+    LivingEntity* hostile = dynamic_cast<LivingEntity*>(entity);
+    if (!hostile || !hostile->isAlive()) {
+        m_hostileEntity = 0;
+        return false;
+    }
+
+    // 检查距离，如果敌对生物已经足够远，停止逃跑
+    f32 distSq = m_villager->distanceSqTo(*hostile);
+    if (distSq > FLEE_DISTANCE * FLEE_DISTANCE * 4.0f) { // 超过逃跑距离的2倍
+        m_hostileEntity = 0;
+        return false;
+    }
+
     return true;
 }
 
@@ -624,27 +752,73 @@ void AvoidHostileGoal::tick()
 
 void AvoidHostileGoal::findNearestHostile()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        m_hostileEntity = 0;
+        return;
+    }
 
-    // TODO: 搜索附近的敌对生物（僵尸、掠夺者等）
-    // 目前不实现
     m_hostileEntity = 0;
+
+    // 使用 EntityUtils 查找最近的敌对生物
+    // 参考 MC 1.16.5: 村民逃离僵尸、掠夺者、劫掠兽、恼鬼等
+    LivingEntity* hostile = EntityUtils::findClosestEntity<LivingEntity>(
+        m_villager->world(),
+        m_villager->position(),
+        FLEE_RANGE,
+        m_villager,
+        [](LivingEntity* entity) {
+            // 检查是否存活
+            if (!entity || !entity->isAlive()) return false;
+
+            // 使用 IMob 接口判断是否是敌对生物
+            // IMob 是敌对生物的标记接口
+            IMob* mob = dynamic_cast<IMob*>(entity);
+            return mob != nullptr;
+        });
+
+    if (hostile) {
+        m_hostileEntity = hostile->id();
+    }
 }
 
 void AvoidHostileGoal::fleeFromHostile()
 {
     if (!m_villager || m_hostileEntity == 0) return;
 
-    // 计算逃跑方向
-    // TODO: 获取敌对生物位置，计算反方向
-    math::Random rng = m_villager->getRandom();
+    // 获取敌对生物位置
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_hostileEntity) : nullptr;
+    if (!entity) {
+        m_hostileEntity = 0;
+        return;
+    }
 
-    // 简化：随机选择逃跑方向
-    f32 angle = rng.nextFloat() * math::TWO_PI;
-    f32 dist = FLEE_DISTANCE;
+    LivingEntity* hostile = dynamic_cast<LivingEntity*>(entity);
+    if (!hostile || !hostile->isAlive()) {
+        m_hostileEntity = 0;
+        return;
+    }
 
-    f32 targetX = m_villager->x() + std::cos(angle) * dist;
-    f32 targetZ = m_villager->z() + std::sin(angle) * dist;
+    // 计算逃跑方向（远离敌对生物）
+    // 参考 MC 1.16.5 AvoidEntityGoal
+    f32 dx = m_villager->x() - hostile->x();
+    f32 dz = m_villager->z() - hostile->z();
+
+    // 归一化方向向量
+    f32 dist = std::sqrt(dx * dx + dz * dz);
+    if (dist < 0.001f) {
+        // 距离太近，随机选择方向
+        math::Random rng = m_villager->getRandom();
+        f32 angle = rng.nextFloat() * math::TWO_PI;
+        dx = std::cos(angle);
+        dz = std::sin(angle);
+    } else {
+        dx /= dist;
+        dz /= dist;
+    }
+
+    // 计算目标位置（逃跑方向）
+    f32 targetX = m_villager->x() + dx * FLEE_DISTANCE;
+    f32 targetZ = m_villager->z() + dz * FLEE_DISTANCE;
     f32 targetY = m_villager->y();
 
     m_villager->tryMoveTo(targetX, targetY, targetZ, FLEE_SPEED);
@@ -777,9 +951,22 @@ void VillagerBreedGoal::tick()
     // 移动到配偶
     moveToPartner();
 
-    // 检查是否足够接近以繁殖
-    // TODO: 获取配偶位置检查距离
-    if (m_breedTicks >= BREED_TICKS) {
+    // 检查配偶是否仍然有效
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_partnerId) : nullptr;
+    if (!entity) {
+        m_partnerId = 0;
+        return;
+    }
+
+    VillagerEntity* partner = dynamic_cast<VillagerEntity*>(entity);
+    if (!partner || !partner->isAlive()) {
+        m_partnerId = 0;
+        return;
+    }
+
+    // 检查距离，足够接近时繁殖
+    f32 distSq = m_villager->distanceSqTo(*partner);
+    if (distSq <= BREED_DISTANCE * BREED_DISTANCE && m_breedTicks >= BREED_TICKS) {
         spawnChild();
     }
 }
@@ -802,17 +989,60 @@ bool VillagerBreedGoal::isWillingToBreed() const
 
 void VillagerBreedGoal::findPartner()
 {
-    if (!m_villager || !m_villager->world()) return;
+    if (!m_villager || !m_villager->world()) {
+        m_partnerId = 0;
+        return;
+    }
 
-    // TODO: 搜索附近愿意繁殖的村民
     m_partnerId = 0;
+
+    // 参考 MC 1.16.5 BreedGoal.findNearbyMate()
+    // 搜索附近愿意繁殖的村民
+    static constexpr f32 PARTNER_SEARCH_RANGE = 8.0f;
+
+    VillagerEntity* partner = EntityUtils::findClosestEntity<VillagerEntity>(
+        m_villager->world(),
+        m_villager->position(),
+        PARTNER_SEARCH_RANGE,
+        m_villager,
+        [this](VillagerEntity* candidate) {
+            if (!candidate || !candidate->isAlive()) return false;
+
+            // 检查对方是否也愿意繁殖
+            if (!candidate->isWillingToBreed()) return false;
+
+            // 检查是否是成年村民（不是幼年）
+            if (candidate->isChild()) return false;
+
+            return true;
+        });
+
+    if (partner) {
+        m_partnerId = partner->id();
+    }
 }
 
 void VillagerBreedGoal::moveToPartner()
 {
     if (!m_villager || m_partnerId == 0) return;
 
-    // TODO: 获取配偶位置并移动
+    // 获取配偶实体
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_partnerId) : nullptr;
+    if (!entity) {
+        m_partnerId = 0;
+        return;
+    }
+
+    VillagerEntity* partner = dynamic_cast<VillagerEntity*>(entity);
+    if (!partner || !partner->isAlive()) {
+        m_partnerId = 0;
+        return;
+    }
+
+    // 移动到配偶位置
+    // 参考 MC 1.16.5 BreedGoal: 使用 0.5 的移动速度
+    static constexpr f32 BREED_SPEED = 0.5f;
+    m_villager->tryMoveTo(partner->x(), partner->y(), partner->z(), BREED_SPEED);
 }
 
 void VillagerBreedGoal::spawnChild()

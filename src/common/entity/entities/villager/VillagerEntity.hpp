@@ -175,6 +175,17 @@ public:
 
     // ========== 繁殖 ==========
 
+    /**
+     * @brief 是否可以拾取物品
+     * @param itemStack 物品堆
+     * @return 是否可以拾取该物品
+     *
+     * 参考 MC 1.16.5 VillagerEntity.func_230293_i_()
+     * 村民可拾取的物品：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
+     * 农民职业额外可拾取：小麦、小麦种子、甜菜根种子、骨粉
+     */
+    [[nodiscard]] bool canPickUpItem(const ItemStack& itemStack) const;
+
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const;
 
     std::unique_ptr<AgeableEntity> createChild();

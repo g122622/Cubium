@@ -237,6 +237,24 @@ public:
         return true;
     }
 
+    /**
+     * @brief 添加物品到第一个可用槽位
+     * @param stack 要添加的物品
+     * @return 剩余未添加的物品（如果背包满了）
+     *
+     * 默认实现：尝试堆叠到已有物品，然后放入空槽位
+     */
+    virtual ItemStack addItem(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否可以添加物品
+     * @param stack 要检查的物品
+     * @return 如果可以完全添加返回true
+     *
+     * 默认实现：检查是否有空槽位或可堆叠物品
+     */
+    [[nodiscard]] virtual bool canAddItem(const ItemStack& stack) const;
+
     // ========== 序列化 ==========
 
     /**
