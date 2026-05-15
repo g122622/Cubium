@@ -55,8 +55,9 @@ inventory/
 - 物品操作：`getItem()`, `setItem()`, `removeItem()`, `removeItemNoUpdate()`
 - 容器操作：`clear()`, `setChanged()`
 - 物品查找：`getFirstEmptySlot()`, `countItem()`, `hasItem()`, `findSlot()`, `canPlaceItem()`
-- 序列化支持
 - **新增方法**（MC 1.16.5 对齐）：
+  - `addItem()`: 添加物品到第一个可用槽位，返回剩余物品
+  - `canAddItem()`: 检查是否可以添加物品（检查空槽位或可堆叠物品）
   - `isUsableByPlayer()`: 检查玩家是否可以访问此背包（默认返回 true）
   - `openInventory()`: 打开背包时的回调（默认空实现）
   - `closeInventory()`: 关闭背包时的回调（默认空实现）

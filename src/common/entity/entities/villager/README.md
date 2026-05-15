@@ -91,6 +91,7 @@ public:
 - 工作站点绑定
 - 交易升级系统
 - 日程系统（工作、睡觉、社交）
+- 物品拾取能力
 
 ```cpp
 class VillagerEntity : public AbstractVillagerEntity {
@@ -108,8 +109,28 @@ public:
     bool canWork() const;
     void work();
     void rest();
+
+    // 物品拾取
+    bool canPickUpItem(const ItemStack& itemStack) const;
+    bool isBreedingItem(const ItemStack& itemStack) const;
 };
 ```
+
+#### 物品拾取系统
+
+村民可以拾取以下物品：
+
+| 物品 | 用途 |
+|------|------|
+| 面包 (BREAD) | 繁殖食物、拾取 |
+| 土豆 (POTATO) | 繁殖食物、拾取 |
+| 胡萝卜 (CARROT) | 繁殖食物、拾取 |
+| 甜菜根 (BEETROOT) | 繁殖食物、拾取 |
+| 小麦 (WHEAT) | 拾取 |
+| 小麦种子 (WHEAT_SEEDS) | 拾取 |
+| 甜菜根种子 (BEETROOT_SEEDS) | 拾取 |
+
+参考 MC 1.16.5 `VillagerEntity.func_230293_i_()`
 
 ## 职业系统
 

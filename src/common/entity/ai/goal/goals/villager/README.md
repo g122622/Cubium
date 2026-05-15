@@ -59,12 +59,17 @@ villager/
 村民收集地上的食物或种子等物品。
 
 **执行条件**：
-- 附近有可拾取的物品
+- 附近有可拾取的物品（32格范围内）
+- 物品类型在允许列表中：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
+- 村民库存有空间
 
 **行为**：
-1. 查找附近的物品实体
-2. 移动到物品位置
-3. 拾取物品
+1. `findNearbyItems()`: 使用 EntityUtils::findClosestEntity<ItemEntity> 搜索附近可拾取物品
+2. `moveToItem()`: 获取物品实体并移动到物品位置（速度 0.5）
+3. `pickupItem()`: 在 1.5 格范围内拾取物品，添加到村民库存
+4. `shouldContinueExecuting()`: 检查物品实体是否有效、是否仍在范围内
+
+**参考**：MC 1.16.5 `VillagerEntity.updateEquipmentIfNeeded()`
 
 ### FarmerWorkGoal - 农民工作目标
 
@@ -82,12 +87,18 @@ villager/
 村民逃离僵尸、掠夺者等敌对生物。
 
 **执行条件**：
-- 附近有敌对生物
+- 附近有敌对生物（8格范围内）
+- 敌对生物实现了 IMob 接口
 
 **行为**：
-1. 检测敌对生物
-2. 计算逃跑方向
-3. 快速逃离
+1. `findNearestHostile()`: 使用 EntityUtils::findClosestEntity<LivingEntity> 搜索附近的敌对生物
+2. `fleeFromHostile()`: 计算远离敌对生物的方向，移动到安全位置（16格逃跑距离）
+3. `shouldContinueExecuting()`: 检查敌对生物是否仍然存在、距离是否超过逃跑距离的2倍
+
+**常量**：
+- `FLEE_RANGE = 8.0f`: 敌对生物触发距离
+- `FLEE_DISTANCE = 16.0f`: 逃跑距离
+- `FLEE_SPEED = 0.6f`: 逃跑速度倍率
 
 ### GoToBedGoal - 前往床位目标
 
@@ -106,14 +117,19 @@ villager/
 村民繁殖行为。
 
 **执行条件**：
-- 愿意繁殖
+- 愿意繁殖（isWillingToBreed()）
 - 有足够的床位
-- 找到配偶
+- 找到配偶（8格范围内）
 
 **行为**：
-1. 寻找配偶
-2. 移动到配偶位置
-3. 生成幼年村民
+1. `findPartner()`: 使用 EntityUtils::findClosestEntity<VillagerEntity> 搜索附近愿意繁殖的村民
+2. `moveToPartner()`: 获取配偶实体并移动到其位置（速度 0.5）
+3. `tick()`: 检查距离，距离 <= 2格 且 繁殖计时器 >= 60 tick 时生成幼年村民
+4. `spawnChild()`: 创建幼年村民实体并生成到世界
+
+**常量**：
+- `BREED_TICKS = 60`: 繁殖动画时长
+- `BREED_DISTANCE = 2.0f`: 繁殖触发距离
 
 ## 互斥标志
 
@@ -172,8 +188,9 @@ MC 1.16.5 时间参考：
 - [ ] 集成POI系统查找床位和工作站点
 - [ ] 实现完整的睡眠状态管理
 - [ ] 实现农民的作物种植和收获
-- [ ] 实现敌对生物检测
-- [ ] 实现繁殖时的配偶查找
+- [x] 实现敌对生物检测（AvoidHostileGoal.findNearestHostile）
+- [x] 实现繁殖时的配偶查找（VillagerBreedGoal.findPartner）
+- [x] 实现物品拾取逻辑（GatherItemsGoal）
 
 ## 参考
 
