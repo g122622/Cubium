@@ -37,6 +37,8 @@ src/common/network/packet/
 ├── ExplosionPacket.cpp            # 爆炸事件包实现
 ├── TitlePacket.hpp                # 标题显示包
 ├── TitlePacket.cpp                # 标题显示包实现
+├── BossInfoPacket.hpp             # Boss 栏同步包
+├── BossInfoPacket.cpp             # Boss 栏同步包实现
 ├── SleepPacket.hpp                # 睡眠状态同步包
 ├── WorldBorderPacket.hpp          # 世界边界同步包
 ├── WorldBorderPacket.cpp          # 世界边界同步包实现
@@ -591,6 +593,56 @@ if (result.success()) {
 
 **参考**: MC 1.16.5 STitlePacket
 
+### Boss 栏数据包
+
+#### BossInfoPacket.hpp / BossInfoPacket.cpp
+
+**职责**: Boss 栏同步数据包 (S->C)
+
+**主要内容**:
+- Boss 栏操作类型 (`BossInfoAction` 枚举):
+  - `Add`: 添加 Boss 栏
+  - `Remove`: 移除 Boss 栏
+  - `UpdatePercent`: 更新百分比
+  - `UpdateName`: 更新名称
+  - `UpdateStyle`: 更新样式（颜色和边框）
+  - `UpdateProperties`: 更新属性标志
+
+- 协议格式:
+  | 操作类型 | 字段 | 类型 |
+  |---------|------|------|
+  | Add | uuid, nameJson, percent, color, overlay, flags | u64 + string + f32 + u8 + u8 + u8 |
+  | Remove | uuid | u64 |
+  | UpdatePercent | uuid, percent | u64 + f32 |
+  | UpdateName | uuid, nameJson | u64 + string |
+  | UpdateStyle | uuid, color, overlay | u64 + u8 + u8 |
+  | UpdateProperties | uuid, flags | u64 + u8 |
+
+- 标志位:
+  - `0x01`: darkenSky（变暗天空）
+  - `0x02`: playEndBossMusic（播放 Boss 音乐）
+  - `0x04`: createFog（创建迷雾）
+
+- 工厂方法:
+  - `add(uuid, name, percent, color, overlay, darkenSky, playEndBossMusic, createFog)`: 创建添加包
+  - `remove(uuid)`: 创建移除包
+  - `updatePercent(uuid, percent)`: 创建百分比更新包
+  - `updateName(uuid, name)`: 创建名称更新包
+  - `updateStyle(uuid, color, overlay)`: 创建样式更新包
+  - `updateProperties(uuid, darkenSky, playEndBossMusic, createFog)`: 创建属性更新包
+
+**与服务端集成**:
+- `ServerBossInfo` 维护 `BossInfoUpdateType` 追踪待发送的更新类型
+- `CustomServerBossInfoManager` 根据更新类型发送对应的包
+- `BossBarCommand` 通过 `CustomServerBossInfoManager` 管理自定义 Boss 栏
+
+**使用场景**:
+- Boss 实体（末影龙、凋灵）血量同步
+- `/bossbar` 命令创建和管理自定义 Boss 栏
+- 玩家进入/离开 Boss 栏可见范围
+
+**参考**: MC 1.16.5 SUpdateBossInfoPacket
+
 ### 成就数据包
 
 #### AdvancementPackets.hpp / AdvancementPackets.cpp
@@ -863,6 +915,7 @@ auto f = deserializer.readF32();         // 3.14f
 | `SpawnPositionPacketTest.cpp` | 世界出生点数据包序列化/反序列化测试 |
 | `LocalServerConnectionTest.cpp` | 本地连接测试 |
 | `TitlePacketTest.cpp` | 标题显示数据包序列化/反序列化测试 |
+| `BossInfoPacketTest.cpp` | Boss 栏数据包序列化/反序列化测试 |
 
 `tests/common/test_container.cpp` 也包含 `CreativeInventoryActionPacket` 的序列化/反序列化测试，以及创造模式物品库辅助函数测试。
 

@@ -26,6 +26,7 @@ network/
 │   ├── BlockBreakAnimPacket.hpp/cpp      # 方块破坏动画包
 │   ├── SetPassengersPacket.hpp/cpp       # 乘客列表同步包
 │   ├── TitlePacket.hpp/cpp               # 标题显示包
+│   ├── BossInfoPacket.hpp/cpp            # Boss 栏同步包
 └── sync/                        # 同步层
     ├── Sync.hpp                 # 统一头文件
     └── ChunkSync.hpp/cpp        # 区块同步管理
@@ -493,9 +494,69 @@ public:
 **MC 1.16.5 参考**: `SWorldBorderPacket`
 ```
 
-#### 骑乘相关数据包
+#### BossInfoPacket.hpp/cpp
 
-##### PlayerInputPacket (C->S)
+Boss 栏同步包，用于服务端向客户端同步 Boss 栏状态：
+
+```cpp
+enum class BossInfoAction : u8 {
+    Add = 0,              // 添加 Boss 栏
+    Remove = 1,           // 移除 Boss 栏
+    UpdatePercent = 2,    // 更新百分比
+    UpdateName = 3,       // 更新名称
+    UpdateStyle = 4,      // 更新样式（颜色和边框）
+    UpdateProperties = 5  // 更新属性标志
+};
+
+class BossInfoPacket : public Packet {
+public:
+    // 静态工厂方法
+    static BossInfoPacket add(u64 uuid, std::unique_ptr<text::ITextComponent> name,
+        f32 percent, u8 color, u8 overlay, bool darkenSky, bool playEndBossMusic, bool createFog);
+    static BossInfoPacket remove(u64 uuid);
+    static BossInfoPacket updatePercent(u64 uuid, f32 percent);
+    static BossInfoPacket updateName(u64 uuid, std::unique_ptr<text::ITextComponent> name);
+    static BossInfoPacket updateStyle(u64 uuid, u8 color, u8 overlay);
+    static BossInfoPacket updateProperties(u64 uuid, bool darkenSky, bool playEndBossMusic, bool createFog);
+
+    // 访问器
+    BossInfoAction action() const;
+    u64 uuid() const;
+    f32 percent() const;
+    u8 color() const;
+    u8 overlay() const;
+    bool darkenSky() const;
+    bool playEndBossMusic() const;
+    bool createFog() const;
+    const std::string& nameJson() const;
+};
+```
+
+**职责**:
+- 服务端向客户端同步 Boss 栏状态
+- 支持 6 种操作类型：添加、移除、更新百分比、更新名称、更新样式、更新属性
+- 名称使用 JSON 格式的 ITextComponent 序列化
+
+**网络同步时机**:
+| Action | 触发时机 |
+|--------|----------|
+| Add | 玩家进入 Boss 栏可见范围，或创建新的自定义 Boss 栏 |
+| Remove | 玩家离开可见范围，Boss 死亡，或移除自定义 Boss 栏 |
+| UpdatePercent | Boss 血量变化，自定义 Boss 栏值变化 |
+| UpdateName | Boss 名称变化，自定义 Boss 栏名称变化 |
+| UpdateStyle | Boss 栏颜色/样式变化 |
+| UpdateProperties | darkenSky、playEndBossMusic、createFog 属性变化 |
+
+**与服务端集成**:
+- `ServerBossInfo` 追踪 `BossInfoUpdateType` 标记待发送的更新类型
+- `CustomServerBossInfoManager` 根据更新类型发送对应的 BossInfoPacket
+- `BossBarCommand` 通过 `CustomServerBossInfoManager` 管理 Boss 栏
+
+**MC 1.16.5 参考**: `SUpdateBossInfoPacket`
+
+---
+
+### sync/ - 同步层
 
 客户端发送玩家输入状态，用于骑乘控制：
 
