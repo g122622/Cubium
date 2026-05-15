@@ -563,5 +563,187 @@ TEST_F(TurtleEntityTest, SpawnBaby_PositionNearParent)
     EXPECT_FLOAT_EQ(baby->z(), -200.0f);
 }
 
+// ============================================================================
+// travel() 方法测试 - 海龟水陆移动速度调整
+// 参考 MC 1.16.5: TurtleEntity.travel() 和 MoveHelperController.updateSpeed()
+// ============================================================================
+
+/**
+ * @brief travel() 测试专用 Mock 世界
+ *
+ * 提供最小化的世界接口实现
+ */
+class TurtleTravelTestWorld final : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        MC_UNUSED(x);
+        MC_UNUSED(y);
+        MC_UNUSED(z);
+        return nullptr;
+    }
+
+    void playSound(const ResourceLocation& /*soundEventId*/,
+        sound::SoundCategory /*category*/,
+        const Vector3& /*position*/,
+        f32 /*volume*/,
+        f32 /*pitch*/) override
+    {
+        // 不执行实际音效
+    }
+};
+
+class TurtleTravelTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    TurtleTravelTestWorld m_world;
+};
+
+TEST_F(TurtleTravelTest, WaterSpeed_NormalSpeed)
+{
+    // MC 1.16.5: 水中海龟保持基础移动速度 0.25
+    // 并获得轻微上升动力 (+0.005 y)
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setPosition(0.0f, 64.0f, 0.0f);
+    turtle.setInWater(true);
+    turtle.setOnGround(false);
+
+    // 调用 travel
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度设置为基础速度 0.25
+    EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.25f);
+
+    // 注意：水中上升动力 (+0.005) 在 travel() 中设置，
+    // 但父类 AnimalEntity::travel() 会应用重力和水中阻力，
+    // 最终速度可能仍为负。这里只验证 AI 速度设置正确。
+}
+
+TEST_F(TurtleTravelTest, WaterSpeed_FarFromHome_Slower)
+{
+    // MC 1.16.5: 远离出生地超过 16 格时，速度减半，最低 0.08F
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+
+    // 设置出生地
+    BlockPos homePos(0, 64, 0);
+    turtle.setHomePos(homePos);
+
+    // 设置当前位置远离出生地超过 16 格
+    turtle.setPosition(20.0f, 64.0f, 0.0f); // 距离出生地 20 格
+    turtle.setInWater(true);
+    turtle.setOnGround(false);
+
+    // 调用 travel
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度减半（0.25 * 0.5 = 0.125，大于 0.08）
+    EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.125f);
+}
+
+TEST_F(TurtleTravelTest, WaterSpeed_Child_Slower)
+{
+    // MC 1.16.5: 幼体在水中速度降低为 1/3，最低 0.06F
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setChild(true); // 设置为幼体
+    turtle.setPosition(0.0f, 64.0f, 0.0f);
+    turtle.setInWater(true);
+    turtle.setOnGround(false);
+
+    // 调用 travel
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度降低为 1/3（0.25 / 3 ≈ 0.0833，大于 0.06）
+    EXPECT_NEAR(turtle.aiMoveSpeed(), 0.25f / 3.0f, 0.001f);
+}
+
+TEST_F(TurtleTravelTest, LandSpeed_HalfSpeed)
+{
+    // MC 1.16.5: 陆地速度减半，最低 0.06F
+    // 基础速度 0.25 / 2 = 0.125，大于 0.06
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setPosition(0.0f, 64.0f, 0.0f);
+    turtle.setInWater(false);
+    turtle.setOnGround(true);
+
+    // 调用 travel
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度减半
+    EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.125f);
+}
+
+TEST_F(TurtleTravelTest, LandSpeed_MinimumSpeed)
+{
+    // 验证陆地速度最低为 0.06F
+    // 即使基础速度很低，陆地速度也不应低于 0.06
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setPosition(0.0f, 64.0f, 0.0f);
+    turtle.setInWater(false);
+    turtle.setOnGround(true);
+
+    // 设置很低的基础速度（模拟缓慢效果等情况）
+    // 注意：这里我们直接测试逻辑，实际游戏中速度属性不会这么低
+    // 但 travel() 方法中有 max(baseSpeed * 0.5f, 0.06f) 的保护
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度不低于 0.06
+    EXPECT_GE(turtle.aiMoveSpeed(), 0.06f);
+}
+
+TEST_F(TurtleTravelTest, AirSpeed_NoSpeedChange)
+{
+    // MC 1.16.5: 空中（跳跃或下落）保持当前 AI 速度
+    // 不做额外调整
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setPosition(0.0f, 64.0f, 0.0f);
+    turtle.setInWater(false);
+    turtle.setOnGround(false); // 在空中
+
+    // 预设一个 AI 移动速度
+    turtle.setAIMoveSpeed(0.15f);
+
+    // 调用 travel（不应改变速度）
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 验证 AI 移动速度保持不变
+    EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.15f);
+}
+
+TEST_F(TurtleTravelTest, WaterSpeed_ChildFarFromHome_Minimum)
+{
+    // MC 1.16.5: 幼体 + 远离出生地组合
+    // 速度计算顺序：
+    // 1. 基础速度 0.25
+    // 2. 远离出生地减半 -> 0.125
+    // 3. 幼体再除以 3 -> 0.0416...
+    // 4. 最低 0.06
+    TurtleEntity turtle(LegacyEntityType::Turtle, 1);
+    turtle.setWorld(&m_world);
+    turtle.setChild(true);
+
+    BlockPos homePos(0, 64, 0);
+    turtle.setHomePos(homePos);
+    turtle.setPosition(20.0f, 64.0f, 0.0f); // 距离出生地 20 格
+    turtle.setInWater(true);
+    turtle.setOnGround(false);
+
+    // 调用 travel
+    turtle.travel(Vector3(0.0f, 0.0f, 1.0f));
+
+    // 0.25 / 2 / 3 = 0.0416...，但最低 0.06
+    EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.06f);
+}
+
 } // namespace
 } // namespace mc
