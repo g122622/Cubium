@@ -23,6 +23,8 @@
 
 #include "LlamaEntity.hpp"
 
+#include "../../../../item/core/Item.hpp"
+#include "../../../../item/tag/ItemTags.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
 
@@ -110,6 +112,18 @@ void LlamaEntity::registerAttributes()
     AbstractChestedHorseEntity::registerAttributes();
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
+}
+
+bool LlamaEntity::isValidArmorForSlot(const ItemStack& item) const
+{
+    // MC 1.16.5: LlamaEntity.isArmor(ItemStack)
+    // 检查物品是否在 ItemTags.CARPETS 中
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return false;
+    }
+
+    return itemPtr->isIn(item::tag::ItemTags::CARPETS());
 }
 
 } // namespace mc

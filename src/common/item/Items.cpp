@@ -30,6 +30,7 @@
 #include "food/Foods.hpp"
 #include "items/armor/ArmorItem.hpp"
 #include "items/armor/DyeableArmorItem.hpp"
+#include "items/armor/HorseArmorItem.hpp"
 #include "items/block/BlockItem.hpp"
 #include "items/food/ChorusFruitItem.hpp"
 #include "items/food/FoodItem.hpp"
@@ -226,6 +227,12 @@ Item* Items::NETHERITE_BOOTS = nullptr;
 
 // 特殊护甲
 Item* Items::ELYTRA = nullptr;
+
+// 马铠
+Item* Items::LEATHER_HORSE_ARMOR = nullptr;
+Item* Items::IRON_HORSE_ARMOR = nullptr;
+Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
+Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -908,6 +915,37 @@ void Items::registerArmor()
     // ========================================================================
     ELYTRA = &registry.registerItem(
         ResourceLocation("minecraft:elytra"), ItemProperties().maxDamage(432).rarity(ItemRarity::Uncommon));
+
+    // ========================================================================
+    // 马铠 - 用于装备马提供护甲
+    // ========================================================================
+    // 皮革马铠 - +3 护甲
+    LEATHER_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
+        ResourceLocation("minecraft:leather_horse_armor"),
+        ItemProperties().maxStackSize(1),
+        3,
+        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
+
+    // 铁马铠 - +5 护甲
+    IRON_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
+        ResourceLocation("minecraft:iron_horse_armor"),
+        ItemProperties().maxStackSize(1),
+        5,
+        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_iron.png"));
+
+    // 金马铠 - +7 护甲
+    GOLDEN_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
+        ResourceLocation("minecraft:golden_horse_armor"),
+        ItemProperties().maxStackSize(1),
+        7,
+        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_gold.png"));
+
+    // 钻石马铠 - +11 护甲
+    DIAMOND_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
+        ResourceLocation("minecraft:diamond_horse_armor"),
+        ItemProperties().maxStackSize(1),
+        11,
+        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
 }
 
 void Items::registerFood()

@@ -24,6 +24,7 @@
 #include "AbstractHorseEntity.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectType.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../network/packet/EntityPackets.hpp"
 #include "../../../../util/math/MathConstants.hpp"
@@ -215,16 +216,49 @@ void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item)
 
 bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const
 {
+    // MC 1.16.5: AbstractHorseEntity.replaceItemInInventory()
+    // 空物品总是可以放入任何槽位（用于清空槽位）
     if (item.isEmpty()) {
         return true;
     }
 
-    // 槽位0: 鞍
-    // 槽位1: 马铠（子类可扩展）
-    // TODO: 检查物品类型
-    MC_UNUSED(item);
-    MC_UNUSED(slot);
+    // 检查槽位是否有效
+    if (slot < 0 || slot >= getInventorySize()) {
+        return false;
+    }
+
+    // 获取物品类型
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return false;
+    }
+
+    // 槽位 0：鞍槽
+    // MC 1.16.5: if (i == 0 && itemStackIn.getItem() != Items.SADDLE) return false;
+    if (slot == 0) {
+        // 只有鞍可以放入鞍槽，且实体必须支持装备鞍
+        return canEquipSaddle() && itemPtr == Items::SADDLE;
+    }
+
+    // 槽位 1：马铠/装饰槽
+    // MC 1.16.5: if (i != 1 || this.func_230276_fq_() && this.isArmor(itemStackIn))
+    if (slot == 1) {
+        // 实体必须支持马铠槽位，且物品必须是有效的马铠/装饰
+        return hasArmorSlot() && isValidArmorForSlot(item);
+    }
+
+    // 其他槽位（箱子槽位等）：默认允许
     return true;
+}
+
+bool AbstractHorseEntity::isValidArmorForSlot(const ItemStack& item) const
+{
+    // MC 1.16.5: AbstractHorseEntity.isArmor() 默认返回 false
+    // 子类需要覆盖此方法：
+    // - HorseEntity: 检查 HorseArmorItem
+    // - LlamaEntity: 检查地毯
+    MC_UNUSED(item);
+    return false;
 }
 
 // ========== 鞍系统 ==========

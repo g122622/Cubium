@@ -119,6 +119,24 @@ public:
     [[nodiscard]] i32 getInventorySize() const override { return 2; }
 
     /**
+     * @brief 马支持马铠槽位
+     *
+     * MC 1.16.5: HorseEntity.func_230276_fq_() 返回 true
+     */
+    [[nodiscard]] bool hasArmorSlot() const override { return true; }
+
+    /**
+     * @brief 检查物品是否是有效的马铠
+     *
+     * MC 1.16.5: HorseEntity.isArmor(ItemStack)
+     * 检查物品是否为 HorseArmorItem 实例
+     *
+     * @param item 要检查的物品
+     * @return 如果是有效的马铠返回 true
+     */
+    [[nodiscard]] bool isValidArmorForSlot(const ItemStack& item) const override;
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.53f; }

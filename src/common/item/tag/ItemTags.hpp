@@ -52,6 +52,15 @@ public:
     static ItemTag& FLOWERS();
 
     /**
+     * @brief 地毯标签
+     *
+     * 包含所有颜色的地毯物品。
+     * 参考 MC 1.16.5: ItemTags.CARPETS
+     * 用于羊驼装饰槽位判断。
+     */
+    static ItemTag& CARPETS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

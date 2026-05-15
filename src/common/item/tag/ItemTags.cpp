@@ -83,6 +83,15 @@ ItemTag& ItemTags::FLOWERS()
     return *tag;
 }
 
+ItemTag& ItemTags::CARPETS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "carpets"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -119,6 +128,31 @@ void ItemTags::initialize()
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "peony")));
 
     allTags[flowers->getId()] = std::move(flowers);
+
+    // 创建 CARPETS 标签
+    // 参考 MC 1.16.5: ItemTags.CARPETS
+    // 包含所有颜色的地毯物品
+    auto carpets = std::make_unique<ItemTag>(ResourceLocation("minecraft", "carpets"));
+
+    // 16 色地毯
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_carpet")));
+    carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
+
+    allTags[carpets->getId()] = std::move(carpets);
 
     s_initialized = true;
 }

@@ -82,8 +82,28 @@ public:
 
     /**
      * @brief 羊驼不能装备鞍
+     *
+     * MC 1.16.5: LlamaEntity.func_230264_L_() 返回 false
      */
-    [[nodiscard]] bool canEquipSaddle() const { return false; }
+    [[nodiscard]] bool canEquipSaddle() const override { return false; }
+
+    /**
+     * @brief 羊驼支持装饰槽位（地毯）
+     *
+     * MC 1.16.5: LlamaEntity.func_230276_fq_() 返回 true
+     */
+    [[nodiscard]] bool hasArmorSlot() const override { return true; }
+
+    /**
+     * @brief 检查物品是否是有效的装饰（地毯）
+     *
+     * MC 1.16.5: LlamaEntity.isArmor(ItemStack)
+     * 检查物品是否在 ItemTags.CARPETS 中
+     *
+     * @param item 要检查的物品
+     * @return 如果是有效的地毯返回 true
+     */
+    [[nodiscard]] bool isValidArmorForSlot(const ItemStack& item) const override;
 
     /**
      * @brief 返回背包列数

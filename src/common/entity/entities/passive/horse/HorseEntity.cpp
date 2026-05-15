@@ -23,6 +23,9 @@
 
 #include "HorseEntity.hpp"
 
+#include "../../../../item/Items.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/items/armor/HorseArmorItem.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
@@ -160,6 +163,19 @@ void HorseEntity::playJumpSound()
 void HorseEntity::playAngrySound()
 {
     playSound(SoundEvents::ENTITY_HORSE_ANGRY, 1.0f, 1.0f);
+}
+
+bool HorseEntity::isValidArmorForSlot(const ItemStack& item) const
+{
+    // MC 1.16.5: HorseEntity.isArmor(ItemStack)
+    // 检查物品是否为 HorseArmorItem 实例
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return false;
+    }
+
+    // 使用 dynamic_cast 检查是否为 HorseArmorItem
+    return dynamic_cast<const item::items::HorseArmorItem*>(itemPtr) != nullptr;
 }
 
 } // namespace mc

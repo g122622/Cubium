@@ -291,8 +291,49 @@ public:
 
     /**
      * @brief 检查是否可以装备指定物品
+     *
+     * MC 1.16.5: AbstractHorseEntity.replaceItemInInventory()
+     * - 槽位 0（鞍槽）：只能放鞍（Items::SADDLE）
+     * - 槽位 1（马铠/装饰槽）：需要子类实现 isValidArmorForSlot()
+     *
+     * @param item 要检查的物品
+     * @param slot 目标槽位
+     * @return 如果可以装备返回 true
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
+
+    /**
+     * @brief 检查是否可以装备鞍
+     *
+     * MC 1.16.5: AbstractHorseEntity.func_230264_L_()
+     * 大多数马类都可以装备鞍，但羊驼不行。
+     *
+     * @return 如果可以装备鞍返回 true
+     */
+    [[nodiscard]] virtual bool canEquipSaddle() const { return true; }
+
+    /**
+     * @brief 检查是否支持马铠/装饰槽位
+     *
+     * MC 1.16.5: AbstractHorseEntity.func_230276_fq_()
+     * 只有 HorseEntity 和 LlamaEntity 支持此槽位。
+     *
+     * @return 如果支持马铠/装饰槽位返回 true
+     */
+    [[nodiscard]] virtual bool hasArmorSlot() const { return false; }
+
+    /**
+     * @brief 检查物品是否是有效的马铠/装饰
+     *
+     * MC 1.16.5: AbstractHorseEntity.isArmor(ItemStack)
+     * 子类需要覆盖此方法：
+     * - HorseEntity: 检查 HorseArmorItem
+     * - LlamaEntity: 检查地毯
+     *
+     * @param item 要检查的物品
+     * @return 如果是有效的马铠/装饰返回 true
+     */
+    [[nodiscard]] virtual bool isValidArmorForSlot(const ItemStack& item) const;
 
     // ========== 鞍系统 ==========
 
