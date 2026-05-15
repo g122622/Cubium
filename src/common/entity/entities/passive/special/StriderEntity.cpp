@@ -22,6 +22,7 @@
 */
 
 #include "StriderEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
@@ -338,14 +339,21 @@ bool StriderEntity::canBeSteered() const
         return false;
     }
 
-    // TODO: 检查玩家手持物品是否为 WARPED_FUNGUS_ON_A_STICK
-    // const ItemStack& mainHand = player->getHeldItemMainhand();
-    // const ItemStack& offHand = player->getHeldItemOffhand();
-    // return mainHand.getItem() == Items::WARPED_FUNGUS_ON_A_STICK
-    //     || offHand.getItem() == Items::WARPED_FUNGUS_ON_A_STICK;
+    // MC 1.16.5: 检查玩家主手或副手是否持有诡异菌钓竿
+    const ItemStack& mainHand = player->getHeldItem(Hand::MainHand);
+    const ItemStack& offHand = player->getHeldItem(Hand::OffHand);
 
-    // 暂时返回 true（有鞍时）
-    return true;
+    // 检查主手
+    if (!mainHand.isEmpty() && mainHand.getItem() == Items::WARPED_FUNGUS_ON_A_STICK) {
+        return true;
+    }
+
+    // 检查副手
+    if (!offHand.isEmpty() && offHand.getItem() == Items::WARPED_FUNGUS_ON_A_STICK) {
+        return true;
+    }
+
+    return false;
 }
 
 // ========== AI 目标注册 ==========

@@ -62,6 +62,7 @@
 #include "items/weapon/ThrowableItems.hpp"
 #include "items/weapon/TippedArrowItem.hpp"
 #include "items/weapon/TridentItem.hpp"
+#include "items/special/StickItems.hpp"
 #include "tier/ItemTiers.hpp"
 
 namespace {
@@ -375,6 +376,12 @@ Item* Items::CROSSBOW = nullptr;
 Item* Items::TRIDENT = nullptr;
 Item* Items::SHIELD = nullptr;
 Item* Items::FISHING_ROD = nullptr;
+
+// ============================================================================
+// 骑乘控制物品
+// ============================================================================
+Item* Items::CARROT_ON_A_STICK = nullptr;
+Item* Items::WARPED_FUNGUS_ON_A_STICK = nullptr;
 
 // ============================================================================
 // 桶类
@@ -1356,6 +1363,24 @@ void Items::registerWeapons()
     // 参考: new FishingRodItem(new Item.Properties().maxDamage(64))
     FISHING_ROD = &registry.registerItem<item::FishingRodItem>(
         ResourceLocation("minecraft:fishing_rod"), ItemProperties().maxDamage(64));
+
+    // ========================================================================
+    // 骑乘控制物品 (OnAStickItem)
+    // ========================================================================
+
+    // 胡萝卜钓竿 - 控制猪
+    // 参考: new CarrotOnAStickItem(new Item.Properties().maxDamage(25).group(ItemGroup.TRANSPORTATION))
+    // MC 1.16.5: 耐久度25，每次加速消耗7耐久
+    CARROT_ON_A_STICK = &registry.registerItem<item::CarrotOnAStickItem>(
+        ResourceLocation("minecraft:carrot_on_a_stick"),
+        ItemProperties().maxDamage(item::CarrotOnAStickItem::MAX_DAMAGE));
+
+    // 诡异菌钓竿 - 控制炽足兽
+    // 参考: new WarpedFungusOnAStickItem(new Item.Properties().maxDamage(100).group(ItemGroup.TRANSPORTATION))
+    // MC 1.16.5: 耐久度100，每次加速消耗1耐久
+    WARPED_FUNGUS_ON_A_STICK = &registry.registerItem<item::WarpedFungusOnAStickItem>(
+        ResourceLocation("minecraft:warped_fungus_on_a_stick"),
+        ItemProperties().maxDamage(item::WarpedFungusOnAStickItem::MAX_DAMAGE));
 }
 
 void Items::registerThrowables()

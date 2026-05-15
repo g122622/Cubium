@@ -22,6 +22,7 @@
 */
 
 #include "PigEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/IWorld.hpp"
@@ -170,15 +171,21 @@ bool PigEntity::canBeSteered() const
         return false;
     }
 
-    // TODO: 当 Items::CARROT_ON_A_STICK 添加后，检查玩家手持物品
-    // const ItemStack& mainHand = player->getHeldItem(Hand::Main);
-    // const ItemStack& offHand = player->getHeldItem(Hand::Off);
-    // return mainHand.getItem() == Items::CARROT_ON_A_STICK
-    //     || offHand.getItem() == Items::CARROT_ON_A_STICK;
+    // MC 1.16.5: 检查玩家主手或副手是否持有胡萝卜钓竿
+    const ItemStack& mainHand = player->getHeldItem(Hand::MainHand);
+    const ItemStack& offHand = player->getHeldItem(Hand::OffHand);
 
-    // 当前实现：有鞍且有玩家骑乘时可以被控制
-    // 这比 MC 原版宽松（原版需要胡萝卜钓竿），但直到物品系统完善前是可接受的
-    return true;
+    // 检查主手
+    if (!mainHand.isEmpty() && mainHand.getItem() == Items::CARROT_ON_A_STICK) {
+        return true;
+    }
+
+    // 检查副手
+    if (!offHand.isEmpty() && offHand.getItem() == Items::CARROT_ON_A_STICK) {
+        return true;
+    }
+
+    return false;
 }
 
 void PigEntity::travelTowards(const Vector3& travelVec)
