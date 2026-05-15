@@ -126,6 +126,32 @@ public:
      */
     void setAttackPhase(AttackPhase phase) { m_attackPhase = phase; }
 
+    // ========== 环绕位置 ==========
+
+    /**
+     * @brief 获取环绕位置
+     * MC 1.16.5: orbitPosition
+     */
+    [[nodiscard]] BlockPos orbitPosition() const { return m_orbitPosition; }
+
+    /**
+     * @brief 设置环绕位置
+     * MC 1.16.5: orbitPosition
+     */
+    void setOrbitPosition(const BlockPos& pos) { m_orbitPosition = pos; }
+
+    /**
+     * @brief 获取环绕偏移
+     * MC 1.16.5: orbitOffset
+     */
+    [[nodiscard]] Vector3 orbitOffset() const { return m_orbitOffset; }
+
+    /**
+     * @brief 设置环绕偏移
+     * MC 1.16.5: orbitOffset
+     */
+    void setOrbitOffset(const Vector3& offset) { m_orbitOffset = offset; }
+
     // ========== 属性 ==========
 
     /**

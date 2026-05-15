@@ -22,6 +22,8 @@
 */
 
 #include "PhantomEntity.hpp"
+#include "../../../ai/goal/goals/special/PhantomGoals.hpp"
+#include "../../../core/EntityUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
@@ -96,18 +98,17 @@ void PhantomEntity::registerGoals()
     FlyingEntity::registerGoals();
 
     // MC 1.16.5 PhantomEntity.registerGoals()
-    // 优先级 1: PickAttackGoal - 选择攻击
+    // 优先级 1: PickAttackGoal - 选择攻击阶段
     // 优先级 2: SweepAttackGoal - 俯冲攻击
-    // 优先级 3: OrbitPointGoal - 环绕点
+    // 优先级 3: OrbitPointGoal - 环绕飞行
     //
     // 目标选择器：
-    // 优先级 1: AttackPlayerGoal - 攻击玩家
+    // 优先级 1: AttackPlayerTargetGoal - 攻击玩家
 
-    // TODO: 实现幻翼特有的AI目标
-    // m_goalSelector.addGoal(1, new PhantomPickAttackGoal(this));
-    // m_goalSelector.addGoal(2, new PhantomSweepAttackGoal(this));
-    // m_goalSelector.addGoal(3, new PhantomOrbitPointGoal(this));
-    // m_targetSelector.addGoal(1, new PhantomAttackPlayerGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PhantomPickAttackGoal>(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::PhantomSweepAttackGoal>(this));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::PhantomOrbitPointGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::PhantomAttackPlayerTargetGoal>(this));
 }
 
 void PhantomEntity::registerAttributes()
