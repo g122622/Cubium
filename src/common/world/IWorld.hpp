@@ -109,14 +109,14 @@ public:
     /**
      * @brief 获取方块状态
      * @param x, y, z 方块坐标
-     * @return 方块状态指针，如果超出范围返回空气
+     * @return 方块状态指针；如果区块未加载、坐标无效或方块状态不可用，可能返回 nullptr
      */
     [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 获取方块状态（使用 BlockPos）
      * @param pos 方块位置
-     * @return 方块状态指针，如果超出范围返回空气
+     * @return 方块状态指针；如果区块未加载、坐标无效或方块状态不可用，可能返回 nullptr
      */
     [[nodiscard]] virtual const BlockState* getBlockState(const BlockPos& pos) const
     {

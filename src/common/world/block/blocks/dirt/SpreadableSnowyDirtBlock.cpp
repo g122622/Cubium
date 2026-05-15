@@ -111,15 +111,13 @@ BlockState SpreadableSnowyDirtBlock::getStateForPlacement(BlockItemUseContext& c
     // 参考 MC 1.16.5 SnowyDirtBlock.getStateForPlacement()
     // 检查放置位置上方是否有雪块或雪层
     const IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockPos pos = context.placementPos();
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
-    bool hasSnow = false;
-    if (aboveState != nullptr) {
-        // MC 1.16.5: 检查 SNOW_BLOCK 或 SNOW（任意层数）
-        hasSnow = aboveState->is(VanillaBlocks::SNOW_BLOCK) || aboveState->is(VanillaBlocks::SNOW);
-    }
+    // MC 1.16.5: 检查 SNOW_BLOCK 或 SNOW（任意层数）
+    const bool hasSnow =
+        aboveState != nullptr && (aboveState->is(VanillaBlocks::SNOW_BLOCK) || aboveState->is(VanillaBlocks::SNOW));
 
     return defaultState().with(SNOWY(), hasSnow);
 }
@@ -136,7 +134,7 @@ BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state
     // 只有上方方块变化时才更新 SNOWY 状态
     if (facing == Direction::Up) {
         // 检查上方是否为雪块或雪层
-        bool hasSnow = facingState.is(VanillaBlocks::SNOW_BLOCK) || facingState.is(VanillaBlocks::SNOW);
+        const bool hasSnow = facingState.is(VanillaBlocks::SNOW_BLOCK) || facingState.is(VanillaBlocks::SNOW);
         return state.with(SNOWY(), hasSnow);
     }
 
@@ -191,11 +189,13 @@ bool SpreadableSnowyDirtBlock::isSnowyAndNotUnderwater(IWorld& world, const Bloc
     // 检查上方是否有水
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
-    if (aboveState != nullptr) {
-        const fluid::FluidState* fluidState = aboveState->getFluidState();
-        if (fluidState != nullptr && !fluidState->isEmpty()) {
-            return false; // 上方有流体
-        }
+    if (aboveState == nullptr) {
+        return true;
+    }
+
+    const fluid::FluidState* fluidState = aboveState->getFluidState();
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        return false; // 上方有流体
     }
 
     return true;
