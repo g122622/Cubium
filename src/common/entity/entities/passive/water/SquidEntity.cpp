@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,10 +18,11 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "SquidEntity.hpp"
+#include "../../../ai/goal/goals/special/SquidGoals.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
@@ -117,11 +118,26 @@ void SquidEntity::tick()
     }
 }
 
+void SquidEntity::setMovementVector(f32 x, f32 y, f32 z)
+{
+    m_randomMotionVecX = x;
+    m_randomMotionVecY = y;
+    m_randomMotionVecZ = z;
+}
+
+bool SquidEntity::hasMovementVector() const
+{
+    return m_randomMotionVecX != 0.0f || m_randomMotionVecY != 0.0f || m_randomMotionVecZ != 0.0f;
+}
+
 void SquidEntity::registerGoals()
 {
-    // TODO: 鱿鱼 AI 目标
-    // - SquidSwimGoal: 随机游泳
-    // - SquidFleeGoal: 逃跑
+    // 参考 MC 1.16.5 SquidEntity.registerGoals()
+    // 优先级 0: 随机游泳（最高优先级）
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SquidMoveRandomGoal>(this));
+
+    // 优先级 1: 逃跑目标（受攻击时逃跑）
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SquidFleeGoal>(this));
 }
 
 void SquidEntity::registerAttributes()

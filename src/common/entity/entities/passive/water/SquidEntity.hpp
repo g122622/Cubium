@@ -101,6 +101,26 @@ public:
      */
     void sprayInk();
 
+    // ========== 移动向量 ==========
+
+    /**
+     * @brief 设置移动向量
+     *
+     * 鱿鱼使用自定义的移动向量系统进行游泳，
+     * 而不是使用标准的导航系统。
+     *
+     * @param x X方向分量
+     * @param y Y方向分量（垂直）
+     * @param z Z方向分量
+     */
+    void setMovementVector(f32 x, f32 y, f32 z);
+
+    /**
+     * @brief 是否有移动向量
+     * @return 如果移动向量不为零返回 true
+     */
+    [[nodiscard]] bool hasMovementVector() const;
+
     // ========== 属性 ==========
 
     /**
@@ -120,6 +140,11 @@ protected:
     void registerAttributes() override;
 
 private:
+    // 移动向量（MC 1.16.5 randomMotionVecX/Y/Z）
+    f32 m_randomMotionVecX = 0.0f;
+    f32 m_randomMotionVecY = 0.0f;
+    f32 m_randomMotionVecZ = 0.0f;
+
     // 游泳状态
     bool m_swimming = false;
     f32 m_swimAngle = 0.0f;
