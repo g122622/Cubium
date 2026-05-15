@@ -50,8 +50,39 @@ void printBanner()
     std::cout << "  Minecraft Reborn Client v" << MC_VERSION_MAJOR << "." << MC_VERSION_MINOR << "." << MC_VERSION_PATCH
               << std::endl;
     std::cout << "  ========================================\n" << std::endl;
+}
 
-    // TODO 希望输出构建信息（构建时间、Git提交哈希等），以及构建机器信息、编译器名称和版本等
+/**
+ * @brief 打印构建信息
+ *
+ * 输出版本、Git提交、构建时间、编译器等详细信息
+ * 参考 MC 1.16.5 MinecraftVersion 的版本信息展示
+ */
+void printBuildInfo()
+{
+    std::cout << "  Build Information:\n";
+    std::cout << "  -------------------\n";
+
+    // 版本信息
+    std::cout << "  Version:    " << MC_VERSION_STRING << "\n";
+
+    // Git 信息
+    std::cout << "  Git Branch: " << MC_GIT_BRANCH << "\n";
+    std::cout << "  Git Commit: " << MC_GIT_COMMIT_HASH;
+#ifdef MC_GIT_DIRTY
+    std::cout << " (dirty)";
+#endif
+    std::cout << "\n";
+
+    // 构建信息
+    std::cout << "  Build Time: " << MC_BUILD_TIME << "\n";
+    std::cout << "  Build Type: " << MC_BUILD_TYPE << "\n";
+    std::cout << "  Platform:   " << MC_BUILD_PLATFORM << " " << MC_BUILD_ARCH << "\n";
+
+    // 编译器信息
+    std::cout << "  Compiler:   " << MC_COMPILER_STRING << "\n";
+
+    std::cout << "\n";
 }
 
 void printHelp()
@@ -79,6 +110,9 @@ int main(int argc, char* argv[])
 {
     // 打印Banner
     printBanner();
+
+    // 打印构建信息
+    printBuildInfo();
 
     // 启动参数
     mc::client::ClientLaunchParams params;

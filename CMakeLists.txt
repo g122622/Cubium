@@ -56,6 +56,111 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # 编译配置
 include(CompilerWarnings)
 
+# ============================================================
+# 构建信息收集
+# ============================================================
+
+# 查找 Git
+find_package(Git QUIET)
+
+# 获取 Git 提交哈希
+if(GIT_FOUND)
+    # 短哈希 (7位)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short=7 HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE MC_GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE GIT_HASH_RESULT
+    )
+
+    # 完整哈希
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE MC_GIT_COMMIT_HASH_FULL
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE GIT_HASH_FULL_RESULT
+    )
+
+    # 分支名称
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE MC_GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE GIT_BRANCH_RESULT
+    )
+
+    # 检查是否有未提交的更改
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} status --porcelain
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE MC_GIT_STATUS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    # 如果有未提交的更改，标记为 dirty
+    if(NOT "${MC_GIT_STATUS}" STREQUAL "")
+        set(MC_GIT_DIRTY true)
+    else()
+        set(MC_GIT_DIRTY false)
+    endif()
+
+    # 处理获取失败的情况
+    if(NOT GIT_HASH_RESULT EQUAL 0)
+        set(MC_GIT_COMMIT_HASH "unknown")
+    endif()
+    if(NOT GIT_HASH_FULL_RESULT EQUAL 0)
+        set(MC_GIT_COMMIT_HASH_FULL "unknown")
+    endif()
+    if(NOT GIT_BRANCH_RESULT EQUAL 0)
+        set(MC_GIT_BRANCH "unknown")
+    endif()
+else()
+    set(MC_GIT_COMMIT_HASH "unknown")
+    set(MC_GIT_COMMIT_HASH_FULL "unknown")
+    set(MC_GIT_BRANCH "unknown")
+    set(MC_GIT_DIRTY false)
+endif()
+
+# 构建时间 (UTC)
+string(TIMESTAMP MC_BUILD_TIME UTC)
+
+# 构建类型
+if(CMAKE_BUILD_TYPE STREQUAL "")
+    set(MC_BUILD_TYPE "Release")
+else()
+    set(MC_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+endif()
+
+# 编译器信息
+set(MC_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
+set(MC_COMPILER_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
+set(MC_COMPILER_STRING "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
+# 平台信息
+if(WIN32)
+    set(MC_BUILD_PLATFORM "Windows")
+elseif(APPLE)
+    set(MC_BUILD_PLATFORM "macOS")
+elseif(UNIX)
+    set(MC_BUILD_PLATFORM "Linux")
+else()
+    set(MC_BUILD_PLATFORM "Unknown")
+endif()
+
+# 架构信息
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(MC_BUILD_ARCH "x64")
+else()
+    set(MC_BUILD_ARCH "x86")
+endif()
+
 # 查找依赖包
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -140,9 +245,18 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 message(STATUS "")
 message(STATUS "=== Minecraft Reborn Configuration ===")
 message(STATUS "  Version:        ${PROJECT_VERSION}")
-message(STATUS "  Build Type:     ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Build Type:     ${MC_BUILD_TYPE}")
+message(STATUS "  Platform:       ${MC_BUILD_PLATFORM} ${MC_BUILD_ARCH}")
 message(STATUS "  C Compiler:     ${CMAKE_C_COMPILER_ID} (${CMAKE_C_COMPILER})")
 message(STATUS "  CXX Compiler:   ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER})")
+message(STATUS "  Git Branch:     ${MC_GIT_BRANCH}")
+message(STATUS "  Git Commit:     ${MC_GIT_COMMIT_HASH}")
+if(MC_GIT_DIRTY)
+    message(STATUS "  Git Status:     Dirty (uncommitted changes)")
+else()
+    message(STATUS "  Git Status:     Clean")
+endif()
+message(STATUS "  Build Time:     ${MC_BUILD_TIME}")
 message(STATUS "  Build Client:   ${MC_BUILD_CLIENT}")
 message(STATUS "  Build Server:   ${MC_BUILD_SERVER}")
 message(STATUS "  Build Tests:    ${MC_BUILD_TESTS}")
