@@ -462,6 +462,7 @@ add_library(mc_common STATIC
     world/block/blocks/SmokerBlock.cpp
     world/block/blocks/ChestBlock.cpp
     world/block/blocks/TrappedChestBlock.cpp
+    world/block/blocks/ShulkerBoxBlock.cpp
     world/block/blocks/HopperBlock.cpp
 
     # World - Block - Dirt

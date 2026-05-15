@@ -168,6 +168,13 @@ public:
      */
     [[nodiscard]] bool canOpen(IWorld& world) const;
 
+    /**
+     * @brief 计算红石比较器信号
+     * @param world 世界引用
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] i32 getComparatorSignal(IWorld& world) const;
+
     // ========== 战利品表接口 ==========
 
     // 注：hasLootTable(), getLootTable(), getLootTableSeed(), setLootTable(), needsLootFill()

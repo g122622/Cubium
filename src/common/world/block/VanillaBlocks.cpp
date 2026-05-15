@@ -71,6 +71,7 @@
 #include "blocks/functional/LoomBlock.hpp"
 #include "blocks/functional/RespawnAnchorBlock.hpp"
 #include "blocks/functional/SmithingTableBlock.hpp"
+#include "blocks/ShulkerBoxBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ice/SnowBlock.hpp"
 #include "blocks/mob/BeehiveBlock.hpp"
@@ -209,6 +210,7 @@ Block* VanillaBlocks::CAULDRON = nullptr;
 Block* VanillaBlocks::ENCHANTING_TABLE = nullptr;
 Block* VanillaBlocks::CHEST = nullptr;
 Block* VanillaBlocks::TRAPPED_CHEST = nullptr;
+Block* VanillaBlocks::SHULKER_BOX = nullptr;
 Block* VanillaBlocks::LOOM = nullptr;
 Block* VanillaBlocks::BARREL = nullptr;
 Block* VanillaBlocks::CARTOGRAPHY_TABLE = nullptr;
@@ -1255,6 +1257,12 @@ void VanillaBlocks::registerFunctionalBlocks()
     // 参考: new TrappedChestBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F).notSolid())
     TRAPPED_CHEST = &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable());
+
+    // 潜影盒
+    // 参考: new ShulkerBoxBlock(Properties.create(Material.SHULKER_SHELL).hardnessAndResistance(2.0F).notSolid())
+    // 注：MC 1.16.5 中潜影盒的 Material 是 SHULKER_SHELL，这里暂时使用 WOOD
+    SHULKER_BOX = &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid());
 
     // 织布机
     // 参考: new LoomBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))

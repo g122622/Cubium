@@ -139,6 +139,7 @@ public:
     static Block* ENCHANTING_TABLE;
     static Block* CHEST;             // 箱子（含水）
     static Block* TRAPPED_CHEST;     // 陷阱箱（含水）
+    static Block* SHULKER_BOX;       // 潜影盒
     static Block* LOOM;              // 织布机
     static Block* BARREL;            // 木桶
     static Block* CARTOGRAPHY_TABLE; // 制图台

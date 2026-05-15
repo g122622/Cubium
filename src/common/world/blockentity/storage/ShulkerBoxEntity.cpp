@@ -25,6 +25,7 @@
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
 #include "util/AxisAlignedBB.hpp"
 #include "util/Direction.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -32,6 +33,7 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -308,6 +310,33 @@ std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const
     return clone;
 }
 
+// ========== 红石信号 ==========
+
+i32 ShulkerBoxEntity::getComparatorSignal(IWorld& world) const
+{
+    MC_UNUSED(world);
+
+    // MC 1.16.5: 比较器信号计算 - 基于填充比例
+    // 信号强度 = floor(填充槽位数 / 总槽位数 * 14) + (有物品 ? 1 : 0)
+    i32 filledSlots = 0;
+    i32 totalCount = 0;
+
+    for (i32 i = 0; i < SHULKER_BOX_SIZE; ++i) {
+        const ItemStack stack = m_inventory.getItem(i);
+        if (!stack.isEmpty()) {
+            filledSlots++;
+            totalCount += stack.getCount();
+        }
+    }
+
+    if (filledSlots == 0) {
+        return 0;
+    }
+
+    const f32 fillRatio = static_cast<f32>(filledSlots) / static_cast<f32>(SHULKER_BOX_SIZE);
+    return static_cast<i32>(fillRatio * 14.0f) + (totalCount > 0 ? 1 : 0);
+}
+
 // ========== ISidedInventory 接口实现 ==========
 
 std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const
@@ -338,14 +367,14 @@ bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction
         return false;
     }
 
-    // TODO: 当 ShulkerBoxBlock 实现后，检查物品是否为潜影盒方块
-    // const Item* item = stack.getItem();
-    // if (item != nullptr) {
-    //     const Block* block = item->getBlock();
-    //     if (block != nullptr && dynamic_cast<const ShulkerBoxBlock*>(block) != nullptr) {
-    //         return false;
-    //     }
-    // }
+    // 检查物品是否为潜影盒方块
+    const Item* item = stack.getItem();
+    if (item != nullptr) {
+        const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+        if (block != nullptr && block == VanillaBlocks::SHULKER_BOX) {
+            return false;
+        }
+    }
 
     return true;
 }

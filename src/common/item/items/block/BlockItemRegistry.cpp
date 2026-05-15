@@ -462,6 +462,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BEACON, "beacon");
     registerSimpleBlock(VanillaBlocks::BREWING_STAND, "brewing_stand");
     registerSimpleBlock(VanillaBlocks::ENDER_CHEST, "ender_chest");
+    registerSimpleBlock(VanillaBlocks::SHULKER_BOX, "shulker_box");
     registerSimpleBlock(VanillaBlocks::LANTERN, "lantern");
     registerSimpleBlock(VanillaBlocks::SOUL_LANTERN, "soul_lantern");
     registerSimpleBlock(VanillaBlocks::CAMPFIRE, "campfire");
