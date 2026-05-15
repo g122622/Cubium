@@ -54,12 +54,48 @@ effect/
 
 ## 区域效果云
 
-- 由滞留药水创建
-- 效果半径随时间减小
-- 等待时间后开始生效
-- 定期重新应用效果
+### MC 1.16.5 对齐
 
-## 经验球
+AreaEffectCloudEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 效果列表存储 | ✅ 完成 |
+| 效果应用到范围内实体 | ✅ 完成 |
+| 半径随时间衰减 | ✅ 完成 |
+| 半径使用时衰减 | ✅ 完成 |
+| 等待时间机制 | ✅ 完成 |
+| 重应用延迟映射 | ✅ 完成 |
+| 颜色自动计算 | ✅ 完成 |
+| 拥有者追踪 | ✅ 完成 |
+
+### 关键参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| radius | 3.0F | 初始半径 |
+| duration | 600 ticks | 持续时间（30秒） |
+| waitTime | 20 ticks | 等待时间（1秒） |
+| reapplicationDelay | 20 ticks | 重应用延迟 |
+| radiusOnUse | 0.0F | 每次应用效果时半径变化 |
+| radiusPerTick | 0.0F | 每tick半径变化 |
+| durationOnUse | 0 | 每次应用效果时持续时间变化 |
+
+### 苦力怕药水云参数
+
+当苦力怕身上有药水效果时，爆炸后会生成滞留药水云：
+
+| 参数 | 值 |
+|------|-----|
+| 初始半径 | 2.5F |
+| radiusOnUse | -0.5F |
+| waitTime | 10 ticks |
+| duration | 300 ticks |
+| radiusPerTick | -2.5/300 |
+
+参考 MC 1.16.5 CreeperEntity.spawnLingeringCloud()
+
+## 实现状态
 
 | 经验值范围 | 颜色 |
 |-----------|------|
@@ -98,7 +134,7 @@ effect/
 | 组件 | 状态 |
 |------|------|
 | EnderCrystalEntity | ✅ 完成 - 光束粒子效果、爆炸实现 |
-| LightningBoltEntity | ⚠️ 框架完成，TODO需填充 |
-| AreaEffectCloudEntity | ⚠️ 框架完成，TODO需填充 |
+| LightningBoltEntity | ✅ 完成 - 伤害实体、点燃方块、音效 |
+| AreaEffectCloudEntity | ✅ 完成 - 效果应用、半径衰减、苦力怕药水云 |
 | ExperienceOrbEntity | ⚠️ 框架完成，TODO需填充 |
 | ArmorStandEntity | ⚠️ 框架完成，TODO需填充 |

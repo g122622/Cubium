@@ -1,30 +1,34 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
+* LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
 */
 
 #pragma once
 
+#include "../../../core/Types.hpp"
+#include "../../../entity/effect/EffectInstance.hpp"
+#include "../../../resource/ResourceLocation.hpp"
+#include "../../../util/AxisAlignedBB.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../core/Entity.hpp"
+#include <map>
+#include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -199,7 +203,16 @@ private:
 /**
  * @brief 区域效果云实体
  *
- * 由滞留药水产生的效果云。
+ * 由滞留药水或苦力怕爆炸产生的效果云。
+ *
+ * MC 1.16.5 对齐：
+ * - radius: 效果半径
+ * - duration: 持续时间
+ * - waitTime: 等待时间（应用效果前的延迟）
+ * - reapplicationDelay: 效果重应用延迟
+ * - effects: 效果列表
+ * - color: 效果颜色（ARGB）
+ * - owner: 拥有者（造成效果的实体）
  *
  * 参考 MC 1.16.5 AreaEffectCloudEntity
  */
@@ -215,54 +228,171 @@ public:
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
+    // ========== 半径 ==========
+
     /**
      * @brief 设置效果半径
+     * MC 1.16.5: setRadius()
      */
-    void setRadius(f32 radius) { m_radius = radius; }
+    void setRadius(f32 radius);
+
+    /**
+     * @brief 获取效果半径
+     */
     [[nodiscard]] f32 getRadius() const { return m_radius; }
 
     /**
+     * @brief 设置每次应用效果时半径变化
+     * MC 1.16.5: setRadiusOnUse()
+     */
+    void setRadiusOnUse(f32 radiusOnUse) { m_radiusOnUse = radiusOnUse; }
+
+    /**
+     * @brief 设置每tick半径变化
+     * MC 1.16.5: setRadiusPerTick()
+     */
+    void setRadiusPerTick(f32 radiusPerTick) { m_radiusPerTick = radiusPerTick; }
+
+    // ========== 持续时间 ==========
+
+    /**
      * @brief 设置持续时间
+     * MC 1.16.5: setDuration()
      */
     void setDuration(i32 duration) { m_duration = duration; }
     [[nodiscard]] i32 getDuration() const { return m_duration; }
 
     /**
-     * @brief 设置等待时间
+     * @brief 设置每次应用效果时持续时间变化
+     * MC 1.16.5: setDurationOnUse()
+     */
+    void setDurationOnUse(i32 durationOnUse) { m_durationOnUse = durationOnUse; }
+
+    // ========== 等待时间 ==========
+
+    /**
+     * @brief 设置等待时间（应用效果前的延迟）
+     * MC 1.16.5: setWaitTime()
      */
     void setWaitTime(i32 waitTime) { m_waitTime = waitTime; }
     [[nodiscard]] i32 getWaitTime() const { return m_waitTime; }
 
+    // ========== 重应用延迟 ==========
+
     /**
-     * @brief 设置效果颜色
+     * @brief 设置效果重应用延迟
+     * MC 1.16.5: setReapplicationDelay()
      */
-    void setColor(u32 color) { m_color = color; }
+    void setReapplicationDelay(i32 delay) { m_reapplicationDelay = delay; }
+    [[nodiscard]] i32 getReapplicationDelay() const { return m_reapplicationDelay; }
+
+    // ========== 颜色 ==========
+
+    /**
+     * @brief 设置效果颜色（ARGB）
+     */
+    void setColor(u32 color) { m_color = color; m_colorSet = true; }
     [[nodiscard]] u32 getColor() const { return m_color; }
 
     /**
-     * @brief 添加效果
+     * @brief 设置是否固定颜色
+     * MC 1.16.5: setColorFixed()
      */
-    // void addEffect(const EffectInstance& effect);
+    void setColorFixed(bool fixed) { m_colorSet = fixed; }
+
+    // ========== 效果管理 ==========
 
     /**
-     * @brief 设置重新申请时间
+     * @brief 添加效果实例
+     * MC 1.16.5: addEffect()
      */
-    void setReapplicationDelay(i32 delay) { m_reapplicationDelay = delay; }
+    void addEffect(const effect::EffectInstance& effect);
+
+    /**
+     * @brief 获取所有效果
+     */
+    [[nodiscard]] const std::vector<effect::EffectInstance>& getEffects() const { return m_effects; }
+
+    /**
+     * @brief 清空所有效果
+     */
+    void clearEffects() { m_effects.clear(); }
+
+    // ========== 拥有者 ==========
+
+    /**
+     * @brief 设置拥有者（造成效果的实体）
+     * MC 1.16.5: setOwner()
+     */
+    void setOwner(LivingEntity* owner);
+    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
+
+    // ========== 粒子 ==========
+
+    /**
+     * @brief 设置粒子类型
+     * MC 1.16.5: setParticle()
+     * 注：当前项目粒子系统简化，此方法预留接口
+     */
+    void setParticleType(u32 particleType) { m_particleType = particleType; }
+    [[nodiscard]] u32 getParticleType() const { return m_particleType; }
+
+    // ========== 创建工厂 ==========
+
+    /**
+     * @brief 创建实体工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
 private:
+    /**
+     * @brief 应用效果到范围内的实体
+     * MC 1.16.5: affectEntities()
+     */
     void applyEffects();
+
+    /**
+     * @brief 更新半径
+     */
     void updateRadius();
 
-    f32 m_radius = 3.0f;
-    f32 m_initialRadius = 3.0f;
-    i32 m_duration = 600;
-    i32 m_waitTime = 10;
-    i32 m_reapplicationDelay = 20;
-    i32 m_durationOnUse = 0;
-    i32 m_ticksLived = 0;
-    u32 m_color = 0;
-    // std::vector<EffectInstance> m_effects;
-    static constexpr f32 RADIUS_GROWTH = -0.005f;
+    /**
+     * @brief 更新颜色（根据效果列表自动计算）
+     */
+    void updateColor();
+
+    /**
+     * @brief 计算效果颜色
+     * 参考 MC 1.16.5 PotionUtils.getPotionColorFromEffectList()
+     */
+    [[nodiscard]] static u32 calculateEffectsColor(const std::vector<effect::EffectInstance>& effects);
+
+    // MC 1.16.5 字段
+    std::vector<effect::EffectInstance> m_effects; ///< 效果列表
+    std::map<EntityId, i32> m_reapplicationMap;     ///< 重应用延迟映射（实体ID -> 下次可应用时间）
+
+    f32 m_radius = 3.0f;          ///< 当前半径
+    f32 m_initialRadius = 3.0f;   ///< 初始半径
+    f32 m_radiusOnUse = 0.0f;     ///< 每次使用时半径变化
+    f32 m_radiusPerTick = 0.0f;   ///< 每tick半径变化
+
+    i32 m_duration = 600;          ///< 持续时间 (ticks)，默认 30 秒
+    i32 m_waitTime = 20;           ///< 等待时间 (ticks)
+    i32 m_reapplicationDelay = 20; ///< 效果重应用延迟 (ticks)
+    i32 m_durationOnUse = 0;       ///< 每次使用时持续时间变化
+
+    i32 m_ticksLived = 0;          ///< 已存活时间 (ticks)
+    u32 m_color = 0;               ///< 效果颜色 (ARGB)
+    bool m_colorSet = false;       ///< 颜色是否已设置
+
+    LivingEntity* m_owner = nullptr; ///< 拥有者（苦力怕等）
+    u32 m_particleType = 0;        ///< 粒子类型
+
+    // MC 1.16.5 默认值常量
+    static constexpr f32 DEFAULT_RADIUS = 3.0f;
+    static constexpr i32 DEFAULT_DURATION = 600;
+    static constexpr i32 DEFAULT_WAIT_TIME = 20;
+    static constexpr i32 DEFAULT_REAPPLICATION_DELAY = 20;
 };
 
 // 注意: ExperienceOrbEntity 已移动到独立的 orb/ 目录

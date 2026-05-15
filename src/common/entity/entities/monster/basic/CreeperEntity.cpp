@@ -35,6 +35,8 @@
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../effect/EffectEntities.hpp"
+#include "../../../core/LivingEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -141,8 +143,47 @@ void CreeperEntity::explode()
 void CreeperEntity::spawnLingeringCloud()
 {
     // MC 1.16.5 CreeperEntity.spawnLingeringCloud()
-    // TODO: 当苦力怕有药水效果时，死亡后生成滞留药水云
-    // 需要实现 AreaEffectCloudEntity
+    // 当苦力怕有药水效果时，死亡后生成滞留药水云
+
+    // 获取苦力怕当前所有药水效果
+    const auto& effects = effectManager().getAllEffects();
+    if (effects.empty()) {
+        return; // 无效果则不生成
+    }
+
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // 创建区域效果云实体
+    auto cloud = std::make_unique<entity::AreaEffectCloudEntity>();
+    cloud->setWorld(worldPtr);
+    cloud->setPosition(x(), y(), z());
+
+    // MC 1.16.5 苦力怕药水云参数：
+    // - 初始半径: 2.5F
+    // - radiusOnUse: -0.5F（每次应用效果后缩小）
+    // - waitTime: 10 ticks（0.5秒）
+    // - duration: 300 ticks（15秒，原默认600的一半）
+    // - radiusPerTick: -radius/duration（线性衰减到0）
+
+    cloud->setRadius(2.5f);
+    cloud->setRadiusOnUse(-0.5f);
+    cloud->setWaitTime(10);
+    cloud->setDuration(300);
+    cloud->setRadiusPerTick(-2.5f / 300.0f);
+
+    // 添加所有效果到药水云
+    for (const auto& effect : effects) {
+        cloud->addEffect(effect);
+    }
+
+    // 设置拥有者为苦力怕
+    cloud->setOwner(this);
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(cloud));
 }
 
 void CreeperEntity::tick()

@@ -100,6 +100,7 @@
 #include "../entities/item/ItemEntity.hpp"
 #include "../entities/misc/MiscEntities.hpp"
 #include "../entities/orb/ExperienceOrbEntity.hpp"
+#include "../entities/effect/EffectEntities.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
 #include <mutex>
@@ -830,6 +831,15 @@ private:
                 .size(0.98f, 0.98f)
                 .trackingRange(10)
                 .updateInterval(1) // TNT 需要频繁更新（引信倒计时）
+                .canSummon(true)
+                .build());
+
+        // ========== 区域效果云 ==========
+        registry.registerType(EntityTypes::AREA_EFFECT_CLOUD,
+            EntityType::Builder(&entity::AreaEffectCloudEntity::create, EntityClassification::Misc)
+                .size(6.0f, 0.5f) // 初始半径3.0，宽度=半径*2
+                .trackingRange(10)
+                .updateInterval(5) // 每5tick更新一次
                 .canSummon(true)
                 .build());
 
