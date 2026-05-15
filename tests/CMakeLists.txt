@@ -332,6 +332,7 @@ add_executable(mc_tests
     network/SpawnPositionPacketTest.cpp
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
+    network/BossInfoPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp

@@ -55,6 +55,7 @@ add_library(mc_common STATIC
     network/packet/SetPassengersPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp
+    network/packet/BossInfoPacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp

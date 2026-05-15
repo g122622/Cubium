@@ -37,6 +37,21 @@ class ServerPlayer;
 namespace server {
 
 /**
+ * @brief Boss 栏更新类型
+ *
+ * 用于追踪需要发送哪种更新包。
+ */
+enum class BossInfoUpdateType : u8 {
+    None = 0,          // 无更新
+    Add = 1,           // 添加（完整信息）
+    Remove = 2,        // 移除
+    UpdatePercent = 3, // 更新百分比
+    UpdateName = 4,    // 更新名称
+    UpdateStyle = 5,   // 更新样式（颜色和边框）
+    UpdateProperties = 6 // 更新属性标志
+};
+
+/**
  * @brief 服务端 Boss 信息
  *
  * 扩展 BossInfo，添加玩家管理功能。
@@ -155,6 +170,18 @@ public:
      */
     void setVisible(bool visible) override;
 
+    // ========== 更新类型追踪 ==========
+
+    /**
+     * @brief 获取待发送的更新类型
+     */
+    [[nodiscard]] BossInfoUpdateType pendingUpdateType() const noexcept { return m_pendingUpdateType; }
+
+    /**
+     * @brief 清除待发送的更新类型
+     */
+    void clearPendingUpdate() { m_pendingUpdateType = BossInfoUpdateType::None; }
+
 protected:
     /**
      * @brief 发送 Boss 信息更新包给所有可见玩家
@@ -177,6 +204,9 @@ protected:
 
     /// 可见玩家 ID 列表
     std::set<PlayerId> m_players;
+
+    /// 待发送的更新类型
+    BossInfoUpdateType m_pendingUpdateType = BossInfoUpdateType::None;
 };
 
 } // namespace server

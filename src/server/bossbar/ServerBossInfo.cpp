@@ -64,6 +64,7 @@ void ServerBossInfo::setName(std::unique_ptr<text::ITextComponent> name)
 {
     if (name && !name->getUnformattedText().empty()) {
         BossInfo::setName(std::move(name));
+        m_pendingUpdateType = BossInfoUpdateType::UpdateName;
         broadcastUpdate();
     }
 }
@@ -72,6 +73,7 @@ void ServerBossInfo::setPercent(f32 percent)
 {
     if (m_percent != percent) {
         BossInfo::setPercent(percent);
+        m_pendingUpdateType = BossInfoUpdateType::UpdatePercent;
         broadcastUpdate();
     }
 }
@@ -80,6 +82,7 @@ void ServerBossInfo::setColor(BossInfoColor color)
 {
     if (m_color != color) {
         BossInfo::setColor(color);
+        m_pendingUpdateType = BossInfoUpdateType::UpdateStyle;
         broadcastUpdate();
     }
 }
@@ -88,6 +91,7 @@ void ServerBossInfo::setOverlay(BossInfoOverlay overlay)
 {
     if (m_overlay != overlay) {
         BossInfo::setOverlay(overlay);
+        m_pendingUpdateType = BossInfoUpdateType::UpdateStyle;
         broadcastUpdate();
     }
 }
@@ -96,6 +100,7 @@ void ServerBossInfo::setDarkenSky(bool darken)
 {
     if (m_darkenSky != darken) {
         BossInfo::setDarkenSky(darken);
+        m_pendingUpdateType = BossInfoUpdateType::UpdateProperties;
         broadcastUpdate();
     }
 }
@@ -104,6 +109,7 @@ void ServerBossInfo::setPlayEndBossMusic(bool play)
 {
     if (m_playEndBossMusic != play) {
         BossInfo::setPlayEndBossMusic(play);
+        m_pendingUpdateType = BossInfoUpdateType::UpdateProperties;
         broadcastUpdate();
     }
 }
@@ -112,6 +118,7 @@ void ServerBossInfo::setCreateFog(bool create)
 {
     if (m_createFog != create) {
         BossInfo::setCreateFog(create);
+        m_pendingUpdateType = BossInfoUpdateType::UpdateProperties;
         broadcastUpdate();
     }
 }

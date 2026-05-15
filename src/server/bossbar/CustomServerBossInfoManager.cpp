@@ -25,7 +25,10 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/network/packet/BossInfoPacket.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace server {
@@ -134,15 +137,27 @@ void CustomServerBossInfoManager::onPlayerLogout(::mc::ServerPlayer& player)
 
 void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, ::mc::ServerPlayer& player)
 {
-    // 发送 Boss 栏添加包
-    // 格式: UUID + 名称 + 百分比 + 颜色 + 样式 + 标志位
-    // 由于 BossInfoPacket 尚未实现，这里暂时发送一个简单的消息给玩家
-    // TODO: 实现 BossInfoPacket 后替换为实际的网络包发送
+    // 创建 Boss 栏添加包
+    auto nameCopy = bossInfo.name().deepCopy();
+    mc::network::BossInfoPacket packet = mc::network::BossInfoPacket::add(bossInfo.uuid(),
+        std::move(nameCopy),
+        bossInfo.percent(),
+        static_cast<u8>(bossInfo.color()),
+        static_cast<u8>(bossInfo.overlay()),
+        bossInfo.darkenSky(),
+        bossInfo.playEndBossMusic(),
+        bossInfo.createFog());
 
-    // 暂时通过聊天消息通知（后续会替换为真正的 Boss 栏网络同步）
-    // player.sendSystemMessage("[BossBar] Added: " + bossInfo.id().toString());
-    MC_UNUSED(bossInfo);
-    MC_UNUSED(player);
+    // 序列化并发送
+    auto result = packet.serialize();
+    if (!result.success()) {
+        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Add): {}",
+            result.error().message());
+        return;
+    }
+
+    m_server.connectionManager().sendPacketToPlayer(
+        player.playerId(), mc::network::PacketType::BossInfo, result.value());
 
     // 标记数据需要保存
     markDirty();
@@ -150,12 +165,19 @@ void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, 
 
 void CustomServerBossInfoManager::sendRemovePacket(CustomServerBossInfo& bossInfo, ::mc::ServerPlayer& player)
 {
-    // 发送 Boss 栏移除包
-    // 格式: UUID
-    // TODO: 实现 BossInfoPacket 后替换为实际的网络包发送
+    // 创建 Boss 栏移除包
+    mc::network::BossInfoPacket packet = mc::network::BossInfoPacket::remove(bossInfo.uuid());
 
-    MC_UNUSED(bossInfo);
-    MC_UNUSED(player);
+    // 序列化并发送
+    auto result = packet.serialize();
+    if (!result.success()) {
+        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Remove): {}",
+            result.error().message());
+        return;
+    }
+
+    m_server.connectionManager().sendPacketToPlayer(
+        player.playerId(), mc::network::PacketType::BossInfo, result.value());
 
     // 标记数据需要保存
     markDirty();
@@ -163,10 +185,66 @@ void CustomServerBossInfoManager::sendRemovePacket(CustomServerBossInfo& bossInf
 
 void CustomServerBossInfoManager::broadcastUpdate(CustomServerBossInfo& bossInfo)
 {
-    // 广播 Boss 栏更新给所有可见玩家
-    // TODO: 实现 BossInfoPacket 后替换为实际的网络包发送
+    // 获取所有可见玩家并发送更新
+    const auto& playerIds = bossInfo.players();
+    if (playerIds.empty()) {
+        return;
+    }
 
-    MC_UNUSED(bossInfo);
+    // 获取待发送的更新类型
+    BossInfoUpdateType updateType = bossInfo.pendingUpdateType();
+    bossInfo.clearPendingUpdate();
+
+    // 如果没有更新，跳过
+    if (updateType == BossInfoUpdateType::None) {
+        return;
+    }
+
+    // 根据更新类型创建不同的更新包
+    mc::network::BossInfoPacket packet = [&]() {
+        switch (updateType) {
+            case BossInfoUpdateType::UpdatePercent:
+                return mc::network::BossInfoPacket::updatePercent(
+                    bossInfo.uuid(), bossInfo.percent());
+
+            case BossInfoUpdateType::UpdateName: {
+                auto nameCopy = bossInfo.name().deepCopy();
+                return mc::network::BossInfoPacket::updateName(bossInfo.uuid(), std::move(nameCopy));
+            }
+
+            case BossInfoUpdateType::UpdateStyle:
+                return mc::network::BossInfoPacket::updateStyle(
+                    bossInfo.uuid(),
+                    static_cast<u8>(bossInfo.color()),
+                    static_cast<u8>(bossInfo.overlay()));
+
+            case BossInfoUpdateType::UpdateProperties:
+                return mc::network::BossInfoPacket::updateProperties(
+                    bossInfo.uuid(),
+                    bossInfo.darkenSky(),
+                    bossInfo.playEndBossMusic(),
+                    bossInfo.createFog());
+
+            default:
+                // 其他类型默认使用百分比更新
+                return mc::network::BossInfoPacket::updatePercent(
+                    bossInfo.uuid(), bossInfo.percent());
+        }
+    }();
+
+    // 序列化
+    auto result = packet.serialize();
+    if (!result.success()) {
+        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Update): {}",
+            result.error().message());
+        return;
+    }
+
+    // 广播给所有可见玩家
+    for (PlayerId playerId : playerIds) {
+        m_server.connectionManager().sendPacketToPlayer(
+            playerId, mc::network::PacketType::BossInfo, result.value());
+    }
 
     // 标记数据需要保存
     markDirty();
