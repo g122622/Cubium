@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/illager/IllagerEntities.hpp"
@@ -226,10 +227,10 @@ TEST(VindicatorEntityTest, CreateFactory)
 TEST(RangedCrossbowAttackGoalTest, CrossbowStateEnum)
 {
     // 验证状态枚举值
-    EXPECT_EQ(static_cast<u8>(CrossbowState::Uncharged), 0);
-    EXPECT_EQ(static_cast<u8>(CrossbowState::Charging), 1);
-    EXPECT_EQ(static_cast<u8>(CrossbowState::Charged), 2);
-    EXPECT_EQ(static_cast<u8>(CrossbowState::ReadyToAttack), 3);
+    EXPECT_EQ(static_cast<u8>(entity::ai::goal::CrossbowState::Uncharged), 0);
+    EXPECT_EQ(static_cast<u8>(entity::ai::goal::CrossbowState::Charging), 1);
+    EXPECT_EQ(static_cast<u8>(entity::ai::goal::CrossbowState::Charged), 2);
+    EXPECT_EQ(static_cast<u8>(entity::ai::goal::CrossbowState::ReadyToAttack), 3);
 }
 
 } // namespace mc

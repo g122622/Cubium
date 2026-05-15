@@ -78,6 +78,20 @@ public:
     [[nodiscard]] i32 getAttackInterval() const override { return 20; }
     [[nodiscard]] bool canRangedAttack() const override { return true; }
 
+    // ========== 尺寸 ==========
+
+    /**
+     * @brief 获取实体宽度
+     * MC 1.16.5: 掠夺者宽度为 0.6
+     */
+    [[nodiscard]] f32 width() const override { return 0.6f; }
+
+    /**
+     * @brief 获取实体高度
+     * MC 1.16.5: 掠夺者高度为 1.95
+     */
+    [[nodiscard]] f32 height() const override { return 1.95f; }
+
     // ========== ICrossbowUser 接口 ==========
 
     void setChargingCrossbow(bool charging) override { m_isCharging = charging; }
@@ -157,6 +171,20 @@ public:
      * @brief 设置攻击状态
      */
     void setAggressive(bool aggressive) { m_aggressive = aggressive; }
+
+    // ========== 尺寸 ==========
+
+    /**
+     * @brief 获取实体宽度
+     * MC 1.16.5: 卫道士宽度为 0.6
+     */
+    [[nodiscard]] f32 width() const override { return 0.6f; }
+
+    /**
+     * @brief 获取实体高度
+     * MC 1.16.5: 卫道士高度为 1.95
+     */
+    [[nodiscard]] f32 height() const override { return 1.95f; }
 
     // ========== 生命周期 ==========
 

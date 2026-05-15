@@ -58,7 +58,9 @@ std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)
 
 PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
     : AbstractIllagerEntity(type, id)
-{}
+{
+    registerAttributes();
+}
 
 void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
@@ -243,7 +245,9 @@ std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world)
 
 VindicatorEntity::VindicatorEntity(LegacyEntityType type, EntityId id)
     : AbstractIllagerEntity(type, id)
-{}
+{
+    registerAttributes();
+}
 
 void VindicatorEntity::registerGoals()
 {

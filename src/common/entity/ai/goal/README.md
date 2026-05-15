@@ -28,7 +28,7 @@ goal/
     │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
     │   └── FollowSchoolLeaderGoal.hpp/cpp # 跟随群体领导者（群游鱼类）
     ├── attack/                   # 攻击类目标
-    │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal
+    │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal, RangedCrossbowAttackGoal
     ├── target/                   # 目标选择目标
     │   └── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
     ├── interact/                 # 交互类目标
@@ -333,6 +333,76 @@ m_goalSelector.addGoal(8, std::make_unique<LookAtGoal>(
 - `m_speed`: 追踪速度
 - `m_useLongMemory`: 是否使用长期记忆（目标丢失后继续追踪）
 - `ATTACK_COOLDOWN_TICKS`: 攻击冷却 (20 tick)
+
+---
+
+#### RangedCrossbowAttackGoal - 弩远程攻击目标
+
+**职责**: 使生物使用弩进行远程攻击，支持装填和发射的完整状态机。
+
+**执行条件**: 实体持有弩且有有效的攻击目标
+
+**互斥标志**: `Move`, `Look`
+
+**状态机**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Uncharged: 初始状态
+    Uncharged --> Charging: 看到目标 ≥ 5 ticks
+    Charging --> Charged: 装填完成 (25 ticks)
+    Charged --> ReadyToAttack: 等待 20-40 ticks
+    ReadyToAttack --> Uncharged: 发射弩箭
+    ReadyToAttack --> Charged: 看不到目标
+```
+
+| 状态 | 说明 |
+|------|------|
+| Uncharged | 未装填，等待目标进入攻击范围 |
+| Charging | 装填中，检查装填进度 |
+| Charged | 已装填，等待随机延迟 |
+| ReadyToAttack | 准备攻击，看到目标时发射 |
+
+**关键参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| MIN_SEEN_TIME | 5 | 开始装填前需要看到目标的 tick 数 |
+| CHARGED_WAIT_MIN | 20 | 装填后最小等待时间 |
+| CHARGED_WAIT_MAX | 40 | 装填后最大等待时间 |
+| MOVE_COOLDOWN_MIN | 20 | 移动冷却最小值 |
+| MOVE_COOLDOWN_MAX | 40 | 移动冷却最大值 |
+| ARROW_VELOCITY | 3.15f | 箭矢速度 |
+| FIREWORK_VELOCITY | 1.6f | 烟花速度 |
+
+**行为**:
+1. 在攻击范围内且能看到目标时开始装填
+2. 装填期间设置 `ICrossbowUser::setChargingCrossbow(true)`
+3. 装填完成后调用 `ICrossbowUser::onCrossbowLoadComplete()`
+4. 发射时调用 `ICrossbowUser::shootCrossbow()`
+
+**依赖接口**: 实体必须实现 `ICrossbowUser` 接口
+
+```cpp
+class ICrossbowUser {
+public:
+    virtual void setChargingCrossbow(bool charging) = 0;
+    virtual bool isChargingCrossbow() const = 0;
+    virtual void onCrossbowLoadComplete(ItemStack& crossbow) = 0;
+    virtual void shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) = 0;
+    virtual i32 getCrossbowChargeTime() const = 0;
+};
+```
+
+**使用示例**:
+```cpp
+void PillagerEntity::registerGoals() {
+    // 优先级 3: 弩远程攻击
+    m_goalSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 8.0f));
+}
+```
+
+**参考**: MC 1.16.5 `net.minecraft.entity.ai.goal.RangedCrossbowAttackGoal`
 
 ---
 

@@ -42,13 +42,157 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
 | AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态、RAID 参与状态 | ✅ 完成 |
-| VindicatorEntity | 卫道士 | 斧头近战攻击、冲向目标 | ✅ 属性已修复 |
-| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 属性已修复 |
+| VindicatorEntity | 卫道士 | 斧头近战攻击、冲向目标 | ✅ 完成 |
+| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 完成 |
 | IllusionerEntity | 幻术师 | 分身、失明攻击 | ⏳ 框架完成 |
-| PillagerEntity | 掠夺者 | 弩远程攻击 | ✅ 属性已修复 |
+| PillagerEntity | 掠夺者 | 弩远程攻击、RangedCrossbowAttackGoal | ✅ 完成 |
 | RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
 | WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+
+## PillagerEntity 详细实现
+
+掠夺者是手持弩的灾厄村民，使用 `RangedCrossbowAttackGoal` 进行远程攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.35 | MC 1.16.5 |
+| 攻击伤害 | 5.0 | MC 1.16.5 |
+| 跟随范围 | 32.0 | MC 1.16.5 |
+| 弩装填时间 | 25 ticks | 基础装填时间 |
+
+### ICrossbowUser 接口实现
+
+掠夺者实现了 `ICrossbowUser` 接口，支持弩的装填和发射：
+
+```cpp
+class PillagerEntity : public AbstractIllagerEntity, public ICrossbowUser {
+public:
+    // ICrossbowUser 接口
+    void setChargingCrossbow(bool charging) override;
+    [[nodiscard]] bool isChargingCrossbow() const override;
+    void onCrossbowLoadComplete(ItemStack& crossbow) override;
+    void shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) override;
+    [[nodiscard]] i32 getCrossbowChargeTime() const override;
+
+    // IRangedAttackMob 接口
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override;
+    [[nodiscard]] bool canRangedAttack() const override;
+};
+```
+
+### 弩发射机制
+
+`shootCrossbow()` 方法实现了弩箭发射逻辑：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 箭矢速度 | 3.15f | 普通箭矢 |
+| 烟花速度 | 1.6f | 烟花火箭 |
+| 不精确度 | 6.0f | 普通难度 |
+| 弹道补偿 | `horizontalDist * 0.2` | 抛物线计算 |
+| 目标高度偏移 | `height * 0.333` | 瞄准目标身体 |
+
+```cpp
+void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) {
+    // 计算弹道
+    f64 dx = target->x() - x();
+    f64 dz = target->z() - z();
+    f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+    f64 dy = (target->y() + target->height() * 0.333) - (y() + eyeHeight() - 0.15)
+           + horizontalDist * 0.2;
+
+    // 创建箭矢实体
+    auto arrow = std::make_unique<entity::ArrowEntity>(LegacyEntityType::Arrow, EntityId(0));
+    arrow->setShotFromCrossbow(true);
+    arrow->setDamage(5.0f);
+
+    // 发射
+    arrow->shootFrom(*this, pitch, yaw, 0.0f, velocity, inaccuracy);
+    m_world->spawnEntity(std::move(arrow));
+}
+```
+
+### AI Goals
+
+掠夺者使用以下 AI 目标：
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 3 | RangedCrossbowAttackGoal | 弩远程攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击村民（TODO） |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击铁傀儡（TODO） |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.PillagerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── attackEntityWithRangedAttack(): 弩攻击实现
+├── shootCrossbow(): 弩发射逻辑（ICrossbowUser 默认实现）
+└── onCrossbowLoadComplete(): 装填完成回调
+```
+
+## VindicatorEntity 详细实现
+
+卫道士是手持铁斧的近战灾厄村民。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.35 | MC 1.16.5 |
+| 攻击伤害 | 5.0 | 基础伤害（铁斧 +3 = 8） |
+| 跟随范围 | 12.0 | MC 1.16.5 |
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | MeleeAttackGoal | 近战攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal<Player> | 看向玩家（距离 3.0f） |
+| 10 | LookAtGoal | 看向生物（距离 8.0f） |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击村民（TODO） |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击铁傀儡（TODO） |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.VindicatorEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+└── setAggressive(): 攻击状态设置
+```
 
 ## VexEntity 详细实现
 
