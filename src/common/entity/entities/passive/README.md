@@ -86,7 +86,7 @@ MobEntity
 | PandaEntity | 熊猫 | 7种性格基因 | - |
 | PolarBearEntity | 北极熊 | 保护幼崽 | - |
 | TurtleEntity | 海龟 | 出生地记忆、产卵 | - |
-| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆 | IFlyingAnimal |
+| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆、螫刺后死亡 | IFlyingAnimal |
 | StriderEntity | 炽足兽 | 熔岩行走、可骑乘 | IRideable |
 
 ### horse/ - 马类

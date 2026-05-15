@@ -49,6 +49,25 @@ special/
 - `hasStung()` / `setHasStung(bool)`: 螫刺状态（螫刺后死亡）
 - `isFlying()` / `setFlying(bool)`: 飞行状态
 
+### 螫刺后死亡机制 (MC 1.16.5)
+蜜蜂螫刺后会逐渐死亡，实现逻辑：
+- **成员变量**: `m_timeSinceSting` - 追踪螫刺后经过的 tick 数
+- **死亡概率**: 每 5 tick 检查一次，概率随时间增加
+  ```cpp
+  // 计算公式: rand.nextInt(clamp(1200 - timeSinceSting, 1, 1200)) == 0
+  i32 deathChance = math::clamp(1200 - m_timeSinceSting, 1, 1200);
+  if (rng.nextInt(deathChance) == 0) {
+      hurt(DamageSources::generic(), health());
+  }
+  ```
+- **时间线**:
+  - 螫刺后 0 tick: 1/1200 概率死亡 (约 0.08%)
+  - 螫刺后 600 tick: 1/600 概率死亡 (约 0.17%)
+  - 螫刺后 1000 tick: 1/200 概率死亡 (约 0.5%)
+  - 螫刺后 1199+ tick: 100% 死亡
+- **最长存活**: 1200 tick = 60 秒
+- **伤害类型**: `DamageSources::generic()`，造成等于当前生命值的伤害
+
 ### 蜂巢与花朵系统
 - `setHivePos(pos)` / `getHivePos()`: 蜂巢位置
 - `hasHive()`: 是否有蜂巢
