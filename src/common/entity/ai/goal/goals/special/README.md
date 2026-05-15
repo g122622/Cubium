@@ -12,6 +12,8 @@ special/
 ├── BlazeFireballAttackGoal.cpp # 烈焰人火球攻击目标实现
 ├── SquidGoals.hpp         # 鱿鱼目标头文件
 ├── SquidGoals.cpp         # 鱿鱼目标实现
+├── BatGoals.hpp           # 蝙蝠目标头文件
+├── BatGoals.cpp           # 蝙蝠目标实现
 └── README.md              # 本文档
 ```
 
@@ -381,6 +383,120 @@ void SquidEntity::registerGoals() {
 
 ---
 
+### BatRandomFlyGoal - 蝙蝠随机飞行目标
+
+**职责**: 控制蝙蝠在空中进行随机飞行移动。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BatEntity` 第142-159行
+
+**执行条件**:
+- `shouldExecute()`: 蝙蝠不在休息状态时返回 true
+- `shouldContinueExecuting()`: 蝙蝠不在休息状态时继续
+
+**tick 行为**:
+1. 检查是否需要选择新目标点：
+   - 无目标时选择新目标
+   - 目标不可用（非空气或Y<1）时选择新目标
+   - 1/30 概率随机更换目标
+   - 到达目标点（距离<2）时选择新目标
+2. 选择随机目标点：
+   - X: 当前位置 ±7 格
+   - Y: 当前位置 -2 到 +4 格
+   - Z: 当前位置 ±7 格
+3. 平滑转向朝目标点飞行：
+   - 计算方向向量 (signum * 0.5)
+   - Y轴调整更强 (0.7 而非 0.5)
+   - 速度调整因子 0.1
+   - 更新偏航角
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void BatEntity::registerGoals() {
+    // 优先级 0: 随机飞行目标
+    m_goalSelector.addGoal(0, std::make_unique<BatRandomFlyGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| TARGET_RANGE_XZ | 7 | X/Z方向目标范围 |
+| TARGET_RANGE_Y_MIN | -2 | Y方向目标范围下限 |
+| TARGET_RANGE_Y_MAX | 4 | Y方向目标范围上限 |
+| TARGET_REACH_DISTANCE | 2.0f | 到达目标的距离阈值 |
+| DIRECTION_FACTOR | 0.5 | 水平方向因子 |
+| VERTICAL_FACTOR | 0.7 | 垂直方向因子（更强） |
+| VELOCITY_ADJUST | 0.1 | 速度调整因子 |
+| TARGET_CHANGE_CHANCE | 30 | 1/30 概率更换目标 |
+| MAX_TARGET_ATTEMPTS | 20 | 目标搜索最大尝试次数 |
+
+**依赖**:
+- 需要 BatEntity 提供 `isResting()`, `position()`, `velocity()`, `setVelocity()`, `yaw()`, `setRotation()`, `world()`, `getRandom()` 方法
+- 需要 IWorld 提供 `getBlockState()` 方法
+- 需要 BlockState 提供 `getBlock().isAir()` 方法
+
+---
+
+### BatRestGoal - 蝙蝠挂墙休息目标
+
+**职责**: 控制蝙蝠在白天挂墙休息的行为。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BatEntity` 第125-163行
+
+**执行条件**:
+- `shouldExecute()`:
+  - 白天时间 (dayTime < 12000)
+  - 1/100 概率
+  - 上方有固体方块可以倒挂
+  - 蝙蝠当前不在休息状态
+- `shouldContinueExecuting()`:
+  - 仍在休息状态
+  - 未被唤醒
+
+**唤醒条件**:
+- 夜间 (dayTime >= 12000)
+- 玩家靠近（4格内）- TODO: 需要 world()->getClosestPlayer() 实现
+- 失去支撑（上方不再是固体方块）
+
+**startExecuting 行为**:
+1. 设置休息状态为 true
+2. 设置飞行状态为 false
+3. 清除速度
+4. 对齐位置到方块下方
+5. 初始化转头计时器
+
+**tick 行为**:
+1. 1/200 概率随机选择新的转头角度
+2. 平滑转向目标角度
+3. 保持静止（速度清零）
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void BatEntity::registerGoals() {
+    // 优先级 1: 挂墙休息目标
+    m_goalSelector.addGoal(1, std::make_unique<BatRestGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| REST_CHANCE | 100 | 1/100 概率尝试休息 |
+| TURN_CHANCE | 200 | 1/200 概率随机转头 |
+| DAY_TIME_THRESHOLD | 12000 | 白天时间阈值 |
+| PLAYER_WAKE_DISTANCE | 4.0f | 玩家唤醒距离（TODO） |
+
+**依赖**:
+- 需要 BatEntity 提供 `isResting()`, `setResting()`, `setFlying()`, `position()`, `yaw()`, `pitch()`, `setRotation()`, `setVelocity()`, `height()`, `world()`, `getRandom()` 方法
+- 需要 IWorld 提供 `getBlockState()`, `dayTime()` 方法
+- 需要 BlockState 提供 `getBlock().isSolid()` 方法
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -392,15 +508,19 @@ graph TD
     A --> F[PuffGoal]
     A --> G[SquidMoveRandomGoal]
     A --> H[SquidFleeGoal]
+    A --> J[BatRandomFlyGoal]
+    A --> K[BatRestGoal]
     A --> I[其他占位符目标]
 
-    B --> J[CreeperEntity]
-    C --> K[AbstractHorseEntity]
-    D --> L[GuardianEntity]
-    E --> M[BlazeEntity]
-    F --> N[PufferfishEntity]
-    G --> O[SquidEntity]
-    H --> O
+    B --> L[CreeperEntity]
+    C --> M[AbstractHorseEntity]
+    D --> N[GuardianEntity]
+    E --> O[BlazeEntity]
+    F --> P[PufferfishEntity]
+    G --> Q[SquidEntity]
+    H --> Q
+    J --> R[BatEntity]
+    K --> R
 ```
 
 ---
@@ -520,6 +640,7 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | PufferfishEntityTest.* | 河豚实体膨胀状态、计时器、尺寸测试 |
 | PuffGoalTest.* | 河豚膨胀目标构造和类型名称测试 |
 | SquidGoalsTest.* | 鱿鱼目标测试（移动向量、AI目标执行条件） |
+| BatGoalsTest.* | 蝙蝠目标测试（状态切换、飞行目标、休息目标） |
 
 ---
 
@@ -529,4 +650,5 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 - Minecraft Java 1.16.5 `net.minecraft.entity.ai.goal.RunAroundLikeCrazyGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.GuardianEntity.GuardianAttackGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.BlazeEntity.FireballAttackGoal`
+- Minecraft Java 1.16.5 `net.minecraft.entity.passive.BatEntity` (蝙蝠飞行和休息逻辑)
 - 本项目 CLAUDE.md 文档
