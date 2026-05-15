@@ -131,6 +131,38 @@ static constexpr i32 SLOT_OUTPUT = 2;  // 输出槽
 - `consumeInput()` / `consumeFuel()` - 消耗物品
 - `addToOutput()` - 向输出槽添加物品
 
+### BrewingStandEntity.hpp/cpp
+
+**职责**：酿造台方块实体，用于酿造药水。
+
+**特性**：
+- 5个槽位：3个药水瓶槽（0-2）、1个材料槽（3）、1个燃料槽（4）
+- 燃料系统：烈焰粉，每次酿造消耗1点燃料（共20点）
+- 酿造时间：400 tick（20秒）
+- **ISidedInventory 接口支持**
+- **红石比较器信号输出**
+
+**槽位访问规则（ISidedInventory）**：
+- 上方 (Direction::Up)：材料槽（槽位 3）
+- 下方 (Direction::Down)：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
+- 侧面：药水瓶槽 + 燃料槽（槽位 0, 1, 2, 4）
+
+**红石比较器信号**（2026-05-15 实现）：
+```cpp
+// 参考 MC 1.16.5 Container.calcRedstoneFromInventory
+i32 getComparatorSignal() const;
+// 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
+// 槽位填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
+// 信号范围：0-15
+```
+
+**关键方法**：
+- `tick()` - 每tick更新酿造进度
+- `canBrew()` - 检查是否可以酿造
+- `doBrew()` - 执行酿造
+- `getComparatorSignal()` - 红石比较器信号
+- `hasBottle(slot)` - 检查指定槽位是否有药水瓶
+
 ### BeaconEntity.hpp/cpp
 
 **职责**：信标方块实体，提供金字塔效果。
@@ -336,6 +368,7 @@ void tick() {
 
 - `FurnaceEntityTest.cpp` - 熔炉实体测试（含燃烧时间测试）
 - `FurnaceInventoryTest.cpp` - 熔炉背包测试
+- `BrewingStandEntityTest.cpp` - 酿造台实体测试（含红石信号测试）
 - `SmeltingRecipeTest.cpp` - 熔炼配方测试
 
 ### 测试覆盖
@@ -347,6 +380,12 @@ void tick() {
 - 红石比较器信号
 - 锁定功能
 - 序列化和反序列化
+
+### 酿造台测试覆盖（BrewingStandEntityTest）
+
+- 基础测试：创建、类型、位置、槽位、燃料、酿造时间
+- 红石信号测试：空酿造台、单物品、多物品、满载情况
+- ISidedInventory 测试：各方向的槽位访问规则
 
 ## 燃烧时间数据（MC 1.16.5 对齐）
 
