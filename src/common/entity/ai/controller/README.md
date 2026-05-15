@@ -10,6 +10,8 @@ controller/
 ├── LookController.cpp      # 视线控制器实现
 ├── MovementController.hpp  # 移动控制器头文件
 ├── MovementController.cpp  # 移动控制器实现
+├── VexMovementController.hpp  # 恼鬼飞行移动控制器头文件
+├── VexMovementController.cpp  # 恼鬼飞行移动控制器实现
 ├── JumpController.hpp      # 跳跃控制器头文件
 ├── JumpController.cpp      # 跳跃控制器实现
 └── README.md               # 本文档
@@ -114,6 +116,76 @@ AI Goal → setJumping() → m_isJumping = true
                 ↓
            m_isJumping = false（自动重置）
 ```
+
+---
+
+### VexMovementController（恼鬼飞行移动控制器）
+
+**文件**: `VexMovementController.hpp` / `VexMovementController.cpp`
+
+**职责**: 恼鬼专用的飞行移动控制器，直接修改 velocity 实现穿墙飞行。
+
+**核心功能**:
+- 直接修改 velocity 向量实现三维飞行
+- 不依赖路径导航，直接飞向目标
+- 根据是否有攻击目标调整旋转行为
+
+**与标准控制器的区别**:
+
+| 特性 | MovementController | VexMovementController |
+|------|-------------------|----------------------|
+| 移动方式 | 地面移动，依赖路径导航 | 直接飞行，穿墙 |
+| 速度控制 | 通过属性和移动方向 | 直接修改 velocity |
+| 跳跃处理 | 触发 JumpController | 无需跳跃 |
+| 到达检测 | 水平距离 < 阈值 | 3D 距离 < 碰撞箱平均边长 |
+
+**关键参数**:
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 速度因子 | speed * 0.05 / distance | MC 1.16.5 公式 |
+| 到达阈值 | 碰撞箱平均边长 | (width + height + width) / 3 |
+| 减速因子 | 0.5 | 到达目标后速度减半 |
+
+**飞行逻辑**:
+```cpp
+void VexMovementController::tick() {
+    if (m_action == MoveAction::MoveTo) {
+        // 计算到目标的向量
+        f64 dx = m_posX - m_vex->x();
+        f64 dy = m_posY - m_vex->y();
+        f64 dz = m_posZ - m_vex->z();
+        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        f32 avgEdgeLength = (m_vex->width() + m_vex->height() + m_vex->width()) / 3.0f;
+
+        if (distance < static_cast<f64>(avgEdgeLength)) {
+            // 到达目标，减速停止
+            m_action = MoveAction::Wait;
+            m_vex->setVelocity(velocity * 0.5);
+        } else {
+            // 添加速度向量，实现飞行
+            f64 speedFactor = m_speed * 0.05 / distance;
+            velocity += Vector3(dx, dy, dz) * speedFactor;
+            m_vex->setVelocity(velocity);
+
+            // 更新朝向
+            if (attackTarget) {
+                // 有攻击目标：朝向目标
+                yaw = atan2(targetDx, targetDz) * RAD_TO_DEG;
+            } else {
+                // 无攻击目标：朝向运动方向
+                yaw = atan2(velocity.x, velocity.z) * RAD_TO_DEG;
+            }
+        }
+    }
+}
+```
+
+**使用场景**:
+- VexEntity 在构造函数中创建 VexMovementController 替代标准控制器
+- VexChargeAttackGoal 设置移动目标为敌人眼睛位置
+- VexMoveRandomGoal 设置移动目标为随机空气方块位置
 
 ---
 

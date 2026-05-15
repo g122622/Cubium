@@ -24,6 +24,10 @@ special/
 ├── SlimeGoals.cpp         # 史莱姆目标实现
 ├── IronGolemGoals.hpp     # 铁傀儡目标头文件
 ├── IronGolemGoals.cpp     # 铁傀儡目标实现
+├── EvokerGoals.hpp        # 唤魔者目标头文件
+├── EvokerGoals.cpp        # 唤魔者目标实现
+├── VexGoals.hpp           # 恼鬼目标头文件
+├── VexGoals.cpp           # 恼鬼目标实现
 └── README.md              # 本文档
 ```
 
@@ -1274,6 +1278,119 @@ void EvokerEntity::registerGoals() {
 
 ---
 
+## VexGoals - 恼鬼专用目标
+
+包含恼鬼的冲锋攻击、随机飞行和复制主人目标。
+
+### VexChargeAttackGoal - 冲锋攻击目标
+
+**职责**: 控制恼鬼飞向目标的眼睛位置进行攻击。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.VexEntity.ChargeAttackGoal`
+
+**执行条件**:
+- 有攻击目标
+- 移动控制器未更新
+- 1/7 概率触发
+- 距离 > 2 格（距离平方 > 4.0）
+
+**行为流程**:
+1. `shouldExecute()`: 检查执行条件
+2. `startExecuting()`: 设置充电状态，移向目标眼睛位置
+3. `tick()`: 看向目标，检测碰撞造成伤害
+4. `resetTask()`: 清除充电状态，重置攻击冷却
+
+**攻击机制**:
+- 飞向目标的眼睛位置（y + eyeHeight）
+- 碰撞箱相交时造成攻击伤害
+- 攻击后停止充电状态
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MIN_CHARGE_DISTANCE_SQ | 4.0 | 最小冲锋距离平方 (2²) |
+| STOP_CHASE_DISTANCE_SQ | 9.0 | 停止追击距离平方 (3²) |
+| ATTACK_COOLDOWN_TICKS | 20 | 攻击冷却 (ticks, 1秒) |
+| CHARGE_PROBABILITY | 7 | 触发概率倒数 (1/7 ≈ 14%) |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void VexEntity::registerGoals() {
+    // 优先级 4: 冲锋攻击
+    m_goalSelector.addGoal(4, std::make_unique<VexChargeAttackGoal>(this));
+}
+```
+
+---
+
+### VexMoveRandomGoal - 随机飞行目标
+
+**职责**: 控制恼鬼在绑定点周围随机飞行。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.VexEntity.MoveRandomGoal`
+
+**执行条件**:
+- 移动控制器未更新
+- 1/7 概率触发
+
+**行为流程**:
+1. `shouldExecute()`: 检查移动控制器状态和概率
+2. `tick()`: 在绑定点周围随机找空气方块，移动到那里
+
+**漫游参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| WANDER_RANGE_X | 7 | X轴漫游范围 (±7格) |
+| WANDER_RANGE_Y | 5 | Y轴漫游范围 (±5格) |
+| WANDER_RANGE_Z | 7 | Z轴漫游范围 (±7格) |
+| WANDER_SPEED | 0.25f | 漫游速度 |
+| RANDOM_PROBABILITY | 7 | 触发概率倒数 (1/7) |
+| MAX_ATTEMPTS | 3 | 最大尝试找空气方块次数 |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void VexEntity::registerGoals() {
+    // 优先级 8: 随机飞行
+    m_goalSelector.addGoal(8, std::make_unique<VexMoveRandomGoal>(this));
+}
+```
+
+---
+
+### VexCopyOwnerTargetGoal - 复制主人目标
+
+**职责**: 当唤魔者有攻击目标时，恼鬼也攻击同一目标。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.VexEntity.CopyOwnerTargetGoal`
+
+**执行条件**:
+- 主人存在（通过 `getOwner()` 获取）
+- 主人有攻击目标
+- 目标适合攻击（通过 `isSuitableTarget()` 检查）
+- 目标在视线内（通过 `canSee()` 检查）
+
+**行为流程**:
+1. `shouldExecute()`: 检查主人的攻击目标
+2. `startExecuting()`: 设置攻击目标为主人的攻击目标
+
+**注意**: 继承自 `TargetGoal`，构造时 `checkSight = false`，但在 `shouldExecute()` 中手动检查视线。
+
+**互斥标志**: 无（目标选择器不设置互斥标志）
+
+**使用示例**:
+```cpp
+void VexEntity::registerGoals() {
+    // 优先级 2: 复制主人目标
+    m_targetSelector.addGoal(2, std::make_unique<VexCopyOwnerTargetGoal>(this));
+}
+```
+
+---
+
 ## 涉及的测试用例
 
 | 测试名称 | 说明 |
@@ -1292,6 +1409,7 @@ void EvokerEntity::registerGoals() {
 | SlimeGoalsTest.* | 史莱姆目标测试（漂浮、攻击、随机转向） |
 | IronGolemGoalsTest.* | 铁傀儡目标测试（展示花朵、移动追踪、重置愤怒） |
 | EvokerGoalsTest.* | 唤魔者目标测试（尖牙攻击、召唤恼鬼、Wololo法术、目标选择器优先级） |
+| VexGoalsTest.* | 恼鬼目标测试（冲锋攻击、随机飞行、复制主人目标、移动控制器） |
 | MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
 
 ---
@@ -1306,4 +1424,9 @@ void EvokerEntity::registerGoals() {
 - Minecraft Java 1.16.5 `net.minecraft.entity.passive.DolphinEntity` (海豚跳跃、寻宝、与玩家同游)
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.PhantomEntity` (幻翼环绕、俯冲攻击)
 - Minecraft Java 1.16.5 `net.minecraft.entity.passive.IronGolemEntity.ShowVillagerFlowerGoal` (铁傀儡送花)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.VexEntity` (恼鬼冲锋攻击、随机飞行、复制主人目标)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.VexEntity.ChargeAttackGoal` (冲锋攻击)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.VexEntity.MoveRandomGoal` (随机飞行)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.VexEntity.CopyOwnerTargetGoal` (复制主人目标)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.VexEntity.MoveHelperController` (飞行移动控制器)
 - 本项目 CLAUDE.md 文档

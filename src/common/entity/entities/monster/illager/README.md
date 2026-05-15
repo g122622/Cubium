@@ -133,6 +133,144 @@ net.minecraft.entity.monster.VexEntity
 └── MoveHelperController: 自定义飞行移动控制
 ```
 
+### VexEntity AI Goals
+
+恼鬼使用专用的 AI 目标系统，实现独特的飞行攻击行为。
+
+#### 专用移动控制器：VexMovementController
+
+恼鬼使用自定义的 `VexMovementController` 替代标准移动控制器，实现穿墙飞行：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 速度因子 | speed * 0.05 / distance | MC 1.16.5 |
+| 到达阈值 | 碰撞箱平均边长 | (width + height + width) / 3 |
+| 减速因子 | 0.5 | 到达目标后速度减半 |
+
+```cpp
+void VexMovementController::tick() {
+    if (m_action == MoveAction::MoveTo) {
+        // 计算到目标的向量
+        f64 dx = m_posX - m_vex->x();
+        f64 dy = m_posY - m_vex->y();
+        f64 dz = m_posZ - m_vex->z();
+        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance < avgEdgeLength) {
+            // 到达目标，减速停止
+            m_action = MoveAction::Wait;
+            m_vex->setVelocity(velocity * 0.5);
+        } else {
+            // 添加速度向量
+            f64 speedFactor = m_speed * 0.05 / distance;
+            velocity += Vector3(dx, dy, dz) * speedFactor;
+        }
+    }
+}
+```
+
+#### AI 目标列表
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | VexChargeAttackGoal | 冲锋攻击 |
+| 8 | VexMoveRandomGoal | 随机飞行 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookRandomlyGoal | 随机看向 |
+
+#### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 受攻击后反击 |
+| 2 | VexCopyOwnerTargetGoal | 复制主人目标 |
+| 3 | NearestAttackableTargetGoal<Player> | 攻击最近玩家 |
+
+#### VexChargeAttackGoal
+
+冲锋攻击目标，恼鬼飞向目标的眼睛位置进行攻击：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 最小距离 | 2 格 | 距离大于 2 格才触发 |
+| 停止追击 | 3 格 | 距离小于 3 格继续追击 |
+| 攻击冷却 | 20 ticks | 1 秒 |
+| 触发概率 | 1/7 | 约 14% |
+
+```cpp
+bool VexChargeAttackGoal::shouldExecute() {
+    // 1. 有攻击目标
+    // 2. 移动控制器未更新
+    // 3. 1/7 概率
+    // 4. 距离 > 2格
+    return hasTarget && !isUpdating && rng.nextInt(7) == 0 && distSq > 4.0;
+}
+```
+
+#### VexMoveRandomGoal
+
+随机飞行目标，恼鬼在绑定点周围漫游：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 触发概率 | 1/7 | 约 14% |
+| 漫游速度 | 0.25 | 较慢的漫游 |
+| X 轴范围 | ±7 格 | 水平范围 |
+| Y 轴范围 | ±5 格 | 垂直范围（较小） |
+| Z 轴范围 | ±7 格 | 水平范围 |
+
+```cpp
+void VexMoveRandomGoal::tick() {
+    // 在原点周围随机选择空气方块位置
+    for (i32 i = 0; i < 3; ++i) {
+        BlockPos targetPos(origin.x + offsetX, origin.y + offsetY, origin.z + offsetZ);
+        if (world->getBlockState(targetPos)->isAir()) {
+            moveController->setMoveTo(targetPos + 0.5, 0.25);
+            break;
+        }
+    }
+}
+```
+
+#### VexCopyOwnerTargetGoal
+
+复制主人目标，当唤魔者有攻击目标时，恼鬼也会攻击同一目标：
+
+```cpp
+bool VexCopyOwnerTargetGoal::shouldExecute() {
+    LivingEntity* owner = m_vex->getOwner();
+    if (!owner) return false;
+
+    MobEntity* ownerMob = dynamic_cast<MobEntity*>(owner);
+    if (!ownerMob) return false;
+
+    LivingEntity* ownerTarget = ownerMob->attackTarget();
+    if (!ownerTarget || !ownerTarget->isAlive()) return false;
+
+    // 检查视线
+    if (!m_vex->canSee(*ownerTarget)) return false;
+
+    return true;
+}
+```
+
+#### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.VexEntity
+├── ChargeAttackGoal: 冲锋攻击目标
+│   ├── shouldExecute(): 1/7概率，距离>2格
+│   ├── startExecuting(): 设置充电状态，移向目标眼睛
+│   └── tick(): 检测碰撞，造成伤害
+├── MoveRandomGoal: 随机飞行
+│   └── tick(): 在±7x±5x±7范围找空气方块
+├── CopyOwnerTargetGoal: 复制主人目标
+│   └── shouldExecute(): 检查主人的攻击目标
+└── MoveHelperController: 飞行移动控制器
+    └── tick(): 修改velocity实现飞行
+```
+
 ## AbstractIllagerEntity
 
 灾厄村民的抽象基类，提供：
