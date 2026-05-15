@@ -344,6 +344,11 @@ Item* Items::MELON = nullptr;
 // BEETROOT 已在食物部分声明
 Item* Items::SUGAR_CANE = nullptr;
 Item* Items::SUGAR = nullptr;
+Item* Items::BAMBOO = nullptr;
+
+// 下界材料
+Item* Items::CRIMSON_FUNGUS = nullptr;
+Item* Items::WARPED_FUNGUS = nullptr;
 
 // 水域更新材料
 Item* Items::SCUTE = nullptr;
@@ -1271,6 +1276,10 @@ void Items::registerCrops()
     SUGAR_CANE = &registry.registerItem(ResourceLocation("minecraft:sugar_cane"), ItemProperties().maxStackSize(64));
 
     SUGAR = &registry.registerItem(ResourceLocation("minecraft:sugar"), ItemProperties().maxStackSize(64));
+
+    // 竹子 - 熊猫食物
+    // 参考: new BlockItem(Blocks.BAMBOO, new Item.Properties().group(ItemGroup.DECORATIONS))
+    BAMBOO = &registerBlockBackedItem(registry, VanillaBlocks::BAMBOO, "bamboo", ItemProperties().maxStackSize(64));
 }
 
 void Items::registerAquaticMaterials()
@@ -1302,6 +1311,15 @@ void Items::registerAquaticMaterials()
     SEAGRASS = &registerBlockBackedItem(registry, VanillaBlocks::SEAGRASS, "seagrass", ItemProperties().maxStackSize(64));
 
     // 注意：DRIED_KELP 已在 registerFood() 中注册为食物
+
+    // 下界真菌
+    // 绯红菌 - 可用于某些合成
+    // 参考: new BlockItem(Blocks.CRIMSON_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
+    CRIMSON_FUNGUS = &registerBlockBackedItem(registry, VanillaBlocks::CRIMSON_FUNGUS, "crimson_fungus", ItemProperties().maxStackSize(64));
+
+    // 诡异菌 - 炽足兽食物
+    // 参考: new BlockItem(Blocks.WARPED_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
+    WARPED_FUNGUS = &registerBlockBackedItem(registry, VanillaBlocks::WARPED_FUNGUS, "warped_fungus", ItemProperties().maxStackSize(64));
 }
 
 void Items::registerBrewingIngredients()

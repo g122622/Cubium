@@ -286,6 +286,12 @@ public:
      */
     [[nodiscard]] u64 getTargetPlayer() const { return m_targetPlayerId; }
 
+    /**
+     * @brief 获取水下计时器
+     * MC 1.16.5: 用于追踪蜜蜂在水中的时间
+     */
+    [[nodiscard]] i32 getUnderWaterTimer() const { return m_underWaterTimer; }
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

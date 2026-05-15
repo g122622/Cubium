@@ -141,11 +141,14 @@ bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
     // MC 1.16.5: 炽足兽使用诡异菌繁殖
     // field_234308_bu_ = Ingredient.fromItems(Items.WARPED_FUNGUS)
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
-    // TODO: 检查 Items::WARPED_FUNGUS
-    // return item == Items::WARPED_FUNGUS;
-    MC_UNUSED(item);
-    return false; // 暂时返回 false，等待 Items::WARPED_FUNGUS 实现
+    if (item == nullptr) {
+        return false;
+    }
+    // Items::WARPED_FUNGUS 可能在初始化期间为 nullptr
+    if (Items::WARPED_FUNGUS == nullptr) {
+        return false;
+    }
+    return item == Items::WARPED_FUNGUS;
 }
 
 std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/)
@@ -382,8 +385,14 @@ void StriderEntity::registerGoals()
             [](const ItemStack& stack) -> bool {
                 const Item* item = stack.getItem();
                 if (item == nullptr) return false;
-                // TODO: 检查 Items::WARPED_FUNGUS 和 Items::WARPED_FUNGUS_ON_A_STICK
-                MC_UNUSED(item);
+                // 检查是否为诡异菌或诡异菌钓竿
+                // 注意：Items 可能在初始化期间为 nullptr
+                if (Items::WARPED_FUNGUS != nullptr && item == Items::WARPED_FUNGUS) {
+                    return true;
+                }
+                if (Items::WARPED_FUNGUS_ON_A_STICK != nullptr && item == Items::WARPED_FUNGUS_ON_A_STICK) {
+                    return true;
+                }
                 return false;
             },
             false));

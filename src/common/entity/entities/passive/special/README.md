@@ -49,6 +49,26 @@ special/
 - `hasStung()` / `setHasStung(bool)`: 螫刺状态（螫刺后死亡）
 - `isFlying()` / `setFlying(bool)`: 飞行状态
 
+### 水下溺水机制 (MC 1.16.5)
+蜜蜂无法在水下呼吸，会逐渐溺水死亡：
+- **成员变量**: `m_underWaterTimer` - 追踪在水中的时间
+- **溺水逻辑**:
+  ```cpp
+  if (isInWater()) {
+      ++m_underWaterTimer;
+      if (m_underWaterTimer > 20 && m_world != nullptr) {
+          auto damageSource = DamageSources::drown();
+          hurt(damageSource, 1.0f);
+      }
+  } else {
+      m_underWaterTimer = 0;
+  }
+  ```
+- **时间线**:
+  - 在水中超过 20 tick (1秒) 后开始溺水
+  - 每 tick 造成 1.0 溺水伤害
+  - 离开水后计时器重置为 0
+
 ### 螫刺后死亡机制 (MC 1.16.5)
 蜜蜂螫刺后会逐渐死亡，实现逻辑：
 - **成员变量**: `m_timeSinceSting` - 追踪螫刺后经过的 tick 数
@@ -168,6 +188,63 @@ special/
 - 打滚行为
 - 吃竹子行为
 - 躺下行为（懒惰熊猫）
+
+### 基因系统 (MC 1.16.5)
+熊猫有主基因 (mainGene) 和隐藏基因 (hiddenGene)，每个基因值为 0-5：
+- 0: Normal（普通）
+- 1: Lazy（懒惰）
+- 2: Worried（忧愁）
+- 3: Playful（顽皮）
+- 4: Aggressive（好斗）
+- 5: Weak（虚弱）
+- 6: Brown（棕色）
+
+**基因表达规则** (MC 1.16.5 Gene.func_221101_b())：
+1. 如果主基因是好斗（Aggressive），直接表达好斗（显性）
+2. 如果主基因是懒惰（Lazy）且隐藏基因是好斗，表达好斗
+3. 否则表达主基因
+
+```cpp
+Personality calculateExpressedPersonality() const {
+    if (mainGene == AGGRESSIVE) {
+        return Personality::Aggressive;  // 显性基因
+    }
+    if (mainGene == LAZY && hiddenGene == AGGRESSIVE) {
+        return Personality::Aggressive;  // 特殊组合
+    }
+    return static_cast<Personality>(mainGene);
+}
+```
+
+**基因遗传**：
+- 子代从父母各随机继承一个基因
+- 1/32 概率发生基因变异（每个基因独立判定）
+
+```cpp
+void inheritGenesFromParents(PandaEntity* father, PandaEntity* mother) {
+    // 随机决定哪个父母提供主基因/隐藏基因
+    if (rng.nextBoolean()) {
+        mainGene = father->getOneOfGenesRandomly(rng);
+        hiddenGene = mother->getOneOfGenesRandomly(rng);
+    } else {
+        mainGene = mother->getOneOfGenesRandomly(rng);
+        hiddenGene = father->getOneOfGenesRandomly(rng);
+    }
+    // 变异
+    if (rng.nextInt(32) == 0) mainGene = rng.nextInt(0, 5);
+    if (rng.nextInt(32) == 0) hiddenGene = rng.nextInt(0, 5);
+    updatePersonalityFromGenes();
+}
+```
+
+**性格生成概率** (MC 1.16.5):
+- 普通: 32%
+- 懒惰: 32%
+- 忧愁: 16%
+- 顽皮: 16%
+- 好斗: 1.6%
+- 虚弱: 0.08%
+- 棕色: 2.4%
 
 ### 打喷嚏机制
 ```cpp
@@ -500,7 +577,7 @@ void TurtleEntity::layEgg();
   - 随机性测试
     - 愤怒时间随机变化
     - 站立计时器随机变化
-- **PandaEntityTest.cpp**: 熊猫实体测试（17 个测试）
+- **PandaEntityTest.cpp**: 熊猫实体测试（29 个测试）
   - 性格测试
     - 随机生成有效性格
     - 性格枚举值验证
@@ -524,7 +601,38 @@ void TurtleEntity::layEgg();
     - 无世界时不崩溃验证
     - 粒子位置验证（头部附近）
     - 成年熊猫跳跃集成测试
-- 蜜蜂授粉测试
+  - 基因系统测试 (7 个测试)
+    - getAndSetMainGene/getAndSetHiddenGene
+    - calculateExpressedPersonality 好斗显性测试
+    - calculateExpressedPersonality 懒惰+好斗组合测试
+    - calculateExpressedPersonality 普通主基因测试
+    - getOneOfGenesRandomly 随机选择测试
+    - updatePersonalityFromGenes 更新测试
+  - spawnBaby 测试 (5 个测试)
+    - 创建幼体熊猫
+    - 位置设置
+    - 基因遗传（双亲）
+    - 基因遗传（单亲）
+- **BeeEntityTest.cpp**: 蜜蜂实体测试（37 个测试）
+  - isBreedingItem 花朵检测测试（17 种花朵 + 非花朵物品）
+  - spawnBaby 幼体生成测试
+    - 创建幼蜂
+    - 位置设置
+  - 花粉/螫刺/飞行状态测试
+  - 蜂巢/花朵位置测试
+  - 属性测试
+    - MAX_HEALTH (10.0)
+    - MOVEMENT_SPEED (0.3)
+    - FLYING_SPEED (0.6)
+    - ATTACK_DAMAGE (2.0)
+    - FOLLOW_RANGE (48.0)
+  - 眼睛高度测试 (0.3f)
+  - IAngerable 愤怒系统测试
+    - setAngerTime/getAngerTime
+    - setAngry/isAngry
+    - 清除愤怒测试
+  - 水下溺水计时器测试
+    - 初始状态为 0
 - 海龟出生地记忆测试
 - 海龟繁殖系统测试
   - isBreedingItem 海草检测测试

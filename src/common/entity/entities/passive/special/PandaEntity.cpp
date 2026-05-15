@@ -110,10 +110,15 @@ void PandaEntity::randomizePersonality()
 bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // MC 1.16.5: 检查物品是否为竹子
-    // TODO: 当 Items::BAMBOO 注册后替换
-    // return itemStack.getItem() == Items::BAMBOO;
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    // Items::BAMBOO 可能在初始化期间为 nullptr
+    if (Items::BAMBOO == nullptr) {
+        return false;
+    }
+    return item == Items::BAMBOO;
 }
 
 // ========== 基因系统实现 ==========
@@ -122,31 +127,33 @@ PandaEntity::Personality PandaEntity::calculateExpressedPersonality() const
 {
     // MC 1.16.5: Gene.func_221101_b()
     // 根据主基因和隐藏基因计算表达的性格
-    // 特殊组合规则：
-    // - 如果主基因或隐藏基因是好斗(4)，则表达好斗
-    // - 如果主基因是懒惰(1)且隐藏基因是好斗(4)，则表达好斗懒惰
-    // - 否则表达主基因
+    //
+    // MC 1.16.5 基因表达规则：
+    // 1. 如果主基因是显性的（Aggressive），直接返回主基因
+    // 2. 如果主基因是隐性的（Lazy、Worried、Playful、Weak、Brown、Normal）：
+    //    a. 如果主基因是 Lazy 且隐藏基因是 Aggressive，返回 Aggressive
+    //    b. 否则返回主基因
+    //
+    // 注意：AggressiveLazy 性格实际上在 MC 1.16.5 中未被使用
+
     u8 mainGene = m_mainGene;
     u8 hiddenGene = m_hiddenGene;
 
-    // 好斗显性：任意一个基因是好斗就表达好斗
-    if (mainGene == static_cast<u8>(Personality::Aggressive) ||
-        hiddenGene == static_cast<u8>(Personality::Aggressive)) {
+    // 隐性基因列表（非 Aggressive 的基因都是隐性的）
+    constexpr u8 AGGRESSIVE = static_cast<u8>(Personality::Aggressive);
+    constexpr u8 LAZY = static_cast<u8>(Personality::Lazy);
+
+    // 如果主基因是好斗，直接返回好斗（显性）
+    if (mainGene == AGGRESSIVE) {
         return Personality::Aggressive;
     }
 
-    // 懒惰+好斗组合 → 好斗懒惰（隐藏性格）
-    if (mainGene == static_cast<u8>(Personality::Lazy) &&
-        hiddenGene == static_cast<u8>(Personality::Aggressive)) {
-        return Personality::AggressiveLazy;
+    // 如果隐藏基因是好斗且主基因是懒惰，返回好斗（MC 1.16.5 特殊规则）
+    if (mainGene == LAZY && hiddenGene == AGGRESSIVE) {
+        return Personality::Aggressive;
     }
 
-    // 棕色基因需要特殊处理
-    if (mainGene == static_cast<u8>(Personality::Brown)) {
-        return Personality::Brown;
-    }
-
-    // 默认表达主基因
+    // 默认返回主基因
     return static_cast<Personality>(mainGene);
 }
 
