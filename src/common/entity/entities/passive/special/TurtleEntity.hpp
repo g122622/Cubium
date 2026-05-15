@@ -30,6 +30,15 @@
 
 namespace mc {
 
+// 前向声明
+namespace sound {
+enum class SoundCategory : u8;
+}
+
+namespace blocks {
+class TurtleEggBlock;
+}
+
 /**
  * @brief 海龟实体
  *
@@ -111,6 +120,16 @@ public:
      */
     void setHasEgg(bool hasEgg) { m_hasEgg = hasEgg; }
 
+    /**
+     * @brief 开始产卵动画
+     * 设置产卵状态并重置计时器
+     */
+    void startLayEgg()
+    {
+        m_layingEgg = true;
+        m_layEggTimer = LAY_EGG_DURATION;
+    }
+
     // ========== 行进状态 ==========
 
     /**
@@ -177,6 +196,14 @@ protected:
     void registerAttributes() override;
 
 private:
+    /**
+     * @brief 产卵
+     *
+     * 在当前位置下方放置海龟蛋方块。
+     * 需要满足条件：下方是沙子类方块，当前位置为空气。
+     * 参考 MC 1.16.5: TurtleEntity.LayEggGoal.tick()
+     */
+    void layEgg();
     // 出生位置
     BlockPos m_homePos;
     bool m_hasHomePos = false;
