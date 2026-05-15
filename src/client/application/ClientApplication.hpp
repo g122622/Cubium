@@ -67,6 +67,10 @@ namespace mc::client::sound {
 class AudioService;
 }
 
+namespace mc::world {
+struct DimensionRenderSettings;
+}
+
 namespace mc::client::ui::minecraft {
 class LoadingScreen;
 }
@@ -370,6 +374,12 @@ private:
 
     // 更新客户端渲染时间与天气
     void updateTimeAndWeather(f32 deltaTime);
+
+    // 更新云高度（根据当前维度）
+    void updateCloudHeight();
+
+    // 获取维度渲染设置
+    [[nodiscard]] world::DimensionRenderSettings getDimensionRenderSettings(DimensionId dimensionId) const;
 
     // 更新每帧 UI 状态（ScreenStackWidget 参数、KageroEngine tick 等）
     void updateUiFrameState(f32 deltaTime, f32 partialTick);

@@ -315,6 +315,20 @@ public:
     void setCloudMode(cloud::CloudMode mode);
 
     /**
+     * @brief 更新云高度（维度相关）
+     *
+     * 参考 MC 1.16.5 DimensionRenderInfo.func_239213_a_():
+     * - 主世界: 192.0 (项目定义，MC原版为128.0)
+     * - 下界: NaN (无云)
+     * - 末地: NaN (无云)
+     *
+     * 当值为 NaN 时，云渲染将被跳过。
+     *
+     * @param cloudHeight 云高度，NaN 表示该维度无云
+     */
+    void setCloudHeight(f64 cloudHeight);
+
+    /**
      * @brief 更新液体状态（用于雾效果）
      *
      * @param inWater 是否在水中
@@ -672,6 +686,9 @@ private:
     i32 m_renderDistanceChunks = 12;
     f64 m_landFogDensity = 1.0f;
     cloud::CloudMode m_cloudMode = static_cast<cloud::CloudMode>(2);
+
+    // 维度相关渲染参数
+    f64 m_cloudHeight = 192.0; ///< 云高度，NaN 表示该维度无云（默认主世界值）
 
     // 窗口尺寸
     u32 m_windowWidth = 0;

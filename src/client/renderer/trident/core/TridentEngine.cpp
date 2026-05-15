@@ -48,6 +48,7 @@
 #include "TridentSwapchain.hpp"
 #include "buffer/TridentBuffer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include <cmath>
 #include "pipeline/TridentPipeline.hpp"
 #include "render/DescriptorManager.hpp"
 #include "render/FrameManager.hpp"
@@ -595,29 +596,32 @@ Result<void> TridentEngine::render()
     }
 
     // 4.5 渲染云（在天空之后，区块之前）
+    // 参考 MC 1.16.5: WorldRenderer.renderClouds()
+    // 云渲染需要满足两个条件：
+    // 1. 云模式不为 Off（通过 m_cloudMode 控制，在 CloudRenderer::render 中检查）
+    // 2. 当前维度有云（云高度不为 NaN）
     if (m_cloudRendererInitialized && m_cloudRenderer && m_skyRendererInitialized && m_skyRendererPtr) {
-        glm::dvec3 cameraPos(0.0);
-        if (m_frameContext.camera) {
-            cameraPos = m_frameContext.camera->position();
+        // 检查当前维度是否有云（NaN 表示无云维度，如下界和末地）
+        if (!std::isnan(m_cloudHeight)) {
+            glm::dvec3 cameraPos(0.0);
+            if (m_frameContext.camera) {
+                cameraPos = m_frameContext.camera->position();
+            }
+
+            m_cloudRenderer->update(m_dayTime,
+                m_gameTime,
+                m_partialTick,
+                m_cloudHeight,
+                m_skyRendererPtr->fogColor() // 云颜色使用雾颜色
+            );
+
+            m_cloudRenderer->render(cmd,
+                m_frameContext.projectionMatrix,
+                m_frameContext.viewMatrix,
+                glm::vec3(cameraPos),
+                m_cloudMode,
+                m_frameContext.frameIndex);
         }
-
-        // TODO: 从游戏状态获取云模式和维度设置
-        // 目前使用 Fancy 模式和主世界云高度
-        constexpr f64 CLOUD_HEIGHT = 192.0f; // 主世界云高度
-
-        m_cloudRenderer->update(m_dayTime,
-            m_gameTime,
-            m_partialTick,
-            CLOUD_HEIGHT,
-            m_skyRendererPtr->fogColor() // 云颜色使用雾颜色
-        );
-
-        m_cloudRenderer->render(cmd,
-            m_frameContext.projectionMatrix,
-            m_frameContext.viewMatrix,
-            glm::vec3(cameraPos),
-            m_cloudMode,
-            m_frameContext.frameIndex);
     }
 
     // 5. 渲染区块
@@ -1195,6 +1199,11 @@ void TridentEngine::setCloudMode(cloud::CloudMode mode)
     if (m_cloudRenderer) {
         m_cloudRenderer->setCloudMode(mode);
     }
+}
+
+void TridentEngine::setCloudHeight(f64 cloudHeight)
+{
+    m_cloudHeight = cloudHeight;
 }
 
 void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor)

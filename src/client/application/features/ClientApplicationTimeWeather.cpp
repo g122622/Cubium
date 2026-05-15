@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,15 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "../ClientApplication.hpp"
 
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/dimension/DimensionRenderSettings.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 
 namespace mc::client {
 
@@ -79,6 +81,42 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
     // 更新天气状态到渲染器
     m_renderer->updateWeather(m_world.weather().rainStrength(m_renderTickAccumulator),
         m_world.weather().thunderStrength(m_renderTickAccumulator));
+
+    // 更新云高度（根据当前维度）
+    // 参考 MC 1.16.5: WorldRenderer.renderClouds() 从 DimensionRenderInfo 获取云高度
+    updateCloudHeight();
+}
+
+void ClientApplication::updateCloudHeight()
+{
+    if (!m_renderer) {
+        return;
+    }
+
+    // 获取当前维度的渲染设置
+    const DimensionId currentDim = m_dimensionManager.currentDimension();
+    const world::DimensionRenderSettings settings = getDimensionRenderSettings(currentDim);
+
+    // 传递云高度到渲染器
+    // NaN 表示该维度无云（如下界和末地），渲染器会跳过云渲染
+    m_renderer->setCloudHeight(static_cast<f64>(settings.cloudHeight));
+}
+
+world::DimensionRenderSettings ClientApplication::getDimensionRenderSettings(DimensionId dimensionId) const
+{
+    // 参考 MC 1.16.5 DimensionRenderInfo
+    // 根据 DimensionId 返回对应的渲染设置
+    // 0 = 主世界, -1 = 下界, 1 = 末地
+    if (dimensionId == 0) {
+        return world::DimensionRenderSettings::overworld();
+    } else if (dimensionId == -1) {
+        return world::DimensionRenderSettings::nether();
+    } else if (dimensionId == 1) {
+        return world::DimensionRenderSettings::end();
+    }
+
+    // 默认使用主世界设置
+    return world::DimensionRenderSettings::overworld();
 }
 
 } // namespace mc::client
