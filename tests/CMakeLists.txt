@@ -125,6 +125,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/EvokerEntityTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
+    # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
+    common/entity/entities/monster/end/EndermanStareDetectionTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
@@ -877,6 +879,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
         # EndermanEntity 用于 HeldBlockLayer 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/end/EndermanEntity.cpp
+        # EndermanGoals 用于注视检测测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/EndermanGoals.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp

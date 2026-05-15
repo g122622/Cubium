@@ -243,6 +243,12 @@ flowchart TD
   - 使用 `m_moveDistanceWalked` 和 `m_prevMoveDistanceWalked` 检测玩家是否静止
   - 横扫攻击完整条件：冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止
   - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()` 行 1147-1148
+- **已新增注视检测功能**（2026-05-16）：
+  - `Player::getLookVector()` - 根据yaw/pitch计算视线方向向量
+  - `Player::getEyePosition()` - 获取玩家眼睛位置
+  - `Player::isWearingPumpkin()` - 检查玩家是否戴着南瓜头
+  - `Player::isLookingAt(target)` - 检查玩家是否正在注视目标实体
+  - 参考 MC 1.16.5 `Entity.getLook()` 和 `EndermanEntity.shouldAttackPlayer()`
 
 ## 挖掘系统
 

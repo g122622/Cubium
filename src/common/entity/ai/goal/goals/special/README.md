@@ -169,6 +169,101 @@ void AbstractHorseEntity::registerGoals() {
 
 ---
 
+### EndermanStareGoal - 末影人注视目标
+
+**职责**: 当玩家正在注视末影人时，末影人停止移动并注视玩家。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.EndermanEntity.StareGoal`
+
+**执行条件**:
+- 末影人有攻击目标
+- 攻击目标是玩家
+- 攻击目标在 16 格距离内（距离平方 < 256）
+- 玩家正在注视末影人（通过 `shouldAttackPlayer()` 检测）
+
+**行为**:
+- `shouldExecute()`: 检查是否有玩家正在注视末影人
+- `startExecuting()`: 清除导航路径，停止移动
+- `tick()`: 持续注视玩家的眼睛位置
+- `resetTask()`: 清除目标玩家引用
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| STARE_RANGE_SQ | 256.0 | 注视范围平方（16²） |
+
+**互斥标志**: `Look`, `Move`
+
+**使用示例**:
+```cpp
+void EndermanEntity::registerGoals() {
+    // 优先级 1: 注视玩家目标
+    m_goalSelector.addGoal(1, std::make_unique<EndermanStareGoal>(this));
+}
+```
+
+---
+
+### EndermanFindPlayerGoal - 末影人查找玩家目标
+
+**职责**: 查找正在注视末影人的玩家并激怒末影人。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.EndermanEntity.FindPlayerGoal`
+
+**执行条件**:
+- 末影人有世界实例
+- 10 格范围内存在正在注视末影人的玩家
+- 玩家不是创造模式或观察者模式
+
+**行为**:
+- `shouldExecute()`: 搜索 10 格内正在注视末影人的玩家
+- `startExecuting()`: 设置激怒计时器（5 ticks）和愤怒状态
+- `shouldContinueExecuting()`: 持续注视玩家直到条件不满足
+- `tick()`: 
+  - 激怒计时器倒计时
+  - 计时器归零后设置攻击目标
+  - 近距离（< 4 格）时瞬移躲避
+  - 远距离（> 16 格）时瞬移接近
+- `resetTask()`: 清除目标玩家引用
+
+**激怒机制**:
+1. 玩家注视末影人 5 ticks 后末影人被激怒
+2. 被激怒后设置 `screaming` 状态
+3. 设置攻击目标并触发攻击行为
+
+**瞬移逻辑**:
+| 条件 | 行为 |
+|------|------|
+| 距离 < 4 格 | 瞬移躲避 |
+| 距离 > 16 格 | 瞬移接近目标 |
+| 瞬移冷却 | 30 ticks |
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| AGGRO_DURATION | 5 | 激怒持续时间 (ticks) |
+| TARGET_DISTANCE | 10 | 目标搜索距离 (格) |
+| TELEPORT_NEAR_DISTANCE_SQ | 16.0 | 近距离瞬移阈值 (4²) |
+| TELEPORT_FAR_DISTANCE_SQ | 256.0 | 远距离瞬移阈值 (16²) |
+| TELEPORT_COOLDOWN_TICKS | 30 | 瞬移冷却 (ticks) |
+
+**互斥标志**: `Target`（继承自 TargetGoal）
+
+**使用示例**:
+```cpp
+void EndermanEntity::registerGoals() {
+    // 优先级 1: 查找注视玩家目标选择器
+    m_targetSelector.addGoal(1, std::make_unique<EndermanFindPlayerGoal>(this));
+}
+```
+
+**依赖关系**:
+- 需要 `EndermanEntity` 提供 `shouldAttackPlayer()` 方法
+- 需要 `Player` 提供 `isLookingAt()` 和 `isWearingPumpkin()` 方法
+- 需要 `EndermanEntity` 提供 `teleport()` 和 `teleportToTarget()` 方法
+
+---
+
 ### EndermanTeleportGoal - 末影人传送目标
 
 **职责**: 控制末影人在受到攻击或看向玩家时传送。
