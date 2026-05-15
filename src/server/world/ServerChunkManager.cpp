@@ -39,112 +39,6 @@ namespace mc::server {
 namespace {
 
 /**
- * @brief 将 ChunkData 适配为生成期 `IChunk` 视图
- *
- * 世界生成阶段需要从邻居窗口里读取统一的 `IChunk` 接口，
- * 而内存里已完成的区块实际类型是 `ChunkData`。这里保留一个轻量适配器，
- * 仅用于生成窗口拼装，不引入兼容层语义。
- */
-class ChunkDataChunkAdapter : public IChunk {
-public:
-    explicit ChunkDataChunkAdapter(std::shared_ptr<ChunkData> chunk)
-        : m_chunk(std::move(chunk))
-        , m_status(m_chunk && m_chunk->isFullyGenerated() ? ChunkLoadStatus::Generated : ChunkLoadStatus::Generating)
-    {}
-
-    [[nodiscard]] ChunkCoord x() const override { return m_chunk ? m_chunk->x() : 0; }
-    [[nodiscard]] ChunkCoord z() const override { return m_chunk ? m_chunk->z() : 0; }
-    [[nodiscard]] ChunkPos pos() const override { return m_chunk ? m_chunk->pos() : ChunkPos(0, 0); }
-
-    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override
-    {
-        return m_chunk ? m_chunk->getBlockState(x, y, z) : nullptr;
-    }
-
-    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        m_chunk->setBlockState(x, y, z, state);
-    }
-
-    [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override
-    {
-        return m_chunk ? m_chunk->getBlockStateId(x, y, z) : 0;
-    }
-
-    void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        m_chunk->setBlockStateId(x, y, z, stateId);
-    }
-
-    [[nodiscard]] ChunkSection* getSection(i32 index) override
-    {
-        return m_chunk ? m_chunk->getSection(index) : nullptr;
-    }
-
-    [[nodiscard]] const ChunkSection* getSection(i32 index) const override
-    {
-        return m_chunk ? m_chunk->getSection(index) : nullptr;
-    }
-
-    [[nodiscard]] bool hasSection(i32 index) const override { return m_chunk ? m_chunk->hasSection(index) : false; }
-
-    ChunkSection* createSection(i32 index) override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        return m_chunk->createSection(index);
-    }
-
-    [[nodiscard]] const ChunkSection* const* getSections() const override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        return m_chunk->getSections();
-    }
-
-    [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        return m_chunk->getBiomeAtBlock(x, y, z);
-    }
-
-    [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        return m_chunk->getTopBlockY(type, x, z);
-    }
-
-    void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override
-    {
-        MC_UNUSED(type);
-        MC_UNUSED(y);
-        MC_UNUSED(state);
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        m_chunk->updateHeightMap(x, z);
-    }
-
-    [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
-
-    void setStatus(ChunkLoadStatus status) override { m_status = status; }
-
-    [[nodiscard]] bool isModified() const override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        return m_chunk->isDirty();
-    }
-
-    void setModified(bool modified) override
-    {
-        MC_ASSERT_RELEASE(m_chunk != nullptr);
-        m_chunk->setDirty(modified);
-    }
-
-private:
-    std::shared_ptr<ChunkData> m_chunk;
-    ChunkLoadStatus m_status = ChunkLoadStatus::Generated;
-};
-
-/**
  * @brief 统一完成等待者集合
  *
  * @param waiters 待完成等待者
@@ -427,8 +321,9 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
                 const i32 regionRadius = std::max(0, status.taskRange());
                 std::vector<IChunk*> neighbors(
                     static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
-                std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
-                collectNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, neighborAdapters);
+                std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
+                std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
+                collectNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
                 WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(neighbors));
 
                 if (status == ChunkStatuses::STRUCTURE_STARTS) {
@@ -459,8 +354,10 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
                 constexpr i32 spawnRegionRadius = 1;
                 std::vector<IChunk*> neighbors(
                     static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
-                std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
-                collectNeighborChunks(chunk.x(), chunk.z(), spawnRegionRadius, &chunk, neighbors, neighborAdapters);
+                std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
+                std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
+                collectNeighborChunks(
+                    chunk.x(), chunk.z(), spawnRegionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
                 WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(neighbors));
                 m_generator->spawnInitialMobs(region, chunk, entities);
                 for (auto& entityData : entities) {
@@ -633,9 +530,10 @@ void ServerChunkManager::executeGenerationSync(
 
         const i32 regionRadius = std::max(0, status.taskRange());
         std::vector<IChunk*> neighbors(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
-        std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
+        std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
+        std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
         collectNeighborChunks(
-            lifecycleManager.x(), lifecycleManager.z(), regionRadius, primer, neighbors, neighborAdapters);
+            lifecycleManager.x(), lifecycleManager.z(), regionRadius, primer, neighbors, loadedNeighbors, missingNeighbors);
         WorldGenRegion region(lifecycleManager.x(), lifecycleManager.z(), regionRadius, std::move(neighbors));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
@@ -666,9 +564,15 @@ void ServerChunkManager::executeGenerationSync(
         constexpr i32 spawnRegionRadius = 1;
         std::vector<IChunk*> neighbors(
             static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
-        std::vector<std::unique_ptr<IChunk>> neighborAdapters(neighbors.size());
-        collectNeighborChunks(
-            lifecycleManager.x(), lifecycleManager.z(), spawnRegionRadius, primer, neighbors, neighborAdapters);
+        std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
+        std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
+        collectNeighborChunks(lifecycleManager.x(),
+            lifecycleManager.z(),
+            spawnRegionRadius,
+            primer,
+            neighbors,
+            loadedNeighbors,
+            missingNeighbors);
         WorldGenRegion region(lifecycleManager.x(), lifecycleManager.z(), spawnRegionRadius, std::move(neighbors));
         m_generator->spawnInitialMobs(region, *primer, entities);
 
@@ -757,12 +661,14 @@ void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
     i32 radius,
     IChunk* centerChunk,
     std::vector<IChunk*>& neighbors,
-    std::vector<std::unique_ptr<IChunk>>& neighborAdapters)
+    std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
+    std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors)
 {
     const i32 diameter = radius * 2 + 1;
     MC_ASSERT_RELEASE(centerChunk != nullptr);
     MC_ASSERT_RELEASE(static_cast<i32>(neighbors.size()) == diameter * diameter);
-    MC_ASSERT_RELEASE(static_cast<i32>(neighborAdapters.size()) == diameter * diameter);
+    MC_ASSERT_RELEASE(static_cast<i32>(loadedNeighbors.size()) == diameter * diameter);
+    MC_ASSERT_RELEASE(static_cast<i32>(missingNeighbors.size()) == diameter * diameter);
 
     for (i32 dz = -radius; dz <= radius; ++dz) {
         for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -774,13 +680,13 @@ void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
             }
 
             if (auto loadedChunk = tryToGetChunkSharedInMem(x + dx, z + dz)) {
-                neighborAdapters[index] = std::make_unique<ChunkDataChunkAdapter>(std::move(loadedChunk));
-                neighbors[index] = neighborAdapters[index].get();
+                loadedNeighbors[index] = std::move(loadedChunk);
+                neighbors[index] = loadedNeighbors[index].get();
                 continue;
             }
 
-            neighborAdapters[index] = std::make_unique<ChunkPrimer>(x + dx, z + dz);
-            neighbors[index] = neighborAdapters[index].get();
+            missingNeighbors[index] = std::make_unique<ChunkPrimer>(x + dx, z + dz);
+            neighbors[index] = missingNeighbors[index].get();
         }
     }
 }
@@ -881,8 +787,8 @@ void ServerChunkManager::saveChunkSectionsSync(const ChunkData& chunk)
 
         auto saveResult = sectionManager.saveSectionSync(sectionKey, sectionDataResult.value());
         if (saveResult.failed()) {
-            spdlog::info(
-                "保存 section 失败 ({}, {}, {}): {}", chunk.x(), sectionY, chunk.z(), saveResult.error().message());
+            spdlog::error(
+                "Save section failed ({}, {}, {}): {}", chunk.x(), sectionY, chunk.z(), saveResult.error().message());
         }
     }
 }
@@ -937,7 +843,7 @@ std::unique_ptr<ChunkData> ServerChunkManager::tryToLoadChunkFromStorageSync(Chu
 
         auto applyResult = world::storage::SectionCodec::toChunkSection(*sectionData, *section);
         if (applyResult.failed()) {
-            spdlog::info("应用 section 数据失败 ({}, {}, {}): {}", x, sectionY, z, applyResult.error().message());
+            spdlog::error("Apply section data failed ({}, {}, {}): {}", x, sectionY, z, applyResult.error().message());
             continue;
         }
 

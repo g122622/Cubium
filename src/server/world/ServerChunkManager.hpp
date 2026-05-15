@@ -616,14 +616,16 @@ private:
      * @param radius 邻域半径
      * @param centerChunk 中心区块视图
      * @param neighbors 输出区块窗口
-     * @param neighborAdapters 临时适配器持有容器
+     * @param loadedNeighbors 已加载邻居区块的共享持有容器
+     * @param missingNeighbors 缺失邻居区块的临时占位容器
      */
     void collectNeighborChunks(ChunkCoord x,
         ChunkCoord z,
         i32 radius,
         IChunk* centerChunk,
         std::vector<IChunk*>& neighbors,
-        std::vector<std::unique_ptr<IChunk>>& neighborAdapters);
+        std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
+        std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors);
 
     /**
      * @brief 执行同步区块生成
