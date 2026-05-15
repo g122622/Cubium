@@ -38,7 +38,10 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../entities/player/Player.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
 
 namespace mc {
 
@@ -118,7 +121,22 @@ void FoxEntity::setHeldItem(std::unique_ptr<ItemStack> item)
 
 void FoxEntity::dropHeldItem()
 {
-    // TODO: 在世界生成掉落物
+    // [已完成] 在世界生成掉落物 - 2026/05/16
+    // 参考 MC 1.16.5 FoxEntity.entityDropItem()
+    if (m_heldItem == nullptr || m_heldItem->isEmpty()) {
+        return;
+    }
+
+    IWorld* world = this->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // 使用 ItemDropHelper 在实体位置生成物品实体
+    math::Random rng = getRandom();
+    ItemDropHelper::spawnItemAtEntity(this, *m_heldItem, 0.0f, rng, 10);
+
+    // 清空物品引用
     m_heldItem.reset();
 }
 
@@ -194,15 +212,51 @@ void FoxEntity::registerGoals()
     // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
 
-    // 狐狸特有目标
-    // 优先级 2: 逃离玩家（未信任的玩家）
-    // TODO: 需要 AvoidEntityGoal 支持
-    // m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 16.0f, 1.6, 1.4));
+    // MC 1.16.5: 狐狸特有目标注册顺序
+    // 注意：优先级数值越小，优先级越高
+
+    // 优先级 4: 躲避玩家（未信任的玩家）
+    // MC 1.16.5: new AvoidEntityGoal<>(this, PlayerEntity.class, 16.0F, 1.6D, 1.4D,
+    //     (p_213497_1_) -> SHOULD_AVOID.test(p_213497_1_) && !this.isTrustedUUID(p_213497_1_.getUniqueID())
+    //         && !this.isFoxAggroed());
+    // SHOULD_AVOID = !isDiscrete() && CAN_AI_TARGET.test(this)
+    // isDiscrete() 检查玩家是否隐形/旁观者等，CAN_AI_TARGET 检查是否可作为AI目标
+    // [已完成] 实现 AvoidEntityGoal 躲避未信任的玩家 - 2026/05/16
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+        this,
+        16.0f, // 检测距离：16格
+        1.6,   // 近距离逃跑速度（更快）
+        1.4,   // 远距离逃跑速度
+        [this](const LivingEntity* entity) -> bool {
+            if (entity == nullptr) return false;
+            // 只躲避玩家
+            const Player* player = dynamic_cast<const Player*>(entity);
+            if (player == nullptr) return false;
+            // MC 1.16.5: SHOULD_AVOID 检查
+            // isDiscrete() = isSpectator() || isInvisible() || ...
+            // CAN_AI_TARGET = !isCreative() && !isSpectator() && isAlive()
+            if (player->isSpectator() || player->isCreative()) return false;
+            // 不躲避信任的玩家
+            if (trusts(player->id())) return false;
+            // 不躲避当狐狸处于攻击状态时（即 isFoxAggroed 为 false）
+            // 当前简化实现：没有 isFoxAggroed 状态，始终躲避
+            return true;
+        }));
 
     // 优先级 3: 食物诱惑（甜浆果）
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isBerryPredicate));
+    // MC 1.16.5: new TemptGoal(this, 1.0D, Ingredient.fromItems(Items.SWEET_BERRIES), false)
+    // [已完成] 实现 TemptGoal 甜浆果诱惑 - 2026/05/16
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::TemptGoal>(
+        this,
+        1.0,  // 跟随速度
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item == Items::SWEET_BERRIES;
+        },
+        false // 不被玩家移动吓跑
+    ));
 
-    // TODO: 狐狸特有目标
+    // TODO: 狐狸特有目标（需要实现更多 Goal 类）
     // - FoxPounceGoal: 扑击攻击
     // - FoxEatBerriesGoal: 吃浆果
     // - FoxHuntGoal: 狩猎小动物
