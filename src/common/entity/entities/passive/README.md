@@ -80,14 +80,14 @@ MobEntity
 **注意**：豹猫使用信任机制而非传统驯服，详见 `tamable/README.md`。
 
 ### special/ - 特殊动物
-| 实体 | 说明 | 特殊行为 | 接口 |
-|------|------|----------|------|
-| FoxEntity | 狐狸 | 叼物品、信任机制 | - |
-| PandaEntity | 熊猫 | 7种性格基因 | - |
-| PolarBearEntity | 北极熊 | 保护幼崽 | - |
-| TurtleEntity | 海龟 | 出生地记忆、产卵 | - |
-| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆、螫刺后死亡 | IFlyingAnimal |
-| StriderEntity | 炽足兽 | 熔岩行走、可骑乘 | IRideable |
+| 实体 | 说明 | 繁殖物品 | 特殊行为 | 接口 |
+|------|------|----------|----------|------|
+| FoxEntity | 狐狸 | 甜浆果 | 叼物品、信任机制 | - |
+| PandaEntity | 熊猫 | 竹子 | 7种性格基因 | - |
+| PolarBearEntity | 北极熊 | 不可繁殖 | 保护幼崽 | - |
+| TurtleEntity | 海龟 | 海草 | 出生地记忆、产卵 | - |
+| BeeEntity | 蜜蜂 | 花朵 | 授粉、蜂巢记忆、螫刺后死亡 | IFlyingAnimal |
+| StriderEntity | 炽足兽 | 诡异菌 | 熔岩行走、可骑乘 | IRideable |
 
 ### horse/ - 马类
 | 实体 | 说明 | 状态 |
