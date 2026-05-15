@@ -246,6 +246,117 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 
 **参考**: `net.minecraft.entity.passive.OcelotEntity`
 
+## 猫实体系统（CatEntity）
+
+猫是可驯服的猫科动物，具有多种皮肤和独特的行为模式。
+
+### 驯服物品
+
+猫使用**生鱼**驯服和繁殖：
+
+| 物品 | 说明 |
+|------|------|
+| 生鳕鱼 (`COD`) | 可驯服、可繁殖 |
+| 生鲑鱼 (`SALMON`) | 可驯服、可繁殖 |
+
+### 皮肤类型
+
+猫有 11 种皮肤类型（MC 1.16.5）：
+
+| 类型 | 值 | 说明 |
+|------|-----|------|
+| Tabby | 0 | 虎斑猫 |
+| Black | 1 | 黑猫 |
+| Red | 2 | 红猫/姜黄猫 |
+| Siamese | 3 | 暹罗猫 |
+| BritishShorthair | 4 | 英国短毛猫 |
+| Calico | 5 | 三花猫 |
+| Persian | 6 | 波斯猫 |
+| Ragdoll | 7 | 布偶猫 |
+| White | 8 | 白猫 |
+| Jellie | 9 | Jellie猫（社区投票） |
+| AllBlack | 10 | 全黑猫（万圣节） |
+
+### 内部 AI Goal 类
+
+猫实现了两个内部 Goal 类来支持特有的行为：
+
+#### CatTemptGoal
+
+继承自 `TemptGoal`，只在未驯服时执行：
+
+```cpp
+class CatTemptGoal : public TemptGoal {
+public:
+    CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement);
+    bool shouldExecute() override;  // 只在未驯服时返回 true
+};
+```
+
+- **诱惑速度**: 0.6（比其他动物慢）
+- **诱惑物品**: COD、SALMON
+- **scaredByMovement**: true（会被玩家快速移动吓跑）
+
+#### CatAvoidPlayerGoal
+
+继承自 `AvoidEntityGoal`，只在未驯服时执行：
+
+```cpp
+class CatAvoidPlayerGoal : public AvoidEntityGoal {
+public:
+    CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDistance, f64 farSpeed, f64 nearSpeed);
+    bool shouldExecute() override;           // 只在未驯服时返回 true
+    bool shouldContinueExecuting() override; // 只在未驯服时返回 true
+};
+```
+
+- **检测距离**: 16 格
+- **远距离逃避速度**: 0.8
+- **近距离逃避速度**: 1.33（更快）
+- **动态管理**: 通过 `setupTamedAI()` 在驯服时移除
+
+### AI 目标列表
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳（最高优先级） |
+| 1 | PanicGoal | 恐慌逃跑 |
+| 1 | SitGoal | 坐下（驯服后） |
+| 2 | BreedGoal | 繁殖 |
+| 3 | CatTemptGoal | 食物诱惑（未驯服） |
+| 4 | CatAvoidPlayerGoal | 避开玩家（未驯服） |
+| 5 | FollowParentGoal | 跟随父母 |
+| 6 | FollowOwnerGoal | 跟随主人（驯服后） |
+| 10 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 |
+| 12 | LookAtGoal | 看向玩家 |
+| 13 | LookRandomlyGoal | 随机看向 |
+
+### 动态 AI 管理
+
+猫实现了 `setupTamedAI()` 方法来动态管理 AI：
+
+```cpp
+void CatEntity::setupTamedAI()
+{
+    // 创建 AvoidPlayerGoal（如果尚未创建）
+    if (m_avoidPlayerGoal == nullptr) {
+        m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, 16.0f, 0.8, 1.33);
+    }
+    
+    // 先移除已有的 AvoidPlayerGoal
+    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    
+    // 如果未驯服，添加避开玩家目标
+    if (!isTamed()) {
+        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+    }
+}
+```
+
+此方法在 `onTamed()` 回调中被调用，确保驯服后猫不再逃避玩家。
+
+**参考**: `net.minecraft.entity.passive.CatEntity`
+
 ## AI目标
 
 | Goal | 优先级 | 说明 |

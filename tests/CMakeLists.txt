@@ -82,6 +82,8 @@ add_executable(mc_tests
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
     # BegGoal 驯服物品乞求测试
     entity/BegGoalTest.cpp
+    # CatEntity 猫实体测试（驯服物品、繁殖物品、CatTemptGoal、CatAvoidPlayerGoal）
+    entity/CatEntityTest.cpp
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
