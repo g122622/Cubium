@@ -193,8 +193,14 @@ public:
 **追踪逻辑** (`updateHeadTargets()`):
 1. 主头直接追踪 `attackTarget`
 2. 侧头周期性搜索范围内非亡灵生物
-3. 找到目标后发射凋灵之首
-4. 目标无效时清除追踪
+3. **创造/旁观模式玩家不会被作为目标** (MC 1.16.5)
+4. 找到目标后发射凋灵之首
+5. 目标无效时清除追踪
+
+**目标选择排除条件**:
+- 亡灵生物（`CreatureAttribute::Undead`）
+- 创造模式玩家（`Player::isCreative()`）
+- 旁观者模式玩家（`Player::isSpectator()`）
 
 #### 凋灵阶段
 

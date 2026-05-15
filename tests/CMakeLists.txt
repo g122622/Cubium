@@ -247,6 +247,8 @@ add_executable(mc_tests
     entity/BlazeFireballAttackGoalTest.cpp
     entity/GhastEntityTest.cpp
     entity/GuardianAttackGoalTest.cpp
+    entity/WitherEntityTest.cpp
+    entity/EvokerGoalsTest.cpp
     entity/BrainScheduleTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
