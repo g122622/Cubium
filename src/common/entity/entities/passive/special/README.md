@@ -314,9 +314,34 @@ public:
 
 ### 特性
 - 出生地记忆
-- 产卵行为
+- 产卵行为（完整实现）
 - 幼崽成长
 - 水陆两栖
+
+### 产卵系统
+海龟产卵是完整的游戏循环：
+1. **交配获得蛋**：喂食海草后，母海龟设置 `hasEgg = true`
+2. **返回出生地**：有蛋的海龟会返回出生位置
+3. **挖掘下蛋**：在沙子上进行 200 tick (10秒) 的挖掘动画
+4. **放置海龟蛋**：调用 `layEgg()` 方法放置 TurtleEggBlock
+
+### layEgg() 方法
+```cpp
+void TurtleEntity::layEgg();
+```
+**功能**：在当前位置下方放置海龟蛋方块
+
+**前置条件检查**：
+- 世界指针有效
+- 脚下是沙子类方块（BlockTags::SAND: 沙子、红沙、灵魂沙）
+- 当前位置是空气
+
+**行为**：
+- 随机生成 1-4 个蛋
+- 放置 TurtleEggBlock 并设置 EGGS_1_4 属性
+- 播放 ENTITY_TURTLE_LAY_EGG 音效（音量 0.3，音调 0.9-1.1）
+
+**参考**：MC 1.16.5 `TurtleEntity.LayEggGoal.tick()`
 
 ### 行为
 | 优先级 | Goal | 说明 |
@@ -326,6 +351,25 @@ public:
 | 2 | BreedGoal | 繁殖 |
 | 3 | TemptGoal | 被海草诱惑 |
 | 4 | GoHomeGoal | 返回出生地产卵 |
+
+### 状态管理
+| 方法 | 说明 |
+|------|------|
+| `hasEgg()` / `setHasEgg(bool)` | 是否有蛋 |
+| `isLayingEgg()` / `setLayingEgg(bool)` | 是否正在下蛋 |
+| `startLayEgg()` | 开始下蛋动画（设置状态和计时器） |
+| `getHomePos()` / `setHomePos(pos)` | 获取/设置出生位置 |
+| `hasHomePos()` | 是否有出生位置 |
+| `isGoingHome()` / `setGoingHome(bool)` | 是否正在回家 |
+| `isTravelling()` / `setTravelling(bool)` | 是否正在旅行 |
+
+### 常量
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| LAY_EGG_DURATION | 200 | 下蛋动画持续时间 (ticks) |
+| 成体眼睛高度 | 0.4f | - |
+| 幼体眼睛高度 | 0.2f | - |
+| 步高 | 1.0f | 海龟可以走上1格高的方块 |
 
 ## 测试覆盖
 

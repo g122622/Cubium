@@ -89,6 +89,8 @@ add_executable(mc_tests
     common/entity/entities/passive/special/PolarBearEntityTest.cpp
     # BeeEntity 花朵繁殖、幼体生成、花粉/螫刺状态测试
     common/entity/entities/passive/special/BeeEntityTest.cpp
+    # TurtleEntity 下蛋逻辑测试
+    common/entity/entities/passive/special/TurtleEntityTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
