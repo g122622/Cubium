@@ -239,9 +239,10 @@ void EndermanEntity::pickUpBlock()
 
 bool EndermanEntity::isInWaterOrRain() const
 {
-    // MC 1.16.5: 检查是否在水中或雨中
-    // TODO: 实现
-    return isInWater();
+    // MC 1.16.5: Entity.isInWaterOrRainOrBubbleColumn()
+    // 对于末影人，气泡柱不会造成伤害，所以只检查水和雨
+    // 参考 Entity.isWet() = isInWater() || isInRain()
+    return isInWater() || isInRain();
 }
 
 void EndermanEntity::tick()
