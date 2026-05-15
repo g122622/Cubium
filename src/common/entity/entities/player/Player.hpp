@@ -1091,6 +1091,52 @@ public:
      */
     [[nodiscard]] virtual f32 getJumpFactor() const { return 1.0f; }
 
+    // ========== 注视检测 ==========
+
+    /**
+     * @brief 获取玩家视线方向向量
+     *
+     * 根据玩家的 yaw 和 pitch 计算视线方向。
+     * 参考 MC 1.16.5: Entity.getLook()
+     *
+     * @return 归一化的视线方向向量
+     */
+    [[nodiscard]] Vector3 getLookVector() const;
+
+    /**
+     * @brief 获取玩家眼睛位置
+     *
+     * 返回玩家眼睛在世界中的位置，用于射线检测等。
+     *
+     * @return 眼睛位置向量
+     */
+    [[nodiscard]] Vector3 getEyePosition() const;
+
+    /**
+     * @brief 检查玩家是否戴着南瓜头
+     *
+     * 戴着南瓜头的玩家不会激怒末影人。
+     * 南瓜头包括：雕刻南瓜（carved_pumpkin）和南瓜灯（jack_o_lantern）。
+     *
+     * 参考 MC 1.16.5: ItemStack.isEnderMask()
+     *
+     * @return 如果玩家戴着南瓜头返回 true
+     */
+    [[nodiscard]] bool isWearingPumpkin() const;
+
+    /**
+     * @brief 检查玩家是否正在注视目标实体
+     *
+     * 计算玩家视线方向与玩家到目标向量的点积，
+     * 判断玩家是否正在看向目标。
+     *
+     * 参考 MC 1.16.5: EndermanEntity.shouldAttackPlayer()
+     *
+     * @param target 目标实体
+     * @return 如果玩家正在注视目标返回 true
+     */
+    [[nodiscard]] bool isLookingAt(const Entity& target) const;
+
     /**
      * @brief 获取自动跳跃系统
      */

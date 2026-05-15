@@ -236,6 +236,23 @@ public:
      */
     [[nodiscard]] bool isInWaterOrRain() const;
 
+    // ========== 注视检测 ==========
+
+    /**
+     * @brief 检查玩家是否正在注视末影人（应被激怒）
+     *
+     * MC 1.16.5: EndermanEntity.shouldAttackPlayer()
+     * 检查玩家是否正在注视末影人的眼睛：
+     * 1. 检查玩家是否戴着南瓜头（南瓜头可避免激怒）
+     * 2. 计算玩家视线方向与玩家到末影人向量的点积
+     * 3. 根据距离调整阈值
+     * 4. 检查视线是否被方块阻挡
+     *
+     * @param player 目标玩家
+     * @return 如果玩家正在注视末影人返回 true
+     */
+    [[nodiscard]] bool shouldAttackPlayer(const Player& player) const;
+
     // ========== 属性 ==========
 
     /**

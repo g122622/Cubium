@@ -22,10 +22,12 @@
 */
 
 #include "EndermanEntity.hpp"
+#include "../../player/Player.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "entity/ai/goal/goals/special/EndermanGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include <cmath>
@@ -245,6 +247,30 @@ bool EndermanEntity::isInWaterOrRain() const
     return isInWater() || isInRain();
 }
 
+bool EndermanEntity::shouldAttackPlayer(const Player& player) const
+{
+    // MC 1.16.5: EndermanEntity.shouldAttackPlayer()
+    // 检查玩家是否正在注视末影人的眼睛
+
+    // 1. 检查玩家是否戴着南瓜头
+    // MC 1.16.5: ItemStack.isEnderMask()
+    // 戴着南瓜头的玩家不会激怒末影人
+    if (player.isWearingPumpkin()) {
+        return false;
+    }
+
+    // 2. 检查玩家是否正在注视末影人
+    if (!player.isLookingAt(*this)) {
+        return false;
+    }
+
+    // 3. 检查视线是否被方块阻挡
+    // MC 1.16.5: player.canEntityBeSeen(this)
+    // 但在 shouldAttackPlayer 中，先检查注视再检查视线
+    // 注视检测已经包含了方向检测，这里只需要确认没有方块阻挡
+    return player.canSee(*this);
+}
+
 void EndermanEntity::tick()
 {
     // MC 1.16.5 EndermanEntity.tick()
@@ -281,8 +307,7 @@ void EndermanEntity::tick()
         teleportAwayFromWater();
     }
 
-    // 被注视时更新状态
-    // TODO: 检查玩家是否正在看末影人的眼睛
+    // 注视检测由 EndermanFindPlayerGoal 和 EndermanStareGoal 处理
 }
 
 bool EndermanEntity::hurt(DamageSource& source, f32 amount)
@@ -307,30 +332,41 @@ void EndermanEntity::registerGoals()
     // MC 1.16.5 EndermanEntity.registerGoals()
     // 优先级顺序：
     // 0: SwimGoal (父类已注册)
-    // 1: PanicGoal (不注册 - 末影人不会惊慌)
+    // 1: EndermanStareGoal (注视玩家目标)
     // 2: MeleeAttackGoal (攻击目标)
     // 5: WaterAvoidingRandomWalkingGoal (避水随机行走)
     // 7: LookAtGoal (看向玩家，但会激怒末影人)
     // 8: LookRandomlyGoal (随机看向)
+    // 10: PlaceBlockGoal (放置方块) - TODO
+    // 11: TakeBlockGoal (拾取方块) - TODO
     //
     // 目标选择器：
-    // 1: HurtByTargetGoal (被攻击反击)
-    // 2: NearestAttackableTargetGoal<Player> (攻击注视玩家，有特殊条件)
-    // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨)
+    // 1: EndermanFindPlayerGoal (查找注视玩家)
+    // 2: HurtByTargetGoal (被攻击反击)
+    // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨) - TODO
+    // 4: ResetAngerGoal (重置愤怒) - TODO
+
+    // 优先级 1: 注视玩家目标（当被注视时停止移动并注视玩家）
+    m_goalSelector.addGoal(1, new entity::ai::goal::EndermanStareGoal(this));
 
     // 优先级 2: 近战攻击
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
 
     // 优先级 7: 看向玩家（会激怒末影人）
     m_goalSelector.addGoal(
-        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* /*entity*/) -> bool {
+        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            // TODO: 检查是否是玩家
-            return true;
+            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
         }));
 
     // 优先级 8: 随机看向
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+
+    // 目标选择器
+    // 优先级 1: 查找正在注视末影人的玩家
+    m_targetSelector.addGoal(1, new entity::ai::goal::EndermanFindPlayerGoal(this));
+
+    // 优先级 2: HurtByTargetGoal 已在父类 MonsterEntity::registerGoals() 中注册
 }
 
 void EndermanEntity::registerAttributes()

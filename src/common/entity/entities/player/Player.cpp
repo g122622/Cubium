@@ -2181,4 +2181,94 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
     return ActionResultType::Pass;
 }
 
+// ============================================================================
+// 注视检测实现
+// ============================================================================
+
+Vector3 Player::getLookVector() const
+{
+    // MC 1.16.5: Entity.getLook()
+    // 根据 yaw 和 pitch 计算视线方向向量
+    // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
+    // pitch 正值向下看，负值向上看
+
+    f32 yawRad = math::toRadians(m_yaw);
+    f32 pitchRad = math::toRadians(m_pitch);
+
+    // 计算方向向量
+    f32 cosYaw = std::cos(yawRad);
+    f32 sinYaw = std::sin(yawRad);
+    f32 cosPitch = std::cos(pitchRad);
+    f32 sinPitch = std::sin(pitchRad);
+
+    // MC 1.16.5 的视线方向计算
+    // 注意：MC 的 pitch 是负的（向上看时 pitch 为负）
+    return Vector3(-sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch).normalized();
+}
+
+Vector3 Player::getEyePosition() const
+{
+    // 眼睛位置 = 实体位置 + 眼睛高度
+    return Vector3(x(), y() + eyeHeight(), z());
+}
+
+bool Player::isWearingPumpkin() const
+{
+    // MC 1.16.5: ItemStack.isEnderMask()
+    // 检查玩家头盔是否为雕刻南瓜或南瓜灯
+    // 这两种物品都可以防止末影人被激怒
+
+    const ItemStack& helmet = inventory().getHelmet();
+
+    if (helmet.isEmpty()) {
+        return false;
+    }
+
+    const Item* item = helmet.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    // 检查是否为雕刻南瓜或南瓜灯
+    // 雕刻南瓜物品的 resource location 是 minecraft:carved_pumpkin
+    // 南瓜灯物品的 resource location 是 minecraft:jack_o_lantern
+    const ResourceLocation& itemId = item->itemLocation();
+    return itemId == ResourceLocation("minecraft:carved_pumpkin") ||
+           itemId == ResourceLocation("minecraft:jack_o_lantern");
+}
+
+bool Player::isLookingAt(const Entity& target) const
+{
+    // MC 1.16.5: EndermanEntity.shouldAttackPlayer() 中的注视检测逻辑
+    // 计算玩家视线方向与玩家到目标向量的点积
+
+    // 1. 获取玩家视线方向
+    Vector3 lookVec = getLookVector();
+
+    // 2. 计算玩家眼睛到目标眼睛的向量
+    Vector3 eyePos = getEyePosition();
+    Vector3 targetEyePos = Vector3(target.x(), target.y() + target.eyeHeight(), target.z());
+    Vector3 toTarget = targetEyePos - eyePos;
+
+    // 3. 计算距离
+    f32 distance = toTarget.length();
+    if (distance < 0.001f) {
+        // 距离太近，认为是在看
+        return true;
+    }
+
+    // 4. 归一化目标向量
+    toTarget = toTarget.normalized();
+
+    // 5. 计算点积
+    f32 dotProduct = lookVec.dot(toTarget);
+
+    // 6. 根据距离调整阈值
+    // MC 1.16.5: return d1 > 1.0D - 0.025D / d0
+    // 距离越远，阈值越高（更难满足注视条件）
+    f32 threshold = 1.0f - 0.025f / distance;
+
+    return dotProduct > threshold;
+}
+
 } // namespace mc
