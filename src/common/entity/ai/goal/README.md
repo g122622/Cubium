@@ -34,8 +34,9 @@ goal/
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
     └── special/                  # 特殊目标
-        └── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
-        └── GuardianAttackGoal.hpp/cpp # 守卫者激光攻击目标
+        ├── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
+        ├── GuardianAttackGoal.hpp/cpp # 守卫者激光攻击目标
+        └── MoveToLavaGoal.hpp/cpp # 移动到方块目标基类、炽足兽寻找熔岩目标
 ```
 
 ## 整体职责

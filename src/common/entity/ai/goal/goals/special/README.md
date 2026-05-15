@@ -10,6 +10,8 @@ special/
 ├── GuardianAttackGoal.cpp # 守卫者攻击目标实现
 ├── BlazeFireballAttackGoal.hpp # 烈焰人火球攻击目标头文件
 ├── BlazeFireballAttackGoal.cpp # 烈焰人火球攻击目标实现
+├── MoveToLavaGoal.hpp     # 炽足兽寻找熔岩目标头文件
+├── MoveToLavaGoal.cpp     # 炽足兽寻找熔岩目标实现
 ├── SquidGoals.hpp         # 鱿鱼目标头文件
 ├── SquidGoals.cpp         # 鱿鱼目标实现
 ├── BatGoals.hpp           # 蝙蝠目标头文件
@@ -851,6 +853,125 @@ void IronGolemEntity::registerGoals() {
 
 ---
 
+---
+
+### MoveToBlockGoal - 移动到方块目标基类
+
+**职责**: 抽象基类，提供在范围内搜索特定方块并导航移动的功能。子类只需实现 `shouldMoveTo()` 方法来定义目标方块条件。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.MoveToBlockGoal`
+
+**执行条件**:
+- 延迟计时器已过（200-400 tick 随机延迟）
+- 搜索范围内找到目标方块
+
+**搜索算法**:
+- **螺旋搜索**: 从实体位置开始，逐层向外扩展搜索
+- **Y轴交替搜索**: 按 0, 1, -1, 2, -2... 顺序搜索，优先搜索当前位置
+- **家范围检查**: 如果有家限制，只搜索家范围内的方块
+
+**核心方法**:
+| 方法 | 说明 |
+|------|------|
+| `shouldExecute()` | 检查延迟，搜索目标方块 |
+| `shouldContinueExecuting()` | 检查超时和目标有效性 |
+| `startExecuting()` | 初始化导航，设置随机停留时间 |
+| `tick()` | 更新导航，检测是否到达目标 |
+| `shouldMoveTo(world, pos)` | 纯虚函数，子类实现目标方块检测 |
+| `getTargetPosition()` | 获取目标位置（默认方块上方） |
+| `searchForDestination()` | 螺旋搜索算法 |
+
+**关键参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `m_searchLength` | i32 | 水平搜索半径 |
+| `m_verticalSearchRange` | i32 | 垂直搜索范围 |
+| `m_movementSpeed` | f64 | 移动速度倍率 |
+| `m_runDelay` | i32 | 执行延迟 (tick) |
+| `m_timeoutCounter` | i32 | 超时计数器 |
+| `m_maxStayTicks` | i32 | 最大停留时间 |
+| `m_destinationBlock` | BlockPos | 目标方块位置 |
+
+**超时机制**:
+- `startExecuting()` 时设置随机最大停留时间（1200-2400 tick）
+- 未到达目标时 `timeoutCounter` 递增
+- 到达目标后 `timeoutCounter` 递减
+- 当 `timeoutCounter < -maxStayTicks` 或 `timeoutCounter > 1200` 时停止
+
+**互斥标志**: `Move`, `Jump`
+
+**使用示例**:
+```cpp
+// 子类实现
+class MoveToLavaGoal : public MoveToBlockGoal {
+protected:
+    bool shouldMoveTo(IWorld* world, const BlockPos& pos) override {
+        // 检查是否是熔岩
+        const FluidState* fluid = world->getFluidState(pos);
+        return fluid && fluid->getFluid().isIn(FluidTags::LAVA());
+    }
+};
+```
+
+---
+
+### MoveToLavaGoal - 炽足兽寻找熔岩目标
+
+**职责**: 炽足兽（Strider）离开熔岩后自动寻找并移动到附近的熔岩。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.StriderEntity.MoveToLavaGoal`
+
+**执行条件**:
+- 炽足兽当前不在熔岩中（`!isInLava()`）
+- 搜索范围内找到有效的熔岩方块
+
+**目标方块检测** (`shouldMoveTo`):
+1. 检查位置是否在世界边界内
+2. 检查目标方块是否是熔岩（使用 `FluidTags::LAVA`）
+3. 检查上方方块是否可以通过（空气或非固体方块）
+
+**与父类的区别**:
+| 方法 | MoveToBlockGoal | MoveToLavaGoal |
+|------|-----------------|----------------|
+| `getTargetPosition()` | 返回 `pos.up()` | 返回 `pos`（直接返回熔岩位置） |
+| `shouldMove()` | 每 40 tick 检查一次 | 每 20 tick 检查一次 |
+| `shouldExecute()` | 只搜索目标 | 额外检查 `!isInLava()` |
+| `shouldContinueExecuting()` | 检查超时和目标有效性 | 额外检查 `!isInLava()` |
+
+**构造参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| `searchLength` | 8 | 水平搜索半径（MC 1.16.5） |
+| `verticalSearchRange` | 2 | 垂直搜索范围（MC 1.16.5） |
+| `speed` | 1.5 | 移动速度倍率（StriderEntity 使用） |
+
+**互斥标志**: `Move`, `Jump`
+
+**使用示例**:
+```cpp
+void StriderEntity::registerGoals() {
+    // 优先级 4: 寻找熔岩目标
+    m_goalSelector.addGoal(4, std::make_unique<MoveToLavaGoal>(this, 1.5));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_LENGTH | 8 | 水平搜索半径 |
+| VERTICAL_SEARCH_RANGE | 2 | 垂直搜索范围 |
+| MOVE_INTERVAL | 20 | 重新导航间隔 (ticks) |
+| RUN_DELAY_MIN | 200 | 最小执行延迟 (ticks) |
+| RUN_DELAY_RANGE | 200 | 执行延迟范围 (ticks) |
+
+**依赖关系**:
+- 需要 CreatureEntity 提供 `world()`, `tryMoveTo()`, `getRandom()` 方法
+- 需要 MobEntity 提供 `isWithinHomeDistanceFromPosition()` 方法
+- 需要 IWorld 提供 `getFluidState()`, `getBlockState()`, `isWithinWorldBounds()` 方法
+- 需要 FluidTags::LAVA() 标签系统
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -872,24 +993,27 @@ graph TD
     A --> P[PhantomOrbitPointGoal]
     A --> Q[PhantomPickAttackGoal]
     A --> R[PhantomSweepAttackGoal]
+    A --> S[MoveToBlockGoal]
+    S --> T[MoveToLavaGoal]
 
-    B --> S[CreeperEntity]
-    C --> T[AbstractHorseEntity]
-    D --> U[GuardianEntity]
-    E --> V[BlazeEntity]
-    F --> W[PufferfishEntity]
-    G --> X[SquidEntity]
-    H --> X
-    I --> Y[DolphinEntity]
-    J --> Y
-    K --> Y
-    L --> Y
-    M --> Z[BatEntity]
-    N --> Z
-    O --> AA[PhantomEntity]
-    P --> AA
-    Q --> AA
-    R --> AA
+    B --> U[CreeperEntity]
+    C --> V[AbstractHorseEntity]
+    D --> W[GuardianEntity]
+    E --> X[BlazeEntity]
+    F --> Y[PufferfishEntity]
+    G --> Z[SquidEntity]
+    H --> Z
+    I --> AA[DolphinEntity]
+    J --> AA
+    K --> AA
+    L --> AA
+    M --> AB[BatEntity]
+    N --> AB
+    O --> AC[PhantomEntity]
+    P --> AC
+    Q --> AC
+    R --> AC
+    T --> AD[StriderEntity]
 ```
 
 ---
@@ -1168,6 +1292,7 @@ void EvokerEntity::registerGoals() {
 | SlimeGoalsTest.* | 史莱姆目标测试（漂浮、攻击、随机转向） |
 | IronGolemGoalsTest.* | 铁傀儡目标测试（展示花朵、移动追踪、重置愤怒） |
 | EvokerGoalsTest.* | 唤魔者目标测试（尖牙攻击、召唤恼鬼、Wololo法术、目标选择器优先级） |
+| MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
 
 ---
 
