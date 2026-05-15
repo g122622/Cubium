@@ -61,15 +61,31 @@ feature/
 
 **主要内容**:
 - `RuleTest` - 方块匹配规则基类，用于判断目标方块是否可被替换
+- `AlwaysTrueRuleTest` - 总是返回 true 的规则（单例模式）
+- `BlockMatchRuleTest` - 匹配特定方块的规则
+- `BlockStateMatchRuleTest` - 匹配特定方块状态的规则
+- `RandomBlockMatchRuleTest` - 带概率的方块匹配规则
+- `RandomBlockStateMatchRuleTest` - 带概率的方块状态匹配规则
+- `TagMatchRuleTest` - 匹配方块标签的规则（已实现，使用 BlockTags 系统）
+- `StoneRuleTest` - 匹配石头类方块的规则（石头、花岗岩、闪长岩、安山岩）
 - `BlockStateProvider` - 方块状态提供者接口
 - `SimpleBlockStateProvider` - 固定方块状态提供者
 - `OreFeatureConfig` - 矿石特征配置
 - `OreTargetType` - 矿石目标类型枚举（NaturalStone、Netherrack、Basalt）
 
+**RuleTest 使用示例**:
 ```cpp
 // 创建矿石目标规则
 auto stoneTarget = createOreTarget(OreTargetType::NaturalStone);
 bool matches = stoneTarget->test(blockState, random);
+
+// 使用标签匹配规则
+TagMatchRuleTest logsTest("minecraft:logs");
+bool isLog = logsTest.test(blockState, random);
+
+// 使用方块匹配规则
+BlockMatchRuleTest stoneTest(VanillaBlocks::STONE);
+bool isStone = stoneTest.test(blockState, random);
 ```
 
 ### ConfiguredFeature.hpp/cpp
