@@ -157,17 +157,18 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
     auto leftArmPose = determineArmPose(player, false);
     m_model.setArmPose(leftArmPose, rightArmPose);
 
-    // 根据玩家设置显示/隐藏外层皮肤
-    // PlayerModelPart 枚举值：
-    // - Cape (0x01) - 斗篷
-    // - Jacket (0x02) - 外套
-    // - LeftSleeve (0x04) - 左袖
-    // - RightSleeve (0x08) - 右袖
-    // - LeftPants (0x10) - 左裤腿
-    // - RightPants (0x20) - 右裤腿
-    // - Hat (0x40) - 帽子
-    // TODO: 当 PlayerModel 支持按部件名称设置可见性时实现
-    // 目前只能通过 setAllVisible 设置整体可见性
+    // 根据 PlayerModelPart 设置外层皮肤部件可见性
+    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities:
+    // playermodel.bipedHeadwear.showModel = clientPlayer.isWearing(PlayerModelPart.HAT);
+    // playermodel.bipedBodyWear.showModel = clientPlayer.isWearing(PlayerModelPart.JACKET);
+    // playermodel.bipedLeftLegwear.showModel = clientPlayer.isWearing(PlayerModelPart.LEFT_PANTS_LEG);
+    // playermodel.bipedRightLegwear.showModel = clientPlayer.isWearing(PlayerModelPart.RIGHT_PANTS_LEG);
+    // playermodel.bipedLeftArmwear.showModel = clientPlayer.isWearing(PlayerModelPart.LEFT_SLEEVE);
+    // playermodel.bipedRightArmwear.showModel = clientPlayer.isWearing(PlayerModelPart.RIGHT_SLEEVE);
+    // 注意：Cape 由 CapeLayer 单独处理
+
+    // 使用 PlayerModel::setModelVisibilitiesFromFlags 设置所有外层皮肤部件
+    m_model.setModelVisibilitiesFromFlags(player.playerModelParts());
 
     // 设置蹲伏状态
     m_model.setCrouching(player.isSneaking());

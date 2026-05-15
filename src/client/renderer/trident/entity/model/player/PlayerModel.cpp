@@ -239,6 +239,71 @@ void PlayerModel::setVisible(bool visible)
     if (m_ears) m_ears->setVisible(visible);
 }
 
+void PlayerModel::setPartVisible(PlayerModelPart part, bool visible)
+{
+    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+    // 根据 PlayerModelPart 设置对应模型部件的可见性
+    switch (part) {
+        case PlayerModelPart::Cape:
+            if (m_cape) m_cape->setVisible(visible);
+            break;
+        case PlayerModelPart::Jacket:
+            if (m_bodywear) m_bodywear->setVisible(visible);
+            break;
+        case PlayerModelPart::LeftSleeve:
+            if (m_leftArmwear) m_leftArmwear->setVisible(visible);
+            break;
+        case PlayerModelPart::RightSleeve:
+            if (m_rightArmwear) m_rightArmwear->setVisible(visible);
+            break;
+        case PlayerModelPart::LeftPantsLeg:
+            if (m_leftLegwear) m_leftLegwear->setVisible(visible);
+            break;
+        case PlayerModelPart::RightPantsLeg:
+            if (m_rightLegwear) m_rightLegwear->setVisible(visible);
+            break;
+        case PlayerModelPart::Hat:
+            // Hat 是头部外层，在基类 BipedModel 中是 m_headwear
+            if (m_headwear) m_headwear->setVisible(visible);
+            break;
+    }
+}
+
+bool PlayerModel::isPartVisible(PlayerModelPart part) const
+{
+    // 参考 MC 1.16.5 PlayerModel 部件可见性检查
+    switch (part) {
+        case PlayerModelPart::Cape:
+            return m_cape ? m_cape->isVisible() : false;
+        case PlayerModelPart::Jacket:
+            return m_bodywear ? m_bodywear->isVisible() : false;
+        case PlayerModelPart::LeftSleeve:
+            return m_leftArmwear ? m_leftArmwear->isVisible() : false;
+        case PlayerModelPart::RightSleeve:
+            return m_rightArmwear ? m_rightArmwear->isVisible() : false;
+        case PlayerModelPart::LeftPantsLeg:
+            return m_leftLegwear ? m_leftLegwear->isVisible() : false;
+        case PlayerModelPart::RightPantsLeg:
+            return m_rightLegwear ? m_rightLegwear->isVisible() : false;
+        case PlayerModelPart::Hat:
+            return m_headwear ? m_headwear->isVisible() : false;
+    }
+    return false;
+}
+
+void PlayerModel::setModelVisibilitiesFromFlags(u8 playerModelParts)
+{
+    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+    // 根据玩家皮肤部件位掩码设置所有外层皮肤部件的可见性
+    setPartVisible(PlayerModelPart::Hat, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::Hat)) != 0);
+    setPartVisible(PlayerModelPart::Jacket, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::Jacket)) != 0);
+    setPartVisible(PlayerModelPart::LeftPantsLeg, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftPantsLeg)) != 0);
+    setPartVisible(PlayerModelPart::RightPantsLeg, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightPantsLeg)) != 0);
+    setPartVisible(PlayerModelPart::LeftSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftSleeve)) != 0);
+    setPartVisible(PlayerModelPart::RightSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightSleeve)) != 0);
+    // Cape 由 CapeLayer 单独处理，这里不设置
+}
+
 void PlayerModel::translateHand(i32 side)
 {
     // 参考 MC 1.16.5 PlayerModel.translateHand

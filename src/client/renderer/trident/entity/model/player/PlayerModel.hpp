@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
 #include <array>
 
 namespace mc::client::renderer::entity::model::player {
@@ -129,6 +130,45 @@ public:
      *  参考 MC 1.16.5 PlayerModel.setVisible
      */
     void setVisible(bool visible);
+
+    // ========== 部件可见性控制 ==========
+
+    /**
+     * @brief 设置指定皮肤部件的可见性
+     *
+     * 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+     * 根据 PlayerModelPart 设置对应模型部件的可见性：
+     * - Cape: 斗篷 (m_cape)
+     * - Jacket: 外套外层 (m_bodywear)
+     * - LeftSleeve: 左袖外层 (m_leftArmwear)
+     * - RightSleeve: 右袖外层 (m_rightArmwear)
+     * - LeftPantsLeg: 左裤腿外层 (m_leftLegwear)
+     * - RightPantsLeg: 右裤腿外层 (m_rightLegwear)
+     * - Hat: 帽子/头部外层 (m_headwear)
+     *
+     * @param part 要设置的皮肤部件
+     * @param visible 是否可见
+     */
+    void setPartVisible(PlayerModelPart part, bool visible);
+
+    /**
+     * @brief 获取指定皮肤部件是否可见
+     *
+     * @param part 要查询的皮肤部件
+     * @return 是否可见
+     */
+    [[nodiscard]] bool isPartVisible(PlayerModelPart part) const;
+
+    /**
+     * @brief 根据玩家设置批量设置所有部件可见性
+     *
+     * 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+     * 根据 playerModelParts 位掩码设置所有外层皮肤部件的可见性。
+     * 注意：此方法不会改变基础部件（内层皮肤）的可见性。
+     *
+     * @param playerModelParts 玩家皮肤部件位掩码
+     */
+    void setModelVisibilitiesFromFlags(u8 playerModelParts);
 
     /**
      * @brief 复制主部件角度到外观层

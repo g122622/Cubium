@@ -488,5 +488,212 @@ TEST_F(EntityPlayerModelTest, SlimModel_TranslateHandDoesNotThrow)
     EXPECT_NO_THROW(m_slimModel->translateHand(1));  // Left
 }
 
+// ============================================================================
+// 按部件可见性控制测试 (setPartVisible / isPartVisible / setModelVisibilitiesFromFlags)
+// 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+// ============================================================================
+
+/**
+ * @brief PlayerModel 部件可见性测试夹具
+ */
+class PlayerModelPartVisibilityTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_model = std::make_unique<PlayerModel>(0.0, false);
+    }
+
+    std::unique_ptr<PlayerModel> m_model;
+};
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_Hat)
+{
+    // Hat 是头部外层 (m_headwear)
+    m_model->setVisible(true);
+    EXPECT_TRUE(m_model->getModelHeadwear()->isVisible());
+
+    m_model->setPartVisible(PlayerModelPart::Hat, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_FALSE(m_model->getModelHeadwear()->isVisible());
+
+    m_model->setPartVisible(PlayerModelPart::Hat, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_TRUE(m_model->getModelHeadwear()->isVisible());
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_Jacket)
+{
+    // Jacket 是身体外层 (m_bodywear)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::Jacket, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Jacket));
+
+    m_model->setPartVisible(PlayerModelPart::Jacket, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Jacket));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_LeftSleeve)
+{
+    // LeftSleeve 是左袖外层 (m_leftArmwear)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::LeftSleeve, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+
+    m_model->setPartVisible(PlayerModelPart::LeftSleeve, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_RightSleeve)
+{
+    // RightSleeve 是右袖外层 (m_rightArmwear)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::RightSleeve, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+
+    m_model->setPartVisible(PlayerModelPart::RightSleeve, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_LeftPantsLeg)
+{
+    // LeftPantsLeg 是左裤腿外层 (m_leftLegwear)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::LeftPantsLeg, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+
+    m_model->setPartVisible(PlayerModelPart::LeftPantsLeg, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_RightPantsLeg)
+{
+    // RightPantsLeg 是右裤腿外层 (m_rightLegwear)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::RightPantsLeg, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+
+    m_model->setPartVisible(PlayerModelPart::RightPantsLeg, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_Cape)
+{
+    // Cape 是斗篷 (m_cape)
+    m_model->setVisible(true);
+
+    m_model->setPartVisible(PlayerModelPart::Cape, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Cape));
+
+    m_model->setPartVisible(PlayerModelPart::Cape, true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Cape));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetModelVisibilitiesFromFlags_AllVisible)
+{
+    // 设置所有部件可见
+    m_model->setVisible(true);
+    constexpr u8 allParts = 0x7F; // 所有部件掩码
+    m_model->setModelVisibilitiesFromFlags(allParts);
+
+    // 所有外层皮肤部件应该可见（除了 Cape）
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetModelVisibilitiesFromFlags_NoneVisible)
+{
+    // 设置所有部件可见
+    m_model->setVisible(true);
+    // 0 表示所有部件都不可见
+    m_model->setModelVisibilitiesFromFlags(0);
+
+    // 所有外层皮肤部件应该不可见（除了 Cape）
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetModelVisibilitiesFromFlags_SelectiveVisibility)
+{
+    // 只设置部分部件可见
+    m_model->setVisible(true);
+    // Hat (0x40) + Jacket (0x02) + LeftSleeve (0x04) = 0x46
+    constexpr u8 selectiveParts = 0x40 | 0x02 | 0x04;
+    m_model->setModelVisibilitiesFromFlags(selectiveParts);
+
+    // 只有选中的部件可见
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetModelVisibilitiesFromFlags_DoesNotAffectCape)
+{
+    // setModelVisibilitiesFromFlags 不应该影响 Cape
+    m_model->setVisible(true);
+    m_model->setPartVisible(PlayerModelPart::Cape, true);
+
+    // 设置其他部件不可见
+    m_model->setModelVisibilitiesFromFlags(0);
+
+    // Cape 的可见性应该保持不变（由 CapeLayer 控制）
+    // 注意：setModelVisibilitiesFromFlags 不修改 Cape
+    // Cape 的可见性由 CapeLayer 单独处理
+    // 这里验证 Cape 不受影响
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Cape));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetPartVisible_DoesNotAffectOtherParts)
+{
+    // 设置所有部件可见
+    m_model->setVisible(true);
+
+    // 只隐藏 Hat
+    m_model->setPartVisible(PlayerModelPart::Hat, false);
+
+    // 其他部件应该保持可见
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftSleeve));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightSleeve));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::LeftPantsLeg));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::RightPantsLeg));
+}
+
+TEST_F(PlayerModelPartVisibilityTest, SetVisible_OverridesPartVisibility)
+{
+    // 设置所有部件可见
+    m_model->setVisible(true);
+    m_model->setPartVisible(PlayerModelPart::Hat, false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Hat));
+
+    // setVisible(false) 应该隐藏所有部件
+    m_model->setVisible(false);
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_FALSE(m_model->isPartVisible(PlayerModelPart::Cape));
+
+    // setVisible(true) 应该显示所有部件
+    m_model->setVisible(true);
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Hat));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Jacket));
+    EXPECT_TRUE(m_model->isPartVisible(PlayerModelPart::Cape));
+}
+
 } // anonymous namespace
 } // namespace mc::client::renderer
