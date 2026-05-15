@@ -28,9 +28,6 @@
 namespace mc {
 
 ClientDimensionManager::ClientDimensionManager()
-    : m_overworldType(std::make_unique<DimensionType>(DimensionType::overworld()))
-    , m_netherType(std::make_unique<DimensionType>(DimensionType::nether()))
-    , m_endType(std::make_unique<DimensionType>(DimensionType::theEnd()))
 {}
 
 void ClientDimensionManager::initialize(const std::vector<DimensionId>& dimensionInfo)
@@ -43,33 +40,12 @@ void ClientDimensionManager::initialize(const std::vector<DimensionId>& dimensio
         ClientDimensionInfo info;
         info.id = id;
 
-        // 根据 ID 设置默认名称和属性
-        switch (id) {
-            case 0: // Overworld
-                info.name = "minecraft:overworld";
-                info.hasSkyLight = true;
-                info.hasCeiling = false;
-                info.ambientLight = 0.0f;
-                break;
-            case -1: // Nether
-                info.name = "minecraft:the_nether";
-                info.hasSkyLight = false;
-                info.hasCeiling = true;
-                info.ambientLight = 0.1f;
-                break;
-            case 1: // The End
-                info.name = "minecraft:the_end";
-                info.hasSkyLight = false;
-                info.hasCeiling = false;
-                info.ambientLight = 0.0f;
-                break;
-            default:
-                info.name = "minecraft:unknown";
-                info.hasSkyLight = true;
-                info.hasCeiling = false;
-                info.ambientLight = 0.0f;
-                break;
-        }
+        // 使用 DimensionType::fromId() 获取维度属性
+        DimensionType dimType = DimensionType::fromId(id);
+        info.name = dimType.name();
+        info.hasSkyLight = dimType.hasSkyLight();
+        info.hasCeiling = dimType.hasCeiling();
+        info.ambientLight = dimType.ambientLight();
 
         infos.push_back(info);
     }
@@ -194,15 +170,20 @@ const ClientDimensionInfo* ClientDimensionManager::getDimensionInfo(DimensionId 
 
 const DimensionType* ClientDimensionManager::getDimensionType(DimensionId dimension) const
 {
+    // 使用静态变量存储预定义的维度类型
+    // 这些维度类型实例在程序生命周期内保持有效
+    static const DimensionType s_overworldType = DimensionType::overworld();
+    static const DimensionType s_netherType = DimensionType::nether();
+    static const DimensionType s_endType = DimensionType::theEnd();
+
     // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
-    // 这里使用预定义的维度类型，因为 DimensionType 包含服务器没有发送的额外属性
     switch (dimension) {
         case 0: // Overworld
-            return m_overworldType.get();
-        case -1: // Nether (MC 1.16.5 使用 -1)
-            return m_netherType.get();
-        case 1: // The End (MC 1.16.5 使用 1)
-            return m_endType.get();
+            return &s_overworldType;
+        case -1: // Nether
+            return &s_netherType;
+        case 1: // The End
+            return &s_endType;
         default:
             return nullptr;
     }

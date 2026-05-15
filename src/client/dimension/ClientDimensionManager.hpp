@@ -215,11 +215,6 @@ private:
     // 维度ID到维度信息的映射（快速查找用）
     std::unordered_map<DimensionId, size_t> m_dimensionIndexMap;
 
-    // 预定义的维度类型（用于原版三个维度）
-    std::unique_ptr<DimensionType> m_overworldType;
-    std::unique_ptr<DimensionType> m_netherType;
-    std::unique_ptr<DimensionType> m_endType;
-
     bool m_needsRenderReset = false;
 };
 
