@@ -26,6 +26,7 @@
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/tag/ItemTags.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -35,6 +36,7 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -226,10 +228,32 @@ void BeeEntity::tick()
     // MC 1.16.5: 更新愤怒计时器
     updateAnger();
 
-    // 螫刺后死亡处理
+    // MC 1.16.5: 螫刺后逐渐死亡
+    // 参考 BeeEntity.updateAITasks() 中的逻辑:
+    // if (flag) {
+    //     ++this.timeSinceSting;
+    //     if (this.timeSinceSting % 5 == 0 && this.rand.nextInt(MathHelper.clamp(1200 - this.timeSinceSting, 1, 1200)) == 0) {
+    //         this.attackEntityFrom(DamageSource.GENERIC, this.getHealth());
+    //     }
+    // }
     if (m_hasStung) {
-        // 螫刺后逐渐死亡
-        // TODO: 每 tick 有概率死亡
+        ++m_timeSinceSting;
+        // 每 5 tick 检查一次死亡概率
+        if (m_timeSinceSting % 5 == 0 && m_world != nullptr) {
+            // 概率随时间增加：MathHelper.clamp(1200 - timeSinceSting, 1, 1200)
+            // 越久越容易死亡，最长存活 1200 tick = 60 秒
+            i32 deathChance = math::clamp(1200 - m_timeSinceSting, 1, 1200);
+
+            // 获取随机数生成器
+            math::Random& rng = m_world->getRandom();
+
+            // rand.nextInt(deathChance) == 0 时死亡
+            if (rng.nextInt(deathChance) == 0) {
+                // 造成 GENERIC 伤害，伤害量为当前生命值
+                auto damageSource = DamageSources::generic();
+                hurt(damageSource, health());
+            }
+        }
     }
 
     // 水下计时

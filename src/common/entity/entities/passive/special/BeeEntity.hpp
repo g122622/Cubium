@@ -322,6 +322,7 @@ private:
 
     // ========== 计时器 ==========
     i32 m_underWaterTimer = 0;
+    i32 m_timeSinceSting = 0;  ///< 蛰刺后经过的 tick 数
 
     // ========== 常量 ==========
     static constexpr i32 MAX_ANGER_TIME = 1200; // 60秒
