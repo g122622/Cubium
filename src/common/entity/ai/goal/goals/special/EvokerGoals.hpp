@@ -1,0 +1,185 @@
+/*
+* Copyright (c) 2026 Guo Yi
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*/
+
+#pragma once
+
+#include "../../Goal.hpp"
+#include "../../../../../core/Types.hpp"
+#include "../../../../../core/EnumSet.hpp"
+
+namespace mc {
+
+// 前向声明
+class EvokerEntity;
+class LivingEntity;
+
+namespace entity::ai::goal {
+
+/**
+ * @brief 唤魔者施法目标基类
+ *
+ * 提供施法目标的基础框架，包括施法时间和冷却管理。
+ * 参考 MC 1.16.5 SpellcastingIllagerEntity.UseSpellGoal
+ */
+class EvokerSpellGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param evoker 唤魔者实体
+     */
+    explicit EvokerSpellGoal(EvokerEntity* evoker);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+protected:
+    /**
+     * @brief 获取施法准备时间
+     * MC 1.16.5: getCastWarmupTime()
+     */
+    [[nodiscard]] virtual i32 getCastWarmupTime() const { return 0; }
+
+    /**
+     * @brief 获取施法持续时间
+     * MC 1.16.5: getCastingTime()
+     */
+    [[nodiscard]] virtual i32 getCastingTime() const = 0;
+
+    /**
+     * @brief 获取施法冷却时间
+     * MC 1.16.5: getCastingInterval()
+     */
+    [[nodiscard]] virtual i32 getCastingInterval() const = 0;
+
+    /**
+     * @brief 执行施法
+     * MC 1.16.5: castSpell()
+     */
+    virtual void castSpell() = 0;
+
+    /**
+     * @brief 获取施法类型
+     * MC 1.16.5: getSpellType()
+     */
+    [[nodiscard]] virtual i32 getSpellTypeId() const = 0;
+
+    EvokerEntity* m_evoker;
+    i32 m_spellWarmup = 0;
+    i32 m_spellCooldown = 0;
+};
+
+/**
+ * @brief 唤魔者尖牙攻击目标
+ *
+ * 唤魔者使用尖牙攻击敌人。
+ * - 近距离（<3格）：两圈尖牙（内圈5个，外圈8个）
+ * - 远距离：直线16个尖牙
+ *
+ * 施法参数：
+ * - 准备时间：0 ticks
+ * - 施法时间：40 ticks
+ * - 冷却时间：100 ticks
+ *
+ * 参考 MC 1.16.5 EvokerEntity.AttackSpellGoal
+ */
+class EvokerAttackSpellGoal : public EvokerSpellGoal {
+public:
+    explicit EvokerAttackSpellGoal(EvokerEntity* evoker);
+
+    [[nodiscard]] std::string getTypeName() const override { return "EvokerAttackSpellGoal"; }
+
+protected:
+    [[nodiscard]] i32 getCastWarmupTime() const override { return 0; }
+    [[nodiscard]] i32 getCastingTime() const override { return 40; }
+    [[nodiscard]] i32 getCastingInterval() const override { return 100; }
+
+    void castSpell() override;
+    [[nodiscard]] i32 getSpellTypeId() const override { return 2; } // SpellType::Fangs
+
+private:
+    LivingEntity* m_target = nullptr;
+};
+
+/**
+ * @brief 唤魔者召唤恼鬼目标
+ *
+ * 唤魔者召唤3个恼鬼助战。
+ * - 只有当周围恼鬼数量少于8个时才会召唤
+ * - 恼鬼有30-120秒的有限生命
+ *
+ * 施法参数：
+ * - 准备时间：0 ticks
+ * - 施法时间：100 ticks
+ * - 冷却时间：340 ticks
+ *
+ * 参考 MC 1.16.5 EvokerEntity.SummonSpellGoal
+ */
+class EvokerSummonSpellGoal : public EvokerSpellGoal {
+public:
+    explicit EvokerSummonSpellGoal(EvokerEntity* evoker);
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "EvokerSummonSpellGoal"; }
+
+protected:
+    [[nodiscard]] i32 getCastWarmupTime() const override { return 0; }
+    [[nodiscard]] i32 getCastingTime() const override { return 100; }
+    [[nodiscard]] i32 getCastingInterval() const override { return 340; }
+
+    void castSpell() override;
+    [[nodiscard]] i32 getSpellTypeId() const override { return 1; } // SpellType::SummonVex
+
+private:
+    /**
+     * @brief 检查周围恼鬼数量
+     * @return 周围恼鬼数量
+     */
+    [[nodiscard]] i32 countNearbyVexes() const;
+};
+
+/**
+ * @brief 唤魔者施法时的看向目标
+ *
+ * 施法期间让唤魔者看向目标。
+ * 参考 MC 1.16.5 EvokerEntity.CastingSpellGoal
+ */
+class EvokerCastingSpellGoal : public Goal {
+public:
+    explicit EvokerCastingSpellGoal(EvokerEntity* evoker);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "EvokerCastingSpellGoal"; }
+
+private:
+    EvokerEntity* m_evoker;
+};
+
+} // namespace entity::ai::goal
+} // namespace mc

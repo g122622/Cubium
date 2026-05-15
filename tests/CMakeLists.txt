@@ -117,6 +117,8 @@ add_executable(mc_tests
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
+    # EvokerEntity 尖牙攻击和召唤恼鬼测试
+    common/entity/entities/monster/illager/EvokerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp

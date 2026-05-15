@@ -186,9 +186,10 @@ enum class RaiderState {
 ```cpp
 enum class SpellType {
     None,       // 无
-    Summon,     // 召唤（唤魔者召唤恼鬼）
-    Attack,     // 攻击（唤魔者尖牙）
-    Vanish,     // 消失（幻术师分身）
+    SummonVex,  // 召唤恼鬼（唤魔者）
+    Fangs,      // 尖牙攻击（唤魔者）
+    Wololo,     // 唔噜噜（唤魔者，转换羊）
+    Disappear,  // 消失（幻术师分身）
     Blindness   // 失明（幻术师失明攻击）
 };
 ```
@@ -196,9 +197,119 @@ enum class SpellType {
 ### 方法
 
 - `isSpellcasting()`: 是否在施法
-- `getSpellType()`: 获取法术类型
-- `getSpellTicks()`: 获取施法 tick
-- `getSpellCooldown()`: 获取施法冷却
+- `spellType()`: 获取法术类型
+- `spellTicks()`: 获取施法 tick
+- `setSpellType(SpellType)`: 设置法术类型
+- `setSpellTicks(int)`: 设置施法持续时间
+- `clearSpellcasting()`: 清除施法状态
+
+## EvokerEntity
+
+唤魔者是能够施法的灾厄村民，可以召唤尖牙攻击和恼鬼。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.8f | 标准灾厄村民高度 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.5 | MC 1.16.5 |
+| 跟随范围 | 12.0 | MC 1.16.5 |
+
+### 施法能力
+
+唤魔者有两种主要攻击法术：
+
+#### 尖牙攻击 (Fangs Attack)
+
+- **近距离攻击（<3格）**：两圈尖牙
+  - 内圈：5个尖牙，半径1.5，延迟0
+  - 外圈：8个尖牙，半径2.5，延迟3
+- **远距离攻击**：直线16个尖牙
+  - 朝目标方向直线排列
+  - 延迟递增
+- **施法参数**：
+  - 准备时间：0 ticks
+  - 施法时间：40 ticks
+  - 冷却时间：100 ticks
+
+#### 召唤恼鬼 (Summon Vex)
+
+- 召唤3个恼鬼助战
+- 只有当周围恼鬼数量少于8个时才会召唤
+- 恼鬼有30-120秒的有限生命
+- **施法参数**：
+  - 准备时间：0 ticks
+  - 施法时间：100 ticks
+  - 冷却时间：340 ticks
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 1 | EvokerCastingSpellGoal | 施法时看向目标 |
+| 2 | AvoidEntityGoal | 避开玩家（距离8格） |
+| 4 | EvokerSummonSpellGoal | 召唤恼鬼 |
+| 5 | EvokerAttackSpellGoal | 尖牙攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### AI Goals 实现
+
+EvokerEntity 使用专用 AI Goals：
+
+- **EvokerSpellGoal** - 施法目标基类，管理施法准备时间和冷却
+- **EvokerAttackSpellGoal** - 尖牙攻击目标
+- **EvokerSummonSpellGoal** - 召唤恼鬼目标
+- **EvokerCastingSpellGoal** - 施法期间看向目标
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.EvokerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── AttackSpellGoal: 尖牙攻击目标
+│   ├── castSpell(): 执行尖牙攻击
+│   └── getCastingTime(): 40 ticks
+├── SummonSpellGoal: 召唤恼鬼目标
+│   ├── castSpell(): 召唤3个恼鬼
+│   └── getCastingTime(): 100 ticks
+└── CastingSpellGoal: 施法时看向目标
+```
+
+## EvokerFangsEntity
+
+唤魔者尖牙是唤魔者召唤的攻击实体。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.5f | 碰撞箱宽度 |
+| 高度 | 0.8f | 碰撞箱高度 |
+| 伤害 | 6.0 | 魔法伤害 |
+| 生命时长 | 22 ticks | 出现到消失 |
+
+### 攻击机制
+
+1. 预热延迟：尖牙出现前有预热时间
+2. 伤害时机：在 warmupDelay = -8 时造成伤害
+3. 范围伤害：对碰撞箱扩展0.2范围内的 LivingEntity 造成伤害
+4. 队伍判断：不伤害唤魔者及其队友
+5. 自动消失：攻击后自动消失
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.projectile.EvokerFangsEntity
+├── tick(): 更新状态和造成伤害
+├── damage(): 对范围内实体造成伤害
+└── getAnimationProgress(): 获取动画进度
+```
 
 ## 属性值对齐状态
 
@@ -216,6 +327,7 @@ enum class SpellType {
 | 测试文件 | 测试内容 |
 |---------|---------|
 | `VexEntityTest.cpp` | VexEntity 穿墙能力、属性、有限生命、构造、充电状态 |
+| `EvokerEntityTest.cpp` | EvokerEntity 构造、属性、施法状态、EvokerFangsEntity |
 
 ## 相关文档
 
