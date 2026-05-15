@@ -25,6 +25,8 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntityType.hpp"
+#include "../../../blockentity/processing/BrewingStandEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -78,12 +80,15 @@ const CollisionShape& BrewingStandBlock::getCollisionShape(const BlockState& sta
 
 int BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // TODO: 从酿造台方块实体获取比较器信号
-    // 需要实现 BrewingStandEntity
-    // return Container.calcRedstone(tileEntity);
+    // 从酿造台方块实体获取比较器信号
+    // 参考 MC 1.16.5 BrewingStandBlock.getComparatorInputOverride
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
+        auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
+        return brewingStand->getComparatorSignal();
+    }
 
     return 0;
 }

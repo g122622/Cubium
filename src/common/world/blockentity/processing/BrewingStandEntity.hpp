@@ -179,6 +179,18 @@ public:
      */
     [[nodiscard]] bool hasBottle(i32 slot) const;
 
+    /**
+     * @brief 获取红石比较器信号强度
+     *
+     * 计算方式参考 MC 1.16.5 Container.calcRedstoneFromInventory:
+     * 1. 计算每个槽位的填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
+     * 2. 平均填充率 = 所有槽位填充率之和 / 总槽位数
+     * 3. 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
+     *
+     * @return 红石信号强度 (0-15)
+     */
+    [[nodiscard]] i32 getComparatorSignal() const;
+
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;

@@ -65,6 +65,37 @@ bool BrewingStandEntity::hasBottle(i32 slot) const
     return potion::PotionBrewing::isPotionItem(stack);
 }
 
+i32 BrewingStandEntity::getComparatorSignal() const
+{
+    // 参考 MC 1.16.5 Container.calcRedstoneFromInventory
+    // 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
+    // 槽位填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
+
+    i32 nonEmptySlotCount = 0;
+    f32 totalFillRatio = 0.0f;
+
+    for (i32 slot = 0; slot < TOTAL_SLOTS; ++slot) {
+        const ItemStack& stack = m_inventory.getItem(slot);
+        if (!stack.isEmpty()) {
+            // 计算该槽位的填充率
+            i32 stackLimit = std::min(getMaxStackSize(), stack.getMaxStackSize());
+            totalFillRatio += static_cast<f32>(stack.getCount()) / static_cast<f32>(stackLimit);
+            ++nonEmptySlotCount;
+        }
+    }
+
+    // 计算平均填充率
+    f32 averageFillRatio = totalFillRatio / static_cast<f32>(TOTAL_SLOTS);
+
+    // 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
+    i32 signal = static_cast<i32>(std::floor(averageFillRatio * 14.0f));
+    if (nonEmptySlotCount > 0) {
+        signal += 1;
+    }
+
+    return std::min(signal, 15);
+}
+
 void BrewingStandEntity::tick(IWorld& world)
 {
     bool brewing = isBrewing();
