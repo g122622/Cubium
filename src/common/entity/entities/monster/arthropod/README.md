@@ -37,15 +37,24 @@ Entity
 - 只在光照等级 < 7 时攻击
 - 白天中立，夜间敌对
 - 中毒效果免疫（节肢类特性）
+- 不在阳光下燃烧
 
-**AI 目标**：
+**AI 目标 (MC 1.16.5 已实现)**：
 | 优先级 | Goal | 说明 |
 |--------|------|------|
-| 0 | SwimGoal | 游泳 |
-| 2 | MeleeAttackGoal | 近战攻击 |
-| 3 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 7 | LookAtGoal | 看向玩家 |
-| 8 | LookRandomlyGoal | 随机看向 |
+| 1 | SwimGoal | 游泳 |
+| 3 | LeapAtTargetGoal | 跳向目标（力度0.4F） |
+| 4 | SpiderAttackGoal | 近战攻击（带光照条件检测） |
+| 5 | WaterAvoidingRandomWalkingGoal | 避水随机行走（速度0.8D） |
+| 6 | LookAtGoal | 看向玩家（8格） |
+| 6 | LookRandomlyGoal | 随机看向 |
+
+**目标选择 (MC 1.16.5 已实现)**：
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击 |
+| 2 | SpiderTargetGoal\<Player\> | 攻击玩家（黑暗条件） |
+| 3 | SpiderTargetGoal\<IronGolem\> | 攻击铁傀儡（黑暗条件，待启用） |
 
 **属性值**：
 | 属性 | 值 |
@@ -74,8 +83,37 @@ bool shouldAttack(LivingEntity* target) const {
 
 **与蜘蛛的区别**：
 - 更小的碰撞箱（0.7 × 0.5 vs 1.4 × 0.9）
-- 攻击造成中毒效果（普通难度 7 秒，困难 15 秒）
+- 攻击造成中毒效果：
+  - 简单难度：无中毒
+  - 普通难度：7秒中毒I
+  - 困难难度：15秒中毒I
 - 只在废弃矿井生成
+- 继承蜘蛛的光照敏感攻击特性
+
+**中毒攻击实现**：
+```cpp
+bool CaveSpiderEntity::attackEntityAsMob(LivingEntity& target)
+{
+    // 首先调用父类方法执行基础攻击
+    if (!SpiderEntity::attackEntityAsMob(target)) {
+        return false;
+    }
+    
+    // 根据难度应用中毒效果
+    Difficulty difficulty = m_world->difficulty();
+    i32 poisonDuration = 0;
+    if (difficulty == Difficulty::Normal) {
+        poisonDuration = 7; // 7秒
+    } else if (difficulty == Difficulty::Hard) {
+        poisonDuration = 15; // 15秒
+    }
+    
+    if (poisonDuration > 0) {
+        target.addEffect(EffectInstance(EffectType::Poison, poisonDuration * 20, 0));
+    }
+    return true;
+}
+```
 
 ### 末影螨 (EndermiteEntity)
 

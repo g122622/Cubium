@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -32,13 +32,33 @@ namespace mc {
 /**
  * @brief 蜘蛛实体
  *
- * 可以爬墙的敌对生物。
+ * 可以爬墙的敌对生物。蜘蛛具有独特的光照敏感攻击特性：
+ * - 只在黑暗中攻击玩家和铁傀儡（光照等级 < 7）
+ * - 白天或明亮环境中保持中立
  *
  * 特性：
  * - 爬墙：可以垂直爬上墙壁
- * - 夜间攻击：仅在黑暗中攻击玩家
- * - 中立：白天中立
- * - 攀爬：可以攀爬
+ * - 夜间攻击：仅在黑暗中攻击
+ * - 白天中立：在明亮环境中不主动攻击
+ * - 不燃烧：不在阳光下燃烧
+ * - 节肢生物：对节肢杀手附魔免疫效果敏感
+ *
+ * AI 目标 (MC 1.16.5):
+ * | 优先级 | Goal | 说明 |
+ * |--------|------|------|
+ * | 1 | SwimGoal | 游泳 |
+ * | 3 | LeapAtTargetGoal | 跳向目标（力度0.4F） |
+ * | 4 | SpiderAttackGoal | 近战攻击（带光照条件） |
+ * | 5 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+ * | 6 | LookAtGoal | 看向玩家 |
+ * | 6 | LookRandomlyGoal | 随机看向 |
+ *
+ * 目标选择 (MC 1.16.5):
+ * | 优先级 | Goal | 说明 |
+ * |--------|------|------|
+ * | 1 | HurtByTargetGoal | 被攻击后反击 |
+ * | 2 | SpiderTargetGoal\<Player\> | 攻击玩家（黑暗条件） |
+ * | 3 | SpiderTargetGoal\<IronGolem\> | 攻击铁傀儡（黑暗条件） |
  *
  * 参考 MC 1.16.5 SpiderEntity
  */

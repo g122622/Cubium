@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -29,6 +29,9 @@
 
 namespace mc {
 
+// 前向声明
+class LivingEntity;
+
 /**
  * @brief 洞穴蜘蛛实体
  *
@@ -38,6 +41,7 @@ namespace mc {
  * - 中毒：攻击会造成中毒效果
  * - 小型：比普通蜘蛛更小
  * - 爬墙：可以爬墙
+ * - 黑暗中敌对：继承蜘蛛的光照敏感攻击特性
  *
  * 参考 MC 1.16.5 CaveSpiderEntity
  */
@@ -65,6 +69,20 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    // ========== 攻击 ==========
+
+    /**
+     * @brief 作为生物攻击实体
+     *
+     * 洞穴蜘蛛攻击会造成中毒效果：
+     * - 简单难度：无中毒
+     * - 普通难度：7秒中毒I
+     * - 困难难度：15秒中毒I
+     *
+     * 参考 MC 1.16.5 CaveSpiderEntity.attackEntityAsMob()
+     */
+    bool attackEntityAsMob(LivingEntity& target) override;
+
     // ========== 中毒攻击 ==========
 
     /**
@@ -74,6 +92,7 @@ public:
 
     /**
      * @brief 获取中毒持续时间（秒）
+     * @note 返回的是默认值，实际持续时间取决于游戏难度
      */
     [[nodiscard]] i32 getPoisonDuration() const { return m_poisonDuration; }
 
@@ -89,11 +108,21 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.45f; }
 
+    /**
+     * @brief 获取实体宽度
+     */
+    [[nodiscard]] f32 width() const override { return 0.7f; }
+
+    /**
+     * @brief 获取实体高度
+     */
+    [[nodiscard]] f32 height() const override { return 0.5f; }
+
 protected:
     void registerAttributes() override;
 
 private:
-    i32 m_poisonDuration = 7; // 默认7秒中毒
+    i32 m_poisonDuration = 7; // 默认7秒中毒（普通难度）
 };
 
 } // namespace mc
