@@ -16,10 +16,8 @@
 
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../world/World.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../../../../core/Types.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 
 namespace mc {
 class BatEntity;

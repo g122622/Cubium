@@ -6,18 +6,26 @@
  */
 
 #include "BatGoals.hpp"
-#include "../../entities/passive/ambient/BatEntity.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../../core/Entity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockState.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../world/World.hpp"
+#include "../../../../../util/assert/AssertMacros.hpp"
+#include "../../../../../util/math/MathConstants.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../entities/passive/ambient/BatEntity.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/block/BlockState.hpp"
 
 namespace mc::entity::ai::goal {
+
+namespace {
+// 符号函数：返回 x 的符号（-1, 0, 1）
+f64 signum(f64 x)
+{
+    if (x > 0.0) return 1.0;
+    if (x < 0.0) return -1.0;
+    return 0.0;
+}
+} // namespace
 
 // ============================================================================
 // BatRandomFlyGoal
@@ -106,9 +114,9 @@ void BatRandomFlyGoal::tick()
     // 条件4：到达目标点（距离<2）
     if (!needNewTarget && m_hasTarget) {
         math::Vector3 currentPos = m_bat->position();
-        f32 dx = static_cast<f32>(m_targetPos.x()) + 0.5f - currentPos.x;
-        f32 dy = static_cast<f32>(m_targetPos.y()) + 0.1f - currentPos.y;
-        f32 dz = static_cast<f32>(m_targetPos.z()) + 0.5f - currentPos.z;
+        f32 dx = static_cast<f32>(m_targetPos.x) + 0.5f - currentPos.x;
+        f32 dy = static_cast<f32>(m_targetPos.y) + 0.1f - currentPos.y;
+        f32 dz = static_cast<f32>(m_targetPos.z) + 0.5f - currentPos.z;
         f32 distanceSq = dx * dx + dy * dy + dz * dz;
         if (distanceSq < 4.0f) { // 距离平方 < 2^2 = 4
             needNewTarget = true;
@@ -124,9 +132,9 @@ void BatRandomFlyGoal::tick()
     if (m_hasTarget) {
         // MC 1.16.5: BatEntity 第150-159行
         // 计算到目标的方向
-        f32 dx = static_cast<f32>(m_targetPos.x()) + 0.5f - m_bat->position().x;
-        f32 dy = static_cast<f32>(m_targetPos.y()) + 0.1f - m_bat->position().y;
-        f32 dz = static_cast<f32>(m_targetPos.z()) + 0.5f - m_bat->position().z;
+        f32 dx = static_cast<f32>(m_targetPos.x) + 0.5f - m_bat->position().x;
+        f32 dy = static_cast<f32>(m_targetPos.y) + 0.1f - m_bat->position().y;
+        f32 dz = static_cast<f32>(m_targetPos.z) + 0.5f - m_bat->position().z;
 
         math::Vector3 currentVel = m_bat->velocity();
 
@@ -134,9 +142,9 @@ void BatRandomFlyGoal::tick()
         // signum(dx) * 0.5 - vel.x) * 0.1
         // Y轴调整更强 (0.7 而非 0.5)
         math::Vector3 newVel(
-            static_cast<f32>((math::signum(static_cast<f64>(dx)) * 0.5 - currentVel.x) * 0.1),
-            static_cast<f32>((math::signum(static_cast<f64>(dy)) * 0.7 - currentVel.y) * 0.1),
-            static_cast<f32>((math::signum(static_cast<f64>(dz)) * 0.5 - currentVel.z) * 0.1)
+            static_cast<f32>((signum(static_cast<f64>(dx)) * 0.5 - currentVel.x) * 0.1),
+            static_cast<f32>((signum(static_cast<f64>(dy)) * 0.7 - currentVel.y) * 0.1),
+            static_cast<f32>((signum(static_cast<f64>(dz)) * 0.5 - currentVel.z) * 0.1)
         );
 
         m_bat->setVelocity(newVel);
@@ -195,7 +203,7 @@ bool BatRandomFlyGoal::isTargetValid(const BlockPos& pos) const
     IWorld* world = m_bat->world();
 
     // Y 必须 >= 1（世界最低高度限制）
-    if (pos.y() < 1) {
+    if (pos.y < 1) {
         return false;
     }
 
