@@ -152,13 +152,47 @@ special/
   - 继承父母的信任玩家（最多 2 个，按添加顺序）
   - 设置为幼体状态
 
-### 行为
-| 优先级 | Goal | 说明 |
-|--------|------|------|
-| 0 | SwimGoal | 在水中游泳 |
-| 1 | EscapeDangerGoal | 逃离危险 |
-| 2 | AttackGoal | 攻击目标 |
-| 3 | FollowParentGoal | 幼体跟随父母 |
+### 叼物品系统
+- `isHoldingItem()`: 是否叼着物品
+- `getHeldItem()`: 获取叼着的物品
+- `setHeldItem(item)`: 设置叼着的物品
+- `dropHeldItem()`: 丢弃物品，在世界中生成物品实体（使用 ItemDropHelper）
+
+### 行为目标 (MC 1.16.5)
+| 优先级 | Goal | 说明 | 状态 |
+|--------|------|------|------|
+| 0 | SwimGoal | 在水中游泳 | ✅ |
+| 1 | JumpGoal | 跳跃挣扎 | 待实现 |
+| 2 | PanicGoal | 恐慌逃跑 | ✅ |
+| 3 | MateGoal | 繁殖 | ✅ |
+| 3 | TemptGoal | 甜浆果诱惑 | ✅ 已实现 |
+| 4 | AvoidEntityGoal | 躲避未信任的玩家 | ✅ 已实现 |
+| 4 | AvoidEntityGoal | 躲避狼 | 待实现 |
+| 4 | AvoidEntityGoal | 躲避北极熊 | 待实现 |
+| 5 | FollowTargetGoal | 追踪猎物 | 待实现 |
+| 6 | PounceGoal | 扑击攻击 | 待实现 |
+| 6 | FindShelterGoal | 寻找庇护所 | 待实现 |
+| 7 | BiteGoal | 咬击攻击 | 待实现 |
+| 7 | SleepGoal | 睡觉 | 待实现 |
+| 8 | FollowGoal | 跟随父母 | ✅ |
+| 9 | StrollGoal | 夜间村庄漫步 | 待实现 |
+| 10 | EatBerriesGoal | 吃甜浆果 | 待实现 |
+| 10 | LeapAtTargetGoal | 跳向目标 | 待实现 |
+| 11 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 | ✅ |
+| 11 | FindItemsGoal | 寻找物品 | 待实现 |
+| 12 | WatchGoal | 观察玩家 | 待实现 |
+| 13 | SitAndLookGoal | 坐下环顾 | 待实现 |
+
+### AvoidEntityGoal 配置 (MC 1.16.5)
+- **躲避玩家**: 检测距离 16 格，近距速度 1.6，远距速度 1.4
+- **躲避狼**: 检测距离 8 格（未驯服的狼）
+- **躲避北极熊**: 检测距离 8 格
+- **信任检查**: 信任的玩家、创造模式玩家、旁观者不躲避
+
+### TemptGoal 配置 (MC 1.16.5)
+- **跟随速度**: 1.0
+- **诱惑物品**: 甜浆果 (Items::SWEET_BERRIES)
+- **不被玩家移动吓跑**: false
 
 ### 属性
 | 属性 | 值 | 说明 |
@@ -552,6 +586,11 @@ void TurtleEntity::layEgg();
   - 眼睛高度测试（成体/幼体差异）
   - 睡眠状态测试
   - 叼物品功能测试
+  - dropHeldItem 测试（在世界生成物品实体、空物品不崩溃）
+  - AI Goal 注册测试
+    - AvoidEntityGoal 注册验证（优先级 4）
+    - TemptGoal 注册验证（优先级 3）
+    - 基础 AI 目标验证
 - **PolarBearEntityTest.cpp**: 北极熊实体测试（20 个测试）
   - 基本属性测试
     - 构造函数默认值

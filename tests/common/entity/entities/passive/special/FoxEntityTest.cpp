@@ -396,6 +396,8 @@ TEST_F(FoxEntityTest, HeldItem_DefaultNotHolding)
 TEST_F(FoxEntityTest, HeldItem_CanSetAndClear)
 {
     FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
 
     auto item = std::make_unique<ItemStack>(Items::SWEET_BERRIES, 1);
     fox.setHeldItem(std::move(item));
@@ -404,9 +406,128 @@ TEST_F(FoxEntityTest, HeldItem_CanSetAndClear)
     EXPECT_NE(fox.getHeldItem(), nullptr);
     EXPECT_EQ(fox.getHeldItem()->getItem(), Items::SWEET_BERRIES);
 
+    // dropHeldItem 需要有效的 world 来生成物品实体
     fox.dropHeldItem();
     EXPECT_FALSE(fox.isHoldingItem());
     EXPECT_EQ(fox.getHeldItem(), nullptr);
+}
+
+// ========== dropHeldItem 测试 ==========
+
+TEST_F(FoxEntityTest, DropHeldItem_DropsItemInWorld)
+{
+    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
+
+    // 设置持有物品
+    auto item = std::make_unique<ItemStack>(Items::SWEET_BERRIES, 16);
+    fox.setHeldItem(std::move(item));
+
+    EXPECT_TRUE(fox.isHoldingItem());
+
+    // dropHeldItem 应该在世界中生成物品实体
+    fox.dropHeldItem();
+
+    // 物品应该被清空
+    EXPECT_FALSE(fox.isHoldingItem());
+    EXPECT_EQ(fox.getHeldItem(), nullptr);
+
+    // 世界应该生成了一个物品实体
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
+}
+
+TEST_F(FoxEntityTest, DropHeldItem_DoesNothingWhenEmpty)
+{
+    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
+
+    // 没有持有物品
+    EXPECT_FALSE(fox.isHoldingItem());
+
+    // dropHeldItem 应该安全地什么都不做
+    EXPECT_NO_THROW(fox.dropHeldItem());
+
+    // 不应该生成任何实体
+    EXPECT_EQ(m_world.spawnedEntities().size(), 0u);
+}
+
+// ========== AI Goal 注册测试 ==========
+
+TEST_F(FoxEntityTest, Goals_AvoidEntityGoalRegistered)
+{
+    // [已完成] 验证 AvoidEntityGoal 已正确注册 - 2026/05/16
+    // MC 1.16.5: 狐狸躲避未信任的玩家，检测距离 16 格，逃跑速度 1.6/1.4
+    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+
+    const auto& goals = fox.goalSelector().getAllGoals();
+
+    // 验证至少有一个目标
+    EXPECT_GT(goals.size(), 0u) << "FoxEntity should have AI goals registered";
+
+    // 验证有 AvoidEntityGoal 类型的目标
+    bool hasAvoidEntityGoal = false;
+    for (const auto& goal : goals) {
+        if (goal.getGoal()->getTypeName() == "AvoidEntityGoal") {
+            hasAvoidEntityGoal = true;
+            // 验证优先级为 4 (MC 1.16.5)
+            EXPECT_EQ(goal.getPriority(), 4);
+            break;
+        }
+    }
+    EXPECT_TRUE(hasAvoidEntityGoal) << "FoxEntity should have AvoidEntityGoal registered";
+}
+
+TEST_F(FoxEntityTest, Goals_TemptGoalRegistered)
+{
+    // [已完成] 验证 TemptGoal 已正确注册 - 2026/05/16
+    // MC 1.16.5: 狐狸被甜浆果诱惑，跟随速度 1.0
+    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+
+    const auto& goals = fox.goalSelector().getAllGoals();
+
+    // 验证有 TemptGoal 类型的目标
+    bool hasTemptGoal = false;
+    for (const auto& goal : goals) {
+        if (goal.getGoal()->getTypeName() == "TemptGoal") {
+            hasTemptGoal = true;
+            // 验证优先级为 3 (MC 1.16.5)
+            EXPECT_EQ(goal.getPriority(), 3);
+            break;
+        }
+    }
+    EXPECT_TRUE(hasTemptGoal) << "FoxEntity should have TemptGoal registered for sweet berries";
+}
+
+TEST_F(FoxEntityTest, Goals_HasBasicAnimalGoals)
+{
+    // 验证狐狸注册了基本的 AI 目标
+    // 注意：MC 1.16.5 中 FoxEntity 自己注册所有目标，不依赖 AnimalEntity 基类
+    // AnimalEntity::registerGoals() 的注释说明基类不注册任何目标
+    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    fox.setWorld(&m_world);
+
+    const auto& goals = fox.goalSelector().getAllGoals();
+
+    // 验证至少有 AvoidEntityGoal 和 TemptGoal（我们实现的）
+    bool hasAvoidEntityGoal = false;
+    bool hasTemptGoal = false;
+
+    for (const auto& goal : goals) {
+        const std::string typeName = goal.getGoal()->getTypeName();
+        if (typeName == "AvoidEntityGoal") hasAvoidEntityGoal = true;
+        if (typeName == "TemptGoal") hasTemptGoal = true;
+    }
+
+    // 验证我们实现的目标存在
+    EXPECT_TRUE(hasAvoidEntityGoal) << "FoxEntity should have AvoidEntityGoal for avoiding untrusted players";
+    EXPECT_TRUE(hasTemptGoal) << "FoxEntity should have TemptGoal for sweet berries";
+
+    // 验证目标数量大于0
+    EXPECT_GT(goals.size(), 0u) << "FoxEntity should have AI goals registered";
 }
 
 } // namespace
