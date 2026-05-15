@@ -32,6 +32,7 @@ namespace mc {
 // 前向声明
 class EvokerEntity;
 class LivingEntity;
+class SheepEntity;
 
 namespace entity::ai::goal {
 
@@ -179,6 +180,51 @@ public:
 
 private:
     EvokerEntity* m_evoker;
+};
+
+/**
+ * @brief 唤魔者唔噜噜法术目标（Wololo）
+ *
+ * 将附近的蓝色羊变成红色羊。
+ * - 只有在没有攻击目标时才会执行
+ * - 搜索16格内的蓝色羊
+ * - 施法后将其羊毛颜色变为红色
+ *
+ * 施法参数：
+ * - 准备时间：40 ticks
+ * - 施法时间：60 ticks
+ * - 冷却时间：140 ticks
+ *
+ * 参考 MC 1.16.5 EvokerEntity.WololoSpellGoal
+ */
+class EvokerWololoSpellGoal : public Goal {
+public:
+    explicit EvokerWololoSpellGoal(EvokerEntity* evoker);
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "EvokerWololoSpellGoal"; }
+
+private:
+    /**
+     * @brief 寻找附近的蓝色羊
+     * @return 如果找到返回羊实体指针，否则返回 nullptr
+     */
+    [[nodiscard]] class SheepEntity* findBlueSheep() const;
+
+    EvokerEntity* m_evoker;
+    SheepEntity* m_wololoTarget = nullptr;
+    i32 m_spellWarmup = 0;
+    i32 m_spellCooldown = 0;
+
+    // MC 1.16.5 参数
+    static constexpr i32 CAST_WARMUP_TIME = 40;     // 准备时间 40 ticks
+    static constexpr i32 CASTING_TIME = 60;         // 施法时间 60 ticks
+    static constexpr i32 CASTING_INTERVAL = 140;    // 冷却时间 140 ticks
+    static constexpr f32 SEARCH_RANGE = 16.0f;      // 搜索范围 16 格
 };
 
 } // namespace entity::ai::goal

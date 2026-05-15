@@ -24,9 +24,11 @@
 #include "EvokerGoals.hpp"
 
 #include "../../../../entities/monster/illager/EvokerEntity.hpp"
+#include "../../../../entities/passive/basic/SheepEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include "../../GoalFlag.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
 
@@ -238,6 +240,126 @@ void EvokerCastingSpellGoal::tick()
         // TODO: 实现 LookController
         // m_evoker->getLookController().setLookPositionWithEntity(target, ...);
     }
+}
+
+// ============================================================================
+// EvokerWololoSpellGoal - 唔噜噜法术（将蓝色羊变成红色羊）
+// ============================================================================
+
+EvokerWololoSpellGoal::EvokerWololoSpellGoal(EvokerEntity* evoker)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_evoker(evoker)
+{
+    MC_ASSERT(evoker != nullptr);
+}
+
+bool EvokerWololoSpellGoal::shouldExecute()
+{
+    if (m_evoker == nullptr) {
+        return false;
+    }
+
+    // MC 1.16.5: 有攻击目标时不执行 Wololo
+    LivingEntity* attackTarget = m_evoker->attackTarget();
+    if (attackTarget != nullptr && attackTarget->isAlive()) {
+        return false;
+    }
+
+    // 正在施法时不执行
+    if (m_evoker->isSpellcasting()) {
+        return false;
+    }
+
+    // 冷却中不执行
+    if (m_spellCooldown > 0) {
+        return false;
+    }
+
+    // 寻找蓝色羊
+    m_wololoTarget = findBlueSheep();
+    return m_wololoTarget != nullptr;
+}
+
+void EvokerWololoSpellGoal::startExecuting()
+{
+    m_spellWarmup = CAST_WARMUP_TIME;
+    m_evoker->startCasting(static_cast<i32>(SpellcastingIllagerEntity::SpellType::Wololo));
+}
+
+void EvokerWololoSpellGoal::resetTask()
+{
+    m_spellCooldown = CASTING_INTERVAL;
+    m_wololoTarget = nullptr;
+    m_evoker->clearSpellcasting();
+}
+
+void EvokerWololoSpellGoal::tick()
+{
+    if (m_evoker == nullptr) {
+        return;
+    }
+
+    // 准备阶段：看向目标羊
+    if (m_spellWarmup > 0) {
+        m_spellWarmup--;
+        if (m_wololoTarget != nullptr && m_wololoTarget->isAlive()) {
+            // TODO: 实现 LookController
+            // m_evoker->getLookController().setLookPositionWithEntity(m_wololoTarget, ...);
+        }
+        // 当 warmup 结束时，执行施法
+        if (m_spellWarmup == 0) {
+            // 将蓝色羊变成红色羊
+            if (m_wololoTarget != nullptr && m_wololoTarget->isAlive()) {
+                m_wololoTarget->setFleeceColor(DyeColor::Red);
+            }
+        }
+        return;
+    }
+
+    // 冷却递减
+    if (m_spellCooldown > 0) {
+        m_spellCooldown--;
+    }
+}
+
+SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
+{
+    // MC 1.16.5: world.getTargettableEntitiesWithinAABB(SheepEntity.class, predicate, evoker, evoker.getBoundingBox().grow(16.0D, 4.0D, 16.0D))
+    if (m_evoker == nullptr || m_evoker->world() == nullptr) {
+        return nullptr;
+    }
+
+    IWorld* world = m_evoker->world();
+
+    // 获取唤魔者的碰撞箱并向各方向扩展（X/Z 16格，Y 4格）
+    AxisAlignedBB searchBox = m_evoker->boundingBox().expand(SEARCH_RANGE, 4.0f, SEARCH_RANGE);
+
+    // 获取范围内的所有实体
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_evoker);
+
+    // 收集所有蓝色羊
+    std::vector<SheepEntity*> blueSheep;
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
+        }
+        // 检查是否为羊实体
+        if (entity->legacyType() == LegacyEntityType::Sheep) {
+            SheepEntity* sheep = static_cast<SheepEntity*>(entity);
+            // 检查羊毛颜色是否为蓝色
+            if (sheep->getFleeceColor() == DyeColor::Blue) {
+                blueSheep.push_back(sheep);
+            }
+        }
+    }
+
+    if (blueSheep.empty()) {
+        return nullptr;
+    }
+
+    // MC 1.16.5: 随机选择一只蓝色羊
+    math::Random& rng = world->getRandom();
+    return blueSheep[rng.nextInt(static_cast<i32>(blueSheep.size()))];
 }
 
 } // namespace entity::ai::goal

@@ -40,6 +40,8 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
+#include "../../../entities/passive/golem/IronGolemEntity.hpp"
+#include "../../../entities/villager/VillagerEntity.hpp"
 #include "../../player/Player.hpp"
 #include "../../projectile/OtherProjectiles.hpp"
 #include <cmath>
@@ -242,7 +244,7 @@ void EvokerEntity::registerGoals()
 {
     // MC 1.16.5 EvokerEntity.registerGoals()
     // 优先级: 0 = 游泳, 1 = 施法时看向目标, 2 = 避开玩家, 4 = 召唤恼鬼, 5 = 尖牙攻击,
-    //         8 = 随机漫步, 9 = 看向玩家, 10 = 看向生物
+    //         6 = 唔噜噜法术（转换蓝色羊）, 8 = 随机漫步, 9 = 看向玩家, 10 = 看向生物
 
     goalSelector().addGoal(0, new entity::ai::goal::SwimGoal(this));
     goalSelector().addGoal(1, new entity::ai::goal::EvokerCastingSpellGoal(this));
@@ -253,6 +255,7 @@ void EvokerEntity::registerGoals()
                                  }));
     goalSelector().addGoal(4, new entity::ai::goal::EvokerSummonSpellGoal(this));
     goalSelector().addGoal(5, new entity::ai::goal::EvokerAttackSpellGoal(this));
+    goalSelector().addGoal(6, new entity::ai::goal::EvokerWololoSpellGoal(this));
     goalSelector().addGoal(8, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
     goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f,
                                  [](const LivingEntity* e) -> bool {
@@ -267,8 +270,8 @@ void EvokerEntity::registerGoals()
     // MC 1.16.5: HurtByTargetGoal 会呼唤其他灾厄村民
     targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
     targetSelector().addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
-    // TODO: 需要添加针对村民的目标选择
-    // targetSelector().addGoal(3, new NearestAttackableTargetGoal<VillagerEntity>(this, false));
+    targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<entity::VillagerEntity>(this, false));
+    targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));
 }
 
 void EvokerEntity::registerAttributes()
