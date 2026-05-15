@@ -224,6 +224,18 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 水敏感检测 ==========
+
+    /**
+     * @brief 检查是否在水中或雨中
+     *
+     * MC 1.16.5: Entity.isInWaterOrRainOrBubbleColumn()
+     * 对于末影人，气泡柱不会造成伤害，所以只检查水和雨。
+     *
+     * @return 如果在水中或雨中返回 true
+     */
+    [[nodiscard]] bool isInWaterOrRain() const;
+
     // ========== 属性 ==========
 
     /**
@@ -283,11 +295,6 @@ private:
     static constexpr f32 TELEPORT_RANGE = 64.0f;     // 瞬移范围
     static constexpr f32 WATER_DAMAGE = 1.0f;        // 水伤害
     static constexpr i32 WATER_DAMAGE_INTERVAL = 10; // 水伤害间隔
-
-    /**
-     * @brief 检查是否在水中或雨中
-     */
-    [[nodiscard]] bool isInWaterOrRain() const;
 };
 
 } // namespace mc

@@ -172,6 +172,42 @@ Vector3 actualMovement = physics->moveEntity(entityBox, desiredMovement, stepHei
 - `Entity::waterHeight()` / `Entity::lavaHeight()` - 流体浸入高度（0.0-1.0）
 - `Entity::updateEnvironmentState()` - 更新流体状态，遍历碰撞箱内的方块
 
+### 雨天检测（MC 1.16.5 对齐）
+- `Entity::isInRain()` - 检查实体是否在雨中
+- `Entity::isWet()` - 检查实体是否湿润（水中或雨中）
+
+**`isInRain()` 实现细节**（参考 MC 1.16.5 Entity.isInRain()）：
+
+检查实体是否在雨中，使用双位置检测：
+1. **脚底位置**：`floor(position.x), floor(position.y), floor(position.z)`
+2. **碰撞盒顶部位置**：`floor(position.x), floor(boundingBox.maxY), floor(position.z)`
+
+只要任一位置可以降雨（`world.canRainAt(pos)` 返回 true），就认为实体在雨中。
+
+**检测条件**：
+- 世界存在且正在下雨（`world.isRaining()` 返回 true）
+- 至少一个检测位置可以降雨（天空可见、生物群系允许降水、温度足够高）
+
+**使用示例**：
+```cpp
+// 末影人在雨中受到伤害
+if (isInWaterOrRain()) {
+    auto damageSource = DamageSources::drown();
+    hurt(damageSource, WATER_DAMAGE);
+    teleportAwayFromWater();
+}
+
+// 狼湿润时毛发颜色变化
+if (isWet()) {
+    // 渲染湿润效果
+}
+```
+
+**水敏感生物**：
+- 末影人（Enderman） - 水和雨中受到伤害
+- 烈焰人（Blaze） - 水中受到伤害
+- 雪傀儡（SnowGolem） - 水和雨中融化
+
 ### 火焰系统（MC 1.16.5 对齐）
 - `Entity::isOnFire()` - 检查实体是否着火（`m_fire > 0`）
 - `Entity::fire()` - 获取当前火焰计时器值（tick）

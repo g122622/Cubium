@@ -135,6 +135,8 @@ add_executable(mc_tests
     common/entity/core/LivingEntityArrowCountTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
+    # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
+    common/entity/core/EntityIsInRainTest.cpp
     # IRideable 速度设置逻辑测试
     common/entity/interfaces/IRideableTest.cpp
     # 成就系统测试
