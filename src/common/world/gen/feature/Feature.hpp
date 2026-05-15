@@ -210,8 +210,6 @@ private:
  *
  * 当方块属于指定标签时返回 true。
  * 参考 MC 1.16.5: TagMatchRuleTest
- *
- * 注意：需要标签系统支持
  */
 class TagMatchRuleTest : public RuleTest {
 public:
@@ -225,7 +223,6 @@ public:
 
 private:
     std::string m_tagName;
-    // TODO: 添加标签引用，需要标签系统支持
 };
 
 // ============================================================================

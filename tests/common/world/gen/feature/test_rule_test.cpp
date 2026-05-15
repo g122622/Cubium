@@ -257,9 +257,9 @@ TEST_F(RuleTestTest, StoneRuleTestClone)
 
 TEST_F(RuleTestTest, TagMatchRuleTestCreation)
 {
-    TagMatchRuleTest test("minecraft:stone_ores");
+    TagMatchRuleTest test("minecraft:stone");
 
-    EXPECT_EQ(test.getTagName(), "minecraft:stone_ores");
+    EXPECT_EQ(test.getTagName(), "minecraft:stone");
     EXPECT_EQ(test.name(), "tag_match");
 }
 
@@ -275,7 +275,47 @@ TEST_F(RuleTestTest, TagMatchRuleTestClone)
     EXPECT_EQ(clonedTest->getTagName(), "minecraft:logs");
 }
 
-// 注意：TagMatchRuleTest.test() 目前返回false，需要标签系统支持
+TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
+{
+    // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
+    TagMatchRuleTest test("minecraft:stone");
+    math::Random rng(12345);
+
+    // 应该匹配 stone 标签中的方块
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::ANDESITE), rng));
+
+    // 不应该匹配不在 stone 标签中的方块
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)
+{
+    TagMatchRuleTest test("minecraft:logs");
+    math::Random rng(12345);
+
+    // 应该匹配 logs 标签中的方块
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::OAK_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG), rng));
+
+    // 不应该匹配不在 logs 标签中的方块
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTestNonExistentTag)
+{
+    // 不存在的标签应该返回 false
+    TagMatchRuleTest test("minecraft:nonexistent_tag");
+    math::Random rng(12345);
+
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+}
 
 // ============================================================================
 // createOreTarget 测试

@@ -23,6 +23,7 @@
 
 #include "Feature.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../block/BlockTags.hpp"
 #include "../../block/VanillaBlocks.hpp"
 
 namespace mc {
@@ -137,11 +138,14 @@ TagMatchRuleTest::TagMatchRuleTest(const std::string& tagName)
 bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const
 {
     (void)random;
-    // TODO: 实现标签系统支持
-    // 需要通过 BlockTags 系统检查方块是否属于指定标签
-    // 当前返回 false，等待标签系统实现后更新
-    (void)state;
-    return false;
+    // MC 1.16.5: TagMatchRuleTest.test() - state.isIn(tag)
+    // 将标签名解析为 ResourceLocation 并查询 BlockTags
+    ResourceLocation tagId(m_tagName);
+    BlockTag* tag = BlockTags::getTag(tagId);
+    if (!tag) {
+        return false;
+    }
+    return tag->contains(state);
 }
 
 std::unique_ptr<RuleTest> TagMatchRuleTest::clone() const

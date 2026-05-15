@@ -26,6 +26,7 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/RuleTest.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
@@ -1255,4 +1256,63 @@ TEST_F(TemplateTest, ProcessorChain_Integration)
     BlockInfo airInfo(BlockPos(0, 0, 0), 0);
     result = list.process(BlockPos(0, 0, 0), BlockPos(0, 0, 0), airInfo, airInfo, settings);
     EXPECT_FALSE(result.has_value()); // 被第一个处理器过滤
+}
+
+// ============================================================================
+// TagMatchRuleTest 测试（template 命名空间版本）
+// ============================================================================
+
+TEST_F(RuleTestTest, TagMatchRuleTest_MatchesStoneTag)
+{
+    // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
+    TagMatchRuleTest test(ResourceLocation("minecraft", "stone"));
+    math::Random rng(12345);
+
+    // 应该匹配 stone 标签中的方块
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::ANDESITE), rng));
+
+    // 不应该匹配不在 stone 标签中的方块
+    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTest_MatchesLogsTag)
+{
+    TagMatchRuleTest test(ResourceLocation("minecraft", "logs"));
+    math::Random rng(12345);
+
+    // 应该匹配 logs 标签中的方块
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::OAK_LOG), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG), rng));
+    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG), rng));
+
+    // 不应该匹配不在 logs 标签中的方块
+    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTest_NonExistentTag)
+{
+    // 不存在的标签应该返回 false
+    TagMatchRuleTest test(ResourceLocation("minecraft", "nonexistent_tag"));
+    math::Random rng(12345);
+
+    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTest_Clone)
+{
+    TagMatchRuleTest test(ResourceLocation("minecraft", "logs"));
+    auto clone = test.clone();
+
+    EXPECT_NE(clone, nullptr);
+    EXPECT_EQ(clone->getTypeId(), static_cast<u32>(RuleTestType::TagMatch));
+
+    TagMatchRuleTest* clonedTest = dynamic_cast<TagMatchRuleTest*>(clone.get());
+    EXPECT_NE(clonedTest, nullptr);
+    EXPECT_EQ(clonedTest->tagId(), ResourceLocation("minecraft", "logs"));
 }
