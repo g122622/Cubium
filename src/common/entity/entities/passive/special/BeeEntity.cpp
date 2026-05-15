@@ -328,14 +328,15 @@ void BeeEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 蜜蜂的属性
-    // 参考 MC 1.16.5 蜜蜂属性
+    // MC 1.16.5 BeeEntity.registerAttributes()
+    // 参考: BeeEntity.java 第489行
+    // MAX_HEALTH: 10.0, FLYING_SPEED: 0.6, MOVEMENT_SPEED: 0.3,
+    // ATTACK_DAMAGE: 2.0, FOLLOW_RANGE: 48.0
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
-
-    // 蜜蜂飞行速度较高
-    // TODO: 设置飞行速度属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
 } // namespace mc
