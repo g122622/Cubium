@@ -34,17 +34,41 @@
 - `BeeStingerLayer` - 蜜蜂刺层
 
 **模型可见性设置**：
+
 ```cpp
 void setModelVisibilities(PlayerEntity& player) {
-    // 根据玩家设置显示/隐藏各部件
-    // - 头套：PlayerModelPart.HAT
-    // - 外套：PlayerModelPart.JACKET
-    // - 左裤腿：PlayerModelPart.LEFT_PANTS_LEG
-    // - 右裤腿：PlayerModelPart.RIGHT_PANTS_LEG
-    // - 左袖：PlayerModelPart.LEFT_SLEEVE
-    // - 右袖：PlayerModelPart.RIGHT_SLEEVE
+    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
+    // 1. 默认显示所有基础部件
+    m_model.setAllVisible(true);
+    
+    // 2. 根据玩家设置控制外层皮肤部件可见性
+    // 使用 PlayerModel::setModelVisibilitiesFromFlags 设置：
+    // - 头套 (Hat)：m_headwear
+    // - 外套 (Jacket)：m_bodywear
+    // - 左裤腿 (LeftPantsLeg)：m_leftLegwear
+    // - 右裤腿 (RightPantsLeg)：m_rightLegwear
+    // - 左袖 (LeftSleeve)：m_leftArmwear
+    // - 右袖 (RightSleeve)：m_rightArmwear
+    // 注意：斗篷 (Cape) 由 CapeLayer 单独处理
+    m_model.setModelVisibilitiesFromFlags(player.playerModelParts());
+    
+    // 3. 设置状态（蹲伏、游泳）
+    m_model.setCrouching(player.isSneaking());
+    m_model.setSwimming(player.isSwimming());
 }
 ```
+
+**PlayerModelPart 位掩码**（参考 `common/entity/entities/player/PlayerModelPart.hpp`）：
+
+| 部件 | 位掩码 | 模型部件 |
+|------|--------|----------|
+| Cape | 0x01 | m_cape |
+| Jacket | 0x02 | m_bodywear |
+| LeftSleeve | 0x04 | m_leftArmwear |
+| RightSleeve | 0x08 | m_rightArmwear |
+| LeftPantsLeg | 0x10 | m_leftLegwear |
+| RightPantsLeg | 0x20 | m_rightLegwear |
+| Hat | 0x40 | m_headwear |
 
 **手臂姿态判定**：
 ```cpp

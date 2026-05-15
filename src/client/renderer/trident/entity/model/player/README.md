@@ -120,6 +120,67 @@ playerModel->renderLeftArm(1.0 / 16.0);
 - 同时渲染内层和外层皮肤
 - 自动恢复可见性状态，不影响后续渲染
 
+## 皮肤部件可见性控制
+
+### setPartVisible / isPartVisible
+
+根据 `PlayerModelPart` 枚举设置/查询皮肤部件的可见性。参考 MC 1.16.5 `PlayerRenderer.setModelVisibilities`。
+
+```cpp
+// 设置单个部件可见性
+playerModel->setPartVisible(PlayerModelPart::Hat, true);      // 显示帽子
+playerModel->setPartVisible(PlayerModelPart::Jacket, false);  // 隐藏外套
+playerModel->setPartVisible(PlayerModelPart::Cape, true);     // 显示斗篷
+
+// 查询部件可见性
+bool hasHat = playerModel->isPartVisible(PlayerModelPart::Hat);
+```
+
+**PlayerModelPart 与模型部件对应关系**：
+
+| PlayerModelPart | 模型部件 | 说明 |
+|-----------------|----------|------|
+| Cape | m_cape | 斗篷 |
+| Jacket | m_bodywear | 外套外层 |
+| LeftSleeve | m_leftArmwear | 左袖外层 |
+| RightSleeve | m_rightArmwear | 右袖外层 |
+| LeftPantsLeg | m_leftLegwear | 左裤腿外层 |
+| RightPantsLeg | m_rightLegwear | 右裤腿外层 |
+| Hat | m_headwear | 帽子/头部外层 |
+
+### setModelVisibilitiesFromFlags
+
+根据玩家皮肤部件位掩码批量设置所有外层皮肤部件的可见性。
+
+```cpp
+// 使用玩家设置设置所有部件可见性
+u8 modelParts = player.playerModelParts();  // 从玩家获取位掩码
+playerModel->setModelVisibilitiesFromFlags(modelParts);
+```
+
+**位掩码计算**（参考 `PlayerModelPart.hpp`）：
+- Cape = 0x01
+- Jacket = 0x02
+- LeftSleeve = 0x04
+- RightSleeve = 0x08
+- LeftPantsLeg = 0x10
+- RightPantsLeg = 0x20
+- Hat = 0x40
+
+**注意**：Cape（斗篷）由 `CapeLayer` 单独处理，`setModelVisibilitiesFromFlags` 不会修改其可见性。
+
+### setVisible
+
+设置所有部件（基础部件 + 外观层部件 + 斗篷 + 耳朵）的可见性。
+
+```cpp
+// 显示所有部件
+playerModel->setVisible(true);
+
+// 隐藏所有部件（用于旁观者模式）
+playerModel->setVisible(false);
+```
+
 ## 命名空间
 
 ```cpp
