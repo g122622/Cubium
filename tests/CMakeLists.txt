@@ -144,6 +144,7 @@ add_executable(mc_tests
     common/world/blockentity/HopperEntityTest.cpp
     common/world/blockentity/DoubleSidedInventoryTest.cpp
     common/world/blockentity/BrewingStandEntityTest.cpp
+    common/world/blockentity/BeaconEntityTest.cpp
     common/world/blockentity/BlockEntityTodoTest.cpp
     # ConduitEntity 潮涌核心测试（敌对生物检测、魔法伤害）
     common/world/blockentity/ConduitEntityTest.cpp
