@@ -418,7 +418,13 @@ void StriderEntity::registerGoals()
 
     // 优先级 9: 看向其他炽足兽
     // MC 1.16.5: new LookAtGoal(this, StriderEntity.class, 8.0F)
-    // TODO: 实现 LookAtGoal 对特定实体类型的支持
+    // [已完成] 使用 TypeFilter<StriderEntity> 实现看向特定实体类型 - 2026/05/16
+    m_goalSelector.addGoal(9,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this,
+            8.0f,
+            entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
+            entity::ai::goal::TypeFilter<StriderEntity>{}));
 }
 
 // ========== 属性注册 ==========

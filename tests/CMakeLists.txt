@@ -247,6 +247,8 @@ add_executable(mc_tests
     entity/EatGrassGoalTest.cpp
     entity/CreeperSwellGoalTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
+    # LookAtGoal 类型过滤测试
+    common/entity/ai/goal/LookAtGoalTest.cpp
     entity/GhastEntityTest.cpp
     entity/GuardianAttackGoalTest.cpp
     entity/WitherEntityTest.cpp

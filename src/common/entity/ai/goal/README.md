@@ -277,6 +277,39 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 **关键参数**:
 - `m_maxDistance`: 最大观看距离
 - `m_chance`: 执行概率
+- `DEFAULT_LOOK_CHANCE`: 默认概率 (0.02f, 2%)
+
+**构造函数重载**:
+
+| 构造函数 | 说明 |
+|----------|------|
+| `LookAtGoal(mob, maxDistance)` | 看向任意 LivingEntity，默认概率 |
+| `LookAtGoal(mob, maxDistance, chance)` | 看向任意 LivingEntity，指定概率 |
+| `LookAtGoal(mob, maxDistance, chance, filter)` | 看向自定义过滤的实体 |
+| `LookAtGoal(mob, maxDistance, chance, TypeFilter<T>{})` | 看向特定类型的实体 |
+
+**类型过滤使用示例**:
+```cpp
+// 看向附近的炽足兽（MC 1.16.5: new LookAtGoal(this, StriderEntity.class, 8.0F)）
+m_goalSelector.addGoal(9, std::make_unique<LookAtGoal>(
+    this, 8.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<StriderEntity>{}));
+
+// 看向附近的玩家
+m_goalSelector.addGoal(6, std::make_unique<LookAtGoal>(
+    this, 8.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<Player>{}));
+
+// 看向附近的村民
+m_goalSelector.addGoal(7, std::make_unique<LookAtGoal>(
+    this, 10.0f, 0.05f, TypeFilter<VillagerEntity>{}));
+
+// 使用自定义过滤条件
+m_goalSelector.addGoal(8, std::make_unique<LookAtGoal>(
+    this, 12.0f, 0.02f, [](const LivingEntity* entity) {
+        // 只看向成年动物
+        const AnimalEntity* animal = dynamic_cast<const AnimalEntity*>(entity);
+        return animal != nullptr && !animal->isChild();
+    }));
+```
 
 **派生类**: `LookRandomlyGoal` - 随机看向某个方向
 
