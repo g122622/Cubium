@@ -348,6 +348,7 @@ public:
     // 农产品
     // ========================================================================
     static Item* WHEAT;
+    static Item* HAY_BLOCK;  // 干草块 - 用于喂养马属动物
     static Item* PUMPKIN;
     static Item* MELON;
     // MELON_SLICE 在食物部分声明

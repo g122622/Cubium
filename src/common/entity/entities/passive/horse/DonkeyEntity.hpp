@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -28,6 +28,10 @@
 #include <memory>
 
 namespace mc {
+
+// Forward declarations
+class HorseEntity;
+class MuleEntity;
 
 /**
  * @brief 驴实体
@@ -57,11 +61,25 @@ public:
 
     /**
      * @brief 检查物品是否可用于繁殖
+     *
+     * MC 1.16.5: DonkeyEntity.isBreedingItem() 使用基类的食物列表
+     * 只有金苹果和金胡萝卜可以触发繁殖（在 handleEating 中处理）。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     /**
+     * @brief 检查是否可以与另一动物交配
+     *
+     * MC 1.16.5: DonkeyEntity.canMateWith()
+     * 驴可以与驴或马交配。
+     */
+    [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
+
+    /**
      * @brief 生成幼体
+     *
+     * MC 1.16.5: DonkeyEntity.func_241840_a()
+     * 驴 + 驴 = 驴，驴 + 马 = 骡。
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 

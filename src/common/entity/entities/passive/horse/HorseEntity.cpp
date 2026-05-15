@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,10 +18,13 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "HorseEntity.hpp"
+
+#include "DonkeyEntity.hpp"
+#include "MuleEntity.hpp"
 
 #include "../../../../item/Items.hpp"
 #include "../../../../item/Items.hpp"
@@ -78,16 +81,88 @@ bool HorseEntity::isTameItem(const ItemStack& /*itemStack*/) const
 
 bool HorseEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // TODO: 对齐 1.16.5 的金苹果 / 金胡萝卜繁殖逻辑。
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: HorseEntity.isBreedingItem() 返回 isFoodItem()
+    // 用于 TemptGoal AI 目标（玩家手持食物时会被诱惑）
+    // 注意：只有金苹果和金胡萝卜会触发繁殖（在 handleEating 中处理）
+    return isFoodItem(itemStack);
+}
+
+bool HorseEntity::canMateWith(const AnimalEntity& other) const
+{
+    // MC 1.16.5: HorseEntity.canMateWith(AnimalEntity otherAnimal)
+    // 马可以与马或驴交配
+    if (this == &other) {
+        return false;
+    }
+
+    // 检查是否是马或驴
+    const HorseEntity* otherHorse = dynamic_cast<const HorseEntity*>(&other);
+    const DonkeyEntity* otherDonkey = dynamic_cast<const DonkeyEntity*>(&other);
+
+    if (otherHorse == nullptr && otherDonkey == nullptr) {
+        return false;
+    }
+
+    // 检查双方都满足繁殖条件（成体且不在爱心状态）
+    return canBreed() && (otherHorse != nullptr ? otherHorse->canBreed() : otherDonkey->canBreed());
 }
 
 std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 {
-    // TODO: 对齐 1.16.5 的马 x 马 / 马 x 驴 后代外观与属性遗传逻辑。
-    (void)partner;
-    return nullptr;
+    // MC 1.16.5: HorseEntity.func_241840_a(ServerWorld, AgeableEntity)
+    math::Random rng(ticksExisted());
+
+    // 检查配偶是否是驴（产生骡）
+    const DonkeyEntity* partnerDonkey = dynamic_cast<const DonkeyEntity*>(&partner);
+
+    if (partnerDonkey != nullptr) {
+        // 马 + 驴 = 骡
+        auto mule = std::make_unique<MuleEntity>(LegacyEntityType::Unknown, 0);
+        mule->setChild(true);
+        mule->setPosition(x(), y(), z());
+
+        // 遗传属性
+        setOffspringAttributes(partner, *mule);
+        return mule;
+    }
+
+    // 马 + 马 = 马
+    auto baby = std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
+    baby->setChild(true);
+    baby->setPosition(x(), y(), z());
+
+    // 遗传属性
+    setOffspringAttributes(partner, *baby);
+
+    // 遗传毛色和花纹
+    // MC 1.16.5: 4/9 继承父本，4/9 继承母本，1/9 随机
+    const HorseEntity* partnerHorse = dynamic_cast<const HorseEntity*>(&partner);
+    if (partnerHorse != nullptr) {
+        i32 colorRoll = rng.nextInt(9);
+        CoatColors babyColor;
+        if (colorRoll < 4) {
+            babyColor = getColor();  // 继承父本
+        } else if (colorRoll < 8) {
+            babyColor = partnerHorse->getColor();  // 继承母本
+        } else {
+            babyColor = getCoatColorById(rng.nextInt(COAT_COLORS_COUNT));  // 随机
+        }
+        baby->setColor(babyColor);
+
+        // 花纹遗传：2/5 继承父本，2/5 继承母本，1/5 随机
+        i32 markingRoll = rng.nextInt(5);
+        CoatTypes babyMarking;
+        if (markingRoll < 2) {
+            babyMarking = getMarking();  // 继承父本
+        } else if (markingRoll < 4) {
+            babyMarking = partnerHorse->getMarking();  // 继承母本
+        } else {
+            babyMarking = getCoatTypeById(rng.nextInt(COAT_TYPES_COUNT));  // 随机
+        }
+        baby->setMarking(babyMarking);
+    }
+
+    return baby;
 }
 
 void HorseEntity::tick()

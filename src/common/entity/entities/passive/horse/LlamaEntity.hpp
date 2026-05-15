@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -28,6 +28,10 @@
 #include <memory>
 
 namespace mc {
+
+// Forward declarations
+class Player;
+class ItemStack;
 
 /**
  * @brief 羊驼实体
@@ -163,7 +167,17 @@ public:
     void setSpitting(bool spitting) { m_spitting = spitting; }
 
     /**
+     * @brief 羊驼最大驯服进度为 30
+     *
+     * MC 1.16.5: LlamaEntity.getMaxTemper() 返回 30
+     */
+    [[nodiscard]] i32 getMaxTemper() const { return 30; }
+
+    /**
      * @brief 羊驼使用干草块繁殖
+     *
+     * MC 1.16.5: LlamaEntity.isBreedingItem()
+     * 检查是否为小麦或干草块。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
@@ -173,14 +187,50 @@ public:
     [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const override;
 
     /**
+     * @brief 检查是否可以与另一动物交配
+     *
+     * MC 1.16.5: LlamaEntity.canMateWith()
+     * 羊驼只能与羊驼交配。
+     */
+    [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
+
+    /**
      * @brief 生成幼体
+     *
+     * MC 1.16.5: LlamaEntity.func_241840_a()
+     * 羊驼后代遗传强度和颜色。
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+
+    /**
+     * @brief 处理喂食
+     *
+     * MC 1.16.5: LlamaEntity.handleEating()
+     * 羊驼的食物效果与马不同：
+     * - 小麦：治疗 2，成长 10 ticks，驯服 +3
+     * - 干草块：治疗 10，成长 90 ticks，驯服 +6，可触发繁殖
+     */
+    bool handleEating(Player* player, ItemStack& itemStack) override;
+
+    /**
+     * @brief 检查物品是否为羊驼的食物
+     *
+     * MC 1.16.5: LlamaEntity.field_234243_bC_
+     * 羊驼食物：小麦、干草块
+     */
+    [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const override;
 
     /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.77f; }
+
+    /**
+     * @brief 获取进食音效
+     *
+     * MC 1.16.5: 羊驼进食音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getEatSound() const override;
 
     void tick() override;
 

@@ -724,4 +724,196 @@ void AbstractHorseEntity::setOwnerUuid(const std::string& uuid)
     }
 }
 
+// ========== 食物处理 ==========
+
+bool AbstractHorseEntity::isFoodItem(const ItemStack& itemStack) const
+{
+    // MC 1.16.5: AbstractHorseEntity.field_234235_bE_
+    // Ingredient.fromItems(Items.WHEAT, Items.SUGAR, Blocks.HAY_BLOCK.asItem(),
+    //                       Items.APPLE, Items.GOLDEN_CARROT, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE)
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    return item == Items::WHEAT ||
+           item == Items::SUGAR ||
+           item == Items::HAY_BLOCK ||
+           item == Items::APPLE ||
+           item == Items::GOLDEN_CARROT ||
+           item == Items::GOLDEN_APPLE ||
+           item == Items::ENCHANTED_GOLDEN_APPLE;
+}
+
+bool AbstractHorseEntity::handleEating(Player* player, ItemStack& itemStack)
+{
+    // MC 1.16.5: AbstractHorseEntity.handleEating(PlayerEntity player, ItemStack stack)
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    bool flag = false;      // 是否有任何效果
+    f32 healAmount = 0.0f;  // 治疗量
+    i32 growthAmount = 0;   // 成长加速值（ticks）
+    i32 temperAmount = 0;   // 驯服进度增加值
+
+    // MC 1.16.5: 根据食物类型计算效果
+    if (item == Items::WHEAT) {
+        healAmount = 2.0f;      // 治疗 2 点生命值
+        growthAmount = 20;      // 成长加速 20 ticks（1 秒）
+        temperAmount = 3;       // 驯服进度 +3
+    } else if (item == Items::SUGAR) {
+        healAmount = 1.0f;      // 治疗 1 点生命值
+        growthAmount = 30;      // 成长加速 30 ticks（1.5 秒）
+        temperAmount = 3;       // 驯服进度 +3
+    } else if (item == Items::HAY_BLOCK) {
+        healAmount = 20.0f;     // 治疗 20 点生命值
+        growthAmount = 180;     // 成长加速 180 ticks（9 秒）
+        // 注意：干草块不增加驯服进度
+    } else if (item == Items::APPLE) {
+        healAmount = 3.0f;      // 治疗 3 点生命值
+        growthAmount = 60;      // 成长加速 60 ticks（3 秒）
+        temperAmount = 3;       // 驯服进度 +3
+    } else if (item == Items::GOLDEN_CARROT) {
+        healAmount = 4.0f;      // 治疗 4 点生命值
+        growthAmount = 60;      // 成长加速 60 ticks（3 秒）
+        temperAmount = 5;       // 驯服进度 +5
+        // 金胡萝卜可以触发繁殖
+        if (m_world != nullptr && !m_world->isClientSide() && isTame() && getGrowingAge() == 0 && canBreed()) {
+            flag = true;
+            setInLove();
+        }
+    } else if (item == Items::GOLDEN_APPLE || item == Items::ENCHANTED_GOLDEN_APPLE) {
+        healAmount = 10.0f;     // 治疗 10 点生命值
+        growthAmount = 240;     // 成长加速 240 ticks（12 秒）
+        temperAmount = 10;      // 驯服进度 +10
+        // 金苹果可以触发繁殖
+        if (m_world != nullptr && !m_world->isClientSide() && isTame() && getGrowingAge() == 0 && canBreed()) {
+            flag = true;
+            setInLove();
+        }
+    } else {
+        // 不是马的食物
+        return false;
+    }
+
+    // 治疗效果
+    if (health() < maxHealth() && healAmount > 0.0f) {
+        heal(healAmount);
+        flag = true;
+    }
+
+    // 幼体成长加速
+    if (isChild() && growthAmount > 0) {
+        // MC 1.16.5: 添加成长粒子效果
+        if (m_world != nullptr) {
+            // TODO: 添加 HAPPY_VILLAGER 粒子效果
+        }
+        if (m_world == nullptr || !m_world->isClientSide()) {
+            addGrowingAge(growthAmount);
+        }
+        flag = true;
+    }
+
+    // 驯服进度增加
+    // MC 1.16.5: if (j > 0 && (flag || !this.isTame()) && this.getTemper() < this.getMaxTemper())
+    if (temperAmount > 0 && (flag || !isTame()) && getTemper() < getMaxTemper()) {
+        flag = true;
+        if (m_world == nullptr || !m_world->isClientSide()) {
+            increaseTemper(temperAmount);
+        }
+    }
+
+    // 播放进食音效和动画
+    if (flag) {
+        // MC 1.16.5: this.eatingHorse()
+        // 设置进食状态（用于动画）
+        setEating(true);
+
+        // 播放进食音效
+        auto eatSound = getEatSound();
+        if (eatSound.has_value() && !isSilent() && m_world != nullptr) {
+            playSound(eatSound.value(), getSoundVolume(), getSoundPitch());
+        }
+
+        // 减少 1 个物品
+        if (player != nullptr && !player->isCreative()) {
+            itemStack.shrink(1);
+        }
+    }
+
+    return flag;
+}
+
+// ========== 属性遗传 ==========
+
+void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, AbstractHorseEntity& offspring)
+{
+    // MC 1.16.5: AbstractHorseEntity.setOffspringAttributes()
+    // 遗传公式：(父本基础值 + 母本基础值 + 随机变异值) / 3
+
+    // 获取父本属性（this）
+    f64 parentMaxHealth = static_cast<f64>(m_horseHealth);
+    f64 parentJumpStrength = static_cast<f64>(m_jumpStrength);
+    f64 parentSpeed = static_cast<f64>(m_speed);
+
+    // 获取母本属性
+    const AbstractHorseEntity* partnerHorse = dynamic_cast<const AbstractHorseEntity*>(&partner);
+
+    f64 partnerMaxHealth = 15.0;   // 默认最小生命值
+    f64 partnerJumpStrength = 0.5; // 默认跳跃力
+    f64 partnerSpeed = 0.175;      // 默认速度
+
+    if (partnerHorse != nullptr) {
+        partnerMaxHealth = static_cast<f64>(partnerHorse->m_horseHealth);
+        partnerJumpStrength = static_cast<f64>(partnerHorse->m_jumpStrength);
+        partnerSpeed = static_cast<f64>(partnerHorse->m_speed);
+    }
+
+    // 计算随机变异值
+    f64 randomHealth = static_cast<f64>(getModifiedMaxHealth());
+    f64 randomJump = getModifiedJumpStrength();
+    f64 randomSpeed = getModifiedMovementSpeed();
+
+    // 计算后代属性
+    f64 babyMaxHealth = (parentMaxHealth + partnerMaxHealth + randomHealth) / 3.0;
+    f64 babyJumpStrength = (parentJumpStrength + partnerJumpStrength + randomJump) / 3.0;
+    f64 babySpeed = (parentSpeed + partnerSpeed + randomSpeed) / 3.0;
+
+    // 设置后代属性
+    offspring.m_horseHealth = static_cast<f32>(babyMaxHealth);
+    offspring.setJumpStrength(static_cast<f32>(babyJumpStrength));
+    offspring.m_speed = static_cast<f32>(babySpeed);
+
+    // 更新属性
+    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, offspring.m_horseHealth);
+    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, offspring.m_speed);
+    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, offspring.getJumpStrength());
+}
+
+f32 AbstractHorseEntity::getModifiedMaxHealth() const
+{
+    // MC 1.16.5: AbstractHorseEntity.getModifiedMaxHealth()
+    // 返回 15.0F + rand(8) + rand(9)，范围 15-32
+    math::Random rng(ticksExisted());
+    return 15.0f + static_cast<f32>(rng.nextInt(8)) + static_cast<f32>(rng.nextInt(9));
+}
+
+f64 AbstractHorseEntity::getModifiedJumpStrength() const
+{
+    // MC 1.16.5: AbstractHorseEntity.getModifiedJumpStrength()
+    // 返回 0.4 + rand*0.2 + rand*0.2 + rand*0.2，范围 0.4-1.0
+    math::Random rng(ticksExisted());
+    return 0.4 + rng.nextDouble() * 0.2 + rng.nextDouble() * 0.2 + rng.nextDouble() * 0.2;
+}
+
+f64 AbstractHorseEntity::getModifiedMovementSpeed() const
+{
+    // MC 1.16.5: AbstractHorseEntity.getModifiedMovementSpeed()
+    // 返回 (0.45 + rand*0.3 + rand*0.3 + rand*0.3) * 0.25，范围 0.1125-0.3375
+    math::Random rng(ticksExisted());
+    return (0.45 + rng.nextDouble() * 0.3 + rng.nextDouble() * 0.3 + rng.nextDouble() * 0.3) * 0.25;
+}
+
 } // namespace mc

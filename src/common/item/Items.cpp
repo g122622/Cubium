@@ -335,6 +335,7 @@ Item* Items::BEETROOT_SEEDS = nullptr;
 
 // 农产品
 Item* Items::WHEAT = nullptr;
+Item* Items::HAY_BLOCK = nullptr;
 Item* Items::PUMPKIN = nullptr;
 Item* Items::MELON = nullptr;
 // MELON_SLICE 已在食物部分声明
@@ -1255,6 +1256,10 @@ void Items::registerCrops()
     auto& registry = ItemRegistry::instance();
 
     WHEAT = &registry.registerItem(ResourceLocation("minecraft:wheat"), ItemProperties().maxStackSize(64));
+
+    // 干草块 - 用于喂养马属动物，恢复大量生命值
+    // 参考: new BlockItem(Blocks.HAY_BLOCK, new Item.Properties().group(ItemGroup.DECORATIONS))
+    HAY_BLOCK = &registerBlockBackedItem(registry, VanillaBlocks::HAY_BLOCK, "hay_block", ItemProperties().maxStackSize(64));
 
     PUMPKIN = &registry.registerItem(ResourceLocation("minecraft:pumpkin"), ItemProperties().maxStackSize(64));
 
