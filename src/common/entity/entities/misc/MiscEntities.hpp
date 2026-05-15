@@ -78,16 +78,63 @@ public:
      */
     [[nodiscard]] bool shouldPlaceBlock() const { return m_placeBlock; }
 
+    /**
+     * @brief 设置是否应该掉落物品
+     *
+     * MC 1.16.5: shouldDropItem
+     * 默认为 true。某些特殊方块（如损坏的铁砧）可能设置为 false。
+     */
+    void setShouldDropItem(bool drop) { m_shouldDropItem = drop; }
+    [[nodiscard]] bool shouldDropItem() const { return m_shouldDropItem; }
+
+    /**
+     * @brief 设置是否不放置方块
+     *
+     * MC 1.16.5: dontSetBlock
+     * 当铁砧损坏时会设置为 true，此时只调用 onBroken 回调。
+     */
+    void setDontSetBlock(bool dontSet) { m_dontSetBlock = dontSet; }
+    [[nodiscard]] bool dontSetBlock() const { return m_dontSetBlock; }
+
 private:
     void handleLanding();
 
-    u32 m_blockId = 0; // 方块ID
-    bool m_hurtEntities = false;
-    bool m_placeBlock = true;
-    f64 m_fallStartY = 0.0;
-    i32 m_fallTime = 0;
-    static constexpr f32 HURT_AMOUNT = 2.0f;
-    static constexpr i32 MAX_HURT_AMOUNT = 40;
+    /**
+     * @brief 尝试放置方块
+     *
+     * @param world 世界指针
+     * @param landingPos 落地位置
+     * @param fallingState 下落的方块状态
+     * @param hitState 落地点的方块状态
+     * @return 是否成功放置
+     */
+    bool tryPlaceBlock(IWorld* world, const BlockPos& landingPos, const BlockState* fallingState, const BlockState* hitState);
+
+    /**
+     * @brief 掉落物品
+     *
+     * @param world 世界指针
+     * @param pos 掉落位置
+     */
+    void dropItem(IWorld* world, const BlockPos& pos);
+
+    /**
+     * @brief 伤害碰撞箱内的实体
+     *
+     * @param world 世界指针
+     */
+    void hurtEntities(IWorld* world);
+
+    u32 m_blockId = 0;            ///< 方块ID
+    bool m_hurtEntities = false;  ///< 是否伤害实体（铁砧=true）
+    bool m_placeBlock = true;     ///< 是否应该放置方块
+    bool m_shouldDropItem = true; ///< 是否应该掉落物品
+    bool m_dontSetBlock = false;  ///< 是否不放置方块（铁砧损坏时）
+    f64 m_fallStartY = 0.0;       ///< 下落起始Y坐标
+    i32 m_fallTime = 0;           ///< 下落时间（tick）
+    static constexpr f32 HURT_AMOUNT = 2.0f;      ///< 每格下落伤害系数
+    static constexpr i32 MAX_HURT_AMOUNT = 40;    ///< 最大伤害值
+    static constexpr i32 MAX_FALL_TIME = 600;     ///< 最大下落时间（30秒）
 };
 
 /**
