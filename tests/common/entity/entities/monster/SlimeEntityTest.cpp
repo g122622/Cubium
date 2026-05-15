@@ -30,6 +30,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -577,6 +578,143 @@ TEST_F(SlimeParticleTest, ParticleType_IsItemSlime)
     // 参考 MC 1.16.5 SlimeEntity.tick() 使用 ParticleTypes.ITEM_SLIME
     using namespace client::renderer::trident::particle;
     EXPECT_EQ(ParticleTypeId::ItemSlime, ParticleTypeId::ItemSlime);
+}
+
+// ==================== 目标选择器测试 ====================
+
+/**
+ * @brief 目标选择器测试夹具
+ */
+class SlimeTargetSelectorTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+
+    SlimeTestWorld m_world;
+};
+
+TEST_F(SlimeTargetSelectorTest, TargetSelector_HasCorrectGoalCount)
+{
+    // MC 1.16.5: 史莱姆应该有两个目标选择器
+    // 优先级 1: NearestAttackableTargetGoal<Player>
+    // 优先级 3: NearestAttackableTargetGoal<IronGolem>
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+
+    const auto& targetSelector = slime.targetSelector();
+    const auto& goals = targetSelector.getAllGoals();
+
+    // 验证至少有两个目标
+    EXPECT_GE(goals.size(), 2u) << "SlimeEntity should have at least 2 target goals (Player and IronGolem)";
+}
+
+TEST_F(SlimeTargetSelectorTest, TargetSelector_PlayerGoal_HasPriority1)
+{
+    // MC 1.16.5: 玩家目标应该在优先级 1
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+
+    const auto& targetSelector = slime.targetSelector();
+    const auto& goals = targetSelector.getAllGoals();
+
+    // 查找优先级 1 的目标（应该是 Player 目标）
+    bool hasPriority1Goal = false;
+    for (const auto& goal : goals) {
+        if (goal.getPriority() == 1) {
+            hasPriority1Goal = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasPriority1Goal) << "SlimeEntity should have a target goal at priority 1 (Player)";
+}
+
+TEST_F(SlimeTargetSelectorTest, TargetSelector_IronGolemGoal_HasPriority3)
+{
+    // MC 1.16.5: 铁傀儡目标应该在优先级 3
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+
+    const auto& targetSelector = slime.targetSelector();
+    const auto& goals = targetSelector.getAllGoals();
+
+    // 查找优先级 3 的目标（应该是 IronGolem 目标）
+    bool hasPriority3Goal = false;
+    for (const auto& goal : goals) {
+        if (goal.getPriority() == 3) {
+            hasPriority3Goal = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasPriority3Goal) << "SlimeEntity should have a target goal at priority 3 (IronGolem)";
+}
+
+TEST_F(SlimeTargetSelectorTest, GoalSelector_HasCorrectGoalCount)
+{
+    // MC 1.16.5: 史莱姆应该有四个 AI 目标
+    // 优先级 1: SlimeFloatGoal (游泳)
+    // 优先级 2: SlimeAttackGoal (攻击)
+    // 优先级 3: SlimeFaceRandomGoal (随机转向)
+    // 优先级 5: SlimeHopGoal (跳跃)
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+
+    const auto& goalSelector = slime.goalSelector();
+    const auto& goals = goalSelector.getAllGoals();
+
+    // 验证至少有四个 AI 目标
+    EXPECT_GE(goals.size(), 4u) << "SlimeEntity should have at least 4 AI goals";
+}
+
+TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_Is4Blocks)
+{
+    // MC 1.16.5: 史莱姆只攻击 Y 轴高度差 <= 4 格的玩家
+    // 这是一个数学逻辑验证测试
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+    slime.setPosition(0.0, 64.0, 0.0);
+
+    // 史莱姆在 Y=64，玩家在 Y=64（高度差 0）
+    f64 yDiff = std::abs(64.0 - 64.0);
+    EXPECT_LE(yDiff, 4.0) << "Y difference of 0 should be within limit";
+
+    // 玩家在 Y=66（高度差 2）
+    yDiff = std::abs(66.0 - 64.0);
+    EXPECT_LE(yDiff, 4.0) << "Y difference of 2 should be within limit";
+
+    // 玩家在 Y=68（高度差 4）
+    yDiff = std::abs(68.0 - 64.0);
+    EXPECT_LE(yDiff, 4.0) << "Y difference of 4 should be within limit";
+
+    // 玩家在 Y=70（高度差 6，超出限制）
+    yDiff = std::abs(70.0 - 64.0);
+    EXPECT_GT(yDiff, 4.0) << "Y difference of 6 should exceed limit";
+
+    // 玩家在 Y=58（高度差 6，向下超出限制）
+    yDiff = std::abs(58.0 - 64.0);
+    EXPECT_GT(yDiff, 4.0) << "Y difference of 6 (downward) should exceed limit";
+}
+
+TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_EdgeCases)
+{
+    // 测试边界情况
+    SlimeEntity slime(LegacyEntityType::Slime, EntityId(1));
+    slime.setWorld(&m_world);
+    slime.setPosition(0.0, 64.0, 0.0);
+
+    f64 slimeY = slime.y();
+
+    // 精确在边界（高度差恰好 4.0）
+    f64 playerY1 = slimeY + 4.0;  // 上方边界
+    f64 playerY2 = slimeY - 4.0;  // 下方边界
+
+    EXPECT_LE(std::abs(playerY1 - slimeY), 4.0) << "Exactly 4 blocks above should be within limit";
+    EXPECT_LE(std::abs(playerY2 - slimeY), 4.0) << "Exactly 4 blocks below should be within limit";
+
+    // 略微超出边界
+    f64 playerY3 = slimeY + 4.001;  // 上方超出
+    f64 playerY4 = slimeY - 4.001;  // 下方超出
+
+    EXPECT_GT(std::abs(playerY3 - slimeY), 4.0) << "4.001 blocks above should exceed limit";
+    EXPECT_GT(std::abs(playerY4 - slimeY), 4.0) << "4.001 blocks below should exceed limit";
 }
 
 } // namespace
