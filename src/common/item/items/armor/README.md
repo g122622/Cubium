@@ -9,6 +9,7 @@ armor/
 ├── ArmorItem.hpp/cpp        # 盔甲基类：防御值、韧性、击退抗性、穿戴逻辑
 ├── DyeableArmorItem.hpp/cpp # 可染色盔甲：display.color 读写
 ├── ElytraItem.hpp/cpp       # 鞘翅
+├── HorseArmorItem.hpp/cpp   # 马铠：护甲值、材质路径
 └── README.md                # 本文件
 ```
 
@@ -28,6 +29,32 @@ armor/
 ### ElytraItem
 
 鞘翅物品，虽然也属于盔甲相关类别，但行为更接近功能物品，因此单独保留。
+
+### HorseArmorItem
+
+马铠物品，用于装备马类实体（仅限 HorseEntity）提供护甲值。马铠有四种类型：
+- 皮革马铠：+3 护甲
+- 铁马铠：+5 护甲
+- 金马铠：+7 护甲
+- 钻石马铠：+11 护甲
+
+**核心方法**：
+- `getArmorValue()` - 获取护甲值
+- `getTexturePath()` - 获取马铠材质路径（用于渲染）
+
+**马铠判断**：
+
+```cpp
+// 在 HorseEntity 中判断是否为有效马铠
+bool HorseEntity::isValidArmorForSlot(const ItemStack& item) const
+{
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return false;
+    }
+    return dynamic_cast<const item::items::HorseArmorItem*>(itemPtr) != nullptr;
+}
+```
 
 ## 模块关系
 

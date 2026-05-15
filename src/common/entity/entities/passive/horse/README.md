@@ -110,7 +110,46 @@ public:
 
 马类实现：
 - 槽位 0: 鞍
-- 槽位 1: 马铠
+- 槽位 1: 马铠/装饰
+
+### 装备验证方法
+
+MC 1.16.5 风格的装备验证，通过虚方法实现多态：
+
+| 方法 | 说明 |
+|------|------|
+| `canEquipSaddle()` | 检查实体是否能装备鞍（默认 true，羊驼返回 false） |
+| `hasArmorSlot()` | 检查实体是否支持马铠/装饰槽位（默认 false） |
+| `isValidArmorForSlot(item)` | 检查物品是否是有效的马铠/装饰（默认 false） |
+| `canEquip(item, slot)` | 检查物品是否能放入指定槽位 |
+
+**各实体装备支持**：
+
+| 实体 | 支持鞍 | 支持马铠/装饰 | `hasArmorSlot()` | `canEquipSaddle()` | `isValidArmorForSlot()` |
+|------|--------|--------------|------------------|-------------------|------------------------|
+| HorseEntity | ✅ | ✅ 马铠 | `true` | `true` | 检查 `HorseArmorItem` |
+| DonkeyEntity | ✅ | ❌ | `false` | `true` | `false` |
+| MuleEntity | ✅ | ❌ | `false` | `true` | `false` |
+| LlamaEntity | ❌ | ✅ 地毯 | `true` | `false` | 检查 `ItemTags::CARPETS` |
+| SkeletonHorseEntity | ✅ | ❌ | `false` | `true` | `false` |
+| ZombieHorseEntity | ✅ | ❌ | `false` | `true` | `false` |
+
+**使用示例**：
+
+```cpp
+// 检查鞍是否能装备到槽位 0
+ItemStack saddleStack(Items::SADDLE, 1);
+bool canEquip = horse.canEquip(saddleStack, 0);  // true
+
+// 检查马铠是否能装备到槽位 1
+ItemStack ironArmorStack(Items::IRON_HORSE_ARMOR, 1);
+bool canEquipArmor = horse.canEquip(ironArmorStack, 1);  // true（马）
+bool canEquipArmorLlama = llama.canEquip(ironArmorStack, 1);  // false（羊驼不支持马铠）
+
+// 检查地毯是否能装备到羊驼槽位 1
+ItemStack carpetStack(Items::WHITE_CARPET, 1);
+bool canEquipCarpet = llama.canEquip(carpetStack, 1);  // true（羊驼支持地毯）
+```
 
 ### 数据同步
 

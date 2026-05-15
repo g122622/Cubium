@@ -34,9 +34,11 @@ tag/
 | 标签 | 说明 |
 |------|------|
 | `FLOWERS` | 所有花朵物品，用于蜜蜂繁殖和授粉 |
+| `CARPETS` | 所有颜色地毯物品，用于羊驼装饰槽位判断 |
 
 **核心方法**：
 - `FLOWERS()` - 获取花朵标签
+- `CARPETS()` - 获取地毯标签
 - `initialize()` - 初始化所有内置标签
 - `registerTag(id)` - 注册新标签
 - `getTag(id)` - 根据ID获取标签
@@ -102,6 +104,42 @@ bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 - 丁香 (lilac)
 - 玫瑰丛 (rose_bush)
 - 牡丹 (peony)
+
+## CARPETS 标签内容
+
+`ItemTags::CARPETS()` 包含以下物品，用于羊驼装饰槽位判断：
+
+**16 色地毯**：
+- 白色地毯 (white_carpet)
+- 橙色地毯 (orange_carpet)
+- 品红地毯 (magenta_carpet)
+- 淡蓝色地毯 (light_blue_carpet)
+- 黄色地毯 (yellow_carpet)
+- 黄绿色地毯 (lime_carpet)
+- 粉色地毯 (pink_carpet)
+- 灰色地毯 (gray_carpet)
+- 淡灰色地毯 (light_gray_carpet)
+- 青色地毯 (cyan_carpet)
+- 紫色地毯 (purple_carpet)
+- 蓝色地毯 (blue_carpet)
+- 棕色地毯 (brown_carpet)
+- 绿色地毯 (green_carpet)
+- 红色地毯 (red_carpet)
+- 黑色地毯 (black_carpet)
+
+**使用示例**：
+
+```cpp
+// 在 LlamaEntity 中判断是否为有效装饰（地毯）
+bool LlamaEntity::isValidArmorForSlot(const ItemStack& item) const
+{
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return false;
+    }
+    return itemPtr->isIn(item::tag::ItemTags::CARPETS());
+}
+```
 
 ## 初始化顺序
 
