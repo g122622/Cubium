@@ -283,16 +283,26 @@ void BeeEntity::tick()
         }
     }
 
-    // 水下计时
-    // TODO: 检查是否在水中
-    // if (isInWater()) {
-    //     m_underWaterTimer++;
-    //     if (m_underWaterTimer > 20) {
-    //         // 开始溺水
-    //     }
+    // MC 1.16.5: 水下溺水逻辑
+    // 参考: BeeEntity.livingTick() 第311-319行
+    // if (this.isInWaterOrBubbleColumn()) {
+    //     ++this.underWaterTicks;
     // } else {
-    //     m_underWaterTimer = 0;
+    //     this.underWaterTicks = 0;
     // }
+    // if (this.underWaterTicks > 20) {
+    //     this.attackEntityFrom(DamageSource.DROWN, 1.0F);
+    // }
+    if (isInWater()) {
+        ++m_underWaterTimer;
+        if (m_underWaterTimer > 20 && m_world != nullptr) {
+            // 开始溺水伤害
+            auto damageSource = DamageSources::drown();
+            hurt(damageSource, 1.0f);
+        }
+    } else {
+        m_underWaterTimer = 0;
+    }
 }
 
 void BeeEntity::registerGoals()
