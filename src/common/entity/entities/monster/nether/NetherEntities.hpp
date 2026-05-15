@@ -60,6 +60,17 @@ public:
     [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
     void setAttackCooldown(i32 cooldown) { m_attackCooldown = cooldown; }
 
+    /**
+     * @brief 获取火球爆炸威力
+     * MC 1.16.5: getFireballStrength()
+     */
+    [[nodiscard]] i32 getFireballStrength() const { return m_explosionPower; }
+
+    /**
+     * @brief 设置火球爆炸威力
+     */
+    void setFireballStrength(i32 power) { m_explosionPower = power; }
+
     void shootFireball();
 
     // ========== 生命周期 ==========
@@ -75,6 +86,7 @@ private:
     bool m_isCharging = false;
     i32 m_attackCooldown = 0;
     i32 m_chargeTime = 0;
+    i32 m_explosionPower = 1; // MC 1.16.5: explosionStrength
 };
 
 /**

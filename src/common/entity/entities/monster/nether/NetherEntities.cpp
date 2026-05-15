@@ -22,10 +22,14 @@
 */
 
 #include "NetherEntities.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../entities/projectile/AbstractFireballEntity.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -62,7 +66,61 @@ void GhastEntity::tick()
 
 void GhastEntity::shootFireball()
 {
-    // TODO: 实现发射火球
+    // MC 1.16.5 GhastEntity.FireballAttackGoal.tick()
+    // 在充能 20 ticks 后发射火球
+    IWorld* worldPtr = world();
+    LivingEntity* target = attackTarget();
+    if (!worldPtr || !target || !target->isAlive()) {
+        return;
+    }
+
+    // MC 1.16.5: 计算发射方向
+    // d2, d3, d4 是从恶魂到目标的方向向量
+    // vector3d = this.parentEntity.getLook(1.0F)
+    // 发射位置 = 恶魂位置 + lookVector * 4.0
+
+    // 获取恶魂的朝向向量（yaw 和 pitch 计算得出）
+    const f32 yawRad = yaw() * math::DEG_TO_RAD;
+    const f32 pitchRad = pitch() * math::DEG_TO_RAD;
+
+    // 计算 look 向量
+    const f32 lookX = -std::sin(yawRad) * std::cos(pitchRad);
+    const f32 lookY = -std::sin(pitchRad);
+    const f32 lookZ = std::cos(yawRad) * std::cos(pitchRad);
+
+    // 火球发射位置：恶魂位置 + lookVector * 4.0
+    const f32 fireballX = static_cast<f32>(x() + lookX * 4.0);
+    const f32 fireballY = static_cast<f32>(y() + eyeHeight() + 0.5 + lookY * 4.0);
+    const f32 fireballZ = static_cast<f32>(z() + lookZ * 4.0);
+
+    // 计算到目标的方向向量
+    // MC 1.16.5:
+    // d2 = livingentity.getPosX() - (this.parentEntity.getPosX() + vector3d.x * 4.0D)
+    // d3 = livingentity.getPosYHeight(0.5D) - (0.5D + this.parentEntity.getPosYHeight(0.5D))
+    // d4 = livingentity.getPosZ() - (this.parentEntity.getPosZ() + vector3d.z * 4.0D)
+    const f32 dx = static_cast<f32>(target->x() - fireballX);
+    const f32 dy = static_cast<f32>(target->y() + target->eyeHeight() * 0.5 - (y() + eyeHeight() * 0.5 + 0.5));
+    const f32 dz = static_cast<f32>(target->z() - fireballZ);
+
+    // 创建火球实体
+    auto fireball = std::make_unique<entity::FireballEntity>(LegacyEntityType::Fireball, EntityId(0));
+    fireball->setShooter(this);
+    fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
+
+    // MC 1.16.5: 设置加速度方向
+    // FireballEntity 构造函数中设置加速度
+    // accelerationX/Y/Z 每tick累加到速度上
+    fireball->setAcceleration(dx, dy, dz);
+
+    // MC 1.16.5: 设置爆炸威力
+    fireball->setExplosionPower(m_explosionPower);
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(fireball));
+
+    // MC 1.16.5: 播放发射音效
+    // world.playEvent((PlayerEntity)null, 1016, this.parentEntity.getPosition(), 0)
+    playSound(SoundEvents::ENTITY_GHAST_SHOOT, 1.0f, 1.0f);
 }
 
 void GhastEntity::registerGoals()
