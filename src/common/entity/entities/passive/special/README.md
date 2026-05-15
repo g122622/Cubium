@@ -371,14 +371,65 @@ void TurtleEntity::layEgg();
 
 **参考**：MC 1.16.5 `TurtleEntity.travel()` 和 `MoveHelperController.updateSpeed()`
 
-### 行为
+### AI 目标系统
+海龟具有完整的行为目标系统，实现了所有 MC 1.16.5 特有的 AI Goals。
+
+#### 行为目标（按优先级）
 | 优先级 | Goal | 说明 |
 |--------|------|------|
-| 0 | SwimGoal | 在水中游泳 |
-| 1 | PanicGoal | 受伤逃跑 |
-| 2 | BreedGoal | 繁殖 |
-| 3 | TemptGoal | 被海草诱惑 |
-| 4 | GoHomeGoal | 返回出生地产卵 |
+| 0 | TurtlePanicGoal | 恐慌逃跑（优先寻找水源） |
+| 1 | TurtleMateGoal | 繁殖（繁殖后获得蛋） |
+| 1 | TurtleLayEggGoal | 产卵（有蛋时在出生地附近找沙地） |
+| 2 | TurtleTemptGoal | 被海草诱惑 |
+| 3 | TurtleGoToWaterGoal | 前往水源（陆地上的海龟找水） |
+| 4 | TurtleGoHomeGoal | 返回出生地（有蛋或随机触发） |
+| 7 | TurtleTravelGoal | 水中随机游泳 |
+| 8 | LookAtGoal | 看向玩家 |
+| 9 | TurtleWanderGoal | 陆地随机漫步 |
+
+#### 各 Goal 详细说明
+
+**TurtleGoHomeGoal（返回出生地）**
+- 触发条件：
+  - 有蛋时：检查是否有出生地
+  - 无蛋时：1/700 概率检查，距离出生地超过 64 格触发
+- 持续条件：距离出生地 > 7 格 AND 未放弃 AND 未超时（600 ticks）
+- 行为：导航返回出生地，远离出生地超过 16 格时速度减半
+
+**TurtleLayEggGoal（产卵）**
+- 触发条件：有蛋 AND 距离出生地 ≤ 9 格 AND 找到合适沙地
+- 行为：移动到沙地上方，开始 200 tick 的产卵动画
+- 完成后：调用 `layEgg()` 放置 1-4 个海龟蛋方块
+
+**TurtleTravelGoal（水中旅行）**
+- 触发条件：不在回家状态 AND 没有蛋 AND 在水中
+- 行为：在 512 格范围内随机游泳，保持在海平面以下（y ≤ 62）
+- 特点：让海龟在海洋中自然游动
+
+**TurtleGoToWaterGoal（前往水源）**
+- 触发条件：
+  - 幼龟：不在水中
+  - 成龟：不在回家 AND 不在水中 AND 没有蛋
+- 行为：搜索 24 格内的水源并导航过去
+- 超时：1200 ticks
+
+**TurtleMateGoal（繁殖）**
+- 继承自 BreedGoal
+- 额外条件：没有蛋才能繁殖
+- 繁殖后：设置 `hasEgg = true`
+
+**TurtlePanicGoal（恐慌逃跑）**
+- 继承自 PanicGoal
+- 特点：海龟恐慌时优先寻找水源
+
+**TurtleTemptGoal（海草诱惑）**
+- 继承自 TemptGoal
+- 触发物品：仅海草（SEAGRASS）
+
+**TurtleWanderGoal（陆地漫步）**
+- 继承自 RandomWalkingGoal
+- 触发条件：不在水中 AND 不在回家 AND 没有蛋
+- 执行概率：1/100
 
 ### 状态管理
 | 方法 | 说明 |
