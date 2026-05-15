@@ -146,6 +146,7 @@ enum class LegacyEntityType : u32 {
     Witch = 78,
     Ravager = 79,
     Blaze = 80,
+    Vex = 81,       // 恼鬼
 
     // Boss
     Wither = 90,

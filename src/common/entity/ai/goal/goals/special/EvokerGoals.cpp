@@ -26,6 +26,7 @@
 #include "../../../../entities/monster/illager/EvokerEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../GoalFlag.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
 
@@ -177,10 +178,32 @@ void EvokerSummonSpellGoal::castSpell()
 
 i32 EvokerSummonSpellGoal::countNearbyVexes() const
 {
-    // TODO: 实现实体范围查询
     // MC 1.16.5: world.getTargettableEntitiesWithinAABB(VexEntity.class, predicate, evoker, evoker.getBoundingBox().grow(16.0D))
-    // 目前返回0，等待实体查询系统完善
-    return 0;
+    if (m_evoker == nullptr || m_evoker->world() == nullptr) {
+        return 0;
+    }
+
+    IWorld* world = m_evoker->world();
+
+    // 获取唤魔者的碰撞箱并向各方向扩展16格
+    AxisAlignedBB searchBox = m_evoker->boundingBox().grow(16.0f);
+
+    // 获取范围内的所有实体
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_evoker);
+
+    // 统计恼鬼数量
+    i32 vexCount = 0;
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
+        }
+        // 检查是否为恼鬼实体
+        if (entity->legacyType() == LegacyEntityType::Vex) {
+            vexCount++;
+        }
+    }
+
+    return vexCount;
 }
 
 // ============================================================================

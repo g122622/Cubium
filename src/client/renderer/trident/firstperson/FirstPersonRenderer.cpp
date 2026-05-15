@@ -26,6 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -1048,8 +1049,12 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
     }
 
     // 检查弩是否已装填
-    // TODO: 当 CrossbowItem 完整实现后添加 CrossbowHold 姿态检测
-    // 目前暂时返回 Item 姿态
+    // MC 1.16.5: 如果物品是弩且已装填，显示 CrossbowHold 姿态
+    if (dynamic_cast<const item::CrossbowItem*>(item) != nullptr) {
+        if (item::CrossbowItem::isCharged(heldItem)) {
+            return ArmPose::CrossbowHold;
+        }
+    }
 
     // 检查是否为地图
     // TODO: 实现地图检测

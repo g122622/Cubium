@@ -39,7 +39,7 @@ VexEntity::VexEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<VexEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<VexEntity>(LegacyEntityType::Vex, 0);
 }
 
 void VexEntity::tick()

@@ -39,6 +39,7 @@
 #include "../../ai/pathfinding/PathNavigator.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../entities/player/Player.hpp"
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include <cmath>
 
@@ -410,10 +411,13 @@ void WitherEntity::updateHeadTargets()
                 continue;
             }
 
-            // 检查是否是创造模式玩家（创造模式玩家不可被攻击）
+            // 检查是否是创造模式玩家（创造模式和旁观者模式的玩家不能被作为目标）
+            // MC 1.16.5: 创造模式和旁观者模式无敌
             if (living->legacyType() == LegacyEntityType::Player) {
-                // TODO: 检查玩家的游戏模式
-                // 暂时跳过这个检查
+                Player* player = dynamic_cast<Player*>(living);
+                if (player != nullptr && (player->isCreative() || player->isSpectator())) {
+                    continue;
+                }
             }
 
             f32 distSq = distanceSqTo(*living);
