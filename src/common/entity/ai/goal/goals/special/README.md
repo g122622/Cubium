@@ -10,6 +10,8 @@ special/
 ├── GuardianAttackGoal.cpp # 守卫者攻击目标实现
 ├── BlazeFireballAttackGoal.hpp # 烈焰人火球攻击目标头文件
 ├── BlazeFireballAttackGoal.cpp # 烈焰人火球攻击目标实现
+├── SquidGoals.hpp         # 鱿鱼目标头文件
+├── SquidGoals.cpp         # 鱿鱼目标实现
 └── README.md              # 本文档
 ```
 
@@ -293,6 +295,92 @@ void PufferfishEntity::registerGoals() {
 
 ---
 
+### SquidMoveRandomGoal - 鱿鱼随机游泳目标
+
+**职责**: 控制鱿鱼在水中进行随机游泳移动。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.SquidEntity.MoveRandomGoal`
+
+**执行条件**:
+- `shouldExecute()` 始终返回 true（鱿鱼随时可以游泳）
+
+**tick 行为**:
+1. 如果空闲时间 > 100 tick：停止移动（设置移动向量为零）
+2. 否则以 1/50 概率，或不在水中，或没有移动向量时，生成新的随机移动向量：
+   - 角度：随机 [0, 2π)
+   - X = cos(角度) × 0.2
+   - Y = -0.1 + random × 0.2 (范围 [-0.1, 0.1])
+   - Z = sin(角度) × 0.2
+
+**互斥标志**: 无（不与其他目标互斥）
+
+**使用示例**:
+```cpp
+void SquidEntity::registerGoals() {
+    // 优先级 0: 随机游泳（最高优先级）
+    m_goalSelector.addGoal(0, std::make_unique<SquidMoveRandomGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| IDLE_THRESHOLD | 100 | 空闲 tick 阈值 |
+| RANDOM_CHANCE | 50 | 1/50 概率触发新方向 |
+| HORIZONTAL_SPEED | 0.2f | 水平移动向量大小 |
+| VERTICAL_MIN | -0.1f | 垂直移动向量最小值 |
+| VERTICAL_RANGE | 0.2f | 垂直移动向量范围 |
+
+**依赖**:
+- 需要 SquidEntity 提供 `idleTime()`, `isInWater()`, `hasMovementVector()`, `setMovementVector()` 方法
+
+---
+
+### SquidFleeGoal - 鱿鱼逃跑目标
+
+**职责**: 控制鱿鱼在受到攻击时向相反方向逃跑。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.SquidEntity.FleeGoal`
+
+**执行条件**:
+- 鱿鱼必须在水中 (`isInWater()`)
+- 必须有复仇目标 (`getLastHurtBy() != nullptr`)
+- 复仇目标距离必须 < 10 格 (距离平方 < 100)
+
+**tick 行为**:
+1. 计算远离敌人的方向向量
+2. 根据距离调整逃跑速度：
+   - 基础速度 = 3.0
+   - 距离 > 5 格时：速度 = 3.0 - (距离 - 5) / 5
+3. 如果目标是空气，移除 Y 分量避免跳出水面
+4. 设置移动向量（除以 20 转换为每 tick 速度）
+5. 每 10 tick 的第 5 tick 产生气泡粒子
+
+**互斥标志**: 无（不与其他目标互斥）
+
+**使用示例**:
+```cpp
+void SquidEntity::registerGoals() {
+    // 优先级 1: 逃跑目标（受攻击时逃跑）
+    m_goalSelector.addGoal(1, std::make_unique<SquidFleeGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| FLEE_DISTANCE_SQ | 100.0 | 触发逃跑的距离平方阈值 (10²) |
+| BASE_FLEE_SPEED | 3.0f | 基础逃跑速度 |
+| DISTANCE_THRESHOLD | 5.0 | 速度衰减开始距离 |
+| SPEED_SCALE | 20.0f | 速度缩放因子 |
+| BUBBLE_INTERVAL | 10 | 气泡粒子产生间隔 |
+| BUBBLE_OFFSET | 5 | 气泡粒子产生偏移 |
+
+**依赖**:
+- 需要 SquidEntity 提供 `isInWater()`, `getLastHurtBy()`, `distanceSqTo()`, `x()`, `y()`, `z()`, `setMovementVector()` 方法
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -302,13 +390,17 @@ graph TD
     A --> D[GuardianAttackGoal]
     A --> E[BlazeFireballAttackGoal]
     A --> F[PuffGoal]
-    A --> G[其他占位符目标]
+    A --> G[SquidMoveRandomGoal]
+    A --> H[SquidFleeGoal]
+    A --> I[其他占位符目标]
 
-    B --> H[CreeperEntity]
-    C --> I[AbstractHorseEntity]
-    D --> J[GuardianEntity]
-    E --> K[BlazeEntity]
-    F --> L[PufferfishEntity]
+    B --> J[CreeperEntity]
+    C --> K[AbstractHorseEntity]
+    D --> L[GuardianEntity]
+    E --> M[BlazeEntity]
+    F --> N[PufferfishEntity]
+    G --> O[SquidEntity]
+    H --> O
 ```
 
 ---
@@ -427,6 +519,7 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | BlazeFireballAttackGoalBasicTest.* | 烈焰人火球攻击目标常量测试 |
 | PufferfishEntityTest.* | 河豚实体膨胀状态、计时器、尺寸测试 |
 | PuffGoalTest.* | 河豚膨胀目标构造和类型名称测试 |
+| SquidGoalsTest.* | 鱿鱼目标测试（移动向量、AI目标执行条件） |
 
 ---
 

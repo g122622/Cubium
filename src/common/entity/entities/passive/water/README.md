@@ -82,7 +82,27 @@ void WaterMobEntity::updateAirSupply() {
 - 喷墨行为：受到攻击时喷出墨汁
 - 游泳行为：在水中优雅游动
 - 挣扎行为：离开水会扑腾
+- AI 目标：随机游泳 (SquidMoveRandomGoal) 和逃跑 (SquidFleeGoal)
 - 掉落：墨囊
+
+**移动向量系统**:
+
+鱿鱼使用自定义的移动向量系统进行游泳，而不是标准的导航系统。
+
+```cpp
+// 设置移动向量
+void setMovementVector(f32 x, f32 y, f32 z);
+
+// 检查是否有移动向量
+bool hasMovementVector() const;
+```
+
+**AI 目标**:
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 0 | SquidMoveRandomGoal | 随机游泳，始终可执行 |
+| 1 | SquidFleeGoal | 受攻击时逃跑，水中 && 距离 < 10 格 |
 
 ## 模块关系
 
@@ -114,11 +134,12 @@ Entity
 - [tests/entity/LivingEntityTests.cpp](../../../../../../tests/entity/LivingEntityTests.cpp) - 基类溺水测试
 - [tests/common/entity/PlayerSwimTest.cpp](../../../../../../tests/common/entity/PlayerSwimTest.cpp) - 玩家游泳和溺水测试
 - [tests/common/test_entity_physics.cpp](../../../../../../tests/common/test_entity_physics.cpp) - 物理常量测试
+- [tests/common/entity/DolphinEntityTest.cpp](../../../../../../tests/common/entity/DolphinEntityTest.cpp) - 海豚实体测试
+- [tests/common/entity/SquidGoalsTest.cpp](../../../../../../tests/common/entity/SquidGoalsTest.cpp) - 鱿鱼目标和移动向量测试
 
 ## 待实现功能
 
 - 海豚 AI 目标（需要 AI 系统完善）
-- 鱿鱼 AI 目标（需要 AI 系统完善）
 
 ## 已实现功能
 
@@ -129,9 +150,11 @@ Entity
 ### WaterMobEntity（2026-05-10）
 - ✅ `isInWaterOrBubble()`: 检测实体是否在水中或气泡柱中，使用 `VanillaBlocks::BUBBLE_COLUMN` 检测气泡柱方块
 
-### 测试用例
-
-- [tests/common/entity/DolphinEntityTest.cpp](../../../../../../tests/common/entity/DolphinEntityTest.cpp) - 海豚实体测试
+### SquidEntity（2026-05-15）
+- ✅ `setMovementVector()`: 设置移动向量
+- ✅ `hasMovementVector()`: 检查是否有移动向量
+- ✅ `SquidMoveRandomGoal`: 随机游泳目标
+- ✅ `SquidFleeGoal`: 受攻击时逃跑目标
 
 ## 参考
 
