@@ -303,7 +303,7 @@ ${STOP_HOOK_PROMPT}
         permissionDecision: "allow",
       },
       systemMessage: `【系统提示】检测到 cmake 命令调用: ${command}
-推荐使用标准构建命令（及其变种）: ${allowedCommand}。`,
+推荐使用标准构建命令（及其变种）: ${allowedCommand}。提示：编译时间可能非常长（甚至20min+），必须停下来耐心等待，不要重复启动编译，不要重复启动编译！`,
     };
   };
 
@@ -408,7 +408,7 @@ ${STOP_HOOK_PROMPT}
           await runTask(
             `请你检查当前代码能否编译通过（cmake --build --preset windows-clang-relwithdebinfo），
 编译时间可能会非常长（若当前为macos系统，则该命令带上-j6后缀；若为Windows系统，则不带上任何表示构建并行度的后缀）
-等待时间必须10分钟以上，若编译失败则必须修复直到能通过。注意build目录存在于项目根目录，你需要先切换到项目根目录执行构建`,
+等待时间必须20分钟以上，若编译失败则必须修复直到能通过。注意build目录存在于项目根目录，你需要先切换到项目根目录执行构建.编译时间可能非常长，不要重复启动编译`,
             i, j, false);
           await runTask("请你检查当前是否有未提交的更改，若有则生成提交信息并提交，最后推送到远程仓库，并处理可能的冲突。 如果拉取/推送代码的时候因为网络问题没有成功，那么你无需重试，将该提交留在本地后即可停下来了，以后我会帮你去做。另外，/include/minecraft-reborn/version.h这个文件如果git显示未提交，你不用理会，将其留在工作区即可，重点是处理其他文件", i, j, false);
         }
