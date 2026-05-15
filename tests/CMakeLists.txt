@@ -109,6 +109,8 @@ add_executable(mc_tests
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
+    # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
+    common/entity/entities/misc/FallingBlockEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # WitherEntity 数据参数和目标追踪测试
     common/entity/entities/boss/WitherEntityTest.cpp
