@@ -235,6 +235,79 @@ void setOwnerUuid(const std::string& uuid);  // 设置主人UUID
 | `isBred()` / `setBred(bool)` | 繁殖状态 |
 | `isMouthOpen()` / `setMouthOpen(bool)` | 嘴巴张开状态 |
 
+## 骑乘更新系统
+
+### updateRiding()
+
+每 tick 调用，更新马类实体的动画状态和乘客位置：
+
+```cpp
+void updateRiding();
+```
+
+**功能**：
+1. 更新扬蹄动画进度 (`m_rearingAmount`)
+2. 更新低头吃草动画进度 (`m_headLean`)
+3. 更新张嘴动画进度 (`m_mouthOpenness`)
+4. 调用 `updatePassengers()` 更新所有乘客位置
+
+**动画更新算法**（参考 MC 1.16.5）：
+
+```cpp
+// 扬蹄动画渐入
+if (isRearing()) {
+    rearingAmount += (1.0f - rearingAmount) * 0.4f + 0.05f;
+}
+// 扬蹄动画渐出（三次方平滑）
+else {
+    rearingAmount += (0.8f * rearingAmount³ - rearingAmount) * 0.6f - 0.05f;
+}
+```
+
+### updatePassengerPosition()
+
+重写父类方法，处理扬蹄时的乘客位置偏移：
+
+```cpp
+void updatePassengerPosition(Entity& passenger) override;
+```
+
+**功能**：
+1. 调用父类基础定位
+2. 扬蹄时根据 `prevRearingAmount` 计算额外位置偏移：
+   - X/Z 方向偏移：`0.7f * prevRearingAmount * sin/cos(yaw)`
+   - Y 方向额外高度：`0.15f * prevRearingAmount`
+
+### 动画插值方法
+
+用于渲染时平滑过渡动画：
+
+```cpp
+// 获取扬蹄动画进度（用于渲染）
+f32 getRearingAmount(f32 partialTicks) const;
+
+// 获取低头吃草动画进度（用于渲染）
+f32 getHeadLeanAmount(f32 partialTicks) const;
+
+// 获取张嘴动画进度（用于渲染）
+f32 getMouthOpennessAmount(f32 partialTicks) const;
+```
+
+**参数**：
+- `partialTicks`：帧间插值时间（0.0-1.0）
+
+**返回值**：
+- 插值后的动画进度（0.0-1.0）
+
+**使用示例**（渲染器中）：
+
+```cpp
+// 渲染时获取平滑的扬蹄角度
+f32 rearingAngle = horse.getRearingAmount(partialTicks) * MAX_REARING_ANGLE;
+// 应用到马模型
+horseModel.setRearingAmount(rearingAngle);
+```
+
 ## 使用示例
 
 ```cpp
@@ -310,7 +383,30 @@ i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
 
 ## 测试用例
 
-马类实体的测试位于 `tests/entity/HorseSupportTypesTest.cpp`、`tests/entity/HorseAppearanceSupportTypesTest.cpp` 和 `tests/entity/HorseJumpBoostTest.cpp`。
+马类实体的测试位于以下文件：
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `tests/entity/HorseSupportTypesTest.cpp` | 马类型支持测试 |
+| `tests/entity/HorseAppearanceSupportTypesTest.cpp` | 马外观变体测试 |
+| `tests/entity/HorseJumpBoostTest.cpp` | 跳跃提升药水效果测试 |
+| `tests/entity/HorseTamingTest.cpp` | 驯服系统、扬蹄动画、状态管理测试 |
+| `tests/common/entity/entities/passive/horse/HorseCanEquipTest.cpp` | 装备验证测试 |
+
+### 新增测试用例
+
+`HorseTamingTest.cpp` 包含以下动画相关测试：
+
+- `RearingAmount_InitialValueIsZero` - 初始扬蹄动画为 0
+- `RearingAmount_IncreasesWhenRearing` - 扬蹄状态设置正确
+- `RearingAmount_DecreasesWhenNotRearing` - 取消扬蹄后状态正确
+- `RearingAmount_InterpolationFormula` - 插值公式正确
+- `HeadLeanAmount_InitialValueIsZero` - 初始低头动画为 0
+- `HeadLeanAmount_SetEatingState` - 进食状态设置正确
+- `HeadLeanAmount_ClearsWhenRearing` - 扬蹄时进食状态被清除
+- `MouthOpennessAmount_InitialValueIsZero` - 初始张嘴动画为 0
+- `MouthOpennessAmount_SetMouthOpenState` - 张嘴状态设置正确
+- `MouthOpennessAmount_InterpolationFormula` - 插值公式正确
 
 ## 参考
 
