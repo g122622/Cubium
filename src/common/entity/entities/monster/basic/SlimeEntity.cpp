@@ -29,6 +29,10 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityType.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../ai/controller/JumpController.hpp"
+#include "../../../ai/controller/MovementController.hpp"
+#include "../../../ai/goal/goals/special/SlimeGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -105,6 +109,27 @@ void SlimeEntity::alterSquishAmount()
     // MC 1.16.5: alterSquishAmount()
     // 挤压量向 0 衰减
     m_squishAmount *= 0.6f;
+}
+
+std::optional<ResourceLocation> SlimeEntity::getJumpSound() const
+{
+    // MC 1.16.5: 跳跃音效
+    // 小史莱姆用 squish_small，大史莱姆用 squish
+    return getSquishSound();
+}
+
+i32 SlimeEntity::getJumpDelay() const
+{
+    // MC 1.16.5: getJumpDelay() - return this.rand.nextInt(20) + 10;
+    // 返回 10-29 tick (0.5-1.45秒)
+    math::Random rng = getRandom();
+    return rng.nextInt(10, 29);
+}
+
+void SlimeEntity::split()
+{
+    // 已废弃，使用 performSplit()
+    performSplit();
 }
 
 void SlimeEntity::dealDamage(LivingEntity& target)
@@ -228,13 +253,26 @@ void SlimeEntity::registerGoals()
     // 优先级 1: NearestAttackableTargetGoal<Player>（攻击玩家，高度差<=4）
     // 优先级 3: NearestAttackableTargetGoal<IronGolem>（攻击铁傀儡）
 
-    // TODO: 实现史莱姆特有的AI目标
-    // m_goalSelector.addGoal(1, new SlimeFloatGoal(this));
-    // m_goalSelector.addGoal(2, new SlimeAttackGoal(this));
-    // m_goalSelector.addGoal(3, new SlimeFaceRandomGoal(this));
-    // m_goalSelector.addGoal(5, new SlimeHopGoal(this));
-    // m_targetSelector.addGoal(1, new NearestAttackableTargetGoal<Player>(this));
-    // m_targetSelector.addGoal(3, new NearestAttackableTargetGoal<IronGolem>(this));
+    // AI 目标选择器
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SlimeFloatGoal>(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::SlimeAttackGoal>(this));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SlimeFaceRandomGoal>(this));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::SlimeHopGoal>(this));
+
+    // 目标选择器
+    // 攻击玩家：距离 <= 10，高度差 <= 4
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this, true, 10,
+            [](const LivingEntity* target) -> bool {
+                // 检查是否是玩家且高度差 <= 4
+                // 注：暂时简化实现，检查所有 LivingEntity
+                return target != nullptr && target->isAlive();
+            }));
+    // TODO: 当 Player 类型可用时，改为专门针对玩家
+    // m_targetSelector.addGoal(1, std::make_unique<NearestAttackableTargetGoal<Player>>(this, true, 10));
+    // TODO: 当 IronGolemEntity 可用时，添加攻击铁傀儡的目标
+    // m_targetSelector.addGoal(3, std::make_unique<NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void SlimeEntity::registerAttributes()
