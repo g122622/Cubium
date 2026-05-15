@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,17 +18,28 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "WitherEntity.hpp"
+#include "../../../core/Constants.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
+#include "../../ai/goal/GoalFlag.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../ai/pathfinding/PathNavigator.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -48,10 +59,18 @@ std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/)
 WitherEntity::WitherEntity(LegacyEntityType type, EntityId id)
     : MobEntity(type, id)
 {
-    // MC 1.16.5: 设置经验和无敌状态
+    // MC 1.16.5 WitherEntity 构造函数
     setExperienceValue(50);
-    // TODO: setNoGravity(true) - 凋灵可以飞行
-    // TODO: getNavigator().setCanSwim(true)
+
+    // MC 1.16.5: 凋灵可以飞行（不受重力影响）
+    setNoGravity(true);
+
+    // MC 1.16.5: 设置导航器可以游泳
+    // 注意：SwimGoal 会在 MonsterEntity::registerGoals() 中自动设置 setCanSwim(true)
+    // 这里显式设置以确保在导航器创建后立即生效
+    if (auto* nav = navigator()) {
+        nav->setCanSwim(true);
+    }
 
     registerData();
     registerAttributes();
@@ -94,8 +113,32 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
-    // TODO: 免疫其他凋灵的伤害
-    // TODO: 充能状态下免疫箭矢伤害
+    // MC 1.16.5: 免疫其他凋灵的伤害
+    Entity* trueSource = source.getTrueSource();
+    if (trueSource != nullptr && trueSource != this) {
+        // 检查攻击者是否也是凋灵
+        if (trueSource->legacyType() == LegacyEntityType::Wither) {
+            return true;
+        }
+    }
+
+    // MC 1.16.5: 充能状态（生命值≤一半）免疫箭矢伤害
+    if (isCharged()) {
+        Entity* immediateSource = source.directSource();
+        if (immediateSource != nullptr) {
+            // 检查是否是箭矢（包括普通箭、光灵箭、三叉戟等投射物）
+            // MC 1.16.5: if (entity instanceof AbstractArrowEntity)
+            LegacyEntityType entityType = immediateSource->legacyType();
+            if (entityType == LegacyEntityType::Arrow ||
+                entityType == LegacyEntityType::SpectralArrow ||
+                entityType == LegacyEntityType::Trident) {
+                return true;
+            }
+        }
+    }
+
+    // MC 1.16.5: 亡灵生物不互相伤害（通过 CreatureAttribute 判断）
+    // 注意：这个逻辑通常在 LivingEntity.attackEntityFrom() 中处理
 
     return MobEntity::isInvulnerableTo(source);
 }
@@ -171,15 +214,20 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
         return;
     }
 
+    IWorld* worldPtr = world();
+    if (!worldPtr) {
+        return;
+    }
+
     // 计算发射位置
     f32 headX = getHeadX(head);
     f32 headY = getHeadY(head);
     f32 headZ = getHeadZ(head);
 
     // 计算发射方向
-    f32 dx = target->x() - headX;
-    f32 dy = target->y() + target->eyeHeight() / 2.0f - headY;
-    f32 dz = target->z() - headZ;
+    f32 dx = static_cast<f32>(target->x()) - headX;
+    f32 dy = static_cast<f32>(target->y()) + target->eyeHeight() / 2.0f - headY;
+    f32 dz = static_cast<f32>(target->z()) - headZ;
 
     f32 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
     if (dist > 0.0f) {
@@ -189,26 +237,30 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
     }
 
     // 决定是否发射蓝色凋灵之首
-    // MC 1.16.5: 主头有 0.1% 概率发射蓝色凋灵之首
+    // MC 1.16.5: 主头有 0.1% 概率发射蓝色凋灵之首，充能状态下主头总是发射蓝色
     bool isBlue = false;
     if (head == 0) {
-        // 主头：充能时或随机发射蓝色
-        math::Random rng(ticksExisted());
+        math::Random rng = getRandom();
         if (isCharged() || rng.nextFloat() < 0.001f) {
             isBlue = true;
         }
     }
-    static_cast<void>(isBlue);
 
-    // TODO: 创建凋灵之首实体
-    // auto skull = std::make_unique<WitherSkullEntity>(...);
-    // skull->setPosition(headX, headY, headZ);
-    // skull->setShooter(this);
-    // skull->shoot(dx, dy, dz, 1.5f, 0.0f);
-    // skull->setBlue(isBlue);
-    // world->spawnEntity(std::move(skull));
+    // 创建凋灵之首实体
+    auto skull = std::make_unique<WitherSkullEntity>(LegacyEntityType::WitherSkull, EntityId(0));
+    skull->setPosition(Vector3(headX, headY, headZ));
+    skull->setShooter(this);
+    // MC 1.16.5: 蓝色凋灵之首的运动因子为 0.73，普通为 0.95
+    // shoot 方法的 velocity 参数：1.5 * 运动因子
+    f32 velocity = isBlue ? 1.095f : 1.5f; // 1.5 * 0.73 = 1.095, 1.5 * 1.0 = 1.5
+    skull->shoot(dx, dy, dz, velocity, 0.0f);
+    skull->setBlue(isBlue);
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(skull));
 
     // 播放发射音效
+    // MC 1.16.5: world.playEvent(1024, getPosition(), 0)
     playSound(SoundEvents::ENTITY_WITHER_SHOOT, 1.0f, 1.0f);
 }
 
@@ -421,16 +473,48 @@ void WitherEntity::breakNearbyBlocks()
     if (!worldPtr || !worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
         return;
     }
-    // TODO: 破坏 1x2x1 范围内的方块（凋灵免疫标签除外）
+
+    // MC 1.16.5: 破坏范围 3x4x3（以凋灵为中心）
+    // 破坏凋灵周围 1 格范围，向上 3 格
+    // 即: x: -1 到 1, y: 0 到 3, z: -1 到 1
+    i32 baseX = static_cast<i32>(std::floor(x()));
+    i32 baseY = static_cast<i32>(std::floor(y()));
+    i32 baseZ = static_cast<i32>(std::floor(z()));
+
+    // MC 1.16.5: 破坏凋灵免疫标签之外的方块
+    // 简化实现：使用爆炸来破坏方块
+    // 实际 MC 1.16.5 会检查 BlockTags.WITHER_IMMUNE 标签
+    // 这里暂时简化为不实现单独的方块破坏逻辑，因为已经有爆炸系统了
+    // TODO: 完整实现需要 BlockTags 系统和 destroyBlock 方法
 }
 
 void WitherEntity::explodeOnSpawn()
 {
     // MC 1.16.5: 生成时创建7.0威力的爆炸
-    // TODO: world->createExplosion(this, x(), y(), z(), 7.0f, ...);
+    IWorld* worldPtr = world();
+    if (!worldPtr) {
+        return;
+    }
 
-    // TODO: 播放生成音效
-    // world->playBroadcastSound(this, SoundEvents.ENTITY_WITHER_SPAWN, ...);
+    // MC 1.16.5: 检查 mobGriefing 游戏规则决定爆炸模式
+    world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+        ? world::explosion::ExplosionMode::Destroy
+        : world::explosion::ExplosionMode::None;
+
+    // 创建爆炸
+    // MC 1.16.5: 爆炸半径 7.0，不生成火焰
+    worldPtr->createExplosion(
+        position(),
+        game::explosion::WITHER_SPAWN_RADIUS, // 7.0f
+        mode,
+        false, // 不生成火焰
+        this    // 爆炸源
+    );
+
+    // MC 1.16.5: 播放全局音效
+    // world.playBroadcastSound(1023, getPosition(), 0)
+    // 这需要通过世界广播给所有玩家
+    playSound(SoundEvents::ENTITY_WITHER_SPAWN, 1.0f, 1.0f);
 }
 
 void WitherEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
@@ -444,15 +528,25 @@ void WitherEntity::registerGoals()
     MobEntity::registerGoals();
 
     // MC 1.16.5 WitherEntity.registerGoals()
-    // 优先级 0: DoNothingGoal（无敌阶段什么都不做）
-    // 优先级 2: RangedAttackGoal（远程攻击）
-    // 优先级 5: WaterAvoidingRandomWalkingGoal（避水随机行走）
-    // 优先级 6: LookAtGoal（看向玩家）
-    // 优先级 7: LookRandomlyGoal（随机看向）
-    //
-    // 目标选择器：
-    // 优先级 1: HurtByTargetGoal（被攻击反击）
-    // 优先级 2: NearestAttackableTargetGoal<MobEntity>（攻击非亡灵生物）
+
+    // 优先级 0: 无敌阶段什么都不做
+    // DoNothingGoal 阻止移动、跳跃和看向
+    m_goalSelector.addGoal(0, new WitherDoNothingGoal(this));
+
+    // 优先级 2: 远程攻击（主头发射凋灵之首）
+    // 使用 IRangedAttackMob 接口的 attackEntityWithRangedAttack
+    m_goalSelector.addGoal(2, new entity::ai::goal::RangedAttackGoal(
+        this,
+        1.0,   // 移动速度倍率
+        40,    // 最小攻击间隔 (ticks)
+        60,    // 最大攻击间隔 (ticks)
+        20.0f  // 攻击半径
+    ));
+
+    // 优先级 5: 避水随机行走
+    // MC 1.16.5: WaterAvoidingRandomWalkingGoal(this, 1.0)
+    // 注意: 凋灵可以飞行，这个目标主要用于地面移动
+    // 暂时不添加，因为凋灵需要特殊的飞行移动逻辑
 
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
@@ -463,6 +557,42 @@ void WitherEntity::registerGoals()
 
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+
+    // ========== 目标选择器 ==========
+    // MC 1.16.5: targetSelector
+
+    // 优先级 1: 被攻击后反击
+    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
+
+    // 优先级 2: 攻击非亡灵生物
+    // MC 1.16.5: NearestAttackableTargetGoal<MobEntity>(this, MobEntity.class, 0, false, false, NOT_UNDEAD)
+    // NOT_UNDEAD 谓词：排除亡灵生物
+    m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<MobEntity>(
+        this,
+        false,  // checkSight
+        0,      // chance (每tick检查)
+        [](const LivingEntity* entity) -> bool {
+            if (entity == nullptr || !entity->isAlive()) {
+                return false;
+            }
+            // 排除亡灵生物
+            return entity->getCreatureAttribute() != CreatureAttribute::Undead;
+        }
+    ));
+}
+
+// ========== WitherDoNothingGoal 实现 ==========
+
+WitherDoNothingGoal::WitherDoNothingGoal(WitherEntity* wither)
+    : ai::Goal(EnumSet<ai::GoalFlag>{ai::GoalFlag::Move, ai::GoalFlag::Jump, ai::GoalFlag::Look})
+    , m_wither(wither)
+{
+}
+
+bool WitherDoNothingGoal::shouldExecute()
+{
+    // MC 1.16.5: 只在无敌阶段执行
+    return m_wither != nullptr && m_wither->isInvulnerablePhase();
 }
 
 void WitherEntity::registerAttributes()
@@ -474,9 +604,6 @@ void WitherEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0); // MC 1.16.5: 40 而非 64
     m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);         // MC 1.16.5: 4 点护甲
-
-    // TODO: 凋灵可以飞行
-    // setNoGravity(true);
 }
 
 } // namespace entity

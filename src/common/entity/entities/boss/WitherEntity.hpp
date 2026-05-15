@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,13 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../resource/ResourceLocation.hpp"
+#include "../../ai/goal/Goal.hpp"
 #include "../../core/DataParameter.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
@@ -39,6 +40,31 @@ class DamageSource;
 class LivingEntity;
 
 namespace entity {
+
+// 前向声明
+class WitherEntity;
+
+/**
+ * @brief 凋灵无敌阶段目标
+ *
+ * 在凋灵的无敌阶段（生成后220 ticks）阻止所有行动。
+ * 阻止移动、跳跃和看向。
+ *
+ * 参考 MC 1.16.5 WitherEntity.DoNothingGoal
+ */
+class WitherDoNothingGoal : public ai::Goal {
+public:
+    explicit WitherDoNothingGoal(WitherEntity* wither);
+
+    ~WitherDoNothingGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "WitherDoNothingGoal"; }
+
+private:
+    WitherEntity* m_wither;
+};
 
 /**
  * @brief 凋灵Boss实体

@@ -111,6 +111,11 @@ protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 
+    // MC 1.16.5: 蓝色凋灵之首运动因子为 0.73，普通为 0.95
+    [[nodiscard]] f32 getMotionFactor() const override;
+    // MC 1.16.5: 凋灵之首不燃烧
+    [[nodiscard]] bool isFiery() const override;
+
 private:
     bool m_blue = false;
 };
