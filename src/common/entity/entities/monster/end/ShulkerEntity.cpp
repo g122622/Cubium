@@ -25,6 +25,7 @@
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/special/ShulkerGoals.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/AttributeModifier.hpp"
 #include "entity/attribute/Attributes.hpp"
@@ -359,8 +360,10 @@ void ShulkerEntity::registerGoals()
             // 只看向玩家
             return dynamic_cast<const Player*>(entity) != nullptr;
         }));
-    // TODO: ShulkerAttackGoal
-    // TODO: ShulkerPeekGoal
+    // ShulkerAttackGoal: 发射子弹攻击
+    goalSelector().addGoal(4, std::make_unique<entity::ai::goal::ShulkerAttackGoal>(this));
+    // ShulkerPeekGoal: 空闲时开壳张望
+    goalSelector().addGoal(7, std::make_unique<entity::ai::goal::ShulkerPeekGoal>(this));
     goalSelector().addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 

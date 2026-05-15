@@ -76,14 +76,67 @@ Entity (core/Entity.hpp)
 
 ### 其他投掷物
 
-| 实体 | 用途 |
-|------|------|
-| LlamaSpitEntity | 羊驼攻击狼 |
-| FishingBobberEntity | 钓鱼机制 |
-| ShulkerBulletEntity | 潜影贝跟踪攻击 |
-| EvokerFangsEntity | 唤魔者召唤尖牙 |
-| EyeOfEnderEntity | 寻找要塞 |
-| FireworkRocketEntity | 烟花/弩弹药 |
+| 实体 | 用途 | 实现状态 |
+|------|------|----------|
+| LlamaSpitEntity | 羊驼攻击狼 | ⏳ 框架完成 |
+| FishingBobberEntity | 钓鱼机制 | ⏳ 框架完成 |
+| ShulkerBulletEntity | 潜影贝跟踪攻击 | ✅ 完整实现 |
+| EvokerFangsEntity | 唤魔者召唤尖牙 | ✅ 完整实现 |
+| EyeOfEnderEntity | 寻找要塞 | ⏳ 框架完成 |
+| FireworkRocketEntity | 烟花/弩弹药 | ⏳ 框架完成 |
+
+#### 潜影贝子弹 (ShulkerBulletEntity) 详细实现
+
+潜影贝子弹是潜影贝发射的追踪子弹，具有独特的轴向移动机制。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 0.3125f / 0.3125f |
+| 伤害 | 4.0 |
+| 漂浮效果 | 200 ticks (10秒) |
+| 速度 | 0.15 (基础) × 1.025^steps |
+
+**追踪算法** (MC 1.16.5):
+```cpp
+void ShulkerBulletEntity::updateFlight() {
+    // 1. 获取目标位置
+    Vector3d targetPos = m_target->position();
+    
+    // 2. 计算到目标的方向增量
+    m_targetDelta = (targetPos - position()).normalize() * 0.15;
+    
+    // 3. 根据当前方向更新速度
+    if (m_direction == Direction::Up || m_direction == Direction::Down) {
+        // Y轴移动：保持XZ平面方向
+        m_velocity.x += m_targetDelta.x * 0.05;
+        m_velocity.z += m_targetDelta.z * 0.05;
+    } else {
+        // 水平移动：保持Y方向
+        m_velocity.y += m_targetDelta.y * 0.05;
+    }
+    
+    // 4. 加速
+    m_velocity *= 1.025;
+}
+```
+
+**方向选择**:
+- 子弹沿轴向移动（X、Y、Z三个轴）
+- 每 step 选择最优轴向接近目标
+- 碰撞方块时重新选择方向
+
+**命中效果**:
+- 对目标造成 4 点魔法伤害
+- 施加漂浮效果（Levitation，200 ticks = 10秒）
+- 播放 ENTITY_SHULKER_BULLET_HIT 音效
+
+**碰撞检测**:
+- 可以被玩家击中（canBeCollidedWith = true）
+- 命中方块时重新选择方向继续移动
+- 命中实体时应用伤害和效果
+
+**参考**: MC 1.16.5 ShulkerBulletEntity
 
 ## 核心类设计
 

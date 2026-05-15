@@ -1,0 +1,195 @@
+/*
+* Copyright (c) 2026 Guo Yi
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*/
+
+#include "ShulkerGoals.hpp"
+#include "../../../../entities/monster/end/ShulkerEntity.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "util/assert/AssertAll.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+
+namespace mc {
+namespace entity::ai::goal {
+
+// ============================================================================
+// ShulkerAttackGoal 实现
+// ============================================================================
+
+ShulkerAttackGoal::ShulkerAttackGoal(ShulkerEntity* shulker)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
+    , m_shulker(shulker)
+{
+    MC_ASSERT_RELEASE(shulker != nullptr);
+}
+
+bool ShulkerAttackGoal::shouldExecute()
+{
+    // MC 1.16.5 ShulkerEntity.AttackGoal.shouldExecute()
+    // 检查是否有攻击目标
+    LivingEntity* target = m_shulker->attackTarget();
+    if (target == nullptr || !target->isAlive()) {
+        return false;
+    }
+
+    // 检查目标是否在攻击范围内
+    double distSq = m_shulker->position().distanceSquared(target->position());
+    if (distSq > ATTACK_RANGE_SQ) {
+        return false;
+    }
+
+    m_target = target;
+    return true;
+}
+
+bool ShulkerAttackGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 继续执行条件
+    if (m_target == nullptr || !m_target->isAlive()) {
+        return false;
+    }
+
+    // 目标仍在范围内
+    double distSq = m_shulker->position().distanceSquared(m_target->position());
+    return distSq <= ATTACK_RANGE_SQ;
+}
+
+void ShulkerAttackGoal::startExecuting()
+{
+    // MC 1.16.5: 开始攻击时打开贝壳
+    m_shulker->openShell();
+    m_shulker->setAttacking(true);
+}
+
+void ShulkerAttackGoal::resetTask()
+{
+    // MC 1.16.5: 结束时关闭贝壳
+    m_shulker->closeShell();
+    m_shulker->setAttacking(false);
+    m_target = nullptr;
+}
+
+void ShulkerAttackGoal::tick()
+{
+    // MC 1.16.5 ShulkerEntity.AttackGoal.tick()
+    if (m_target == nullptr) {
+        return;
+    }
+
+    // 看向目标
+    m_shulker->lookAt(*m_target);
+
+    // 如果贝壳打开且攻击冷却完成，发射子弹
+    if (m_shulker->isShellOpen() && m_shulker->getAttackCooldown() <= 0) {
+        m_shulker->shootBullet();
+    }
+}
+
+// ============================================================================
+// ShulkerPeekGoal 实现
+// ============================================================================
+
+ShulkerPeekGoal::ShulkerPeekGoal(ShulkerEntity* shulker)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Look, GoalFlag::Move})
+    , m_shulker(shulker)
+{
+    MC_ASSERT_RELEASE(shulker != nullptr);
+}
+
+bool ShulkerPeekGoal::shouldExecute()
+{
+    // MC 1.16.5 ShulkerEntity.PeekGoal.shouldExecute()
+    // 只在没有攻击目标时执行
+    LivingEntity* target = m_shulker->attackTarget();
+    if (target != nullptr && target->isAlive()) {
+        return false;
+    }
+
+    // 贝壳必须闭合
+    if (!m_shulker->isShellClosed()) {
+        return false;
+    }
+
+    // 随机概率触发
+    IWorld* world = m_shulker->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    math::Random& rng = world->getRandom();
+    return rng.nextFloat() < PEEK_CHANCE;
+}
+
+bool ShulkerPeekGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 继续执行条件
+    // 有攻击目标时停止
+    LivingEntity* target = m_shulker->attackTarget();
+    if (target != nullptr && target->isAlive()) {
+        return false;
+    }
+
+    // 张望时间未结束
+    return m_peekTime < m_totalPeekTime;
+}
+
+void ShulkerPeekGoal::startExecuting()
+{
+    // MC 1.16.5: 开始张望
+    m_shulker->openShell();
+
+    // 随机张望时间
+    IWorld* world = m_shulker->world();
+    if (world != nullptr) {
+        math::Random& rng = world->getRandom();
+        m_totalPeekTime = MIN_PEEK_TIME + rng.nextInt(MAX_PEEK_TIME - MIN_PEEK_TIME + 1);
+    } else {
+        m_totalPeekTime = MIN_PEEK_TIME;
+    }
+    m_peekTime = 0;
+}
+
+void ShulkerPeekGoal::resetTask()
+{
+    // MC 1.16.5: 结束时关闭贝壳
+    m_shulker->closeShell();
+    m_peekTime = 0;
+    m_totalPeekTime = 0;
+}
+
+void ShulkerPeekGoal::tick()
+{
+    // MC 1.16.5 ShulkerEntity.PeekGoal.tick()
+    m_peekTime++;
+
+    // 随机看向不同方向
+    IWorld* world = m_shulker->world();
+    if (world != nullptr && m_peekTime % 20 == 0) {
+        math::Random& rng = world->getRandom();
+        // 随机旋转视角
+        f32 yaw = rng.nextFloat() * 360.0f - 180.0f;
+        m_shulker->setRotation(yaw, m_shulker->pitch());
+    }
+}
+
+} // namespace entity::ai::goal
+} // namespace mc

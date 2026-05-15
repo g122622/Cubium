@@ -121,6 +121,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/VexEntityTest.cpp
     # EvokerEntity 尖牙攻击和召唤恼鬼测试
     common/entity/entities/monster/illager/EvokerEntityTest.cpp
+    # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
+    common/entity/entities/monster/end/ShulkerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
