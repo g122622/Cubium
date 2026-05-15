@@ -107,12 +107,39 @@ if (isAlive() && isInDaylight()) {
 - 位于 `MobEntity` 基类（幻翼继承链：FlyingEntity → MobEntity）
 - 检查条件：世界为白天 → 亮度 > 0.5 → 随机检查 → 天空可见
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 1 | 目标选择 | PhantomAttackPlayerTargetGoal | 寻找 64 格内的玩家作为攻击目标 |
+| 1 | 攻击阶段 | PhantomPickAttackGoal | 在环绕和俯冲阶段之间切换 |
+| 2 | 俯冲攻击 | PhantomSweepAttackGoal | 执行俯冲攻击，撞击目标造成伤害 |
+| 3 | 环绕飞行 | PhantomOrbitPointGoal | 在目标上方环绕飞行 |
+
+**环绕攻击机制**：
+- **环绕阶段（CIRCLE）**：在目标上方环绕，等待攻击机会
+- **俯冲阶段（SWOOP）**：向目标俯冲，撞击造成伤害
+- 环绕参数：半径 5-15 格，高度偏移 -4 到 5 格
+- 猫会驱赶幻翼，导致俯冲攻击中断
+
+**核心方法**：
+
+| 方法 | 说明 |
+|------|------|
+| `getPhantomSize()` | 获取幻翼尺寸（0-64） |
+| `setPhantomSize(size)` | 设置幻翼尺寸，更新攻击力和碰撞箱 |
+| `getAttackPhase()` | 获取攻击阶段（CIRCLE/SWOOP） |
+| `setAttackPhase(phase)` | 设置攻击阶段 |
+| `orbitPosition()` | 获取环绕位置 |
+| `setOrbitPosition(pos)` | 设置环绕位置 |
+| `orbitOffset()` | 获取环绕偏移向量 |
+| `setOrbitOffset(offset)` | 设置环绕偏移向量 |
+
 **实现状态**：
 | 功能 | 状态 |
 |------|------|
 | 日光燃烧 | ✅ 已实现 |
 | 尺寸系统 | ✅ 已实现 |
-| AI 目标 | ⏳ 框架完成 |
+| AI 目标 | ✅ 已实现 |
 
 ## 使用示例
 
@@ -153,6 +180,13 @@ MonsterEntity（基类）
   - 维度与碰撞箱测试
   - 伤害与经验值测试
   - 着地粒子效果测试（客户端粒子生成、数量与尺寸关系、粒子类型验证）
+- `tests/common/entity/PhantomGoalsTest.cpp`
+  - 幻翼实体状态测试
+  - PhantomAttackPlayerTargetGoal 测试
+  - PhantomOrbitPointGoal 测试
+  - PhantomPickAttackGoal 测试
+  - PhantomSweepAttackGoal 测试
+  - 幻翼 AI 目标集成测试
 
 ## 容易踩的坑
 

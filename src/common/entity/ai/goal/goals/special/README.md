@@ -16,6 +16,8 @@ special/
 ├── BatGoals.cpp           # 蝙蝠目标实现
 ├── DolphinGoals.hpp       # 海豚目标头文件
 ├── DolphinGoals.cpp       # 海豚目标实现
+├── PhantomGoals.hpp       # 幻翼目标头文件
+├── PhantomGoals.cpp       # 幻翼目标实现
 └── README.md              # 本文档
 ```
 
@@ -644,6 +646,165 @@ void BatEntity::registerGoals() {
 
 ---
 
+### PhantomAttackPlayerTargetGoal - 幻翼攻击玩家目标选择器
+
+**职责**: 为幻翼寻找并锁定攻击目标（玩家）。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.PhantomEntity.AttackPlayerGoal`
+
+**执行条件**:
+- 幻翼存活
+- 搜索延迟已过
+- 64 格范围内存在可攻击的玩家
+
+**行为**:
+- `shouldExecute()`: 搜索范围内最近的可攻击玩家
+- `shouldContinueExecuting()`: 确认攻击目标仍然有效
+- `resetTask()`: 清除攻击目标
+
+**目标选择条件**:
+- 玩家存活
+- 非旁观者模式
+- 非创造模式
+- 距离 ≤ 64 格
+- 距离 > 20 格（不会太近）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RANGE | 64.0 | 搜索玩家范围 |
+| 初始搜索延迟 | 20 ticks | 首次搜索延迟 |
+| 成功后延迟 | 60 ticks | 找到目标后的搜索间隔 |
+
+**互斥标志**: 无（目标选择器不设置互斥标志）
+
+**使用示例**:
+```cpp
+void PhantomEntity::registerGoals() {
+    // 优先级 1: 目标选择器
+    m_targetSelector.addGoal(1, std::make_unique<PhantomAttackPlayerTargetGoal>(this));
+}
+```
+
+---
+
+### PhantomOrbitPointGoal - 幻翼环绕飞行目标
+
+**职责**: 控制幻翼在目标上方环绕飞行。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.PhantomEntity.OrbitPointGoal`
+
+**执行条件**:
+- 幻翼没有攻击目标，或
+- 幻翼处于环绕阶段（CIRCLE）
+
+**行为**:
+- `startExecuting()`: 初始化环绕半径、高度偏移、方向
+- `tick()`: 更新环绕角度，计算目标位置，移动幻翼
+
+**环绕参数**:
+- 环绕半径: 5.0 + random(10.0) = [5, 15)
+- 高度偏移: -4.0 + random(9.0) = [-4, 5)
+- 环绕方向: 1.0 或 -1.0（随机）
+
+**tick 逻辑**:
+1. 更新环绕角度: `angle += 0.05 * direction`
+2. 计算环绕偏移:
+   - X = radius * cos(angle)
+   - Z = radius * sin(angle)
+   - Y = heightOffset
+3. 设置目标位置: 目标位置 + 环绕偏移
+4. 移动幻翼向目标位置
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void PhantomEntity::registerGoals() {
+    // 优先级 3: 环绕飞行
+    m_goalSelector.addGoal(3, std::make_unique<PhantomOrbitPointGoal>(this));
+}
+```
+
+---
+
+### PhantomPickAttackGoal - 幻翼攻击阶段选择目标
+
+**职责**: 在环绕（CIRCLE）和俯冲（SWOOP）阶段之间切换。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.PhantomEntity.PickAttackGoal`
+
+**执行条件**:
+- 有攻击目标
+- 攻击目标存活
+- 攻击延迟已过
+
+**行为**:
+- `startExecuting()`: 设置为环绕阶段，更新环绕位置
+- `tick()`: 管理攻击阶段切换
+- `resetTask()`: 更新环绕位置
+
+**阶段切换逻辑**:
+1. 环绕阶段：等待合适时机
+2. 当接近目标且满足条件时，切换到俯冲阶段
+3. 俯冲完成后，切换回环绕阶段
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| 攻击延迟 | 可变 | 切换攻击阶段的延迟 |
+
+**互斥标志**: 无
+
+**使用示例**:
+```cpp
+void PhantomEntity::registerGoals() {
+    // 优先级 1: 攻击阶段选择
+    m_goalSelector.addGoal(1, std::make_unique<PhantomPickAttackGoal>(this));
+}
+```
+
+---
+
+### PhantomSweepAttackGoal - 幻翼俯冲攻击目标
+
+**职责**: 执行俯冲攻击，对目标造成伤害。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.PhantomEntity.SweepAttackGoal`
+
+**执行条件**:
+- 有攻击目标
+- 幻翼处于俯冲阶段（SWOOP）
+
+**继续执行条件**:
+- 攻击目标存活
+- 附近没有猫（猫会驱赶幻翼）
+
+**行为**:
+- `tick()`: 向目标俯冲，检测碰撞造成伤害
+- `resetTask()`: 切换回环绕阶段
+
+**俯冲机制**:
+- 直接向目标飞行
+- 撞击目标造成攻击伤害
+- 碰撞后切换回环绕阶段
+
+**猫检测**:
+- 每 20 tick 检测一次
+- 附近有猫时停止攻击并逃离
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void PhantomEntity::registerGoals() {
+    // 优先级 2: 俯冲攻击
+    m_goalSelector.addGoal(2, std::make_unique<PhantomSweepAttackGoal>(this));
+}
+```
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -655,39 +816,34 @@ graph TD
     A --> F[PuffGoal]
     A --> G[SquidMoveRandomGoal]
     A --> H[SquidFleeGoal]
-<<<<<<< HEAD
-    A --> J[BatRandomFlyGoal]
-    A --> K[BatRestGoal]
-    A --> I[其他占位符目标]
-
-    B --> L[CreeperEntity]
-    C --> M[AbstractHorseEntity]
-    D --> N[GuardianEntity]
-    E --> O[BlazeEntity]
-    F --> P[PufferfishEntity]
-    G --> Q[SquidEntity]
-    H --> Q
-    J --> R[BatEntity]
-    K --> R
-=======
     A --> I[DolphinJumpGoal]
     A --> J[SwimToTreasureGoal]
     A --> K[SwimWithPlayerGoal]
     A --> L[PlayWithItemsGoal]
-    A --> M[其他占位符目标]
+    A --> M[BatRandomFlyGoal]
+    A --> N[BatRestGoal]
+    A --> O[PhantomAttackPlayerTargetGoal]
+    A --> P[PhantomOrbitPointGoal]
+    A --> Q[PhantomPickAttackGoal]
+    A --> R[PhantomSweepAttackGoal]
 
-    B --> N[CreeperEntity]
-    C --> O[AbstractHorseEntity]
-    D --> P[GuardianEntity]
-    E --> Q[BlazeEntity]
-    F --> R[PufferfishEntity]
-    G --> S[SquidEntity]
-    H --> S
-    I --> T[DolphinEntity]
-    J --> T
-    K --> T
-    L --> T
->>>>>>> a7730e85 (feat(entity): 实现海豚 AI 目标（DolphinJumpGoal, SwimToTreasureGoal, SwimWithPlayerGoal, PlayWithItemsGoal）)
+    B --> S[CreeperEntity]
+    C --> T[AbstractHorseEntity]
+    D --> U[GuardianEntity]
+    E --> V[BlazeEntity]
+    F --> W[PufferfishEntity]
+    G --> X[SquidEntity]
+    H --> X
+    I --> Y[DolphinEntity]
+    J --> Y
+    K --> Y
+    L --> Y
+    M --> Z[BatEntity]
+    N --> Z
+    O --> AA[PhantomEntity]
+    P --> AA
+    Q --> AA
+    R --> AA
 ```
 
 ---
@@ -808,6 +964,8 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | PuffGoalTest.* | 河豚膨胀目标构造和类型名称测试 |
 | SquidGoalsTest.* | 鱿鱼目标测试（移动向量、AI目标执行条件） |
 | BatGoalsTest.* | 蝙蝠目标测试（状态切换、飞行目标、休息目标） |
+| DolphinGoalsTest.* | 海豚目标测试（跳跃、寻宝、与玩家同游、玩物品） |
+| PhantomGoalsTest.* | 幻翼目标测试（攻击阶段切换、环绕飞行、俯冲攻击） |
 
 ---
 
@@ -818,4 +976,6 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.GuardianEntity.GuardianAttackGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.BlazeEntity.FireballAttackGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.passive.BatEntity` (蝙蝠飞行和休息逻辑)
+- Minecraft Java 1.16.5 `net.minecraft.entity.passive.DolphinEntity` (海豚跳跃、寻宝、与玩家同游)
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.PhantomEntity` (幻翼环绕、俯冲攻击)
 - 本项目 CLAUDE.md 文档
