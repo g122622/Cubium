@@ -1081,6 +1081,73 @@ i32 EvokerSummonSpellGoal::countNearbyVexes() const
 
 **互斥标志**: `Move`, `Look`
 
+### EvokerWololoSpellGoal - 唔噜噜法术目标
+
+**职责**: 控制唤魔者将附近的蓝色羊变成红色羊。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.EvokerEntity.WololoSpellGoal`
+
+**执行条件**:
+- 没有攻击目标（Wololo 只在空闲时施放）
+- 不在施法状态
+- 冷却已过
+- 16格范围内有蓝色羊
+
+**行为流程**:
+1. `shouldExecute()`: 搜索16格内的蓝色羊
+2. `startExecuting()`: 设置施法状态，准备时间开始
+3. `tick()`: 准备阶段看向目标羊，准备完成后将羊毛变红
+4. `resetTask()`: 设置冷却，清除目标
+
+**施法参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| CAST_WARMUP_TIME | 40 | 准备时间 (ticks, 2秒) |
+| CASTING_TIME | 60 | 施法时间 (ticks, 3秒) |
+| CASTING_INTERVAL | 140 | 冷却时间 (ticks, 7秒) |
+| SEARCH_RANGE | 16.0f | 搜索羊范围 (X/Z方向) |
+| SEARCH_HEIGHT | 4.0f | 搜索羊范围 (Y方向) |
+
+**羊毛颜色变化**:
+- 目标颜色: DyeColor::Blue (11)
+- 结果颜色: DyeColor::Red (14)
+
+**findBlueSheep() 实现**:
+```cpp
+SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
+{
+    if (m_evoker == nullptr || m_evoker->world() == nullptr) {
+        return nullptr;
+    }
+    IWorld* world = m_evoker->world();
+    AxisAlignedBB searchBox = m_evoker->boundingBox().expand(16.0f, 4.0f, 16.0f);
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_evoker);
+    std::vector<SheepEntity*> blueSheep;
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->isRemoved()) continue;
+        if (entity->legacyType() == LegacyEntityType::Sheep) {
+            SheepEntity* sheep = static_cast<SheepEntity*>(entity);
+            if (sheep->getFleeceColor() == DyeColor::Blue) {
+                blueSheep.push_back(sheep);
+            }
+        }
+    }
+    if (blueSheep.empty()) return nullptr;
+    math::Random& rng = world->getRandom();
+    return blueSheep[rng.nextInt(static_cast<i32>(blueSheep.size()))];
+}
+```
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void EvokerEntity::registerGoals() {
+    // 优先级 6: 唔噜噜法术（蓝色羊变红）
+    m_goalSelector.addGoal(6, std::make_unique<EvokerWololoSpellGoal>(this));
+}
+```
+
 ---
 
 ## 涉及的测试用例
@@ -1100,6 +1167,7 @@ i32 EvokerSummonSpellGoal::countNearbyVexes() const
 | PhantomGoalsTest.* | 幻翼目标测试（攻击阶段切换、环绕飞行、俯冲攻击） |
 | SlimeGoalsTest.* | 史莱姆目标测试（漂浮、攻击、随机转向） |
 | IronGolemGoalsTest.* | 铁傀儡目标测试（展示花朵、移动追踪、重置愤怒） |
+| EvokerGoalsTest.* | 唤魔者目标测试（尖牙攻击、召唤恼鬼、Wololo法术、目标选择器优先级） |
 
 ---
 
