@@ -151,6 +151,8 @@ add_executable(mc_tests
     common/world/blockentity/SignEntityTest.cpp
     # SignEntity::executeCommand 测试（告示牌点击事件命令执行）
     common/world/blockentity/SignEntityCommandTest.cpp
+    # EndGatewayEntity 末地折跃门测试（类型注册、传送功能、序列化）
+    common/world/blockentity/EndGatewayEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
