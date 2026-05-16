@@ -324,4 +324,57 @@ void MoveTowardsTargetGoal::resetTask()
     }
 }
 
+// ==================== MoveTowardsRestrictionGoal ====================
+
+MoveTowardsRestrictionGoal::MoveTowardsRestrictionGoal(CreatureEntity* creature, f64 speed)
+    : m_creature(creature)
+    , m_speed(speed)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
+}
+
+bool MoveTowardsRestrictionGoal::shouldExecute()
+{
+    if (!m_creature) return false;
+
+    // MC 1.16.5: 如果当前已在家范围内，不需要移动
+    if (m_creature->isWithinHomeDistanceCurrentPosition()) {
+        return false;
+    }
+
+    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockTowards
+    // 向家位置生成随机目标位置
+    BlockPos homePos = m_creature->homePosition();
+    Vector3 homeCenter(static_cast<f32>(homePos.x) + 0.5f,
+                       static_cast<f32>(homePos.y) + 0.5f,
+                       static_cast<f32>(homePos.z) + 0.5f);
+
+    Vector3 targetPos;
+    if (!entity::ai::util::RandomPositionGenerator::findRandomTargetTowards(
+            m_creature, XZ_RANGE, Y_RANGE, homeCenter, targetPos)) {
+        return false;
+    }
+
+    m_targetX = targetPos.x;
+    m_targetY = targetPos.y;
+    m_targetZ = targetPos.z;
+    return true;
+}
+
+bool MoveTowardsRestrictionGoal::shouldContinueExecuting()
+{
+    if (!m_creature) return false;
+
+    // MC 1.16.5: 当导航器还有路径时继续执行
+    auto* nav = m_creature->navigator();
+    return nav && !nav->noPath();
+}
+
+void MoveTowardsRestrictionGoal::startExecuting()
+{
+    if (m_creature) {
+        m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+    }
+}
+
 } // namespace mc::entity::ai::goal

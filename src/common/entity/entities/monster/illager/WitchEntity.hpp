@@ -121,6 +121,18 @@ public:
     // ========== 属性 ==========
 
     /**
+     * @brief 获取实体宽度
+     * MC 1.16.5: 女巫宽度为 0.6
+     */
+    [[nodiscard]] f32 width() const override { return 0.6f; }
+
+    /**
+     * @brief 获取实体高度
+     * MC 1.16.5: 女巫高度为 1.95
+     */
+    [[nodiscard]] f32 height() const override { return 1.95f; }
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }

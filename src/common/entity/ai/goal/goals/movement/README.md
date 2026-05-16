@@ -77,6 +77,54 @@ void IronGolemEntity::registerGoals() {
 - 需要 `RandomPositionGenerator::findRandomTargetTowards()` 生成移动位置
 - 需要 `CreatureEntity` 提供导航和路径追踪能力
 
+#### MoveTowardsRestrictionGoal
+
+使生物向家范围移动。当生物离开其家范围限制时，向家位置移动。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.MoveTowardsRestrictionGoal`
+
+**关键参数**:
+- `m_creature`: 生物实体
+- `m_speed`: 移动速度
+
+**执行条件**:
+- `shouldExecute()`: 当前位置不在家范围内（`!isWithinHomeDistanceCurrentPosition()`）
+- `shouldContinueExecuting()`: 导航器还有路径
+
+**行为**:
+1. `shouldExecute()`: 检查是否在家范围内，如果不在则生成向家位置的随机目标
+2. `startExecuting()`: 开始向目标位置移动
+3. `tick()`: 持续移动直到到达目标或路径结束
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `XZ_RANGE` | 16 | 水平搜索范围（格） |
+| `Y_RANGE` | 7 | 垂直搜索范围（格） |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void GuardianEntity::registerGoals() {
+    // 优先级 5: 向限制区域移动（MC 1.16.5: 速度 1.0）
+    // 守卫者有移动限制区域（海底神殿附近）
+    m_goalSelector.addGoal(5, std::make_unique<MoveTowardsRestrictionGoal>(this, 1.0));
+}
+```
+
+**家范围系统**:
+- `MobEntity::setHomePosAndDistance(pos, distance)`: 设置家位置和范围
+- `MobEntity::homePosition()`: 获取家位置
+- `MobEntity::maximumHomeDistance()`: 获取家范围半径
+- `MobEntity::isWithinHomeDistanceCurrentPosition()`: 检查当前位置是否在家范围内
+- `MobEntity::hasHome()`: 检查是否设置了家范围
+- `MobEntity::clearHome()`: 清除家范围限制
+
+**依赖**:
+- 需要 `RandomPositionGenerator::findRandomTargetTowards()` 生成移动位置
+- 需要 `CreatureEntity` 提供家范围系统和导航能力
+
 ---
 
 ### FollowSchoolLeaderGoal.hpp/cpp

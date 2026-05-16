@@ -94,8 +94,7 @@ void GuardianEntity::registerGoals()
     // 优先级 5: 向限制区域移动
     // MC 1.16.5: MoveTowardsRestrictionGoal(this, 1.0D)
     // 守卫者有移动限制区域（海底神殿附近）
-    // TODO: 实现 MoveTowardsRestrictionGoal
-    // m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
 
     // 优先级 7: 随机漫步
     // MC 1.16.5: RandomWalkingGoal(this, 1.0D, 80)
