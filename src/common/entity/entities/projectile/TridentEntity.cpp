@@ -307,16 +307,25 @@ f32 TridentEntity::getWaterDrag() const
 void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
 {
     // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
+    //
+    // 注意：三叉戟不使用弓类附魔（力量、冲击、火焰），原因如下：
+    // 1. 力量附魔只能应用于弓（EnchantmentType::Bow），不影响三叉戟伤害
+    // 2. 冲击附魔只能应用于弓，不影响三叉戟击退
+    // 3. 火焰附魔只能应用于弓，不影响三叉戟点燃
+    //
+    // 三叉戟的专属附魔已在其他地方正确处理：
+    // - 忠诚附魔：setItemStack() 中获取忠诚等级
+    // - 穿刺附魔：onEntityHit() 中对水生生物造成额外伤害
+    // - 引雷附魔：onEntityHit() 中召唤闪电
+    // - 激流附魔：TridentItem::onPlayerStoppedUsing() 中处理冲刺
+    //
+    // 因此这里只需要计算基础伤害，不考虑弓类附魔。
+
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
-    // TODO: 从三叉戟物品获取附魔
-    // int power = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.POWER, shooter);
-    // int punch = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.PUNCH, shooter);
-    // int flame = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.FLAME, shooter);
-
-    (void)shooter;
+    (void)shooter; // 三叉戟不使用射手获取弓类附魔
 }
 
 void TridentEntity::setItemStack(const ItemStack& stack)
