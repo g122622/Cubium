@@ -248,6 +248,16 @@ public:
     [[nodiscard]] virtual bool isPotionApplicable(const entity::effect::EffectInstance& effect) const;
 
     /**
+     * @brief 检查是否可以被药水影响
+     *
+     * 参考 MC 1.16.5 LivingEntity.canBeHitWithPotion()
+     * 盔甲架重写此方法返回 false，其他生物返回 true。
+     *
+     * @return 是否可以被药水影响
+     */
+    [[nodiscard]] virtual bool canBeHitWithPotion() const { return true; }
+
+    /**
      * @brief 摔落伤害处理
      *
      * 参考 MC 1.16.5 LivingEntity.onLivingFall()

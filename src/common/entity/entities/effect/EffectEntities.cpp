@@ -40,6 +40,62 @@
 namespace mc {
 namespace entity {
 
+namespace {
+
+/**
+ * @brief 应用瞬间效果到目标实体
+ *
+ * 参考 MC 1.16.5 EffectInstant.affectEntity()
+ * 用于药水云、喷溅药水等场景中瞬间效果的应用。
+ *
+ * @param type 效果类型（必须是瞬间效果）
+ * @param target 目标生物
+ * @param amplifier 效果等级（0 = I, 1 = II）
+ * @param multiplier 效果乘数（通常为 0.5 或 1.0）
+ */
+void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 amplifier, f32 multiplier)
+{
+    // MC 1.16.5: 基础值 4.0，每级增加 2.0
+    f32 amount = (4.0f + static_cast<f32>(amplifier) * 2.0f) * multiplier;
+
+    switch (type) {
+        case effect::EffectType::InstantHealth:
+            // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
+            if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
+                auto source = DamageSources::magic();
+                target.hurt(source, amount);
+            } else {
+                target.heal(amount);
+            }
+            break;
+
+        case effect::EffectType::InstantDamage:
+            // 瞬间伤害：亡灵生物治疗，普通生物受到伤害
+            if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
+                target.heal(amount);
+            } else {
+                auto source = DamageSources::magic();
+                target.hurt(source, amount);
+            }
+            break;
+
+        case effect::EffectType::Saturation:
+            // 饱和效果：恢复饥饿值（仅对玩家有效）
+            // TODO: 当玩家饥饿系统完善后，恢复饥饿值和饱和度
+            // 目前通过治疗模拟效果
+            if (target.getCreatureAttribute() != CreatureAttribute::Undead) {
+                target.heal(amount * 0.5f);
+            }
+            break;
+
+        default:
+            // 非瞬间效果不做处理
+            break;
+    }
+}
+
+} // namespace
+
 // ==================== EnderCrystalEntity ====================
 
 EnderCrystalEntity::EnderCrystalEntity()
@@ -553,8 +609,10 @@ void AreaEffectCloudEntity::applyEffects()
         }
 
         // MC 1.16.5: 检查实体是否可以被药水影响
-        // canBeHitWithPotion() - 默认返回 true
-        // 某些实体（如创造模式玩家）不可被影响
+        // canBeHitWithPotion() - 盔甲架返回 false，其他生物返回 true
+        if (!living->canBeHitWithPotion()) {
+            continue;
+        }
 
         // 检查水平距离（只检查XZ平面）
         f32 dx = static_cast<f32>(entity->x() - m_position.x);
@@ -566,16 +624,10 @@ void AreaEffectCloudEntity::applyEffects()
             for (const auto& effect : effectsToApply) {
                 // MC 1.16.5: 瞬间效果使用 affectEntity，持续效果使用 addPotionEffect
                 if (effect::isInstantEffect(effect.type())) {
-                    // 瞬间效果（如瞬间治疗、瞬间伤害）
+                    // 瞬间效果（如瞬间治疗、瞬间伤害、饱和）
                     // MC 1.16.5: affectEntity(this, owner, living, amplifier, 0.5)
-                    // 简化实现：直接应用
-                    effect::EffectInstance instantEffect(effect.type(),
-                        1,      // 瞬间效果持续时间设为1
-                        effect.amplifier(),
-                        effect.isAmbient(),
-                        effect.isVisible(),
-                        effect.showIcon());
-                    living->addEffect(instantEffect);
+                    // 乘数 0.5 表示药水云中的效果强度为原效果的一半
+                    applyInstantEffect(effect.type(), *living, effect.amplifier(), 0.5f);
                 } else {
                     // 持续效果
                     living->addEffect(effect);
