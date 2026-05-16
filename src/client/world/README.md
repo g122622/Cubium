@@ -41,6 +41,15 @@ src/client/world/
 职责：
 - 维护雨强、雷强和状态过渡。
 - 为渲染侧提供插值后的天气参数。
+- 维护闪电闪烁时间，实现闪电击中时的天空闪烁效果。
+
+核心接口：
+- `setRainStrength(f32)` / `rainStrength(f32 partialTick)` - 设置/获取雨强度
+- `setThunderStrength(f32)` / `thunderStrength(f32 partialTick)` - 设置/获取雷暴强度
+- `setTimeLightningFlash(i32)` / `lightningFlashTime()` - 设置/获取闪电闪烁时间
+- `tickLightningFlash()` - 每 tick 递减闪烁时间
+- `lightningFlashBrightness()` - 获取闪烁亮度因子 (0.0-1.0)
+- `hasLightningFlash()` - 检查是否有闪烁效果
 
 ### entity/ClientEntityManager.hpp / ClientEntityManager.cpp
 
@@ -187,6 +196,7 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 - `tests/client/test_mesh_worker_pool.cpp`
 - `tests/client/world/ClientWorldLightUpdateTest.cpp`
 - `tests/client/world/ClientWorldClearChunksTest.cpp` - 区块清空和维度切换测试
+- `tests/client/world/ClientWeatherLightningFlashTest.cpp` - 闪电闪烁效果测试
 
 间接相关：
 - `tests/client/renderer/test_renderer.cpp`（`ChunkMesher` 构建路径）
@@ -194,7 +204,7 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 建议命令：
 
 ```powershell
-ctest --test-dir build -C RelWithDebInfo -R "MeshBuildSchedulerTest|MeshWorkerPoolTest|ClientWorldLightUpdateTest|ChunkMesher" --output-on-failure
+ctest --test-dir build -C RelWithDebInfo -R "MeshBuildSchedulerTest|MeshWorkerPoolTest|ClientWorldLightUpdateTest|ClientWorldClearChunksTest|ClientWeatherLightningFlashTest|ChunkMesher" --output-on-failure
 ```
 
 ## 10. Mermaid 图表

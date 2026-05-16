@@ -422,6 +422,8 @@ add_executable(mc_tests
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
     client/world/ClientWorldClearChunksTest.cpp
+    # ClientWeather 闪电闪烁测试
+    client/world/ClientWeatherLightningFlashTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
     client/test_sound_handlers.cpp

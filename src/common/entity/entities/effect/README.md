@@ -76,11 +76,60 @@ EnderCrystalEntity 已完整实现以下功能：
 
 ## 闪电
 
-- 伤害范围3格内实体
-- 伤害值5点
-- 可能点燃实体（8秒）
-- 可能生成火焰
-- 存在时间30tick
+### MC 1.16.5 对齐
+
+LightningBoltEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 伤害范围内实体 | ✅ 完成 |
+| 点燃方块 | ✅ 完成 |
+| 播放雷声音效 | ✅ 完成 |
+| 生成火焰（根据难度） | ✅ 完成 |
+| 随机闪烁效果 | ✅ 完成 |
+| 客户端天空闪烁 | ✅ 完成 |
+
+### 核心机制
+
+当闪电击中时（`lightningState == 2`）：
+
+1. **服务端**：
+   - 根据难度点燃周围方块（NORMAL/HARD: 4 格，EASY/PEACEFUL: 0 格）
+   - 播放雷声音效（音量 10000，音调 0.8-1.0）
+   - 对 3x6x3 范围内的 LivingEntity 造成 5 点闪电伤害
+
+2. **客户端**：
+   - 调用 `world.setTimeLightningFlash(2)` 设置天空闪烁
+   - 渲染器将天空颜色向白色混合，产生闪烁效果
+
+### 闪电闪烁效果
+
+客户端实现：
+- `ClientWeather::setTimeLightningFlash(i32 time)` - 设置闪烁时间
+- `ClientWeather::tickLightningFlash()` - 每 tick 递减闪烁时间
+- `ClientWeather::lightningFlashBrightness()` - 返回亮度因子 (0.0 或 1.0)
+- `SkyRenderer::setLightningFlashBrightness(f64)` - 设置渲染器闪烁亮度
+
+参考 MC 1.16.5:
+- `LightningBoltEntity.tick()`: `world.setTimeLightningFlash(2)`
+- `Minecraft.runTick()`: `world.setTimeLightningFlash(time - 1)`
+- `WorldRenderer.renderSky()`: 天空颜色向白色混合
+
+### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| DAMAGE_RANGE | 3.0f | 伤害范围半径 |
+| DAMAGE_AMOUNT | 5.0f | 伤害值 |
+| FIRE_IGNITION_NORMAL_HARD | 4 | NORMAL/HARD 难度点燃数 |
+| FIRE_IGNITION_EASY_PEACEFUL | 0 | EASY/PEACEFUL 难度点燃数 |
+
+### 随机闪烁
+
+闪电会在生命周期内多次闪烁：
+- `boltLivingTime`: 1-3 次闪烁
+- `boltVertex`: 随机种子，控制闪烁间隔
+- 每次"复活"时生成新的随机种子用于渲染
 
 ## 区域效果云
 
