@@ -40,6 +40,7 @@
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../experience/ExperienceManager.hpp"
@@ -2053,8 +2054,17 @@ void Player::attack(Entity& target)
                             continue;
                         }
 
-                        // TODO: 检查盔甲架标记 (ArmorStandEntity.hasMarker())
-                        // TODO: 检查队友关系 (isOnSameTeam())
+                        // MC 1.16.5: 排除标记模式的盔甲架
+                        // 标记模式的盔甲架碰撞箱为 0，不应被横扫攻击影响
+                        entity::ArmorStandEntity* armorStand = dynamic_cast<entity::ArmorStandEntity*>(entity);
+                        if (armorStand != nullptr && armorStand->isMarker()) {
+                            continue;
+                        }
+
+                        // MC 1.16.5: 排除队友（友军伤害保护）
+                        if (isOnSameTeam(*entity)) {
+                            continue;
+                        }
 
                         // 应用击退并造成伤害
                         // MC 1.16.5: 击退方向基于玩家朝向
@@ -2104,10 +2114,36 @@ void Player::attack(Entity& target)
         }
 
         // 荆棘附魔反伤处理
-        // TODO: EnchantmentHelper.applyThornEnchantments(target, this);
+        // MC 1.16.5: 攻击成功后，被攻击者的荆棘附魔有概率反伤攻击者
+        // 注意：荆棘伤害不会再次触发荆棘，防止无限循环
+        std::array<const ItemStack*, 4> armorSlots = livingTarget->getArmorSlots();
+        item::enchant::EnchantmentHelper::applyThornsEnchantments(*livingTarget, *this, armorSlots);
 
         // 19. 武器损耗
-        // TODO: mainHand.hitEntity(target, this);
+        // MC 1.16.5: 攻击成功后消耗武器耐久度
+        // 剑消耗 1 点耐久，其他工具消耗 2 点耐久
+        if (!mainHand.isEmpty()) {
+            Item* item = const_cast<Item*>(mainHand.getItem());
+            if (item != nullptr) {
+                // 保存物品副本用于创造模式恢复
+                ItemStack mainHandCopy = mainHand;
+
+                // 调用物品的 hitEntity 方法，由物品决定耐久消耗
+                // 剑 SwordItem::hitEntity() 消耗 1 点
+                // 工具 ToolItem::hitEntity() 消耗 2 点
+                item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+
+                // 检查物品是否损坏（变空）
+                if (mainHand.isEmpty()) {
+                    // MC 1.16.5: 物品损坏后清空主手槽位
+                    // 创造模式下不需要清空（物品不会损坏）
+                    if (!isCreative()) {
+                        m_inventory.getSelectedStackRef() = ItemStack();
+                    }
+                    // TODO: 触发 PlayerDestroyItem 事件（当前项目暂无事件系统）
+                }
+            }
+        }
 
         // 20. 饱食度消耗
         // MC 1.16.5: 攻击消耗 0.1 饱食度

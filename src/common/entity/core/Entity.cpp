@@ -1889,6 +1889,27 @@ bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
 }
 
 // ============================================================================
+// 队伍相关
+// ============================================================================
+
+bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
+{
+    // 参考 MC 1.16.5: Entity.isOnScoreboardTeam()
+    const scoreboard::Team* myTeam = getTeam();
+    if (myTeam == nullptr || team == nullptr) {
+        return false;
+    }
+    // MC 1.16.5: Team.isSameTeam() 通过对象引用相等性判断
+    return myTeam == team;
+}
+
+bool Entity::isOnSameTeam(const Entity& other) const
+{
+    // 参考 MC 1.16.5: Entity.isOnSameTeam()
+    return isOnScoreboardTeam(other.getTeam());
+}
+
+// ============================================================================
 // 玩家交互
 // ============================================================================
 
