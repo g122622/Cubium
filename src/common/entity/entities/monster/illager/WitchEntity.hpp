@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,23 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../../entity/effect/EffectType.hpp"
 #include "AbstractRaiderEntity.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
+
+// 前向声明
+namespace entity::effect {
+class EffectInstance;
+}
 
 /**
  * @brief 女巫实体
@@ -91,16 +98,6 @@ public:
      */
     void setDrinkTimer(i32 timer) { m_drinkTimer = timer; }
 
-    /**
-     * @brief 检查是否需要治疗
-     */
-    [[nodiscard]] bool needsHealing() const;
-
-    /**
-     * @brief 尝试使用治疗药水
-     */
-    void tryDrinkHealingPotion();
-
     // ========== 攻击 ==========
 
     /**
@@ -127,6 +124,20 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
 
+    // ========== 防御 ==========
+
+    /**
+     * @brief 魔法伤害减免
+     *
+     * MC 1.16.5: 女巫对魔法伤害有85%减免
+     * 同时免疫自己造成的伤害（药水等）
+     *
+     * @param source 伤害来源
+     * @param amount 原始伤害量
+     * @return 减免后的伤害量
+     */
+    [[nodiscard]] f32 applyMagicDamageReduction(DamageSource& source, f32 amount);
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -139,17 +150,104 @@ protected:
     void registerAttributes() override;
 
 private:
+    // ========== 药水决策逻辑 ==========
+
+    /**
+     * @brief 检查是否需要治疗
+     *
+     * MC 1.16.5: 生命值低于最大值时需要治疗
+     */
+    [[nodiscard]] bool needsHealing() const;
+
+    /**
+     * @brief 检查是否需要水肺药水
+     *
+     * MC 1.16.5: 眼睛在水中且无水肺效果
+     */
+    [[nodiscard]] bool needsWaterBreathing() const;
+
+    /**
+     * @brief 检查是否需要抗火药水
+     *
+     * MC 1.16.5: 正在燃烧或最后一次受到火焰伤害
+     */
+    [[nodiscard]] bool needsFireResistance() const;
+
+    /**
+     * @brief 检查最后一次伤害来源是否是火焰
+     *
+     * MC 1.16.5: getLastDamageSource() != null && getLastDamageSource().isFireDamage()
+     */
+    [[nodiscard]] bool lastDamageSourceWasFire() const;
+
+    /**
+     * @brief 检查是否需要速度药水
+     *
+     * MC 1.16.5: 有攻击目标、无速度效果、距离超过11格
+     */
+    [[nodiscard]] bool needsSwiftness() const;
+
+    /**
+     * @brief 决定使用哪种药水
+     *
+     * MC 1.16.5: livingTick() 中的药水决策逻辑
+     * 按优先级检查：水肺 > 抗火 > 治疗 > 速度
+     *
+     * @return 效果类型，如果不需要药水返回空
+     */
+    [[nodiscard]] std::optional<entity::effect::EffectType> decidePotionToDrink();
+
+    /**
+     * @brief 开始喝药水
+     *
+     * MC 1.16.5: 设置喝药水状态、播放音效、应用移动速度减益
+     *
+     * @param effectType 要喝的药水效果类型
+     */
+    void startDrinkingPotion(entity::effect::EffectType effectType);
+
+    /**
+     * @brief 完成喝药水
+     *
+     * MC 1.16.5: 应用效果、移除移动速度减益、清空状态
+     */
+    void finishDrinkingPotion();
+
+    /**
+     * @brief 应用喝药水的效果
+     *
+     * 根据药水类型应用相应效果：
+     * - 瞬间治疗：直接恢复生命值
+     * - 其他效果：添加到效果管理器
+     *
+     * @param effectType 效果类型
+     */
+    void applyDrankPotionEffect(entity::effect::EffectType effectType);
+
+private:
     // 药水状态
     bool m_drinking = false;
     i32 m_drinkTimer = 0;
+
+    // 当前正在喝的药水效果类型
+    entity::effect::EffectType m_currentPotionType = entity::effect::EffectType::InstantHealth;
 
     // 攻击冷却
     i32 m_attackCooldown = 0;
 
     // 常量
     static constexpr i32 ATTACK_COOLDOWN = 60;  // 3秒攻击冷却
-    static constexpr i32 DRINK_DURATION = 32;   // 喝药水时间
-    static constexpr f32 HEAL_THRESHOLD = 0.5f; // 生命值低于50%时治疗
+    static constexpr i32 DRINK_DURATION = 32;   // 喝药水时间（ticks）
+
+    // 药水触发概率 (MC 1.16.5)
+    static constexpr f32 WATER_BREATHING_CHANCE = 0.15f;  // 水肺药水概率 15%
+    static constexpr f32 FIRE_RESISTANCE_CHANCE = 0.15f;  // 抗火药水概率 15%
+    static constexpr f32 HEALING_CHANCE = 0.05f;          // 治疗药水概率 5%
+    static constexpr f32 SWIFTNESS_CHANCE = 0.5f;         // 速度药水概率 50%
+    static constexpr f32 SWIFTNESS_DISTANCE_SQ = 121.0f;  // 速度药水距离阈值 11^2
+
+    // 移动速度减益 UUID (MC 1.16.5)
+    static constexpr const char* DRINKING_SPEED_PENALTY_UUID = "5CD17E52-A79A-43D3-A529-90FDE04B181E";
 };
 
 } // namespace mc
