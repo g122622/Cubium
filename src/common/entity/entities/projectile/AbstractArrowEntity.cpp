@@ -529,9 +529,36 @@ void SpectralArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
-    // 光灵箭粒子效果
-    if (!m_inGround) {
-        // TODO: 生成光灵箭粒子
+    // MC 1.16.5 SpectralArrowEntity.tick() 第31-36行
+    // 光灵箭粒子效果 - 仅客户端执行
+    if (!m_inGround && m_world && m_world->isClientSide()) {
+        // 使用 INSTANT_EFFECT 粒子（对应 ParticleTypes.INSTANT_EFFECT）
+        // 粒子位置：箭矢当前位置，速度为零
+        m_world->addParticle(
+            client::renderer::trident::particle::ParticleTypeId::InstantSpell,
+            Vector3(x(), y(), z()),
+            Vector3(0.0f, 0.0f, 0.0f));
+    }
+}
+
+void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
+{
+    // 先调用父类处理伤害
+    AbstractArrowEntity::onEntityHit(result);
+
+    // MC 1.16.5 SpectralArrowEntity.arrowHit() 第43-46行
+    // 命中生物时施加发光效果
+    if (!result.hitEntity) {
+        return;
+    }
+
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
+    if (livingTarget != nullptr) {
+        // 施加发光效果，持续时间 m_glowDuration ticks（默认 200 ticks = 10 秒）
+        livingTarget->addEffect(entity::effect::EffectInstance(
+            entity::effect::EffectType::Glowing,
+            m_glowDuration,
+            0));
     }
 }
 
