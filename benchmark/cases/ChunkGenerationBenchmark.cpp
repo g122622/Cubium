@@ -1,9 +1,12 @@
 #include "../BenchmarkRegistry.hpp"
 
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/WorldGenRegion.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::benchmark {
 namespace {
@@ -30,28 +33,38 @@ public:
     {
         VanillaBlocks::initialize();
         const u64 seed = config.parameters.at("seed").get<u64>();
-        const i32 chunkX = config.parameters.at("chunkX").get<i32>();
-        const i32 chunkZ = config.parameters.at("chunkZ").get<i32>();
+        m_chunkX = config.parameters.at("chunkX").get<i32>();
+        m_chunkZ = config.parameters.at("chunkZ").get<i32>();
 
         m_generator = std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld());
-        m_chunk = std::make_unique<ChunkPrimer>(chunkX, chunkZ);
+        m_chunk = std::make_unique<ChunkPrimer>(m_chunkX, m_chunkZ);
+
+        // 创建 WorldGenRegion，包含单个区块（半径为 0）
+        std::array<IChunk*, 1> chunks = {m_chunk.get()};
+        m_region = std::make_unique<WorldGenRegion>(m_chunkX, m_chunkZ, chunks);
+        m_region->setSeed(seed);
         return Result<void>::ok();
     }
 
     [[nodiscard]] Result<void> runOnce() override
     {
         MC_TRACE_EVENT("benchmark.case", "ChunkGenerationBenchmark::runOnce");
-        if (m_generator == nullptr || m_chunk == nullptr) {
+        if (m_generator == nullptr || m_chunk == nullptr || m_region == nullptr) {
             return Error(ErrorCode::IllegalState, "chunk_generation benchmark is not initialized");
         }
 
-        WorldGenRegion* region = nullptr;
-        m_generator->generateBiomes(*region, *m_chunk);
+        // 重置区块状态以便重新生成
+        m_chunk = std::make_unique<ChunkPrimer>(m_chunkX, m_chunkZ);
+        std::array<IChunk*, 1> chunks = {m_chunk.get()};
+        m_region = std::make_unique<WorldGenRegion>(m_chunkX, m_chunkZ, chunks);
+
+        m_generator->generateBiomes(*m_region, *m_chunk);
         return Result<void>::ok();
     }
 
     void tearDown() override
     {
+        m_region.reset();
         m_chunk.reset();
         m_generator.reset();
     }
@@ -59,6 +72,9 @@ public:
 private:
     std::unique_ptr<NoiseChunkGenerator> m_generator;
     std::unique_ptr<ChunkPrimer> m_chunk;
+    std::unique_ptr<WorldGenRegion> m_region;
+    i32 m_chunkX = 0;
+    i32 m_chunkZ = 0;
 };
 
 const bool g_registered = []() {

@@ -1,3 +1,18 @@
+// ChunkMeshBenchmark.cpp - 暂时禁用
+//
+// 此 benchmark 需要 ChunkMesher，而 ChunkMesher 依赖完整的客户端资源系统：
+// - BlockModelCache（需要资源管理器）
+// - MeshData（客户端模块）
+// - 生物群系颜色混合（客户端模块）
+//
+// 要启用此 benchmark，需要：
+// 1. 创建独立的 benchmark 目标链接客户端模块
+// 2. 或创建最小化的 ChunkMesher 测试路径
+//
+// 当前保留此文件用于文档目的，未来可启用。
+
+#if 0 // 禁用编译
+
 #include "../BenchmarkRegistry.hpp"
 
 #include "client/renderer/MeshTypes.hpp"
@@ -43,7 +58,8 @@ public:
     {
         MC_TRACE_EVENT("benchmark.case", "ChunkMeshBenchmark::runOnce");
         MeshData mesh;
-        ChunkMesher::generateMesh(*m_chunk, mesh, nullptr, nullptr);
+        const ChunkData* neighbors[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        ChunkMesher::generateMesh(*m_chunk, mesh, neighbors, nullptr);
         return Result<void>::ok();
     }
 
@@ -62,3 +78,5 @@ const bool g_registered = []() {
 
 } // namespace
 } // namespace mc::benchmark
+
+#endif // 禁用编译

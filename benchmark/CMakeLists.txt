@@ -6,7 +6,7 @@ add_executable(mc_benchmarks
     BenchmarkResultWriter.cpp
     BenchmarkRunner.cpp
     cases/ChunkGenerationBenchmark.cpp
-    cases/ChunkMeshBenchmark.cpp
+    # cases/ChunkMeshBenchmark.cpp - 暂时禁用，依赖客户端渲染模块
     cases/LightingBenchmark.cpp
 )
 
@@ -20,6 +20,7 @@ target_include_directories(mc_benchmarks
 target_link_libraries(mc_benchmarks
     PRIVATE
         mc_common
+        mc::perfetto
         nlohmann_json::nlohmann_json
 )
 
