@@ -32,7 +32,8 @@ advancement/
     │   ├── ItemPredicate.hpp/cpp     # 物品匹配
     │   ├── EntityPredicate.hpp/cpp   # 实体匹配
     │   ├── LocationPredicate.hpp/cpp # 位置匹配
-    │   └── BlockPredicate.hpp/cpp    # 方块匹配
+    │   ├── BlockPredicate.hpp/cpp    # 方块匹配
+    │   └── MobEffectsPredicate.hpp/cpp # 效果匹配
     │
     └── impl/                     # 触发器实现
         ├── ImpossibleTrigger.hpp      # 不可能触发器（手动授予）
@@ -128,6 +129,7 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | FilledBucketTrigger | `minecraft:filled_bucket` | 完整实现 |
 | PlacedBlockTrigger | `minecraft:placed_block` | 完整实现（含服务端集成） |
 | CuredZombieVillagerTrigger | `minecraft:cured_zombie_villager` | 完整实现（含服务端集成） |
+| EffectsChangedTrigger | `minecraft:effects_changed` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 
@@ -185,6 +187,34 @@ if (predicate.test(blockState)) {
     // 方块包含水
 }
 ```
+
+### MobEffectsPredicate
+
+效果匹配条件（位于 `trigger/conditions/MobEffectsPredicate.hpp/cpp`）：
+- 效果类型（如 `minecraft:speed`）
+- 效果等级范围（amplifier）
+- 持续时间范围（duration）
+- 是否为环境效果（ambient）
+- 是否显示粒子（visible）
+
+```cpp
+// JSON 示例
+{
+    "minecraft:speed": {
+        "amplifier": {"min": 1},
+        "duration": {"min": 200}
+    },
+    "minecraft:regeneration": {}
+}
+
+// 代码示例
+auto result = MobEffectsPredicate::fromJson(json);
+if (result.success() && result.value().test(livingEntity)) {
+    // 实体拥有所需的效果
+}
+```
+
+**注意**：只有 `LivingEntity` 有效果，非 `LivingEntity` 对效果谓词返回 false（除非谓词为空）。
 
 ## JSON 格式
 

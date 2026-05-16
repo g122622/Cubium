@@ -18,6 +18,7 @@ trigger/
 │   ├── EntityPredicate.hpp/cpp    # 实体匹配条件
 │   ├── LocationPredicate.hpp/cpp  # 位置匹配条件
 │   ├── BlockPredicate.hpp/cpp     # 方块匹配条件 + 流体匹配条件
+│   ├── MobEffectsPredicate.hpp/cpp # 效果匹配条件
 │   └── DistancePredicate.hpp      # 距离匹配条件（在LocationPredicate中）
 │
 └── impl/                          # 触发器实现
@@ -292,6 +293,80 @@ FluidPredicate 使用 `Fluid::isEquivalentTo()` 比较流体等效性：
 - 使用 `FluidState::isEmpty()` 检查是否为空流体
 - 使用 `Fluid::getFluid(ResourceLocation)` 获取期望的流体
 - 使用 `Fluid::isEquivalentTo()` 进行等效比较
+
+### MobEffectsPredicate
+
+匹配实体效果状态的条件：
+
+```cpp
+MobEffectsPredicate predicate = MobEffectsPredicate::fromJson({
+    {"minecraft:speed", {{"amplifier", {"min", 1}}}},
+    {"minecraft:regeneration", {}}
+});
+
+// 检查实体是否有效果
+if (predicate.test(livingEntity)) {
+    // 实体拥有所需的效果
+}
+```
+
+MobEffectsPredicate 包含两个类：
+
+#### EffectInstancePredicate
+
+匹配单个效果实例的条件，检查：
+- `amplifier`: 效果等级范围（0 = I级，1 = II级，以此类推）
+- `duration`: 持续时间范围（tick）
+- `ambient`: 是否为环境效果（如信标）
+- `visible`: 是否显示粒子
+
+```cpp
+// 创建效果实例谓词
+IntBounds amplifier = IntBounds::between(0, 2);  // 等级 I-III
+IntBounds duration = IntBounds::atLeast(100);     // 至少 100 tick
+EffectInstancePredicate predicate(amplifier, duration, false, std::nullopt);
+
+// 检查效果实例
+const EffectInstance* effect = entity.getEffect(EffectType::Speed);
+bool matches = predicate.test(effect);
+```
+
+#### MobEffectsPredicate
+
+检查实体身上的效果状态组合：
+
+```cpp
+// 从 JSON 解析
+auto result = MobEffectsPredicate::fromJson(json);
+if (result.success()) {
+    MobEffectsPredicate predicate = result.value();
+    bool matches = predicate.test(livingEntity);
+}
+```
+
+**使用示例** (JSON 成就条件):
+```json
+{
+    "criteria": {
+        "have_speed": {
+            "trigger": "minecraft:effects_changed",
+            "conditions": {
+                "effects": {
+                    "minecraft:speed": {
+                        "amplifier": {"min": 1},
+                        "duration": {"min": 200}
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+**实现细节**：
+- 使用 `getEffectByResourceLocation()` 解析效果类型，未知效果会被跳过并输出警告
+- 只有 `LivingEntity` 有效果，非 `LivingEntity` 对效果谓词返回 false（除非谓词为空）
+- 效果ID 必须使用完整的 `minecraft:` 命名空间前缀
 
 ## 使用示例
 
