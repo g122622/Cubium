@@ -34,18 +34,6 @@
       "parameters": {
         "updatesPerIteration": 1024
       }
-    },
-    {
-      "name": "chunk_mesh",
-      "threadCount": 4,
-      "measurement": {
-        "warmupIterations": 2,
-        "measuredIterations": 5,
-        "minDurationMs": 1
-      },
-      "parameters": {
-        "fillBlock": "minecraft:stone"
-      }
     }
   ]
 }
