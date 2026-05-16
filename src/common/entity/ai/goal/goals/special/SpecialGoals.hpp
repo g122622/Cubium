@@ -36,6 +36,7 @@ class LivingEntity;
 class PufferfishEntity;
 class LlamaEntity;
 class WolfEntity;
+class SkeletonHorseEntity;
 
 namespace entity::ai::goal {
 
@@ -293,6 +294,46 @@ public:
 private:
     LlamaEntity* m_llama;
     LivingEntity* m_target = nullptr;
+};
+
+/**
+ * @brief 骷髅马陷阱触发目标
+ *
+ * 当玩家接近陷阱骷髅马时触发陷阱，生成骷髅骑手。
+ *
+ * MC 1.16.5 参考: net.minecraft.entity.ai.goal.TriggerSkeletonTrapGoal
+ *
+ * 执行条件:
+ * - 骷髅马是陷阱马 (isTrap() == true)
+ * - 玩家在 10 格范围内
+ *
+ * tick 行为:
+ * - 触发陷阱（生成骷髅骑手）
+ * - 困难模式下生成额外 3 只骷髅马+骑手
+ *
+ * 注意：此 Goal 在 setTrap(true) 时注册，setTrap(false) 时移除
+ */
+class TriggerSkeletonTrapGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param horse 骷髅马实体
+     */
+    explicit TriggerSkeletonTrapGoal(SkeletonHorseEntity* horse);
+
+    ~TriggerSkeletonTrapGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "TriggerSkeletonTrapGoal"; }
+
+    // MC 1.16.5 常量（公开用于测试）
+    static constexpr f64 PLAYER_DETECTION_RANGE = 10.0;            // 玩家检测范围
+    static constexpr f64 PLAYER_DETECTION_RANGE_SQ = 100.0;        // 玩家检测范围平方
+
+private:
+    SkeletonHorseEntity* m_horse;
 };
 
 } // namespace entity::ai::goal

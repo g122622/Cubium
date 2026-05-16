@@ -37,6 +37,7 @@
 #include "../../../../entities/passive/fish/PufferfishEntity.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
 #include "../../../../entities/passive/horse/LlamaEntity.hpp"
+#include "../../../../entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "../../../../entities/passive/tamable/WolfEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../EntitySenses.hpp"
@@ -687,6 +688,78 @@ void LlamaDefendTargetGoal::startExecuting()
 void LlamaDefendTargetGoal::resetTask()
 {
     m_target = nullptr;
+}
+
+// ============================================================================
+// TriggerSkeletonTrapGoal
+// ============================================================================
+
+TriggerSkeletonTrapGoal::TriggerSkeletonTrapGoal(SkeletonHorseEntity* horse)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_horse(horse)
+{
+    MC_ASSERT(horse != nullptr);
+}
+
+bool TriggerSkeletonTrapGoal::shouldExecute()
+{
+    // MC 1.16.5 TriggerSkeletonTrapGoal.shouldExecute()
+    // 执行条件: 陷阱马且玩家在 10 格范围内
+
+    if (!m_horse || !m_horse->isAlive()) {
+        return false;
+    }
+
+    // 必须是陷阱马
+    if (!m_horse->isTrap()) {
+        return false;
+    }
+
+    IWorld* world = m_horse->world();
+    if (!world) {
+        return false;
+    }
+
+    // 检测附近是否有玩家
+    Vector3 pos = m_horse->position();
+    AxisAlignedBB searchBox = m_horse->boundingBox().expand(
+        PLAYER_DETECTION_RANGE, PLAYER_DETECTION_RANGE, PLAYER_DETECTION_RANGE);
+
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_horse);
+
+    for (Entity* entity : entities) {
+        // 只检查玩家
+        if (entity->legacyType() != LegacyEntityType::Player) {
+            continue;
+        }
+
+        Player* player = dynamic_cast<Player*>(entity);
+        if (!player || !player->isAlive()) {
+            continue;
+        }
+
+        // 跳过旁观者和创造模式玩家
+        if (player->isSpectator() || player->isCreative()) {
+            continue;
+        }
+
+        // 检查距离
+        f64 distSq = m_horse->distanceSqTo(*player);
+        if (distSq <= PLAYER_DETECTION_RANGE_SQ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void TriggerSkeletonTrapGoal::tick()
+{
+    // MC 1.16.5 TriggerSkeletonTrapGoal.tick()
+    // 触发陷阱
+    if (m_horse && m_horse->isAlive() && m_horse->isTrap()) {
+        m_horse->triggerTrap();
+    }
 }
 
 } // namespace mc::entity::ai::goal

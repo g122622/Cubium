@@ -22,6 +22,7 @@
 */
 
 #include "SkeletonHorseEntity.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
@@ -57,7 +58,22 @@ bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
 
 void SkeletonHorseEntity::setTrap(bool trap)
 {
-    m_trap = trap;
+    // MC 1.16.5: 设置陷阱状态时，添加/移除 TriggerSkeletonTrapGoal
+    if (trap != m_trap) {
+        m_trap = trap;
+        if (trap) {
+            // 添加陷阱触发目标（优先级 1）
+            auto goal = std::make_unique<entity::ai::goal::TriggerSkeletonTrapGoal>(this);
+            m_trapGoal = goal.get();
+            m_goalSelector.addGoal(1, std::move(goal));
+        } else {
+            // 移除陷阱触发目标
+            if (m_trapGoal != nullptr) {
+                m_goalSelector.removeGoal(m_trapGoal);
+                m_trapGoal = nullptr;
+            }
+        }
+    }
 }
 
 void SkeletonHorseEntity::triggerTrap()

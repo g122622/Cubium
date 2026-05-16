@@ -62,7 +62,9 @@ AnimalEntity
 | 驯服 | 无需驯服 |
 | 生成 | 雷暴天气陷阱 |
 | 免疫 | 溺水、中毒 |
-| 燃烧 | 阳光下燃烧 |
+| 燃烧 | 阳光下燃烧（无头盔时） |
+| 陷阱 | 玩家接近 10 格内触发，生成骷髅骑手 |
+| 困难模式 | 额外生成 3 只骷髅马+骑手 |
 
 ### ZombieHorseEntity (僵尸马)
 | 特性 | 说明 |
@@ -497,7 +499,7 @@ MC 1.16.5 中，`AbstractHorseEntity.registerGoals()` 注册以下 AI 目标：
 | HorseEntity | 无 | 完全继承 AbstractHorseEntity |
 | DonkeyEntity | 无 | 完全继承 AbstractHorseEntity |
 | MuleEntity | 无 | 完全继承 AbstractHorseEntity（不育，BreedGoal 自动跳过） |
-| SkeletonHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
+| SkeletonHorseEntity | TriggerSkeletonTrapGoal | 陷阱马触发目标（setTrap(true) 时动态注册） |
 | ZombieHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
 | LlamaEntity | 商队跟随、吐口水攻击、防御狼 | 参考 LlamaEntity.cpp 的 registerGoals() |
 

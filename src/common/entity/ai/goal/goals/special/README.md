@@ -171,6 +171,89 @@ void AbstractHorseEntity::registerGoals() {
 
 ---
 
+### TriggerSkeletonTrapGoal - 骷髅马陷阱触发目标
+
+**职责**: 当陷阱骷髅马检测到玩家靠近时自动触发陷阱，生成骷髅骑手。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.TriggerSkeletonTrapGoal`
+
+**执行条件**:
+- 骷髅马处于陷阱状态 (`isTrap() == true`)
+- 10 格范围内有非旁观者、非创造模式的玩家
+
+**行为流程**:
+1. `shouldExecute()`: 检查陷阱状态和玩家距离
+2. `tick()`: 调用 `SkeletonHorseEntity::triggerTrap()` 触发陷阱
+
+**陷阱触发机制** (参考 `SkeletonHorseEntity::triggerTrap()`):
+- 生成第一个骷髅骑手骑在原骷髅马上
+- 骷髅骑手装备铁头盔和弓
+- 困难模式下额外生成 3 只骷髅马+骑手（共 4 只）
+- 所有生成的实体设置 60 ticks 无敌帧
+- 设置持久化避免自然消失
+
+**陷阱存活时间**:
+- 陷阱骷髅马最多存活 18000 ticks (15分钟)
+- 超时后自动消失
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| PLAYER_DETECTION_RANGE | 10.0 | 玩家检测范围 (格) |
+| PLAYER_DETECTION_RANGE_SQ | 100.0 | 玩家检测范围平方 |
+| TRAP_MAX_TIME | 18000 | 陷阱最大存活时间 (ticks, 15分钟) |
+
+**互斥标志**: `Move`
+
+**动态注册机制**:
+- `setTrap(true)` 时自动注册到 goalSelector（优先级 1）
+- `setTrap(false)` 时自动从 goalSelector 移除
+
+**使用示例**:
+```cpp
+void SkeletonHorseEntity::setTrap(bool trap)
+{
+    if (trap != m_trap) {
+        m_trap = trap;
+        if (trap) {
+            // 添加陷阱触发目标（优先级 1）
+            auto goal = std::make_unique<TriggerSkeletonTrapGoal>(this);
+            m_trapGoal = goal.get();
+            m_goalSelector.addGoal(1, std::move(goal));
+        } else {
+            // 移除陷阱触发目标
+            if (m_trapGoal != nullptr) {
+                m_goalSelector.removeGoal(m_trapGoal);
+                m_trapGoal = nullptr;
+            }
+        }
+    }
+}
+```
+
+**陷阱触发后**:
+```cpp
+// triggerTrap() 生成的实体
+// 1. 骷髅骑手：
+//    - 装备：铁头盔 + 弓
+//    - 无敌帧：60 ticks
+//    - 持久化：是
+//
+// 2. 困难模式额外骷髅马（3只）：
+//    - 位置：原马周围随机偏移
+//    - 骷髅骑手：同上
+//    - 无敌帧：60 ticks
+//    - 持久化：是
+```
+
+**依赖关系**:
+- 需要 SkeletonHorseEntity 提供 `isTrap()`, `triggerTrap()` 方法
+- 需要 IWorld 提供 `getClosestPlayer()` 方法
+- 需要 EntityRegistry 提供 SKELETON 和 SKELETON_HORSE 类型
+- 需要 Difficulty 枚举支持（Hard 模式额外生成）
+
+---
+
 ### EndermanStareGoal - 末影人注视目标
 
 **职责**: 当玩家正在注视末影人时，末影人停止移动并注视玩家。
@@ -2091,7 +2174,7 @@ void GhastEntity::registerGoals() {
 
 ---
 
-## 涉及的测试用例
+| 涉及的测试用例 |
 
 | 测试名称 | 说明 |
 |----------|------|
@@ -2112,6 +2195,7 @@ void GhastEntity::registerGoals() {
 | VexGoalsTest.* | 恼鬼目标测试（冲锋攻击、随机飞行、复制主人目标、移动控制器） |
 | MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
 | BeeGoalsTest.* | 蜜蜂目标测试（花粉状态、蜂巢位置、愤怒状态、飞行状态） |
+| TriggerSkeletonTrapGoalTest.* | 骷髅马陷阱触发目标测试（常量、类型名称、互斥标志、执行条件） |
 
 ---
 

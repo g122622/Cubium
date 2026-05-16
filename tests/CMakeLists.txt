@@ -285,6 +285,7 @@ add_executable(mc_tests
     entity/HorseJumpBoostTest.cpp
     entity/HorseAiGoalsTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
+    common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
@@ -305,6 +306,7 @@ add_executable(mc_tests
     common/entity/ai/pathfinding/PathNavigatorTest.cpp
     entity/RandomWalkingGoalTest.cpp
     common/entity/MoveToLavaGoalTest.cpp
+    common/entity/ai/goal/goals/special/TriggerSkeletonTrapGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp
