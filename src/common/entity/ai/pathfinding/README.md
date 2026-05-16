@@ -18,7 +18,9 @@ src/common/entity/ai/pathfinding/
 ├── PathPoint.cpp              # 路径点实现
 ├── Region.hpp                 # 世界区域访问接口
 ├── WalkNodeProcessor.hpp      # 行走节点处理器
-└── WalkNodeProcessor.cpp      # 行走节点处理器实现
+├── WalkNodeProcessor.cpp      # 行走节点处理器实现
+├── RavagerNodeProcessor.hpp   # 劫掠兽节点处理器（可穿过树叶）
+└── RavagerNodeProcessor.cpp   # 劫掠兽节点处理器实现
 ```
 
 ## 文件详解
@@ -171,6 +173,49 @@ public:
 `getNodeType()` 方法直接站在危险方块上时返回 `Damage*` 类型，代价惩罚为 -1.0（不可通行）或 16.0（极高代价）。
 
 `getNodeTypeWithEntity()` 方法检查相邻位置的危险方块，返回 `Danger*` 类型，代价惩罚为 8.0（高代价但可通行）。
+
+### RavagerNodeProcessor.hpp / RavagerNodeProcessor.cpp
+
+劫掠兽专用节点处理器，继承自 `WalkNodeProcessor`，实现劫掠兽可以穿过树叶方块的能力。
+
+**核心特性**：
+- 继承 `WalkNodeProcessor` 所有功能
+- 将树叶方块 (`BlockTags::LEAVES`) 视为 `PathNodeType::Open`
+- 允许劫掠兽在寻路时穿过树叶区域
+
+**实现原理**：
+
+```cpp
+PathNodeType RavagerNodeProcessor::getNodeType(i32 x, i32 y, i32 z) {
+    // 首先检查是否是树叶
+    if (m_region) {
+        const BlockState* state = m_region->getBlockState(x, y, z);
+        if (state != nullptr && BlockTags::LEAVES().contains(*state)) {
+            return PathNodeType::Open;  // 树叶对劫掠兽是开放的
+        }
+    }
+    // 调用父类方法
+    PathNodeType type = WalkNodeProcessor::getNodeType(x, y, z);
+    if (type == PathNodeType::Leaves) {
+        return PathNodeType::Open;
+    }
+    return type;
+}
+```
+
+**MC 1.16.5 参考**：
+- `net.minecraft.entity.monster.RavagerEntity.Processor`
+- 劫掠兽的寻路处理器将 `Leaves` 标签方块视为可通行
+
+**使用示例**：
+
+```cpp
+// RavagerEntity 构造函数中
+auto nodeProcessor = std::make_unique<RavagerNodeProcessor>();
+auto pathFinder = std::make_unique<PathFinder>(std::move(nodeProcessor));
+m_navigator = std::make_unique<PathNavigator>(std::move(pathFinder));
+m_navigator->setEntity(this);
+```
 
 ### Region.hpp / Region.cpp
 

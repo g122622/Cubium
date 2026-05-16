@@ -46,7 +46,7 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity
 | EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 完成 |
 | IllusionerEntity | 幻术师 | 弓箭攻击、失明法术、隐身法术 | ✅ 完成 |
 | PillagerEntity | 掠夺者 | 弩远程攻击、RangedCrossbowAttackGoal | ✅ 完成 |
-| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
+| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块、穿过树叶 | ✅ 完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
 | WitchEntity | 女巫 | 药水攻击、喝药水治疗 | ✅ 完成 |
 
@@ -827,6 +827,129 @@ net.minecraft.entity.monster.WitchEntity
 |---------|---------|
 | `WitchEntityTest.cpp` | 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
 
+## RavagerEntity 详细实现
+
+劫掠兽是大型敌对生物，与掠夺者一起参与掠夺事件。它可以破坏树叶、穿过树叶方块、并执行强力的近战攻击和咆哮攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 1.95f | 大型碰撞箱 |
+| 高度 | 2.2f | 两格高实体 |
+| 眼睛高度 | 2.05f | |
+| 最大生命值 | 100.0 | 非常高生命值 |
+| 移动速度 | 0.3 (有目标时 0.35) | 中等速度 |
+| 击退抗性 | 0.75 | 75% 击退抗性 |
+| 攻击伤害 | 12.0 | 强力近战攻击 |
+| 攻击击退 | 1.5 | |
+| 跟随范围 | 32.0 | |
+| 步高 | 1.0f | 可走上 1 格高的方块 |
+
+### 攻击系统
+
+劫掠兽有三种攻击状态：
+
+| 状态 | 持续时间 | 说明 |
+|------|----------|------|
+| 攻击动画 | 10 ticks | 近战攻击后的动画 |
+| 眩晕 | 40 ticks | 50% 概率在攻击后眩晕 |
+| 咆哮 | 20 ticks | 眩晕结束后咆哮 |
+
+### 咆哮攻击
+
+`roar()` 方法对周围 4 格内的实体造成伤害和击退：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 范围 | 4.0f | 以劫掠兽为中心的半径 |
+| 伤害 | 6.0f | 对非掠夺者类实体造成伤害 |
+| 击退 | 4.0f 横向 + 0.2f 纵向 | 发射效果 |
+| 第 10 tick | 执行伤害 | 咆哮过程中第 10 tick 执行伤害 |
+
+**掠夺者免疫**：掠夺者类实体（AbstractRaiderEntity 子类）免疫咆哮伤害，但仍会被击退。
+
+### 树叶破坏
+
+`breakLeavesOnCollision()` 方法在水平碰撞时破坏树叶：
+
+1. 检查 `mobGriefing` 游戏规则
+2. 检测碰撞盒扩展 0.2 格范围内的方块
+3. 破坏 `BlockTags::LEAVES` 标签的方块
+4. 如果没有破坏方块且在地面上，则跳跃
+
+### 自定义寻路
+
+劫掠兽使用 `RavagerNodeProcessor` 进行寻路，可以穿过树叶：
+
+```cpp
+class RavagerNodeProcessor : public WalkNodeProcessor {
+public:
+    PathNodeType getNodeType(i32 x, i32 y, i32 z) override {
+        // 将树叶视为开放区域
+        if (m_region) {
+            const BlockState* state = m_region->getBlockState(x, y, z);
+            if (state && BlockTags::LEAVES().contains(*state)) {
+                return PathNodeType::Open;
+            }
+        }
+        return WalkNodeProcessor::getNodeType(x, y, z);
+    }
+};
+```
+
+### RavagerAttackGoal
+
+劫掠兽使用自定义的近战攻击目标，具有特殊的攻击范围计算：
+
+```cpp
+f32 RavagerAttackGoal::getAttackReachSqr(LivingEntity* target) const {
+    // MC 1.16.5: (width - 0.1F) * 2.0F 的平方 + 目标宽度
+    f32 f = m_ravager->width() - 0.1f;
+    return f * 2.0f * f * 2.0f + target->width();
+}
+```
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | RavagerAttackGoal | 近战攻击 |
+| 5 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 6 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 2 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 3 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.RavagerEntity
+├── RavagerEntity(): 构造函数，设置步高 1.0，创建 RavagerNodeProcessor
+├── tick(): 更新速度、破坏树叶、咆哮/眩晕状态
+├── roar(): 咆哮攻击，对周围实体造成伤害和击退
+├── launchEntity(): 发射实体（击退效果）
+├── breakLeavesOnCollision(): 碰撞时破坏树叶
+├── constructKnockBackVector(): 攻击后 50% 概率眩晕或发射
+├── attackEntityAsMob(): 设置攻击动画并执行攻击
+├── canSee(): 眩晕或咆哮时看不见目标
+├── isMovementBlocked(): 攻击/眩晕/咆哮时禁止移动
+├── registerGoals(): 注册 AI 目标
+└── registerAttributes(): 设置属性值
+```
+
+### 测试用例
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `RavagerEntityTest.cpp` | 构造、属性、常量、初始状态、攻击状态、tick 更新、方块破坏、视线检测 |
+
 ## 属性值对齐状态
 
 | 实体 | 属性 | MC 1.16.5 | 项目值 | 状态 |
@@ -845,6 +968,7 @@ net.minecraft.entity.monster.WitchEntity
 | `VexEntityTest.cpp` | VexEntity 穿墙能力、属性、有限生命、构造、充电状态 |
 | `EvokerEntityTest.cpp` | EvokerEntity 构造、属性、施法状态、EvokerFangsEntity |
 | `WitchEntityTest.cpp` | WitchEntity 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
+| `RavagerEntityTest.cpp` | RavagerEntity 构造、属性、常量、初始状态、攻击状态、tick 更新、方块破坏 |
 
 ## 相关文档
 
