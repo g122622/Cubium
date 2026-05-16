@@ -173,6 +173,8 @@ add_executable(mc_tests
     advancement/PlayerInteractedWithEntityTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
+    # 村庄声望治愈僵尸村民测试
+    server/advancement/VillageReputationTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试

@@ -125,7 +125,7 @@ m_advancementEventHandler.initialize();
 | `InventoryChangedEvent` | `InventoryChangedTrigger` | ✅ 已完成 |
 | `PlayerKillEntityEvent` | `PlayerKilledEntityTrigger` | ✅ 已完成 |
 | `BlockPlaceEvent` | `PlacedBlockTrigger` | ✅ 已完成 |
-| `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` | ✅ 已完成 |
+| `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` + 村庄声望更新 | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
 
 ### 事件处理器架构
@@ -141,6 +141,37 @@ AdvancementEventHandler 使用两种方式获取玩家：
    - 使用 `PlayerManager::findByUuid(uuid)` 获取 `ServerPlayerData*`
    - 从 `ServerPlayerData::playerId` 获取 `PlayerId`
    - 再通过 `getServerPlayer(playerId)` 获取 `ServerPlayer*`
+
+### 村庄声望更新
+
+当玩家治愈僵尸村民时，除了触发成就，还会更新村庄声望：
+
+**声望值参考 MC 1.16.5:**
+
+| 流言类型 | 添加值 | 声誉影响 | 说明 |
+|---------|--------|---------|------|
+| MajorPositive | 20 | +100 声誉 | 治愈僵尸村民获得 |
+| MinorPositive | 25 | +25 声誉 | 治愈僵尸村民获得 |
+
+**实现位置：** `AdvancementEventHandler::updateVillageReputationOnCure()`
+
+```cpp
+// 治愈僵尸村民时更新村庄声望
+// 参考 MC 1.16.5: VillagerEntity.updateReputation(IReputationType.ZOMBIE_VILLAGER_CURED)
+void updateVillageReputationOnCure(const std::string& starterUuid, Entity* villager)
+{
+    // 1. 获取村民所在村庄
+    Village* village = villageManager->getVillageAt(villagerPosition);
+
+    // 2. 如果村民在村庄内，更新声望
+    if (village != nullptr) {
+        village->addGossip(playerId, VillageGossipType::MajorPositive, 20);
+        village->addGossip(playerId, VillageGossipType::MinorPositive, 25);
+    }
+}
+```
+
+**注意：** 只有当村民在村庄范围内时才更新声望，符合 MC 1.16.5 行为。
 
 ### 事件流程
 
@@ -237,6 +268,7 @@ common/advancement/                    server/advancement/
 成就系统测试位于：
 - `tests/advancement/AdvancementTest.cpp` - 触发器实例创建和检测、物品谓词匹配、槽位计数检测
 - `tests/server/advancement/AdvancementEventHandlerTest.cpp` - getServerPlayer 架构验证、事件订阅生命周期
+- `tests/server/advancement/VillageReputationTest.cpp` - 村庄声望更新、治愈僵尸村民声望测试
 
 运行测试：
 ```bash
