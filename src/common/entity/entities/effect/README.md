@@ -174,6 +174,52 @@ AreaEffectCloudEntity 已完整实现以下功能：
 
 参考 MC 1.16.5 CreeperEntity.spawnLingeringCloud()
 
+### 瞬间效果处理（MC 1.16.5）
+
+药水云对瞬间效果（瞬间治疗、瞬间伤害、饱和）有特殊处理：
+
+**效果乘数**：
+- 药水云效果乘数：`0.5`（效果强度为原效果的一半）
+- 喷溅药水效果乘数：`1.0`（完整效果强度）
+
+**亡灵生物反转**：
+- 瞬间治疗：对普通生物治疗，对亡灵生物造成魔法伤害
+- 瞬间伤害：对普通生物造成魔法伤害，对亡灵生物治疗
+
+**饱和效果**：
+- 目前通过治疗模拟（待玩家饥饿系统完善后恢复饥饿值）
+
+**实现代码** (`EffectEntities.cpp`)：
+
+```cpp
+// 瞬间效果应用
+if (effect::isInstantEffect(effect.type())) {
+    applyInstantEffect(effect.type(), *living, effect.amplifier(), 0.5f);
+} else {
+    // 持续效果
+    living->addEffect(effect);
+}
+```
+
+**参考 MC 1.16.5**：
+- `AreaEffectCloudEntity.affectEntity()`
+- `EffectInstant.affectEntity()`
+
+### canBeHitWithPotion 检查（MC 1.16.5）
+
+药水云在应用效果前会检查 `canBeHitWithPotion()`：
+
+```cpp
+// MC 1.16.5: 检查实体是否可以被药水影响
+if (!living->canBeHitWithPotion()) {
+    continue;
+}
+```
+
+**默认行为**：
+- `LivingEntity::canBeHitWithPotion()` 返回 `true`
+- `ArmorStandEntity` 返回 `false`（盔甲架不受药水影响）
+
 ## 实现状态
 
 | 经验值范围 | 颜色 |

@@ -250,6 +250,50 @@ if (isWet()) {
 - `LivingEntity::applyKnockbackFrom(attacker, strength)` - 从攻击者方向计算击退
 - 击退抗性属性 `generic.knockback_resistance` 自动应用
 
+### 药水效果系统（MC 1.16.5）
+
+生物实体的药水效果交互系统。
+
+**核心方法**：
+
+```cpp
+class LivingEntity {
+public:
+    // 检查药水效果是否可应用
+    // 子类可重写以免疫特定效果（如凋灵免疫凋零效果）
+    [[nodiscard]] virtual bool isPotionApplicable(const EffectInstance& effect) const;
+    
+    // 检查是否可被药水影响
+    // MC 1.16.5: 盔甲架返回 false，其他生物返回 true
+    // 用于 AreaEffectCloudEntity 等药水云实体
+    [[nodiscard]] virtual bool canBeHitWithPotion() const { return true; }
+};
+```
+
+**canBeHitWithPotion 用途**：
+- `AreaEffectCloudEntity::applyEffects()` - 药水云效果应用检查
+- `PotionEntity::onImpact()` - 喷溅药水效果应用检查（待实现）
+
+**实现示例**：
+
+```cpp
+// 盔甲架重写返回 false（注：项目中 ArmorStandEntity 继承自 Entity）
+// 其他生物使用默认实现返回 true
+
+// 在 AreaEffectCloudEntity 中使用
+for (Entity* entity : entities) {
+    LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+    if (living == nullptr || !living->canBeHitWithPotion()) {
+        continue; // 跳过不能被药水影响的实体
+    }
+    // 应用效果...
+}
+```
+
+**参考 MC 1.16.5**：
+- `LivingEntity.canBeHitWithPotion()` - 返回 true
+- `ArmorStandEntity.canBeHitWithPotion()` - 返回 false
+
 ### 挥动动画系统
 - `LivingEntity::swing(Hand)` - 触发手臂挥动动画
 - `LivingEntity::swingingHand()` - 获取当前挥动的手（MainHand/OffHand）

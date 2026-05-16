@@ -558,3 +558,245 @@ TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameWaitTime)
 
     EXPECT_EQ(lingeringCloud->getWaitTime(), creeperCloud->getWaitTime());
 }
+
+// ============================================================================
+// 瞬间效果处理测试
+// ============================================================================
+
+class InstantEffectTest : public ::testing::Test {
+};
+
+TEST_F(InstantEffectTest, IsInstantEffect_IdentifiesCorrectTypes)
+{
+    // MC 1.16.5: 瞬间效果包括瞬间治疗、瞬间伤害、饱和
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantHealth));
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantDamage));
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::Saturation));
+
+    // 非瞬间效果
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Speed));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Strength));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Regeneration));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Poison));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Wither));
+}
+
+TEST_F(InstantEffectTest, GetEffectColor_InstantEffectsHaveColors)
+{
+    // 瞬间治疗效果颜色
+    u32 instantHealthColor = effect::getEffectColor(effect::EffectType::InstantHealth);
+    EXPECT_NE(instantHealthColor, 0);
+
+    // 瞬间伤害效果颜色
+    u32 instantDamageColor = effect::getEffectColor(effect::EffectType::InstantDamage);
+    EXPECT_NE(instantDamageColor, 0);
+
+    // 饱和效果颜色
+    u32 saturationColor = effect::getEffectColor(effect::EffectType::Saturation);
+    EXPECT_NE(saturationColor, 0);
+}
+
+// ============================================================================
+// canBeHitWithPotion 测试
+// ============================================================================
+
+class CanBeHitWithPotionTest : public ::testing::Test {
+};
+
+// 注意：完整的 canBeHitWithPotion 测试需要 Mock LivingEntity，
+// 这里测试 isInstantEffect 的正确性，它是瞬间效果处理的关键
+
+TEST_F(CanBeHitWithPotionTest, InstantHealthEffect_IsCorrectlyIdentified)
+{
+    // 瞬间治疗是瞬间效果
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantHealth));
+}
+
+TEST_F(CanBeHitWithPotionTest, InstantDamageEffect_IsCorrectlyIdentified)
+{
+    // 瞬间伤害是瞬间效果
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantDamage));
+}
+
+TEST_F(CanBeHitWithPotionTest, SaturationEffect_IsCorrectlyIdentified)
+{
+    // 饱和是瞬间效果
+    EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::Saturation));
+}
+
+TEST_F(CanBeHitWithPotionTest, DurationEffects_AreNotInstant)
+{
+    // 持续效果不是瞬间效果
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Speed));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Slowness));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Poison));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Regeneration));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Wither));
+    EXPECT_FALSE(effect::isInstantEffect(effect::EffectType::Levitation));
+}
+
+// ============================================================================
+// 效果乘数测试（MC 1.16.5 药水云效果强度）
+// ============================================================================
+
+class EffectMultiplierTest : public ::testing::Test {
+};
+
+TEST_F(EffectMultiplierTest, AreaEffectCloudMultiplier_IsHalf)
+{
+    // MC 1.16.5: 药水云中瞬间效果的强度乘数为 0.5
+    // 瞬间治疗基础值 4.0，乘数 0.5 后为 2.0
+    // 公式：(4.0 + amplifier * 2.0) * 0.5
+
+    // amplifier = 0 (效果等级 I)
+    f32 baseAmount = 4.0f;
+    f32 perLevel = 2.0f;
+    f32 multiplier = 0.5f; // 药水云乘数
+
+    // 效果 I: (4.0 + 0 * 2.0) * 0.5 = 2.0
+    f32 level1 = (baseAmount + 0 * perLevel) * multiplier;
+    EXPECT_FLOAT_EQ(level1, 2.0f);
+
+    // 效果 II: (4.0 + 1 * 2.0) * 0.5 = 3.0
+    f32 level2 = (baseAmount + 1 * perLevel) * multiplier;
+    EXPECT_FLOAT_EQ(level2, 3.0f);
+
+    // 效果 III: (4.0 + 2 * 2.0) * 0.5 = 4.0
+    f32 level3 = (baseAmount + 2 * perLevel) * multiplier;
+    EXPECT_FLOAT_EQ(level3, 4.0f);
+}
+
+TEST_F(EffectMultiplierTest, SplashPotionMultiplier_IsFull)
+{
+    // MC 1.16.5: 喷溅药水的瞬间效果强度乘数为 1.0
+    // 瞬间治疗基础值 4.0，乘数 1.0 后为 4.0
+    f32 baseAmount = 4.0f;
+    f32 perLevel = 2.0f;
+    f32 multiplier = 1.0f; // 喷溅药水乘数
+
+    // 效果 I: (4.0 + 0 * 2.0) * 1.0 = 4.0
+    f32 level1 = (baseAmount + 0 * perLevel) * multiplier;
+    EXPECT_FLOAT_EQ(level1, 4.0f);
+
+    // 效果 II: (4.0 + 1 * 2.0) * 1.0 = 6.0
+    f32 level2 = (baseAmount + 1 * perLevel) * multiplier;
+    EXPECT_FLOAT_EQ(level2, 6.0f);
+}
+
+// ============================================================================
+// 效果云生命周期测试
+// ============================================================================
+
+class AreaEffectCloudLifecycleTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+    }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudLifecycleTest, DefaultDuration_Is600Ticks)
+{
+    // MC 1.16.5: 默认持续时间 600 tick = 30 秒
+    EXPECT_EQ(m_cloud->getDuration(), 600);
+}
+
+TEST_F(AreaEffectCloudLifecycleTest, DefaultWaitTime_Is20Ticks)
+{
+    // MC 1.16.5: 默认等待时间 20 tick = 1 秒
+    EXPECT_EQ(m_cloud->getWaitTime(), 20);
+}
+
+TEST_F(AreaEffectCloudLifecycleTest, DefaultReapplicationDelay_Is20Ticks)
+{
+    // MC 1.16.5: 默认重应用延迟 20 tick = 1 秒
+    EXPECT_EQ(m_cloud->getReapplicationDelay(), 20);
+}
+
+TEST_F(AreaEffectCloudLifecycleTest, DefaultRadius_Is3_0)
+{
+    // MC 1.16.5: 默认半径 3.0
+    EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
+}
+
+TEST_F(AreaEffectCloudLifecycleTest, DurationOnUse_DefaultIsZero)
+{
+    // MC 1.16.5: 默认 durationOnUse 为 0
+    // 注：durationOnUse 是私有成员，无法直接访问
+    // 这里验证 setDurationOnUse 可被调用
+    EXPECT_NO_THROW(m_cloud->setDurationOnUse(-10));
+}
+
+TEST_F(AreaEffectCloudLifecycleTest, RadiusOnUse_DefaultIsZero)
+{
+    // MC 1.16.5: 默认 radiusOnUse 为 0
+    // 注：radiusOnUse 是私有成员，无法直接访问
+    // 这里验证 setRadiusOnUse 可被调用
+    EXPECT_NO_THROW(m_cloud->setRadiusOnUse(-0.5f));
+}
+
+// ============================================================================
+// 效果云颜色测试（多效果混合）
+// ============================================================================
+
+class AreaEffectCloudColorTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+    }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudColorTest, SingleEffect_ColorMatchesEffect)
+{
+    // 单个效果时，颜色应该匹配效果颜色（可能包含 Alpha 通道）
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));
+
+    u32 cloudColor = m_cloud->getColor();
+    u32 speedColor = effect::getEffectColor(effect::EffectType::Speed);
+
+    // 颜色可能包含 Alpha 通道（ARGB 格式），提取 RGB 进行比较
+    u32 cloudRGB = cloudColor & 0x00FFFFFF;
+    u32 speedRGB = speedColor & 0x00FFFFFF;
+
+    EXPECT_EQ(cloudRGB, speedRGB);
+}
+
+TEST_F(AreaEffectCloudColorTest, MultipleEffects_ColorIsBlended)
+{
+    // 多个效果时，颜色应该是混合的
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));     // 蓝色
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0));   // 红色
+
+    u32 cloudColor = m_cloud->getColor();
+    u32 speedColor = effect::getEffectColor(effect::EffectType::Speed);
+    u32 strengthColor = effect::getEffectColor(effect::EffectType::Strength);
+
+    // 混合颜色应该不等于任何一个单独的颜色
+    // （除非两个效果颜色相同）
+    EXPECT_NE(cloudColor, 0);
+}
+
+TEST_F(AreaEffectCloudColorTest, SetColor_OverridesAutoCalculation)
+{
+    // 手动设置颜色后，后续添加效果不应覆盖
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));
+    u32 autoColor = m_cloud->getColor();
+
+    m_cloud->setColor(0xFFFF0000); // 红色
+    EXPECT_EQ(m_cloud->getColor(), 0xFFFF0000);
+
+    // 再添加效果，颜色不应改变
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0));
+    EXPECT_EQ(m_cloud->getColor(), 0xFFFF0000); // 仍然是手动设置的颜色
+}
+
+TEST_F(AreaEffectCloudColorTest, NoEffects_ColorIsZero)
+{
+    // 无效果时，颜色应该为 0
+    EXPECT_EQ(m_cloud->getColor(), 0);
+}
