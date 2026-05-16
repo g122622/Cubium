@@ -29,6 +29,7 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../world/block/blocks/functional/BedBlock.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
@@ -392,8 +393,15 @@ i32 ZombieVillagerEntity::getConversionProgress() const
                     }
                     ++speedupCount;
                 }
-                // TODO: 检查是否是床（需要 BedBlock 类实现后）
-                // BedBlock 也应该加速治愈
+                // MC 1.16.5: 床也和铁栏杆一样加速治愈
+                // 参考 ZombieVillagerEntity.getConversionProgress(): block instanceof BedBlock
+                else if (blocks::BedBlock::isBed(*m_world, checkPos)) {
+                    // 床同样有 30% 概率增加进度
+                    if (rng.nextFloat() < SPEEDUP_CHANCE) {
+                        ++progress;
+                    }
+                    ++speedupCount;
+                }
             }
         }
     }

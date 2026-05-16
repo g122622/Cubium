@@ -125,6 +125,8 @@ add_executable(mc_tests
     # RavagerEntity 劫掠兽测试
     entity/RavagerEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
+    # ZombieVillagerEntity 床和铁栏杆加速治愈测试
+    entity/ZombieVillagerConversionTest.cpp
     # ZombieEntity 僵尸转溺尸测试
     common/entity/entities/monster/undead/ZombieEntityTest.cpp
     # VexEntity 穿墙能力和生命周期测试
