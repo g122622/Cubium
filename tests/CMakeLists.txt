@@ -333,6 +333,7 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/FoxGoalsTest.cpp
     # PandaGoals 熊猫打滚 AI 目标测试
     common/entity/ai/goal/goals/special/PandaGoalsTest.cpp
+    common/entity/ai/goal/goals/special/SilverfishGoalsTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp

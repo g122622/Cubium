@@ -34,6 +34,8 @@ special/
 ├── FoxGoals.cpp           # 狐狸目标实现
 ├── PandaGoals.hpp         # 熊猫目标头文件
 ├── PandaGoals.cpp         # 熊猫目标实现
+├── SilverfishGoals.hpp    # 蠹虫目标头文件
+├── SilverfishGoals.cpp    # 蠹虫目标实现
 └── README.md              # 本文档
 ```
 
@@ -1633,6 +1635,127 @@ void BeeEntity::registerGoals() {
 
 ---
 
+## SilverfishGoals - 蠹虫专用目标
+
+包含蠹虫的藏入石头和召唤同伴行为。
+
+### SilverfishHideInStoneGoal - 蠹虫藏入石头目标
+
+**职责**: 控制蠹虫在没有攻击目标时藏入附近的可感染方块中。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.SilverfishEntity.HideInStoneGoal`
+
+**继承关系**: 继承自 `RandomWalkingGoal`
+
+**执行条件**:
+- 蠹虫没有攻击目标 (`attackTarget() == nullptr`)
+- 导航器没有路径 (`navigator->noPath()`)
+- mobGriefing 游戏规则为 true
+- 1/10 概率触发
+- 周围有可感染的方块（STONE, COBBLESTONE, STONE_BRICKS 等）
+
+**行为流程**:
+1. `shouldExecute()`:
+   - 检查攻击目标和导航状态
+   - 1/10 概率检查
+   - 随机选择一个方向，检查是否有可感染方块
+   - 如果找到可感染方块，设置 `m_doMerge = true`
+   - 否则执行普通的随机行走
+2. `startExecuting()`:
+   - 如果 `m_doMerge` 为 true，将目标方块转换为虫蚀方块并移除蠹虫
+   - 否则执行普通的随机行走
+
+**可感染方块检测**:
+使用 `InfestedBlock::infest(block)` 检查方块是否有对应的虫蚀版本：
+- STONE → INFESTED_STONE
+- COBBLESTONE → INFESTED_COBBLESTONE
+- STONE_BRICKS → INFESTED_STONE_BRICKS
+- CRACKED_STONE_BRICKS → INFESTED_CRACKED_STONE_BRICKS
+- MOSSY_STONE_BRICKS → INFESTED_MOSSY_STONE_BRICKS
+- CHISELED_STONE_BRICKS → INFESTED_CHISELED_STONE_BRICKS
+
+**互斥标志**: `Move`（继承自 RandomWalkingGoal）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MERGE_CHANCE | 10 | 藏入概率倒数 (1/10) |
+
+**使用示例**:
+```cpp
+void SilverfishEntity::registerGoals() {
+    // 优先级 3: 藏入石头目标
+    m_goalSelector.addGoal(3, std::make_unique<SilverfishHideInStoneGoal>(this));
+}
+```
+
+**依赖关系**:
+- 需要 SilverfishEntity 提供 `attackTarget()`, `navigator()`, `world()`, `getRandom()`, `position()`, `remove()` 方法
+- 需要 InfestedBlock 提供 `infest()` 静态方法
+- 需要 IWorld 提供 `getBlockState()`, `setBlockState()`, `getGameRules()` 方法
+- 需要 Direction 和 Directions 命名空间
+
+---
+
+### SilverfishSummonOthersGoal - 蠹虫召唤同伴目标
+
+**职责**: 当蠹虫受到伤害时，召唤周围虫蚀方块中的其他蠹虫。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.SilverfishEntity.SummonSilverfishGoal`
+
+**执行条件**:
+- `m_lookForFriends > 0`（通过 `notifyHurt()` 触发）
+
+**行为流程**:
+1. `notifyHurt()`: 受伤时调用，设置 `m_lookForFriends = 20`
+2. `shouldExecute()`: 检查 `m_lookForFriends > 0`
+3. `tick()`: 
+   - 递减 `m_lookForFriends`
+   - 计时器归零时，搜索周围虫蚀方块
+   - 破坏找到的虫蚀方块，生成新蠹虫
+   - 每个50%概率停止搜索
+
+**搜索范围**:
+| 轴 | 范围 | 遍历顺序 |
+|------|------|----------|
+| X | -10 到 10 | 0, 1, -1, 2, -2, ... |
+| Y | -5 到 5 | 0, 1, -1, 2, -2, ... |
+| Z | -10 到 10 | 0, 1, -1, 2, -2, ... |
+
+**虫蚀方块处理**:
+- mobGriefing 为 true: 破坏方块（生成蠹虫）
+- mobGriefing 为 false: 转换为原版方块（不生成蠹虫）
+
+**互斥标志**: 无
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SUMMON_DURATION | 20 | 召唤计时器持续时间 (ticks, 1秒) |
+
+**使用示例**:
+```cpp
+void SilverfishEntity::registerGoals() {
+    // 优先级: 无优先级（不与其他目标冲突）
+    m_summonGoal = m_goalSelector.addGoal(1, std::make_unique<SilverfishSummonOthersGoal>(this));
+}
+
+void SilverfishEntity::hurt(DamageSource source, f32 amount) {
+    MonsterEntity::hurt(source, amount);
+    if (m_summonGoal != nullptr) {
+        m_summonGoal->notifyHurt();
+    }
+}
+```
+
+**依赖关系**:
+- 需要 SilverfishEntity 提供 `world()`, `getRandom()`, `position()` 方法
+- 需要 InfestedBlock 提供 `getHostBlock()` 方法（通过 dynamic_cast）
+- 需要 IWorld 提供 `getBlockState()`, `setBlockState()`, `getGameRules()` 方法
+- 需要 BlockRegistry 提供 `airState()`, `getBlock()` 方法
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -1656,6 +1779,7 @@ graph TD
     A --> R[PhantomSweepAttackGoal]
     A --> S[MoveToBlockGoal]
     A --> BP[BeePassiveGoal]
+    A --> SG[SilverfishSummonOthersGoal]
     S --> T[MoveToLavaGoal]
 
     B --> U[CreeperEntity]
@@ -1690,6 +1814,7 @@ graph TD
     MeleeAttackGoal --> BM[BeeStingGoal]
     HurtByTargetGoal --> BN[BeeAngerGoal]
     TargetGoal --> BO[BeeAttackPlayerGoal]
+    RandomWalkingGoal --> SH[SilverfishHideInStoneGoal]
 
     BE --> Bee[BeeEntity]
     BF --> Bee
@@ -1702,6 +1827,9 @@ graph TD
     BM --> Bee
     BN --> Bee
     BO --> Bee
+
+    SH --> Silverfish[SilverfishEntity]
+    SG --> Silverfish
 ```
 
 ---
@@ -2627,6 +2755,7 @@ graph TD
 | IronGolemGoalsTest.* | 铁傀儡目标测试（展示花朵、移动追踪、重置愤怒） |
 | EvokerGoalsTest.* | 唤魔者目标测试（尖牙攻击、召唤恼鬼、Wololo法术、目标选择器优先级） |
 | VexGoalsTest.* | 恼鬼目标测试（冲锋攻击、随机飞行、复制主人目标、移动控制器） |
+| SilverfishGoalsTest.* | 蠹虫目标测试（藏入石头、召唤同伴） |
 | MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
 | BeeGoalsTest.* | 蜜蜂目标测试（花粉状态、蜂巢位置、愤怒状态、飞行状态） |
 | TriggerSkeletonTrapGoalTest.* | 骷髅马陷阱触发目标测试（常量、类型名称、互斥标志、执行条件） |

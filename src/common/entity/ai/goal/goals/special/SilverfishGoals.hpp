@@ -74,6 +74,9 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SilverfishHideInStoneGoal"; }
 
+    // MC 1.16.5 常量（公开用于测试）
+    static constexpr i32 MERGE_CHANCE = 10;
+
 private:
     /**
      * @brief 检查并选择一个虫蚀方块方向
@@ -84,9 +87,6 @@ private:
     SilverfishEntity* m_silverfish;
     Direction m_facing = Direction::None;  // 选中的方向
     bool m_doMerge = false;                // 是否执行藏入操作
-
-    // MC 1.16.5: 1/10 概率检查虫蚀方块
-    static constexpr i32 MERGE_CHANCE = 10;
 };
 
 /**
@@ -127,12 +127,12 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SilverfishSummonOthersGoal"; }
 
+    // MC 1.16.5 常量（公开用于测试）
+    static constexpr i32 SUMMON_DURATION = 20;
+
 private:
     SilverfishEntity* m_silverfish;
     i32 m_lookForFriends = 0;  // 召唤计时器
-
-    // MC 1.16.5: 召唤计时器持续时间
-    static constexpr i32 SUMMON_DURATION = 20;
 };
 
 } // namespace entity::ai::goal

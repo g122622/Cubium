@@ -177,16 +177,17 @@ void EndermiteEntity::tick() {
 - 可以躲入石头方块（怪物蛋）
 - 受到攻击时呼唤同伴
 
-**AI 目标**：
+**AI 目标** (MC 1.16.5 已实现):
 | 优先级 | Goal | 说明 |
 |--------|------|------|
 | 1 | SwimGoal | 游泳 |
+| 3 | SilverfishHideInStoneGoal | 藏入石头（无攻击目标时1/10概率检查） |
 | 4 | MeleeAttackGoal(1.0, false) | 近战攻击玩家 |
 | 5 | WaterAvoidingRandomWalkingGoal(1.0) | 避水随机行走 |
 | 7 | LookAtGoal(8.0f) | 看向玩家 |
 | 8 | LookRandomlyGoal | 随机看向 |
 
-**目标选择器**：
+**目标选择器** (MC 1.16.5 已实现):
 | 优先级 | Goal | 说明 |
 |--------|------|------|
 | 1 | HurtByTargetGoal(true) | 受伤反击并呼唤同伴 |
@@ -200,11 +201,43 @@ void EndermiteEntity::tick() {
 | ATTACK_DAMAGE | 1.0 |
 | EXPERIENCE_VALUE | 5 |
 
-**预留功能**：
-- `m_summonCooldown`: 召唤同伴倒计时
-- `notifySummonCooldown()`: 受伤时触发召唤冷却（20 ticks）
-- TODO: SilverfishHideInStoneGoal（藏入石头）
-- TODO: SilverfishSummonOthersGoal（召唤同伴）
+**SilverfishHideInStoneGoal 实现**：
+```cpp
+// 藏入石头目标
+// 当蠹虫没有攻击目标时，有概率进入附近的虫蚀方块
+bool shouldExecute() {
+    // 检查攻击目标、导航状态
+    if (m_creature->attackTarget() != nullptr) return false;
+    if (!nav->noPath()) return false;
+
+    // mobGriefing + 1/10 概率检查
+    if (world->getGameRules().getBoolean(MOB_GRIEFING)
+        && rng.nextInt(10) == 0) {
+        // 随机方向检查虫蚀方块
+        // 如果找到，设置 m_doMerge = true
+    }
+}
+```
+
+**SilverfishSummonOthersGoal 实现**：
+```cpp
+// 召唤同伴目标
+// 受伤时触发，20 ticks 后搜索周围虫蚀方块
+void notifyHurt() {
+    if (m_lookForFriends == 0) {
+        m_lookForFriends = 20;  // 20 ticks 延迟
+    }
+}
+
+void tick() {
+    --m_lookForFriends;
+    if (m_lookForFriends <= 0) {
+        // 搜索 X: -10~10, Y: -5~5, Z: -10~10
+        // 找到虫蚀方块后破坏或转换
+        // 50% 概率停止搜索
+    }
+}
+```
 
 ## 共同特性
 
