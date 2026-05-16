@@ -275,6 +275,7 @@ add_executable(mc_tests
     entity/HorseTamingTest.cpp
     entity/HorseBreedingTest.cpp
     entity/HorseJumpBoostTest.cpp
+    entity/HorseAiGoalsTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp

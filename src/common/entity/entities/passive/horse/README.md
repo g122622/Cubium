@@ -432,6 +432,78 @@ i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
 // level = 2 (因为 amplifier + 1 = 2)
 ```
 
+## AI 目标系统（MC 1.16.5）
+
+马类实体的 AI 目标通过 `registerGoals()` 方法注册。所有马类实体共享 `AbstractHorseEntity` 中定义的基础 AI 目标。
+
+### AI 目标注册架构
+
+MC 1.16.5 中，`AbstractHorseEntity.registerGoals()` 注册以下 AI 目标：
+
+| 优先级 | AI 目标 | 速度参数 | 功能说明 |
+|--------|---------|----------|----------|
+| 0 | SwimGoal | - | 在水中上浮 |
+| 1 | PanicGoal | 1.2 | 受伤或着火时恐慌逃跑 |
+| 1 | RunAroundLikeCrazyGoal | 1.2 | 未驯服马被骑乘时疯狂奔跑 |
+| 2 | BreedGoal | 1.0 | 与同类交配繁殖 |
+| 4 | FollowParentGoal | 1.0 | 幼体跟随成年个体 |
+| 6 | WaterAvoidingRandomWalkingGoal | 0.7 | 随机游荡但避开水域 |
+| 7 | LookAtGoal | 6.0F | 看向附近玩家 |
+| 8 | LookRandomlyGoal | - | 随机转头观察 |
+
+### 子类 AI 目标
+
+| 实体 | 额外 AI 目标 | 说明 |
+|------|-------------|------|
+| HorseEntity | 无 | 完全继承 AbstractHorseEntity |
+| DonkeyEntity | 无 | 完全继承 AbstractHorseEntity |
+| MuleEntity | 无 | 完全继承 AbstractHorseEntity（不育，BreedGoal 自动跳过） |
+| SkeletonHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
+| ZombieHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
+| LlamaEntity | 商队跟随、吐口水攻击 | 参考 LlamaEntity.cpp 的 registerGoals() |
+
+### 优先级设计说明
+
+- **优先级数字越小，优先级越高**
+- **SwimGoal (0)**：最高优先级，确保马在水中能上浮
+- **PanicGoal 和 RunAroundLikeCrazyGoal (1)**：相同优先级，可同时触发
+  - 未驯服的马被骑乘时，RunAroundLikeCrazyGoal 触发驯服机制
+  - 受伤或着火时，PanicGoal 触发逃跑行为
+- **BreedGoal (2)**：繁殖行为，需要玩家喂食金苹果/金胡萝卜
+- **FollowParentGoal (4)**：幼马跟随成年马
+- **WaterAvoidingRandomWalkingGoal (6)**：随机游荡，避开水域
+- **LookAtGoal 和 LookRandomlyGoal (7-8)**：最低优先级，仅在其他目标空闲时执行
+
+### 代码示例
+
+```cpp
+// AbstractHorseEntity::registerGoals() 实现
+void AbstractHorseEntity::registerGoals()
+{
+    AnimalEntity::registerGoals();
+
+    // 优先级 0: 游泳目标
+    m_goalSelector.addGoal(0, std::make_unique<SwimGoal>(this));
+
+    // 优先级 1: 恐慌逃跑和疯狂奔跑
+    m_goalSelector.addGoal(1, std::make_unique<PanicGoal>(this, 1.2));
+    m_goalSelector.addGoal(1, std::make_unique<RunAroundLikeCrazyGoal>(this, 1.2));
+
+    // 优先级 2: 繁殖
+    m_goalSelector.addGoal(2, std::make_unique<BreedGoal>(this, 1.0));
+
+    // 优先级 4: 跟随父母
+    m_goalSelector.addGoal(4, std::make_unique<FollowParentGoal>(this, 1.0));
+
+    // 优先级 6: 避水随机行走
+    m_goalSelector.addGoal(6, std::make_unique<WaterAvoidingRandomWalkingGoal>(this, 0.7));
+
+    // 优先级 7-8: 看向玩家和随机看向
+    m_goalSelector.addGoal(7, std::make_unique<LookAtGoal>(this, 6.0f));
+    m_goalSelector.addGoal(8, std::make_unique<LookRandomlyGoal>(this));
+}
+```
+
 ## 测试用例
 
 马类实体的测试位于以下文件：
@@ -442,7 +514,30 @@ i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
 | `tests/entity/HorseAppearanceSupportTypesTest.cpp` | 马外观变体测试 |
 | `tests/entity/HorseJumpBoostTest.cpp` | 跳跃提升药水效果测试 |
 | `tests/entity/HorseTamingTest.cpp` | 驯服系统、扬蹄动画、状态管理测试 |
+| `tests/entity/HorseBreedingTest.cpp` | 繁殖系统测试 |
+| `tests/entity/HorseAiGoalsTest.cpp` | AI 目标注册测试 |
 | `tests/common/entity/entities/passive/horse/HorseCanEquipTest.cpp` | 装备验证测试 |
+
+### HorseAiGoalsTest 测试用例
+
+`HorseAiGoalsTest.cpp` 测试马类实体的 AI 目标注册：
+
+- `AbstractHorseAiGoalsTest.HasSwimGoal` - SwimGoal 在优先级 0
+- `AbstractHorseAiGoalsTest.HasPanicGoal` - PanicGoal 在优先级 1
+- `AbstractHorseAiGoalsTest.HasRunAroundLikeCrazyGoal` - RunAroundLikeCrazyGoal 在优先级 1
+- `AbstractHorseAiGoalsTest.HasBreedGoal` - BreedGoal 在优先级 2
+- `AbstractHorseAiGoalsTest.HasFollowParentGoal` - FollowParentGoal 在优先级 4
+- `AbstractHorseAiGoalsTest.HasWaterAvoidingRandomWalkingGoal` - WaterAvoidingRandomWalkingGoal 在优先级 6
+- `AbstractHorseAiGoalsTest.HasLookAtGoal` - LookAtGoal 在优先级 7
+- `AbstractHorseAiGoalsTest.HasLookRandomlyGoal` - LookRandomlyGoal 在优先级 8
+- `AbstractHorseAiGoalsTest.TotalGoalCount` - 总共 8 个 AI 目标
+- `AbstractHorseAiGoalsTest.PriorityOrdering` - 各优先级的目标数量正确
+- `DonkeyAiGoalsTest.InheritsAllAbstractHorseGoals` - 驴继承所有马类 AI 目标
+- `DonkeyAiGoalsTest.TotalGoalCount` - 驴有 8 个 AI 目标
+- `MuleAiGoalsTest.InheritsAllAbstractHorseGoals` - 骡继承所有马类 AI 目标
+- `MuleAiGoalsTest.TotalGoalCount` - 骡有 8 个 AI 目标（不育但 BreedGoal 存在）
+- `HorseAiGoalsTest.InheritsAllAbstractHorseGoals` - 马继承所有马类 AI 目标
+- `HorseAiGoalsTest.TotalGoalCount` - 马有 8 个 AI 目标
 
 ### 新增测试用例
 
