@@ -47,9 +47,14 @@ src/common/entity/entities/monster/end/
 - **AI 目标注册**:
   - EndermanStareGoal (优先级 1) - 注视玩家
   - MeleeAttackGoal (优先级 2) - 近战攻击
+  - WaterAvoidingRandomWalkingGoal (优先级 5) - 避水随机行走
   - LookAtGoal (优先级 7) - 看向玩家
   - LookRandomlyGoal (优先级 8) - 随机看向
+  - EndermanPlaceBlockGoal (优先级 10) - 放置方块
+  - EndermanTakeBlockGoal (优先级 11) - 拾取方块
   - EndermanFindPlayerGoal (目标选择器优先级 1) - 查找注视玩家
+  - NearestAttackableTargetGoal<EndermiteEntity> (目标选择器优先级 3) - 攻击末影螨
+  - ResetAngerGoal<EndermanEntity> (目标选择器优先级 4) - 重置愤怒
 
 - **注视检测逻辑**:
   - 检查玩家是否戴着南瓜头
@@ -157,6 +162,7 @@ enderman->teleport();
 - [tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp)
 - [tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp)
 - [tests/entity/EndermanHurtTeleportTest.cpp](../../../../../../../tests/entity/EndermanHurtTeleportTest.cpp)
+- [tests/entity/EndermanAIGoalsTest.cpp](../../../../../../../tests/entity/EndermanAIGoalsTest.cpp) - WaterAvoidingRandomWalkingGoal 和 ResetAngerGoal 测试
 - `PlayerLookVectorTest` - 视线方向向量计算测试
 - `PlayerEyePositionTest` - 眼睛位置测试
 - `PlayerPumpkinTest` - 南瓜头检测测试
@@ -167,6 +173,8 @@ enderman->teleport();
 - `EndermanConstantsTest` - 常量验证测试
 - `LookVectorPrecisionTest` - 精度测试
 - `EndermanHurtTeleportTest` - 受伤后瞬移逻辑测试
+- `ResetAngerGoalTest` - 重置愤怒目标测试
+- `WaterAvoidingRandomWalkingGoalTest` - 避水随机行走目标测试
 
 ## 近期补全
 
