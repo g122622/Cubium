@@ -680,5 +680,99 @@ TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_FatherOnly)
     EXPECT_LE(child.getHiddenGene(), 5);
 }
 
+// ==================== PandaEntity 打滚测试 ====================
+
+TEST(PandaEntityRollTest, SetAndGetRollTimer)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    EXPECT_EQ(panda.getRollTimer(), 0);
+
+    panda.setRollTimer(10);
+    EXPECT_EQ(panda.getRollTimer(), 10);
+
+    panda.setRollTimer(0);
+    EXPECT_EQ(panda.getRollTimer(), 0);
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // 初始状态，所有行为状态都是 false
+    EXPECT_TRUE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setSneezing(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setRolling(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setEating(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setLying(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // 任何一个状态为 true 就不能执行动作
+    panda.setSneezing(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setSneezing(false);
+    panda.setRolling(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setRolling(false);
+    panda.setEating(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setEating(false);
+    panda.setLying(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    // 所有状态都为 false 时可以执行动作
+    panda.setLying(false);
+    EXPECT_TRUE(panda.canPerformAction());
+}
+
 } // anonymous namespace
 } // namespace mc

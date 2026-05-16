@@ -201,6 +201,27 @@ public:
     void setRolling(bool rolling) { m_rolling = rolling; }
 
     /**
+     * @brief 获取打滚计时器
+     */
+    [[nodiscard]] i32 getRollTimer() const { return m_rollTimer; }
+
+    /**
+     * @brief 设置打滚计时器
+     * @param timer 计时器值（ticks）
+     */
+    void setRollTimer(i32 timer) { m_rollTimer = timer; }
+
+    /**
+     * @brief 检查是否可以执行动作
+     *
+     * MC 1.16.5: canPerformAction()
+     * 检查熊猫是否不在任何阻止动作的状态
+     */
+    [[nodiscard]] bool canPerformAction() const {
+        return !isSneezing() && !isEating() && !isLying() && !isRolling();
+    }
+
+    /**
      * @brief 是否正在打喷嚏
      */
     [[nodiscard]] bool isSneezing() const { return m_sneezing; }
@@ -320,6 +341,18 @@ protected:
      */
     void onSneezeComplete();
 
+    /**
+     * @brief 更新打滚物理
+     *
+     * 处理打滚时的移动和跳跃逻辑：
+     * - 第1帧：初始化速度向量
+     * - 第7、15、23帧：执行小跳
+     * - 其他帧：维持水平移动
+     *
+     * 参考 MC 1.16.5: PandaEntity.func_213535_ey()
+     */
+    void updateRoll();
+
 private:
     // 性格
     Personality m_personality = Personality::Normal;
@@ -336,9 +369,18 @@ private:
     i32 m_eatTimer = 0;
     i32 m_lyingTimer = 0;
 
+    // 打滚速度向量
+    Vector3 m_rollVelocity{0.0, 0.0, 0.0};
+
     // 基因（用于遗传）
     u8 m_mainGene = 0;
     u8 m_hiddenGene = 0;
+
+    // 打滚持续时间常量
+    static constexpr i32 ROLL_DURATION = 32;        // 打滚总持续时间（ticks）
+    static constexpr f32 ROLL_SPEED_ADULT = 0.2f;   // 成年熊猫打滚速度
+    static constexpr f32 ROLL_SPEED_CHILD = 0.1f;   // 幼年熊猫打滚速度（减半）
+    static constexpr f32 ROLL_JUMP_VELOCITY = 0.27f; // 打滚跳跃速度
 };
 
 } // namespace mc

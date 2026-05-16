@@ -36,6 +36,7 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/PandaGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -231,14 +232,14 @@ void PandaEntity::tick()
 {
     AnimalEntity::tick();
 
-    // 更新各种状态计时器
-    if (m_rolling && m_rollTimer > 0) {
-        m_rollTimer--;
-        if (m_rollTimer <= 0) {
-            m_rolling = false;
-        }
+    // 更新打滚物理
+    if (m_rolling) {
+        updateRoll();
+    } else {
+        m_rollTimer = 0;
     }
 
+    // 更新打喷嚏计时器
     if (m_sneezing && m_sneezeTimer > 0) {
         m_sneezeTimer--;
 
@@ -254,6 +255,7 @@ void PandaEntity::tick()
         }
     }
 
+    // 更新吃东西计时器
     if (m_eating && m_eatTimer > 0) {
         m_eatTimer--;
         if (m_eatTimer <= 0) {
@@ -261,6 +263,7 @@ void PandaEntity::tick()
         }
     }
 
+    // 更新躺着计时器
     if (m_lying && m_lyingTimer > 0) {
         m_lyingTimer--;
         if (m_lyingTimer <= 0) {
@@ -279,11 +282,9 @@ void PandaEntity::registerGoals()
     // 优先级 3: 食物诱惑（竹子）
     // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isBambooPredicate));
 
-    // TODO: 熊猫特有目标
-    // - PandaRollGoal: 打滚（顽皮熊猫）
-    // - PandaSneezeGoal: 打喷嚏（幼体）
-    // - PandaLieGoal: 躺下（懒惰熊猫）
-    // - PandaEatBambooGoal: 吃竹子
+    // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
+    // MC 1.16.5: this.goalSelector.addGoal(12, new PandaEntity.RollGoal(this));
+    m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
 }
 
 void PandaEntity::registerAttributes()
@@ -407,6 +408,59 @@ void PandaEntity::onSneezeComplete()
                 ItemStack slimeBall(*Items::SLIME_BALL, 1);
                 ItemDropHelper::spawnItemAtEntity(this, slimeBall, 0.5f, rng);
             }
+        }
+    }
+}
+
+void PandaEntity::updateRoll()
+{
+    // MC 1.16.5: PandaEntity.func_213535_ey()
+    // 处理打滚物理
+
+    m_rollTimer++;
+
+    if (m_rollTimer > ROLL_DURATION) {
+        // 打滚超过 32 ticks 后结束
+        m_rolling = false;
+        m_rollTimer = 0;
+        return;
+    }
+
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        Vector3 vel = velocity();
+
+        if (m_rollTimer == 1) {
+            // 第1帧：初始化打滚方向和初速度
+            // MC 1.16.5:
+            // float f = this.rotationYaw * ((float)Math.PI / 180F);
+            // float f1 = this.isChild() ? 0.1F : 0.2F;
+            // this.rollDelta = new Vector3d(vec3d.x + (double)(-MathHelper.sin(f) * f1), 0.0D, vec3d.z + (double)(MathHelper.cos(f) * f1));
+            // this.setMotion(this.rollDelta.add(0.0D, 0.27D, 0.0D));
+
+            f32 yawRad = math::toRadians(yaw());
+            f32 speed = isChild() ? ROLL_SPEED_CHILD : ROLL_SPEED_ADULT;
+            f32 sinYaw = std::sin(yawRad);
+            f32 cosYaw = std::cos(yawRad);
+
+            m_rollVelocity = Vector3(
+                vel.x + (-sinYaw * speed),
+                0.0,
+                vel.z + (cosYaw * speed)
+            );
+
+            // 设置初始速度（包含跳跃）
+            setVelocity(m_rollVelocity.x, ROLL_JUMP_VELOCITY, m_rollVelocity.z);
+        } else if (m_rollTimer == 7 || m_rollTimer == 15 || m_rollTimer == 23) {
+            // 第7、15、23帧：执行小跳
+            // MC 1.16.5:
+            // this.setMotion(0.0D, this.onGround ? 0.27D : vec3d.y, 0.0D);
+            f32 jumpVel = onGround() ? ROLL_JUMP_VELOCITY : static_cast<f32>(vel.y);
+            setVelocity(0.0, jumpVel, 0.0);
+        } else {
+            // 其他帧：维持水平移动
+            // MC 1.16.5:
+            // this.setMotion(this.rollDelta.x, vec3d.y, this.rollDelta.z);
+            setVelocity(m_rollVelocity.x, vel.y, m_rollVelocity.z);
         }
     }
 }

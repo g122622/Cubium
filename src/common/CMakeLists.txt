@@ -268,6 +268,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/TurtleGoals.cpp
     entity/ai/goal/goals/special/BeeGoals.cpp
     entity/ai/goal/goals/special/FoxGoals.cpp
+    entity/ai/goal/goals/special/PandaGoals.cpp
     entity/ai/goal/goals/special/MoveToLavaGoal.cpp
     entity/ai/goal/goals/special/PatrolGoals.cpp
     entity/ai/goal/goals/special/RavagerGoals.cpp
