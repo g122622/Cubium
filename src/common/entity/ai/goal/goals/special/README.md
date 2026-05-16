@@ -1044,6 +1044,9 @@ void PhantomEntity::registerGoals() {
 2. 当接近目标且满足条件时，切换到俯冲阶段
 3. 俯冲完成后，切换回环绕阶段
 
+**音效**:
+- 进入俯冲阶段时播放 `ENTITY_PHANTOM_SWOOP` 音效（音量 10.0，音调 0.95~1.05 随机）
+
 **常量**:
 | 常量 | 值 | 说明 |
 |------|-----|------|
@@ -1081,7 +1084,9 @@ void PhantomEntity::registerGoals() {
 
 **俯冲机制**:
 - 直接向目标飞行
+- 播放俯冲音效 `ENTITY_PHANTOM_SWOOP`（音量 10.0，音调 0.95~1.05 随机）
 - 撞击目标造成攻击伤害
+- 攻击命中时播放世界事件 1039（幻翼攻击事件）
 - 碰撞后切换回环绕阶段
 
 **猫检测**:
@@ -2021,6 +2026,14 @@ i32 EvokerSummonSpellGoal::countNearbyVexes() const
 
 **互斥标志**: `Move`, `Look`
 
+**LookController 集成**:
+施法准备阶段，唤魔者会使用 `lookController()->setLookPositionWithEntity()` 看向目标：
+- `EvokerSpellGoal::tick()`: 施法准备阶段看向攻击目标
+- `EvokerCastingSpellGoal::tick()`: 施法过程中持续看向攻击目标
+- `EvokerWololoSpellGoal::tick()`: 准备阶段看向目标羊
+
+参考 MC 1.16.5 `SpellcastingIllagerEntity.SpellGoal.tick()`
+
 ### EvokerWololoSpellGoal - 唔噜噜法术目标
 
 **职责**: 控制唤魔者将附近的蓝色羊变成红色羊。
@@ -2116,6 +2129,7 @@ void EvokerEntity::registerGoals() {
 - 飞向目标的眼睛位置（y + eyeHeight）
 - 碰撞箱相交时造成攻击伤害
 - 攻击后停止充电状态
+- **充电音效**: `startExecuting()` 中播放 `ENTITY_VEX_CHARGE` 音效
 
 **常量**:
 | 常量 | 值 | 说明 |
