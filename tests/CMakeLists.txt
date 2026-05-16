@@ -187,6 +187,8 @@ add_executable(mc_tests
     advancement/PlayerInteractedWithEntityTriggerTest.cpp
     # ChanneledLightningTrigger 引雷附魔触发器测试
     advancement/ChanneledLightningTriggerTest.cpp
+    # ItemTriggers 物品触发器测试（消耗、耐久、附魔、填充桶）
+    advancement/ItemTriggersTest.cpp
     # MobEffectsPredicate 效果谓词测试
     advancement/MobEffectsPredicateTest.cpp
     # DamageSourcePredicate 伤害源谓词测试

@@ -203,12 +203,49 @@ void onAnimalTamed(ServerPlayer& player, AnimalEntity* animal) {
 | `SlideDownBlockTrigger` | `minecraft:slide_down_block` | 滑落方块 |
 | `BeeNestDestroyedTrigger` | `minecraft:bee_nest_destroyed` | 破坏蜂巢 |
 
-### 效果触发器
+### 物品触发器
 
-| 触发器 | ID | 说明 |
-|--------|-----|------|
-| `EffectsChangedTrigger` | `minecraft:effects_changed` | 效果变化 |
-| `BrewedPotionTrigger` | `minecraft:brewed_potion` | 酿造药水 |
+| 触发器 | ID | 说明 | 状态 |
+|--------|-----|------|------|
+| `ConsumeItemTrigger` | `minecraft:consume_item` | 消耗物品（吃食物、喝药水） | ✅ 完整实现，已集成事件 |
+| `ItemDurabilityTrigger` | `minecraft:item_durability_changed` | 物品耐久变化 | ✅ 完整实现，已集成事件 |
+| `EnchantedItemTrigger` | `minecraft:enchanted_item` | 附魔物品 | ✅ 完整实现，已集成事件 |
+| `FilledBucketTrigger` | `minecraft:filled_bucket` | 填充桶 | ✅ 完整实现，已集成事件 |
+
+#### ItemTriggers 事件集成说明
+
+物品相关触发器已完整集成到服务端事件系统：
+
+| 触发器 | 事件 | 触发位置 |
+|--------|------|----------|
+| `ConsumeItemTrigger` | `ConsumeItemEvent` | `FoodItem::onItemUseFinish()` |
+| `ItemDurabilityTrigger` | `ItemDurabilityEvent` | `ItemStack::attemptDamageItem()` |
+| `EnchantedItemTrigger` | `EnchantItemEvent` | `EnchantmentContainer::enchantItem()` |
+| `FilledBucketTrigger` | `FilledBucketEvent` | `BucketItem::onItemUse()` |
+
+**事件流程：**
+
+```
+游戏逻辑触发
+       │
+       ▼
+IWorld::onConsumeItem() / onItemDurabilityChange() / etc.
+       │
+       ▼
+ServerWorld 发布事件到 ServerEventBus
+       │
+       ▼
+AdvancementEventHandler::onConsumeItem() / onItemDurability() / etc.
+       │
+       ▼
+CriterionTriggers::getTrigger<T>()
+       │
+       ▼
+trigger->trigger(*advancements, predicate)
+       │
+       ▼
+检查玩家的成就监听器，条件满足时授予成就
+```
 
 ## 条件谓词
 

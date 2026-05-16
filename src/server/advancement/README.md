@@ -127,6 +127,10 @@ m_advancementEventHandler.initialize();
 | `BlockPlaceEvent` | `PlacedBlockTrigger` | ✅ 已完成 |
 | `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` + 村庄声望更新 | ✅ 已完成 |
 | `ChanneledLightningEvent` | `ChanneledLightningTrigger` | ✅ 已完成 |
+| `ConsumeItemEvent` | `ConsumeItemTrigger` | ✅ 已完成 |
+| `ItemDurabilityEvent` | `ItemDurabilityTrigger` | ✅ 已完成 |
+| `EnchantItemEvent` | `EnchantedItemTrigger` | ✅ 已完成 |
+| `FilledBucketEvent` | `FilledBucketTrigger` | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
 
 ### 事件处理器架构
