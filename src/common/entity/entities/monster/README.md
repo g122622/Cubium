@@ -54,7 +54,47 @@ Entity
 - `VindicatorEntity` 和 `PillagerEntity` 现在继承自 `AbstractIllagerEntity`
 - `WitchEntity` 现在继承自 `AbstractRaiderEntity`
 
-## 敌对行为
+## MonsterEntity 基类
+
+### MC 1.16.5 对齐
+
+MonsterEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 阳光燃烧机制 | ✅ 完成 |
+| 基于亮度的空闲时间 | ✅ 完成 |
+| 生成位置检查（光照） | ✅ 完成 |
+| 生成位置检查（无光照） | ✅ 完成 |
+| 寻路权重计算 | ✅ 完成 |
+
+#### 生成位置检查
+
+**canMonsterSpawnInLight** - 检查怪物是否可以在指定位置生成（带光照检查）
+
+1. **难度检查**: 非和平模式才能生成 (`DifficultyHelper::allowsMobSpawning`)
+2. **光照检查**: 调用 `isValidLightLevel` 验证光照等级
+3. **位置检查**:
+   - 脚下方块必须有固体上表面 (`BlockState::isSolidSide(Direction::Up)`)
+   - 当前位置不能是固体方块
+   - 上方位置不能是固体方块（高度 > 1 的生物）
+
+**canMonsterSpawn** - 检查怪物是否可以在指定位置生成（无光照检查，用于刷怪笼）
+
+1. **难度检查**: 非和平模式才能生成
+2. **位置检查**: 同上，但不检查光照
+
+**isValidLightLevel** - 光照等级检查 (MC 1.16.5)
+
+1. **天空光照检查**: 如果 `skyLight > random(0-31)`，太亮不能生成
+2. **综合光照检查**:
+   - 雷暴天气: 使用 `getNeighborAwareLightSubtracted(pos, 10)`
+   - 正常天气: 使用 `getLight(pos)`
+3. **生成条件**: 如果 `light <= random(0-7)`，足够黑暗可以生成
+
+参考 MC 1.16.5 `MonsterEntity.isValidLightLevel()`, `MonsterEntity.canMonsterSpawnInLight()`, `MonsterEntity.canMonsterSpawn()`
+
+### 敌对行为
 
 ### 基础敌对目标优先级
 | 优先级 | Goal | 说明 |

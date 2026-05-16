@@ -68,7 +68,26 @@ public:
 - **尺寸**: 16×8 方块
 - **阶段AI**: 盘旋、突袭、降落、栖息、死亡
 - **攻击**: 龙息、冲撞、龙火球
-- **部件**: 6个碰撞部件（头、颈、身、尾、左翼、右翼）
+- **部件**: 6个碰撞部件（头、颈、身、尾1、尾2、尾3、左翼、右翼）
+
+#### MC 1.16.5 对齐
+
+EnderDragonEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 阶段系统 | ✅ 完成 |
+| 龙部件碰撞 | ✅ 完成 |
+| 末影水晶关联 | ✅ 完成 |
+| Boss 接口 | ✅ 完成 |
+
+#### 末影水晶关联
+
+末影龙通过 `closestEnderCrystal()` 和 `setClosestEnderCrystal()` 与末影水晶关联：
+- 末影水晶在 `healDragon()` 中设置此引用
+- 用于渲染光束效果和治愈逻辑
+
+参考 MC 1.16.5 `EnderDragonEntity`
 
 ```cpp
 class EnderDragonEntity : public BossEntity {

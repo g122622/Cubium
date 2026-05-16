@@ -37,7 +37,10 @@ namespace mc {
 class IWorld;
 class DamageSource;
 class LivingEntity;
+
+namespace entity {
 class EnderCrystalEntity;
+} // namespace entity
 
 namespace entity {
 
@@ -292,12 +295,12 @@ public:
     /**
      * @brief 获取最近的末影水晶
      */
-    [[nodiscard]] EnderCrystalEntity* closestEnderCrystal() const { return m_closestEnderCrystal; }
+    [[nodiscard]] entity::EnderCrystalEntity* closestEnderCrystal() const { return m_closestEnderCrystal; }
 
     /**
      * @brief 设置最近的末影水晶
      */
-    void setClosestEnderCrystal(EnderCrystalEntity* crystal) { m_closestEnderCrystal = crystal; }
+    void setClosestEnderCrystal(entity::EnderCrystalEntity* crystal) { m_closestEnderCrystal = crystal; }
 
     /**
      * @brief 是否在栖息点
@@ -416,7 +419,7 @@ private:
     LivingEntity* m_attackTarget = nullptr;
 
     // 末影水晶
-    EnderCrystalEntity* m_closestEnderCrystal = nullptr;
+    entity::EnderCrystalEntity* m_closestEnderCrystal = nullptr;
 
     // 动画
     f32 m_prevAnimTime = 0.0f;

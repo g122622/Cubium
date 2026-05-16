@@ -153,8 +153,10 @@ add_executable(mc_tests
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
-    # WitherEntity 数据参数和目标追踪测试
-    common/entity/entities/boss/WitherEntityTest.cpp
+    # EnderCrystalEntity 治愈末影龙测试
+    common/entity/entities/effect/EnderCrystalHealTest.cpp
+    # MonsterEntity 生成位置检查测试
+    common/entity/entities/monster/MonsterSpawnTest.cpp
     # BoostHelper NBT 序列化测试
     common/entity/core/BoostHelperTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
