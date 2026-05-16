@@ -28,6 +28,8 @@ special/
 ├── EvokerGoals.cpp        # 唤魔者目标实现
 ├── VexGoals.hpp           # 恼鬼目标头文件
 ├── VexGoals.cpp           # 恼鬼目标实现
+├── BeeGoals.hpp           # 蜜蜂目标头文件
+├── BeeGoals.cpp           # 蜜蜂目标实现
 └── README.md              # 本文档
 ```
 
@@ -1071,6 +1073,380 @@ void StriderEntity::registerGoals() {
 
 ---
 
+## BeeGoals - 蜜蜂专用目标
+
+包含蜜蜂的授粉、返回蜂巢、攻击和漫步行为。
+
+### BeePassiveGoal - 蜜蜂被动目标基类
+
+**职责**: 当蜜蜂处于愤怒状态时，打断所有被动行为。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.PassiveGoal`
+
+**执行条件**:
+- `shouldExecute()`: 蜜蜂不愤怒时调用 `canBeeStart()`
+- `shouldContinueExecuting()`: 蜜蜂不愤怒时调用 `canBeeContinue()`
+
+**设计模式**: 模板方法模式，子类只需实现 `canBeeStart()` 和 `canBeeContinue()`。
+
+**使用示例**:
+```cpp
+class MyBeeGoal : public BeePassiveGoal {
+protected:
+    bool canBeeStart() override { /* 检查条件 */ }
+    bool canBeeContinue() override { /* 检查条件 */ }
+};
+```
+
+---
+
+### BeeStingGoal - 蜜蜂蛰刺攻击目标
+
+**职责**: 控制蜜蜂对目标进行蛰刺攻击，攻击后蜜蜂会死亡。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.StingGoal`
+
+**执行条件**:
+- 蜜蜂愤怒 (`isAngry()`)
+- 蜜蜂未蛰刺过 (`!hasStung()`)
+
+**行为**:
+- 继承自 `MeleeAttackGoal`
+- 攻击成功后设置 `hasStung = true`
+- 蛰刺后蜜蜂开始死亡倒计时
+
+**互斥标志**: `Move`, `Look` (继承自 MeleeAttackGoal)
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 0: 蛰刺攻击（最高优先级）
+    m_goalSelector.addGoal(0, std::make_unique<BeeStingGoal>(this));
+}
+```
+
+---
+
+### BeeEnterHiveGoal - 蜜蜂进入蜂巢目标
+
+**职责**: 当蜜蜂满足进入蜂巢条件时，导航到蜂巢并进入。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.EnterBeehiveGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂有蜂巢位置 (`hasHive()`)
+- 蜂巢距离 <= 2 格
+- 满足以下任一条件：
+  - 离巢后无花粉超过 2400 ticks (2分钟)
+  - 下雨 (`isRaining()`)
+  - 夜晚 (`!isDaytime()`)
+  - 携带花粉 (`hasNectar()`)
+- 蜂巢有空间
+
+**优先级**: 1
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 1: 进入蜂巢
+    m_goalSelector.addGoal(1, std::make_unique<BeeEnterHiveGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| HIVE_ENTER_RANGE | 2 | 进入蜂巢的距离阈值 |
+| TICKS_WITHOUT_NECTAR_THRESHOLD | 2400 | 无花粉超时阈值 (2分钟) |
+
+---
+
+### BeePollinateGoal - 蜜蜂授粉目标
+
+**职责**: 控制蜜蜂飞向花朵并采集花粉。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.PollinateGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂未携带花粉
+- 没有返回蜂巢
+- 附近有花朵（5格范围内）
+- 未下雨
+
+**行为流程**:
+1. `startExecuting()`: 搜索花朵，设置授粉状态
+2. `tick()`: 在花朵周围飞行，增加授粉进度
+3. 授粉进度达到 400 ticks 后获得花粉
+4. `resetTask()`: 清除授粉状态
+
+**互斥标志**: `Move`
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| FLOWER_SEARCH_RANGE | 5.0f | 花朵搜索范围 |
+| POLLINATION_DURATION | 400 | 授粉所需时间 (ticks, 20秒) |
+| MAX_POLLINATION_TIME | 600 | 最大授粉时间 (ticks, 30秒) |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 4: 授粉
+    m_goalSelector.addGoal(4, std::make_unique<BeePollinateGoal>(this));
+}
+```
+
+---
+
+### BeeUpdateHiveGoal - 蜜蜂更新蜂巢位置目标
+
+**职责**: 当蜜蜂没有蜂巢时，搜索附近可用的蜂巢。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.UpdateBeehiveGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂没有蜂巢位置
+
+**行为**:
+- 搜索附近 20 格内的蜂巢
+- 选择最近的可用蜂巢
+
+**优先级**: 5
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 5: 更新蜂巢位置
+    m_goalSelector.addGoal(5, std::make_unique<BeeUpdateHiveGoal>(this));
+}
+```
+
+---
+
+### BeeFindHiveGoal - 蜜蜂寻找蜂巢目标
+
+**职责**: 当蜜蜂需要返回蜂巢时，导航到蜂巢位置。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.FindBeehiveGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂有蜂巢位置
+- 满足返回条件（无花粉超时/下雨/夜晚）
+
+**行为**:
+- 导航到蜂巢位置
+- 到达后在蜂巢附近等待
+
+**互斥标志**: `Move`
+
+**优先级**: 5
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MAX_NAVIGATION_TIME | 600 | 最大导航时间 (ticks) |
+| STUCK_THRESHOLD | 60 | 路径卡住阈值 |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 5: 寻找蜂巢
+    m_goalSelector.addGoal(5, std::make_unique<BeeFindHiveGoal>(this));
+}
+```
+
+---
+
+### BeeFindFlowerGoal - 蜜蜂寻找花朵目标
+
+**职责**: 当蜜蜂长时间没有花粉时，飞向记忆中的花朵位置。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.FindFlowerGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂有花朵位置 (`hasFlower()`)
+- 离巢后无花粉超过 2400 ticks (2分钟)
+
+**行为**:
+- 导航到花朵位置
+- 到达后清除花朵位置
+
+**互斥标志**: `Move`
+
+**优先级**: 6
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MAX_NAVIGATION_TIME | 600 | 最大导航时间 (ticks) |
+| TICKS_WITHOUT_NECTAR_THRESHOLD | 2400 | 无花粉阈值 (2分钟) |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 6: 寻找花朵
+    m_goalSelector.addGoal(6, std::make_unique<BeeFindFlowerGoal>(this));
+}
+```
+
+---
+
+### BeeFindPollinationTargetGoal - 蜜蜂寻找授粉目标
+
+**职责**: 当蜜蜂有花粉时，飞过农作物并促进其生长。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.FindPollinationTargetGoal`
+
+**执行条件** (`canBeeStart`):
+- 蜜蜂携带花粉 (`hasNectar()`)
+- 授粉作物数 < 10
+
+**行为**:
+- 在飞行路径上检测农作物
+- 对 `BEE_GROWABLES` 标签的方块促生长
+- 每次授粉最多促进 10 个作物
+
+**互斥标志**: 无
+
+**优先级**: 7
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| MAX_CROPS_GROWN | 10 | 每次授粉最多促进的作物数 |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 7: 寻找授粉目标
+    m_goalSelector.addGoal(7, std::make_unique<BeeFindPollinationTargetGoal>(this));
+}
+```
+
+---
+
+### BeeWanderGoal - 蜜蜂随机飞行目标
+
+**职责**: 当没有其他任务时，蜜蜂会随机飞行。如果离蜂巢太远，会飞回蜂巢方向。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.WanderGoal`
+
+**执行条件**:
+- 蜜蜂不愤怒
+- 1/10 概率触发
+
+**行为**:
+- 离蜂巢 > 22 格：向蜂巢方向飞行
+- 否则：随机选择飞行方向
+- 飞行范围：水平 ±8 格，垂直 ±7 格
+
+**互斥标志**: `Move`
+
+**优先级**: 8
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| WANDER_RANGE | 8.0f | 漫游范围 |
+| WANDER_HEIGHT | 7.0f | 漫游高度范围 |
+| HIVE_RETURN_DISTANCE | 22.0f | 触发返回蜂巢的距离 |
+| WANDER_CHANCE | 10 | 漫游概率倒数 |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 8: 随机飞行
+    m_goalSelector.addGoal(8, std::make_unique<BeeWanderGoal>(this));
+}
+```
+
+---
+
+### BeeAngerGoal - 蜜蜂愤怒目标
+
+**职责**: 当蜜蜂被攻击时，记住攻击者并召唤附近的其他蜜蜂一起攻击。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.AngerGoal`
+
+**执行条件**:
+- 蜜蜂受到伤害
+- 攻击者存活
+
+**行为**:
+- 继承自 `HurtByTargetGoal`
+- 设置愤怒目标
+- 召唤附近其他蜜蜂
+
+**优先级**: 1 (Target Selector)
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 1: 愤怒目标
+    m_targetSelector.addGoal(1, std::make_unique<BeeAngerGoal>(this));
+}
+```
+
+---
+
+### BeeAttackPlayerGoal - 蜜蜂攻击玩家目标
+
+**职责**: 当蜜蜂愤怒时，攻击附近的玩家。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.BeeEntity.AttackPlayerGoal`
+
+**执行条件**:
+- 蜜蜂愤怒 (`isAngry()`)
+- 蜜蜂未蛰刺过 (`!hasStung()`)
+- 10 格范围内有玩家
+
+**行为**:
+- 搜索范围内的玩家
+- 设置攻击目标
+- 配合 `BeeStingGoal` 执行攻击
+
+**优先级**: 2 (Target Selector)
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| TARGET_RANGE | 10.0f | 目标搜索范围 |
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 2: 攻击玩家目标
+    m_targetSelector.addGoal(2, std::make_unique<BeeAttackPlayerGoal>(this, 2));
+}
+```
+
+---
+
+### BeeResetAngerGoal - 蜜蜂重置愤怒目标
+
+**职责**: 当愤怒时间结束后，重置愤怒状态。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.ResetAngerGoal`
+
+**执行条件**:
+- 愤怒时间已结束 (`!isAngry()`)
+
+**行为**:
+- 清除攻击目标
+- 重置愤怒时间
+
+**优先级**: 3 (Target Selector)
+
+**使用示例**:
+```cpp
+void BeeEntity::registerGoals() {
+    // 优先级 3: 重置愤怒
+    m_targetSelector.addGoal(3, std::make_unique<BeeResetAngerGoal>(this));
+}
+```
+
+---
+
 ## 依赖关系
 
 ```mermaid
@@ -1093,6 +1469,7 @@ graph TD
     A --> Q[PhantomPickAttackGoal]
     A --> R[PhantomSweepAttackGoal]
     A --> S[MoveToBlockGoal]
+    A --> BP[BeePassiveGoal]
     S --> T[MoveToLavaGoal]
 
     B --> U[CreeperEntity]
@@ -1113,6 +1490,32 @@ graph TD
     Q --> AC
     R --> AC
     T --> AD[StriderEntity]
+
+    BP --> BE[BeeEnterHiveGoal]
+    BP --> BF[BeePollinateGoal]
+    BP --> BG[BeeUpdateHiveGoal]
+    BP --> BH[BeeFindHiveGoal]
+    BP --> BI[BeeFindFlowerGoal]
+    BP --> BJ[BeeFindPollinationTargetGoal]
+
+    A --> BK[BeeWanderGoal]
+    A --> BL[BeeResetAngerGoal]
+
+    MeleeAttackGoal --> BM[BeeStingGoal]
+    HurtByTargetGoal --> BN[BeeAngerGoal]
+    TargetGoal --> BO[BeeAttackPlayerGoal]
+
+    BE --> Bee[BeeEntity]
+    BF --> Bee
+    BG --> Bee
+    BH --> Bee
+    BI --> Bee
+    BJ --> Bee
+    BK --> Bee
+    BL --> Bee
+    BM --> Bee
+    BN --> Bee
+    BO --> Bee
 ```
 
 ---
@@ -1506,6 +1909,7 @@ void VexEntity::registerGoals() {
 | EvokerGoalsTest.* | 唤魔者目标测试（尖牙攻击、召唤恼鬼、Wololo法术、目标选择器优先级） |
 | VexGoalsTest.* | 恼鬼目标测试（冲锋攻击、随机飞行、复制主人目标、移动控制器） |
 | MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
+| BeeGoalsTest.* | 蜜蜂目标测试（花粉状态、蜂巢位置、愤怒状态、飞行状态） |
 
 ---
 

@@ -95,6 +95,8 @@ add_executable(mc_tests
     common/entity/entities/passive/special/TurtleEntityTest.cpp
     # 海龟 AI 目标测试
     entity/TurtleGoalsTest.cpp
+    # 蜜蜂 AI 目标测试
+    common/entity/BeeGoalsTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp

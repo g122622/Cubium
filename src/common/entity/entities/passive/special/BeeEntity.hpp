@@ -172,6 +172,15 @@ public:
     void setFlowerPos(const BlockPos& pos);
 
     /**
+     * @brief 清除花朵位置
+     */
+    void clearFlowerPos()
+    {
+        m_flowerPos = BlockPos::zero();
+        m_hasFlower = false;
+    }
+
+    /**
      * @brief 是否有花朵目标
      */
     [[nodiscard]] bool hasFlower() const { return m_hasFlower; }
