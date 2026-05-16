@@ -44,6 +44,49 @@ Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → S
 | `getJumpSound()` | 获取跳跃音效 |
 | `tick()` | 更新实体状态（含着地粒子生成） |
 
+**虚函数**（供子类重写，如 `MagmaCubeEntity`）：
+
+| 虚函数 | 说明 | 史莱姆默认实现 |
+|--------|------|----------------|
+| `setSlimeSize(size, resetHealth)` | 设置尺寸，子类可添加额外逻辑 | 更新属性（生命值、速度、伤害） |
+| `canDamagePlayer()` | 是否可伤害玩家 | `!isSmallSlime() && isServerWorld()` |
+| `getJumpDelay()` | 获取跳跃延迟（tick） | 10-30 随机值 |
+| `alterSquishAmount()` | 更新挤压动画 | 挤压量 *= 0.6 |
+| `getSquishParticle()` | 获取着地粒子类型 | `ParticleTypeId::ItemSlime` |
+| `getSquishSound()` | 获取挤压声音 | 根据尺寸返回不同音效 |
+| `getJumpSound()` | 获取跳跃声音 | 返回挤压声音 |
+| `getHurtSound()` | 获取受伤声音 | 根据尺寸返回不同音效 |
+| `getDeathSound()` | 获取死亡声音 | 根据尺寸返回不同音效 |
+
+**子类化示例**：
+
+参见 `src/common/entity/entities/monster/nether/` 目录下的 `MagmaCubeEntity`，它继承自 `SlimeEntity` 并重写了多个虚函数：
+
+```cpp
+class MagmaCubeEntity : public SlimeEntity {
+public:
+    // 重写跳跃延迟（岩浆怪是史莱姆的4倍）
+    i32 getJumpDelay() const override {
+        return SlimeEntity::getJumpDelay() * 4;
+    }
+    
+    // 重写挤压动画衰减（更慢）
+    void alterSquishAmount() override {
+        setSquishAmount(squishAmount() * 0.9f);  // 史莱姆为 0.6
+    }
+    
+    // 重写粒子类型（火焰粒子）
+    ParticleTypeId getSquishParticle() const override {
+        return ParticleTypeId::Flame;
+    }
+    
+    // 重写伤害判断（小型也能伤害玩家）
+    bool canDamagePlayer() const override {
+        return world() != nullptr && !world()->isClientSide();
+    }
+};
+```
+
 **尺寸与属性对应**（MC 1.16.5）：
 
 | 尺寸 | 生命值 | 移动速度 | 攻击伤害 | 经验值 |
