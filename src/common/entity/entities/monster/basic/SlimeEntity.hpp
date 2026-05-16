@@ -26,6 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../MonsterEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <memory>
 #include <optional>
 
@@ -104,13 +105,22 @@ public:
      * @brief 获取挤压声音
      * MC 1.16.5: 着地时播放
      */
-    [[nodiscard]] std::optional<ResourceLocation> getSquishSound() const;
+    [[nodiscard]] virtual std::optional<ResourceLocation> getSquishSound() const;
 
     /**
      * @brief 获取跳跃声音
      * MC 1.16.5: 跳跃时播放
      */
-    [[nodiscard]] std::optional<ResourceLocation> getJumpSound() const;
+    [[nodiscard]] virtual std::optional<ResourceLocation> getJumpSound() const;
+
+    // ========== 粒子 ==========
+
+    /**
+     * @brief 获取着地粒子类型
+     * MC 1.16.5: 子类可重写返回不同粒子类型
+     * 史莱姆返回 ITEM_SLIME，岩浆怪返回 FLAME
+     */
+    [[nodiscard]] virtual client::renderer::trident::particle::ParticleTypeId getSquishParticle() const;
 
     // ========== 尺寸系统 ==========
 
@@ -125,7 +135,7 @@ public:
      * @param size 尺寸（1-4）
      * @param resetHealth 是否重置生命值
      */
-    void setSlimeSize(i32 size, bool resetHealth = true);
+    virtual void setSlimeSize(i32 size, bool resetHealth = true);
 
     /**
      * @brief 是否是小史莱姆
@@ -137,7 +147,7 @@ public:
      * @brief 是否可以对玩家造成伤害
      * MC 1.16.5: canDamagePlayer() - !isSmallSlime() && isServerWorld()
      */
-    [[nodiscard]] bool canDamagePlayer() const;
+    [[nodiscard]] virtual bool canDamagePlayer() const;
 
     // ========== 挤压动画 ==========
 
@@ -145,6 +155,12 @@ public:
      * @brief 获取挤压量
      */
     [[nodiscard]] f32 squishAmount() const { return m_squishAmount; }
+
+    /**
+     * @brief 设置挤压量
+     * @brief 供子类使用（如岩浆怪）
+     */
+    void setSquishAmount(f32 amount) { m_squishAmount = amount; }
 
     /**
      * @brief 获取挤压因子
@@ -162,7 +178,7 @@ public:
      * @brief 获取跳跃延迟
      * MC 1.16.5: getJumpDelay() - random 10-30 ticks
      */
-    [[nodiscard]] i32 getJumpDelay() const;
+    [[nodiscard]] virtual i32 getJumpDelay() const;
 
     /**
      * @brief 跳跃时是否发出声音
@@ -276,8 +292,9 @@ protected:
     /**
      * @brief 更新挤压量
      * MC 1.16.5: alterSquishAmount()
+     * 子类可重写以改变衰减速率
      */
-    void alterSquishAmount();
+    virtual void alterSquishAmount();
 
 private:
     // 尺寸

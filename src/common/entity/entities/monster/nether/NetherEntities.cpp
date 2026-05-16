@@ -28,6 +28,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../../ai/controller/GhastMovementController.hpp"
 #include "../../../ai/goal/goals/special/GhastGoals.hpp"
@@ -183,28 +184,103 @@ std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world)
 }
 
 MagmaCubeEntity::MagmaCubeEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
-{}
-
-void MagmaCubeEntity::setSize(i32 size)
+    : SlimeEntity(type, id)
 {
-    m_size = size;
-    // TODO: 更新碰撞箱和属性
+    // MC 1.16.5: 岩浆怪不在阳光下燃烧
+    setBurnsInDaylight(false);
 }
 
-void MagmaCubeEntity::registerGoals()
+void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
 {
-    MonsterEntity::registerGoals();
-    // TODO: 添加岩浆怪特有AI
+    // MC 1.16.5 MagmaCubeEntity.setSlimeSize()
+    // 调用父类设置尺寸
+    SlimeEntity::setSlimeSize(size, resetHealth);
+
+    // MC 1.16.5: 设置护甲属性 = size * 3
+    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
+}
+
+bool MagmaCubeEntity::canDamagePlayer() const
+{
+    // MC 1.16.5: 小型岩浆怪也能伤害玩家（与史莱姆不同）
+    // 原版: return this.isServerWorld();
+    // 注意：isClientSide() 不是 const 方法，需要使用 const_cast
+    auto* nonConstWorld = const_cast<IWorld*>(world());
+    return nonConstWorld != nullptr && !nonConstWorld->isClientSide();
+}
+
+f32 MagmaCubeEntity::getAttackDamage() const
+{
+    // MC 1.16.5: 攻击伤害 = 属性值 + 2.0F
+    f32 baseDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
+    return baseDamage + 2.0f;
+}
+
+i32 MagmaCubeEntity::getJumpDelay() const
+{
+    // MC 1.16.5: 跳跃延迟是史莱姆的 4 倍
+    // 史莱姆: 10-30 tick, 岩浆怪: 40-120 tick
+    return SlimeEntity::getJumpDelay() * 4;
+}
+
+std::optional<ResourceLocation> MagmaCubeEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    // MC 1.16.5: 小岩浆怪用 hurt_small，大岩浆怪用 hurt
+    if (isSmallSlime()) {
+        return SoundEvents::ENTITY_MAGMA_CUBE_HURT_SMALL;
+    }
+    return SoundEvents::ENTITY_MAGMA_CUBE_HURT;
+}
+
+std::optional<ResourceLocation> MagmaCubeEntity::getDeathSound() const
+{
+    // MC 1.16.5: 小岩浆怪用 death_small，大岩浆怪用 death
+    if (isSmallSlime()) {
+        return SoundEvents::ENTITY_MAGMA_CUBE_DEATH_SMALL;
+    }
+    return SoundEvents::ENTITY_MAGMA_CUBE_DEATH;
+}
+
+std::optional<ResourceLocation> MagmaCubeEntity::getSquishSound() const
+{
+    // MC 1.16.5: 小岩浆怪用 squish_small，大岩浆怪用 squish
+    if (isSmallSlime()) {
+        return SoundEvents::ENTITY_MAGMA_CUBE_SQUISH_SMALL;
+    }
+    return SoundEvents::ENTITY_MAGMA_CUBE_SQUISH;
+}
+
+std::optional<ResourceLocation> MagmaCubeEntity::getJumpSound() const
+{
+    // MC 1.16.5: 岩浆怪跳跃音效
+    return SoundEvents::ENTITY_MAGMA_CUBE_JUMP;
+}
+
+client::renderer::trident::particle::ParticleTypeId MagmaCubeEntity::getSquishParticle() const
+{
+    // MC 1.16.5: 岩浆怪使用火焰粒子代替史莱姆粒子
+    return client::renderer::trident::particle::ParticleTypeId::Flame;
 }
 
 void MagmaCubeEntity::registerAttributes()
 {
-    MonsterEntity::registerAttributes();
+    SlimeEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+    // MC 1.16.5 MagmaCubeEntity: 移动速度固定为 0.2（不随尺寸变化）
+    // 注意：父类 SlimeEntity::registerAttributes() 会设置尺寸相关属性
+    // 这里需要确保护甲属性已注册
+    m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
+
+    // 初始尺寸为1，护甲为3
+    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 3.0);
+}
+
+void MagmaCubeEntity::alterSquishAmount()
+{
+    // MC 1.16.5: 挤压动画衰减更慢（0.9 vs 0.6）
+    // 史莱姆: squishAmount *= 0.6F
+    // 岩浆怪: squishAmount *= 0.9F
+    setSquishAmount(squishAmount() * 0.9f);
 }
 
 // AbstractPiglinEntity
