@@ -522,6 +522,9 @@ private:
     void validateSelector(const EntitySelector& selector, i32 start);
 
     [[nodiscard]] static std::string readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static std::string readScoresKey(StringReader& reader);
+    [[nodiscard]] static std::string readAdvancementKey(StringReader& reader);
+    [[nodiscard]] static std::string readCriteriaKey(StringReader& reader);
     [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
     [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
     [[nodiscard]] IntRange parseIntRange(StringReader& reader);

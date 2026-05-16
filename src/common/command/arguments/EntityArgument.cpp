@@ -367,8 +367,8 @@ void EntityArgumentType::applySelectorArgument(
         while (valueReader.canRead() && valueReader.peek() != '}') {
             valueReader.skipWhitespace();
 
-            // 读取目标名称
-            const std::string objectiveName = valueReader.readUnquotedString();
+            // 读取目标名称（遇到 = 时停止）
+            const std::string objectiveName = readScoresKey(valueReader);
             if (objectiveName.empty()) {
                 throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected objective name", cursor);
             }
@@ -418,7 +418,8 @@ void EntityArgumentType::applySelectorArgument(
 
             // 读取进度 ID (ResourceLocation)
             // ResourceLocation 格式: namespace:path 或 path（默认 minecraft 命名空间）
-            std::string advancementIdStr = valueReader.readUnquotedString();
+            // 遇到 = 时停止
+            const std::string advancementIdStr = readAdvancementKey(valueReader);
             ResourceLocation advancementId = ResourceLocation::parse(advancementIdStr);
 
             valueReader.skipWhitespace();
@@ -439,8 +440,8 @@ void EntityArgumentType::applySelectorArgument(
                 while (valueReader.canRead() && valueReader.peek() != '}') {
                     valueReader.skipWhitespace();
 
-                    // 读取准则名称
-                    const std::string criteriaName = valueReader.readUnquotedString();
+                    // 读取准则名称（遇到 = 时停止）
+                    const std::string criteriaName = readCriteriaKey(valueReader);
                     if (criteriaName.empty()) {
                         throw CommandException(
                             CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
@@ -454,15 +455,13 @@ void EntityArgumentType::applySelectorArgument(
                     valueReader.skip(); // skip '='
                     valueReader.skipWhitespace();
 
-                    // 读取布尔值
+                    // 读取布尔值（读取直到遇到 , 或 } 为止）
                     if (valueReader.canRead()) {
-                        const char ch = valueReader.peek();
-                        if (ch == 't' || ch == 'T') {
+                        std::string boolValue = readCriteriaKey(valueReader);
+                        if (boolValue == "true" || boolValue == "TRUE" || boolValue == "True") {
                             condition.criteriaConditions[criteriaName] = true;
-                            (void)valueReader.readString(); // consume "true"
-                        } else if (ch == 'f' || ch == 'F') {
+                        } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                             condition.criteriaConditions[criteriaName] = false;
-                            (void)valueReader.readString(); // consume "false"
                         } else {
                             throw CommandException(
                                 CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
@@ -483,14 +482,13 @@ void EntityArgumentType::applySelectorArgument(
                 valueReader.skip(); // skip '}'
             } else {
                 // 布尔值格式：true/false
+                // 读取直到遇到 , 或 } 为止
                 if (valueReader.canRead()) {
-                    const char ch = valueReader.peek();
-                    if (ch == 't' || ch == 'T') {
+                    std::string boolValue = readCriteriaKey(valueReader); // 复用：读取直到 = 或 , 或 }
+                    if (boolValue == "true" || boolValue == "TRUE" || boolValue == "True") {
                         condition.isComplete = true;
-                        (void)valueReader.readString(); // consume "true"
-                    } else if (ch == 'f' || ch == 'F') {
+                    } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                         condition.isComplete = false;
-                        (void)valueReader.readString(); // consume "false"
                     } else {
                         throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
                     }
@@ -588,6 +586,60 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
+std::string EntityArgumentType::readScoresKey(StringReader& reader)
+{
+    // 读取 scores 的目标名称，遇到 = 时停止
+    // 目标名称格式：简单字符串（不含空格、等号、逗号、大括号）
+    const i32 start = reader.getCursor();
+    while (reader.canRead()) {
+        const char ch = reader.peek();
+        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == '}' || ch == '{') {
+            break;
+        }
+        reader.skip();
+    }
+
+    const size_t startIndex = static_cast<size_t>(start);
+    const size_t endIndex = static_cast<size_t>(reader.getCursor());
+    return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
+}
+
+std::string EntityArgumentType::readAdvancementKey(StringReader& reader)
+{
+    // 读取进度 ID (ResourceLocation)，遇到 = 时停止
+    // ResourceLocation 格式：namespace:path 或 path（允许冒号）
+    const i32 start = reader.getCursor();
+    while (reader.canRead()) {
+        const char ch = reader.peek();
+        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == '}' || ch == '{') {
+            break;
+        }
+        reader.skip();
+    }
+
+    const size_t startIndex = static_cast<size_t>(start);
+    const size_t endIndex = static_cast<size_t>(reader.getCursor());
+    return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
+}
+
+std::string EntityArgumentType::readCriteriaKey(StringReader& reader)
+{
+    // 读取进度准则名称，遇到 = 时停止
+    // 准则名称格式：简单字符串（允许冒号用于命名空间）
+    const i32 start = reader.getCursor();
+    while (reader.canRead()) {
+        const char ch = reader.peek();
+        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == '}' || ch == '{') {
+            break;
+        }
+        reader.skip();
+    }
+
+    const size_t startIndex = static_cast<size_t>(start);
+    const size_t endIndex = static_cast<size_t>(reader.getCursor());
+    return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
+}
+
 bool EntityArgumentType::shouldInvertValue(StringReader& reader)
 {
     if (reader.canRead() && reader.peek() == '!') {
@@ -666,7 +718,7 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
         if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
             reader.skip(); // skip first '.'
             reader.skip(); // skip second '.'
-            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
+            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
                 maxValue = reader.readFloat();
                 hasMax = true;
             }
@@ -698,7 +750,10 @@ IntRange EntityArgumentType::parseIntRange(StringReader& reader)
         reader.skip(); // skip first '.'
         reader.skip(); // skip second '.'
         hasMax = true;
-        maxValue = reader.readInt();
+        // 读取最大值，检查是否还有内容
+        if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
+            maxValue = reader.readInt();
+        }
     } else {
         // 读取最小值
         minValue = reader.readInt();
@@ -708,7 +763,7 @@ IntRange EntityArgumentType::parseIntRange(StringReader& reader)
         if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
             reader.skip(); // skip first '.'
             reader.skip(); // skip second '.'
-            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
+            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
                 maxValue = reader.readInt();
                 hasMax = true;
             }

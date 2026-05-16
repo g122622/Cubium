@@ -37,6 +37,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 using mc::command::CommandException;
 using mc::command::EntityArgumentType;
@@ -46,6 +47,7 @@ using mc::command::EntitySelectorType;
 using mc::command::FloatRange;
 using mc::command::IntRange;
 using mc::command::StringReader;
+using mc::ResourceLocation;
 
 // ========== FloatRange 测试 ==========
 
@@ -706,8 +708,56 @@ protected:
     std::shared_ptr<EntityArgumentType> playersArg = EntityArgumentType::players();
 };
 
-// 注意：scores 参数解析当前存在问题，需要进一步修复
-// 以下测试用例暂时禁用
+TEST_F(EntityArgumentScoresParseTest, ParseSingleScore)
+{
+    StringReader reader("@a[scores={deaths=5}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    auto conditions = selector.scoreConditions();
+    ASSERT_EQ(conditions.size(), 1);
+    EXPECT_EQ(conditions.count("deaths"), 1);
+    EXPECT_TRUE(conditions.at("deaths").hasMin());
+    EXPECT_TRUE(conditions.at("deaths").hasMax());
+    EXPECT_EQ(conditions.at("deaths").getMin(), 5);
+    EXPECT_EQ(conditions.at("deaths").getMax(), 5);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ParseScoreRange)
+{
+    StringReader reader("@a[scores={deaths=1..10}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    auto conditions = selector.scoreConditions();
+    ASSERT_EQ(conditions.size(), 1);
+    EXPECT_EQ(conditions.count("deaths"), 1);
+    EXPECT_TRUE(conditions.at("deaths").hasMin());
+    EXPECT_TRUE(conditions.at("deaths").hasMax());
+    EXPECT_EQ(conditions.at("deaths").getMin(), 1);
+    EXPECT_EQ(conditions.at("deaths").getMax(), 10);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ParseMultipleScores)
+{
+    StringReader reader("@a[scores={deaths=1..5,kills=10..}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    auto conditions = selector.scoreConditions();
+    ASSERT_EQ(conditions.size(), 2);
+    EXPECT_EQ(conditions.count("deaths"), 1);
+    EXPECT_EQ(conditions.count("kills"), 1);
+    EXPECT_EQ(conditions.at("deaths").getMin(), 1);
+    EXPECT_EQ(conditions.at("deaths").getMax(), 5);
+    EXPECT_TRUE(conditions.at("kills").hasMin());
+    EXPECT_FALSE(conditions.at("kills").hasMax());
+    EXPECT_EQ(conditions.at("kills").getMin(), 10);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ScoresSetsIncludesNonPlayersToFalse)
+{
+    StringReader reader("@e[scores={deaths=5}]");
+    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    EXPECT_FALSE(selector.includesNonPlayers());
+}
 
 // ========== advancements 参数解析测试 ==========
 
@@ -716,8 +766,85 @@ protected:
     std::shared_ptr<EntityArgumentType> playersArg = EntityArgumentType::players();
 };
 
-// 注意：advancements 参数解析当前存在问题，需要进一步修复
-// 以下测试用例暂时禁用
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementComplete)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=true}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    auto conditions = selector.advancementConditions();
+    ASSERT_EQ(conditions.size(), 1);
+
+    auto it = conditions.find(ResourceLocation("minecraft", "story/root"));
+    ASSERT_NE(it, conditions.end());
+    EXPECT_TRUE(it->second.isComplete.has_value());
+    EXPECT_TRUE(it->second.isComplete.value());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementNotComplete)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=false}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    auto conditions = selector.advancementConditions();
+    ASSERT_EQ(conditions.size(), 1);
+
+    auto it = conditions.find(ResourceLocation("minecraft", "story/root"));
+    ASSERT_NE(it, conditions.end());
+    EXPECT_TRUE(it->second.isComplete.has_value());
+    EXPECT_FALSE(it->second.isComplete.value());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithCriteria)
+{
+    StringReader reader("@a[advancements={minecraft:story/mine_stone={got_stone=true}}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    auto conditions = selector.advancementConditions();
+    ASSERT_EQ(conditions.size(), 1);
+
+    auto it = conditions.find(ResourceLocation("minecraft", "story/mine_stone"));
+    ASSERT_NE(it, conditions.end());
+    EXPECT_FALSE(it->second.isComplete.has_value());
+    ASSERT_EQ(it->second.criteriaConditions.size(), 1);
+    EXPECT_EQ(it->second.criteriaConditions.count("got_stone"), 1);
+    EXPECT_TRUE(it->second.criteriaConditions.at("got_stone"));
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseMultipleAdvancements)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=true,minecraft:story/mine_stone=false}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    auto conditions = selector.advancementConditions();
+    ASSERT_EQ(conditions.size(), 2);
+
+    auto it1 = conditions.find(ResourceLocation("minecraft", "story/root"));
+    ASSERT_NE(it1, conditions.end());
+    EXPECT_TRUE(it1->second.isComplete.value());
+
+    auto it2 = conditions.find(ResourceLocation("minecraft", "story/mine_stone"));
+    ASSERT_NE(it2, conditions.end());
+    EXPECT_FALSE(it2->second.isComplete.value());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, AdvancementsSetsIncludesNonPlayersToFalse)
+{
+    StringReader reader("@e[advancements={minecraft:story/root=true}]");
+    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    EXPECT_FALSE(selector.includesNonPlayers());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithoutNamespace)
+{
+    StringReader reader("@a[advancements={story/root=true}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    auto conditions = selector.advancementConditions();
+    ASSERT_EQ(conditions.size(), 1);
+
+    auto it = conditions.find(ResourceLocation("minecraft", "story/root"));
+    ASSERT_NE(it, conditions.end());
+}
 
 // ========== predicate 参数解析测试 ==========
 
