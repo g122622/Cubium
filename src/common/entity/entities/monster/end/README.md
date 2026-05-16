@@ -115,6 +115,7 @@ bool isLooking = dotProduct > threshold;
 | ANGER_DURATION | 600 | 愤怒持续时间 (ticks, 30秒) |
 | TELEPORT_RANGE | 64.0 | 瞬移范围 |
 | WATER_DAMAGE | 1.0 | 水伤害值 |
+| TELEPORT_PROJECTILE_ATTEMPTS | 64 | 投射物伤害时瞬移尝试次数 |
 
 ## 属性
 
@@ -154,6 +155,8 @@ enderman->teleport();
 ## 测试用例
 
 - [tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp)
+- [tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp)
+- [tests/entity/EndermanHurtTeleportTest.cpp](../../../../../../../tests/entity/EndermanHurtTeleportTest.cpp)
 - `PlayerLookVectorTest` - 视线方向向量计算测试
 - `PlayerEyePositionTest` - 眼睛位置测试
 - `PlayerPumpkinTest` - 南瓜头检测测试
@@ -163,6 +166,7 @@ enderman->teleport();
 - `EndermanShouldAttackPlayerTest` - 激怒条件测试
 - `EndermanConstantsTest` - 常量验证测试
 - `LookVectorPrecisionTest` - 精度测试
+- `EndermanHurtTeleportTest` - 受伤后瞬移逻辑测试
 
 ## 近期补全
 
@@ -175,3 +179,83 @@ enderman->teleport();
   - `EndermanStareGoal` - 注视玩家目标
   - `EndermanFindPlayerGoal` - 查找注视玩家目标选择器
   - 参考 MC 1.16.5 `EndermanEntity.shouldAttackPlayer()` 和 `Entity.getLook()`
+
+- **已实现受伤后瞬移逻辑**（2026-05-16）：
+  - 投射物伤害处理：尝试64次随机瞬移，成功则躲避伤害不受伤
+  - 非生物伤害处理：正常受伤后90%概率随机瞬移
+  - 使用 `DamageSource::isProjectile()` 检测投射物伤害
+  - 使用 `source.getTrueSource()` + `dynamic_cast<LivingEntity*>` 检测生物来源
+  - 参考 MC 1.16.5 `EndermanEntity.attackEntityFrom()`
+
+## 受伤后瞬移逻辑 (MC 1.16.5)
+
+### 伤害类型检测
+
+末影人对不同类型的伤害有不同的反应：
+
+1. **无敌状态**: 首先检查 `isInvulnerableTo(source)`
+
+2. **投射物伤害**: 使用 `source.isProjectile()` 检测
+   - 箭矢 (Arrow)
+   - 三叉戟 (Trident)
+   - 生物投射物 (MobProjectile)
+   - 火球 (Fireball)
+
+3. **非生物伤害**: 通过 `source.getTrueSource()` 检测
+   - 摔落伤害
+   - 窒息伤害
+   - 岩浆伤害
+   - 火焰伤害
+   - 溺水伤害
+   - 虚空伤害
+
+### 瞬移概率
+
+| 伤害类型 | 行为 | 瞬移概率 |
+|---------|------|---------|
+| 投射物 | 尝试瞬移躲避 | 100%（最多64次尝试） |
+| 非生物伤害 | 受伤后瞬移 | 90% |
+| 生物伤害 | 受伤后不瞬移 | 0% |
+
+### 实现代码
+
+```cpp
+bool EndermanEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 检查无敌状态
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // 投射物伤害：尝试64次随机瞬移
+    if (source.isProjectile()) {
+        for (i32 i = 0; i < TELEPORT_PROJECTILE_ATTEMPTS; ++i) {
+            if (teleport()) {
+                return true; // 成功瞬移后不受伤
+            }
+        }
+        return false; // 64次都失败，不受伤
+    }
+
+    // 调用父类处理实际伤害
+    bool hurtResult = MonsterEntity::hurt(source, amount);
+
+    if (hurtResult) {
+        // 非生物伤害：90%概率瞬移
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            Entity* trueSource = source.getTrueSource();
+            bool isLivingSource = (trueSource != nullptr && 
+                dynamic_cast<LivingEntity*>(trueSource) != nullptr);
+
+            if (!isLivingSource) {
+                math::Random rng = getRandom();
+                if (rng.nextInt(10) != 0) {  // 90%概率
+                    teleport();
+                }
+            }
+        }
+    }
+
+    return hurtResult;
+}
+```

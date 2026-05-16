@@ -204,8 +204,85 @@ Entity
 ### end/ - 末地生物
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
-| EndermanEntity | 末影人 | 瞬移、搬方块、水伤 | ⏳ 框架完成 |
+| EndermanEntity | 末影人 | 瞬移、搬方块、水伤 | ✅ 完整实现 |
 | ShulkerEntity | 潜影贝 | 贝壳防御、悬浮攻击、瞬移 | ✅ 完整实现 |
+
+#### 末影人 (EndermanEntity) 详细实现
+
+末影人是生活在末地和中立型生物，具有瞬移和搬方块的能力。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 0.6f / 2.9f |
+| 最大生命值 | 40.0 (20颗心) |
+| 移动速度 | 0.3 |
+| 攻击伤害 | 7.0 |
+| 跟随范围 | 64.0 |
+| 步进高度 | 1.0f (可走上1格高方块) |
+
+**瞬移系统** (MC 1.16.5):
+
+| 方法 | 说明 | 范围 |
+|------|------|------|
+| `teleport()` | 随机瞬移 | 64格 |
+| `teleportToTarget()` | 向目标瞬移 | 远离目标16格 |
+| `teleportAwayFromWater()` | 避开水瞬移 | 最多尝试10次 |
+
+**受伤后瞬移逻辑** (MC 1.16.5 EndermanEntity.attackEntityFrom):
+
+1. **无敌状态检查**: 首先检查 `isInvulnerableTo(source)`
+
+2. **投射物伤害处理**:
+   - 使用 `source.isProjectile()` 检测投射物伤害
+   - 尝试最多 64 次随机瞬移
+   - 成功瞬移后返回 `true`（不受伤）
+   - 64 次都失败返回 `false`（不受伤）
+
+3. **非投射物伤害处理**:
+   - 调用父类 `MonsterEntity::hurt()` 处理实际伤害
+   - 检查是否在服务端（`!m_world->isClientSide()`）
+   - 使用 `source.getTrueSource()` 获取真正伤害来源
+   - 使用 `dynamic_cast<LivingEntity*>` 检测生物来源
+   - 非生物伤害（摔落、窒息、岩浆等）90% 概率随机瞬移
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `TELEPORT_COOLDOWN` | 50 | 瞬移冷却 (ticks) |
+| `TELEPORT_RANGE` | 64.0f | 瞬移范围 |
+| `TELEPORT_PROJECTILE_ATTEMPTS` | 64 | 投射物伤害时瞬移尝试次数 |
+| `ANGER_DURATION` | 600 | 愤怒持续时间 (ticks) |
+| `WATER_DAMAGE` | 1.0f | 水/雨伤害 |
+
+**水/雨伤害**:
+- 在水中或雨中每 tick 受到 1.0 伤害
+- 受伤后尝试瞬移避开水
+
+**注视检测** (MC 1.16.5):
+- `Player::getLookVector()`: 根据 yaw/pitch 计算视线方向
+- `Player::getEyePosition()`: 获取玩家眼睛位置
+- `Player::isWearingPumpkin()`: 检查玩家是否戴着南瓜头
+- `Player::isLookingAt()`: 检查玩家是否正在注视目标实体
+- `EndermanEntity::shouldAttackPlayer()`: 综合判断玩家是否应该激怒末影人
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | EndermanStareGoal | 注视玩家目标 |
+| 2 | MeleeAttackGoal | 近战攻击 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+| 10 | EndermanPlaceBlockGoal | 放置方块 |
+| 11 | EndermanTakeBlockGoal | 拾取方块 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | EndermanFindPlayerGoal | 查找注视玩家 |
+| 2 | HurtByTargetGoal | 被攻击反击 |
+
+**参考**: MC 1.16.5 EndermanEntity
 
 #### 潜影贝 (ShulkerEntity) 详细实现
 
