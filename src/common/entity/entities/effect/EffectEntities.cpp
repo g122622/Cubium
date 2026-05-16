@@ -256,8 +256,10 @@ void LightningBoltEntity::tick()
         }
 
         // MC 1.16.5: 客户端设置闪电闪烁效果
-        // world.setTimeLightningFlash(2) - 需要在 ClientWorld 中实现
-        // TODO: 实现客户端闪电闪烁效果
+        // world.setTimeLightningFlash(2)
+        if (m_world != nullptr && m_world->isClientSide()) {
+            m_world->setTimeLightningFlash(2);
+        }
     }
 
     // MC 1.16.5: 递减 lightningState

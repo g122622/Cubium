@@ -222,11 +222,66 @@ public:
         return 15;
     }
 
+    // ========== 闪电闪烁效果 ==========
+
+    /**
+     * @brief 设置闪电闪烁时间
+     *
+     * 当闪电击中时，客户端需要知道以便产生天空闪烁效果。
+     * MC 1.16.5: World.setTimeLightningFlash(int timeFlashIn)
+     *
+     * @param time 闪烁时间（ticks），通常为 2
+     */
+    void setTimeLightningFlash(i32 time) { m_lightningFlashTime = time; }
+
+    /**
+     * @brief 获取当前闪电闪烁时间
+     *
+     * @return 当前闪烁时间（ticks），0表示无闪烁
+     */
+    [[nodiscard]] i32 lightningFlashTime() const { return m_lightningFlashTime; }
+
+    /**
+     * @brief 检查是否有闪电闪烁效果
+     *
+     * @return 如果有闪烁效果返回 true
+     */
+    [[nodiscard]] bool hasLightningFlash() const { return m_lightningFlashTime > 0; }
+
+    /**
+     * @brief 每 tick 更新闪电闪烁时间
+     *
+     * 当闪电闪烁时间 > 0 时递减。
+     * MC 1.16.5: Minecraft.runTick() 中调用 world.setTimeLightningFlash(time - 1)
+     */
+    void tickLightningFlash()
+    {
+        if (m_lightningFlashTime > 0) {
+            --m_lightningFlashTime;
+        }
+    }
+
+    /**
+     * @brief 计算闪电闪烁亮度因子
+     *
+     * 当闪电闪烁时，返回一个 0-1 的因子用于增强天空亮度。
+     * MC 1.16.5: 在 WorldRenderer.renderSky() 中使用
+     *
+     * @return 亮度增强因子 (0.0 = 无效果, 1.0 = 最大闪烁)
+     */
+    [[nodiscard]] f32 lightningFlashBrightness() const
+    {
+        // 闪电闪烁时，天空会短暂变亮
+        // 简单实现：有闪烁时返回 1.0
+        return m_lightningFlashTime > 0 ? 1.0f : 0.0f;
+    }
+
 private:
     f32 m_rainStrength = 0.0f;
     f32 m_prevRainStrength = 0.0f;
     f32 m_thunderStrength = 0.0f;
     f32 m_prevThunderStrength = 0.0f;
+    i32 m_lightningFlashTime = 0; ///< 闪电闪烁剩余时间（ticks）
 };
 
 } // namespace client

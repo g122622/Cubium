@@ -1001,8 +1001,30 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
 void SkyRenderer::updateUniformBuffer(u32 frameIndex)
 {
     SkyUBO ubo = {};
-    ubo.skyColor = m_skyColor;
+
+    // MC 1.16.5: 闪电闪烁时天空变亮
+    // 当 lightningFlashBrightness > 0 时，天空颜色向白色混合
+    glm::vec4 finalSkyColor = m_skyColor;
+    if (m_lightningFlashBrightness > 0.0) {
+        // 闪电闪烁时，天空颜色向白色混合
+        // 参考 MC 1.16.5 WorldRenderer.renderSky():
+        // float flash = world.getTimeLightningFlash() / 2.0F;
+        // skyColor = skyColor * (1.0F - flash) + vec3(1.0F) * flash;
+        f64 flashFactor = glm::clamp(m_lightningFlashBrightness, 0.0, 1.0);
+        finalSkyColor = glm::mix(finalSkyColor, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), static_cast<f32>(flashFactor));
+    }
+
+    ubo.skyColor = finalSkyColor;
     ubo.fogColor = m_fogColor;
+
+    // 闪电闪烁时雾颜色也变亮
+    glm::vec4 finalFogColor = m_fogColor;
+    if (m_lightningFlashBrightness > 0.0) {
+        f64 flashFactor = glm::clamp(m_lightningFlashBrightness, 0.0, 1.0);
+        finalFogColor = glm::mix(finalFogColor, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), static_cast<f32>(flashFactor));
+    }
+    ubo.fogColor = finalFogColor;
+
     ubo.sunriseColor = m_sunriseSunsetColor;
     ubo.sunriseDirection = glm::vec4(m_sunriseDirection, 0.0f);
 

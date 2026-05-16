@@ -179,6 +179,23 @@ public:
     [[nodiscard]] ClientWeather& weather() { return m_weather; }
     [[nodiscard]] const ClientWeather& weather() const { return m_weather; }
 
+    // ========== 闪电闪烁效果 ==========
+
+    /**
+     * @brief 设置闪电闪烁时间
+     *
+     * 当闪电击中时调用，产生天空闪烁效果。
+     * 参考 MC 1.16.5 World.setTimeLightningFlash()
+     *
+     * @param time 闪烁时间（ticks），通常为 2
+     */
+    void setTimeLightningFlash(i32 time) { m_weather.setTimeLightningFlash(time); }
+
+    /**
+     * @brief 获取当前闪电闪烁时间
+     */
+    [[nodiscard]] i32 lightningFlashTime() const { return m_weather.lightningFlashTime(); }
+
     // ========== 粒子管理 ==========
 
     /**

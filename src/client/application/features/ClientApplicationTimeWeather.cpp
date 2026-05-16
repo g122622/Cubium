@@ -47,6 +47,10 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
         m_renderTickAccumulator -= 1.0f;
         ++m_renderGameTime;
         m_renderDayTime = (m_renderDayTime + 1) % DAY_LENGTH_TICKS;
+
+        // MC 1.16.5: 在游戏 tick 中递减闪电闪烁时间
+        // 参考 Minecraft.runTick(): world.setTimeLightningFlash(time - 1)
+        m_world.weather().tickLightningFlash();
     }
 
     // 当有服务端同步时，逐渐纠正到服务端时间（避免跳变）
@@ -81,6 +85,10 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
     // 更新天气状态到渲染器
     m_renderer->updateWeather(m_world.weather().rainStrength(m_renderTickAccumulator),
         m_world.weather().thunderStrength(m_renderTickAccumulator));
+
+    // 更新闪电闪烁亮度到渲染器
+    // 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理
+    m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
 
     // 更新云高度（根据当前维度）
     // 参考 MC 1.16.5: WorldRenderer.renderClouds() 从 DimensionRenderInfo 获取云高度

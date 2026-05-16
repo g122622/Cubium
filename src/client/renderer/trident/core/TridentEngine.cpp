@@ -1161,6 +1161,13 @@ void TridentEngine::updateWeather(f64 rainStrength, f64 thunderStrength)
     m_thunderStrength = thunderStrength;
 }
 
+void TridentEngine::setLightningFlashBrightness(f64 brightness)
+{
+    if (m_skyRendererInitialized && m_skyRendererPtr) {
+        m_skyRendererPtr->setLightningFlashBrightness(brightness);
+    }
+}
+
 Result<void> TridentEngine::setVSyncEnabled(bool enabled)
 {
     if (m_config.enableVSync == enabled) {

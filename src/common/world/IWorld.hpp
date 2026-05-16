@@ -839,6 +839,31 @@ public:
         return false;
     }
 
+    // ========== 闪电闪烁效果 ==========
+
+    /**
+     * @brief 设置闪电闪烁时间
+     *
+     * 当闪电击中时调用，产生天空闪烁效果。
+     * 参考 MC 1.16.5 World.setTimeLightningFlash()
+     *
+     * 注意：只有客户端世界需要实现此方法。
+     *
+     * @param time 闪烁时间（ticks），通常为 2
+     */
+    virtual void setTimeLightningFlash(i32 time)
+    {
+        (void)time;
+        // 默认实现：无操作（服务端世界不需要实现）
+    }
+
+    /**
+     * @brief 获取当前闪电闪烁时间
+     *
+     * @return 当前闪烁时间（ticks），0表示无闪烁
+     */
+    [[nodiscard]] virtual i32 lightningFlashTime() const { return 0; }
+
     /**
      * @brief 检查碰撞箱是否无碰撞
      *

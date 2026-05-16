@@ -291,6 +291,16 @@ public:
     void updateWeather(f64 rainStrength, f64 thunderStrength);
 
     /**
+     * @brief 设置闪电闪烁亮度
+     *
+     * 当闪电击中时，天空会短暂变亮。
+     * 参考 MC 1.16.5 WorldRenderer.renderSky() 中的闪电闪烁效果。
+     *
+     * @param brightness 闪电闪烁亮度 (0.0-1.0)，0表示无效果
+     */
+    void setLightningFlashBrightness(f64 brightness);
+
+    /**
      * @brief 运行时切换 VSync（会触发交换链重建）
      */
     [[nodiscard]] Result<void> setVSyncEnabled(bool enabled);

@@ -109,6 +109,16 @@ public:
     void update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     /**
+     * @brief 设置闪电闪烁亮度
+     *
+     * 当闪电击中时，天空会短暂变亮。
+     * 参考 MC 1.16.5 WorldRenderer.renderSky() 中的闪电闪烁效果。
+     *
+     * @param brightness 闪电闪烁亮度 (0.0-1.0)，0表示无效果
+     */
+    void setLightningFlashBrightness(f64 brightness) { m_lightningFlashBrightness = brightness; }
+
+    /**
      * @brief 渲染天空
      * @param cmd 命令缓冲区
      * @param projection 相机投影矩阵
@@ -307,6 +317,7 @@ private:
     f64 m_sunIntensity = 1.0f;
     f64 m_rainStrength = 0.0f;
     f64 m_thunderStrength = 0.0f;
+    f64 m_lightningFlashBrightness = 0.0f; ///< 闪电闪烁亮度 (0.0-1.0)
 };
 
 } // namespace mc::client::renderer::trident::sky
