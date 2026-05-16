@@ -592,6 +592,13 @@ public:
      */
     [[nodiscard]] i32 getExplosionCount() const;
 
+    /**
+     * @brief 检查视线是否被方块阻挡
+     * @param target 目标实体
+     * @return 如果视线未被阻挡返回 true
+     */
+    [[nodiscard]] bool canSeeEntity(const Entity& target) const;
+
 private:
     /**
      * @brief 爆炸
@@ -605,13 +612,6 @@ private:
      * 伤害计算：5 + 爆炸效果数量 * 2，根据距离衰减。
      */
     void dealExplosionDamage();
-
-    /**
-     * @brief 检查视线是否被方块阻挡
-     * @param target 目标实体
-     * @return 如果视线未被阻挡返回 true
-     */
-    [[nodiscard]] bool canSeeEntity(const Entity& target) const;
 
     ItemStack m_fireworkItem;        // 烟花火箭物品
     i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）

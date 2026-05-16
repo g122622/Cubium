@@ -112,7 +112,48 @@ Entity (core/Entity.hpp)
 | ShulkerBulletEntity | 潜影贝跟踪攻击 | ✅ 完整实现 |
 | EvokerFangsEntity | 唤魔者召唤尖牙 | ✅ 完整实现 |
 | EyeOfEnderEntity | 寻找要塞 | ⏳ 框架完成 |
-| FireworkRocketEntity | 烟花/弩弹药 | ⏳ 框架完成 |
+| FireworkRocketEntity | 烟花/弩弹药 | ✅ 爆炸伤害已实现 |
+
+#### 烟花火箭 (FireworkRocketEntity) 详细实现 (2026-05-16)
+
+烟花火箭是从弩发射的投射物，可以对周围实体造成爆炸伤害。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 0.25f / 0.25f |
+| 爆炸半径 | 5.0 格 |
+| 基础伤害 | 5.0 点 |
+| 每爆炸效果增加 | +2 点伤害 |
+| 距离衰减 | damage × sqrt((5 - distance) / 5) |
+
+**伤害机制** (MC 1.16.5):
+- 仅当 `shotFromCrossbow = true` 时造成伤害
+- 爆炸效果数量从物品 NBT `Fireworks.Explosions` 数组大小获取
+- 基础伤害 = 5 + 爆炸效果数量 × 2
+- 实际伤害 = 基础伤害 × sqrt((5 - distance) / 5)
+- 视线检测：两条射线（脚部 y=0, 腰部 y=0.5×height），任一未被方块阻挡即可造成伤害
+
+**NBT 数据读取**:
+```cpp
+// 设置烟花物品
+firework.setFireworkItem(itemStack);
+
+// 从 NBT 读取
+// Fireworks.Flight: 飞行时间（1-3）
+// Fireworks.Explosions: 爆炸效果数组
+i32 flightTime = firework.flightTime();
+i32 explosionCount = firework.getExplosionCount();
+```
+
+**CrossbowItem 集成**:
+```cpp
+// 在 CrossbowItem::fireProjectiles() 中
+firework->setShotFromCrossbow(true);
+firework->setFireworkItem(projectile);  // 传递烟花物品数据
+```
+
+**参考**: MC 1.16.5 `FireworkRocketEntity.dealExplosionDamage()`
 
 #### 潜影贝子弹 (ShulkerBulletEntity) 详细实现
 

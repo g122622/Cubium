@@ -327,6 +327,8 @@ add_executable(mc_tests
     entity/ProjectileHelperTest.cpp
     # FishingBobberEntity 钩住实体测试
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
+    # FireworkRocketEntity 爆炸伤害测试
+    common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp
