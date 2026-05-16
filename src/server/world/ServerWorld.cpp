@@ -49,6 +49,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -1762,6 +1763,160 @@ void ServerWorld::onFilledBucket(PlayerId playerId, const ItemStack& bucket)
     // 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET.trigger()
     event::FilledBucketEvent bucketEvent{currentTick(), playerId, bucket};
     event::ServerEventBus::instance().publish(bucketEvent);
+}
+
+// ============================================================================
+// 结构定位
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 StructureType 转换为结构名称
+ *
+ * 参考 MC 1.16.5 Structure 注册表
+ */
+const char* structureTypeToName(world::gen::structure::StructureType type)
+{
+    using namespace world::gen::structure;
+    switch (type) {
+    case StructureType::Shipwreck:
+        return "shipwreck";
+    case StructureType::OceanRuin:
+        return "ocean_ruin";
+    case StructureType::BuriedTreasure:
+        return "buried_treasure";
+    case StructureType::Village:
+        return "village";
+    case StructureType::Stronghold:
+        return "stronghold";
+    case StructureType::Mineshaft:
+        return "mineshaft";
+    case StructureType::Monument:
+        return "ocean_monument";
+    case StructureType::Temple:
+        return "temple"; // 包括沙漠神殿、丛林神庙等
+    case StructureType::RuinedPortal:
+        return "ruined_portal";
+    case StructureType::WoodlandMansion:
+        return "woodland_mansion";
+    case StructureType::Fortress:
+        return "fortress";
+    case StructureType::Bastion:
+        return "bastion";
+    case StructureType::EndCity:
+        return "end_city";
+    default:
+        return nullptr;
+    }
+}
+
+} // anonymous namespace
+
+std::optional<BlockPos> ServerWorld::findNearestStructure(
+    const BlockPos& center,
+    world::gen::structure::StructureType structureType,
+    i32 maxDistance,
+    bool skipExisting)
+{
+    MC_UNUSED(skipExisting); // 当前实现不使用此参数
+
+    // 从注册表获取结构定义
+    const char* structureName = structureTypeToName(structureType);
+    if (structureName == nullptr) {
+        return std::nullopt;
+    }
+
+    const world::gen::structure::Structure* structure =
+        world::gen::structure::StructureRegistry::get(structureName);
+    if (structure == nullptr) {
+        return std::nullopt;
+    }
+
+    // 获取区块生成器
+    IChunkGenerator* generator = m_chunkManager ? m_chunkManager->generator() : nullptr;
+    if (generator == nullptr) {
+        return std::nullopt;
+    }
+
+    // 获取结构间距设置
+    auto settings = structure->separationSettings();
+
+    // 将方块坐标转换为区块坐标
+    i32 centerChunkX = center.x >> 4;
+    i32 centerChunkZ = center.z >> 4;
+
+    // 将最大距离转换为区块范围
+    // MC 1.16.5: maxDistance 是区块数的平方根
+    i32 chunkRadius = (maxDistance + 15) >> 4; // 向上取整到区块
+
+    // 参考 MC 1.16.5 Structure.func_236388_a_
+    // 螺旋搜索：从中心向外扩展
+    i32 spacing = settings.spacing;
+    i64 worldSeed = static_cast<i64>(m_config.seed);
+
+    std::optional<BlockPos> nearestPos;
+    f64 nearestDistSq = static_cast<f64>(maxDistance * maxDistance) + 1.0;
+
+    // 创建共享随机数生成器
+    math::Random rng;
+
+    // 螺旋搜索
+    for (i32 l = 0; l <= chunkRadius; ++l) {
+        for (i32 i1 = -l; i1 <= l; ++i1) {
+            bool isEdge1 = (i1 == -l || i1 == l);
+
+            for (i32 j1 = -l; j1 <= l; ++j1) {
+                bool isEdge2 = (j1 == -l || j1 == l);
+
+                // 只处理边缘（螺旋的外围）
+                if (!isEdge1 && !isEdge2) {
+                    continue;
+                }
+
+                // 计算候选区块坐标（按 spacing 缩放）
+                i32 candidateChunkX = centerChunkX + spacing * i1;
+                i32 candidateChunkZ = centerChunkZ + spacing * j1;
+
+                // 使用结构静态方法检查是否在此区块生成结构
+                i32 startX, startZ;
+                bool hasStructure = world::gen::structure::Structure::findStructureStart(
+                    worldSeed,
+                    candidateChunkX,
+                    candidateChunkZ,
+                    settings,
+                    startX,
+                    startZ,
+                    structure->useUniformSpacing());
+
+                if (!hasStructure) {
+                    continue;
+                }
+
+                // 检查该区块是否已加载或可加载
+                // 尝试获取区块来验证结构是否实际存在
+                const ChunkData* chunk = getChunk(startX >> 4, startZ >> 4);
+                if (chunk != nullptr) {
+                    // 检查区块是否有该结构的起点
+                    // 注意：如果区块已生成，结构起点应该在 ChunkPrimer 中
+                    // 但 ChunkData 可能没有这个信息，所以我们使用种子计算的位置
+                }
+
+                // 计算距离
+                i32 dx = startX - center.x;
+                i32 dz = startZ - center.z;
+                f64 distSq = static_cast<f64>(dx * dx + dz * dz);
+
+                // 检查是否在范围内且比之前找到的更近
+                if (distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nearestPos = BlockPos(startX, 0, startZ);
+                }
+            }
+        }
+    }
+
+    return nearestPos;
 }
 
 } // namespace mc::server

@@ -36,6 +36,7 @@
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace mc {
@@ -68,6 +69,10 @@ class VillageManager; // 前向声明
 
 namespace world::gamerule {
 class GameRules; // 前向声明
+}
+
+namespace world::gen::structure {
+enum class StructureType : u8; // 前向声明
 }
 
 namespace loot {
@@ -1224,6 +1229,36 @@ public:
         (void)playerId;
         (void)bucket;
         // 默认空实现
+    }
+
+    // ========== 结构定位 ==========
+
+    /**
+     * @brief 查找最近的结构
+     *
+     * 在指定范围内搜索指定类型结构的最近位置。
+     * 服务端世界实现此方法，客户端世界返回空。
+     *
+     * 参考 MC 1.16.5: ServerWorld.func_241117_a_
+     * 参考 MC 1.16.5: Structure.func_236388_a_ (螺旋搜索算法)
+     *
+     * @param center 搜索中心位置
+     * @param structureType 结构类型
+     * @param maxDistance 最大搜索距离（格）
+     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
+     * @return 最近的结构位置，如果未找到返回空
+     */
+    [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(
+        const BlockPos& center,
+        world::gen::structure::StructureType structureType,
+        i32 maxDistance,
+        bool skipExisting = false)
+    {
+        (void)center;
+        (void)structureType;
+        (void)maxDistance;
+        (void)skipExisting;
+        return std::nullopt;
     }
 
     // ========== 游戏规则 ==========

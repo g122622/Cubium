@@ -34,6 +34,7 @@
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
+#include "../../../../../world/gen/structure/Structure.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include "../../../../../network/packet/EntityPackets.hpp"
@@ -384,11 +385,30 @@ void SwimToTreasureGoal::tick()
 
 std::optional<BlockPos> SwimToTreasureGoal::findStructure(i32 structureType) const
 {
-    // TODO: 当世界生成系统完善后，实现真实的结构搜索
-    // 目前返回空，表示未找到
-    // MC 1.16.5 使用 ServerWorld.func_241117_a_ 搜索结构
-    MC_UNUSED(structureType);
-    return std::nullopt;
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return std::nullopt;
+    }
+
+    // MC 1.16.5: 海豚寻找沉船或海底废墟
+    // structureType: 0 = 沉船 (Shipwreck), 1 = 海底废墟 (Ocean Ruin)
+    using namespace world::gen::structure;
+
+    StructureType type = (structureType == 0) ? StructureType::Shipwreck : StructureType::OceanRuin;
+
+    // 获取海豚的方块位置
+    Vector3 pos = m_dolphin->position();
+    BlockPos dolphinPos(static_cast<i32>(std::floor(pos.x)),
+                       static_cast<i32>(std::floor(pos.y)),
+                       static_cast<i32>(std::floor(pos.z)));
+
+    // 使用世界 API 查找最近的结构
+    // 搜索范围为 50 格（MC 1.16.5: 第 560 行）
+    return world->findNearestStructure(
+        dolphinPos,
+        type,
+        m_searchRadius,
+        false);
 }
 
 // ============================================================================

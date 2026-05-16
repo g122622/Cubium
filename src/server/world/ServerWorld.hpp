@@ -797,6 +797,29 @@ public:
      */
     void onFilledBucket(PlayerId playerId, const ItemStack& bucket) override;
 
+    // ========== 结构定位 ==========
+
+    /**
+     * @brief 查找最近的结构
+     *
+     * 在指定范围内搜索指定类型结构的最近位置。
+     * 使用螺旋搜索算法，从中心向外扩展搜索。
+     *
+     * 参考 MC 1.16.5: ServerWorld.func_241117_a_
+     * 参考 MC 1.16.5: Structure.func_236388_a_ (螺旋搜索算法)
+     *
+     * @param center 搜索中心位置
+     * @param structureType 结构类型
+     * @param maxDistance 最大搜索距离（格），默认 50
+     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索），默认 false
+     * @return 最近结构位置，如果未找到返回空
+     */
+    [[nodiscard]] std::optional<BlockPos> findNearestStructure(
+        const BlockPos& center,
+        world::gen::structure::StructureType structureType,
+        i32 maxDistance,
+        bool skipExisting = false) override;
+
     /**
      * @brief 检查并处理全员睡眠
      *
