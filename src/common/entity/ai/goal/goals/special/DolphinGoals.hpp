@@ -257,5 +257,82 @@ private:
     static constexpr i32 MIN_COOLDOWN = 100;     // 最小冷却时间
 };
 
+/**
+ * @brief 海豚跟随船目标状态枚举
+ *
+ * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.BoatGoals
+ */
+enum class BoatFollowState : u8 {
+    GoToBoat,           // 游向船
+    GoInBoatDirection   // 跟随船的行进方向
+};
+
+/**
+ * @brief 海豚跟随船目标
+ *
+ * 当玩家驾驶船时，海豚会游向船并跟随船的行进方向。
+ *
+ * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.FollowBoatGoal
+ *
+ * 执行条件:
+ * - 5格范围内有船
+ * - 船上有玩家正在驾驶（按移动键）
+ *
+ * 行为:
+ * - GoToBoat 状态: 游向船尾后方位置
+ * - GoInBoatDirection 状态: 跟随船的行进方向，游向船前方
+ *
+ * 状态转换:
+ * - GoToBoat -> GoInBoatDirection: 距离玩家 < 4 格
+ * - GoInBoatDirection -> GoToBoat: 距离玩家 > 12 格
+ */
+class FollowBoatGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param dolphin 海豚实体
+     */
+    explicit FollowBoatGoal(DolphinEntity* dolphin);
+
+    ~FollowBoatGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool isPreemptible() const override { return true; }
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "FollowBoatGoal"; }
+
+private:
+    /**
+     * @brief 查找附近正在被玩家驾驶的船
+     * @return 如果找到返回船上的玩家，否则返回 nullptr
+     */
+    [[nodiscard]] Player* findPlayerDrivingBoat();
+
+    /**
+     * @brief 检查玩家是否正在操作船移动
+     * @param player 玩家
+     * @return 如果玩家正在按移动键返回 true
+     */
+    [[nodiscard]] static bool isPlayerOperatingBoat(const Player& player);
+
+    DolphinEntity* m_dolphin;
+    Player* m_player = nullptr;
+    BoatFollowState m_state = BoatFollowState::GoToBoat;
+    i32 m_navigationTimer = 0;
+
+    // MC 1.16.5 常量
+    static constexpr f32 SEARCH_RADIUS = 5.0f;           // 搜索船的范围
+    static constexpr f32 GO_TO_BOAT_SPEED = 0.015f;      // 游向船的速度
+    static constexpr f32 GO_IN_DIRECTION_SPEED = 0.01f;  // 跟随方向的速度
+    static constexpr f32 SWITCH_TO_FOLLOW_DISTANCE = 4.0f;  // 切换到跟随状态的距离
+    static constexpr f32 SWITCH_TO_APPROACH_DISTANCE = 12.0f; // 切换回接近状态的距离
+    static constexpr i32 NAVIGATION_UPDATE_INTERVAL = 10;  // 导航更新间隔（ticks）
+    static constexpr f32 NAVIGATE_SPEED = 1.0f;  // 导航速度
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

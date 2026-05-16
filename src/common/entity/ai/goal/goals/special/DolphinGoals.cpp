@@ -678,5 +678,224 @@ ItemEntity* PlayWithItemsGoal::findNearbyItem() const
     return closestItem;
 }
 
+// ============================================================================
+// FollowBoatGoal
+// ============================================================================
+
+FollowBoatGoal::FollowBoatGoal(DolphinEntity* dolphin)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_dolphin(dolphin)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool FollowBoatGoal::shouldExecute()
+{
+    // MC 1.16.5: 检查是否有正在驾驶的玩家
+    // 条件1: 已经有跟踪的玩家且玩家正在操作船移动
+    // 条件2: 5格范围内有玩家驾驶的船
+    if (m_player != nullptr && isPlayerOperatingBoat(*m_player)) {
+        return true;
+    }
+
+    // 查找附近正在驾驶船的玩家
+    m_player = findPlayerDrivingBoat();
+    return m_player != nullptr;
+}
+
+bool FollowBoatGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 玩家必须在船上且正在操作移动
+    if (m_player == nullptr) {
+        return false;
+    }
+
+    // 检查玩家是否仍在骑乘（船上）
+    if (!m_player->isRiding()) {
+        return false;
+    }
+
+    // 检查玩家是否正在操作移动
+    return isPlayerOperatingBoat(*m_player);
+}
+
+void FollowBoatGoal::startExecuting()
+{
+    // MC 1.16.5: 在5格范围内寻找有玩家驾驶的船
+    m_player = findPlayerDrivingBoat();
+    m_navigationTimer = 0;
+    m_state = BoatFollowState::GoToBoat;
+}
+
+void FollowBoatGoal::resetTask()
+{
+    m_player = nullptr;
+    m_dolphin->clearNavigationPath();
+}
+
+void FollowBoatGoal::tick()
+{
+    if (m_player == nullptr) {
+        return;
+    }
+
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 检查玩家是否正在操作移动
+    bool isOperating = isPlayerOperatingBoat(*m_player);
+
+    // 根据状态设置移动速度
+    // GoInBoatDirection 状态下，玩家不操作时不移动
+    f32 speed = (m_state == BoatFollowState::GoInBoatDirection)
+        ? (isOperating ? GO_IN_DIRECTION_SPEED : 0.0f)
+        : GO_TO_BOAT_SPEED;
+
+    // 应用相对移动（模拟 MC 的 moveRelative 行为）
+    // MC 1.16.5: this.swimmer.moveRelative(f, new Vector3d(...))
+    // 但我们使用导航系统来移动
+
+    // 每10tick更新一次导航目标
+    if (--m_navigationTimer <= 0) {
+        m_navigationTimer = NAVIGATION_UPDATE_INTERVAL;
+
+        if (m_state == BoatFollowState::GoToBoat) {
+            // 阶段1：游向船
+            // MC 1.16.5: 计算目标位置 = 玩家位置 - 玩家朝向方向 + 下移一格
+            f32 playerYaw = m_player->yaw();
+            f32 yawRad = playerYaw * math::DEG_TO_RAD;
+
+            // 玩家朝向的反方向
+            i32 dx = static_cast<i32>(-std::round(std::sin(yawRad)));
+            i32 dz = static_cast<i32>(std::round(std::cos(yawRad)));
+
+            BlockPos playerPos(
+                static_cast<i32>(std::floor(m_player->x())),
+                static_cast<i32>(std::floor(m_player->y())),
+                static_cast<i32>(std::floor(m_player->z()))
+            );
+
+            // 目标位置：船尾后方，下移一格
+            BlockPos targetPos(playerPos.x + dx, playerPos.y - 1, playerPos.z + dz);
+
+            // 尝试移动到该位置
+            m_dolphin->tryMoveTo(
+                static_cast<f64>(targetPos.x) + 0.5,
+                static_cast<f64>(targetPos.y),
+                static_cast<f64>(targetPos.z) + 0.5,
+                NAVIGATE_SPEED
+            );
+
+            // 当距离小于4格时，切换到跟随状态
+            f32 dist = m_dolphin->distanceTo(*m_player);
+            if (dist < SWITCH_TO_FOLLOW_DISTANCE) {
+                m_navigationTimer = 0; // 立即更新
+                m_state = BoatFollowState::GoInBoatDirection;
+            }
+        } else if (m_state == BoatFollowState::GoInBoatDirection) {
+            // 阶段2：跟随船的行进方向
+            // MC 1.16.5: 获取玩家朝向，计算前方10格的位置
+            f32 playerYaw = m_player->yaw();
+            f32 yawRad = playerYaw * math::DEG_TO_RAD;
+
+            // 玩家朝向方向
+            i32 dx = static_cast<i32>(std::round(std::sin(yawRad)));
+            i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
+
+            BlockPos playerPos(
+                static_cast<i32>(std::floor(m_player->x())),
+                static_cast<i32>(std::floor(m_player->y())),
+                static_cast<i32>(std::floor(m_player->z()))
+            );
+
+            // 目标位置：船前方10格，下移一格
+            BlockPos targetPos(playerPos.x + dx * 10, playerPos.y - 1, playerPos.z + dz * 10);
+
+            // 尝试移动到该位置
+            m_dolphin->tryMoveTo(
+                static_cast<f64>(targetPos.x) + 0.5,
+                static_cast<f64>(targetPos.y),
+                static_cast<f64>(targetPos.z) + 0.5,
+                NAVIGATE_SPEED
+            );
+
+            // 当距离超过12格时，切回游向船状态
+            f32 dist = m_dolphin->distanceTo(*m_player);
+            if (dist > SWITCH_TO_APPROACH_DISTANCE) {
+                m_navigationTimer = 0; // 立即更新
+                m_state = BoatFollowState::GoToBoat;
+            }
+        }
+    }
+
+    // 看向玩家
+    m_dolphin->lookAt(
+        m_player->x(),
+        m_player->y() + m_player->eyeHeight(),
+        m_player->z()
+    );
+}
+
+Player* FollowBoatGoal::findPlayerDrivingBoat()
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    // MC 1.16.5: 获取5格范围内的所有实体
+    std::vector<Entity*> entities = world->getEntitiesInRange(
+        m_dolphin->position(),
+        SEARCH_RADIUS,
+        m_dolphin
+    );
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        // 检查是否是船
+        if (entity->legacyType() != LegacyEntityType::Boat) {
+            continue;
+        }
+
+        // 获取船的控制乘客
+        EntityId controllerId = entity->getControllingPassenger();
+        if (controllerId == 0) {
+            continue;
+        }
+
+        Entity* controller = world->getEntity(controllerId);
+        if (controller == nullptr) {
+            continue;
+        }
+
+        // 检查控制者是否是玩家
+        Player* player = dynamic_cast<Player*>(controller);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 检查玩家是否正在操作船移动
+        if (isPlayerOperatingBoat(*player)) {
+            return player;
+        }
+    }
+
+    return nullptr;
+}
+
+bool FollowBoatGoal::isPlayerOperatingBoat(const Player& player)
+{
+    // MC 1.16.5: 检查玩家的 moveStrafing 或 moveForward 是否非零
+    // Math.abs(player.moveStrafing) > 0.0F || Math.abs(player.moveForward) > 0.0F
+    f32 strafe = std::abs(player.moveStrafing());
+    f32 forward = std::abs(player.moveForward());
+    return strafe > 0.0f || forward > 0.0f;
+}
+
 } // namespace entity::ai::goal
 } // namespace mc

@@ -519,6 +519,21 @@ public:
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
     [[nodiscard]] bool isSleeping() const { return m_isSleeping; }
+
+    /**
+     * @brief 获取玩家前进移动输入
+     * @return 前进移动值 (-1到1，负为后退)
+     * 参考 MC 1.16.5 PlayerEntity.moveForward
+     */
+    [[nodiscard]] f32 moveForward() const { return m_inputForward; }
+
+    /**
+     * @brief 获取玩家横向移动输入
+     * @return 横向移动值 (-1到1，负为左)
+     * 参考 MC 1.16.5 PlayerEntity.moveStrafing
+     */
+    [[nodiscard]] f32 moveStrafing() const { return m_inputStrafe; }
+
     void setSprinting(bool sprinting);
     void setSneaking(bool sneaking);
     void setSwimming(bool swimming);

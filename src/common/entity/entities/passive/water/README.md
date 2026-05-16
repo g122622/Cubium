@@ -91,6 +91,7 @@ void WaterMobEntity::updateAirSupply() {
 | 5 | DolphinJumpGoal | 跳出水面 |
 | 6 | MeleeAttackGoal | 近战攻击 |
 | 8 | PlayWithItemsGoal | 玩物品 |
+| 8 | FollowBoatGoal | 跟随玩家驾驶的船 |
 | 9 | AvoidEntityGoal | 避开守卫者（待实现） |
 
 **宝藏寻找系统**:
@@ -208,6 +209,7 @@ Entity
 - ✅ `SwimToTreasureGoal`: 喂食后引导玩家到宝藏结构
 - ✅ `SwimWithPlayerGoal`: 跟随游泳玩家并给予海豚恩惠效果
 - ✅ `PlayWithItemsGoal`: 拾取水中物品并扔出玩耍
+- ✅ `FollowBoatGoal`: 跟随玩家驾驶的船（2026-05-16）
 
 ### WaterMobEntity（2026-05-10）
 - ✅ `isInWaterOrBubble()`: 检测实体是否在水中或气泡柱中，使用 `VanillaBlocks::BUBBLE_COLUMN` 检测气泡柱方块
