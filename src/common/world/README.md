@@ -229,6 +229,7 @@ public:
     virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
                                const BlockState* state, const ItemStack* item);
     virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager);
+    virtual void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand);
 };```
 
 `IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：

@@ -164,6 +164,7 @@ ServerEventBus::instance().removeFilter(filterId);
 | `ItemUseEvent` | 物品使用 | 玩家使用物品时 |
 | `ConsumeItemEvent` | 物品消耗 | 玩家消耗物品时（进食等） |
 | `ItemDurabilityEvent` | 耐久变化 | 物品耐久变化时 |
+| `PlayerDestroyItemEvent` | 物品销毁 | 物品因使用而损坏或消耗完毕时 |
 | `EnchantItemEvent` | 附魔 | 玩家附魔物品时 |
 
 ### 效果事件
