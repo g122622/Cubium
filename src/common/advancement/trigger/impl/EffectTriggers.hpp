@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,13 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../CriterionTrigger.hpp"
+#include "../conditions/EntityPredicate.hpp"
 #include <memory>
 
 namespace mc::advancement {
@@ -93,10 +94,23 @@ public:
     static constexpr const char* TRIGGER_ID = "minecraft:effects_changed";
     EffectsChangedTriggerInstance() = default;
 
+    /**
+     * @brief 构造带效果谓词的实例
+     * @param effects 效果谓词
+     */
+    explicit EffectsChangedTriggerInstance(MobEffectsPredicate effects);
+
     [[nodiscard]] bool test(const class Entity& entity) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+    // ========== Getters ==========
+
+    [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept { return m_effects; }
+
+private:
+    MobEffectsPredicate m_effects; ///< 效果谓词
 };
 
 /**

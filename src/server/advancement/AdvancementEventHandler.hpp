@@ -25,6 +25,7 @@
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
+#include "common/advancement/trigger/impl/EffectTriggers.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/impl/ItemTriggers.hpp"
@@ -486,16 +487,11 @@ private:
     /**
      * @brief 处理效果变化事件
      *
-     * 触发 HeroOfTheVillageTrigger 和 VoluntaryExileTrigger。
+     * 触发 EffectsChangedTrigger、HeroOfTheVillageTrigger 和 VoluntaryExileTrigger。
      * 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger()
      */
     void onEffectChanged(const event::EffectChangedEvent& e)
     {
-        // 只处理添加效果的情况
-        if (!e.added || e.effect == nullptr) {
-            return;
-        }
-
         // 获取 ServerPlayer
         mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
@@ -505,6 +501,24 @@ private:
         // 检查是否有监听器
         auto* advancements = serverPlayer->getAdvancements();
         if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发通用的 EffectsChangedTrigger
+        // 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger(ServerPlayer)
+        {
+            auto* effectsTrigger =
+                mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EffectsChangedTrigger>();
+            if (effectsTrigger != nullptr) {
+                effectsTrigger->AbstractCriterionTrigger<mc::advancement::EffectsChangedTriggerInstance>::trigger(
+                    *advancements, [serverPlayer](const mc::advancement::EffectsChangedTriggerInstance& instance) {
+                        return instance.test(*serverPlayer);
+                    });
+            }
+        }
+
+        // 只处理添加效果的情况，用于特定的触发器
+        if (!e.added || e.effect == nullptr) {
             return;
         }
 
