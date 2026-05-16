@@ -193,6 +193,8 @@ add_executable(mc_tests
     common/entity/experience/ExperienceOrbEntityTest.cpp
     # 箭矢拾取测试
     common/entity/ArrowPickupTest.cpp
+    # ArrowEntity 药水箭测试（效果、颜色、NBT标签）
+    common/entity/ArrowEntityTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # 战斗追踪器测试
