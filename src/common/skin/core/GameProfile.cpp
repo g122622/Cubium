@@ -298,4 +298,112 @@ Result<GameProfile> GameProfile::deserialize(network::PacketDeserializer& deser)
     return profile;
 }
 
+// ============================================================================
+// JSON 序列化
+// ============================================================================
+
+nlohmann::json GameProfile::toJson() const
+{
+    nlohmann::json json = nlohmann::json::object();
+
+    // 写入玩家名称
+    if (!m_name.empty()) {
+        json["Name"] = m_name;
+    }
+
+    // 写入 UUID（带连字符格式）
+    if (hasValidUUID()) {
+        json["Id"] = uuidToString();
+    }
+
+    // 写入属性（如皮肤纹理）
+    if (!m_properties.empty()) {
+        nlohmann::json propertiesJson = nlohmann::json::object();
+
+        for (const auto& prop : m_properties) {
+            nlohmann::json propArray = nlohmann::json::array();
+
+            nlohmann::json propEntry = nlohmann::json::object();
+            propEntry["Value"] = prop.value;
+            if (prop.signature.has_value()) {
+                propEntry["Signature"] = *prop.signature;
+            }
+            propArray.push_back(std::move(propEntry));
+
+            propertiesJson[prop.name] = std::move(propArray);
+        }
+
+        json["Properties"] = std::move(propertiesJson);
+    }
+
+    return json;
+}
+
+Result<GameProfile> GameProfile::fromJson(const nlohmann::json& json)
+{
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "GameProfile JSON must be an object");
+    }
+
+    GameProfile profile;
+
+    // 读取名称
+    if (json.contains("Name") && json["Name"].is_string()) {
+        profile.m_name = json["Name"].get<std::string>();
+    }
+
+    // 读取 UUID
+    if (json.contains("Id")) {
+        if (json["Id"].is_string()) {
+            // 字符串格式 UUID（带或不带连字符）
+            std::string uuidStr = json["Id"].get<std::string>();
+            profile.m_uuid = parseUUID(uuidStr);
+        } else if (json["Id"].is_array()) {
+            // IntArray 格式 UUID（MC NBT 格式：4 个 int）
+            auto arr = json["Id"];
+            if (arr.size() == 4) {
+                // 将 4 个 int 转换为 16 字节 UUID（大端序）
+                for (size_t i = 0; i < 4; ++i) {
+                    i32 val = arr[i].get<i32>();
+                    // 大端序：高位在前
+                    profile.m_uuid[i * 4] = static_cast<u8>((val >> 24) & 0xFF);
+                    profile.m_uuid[i * 4 + 1] = static_cast<u8>((val >> 16) & 0xFF);
+                    profile.m_uuid[i * 4 + 2] = static_cast<u8>((val >> 8) & 0xFF);
+                    profile.m_uuid[i * 4 + 3] = static_cast<u8>(val & 0xFF);
+                }
+            }
+        }
+    }
+
+    // 读取属性
+    if (json.contains("Properties") && json["Properties"].is_object()) {
+        const auto& props = json["Properties"];
+        for (auto it = props.begin(); it != props.end(); ++it) {
+            const std::string& propName = it.key();
+            const auto& propArray = it.value();
+
+            if (propArray.is_array()) {
+                for (const auto& propEntry : propArray) {
+                    if (propEntry.is_object()) {
+                        GameProfileProperty prop;
+                        prop.name = propName;
+
+                        if (propEntry.contains("Value") && propEntry["Value"].is_string()) {
+                            prop.value = propEntry["Value"].get<std::string>();
+                        }
+
+                        if (propEntry.contains("Signature") && propEntry["Signature"].is_string()) {
+                            prop.signature = propEntry["Signature"].get<std::string>();
+                        }
+
+                        profile.m_properties.push_back(std::move(prop));
+                    }
+                }
+            }
+        }
+    }
+
+    return profile;
+}
+
 } // namespace mc::skin

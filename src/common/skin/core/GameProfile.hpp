@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include <array>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <vector>
@@ -234,6 +235,33 @@ public:
      * @brief 从网络包反序列化
      */
     [[nodiscard]] static Result<GameProfile> deserialize(network::PacketDeserializer& deser);
+
+    // ========== JSON 序列化（用于 ItemStack NBT）==========
+
+    /**
+     * @brief 序列化为 JSON 对象（用于 SkullOwner NBT 标签）
+     *
+     * 输出格式：
+     * {
+     *   "Name": "PlayerName",
+     *   "Id": "550e8400-e29b-41d4-a716-446655440000",
+     *   "Properties": {
+     *     "textures": [{"Value": "base64...", "Signature": "..."}]
+     *   }
+     * }
+     *
+     * 参考 MC 1.16.5 NBTUtil.writeGameProfile()
+     *
+     * @return JSON 对象
+     */
+    [[nodiscard]] nlohmann::json toJson() const;
+
+    /**
+     * @brief 从 JSON 对象反序列化
+     * @param json JSON 对象
+     * @return GameProfile 对象，失败返回错误
+     */
+    [[nodiscard]] static Result<GameProfile> fromJson(const nlohmann::json& json);
 
 private:
     std::array<u8, 16> m_uuid = {};                // 玩家UUID（big-endian）

@@ -166,3 +166,168 @@ TEST_F(GameProfileTest, SetUUID)
         EXPECT_EQ(uuid[i], profile.uuid()[i]);
     }
 }
+
+// ============================================================================
+// JSON 序列化测试
+// ============================================================================
+
+TEST_F(GameProfileTest, ToJson_BasicProfile)
+{
+    std::array<mc::u8, 16> uuid = {
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
+
+    GameProfile profile(uuid, "TestPlayer");
+    nlohmann::json json = profile.toJson();
+
+    EXPECT_TRUE(json.is_object());
+    EXPECT_EQ("TestPlayer", json["Name"].get<std::string>());
+    EXPECT_EQ("550e8400-e29b-41d4-a716-446655440000", json["Id"].get<std::string>());
+    EXPECT_FALSE(json.contains("Properties")); // 无属性时不包含 Properties 字段
+}
+
+TEST_F(GameProfileTest, ToJson_EmptyProfile)
+{
+    GameProfile profile; // 空 UUID 和名称
+    nlohmann::json json = profile.toJson();
+
+    EXPECT_TRUE(json.is_object());
+    EXPECT_FALSE(json.contains("Name"));    // 空名称不写入
+    EXPECT_FALSE(json.contains("Id"));      // 无效 UUID 不写入
+    EXPECT_FALSE(json.contains("Properties"));
+}
+
+TEST_F(GameProfileTest, ToJson_WithProperties)
+{
+    std::array<mc::u8, 16> uuid = {
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
+
+    GameProfile profile(uuid, "PlayerWithSkin");
+    profile.addProperty({"textures", "base64EncodedTextureData", "textureSignature"});
+
+    nlohmann::json json = profile.toJson();
+
+    EXPECT_TRUE(json.contains("Properties"));
+    EXPECT_TRUE(json["Properties"].is_object());
+    EXPECT_TRUE(json["Properties"].contains("textures"));
+
+    const auto& textures = json["Properties"]["textures"];
+    EXPECT_TRUE(textures.is_array());
+    EXPECT_EQ(1u, textures.size());
+    EXPECT_EQ("base64EncodedTextureData", textures[0]["Value"].get<std::string>());
+    EXPECT_EQ("textureSignature", textures[0]["Signature"].get<std::string>());
+}
+
+TEST_F(GameProfileTest, ToJson_PropertyWithoutSignature)
+{
+    std::array<mc::u8, 16> uuid = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+
+    GameProfile profile(uuid, "OfflinePlayer");
+    profile.addProperty({"textures", "base64Data"}); // 无签名
+
+    nlohmann::json json = profile.toJson();
+
+    EXPECT_TRUE(json["Properties"]["textures"][0].contains("Value"));
+    EXPECT_FALSE(json["Properties"]["textures"][0].contains("Signature"));
+}
+
+TEST_F(GameProfileTest, FromJson_StringUUID)
+{
+    nlohmann::json json = {
+        {"Name", "TestPlayer"},
+        {"Id", "550e8400-e29b-41d4-a716-446655440000"}
+    };
+
+    auto result = GameProfile::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const GameProfile& profile = result.value();
+    EXPECT_EQ("TestPlayer", profile.name());
+    EXPECT_TRUE(profile.hasValidUUID());
+
+    std::array<mc::u8, 16> expectedUUID = {
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
+    for (size_t i = 0; i < 16; ++i) {
+        EXPECT_EQ(expectedUUID[i], profile.uuid()[i]);
+    }
+}
+
+TEST_F(GameProfileTest, FromJson_IntArrayUUID)
+{
+    // MC NBT 格式：UUID 存储为 4 个 int
+    nlohmann::json json = {
+        {"Name", "IntArrayUUID"},
+        {"Id", {1430752512, -490278444, -1488612266, 1149116928}} // 对应 UUID
+    };
+
+    auto result = GameProfile::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const GameProfile& profile = result.value();
+    EXPECT_EQ("IntArrayUUID", profile.name());
+    EXPECT_TRUE(profile.hasValidUUID());
+}
+
+TEST_F(GameProfileTest, FromJson_WithProperties)
+{
+    nlohmann::json json = {
+        {"Name", "PlayerWithSkin"},
+        {"Id", "550e8400-e29b-41d4-a716-446655440000"},
+        {"Properties",
+         {{"textures",
+           nlohmann::json::array({{{"Value", "base64Data"}, {"Signature", "signatureData"}}})}}}
+    };
+
+    auto result = GameProfile::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const GameProfile& profile = result.value();
+    EXPECT_TRUE(profile.hasTextures());
+
+    const GameProfileProperty* prop = profile.getTexturesProperty();
+    ASSERT_NE(nullptr, prop);
+    EXPECT_EQ("base64Data", prop->value);
+    EXPECT_TRUE(prop->hasSignature());
+    EXPECT_EQ("signatureData", prop->signature.value());
+}
+
+TEST_F(GameProfileTest, FromJson_InvalidInput)
+{
+    // 非 JSON 对象
+    nlohmann::json json1 = "not an object";
+    auto result1 = GameProfile::fromJson(json1);
+    EXPECT_FALSE(result1.success());
+
+    // 数组
+    nlohmann::json json2 = nlohmann::json::array();
+    auto result2 = GameProfile::fromJson(json2);
+    EXPECT_FALSE(result2.success());
+}
+
+TEST_F(GameProfileTest, JsonRoundTrip)
+{
+    std::array<mc::u8, 16> uuid = {
+        0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
+
+    GameProfile original(uuid, "RoundTripPlayer");
+    original.addProperty({"textures", "textureValue", "textureSignature"});
+
+    // 序列化
+    nlohmann::json json = original.toJson();
+
+    // 反序列化
+    auto result = GameProfile::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const GameProfile& restored = result.value();
+
+    // 验证
+    EXPECT_EQ(original.name(), restored.name());
+    EXPECT_EQ(original.uuidToString(), restored.uuidToString());
+    EXPECT_TRUE(restored.hasTextures());
+
+    const GameProfileProperty* prop = restored.getTexturesProperty();
+    ASSERT_NE(nullptr, prop);
+    EXPECT_EQ("textureValue", prop->value);
+    EXPECT_EQ("textureSignature", prop->signature.value());
+}

@@ -38,6 +38,7 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/skin/core/GameProfile.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
@@ -1020,11 +1021,77 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // TODO: 实现玩家头颅填充
-    // 参考: net.minecraft.loot.functions.FillPlayerHead
-    // 需要获取玩家信息并设置到头颅物品的 NBT 中
+    // 参考 MC 1.16.5: net.minecraft.loot.functions.FillPlayerHead.doApply()
+    // 1. 检查物品是否是玩家头颅
+    // 2. 根据来源获取玩家实体
+    // 3. 将玩家信息写入 SkullOwner NBT 标签
 
-    MC_UNUSED(context);
+    // 检查物品是否是玩家头颅
+    // 注意：PLAYER_HEAD 物品尚未在 Items.hpp 中定义
+    // 当 PLAYER_HEAD 定义后，取消下面的注释
+    // if (stack.getItem() != Items::PLAYER_HEAD) {
+    //     return stack;
+    // }
+
+    // 根据 Source 获取玩家
+    const skin::GameProfile* profile = nullptr;
+    skin::GameProfile tempProfile; // 用于临时存储从 Entity 构建的档案
+
+    switch (m_source) {
+        case CopyNameFunction::Source::This: {
+            // 从当前实体获取
+            auto* entity = context.get<Entity>(LootParams::THIS_ENTITY);
+            if (entity != nullptr) {
+                // 检查是否是玩家
+                if (auto* player = dynamic_cast<Player*>(entity)) {
+                    // 从玩家构建 GameProfile
+                    auto uuidArray = skin::GameProfile::parseUUID(player->uuid());
+                    tempProfile.setUUID(uuidArray);
+                    tempProfile.setName(player->username());
+                    profile = &tempProfile;
+                }
+            }
+            break;
+        }
+
+        case CopyNameFunction::Source::Killer: {
+            // 从击杀实体获取
+            auto* killer = context.get<Entity>(LootParams::KILLER_ENTITY);
+            if (killer != nullptr) {
+                // 检查是否是玩家
+                if (auto* player = dynamic_cast<Player*>(killer)) {
+                    auto uuidArray = skin::GameProfile::parseUUID(player->uuid());
+                    tempProfile.setUUID(uuidArray);
+                    tempProfile.setName(player->username());
+                    profile = &tempProfile;
+                }
+            }
+            break;
+        }
+
+        case CopyNameFunction::Source::KillerPlayer: {
+            // 从击杀玩家获取
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            if (player != nullptr) {
+                auto uuidArray = skin::GameProfile::parseUUID(player->uuid());
+                tempProfile.setUUID(uuidArray);
+                tempProfile.setName(player->username());
+                profile = &tempProfile;
+            }
+            break;
+        }
+
+        case CopyNameFunction::Source::BlockEntity:
+            // 方块实体不支持玩家头颅填充
+            break;
+    }
+
+    // 如果获取到了有效的玩家档案，写入 SkullOwner 标签
+    if (profile != nullptr && profile->hasValidUUID()) {
+        nlohmann::json& tag = stack.getOrCreateTag();
+        tag["SkullOwner"] = profile->toJson();
+    }
+
     return stack;
 }
 

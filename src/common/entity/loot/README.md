@@ -955,7 +955,7 @@ entry.generate(consumer, context);  // 条件在这里检查
    - ~~CopyBlockStateFunction~~ ✅ 已完成（复制 BlockState 属性到 ItemStack 的 BlockStateTag）
    - ~~SetNbtFunction~~ ✅ 已完成（使用 Mojangson 格式解析 NBT 字符串并合并到 ItemStack）
    - CopyNbtFunction（需要 NBT 路径解析）
-   - FillPlayerHeadFunction（需要玩家皮肤系统）
+   - ~~FillPlayerHeadFunction~~ ✅ 已完成（将玩家信息写入 SkullOwner NBT 标签）
    - ~~SetAttributesFunction~~ ✅ 已完成（为物品添加属性修饰符，支持随机数值、多槽位、UUID生成）
    - ~~SetContentsFunction~~ ✅ 已完成（设置容器物品内容物到 BlockEntityTag.Items）
    - ExplorationMapFunction（需要地图数据系统）
