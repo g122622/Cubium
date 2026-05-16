@@ -38,13 +38,16 @@ src/common/entity/damage/
 3. **EnvironmentalDamage** - 环境伤害来源类：
    - 处理火焰、摔落、溺水、虚空等非实体造成的伤害
    - 自动判断是否绕过护甲（摔落、溺水、饥饿、虚空）
+   - `isExplosion()` 实现：检查 `DamageType::Explosion` 或 `DamageType::ExplosionPlayer`
 
 4. **EntityDamageSource** - 直接实体伤害来源类：
    - 处理生物攻击、玩家攻击等直接伤害
+   - `isExplosion()` 返回 false（非爆炸类型）
 
 5. **IndirectEntityDamageSource** - 间接实体伤害来源类：
    - 处理箭矢、三叉戟、火球等投射物伤害
    - 区分来源实体（射手）和直接来源实体（箭矢）
+   - 火球伤害 `isFire()` 返回 true
 
 6. **DamageSources 命名空间** - 工厂函数集合：
    - `inFire()`, `onFire()`, `lava()`, `drown()`, `starve()`, `cactus()`, `fall()`, `flyIntoWall()`, `outOfWorld()`, `generic()`, `magic()`, `wither()`
@@ -335,6 +338,18 @@ if (entry.timestamp() < currentTime) { ... }
 | `LivingEntityTest.Hurt` | 测试受伤逻辑 |
 | `LivingEntityTest.HurtInvulnerability` | 测试受伤无敌帧 |
 | `LivingEntityTest.Death` | 测试死亡逻辑 |
+
+新增测试文件 `tests/common/entity/damage/DamageSourceExplosionTest.cpp`：
+
+| 测试用例 | 描述 |
+|----------|------|
+| `DamageSourceExplosionTest.EnvironmentalDamage_ExplosionType_ReturnsTrue` | 测试 Explosion/ExplosionPlayer 类型的 isExplosion() 返回 true |
+| `DamageSourceExplosionTest.EnvironmentalDamage_NonExplosionType_ReturnsFalse` | 测试非爆炸类型的 isExplosion() 返回 false |
+| `DamageSourceExplosionTest.EnvironmentalDamage_FireType_ReturnsCorrectBool` | 测试火焰类型的 isFire() 返回值 |
+| `DamageSourceExplosionTest.DamageSources_Explosion_CreatesExplosionDamage` | 测试工厂函数创建爆炸伤害 |
+| `DamageSourceExplosionTest.CombinedCheck_FireAndExplosion` | 测试火焰+爆炸组合检测（用于矿车逻辑） |
+| `DamageSourceExplosionTest.NullptrSource_HandledSafely` | 测试 nullptr 伤害源的安全处理 |
+| `DamageSourceExplosionTest.AllDamageTypes_HaveCorrectClassification` | 测试所有伤害类型的 isFire/isExplosion 分类 |
 
 ## 与其他模块的关系
 

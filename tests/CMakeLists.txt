@@ -171,6 +171,10 @@ add_executable(mc_tests
     entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
     common/entity/interfaces/IRideableTest.cpp
+    # DamageSource isExplosion() 和 isFire() 测试
+    common/entity/damage/DamageSourceExplosionTest.cpp
+    # 矿车 dropItem() 伤害源检测测试
+    common/entity/entities/vehicle/MinecartDropItemTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
     # PlayerKilledEntityTrigger 触发器测试

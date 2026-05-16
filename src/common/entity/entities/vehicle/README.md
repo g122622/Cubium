@@ -118,11 +118,17 @@ public:
 - **自动推进**: 有燃料时自动沿推动方向前进
 - **激活铁轨**: 可改变推进方向
 - **最大速度**: 0.2（普通矿车为0.4）
+- **掉落逻辑**: 爆炸伤害时只掉落矿车，非爆炸伤害时掉落矿车+熔炉方块（MC 1.16.5）
 
 ### TNT矿车 (TNTMinecartEntity)
 - **点燃方式**: 激活铁轨点燃，引信80 tick（4秒）
 - **爆炸威力**: 基础4.0，速度加成最大到5.0
 - **爆炸模式**: Break模式（破坏方块不掉落）
+- **掉落逻辑** (MC 1.16.5 killMinecart):
+  - 火焰伤害 → 点燃TNT矿车（不掉落物品）
+  - 爆炸伤害 → 点燃TNT矿车（不掉落物品）
+  - 普通伤害 + 低速度(<0.01) → 掉落矿车 + TNT方块
+  - 普通伤害 + 高速度(≥0.01) → 碰撞爆炸
 
 ### 漏斗矿车 (HopperMinecartEntity)
 - **库存**: 5格（与漏斗方块相同）
@@ -177,8 +183,63 @@ public:
 - TNTMinecartEntity 引信系统测试
 - MinecartItem 构造测试
 
+新增测试文件 `tests/common/entity/entities/vehicle/MinecartDropItemTest.cpp`：
+- TNTMinecartDropTest.FireDamage_IgnitesTNT - 火焰伤害检测
+- TNTMinecartDropTest.ExplosionDamage_IgnitesTNT - 爆炸伤害检测
+- TNTMinecartDropTest.NormalDamage_DropsItems - 普通伤害掉落
+- TNTMinecartDropTest.NullptrSource_HandledSafely - nullptr 安全处理
+- TNTMinecartDropTest.SpeedThreshold_AffectsDrop - 速度阈值测试
+- FurnaceMinecartDropTest.ExplosionDamage_NoFurnaceDrop - 爆炸伤害不掉熔炉
+- FurnaceMinecartDropTest.NormalDamage_DropsFurnace - 普通伤害掉熔炉
+- ChestMinecartDropTest.AlwaysDropsInventory - 箱子矿车总是掉库存
+- AbstractMinecartDropTest.AllDamageTypes_CorrectClassification - 所有伤害类型分类测试
+
 骑乘相关网络包测试位于 `tests/network/EntityPacketsTest.cpp`：
 - PlayerInputPacket 序列化/反序列化测试
 - MoveVehiclePacket 序列化/反序列化测试
 - VehicleMovePacket 序列化/反序列化测试
 - EntityActionPacket 序列化/反序列化测试
+
+## 伤害源检测 (2026-05-17 更新)
+
+矿车的 `dropItem()` 方法现在接受 `DamageSource*` 参数，用于判断伤害类型：
+
+### API 变更
+
+```cpp
+// 旧签名
+virtual void dropItem();
+
+// 新签名 (MC 1.16.5 killMinecart)
+virtual void dropItem(DamageSource* source = nullptr);
+```
+
+### 使用示例
+
+```cpp
+// 在 hurt() 方法中调用
+bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount) {
+    // ... 受伤处理 ...
+    dropItem(&source);  // 传递伤害源
+}
+
+// 伤害类型检测
+void TNTMinecartEntity::dropItem(DamageSource* source) {
+    bool isFire = (source != nullptr && source->isFire());
+    bool isExplosion = (source != nullptr && source->isExplosion());
+    
+    if (!isFire && !isExplosion && speedSq < 0.01) {
+        // 正常掉落
+    } else {
+        // 点燃 TNT
+    }
+}
+
+void FurnaceMinecartEntity::dropItem(DamageSource* source) {
+    bool isExplosion = (source != nullptr && source->isExplosion());
+    
+    if (!isExplosion) {
+        // 掉落熔炉方块
+    }
+}
+```
