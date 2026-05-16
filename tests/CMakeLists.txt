@@ -194,6 +194,8 @@ add_executable(mc_tests
     advancement/MobEffectsPredicateTest.cpp
     # DamageSourcePredicate 伤害源谓词测试
     advancement/DamageSourcePredicateTest.cpp
+    # EntityPredicate 实体谓词测试（包含 EntityFlagsPredicate、EntityEquipmentPredicate、NBTPredicate、DistancePredicate）
+    advancement/EntityPredicateTest.cpp
     # ItemPredicate 物品谓词测试（含药水匹配）
     advancement/ItemPredicateTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
@@ -1083,6 +1085,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/CriterionTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/ItemPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityFlagsPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityEquipmentPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/NBTPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/LocationPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/MobEffectsPredicate.cpp
