@@ -86,7 +86,7 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
 
     std::ifstream input(configPath);
     if (!input.is_open()) {
-        return Error(ErrorCode::IOError, std::string("failed to open benchmark config: ") + configPath.string());
+        return Error(ErrorCode::FileOpenFailed, std::string("failed to open benchmark config: ") + configPath.string());
     }
 
     json root;

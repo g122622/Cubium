@@ -27,8 +27,8 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/WorldGenRegion.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc::benchmark {
@@ -73,7 +73,7 @@ public:
     {
         MC_TRACE_EVENT("benchmark.case", "ChunkGenerationBenchmark::runOnce");
         if (m_generator == nullptr || m_chunk == nullptr || m_region == nullptr) {
-            return Error(ErrorCode::IllegalState, "chunk_generation benchmark is not initialized");
+            return Error(ErrorCode::InvalidState, "chunk_generation benchmark is not initialized");
         }
 
         // 重置区块状态以便重新生成
