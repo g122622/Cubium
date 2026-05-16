@@ -24,6 +24,8 @@
 #include "AbstractArrowEntity.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../item/potion/PotionUtils.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../sound/SoundCategory.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
@@ -102,11 +104,25 @@ void AbstractArrowEntity::tick()
     if (m_world) {
         const BlockState* blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
         // 检查是否在非空气方块的碰撞箱内
-        // TODO: 需要实现 VoxelShape 检查
-        // 当前简化处理：如果方块不透明且不在水中，认为在方块内
-        if (blockState != nullptr && !blockState->isAir() && blockState->isSolid()) {
-            m_inGround = true;
-            m_inBlockState = *blockState;
+        if (blockState != nullptr && !blockState->isAir()) {
+            // 获取方块的碰撞形状
+            const CollisionShape& collisionShape = blockState->getCollisionShape();
+
+            // 如果碰撞形状不为空，检查箭矢位置是否在碰撞箱内
+            if (!collisionShape.isEmpty()) {
+                // 获取世界坐标下的碰撞箱列表
+                std::vector<AxisAlignedBB> worldBoxes =
+                    collisionShape.getWorldBoxes(currentPos.x, currentPos.y, currentPos.z);
+
+                // 检查箭矢位置是否在任意碰撞箱内
+                for (const AxisAlignedBB& box : worldBoxes) {
+                    if (box.contains(m_position)) {
+                        m_inGround = true;
+                        m_inBlockState = *blockState;
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -487,9 +503,52 @@ void ArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
-    // 药水箭的效果处理
-    if (m_color != 0xFFFFFFFF && !m_inGround) {
-        // TODO: 生成彩色粒子
+    // MC 1.16.5 ArrowEntity.tick() 第195-206行
+    // 药水箭的粒子效果处理
+    if (m_color != 0xFFFFFFFF && !m_inGround && m_world && m_world->isClientSide()) {
+        // 将 ARGB 颜色转换为 RGB 分量 (0.0-1.0 范围)
+        // MC 使用 EntityEffect 粒子，速度参数作为颜色传递
+        f32 r = static_cast<f32>((m_color >> 16) & 0xFF) / 255.0f;
+        f32 g = static_cast<f32>((m_color >> 8) & 0xFF) / 255.0f;
+        f32 b = static_cast<f32>(m_color & 0xFF) / 255.0f;
+
+        // 飞行中每 tick 生成 2 个粒子
+        // MC 1.16.5: this.spawnPotionParticles(2);
+        math::Random rng = createRandomFromEntity(*this);
+        for (int i = 0; i < 2; ++i) {
+            // 粒子位置在箭矢周围随机偏移
+            f32 ox = (rng.nextFloat() - 0.5f) * width();
+            f32 oy = rng.nextFloat() * height();
+            f32 oz = (rng.nextFloat() - 0.5f) * width();
+
+            Vector3 pos(x() + ox, y() + oy, z() + oz);
+            Vector3 colorVel(r, g, b);  // 颜色作为速度参数传递
+
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+                pos,
+                colorVel);
+        }
+    }
+}
+
+void ArrowEntity::onEntityHit(const RayTraceResult& result)
+{
+    // 先调用父类处理伤害
+    AbstractArrowEntity::onEntityHit(result);
+
+    // MC 1.16.5 ArrowEntity.arrowHit() 第210-215行
+    // 应用药水效果到被命中的生物
+    if (!result.hitEntity || m_effects.empty()) {
+        return;
+    }
+
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
+    if (livingTarget != nullptr && livingTarget->isAlive()) {
+        // 对目标施加所有药水效果
+        for (const auto& effect : m_effects) {
+            livingTarget->addEffect(effect);
+        }
     }
 }
 
@@ -500,9 +559,19 @@ ItemStack ArrowEntity::getArrowStack() const
     if (hasEffects()) {
         // 创建药水箭物品堆
         ItemStack tippedArrow(*Items::TIPPED_ARROW, 1);
-        // TODO: 设置药水效果到物品堆的 NBT 标签
-        // PotionUtils.addPotionToItemStack(itemstack, this.potion);
-        // PotionUtils.appendEffects(itemstack, this.customPotionEffects);
+
+        // 设置药水效果到物品堆的 NBT 标签
+        // MC 1.16.5: PotionUtils.addPotionToItemStack(itemstack, this.potion);
+        //           PotionUtils.appendEffects(itemstack, this.customPotionEffects);
+        // 注意：ArrowEntity 没有存储 Potion 类型，只有效果列表
+        // 所以我们只设置自定义效果和颜色
+        potion::PotionUtils::setCustomEffects(tippedArrow, m_effects);
+
+        // 设置自定义颜色（如果有）
+        if (m_color != 0xFFFFFFFF) {
+            potion::PotionUtils::setCustomPotionColor(tippedArrow, m_color);
+        }
+
         return tippedArrow;
     } else {
         // 返回普通箭矢
