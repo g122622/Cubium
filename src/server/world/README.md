@@ -40,6 +40,7 @@ src/server/world/
 - 实体状态回调（`setOnBroadcastEntityStatus`，用于实体动画/音效事件广播）
 - 世界事件回调（`setOnBroadcastWorldEvent`，用于世界事件广播）
 - 爆炸回调（`setOnBroadcastExplosion`，用于爆炸事件广播到附近玩家）
+- **命令执行回调**（`setOnExecuteCommand`，用于命令方块矿车等实体执行命令）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 存档保存编排（通过 `SaveManager` 驱动自动保存与全量保存）
@@ -65,11 +66,73 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
     const loot::LootTableManager* m_lootTableManager;         // 掉落表管理器（用于爆炸掉落等）
     core::TimeManager* m_timeManager;                         // 时间管理器（外部引用）
     std::function<Difficulty()> m_difficultyCallback;         // 难度获取回调（从 MinecraftServer 获取）
+    
+    // 回调函数
+    CommandExecuteCallback m_onExecuteCommand;                // 命令执行回调
 };
 
 // 调试世界检测
 [[nodiscard]] bool isDebugWorld() const;  // 通过检查区块生成器类型判断是否为调试世界
 ```
+
+**命令执行回调**：
+
+`ServerWorld` 提供 `executeCommand()` 方法，用于命令方块矿车等实体执行命令。该方法是 `IWorld` 接口的实现，通过回调机制将命令执行委托给服务器。
+
+```cpp
+// 回调类型定义
+using CommandExecuteCallback = std::function<i32(const std::string& command,
+                                                  const Vector3d& position,
+                                                  i32 permissionLevel)>;
+
+// 设置回调
+void setOnExecuteCommand(CommandExecuteCallback callback);
+
+// 执行命令（IWorld 接口实现）
+i32 executeCommand(const std::string& command,
+                   const Vector3d& position,
+                   i32 permissionLevel) override;
+```
+
+**使用示例**：
+
+```cpp
+// IntegratedServer 初始化时设置回调
+m_world->setOnExecuteCommand([this](const std::string& command,
+                                     const Vector3d& position,
+                                     i32 permissionLevel) -> i32 {
+    // 自动添加 '/' 前缀（如果缺失）
+    std::string cmd = command;
+    if (!cmd.empty() && cmd[0] != '/') {
+        cmd = "/" + cmd;
+    }
+    
+    // 创建命令源
+    command::ServerCommandSource source(this,
+        nullptr, m_world.get(), position, Vector2f(0.0f, 0.0f),
+        permissionLevel, 0, "@");
+    
+    // 执行命令
+    auto result = m_commandRegistry->execute(cmd, source);
+    return result.failed() ? 0 : result.value();
+});
+
+// 命令方块矿车执行命令
+void CommandBlockMinecartEntity::executeCommand() {
+    IWorld* worldPtr = Entity::world();
+    Vector3d position(x(), y(), z());
+    m_successCount = worldPtr->executeCommand(m_command, position, 2);
+}
+```
+
+**回调参数说明**：
+- `command`: 要执行的命令字符串（可以带或不带 '/' 前缀）
+- `position`: 命令执行位置（通常是实体的世界坐标）
+- `permissionLevel`: 权限级别（命令方块矿车使用 2，对应 OP 级别 2）
+
+**返回值**：
+- 成功：返回命令执行结果（正值）
+- 失败：返回 0
 
 **组件访问器**：
 
@@ -804,6 +867,7 @@ if (world->isDebugWorld()) {
 | `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
 | `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
 | `tests/server/ServerWorldTest.cpp` | 服务端世界声音回调转发、isDebugWorld 检测 |
+| `tests/server/world/ServerWorldCommandExecuteTest.cpp` | ServerWorld 命令执行回调、CommandBlockMinecartEntity 命令执行 |
 | `tests/server/test_chunk_worker_pool.cpp` | ChunkGenerateTask 与 ServerWorkerPool 集成测试 |
 | `tests/common/util/thread/ServerWorkerPoolTest.cpp` | ServerWorkerPool 单元测试 |
 | `tests/common/world/gen/DebugChunkGeneratorTest.cpp` | DebugChunkGenerator 功能、isDebugGenerator 虚方法 |

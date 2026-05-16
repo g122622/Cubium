@@ -230,6 +230,21 @@ public:
                                const BlockState* state, const ItemStack* item);
     virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager);
     virtual void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand);
+
+    // ========== 命令执行 ==========
+    // 执行命令，返回命令执行结果（成功返回正值，失败返回 0）
+    // 用于命令方块矿车等实体执行命令，通过回调机制将命令执行委托给服务器
+    // position: 命令执行位置（通常是实体的位置）
+    // permissionLevel: 权限级别（命令方块矿车使用 2）
+    [[nodiscard]] virtual i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel)
+    {
+        (void)command;
+        (void)position;
+        (void)permissionLevel;
+        return 0;
+    }
 };```
 
 `IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：

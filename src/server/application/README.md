@@ -365,9 +365,56 @@ GuardianAttackGoal::startExecuting()
 
 客户端收到 `EntityStatusPacket` 后，根据状态码触发相应的动画或音效（如 `GuardianSoundStateful`）。
 
+### 命令执行回调链路
+
+命令方块矿车等实体执行命令通过 `IWorld::executeCommand()` 接口委托给服务器：
+
+```
+CommandBlockMinecartEntity::executeCommand()
+  → world()->executeCommand(command, position, 2)
+  → ServerWorld::executeCommand()
+  → m_onExecuteCommand callback
+  → IntegratedServer::命令执行回调
+  → CommandRegistry::execute()
+  → 返回命令结果
+```
+
+**回调初始化**（在 `IntegratedServer::initialize()` 中）：
+
+```cpp
+m_world->setOnExecuteCommand([this](const std::string& command,
+                                     const Vector3d& position,
+                                     i32 permissionLevel) -> i32 {
+    // 自动添加 '/' 前缀（如果缺失）
+    std::string cmd = command;
+    if (!cmd.empty() && cmd[0] != '/') {
+        cmd = "/" + cmd;
+    }
+    
+    // 创建命令源（使用命令方块矿车的权限级别 2）
+    command::ServerCommandSource source(this,
+        nullptr, m_world.get(), position, Vector2f(0.0f, 0.0f),
+        permissionLevel, 0, "@");
+    
+    // 执行命令
+    auto result = m_commandRegistry->execute(cmd, source);
+    if (result.failed()) {
+        spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+        return 0;
+    }
+    return result.value();
+});
+```
+
+**权限级别说明**：
+- 命令方块矿车使用权限级别 2（对应 OP 级别 2）
+- 命令源名称使用 "@" 表示命令方块
+- 命令执行位置使用实体的世界坐标
+
 ## 测试用例
 
 - [tests/server/ServerWorldTest.cpp](../../../tests/server/ServerWorldTest.cpp) 覆盖世界声音回调转发。
+- [tests/server/world/ServerWorldCommandExecuteTest.cpp](../../../tests/server/world/ServerWorldCommandExecuteTest.cpp) 覆盖命令执行回调机制。
 
 ### Standalone Server (Multi-Player)
 
