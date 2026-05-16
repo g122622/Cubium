@@ -81,6 +81,45 @@ AnimalEntity
 | 攻击 | 吐口水攻击 |
 | 商队 | 跟随前方羊驼 |
 | 变体 | 4种颜色 |
+| 强度 | 1-5 (影响背包大小和生命值) |
+
+#### 商队系统
+
+羊驼可以形成商队链表结构，最多 8 只羊驼：
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| CARAVAN_MAX_LENGTH | 8 | 商队最大长度 |
+| CARAVAN_FOLLOW_DISTANCE | 2.0 | 跟随间距 (格) |
+| CARAVAN_SEARCH_RADIUS | 9.0 | 搜索半径 (格) |
+
+**商队结构**:
+- 双向链表：`m_caravanHead` 指向前方羊驼，`m_caravanTail` 指向后方羊驼
+- 商队头领：链表头部，负责引领整个商队
+- 商队成员：通过 `joinCaravan()` 加入，`leaveCaravan()` 离开
+
+**商队行为** (LlamaFollowCaravanGoal):
+- 优先级 2 的 AI 目标
+- 搜索 9 格内可加入的商队
+- 保持 2 格跟随间距
+- 距离过远时加速追赶
+
+#### 远程攻击系统
+
+羊驼可以吐口水攻击目标：
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| LLAMA_SPIT_SPEED | 1.5 | 口水速度 |
+| LLAMA_SPIT_INACCURACY | 10.0 | 口水散布 |
+| LLAMA_SPIT_DAMAGE | 1.0 | 口水伤害 (0.5颗心) |
+| LLAMA_ATTACK_INTERVAL | 40 | 攻击间隔 (ticks, 2秒) |
+| LLAMA_RANGED_ATTACK_RADIUS | 20.0 | 攻击半径 (格) |
+
+**攻击机制**:
+- 实现 `IRangedAttackMob` 接口
+- 发射 `LlamaSpitEntity` 投射物
+- 优先攻击未驯服的狼 (LlamaDefendTargetGoal)
 
 ## 接口实现
 
@@ -460,7 +499,7 @@ MC 1.16.5 中，`AbstractHorseEntity.registerGoals()` 注册以下 AI 目标：
 | MuleEntity | 无 | 完全继承 AbstractHorseEntity（不育，BreedGoal 自动跳过） |
 | SkeletonHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
 | ZombieHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
-| LlamaEntity | 商队跟随、吐口水攻击 | 参考 LlamaEntity.cpp 的 registerGoals() |
+| LlamaEntity | 商队跟随、吐口水攻击、防御狼 | 参考 LlamaEntity.cpp 的 registerGoals() |
 
 ### 优先级设计说明
 

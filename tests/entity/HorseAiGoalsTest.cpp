@@ -53,6 +53,9 @@
 #include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/horse/MuleEntity.hpp"
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
@@ -376,6 +379,67 @@ TEST(AbstractHorseAiGoalsTest, PriorityOrdering)
 
     // 优先级 8 应该只有 LookRandomlyGoal
     EXPECT_EQ(countGoalsWithPriority<entity::ai::goal::LookRandomlyGoal>(horse->goalSelector(), 8), 1);
+}
+
+// ============================================================================
+// LlamaEntity AI Goals Tests
+// ============================================================================
+// 注意：由于 C++ 虚函数调用机制，派生类的 registerGoals() 在基类构造函数中不会被调用
+// 因此 LlamaEntity 特有的 AI 目标（商队、远程攻击、防御）会在实际游戏运行时正确注册
+// 这里只测试继承自 AbstractHorseEntity 的基础目标
+
+TEST(LlamaAiGoalsTest, InheritsAbstractHorseGoals)
+{
+    HorseAiGoalsTestWorld world;
+    auto llama = std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, EntityId(1));
+    llama->setWorld(&world);
+
+    // 羊驼应该继承 AbstractHorseEntity 的基础 AI 目标
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::SwimGoal>(llama->goalSelector(), 0));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::PanicGoal>(llama->goalSelector(), 1));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::RunAroundLikeCrazyGoal>(llama->goalSelector(), 1));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::BreedGoal>(llama->goalSelector(), 2));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::FollowParentGoal>(llama->goalSelector(), 4));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(llama->goalSelector(), 6));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::LookAtGoal>(llama->goalSelector(), 7));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::LookRandomlyGoal>(llama->goalSelector(), 8));
+}
+
+TEST(LlamaAiGoalsTest, BaseGoalCount)
+{
+    HorseAiGoalsTestWorld world;
+    auto llama = std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, EntityId(1));
+    llama->setWorld(&world);
+
+    // 继承自 AbstractHorseEntity: 8 个目标
+    EXPECT_EQ(getTotalGoalCount(llama->goalSelector()), 8)
+        << "LlamaEntity should have 8 base goals from AbstractHorseEntity";
+}
+
+// ============================================================================
+// LlamaFollowCaravanGoal Constants Tests
+// ============================================================================
+
+TEST(LlamaFollowCaravanGoalTest, ConstantsAreCorrect)
+{
+    // MC 1.16.5 常量验证
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::SEARCH_RADIUS, 9.0);
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::SEARCH_HEIGHT, 4.0);
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::MIN_JOIN_DISTANCE_SQ, 4.0);
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::MAX_FOLLOW_DISTANCE_SQ, 676.0);
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::CARAVAN_FOLLOW_DISTANCE, 2.0);
+    EXPECT_EQ(entity::ai::goal::LlamaFollowCaravanGoal::MAX_CARAVAN_LENGTH, 8);
+}
+
+// ============================================================================
+// LlamaDefendTargetGoal Constants Tests
+// ============================================================================
+
+TEST(LlamaDefendTargetGoalTest, ConstantsAreCorrect)
+{
+    // MC 1.16.5 常量验证
+    EXPECT_EQ(entity::ai::goal::LlamaDefendTargetGoal::TARGET_RANGE, 16.0);
+    EXPECT_DOUBLE_EQ(entity::ai::goal::LlamaDefendTargetGoal::TARGET_RANGE_MODIFIER, 0.25);
 }
 
 } // namespace

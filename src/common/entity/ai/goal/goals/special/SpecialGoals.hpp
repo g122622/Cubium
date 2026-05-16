@@ -135,6 +135,14 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "LlamaFollowCaravanGoal"; }
 
+    // MC 1.16.5 常量（公开用于测试）
+    static constexpr f64 SEARCH_RADIUS = 9.0;             // 搜索半径
+    static constexpr f64 SEARCH_HEIGHT = 4.0;             // 搜索高度
+    static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;      // 最小加入距离平方 (2格)
+    static constexpr f64 MAX_FOLLOW_DISTANCE_SQ = 676.0;  // 最大跟随距离平方 (26格)
+    static constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;   // 跟随间距
+    static constexpr i32 MAX_CARAVAN_LENGTH = 8;          // 商队最大长度
+
 private:
     /**
      * @brief 递归检查商队头领是否被拴绳拴住
@@ -148,14 +156,6 @@ private:
     f32 m_speed;
     f64 m_speedModifier;        // 速度修正（距离太远时加速）
     i32 m_distCheckCounter;     // 距离检查计数器
-
-    // MC 1.16.5 常量
-    static constexpr f64 SEARCH_RADIUS = 9.0;         // 搜索半径
-    static constexpr f64 SEARCH_HEIGHT = 4.0;         // 搜索高度
-    static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;  // 最小加入距离平方 (2格)
-    static constexpr f64 MAX_FOLLOW_DISTANCE_SQ = 676.0; // 最大跟随距离平方 (26格)
-    static constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;  // 跟随间距
-    static constexpr i32 MAX_CARAVAN_LENGTH = 8;      // 商队最大长度
 };
 
 /**
@@ -286,13 +286,13 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "LlamaDefendTargetGoal"; }
 
+    // MC 1.16.5 常量（公开用于测试）
+    static constexpr f64 TARGET_RANGE = 16.0;          // 基础检测范围
+    static constexpr f64 TARGET_RANGE_MODIFIER = 0.25; // 范围修正系数（实际范围 = 16 * 0.25 = 4格）
+
 private:
     LlamaEntity* m_llama;
     LivingEntity* m_target = nullptr;
-
-    // MC 1.16.5 常量
-    static constexpr f64 TARGET_RANGE = 16.0;         // 基础检测范围
-    static constexpr f64 TARGET_RANGE_MODIFIER = 0.25; // 范围修正系数（实际范围 = 16 * 0.25 = 4格）
 };
 
 } // namespace entity::ai::goal

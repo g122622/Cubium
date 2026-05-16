@@ -282,7 +282,106 @@ void EndermanEntity::registerGoals() {
 
 **MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.LlamaFollowCaravanGoal`
 
-**状态**: 占位符，待实现
+**执行条件**:
+- 羊驼未在商队中 (`!isInCaravan()`)
+- 附近有可加入的商队（已加入商队但无尾部的羊驼）
+- 距离 > 2 格（最小加入距离）
+- 商队长度未超过最大值（8 只）
+
+**行为流程**:
+1. `shouldExecute()`: 搜索 9 格内可加入的商队尾部羊驼
+2. `startExecuting()`: 初始化速度修正系数
+3. `tick()`: 移动到头领羊驼，保持 2 格间距
+4. `resetTask()`: 离开商队
+
+**商队跟随逻辑**:
+```cpp
+// tick() 核心逻辑
+f64 dx = head->x() - llama->x();
+f64 dy = head->y() - llama->y();
+f64 dz = head->z() - llama->z();
+// 归一化并缩放
+f64 length = std::sqrt(dx * dx + dy * dy + dz * dz);
+f64 scale = std::max(dist - 2.0, 0.0);  // 保持 2 格间距
+// 导航到目标位置
+navigator->moveTo(targetX, targetY, targetZ, speedModifier);
+```
+
+**距离检测**:
+- 距离 > 26 格时加速（速度修正系数 × 1.2，最大 3.0）
+- 距离过远且速度已达上限时放弃跟随
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void LlamaEntity::registerGoals() {
+    // 优先级 2: 商队跟随
+    m_goalSelector.addGoal(2, std::make_unique<LlamaFollowCaravanGoal>(this, 2.1f));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RADIUS | 9.0 | 搜索商队半径 (格) |
+| SEARCH_HEIGHT | 4.0 | 搜索商队高度 (格) |
+| MIN_JOIN_DISTANCE_SQ | 4.0 | 最小加入距离平方 (2²) |
+| MAX_FOLLOW_DISTANCE_SQ | 676.0 | 最大跟随距离平方 (26²) |
+| CARAVAN_FOLLOW_DISTANCE | 2.0 | 跟随间距 (格) |
+| MAX_CARAVAN_LENGTH | 8 | 商队最大长度 |
+
+**依赖关系**:
+- 需要 LlamaEntity 提供 `isInCaravan()`, `hasCaravanTail()`, `getCaravanHead()`, `joinCaravan()`, `leaveCaravan()`, `navigator()` 方法
+- 需要 PathNavigator 提供 `moveTo()` 方法
+
+---
+
+### LlamaDefendTargetGoal - 羊驼防御目标
+
+**职责**: 羊驼攻击附近的未驯服的狼。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.horse.LlamaEntity.DefendTargetGoal`
+
+**执行条件**:
+- 羊驼有世界实例
+- 搜索范围内存在未驯服的狼
+
+**搜索范围**:
+- 基础范围 = 跟随范围属性 (默认 40 格)
+- 实际范围 = 基础范围 × 0.25 = 10 格（MC 1.16.5）
+
+**行为流程**:
+1. `shouldExecute()`: 搜索范围内最近的未驯服狼
+2. `startExecuting()`: 设置攻击目标
+3. `resetTask()`: 清除攻击目标引用
+
+**狼检测条件**:
+- 实体类型为 `LegacyEntityType::Wolf`
+- 狼存活 (`isAlive()`)
+- 狼未被驯服 (`!isTamed()`)
+
+**互斥标志**: `Target`
+
+**使用示例**:
+```cpp
+void LlamaEntity::registerGoals() {
+    // Target 优先级 2: 防御目标 - 攻击未驯服的狼
+    m_targetSelector.addGoal(2, std::make_unique<LlamaDefendTargetGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| TARGET_RANGE | 16.0 | 基础检测范围 (格) |
+| TARGET_RANGE_MODIFIER | 0.25 | 范围修正系数（实际范围 = 16 × 0.25 = 4 格）|
+
+**依赖关系**:
+- 需要 LlamaEntity 提供 `world()`, `boundingBox()`, `distanceSqTo()`, `setAttackTarget()` 方法
+- 需要 WolfEntity 提供 `isTamed()` 方法
+- 需要 IWorld 提供 `getEntitiesInAABB()` 方法
+- 需要 `Attributes::FOLLOW_RANGE` 属性
 
 ---
 
