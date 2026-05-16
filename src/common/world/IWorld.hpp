@@ -1261,6 +1261,32 @@ public:
         return std::nullopt;
     }
 
+    // ========== 命令执行 ==========
+
+    /**
+     * @brief 执行命令
+     *
+     * 在世界中以指定位置和权限级别执行命令。
+     * ServerWorld 会通过 CommandRegistry 执行命令。
+     * ClientWorld 和其他实现返回空实现（返回0）。
+     *
+     * 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
+     *
+     * @param command 命令字符串（可包含或不包含 '/' 前缀）
+     * @param position 命令执行位置
+     * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
+     * @return 命令执行结果码（成功返回正整数，失败返回0）
+     */
+    [[nodiscard]] virtual i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel)
+    {
+        (void)command;
+        (void)position;
+        (void)permissionLevel;
+        return 0;
+    }
+
     // ========== 游戏规则 ==========
 
     /**

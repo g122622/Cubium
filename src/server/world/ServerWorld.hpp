@@ -448,6 +448,23 @@ public:
 
     void setOnRaidEvent(RaidEventCallback callback) { m_onRaidEvent = std::move(callback); }
 
+    // ========== 命令执行回调 ==========
+
+    /**
+     * @brief 命令执行回调类型
+     *
+     * 当实体需要执行命令时调用（如命令方块矿车）。
+     * 参数：命令字符串、执行位置、权限级别
+     * 返回：命令执行结果码（成功返回正整数，失败返回0）
+     *
+     * 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
+     */
+    using CommandExecuteCallback = std::function<i32(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel)>;
+
+    void setOnExecuteCommand(CommandExecuteCallback callback) { m_onExecuteCommand = std::move(callback); }
+
     // ========== IWorld 接口实现 ==========
 
     void addParticle(
@@ -472,6 +489,22 @@ public:
         world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
         bool causesFire = false,
         Entity* source = nullptr) override;
+
+    // ========== 命令执行 (IWorld override) ==========
+
+    /**
+     * @brief 执行命令
+     *
+     * 通过 CommandRegistry 执行命令，用于命令方块矿车等实体执行命令。
+     *
+     * @param command 命令字符串（可包含或不包含 '/' 前缀）
+     * @param position 命令执行位置
+     * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
+     * @return 命令执行结果码（成功返回正整数，失败返回0）
+     */
+    [[nodiscard]] i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel) override;
 
     /**
      * @brief 设置掉落表管理器
@@ -873,7 +906,8 @@ private:
     EntityStatusCallback m_onBroadcastEntityStatus;
     WorldEventCallback m_onBroadcastWorldEvent;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
-    RaidEventCallback m_onRaidEvent; ///< 袭击事件回调
+    RaidEventCallback m_onRaidEvent;                   ///< 袭击事件回调
+    CommandExecuteCallback m_onExecuteCommand;         ///< 命令执行回调
 
     // 随机刻系统
     math::Random m_random; ///< 世界随机数生成器

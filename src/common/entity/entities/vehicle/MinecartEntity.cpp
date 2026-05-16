@@ -1706,7 +1706,9 @@ void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool p
 
 void CommandBlockMinecartEntity::executeCommand()
 {
-    // MC 1.16.5: 执行命令
+    // MC 1.16.5: CommandBlockMinecartEntity.executeCommand()
+    // 参考 CommandBlockLogic.trigger() 和 Commands.handleCommand()
+
     if (m_command.empty()) {
         return;
     }
@@ -1716,17 +1718,18 @@ void CommandBlockMinecartEntity::executeCommand()
         return;
     }
 
-    // TODO: 当命令系统完全集成后执行命令
-    // 伪代码：
-    // auto* server = worldPtr->getServer();
-    // if (server) {
-    //     CommandSource source = CommandSource::fromEntity(*this);
-    //     m_successCount = server->getCommandManager().execute(m_command, source);
-    // }
+    // 通过 IWorld 接口执行命令
+    // 命令方块矿车的权限级别为 2（相当于 OP 级别）
+    // 参考 MC 1.16.5: CommandSource(permissionLevel=2)
+    Vector3d position(x(), y(), z());
+    m_successCount = worldPtr->executeCommand(m_command, position, 2);
 
-    // 当前实现：设置成功次数为0
-    m_successCount = 0;
-    m_lastOutput = "Command execution not yet implemented";
+    // 设置最后输出（成功或失败）
+    if (m_successCount > 0) {
+        m_lastOutput = "Command executed successfully";
+    } else {
+        m_lastOutput = "Command execution failed";
+    }
 }
 
 } // namespace entity

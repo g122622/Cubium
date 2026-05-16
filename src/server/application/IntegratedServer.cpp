@@ -51,6 +51,8 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/command/ServerCommandSource.hpp"
+#include "server/command/CommandRegistry.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -183,6 +185,39 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
                                          const std::vector<BlockPos>& affectedBlocks,
                                          const std::unordered_map<u64, Vector3>& playerKnockback) {
         broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
+    });
+
+    // 设置命令执行回调（用于命令方块矿车等实体执行命令）
+    // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
+    m_world->setOnExecuteCommand([this](const std::string& command,
+                                         const Vector3d& position,
+                                         i32 permissionLevel) -> i32 {
+        // 准备命令字符串（确保以 '/' 开头）
+        std::string cmd = command;
+        if (!cmd.empty() && cmd[0] != '/') {
+            cmd = "/" + cmd;
+        }
+
+        // 创建命令源
+        // MC 1.16.5: 命令方块矿车命令源的权限级别为 2，无关联玩家
+        command::ServerCommandSource source(this,
+            nullptr,                    // 无关联玩家
+            m_world.get(),              // 世界实例
+            position,                   // 执行位置
+            Vector2f(0.0f, 0.0f),       // 朝向
+            permissionLevel,            // 权限级别（命令方块矿车为 2）
+            0,                          // 玩家ID（无玩家）
+            "@");                       // 名称（命令方块矿车显示为 "@"）
+
+        // 执行命令
+        auto result = m_commandRegistry->execute(cmd, source);
+
+        if (result.failed()) {
+            spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+            return 0;
+        }
+
+        return result.value();
     });
 
     // 设置 TimeManager 引用
