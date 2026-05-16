@@ -67,15 +67,26 @@ inventory/
 - `core/Types.hpp` - 基础类型
 - `item/ItemStack.hpp` - 物品堆类型
 
-### 2. IRecipeHolder.hpp
+### 2. IRecipeHolder.hpp / IRecipeHolder.cpp
 
-**职责**: 配方持有者接口，用于追踪当前使用的配方。
+**职责**: 配方持有者接口，用于追踪当前使用的配方，并实现有限合成规则检查。
 
 **主要内容**:
 - `setRecipeUsed()` - 设置当前使用的配方
 - `getRecipeUsed()` - 获取当前使用的配方
+- `canUseRecipe(world, player, recipe)` - 检查是否可以使用配方（MC 1.16.5 有限合成规则）
+  - 空配方始终返回 true
+  - 动态配方（`isDynamic() == true`）始终返回 true
+  - 如果 `doLimitedCrafting` 游戏规则为 false，返回 true
+  - 如果 `doLimitedCrafting` 为 true，检查配方是否已解锁
+  - 成功时设置 `recipeUsed` 并返回 true，失败时返回 false
+- `onCrafting(player)` - 合成完成回调（MC 1.16.5）
+  - 非动态配方：触发配方解锁（`player.unlockRecipe()`）并清除 `recipeUsed`
+  - 动态配方：不执行任何操作（不解锁、不清除）
 
 **实现类**: `CraftResultInventory`
+
+**MC 1.16.5 参考**: `net.minecraft.inventory.IRecipeHolder`
 
 ### 3. IRecipeHelperPopulator.hpp
 
@@ -536,6 +547,34 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
 如果少了第一步，`BlockItemRegistry` 可能只能看到空方块指针，创造物品库就会退化成空列表。
 
 ## 涉及的测试用例
+
+### tests/common/entity/inventory/IRecipeHolderTest.cpp
+
+- `IRecipeHolderTest`: IRecipeHolder 接口测试
+  - 基础测试（空配方和动态配方）：
+    - `NullRecipe_ReturnsTrue`: 空配方始终可用
+    - `DynamicRecipe_ReturnsTrue`: 动态配方在有限合成开启时可用
+    - `DynamicRecipe_WithLimitedCraftingOff_ReturnsTrue`: 动态配方在有限合成关闭时可用
+  - 有限合成关闭测试：
+    - `LimitedCraftingOff_UnlockedRecipe_ReturnsTrue`: 有限合成关闭时解锁配方可用
+    - `LimitedCraftingOff_LockedRecipe_ReturnsTrue`: 有限合成关闭时未解锁配方也可用
+  - 有限合成开启测试：
+    - `LimitedCraftingOn_UnlockedRecipe_ReturnsTrue`: 有限合成开启时解锁配方可用
+    - `LimitedCraftingOn_LockedRecipe_ReturnsFalse`: 有限合成开启时未解锁配方不可用
+    - `LimitedCraftingOn_PartiallyUnlockedRecipes`: 部分解锁场景测试
+  - 边界条件测试：
+    - `MultipleUnlocks_StillWorks`: 多次解锁同一配方
+    - `LockAfterUnlock_BlocksRecipe`: 解锁后再锁定
+    - `RecipeUsedSetAfterSuccessfulUse`: 成功使用后 recipeUsed 被设置
+    - `RecipeUsedNotSetAfterFailedUse`: 失败时 recipeUsed 不被设置
+    - `DefaultLimitedCrafting_IsFalse`: 默认有限合成规则为 false
+  - 组合场景测试：
+    - `MultipleRecipes_MixedUnlockState`: 多个配方混合解锁状态
+    - `ToggleLimitedCrafting_AffectsAvailability`: 切换有限合成规则影响可用性
+  - onCrafting 测试：
+    - `OnCrafting_WithNormalRecipe_UnlocksRecipe`: 普通配方清除 recipeUsed
+    - `OnCrafting_WithDynamicRecipe_NotCleared`: 动态配方不清除 recipeUsed
+    - `OnCrafting_WithNullRecipe_DoesNothing`: 空配方无效果
 
 ### tests/common/test_inventory.cpp
 
