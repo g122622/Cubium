@@ -141,7 +141,7 @@ public:
 - **尺寸**: 0.9×3.5 方块
 - **阶段**: 无敌生成、充能、攻击
 - **攻击**: 凋灵之首（普通/蓝色）
-- **免疫**: 火焰、溺水、凋零
+- **免疫**: 火焰、溺水、凋零、其他凋灵伤害
 
 ```cpp
 class WitherEntity : public MobEntity, public IRangedAttackMob {
@@ -169,11 +169,57 @@ public:
     f32 getHeadY(i32 head) const;
     f32 getHeadZ(i32 head) const;
 
+    // 方块破坏
+    void breakNearbyBlocks();  // 破坏凋灵周围 3x4x3 范围内的方块
+
+    // 受伤处理
+    bool hurt(DamageSource& source, f32 amount) override;  // 受伤后触发方块破坏
+
     // 生物属性
     CreatureAttribute getCreatureAttribute() const override;  // Undead
     bool isNonBoss() const override;  // false
 };
 ```
+
+#### 凋灵免疫伤害
+
+凋灵对以下伤害类型免疫：
+
+| 伤害类型 | 说明 |
+|----------|------|
+| 溺水 | `DamageType::Drown` |
+| 凋零 | `DamageType::Wither` |
+| 其他凋灵 | 来自其他凋灵实体的伤害 |
+| 箭矢（充能时） | 充能状态（生命值≤50%）免疫箭矢 |
+
+#### 方块破坏机制
+
+凋灵的方块破坏有以下特点：
+
+1. **触发条件**：受伤后触发，有 20 tick 冷却
+2. **破坏范围**：凋灵周围 3x4x3 方块（x: -1~1, y: 0~3, z: -1~1）
+3. **不可破坏方块**：使用 `BlockTags::WITHER_IMMUNE` 标签
+4. **游戏规则**：受 `mobGriefing` 游戏规则控制
+5. **音效反馈**：破坏方块后播放 `ENTITY_WITHER_BREAK_BLOCK`
+
+#### WITHER_IMMUNE 方块标签
+
+凋灵无法破坏以下方块：
+
+| 方块 | 说明 |
+|------|------|
+| barrier | 屏障 |
+| bedrock | 基岩 |
+| end_portal | 末地传送门 |
+| end_portal_frame | 末地传送门框架 |
+| end_gateway | 末地折跃门 |
+| command_block | 命令方块 |
+| repeating_command_block | 循环命令方块 |
+| chain_command_block | 连锁命令方块 |
+| structure_block | 结构方块 |
+| jigsaw | 拼图方块 |
+| moving_piston | 移动中的活塞 |
+| light | 光源方块 |
 
 #### 三头目标追踪系统
 

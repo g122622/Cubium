@@ -459,6 +459,8 @@ const BlockState& state = stone->defaultState();
 | `BAMBOO_PLANTABLE_ON()` | 竹子可种植 | grass_block, dirt, sand 等 |
 | `WALL_CORALS()` | 墙珊瑚扇 | tube_coral_wall_fan, brain_coral_wall_fan 等 10 种 |
 | `UNDERWATER_BONEMEALS()` | 水下骨粉方块 | seagrass, kelp, tube_coral_fan 等 7 种 |
+| `ENDERMAN_HOLDABLE()` | 末影人可拾取 | 草方块、泥土、沙子、沙砾、蘑菇、花、仙人掌、南瓜、西瓜、TNT 等 35 种 |
+| `WITHER_IMMUNE()` | 凋灵免疫 | barrier, bedrock, end_portal, end_portal_frame, end_gateway, command_block 等 12 种 |
 | 原木子标签 | 各类原木 | OAK_LOGS, SPRUCE_LOGS, BIRCH_LOGS 等 |
 
 **使用示例**：
