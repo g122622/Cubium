@@ -374,6 +374,229 @@ TEST_F(LootTest, FillPlayerHeadFunction_Clone)
     EXPECT_EQ(CopyNameFunction::Source::This, clonedFunc->getSource());
 }
 
+// ============================================================================
+// FillPlayerHeadFunction Apply 测试
+// ============================================================================
+
+TEST_F(LootTest, FillPlayerHeadFunction_EmptyStack)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家
+    Player player(EntityId(1), "TestPlayer");
+    player.setUuid("550e8400-e29b-41d4-a716-446655440000");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, context);
+
+    // 空物品堆应保持空
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_NoPlayerInContext)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 不设置玩家，只设置钻石物品
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 没有 SkullOwner 标签
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerWithUUID)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家并设置 UUID
+    Player player(EntityId(1), "Steve");
+    player.setUuid("550e8400-e29b-41d4-a716-446655440000");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 检查 SkullOwner 标签
+    EXPECT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains("SkullOwner"));
+
+    const auto& skullOwner = (*tag)["SkullOwner"];
+    EXPECT_TRUE(skullOwner.is_object());
+    EXPECT_EQ("Steve", skullOwner["Name"].get<std::string>());
+    EXPECT_EQ("550e8400-e29b-41d4-a716-446655440000", skullOwner["Id"].get<std::string>());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerNoUUID)
+{
+    // 注意：Entity 构造函数会自动生成随机 UUID，所以 Player 总是有有效 UUID
+    // 这个测试验证当 Player 构造后，UUID 已自动设置
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家，不手动设置 UUID（但 Entity 构造函数会自动生成）
+    Player player(EntityId(1), "AutoUUIDPlayer");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // Entity 构造函数自动生成了 UUID，所以 SkullOwner 会被写入
+    EXPECT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains("SkullOwner"));
+
+    const auto& skullOwner = (*tag)["SkullOwner"];
+    EXPECT_EQ("AutoUUIDPlayer", skullOwner["Name"].get<std::string>());
+    // UUID 是自动生成的，应该是有效的格式
+    EXPECT_TRUE(skullOwner.contains("Id"));
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_SourceThis)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家作为 THIS_ENTITY
+    Player player(EntityId(2), "Alex");
+    player.setUuid("12345678-1234-1234-1234-123456789abc");
+    Entity* entity = &player; // 显式转换为 Entity*
+    context.set(LootParams::THIS_ENTITY, entity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 检查 SkullOwner 标签
+    EXPECT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains("SkullOwner"));
+
+    const auto& skullOwner = (*tag)["SkullOwner"];
+    EXPECT_EQ("Alex", skullOwner["Name"].get<std::string>());
+    EXPECT_EQ("12345678-1234-1234-1234-123456789abc", skullOwner["Id"].get<std::string>());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_SourceKiller)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::Killer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家作为 KILLER_ENTITY
+    Player player(EntityId(3), "KillerSteve");
+    player.setUuid("abcdef12-3456-7890-abcd-ef1234567890");
+    Entity* entity = &player; // 显式转换为 Entity*
+    context.set(LootParams::KILLER_ENTITY, entity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 检查 SkullOwner 标签
+    EXPECT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains("SkullOwner"));
+
+    const auto& skullOwner = (*tag)["SkullOwner"];
+    EXPECT_EQ("KillerSteve", skullOwner["Name"].get<std::string>());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_SourceKillerNonPlayer)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::Killer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建非玩家实体作为 KILLER_ENTITY
+    Entity zombie(LegacyEntityType::Zombie, EntityId(4));
+    context.set(LootParams::KILLER_ENTITY, &zombie);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 非玩家实体不应写入 SkullOwner
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_SourceBlockEntity)
+{
+    // BlockEntity 来源不支持玩家头颅填充
+    FillPlayerHeadFunction func(CopyNameFunction::Source::BlockEntity);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建方块实体
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    BlockEntity* blockEntity = &chest; // 显式转换为 BlockEntity*
+    context.set(LootParams::BLOCK_ENTITY, blockEntity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // BlockEntity 不应写入 SkullOwner
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_OverwritesExistingSkullOwner)
+{
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家
+    Player player(EntityId(1), "NewOwner");
+    player.setUuid("00000000-0000-0000-0000-000000000001");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 设置已有的 SkullOwner
+    nlohmann::json& tag = stack.getOrCreateTag();
+    tag["SkullOwner"] = "OldOwner";
+
+    ItemStack result = func.apply(stack, context);
+
+    // 应该覆盖旧的 SkullOwner
+    EXPECT_TRUE(result.hasTag());
+    const nlohmann::json* resultTag = result.getTag();
+    ASSERT_NE(resultTag, nullptr);
+    EXPECT_TRUE(resultTag->contains("SkullOwner"));
+
+    // SkullOwner 应该是新玩家的信息（JSON 对象格式），不是旧的字符串格式
+    const auto& skullOwner = (*resultTag)["SkullOwner"];
+    EXPECT_TRUE(skullOwner.is_object());
+    EXPECT_EQ("NewOwner", skullOwner["Name"].get<std::string>());
+}
+
 TEST_F(LootTest, SetAttributesFunction_Creation)
 {
     SetAttributesFunction func;
