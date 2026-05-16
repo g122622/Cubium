@@ -24,6 +24,7 @@
 #include "ItemStack.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/core/LivingEntity.hpp"
+#include "../../entity/entities/player/Player.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../util/text/StringTextComponent.hpp"
@@ -248,8 +249,26 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         }
     }
 
-    m_damage += amount;
+    // 保存旧耐久度（用于事件触发）
+    // 耐久度 = maxDamage - damage
     i32 maxDamage = getMaxDamage();
+    i32 oldDurability = maxDamage - m_damage;
+
+    m_damage += amount;
+
+    // 触发耐久变化事件（进度系统）
+    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+    if (entity != nullptr) {
+        IWorld* world = entity->world();
+        if (world != nullptr) {
+            i32 newDurability = maxDamage - m_damage;
+            // 尝试获取玩家ID（如果是玩家）
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player != nullptr) {
+                world->onItemDurabilityChange(player->id(), *this, oldDurability, newDurability);
+            }
+        }
+    }
 
     if (m_damage >= maxDamage) {
         // 物品损坏

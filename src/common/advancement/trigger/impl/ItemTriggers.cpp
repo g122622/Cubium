@@ -77,7 +77,8 @@ Result<std::shared_ptr<ICriterionInstance>> ConsumeItemTrigger::fromJson(const n
 
 void ConsumeItemTrigger::trigger(ServerPlayer& player, const ItemStack& item)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 ConsumeItemEvent 触发
+    // 触发器通过 AdvancementEventHandler::onConsumeItem() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(item);
 }
@@ -170,7 +171,8 @@ Result<std::shared_ptr<ICriterionInstance>> ItemDurabilityTrigger::fromJson(cons
 
 void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 oldDurability)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 ItemDurabilityEvent 触发
+    // 触发器通过 AdvancementEventHandler::onItemDurability() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(oldDurability);
@@ -243,7 +245,8 @@ Result<std::shared_ptr<ICriterionInstance>> EnchantedItemTrigger::fromJson(const
 
 void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 levels)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 EnchantItemEvent 触发
+    // 触发器通过 AdvancementEventHandler::onEnchantItem() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(levels);
@@ -299,7 +302,8 @@ Result<std::shared_ptr<ICriterionInstance>> FilledBucketTrigger::fromJson(const 
 
 void FilledBucketTrigger::trigger(ServerPlayer& player, const ItemStack& item)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 FilledBucketEvent 触发
+    // 触发器通过 AdvancementEventHandler::onFilledBucket() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(item);
 }

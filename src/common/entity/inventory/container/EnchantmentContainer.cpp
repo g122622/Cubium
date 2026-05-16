@@ -353,6 +353,12 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
 
     m_enchantmentInventory->setItem(SLOT_ITEM, item);
 
+    // 触发附魔事件（进度系统）
+    // 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM.trigger(player, item, levels)
+    if (m_world != nullptr) {
+        m_world->onEnchantItem(player.id(), item, level);
+    }
+
     // 更新种子
     updateEnchantmentSeed(player);
     updateEnchantmentOptions();

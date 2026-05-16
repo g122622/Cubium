@@ -107,8 +107,9 @@ ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, H
  * 4. 播放打嗝音效（玩家专用）
  * 5. 减少物品数量（创造模式不减）
  * 6. 返回容器物品
+ * 7. 触发消耗物品事件（进度系统）
  */
-ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity)
+ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
 {
     if (m_food == nullptr) {
         return stack;
@@ -117,6 +118,9 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity&
     // 尝试转换为玩家
     Player* player = dynamic_cast<Player*>(&entity);
     bool isCreativePlayer = (player != nullptr && player->abilities().creativeMode);
+
+    // 保存消耗前的物品副本（用于事件）
+    ItemStack consumedItem = stack.copy();
 
     // 只有玩家才处理饥饿恢复
     if (player != nullptr) {
@@ -161,6 +165,12 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity&
     // 减少物品数量（创造模式不减）
     if (!isCreativePlayer) {
         stack.shrink(1);
+    }
+
+    // 触发消耗物品事件（进度系统）
+    // 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
+    if (player != nullptr) {
+        world.onConsumeItem(player->id(), consumedItem);
     }
 
     // 返回容器物品

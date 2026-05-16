@@ -751,6 +751,53 @@ public:
     void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand) override;
 
     /**
+     * @brief 通知世界玩家消耗物品
+     *
+     * 重写 IWorld::onConsumeItem()，发布 ConsumeItemEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
+     *
+     * @param playerId 玩家ID
+     * @param item 消耗的物品
+     */
+    void onConsumeItem(PlayerId playerId, const ItemStack& item) override;
+
+    /**
+     * @brief 通知世界物品耐久度变化
+     *
+     * 重写 IWorld::onItemDurabilityChange()，发布 ItemDurabilityEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 物品
+     * @param oldDurability 旧耐久度
+     * @param newDurability 新耐久度
+     */
+    void onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability) override;
+
+    /**
+     * @brief 通知世界附魔完成
+     *
+     * 重写 IWorld::onEnchantItem()，发布 EnchantItemEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM
+     *
+     * @param playerId 玩家ID
+     * @param item 附魔的物品
+     * @param levels 消耗的经验等级
+     */
+    void onEnchantItem(PlayerId playerId, const ItemStack& item, i32 levels) override;
+
+    /**
+     * @brief 通知世界桶填充完成
+     *
+     * 重写 IWorld::onFilledBucket()，发布 FilledBucketEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
+     *
+     * @param playerId 玩家ID
+     * @param bucket 填充后的桶物品
+     */
+    void onFilledBucket(PlayerId playerId, const ItemStack& bucket) override;
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

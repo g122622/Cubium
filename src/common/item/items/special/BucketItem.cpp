@@ -99,7 +99,26 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                             player->inventory().add(filledStack);
                         }
                     }
+                } else if (player != nullptr) {
+                    // 创造模式下仍需触发事件，但不需要给物品
+                    // 触发填充桶事件（进度系统）
+                    // 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
+                    BucketItem* filledBucket = getFilledBucket(*pickedFluid);
+                    if (filledBucket != nullptr) {
+                        ItemStack filledStack = filledBucket->getDefaultInstance();
+                        world.onFilledBucket(player->id(), filledStack);
+                    }
                 }
+
+                // 非创造模式下触发事件
+                if (player != nullptr && !player->isCreative()) {
+                    BucketItem* filledBucket = getFilledBucket(*pickedFluid);
+                    if (filledBucket != nullptr) {
+                        ItemStack filledStack = filledBucket->getDefaultInstance();
+                        world.onFilledBucket(player->id(), filledStack);
+                    }
+                }
+
                 return ActionResultType::Success;
             }
         }

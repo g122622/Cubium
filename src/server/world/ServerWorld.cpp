@@ -1732,4 +1732,36 @@ void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, 
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onConsumeItem(PlayerId playerId, const ItemStack& item)
+{
+    // 发布 ConsumeItemEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM.trigger()
+    event::ConsumeItemEvent consumeEvent{currentTick(), playerId, item};
+    event::ServerEventBus::instance().publish(consumeEvent);
+}
+
+void ServerWorld::onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability)
+{
+    // 发布 ItemDurabilityEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger()
+    event::ItemDurabilityEvent durabilityEvent{currentTick(), playerId, item, oldDurability, newDurability};
+    event::ServerEventBus::instance().publish(durabilityEvent);
+}
+
+void ServerWorld::onEnchantItem(PlayerId playerId, const ItemStack& item, i32 levels)
+{
+    // 发布 EnchantItemEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM.trigger()
+    event::EnchantItemEvent enchantEvent{currentTick(), playerId, item, levels, levels};
+    event::ServerEventBus::instance().publish(enchantEvent);
+}
+
+void ServerWorld::onFilledBucket(PlayerId playerId, const ItemStack& bucket)
+{
+    // 发布 FilledBucketEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET.trigger()
+    event::FilledBucketEvent bucketEvent{currentTick(), playerId, bucket};
+    event::ServerEventBus::instance().publish(bucketEvent);
+}
+
 } // namespace mc::server

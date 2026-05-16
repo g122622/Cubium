@@ -142,6 +142,23 @@ public:
             event::ServerEventBus::instance().makeSubscription<event::ChanneledLightningEvent>(
                 [this](const event::ChanneledLightningEvent& e) { onChanneledLightning(e); });
 
+        // 订阅消耗物品事件
+        m_consumeItemSubscription = event::ServerEventBus::instance().makeSubscription<event::ConsumeItemEvent>(
+            [this](const event::ConsumeItemEvent& e) { onConsumeItem(e); });
+
+        // 订阅物品耐久变化事件
+        m_itemDurabilitySubscription =
+            event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
+                [this](const event::ItemDurabilityEvent& e) { onItemDurability(e); });
+
+        // 订阅附魔事件
+        m_enchantItemSubscription = event::ServerEventBus::instance().makeSubscription<event::EnchantItemEvent>(
+            [this](const event::EnchantItemEvent& e) { onEnchantItem(e); });
+
+        // 订阅填充桶事件
+        m_filledBucketSubscription = event::ServerEventBus::instance().makeSubscription<event::FilledBucketEvent>(
+            [this](const event::FilledBucketEvent& e) { onFilledBucket(e); });
+
         initialized_ = true;
     }
 
@@ -162,6 +179,10 @@ public:
         m_playerLocationSubscription.unsubscribe();
         m_dimensionChangeSubscription.unsubscribe();
         m_channeledLightningSubscription.unsubscribe();
+        m_consumeItemSubscription.unsubscribe();
+        m_itemDurabilitySubscription.unsubscribe();
+        m_enchantItemSubscription.unsubscribe();
+        m_filledBucketSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -688,6 +709,145 @@ private:
     }
 
     /**
+     * @brief 处理消耗物品事件
+     *
+     * 触发 ConsumeItemTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM.trigger()
+     */
+    void onConsumeItem(const event::ConsumeItemEvent& e)
+    {
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ConsumeItemTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::ConsumeItemTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::ConsumeItemTriggerInstance& instance) {
+                return instance.test(e.item);
+            });
+    }
+
+    /**
+     * @brief 处理物品耐久变化事件
+     *
+     * 触发 ItemDurabilityTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger()
+     */
+    void onItemDurability(const event::ItemDurabilityEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ItemDurabilityTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::ItemDurabilityTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::ItemDurabilityTriggerInstance& instance) {
+                return instance.test(e.item, e.oldDurability);
+            });
+    }
+
+    /**
+     * @brief 处理附魔事件
+     *
+     * 触发 EnchantedItemTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM.trigger()
+     */
+    void onEnchantItem(const event::EnchantItemEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EnchantedItemTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::EnchantedItemTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::EnchantedItemTriggerInstance& instance) {
+                return instance.test(e.item, e.levels);
+            });
+    }
+
+    /**
+     * @brief 处理填充桶事件
+     *
+     * 触发 FilledBucketTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET.trigger()
+     */
+    void onFilledBucket(const event::FilledBucketEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::FilledBucketTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::FilledBucketTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::FilledBucketTriggerInstance& instance) {
+                return instance.test(e.bucket);
+            });
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -728,6 +888,10 @@ private:
     event::ServerEventBus::Subscription<event::PlayerLocationEvent> m_playerLocationSubscription;
     event::ServerEventBus::Subscription<event::DimensionChangeEvent> m_dimensionChangeSubscription;
     event::ServerEventBus::Subscription<event::ChanneledLightningEvent> m_channeledLightningSubscription;
+    event::ServerEventBus::Subscription<event::ConsumeItemEvent> m_consumeItemSubscription;
+    event::ServerEventBus::Subscription<event::ItemDurabilityEvent> m_itemDurabilitySubscription;
+    event::ServerEventBus::Subscription<event::EnchantItemEvent> m_enchantItemSubscription;
+    event::ServerEventBus::Subscription<event::FilledBucketEvent> m_filledBucketSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

@@ -1148,6 +1148,84 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界玩家消耗物品
+     *
+     * 当玩家消耗物品（如吃食物、喝药水）时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 ConsumeItemEvent。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
+     *
+     * @param playerId 玩家ID
+     * @param item 消耗的物品
+     */
+    virtual void onConsumeItem(PlayerId playerId, const ItemStack& item)
+    {
+        (void)playerId;
+        (void)item;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界物品耐久度变化
+     *
+     * 当物品耐久度变化时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 ItemDurabilityEvent。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 物品
+     * @param oldDurability 旧耐久度
+     * @param newDurability 新耐久度
+     */
+    virtual void onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability)
+    {
+        (void)playerId;
+        (void)item;
+        (void)oldDurability;
+        (void)newDurability;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界附魔完成
+     *
+     * 当玩家附魔物品时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 EnchantItemEvent。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM
+     *
+     * @param playerId 玩家ID
+     * @param item 附魔的物品
+     * @param levels 消耗的经验等级
+     */
+    virtual void onEnchantItem(PlayerId playerId, const ItemStack& item, i32 levels)
+    {
+        (void)playerId;
+        (void)item;
+        (void)levels;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界桶填充完成
+     *
+     * 当玩家用桶装液体时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 FilledBucketEvent。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
+     *
+     * @param playerId 玩家ID
+     * @param bucket 填充后的桶物品
+     */
+    virtual void onFilledBucket(PlayerId playerId, const ItemStack& bucket)
+    {
+        (void)playerId;
+        (void)bucket;
+        // 默认空实现
+    }
+
     // ========== 游戏规则 ==========
 
     /**
