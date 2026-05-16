@@ -203,6 +203,16 @@ public:
     [[nodiscard]] virtual std::optional<ResourceLocation> getAngrySound() const { return std::nullopt; }
 
     /**
+     * @brief 获取进食音效
+     *
+     * MC 1.16.5: getEatSound()
+     * 子类应重写提供具体音效。
+     *
+     * @return 进食音效资源位置
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getEatSound() const { return std::nullopt; }
+
+    /**
      * @brief 获取主人UUID
      * @return 主人UUID字符串，如果没有主人返回空字符串
      */
@@ -237,6 +247,33 @@ public:
      * @return 是否可用于驯服
      */
     [[nodiscard]] virtual bool isTameItem(const ItemStack& itemStack) const;
+
+    /**
+     * @brief 处理喂食
+     *
+     * MC 1.16.5: AbstractHorseEntity.handleEating()
+     * 处理玩家喂食马匹的效果：
+     * - 治疗生命值
+     * - 加速幼体成长
+     * - 增加驯服进度
+     * - 触发繁殖（金苹果/金胡萝卜）
+     *
+     * @param player 喂食的玩家
+     * @param itemStack 食物物品堆（可能被修改）
+     * @return 是否成功喂食
+     */
+    virtual bool handleEating(Player* player, ItemStack& itemStack);
+
+    /**
+     * @brief 检查物品是否为马的食物
+     *
+     * MC 1.16.5: AbstractHorseEntity.func_230276_fq_()
+     * 检查物品是否可用于喂食马匹（小麦、糖、干草块、苹果、金胡萝卜、金苹果）
+     *
+     * @param itemStack 物品堆
+     * @return 是否为马的食物
+     */
+    [[nodiscard]] virtual bool isFoodItem(const ItemStack& itemStack) const;
 
     // ========== 装备系统 ==========
 
@@ -359,6 +396,21 @@ public:
     void tick() override;
 
     /**
+     * @brief 处理玩家交互
+     *
+     * MC 1.16.5: AbstractHorseEntity.func_230254_b_()
+     * 处理玩家右键点击马匹时的交互：
+     * - 手持食物时：喂食
+     * - 空手且已驯服：打开背包
+     * - 空手且未驯服：尝试骑乘
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /**
      * @brief 骑乘移动处理
      * MC 1.16.5: travel(Vector3d)
      */
@@ -416,6 +468,35 @@ protected:
      * MC 1.16.5: setHorseWatchableBoolean()
      */
     void setHorseWatchableBoolean(i8 flag, bool value);
+
+    /**
+     * @brief 设置后代属性
+     *
+     * MC 1.16.5: AbstractHorseEntity.setOffspringAttributes()
+     * 遗传公式：(父本基础值 + 母本基础值 + 随机变异值) / 3
+     *
+     * @param partner 配偶实体
+     * @param offspring 后代实体
+     */
+    void setOffspringAttributes(const AgeableEntity& partner, AbstractHorseEntity& offspring);
+
+    /**
+     * @brief 获取随机生命值变异
+     * MC 1.16.5: 15 + rand(8) + rand(9)，范围 15-30
+     */
+    [[nodiscard]] f32 getModifiedMaxHealth() const;
+
+    /**
+     * @brief 获取随机跳跃力变异
+     * MC 1.16.5: 0.4 + rand*0.2*3，范围 0.4-1.0
+     */
+    [[nodiscard]] f64 getModifiedJumpStrength() const;
+
+    /**
+     * @brief 获取随机速度变异
+     * MC 1.16.5: (0.45 + rand*0.3*3) * 0.25，范围 0.1125-0.3375
+     */
+    [[nodiscard]] f64 getModifiedMovementSpeed() const;
 
     // ========== 尺寸 ==========
     // 子类应该重写这些方法以提供正确的尺寸

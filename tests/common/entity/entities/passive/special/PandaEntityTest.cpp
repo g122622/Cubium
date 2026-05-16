@@ -449,5 +449,330 @@ TEST_F(PandaEntitySneezeTest, NearbyAdultPandasCanJump)
     EXPECT_EQ(m_world.getParticleSpawnCount(), 1);
 }
 
+// ==================== PandaEntity 基因系统测试 ====================
+
+TEST(PandaEntityGeneTest, GetAndSetMainGene)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    panda.setMainGene(3);
+    EXPECT_EQ(panda.getMainGene(), 3);
+
+    panda.setMainGene(5);
+    EXPECT_EQ(panda.getMainGene(), 5);
+}
+
+TEST(PandaEntityGeneTest, GetAndSetHiddenGene)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    panda.setHiddenGene(2);
+    EXPECT_EQ(panda.getHiddenGene(), 2);
+
+    panda.setHiddenGene(4);
+    EXPECT_EQ(panda.getHiddenGene(), 4);
+}
+
+TEST(PandaEntityGeneTest, CalculateExpressedPersonality_AggressiveDominant)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // MC 1.16.5 Gene.func_221101_b() 规则：
+    // 如果主基因是显性的（Aggressive），直接返回主基因
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Normal));
+    EXPECT_EQ(panda.calculateExpressedPersonality(), PandaEntity::Personality::Aggressive);
+
+    // 如果主基因是 Normal（隐性）且隐藏基因是 Aggressive，
+    // 根据 MC 1.16.5 规则，只有 mainGene==LAZY && hiddenGene==AGGRESSIVE 时才返回 AGGRESSIVE
+    // 其他隐性基因情况下返回主基因
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Normal));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
+    // 预期返回 Normal，因为主基因是隐性的且不是 Lazy
+    EXPECT_EQ(panda.calculateExpressedPersonality(), PandaEntity::Personality::Normal);
+}
+
+TEST(PandaEntityGeneTest, CalculateExpressedPersonality_LazyAggressiveCombo)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // MC 1.16.5: Lazy + Aggressive 组合表达为 Aggressive（好斗是显性的）
+    // 参考: Gene.func_221101_b()
+    // if (mainGene.isRecessive()) {
+    //     return mainGene == LAZY && hiddenGene == AGGRESSIVE ? AGGRESSIVE : mainGene;
+    // }
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Lazy));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
+    EXPECT_EQ(panda.calculateExpressedPersonality(), PandaEntity::Personality::Aggressive);
+}
+
+TEST(PandaEntityGeneTest, CalculateExpressedPersonality_NormalMainGene)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // 普通基因作为主基因
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Normal));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Lazy));
+    EXPECT_EQ(panda.calculateExpressedPersonality(), PandaEntity::Personality::Normal);
+
+    // 顽皮基因作为主基因
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Playful));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Normal));
+    EXPECT_EQ(panda.calculateExpressedPersonality(), PandaEntity::Personality::Playful);
+}
+
+TEST(PandaEntityGeneTest, GetOneOfGenesRandomly)
+{
+    Items::initialize();
+
+    math::Random rng(12345);
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setMainGene(2);
+    panda.setHiddenGene(4);
+
+    // 随机获取一个基因，应该是主基因或隐藏基因之一
+    u8 gene = panda.getOneOfGenesRandomly(rng);
+    EXPECT_TRUE(gene == 2 || gene == 4);
+}
+
+TEST(PandaEntityGeneTest, UpdatePersonalityFromGenes)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
+    panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Normal));
+    panda.updatePersonalityFromGenes();
+
+    EXPECT_EQ(panda.getPersonality(), PandaEntity::Personality::Aggressive);
+}
+
+// ==================== PandaEntity spawnBaby 测试 ====================
+
+class PandaEntitySpawnBabyTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    PandaTestWorld m_world;
+};
+
+TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_CreatesChildPanda)
+{
+    PandaEntity mother(LegacyEntityType::Panda, EntityId(1));
+    mother.setWorld(&m_world);
+    mother.setPosition(0.0f, 64.0f, 0.0f);
+
+    PandaEntity father(LegacyEntityType::Panda, EntityId(2));
+    father.setWorld(&m_world);
+
+    auto baby = mother.spawnBaby(father);
+
+    ASSERT_NE(baby, nullptr);
+    EXPECT_TRUE(baby->isChild());
+
+    // 检查是 PandaEntity 类型
+    PandaEntity* babyPanda = dynamic_cast<PandaEntity*>(baby.get());
+    EXPECT_NE(babyPanda, nullptr);
+}
+
+TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_PositionNearMother)
+{
+    PandaEntity mother(LegacyEntityType::Panda, EntityId(1));
+    mother.setWorld(&m_world);
+    mother.setPosition(100.0f, 64.0f, 200.0f);
+
+    PandaEntity father(LegacyEntityType::Panda, EntityId(2));
+
+    auto baby = mother.spawnBaby(father);
+
+    ASSERT_NE(baby, nullptr);
+
+    // 幼体应该在母体附近
+    f32 dx = baby->x() - mother.x();
+    f32 dy = baby->y() - mother.y();
+    f32 dz = baby->z() - mother.z();
+    f32 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    // 位置应该非常接近（spawnBaby使用母体位置）
+    EXPECT_LT(distance, 1.0f);
+}
+
+TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_InheritsGenes)
+{
+    PandaEntity mother(LegacyEntityType::Panda, EntityId(1));
+    mother.setWorld(&m_world);
+    mother.setPosition(0.0f, 64.0f, 0.0f);
+    mother.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
+    mother.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Lazy));
+
+    PandaEntity father(LegacyEntityType::Panda, EntityId(2));
+    father.setMainGene(static_cast<u8>(PandaEntity::Personality::Playful));
+    father.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Worried));
+
+    auto baby = mother.spawnBaby(father);
+    ASSERT_NE(baby, nullptr);
+
+    PandaEntity* babyPanda = dynamic_cast<PandaEntity*>(baby.get());
+    ASSERT_NE(babyPanda, nullptr);
+
+    // 幼体应该有基因（从父母遗传）
+    // 由于遗传是随机的，我们只验证基因在有效范围内
+    EXPECT_GE(babyPanda->getMainGene(), 0);
+    EXPECT_LE(babyPanda->getMainGene(), 5);
+    EXPECT_GE(babyPanda->getHiddenGene(), 0);
+    EXPECT_LE(babyPanda->getHiddenGene(), 5);
+}
+
+TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_BothParents)
+{
+    PandaEntity child(LegacyEntityType::Panda, EntityId(3));
+    child.setWorld(&m_world);
+
+    PandaEntity father(LegacyEntityType::Panda, EntityId(1));
+    father.setMainGene(2);
+    father.setHiddenGene(3);
+
+    PandaEntity mother(LegacyEntityType::Panda, EntityId(2));
+    mother.setMainGene(4);
+    mother.setHiddenGene(5);
+
+    child.inheritGenesFromParents(&father, &mother);
+
+    // 基因应该在父母的基因范围内（考虑变异概率）
+    EXPECT_GE(child.getMainGene(), 0);
+    EXPECT_LE(child.getMainGene(), 5);
+    EXPECT_GE(child.getHiddenGene(), 0);
+    EXPECT_LE(child.getHiddenGene(), 5);
+}
+
+TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_FatherOnly)
+{
+    PandaEntity child(LegacyEntityType::Panda, EntityId(3));
+    child.setWorld(&m_world);
+
+    PandaEntity father(LegacyEntityType::Panda, EntityId(1));
+    father.setMainGene(1);
+    father.setHiddenGene(2);
+
+    // 只有一个父本（没有母本）
+    child.inheritGenesFromParents(&father, nullptr);
+
+    // 基因应该在有效范围内
+    EXPECT_GE(child.getMainGene(), 0);
+    EXPECT_LE(child.getMainGene(), 5);
+    EXPECT_GE(child.getHiddenGene(), 0);
+    EXPECT_LE(child.getHiddenGene(), 5);
+}
+
+// ==================== PandaEntity 打滚测试 ====================
+
+TEST(PandaEntityRollTest, SetAndGetRollTimer)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    EXPECT_EQ(panda.getRollTimer(), 0);
+
+    panda.setRollTimer(10);
+    EXPECT_EQ(panda.getRollTimer(), 10);
+
+    panda.setRollTimer(0);
+    EXPECT_EQ(panda.getRollTimer(), 0);
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // 初始状态，所有行为状态都是 false
+    EXPECT_TRUE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setSneezing(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setRolling(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setEating(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+    panda.setLying(true);
+
+    EXPECT_FALSE(panda.canPerformAction());
+}
+
+TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
+{
+    Items::initialize();
+
+    PandaEntity panda(LegacyEntityType::Panda, EntityId(1));
+
+    // 任何一个状态为 true 就不能执行动作
+    panda.setSneezing(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setSneezing(false);
+    panda.setRolling(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setRolling(false);
+    panda.setEating(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    panda.setEating(false);
+    panda.setLying(true);
+    EXPECT_FALSE(panda.canPerformAction());
+
+    // 所有状态都为 false 时可以执行动作
+    panda.setLying(false);
+    EXPECT_TRUE(panda.canPerformAction());
+}
+
 } // anonymous namespace
 } // namespace mc

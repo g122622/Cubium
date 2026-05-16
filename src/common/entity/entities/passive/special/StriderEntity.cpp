@@ -28,6 +28,7 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockTags.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
@@ -39,9 +40,11 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/MoveToLavaGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
 #include <cmath>
 
@@ -141,11 +144,14 @@ bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
     // MC 1.16.5: 炽足兽使用诡异菌繁殖
     // field_234308_bu_ = Ingredient.fromItems(Items.WARPED_FUNGUS)
     const Item* item = itemStack.getItem();
-    if (item == nullptr) return false;
-    // TODO: 检查 Items::WARPED_FUNGUS
-    // return item == Items::WARPED_FUNGUS;
-    MC_UNUSED(item);
-    return false; // 暂时返回 false，等待 Items::WARPED_FUNGUS 实现
+    if (item == nullptr) {
+        return false;
+    }
+    // Items::WARPED_FUNGUS 可能在初始化期间为 nullptr
+    if (Items::WARPED_FUNGUS == nullptr) {
+        return false;
+    }
+    return item == Items::WARPED_FUNGUS;
 }
 
 std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/)
@@ -382,16 +388,22 @@ void StriderEntity::registerGoals()
             [](const ItemStack& stack) -> bool {
                 const Item* item = stack.getItem();
                 if (item == nullptr) return false;
-                // TODO: 检查 Items::WARPED_FUNGUS 和 Items::WARPED_FUNGUS_ON_A_STICK
-                MC_UNUSED(item);
+                // 检查是否为诡异菌或诡异菌钓竿
+                // 注意：Items 可能在初始化期间为 nullptr
+                if (Items::WARPED_FUNGUS != nullptr && item == Items::WARPED_FUNGUS) {
+                    return true;
+                }
+                if (Items::WARPED_FUNGUS_ON_A_STICK != nullptr && item == Items::WARPED_FUNGUS_ON_A_STICK) {
+                    return true;
+                }
                 return false;
             },
             false));
 
     // 优先级 4: 寻找熔岩目标
     // MC 1.16.5: new StriderEntity.MoveToLavaGoal(this, 1.5D)
-    // TODO: 实现 MoveToLavaGoal
-    // m_goalSelector.addGoal(4, new MoveToLavaGoal(this, 1.5));
+    // [已完成] 当炽足兽离开熔岩时，自动寻找并移动到附近的熔岩 - 2026/05/16
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MoveToLavaGoal>(this, 1.5));
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
@@ -408,7 +420,13 @@ void StriderEntity::registerGoals()
 
     // 优先级 9: 看向其他炽足兽
     // MC 1.16.5: new LookAtGoal(this, StriderEntity.class, 8.0F)
-    // TODO: 实现 LookAtGoal 对特定实体类型的支持
+    // [已完成] 使用 TypeFilter<StriderEntity> 实现看向特定实体类型 - 2026/05/16
+    m_goalSelector.addGoal(9,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this,
+            8.0f,
+            entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
+            entity::ai::goal::TypeFilter<StriderEntity>{}));
 }
 
 // ========== 属性注册 ==========
@@ -426,6 +444,21 @@ void StriderEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }
 
+void StriderEntity::die(DamageSource& cause)
+{
+    // MC 1.16.5 StriderEntity.dropInventory()
+    // 先调用父类 die()
+    AnimalEntity::die(cause);
+
+    // 如果有鞍，掉落鞍物品
+    if (hasSaddle() && m_world != nullptr && !m_world->isClientSide()) {
+        // 使用 ItemDropHelper 在实体位置生成鞍物品
+        ItemStack saddle(Items::SADDLE, 1);
+        math::Random rng = getRandom();
+        ItemDropHelper::spawnItemAtEntity(this, saddle, 0.0f, rng);
+    }
+}
+
 // ========== IRideable 接口额外方法 ==========
 
 bool StriderEntity::canBeRiddenInWater() const
@@ -433,6 +466,52 @@ bool StriderEntity::canBeRiddenInWater() const
     // MC 1.16.5: 炽足兽可以在熔岩中被骑乘
     // 但不能在水中被骑乘
     return false; // 水中不能骑乘
+}
+
+// ========== IEquipable 接口实现 ==========
+
+ItemStack StriderEntity::getEquipment(i32 slot) const
+{
+    // MC 1.16.5: 炽足兽只有一个鞍槽
+    if (slot != 0) {
+        return ItemStack::EMPTY;
+    }
+
+    // MC 1.16.5 StriderEntity 不存储实际的鞍 ItemStack，只存储布尔值
+    // 当有鞍时返回一个鞍物品堆
+    if (hasSaddle()) {
+        return ItemStack(Items::SADDLE, 1);
+    }
+
+    return ItemStack::EMPTY;
+}
+
+void StriderEntity::setEquipment(i32 slot, const ItemStack& item)
+{
+    // MC 1.16.5: 炽足兽只有一个鞍槽
+    if (slot != 0) {
+        return;
+    }
+
+    // MC 1.16.5: 设置鞍状态
+    // 注意：炽足兽不存储实际的物品，只存储布尔值
+    bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
+    setSaddle(isSaddle);
+}
+
+bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
+{
+    if (item.isEmpty()) {
+        return true; // 可以清空槽位
+    }
+
+    // MC 1.16.5: 炽足兽只能装备鞍，且只有槽位0
+    if (slot != 0) {
+        return false;
+    }
+
+    // 检查是否是鞍物品
+    return item.getItem() == Items::SADDLE;
 }
 
 } // namespace mc

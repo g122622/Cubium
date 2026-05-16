@@ -44,6 +44,7 @@ src/common/entity/loot/
 - `TOOL` - 使用的工具
 - `FORTUNE_LEVEL` - 时运附魔等级
 - `SILK_TOUCH_LEVEL` - 精准采集附魔等级
+- `IS_IN_OPEN_WATER` - 钓鱼是否在开放水域（用于宝藏掉落判断）
 
 **关键功能**:
 - 参数存储和访问（类型安全的 `get<T>()` / `set<T>()`）
@@ -72,6 +73,7 @@ src/common/entity/loot/
 | `OrCondition` | `or` | 或条件（任一条件满足） |
 | `BlockStateCondition` | `block_state_property` | 方块状态条件（支持属性匹配） |
 | `ToolTypeCondition` | `match_tool` | 工具类型条件 |
+| `FishingOpenWaterCondition` | `fishing_hook_in_open_water` | 钓鱼开放水域条件 |
 
 **BlockStateCondition 属性匹配**:
 
@@ -103,7 +105,36 @@ MC 1.16.5 时运公式:
 
 **构建器**: `LootConditionBuilder` 提供流畅的静态工厂方法。
 
-**参考**: `net.minecraft.loot.conditions.*`
+**FishingOpenWaterCondition 钓鱼开放水域条件** (2026-05-16):
+
+用于检测钓鱼浮标是否在开放水域中。参考 MC 1.16.5 `fishing_hook_in_open_water` 条件。
+
+**开放水域定义**：
+- 浮标周围 5x4x5 区域（X-2到X+2，Y-2到Y+1，Z-2到Z+2）
+- 水面上方层：必须是空气或睡莲
+- 水层：必须是水源方块
+
+**使用场景**：
+- 宝藏物品（命名牌、鞍、弓等）只有在开放水域才能钓到
+- 鱼和垃圾物品在任意水域都可钓到
+
+**使用示例**：
+```cpp
+// 创建宝藏条目，只在开放水域有效
+auto treasureEntry = std::make_unique<ItemLootEntry>("minecraft:name_tag", RandomValueRange(1.0f));
+treasureEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+
+// 构建钓鱼掉落上下文
+auto context = LootContextBuilder(world)
+    .withRandom(random)
+    .withLuck(luckOfTheSeaLevel)  // 海之眷顾附魔等级
+    .withParameter(LootParams::THIS_ENTITY, static_cast<Entity*>(fishingBobber))
+    .withParameter(LootParams::KILLER_ENTITY, static_cast<Entity*>(angler))
+    .withOwnedValue(LootParams::IS_IN_OPEN_WATER, isInOpenWater)
+    .build(LootParameterSet(LootParameterSet::Type::Fishing));
+```
+
+**参考**: MC 1.16.5 `FishingHookPredicate`, `LootContextParams#IS_IN_OPEN_WATER`
 
 ---
 
@@ -332,6 +363,11 @@ for (i32 i = 0; i < rollCount; ++i) {
 **内置掉落表** (`LootTableManager::initializeDefaultTables()`):
 - 实体掉落: 猪、牛、羊、鸡
 - 方块掉落: 钻石矿、石头、煤矿、铁矿、金矿、红石矿、青金石矿、圆石、下界金矿
+- 钓鱼掉落 (2026-05-16):
+  - `minecraft:gameplay/fishing` - 主表（根据幸运值选择子表）
+  - `minecraft:gameplay/fishing/fish` - 鱼表（鳕鱼、鲑鱼、热带鱼、河豚）
+  - `minecraft:gameplay/fishing/junk` - 垃圾表（皮革靴、皮革、骨头、线等）
+  - `minecraft:gameplay/fishing/treasure` - 宝藏表（命名牌、鞍、弓等，需开放水域）
 
 **生成流程**:
 ```cpp

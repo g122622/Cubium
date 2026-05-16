@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include "../basic/AnimalEntity.hpp"
 #include <memory>
 #include <optional>
@@ -35,6 +36,7 @@ namespace mc {
 class Player;
 class ItemStack;
 class DamageSource;
+class ItemEntity;
 
 /**
  * @brief 狐狸实体
@@ -45,12 +47,21 @@ class DamageSource;
  * - 信任机制：可喂食建立信任，但不可驯服
  * - 叼物品：会叼起地上的物品
  * - 狩猎：会攻击鸡、兔子等小动物
- * - 跳跃攻击：跳起来攻击
+ * - 跳跃攻击：跳起来攻击（扑击）
  * - 睡觉：白天睡觉，晚上活动
  * - 躲避玩家：野生狐狸会躲避玩家
  * - 多种皮肤：红色、白色（雪地变种）
  * - 幼体：小狐狸
  * - 信任玩家：幼狐信任喂养者
+ *
+ * 状态标志位（MC 1.16.5 foxStateManager）：
+ * - bit 1 (0x01): 坐下 (sitting)
+ * - bit 2 (0x04): 蹲伏 (crouching)
+ * - bit 3 (0x08): 感兴趣 (interested) - 盯着目标
+ * - bit 4 (0x10): 扑击准备 (pounceReady)
+ * - bit 5 (0x20): 睡眠 (sleeping)
+ * - bit 6 (0x40): 卡住 (stuck) - 卡在雪中
+ * - bit 7 (0x80): 激怒 (foxAggroed) - 攻击状态
  *
  * 参考 MC 1.16.5 FoxEntity
  */
@@ -132,17 +143,97 @@ public:
      */
     [[nodiscard]] const std::vector<u64>& getTrustedPlayers() const { return m_trustedPlayers; }
 
-    // ========== 睡眠状态 ==========
+    // ========== 状态标志位 ==========
 
     /**
-     * @brief 是否正在睡觉
+     * @brief 是否正在坐下
      */
-    [[nodiscard]] bool isSleeping() const { return m_sleeping; }
+    [[nodiscard]] bool isSitting() const;
+
+    /**
+     * @brief 设置坐下状态
+     */
+    void setSitting(bool sitting);
+
+    /**
+     * @brief 是否正在蹲伏
+     */
+    [[nodiscard]] bool isCrouching() const;
+
+    /**
+     * @brief 设置蹲伏状态
+     */
+    void setCrouching(bool crouching);
+
+    /**
+     * @brief 获取蹲伏进度量 (0.0 - 3.0)
+     * MC 1.16.5: crouchAmount 字段
+     */
+    [[nodiscard]] f32 crouchAmount() const { return m_crouchAmount; }
+
+    /**
+     * @brief 设置蹲伏进度量
+     */
+    void setCrouchAmount(f32 amount) { m_crouchAmount = amount; }
+
+    /**
+     * @brief 是否完全蹲伏 (crouchAmount >= 3.0)
+     * MC 1.16.5: func_213490_ee
+     */
+    [[nodiscard]] bool isFullyCrouched() const { return m_crouchAmount >= 3.0f; }
+
+    /**
+     * @brief 是否"感兴趣"（盯着目标）
+     */
+    [[nodiscard]] bool isInterested() const;
+
+    /**
+     * @brief 设置"感兴趣"状态
+     */
+    void setInterested(bool interested);
+
+    /**
+     * @brief 是否处于扑击准备状态
+     * MC 1.16.5: func_213480_dY
+     */
+    [[nodiscard]] bool isPounceReady() const;
+
+    /**
+     * @brief 设置扑击准备状态
+     * MC 1.16.5: func_213461_s
+     */
+    void setPounceReady(bool ready);
+
+    /**
+     * @brief 是否正在睡眠
+     */
+    [[nodiscard]] bool isSleeping() const { return (m_stateFlags & FLAG_SLEEPING) != 0; }
 
     /**
      * @brief 设置睡眠状态
      */
     void setSleeping(bool sleeping);
+
+    /**
+     * @brief 是否卡住（卡在雪中）
+     */
+    [[nodiscard]] bool isStuck() const;
+
+    /**
+     * @brief 设置卡住状态
+     */
+    void setStuck(bool stuck);
+
+    /**
+     * @brief 是否激怒状态
+     * MC 1.16.5: isFoxAggroed
+     */
+    [[nodiscard]] bool isFoxAggroed() const;
+
+    /**
+     * @brief 设置激怒状态
+     */
+    void setFoxAggroed(bool aggroed);
 
     // ========== 叼物品 ==========
 
@@ -152,7 +243,7 @@ public:
     [[nodiscard]] bool isHoldingItem() const;
 
     /**
-     * @brief 获取叼着的物品
+     * @brief 获取叼着的物品（主手）
      */
     [[nodiscard]] const ItemStack* getHeldItem() const { return m_heldItem.get(); }
 
@@ -162,31 +253,44 @@ public:
     void setHeldItem(std::unique_ptr<ItemStack> item);
 
     /**
+     * @brief 获取手持物品（实现 ItemHolder 接口）
+     * @param hand 手
+     * @return 物品堆
+     */
+    [[nodiscard]] ItemStack getHeldItem(Hand hand) const;
+
+    /**
+     * @brief 设置手持物品
+     * @param hand 手
+     * @param stack 物品堆
+     */
+    void setHeldItem(Hand hand, ItemStack stack);
+
+    /**
      * @brief 丢弃叼着的物品
      */
     void dropHeldItem();
 
-    // ========== 行为 ==========
+    // ========== 行为辅助方法 ==========
 
     /**
-     * @brief 是否可以扑击
+     * @brief 是否可以行动
+     * MC 1.16.5: func_213478_eo
+     * 条件：非坐下、非蹲伏、非睡眠、非卡住、非激怒
      */
-    [[nodiscard]] bool canPounce() const { return m_canPounce; }
+    [[nodiscard]] bool canAct() const;
 
     /**
-     * @brief 设置是否可以扑击
+     * @brief 重置所有状态
+     * MC 1.16.5: func_213499_en
      */
-    void setCanPounce(bool canPounce) { m_canPounce = canPounce; }
+    void resetAllStates();
 
     /**
-     * @brief 是否正在扑击
+     * @brief 唤醒（停止睡眠、坐下等）
+     * MC 1.16.5: func_213454_em
      */
-    [[nodiscard]] bool isPouncing() const { return m_pouncing; }
-
-    /**
-     * @brief 设置扑击状态
-     */
-    void setPouncing(bool pouncing) { m_pouncing = pouncing; }
+    void wakeUp();
 
     // ========== 繁殖 ==========
 
@@ -250,6 +354,11 @@ public:
      */
     void playSpitSound();
 
+    /**
+     * @brief 播放尖叫音效（白狐专用）
+     */
+    void playScreechSound();
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -261,27 +370,41 @@ protected:
     void tick() override;
 
 private:
+    // ========== 状态更新 ==========
+    void updateCrouchAmount();
+
+    // ========== 数据成员 ==========
+
     // 皮肤类型
     FoxType m_foxType = FoxType::Red;
 
     // 信任的玩家（最多2个）
     std::vector<u64> m_trustedPlayers;
 
-    // 睡眠状态
-    bool m_sleeping = false;
+    // 状态标志位（使用位标志存储）
+    u8 m_stateFlags = 0;
+
+    // 蹲伏进度量 (0.0 - 3.0)
+    f32 m_crouchAmount = 0.0f;
+    f32 m_prevCrouchAmount = 0.0f;
+
+    // 睡眠计时器
     i32 m_sleepTimer = 0;
 
     // 叼着的物品
     std::unique_ptr<ItemStack> m_heldItem;
 
-    // 扑击状态
-    bool m_canPounce = false;
-    bool m_pouncing = false;
-    f32 m_pounceTargetX = 0.0f;
-    f32 m_pounceTargetZ = 0.0f;
-
     // 常量
     static constexpr size_t MAX_TRUSTED_PLAYERS = 2;
+
+    // 状态标志位定义
+    static constexpr u8 FLAG_SITTING = 0x01;
+    static constexpr u8 FLAG_CROUCHING = 0x04;
+    static constexpr u8 FLAG_INTERESTED = 0x08;
+    static constexpr u8 FLAG_POUNCE_READY = 0x10;
+    static constexpr u8 FLAG_SLEEPING = 0x20;
+    static constexpr u8 FLAG_STUCK = 0x40;
+    static constexpr u8 FLAG_FOX_AGGROED = 0x80;
 };
 
 } // namespace mc

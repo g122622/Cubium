@@ -231,6 +231,35 @@ if (!source.isThornsDamage() && trueSource != nullptr) {
 }
 ```
 
+### applyArthropodEnchantments - 攻击型附魔分发（投射物）
+
+遍历攻击者所有装备的附魔，触发攻击型附魔效果。用于投射物命中目标时：
+- **节肢杀手**：对节肢生物施加缓慢 IV 效果
+- 其他攻击型附魔效果
+
+```cpp
+// 在投射物命中时调用（如 ShulkerBulletEntity::onEntityHit）
+if (damaged && livingShooter != nullptr) {
+    EnchantmentHelper::applyArthropodEnchantments(*livingShooter, *target);
+}
+```
+
+**方法签名**：
+- `applyArthropodEnchantments(LivingEntity& user, Entity& target)` - 遍历攻击者所有装备
+- `applyArthropodEnchantmentDamage(LivingEntity& user, Entity& target, const ItemStack& weapon)` - 仅遍历指定武器
+
+**遍历范围**：
+1. 所有护甲槽位（头盔、胸甲、护腿、靴子）
+2. 主手物品
+
+### applyThornsEnchantments - 荆棘附魔分发
+
+遍历受伤者护甲上的荆棘附魔，对攻击者造成反伤。
+
+**方法签名**：
+- `applyThornsEnchantments(LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots)` - 指定护甲槽位
+- `applyThornsEnchantments(LivingEntity& user, Entity& attacker)` - 从 LivingEntity 自动获取护甲槽位
+
 ## 使用方法
 
 ### 初始化附魔系统

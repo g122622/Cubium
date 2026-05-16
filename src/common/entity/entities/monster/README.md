@@ -54,7 +54,47 @@ Entity
 - `VindicatorEntity` 和 `PillagerEntity` 现在继承自 `AbstractIllagerEntity`
 - `WitchEntity` 现在继承自 `AbstractRaiderEntity`
 
-## 敌对行为
+## MonsterEntity 基类
+
+### MC 1.16.5 对齐
+
+MonsterEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 阳光燃烧机制 | ✅ 完成 |
+| 基于亮度的空闲时间 | ✅ 完成 |
+| 生成位置检查（光照） | ✅ 完成 |
+| 生成位置检查（无光照） | ✅ 完成 |
+| 寻路权重计算 | ✅ 完成 |
+
+#### 生成位置检查
+
+**canMonsterSpawnInLight** - 检查怪物是否可以在指定位置生成（带光照检查）
+
+1. **难度检查**: 非和平模式才能生成 (`DifficultyHelper::allowsMobSpawning`)
+2. **光照检查**: 调用 `isValidLightLevel` 验证光照等级
+3. **位置检查**:
+   - 脚下方块必须有固体上表面 (`BlockState::isSolidSide(Direction::Up)`)
+   - 当前位置不能是固体方块
+   - 上方位置不能是固体方块（高度 > 1 的生物）
+
+**canMonsterSpawn** - 检查怪物是否可以在指定位置生成（无光照检查，用于刷怪笼）
+
+1. **难度检查**: 非和平模式才能生成
+2. **位置检查**: 同上，但不检查光照
+
+**isValidLightLevel** - 光照等级检查 (MC 1.16.5)
+
+1. **天空光照检查**: 如果 `skyLight > random(0-31)`，太亮不能生成
+2. **综合光照检查**:
+   - 雷暴天气: 使用 `getNeighborAwareLightSubtracted(pos, 10)`
+   - 正常天气: 使用 `getLight(pos)`
+3. **生成条件**: 如果 `light <= random(0-7)`，足够黑暗可以生成
+
+参考 MC 1.16.5 `MonsterEntity.isValidLightLevel()`, `MonsterEntity.canMonsterSpawnInLight()`, `MonsterEntity.canMonsterSpawn()`
+
+### 敌对行为
 
 ### 基础敌对目标优先级
 | 优先级 | Goal | 说明 |
@@ -72,7 +112,7 @@ Entity
 ### undead/ - 亡灵类
 | 实体 | 说明 | 特殊行为 |
 |------|------|----------|
-| ZombieEntity | 僵尸 | 破门、召唤援军、转化为溺尸 |
+| ZombieEntity | 僵尸 | 破门、召唤援军、**溺水转化为溺尸** |
 | HuskEntity | 尸壳 | 沙漠僵尸、脱水效果 |
 | DrownedEntity | 溺尸 | 水下僵尸、使用三叉戟 |
 | ZombieVillagerEntity | 僵尸村民 | 虚弱药水+金苹果治愈、保留职业等级 |
@@ -80,6 +120,17 @@ Entity
 | StrayEntity | 流浪者 | 雪地骷髅、迟缓之箭 |
 | WitherSkeletonEntity | 凋灵骷髅 | 凋灵效果攻击、高攻击力 |
 | PhantomEntity | 幻翼 | 飞行攻击、夜间生成 |
+
+#### 僵尸溺水转化 (ZombieEntity.convertToDrowned)
+
+僵尸在水中浸泡 30 秒后开始转化，15 秒后完成转化为溺尸：
+- 在水中 600 ticks (30秒) 开始转化
+- 转化时间 300 ticks (15秒)
+- 转化时保留位置、生命值比例、装备、婴儿状态、自定义名称、持久化状态
+- 播放 `ENTITY_ZOMBIE_CONVERTED_TO_DROWNED` 音效和世界事件 1040
+- 参考 MC 1.16.5 `ZombieEntity.onDrowned()`
+
+详见 `undead/README.md`
 
 ### arthropod/ - 节肢类
 | 实体 | 说明 | 特殊行为 | 实现状态 |
@@ -191,10 +242,145 @@ Entity
 | FOLLOW_RANGE | 48.0 |
 
 ### end/ - 末地生物
-| 实体 | 说明 | 特殊行为 | 接口 |
-|------|------|----------|------|
-| EndermanEntity | 末影人 | 瞬移、搬方块、水伤 | IAngerable |
-| ShulkerEntity | 潜影贝 | 贝壳防御、悬浮攻击 | - |
+| 实体 | 说明 | 特殊行为 | 实现状态 |
+|------|------|----------|---------|
+| EndermanEntity | 末影人 | 瞬移、搬方块、水伤 | ✅ 完整实现 |
+| ShulkerEntity | 潜影贝 | 贝壳防御、悬浮攻击、瞬移 | ✅ 完整实现 |
+
+#### 末影人 (EndermanEntity) 详细实现
+
+末影人是生活在末地和中立型生物，具有瞬移和搬方块的能力。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 0.6f / 2.9f |
+| 最大生命值 | 40.0 (20颗心) |
+| 移动速度 | 0.3 |
+| 攻击伤害 | 7.0 |
+| 跟随范围 | 64.0 |
+| 步进高度 | 1.0f (可走上1格高方块) |
+
+**瞬移系统** (MC 1.16.5):
+
+| 方法 | 说明 | 范围 |
+|------|------|------|
+| `teleport()` | 随机瞬移 | 64格 |
+| `teleportToTarget()` | 向目标瞬移 | 远离目标16格 |
+| `teleportAwayFromWater()` | 避开水瞬移 | 最多尝试10次 |
+
+**受伤后瞬移逻辑** (MC 1.16.5 EndermanEntity.attackEntityFrom):
+
+1. **无敌状态检查**: 首先检查 `isInvulnerableTo(source)`
+
+2. **投射物伤害处理**:
+   - 使用 `source.isProjectile()` 检测投射物伤害
+   - 尝试最多 64 次随机瞬移
+   - 成功瞬移后返回 `true`（不受伤）
+   - 64 次都失败返回 `false`（不受伤）
+
+3. **非投射物伤害处理**:
+   - 调用父类 `MonsterEntity::hurt()` 处理实际伤害
+   - 检查是否在服务端（`!m_world->isClientSide()`）
+   - 使用 `source.getTrueSource()` 获取真正伤害来源
+   - 使用 `dynamic_cast<LivingEntity*>` 检测生物来源
+   - 非生物伤害（摔落、窒息、岩浆等）90% 概率随机瞬移
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `TELEPORT_COOLDOWN` | 50 | 瞬移冷却 (ticks) |
+| `TELEPORT_RANGE` | 64.0f | 瞬移范围 |
+| `TELEPORT_PROJECTILE_ATTEMPTS` | 64 | 投射物伤害时瞬移尝试次数 |
+| `ANGER_DURATION` | 600 | 愤怒持续时间 (ticks) |
+| `WATER_DAMAGE` | 1.0f | 水/雨伤害 |
+
+**水/雨伤害**:
+- 在水中或雨中每 tick 受到 1.0 伤害
+- 受伤后尝试瞬移避开水
+
+**注视检测** (MC 1.16.5):
+- `Player::getLookVector()`: 根据 yaw/pitch 计算视线方向
+- `Player::getEyePosition()`: 获取玩家眼睛位置
+- `Player::isWearingPumpkin()`: 检查玩家是否戴着南瓜头
+- `Player::isLookingAt()`: 检查玩家是否正在注视目标实体
+- `EndermanEntity::shouldAttackPlayer()`: 综合判断玩家是否应该激怒末影人
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | EndermanStareGoal | 注视玩家目标 |
+| 2 | MeleeAttackGoal | 近战攻击 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+| 10 | EndermanPlaceBlockGoal | 放置方块 |
+| 11 | EndermanTakeBlockGoal | 拾取方块 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | EndermanFindPlayerGoal | 查找注视玩家 |
+| 2 | HurtByTargetGoal | 被攻击反击 |
+
+**参考**: MC 1.16.5 EndermanEntity
+
+#### 潜影贝 (ShulkerEntity) 详细实现
+
+潜影贝是生活在末地城市的敌对生物，具有独特的贝壳防御机制和悬浮攻击能力。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 1.0f / 1.0f |
+| 最大生命值 | 30.0 |
+| 移动速度 | 0.0 (不移动) |
+| 跟随范围 | 18.0 |
+| 护甲加成 | 闭合时 +20 |
+| 经验值 | 5 |
+
+**贝壳状态**:
+```cpp
+enum class ShellState : u8 {
+    Closed = 0,  // 闭合
+    Opening = 1, // 正在打开
+    Open = 2,    // 打开
+    Closing = 3  // 正在关闭
+};
+```
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | LookAtGoal | 看向玩家(8格) |
+| 8 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击反击，呼唤同伴 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击最近玩家 |
+
+**攻击机制** (MC 1.16.5):
+- 发射 ShulkerBulletEntity 追踪子弹
+- 子弹命中造成 4 点伤害 + 10 秒漂浮效果
+- 攻击冷却: 20-70 ticks
+
+**瞬移机制** (MC 1.16.5):
+- 受伤后血量低于 50% 有 25% 概率瞬移
+- 瞬移范围: ±8 格
+- 瞬移尝试次数: 5 次
+- 需要找到有效的附着方块
+
+**防御机制**:
+- 闭合时免疫投射物伤害（箭矢、三叉戟、火球等）
+- 闭合时获得 +20 护甲加成
+- 贝壳开合动画时间: 20 ticks
+
+**颜色系统**:
+- 支持 16 种颜色（紫色为默认）
+- 可通过 NBT 或命令设置颜色
+
+**参考**: MC 1.16.5 ShulkerEntity
 
 ### basic/ - 基础怪物
 | 实体 | 说明 | 特殊行为 |
@@ -243,7 +429,7 @@ Entity
 | PillagerEntity | 掠夺者 | 弩远程攻击 | ✅ 属性已修复 |
 | RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
-| WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+| WitchEntity | 女巫 | 药水攻击、喝药水治疗、IRangedAttackMob | ✅ 完成 |
 
 #### 恼鬼 (VexEntity) 详细实现
 

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../core/MobEntity.hpp"
 #include <memory>
@@ -37,7 +37,10 @@ namespace mc {
 class IWorld;
 class DamageSource;
 class LivingEntity;
+
+namespace entity {
 class EnderCrystalEntity;
+} // namespace entity
 
 namespace entity {
 
@@ -244,7 +247,7 @@ public:
     /**
      * @brief 末影龙不能被骑乘
      */
-    [[nodiscard]] bool canBeRidden() const override { return false; }
+    [[nodiscard]] bool canBeRidden(const Entity& /*vehicle*/) const override { return false; }
 
     /**
      * @brief 末影龙是Boss
@@ -292,12 +295,12 @@ public:
     /**
      * @brief 获取最近的末影水晶
      */
-    [[nodiscard]] EnderCrystalEntity* closestEnderCrystal() const { return m_closestEnderCrystal; }
+    [[nodiscard]] entity::EnderCrystalEntity* closestEnderCrystal() const { return m_closestEnderCrystal; }
 
     /**
      * @brief 设置最近的末影水晶
      */
-    void setClosestEnderCrystal(EnderCrystalEntity* crystal) { m_closestEnderCrystal = crystal; }
+    void setClosestEnderCrystal(entity::EnderCrystalEntity* crystal) { m_closestEnderCrystal = crystal; }
 
     /**
      * @brief 是否在栖息点
@@ -388,8 +391,15 @@ private:
 
     /**
      * @brief 掉落经验
+     * 重写父类方法，末影龙使用自定义经验值
      */
-    void dropExperience(i32 amount);
+    void dropExperience() override;
+
+    /**
+     * @brief 掉落指定数量的经验
+     * @param amount 经验数量
+     */
+    void dropExperienceAmount(i32 amount);
 
     // 阶段
     Phase m_phase = Phase::HoldingPattern;
@@ -409,7 +419,7 @@ private:
     LivingEntity* m_attackTarget = nullptr;
 
     // 末影水晶
-    EnderCrystalEntity* m_closestEnderCrystal = nullptr;
+    entity::EnderCrystalEntity* m_closestEnderCrystal = nullptr;
 
     // 动画
     f32 m_prevAnimTime = 0.0f;

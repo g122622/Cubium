@@ -146,6 +146,19 @@ public:
     void onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data);
     void onChunkUnload(ChunkCoord x, ChunkCoord z);
 
+    /**
+     * @brief 清空所有区块数据
+     *
+     * 用于维度切换时清空旧维度的区块。
+     * 参考 MC 1.16.5 ClientWorld.removeAllEntities() 和区块清理逻辑。
+     *
+     * 此方法会：
+     * 1. 取消所有待处理的网格构建任务
+     * 2. 调用区块卸载回调通知渲染器
+     * 3. 清空区块映射
+     */
+    void clearChunks();
+
     void onTimeUpdate(i64 gameTime, i64 dayTime, bool daylightCycleEnabled);
     [[nodiscard]] f32 getInterpolatedCelestialAngle(f32 partialTick) const;
 

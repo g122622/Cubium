@@ -449,5 +449,36 @@ public:
     [[nodiscard]] static std::unique_ptr<LootCondition> toolType(u8 toolType);
 };
 
+/**
+ * @brief 钓鱼开放水域条件
+ *
+ * 检查钓鱼是否在开放水域进行。
+ * 用于钓鱼掉落表中宝藏条目的条件判断。
+ *
+ * 参考: net.minecraft.loot.conditions.EntityProperties + FishingPredicate
+ *
+ * MC 1.16.5 中，宝藏只有在开放水域才能钓到。
+ * 开放水域定义：浮标周围 5x4x5 区域（X-2到X+2，Y-1到Y+2，Z-2到Z+2）
+ * - 水面上方层：必须是空气或睡莲
+ * - 水层：必须是水源方块
+ */
+class FishingOpenWaterCondition : public LootCondition {
+public:
+    /**
+     * @brief 构造开放水域条件
+     * @param requireOpenWater 是否需要开放水域（默认 true）
+     */
+    explicit FishingOpenWaterCondition(bool requireOpenWater = true);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "fishing_hook_in_open_water"; }
+
+    [[nodiscard]] bool requireOpenWater() const { return m_requireOpenWater; }
+
+private:
+    bool m_requireOpenWater;
+};
+
 } // namespace loot
 } // namespace mc

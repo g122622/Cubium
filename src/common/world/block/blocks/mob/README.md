@@ -80,6 +80,53 @@ mob/
 - 在方块中心位置生成蠹虫
 - 位置计算：`x + 0.5, y, z + 0.5`
 
+#### 静态方法 (MC 1.16.5)
+
+**`canContainSilverfish(const BlockState& state)`**:
+- 检查方块状态是否是虫蚀方块
+- 使用 `dynamic_cast` 检查是否为 `InfestedBlock` 类型
+- 返回 `true` 表示是虫蚀方块
+
+**`infest(const Block& block)`**:
+- 获取普通方块对应的虫蚀方块状态
+- 使用静态映射表 `s_hostToInfestedMap`
+- 返回 `nullptr` 表示该方块不能被虫蚀
+
+**`registerInfestedBlock(u32 hostBlock, u32 infestedBlock)`**:
+- 注册普通方块与虫蚀方块的映射关系
+- 由 `VanillaBlocks::registerInfestedBlocks()` 调用
+
+**`initializeMappings()`**:
+- 初始化静态映射表
+- 在 `BlockRegistry::initialize()` 中调用
+
+#### 虫蚀方块映射表
+| 原版方块 | 虫蚀方块 |
+|----------|----------|
+| STONE | INFESTED_STONE |
+| COBBLESTONE | INFESTED_COBBLESTONE |
+| STONE_BRICKS | INFESTED_STONE_BRICKS |
+| CRACKED_STONE_BRICKS | INFESTED_CRACKED_STONE_BRICKS |
+| MOSSY_STONE_BRICKS | INFESTED_MOSSY_STONE_BRICKS |
+| CHISELED_STONE_BRICKS | INFESTED_CHISELED_STONE_BRICKS |
+
+#### 使用示例
+```cpp
+// 检查方块是否是虫蚀方块
+const BlockState* state = world->getBlockState(pos);
+if (blocks::InfestedBlock::canContainSilverfish(*state)) {
+    // 这是虫蚀方块
+}
+
+// 检查方块是否可以被虫蚀
+const Block& block = state->getBlock();
+const BlockState* infestedState = blocks::InfestedBlock::infest(block);
+if (infestedState != nullptr) {
+    // 可以将此方块转换为虫蚀方块
+    world->setBlockState(pos, infestedState, 3);
+}
+```
+
 ### 刷怪笼
 - 自动生成生物
 - 需要方块实体存储配置

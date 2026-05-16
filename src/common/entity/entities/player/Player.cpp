@@ -22,6 +22,7 @@
 */
 
 #include "Player.hpp"
+#include "../../../item/armor/ArmorMaterial.hpp"
 #include "../../../item/core/ActionResult.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
@@ -39,6 +40,7 @@
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../experience/ExperienceManager.hpp"
@@ -1546,11 +1548,18 @@ void Player::registerAttributes()
     // 先调用父类方法注册基础属性
     LivingEntity::registerAttributes();
 
-    // 设置玩家特有属性值
+    // 注册玩家特有属性
+    // MC 1.16.5: PlayerEntity.registerAttributes() 注册以下属性
     using namespace entity::attribute;
+    m_attributes.registerAttribute(*Attributes::luck());
+    m_attributes.registerAttribute(*Attributes::attackDamage());
+    m_attributes.registerAttribute(*Attributes::attackSpeed());
+
+    // 设置玩家特有属性值
     m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
     m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
     m_attributes.setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
+    // LUCK 属性默认值为 0.0，无需显式设置
 }
 
 // ============================================================================
@@ -2052,8 +2061,17 @@ void Player::attack(Entity& target)
                             continue;
                         }
 
-                        // TODO: 检查盔甲架标记 (ArmorStandEntity.hasMarker())
-                        // TODO: 检查队友关系 (isOnSameTeam())
+                        // MC 1.16.5: 排除标记模式的盔甲架
+                        // 标记模式的盔甲架碰撞箱为 0，不应被横扫攻击影响
+                        entity::ArmorStandEntity* armorStand = dynamic_cast<entity::ArmorStandEntity*>(entity);
+                        if (armorStand != nullptr && armorStand->isMarker()) {
+                            continue;
+                        }
+
+                        // MC 1.16.5: 排除队友（友军伤害保护）
+                        if (isOnSameTeam(*entity)) {
+                            continue;
+                        }
 
                         // 应用击退并造成伤害
                         // MC 1.16.5: 击退方向基于玩家朝向
@@ -2103,10 +2121,45 @@ void Player::attack(Entity& target)
         }
 
         // 荆棘附魔反伤处理
-        // TODO: EnchantmentHelper.applyThornEnchantments(target, this);
+        // MC 1.16.5: 攻击成功后，被攻击者的荆棘附魔有概率反伤攻击者
+        // 注意：荆棘伤害不会再次触发荆棘，防止无限循环
+        std::array<const ItemStack*, 4> armorSlots = livingTarget->getArmorSlots();
+        item::enchant::EnchantmentHelper::applyThornsEnchantments(*livingTarget, *this, armorSlots);
 
         // 19. 武器损耗
-        // TODO: mainHand.hitEntity(target, this);
+        // MC 1.16.5: 攻击成功后消耗武器耐久度
+        // 剑消耗 1 点耐久，其他工具消耗 2 点耐久
+        if (!mainHand.isEmpty()) {
+            Item* item = const_cast<Item*>(mainHand.getItem());
+            if (item != nullptr) {
+                // 保存物品副本用于创造模式恢复
+                ItemStack mainHandCopy = mainHand;
+
+                // 调用物品的 hitEntity 方法，由物品决定耐久消耗
+                // 剑 SwordItem::hitEntity() 消耗 1 点
+                // 工具 ToolItem::hitEntity() 消耗 2 点
+                item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+
+                // 检查物品是否损坏（变空）
+                if (mainHand.isEmpty()) {
+                    // MC 1.16.5: 物品损坏后清空主手槽位
+                    // 创造模式下不需要清空（物品不会损坏）
+                    if (!isCreative()) {
+                        m_inventory.getSelectedStackRef() = ItemStack();
+                    }
+                    // 触发 PlayerDestroyItem 事件
+                    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+                    if (m_world) {
+                        m_world->onPlayerDestroyItem(
+                            static_cast<PlayerId>(id()),
+                            mainHandCopy,
+                            0, // 主手槽位
+                            Hand::MainHand
+                        );
+                    }
+                }
+            }
+        }
 
         // 20. 饱食度消耗
         // MC 1.16.5: 攻击消耗 0.1 饱食度
@@ -2141,14 +2194,14 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
     ItemStack itemstackCopy = itemstack; // 保存副本用于创造模式恢复
 
     // 3. 先调用实体的 processInitialInteract 方法
-    // TODO: ActionResultType entityResult = target.processInitialInteract(*this, hand);
-    // if (entityResult.isSuccessOrConsume()) {
-    //     // 创造模式恢复物品数量
-    //     if (isCreative() && itemstack.isEmpty()) {
-    //         inventory().setItem(hand == Hand::MainHand ? 0 : 40, itemstackCopy);
-    //     }
-    //     return entityResult;
-    // }
+    ActionResultType entityResult = target.processInitialInteract(*this, hand);
+    if (entityResult == ActionResultType::Success || entityResult == ActionResultType::Consume) {
+        // 创造模式恢复物品数量
+        if (isCreative() && itemstack.isEmpty()) {
+            inventory().setItem(hand == Hand::MainHand ? 0 : 40, itemstackCopy);
+        }
+        return entityResult;
+    }
 
     // 4. 如果实体不处理，尝试物品的 interactWithEntity
     if (!itemstack.isEmpty()) {
@@ -2169,7 +2222,16 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
                 if (success) {
                     // 物品被消耗处理
                     if (!isCreative() && itemstack.isEmpty()) {
-                        // TODO: 触发 PlayerDestroyItem 事件
+                        // 触发 PlayerDestroyItem 事件
+                        // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+                        if (m_world) {
+                            m_world->onPlayerDestroyItem(
+                                static_cast<PlayerId>(id()),
+                                itemstackCopy,
+                                hand == Hand::MainHand ? 0 : 40,
+                                hand
+                            );
+                        }
                         inventory().setItem(hand == Hand::MainHand ? 0 : 40, ItemStack());
                     }
                     return ActionResultType::Success;
@@ -2179,6 +2241,131 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
     }
 
     return ActionResultType::Pass;
+}
+
+// ============================================================================
+// 注视检测实现
+// ============================================================================
+
+Vector3 Player::getLookVector() const
+{
+    // MC 1.16.5: Entity.getLook()
+    // 根据 yaw 和 pitch 计算视线方向向量
+    // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
+    // pitch 正值向下看，负值向上看
+
+    f32 yawRad = math::toRadians(m_yaw);
+    f32 pitchRad = math::toRadians(m_pitch);
+
+    // 计算方向向量
+    f32 cosYaw = std::cos(yawRad);
+    f32 sinYaw = std::sin(yawRad);
+    f32 cosPitch = std::cos(pitchRad);
+    f32 sinPitch = std::sin(pitchRad);
+
+    // MC 1.16.5 的视线方向计算
+    // 注意：MC 的 pitch 是负的（向上看时 pitch 为负）
+    return Vector3(-sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch).normalized();
+}
+
+Vector3 Player::getEyePosition() const
+{
+    // 眼睛位置 = 实体位置 + 眼睛高度
+    return Vector3(x(), y() + eyeHeight(), z());
+}
+
+bool Player::isWearingPumpkin() const
+{
+    // MC 1.16.5: ItemStack.isEnderMask()
+    // 检查玩家头盔是否为雕刻南瓜或南瓜灯
+    // 这两种物品都可以防止末影人被激怒
+
+    const ItemStack& helmet = inventory().getHelmet();
+
+    if (helmet.isEmpty()) {
+        return false;
+    }
+
+    const Item* item = helmet.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    // 检查是否为雕刻南瓜或南瓜灯
+    // 雕刻南瓜物品的 resource location 是 minecraft:carved_pumpkin
+    // 南瓜灯物品的 resource location 是 minecraft:jack_o_lantern
+    const ResourceLocation& itemId = item->itemLocation();
+    return itemId == ResourceLocation("minecraft:carved_pumpkin") ||
+           itemId == ResourceLocation("minecraft:jack_o_lantern");
+}
+
+bool Player::isLookingAt(const Entity& target) const
+{
+    // MC 1.16.5: EndermanEntity.shouldAttackPlayer() 中的注视检测逻辑
+    // 计算玩家视线方向与玩家到目标向量的点积
+
+    // 1. 获取玩家视线方向
+    Vector3 lookVec = getLookVector();
+
+    // 2. 计算玩家眼睛到目标眼睛的向量
+    Vector3 eyePos = getEyePosition();
+    Vector3 targetEyePos = Vector3(target.x(), target.y() + target.eyeHeight(), target.z());
+    Vector3 toTarget = targetEyePos - eyePos;
+
+    // 3. 计算距离
+    f32 distance = toTarget.length();
+    if (distance < 0.001f) {
+        // 距离太近，认为是在看
+        return true;
+    }
+
+    // 4. 归一化目标向量
+    toTarget = toTarget.normalized();
+
+    // 5. 计算点积
+    f32 dotProduct = lookVec.dot(toTarget);
+
+    // 6. 根据距离调整阈值
+    // MC 1.16.5: return d1 > 1.0D - 0.025D / d0
+    // 距离越远，阈值越高（更难满足注视条件）
+    f32 threshold = 1.0f - 0.025f / distance;
+
+    return dotProduct > threshold;
+}
+
+bool Player::isWearingGoldArmor() const
+{
+    // MC 1.16.5: PiglinTasks.func_234460_a_() (wearsGoldArmor)
+    // 检查玩家的四个盔甲槽位是否有金制盔甲
+    // 金制盔甲可以使猪灵对玩家保持中立
+
+    // 遍历四个盔甲槽位
+    for (i32 slotIndex = static_cast<i32>(EquipmentSlot::Feet);
+         slotIndex <= static_cast<i32>(EquipmentSlot::Head); ++slotIndex) {
+        const ItemStack& armor = getEquipment(static_cast<EquipmentSlot>(slotIndex));
+        if (armor.isEmpty()) {
+            continue;
+        }
+
+        const Item* item = armor.getItem();
+        if (item == nullptr) {
+            continue;
+        }
+
+        // 检查是否为盔甲物品
+        const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+        if (armorItem == nullptr) {
+            continue;
+        }
+
+        // 检查材质是否为金
+        // 通过比较材质引用来判断
+        if (&armorItem->getMaterial() == &item::armor::ArmorMaterials::GOLD) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace mc

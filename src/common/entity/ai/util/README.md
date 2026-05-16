@@ -22,6 +22,9 @@ util/
 | `findRandomTarget(creature, xzRange, yRange, outPos)` | 在指定范围内生成随机可行走位置 |
 | `findRandomTargetBlockAwayFrom(creature, xzRange, yRange, avoidPos, outPos)` | 生成远离指定位置的目标 |
 | `findRandomTargetTowards(creature, xzRange, yRange, targetPos, outPos)` | 生成朝向指定位置的随机目标 |
+| `findRandomTargetTowardsScaled(creature, xzRange, yRange, targetPos, angleRange, outPos)` | 生成朝向指定位置的缩放随机目标（海豚寻宝用） |
+| `findRandomTargetBlock(creature, xzRange, yRange, avoidPos, outPos)` | 生成随机方块目标位置（飞行实体用） |
+| `findRandomTargetBlockTowards(creature, xzRange, yRange, targetPos, outPos)` | 生成朝向目标位置的方块目标（水生生物用） |
 | `getLandPos(creature, xzRange, yRange, outPos)` | 获取陆地位置 |
 | `findRandomTargetAvoidWater(creature, xzRange, yRange, outPos)` | 生成避开水域的随机位置 |
 
@@ -32,6 +35,67 @@ util/
 | `isPositionWalkable(creature, x, y, z)` | 检查位置是否可行走 |
 | `getGroundHeight(world, x, startY, z)` | 获取地面高度 |
 | `calculatePositionScore(creature, pos)` | 计算位置评分 |
+
+### 新增方法详解
+
+#### findRandomTargetTowardsScaled
+
+**职责**: 在目标方向生成一个缩放后的随机目标位置，角度限制在指定范围内。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.RandomPositionGenerator.findRandomTargetTowardsScaled`
+
+**用途**: 海豚寻宝时向宝藏位置导航，在目标方向的一定角度范围内选择随机位置。
+
+**参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| creature | CreatureEntity* | 生物实体 |
+| xzRange | i32 | 水平搜索范围（格） |
+| yRange | i32 | 垂直搜索范围（格） |
+| targetPos | const Vector3& | 目标位置（宝藏位置） |
+| angleRange | f64 | 方向角限制范围（弧度） |
+| outPos | Vector3& | 输出位置 |
+
+**返回**: 是否找到有效位置
+
+**使用示例**:
+```cpp
+// 海豚向宝藏位置导航
+Vector3 targetPos;
+if (RandomPositionGenerator::findRandomTargetTowardsScaled(
+        dolphin, xzRange, yRange, treasurePos, PI / 8.0, targetPos)) {
+    navigator->moveTo(targetPos.x, targetPos.y, targetPos.z, speed);
+}
+```
+
+#### findRandomTargetBlockTowards
+
+**职责**: 在朝向目标的方向选择一个方块位置，不要求位置可行走。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.RandomPositionGenerator.findRandomTargetBlockTowards`
+
+**用途**: 水生生物（如海豚）在朝向目标的方向选择方块位置，检查是否是水或可通过的方块。
+
+**参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| creature | CreatureEntity* | 生物实体 |
+| xzRange | i32 | 水平搜索范围（格） |
+| yRange | i32 | 垂直搜索范围（格） |
+| targetPos | const Vector3& | 目标位置 |
+| outPos | Vector3& | 输出位置 |
+
+**返回**: 是否找到有效位置
+
+**使用示例**:
+```cpp
+// 水生生物向目标方向选择方块位置
+Vector3 targetPos;
+if (RandomPositionGenerator::findRandomTargetBlockTowards(
+        dolphin, xzRange, yRange, playerPos, targetPos)) {
+    navigator->moveTo(targetPos.x, targetPos.y, targetPos.z, speed);
+}
+```
 
 ### 位置评分算法
 

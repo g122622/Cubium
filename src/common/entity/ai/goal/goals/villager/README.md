@@ -19,12 +19,33 @@ villager/
 
 **执行条件**：
 - 是夜间时间（12542-23459 tick）
-- 有绑定的床位
+- 有绑定的床位或能找到可用床位
 
 **行为**：
-1. 移动到床位位置
-2. 到达后进入睡眠状态
-3. 天亮后自动醒来
+1. 检查 Brain 的 HOME 记忆获取绑定床位
+2. 如果没有绑定床位，通过 POI 系统查找最近可用床位
+3. 移动到床位位置
+4. 到达后进入睡眠状态
+5. 天亮后自动醒来
+
+**POI 集成**：
+- 使用 `PointOfInterestStorage::findNearestFree()` 查找床位
+- 使用 `PointOfInterestStorage::acquirePOI()` 占用床位
+- 使用 `BedBlock::isBed()` 验证床位有效性
+
+### GoToBedGoal - 前往床位目标
+
+夜间前往床上睡觉的导航目标。
+
+**执行条件**：
+- 是夜间时间
+- 有绑定的床位（HOME记忆）或能找到可用床位
+
+**行为**：
+1. 导航到床位
+2. 到达后开始睡眠
+3. 占用 POI 床位
+4. 将床位保存到 HOME 记忆
 
 ### WorkAtJobSiteGoal - 工作目标
 
@@ -100,18 +121,6 @@ villager/
 - `FLEE_DISTANCE = 16.0f`: 逃跑距离
 - `FLEE_SPEED = 0.6f`: 逃跑速度倍率
 
-### GoToBedGoal - 前往床位目标
-
-夜间前往床上睡觉的导航目标。
-
-**执行条件**：
-- 是夜间时间
-- 有绑定的床位
-
-**行为**：
-1. 导航到床位
-2. 到达后开始睡眠
-
 ### VillagerBreedGoal - 繁殖目标
 
 村民繁殖行为。
@@ -185,12 +194,13 @@ MC 1.16.5 时间参考：
 
 ## TODO
 
-- [ ] 集成POI系统查找床位和工作站点
-- [ ] 实现完整的睡眠状态管理
+- [x] 集成POI系统查找床位
+- [x] 实现完整的睡眠状态管理
 - [ ] 实现农民的作物种植和收获
 - [x] 实现敌对生物检测（AvoidHostileGoal.findNearestHostile）
 - [x] 实现繁殖时的配偶查找（VillagerBreedGoal.findPartner）
 - [x] 实现物品拾取逻辑（GatherItemsGoal）
+- [x] 实现繁殖时床位检查（VillagerBreedGoal.hasEnoughBeds）
 
 ## 参考
 

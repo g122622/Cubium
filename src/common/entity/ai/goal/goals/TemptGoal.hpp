@@ -82,8 +82,9 @@ protected:
 
     /**
      * @brief 检查是否被玩家移动吓跑
+     * 子类可以重写此方法实现自定义行为（如豹猫信任后不再害怕）
      */
-    [[nodiscard]] bool isScaredByPlayerMovement() const;
+    [[nodiscard]] virtual bool isScaredByPlayerMovement() const;
 
     /**
      * @brief 寻找附近手持诱惑物品的玩家

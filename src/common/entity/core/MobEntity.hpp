@@ -32,6 +32,8 @@
 namespace mc {
 
 // 前向声明
+class Player;
+
 namespace entity::ai::controller {
 class LookController;
 class MovementController;
@@ -479,6 +481,37 @@ public:
      * 重写 LivingEntity::dropExperience()，在死亡时生成经验球。
      */
     void dropExperience() override;
+
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 处理玩家初始交互
+     *
+     * MC 1.16.5: MobEntity.processInitialInteract()
+     * 重写 Entity::processInitialInteract() 以处理生物特有交互：
+     * 1. 检查拴绳（如果玩家手持拴绳）
+     * 2. 检查命名牌
+     * 3. 检查刷怪蛋
+     * 4. 调用 interactMob() 让子类处理特定交互
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
+
+    /**
+     * @brief 子类实现的交互逻辑
+     *
+     * MC 1.16.5: MobEntity.func_230254_b_()
+     * 由 processInitialInteract() 调用，让子类处理特定交互。
+     * 例如：AbstractHorseEntity 在此处理喂食、装备鞍等。
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    [[nodiscard]] virtual ActionResultType interactMob(Player& player, Hand hand);
 
 protected:
     /**

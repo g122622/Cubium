@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -32,7 +32,9 @@
 
 namespace mc {
 
-// Forward declaration
+// Forward declarations
+class DonkeyEntity;
+class MuleEntity;
 class DamageSource;
 
 /**
@@ -105,11 +107,27 @@ public:
 
     /**
      * @brief 马使用金苹果或金胡萝卜繁殖
+     *
+     * MC 1.16.5: HorseEntity.isBreedingItem() 使用基类的食物列表，
+     * 但只有金胡萝卜和金苹果可以触发繁殖（在 handleEating 中处理）。
+     * 这里返回 isFoodItem() 以支持 TemptGoal AI 目标。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     /**
+     * @brief 检查是否可以与另一动物交配
+     *
+     * MC 1.16.5: HorseEntity.canMateWith()
+     * 马可以与马或驴交配。
+     */
+    [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
+
+    /**
      * @brief 生成幼体
+     *
+     * MC 1.16.5: HorseEntity.func_241840_a()
+     * 马 + 马 = 马，马 + 驴 = 骡。
+     * 后代会遗传父母的属性（速度、跳跃力、生命值）和外观（毛色、花纹）。
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 

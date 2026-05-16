@@ -23,6 +23,7 @@
 
 #include "PatrollerEntity.hpp"
 
+#include "../../../ai/goal/goals/special/PatrolGoals.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -60,7 +61,9 @@ void PatrollerEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // TODO: 接入 1.16.5 PatrollerEntity.PatrolGoal 后，将巡逻移动目标注册到这里。
+    // MC 1.16.5: 优先级 4，队员速度 0.7，队长速度 0.595
+    // 队长速度较慢是为了让队员能跟上
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::PatrolGoal>(this, 0.7, 0.595));
 }
 
 } // namespace mc

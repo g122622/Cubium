@@ -656,7 +656,7 @@ void EnderDragonEntity::onDeathUpdate()
     if (m_deathTicks >= DEATH_DURATION) {
         // 死亡完成
         // 掉落经验
-        dropExperience(XP_FIRST_KILL);
+        dropExperienceAmount(XP_FIRST_KILL);
 
         // TODO: 生成传送门和龙蛋
         // 这需要访问世界生成系统来放置传送门结构
@@ -666,7 +666,13 @@ void EnderDragonEntity::onDeathUpdate()
     }
 }
 
-void EnderDragonEntity::dropExperience(i32 amount)
+void EnderDragonEntity::dropExperience()
+{
+    // 末影龙不调用父类的 dropExperience
+    // 它使用自定义的经验掉落逻辑，在死亡动画结束时调用
+}
+
+void EnderDragonEntity::dropExperienceAmount(i32 amount)
 {
     // MC 1.16.5: dropExperience()
     // 使用 ExperienceDropHandler 生成经验球

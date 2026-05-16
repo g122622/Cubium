@@ -143,6 +143,35 @@ AbstractSkeletonEntity
 | 床 | 4x4x4 范围内，每个有 30% 概率加速 |
 | 力量效果 | 每级减少 10% 治愈时间 |
 
+**加速机制详解 (MC 1.16.5):**
+
+```cpp
+// ZombieVillagerEntity::getConversionProgress()
+// 每 tick 只有 1% 概率执行检测
+if (rng.nextFloat() < 0.01f) {
+    // 遍历 4x4x4 范围
+    for (dx = -4; dx <= 4; ++dx) {
+        for (dy = -4; dy <= 4; ++dy) {
+            for (dz = -4; dz <= 4; ++dz) {
+                // 铁栏杆和床同等对待
+                if (block == IRON_BARS || BedBlock::isBed(world, pos)) {
+                    if (rng.nextFloat() < 0.3f) {
+                        ++progress;  // 30% 概率加速
+                    }
+                    ++count;  // 最多检测 14 个
+                }
+            }
+        }
+    }
+}
+```
+
+**床加速特性:**
+- 所有 16 种颜色的床都有效
+- 床的占用状态不影响加速
+- 床的头部和脚部都有效（完整床触发两次检测）
+- 使用 `BedBlock::isBed(world, pos)` 静态方法检测
+
 ### 数据同步参数
 
 | 参数名 | 类型 | 说明 |
@@ -219,6 +248,66 @@ void setVillagerData(const entity::VillagerData& data);
 | StrayEntity | ✅ | ✅ | ✅ | N/A |
 | WitherSkeletonEntity | ✅ | ✅ | ✅ | N/A |
 
+## 溺水转化系统 (ZombieEntity)
+
+僵尸在水中浸泡足够长时间后会转化为溺尸。这是 MC 1.16.5 的核心机制。
+
+### 转化条件
+
+| 条件 | 值 |
+|------|-----|
+| 开始转化 | 在水中 600 ticks (30秒) |
+| 转化时间 | 300 ticks (15秒) |
+| 触发条件 | 头部在水中 |
+
+### 转化流程
+
+```cpp
+void ZombieEntity::updateDrowning() {
+    // 每tick检查
+    if (isInWater() && shouldDrown()) {
+        m_inWaterTime++;
+        if (m_inWaterTime >= 600 && !m_converting) {
+            startDrowning(300);  // 开始15秒转化
+        }
+    } else {
+        m_inWaterTime = 0;  // 重置计时
+    }
+
+    // 转化倒计时
+    if (m_converting && m_conversionTime > 0) {
+        m_conversionTime--;
+        if (m_conversionTime <= 0) {
+            convertToDrowned();  // 完成转化
+        }
+    }
+}
+```
+
+### convertToDrowned() 实现
+
+当僵尸完成溺水转化时，会调用 `convertToDrowned()` 方法：
+
+1. **创建溺尸**: 从 EntityRegistry 获取 `DrownedEntity` 类型并创建新实例
+2. **复制位置**: 位置和旋转角度
+3. **复制生命值**: 按比例保留生命值
+4. **复制装备**: 所有 6 个装备槽位（主手、副手、头盔、胸甲、护腿、靴子）
+5. **复制婴儿状态**: 婴儿僵尸转化为婴儿溺尸
+6. **复制自定义名称**: 名称和可见性
+7. **复制持久化状态**: 命名牌命名的实体会保留
+8. **清理**: 清空原僵尸装备（防止死亡掉落）
+9. **音效**: 播放 `ENTITY_ZOMBIE_CONVERTED_TO_DROWNED`
+10. **事件**: 播放世界事件 1040
+11. **移除**: 标记原僵尸为移除状态
+
+参考 MC 1.16.5 `ZombieEntity.onDrowned()` 和 `func_234341_c_()`
+
+### 子类覆盖
+
+- **HuskEntity**: 重写 `shouldDrown()` 返回 `true`，先变成普通僵尸再变成溺尸
+- **DrownedEntity**: 重写 `shouldDrown()` 返回 `false`，不会再次转化
+- **ZombieVillagerEntity**: 重写 `shouldDrown()` 返回 `false`，不会变成溺尸
+
 ## 测试用例
 
 - `tests/common/entity/entities/monster/ZombieVillagerEntityTest.cpp`
@@ -226,6 +315,14 @@ void setVillagerData(const entity::VillagerData& data);
   - 治愈状态测试（开始/停止/进度）
   - 村民数据测试（类型/职业/等级/经验）
   - 消失规则测试（治愈中/有经验）
+
+- `tests/entity/ZombieVillagerConversionTest.cpp`
+  - 治愈时间常量测试（最小 3600 ticks，最大 6000 ticks）
+  - 加速检测常量测试（范围 4 格，概率 30%，最多 14 个方块）
+  - 力量效果加速测试（每级 +10%）
+  - 床与铁栏杆同等处理测试
+  - 进度计算逻辑测试
+  - 床类型兼容性测试（16 种颜色、占用状态、床部分均有效）
 
 ## 参考
 

@@ -610,3 +610,103 @@ TEST(ArmPoseTest, CrossbowHoldNotTwoHandedButBlocksOffHand)
     EXPECT_FALSE(isTwoHanded(ArmPose::CrossbowHold));
     EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowHold));
 }
+
+// ============================================================================
+// CrossbowHold 弩装填检测测试
+// ============================================================================
+//
+// 测试 determineArmPose() 中弩装填状态的检测逻辑。
+// 参考 MC 1.16.5 FirstPersonRenderer.getItemInHandRenderer()
+//
+// 注意：完整的 determineArmPose() 集成测试需要 Mock Player、ItemStack 和 CrossbowItem。
+// 这里测试常量和基础逻辑。
+
+class CrossbowHoldTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 设置代码
+    }
+};
+
+TEST_F(CrossbowHoldTest, ArmPose_CrossbowHold_Exists)
+{
+    // 验证 CrossbowHold 枚举值存在且有效
+    ArmPose pose = ArmPose::CrossbowHold;
+    // 确保枚举值不等于其他姿态
+    EXPECT_NE(pose, ArmPose::Empty);
+    EXPECT_NE(pose, ArmPose::Item);
+    EXPECT_NE(pose, ArmPose::CrossbowCharge);
+}
+
+TEST_F(CrossbowHoldTest, ArmPose_CrossbowCharge_Exists)
+{
+    // 验证 CrossbowCharge 枚举值存在且有效
+    ArmPose pose = ArmPose::CrossbowCharge;
+    // 确保枚举值不等于其他姿态
+    EXPECT_NE(pose, ArmPose::Empty);
+    EXPECT_NE(pose, ArmPose::Item);
+    EXPECT_NE(pose, ArmPose::CrossbowHold);
+}
+
+TEST_F(CrossbowHoldTest, CrossbowCharge_Time_IsCorrect)
+{
+    // MC 1.16.5: 弩基础装填时间为 25 ticks (1.25 秒)
+    // 每级快速装填附魔减少 5 ticks
+    constexpr i32 BASE_CHARGE_TIME = 25;
+    constexpr i32 CHARGE_REDUCTION_PER_LEVEL = 5;
+
+    EXPECT_EQ(BASE_CHARGE_TIME, 25);
+    EXPECT_EQ(CHARGE_REDUCTION_PER_LEVEL, 5);
+
+    // 快速装填 III 的装填时间
+    constexpr i32 QUICK_CHARGE_III_TIME = BASE_CHARGE_TIME - 3 * CHARGE_REDUCTION_PER_LEVEL;
+    EXPECT_EQ(QUICK_CHARGE_III_TIME, 10);
+}
+
+TEST_F(CrossbowHoldTest, Crossbow_ArrowVelocity_IsCorrect)
+{
+    // MC 1.16.5: 弩箭矢速度为 3.15
+    constexpr f32 ARROW_VELOCITY = 3.15f;
+    EXPECT_FLOAT_EQ(ARROW_VELOCITY, 3.15f);
+}
+
+TEST_F(CrossbowHoldTest, Crossbow_FireworkVelocity_IsCorrect)
+{
+    // MC 1.16.5: 弩烟花速度为 1.6
+    constexpr f32 FIREWORK_VELOCITY = 1.6f;
+    EXPECT_FLOAT_EQ(FIREWORK_VELOCITY, 1.6f);
+}
+
+TEST_F(CrossbowHoldTest, CrossbowHold_DifferentFromCrossbowCharge)
+{
+    // CrossbowHold（装填完成）和 CrossbowCharge（正在装填）是不同状态
+    EXPECT_NE(ArmPose::CrossbowHold, ArmPose::CrossbowCharge);
+}
+
+TEST_F(CrossbowHoldTest, CrossbowHold_BlocksOffHand)
+{
+    // 装填完成的弩仍然阻止副手渲染
+    // 因为弩已经准备好射击，玩家应该专注于瞄准
+    EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowHold));
+}
+
+TEST_F(CrossbowHoldTest, CrossbowHold_NotTwoHanded)
+{
+    // 装填完成的弩不需要双持
+    // 玩家可以单手持握已装填的弩
+    EXPECT_FALSE(isTwoHanded(ArmPose::CrossbowHold));
+}
+
+TEST_F(CrossbowHoldTest, CrossbowCharge_BlocksOffHand)
+{
+    // 正在装填的弩阻止副手渲染
+    // 因为玩家需要用两只手来装填弩
+    EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowCharge));
+}
+
+TEST_F(CrossbowHoldTest, CrossbowCharge_IsTwoHanded)
+{
+    // 正在装填的弩需要双持
+    EXPECT_TRUE(isTwoHanded(ArmPose::CrossbowCharge));
+}

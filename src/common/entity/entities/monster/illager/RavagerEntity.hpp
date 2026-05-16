@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -36,8 +36,9 @@ namespace mc {
  *
  * 特性：
  * - 强力攻击：高伤害近战攻击
- * - 冲撞：冲撞目标
- * - 破坏方块：可以破坏某些方块
+ * - 咆哮：对周围实体造成伤害和击退
+ * - 眩晕：攻击后有概率进入眩晕状态
+ * - 破坏方块：可以破坏树叶方块
  * - 掠夺：参与掠夺事件
  * - 骑乘：可被掠夺者骑乘
  *
@@ -73,37 +74,49 @@ public:
     /**
      * @brief 是否正在攻击
      */
-    [[nodiscard]] bool isAttacking() const { return m_attacking; }
+    [[nodiscard]] bool isAttacking() const { return m_attackTick > 0; }
 
     /**
-     * @brief 设置攻击状态
+     * @brief 获取攻击动画 tick
      */
-    void setAttacking(bool attacking) { m_attacking = attacking; }
+    [[nodiscard]] i32 getAttackTick() const { return m_attackTick; }
+
+    /**
+     * @brief 是否正在眩晕
+     */
+    [[nodiscard]] bool isStunned() const { return m_stunTick > 0; }
+
+    /**
+     * @brief 获取眩晕 tick
+     */
+    [[nodiscard]] i32 getStunTick() const { return m_stunTick; }
 
     /**
      * @brief 是否正在咆哮
      */
-    [[nodiscard]] bool isRoaring() const { return m_roaring; }
+    [[nodiscard]] bool isRoaring() const { return m_roarTick > 0; }
 
     /**
-     * @brief 开始咆哮
+     * @brief 获取咆哮 tick
      */
-    void startRoaring();
+    [[nodiscard]] i32 getRoarTick() const { return m_roarTick; }
 
     /**
-     * @brief 是否正在冲撞
+     * @brief 攻击目标实体
+     *
+     * MC 1.16.5: 设置攻击动画，播放音效
+     * @param target 目标实体
+     * @return 是否攻击成功
      */
-    [[nodiscard]] bool isCharging() const { return m_charging; }
+    bool attackEntityAsMob(LivingEntity& target) override;
 
     /**
-     * @brief 开始冲撞
+     * @brief 构造击退向量
+     *
+     * MC 1.16.5: 攻击目标后，有 50% 概率眩晕或发射目标
+     * @param target 目标实体
      */
-    void startCharging();
-
-    /**
-     * @brief 获取攻击冷却
-     */
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
+    void constructKnockBackVector(LivingEntity* target);
 
     // ========== 骑乘系统 ==========
 
@@ -155,18 +168,63 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 检查移动是否被阻塞
+     *
+     * MC 1.16.5: 当攻击、眩晕或咆哮时不能移动
+     */
+    [[nodiscard]] bool isMovementBlocked() const;
+
+    /**
+     * @brief 检查是否能看见目标
+     *
+     * MC 1.16.5: 眩晕或咆哮时不能看见目标
+     */
+    [[nodiscard]] bool canSee(const Entity& other) const override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
 
 private:
+    // ========== 私有方法 ==========
+
+    /**
+     * @brief 执行咆哮攻击
+     *
+     * MC 1.16.5: 对周围 4 格内的实体造成 6 点伤害并击退
+     * 掠夺者类实体免疫伤害
+     */
+    void roar();
+
+    /**
+     * @brief 发射实体（击退效果）
+     *
+     * MC 1.16.5: 将实体向远离劫掠兽的方向发射
+     * @param entity 要发射的实体
+     */
+    void launchEntity(Entity* entity);
+
+    /**
+     * @brief 眩晕粒子效果
+     *
+     * MC 1.16.5: 眩晕时显示粒子效果
+     */
+    void spawnStunParticles();
+
+    /**
+     * @brief 破坏碰撞到的树叶方块
+     *
+     * MC 1.16.5: 当水平碰撞且 mobGriefing 为 true 时破坏树叶
+     */
+    void breakLeavesOnCollision();
+
+    // ========== 成员变量 ==========
+
     // 攻击状态
-    bool m_attacking = false;
-    bool m_roaring = false;
-    bool m_charging = false;
-    i32 m_roarTime = 0;
-    i32 m_chargeTime = 0;
-    i32 m_attackCooldown = 0;
+    i32 m_attackTick = 0;    // 攻击动画 tick
+    i32 m_stunTick = 0;      // 眩晕 tick
+    i32 m_roarTick = 0;      // 咆哮 tick
 
     // 骑乘
     Entity* m_rider = nullptr;
@@ -174,11 +232,17 @@ private:
     // 破坏
     bool m_canBreakBlocks = true;
 
-    // 常量
-    static constexpr i32 ROAR_DURATION = 20;    // 咆哮持续时间
-    static constexpr i32 CHARGE_DURATION = 40;  // 冲撞持续时间
-    static constexpr i32 ATTACK_COOLDOWN = 30;  // 攻击冷却
-    static constexpr f32 ATTACK_DAMAGE = 12.0f; // 攻击伤害
+    // 常量 - 公开用于测试
+public:
+    static constexpr i32 ATTACK_DURATION = 10;     // 攻击动画持续时间 (ticks)
+    static constexpr i32 STUN_DURATION = 40;       // 眩晕持续时间 (ticks)
+    static constexpr i32 ROAR_DURATION = 20;       // 咆哮持续时间 (ticks)
+    static constexpr f32 ATTACK_DAMAGE = 12.0f;    // 攻击伤害
+    static constexpr f32 ROAR_DAMAGE = 6.0f;       // 咆哮伤害
+    static constexpr f32 ROAR_RANGE = 4.0f;        // 咆哮范围
+    static constexpr f32 LAUNCH_POWER = 4.0f;      // 发射力度
+    static constexpr f32 LAUNCH_Y_POWER = 0.2f;    // 发射 Y 轴力度
+    static constexpr f32 STUN_CHANCE = 0.5;        // 眩晕概率
 };
 
 } // namespace mc

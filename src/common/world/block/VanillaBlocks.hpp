@@ -334,6 +334,16 @@ public:
     static Block* MOSSY_STONE_BRICK_WALL;
 
     // ========================================================================
+    // 虫蚀方块系列 (Infested Blocks / Monster Eggs)
+    // ========================================================================
+    static Block* INFESTED_STONE;               // 虫蚀石头
+    static Block* INFESTED_COBBLESTONE;         // 虫蚀圆石
+    static Block* INFESTED_STONE_BRICKS;        // 虫蚀石砖
+    static Block* INFESTED_MOSSY_STONE_BRICKS;  // 虫蚀苔藓石砖
+    static Block* INFESTED_CRACKED_STONE_BRICKS; // 虫蚀裂纹石砖
+    static Block* INFESTED_CHISELED_STONE_BRICKS; // 虫蚀錾制石砖
+
+    // ========================================================================
     // 石英系列
     // ========================================================================
     static Block* QUARTZ_BLOCK;
@@ -701,6 +711,7 @@ private:
     static void registerVegetationBlocks();
     static void registerColoredBlocks();         // 染色玻璃、混凝土、陶瓦等
     static void registerStoneBricks();           // 石砖系列
+    static void registerInfestedBlocks();        // 虫蚀方块系列
     static void registerQuartzBlocks();          // 石英系列
     static void registerPrismarineBlocks();      // 海晶系列
     static void registerSignBlocks();            // 告示牌

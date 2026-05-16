@@ -198,6 +198,42 @@ public:
     /// 参考 MC 1.16.5: BlockTags.STRIDER_WARM_BLOCKS
     static BlockTag& STRIDER_WARM_BLOCKS();
 
+    // ========== 蜜蜂相关标签 ==========
+
+    /// 小花朵标签（蒲公英、虞美人等）
+    /// 蜜蜂可以采集这些花朵
+    /// 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
+    static BlockTag& SMALL_FLOWERS();
+
+    /// 高花朵标签（向日葵、丁香等）
+    /// 蜜蜂可以采集这些花朵
+    /// 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
+    static BlockTag& TALL_FLOWERS();
+
+    /// 蜂巢/蜂箱标签
+    /// 蜜蜂可以进入的方块
+    /// 参考 MC 1.16.5: BlockTags.BEEHIVES
+    static BlockTag& BEEHIVES();
+
+    /// 蜜蜂可授粉作物标签
+    /// 小麦、胡萝卜、马铃薯、甜菜根、西瓜茎、南瓜茎、甜浆果丛
+    /// 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
+    static BlockTag& BEE_GROWABLES();
+
+    // ========== 末影人标签 ==========
+
+    /// 末影人可拾取方块标签
+    /// 草方块、泥土、沙子、沙砾、蘑菇、花、仙人掌、南瓜、西瓜、TNT等
+    /// 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
+    static BlockTag& ENDERMAN_HOLDABLE();
+
+    // ========== 凋灵标签 ==========
+
+    /// 凋灵免疫方块标签
+    /// 凋灵无法破坏的方块：基岩、屏障、末地传送门、命令方块等
+    /// 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
+    static BlockTag& WITHER_IMMUNE();
+
     /**
      * @brief 初始化所有内置标签
      *

@@ -28,8 +28,11 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -273,6 +276,92 @@ public:
     [[nodiscard]] bool currentWorldOnly() const noexcept { return m_currentWorldOnly; }
     void setCurrentWorldOnly(bool currentWorldOnly) { m_currentWorldOnly = currentWorldOnly; }
 
+    // ========== 记分板分数条件 ==========
+
+    /**
+     * @brief 获取记分板分数条件。
+     *
+     * 返回格式: {目标名称: 分数范围}
+     * 示例: scores={deaths=1..5,kills=10..} 会返回 {"deaths": IntRange(1, unbounded), "kills": IntRange(10, unbounded)}
+     */
+    [[nodiscard]] const std::map<std::string, IntRange>& scoreConditions() const noexcept { return m_scores; }
+    void addScoreCondition(const std::string& objective, const IntRange& range)
+    {
+        m_scores[objective] = range;
+    }
+    [[nodiscard]] bool hasScoreConditions() const noexcept { return !m_scores.empty(); }
+
+    // ========== 进度条件 ==========
+
+    /**
+     * @brief 进度条件结构。
+     *
+     * 存储单个进度的匹配条件：
+     * - 如果 isComplete 有值，检查进度是否完成
+     * - 如果 criteriaConditions 不为空，检查各个准则的完成状态
+     */
+    struct AdvancementCondition {
+        std::optional<bool> isComplete;                                  // 整体完成状态检查
+        std::map<std::string, bool> criteriaConditions;                  // 准则完成状态检查
+
+        [[nodiscard]] bool hasCondition() const noexcept
+        {
+            return isComplete.has_value() || !criteriaConditions.empty();
+        }
+    };
+
+    /**
+     * @brief 获取进度条件。
+     *
+     * 返回格式: {进度ID: 条件}
+     * 示例: advancements={minecraft:story/root=true} 或 advancements={minecraft:story/root={criteria=true}}
+     */
+    [[nodiscard]] const std::map<ResourceLocation, AdvancementCondition>& advancementConditions() const noexcept
+    {
+        return m_advancements;
+    }
+    void addAdvancementCondition(const ResourceLocation& advancement, const AdvancementCondition& condition)
+    {
+        m_advancements[advancement] = condition;
+    }
+    [[nodiscard]] bool hasAdvancementConditions() const noexcept { return !m_advancements.empty(); }
+
+    // ========== NBT 条件 ==========
+
+    /**
+     * @brief NBT 条件结构。
+     *
+     * 存储 NBT 标签匹配条件，支持取反。
+     */
+    struct NbtCondition {
+        std::shared_ptr<nbt::tags::compound_tag> nbt;   // NBT 数据
+        bool negated = false;                      // 是否取反
+
+        [[nodiscard]] bool hasCondition() const noexcept { return nbt != nullptr; }
+    };
+
+    [[nodiscard]] const NbtCondition& nbtCondition() const noexcept { return m_nbt; }
+    void setNbtCondition(const NbtCondition& condition) { m_nbt = condition; }
+    [[nodiscard]] bool hasNbtCondition() const noexcept { return m_nbt.hasCondition(); }
+
+    // ========== 谓词条件 ==========
+
+    /**
+     * @brief 谓词条件结构。
+     *
+     * 存储战利品表谓词引用，支持取反。
+     */
+    struct PredicateCondition {
+        ResourceLocation predicate;               // 谓词 ID
+        bool negated = false;                      // 是否取反
+
+        [[nodiscard]] bool hasCondition() const noexcept { return predicate.isValid(); }
+    };
+
+    [[nodiscard]] const PredicateCondition& predicateCondition() const noexcept { return m_predicate; }
+    void setPredicateCondition(const PredicateCondition& condition) { m_predicate = condition; }
+    [[nodiscard]] bool hasPredicateCondition() const noexcept { return m_predicate.hasCondition(); }
+
     // ========== 静态工厂方法 ==========
 
     [[nodiscard]] static EntitySelector self()
@@ -351,6 +440,12 @@ private:
     bool m_teamNegated = false;
     FloatRange m_xRotation; // 俯仰角范围（pitch，-90 到 90 度）
     FloatRange m_yRotation; // 偏航角范围（yaw，-180 到 180 度）
+
+    // 新增条件存储
+    std::map<std::string, IntRange> m_scores;                                // 记分板分数条件
+    std::map<ResourceLocation, AdvancementCondition> m_advancements;         // 进度条件
+    NbtCondition m_nbt;                                                       // NBT 条件
+    PredicateCondition m_predicate;                                           // 谓词条件
 };
 
 /**
@@ -427,6 +522,9 @@ private:
     void validateSelector(const EntitySelector& selector, i32 start);
 
     [[nodiscard]] static std::string readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static std::string readScoresKey(StringReader& reader);
+    [[nodiscard]] static std::string readAdvancementKey(StringReader& reader);
+    [[nodiscard]] static std::string readCriteriaKey(StringReader& reader);
     [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
     [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
     [[nodiscard]] IntRange parseIntRange(StringReader& reader);

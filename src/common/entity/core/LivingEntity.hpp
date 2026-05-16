@@ -397,6 +397,21 @@ public:
     [[nodiscard]] i32 maxHurtTime() const { return m_maxHurtTime; }
 
     /**
+     * @brief 获取无敌帧计时器
+     *
+     * MC 1.16.5: hurtResistantTime
+     */
+    [[nodiscard]] i32 hurtResistantTime() const { return m_hurtResistantTime; }
+
+    /**
+     * @brief 设置无敌帧计时器
+     *
+     * MC 1.16.5: 用于陷阱触发时设置初始无敌帧
+     * @param ticks 无敌帧 tick 数
+     */
+    void setHurtResistantTime(i32 ticks) { m_hurtResistantTime = ticks; }
+
+    /**
      * @brief 是否处于受伤无敌状态
      */
     [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;

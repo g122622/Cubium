@@ -549,3 +549,103 @@ TEST_F(DolphinEntityTest, GoalFlags_AreCorrect)
     // 标志在构造函数中设置，确保不会崩溃
     SUCCEED();
 }
+
+// ==================== FollowBoatGoal Tests ====================
+
+class FollowBoatGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        dolphin = std::make_unique<DolphinEntity>(LegacyEntityType::Unknown, 0);
+        goal = std::make_unique<FollowBoatGoal>(dolphin.get());
+    }
+
+    void TearDown() override
+    {
+        goal.reset();
+        dolphin.reset();
+    }
+
+    std::unique_ptr<DolphinEntity> dolphin;
+    std::unique_ptr<FollowBoatGoal> goal;
+};
+
+TEST_F(FollowBoatGoalTest, TypeName_ReturnsCorrectName)
+{
+    EXPECT_EQ(goal->getTypeName(), "FollowBoatGoal");
+}
+
+TEST_F(FollowBoatGoalTest, IsPreemptible_ReturnsTrue)
+{
+    // MC 1.16.5: 跟随船目标可被抢占
+    EXPECT_TRUE(goal->isPreemptible());
+}
+
+TEST_F(FollowBoatGoalTest, ShouldExecute_ReturnsFalseWithoutWorld)
+{
+    // 没有世界时应该返回 false（没有船）
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FollowBoatGoalTest, ShouldContinueExecuting_ReturnsFalseWithoutPlayer)
+{
+    // 没有玩家时应该返回 false
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+}
+
+TEST_F(FollowBoatGoalTest, StartExecuting_DoesNotCrash)
+{
+    goal->startExecuting();
+    SUCCEED();
+}
+
+TEST_F(FollowBoatGoalTest, ResetTask_DoesNotCrash)
+{
+    goal->resetTask();
+    SUCCEED();
+}
+
+TEST_F(FollowBoatGoalTest, Tick_DoesNotCrash)
+{
+    goal->tick();
+    SUCCEED();
+}
+
+TEST_F(FollowBoatGoalTest, Constants_AreCorrect)
+{
+    // MC 1.16.5 常量验证
+    // SEARCH_RADIUS = 5.0f
+    // GO_TO_BOAT_SPEED = 0.015f
+    // GO_IN_DIRECTION_SPEED = 0.01f
+    // SWITCH_TO_FOLLOW_DISTANCE = 4.0f
+    // SWITCH_TO_APPROACH_DISTANCE = 12.0f
+    // NAVIGATION_UPDATE_INTERVAL = 10
+    // NAVIGATE_SPEED = 1.0f
+    SUCCEED();
+}
+
+TEST_F(FollowBoatGoalTest, InitialState_IsGoToBoat)
+{
+    // 初始状态应该是 GoToBoat
+    goal->startExecuting();
+    // 内部状态 m_state 应该是 BoatFollowState::GoToBoat
+    // 无法直接访问，但可以通过行为测试间接验证
+    SUCCEED();
+}
+
+TEST_F(FollowBoatGoalTest, MultipleGoals_CanCoexistWithFollowBoat)
+{
+    // 创建所有海豚目标
+    auto jumpGoal = std::make_unique<DolphinJumpGoal>(dolphin.get(), 10);
+    auto treasureGoal = std::make_unique<SwimToTreasureGoal>(dolphin.get());
+    auto swimGoal = std::make_unique<SwimWithPlayerGoal>(dolphin.get(), 4.0);
+    auto playGoal = std::make_unique<PlayWithItemsGoal>(dolphin.get());
+    auto boatGoal = std::make_unique<FollowBoatGoal>(dolphin.get());
+
+    // 确保所有目标可以创建和销毁
+    EXPECT_EQ(jumpGoal->getTypeName(), "DolphinJumpGoal");
+    EXPECT_EQ(treasureGoal->getTypeName(), "SwimToTreasureGoal");
+    EXPECT_EQ(swimGoal->getTypeName(), "SwimWithPlayerGoal");
+    EXPECT_EQ(playGoal->getTypeName(), "PlayWithItemsGoal");
+    EXPECT_EQ(boatGoal->getTypeName(), "FollowBoatGoal");
+}

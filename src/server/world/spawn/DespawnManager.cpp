@@ -27,7 +27,6 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -111,8 +110,8 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
     f64 instantDespawnDistSq = static_cast<f64>(info.despawnDistance) * info.despawnDistance;
     f64 randomDespawnDistSq = static_cast<f64>(info.randomDespawnDistance) * info.randomDespawnDistance;
 
-    // 获取最近玩家距离
-    f64 playerDistSq = getClosestPlayerDistanceSq(world, mob.position());
+    // 获取最近玩家距离 - 使用 IWorld 接口方法
+    f64 playerDistSq = world.getClosestPlayerDistanceSq(mob.position());
 
     // MC 1.16.5: 如果没有玩家，立即消失
     if (playerDistSq == std::numeric_limits<f64>::max()) {
@@ -144,36 +143,6 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
     }
 
     return false;
-}
-
-f64 DespawnManager::getClosestPlayerDistanceSq(::mc::server::ServerWorld& world, const Vector3& pos) const
-{
-    f64 closestDistSq = std::numeric_limits<f64>::max();
-
-    auto players = world.entityManager().getPlayers();
-    for (const Entity* player : players) {
-        if (!player || player->isRemoved()) {
-            continue;
-        }
-
-        // MC 1.16.5: 观察者模式的玩家不计入距离检查
-        if (const Player* playerEntity = dynamic_cast<const Player*>(player);
-            playerEntity && playerEntity->isSpectator()) {
-            continue;
-        }
-
-        Vector3 playerPos = player->position();
-        f64 dx = playerPos.x - pos.x;
-        f64 dy = playerPos.y - pos.y;
-        f64 dz = playerPos.z - pos.z;
-        f64 distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq < closestDistSq) {
-            closestDistSq = distSq;
-        }
-    }
-
-    return closestDistSq;
 }
 
 } // namespace mc::world::spawn

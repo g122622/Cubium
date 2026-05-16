@@ -177,6 +177,9 @@ extern const LootParameter<i32> SILK_TOUCH_LEVEL; // 精准采集附魔等级
 
 // 爆炸相关参数
 extern const LootParameter<f32> EXPLOSION_RADIUS; // 爆炸半径
+
+// 钓鱼相关参数
+extern const LootParameter<bool> IS_IN_OPEN_WATER; // 是否在开放水域
 } // namespace LootParams
 
 /**

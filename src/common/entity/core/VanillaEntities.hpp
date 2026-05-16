@@ -100,6 +100,7 @@
 #include "../entities/item/ItemEntity.hpp"
 #include "../entities/misc/MiscEntities.hpp"
 #include "../entities/orb/ExperienceOrbEntity.hpp"
+#include "../entities/effect/EffectEntities.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
 #include <mutex>
@@ -797,6 +798,15 @@ private:
                 .canSummon(true)
                 .build());
 
+        // 潜影贝子弹
+        registry.registerType(EntityTypes::SHULKER_BULLET,
+            EntityType::Builder(&entity::ShulkerBulletEntity::create, EntityClassification::Misc)
+                .size(0.3125f, 0.3125f)
+                .trackingRange(8)
+                .updateInterval(1) // 子弹需要频繁更新
+                .canSummon(true)
+                .build());
+
         // ========== 物品 ==========
         registry.registerType(EntityTypes::ITEM,
             EntityType::Builder(&ItemEntity::create, EntityClassification::Misc)
@@ -821,6 +831,15 @@ private:
                 .size(0.98f, 0.98f)
                 .trackingRange(10)
                 .updateInterval(1) // TNT 需要频繁更新（引信倒计时）
+                .canSummon(true)
+                .build());
+
+        // ========== 区域效果云 ==========
+        registry.registerType(EntityTypes::AREA_EFFECT_CLOUD,
+            EntityType::Builder(&entity::AreaEffectCloudEntity::create, EntityClassification::Misc)
+                .size(6.0f, 0.5f) // 初始半径3.0，宽度=半径*2
+                .trackingRange(10)
+                .updateInterval(5) // 每5tick更新一次
                 .canSummon(true)
                 .build());
 

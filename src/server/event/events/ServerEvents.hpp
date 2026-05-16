@@ -416,6 +416,32 @@ struct ItemDurabilityEvent : ServerEvent {
 };
 
 /**
+ * @brief 物品销毁事件
+ *
+ * 当物品因使用而损坏或消耗完毕时触发。
+ * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+ * 触发场景：
+ * - 武器攻击损坏
+ * - 工具使用损坏
+ * - 物品交互消耗（如给动物喂食后物品用尽）
+ * - 盾牌格挡损坏
+ */
+struct PlayerDestroyItemEvent : ServerEvent {
+    PlayerId playerId;    ///< 玩家ID
+    ItemStack item;       ///< 销毁前的物品副本
+    i32 slot;             ///< 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+    Hand hand;            ///< 使用的手（MainHand 或 OffHand）
+
+    PlayerDestroyItemEvent(u64 tick, PlayerId pid, const ItemStack& i, i32 s, Hand h)
+        : ServerEvent(tick)
+        , playerId(pid)
+        , item(i)
+        , slot(s)
+        , hand(h)
+    {}
+};
+
+/**
  * @brief 附魔事件
  */
 struct EnchantItemEvent : ServerEvent {

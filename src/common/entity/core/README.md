@@ -172,6 +172,42 @@ Vector3 actualMovement = physics->moveEntity(entityBox, desiredMovement, stepHei
 - `Entity::waterHeight()` / `Entity::lavaHeight()` - 流体浸入高度（0.0-1.0）
 - `Entity::updateEnvironmentState()` - 更新流体状态，遍历碰撞箱内的方块
 
+### 雨天检测（MC 1.16.5 对齐）
+- `Entity::isInRain()` - 检查实体是否在雨中
+- `Entity::isWet()` - 检查实体是否湿润（水中或雨中）
+
+**`isInRain()` 实现细节**（参考 MC 1.16.5 Entity.isInRain()）：
+
+检查实体是否在雨中，使用双位置检测：
+1. **脚底位置**：`floor(position.x), floor(position.y), floor(position.z)`
+2. **碰撞盒顶部位置**：`floor(position.x), floor(boundingBox.maxY), floor(position.z)`
+
+只要任一位置可以降雨（`world.canRainAt(pos)` 返回 true），就认为实体在雨中。
+
+**检测条件**：
+- 世界存在且正在下雨（`world.isRaining()` 返回 true）
+- 至少一个检测位置可以降雨（天空可见、生物群系允许降水、温度足够高）
+
+**使用示例**：
+```cpp
+// 末影人在雨中受到伤害
+if (isInWaterOrRain()) {
+    auto damageSource = DamageSources::drown();
+    hurt(damageSource, WATER_DAMAGE);
+    teleportAwayFromWater();
+}
+
+// 狼湿润时毛发颜色变化
+if (isWet()) {
+    // 渲染湿润效果
+}
+```
+
+**水敏感生物**：
+- 末影人（Enderman） - 水和雨中受到伤害
+- 烈焰人（Blaze） - 水中受到伤害
+- 雪傀儡（SnowGolem） - 水和雨中融化
+
 ### 火焰系统（MC 1.16.5 对齐）
 - `Entity::isOnFire()` - 检查实体是否着火（`m_fire > 0`）
 - `Entity::fire()` - 获取当前火焰计时器值（tick）
@@ -473,6 +509,29 @@ class PigEntity : public AnimalEntity {
 - `Entity::getTypeId()` 优先返回显式注入的类型标识符；仅在未注入时才回退到 `LegacyEntityType` 映射。
 - 通过繁殖流程创建幼体时，`BreedGoal` 会继承父体的类型标识符，避免网络层出现 `minecraft:unknown`。
 - `LegacyEntityType -> typeId` 的具体映射表已经迁移到 `utils/EntityUtils.*`，`core/EntityUtils.hpp` 只保留模板型搜索和距离工具。
+
+## LegacyEntityType 枚举
+
+实体旧版类型标识符，用于网络同步和实体类型检查。
+
+### 恼鬼 (Vex) 类型
+
+恼鬼 (`LegacyEntityType::Vex`) 是唤魔者召唤的小型飞行敌对生物：
+
+```cpp
+enum class LegacyEntityType : u32 {
+    // ...
+    Vex = 81,  // 恼鬼
+    // ...
+};
+```
+
+**用途**:
+- `EvokerSummonSpellGoal::countNearbyVexes()` 使用此类型统计周围恼鬼数量
+- `VexEntity::create()` 使用此类型创建恼鬼实体
+- 网络同步中标识实体类型
+
+**参考**: MC 1.16.5 `net.minecraft.entity.EntityType.VEX`
 
 ## 声音事件链路
 
@@ -949,6 +1008,132 @@ ActionResultType ArmorStandEntity::applyPlayerInteraction(
 ### 测试用例
 
 - [tests/entity/EntityCoreTests.cpp](../../../../tests/entity/EntityCoreTests.cpp) 验证方法签名、虚拟方法和多态行为。
+
+## 队伍关系系统（MC 1.16.5）
+
+实体队伍关系判断系统，用于友军伤害保护和横扫攻击过滤等场景。
+
+### 核心方法
+
+```cpp
+class Entity {
+public:
+    /**
+     * @brief 检查实体是否属于指定队伍
+     *
+     * MC 1.16.5: Entity.isOnScoreboardTeam(Team)
+     * 通过比较队伍指针判断实体是否属于指定队伍。
+     *
+     * @param team 要检查的队伍指针
+     * @return 如果实体属于该队伍返回 true，否则返回 false
+     */
+    [[nodiscard]] bool isOnScoreboardTeam(const scoreboard::Team* team) const;
+
+    /**
+     * @brief 检查两个实体是否在同一队伍
+     *
+     * MC 1.16.5: Entity.isOnSameTeam(Entity)
+     * 通过比较队伍指针判断两个实体是否在同一队伍。
+     *
+     * @param other 另一个实体
+     * @return 如果两个实体在同一队伍返回 true，否则返回 false
+     */
+    [[nodiscard]] bool isOnSameTeam(const Entity& other) const;
+
+    /**
+     * @brief 获取实体所属队伍
+     *
+     * 子类可重写此方法返回队伍指针。
+     * 基类默认返回 nullptr（无队伍）。
+     *
+     * @return 队伍指针，如果实体没有队伍则返回 nullptr
+     */
+    [[nodiscard]] virtual scoreboard::Team* getTeam();
+    [[nodiscard]] virtual const scoreboard::Team* getTeam() const;
+};
+```
+
+### 队伍判断规则
+
+队伍判断使用**指针相等性**比较，而非队伍名称比较：
+
+```cpp
+bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
+{
+    const scoreboard::Team* myTeam = getTeam();
+    if (myTeam == nullptr || team == nullptr) {
+        return false;
+    }
+    return myTeam == team;  // 指针比较
+}
+
+bool Entity::isOnSameTeam(const Entity& other) const
+{
+    return isOnScoreboardTeam(other.getTeam());
+}
+```
+
+**关键点**：
+- 两个 `Team` 对象即使名称相同，如果指针不同也不算同一队伍
+- 没有队伍的实体（`getTeam()` 返回 `nullptr`）不会与任何队伍匹配
+- 自己与自己比较时，如果都有队伍，返回 `true`
+
+### 使用场景
+
+**1. 横扫攻击队友保护**（MC 1.16.5 PlayerEntity.attackTargetEntityWithCurrentItem）：
+
+```cpp
+// 横扫攻击时排除队友
+for (Entity* entity : nearbyEntities) {
+    // 排除自己
+    if (entity == this) continue;
+
+    // 排除标记模式的盔甲架
+    auto* armorStand = dynamic_cast<ArmorStandEntity*>(entity);
+    if (armorStand != nullptr && armorStand->isMarker()) continue;
+
+    // 排除队友
+    if (isOnSameTeam(*entity)) continue;
+
+    // 对敌人造成横扫伤害
+    entity->hurt(damageSource, sweepDamage);
+}
+```
+
+**2. PVP 友军伤害保护**：
+
+```cpp
+// 检查是否可以攻击目标
+bool canAttack = !attacker.isOnSameTeam(target);
+```
+
+**3. 团队游戏模式**：
+
+```cpp
+// 红队玩家
+redTeam->addMember(player1->getUUID());
+player1->setTeam(redTeam);
+
+// 检查两个玩家是否同队
+if (player1->isOnSameTeam(*player2)) {
+    // 友军，不造成伤害
+}
+```
+
+### 测试用例
+
+- [tests/entity/EntityTeamTest.cpp](../../../../tests/entity/EntityTeamTest.cpp) 验证队伍判断逻辑：
+  - 同一队伍返回 true
+  - 不同队伍返回 false
+  - 一方无队伍返回 false
+  - 双方无队伍返回 false
+  - 自己与自己返回 true（有队伍时）
+  - 指针比较而非名称比较
+- [tests/entity/PlayerAttackTest.cpp](../../../../tests/entity/PlayerAttackTest.cpp) 验证横扫攻击队友过滤
+
+### 参考
+
+MC 1.16.5 `net.minecraft.entity.Entity.isOnScoreboardTeam(Team)` 和 `Entity.isOnSameTeam(Entity)`
 
 ## 继承层次
 

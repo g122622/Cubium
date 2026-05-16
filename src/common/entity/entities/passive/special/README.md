@@ -49,6 +49,26 @@ special/
 - `hasStung()` / `setHasStung(bool)`: 螫刺状态（螫刺后死亡）
 - `isFlying()` / `setFlying(bool)`: 飞行状态
 
+### 水下溺水机制 (MC 1.16.5)
+蜜蜂无法在水下呼吸，会逐渐溺水死亡：
+- **成员变量**: `m_underWaterTimer` - 追踪在水中的时间
+- **溺水逻辑**:
+  ```cpp
+  if (isInWater()) {
+      ++m_underWaterTimer;
+      if (m_underWaterTimer > 20 && m_world != nullptr) {
+          auto damageSource = DamageSources::drown();
+          hurt(damageSource, 1.0f);
+      }
+  } else {
+      m_underWaterTimer = 0;
+  }
+  ```
+- **时间线**:
+  - 在水中超过 20 tick (1秒) 后开始溺水
+  - 每 tick 造成 1.0 溺水伤害
+  - 离开水后计时器重置为 0
+
 ### 螫刺后死亡机制 (MC 1.16.5)
 蜜蜂螫刺后会逐渐死亡，实现逻辑：
 - **成员变量**: `m_timeSinceSting` - 追踪螫刺后经过的 tick 数
@@ -132,13 +152,47 @@ special/
   - 继承父母的信任玩家（最多 2 个，按添加顺序）
   - 设置为幼体状态
 
-### 行为
-| 优先级 | Goal | 说明 |
-|--------|------|------|
-| 0 | SwimGoal | 在水中游泳 |
-| 1 | EscapeDangerGoal | 逃离危险 |
-| 2 | AttackGoal | 攻击目标 |
-| 3 | FollowParentGoal | 幼体跟随父母 |
+### 叼物品系统
+- `isHoldingItem()`: 是否叼着物品
+- `getHeldItem()`: 获取叼着的物品
+- `setHeldItem(item)`: 设置叼着的物品
+- `dropHeldItem()`: 丢弃物品，在世界中生成物品实体（使用 ItemDropHelper）
+
+### 行为目标 (MC 1.16.5)
+| 优先级 | Goal | 说明 | 状态 |
+|--------|------|------|------|
+| 0 | SwimGoal | 在水中游泳 | ✅ |
+| 1 | JumpGoal | 跳跃挣扎 | 待实现 |
+| 2 | PanicGoal | 恐慌逃跑 | ✅ |
+| 3 | MateGoal | 繁殖 | ✅ |
+| 3 | TemptGoal | 甜浆果诱惑 | ✅ 已实现 |
+| 4 | AvoidEntityGoal | 躲避未信任的玩家 | ✅ 已实现 |
+| 4 | AvoidEntityGoal | 躲避狼 | 待实现 |
+| 4 | AvoidEntityGoal | 躲避北极熊 | 待实现 |
+| 5 | FollowTargetGoal | 追踪猎物 | 待实现 |
+| 6 | PounceGoal | 扑击攻击 | 待实现 |
+| 6 | FindShelterGoal | 寻找庇护所 | 待实现 |
+| 7 | BiteGoal | 咬击攻击 | 待实现 |
+| 7 | SleepGoal | 睡觉 | 待实现 |
+| 8 | FollowGoal | 跟随父母 | ✅ |
+| 9 | StrollGoal | 夜间村庄漫步 | 待实现 |
+| 10 | EatBerriesGoal | 吃甜浆果 | 待实现 |
+| 10 | LeapAtTargetGoal | 跳向目标 | 待实现 |
+| 11 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 | ✅ |
+| 11 | FindItemsGoal | 寻找物品 | 待实现 |
+| 12 | WatchGoal | 观察玩家 | 待实现 |
+| 13 | SitAndLookGoal | 坐下环顾 | 待实现 |
+
+### AvoidEntityGoal 配置 (MC 1.16.5)
+- **躲避玩家**: 检测距离 16 格，近距速度 1.6，远距速度 1.4
+- **躲避狼**: 检测距离 8 格（未驯服的狼）
+- **躲避北极熊**: 检测距离 8 格
+- **信任检查**: 信任的玩家、创造模式玩家、旁观者不躲避
+
+### TemptGoal 配置 (MC 1.16.5)
+- **跟随速度**: 1.0
+- **诱惑物品**: 甜浆果 (Items::SWEET_BERRIES)
+- **不被玩家移动吓跑**: false
 
 ### 属性
 | 属性 | 值 | 说明 |
@@ -169,6 +223,63 @@ special/
 - 吃竹子行为
 - 躺下行为（懒惰熊猫）
 
+### 基因系统 (MC 1.16.5)
+熊猫有主基因 (mainGene) 和隐藏基因 (hiddenGene)，每个基因值为 0-5：
+- 0: Normal（普通）
+- 1: Lazy（懒惰）
+- 2: Worried（忧愁）
+- 3: Playful（顽皮）
+- 4: Aggressive（好斗）
+- 5: Weak（虚弱）
+- 6: Brown（棕色）
+
+**基因表达规则** (MC 1.16.5 Gene.func_221101_b())：
+1. 如果主基因是好斗（Aggressive），直接表达好斗（显性）
+2. 如果主基因是懒惰（Lazy）且隐藏基因是好斗，表达好斗
+3. 否则表达主基因
+
+```cpp
+Personality calculateExpressedPersonality() const {
+    if (mainGene == AGGRESSIVE) {
+        return Personality::Aggressive;  // 显性基因
+    }
+    if (mainGene == LAZY && hiddenGene == AGGRESSIVE) {
+        return Personality::Aggressive;  // 特殊组合
+    }
+    return static_cast<Personality>(mainGene);
+}
+```
+
+**基因遗传**：
+- 子代从父母各随机继承一个基因
+- 1/32 概率发生基因变异（每个基因独立判定）
+
+```cpp
+void inheritGenesFromParents(PandaEntity* father, PandaEntity* mother) {
+    // 随机决定哪个父母提供主基因/隐藏基因
+    if (rng.nextBoolean()) {
+        mainGene = father->getOneOfGenesRandomly(rng);
+        hiddenGene = mother->getOneOfGenesRandomly(rng);
+    } else {
+        mainGene = mother->getOneOfGenesRandomly(rng);
+        hiddenGene = father->getOneOfGenesRandomly(rng);
+    }
+    // 变异
+    if (rng.nextInt(32) == 0) mainGene = rng.nextInt(0, 5);
+    if (rng.nextInt(32) == 0) hiddenGene = rng.nextInt(0, 5);
+    updatePersonalityFromGenes();
+}
+```
+
+**性格生成概率** (MC 1.16.5):
+- 普通: 32%
+- 懒惰: 32%
+- 忧愁: 16%
+- 顽皮: 16%
+- 好斗: 1.6%
+- 虚弱: 0.08%
+- 棕色: 2.4%
+
 ### 打喷嚏机制
 ```cpp
 // 设置打喷嚏状态（AI Goal 会调用）
@@ -186,6 +297,46 @@ panda.setSneezeTimer(20); // 20 ticks = 1秒
 2. 在熊猫头部前方生成 `Sneeze` 粒子
 3. 搜索周围10格内的成年熊猫，使其跳跃
 4. 检查游戏规则 `doMobLoot`，1/700概率掉落粘液球
+
+### 打滚行为 (PandaRollGoal)
+顽皮性格或幼年熊猫可以触发打滚行为：
+
+**触发条件**:
+- 是幼年熊猫 或 顽皮性格熊猫 (`isChild() || isPlayful()`)
+- 在地面上 (`onGround()`)
+- 可以执行动作 (`canPerformAction()`)
+- 满足以下条件之一：
+  - 前方是悬崖 (`isCliffInFront()`)：100% 触发
+  - 顽皮性格：1/60 概率触发
+  - 幼年普通熊猫：1/500 概率触发
+
+**打滚物理** (在 `PandaEntity::updateRoll()` 中):
+- 持续时间：32 ticks
+- 成年熊猫速度：0.2 格/tick
+- 幼年熊猫速度：0.1 格/tick
+- 第 7、15、23 tick：执行小跳（Y 速度 = 0.27）
+- 计时器超过 32 ticks 时停止打滚
+
+**相关方法**:
+- `isRolling()` / `setRolling(bool)`: 打滚状态
+- `getRollTimer()` / `setRollTimer(i32)`: 打滚计时器
+- `canPerformAction()`: 检查是否可以执行动作（不在打喷嚏、吃东西、躺着、打滚状态）
+
+**悬崖检测** (`isCliffInFront()`):
+```cpp
+// 计算熊猫朝向方向的前方位置
+// 检查前方一格下方是否是空气
+BlockPos checkPos(pandaPos.x + offsetX, pandaPos.y - 1, pandaPos.z + offsetZ);
+return world->getBlockState(checkPos)->isAir();
+```
+
+**AI Goal 注册**:
+```cpp
+void PandaEntity::registerGoals() {
+    // 优先级 12: 打滚目标
+    m_goalSelector.addGoal(12, std::make_unique<PandaRollGoal>(this));
+}
+```
 
 ### 基因遗传
 - 子代基因由父母基因随机决定
@@ -269,6 +420,7 @@ void updateAnger();  // 每tick调用
 ### 特性
 - **熔岩行走**: 在熔岩表面行走，不沉入熔岩
 - **可骑乘**: 实现 `IRideable` 接口
+- **可装备鞍**: 实现 `IEquipable` 接口
 - **温度敏感**: 离开熔岩会发抖、减速
 - **鞍装备**: 需要鞍才能控制方向
 
@@ -285,7 +437,7 @@ void updateAnger();  // 每tick调用
 
 ### 接口实现
 ```cpp
-class StriderEntity : public AnimalEntity, public entity::IRideable {
+class StriderEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
     // IRideable 接口
     bool hasSaddle() const override;
@@ -296,8 +448,23 @@ public:
     bool boost() override;
     bool canBeSteered() const override;
     void travelTowards(const Vector3& travelVec) override;
+
+    // IEquipable 接口
+    i32 getEquipmentSlotCount() const override;
+    ItemStack getEquipment(i32 slot) const override;
+    void setEquipment(i32 slot, const ItemStack& item) override;
+    bool canEquip(const ItemStack& item, i32 slot) const override;
 };
 ```
+
+### 鞍系统 (IEquipable)
+炽足兽实现 `IEquipable` 接口，支持鞍的存储和掉落：
+
+- **存储方式**：不存储实际 ItemStack，只存储布尔值 `m_saddled`（MC 1.16.5 设计）
+- **getEquipment(0)**：有鞍时返回 `ItemStack(Items::SADDLE, 1)`
+- **setEquipment(0, saddle)**：设置鞍布尔状态
+- **canEquip(saddle, 0)**：只能装备鞍到槽位 0
+- **死亡掉落**：die() 中检查 hasSaddle() 并使用 ItemDropHelper 生成鞍物品实体
 
 ### 熔岩行走机制
 - 在熔岩表面时设置 `onGround = true`
@@ -371,14 +538,65 @@ void TurtleEntity::layEgg();
 
 **参考**：MC 1.16.5 `TurtleEntity.travel()` 和 `MoveHelperController.updateSpeed()`
 
-### 行为
+### AI 目标系统
+海龟具有完整的行为目标系统，实现了所有 MC 1.16.5 特有的 AI Goals。
+
+#### 行为目标（按优先级）
 | 优先级 | Goal | 说明 |
 |--------|------|------|
-| 0 | SwimGoal | 在水中游泳 |
-| 1 | PanicGoal | 受伤逃跑 |
-| 2 | BreedGoal | 繁殖 |
-| 3 | TemptGoal | 被海草诱惑 |
-| 4 | GoHomeGoal | 返回出生地产卵 |
+| 0 | TurtlePanicGoal | 恐慌逃跑（优先寻找水源） |
+| 1 | TurtleMateGoal | 繁殖（繁殖后获得蛋） |
+| 1 | TurtleLayEggGoal | 产卵（有蛋时在出生地附近找沙地） |
+| 2 | TurtleTemptGoal | 被海草诱惑 |
+| 3 | TurtleGoToWaterGoal | 前往水源（陆地上的海龟找水） |
+| 4 | TurtleGoHomeGoal | 返回出生地（有蛋或随机触发） |
+| 7 | TurtleTravelGoal | 水中随机游泳 |
+| 8 | LookAtGoal | 看向玩家 |
+| 9 | TurtleWanderGoal | 陆地随机漫步 |
+
+#### 各 Goal 详细说明
+
+**TurtleGoHomeGoal（返回出生地）**
+- 触发条件：
+  - 有蛋时：检查是否有出生地
+  - 无蛋时：1/700 概率检查，距离出生地超过 64 格触发
+- 持续条件：距离出生地 > 7 格 AND 未放弃 AND 未超时（600 ticks）
+- 行为：导航返回出生地，远离出生地超过 16 格时速度减半
+
+**TurtleLayEggGoal（产卵）**
+- 触发条件：有蛋 AND 距离出生地 ≤ 9 格 AND 找到合适沙地
+- 行为：移动到沙地上方，开始 200 tick 的产卵动画
+- 完成后：调用 `layEgg()` 放置 1-4 个海龟蛋方块
+
+**TurtleTravelGoal（水中旅行）**
+- 触发条件：不在回家状态 AND 没有蛋 AND 在水中
+- 行为：在 512 格范围内随机游泳，保持在海平面以下（y ≤ 62）
+- 特点：让海龟在海洋中自然游动
+
+**TurtleGoToWaterGoal（前往水源）**
+- 触发条件：
+  - 幼龟：不在水中
+  - 成龟：不在回家 AND 不在水中 AND 没有蛋
+- 行为：搜索 24 格内的水源并导航过去
+- 超时：1200 ticks
+
+**TurtleMateGoal（繁殖）**
+- 继承自 BreedGoal
+- 额外条件：没有蛋才能繁殖
+- 繁殖后：设置 `hasEgg = true`
+
+**TurtlePanicGoal（恐慌逃跑）**
+- 继承自 PanicGoal
+- 特点：海龟恐慌时优先寻找水源
+
+**TurtleTemptGoal（海草诱惑）**
+- 继承自 TemptGoal
+- 触发物品：仅海草（SEAGRASS）
+
+**TurtleWanderGoal（陆地漫步）**
+- 继承自 RandomWalkingGoal
+- 触发条件：不在水中 AND 不在回家 AND 没有蛋
+- 执行概率：1/100
 
 ### 状态管理
 | 方法 | 说明 |
@@ -402,7 +620,7 @@ void TurtleEntity::layEgg();
 ## 测试覆盖
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/entities/passive/special/`，包含：
-- **StriderEntityTest.cpp**: 炽足兽实体测试（23 个测试）
+- **StriderEntityTest.cpp**: 炽足兽实体测试（60+ 个测试）
   - getMountedYOffset 计算测试（11 个测试）
     - 基础偏移计算
     - 公式验证（MC 1.16.5 一致性）
@@ -415,6 +633,12 @@ void TurtleEntity::layEgg();
   - 基本属性测试（12 个测试）
     - 寒冷状态、鞍状态、熔岩表面状态
     - 骑乘状态、加速状态、高度访问器
+  - IEquipable 接口测试（12 个测试）
+    - 槽数量验证
+    - getEquipment 有鞍/无鞍返回值
+    - setEquipment 设置/清除鞍
+    - 无效槽位处理
+    - canEquip 鞍/非鞍物品验证
 - **FoxEntityTest.cpp**: 狐狸实体测试
   - 狐狸类型测试（默认类型、设置/获取）
   - 信任系统测试（添加、移除、最多 2 个、去重）
@@ -424,6 +648,11 @@ void TurtleEntity::layEgg();
   - 眼睛高度测试（成体/幼体差异）
   - 睡眠状态测试
   - 叼物品功能测试
+  - dropHeldItem 测试（在世界生成物品实体、空物品不崩溃）
+  - AI Goal 注册测试
+    - AvoidEntityGoal 注册验证（优先级 4）
+    - TemptGoal 注册验证（优先级 3）
+    - 基础 AI 目标验证
 - **PolarBearEntityTest.cpp**: 北极熊实体测试（20 个测试）
   - 基本属性测试
     - 构造函数默认值
@@ -449,7 +678,7 @@ void TurtleEntity::layEgg();
   - 随机性测试
     - 愤怒时间随机变化
     - 站立计时器随机变化
-- **PandaEntityTest.cpp**: 熊猫实体测试（17 个测试）
+- **PandaEntityTest.cpp**: 熊猫实体测试（29 个测试）
   - 性格测试
     - 随机生成有效性格
     - 性格枚举值验证
@@ -473,7 +702,38 @@ void TurtleEntity::layEgg();
     - 无世界时不崩溃验证
     - 粒子位置验证（头部附近）
     - 成年熊猫跳跃集成测试
-- 蜜蜂授粉测试
+  - 基因系统测试 (7 个测试)
+    - getAndSetMainGene/getAndSetHiddenGene
+    - calculateExpressedPersonality 好斗显性测试
+    - calculateExpressedPersonality 懒惰+好斗组合测试
+    - calculateExpressedPersonality 普通主基因测试
+    - getOneOfGenesRandomly 随机选择测试
+    - updatePersonalityFromGenes 更新测试
+  - spawnBaby 测试 (5 个测试)
+    - 创建幼体熊猫
+    - 位置设置
+    - 基因遗传（双亲）
+    - 基因遗传（单亲）
+- **BeeEntityTest.cpp**: 蜜蜂实体测试（37 个测试）
+  - isBreedingItem 花朵检测测试（17 种花朵 + 非花朵物品）
+  - spawnBaby 幼体生成测试
+    - 创建幼蜂
+    - 位置设置
+  - 花粉/螫刺/飞行状态测试
+  - 蜂巢/花朵位置测试
+  - 属性测试
+    - MAX_HEALTH (10.0)
+    - MOVEMENT_SPEED (0.3)
+    - FLYING_SPEED (0.6)
+    - ATTACK_DAMAGE (2.0)
+    - FOLLOW_RANGE (48.0)
+  - 眼睛高度测试 (0.3f)
+  - IAngerable 愤怒系统测试
+    - setAngerTime/getAngerTime
+    - setAngry/isAngry
+    - 清除愤怒测试
+  - 水下溺水计时器测试
+    - 初始状态为 0
 - 海龟出生地记忆测试
 - 海龟繁殖系统测试
   - isBreedingItem 海草检测测试

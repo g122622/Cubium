@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,20 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "VexEntity.hpp"
+#include "../../../ai/controller/VexMovementController.hpp"
+#include "../../../ai/goal/GoalFlag.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/goal/goals/special/VexGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../player/Player.hpp"
 #include <memory>
 
 namespace mc {
@@ -32,14 +39,17 @@ namespace mc {
 VexEntity::VexEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
-    // 恼鬼体型小
+    // MC 1.16.5: 恼鬼使用专用的飞行移动控制器
+    // 参考 VexEntity 构造函数: this.moveController = new VexEntity.MoveHelperController(this);
+    m_moveController = std::make_unique<entity::ai::controller::VexMovementController>(this);
+
     // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
     registerAttributes();
 }
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<VexEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<VexEntity>(LegacyEntityType::Vex, 0);
 }
 
 void VexEntity::tick()
@@ -69,12 +79,51 @@ void VexEntity::tick()
 
 void VexEntity::registerGoals()
 {
+    // MC 1.16.5 VexEntity.registerGoals()
+    // 调用父类方法注册基础 AI（SwimGoal, HurtByTargetGoal）
     MonsterEntity::registerGoals();
 
-    // TODO: 恼鬼特有 AI 目标
-    // - VexAttackGoal (近战攻击)
-    // - VexChargeGoal (充电攻击)
-    // - VexMoveGoal (穿墙移动)
+    // ========== 行为目标 ==========
+    // 优先级 0: 游泳（已在 MonsterEntity::registerGoals() 中注册）
+
+    // MC 1.16.5: 优先级 4: 冲锋攻击
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::VexChargeAttackGoal>(this));
+
+    // MC 1.16.5: 优先级 8: 随机飞行移动
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::VexMoveRandomGoal>(this));
+
+    // MC 1.16.5: 优先级 9: 看向玩家（距离3格，概率1.0）
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
+        this,
+        3.0f,
+        1.0f,
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+        }));
+
+    // MC 1.16.5: 优先级 10: 看向生物（距离8格）
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(
+        this,
+        8.0f,
+        0.02f,
+        [](const LivingEntity* entity) -> bool {
+            // MC 1.16.5: MobEntity.class
+            return entity != nullptr && dynamic_cast<const MobEntity*>(entity) != nullptr;
+        }));
+
+    // ========== 目标选择器 ==========
+    // 优先级 1: 被攻击后反击（已在 MonsterEntity::registerGoals() 中注册）
+
+    // MC 1.16.5: 优先级 2: 复制主人目标
+    // 当主人（唤魔者）攻击某个目标时，恼鬼也会攻击该目标
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::VexCopyOwnerTargetGoal>(this));
+
+    // MC 1.16.5: 优先级 3: 攻击最近的玩家（需要视线检查）
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
+        this,
+        true,   // checkSight - 需要视线检查
+        0       // chance - 每tick都检查
+    ));
 }
 
 void VexEntity::registerAttributes()

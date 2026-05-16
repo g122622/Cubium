@@ -222,6 +222,41 @@ public:
      */
     void restockTrades();
 
+    // ========== 睡眠 ==========
+
+    /**
+     * @brief 检查是否正在睡眠
+     * @return 是否正在睡眠
+     */
+    [[nodiscard]] bool isSleeping() const;
+
+    /**
+     * @brief 获取睡眠位置
+     * @return 睡眠位置（如果未在睡眠返回空）
+     */
+    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const { return m_sleepingPos; }
+
+    /**
+     * @brief 开始睡眠
+     * @param pos 床位位置
+     *
+     * 参考 MC 1.16.5 LivingEntity.startSleeping()
+     */
+    void startSleeping(BlockPos pos);
+
+    /**
+     * @brief 停止睡眠
+     *
+     * 参考 MC 1.16.5 LivingEntity.wakeUp()
+     */
+    void stopSleeping();
+
+    /**
+     * @brief 检查是否在夜间时间
+     * @return 是否是夜间
+     */
+    [[nodiscard]] bool isNightTime() const;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -242,6 +277,9 @@ private:
 
     // 声音冷却
     i32 m_soundCooldown = 0;
+
+    // 睡眠状态
+    std::optional<BlockPos> m_sleepingPos;
 
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;

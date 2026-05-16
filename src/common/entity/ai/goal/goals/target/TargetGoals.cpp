@@ -28,11 +28,16 @@
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/passive/basic/ChickenEntity.hpp"
+#include "../../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
+#include "../../../../entities/monster/arthropod/EndermiteEntity.hpp"
+#include "../../../../entities/monster/end/EndermanEntity.hpp"
 #include "../../../../entities/monster/nether/NetherEntities.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../entities/villager/VillagerEntity.hpp"
 #include "../../../../interfaces/IAngerable.hpp"
 #include "../../../controller/LookController.hpp"
 #include <cmath>
@@ -214,9 +219,14 @@ void NearestAttackableTargetGoal<T>::startExecuting()
 template class NearestAttackableTargetGoal<LivingEntity>;
 template class NearestAttackableTargetGoal<MobEntity>;
 template class NearestAttackableTargetGoal<Player>;
+template class NearestAttackableTargetGoal<ChickenEntity>;
+template class NearestAttackableTargetGoal<TurtleEntity>;
 template class NearestAttackableTargetGoal<FoxEntity>;
 template class NearestAttackableTargetGoal<IronGolemEntity>;
 template class NearestAttackableTargetGoal<AbstractPiglinEntity>;
+template class NearestAttackableTargetGoal<entity::VillagerEntity>;
+template class NearestAttackableTargetGoal<entity::AbstractVillagerEntity>;
+template class NearestAttackableTargetGoal<EndermiteEntity>;
 
 // ==================== HurtByTargetGoal ====================
 
@@ -305,22 +315,27 @@ bool OwnerHurtByTargetGoal::shouldExecute()
     // 检查是否已驯服
     if (!tameable->isTamed()) return false;
 
+    // 检查是否坐下（坐下的狼不攻击）
+    if (tameable->isSitting()) return false;
+
     // 获取主人
     Player* owner = tameable->getOwner();
     if (!owner) return false;
 
     // MC 1.16.5: 检查主人是否有攻击者
-    // 注意：Player类需要实现getLastHurtBy()方法
-    // 当前暂时返回false，等待Player类扩展
-    // LivingEntity* attacker = owner->getLastHurtBy();
-    // if (!attacker || !attacker->isAlive()) return false;
-    // if (attacker == owner) return false;
-    // if (!isSuitableTarget(attacker)) return false;
-    // m_target = attacker;
-    // return true;
+    LivingEntity* attacker = owner->getLastHurtBy();
+    if (!attacker || !attacker->isAlive()) return false;
 
-    MC_UNUSED(owner);
-    return false;
+    // 不能攻击自己或主人
+    if (attacker == m_mob || attacker == owner) return false;
+
+    // 检查是否适合作为目标
+    if (!isSuitableTarget(attacker)) return false;
+
+    // MC 1.16.5: 使用 shouldAttackEntity 检查（狼不应该攻击苦力怕、恶魂、其他驯服动物等）
+    // 这里简化处理，直接设置目标
+    m_target = attacker;
+    return true;
 }
 
 void OwnerHurtByTargetGoal::startExecuting()
@@ -345,22 +360,26 @@ bool OwnerHurtTargetGoal::shouldExecute()
     // 检查是否已驯服
     if (!tameable->isTamed()) return false;
 
+    // 检查是否坐下（坐下的狼不攻击）
+    if (tameable->isSitting()) return false;
+
     // 获取主人
     Player* owner = tameable->getOwner();
     if (!owner) return false;
 
     // MC 1.16.5: 检查主人正在攻击的目标
-    // 注意：Player类需要实现getLastHurtTarget()方法
-    // 当前暂时返回false，等待Player类扩展
-    // LivingEntity* target = owner->getLastHurtTarget();
-    // if (!target || !target->isAlive()) return false;
-    // if (target == owner) return false;
-    // if (!isSuitableTarget(target)) return false;
-    // m_target = target;
-    // return true;
+    LivingEntity* target = owner->getLastHurtTarget();
+    if (!target || !target->isAlive()) return false;
 
-    MC_UNUSED(owner);
-    return false;
+    // 不能攻击自己或主人
+    if (target == m_mob || target == owner) return false;
+
+    // 检查是否适合作为目标
+    if (!isSuitableTarget(target)) return false;
+
+    // MC 1.16.5: 使用 shouldAttackEntity 检查
+    m_target = target;
+    return true;
 }
 
 void OwnerHurtTargetGoal::startExecuting()
@@ -370,14 +389,19 @@ void OwnerHurtTargetGoal::startExecuting()
 
 // ==================== NonTamedTargetGoal ====================
 
-// 显式实例化模板类
-// 注意：T必须是LivingEntity的子类
-template class NonTamedTargetGoal<LivingEntity>;
-template class NonTamedTargetGoal<MobEntity>;
-
 template <typename T>
 NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight)
     : TargetGoal(mob, checkSight)
+    , m_predicate(nullptr)
+{
+    static_assert(
+        std::is_base_of<LivingEntity, T>::value, "NonTamedTargetGoal<T> requires T to be derived from LivingEntity");
+}
+
+template <typename T>
+NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight, TargetPredicate predicate)
+    : TargetGoal(mob, checkSight)
+    , m_predicate(std::move(predicate))
 {
     static_assert(
         std::is_base_of<LivingEntity, T>::value, "NonTamedTargetGoal<T> requires T to be derived from LivingEntity");
@@ -416,6 +440,10 @@ bool NonTamedTargetGoal<T>::shouldExecute()
             }
             // 检查视线（如果需要）
             if (m_checkSight && !m_mob->canSee(*candidate)) {
+                return false;
+            }
+            // 如果有自定义谓词，应用它
+            if (m_predicate && !m_predicate(livingTarget)) {
                 return false;
             }
             return true;
@@ -535,8 +563,14 @@ void ResetAngerGoal<T>::startExecuting()
     Goal::startExecuting();
 }
 
-// 显式实例化模板类
-// 注意：ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
-// 铁傀儡 IronGolemEntity、末影人 EndermanEntity 等在各自的文件中实例化
+// ==================== 显式实例化模板类 ====================
+
+// NonTamedTargetGoal（NearestAttackableTargetGoal 已在文件中间实例化）
+template class NonTamedTargetGoal<LivingEntity>;
+template class NonTamedTargetGoal<MobEntity>;
+template class NonTamedTargetGoal<TurtleEntity>;
+
+// ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
+template class ResetAngerGoal<EndermanEntity>;
 
 } // namespace mc::entity::ai::goal

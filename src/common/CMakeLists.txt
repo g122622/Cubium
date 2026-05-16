@@ -228,6 +228,8 @@ add_library(mc_common STATIC
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp
     entity/ai/controller/JumpController.cpp
+    entity/ai/controller/VexMovementController.cpp
+    entity/ai/controller/GhastMovementController.cpp
     entity/ai/goal/goals/SwimGoal.cpp
     entity/ai/goal/goals/RandomWalkingGoal.cpp
     entity/ai/goal/goals/LookAtGoal.cpp
@@ -238,12 +240,16 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
     entity/ai/goal/goals/RandomSwimmingGoal.cpp
+    entity/ai/goal/goals/FishSwimGoal.cpp
     entity/ai/goal/goals/FindWaterGoal.cpp
     entity/ai/goal/goals/SwimUpGoal.cpp
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
+    entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp
     entity/ai/goal/goals/movement/MovementGoals.cpp
     entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.cpp
+    entity/ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.cpp
+    entity/ai/goal/goals/movement/FollowMobGoal.cpp
     entity/ai/goal/goals/attack/RangedAttackGoals.cpp
     entity/ai/goal/goals/target/TargetGoals.cpp
     entity/ai/goal/goals/special/SpecialGoals.cpp
@@ -255,6 +261,20 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/BlazeFireballAttackGoal.cpp
     entity/ai/goal/goals/special/PhantomGoals.cpp
     entity/ai/goal/goals/special/IronGolemGoals.cpp
+    entity/ai/goal/goals/special/ShulkerGoals.cpp
+    entity/ai/goal/goals/special/EvokerGoals.cpp
+    entity/ai/goal/goals/special/IllusionerGoals.cpp
+    entity/ai/goal/goals/special/VexGoals.cpp
+    entity/ai/goal/goals/special/EndermanGoals.cpp
+    entity/ai/goal/goals/special/TurtleGoals.cpp
+    entity/ai/goal/goals/special/BeeGoals.cpp
+    entity/ai/goal/goals/special/FoxGoals.cpp
+    entity/ai/goal/goals/special/PandaGoals.cpp
+    entity/ai/goal/goals/special/MoveToLavaGoal.cpp
+    entity/ai/goal/goals/special/PatrolGoals.cpp
+    entity/ai/goal/goals/special/RavagerGoals.cpp
+    entity/ai/goal/goals/special/GhastGoals.cpp
+    entity/ai/goal/goals/special/SilverfishGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/VillagerGoals.cpp
@@ -269,6 +289,7 @@ add_library(mc_common STATIC
     entity/ai/pathfinding/Path.cpp
     entity/ai/pathfinding/Region.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
+    entity/ai/pathfinding/RavagerNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp
     entity/ai/util/RandomPositionGenerator.cpp

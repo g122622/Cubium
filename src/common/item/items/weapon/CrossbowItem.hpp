@@ -140,6 +140,20 @@ public:
      */
     [[nodiscard]] std::function<bool(const ItemStack&)> getInventoryAmmoPredicate() const;
 
+    /**
+     * @brief 检查弩中是否装填了指定物品
+     * @param stack 弩物品堆
+     * @param item 要检查的物品类型
+     * @return 如果装填了指定物品返回true
+     */
+    [[nodiscard]] static bool hasChargedProjectile(const ItemStack& stack, const Item* item);
+
+    /**
+     * @brief 清除已装填的弹丸
+     * @param stack 弩物品堆
+     */
+    static void clearProjectiles(ItemStack& stack);
+
 private:
     /**
      * @brief 检查物品是否是弩的弹药
@@ -160,11 +174,6 @@ private:
     static bool loadProjectiles(Player& player, ItemStack& crossbow);
 
     /**
-     * @brief 检查弩中是否装填了指定物品
-     */
-    static bool hasChargedProjectile(const ItemStack& stack, const Item* item);
-
-    /**
      * @brief 发射弹丸
      */
     static void fireProjectiles(
@@ -179,11 +188,6 @@ private:
      * @brief 添加弹丸到弩
      */
     static void addChargedProjectile(ItemStack& crossbow, const ItemStack& projectile);
-
-    /**
-     * @brief 清除已装填的弹丸
-     */
-    static void clearProjectiles(ItemStack& stack);
 
     /**
      * @brief 获取多重射击等级

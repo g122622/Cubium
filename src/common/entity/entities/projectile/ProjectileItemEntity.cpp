@@ -29,6 +29,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../effect/EffectEntities.hpp"
 #include "../monster/nether/BlazeEntity.hpp"
 #include "../orb/ExperienceOrbEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -332,9 +333,48 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         }
 
         // 如果是滞留型药水，创建区域效果云
+        // MC 1.16.5: PotionEntity.makeAreaOfEffectCloud()
         if (m_lingering) {
-            // TODO: 创建 AreaEffectCloudEntity
-            // 需要实现 AreaEffectCloudEntity 实体类
+            // 创建区域效果云实体
+            auto cloud = std::make_unique<AreaEffectCloudEntity>();
+            cloud->setWorld(m_world);
+            cloud->setPosition(x(), y(), z());
+
+            // 设置拥有者（投射物的发射者）
+            Entity* shooter = getShooter();
+            if (shooter != nullptr) {
+                LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
+                if (livingShooter != nullptr) {
+                    cloud->setOwner(livingShooter);
+                }
+            }
+
+            // MC 1.16.5 参数
+            cloud->setRadius(3.0f);
+            cloud->setRadiusOnUse(-0.5f);
+            cloud->setWaitTime(10);
+            // radiusPerTick = -radius / duration = -3.0 / 600 = -0.005
+            cloud->setRadiusPerTick(-cloud->getRadius() / static_cast<f32>(cloud->getDuration()));
+
+            // 添加药水效果到效果云
+            // MC 1.16.5: 效果持续时间在区域效果云中为原持续时间的 1/4
+            for (const auto& effect : effects) {
+                entity::effect::EffectInstance cloudEffect(
+                    effect.type(),
+                    effect.duration() / 4,  // MC 1.16.5: 持续时间除以4
+                    effect.amplifier(),
+                    effect.isAmbient(),
+                    effect.isVisible(),
+                    effect.showIcon());
+                cloud->addEffect(cloudEffect);
+            }
+
+            // 设置颜色（如果药水有自定义颜色）
+            u32 potionColor = potion::PotionUtils::getColor(m_itemStack);
+            cloud->setColor(potionColor);
+
+            // 生成效果云实体
+            m_world->spawnEntity(std::move(cloud));
         }
     }
 

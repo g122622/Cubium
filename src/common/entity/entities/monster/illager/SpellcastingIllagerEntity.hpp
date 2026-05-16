@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -34,10 +34,24 @@ namespace mc {
  * - 当前激活法术类型
  * - 法术持续 tick
  * - 服务端施法状态判定
+ * - 施法粒子颜色反馈
  */
 class SpellcastingIllagerEntity : public AbstractIllagerEntity {
 public:
-    enum class SpellType : u8 { None = 0, SummonVex = 1, Fangs = 2, Wololo = 3, Disappear = 4, Blindness = 5 };
+    /**
+     * @brief 法术类型枚举
+     *
+     * 参考 MC 1.16.5 SpellcastingIllagerEntity.SpellType
+     * 每种法术类型对应不同的粒子颜色（RGB 值作为速度参数）
+     */
+    enum class SpellType : u8 {
+        None = 0,       ///< 无施法
+        SummonVex = 1,  ///< 召唤恼鬼（唤魔者）- 淡蓝白色 (0.7, 0.7, 0.8)
+        Fangs = 2,      ///< 尖牙攻击（唤魔者）- 棕色 (0.4, 0.3, 0.35)
+        Wololo = 3,     ///< 唔噜噜法术（唤魔者）- 橙黄色 (0.7, 0.5, 0.2)
+        Disappear = 4,  ///< 消失/镜像法术（幻术师）- 蓝色 (0.3, 0.3, 0.8)
+        Blindness = 5   ///< 失明法术（幻术师）- 深蓝/深紫色 (0.1, 0.1, 0.2)
+    };
 
     SpellcastingIllagerEntity(LegacyEntityType type, EntityId id);
     ~SpellcastingIllagerEntity() override = default;
@@ -58,6 +72,17 @@ public:
     [[nodiscard]] static SpellType spellTypeFromId(i32 id);
 
     void tick() override;
+
+    /**
+     * @brief 获取法术类型的粒子颜色（RGB 速度参数）
+     *
+     * 参考 MC 1.16.5 SpellcastingIllagerEntity.SpellType.particleSpeed
+     * 粒子颜色通过速度参数 (dx, dy, dz) 传递给 ENTITY_EFFECT 粒子
+     *
+     * @param type 法术类型
+     * @return 包含 RGB 颜色值的 Vector3（范围 0.0-1.0）
+     */
+    [[nodiscard]] static Vector3 getSpellParticleColor(SpellType type);
 
 protected:
     [[nodiscard]] virtual const char* getSpellSoundId() const { return ""; }

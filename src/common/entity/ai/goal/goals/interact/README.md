@@ -7,6 +7,7 @@
 | 文件 | 说明 |
 |------|------|
 | TameableGoals.hpp/cpp | 可驯服动物相关目标（FollowOwnerGoal, SitGoal, BegGoal） |
+| LandOnOwnersShoulderGoal.hpp/cpp | 肩膀乘坐目标（鹦鹉落到主人肩膀） |
 
 ## 整体职责
 
@@ -186,3 +187,104 @@ bool WolfEntity::isTameItem(const ItemStack& itemStack) const {
 - 繁殖物品测试
 - 已驯服/未驯服状态测试
 - 多态调用测试
+
+---
+
+## LandOnOwnersShoulderGoal - 落到主人肩膀目标
+
+**职责**: 使可驯服的肩膀乘坐实体（如鹦鹉）飞到主人的肩膀上。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.LandOnOwnersShoulderGoal`
+
+### 执行条件
+
+`shouldExecute()` 返回 true 当：
+1. 实体已驯服 (`isTamed()`)
+2. 实体未坐下 (`!isSitting()`)
+3. 主人存在且是有效玩家
+4. 主人不在旁观者模式
+5. 主人不在飞行（创造模式飞行）
+6. 主人不在水中
+7. 肩膀乘坐冷却已过（> 100 ticks）
+
+### 核心行为
+
+#### `tick()` 逻辑
+
+每帧检查：
+1. 计算与主人的距离
+2. 如果实体碰撞箱与主人碰撞箱相交：
+   - 调用 `mountShoulder()` 坐到主人肩膀
+   - 设置 `m_isSittingOnShoulder = true`
+
+#### `isPreemptible()`
+
+- 返回 `false` 如果已经坐在肩膀上（不可被打断）
+- 返回 `true` 否则（可以被其他目标打断）
+
+### 关键参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `m_entity` | `ShoulderRidingEntity*` | 肩膀乘坐实体 |
+| `m_owner` | `Player*` | 主人引用 |
+| `m_isSittingOnShoulder` | `bool` | 是否已坐在肩膀上 |
+
+### 互斥标志
+
+无（不占用任何互斥标志）
+
+### 使用示例
+
+```cpp
+void ParrotEntity::registerGoals() {
+    ShoulderRidingEntity::registerGoals();
+    
+    // 优先级 3: 落到主人肩膀
+    m_goalSelector.addGoal(3, std::make_unique<LandOnOwnersShoulderGoal>(this));
+}
+```
+
+### ShoulderRidingEntity 接口
+
+肩膀乘坐实体需要实现以下方法：
+
+| 方法 | 说明 |
+|------|------|
+| `canSitOnShoulder()` | 检查是否可以坐到肩膀上 |
+| `isOnShoulder()` | 检查是否正在肩膀上 |
+| `mountShoulder()` | 开始坐到肩膀上 |
+| `shoulderRidingCooldown()` | 获取冷却时间（默认 100 ticks） |
+
+### 依赖关系
+
+```
+LandOnOwnersShoulderGoal
+    ├── ShoulderRidingEntity    # 肩膀乘坐实体
+    │   └── TameableEntity      # 可驯服实体
+    │       └── MobEntity       # 生物实体
+    └── Player                  # 玩家
+```
+
+### 与其他目标的配合
+
+鹦鹉 AI 目标优先级（MC 1.16.5）：
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 0 | PanicGoal | 恐慌逃跑 |
+| 1 | LookAtGoal | 看向玩家 |
+| 2 | SitGoal | 坐下 |
+| 2 | FollowOwnerGoal | 跟随主人 |
+| 2 | WaterAvoidingRandomFlyingGoal | 随机飞行 |
+| 3 | LandOnOwnersShoulderGoal | 落到肩膀 |
+| 3 | FollowMobGoal | 跟随其他生物 |
+
+### 测试用例
+
+参见 `tests/entity/ParrotGoalsTest.cpp`：
+- LandOnOwnersShoulderGoal 构造测试
+- shouldExecute 条件测试
+- isPreemptible 状态测试
+- tick 行为测试

@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,12 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../MonsterEntity.hpp"
 #include <memory>
@@ -41,10 +40,11 @@ class DamageSource;
  * 生活在末地城市的敌对生物，会发射追踪子弹。
  *
  * 特性：
- * - 贝壳防御：闭合时免疫大部分伤害
+ * - 贝壳防御：闭合时免疫大部分伤害（箭矢免疫）
  * - 悬浮攻击：发射子弹使目标悬浮
- * - 瞬移：受到伤害时会瞬移
- * - 变色：外壳颜色会渐变
+ * - 瞬移：受到伤害时会瞬移到附近位置
+ * - 附着方块：附着在方块表面，不移动
+ * - 护甲加成：闭合时获得额外护甲
  *
  * 参考 MC 1.16.5 ShulkerEntity
  */
@@ -65,7 +65,7 @@ public:
         Gray = 8,      // 灰色
         LightGray = 9, // 浅灰
         Cyan = 10,     // 青色
-        Purple2 = 11,  // 紫色
+        Purple2 = 11,  // 紫色（另一种）
         Blue = 12,     // 蓝色
         Brown = 13,    // 棕色
         Green = 14,    // 绿色
@@ -136,6 +136,28 @@ public:
     [[nodiscard]] bool isShellClosed() const { return m_shellState == ShellState::Closed; }
 
     /**
+     * @brief 获取开壳程度（0.0-1.0）
+     * 用于渲染动画
+     */
+    [[nodiscard]] f32 getPeekAmount() const { return m_peekAmount; }
+
+    /**
+     * @brief 获取上一tick的开壳程度
+     */
+    [[nodiscard]] f32 getPrevPeekAmount() const { return m_prevPeekAmount; }
+
+    /**
+     * @brief 获取当前开壳tick数
+     */
+    [[nodiscard]] i32 getPeekTicks() const { return m_peekTicks; }
+
+    /**
+     * @brief 更新开壳tick数（同步护甲和音效）
+     * @param peekTicks 开壳tick数（0-100）
+     */
+    void updatePeekTicks(i32 peekTicks);
+
+    /**
      * @brief 打开贝壳
      */
     void openShell();
@@ -176,13 +198,24 @@ public:
 
     /**
      * @brief 传送到新位置
+     * @return 是否瞬移成功
      */
-    void teleport();
+    bool teleport();
 
-    // ========== 方向 ==========
+    // ========== 附着方向 ==========
 
     /**
-     * @brief 获取朝向
+     * @brief 获取附着方向
+     */
+    [[nodiscard]] Direction getAttachmentFacing() const { return m_attachmentFacing; }
+
+    /**
+     * @brief 设置附着方向
+     */
+    void setAttachmentFacing(Direction facing) { m_attachmentFacing = facing; }
+
+    /**
+     * @brief 获取附着位置
      */
     [[nodiscard]] BlockPos getAttachmentPos() const { return m_attachmentPos; }
 
@@ -202,6 +235,12 @@ public:
      * @brief 潜影贝不会燃烧
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+
+    /**
+     * @brief 碰撞箱边框
+     * 潜影贝的碰撞箱会根据开壳程度扩展
+     */
+    [[nodiscard]] f32 getCollisionBorderSize() const override { return 0.0f; }
 
     // ========== 音效 ==========
 
@@ -245,6 +284,12 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 受伤处理
+     * 闭合时对箭矢免疫
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -253,27 +298,48 @@ private:
     // 更新贝壳状态
     void updateShellState();
 
+    // 尝试瞬移到新位置
+    bool tryTeleportToNewPosition();
+
+    // 检查是否可以附着在指定位置的指定方向
+    [[nodiscard]] bool canAttachAt(const BlockPos& pos, Direction facing) const;
+
+    // 寻找可附着的方向
+    [[nodiscard]] std::optional<Direction> findValidFacing(const BlockPos& pos) const;
+
     // 颜色
     ShulkerColor m_color = ShulkerColor::Purple;
 
     // 贝壳状态
     ShellState m_shellState = ShellState::Closed;
     i32 m_shellStateTime = 0;
+    i32 m_peekTicks = 0;         // 开壳tick数（0-100）
+    f32 m_peekAmount = 0.0f;     // 当前开壳程度
+    f32 m_prevPeekAmount = 0.0f; // 上一tick开壳程度
 
     // 攻击状态
     bool m_attacking = false;
     i32 m_attackCooldown = 0;
-    f32 m_prevRenderOffset = 0.0f;
 
-    // 附着位置
+    // 附着位置和方向
+    Direction m_attachmentFacing = Direction::Down;
     BlockPos m_attachmentPos;
 
+    // 瞬移冷却
+    i32 m_teleportCooldown = 0;
+
     // 常量
-    static constexpr i32 OPEN_DURATION = 20;        // 打开动画时间
-    static constexpr i32 CLOSE_DURATION = 20;       // 关闭动画时间
-    static constexpr i32 ATTACK_COOLDOWN = 40;      // 攻击冷却
-    static constexpr f32 BULLET_DAMAGE = 4.0f;      // 子弹伤害
-    static constexpr i32 LEVITATION_DURATION = 100; // 悬浮持续时间
+    static constexpr i32 OPEN_DURATION = 20;           // 打开动画时间
+    static constexpr i32 CLOSE_DURATION = 20;          // 关闭动画时间
+    static constexpr i32 ATTACK_COOLDOWN_MIN = 20;     // 最小攻击冷却
+    static constexpr i32 ATTACK_COOLDOWN_RANDOM = 100; // 攻击冷却随机范围
+    static constexpr f32 BULLET_DAMAGE = 4.0f;         // 子弹伤害
+    static constexpr i32 LEVITATION_DURATION = 200;    // 悬浮持续时间（ticks）
+    static constexpr i32 TELEPORT_COOLDOWN = 50;       // 瞬移冷却
+    static constexpr i32 TELEPORT_RANGE = 8;           // 瞬移范围
+    static constexpr i32 TELEPORT_ATTEMPTS = 5;        // 瞬移尝试次数
+    static constexpr f32 ARMOR_BONUS = 20.0f;          // 闭合时护甲加成
+    static constexpr f32 ATTACK_RANGE = 20.0f;         // 攻击范围（平方）
 };
 
 } // namespace mc

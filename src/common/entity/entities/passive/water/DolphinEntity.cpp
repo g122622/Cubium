@@ -253,7 +253,7 @@ void DolphinEntity::registerGoals()
 
     // 优先级 8: 玩物品和跟随船
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::PlayWithItemsGoal>(this));
-    // TODO: FollowBoatGoal - 当船实体实现后添加
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FollowBoatGoal>(this));
 
     // 优先级 9: 避开守卫者
     // m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::AvoidEntityGoal>(this, GuardianEntity::class, 8.0f, 1.0, 1.0));

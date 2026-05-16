@@ -783,7 +783,12 @@ void Entity::updateEnvironmentState()
 bool Entity::isInRain() const
 {
     // MC 1.16.5: Entity.isInRain()
-    // 需要：世界存在 + 正在下雨 + 实体位置可以降雨
+    // 检查脚底位置和碰撞盒顶部位置两个位置
+    // private boolean isInRain() {
+    //     BlockPos blockpos = this.getPosition();
+    //     return this.world.isRainingAt(blockpos) || this.world.isRainingAt(
+    //         new BlockPos((double)blockpos.getX(), this.getBoundingBox().maxY, (double)blockpos.getZ()));
+    // }
     if (m_world == nullptr) {
         return false;
     }
@@ -793,12 +798,19 @@ bool Entity::isInRain() const
         return false;
     }
 
-    // 检查实体位置是否可以降雨
-    // 使用实体脚部位置
-    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
+    // 检查实体脚底位置是否可以降雨
+    BlockPos footPos(static_cast<i32>(std::floor(m_position.x)),
         static_cast<i32>(std::floor(m_position.y)),
         static_cast<i32>(std::floor(m_position.z)));
-    return m_world->canRainAt(pos);
+    if (m_world->canRainAt(footPos)) {
+        return true;
+    }
+
+    // 检查实体碰撞盒顶部位置是否可以降雨
+    BlockPos topPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_boundingBox.maxY)),
+        static_cast<i32>(std::floor(m_position.z)));
+    return m_world->canRainAt(topPos);
 }
 
 f32 Entity::getBrightness() const
@@ -1874,6 +1886,27 @@ bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
     }
 
     return true;
+}
+
+// ============================================================================
+// 队伍相关
+// ============================================================================
+
+bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
+{
+    // 参考 MC 1.16.5: Entity.isOnScoreboardTeam()
+    const scoreboard::Team* myTeam = getTeam();
+    if (myTeam == nullptr || team == nullptr) {
+        return false;
+    }
+    // MC 1.16.5: Team.isSameTeam() 通过对象引用相等性判断
+    return myTeam == team;
+}
+
+bool Entity::isOnSameTeam(const Entity& other) const
+{
+    // 参考 MC 1.16.5: Entity.isOnSameTeam()
+    return isOnScoreboardTeam(other.getTeam());
 }
 
 // ============================================================================

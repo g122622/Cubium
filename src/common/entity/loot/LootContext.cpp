@@ -54,6 +54,9 @@ const LootParameter<i32> SILK_TOUCH_LEVEL("silk_touch_level");
 
 // 爆炸相关参数
 const LootParameter<f32> EXPLOSION_RADIUS("explosion_radius");
+
+// 钓鱼相关参数
+const LootParameter<bool> IS_IN_OPEN_WATER("is_in_open_water");
 } // namespace LootParams
 
 // ============================================================================

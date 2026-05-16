@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/special/StriderEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 using namespace mc;
 using namespace mc::math;
@@ -430,6 +432,153 @@ TEST_F(StriderEntityBasicTest, HeightAccessorWorks)
     // 成体 Strider 高度约 1.7
     EXPECT_GT(height, 0.0f);
     EXPECT_LT(height, 5.0f); // 合理的上界
+}
+
+// ============================================================================
+// StriderEntity IEquipable 接口测试
+// ============================================================================
+
+class StriderEntityEquipableTest : public ::testing::Test {
+protected:
+    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
+
+    std::unique_ptr<StriderEntity> strider;
+};
+
+/**
+ * @brief 测试 IEquipable 接口槽数量
+ * MC 1.16.5: 炽足兽只有一个鞍槽
+ */
+TEST_F(StriderEntityEquipableTest, HasOneEquipmentSlot)
+{
+    EXPECT_EQ(strider->getEquipmentSlotCount(), 1);
+}
+
+/**
+ * @brief 测试无鞍时 getEquipment 返回空
+ */
+TEST_F(StriderEntityEquipableTest, GetEquipmentReturnsEmptyWhenNoSaddle)
+{
+    EXPECT_FALSE(strider->hasSaddle());
+    ItemStack equipment = strider->getEquipment(0);
+    EXPECT_TRUE(equipment.isEmpty());
+}
+
+/**
+ * @brief 测试有鞍时 getEquipment 返回鞍物品
+ */
+TEST_F(StriderEntityEquipableTest, GetEquipmentReturnsSaddleWhenSaddled)
+{
+    strider->setSaddle(true);
+    EXPECT_TRUE(strider->hasSaddle());
+
+    ItemStack equipment = strider->getEquipment(0);
+    EXPECT_FALSE(equipment.isEmpty());
+    EXPECT_EQ(equipment.getItem(), Items::SADDLE);
+    EXPECT_EQ(equipment.getCount(), 1);
+}
+
+/**
+ * @brief 测试无效槽位返回空
+ */
+TEST_F(StriderEntityEquipableTest, InvalidSlotReturnsEmpty)
+{
+    strider->setSaddle(true);
+
+    // 负数槽位
+    EXPECT_TRUE(strider->getEquipment(-1).isEmpty());
+
+    // 超出范围的槽位
+    EXPECT_TRUE(strider->getEquipment(1).isEmpty());
+    EXPECT_TRUE(strider->getEquipment(2).isEmpty());
+}
+
+/**
+ * @brief 测试 setEquipment 设置鞍
+ */
+TEST_F(StriderEntityEquipableTest, SetEquipmentSetsSaddle)
+{
+    ItemStack saddle(Items::SADDLE, 1);
+
+    strider->setEquipment(0, saddle);
+    EXPECT_TRUE(strider->hasSaddle());
+
+    ItemStack equipment = strider->getEquipment(0);
+    EXPECT_FALSE(equipment.isEmpty());
+    EXPECT_EQ(equipment.getItem(), Items::SADDLE);
+}
+
+/**
+ * @brief 测试 setEquipment 清空鞍
+ */
+TEST_F(StriderEntityEquipableTest, SetEquipmentClearsSaddle)
+{
+    // 先设置鞍
+    strider->setSaddle(true);
+    EXPECT_TRUE(strider->hasSaddle());
+
+    // 清空鞍
+    ItemStack empty;
+    strider->setEquipment(0, empty);
+    EXPECT_FALSE(strider->hasSaddle());
+    EXPECT_TRUE(strider->getEquipment(0).isEmpty());
+}
+
+/**
+ * @brief 测试 setEquipment 忽略无效槽位
+ */
+TEST_F(StriderEntityEquipableTest, SetEquipmentIgnoresInvalidSlot)
+{
+    ItemStack saddle(Items::SADDLE, 1);
+
+    // 设置到无效槽位
+    strider->setEquipment(1, saddle);
+    EXPECT_FALSE(strider->hasSaddle());
+
+    strider->setEquipment(-1, saddle);
+    EXPECT_FALSE(strider->hasSaddle());
+}
+
+/**
+ * @brief 测试 canEquip 接受鞍
+ */
+TEST_F(StriderEntityEquipableTest, CanEquipSaddle)
+{
+    ItemStack saddle(Items::SADDLE, 1);
+    EXPECT_TRUE(strider->canEquip(saddle, 0));
+}
+
+/**
+ * @brief 测试 canEquip 拒绝非鞍物品
+ */
+TEST_F(StriderEntityEquipableTest, CannotEquipNonSaddle)
+{
+    ItemStack diamond(Items::DIAMOND, 1);
+    EXPECT_FALSE(strider->canEquip(diamond, 0));
+
+    ItemStack sword(Items::DIAMOND_SWORD, 1);
+    EXPECT_FALSE(strider->canEquip(sword, 0));
+}
+
+/**
+ * @brief 测试 canEquip 接受空物品（清空槽位）
+ */
+TEST_F(StriderEntityEquipableTest, CanEquipEmptyToClearSlot)
+{
+    ItemStack empty;
+    EXPECT_TRUE(strider->canEquip(empty, 0));
+}
+
+/**
+ * @brief 测试 canEquip 拒绝有效物品到无效槽位
+ */
+TEST_F(StriderEntityEquipableTest, CannotEquipToInvalidSlot)
+{
+    ItemStack saddle(Items::SADDLE, 1);
+
+    // 无效槽位
+    EXPECT_FALSE(strider->canEquip(saddle, 1));
+    EXPECT_FALSE(strider->canEquip(saddle, -1));
 }
 
 } // namespace

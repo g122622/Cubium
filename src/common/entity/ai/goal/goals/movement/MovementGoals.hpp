@@ -166,5 +166,41 @@ private:
     f64 m_targetZ = 0.0;
 };
 
+/**
+ * @brief 向家范围移动目标
+ *
+ * 当生物离开其家范围时，向家位置移动。
+ * 守卫者使用此目标来限制它们在海底神殿附近的移动。
+ *
+ * 参考 MC 1.16.5 MoveTowardsRestrictionGoal
+ */
+class MoveTowardsRestrictionGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param creature 拥有此目标的生物
+     * @param speed 移动速度倍率
+     */
+    MoveTowardsRestrictionGoal(CreatureEntity* creature, f64 speed);
+
+    ~MoveTowardsRestrictionGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    [[nodiscard]] std::string getTypeName() const override { return "MoveTowardsRestrictionGoal"; }
+
+private:
+    CreatureEntity* m_creature;
+    f64 m_speed;
+    f64 m_targetX = 0.0;
+    f64 m_targetY = 0.0;
+    f64 m_targetZ = 0.0;
+
+    // MC 1.16.5 参数
+    static constexpr i32 XZ_RANGE = 16;  // 水平搜索范围
+    static constexpr i32 Y_RANGE = 7;    // 垂直搜索范围
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

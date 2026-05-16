@@ -21,6 +21,7 @@ goal/
     ├── SwimGoal.hpp/cpp          # 游泳目标
     ├── TemptGoal.hpp/cpp         # 食物诱惑目标
     ├── RandomSwimmingGoal.hpp/cpp # 随机游泳目标（水生生物）
+    ├── FishSwimGoal.hpp/cpp      # 鱼类游泳目标（检查 canRandomSwim）
     ├── FindWaterGoal.hpp/cpp     # 寻找水源目标（水生生物）
     ├── SwimUpGoal.hpp/cpp        # 向上游目标（水生生物）
     ├── AdditionalGoals.hpp/cpp   # 其他目标(占位符)
@@ -28,14 +29,17 @@ goal/
     │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
     │   └── FollowSchoolLeaderGoal.hpp/cpp # 跟随群体领导者（群游鱼类）
     ├── attack/                   # 攻击类目标
-    │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal
+    │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal, RangedCrossbowAttackGoal
     ├── target/                   # 目标选择目标
-    │   └── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
+    │   ├── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
+    │   └── README.md             # 目标选择器详细文档
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
     └── special/                  # 特殊目标
-        └── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
-        └── GuardianAttackGoal.hpp/cpp # 守卫者激光攻击目标
+        ├── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
+        ├── RavagerGoals.hpp/cpp  # RavagerAttackGoal 劫掠兽近战攻击目标
+        ├── GuardianAttackGoal.hpp/cpp # 守卫者激光攻击目标
+        └── MoveToLavaGoal.hpp/cpp # 移动到方块目标基类、炽足兽寻找熔岩目标
 ```
 
 ## 整体职责
@@ -276,6 +280,39 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 **关键参数**:
 - `m_maxDistance`: 最大观看距离
 - `m_chance`: 执行概率
+- `DEFAULT_LOOK_CHANCE`: 默认概率 (0.02f, 2%)
+
+**构造函数重载**:
+
+| 构造函数 | 说明 |
+|----------|------|
+| `LookAtGoal(mob, maxDistance)` | 看向任意 LivingEntity，默认概率 |
+| `LookAtGoal(mob, maxDistance, chance)` | 看向任意 LivingEntity，指定概率 |
+| `LookAtGoal(mob, maxDistance, chance, filter)` | 看向自定义过滤的实体 |
+| `LookAtGoal(mob, maxDistance, chance, TypeFilter<T>{})` | 看向特定类型的实体 |
+
+**类型过滤使用示例**:
+```cpp
+// 看向附近的炽足兽（MC 1.16.5: new LookAtGoal(this, StriderEntity.class, 8.0F)）
+m_goalSelector.addGoal(9, std::make_unique<LookAtGoal>(
+    this, 8.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<StriderEntity>{}));
+
+// 看向附近的玩家
+m_goalSelector.addGoal(6, std::make_unique<LookAtGoal>(
+    this, 8.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<Player>{}));
+
+// 看向附近的村民
+m_goalSelector.addGoal(7, std::make_unique<LookAtGoal>(
+    this, 10.0f, 0.05f, TypeFilter<VillagerEntity>{}));
+
+// 使用自定义过滤条件
+m_goalSelector.addGoal(8, std::make_unique<LookAtGoal>(
+    this, 12.0f, 0.02f, [](const LivingEntity* entity) {
+        // 只看向成年动物
+        const AnimalEntity* animal = dynamic_cast<const AnimalEntity*>(entity);
+        return animal != nullptr && !animal->isChild();
+    }));
+```
 
 **派生类**: `LookRandomlyGoal` - 随机看向某个方向
 
@@ -299,6 +336,76 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 - `m_speed`: 追踪速度
 - `m_useLongMemory`: 是否使用长期记忆（目标丢失后继续追踪）
 - `ATTACK_COOLDOWN_TICKS`: 攻击冷却 (20 tick)
+
+---
+
+#### RangedCrossbowAttackGoal - 弩远程攻击目标
+
+**职责**: 使生物使用弩进行远程攻击，支持装填和发射的完整状态机。
+
+**执行条件**: 实体持有弩且有有效的攻击目标
+
+**互斥标志**: `Move`, `Look`
+
+**状态机**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Uncharged: 初始状态
+    Uncharged --> Charging: 看到目标 ≥ 5 ticks
+    Charging --> Charged: 装填完成 (25 ticks)
+    Charged --> ReadyToAttack: 等待 20-40 ticks
+    ReadyToAttack --> Uncharged: 发射弩箭
+    ReadyToAttack --> Charged: 看不到目标
+```
+
+| 状态 | 说明 |
+|------|------|
+| Uncharged | 未装填，等待目标进入攻击范围 |
+| Charging | 装填中，检查装填进度 |
+| Charged | 已装填，等待随机延迟 |
+| ReadyToAttack | 准备攻击，看到目标时发射 |
+
+**关键参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| MIN_SEEN_TIME | 5 | 开始装填前需要看到目标的 tick 数 |
+| CHARGED_WAIT_MIN | 20 | 装填后最小等待时间 |
+| CHARGED_WAIT_MAX | 40 | 装填后最大等待时间 |
+| MOVE_COOLDOWN_MIN | 20 | 移动冷却最小值 |
+| MOVE_COOLDOWN_MAX | 40 | 移动冷却最大值 |
+| ARROW_VELOCITY | 3.15f | 箭矢速度 |
+| FIREWORK_VELOCITY | 1.6f | 烟花速度 |
+
+**行为**:
+1. 在攻击范围内且能看到目标时开始装填
+2. 装填期间设置 `ICrossbowUser::setChargingCrossbow(true)`
+3. 装填完成后调用 `ICrossbowUser::onCrossbowLoadComplete()`
+4. 发射时调用 `ICrossbowUser::shootCrossbow()`
+
+**依赖接口**: 实体必须实现 `ICrossbowUser` 接口
+
+```cpp
+class ICrossbowUser {
+public:
+    virtual void setChargingCrossbow(bool charging) = 0;
+    virtual bool isChargingCrossbow() const = 0;
+    virtual void onCrossbowLoadComplete(ItemStack& crossbow) = 0;
+    virtual void shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) = 0;
+    virtual i32 getCrossbowChargeTime() const = 0;
+};
+```
+
+**使用示例**:
+```cpp
+void PillagerEntity::registerGoals() {
+    // 优先级 3: 弩远程攻击
+    m_goalSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 8.0f));
+}
+```
+
+**参考**: MC 1.16.5 `net.minecraft.entity.ai.goal.RangedCrossbowAttackGoal`
 
 ---
 
@@ -359,6 +466,83 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 
 ---
 
+#### RandomSwimmingGoal - 随机游泳目标
+
+**职责**: 使水生生物在水中随机游泳。
+
+**继承**: `Goal`
+
+**执行条件**: 
+- 实体在水中
+- 概率触发（默认 1/120）
+- 实体没有被骑乘
+
+**行为**:
+1. 检查执行概率和空闲时间
+2. 在水中寻找随机目标位置
+3. 使用 `tryMoveTo()` 移动到目标位置
+4. 持续时间可达 600 tick
+
+**互斥标志**: `Move`
+
+**关键参数**:
+- `m_speed`: 游泳速度倍率
+- `m_executionChance`: 执行概率倒数（默认 120）
+- `MAX_SWIM_TIME`: 最大游泳时间 (600 tick)
+
+**使用示例**:
+```cpp
+// MC 1.16.5: 水生生物随机游泳
+m_goalSelector.addGoal(5, std::make_unique<RandomSwimmingGoal>(this, 1.0, 120));
+```
+
+---
+
+#### FishSwimGoal - 鱼类游泳目标
+
+**职责**: 鱼类实体的随机游泳目标，继承 RandomSwimmingGoal 并添加 `canRandomSwim()` 条件检查。
+
+**继承**: `RandomSwimmingGoal`
+
+**执行条件**:
+- 满足 RandomSwimmingGoal 的所有条件
+- `canRandomSwim()` 返回 true
+
+**canRandomSwim() 逻辑**:
+- `AbstractFishEntity`: 默认返回 true
+- `AbstractGroupFishEntity`: 重写返回 `!hasGroupLeader()`
+  - 有群首时返回 false（跟随群首而不是随机游泳）
+  - 无群首时返回 true（可以随机游泳）
+
+**互斥标志**: `Move`（继承自 RandomSwimmingGoal）
+
+**MC 1.16.5 参考**:
+```java
+// AbstractFishEntity.SwimGoal
+class SwimGoal extends RandomSwimmingGoal {
+    public boolean shouldExecute() {
+        return this.fish.func_212800_dy() && super.shouldExecute();
+    }
+}
+// func_212800_dy() 对应 canRandomSwim()
+```
+
+**使用示例**:
+```cpp
+// AbstractFishEntity::registerGoals()
+m_goalSelector.addGoal(4, std::make_unique<FishSwimGoal>(this, 1.0, 40));
+
+// AbstractGroupFishEntity::registerGoals()
+// 继承父类目标，额外添加 FollowSchoolLeaderGoal
+m_goalSelector.addGoal(5, std::make_unique<FollowSchoolLeaderGoal>(this));
+```
+
+**与 FollowSchoolLeaderGoal 的协作**:
+- 群首鱼（无 leader）: `canRandomSwim() = true`，执行 FishSwimGoal
+- 跟随鱼（有 leader）: `canRandomSwim() = false`，执行 FollowSchoolLeaderGoal
+
+---
+
 #### TemptGoal - 食物诱惑目标
 
 **职责**: 当玩家手持特定物品时，动物会被诱惑跟随玩家。
@@ -377,6 +561,129 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 - `m_speed`: 跟随速度
 - `m_scaredByMovement`: 是否被玩家移动吓跑
 - `TEMPT_COOLDOWN`: 诱惑冷却 (100 tick)
+
+**虚方法扩展**:
+
+`TemptGoal::isScaredByPlayerMovement()` 是虚方法，子类可以重写以实现自定义行为：
+
+```cpp
+// OcelotTemptGoal: 未信任时才害怕玩家移动
+class OcelotTemptGoal : public TemptGoal {
+protected:
+    bool isScaredByPlayerMovement() const override {
+        return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
+    }
+};
+```
+
+---
+
+### 特定实体的 AI Goal 子类
+
+某些实体需要特化版本的 Goal 类来实现独特行为。这些类通常作为实体类的内部类定义。
+
+#### OcelotAvoidPlayerGoal - 豹猫躲避玩家目标
+
+**职责**: 使豹猫在未信任时躲避玩家，信任后停止躲避。
+
+**继承**: `AvoidEntityGoal<Player>`
+
+**执行条件**: 
+- 豹猫未信任
+- 检测到玩家在避开距离内
+
+**行为**:
+1. 检查豹猫信任状态
+2. 如果已信任，不执行躲避
+3. 如果未信任，像普通 AvoidEntityGoal 一样躲避玩家
+
+**关键参数**:
+- `m_ocelot`: 豹猫实体引用
+- 检测距离: 16 格
+- 远距离逃避速度: 0.8
+- 近距离逃避速度: 1.33
+
+```cpp
+bool OcelotAvoidPlayerGoal::shouldExecute() {
+    if (m_ocelot == nullptr || m_ocelot->isTrusting()) {
+        return false;  // 信任后不再躲避
+    }
+    return AvoidEntityGoal::shouldExecute();
+}
+```
+
+#### OcelotTemptGoal - 豹猫诱惑目标
+
+**职责**: 豹猫被生鱼诱惑，但未信任时会被玩家快速移动吓跑。
+
+**继承**: `TemptGoal`
+
+**行为**:
+- 诱惑速度: 0.6
+- 诱惑物品: 生鳕鱼、生鲑鱼
+- 未信任时: 玩家快速移动会吓跑豹猫
+- 已信任后: 正常跟随，不被移动吓跑
+
+```cpp
+bool OcelotTemptGoal::isScaredByPlayerMovement() const {
+    // MC 1.16.5: 只有未信任的豹猫才会被玩家移动吓跑
+    return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
+}
+```
+
+#### OcelotAttackGoal - 豹猫攻击目标
+
+**职责**: 使豹猫跳跃攻击目标（小鸡、海龟）。
+
+**继承**: `Goal`
+
+**互斥标志**: `Move`, `Look`
+
+**执行条件**: 有攻击目标且目标存活
+
+**行为**:
+1. 追踪攻击目标
+2. 使用 LookController 看向目标
+3. 在攻击范围内时攻击
+4. 攻击冷却 20 ticks
+
+**关键参数**:
+- `m_attackCooldown`: 攻击冷却 (20 ticks)
+- `STOP_ATTACK_DISTANCE_SQ`: 停止追踪距离 (225 = 15*15)
+- 攻击范围计算: `(width * 2)^2 + targetWidth`
+
+```cpp
+void OcelotAttackGoal::tick() {
+    if (!m_target || !m_ocelot) return;
+    
+    // 看向目标
+    m_ocelot->lookController()->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+    
+    // 攻击冷却
+    if (m_attackCooldown > 0) {
+        m_attackCooldown--;
+    }
+    
+    // 计算攻击范围
+    f64 distSq = m_ocelot->distanceSqTo(*m_target);
+    f32 attackReachSq = (m_ocelot->width() * 2.0f) * (m_ocelot->width() * 2.0f) 
+                        + m_target->width();
+    
+    // 攻击
+    if (distSq <= attackReachSq && m_attackCooldown <= 0) {
+        m_attackCooldown = ATTACK_COOLDOWN_TICKS;
+        m_ocelot->attackEntityAsMob(*m_target);
+    }
+    
+    // 追踪
+    auto* nav = m_ocelot->navigator();
+    if (nav && !nav->noPath()) {
+        nav->moveTo(*m_target, 1.0);
+    }
+}
+```
+
+**参考**: MC 1.16.5 `net.minecraft.entity.passive.OcelotEntity`
 
 ---
 
@@ -972,6 +1279,31 @@ if (distSq < MAX_DISTANCE_SQ) { }
 | `CreatureEntityMoveTest.*` | CreatureEntity 移动测试 |
 | `MovementControllerTest.*` | MovementController 测试 |
 | `RandomWalkingGoalIntegrationTest.*` | 集成测试 |
+
+### FishSwimGoalTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `FishSwimGoalTest.ConstructionWithFish` | 使用鱼类实体构造 |
+| `FishSwimGoalTest.ConstructionWithSpeedAndChance` | 使用速度和概率参数构造 |
+| `FishSwimGoalTest.ConstructionWithNullFish` | 空指针构造测试 |
+| `FishSwimGoalShouldExecuteTest.ShouldNotExecuteWhenFishIsNull` | 空鱼时不执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldExecuteForRegularFish` | 普通鱼类可执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldExecuteForSchoolingFishWithoutLeader` | 无群首的群游鱼可执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldNotExecuteForSchoolingFishWithLeader` | 有群首的群游鱼不执行 |
+| `FishSwimGoalCanRandomSwimTest.AbstractFishEntityReturnsTrue` | 基类默认返回 true |
+| `FishSwimGoalCanRandomSwimTest.SchoolingFishWithoutLeaderReturnsTrue` | 无群首返回 true |
+| `FishSwimGoalCanRandomSwimTest.SchoolingFishWithLeaderReturnsFalse` | 有群首返回 false |
+| `FishSwimGoalCanRandomSwimTest.LeaderFishReturnsTrue` | 群首返回 true |
+| `FishSwimGoalFlagsTest.HasCorrectMutexFlags` | 继承 Move 标志 |
+| `FishSwimGoalGroupTest.LeaderCanSwimAfterGainingFollowers` | 获得跟随者后群首可游泳 |
+| `FishSwimGoalGroupTest.FollowerCanSwimAfterLeavingGroup` | 离开群体后可游泳 |
+| `FishSwimGoalGroupTest.MultipleGroupsIndependent` | 多群体独立性 |
+| `AbstractFishEntityGoalsTest.PufferfishIsNotSchooling` | 河豚不是群游鱼 |
+| `AbstractFishEntityGoalsTest.CodIsSchooling` | 鳕鱼是群游鱼 |
+| `AbstractFishEntityGoalsTest.SalmonIsSchooling` | 鲑鱼是群游鱼 |
+| `AbstractFishEntityGoalsTest.TropicalFishIsSchooling` | 热带鱼是群游鱼 |
+| `FishSwimGoalTypeNameTest.ReturnsCorrectTypeName` | 类型名称测试 |
 
 ---
 

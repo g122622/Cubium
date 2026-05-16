@@ -224,6 +224,35 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 水敏感检测 ==========
+
+    /**
+     * @brief 检查是否在水中或雨中
+     *
+     * MC 1.16.5: Entity.isInWaterOrRainOrBubbleColumn()
+     * 对于末影人，气泡柱不会造成伤害，所以只检查水和雨。
+     *
+     * @return 如果在水中或雨中返回 true
+     */
+    [[nodiscard]] bool isInWaterOrRain() const;
+
+    // ========== 注视检测 ==========
+
+    /**
+     * @brief 检查玩家是否正在注视末影人（应被激怒）
+     *
+     * MC 1.16.5: EndermanEntity.shouldAttackPlayer()
+     * 检查玩家是否正在注视末影人的眼睛：
+     * 1. 检查玩家是否戴着南瓜头（南瓜头可避免激怒）
+     * 2. 计算玩家视线方向与玩家到末影人向量的点积
+     * 3. 根据距离调整阈值
+     * 4. 检查视线是否被方块阻挡
+     *
+     * @param player 目标玩家
+     * @return 如果玩家正在注视末影人返回 true
+     */
+    [[nodiscard]] bool shouldAttackPlayer(const Player& player) const;
+
     // ========== 属性 ==========
 
     /**
@@ -252,6 +281,16 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    // ========== MC 1.16.5 常量 ==========
+    // 这些常量用于测试和外部访问
+
+    static constexpr i32 TELEPORT_COOLDOWN = 50;            // 瞬移冷却 (ticks)
+    static constexpr i32 ANGER_DURATION = 600;              // 愤怒持续时间 (ticks)
+    static constexpr f32 TELEPORT_RANGE = 64.0f;            // 瞬移范围
+    static constexpr f32 WATER_DAMAGE = 1.0f;               // 水伤害
+    static constexpr i32 WATER_DAMAGE_INTERVAL = 10;        // 水伤害间隔
+    static constexpr i32 TELEPORT_PROJECTILE_ATTEMPTS = 64; // 投射物伤害时瞬移尝试次数
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -276,18 +315,6 @@ private:
 
     // 瞬移冷却
     i32 m_teleportCooldown = 0;
-
-    // MC 1.16.5 常量
-    static constexpr i32 TELEPORT_COOLDOWN = 50;     // 瞬移冷却 (ticks)
-    static constexpr i32 ANGER_DURATION = 600;       // 愤怒持续时间 (ticks)
-    static constexpr f32 TELEPORT_RANGE = 64.0f;     // 瞬移范围
-    static constexpr f32 WATER_DAMAGE = 1.0f;        // 水伤害
-    static constexpr i32 WATER_DAMAGE_INTERVAL = 10; // 水伤害间隔
-
-    /**
-     * @brief 检查是否在水中或雨中
-     */
-    [[nodiscard]] bool isInWaterOrRain() const;
 };
 
 } // namespace mc

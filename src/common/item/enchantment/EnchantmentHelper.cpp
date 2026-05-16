@@ -359,6 +359,45 @@ void EnchantmentHelper::applyThornsEnchantments(
     }
 }
 
+void EnchantmentHelper::applyThornsEnchantments(LivingEntity& user, Entity& attacker)
+{
+    // 从 LivingEntity 获取护甲槽位
+    std::array<const ItemStack*, 4> armorSlots = user.getArmorSlots();
+    applyThornsEnchantments(user, attacker, armorSlots);
+}
+
+void EnchantmentHelper::applyArthropodEnchantments(LivingEntity& user, Entity& target)
+{
+    // MC 1.16.5 EnchantmentHelper.applyArthropodEnchantments()
+    // 遍历攻击者所有装备的附魔
+
+    // 1. 遍历护甲槽位
+    std::array<const ItemStack*, 4> armorSlots = user.getArmorSlots();
+    for (const ItemStack* slot : armorSlots) {
+        if (slot == nullptr || slot->isEmpty()) {
+            continue;
+        }
+
+        auto enchantments = getEnchantments(*slot);
+        for (const auto& [enchantment, level] : enchantments) {
+            if (enchantment && level > 0) {
+                enchantment->onEntityDamaged(user, target, level);
+            }
+        }
+    }
+
+    // 2. 遍历主手物品
+    const ItemStack& mainHand = user.getMainHandItem();
+    if (!mainHand.isEmpty()) {
+        auto enchantments = getEnchantments(mainHand);
+        for (const auto& [enchantment, level] : enchantments) {
+            if (enchantment && level > 0) {
+                enchantment->onEntityDamaged(user, target, level);
+            }
+        }
+    }
+}
+
 // ========== 附魔生成（附魔台用） ==========
 
 i32 EnchantmentHelper::calcItemStackEnchantability(

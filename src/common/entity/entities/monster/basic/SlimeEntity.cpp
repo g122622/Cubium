@@ -120,6 +120,12 @@ std::optional<ResourceLocation> SlimeEntity::getJumpSound() const
     return getSquishSound();
 }
 
+client::renderer::trident::particle::ParticleTypeId SlimeEntity::getSquishParticle() const
+{
+    // MC 1.16.5: 史莱姆使用粘液粒子
+    return client::renderer::trident::particle::ParticleTypeId::ItemSlime;
+}
+
 i32 SlimeEntity::getJumpDelay() const
 {
     // MC 1.16.5: getJumpDelay() - return this.rand.nextInt(20) + 10;
@@ -212,8 +218,8 @@ void SlimeEntity::tick()
         // MC 1.16.5: 生成粒子效果
         // 参考: SlimeEntity.tick() - for (int j = 0; j < size * 8; ++j)
         if (world() != nullptr && world()->isClientSide()) {
-            using namespace mc::client::renderer::trident::particle;
             math::Random& random = world()->getRandom();
+            auto particleType = getSquishParticle();
 
             // 粒子数量 = 尺寸 * 8
             i32 particleCount = m_size * 8;
@@ -227,7 +233,7 @@ void SlimeEntity::tick()
                 f32 offsetZ = std::cos(static_cast<f64>(angle)) * static_cast<f32>(m_size) * 0.5f * radiusFactor;
 
                 // 在史莱姆脚底生成粒子
-                world()->addParticle(ParticleTypeId::ItemSlime,
+                world()->addParticle(particleType,
                     Vector3(x() + static_cast<f64>(offsetX), y(), z() + static_cast<f64>(offsetZ)),
                     Vector3(0.0, 0.0, 0.0));
             }

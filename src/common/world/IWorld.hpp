@@ -628,6 +628,74 @@ public:
      */
     [[nodiscard]] virtual std::vector<Entity*> getPlayers() const { return {}; }
 
+    // ========== 最近玩家查询 ==========
+
+    /**
+     * @brief 获取最近的玩家
+     *
+     * 参考 MC 1.16.5: World.getClosestPlayer(double x, double y, double z, double maxDistance, @Nullable Predicate<Entity> predicate)
+     *
+     * @param pos 中心位置
+     * @param maxDistance 最大距离（-1 表示无限制）
+     * @return 最近的玩家指针，如果没有玩家返回 nullptr
+     */
+    [[nodiscard]] virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f)
+    {
+        (void)pos;
+        (void)maxDistance;
+        return nullptr;
+    }
+    [[nodiscard]] virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const
+    {
+        (void)pos;
+        (void)maxDistance;
+        return nullptr;
+    }
+
+    /**
+     * @brief 获取最近的玩家（排除特定玩家）
+     *
+     * 参考 MC 1.16.5: World.getClosestPlayerExcept
+     *
+     * @param pos 中心位置
+     * @param maxDistance 最大距离（-1 表示无限制）
+     * @param exclude 排除的玩家（可以是 nullptr）
+     * @return 最近的玩家指针，如果没有玩家返回 nullptr
+     */
+    [[nodiscard]] virtual Player* getClosestPlayer(
+        const Vector3& pos, f32 maxDistance, const Entity* exclude)
+    {
+        (void)pos;
+        (void)maxDistance;
+        (void)exclude;
+        return nullptr;
+    }
+    [[nodiscard]] virtual const Player* getClosestPlayer(
+        const Vector3& pos, f32 maxDistance, const Entity* exclude) const
+    {
+        (void)pos;
+        (void)maxDistance;
+        (void)exclude;
+        return nullptr;
+    }
+
+    /**
+     * @brief 获取最近玩家距离的平方
+     *
+     * 这是一个便捷方法，用于快速检查实体与最近玩家的距离。
+     * 如果没有玩家，返回 std::numeric_limits<f64>::max()。
+     *
+     * 参考 MC 1.16.5: 此方法常用于生物消失距离检查
+     *
+     * @param pos 中心位置
+     * @return 最近玩家距离的平方，如果没有玩家返回最大值
+     */
+    [[nodiscard]] virtual f64 getClosestPlayerDistanceSq(const Vector3& pos) const
+    {
+        (void)pos;
+        return std::numeric_limits<f64>::max();
+    }
+
     // ========== 维度信息 ==========
 
     /**
@@ -1009,6 +1077,30 @@ public:
         (void)starterUuid;
         (void)zombie;
         (void)villager;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界玩家物品销毁
+     *
+     * 当玩家物品因使用而损坏或消耗完毕时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 PlayerDestroyItemEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 销毁前的物品副本
+     * @param slot 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+     * @param hand 使用的手（MainHand 或 OffHand）
+     */
+    virtual void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
+    {
+        (void)playerId;
+        (void)item;
+        (void)slot;
+        (void)hand;
         // 默认空实现
     }
 

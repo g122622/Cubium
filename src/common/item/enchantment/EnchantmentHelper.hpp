@@ -353,7 +353,7 @@ public:
     // ========== 附魔回调分发 ==========
 
     /**
-     * @brief 当攻击目标时调用附魔的 onEntityDamaged 回调
+     * @brief 当攻击目标时调用附魔的 onEntityDamaged 回调（仅主手武器）
      *
      * 遍历主手物品的所有附魔，调用 onEntityDamaged 方法。
      * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
@@ -363,6 +363,19 @@ public:
      * @param weapon 武器物品堆
      */
     static void applyArthropodEnchantmentDamage(LivingEntity& user, Entity& target, const ItemStack& weapon);
+
+    /**
+     * @brief 当攻击目标时调用附魔的 onEntityDamaged 回调（所有装备）
+     *
+     * 遍历攻击者所有装备和护甲的附魔，调用 onEntityDamaged 方法。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantments()
+     *
+     * 用于投射物（如潜影贝子弹）命中目标后触发攻击型附魔效果。
+     *
+     * @param user 攻击者（发射投射物的实体）
+     * @param target 目标实体
+     */
+    static void applyArthropodEnchantments(LivingEntity& user, Entity& target);
 
     /**
      * @brief 当受伤时调用荆棘附魔的 onUserHurt 回调
@@ -376,6 +389,17 @@ public:
      */
     static void applyThornsEnchantments(
         LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots);
+
+    /**
+     * @brief 当受伤时调用荆棘附魔的 onUserHurt 回调（从 LivingEntity 获取护甲）
+     *
+     * 遍历受伤者所有护甲的荆棘附魔，调用 onUserHurt 方法。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyThornEnchantments()
+     *
+     * @param user 受伤者
+     * @param attacker 攻击者
+     */
+    static void applyThornsEnchantments(LivingEntity& user, Entity& attacker);
 
     // ========== 附魔生成（附魔台用） ==========
 

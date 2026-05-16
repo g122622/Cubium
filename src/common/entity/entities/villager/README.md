@@ -92,6 +92,7 @@ public:
 - 交易升级系统
 - 日程系统（工作、睡觉、社交）
 - 物品拾取能力
+- **睡眠系统**
 
 ```cpp
 class VillagerEntity : public AbstractVillagerEntity {
@@ -113,6 +114,13 @@ public:
     // 物品拾取
     bool canPickUpItem(const ItemStack& itemStack) const;
     bool isBreedingItem(const ItemStack& itemStack) const;
+
+    // 睡眠系统
+    bool isSleeping() const;
+    std::optional<BlockPos> getSleepingPosition() const;
+    void startSleeping(BlockPos pos);
+    void stopSleeping();
+    bool isNightTime() const;
 };
 ```
 
@@ -190,6 +198,54 @@ offer->setMaxUses(16);
 // 添加到村民
 villager->getOffers()->add(std::move(offer));
 ```
+
+## 睡眠系统
+
+村民具有完整的睡眠系统，在夜间自动寻找床位并睡眠。
+
+### 睡眠状态管理
+
+| 方法 | 描述 |
+|------|------|
+| `isSleeping()` | 检查村民是否正在睡眠 |
+| `getSleepingPosition()` | 获取睡眠位置（床位坐标） |
+| `startSleeping(BlockPos pos)` | 开始睡眠 |
+| `stopSleeping()` | 停止睡眠 |
+| `isNightTime()` | 检查是否是夜间时间 |
+
+### 睡眠时间
+
+夜间时间范围：12542 - 23459 tick（MC 1.16.5）
+
+### 睡眠行为
+
+1. **寻找床位**: 通过 POI 系统查找最近的可用床位
+2. **绑定床位**: 将床位位置存储到 Brain 的 HOME 记忆
+3. **移动到床**: 导航到床位位置
+4. **开始睡眠**:
+   - 设置睡眠姿态 (EntityPose::Sleeping)
+   - 记录睡眠位置
+   - 占用 POI 床位
+5. **停止睡眠**:
+   - 恢复站立姿态
+   - 清除睡眠位置
+   - 记录醒来时间
+
+### POI 集成
+
+睡眠系统与 POI 系统集成：
+- 使用 `PointOfInterestStorage::findNearestFree()` 查找可用床位
+- 使用 `PointOfInterestStorage::acquirePOI()` 占用床位
+- 支持所有 16 种颜色的床
+
+### Brain 记忆
+
+睡眠相关记忆模块：
+- `HOME`: 床位位置（GlobalPos，包含维度信息）
+- `LAST_SLEPT`: 上次睡眠时间
+- `LAST_WOKEN`: 上次醒来时间
+
+参考 MC 1.16.5 VillagerEntity, SleepAtNightGoal
 
 ## 使用示例
 

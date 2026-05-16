@@ -2168,3 +2168,270 @@ TEST_F(LootTest, SetNbtFunction_Clone)
     EXPECT_EQ("{display:{Name:\"Test\"}}", clonedFunc->getNbtString());
     EXPECT_EQ("set_nbt", clonedFunc->getType());
 }
+
+// ============================================================================
+// 钓鱼掉落表测试
+// ============================================================================
+
+TEST_F(LootTest, FishingLootTable_FishTableExists)
+{
+    // 测试鱼表存在
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* fishTable = manager.getTable("minecraft:gameplay/fishing/fish");
+    ASSERT_NE(fishTable, nullptr);
+
+    // 鱼表应该有 4 种鱼
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    auto items = fishTable->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    // 应该是四种鱼之一
+    const std::string itemId = items[0].getItem()->toString();
+    EXPECT_TRUE(itemId == "minecraft:cod" ||
+                itemId == "minecraft:salmon" ||
+                itemId == "minecraft:tropical_fish" ||
+                itemId == "minecraft:pufferfish");
+}
+
+TEST_F(LootTest, FishingLootTable_JunkTableExists)
+{
+    // 测试垃圾表存在
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* junkTable = manager.getTable("minecraft:gameplay/fishing/junk");
+    ASSERT_NE(junkTable, nullptr);
+
+    // 垃圾表应该能生成物品
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    auto items = junkTable->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_FALSE(items[0].isEmpty());
+}
+
+TEST_F(LootTest, FishingLootTable_TreasureTableExists)
+{
+    // 测试宝藏表存在
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
+    ASSERT_NE(treasureTable, nullptr);
+
+    math::Random rng(12345);
+
+    // 必须设置开放水域为 true 才能生成宝藏
+    auto context = LootContextBuilder(m_world)
+                      .withRandom(rng)
+                      .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                      .build();
+    auto items = treasureTable->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_FALSE(items[0].isEmpty());
+}
+
+TEST_F(LootTest, FishingLootTable_MainTableExists)
+{
+    // 测试主表存在
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
+    ASSERT_NE(fishingTable, nullptr);
+
+    math::Random rng(12345);
+
+    // 设置掉落表解析器，因为主表使用 TableLootEntry 引用子表
+    auto context = LootContextBuilder(m_world)
+                      .withRandom(rng)
+                      .withLuck(0.0f)
+                      .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                      .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                          return manager.getTable(id);
+                      })
+                      .build();
+    auto items = fishingTable->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_FALSE(items[0].isEmpty());
+}
+
+TEST_F(LootTest, FishingLootTable_TreasureRequiresOpenWater)
+{
+    // 测试宝藏条目需要开放水域条件
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
+    ASSERT_NE(treasureTable, nullptr);
+
+    // 宝藏表中的所有条目都应该有开放水域条件
+    // 由于宝藏表中的条目有开放水域条件，在非开放水域时不应该生成宝藏
+    math::Random rng(12345);
+
+    // 在非开放水域中测试
+    auto closedWaterContext = LootContextBuilder(m_world)
+                                  .withRandom(rng)
+                                  .withOwnedValue(LootParams::IS_IN_OPEN_WATER, false)
+                                  .build();
+    auto items = treasureTable->generate(*closedWaterContext);
+
+    // 在非开放水域，宝藏表不应该生成任何物品（所有条目都有开放水域条件）
+    EXPECT_TRUE(items.empty());
+}
+
+TEST_F(LootTest, FishingLootTable_TreasureInOpenWater)
+{
+    // 测试在开放水域中可以钓到宝藏
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
+    ASSERT_NE(treasureTable, nullptr);
+
+    math::Random rng(12345);
+
+    // 在开放水域中测试
+    auto openWaterContext = LootContextBuilder(m_world)
+                                .withRandom(rng)
+                                .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                                .build();
+    auto items = treasureTable->generate(*openWaterContext);
+
+    // 在开放水域，宝藏表应该能生成物品
+    ASSERT_EQ(1, items.size());
+    EXPECT_FALSE(items[0].isEmpty());
+
+    // 应该是宝藏物品之一
+    const std::string itemId = items[0].getItem()->toString();
+    EXPECT_TRUE(itemId == "minecraft:name_tag" ||
+                itemId == "minecraft:saddle" ||
+                itemId == "minecraft:bow" ||
+                itemId == "minecraft:fishing_rod" ||
+                itemId == "minecraft:book" ||
+                itemId == "minecraft:nautilus_shell");
+}
+
+TEST_F(LootTest, FishingLootTable_LuckAffectsQuality)
+{
+    // 测试幸运值影响掉落质量
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
+    ASSERT_NE(fishingTable, nullptr);
+
+    // 统计高幸运值时宝藏物品的出现次数
+    i32 treasureCount = 0;
+    const i32 iterations = 100;
+
+    for (i32 i = 0; i < iterations; ++i) {
+        math::Random rng(i);
+
+        // 高幸运值（海之眷顾 III 提供约 0.06 的幸运值）
+        auto context = LootContextBuilder(m_world)
+                          .withRandom(rng)
+                          .withLuck(0.06f)
+                          .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                          .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                              return manager.getTable(id);
+                          })
+                          .build();
+        auto items = fishingTable->generate(*context);
+
+        if (items.size() == 1) {
+            const std::string itemId = items[0].getItem()->toString();
+            // 宝藏物品
+            if (itemId == "minecraft:name_tag" ||
+                itemId == "minecraft:saddle" ||
+                itemId == "minecraft:bow" ||
+                itemId == "minecraft:fishing_rod" ||
+                itemId == "minecraft:book" ||
+                itemId == "minecraft:nautilus_shell") {
+                treasureCount++;
+            }
+        }
+    }
+
+    // 高幸运值应该增加宝藏概率
+    // 主表宝藏权重 5 + 幸运*2 = 5 + 0.12 = 5.12
+    // 鱼表权重 85 - 幸运*1 = 85 - 0.06 = 84.94
+    // 宝藏概率约 5.12 / (5.12 + 84.94 + 9.88) ≈ 5.1%
+    // 但由于随机性，只检查至少钓到一些宝藏
+    EXPECT_GT(treasureCount, 0);
+}
+
+TEST_F(LootTest, FishingLootTable_FishJunkTreasureDistribution)
+{
+    // 测试鱼/垃圾/宝藏的分布
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
+    ASSERT_NE(fishingTable, nullptr);
+
+    i32 fishCount = 0;
+    i32 junkCount = 0;
+    i32 treasureCount = 0;
+    const i32 iterations = 1000;
+
+    for (i32 i = 0; i < iterations; ++i) {
+        math::Random rng(i);
+        auto context = LootContextBuilder(m_world)
+                          .withRandom(rng)
+                          .withLuck(0.0f)
+                          .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                          .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
+                              return manager.getTable(id);
+                          })
+                          .build();
+        auto items = fishingTable->generate(*context);
+
+        if (items.size() == 1) {
+            const std::string itemId = items[0].getItem()->toString();
+
+            // 鱼类
+            if (itemId == "minecraft:cod" ||
+                itemId == "minecraft:salmon" ||
+                itemId == "minecraft:tropical_fish" ||
+                itemId == "minecraft:pufferfish") {
+                fishCount++;
+            }
+            // 宝藏
+            else if (itemId == "minecraft:name_tag" ||
+                     itemId == "minecraft:saddle" ||
+                     itemId == "minecraft:bow" ||
+                     itemId == "minecraft:fishing_rod" ||
+                     itemId == "minecraft:book" ||
+                     itemId == "minecraft:nautilus_shell") {
+                treasureCount++;
+            }
+            // 垃圾
+            else {
+                junkCount++;
+            }
+        }
+    }
+
+    // 验证分布大致正确：
+    // 鱼表权重 85，垃圾表权重 10，宝藏表权重 5
+    // 鱼应该占主导地位
+    EXPECT_GT(fishCount, junkCount);
+    EXPECT_GT(junkCount, treasureCount);
+
+    // 比例检查（允许一定误差）
+    f32 fishRatio = static_cast<f32>(fishCount) / iterations;
+    f32 junkRatio = static_cast<f32>(junkCount) / iterations;
+    f32 treasureRatio = static_cast<f32>(treasureCount) / iterations;
+
+    // 鱼约 85%，垃圾约 10%，宝藏约 5%
+    EXPECT_GT(fishRatio, 0.75f);   // 允许 10% 误差
+    EXPECT_GT(junkRatio, 0.05f);   // 允许 5% 误差
+    EXPECT_GT(treasureRatio, 0.01f); // 允许 4% 误差
+}

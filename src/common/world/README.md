@@ -206,6 +206,13 @@ public:
     // Entity queries
     virtual std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const = 0;
 
+    // 最近玩家查询（MC 1.16.5 World.getClosestPlayer）
+    virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f);
+    virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const;
+    virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude);
+    virtual const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) const;
+    virtual f64 getClosestPlayerDistanceSq(const Vector3& pos) const;
+
     // 维度上下文
     virtual bool isUltraWarm() const = 0;
 
@@ -222,6 +229,7 @@ public:
     virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
                                const BlockState* state, const ItemStack* item);
     virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager);
+    virtual void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand);
 };```
 
 `IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：

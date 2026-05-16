@@ -191,6 +191,13 @@ if (player->shouldPlayStepSound()) {
 - 空气供应管理、溺水伤害、水下呼吸效果、游泳姿态尺寸、物理常量验证
 - [tests/common/entity/player/PlayerSleepTest.cpp](../../../../../tests/common/entity/player/PlayerSleepTest.cpp)
 - 睡眠功能测试：tryStartSleeping、startSleeping、stopSleeping、睡眠计时器、姿态切换、多态性验证
+- [tests/entity/PlayerAttackTest.cpp](../../../../../tests/entity/PlayerAttackTest.cpp)
+- 横扫攻击过滤测试：盔甲架标记模式、队友排除
+- 荆棘附魔测试：触发概率、伤害计算
+- 横扫之刃测试：伤害比例公式
+- 武器耐久测试：耐久度消耗、物品损坏
+- [tests/entity/EntityTeamTest.cpp](../../../../../tests/entity/EntityTeamTest.cpp)
+- 队伍关系测试：isOnSameTeam、isOnScoreboardTeam、队友判断逻辑
 
 ## Mermaid 图表
 
@@ -243,6 +250,24 @@ flowchart TD
   - 使用 `m_moveDistanceWalked` 和 `m_prevMoveDistanceWalked` 检测玩家是否静止
   - 横扫攻击完整条件：冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止
   - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()` 行 1147-1148
+- **已新增注视检测功能**（2026-05-16）：
+  - `Player::getLookVector()` - 根据yaw/pitch计算视线方向向量
+  - `Player::getEyePosition()` - 获取玩家眼睛位置
+  - `Player::isWearingPumpkin()` - 检查玩家是否戴着南瓜头
+  - `Player::isLookingAt(target)` - 检查玩家是否正在注视目标实体
+  - 参考 MC 1.16.5 `Entity.getLook()` 和 `EndermanEntity.shouldAttackPlayer()`
+- **已完善攻击系统功能**（2026-05-16）：
+  - **横扫攻击队友过滤**：使用 `Entity::isOnSameTeam()` 排除队友
+  - **横扫攻击盔甲架过滤**：使用 `ArmorStandEntity::isMarker()` 排除标记模式盔甲架
+  - **荆棘附魔反伤**：使用 `EnchantmentHelper::applyThornsEnchantments()` 应用荆棘伤害
+  - **武器耐久消耗**：使用 `Item::hitEntity()` 消耗武器耐久
+  - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()`
+- **已新增幸运属性注册**（2026-05-17）：
+  - `Player::registerAttributes()` 中注册 LUCK 属性
+  - 参考 MC 1.16.5 `PlayerEntity.registerAttributes()`
+  - 幸运属性影响钓鱼掉落、战利品表生成等随机事件
+  - 默认值 0.0，范围 -1024.0 ~ 1024.0
+  - 受幸运/霉运药水效果影响
 
 ## 挖掘系统
 

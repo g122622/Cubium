@@ -557,6 +557,14 @@ Block* VanillaBlocks::MOSSY_STONE_BRICK_STAIRS = nullptr;
 Block* VanillaBlocks::MOSSY_STONE_BRICK_SLAB = nullptr;
 Block* VanillaBlocks::MOSSY_STONE_BRICK_WALL = nullptr;
 
+// 虫蚀方块系列
+Block* VanillaBlocks::INFESTED_STONE = nullptr;
+Block* VanillaBlocks::INFESTED_COBBLESTONE = nullptr;
+Block* VanillaBlocks::INFESTED_STONE_BRICKS = nullptr;
+Block* VanillaBlocks::INFESTED_MOSSY_STONE_BRICKS = nullptr;
+Block* VanillaBlocks::INFESTED_CRACKED_STONE_BRICKS = nullptr;
+Block* VanillaBlocks::INFESTED_CHISELED_STONE_BRICKS = nullptr;
+
 // 石英系列
 Block* VanillaBlocks::QUARTZ_BLOCK = nullptr;
 Block* VanillaBlocks::CHISELED_QUARTZ_BLOCK = nullptr;
@@ -742,6 +750,10 @@ void VanillaBlocks::initialize()
     {
         MC_TRACE_EVENT("client.initialization", "registerStoneBricks");
         registerStoneBricks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerInfestedBlocks");
+        registerInfestedBlocks();
     }
     {
         MC_TRACE_EVENT("client.initialization", "registerQuartzBlocks");
@@ -1856,6 +1868,46 @@ void VanillaBlocks::registerStoneBricks()
 
     MOSSY_STONE_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
         ResourceLocation("minecraft:mossy_stone_brick_wall"), stoneBrickProps);
+}
+
+// ============================================================================
+// 虫蚀方块系列注册
+// ============================================================================
+void VanillaBlocks::registerInfestedBlocks()
+{
+    auto& registry = BlockRegistry::instance();
+
+    // 虫蚀方块属性
+    // 参考 MC 1.16.5: Properties.create(Material.CLAY).hardnessAndResistance(0.0F, 0.75F)
+    // 注意：项目中没有 CLAY 材质，使用 EARTH 作为替代（虫蚀方块本质是伪装的石头）
+    BlockProperties infestedProps = BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f);
+
+    // 注册 6 种虫蚀方块变体
+    // MC 1.16.5: 每种虫蚀方块对应一种原版方块
+    INFESTED_STONE = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_stone"), STONE->blockId(), infestedProps);
+    INFESTED_COBBLESTONE = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_cobblestone"), COBBLESTONE->blockId(), infestedProps);
+    INFESTED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_stone_bricks"), STONE_BRICKS->blockId(), infestedProps);
+    INFESTED_MOSSY_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_mossy_stone_bricks"), MOSSY_STONE_BRICKS->blockId(), infestedProps);
+    INFESTED_CRACKED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_cracked_stone_bricks"), CRACKED_STONE_BRICKS->blockId(), infestedProps);
+    INFESTED_CHISELED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
+        ResourceLocation("minecraft:infested_chiseled_stone_bricks"), CHISELED_STONE_BRICKS->blockId(), infestedProps);
+
+    // 注册虫蚀方块映射
+    // MC 1.16.5: normalToInfectedMap.put(block, infestedBlock)
+    blocks::InfestedBlock::registerInfestedBlock(STONE->blockId(), INFESTED_STONE->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(COBBLESTONE->blockId(), INFESTED_COBBLESTONE->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(STONE_BRICKS->blockId(), INFESTED_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(MOSSY_STONE_BRICKS->blockId(), INFESTED_MOSSY_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(CRACKED_STONE_BRICKS->blockId(), INFESTED_CRACKED_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(CHISELED_STONE_BRICKS->blockId(), INFESTED_CHISELED_STONE_BRICKS->blockId());
+
+    // 初始化映射表
+    blocks::InfestedBlock::initializeMappings();
 }
 
 // ============================================================================

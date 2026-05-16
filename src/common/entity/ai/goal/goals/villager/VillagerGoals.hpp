@@ -103,6 +103,12 @@ private:
      */
     void trySleep();
 
+    /**
+     * @brief 检查床位是否仍然有效
+     * @return 床位是否有效
+     */
+    [[nodiscard]] bool isBedStillValid() const;
+
 private:
     VillagerEntity* m_villager;
     BlockPos m_bedPos;

@@ -22,10 +22,40 @@ effect/
 
 ## 末影水晶
 
-- 治愈末影龙
-- 显示底部基岩选项
-- 光束指向传送门
-- 被攻击时爆炸
+### MC 1.16.5 对齐
+
+EnderCrystalEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 光束目标设置 | ✅ 完成 |
+| 光束粒子效果 | ✅ 完成 |
+| 底座显示控制 | ✅ 完成 |
+| 爆炸机制 | ✅ 完成 |
+| 治愈末影龙 | ✅ 完成 |
+| 内部旋转动画 | ✅ 完成 |
+
+#### 治愈末影龙 (healDragon)
+
+当末影水晶调用 `healDragon()` 方法时：
+
+1. **冷却检查**: 如果 `m_healCooldown > 0`，直接返回
+2. **范围搜索**: 在 32 格范围内搜索末影龙实体
+3. **距离验证**: 找到最近的存活末影龙
+4. **治愈逻辑**: 对末影龙造成负伤害（`hurt(fireDamage, -1.0f)`）
+5. **光束目标**: 设置光束指向末影龙位置
+6. **冷却设置**: 设置 `m_healCooldown = HEAL_COOLDOWN (10 ticks)`
+7. **末影龙引用**: 设置末影龙的 `closestEnderCrystal` 为当前水晶
+
+参考 MC 1.16.5 `EnderCrystalEntity.healDragon()`
+
+#### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `HEAL_COOLDOWN` | 10 | 治愈冷却时间 (ticks) |
+| `EXPLOSION_RADIUS` | 6.0f | 爆炸半径 (方块) |
+| `HEAL_RANGE` | 32.0f | 治愈搜索范围 (方块) |
 
 ### 光束粒子效果
 
@@ -54,12 +84,48 @@ effect/
 
 ## 区域效果云
 
-- 由滞留药水创建
-- 效果半径随时间减小
-- 等待时间后开始生效
-- 定期重新应用效果
+### MC 1.16.5 对齐
 
-## 经验球
+AreaEffectCloudEntity 已完整实现以下功能：
+
+| 功能 | 状态 |
+|------|------|
+| 效果列表存储 | ✅ 完成 |
+| 效果应用到范围内实体 | ✅ 完成 |
+| 半径随时间衰减 | ✅ 完成 |
+| 半径使用时衰减 | ✅ 完成 |
+| 等待时间机制 | ✅ 完成 |
+| 重应用延迟映射 | ✅ 完成 |
+| 颜色自动计算 | ✅ 完成 |
+| 拥有者追踪 | ✅ 完成 |
+
+### 关键参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| radius | 3.0F | 初始半径 |
+| duration | 600 ticks | 持续时间（30秒） |
+| waitTime | 20 ticks | 等待时间（1秒） |
+| reapplicationDelay | 20 ticks | 重应用延迟 |
+| radiusOnUse | 0.0F | 每次应用效果时半径变化 |
+| radiusPerTick | 0.0F | 每tick半径变化 |
+| durationOnUse | 0 | 每次应用效果时持续时间变化 |
+
+### 苦力怕药水云参数
+
+当苦力怕身上有药水效果时，爆炸后会生成滞留药水云：
+
+| 参数 | 值 |
+|------|-----|
+| 初始半径 | 2.5F |
+| radiusOnUse | -0.5F |
+| waitTime | 10 ticks |
+| duration | 300 ticks |
+| radiusPerTick | -2.5/300 |
+
+参考 MC 1.16.5 CreeperEntity.spawnLingeringCloud()
+
+## 实现状态
 
 | 经验值范围 | 颜色 |
 |-----------|------|
@@ -98,7 +164,7 @@ effect/
 | 组件 | 状态 |
 |------|------|
 | EnderCrystalEntity | ✅ 完成 - 光束粒子效果、爆炸实现 |
-| LightningBoltEntity | ⚠️ 框架完成，TODO需填充 |
-| AreaEffectCloudEntity | ⚠️ 框架完成，TODO需填充 |
+| LightningBoltEntity | ✅ 完成 - 伤害实体、点燃方块、音效 |
+| AreaEffectCloudEntity | ✅ 完成 - 效果应用、半径衰减、苦力怕药水云 |
 | ExperienceOrbEntity | ⚠️ 框架完成，TODO需填充 |
 | ArmorStandEntity | ⚠️ 框架完成，TODO需填充 |

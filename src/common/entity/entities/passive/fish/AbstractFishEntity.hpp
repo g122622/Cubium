@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../water/WaterMobEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <optional>
 
 namespace mc {
 
@@ -32,6 +34,11 @@ namespace mc {
  *
  * 对齐 1.16.5 的 AbstractFishEntity，只保留所有鱼共享的游泳、
  * 离水扑腾与基础空气供应语义。群游逻辑由 AbstractGroupFishEntity 承载。
+ *
+ * AI 目标（MC 1.16.5）:
+ * - 优先级 0: PanicGoal(1.25) - 恐慌逃跑
+ * - 优先级 2: AvoidEntityGoal(Player, 8.0F, 1.6, 1.4) - 避开玩家
+ * - 优先级 4: SwimGoal(1.0, 40) - 随机游泳
  */
 class AbstractFishEntity : public WaterMobEntity {
 public:
@@ -141,6 +148,27 @@ public:
      */
     [[nodiscard]] i32 maxAir() const override { return MAX_AIR_SUPPLY; }
 
+    /**
+     * @brief 是否可以随机游泳
+     *
+     * MC 1.16.5 AbstractFishEntity.func_212800_dy()
+     * 用于 SwimGoal 的 shouldExecute 检查。
+     * 基类默认返回 true，群游鱼类重写为 !hasGroupLeader()
+     *
+     * @return 如果可以随机游泳返回 true
+     */
+    [[nodiscard]] virtual bool canRandomSwim() const { return true; }
+
+    /**
+     * @brief 获取扑腾声音
+     *
+     * MC 1.16.5 AbstractFishEntity.getFlopSound()
+     * 子类应重写此方法返回对应的扑腾声音事件。
+     *
+     * @return 扑腾声音事件，默认返回空
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getFlopSound() const { return std::nullopt; }
+
     void tick() override;
 
 protected:
@@ -154,6 +182,11 @@ protected:
 
     /**
      * @brief 更新离水扑腾状态
+     *
+     * MC 1.16.5 AbstractFishEntity.livingTick() 中的扑腾逻辑：
+     * - 触发条件：不在水中 && 在地面 && 垂直碰撞
+     * - 行为：添加随机水平速度 + 向上速度 0.4
+     * - 音效：播放扑腾声音
      */
     void updateFlopping();
 

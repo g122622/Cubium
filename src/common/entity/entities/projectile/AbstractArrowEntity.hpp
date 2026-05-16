@@ -300,6 +300,16 @@ public:
 
     void tick() override;
 
+protected:
+    /**
+     * @brief 箭矢命中实体时的处理
+     *
+     * 药水箭命中时会给目标施加药水效果。
+     * 参考 MC 1.16.5 ArrowEntity.arrowHit()
+     */
+    void onEntityHit(const RayTraceResult& result) override;
+
+public:
     // ========== 箭矢特有方法 ==========
 
     /**
@@ -384,6 +394,16 @@ public:
 
     void tick() override;
 
+protected:
+    /**
+     * @brief 箭矢命中实体时的处理
+     *
+     * 光灵箭命中时会给目标施加发光效果。
+     * 参考 MC 1.16.5 SpectralArrowEntity.arrowHit()
+     */
+    void onEntityHit(const RayTraceResult& result) override;
+
+public:
     // ========== AbstractArrowEntity 接口实现 ==========
 
     /**

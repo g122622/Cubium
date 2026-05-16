@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -28,6 +28,11 @@
 #include <memory>
 
 namespace mc {
+
+// Forward declaration
+namespace entity::ai::goal {
+class TriggerSkeletonTrapGoal;
+}
 
 /**
  * @brief 骷髅马实体
@@ -39,6 +44,7 @@ namespace mc {
  * - 不死生物：免疫溺水、中毒
  * - 阳光燃烧：在阳光下燃烧（如果不是戴着头盔）
  * - 不繁殖：无法繁殖
+ * - 陷阱触发：玩家接近时触发陷阱，生成骷髅骑手
  * - 捕获：击败骷髅骑手后可以骑乘
  *
  * 参考 MC 1.16.5 SkeletonHorseEntity
@@ -132,7 +138,8 @@ public:
     /**
      * @brief 设置陷阱马状态
      *
-     * MC 1.16.5: 设置为陷阱马时，需要添加 Trap 标签
+     * MC 1.16.5: 设置为陷阱马时，需要添加 TriggerSkeletonTrapGoal 到目标选择器
+     * 取消陷阱马时，需要移除 TriggerSkeletonTrapGoal
      */
     void setTrap(bool trap);
 
@@ -161,9 +168,10 @@ protected:
     void registerAttributes() override;
 
 private:
-    bool m_trap = false;                        // 是否为陷阱马
-    i32 m_trapTime = 0;                         // 陷阱存活时间 (ticks)
-    static constexpr i32 TRAP_MAX_TIME = 18000; // 陷阱最大存活时间 (15分钟)
+    bool m_trap = false;                                          // 是否为陷阱马
+    i32 m_trapTime = 0;                                           // 陷阱存活时间 (ticks)
+    static constexpr i32 TRAP_MAX_TIME = 18000;                   // 陷阱最大存活时间 (15分钟)
+    entity::ai::goal::TriggerSkeletonTrapGoal* m_trapGoal = nullptr; // 陷阱触发目标（不拥有所有权）
 };
 
 } // namespace mc

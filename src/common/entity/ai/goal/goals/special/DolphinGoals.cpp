@@ -34,10 +34,12 @@
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
+#include "../../../util/RandomPositionGenerator.hpp"
+#include "../../../../../network/packet/EntityPackets.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/Direction.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
 #include <cmath>
 
 namespace mc {
@@ -321,29 +323,38 @@ void SwimToTreasureGoal::tick()
 
     // MC 1.16.5: 如果接近目标或路径结束，重新计算路径
     if (m_dolphin->closeToTarget() || !m_dolphin->hasPath()) {
-        // 计算朝向宝藏的方向
+        // 计算朝向宝藏的中心位置
         Vector3 treasureCenter(
             static_cast<f64>(treasurePos.x) + 0.5,
             static_cast<f64>(treasurePos.y) + 0.5,
             static_cast<f64>(treasurePos.z) + 0.5
         );
 
-        // TODO: 使用 RandomPositionGenerator.findRandomTargetTowardsScaled
-        // 目前简化实现：直接向宝藏位置导航
-        bool hasPath = m_dolphin->tryMoveTo(
-            treasureCenter.x, treasureCenter.y, treasureCenter.z, 1.3
-        );
+        // 使用 RandomPositionGenerator.findRandomTargetTowardsScaled 生成路径点
+        // MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled(this, 16, 1, treasureCenter, PI/8)
+        Vector3 targetPos;
+        bool hasPath = entity::ai::util::RandomPositionGenerator::findRandomTargetTowardsScaled(
+            m_dolphin, 16, 1, treasureCenter, math::PI / 8.0, targetPos);
 
+        // 如果第一个方法失败，尝试 findRandomTargetBlockTowards
         if (!hasPath) {
-            // 尝试不同高度
-            for (i32 yOffset = -2; yOffset <= 2; ++yOffset) {
-                hasPath = m_dolphin->tryMoveTo(
-                    treasureCenter.x,
-                    treasureCenter.y + yOffset,
-                    treasureCenter.z,
-                    1.3
-                );
-                if (hasPath) break;
+            hasPath = entity::ai::util::RandomPositionGenerator::findRandomTargetBlockTowards(
+                m_dolphin, 8, 4, treasureCenter, targetPos);
+        }
+
+        // 如果仍然失败，检查目标位置是否是水
+        if (hasPath) {
+            BlockPos targetBlockPos(
+                static_cast<i32>(std::floor(targetPos.x)),
+                static_cast<i32>(std::floor(targetPos.y)),
+                static_cast<i32>(std::floor(targetPos.z))
+            );
+
+            const fluid::FluidState* fluidState = world->getFluidState(targetBlockPos);
+            if (fluidState == nullptr || fluidState->isEmpty() || !fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                // 目标不是水，尝试其他位置
+                hasPath = entity::ai::util::RandomPositionGenerator::findRandomTargetBlock(
+                    m_dolphin, 8, 5, std::nullopt, targetPos);
             }
         }
 
@@ -353,14 +364,21 @@ void SwimToTreasureGoal::tick()
         }
 
         // 看向目标
-        m_dolphin->lookAt(treasureCenter.x, treasureCenter.y, treasureCenter.z);
+        m_dolphin->lookAt(targetPos.x, targetPos.y, targetPos.z);
+
+        // 导航到目标位置
+        hasPath = m_dolphin->tryMoveTo(targetPos.x, targetPos.y, targetPos.z, 1.3);
+        if (!hasPath) {
+            m_failed = true;
+            return;
+        }
     }
 
     // 随机播放粒子效果
+    // MC 1.16.5: world.setEntityState(this.dolphin, (byte)38);
     math::Random rng = m_dolphin->getRandom();
     if (rng.nextInt(80) == 0) {
-        // TODO: 在服务端触发粒子效果
-        // world->sendEntityEvent(m_dolphin, (byte)38);
+        world->broadcastEntityStatus(m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
     }
 }
 
@@ -538,20 +556,32 @@ bool PlayWithItemsGoal::shouldExecute()
         return false;
     }
 
-    // 检查附近是否有物品
-    ItemEntity* item = findNearbyItem();
-    if (item != nullptr) {
+    // MC 1.16.5: 检查附近是否有物品或海豚是否持有物品
+    // 首先检查主手是否持有物品
+    const ItemStack& mainHandItem = m_dolphin->getMainHandItem();
+    if (!mainHandItem.isEmpty()) {
         return true;
     }
 
-    // 检查是否手中持有物品
-    // TODO: 当 MobEntity 支持装备系统后检查主手物品
-    // 目前简化实现：只检查附近物品
-    return false;
+    // 检查附近是否有物品
+    ItemEntity* item = findNearbyItem();
+    return item != nullptr;
 }
 
 void PlayWithItemsGoal::startExecuting()
 {
+    // 检查是否已持有物品
+    const ItemStack& mainHandItem = m_dolphin->getMainHandItem();
+    if (!mainHandItem.isEmpty()) {
+        // 已持有物品，扔出
+        ItemStack copy = mainHandItem;
+        m_dolphin->setMainHandItem(ItemStack());
+        throwItem(copy);
+        m_cooldown = static_cast<i32>(m_dolphin->ticksExisted()) + MIN_COOLDOWN;
+        return;
+    }
+
+    // 没有持有物品，寻找附近物品
     ItemEntity* item = findNearbyItem();
     if (item != nullptr) {
         m_dolphin->tryMoveToEntity(*item, 1.2);
@@ -563,8 +593,15 @@ void PlayWithItemsGoal::startExecuting()
 
 void PlayWithItemsGoal::resetTask()
 {
-    // TODO: 当 MobEntity 支持装备系统后，扔出手中物品
-    // 目前简化实现：不处理物品存储
+    // MC 1.16.5: 任务结束时扔出手中物品
+    ItemStack mainHandItem = m_dolphin->getMainHandItem();
+    if (!mainHandItem.isEmpty()) {
+        m_dolphin->setMainHandItem(ItemStack());
+        throwItem(mainHandItem);
+        // 设置随机冷却 (0-99 ticks)
+        math::Random rng = m_dolphin->getRandom();
+        m_cooldown = static_cast<i32>(m_dolphin->ticksExisted()) + rng.nextInt(100);
+    }
 }
 
 void PlayWithItemsGoal::tick()
@@ -574,15 +611,41 @@ void PlayWithItemsGoal::tick()
         return;
     }
 
-    // TODO: 完整的物品拾取和扔出逻辑
-    // 当 MobEntity 支持装备系统后实现：
+    // MC 1.16.5: 完整的物品拾取和扔出逻辑
     // 1. 检查是否持有物品
-    // 2. 如果持有，扔出物品
-    // 3. 如果没有持有，查找附近物品并移动过去
+    const ItemStack& mainHandItem = m_dolphin->getMainHandItem();
 
+    if (!mainHandItem.isEmpty()) {
+        // 持有物品时，随机决定是否扔出
+        math::Random rng = m_dolphin->getRandom();
+        if (rng.nextInt(40) == 0) {
+            // 扔出物品
+            ItemStack copy = mainHandItem;
+            m_dolphin->setMainHandItem(ItemStack());
+            throwItem(copy);
+            m_cooldown = static_cast<i32>(m_dolphin->ticksExisted()) + MIN_COOLDOWN;
+        }
+        return;
+    }
+
+    // 2. 没有持有物品，查找附近物品并移动过去
     ItemEntity* item = findNearbyItem();
     if (item != nullptr) {
-        m_dolphin->tryMoveToEntity(*item, 1.2);
+        // 检查是否足够靠近可以拾取
+        f64 distSq = m_dolphin->distanceSqTo(*item);
+        constexpr f64 PICKUP_DISTANCE_SQ = 2.25; // 1.5 * 1.5
+
+        if (distSq < PICKUP_DISTANCE_SQ) {
+            // 拾取物品
+            ItemStack stack = item->getItemStack();
+            m_dolphin->setMainHandItem(stack);
+
+            // 标记物品实体为移除
+            item->remove();
+        } else {
+            // 向物品移动
+            m_dolphin->tryMoveToEntity(*item, 1.2);
+        }
     }
 }
 
@@ -676,6 +739,225 @@ ItemEntity* PlayWithItemsGoal::findNearbyItem() const
     }
 
     return closestItem;
+}
+
+// ============================================================================
+// FollowBoatGoal
+// ============================================================================
+
+FollowBoatGoal::FollowBoatGoal(DolphinEntity* dolphin)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_dolphin(dolphin)
+{
+    MC_ASSERT_RELEASE(dolphin != nullptr);
+}
+
+bool FollowBoatGoal::shouldExecute()
+{
+    // MC 1.16.5: 检查是否有正在驾驶的玩家
+    // 条件1: 已经有跟踪的玩家且玩家正在操作船移动
+    // 条件2: 5格范围内有玩家驾驶的船
+    if (m_player != nullptr && isPlayerOperatingBoat(*m_player)) {
+        return true;
+    }
+
+    // 查找附近正在驾驶船的玩家
+    m_player = findPlayerDrivingBoat();
+    return m_player != nullptr;
+}
+
+bool FollowBoatGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5: 玩家必须在船上且正在操作移动
+    if (m_player == nullptr) {
+        return false;
+    }
+
+    // 检查玩家是否仍在骑乘（船上）
+    if (!m_player->isRiding()) {
+        return false;
+    }
+
+    // 检查玩家是否正在操作移动
+    return isPlayerOperatingBoat(*m_player);
+}
+
+void FollowBoatGoal::startExecuting()
+{
+    // MC 1.16.5: 在5格范围内寻找有玩家驾驶的船
+    m_player = findPlayerDrivingBoat();
+    m_navigationTimer = 0;
+    m_state = BoatFollowState::GoToBoat;
+}
+
+void FollowBoatGoal::resetTask()
+{
+    m_player = nullptr;
+    m_dolphin->clearNavigationPath();
+}
+
+void FollowBoatGoal::tick()
+{
+    if (m_player == nullptr) {
+        return;
+    }
+
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 检查玩家是否正在操作移动
+    bool isOperating = isPlayerOperatingBoat(*m_player);
+
+    // 根据状态设置移动速度
+    // GoInBoatDirection 状态下，玩家不操作时不移动
+    f32 speed = (m_state == BoatFollowState::GoInBoatDirection)
+        ? (isOperating ? GO_IN_DIRECTION_SPEED : 0.0f)
+        : GO_TO_BOAT_SPEED;
+
+    // 应用相对移动（模拟 MC 的 moveRelative 行为）
+    // MC 1.16.5: this.swimmer.moveRelative(f, new Vector3d(...))
+    // 但我们使用导航系统来移动
+
+    // 每10tick更新一次导航目标
+    if (--m_navigationTimer <= 0) {
+        m_navigationTimer = NAVIGATION_UPDATE_INTERVAL;
+
+        if (m_state == BoatFollowState::GoToBoat) {
+            // 阶段1：游向船
+            // MC 1.16.5: 计算目标位置 = 玩家位置 - 玩家朝向方向 + 下移一格
+            f32 playerYaw = m_player->yaw();
+            f32 yawRad = playerYaw * math::DEG_TO_RAD;
+
+            // 玩家朝向的反方向
+            i32 dx = static_cast<i32>(-std::round(std::sin(yawRad)));
+            i32 dz = static_cast<i32>(std::round(std::cos(yawRad)));
+
+            BlockPos playerPos(
+                static_cast<i32>(std::floor(m_player->x())),
+                static_cast<i32>(std::floor(m_player->y())),
+                static_cast<i32>(std::floor(m_player->z()))
+            );
+
+            // 目标位置：船尾后方，下移一格
+            BlockPos targetPos(playerPos.x + dx, playerPos.y - 1, playerPos.z + dz);
+
+            // 尝试移动到该位置
+            m_dolphin->tryMoveTo(
+                static_cast<f64>(targetPos.x) + 0.5,
+                static_cast<f64>(targetPos.y),
+                static_cast<f64>(targetPos.z) + 0.5,
+                NAVIGATE_SPEED
+            );
+
+            // 当距离小于4格时，切换到跟随状态
+            f32 dist = m_dolphin->distanceTo(*m_player);
+            if (dist < SWITCH_TO_FOLLOW_DISTANCE) {
+                m_navigationTimer = 0; // 立即更新
+                m_state = BoatFollowState::GoInBoatDirection;
+            }
+        } else if (m_state == BoatFollowState::GoInBoatDirection) {
+            // 阶段2：跟随船的行进方向
+            // MC 1.16.5: 获取玩家朝向，计算前方10格的位置
+            f32 playerYaw = m_player->yaw();
+            f32 yawRad = playerYaw * math::DEG_TO_RAD;
+
+            // 玩家朝向方向
+            i32 dx = static_cast<i32>(std::round(std::sin(yawRad)));
+            i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
+
+            BlockPos playerPos(
+                static_cast<i32>(std::floor(m_player->x())),
+                static_cast<i32>(std::floor(m_player->y())),
+                static_cast<i32>(std::floor(m_player->z()))
+            );
+
+            // 目标位置：船前方10格，下移一格
+            BlockPos targetPos(playerPos.x + dx * 10, playerPos.y - 1, playerPos.z + dz * 10);
+
+            // 尝试移动到该位置
+            m_dolphin->tryMoveTo(
+                static_cast<f64>(targetPos.x) + 0.5,
+                static_cast<f64>(targetPos.y),
+                static_cast<f64>(targetPos.z) + 0.5,
+                NAVIGATE_SPEED
+            );
+
+            // 当距离超过12格时，切回游向船状态
+            f32 dist = m_dolphin->distanceTo(*m_player);
+            if (dist > SWITCH_TO_APPROACH_DISTANCE) {
+                m_navigationTimer = 0; // 立即更新
+                m_state = BoatFollowState::GoToBoat;
+            }
+        }
+    }
+
+    // 看向玩家
+    m_dolphin->lookAt(
+        m_player->x(),
+        m_player->y() + m_player->eyeHeight(),
+        m_player->z()
+    );
+}
+
+Player* FollowBoatGoal::findPlayerDrivingBoat()
+{
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    // MC 1.16.5: 获取5格范围内的所有实体
+    std::vector<Entity*> entities = world->getEntitiesInRange(
+        m_dolphin->position(),
+        SEARCH_RADIUS,
+        m_dolphin
+    );
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        // 检查是否是船
+        if (entity->legacyType() != LegacyEntityType::Boat) {
+            continue;
+        }
+
+        // 获取船的控制乘客
+        EntityId controllerId = entity->getControllingPassenger();
+        if (controllerId == 0) {
+            continue;
+        }
+
+        Entity* controller = world->getEntity(controllerId);
+        if (controller == nullptr) {
+            continue;
+        }
+
+        // 检查控制者是否是玩家
+        Player* player = dynamic_cast<Player*>(controller);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 检查玩家是否正在操作船移动
+        if (isPlayerOperatingBoat(*player)) {
+            return player;
+        }
+    }
+
+    return nullptr;
+}
+
+bool FollowBoatGoal::isPlayerOperatingBoat(const Player& player)
+{
+    // MC 1.16.5: 检查玩家的 moveStrafing 或 moveForward 是否非零
+    // Math.abs(player.moveStrafing) > 0.0F || Math.abs(player.moveForward) > 0.0F
+    f32 strafe = std::abs(player.moveStrafing());
+    f32 forward = std::abs(player.moveForward());
+    return strafe > 0.0f || forward > 0.0f;
 }
 
 } // namespace entity::ai::goal

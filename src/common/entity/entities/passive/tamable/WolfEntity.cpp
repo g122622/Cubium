@@ -35,8 +35,19 @@
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../basic/SheepEntity.hpp"
+#include "../basic/RabbitEntity.hpp"
+#include "../special/FoxEntity.hpp"
+#include "../special/TurtleEntity.hpp"
+#include "../horse/LlamaEntity.hpp"
+#include "../../player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -211,14 +222,44 @@ void WolfEntity::registerGoals()
     // LookRandomlyGoal）
     TameableEntity::registerGoals();
 
-    // 狼特有目标
-    // 注意：不要重复注册父类已注册的Goal
+    // ========================================================================
+    // 行为目标 (goalSelector)
+    // ========================================================================
 
     // 优先级 1: 坐下目标（驯服后）- 与PanicGoal同优先级，但SitGoal会检查是否驯服
     m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
 
-    // 优先级 3: 跟随主人（驯服后）- 替换FollowParentGoal的行为
-    m_goalSelector.addGoal(3, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
+    // 优先级 3: 未驯服时避开羊驼
+    // MC 1.16.5: new WolfEntity.AvoidEntityGoal(this, LlamaEntity.class, 24.0F, 1.5D, 1.5D)
+    // 羊驼有强度属性，强度高的羊驼可以吓跑狼
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+            this, 24.0f, 1.5, 1.5,
+            [this](const LivingEntity* entity) -> bool {
+                // 只在未驯服时避开羊驼
+                if (isTamed()) return false;
+                // 检查是否是羊驼
+                if (entity->legacyType() != LegacyEntityType::Llama &&
+                    entity->legacyType() != LegacyEntityType::TraderLlama) {
+                    return false;
+                }
+                // 检查羊驼的强度
+                const LlamaEntity* llama = dynamic_cast<const LlamaEntity*>(entity);
+                if (!llama) return false;
+                // 羊驼强度 >= 随机值(0-4) 时，狼会躲避
+                // 强度1: 20%概率吓跑，强度4: 80%概率吓跑
+                math::Random rng = getRandom();
+                return llama->getStrength() >= rng.nextInt(5);
+            }));
+
+    // 优先级 4: 跳跃攻击 - MC 1.16.5 优先级为 4
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.4f));
+
+    // 优先级 5: 近战攻击 - MC 1.16.5 优先级为 5
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, true));
+
+    // 优先级 6: 跟随主人（驯服后）- MC 1.16.5 优先级为 6
+    m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
 
     // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
     // 参考 MC 1.16.5 WolfEntity.registerGoals() - BegGoal 优先级为 9
@@ -227,12 +268,77 @@ void WolfEntity::registerGoals()
     // [COMPLETED] 2026-05-15 - 骨头乞求行为已通过 BegGoal 实现
     m_goalSelector.addGoal(9, new entity::ai::goal::BegGoal(this, 8.0f));
 
-    // TODO: 添加攻击目标
-    // 优先级 1: 攻击目标（未驯服时攻击附近生物，驯服后保护主人）
-    // m_targetSelector.addGoal(1, new HurtByTargetGoal(this));
-    // m_targetSelector.addGoal(2, new OwnerHurtByTargetGoal(this));
-    // m_targetSelector.addGoal(3, new OwnerHurtTargetGoal(this));
-    // m_targetSelector.addGoal(4, new NonTamedTargetGoal(this, EntityClassification::Monster, true));
+    // ========================================================================
+    // 目标选择器 (targetSelector)
+    // 参考 MC 1.16.5 WolfEntity.registerGoals() 目标选择器
+    // ========================================================================
+
+    // 优先级 1: 主人被攻击时反击 - MC 1.16.5 优先级为 1
+    // 当主人被攻击时，狼会攻击攻击者
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::OwnerHurtByTargetGoal>(this));
+
+    // 优先级 2: 攻击主人正在攻击的目标 - MC 1.16.5 优先级为 2
+    // 当主人攻击某实体时，狼会协助攻击
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::OwnerHurtTargetGoal>(this));
+
+    // 优先级 3: 被攻击后反击，并呼叫同伴 - MC 1.16.5 优先级为 3
+    // setCallsForHelp = true，召唤附近的狼一起攻击
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+
+    // 优先级 4: 愤怒时攻击玩家 - MC 1.16.5 优先级为 4
+    // 需要配合 IAngerable 接口，当玩家攻击狼后，狼会记住玩家并攻击
+    // 当前简化实现：不注册此目标，因为狼默认不会主动攻击玩家
+    // m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
+    //     this, true, 10, /* angerPredicate */));
+
+    // 优先级 5: 未驯服时攻击羊、兔子、狐狸 - MC 1.16.5 优先级为 5
+    // TARGET_ENTITIES 谓词：羊、兔子、狐狸
+    m_targetSelector.addGoal(5,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this,
+            true,   // checkSight
+            0,      // chance (每tick检查)
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                // 羊、兔子、狐狸
+                auto type = entity->legacyType();
+                return type == LegacyEntityType::Sheep ||
+                       type == LegacyEntityType::Rabbit ||
+                       type == LegacyEntityType::Fox;
+            }));
+
+    // 优先级 6: 未驯服时攻击幼海龟（不在水中） - MC 1.16.5 优先级为 6
+    // 使用 NonTamedTargetGoal，只在未驯服时执行
+    // TurtleEntity.TARGET_DRY_BABY 谓词：幼体且不在水中
+    m_targetSelector.addGoal(6,
+        std::make_unique<entity::ai::goal::NonTamedTargetGoal<TurtleEntity>>(
+            this,
+            true,   // checkSight
+            [](const LivingEntity* entity) -> bool {
+                // TARGET_DRY_BABY: 幼体且不在水中
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
+
+    // 优先级 7: 攻击骷髅类怪物 - MC 1.16.5 优先级为 7
+    // 无论是否驯服，狼都会攻击骷髅类怪物
+    m_targetSelector.addGoal(7,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this,
+            false,  // checkSight - 不需要视线检查，骷髅是敌对生物
+            0,      // chance
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                // 骷髅、流浪者、凋灵骷髅
+                auto type = entity->legacyType();
+                return type == LegacyEntityType::Skeleton ||
+                       type == LegacyEntityType::Stray ||
+                       type == LegacyEntityType::WitherSkeleton;
+            }));
+
+    // 注意：优先级 8 的 ResetAngerGoal 需要 IAngerable 接口完整实现
+    // 当前简化处理，不注册此目标
 }
 
 void WolfEntity::registerAttributes()

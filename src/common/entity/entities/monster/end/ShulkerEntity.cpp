@@ -1,46 +1,89 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*
+* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "ShulkerEntity.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include <memory>
+#include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
+#include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/special/ShulkerGoals.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/attribute/AttributeModifier.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/entities/projectile/OtherProjectiles.hpp"
+#include "sound/SoundEvents.hpp"
+#include "util/Direction.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include <cmath>
 
 namespace mc {
+
+// 常量定义
+static const std::string COVERED_ARMOR_BONUS_ID = "shulker_covered_armor_bonus";
+
+// ============================================================================
+// ShulkerEntity 实现
+// ============================================================================
 
 ShulkerEntity::ShulkerEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
     // 潜影贝不移动
-    // TODO: 禁用移动控制器
+    setExperienceValue(5);
 }
 
 std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ShulkerEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ShulkerEntity>(LegacyEntityType::Shulker, 0);
+}
+
+void ShulkerEntity::updatePeekTicks(i32 peekTicks)
+{
+    // MC 1.16.5 ShulkerEntity.updateArmorModifier()
+    m_peekTicks = std::clamp(peekTicks, 0, 100);
+
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        // 更新护甲
+        // 闭合时（peekTicks == 0）获得额外护甲
+        if (m_peekTicks == 0) {
+            // 添加护甲加成
+            entity::attribute::AttributeModifier modifier(
+                COVERED_ARMOR_BONUS_ID,
+                "Shulker covered armor bonus",
+                ARMOR_BONUS,
+                entity::attribute::Operation::Addition);
+            m_attributes.addModifier(entity::attribute::Attributes::ARMOR, modifier);
+            playCloseSound();
+        } else {
+            // 移除护甲加成
+            m_attributes.removeModifier(entity::attribute::Attributes::ARMOR, COVERED_ARMOR_BONUS_ID);
+            playOpenSound();
+        }
+    }
 }
 
 void ShulkerEntity::openShell()
@@ -48,6 +91,7 @@ void ShulkerEntity::openShell()
     if (m_shellState == ShellState::Closed) {
         m_shellState = ShellState::Opening;
         m_shellStateTime = OPEN_DURATION;
+        updatePeekTicks(100); // 打开时设置 peek ticks
     }
 }
 
@@ -56,18 +100,114 @@ void ShulkerEntity::closeShell()
     if (m_shellState == ShellState::Open) {
         m_shellState = ShellState::Closing;
         m_shellStateTime = CLOSE_DURATION;
+        updatePeekTicks(0); // 关闭时清零 peek ticks
     }
 }
 
 bool ShulkerEntity::isImmuneToDamage() const
 {
-    return m_shellState == ShellState::Closed;
+    // MC 1.16.5: 贝壳完全闭合时免疫
+    return m_shellState == ShellState::Closed && m_peekTicks == 0;
 }
 
-void ShulkerEntity::teleport()
+bool ShulkerEntity::teleport()
 {
-    // TODO: 实现瞬移逻辑
-    // 随机选择附近的一个有效位置
+    return tryTeleportToNewPosition();
+}
+
+bool ShulkerEntity::tryTeleportToNewPosition()
+{
+    // MC 1.16.5 ShulkerEntity.tryTeleportToNewPosition()
+    // 检查AI是否禁用
+    if (!m_aiEnabled || !isAlive()) {
+        return true;
+    }
+
+    // 获取当前位置
+    BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
+
+    for (i32 i = 0; i < TELEPORT_ATTEMPTS; ++i) {
+        // 随机目标位置（±8格）
+        math::Random& rng = m_world->getRandom();
+        i32 targetX = currentPos.x + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
+        i32 targetY = currentPos.y + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
+        i32 targetZ = currentPos.z + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
+        BlockPos targetPos(targetX, targetY, targetZ);
+
+        // 检查位置是否有效
+        if (targetPos.y <= 0) {
+            continue;
+        }
+
+        // 检查是否是空气方块
+        const BlockState* state = m_world->getBlockState(targetPos);
+        if (state == nullptr || !state->isAir()) {
+            continue;
+        }
+
+        // 检查碰撞
+        AxisAlignedBB testBox(targetPos.x, targetPos.y, targetPos.z,
+            targetPos.x + 1.0, targetPos.y + 1.0, targetPos.z + 1.0);
+        if (m_world->hasBlockCollision(testBox)) {
+            continue;
+        }
+
+        // 找到可以附着的方向
+        std::optional<Direction> facing = findValidFacing(targetPos);
+        if (!facing.has_value()) {
+            continue;
+        }
+
+        // 瞬移成功
+        m_attachmentFacing = facing.value();
+        playTeleportSound();
+        setAttachmentPos(targetPos);
+        updatePeekTicks(0);
+        setAttackTarget(nullptr);
+        return true;
+    }
+
+    return false;
+}
+
+bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
+{
+    // MC 1.16.5 ShulkerEntity.func_234298_a_
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 检查附着方块
+    BlockPos attachPos(pos.x + Directions::xOffset(facing),
+        pos.y + Directions::yOffset(facing),
+        pos.z + Directions::zOffset(facing));
+    const BlockState* attachState = m_world->getBlockState(attachPos);
+    if (attachState == nullptr) {
+        return false;
+    }
+
+    // 检查方块是否是固体（简化实现）
+    if (!attachState->blocksMovement()) {
+        return false;
+    }
+
+    // 检查潜影贝位置是否没有碰撞
+    AxisAlignedBB shulkerBox(pos.x, pos.y, pos.z,
+        pos.x + 1.0, pos.y + 1.0, pos.z + 1.0);
+    return !m_world->hasBlockCollision(shulkerBox);
+}
+
+std::optional<Direction> ShulkerEntity::findValidFacing(const BlockPos& pos) const
+{
+    // MC 1.16.5 ShulkerEntity.func_234299_g_
+    for (Direction dir : Directions::all()) {
+        if (canAttachAt(pos, dir)) {
+            return dir;
+        }
+    }
+    return std::nullopt;
 }
 
 void ShulkerEntity::shootBullet()
@@ -76,18 +216,36 @@ void ShulkerEntity::shootBullet()
         return;
     }
 
-    // TODO: 生成潜影贝子弹
-    // auto bullet = std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
-    // bullet->setOwner(this);
-    // bullet->setTarget(getAttackTarget());
-    // world().spawnEntity(std::move(bullet), position());
+    LivingEntity* target = attackTarget();
+    if (target == nullptr || !target->isAlive()) {
+        return;
+    }
 
-    m_attackCooldown = ATTACK_COOLDOWN;
+    // 创建潜影贝子弹
+    auto bullet = std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing));
+    m_world->spawnEntity(std::move(bullet));
+
+    // 设置攻击冷却
+    math::Random& rng = m_world->getRandom();
+    m_attackCooldown = ATTACK_COOLDOWN_MIN + rng.nextInt(ATTACK_COOLDOWN_RANDOM / 2);
     m_attacking = true;
+
+    playShootSound();
 }
 
 void ShulkerEntity::updateShellState()
 {
+    // 更新开壳动画
+    f32 targetPeek = static_cast<f32>(m_peekTicks) * 0.01f;
+    m_prevPeekAmount = m_peekAmount;
+
+    if (m_peekAmount > targetPeek) {
+        m_peekAmount = std::max(m_peekAmount - 0.05f, targetPeek);
+    } else if (m_peekAmount < targetPeek) {
+        m_peekAmount = std::min(m_peekAmount + 0.05f, targetPeek);
+    }
+
+    // 更新状态
     if (m_shellStateTime > 0) {
         m_shellStateTime--;
 
@@ -110,6 +268,14 @@ void ShulkerEntity::tick()
 {
     MonsterEntity::tick();
 
+    // 更新附着位置
+    if (m_attachmentPos.x == 0 && m_attachmentPos.y == 0 && m_attachmentPos.z == 0) {
+        // 初始化附着位置
+        m_attachmentPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z)));
+    }
+
     // 更新贝壳状态
     updateShellState();
 
@@ -118,25 +284,94 @@ void ShulkerEntity::tick()
         m_attackCooldown--;
     }
 
-    // 如果闭合且受到伤害，瞬移
-    // TODO: 检测伤害并瞬移
+    // 更新瞬移冷却
+    if (m_teleportCooldown > 0) {
+        m_teleportCooldown--;
+    }
+}
+
+bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
+{
+    // MC 1.16.5 ShulkerEntity.attackEntityFrom()
+    // 闭合时免疫箭矢
+    if (isShellClosed()) {
+        Entity* attacker = source.directSource();
+        // 检查是否是投射物（通过检查实体类型）
+        if (attacker != nullptr) {
+            LegacyEntityType type = attacker->legacyType();
+            // 投射物类型：箭、三叉戟、火球等
+            if (type == LegacyEntityType::Arrow ||
+                type == LegacyEntityType::SpectralArrow ||
+                type == LegacyEntityType::Trident ||
+                type == LegacyEntityType::Fireball ||
+                type == LegacyEntityType::SmallFireball ||
+                type == LegacyEntityType::DragonFireball ||
+                type == LegacyEntityType::WitherSkull ||
+                type == LegacyEntityType::Snowball ||
+                type == LegacyEntityType::Egg ||
+                type == LegacyEntityType::EnderPearl ||
+                type == LegacyEntityType::Potion ||
+                type == LegacyEntityType::LlamaSpit ||
+                type == LegacyEntityType::ShulkerBullet) {
+                return false;
+            }
+        }
+    }
+
+    // 调用父类受伤
+    if (MonsterEntity::hurt(source, amount)) {
+        // 血量低于一半时有概率瞬移
+        if (health() < maxHealth() * 0.5 && m_world != nullptr) {
+            math::Random& rng = m_world->getRandom();
+            if (rng.nextInt(4) == 0) {
+                tryTeleportToNewPosition();
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 void ShulkerEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // TODO: 潜影贝特有 AI 目标
-    // - ShulkerAttackGoal (发射子弹攻击)
-    // - ShulkerDefenseGoal (闭合贝壳防御)
-    // - ShulkerTeleportGoal (受伤瞬移)
+    // MC 1.16.5 ShulkerEntity.registerGoals()
+    // 目标选择器优先级
+    // 1: HurtByTargetGoal（被攻击时反击，呼唤同伴）
+    // 2: AttackNearestGoal（攻击最近的玩家）
+    // 3: DefenseAttackGoal（防御攻击IMob）
+
+    // 行为目标优先级
+    // 1: LookAtGoal（看向玩家）
+    // 4: AttackGoal（发射子弹攻击）
+    // 7: PeekGoal（空闲时开壳张望）
+    // 8: LookRandomlyGoal（随机看向）
+
+    // 目标选择器
+    targetSelector().addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    targetSelector().addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    // TODO: DefenseAttackGoal - 攻击攻击了潜影贝的敌对生物
+
+    // 行为目标
+    // LookAtGoal: 看向玩家，距离8格，概率0.02（使用过滤函数）
+    goalSelector().addGoal(1, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
+        [](const LivingEntity* entity) -> bool {
+            // 只看向玩家
+            return dynamic_cast<const Player*>(entity) != nullptr;
+        }));
+    // ShulkerAttackGoal: 发射子弹攻击
+    goalSelector().addGoal(4, std::make_unique<entity::ai::goal::ShulkerAttackGoal>(this));
+    // ShulkerPeekGoal: 空闲时开壳张望
+    goalSelector().addGoal(7, std::make_unique<entity::ai::goal::ShulkerPeekGoal>(this));
+    goalSelector().addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 
 void ShulkerEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // 潜影贝属性
+    // MC 1.16.5 ShulkerEntity.func_234300_m_()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
@@ -144,6 +379,10 @@ void ShulkerEntity::registerAttributes()
 
 std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const
 {
+    // MC 1.16.5: 只有贝壳打开时才播放环境音效
+    if (isShellClosed()) {
+        return std::nullopt;
+    }
     return SoundEvents::ENTITY_SHULKER_AMBIENT;
 }
 
@@ -173,7 +412,7 @@ void ShulkerEntity::playCloseSound()
 
 void ShulkerEntity::playShootSound()
 {
-    playSound(SoundEvents::ENTITY_SHULKER_SHOOT, 1.0f, 1.0f);
+    playSound(SoundEvents::ENTITY_SHULKER_SHOOT, 2.0f, 1.0f);
 }
 
 void ShulkerEntity::playTeleportSound()

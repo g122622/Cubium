@@ -31,6 +31,7 @@
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <chrono>
@@ -83,7 +84,69 @@ void EnderCrystalEntity::setBeamTarget(BlockPos pos)
 
 void EnderCrystalEntity::healDragon()
 {
-    // TODO: 找到末影龙并治愈
+    // MC 1.16.5: EnderCrystalEntity 治愈末影龙逻辑
+    // 参考: EnderDragonEntity.updateDragonEnderCrystal() 双向关联
+
+    // 检查冷却
+    if (m_healCooldown > 0) {
+        return;
+    }
+
+    // 获取世界
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 在 32 格范围内搜索末影龙
+    constexpr f32 HEAL_RANGE = 32.0f;
+    constexpr f32 HEAL_RANGE_SQ = HEAL_RANGE * HEAL_RANGE;
+
+    // 获取水晶位置
+    Vector3 crystalPos(x(), y(), z());
+
+    // 获取范围内的实体
+    std::vector<Entity*> entities = worldPtr->getEntitiesInRange(crystalPos, HEAL_RANGE, this);
+
+    EnderDragonEntity* nearestDragon = nullptr;
+    f32 nearestDistSq = HEAL_RANGE_SQ;
+
+    // 搜索最近的末影龙
+    for (Entity* entity : entities) {
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
+
+        // 检查是否为末影龙
+        if (entity->legacyType() == LegacyEntityType::EnderDragon) {
+            f32 dx = static_cast<f32>(entity->x() - x());
+            f32 dy = static_cast<f32>(entity->y() - y());
+            f32 dz = static_cast<f32>(entity->z() - z());
+            f32 distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearestDragon = static_cast<EnderDragonEntity*>(entity);
+            }
+        }
+    }
+
+    // 如果找到末影龙
+    if (nearestDragon != nullptr && nearestDragon->isAlive()) {
+        // MC 1.16.5: 治愈末影龙 1 点生命值
+        nearestDragon->heal(1.0f);
+
+        // 设置冷却时间
+        m_healCooldown = HEAL_COOLDOWN;
+
+        // 设置光束指向末影龙（用于渲染）
+        setBeamTarget(BlockPos(static_cast<BlockCoord>(nearestDragon->x()),
+            static_cast<BlockCoord>(nearestDragon->y()),
+            static_cast<BlockCoord>(nearestDragon->z())));
+
+        // 设置龙的最近水晶引用（建立双向关联）
+        nearestDragon->setClosestEnderCrystal(this);
+    }
 }
 
 void EnderCrystalEntity::explode()
@@ -337,7 +400,15 @@ void LightningBoltEntity::damageEntities()
 
 AreaEffectCloudEntity::AreaEffectCloudEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
-{}
+{
+    // MC 1.16.5: AreaEffectCloudEntity 无碰撞
+    setNoClip(true);
+}
+
+std::unique_ptr<Entity> AreaEffectCloudEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<AreaEffectCloudEntity>();
+}
 
 f32 AreaEffectCloudEntity::width() const
 {
@@ -349,41 +420,233 @@ f32 AreaEffectCloudEntity::height() const
     return 0.5f; // MC 1.16.5: 药水云高度固定为 0.5
 }
 
+void AreaEffectCloudEntity::setRadius(f32 radius)
+{
+    m_radius = radius;
+    m_initialRadius = radius;
+    // MC 1.16.5: 宽度随半径变化，需要刷新碰撞箱
+    refreshDimensions();
+}
+
+void AreaEffectCloudEntity::addEffect(const effect::EffectInstance& effect)
+{
+    // MC 1.16.5: 添加效果并更新颜色
+    m_effects.push_back(effect);
+    if (!m_colorSet) {
+        updateColor();
+    }
+}
+
+void AreaEffectCloudEntity::setOwner(LivingEntity* owner)
+{
+    m_owner = owner;
+    // MC 1.16.5: 同时记录 ownerUniqueId
+    if (owner != nullptr) {
+        // 后续可添加 UUID 追踪
+    }
+}
+
 void AreaEffectCloudEntity::tick()
 {
     Entity::tick();
 
     m_ticksLived++;
 
-    // 等待时间结束后开始应用效果
-    if (m_ticksLived > m_waitTime) {
-        // 每隔一段时间应用效果
-        if (m_ticksLived % m_reapplicationDelay == 0) {
-            applyEffects();
-        }
+    // MC 1.16.5: 检查生命周期结束
+    if (m_ticksLived >= m_waitTime + m_duration) {
+        remove();
+        return;
+    }
 
-        // 更新半径
-        updateRadius();
+    // MC 1.16.5: 等待时间判断
+    bool inWaitTime = m_ticksLived < m_waitTime;
 
-        // 检查是否过期
-        if (m_ticksLived >= m_duration) {
+    if (inWaitTime) {
+        return; // 等待期间不执行效果
+    }
+
+    // MC 1.16.5: 半径按tick变化
+    if (m_radiusPerTick != 0.0f) {
+        m_radius += m_radiusPerTick;
+        if (m_radius < 0.5f) {
+            // 半径太小则移除
             remove();
+            return;
         }
+    }
+
+    // MC 1.16.5: 每5个tick执行效果应用
+    if (m_ticksLived % 5 == 0) {
+        applyEffects();
     }
 }
 
 void AreaEffectCloudEntity::applyEffects()
 {
-    // TODO: 应用效果到范围内的实体
-    if (m_durationOnUse > 0) {
-        m_duration = std::max(0, m_duration - m_durationOnUse);
+    // MC 1.16.5: 服务端逻辑
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 没有效果则跳过
+    if (m_effects.empty()) {
+        return;
+    }
+
+    // 清理过期的重应用延迟映射
+    auto it = m_reapplicationMap.begin();
+    while (it != m_reapplicationMap.end()) {
+        if (m_ticksLived >= it->second) {
+            it = m_reapplicationMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // 构建效果列表（持续时间除以4）
+    // MC 1.16.5: effectinstance.getDuration() / 4
+    std::vector<effect::EffectInstance> effectsToApply;
+    for (const auto& effect : m_effects) {
+        effect::EffectInstance copy = effect;
+        // 滞留药水效果持续时间 = 原持续时间 / 4
+        // 注意：由于 EffectInstance 的 duration 是私有的，我们需要用 tick 来调整
+        // 但根据 MC 源码，滞留药水创建时效果持续时间已设置好
+        effectsToApply.push_back(copy);
+    }
+
+    // 获取范围内的生物
+    AxisAlignedBB box(m_position.x - m_radius,
+        m_position.y - 0.5f,
+        m_position.z - m_radius,
+        m_position.x + m_radius,
+        m_position.y + 0.5f,
+        m_position.z + m_radius);
+
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
+
+        // 只对 LivingEntity 生效
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (living == nullptr) {
+            continue;
+        }
+
+        // 检查是否在重应用延迟中
+        EntityId entityId = entity->id();
+        if (m_reapplicationMap.find(entityId) != m_reapplicationMap.end()) {
+            continue;
+        }
+
+        // MC 1.16.5: 检查实体是否可以被药水影响
+        // canBeHitWithPotion() - 默认返回 true
+        // 某些实体（如创造模式玩家）不可被影响
+
+        // 检查水平距离（只检查XZ平面）
+        f32 dx = static_cast<f32>(entity->x() - m_position.x);
+        f32 dz = static_cast<f32>(entity->z() - m_position.z);
+        f32 distSq = dx * dx + dz * dz;
+
+        if (distSq <= m_radius * m_radius) {
+            // 在半径内，应用效果
+            for (const auto& effect : effectsToApply) {
+                // MC 1.16.5: 瞬间效果使用 affectEntity，持续效果使用 addPotionEffect
+                if (effect::isInstantEffect(effect.type())) {
+                    // 瞬间效果（如瞬间治疗、瞬间伤害）
+                    // MC 1.16.5: affectEntity(this, owner, living, amplifier, 0.5)
+                    // 简化实现：直接应用
+                    effect::EffectInstance instantEffect(effect.type(),
+                        1,      // 瞬间效果持续时间设为1
+                        effect.amplifier(),
+                        effect.isAmbient(),
+                        effect.isVisible(),
+                        effect.showIcon());
+                    living->addEffect(instantEffect);
+                } else {
+                    // 持续效果
+                    living->addEffect(effect);
+                }
+            }
+
+            // 记录重应用延迟
+            m_reapplicationMap[entityId] = m_ticksLived + m_reapplicationDelay;
+
+            // 应用后半径变化
+            if (m_radiusOnUse != 0.0f) {
+                m_radius += m_radiusOnUse;
+                if (m_radius < 0.5f) {
+                    remove();
+                    return;
+                }
+            }
+
+            // 应用后持续时间变化
+            if (m_durationOnUse != 0) {
+                m_duration += m_durationOnUse;
+                if (m_duration <= 0) {
+                    remove();
+                    return;
+                }
+            }
+        }
     }
 }
 
 void AreaEffectCloudEntity::updateRadius()
 {
-    m_radius += RADIUS_GROWTH;
-    m_radius = std::max(0.5f, m_radius);
+    // 半径变化现在在 tick() 中处理
+    // 这个方法保留用于其他地方可能需要的半径更新
+}
+
+void AreaEffectCloudEntity::updateColor()
+{
+    if (m_effects.empty()) {
+        m_color = 0;
+    } else {
+        m_color = calculateEffectsColor(m_effects);
+    }
+}
+
+u32 AreaEffectCloudEntity::calculateEffectsColor(const std::vector<effect::EffectInstance>& effects)
+{
+    // MC 1.16.5: PotionUtils.getPotionColorFromEffectList()
+    // 混合所有效果的颜色
+    if (effects.empty()) {
+        return 0;
+    }
+
+    f32 r = 0.0f;
+    f32 g = 0.0f;
+    f32 b = 0.0f;
+    i32 count = 0;
+
+    for (const auto& effect : effects) {
+        u32 effectColor = effect::getEffectColor(effect.type());
+        if (effectColor != 0) {
+            f32 cr = static_cast<f32>((effectColor >> 16) & 0xFF) / 255.0f;
+            f32 cg = static_cast<f32>((effectColor >> 8) & 0xFF) / 255.0f;
+            f32 cb = static_cast<f32>(effectColor & 0xFF) / 255.0f;
+            r += cr;
+            g += cg;
+            b += cb;
+            ++count;
+        }
+    }
+
+    if (count == 0) {
+        return 0;
+    }
+
+    r = r / static_cast<f32>(count);
+    g = g / static_cast<f32>(count);
+    b = b / static_cast<f32>(count);
+
+    // 返回 ARGB 格式
+    return (0xFF << 24) | (static_cast<u32>(r * 255.0f) << 16)
+        | (static_cast<u32>(g * 255.0f) << 8) | static_cast<u32>(b * 255.0f);
 }
 
 // 注意: ExperienceOrbEntity 已移动到独立的 orb/ 目录

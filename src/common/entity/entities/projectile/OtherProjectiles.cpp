@@ -23,23 +23,56 @@
 
 #include "OtherProjectiles.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/math/MathConstants.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../effect/EffectInstance.hpp"
+#include "../../effect/EffectType.hpp"
+#include "../../entities/item/ItemEntity.hpp"
+#include "../../entities/orb/ExperienceOrbEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../inventory/PlayerInventory.hpp"
+#include "../../loot/LootContext.hpp"
+#include "../../loot/LootTable.hpp"
+#include "../../utils/ItemDropHelper.hpp"
+#include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
 
 // ============================================================================
-// FishingBobberEntity 常量
+// 辅助函数
+// ============================================================================
+
+/**
+ * @brief 从实体创建随机数生成器
+ *
+ * 使用实体 ID 和存活时间作为种子。
+ */
+math::Random createRandomFromEntity(const Entity& entity)
+{
+    u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
+    return math::Random(seed);
+}
+
+// ============================================================================
+// LlamaSpitEntity 常量
 // ============================================================================
 
 namespace {
+// 羊驼口水伤害常量 (MC 1.16.5)
+constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f; // 0.5 颗心
+
 // 钓鱼时间常量（MC 1.16.5）
 constexpr i32 MIN_WAIT_TICKS = 100;     // 最小等待时间 (5秒)
 constexpr i32 MAX_WAIT_TICKS = 600;     // 最大等待时间 (30秒)
@@ -63,7 +96,8 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
         return;
     }
 
-    // 造成伤害
+    // MC 1.16.5: LlamaSpitEntity.onEntityHit()
+    // 造成 1.0 点伤害（0.5 颗心）
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
@@ -72,7 +106,11 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
-    // TODO: target->attackEntityFrom(*damageSource, 1.0f);
+    // 对 LivingEntity 造成伤害
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
+    if (livingTarget != nullptr && livingTarget->isAlive()) {
+        livingTarget->hurt(*damageSource, LLAMA_SPIT_DAMAGE);
+    }
 }
 
 void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
@@ -167,8 +205,24 @@ void FishingBobberEntity::tick()
     updateWaterState();
 
     switch (m_state) {
-        case State::Flying:
-            // 浮标在飞行中，检测是否入水
+        case State::Flying: {
+            // 浮标在飞行中，执行射线检测
+            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第169-195行
+            if (m_world != nullptr) {
+                RayTraceResult hitResult = performRayTrace();
+                if (hitResult.type == RayTraceResultType::Entity) {
+                    // 命中实体，钩住它
+                    onEntityHit(hitResult);
+                    return;
+                }
+                if (hitResult.type == RayTraceResultType::Block) {
+                    // 命中方块，进入 Bobbing 状态
+                    onBlockHit(hitResult);
+                    return;
+                }
+            }
+
+            // 检测是否入水
             if (isInWater()) {
                 m_state = State::Bobbing;
                 // 设置初始等待时间
@@ -177,6 +231,7 @@ void FishingBobberEntity::tick()
                 m_inOpenWater = checkOpenWater();
             }
             break;
+        }
 
         case State::Bobbing:
             // 浮标浮在水面，执行钓鱼逻辑
@@ -209,7 +264,27 @@ void FishingBobberEntity::tick()
             break;
 
         case State::Hooked:
-            // 钩住实体（TODO: 实现钩住实体逻辑）
+            // 钩住实体
+            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第181-195行
+            if (m_caughtEntity != nullptr) {
+                if (m_caughtEntity->isRemoved() || !m_caughtEntity->isAlive()) {
+                    // 实体被移除或死亡，恢复飞行状态
+                    m_caughtEntity = nullptr;
+                    m_caughtEntityId = 0;
+                    m_state = State::Flying;
+                } else {
+                    // 浮标跟随实体位置
+                    // MC 1.16.5: 设置位置到实体高度的 80% 处
+                    setPosition(
+                        m_caughtEntity->x(),
+                        m_caughtEntity->y() + m_caughtEntity->height() * 0.8,
+                        m_caughtEntity->z()
+                    );
+                }
+            } else {
+                // 没有被钩住的实体，恢复飞行状态
+                m_state = State::Flying;
+            }
             break;
     }
 }
@@ -364,25 +439,155 @@ void FishingBobberEntity::setWaitTime()
 
 i32 FishingBobberEntity::spawnCatchItems()
 {
-    // TODO: 使用钓鱼掉落表生成物品
-    // 目前返回 1 表示钓到鱼（用于耐久消耗）
-    return 1;
+    // MC 1.16.5: 使用钓鱼掉落表生成物品
+    // 参考 FishingBobberEntity.handleHookRetraction()
+
+    if (!m_world || !m_angler) {
+        return 0;
+    }
+
+    // 获取掉落表管理器
+    const loot::LootTable* fishingTable = m_world->lootTableManager() ?
+        m_world->lootTableManager()->getTable("minecraft:gameplay/fishing") : nullptr;
+    if (!fishingTable) {
+        // 如果掉落表不存在，返回默认值
+        return 1;
+    }
+
+    // 计算幸运值 = 海之眷顾附魔等级 + 玩家基础幸运
+    // MC 1.16.5: .withLuck((float)this.luck + playerentity.getLuck())
+    f32 totalLuck = static_cast<f32>(m_luckBonus);
+    totalLuck += static_cast<f32>(m_angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
+
+    // 获取随机数生成器
+    math::Random& random = m_world->getRandom();
+
+    // 构建掉落上下文
+    auto context = loot::LootContextBuilder(*m_world)
+        .withRandom(random)
+        .withLuck(totalLuck)
+        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
+        .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(m_angler))
+        .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, m_inOpenWater)
+        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
+            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
+        })
+        .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
+
+    if (!context) {
+        return 1;
+    }
+
+    // 生成掉落物品
+    std::vector<ItemStack> drops = fishingTable->generate(*context);
+
+    // 计算从浮标到玩家的方向
+    f64 dx = m_angler->x() - x();
+    f64 dy = m_angler->y() + m_angler->eyeHeight() * 0.5 - y();
+    f64 dz = m_angler->z() - z();
+    f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    f64 sqrtDistance = std::sqrt(distance);
+
+    // 速度因子（参考 MC 1.16.5）
+    f32 vx = static_cast<f32>(dx * 0.1);
+    f32 vy = static_cast<f32>(dy * 0.1 + sqrtDistance * 0.08);
+    f32 vz = static_cast<f32>(dz * 0.1);
+
+    // 生成物品实体
+    for (const auto& drop : drops) {
+        if (drop.isEmpty()) {
+            continue;
+        }
+
+        // 使用 ItemDropHelper 生成物品实体
+        ItemDropHelper::spawnItemEntity(
+            m_world,
+            drop,
+            x(), y() + 0.5, z(), // 在浮标位置生成
+            vx, vy, vz,           // 朝玩家方向飞
+            10,                   // 拾取延迟 10 ticks
+            m_angler->uuid()      // 所有者 UUID，防止立即拾取自己的物品
+        );
+    }
+
+    // 生成经验球 (1-6 经验，参考 MC 1.16.5)
+    i32 experience = random.nextInt(1, 6);
+    spawnExperienceOrbs(experience);
+
+    // 返回钓到物品数量（用于耐久消耗）
+    return static_cast<i32>(drops.size());
+}
+
+void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
+{
+    // MC 1.16.5: 生成经验球
+    // 参考 ExperienceOrbEntity.split()
+
+    if (totalXp <= 0 || !m_world) {
+        return;
+    }
+
+    math::Random& random = m_world->getRandom();
+
+    // 分割经验值为多个经验球
+    // MC 1.16.5 经验分割值: 2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
+    static constexpr i32 XP_SPLIT_VALUES[] = {2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1};
+
+    while (totalXp > 0) {
+        // 找到适合当前经验值的分割值
+        i32 orbXp = 1;
+        for (i32 splitValue : XP_SPLIT_VALUES) {
+            if (totalXp >= splitValue) {
+                orbXp = splitValue;
+                break;
+            }
+        }
+
+        totalXp -= orbXp;
+
+        // 在浮标位置生成经验球，添加随机偏移
+        f64 offsetX = random.nextDouble() * 0.2 - 0.1;
+        f64 offsetY = random.nextDouble() * 0.2;
+        f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
+
+        auto orb = std::make_unique<ExperienceOrbEntity>(
+            m_world,
+            x() + offsetX,
+            y() + 0.5 + offsetY,
+            z() + offsetZ,
+            orbXp
+        );
+
+        // 设置拾取延迟
+        orb->setPickupDelay(10);
+
+        // 添加到世界
+        m_world->spawnEntity(std::move(orb));
+    }
 }
 
 i32 FishingBobberEntity::reelIn()
 {
     // 收杆
+    // 参考 MC 1.16.5 FishingBobberEntity.handleHookRetraction()
     i32 damage = 0; // 钓鱼竿耐久消耗
 
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
         // 成功钓到鱼
         damage = spawnCatchItems();
-        // TODO: 生成经验球 (1-6 经验)
-        // TODO: 生成钓鱼物品实体
         remove();
     } else if (m_state == State::Hooked) {
         // 钩住实体，拉过来
-        // TODO: 实现钩住实体的逻辑
+        if (m_caughtEntity != nullptr && m_caughtEntity->isAlive()) {
+            bringInHookedEntity();
+            // MC 1.16.5: 耐久消耗取决于实体类型
+            // 物品实体: 3, 其他实体: 5
+            if (dynamic_cast<ItemEntity*>(m_caughtEntity) != nullptr) {
+                damage = 3;
+            } else {
+                damage = 5;
+            }
+        }
         remove();
     } else {
         // 未咬钩时收杆，无耐久消耗
@@ -393,13 +598,193 @@ i32 FishingBobberEntity::reelIn()
 }
 
 // ============================================================================
+// FishingBobberEntity - 钩住实体逻辑
+// ============================================================================
+
+RayTraceResult FishingBobberEntity::performRayTrace()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
+    // 使用 ProjectileHelper 进行射线检测
+
+    if (m_world == nullptr) {
+        return RayTraceResult::miss();
+    }
+
+    // 计算射线起点和终点
+    const Vector3 start = m_position;
+    const Vector3 end = m_position + m_velocity;
+
+    // 先检测方块
+    const Vector3 delta = end - start;
+    if (delta.lengthSquared() <= 1.0e-6f) {
+        return RayTraceResult::miss();
+    }
+
+    // 创建搜索盒
+    const AxisAlignedBB searchBox = ProjectileHelper::createMovementSearchBox(*this, delta, 1.0f);
+
+    // 执行实体射线检测
+    RayTraceResult entityResult = ProjectileHelper::rayTraceEntities(
+        *m_world,
+        *this,
+        start,
+        end,
+        searchBox,
+        [this](const Entity& candidate) { return canHitEntity(candidate); },
+        0.3f  // collisionExpansion
+    );
+
+    if (entityResult.type == RayTraceResultType::Entity) {
+        return entityResult;
+    }
+
+    // 执行方块射线检测
+    const RaycastContext context(Ray(start, delta.normalized()), delta.length());
+    const BlockRaycastResult blockResult = raycastBlocks(context, *m_world);
+    if (!blockResult.isMiss()) {
+        return RayTraceResult::block(blockResult.hitPosition(), blockResult.blockPos());
+    }
+
+    return RayTraceResult::miss();
+}
+
+bool FishingBobberEntity::canHitEntity(const Entity& target) const
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.func_230298_a_()
+    // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
+
+    // 不能命中已死亡或已移除的实体
+    if (!target.isAlive() || target.isRemoved()) {
+        return false;
+    }
+
+    // 不能命中不可碰撞的实体
+    if (!target.canBeCollidedWith()) {
+        return false;
+    }
+
+    // 不能命中钓鱼者自己
+    if (&target == m_angler) {
+        return false;
+    }
+
+    // 物品实体可以被钩住
+    if (dynamic_cast<const ItemEntity*>(&target) != nullptr) {
+        return true;
+    }
+
+    // 其他实体需要满足基本碰撞条件
+    // 参考 ProjectileEntity::canHitEntity()
+    return target.canBeCollidedWith();
+}
+
+void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
+    if (result.type != RayTraceResultType::Entity || result.hitEntity == nullptr) {
+        return;
+    }
+
+    // 记录被钩住的实体
+    m_caughtEntity = result.hitEntity;
+
+    // 同步实体ID（用于客户端）
+    syncCaughtEntityId();
+
+    // 清零速度
+    m_velocity = Vector3(0.0, 0.0, 0.0);
+
+    // 切换到钩住状态
+    m_state = State::Hooked;
+}
+
+void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
+{
+    // 命中方块时停止移动，进入漂浮状态
+    // 参考 MC 1.16.5: 命中方块后进入 BOBBING 状态
+    m_velocity = Vector3(0.0, 0.0, 0.0);
+
+    // 如果在水上方块，设置 BOBBING 状态
+    if (isInWater()) {
+        m_state = State::Bobbing;
+        setWaitTime();
+        m_inOpenWater = checkOpenWater();
+    }
+}
+
+void FishingBobberEntity::bringInHookedEntity()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
+    if (m_caughtEntity == nullptr || m_angler == nullptr) {
+        return;
+    }
+
+    // 计算从浮标指向钓鱼者的方向向量
+    Vector3d direction(
+        m_angler->x() - x(),
+        m_angler->y() - y(),
+        m_angler->z() - z()
+    );
+
+    // 缩放到 10% 的力
+    // MC 1.16.5: direction.scale(0.1D)
+    direction = direction * 0.1;
+
+    // 叠加到被钩实体的速度上
+    // MC 1.16.5: caughtEntity.setMotion(caughtEntity.getMotion().add(vector3d))
+    m_caughtEntity->addVelocity(
+        static_cast<f32>(direction.x),
+        static_cast<f32>(direction.y),
+        static_cast<f32>(direction.z)
+    );
+}
+
+void FishingBobberEntity::syncCaughtEntityId()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.setHookedEntity()
+    // 存储时 +1，因为 0 表示"无实体"
+    if (m_caughtEntity != nullptr) {
+        m_caughtEntityId = m_caughtEntity->id() + 1;
+    } else {
+        m_caughtEntityId = 0;
+    }
+
+    // TODO: 当网络同步系统完善后，发送数据包同步到客户端
+    // 参考 MC 1.16.5: getDataManager().set(DATA_HOOKED_ENTITY, entityId + 1)
+}
+
+// ============================================================================
 // ShulkerBulletEntity
 // ============================================================================
 
 ShulkerBulletEntity::ShulkerBulletEntity(LegacyEntityType type, EntityId id)
     : ProjectileEntity(type, id)
+    , m_direction(Direction::Up)
+    , m_targetDelta(0.0, 0.0, 0.0)
 {
     m_noGravity = true;
+    m_noClip = true; // 穿墙
+}
+
+ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis)
+    : ShulkerBulletEntity(LegacyEntityType::ShulkerBullet, 0)
+{
+    if (shooter) {
+        setShooter(shooter);
+        // 设置初始位置在潜影贝中心
+        BlockPos shooterPos(static_cast<i32>(std::floor(shooter->x())),
+            static_cast<i32>(std::floor(shooter->y())),
+            static_cast<i32>(std::floor(shooter->z())));
+        setPosition(shooterPos.x + 0.5, shooterPos.y + 0.5, shooterPos.z + 0.5);
+    }
+
+    m_target = target;
+    if (target) {
+        m_targetUuid = target->uuid();
+    }
+
+    m_direction = Direction::Up;
+    selectNextMoveDirection(axis);
 }
 
 std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
@@ -407,51 +792,269 @@ std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
     return std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void ShulkerBulletEntity::tick()
+void ShulkerBulletEntity::setTarget(Entity* target)
 {
-    // 更新飞行方向
-    updateDirection();
-
-    // 调用父类tick
-    ProjectileEntity::tick();
-
-    // 检查是否击中目标
-    if (m_target && m_target->isAlive()) {
-        // 计算到目标的方向
-        Vector3 dir(m_target->x() - m_position.x,
-            m_target->y() + m_target->eyeHeight() / 2.0f - m_position.y,
-            m_target->z() - m_position.z);
-        f32 dist = dir.length();
-        if (dist > 0.0f) {
-            dir = dir.normalized();
-            m_direction = dir;
-        }
-    } else {
-        // 目标消失，移除子弹
-        remove();
+    m_target = target;
+    if (target) {
+        m_targetUuid = target->uuid();
     }
 }
 
-void ShulkerBulletEntity::updateDirection()
+void ShulkerBulletEntity::setDirection(Direction dir)
 {
-    // 潜影贝子弹会沿轴向移动，并在需要时改变方向
-    m_flightSteps++;
+    m_direction = dir;
+}
 
-    // 每隔一段时间改变方向
-    if (m_flightSteps % 10 == 0) {
-        // 选择一个新的轴向方向
-        // TODO: 实现轴向移动逻辑
+void ShulkerBulletEntity::tick()
+{
+    // MC 1.16.5 ShulkerBulletEntity.tick()
+
+    // 服务端逻辑
+    if (m_world != nullptr) {
+        // 检查目标是否有效
+        Player* playerTarget = dynamic_cast<Player*>(m_target);
+        if (m_target == nullptr || !m_target->isAlive() ||
+            (playerTarget != nullptr && playerTarget->isSpectator())) {
+            // 目标无效，下落
+            if (!m_noGravity) {
+                m_velocity.y -= 0.04;
+            }
+        } else {
+            // 加速追踪
+            m_targetDelta.x = std::clamp(m_targetDelta.x * ACCELERATION, -1.0, 1.0);
+            m_targetDelta.y = std::clamp(m_targetDelta.y * ACCELERATION, -1.0, 1.0);
+            m_targetDelta.z = std::clamp(m_targetDelta.z * ACCELERATION, -1.0, 1.0);
+
+            // 向目标方向加速
+            m_velocity.x += (m_targetDelta.x - m_velocity.x) * 0.2;
+            m_velocity.y += (m_targetDelta.y - m_velocity.y) * 0.2;
+            m_velocity.z += (m_targetDelta.z - m_velocity.z) * 0.2;
+        }
+
+        // 执行射线检测
+        RayTraceResult hitResult = performRayTrace();
+        if (hitResult.type != RayTraceResultType::Miss) {
+            onImpact(hitResult);
+            return;
+        }
     }
+
+    // 更新位置
+    m_position.x += m_velocity.x;
+    m_position.y += m_velocity.y;
+    m_position.z += m_velocity.z;
+
+    // 更新旋转朝向运动方向
+    ProjectileEntity::updateRotation();
+
+    // 更新飞行逻辑
+    if (m_world != nullptr && m_target != nullptr && m_target->isAlive()) {
+        // 更新飞行步数
+        if (m_flightSteps > 0) {
+            m_flightSteps--;
+
+            // 步数用完时重新选择方向
+            if (m_flightSteps == 0) {
+                Axis excludeAxis = (m_direction != Direction::None) ? Directions::getAxis(m_direction) : Axis::Y;
+                selectNextMoveDirection(excludeAxis);
+            }
+        }
+
+        // 检查是否需要改变方向
+        if (m_direction != Direction::None) {
+            BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y)),
+                static_cast<i32>(std::floor(m_position.z)));
+            Axis axis = Directions::getAxis(m_direction);
+
+            // 检查前方是否有方块
+            BlockPos nextPos(currentPos.x + Directions::xOffset(m_direction),
+                currentPos.y + Directions::yOffset(m_direction),
+                currentPos.z + Directions::zOffset(m_direction));
+
+            const BlockState* nextState = m_world->getBlockState(nextPos);
+            if (nextState != nullptr && nextState->blocksMovement()) {
+                // 前方有方块，选择新方向
+                selectNextMoveDirection(axis);
+            } else {
+                // 检查是否与目标对齐
+                BlockPos targetPos(static_cast<i32>(std::floor(m_target->x())),
+                    static_cast<i32>(std::floor(m_target->y())),
+                    static_cast<i32>(std::floor(m_target->z())));
+                bool aligned = false;
+                switch (axis) {
+                    case Axis::X:
+                        aligned = (currentPos.x == targetPos.x);
+                        break;
+                    case Axis::Y:
+                        aligned = (currentPos.y == targetPos.y);
+                        break;
+                    case Axis::Z:
+                        aligned = (currentPos.z == targetPos.z);
+                        break;
+                }
+                if (aligned) {
+                    selectNextMoveDirection(axis);
+                }
+            }
+        }
+    }
+}
+
+void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
+{
+    // MC 1.16.5 ShulkerBulletEntity.selectNextMoveDirection()
+    f64 targetOffsetY = 0.5;
+    BlockPos targetPos;
+
+    if (m_target == nullptr) {
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)) - 1,
+            static_cast<i32>(std::floor(m_position.z)));
+    } else {
+        targetOffsetY = static_cast<f64>(m_target->height()) * 0.5;
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_target->x())),
+            static_cast<i32>(std::floor(m_target->y() + targetOffsetY)),
+            static_cast<i32>(std::floor(m_target->z())));
+    }
+
+    f64 targetX = targetPos.x + 0.5;
+    f64 targetY = targetPos.y + targetOffsetY;
+    f64 targetZ = targetPos.z + 0.5;
+
+    Direction newDirection = Direction::None;
+
+    // 如果距离足够近（<2格），直接向目标移动
+    BlockPos myPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
+    f64 distSq = static_cast<f64>(myPos.x - targetPos.x) * (myPos.x - targetPos.x) +
+                 static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
+                 static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
+
+    if (distSq >= 4.0 && m_world != nullptr) { // 距离 >= 2格
+        std::vector<Direction> possibleDirs;
+
+        // 收集可行方向
+        if (excludedAxis != Axis::X) {
+            if (myPos.x < targetPos.x) {
+                const BlockState* eastState = m_world->getBlockState(BlockPos(myPos.x + 1, myPos.y, myPos.z));
+                if (eastState == nullptr || !eastState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::East);
+                }
+            } else if (myPos.x > targetPos.x) {
+                const BlockState* westState = m_world->getBlockState(BlockPos(myPos.x - 1, myPos.y, myPos.z));
+                if (westState == nullptr || !westState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::West);
+                }
+            }
+        }
+
+        if (excludedAxis != Axis::Y) {
+            if (myPos.y < targetPos.y) {
+                const BlockState* upState = m_world->getBlockState(BlockPos(myPos.x, myPos.y + 1, myPos.z));
+                if (upState == nullptr || !upState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::Up);
+                }
+            } else if (myPos.y > targetPos.y) {
+                const BlockState* downState = m_world->getBlockState(BlockPos(myPos.x, myPos.y - 1, myPos.z));
+                if (downState == nullptr || !downState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::Down);
+                }
+            }
+        }
+
+        if (excludedAxis != Axis::Z) {
+            if (myPos.z < targetPos.z) {
+                const BlockState* southState = m_world->getBlockState(BlockPos(myPos.x, myPos.y, myPos.z + 1));
+                if (southState == nullptr || !southState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::South);
+                }
+            } else if (myPos.z > targetPos.z) {
+                const BlockState* northState = m_world->getBlockState(BlockPos(myPos.x, myPos.y, myPos.z - 1));
+                if (northState == nullptr || !northState->blocksMovement()) {
+                    possibleDirs.push_back(Direction::North);
+                }
+            }
+        }
+
+        // 随机选择一个方向
+        if (!possibleDirs.empty()) {
+            math::Random& rng = m_world->getRandom();
+            newDirection = possibleDirs[rng.nextInt(static_cast<i32>(possibleDirs.size()))];
+        } else {
+            // 没有可行方向，随机选择
+            math::Random& rng = m_world->getRandom();
+            for (i32 i = 0; i < 5; ++i) {
+                Direction randomDir = static_cast<Direction>(rng.nextInt(6));
+                BlockPos testPos(myPos.x + Directions::xOffset(randomDir),
+                    myPos.y + Directions::yOffset(randomDir),
+                    myPos.z + Directions::zOffset(randomDir));
+                const BlockState* testState = m_world->getBlockState(testPos);
+                if (testState == nullptr || !testState->blocksMovement()) {
+                    newDirection = randomDir;
+                    break;
+                }
+            }
+        }
+
+        // 计算目标速度
+        if (newDirection != Direction::None) {
+            targetX = m_position.x + Directions::xOffset(newDirection);
+            targetY = m_position.y + Directions::yOffset(newDirection);
+            targetZ = m_position.z + Directions::zOffset(newDirection);
+        }
+    }
+
+    setDirection(newDirection);
+
+    // 计算速度增量
+    f64 dx = targetX - m_position.x;
+    f64 dy = targetY - m_position.y;
+    f64 dz = targetZ - m_position.z;
+    f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (dist == 0.0) {
+        m_targetDelta = Vector3d(0.0, 0.0, 0.0);
+    } else {
+        m_targetDelta = Vector3d(dx / dist * BULLET_SPEED, dy / dist * BULLET_SPEED, dz / dist * BULLET_SPEED);
+    }
+
+    // 设置飞行步数
+    if (m_world != nullptr) {
+        math::Random& rng = m_world->getRandom();
+        m_flightSteps = MIN_STEPS + rng.nextInt(MAX_STEPS_EXTRA) * 10;
+    }
+}
+
+[[nodiscard]] bool ShulkerBulletEntity::canHitEntity(const Entity& target) const
+{
+    // 不能击中发射者、noClip实体或自己
+    if (&target == this) {
+        return false;
+    }
+    if (target.noClip()) {
+        return false;
+    }
+    Entity* shooter = getShooter();
+    if (&target == shooter) {
+        return false;
+    }
+    return ProjectileEntity::canHitEntity(target);
 }
 
 void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
 {
+    // MC 1.16.5 ShulkerBulletEntity.onEntityHit()
     if (!result.hitEntity) {
         return;
     }
 
-    // 造成伤害并施加漂浮效果
-    mc::Entity* shooter = getShooter();
+    Entity* target = result.hitEntity;
+    Entity* shooter = getShooter();
+    LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
+
+    // 创建伤害源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, shooter, this, false);
@@ -459,18 +1062,48 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
-    // TODO: target->attackEntityFrom(*damageSource, 4.0f);
+    // 造成伤害
+    bool damaged = target->hurt(*damageSource, DAMAGE);
 
-    // 施加漂浮效果
-    // if (target instanceof LivingEntity) {
-    //     ((LivingEntity)target).addEffect(new LevitationEffect(10 * 20, 1));
-    // }
+    if (damaged) {
+        // MC 1.16.5: Entity.applyEnchantments(livingShooter, target)
+        // 参考 Entity.java 第 2791-2797 行
 
-    remove();
+        // 1. 如果目标是 LivingEntity，目标的荆棘附魔会对发射者反伤
+        // 注意：荆棘附魔已在 LivingEntity::actuallyHurt() 中自动触发，无需在此重复调用
+
+        // 2. 发射者的攻击型附魔（节肢杀手等）对目标生效
+        if (livingShooter != nullptr) {
+            item::enchant::EnchantmentHelper::applyArthropodEnchantments(*livingShooter, *target);
+        }
+
+        // 对 LivingEntity 施加漂浮效果
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+        if (livingTarget != nullptr) {
+            // MC 1.16.5: 200 ticks = 10秒漂浮
+            livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Levitation,
+                static_cast<i32>(LEVITATION_DURATION),
+                0,  // amplifier = 0 (I级效果)
+                false,
+                true,
+                true));
+        }
+    }
 }
 
 void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
+    // MC 1.16.5: 命中方块时生成爆炸粒子
+    // TODO: 服务端粒子广播
+    playSound(SoundEvents::ENTITY_SHULKER_BULLET_HIT, 1.0f, 1.0f);
+}
+
+void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
+{
+    // 调用父类
+    ProjectileEntity::onImpact(result);
+
+    // 命中后移除
     remove();
 }
 
@@ -635,6 +1268,7 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 
 FireworkRocketEntity::FireworkRocketEntity(LegacyEntityType type, EntityId id)
     : ProjectileEntity(type, id)
+    , m_fireworkItem(Items::AIR, 0)  // 初始化为空物品
 {
     m_noGravity = false;
 }
@@ -644,20 +1278,74 @@ std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
     return std::make_unique<FireworkRocketEntity>(LegacyEntityType::Unknown, 0);
 }
 
+void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
+{
+    m_fireworkItem = item;
+
+    // 从物品 NBT 读取飞行时间
+    // 参考 MC 1.16.5 FireworkRocketEntity 构造函数
+    const nlohmann::json* tag = item.getTag();
+    if (tag != nullptr) {
+        auto fireworksIt = tag->find("Fireworks");
+        if (fireworksIt != tag->end() && fireworksIt->is_object()) {
+            auto flightIt = fireworksIt->find("Flight");
+            if (flightIt != fireworksIt->end() && flightIt->is_number()) {
+                m_flightTime = std::max(1, flightIt->get<i32>());
+            }
+        }
+    }
+}
+
+i32 FireworkRocketEntity::getExplosionCount() const
+{
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    // 从物品 NBT 读取爆炸效果数量
+    const nlohmann::json* tag = m_fireworkItem.getTag();
+    if (tag == nullptr) {
+        return 0;
+    }
+
+    auto fireworksIt = tag->find("Fireworks");
+    if (fireworksIt == tag->end() || !fireworksIt->is_object()) {
+        return 0;
+    }
+
+    auto explosionsIt = fireworksIt->find("Explosions");
+    if (explosionsIt == fireworksIt->end() || !explosionsIt->is_array()) {
+        return 0;
+    }
+
+    return static_cast<i32>(explosionsIt->size());
+}
+
 void FireworkRocketEntity::tick()
 {
     ProjectileEntity::tick();
 
     m_lifetime++;
 
-    // 生成烟花粒子
-    // TODO: 检查是否在地面
-    // if (!m_inGround) {
-    //     // TODO: 生成飞行粒子
-    // }
+    // 生成飞行粒子 - 参考 MC 1.16.5 FireworkRocketEntity.tick() 第76-83行
+    // 每 2 tick 生成一次粒子，仅在客户端执行
+    if (m_world != nullptr && m_world->isClientSide() && m_lifetime % 2 == 0) {
+        // 粒子位置在火箭下方 0.3 格
+        Vector3 particlePos(x(), y() - 0.3, z());
+
+        // 使用高斯分布随机速度
+        mc::math::Random rng = createRandomFromEntity(*this);
+        f32 vx = static_cast<f32>(rng.nextGaussian() * 0.05);
+        f32 vy = static_cast<f32>(-m_velocity.y * 0.5);  // Y速度与火箭运动方向相反
+        f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
+
+        m_world->addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Firework,
+            particlePos,
+            Vector3(vx, vy, vz));
+    }
 
     // 检查是否爆炸
-    if (m_lifetime >= m_flightTime * 10) {
+    // 参考 MC 1.16.5: lifetime = flightTime * 10 + random(6) + random(7)
+    // 我们简化为 flightTime * 10
+    if (m_lifetime >= m_flightTime * 10 + 6) {
         explode();
     }
 }
@@ -669,17 +1357,179 @@ void FireworkRocketEntity::explode()
         dealExplosionDamage();
     }
 
-    // 生成烟花爆炸效果
-    // TODO: 解析烟花数据并生成爆炸粒子
+    // 生成爆炸粒子 - 参考 MC 1.16.5 FireworkRocketEntity.explode()
+    if (m_world != nullptr && m_world->isClientSide()) {
+        mc::math::Random rng = createRandomFromEntity(*this);
+
+        // 获取爆炸效果数量
+        i32 explosionCount = getExplosionCount();
+
+        if (explosionCount <= 0) {
+            // 无爆炸效果时，生成简单的消散粒子
+            // 参考 MC 1.16.5: 生成 2-4 个 POOF 粒子
+            i32 poofCount = 2 + rng.nextInt(3);
+            for (i32 i = 0; i < poofCount; ++i) {
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(0.0f, 0.0f, 0.0f));
+            }
+        } else {
+            // 有爆炸效果时，生成烟花粒子
+            // 参考 MC 1.16.5 FireworkParticle.Starter
+
+            // 生成爆炸闪光
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Flash,
+                Vector3(x(), y(), z()),
+                Vector3(0.0f, 0.0f, 0.0f));
+
+            // 生成主要爆炸粒子云
+            // 使用 Firework 粒子类型
+            i32 particleCount = 20 + rng.nextInt(20);
+            for (i32 i = 0; i < particleCount; ++i) {
+                // 球形分布
+                f32 theta = rng.nextFloat() * 6.28318530718f;  // 2 * PI
+                f32 phi = rng.nextFloat() * 3.14159265359f;     // PI
+                f32 speed = 0.1f + rng.nextFloat() * 0.3f;
+
+                f32 vx = std::sin(phi) * std::cos(theta) * speed;
+                f32 vy = std::sin(phi) * std::sin(theta) * speed;
+                f32 vz = std::cos(phi) * speed;
+
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Firework,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(vx, vy, vz));
+            }
+
+            // 生成烟雾粒子
+            for (i32 i = 0; i < 5 + rng.nextInt(5); ++i) {
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(0.0f, 0.02f, 0.0f));
+            }
+        }
+    }
 
     remove();
 }
 
 void FireworkRocketEntity::dealExplosionDamage()
 {
-    // TODO: 对范围内的实体造成爆炸伤害
-    // 如果烟花有爆炸效果，每个爆炸效果造成 5-7 点伤害
-    // 还会造成击退
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取爆炸效果数量
+    // MC 1.16.5: 无爆炸效果时不造成伤害
+    i32 explosionCount = getExplosionCount();
+    if (explosionCount <= 0) {
+        return;
+    }
+
+    // 计算基础伤害：5 + 爆炸效果数量 * 2
+    f32 baseDamage = 5.0f + static_cast<f32>(explosionCount * 2);
+
+    // 爆炸半径 5 格
+    constexpr f32 EXPLOSION_RADIUS = 5.0f;
+    constexpr f64 EXPLOSION_RADIUS_SQ = 25.0;  // 5.0 * 5.0
+
+    // 获取爆炸范围内的所有 LivingEntity
+    AxisAlignedBB searchBox = boundingBox().grow(EXPLOSION_RADIUS);
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
+
+    // 获取发射者（用于伤害源）
+    Entity* shooter = getShooter();
+    bool isPlayer = (shooter != nullptr && dynamic_cast<Player*>(shooter) != nullptr);
+
+    for (Entity* entity : entities) {
+        // 只对 LivingEntity 造成伤害
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(entity);
+        if (livingTarget == nullptr || !livingTarget->isAlive()) {
+            continue;
+        }
+
+        // 计算距离
+        f64 distanceSq = static_cast<f64>(livingTarget->distanceSqTo(*this));
+        if (distanceSq > EXPLOSION_RADIUS_SQ) {
+            continue;
+        }
+
+        // 视线检测（MC 1.16.5 射线追踪两条射线）
+        if (!canSeeEntity(*livingTarget)) {
+            continue;
+        }
+
+        // 计算距离衰减伤害
+        f64 distance = std::sqrt(distanceSq);
+        f32 damage = baseDamage * static_cast<f32>(std::sqrt((EXPLOSION_RADIUS - distance) / EXPLOSION_RADIUS));
+
+        if (damage > 0.0f) {
+            // 创建烟花伤害源
+            // 参考 MC 1.16.5 DamageSource.func_233548_a_(this, this.func_234616_v_())
+            auto damageSource = DamageSources::fireworks();
+
+            // 对目标造成伤害
+            livingTarget->hurt(damageSource, damage);
+        }
+    }
+}
+
+bool FireworkRocketEntity::canSeeEntity(const Entity& target) const
+{
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    // 发射两条射线：脚部（y=0）和腰部（y=height*0.5）
+    // 只要有一条射线未被方块阻挡，就可以造成伤害
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    Vector3 rocketPos = position();
+    Vector3 targetPos = target.position();
+
+    // 两条射线的高度偏移
+    constexpr f64 HEIGHT_OFFSETS[] = {0.0, 0.5};
+
+    for (f64 heightOffset : HEIGHT_OFFSETS) {
+        // 计算目标点位置
+        Vector3 targetPoint(
+            targetPos.x,
+            targetPos.y + target.height() * heightOffset,
+            targetPos.z
+        );
+
+        // 创建射线追踪上下文
+        // 使用 COLLIDER 模式检测方块碰撞，忽略流体
+        Ray ray(rocketPos, (targetPoint - rocketPos).normalized());
+        f64 maxDistance = (targetPoint - rocketPos).length();
+
+        RaycastContext context(ray, maxDistance);
+        BlockRaycastResult result = raycastBlocks(context, *m_world);
+
+        // 如果射线未被阻挡（MISS），则可以造成伤害
+        if (result.isMiss()) {
+            return true;
+        }
+    }
+
+    // 两条射线都被阻挡
+    return false;
 }
 
 } // namespace entity

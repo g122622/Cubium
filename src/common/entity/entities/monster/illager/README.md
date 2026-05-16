@@ -42,13 +42,157 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
 | AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态、RAID 参与状态 | ✅ 完成 |
-| VindicatorEntity | 卫道士 | 斧头近战攻击、冲向目标 | ✅ 属性已修复 |
-| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 属性已修复 |
-| IllusionerEntity | 幻术师 | 分身、失明攻击 | ⏳ 框架完成 |
-| PillagerEntity | 掠夺者 | 弩远程攻击 | ✅ 属性已修复 |
-| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
+| VindicatorEntity | 卫道士 | 斧头近战攻击、冲向目标 | ✅ 完成 |
+| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 完成 |
+| IllusionerEntity | 幻术师 | 弓箭攻击、失明法术、隐身法术 | ✅ 完成 |
+| PillagerEntity | 掠夺者 | 弩远程攻击、RangedCrossbowAttackGoal | ✅ 完成 |
+| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块、穿过树叶 | ✅ 完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
-| WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+| WitchEntity | 女巫 | 药水攻击、喝药水治疗 | ✅ 完成 |
+
+## PillagerEntity 详细实现
+
+掠夺者是手持弩的灾厄村民，使用 `RangedCrossbowAttackGoal` 进行远程攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.35 | MC 1.16.5 |
+| 攻击伤害 | 5.0 | MC 1.16.5 |
+| 跟随范围 | 32.0 | MC 1.16.5 |
+| 弩装填时间 | 25 ticks | 基础装填时间 |
+
+### ICrossbowUser 接口实现
+
+掠夺者实现了 `ICrossbowUser` 接口，支持弩的装填和发射：
+
+```cpp
+class PillagerEntity : public AbstractIllagerEntity, public ICrossbowUser {
+public:
+    // ICrossbowUser 接口
+    void setChargingCrossbow(bool charging) override;
+    [[nodiscard]] bool isChargingCrossbow() const override;
+    void onCrossbowLoadComplete(ItemStack& crossbow) override;
+    void shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) override;
+    [[nodiscard]] i32 getCrossbowChargeTime() const override;
+
+    // IRangedAttackMob 接口
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override;
+    [[nodiscard]] bool canRangedAttack() const override;
+};
+```
+
+### 弩发射机制
+
+`shootCrossbow()` 方法实现了弩箭发射逻辑：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 箭矢速度 | 3.15f | 普通箭矢 |
+| 烟花速度 | 1.6f | 烟花火箭 |
+| 不精确度 | 6.0f | 普通难度 |
+| 弹道补偿 | `horizontalDist * 0.2` | 抛物线计算 |
+| 目标高度偏移 | `height * 0.333` | 瞄准目标身体 |
+
+```cpp
+void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) {
+    // 计算弹道
+    f64 dx = target->x() - x();
+    f64 dz = target->z() - z();
+    f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+    f64 dy = (target->y() + target->height() * 0.333) - (y() + eyeHeight() - 0.15)
+           + horizontalDist * 0.2;
+
+    // 创建箭矢实体
+    auto arrow = std::make_unique<entity::ArrowEntity>(LegacyEntityType::Arrow, EntityId(0));
+    arrow->setShotFromCrossbow(true);
+    arrow->setDamage(5.0f);
+
+    // 发射
+    arrow->shootFrom(*this, pitch, yaw, 0.0f, velocity, inaccuracy);
+    m_world->spawnEntity(std::move(arrow));
+}
+```
+
+### AI Goals
+
+掠夺者使用以下 AI 目标：
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 3 | RangedCrossbowAttackGoal | 弩远程攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击村民（TODO） |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击铁傀儡（TODO） |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.PillagerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── attackEntityWithRangedAttack(): 弩攻击实现
+├── shootCrossbow(): 弩发射逻辑（ICrossbowUser 默认实现）
+└── onCrossbowLoadComplete(): 装填完成回调
+```
+
+## VindicatorEntity 详细实现
+
+卫道士是手持铁斧的近战灾厄村民。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.35 | MC 1.16.5 |
+| 攻击伤害 | 5.0 | 基础伤害（铁斧 +3 = 8） |
+| 跟随范围 | 12.0 | MC 1.16.5 |
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | MeleeAttackGoal | 近战攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal<Player> | 看向玩家（距离 3.0f） |
+| 10 | LookAtGoal | 看向生物（距离 8.0f） |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击村民（TODO） |
+| 3 | NearestAttackableTargetGoal<LivingEntity> | 攻击铁傀儡（TODO） |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.VindicatorEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+└── setAggressive(): 攻击状态设置
+```
 
 ## VexEntity 详细实现
 
@@ -110,6 +254,19 @@ void VexEntity::tick() {
 - 造成 1.0 点饥饿伤害
 - 恼鬼逐渐死亡
 
+### VexEntity::create() 实现
+
+恼鬼实体的 `create()` 工厂方法已修正为使用正确的 `LegacyEntityType::Vex` 类型：
+
+```cpp
+std::unique_ptr<VexEntity> VexEntity::create(EntityId id)
+{
+    return std::make_unique<VexEntity>(LegacyEntityType::Vex, id);
+}
+```
+
+**注意**: 之前版本使用了 `LegacyEntityType::Unknown`，导致 `countNearbyVexes()` 无法正确识别恼鬼类型。
+
 ### 参考 MC 1.16.5
 
 ```
@@ -118,6 +275,144 @@ net.minecraft.entity.monster.VexEntity
 ├── registerAttributes(): 最大生命值 14.0、攻击伤害 4.0
 ├── registerGoals(): AI 目标注册
 └── MoveHelperController: 自定义飞行移动控制
+```
+
+### VexEntity AI Goals
+
+恼鬼使用专用的 AI 目标系统，实现独特的飞行攻击行为。
+
+#### 专用移动控制器：VexMovementController
+
+恼鬼使用自定义的 `VexMovementController` 替代标准移动控制器，实现穿墙飞行：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 速度因子 | speed * 0.05 / distance | MC 1.16.5 |
+| 到达阈值 | 碰撞箱平均边长 | (width + height + width) / 3 |
+| 减速因子 | 0.5 | 到达目标后速度减半 |
+
+```cpp
+void VexMovementController::tick() {
+    if (m_action == MoveAction::MoveTo) {
+        // 计算到目标的向量
+        f64 dx = m_posX - m_vex->x();
+        f64 dy = m_posY - m_vex->y();
+        f64 dz = m_posZ - m_vex->z();
+        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance < avgEdgeLength) {
+            // 到达目标，减速停止
+            m_action = MoveAction::Wait;
+            m_vex->setVelocity(velocity * 0.5);
+        } else {
+            // 添加速度向量
+            f64 speedFactor = m_speed * 0.05 / distance;
+            velocity += Vector3(dx, dy, dz) * speedFactor;
+        }
+    }
+}
+```
+
+#### AI 目标列表
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | VexChargeAttackGoal | 冲锋攻击 |
+| 8 | VexMoveRandomGoal | 随机飞行 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookRandomlyGoal | 随机看向 |
+
+#### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 受攻击后反击 |
+| 2 | VexCopyOwnerTargetGoal | 复制主人目标 |
+| 3 | NearestAttackableTargetGoal<Player> | 攻击最近玩家 |
+
+#### VexChargeAttackGoal
+
+冲锋攻击目标，恼鬼飞向目标的眼睛位置进行攻击：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 最小距离 | 2 格 | 距离大于 2 格才触发 |
+| 停止追击 | 3 格 | 距离小于 3 格继续追击 |
+| 攻击冷却 | 20 ticks | 1 秒 |
+| 触发概率 | 1/7 | 约 14% |
+
+```cpp
+bool VexChargeAttackGoal::shouldExecute() {
+    // 1. 有攻击目标
+    // 2. 移动控制器未更新
+    // 3. 1/7 概率
+    // 4. 距离 > 2格
+    return hasTarget && !isUpdating && rng.nextInt(7) == 0 && distSq > 4.0;
+}
+```
+
+#### VexMoveRandomGoal
+
+随机飞行目标，恼鬼在绑定点周围漫游：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 触发概率 | 1/7 | 约 14% |
+| 漫游速度 | 0.25 | 较慢的漫游 |
+| X 轴范围 | ±7 格 | 水平范围 |
+| Y 轴范围 | ±5 格 | 垂直范围（较小） |
+| Z 轴范围 | ±7 格 | 水平范围 |
+
+```cpp
+void VexMoveRandomGoal::tick() {
+    // 在原点周围随机选择空气方块位置
+    for (i32 i = 0; i < 3; ++i) {
+        BlockPos targetPos(origin.x + offsetX, origin.y + offsetY, origin.z + offsetZ);
+        if (world->getBlockState(targetPos)->isAir()) {
+            moveController->setMoveTo(targetPos + 0.5, 0.25);
+            break;
+        }
+    }
+}
+```
+
+#### VexCopyOwnerTargetGoal
+
+复制主人目标，当唤魔者有攻击目标时，恼鬼也会攻击同一目标：
+
+```cpp
+bool VexCopyOwnerTargetGoal::shouldExecute() {
+    LivingEntity* owner = m_vex->getOwner();
+    if (!owner) return false;
+
+    MobEntity* ownerMob = dynamic_cast<MobEntity*>(owner);
+    if (!ownerMob) return false;
+
+    LivingEntity* ownerTarget = ownerMob->attackTarget();
+    if (!ownerTarget || !ownerTarget->isAlive()) return false;
+
+    // 检查视线
+    if (!m_vex->canSee(*ownerTarget)) return false;
+
+    return true;
+}
+```
+
+#### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.VexEntity
+├── ChargeAttackGoal: 冲锋攻击目标
+│   ├── shouldExecute(): 1/7概率，距离>2格
+│   ├── startExecuting(): 设置充电状态，移向目标眼睛
+│   └── tick(): 检测碰撞，造成伤害
+├── MoveRandomGoal: 随机飞行
+│   └── tick(): 在±7x±5x±7范围找空气方块
+├── CopyOwnerTargetGoal: 复制主人目标
+│   └── shouldExecute(): 检查主人的攻击目标
+└── MoveHelperController: 飞行移动控制器
+    └── tick(): 修改velocity实现飞行
 ```
 
 ## AbstractIllagerEntity
@@ -184,21 +479,511 @@ enum class RaiderState {
 ### 施法状态
 
 ```cpp
-enum class SpellType {
-    None,       // 无
-    Summon,     // 召唤（唤魔者召唤恼鬼）
-    Attack,     // 攻击（唤魔者尖牙）
-    Vanish,     // 消失（幻术师分身）
-    Blindness   // 失明（幻术师失明攻击）
+enum class SpellType : u8 {
+    None = 0,       // 无施法
+    SummonVex = 1,  // 召唤恼鬼（唤魔者）- 淡蓝白色粒子 (0.7, 0.7, 0.8)
+    Fangs = 2,      // 尖牙攻击（唤魔者）- 棕色粒子 (0.4, 0.3, 0.35)
+    Wololo = 3,     // 唔噜噜法术（唤魔者，转换羊）- 橙黄色粒子 (0.7, 0.5, 0.2)
+    Disappear = 4,  // 消失/镜像法术（幻术师）- 蓝色粒子 (0.3, 0.3, 0.8)
+    Blindness = 5   // 失明法术（幻术师）- 深蓝/深紫色粒子 (0.1, 0.1, 0.2)
 };
 ```
 
 ### 方法
 
-- `isSpellcasting()`: 是否在施法
-- `getSpellType()`: 获取法术类型
-- `getSpellTicks()`: 获取施法 tick
-- `getSpellCooldown()`: 获取施法冷却
+| 方法 | 说明 |
+|------|------|
+| `isSpellcasting()` | 是否在施法（spellTicks > 0） |
+| `spellType()` | 获取当前法术类型 |
+| `spellTicks()` | 获取剩余施法 tick |
+| `setSpellType(SpellType)` | 设置法术类型 |
+| `setSpellTicks(i32)` | 设置施法持续时间 |
+| `clearSpellcasting()` | 清除施法状态 |
+| `spellTypeFromId(i32)` | 从整数 ID 转换为 SpellType 枚举 |
+| `getSpellParticleColor(SpellType)` | 获取法术类型的粒子颜色（RGB 速度参数） |
+
+### 施法粒子效果
+
+客户端施法时，会在实体两侧生成对应颜色的粒子：
+
+- **粒子类型**：`ParticleTypeId::EntityEffect`
+- **生成条件**：客户端且正在施法（`isSpellcasting() == true`）
+- **生成位置**：
+  - 高度偏移：实体 Y + 1.8（头部高度）
+  - 横向偏移：±0.6（左右两侧各一个粒子）
+  - 动态摆动：根据 `renderYawOffset` 和 `ticksExisted * 0.6662` 计算
+- **颜色传递**：通过速度参数 (dx, dy, dz) 传递 RGB 颜色值
+
+```cpp
+// MC 1.16.5: 粒子位置计算
+float angle = renderYawOffset * (PI / 180) + cos(ticksExisted * 0.6662) * 0.25;
+float cosAngle = cos(angle);
+float sinAngle = sin(angle);
+
+// 右侧粒子
+world.addParticle(EntityEffect,
+    posX + cosAngle * 0.6, posY + 1.8, posZ + sinAngle * 0.6,
+    colorR, colorG, colorB);
+
+// 左侧粒子
+world.addParticle(EntityEffect,
+    posX - cosAngle * 0.6, posY + 1.8, posZ - sinAngle * 0.6,
+    colorR, colorG, colorB);
+```
+
+参考 MC 1.16.5 `SpellcastingIllagerEntity.tick()` 第83-96行
+
+## EvokerEntity
+
+唤魔者是能够施法的灾厄村民，可以召唤尖牙攻击和恼鬼。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.8f | 标准灾厄村民高度 |
+| 最大生命值 | 24.0 | MC 1.16.5 |
+| 移动速度 | 0.5 | MC 1.16.5 |
+| 跟随范围 | 12.0 | MC 1.16.5 |
+
+### 施法能力
+
+唤魔者有两种主要攻击法术：
+
+#### 尖牙攻击 (Fangs Attack)
+
+- **近距离攻击（<3格）**：两圈尖牙
+  - 内圈：5个尖牙，半径1.5，延迟0
+  - 外圈：8个尖牙，半径2.5，延迟3
+- **远距离攻击**：直线16个尖牙
+  - 朝目标方向直线排列
+  - 延迟递增
+- **施法参数**：
+  - 准备时间：0 ticks
+  - 施法时间：40 ticks
+  - 冷却时间：100 ticks
+
+#### 召唤恼鬼 (Summon Vex)
+
+- 召唤3个恼鬼助战
+- 只有当周围恼鬼数量少于8个时才会召唤
+- 恼鬼有30-120秒的有限生命
+- **施法参数**：
+  - 准备时间：0 ticks
+  - 施法时间：100 ticks
+  - 冷却时间：340 ticks
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 1 | EvokerCastingSpellGoal | 施法时看向目标 |
+| 2 | AvoidEntityGoal | 避开玩家（距离8格） |
+| 4 | EvokerSummonSpellGoal | 召唤恼鬼 |
+| 5 | EvokerAttackSpellGoal | 尖牙攻击 |
+| 8 | RandomWalkingGoal | 随机漫步 |
+| 9 | LookAtGoal | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### AI Goals 实现
+
+EvokerEntity 使用专用 AI Goals：
+
+- **EvokerSpellGoal** - 施法目标基类，管理施法准备时间和冷却
+- **EvokerAttackSpellGoal** - 尖牙攻击目标
+- **EvokerSummonSpellGoal** - 召唤恼鬼目标
+- **EvokerCastingSpellGoal** - 施法期间看向目标
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.EvokerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── AttackSpellGoal: 尖牙攻击目标
+│   ├── castSpell(): 执行尖牙攻击
+│   └── getCastingTime(): 40 ticks
+├── SummonSpellGoal: 召唤恼鬼目标
+│   ├── castSpell(): 召唤3个恼鬼
+│   └── getCastingTime(): 100 ticks
+└── CastingSpellGoal: 施法时看向目标
+```
+
+## EvokerFangsEntity
+
+唤魔者尖牙是唤魔者召唤的攻击实体。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.5f | 碰撞箱宽度 |
+| 高度 | 0.8f | 碰撞箱高度 |
+| 伤害 | 6.0 | 魔法伤害 |
+| 生命时长 | 22 ticks | 出现到消失 |
+
+### 攻击机制
+
+1. 预热延迟：尖牙出现前有预热时间
+2. 伤害时机：在 warmupDelay = -8 时造成伤害
+3. 范围伤害：对碰撞箱扩展0.2范围内的 LivingEntity 造成伤害
+4. 队伍判断：不伤害唤魔者及其队友
+5. 自动消失：攻击后自动消失
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.projectile.EvokerFangsEntity
+├── tick(): 更新状态和造成伤害
+├── damage(): 对范围内实体造成伤害
+└── getAnimationProgress(): 获取动画进度
+```
+
+## IllusionerEntity
+
+幻术师是能够施放法术的灾厄村民，使用弓进行远程攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 眼睛高度 | 1.62f | MC 1.16.5 |
+| 最大生命值 | 32.0 | MC 1.16.5 |
+| 移动速度 | 0.5 | MC 1.16.5 |
+| 跟随范围 | 18.0 | MC 1.16.5 |
+| 攻击间隔 | 20 ticks | 弓箭攻击 |
+
+### 施法能力
+
+幻术师有两种主要法术：
+
+#### 失明法术 (Blindness Spell)
+
+- **触发条件**：目标存在且难度为困难
+- **目标限制**：不会对同一目标连续施放
+- **效果**：失明效果持续 400 ticks (20秒)
+- **施法参数**：
+  - 准备时间：20 ticks
+  - 施法时间：0 ticks
+  - 冷却时间：180 ticks (9秒)
+
+#### 镜像法术 (Mirror Spell)
+
+- **触发条件**：幻术师没有隐身效果
+- **效果**：隐身效果持续 1200 ticks (60秒)
+- **施法参数**：
+  - 准备时间：20 ticks
+  - 施法时间：0 ticks
+  - 冷却时间：340 ticks (17秒)
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | IllusionerMirrorSpellGoal | 镜像法术（隐身）|
+| 5 | IllusionerBlindnessSpellGoal | 失明法术 |
+| 6 | RangedBowAttackGoal | 弓箭远程攻击 |
+| 8 | RandomWalkingGoal | 随机行走 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 (300 ticks未见记忆) |
+| 3 | NearestAttackableTargetGoal<AbstractVillagerEntity> | 攻击村民 |
+| 3 | NearestAttackableTargetGoal<IronGolemEntity> | 攻击铁傀儡 |
+
+### IRangedAttackMob 接口实现
+
+幻术师实现了 `IRangedAttackMob` 接口，支持弓箭远程攻击：
+
+```cpp
+class IllusionerEntity : public SpellcastingIllagerEntity, public entity::IRangedAttackMob {
+public:
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
+    [[nodiscard]] bool canRangedAttack() const override { return !isSpellcasting(); }
+};
+```
+
+### 弓箭攻击参数
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 箭矢速度 | 1.6f | MC 1.16.5 |
+| 不精确度 | 14 - difficulty * 4 | 根据难度调整 |
+| 弹道补偿 | horizontalDist * 0.2 | 抛物线计算 |
+| 目标高度偏移 | height * 0.333 | 瞄准目标身体 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.IllusionerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── attackEntityWithRangedAttack(): 弓箭攻击实现
+├── BlindnessSpellGoal: 失明法术目标
+│   ├── shouldExecute(): 检查难度和目标
+│   └── castSpell(): 施加失明效果
+└── MirrorSpellGoal: 镜像法术目标
+    ├── shouldExecute(): 检查是否已有隐身
+    └── castSpell(): 施加隐身效果
+```
+
+## WitchEntity
+
+女巫是使用药水的敌对生物，可参与掠夺事件。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | MC 1.16.5 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 眼睛高度 | 1.62f | MC 1.16.5 |
+| 最大生命值 | 26.0 | MC 1.16.5 |
+| 移动速度 | 0.25 | MC 1.16.5 |
+| 攻击间隔 | 60 ticks | 3秒 |
+| 攻击半径 | 10.0f | 远程攻击范围 |
+
+### IRangedAttackMob 接口实现
+
+女巫实现了 `IRangedAttackMob` 接口，支持药水远程攻击：
+
+```cpp
+class WitchEntity : public AbstractRaiderEntity, public entity::IRangedAttackMob {
+public:
+    // IRangedAttackMob 接口
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override { return 60; }
+    [[nodiscard]] bool canRangedAttack() const override { return !m_drinking; }
+};
+```
+
+### 喝药水逻辑
+
+女巫在 tick 中自动检测是否需要喝药水：
+
+| 药水类型 | 触发条件 | 概率 | 效果 |
+|---------|---------|------|------|
+| 水肺药水 | 眼睛在水中且无水肺效果 | 15% | 水下呼吸 3 分钟 |
+| 抗火药水 | 燃烧中或受火焰伤害且无抗火效果 | 15% | 防火 3 分钟 |
+| 治疗药水 | 生命值未满 | 5% | 恢复 4 点生命 |
+| 速度药水 | 有攻击目标且距离>11格且无速度效果 | 50% | 速度提升 3 分钟 |
+
+- 喝药水时长：32 ticks
+- 喝药水期间移动速度减少 25%
+
+### 药水攻击逻辑
+
+`attackEntityWithRangedAttack()` 根据目标状态选择药水类型：
+
+| 目标状态 | 药水类型 | 说明 |
+|---------|---------|------|
+| 掠夺者同伴 && 生命<=4 | 治疗药水 | 治疗同伴 |
+| 掠夺者同伴 && 生命>4 | 再生药水 | 恢复同伴生命 |
+| 距离>=8格 && 无缓慢效果 | 缓慢药水 | 减速远程目标 |
+| 生命>=8 && 无中毒效果 | 中毒药水 | 持续伤害 |
+| 距离<=3格 && 无虚弱效果 | 虚弱药水 (25%概率) | 近战削弱 |
+| 默认 | 伤害药水 | 即时伤害 |
+
+### 投掷参数
+
+```cpp
+void WitchEntity::throwPotionAt(LivingEntity* target, EffectType potionType) {
+    // 投掷方向（考虑目标运动）
+    Vector3 targetMotion = target->velocity();
+    f64 dx = target->x() + targetMotion.x - x();
+    f64 dy = target->y() + target->eyeHeight() - 1.1 - y();
+    f64 dz = target->z() + targetMotion.z - z();
+
+    // 高度补偿
+    f64 adjustedY = dy + horizontalDist * 0.2;
+
+    // 发射参数
+    potion->shoot(dx, adjustedY, dz, 0.75f, 8.0f);
+    // velocity=0.75, inaccuracy=8.0
+
+    // 播放音效
+    playSound(SoundEvents::ENTITY_WITCH_THROW, 1.0f, 0.8f + rng.nextFloat() * 0.4f);
+}
+```
+
+### 魔法伤害减免
+
+女巫对魔法伤害有特殊抗性：
+
+- **85% 魔法伤害减免**：只受到 15% 的魔法伤害
+- **免疫自伤**：免疫自己造成的伤害（药水等）
+
+```cpp
+f32 WitchEntity::applyMagicDamageReduction(DamageSource& source, f32 amount) {
+    if (source.getTrueSource() == this) {
+        return 0.0f;  // 免疫自伤
+    }
+    if (source.isMagic()) {
+        return amount * 0.15f;  // 只受15%伤害
+    }
+    return amount;
+}
+```
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳（父类注册） |
+| 2 | RangedAttackGoal | 药水攻击 |
+| 3+ | 其他目标 | 父类注册 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.WitchEntity
+├── registerGoals(): AI 目标注册 (RangedAttackGoal)
+├── registerAttributes(): 属性设置
+├── livingTick(): 喝药水决策逻辑
+├── attackEntityWithRangedAttack(): 药水攻击实现
+├── throwPotion(): 投掷药水
+└── applyMagicDamageReduction(): 魔法伤害减免
+```
+
+### 测试用例
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `WitchEntityTest.cpp` | 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
+
+## RavagerEntity 详细实现
+
+劫掠兽是大型敌对生物，与掠夺者一起参与掠夺事件。它可以破坏树叶、穿过树叶方块、并执行强力的近战攻击和咆哮攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 1.95f | 大型碰撞箱 |
+| 高度 | 2.2f | 两格高实体 |
+| 眼睛高度 | 2.05f | |
+| 最大生命值 | 100.0 | 非常高生命值 |
+| 移动速度 | 0.3 (有目标时 0.35) | 中等速度 |
+| 击退抗性 | 0.75 | 75% 击退抗性 |
+| 攻击伤害 | 12.0 | 强力近战攻击 |
+| 攻击击退 | 1.5 | |
+| 跟随范围 | 32.0 | |
+| 步高 | 1.0f | 可走上 1 格高的方块 |
+
+### 攻击系统
+
+劫掠兽有三种攻击状态：
+
+| 状态 | 持续时间 | 说明 |
+|------|----------|------|
+| 攻击动画 | 10 ticks | 近战攻击后的动画 |
+| 眩晕 | 40 ticks | 50% 概率在攻击后眩晕 |
+| 咆哮 | 20 ticks | 眩晕结束后咆哮 |
+
+### 咆哮攻击
+
+`roar()` 方法对周围 4 格内的实体造成伤害和击退：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 范围 | 4.0f | 以劫掠兽为中心的半径 |
+| 伤害 | 6.0f | 对非掠夺者类实体造成伤害 |
+| 击退 | 4.0f 横向 + 0.2f 纵向 | 发射效果 |
+| 第 10 tick | 执行伤害 | 咆哮过程中第 10 tick 执行伤害 |
+
+**掠夺者免疫**：掠夺者类实体（AbstractRaiderEntity 子类）免疫咆哮伤害，但仍会被击退。
+
+### 树叶破坏
+
+`breakLeavesOnCollision()` 方法在水平碰撞时破坏树叶：
+
+1. 检查 `mobGriefing` 游戏规则
+2. 检测碰撞盒扩展 0.2 格范围内的方块
+3. 破坏 `BlockTags::LEAVES` 标签的方块
+4. 如果没有破坏方块且在地面上，则跳跃
+
+### 自定义寻路
+
+劫掠兽使用 `RavagerNodeProcessor` 进行寻路，可以穿过树叶：
+
+```cpp
+class RavagerNodeProcessor : public WalkNodeProcessor {
+public:
+    PathNodeType getNodeType(i32 x, i32 y, i32 z) override {
+        // 将树叶视为开放区域
+        if (m_region) {
+            const BlockState* state = m_region->getBlockState(x, y, z);
+            if (state && BlockTags::LEAVES().contains(*state)) {
+                return PathNodeType::Open;
+            }
+        }
+        return WalkNodeProcessor::getNodeType(x, y, z);
+    }
+};
+```
+
+### RavagerAttackGoal
+
+劫掠兽使用自定义的近战攻击目标，具有特殊的攻击范围计算：
+
+```cpp
+f32 RavagerAttackGoal::getAttackReachSqr(LivingEntity* target) const {
+    // MC 1.16.5: (width - 0.1F) * 2.0F 的平方 + 目标宽度
+    f32 f = m_ravager->width() - 0.1f;
+    return f * 2.0f * f * 2.0f + target->width();
+}
+```
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | RavagerAttackGoal | 近战攻击 |
+| 5 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 6 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 2 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 3 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.RavagerEntity
+├── RavagerEntity(): 构造函数，设置步高 1.0，创建 RavagerNodeProcessor
+├── tick(): 更新速度、破坏树叶、咆哮/眩晕状态
+├── roar(): 咆哮攻击，对周围实体造成伤害和击退
+├── launchEntity(): 发射实体（击退效果）
+├── breakLeavesOnCollision(): 碰撞时破坏树叶
+├── constructKnockBackVector(): 攻击后 50% 概率眩晕或发射
+├── attackEntityAsMob(): 设置攻击动画并执行攻击
+├── canSee(): 眩晕或咆哮时看不见目标
+├── isMovementBlocked(): 攻击/眩晕/咆哮时禁止移动
+├── registerGoals(): 注册 AI 目标
+└── registerAttributes(): 设置属性值
+```
+
+### 测试用例
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `RavagerEntityTest.cpp` | 构造、属性、常量、初始状态、攻击状态、tick 更新、方块破坏、视线检测 |
 
 ## 属性值对齐状态
 
@@ -216,6 +1001,9 @@ enum class SpellType {
 | 测试文件 | 测试内容 |
 |---------|---------|
 | `VexEntityTest.cpp` | VexEntity 穿墙能力、属性、有限生命、构造、充电状态 |
+| `EvokerEntityTest.cpp` | EvokerEntity 构造、属性、施法状态、EvokerFangsEntity |
+| `WitchEntityTest.cpp` | WitchEntity 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
+| `RavagerEntityTest.cpp` | RavagerEntity 构造、属性、常量、初始状态、攻击状态、tick 更新、方块破坏 |
 
 ## 相关文档
 

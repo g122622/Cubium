@@ -1,34 +1,41 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*
+* THE SOFTWARE IS PROVIDED "IS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../interfaces/IFlinging.hpp"
+#include "../basic/SlimeEntity.hpp"
 #include "../MonsterEntity.hpp"
 
+#include <optional>
+
 namespace mc {
+
+// Forward declarations
+class DamageSource;
 
 /**
  * @brief 恶魂实体
@@ -93,10 +100,22 @@ private:
  * @brief 岩浆怪实体
  *
  * 下界的史莱姆变种，免疫火焰。
+ * 继承自 SlimeEntity，复用史莱姆的 AI 目标和分裂机制。
+ *
+ * 与史莱姆的差异：
+ * - 跳跃延迟是史莱姆的 4 倍（40-120 tick）
+ * - 跳跃高度随尺寸增加（+0.1F * size）
+ * - 拥有护甲属性（size * 3）
+ * - 攻击伤害 +2
+ * - 小型岩浆怪也能伤害玩家
+ * - 挤压动画衰减更慢（0.9 vs 0.6）
+ * - 发光效果（亮度始终为 1.0）
+ * - 无摔落伤害
+ * - 火焰粒子代替史莱姆粒子
  *
  * 参考 MC 1.16.5 MagmaCubeEntity
  */
-class MagmaCubeEntity : public MonsterEntity {
+class MagmaCubeEntity : public SlimeEntity {
 public:
     /**
      * @brief 工厂方法
@@ -108,23 +127,62 @@ public:
 
     // ========== 体型 ==========
 
-    [[nodiscard]] i32 getSize() const { return m_size; }
-    void setSize(i32 size);
+    /**
+     * @brief 设置尺寸
+     * MC 1.16.5: 重写以添加护甲属性设置
+     * 护甲 = size * 3
+     */
+    void setSlimeSize(i32 size, bool resetHealth = true) override;
 
     // ========== 火焰免疫 ==========
 
-    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
-    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+    [[nodiscard]] bool isImmuneToFire() const override { return true; }
 
-    // ========== 生命周期 ==========
+    // ========== 攻击 ==========
+
+    /**
+     * @brief 是否可以对玩家造成伤害
+     * MC 1.16.5: 小型岩浆怪也能伤害玩家（与史莱姆不同）
+     */
+    [[nodiscard]] bool canDamagePlayer() const override;
+
+    /**
+     * @brief 获取攻击伤害
+     * MC 1.16.5: 攻击伤害 = 属性值 + 2.0F
+     */
+    [[nodiscard]] f32 getAttackDamage() const;
+
+    // ========== 跳跃 ==========
+
+    /**
+     * @brief 获取跳跃延迟
+     * MC 1.16.5: 返回史莱姆跳跃延迟的 4 倍（40-120 tick）
+     */
+    [[nodiscard]] i32 getJumpDelay() const override;
+
+    // ========== 音效 ==========
+
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+    [[nodiscard]] std::optional<ResourceLocation> getSquishSound() const override;
+    [[nodiscard]] std::optional<ResourceLocation> getJumpSound() const override;
+
+    // ========== 粒子 ==========
+
+    /**
+     * @brief 获取着地粒子类型
+     * MC 1.16.5: 岩浆怪使用火焰粒子
+     */
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getSquishParticle() const override;
 
 protected:
-    void registerGoals() override;
     void registerAttributes() override;
 
-private:
-    i32 m_size = 1;
-    bool m_immuneToFire = true;
+    /**
+     * @brief 更新挤压量
+     * MC 1.16.5: 挤压动画衰减更慢（0.9 vs 0.6）
+     */
+    void alterSquishAmount() override;
 };
 
 /**

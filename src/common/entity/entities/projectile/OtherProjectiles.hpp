@@ -23,7 +23,10 @@
 
 #pragma once
 
+#include "ProjectileEntity.hpp"
+#include "ProjectileHelper.hpp"
 #include "ThrowableEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {
@@ -141,6 +144,18 @@ public:
     i32 reelIn();
 
     /**
+     * @brief 获取被钩住的实体
+     * @return 被钩住的实体指针，如果没有则返回 nullptr
+     */
+    [[nodiscard]] Entity* getCaughtEntity() const { return m_caughtEntity; }
+
+    /**
+     * @brief 获取被钩住的实体ID（用于网络同步）
+     * @return 实体ID，如果没有则返回 0
+     */
+    [[nodiscard]] EntityId getCaughtEntityId() const { return m_caughtEntityId; }
+
+    /**
      * @brief 设置钓鱼附魔加成
      * @param luckBonus 海之眷顾附魔等级
      * @param speedBonus 饵钓附魔等级
@@ -190,11 +205,64 @@ private:
     i32 spawnCatchItems();
 
     /**
+     * @brief 生成经验球
+     * @param totalXp 总经验值
+     */
+    void spawnExperienceOrbs(i32 totalXp);
+
+    /**
      * @brief 设置咬钩等待时间
      */
     void setWaitTime();
 
+    /**
+     * @brief 执行射线检测
+     * @return 射线检测结果
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
+     */
+    [[nodiscard]] RayTraceResult performRayTrace();
+
+    /**
+     * @brief 检查是否可以命中指定实体
+     * @param target 目标实体
+     * @return 是否可以命中
+     *
+     * 钓鱼浮标可以命中：普通可命中实体 + 物品实体
+     */
+    [[nodiscard]] bool canHitEntity(const Entity& target) const;
+
+    /**
+     * @brief 命中实体时的回调
+     * @param result 射线检测结果
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
+     */
+    void onEntityHit(const RayTraceResult& result);
+
+    /**
+     * @brief 命中方块时的回调
+     * @param result 射线检测结果
+     *
+     * 参考 MC 1.16.5: 命中方块后停止移动
+     */
+    void onBlockHit(const RayTraceResult& result);
+
+    /**
+     * @brief 拉动被钩住的实体
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
+     */
+    void bringInHookedEntity();
+
+    /**
+     * @brief 同步被钩住实体ID（用于客户端）
+     */
+    void syncCaughtEntityId();
+
     Player* m_angler = nullptr;    // 钓鱼者
+    Entity* m_caughtEntity = nullptr; // 被钩住的实体
+    EntityId m_caughtEntityId = 0; // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
     State m_state = State::Flying; // 当前状态
     i32 m_ticksCaughtDelay = 0;    // 咬钩等待计时器
     i32 m_ticksCatchableDelay = 0; // 鱼接近计时器
@@ -212,6 +280,11 @@ private:
  *
  * 潜影贝发射的跟踪子弹，造成漂浮效果。
  *
+ * 特性：
+ * - 沿轴向移动，追踪目标
+ * - 命中后造成4点伤害和10秒漂浮效果
+ * - 被击中时会消失并产生爆炸粒子
+ *
  * 参考 MC 1.16.5 ShulkerBulletEntity
  */
 class ShulkerBulletEntity : public ProjectileEntity {
@@ -222,9 +295,18 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
     /**
-     * @brief 构造函数
+     * @brief 默认构造函数
      */
     ShulkerBulletEntity(LegacyEntityType type, EntityId id);
+
+    /**
+     * @brief 带目标的构造函数
+     * @param world 世界
+     * @param shooter 发射者（潜影贝）
+     * @param target 目标实体
+     * @param axis 初始移动轴
+     */
+    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis);
 
     // ========== Entity 接口重写 ==========
 
@@ -233,31 +315,69 @@ public:
 
     void tick() override;
 
+    // ========== 投掷物属性 ==========
+
+    [[nodiscard]] bool isBurning() const { return false; }
+    [[nodiscard]] f32 getBrightness() const { return 1.0f; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+
     // ========== 潜影贝子弹方法 ==========
 
     /**
      * @brief 设置目标
      */
-    void setTarget(Entity* target) { m_target = target; }
+    void setTarget(Entity* target);
 
     /**
      * @brief 获取目标
      */
     [[nodiscard]] Entity* target() const { return m_target; }
 
+    /**
+     * @brief 获取当前移动方向
+     */
+    [[nodiscard]] Direction direction() const { return m_direction; }
+
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
+    void onImpact(const RayTraceResult& result) override;
+
+    /**
+     * @brief 检查是否可以命中指定实体
+     */
+    [[nodiscard]] bool canHitEntity(const Entity& target) const override;
 
 private:
     /**
-     * @brief 更新飞行方向
+     * @brief 选择下一个移动方向
+     * @param excludedAxis 排除的轴（避免反向移动）
      */
-    void updateDirection();
+    void selectNextMoveDirection(Axis excludedAxis);
 
-    Entity* m_target = nullptr; // 目标实体
-    Vector3 m_direction;        // 飞行方向
-    i32 m_flightSteps = 0;      // 飞行步数
+    /**
+     * @brief 设置移动方向
+     */
+    void setDirection(Direction dir);
+
+    /**
+     * @brief 更新飞行逻辑
+     */
+    void updateFlight();
+
+    Entity* m_target = nullptr;          ///< 目标实体
+    std::string m_targetUuid;            ///< 目标UUID（用于重新查找）
+    Direction m_direction = Direction::Up; ///< 当前移动方向
+    i32 m_flightSteps = 0;               ///< 剩余飞行步数
+    Vector3d m_targetDelta;              ///< 目标速度增量
+
+    // 常量
+    static constexpr f32 BULLET_SPEED = 0.15;    ///< 子弹速度
+    static constexpr f32 ACCELERATION = 1.025;   ///< 加速度因子
+    static constexpr i32 MIN_STEPS = 10;         ///< 最小飞行步数
+    static constexpr i32 MAX_STEPS_EXTRA = 5;    ///< 额外飞行步数范围
+    static constexpr f32 LEVITATION_DURATION = 200.0f; ///< 漂浮效果持续时间（ticks）
+    static constexpr f32 DAMAGE = 4.0f;          ///< 伤害值
 };
 
 /**
@@ -400,6 +520,14 @@ private:
  * @brief 烟花火箭实体
  *
  * 烟花火箭可以发射、爆炸并产生各种效果。
+ * 从弩发射的烟花火箭会对周围实体造成伤害。
+ *
+ * 伤害机制（MC 1.16.5）：
+ * - 爆炸半径：5 格
+ * - 基础伤害：5 点
+ * - 每个爆炸效果增加：+2 点伤害
+ * - 距离衰减：damage * sqrt((5 - distance) / 5)
+ * - 视线检测：两条射线（脚部和腰部），任一未被方块阻挡即可造成伤害
  *
  * 参考 MC 1.16.5 FireworkRocketEntity
  */
@@ -425,10 +553,18 @@ public:
     // ========== 烟花火箭方法 ==========
 
     /**
-     * @brief 设置烟花数据
-     * @param data 烟花爆炸数据（NBT格式）
+     * @brief 设置烟花物品
+     * @param item 烟花火箭物品堆
+     *
+     * 从物品中读取飞行时间和爆炸效果数据。
      */
-    void setFireworkData(/* const CompoundNBT& data */) { /* TODO */ }
+    void setFireworkItem(const ItemStack& item);
+
+    /**
+     * @brief 获取烟花物品
+     * @return 烟花火箭物品堆（可能为空）
+     */
+    [[nodiscard]] const ItemStack& fireworkItem() const { return m_fireworkItem; }
 
     /**
      * @brief 是否从弩射出
@@ -450,21 +586,37 @@ public:
      */
     void setFlightTime(i32 time) { m_flightTime = time; }
 
+    /**
+     * @brief 获取爆炸效果数量
+     * @return 爆炸效果数量（0 表示无爆炸效果）
+     */
+    [[nodiscard]] i32 getExplosionCount() const;
+
+    /**
+     * @brief 检查视线是否被方块阻挡
+     * @param target 目标实体
+     * @return 如果视线未被阻挡返回 true
+     */
+    [[nodiscard]] bool canSeeEntity(const Entity& target) const;
+
+    /**
+     * @brief 处理弩发射的伤害
+     *
+     * 对爆炸半径 5 格内的 LivingEntity 造成伤害。
+     * 伤害计算：5 + 爆炸效果数量 * 2，根据距离衰减。
+     */
+    void dealExplosionDamage();
+
 private:
     /**
      * @brief 爆炸
      */
     void explode();
 
-    /**
-     * @brief 处理弩发射的伤害
-     */
-    void dealExplosionDamage();
-
-    i32 m_flightTime = 0;            // 飞行时间
-    i32 m_lifetime = 0;              // 存在时间
+    ItemStack m_fireworkItem;        // 烟花火箭物品
+    i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）
+    i32 m_lifetime = 0;              // 已存在时间
     bool m_shotFromCrossbow = false; // 是否从弩射出
-    // CompoundNBT m_fireworkData;   // 烟花数据
 };
 
 } // namespace entity

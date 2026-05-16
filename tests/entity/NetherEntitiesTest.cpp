@@ -1,0 +1,398 @@
+/*
+* Copyright (c) 2026 Guo Yi
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*/
+
+#include <gtest/gtest.h>
+
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+
+using namespace mc;
+
+/**
+ * @brief 猪灵实体测试夹具
+ *
+ * 参考 MC 1.16.5 PiglinEntity
+ */
+class PiglinEntityTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // 属性系统不需要初始化，使用工厂函数
+    }
+};
+
+/**
+ * @brief 猪灵蛮兵实体测试夹具
+ *
+ * 参考 MC 1.16.5 PiglinBruteEntity
+ */
+class PiglinBruteEntityTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+    }
+};
+
+/**
+ * @brief 僵尸猪灵实体测试夹具
+ *
+ * 参考 MC 1.16.5 ZombifiedPiglinEntity
+ */
+class ZombifiedPiglinEntityTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+    }
+};
+
+/**
+ * @brief 疣猪兽实体测试夹具
+ *
+ * 参考 MC 1.16.5 HoglinEntity
+ */
+class HoglinEntityTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+    }
+};
+
+/**
+ * @brief 僵尸疣兽实体测试夹具
+ *
+ * 参考 MC 1.16.5 ZoglinEntity
+ */
+class ZoglinEntityTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+    }
+};
+
+// ============================================================================
+// PiglinEntity 测试
+// ============================================================================
+
+/**
+ * @brief 测试 PiglinEntity 工厂方法创建
+ */
+TEST_F(PiglinEntityTest, CreateFactory)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    EXPECT_NE(entity, nullptr);
+    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Piglin);
+}
+
+/**
+ * @brief 测试 PiglinEntity 默认属性值
+ */
+TEST_F(PiglinEntityTest, DefaultAttributes)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 验证默认属性
+    // MC 1.16.5: MAX_HEALTH=16, MOVEMENT_SPEED=0.35, ATTACK_DAMAGE=5
+    // 注意：属性需要 registerAttributes() 后才有值
+}
+
+/**
+ * @brief 测试 PiglinEntity 幼年状态
+ */
+TEST_F(PiglinEntityTest, BabyState)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 默认应该是成年
+    EXPECT_FALSE(piglin->isBaby());
+
+    // 设置为幼年
+    piglin->setBaby(true);
+    EXPECT_TRUE(piglin->isBaby());
+
+    // 设置回成年
+    piglin->setBaby(false);
+    EXPECT_FALSE(piglin->isBaby());
+}
+
+/**
+ * @brief 测试 PiglinEntity 弩充能状态
+ */
+TEST_F(PiglinEntityTest, CrossbowChargingState)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 默认不充能
+    EXPECT_FALSE(piglin->isChargingCrossbow());
+
+    // 设置充能状态
+    piglin->setChargingCrossbow(true);
+    EXPECT_TRUE(piglin->isChargingCrossbow());
+
+    // 重置充能状态
+    piglin->setChargingCrossbow(false);
+    EXPECT_FALSE(piglin->isChargingCrossbow());
+}
+
+/**
+ * @brief 测试 PiglinEntity 弩装填时间
+ */
+TEST_F(PiglinEntityTest, CrossbowChargeTime)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // MC 1.16.5: 猪灵弩装填时间为 25 ticks
+    EXPECT_EQ(piglin->getCrossbowChargeTime(), 25);
+}
+
+/**
+ * @brief 测试 PiglinEntity 攻击间隔
+ */
+TEST_F(PiglinEntityTest, AttackInterval)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // MC 1.16.5: 攻击间隔为 20 ticks
+    EXPECT_EQ(piglin->getAttackInterval(), 20);
+}
+
+/**
+ * @brief 测试 PiglinEntity 是否可以远程攻击
+ */
+TEST_F(PiglinEntityTest, CanRangedAttack)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 猪灵可以使用弩进行远程攻击
+    EXPECT_TRUE(piglin->canRangedAttack());
+}
+
+/**
+ * @brief 测试 AbstractPiglinEntity 火焰免疫
+ */
+TEST_F(PiglinEntityTest, FireImmunity)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 猪灵应该对火焰免疫
+    EXPECT_TRUE(piglin->isImmuneToFire());
+}
+
+// ============================================================================
+// PiglinBruteEntity 测试
+// ============================================================================
+
+/**
+ * @brief 测试 PiglinBruteEntity 工厂方法创建
+ */
+TEST_F(PiglinBruteEntityTest, CreateFactory)
+{
+    auto entity = PiglinBruteEntity::create(nullptr);
+    EXPECT_NE(entity, nullptr);
+    EXPECT_EQ(entity->legacyType(), LegacyEntityType::PiglinBrute);
+}
+
+/**
+ * @brief 测试 PiglinBruteEntity 火焰免疫
+ */
+TEST_F(PiglinBruteEntityTest, FireImmunity)
+{
+    auto entity = PiglinBruteEntity::create(nullptr);
+    auto* brute = dynamic_cast<PiglinBruteEntity*>(entity.get());
+    ASSERT_NE(brute, nullptr);
+
+    // 猪灵蛮兵应该对火焰免疫
+    EXPECT_TRUE(brute->isImmuneToFire());
+}
+
+// ============================================================================
+// ZombifiedPiglinEntity 测试
+// ============================================================================
+
+/**
+ * @brief 测试 ZombifiedPiglinEntity 工厂方法创建
+ */
+TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
+{
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    EXPECT_NE(entity, nullptr);
+    EXPECT_EQ(entity->legacyType(), LegacyEntityType::ZombifiedPiglin);
+}
+
+/**
+ * @brief 测试 ZombifiedPiglinEntity 火焰免疫
+ */
+TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
+{
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    EXPECT_TRUE(entity->isImmuneToFire());
+}
+
+/**
+ * @brief 测试 ZombifiedPiglinEntity 愤怒状态
+ */
+TEST_F(ZombifiedPiglinEntityTest, AngerState)
+{
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    auto* zombifiedPiglin = entity.get();
+
+    // 默认不愤怒
+    EXPECT_FALSE(zombifiedPiglin->isAngry());
+    EXPECT_EQ(zombifiedPiglin->getAngerTime(), 0);
+
+    // 设置愤怒状态
+    zombifiedPiglin->setAngry(true);
+    zombifiedPiglin->setAngerTime(100);
+    EXPECT_TRUE(zombifiedPiglin->isAngry());
+    EXPECT_EQ(zombifiedPiglin->getAngerTime(), 100);
+
+    // 重置愤怒状态
+    zombifiedPiglin->setAngry(false);
+    EXPECT_FALSE(zombifiedPiglin->isAngry());
+}
+
+// ============================================================================
+// HoglinEntity 测试
+// ============================================================================
+
+/**
+ * @brief 测试 HoglinEntity 工厂方法创建
+ */
+TEST_F(HoglinEntityTest, CreateFactory)
+{
+    auto entity = HoglinEntity::create(nullptr);
+    EXPECT_NE(entity, nullptr);
+    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Hoglin);
+}
+
+/**
+ * @brief 测试 HoglinEntity 火焰免疫
+ */
+TEST_F(HoglinEntityTest, FireImmunity)
+{
+    auto entity = HoglinEntity::create(nullptr);
+    auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
+    ASSERT_NE(hoglin, nullptr);
+
+    // 疣猪兽应该对火焰免疫
+    EXPECT_TRUE(hoglin->isImmuneToFire());
+}
+
+/**
+ * @brief 测试 HoglinEntity 幼年状态
+ */
+TEST_F(HoglinEntityTest, BabyState)
+{
+    auto entity = HoglinEntity::create(nullptr);
+    auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
+    ASSERT_NE(hoglin, nullptr);
+
+    // 默认应该是成年
+    EXPECT_FALSE(hoglin->isBaby());
+
+    // 设置为幼年
+    hoglin->setBaby(true);
+    EXPECT_TRUE(hoglin->isBaby());
+
+    // 幼年疣猪兽不可被猎杀
+    EXPECT_FALSE(hoglin->isHuntable());
+
+    // 设置回成年
+    hoglin->setBaby(false);
+    EXPECT_FALSE(hoglin->isBaby());
+
+    // 成年疣猪兽可被猎杀
+    EXPECT_TRUE(hoglin->isHuntable());
+}
+
+// ============================================================================
+// ZoglinEntity 测试
+// ============================================================================
+
+/**
+ * @brief 测试 ZoglinEntity 工厂方法创建
+ */
+TEST_F(ZoglinEntityTest, CreateFactory)
+{
+    auto entity = ZoglinEntity::create(nullptr);
+    EXPECT_NE(entity, nullptr);
+    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Zoglin);
+}
+
+/**
+ * @brief 测试 ZoglinEntity 幼年状态
+ */
+TEST_F(ZoglinEntityTest, BabyState)
+{
+    auto entity = ZoglinEntity::create(nullptr);
+    auto* zoglin = dynamic_cast<ZoglinEntity*>(entity.get());
+    ASSERT_NE(zoglin, nullptr);
+
+    // 默认应该是成年
+    EXPECT_FALSE(zoglin->isBaby());
+
+    // 设置为幼年
+    zoglin->setBaby(true);
+    EXPECT_TRUE(zoglin->isBaby());
+
+    // 设置回成年
+    zoglin->setBaby(false);
+    EXPECT_FALSE(zoglin->isBaby());
+}
+
+// ============================================================================
+// 实体类型枚举测试
+// ============================================================================
+
+/**
+ * @brief 测试 LegacyEntityType 枚举值
+ */
+TEST(NetherEntityTypesTest, LegacyEntityTypeValues)
+{
+    // 验证下界实体类型枚举值
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Ghast), 66);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::MagmaCube), 67);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Piglin), 68);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::PiglinBrute), 69);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Hoglin), 70);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Zoglin), 71);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::ZombifiedPiglin), 72);
+}

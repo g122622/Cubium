@@ -1204,6 +1204,99 @@ std::vector<Entity*> ServerWorld::getPlayers() const
 }
 
 // ============================================================================
+// 最近玩家查询
+// ============================================================================
+
+Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance)
+{
+    return const_cast<Player*>(static_cast<const ServerWorld*>(this)->getClosestPlayer(pos, maxDistance));
+}
+
+const Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance) const
+{
+    return getClosestPlayer(pos, maxDistance, nullptr);
+}
+
+Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude)
+{
+    return const_cast<Player*>(static_cast<const ServerWorld*>(this)->getClosestPlayer(pos, maxDistance, exclude));
+}
+
+const Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) const
+{
+    const Player* closestPlayer = nullptr;
+    f64 closestDistSq = std::numeric_limits<f64>::max();
+    f64 maxDistSq = (maxDistance < 0.0f) ? std::numeric_limits<f64>::max() : static_cast<f64>(maxDistance) * maxDistance;
+
+    auto players = m_entityManager.getPlayers();
+    for (const Entity* entity : players) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+
+        // 排除指定实体
+        if (exclude && entity == exclude) {
+            continue;
+        }
+
+        // 只处理玩家实体
+        const Player* player = dynamic_cast<const Player*>(entity);
+        if (!player) {
+            continue;
+        }
+
+        // MC 1.16.5: 观察者模式的玩家不计入
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        Vector3 playerPos = player->position();
+        f64 dx = playerPos.x - pos.x;
+        f64 dy = playerPos.y - pos.y;
+        f64 dz = playerPos.z - pos.z;
+        f64 distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq < closestDistSq && distSq <= maxDistSq) {
+            closestDistSq = distSq;
+            closestPlayer = player;
+        }
+    }
+
+    return closestPlayer;
+}
+
+f64 ServerWorld::getClosestPlayerDistanceSq(const Vector3& pos) const
+{
+    f64 closestDistSq = std::numeric_limits<f64>::max();
+
+    auto players = m_entityManager.getPlayers();
+    for (const Entity* entity : players) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+
+        // MC 1.16.5: 观察者模式的玩家不计入距离检查
+        if (const Player* player = dynamic_cast<const Player*>(entity)) {
+            if (player->isSpectator()) {
+                continue;
+            }
+        }
+
+        Vector3 playerPos = entity->position();
+        f64 dx = playerPos.x - pos.x;
+        f64 dy = playerPos.y - pos.y;
+        f64 dz = playerPos.z - pos.z;
+        f64 distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq < closestDistSq) {
+            closestDistSq = distSq;
+        }
+    }
+
+    return closestDistSq;
+}
+
+// ============================================================================
 // 实体管理
 // ============================================================================
 
@@ -1619,6 +1712,15 @@ void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* 
     // 发布 CuredZombieVillagerEvent 用于进度触发
     // 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
     event::CuredZombieVillagerEvent event{currentTick(), starterUuid, zombie, villager};
+    event::ServerEventBus::instance().publish(event);
+}
+
+void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
+{
+    // 发布 PlayerDestroyItemEvent 用于进度触发
+    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+    event::PlayerDestroyItemEvent event{currentTick(), playerId, item, slot, hand};
     event::ServerEventBus::instance().publish(event);
 }
 

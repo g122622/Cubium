@@ -503,7 +503,10 @@ public:
 
         // 守卫者/潜影贝攻击动画
         GuardianAttack = 21,
-        ShulkerOpen = 46
+        ShulkerOpen = 46,
+
+        // 海豚状态
+        Dolphin = 38 // 海豚粒子效果（寻宝时生成）
     };
 
     EntityStatusPacket()

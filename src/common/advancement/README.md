@@ -163,6 +163,29 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 **注意**：BlockPredicate 复用了 `mc::StatePropertiesPredicate`（位于 `common/entity/loot/StatePropertiesPredicate.hpp`）
 来实现状态属性匹配，避免代码重复。该类支持精确匹配和范围匹配。
 
+### FluidPredicate
+
+流体匹配条件（定义在 `BlockPredicate.hpp/cpp` 中）：
+- 流体ID（通过 `Fluid::getFluid()` 获取）
+- 状态属性（复用 `mc::StatePropertiesPredicate`）
+
+流体匹配使用 `Fluid::isEquivalentTo()` 方法比较流体等效性，这意味着：
+- `minecraft:water` 谓词同时匹配水源方块和流动水方块
+- `minecraft:lava` 谓词同时匹配岩浆源方块和流动岩浆方块
+
+```cpp
+// JSON 示例
+{
+    "fluid": "minecraft:water"
+}
+
+// 代码示例
+auto predicate = FluidPredicate::fromJson(json);
+if (predicate.test(blockState)) {
+    // 方块包含水
+}
+```
+
 ## JSON 格式
 
 成就 JSON 格式示例：

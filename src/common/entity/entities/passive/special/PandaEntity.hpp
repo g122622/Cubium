@@ -141,6 +141,53 @@ public:
      */
     [[nodiscard]] bool isBrown() const { return m_personality == Personality::Brown; }
 
+    // ========== 基因系统 ==========
+
+    /**
+     * @brief 获取主基因
+     */
+    [[nodiscard]] u8 getMainGene() const { return m_mainGene; }
+
+    /**
+     * @brief 设置主基因
+     */
+    void setMainGene(u8 gene) { m_mainGene = gene; }
+
+    /**
+     * @brief 获取隐藏基因
+     */
+    [[nodiscard]] u8 getHiddenGene() const { return m_hiddenGene; }
+
+    /**
+     * @brief 设置隐藏基因
+     */
+    void setHiddenGene(u8 gene) { m_hiddenGene = gene; }
+
+    /**
+     * @brief 根据主基因和隐藏基因计算表达的性格
+     * MC 1.16.5: Gene.func_221101_b()
+     */
+    [[nodiscard]] Personality calculateExpressedPersonality() const;
+
+    /**
+     * @brief 随机获取主基因或隐藏基因中的一个
+     * MC 1.16.5: getOneOfGenesRandomly()
+     */
+    [[nodiscard]] u8 getOneOfGenesRandomly(math::Random& rng) const;
+
+    /**
+     * @brief 从父母遗传基因
+     * MC 1.16.5: getGenesForChildFromParents()
+     * @param father 父本
+     * @param mother 母本（可能为 nullptr）
+     */
+    void inheritGenesFromParents(PandaEntity* father, PandaEntity* mother);
+
+    /**
+     * @brief 根据基因计算并设置性格
+     */
+    void updatePersonalityFromGenes();
+
     // ========== 行为状态 ==========
 
     /**
@@ -152,6 +199,27 @@ public:
      * @brief 设置打滚状态
      */
     void setRolling(bool rolling) { m_rolling = rolling; }
+
+    /**
+     * @brief 获取打滚计时器
+     */
+    [[nodiscard]] i32 getRollTimer() const { return m_rollTimer; }
+
+    /**
+     * @brief 设置打滚计时器
+     * @param timer 计时器值（ticks）
+     */
+    void setRollTimer(i32 timer) { m_rollTimer = timer; }
+
+    /**
+     * @brief 检查是否可以执行动作
+     *
+     * MC 1.16.5: canPerformAction()
+     * 检查熊猫是否不在任何阻止动作的状态
+     */
+    [[nodiscard]] bool canPerformAction() const {
+        return !isSneezing() && !isEating() && !isLying() && !isRolling();
+    }
 
     /**
      * @brief 是否正在打喷嚏
@@ -273,6 +341,18 @@ protected:
      */
     void onSneezeComplete();
 
+    /**
+     * @brief 更新打滚物理
+     *
+     * 处理打滚时的移动和跳跃逻辑：
+     * - 第1帧：初始化速度向量
+     * - 第7、15、23帧：执行小跳
+     * - 其他帧：维持水平移动
+     *
+     * 参考 MC 1.16.5: PandaEntity.func_213535_ey()
+     */
+    void updateRoll();
+
 private:
     // 性格
     Personality m_personality = Personality::Normal;
@@ -289,9 +369,18 @@ private:
     i32 m_eatTimer = 0;
     i32 m_lyingTimer = 0;
 
+    // 打滚速度向量
+    Vector3 m_rollVelocity{0.0, 0.0, 0.0};
+
     // 基因（用于遗传）
     u8 m_mainGene = 0;
     u8 m_hiddenGene = 0;
+
+    // 打滚持续时间常量
+    static constexpr i32 ROLL_DURATION = 32;        // 打滚总持续时间（ticks）
+    static constexpr f32 ROLL_SPEED_ADULT = 0.2f;   // 成年熊猫打滚速度
+    static constexpr f32 ROLL_SPEED_CHILD = 0.1f;   // 幼年熊猫打滚速度（减半）
+    static constexpr f32 ROLL_JUMP_VELOCITY = 0.27f; // 打滚跳跃速度
 };
 
 } // namespace mc

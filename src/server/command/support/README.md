@@ -36,18 +36,22 @@ support/
 
 #### 支持的过滤条件
 
-| 参数 | 格式 | 示例 | 描述 |
-|------|------|------|------|
-| `name` | `name=xxx` | `name=Steve` | 按名称匹配 |
-| `name=!xxx` | `name=!Steve` | 排除指定名称 |
-| `gamemode` | `gamemode=xxx` | `gamemode=survival` | 按游戏模式过滤 |
-| `gamemode=!xxx` | `gamemode=!creative` | 排除指定游戏模式 |
-| `distance` | `distance=..10` | `distance=..10` | 距离范围过滤 |
-| `level` | `level=10..20` | `level=10..20` | 经验等级过滤 |
-| `limit` | `limit=n` | `limit=3` | 结果数量限制 |
-| `sort` | `sort=nearest` | `sort=nearest` | 排序方式 |
-| `x_rotation` | `x_rotation=-45..45` | `x_rotation=-30..30` | 俯仰角范围（pitch，-90 到 90 度） |
-| `y_rotation` | `y_rotation=170..-170` | `y_rotation=-90..90` | 偏航角范围（yaw，-180 到 180 度） |
+| 参数 | 格式 | 示例 | 描述 | 状态 |
+|------|------|------|------|------|
+| `name` | `name=xxx` | `name=Steve` | 按名称匹配 | ✅ 完成 |
+| `name=!xxx` | `name=!Steve` | 排除指定名称 | ✅ 完成 |
+| `gamemode` | `gamemode=xxx` | `gamemode=survival` | 按游戏模式过滤 | ✅ 完成 |
+| `gamemode=!xxx` | `gamemode=!creative` | 排除指定游戏模式 | ✅ 完成 |
+| `distance` | `distance=..10` | `distance=..10` | 距离范围过滤 | ✅ 完成 |
+| `level` | `level=10..20` | `level=10..20` | 经验等级过滤 | ✅ 完成 |
+| `limit` | `limit=n` | `limit=3` | 结果数量限制 | ✅ 完成 |
+| `sort` | `sort=nearest` | `sort=nearest` | 排序方式 | ✅ 完成 |
+| `x_rotation` | `x_rotation=-45..45` | `x_rotation=-30..30` | 俯仰角范围（pitch） | ✅ 完成 |
+| `y_rotation` | `y_rotation=170..-170` | `y_rotation=-90..90` | 偏航角范围（yaw） | ✅ 完成 |
+| `scores` | `scores={obj=1..5}` | `scores={deaths=1..5}` | 记分板分数条件 | ✅ 完成 |
+| `advancements` | `advancements={id=true}` | `advancements={minecraft:story/root=true}` | 进度条件 | ✅ 完成 |
+| `nbt` | `nbt={CustomName:"Test"}` | `nbt={Health:20f}` | NBT 数据条件 | ⏳ 解析完成，过滤待完善 |
+| `predicate` | `predicate=namespace:id` | `predicate=minecraft:example` | 战利品表谓词 | ⏳ 解析完成，过滤待完善 |
 
 #### 排序方式
 
@@ -193,6 +197,107 @@ if (!selector.xRotation().isUnbounded()) {
 - 跨越边界时使用 OR 逻辑：`value >= min || value <= max`
 - 普通范围使用 AND 逻辑：`value >= min && value <= max`
 
+### 记分板分数过滤实现
+
+`scores` 参数用于按记分板目标分数筛选玩家：
+
+```cpp
+// 示例：@a[scores={deaths=1..5,kills=10..}]
+if (selector.hasScoreConditions()) {
+    auto& scoreboard = server->scoreboard();
+    for (const auto& [objectiveName, range] : selector.scoreConditions()) {
+        auto* objective = scoreboard.getObjective(objectiveName);
+        if (objective == nullptr) {
+            return false; // 目标不存在
+        }
+        if (!scoreboard.entityHasObjective(playerName, *objective)) {
+            return false; // 玩家没有该目标的分数
+        }
+        auto* score = scoreboard.getScore(playerName, *objective);
+        if (!range.test(score->getScorePoints())) {
+            return false; // 分数不在范围内
+        }
+    }
+}
+```
+
+**依赖**：
+- `ServerScoreboard` - 服务器记分板
+- `ScoreObjective` - 记分板目标
+- `Score` - 分数对象
+
+### 进度条件过滤实现
+
+`advancements` 参数用于按进度完成状态筛选玩家：
+
+```cpp
+// 示例：@a[advancements={minecraft:story/root=true}]
+// 示例：@a[advancements={minecraft:story/mine_stone={got_stone=true}}]
+if (selector.hasAdvancementConditions()) {
+    auto& manager = advancement::AdvancementManager::instance();
+    for (const auto& [advancementId, condition] : selector.advancementConditions()) {
+        auto advancement = manager.get(advancementId);
+        if (advancement == nullptr) {
+            return false; // 进度不存在
+        }
+        auto* progress = playerData.advancements->getProgress(advancement);
+        if (progress == nullptr) {
+            return false; // 玩家没有该进度的进度记录
+        }
+        // 检查整体完成状态
+        if (condition.isComplete.has_value()) {
+            if (progress->isDone() != condition.isComplete.value()) {
+                return false;
+            }
+        }
+        // 检查各准则的完成状态
+        for (const auto& [criteriaName, expectedComplete] : condition.criteriaConditions) {
+            auto* criterionProgress = progress->getCriterion(criteriaName);
+            if (criterionProgress == nullptr || criterionProgress->isObtained() != expectedComplete) {
+                return false;
+            }
+        }
+    }
+}
+```
+
+**依赖**：
+- `AdvancementManager` - 进度管理器（单例）
+- `PlayerAdvancements` - 玩家进度数据
+- `AdvancementProgress` - 进度进度记录
+- `CriterionProgress` - 准则进度记录
+
+### 待完善功能
+
+#### NBT 条件过滤
+
+**当前状态**：参数解析已实现，过滤逻辑待完善
+
+**依赖**：
+- `Entity::serializeNBT()` 方法 - 获取实体 NBT 数据
+- `NbtHelper::compare()` - NBT 标签比较工具
+
+**实现步骤**（待 Entity 类支持后）：
+1. 从 `PlayerEntityManager` 获取玩家实体
+2. 调用 `entity->serializeNBT()` 获取实体 NBT 数据
+3. 使用 NBT 比较工具比较选择器中的 NBT 条件
+4. 根据 `negated` 标志决定是否取反结果
+
+#### 谓词条件过滤
+
+**当前状态**：参数解析已实现，过滤逻辑待完善
+
+**依赖**：
+- `LootConditionManager` - 战利品条件管理器
+- `LootContext` - 战利品上下文（包含实体、位置、世界等）
+
+**实现步骤**（待谓词系统完善后）：
+1. 从服务器获取 `LootConditionManager`
+2. 通过 `ResourceLocation` 加载谓词定义
+3. 创建 `LootContext`（包含实体、位置、世界等上下文）
+4. 评估谓词条件并返回结果
+5. 根据 `negated` 标志决定是否取反结果
+
 ### 性能考虑
 
 - 等级过滤需要为每个候选玩家获取实体，有额外开销
@@ -276,6 +381,7 @@ ServerCommandSource consoleSource = ServerCommandSource::forConsole(server);
 
 ## 更新历史
 
+- **2026-05-16**: 实现 scores 和 advancements 过滤逻辑；添加 NBT 和 predicate 参数解析（过滤逻辑待完善，依赖 Entity NBT 序列化和 LootConditionManager）；更新文档标注功能完成状态
 - **2026-05-11**: 实现 x_rotation/y_rotation 角度范围过滤，添加 FloatRange::testAngle() 方法处理角度环绕
 - **2026-05-09**: 实现经验等级过滤（`level=` 参数），修复 TODO
 - **初始版本**: 实现基础选择器解析（用户名、游戏模式、距离、排序、限制）

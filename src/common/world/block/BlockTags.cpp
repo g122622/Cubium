@@ -280,6 +280,60 @@ BlockTag& BlockTags::STRIDER_WARM_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::SMALL_FLOWERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "small_flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::TALL_FLOWERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "tall_flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BEEHIVES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beehives"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BEE_GROWABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bee_growables"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::ENDERMAN_HOLDABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "enderman_holdable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WITHER_IMMUNE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wither_immune"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -502,6 +556,113 @@ void BlockTags::initialize()
     striderWarmBlocks->addAll({ResourceLocation("minecraft", "lava")});
     tags[striderWarmBlocks->getId()] = std::move(striderWarmBlocks);
 
+    // 创建 SMALL_FLOWERS 标签（小花朵）
+    // 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
+    auto smallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_flowers"));
+    smallFlowers->addAll({ResourceLocation("minecraft", "dandelion"),
+        ResourceLocation("minecraft", "poppy"),
+        ResourceLocation("minecraft", "blue_orchid"),
+        ResourceLocation("minecraft", "allium"),
+        ResourceLocation("minecraft", "azure_bluet"),
+        ResourceLocation("minecraft", "red_tulip"),
+        ResourceLocation("minecraft", "orange_tulip"),
+        ResourceLocation("minecraft", "white_tulip"),
+        ResourceLocation("minecraft", "pink_tulip"),
+        ResourceLocation("minecraft", "oxeye_daisy"),
+        ResourceLocation("minecraft", "cornflower"),
+        ResourceLocation("minecraft", "lily_of_the_valley"),
+        ResourceLocation("minecraft", "wither_rose")});
+    tags[smallFlowers->getId()] = std::move(smallFlowers);
+
+    // 创建 TALL_FLOWERS 标签（高花朵）
+    // 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
+    auto tallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "tall_flowers"));
+    tallFlowers->addAll({ResourceLocation("minecraft", "sunflower"),
+        ResourceLocation("minecraft", "lilac"),
+        ResourceLocation("minecraft", "rose_bush"),
+        ResourceLocation("minecraft", "peony")});
+    tags[tallFlowers->getId()] = std::move(tallFlowers);
+
+    // 创建 BEEHIVES 标签（蜂巢/蜂箱）
+    // 参考 MC 1.16.5: BlockTags.BEEHIVES
+    auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
+    beehives->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
+    tags[beehives->getId()] = std::move(beehives);
+
+    // 创建 BEE_GROWABLES 标签（蜜蜂可授粉作物）
+    // 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
+    auto beeGrowables = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bee_growables"));
+    beeGrowables->addAll({// 农作物
+        ResourceLocation("minecraft", "wheat"),
+        ResourceLocation("minecraft", "carrots"),
+        ResourceLocation("minecraft", "potatoes"),
+        ResourceLocation("minecraft", "beetroots"),
+        // 瓜果茎
+        ResourceLocation("minecraft", "melon_stem"),
+        ResourceLocation("minecraft", "pumpkin_stem"),
+        // 甜浆果丛
+        ResourceLocation("minecraft", "sweet_berry_bush")});
+    tags[beeGrowables->getId()] = std::move(beeGrowables);
+
+    // 创建 ENDERMAN_HOLDABLE 标签（末影人可拾取方块）
+    // 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
+    // 包含：泥土类、沙子类、蘑菇、花、仙人掌、南瓜/西瓜、TNT、下界方块
+    auto endermanHoldable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "enderman_holdable"));
+    endermanHoldable->addAll({// 泥土类
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        // 沙子类
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        // 沙砾
+        ResourceLocation("minecraft", "gravel"),
+        // 蘑菇
+        ResourceLocation("minecraft", "brown_mushroom"),
+        ResourceLocation("minecraft", "red_mushroom"),
+        // TNT
+        ResourceLocation("minecraft", "tnt"),
+        // 仙人掌
+        ResourceLocation("minecraft", "cactus"),
+        // 黏土块
+        ResourceLocation("minecraft", "clay"),
+        // 南瓜和西瓜
+        ResourceLocation("minecraft", "pumpkin"),
+        ResourceLocation("minecraft", "carved_pumpkin"),
+        ResourceLocation("minecraft", "melon"),
+        // 菌丝体
+        ResourceLocation("minecraft", "mycelium"),
+        // 下界方块（1.16新增）
+        ResourceLocation("minecraft", "crimson_fungus"),
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "crimson_roots"),
+        ResourceLocation("minecraft", "warped_fungus"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "warped_roots")});
+    tags[endermanHoldable->getId()] = std::move(endermanHoldable);
+
+    // 创建小花朵标签并添加到末影人可拾取
+    // 小花朵通过 SMALL_FLOWERS 标签也被末影人可拾取
+    // 将小花朵添加到 ENDERMAN_HOLDABLE
+    BlockTag* endermanTag = tags.at(ResourceLocation("minecraft", "enderman_holdable")).get();
+    if (endermanTag) {
+        // 添加所有小花朵
+        endermanTag->addAll({ResourceLocation("minecraft", "dandelion"),
+            ResourceLocation("minecraft", "poppy"),
+            ResourceLocation("minecraft", "blue_orchid"),
+            ResourceLocation("minecraft", "allium"),
+            ResourceLocation("minecraft", "azure_bluet"),
+            ResourceLocation("minecraft", "red_tulip"),
+            ResourceLocation("minecraft", "orange_tulip"),
+            ResourceLocation("minecraft", "white_tulip"),
+            ResourceLocation("minecraft", "pink_tulip"),
+            ResourceLocation("minecraft", "oxeye_daisy"),
+            ResourceLocation("minecraft", "cornflower"),
+            ResourceLocation("minecraft", "lily_of_the_valley"),
+            ResourceLocation("minecraft", "wither_rose")});
+    }
+
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));
     logsTag.addAll({ResourceLocation("minecraft", "jungle_log"),
@@ -532,6 +693,31 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "stripped_crimson_stem"),
         ResourceLocation("minecraft", "warped_stem"),
         ResourceLocation("minecraft", "stripped_warped_stem")});
+
+    // 创建 WITHER_IMMUNE 标签（凋灵免疫方块）
+    // 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
+    // 凋灵无法破坏这些方块（基岩、屏障、末地传送门、命令方块等）
+    auto witherImmune = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wither_immune"));
+    witherImmune->addAll({// 屏障方块
+        ResourceLocation("minecraft", "barrier"),
+        // 基岩
+        ResourceLocation("minecraft", "bedrock"),
+        // 末地传送门
+        ResourceLocation("minecraft", "end_portal"),
+        ResourceLocation("minecraft", "end_portal_frame"),
+        ResourceLocation("minecraft", "end_gateway"),
+        // 命令方块
+        ResourceLocation("minecraft", "command_block"),
+        ResourceLocation("minecraft", "repeating_command_block"),
+        ResourceLocation("minecraft", "chain_command_block"),
+        // 结构方块
+        ResourceLocation("minecraft", "structure_block"),
+        ResourceLocation("minecraft", "jigsaw"),
+        // 活塞移动中的方块
+        ResourceLocation("minecraft", "moving_piston"),
+        // 光源方块
+        ResourceLocation("minecraft", "light")});
+    tags[witherImmune->getId()] = std::move(witherImmune);
 
     s_initialized = true;
 }

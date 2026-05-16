@@ -122,15 +122,6 @@ private:
      */
     [[nodiscard]] bool checkDistanceDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const;
 
-    /**
-     * @brief 获取最近的玩家距离的平方
-     *
-     * @param world 世界引用
-     * @param pos 实体位置
-     * @return 最近玩家距离的平方，如果没有玩家返回最大值
-     */
-    [[nodiscard]] f64 getClosestPlayerDistanceSq(::mc::server::ServerWorld& world, const Vector3& pos) const;
-
     bool m_enabled = true;
 };
 

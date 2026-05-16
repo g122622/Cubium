@@ -216,6 +216,14 @@ public:
      */
     NonTamedTargetGoal(MobEntity* mob, bool checkSight);
 
+    /**
+     * @brief 构造函数（带目标筛选谓词）
+     * @param mob 拥有此目标的驯服动物
+     * @param checkSight 是否需要视线检查
+     * @param predicate 目标筛选谓词
+     */
+    NonTamedTargetGoal(MobEntity* mob, bool checkSight, TargetPredicate predicate);
+
     ~NonTamedTargetGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
@@ -223,6 +231,7 @@ public:
 
 private:
     T* m_targetEntity = nullptr;
+    TargetPredicate m_predicate; // 目标筛选谓词（可选）
 };
 
 /**

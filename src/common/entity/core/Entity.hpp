@@ -137,15 +137,17 @@ enum class LegacyEntityType : u32 {
     PiglinBrute = 69,
     Hoglin = 70,
     Zoglin = 71,
-    Vindicator = 72,
-    Evoker = 73,
-    Illusioner = 74,
-    Pillager = 75,
-    Guardian = 76,
-    ElderGuardian = 77,
-    Witch = 78,
-    Ravager = 79,
-    Blaze = 80,
+    ZombifiedPiglin = 72, // 僵尸猪灵
+    Vindicator = 73,
+    Evoker = 74,
+    Illusioner = 75,
+    Pillager = 76,
+    Guardian = 77,
+    ElderGuardian = 78,
+    Witch = 79,
+    Ravager = 80,
+    Blaze = 81,
+    Vex = 82,       // 恼鬼
 
     // Boss
     Wither = 90,
@@ -572,6 +574,27 @@ public:
      */
     [[nodiscard]] virtual scoreboard::Team* getTeam() { return nullptr; }
     [[nodiscard]] virtual const scoreboard::Team* getTeam() const { return nullptr; }
+
+    /**
+     * @brief 检查实体是否在指定队伍中
+     *
+     * 参考 MC 1.16.5: Entity.isOnScoreboardTeam()
+     *
+     * @param team 要检查的队伍
+     * @return true 如果实体属于该队伍
+     */
+    [[nodiscard]] bool isOnScoreboardTeam(const scoreboard::Team* team) const;
+
+    /**
+     * @brief 检查两个实体是否在同一队伍
+     *
+     * 参考 MC 1.16.5: Entity.isOnSameTeam()
+     * 用于判断友军关系（如横扫攻击排除队友）。
+     *
+     * @param other 另一个实体
+     * @return true 如果两个实体在同一队伍
+     */
+    [[nodiscard]] bool isOnSameTeam(const Entity& other) const;
 
     // ========== 尺寸 ==========
 

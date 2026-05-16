@@ -62,7 +62,9 @@ AnimalEntity
 | 驯服 | 无需驯服 |
 | 生成 | 雷暴天气陷阱 |
 | 免疫 | 溺水、中毒 |
-| 燃烧 | 阳光下燃烧 |
+| 燃烧 | 阳光下燃烧（无头盔时） |
+| 陷阱 | 玩家接近 10 格内触发，生成骷髅骑手 |
+| 困难模式 | 额外生成 3 只骷髅马+骑手 |
 
 ### ZombieHorseEntity (僵尸马)
 | 特性 | 说明 |
@@ -81,6 +83,45 @@ AnimalEntity
 | 攻击 | 吐口水攻击 |
 | 商队 | 跟随前方羊驼 |
 | 变体 | 4种颜色 |
+| 强度 | 1-5 (影响背包大小和生命值) |
+
+#### 商队系统
+
+羊驼可以形成商队链表结构，最多 8 只羊驼：
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| CARAVAN_MAX_LENGTH | 8 | 商队最大长度 |
+| CARAVAN_FOLLOW_DISTANCE | 2.0 | 跟随间距 (格) |
+| CARAVAN_SEARCH_RADIUS | 9.0 | 搜索半径 (格) |
+
+**商队结构**:
+- 双向链表：`m_caravanHead` 指向前方羊驼，`m_caravanTail` 指向后方羊驼
+- 商队头领：链表头部，负责引领整个商队
+- 商队成员：通过 `joinCaravan()` 加入，`leaveCaravan()` 离开
+
+**商队行为** (LlamaFollowCaravanGoal):
+- 优先级 2 的 AI 目标
+- 搜索 9 格内可加入的商队
+- 保持 2 格跟随间距
+- 距离过远时加速追赶
+
+#### 远程攻击系统
+
+羊驼可以吐口水攻击目标：
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| LLAMA_SPIT_SPEED | 1.5 | 口水速度 |
+| LLAMA_SPIT_INACCURACY | 10.0 | 口水散布 |
+| LLAMA_SPIT_DAMAGE | 1.0 | 口水伤害 (0.5颗心) |
+| LLAMA_ATTACK_INTERVAL | 40 | 攻击间隔 (ticks, 2秒) |
+| LLAMA_RANGED_ATTACK_RADIUS | 20.0 | 攻击半径 (格) |
+
+**攻击机制**:
+- 实现 `IRangedAttackMob` 接口
+- 发射 `LlamaSpitEntity` 投射物
+- 优先攻击未驯服的狼 (LlamaDefendTargetGoal)
 
 ## 接口实现
 
@@ -235,6 +276,57 @@ void setOwnerUuid(const std::string& uuid);  // 设置主人UUID
 | `isBred()` / `setBred(bool)` | 繁殖状态 |
 | `isMouthOpen()` / `setMouthOpen(bool)` | 嘴巴张开状态 |
 
+## 繁殖系统（MC 1.16.5）
+
+### 食物效果
+
+马类实体通过 `handleEating()` 方法处理食物效果：
+
+#### AbstractHorseEntity 食物效果
+| 食物 | 治疗 | 成长(ticks) | 驯服进度 | 触发繁殖 |
+|------|------|------------|---------|---------|
+| 小麦 | 2 | 20 | +3 | ❌ |
+| 糖 | 1 | 30 | +3 | ❌ |
+| 干草块 | 20 | 180 | 0 | ❌ |
+| 苹果 | 3 | 60 | +3 | ❌ |
+| 金胡萝卜 | 4 | 60 | +5 | ✅（需驯服）|
+| 金苹果 | 10 | 240 | +10 | ✅（需驯服）|
+| 附魔金苹果 | 10 | 240 | +10 | ✅（需驯服）|
+
+#### LlamaEntity 食物效果
+| 食物 | 治疗 | 成长(ticks) | 驯服进度 | 触发繁殖 |
+|------|------|------------|---------|---------|
+| 小麦 | 2 | 10 | +3 | ❌ |
+| 干草块 | 10 | 90 | +6 | ✅ |
+
+### 繁殖方法
+
+#### canMateWith()
+检查是否可以与另一动物交配：
+```cpp
+bool canMateWith(const AnimalEntity& other) const override;
+```
+- HorseEntity：马+马=马，马+驴=骡
+- DonkeyEntity：驴+驴=驴，驴+马=骡
+- LlamaEntity：羊驼+羊驼=羊驼（骡不育）
+
+#### spawnBaby()
+生成后代：
+```cpp
+std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+```
+- 属性遗传：`(parent1 + parent2 + random) / 3`
+- 颜色遗传（马）：4/9 父本，4/9 母本，1/9 随机
+- 强度遗传（羊驼）：`max(parent1, parent2) + random(0,1)`
+
+### 玩家交互
+
+玩家右键点击马匹时调用 `interactMob()`：
+
+1. **手持食物**：调用 `handleEating()` 处理喂食效果
+2. **未驯服**：尝试骑乘（驯服流程）
+3. **已驯服**：装备鞍或打开背包
+
 ## 骑乘更新系统
 
 ### updateRiding()
@@ -381,6 +473,78 @@ i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
 // level = 2 (因为 amplifier + 1 = 2)
 ```
 
+## AI 目标系统（MC 1.16.5）
+
+马类实体的 AI 目标通过 `registerGoals()` 方法注册。所有马类实体共享 `AbstractHorseEntity` 中定义的基础 AI 目标。
+
+### AI 目标注册架构
+
+MC 1.16.5 中，`AbstractHorseEntity.registerGoals()` 注册以下 AI 目标：
+
+| 优先级 | AI 目标 | 速度参数 | 功能说明 |
+|--------|---------|----------|----------|
+| 0 | SwimGoal | - | 在水中上浮 |
+| 1 | PanicGoal | 1.2 | 受伤或着火时恐慌逃跑 |
+| 1 | RunAroundLikeCrazyGoal | 1.2 | 未驯服马被骑乘时疯狂奔跑 |
+| 2 | BreedGoal | 1.0 | 与同类交配繁殖 |
+| 4 | FollowParentGoal | 1.0 | 幼体跟随成年个体 |
+| 6 | WaterAvoidingRandomWalkingGoal | 0.7 | 随机游荡但避开水域 |
+| 7 | LookAtGoal | 6.0F | 看向附近玩家 |
+| 8 | LookRandomlyGoal | - | 随机转头观察 |
+
+### 子类 AI 目标
+
+| 实体 | 额外 AI 目标 | 说明 |
+|------|-------------|------|
+| HorseEntity | 无 | 完全继承 AbstractHorseEntity |
+| DonkeyEntity | 无 | 完全继承 AbstractHorseEntity |
+| MuleEntity | 无 | 完全继承 AbstractHorseEntity（不育，BreedGoal 自动跳过） |
+| SkeletonHorseEntity | TriggerSkeletonTrapGoal | 陷阱马触发目标（setTrap(true) 时动态注册） |
+| ZombieHorseEntity | 无 | 完全继承 AbstractHorseEntity（亡灵生物，无需驯服） |
+| LlamaEntity | 商队跟随、吐口水攻击、防御狼 | 参考 LlamaEntity.cpp 的 registerGoals() |
+
+### 优先级设计说明
+
+- **优先级数字越小，优先级越高**
+- **SwimGoal (0)**：最高优先级，确保马在水中能上浮
+- **PanicGoal 和 RunAroundLikeCrazyGoal (1)**：相同优先级，可同时触发
+  - 未驯服的马被骑乘时，RunAroundLikeCrazyGoal 触发驯服机制
+  - 受伤或着火时，PanicGoal 触发逃跑行为
+- **BreedGoal (2)**：繁殖行为，需要玩家喂食金苹果/金胡萝卜
+- **FollowParentGoal (4)**：幼马跟随成年马
+- **WaterAvoidingRandomWalkingGoal (6)**：随机游荡，避开水域
+- **LookAtGoal 和 LookRandomlyGoal (7-8)**：最低优先级，仅在其他目标空闲时执行
+
+### 代码示例
+
+```cpp
+// AbstractHorseEntity::registerGoals() 实现
+void AbstractHorseEntity::registerGoals()
+{
+    AnimalEntity::registerGoals();
+
+    // 优先级 0: 游泳目标
+    m_goalSelector.addGoal(0, std::make_unique<SwimGoal>(this));
+
+    // 优先级 1: 恐慌逃跑和疯狂奔跑
+    m_goalSelector.addGoal(1, std::make_unique<PanicGoal>(this, 1.2));
+    m_goalSelector.addGoal(1, std::make_unique<RunAroundLikeCrazyGoal>(this, 1.2));
+
+    // 优先级 2: 繁殖
+    m_goalSelector.addGoal(2, std::make_unique<BreedGoal>(this, 1.0));
+
+    // 优先级 4: 跟随父母
+    m_goalSelector.addGoal(4, std::make_unique<FollowParentGoal>(this, 1.0));
+
+    // 优先级 6: 避水随机行走
+    m_goalSelector.addGoal(6, std::make_unique<WaterAvoidingRandomWalkingGoal>(this, 0.7));
+
+    // 优先级 7-8: 看向玩家和随机看向
+    m_goalSelector.addGoal(7, std::make_unique<LookAtGoal>(this, 6.0f));
+    m_goalSelector.addGoal(8, std::make_unique<LookRandomlyGoal>(this));
+}
+```
+
 ## 测试用例
 
 马类实体的测试位于以下文件：
@@ -391,7 +555,30 @@ i32 level = horse->getEffectLevel(entity::effect::EffectType::JumpBoost);
 | `tests/entity/HorseAppearanceSupportTypesTest.cpp` | 马外观变体测试 |
 | `tests/entity/HorseJumpBoostTest.cpp` | 跳跃提升药水效果测试 |
 | `tests/entity/HorseTamingTest.cpp` | 驯服系统、扬蹄动画、状态管理测试 |
+| `tests/entity/HorseBreedingTest.cpp` | 繁殖系统测试 |
+| `tests/entity/HorseAiGoalsTest.cpp` | AI 目标注册测试 |
 | `tests/common/entity/entities/passive/horse/HorseCanEquipTest.cpp` | 装备验证测试 |
+
+### HorseAiGoalsTest 测试用例
+
+`HorseAiGoalsTest.cpp` 测试马类实体的 AI 目标注册：
+
+- `AbstractHorseAiGoalsTest.HasSwimGoal` - SwimGoal 在优先级 0
+- `AbstractHorseAiGoalsTest.HasPanicGoal` - PanicGoal 在优先级 1
+- `AbstractHorseAiGoalsTest.HasRunAroundLikeCrazyGoal` - RunAroundLikeCrazyGoal 在优先级 1
+- `AbstractHorseAiGoalsTest.HasBreedGoal` - BreedGoal 在优先级 2
+- `AbstractHorseAiGoalsTest.HasFollowParentGoal` - FollowParentGoal 在优先级 4
+- `AbstractHorseAiGoalsTest.HasWaterAvoidingRandomWalkingGoal` - WaterAvoidingRandomWalkingGoal 在优先级 6
+- `AbstractHorseAiGoalsTest.HasLookAtGoal` - LookAtGoal 在优先级 7
+- `AbstractHorseAiGoalsTest.HasLookRandomlyGoal` - LookRandomlyGoal 在优先级 8
+- `AbstractHorseAiGoalsTest.TotalGoalCount` - 总共 8 个 AI 目标
+- `AbstractHorseAiGoalsTest.PriorityOrdering` - 各优先级的目标数量正确
+- `DonkeyAiGoalsTest.InheritsAllAbstractHorseGoals` - 驴继承所有马类 AI 目标
+- `DonkeyAiGoalsTest.TotalGoalCount` - 驴有 8 个 AI 目标
+- `MuleAiGoalsTest.InheritsAllAbstractHorseGoals` - 骡继承所有马类 AI 目标
+- `MuleAiGoalsTest.TotalGoalCount` - 骡有 8 个 AI 目标（不育但 BreedGoal 存在）
+- `HorseAiGoalsTest.InheritsAllAbstractHorseGoals` - 马继承所有马类 AI 目标
+- `HorseAiGoalsTest.TotalGoalCount` - 马有 8 个 AI 目标
 
 ### 新增测试用例
 

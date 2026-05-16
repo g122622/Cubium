@@ -28,6 +28,7 @@
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../core/CreatureEntity.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../damage/DamageSource.hpp"
 #include "../../../../effect/EffectInstance.hpp"
@@ -35,10 +36,15 @@
 #include "../../../../entities/monster/basic/CreeperEntity.hpp"
 #include "../../../../entities/passive/fish/PufferfishEntity.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
+#include "../../../../entities/passive/horse/LlamaEntity.hpp"
+#include "../../../../entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "../../../../entities/passive/tamable/WolfEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../EntitySenses.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
+#include "../../GoalFlag.hpp"
+#include <cmath>
 
 namespace mc::entity::ai::goal {
 
@@ -398,6 +404,362 @@ bool PuffGoal::findNearbyEnemy()
     }
 
     return false;
+}
+
+// ============================================================================
+// LlamaFollowCaravanGoal
+// ============================================================================
+
+LlamaFollowCaravanGoal::LlamaFollowCaravanGoal(LlamaEntity* llama, f32 speed)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_llama(llama)
+    , m_speed(speed)
+    , m_speedModifier(speed)
+    , m_distCheckCounter(0)
+{
+    MC_ASSERT(llama != nullptr);
+}
+
+bool LlamaFollowCaravanGoal::shouldExecute()
+{
+    // MC 1.16.5 LlamaFollowCaravanGoal.shouldExecute()
+    // 注意: 当前实现暂时不支持拴绳功能（拴绳系统待实现）
+    // 当前逻辑: 只加入已有商队链的羊驼
+    if (!m_llama || m_llama->isInCaravan()) {
+        return false;
+    }
+
+    IWorld* world = m_llama->world();
+    if (!world) {
+        return false;
+    }
+
+    // 搜索附近的羊驼
+    AxisAlignedBB searchBox = m_llama->boundingBox().expand(SEARCH_RADIUS, SEARCH_HEIGHT, SEARCH_RADIUS);
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_llama);
+
+    LlamaEntity* bestCandidate = nullptr;
+    f64 bestDistanceSq = std::numeric_limits<f64>::max();
+
+    for (Entity* entity : entities) {
+        // 只检查羊驼类型（普通羊驼和流浪商人羊驼）
+        LegacyEntityType type = entity->legacyType();
+        if (type != LegacyEntityType::Llama && type != LegacyEntityType::TraderLlama) {
+            continue;
+        }
+
+        LlamaEntity* otherLlama = static_cast<LlamaEntity*>(entity);
+        if (!otherLlama->isAlive()) {
+            continue;
+        }
+
+        f64 distSq = m_llama->distanceSqTo(*otherLlama);
+
+        // 优先级1: 已在商队中但无尾部的羊驼（商队中间/末尾）
+        if (otherLlama->isInCaravan() && !otherLlama->hasCaravanTail()) {
+            if (distSq < bestDistanceSq) {
+                bestDistanceSq = distSq;
+                bestCandidate = otherLlama;
+            }
+        }
+    }
+
+    // 最终条件判断
+    if (bestCandidate == nullptr) {
+        return false;
+    }
+
+    // 距离太近不加入
+    if (bestDistanceSq < MIN_JOIN_DISTANCE_SQ) {
+        return false;
+    }
+
+    // 检查商队长度
+    if (!firstIsLeashed(bestCandidate, 1)) {
+        return false;
+    }
+
+    // 加入商队
+    m_llama->joinCaravan(bestCandidate);
+    return true;
+}
+
+bool LlamaFollowCaravanGoal::shouldContinueExecuting()
+{
+    // MC 1.16.5 LlamaFollowCaravanGoal.shouldContinueExecuting()
+    if (!m_llama || !m_llama->isInCaravan()) {
+        return false;
+    }
+
+    LlamaEntity* head = m_llama->getCaravanHead();
+    if (!head || !head->isAlive()) {
+        return false;
+    }
+
+    // 检查商队头领是否被拴绳拴住
+    if (!firstIsLeashed(m_llama, 0)) {
+        return false;
+    }
+
+    // 检查距离
+    f64 distSq = m_llama->distanceSqTo(*head);
+
+    // MC 1.16.5: 如果距离超过 26 格，尝试加速
+    if (distSq > MAX_FOLLOW_DISTANCE_SQ) {
+        if (m_speedModifier <= 3.0) {
+            m_speedModifier *= 1.2;
+            m_distCheckCounter = 40;
+            return true;
+        }
+
+        if (m_distCheckCounter == 0) {
+            // 速度已达上限且计数器归零，放弃跟随
+            return false;
+        }
+    }
+
+    if (m_distCheckCounter > 0) {
+        --m_distCheckCounter;
+    }
+
+    return true;
+}
+
+void LlamaFollowCaravanGoal::startExecuting()
+{
+    m_speedModifier = static_cast<f64>(m_speed);
+    m_distCheckCounter = 0;
+}
+
+void LlamaFollowCaravanGoal::resetTask()
+{
+    m_llama->leaveCaravan();
+    m_speedModifier = static_cast<f64>(m_speed);
+    m_distCheckCounter = 0;
+}
+
+void LlamaFollowCaravanGoal::tick()
+{
+    // MC 1.16.5 LlamaFollowCaravanGoal.tick()
+    if (!m_llama || !m_llama->isInCaravan()) {
+        return;
+    }
+
+    // MC 1.16.5: 如果被拴在拴绳桩上，不移动
+    // 注意: 当前实现暂不支持拴绳功能，跳过此检查
+
+    LlamaEntity* head = m_llama->getCaravanHead();
+    if (!head) {
+        return;
+    }
+
+    // 计算到头领的距离
+    f64 dist = m_llama->distanceTo(*head);
+
+    // MC 1.16.5: 计算移动向量，保持 2 格间距
+    // Vector3d vector3d = (new Vector3d(
+    //     head.getPosX() - this.llama.getPosX(),
+    //     head.getPosY() - this.llama.getPosY(),
+    //     head.getPosZ() - this.llama.getPosZ()
+    // )).normalize().scale(Math.max(dist - 2.0D, 0.0D));
+
+    f64 dx = head->x() - m_llama->x();
+    f64 dy = head->y() - m_llama->y();
+    f64 dz = head->z() - m_llama->z();
+
+    // 归一化
+    f64 length = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (length > 0.001) {
+        dx /= length;
+        dy /= length;
+        dz /= length;
+    }
+
+    // 缩放为 (距离 - 2)，保持 2 格间距
+    f64 scale = std::max(dist - CARAVAN_FOLLOW_DISTANCE, 0.0);
+    dx *= scale;
+    dy *= scale;
+    dz *= scale;
+
+    // 计算目标位置
+    f64 targetX = m_llama->x() + dx;
+    f64 targetY = m_llama->y() + dy;
+    f64 targetZ = m_llama->z() + dz;
+
+    // 移动到目标位置
+    if (auto* nav = m_llama->navigator()) {
+        static_cast<void>(nav->moveTo(targetX, targetY, targetZ, m_speedModifier));
+    }
+}
+
+bool LlamaFollowCaravanGoal::firstIsLeashed(const LlamaEntity* llama, i32 depth) const
+{
+    // MC 1.16.5 LlamaFollowCaravanGoal.firstIsLeashed()
+    // 递归检查商队头领是否被拴绳拴住
+    // 最大递归深度为 8（商队最多 8 只羊驼）
+    // 注意: 当前实现暂不支持拴绳功能，简化为检查商队链长度
+
+    if (depth > MAX_CARAVAN_LENGTH) {
+        return false;
+    }
+
+    if (llama->isInCaravan()) {
+        LlamaEntity* head = llama->getCaravanHead();
+        if (head == nullptr) {
+            return false;
+        }
+
+        // 简化实现：只要商队链长度不超过最大值就返回 true
+        // 完整实现需要检查拴绳系统
+        return firstIsLeashed(head, depth + 1);
+    }
+
+    // 如果是商队链的头部（没有头领），返回 true
+    // 这允许任何羊驼成为商队头领
+    return true;
+}
+
+// ============================================================================
+// LlamaDefendTargetGoal
+// ============================================================================
+
+LlamaDefendTargetGoal::LlamaDefendTargetGoal(LlamaEntity* llama)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
+    , m_llama(llama)
+    , m_target(nullptr)
+{
+    MC_ASSERT(llama != nullptr);
+}
+
+bool LlamaDefendTargetGoal::shouldExecute()
+{
+    // MC 1.16.5 LlamaEntity.DefendTargetGoal.shouldExecute()
+    if (!m_llama || !m_llama->world()) {
+        return false;
+    }
+
+    // 获取检测范围（基础范围 * 0.25）
+    f64 followRange = m_llama->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);
+    f64 targetRange = followRange * TARGET_RANGE_MODIFIER;
+
+    // 搜索附近的狼
+    AxisAlignedBB searchBox = m_llama->boundingBox().expand(targetRange, targetRange, targetRange);
+    std::vector<Entity*> entities = m_llama->world()->getEntitiesInAABB(searchBox, m_llama);
+
+    m_target = nullptr;
+    f64 minDistSq = std::numeric_limits<f64>::max();
+
+    for (Entity* entity : entities) {
+        // 只检查狼
+        if (entity->legacyType() != LegacyEntityType::Wolf) {
+            continue;
+        }
+
+        // MC 1.16.5: 只攻击未驯服的狼
+        // WolfEntity::isTamed()
+        WolfEntity* wolf = dynamic_cast<WolfEntity*>(entity);
+        if (!wolf || !wolf->isAlive()) {
+            continue;
+        }
+
+        // 检查是否已驯服
+        if (wolf->isTamed()) {
+            continue;
+        }
+
+        f64 distSq = m_llama->distanceSqTo(*wolf);
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
+            m_target = wolf;
+        }
+    }
+
+    return m_target != nullptr;
+}
+
+void LlamaDefendTargetGoal::startExecuting()
+{
+    // MC 1.16.5: 设置攻击目标
+    if (m_llama && m_target) {
+        m_llama->setAttackTarget(m_target);
+    }
+}
+
+void LlamaDefendTargetGoal::resetTask()
+{
+    m_target = nullptr;
+}
+
+// ============================================================================
+// TriggerSkeletonTrapGoal
+// ============================================================================
+
+TriggerSkeletonTrapGoal::TriggerSkeletonTrapGoal(SkeletonHorseEntity* horse)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_horse(horse)
+{
+    MC_ASSERT(horse != nullptr);
+}
+
+bool TriggerSkeletonTrapGoal::shouldExecute()
+{
+    // MC 1.16.5 TriggerSkeletonTrapGoal.shouldExecute()
+    // 执行条件: 陷阱马且玩家在 10 格范围内
+
+    if (!m_horse || !m_horse->isAlive()) {
+        return false;
+    }
+
+    // 必须是陷阱马
+    if (!m_horse->isTrap()) {
+        return false;
+    }
+
+    IWorld* world = m_horse->world();
+    if (!world) {
+        return false;
+    }
+
+    // 检测附近是否有玩家
+    Vector3 pos = m_horse->position();
+    AxisAlignedBB searchBox = m_horse->boundingBox().expand(
+        PLAYER_DETECTION_RANGE, PLAYER_DETECTION_RANGE, PLAYER_DETECTION_RANGE);
+
+    std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_horse);
+
+    for (Entity* entity : entities) {
+        // 只检查玩家
+        if (entity->legacyType() != LegacyEntityType::Player) {
+            continue;
+        }
+
+        Player* player = dynamic_cast<Player*>(entity);
+        if (!player || !player->isAlive()) {
+            continue;
+        }
+
+        // 跳过旁观者和创造模式玩家
+        if (player->isSpectator() || player->isCreative()) {
+            continue;
+        }
+
+        // 检查距离
+        f64 distSq = m_horse->distanceSqTo(*player);
+        if (distSq <= PLAYER_DETECTION_RANGE_SQ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void TriggerSkeletonTrapGoal::tick()
+{
+    // MC 1.16.5 TriggerSkeletonTrapGoal.tick()
+    // 触发陷阱
+    if (m_horse && m_horse->isAlive() && m_horse->isTrap()) {
+        m_horse->triggerTrap();
+    }
 }
 
 } // namespace mc::entity::ai::goal

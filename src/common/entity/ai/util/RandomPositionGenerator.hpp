@@ -26,6 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include <functional>
+#include <optional>
 
 namespace mc {
 
@@ -59,9 +60,9 @@ public:
      * @brief 位置候选结构
      */
     struct PositionCandidate {
-        Vector3 position;
-        f32 score;   // 评分，用于选择最佳位置
-        bool isSafe; // 是否安全（非危险方块）
+        Vector3 position{0.0f, 0.0f, 0.0f};
+        f32 score = 0.0f;   // 评分，用于选择最佳位置
+        bool isSafe = false; // 是否安全（非危险方块）
     };
 
     // ==================== 主要公开方法 ====================
@@ -110,6 +111,23 @@ public:
         CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
     /**
+     * @brief 生成朝向指定位置的缩放随机目标
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled
+     * 用于海豚寻宝等场景，在目标方向生成一个缩放后的随机目标位置。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param targetPos 目标位置（宝藏位置）
+     * @param angleRange 方向角限制范围（弧度，PI/8 表示左右各 PI/16）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetTowardsScaled(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, f64 angleRange, Vector3& outPos);
+
+    /**
      * @brief 获取陆地位置
      *
      * 寻找一个可行走的地面位置
@@ -134,6 +152,40 @@ public:
      * @return 是否找到有效位置
      */
     static bool findRandomTargetAvoidWater(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos);
+
+    /**
+     * @brief 生成随机方块目标位置
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetBlock
+     * 用于飞行实体，选择随机的方块位置作为目标。
+     * 与 findRandomTarget 不同，此方法不要求位置可行走。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param avoidPos 可选的回避位置（std::nullopt 表示不回避）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetBlock(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, std::optional<Vector3> avoidPos, Vector3& outPos);
+
+    /**
+     * @brief 生成朝向目标位置的方块目标位置
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards
+     * 用于水生生物（如海豚），在朝向目标的方向选择一个方块位置。
+     * 不要求位置可行走，但会检查是否是水或可通过的方块。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param targetPos 目标位置
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetBlockTowards(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
     // ==================== 辅助方法 ====================
 

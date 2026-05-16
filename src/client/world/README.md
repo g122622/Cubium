@@ -34,6 +34,7 @@ src/client/world/
 - 每帧驱动：`update(const MeshSchedulerViewState&)`。
 - 网格系统：`initializeMeshSystem(threadCount, config)`、`shutdownMeshSystem()`、`processMeshBuildResults(maxPerFrame)`。
 - 区块同步：`onChunkData(...)`、`onChunkUnload(...)`。
+- 维度切换：`clearChunks()` - 清空所有区块数据，用于维度切换时重置世界状态。
 
 ### ClientWeather.hpp
 
@@ -185,6 +186,7 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 - `tests/client/test_mesh_build_scheduler.cpp`
 - `tests/client/test_mesh_worker_pool.cpp`
 - `tests/client/world/ClientWorldLightUpdateTest.cpp`
+- `tests/client/world/ClientWorldClearChunksTest.cpp` - 区块清空和维度切换测试
 
 间接相关：
 - `tests/client/renderer/test_renderer.cpp`（`ChunkMesher` 构建路径）

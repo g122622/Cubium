@@ -10,6 +10,7 @@
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../entities/monster/basic/PhantomEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../core/EntityUtils.hpp"
@@ -376,7 +377,7 @@ void PhantomPickAttackGoal::tick()
 
             // 播放俯冲音效
             // MC 1.16.5: playSound(SoundEvents.ENTITY_PHANTOM_SWOOP, 10.0F, 0.95F + rand.nextFloat() * 0.1F)
-            // TODO: 当音效系统完善后播放音效
+            m_phantom->playSound(SoundEvents::ENTITY_PHANTOM_SWOOP, 10.0f, 0.95f + rng.nextFloat() * 0.1f);
         }
     }
 }
@@ -497,8 +498,12 @@ void PhantomSweepAttackGoal::tick()
         m_phantom->setAttackPhase(PhantomEntity::AttackPhase::CIRCLE);
 
         // MC 1.16.5: 播放攻击音效
-        // world.playEvent(1039, getPosition(), 0)
-        // TODO: 当音效系统完善后播放音效
+        // world.playEvent(1039, getPosition(), 0) - 事件ID 1039 是幻翼攻击事件
+        if (IWorld* world = m_phantom->world()) {
+            world->playEvent(1039, BlockPos(math::floorTo<i32>(m_phantom->x()),
+                                            math::floorTo<i32>(m_phantom->y()),
+                                            math::floorTo<i32>(m_phantom->z())), 0);
+        }
     }
     // MC 1.16.5: 水平碰撞或受伤时切回环绕
     else if (m_phantom->collidedHorizontally() || m_phantom->hurtTime() > 0) {

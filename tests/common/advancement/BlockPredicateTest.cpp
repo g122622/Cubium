@@ -23,12 +23,13 @@
 
 /**
  * @file BlockPredicateTest.cpp
- * @brief BlockPredicate 和 StatePropertiesPredicate 单元测试
+ * @brief BlockPredicate、FluidPredicate 和 StatePropertiesPredicate 单元测试
  *
  * 测试内容：
  * 1. StatePropertiesPredicate 的 fromJson 方法
  * 2. BlockPredicate 的方块ID和标签检查
- * 3. StatePropertiesPredicate 复用验证
+ * 3. FluidPredicate 的流体匹配检查
+ * 4. StatePropertiesPredicate 复用验证
  */
 
 #include "advancement/trigger/conditions/BlockPredicate.hpp"
@@ -36,6 +37,9 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "util/property/Properties.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -325,4 +329,203 @@ TEST_F(BlockPredicateTest, FluidPredicateToJson)
     FluidPredicate any;
     nlohmann::json json = any.toJson();
     EXPECT_TRUE(json.is_null());
+}
+
+// ============================================================================
+// FluidPredicate 流体匹配测试
+// ============================================================================
+
+class FluidPredicateTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 确保方块和流体已初始化
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+    }
+};
+
+TEST_F(FluidPredicateTest, DefaultPredicateMatchesAll)
+{
+    FluidPredicate predicate;
+    EXPECT_TRUE(predicate.isAny());
+
+    // 获取一个方块状态
+    const BlockState* stone = BlockRegistry::instance().get(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_TRUE(predicate.test(*stone));
+}
+
+TEST_F(FluidPredicateTest, MatchesWaterSource)
+{
+    // 获取水源方块
+    const BlockState* water = BlockRegistry::instance().get(ResourceLocation("minecraft:water"));
+    if (water == nullptr) {
+        GTEST_SKIP() << "minecraft:water not available";
+    }
+
+    // 创建匹配水的谓词
+    nlohmann::json json = {{"fluid", "minecraft:water"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 水源方块应该匹配
+    EXPECT_TRUE(predicate.test(*water));
+}
+
+TEST_F(FluidPredicateTest, MatchesFlowingWater)
+{
+    // 获取水方块
+    const BlockState* waterSource = BlockRegistry::instance().get(ResourceLocation("minecraft:water"));
+    if (waterSource == nullptr) {
+        GTEST_SKIP() << "minecraft:water not available";
+    }
+
+    // 创建匹配水的谓词（使用 minecraft:water）
+    nlohmann::json json = {{"fluid", "minecraft:water"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 水源方块（level=0）应该匹配
+    EXPECT_TRUE(predicate.test(*waterSource));
+
+    // 流动水（level=1-7）也应该匹配
+    // 通过修改 BlockState 的 level 属性来获取流动水状态
+    auto& levelProp = BlockStateProperties::LEVEL_0_15();
+    const BlockState* flowingWater = &waterSource->with(levelProp, 4); // level=4 表示流动水
+    EXPECT_TRUE(predicate.test(*flowingWater));
+}
+
+TEST_F(FluidPredicateTest, MatchesLavaSource)
+{
+    // 获取岩浆方块
+    const BlockState* lava = BlockRegistry::instance().get(ResourceLocation("minecraft:lava"));
+    if (lava == nullptr) {
+        GTEST_SKIP() << "minecraft:lava not available";
+    }
+
+    // 创建匹配岩浆的谓词
+    nlohmann::json json = {{"fluid", "minecraft:lava"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 岩浆应该匹配
+    EXPECT_TRUE(predicate.test(*lava));
+}
+
+TEST_F(FluidPredicateTest, DoesNotMatchDifferentFluid)
+{
+    // 获取水方块
+    const BlockState* water = BlockRegistry::instance().get(ResourceLocation("minecraft:water"));
+    if (water == nullptr) {
+        GTEST_SKIP() << "minecraft:water not available";
+    }
+
+    // 创建匹配岩浆的谓词
+    nlohmann::json json = {{"fluid", "minecraft:lava"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 水不应该匹配岩浆谓词
+    EXPECT_FALSE(predicate.test(*water));
+}
+
+TEST_F(FluidPredicateTest, DoesNotMatchNonFluidBlock)
+{
+    // 获取石头方块（无流体）
+    const BlockState* stone = BlockRegistry::instance().get(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+
+    // 创建匹配水的谓词
+    nlohmann::json json = {{"fluid", "minecraft:water"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 石头没有流体，应该不匹配
+    EXPECT_FALSE(predicate.test(*stone));
+}
+
+TEST_F(FluidPredicateTest, UnknownFluidIdDoesNotMatch)
+{
+    // 获取水方块
+    const BlockState* water = BlockRegistry::instance().get(ResourceLocation("minecraft:water"));
+    if (water == nullptr) {
+        GTEST_SKIP() << "minecraft:water not available";
+    }
+
+    // 创建匹配未知流体的谓词
+    nlohmann::json json = {{"fluid", "minecraft:unknown_fluid"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+
+    // 未知流体ID应该不匹配任何东西
+    EXPECT_FALSE(predicate.test(*water));
+}
+
+TEST_F(FluidPredicateTest, RoundTripSerialization)
+{
+    // 创建谓词
+    nlohmann::json originalJson = {{"fluid", "minecraft:water"}};
+    auto result = FluidPredicate::fromJson(originalJson);
+    ASSERT_TRUE(result.success());
+
+    // 序列化
+    nlohmann::json serialized = result.value().toJson();
+    EXPECT_TRUE(serialized.is_object());
+    EXPECT_TRUE(serialized.contains("fluid"));
+    EXPECT_EQ(serialized["fluid"], "minecraft:water");
+
+    // 反序列化
+    auto result2 = FluidPredicate::fromJson(serialized);
+    EXPECT_TRUE(result2.success());
+    EXPECT_FALSE(result2.value().isAny());
+}
+
+TEST_F(FluidPredicateTest, WaterMatchesFlowingWater)
+{
+    // 这个测试验证 isEquivalentTo 的正确行为：
+    // minecraft:water 谓词应该同时匹配水源和流动水
+
+    const BlockState* waterSource = BlockRegistry::instance().get(ResourceLocation("minecraft:water"));
+
+    if (waterSource == nullptr) {
+        GTEST_SKIP() << "minecraft:water not available";
+    }
+
+    // 创建匹配 minecraft:water 的谓词
+    nlohmann::json json = {{"fluid", "minecraft:water"}};
+    auto result = FluidPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    const FluidPredicate& predicate = result.value();
+
+    // 应该匹配水源（level=0）
+    EXPECT_TRUE(predicate.test(*waterSource));
+
+    // 也应该匹配流动水（level=1-7，因为 isEquivalentTo）
+    auto& levelProp = BlockStateProperties::LEVEL_0_15();
+    const BlockState* flowingWater = &waterSource->with(levelProp, 3); // level=3 表示流动水
+    EXPECT_TRUE(predicate.test(*flowingWater));
+
+    // 也应该匹配下落的水（level>=8）
+    const BlockState* fallingWater = &waterSource->with(levelProp, 10); // level=10 表示下落的水
+    EXPECT_TRUE(predicate.test(*fallingWater));
 }

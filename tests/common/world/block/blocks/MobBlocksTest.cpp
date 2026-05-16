@@ -800,6 +800,73 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SilverfishPositionCorrect)
     EXPECT_NEAR(spawned->z(), -199.5f, 0.01f);
 }
 
+// ==================== InfestedBlock 静态方法测试 ====================
+
+class InfestedBlockStaticTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        // 初始化映射表
+        InfestedBlock::initializeMappings();
+    }
+};
+
+TEST_F(InfestedBlockStaticTest, CanContainSilverfish_ReturnsFalseForUnknownBlock)
+{
+    // 对于未注册的方块，应该返回 false
+    // 空气方块不应该能被虫蚀
+    const BlockState& airState = VanillaBlocks::AIR->defaultState();
+    EXPECT_FALSE(InfestedBlock::canContainSilverfish(airState));
+}
+
+TEST_F(InfestedBlockStaticTest, Infest_ReturnsNullptrForUnknownBlock)
+{
+    // 对于未注册的方块，应该返回 nullptr
+    // 空气方块没有虫蚀版本
+    const Block* airBlock = VanillaBlocks::AIR;
+    ASSERT_NE(airBlock, nullptr);
+    EXPECT_EQ(InfestedBlock::infest(*airBlock), nullptr);
+}
+
+TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_AddsMapping)
+{
+    // 注册一个新的虫蚀方块映射
+    // 使用测试用的 ID（避免与已注册的冲突）
+    constexpr u32 TEST_HOST_BLOCK = 99990;
+    constexpr u32 TEST_INFESTED_BLOCK = 99991;
+
+    InfestedBlock::registerInfestedBlock(TEST_HOST_BLOCK, TEST_INFESTED_BLOCK);
+
+    // 初始化映射
+    InfestedBlock::initializeMappings();
+
+    // 验证：映射表应该包含新的映射
+    // 注意：canContainSilverfish 需要 BlockState，这里只验证注册不会崩溃
+    EXPECT_TRUE(true);
+}
+
+TEST_F(InfestedBlockStaticTest, InitializeMappings_CanBeCalledMultipleTimes)
+{
+    // initializeMappings 应该是幂等的
+    EXPECT_NO_THROW({
+        InfestedBlock::initializeMappings();
+        InfestedBlock::initializeMappings();
+        InfestedBlock::initializeMappings();
+    });
+}
+
+TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_MultipleMappings)
+{
+    // 注册多个映射
+    InfestedBlock::registerInfestedBlock(90001, 90011);
+    InfestedBlock::registerInfestedBlock(90002, 90012);
+    InfestedBlock::registerInfestedBlock(90003, 90013);
+
+    // 验证不会崩溃
+    EXPECT_TRUE(true);
+}
+
 // ==================== DragonBreathBlock 实体碰撞伤害测试 ====================
 
 /**

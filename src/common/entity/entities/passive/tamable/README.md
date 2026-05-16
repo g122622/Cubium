@@ -141,6 +141,62 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
 - `isBreedingItem()` 始终返回 `false`
 - `spawnBaby()` 始终返回 `nullptr`
 
+### 驯服交互
+
+鹦鹉通过 `interactMob()` 方法处理玩家交互：
+
+| 交互 | 条件 | 效果 |
+|------|------|------|
+| 喂食种子驯服 | 未驯服 + 手持种子 | 1/10 概率驯服，消耗物品 |
+| 切换坐下 | 已驯服 + 主人交互 | 切换坐下/站立状态 |
+
+**驯服流程**：
+1. 玩家手持种子（小麦/南瓜/西瓜/甜菜种子）右键点击鹦鹉
+2. 播放吃东西声音 (`ENTITY_PARROT_EAT`)
+3. 服务端进行 1/10 概率判定
+4. 成功：设置驯服状态、设置主人、广播心形粒子
+5. 失败：广播烟雾粒子
+
+```cpp
+// ParrotEntity::interactMob - 驯服交互逻辑
+ActionResultType ParrotEntity::interactMob(Player& player, Hand hand) {
+    ItemStack itemStack = player.getHeldItem(hand);
+    
+    // 驯服逻辑
+    if (!isTamed() && isTameItem(itemStack)) {
+        // 消耗物品（非创造模式）
+        if (!player.abilities().creativeMode) {
+            itemStack.shrink(1);
+        }
+        
+        // 播放吃东西声音
+        playSound(SoundEvents::ENTITY_PARROT_EAT, 1.0f, 1.0f);
+        
+        // 服务端处理驯服逻辑
+        if (!m_world->isClientSide()) {
+            if (getRandom().nextInt(10) == 0) {  // 1/10 概率
+                setTamed(true);
+                setOwnerId(player.playerId());
+                // 广播心形粒子
+                m_world->broadcastEntityStatus(id(), TamingSucceeded);
+            } else {
+                // 广播烟雾粒子
+                m_world->broadcastEntityStatus(id(), TamingFailed);
+            }
+        }
+        return ActionResultType::Success;
+    }
+    
+    // 切换坐下状态
+    if (isTamed() && isOwner(player.playerId())) {
+        toggleSitting();
+        return ActionResultType::Success;
+    }
+    
+    return ShoulderRidingEntity::interactMob(player, hand);
+}
+```
+
 ### 特殊能力
 
 | 特性 | 说明 |
@@ -192,30 +248,147 @@ bool ParrotEntity::isTameItem(const ItemStack& itemStack) const {
 
 **注意**：熟鱼（熟鳕鱼、熟鲑鱼）**不能**用于繁殖豹猫。
 
-### 繁殖行为
+### 信任建立机制
+
+豹猫通过喂食生鱼建立信任，有 1/3 概率成功：
 
 ```cpp
-// OcelotEntity::isBreedingItem - 判断是否可用于繁殖
-bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
-    // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
+// OcelotEntity::interactMob - 玩家交互建立信任
+ActionResultType OcelotEntity::interactMob(Player& player, Hand hand) {
+    ItemStack itemStack = player.getHeldItem(hand);
     const Item* item = itemStack.getItem();
-    if (item == nullptr) {
-        return false;
+    
+    // 条件检查：
+    // 1. 诱惑目标正在运行（或为空）
+    // 2. 尚未信任
+    // 3. 手持繁殖物品（生鱼）
+    // 4. 玩家距离 < 9.0D (3格)
+    bool isTempting = (m_temptGoal == nullptr || m_temptGoal->isRunning());
+    bool isBreedingFood = item != nullptr && (item == Items::COD || item == Items::SALMON);
+    double distSq = player.distanceSqTo(*this);
+    
+    if (isTempting && !m_trusting && isBreedingFood && distSq < 9.0) {
+        itemStack.shrink(1);
+        
+        if (!m_world->isClientSide()) {
+            // MC 1.16.5: 1/3 概率建立信任
+            math::Random rng = getRandom();
+            if (rng.nextInt(3) == 0) {
+                setPlayerTrust(player.playerId(), true);
+                spawnTrustingParticles(true);  // 心形粒子
+            } else {
+                spawnTrustingParticles(false); // 烟雾粒子
+            }
+        }
+        return ActionResultType::Success;
     }
-    return item == Items::COD || item == Items::SALMON;
-}
-
-// OcelotEntity::spawnBaby - 生成幼体
-std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
-    // 创建一个新的豹猫实体，不需要继承父母特征
-    auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
-    baby->setChild(true);
-    baby->setPosition(x(), y(), z());
-    return baby;
+    
+    return AnimalEntity::interactMob(player, hand);
 }
 ```
+
+### AI 目标列表
+
+豹猫实现了完整的 AI 目标系统，符合 MC 1.16.5 原版行为：
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳（最高优先级） |
+| 3 | OcelotTemptGoal | 生鱼诱惑（未信任时被快速移动吓跑） |
+| 4 | OcelotAvoidPlayerGoal | 避开玩家（未信任时） |
+| 7 | LeapAtTargetGoal | 跳跃攻击目标 |
+| 8 | OcelotAttackGoal | 近战攻击（小鸡/海龟） |
+| 9 | BreedGoal | 繁殖 |
+| 10 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 |
+| 11 | LookAtGoal | 看向玩家 |
+| - | NearestAttackableTargetGoal<ChickenEntity> | 攻击目标选择器：小鸡 |
+| - | NearestAttackableTargetGoal<TurtleEntity> | 攻击目标选择器：海龟 |
+
+### 内部 AI Goal 类
+
+豹猫实现了三个内部 Goal 类来支持特有的行为：
+
+#### OcelotAvoidPlayerGoal
+
+继承自 `AvoidEntityGoal`，只在未信任时执行：
+
+```cpp
+class OcelotAvoidPlayerGoal : public AvoidEntityGoal {
+public:
+    OcelotAvoidPlayerGoal(OcelotEntity* ocelot, f32 avoidDistance, 
+                          f64 farSpeed, f64 nearSpeed);
+    bool shouldExecute() override;           // 只在未信任时返回 true
+    bool shouldContinueExecuting() override; // 只在未信任时返回 true
+};
+```
+
+- **检测距离**: 16 格
+- **远距离逃避速度**: 0.8
+- **近距离逃避速度**: 1.33（更快）
+- **动态管理**: 通过 `setupTrustingAI()` 在信任建立时移除
+
+#### OcelotTemptGoal
+
+继承自 `TemptGoal`，被快速移动吓跑的行为根据信任状态变化：
+
+```cpp
+class OcelotTemptGoal : public TemptGoal {
+public:
+    OcelotTemptGoal(OcelotEntity* ocelot, f64 speed, 
+                    ItemPredicate itemPredicate, bool scaredByMovement);
+protected:
+    bool isScaredByPlayerMovement() const override; // 未信任时才害怕
+};
+```
+
+- **诱惑速度**: 0.6
+- **诱惑物品**: COD、SALMON
+- **scaredByMovement**: true（但信任后不再害怕）
+
+#### OcelotAttackGoal
+
+继承自 `Goal`，实现豹猫特有的跳跃攻击：
+
+```cpp
+class OcelotAttackGoal : public Goal {
+public:
+    explicit OcelotAttackGoal(OcelotEntity* ocelot);
+    bool shouldExecute() override;
+    bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+};
+```
+
+- **互斥标志**: `Move`, `Look`
+- **攻击冷却**: 20 ticks
+- **停止追踪距离**: 15 格
+- **攻击范围**: `width * 2`
+
+### 动态 AI 管理
+
+豹猫实现了 `setupTrustingAI()` 方法来动态管理 AI：
+
+```cpp
+void OcelotEntity::setupTrustingAI() {
+    // MC 1.16.5: OcelotEntity.func_213529_dV()
+    if (m_avoidPlayerGoal == nullptr) {
+        m_avoidPlayerGoal = new OcelotAvoidPlayerGoal(
+            this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
+    }
+    
+    // 先移除已有的 AvoidPlayerGoal
+    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    
+    // 如果未信任，添加避开玩家目标
+    if (!m_trusting) {
+        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+    }
+}
+```
+
+此方法在信任状态改变时调用，确保信任后豹猫不再逃避玩家。
 
 ### 特殊属性
 
@@ -223,35 +396,183 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 |------|-----|------|
 | 生命值 | 10.0 | MC 1.16.5 豹猫生命值 |
 | 移动速度 | 0.3 | MC 1.16.5 豹猫移动速度 |
+| 攻击伤害 | 3.0 | MC 1.16.5 豹猫攻击伤害 |
 | 眼睛高度（成体） | 0.6 | 成年豹猫眼睛高度 |
 | 眼睛高度（幼体） | 0.3 | 幼年豹猫眼睛高度 |
+| 摔落伤害免疫 | 是 | 豹猫免疫摔落伤害 |
+| 消失条件 | 信任后不消失 | 未信任豹猫 2400 tick 后可消失 |
 
-### 豹猫类型
+## 猫实体系统（CatEntity）
 
-豹猫支持多种皮肤类型（MC 1.16.5 中这些类型用于驯服后的猫，豹猫本身只有野生类型）：
+猫是可驯服的猫科动物，具有多种皮肤和独特的行为模式。
+
+### 驯服物品
+
+猫使用**生鱼**驯服和繁殖：
+
+| 物品 | 说明 |
+|------|------|
+| 生鳕鱼 (`COD`) | 可驯服、可繁殖 |
+| 生鲑鱼 (`SALMON`) | 可驯服、可繁殖 |
+
+### 皮肤类型
+
+猫有 11 种皮肤类型（MC 1.16.5）：
 
 | 类型 | 值 | 说明 |
 |------|-----|------|
-| Wild | 0 | 野生豹猫 |
-| Tuxedo | 1 | 黑白猫 |
-| Tabby | 2 | 虎斑猫 |
-| Red | 3 | 红猫 |
-| Siamese | 4 | 暹罗猫 |
-| British | 5 | 英短 |
-| Calico | 6 | 三花猫 |
-| Persian | 7 | 波斯猫 |
-| Ragdoll | 8 | 布偶猫 |
-| White | 9 | 白猫 |
-| Jellie | 10 | Jellie猫 |
+| Tabby | 0 | 虎斑猫 |
+| Black | 1 | 黑猫 |
+| Red | 2 | 红猫/姜黄猫 |
+| Siamese | 3 | 暹罗猫 |
+| BritishShorthair | 4 | 英国短毛猫 |
+| Calico | 5 | 三花猫 |
+| Persian | 6 | 波斯猫 |
+| Ragdoll | 7 | 布偶猫 |
+| White | 8 | 白猫 |
+| Jellie | 9 | Jellie猫（社区投票） |
+| AllBlack | 10 | 全黑猫（万圣节） |
 
-**参考**: `net.minecraft.entity.passive.OcelotEntity`
+### 内部 AI Goal 类
+
+猫实现了两个内部 Goal 类来支持特有的行为：
+
+#### CatTemptGoal
+
+继承自 `TemptGoal`，只在未驯服时执行：
+
+```cpp
+class CatTemptGoal : public TemptGoal {
+public:
+    CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement);
+    bool shouldExecute() override;  // 只在未驯服时返回 true
+};
+```
+
+- **诱惑速度**: 0.6（比其他动物慢）
+- **诱惑物品**: COD、SALMON
+- **scaredByMovement**: true（会被玩家快速移动吓跑）
+
+#### CatAvoidPlayerGoal
+
+继承自 `AvoidEntityGoal`，只在未驯服时执行：
+
+```cpp
+class CatAvoidPlayerGoal : public AvoidEntityGoal {
+public:
+    CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDistance, f64 farSpeed, f64 nearSpeed);
+    bool shouldExecute() override;           // 只在未驯服时返回 true
+    bool shouldContinueExecuting() override; // 只在未驯服时返回 true
+};
+```
+
+- **检测距离**: 16 格
+- **远距离逃避速度**: 0.8
+- **近距离逃避速度**: 1.33（更快）
+- **动态管理**: 通过 `setupTamedAI()` 在驯服时移除
+
+### AI 目标列表
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳（最高优先级） |
+| 1 | PanicGoal | 恐慌逃跑 |
+| 1 | SitGoal | 坐下（驯服后） |
+| 2 | BreedGoal | 繁殖 |
+| 3 | CatTemptGoal | 食物诱惑（未驯服） |
+| 4 | CatAvoidPlayerGoal | 避开玩家（未驯服） |
+| 5 | FollowParentGoal | 跟随父母 |
+| 6 | FollowOwnerGoal | 跟随主人（驯服后） |
+| 10 | WaterAvoidingRandomWalkingGoal | 避水随机漫步 |
+| 12 | LookAtGoal | 看向玩家 |
+| 13 | LookRandomlyGoal | 随机看向 |
+
+### 动态 AI 管理
+
+猫实现了 `setupTamedAI()` 方法来动态管理 AI：
+
+```cpp
+void CatEntity::setupTamedAI()
+{
+    // 创建 AvoidPlayerGoal（如果尚未创建）
+    if (m_avoidPlayerGoal == nullptr) {
+        m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, 16.0f, 0.8, 1.33);
+    }
+    
+    // 先移除已有的 AvoidPlayerGoal
+    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    
+    // 如果未驯服，添加避开玩家目标
+    if (!isTamed()) {
+        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+    }
+}
+```
+
+此方法在 `onTamed()` 回调中被调用，确保驯服后猫不再逃避玩家。
+
+**参考**: `net.minecraft.entity.passive.CatEntity`
 
 ## AI目标
 
-| Goal | 优先级 | 说明 |
-|------|--------|------|
-| SitGoal | 1 | 坐下时保持不动 |
-| FollowOwnerGoal | 3 | 跟随主人 |
-| BegGoal | 7 | 乞求食物 |
-| OwnerHurtByTargetGoal | - | 主人被攻击时反击 |
-| OwnerHurtTargetGoal | - | 攻击主人攻击的目标 |
+### 狼实体 (WolfEntity)
+
+狼实体实现了完整的 AI 目标系统，包括行为目标和目标选择器：
+
+#### 行为目标 (goalSelector)
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 1 | PanicGoal | 恐慌逃跑 |
+| 1 | SitGoal | 坐下（驯服后） |
+| 2 | BreedGoal | 繁殖 |
+| 3 | AvoidEntityGoal | 未驯服时避开羊驼（基于强度判定） |
+| 4 | LeapAtTargetGoal | 跳跃攻击 |
+| 5 | MeleeAttackGoal | 近战攻击 |
+| 6 | FollowOwnerGoal | 跟随主人 |
+| 4 | TemptGoal | 食物诱惑 |
+| 5 | FollowParentGoal | 跟随父母 |
+| 6 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+| 9 | BegGoal | 乞求食物 |
+
+#### 目标选择器 (targetSelector)
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | OwnerHurtByTargetGoal | 主人被攻击时反击 |
+| 2 | OwnerHurtTargetGoal | 攻击主人正在攻击的目标 |
+| 3 | HurtByTargetGoal(true) | 被攻击后反击并呼叫同伴 |
+| 5 | NearestAttackableTargetGoal | 攻击羊/兔子/狐狸（未驯服时） |
+| 6 | NonTamedTargetGoal<TurtleEntity> | 攻击幼海龟（未驯服时） |
+| 7 | NearestAttackableTargetGoal | 攻击骷髅类怪物 |
+
+#### 羊驼躲避逻辑
+
+狼会根据羊驼的强度决定是否躲避：
+
+```cpp
+// 未驯服的狼会避开羊驼
+// 羊驼强度 >= 随机值(0-4) 时，狼会躲避
+// 强度1: 20%概率吓跑，强度4: 80%概率吓跑
+math::Random rng = getRandom();
+return llama->getStrength() >= rng.nextInt(5);
+```
+
+#### 驯服前后行为变化
+
+| 行为 | 未驯服 | 驯服后 |
+|------|--------|--------|
+| 攻击羊/兔子/狐狸 | 是 | 否 |
+| 攻击幼海龟 | 是 | 否 |
+| 攻击骷髅类怪物 | 是 | 是 |
+| 保护主人 | 否 | 是 |
+| 跟随主人 | 否 | 是 |
+| 坐下/站起 | 否 | 是 |
+| 躲避羊驼 | 是 | 否 |
+| 生命值 | 8 | 20 |
+| 攻击力 | 2 | 4 |
+
+**参考**: `net.minecraft.entity.passive.WolfEntity`

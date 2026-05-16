@@ -37,14 +37,12 @@
 #include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/TurtleGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/LivingEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -198,18 +196,45 @@ void TurtleEntity::layEgg()
 
 void TurtleEntity::registerGoals()
 {
-    // 调用父类方法注册基础动物 AI
-    // AnimalEntity 已经注册了基础目标
+    // MC 1.16.5: TurtleEntity.registerGoals()
+    // 参考: net.minecraft.entity.passive.TurtleEntity.registerGoals()
+
+    // 优先级 0: 恐慌逃跑（最高优先级）
+    // 海龟恐慌时优先寻找水源
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::TurtlePanicGoal>(this, 1.2));
+
+    // 优先级 1: 繁殖和产卵
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::TurtleMateGoal>(this, 1.0));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::TurtleLayEggGoal>(this, 1.0));
+
+    // 优先级 2: 海草诱惑
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::TurtleTemptGoal>(this, 1.1));
+
+    // 优先级 3: 前往水中
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::TurtleGoToWaterGoal>(this, 1.0));
+
+    // 优先级 4: 返回出生地
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::TurtleGoHomeGoal>(this, 1.0));
+
+    // 优先级 5: 跟随父母（幼年海龟）
+    // 由 AnimalEntity::registerGoals() 注册
+
+    // 优先级 7: 旅行（在水中随机游泳）
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::TurtleTravelGoal>(this, 1.0));
+
+    // 优先级 8: 看向玩家
+    // MC 1.16.5: LookAtGoal(this, PlayerEntity.class, 8.0F)
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
+        [](const LivingEntity* entity) -> bool {
+            // 只看向玩家
+            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+        }));
+
+    // 优先级 9: 随机游荡（只在陆地上）
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::TurtleWanderGoal>(this, 1.0, 100));
+
+    // 调用父类方法注册基础动物 AI（包括 SwimGoal、FollowParentGoal 等）
     AnimalEntity::registerGoals();
-
-    // 海龟特有目标
-    // 优先级 3: 食物诱惑（海草）
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isSeagrassPredicate));
-
-    // TODO: 海龟特有目标
-    // - TurtleGoHomeGoal: 返回出生地
-    // - TurtleLayEggGoal: 产卵
-    // - TurtleTravelGoal: 前往海里
 }
 
 void TurtleEntity::registerAttributes()

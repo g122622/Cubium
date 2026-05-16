@@ -150,6 +150,31 @@ TridentEngine::render()
 - **transformSpear**: 三叉戟投掷动画，准备投掷姿势
 - **transformCrossbow**: 弩装填动画，装填过程中的位置变化
 
+### 弩姿态检测 (CrossbowHold)
+
+当弩处于装填完成状态时，显示 `CrossbowHold` 姿态：
+
+```cpp
+ArmPose FirstPersonRenderer::determineArmPose(const ItemStack& heldItem, const Item* item)
+{
+    // ... 其他检测 ...
+
+    // 弩装填完成检测
+    if (dynamic_cast<const item::CrossbowItem*>(item) != nullptr) {
+        if (item::CrossbowItem::isCharged(heldItem)) {
+            return ArmPose::CrossbowHold;
+        }
+    }
+
+    // ... 默认返回 EmptyHand ...
+}
+```
+
+**检测逻辑**:
+- 使用 `CrossbowItem::isCharged(heldItem)` 检查弩是否已装填
+- 装填完成返回 `ArmPose::CrossbowHold` 姿态
+- 参考 MC 1.16.5 `FirstPersonRenderer.getItemInHandRenderer()`
+
 ## 变换系统
 
 手部和物品的变换通过矩阵栈实现：

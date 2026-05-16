@@ -82,6 +82,8 @@ add_executable(mc_tests
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
     # BegGoal 驯服物品乞求测试
     entity/BegGoalTest.cpp
+    # CatEntity 猫实体测试（驯服物品、繁殖物品、CatTemptGoal、CatAvoidPlayerGoal）
+    entity/CatEntityTest.cpp
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
@@ -91,6 +93,10 @@ add_executable(mc_tests
     common/entity/entities/passive/special/BeeEntityTest.cpp
     # TurtleEntity 下蛋逻辑测试
     common/entity/entities/passive/special/TurtleEntityTest.cpp
+    # 海龟 AI 目标测试
+    entity/TurtleGoalsTest.cpp
+    # 蜜蜂 AI 目标测试
+    common/entity/BeeGoalsTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
@@ -107,6 +113,8 @@ add_executable(mc_tests
     # PufferfishEntity 膨胀目标和敌人检测测试
     common/entity/entities/passive/fish/PufferfishEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    # MagmaCubeEntity 岩浆怪测试（继承自史莱姆）
+    common/entity/entities/monster/MagmaCubeEntityTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
     # 铁傀儡 AI 目标测试
@@ -114,21 +122,53 @@ add_executable(mc_tests
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp
+    # RavagerEntity 劫掠兽测试
+    entity/RavagerEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
+    # ZombieVillagerEntity 床和铁栏杆加速治愈测试
+    entity/ZombieVillagerConversionTest.cpp
+    # ZombieEntity 僵尸转溺尸测试
+    common/entity/entities/monster/undead/ZombieEntityTest.cpp
+    # SkeletonEntity 骷髅射箭测试
+    common/entity/entities/monster/undead/SkeletonEntityTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
+    # EvokerEntity 尖牙攻击和召唤恼鬼测试
+    common/entity/entities/monster/illager/EvokerEntityTest.cpp
+    # PillagerEntity 弩远程攻击和 VindicatorEntity 近战攻击测试
+    common/entity/entities/monster/illager/PillagerEntityTest.cpp
+    # WitchEntity 药水决策和治疗效果测试
+    common/entity/entities/monster/illager/WitchEntityTest.cpp
+    # SpellcastingIllager 施法粒子颜色测试
+    common/entity/entities/monster/illager/SpellcastingIllagerTest.cpp
+    # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
+    common/entity/entities/monster/end/ShulkerEntityTest.cpp
+    # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
+    common/entity/entities/monster/end/EndermanStareDetectionTest.cpp
+    # EndermanEntity 方块放置和拾取测试（BlockTags::ENDERMAN_HOLDABLE、EndermanPlaceBlockGoal、EndermanTakeBlockGoal）
+    common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp
+    # EndermanEntity 攻击末影螨目标测试（NearestAttackableTargetGoal<EndermiteEntity>、isSpawnedByPlayer）
+    common/entity/entities/monster/end/EndermanEndermiteTargetTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
-    # WitherEntity 数据参数和目标追踪测试
-    common/entity/entities/boss/WitherEntityTest.cpp
+    # EnderCrystalEntity 治愈末影龙测试
+    common/entity/entities/effect/EnderCrystalHealTest.cpp
+    # MonsterEntity 生成位置检查测试
+    common/entity/entities/monster/MonsterSpawnTest.cpp
     # BoostHelper NBT 序列化测试
     common/entity/core/BoostHelperTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
     common/entity/core/LivingEntityArrowCountTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
+    # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
+    common/entity/core/EntityIsInRainTest.cpp
+    # Entity::isOnSameTeam() 队伍系统测试
+    entity/EntityTeamTest.cpp
+    # Player::attack() 横扫攻击过滤、荆棘附魔反伤、武器损耗测试
+    entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
     common/entity/interfaces/IRideableTest.cpp
     # 成就系统测试
@@ -143,6 +183,10 @@ add_executable(mc_tests
     advancement/PlayerInteractedWithEntityTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
+    # PlayerDestroyItemEvent 物品销毁事件测试
+    server/event/PlayerDestroyItemEventTest.cpp
+    # 村庄声望治愈僵尸村民测试
+    server/advancement/VillageReputationTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
@@ -151,6 +195,8 @@ add_executable(mc_tests
     common/entity/experience/ExperienceOrbEntityTest.cpp
     # 箭矢拾取测试
     common/entity/ArrowPickupTest.cpp
+    # ArrowEntity 药水箭测试（效果、颜色、NBT标签）
+    common/entity/ArrowEntityTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # 战斗追踪器测试
@@ -233,16 +279,40 @@ add_executable(mc_tests
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
     entity/StriderEntityTest.cpp
+    entity/PigEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
+    # Player LUCK 属性测试
+    entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/EatGrassGoalTest.cpp
     entity/CreeperSwellGoalTest.cpp
+    entity/AreaEffectCloudEntityTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
+    # 火球类投射物测试（伤害、爆炸、区域效果云）
+    entity/FireballEntityTest.cpp
+    # LookAtGoal 类型过滤测试
+    common/entity/ai/goal/LookAtGoalTest.cpp
+    # FishSwimGoal 鱼类游泳目标测试
+    common/entity/ai/goal/FishSwimGoalTest.cpp
     entity/GhastEntityTest.cpp
+    # 恶魂 AI 目标测试
+    common/entity/GhastGoalsTest.cpp
     entity/GuardianAttackGoalTest.cpp
+    # 猪灵类实体测试（金装备检测、AI 目标）
+    entity/PlayerGoldArmorTest.cpp
+    entity/NetherEntitiesTest.cpp
+    # PatrolGoal 测试
+    common/entity/ai/goal/PatrolGoalTest.cpp
+    entity/WitherEntityTest.cpp
+    # EndermanEntity 受伤后瞬移逻辑测试
+    entity/EndermanHurtTeleportTest.cpp
+    # EndermanEntity AI 目标测试（ResetAngerGoal, WaterAvoidingRandomWalkingGoal）
+    entity/EndermanAIGoalsTest.cpp
+    entity/EvokerGoalsTest.cpp
+    entity/VexGoalsTest.cpp
     entity/BrainScheduleTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
@@ -250,8 +320,13 @@ add_executable(mc_tests
     entity/HorseAppearanceSupportTypesTest.cpp
     entity/HorseSupportTypesTest.cpp
     entity/HorseTamingTest.cpp
+    entity/HorseBreedingTest.cpp
     entity/HorseJumpBoostTest.cpp
+    entity/HorseAiGoalsTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
+    common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
+    # 骷髅马陷阱触发集成测试（triggerTrap 完整流程、困难模式额外骷髅马）
+    common/entity/entities/passive/horse/SkeletonHorseTrapIntegrationTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
@@ -262,15 +337,31 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerSleepTest.cpp
     entity/ProjectileHelperTest.cpp
+    # FishingBobberEntity 钩住实体测试
+    common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
+    # FireworkRocketEntity 爆炸伤害测试
+    common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp
     entity/ShoulderRidingSupportTypesTest.cpp
+    # 鹦鹉 AI 目标测试（LandOnOwnersShoulderGoal, WaterAvoidingRandomFlyingGoal, FollowMobGoal）
+    entity/ParrotGoalsTest.cpp
     entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
     entity/WalkNodeProcessorTests.cpp
     common/entity/ai/pathfinding/PathNavigatorTest.cpp
     entity/RandomWalkingGoalTest.cpp
+    common/entity/MoveToLavaGoalTest.cpp
+    common/entity/ai/goal/goals/special/TriggerSkeletonTrapGoalTest.cpp
+    common/entity/ai/goal/goals/special/FoxGoalsTest.cpp
+    # PandaGoals 熊猫打滚 AI 目标测试
+    common/entity/ai/goal/goals/special/PandaGoalsTest.cpp
+    common/entity/ai/goal/goals/special/SilverfishGoalsTest.cpp
+    # DolphinGoals 海豚 AI 目标测试
+    common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
+    # RandomPositionGenerator 随机位置生成器测试
+    common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp
@@ -324,6 +415,9 @@ add_executable(mc_tests
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
     client/world/entity/ClientEntityTest.cpp
+    client/world/ClientWorldLightUpdateTest.cpp
+    # ClientWorld 区块清空测试（维度切换时使用）
+    client/world/ClientWorldClearChunksTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
     client/test_sound_handlers.cpp
@@ -857,6 +951,18 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
         # EndermanEntity 用于 HeldBlockLayer 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/end/EndermanEntity.cpp
+        # NetherEntities 用于恶魂测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/nether/NetherEntities.cpp
+        # EndermanGoals 用于注视检测测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/EndermanGoals.cpp
+        # GhastGoals 用于恶魂 AI 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/GhastGoals.cpp
+        # FoxGoals 用于狐狸 AI 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/FoxGoals.cpp
+        # PandaGoals 用于熊猫打滚 AI 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/PandaGoals.cpp
+        # GhastMovementController 用于恶魂飞行控制器测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp

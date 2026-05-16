@@ -29,12 +29,15 @@
 #include "../../../world/village/trade/Merchant.hpp"
 #include "../../../world/village/trade/VillagerTrades.hpp"
 #include "../../../world/village/trade/WanderingTraderTrades.hpp"
+#include "../../../world/village/poi/PointOfInterestStorage.hpp"
+#include "../../../world/village/VillageManager.hpp"
 #include "../../ai/brain/memory/MemoryModuleType.hpp"
 #include "../../ai/brain/schedule/Activity.hpp"
 #include "../../ai/brain/schedule/Schedule.hpp"
 #include "../../ai/brain/sensor/Sensors.hpp"
 #include "../../ai/goal/goals/villager/VillagerGoals.hpp"
 #include "../../attribute/Attributes.hpp"
+#include "../../core/EntityPose.hpp"
 #include <memory>
 
 namespace mc {
@@ -270,6 +273,86 @@ void VillagerEntity::restockTrades()
         m_offers->restockAll();
     }
     m_lastRestock = m_workTime;
+}
+
+// ========== 睡眠相关 ==========
+
+bool VillagerEntity::isSleeping() const
+{
+    return pose() == EntityPose::Sleeping;
+}
+
+void VillagerEntity::startSleeping(BlockPos pos)
+{
+    // 参考 MC 1.16.5 LivingEntity.startSleeping()
+
+    // 如果正在骑乘，先停止骑乘
+    if (getVehicle() != INVALID_ENTITY_ID) {
+        stopRiding();
+    }
+
+    // 设置睡眠姿态
+    setPose(EntityPose::Sleeping);
+
+    // 记录睡眠位置
+    m_sleepingPos = pos;
+
+    // 设置位置到床的中心（稍微抬高）
+    setPosition(pos.x + 0.5, pos.y + 0.6875, pos.z + 0.5);
+
+    // 清除速度
+    setVelocity(0.0, 0.0, 0.0);
+
+    // 记录上次睡眠时间到Brain记忆
+    if (m_brain && m_world) {
+        m_brain->setMemory(ai::brain::memory::MemoryModuleTypes::LAST_SLEPT, static_cast<i64>(m_world->currentTick()));
+    }
+}
+
+void VillagerEntity::stopSleeping()
+{
+    // 参考 MC 1.16.5 LivingEntity.wakeUp()
+
+    // 只有在睡眠时才需要唤醒
+    if (!isSleeping()) {
+        return;
+    }
+
+    // 如果有睡眠位置，计算唤醒位置
+    if (m_sleepingPos.has_value() && m_world) {
+        BlockPos bedPos = m_sleepingPos.value();
+
+        // 计算唤醒位置（床旁边）
+        // 参考 MC 1.16.5 BedBlock.getWakeUpPosition()
+        // 简化实现：在床的朝向方向找一个空位
+        // 这里暂时使用床上方位置
+        Vector3d wakeUpPos(bedPos.x + 0.5, bedPos.y + 1.0, bedPos.z + 0.5);
+
+        // 设置位置
+        setPosition(wakeUpPos.x, wakeUpPos.y, wakeUpPos.z);
+    }
+
+    // 恢复站立姿态
+    setPose(EntityPose::Standing);
+
+    // 清除睡眠位置
+    m_sleepingPos = std::nullopt;
+
+    // 记录上次醒来时间到Brain记忆
+    if (m_brain && m_world) {
+        m_brain->setMemory(ai::brain::memory::MemoryModuleTypes::LAST_WOKEN, static_cast<i64>(m_world->currentTick()));
+    }
+}
+
+bool VillagerEntity::isNightTime() const
+{
+    if (!m_world) {
+        return false;
+    }
+
+    i64 dayTime = m_world->dayTime();
+    // 夜间时间：12542 - 23459
+    return dayTime >= 12542 && dayTime <= 23459;
 }
 
 void VillagerEntity::updateOffers()

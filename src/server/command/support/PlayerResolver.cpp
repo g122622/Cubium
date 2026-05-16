@@ -23,11 +23,20 @@
 
 #include "PlayerResolver.hpp"
 
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/loot/LootConditions.hpp"
+#include "common/entity/loot/LootContext.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/Score.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -164,6 +173,109 @@ namespace {
         if (!matches) {
             return false;
         }
+    }
+
+    // 检查记分板分数条件
+    // 参考 MC 1.16.5 EntityOptions.scores 过滤器
+    if (selector.hasScoreConditions()) {
+        if (server == nullptr) {
+            return false;
+        }
+        auto& scoreboard = server->scoreboard();
+        const std::string& playerName = playerData.username;
+
+        for (const auto& [objectiveName, range] : selector.scoreConditions()) {
+            auto* objective = scoreboard.getObjective(objectiveName);
+            if (objective == nullptr) {
+                // 目标不存在，不匹配
+                return false;
+            }
+            if (!scoreboard.entityHasObjective(playerName, *objective)) {
+                // 玩家没有该目标的分数，不匹配
+                return false;
+            }
+            auto* score = scoreboard.getScore(playerName, *objective);
+            if (score == nullptr) {
+                return false;
+            }
+            if (!range.test(score->getScorePoints())) {
+                // 分数不在范围内，不匹配
+                return false;
+            }
+        }
+    }
+
+    // 检查进度条件
+    // 参考 MC 1.16.5 EntityOptions.advancements 过滤器
+    if (selector.hasAdvancementConditions()) {
+        if (playerData.advancements == nullptr) {
+            return false;
+        }
+
+        auto& manager = advancement::AdvancementManager::instance();
+        for (const auto& [advancementId, condition] : selector.advancementConditions()) {
+            auto advancement = manager.get(advancementId);
+            if (advancement == nullptr) {
+                // 进度不存在，不匹配
+                return false;
+            }
+
+            auto* progress = playerData.advancements->getProgress(advancement);
+            if (progress == nullptr) {
+                // 玩家没有该进度的进度记录，不匹配
+                return false;
+            }
+
+            // 检查整体完成状态
+            if (condition.isComplete.has_value()) {
+                bool isDone = progress->isDone();
+                if (isDone != condition.isComplete.value()) {
+                    return false;
+                }
+            }
+
+            // 检查各准则的完成状态
+            for (const auto& [criteriaName, expectedComplete] : condition.criteriaConditions) {
+                auto* criterionProgress = progress->getCriterion(criteriaName);
+                if (criterionProgress == nullptr) {
+                    // 准则不存在，不匹配
+                    return false;
+                }
+                bool isObtained = criterionProgress->isObtained();
+                if (isObtained != expectedComplete) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // ========== 待完善功能：NBT 条件过滤 ==========
+    // 当前状态：参数解析已实现，过滤逻辑待完善
+    // 依赖：Entity 类需要实现 serializeNBT() 方法以获取实体的 NBT 数据
+    // 参考：MC 1.16.5 EntityOptions.nbt 过滤器
+    if (selector.hasNbtCondition()) {
+        // TODO(待完善): 实现完整 NBT 条件过滤逻辑
+        // 步骤:
+        // 1. 从 PlayerEntityManager 获取玩家实体
+        // 2. 调用 entity->serializeNBT() 获取实体 NBT 数据
+        // 3. 使用 NbtHelper::compare() 比较 NBT 标签
+        // 4. 根据 negated 标志决定是否取反结果
+        // 当前行为：跳过 NBT 检查，不排除任何玩家
+    }
+
+    // ========== 待完善功能：谓词条件过滤 ==========
+    // 当前状态：参数解析已实现，过滤逻辑待完善
+    // 依赖：需要 LootConditionManager 和 LootContext 支持战利品表谓词评估
+    // 参考：MC 1.16.5 EntityOptions.predicate 过滤器
+    if (selector.hasPredicateCondition()) {
+        // TODO(待完善): 实现完整谓词条件过滤逻辑
+        // 步骤:
+        // 1. 从服务器获取 LootConditionManager
+        // 2. 通过 ResourceLocation 加载谓词定义
+        // 3. 创建 LootContext (包含实体、位置、世界等上下文)
+        // 4. 评估谓词条件并返回结果
+        // 5. 根据 negated 标志决定是否取反结果
+        // 当前行为：跳过谓词检查，不排除任何玩家
     }
 
     return true;

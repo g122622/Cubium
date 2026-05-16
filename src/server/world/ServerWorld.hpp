@@ -288,6 +288,16 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getPlayers() const override;
+
+    // ========== 最近玩家查询 ==========
+
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) override;
+    [[nodiscard]] const Player* getClosestPlayer(const Vector3& pos, f32 maxDistance = -1.0f) const override;
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) override;
+    [[nodiscard]] const Player* getClosestPlayer(
+        const Vector3& pos, f32 maxDistance, const Entity* exclude) const override;
+    [[nodiscard]] f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
+
     [[nodiscard]] DimensionId dimension() const override { return m_config.dimension; }
     [[nodiscard]] bool isUltraWarm() const override { return getDimensionType().ultraWarm(); }
     [[nodiscard]] DimensionType getDimensionType() const;
@@ -714,6 +724,20 @@ public:
      * @param villager 治愈后的村民实体
      */
     void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) override;
+
+    /**
+     * @brief 通知世界玩家物品销毁
+     *
+     * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。
+     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 销毁前的物品副本
+     * @param slot 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+     * @param hand 使用的手（MainHand 或 OffHand）
+     */
+    void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand) override;
 
     /**
      * @brief 检查并处理全员睡眠
