@@ -81,8 +81,10 @@ void VillagerEntity::tick()
         m_soundCooldown--;
     }
 
-    // 检查工作站点
-    // TODO: 检查是否在工作时间且在工作站点附近
+    // 工作站点检查由 WorkAtJobSiteGoal 自动处理
+    // - shouldExecute() 检查是否是工作时间 (2000-9000 ticks) 和是否有工作站点
+    // - tick() 中使用 isWithinDistance() 检查是否在工作站点附近
+    // - Schedule 系统在 2000 ticks 时自动切换到 WORK 活动
 }
 
 void VillagerEntity::initializeBrain()
@@ -205,9 +207,13 @@ bool VillagerEntity::canWork() const
 
 void VillagerEntity::rest()
 {
+    // 停止工作状态
+    // MC 1.16.5: 村民的睡眠由Brain系统自动管理，不需要在此主动触发
+    // - Schedule::VILLAGER_DEFAULT 在游戏时间12000 ticks时切换到 Activity::REST
+    // - SleepAtNightGoal 在REST活动期间自动检查睡眠条件并执行睡眠
+    // - 参考: SleepAtNightGoal::trySleep() -> VillagerEntity::startSleeping()
     m_working = false;
     m_atWorkstation = false;
-    // TODO: 去睡觉
 }
 
 void VillagerEntity::work()
