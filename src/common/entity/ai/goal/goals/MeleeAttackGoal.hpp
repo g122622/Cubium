@@ -74,7 +74,7 @@ protected:
      * @param target 目标实体
      * @param distToEnemySqr 到敌人的距离平方
      */
-    void checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr);
+    virtual void checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr);
 
     /**
      * @brief 执行攻击
