@@ -479,24 +479,59 @@ enum class RaiderState {
 ### 施法状态
 
 ```cpp
-enum class SpellType {
-    None,       // 无
-    SummonVex,  // 召唤恼鬼（唤魔者）
-    Fangs,      // 尖牙攻击（唤魔者）
-    Wololo,     // 唔噜噜（唤魔者，转换羊）
-    Disappear,  // 消失（幻术师分身）
-    Blindness   // 失明（幻术师失明攻击）
+enum class SpellType : u8 {
+    None = 0,       // 无施法
+    SummonVex = 1,  // 召唤恼鬼（唤魔者）- 淡蓝白色粒子 (0.7, 0.7, 0.8)
+    Fangs = 2,      // 尖牙攻击（唤魔者）- 棕色粒子 (0.4, 0.3, 0.35)
+    Wololo = 3,     // 唔噜噜法术（唤魔者，转换羊）- 橙黄色粒子 (0.7, 0.5, 0.2)
+    Disappear = 4,  // 消失/镜像法术（幻术师）- 蓝色粒子 (0.3, 0.3, 0.8)
+    Blindness = 5   // 失明法术（幻术师）- 深蓝/深紫色粒子 (0.1, 0.1, 0.2)
 };
 ```
 
 ### 方法
 
-- `isSpellcasting()`: 是否在施法
-- `spellType()`: 获取法术类型
-- `spellTicks()`: 获取施法 tick
-- `setSpellType(SpellType)`: 设置法术类型
-- `setSpellTicks(int)`: 设置施法持续时间
-- `clearSpellcasting()`: 清除施法状态
+| 方法 | 说明 |
+|------|------|
+| `isSpellcasting()` | 是否在施法（spellTicks > 0） |
+| `spellType()` | 获取当前法术类型 |
+| `spellTicks()` | 获取剩余施法 tick |
+| `setSpellType(SpellType)` | 设置法术类型 |
+| `setSpellTicks(i32)` | 设置施法持续时间 |
+| `clearSpellcasting()` | 清除施法状态 |
+| `spellTypeFromId(i32)` | 从整数 ID 转换为 SpellType 枚举 |
+| `getSpellParticleColor(SpellType)` | 获取法术类型的粒子颜色（RGB 速度参数） |
+
+### 施法粒子效果
+
+客户端施法时，会在实体两侧生成对应颜色的粒子：
+
+- **粒子类型**：`ParticleTypeId::EntityEffect`
+- **生成条件**：客户端且正在施法（`isSpellcasting() == true`）
+- **生成位置**：
+  - 高度偏移：实体 Y + 1.8（头部高度）
+  - 横向偏移：±0.6（左右两侧各一个粒子）
+  - 动态摆动：根据 `renderYawOffset` 和 `ticksExisted * 0.6662` 计算
+- **颜色传递**：通过速度参数 (dx, dy, dz) 传递 RGB 颜色值
+
+```cpp
+// MC 1.16.5: 粒子位置计算
+float angle = renderYawOffset * (PI / 180) + cos(ticksExisted * 0.6662) * 0.25;
+float cosAngle = cos(angle);
+float sinAngle = sin(angle);
+
+// 右侧粒子
+world.addParticle(EntityEffect,
+    posX + cosAngle * 0.6, posY + 1.8, posZ + sinAngle * 0.6,
+    colorR, colorG, colorB);
+
+// 左侧粒子
+world.addParticle(EntityEffect,
+    posX - cosAngle * 0.6, posY + 1.8, posZ - sinAngle * 0.6,
+    colorR, colorG, colorB);
+```
+
+参考 MC 1.16.5 `SpellcastingIllagerEntity.tick()` 第83-96行
 
 ## EvokerEntity
 
