@@ -343,6 +343,8 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerSleepTest.cpp
     entity/ProjectileHelperTest.cpp
+    # ThrowableEntity 传送门处理测试（下界传送门、末地折跃门）
+    entity/ThrowablePortalTest.cpp
     # FishingBobberEntity 钩住实体测试
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
     # FireworkRocketEntity 爆炸伤害测试

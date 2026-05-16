@@ -692,3 +692,17 @@ if (livingTarget != nullptr) {
     - 使用 `blockState->getCollisionShape()` 获取碰撞形状
     - 使用 `AxisAlignedBB::contains()` 检测箭矢位置
     - 正确处理非完整方块（如台阶、楼梯、地毯等）
+
+- **投射物传送门处理实现（2026-05-17）**：
+  - `ThrowableEntity::tick()`：实现投射物的传送门检测逻辑
+    - 参考 MC 1.16.5 ThrowableEntity.tick() 第56-69行
+    - 下界传送门（NETHER_PORTAL）：设置 `setInPortal(true)` 和 `setPortalPos()`
+    - 末地折跃门（END_GATEWAY）：调用 `EndGatewayEntity::teleportEntity()` 传送实体
+    - 末地传送门（END_PORTAL）：不在此处理，由 EndPortalBlock.onEntityCollision() 直接传送
+  - 传送门处理流程：
+    1. 射线追踪检测方块碰撞
+    2. 检查命中方块是否为传送门类型
+    3. 对于下界传送门，设置实体传送门状态等待传送
+    4. 对于末地折跃门，调用方块实体的传送方法立即传送
+    5. 设置 `handledPortal = true` 阻止后续碰撞处理
+  - 测试覆盖：`tests/entity/ThrowablePortalTest.cpp`
