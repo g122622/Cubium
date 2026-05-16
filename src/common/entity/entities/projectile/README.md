@@ -546,3 +546,12 @@ if (livingTarget != nullptr) {
   - 效果持续时间：原持续时间的 1/4（MC 1.16.5 规则）
   - 设置拥有者为投射物发射者
   - 颜色从药水物品自动获取
+- **光灵箭完整实现（2026-05-17）**：
+  - `SpectralArrowEntity::tick()`：飞行时生成 InstantSpell 粒子效果
+    - 仅客户端执行（`m_world->isClientSide()`）
+    - 粒子位置：箭矢当前位置，速度为零
+    - 参考 MC 1.16.5 SpectralArrowEntity.tick() 第31-36行
+  - `SpectralArrowEntity::onEntityHit()`：命中生物时施加发光效果
+    - 目标必须是 LivingEntity
+    - 施加 EffectType::Glowing 效果，持续时间 200 ticks（10秒）
+    - 参考 MC 1.16.5 SpectralArrowEntity.arrowHit() 第43-46行
