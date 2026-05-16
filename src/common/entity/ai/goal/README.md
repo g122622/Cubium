@@ -30,7 +30,8 @@ goal/
     ├── attack/                   # 攻击类目标
     │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal, RangedCrossbowAttackGoal
     ├── target/                   # 目标选择目标
-    │   └── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
+    │   ├── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
+    │   └── README.md             # 目标选择器详细文档
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
     └── special/                  # 特殊目标

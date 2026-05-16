@@ -459,10 +459,64 @@ void CatEntity::setupTamedAI()
 
 ## AI目标
 
-| Goal | 优先级 | 说明 |
-|------|--------|------|
-| SitGoal | 1 | 坐下时保持不动 |
-| FollowOwnerGoal | 3 | 跟随主人 |
-| BegGoal | 7 | 乞求食物 |
-| OwnerHurtByTargetGoal | - | 主人被攻击时反击 |
-| OwnerHurtTargetGoal | - | 攻击主人攻击的目标 |
+### 狼实体 (WolfEntity)
+
+狼实体实现了完整的 AI 目标系统，包括行为目标和目标选择器：
+
+#### 行为目标 (goalSelector)
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 1 | PanicGoal | 恐慌逃跑 |
+| 1 | SitGoal | 坐下（驯服后） |
+| 2 | BreedGoal | 繁殖 |
+| 3 | AvoidEntityGoal | 未驯服时避开羊驼（基于强度判定） |
+| 4 | LeapAtTargetGoal | 跳跃攻击 |
+| 5 | MeleeAttackGoal | 近战攻击 |
+| 6 | FollowOwnerGoal | 跟随主人 |
+| 4 | TemptGoal | 食物诱惑 |
+| 5 | FollowParentGoal | 跟随父母 |
+| 6 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+| 9 | BegGoal | 乞求食物 |
+
+#### 目标选择器 (targetSelector)
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | OwnerHurtByTargetGoal | 主人被攻击时反击 |
+| 2 | OwnerHurtTargetGoal | 攻击主人正在攻击的目标 |
+| 3 | HurtByTargetGoal(true) | 被攻击后反击并呼叫同伴 |
+| 5 | NearestAttackableTargetGoal | 攻击羊/兔子/狐狸（未驯服时） |
+| 6 | NonTamedTargetGoal<TurtleEntity> | 攻击幼海龟（未驯服时） |
+| 7 | NearestAttackableTargetGoal | 攻击骷髅类怪物 |
+
+#### 羊驼躲避逻辑
+
+狼会根据羊驼的强度决定是否躲避：
+
+```cpp
+// 未驯服的狼会避开羊驼
+// 羊驼强度 >= 随机值(0-4) 时，狼会躲避
+// 强度1: 20%概率吓跑，强度4: 80%概率吓跑
+math::Random rng = getRandom();
+return llama->getStrength() >= rng.nextInt(5);
+```
+
+#### 驯服前后行为变化
+
+| 行为 | 未驯服 | 驯服后 |
+|------|--------|--------|
+| 攻击羊/兔子/狐狸 | 是 | 否 |
+| 攻击幼海龟 | 是 | 否 |
+| 攻击骷髅类怪物 | 是 | 是 |
+| 保护主人 | 否 | 是 |
+| 跟随主人 | 否 | 是 |
+| 坐下/站起 | 否 | 是 |
+| 躲避羊驼 | 是 | 否 |
+| 生命值 | 8 | 20 |
+| 攻击力 | 2 | 4 |
+
+**参考**: `net.minecraft.entity.passive.WolfEntity`
