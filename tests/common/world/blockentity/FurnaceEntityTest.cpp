@@ -746,3 +746,85 @@ TEST_F(FurnaceBurnTimeTest, IsFuel_ReturnsFalseForEmptyStack)
     ItemStack empty;
     EXPECT_FALSE(AbstractFurnaceEntity::isFuel(empty));
 }
+
+// ========== 告示牌燃烧时间测试 (200 tick) ==========
+// 参考: MC 1.16.5 AbstractFurnaceTileEntity 第 132 行
+// addItemTagBurnTime(map, ItemTags.SIGNS, 200);
+
+TEST_F(FurnaceBurnTimeTest, OakSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::OAK_SIGN, nullptr) << "OAK_SIGN should be registered";
+    ItemStack sign(Items::OAK_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "橡木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, SpruceSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::SPRUCE_SIGN, nullptr) << "SPRUCE_SIGN should be registered";
+    ItemStack sign(Items::SPRUCE_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "云杉木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::BIRCH_SIGN, nullptr) << "BIRCH_SIGN should be registered";
+    ItemStack sign(Items::BIRCH_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "白桦木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, JungleSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::JUNGLE_SIGN, nullptr) << "JUNGLE_SIGN should be registered";
+    ItemStack sign(Items::JUNGLE_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "丛林木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, AcaciaSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::ACACIA_SIGN, nullptr) << "ACACIA_SIGN should be registered";
+    ItemStack sign(Items::ACACIA_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "金合欢木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, DarkOakSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::DARK_OAK_SIGN, nullptr) << "DARK_OAK_SIGN should be registered";
+    ItemStack sign(Items::DARK_OAK_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "深色橡木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::CRIMSON_SIGN, nullptr) << "CRIMSON_SIGN should be registered";
+    ItemStack sign(Items::CRIMSON_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "绯红告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::WARPED_SIGN, nullptr) << "WARPED_SIGN should be registered";
+    ItemStack sign(Items::WARPED_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "诡异告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, SignItemsAreFuel)
+{
+    // 所有告示牌都应被视为燃料
+    ASSERT_NE(Items::OAK_SIGN, nullptr);
+    ASSERT_NE(Items::SPRUCE_SIGN, nullptr);
+    ASSERT_NE(Items::BIRCH_SIGN, nullptr);
+    ASSERT_NE(Items::JUNGLE_SIGN, nullptr);
+    ASSERT_NE(Items::ACACIA_SIGN, nullptr);
+    ASSERT_NE(Items::DARK_OAK_SIGN, nullptr);
+    ASSERT_NE(Items::CRIMSON_SIGN, nullptr);
+    ASSERT_NE(Items::WARPED_SIGN, nullptr);
+
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::OAK_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::SPRUCE_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::BIRCH_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::JUNGLE_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::ACACIA_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::DARK_OAK_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::CRIMSON_SIGN, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::WARPED_SIGN, 1)));
+}

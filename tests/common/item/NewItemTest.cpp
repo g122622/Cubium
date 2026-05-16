@@ -567,3 +567,102 @@ TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagDoesNotContainOtherBlocks
     EXPECT_FALSE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::DIRT));
     EXPECT_FALSE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::GRASS_BLOCK));
 }
+
+// ============================================================================
+// 告示牌物品注册测试
+// ============================================================================
+
+class SignItemTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(SignItemTest, OakSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:oak_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:oak_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16) << "告示牌堆叠数应为 16";
+}
+
+TEST_F(SignItemTest, SpruceSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:spruce_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:spruce_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, BirchSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:birch_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:birch_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, JungleSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:jungle_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:jungle_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, AcaciaSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:acacia_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:acacia_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, DarkOakSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:dark_oak_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:dark_oak_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, CrimsonSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:crimson_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:crimson_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, WarpedSignRegistered)
+{
+    Item* sign = ItemRegistry::instance().getItem(ResourceLocation("minecraft:warped_sign"));
+    ASSERT_NE(sign, nullptr);
+    EXPECT_EQ(sign->itemLocation(), ResourceLocation("minecraft:warped_sign"));
+    EXPECT_EQ(sign->maxStackSize(), 16);
+}
+
+TEST_F(SignItemTest, AllSignItemsAvailableViaItemsClass)
+{
+    // 验证 Items 类中的静态指针已正确初始化
+    EXPECT_NE(Items::OAK_SIGN, nullptr);
+    EXPECT_NE(Items::SPRUCE_SIGN, nullptr);
+    EXPECT_NE(Items::BIRCH_SIGN, nullptr);
+    EXPECT_NE(Items::JUNGLE_SIGN, nullptr);
+    EXPECT_NE(Items::ACACIA_SIGN, nullptr);
+    EXPECT_NE(Items::DARK_OAK_SIGN, nullptr);
+    EXPECT_NE(Items::CRIMSON_SIGN, nullptr);
+    EXPECT_NE(Items::WARPED_SIGN, nullptr);
+}
+
+TEST_F(SignItemTest, AllSignItemsHaveCorrectStackSize)
+{
+    // MC 1.16.5: 所有告示牌堆叠数均为 16
+    EXPECT_EQ(Items::OAK_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::SPRUCE_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::BIRCH_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::JUNGLE_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::ACACIA_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::DARK_OAK_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::CRIMSON_SIGN->maxStackSize(), 16);
+    EXPECT_EQ(Items::WARPED_SIGN->maxStackSize(), 16);
+}

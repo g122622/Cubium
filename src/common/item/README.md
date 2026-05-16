@@ -448,6 +448,18 @@ ActionResultType action = item.onItemUse(context);
 
 **解决方案**：使用 `WallOrFloorItem` 类，根据玩家视线方向自动选择放置地板方块或墙壁方块。
 
+**已注册告示牌物品** (MC 1.16.5):
+- 橡木告示牌 (OAK_SIGN) - 燃烧时间 200 tick
+- 云杉木告示牌 (SPRUCE_SIGN) - 燃烧时间 200 tick
+- 白桦木告示牌 (BIRCH_SIGN) - 燃烧时间 200 tick
+- 丛林木告示牌 (JUNGLE_SIGN) - 燃烧时间 200 tick
+- 金合欢木告示牌 (ACACIA_SIGN) - 燃烧时间 200 tick
+- 深色橡木告示牌 (DARK_OAK_SIGN) - 燃烧时间 200 tick
+- 绯红告示牌 (CRIMSON_SIGN) - 燃烧时间 200 tick
+- 诡异告示牌 (WARPED_SIGN) - 燃烧时间 200 tick
+
+所有告示牌物品堆叠数为 16，均可作为熔炉燃料使用。
+
 ### 11. BlockItem 实体碰撞检查
 
 **问题**：方块放置时需要检查是否与实体碰撞，否则玩家可以将方块放置到其他实体内部。
