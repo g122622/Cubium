@@ -17,7 +17,7 @@ trigger/
 │   ├── ItemPredicate.hpp/cpp      # 物品匹配条件
 │   ├── EntityPredicate.hpp/cpp    # 实体匹配条件
 │   ├── LocationPredicate.hpp/cpp  # 位置匹配条件
-│   ├── BlockPredicate.hpp/cpp     # 方块匹配条件
+│   ├── BlockPredicate.hpp/cpp     # 方块匹配条件 + 流体匹配条件
 │   └── DistancePredicate.hpp      # 距离匹配条件（在LocationPredicate中）
 │
 └── impl/                          # 触发器实现
@@ -267,6 +267,31 @@ BlockPredicate predicate = BlockPredicate::fromJson({
     {"state", {{"facing", "north"}}}
 });
 ```
+
+### FluidPredicate
+
+匹配流体的条件（定义在 `BlockPredicate.hpp/cpp` 中）：
+
+```cpp
+FluidPredicate predicate = FluidPredicate::fromJson({
+    {"fluid", "minecraft:water"}
+});
+
+// 检查方块是否包含指定流体
+if (predicate.test(blockState)) {
+    // 方块包含水（包括水源和流动水）
+}
+```
+
+FluidPredicate 使用 `Fluid::isEquivalentTo()` 比较流体等效性：
+- `minecraft:water` 同时匹配水源 (`minecraft:water`) 和流动水 (`minecraft:flowing_water`)
+- `minecraft:lava` 同时匹配岩浆源 (`minecraft:lava`) 和流动岩浆 (`minecraft:flowing_lava`)
+
+**实现细节**：
+- 通过 `BlockState::getFluidState()` 获取方块的流体状态
+- 使用 `FluidState::isEmpty()` 检查是否为空流体
+- 使用 `Fluid::getFluid(ResourceLocation)` 获取期望的流体
+- 使用 `Fluid::isEquivalentTo()` 进行等效比较
 
 ## 使用示例
 
