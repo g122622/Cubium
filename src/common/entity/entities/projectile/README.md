@@ -55,6 +55,32 @@ Entity (core/Entity.hpp)
 | SpectralArrowEntity | 2.0 | 光灵箭，使目标发光 |
 | TridentEntity | 8.0 | 可投掷/近战，忠诚附魔可返回 |
 
+#### 三叉戟附魔系统 (2026-05-17)
+
+**重要说明**：三叉戟与弓箭不同，不使用弓类附魔（力量、冲击、火焰）。
+
+三叉戟有四个专属附魔，实现位置如下：
+
+| 附魔 | 实现位置 | 效果 |
+|------|---------|------|
+| **忠诚 (Loyalty)** | `TridentEntity::setItemStack()` | 投掷后自动返回，等级影响返回速度 |
+| **穿刺 (Impaling)** | `TridentEntity::onEntityHit()` | 对水生生物造成额外伤害（每级 +2.5） |
+| **引雷 (Channeling)** | `TridentEntity::onEntityHit()` | 雷暴天气命中时召唤闪电 |
+| **激流 (Riptide)** | `TridentItem::onPlayerStoppedUsing()` | 雨天/水中携带玩家冲刺 |
+
+**为什么三叉戟不使用弓类附魔**：
+
+1. **力量附魔**（Power）：只能应用于弓（`EnchantmentType::Bow`），不影响三叉戟伤害
+2. **冲击附魔**（Punch）：只能应用于弓，不影响三叉戟击退
+3. **火焰附魔**（Flame）：只能应用于弓，不影响三叉戟点燃
+
+`TridentEntity::setEnchantmentEffectsFrom()` 方法继承自 `AbstractArrowEntity`，但三叉戟只需计算基础伤害，不考虑弓类附魔。这符合 MC 1.16.5 的设计——`TridentEntity.java` 中没有 `setEnchantmentEffectsFromEntity` 方法。
+
+**代码参考**：
+- `TridentEntity.cpp` 第307-328行：`setEnchantmentEffectsFrom()` 方法注释说明
+- `TridentEntity.cpp` 第196-203行：穿刺附魔伤害计算
+- `TridentEntity.cpp` 第240-266行：引雷附魔闪电召唤
+
 ### 火球类 (Fireballs)
 
 | 实体 | 伤害 | 爆炸 | 特性 |
