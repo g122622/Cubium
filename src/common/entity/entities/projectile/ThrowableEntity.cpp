@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "ThrowableEntity.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
@@ -58,8 +60,35 @@ void ThrowableEntity::tick()
     const RayTraceResult result = performRayTrace();
 
     // 处理传送门和末地传送门
+    // MC 1.16.5: 投射物可以进入下界传送门和末地折跃门
     bool handledPortal = false;
-    // TODO: 处理下界传送门和末地传送门
+    if (result.type == RayTraceResultType::Block && m_world != nullptr) {
+        const BlockState* blockState = m_world->getBlockState(result.blockPos);
+        if (blockState != nullptr) {
+            // 获取方块（通过 getBlock() 返回引用，取地址获取指针）
+            const Block* block = &blockState->getBlock();
+
+            // 检查是否是下界传送门方块
+            if (block == VanillaBlocks::NETHER_PORTAL) {
+                // MC 1.16.5: 投射物进入下界传送门，设置传送门状态
+                // 投射物不需要等待时间，直接设置传送门状态
+                setInPortal(true);
+                setPortalPos(result.blockPos);
+                handledPortal = true;
+            }
+            // 检查是否是末地折跃门方块
+            else if (block == VanillaBlocks::END_GATEWAY) {
+                // MC 1.16.5: 投射物进入末地折跃门，获取方块实体并传送
+                BlockEntity* blockEntity = m_world->getBlockEntity(result.blockPos);
+                if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EndGateway) {
+                    auto* endGateway = static_cast<blockentity::EndGatewayEntity*>(blockEntity);
+                    // 传送实体
+                    endGateway->teleportEntity(*m_world, *this);
+                    handledPortal = true;
+                }
+            }
+        }
+    }
 
     // 如果命中且未被传送门处理
     if (result.type != RayTraceResultType::Miss && !handledPortal) {
