@@ -141,6 +141,62 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
 - `isBreedingItem()` 始终返回 `false`
 - `spawnBaby()` 始终返回 `nullptr`
 
+### 驯服交互
+
+鹦鹉通过 `interactMob()` 方法处理玩家交互：
+
+| 交互 | 条件 | 效果 |
+|------|------|------|
+| 喂食种子驯服 | 未驯服 + 手持种子 | 1/10 概率驯服，消耗物品 |
+| 切换坐下 | 已驯服 + 主人交互 | 切换坐下/站立状态 |
+
+**驯服流程**：
+1. 玩家手持种子（小麦/南瓜/西瓜/甜菜种子）右键点击鹦鹉
+2. 播放吃东西声音 (`ENTITY_PARROT_EAT`)
+3. 服务端进行 1/10 概率判定
+4. 成功：设置驯服状态、设置主人、广播心形粒子
+5. 失败：广播烟雾粒子
+
+```cpp
+// ParrotEntity::interactMob - 驯服交互逻辑
+ActionResultType ParrotEntity::interactMob(Player& player, Hand hand) {
+    ItemStack itemStack = player.getHeldItem(hand);
+    
+    // 驯服逻辑
+    if (!isTamed() && isTameItem(itemStack)) {
+        // 消耗物品（非创造模式）
+        if (!player.abilities().creativeMode) {
+            itemStack.shrink(1);
+        }
+        
+        // 播放吃东西声音
+        playSound(SoundEvents::ENTITY_PARROT_EAT, 1.0f, 1.0f);
+        
+        // 服务端处理驯服逻辑
+        if (!m_world->isClientSide()) {
+            if (getRandom().nextInt(10) == 0) {  // 1/10 概率
+                setTamed(true);
+                setOwnerId(player.playerId());
+                // 广播心形粒子
+                m_world->broadcastEntityStatus(id(), TamingSucceeded);
+            } else {
+                // 广播烟雾粒子
+                m_world->broadcastEntityStatus(id(), TamingFailed);
+            }
+        }
+        return ActionResultType::Success;
+    }
+    
+    // 切换坐下状态
+    if (isTamed() && isOwner(player.playerId())) {
+        toggleSitting();
+        return ActionResultType::Success;
+    }
+    
+    return ShoulderRidingEntity::interactMob(player, hand);
+}
+```
+
 ### 特殊能力
 
 | 特性 | 说明 |

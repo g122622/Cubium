@@ -310,5 +310,199 @@ TEST_F(ParrotEntityTestFixture, Imitation_CanBeSetAndQueried)
     EXPECT_FALSE(parrot.isImitating());
 }
 
+// ============================================================================
+// 驯服状态测试
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, TamedState_DefaultFalse)
+{
+    // 鹦鹉默认未驯服
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    EXPECT_FALSE(parrot.isTamed());
+}
+
+TEST_F(ParrotEntityTestFixture, TamedState_CanBeSet)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    // 设置为已驯服
+    parrot.setTamed(true);
+    EXPECT_TRUE(parrot.isTamed());
+
+    // 设置回未驯服
+    parrot.setTamed(false);
+    EXPECT_FALSE(parrot.isTamed());
+}
+
+TEST_F(ParrotEntityTestFixture, OwnerId_CanBeSetAndQueried)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    // 默认无主人
+    EXPECT_FALSE(parrot.getOwnerId().has_value());
+
+    // 设置主人
+    parrot.setOwnerId(12345ULL);
+    EXPECT_TRUE(parrot.getOwnerId().has_value());
+    EXPECT_EQ(parrot.getOwnerId().value(), 12345ULL);
+
+    // 检查是否是主人
+    EXPECT_TRUE(parrot.isOwner(12345ULL));
+    EXPECT_FALSE(parrot.isOwner(99999ULL));
+
+    // 清除主人
+    parrot.clearOwner();
+    EXPECT_FALSE(parrot.getOwnerId().has_value());
+}
+
+// ============================================================================
+// 坐下状态测试
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, SittingState_DefaultFalse)
+{
+    // 鹦鹉默认不坐下
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+TEST_F(ParrotEntityTestFixture, SittingState_CanBeSet)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    // 设置坐下
+    parrot.setSitting(true);
+    EXPECT_TRUE(parrot.isSitting());
+
+    // 设置站起
+    parrot.setSitting(false);
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+TEST_F(ParrotEntityTestFixture, ToggleSitting_SwitchesState)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    // 切换坐下
+    parrot.toggleSitting();
+    EXPECT_TRUE(parrot.isSitting());
+
+    // 再次切换
+    parrot.toggleSitting();
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+// ============================================================================
+// 肩膀乘坐测试
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, ShoulderRiding_DefaultNotOnShoulder)
+{
+    // 默认不在肩膀上
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    EXPECT_FALSE(parrot.isOnShoulder());
+}
+
+TEST_F(ParrotEntityTestFixture, ShoulderRiding_CanSitOnShoulder_WhenTamed)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    // 未驯服时不能坐在肩膀上
+    EXPECT_FALSE(parrot.canSitOnShoulder());
+
+    // 设置为已驯服
+    parrot.setTamed(true);
+
+    // 需要等待冷却 (canSitOnShoulder 需要 rideCooldownCounter > 100)
+    // 由于 tick() 会增加计数器，这里直接测试 mountShoulder
+    // 驯服后但不坐下时可以坐肩膀
+    parrot.setSitting(false);
+
+    // 模拟 tick 增加 rideCooldownCounter
+    for (int i = 0; i < 110; ++i) {
+        parrot.tick();
+    }
+
+    // 现在应该可以坐肩膀
+    EXPECT_TRUE(parrot.canSitOnShoulder());
+
+    // 坐上肩膀
+    EXPECT_TRUE(parrot.mountShoulder(12345ULL));
+    EXPECT_TRUE(parrot.isOnShoulder());
+    EXPECT_EQ(parrot.getShoulderPlayerId(), 12345ULL);
+}
+
+TEST_F(ParrotEntityTestFixture, ShoulderRiding_CannotSitOnShoulder_WhenSitting)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    parrot.setTamed(true);
+    parrot.setSitting(true);
+
+    // 模拟 tick 增加 rideCooldownCounter
+    for (int i = 0; i < 110; ++i) {
+        parrot.tick();
+    }
+
+    // 坐下状态不能坐肩膀
+    EXPECT_FALSE(parrot.mountShoulder(12345ULL));
+    EXPECT_FALSE(parrot.isOnShoulder());
+}
+
+TEST_F(ParrotEntityTestFixture, ShoulderRiding_DismountShoulder_ResetsState)
+{
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    parrot.setTamed(true);
+
+    // 模拟 tick 增加冷却
+    for (int i = 0; i < 110; ++i) {
+        parrot.tick();
+    }
+
+    // 坐上肩膀
+    parrot.mountShoulder(12345ULL);
+    EXPECT_TRUE(parrot.isOnShoulder());
+
+    // 离开肩膀
+    parrot.dismountShoulder();
+    EXPECT_FALSE(parrot.isOnShoulder());
+    EXPECT_EQ(parrot.getShoulderPlayerId(), 0u);
+
+    // 冷却应该重置
+    EXPECT_FALSE(parrot.canSitOnShoulder());
+}
+
+// ============================================================================
+// 属性测试
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, Attributes_CorrectValues)
+{
+    // MC 1.16.5: 鹦鹉属性
+    // MAX_HEALTH = 6.0
+    // MOVEMENT_SPEED = 0.2
+    // FLYING_SPEED = 0.4
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+
+    f64 maxHealth = parrot.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0);
+    EXPECT_DOUBLE_EQ(maxHealth, 6.0);
+
+    f64 movementSpeed = parrot.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(movementSpeed, 0.2);
+
+    f64 flyingSpeed = parrot.getAttributeValue(entity::attribute::Attributes::FLYING_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(flyingSpeed, 0.4);
+}
+
+// ============================================================================
+// 眼睛高度测试
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, EyeHeight_CorrectValue)
+{
+    // MC 1.16.5: 鹦鹉眼睛高度 = 0.25
+    ParrotEntity parrot(LegacyEntityType::Unknown, 0);
+    EXPECT_FLOAT_EQ(parrot.eyeHeight(), 0.25f);
+}
+
 } // namespace
 } // namespace mc
