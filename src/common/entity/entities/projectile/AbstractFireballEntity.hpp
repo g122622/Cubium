@@ -27,6 +27,19 @@
 
 #include <memory>
 
+// 前向声明粒子类型（与 IWorld.hpp 中的声明一致）
+namespace mc {
+namespace client {
+namespace renderer {
+namespace trident {
+namespace particle {
+enum class ParticleTypeId : u16;
+}
+}
+}
+}
+}
+
 namespace mc {
 namespace entity {
 
@@ -93,6 +106,12 @@ public:
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
+
+    // MC 1.16.5: 龙息火球使用 DRAGON_BREATH 粒子
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getParticleType() const override;
+
+    // MC 1.16.5: 龙息火球不燃烧
+    [[nodiscard]] bool isFiery() const override { return false; }
 
 private:
     /**

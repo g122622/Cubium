@@ -33,6 +33,7 @@
 #include "../../effect/EffectInstance.hpp"
 #include "../../effect/EffectType.hpp"
 #include "../effect/EffectEntities.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -279,6 +280,13 @@ void DragonFireballEntity::createDragonBreathCloud()
 
     // MC 1.16.5: 播放龙息效果音（事件ID 2006）
     // worldPtr->playEvent(2006, position(), isSilent() ? -1 : 1);
+}
+
+client::renderer::trident::particle::ParticleTypeId DragonFireballEntity::getParticleType() const
+{
+    // MC 1.16.5 DragonFireballEntity.getParticle()
+    // 返回 DRAGON_BREATH 粒子
+    return client::renderer::trident::particle::ParticleTypeId::DragonBreath;
 }
 
 WitherSkullEntity::WitherSkullEntity(LegacyEntityType type, EntityId id)

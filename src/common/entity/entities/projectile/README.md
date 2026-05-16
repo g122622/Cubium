@@ -64,6 +64,33 @@ Entity (core/Entity.hpp)
 | DragonFireballEntity | 无直接伤害 | 否 | 末影龙发射，生成龙息区域效果云 |
 | WitherSkullEntity | 8.0/5.0 | 是 | 凋灵发射，凋零II效果，目标死亡治疗发射者 |
 
+#### 火球类粒子效果 (2026-05-17)
+
+**MC 1.16.5 粒子效果实现**：
+
+所有火球类投掷物继承自 `DamagingProjectileEntity`，具有以下粒子效果：
+
+**水下气泡粒子**（`DamagingProjectileEntity::spawnWaterParticles()`）：
+- 触发条件：`isInWater()` 为 true
+- 粒子数量：每 tick 生成 4 个气泡
+- 粒子类型：`ParticleTypeId::Bubble`
+- 位置计算：`pos - velocity * 0.25`（沿运动反方向偏移）
+- 速度：与实体运动速度相同
+
+**拖尾粒子**（`DamagingProjectileEntity::spawnTrailParticles()`）：
+- 触发条件：每 tick 调用
+- 位置：实体位置 Y+0.5 偏移
+- 速度：(0, 0, 0) - 粒子静止
+
+| 实体类型 | 拖尾粒子 | Y轴偏移 | 粒子速度 |
+|---------|---------|--------|---------|
+| DamagingProjectileEntity (基类) | SMOKE | +0.5 | (0,0,0) |
+| FireballEntity | SMOKE (继承) | +0.5 | (0,0,0) |
+| DragonFireballEntity | **DRAGON_BREATH** | +0.5 | (0,0,0) |
+| WitherSkullEntity | SMOKE (继承) | +0.5 | (0,0,0) |
+
+**参考**: MC 1.16.5 `DamagingProjectileEntity.tick()` 第 88-98 行
+
 #### 火球类实现详情 (2026-05-16)
 
 **FireballEntity (恶魂火球)**：

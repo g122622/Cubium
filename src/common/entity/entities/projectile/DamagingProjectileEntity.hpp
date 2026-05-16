@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,25 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "ProjectileEntity.hpp"
+
+// 前向声明粒子类型（与 IWorld.hpp 中的声明一致）
+namespace mc {
+namespace client {
+namespace renderer {
+namespace trident {
+namespace particle {
+enum class ParticleTypeId : u16;
+}
+}
+}
+}
+}
 
 namespace mc {
 namespace entity {
@@ -33,6 +46,11 @@ namespace entity {
  *
  * 当前实现对齐 1.16.5 `DamagingProjectileEntity` 的运动语义，
  * 同时把火球类基础伤害合并到这一层，便于现有 C++ 分层复用。
+ *
+ * 子类粒子效果：
+ * - FireballEntity: 使用默认 SMOKE 粒子
+ * - DragonFireballEntity: 重写 getParticleType() 返回 DRAGON_BREATH
+ * - WitherSkullEntity: 使用默认 SMOKE 粒子
  */
 class DamagingProjectileEntity : public ProjectileEntity {
 public:
@@ -62,7 +80,35 @@ protected:
 
     [[nodiscard]] virtual bool isFiery() const { return true; }
     [[nodiscard]] virtual f32 getMotionFactor() const { return 0.95f; }
+
+    /**
+     * @brief 获取拖尾粒子类型
+     *
+     * 子类可重写此方法返回不同的粒子类型：
+     * - 默认返回 SMOKE（火球、凋灵之首）
+     * - DragonFireballEntity 返回 DRAGON_BREATH
+     *
+     * @return 粒子类型ID
+     */
+    [[nodiscard]] virtual client::renderer::trident::particle::ParticleTypeId getParticleType() const;
+
+    /**
+     * @brief 生成拖尾粒子
+     *
+     * 在实体飞行时生成拖尾粒子效果。
+     * MC 1.16.5: 在 tick() 末尾调用，位置 Y+0.5 偏移，速度 (0,0,0)
+     *
+     * @param position 粒子生成位置
+     */
     virtual void spawnTrailParticles(const Vector3& position);
+
+    /**
+     * @brief 生成水下气泡粒子
+     *
+     * 当实体在水中时生成气泡粒子尾迹。
+     * MC 1.16.5: 每 tick 生成 4 个 BUBBLE 粒子
+     */
+    void spawnWaterParticles();
 
     f32 m_accelerationX = 0.0f;
     f32 m_accelerationY = 0.0f;
