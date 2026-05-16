@@ -26,6 +26,7 @@
 #include "ProjectileEntity.hpp"
 #include "ProjectileHelper.hpp"
 #include "ThrowableEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {
@@ -519,6 +520,14 @@ private:
  * @brief 烟花火箭实体
  *
  * 烟花火箭可以发射、爆炸并产生各种效果。
+ * 从弩发射的烟花火箭会对周围实体造成伤害。
+ *
+ * 伤害机制（MC 1.16.5）：
+ * - 爆炸半径：5 格
+ * - 基础伤害：5 点
+ * - 每个爆炸效果增加：+2 点伤害
+ * - 距离衰减：damage * sqrt((5 - distance) / 5)
+ * - 视线检测：两条射线（脚部和腰部），任一未被方块阻挡即可造成伤害
  *
  * 参考 MC 1.16.5 FireworkRocketEntity
  */
@@ -544,10 +553,18 @@ public:
     // ========== 烟花火箭方法 ==========
 
     /**
-     * @brief 设置烟花数据
-     * @param data 烟花爆炸数据（NBT格式）
+     * @brief 设置烟花物品
+     * @param item 烟花火箭物品堆
+     *
+     * 从物品中读取飞行时间和爆炸效果数据。
      */
-    void setFireworkData(/* const CompoundNBT& data */) { /* TODO */ }
+    void setFireworkItem(const ItemStack& item);
+
+    /**
+     * @brief 获取烟花物品
+     * @return 烟花火箭物品堆（可能为空）
+     */
+    [[nodiscard]] const ItemStack& fireworkItem() const { return m_fireworkItem; }
 
     /**
      * @brief 是否从弩射出
@@ -569,6 +586,12 @@ public:
      */
     void setFlightTime(i32 time) { m_flightTime = time; }
 
+    /**
+     * @brief 获取爆炸效果数量
+     * @return 爆炸效果数量（0 表示无爆炸效果）
+     */
+    [[nodiscard]] i32 getExplosionCount() const;
+
 private:
     /**
      * @brief 爆炸
@@ -577,13 +600,23 @@ private:
 
     /**
      * @brief 处理弩发射的伤害
+     *
+     * 对爆炸半径 5 格内的 LivingEntity 造成伤害。
+     * 伤害计算：5 + 爆炸效果数量 * 2，根据距离衰减。
      */
     void dealExplosionDamage();
 
-    i32 m_flightTime = 0;            // 飞行时间
-    i32 m_lifetime = 0;              // 存在时间
+    /**
+     * @brief 检查视线是否被方块阻挡
+     * @param target 目标实体
+     * @return 如果视线未被阻挡返回 true
+     */
+    [[nodiscard]] bool canSeeEntity(const Entity& target) const;
+
+    ItemStack m_fireworkItem;        // 烟花火箭物品
+    i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）
+    i32 m_lifetime = 0;              // 已存在时间
     bool m_shotFromCrossbow = false; // 是否从弩射出
-    // CompoundNBT m_fireworkData;   // 烟花数据
 };
 
 } // namespace entity

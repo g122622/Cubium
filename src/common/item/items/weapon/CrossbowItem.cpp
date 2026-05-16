@@ -327,6 +327,8 @@ void CrossbowItem::fireProjectiles(
             firework->setWorld(&world);
             firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());
             firework->setShooter(&shooter);
+            firework->setShotFromCrossbow(true);  // 标记为从弩射出
+            firework->setFireworkItem(projectile);  // 设置烟花物品（包含爆炸效果数据）
             firework->shootFrom(shooter, shooter.pitch(), shooter.yaw(), projectileAngles[i], velocity, inaccuracy);
 
             world.spawnEntity(std::move(firework));

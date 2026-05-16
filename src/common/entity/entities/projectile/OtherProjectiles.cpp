@@ -43,6 +43,7 @@
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/item/Items.hpp"
 #include <cmath>
 
 namespace mc {
@@ -1243,6 +1244,7 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 
 FireworkRocketEntity::FireworkRocketEntity(LegacyEntityType type, EntityId id)
     : ProjectileEntity(type, id)
+    , m_fireworkItem(Items::AIR, 0)  // 初始化为空物品
 {
     m_noGravity = false;
 }
@@ -1252,20 +1254,56 @@ std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
     return std::make_unique<FireworkRocketEntity>(LegacyEntityType::Unknown, 0);
 }
 
+void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
+{
+    m_fireworkItem = item;
+
+    // 从物品 NBT 读取飞行时间
+    // 参考 MC 1.16.5 FireworkRocketEntity 构造函数
+    const nlohmann::json* tag = item.getTag();
+    if (tag != nullptr) {
+        auto fireworksIt = tag->find("Fireworks");
+        if (fireworksIt != tag->end() && fireworksIt->is_object()) {
+            auto flightIt = fireworksIt->find("Flight");
+            if (flightIt != fireworksIt->end() && flightIt->is_number()) {
+                m_flightTime = std::max(1, flightIt->get<i32>());
+            }
+        }
+    }
+}
+
+i32 FireworkRocketEntity::getExplosionCount() const
+{
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    // 从物品 NBT 读取爆炸效果数量
+    const nlohmann::json* tag = m_fireworkItem.getTag();
+    if (tag == nullptr) {
+        return 0;
+    }
+
+    auto fireworksIt = tag->find("Fireworks");
+    if (fireworksIt == tag->end() || !fireworksIt->is_object()) {
+        return 0;
+    }
+
+    auto explosionsIt = fireworksIt->find("Explosions");
+    if (explosionsIt == fireworksIt->end() || !explosionsIt->is_array()) {
+        return 0;
+    }
+
+    return static_cast<i32>(explosionsIt->size());
+}
+
 void FireworkRocketEntity::tick()
 {
     ProjectileEntity::tick();
 
     m_lifetime++;
 
-    // 生成烟花粒子
-    // TODO: 检查是否在地面
-    // if (!m_inGround) {
-    //     // TODO: 生成飞行粒子
-    // }
-
     // 检查是否爆炸
-    if (m_lifetime >= m_flightTime * 10) {
+    // 参考 MC 1.16.5: lifetime = flightTime * 10 + random(6) + random(7)
+    // 我们简化为 flightTime * 10
+    if (m_lifetime >= m_flightTime * 10 + 6) {
         explode();
     }
 }
@@ -1277,17 +1315,113 @@ void FireworkRocketEntity::explode()
         dealExplosionDamage();
     }
 
-    // 生成烟花爆炸效果
     // TODO: 解析烟花数据并生成爆炸粒子
+    // 需要粒子系统支持彩色粒子
 
     remove();
 }
 
 void FireworkRocketEntity::dealExplosionDamage()
 {
-    // TODO: 对范围内的实体造成爆炸伤害
-    // 如果烟花有爆炸效果，每个爆炸效果造成 5-7 点伤害
-    // 还会造成击退
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取爆炸效果数量
+    i32 explosionCount = getExplosionCount();
+
+    // 计算基础伤害：5 + 爆炸效果数量 * 2
+    f32 baseDamage = 5.0f + static_cast<f32>(explosionCount * 2);
+    if (baseDamage <= 0.0f) {
+        return;
+    }
+
+    // 爆炸半径 5 格
+    constexpr f32 EXPLOSION_RADIUS = 5.0f;
+    constexpr f64 EXPLOSION_RADIUS_SQ = 25.0;  // 5.0 * 5.0
+
+    // 获取爆炸范围内的所有 LivingEntity
+    AxisAlignedBB searchBox = boundingBox().grow(EXPLOSION_RADIUS);
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
+
+    // 获取发射者（用于伤害源）
+    Entity* shooter = getShooter();
+    bool isPlayer = (shooter != nullptr && dynamic_cast<Player*>(shooter) != nullptr);
+
+    for (Entity* entity : entities) {
+        // 只对 LivingEntity 造成伤害
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(entity);
+        if (livingTarget == nullptr || !livingTarget->isAlive()) {
+            continue;
+        }
+
+        // 计算距离
+        f64 distanceSq = static_cast<f64>(livingTarget->distanceSqTo(*this));
+        if (distanceSq > EXPLOSION_RADIUS_SQ) {
+            continue;
+        }
+
+        // 视线检测（MC 1.16.5 射线追踪两条射线）
+        if (!canSeeEntity(*livingTarget)) {
+            continue;
+        }
+
+        // 计算距离衰减伤害
+        f64 distance = std::sqrt(distanceSq);
+        f32 damage = baseDamage * static_cast<f32>(std::sqrt((EXPLOSION_RADIUS - distance) / EXPLOSION_RADIUS));
+
+        if (damage > 0.0f) {
+            // 创建烟花伤害源
+            // 参考 MC 1.16.5 DamageSource.func_233548_a_(this, this.func_234616_v_())
+            auto damageSource = DamageSources::fireworks();
+
+            // 对目标造成伤害
+            livingTarget->hurt(damageSource, damage);
+        }
+    }
+}
+
+bool FireworkRocketEntity::canSeeEntity(const Entity& target) const
+{
+    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
+    // 发射两条射线：脚部（y=0）和腰部（y=height*0.5）
+    // 只要有一条射线未被方块阻挡，就可以造成伤害
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    Vector3 rocketPos = position();
+    Vector3 targetPos = target.position();
+
+    // 两条射线的高度偏移
+    constexpr f64 HEIGHT_OFFSETS[] = {0.0, 0.5};
+
+    for (f64 heightOffset : HEIGHT_OFFSETS) {
+        // 计算目标点位置
+        Vector3 targetPoint(
+            targetPos.x,
+            targetPos.y + target.height() * heightOffset,
+            targetPos.z
+        );
+
+        // 创建射线追踪上下文
+        // 使用 COLLIDER 模式检测方块碰撞，忽略流体
+        Ray ray(rocketPos, (targetPoint - rocketPos).normalized());
+        f64 maxDistance = (targetPoint - rocketPos).length();
+
+        RaycastContext context(ray, maxDistance);
+        BlockRaycastResult result = raycastBlocks(context, *m_world);
+
+        // 如果射线未被阻挡（MISS），则可以造成伤害
+        if (result.isMiss()) {
+            return true;
+        }
+    }
+
+    // 两条射线都被阻挡
+    return false;
 }
 
 } // namespace entity
