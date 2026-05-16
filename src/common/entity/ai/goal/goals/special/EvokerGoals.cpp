@@ -26,6 +26,7 @@
 #include "../../../../entities/monster/illager/EvokerEntity.hpp"
 #include "../../../../entities/passive/basic/SheepEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
+#include "../../../controller/LookController.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../../../../util/math/random/Random.hpp"
@@ -112,8 +113,8 @@ void EvokerSpellGoal::tick()
         m_spellWarmup--;
         if (target != nullptr) {
             // 看向目标
-            // TODO: 实现 LookController
-            // m_evoker->getLookController().setLookPositionWithEntity(target, ...);
+            // MC 1.16.5: LookController.setLookPositionWithEntity
+            m_evoker->lookController()->setLookPositionWithEntity(*target, 10.0f, 10.0f);
         }
         // 当 warmup 结束时，执行施法
         if (m_spellWarmup == 0) {
@@ -237,8 +238,8 @@ void EvokerCastingSpellGoal::tick()
 
     LivingEntity* target = m_evoker->attackTarget();
     if (target != nullptr) {
-        // TODO: 实现 LookController
-        // m_evoker->getLookController().setLookPositionWithEntity(target, ...);
+        // MC 1.16.5: LookController.setLookPositionWithEntity
+        m_evoker->lookController()->setLookPositionWithEntity(*target, 10.0f, 10.0f);
     }
 }
 
@@ -303,8 +304,8 @@ void EvokerWololoSpellGoal::tick()
     if (m_spellWarmup > 0) {
         m_spellWarmup--;
         if (m_wololoTarget != nullptr && m_wololoTarget->isAlive()) {
-            // TODO: 实现 LookController
-            // m_evoker->getLookController().setLookPositionWithEntity(m_wololoTarget, ...);
+            // MC 1.16.5: LookController.setLookPositionWithEntity
+            m_evoker->lookController()->setLookPositionWithEntity(*m_wololoTarget, 10.0f, 10.0f);
         }
         // 当 warmup 结束时，执行施法
         if (m_spellWarmup == 0) {
