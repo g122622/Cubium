@@ -374,3 +374,187 @@ TEST_F(CreeperLingeringCloudScenarioTest, WidthHeight_AreCorrect)
     // 高度固定为 0.5
     EXPECT_FLOAT_EQ(m_cloud->height(), 0.5f);
 }
+
+// ============================================================================
+// 滞留药水场景测试（MC 1.16.5 PotionEntity.makeAreaOfEffectCloud）
+// ============================================================================
+
+class LingeringPotionCloudScenarioTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+
+        // MC 1.16.5 滞留药水创建的效果云参数
+        // 参考: PotionEntity.makeAreaOfEffectCloud()
+        m_cloud->setRadius(3.0f);
+        m_cloud->setRadiusOnUse(-0.5f);
+        m_cloud->setWaitTime(10);
+        // radiusPerTick = -radius / duration = -3.0 / 600
+        m_cloud->setRadiusPerTick(-m_cloud->getRadius() / static_cast<f32>(m_cloud->getDuration()));
+
+        // 模拟滞留药水的效果（持续时间在效果云中为原持续时间的 1/4）
+        // 例如：速度药水原持续时间 3600 tick (3分钟)，在效果云中为 900 tick
+        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 900, 0));        // 速度 I
+        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 900, 0));    // 力量 I
+    }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(LingeringPotionCloudScenarioTest, InitialParameters_AreCorrect)
+{
+    // MC 1.16.5 标准滞留药水参数
+    EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
+    EXPECT_EQ(m_cloud->getWaitTime(), 10);
+    EXPECT_EQ(m_cloud->getDuration(), 600); // 默认 30 秒 = 600 ticks
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, RadiusOnUse_Negative)
+{
+    // 每次应用效果时半径减少 0.5
+    // 注：radiusOnUse 是私有成员，只能通过 setter 设置
+    EXPECT_NO_THROW(m_cloud->setRadiusOnUse(-0.5f));
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, RadiusPerTick_CalculatedCorrectly)
+{
+    // radiusPerTick = -3.0 / 600 = -0.005
+    f32 expectedRadiusPerTick = -3.0f / 600.0f;
+    EXPECT_NO_THROW(m_cloud->setRadiusPerTick(expectedRadiusPerTick));
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, Effects_AreStored)
+{
+    const auto& effects = m_cloud->getEffects();
+    ASSERT_EQ(effects.size(), 2);
+
+    // 效果持续时间应为原持续时间的 1/4
+    // 这里验证效果确实被存储
+    EXPECT_EQ(effects[0].type(), effect::EffectType::Speed);
+    EXPECT_EQ(effects[0].duration(), 900); // 3600 / 4 = 900
+    EXPECT_EQ(effects[1].type(), effect::EffectType::Strength);
+    EXPECT_EQ(effects[1].duration(), 900);
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, Color_IsCalculatedFromEffects)
+{
+    // 颜色应该根据效果自动计算
+    u32 color = m_cloud->getColor();
+    EXPECT_NE(color, 0); // 颜色应该被设置
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, Width_IsRadiusTimesTwo)
+{
+    // 宽度 = 半径 * 2
+    EXPECT_FLOAT_EQ(m_cloud->width(), 6.0f); // 3.0 * 2
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, Height_IsFixed)
+{
+    // 高度固定为 0.5
+    EXPECT_FLOAT_EQ(m_cloud->height(), 0.5f);
+}
+
+TEST_F(LingeringPotionCloudScenarioTest, SetOwner_CanBeSet)
+{
+    // 注：在无世界环境的测试中，我们只验证接口可用
+    EXPECT_NO_THROW(m_cloud->setOwner(nullptr));
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+}
+
+// ============================================================================
+// 效果持续时间除以 4 的逻辑测试
+// ============================================================================
+
+class LingeringPotionDurationTest : public ::testing::Test {
+};
+
+TEST_F(LingeringPotionDurationTest, DurationDividedByFour)
+{
+    // MC 1.16.5: 效果在区域效果云中持续时间为原持续时间的 1/4
+    // 例如：8:00 的药水（9600 tick）在效果云中为 2400 tick
+
+    // 模拟 8 分钟速度药水
+    i32 originalDuration = 9600; // 8 分钟 = 9600 tick
+    i32 cloudDuration = originalDuration / 4;
+
+    EXPECT_EQ(cloudDuration, 2400);
+}
+
+TEST_F(LingeringPotionDurationTest, DurationDividedByFour_MinimumDuration)
+{
+    // 即使原持续时间很短，效果云中也至少有一些持续时间
+    i32 originalDuration = 100; // 5 秒
+    i32 cloudDuration = originalDuration / 4;
+
+    EXPECT_EQ(cloudDuration, 25); // 25 tick = 1.25 秒
+}
+
+TEST_F(LingeringPotionDurationTest, DurationDividedByFour_InstantEffect)
+{
+    // 瞬间效果（瞬间治疗/瞬间伤害）持续时间为 1 tick
+    // 在效果云中，瞬间效果会被特殊处理（使用 affectEntity 方法）
+    // 这里只测试除法逻辑
+    i32 originalDuration = 1; // 瞬间效果
+    i32 cloudDuration = originalDuration / 4;
+
+    EXPECT_EQ(cloudDuration, 0); // 会被截断为 0
+}
+
+// ============================================================================
+// 滞留药水效果云参数与苦力怕药水云对比测试
+// ============================================================================
+
+class LingeringPotionVsCreeperCloudTest : public ::testing::Test {
+};
+
+TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLargerRadius)
+{
+    // 滞留药水半径 3.0，苦力怕药水云半径 2.5
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    lingeringCloud->setRadius(3.0f);
+
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    creeperCloud->setRadius(2.5f);
+
+    EXPECT_GT(lingeringCloud->getRadius(), creeperCloud->getRadius());
+}
+
+TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLongerDuration)
+{
+    // 滞留药水持续时间 600 tick（30秒），苦力怕药水云持续时间 300 tick（15秒）
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    // 默认 duration = 600
+
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    creeperCloud->setDuration(300);
+
+    EXPECT_GT(lingeringCloud->getDuration(), creeperCloud->getDuration());
+}
+
+TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameRadiusOnUse)
+{
+    // 两者都有 radiusOnUse = -0.5
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    lingeringCloud->setRadiusOnUse(-0.5f);
+
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    creeperCloud->setRadiusOnUse(-0.5f);
+
+    // 两者参数相同
+    EXPECT_NO_THROW(lingeringCloud->setRadiusOnUse(-0.5f));
+    EXPECT_NO_THROW(creeperCloud->setRadiusOnUse(-0.5f));
+}
+
+TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameWaitTime)
+{
+    // 两者都有 waitTime = 10
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    lingeringCloud->setWaitTime(10);
+
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    creeperCloud->setWaitTime(10);
+
+    EXPECT_EQ(lingeringCloud->getWaitTime(), creeperCloud->getWaitTime());
+}

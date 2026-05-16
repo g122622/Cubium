@@ -384,3 +384,15 @@ if (livingTarget != nullptr) {
   - `FishingBobberEntity`：发射时使用 `world->getRandom().nextGaussian()` 替代 `rand()`
   - 符合 MC 1.16.5 投掷物不精确度计算：`inaccuracy * 0.0075 * nextGaussian()`
   - 保证跨平台随机数一致性和可测试性
+- **滞留药水区域效果云实现（2026-05-16）**：
+  - `PotionEntity::onImpact()` 为滞留型药水添加 `AreaEffectCloudEntity` 创建逻辑
+  - 参考 MC 1.16.5 `PotionEntity.makeAreaOfEffectCloud()`
+  - 效果云参数：
+    - 初始半径：3.0
+    - radiusOnUse：-0.5（每次应用效果半径减少0.5格）
+    - waitTime：10 ticks（0.5秒等待时间）
+    - duration：600 ticks（30秒默认持续时间）
+    - radiusPerTick：-radius/duration = -0.005
+  - 效果持续时间：原持续时间的 1/4（MC 1.16.5 规则）
+  - 设置拥有者为投射物发射者
+  - 颜色从药水物品自动获取
