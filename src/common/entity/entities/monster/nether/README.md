@@ -159,6 +159,12 @@ Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity
 - **火焰免疫**：默认火焰免疫
 - **转化机制**：在主世界会转化为僵尸猪灵
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
+
 ### PiglinEntity（猪灵）
 
 下界的敌对/中立生物，可进行交易。
@@ -176,11 +182,31 @@ Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity
 | 生命值 | 16.0 |
 | 移动速度 | 0.35 |
 | 攻击伤害 | 5.0 |
+| 追踪范围 | 16.0 |
+
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
+| 2 | 攻击 | RangedCrossbowAttackGoal | 弩远程攻击（仅成年） |
+| 3 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
+| 5 | 行为 | AvoidEntityGoal | 避开僵尸猪灵和僵尸疣兽 |
+| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | 看向 | LookAtGoal | 看向玩家 |
+| 9 | 看向 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**（仅成年）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击未穿金装的玩家 |
 
 **特性**：
 - 使用弩进行远程攻击
 - 幼年猪灵不攻击玩家
 - 对金装备有特殊兴趣
+- 避开僵尸猪灵和僵尸疣兽
+- 攻击未穿戴金装备的玩家
 
 ### PiglinBruteEntity（猪灵蛮兵）
 
@@ -198,9 +224,26 @@ Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity
 | 移动速度 | 0.35 |
 | 攻击伤害 | 7.0（金斧额外 +4） |
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | 攻击 | MeleeAttackGoal | 近战攻击 |
+| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | 看向 | LookAtGoal | 看向玩家 |
+| 9 | 看向 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 2 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 3 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家（不检查金装备） |
+
 **特性**：
 - 不使用弩，近战攻击
 - 更高的生命值和攻击力
+- 攻击玩家不检查金装备（与普通猪灵不同）
 
 ### ZombifiedPiglinEntity（僵尸猪灵）
 
@@ -218,9 +261,20 @@ Entity → LivingEntity → MobEntity → MonsterEntity → ZombifiedPiglinEntit
 | 移动速度 | 0.23 |
 | 攻击伤害 | 5.0 |
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | 攻击 | MeleeAttackGoal | 近战攻击 |
+| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | 看向 | LookAtGoal | 看向玩家 |
+| 9 | 看向 | LookRandomlyGoal | 随机看向 |
+
 **特性**：
 - **愤怒机制**：被攻击后激怒附近所有僵尸猪灵
 - **火焰免疫**：免疫火焰伤害
+- **中立性**：默认不攻击玩家，仅被攻击后敌对
 
 ### HoglinEntity（疣猪兽）
 
@@ -242,10 +296,26 @@ Entity → LivingEntity → MobEntity → MonsterEntity → HoglinEntity
 | 攻击击退 | 1.0 | - |
 | 攻击伤害 | 6.0 | - |
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 2 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
+| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | 看向 | LookAtGoal | 看向玩家 |
+| 9 | 看向 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**（仅成年）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
+| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+
 **特性**：
 - **击退攻击**：攻击时击退目标
 - **攻击动画**：有攻击动画 ticks
 - **火焰免疫**：免疫火焰伤害
+- **可被猎杀**：成年疣猪兽可被猎杀（isHuntable()）
 
 ### ZoglinEntity（僵尸疣兽）
 
@@ -267,9 +337,25 @@ Entity → LivingEntity → MobEntity → MonsterEntity → ZoglinEntity
 | 攻击击退 | 1.0 | - |
 | 攻击伤害 | 6.0 | - |
 
+**AI 目标系统**（MC 1.16.5）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 0 | 行为 | SwimGoal | 游泳 |
+| 2 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
+| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | 看向 | LookAtGoal | 看向玩家 |
+| 9 | 看向 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**（仅成年）：
+| 优先级 | 目标类型 | 目标类 | 说明 |
+|--------|----------|--------|------|
+| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
+| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+| 3 | 目标选择 | NearestAttackableTargetGoal<LivingEntity> | 攻击其他生物 |
+
 **特性**：
 - **击退攻击**：攻击时击退目标
-- **敌对性**：攻击所有生物（不含亡灵）
+- **敌对性**：攻击几乎所有生物（不含僵尸疣兽自己）
 
 ## 实现状态
 

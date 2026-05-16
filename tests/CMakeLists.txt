@@ -271,6 +271,9 @@ add_executable(mc_tests
     # 恶魂 AI 目标测试
     common/entity/GhastGoalsTest.cpp
     entity/GuardianAttackGoalTest.cpp
+    # 猪灵类实体测试（金装备检测、AI 目标）
+    entity/PlayerGoldArmorTest.cpp
+    entity/NetherEntitiesTest.cpp
     # PatrolGoal 测试
     common/entity/ai/goal/PatrolGoalTest.cpp
     entity/WitherEntityTest.cpp
