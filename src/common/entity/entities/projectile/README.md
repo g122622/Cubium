@@ -155,6 +155,65 @@ firework->setFireworkItem(projectile);  // 传递烟花物品数据
 
 **参考**: MC 1.16.5 `FireworkRocketEntity.dealExplosionDamage()`
 
+#### 烟花火箭粒子效果实现 (2026-05-16)
+
+烟花火箭具有两种粒子效果：飞行粒子和爆炸粒子。
+
+**飞行粒子** (`tick()` 中生成):
+| 参数 | 值 |
+|------|-----|
+| 生成频率 | 每 2 ticks 一次 |
+| 粒子类型 | Firework |
+| 生成位置 | 火箭位置向下偏移 0.3 格 |
+| 水平速度 | 高斯分布 × 0.05 |
+| 垂直速度 | -velocity.y × 0.5 |
+| 执行条件 | 仅客户端 (`isClientSide()`) |
+
+**爆炸粒子** (`explode()` 中生成):
+
+无爆炸效果的烟花火箭：
+| 参数 | 值 |
+|------|-----|
+| 粒子类型 | Poof |
+| 数量 | 2-4 个（随机） |
+| 速度 | 高斯分布 × 0.05 |
+
+有爆炸效果的烟花火箭：
+| 参数 | 值 |
+|------|-----|
+| Flash 粒子 | 1 个，火箭位置 |
+| Firework 粒子 | 20-40 个，球形分布 |
+| Poof 粒子 | 5-10 个，高斯分布 |
+
+**球形分布算法**:
+```cpp
+// 生成球面均匀分布的粒子
+for (i32 i = 0; i < fireworkCount; ++i) {
+    f32 theta = rng.nextFloat() * 2.0f * PI;           // 方位角
+    f32 phi = std::acos(2.0f * rng.nextFloat() - 1.0f); // 极角
+    f32 speed = rng.nextFloat() * 0.5f;                 // 速度大小
+    
+    Vector3 velocity(
+        speed * std::sin(phi) * std::cos(theta),
+        speed * std::sin(phi) * std::sin(theta),
+        speed * std::cos(phi)
+    );
+    m_world->addParticle(ParticleTypeId::Firework, pos, velocity);
+}
+```
+
+**随机数生成器**:
+使用 `createRandomFromEntity()` 辅助函数创建确定性随机数生成器：
+```cpp
+math::Random createRandomFromEntity(const Entity& entity) {
+    u64 seed = static_cast<u64>(entity.id()) << 32 | 
+               static_cast<u64>(entity.ticksExisted());
+    return math::Random(seed);
+}
+```
+
+**参考**: MC 1.16.5 `FireworkRocketEntity.tick()`, `FireworkParticle.Starter`
+
 #### 潜影贝子弹 (ShulkerBulletEntity) 详细实现
 
 潜影贝子弹是潜影贝发射的追踪子弹，具有独特的轴向移动机制。
