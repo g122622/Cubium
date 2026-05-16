@@ -286,6 +286,8 @@ add_executable(mc_tests
     entity/HorseAiGoalsTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
     common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
+    # 骷髅马陷阱触发集成测试（triggerTrap 完整流程、困难模式额外骷髅马）
+    common/entity/entities/passive/horse/SkeletonHorseTrapIntegrationTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
