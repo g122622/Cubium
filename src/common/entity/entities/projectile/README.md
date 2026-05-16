@@ -614,3 +614,28 @@ if (livingTarget != nullptr) {
     - 目标必须是 LivingEntity
     - 施加 EffectType::Glowing 效果，持续时间 200 ticks（10秒）
     - 参考 MC 1.16.5 SpectralArrowEntity.arrowHit() 第43-46行
+
+- **药水箭完整实现（2026-05-16）**：
+  - `ArrowEntity::tick()`：飞行时生成彩色粒子效果
+    - 仅客户端执行（`m_world->isClientSide()`）
+    - 使用 EntityEffect 粒子，颜色通过速度参数传递（RGB）
+    - 每 tick 生成 2 个粒子，位置在箭矢周围随机偏移
+    - 参考 MC 1.16.5 ArrowEntity.spawnPotionParticles()
+  - `ArrowEntity::onEntityHit()`：命中生物时施加药水效果
+    - 遍历 m_effects 向量，对目标施加所有药水效果
+    - 参考 MC 1.16.5 ArrowEntity.arrowHit() 第210-215行
+  - `ArrowEntity::getArrowStack()`：拾取时保留药水效果
+    - 使用 `PotionUtils::setCustomEffects()` 设置效果到 NBT
+    - 使用 `PotionUtils::setCustomPotionColor()` 设置自定义颜色
+    - 参考 MC 1.16.5 ArrowEntity.getArrowStack() 第195-208行
+  - `ArrowEntity` 成员变量：
+    - `m_color`：药水箭颜色（ARGB 格式，默认 0xFFFFFFFF）
+    - `m_effects`：药水效果列表
+    - `m_glowing`：发光标记（预留）
+
+- **箭矢碰撞检测完善（2026-05-16）**：
+  - `AbstractArrowEntity::tick()`：使用 CollisionShape 精确检测箭矢是否在方块碰撞箱内
+    - 替代之前的简化 `isSolid()` 检测
+    - 使用 `blockState->getCollisionShape()` 获取碰撞形状
+    - 使用 `AxisAlignedBB::contains()` 检测箭矢位置
+    - 正确处理非完整方块（如台阶、楼梯、地毯等）
