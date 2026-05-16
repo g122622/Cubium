@@ -93,6 +93,13 @@ public:
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
+
+private:
+    /**
+     * @brief 创建龙息区域效果云
+     * MC 1.16.5: DragonFireballEntity 创建 AreaEffectCloudEntity
+     */
+    void createDragonBreathCloud();
 };
 
 class WitherSkullEntity : public AbstractFireballEntity {
