@@ -274,6 +274,8 @@ add_executable(mc_tests
     entity/PigEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
+    # Player LUCK 属性测试
+    entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp

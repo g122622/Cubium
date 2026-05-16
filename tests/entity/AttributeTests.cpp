@@ -409,3 +409,47 @@ TEST(Attributes, KnockbackResistance)
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 0.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 1.0); // 最大值为1（完全免疫）
 }
+
+TEST(Attributes, Luck)
+{
+    // MC 1.16.5: generic.luck 属性
+    auto attr = Attributes::luck();
+
+    EXPECT_EQ(attr->registryName(), Attributes::LUCK);
+    EXPECT_DOUBLE_EQ(attr->defaultValue(), 0.0);
+    EXPECT_DOUBLE_EQ(attr->minValue(), -1024.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
+}
+
+TEST(AttributeMap, LuckAttribute)
+{
+    // 测试 LUCK 属性注册和值获取
+    AttributeMap map;
+
+    map.registerAttribute(*Attributes::luck());
+
+    // 默认值应为 0.0
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK), 0.0);
+
+    // 设置基础值
+    map.setBaseValue(Attributes::LUCK, 5.0);
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK), 5.0);
+
+    // 负值也有效
+    map.setBaseValue(Attributes::LUCK, -3.0);
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK), -3.0);
+
+    // 添加修改器（模拟幸运药水效果）
+    map.addModifier(Attributes::LUCK, AttributeModifier("luck-potion", "Luck", 1.0, Operation::Addition));
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK), -2.0); // -3 + 1 = -2
+}
+
+TEST(AttributeMap, LuckDefaultValue)
+{
+    // 测试未注册属性返回默认值
+    AttributeMap map;
+
+    // 未注册 LUCK 属性时，应返回默认值
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK, 0.0), 0.0);
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::LUCK, 10.0), 10.0); // 使用提供的默认值
+}

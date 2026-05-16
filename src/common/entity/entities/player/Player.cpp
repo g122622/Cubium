@@ -1549,9 +1549,11 @@ void Player::registerAttributes()
     LivingEntity::registerAttributes();
 
     // 注册玩家特有属性
-    // MC 1.16.5: PlayerEntity.registerAttributes() 注册 LUCK 属性
+    // MC 1.16.5: PlayerEntity.registerAttributes() 注册以下属性
     using namespace entity::attribute;
     m_attributes.registerAttribute(*Attributes::luck());
+    m_attributes.registerAttribute(*Attributes::attackDamage());
+    m_attributes.registerAttribute(*Attributes::attackSpeed());
 
     // 设置玩家特有属性值
     m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);

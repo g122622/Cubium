@@ -262,6 +262,12 @@ flowchart TD
   - **荆棘附魔反伤**：使用 `EnchantmentHelper::applyThornsEnchantments()` 应用荆棘伤害
   - **武器耐久消耗**：使用 `Item::hitEntity()` 消耗武器耐久
   - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()`
+- **已新增幸运属性注册**（2026-05-17）：
+  - `Player::registerAttributes()` 中注册 LUCK 属性
+  - 参考 MC 1.16.5 `PlayerEntity.registerAttributes()`
+  - 幸运属性影响钓鱼掉落、战利品表生成等随机事件
+  - 默认值 0.0，范围 -1024.0 ~ 1024.0
+  - 受幸运/霉运药水效果影响
 
 ## 挖掘系统
 

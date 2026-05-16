@@ -248,9 +248,18 @@ minecraft:gameplay/fishing (主表)
 - 宝藏物品只有在开放水域才能钓到
 
 **海之眷顾附魔效果**:
-- 每级增加 0.02 幸运值
+- 每级增加 1 点幸运值（海之眷顾附魔等级）
 - 幸运值影响掉落表的选择概率
 - 质量(weight + luck * quality)用于加权随机
+
+**幸运值计算** (2026-05-17):
+```cpp
+// MC 1.16.5: .withLuck((float)this.luck + playerentity.getLuck())
+f32 totalLuck = luckBonus + player.getAttributeValue(Attributes::LUCK, 0.0);
+```
+- `luckBonus`: 海之眷顾附魔等级（0-3）
+- `player.getAttributeValue(LUCK)`: 玩家基础幸运属性（受幸运/霉运药水影响）
+- 幸运值影响钓鱼掉落表的概率权重
 
 **经验球生成**:
 ```cpp
