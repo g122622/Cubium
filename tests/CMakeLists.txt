@@ -267,6 +267,8 @@ add_executable(mc_tests
     # 恶魂 AI 目标测试
     common/entity/GhastGoalsTest.cpp
     entity/GuardianAttackGoalTest.cpp
+    # PatrolGoal 测试
+    common/entity/ai/goal/PatrolGoalTest.cpp
     entity/WitherEntityTest.cpp
     entity/EvokerGoalsTest.cpp
     entity/VexGoalsTest.cpp

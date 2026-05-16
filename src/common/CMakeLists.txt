@@ -265,6 +265,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/TurtleGoals.cpp
     entity/ai/goal/goals/special/BeeGoals.cpp
     entity/ai/goal/goals/special/MoveToLavaGoal.cpp
+    entity/ai/goal/goals/special/PatrolGoals.cpp
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
