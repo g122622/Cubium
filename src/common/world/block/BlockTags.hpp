@@ -198,6 +198,28 @@ public:
     /// 参考 MC 1.16.5: BlockTags.STRIDER_WARM_BLOCKS
     static BlockTag& STRIDER_WARM_BLOCKS();
 
+    // ========== 蜜蜂相关标签 ==========
+
+    /// 小花朵标签（蒲公英、虞美人等）
+    /// 蜜蜂可以采集这些花朵
+    /// 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
+    static BlockTag& SMALL_FLOWERS();
+
+    /// 高花朵标签（向日葵、丁香等）
+    /// 蜜蜂可以采集这些花朵
+    /// 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
+    static BlockTag& TALL_FLOWERS();
+
+    /// 蜂巢/蜂箱标签
+    /// 蜜蜂可以进入的方块
+    /// 参考 MC 1.16.5: BlockTags.BEEHIVES
+    static BlockTag& BEEHIVES();
+
+    /// 蜜蜂可授粉作物标签
+    /// 小麦、胡萝卜、马铃薯、甜菜根、西瓜茎、南瓜茎、甜浆果丛
+    /// 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
+    static BlockTag& BEE_GROWABLES();
+
     /**
      * @brief 初始化所有内置标签
      *

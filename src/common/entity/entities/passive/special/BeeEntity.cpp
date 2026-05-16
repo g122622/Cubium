@@ -30,10 +30,12 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/special/BeeGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -308,19 +310,63 @@ void BeeEntity::tick()
 void BeeEntity::registerGoals()
 {
     // 调用父类方法注册基础动物 AI
-    // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
 
-    // 蜜蜂特有目标
-    // 优先级 3: 食物诱惑（花朵）
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isFlowerPredicate));
+    // MC 1.16.5 BeeEntity.registerGoals()
+    // 优先级越小越高
 
-    // TODO: 蜜蜂特有目标
-    // - BeeFindFlowerGoal: 寻找花朵
-    // - BeePollinateGoal: 授粉
-    // - BeeReturnToHiveGoal: 返回蜂巢
-    // - BeeAttackGoal: 攻击目标
-    // - BeeWanderGoal: 飞行漫步
+    // ========== Goal Selector (行为目标) ==========
+
+    // 优先级 0: 蛰刺攻击（最高优先级）
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::BeeStingGoal>(this));
+
+    // 优先级 1: 进入蜂巢
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::BeeEnterHiveGoal>(this));
+
+    // 优先级 2: 繁殖
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
+
+    // 优先级 3: 花朵诱惑（使用花朵物品）
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::TemptGoal>(
+        this, 1.25, [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && item->isIn(item::tag::ItemTags::FLOWERS());
+        }, false));
+
+    // 优先级 4: 授粉
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::BeePollinateGoal>(this));
+
+    // 优先级 5: 跟随父母
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));
+
+    // 优先级 5: 更新蜂巢位置
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::BeeUpdateHiveGoal>(this));
+
+    // 优先级 5: 寻找蜂巢
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::BeeFindHiveGoal>(this));
+
+    // 优先级 6: 寻找花朵
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::BeeFindFlowerGoal>(this));
+
+    // 优先级 7: 寻找授粉目标（农作物）
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::BeeFindPollinationTargetGoal>(this));
+
+    // 优先级 8: 随机飞行
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::BeeWanderGoal>(this));
+
+    // 优先级 9: 游泳
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // ========== Target Selector (目标选择) ==========
+
+    // 优先级 1: 愤怒复仇（被攻击时召唤其他蜜蜂）
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::BeeAngerGoal>(this));
+
+    // 优先级 2: 攻击玩家
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::BeeAttackPlayerGoal>(this, 10));
+
+    // 优先级 3: 重置愤怒
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::BeeResetAngerGoal>(this));
 }
 
 void BeeEntity::registerAttributes()

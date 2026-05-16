@@ -36,6 +36,12 @@ namespace mc {
 // Forward declarations
 class LivingEntity;
 
+namespace entity::ai::goal {
+class BeePollinateGoal;
+class BeeFindHiveGoal;
+class BeeFindFlowerGoal;
+}
+
 /**
  * @brief 蜜蜂实体
  *
@@ -127,6 +133,11 @@ public:
      * @brief 是否有蜂巢
      */
     [[nodiscard]] bool hasHive() const { return m_hasHive; }
+
+    /**
+     * @brief 设置是否有蜂巢
+     */
+    void setHasHive(bool hasHive) { m_hasHive = hasHive; }
 
     /**
      * @brief 是否正在返回蜂巢
@@ -292,6 +303,43 @@ public:
      */
     [[nodiscard]] i32 getUnderWaterTimer() const { return m_underWaterTimer; }
 
+    // ========== 授粉系统 ==========
+
+    /**
+     * @brief 检查是否正在授粉
+     */
+    [[nodiscard]] bool isPollinating() const { return m_pollinating; }
+
+    /**
+     * @brief 设置授粉状态
+     */
+    void setPollinating(bool pollinating) { m_pollinating = pollinating; }
+
+    /**
+     * @brief 重置离巢无花粉计时
+     */
+    void resetTicksWithoutNectar() { m_ticksWithoutNectarSinceExitingHive = 0; }
+
+    /**
+     * @brief 获取离巢无花粉计时
+     */
+    [[nodiscard]] i32 getTicksWithoutNectar() const { return m_ticksWithoutNectarSinceExitingHive; }
+
+    /**
+     * @brief 增加授粉作物计数
+     */
+    void addCropCounter() { ++m_cropsGrownSincePollination; }
+
+    /**
+     * @brief 重置授粉作物计数
+     */
+    void resetCropCounter() { m_cropsGrownSincePollination = 0; }
+
+    /**
+     * @brief 获取授粉作物计数
+     */
+    [[nodiscard]] i32 getCropsGrownSincePollination() const { return m_cropsGrownSincePollination; }
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -341,6 +389,14 @@ private:
     // ========== 计时器 ==========
     i32 m_underWaterTimer = 0;
     i32 m_timeSinceSting = 0;  ///< 蛰刺后经过的 tick 数
+
+    // ========== MC 1.16.5 计时器和计数器 ==========
+    i32 m_ticksWithoutNectarSinceExitingHive = 0;  ///< 离巢后无花粉的tick数
+    i32 m_cropsGrownSincePollination = 0;          ///< 授粉后促生长的作物数
+    i32 m_stayOutOfHiveCountdown = 0;              ///< 不进入蜂巢的倒计时
+    i32 m_remainingCooldownBeforeLocatingNewHive = 0;  ///< 寻找新蜂巢冷却
+    i32 m_remainingCooldownBeforeLocatingNewFlower = 0; ///< 寻找新花朵冷却
+    bool m_pollinating = false;                    ///< 是否正在授粉
 
     // ========== 常量 ==========
     static constexpr i32 MAX_ANGER_TIME = 1200; // 60秒

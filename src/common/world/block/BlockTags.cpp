@@ -280,6 +280,42 @@ BlockTag& BlockTags::STRIDER_WARM_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::SMALL_FLOWERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "small_flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::TALL_FLOWERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "tall_flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BEEHIVES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beehives"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BEE_GROWABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bee_growables"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -501,6 +537,54 @@ void BlockTags::initialize()
     auto striderWarmBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "strider_warm_blocks"));
     striderWarmBlocks->addAll({ResourceLocation("minecraft", "lava")});
     tags[striderWarmBlocks->getId()] = std::move(striderWarmBlocks);
+
+    // 创建 SMALL_FLOWERS 标签（小花朵）
+    // 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
+    auto smallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_flowers"));
+    smallFlowers->addAll({ResourceLocation("minecraft", "dandelion"),
+        ResourceLocation("minecraft", "poppy"),
+        ResourceLocation("minecraft", "blue_orchid"),
+        ResourceLocation("minecraft", "allium"),
+        ResourceLocation("minecraft", "azure_bluet"),
+        ResourceLocation("minecraft", "red_tulip"),
+        ResourceLocation("minecraft", "orange_tulip"),
+        ResourceLocation("minecraft", "white_tulip"),
+        ResourceLocation("minecraft", "pink_tulip"),
+        ResourceLocation("minecraft", "oxeye_daisy"),
+        ResourceLocation("minecraft", "cornflower"),
+        ResourceLocation("minecraft", "lily_of_the_valley"),
+        ResourceLocation("minecraft", "wither_rose")});
+    tags[smallFlowers->getId()] = std::move(smallFlowers);
+
+    // 创建 TALL_FLOWERS 标签（高花朵）
+    // 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
+    auto tallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "tall_flowers"));
+    tallFlowers->addAll({ResourceLocation("minecraft", "sunflower"),
+        ResourceLocation("minecraft", "lilac"),
+        ResourceLocation("minecraft", "rose_bush"),
+        ResourceLocation("minecraft", "peony")});
+    tags[tallFlowers->getId()] = std::move(tallFlowers);
+
+    // 创建 BEEHIVES 标签（蜂巢/蜂箱）
+    // 参考 MC 1.16.5: BlockTags.BEEHIVES
+    auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
+    beehives->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
+    tags[beehives->getId()] = std::move(beehives);
+
+    // 创建 BEE_GROWABLES 标签（蜜蜂可授粉作物）
+    // 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
+    auto beeGrowables = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bee_growables"));
+    beeGrowables->addAll({// 农作物
+        ResourceLocation("minecraft", "wheat"),
+        ResourceLocation("minecraft", "carrots"),
+        ResourceLocation("minecraft", "potatoes"),
+        ResourceLocation("minecraft", "beetroots"),
+        // 瓜果茎
+        ResourceLocation("minecraft", "melon_stem"),
+        ResourceLocation("minecraft", "pumpkin_stem"),
+        // 甜浆果丛
+        ResourceLocation("minecraft", "sweet_berry_bush")});
+    tags[beeGrowables->getId()] = std::move(beeGrowables);
 
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));
