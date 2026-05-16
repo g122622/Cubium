@@ -219,6 +219,66 @@ void setVillagerData(const entity::VillagerData& data);
 | StrayEntity | ✅ | ✅ | ✅ | N/A |
 | WitherSkeletonEntity | ✅ | ✅ | ✅ | N/A |
 
+## 溺水转化系统 (ZombieEntity)
+
+僵尸在水中浸泡足够长时间后会转化为溺尸。这是 MC 1.16.5 的核心机制。
+
+### 转化条件
+
+| 条件 | 值 |
+|------|-----|
+| 开始转化 | 在水中 600 ticks (30秒) |
+| 转化时间 | 300 ticks (15秒) |
+| 触发条件 | 头部在水中 |
+
+### 转化流程
+
+```cpp
+void ZombieEntity::updateDrowning() {
+    // 每tick检查
+    if (isInWater() && shouldDrown()) {
+        m_inWaterTime++;
+        if (m_inWaterTime >= 600 && !m_converting) {
+            startDrowning(300);  // 开始15秒转化
+        }
+    } else {
+        m_inWaterTime = 0;  // 重置计时
+    }
+
+    // 转化倒计时
+    if (m_converting && m_conversionTime > 0) {
+        m_conversionTime--;
+        if (m_conversionTime <= 0) {
+            convertToDrowned();  // 完成转化
+        }
+    }
+}
+```
+
+### convertToDrowned() 实现
+
+当僵尸完成溺水转化时，会调用 `convertToDrowned()` 方法：
+
+1. **创建溺尸**: 从 EntityRegistry 获取 `DrownedEntity` 类型并创建新实例
+2. **复制位置**: 位置和旋转角度
+3. **复制生命值**: 按比例保留生命值
+4. **复制装备**: 所有 6 个装备槽位（主手、副手、头盔、胸甲、护腿、靴子）
+5. **复制婴儿状态**: 婴儿僵尸转化为婴儿溺尸
+6. **复制自定义名称**: 名称和可见性
+7. **复制持久化状态**: 命名牌命名的实体会保留
+8. **清理**: 清空原僵尸装备（防止死亡掉落）
+9. **音效**: 播放 `ENTITY_ZOMBIE_CONVERTED_TO_DROWNED`
+10. **事件**: 播放世界事件 1040
+11. **移除**: 标记原僵尸为移除状态
+
+参考 MC 1.16.5 `ZombieEntity.onDrowned()` 和 `func_234341_c_()`
+
+### 子类覆盖
+
+- **HuskEntity**: 重写 `shouldDrown()` 返回 `true`，先变成普通僵尸再变成溺尸
+- **DrownedEntity**: 重写 `shouldDrown()` 返回 `false`，不会再次转化
+- **ZombieVillagerEntity**: 重写 `shouldDrown()` 返回 `false`，不会变成溺尸
+
 ## 测试用例
 
 - `tests/common/entity/entities/monster/ZombieVillagerEntityTest.cpp`

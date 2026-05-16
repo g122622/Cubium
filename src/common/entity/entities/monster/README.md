@@ -72,7 +72,7 @@ Entity
 ### undead/ - 亡灵类
 | 实体 | 说明 | 特殊行为 |
 |------|------|----------|
-| ZombieEntity | 僵尸 | 破门、召唤援军、转化为溺尸 |
+| ZombieEntity | 僵尸 | 破门、召唤援军、**溺水转化为溺尸** |
 | HuskEntity | 尸壳 | 沙漠僵尸、脱水效果 |
 | DrownedEntity | 溺尸 | 水下僵尸、使用三叉戟 |
 | ZombieVillagerEntity | 僵尸村民 | 虚弱药水+金苹果治愈、保留职业等级 |
@@ -80,6 +80,17 @@ Entity
 | StrayEntity | 流浪者 | 雪地骷髅、迟缓之箭 |
 | WitherSkeletonEntity | 凋灵骷髅 | 凋灵效果攻击、高攻击力 |
 | PhantomEntity | 幻翼 | 飞行攻击、夜间生成 |
+
+#### 僵尸溺水转化 (ZombieEntity.convertToDrowned)
+
+僵尸在水中浸泡 30 秒后开始转化，15 秒后完成转化为溺尸：
+- 在水中 600 ticks (30秒) 开始转化
+- 转化时间 300 ticks (15秒)
+- 转化时保留位置、生命值比例、装备、婴儿状态、自定义名称、持久化状态
+- 播放 `ENTITY_ZOMBIE_CONVERTED_TO_DROWNED` 音效和世界事件 1040
+- 参考 MC 1.16.5 `ZombieEntity.onDrowned()`
+
+详见 `undead/README.md`
 
 ### arthropod/ - 节肢类
 | 实体 | 说明 | 特殊行为 | 实现状态 |
