@@ -13,8 +13,8 @@
       "name": "chunk_generation",
       "threadCount": 4,
       "measurement": {
-        "warmupIterations": 2,
-        "measuredIterations": 5,
+        "warmupIterations": 10,
+        "measuredIterations": 500,
         "minDurationMs": 1
       },
       "parameters": {
@@ -27,8 +27,8 @@
       "name": "lighting",
       "threadCount": 4,
       "measurement": {
-        "warmupIterations": 2,
-        "measuredIterations": 5,
+        "warmupIterations": 10,
+        "measuredIterations": 500,
         "minDurationMs": 1
       },
       "parameters": {

@@ -116,3 +116,5 @@ whitelist.json
 
 build-clang-client/
 build-clang/
+
+benchmark_results.json
