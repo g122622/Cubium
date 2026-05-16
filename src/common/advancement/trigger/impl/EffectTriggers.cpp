@@ -74,30 +74,51 @@ Result<std::shared_ptr<ICriterionInstance>> RecipeUnlockedTrigger::fromJson(cons
 
 // ========== EffectsChangedTrigger ==========
 
+EffectsChangedTriggerInstance::EffectsChangedTriggerInstance(MobEffectsPredicate effects)
+    : m_effects(std::move(effects))
+{}
+
 bool EffectsChangedTriggerInstance::test(const Entity& entity) const
 {
-    MC_UNUSED(entity);
-    // [TODO] 需要 MobEffectsPredicate 实现
-    return true;
+    return m_effects.test(entity);
 }
 
 Result<void> EffectsChangedTriggerInstance::fromJson(const nlohmann::json& json)
 {
-    MC_UNUSED(json);
-    // [TODO] 需要 MobEffectsPredicate 实现
+    if (json.is_null()) {
+        return {};
+    }
+
+    if (json.contains("effects")) {
+        auto result = MobEffectsPredicate::fromJson(json["effects"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        m_effects = result.value();
+    }
+
     return {};
 }
 
 nlohmann::json EffectsChangedTriggerInstance::conditionsToJson() const
 {
-    // [TODO] 需要 MobEffectsPredicate 实现
-    return nullptr;
+    if (m_effects.isAny()) {
+        return nullptr;
+    }
+
+    nlohmann::json json;
+    json["effects"] = m_effects.toJson();
+    return json;
 }
 
 Result<std::shared_ptr<ICriterionInstance>> EffectsChangedTrigger::fromJson(const nlohmann::json& json)
 {
-    MC_UNUSED(json);
-    return std::make_shared<EffectsChangedTriggerInstance>();
+    auto instance = std::make_shared<EffectsChangedTriggerInstance>();
+    auto result = instance->fromJson(json);
+    if (result.failed()) {
+        return result.error();
+    }
+    return instance;
 }
 
 // Note: EffectsChangedTrigger::trigger() is implemented via TriggerInstantiation.hpp in server layer

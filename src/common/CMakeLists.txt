@@ -1019,6 +1019,7 @@ add_library(mc_common STATIC
     advancement/trigger/conditions/EntityPredicate.cpp
     advancement/trigger/conditions/LocationPredicate.cpp
     advancement/trigger/conditions/BlockPredicate.cpp
+    advancement/trigger/conditions/MobEffectsPredicate.cpp
     # Trigger implementations
     advancement/trigger/impl/InventoryChangedTrigger.cpp
     advancement/trigger/impl/TickTrigger.cpp
