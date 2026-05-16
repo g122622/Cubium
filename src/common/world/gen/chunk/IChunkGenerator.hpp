@@ -197,6 +197,7 @@ public:
  *
  * 参考 MC WorldGenRegion，提供有限的世界视图给生成器。
  * 访问范围由生成阶段的 taskRange 决定，常见窗口包括 0、1、8。
+ * TODO 移到单独文件中
  *
  * @note 参考 MC 1.16.5 WorldGenRegion
  */
