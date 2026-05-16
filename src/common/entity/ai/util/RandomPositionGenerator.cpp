@@ -148,6 +148,61 @@ bool RandomPositionGenerator::findRandomTargetAvoidWater(
     return false;
 }
 
+bool RandomPositionGenerator::findRandomTargetBlock(
+    CreatureEntity* creature, i32 xzRange, i32 yRange, std::optional<Vector3> avoidPos, Vector3& outPos)
+{
+    if (!creature) return false;
+
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    Random rng = creature->getRandom();
+
+    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlock
+    // 飞行实体使用此方法选择随机的方块位置
+    // 不要求位置可行走，只需要是空气方块即可
+
+    for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+        // 生成随机偏移
+        i32 dx = rng.nextInt(2 * xzRange + 1) - xzRange;
+        i32 dy = rng.nextInt(2 * yRange + 1) - yRange;
+        i32 dz = rng.nextInt(2 * xzRange + 1) - xzRange;
+
+        i32 x = floorTo<i32>(creature->x()) + dx;
+        i32 y = floorTo<i32>(creature->y()) + dy;
+        i32 z = floorTo<i32>(creature->z()) + dz;
+
+        // 检查坐标是否在世界范围内
+        if (!world->isWithinWorldBounds(x, y, z)) {
+            continue;
+        }
+
+        // 如果有回避位置，检查是否远离
+        if (avoidPos.has_value()) {
+            Vector3 candidatePos(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
+            Vector3 creaturePos(creature->x(), creature->y(), creature->z());
+            Vector3 awayDir = creaturePos - avoidPos.value();
+
+            // 检查候选位置是否在回避方向上
+            Vector3 toCandidate = candidatePos - creaturePos;
+            f32 dot = toCandidate.x * awayDir.x + toCandidate.y * awayDir.y + toCandidate.z * awayDir.z;
+            if (dot < 0) {
+                // 候选位置在回避方向的反方向，跳过
+                continue;
+            }
+        }
+
+        // 对于飞行实体，只需要检查目标位置是空气或可以通过
+        const BlockState* block = world->getBlockState(x, y, z);
+        if (block && (block->isAir() || !block->isSolid())) {
+            outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // ==================== 辅助方法实现 ====================
 
 bool RandomPositionGenerator::isPositionWalkable(CreatureEntity* creature, i32 x, i32 y, i32 z)

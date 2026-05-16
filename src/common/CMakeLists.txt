@@ -244,8 +244,11 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/SwimUpGoal.cpp
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
+    entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp
     entity/ai/goal/goals/movement/MovementGoals.cpp
     entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.cpp
+    entity/ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.cpp
+    entity/ai/goal/goals/movement/FollowMobGoal.cpp
     entity/ai/goal/goals/attack/RangedAttackGoals.cpp
     entity/ai/goal/goals/target/TargetGoals.cpp
     entity/ai/goal/goals/special/SpecialGoals.cpp

@@ -26,6 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include <functional>
+#include <optional>
 
 namespace mc {
 
@@ -134,6 +135,23 @@ public:
      * @return 是否找到有效位置
      */
     static bool findRandomTargetAvoidWater(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos);
+
+    /**
+     * @brief 生成随机方块目标位置
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetBlock
+     * 用于飞行实体，选择随机的方块位置作为目标。
+     * 与 findRandomTarget 不同，此方法不要求位置可行走。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param avoidPos 可选的回避位置（std::nullopt 表示不回避）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetBlock(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, std::optional<Vector3> avoidPos, Vector3& outPos);
 
     // ==================== 辅助方法 ====================
 
