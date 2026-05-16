@@ -27,6 +27,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/WorldConstants.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/fluid/Fluid.hpp"
 #include "../../core/CreatureEntity.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../pathfinding/PathNavigator.hpp"
@@ -82,6 +83,76 @@ bool RandomPositionGenerator::findRandomTargetTowards(
     }
 
     return findBestPosition(creature, xzRange, yRange, directionBias, outPos);
+}
+
+bool RandomPositionGenerator::findRandomTargetTowardsScaled(
+    CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, f64 angleRange, Vector3& outPos)
+{
+    // MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled
+    // 在目标方向生成一个缩放后的随机目标位置，角度限制在指定范围内
+    if (!creature) return false;
+
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    Vector3 creaturePos(creature->x(), creature->y(), creature->z());
+
+    // 计算到目标的方向向量
+    Vector3 toTarget = targetPos - creaturePos;
+    f64 distanceToTarget = toTarget.length();
+
+    if (distanceToTarget < 0.001) {
+        // 目标位置太近，使用普通方法
+        return findRandomTarget(creature, xzRange, yRange, outPos);
+    }
+
+    toTarget = toTarget * (1.0 / distanceToTarget); // 归一化
+
+    // 计算目标方向的角度（弧度）
+    f64 targetAngle = std::atan2(toTarget.x, toTarget.z);
+
+    Random rng = creature->getRandom();
+
+    // 尝试多次生成有效位置
+    for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+        // 在角度范围内随机偏移
+        f64 angleOffset = (rng.nextFloat() * 2.0 - 1.0) * angleRange / 2.0;
+        f64 actualAngle = targetAngle + angleOffset;
+
+        // 随机距离（在xzRange范围内）
+        f64 distance = rng.nextFloat() * static_cast<f64>(xzRange);
+
+        // 计算目标位置
+        f64 dx = std::sin(actualAngle) * distance;
+        f64 dz = std::cos(actualAngle) * distance;
+        f64 dy = (rng.nextFloat() * 2.0 - 1.0) * static_cast<f64>(yRange);
+
+        i32 x = floorTo<i32>(creaturePos.x + dx);
+        i32 y = floorTo<i32>(creaturePos.y + dy);
+        i32 z = floorTo<i32>(creaturePos.z + dz);
+
+        // 检查坐标是否在世界范围内
+        if (!world->isWithinWorldBounds(x, y, z)) {
+            continue;
+        }
+
+        // 检查位置是否可行走
+        if (isPositionWalkable(creature, x, y, z)) {
+            outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
+            return true;
+        }
+
+        // 尝试找到地面
+        i32 groundY = getGroundHeight(world, x, y, z);
+        if (groundY >= world::MIN_BUILD_HEIGHT && isPositionWalkable(creature, x, groundY, z)) {
+            outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(groundY), static_cast<f32>(z) + 0.5f);
+            return true;
+        }
+    }
+
+    // 如果找不到有效位置，尝试使用 findRandomTargetBlockTowards 作为后备
+    // MC 1.16.5: 如果第一个方法失败，尝试 findRandomTargetBlockTowards
+    return findRandomTargetBlock(creature, xzRange / 2, yRange, std::nullopt, outPos);
 }
 
 bool RandomPositionGenerator::getLandPos(CreatureEntity* creature, i32 xzRange, i32 yRange, Vector3& outPos)
@@ -195,6 +266,72 @@ bool RandomPositionGenerator::findRandomTargetBlock(
         // 对于飞行实体，只需要检查目标位置是空气或可以通过
         const BlockState* block = world->getBlockState(x, y, z);
         if (block && (block->isAir() || !block->isSolid())) {
+            outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool RandomPositionGenerator::findRandomTargetBlockTowards(
+    CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos)
+{
+    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards
+    // 用于水生生物（如海豚），在朝向目标的方向选择一个方块位置
+    if (!creature) return false;
+
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    Vector3 creaturePos(creature->x(), creature->y(), creature->z());
+
+    // 计算到目标的方向向量
+    Vector3 toTarget = targetPos - creaturePos;
+    f64 distanceToTarget = toTarget.length();
+
+    if (distanceToTarget < 0.001) {
+        // 目标位置太近，使用普通方法
+        return findRandomTargetBlock(creature, xzRange, yRange, std::nullopt, outPos);
+    }
+
+    toTarget = toTarget * (1.0 / distanceToTarget); // 归一化
+
+    Random rng = creature->getRandom();
+
+    // 尝试多次生成有效位置
+    for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+        // 在目标方向上随机偏移
+        // MC 1.16.5: 使用偏移后的方向向量
+        f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
+        f32 dy = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(yRange);
+        f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
+
+        // 添加方向偏移（朝向目标）
+        dx += static_cast<f32>(toTarget.x * xzRange * 0.5);
+        dy += static_cast<f32>(toTarget.y * yRange * 0.5);
+        dz += static_cast<f32>(toTarget.z * xzRange * 0.5);
+
+        i32 x = floorTo<i32>(creaturePos.x + dx);
+        i32 y = floorTo<i32>(creaturePos.y + dy);
+        i32 z = floorTo<i32>(creaturePos.z + dz);
+
+        // 检查坐标是否在世界范围内
+        if (!world->isWithinWorldBounds(x, y, z)) {
+            continue;
+        }
+
+        // 检查是否是水或可通过的方块（水生生物使用）
+        const fluid::FluidState* fluidState = world->getFluidState(x, y, z);
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            // 是流体，对水生生物有效
+            outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
+            return true;
+        }
+
+        // 检查是否是空气
+        const BlockState* block = world->getBlockState(x, y, z);
+        if (block && (block->isAir() || !block->getMaterial().blocksMovement())) {
             outPos = Vector3(static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f);
             return true;
         }

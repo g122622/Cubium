@@ -111,6 +111,23 @@ public:
         CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
     /**
+     * @brief 生成朝向指定位置的缩放随机目标
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled
+     * 用于海豚寻宝等场景，在目标方向生成一个缩放后的随机目标位置。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param targetPos 目标位置（宝藏位置）
+     * @param angleRange 方向角限制范围（弧度，PI/8 表示左右各 PI/16）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetTowardsScaled(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, f64 angleRange, Vector3& outPos);
+
+    /**
      * @brief 获取陆地位置
      *
      * 寻找一个可行走的地面位置
@@ -152,6 +169,23 @@ public:
      */
     static bool findRandomTargetBlock(
         CreatureEntity* creature, i32 xzRange, i32 yRange, std::optional<Vector3> avoidPos, Vector3& outPos);
+
+    /**
+     * @brief 生成朝向目标位置的方块目标位置
+     *
+     * MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards
+     * 用于水生生物（如海豚），在朝向目标的方向选择一个方块位置。
+     * 不要求位置可行走，但会检查是否是水或可通过的方块。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param targetPos 目标位置
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findRandomTargetBlockTowards(
+        CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
     // ==================== 辅助方法 ====================
 
