@@ -442,6 +442,151 @@ void LootTableManager::initializeDefaultTables()
 
         registerTable("minecraft:blocks/nether_gold_ore", std::move(table));
     }
+
+    // ========================================================================
+    // 钓鱼掉落表
+    // ========================================================================
+
+    // 鱼掉落表 (minecraft:gameplay/fishing/fish)
+    // 参考 MC 1.16.5 FishingLootTables
+    {
+        auto table = std::make_unique<LootTable>();
+        auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
+
+        // 鳕鱼 - 权重 60 (60%)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:cod", RandomValueRange(1.0f, 1.0f), 60, 0));
+
+        // 鲑鱼 - 权重 25 (25%)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:salmon", RandomValueRange(1.0f, 1.0f), 25, 0));
+
+        // 热带鱼 - 权重 2 (2%)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:tropical_fish", RandomValueRange(1.0f, 1.0f), 2, 0));
+
+        // 河豚 - 权重 13 (13%)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:pufferfish", RandomValueRange(1.0f, 1.0f), 13, 0));
+
+        table->addPool(std::move(pool));
+        registerTable("minecraft:gameplay/fishing/fish", std::move(table));
+    }
+
+    // 垃圾掉落表 (minecraft:gameplay/fishing/junk)
+    // 参考 MC 1.16.5 FishingLootTables
+    // 权重总和: 10 (受 quality -2 影响)
+    {
+        auto table = std::make_unique<LootTable>();
+        auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
+
+        // 睡莲 - 权重 17 (项目中暂未定义，暂时跳过)
+        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:lily_pad", RandomValueRange(1.0f, 1.0f), 17, -2));
+
+        // 皮革靴子 - 权重 10 (需要设置损坏)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:leather_boots", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 皮革 - 权重 10
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:leather", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 骨头 - 权重 10
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:bone", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 水瓶 - 权重 10 (项目中暂未定义，暂时跳过)
+        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:potion", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 线 - 权重 5
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:string", RandomValueRange(1.0f, 1.0f), 5, -2));
+
+        // 钓鱼竿（损坏）- 权重 2 (需要设置损坏)
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:fishing_rod", RandomValueRange(1.0f, 1.0f), 2, -2));
+
+        // 碗 - 权重 10
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:bowl", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 木棍 - 权重 5
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:stick", RandomValueRange(1.0f, 1.0f), 5, -2));
+
+        // 墨囊 x10 - 权重 1
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:ink_sac", RandomValueRange(10.0f, 10.0f), 1, -2));
+
+        // 绊线钩 - 权重 10 (项目中暂未定义，暂时跳过)
+        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:tripwire_hook", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 腐肉 - 权重 10
+        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:rotten_flesh", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        // 竹子 - 权重 10 (仅在丛林群系，简化处理)
+        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:bamboo", RandomValueRange(1.0f, 1.0f), 10, -2));
+
+        table->addPool(std::move(pool));
+        registerTable("minecraft:gameplay/fishing/junk", std::move(table));
+    }
+
+    // 宝藏掉落表 (minecraft:gameplay/fishing/treasure)
+    // 参考 MC 1.16.5 FishingLootTables
+    // 权重总和: 6 (受 quality +2 影响)
+    // 注意：宝藏只在开放水域出现
+    {
+        auto table = std::make_unique<LootTable>();
+        auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
+
+        // 命名牌 - 权重 1
+        auto nameTagEntry = std::make_unique<ItemLootEntry>("minecraft:name_tag", RandomValueRange(1.0f, 1.0f), 1, 2);
+        nameTagEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        pool->addEntry(std::move(nameTagEntry));
+
+        // 鞍 - 权重 1
+        auto saddleEntry = std::make_unique<ItemLootEntry>("minecraft:saddle", RandomValueRange(1.0f, 1.0f), 1, 2);
+        saddleEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        pool->addEntry(std::move(saddleEntry));
+
+        // 弓（附魔）- 权重 1 (需要附魔函数)
+        auto bowEntry = std::make_unique<ItemLootEntry>("minecraft:bow", RandomValueRange(1.0f, 1.0f), 1, 2);
+        bowEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        // TODO: 添加附魔函数 EnchantWithLevelsFunction
+        pool->addEntry(std::move(bowEntry));
+
+        // 钓鱼竿（附魔）- 权重 1 (需要附魔函数)
+        auto fishingRodEntry = std::make_unique<ItemLootEntry>("minecraft:fishing_rod", RandomValueRange(1.0f, 1.0f), 1, 2);
+        fishingRodEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        // TODO: 添加附魔函数 EnchantWithLevelsFunction
+        pool->addEntry(std::move(fishingRodEntry));
+
+        // 书（附魔）- 权重 1 (需要附魔函数)
+        auto bookEntry = std::make_unique<ItemLootEntry>("minecraft:book", RandomValueRange(1.0f, 1.0f), 1, 2);
+        bookEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        // TODO: 添加附魔函数 EnchantWithLevelsFunction
+        pool->addEntry(std::move(bookEntry));
+
+        // 鹦鹉螺壳 - 权重 1
+        auto nautilusEntry = std::make_unique<ItemLootEntry>("minecraft:nautilus_shell", RandomValueRange(1.0f, 1.0f), 1, 2);
+        nautilusEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        pool->addEntry(std::move(nautilusEntry));
+
+        table->addPool(std::move(pool));
+        registerTable("minecraft:gameplay/fishing/treasure", std::move(table));
+    }
+
+    // 主钓鱼掉落表 (minecraft:gameplay/fishing)
+    // 参考 MC 1.16.5 FishingLootTables
+    // 使用 TableLootEntry 引用子表
+    {
+        auto table = std::make_unique<LootTable>();
+        auto pool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
+
+        // 垃圾 - 权重 10, quality -2
+        auto junkEntry = std::make_unique<TableLootEntry>("minecraft:gameplay/fishing/junk", 10, -2);
+        pool->addEntry(std::move(junkEntry));
+
+        // 宝藏 - 权重 5, quality +2 (需要开放水域条件)
+        auto treasureEntry = std::make_unique<TableLootEntry>("minecraft:gameplay/fishing/treasure", 5, 2);
+        treasureEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
+        pool->addEntry(std::move(treasureEntry));
+
+        // 鱼 - 权重 85, quality -1
+        auto fishEntry = std::make_unique<TableLootEntry>("minecraft:gameplay/fishing/fish", 85, -1);
+        pool->addEntry(std::move(fishEntry));
+
+        table->addPool(std::move(pool));
+        registerTable("minecraft:gameplay/fishing", std::move(table));
+    }
 }
 
 } // namespace loot

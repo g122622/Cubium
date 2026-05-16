@@ -190,6 +190,12 @@ private:
     i32 spawnCatchItems();
 
     /**
+     * @brief 生成经验球
+     * @param totalXp 总经验值
+     */
+    void spawnExperienceOrbs(i32 totalXp);
+
+    /**
      * @brief 设置咬钩等待时间
      */
     void setWaitTime();

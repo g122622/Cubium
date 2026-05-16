@@ -364,5 +364,31 @@ std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType)
     return std::make_unique<ToolTypeCondition>(toolType);
 }
 
+// ============================================================================
+// FishingOpenWaterCondition
+// ============================================================================
+
+FishingOpenWaterCondition::FishingOpenWaterCondition(bool requireOpenWater)
+    : m_requireOpenWater(requireOpenWater)
+{}
+
+bool FishingOpenWaterCondition::test(LootContext& context) const
+{
+    // 从上下文中获取开放水域状态
+    bool* openWaterPtr = context.get<bool>(LootParams::IS_IN_OPEN_WATER);
+    if (openWaterPtr == nullptr) {
+        // 如果没有设置开放水域参数，默认返回 false（非开放水域）
+        return !m_requireOpenWater;
+    }
+
+    // 检查是否满足开放水域条件
+    return m_requireOpenWater == *openWaterPtr;
+}
+
+std::unique_ptr<LootCondition> FishingOpenWaterCondition::clone() const
+{
+    return std::make_unique<FishingOpenWaterCondition>(m_requireOpenWater);
+}
+
 } // namespace loot
 } // namespace mc

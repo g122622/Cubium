@@ -32,7 +32,13 @@
 #include "../../damage/DamageSource.hpp"
 #include "../../effect/EffectInstance.hpp"
 #include "../../effect/EffectType.hpp"
+#include "../../entities/item/ItemEntity.hpp"
+#include "../../entities/orb/ExperienceOrbEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../inventory/PlayerInventory.hpp"
+#include "../../loot/LootContext.hpp"
+#include "../../loot/LootTable.hpp"
+#include "../../utils/ItemDropHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
@@ -376,9 +382,131 @@ void FishingBobberEntity::setWaitTime()
 
 i32 FishingBobberEntity::spawnCatchItems()
 {
-    // TODO: 使用钓鱼掉落表生成物品
-    // 目前返回 1 表示钓到鱼（用于耐久消耗）
-    return 1;
+    // MC 1.16.5: 使用钓鱼掉落表生成物品
+    // 参考 FishingBobberEntity.handleHookRetraction()
+
+    if (!m_world || !m_angler) {
+        return 0;
+    }
+
+    // 获取掉落表管理器
+    const loot::LootTable* fishingTable = m_world->lootTableManager() ?
+        m_world->lootTableManager()->getTable("minecraft:gameplay/fishing") : nullptr;
+    if (!fishingTable) {
+        // 如果掉落表不存在，返回默认值
+        return 1;
+    }
+
+    // 计算幸运值 = 海之眷顾附魔等级 + 玩家基础幸运
+    f32 totalLuck = static_cast<f32>(m_luckBonus);
+    // TODO: 获取玩家基础幸运值
+    // totalLuck += m_angler->getLuck();
+
+    // 获取随机数生成器
+    math::Random& random = m_world->getRandom();
+
+    // 构建掉落上下文
+    auto context = loot::LootContextBuilder(*m_world)
+        .withRandom(random)
+        .withLuck(totalLuck)
+        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
+        .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(m_angler))
+        .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, m_inOpenWater)
+        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
+            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
+        })
+        .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
+
+    if (!context) {
+        return 1;
+    }
+
+    // 生成掉落物品
+    std::vector<ItemStack> drops = fishingTable->generate(*context);
+
+    // 计算从浮标到玩家的方向
+    f64 dx = m_angler->x() - x();
+    f64 dy = m_angler->y() + m_angler->eyeHeight() * 0.5 - y();
+    f64 dz = m_angler->z() - z();
+    f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    f64 sqrtDistance = std::sqrt(distance);
+
+    // 速度因子（参考 MC 1.16.5）
+    f32 vx = static_cast<f32>(dx * 0.1);
+    f32 vy = static_cast<f32>(dy * 0.1 + sqrtDistance * 0.08);
+    f32 vz = static_cast<f32>(dz * 0.1);
+
+    // 生成物品实体
+    for (const auto& drop : drops) {
+        if (drop.isEmpty()) {
+            continue;
+        }
+
+        // 使用 ItemDropHelper 生成物品实体
+        ItemDropHelper::spawnItemEntity(
+            m_world,
+            drop,
+            x(), y() + 0.5, z(), // 在浮标位置生成
+            vx, vy, vz,           // 朝玩家方向飞
+            10,                   // 拾取延迟 10 ticks
+            m_angler->uuid()      // 所有者 UUID，防止立即拾取自己的物品
+        );
+    }
+
+    // 生成经验球 (1-6 经验，参考 MC 1.16.5)
+    i32 experience = random.nextInt(1, 6);
+    spawnExperienceOrbs(experience);
+
+    // 返回钓到物品数量（用于耐久消耗）
+    return static_cast<i32>(drops.size());
+}
+
+void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
+{
+    // MC 1.16.5: 生成经验球
+    // 参考 ExperienceOrbEntity.split()
+
+    if (totalXp <= 0 || !m_world) {
+        return;
+    }
+
+    math::Random& random = m_world->getRandom();
+
+    // 分割经验值为多个经验球
+    // MC 1.16.5 经验分割值: 2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
+    static constexpr i32 XP_SPLIT_VALUES[] = {2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1};
+
+    while (totalXp > 0) {
+        // 找到适合当前经验值的分割值
+        i32 orbXp = 1;
+        for (i32 splitValue : XP_SPLIT_VALUES) {
+            if (totalXp >= splitValue) {
+                orbXp = splitValue;
+                break;
+            }
+        }
+
+        totalXp -= orbXp;
+
+        // 在浮标位置生成经验球，添加随机偏移
+        f64 offsetX = random.nextDouble() * 0.2 - 0.1;
+        f64 offsetY = random.nextDouble() * 0.2;
+        f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
+
+        auto orb = std::make_unique<ExperienceOrbEntity>(
+            m_world,
+            x() + offsetX,
+            y() + 0.5 + offsetY,
+            z() + offsetZ,
+            orbXp
+        );
+
+        // 设置拾取延迟
+        orb->setPickupDelay(10);
+
+        // 添加到世界
+        m_world->spawnEntity(std::move(orb));
+    }
 }
 
 i32 FishingBobberEntity::reelIn()
@@ -389,8 +517,6 @@ i32 FishingBobberEntity::reelIn()
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
         // 成功钓到鱼
         damage = spawnCatchItems();
-        // TODO: 生成经验球 (1-6 经验)
-        // TODO: 生成钓鱼物品实体
         remove();
     } else if (m_state == State::Hooked) {
         // 钩住实体，拉过来
