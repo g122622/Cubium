@@ -143,6 +143,35 @@ AbstractSkeletonEntity
 | 床 | 4x4x4 范围内，每个有 30% 概率加速 |
 | 力量效果 | 每级减少 10% 治愈时间 |
 
+**加速机制详解 (MC 1.16.5):**
+
+```cpp
+// ZombieVillagerEntity::getConversionProgress()
+// 每 tick 只有 1% 概率执行检测
+if (rng.nextFloat() < 0.01f) {
+    // 遍历 4x4x4 范围
+    for (dx = -4; dx <= 4; ++dx) {
+        for (dy = -4; dy <= 4; ++dy) {
+            for (dz = -4; dz <= 4; ++dz) {
+                // 铁栏杆和床同等对待
+                if (block == IRON_BARS || BedBlock::isBed(world, pos)) {
+                    if (rng.nextFloat() < 0.3f) {
+                        ++progress;  // 30% 概率加速
+                    }
+                    ++count;  // 最多检测 14 个
+                }
+            }
+        }
+    }
+}
+```
+
+**床加速特性:**
+- 所有 16 种颜色的床都有效
+- 床的占用状态不影响加速
+- 床的头部和脚部都有效（完整床触发两次检测）
+- 使用 `BedBlock::isBed(world, pos)` 静态方法检测
+
 ### 数据同步参数
 
 | 参数名 | 类型 | 说明 |
@@ -286,6 +315,14 @@ void ZombieEntity::updateDrowning() {
   - 治愈状态测试（开始/停止/进度）
   - 村民数据测试（类型/职业/等级/经验）
   - 消失规则测试（治愈中/有经验）
+
+- `tests/entity/ZombieVillagerConversionTest.cpp`
+  - 治愈时间常量测试（最小 3600 ticks，最大 6000 ticks）
+  - 加速检测常量测试（范围 4 格，概率 30%，最多 14 个方块）
+  - 力量效果加速测试（每级 +10%）
+  - 床与铁栏杆同等处理测试
+  - 进度计算逻辑测试
+  - 床类型兼容性测试（16 种颜色、占用状态、床部分均有效）
 
 ## 参考
 
