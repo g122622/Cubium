@@ -181,6 +181,8 @@ add_executable(mc_tests
     advancement/CuredZombieVillagerTriggerTest.cpp
     # PlayerInteractedWithEntityTrigger 触发器测试
     advancement/PlayerInteractedWithEntityTriggerTest.cpp
+    # ChanneledLightningTrigger 引雷附魔触发器测试
+    advancement/ChanneledLightningTriggerTest.cpp
     # MobEffectsPredicate 效果谓词测试
     advancement/MobEffectsPredicateTest.cpp
     # DamageSourcePredicate 伤害源谓词测试

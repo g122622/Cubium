@@ -30,7 +30,8 @@ trigger/
     ├── BlockTriggers.hpp/cpp           # 方块相关触发器
     ├── ItemTriggers.hpp/cpp            # 物品相关触发器
     ├── EntityTriggers.hpp/cpp          # 实体相关触发器
-    └── EffectTriggers.hpp/cpp          # 效果相关触发器
+    ├── EffectTriggers.hpp/cpp          # 效果相关触发器
+    └── ChanneledLightningTrigger.hpp/cpp # 引雷附魔触发器
 ```
 
 ## 核心接口
@@ -120,6 +121,8 @@ bool matches = instance.testWithInventory(
 | `SummonedEntityTrigger` | `minecraft:summoned_entity` | 召唤实体 | ⏳ 条件检测完成，待事件集成 |
 | `CuredZombieVillagerTrigger` | `minecraft:cured_zombie_villager` | 治愈僵尸村民 | ⏳ 条件检测完成，待事件集成 |
 | `VillagerTradeTrigger` | `minecraft:villager_trade` | 村民交易 | ⏳ 条件检测完成，待事件集成 |
+| `PlayerInteractedWithEntityTrigger` | `minecraft:player_interacted_with_entity` | 玩家与实体交互 | ✅ 完整实现，已注册 |
+| `ChanneledLightningTrigger` | `minecraft:channeled_lightning` | 引雷附魔 | ✅ 完整实现，已注册 |
 
 #### PlayerKilledEntityTrigger 详细说明
 

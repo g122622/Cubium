@@ -126,6 +126,7 @@ m_advancementEventHandler.initialize();
 | `PlayerKillEntityEvent` | `PlayerKilledEntityTrigger` | ✅ 已完成 |
 | `BlockPlaceEvent` | `PlacedBlockTrigger` | ✅ 已完成 |
 | `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` + 村庄声望更新 | ✅ 已完成 |
+| `ChanneledLightningEvent` | `ChanneledLightningTrigger` | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
 
 ### 事件处理器架构
