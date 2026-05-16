@@ -24,11 +24,23 @@
 #include "EntityPredicate.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
 // ========== EntityPredicate ==========
+
+void EntityPredicate::updateIsAny()
+{
+    m_isAny = !m_type.has_value() &&
+              m_distance.isAny() &&
+              m_location.isAny() &&
+              m_effects.isAny() &&
+              m_nbt.isAny() &&
+              m_flags.isAny() &&
+              m_equipment.isAny();
+}
 
 bool EntityPredicate::test(const Entity& entity) const
 {
@@ -36,9 +48,10 @@ bool EntityPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // 检查实体类型
-    // MC 1.16.5: 通过实体类型注册表比较类型ID
-    // 项目中使用 entity.getTypeId() 返回资源位置字符串（如 "minecraft:zombie"）
+    // MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
+    // 不带世界和参考位置的简化版本
+
+    // 1. 检查实体类型
     if (m_type.has_value()) {
         std::string entityTypeId = entity.getTypeId();
         if (entityTypeId != m_type.value().toString()) {
@@ -46,8 +59,78 @@ bool EntityPredicate::test(const Entity& entity) const
         }
     }
 
-    // 检查效果
+    // 2. 检查效果
     if (!m_effects.test(entity)) {
+        return false;
+    }
+
+    // 3. 检查NBT
+    if (!m_nbt.test(entity)) {
+        return false;
+    }
+
+    // 4. 检查标志
+    if (!m_flags.test(entity)) {
+        return false;
+    }
+
+    // 5. 检查装备
+    if (!m_equipment.test(entity)) {
+        return false;
+    }
+
+    // 注意：距离和位置检查需要参考位置，在无参考位置版本中跳过
+
+    return true;
+}
+
+bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const
+{
+    if (m_isAny) {
+        return true;
+    }
+
+    // MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
+
+    // 1. 检查实体类型
+    if (m_type.has_value()) {
+        std::string entityTypeId = entity.getTypeId();
+        if (entityTypeId != m_type.value().toString()) {
+            return false;
+        }
+    }
+
+    // 2. 检查距离（参考点到实体的距离）
+    if (!m_distance.isAny()) {
+        if (!m_distance.test(x, y, z, entity.x(), entity.y(), entity.z())) {
+            return false;
+        }
+    }
+
+    // 3. 检查位置（实体当前位置）
+    if (!m_location.isAny()) {
+        if (!m_location.test(world, entity.x(), entity.y(), entity.z())) {
+            return false;
+        }
+    }
+
+    // 4. 检查效果
+    if (!m_effects.test(entity)) {
+        return false;
+    }
+
+    // 5. 检查NBT
+    if (!m_nbt.test(entity)) {
+        return false;
+    }
+
+    // 6. 检查标志
+    if (!m_flags.test(entity)) {
+        return false;
+    }
+
+    // 7. 检查装备
+    if (!m_equipment.test(entity)) {
         return false;
     }
 
@@ -66,26 +149,68 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         return EntityPredicate{};
     }
 
-    std::optional<ResourceLocation> type;
+    EntityPredicate predicate;
 
+    // 解析实体类型
     if (json.contains("type")) {
-        type = ResourceLocation(json["type"].get<std::string>());
+        predicate.m_type = ResourceLocation(json["type"].get<std::string>());
+    }
+
+    // 解析距离条件
+    if (json.contains("distance")) {
+        auto result = DistancePredicate::fromJson(json["distance"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        predicate.m_distance = result.value();
+    }
+
+    // 解析位置条件
+    if (json.contains("location")) {
+        auto result = LocationPredicate::fromJson(json["location"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        predicate.m_location = result.value();
     }
 
     // 解析效果条件
-    MobEffectsPredicate effects;
     if (json.contains("effects")) {
-        auto effectsResult = MobEffectsPredicate::fromJson(json["effects"]);
-        if (effectsResult.failed()) {
-            return effectsResult.error();
+        auto result = MobEffectsPredicate::fromJson(json["effects"]);
+        if (result.failed()) {
+            return result.error();
         }
-        effects = effectsResult.value();
+        predicate.m_effects = result.value();
     }
 
-    EntityPredicate predicate;
-    predicate.m_type = std::move(type);
-    predicate.m_effects = std::move(effects);
-    predicate.m_isAny = !predicate.m_type.has_value() && predicate.m_effects.isAny();
+    // 解析NBT条件
+    if (json.contains("nbt")) {
+        auto result = NBTPredicate::fromJson(json["nbt"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        predicate.m_nbt = result.value();
+    }
+
+    // 解析标志条件
+    if (json.contains("flags")) {
+        auto result = EntityFlagsPredicate::fromJson(json["flags"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        predicate.m_flags = result.value();
+    }
+
+    // 解析装备条件
+    if (json.contains("equipment")) {
+        auto result = EntityEquipmentPredicate::fromJson(json["equipment"]);
+        if (result.failed()) {
+            return result.error();
+        }
+        predicate.m_equipment = result.value();
+    }
+
+    predicate.updateIsAny();
     return predicate;
 }
 
@@ -96,12 +221,29 @@ nlohmann::json EntityPredicate::toJson() const
     }
 
     nlohmann::json json;
+
     if (m_type.has_value()) {
         json["type"] = m_type.value().toString();
+    }
+    if (!m_distance.isAny()) {
+        json["distance"] = m_distance.toJson();
+    }
+    if (!m_location.isAny()) {
+        json["location"] = m_location.toJson();
     }
     if (!m_effects.isAny()) {
         json["effects"] = m_effects.toJson();
     }
+    if (!m_nbt.isAny()) {
+        json["nbt"] = m_nbt.toJson();
+    }
+    if (!m_flags.isAny()) {
+        json["flags"] = m_flags.toJson();
+    }
+    if (!m_equipment.isAny()) {
+        json["equipment"] = m_equipment.toJson();
+    }
+
     return json;
 }
 

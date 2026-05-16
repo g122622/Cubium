@@ -23,11 +23,15 @@
 
 #pragma once
 
-#include "../../MinMaxBounds.hpp"
+#include "EntityEquipmentPredicate.hpp"
+#include "EntityFlagsPredicate.hpp"
+#include "LocationPredicate.hpp"
 #include "MobEffectsPredicate.hpp"
+#include "NBTPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -36,7 +40,9 @@
 // 前向声明
 namespace mc {
 class Entity;
+class LivingEntity;
 class DamageSource;
+class IWorld;
 } // namespace mc
 
 namespace mc::advancement {
@@ -44,7 +50,7 @@ namespace mc::advancement {
 /**
  * @brief 实体谓词
  *
- * 用于匹配实体的条件谓词，检查实体类型、位置、效果等。
+ * 用于匹配实体的条件谓词，检查实体类型、位置、效果、装备、NBT等。
  * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EntityPredicate
  */
 class EntityPredicate {
@@ -62,7 +68,25 @@ public:
     [[nodiscard]] bool test(const Entity& entity) const;
 
     /**
+     * @brief 检查实体是否匹配（带世界和参考位置）
+     *
+     * 参考 MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
+     * 用于距离检查等需要参考位置的条件。
+     *
+     * @param world 世界
+     * @param x 参考位置 X
+     * @param y 参考位置 Y
+     * @param z 参考位置 Z
+     * @param entity 实体
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const;
+
+    /**
      * @brief 检查实体是否匹配（带伤害源）
+     * @param entity 实体
+     * @param source 伤害源
+     * @return 是否匹配
      */
     [[nodiscard]] bool test(const Entity& entity, const DamageSource& source) const;
 
@@ -84,11 +108,33 @@ public:
     // ========== Getters ==========
 
     [[nodiscard]] const std::optional<ResourceLocation>& getType() const noexcept { return m_type; }
+    [[nodiscard]] const DistancePredicate& getDistance() const noexcept { return m_distance; }
+    [[nodiscard]] const LocationPredicate& getLocation() const noexcept { return m_location; }
     [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept { return m_effects; }
+    [[nodiscard]] const NBTPredicate& getNbt() const noexcept { return m_nbt; }
+    [[nodiscard]] const EntityFlagsPredicate& getFlags() const noexcept { return m_flags; }
+    [[nodiscard]] const EntityEquipmentPredicate& getEquipment() const noexcept { return m_equipment; }
+
+    // ========== Setters ==========
+
+    void setType(std::optional<ResourceLocation> type) { m_type = std::move(type); updateIsAny(); }
+    void setDistance(DistancePredicate distance) { m_distance = std::move(distance); updateIsAny(); }
+    void setLocation(LocationPredicate location) { m_location = std::move(location); updateIsAny(); }
+    void setEffects(MobEffectsPredicate effects) { m_effects = std::move(effects); updateIsAny(); }
+    void setNbt(NBTPredicate nbt) { m_nbt = std::move(nbt); updateIsAny(); }
+    void setFlags(EntityFlagsPredicate flags) { m_flags = std::move(flags); updateIsAny(); }
+    void setEquipment(EntityEquipmentPredicate equipment) { m_equipment = std::move(equipment); updateIsAny(); }
 
 private:
-    std::optional<ResourceLocation> m_type; ///< 实体类型（如 "minecraft:zombie"）
-    MobEffectsPredicate m_effects;          ///< 效果谓词
+    void updateIsAny();
+
+    std::optional<ResourceLocation> m_type;       ///< 实体类型（如 "minecraft:zombie"）
+    DistancePredicate m_distance;                  ///< 距离谓词（与参考点的距离）
+    LocationPredicate m_location;                  ///< 位置谓词（生物群系、维度等）
+    MobEffectsPredicate m_effects;                 ///< 效果谓词
+    NBTPredicate m_nbt;                            ///< NBT谓词
+    EntityFlagsPredicate m_flags;                  ///< 标志谓词（燃烧、潜行等）
+    EntityEquipmentPredicate m_equipment;          ///< 装备谓词
     bool m_isAny = true;
 };
 

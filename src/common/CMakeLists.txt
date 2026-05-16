@@ -1017,6 +1017,9 @@ add_library(mc_common STATIC
     advancement/trigger/CriterionTriggers.cpp
     advancement/trigger/conditions/ItemPredicate.cpp
     advancement/trigger/conditions/EntityPredicate.cpp
+    advancement/trigger/conditions/EntityFlagsPredicate.cpp
+    advancement/trigger/conditions/EntityEquipmentPredicate.cpp
+    advancement/trigger/conditions/NBTPredicate.cpp
     advancement/trigger/conditions/LocationPredicate.cpp
     advancement/trigger/conditions/BlockPredicate.cpp
     advancement/trigger/conditions/MobEffectsPredicate.cpp
