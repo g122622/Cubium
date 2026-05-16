@@ -44,6 +44,7 @@
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include <cmath>
 
 namespace mc {
@@ -1050,8 +1051,16 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
     bool damaged = target->hurt(*damageSource, DAMAGE);
 
     if (damaged) {
-        // 应用荆棘附魔效果（如果发射者有）
-        // TODO: applyEnchantments(livingShooter, target);
+        // MC 1.16.5: Entity.applyEnchantments(livingShooter, target)
+        // 参考 Entity.java 第 2791-2797 行
+
+        // 1. 如果目标是 LivingEntity，目标的荆棘附魔会对发射者反伤
+        // 注意：荆棘附魔已在 LivingEntity::actuallyHurt() 中自动触发，无需在此重复调用
+
+        // 2. 发射者的攻击型附魔（节肢杀手等）对目标生效
+        if (livingShooter != nullptr) {
+            item::enchant::EnchantmentHelper::applyArthropodEnchantments(*livingShooter, *target);
+        }
 
         // 对 LivingEntity 施加漂浮效果
         LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
