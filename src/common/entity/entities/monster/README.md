@@ -301,7 +301,7 @@ enum class ShellState : u8 {
 | PillagerEntity | 掠夺者 | 弩远程攻击 | ✅ 属性已修复 |
 | RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
-| WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+| WitchEntity | 女巫 | 药水攻击、喝药水治疗、IRangedAttackMob | ✅ 完成 |
 
 #### 恼鬼 (VexEntity) 详细实现
 

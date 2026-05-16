@@ -48,7 +48,7 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity
 | PillagerEntity | 掠夺者 | 弩远程攻击、RangedCrossbowAttackGoal | ✅ 完成 |
 | RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
-| WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+| WitchEntity | 女巫 | 药水攻击、喝药水治疗 | ✅ 完成 |
 
 ## PillagerEntity 详细实现
 
@@ -606,6 +606,130 @@ net.minecraft.entity.projectile.EvokerFangsEntity
 └── getAnimationProgress(): 获取动画进度
 ```
 
+## WitchEntity
+
+女巫是使用药水的敌对生物，可参与掠夺事件。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | MC 1.16.5 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 眼睛高度 | 1.62f | MC 1.16.5 |
+| 最大生命值 | 26.0 | MC 1.16.5 |
+| 移动速度 | 0.25 | MC 1.16.5 |
+| 攻击间隔 | 60 ticks | 3秒 |
+| 攻击半径 | 10.0f | 远程攻击范围 |
+
+### IRangedAttackMob 接口实现
+
+女巫实现了 `IRangedAttackMob` 接口，支持药水远程攻击：
+
+```cpp
+class WitchEntity : public AbstractRaiderEntity, public entity::IRangedAttackMob {
+public:
+    // IRangedAttackMob 接口
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override { return 60; }
+    [[nodiscard]] bool canRangedAttack() const override { return !m_drinking; }
+};
+```
+
+### 喝药水逻辑
+
+女巫在 tick 中自动检测是否需要喝药水：
+
+| 药水类型 | 触发条件 | 概率 | 效果 |
+|---------|---------|------|------|
+| 水肺药水 | 眼睛在水中且无水肺效果 | 15% | 水下呼吸 3 分钟 |
+| 抗火药水 | 燃烧中或受火焰伤害且无抗火效果 | 15% | 防火 3 分钟 |
+| 治疗药水 | 生命值未满 | 5% | 恢复 4 点生命 |
+| 速度药水 | 有攻击目标且距离>11格且无速度效果 | 50% | 速度提升 3 分钟 |
+
+- 喝药水时长：32 ticks
+- 喝药水期间移动速度减少 25%
+
+### 药水攻击逻辑
+
+`attackEntityWithRangedAttack()` 根据目标状态选择药水类型：
+
+| 目标状态 | 药水类型 | 说明 |
+|---------|---------|------|
+| 掠夺者同伴 && 生命<=4 | 治疗药水 | 治疗同伴 |
+| 掠夺者同伴 && 生命>4 | 再生药水 | 恢复同伴生命 |
+| 距离>=8格 && 无缓慢效果 | 缓慢药水 | 减速远程目标 |
+| 生命>=8 && 无中毒效果 | 中毒药水 | 持续伤害 |
+| 距离<=3格 && 无虚弱效果 | 虚弱药水 (25%概率) | 近战削弱 |
+| 默认 | 伤害药水 | 即时伤害 |
+
+### 投掷参数
+
+```cpp
+void WitchEntity::throwPotionAt(LivingEntity* target, EffectType potionType) {
+    // 投掷方向（考虑目标运动）
+    Vector3 targetMotion = target->velocity();
+    f64 dx = target->x() + targetMotion.x - x();
+    f64 dy = target->y() + target->eyeHeight() - 1.1 - y();
+    f64 dz = target->z() + targetMotion.z - z();
+
+    // 高度补偿
+    f64 adjustedY = dy + horizontalDist * 0.2;
+
+    // 发射参数
+    potion->shoot(dx, adjustedY, dz, 0.75f, 8.0f);
+    // velocity=0.75, inaccuracy=8.0
+
+    // 播放音效
+    playSound(SoundEvents::ENTITY_WITCH_THROW, 1.0f, 0.8f + rng.nextFloat() * 0.4f);
+}
+```
+
+### 魔法伤害减免
+
+女巫对魔法伤害有特殊抗性：
+
+- **85% 魔法伤害减免**：只受到 15% 的魔法伤害
+- **免疫自伤**：免疫自己造成的伤害（药水等）
+
+```cpp
+f32 WitchEntity::applyMagicDamageReduction(DamageSource& source, f32 amount) {
+    if (source.getTrueSource() == this) {
+        return 0.0f;  // 免疫自伤
+    }
+    if (source.isMagic()) {
+        return amount * 0.15f;  // 只受15%伤害
+    }
+    return amount;
+}
+```
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳（父类注册） |
+| 2 | RangedAttackGoal | 药水攻击 |
+| 3+ | 其他目标 | 父类注册 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.WitchEntity
+├── registerGoals(): AI 目标注册 (RangedAttackGoal)
+├── registerAttributes(): 属性设置
+├── livingTick(): 喝药水决策逻辑
+├── attackEntityWithRangedAttack(): 药水攻击实现
+├── throwPotion(): 投掷药水
+└── applyMagicDamageReduction(): 魔法伤害减免
+```
+
+### 测试用例
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `WitchEntityTest.cpp` | 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
+
 ## 属性值对齐状态
 
 | 实体 | 属性 | MC 1.16.5 | 项目值 | 状态 |
@@ -623,6 +747,7 @@ net.minecraft.entity.projectile.EvokerFangsEntity
 |---------|---------|
 | `VexEntityTest.cpp` | VexEntity 穿墙能力、属性、有限生命、构造、充电状态 |
 | `EvokerEntityTest.cpp` | EvokerEntity 构造、属性、施法状态、EvokerFangsEntity |
+| `WitchEntityTest.cpp` | WitchEntity 构造、属性、喝药水状态、效果应用、魔法伤害减免、IRangedAttackMob 接口 |
 
 ## 相关文档
 
