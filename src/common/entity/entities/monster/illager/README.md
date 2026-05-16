@@ -44,7 +44,7 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity
 | AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态、RAID 参与状态 | ✅ 完成 |
 | VindicatorEntity | 卫道士 | 斧头近战攻击、冲向目标 | ✅ 完成 |
 | EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 完成 |
-| IllusionerEntity | 幻术师 | 分身、失明攻击 | ⏳ 框架完成 |
+| IllusionerEntity | 幻术师 | 弓箭攻击、失明法术、隐身法术 | ✅ 完成 |
 | PillagerEntity | 掠夺者 | 弩远程攻击、RangedCrossbowAttackGoal | ✅ 完成 |
 | RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
 | VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
@@ -604,6 +604,103 @@ net.minecraft.entity.projectile.EvokerFangsEntity
 ├── tick(): 更新状态和造成伤害
 ├── damage(): 对范围内实体造成伤害
 └── getAnimationProgress(): 获取动画进度
+```
+
+## IllusionerEntity
+
+幻术师是能够施放法术的灾厄村民，使用弓进行远程攻击。
+
+### 核心特性
+
+| 特性 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 0.6f | 标准灾厄村民尺寸 |
+| 高度 | 1.95f | MC 1.16.5 |
+| 眼睛高度 | 1.62f | MC 1.16.5 |
+| 最大生命值 | 32.0 | MC 1.16.5 |
+| 移动速度 | 0.5 | MC 1.16.5 |
+| 跟随范围 | 18.0 | MC 1.16.5 |
+| 攻击间隔 | 20 ticks | 弓箭攻击 |
+
+### 施法能力
+
+幻术师有两种主要法术：
+
+#### 失明法术 (Blindness Spell)
+
+- **触发条件**：目标存在且难度为困难
+- **目标限制**：不会对同一目标连续施放
+- **效果**：失明效果持续 400 ticks (20秒)
+- **施法参数**：
+  - 准备时间：20 ticks
+  - 施法时间：0 ticks
+  - 冷却时间：180 ticks (9秒)
+
+#### 镜像法术 (Mirror Spell)
+
+- **触发条件**：幻术师没有隐身效果
+- **效果**：隐身效果持续 1200 ticks (60秒)
+- **施法参数**：
+  - 准备时间：20 ticks
+  - 施法时间：0 ticks
+  - 冷却时间：340 ticks (17秒)
+
+### AI Goals
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 游泳 |
+| 4 | IllusionerMirrorSpellGoal | 镜像法术（隐身）|
+| 5 | IllusionerBlindnessSpellGoal | 失明法术 |
+| 6 | RangedBowAttackGoal | 弓箭远程攻击 |
+| 8 | RandomWalkingGoal | 随机行走 |
+| 9 | LookAtGoal<Player> | 看向玩家 |
+| 10 | LookAtGoal | 看向生物 |
+
+### 目标选择器
+
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 (300 ticks未见记忆) |
+| 3 | NearestAttackableTargetGoal<AbstractVillagerEntity> | 攻击村民 |
+| 3 | NearestAttackableTargetGoal<IronGolemEntity> | 攻击铁傀儡 |
+
+### IRangedAttackMob 接口实现
+
+幻术师实现了 `IRangedAttackMob` 接口，支持弓箭远程攻击：
+
+```cpp
+class IllusionerEntity : public SpellcastingIllagerEntity, public entity::IRangedAttackMob {
+public:
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
+    [[nodiscard]] bool canRangedAttack() const override { return !isSpellcasting(); }
+};
+```
+
+### 弓箭攻击参数
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 箭矢速度 | 1.6f | MC 1.16.5 |
+| 不精确度 | 14 - difficulty * 4 | 根据难度调整 |
+| 弹道补偿 | horizontalDist * 0.2 | 抛物线计算 |
+| 目标高度偏移 | height * 0.333 | 瞄准目标身体 |
+
+### 参考 MC 1.16.5
+
+```
+net.minecraft.entity.monster.IllusionerEntity
+├── registerGoals(): AI 目标注册
+├── registerAttributes(): 属性设置
+├── attackEntityWithRangedAttack(): 弓箭攻击实现
+├── BlindnessSpellGoal: 失明法术目标
+│   ├── shouldExecute(): 检查难度和目标
+│   └── castSpell(): 施加失明效果
+└── MirrorSpellGoal: 镜像法术目标
+    ├── shouldExecute(): 检查是否已有隐身
+    └── castSpell(): 施加隐身效果
 ```
 
 ## WitchEntity

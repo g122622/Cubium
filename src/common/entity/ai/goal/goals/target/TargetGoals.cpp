@@ -223,6 +223,7 @@ template class NearestAttackableTargetGoal<FoxEntity>;
 template class NearestAttackableTargetGoal<IronGolemEntity>;
 template class NearestAttackableTargetGoal<AbstractPiglinEntity>;
 template class NearestAttackableTargetGoal<entity::VillagerEntity>;
+template class NearestAttackableTargetGoal<entity::AbstractVillagerEntity>;
 
 // ==================== HurtByTargetGoal ====================
 

@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -27,51 +27,128 @@
 #include "SpellcastingIllagerEntity.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace mc {
 
 /**
  * @brief 幻术师实体
+ *
+ * 幻术师是能够施放法术的灾厄村民，使用弓进行远程攻击。
+ *
+ * 特性：
+ * - 远程攻击：使用弓发射箭矢
+ * - 失明法术：对目标施加失明效果（仅困难难度）
+ * - 镜像法术：使自己隐身60秒
+ * - 手臂姿势：施法时显示施法姿势，攻击时显示弓箭姿势
+ *
+ * AI 目标：
+ * - 优先级 0: 游泳
+ * - 优先级 4: 镜像法术（隐身）
+ * - 优先级 5: 失明法术
+ * - 优先级 6: 弓箭远程攻击
+ * - 优先级 8: 随机行走
+ * - 优先级 9: 看向玩家
+ * - 优先级 10: 看向生物
+ *
+ * 目标选择：
+ * - 优先级 1: 被攻击后反击并呼叫支援
+ * - 优先级 2: 攻击玩家
+ * - 优先级 3: 攻击村民
+ * - 优先级 3: 攻击铁傀儡
+ *
+ * 参考 MC 1.16.5 IllusionerEntity
  */
 class IllusionerEntity : public SpellcastingIllagerEntity, public entity::IRangedAttackMob {
 public:
+    /**
+     * @brief 构造函数
+     * @param type 实体类型
+     * @param id 实体ID
+     */
     IllusionerEntity(LegacyEntityType type, EntityId id);
     ~IllusionerEntity() override = default;
 
+    // 禁止拷贝
     IllusionerEntity(const IllusionerEntity&) = delete;
     IllusionerEntity& operator=(const IllusionerEntity&) = delete;
+
+    // 允许移动
     IllusionerEntity(IllusionerEntity&&) = default;
     IllusionerEntity& operator=(IllusionerEntity&&) = default;
 
+    /**
+     * @brief 创建幻术师实体
+     * @param world 世界实例
+     * @return 新的幻术师实体
+     */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
-    i32 getAttackInterval() const override { return 20; }
-    bool canRangedAttack() const override { return true; }
+    // ========== IRangedAttackMob 接口 ==========
 
+    /**
+     * @brief 对目标进行远程攻击（发射箭矢）
+     *
+     * MC 1.16.5: 幻术师使用弓发射箭矢
+     * - 箭矢速度: 1.6
+     * - 不精确度: 14 - difficulty * 4
+     * - 弹道补偿: horizontalDist * 0.2
+     *
+     * @param target 目标实体
+     * @param charge 蓄力程度
+     */
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+
+    /**
+     * @brief 获取攻击间隔时间
+     * @return 20 ticks (1秒)
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
+
+    /**
+     * @brief 检查是否可以进行远程攻击
+     * @return 如果不在施法状态返回true
+     */
+    [[nodiscard]] bool canRangedAttack() const override { return !isSpellcasting(); }
+
+    // ========== 状态查询 ==========
+
+    /**
+     * @brief 是否正在施法
+     */
     [[nodiscard]] bool isCasting() const { return isSpellcasting(); }
 
-    void castBlindnessSpell();
-    void castMirrorSpell();
-
-    [[nodiscard]] bool hasMirrors() const { return !m_mirrorEntities.empty(); }
+    /**
+     * @brief 获取眼睛高度
+     */
     [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+    // ========== 生命周期 ==========
 
     void tick() override;
 
 protected:
+    // ========== AI 目标注册 ==========
     void registerGoals() override;
+
+    // ========== 属性注册 ==========
     void registerAttributes() override;
+
+    /**
+     * @brief 获取施法音效ID
+     */
     [[nodiscard]] const char* getSpellSoundId() const override { return "entity.illusioner.cast_spell"; }
 
 private:
+    // 冷却时间
     i32 m_blindnessCooldown = 0;
     i32 m_mirrorCooldown = 0;
+
+    // 镜像分身实体ID列表（用于客户端渲染）
     std::vector<EntityId> m_mirrorEntities;
 
-    static constexpr i32 BLINDNESS_COOLDOWN = 100;
-    static constexpr i32 MIRROR_COOLDOWN = 600;
-    static constexpr i32 SPELLCASTING_DURATION = 20;
+    // MC 1.16.5 常量
+    static constexpr f32 ARROW_VELOCITY = 1.6f; // 箭矢速度
 };
 
 } // namespace mc

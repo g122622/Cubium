@@ -64,15 +64,9 @@ void GuardianEntity::tick()
 {
     MonsterEntity::tick();
 
-    // 更新激光充能
-    if (m_laserCharging && m_laserChargeTime > 0) {
-        m_laserChargeTime--;
-        if (m_laserChargeTime <= 0) {
-            // 发射激光
-            // TODO: 对目标造成伤害
-            m_laserCharging = false;
-        }
-    }
+    // 注意: 激光攻击由 GuardianAttackGoal AI 目标处理
+    // 激光充能、目标追踪、伤害计算等逻辑都在 GuardianAttackGoal 中实现
+    // 参考 MC 1.16.5 GuardianEntity.AttackGoal
 
     // 更新尖刺动画
     m_spikeTimer++;
