@@ -32,6 +32,7 @@
 #include "items/armor/DyeableArmorItem.hpp"
 #include "items/armor/HorseArmorItem.hpp"
 #include "items/block/BlockItem.hpp"
+#include "items/block/WallOrFloorItem.hpp"
 #include "items/food/ChorusFruitItem.hpp"
 #include "items/food/FoodItem.hpp"
 #include "items/food/GoldenAppleItem.hpp"
@@ -441,6 +442,18 @@ Item* Items::ITEM_FRAME = nullptr;
 Item* Items::LEAD = nullptr;
 
 // ============================================================================
+// 告示牌物品（8种木材类型）
+// ============================================================================
+Item* Items::OAK_SIGN = nullptr;
+Item* Items::SPRUCE_SIGN = nullptr;
+Item* Items::BIRCH_SIGN = nullptr;
+Item* Items::JUNGLE_SIGN = nullptr;
+Item* Items::ACACIA_SIGN = nullptr;
+Item* Items::DARK_OAK_SIGN = nullptr;
+Item* Items::CRIMSON_SIGN = nullptr;
+Item* Items::WARPED_SIGN = nullptr;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 
@@ -483,6 +496,7 @@ void Items::initialize()
     registerSponges();      // 海绵物品
     registerMinecarts();    // 矿车物品
     registerHangingItems(); // 悬挂实体物品
+    registerSigns();        // 告示牌物品
 
     s_initialized = true;
 }
@@ -1606,6 +1620,73 @@ void Items::registerHangingItems()
 
     // 拴绳 - MC 1.16.5: maxStackSize = 16
     LEAD = &registry.registerItem(ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
+}
+
+void Items::registerSigns()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 告示牌物品 - 使用 WallOrFloorItem 注册
+    // MC 1.16.5: maxStackSize = 16
+    // 参考: net.minecraft.item.Items 第 669-676 行
+    // ========================================================================
+
+    // 橡木告示牌
+    OAK_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:oak_sign"),
+        *VanillaBlocks::OAK_SIGN,
+        *VanillaBlocks::OAK_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 云杉木告示牌
+    SPRUCE_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:spruce_sign"),
+        *VanillaBlocks::SPRUCE_SIGN,
+        *VanillaBlocks::SPRUCE_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 白桦木告示牌
+    BIRCH_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:birch_sign"),
+        *VanillaBlocks::BIRCH_SIGN,
+        *VanillaBlocks::BIRCH_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 丛林木告示牌
+    JUNGLE_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:jungle_sign"),
+        *VanillaBlocks::JUNGLE_SIGN,
+        *VanillaBlocks::JUNGLE_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 金合欢木告示牌
+    ACACIA_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:acacia_sign"),
+        *VanillaBlocks::ACACIA_SIGN,
+        *VanillaBlocks::ACACIA_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 深色橡木告示牌
+    DARK_OAK_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:dark_oak_sign"),
+        *VanillaBlocks::DARK_OAK_SIGN,
+        *VanillaBlocks::DARK_OAK_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 绯红告示牌（下界木材）
+    CRIMSON_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:crimson_sign"),
+        *VanillaBlocks::CRIMSON_SIGN,
+        *VanillaBlocks::CRIMSON_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 诡异告示牌（下界木材）
+    WARPED_SIGN = &registry.registerItem<WallOrFloorItem>(
+        ResourceLocation("minecraft:warped_sign"),
+        *VanillaBlocks::WARPED_SIGN,
+        *VanillaBlocks::WARPED_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
 }
 
 } // namespace mc

@@ -457,6 +457,18 @@ public:
     static Item* ITEM_FRAME; // 物品展示框
     static Item* LEAD;       // 拴绳
 
+    // ========================================================================
+    // 告示牌物品（8种木材类型）
+    // ========================================================================
+    static Item* OAK_SIGN;      // 橡木告示牌
+    static Item* SPRUCE_SIGN;   // 云杉木告示牌
+    static Item* BIRCH_SIGN;    // 白桦木告示牌
+    static Item* JUNGLE_SIGN;   // 丛林木告示牌
+    static Item* ACACIA_SIGN;   // 金合欢木告示牌
+    static Item* DARK_OAK_SIGN; // 深色橡木告示牌
+    static Item* CRIMSON_SIGN;  // 绯红告示牌
+    static Item* WARPED_SIGN;   // 诡异告示牌
+
 private:
     static bool s_initialized;
 
@@ -478,6 +490,7 @@ private:
     static void registerSponges();
     static void registerMinecarts();
     static void registerHangingItems();
+    static void registerSigns();
 };
 
 } // namespace mc

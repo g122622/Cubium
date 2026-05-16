@@ -408,10 +408,18 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 67;
     }
 
+    // ========== 告示牌 (200 tick = 10 秒) ==========
+    // 参考: MC 1.16.5 第 132 行: addItemTagBurnTime(map, ItemTags.SIGNS, 200);
+    // 所有 8 种木材类型的告示牌
+    if (item == Items::OAK_SIGN || item == Items::SPRUCE_SIGN || item == Items::BIRCH_SIGN ||
+        item == Items::JUNGLE_SIGN || item == Items::ACACIA_SIGN || item == Items::DARK_OAK_SIGN ||
+        item == Items::CRIMSON_SIGN || item == Items::WARPED_SIGN) {
+        return 200;
+    }
+
     // ========== TODO 待实现的物品 ==========
     // 木船 (BOAT): 1200 tick (60 秒) - 待物品注册
     // 旗帜 (BANNER): 300 tick - 待方块注册
-    // 告示牌 (SIGN): 200 tick - 待物品注册
 
     return 0;
 }
