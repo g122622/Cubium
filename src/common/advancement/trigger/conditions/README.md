@@ -7,7 +7,7 @@
 ```
 conditions/
 ├── BlockPredicate.hpp/cpp      # 方块谓词 - 匹配方块状态、标签、属性
-├── EntityPredicate.hpp/cpp     # 实体谓词 - 匹配实体类型、效果等
+├── EntityPredicate.hpp/cpp     # 实体谓词 - 匹配实体类型、效果等；包含 DamageSourcePredicate
 ├── FluidPredicate.hpp/cpp      # 流体谓词 - 匹配流体类型（定义在 BlockPredicate.hpp）
 ├── ItemPredicate.hpp/cpp       # 物品谓词 - 匹配物品ID、数量、耐久等
 ├── LocationPredicate.hpp/cpp   # 位置谓词 - 匹配坐标、维度、生物群系等
@@ -92,6 +92,60 @@ nlohmann::json json = R"({
 auto result = EntityPredicate::fromJson(json);
 ```
 
+### DamageSourcePredicate (定义在 EntityPredicate.hpp)
+
+伤害源谓词，用于匹配伤害来源的条件。参考 MC 1.16.5: `net.minecraft.advancements.criterion.DamageSourcePredicate`
+
+**主要字段（8 个伤害标志）：**
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| `isProjectile` | `is_projectile` | 是否为投射物伤害（箭矢、三叉戟等） |
+| `isExplosion` | `is_explosion` | 是否为爆炸伤害（TNT、苦力怕等） |
+| `isFire` | `is_fire` | 是否为火焰伤害（火焰、岩浆等） |
+| `isMagic` | `is_magic` | 是否为魔法伤害（药水、凋零等） |
+| `isLightning` | `is_lightning` | 是否为闪电伤害 |
+| `bypassesArmor` | `bypasses_armor` | 是否绕过护甲（溺水、摔落等） |
+| `bypassesInvulnerability` | `bypasses_invulnerability` | 是否绕过无敌模式（虚空伤害） |
+| `bypassesMagic` | `bypasses_magic` | 是否绕过魔法保护（饥饿伤害） |
+
+**实现方式：**
+- `isProjectile()` - 调用 `DamageSource::isProjectile()` 虚方法
+- `isExplosion()` - 调用 `DamageSource::isExplosion()` 虚方法
+- `isFire()` - 调用 `DamageSource::isFire()` 虚方法
+- `isMagic()` - 调用 `DamageSource::isMagic()` 虚方法
+- `isLightning` - 直接检查 `source.type() == DamageType::LightningBolt`
+- `bypassesArmor()` - 调用 `DamageSource::bypassesArmor()` 虚方法
+- `bypassesInvulnerability` - 调用 `DamageSource::canDamageCreative()` 虚方法
+- `bypassesMagic` - 调用 `DamageSource::isDamageAbsolute()` 虚方法
+
+```cpp
+// 从 JSON 解析
+nlohmann::json json = R"({
+  "is_fire": true,
+  "bypasses_armor": false
+})"_json;
+
+auto result = DamageSourcePredicate::fromJson(json);
+if (result.success()) {
+    DamageSourcePredicate predicate = result.value();
+    
+    // 检查伤害源
+    EnvironmentalDamage fire(DamageType::InFire);
+    bool matches = predicate.test(fire);  // true
+}
+```
+
+**JSON 格式示例：**
+```json
+{
+  "is_projectile": true,
+  "is_fire": false,
+  "is_explosion": true,
+  "bypasses_armor": true
+}
+```
+
 ### ItemPredicate.hpp/cpp
 
 物品谓词，用于匹配物品堆。
@@ -114,12 +168,42 @@ auto result = EntityPredicate::fromJson(json);
 
 ### LocationPredicate.hpp/cpp
 
-位置谓词，用于匹配位置条件。
+位置谓词，用于匹配位置条件。参考 MC 1.16.5: `net.minecraft.advancements.criterion.LocationPredicate`
 
 **主要字段：**
-- `x`, `y`, `z` - 坐标范围
-- `biome` - 生物群系
-- `dimension` - 维度
+- `x`, `y`, `z` - 坐标范围（DoubleBounds）
+- `biome` - 生物群系（ResourceLocation）
+- `dimension` - 维度（ResourceLocation）
+
+**维度检查实现：**
+```cpp
+// 维度 ID 映射到名称
+// 0  -> minecraft:overworld
+// -1 -> minecraft:the_nether
+// 1  -> minecraft:the_end
+bool matchesDimension(DimensionId dimensionId, const ResourceLocation& expected);
+```
+
+**生物群系检查实现：**
+```cpp
+// 通过 ChunkData::getBiomeAtBlock() 获取生物群系ID
+// 通过 BiomeRegistry::instance().get() 获取生物群系定义
+// 比较 biome.name() 与期望的生物群系路径
+```
+
+```cpp
+// 从 JSON 解析
+nlohmann::json json = R"({
+  "dimension": "minecraft:the_nether",
+  "biome": "minecraft:crimson_forest",
+  "position": {
+    "x": { "min": 100 },
+    "y": { "min": 60, "max": 80 }
+  }
+})"_json;
+
+auto result = LocationPredicate::fromJson(json);
+```
 
 ## 模块关系
 
@@ -127,11 +211,11 @@ auto result = EntityPredicate::fromJson(json);
 触发器条件谓词
 ├── 被触发器实例使用
 │   ├── EffectsChangedTriggerInstance ── MobEffectsPredicate
-│   ├── PlayerKilledEntityTriggerInstance ── EntityPredicate
+│   ├── PlayerKilledEntityTriggerInstance ── EntityPredicate, DamageSourcePredicate
 │   ├── InventoryChangedTriggerInstance ── ItemPredicate
 │   └── PlacedBlockTriggerInstance ── BlockPredicate
 └── 被其他谓词组合使用
-    └── EntityPredicate ── MobEffectsPredicate
+    └── EntityPredicate ── MobEffectsPredicate, DamageSourcePredicate
 ```
 
 ## 使用示例
@@ -170,12 +254,33 @@ void EffectsChangedTrigger::trigger(ServerPlayer& player) {
 }
 ```
 
+### 伤害源谓词示例
+
+```json
+{
+  "criteria": {
+    "killed_by_fire": {
+      "trigger": "minecraft:entity_killed_player",
+      "conditions": {
+        "damage": {
+          "is_fire": true
+        }
+      }
+    }
+  }
+}
+```
+
 ## 依赖项
 
 - `common/advancement/MinMaxBounds.hpp` - 范围谓词
 - `common/entity/effect/EffectType.hpp` - 效果类型枚举
 - `common/entity/effect/EffectInstance.hpp` - 效果实例
 - `common/entity/core/LivingEntity.hpp` - 生物实体（效果容器）
+- `common/entity/damage/DamageSource.hpp` - 伤害源基类
+- `common/world/IWorld.hpp` - 世界接口（维度检查）
+- `common/world/biome/BiomeRegistry.hpp` - 生物群系注册表
+- `common/world/chunk/ChunkData.hpp` - 区块数据（生物群系查询）
 - `nlohmann/json.hpp` - JSON 解析
 
 ## 容易踩的坑
@@ -183,11 +288,12 @@ void EffectsChangedTrigger::trigger(ServerPlayer& player) {
 1. **效果类型解析**：使用 `getEffectByResourceLocation()` 解析效果类型，未知效果会被跳过并输出警告
 2. **实体类型检查**：只有 `LivingEntity` 有效果，非 `LivingEntity` 对效果谓词返回 false（除非谓词为空）
 3. **JSON 格式**：效果ID 必须使用完整的 `minecraft:` 命名空间前缀
+4. **伤害源标志**：`EnvironmentalDamage` 的 `isProjectile()` 和 `isExplosion()` 始终返回 false，投射物和爆炸伤害需要使用 `EntityDamageSource` 或 `IndirectEntityDamageSource`
+5. **维度名称**：维度检查使用 ResourceLocation 路径部分（如 `overworld`），不是完整字符串
 
 ## 测试用例
 
-相关测试文件：`tests/advancement/MobEffectsPredicateTest.cpp`
-
-- EffectInstancePredicate 测试（12 个用例）
-- MobEffectsPredicate 测试（5 个用例）
-- 集成测试（2 个用例）
+相关测试文件：
+- `tests/advancement/MobEffectsPredicateTest.cpp` - 效果谓词测试（19 个用例）
+- `tests/advancement/DamageSourcePredicateTest.cpp` - 伤害源谓词测试（18 个用例）
+- `tests/advancement/BlockPredicateTest.cpp` - 方块谓词测试

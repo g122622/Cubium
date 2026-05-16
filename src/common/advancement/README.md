@@ -148,6 +148,35 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 - 距离范围
 - 位置
 
+### DamageSourcePredicate
+
+伤害源匹配条件（定义在 `EntityPredicate.hpp/cpp` 中）：
+- 投射物标志（is_projectile）- 箭矢、三叉戟等
+- 爆炸标志（is_explosion）- TNT、苦力怕等
+- 火焰标志（is_fire）- 火焰、岩浆等
+- 魔法标志（is_magic）- 药水、凋零等
+- 闪电标志（is_lightning）- 闪电伤害
+- 护甲穿透（bypasses_armor）- 溺水、摔落等
+- 无敌穿透（bypasses_invulnerability）- 虚空伤害
+- 魔法穿透（bypasses_magic）- 饥饿伤害
+
+```cpp
+// JSON 示例
+{
+  "is_fire": true,
+  "bypasses_armor": false
+}
+
+// 代码示例
+auto result = DamageSourcePredicate::fromJson(json);
+if (result.success() && result.value().test(damageSource)) {
+    // 伤害源匹配
+}
+```
+
+**注意**：`EnvironmentalDamage` 的 `isProjectile()` 和 `isExplosion()` 始终返回 false，
+投射物和爆炸伤害需要使用 `EntityDamageSource` 或 `IndirectEntityDamageSource`。
+
 ### LocationPredicate
 
 位置匹配条件：
