@@ -34,6 +34,7 @@
 #include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/monster/arthropod/EndermiteEntity.hpp"
+#include "../../../../entities/monster/end/EndermanEntity.hpp"
 #include "../../../../entities/monster/nether/NetherEntities.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
@@ -570,6 +571,6 @@ template class NonTamedTargetGoal<MobEntity>;
 template class NonTamedTargetGoal<TurtleEntity>;
 
 // ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
-// 铁傀儡 IronGolemEntity、末影人 EndermanEntity 等在各自的文件中实例化
+template class ResetAngerGoal<EndermanEntity>;
 
 } // namespace mc::entity::ai::goal

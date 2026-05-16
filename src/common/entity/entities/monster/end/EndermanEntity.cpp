@@ -28,6 +28,7 @@
 #include "world/IWorld.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "entity/ai/goal/goals/special/EndermanGoals.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
@@ -371,7 +372,7 @@ void EndermanEntity::registerGoals()
     // 0: SwimGoal (父类已注册)
     // 1: EndermanStareGoal (注视玩家目标)
     // 2: MeleeAttackGoal (攻击目标)
-    // 5: WaterAvoidingRandomWalkingGoal (避水随机行走) - TODO
+    // 5: WaterAvoidingRandomWalkingGoal (避水随机行走)
     // 7: LookAtGoal (看向玩家，但会激怒末影人)
     // 8: LookRandomlyGoal (随机看向)
     // 10: PlaceBlockGoal (放置方块)
@@ -381,13 +382,17 @@ void EndermanEntity::registerGoals()
     // 1: EndermanFindPlayerGoal (查找注视玩家)
     // 2: HurtByTargetGoal (被攻击反击)
     // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨)
-    // 4: ResetAngerGoal (重置愤怒) - TODO
+    // 4: ResetAngerGoal (重置愤怒)
 
     // 优先级 1: 注视玩家目标（当被注视时停止移动并注视玩家）
     m_goalSelector.addGoal(1, new entity::ai::goal::EndermanStareGoal(this));
 
     // 优先级 2: 近战攻击
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
+
+    // 优先级 5: 避水随机行走
+    // MC 1.16.5: this.goalSelector.addGoal(5, new WaterAvoidingRandomWalkingGoal(this, 0.0D));
+    m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
 
     // 优先级 7: 看向玩家（会激怒末影人）
     m_goalSelector.addGoal(
@@ -432,7 +437,10 @@ void EndermanEntity::registerGoals()
                 return endermite->isSpawnedByPlayer();
             }));
 
-    // 优先级 4: ResetAngerGoal (重置愤怒) - TODO
+    // 优先级 4: 重置愤怒
+    // MC 1.16.5: this.targetSelector.addGoal(4, new ResetAngerGoal<>(this, false));
+    // 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标
+    m_targetSelector.addGoal(4, new entity::ai::goal::ResetAngerGoal<EndermanEntity>(this, false));
 }
 
 void EndermanEntity::registerAttributes()
