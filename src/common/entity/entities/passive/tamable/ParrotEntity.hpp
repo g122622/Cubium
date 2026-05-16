@@ -146,6 +146,15 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 处理玩家交互
+     *
+     * MC 1.16.5: ParrotEntity.func_230254_b_()
+     * - 用种子驯服鹦鹉（1/10 概率）
+     * - 已驯服的鹦鹉可以切换坐下状态
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

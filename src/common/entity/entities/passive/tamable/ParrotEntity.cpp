@@ -24,6 +24,9 @@
 #include "ParrotEntity.hpp"
 
 #include "../../../../item/Items.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
@@ -36,7 +39,10 @@
 #include "../../../ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
 #include "../../../ai/goal/goals/movement/FollowMobGoal.hpp"
 #include "../../../core/EntityUtils.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
@@ -142,9 +148,69 @@ void ParrotEntity::registerAttributes()
 
 void ParrotEntity::onTamed(bool tamed)
 {
+    // MC 1.16.5: ParrotEntity 没有重写 setTamed 或 setTamedBy
+    // onTamed 回调在驯服状态改变时触发
+    // 驯服成功后粒子效果通过 EntityStatusPacket::TamingSucceeded 广播
+    // 由客户端 ClientApplicationNetwork 处理并生成心形粒子
+
     if (tamed) {
-        // TODO: 如后续需要，可在此接入驯服粒子或额外同步。
+        // 驯服成功后播放吃东西声音
+        // MC 1.16.5: this.world.playSound((PlayerEntity)null, this.getPosX(), this.getPosY(), this.getPosZ(),
+        //             SoundEvents.ENTITY_PARROT_EAT, this.getSoundCategory(), 1.0F, 1.0F);
+        playSound(SoundEvents::ENTITY_PARROT_EAT, 1.0f, 1.0f);
     }
+}
+
+ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
+{
+    // MC 1.16.5: ParrotEntity.func_230254_b_()
+    ItemStack itemStack = player.getHeldItem(hand);
+    const Item* item = itemStack.getItem();
+
+    // 检查是否用种子驯服
+    if (!isTamed() && isTameItem(itemStack)) {
+        // 消耗物品（非创造模式）
+        if (!player.abilities().creativeMode) {
+            itemStack.shrink(1);
+        }
+
+        // 播放吃东西声音
+        if (!isSilent()) {
+            playSound(SoundEvents::ENTITY_PARROT_EAT, 1.0f,
+                      1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+        }
+
+        // 服务端处理驯服逻辑
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            // MC 1.16.5: 驯服概率 1/10 (10%)
+            math::Random rng = getRandom();
+            if (rng.nextInt(10) == 0) {
+                // 驯服成功
+                setTamed(true);
+                setOwnerId(player.playerId());
+
+                // 广播驯服成功状态（心形粒子）
+                m_world->broadcastEntityStatus(
+                    id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+            } else {
+                // 驯服失败，广播烟雾粒子
+                m_world->broadcastEntityStatus(
+                    id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+            }
+        }
+
+        return ActionResultType::Success;
+    }
+
+    // 已驯服的鹦鹉可以切换坐下状态
+    if (isTamed() && isOwner(player.playerId())) {
+        // 切换坐下状态
+        toggleSitting();
+        return ActionResultType::Success;
+    }
+
+    // 调用父类处理
+    return ShoulderRidingEntity::interactMob(player, hand);
 }
 
 } // namespace mc
