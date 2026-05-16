@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -27,6 +27,11 @@
 #include "../MonsterEntity.hpp"
 
 namespace mc {
+
+// Forward declarations
+namespace entity::ai::goal {
+class SilverfishSummonOthersGoal;
+}
 
 /**
  * @brief 末影螨实体
@@ -108,19 +113,29 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    // ========== AI 目标访问 ==========
+
+    /**
+     * @brief 获取召唤同伴目标
+     * @return 召唤同伴目标的指针
+     */
+    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() { return m_summonGoal; }
+
     /**
      * @brief 通知召唤同伴目标
      * MC 1.16.5: 当受到伤害时调用
+     *
+     * 这是一个便捷方法，内部调用 getSummonGoal()->notifyHurt()
      */
-    void notifySummonCooldown() { m_summonCooldown = 20; }
+    void notifySummonCooldown();
 
 protected:
     void registerGoals() override;
     void registerAttributes() override;
 
 private:
-    // 召唤同伴倒计时（由SilverfishSummonOthersGoal使用）
-    i32 m_summonCooldown = 0;
+    // 召唤同伴目标（用于受伤时触发）
+    entity::ai::goal::SilverfishSummonOthersGoal* m_summonGoal = nullptr;
 };
 
 } // namespace mc

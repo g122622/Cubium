@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "EndermiteEntity.hpp"
@@ -30,6 +30,7 @@
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/goal/goals/special/SilverfishGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -125,6 +126,7 @@ std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/)
 
 SilverfishEntity::SilverfishEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
+    , m_summonGoal(nullptr)
 {
     // MC 1.16.5: 蠹虫不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -143,11 +145,6 @@ void SilverfishEntity::tick()
     m_renderYawOffset = yaw();
 
     MonsterEntity::tick();
-
-    // 更新召唤冷却
-    if (m_summonCooldown > 0) {
-        m_summonCooldown--;
-    }
 }
 
 bool SilverfishEntity::hurt(DamageSource& source, f32 amount)
@@ -158,9 +155,14 @@ bool SilverfishEntity::hurt(DamageSource& source, f32 amount)
     }
 
     // 如果受到实体或魔法伤害，通知召唤同伴目标
-    // 参考 MC 1.16.5: if ((source instanceof EntityDamageSource || source == DamageSource.MAGIC) &&
-    // this.summonSilverfish != null) 召唤逻辑将在 SilverfishSummonOthersGoal 中实现
-    // TODO: 当实现 SilverfishSummonOthersGoal 后，在这里调用 notifySummonCooldown()
+    // MC 1.16.5: if ((source instanceof EntityDamageSource || source == DamageSource.MAGIC) &&
+    // this.summonSilverfish != null) { this.summonSilverfish.notifyHurt(); }
+    if (m_summonGoal != nullptr) {
+        // 检查是否是实体伤害或魔法伤害
+        if (source.isEntitySource() || source.isMagic()) {
+            m_summonGoal->notifyHurt();
+        }
+    }
 
     return MonsterEntity::hurt(source, amount);
 }
@@ -170,12 +172,15 @@ void SilverfishEntity::registerGoals()
     MonsterEntity::registerGoals();
 
     // MC 1.16.5 SilverfishEntity.registerGoals()
+    // 创建召唤同伴目标
+    m_summonGoal = new entity::ai::goal::SilverfishSummonOthersGoal(this);
+
     // 行为目标
     goalSelector().addGoal(1, new entity::ai::goal::SwimGoal(this));
-    // TODO: 添加 SilverfishMergeWithStoneGoal - 藏入石头目标
+    goalSelector().addGoal(3, m_summonGoal);  // 召唤同伴目标（优先级 3）
     goalSelector().addGoal(4, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
-    // TODO: 添加 SilverfishHideInStoneGoal - 隐藏在石头中
-    goalSelector().addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    goalSelector().addGoal(5, new entity::ai::goal::SilverfishHideInStoneGoal(this));  // 藏入石头目标
+    goalSelector().addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
     goalSelector().addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
@@ -200,6 +205,13 @@ void SilverfishEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
+}
+
+void SilverfishEntity::notifySummonCooldown()
+{
+    if (m_summonGoal != nullptr) {
+        m_summonGoal->notifyHurt();
+    }
 }
 
 } // namespace mc
