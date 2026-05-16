@@ -58,7 +58,7 @@ Result<void> writeBenchmarkResults(const std::filesystem::path& outputPath, cons
 
     std::ofstream output(outputPath);
     if (!output.is_open()) {
-        return Error(ErrorCode::IOError, std::string("failed to open benchmark result file: ") + outputPath.string());
+        return Error(ErrorCode::FileOpenFailed, std::string("failed to open benchmark result file: ") + outputPath.string());
     }
 
     output << root.dump(2);
