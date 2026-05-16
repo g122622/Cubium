@@ -190,6 +190,8 @@ public:
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
 
+    [[nodiscard]] std::string getTypeName() const override { return "FoxBiteGoal"; }
+
 protected:
     void checkAndPerformAttack(LivingEntity* enemy, f64 distToEnemySqr) override;
 

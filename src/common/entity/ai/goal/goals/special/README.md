@@ -30,6 +30,8 @@ special/
 ├── VexGoals.cpp           # 恼鬼目标实现
 ├── BeeGoals.hpp           # 蜜蜂目标头文件
 ├── BeeGoals.cpp           # 蜜蜂目标实现
+├── FoxGoals.hpp           # 狐狸目标头文件
+├── FoxGoals.cpp           # 狐狸目标实现
 └── README.md              # 本文档
 ```
 
@@ -2174,6 +2176,359 @@ void GhastEntity::registerGoals() {
 
 ---
 
+## FoxGoals - 狐狸专用目标
+
+包含狐狸的跟踪猎物、扑击攻击、咬击、寻找庇护所、睡眠、吃浆果、寻找物品、坐下观察和复仇行为。
+
+### FoxPassiveGoal - 狐狸被动目标基类
+
+**职责**: 当狐狸处于激怒状态时，打断所有被动行为。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.BaseGoal`
+
+**执行条件**:
+- `shouldExecute()`: 狐狸不激怒时调用 `canFoxStart()`
+- `shouldContinueExecuting()`: 狐狸不激怒时调用 `canFoxContinue()`
+
+**设计模式**: 模板方法模式，子类只需实现 `canFoxStart()` 和 `canFoxContinue()`。
+
+**辅助方法**:
+| 方法 | 说明 |
+|------|------|
+| `hasShelter()` | 检查当前位置是否有遮蔽（看不到天空且路径权重 >= 0）|
+| `hasAlertableTarget()` | 检查周围 12 格内是否有警觉目标（鸡、兔子、怪物、未信任玩家）|
+| `canAct()` | 检查狐狸是否可以行动（非坐下、非蹲伏、非睡眠、非卡住、非激怒）|
+
+---
+
+### FoxFollowTargetGoal - 狐狸跟踪猎物目标
+
+**职责**: 跟踪猎物（鸡、兔子），是扑击攻击的前置阶段。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.FollowTargetGoal`
+
+**执行条件**:
+- 狐狸不在睡眠状态
+- 有攻击目标且目标存活
+- 目标是鸡或兔子
+- 距离 > 6 格（距离平方 > 36）
+- 狐狸不在蹲伏、感兴趣或跳跃状态
+
+**行为流程**:
+1. `shouldExecute()`: 检查执行条件，设置目标
+2. `startExecuting()`: 清除坐下和卡住状态
+3. `tick()`: 看向目标，距离 > 6 格时移动，距离 <= 6 格时进入蹲伏状态
+4. `resetTask()`: 检查路径是否畅通，设置蹲伏和感兴趣状态
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| START_FOLLOW_DISTANCE_SQ | 36.0 | 开始跟踪距离平方 (6²) |
+| STOP_FOLLOW_DISTANCE_SQ | 36.0 | 停止跟踪距离平方 (6²) |
+| APPROACH_SPEED | 1.5 | 接近速度 |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 5: 跟踪猎物
+    m_goalSelector.addGoal(5, std::make_unique<FoxFollowTargetGoal>(this));
+}
+```
+
+---
+
+### FoxPounceGoal - 狐狸扑击目标
+
+**职责**: 从蹲伏状态跳起扑向猎物。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.PounceGoal`
+
+**执行条件**:
+- 狐狸完全蹲伏 (`isFullyCrouched()` 为 true)
+- 有攻击目标且目标存活
+- 路径畅通
+
+**行为流程**:
+1. `startExecuting()`: 设置跳跃状态，计算扑击向量，发射狐狸
+2. `tick()`: 在空中调整俯仰角，接近目标时攻击
+3. `resetTask()`: 清除蹲伏状态，重置标志
+
+**扑击向量计算**:
+```cpp
+dx = target.x - fox.x;
+dz = target.z - fox.z;
+dist = sqrt(dx * dx + dz * dz);
+velocity = (currentVel.x + dx/dist * 0.8, 0.9, currentVel.z + dz/dist * 0.8);
+```
+
+**雪中卡住检测**:
+- 落地时 pitch > 0 且速度 Y != 0
+- 检查脚下是否是雪方块
+- 如果是雪，设置 `stuck = true`，pitch = 60°，清除攻击目标
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| POUNCE_HORIZONTAL_FACTOR | 0.8 | 水平方向扑击因子 |
+| POUNCE_VERTICAL_FACTOR | 0.9 | 垂直方向扑击因子 |
+| ATTACK_DISTANCE | 2.0f | 攻击距离 |
+| MIN_MOTION_Y_SQ | 0.05f | 最小垂直速度平方 |
+| MAX_PITCH_ANGLE | 15.0f | 最大俯仰角 |
+| STUCK_PITCH_ANGLE | 60.0f | 卡在雪中时的俯仰角 |
+
+**互斥标志**: `Move`, `Look`, `Jump`
+
+**不可中断**: `isPreemptible()` 返回 false
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 6: 扑击攻击
+    m_goalSelector.addGoal(6, std::make_unique<FoxPounceGoal>(this));
+}
+```
+
+---
+
+### FoxBiteGoal - 狐狸咬击目标
+
+**职责**: 狐狸的近战攻击，继承自 MeleeAttackGoal。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.BiteGoal`
+
+**执行条件**:
+- 继承 MeleeAttackGoal 条件
+- 狐狸不在坐下、睡眠、蹲伏、卡住状态
+
+**行为**:
+- 攻击时播放咬音效
+- 继承 MeleeAttackGoal 的攻击逻辑
+
+**互斥标志**: `Move`, `Look` (继承自 MeleeAttackGoal)
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 7: 咬击攻击
+    m_goalSelector.addGoal(7, std::make_unique<FoxBiteGoal>(this, 1.2, true));
+}
+```
+
+---
+
+### FoxFindShelterGoal - 狐狸寻找庇护所目标
+
+**职责**: 在白天或雷暴天气时寻找遮蔽处休息。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.FindShelterGoal`
+
+**执行条件** (`canFoxStart`):
+- 无攻击目标
+- 不在睡眠状态
+- 是雷暴天气，或
+- 是白天且有遮蔽
+- 冷却时间已过
+
+**行为**:
+- `tick()`: 移动到庇护所位置
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| COOLDOWN_MIN | 100 | 最小冷却时间 (ticks) |
+| COOLDOWN_MAX | 140 | 最大冷却时间 (ticks) |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 6: 寻找庇护所
+    m_goalSelector.addGoal(6, std::make_unique<FoxFindShelterGoal>(this, 1.25));
+}
+```
+
+---
+
+### FoxSleepGoal - 狐狸睡眠目标
+
+**职责**: 狐狸在白天有遮蔽处睡觉。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.SleepGoal`
+
+**执行条件** (`canFoxStart`):
+- 冷却时间已过
+- 是白天
+- 有遮蔽
+- 周围无警觉目标
+
+**行为流程**:
+1. `startExecuting()`: 清除坐下、蹲伏、感兴趣状态，设置睡眠状态
+2. `resetTask()`: 重置所有状态，设置随机冷却
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| COOLDOWN_MAX | 140 | 最大冷却时间 (ticks) |
+
+**互斥标志**: `Move`, `Look`, `Jump`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 7: 睡眠
+    m_goalSelector.addGoal(7, std::make_unique<FoxSleepGoal>(this));
+}
+```
+
+---
+
+### FoxEatBerriesGoal - 狐狸吃浆果目标
+
+**职责**: 狐狸寻找并吃成熟的甜浆果丛。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.EatBerriesGoal`
+
+**执行条件**:
+- 不在睡眠状态
+- （简化实现：当前返回 false）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| EAT_DURATION | 40 | 吃浆果需要 40 tick |
+| REACH_DISTANCE_SQ | 2.0 | 到达目标的距离平方 |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 10: 吃浆果
+    m_goalSelector.addGoal(10, std::make_unique<FoxEatBerriesGoal>(this, 1.2, 12, 2));
+}
+```
+
+---
+
+### FoxFindItemsGoal - 狐狸寻找物品目标
+
+**职责**: 狐狸捡起地上的物品（如食物）。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.FindItemsGoal`
+
+**执行条件**:
+- （简化实现：当前返回 false）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| SEARCH_RADIUS | 8.0 | 搜索半径 |
+| MOVE_SPEED | 1.2 | 移动速度 |
+| CHANCE | 10 | 1/10 概率触发 |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 11: 寻找物品
+    m_goalSelector.addGoal(11, std::make_unique<FoxFindItemsGoal>(this));
+}
+```
+
+---
+
+### FoxSitAndLookGoal - 狐狸坐下观察目标
+
+**职责**: 狐狸坐下并随机观察周围。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.SitAndLookGoal`
+
+**执行条件** (`canFoxStart`):
+- 1/50 概率触发
+- 无复仇目标、不在睡眠、无攻击目标
+- 没有导航路径
+- 周围无警觉目标
+- 不在扑击准备或蹲伏状态
+
+**行为流程**:
+1. `startExecuting()`: 选择随机观察方向，设置坐下状态
+2. `tick()`: 看向观察方向，计时器递减
+3. `resetTask()`: 清除坐下状态
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| LOOK_DURATION_MIN | 80 | 最小观察时间 (ticks) |
+| LOOK_DURATION_MAX | 100 | 最大观察时间 (ticks) |
+| LOOK_COUNT_MIN | 2 | 最小观察次数 |
+| LOOK_COUNT_MAX | 4 | 最大观察次数 |
+| TRIGGER_CHANCE | 0.02f | 触发概率 (1/50) |
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // 优先级 13: 坐下观察
+    m_goalSelector.addGoal(13, std::make_unique<FoxSitAndLookGoal>(this));
+}
+```
+
+---
+
+### FoxRevengeGoal - 狐狸复仇目标
+
+**职责**: 当信任的玩家被攻击时，狐狸会攻击攻击者。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.FoxEntity.RevengeGoal`
+
+**执行条件**:
+- （简化实现：当前返回 false）
+
+**互斥标志**: 无（目标选择器不设置互斥标志）
+
+**使用示例**:
+```cpp
+void FoxEntity::registerGoals() {
+    // Target 优先级 3: 复仇目标
+    m_targetSelector.addGoal(3, std::make_unique<FoxRevengeGoal>(this));
+}
+```
+
+---
+
+## 依赖关系图
+
+```mermaid
+graph TD
+    A[Goal 基类] --> B[FoxPassiveGoal]
+    B --> C[FoxFindShelterGoal]
+    B --> D[FoxSleepGoal]
+    B --> E[FoxSitAndLookGoal]
+    A --> F[FoxFollowTargetGoal]
+    A --> G[FoxPounceGoal]
+    MeleeAttackGoal --> H[FoxBiteGoal]
+    A --> I[FoxEatBerriesGoal]
+    A --> J[FoxFindItemsGoal]
+    NearestAttackableTargetGoal --> K[FoxRevengeGoal]
+    
+    F --> Fox[FoxEntity]
+    G --> Fox
+    H --> Fox
+    C --> Fox
+    D --> Fox
+    I --> Fox
+    J --> Fox
+    E --> Fox
+    K --> Fox
+```
+
+---
+
 | 涉及的测试用例 |
 
 | 测试名称 | 说明 |
@@ -2196,6 +2551,7 @@ void GhastEntity::registerGoals() {
 | MoveToLavaGoalTest.* | 炽足兽寻找熔岩目标测试（类型名称、执行条件、互斥标志、StriderEntity集成） |
 | BeeGoalsTest.* | 蜜蜂目标测试（花粉状态、蜂巢位置、愤怒状态、飞行状态） |
 | TriggerSkeletonTrapGoalTest.* | 骷髅马陷阱触发目标测试（常量、类型名称、互斥标志、执行条件） |
+| FoxGoalsTest.* | 狐狸目标测试（状态标志位、信任系统、所有 Goal 构造和互斥标志） |
 
 ---
 

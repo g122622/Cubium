@@ -324,6 +324,7 @@ add_executable(mc_tests
     entity/RandomWalkingGoalTest.cpp
     common/entity/MoveToLavaGoalTest.cpp
     common/entity/ai/goal/goals/special/TriggerSkeletonTrapGoalTest.cpp
+    common/entity/ai/goal/goals/special/FoxGoalsTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp
@@ -919,6 +920,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/EndermanGoals.cpp
         # GhastGoals 用于恶魂 AI 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/GhastGoals.cpp
+        # FoxGoals 用于狐狸 AI 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/FoxGoals.cpp
         # GhastMovementController 用于恶魂飞行控制器测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
