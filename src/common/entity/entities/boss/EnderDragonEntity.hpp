@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../core/MobEntity.hpp"
 #include <memory>
@@ -244,7 +244,7 @@ public:
     /**
      * @brief 末影龙不能被骑乘
      */
-    [[nodiscard]] bool canBeRidden() const override { return false; }
+    [[nodiscard]] bool canBeRidden(const Entity& /*vehicle*/) const override { return false; }
 
     /**
      * @brief 末影龙是Boss
@@ -388,8 +388,15 @@ private:
 
     /**
      * @brief 掉落经验
+     * 重写父类方法，末影龙使用自定义经验值
      */
-    void dropExperience(i32 amount);
+    void dropExperience() override;
+
+    /**
+     * @brief 掉落指定数量的经验
+     * @param amount 经验数量
+     */
+    void dropExperienceAmount(i32 amount);
 
     // 阶段
     Phase m_phase = Phase::HoldingPattern;

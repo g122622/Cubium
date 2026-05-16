@@ -22,7 +22,9 @@
 */
 
 #include "MonsterEntity.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../ai/goal/GoalSelector.hpp"
 #include "../../ai/goal/goals/SwimGoal.hpp"
@@ -201,13 +203,36 @@ bool MonsterEntity::canMonsterSpawnInLight(
         return false;
     }
 
-    // TODO: 检查生成位置是否有效
-    // return canSpawnOn(type, world, reason, pos, random);
+    // MC 1.16.5: 检查生成位置是否有效
+    // 检查脚下方块是否有固体支撑
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (belowState == nullptr || belowState->isAir()) {
+        return false;
+    }
+
+    // 检查脚下方块上表面是否可以站立
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    if (!belowState->isSolidSide(world, belowPos, Direction::Up)) {
+        return false;
+    }
+
+    // 检查生成位置和上方位置是否可通过（非固体方块）
+    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    if (currentState != nullptr && currentState->isSolid()) {
+        return false;
+    }
+
+    // 检查上方位置（对于高度 > 1 的生物）
+    const BlockState* aboveState = world.getBlockState(pos.x, pos.y + 1, pos.z);
+    if (aboveState != nullptr && aboveState->isSolid()) {
+        return false;
+    }
+
     return true;
 }
 
 bool MonsterEntity::canMonsterSpawn(
-    LegacyEntityType /*type*/, IWorld& world, SpawnReason /*reason*/, const BlockPos& /*pos*/, math::Random& /*random*/)
+    LegacyEntityType /*type*/, IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& /*random*/)
 {
     // MC 1.16.5 MonsterEntity.canMonsterSpawn()
     // 检查难度（非和平模式）
@@ -215,9 +240,32 @@ bool MonsterEntity::canMonsterSpawn(
         return false;
     }
 
-    // 不检查光照等级
-    // TODO: 检查生成位置是否有效
-    // return canSpawnOn(type, world, reason, pos, random);
+    // 不检查光照等级（用于刷怪笼等）
+    // MC 1.16.5: 检查生成位置是否有效
+    // 检查脚下方块是否有固体支撑
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (belowState == nullptr || belowState->isAir()) {
+        return false;
+    }
+
+    // 检查脚下方块上表面是否可以站立
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    if (!belowState->isSolidSide(world, belowPos, Direction::Up)) {
+        return false;
+    }
+
+    // 检查生成位置和上方位置是否可通过（非固体方块）
+    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    if (currentState != nullptr && currentState->isSolid()) {
+        return false;
+    }
+
+    // 检查上方位置（对于高度 > 1 的生物）
+    const BlockState* aboveState = world.getBlockState(pos.x, pos.y + 1, pos.z);
+    if (aboveState != nullptr && aboveState->isSolid()) {
+        return false;
+    }
+
     return true;
 }
 

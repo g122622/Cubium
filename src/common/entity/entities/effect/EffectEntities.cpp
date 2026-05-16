@@ -31,6 +31,7 @@
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <chrono>
@@ -83,7 +84,69 @@ void EnderCrystalEntity::setBeamTarget(BlockPos pos)
 
 void EnderCrystalEntity::healDragon()
 {
-    // TODO: 找到末影龙并治愈
+    // MC 1.16.5: EnderCrystalEntity 治愈末影龙逻辑
+    // 参考: EnderDragonEntity.updateDragonEnderCrystal() 双向关联
+
+    // 检查冷却
+    if (m_healCooldown > 0) {
+        return;
+    }
+
+    // 获取世界
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 在 32 格范围内搜索末影龙
+    constexpr f32 HEAL_RANGE = 32.0f;
+    constexpr f32 HEAL_RANGE_SQ = HEAL_RANGE * HEAL_RANGE;
+
+    // 获取水晶位置
+    Vector3 crystalPos(x(), y(), z());
+
+    // 获取范围内的实体
+    std::vector<Entity*> entities = worldPtr->getEntitiesInRange(crystalPos, HEAL_RANGE, this);
+
+    EnderDragonEntity* nearestDragon = nullptr;
+    f32 nearestDistSq = HEAL_RANGE_SQ;
+
+    // 搜索最近的末影龙
+    for (Entity* entity : entities) {
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
+
+        // 检查是否为末影龙
+        if (entity->legacyType() == LegacyEntityType::EnderDragon) {
+            f32 dx = static_cast<f32>(entity->x() - x());
+            f32 dy = static_cast<f32>(entity->y() - y());
+            f32 dz = static_cast<f32>(entity->z() - z());
+            f32 distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearestDragon = static_cast<EnderDragonEntity*>(entity);
+            }
+        }
+    }
+
+    // 如果找到末影龙
+    if (nearestDragon != nullptr && nearestDragon->isAlive()) {
+        // MC 1.16.5: 治愈末影龙 1 点生命值
+        nearestDragon->heal(1.0f);
+
+        // 设置冷却时间
+        m_healCooldown = HEAL_COOLDOWN;
+
+        // 设置光束指向末影龙（用于渲染）
+        setBeamTarget(BlockPos(static_cast<BlockCoord>(nearestDragon->x()),
+            static_cast<BlockCoord>(nearestDragon->y()),
+            static_cast<BlockCoord>(nearestDragon->z())));
+
+        // 设置龙的最近水晶引用（建立双向关联）
+        nearestDragon->setClosestEnderCrystal(this);
+    }
 }
 
 void EnderCrystalEntity::explode()
