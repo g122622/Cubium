@@ -1715,4 +1715,13 @@ void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* 
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
+{
+    // 发布 PlayerDestroyItemEvent 用于进度触发
+    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+    event::PlayerDestroyItemEvent event{currentTick(), playerId, item, slot, hand};
+    event::ServerEventBus::instance().publish(event);
+}
+
 } // namespace mc::server

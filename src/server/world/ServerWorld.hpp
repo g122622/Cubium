@@ -726,6 +726,20 @@ public:
     void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) override;
 
     /**
+     * @brief 通知世界玩家物品销毁
+     *
+     * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。
+     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 销毁前的物品副本
+     * @param slot 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+     * @param hand 使用的手（MainHand 或 OffHand）
+     */
+    void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand) override;
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

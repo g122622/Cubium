@@ -1080,6 +1080,30 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界玩家物品销毁
+     *
+     * 当玩家物品因使用而损坏或消耗完毕时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 PlayerDestroyItemEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
+     *
+     * @param playerId 玩家ID
+     * @param item 销毁前的物品副本
+     * @param slot 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+     * @param hand 使用的手（MainHand 或 OffHand）
+     */
+    virtual void onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
+    {
+        (void)playerId;
+        (void)item;
+        (void)slot;
+        (void)hand;
+        // 默认空实现
+    }
+
     // ========== 游戏规则 ==========
 
     /**

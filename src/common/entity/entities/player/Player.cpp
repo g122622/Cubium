@@ -2147,7 +2147,16 @@ void Player::attack(Entity& target)
                     if (!isCreative()) {
                         m_inventory.getSelectedStackRef() = ItemStack();
                     }
-                    // TODO: 触发 PlayerDestroyItem 事件（当前项目暂无事件系统）
+                    // 触发 PlayerDestroyItem 事件
+                    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+                    if (m_world) {
+                        m_world->onPlayerDestroyItem(
+                            static_cast<PlayerId>(id()),
+                            mainHandCopy,
+                            0, // 主手槽位
+                            Hand::MainHand
+                        );
+                    }
                 }
             }
         }
@@ -2213,7 +2222,16 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
                 if (success) {
                     // 物品被消耗处理
                     if (!isCreative() && itemstack.isEmpty()) {
-                        // TODO: 触发 PlayerDestroyItem 事件
+                        // 触发 PlayerDestroyItem 事件
+                        // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
+                        if (m_world) {
+                            m_world->onPlayerDestroyItem(
+                                static_cast<PlayerId>(id()),
+                                itemstackCopy,
+                                hand == Hand::MainHand ? 0 : 40,
+                                hand
+                            );
+                        }
                         inventory().setItem(hand == Hand::MainHand ? 0 : 40, ItemStack());
                     }
                     return ActionResultType::Success;
