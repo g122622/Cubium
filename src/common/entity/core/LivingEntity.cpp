@@ -1359,4 +1359,27 @@ void LivingEntity::updateSpinAttack()
     }
 }
 
+// ============================================================================
+// 药水效果和摔落免疫
+// ============================================================================
+
+bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
+{
+    // MC 1.16.5: LivingEntity.isPotionApplicable()
+    // 默认实现：所有效果都可应用
+    // 子类可重写此方法来免疫某些效果（如凋灵免疫凋零效果）
+    MC_UNUSED(effect);
+    return true;
+}
+
+bool LivingEntity::onLivingFall(f32 distance, f32 damageMultiplier)
+{
+    // MC 1.16.5: LivingEntity.onLivingFall()
+    // 默认实现：处理摔落伤害
+    // 子类可重写此方法来免疫摔落伤害（如凋灵、末影龙）
+    MC_UNUSED(distance);
+    MC_UNUSED(damageMultiplier);
+    return true;
+}
+
 } // namespace mc

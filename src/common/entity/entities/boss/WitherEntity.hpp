@@ -24,7 +24,6 @@
 #pragma once
 
 #include "../../../resource/ResourceLocation.hpp"
-#include "../../ai/goal/Goal.hpp"
 #include "../../core/DataParameter.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
@@ -76,7 +75,7 @@ private:
  * - 无敌阶段：生成后220 ticks无敌
  * - 充能阶段：生命值低于一半时充能发射蓝色凋灵之首
  * - 方块破坏：能够破坏周围方块
- * - Boss条：显示Boss生命值
+ * - Boss条：显示Boss生命值（紫色）
  *
  * 参考 MC 1.16.5 WitherEntity
  */
@@ -146,6 +145,12 @@ public:
      */
     [[nodiscard]] bool isNonBoss() const override { return false; }
 
+    /**
+     * @brief 摔落伤害免疫
+     * MC 1.16.5: onLivingFall() -> false
+     */
+    [[nodiscard]] bool onLivingFall(f32 distance, f32 damageMultiplier) override;
+
     // ========== IRangedAttackMob 接口实现 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
@@ -170,18 +175,18 @@ public:
      * @brief 获取无敌时间
      * MC 1.16.5: getInvulTime()
      */
-    [[nodiscard]] i32 getInvulTime() const { return m_invulTime; }
+    [[nodiscard]] i32 getInvulTime() const { return m_dataManager.get<i32>(INVULNERABILITY_TIME); }
 
     /**
      * @brief 设置无敌时间
      * MC 1.16.5: setInvulTime()
      */
-    void setInvulTime(i32 time) { m_invulTime = time; }
+    void setInvulTime(i32 time) { m_dataManager.set(INVULNERABILITY_TIME, time); }
 
     /**
      * @brief 是否处于无敌阶段
      */
-    [[nodiscard]] bool isInvulnerablePhase() const { return m_invulTime > 0; }
+    [[nodiscard]] bool isInvulnerablePhase() const { return getInvulTime() > 0; }
 
     /**
      * @brief 是否充能（生命值低于一半）
@@ -222,15 +227,26 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    /**
+     * @brief 死亡时掉落物品
+     * MC 1.16.5: dropSpecialItems()
+     */
+    void die(DamageSource& source) override;
+
+    /**
+     * @brief 药水效果免疫检查
+     * MC 1.16.5: isPotionApplicable()
+     */
+    [[nodiscard]] bool isPotionApplicable(const entity::effect::EffectInstance& effect) const override;
+
 private:
     // ========== 数据参数 ==========
     // 头部追踪目标实体ID（MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET）
     static entity::DataParameter<i32> HEAD_TARGET_1; // 主头目标
     static entity::DataParameter<i32> HEAD_TARGET_2; // 左头目标
     static entity::DataParameter<i32> HEAD_TARGET_3; // 右头目标
-
-    // 无敌时间（MC 1.16.5: invulTime）
-    i32 m_invulTime = 0;
+    // 无敌时间（MC 1.16.5: INVULNERABILITY_TIME）
+    static entity::DataParameter<i32> INVULNERABILITY_TIME;
 
     // 头部旋转角度（用于渲染）
     f32 m_headXRot[2] = {0.0f, 0.0f};     // 侧头俯仰角
@@ -244,7 +260,7 @@ private:
     i32 m_blockBreakCounter = 0;       // 方块破坏计数器
 
     // MC 1.16.5 常量
-    static constexpr i32 INVULNERABILITY_TIME = 220; // 生成无敌时间 (11秒)
+    static constexpr i32 INVULNERABILITY_TIME_CONST = 220; // 生成无敌时间 (11秒)
     static constexpr i32 BLOCK_BREAK_COOLDOWN = 20;  // 方块破坏冷却
     static constexpr f32 HEAD_TRACK_RANGE = 20.0f;   // 头部追踪范围
     static constexpr i32 ATTACK_COOLDOWN = 40;       // 攻击冷却 (2秒)
@@ -287,6 +303,12 @@ private:
      * @brief 在生成时创建爆炸
      */
     void explodeOnSpawn();
+
+    /**
+     * @brief 生成粒子效果
+     * MC 1.16.5: livingTick() 中的粒子生成
+     */
+    void spawnParticles();
 };
 
 } // namespace entity

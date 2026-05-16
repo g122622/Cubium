@@ -88,8 +88,8 @@
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityType.hpp"
-// #include "../entities/boss/EnderDragonEntity.hpp"
-// #include "../entities/boss/WitherEntity.hpp"
+#include "../entities/boss/EnderDragonEntity.hpp"
+#include "../entities/boss/WitherEntity.hpp"
 // #include "../entities/villager/VillagerEntity.hpp"
 // #include "../entities/projectile/ProjectileEntity.hpp"
 // #include "../entities/projectile/AbstractArrowEntity.hpp"
@@ -595,17 +595,15 @@ private:
         //         .build()
         // );
 
-        // 凋灵 - TODO: 需要完成实现
-        // registry.registerType(
-        //     EntityTypes::WITHER,
-        //     EntityType::Builder(&WitherEntity::create, EntityClassification::Monster)
-        //         .size(0.9f, 3.5f)
-        //         .trackingRange(10)
-        //         .updateInterval(3)
-        //         .immuneToFire()
-        //         .canSummon(true)
-        //         .build()
-        // );
+        // 凋灵
+        registry.registerType(EntityTypes::WITHER,
+            EntityType::Builder(&WitherEntity::create, EntityClassification::Monster)
+                .size(0.9f, 3.5f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .immuneToFire()
+                .canSummon(true)
+                .build());
 
         // ========== 村民 ==========
         // 村民 - TODO: 需要完成实现

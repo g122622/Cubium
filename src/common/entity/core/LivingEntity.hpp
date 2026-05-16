@@ -235,6 +235,31 @@ public:
      */
     virtual void dropExperience() {}
 
+    /**
+     * @brief 检查药水效果是否可以应用
+     *
+     * 参考 MC 1.16.5 LivingEntity.isPotionApplicable()
+     * 子类可以重写此方法来免疫某些药水效果。
+     * 例如：凋灵免疫凋零效果。
+     *
+     * @param effect 药水效果实例
+     * @return 是否可以应用此效果
+     */
+    [[nodiscard]] virtual bool isPotionApplicable(const entity::effect::EffectInstance& effect) const;
+
+    /**
+     * @brief 摔落伤害处理
+     *
+     * 参考 MC 1.16.5 LivingEntity.onLivingFall()
+     * 子类可以重写此方法来免疫摔落伤害。
+     * 例如：凋灵、末影龙免疫摔落伤害。
+     *
+     * @param distance 摔落距离（格数）
+     * @param damageMultiplier 伤害倍率
+     * @return 是否受到摔落伤害
+     */
+    [[nodiscard]] virtual bool onLivingFall(f32 distance, f32 damageMultiplier);
+
     // ========== 属性 ==========
 
     /**

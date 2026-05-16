@@ -42,6 +42,10 @@ namespace entity {
 class EnderCrystalEntity;
 } // namespace entity
 
+namespace entity::effect {
+class EffectInstance;
+} // namespace entity::effect
+
 namespace entity {
 
 /**
@@ -257,7 +261,7 @@ public:
     /**
      * @brief 末影龙免疫药水效果
      */
-    [[nodiscard]] bool isPotionApplicable() const { return false; }
+    [[nodiscard]] bool isPotionApplicable(const entity::effect::EffectInstance& /*effect*/) const override { return false; }
 
     // ========== BossEntity 接口 ==========
 

@@ -24,6 +24,7 @@
 #include "WitherEntity.hpp"
 #include "../../../core/Constants.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../item/Items.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
@@ -33,6 +34,7 @@
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
+#include "../../ai/goal/Goal.hpp"
 #include "../../ai/goal/GoalFlag.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../ai/goal/goals/attack/RangedAttackGoals.hpp"
@@ -40,20 +42,25 @@
 #include "../../ai/pathfinding/PathNavigator.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../effect/EffectType.hpp"
+#include "../../entities/item/ItemEntity.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
+#include "../../utils/ItemDropHelper.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
 
 // ========== 静态数据参数定义 ==========
-// MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET
+// MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET, INVULNERABILITY_TIME
 DataParameter<i32> WitherEntity::HEAD_TARGET_1 = EntityDataManager::createKey<i32>();
 DataParameter<i32> WitherEntity::HEAD_TARGET_2 = EntityDataManager::createKey<i32>();
 DataParameter<i32> WitherEntity::HEAD_TARGET_3 = EntityDataManager::createKey<i32>();
+DataParameter<i32> WitherEntity::INVULNERABILITY_TIME = EntityDataManager::createKey<i32>();
 
-std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WitherEntity::create(IWorld* world)
 {
     return std::make_unique<WitherEntity>(LegacyEntityType::Wither, EntityId(0));
 }
@@ -111,7 +118,7 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const
     }
 
     // 无敌阶段免疫所有伤害（除了虚空伤害）
-    if (m_invulTime > 0 && source.type() != DamageType::OutOfWorld) {
+    if (getInvulTime() > 0 && source.type() != DamageType::OutOfWorld) {
         return true;
     }
 
@@ -194,7 +201,7 @@ bool WitherEntity::hurt(DamageSource& source, f32 amount)
 bool WitherEntity::canRangedAttack() const
 {
     // 无敌阶段不能远程攻击
-    return m_invulTime <= 0;
+    return getInvulTime() <= 0;
 }
 
 std::string WitherEntity::getBossName() const
@@ -253,6 +260,10 @@ void WitherEntity::registerData()
     m_dataManager.registerParam(HEAD_TARGET_1, 0);
     m_dataManager.registerParam(HEAD_TARGET_2, 0);
     m_dataManager.registerParam(HEAD_TARGET_3, 0);
+
+    // 注册无敌时间数据参数
+    // MC 1.16.5: INVULNERABILITY_TIME
+    m_dataManager.registerParam(INVULNERABILITY_TIME, 0);
 }
 
 void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
@@ -315,7 +326,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
 void WitherEntity::ignite()
 {
     // MC 1.16.5: 开始生成序列
-    m_invulTime = INVULNERABILITY_TIME;
+    setInvulTime(INVULNERABILITY_TIME_CONST);
     setHealth(maxHealth() / 3.0f);
 }
 
@@ -334,6 +345,95 @@ void WitherEntity::tick()
 
     // 更新AI任务
     updateAITasks();
+
+    // 生成粒子效果
+    spawnParticles();
+}
+
+void WitherEntity::spawnParticles()
+{
+    // MC 1.16.5: livingTick() 中的粒子生成
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr || worldPtr->isClientSide()) {
+        return;
+    }
+
+    // 充能状态下生成额外的烟雾粒子
+    if (isCharged()) {
+        // 每 2 tick 在每个头附近生成烟雾粒子
+        if (ticksExisted() % 2 == 0) {
+            for (i32 head = 0; head < 3; ++head) {
+                f32 headX = getHeadX(head);
+                f32 headY = getHeadY(head);
+                f32 headZ = getHeadZ(head);
+
+                worldPtr->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Smoke,
+                    Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.3,
+                        headY + (getRandom().nextDouble() - 0.5) * 0.3,
+                        headZ + (getRandom().nextDouble() - 0.5) * 0.3),
+                    Vector3(0.0, 0.0, 0.0));
+            }
+        }
+    }
+
+    // 无敌阶段生成紫色粒子（表示充能状态）
+    if (getInvulTime() > 0 && getInvulTime() % 8 == 0) {
+        // 在身体周围生成紫色粒子
+        for (i32 i = 0; i < 3; ++i) {
+            worldPtr->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+                Vector3(x() + (getRandom().nextDouble() - 0.5) * width() * 2.0,
+                    y() + getRandom().nextDouble() * height(),
+                    z() + (getRandom().nextDouble() - 0.5) * width() * 2.0),
+                Vector3(0.0, 0.0, 0.0));
+        }
+    }
+}
+
+void WitherEntity::die(DamageSource& source)
+{
+    // MC 1.16.5: 调用父类die()
+    MobEntity::die(source);
+
+    // MC 1.16.5: 掉落下界之星
+    // dropSpecialItems()
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // 掉落 1 个下界之星，永不消失
+    if (Items::NETHER_STAR != nullptr) {
+        ItemStack netherStar(Items::NETHER_STAR, 1);
+        math::Random rng = getRandom();
+        ItemEntity* itemEntity = ItemDropHelper::spawnItemAtEntity(
+            this,
+            netherStar,
+            0.5f, // offsetY
+            rng,
+            ItemDropHelper::DEFAULT_PICKUP_DELAY);
+
+        // MC 1.16.5: itementity.setNoDespawn()
+        if (itemEntity != nullptr) {
+            itemEntity->setLifetime(ItemEntity::INFINITE_LIFETIME);
+        }
+    }
+}
+
+bool WitherEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
+{
+    // MC 1.16.5: 凋灵免疫凋零效果
+    if (effect.type() == entity::effect::EffectType::Wither) {
+        return false;
+    }
+    return MobEntity::isPotionApplicable(effect);
+}
+
+bool WitherEntity::onLivingFall(f32 /*distance*/, f32 /*damageMultiplier*/)
+{
+    // MC 1.16.5: 凋灵不受摔落伤害
+    return false;
 }
 
 void WitherEntity::updateAITasks()
@@ -341,16 +441,18 @@ void WitherEntity::updateAITasks()
     // MC 1.16.5 WitherEntity.updateAITasks()
 
     // 无敌阶段处理
-    if (m_invulTime > 0) {
-        m_invulTime--;
+    i32 invulTime = getInvulTime();
+    if (invulTime > 0) {
+        invulTime--;
+        setInvulTime(invulTime);
 
         // 每10tick恢复10点生命值
-        if (m_invulTime % 10 == 0) {
+        if (invulTime % 10 == 0) {
             heal(10.0f);
         }
 
         // 无敌阶段结束时的爆炸
-        if (m_invulTime == 0) {
+        if (invulTime == 0) {
             explodeOnSpawn();
         }
     }
