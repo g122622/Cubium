@@ -374,6 +374,9 @@ void LightningBoltEntity::damageEntities()
     // 获取范围内的实体
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
 
+    // 收集被击中的实体用于引雷附魔进度触发
+    std::vector<Entity*> victims;
+
     for (Entity* entity : entities) {
         if (entity == nullptr || !entity->isAlive()) {
             continue;
@@ -393,8 +396,14 @@ void LightningBoltEntity::damageEntities()
         // 用于处理特殊效果（如哞菇变色、苦力怕充能等）
         entity->onStruckByLightning();
 
-        // TODO: MC 1.16.5 触发进度 CriteriaTriggers.CHANNELED_LIGHTNING
-        // 如果有 caster（引雷附魔的玩家），触发进度
+        // 收集被击中的实体用于引雷附魔进度触发
+        victims.push_back(entity);
+    }
+
+    // MC 1.16.5: 触发进度 CriteriaTriggers.CHANNELED_LIGHTNING
+    // 如果有 caster（引雷附魔的玩家），通过 IWorld 发布事件
+    if (m_caster != 0 && !victims.empty() && m_world != nullptr) {
+        m_world->onChanneledLightning(m_caster, victims);
     }
 }
 

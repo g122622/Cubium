@@ -23,6 +23,7 @@
 
 #include "CriterionTriggers.hpp"
 #include "impl/BlockTriggers.hpp"
+#include "impl/ChanneledLightningTrigger.hpp"
 #include "impl/EffectTriggers.hpp"
 #include "impl/EntityTriggers.hpp"
 #include "impl/ImpossibleTrigger.hpp"
@@ -97,6 +98,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<EntityKilledPlayerTrigger>());
     registerTrigger(std::make_unique<CuredZombieVillagerTrigger>());
     registerTrigger(std::make_unique<PlayerInteractedWithEntityTrigger>());
+    registerTrigger(std::make_unique<ChanneledLightningTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

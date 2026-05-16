@@ -1715,6 +1715,14 @@ void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* 
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onChanneledLightning(PlayerId casterId, const std::vector<Entity*>& victims)
+{
+    // 发布 ChanneledLightningEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
+    event::ChanneledLightningEvent event{currentTick(), casterId, victims};
+    event::ServerEventBus::instance().publish(event);
+}
+
 void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
 {
     // 发布 PlayerDestroyItemEvent 用于进度触发

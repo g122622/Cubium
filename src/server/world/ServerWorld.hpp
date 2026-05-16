@@ -726,6 +726,17 @@ public:
     void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) override;
 
     /**
+     * @brief 通知世界引雷附魔触发
+     *
+     * 重写 IWorld::onChanneledLightning()，发布 ChanneledLightningEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
+     *
+     * @param casterId 施法者ID（引雷附魔的玩家）
+     * @param victims 被闪电击中的实体列表
+     */
+    void onChanneledLightning(PlayerId casterId, const std::vector<Entity*>& victims) override;
+
+    /**
      * @brief 通知世界玩家物品销毁
      *
      * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。

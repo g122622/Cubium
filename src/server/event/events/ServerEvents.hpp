@@ -796,4 +796,21 @@ struct EnterBlockEvent : ServerEvent {
     {}
 };
 
+/**
+ * @brief 引雷附魔触发事件
+ *
+ * 当玩家使用引雷附魔的三叉戟召唤闪电击中实体时触发。
+ * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING
+ */
+struct ChanneledLightningEvent : ServerEvent {
+    PlayerId casterId;              ///< 施法者ID（引雷附魔的玩家）
+    std::vector<Entity*> victims;   ///< 被闪电击中的实体列表
+
+    ChanneledLightningEvent(u64 tick, PlayerId caster, std::vector<Entity*> v)
+        : ServerEvent(tick)
+        , casterId(caster)
+        , victims(std::move(v))
+    {}
+};
+
 } // namespace mc::server::event

@@ -1106,6 +1106,25 @@ public:
     }
 
     /**
+     * @brief 通知世界引雷附魔触发
+     *
+     * 当玩家使用引雷附魔的三叉戟召唤闪电击中实体时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 ChanneledLightningEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING
+     *
+     * @param casterId 施法者ID（引雷附魔的玩家）
+     * @param victims 被闪电击中的实体列表
+     */
+    virtual void onChanneledLightning(PlayerId casterId, const std::vector<Entity*>& victims)
+    {
+        (void)casterId;
+        (void)victims;
+        // 默认空实现
+    }
+
+    /**
      * @brief 通知世界玩家物品销毁
      *
      * 当玩家物品因使用而损坏或消耗完毕时调用，用于触发进度检测。

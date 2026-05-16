@@ -25,6 +25,7 @@
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
+#include "common/advancement/trigger/impl/ChanneledLightningTrigger.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
@@ -136,6 +137,11 @@ public:
             event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
                 [this](const event::DimensionChangeEvent& e) { onDimensionChange(e); });
 
+        // 订阅引雷附魔触发事件
+        m_channeledLightningSubscription =
+            event::ServerEventBus::instance().makeSubscription<event::ChanneledLightningEvent>(
+                [this](const event::ChanneledLightningEvent& e) { onChanneledLightning(e); });
+
         initialized_ = true;
     }
 
@@ -155,6 +161,7 @@ public:
         m_effectChangedSubscription.unsubscribe();
         m_playerLocationSubscription.unsubscribe();
         m_dimensionChangeSubscription.unsubscribe();
+        m_channeledLightningSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -639,6 +646,48 @@ private:
     }
 
     /**
+     * @brief 处理引雷附魔触发事件
+     *
+     * 触发 ChanneledLightningTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
+     */
+    void onChanneledLightning(const event::ChanneledLightningEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ChanneledLightningTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.casterId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 转换实体列表为 const 指针列表
+        std::vector<const mc::Entity*> victimPtrs;
+        victimPtrs.reserve(e.victims.size());
+        for (const auto* victim : e.victims) {
+            victimPtrs.push_back(victim);
+        }
+
+        // 触发检测
+        trigger->AbstractCriterionTrigger<mc::advancement::ChanneledLightningTriggerInstance>::trigger(
+            *advancements, [&victimPtrs](const mc::advancement::ChanneledLightningTriggerInstance& instance) {
+                return instance.test(victimPtrs);
+            });
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -678,6 +727,7 @@ private:
     event::ServerEventBus::Subscription<event::EffectChangedEvent> m_effectChangedSubscription;
     event::ServerEventBus::Subscription<event::PlayerLocationEvent> m_playerLocationSubscription;
     event::ServerEventBus::Subscription<event::DimensionChangeEvent> m_dimensionChangeSubscription;
+    event::ServerEventBus::Subscription<event::ChanneledLightningEvent> m_channeledLightningSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;
