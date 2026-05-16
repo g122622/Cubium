@@ -548,18 +548,90 @@ if (auto* ctrl = m_mob->lookController()) {
 
 ---
 
-## 设计参考
+### GhastMovementController（恶魂飞行移动控制器）
 
-本模块参考了 Minecraft Java Edition 1.16.5 的控制器系统：
+**文件**: `GhastMovementController.hpp` / `GhastMovementController.cpp`
 
-- `net.minecraft.entity.ai.controller.LookController`
-- `net.minecraft.entity.ai.controller.MovementController`
-- `net.minecraft.entity.ai.controller.JumpController`
+**职责**: 恶魂专用的飞行移动控制器，直接修改 velocity 实现三维空间飞行。
 
-主要差异：
-1. 使用现代 C++20 语法和智能指针
-2. 命名空间组织：`mc::entity::ai::controller`
-3. 简化了部分状态管理逻辑
+**核心功能**:
+- 直接修改 velocity 向量实现飞行（不依赖路径导航）
+- 检查飞行路径碰撞安全性
+- 随机冷却机制避免频繁调整方向
+
+**关键方法**:
+
+| 方法 | 说明 |
+|------|------|
+| `tick()` | 每tick更新，执行飞行移动 |
+| `isPathSafe(direction, distance)` | 检查飞行路径是否安全（无碰撞） |
+
+**飞行逻辑**:
+```cpp
+void GhastMovementController::tick()
+{
+    if (m_action == MoveAction::MoveTo) {
+        // 计算到目标位置的向量
+        f64 dx = m_posX - m_ghast->x();
+        f64 dy = m_posY - m_ghast->y();
+        f64 dz = m_posZ - m_ghast->z();
+        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance < 0.0001) {
+            // 已到达目标，停止移动
+            m_action = MoveAction::Wait;
+            return;
+        }
+
+        // 归一化方向向量
+        Vector3f direction = ...;
+
+        // 检查飞行路径是否安全
+        if (isPathSafe(direction, stepsToCheck)) {
+            // 路径安全，添加速度
+            velocity += direction * 0.1f;
+            m_ghast->setVelocity(velocity);
+        } else {
+            // 路径不安全，停止移动
+            m_action = MoveAction::Wait;
+        }
+    }
+}
+```
+
+**碰撞检测**:
+```cpp
+bool GhastMovementController::isPathSafe(const Vector3f& direction, i32 distance) const
+{
+    AxisAlignedBB currentBox = m_ghast->boundingBox();
+
+    for (i32 i = 1; i <= distance; ++i) {
+        AxisAlignedBB nextBox = currentBox;
+        nextBox.offset(direction.x, direction.y, direction.z);
+
+        if (!world->hasNoCollisions(nextBox)) {
+            return false; // 路径不安全
+        }
+        currentBox = nextBox;
+    }
+    return true; // 路径安全
+}
+```
+
+**使用场景**:
+- GhastEntity 在构造函数中创建 GhastMovementController 替代标准控制器
+- GhastRandomFlyGoal 设置随机飞行目标位置
+
+**与 VexMovementController 的区别**:
+
+| 特性 | GhastMovementController | VexMovementController |
+|------|------------------------|----------------------|
+| 碰撞检测 | 有，路径不安全时停止 | 无，可穿墙飞行 |
+| 冷却机制 | 有，随机2-6 ticks冷却 | 无 |
+| 到达检测 | 距离 < 0.0001 | 碰撞箱平均边长 |
+| 用途 | 下界恶魂飞行 | 恼鬼穿墙飞行 |
+
+**参考**: MC 1.16.5 `net.minecraft.entity.monster.GhastEntity.MoveHelperController`
 
 ---
 
@@ -569,3 +641,4 @@ if (auto* ctrl = m_mob->lookController()) {
 |------|------|
 | 2024-XX-XX | 初始实现三个控制器 |
 | 2026-03-26 | 创建 README.md 文档 |
+| 2026-05-16 | 添加 GhastMovementController 恶魂飞行控制器 |

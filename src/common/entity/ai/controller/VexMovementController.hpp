@@ -54,7 +54,7 @@ public:
      * 每tick调用，更新恼鬼的飞行移动。
      * 直接修改velocity向量，实现三维空间飞行。
      */
-    void tick();
+    void tick() override;
 
 private:
     VexEntity* m_vex;

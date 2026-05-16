@@ -264,6 +264,8 @@ add_executable(mc_tests
     # LookAtGoal 类型过滤测试
     common/entity/ai/goal/LookAtGoalTest.cpp
     entity/GhastEntityTest.cpp
+    # 恶魂 AI 目标测试
+    common/entity/GhastGoalsTest.cpp
     entity/GuardianAttackGoalTest.cpp
     entity/WitherEntityTest.cpp
     entity/EvokerGoalsTest.cpp
@@ -888,8 +890,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
         # EndermanEntity 用于 HeldBlockLayer 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/end/EndermanEntity.cpp
+        # NetherEntities 用于恶魂测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/nether/NetherEntities.cpp
         # EndermanGoals 用于注视检测测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/EndermanGoals.cpp
+        # GhastGoals 用于恶魂 AI 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/GhastGoals.cpp
+        # GhastMovementController 用于恶魂飞行控制器测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp

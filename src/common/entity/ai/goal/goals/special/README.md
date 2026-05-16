@@ -1889,6 +1889,109 @@ void VexEntity::registerGoals() {
 
 ---
 
+### GhastRandomFlyGoal - 恶魂随机飞行目标
+
+**职责**: 控制恶魂在下界中随机飞行漫游。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.GhastEntity.RandomFlyGoal`
+
+**执行条件**:
+- 移动控制器空闲（没有目标）
+- 目标距离太近（< 1 格）
+- 目标距离太远（> 60 格）
+
+**行为流程**:
+1. `shouldExecute()`: 检查移动控制器状态和目标距离
+2. `startExecuting()`: 在当前位置周围选择随机飞行点
+
+**飞行参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| WANDER_RANGE | 16.0 | 随机漫游范围 (±16格) |
+| MIN_DISTANCE_SQ | 1.0 | 最小目标距离平方 |
+| MAX_DISTANCE_SQ | 3600.0 | 最大目标距离平方 (60²) |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void GhastEntity::registerGoals() {
+    // 优先级 5: 随机飞行
+    m_goalSelector.addGoal(5, std::make_unique<GhastRandomFlyGoal>(this));
+}
+```
+
+---
+
+### GhastLookAroundGoal - 恶魂环顾四周目标
+
+**职责**: 控制恶魂的朝向，根据状态调整看向方向。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.GhastEntity.LookAroundGoal`
+
+**执行条件**: 始终执行（`shouldExecute()` 返回 true）
+
+**行为逻辑**:
+- **无攻击目标时**: 朝向移动方向（velocity 向量计算 yaw）
+- **有攻击目标时**: 朝向攻击目标（64 格范围内）
+
+**互斥标志**: `Look`
+
+**使用示例**:
+```cpp
+void GhastEntity::registerGoals() {
+    // 优先级 7: 环顾四周
+    m_goalSelector.addGoal(7, std::make_unique<GhastLookAroundGoal>(this));
+}
+```
+
+---
+
+### GhastFireballAttackGoal - 恶魂火球攻击目标
+
+**职责**: 控制恶魂向攻击目标发射火球。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.GhastEntity.FireballAttackGoal`
+
+**执行条件**:
+- 有攻击目标
+- 目标存活
+
+**攻击流程**:
+1. **检测阶段**: 检查目标是否在 64 格范围内且视线可见
+2. **充能阶段**: 充能 20 ticks，第 10 tick 播放充能音效
+3. **发射阶段**: 充能完成后调用 `shootFireball()` 发射火球
+4. **冷却阶段**: 攻击冷却 40 ticks
+
+**攻击参数**:
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| ATTACK_RANGE_SQ | 4096.0 | 攻击范围平方 (64²) |
+| CHARGE_SOUND_TICK | 10 | 充能音效 tick |
+| CHARGE_DURATION | 20 | 充能持续时间 (ticks, 1秒) |
+| COOLDOWN_DURATION | 40 | 攻击冷却 (ticks, 2秒) |
+
+**状态管理**:
+- 充能 > 10 ticks 时设置 `charging = true`（客户端动画用）
+- 攻击冷却期间 `attackTimer < 0`
+
+**互斥标志**: `Look`
+
+**使用示例**:
+```cpp
+void GhastEntity::registerGoals() {
+    // 优先级 7: 火球攻击
+    m_goalSelector.addGoal(7, std::make_unique<GhastFireballAttackGoal>(this));
+}
+```
+
+**火球发射逻辑** (在 GhastEntity::shootFireball() 中实现):
+- 计算发射位置：恶魂位置 + lookVector * 4.0
+- 计算到目标的方向向量作为加速度
+- 创建 FireballEntity 并设置爆炸威力
+
+---
+
 ## 涉及的测试用例
 
 | 测试名称 | 说明 |

@@ -59,6 +59,11 @@ public:
     explicit MovementController(MobEntity* mob);
 
     /**
+     * @brief 虚析构函数
+     */
+    virtual ~MovementController() = default;
+
+    /**
      * @brief 设置移动目标
      * @param x X坐标
      * @param y Y坐标
@@ -118,7 +123,7 @@ public:
      *
      * 每tick调用，更新实体移动。
      */
-    void tick();
+    virtual void tick();
 
     MobEntity* m_mob;
     f64 m_posX = 0.0;
