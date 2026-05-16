@@ -325,6 +325,15 @@ BlockTag& BlockTags::ENDERMAN_HOLDABLE()
     return *tag;
 }
 
+BlockTag& BlockTags::WITHER_IMMUNE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wither_immune"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -684,6 +693,31 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "stripped_crimson_stem"),
         ResourceLocation("minecraft", "warped_stem"),
         ResourceLocation("minecraft", "stripped_warped_stem")});
+
+    // 创建 WITHER_IMMUNE 标签（凋灵免疫方块）
+    // 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
+    // 凋灵无法破坏这些方块（基岩、屏障、末地传送门、命令方块等）
+    auto witherImmune = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wither_immune"));
+    witherImmune->addAll({// 屏障方块
+        ResourceLocation("minecraft", "barrier"),
+        // 基岩
+        ResourceLocation("minecraft", "bedrock"),
+        // 末地传送门
+        ResourceLocation("minecraft", "end_portal"),
+        ResourceLocation("minecraft", "end_portal_frame"),
+        ResourceLocation("minecraft", "end_gateway"),
+        // 命令方块
+        ResourceLocation("minecraft", "command_block"),
+        ResourceLocation("minecraft", "repeating_command_block"),
+        ResourceLocation("minecraft", "chain_command_block"),
+        // 结构方块
+        ResourceLocation("minecraft", "structure_block"),
+        ResourceLocation("minecraft", "jigsaw"),
+        // 活塞移动中的方块
+        ResourceLocation("minecraft", "moving_piston"),
+        // 光源方块
+        ResourceLocation("minecraft", "light")});
+    tags[witherImmune->getId()] = std::move(witherImmune);
 
     s_initialized = true;
 }

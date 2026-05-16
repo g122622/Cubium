@@ -129,6 +129,12 @@ public:
     [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
 
     /**
+     * @brief 受伤处理
+     * MC 1.16.5: 凋灵受伤后会触发方块破坏
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 是否为亡灵生物
      * MC 1.16.5: getCreatureAttribute() -> UNDEAD
      */

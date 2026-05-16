@@ -29,6 +29,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/BlockTags.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
@@ -142,6 +143,52 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const
     // 注意：这个逻辑通常在 LivingEntity.attackEntityFrom() 中处理
 
     return MobEntity::isInvulnerableTo(source);
+}
+
+bool WitherEntity::hurt(DamageSource& source, f32 amount)
+{
+    // MC 1.16.5 WitherEntity.attackEntityFrom()
+    // 先检查无敌
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // MC 1.16.5: 如果伤害来源是凋灵（非玩家）且也是亡灵生物，不造成伤害
+    Entity* trueSource = source.getTrueSource();
+    if (trueSource != nullptr && trueSource != this) {
+        // 检查攻击者是否是凋灵
+        if (trueSource->legacyType() == LegacyEntityType::Wither) {
+            return false;
+        }
+        // 检查攻击者是否是亡灵生物
+        LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
+        if (livingSource != nullptr && livingSource->getCreatureAttribute() == CreatureAttribute::Undead
+            && dynamic_cast<Player*>(trueSource) == nullptr) {
+            // 亡灵生物（非玩家）攻击凋灵不造成伤害
+            return false;
+        }
+    }
+
+    // 调用父类处理实际伤害
+    bool wasHurt = MobEntity::hurt(source, amount);
+
+    if (wasHurt) {
+        // MC 1.16.5: 受伤后触发方块破坏计数器
+        // if (this.blockBreakCounter <= 0) { this.blockBreakCounter = 20; }
+        if (m_blockBreakCounter <= 0) {
+            m_blockBreakCounter = BLOCK_BREAK_COOLDOWN;
+        }
+
+        // MC 1.16.5: 增加头部空闲更新计数，使侧头更快发射
+        // for (int i = 0; i < this.idleHeadUpdates.length; ++i) {
+        //     this.idleHeadUpdates[i] += 3;
+        // }
+        for (i32 i = 0; i < 2; ++i) {
+            m_idleHeadUpdates[i] += 3;
+        }
+    }
+
+    return wasHurt;
 }
 
 bool WitherEntity::canRangedAttack() const
@@ -471,25 +518,74 @@ f32 WitherEntity::getHeadZ(i32 head) const
 
 void WitherEntity::breakNearbyBlocks()
 {
-    // MC 1.16.5: 破坏凋灵周围的方块
-    // 检查 mobGriefing 游戏规则
+    // MC 1.16.5 WitherEntity.updateAITasks() 方块破坏逻辑
+    // 破坏凋灵周围 3x4x3 范围内的方块（排除 WITHER_IMMUNE 标签中的方块）
+
     IWorld* worldPtr = world();
-    if (!worldPtr || !worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+    if (!worldPtr) {
         return;
     }
 
-    // MC 1.16.5: 破坏范围 3x4x3（以凋灵为中心）
-    // 破坏凋灵周围 1 格范围，向上 3 格
-    // 即: x: -1 到 1, y: 0 到 3, z: -1 到 1
+    // MC 1.16.5: 检查 mobGriefing 游戏规则
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return;
+    }
+
+    // MC 1.16.5: 破坏范围 x: -1 到 1, y: 0 到 3, z: -1 到 1
     i32 baseX = static_cast<i32>(std::floor(x()));
     i32 baseY = static_cast<i32>(std::floor(y()));
     i32 baseZ = static_cast<i32>(std::floor(z()));
 
-    // MC 1.16.5: 破坏凋灵免疫标签之外的方块
-    // 简化实现：使用爆炸来破坏方块
-    // 实际 MC 1.16.5 会检查 BlockTags.WITHER_IMMUNE 标签
-    // 这里暂时简化为不实现单独的方块破坏逻辑，因为已经有爆炸系统了
-    // TODO: 完整实现需要 BlockTags 系统和 destroyBlock 方法
+    bool anyBlockBroken = false;
+
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dy = 0; dy <= 3; ++dy) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                BlockPos pos(baseX + dx, baseY + dy, baseZ + dz);
+
+                // 获取方块状态
+                const BlockState* state = worldPtr->getBlockState(pos);
+                if (state == nullptr || state->isAir()) {
+                    continue;
+                }
+
+                // MC 1.16.5: 检查方块是否可以被凋灵破坏
+                // 使用 canDestroyBlock 静态方法或 WITHER_IMMUNE 标签
+                const Block& block = state->getBlock();
+
+                // 检查是否在 WITHER_IMMUNE 标签中
+                if (BlockTags::WITHER_IMMUNE().contains(block)) {
+                    continue;
+                }
+
+                // MC 1.16.5: 检查方块是否允许实体破坏
+                // BlockState.canEntityDestroy(world, pos, this)
+                // 目前简化实现：直接尝试破坏
+                // 注意：canEntityDestroy 默认返回 true，某些方块（如基岩）会重写返回 false
+                // 由于 WITHER_IMMUNE 已经覆盖了所有不可破坏方块，这里直接破坏
+
+                // MC 1.16.5: world.destroyBlock(pos, true, this)
+                // 将方块设置为空气，并掉落物品
+                const BlockState* airState = VanillaBlocks::AIR != nullptr
+                    ? &VanillaBlocks::AIR->defaultState()
+                    : nullptr;
+
+                if (airState != nullptr) {
+                    // 设置为空气方块，flags=3 表示通知邻居并更新客户端
+                    // MC 1.16.5: destroyBlock 的第二个参数 true 表示掉落物品
+                    worldPtr->setBlockState(pos, airState, 3);
+                    anyBlockBroken = true;
+                }
+            }
+        }
+    }
+
+    // MC 1.16.5: 如果有方块被破坏，播放破坏音效
+    // world.playEvent((PlayerEntity)null, 1022, getPosition(), 0)
+    // 事件 1022 是 WITHER_BREAK_BLOCK
+    if (anyBlockBroken) {
+        playSound(SoundEvents::ENTITY_WITHER_BREAK_BLOCK, 1.0f, 1.0f);
+    }
 }
 
 void WitherEntity::explodeOnSpawn()

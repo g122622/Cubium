@@ -227,6 +227,13 @@ public:
     /// 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
     static BlockTag& ENDERMAN_HOLDABLE();
 
+    // ========== 凋灵标签 ==========
+
+    /// 凋灵免疫方块标签
+    /// 凋灵无法破坏的方块：基岩、屏障、末地传送门、命令方块等
+    /// 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
+    static BlockTag& WITHER_IMMUNE();
+
     /**
      * @brief 初始化所有内置标签
      *
