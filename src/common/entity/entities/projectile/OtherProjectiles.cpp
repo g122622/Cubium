@@ -439,9 +439,9 @@ i32 FishingBobberEntity::spawnCatchItems()
     }
 
     // 计算幸运值 = 海之眷顾附魔等级 + 玩家基础幸运
+    // MC 1.16.5: .withLuck((float)this.luck + playerentity.getLuck())
     f32 totalLuck = static_cast<f32>(m_luckBonus);
-    // TODO: 获取玩家基础幸运值
-    // totalLuck += m_angler->getLuck();
+    totalLuck += static_cast<f32>(m_angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
 
     // 获取随机数生成器
     math::Random& random = m_world->getRandom();

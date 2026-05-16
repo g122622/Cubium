@@ -1548,11 +1548,16 @@ void Player::registerAttributes()
     // 先调用父类方法注册基础属性
     LivingEntity::registerAttributes();
 
-    // 设置玩家特有属性值
+    // 注册玩家特有属性
+    // MC 1.16.5: PlayerEntity.registerAttributes() 注册 LUCK 属性
     using namespace entity::attribute;
+    m_attributes.registerAttribute(*Attributes::luck());
+
+    // 设置玩家特有属性值
     m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
     m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
     m_attributes.setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
+    // LUCK 属性默认值为 0.0，无需显式设置
 }
 
 // ============================================================================
