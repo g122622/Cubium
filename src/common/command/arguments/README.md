@@ -693,4 +693,5 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 | 2024-03 | 1.2 | 添加坐标和旋转参数类型 |
 | 2024-05 | 1.3 | 添加 BlockStateArgumentType，支持方块状态属性解析 |
 | 2026-05 | 1.4 | 实现 x_rotation/y_rotation 角度范围解析；添加 FloatRange::testAngle() 方法；修复 readSelectorArgumentToken() 支持 `!` 取反前缀；完善选择器参数支持（distance、level、x/y/z、dx/dy/dz、sort、type、tag、name、gamemode、team、x_rotation、y_rotation） |
-| 2026-05 | 1.5 | 实现 scores/advancements/nbt/predicate 参数解析；添加 EntitySelector::NbtCondition、PredicateCondition、AdvancementCondition 结构；在 PlayerResolver 中实现 scores 和 advancements 过滤逻辑；nbt 和 predicate 过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager） |
+| 2026-05 | 1.5 | 实现 scores/advancements/nbt/predicate 参数解析；添加 EntitySelector::NbtCondition、PredicateCondition、AdvancementCondition 结构；在 PlayerResolver 中实现 scores 和 advancements 过滤逻辑；nbt 和 predicate 过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager）；修复 scores/advancements 参数解析 bug |
+| 2026-05 | 1.6 | 修复 scores/advancements 参数解析 bug：新增 readScoresKey/readAdvancementKey/readCriteriaKey 方法正确处理分隔符和 ResourceLocation 格式 |
