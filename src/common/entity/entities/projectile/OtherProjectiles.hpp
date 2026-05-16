@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "ProjectileEntity.hpp"
+#include "ProjectileHelper.hpp"
 #include "ThrowableEntity.hpp"
 #include <memory>
 
@@ -141,6 +143,18 @@ public:
     i32 reelIn();
 
     /**
+     * @brief 获取被钩住的实体
+     * @return 被钩住的实体指针，如果没有则返回 nullptr
+     */
+    [[nodiscard]] Entity* getCaughtEntity() const { return m_caughtEntity; }
+
+    /**
+     * @brief 获取被钩住的实体ID（用于网络同步）
+     * @return 实体ID，如果没有则返回 0
+     */
+    [[nodiscard]] EntityId getCaughtEntityId() const { return m_caughtEntityId; }
+
+    /**
      * @brief 设置钓鱼附魔加成
      * @param luckBonus 海之眷顾附魔等级
      * @param speedBonus 饵钓附魔等级
@@ -200,7 +214,54 @@ private:
      */
     void setWaitTime();
 
+    /**
+     * @brief 执行射线检测
+     * @return 射线检测结果
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
+     */
+    [[nodiscard]] RayTraceResult performRayTrace();
+
+    /**
+     * @brief 检查是否可以命中指定实体
+     * @param target 目标实体
+     * @return 是否可以命中
+     *
+     * 钓鱼浮标可以命中：普通可命中实体 + 物品实体
+     */
+    [[nodiscard]] bool canHitEntity(const Entity& target) const;
+
+    /**
+     * @brief 命中实体时的回调
+     * @param result 射线检测结果
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
+     */
+    void onEntityHit(const RayTraceResult& result);
+
+    /**
+     * @brief 命中方块时的回调
+     * @param result 射线检测结果
+     *
+     * 参考 MC 1.16.5: 命中方块后停止移动
+     */
+    void onBlockHit(const RayTraceResult& result);
+
+    /**
+     * @brief 拉动被钩住的实体
+     *
+     * 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
+     */
+    void bringInHookedEntity();
+
+    /**
+     * @brief 同步被钩住实体ID（用于客户端）
+     */
+    void syncCaughtEntityId();
+
     Player* m_angler = nullptr;    // 钓鱼者
+    Entity* m_caughtEntity = nullptr; // 被钩住的实体
+    EntityId m_caughtEntityId = 0; // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
     State m_state = State::Flying; // 当前状态
     i32 m_ticksCaughtDelay = 0;    // 咬钩等待计时器
     i32 m_ticksCatchableDelay = 0; // 鱼接近计时器

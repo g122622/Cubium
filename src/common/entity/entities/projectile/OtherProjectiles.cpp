@@ -25,7 +25,9 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/MathConstants.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../core/LivingEntity.hpp"
@@ -39,6 +41,7 @@
 #include "../../loot/LootContext.hpp"
 #include "../../loot/LootTable.hpp"
 #include "../../utils/ItemDropHelper.hpp"
+#include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
@@ -185,8 +188,24 @@ void FishingBobberEntity::tick()
     updateWaterState();
 
     switch (m_state) {
-        case State::Flying:
-            // 浮标在飞行中，检测是否入水
+        case State::Flying: {
+            // 浮标在飞行中，执行射线检测
+            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第169-195行
+            if (m_world != nullptr) {
+                RayTraceResult hitResult = performRayTrace();
+                if (hitResult.type == RayTraceResultType::Entity) {
+                    // 命中实体，钩住它
+                    onEntityHit(hitResult);
+                    return;
+                }
+                if (hitResult.type == RayTraceResultType::Block) {
+                    // 命中方块，进入 Bobbing 状态
+                    onBlockHit(hitResult);
+                    return;
+                }
+            }
+
+            // 检测是否入水
             if (isInWater()) {
                 m_state = State::Bobbing;
                 // 设置初始等待时间
@@ -195,6 +214,7 @@ void FishingBobberEntity::tick()
                 m_inOpenWater = checkOpenWater();
             }
             break;
+        }
 
         case State::Bobbing:
             // 浮标浮在水面，执行钓鱼逻辑
@@ -227,7 +247,27 @@ void FishingBobberEntity::tick()
             break;
 
         case State::Hooked:
-            // 钩住实体（TODO: 实现钩住实体逻辑）
+            // 钩住实体
+            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第181-195行
+            if (m_caughtEntity != nullptr) {
+                if (m_caughtEntity->isRemoved() || !m_caughtEntity->isAlive()) {
+                    // 实体被移除或死亡，恢复飞行状态
+                    m_caughtEntity = nullptr;
+                    m_caughtEntityId = 0;
+                    m_state = State::Flying;
+                } else {
+                    // 浮标跟随实体位置
+                    // MC 1.16.5: 设置位置到实体高度的 80% 处
+                    setPosition(
+                        m_caughtEntity->x(),
+                        m_caughtEntity->y() + m_caughtEntity->height() * 0.8,
+                        m_caughtEntity->z()
+                    );
+                }
+            } else {
+                // 没有被钩住的实体，恢复飞行状态
+                m_state = State::Flying;
+            }
             break;
     }
 }
@@ -512,6 +552,7 @@ void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
 i32 FishingBobberEntity::reelIn()
 {
     // 收杆
+    // 参考 MC 1.16.5 FishingBobberEntity.handleHookRetraction()
     i32 damage = 0; // 钓鱼竿耐久消耗
 
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
@@ -520,7 +561,16 @@ i32 FishingBobberEntity::reelIn()
         remove();
     } else if (m_state == State::Hooked) {
         // 钩住实体，拉过来
-        // TODO: 实现钩住实体的逻辑
+        if (m_caughtEntity != nullptr && m_caughtEntity->isAlive()) {
+            bringInHookedEntity();
+            // MC 1.16.5: 耐久消耗取决于实体类型
+            // 物品实体: 3, 其他实体: 5
+            if (dynamic_cast<ItemEntity*>(m_caughtEntity) != nullptr) {
+                damage = 3;
+            } else {
+                damage = 5;
+            }
+        }
         remove();
     } else {
         // 未咬钩时收杆，无耐久消耗
@@ -528,6 +578,162 @@ i32 FishingBobberEntity::reelIn()
     }
 
     return damage;
+}
+
+// ============================================================================
+// FishingBobberEntity - 钩住实体逻辑
+// ============================================================================
+
+RayTraceResult FishingBobberEntity::performRayTrace()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
+    // 使用 ProjectileHelper 进行射线检测
+
+    if (m_world == nullptr) {
+        return RayTraceResult::miss();
+    }
+
+    // 计算射线起点和终点
+    const Vector3 start = m_position;
+    const Vector3 end = m_position + m_velocity;
+
+    // 先检测方块
+    const Vector3 delta = end - start;
+    if (delta.lengthSquared() <= 1.0e-6f) {
+        return RayTraceResult::miss();
+    }
+
+    // 创建搜索盒
+    const AxisAlignedBB searchBox = ProjectileHelper::createMovementSearchBox(*this, delta, 1.0f);
+
+    // 执行实体射线检测
+    RayTraceResult entityResult = ProjectileHelper::rayTraceEntities(
+        *m_world,
+        *this,
+        start,
+        end,
+        searchBox,
+        [this](const Entity& candidate) { return canHitEntity(candidate); },
+        0.3f  // collisionExpansion
+    );
+
+    if (entityResult.type == RayTraceResultType::Entity) {
+        return entityResult;
+    }
+
+    // 执行方块射线检测
+    const RaycastContext context(Ray(start, delta.normalized()), delta.length());
+    const BlockRaycastResult blockResult = raycastBlocks(context, *m_world);
+    if (!blockResult.isMiss()) {
+        return RayTraceResult::block(blockResult.hitPosition(), blockResult.blockPos());
+    }
+
+    return RayTraceResult::miss();
+}
+
+bool FishingBobberEntity::canHitEntity(const Entity& target) const
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.func_230298_a_()
+    // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
+
+    // 不能命中已死亡或已移除的实体
+    if (!target.isAlive() || target.isRemoved()) {
+        return false;
+    }
+
+    // 不能命中不可碰撞的实体
+    if (!target.canBeCollidedWith()) {
+        return false;
+    }
+
+    // 不能命中钓鱼者自己
+    if (&target == m_angler) {
+        return false;
+    }
+
+    // 物品实体可以被钩住
+    if (dynamic_cast<const ItemEntity*>(&target) != nullptr) {
+        return true;
+    }
+
+    // 其他实体需要满足基本碰撞条件
+    // 参考 ProjectileEntity::canHitEntity()
+    return target.canBeCollidedWith();
+}
+
+void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
+    if (result.type != RayTraceResultType::Entity || result.hitEntity == nullptr) {
+        return;
+    }
+
+    // 记录被钩住的实体
+    m_caughtEntity = result.hitEntity;
+
+    // 同步实体ID（用于客户端）
+    syncCaughtEntityId();
+
+    // 清零速度
+    m_velocity = Vector3(0.0, 0.0, 0.0);
+
+    // 切换到钩住状态
+    m_state = State::Hooked;
+}
+
+void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
+{
+    // 命中方块时停止移动，进入漂浮状态
+    // 参考 MC 1.16.5: 命中方块后进入 BOBBING 状态
+    m_velocity = Vector3(0.0, 0.0, 0.0);
+
+    // 如果在水上方块，设置 BOBBING 状态
+    if (isInWater()) {
+        m_state = State::Bobbing;
+        setWaitTime();
+        m_inOpenWater = checkOpenWater();
+    }
+}
+
+void FishingBobberEntity::bringInHookedEntity()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
+    if (m_caughtEntity == nullptr || m_angler == nullptr) {
+        return;
+    }
+
+    // 计算从浮标指向钓鱼者的方向向量
+    Vector3d direction(
+        m_angler->x() - x(),
+        m_angler->y() - y(),
+        m_angler->z() - z()
+    );
+
+    // 缩放到 10% 的力
+    // MC 1.16.5: direction.scale(0.1D)
+    direction = direction * 0.1;
+
+    // 叠加到被钩实体的速度上
+    // MC 1.16.5: caughtEntity.setMotion(caughtEntity.getMotion().add(vector3d))
+    m_caughtEntity->addVelocity(
+        static_cast<f32>(direction.x),
+        static_cast<f32>(direction.y),
+        static_cast<f32>(direction.z)
+    );
+}
+
+void FishingBobberEntity::syncCaughtEntityId()
+{
+    // 参考 MC 1.16.5 FishingBobberEntity.setHookedEntity()
+    // 存储时 +1，因为 0 表示"无实体"
+    if (m_caughtEntity != nullptr) {
+        m_caughtEntityId = m_caughtEntity->id() + 1;
+    } else {
+        m_caughtEntityId = 0;
+    }
+
+    // TODO: 当网络同步系统完善后，发送数据包同步到客户端
+    // 参考 MC 1.16.5: getDataManager().set(DATA_HOOKED_ENTITY, entityId + 1)
 }
 
 // ============================================================================

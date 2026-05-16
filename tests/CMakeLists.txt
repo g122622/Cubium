@@ -323,6 +323,8 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerSleepTest.cpp
     entity/ProjectileHelperTest.cpp
+    # FishingBobberEntity 钩住实体测试
+    common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp

@@ -221,7 +221,49 @@ static constexpr i32 XP_SPLIT_VALUES[] = {1, 3, 7, 17, 37, 79, 169, 347, 703, 14
 **收杆流程** (`reelIn()`):
 1. 检查当前状态
 2. 如果在钓鱼状态，调用 `spawnCatchItems()` 生成物品和经验
-3. 返回耐久消耗值（钓鱼成功返回 1，否则返回 0）
+3. 如果在钩住实体状态，调用 `bringInHookedEntity()` 拉动实体，返回耐久消耗（物品=3，其他=5）
+4. 返回耐久消耗值
+
+**钩住实体功能** (2026-05-16):
+
+钓鱼浮标可以钩住实体，包括物品实体和普通实体。
+
+**核心成员变量**:
+- `m_caughtEntity`: 被钩住的实体指针
+- `m_caughtEntityId`: 被钩住实体ID（用于网络同步，存储时+1，0表示无）
+
+**可钩住实体** (`canHitEntity`):
+- 物品实体 (`ItemEntity`)
+- 普通可碰撞实体（不包括钓鱼者自己）
+
+**状态转换**:
+```
+Flying → (命中实体) → Hooked
+Hooked → (实体移除) → Flying
+Hooked → (收杆) → 移除浮标
+```
+
+**钩住实体后行为**:
+- 浮标速度清零
+- 浮标位置跟随实体（Y偏移 = 实体高度 × 0.8）
+- 实体被移除时浮标恢复 Flying 状态
+
+**拉动算法** (`bringInHookedEntity`):
+```cpp
+// MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
+Vector3d direction = angler.position() - bobber.position();
+direction *= 0.1;  // 缩放到10%
+caughtEntity->addVelocity(direction.x, direction.y, direction.z);
+```
+
+**耐久消耗**:
+| 情况 | 耐久消耗 |
+|------|----------|
+| 钩住物品实体 | 3 |
+| 钩住其他实体 | 5 |
+| 钓到鱼 | 1 |
+| 落地 | 2 |
+| 未咬钩收杆 | 0 |
 
 **参考**: MC 1.16.5 FishingBobberEntity
 
