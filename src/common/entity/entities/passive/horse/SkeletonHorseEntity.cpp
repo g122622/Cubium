@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,16 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "SkeletonHorseEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -58,15 +62,177 @@ void SkeletonHorseEntity::setTrap(bool trap)
 
 void SkeletonHorseEntity::triggerTrap()
 {
-    // MC 1.16.5: 触发陷阱
-    // 1. 将陷阱马转换为普通骷髅马
-    // 2. 生成骷髅骑手
-    // TODO: 实现完整的陷阱触发逻辑
-    // - 生成骷髅实体
-    // - 给骷髅装备铁头盔
-    // - 让骷髅骑上马
-    // - 如果世界难度为 HARD，生成额外 2 只骷髅
+    // MC 1.16.5: TriggerSkeletonTrapGoal.tick()
+    // 参考: net.minecraft.entity.ai.goal.TriggerSkeletonTrapGoal
+
+    if (!m_trap) {
+        return;
+    }
+
+    IWorld* world = this->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // 1. 清除陷阱状态
     m_trap = false;
+
+    // 2. 设置骷髅马为已驯服
+    setTame(true);
+
+    // 3. 获取难度决定生成骷髅数量
+    // MC 1.16.5: 困难模式下额外生成 3 只骷髅马+骑手（共 4 只）
+    // 普通和简单模式只生成 1 只骷髅骑手骑这匹马
+    Difficulty difficulty = world->difficulty();
+    i32 extraHorses = (difficulty == Difficulty::Hard) ? 3 : 0;
+
+    // 4. 获取骷髅实体类型
+    const entity::EntityType* skeletonType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON);
+    if (skeletonType == nullptr) {
+        return;
+    }
+
+    // 5. 获取这匹马的位置用于生成
+    Vector3 horsePos = position();
+    math::Random& rng = world->getRandom();
+
+    // 6. 创建第一个骷髅骑手（骑在这匹马上）
+    {
+        auto skeleton = skeletonType->create(world);
+        if (skeleton == nullptr) {
+            return;
+        }
+
+        LivingEntity* skeletonEntity = dynamic_cast<LivingEntity*>(skeleton.get());
+        if (skeletonEntity == nullptr) {
+            return;
+        }
+
+        // 设置位置
+        skeleton->setPosition(horsePos);
+
+        // 设置持久化
+        MobEntity* mobEntity = dynamic_cast<MobEntity*>(skeleton.get());
+        if (mobEntity != nullptr) {
+            mobEntity->enablePersistence();
+        }
+
+        // 装备铁头盔
+        if (skeletonEntity->getEquipment(EquipmentSlot::Head).isEmpty()) {
+            ItemStack helmet(Items::IRON_HELMET, 1);
+            skeletonEntity->setEquipment(EquipmentSlot::Head, helmet);
+        }
+
+        // 装备弓
+        ItemStack bow(Items::BOW, 1);
+        skeletonEntity->setMainHandItem(bow);
+
+        // 设置无敌帧（MC 1.16.5: hurtResistantTime = 60）
+        skeletonEntity->setHurtResistantTime(60);
+
+        // 生成骷髅到世界
+        EntityId skeletonId = world->spawnEntity(std::move(skeleton));
+
+        // 让骷髅骑上这匹马
+        if (skeletonId != INVALID_ENTITY_ID) {
+            Entity* spawnedSkeleton = world->getEntity(skeletonId);
+            if (spawnedSkeleton != nullptr) {
+                spawnedSkeleton->startRiding(*this);
+            }
+        }
+    }
+
+    // 7. 困难模式下生成额外的骷髅马+骑手
+    for (i32 i = 0; i < extraHorses; ++i) {
+        // 创建额外的骷髅马
+        const entity::EntityType* skeletonHorseType =
+            entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON_HORSE);
+        if (skeletonHorseType == nullptr) {
+            continue;
+        }
+
+        auto extraHorse = skeletonHorseType->create(world);
+        if (extraHorse == nullptr) {
+            continue;
+        }
+
+        // 设置位置（在原马周围随机偏移）
+        f32 offsetX = static_cast<f32>(rng.nextGaussian(0.0, 0.5));
+        f32 offsetZ = static_cast<f32>(rng.nextGaussian(0.0, 0.5));
+        extraHorse->setPosition(horsePos + Vector3(offsetX, 0, offsetZ));
+
+        // 设置为已驯服的骷髅马
+        SkeletonHorseEntity* extraHorseEntity = dynamic_cast<SkeletonHorseEntity*>(extraHorse.get());
+        if (extraHorseEntity != nullptr) {
+            extraHorseEntity->setTame(true);
+            extraHorseEntity->setTrap(false);
+        }
+
+        // 设置持久化
+        MobEntity* extraHorseMob = dynamic_cast<MobEntity*>(extraHorse.get());
+        if (extraHorseMob != nullptr) {
+            extraHorseMob->enablePersistence();
+        }
+
+        // 设置无敌帧
+        LivingEntity* extraHorseLiving = dynamic_cast<LivingEntity*>(extraHorse.get());
+        if (extraHorseLiving != nullptr) {
+            extraHorseLiving->setHurtResistantTime(60);
+        }
+
+        // 创建骷髅骑手
+        auto extraSkeleton = skeletonType->create(world);
+        if (extraSkeleton == nullptr) {
+            continue;
+        }
+
+        LivingEntity* extraSkeletonEntity = dynamic_cast<LivingEntity*>(extraSkeleton.get());
+        if (extraSkeletonEntity == nullptr) {
+            continue;
+        }
+
+        extraSkeleton->setPosition(extraHorse->position());
+
+        // 设置持久化
+        MobEntity* extraSkeletonMob = dynamic_cast<MobEntity*>(extraSkeleton.get());
+        if (extraSkeletonMob != nullptr) {
+            extraSkeletonMob->enablePersistence();
+        }
+
+        // 装备铁头盔
+        if (extraSkeletonEntity->getEquipment(EquipmentSlot::Head).isEmpty()) {
+            ItemStack helmet(Items::IRON_HELMET, 1);
+            extraSkeletonEntity->setEquipment(EquipmentSlot::Head, helmet);
+        }
+
+        // 装备弓
+        ItemStack extraBow(Items::BOW, 1);
+        extraSkeletonEntity->setMainHandItem(extraBow);
+
+        // 设置无敌帧
+        extraSkeletonEntity->setHurtResistantTime(60);
+
+        // 生成额外骷髅马
+        EntityId extraHorseId = world->spawnEntity(std::move(extraHorse));
+        if (extraHorseId != INVALID_ENTITY_ID) {
+            // 生成骷髅并让它骑上骷髅马
+            EntityId extraSkeletonId = world->spawnEntity(std::move(extraSkeleton));
+            if (extraSkeletonId != INVALID_ENTITY_ID) {
+                Entity* spawnedHorse = world->getEntity(extraHorseId);
+                Entity* spawnedSkeleton = world->getEntity(extraSkeletonId);
+                if (spawnedHorse != nullptr && spawnedSkeleton != nullptr) {
+                    spawnedSkeleton->startRiding(*spawnedHorse);
+                }
+            }
+        }
+    }
+
+    // TODO: 当闪电实体实现后，在此处添加闪电视觉效果
+    // LightningBoltEntity lightning = EntityType.LIGHTNING_BOLT.create(serverworld);
+    // lightning.moveForced(horsePos.x, horsePos.y, horsePos.z);
+    // lightning.setEffectOnly(true);  // 只有视觉效果，不造成伤害
+    // serverworld.addEntity(lightning);
 }
 
 void SkeletonHorseEntity::onStruckByLightning()
@@ -91,9 +257,20 @@ void SkeletonHorseEntity::tick()
         }
     }
 
-    // 检查阳光燃烧
-    if (shouldBurnInDaylight()) {
-        // TODO: 实现阳光燃烧逻辑
+    // MC 1.16.5: 骷髅马阳光燃烧逻辑
+    // 参考: AbstractSkeletonEntity.livingTick()
+    // 注意：骷髅马不是 MonsterEntity 的子类，所以需要手动实现阳光燃烧
+    if (isAlive() && shouldBurnInDaylight() && isInDaylight()) {
+        // 检查头盔保护
+        // MC 1.16.5: 如果戴着头盔，头盔会受损而不是燃烧
+        // 骷髅马通常不戴头盔，但为完整性保留此逻辑
+        const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
+        if (helmet.isEmpty()) {
+            // 没有头盔，燃烧 8 秒
+            setFire(8);
+        }
+        // TODO: 如果有头盔，应该损坏头盔而不是燃烧
+        // 这需要实现 ItemStack.damage() 方法
     }
 }
 
