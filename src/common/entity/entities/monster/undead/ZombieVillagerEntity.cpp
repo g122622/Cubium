@@ -340,11 +340,10 @@ void ZombieVillagerEntity::finishConverting()
 
     // 触发成就 CriteriaTriggers.CURED_ZOMBIE_VILLAGER
     // 参考 MC 1.16.5: ZombieVillagerEntity.finishConverting()
+    // 村庄声望更新在 AdvancementEventHandler::onCuredZombieVillager() 中处理
     if (m_world && !m_conversionStarterUuid.empty()) {
         m_world->onZombieVillagerCured(m_conversionStarterUuid, this, villager);
     }
-
-    // TODO: 更新村庄声望 (MajorPositive)
 
     // 移除僵尸村民
     remove();

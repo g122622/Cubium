@@ -34,6 +34,9 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/village/Village.hpp"
+#include "common/world/village/VillageGossipType.hpp"
+#include "common/world/village/VillageManager.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
@@ -44,6 +47,7 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::server::advancement {
 
@@ -320,7 +324,9 @@ private:
      * @brief 处理僵尸村民治愈事件
      *
      * 触发 CuredZombieVillagerTrigger。
+     * 更新村庄声望（MajorPositive + MinorPositive）。
      * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
+     * 参考 MC 1.16.5: VillagerEntity.updateReputation(IReputationType.ZOMBIE_VILLAGER_CURED)
      */
     void onCuredZombieVillager(const event::CuredZombieVillagerEvent& e)
     {
@@ -371,6 +377,66 @@ private:
             *advancements, [&e](const mc::advancement::CuredZombieVillagerTriggerInstance& instance) {
                 return instance.test(*e.zombie, *e.villager);
             });
+
+        // 更新村庄声望
+        // 参考 MC 1.16.5: VillagerEntity.updateReputation(IReputationType.ZOMBIE_VILLAGER_CURED)
+        // 治愈僵尸村民获得:
+        // - MajorPositive: +20 (权重5 = +100声望)
+        // - MinorPositive: +25 (权重1 = +25声望)
+        // 总计: +125声望
+        updateVillageReputationOnCure(e.starterUuid, e.villager);
+    }
+
+    /**
+     * @brief 治愈僵尸村民时更新村庄声望
+     *
+     * 参考 MC 1.16.5: VillagerEntity.updateReputation()
+     * - MajorPositive: +20 (权重5 = +100声望，永不衰减)
+     * - MinorPositive: +25 (权重1 = +25声望，每日衰减1点)
+     * 总计: +125声望
+     *
+     * @param starterUuid 治愈者UUID
+     * @param villager 治愈后的村民实体
+     */
+    void updateVillageReputationOnCure(const std::string& starterUuid, Entity* villager)
+    {
+        if (m_server == nullptr || villager == nullptr) {
+            return;
+        }
+
+        // 获取 ServerWorld
+        mc::server::ServerWorld& world = m_server->world();
+
+        // 获取 VillageManager
+        mc::world::village::VillageManager* villageManager = world.villageManager();
+        if (villageManager == nullptr) {
+            return;
+        }
+
+        // 获取村民位置所在的村庄
+        mc::world::village::Village* village = villageManager->getVillageAt(
+            mc::BlockPos(static_cast<i32>(villager->x()), static_cast<i32>(villager->y()), static_cast<i32>(villager->z())));
+
+        if (village == nullptr) {
+            // 村民不在任何村庄内，不更新声望
+            // MC 1.16.5: 只有在村庄内治愈才获得声望
+            return;
+        }
+
+        // 将 UUID 字符串转换为 u64 作为玩家标识符
+        // 使用 std::hash 来生成一致的 u64 标识符
+        u64 playerIdentifier = std::hash<std::string>{}(starterUuid);
+
+        // 添加 MajorPositive 流言 (+20，权重5 = +100声望)
+        // MC 1.16.5: this.gossip.add(target.getUniqueID(), GossipType.MAJOR_POSITIVE, 20);
+        village->addGossip(playerIdentifier, mc::world::village::VillageGossipType::MajorPositive, 20);
+
+        // 添加 MinorPositive 流言 (+25，权重1 = +25声望)
+        // MC 1.16.5: this.gossip.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, 25);
+        village->addGossip(playerIdentifier, mc::world::village::VillageGossipType::MinorPositive, 25);
+
+        spdlog::info("VillageGossip: Player {} cured zombie villager, gained MajorPositive(+20) and MinorPositive(+25) at village {}",
+            starterUuid, village->getId());
     }
 
     /**
