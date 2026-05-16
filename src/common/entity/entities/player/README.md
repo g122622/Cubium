@@ -191,6 +191,13 @@ if (player->shouldPlayStepSound()) {
 - 空气供应管理、溺水伤害、水下呼吸效果、游泳姿态尺寸、物理常量验证
 - [tests/common/entity/player/PlayerSleepTest.cpp](../../../../../tests/common/entity/player/PlayerSleepTest.cpp)
 - 睡眠功能测试：tryStartSleeping、startSleeping、stopSleeping、睡眠计时器、姿态切换、多态性验证
+- [tests/entity/PlayerAttackTest.cpp](../../../../../tests/entity/PlayerAttackTest.cpp)
+- 横扫攻击过滤测试：盔甲架标记模式、队友排除
+- 荆棘附魔测试：触发概率、伤害计算
+- 横扫之刃测试：伤害比例公式
+- 武器耐久测试：耐久度消耗、物品损坏
+- [tests/entity/EntityTeamTest.cpp](../../../../../tests/entity/EntityTeamTest.cpp)
+- 队伍关系测试：isOnSameTeam、isOnScoreboardTeam、队友判断逻辑
 
 ## Mermaid 图表
 
@@ -249,6 +256,12 @@ flowchart TD
   - `Player::isWearingPumpkin()` - 检查玩家是否戴着南瓜头
   - `Player::isLookingAt(target)` - 检查玩家是否正在注视目标实体
   - 参考 MC 1.16.5 `Entity.getLook()` 和 `EndermanEntity.shouldAttackPlayer()`
+- **已完善攻击系统功能**（2026-05-16）：
+  - **横扫攻击队友过滤**：使用 `Entity::isOnSameTeam()` 排除队友
+  - **横扫攻击盔甲架过滤**：使用 `ArmorStandEntity::isMarker()` 排除标记模式盔甲架
+  - **荆棘附魔反伤**：使用 `EnchantmentHelper::applyThornsEnchantments()` 应用荆棘伤害
+  - **武器耐久消耗**：使用 `Item::hitEntity()` 消耗武器耐久
+  - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()`
 
 ## 挖掘系统
 

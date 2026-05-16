@@ -1009,6 +1009,132 @@ ActionResultType ArmorStandEntity::applyPlayerInteraction(
 
 - [tests/entity/EntityCoreTests.cpp](../../../../tests/entity/EntityCoreTests.cpp) 验证方法签名、虚拟方法和多态行为。
 
+## 队伍关系系统（MC 1.16.5）
+
+实体队伍关系判断系统，用于友军伤害保护和横扫攻击过滤等场景。
+
+### 核心方法
+
+```cpp
+class Entity {
+public:
+    /**
+     * @brief 检查实体是否属于指定队伍
+     *
+     * MC 1.16.5: Entity.isOnScoreboardTeam(Team)
+     * 通过比较队伍指针判断实体是否属于指定队伍。
+     *
+     * @param team 要检查的队伍指针
+     * @return 如果实体属于该队伍返回 true，否则返回 false
+     */
+    [[nodiscard]] bool isOnScoreboardTeam(const scoreboard::Team* team) const;
+
+    /**
+     * @brief 检查两个实体是否在同一队伍
+     *
+     * MC 1.16.5: Entity.isOnSameTeam(Entity)
+     * 通过比较队伍指针判断两个实体是否在同一队伍。
+     *
+     * @param other 另一个实体
+     * @return 如果两个实体在同一队伍返回 true，否则返回 false
+     */
+    [[nodiscard]] bool isOnSameTeam(const Entity& other) const;
+
+    /**
+     * @brief 获取实体所属队伍
+     *
+     * 子类可重写此方法返回队伍指针。
+     * 基类默认返回 nullptr（无队伍）。
+     *
+     * @return 队伍指针，如果实体没有队伍则返回 nullptr
+     */
+    [[nodiscard]] virtual scoreboard::Team* getTeam();
+    [[nodiscard]] virtual const scoreboard::Team* getTeam() const;
+};
+```
+
+### 队伍判断规则
+
+队伍判断使用**指针相等性**比较，而非队伍名称比较：
+
+```cpp
+bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
+{
+    const scoreboard::Team* myTeam = getTeam();
+    if (myTeam == nullptr || team == nullptr) {
+        return false;
+    }
+    return myTeam == team;  // 指针比较
+}
+
+bool Entity::isOnSameTeam(const Entity& other) const
+{
+    return isOnScoreboardTeam(other.getTeam());
+}
+```
+
+**关键点**：
+- 两个 `Team` 对象即使名称相同，如果指针不同也不算同一队伍
+- 没有队伍的实体（`getTeam()` 返回 `nullptr`）不会与任何队伍匹配
+- 自己与自己比较时，如果都有队伍，返回 `true`
+
+### 使用场景
+
+**1. 横扫攻击队友保护**（MC 1.16.5 PlayerEntity.attackTargetEntityWithCurrentItem）：
+
+```cpp
+// 横扫攻击时排除队友
+for (Entity* entity : nearbyEntities) {
+    // 排除自己
+    if (entity == this) continue;
+
+    // 排除标记模式的盔甲架
+    auto* armorStand = dynamic_cast<ArmorStandEntity*>(entity);
+    if (armorStand != nullptr && armorStand->isMarker()) continue;
+
+    // 排除队友
+    if (isOnSameTeam(*entity)) continue;
+
+    // 对敌人造成横扫伤害
+    entity->hurt(damageSource, sweepDamage);
+}
+```
+
+**2. PVP 友军伤害保护**：
+
+```cpp
+// 检查是否可以攻击目标
+bool canAttack = !attacker.isOnSameTeam(target);
+```
+
+**3. 团队游戏模式**：
+
+```cpp
+// 红队玩家
+redTeam->addMember(player1->getUUID());
+player1->setTeam(redTeam);
+
+// 检查两个玩家是否同队
+if (player1->isOnSameTeam(*player2)) {
+    // 友军，不造成伤害
+}
+```
+
+### 测试用例
+
+- [tests/entity/EntityTeamTest.cpp](../../../../tests/entity/EntityTeamTest.cpp) 验证队伍判断逻辑：
+  - 同一队伍返回 true
+  - 不同队伍返回 false
+  - 一方无队伍返回 false
+  - 双方无队伍返回 false
+  - 自己与自己返回 true（有队伍时）
+  - 指针比较而非名称比较
+- [tests/entity/PlayerAttackTest.cpp](../../../../tests/entity/PlayerAttackTest.cpp) 验证横扫攻击队友过滤
+
+### 参考
+
+MC 1.16.5 `net.minecraft.entity.Entity.isOnScoreboardTeam(Team)` 和 `Entity.isOnSameTeam(Entity)`
+
 ## 继承层次
 
 ```

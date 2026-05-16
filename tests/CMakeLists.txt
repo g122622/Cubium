@@ -159,6 +159,10 @@ add_executable(mc_tests
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
+    # Entity::isOnSameTeam() 队伍系统测试
+    entity/EntityTeamTest.cpp
+    # Player::attack() 横扫攻击过滤、荆棘附魔反伤、武器损耗测试
+    entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
     common/entity/interfaces/IRideableTest.cpp
     # 成就系统测试
