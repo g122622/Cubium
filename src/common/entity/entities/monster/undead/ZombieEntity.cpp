@@ -22,6 +22,10 @@
 */
 
 #include "ZombieEntity.hpp"
+#include "DrownedEntity.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
@@ -32,6 +36,8 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../combat/DifficultyHelper.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntityType.hpp"
 #include "../../../damage/DamageSource.hpp"
 
 namespace mc {
@@ -269,12 +275,91 @@ void ZombieEntity::registerAttributes()
 
 void ZombieEntity::convertToDrowned()
 {
-    // MC 1.16.5: 转化为溺尸
-    // TODO: 实现转化逻辑
-    // 1. 创建新的 DrownedEntity
-    // 2. 复制装备和状态
-    // 3. 移除当前实体
+    // MC 1.16.5: ZombieEntity.onDrowned() -> func_234341_c_(EntityType.DROWNED)
+    // 转化为溺尸
+
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // 1. 从注册表获取溺尸实体类型
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* drownedType = registry.getType("minecraft:drowned");
+
+    // 2. 创建溺尸实体
+    std::unique_ptr<Entity> newEntity;
+    if (drownedType && drownedType->canSummon()) {
+        newEntity = drownedType->create(worldPtr);
+    } else {
+        // 回退：直接创建实体类
+        newEntity = std::make_unique<DrownedEntity>(LegacyEntityType::Unknown, 0);
+    }
+
+    DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());
+    if (drowned == nullptr) {
+        return;
+    }
+
+    // 3. 复制位置和旋转
+    drowned->setPosition(m_position);
+    drowned->setRotation(m_yaw, m_pitch);
+
+    // 4. 复制生命值（按比例）
+    f32 healthRatio = health() / maxHealth();
+    drowned->setHealth(drowned->maxHealth() * healthRatio);
+
+    // 5. 复制装备（所有槽位）
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& equipment = getEquipment(slot);
+        if (!equipment.isEmpty()) {
+            drowned->setEquipment(slot, equipment);
+        }
+    }
+
+    // 6. 复制婴儿状态
+    drowned->setBaby(m_isBaby);
+
+    // 7. 复制自定义名称
+    if (hasCustomName()) {
+        drowned->setCustomName(customNameText());
+        drowned->setCustomNameVisible(isCustomNameVisible());
+    }
+
+    // 8. 复制持久化状态
+    if (isNoDespawnRequired()) {
+        drowned->enablePersistence();
+    }
+
+    // 9. 释放所有权并生成到世界
+    newEntity.release();
+    EntityId newId = worldPtr->spawnEntity(std::unique_ptr<Entity>(drowned));
+
+    if (newId == 0) {
+        // 生成失败，删除实体
+        delete drowned;
+        return;
+    }
+
+    // 10. 清空原实体装备（防止死亡时掉落）
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        setEquipment(static_cast<EquipmentSlot>(i), ItemStack());
+    }
+
+    // 11. 播放转化音效
+    // MC 1.16.5: world.playEvent(null, 1040, getPosition(), 0);
+    // 事件 1040 是僵尸转化为溺尸的视觉/音效事件
+    playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
+    worldPtr->playEvent(1040, BlockPos(static_cast<i32>(m_position.x), static_cast<i32>(m_position.y), static_cast<i32>(m_position.z)), 0);
+
+    // 12. 重置转化状态
     m_converting = false;
+    m_conversionTime = 0;
+    m_inWaterTime = 0;
+
+    // 13. 移除原实体
+    remove();
 }
 
 void ZombieEntity::updateDrowning()

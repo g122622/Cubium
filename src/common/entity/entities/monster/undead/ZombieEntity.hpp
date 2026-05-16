@@ -144,6 +144,20 @@ public:
      */
     [[nodiscard]] virtual bool shouldDrown() const { return true; }
 
+    /**
+     * @brief 转化为溺尸
+     *
+     * 参考 MC 1.16.5 ZombieEntity.onDrowned()
+     *
+     * 将当前僵尸转化为溺尸：
+     * 1. 创建新的 DrownedEntity
+     * 2. 复制位置、旋转、生命值、装备、婴儿状态、自定义名称、持久化状态
+     * 3. 清空原僵尸装备（防止死亡掉落）
+     * 4. 播放转化音效和事件
+     * 5. 移除原僵尸
+     */
+    virtual void convertToDrowned();
+
     // ========== 婴儿状态 ==========
 
     /**
@@ -215,12 +229,6 @@ protected:
 
     // ========== 属性注册 ==========
     void registerAttributes() override;
-
-    /**
-     * @brief 转化为溺尸
-     * 参考 MC 1.16.5 ZombieEntity.onDrowned()
-     */
-    virtual void convertToDrowned();
 
 private:
     // 破门能力
