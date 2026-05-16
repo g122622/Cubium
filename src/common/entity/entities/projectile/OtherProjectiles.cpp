@@ -40,10 +40,13 @@ namespace mc {
 namespace entity {
 
 // ============================================================================
-// FishingBobberEntity 常量
+// LlamaSpitEntity 常量
 // ============================================================================
 
 namespace {
+// 羊驼口水伤害常量 (MC 1.16.5)
+constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f; // 0.5 颗心
+
 // 钓鱼时间常量（MC 1.16.5）
 constexpr i32 MIN_WAIT_TICKS = 100;     // 最小等待时间 (5秒)
 constexpr i32 MAX_WAIT_TICKS = 600;     // 最大等待时间 (30秒)
@@ -67,7 +70,8 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
         return;
     }
 
-    // 造成伤害
+    // MC 1.16.5: LlamaSpitEntity.onEntityHit()
+    // 造成 1.0 点伤害（0.5 颗心）
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
@@ -76,7 +80,11 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::MobProjectile, this, this, false);
     }
 
-    // TODO: target->attackEntityFrom(*damageSource, 1.0f);
+    // 对 LivingEntity 造成伤害
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
+    if (livingTarget != nullptr && livingTarget->isAlive()) {
+        livingTarget->hurt(*damageSource, LLAMA_SPIT_DAMAGE);
+    }
 }
 
 void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)

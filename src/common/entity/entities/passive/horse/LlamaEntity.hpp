@@ -16,7 +16,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHERWISE DEALINGS IN THE
 * SOFTWARE.
 *
 */
@@ -24,7 +24,7 @@
 #pragma once
 
 #include "AbstractChestedHorseEntity.hpp"
-
+#include "../../../interfaces/IRangedAttackMob.hpp"
 #include <memory>
 
 namespace mc {
@@ -32,14 +32,25 @@ namespace mc {
 // Forward declarations
 class Player;
 class ItemStack;
+class LivingEntity;
 
 /**
  * @brief 羊驼实体
  *
  * 对齐 1.16.5 `LlamaEntity` 的基础层次。当前先把箱子马类层抽出来，
  * 并保留强度、地毯颜色、商队和吐口水相关状态。
+ *
+ * 商队系统：
+ * - 羊驼可以形成商队链表结构（最多 8 只）
+ * - 链表头是被拴绳拴住的羊驼
+ * - 后续羊驼跟随前一只羊驼
+ *
+ * 远程攻击：
+ * - 羊驼可以吐口水攻击目标
+ * - 口水造成 1 点伤害（0.5 颗心）
+ * - 攻击间隔 40 ticks
  */
-class LlamaEntity : public AbstractChestedHorseEntity {
+class LlamaEntity : public AbstractChestedHorseEntity, public entity::IRangedAttackMob {
 public:
     /**
      * @brief 羊驼颜色
@@ -136,25 +147,59 @@ public:
      */
     void setCarpetColor(i32 color) { m_carpetColor = color; }
 
-    /**
-     * @brief 当前是否处于商队中
-     */
-    [[nodiscard]] bool isInCaravan() const { return m_inCaravan; }
+    // ========== 商队系统 ==========
 
     /**
-     * @brief 设置商队状态
+     * @brief 检查是否在商队中（有商队头领）
+     *
+     * MC 1.16.5: LlamaEntity.inCaravan()
+     * @return 如果有商队头领返回 true
      */
-    void setInCaravan(bool inCaravan) { m_inCaravan = inCaravan; }
+    [[nodiscard]] bool isInCaravan() const { return m_caravanHead != nullptr; }
 
     /**
-     * @brief 获取商队领头羊驼
+     * @brief 检查是否有商队跟随者
+     *
+     * MC 1.16.5: LlamaEntity.hasCaravanTrail()
+     * @return 如果有跟随的羊驼返回 true
      */
-    [[nodiscard]] LlamaEntity* getCaravanLeader() const { return m_caravanLeader; }
+    [[nodiscard]] bool hasCaravanTail() const { return m_caravanTail != nullptr; }
 
     /**
-     * @brief 设置商队领头羊驼
+     * @brief 获取商队头领
+     *
+     * MC 1.16.5: LlamaEntity.getCaravanHead()
+     * @return 商队头领指针，如果没有返回 nullptr
      */
-    void setCaravanLeader(LlamaEntity* leader) { m_caravanLeader = leader; }
+    [[nodiscard]] LlamaEntity* getCaravanHead() const { return m_caravanHead; }
+
+    /**
+     * @brief 获取商队跟随者
+     *
+     * MC 1.16.5: LlamaEntity.getCaravanTail()
+     * @return 跟随者的指针，如果没有返回 nullptr
+     */
+    [[nodiscard]] LlamaEntity* getCaravanTail() const { return m_caravanTail; }
+
+    /**
+     * @brief 加入商队
+     *
+     * MC 1.16.5: LlamaEntity.joinCaravan(LlamaEntity)
+     * 设置当前羊驼跟随指定的头领羊驼
+     *
+     * @param head 要跟随的商队头领
+     */
+    void joinCaravan(LlamaEntity* head);
+
+    /**
+     * @brief 离开商队
+     *
+     * MC 1.16.5: LlamaEntity.leaveCaravan()
+     * 清除商队关系，同时更新前后羊驼的引用
+     */
+    void leaveCaravan();
+
+    // ========== 远程攻击系统 ==========
 
     /**
      * @brief 当前是否正在吐口水
@@ -232,6 +277,38 @@ public:
      */
     [[nodiscard]] std::optional<ResourceLocation> getEatSound() const override;
 
+    /**
+     * @brief 获取愤怒音效
+     *
+     * MC 1.16.5: 羊驼愤怒音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAngrySound() const override;
+
+    // ========== IRangedAttackMob 接口实现 ==========
+
+    /**
+     * @brief 对目标进行远程攻击
+     *
+     * MC 1.16.5: LlamaEntity.attackEntityWithRangedAttack()
+     * 发射羊驼口水攻击目标
+     *
+     * @param target 攻击目标
+     * @param charge 蓄力程度（羊驼忽略此参数）
+     */
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+
+    /**
+     * @brief 获取攻击间隔时间
+     * @return 40 ticks
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return 40; }
+
+    /**
+     * @brief 检查是否可以进行远程攻击
+     * @return 吐口水冷却已结束返回 true
+     */
+    [[nodiscard]] bool canRangedAttack() const override { return m_spitCooldown <= 0; }
+
     void tick() override;
 
 protected:
@@ -239,11 +316,25 @@ protected:
     void registerAttributes() override;
 
 private:
+    /**
+     * @brief 吐口水攻击目标
+     *
+     * MC 1.16.5: LlamaEntity.spit(LivingEntity)
+     * 创建并发射羊驼口水实体
+     *
+     * @param target 攻击目标
+     */
+    void spit(LivingEntity* target);
+
     LlamaColor m_color = LlamaColor::Creamy;
     i32 m_strength = 1;
     i32 m_carpetColor = -1;
-    bool m_inCaravan = false;
-    LlamaEntity* m_caravanLeader = nullptr;
+
+    // 商队系统 - 双向链表
+    LlamaEntity* m_caravanHead = nullptr;  ///< 跟随的商队头领
+    LlamaEntity* m_caravanTail = nullptr;  ///< 跟随自己的羊驼
+
+    // 远程攻击
     bool m_spitting = false;
     i32 m_spitCooldown = 0;
 };

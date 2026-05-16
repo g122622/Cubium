@@ -34,6 +34,8 @@ class CreeperEntity;
 class Player;
 class LivingEntity;
 class PufferfishEntity;
+class LlamaEntity;
+class WolfEntity;
 
 namespace entity::ai::goal {
 
@@ -103,18 +105,57 @@ public:
  *
  * 羊驼会跟随领头的羊驼形成商队。
  *
- * 参考 MC 1.16.5 LlamaFollowCaravanGoal
+ * MC 1.16.5 参考: net.minecraft.entity.ai.goal.LlamaFollowCaravanGoal
+ *
+ * 执行条件:
+ * - 羊驼未被拴绳且未在商队中
+ * - 附近有可加入的商队（被拴绳拴住的羊驼或已有商队链）
+ *
+ * 商队规则:
+ * - 商队最多 8 只羊驼
+ * - 跟随距离保持 2 格
+ * - 商队头领必须被拴绳拴住
  */
 class LlamaFollowCaravanGoal : public Goal {
 public:
-    LlamaFollowCaravanGoal(void* llama, f32 speed)
-        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
-    {}
-    bool shouldExecute() override { return false; }
-    bool shouldContinueExecuting() override { return false; }
-    void startExecuting() override {}
-    void resetTask() override {}
-    void tick() override {}
+    /**
+     * @brief 构造函数
+     * @param llama 羊驼实体
+     * @param speed 移动速度
+     */
+    LlamaFollowCaravanGoal(LlamaEntity* llama, f32 speed);
+
+    ~LlamaFollowCaravanGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "LlamaFollowCaravanGoal"; }
+
+private:
+    /**
+     * @brief 递归检查商队头领是否被拴绳拴住
+     * @param llama 当前羊驼
+     * @param depth 递归深度
+     * @return 如果商队头领被拴住返回 true
+     */
+    [[nodiscard]] bool firstIsLeashed(const LlamaEntity* llama, i32 depth) const;
+
+    LlamaEntity* m_llama;
+    f32 m_speed;
+    f64 m_speedModifier;        // 速度修正（距离太远时加速）
+    i32 m_distCheckCounter;     // 距离检查计数器
+
+    // MC 1.16.5 常量
+    static constexpr f64 SEARCH_RADIUS = 9.0;         // 搜索半径
+    static constexpr f64 SEARCH_HEIGHT = 4.0;         // 搜索高度
+    static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;  // 最小加入距离平方 (2格)
+    static constexpr f64 MAX_FOLLOW_DISTANCE_SQ = 676.0; // 最大跟随距离平方 (26格)
+    static constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;  // 跟随间距
+    static constexpr i32 MAX_CARAVAN_LENGTH = 8;      // 商队最大长度
 };
 
 /**
@@ -217,6 +258,41 @@ private:
 
     // MC 1.16.5 常量
     static constexpr f32 DETECTION_RANGE = 2.0f; // 检测范围（碰撞箱向外扩展）
+};
+
+/**
+ * @brief 羊驼防御目标
+ *
+ * 羊驼攻击附近的未驯服的狼。
+ *
+ * MC 1.16.5 参考: net.minecraft.entity.passive.horse.LlamaEntity.DefendTargetGoal
+ *
+ * 这是一个内部类，用于羊驼防御狼。
+ * 检测范围 16 格的 1/4（即 4 格）。
+ */
+class LlamaDefendTargetGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param llama 羊驼实体
+     */
+    explicit LlamaDefendTargetGoal(LlamaEntity* llama);
+
+    ~LlamaDefendTargetGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+    void resetTask() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "LlamaDefendTargetGoal"; }
+
+private:
+    LlamaEntity* m_llama;
+    LivingEntity* m_target = nullptr;
+
+    // MC 1.16.5 常量
+    static constexpr f64 TARGET_RANGE = 16.0;         // 基础检测范围
+    static constexpr f64 TARGET_RANGE_MODIFIER = 0.25; // 范围修正系数（实际范围 = 16 * 0.25 = 4格）
 };
 
 } // namespace entity::ai::goal
