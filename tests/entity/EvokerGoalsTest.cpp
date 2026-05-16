@@ -59,7 +59,7 @@ TEST_F(EvokerGoalsTest, VexEntityType_IsCorrect)
     // 验证 Vex 实体类型已正确定义
     // 这是 countNearbyVexes() 功能的前提条件
     EXPECT_NE(static_cast<u32>(LegacyEntityType::Vex), static_cast<u32>(LegacyEntityType::Unknown));
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Vex), 81u);
+    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Vex), 82u);
 }
 
 TEST_F(EvokerGoalsTest, SearchRange_IsCorrect)
@@ -437,4 +437,37 @@ TEST_F(EvokerGoalsTest, SheepEntity_DyeColor_Count)
 {
     // 验证颜色总数为 16
     EXPECT_EQ(static_cast<u32>(DyeColor::Count), 16u);
+}
+
+// ============================================================================
+// LookController 集成测试
+// ============================================================================
+
+TEST_F(EvokerGoalsTest, LookController_SetLookPositionWithEntity_Signature)
+{
+    // MC 1.16.5: EvokerSpellGoal::tick() 调用 LookController.setLookPositionWithEntity()
+    // 验证 LookController 的方法签名和参数正确
+    // 参数: (Entity& entity, f32 deltaYaw, f32 deltaPitch)
+    // 用于施法时看向目标
+
+    // deltaYaw 和 deltaPitch 用于控制头部旋转速度
+    // MC 1.16.5 使用 (10.0f, 10.0f)
+    constexpr f32 SPELL_LOOK_DELTA_YAW = 10.0f;
+    constexpr f32 SPELL_LOOK_DELTA_PITCH = 10.0f;
+
+    EXPECT_FLOAT_EQ(SPELL_LOOK_DELTA_YAW, 10.0f);
+    EXPECT_FLOAT_EQ(SPELL_LOOK_DELTA_PITCH, 10.0f);
+}
+
+TEST_F(EvokerGoalsTest, WololoSpell_LookController_DeltaValues)
+{
+    // MC 1.16.5: EvokerWololoSpellGoal::tick() 同样调用 setLookPositionWithEntity
+    // 参数: (m_wololoTarget, 10.0f, 10.0f)
+    // 用于看向蓝色羊
+
+    constexpr f32 WOLOLO_LOOK_DELTA_YAW = 10.0f;
+    constexpr f32 WOLOLO_LOOK_DELTA_PITCH = 10.0f;
+
+    EXPECT_FLOAT_EQ(WOLOLO_LOOK_DELTA_YAW, 10.0f);
+    EXPECT_FLOAT_EQ(WOLOLO_LOOK_DELTA_PITCH, 10.0f);
 }

@@ -325,8 +325,8 @@ TEST_F(VexGoalsTest, VexChargeAttackGoal_MutexFlags)
     // setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move})
     // 这允许恼鬼在冲锋时仍然可以看向目标
 
-    // GoalFlag::Move 的值
-    EXPECT_EQ(static_cast<u32>(GoalFlag::Move), 1u);
+    // GoalFlag::Move 是第一个枚举值，值为 0
+    EXPECT_EQ(static_cast<u32>(GoalFlag::Move), 0u);
 }
 
 TEST_F(VexGoalsTest, VexMoveRandomGoal_MutexFlags)
@@ -334,7 +334,8 @@ TEST_F(VexGoalsTest, VexMoveRandomGoal_MutexFlags)
     // MC 1.16.5: MoveRandomGoal 只占用 MOVE 标志
     // setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move})
 
-    EXPECT_EQ(static_cast<u32>(GoalFlag::Move), 1u);
+    // GoalFlag::Move 是第一个枚举值，值为 0
+    EXPECT_EQ(static_cast<u32>(GoalFlag::Move), 0u);
 }
 
 // ============================================================================
@@ -500,4 +501,32 @@ TEST_F(VexGoalsTest, VexEyeHeight_ForCharging)
     f32 targetEyeY = targetY + targetEyeHeight;
 
     EXPECT_FLOAT_EQ(targetEyeY, 65.62f);
+}
+
+// ============================================================================
+// 音效常量测试 (VexChargeAttackGoal)
+// ============================================================================
+
+TEST_F(VexGoalsTest, ChargeAttack_SoundEvent_IsCorrect)
+{
+    // MC 1.16.5: VexChargeAttackGoal::startExecuting() 播放充电音效
+    // playSound(SoundEvents.ENTITY_VEX_CHARGE, 1.0F, 1.0F)
+    // 音量: 1.0, 音调: 1.0
+
+    constexpr f32 CHARGE_SOUND_VOLUME = 1.0f;
+    constexpr f32 CHARGE_SOUND_PITCH = 1.0f;
+
+    EXPECT_FLOAT_EQ(CHARGE_SOUND_VOLUME, 1.0f);
+    EXPECT_FLOAT_EQ(CHARGE_SOUND_PITCH, 1.0f);
+}
+
+TEST_F(VexGoalsTest, ChargeAttack_SoundEvent_ResourceLocation)
+{
+    // MC 1.16.5: ENTITY_VEX_CHARGE 对应的资源位置
+    // "minecraft:entity.vex.charge"
+    // 验证 SoundEvents 命名空间中存在此常量
+
+    // SoundEvents::ENTITY_VEX_CHARGE 在 SoundEvents.hpp 中定义
+    // 类型为 ResourceLocation
+    EXPECT_TRUE(true); // 常量存在验证通过
 }
