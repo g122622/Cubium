@@ -275,6 +275,8 @@ add_executable(mc_tests
     entity/BlazeFireballAttackGoalTest.cpp
     # LookAtGoal 类型过滤测试
     common/entity/ai/goal/LookAtGoalTest.cpp
+    # FishSwimGoal 鱼类游泳目标测试
+    common/entity/ai/goal/FishSwimGoalTest.cpp
     entity/GhastEntityTest.cpp
     # 恶魂 AI 目标测试
     common/entity/GhastGoalsTest.cpp

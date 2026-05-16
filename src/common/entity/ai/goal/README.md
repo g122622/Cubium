@@ -21,6 +21,7 @@ goal/
     ├── SwimGoal.hpp/cpp          # 游泳目标
     ├── TemptGoal.hpp/cpp         # 食物诱惑目标
     ├── RandomSwimmingGoal.hpp/cpp # 随机游泳目标（水生生物）
+    ├── FishSwimGoal.hpp/cpp      # 鱼类游泳目标（检查 canRandomSwim）
     ├── FindWaterGoal.hpp/cpp     # 寻找水源目标（水生生物）
     ├── SwimUpGoal.hpp/cpp        # 向上游目标（水生生物）
     ├── AdditionalGoals.hpp/cpp   # 其他目标(占位符)
@@ -462,6 +463,83 @@ void PillagerEntity::registerGoals() {
 **互斥标志**: `Jump`
 
 **特点**: 非常简单的目标，只控制跳跃行为。
+
+---
+
+#### RandomSwimmingGoal - 随机游泳目标
+
+**职责**: 使水生生物在水中随机游泳。
+
+**继承**: `Goal`
+
+**执行条件**: 
+- 实体在水中
+- 概率触发（默认 1/120）
+- 实体没有被骑乘
+
+**行为**:
+1. 检查执行概率和空闲时间
+2. 在水中寻找随机目标位置
+3. 使用 `tryMoveTo()` 移动到目标位置
+4. 持续时间可达 600 tick
+
+**互斥标志**: `Move`
+
+**关键参数**:
+- `m_speed`: 游泳速度倍率
+- `m_executionChance`: 执行概率倒数（默认 120）
+- `MAX_SWIM_TIME`: 最大游泳时间 (600 tick)
+
+**使用示例**:
+```cpp
+// MC 1.16.5: 水生生物随机游泳
+m_goalSelector.addGoal(5, std::make_unique<RandomSwimmingGoal>(this, 1.0, 120));
+```
+
+---
+
+#### FishSwimGoal - 鱼类游泳目标
+
+**职责**: 鱼类实体的随机游泳目标，继承 RandomSwimmingGoal 并添加 `canRandomSwim()` 条件检查。
+
+**继承**: `RandomSwimmingGoal`
+
+**执行条件**:
+- 满足 RandomSwimmingGoal 的所有条件
+- `canRandomSwim()` 返回 true
+
+**canRandomSwim() 逻辑**:
+- `AbstractFishEntity`: 默认返回 true
+- `AbstractGroupFishEntity`: 重写返回 `!hasGroupLeader()`
+  - 有群首时返回 false（跟随群首而不是随机游泳）
+  - 无群首时返回 true（可以随机游泳）
+
+**互斥标志**: `Move`（继承自 RandomSwimmingGoal）
+
+**MC 1.16.5 参考**:
+```java
+// AbstractFishEntity.SwimGoal
+class SwimGoal extends RandomSwimmingGoal {
+    public boolean shouldExecute() {
+        return this.fish.func_212800_dy() && super.shouldExecute();
+    }
+}
+// func_212800_dy() 对应 canRandomSwim()
+```
+
+**使用示例**:
+```cpp
+// AbstractFishEntity::registerGoals()
+m_goalSelector.addGoal(4, std::make_unique<FishSwimGoal>(this, 1.0, 40));
+
+// AbstractGroupFishEntity::registerGoals()
+// 继承父类目标，额外添加 FollowSchoolLeaderGoal
+m_goalSelector.addGoal(5, std::make_unique<FollowSchoolLeaderGoal>(this));
+```
+
+**与 FollowSchoolLeaderGoal 的协作**:
+- 群首鱼（无 leader）: `canRandomSwim() = true`，执行 FishSwimGoal
+- 跟随鱼（有 leader）: `canRandomSwim() = false`，执行 FollowSchoolLeaderGoal
 
 ---
 
@@ -1201,6 +1279,31 @@ if (distSq < MAX_DISTANCE_SQ) { }
 | `CreatureEntityMoveTest.*` | CreatureEntity 移动测试 |
 | `MovementControllerTest.*` | MovementController 测试 |
 | `RandomWalkingGoalIntegrationTest.*` | 集成测试 |
+
+### FishSwimGoalTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `FishSwimGoalTest.ConstructionWithFish` | 使用鱼类实体构造 |
+| `FishSwimGoalTest.ConstructionWithSpeedAndChance` | 使用速度和概率参数构造 |
+| `FishSwimGoalTest.ConstructionWithNullFish` | 空指针构造测试 |
+| `FishSwimGoalShouldExecuteTest.ShouldNotExecuteWhenFishIsNull` | 空鱼时不执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldExecuteForRegularFish` | 普通鱼类可执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldExecuteForSchoolingFishWithoutLeader` | 无群首的群游鱼可执行 |
+| `FishSwimGoalShouldExecuteTest.ShouldNotExecuteForSchoolingFishWithLeader` | 有群首的群游鱼不执行 |
+| `FishSwimGoalCanRandomSwimTest.AbstractFishEntityReturnsTrue` | 基类默认返回 true |
+| `FishSwimGoalCanRandomSwimTest.SchoolingFishWithoutLeaderReturnsTrue` | 无群首返回 true |
+| `FishSwimGoalCanRandomSwimTest.SchoolingFishWithLeaderReturnsFalse` | 有群首返回 false |
+| `FishSwimGoalCanRandomSwimTest.LeaderFishReturnsTrue` | 群首返回 true |
+| `FishSwimGoalFlagsTest.HasCorrectMutexFlags` | 继承 Move 标志 |
+| `FishSwimGoalGroupTest.LeaderCanSwimAfterGainingFollowers` | 获得跟随者后群首可游泳 |
+| `FishSwimGoalGroupTest.FollowerCanSwimAfterLeavingGroup` | 离开群体后可游泳 |
+| `FishSwimGoalGroupTest.MultipleGroupsIndependent` | 多群体独立性 |
+| `AbstractFishEntityGoalsTest.PufferfishIsNotSchooling` | 河豚不是群游鱼 |
+| `AbstractFishEntityGoalsTest.CodIsSchooling` | 鳕鱼是群游鱼 |
+| `AbstractFishEntityGoalsTest.SalmonIsSchooling` | 鲑鱼是群游鱼 |
+| `AbstractFishEntityGoalsTest.TropicalFishIsSchooling` | 热带鱼是群游鱼 |
+| `FishSwimGoalTypeNameTest.ReturnsCorrectTypeName` | 类型名称测试 |
 
 ---
 
