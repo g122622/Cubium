@@ -175,10 +175,28 @@ public:
     // ========== 音效 ==========
 
     /**
+     * @brief 获取扑腾声音
+     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_FLOP
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
+
+    /**
      * @brief 获取环境音效
      * 在水中和陆地播放不同的音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取死亡声音
+     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_DEATH
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_HURT
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     // ========== 生命周期 ==========
 

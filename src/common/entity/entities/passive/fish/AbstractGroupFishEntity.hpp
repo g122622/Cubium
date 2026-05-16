@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -31,8 +31,10 @@ namespace mc {
  * @brief 群游鱼类实体中间层
  *
  * 对齐 1.16.5 的 AbstractGroupFishEntity，负责保存群首引用、
- * 群体大小和跟随范围。这里先补最小运行语义，后续再把
- * FollowSchoolLeaderGoal 和初始生成分组链路接上。
+ * 群体大小和跟随范围。群游 AI 由 FollowSchoolLeaderGoal 实现。
+ *
+ * AI 目标（继承 AbstractFishEntity 并添加）:
+ * - 优先级 5: FollowSchoolLeaderGoal - 跟随群首
  */
 class AbstractGroupFishEntity : public AbstractFishEntity {
 public:
@@ -53,6 +55,17 @@ public:
     AbstractGroupFishEntity& operator=(AbstractGroupFishEntity&&) = default;
 
     [[nodiscard]] bool canSchool() const override { return true; }
+
+    /**
+     * @brief 是否可以随机游泳
+     *
+     * MC 1.16.5 AbstractGroupFishEntity.func_212800_dy()
+     * 群游鱼类只有在没有群首时才能自主游泳。
+     * 这样有群首的鱼会跟随群首而不是随机游动。
+     *
+     * @return 如果没有群首返回 true
+     */
+    [[nodiscard]] bool canRandomSwim() const override { return !hasGroupLeader(); }
 
     /**
      * @brief 获取群首
@@ -184,6 +197,9 @@ public:
             m_groupLeader = nullptr;
         }
     }
+
+protected:
+    void registerGoals() override;
 
 private:
     void increaseGroupSize() { ++m_groupSize; }

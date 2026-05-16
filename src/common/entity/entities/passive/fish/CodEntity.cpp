@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,14 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "CodEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -41,6 +43,30 @@ void CodEntity::registerAttributes()
     AbstractGroupFishEntity::registerAttributes();
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+}
+
+std::optional<ResourceLocation> CodEntity::getFlopSound() const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_COD_FLOP
+    return SoundEvents::ENTITY_COD_FLOP;
+}
+
+std::optional<ResourceLocation> CodEntity::getAmbientSound() const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_COD_AMBIENT
+    return SoundEvents::ENTITY_COD_AMBIENT;
+}
+
+std::optional<ResourceLocation> CodEntity::getDeathSound() const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_COD_DEATH
+    return SoundEvents::ENTITY_COD_DEATH;
+}
+
+std::optional<ResourceLocation> CodEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_COD_HURT
+    return SoundEvents::ENTITY_COD_HURT;
 }
 
 } // namespace mc

@@ -231,6 +231,24 @@ std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const
     return SoundEvents::ENTITY_PUFFER_FISH_AMBIENT;
 }
 
+std::optional<ResourceLocation> PufferfishEntity::getFlopSound() const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_FLOP
+    return SoundEvents::ENTITY_PUFFER_FISH_FLOP;
+}
+
+std::optional<ResourceLocation> PufferfishEntity::getDeathSound() const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_DEATH
+    return SoundEvents::ENTITY_PUFFER_FISH_DEATH;
+}
+
+std::optional<ResourceLocation> PufferfishEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_HURT
+    return SoundEvents::ENTITY_PUFFER_FISH_HURT;
+}
+
 void PufferfishEntity::registerAttributes()
 {
     // 调用父类方法
