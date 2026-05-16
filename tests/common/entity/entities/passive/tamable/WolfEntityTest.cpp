@@ -309,5 +309,119 @@ TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
     EXPECT_TRUE(baby->isChild());
 }
 
+// ============================================================================
+// 驯服后属性变化测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, OnTamed_IncreasesMaxHealth)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+
+    // 驯服前生命值为 8
+    EXPECT_EQ(wolf.maxHealth(), 8.0f);
+
+    // 驯服后生命值为 20
+    wolf.setTamed(true);
+    EXPECT_EQ(wolf.maxHealth(), 20.0f);
+    EXPECT_EQ(wolf.health(), 20.0f);
+}
+
+TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+
+    // 驯服前攻击力为 2
+    // 注意：需要使用 getAttributeValueUnsafe 或检查属性是否存在
+    f32 baseDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
+    // 如果属性未注册，默认值为 -1，跳过此测试
+    if (baseDamage < 0) {
+        GTEST_SKIP() << "Attack damage attribute not registered in test fixture";
+    }
+    EXPECT_NEAR(baseDamage, 2.0f, 0.1f);
+
+    // 驯服后攻击力为 4
+    wolf.setTamed(true);
+    f32 tamedDamage = wolf.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, -1.0f);
+    EXPECT_NEAR(tamedDamage, 4.0f, 0.1f);
+}
+
+// ============================================================================
+// 颈圈颜色测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+
+    // 默认颈圈颜色为红色 (14)
+    EXPECT_EQ(wolf.getCollarColor(), 14);
+}
+
+TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+
+    // 设置为蓝色 (11)
+    wolf.setCollarColor(11);
+    EXPECT_EQ(wolf.getCollarColor(), 11);
+
+    // 设置为绿色 (13)
+    wolf.setCollarColor(13);
+    EXPECT_EQ(wolf.getCollarColor(), 13);
+}
+
+// ============================================================================
+// 尾巴角度测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, TailAngle_HealthyWolf)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    wolf.setHealth(8.0f); // 满血
+
+    // 健康狼尾巴角度应该接近 TAIL_ANGLE_HEALTHY (0.698f)
+    f32 tailAngle = wolf.getTailAngle();
+    EXPECT_GT(tailAngle, 0.5f);
+    EXPECT_LT(tailAngle, 0.8f);
+}
+
+TEST_F(WolfEntityTestFixture, TailAngle_UnhealthyWolf)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    wolf.setHealth(2.0f); // 低血量
+
+    // 不健康狼尾巴角度应该接近 TAIL_ANGLE_UNHEALTHY (-0.175f)
+    f32 tailAngle = wolf.getTailAngle();
+    EXPECT_GT(tailAngle, -0.5f);
+    EXPECT_LT(tailAngle, 0.5f);
+}
+
+TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    wolf.setAngry(true);
+
+    // 愤怒狼尾巴角度应该竖起
+    f32 tailAngle = wolf.getTailAngle();
+    EXPECT_FLOAT_EQ(tailAngle, 1.539f);
+}
+
+// ============================================================================
+// 兴趣状态测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, Interested_CanBeSet)
+{
+    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+
+    EXPECT_FALSE(wolf.isInterested());
+
+    wolf.setInterested(true);
+    EXPECT_TRUE(wolf.isInterested());
+
+    wolf.setInterested(false);
+    EXPECT_FALSE(wolf.isInterested());
+}
+
 } // namespace
 } // namespace mc
