@@ -183,6 +183,8 @@ add_executable(mc_tests
     advancement/PlayerInteractedWithEntityTriggerTest.cpp
     # MobEffectsPredicate 效果谓词测试
     advancement/MobEffectsPredicateTest.cpp
+    # DamageSourcePredicate 伤害源谓词测试
+    advancement/DamageSourcePredicateTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试

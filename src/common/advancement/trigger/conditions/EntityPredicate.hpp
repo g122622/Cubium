@@ -87,16 +87,15 @@ public:
     [[nodiscard]] const MobEffectsPredicate& getEffects() const noexcept { return m_effects; }
 
 private:
-    std::optional<ResourceLocation> m_type; ///< 实体类型
+    std::optional<ResourceLocation> m_type; ///< 实体类型（如 "minecraft:zombie"）
     MobEffectsPredicate m_effects;          ///< 效果谓词
-    // TODO: 更多匹配条件（距离、位置、NBT等）
     bool m_isAny = true;
 };
 
 /**
  * @brief 伤害源谓词
  *
- * 用于匹配伤害源的条件谓词。
+ * 用于匹配伤害源的条件谓词，检查伤害类型标志。
  * 参考 MC 1.16.5: net.minecraft.advancements.criterion.DamageSourcePredicate
  */
 class DamageSourcePredicate {
@@ -126,8 +125,26 @@ public:
      */
     [[nodiscard]] nlohmann::json toJson() const;
 
+    // ========== Getters ==========
+
+    [[nodiscard]] const std::optional<bool>& isProjectile() const noexcept { return m_isProjectile; }
+    [[nodiscard]] const std::optional<bool>& isExplosion() const noexcept { return m_isExplosion; }
+    [[nodiscard]] const std::optional<bool>& isFire() const noexcept { return m_isFire; }
+    [[nodiscard]] const std::optional<bool>& isMagic() const noexcept { return m_isMagic; }
+    [[nodiscard]] const std::optional<bool>& isLightning() const noexcept { return m_isLightning; }
+    [[nodiscard]] const std::optional<bool>& bypassesArmor() const noexcept { return m_bypassesArmor; }
+    [[nodiscard]] const std::optional<bool>& bypassesInvulnerability() const noexcept { return m_bypassesInvulnerability; }
+    [[nodiscard]] const std::optional<bool>& bypassesMagic() const noexcept { return m_bypassesMagic; }
+
 private:
-    // TODO: 伤害类型、是否魔法、是否爆炸、是否火焰等
+    std::optional<bool> m_isProjectile;           ///< 是否为投射物伤害
+    std::optional<bool> m_isExplosion;            ///< 是否为爆炸伤害
+    std::optional<bool> m_isFire;                 ///< 是否为火焰伤害
+    std::optional<bool> m_isMagic;                ///< 是否为魔法伤害
+    std::optional<bool> m_isLightning;            ///< 是否为闪电伤害
+    std::optional<bool> m_bypassesArmor;          ///< 是否绕过护甲
+    std::optional<bool> m_bypassesInvulnerability; ///< 是否绕过无敌模式
+    std::optional<bool> m_bypassesMagic;          ///< 是否绕过魔法保护
     bool m_isAny = true;
 };
 

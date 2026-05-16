@@ -93,12 +93,11 @@ public:
     [[nodiscard]] const DoubleBounds& getZ() const noexcept { return m_z; }
 
 private:
-    std::optional<ResourceLocation> m_biome;     ///< 生物群系
-    std::optional<ResourceLocation> m_dimension; ///< 维度
+    std::optional<ResourceLocation> m_biome;     ///< 生物群系（如 "minecraft:plains"）
+    std::optional<ResourceLocation> m_dimension; ///< 维度（如 "minecraft:overworld"）
     DoubleBounds m_x;                            ///< X坐标范围
     DoubleBounds m_y;                            ///< Y坐标范围
     DoubleBounds m_z;                            ///< Z坐标范围
-    // TODO: 特征、流体、方块、光源等
     bool m_isAny = true;
 };
 
