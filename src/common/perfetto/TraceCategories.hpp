@@ -142,7 +142,11 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("storage.task.load").SetDescription("Section加载任务"),
     perfetto::Category("storage.task.save").SetDescription("Section保存任务"),
     perfetto::Category("storage.task.flush").SetDescription("批量刷盘任务"),
-    perfetto::Category("storage.task.snapshot").SetDescription("存储快照任务"));
+    perfetto::Category("storage.task.snapshot").SetDescription("存储快照任务"),
+
+    // === Benchmark ===
+    perfetto::Category("benchmark.run").SetDescription("Benchmark总体运行"),
+    perfetto::Category("benchmark.case").SetDescription("Benchmark单用例执行"));
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

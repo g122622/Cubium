@@ -1,0 +1,51 @@
+{
+  "traceEnabled": true,
+  "traceOutputPath": "benchmark_trace.perfetto-trace",
+  "resultOutputPath": "benchmark_results.json",
+  "threadCount": 4,
+  "measurement": {
+    "warmupIterations": 2,
+    "measuredIterations": 5,
+    "minDurationMs": 1
+  },
+  "cases": [
+    {
+      "name": "chunk_generation",
+      "threadCount": 4,
+      "measurement": {
+        "warmupIterations": 2,
+        "measuredIterations": 5,
+        "minDurationMs": 1
+      },
+      "parameters": {
+        "seed": 12345,
+        "chunkX": 0,
+        "chunkZ": 0
+      }
+    },
+    {
+      "name": "lighting",
+      "threadCount": 4,
+      "measurement": {
+        "warmupIterations": 2,
+        "measuredIterations": 5,
+        "minDurationMs": 1
+      },
+      "parameters": {
+        "updatesPerIteration": 1024
+      }
+    },
+    {
+      "name": "chunk_mesh",
+      "threadCount": 4,
+      "measurement": {
+        "warmupIterations": 2,
+        "measuredIterations": 5,
+        "minDurationMs": 1
+      },
+      "parameters": {
+        "fillBlock": "minecraft:stone"
+      }
+    }
+  ]
+}
