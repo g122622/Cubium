@@ -33,6 +33,7 @@
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
+#include "../../../../entities/monster/arthropod/EndermiteEntity.hpp"
 #include "../../../../entities/monster/nether/NetherEntities.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
@@ -224,6 +225,7 @@ template class NearestAttackableTargetGoal<IronGolemEntity>;
 template class NearestAttackableTargetGoal<AbstractPiglinEntity>;
 template class NearestAttackableTargetGoal<entity::VillagerEntity>;
 template class NearestAttackableTargetGoal<entity::AbstractVillagerEntity>;
+template class NearestAttackableTargetGoal<EndermiteEntity>;
 
 // ==================== HurtByTargetGoal ====================
 

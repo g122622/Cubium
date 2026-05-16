@@ -23,11 +23,13 @@
 
 #include "EndermanEntity.hpp"
 #include "../../player/Player.hpp"
+#include "../arthropod/EndermiteEntity.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "entity/ai/goal/goals/special/EndermanGoals.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include <cmath>
@@ -378,7 +380,7 @@ void EndermanEntity::registerGoals()
     // 目标选择器：
     // 1: EndermanFindPlayerGoal (查找注视玩家)
     // 2: HurtByTargetGoal (被攻击反击)
-    // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨) - TODO
+    // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨)
     // 4: ResetAngerGoal (重置愤怒) - TODO
 
     // 优先级 1: 注视玩家目标（当被注视时停止移动并注视玩家）
@@ -408,6 +410,29 @@ void EndermanEntity::registerGoals()
     m_targetSelector.addGoal(1, new entity::ai::goal::EndermanFindPlayerGoal(this));
 
     // 优先级 2: HurtByTargetGoal 已在父类 MonsterEntity::registerGoals() 中注册
+
+    // 优先级 3: 攻击末影螨
+    // MC 1.16.5: NearestAttackableTargetGoal<>(this, EndermiteEntity.class, 10, true, false, predicate)
+    // 只攻击玩家生成的末影螨（通过末影珍珠传送生成）
+    m_targetSelector.addGoal(3,
+        new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(
+            this,
+            true,  // checkSight - 需要视线可见
+            0,     // chance - 每 tick 检查
+            [](const LivingEntity* entity) -> bool {
+                // MC 1.16.5: field_213627_bA - 只攻击玩家生成的末影螨
+                if (entity == nullptr || !entity->isAlive()) {
+                    return false;
+                }
+                const EndermiteEntity* endermite = dynamic_cast<const EndermiteEntity*>(entity);
+                if (endermite == nullptr) {
+                    return false;
+                }
+                // 只有玩家生成的末影螨才会被末影人攻击
+                return endermite->isSpawnedByPlayer();
+            }));
+
+    // 优先级 4: ResetAngerGoal (重置愤怒) - TODO
 }
 
 void EndermanEntity::registerAttributes()
