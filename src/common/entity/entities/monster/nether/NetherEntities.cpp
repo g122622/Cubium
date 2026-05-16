@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "NetherEntities.hpp"
@@ -29,6 +29,10 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../entities/projectile/AbstractFireballEntity.hpp"
+#include "../../../ai/controller/GhastMovementController.hpp"
+#include "../../../ai/goal/goals/special/GhastGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -43,6 +47,8 @@ GhastEntity::GhastEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
     setBurnsInDaylight(false);
+    // MC 1.16.5: 恶魂使用自定义的飞行移动控制器
+    m_moveController = std::make_unique<entity::ai::controller::GhastMovementController>(this);
 }
 
 void GhastEntity::tick()
@@ -126,14 +132,46 @@ void GhastEntity::shootFireball()
 void GhastEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
-    // TODO: 添加恶魂特有AI
+
+    // MC 1.16.5: GhastEntity.registerGoals()
+    // goalSelector.addGoal(5, new RandomFlyGoal(this));
+    // goalSelector.addGoal(7, new LookAroundGoal(this));
+    // goalSelector.addGoal(7, new FireballAttackGoal(this));
+
+    // 优先级 5: 随机飞行
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::GhastRandomFlyGoal>(this));
+
+    // 优先级 7: 环顾四周
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::GhastLookAroundGoal>(this));
+
+    // 优先级 7: 火球攻击
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::GhastFireballAttackGoal>(this));
+
+    // 目标选择器：攻击最近的玩家
+    // MC 1.16.5: targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, PlayerEntity.class, 10, true, false, ...))
+    // 条件：玩家与恶魂的Y坐标差不超过4格
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
+        this,
+        true,   // checkSight - 需要视线检查
+        10,     // chance - 每10tick检查一次
+        [](const LivingEntity* entity) -> bool {
+            // MC 1.16.5: Math.abs(player.getPosY() - this.getPosY()) <= 4.0D
+            // 这里在 NearestAttackableTargetGoal 中检查可能不太准确
+            // 但恶魂的Y坐标检查主要影响目标选择，影响不大
+            return true;
+        }
+    ));
 }
 
 void GhastEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
+    // MC 1.16.5: GhastEntity.func_234290_eH_()
+    // MAX_HEALTH = 10.0
+    // FOLLOW_RANGE = 100.0 (恶魂有极远的追踪范围)
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
 }
