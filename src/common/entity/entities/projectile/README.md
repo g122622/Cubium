@@ -108,7 +108,7 @@ Entity (core/Entity.hpp)
 | 实体 | 用途 | 实现状态 |
 |------|------|----------|
 | LlamaSpitEntity | 羊驼攻击狼 | ⏳ 框架完成 |
-| FishingBobberEntity | 钓鱼机制 | ⏳ 框架完成 |
+| FishingBobberEntity | 钓鱼机制 | ✅ 完整实现 |
 | ShulkerBulletEntity | 潜影贝跟踪攻击 | ✅ 完整实现 |
 | EvokerFangsEntity | 唤魔者召唤尖牙 | ✅ 完整实现 |
 | EyeOfEnderEntity | 寻找要塞 | ⏳ 框架完成 |
@@ -166,6 +166,64 @@ void ShulkerBulletEntity::updateFlight() {
 - 命中实体时应用伤害和效果
 
 **参考**: MC 1.16.5 ShulkerBulletEntity
+
+#### 钓鱼浮标 (FishingBobberEntity) 详细实现 (2026-05-16)
+
+钓鱼浮标是钓鱼竿的投射物，控制钓鱼机制的完整流程。
+
+**核心状态机**:
+| 状态 | 描述 |
+|------|------|
+| `Flying` | 飞行中，未入水 |
+| `Hooked` | 钩住实体 |
+| `Bobbing` | 浮在水面 |
+| `Fishing` | 咬钩状态 |
+
+**钓鱼掉落表集成**:
+```cpp
+// 钓鱼掉落表结构
+minecraft:gameplay/fishing (主表)
+├── minecraft:gameplay/fishing/fish (鱼表, 权重85, 质量-1)
+│   ├── cod (鳕鱼, 权重60)
+│   ├── salmon (鲑鱼, 权重25)
+│   ├── tropical_fish (热带鱼, 权重2)
+│   └── pufferfish (河豚, 权重13)
+├── minecraft:gameplay/fishing/junk (垃圾表, 权重10, 质量-2)
+│   ├── leather_boots (皮革靴, 权重12)
+│   ├── leather (皮革, 权重10)
+│   ├── bone (骨头, 权重10)
+│   └── ... (其他垃圾物品)
+└── minecraft:gameplay/fishing/treasure (宝藏表, 权重5, 质量2)
+    ├── name_tag (命名牌, 权重17, 需开放水域)
+    ├── saddle (鞍, 权重10, 需开放水域)
+    ├── bow (弓, 权重15, 需开放水域)
+    └── ... (其他宝藏物品)
+```
+
+**开放水域检测**:
+- 浮标周围 5x4x5 区域检查
+- 水面上方层：必须是空气或睡莲
+- 水层：必须是水源方块
+- 宝藏物品只有在开放水域才能钓到
+
+**海之眷顾附魔效果**:
+- 每级增加 0.02 幸运值
+- 幸运值影响掉落表的选择概率
+- 质量(weight + luck * quality)用于加权随机
+
+**经验球生成**:
+```cpp
+// MC 1.16.5 经验分割算法
+static constexpr i32 XP_SPLIT_VALUES[] = {1, 3, 7, 17, 37, 79, 169, 347, 703, 1415};
+// 总经验值 1-6，分割成多个经验球
+```
+
+**收杆流程** (`reelIn()`):
+1. 检查当前状态
+2. 如果在钓鱼状态，调用 `spawnCatchItems()` 生成物品和经验
+3. 返回耐久消耗值（钓鱼成功返回 1，否则返回 0）
+
+**参考**: MC 1.16.5 FishingBobberEntity
 
 ## 核心类设计
 

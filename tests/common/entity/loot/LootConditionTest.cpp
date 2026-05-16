@@ -634,3 +634,94 @@ TEST_F(BlockStateConditionTest, BuilderMethods)
     EXPECT_EQ(blockStateCond2->getBlockId(), "minecraft:redstone_lamp");
     EXPECT_EQ(blockStateCond2->getProperties().matcherCount(), 1);
 }
+
+// ============================================================================
+// FishingOpenWaterCondition 测试
+// ============================================================================
+
+class FishingOpenWaterConditionTest : public ::testing::Test {
+protected:
+    LootConditionTestWorld m_world;
+
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(FishingOpenWaterConditionTest, RequiresOpenWater)
+{
+    math::Random random(12345);
+
+    // 创建需要开放水域的条件
+    FishingOpenWaterCondition condition(true);
+
+    // 在开放水域中应该返回 true
+    auto openWaterContext = LootContextBuilder(m_world)
+                                .withRandom(random)
+                                .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                                .build();
+    EXPECT_TRUE(condition.test(*openWaterContext));
+
+    // 不在开放水域中应该返回 false
+    auto closedWaterContext = LootContextBuilder(m_world)
+                                  .withRandom(random)
+                                  .withOwnedValue(LootParams::IS_IN_OPEN_WATER, false)
+                                  .build();
+    EXPECT_FALSE(condition.test(*closedWaterContext));
+}
+
+TEST_F(FishingOpenWaterConditionTest, DoesNotRequireOpenWater)
+{
+    math::Random random(12345);
+
+    // 创建不需要开放水域的条件
+    FishingOpenWaterCondition condition(false);
+
+    // 在开放水域中应该返回 false
+    auto openWaterContext = LootContextBuilder(m_world)
+                                .withRandom(random)
+                                .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                                .build();
+    EXPECT_FALSE(condition.test(*openWaterContext));
+
+    // 不在开放水域中应该返回 true
+    auto closedWaterContext = LootContextBuilder(m_world)
+                                  .withRandom(random)
+                                  .withOwnedValue(LootParams::IS_IN_OPEN_WATER, false)
+                                  .build();
+    EXPECT_TRUE(condition.test(*closedWaterContext));
+}
+
+TEST_F(FishingOpenWaterConditionTest, MissingParameter)
+{
+    math::Random random(12345);
+
+    // 当参数未设置时，需要开放水域的条件应该返回 false
+    FishingOpenWaterCondition requireOpenWater(true);
+    auto contextWithoutParam = LootContextBuilder(m_world).withRandom(random).build();
+    EXPECT_FALSE(requireOpenWater.test(*contextWithoutParam));
+
+    // 当参数未设置时，不需要开放水域的条件应该返回 true
+    FishingOpenWaterCondition notRequireOpenWater(false);
+    EXPECT_TRUE(notRequireOpenWater.test(*contextWithoutParam));
+}
+
+TEST_F(FishingOpenWaterConditionTest, Clone)
+{
+    FishingOpenWaterCondition original(true);
+    auto cloned = original.clone();
+
+    EXPECT_EQ(cloned->getType(), "fishing_hook_in_open_water");
+
+    auto* fishingCond = dynamic_cast<FishingOpenWaterCondition*>(cloned.get());
+    ASSERT_NE(fishingCond, nullptr);
+    EXPECT_TRUE(fishingCond->requireOpenWater());
+}
+
+TEST_F(FishingOpenWaterConditionTest, TypeIdentifier)
+{
+    FishingOpenWaterCondition condition(true);
+    EXPECT_EQ(condition.getType(), "fishing_hook_in_open_water");
+}
