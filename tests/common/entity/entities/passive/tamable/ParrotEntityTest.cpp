@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,20 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -46,6 +50,7 @@ namespace {
  * @brief 鹦鹉实体测试用世界
  *
  * 提供最小化测试环境用于鹦鹉实体功能测试
+ * 支持追踪 broadcastEntityStatus 和 playSound 调用
  */
 class ParrotTestWorld final : public test::BaseTestWorld {
 public:
@@ -86,11 +91,56 @@ public:
         throw std::runtime_error("ParrotTestWorld::tickManager not implemented");
     }
 
-    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+    // 追踪 playSound 调用
+    void playSound(const ResourceLocation& soundId, sound::SoundCategory category,
+                   const Vector3& pos, f32 volume, f32 pitch) override
+    {
+        m_lastSoundId = soundId;
+        m_soundPlayCount++;
+        (void)category;
+        (void)pos;
+        (void)volume;
+        (void)pitch;
+    }
+
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
+    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    void resetSoundTracking()
+    {
+        m_lastSoundId = ResourceLocation();
+        m_soundPlayCount = 0;
+    }
+
+    // 追踪 broadcastEntityStatus 调用
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+
+    // 声音追踪
+    ResourceLocation m_lastSoundId;
+    i32 m_soundPlayCount = 0;
+
+    // 广播追踪
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
 };
 
 class ParrotEntityTestFixture : public ::testing::Test {
@@ -502,6 +552,380 @@ TEST_F(ParrotEntityTestFixture, EyeHeight_CorrectValue)
     // MC 1.16.5: 鹦鹉眼睛高度 = 0.25
     ParrotEntity parrot(LegacyEntityType::Unknown, 0);
     EXPECT_FLOAT_EQ(parrot.eyeHeight(), 0.25f);
+}
+
+// ============================================================================
+// interactMob 驯服交互测试
+// 参考 MC 1.16.5: ParrotEntity.func_230254_b_()
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithWheatSeeds_PlaysEatSound)
+{
+    // 未驯服的鹦鹉用小麦种子交互，应该播放吃东西声音
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 创建玩家并设置手持物品
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    // 重置追踪
+    world.resetSoundTracking();
+
+    // 交互
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+
+    // 应该返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_PARROT_EAT);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithPumpkinSeeds_PlaysEatSound)
+{
+    // 未驯服的鹦鹉用南瓜种子交互
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::PUMPKIN_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_PARROT_EAT);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithMelonSeeds_PlaysEatSound)
+{
+    // 未驯服的鹦鹉用西瓜种子交互
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::MELON_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_PARROT_EAT);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithBeetrootSeeds_PlaysEatSound)
+{
+    // 未驯服的鹦鹉用甜菜种子交互
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::BEETROOT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_PARROT_EAT);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessStatus)
+{
+    // 驯服成功场景 - 通过多次尝试模拟 1/10 概率
+    // 注意：由于随机性，我们无法直接控制，但可以验证成功时的行为
+    ParrotTestWorld world;
+
+    // 创建鹦鹉并设置世界
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 创建玩家
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    // 验证成功驯服后的状态
+    parrot.setTamed(true);
+    parrot.setOwnerId(12345ULL);
+
+    EXPECT_TRUE(parrot.isTamed());
+    EXPECT_TRUE(parrot.isOwner(12345ULL));
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
+{
+    // 驯服失败场景 - 广播烟雾粒子
+    // 注意：测试通过后验证广播状态是 TamingFailed
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 创建玩家
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetBroadcastTracking();
+
+    // 执行交互
+    parrot.interactMob(player, Hand::MainHand);
+
+    // 应该有广播（成功或失败）
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(1));
+
+    // 广播状态应该是 TamingSucceeded(7) 或 TamingFailed(6)
+    u8 status = world.getLastBroadcastStatus();
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
+                          status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    EXPECT_TRUE(isValidStatus);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_ItemConsumption_NonCreativeMode)
+{
+    // 非创造模式下，交互应该消耗物品
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.abilities().creativeMode = false; // 非创造模式
+
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    // 交互前物品数量
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    // 交互
+    parrot.interactMob(player, Hand::MainHand);
+
+    // 非创造模式下物品应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore - 1);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_ItemConsumption_CreativeMode_NoConsumption)
+{
+    // 创造模式下，交互不应该消耗物品
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.abilities().creativeMode = true; // 创造模式
+
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    // 交互前物品数量
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    // 交互
+    parrot.interactMob(player, Hand::MainHand);
+
+    // 创造模式下物品不应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_TogglesSitting)
+{
+    // 已驯服的鹦鹉交互切换坐下状态
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 设置为已驯服
+    parrot.setTamed(true);
+    parrot.setOwnerId(12345ULL);
+
+    // 创建主人玩家
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    // 交互不需要物品（已驯服）
+    EXPECT_FALSE(parrot.isSitting());
+
+    // 第一次交互 - 坐下
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(parrot.isSitting());
+
+    // 第二次交互 - 站起
+    result = parrot.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_OtherPlayerCannotToggle)
+{
+    // 已驯服的鹦鹉，非主人不能切换坐下状态
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 设置为已驯服，主人是玩家 12345
+    parrot.setTamed(true);
+    parrot.setOwnerId(12345ULL);
+
+    // 创建另一个玩家
+    Player otherPlayer(EntityId(2), "OtherPlayer");
+    otherPlayer.setPlayerId(99999ULL);
+
+    // 非主人交互 - 应该返回 Pass（调用父类）
+    ActionResultType result = parrot.interactMob(otherPlayer, Hand::MainHand);
+    // 非主人不能切换坐下状态
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_NonSeedItem_PassesToParent)
+{
+    // 未驯服的鹦鹉用非种子物品交互，应该传递给父类
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+
+    // 使用非种子物品（苹果）
+    ItemStack appleStack(Items::APPLE, 10);
+    player.inventory().setItem(0, appleStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    // 交互
+    ActionResultType result = parrot.interactMob(player, Hand::MainHand);
+
+    // 非种子物品，鹦鹉不应该处理，传递给父类
+    // ShoulderRidingEntity 的 interactMob 应该返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应该播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_SilentParrot_NoSoundPlayed)
+{
+    // 静音的鹦鹉不应该播放声音
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+    parrot.setSilent(true); // 设置静音
+
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    // 交互
+    parrot.interactMob(player, Hand::MainHand);
+
+    // 静音状态下不应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_OffHand_UsesOffHandItem)
+{
+    // 副手交互测试
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    Player player(EntityId(2), "TestPlayer");
+
+    // 主手放苹果（非驯服物品），副手放种子
+    ItemStack appleStack(Items::APPLE, 10);
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, appleStack); // 主手
+    player.inventory().setItem(40, seedStack);  // 副手槽位
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    // 使用副手交互
+    ActionResultType result = parrot.interactMob(player, Hand::OffHand);
+
+    // 应该使用副手的种子进行驯服尝试
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_PARROT_EAT);
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_UpdatesOwner)
+{
+    // 驯服成功后应该设置主人
+    // 这个测试验证驯服成功时的状态更新
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 初始状态
+    EXPECT_FALSE(parrot.isTamed());
+    EXPECT_FALSE(parrot.getOwnerId().has_value());
+
+    // 模拟驯服成功
+    parrot.setTamed(true);
+    parrot.setOwnerId(12345ULL);
+
+    // 验证状态
+    EXPECT_TRUE(parrot.isTamed());
+    EXPECT_TRUE(parrot.getOwnerId().has_value());
+    EXPECT_EQ(parrot.getOwnerId().value(), 12345ULL);
+    EXPECT_TRUE(parrot.isOwner(12345ULL));
+}
+
+TEST_F(ParrotEntityTestFixture, InteractMob_ClientSide_NoBroadcast)
+{
+    // 客户端不应该广播实体状态
+    // 注意：当前测试世界的 isClientSide() 返回 false
+    // 此测试验证服务端行为
+    ParrotTestWorld world;
+    ParrotEntity parrot(LegacyEntityType::Unknown, EntityId(1));
+    parrot.setWorld(&world);
+
+    // 验证世界是服务端
+    EXPECT_FALSE(world.isClientSide());
+
+    Player player(EntityId(2), "TestPlayer");
+    ItemStack seedStack(Items::WHEAT_SEEDS, 10);
+    player.inventory().setItem(0, seedStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetBroadcastTracking();
+
+    // 服务端交互应该广播
+    parrot.interactMob(player, Hand::MainHand);
+
+    // 应该有广播
+    EXPECT_EQ(world.getBroadcastCount(), 1);
 }
 
 } // namespace

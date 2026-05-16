@@ -141,6 +141,14 @@ void ParrotEntity::registerGoals()
 void ParrotEntity::registerAttributes()
 {
     ShoulderRidingEntity::registerAttributes();
+
+    // 注册飞行速度属性（LivingEntity 基类不注册此属性）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+
+    // MC 1.16.5: 鹦鹉属性
+    // MAX_HEALTH = 6.0
+    // MOVEMENT_SPEED = 0.2
+    // FLYING_SPEED = 0.4
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.4);
@@ -164,7 +172,7 @@ void ParrotEntity::onTamed(bool tamed)
 ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
 {
     // MC 1.16.5: ParrotEntity.func_230254_b_()
-    ItemStack itemStack = player.getHeldItem(hand);
+    ItemStack& itemStack = player.getHeldItem(hand);
     const Item* item = itemStack.getItem();
 
     // 检查是否用种子驯服
