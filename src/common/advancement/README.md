@@ -30,9 +30,12 @@ advancement/
     │
     ├── conditions/               # 触发器条件谓词
     │   ├── ItemPredicate.hpp/cpp     # 物品匹配
-    │   ├── EntityPredicate.hpp/cpp   # 实体匹配
+    │   ├── EntityPredicate.hpp/cpp   # 实体匹配 + 伤害源匹配
+    │   ├── EntityFlagsPredicate.hpp/cpp # 实体标志匹配（燃烧、潜行等）
+    │   ├── EntityEquipmentPredicate.hpp/cpp # 装备匹配（头盔、胸甲等）
+    │   ├── NBTPredicate.hpp/cpp      # NBT数据匹配
     │   ├── LocationPredicate.hpp/cpp # 位置匹配
-    │   ├── BlockPredicate.hpp/cpp    # 方块匹配
+    │   ├── BlockPredicate.hpp/cpp    # 方块匹配 + 流体匹配
     │   └── MobEffectsPredicate.hpp/cpp # 效果匹配
     │
     └── impl/                     # 触发器实现
@@ -143,10 +146,57 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 
 ### EntityPredicate
 
-实体匹配条件：
-- 实体类型
-- 距离范围
-- 位置
+实体匹配条件，支持丰富的实体属性检测。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityPredicate`
+
+**主要字段：**
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| 实体类型 | `type` | 实体类型ID（如 `minecraft:zombie`） |
+| 距离 | `distance` | 与参考点的距离范围 |
+| 位置 | `location` | 位置条件（生物群系、维度等） |
+| 效果 | `effects` | MobEffectsPredicate |
+| NBT | `nbt` | NBT数据匹配 |
+| 标志 | `flags` | EntityFlagsPredicate（燃烧、潜行等） |
+| 装备 | `equipment` | EntityEquipmentPredicate |
+
+**检查方法：**
+- `test(const Entity& entity)` - 基础检查（不含距离和位置）
+- `test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity)` - 完整检查
+- `test(const Entity& entity, const DamageSource& source)` - 带伤害源的检查
+
+### EntityFlagsPredicate
+
+实体标志匹配条件，检查实体的状态标志：
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| 燃烧 | `is_on_fire` | 是否燃烧 |
+| 潜行 | `is_sneaking` | 是否潜行 |
+| 疾跑 | `is_sprinting` | 是否疾跑（仅玩家） |
+| 游泳 | `is_swimming` | 是否游泳（仅玩家） |
+| 幼年 | `is_baby` | 是否幼年 |
+
+### EntityEquipmentPredicate
+
+装备匹配条件，检查实体的装备（仅 `LivingEntity` 有效）：
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| 头盔 | `head` | ItemPredicate |
+| 胸甲 | `chest` | ItemPredicate |
+| 护腿 | `legs` | ItemPredicate |
+| 靴子 | `feet` | ItemPredicate |
+| 主手 | `mainhand` | ItemPredicate |
+| 副手 | `offhand` | ItemPredicate |
+
+### NBTPredicate
+
+NBT数据匹配条件，用于匹配实体或物品的NBT数据：
+- 支持实体NBT匹配
+- 支持物品NBT匹配
+- 递归比较NBT标签
+- 期望标签必须是实际标签的子集
 
 ### DamageSourcePredicate
 

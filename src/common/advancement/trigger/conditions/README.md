@@ -6,12 +6,15 @@
 
 ```
 conditions/
-├── BlockPredicate.hpp/cpp      # 方块谓词 - 匹配方块状态、标签、属性
-├── EntityPredicate.hpp/cpp     # 实体谓词 - 匹配实体类型、效果等；包含 DamageSourcePredicate
-├── FluidPredicate.hpp/cpp      # 流体谓词 - 匹配流体类型（定义在 BlockPredicate.hpp）
-├── ItemPredicate.hpp/cpp       # 物品谓词 - 匹配物品ID、数量、耐久等
-├── LocationPredicate.hpp/cpp   # 位置谓词 - 匹配坐标、维度、生物群系等
-└── MobEffectsPredicate.hpp/cpp # 效果谓词 - 匹配实体身上的效果状态
+├── BlockPredicate.hpp/cpp           # 方块谓词 - 匹配方块状态、标签、属性
+├── EntityPredicate.hpp/cpp          # 实体谓词 - 匹配实体类型、距离、位置、效果、NBT、标志、装备；包含 DamageSourcePredicate
+├── EntityFlagsPredicate.hpp/cpp     # 实体标志谓词 - 匹配燃烧、潜行、疾跑、游泳、幼年状态
+├── EntityEquipmentPredicate.hpp/cpp # 装备谓词 - 匹配实体装备（头盔、胸甲、护腿、靴子、主手、副手）
+├── NBTPredicate.hpp/cpp             # NBT谓词 - 匹配NBT数据
+├── FluidPredicate.hpp/cpp           # 流体谓词 - 匹配流体类型（定义在 BlockPredicate.hpp）
+├── ItemPredicate.hpp/cpp            # 物品谓词 - 匹配物品ID、数量、耐久、药水等
+├── LocationPredicate.hpp/cpp        # 位置谓词 - 匹配坐标、维度、生物群系等；包含 DistancePredicate
+└── MobEffectsPredicate.hpp/cpp      # 效果谓词 - 匹配实体身上的效果状态
 ```
 
 ## 文件介绍
@@ -74,23 +77,123 @@ if (result.success()) {
 
 ### EntityPredicate.hpp/cpp
 
-实体谓词，用于匹配实体的条件。
+实体谓词，用于匹配实体的条件。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityPredicate`
 
 **主要字段：**
-- `type` - 实体类型（如 `minecraft:zombie`）
-- `effects` - 效果谓词（MobEffectsPredicate）
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| `m_type` | `type` | 实体类型（如 `minecraft:zombie`） |
+| `m_distance` | `distance` | 距离谓词（与参考点的距离） |
+| `m_location` | `location` | 位置谓词（生物群系、维度等） |
+| `m_effects` | `effects` | 效果谓词（MobEffectsPredicate） |
+| `m_nbt` | `nbt` | NBT谓词 |
+| `m_flags` | `flags` | 标志谓词（燃烧、潜行等） |
+| `m_equipment` | `equipment` | 装备谓词 |
+
+**检查方法：**
+- `test(const Entity& entity)` - 基础检查（不含距离和位置）
+- `test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity)` - 完整检查（包含距离和位置）
 
 ```cpp
 // 从 JSON 解析
 nlohmann::json json = R"({
-  "type": "minecraft:player",
-  "effects": {
-    "minecraft:speed": { "amplifier": 1 }
+  "type": "minecraft:zombie",
+  "distance": {"max": 30.0},
+  "flags": {"is_baby": true},
+  "equipment": {
+    "head": {"item": "minecraft:diamond_helmet"}
   }
 })"_json;
 
 auto result = EntityPredicate::fromJson(json);
 ```
+
+### EntityFlagsPredicate.hpp/cpp
+
+实体标志谓词，用于匹配实体的状态标志。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityFlagsPredicate`
+
+**主要字段：**
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| `m_isOnFire` | `is_on_fire` | 是否燃烧 |
+| `m_isSneaking` | `is_sneaking` | 是否潜行 |
+| `m_isSprinting` | `is_sprinting` | 是否疾跑（仅玩家） |
+| `m_isSwimming` | `is_swimming` | 是否游泳（仅玩家） |
+| `m_isBaby` | `is_baby` | 是否幼年 |
+
+```cpp
+// 从 JSON 解析
+nlohmann::json json = R"({
+  "is_on_fire": true,
+  "is_baby": false
+})"_json;
+
+auto result = EntityFlagsPredicate::fromJson(json);
+if (result.success()) {
+    EntityFlagsPredicate predicate = result.value();
+    bool matches = predicate.test(entity);
+}
+```
+
+### EntityEquipmentPredicate.hpp/cpp
+
+装备谓词，用于匹配实体的装备。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityEquipmentPredicate`
+
+**主要字段：**
+
+| 字段 | JSON 键 | 说明 |
+|------|---------|------|
+| `m_head` | `head` | 头盔 |
+| `m_chest` | `chest` | 胸甲 |
+| `m_legs` | `legs` | 护腿 |
+| `m_feet` | `feet` | 靴子 |
+| `m_mainHand` | `mainhand` | 主手物品 |
+| `m_offHand` | `offhand` | 副手物品 |
+
+**注意**：只有 `LivingEntity` 才有装备，非 `LivingEntity` 对装备谓词返回 false（除非谓词为空）。
+
+```cpp
+// 从 JSON 解析
+nlohmann::json json = R"({
+  "head": {"item": "minecraft:diamond_helmet"},
+  "mainhand": {"item": "minecraft:diamond_sword"}
+})"_json;
+
+auto result = EntityEquipmentPredicate::fromJson(json);
+if (result.success()) {
+    EntityEquipmentPredicate predicate = result.value();
+    bool matches = predicate.test(livingEntity);
+}
+```
+
+### NBTPredicate.hpp/cpp
+
+NBT谓词，用于匹配实体或物品的NBT数据。参考 MC 1.16.5: `net.minecraft.advancements.criterion.NBTPredicate`
+
+**主要功能：**
+- 支持实体NBT匹配
+- 支持物品NBT匹配
+- 递归比较NBT标签（compound_tag、list_tag、数值标签等）
+- 期望标签必须是实际标签的子集
+
+```cpp
+// 从 JSON 解析（Mojangson 格式）
+nlohmann::json json = "{CustomName:'{\"text\":\"Test\"}'}";
+
+auto result = NBTPredicate::fromJson(json);
+if (result.success()) {
+    NBTPredicate predicate = result.value();
+    bool matches = predicate.test(entity);
+}
+```
+
+**匹配规则：**
+- 如果期望NBT为空（`isAny()`），匹配任意NBT
+- 如果实际NBT为空，不匹配（除非期望也为空）
+- 递归比较：期望标签中的所有字段必须在实际标签中存在且值相等
+- 实际标签可以包含额外的字段
 
 ### DamageSourcePredicate (定义在 EntityPredicate.hpp)
 
