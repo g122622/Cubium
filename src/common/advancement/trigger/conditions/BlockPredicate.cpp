@@ -27,6 +27,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc::advancement {
 
@@ -145,8 +146,10 @@ bool FluidPredicate::test(const BlockState& state) const
 
     // 检查流体ID
     if (m_fluid.has_value()) {
-        // 参考 MC 1.16.5: FluidState fluidstate = world.getFluidState(pos);
-        // if (!fluidstate.is(m_fluid)) return false;
+        // 参考 MC 1.16.5 FluidPredicate.test():
+        // FluidState fluidstate = world.getFluidState(pos);
+        // Fluid fluid = fluidstate.getFluid();
+        // if (this.fluid != null && fluid != this.fluid) return false;
 
         // 获取流体状态
         const fluid::FluidState* fluidState = state.getFluidState();
@@ -154,10 +157,22 @@ bool FluidPredicate::test(const BlockState& state) const
             return false;
         }
 
-        // 检查流体类型
-        // 目前简化实现：检查流体是否匹配
-        // TODO: 完善流体系统后，使用 FluidRegistry 和流体ID比较
-        MC_UNUSED(fluidState);
+        // 空流体不匹配任何非空流体
+        if (fluidState->isEmpty()) {
+            return false;
+        }
+
+        // 获取期望的流体
+        fluid::Fluid* expectedFluid = fluid::Fluid::getFluid(m_fluid.value());
+        if (expectedFluid == nullptr) {
+            // 未知的流体ID，不匹配
+            return false;
+        }
+
+        // 使用 isEquivalentTo 比较（水和流动水视为等效）
+        if (!fluidState->getFluid().isEquivalentTo(*expectedFluid)) {
+            return false;
+        }
     }
 
     // 检查状态属性
