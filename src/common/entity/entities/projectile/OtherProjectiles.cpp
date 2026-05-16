@@ -1329,13 +1329,14 @@ void FireworkRocketEntity::dealExplosionDamage()
     }
 
     // 获取爆炸效果数量
+    // MC 1.16.5: 无爆炸效果时不造成伤害
     i32 explosionCount = getExplosionCount();
+    if (explosionCount <= 0) {
+        return;
+    }
 
     // 计算基础伤害：5 + 爆炸效果数量 * 2
     f32 baseDamage = 5.0f + static_cast<f32>(explosionCount * 2);
-    if (baseDamage <= 0.0f) {
-        return;
-    }
 
     // 爆炸半径 5 格
     constexpr f32 EXPLOSION_RADIUS = 5.0f;

@@ -599,12 +599,6 @@ public:
      */
     [[nodiscard]] bool canSeeEntity(const Entity& target) const;
 
-private:
-    /**
-     * @brief 爆炸
-     */
-    void explode();
-
     /**
      * @brief 处理弩发射的伤害
      *
@@ -612,6 +606,12 @@ private:
      * 伤害计算：5 + 爆炸效果数量 * 2，根据距离衰减。
      */
     void dealExplosionDamage();
+
+private:
+    /**
+     * @brief 爆炸
+     */
+    void explode();
 
     ItemStack m_fireworkItem;        // 烟花火箭物品
     i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）
