@@ -281,6 +281,16 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    // ========== MC 1.16.5 常量 ==========
+    // 这些常量用于测试和外部访问
+
+    static constexpr i32 TELEPORT_COOLDOWN = 50;            // 瞬移冷却 (ticks)
+    static constexpr i32 ANGER_DURATION = 600;              // 愤怒持续时间 (ticks)
+    static constexpr f32 TELEPORT_RANGE = 64.0f;            // 瞬移范围
+    static constexpr f32 WATER_DAMAGE = 1.0f;               // 水伤害
+    static constexpr i32 WATER_DAMAGE_INTERVAL = 10;        // 水伤害间隔
+    static constexpr i32 TELEPORT_PROJECTILE_ATTEMPTS = 64; // 投射物伤害时瞬移尝试次数
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -305,13 +315,6 @@ private:
 
     // 瞬移冷却
     i32 m_teleportCooldown = 0;
-
-    // MC 1.16.5 常量
-    static constexpr i32 TELEPORT_COOLDOWN = 50;     // 瞬移冷却 (ticks)
-    static constexpr i32 ANGER_DURATION = 600;       // 愤怒持续时间 (ticks)
-    static constexpr f32 TELEPORT_RANGE = 64.0f;     // 瞬移范围
-    static constexpr f32 WATER_DAMAGE = 1.0f;        // 水伤害
-    static constexpr i32 WATER_DAMAGE_INTERVAL = 10; // 水伤害间隔
 };
 
 } // namespace mc

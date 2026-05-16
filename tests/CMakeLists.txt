@@ -289,6 +289,8 @@ add_executable(mc_tests
     # PatrolGoal 测试
     common/entity/ai/goal/PatrolGoalTest.cpp
     entity/WitherEntityTest.cpp
+    # EndermanEntity 受伤后瞬移逻辑测试
+    entity/EndermanHurtTeleportTest.cpp
     entity/EvokerGoalsTest.cpp
     entity/VexGoalsTest.cpp
     entity/BrainScheduleTests.cpp

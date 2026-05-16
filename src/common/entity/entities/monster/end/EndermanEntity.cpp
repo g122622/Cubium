@@ -316,15 +316,47 @@ void EndermanEntity::tick()
 bool EndermanEntity::hurt(DamageSource& source, f32 amount)
 {
     // MC 1.16.5 EndermanEntity.attackEntityFrom()
-    if (!MonsterEntity::hurt(source, amount)) {
+
+    // 检查无敌状态
+    if (isInvulnerableTo(source)) {
         return false;
     }
 
-    // 受伤后有概率瞬移
-    // TODO: 如果伤害来自投射物，瞬移避让
-    // TODO: 否则 50% 概率瞬移
+    // 投射物伤害：尝试64次随机瞬移，成功则躲避伤害
+    // MC 1.16.5: if (source instanceof IndirectEntityDamageSource)
+    // 使用 isProjectile() 检测投射物伤害
+    if (source.isProjectile()) {
+        // MC 1.16.5: for(int i = 0; i < 64; ++i) { if (this.teleportRandomly()) { return true; } }
+        for (i32 i = 0; i < TELEPORT_PROJECTILE_ATTEMPTS; ++i) {
+            if (teleport()) {
+                return true; // 成功瞬移后不受伤
+            }
+        }
+        return false; // 64次都失败，不受伤
+    }
 
-    return true;
+    // 调用父类的 hurt 方法处理实际伤害
+    bool hurtResult = MonsterEntity::hurt(source, amount);
+
+    if (hurtResult) {
+        // 非生物伤害（摔落、窒息、岩浆等）：90%概率随机瞬移
+        // MC 1.16.5: if (!this.world.isRemote && !(source.getTrueSource() instanceof LivingEntity) && this.rand.nextInt(10) != 0)
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            Entity* trueSource = source.getTrueSource();
+            bool isLivingSource = (trueSource != nullptr && dynamic_cast<LivingEntity*>(trueSource) != nullptr);
+
+            if (!isLivingSource) {
+                // 使用 getRandom() 获取随机数生成器
+                math::Random rng = getRandom();
+                // nextInt(10) != 0 意味着 90% 概率（10次中有9次）
+                if (rng.nextInt(10) != 0) {
+                    teleport();
+                }
+            }
+        }
+    }
+
+    return hurtResult;
 }
 
 void EndermanEntity::registerGoals()
