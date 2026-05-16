@@ -191,6 +191,8 @@ add_executable(mc_tests
     advancement/MobEffectsPredicateTest.cpp
     # DamageSourcePredicate 伤害源谓词测试
     advancement/DamageSourcePredicateTest.cpp
+    # ItemPredicate 物品谓词测试（含药水匹配）
+    advancement/ItemPredicateTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试

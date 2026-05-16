@@ -32,25 +32,21 @@ namespace potion {
 Potion::Potion()
     : m_baseName("")
     , m_effects()
-    , m_id(nullptr)
 {}
 
 Potion::Potion(std::string_view baseName)
     : m_baseName(baseName)
     , m_effects()
-    , m_id(nullptr)
 {}
 
 Potion::Potion(std::string_view baseName, std::vector<entity::effect::EffectInstance> effects)
     : m_baseName(baseName)
     , m_effects(std::move(effects))
-    , m_id(nullptr)
 {}
 
 Potion::Potion(const entity::effect::EffectInstance& effect)
     : m_baseName("")
     , m_effects({effect})
-    , m_id(nullptr)
 {}
 
 bool Potion::hasInstantEffect() const

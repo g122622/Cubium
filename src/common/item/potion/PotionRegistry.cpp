@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
+* in the Software without restriction without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "PotionRegistry.hpp"
@@ -101,32 +101,45 @@ PotionRegistry& PotionRegistry::instance()
 
 const Potion* PotionRegistry::registerPotion(const ResourceLocation& id, Potion potion)
 {
-    size_t index = m_potions.size();
-    m_potions.emplace_back(id, std::move(potion));
-    m_idToIndex[id] = index;
+    // 设置药水的ID
+    potion.setId(id);
 
-    // 设置药水的ID指针
-    m_potions[index].second.setId(&m_potions[index].first);
+    // 使用 make_unique 创建稳定的指针
+    auto ptr = std::make_unique<Potion>(std::move(potion));
+    const Potion* rawPtr = ptr.get();
 
-    return &m_potions[index].second;
+    m_potions.push_back(std::move(ptr));
+    m_idToPotion[id] = rawPtr;
+
+    return rawPtr;
 }
 
 const Potion* PotionRegistry::getPotion(const ResourceLocation& id) const
 {
-    auto it = m_idToIndex.find(id);
-    if (it == m_idToIndex.end()) {
+    auto it = m_idToPotion.find(id);
+    if (it == m_idToPotion.end()) {
         return nullptr;
     }
-    return &m_potions[it->second].second;
+    return it->second;
 }
 
 const Potion* PotionRegistry::getPotion(PotionId id) const
 {
-    auto it = m_enumToIndex.find(id);
-    if (it == m_enumToIndex.end()) {
+    auto it = m_enumToPotion.find(id);
+    if (it == m_enumToPotion.end()) {
         return nullptr;
     }
-    return &m_potions[it->second].second;
+    return it->second;
+}
+
+std::vector<std::pair<ResourceLocation, const Potion*>> PotionRegistry::getAllPotions() const
+{
+    std::vector<std::pair<ResourceLocation, const Potion*>> result;
+    result.reserve(m_potions.size());
+    for (const auto& ptr : m_potions) {
+        result.emplace_back(ptr->id(), ptr.get());
+    }
+    return result;
 }
 
 } // namespace potion

@@ -75,7 +75,6 @@ public:
     Potion(std::string_view baseName, const entity::effect::EffectInstance (&effects)[N])
         : m_baseName(baseName)
         , m_effects(effects, effects + N)
-        , m_id(nullptr)
     {}
 
     // ========== 属性获取 ==========
@@ -116,7 +115,7 @@ public:
      * @brief 获取药水ID
      * @return 资源位置，未注册返回空ResourceLocation
      */
-    [[nodiscard]] ResourceLocation id() const { return m_id ? *m_id : ResourceLocation(); }
+    [[nodiscard]] ResourceLocation id() const { return m_id; }
 
     // ========== 内部方法（供注册表使用） ==========
 
@@ -124,12 +123,12 @@ public:
      * @brief 设置药水ID（仅供注册表使用）
      * @param id 资源位置
      */
-    void setId(const ResourceLocation* id) { m_id = id; }
+    void setId(const ResourceLocation& id) { m_id = id; }
 
 private:
     std::string m_baseName;
     std::vector<entity::effect::EffectInstance> m_effects;
-    const ResourceLocation* m_id = nullptr; // 指向注册表中的ID
+    ResourceLocation m_id; ///< 资源位置ID
 
     friend class PotionRegistry;
 };

@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
+* in the Software without restriction without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -26,6 +26,7 @@
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "Potion.hpp"
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -74,7 +75,7 @@ public:
     /**
      * @brief 获取所有注册的药水
      */
-    [[nodiscard]] const std::vector<std::pair<ResourceLocation, Potion>>& getAllPotions() const { return m_potions; }
+    [[nodiscard]] std::vector<std::pair<ResourceLocation, const Potion*>> getAllPotions() const;
 
     /**
      * @brief 获取药水数量
@@ -163,9 +164,10 @@ public:
 private:
     PotionRegistry() = default;
 
-    std::vector<std::pair<ResourceLocation, Potion>> m_potions;
-    std::unordered_map<ResourceLocation, size_t> m_idToIndex;
-    std::unordered_map<PotionId, size_t> m_enumToIndex;
+    // 使用 unique_ptr 确保指针稳定，避免 vector reallocation 导致指针失效
+    std::vector<std::unique_ptr<Potion>> m_potions;
+    std::unordered_map<ResourceLocation, const Potion*> m_idToPotion;
+    std::unordered_map<PotionId, const Potion*> m_enumToPotion;
 };
 
 } // namespace potion
