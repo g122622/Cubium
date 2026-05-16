@@ -113,6 +113,8 @@ add_executable(mc_tests
     # PufferfishEntity 膨胀目标和敌人检测测试
     common/entity/entities/passive/fish/PufferfishEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    # MagmaCubeEntity 岩浆怪测试（继承自史莱姆）
+    common/entity/entities/monster/MagmaCubeEntityTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
     # 铁傀儡 AI 目标测试
