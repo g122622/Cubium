@@ -295,6 +295,8 @@ add_executable(mc_tests
     entity/BlazeFireballAttackGoalTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
+    # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
+    entity/DamagingProjectileParticleTest.cpp
     # LookAtGoal 类型过滤测试
     common/entity/ai/goal/LookAtGoalTest.cpp
     # FishSwimGoal 鱼类游泳目标测试
