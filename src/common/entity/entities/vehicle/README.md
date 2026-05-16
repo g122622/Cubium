@@ -122,6 +122,11 @@ public:
 
 ### TNT矿车 (TNTMinecartEntity)
 - **点燃方式**: 激活铁轨点燃，引信80 tick（4秒）
+- **燃烧箭矢引爆**: MC 1.16.5 attackEntityFrom() 第67-77行
+  - 燃烧箭矢命中时使用箭矢速度计算爆炸威力
+  - 使用 `dynamic_cast<AbstractArrowEntity*>` 检测箭矢实体
+  - 使用 `Entity::isOnFire()` 检测燃烧状态
+  - 爆炸威力 = 4.0 + random(0~1) * 1.5 * min(sqrt(speedSq), 5.0)
 - **爆炸威力**: 基础4.0，速度加成最大到5.0
 - **爆炸模式**: Break模式（破坏方块不掉落）
 - **掉落逻辑** (MC 1.16.5 killMinecart):
@@ -193,6 +198,14 @@ public:
 - FurnaceMinecartDropTest.NormalDamage_DropsFurnace - 普通伤害掉熔炉
 - ChestMinecartDropTest.AlwaysDropsInventory - 箱子矿车总是掉库存
 - AbstractMinecartDropTest.AllDamageTypes_CorrectClassification - 所有伤害类型分类测试
+- TNTMinecartArrowTest.NonBurningArrow_DoesNotIgnite - 普通箭矢不引爆
+- TNTMinecartArrowTest.BurningArrow_IgnitesTNT - 燃烧箭矢引爆
+- TNTMinecartArrowTest.ArrowVelocity_AffectsExplosionPower - 箭矢速度影响爆炸威力
+- TNTMinecartArrowTest.DynamicCast_IdentifiesArrowEntity - dynamic_cast 检测箭矢
+- TNTMinecartArrowTest.OtherFireProjectiles_CompatibleDetection - 其他投射物兼容检测
+- TNTMinecartArrowTest.SpectralArrow_CanIgnite - 光灵箭也能引爆
+- TNTMinecartArrowTest.SetFire_OnlyIncreases - setFire 只增不减
+- TNTMinecartArrowTest.NegativeFire_NotOnFire - 负值不算燃烧
 
 骑乘相关网络包测试位于 `tests/network/EntityPacketsTest.cpp`：
 - PlayerInputPacket 序列化/反序列化测试

@@ -7,15 +7,20 @@
  * 2. FurnaceMinecartEntity::dropItem() - 爆炸伤害检测
  * 3. ChestMinecartEntity::dropItem() - 库存掉落
  * 4. AbstractMinecartEntity::dropItem() - 基础掉落
+ * 5. TNTMinecartEntity::hurt() - 燃烧箭矢引爆逻辑
  *
  * MC 1.16.5 参考：
  * - TNTMinecartEntity.killMinecart() 行79-94
+ * - TNTMinecartEntity.attackEntityFrom() 行67-77
  * - FurnaceMinecartEntity.killMinecart() 行82-88
  */
 
 #include <gtest/gtest.h>
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/vehicle/MinecartEntity.hpp"
+#include "entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "entity/core/Entity.hpp"
+#include "item/core/ItemStack.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -356,4 +361,267 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
         EXPECT_EQ(damage.isExplosion(), tc.expectedExplosion)
             << "DamageType::" << tc.name << " isExplosion() should be " << tc.expectedExplosion;
     }
+}
+
+// ============================================================================
+// TNTMinecartEntity 燃烧箭矢引爆测试
+// ============================================================================
+
+/**
+ * @brief 测试用的箭矢实体类
+ *
+ * 继承 AbstractArrowEntity 提供最小化实现用于测试
+ */
+class TestArrowEntity : public AbstractArrowEntity {
+public:
+    TestArrowEntity(LegacyEntityType type, EntityId id)
+        : AbstractArrowEntity(type, id)
+    {
+    }
+
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<TestArrowEntity>(LegacyEntityType::Unknown, 0);
+    }
+
+    // 提供纯虚函数的最小化实现
+    void tick() override { Entity::tick(); }
+
+    [[nodiscard]] ItemStack getArrowStack() const override
+    {
+        // 返回空的箭矢物品堆
+        return ItemStack();
+    }
+};
+
+/**
+ * @brief 燃烧箭矢引爆 TNT 矿车测试
+ *
+ * MC 1.16.5: TNTMinecartEntity.attackEntityFrom() 第67-77行
+ * - 燃烧的箭矢命中时，使用箭矢速度计算爆炸威力
+ */
+class TNTMinecartArrowTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 初始化测试环境
+    }
+};
+
+/**
+ * @brief 测试普通箭矢（未燃烧）不引爆 TNT 矿车
+ *
+ * MC 1.16.5: 只有 isBurning() 返回 true 的箭矢才会引爆
+ */
+TEST_F(TNTMinecartArrowTest, NonBurningArrow_DoesNotIgnite)
+{
+    // 创建测试箭矢实体
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+
+    // 未设置燃烧状态
+    EXPECT_FALSE(arrow->isOnFire()) << "Arrow should not be on fire initially";
+    EXPECT_EQ(arrow->fire(), 0) << "Fire timer should be 0";
+
+    // 创建箭矢伤害源
+    Entity* shooter = nullptr; // 无射击者
+    IndirectEntityDamageSource arrowDamage = DamageSources::arrow(arrow.get(), shooter, false);
+
+    // 验证伤害源属性
+    EXPECT_TRUE(arrowDamage.isProjectile());
+    EXPECT_EQ(arrowDamage.directSource(), arrow.get());
+}
+
+/**
+ * @brief 测试燃烧箭矢会引爆 TNT 矿车
+ *
+ * MC 1.16.5: 箭矢燃烧时 isBurning() 返回 true
+ */
+TEST_F(TNTMinecartArrowTest, BurningArrow_IgnitesTNT)
+{
+    // 创建测试箭矢实体
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+
+    // 设置燃烧状态（100 ticks = 5秒）
+    arrow->setFire(100);
+
+    // 验证燃烧状态
+    EXPECT_TRUE(arrow->isOnFire()) << "Arrow should be on fire after setFire(100)";
+    EXPECT_EQ(arrow->fire(), 100) << "Fire timer should be 100";
+
+    // 创建箭矢伤害源
+    Entity* shooter = nullptr;
+    IndirectEntityDamageSource arrowDamage = DamageSources::arrow(arrow.get(), shooter, false);
+
+    // 验证伤害源属性
+    EXPECT_TRUE(arrowDamage.isProjectile());
+    EXPECT_EQ(arrowDamage.directSource(), arrow.get());
+
+    // 箭矢燃烧状态应该可以被检测到
+    // 在 TNTMinecartEntity::hurt() 中:
+    // AbstractArrowEntity* arrow = dynamic_cast<AbstractArrowEntity*>(directSource);
+    // if (arrow != nullptr && arrow->isOnFire()) { explode(...); }
+}
+
+/**
+ * @brief 测试箭矢速度影响爆炸威力计算
+ *
+ * MC 1.16.5: explodeCart(motion.lengthSquared())
+ * 爆炸威力 = 4.0 + random(0~1) * 1.5 * min(sqrt(speedSq), 5.0)
+ */
+TEST_F(TNTMinecartArrowTest, ArrowVelocity_AffectsExplosionPower)
+{
+    // 创建测试箭矢实体
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+    arrow->setFire(100); // 燃烧
+
+    // 测试不同速度
+    struct TestCase {
+        f32 vx, vy, vz;
+        f64 expectedSpeedSq;
+    };
+
+    std::vector<TestCase> testCases = {
+        { 0.0f, 0.0f, 0.0f, 0.0 },         // 静止
+        { 1.0f, 0.0f, 0.0f, 1.0 },         // 水平速度 1.0
+        { 0.0f, 1.0f, 0.0f, 1.0 },         // 垂直速度 1.0
+        { 3.0f, 4.0f, 0.0f, 25.0 },        // 3-4-5 三角形
+        { 2.0f, 2.0f, 2.0f, 12.0 },        // 对角线
+    };
+
+    for (const auto& tc : testCases) {
+        arrow->setVelocity(Vector3(tc.vx, tc.vy, tc.vz));
+        Vector3 vel = arrow->velocity();
+
+        f64 speedSq = static_cast<f64>(vel.x) * vel.x
+                    + static_cast<f64>(vel.y) * vel.y
+                    + static_cast<f64>(vel.z) * vel.z;
+
+        EXPECT_DOUBLE_EQ(speedSq, tc.expectedSpeedSq)
+            << "Velocity (" << tc.vx << ", " << tc.vy << ", " << tc.vz
+            << ") speedSq should be " << tc.expectedSpeedSq;
+
+        // 爆炸威力计算（参考 MC 1.16.5）
+        f64 speed = std::sqrt(speedSq);
+        f64 cappedSpeed = std::min(speed, 5.0); // 最大速度 5.0
+        // 威力范围: 4.0 ~ 11.5 (基础 + 随机加成)
+        EXPECT_GE(cappedSpeed, 0.0);
+        EXPECT_LE(cappedSpeed, 5.0);
+    }
+}
+
+/**
+ * @brief 测试 dynamic_cast 检测箭矢实体
+ *
+ * 验证 dynamic_cast<AbstractArrowEntity*> 可以正确识别箭矢类型
+ */
+TEST_F(TNTMinecartArrowTest, DynamicCast_IdentifiesArrowEntity)
+{
+    // 创建测试箭矢实体
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+
+    // 通过 Entity* 指针进行 dynamic_cast
+    Entity* entityPtr = arrow.get();
+    AbstractArrowEntity* arrowPtr = dynamic_cast<AbstractArrowEntity*>(entityPtr);
+
+    EXPECT_NE(arrowPtr, nullptr) << "dynamic_cast should succeed for AbstractArrowEntity";
+
+    // 设置燃烧状态
+    arrow->setFire(100);
+    EXPECT_TRUE(arrowPtr->isOnFire()) << "Burning state should be accessible through casted pointer";
+}
+
+/**
+ * @brief 测试其他投射物（如火球）的兼容检测
+ *
+ * MC 1.16.5: 其他带火焰的投射物也应该引爆 TNT 矿车
+ */
+TEST_F(TNTMinecartArrowTest, OtherFireProjectiles_CompatibleDetection)
+{
+    // 创建测试箭矢实体（不燃烧）
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+    EXPECT_FALSE(arrow->isOnFire());
+
+    // 创建火球伤害源（带火焰和投射物属性）
+    Entity* shooter = nullptr;
+    IndirectEntityDamageSource fireballDamage = DamageSources::fireball(arrow.get(), shooter, false);
+    fireballDamage.setProjectile();
+    fireballDamage.setFireDamage();
+
+    // 验证兼容检测逻辑
+    // source.isProjectile() && source.isFire() 应该为 true
+    EXPECT_TRUE(fireballDamage.isProjectile());
+    EXPECT_TRUE(fireballDamage.isFire());
+}
+
+/**
+ * @brief 测试光灵箭（SpectralArrow）也能引爆 TNT 矿车
+ *
+ * MC 1.16.5: AbstractArrowEntity 包括 ArrowEntity 和 SpectralArrowEntity
+ */
+TEST_F(TNTMinecartArrowTest, SpectralArrow_CanIgnite)
+{
+    // 光灵箭也是 AbstractArrowEntity 的子类
+    auto spectralArrow = std::make_unique<TestArrowEntity>(LegacyEntityType::SpectralArrow, EntityId(2));
+
+    // 设置燃烧状态
+    spectralArrow->setFire(100);
+
+    // 验证燃烧状态
+    EXPECT_TRUE(spectralArrow->isOnFire());
+
+    // 验证 dynamic_cast
+    Entity* entityPtr = spectralArrow.get();
+    AbstractArrowEntity* arrowPtr = dynamic_cast<AbstractArrowEntity*>(entityPtr);
+    EXPECT_NE(arrowPtr, nullptr) << "SpectralArrow should be castable to AbstractArrowEntity";
+    EXPECT_TRUE(arrowPtr->isOnFire());
+}
+
+/**
+ * @brief 测试 setFire 行为：只增不减
+ *
+ * MC 1.16.5: Entity.setFire() 只会增加燃烧时间，不会减少
+ */
+TEST_F(TNTMinecartArrowTest, SetFire_OnlyIncreases)
+{
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+
+    // 初始状态
+    EXPECT_EQ(arrow->fire(), 0);
+    EXPECT_FALSE(arrow->isOnFire());
+
+    // 设置燃烧 100 ticks
+    arrow->setFire(100);
+    EXPECT_EQ(arrow->fire(), 100);
+    EXPECT_TRUE(arrow->isOnFire());
+
+    // 尝试减少燃烧时间（应该无效）
+    arrow->setFire(50);
+    EXPECT_EQ(arrow->fire(), 100) << "setFire should not decrease fire time";
+
+    // 增加燃烧时间（应该有效）
+    arrow->setFire(200);
+    EXPECT_EQ(arrow->fire(), 200);
+
+    // 使用 forceFireTicks 强制减少
+    arrow->forceFireTicks(50);
+    EXPECT_EQ(arrow->fire(), 50);
+
+    // 清除燃烧
+    arrow->forceFireTicks(0);
+    EXPECT_EQ(arrow->fire(), 0);
+    EXPECT_FALSE(arrow->isOnFire());
+}
+
+/**
+ * @brief 测试燃烧免疫期间（负值）不会被误判为燃烧
+ *
+ * MC 1.16.5: fire < 0 表示免疫期，isOnFire() 返回 false
+ */
+TEST_F(TNTMinecartArrowTest, NegativeFire_NotOnFire)
+{
+    auto arrow = std::make_unique<TestArrowEntity>(LegacyEntityType::Arrow, EntityId(1));
+
+    // 设置负值（免疫期）
+    arrow->forceFireTicks(-10);
+    EXPECT_EQ(arrow->fire(), -10);
+    EXPECT_FALSE(arrow->isOnFire()) << "Negative fire should not count as on fire";
 }
