@@ -27,9 +27,9 @@
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/special/SpecialGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/DataParameter.hpp"
@@ -460,9 +460,33 @@ void AbstractHorseEntity::registerGoals()
     AnimalEntity::registerGoals();
 
     // MC 1.16.5 AbstractHorseEntity.registerGoals()
-    // 注意：RunAroundLikeCrazyGoal 的优先级和 PanicGoal 相同（都是1）
-    // 这样未驯服的马被骑乘时会优先执行疯狂奔跑
+    // 所有马类实体的通用 AI 目标
+    // 注意：优先级数字越小，优先级越高
+
+    // 优先级 0: 游泳目标 - 在水中上浮
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // 优先级 1: 恐慌逃跑 - 受伤或着火时逃跑
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.2));
+
+    // 优先级 1: 疯狂奔跑 - 未驯服马被骑乘时乱跑
+    // 与 PanicGoal 优先级相同，两者可以同时触发
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RunAroundLikeCrazyGoal>(this, 1.2));
+
+    // 优先级 2: 繁殖 - 与同类交配
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
+
+    // 优先级 4: 跟随父母 - 幼体跟随成年个体
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.0));
+
+    // 优先级 6: 避水随机行走 - 随机游荡但避开水域
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.7));
+
+    // 优先级 7: 看向玩家 - 看向 6 格内的玩家
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
+
+    // 优先级 8: 随机看向 - 随机转头观察
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 
 void AbstractHorseEntity::updateRiding()

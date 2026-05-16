@@ -102,8 +102,9 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 
 void DonkeyEntity::registerGoals()
 {
+    // MC 1.16.5: DonkeyEntity 没有重写 registerGoals()
+    // 驴完全使用 AbstractHorseEntity 的 AI 目标
     AbstractChestedHorseEntity::registerGoals();
-    // TODO: 补齐驴专属 AI 目标。
 }
 
 void DonkeyEntity::registerAttributes()

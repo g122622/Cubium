@@ -192,8 +192,9 @@ void HorseEntity::tick()
 
 void HorseEntity::registerGoals()
 {
+    // MC 1.16.5: HorseEntity 没有重写 registerGoals()
+    // 马完全使用 AbstractHorseEntity 的 AI 目标
     AbstractHorseEntity::registerGoals();
-    // TODO: 补齐马的 RunAroundLikeCrazyGoal 等目标。
 }
 
 void HorseEntity::registerAttributes()
