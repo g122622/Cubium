@@ -59,10 +59,39 @@ Entity (core/Entity.hpp)
 
 | 实体 | 伤害 | 爆炸 | 特性 |
 |------|------|------|------|
-| FireballEntity | 6.0 | 是 (威力1) | 恶魂发射 |
-| SmallFireballEntity | 5.0 | 否 | 烈焰人发射，点燃目标 |
-| DragonFireballEntity | 12.0 | 否 | 末影龙发射，生成龙息 |
-| WitherSkullEntity | 8.0 | 是 | 凋灵发射，凋零效果 |
+| FireballEntity | 6.0 | 是 (威力1) | 恶魂发射，爆炸产生火焰 |
+| SmallFireballEntity | 5.0 | 否 | 烈焰人发射，点燃目标5秒，可点燃方块 |
+| DragonFireballEntity | 无直接伤害 | 否 | 末影龙发射，生成龙息区域效果云 |
+| WitherSkullEntity | 8.0/5.0 | 是 | 凋灵发射，凋零II效果，目标死亡治疗发射者 |
+
+#### 火球类实现详情 (2026-05-16)
+
+**FireballEntity (恶魂火球)**：
+- ✅ `onEntityHit`: 调用 `LivingEntity::hurt()` 造成 6.0 伤害
+- ✅ `onBlockHit`: 触发爆炸（半径 1.0，产生火焰）
+- ✅ 使用 `DamageSources::fireball()` 创建火焰投射物伤害来源
+- ✅ 支持 `mobGriefing` 游戏规则控制爆炸模式
+
+**SmallFireballEntity (烈焰人火球)**：
+- ✅ `onEntityHit`: 造成 5.0 伤害，点燃目标 5 秒
+- ✅ 支持 `isImmuneToFire()` 检查
+- ✅ 伤害失败时恢复原燃烧时间
+- ✅ `onBlockHit`: 在碰撞方块上方放置火焰方块（受 `mobGriefing` 控制）
+
+**DragonFireballEntity (末影龙火球)**：
+- ✅ 生成龙息区域效果云 (`AreaEffectCloudEntity`)
+- ✅ 云参数：半径 3.0，持续时间 600 ticks，逐渐扩展到 7.0
+- ✅ 添加瞬间伤害 II 效果
+
+**WitherSkullEntity (凋灵之首)**：
+- ✅ 有发射者时造成 8.0 投射物伤害，无发射者时造成 5.0 魔法伤害
+- ✅ 难度相关凋零效果：
+  - 简单难度：无效果
+  - 普通难度：凋零 II 10 秒 (200 ticks)
+  - 困难难度：凋零 II 40 秒 (800 ticks)
+- ✅ 目标死亡时治疗发射者 5.0 HP
+- ✅ 触发爆炸（半径 1.0，不产生火焰）
+- ✅ 蓝色凋灵之首运动因子 0.73（普通 0.95）
 
 ### 投掷物品类 (Throwable Items)
 
