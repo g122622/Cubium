@@ -6,6 +6,8 @@
 movement/
 ├── MovementGoals.hpp/cpp       # 水避让随机漫步、跳跃攻击目标
 ├── FollowSchoolLeaderGoal.hpp/cpp  # 跟随群体领导者目标（群游鱼类）
+├── FollowMobGoal.hpp/cpp       # 跟随附近生物目标（鹦鹉等）
+├── WaterAvoidingRandomFlyingGoal.hpp/cpp  # 水避让随机飞行目标（飞行实体）
 └── README.md                   # 本文档
 ```
 
@@ -297,3 +299,147 @@ FollowSchoolLeaderGoal
 
 - MC 1.16.5 `net.minecraft.entity.ai.goal.FollowSchoolLeaderGoal`
 - MC 1.16.5 `net.minecraft.entity.passive.fish.AbstractGroupFishEntity`
+
+---
+
+### FollowMobGoal.hpp/cpp
+
+**职责**: 使实体跟随附近的其他生物。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.FollowMobGoal`
+
+#### 关键参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `m_mob` | `MobEntity*` | 拥有此目标的生物 |
+| `m_speed` | `f64` | 移动速度 |
+| `m_minDistance` | `f32` | 最小跟随距离 |
+| `m_maxDistance` | `f32` | 最大跟随距离（检测范围） |
+| `m_targetMob` | `LivingEntity*` | 当前跟随目标 |
+| `m_delayCounter` | `i32` | 路径重算计数器 |
+
+#### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `PATH_RECALC_INTERVAL` | 10 | 路径重新计算间隔（ticks） |
+
+#### 核心方法
+
+##### `shouldExecute()`
+
+执行条件：
+1. 使用 `EntityUtils::findClosestEntity<LivingEntity>()` 在 `maxDistance` 范围内寻找其他生物
+2. 排除自己，只选择存活的生物
+3. 返回找到的目标
+
+##### `shouldContinueExecuting()`
+
+继续条件：
+- 目标存活
+- 距离在 `[minDistance, maxDistance]` 范围内
+
+##### `tick()`
+
+每帧更新：
+1. 看向目标生物
+2. 每 10 ticks 重新计算路径
+
+**互斥标志**: `Move`
+
+#### 使用示例
+
+```cpp
+void ParrotEntity::registerGoals() {
+    // 优先级 3: 跟随其他生物
+    m_goalSelector.addGoal(3, std::make_unique<FollowMobGoal>(this, 1.0, 3.0f, 7.0f));
+}
+```
+
+---
+
+### WaterAvoidingRandomFlyingGoal.hpp/cpp
+
+**职责**: 飞行实体随机飞行并避开水域。类似 `RandomWalkingGoal`，但用于飞行实体。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.WaterAvoidingRandomFlyingGoal`
+
+#### 关键参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `m_creature` | `CreatureEntity*` | 飞行生物 |
+| `m_speed` | `f64` | 飞行速度 |
+| `m_chance` | `f32` | 执行概率（默认 0.001） |
+| `m_targetX/Y/Z` | `f64` | 目标位置 |
+| `m_timeout` | `i32` | 飞行超时计数器 |
+| `m_isRunning` | `bool` | 是否正在飞行 |
+
+#### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `MAX_TIMEOUT` | 600 | 最大飞行时间（30秒） |
+| `XZ_RANGE` | 8 | 水平搜索范围（格） |
+| `Y_RANGE` | 4 | 垂直搜索范围（格） |
+
+#### 核心方法
+
+##### `shouldExecute()`
+
+执行条件：
+1. 不被骑乘
+2. 概率检查通过（默认 0.1%）
+3. 找到有效的飞行目标位置
+
+##### `getRandomPosition()`
+
+位置选择算法：
+1. 使用 `RandomPositionGenerator::findRandomTargetBlock()` 获取随机方块位置
+2. 多次尝试（最多 10 次）找到不在水/岩浆中的位置
+
+##### `shouldContinueExecuting()`
+
+继续条件：
+- 不被骑乘
+- 超时未到
+- 导航器有路径或移动控制器正在更新
+
+##### `tick()`
+
+每帧更新：
+- 递减超时计数器
+
+**互斥标志**: `Move`
+
+#### 与 RandomWalkingGoal 的区别
+
+| 特性 | RandomWalkingGoal | WaterAvoidingRandomFlyingGoal |
+|------|-------------------|-------------------------------|
+| 移动方式 | 地面行走 | 空中飞行 |
+| 位置选择 | 可行走位置 | 空气/非固体方块 |
+| 导航类型 | 地面导航 | 飞行导航 |
+| 避水逻辑 | 额外检查 | 内置检查 |
+
+#### 使用示例
+
+```cpp
+void ParrotEntity::registerGoals() {
+    // 优先级 2: 随机飞行（避开水）
+    m_goalSelector.addGoal(2, std::make_unique<WaterAvoidingRandomFlyingGoal>(this, 1.0));
+}
+```
+
+#### 依赖关系
+
+```
+WaterAvoidingRandomFlyingGoal
+    ├── CreatureEntity           # 飞行生物
+    ├── PathNavigator            # 飞行导航
+    ├── MovementController       # 移动控制器
+    └── RandomPositionGenerator  # 位置生成器
+```
+
+**测试用例**: 参见 `tests/entity/ParrotGoalsTest.cpp`
+

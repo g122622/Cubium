@@ -304,6 +304,8 @@ add_executable(mc_tests
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp
     entity/ShoulderRidingSupportTypesTest.cpp
+    # 鹦鹉 AI 目标测试（LandOnOwnersShoulderGoal, WaterAvoidingRandomFlyingGoal, FollowMobGoal）
+    entity/ParrotGoalsTest.cpp
     entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
     entity/WalkNodeProcessorTests.cpp
