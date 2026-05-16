@@ -32,6 +32,8 @@ special/
 ├── BeeGoals.cpp           # 蜜蜂目标实现
 ├── FoxGoals.hpp           # 狐狸目标头文件
 ├── FoxGoals.cpp           # 狐狸目标实现
+├── PandaGoals.hpp         # 熊猫目标头文件
+├── PandaGoals.cpp         # 熊猫目标实现
 └── README.md              # 本文档
 ```
 
@@ -2501,6 +2503,83 @@ void FoxEntity::registerGoals() {
 
 ---
 
+## PandaGoals - 熊猫专用目标
+
+包含熊猫的打滚行为目标。
+
+### PandaRollGoal - 熊猫打滚目标
+
+**职责**: 控制熊猫（顽皮性格或幼年熊猫）随机打滚的行为。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.passive.PandaEntity.RollGoal`
+
+**执行条件**:
+- 是幼年熊猫 或 顽皮性格熊猫 (`isChild() || isPlayful()`)
+- 在地面上 (`onGround()`)
+- 可以执行动作 (`canPerformAction()`：不在打喷嚏、吃东西、躺着、打滚状态)
+- 满足以下条件之一：
+  - 前方是悬崖 (`isCliffInFront()`)：100% 触发
+  - 顽皮性格：1/60 概率触发
+  - 幼年普通熊猫：1/500 概率触发
+
+**行为流程**:
+1. `shouldExecute()`: 检查执行条件
+2. `startExecuting()`: 设置打滚状态 `setRolling(true)`，重置打滚计时器
+3. 打滚物理由 `PandaEntity::updateRoll()` 在 tick() 中处理
+
+**打滚物理** (在 PandaEntity::updateRoll() 中):
+- 持续时间：32 ticks
+- 成年熊猫速度：0.2 格/tick
+- 幼年熊猫速度：0.1 格/tick
+- 第 1 tick：初始化速度向量
+- 第 7、15、23 tick：执行小跳（Y 速度 = 0.27）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| PLAYFUL_ROLL_CHANCE | 60 | 顽皮熊猫触发概率倒数 (1/60 ≈ 1.67%) |
+| NORMAL_ROLL_CHANCE | 500 | 幼年普通熊猫触发概率倒数 (1/500 = 0.2%) |
+| ROLL_DURATION | 32 | 打滚持续时间 (ticks) |
+| ROLL_SPEED_ADULT | 0.2f | 成年熊猫打滚速度 |
+| ROLL_SPEED_CHILD | 0.1f | 幼年熊猫打滚速度 |
+| ROLL_JUMP_VELOCITY | 0.27f | 打滚跳跃速度 |
+
+**互斥标志**: `Move`, `Look`, `Jump`
+
+**不可中断**: `isPreemptible()` 返回 false
+
+**悬崖检测** (`isCliffInFront()`):
+```cpp
+// 计算熊猫朝向方向的前方位置
+f32 yaw = m_panda->yaw();
+f32 sinYaw = std::sin(toRadians(yaw));
+f32 cosYaw = std::cos(toRadians(yaw));
+
+// 确定前方一格的偏移
+i32 offsetX = 0, offsetZ = 0;
+if (std::abs(sinYaw) > 0.5) offsetX = sinYaw / std::abs(sinYaw);
+if (std::abs(cosYaw) > 0.5) offsetZ = cosYaw / std::abs(cosYaw);
+
+// 检查前方一格下方是否是空气
+BlockPos checkPos(pandaPos.x + offsetX, pandaPos.y - 1, pandaPos.z + offsetZ);
+return world->getBlockState(checkPos)->isAir();
+```
+
+**使用示例**:
+```cpp
+void PandaEntity::registerGoals() {
+    // 优先级 12: 打滚目标
+    m_goalSelector.addGoal(12, std::make_unique<PandaRollGoal>(this));
+}
+```
+
+**依赖关系**:
+- 需要 PandaEntity 提供 `isChild()`, `isPlayful()`, `onGround()`, `canPerformAction()`, `setRolling()`, `setRollTimer()`, `yaw()`, `world()`, `getRandom()` 方法
+- 需要 IWorld 提供 `getBlockState()` 方法
+- 需要 BlockState 提供 `isAir()` 方法
+
+---
+
 ## 依赖关系图
 
 ```mermaid
@@ -2552,6 +2631,9 @@ graph TD
 | BeeGoalsTest.* | 蜜蜂目标测试（花粉状态、蜂巢位置、愤怒状态、飞行状态） |
 | TriggerSkeletonTrapGoalTest.* | 骷髅马陷阱触发目标测试（常量、类型名称、互斥标志、执行条件） |
 | FoxGoalsTest.* | 狐狸目标测试（状态标志位、信任系统、所有 Goal 构造和互斥标志） |
+| PandaRollGoalTest.* | 熊猫打滚目标测试（构造、互斥标志、执行条件、悬崖检测、开始执行） |
+| PandaPersonalityRollTest.* | 熊猫性格与打滚测试（顽皮、幼年、成年性格判定） |
+| PandaCanPerformActionTest.* | 熊猫动作执行测试（打喷嚏、吃东西、躺着、打滚状态互斥） |
 
 ---
 

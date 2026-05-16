@@ -298,6 +298,46 @@ panda.setSneezeTimer(20); // 20 ticks = 1秒
 3. 搜索周围10格内的成年熊猫，使其跳跃
 4. 检查游戏规则 `doMobLoot`，1/700概率掉落粘液球
 
+### 打滚行为 (PandaRollGoal)
+顽皮性格或幼年熊猫可以触发打滚行为：
+
+**触发条件**:
+- 是幼年熊猫 或 顽皮性格熊猫 (`isChild() || isPlayful()`)
+- 在地面上 (`onGround()`)
+- 可以执行动作 (`canPerformAction()`)
+- 满足以下条件之一：
+  - 前方是悬崖 (`isCliffInFront()`)：100% 触发
+  - 顽皮性格：1/60 概率触发
+  - 幼年普通熊猫：1/500 概率触发
+
+**打滚物理** (在 `PandaEntity::updateRoll()` 中):
+- 持续时间：32 ticks
+- 成年熊猫速度：0.2 格/tick
+- 幼年熊猫速度：0.1 格/tick
+- 第 7、15、23 tick：执行小跳（Y 速度 = 0.27）
+- 计时器超过 32 ticks 时停止打滚
+
+**相关方法**:
+- `isRolling()` / `setRolling(bool)`: 打滚状态
+- `getRollTimer()` / `setRollTimer(i32)`: 打滚计时器
+- `canPerformAction()`: 检查是否可以执行动作（不在打喷嚏、吃东西、躺着、打滚状态）
+
+**悬崖检测** (`isCliffInFront()`):
+```cpp
+// 计算熊猫朝向方向的前方位置
+// 检查前方一格下方是否是空气
+BlockPos checkPos(pandaPos.x + offsetX, pandaPos.y - 1, pandaPos.z + offsetZ);
+return world->getBlockState(checkPos)->isAir();
+```
+
+**AI Goal 注册**:
+```cpp
+void PandaEntity::registerGoals() {
+    // 优先级 12: 打滚目标
+    m_goalSelector.addGoal(12, std::make_unique<PandaRollGoal>(this));
+}
+```
+
 ### 基因遗传
 - 子代基因由父母基因随机决定
 - 隐性基因（虚弱、棕色）需要双亲携带
