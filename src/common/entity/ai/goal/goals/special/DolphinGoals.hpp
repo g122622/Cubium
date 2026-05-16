@@ -75,6 +75,9 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "DolphinJumpGoal"; }
 
+    // MC 1.16.5 常量 - 公开以便测试
+    static constexpr i32 JUMP_DISTANCES[] = {0, 1, 4, 5, 6, 7};
+
 private:
     /**
      * @brief 检查指定距离处是否可以跳跃
@@ -99,9 +102,6 @@ private:
     DolphinEntity* m_dolphin;
     i32 m_chance;
     bool m_inWater = false;
-
-    // MC 1.16.5: JUMP_DISTANCES = {0, 1, 4, 5, 6, 7}
-    static constexpr i32 JUMP_DISTANCES[] = {0, 1, 4, 5, 6, 7};
 };
 
 /**
@@ -135,6 +135,11 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SwimToTreasureGoal"; }
 
+    // MC 1.16.5 常量 - 公开以便测试
+    static constexpr i32 MIN_AIR = 100;
+    static constexpr f32 ARRIVE_DISTANCE = 4.0f;
+    static constexpr f32 CLOSE_TO_TARGET_DISTANCE = 12.0f;
+
 private:
     /**
      * @brief 寻找附近的结构位置
@@ -146,10 +151,6 @@ private:
     DolphinEntity* m_dolphin;
     bool m_failed = false;
     i32 m_searchRadius = 50;
-
-    static constexpr i32 MIN_AIR = 100;
-    static constexpr f32 ARRIVE_DISTANCE = 4.0f;
-    static constexpr f32 CLOSE_TO_TARGET_DISTANCE = 12.0f;
 };
 
 /**
@@ -187,6 +188,13 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SwimWithPlayerGoal"; }
 
+    // MC 1.16.5 常量 - 公开以便测试
+    static constexpr f32 SEARCH_RADIUS = 10.0f;
+    static constexpr f32 CLOSE_DISTANCE_SQ = 6.25f; // 2.5 * 2.5
+    static constexpr f32 MAX_DISTANCE_SQ = 256.0f;  // 16 * 16
+    static constexpr i32 EFFECT_DURATION = 100;     // 5秒 = 100 tick
+    static constexpr i32 EFFECT_INTERVAL = 6;       // 每 6 tick 添加效果
+
 private:
     /**
      * @brief 查找附近正在游泳的玩家
@@ -197,12 +205,6 @@ private:
     DolphinEntity* m_dolphin;
     f64 m_speed;
     Player* m_targetPlayer = nullptr;
-
-    static constexpr f32 SEARCH_RADIUS = 10.0f;
-    static constexpr f32 CLOSE_DISTANCE_SQ = 6.25f; // 2.5 * 2.5
-    static constexpr f32 MAX_DISTANCE_SQ = 256.0f;  // 16 * 16
-    static constexpr i32 EFFECT_DURATION = 100;     // 5秒 = 100 tick
-    static constexpr i32 EFFECT_INTERVAL = 6;       // 每 6 tick 添加效果
 };
 
 /**
@@ -235,6 +237,12 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "PlayWithItemsGoal"; }
 
+    // MC 1.16.5 常量 - 公开以便测试
+    static constexpr f32 SEARCH_RADIUS = 8.0f;
+    static constexpr f32 THROW_VELOCITY = 0.3f;
+    static constexpr i32 PICKUP_DELAY = 40;      // 扔出物品的拾取延迟
+    static constexpr i32 MIN_COOLDOWN = 100;     // 最小冷却时间
+
 private:
     /**
      * @brief 扔出物品
@@ -250,11 +258,6 @@ private:
 
     DolphinEntity* m_dolphin;
     i32 m_cooldown = 0;
-
-    static constexpr f32 SEARCH_RADIUS = 8.0f;
-    static constexpr f32 THROW_VELOCITY = 0.3f;
-    static constexpr i32 PICKUP_DELAY = 40;      // 扔出物品的拾取延迟
-    static constexpr i32 MIN_COOLDOWN = 100;     // 最小冷却时间
 };
 
 /**

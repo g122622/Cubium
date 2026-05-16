@@ -356,6 +356,10 @@ add_executable(mc_tests
     # PandaGoals 熊猫打滚 AI 目标测试
     common/entity/ai/goal/goals/special/PandaGoalsTest.cpp
     common/entity/ai/goal/goals/special/SilverfishGoalsTest.cpp
+    # DolphinGoals 海豚 AI 目标测试
+    common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
+    # RandomPositionGenerator 随机位置生成器测试
+    common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/MinecartTests.cpp

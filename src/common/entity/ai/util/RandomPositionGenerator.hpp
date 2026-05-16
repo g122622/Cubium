@@ -60,9 +60,9 @@ public:
      * @brief 位置候选结构
      */
     struct PositionCandidate {
-        Vector3 position;
-        f32 score;   // 评分，用于选择最佳位置
-        bool isSafe; // 是否安全（非危险方块）
+        Vector3 position{0.0f, 0.0f, 0.0f};
+        f32 score = 0.0f;   // 评分，用于选择最佳位置
+        bool isSafe = false; // 是否安全（非危险方块）
     };
 
     // ==================== 主要公开方法 ====================

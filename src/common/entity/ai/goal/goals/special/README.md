@@ -529,6 +529,16 @@ void DolphinEntity::registerGoals() {
 - `tick()`: 向宝藏位置游泳，如果接近目标则重新规划路径
 - `resetTask()`: 到达宝藏后清除鱼的标记
 
+**路径规划**:
+- 使用 `RandomPositionGenerator.findRandomTargetTowardsScaled()` 生成朝向宝藏的位置
+- 角度范围限制在 PI/8 内，确保导航方向大致正确
+- 当无法找到合适位置时，回退到 `findRandomTargetBlock()` 方法
+
+**粒子效果**:
+- 每 80 ticks 有 1/80 概率触发粒子效果
+- 使用 `broadcastEntityStatus(EntityStatus::Dolphin)` 触发客户端粒子
+- 客户端收到状态码 38 后生成海豚粒子效果
+
 **常量**:
 | 常量 | 值 | 说明 |
 |------|-----|------|
@@ -600,14 +610,28 @@ void DolphinEntity::registerGoals() {
 - 附近有可拾取的物品实体（在水中）
 - 或海豚正在手中持有物品
 
-**行为**:
-- `startExecuting()`: 向物品移动
-- `tick()`: 拾取物品或扔出物品
-- `resetTask()`: 扔出手中物品
+**行为流程**:
+1. `shouldExecute()`: 检查冷却时间，检查主手是否有物品或附近是否有物品
+2. `startExecuting()`: 如果已持有物品则扔出，否则向附近物品移动
+3. `tick()`: 拾取物品或扔出物品
+4. `resetTask()`: 扔出手中物品并设置随机冷却
+
+**物品拾取逻辑**:
+- 使用 `LivingEntity::getMainHandItem()` 检查主手物品
+- 使用 `LivingEntity::setMainHandItem()` 设置主手物品
+- 拾取时移除物品实体 (`ItemEntity::remove()`)
+- 拾取时播放 `ENTITY_DOLPHIN_PLAY` 音效
+
+**物品扔出逻辑**:
+- 使用 `ItemDropHelper::getPlayerDropVelocity()` 生成随机扔出速度
+- 扔出方向随机偏移，模拟玩家扔出效果
+- 设置 40 ticks 的拾取延迟
+- 播放 `ENTITY_DOLPHIN_PLAY` 音效
 
 **物品选择条件**:
 - 物品必须在水中
 - 物品可以被拾取
+- 搜索半径 8 格
 
 **常量**:
 | 常量 | 值 | 说明 |
