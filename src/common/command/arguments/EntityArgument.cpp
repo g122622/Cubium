@@ -553,13 +553,30 @@ void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 st
 std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
 {
     const i32 start = reader.getCursor();
-    while (reader.canRead()) {
-        const char ch = reader.peek();
-        // 注意：'!' 是取反前缀，不是分隔符，不应在此处中断
-        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == ']') {
-            break;
+
+    // 检查是否以 { 开头，如果是则需要处理嵌套的大括号结构
+    if (reader.canRead() && reader.peek() == '{') {
+        // 读取整个嵌套的大括号结构（包括起始和结束的大括号）
+        i32 braceDepth = 0;
+        do {
+            const char ch = reader.peek();
+            if (ch == '{') {
+                ++braceDepth;
+            } else if (ch == '}') {
+                --braceDepth;
+            }
+            reader.skip();
+        } while (reader.canRead() && braceDepth > 0);
+    } else {
+        // 普通参数值：遇到空白、=、, 或 ] 时停止
+        while (reader.canRead()) {
+            const char ch = reader.peek();
+            // 注意：'!' 是取反前缀，不是分隔符，不应在此处中断
+            if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == ']') {
+                break;
+            }
+            reader.skip();
         }
-        reader.skip();
     }
 
     if (reader.getCursor() == start) {

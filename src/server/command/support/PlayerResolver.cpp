@@ -249,22 +249,33 @@ namespace {
         }
     }
 
-    // 检查 NBT 条件
-    // 参考 MC 1.16.5 EntityOptions.nbt 过滤器
+    // ========== 待完善功能：NBT 条件过滤 ==========
+    // 当前状态：参数解析已实现，过滤逻辑待完善
+    // 依赖：Entity 类需要实现 serializeNBT() 方法以获取实体的 NBT 数据
+    // 参考：MC 1.16.5 EntityOptions.nbt 过滤器
     if (selector.hasNbtCondition()) {
-        // NBT 匹配需要从实体获取 NBT 数据
-        // 当前暂不支持，需要在 Entity 类中添加 NBT 序列化方法
-        // TODO: 当 Entity 支持 NBT 序列化后实现
-        // 暂时跳过 NBT 检查，不排除任何玩家
+        // TODO(待完善): 实现完整 NBT 条件过滤逻辑
+        // 步骤:
+        // 1. 从 PlayerEntityManager 获取玩家实体
+        // 2. 调用 entity->serializeNBT() 获取实体 NBT 数据
+        // 3. 使用 NbtHelper::compare() 比较 NBT 标签
+        // 4. 根据 negated 标志决定是否取反结果
+        // 当前行为：跳过 NBT 检查，不排除任何玩家
     }
 
-    // 检查谓词条件
-    // 参考 MC 1.16.5 EntityOptions.predicate 过滤器
+    // ========== 待完善功能：谓词条件过滤 ==========
+    // 当前状态：参数解析已实现，过滤逻辑待完善
+    // 依赖：需要 LootConditionManager 和 LootContext 支持战利品表谓词评估
+    // 参考：MC 1.16.5 EntityOptions.predicate 过滤器
     if (selector.hasPredicateCondition()) {
-        // 谓词条件需要 LootConditionManager 和 LootContext
-        // 当前暂不支持，需要从服务器获取谓词管理器
-        // TODO: 当服务器支持谓词管理器后实现
-        // 暂时跳过谓词检查，不排除任何玩家
+        // TODO(待完善): 实现完整谓词条件过滤逻辑
+        // 步骤:
+        // 1. 从服务器获取 LootConditionManager
+        // 2. 通过 ResourceLocation 加载谓词定义
+        // 3. 创建 LootContext (包含实体、位置、世界等上下文)
+        // 4. 评估谓词条件并返回结果
+        // 5. 根据 negated 标志决定是否取反结果
+        // 当前行为：跳过谓词检查，不排除任何玩家
     }
 
     return true;

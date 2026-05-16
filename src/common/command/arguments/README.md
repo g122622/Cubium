@@ -158,6 +158,10 @@ EntitySelector selector = entityArg->parse(reader);
 | `team` | - | 队伍（支持 `!` 取反） |
 | `x_rotation` | - | 俯仰角范围（pitch，-90 到 90 度） |
 | `y_rotation` | - | 偏航角范围（yaw，-180 到 180 度） |
+| `scores` | - | 记分板分数条件（如 `{deaths=1..5,kills=10..}`） |
+| `advancements` | - | 进度条件（如 `{minecraft:story/root=true}`） |
+| `nbt` | - | NBT 数据条件（如 `{CustomName:"Test"}`，支持 `!` 取反） |
+| `predicate` | - | 战利品表谓词（如 `minecraft:example`，支持 `!` 取反） |
 
 #### `FloatRange` - 浮点数范围
 
@@ -609,6 +613,11 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 | `EntitySelectorRotationTest` | 3 | x_rotation/y_rotation 默认无界、设置值 |
 | `EntityArgumentParseTest` | 25 | 选择器类型解析（@p/@a/@e/@r/@s）、参数解析（distance、level、limit、sort、坐标、尺寸、name、gamemode、type、tag、team、x_rotation、y_rotation） |
 | `EntityArgumentRotationParseTest` | 11 | x_rotation/y_rotation 解析（范围、单边界、精确值、跨越边界、与其他参数组合） |
+| `EntityArgumentScoresParseTest` | 4 | scores 参数解析（单个分数、分数范围、多个分数、includesNonPlayers 设置） |
+| `EntityArgumentAdvancementsParseTest` | 5 | advancements 参数解析（完成状态、未完成状态、准则条件、多个进度、includesNonPlayers 设置） |
+| `EntityArgumentPredicateParseTest` | 3 | predicate 参数解析（基本格式、取反格式、无命名空间格式） |
+| `EntityArgumentNbtParseTest` | 6 | nbt 参数解析（简单 NBT、取反、复杂 NBT、嵌套 NBT、空 NBT、数字类型） |
+| `EntityArgumentEdgeCaseTest` | 20 | 边界和异常场景（空参数、多参数组合、引号包围、空白处理、负坐标、无效值、重复参数、多标签、多记分板目标等） |
 
 **示例测试代码**：
 
@@ -667,12 +676,11 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 
 当前模块已实现核心参数类型，未来可扩展：
 
-1. **更多选择器参数**：`type`, `sort`, `distance`, `x`, `y`, `z`, `dx`, `dy`, `dz`, `scores`, `tag`, `team`, `name`, `nbt`
-2. **NBT 参数类型**：解析 NBT 标签
+1. **NBT 过滤逻辑**：当前仅实现参数解析，过滤逻辑需要 Entity 类支持 NBT 序列化
+2. **谓词过滤逻辑**：当前仅实现参数解析，过滤逻辑需要 LootConditionManager 支持
 3. **组件参数类型**：解析文本组件（JSON）
-4. **范围参数类型**：`IntRange`, `FloatRange`
-5. **时间参数类型**：解析时间字符串（如 `10s`, `5m`, `1h`）
-6. **角度参数类型**：解析角度（支持度数和弧度）
+4. **时间参数类型**：解析时间字符串（如 `10s`, `5m`, `1h`）
+5. **角度参数类型**：解析角度（支持度数和弧度）
 
 ---
 
@@ -685,3 +693,4 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 | 2024-03 | 1.2 | 添加坐标和旋转参数类型 |
 | 2024-05 | 1.3 | 添加 BlockStateArgumentType，支持方块状态属性解析 |
 | 2026-05 | 1.4 | 实现 x_rotation/y_rotation 角度范围解析；添加 FloatRange::testAngle() 方法；修复 readSelectorArgumentToken() 支持 `!` 取反前缀；完善选择器参数支持（distance、level、x/y/z、dx/dy/dz、sort、type、tag、name、gamemode、team、x_rotation、y_rotation） |
+| 2026-05 | 1.5 | 实现 scores/advancements/nbt/predicate 参数解析；添加 EntitySelector::NbtCondition、PredicateCondition、AdvancementCondition 结构；在 PlayerResolver 中实现 scores 和 advancements 过滤逻辑；nbt 和 predicate 过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager） |
