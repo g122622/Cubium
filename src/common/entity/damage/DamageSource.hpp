@@ -303,6 +303,8 @@ public:
 
     [[nodiscard]] bool isMagic() const override { return m_type == DamageType::Magic || m_type == DamageType::Wither; }
 
+    [[nodiscard]] bool isExplosion() const override { return m_type == DamageType::Explosion || m_type == DamageType::ExplosionPlayer; }
+
     [[nodiscard]] f32 hungerDamage() const override { return m_hungerDamage; }
 
     [[nodiscard]] bool isDamageAbsolute() const override { return m_isDamageAbsolute; }

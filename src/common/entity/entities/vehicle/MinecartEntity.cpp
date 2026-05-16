@@ -24,6 +24,7 @@
 #include "MinecartEntity.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
@@ -860,8 +861,9 @@ f32 AbstractMinecartEntity::getMaxSpeedWithRail() const
     return getMaxSpeed();
 }
 
-void AbstractMinecartEntity::dropItem()
+void AbstractMinecartEntity::dropItem(DamageSource* source)
 {
+    MC_UNUSED(source);
     // MC 1.16.5: killMinecart()
     // 根据矿车类型掉落对应物品
 
@@ -995,8 +997,8 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
             // 创造模式玩家攻击且无自定义名称：直接移除，不掉落物品
             remove();
         } else {
-            // 掉落矿车物品
-            dropItem();
+            // 掉落矿车物品，传递伤害源以便子类判断
+            dropItem(&source);
         }
     }
 
@@ -1053,8 +1055,9 @@ void ChestMinecartEntity::applyDrag()
     setVelocity(velocityX() * drag, velocityY(), velocityZ() * drag);
 }
 
-void ChestMinecartEntity::dropItem()
+void ChestMinecartEntity::dropItem(DamageSource* source)
 {
+    MC_UNUSED(source);
     // MC 1.16.5: 先掉落库存内容，再掉落矿车物品
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1076,7 +1079,7 @@ void ChestMinecartEntity::dropItem()
     }
 
     // 调用父类方法掉落矿车物品
-    AbstractMinecartEntity::dropItem();
+    AbstractMinecartEntity::dropItem(source);
 }
 
 i32 ChestMinecartEntity::getContainerSize() const
@@ -1220,22 +1223,32 @@ void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powere
     }
 }
 
-void FurnaceMinecartEntity::dropItem()
+void FurnaceMinecartEntity::dropItem(DamageSource* source)
 {
-    // MC 1.16.5: 熔炉矿车被破坏时掉落熔炉
+    // MC 1.16.5 FurnaceMinecartEntity.killMinecart() 行82-88
+    // 先调用父类方法掉落矿车物品
+    AbstractMinecartEntity::dropItem(source);
+
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
-        remove();
         return;
     }
 
-    // 检查伤害来源是否为爆炸
-    // 如果是爆炸伤害，不掉落熔炉
-    // TODO: 当 DamageSource 系统完善后检查伤害来源
-    // 目前简化处理，直接掉落熔炉矿车物品
+    // MC 1.16.5: 如果不是爆炸伤害且游戏规则允许实体掉落，则掉落熔炉方块
+    // if (!source.isExplosion() && this.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
+    // 参考 MC 1.16.5 FurnaceMinecartEntity.killMinecart()
+    bool isExplosion = (source != nullptr && source->isExplosion());
+    // TODO: 当 GameRules 系统完善后检查 DO_ENTITY_DROPS 规则
+    // bool doEntityDrops = worldPtr->gameRules().getBoolean(GameRules::DO_ENTITY_DROPS);
 
-    // 调用父类方法掉落矿车物品
-    AbstractMinecartEntity::dropItem();
+    if (!isExplosion) {
+        // 掉落熔炉方块
+        // 参考 MC 1.16.5: this.entityDropItem(Blocks.FURNACE);
+        // 通过 BlockItemRegistry 获取熔炉方块物品
+        // TODO: 当 FURNACE 方块注册到 VanillaBlocks 后使用 BlockItemRegistry
+        // 目前暂不实现熔炉方块掉落，因为 FURNACE 方块尚未完全实现
+        // const BlockItem* furnaceBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::FURNACE);
+    }
 }
 
 // ============================================================================
@@ -1344,32 +1357,54 @@ bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount)
     return hurt(source, amount);
 }
 
-void TNTMinecartEntity::dropItem()
+void TNTMinecartEntity::dropItem(DamageSource* source)
 {
     // MC 1.16.5 TNTMinecartEntity.killMinecart() 行79-94
     // 火焰或爆炸伤害时点燃而非爆炸掉落
     f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
 
-    // TODO: 当 DamageSource 完善，检查 isFireDamage() 和 isExplosion()
-    // if (!source.isFireDamage() && !source.isExplosion() && speedSq < 0.01) {
-    //     super.killMinecart(source);
-    //     if (!source.isExplosion() && world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS)) {
-    //         entityDropItem(Blocks.TNT);
-    //     }
-    // } else {
-    //     if (m_fuse < 0) {
-    //         ignite();
-    //         m_fuse = rand.nextInt(20) + rand.nextInt(20);  // 随机0-40 ticks
-    //     }
-    // }
+    // 判断伤害类型
+    bool isFire = (source != nullptr && source->isFire());
+    bool isExplosion = (source != nullptr && source->isExplosion());
 
-    // 目前简化处理：如果已点燃则不执行
-    if (m_fuse >= 0) {
-        return; // 已点燃，等待爆炸
+    // MC 1.16.5: if (!source.isFireDamage() && !source.isExplosion() && !(d0 >= 0.01D))
+    // 如果不是火焰伤害、不是爆炸伤害、且速度足够低，则正常掉落
+    if (!isFire && !isExplosion && speedSq < 0.01) {
+        // 先掉落矿车物品
+        AbstractMinecartEntity::dropItem(source);
+
+        // MC 1.16.5: if (!source.isExplosion() && world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
+        // 如果不是爆炸伤害且游戏规则允许实体掉落，则额外掉落 TNT 方块
+        if (!isExplosion) {
+            // TODO: 当 GameRules 系统完善后检查 DO_ENTITY_DROPS 规则
+            IWorld* worldPtr = world();
+            if (worldPtr && !worldPtr->isClientSide()) {
+                // 通过 BlockItemRegistry 获取 TNT 方块物品
+                // 参考 MC 1.16.5: this.entityDropItem(Blocks.TNT);
+                const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(
+                    *VanillaBlocks::TNT);
+                if (tntBlockItem != nullptr) {
+                    ItemStack stack(*tntBlockItem, 1);
+                    math::Random& rng = worldPtr->getRandom();
+                    ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+                }
+            }
+        }
+    } else {
+        // MC 1.16.5: 火焰或爆炸伤害时点燃 TNT 矿车
+        if (m_fuse < 0) {
+            ignite();
+            // 随机点燃时间 0-40 ticks
+            // MC 1.16.5: this.minecartTNTFuse = this.rand.nextInt(20) + this.rand.nextInt(20);
+            IWorld* worldPtr = world();
+            if (worldPtr) {
+                math::Random& rng = worldPtr->getRandom();
+                m_fuse = rng.nextInt(20) + rng.nextInt(20);
+            } else {
+                m_fuse = 20; // 默认点燃时间
+            }
+        }
     }
-
-    // 调用父类方法掉落矿车物品
-    AbstractMinecartEntity::dropItem();
 }
 
 void TNTMinecartEntity::checkFireIgnition()

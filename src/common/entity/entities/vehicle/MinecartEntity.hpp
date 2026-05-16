@@ -253,9 +253,10 @@ public:
 
     /**
      * @brief 掉落矿车物品
-     * MC 1.16.5: killMinecart()
+     * MC 1.16.5: killMinecart(DamageSource source)
+     * @param source 造成矿车破坏的伤害来源，可能为 nullptr（如非伤害导致）
      */
-    virtual void dropItem();
+    virtual void dropItem(DamageSource* source = nullptr);
 
     /**
      * @brief 激活矿车（如熔炉矿车）
@@ -468,8 +469,9 @@ public:
 
     /**
      * @brief 掉落物品时同时掉落库存内容
+     * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
-    void dropItem() override;
+    void dropItem(DamageSource* source = nullptr) override;
 
     // ========== IInventory 代理方法 ==========
 
@@ -590,8 +592,9 @@ public:
     /**
      * @brief 掉落物品时掉落熔炉
      * MC 1.16.5: 爆炸伤害不掉落熔炉
+     * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
-    void dropItem() override;
+    void dropItem(DamageSource* source = nullptr) override;
 
 private:
     i32 m_fuel = 0;
@@ -660,8 +663,9 @@ public:
      * @brief 重写掉落物品逻辑
      * MC 1.16.5: killMinecart() 特殊逻辑
      * 火焰/爆炸伤害时点燃而非爆炸掉落
+     * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
-    void dropItem() override;
+    void dropItem(DamageSource* source = nullptr) override;
 
 private:
     /**
