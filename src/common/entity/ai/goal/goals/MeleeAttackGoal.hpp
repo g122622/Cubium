@@ -86,7 +86,7 @@ protected:
      * @brief 计算攻击距离平方
      * 参考 MC 1.16.5: (this.attacker.getWidth() * 2.0F) * (this.attacker.getWidth() * 2.0F) + target.getWidth()
      */
-    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const;
+    [[nodiscard]] virtual f32 getAttackReachSqr(LivingEntity* target) const;
 
     CreatureEntity* m_creature;
     f64 m_speed;

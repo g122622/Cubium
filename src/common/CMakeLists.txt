@@ -266,6 +266,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/BeeGoals.cpp
     entity/ai/goal/goals/special/MoveToLavaGoal.cpp
     entity/ai/goal/goals/special/PatrolGoals.cpp
+    entity/ai/goal/goals/special/RavagerGoals.cpp
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
@@ -281,6 +282,7 @@ add_library(mc_common STATIC
     entity/ai/pathfinding/Path.cpp
     entity/ai/pathfinding/Region.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
+    entity/ai/pathfinding/RavagerNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp
     entity/ai/util/RandomPositionGenerator.cpp

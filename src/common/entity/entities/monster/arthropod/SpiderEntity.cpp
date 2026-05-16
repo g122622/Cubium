@@ -78,7 +78,7 @@ public:
     }
 
 protected:
-    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const
+    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const override
     {
         // MC 1.16.5: 4.0F + target.getWidth()
         return 4.0F + target->width();
