@@ -203,6 +203,47 @@ villager->getOffers()->add(std::move(offer));
 
 村民具有完整的睡眠系统，在夜间自动寻找床位并睡眠。
 
+### 睡眠机制架构
+
+村民的睡眠行为通过 Brain 系统自动管理，无需手动触发：
+
+1. **Schedule 时间表**：
+   - `Schedule::VILLAGER_DEFAULT` 定义村民的日常活动安排
+   - 游戏时间 12000 ticks 时自动切换到 `Activity::REST` 活动
+
+2. **Brain 活动切换**：
+   - `Brain::updateActivity()` 每 20 tick 检查一次活动
+   - 根据当前游戏时间自动切换活动
+
+3. **AI 目标执行**：
+   - `SleepAtNightGoal` 在 REST 活动期间检查睡眠条件
+   - 自动查找床位、移动到床、开始睡眠
+
+### 日程系统
+
+村民的日程安排（MC 1.16.5）：
+
+| 游戏时间 | 活动类型 | 行为 |
+|----------|----------|------|
+| 10 tick | IDLE | 空闲 |
+| 2000 tick | WORK | 工作 |
+| 9000 tick | MEET | 聚会 |
+| 11000 tick | IDLE | 空闲 |
+| 12000 tick | REST | 休息/睡眠 |
+
+### 工作系统
+
+村民的工作行为同样通过 Brain 系统和 AI Goal 自动管理：
+
+1. **WorkAtJobSiteGoal**：
+   - `shouldExecute()`: 检查是否是工作时间 (2000-9000 tick) 和是否有工作站点
+   - `tick()`: 检查是否在工作站点附近，执行工作逻辑
+   - 工作时增加村民经验值
+
+2. **LookForJobSiteGoal**：
+   - 自动寻找可用的工作站点
+   - 通过 POI 系统查找职业对应的工作方块
+
 ### 睡眠状态管理
 
 | 方法 | 描述 |
