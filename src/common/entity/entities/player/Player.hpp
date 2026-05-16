@@ -1138,6 +1138,18 @@ public:
     [[nodiscard]] bool isLookingAt(const Entity& target) const;
 
     /**
+     * @brief 检查玩家是否穿戴金装备
+     *
+     * 猪灵会对未穿戴金装备的玩家产生敌意。
+     * 检查玩家的四个盔甲槽位是否有金制盔甲。
+     *
+     * 参考 MC 1.16.5: PiglinTasks.func_234460_a_() (wearsGoldArmor)
+     *
+     * @return 如果玩家穿戴任何金装备返回 true
+     */
+    [[nodiscard]] bool isWearingGoldArmor() const;
+
+    /**
      * @brief 获取自动跳跃系统
      */
     [[nodiscard]] entity::movement::AutoJump& autoJump() { return m_autoJump; }

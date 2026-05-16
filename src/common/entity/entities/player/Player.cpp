@@ -22,6 +22,7 @@
 */
 
 #include "Player.hpp"
+#include "../../../item/armor/ArmorMaterial.hpp"
 #include "../../../item/core/ActionResult.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
@@ -2269,6 +2270,41 @@ bool Player::isLookingAt(const Entity& target) const
     f32 threshold = 1.0f - 0.025f / distance;
 
     return dotProduct > threshold;
+}
+
+bool Player::isWearingGoldArmor() const
+{
+    // MC 1.16.5: PiglinTasks.func_234460_a_() (wearsGoldArmor)
+    // 检查玩家的四个盔甲槽位是否有金制盔甲
+    // 金制盔甲可以使猪灵对玩家保持中立
+
+    // 遍历四个盔甲槽位
+    for (i32 slotIndex = static_cast<i32>(EquipmentSlot::Feet);
+         slotIndex <= static_cast<i32>(EquipmentSlot::Head); ++slotIndex) {
+        const ItemStack& armor = getEquipment(static_cast<EquipmentSlot>(slotIndex));
+        if (armor.isEmpty()) {
+            continue;
+        }
+
+        const Item* item = armor.getItem();
+        if (item == nullptr) {
+            continue;
+        }
+
+        // 检查是否为盔甲物品
+        const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+        if (armorItem == nullptr) {
+            continue;
+        }
+
+        // 检查材质是否为金
+        // 通过比较材质引用来判断
+        if (&armorItem->getMaterial() == &item::armor::ArmorMaterials::GOLD) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace mc

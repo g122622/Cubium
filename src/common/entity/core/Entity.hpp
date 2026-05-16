@@ -137,16 +137,17 @@ enum class LegacyEntityType : u32 {
     PiglinBrute = 69,
     Hoglin = 70,
     Zoglin = 71,
-    Vindicator = 72,
-    Evoker = 73,
-    Illusioner = 74,
-    Pillager = 75,
-    Guardian = 76,
-    ElderGuardian = 77,
-    Witch = 78,
-    Ravager = 79,
-    Blaze = 80,
-    Vex = 81,       // 恼鬼
+    ZombifiedPiglin = 72, // 僵尸猪灵
+    Vindicator = 73,
+    Evoker = 74,
+    Illusioner = 75,
+    Pillager = 76,
+    Guardian = 77,
+    ElderGuardian = 78,
+    Witch = 79,
+    Ravager = 80,
+    Blaze = 81,
+    Vex = 82,       // 恼鬼
 
     // Boss
     Wither = 90,
