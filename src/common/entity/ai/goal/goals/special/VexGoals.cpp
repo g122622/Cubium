@@ -28,6 +28,7 @@
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/BlockState.hpp"
+#include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../controller/MovementController.hpp"
@@ -117,8 +118,7 @@ void VexChargeAttackGoal::startExecuting()
     m_vex->setCharging(true);
 
     // MC 1.16.5: 播放充电音效
-    // world.playSound(null, posX, posY, posZ, SoundEvents.ENTITY_VEX_CHARGE, SoundCategory.HOSTILE, 1.0F, 1.0F);
-    // TODO: 当音效系统完善后播放音效
+    m_vex->playSound(SoundEvents::ENTITY_VEX_CHARGE, 1.0f, 1.0f);
 }
 
 void VexChargeAttackGoal::resetTask()
