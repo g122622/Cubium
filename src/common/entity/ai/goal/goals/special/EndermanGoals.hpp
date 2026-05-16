@@ -35,6 +35,11 @@ namespace mc {
 class EndermanEntity;
 class Player;
 class LivingEntity;
+class BlockState;
+class BlockPos;
+class IWorld;
+class BlockState;
+class BlockPos;
 
 namespace entity::ai::goal {
 
@@ -129,6 +134,97 @@ private:
     static constexpr f64 TELEPORT_FAR_DISTANCE_SQ = 256.0;   // 远距离瞬移阈值（16格的平方）
     static constexpr i32 TELEPORT_COOLDOWN_TICKS = 30;       // 瞬移冷却（ticks）
     static constexpr i32 TARGET_DISTANCE = 10;      // 目标搜索距离（格）
+};
+
+/**
+ * @brief 末影人放置方块目标
+ *
+ * 末影人将拿着的方块放置到世界中。
+ *
+ * 参考 MC 1.16.5 EndermanEntity.PlaceBlockGoal
+ *
+ * 行为：
+ * - 只有当末影人拿着方块时才执行
+ * - 需要 mobGriefing 游戏规则为 true
+ * - 执行概率：1/2000 (每tick)
+ * - 在末影人周围 2x2x2 范围内随机选择放置位置
+ * - 检查目标位置是否为空气、下方方块是否有效、是否有实体碰撞
+ *
+ * 互斥标志：无（低优先级后台任务）
+ */
+class EndermanPlaceBlockGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param enderman 拥有此目标的末影人实体
+     */
+    explicit EndermanPlaceBlockGoal(EndermanEntity* enderman);
+
+    ~EndermanPlaceBlockGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "EndermanPlaceBlockGoal"; }
+
+private:
+    /**
+     * @brief 检查是否可以在指定位置放置方块
+     * @param world 世界实例
+     * @param pos 放置位置
+     * @param state 要放置的方块状态
+     * @param currentState 当前位置的方块状态
+     * @param belowState 下方方块的方块状态
+     * @param belowPos 下方方块的位置
+     * @return 如果可以放置返回 true
+     */
+    [[nodiscard]] bool canPlaceBlock(IWorld* world, const BlockPos& pos, const BlockState* state,
+                                      const BlockState* currentState, const BlockState* belowState,
+                                      const BlockPos& belowPos) const;
+
+    EndermanEntity* m_enderman;
+
+    // MC 1.16.5: 1/2000 概率执行
+    static constexpr i32 PLACE_CHANCE = 2000;
+};
+
+/**
+ * @brief 末影人拾取方块目标
+ *
+ * 末影人从世界中拾取方块。
+ *
+ * 参考 MC 1.16.5 EndermanEntity.TakeBlockGoal
+ *
+ * 行为：
+ * - 只有当末影人没有拿着方块时才执行
+ * - 需要 mobGriefing 游戏规则为 true
+ * - 执行概率：1/20 (每tick)
+ * - 在末影人周围 4x3x4 范围内随机选择拾取位置
+ * - 使用射线检测确保可以到达目标方块
+ * - 只拾取 ENDERMAN_HOLDABLE 标签中的方块
+ *
+ * 互斥标志：无（低优先级后台任务）
+ */
+class EndermanTakeBlockGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param enderman 拥有此目标的末影人实体
+     */
+    explicit EndermanTakeBlockGoal(EndermanEntity* enderman);
+
+    ~EndermanTakeBlockGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "EndermanTakeBlockGoal"; }
+
+private:
+    EndermanEntity* m_enderman;
+
+    // MC 1.16.5: 1/20 概率执行
+    static constexpr i32 TAKE_CHANCE = 20;
 };
 
 } // namespace entity::ai::goal

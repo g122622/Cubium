@@ -316,6 +316,15 @@ BlockTag& BlockTags::BEE_GROWABLES()
     return *tag;
 }
 
+BlockTag& BlockTags::ENDERMAN_HOLDABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "enderman_holdable"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -585,6 +594,65 @@ void BlockTags::initialize()
         // 甜浆果丛
         ResourceLocation("minecraft", "sweet_berry_bush")});
     tags[beeGrowables->getId()] = std::move(beeGrowables);
+
+    // 创建 ENDERMAN_HOLDABLE 标签（末影人可拾取方块）
+    // 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
+    // 包含：泥土类、沙子类、蘑菇、花、仙人掌、南瓜/西瓜、TNT、下界方块
+    auto endermanHoldable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "enderman_holdable"));
+    endermanHoldable->addAll({// 泥土类
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        // 沙子类
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        // 沙砾
+        ResourceLocation("minecraft", "gravel"),
+        // 蘑菇
+        ResourceLocation("minecraft", "brown_mushroom"),
+        ResourceLocation("minecraft", "red_mushroom"),
+        // TNT
+        ResourceLocation("minecraft", "tnt"),
+        // 仙人掌
+        ResourceLocation("minecraft", "cactus"),
+        // 黏土块
+        ResourceLocation("minecraft", "clay"),
+        // 南瓜和西瓜
+        ResourceLocation("minecraft", "pumpkin"),
+        ResourceLocation("minecraft", "carved_pumpkin"),
+        ResourceLocation("minecraft", "melon"),
+        // 菌丝体
+        ResourceLocation("minecraft", "mycelium"),
+        // 下界方块（1.16新增）
+        ResourceLocation("minecraft", "crimson_fungus"),
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "crimson_roots"),
+        ResourceLocation("minecraft", "warped_fungus"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "warped_roots")});
+    tags[endermanHoldable->getId()] = std::move(endermanHoldable);
+
+    // 创建小花朵标签并添加到末影人可拾取
+    // 小花朵通过 SMALL_FLOWERS 标签也被末影人可拾取
+    // 将小花朵添加到 ENDERMAN_HOLDABLE
+    BlockTag* endermanTag = tags.at(ResourceLocation("minecraft", "enderman_holdable")).get();
+    if (endermanTag) {
+        // 添加所有小花朵
+        endermanTag->addAll({ResourceLocation("minecraft", "dandelion"),
+            ResourceLocation("minecraft", "poppy"),
+            ResourceLocation("minecraft", "blue_orchid"),
+            ResourceLocation("minecraft", "allium"),
+            ResourceLocation("minecraft", "azure_bluet"),
+            ResourceLocation("minecraft", "red_tulip"),
+            ResourceLocation("minecraft", "orange_tulip"),
+            ResourceLocation("minecraft", "white_tulip"),
+            ResourceLocation("minecraft", "pink_tulip"),
+            ResourceLocation("minecraft", "oxeye_daisy"),
+            ResourceLocation("minecraft", "cornflower"),
+            ResourceLocation("minecraft", "lily_of_the_valley"),
+            ResourceLocation("minecraft", "wither_rose")});
+    }
 
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));

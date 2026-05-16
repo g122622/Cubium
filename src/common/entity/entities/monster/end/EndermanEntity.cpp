@@ -217,26 +217,29 @@ bool EndermanEntity::teleportAwayFromWater()
 void EndermanEntity::placeHeldBlock()
 {
     // MC 1.16.5 EndermanEntity.placeBlock()
+    // 注意：实际的放置逻辑由 EndermanPlaceBlockGoal 处理
+    // 这个方法作为一个 API 入口，可以被外部调用或测试
     if (!m_holdingBlock || m_heldBlockState == nullptr) {
         return;
     }
 
-    // TODO: 放置方块
-    // 1. 找到合适的放置位置
-    // 2. 检查是否可以放置
-    // 3. 放置方块
-
-    m_holdingBlock = false;
-    m_heldBlockState = nullptr;
+    // 委托给 AI 目标处理
+    // 实际逻辑在 EndermanGoals.cpp 的 EndermanPlaceBlockGoal::tick() 中
+    // 该方法保留作为外部接口
 }
 
 void EndermanEntity::pickUpBlock()
 {
     // MC 1.16.5 EndermanEntity.takeBlock()
-    // TODO: 拾取方块
-    // 1. 找到可拾取的方块
-    // 2. 检查方块是否在可拾取列表中
-    // 3. 移除方块并设置 heldBlockState
+    // 注意：实际的拾取逻辑由 EndermanTakeBlockGoal 处理
+    // 这个方法作为一个 API 入口，可以被外部调用或测试
+    if (m_holdingBlock) {
+        return;
+    }
+
+    // 委托给 AI 目标处理
+    // 实际逻辑在 EndermanGoals.cpp 的 EndermanTakeBlockGoal::tick() 中
+    // 该方法保留作为外部接口
 }
 
 bool EndermanEntity::isInWaterOrRain() const
@@ -334,11 +337,11 @@ void EndermanEntity::registerGoals()
     // 0: SwimGoal (父类已注册)
     // 1: EndermanStareGoal (注视玩家目标)
     // 2: MeleeAttackGoal (攻击目标)
-    // 5: WaterAvoidingRandomWalkingGoal (避水随机行走)
+    // 5: WaterAvoidingRandomWalkingGoal (避水随机行走) - TODO
     // 7: LookAtGoal (看向玩家，但会激怒末影人)
     // 8: LookRandomlyGoal (随机看向)
-    // 10: PlaceBlockGoal (放置方块) - TODO
-    // 11: TakeBlockGoal (拾取方块) - TODO
+    // 10: PlaceBlockGoal (放置方块)
+    // 11: TakeBlockGoal (拾取方块)
     //
     // 目标选择器：
     // 1: EndermanFindPlayerGoal (查找注视玩家)
@@ -361,6 +364,12 @@ void EndermanEntity::registerGoals()
 
     // 优先级 8: 随机看向
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+
+    // 优先级 10: 放置方块目标
+    m_goalSelector.addGoal(10, new entity::ai::goal::EndermanPlaceBlockGoal(this));
+
+    // 优先级 11: 拾取方块目标
+    m_goalSelector.addGoal(11, new entity::ai::goal::EndermanTakeBlockGoal(this));
 
     // 目标选择器
     // 优先级 1: 查找正在注视末影人的玩家

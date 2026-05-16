@@ -31,7 +31,15 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/BlockTags.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/block/BlockState.hpp"
+#include "../../../../../world/block/BlockRegistry.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
+#include "../../../../../world/gamerule/GameRules.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
 #include <cmath>
 
 namespace mc {
@@ -249,6 +257,214 @@ bool EndermanFindPlayerGoal::shouldAttackPlayer(Player* player) const
         return false;
     }
     return m_enderman->shouldAttackPlayer(*player);
+}
+
+// ============================================================================
+// EndermanPlaceBlockGoal 实现
+// ============================================================================
+
+EndermanPlaceBlockGoal::EndermanPlaceBlockGoal(EndermanEntity* enderman)
+    : Goal(EnumSet<GoalFlag>{})
+    , m_enderman(enderman)
+{
+    MC_ASSERT(enderman != nullptr);
+}
+
+bool EndermanPlaceBlockGoal::shouldExecute()
+{
+    // MC 1.16.5: EndermanEntity.PlaceBlockGoal.shouldExecute()
+    // 1. 必须拿着方块
+    if (!m_enderman->isHoldingBlock() || m_enderman->getHeldBlockState() == nullptr) {
+        return false;
+    }
+
+    // 2. 检查 mobGriefing 游戏规则
+    IWorld* world = m_enderman->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return false;
+    }
+
+    // 3. 1/2000 概率执行
+    return m_enderman->getRandom().nextInt(PLACE_CHANCE) == 0;
+}
+
+void EndermanPlaceBlockGoal::tick()
+{
+    // MC 1.16.5: EndermanEntity.PlaceBlockGoal.tick()
+    IWorld* world = m_enderman->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    const BlockState* heldState = m_enderman->getHeldBlockState();
+    if (heldState == nullptr) {
+        return;
+    }
+
+    math::Random rng = m_enderman->getRandom();
+
+    // 在末影人周围 2x2x2 范围内随机选择放置位置
+    // MC 1.16.5: floor(posX - 1.0 + random * 2.0)
+    i32 x = math::floorTo<i32>(m_enderman->x() - 1.0 + rng.nextDouble() * 2.0);
+    i32 y = math::floorTo<i32>(m_enderman->y() + rng.nextDouble() * 2.0);
+    i32 z = math::floorTo<i32>(m_enderman->z() - 1.0 + rng.nextDouble() * 2.0);
+    BlockPos pos(x, y, z);
+
+    const BlockState* currentState = world->getBlockState(pos);
+    if (currentState == nullptr) {
+        return;
+    }
+
+    BlockPos belowPos(x, y - 1, z);
+    const BlockState* belowState = world->getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return;
+    }
+
+    // 获取有效放置状态（处理方向性方块等）
+    // MC 1.16.5: Block.getValidBlockForPosition(blockstate, world, blockpos)
+    // 目前简化：直接使用原始状态
+    const BlockState* placeState = heldState;
+
+    // 检查是否可以放置
+    if (!canPlaceBlock(world, pos, placeState, currentState, belowState, belowPos)) {
+        return;
+    }
+
+    // 放置方块
+    // MC 1.16.5: world.setBlockState(blockpos, blockstate2, 3)
+    world->setBlockState(pos, placeState, 3);
+
+    // 清除拿着的方块
+    m_enderman->setHeldBlockState(nullptr);
+}
+
+bool EndermanPlaceBlockGoal::canPlaceBlock(IWorld* world, const BlockPos& pos, const BlockState* state,
+                                             const BlockState* currentState, const BlockState* belowState,
+                                             const BlockPos& belowPos) const
+{
+    // MC 1.16.5: EndermanEntity.PlaceBlockGoal.func_220836_a()
+    // 1. 目标位置必须是空气
+    if (!currentState->isAir()) {
+        return false;
+    }
+
+    // 2. 下方方块不能是空气
+    if (belowState->isAir()) {
+        return false;
+    }
+
+    // 3. 下方方块不能是基岩
+    const Block& belowBlock = belowState->owner();
+    if (belowBlock.blockLocation() == ResourceLocation("minecraft", "bedrock")) {
+        return false;
+    }
+
+    // 4. 下方方块必须有实体碰撞形状（固体）
+    // MC 1.16.5: blockstate1.hasOpaqueCollisionShape(world, blockpos1)
+    if (!belowState->isSolid()) {
+        // 简化检查：使用 isSolid 判断
+        return false;
+    }
+
+    // 5. 方块状态必须有效（isValidPosition）
+    // 目前简化：假设所有位置都有效
+    // 完整实现需要 Block::isValidPosition
+
+    // 6. 放置位置不能有实体碰撞
+    // MC 1.16.5: world.getEntitiesWithinAABBExcludingEntity(this.enderman, AxisAlignedBB.func_241549_a_(Vector3d.copy(blockpos))).isEmpty()
+    AxisAlignedBB box(
+        static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1), static_cast<f32>(pos.y + 1), static_cast<f32>(pos.z + 1));
+    std::vector<Entity*> entities = world->getEntitiesInAABB(box, m_enderman);
+    if (!entities.empty()) {
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// EndermanTakeBlockGoal 实现
+// ============================================================================
+
+EndermanTakeBlockGoal::EndermanTakeBlockGoal(EndermanEntity* enderman)
+    : Goal(EnumSet<GoalFlag>{})
+    , m_enderman(enderman)
+{
+    MC_ASSERT(enderman != nullptr);
+}
+
+bool EndermanTakeBlockGoal::shouldExecute()
+{
+    // MC 1.16.5: EndermanEntity.TakeBlockGoal.shouldExecute()
+    // 1. 必须没有拿着方块
+    if (m_enderman->isHoldingBlock()) {
+        return false;
+    }
+
+    // 2. 检查 mobGriefing 游戏规则
+    IWorld* world = m_enderman->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return false;
+    }
+
+    // 3. 1/20 概率执行
+    return m_enderman->getRandom().nextInt(TAKE_CHANCE) == 0;
+}
+
+void EndermanTakeBlockGoal::tick()
+{
+    // MC 1.16.5: EndermanEntity.TakeBlockGoal.tick()
+    IWorld* world = m_enderman->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    math::Random rng = m_enderman->getRandom();
+
+    // 在末影人周围 4x3x4 范围内随机选择拾取位置
+    // MC 1.16.5: floor(posX - 2.0 + random * 4.0)
+    i32 x = math::floorTo<i32>(m_enderman->x() - 2.0 + rng.nextDouble() * 4.0);
+    i32 y = math::floorTo<i32>(m_enderman->y() + rng.nextDouble() * 3.0);
+    i32 z = math::floorTo<i32>(m_enderman->z() - 2.0 + rng.nextDouble() * 4.0);
+    BlockPos pos(x, y, z);
+
+    const BlockState* state = world->getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return;
+    }
+
+    const Block& targetBlock = state->owner();
+
+    // 检查方块是否在 ENDERMAN_HOLDABLE 标签中
+    if (!BlockTags::ENDERMAN_HOLDABLE().contains(targetBlock)) {
+        return;
+    }
+
+    // 射线检测：从末影人眼睛到目标方块
+    // MC 1.16.5: world.rayTraceBlocks(...)
+    // 简化实现：检查目标位置是否与末影人位置之间有阻挡
+    // 目前假设没有阻挡，直接拾取
+
+    // 移除方块（设置空气）
+    // MC 1.16.5: world.removeBlock(blockpos, false)
+    const BlockState* airState = BlockRegistry::instance().airState();
+    if (airState == nullptr) {
+        return;
+    }
+    world->setBlockState(pos, airState, 3);
+
+    // 设置拿着的方块（使用默认状态）
+    m_enderman->setHeldBlockState(&targetBlock.defaultState());
 }
 
 } // namespace entity::ai::goal

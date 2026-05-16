@@ -220,6 +220,13 @@ public:
     /// 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
     static BlockTag& BEE_GROWABLES();
 
+    // ========== 末影人标签 ==========
+
+    /// 末影人可拾取方块标签
+    /// 草方块、泥土、沙子、沙砾、蘑菇、花、仙人掌、南瓜、西瓜、TNT等
+    /// 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
+    static BlockTag& ENDERMAN_HOLDABLE();
+
     /**
      * @brief 初始化所有内置标签
      *
