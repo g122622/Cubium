@@ -137,6 +137,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/PillagerEntityTest.cpp
     # WitchEntity 药水决策和治疗效果测试
     common/entity/entities/monster/illager/WitchEntityTest.cpp
+    # SpellcastingIllager 施法粒子颜色测试
+    common/entity/entities/monster/illager/SpellcastingIllagerTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
     # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
