@@ -22,11 +22,20 @@
 */
 
 #include "WitchEntity.hpp"
+#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../effect/EffectInstance.hpp"
+#include "../../../entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../interfaces/IRangedAttackMob.hpp"
+#include "../../../../item/potion/PotionUtils.hpp"
+#include "../../../../item/potion/Potions.hpp"
+#include "../../../../item/Items.hpp"
 #include "sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../world/IWorld.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -237,9 +246,16 @@ void WitchEntity::registerGoals()
     // 调用父类方法
     AbstractRaiderEntity::registerGoals();
 
-    // TODO: 女巫 AI 目标
-    // - WitchAttackGoal: 药水攻击
-    // - WitchDrinkPotionGoal: 喝药水（已通过 tick() 实现）
+    // MC 1.16.5: 女巫 AI 目标
+    // priority 1: 游泳目标（已在父类注册）
+    // priority 2: 药水攻击
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RangedAttackGoal>(
+        this, 1.0, 60, 60, ATTACK_RADIUS));
+
+    // priority 3: 随机行走（避开水）
+    // priority 4: 看向玩家
+    // priority 5: 随机看
+    // 注: 喝药水逻辑已通过 tick() 实现
 }
 
 void WitchEntity::registerAttributes()
@@ -251,6 +267,171 @@ void WitchEntity::registerAttributes()
     // 参考 MC 1.16.5 女巫属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 26.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+}
+
+// ========== 远程攻击 (IRangedAttackMob) ==========
+
+void WitchEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
+{
+    // MC 1.16.5: 如果正在喝药水，不能投掷药水
+    if (m_drinking) {
+        return;
+    }
+
+    // 检查目标有效性
+    if (target == nullptr || !target->isAlive()) {
+        return;
+    }
+
+    // 选择药水类型
+    entity::effect::EffectType potionType = selectAttackPotionType(target);
+
+    // 投掷药水
+    throwPotionAt(target, potionType);
+}
+
+entity::effect::EffectType WitchEntity::selectAttackPotionType(LivingEntity* target) const
+{
+    math::Random rng = getRandom();
+
+    // MC 1.16.5: 检查目标是否是掠夺者同伴
+    // 如果是，则使用治疗/再生药水
+    const AbstractRaiderEntity* raiderTarget = dynamic_cast<const AbstractRaiderEntity*>(target);
+    if (raiderTarget != nullptr) {
+        // 对掠夺者同伴使用治疗或再生药水
+        if (target->health() <= 4.0f) {
+            // 生命值<=4时用治疗药水
+            return entity::effect::EffectType::InstantHealth;
+        } else {
+            // 否则用再生药水
+            return entity::effect::EffectType::Regeneration;
+        }
+    }
+
+    // 计算到目标的距离
+    f64 dx = target->x() - x();
+    f64 dy = target->y() - y();
+    f64 dz = target->z() - z();
+    f64 distanceSq = dx * dx + dy * dy + dz * dz;
+    f32 distance = static_cast<f32>(std::sqrt(distanceSq));
+
+    // MC 1.16.5: 根据距离和目标状态选择药水类型
+    // 距离>=8格且目标无缓慢效果 -> 缓慢药水
+    if (distance >= FAR_RANGE_DISTANCE && !target->hasEffect(entity::effect::EffectType::Slowness)) {
+        return entity::effect::EffectType::Slowness;
+    }
+
+    // 目标生命>=8且无中毒效果 -> 中毒药水
+    if (target->health() >= 8.0f && !target->hasEffect(entity::effect::EffectType::Poison)) {
+        return entity::effect::EffectType::Poison;
+    }
+
+    // 距离<=3格且无虚弱效果（25%概率）-> 虚弱药水
+    if (distance <= CLOSE_RANGE_DISTANCE && !target->hasEffect(entity::effect::EffectType::Weakness)) {
+        if (rng.nextFloat() < WEAKNESS_CHANCE) {
+            return entity::effect::EffectType::Weakness;
+        }
+    }
+
+    // 默认：伤害药水
+    return entity::effect::EffectType::InstantDamage;
+}
+
+void WitchEntity::throwPotionAt(LivingEntity* target, entity::effect::EffectType potionType)
+{
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr || target == nullptr) {
+        return;
+    }
+
+    math::Random rng = getRandom();
+
+    // 计算投掷方向（考虑目标运动）
+    // MC 1.16.5: Vector3d vector3d = target.getMotion();
+    // double d0 = target.getPosX() + vector3d.x - this.getPosX();
+    // double d1 = target.getPosYEye() - 1.1 - this.getPosY();
+    // double d2 = target.getPosZ() + vector3d.z - this.getPosZ();
+    Vector3 targetMotion = target->velocity();
+    f64 dx = target->x() + targetMotion.x - x();
+    f64 dy = target->y() + target->eyeHeight() - 1.1 - y();
+    f64 dz = target->z() + targetMotion.z - z();
+
+    f32 horizontalDist = std::sqrt(static_cast<f32>(dx * dx + dz * dz));
+
+    // 创建药水实体
+    auto potion = std::make_unique<entity::PotionEntity>(LegacyEntityType::Potion, EntityId(0));
+    potion->setWorld(worldPtr);
+
+    // 设置发射者
+    potion->setShooter(this);
+
+    // 设置位置（从眼睛高度发射）
+    f32 posX = static_cast<f32>(x());
+    f32 posY = static_cast<f32>(y() + eyeHeight() - 0.1f);
+    f32 posZ = static_cast<f32>(z());
+    potion->setPosition(Vector3(posX, posY, posZ));
+
+    // 设置药水类型
+    potion->setLingering(false);
+
+    // 根据效果类型创建药水物品
+    const potion::Potion* potionItem = nullptr;
+    switch (potionType) {
+        case entity::effect::EffectType::InstantHealth:
+            potionItem = potion::Potions::HEALING;
+            break;
+        case entity::effect::EffectType::InstantDamage:
+            potionItem = potion::Potions::HARMING;
+            break;
+        case entity::effect::EffectType::Poison:
+            potionItem = potion::Potions::POISON;
+            break;
+        case entity::effect::EffectType::Slowness:
+            potionItem = potion::Potions::SLOWNESS;
+            break;
+        case entity::effect::EffectType::Weakness:
+            potionItem = potion::Potions::WEAKNESS;
+            break;
+        case entity::effect::EffectType::Regeneration:
+            potionItem = potion::Potions::REGENERATION;
+            break;
+        default:
+            // 默认使用伤害药水
+            potionItem = potion::Potions::HARMING;
+            break;
+    }
+
+    if (potionItem != nullptr) {
+        ItemStack potionStack = potion::PotionUtils::createSplashPotionItem(potionItem);
+        potion->setItemStack(potionStack);
+    }
+
+    // MC 1.16.5: 调整俯仰角
+    // potionentity.rotationPitch -= -20.0F;
+    potion->setRotation(yaw(), pitch() - 20.0f);
+
+    // MC 1.16.5: 发射药水
+    // potionentity.shoot(d0, d1 + (double)(f * 0.2F), d2, 0.75F, 8.0F);
+    // 其中 f = MathHelper.sqrt(d0 * d0 + d2 * d2) 是水平距离
+    f32 velocity = POTION_VELOCITY;
+    f32 inaccuracy = POTION_INACCURACY;
+
+    // 投掷方向添加额外高度补偿
+    f64 adjustedY = dy + static_cast<f64>(horizontalDist * 0.2f);
+
+    potion->shoot(static_cast<f32>(dx), static_cast<f32>(adjustedY), static_cast<f32>(dz),
+                  velocity, inaccuracy);
+
+    // 播放投掷音效
+    // MC 1.16.5: this.world.playSound((PlayerEntity)null, this.getPosX(), this.getPosY(), this.getPosZ(),
+    //            SoundEvents.ENTITY_WITCH_THROW, this.getSoundCategory(), 1.0F, 0.8F + this.rand.nextFloat() * 0.4F);
+    if (!isSilent()) {
+        f32 pitch = 0.8f + rng.nextFloat() * 0.4f;
+        playSound(SoundEvents::ENTITY_WITCH_THROW, 1.0f, pitch);
+    }
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(potion));
 }
 
 } // namespace mc
