@@ -42,6 +42,7 @@
 #include "../../utils/ItemDropHelper.hpp"
 #include "../item/ItemEntity.hpp"
 #include "../player/Player.hpp"
+#include "../projectile/AbstractArrowEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -1328,19 +1329,21 @@ bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount)
     // 检查是否为燃烧的箭矢
     Entity* directSource = source.directSource();
     if (directSource != nullptr) {
-        // TODO: 当 ArrowEntity 实现后检查 isBurning()
-        // if (directSource->legacyType() == LegacyEntityType::Arrow) {
-        //     ArrowEntity* arrow = static_cast<ArrowEntity*>(directSource);
-        //     if (arrow->isBurning()) {
-        //         f64 speedSq = directSource->velocityX() * directSource->velocityX()
-        //                    + directSource->velocityY() * directSource->velocityY()
-        //                    + directSource->velocityZ() * directSource->velocityZ();
-        //         explode(static_cast<f32>(std::sqrt(speedSq)));
-        //         return true;
-        //     }
-        // }
+        // 检查是否为 AbstractArrowEntity（包括 ArrowEntity 和 SpectralArrowEntity）
+        // 使用 dynamic_cast 检测箭矢实体
+        AbstractArrowEntity* arrow = dynamic_cast<AbstractArrowEntity*>(directSource);
+        if (arrow != nullptr && arrow->isOnFire()) {
+            // [已完成] 2026/05/17 - 检测燃烧箭矢引爆 TNT 矿车
+            // MC 1.16.5: 使用箭矢的速度计算爆炸威力
+            Vector3 arrowVelocity = arrow->velocity();
+            f64 speedSq = static_cast<f64>(arrowVelocity.x) * arrowVelocity.x
+                        + static_cast<f64>(arrowVelocity.y) * arrowVelocity.y
+                        + static_cast<f64>(arrowVelocity.z) * arrowVelocity.z;
+            explode(static_cast<f32>(std::sqrt(speedSq)));
+            return true;
+        }
 
-        // 暂时检查伤害类型是否为投射物且带火焰
+        // 兼容：检查其他带火焰的投射物（如火球）
         if (source.isProjectile() && source.isFire()) {
             f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
             explode(static_cast<f32>(std::sqrt(speedSq)));
