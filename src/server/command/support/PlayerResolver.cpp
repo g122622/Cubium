@@ -23,11 +23,20 @@
 
 #include "PlayerResolver.hpp"
 
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/loot/LootConditions.hpp"
+#include "common/entity/loot/LootContext.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/Score.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -164,6 +173,98 @@ namespace {
         if (!matches) {
             return false;
         }
+    }
+
+    // 检查记分板分数条件
+    // 参考 MC 1.16.5 EntityOptions.scores 过滤器
+    if (selector.hasScoreConditions()) {
+        if (server == nullptr) {
+            return false;
+        }
+        auto& scoreboard = server->scoreboard();
+        const std::string& playerName = playerData.username;
+
+        for (const auto& [objectiveName, range] : selector.scoreConditions()) {
+            auto* objective = scoreboard.getObjective(objectiveName);
+            if (objective == nullptr) {
+                // 目标不存在，不匹配
+                return false;
+            }
+            if (!scoreboard.entityHasObjective(playerName, *objective)) {
+                // 玩家没有该目标的分数，不匹配
+                return false;
+            }
+            auto* score = scoreboard.getScore(playerName, *objective);
+            if (score == nullptr) {
+                return false;
+            }
+            if (!range.test(score->getScorePoints())) {
+                // 分数不在范围内，不匹配
+                return false;
+            }
+        }
+    }
+
+    // 检查进度条件
+    // 参考 MC 1.16.5 EntityOptions.advancements 过滤器
+    if (selector.hasAdvancementConditions()) {
+        if (playerData.advancements == nullptr) {
+            return false;
+        }
+
+        auto& manager = advancement::AdvancementManager::instance();
+        for (const auto& [advancementId, condition] : selector.advancementConditions()) {
+            auto advancement = manager.get(advancementId);
+            if (advancement == nullptr) {
+                // 进度不存在，不匹配
+                return false;
+            }
+
+            auto* progress = playerData.advancements->getProgress(advancement);
+            if (progress == nullptr) {
+                // 玩家没有该进度的进度记录，不匹配
+                return false;
+            }
+
+            // 检查整体完成状态
+            if (condition.isComplete.has_value()) {
+                bool isDone = progress->isDone();
+                if (isDone != condition.isComplete.value()) {
+                    return false;
+                }
+            }
+
+            // 检查各准则的完成状态
+            for (const auto& [criteriaName, expectedComplete] : condition.criteriaConditions) {
+                auto* criterionProgress = progress->getCriterion(criteriaName);
+                if (criterionProgress == nullptr) {
+                    // 准则不存在，不匹配
+                    return false;
+                }
+                bool isObtained = criterionProgress->isObtained();
+                if (isObtained != expectedComplete) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // 检查 NBT 条件
+    // 参考 MC 1.16.5 EntityOptions.nbt 过滤器
+    if (selector.hasNbtCondition()) {
+        // NBT 匹配需要从实体获取 NBT 数据
+        // 当前暂不支持，需要在 Entity 类中添加 NBT 序列化方法
+        // TODO: 当 Entity 支持 NBT 序列化后实现
+        // 暂时跳过 NBT 检查，不排除任何玩家
+    }
+
+    // 检查谓词条件
+    // 参考 MC 1.16.5 EntityOptions.predicate 过滤器
+    if (selector.hasPredicateCondition()) {
+        // 谓词条件需要 LootConditionManager 和 LootContext
+        // 当前暂不支持，需要从服务器获取谓词管理器
+        // TODO: 当服务器支持谓词管理器后实现
+        // 暂时跳过谓词检查，不排除任何玩家
     }
 
     return true;

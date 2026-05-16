@@ -23,10 +23,13 @@
 
 #include "EntityArgument.hpp"
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -321,26 +324,211 @@ void EntityArgumentType::applySelectorArgument(
     }
 
     // nbt - NBT 数据（支持取反）
+    // 格式: nbt={...} 或 nbt=!{...}
+    // 参考 MC 1.16.5 EntityOptions.register("nbt", ...)
     if (name == "nbt") {
-        // TODO: NBT 解析需要 NBT 系统
+        StringReader valueReader(value);
+        const bool negated = shouldInvertValue(valueReader);
+        valueReader.skipWhitespace();
+
+        // 解析 NBT 标签（Mojangson 格式）
+        try {
+            // 使用 std::stringstream 桥接 StringReader 和 NBT 解析器
+            std::istringstream nbtStream(valueReader.getRemaining());
+            nbtStream >> nbt::contexts::mojangson;
+
+            auto tag = nbt::tags::read(nbt::deduce_tag(nbtStream), nbtStream);
+            if (tag != nullptr && tag->id() == nbt::TagId::Compound) {
+                EntitySelector::NbtCondition condition;
+                condition.nbt = std::shared_ptr<nbt::tags::compound_tag>(
+                    dynamic_cast<nbt::tags::compound_tag*>(tag.release()));
+                condition.negated = negated;
+                selector.setNbtCondition(condition);
+            }
+        } catch (const std::exception&) {
+            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Invalid NBT format", cursor);
+        }
         return;
     }
 
     // scores - 记分板分数
+    // 格式: scores={objective1=1..5,objective2=10..}
+    // 参考 MC 1.16.5 EntityOptions.register("scores", ...)
     if (name == "scores") {
-        // TODO: 需要记分板系统
+        StringReader valueReader(value);
+        valueReader.skipWhitespace();
+
+        if (!valueReader.canRead() || valueReader.peek() != '{') {
+            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '{' for scores", cursor);
+        }
+        valueReader.skip(); // skip '{'
+        valueReader.skipWhitespace();
+
+        while (valueReader.canRead() && valueReader.peek() != '}') {
+            valueReader.skipWhitespace();
+
+            // 读取目标名称
+            const std::string objectiveName = valueReader.readUnquotedString();
+            if (objectiveName.empty()) {
+                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected objective name", cursor);
+            }
+
+            valueReader.skipWhitespace();
+            if (!valueReader.canRead() || valueReader.peek() != '=') {
+                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '=' after objective name", cursor);
+            }
+            valueReader.skip(); // skip '='
+            valueReader.skipWhitespace();
+
+            // 读取分数范围
+            IntRange range = parseIntRange(valueReader);
+            selector.addScoreCondition(objectiveName, range);
+
+            valueReader.skipWhitespace();
+            if (valueReader.canRead() && valueReader.peek() == ',') {
+                valueReader.skip();
+                valueReader.skipWhitespace();
+            }
+        }
+
+        if (!valueReader.canRead() || valueReader.peek() != '}') {
+            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '}' to close scores", cursor);
+        }
+        valueReader.skip(); // skip '}'
+
+        selector.setIncludesNonPlayers(false); // 记分板只对玩家有效
         return;
     }
 
     // advancements - 进度
+    // 格式: advancements={adv_id=true} 或 advancements={adv_id={criteria1=true,criteria2=false}}
+    // 参考 MC 1.16.5 EntityOptions.register("advancements", ...)
     if (name == "advancements") {
-        // TODO: 需要进度系统
+        StringReader valueReader(value);
+        valueReader.skipWhitespace();
+
+        if (!valueReader.canRead() || valueReader.peek() != '{') {
+            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '{' for advancements", cursor);
+        }
+        valueReader.skip(); // skip '{'
+        valueReader.skipWhitespace();
+
+        while (valueReader.canRead() && valueReader.peek() != '}') {
+            valueReader.skipWhitespace();
+
+            // 读取进度 ID (ResourceLocation)
+            // ResourceLocation 格式: namespace:path 或 path（默认 minecraft 命名空间）
+            std::string advancementIdStr = valueReader.readUnquotedString();
+            ResourceLocation advancementId = ResourceLocation::parse(advancementIdStr);
+
+            valueReader.skipWhitespace();
+            if (!valueReader.canRead() || valueReader.peek() != '=') {
+                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '=' after advancement id", cursor);
+            }
+            valueReader.skip(); // skip '='
+            valueReader.skipWhitespace();
+
+            EntitySelector::AdvancementCondition condition;
+
+            // 判断是布尔值还是对象
+            if (valueReader.canRead() && valueReader.peek() == '{') {
+                // 对象格式：{criteria1=true,criteria2=false}
+                valueReader.skip(); // skip '{'
+                valueReader.skipWhitespace();
+
+                while (valueReader.canRead() && valueReader.peek() != '}') {
+                    valueReader.skipWhitespace();
+
+                    // 读取准则名称
+                    const std::string criteriaName = valueReader.readUnquotedString();
+                    if (criteriaName.empty()) {
+                        throw CommandException(
+                            CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
+                    }
+
+                    valueReader.skipWhitespace();
+                    if (!valueReader.canRead() || valueReader.peek() != '=') {
+                        throw CommandException(
+                            CommandErrorType::EntitySelectorInvalid, "Expected '=' after criteria name", cursor);
+                    }
+                    valueReader.skip(); // skip '='
+                    valueReader.skipWhitespace();
+
+                    // 读取布尔值
+                    if (valueReader.canRead()) {
+                        const char ch = valueReader.peek();
+                        if (ch == 't' || ch == 'T') {
+                            condition.criteriaConditions[criteriaName] = true;
+                            (void)valueReader.readString(); // consume "true"
+                        } else if (ch == 'f' || ch == 'F') {
+                            condition.criteriaConditions[criteriaName] = false;
+                            (void)valueReader.readString(); // consume "false"
+                        } else {
+                            throw CommandException(
+                                CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                        }
+                    }
+
+                    valueReader.skipWhitespace();
+                    if (valueReader.canRead() && valueReader.peek() == ',') {
+                        valueReader.skip();
+                        valueReader.skipWhitespace();
+                    }
+                }
+
+                if (!valueReader.canRead() || valueReader.peek() != '}') {
+                    throw CommandException(
+                        CommandErrorType::EntitySelectorInvalid, "Expected '}' to close criteria", cursor);
+                }
+                valueReader.skip(); // skip '}'
+            } else {
+                // 布尔值格式：true/false
+                if (valueReader.canRead()) {
+                    const char ch = valueReader.peek();
+                    if (ch == 't' || ch == 'T') {
+                        condition.isComplete = true;
+                        (void)valueReader.readString(); // consume "true"
+                    } else if (ch == 'f' || ch == 'F') {
+                        condition.isComplete = false;
+                        (void)valueReader.readString(); // consume "false"
+                    } else {
+                        throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                    }
+                }
+            }
+
+            selector.addAdvancementCondition(advancementId, condition);
+
+            valueReader.skipWhitespace();
+            if (valueReader.canRead() && valueReader.peek() == ',') {
+                valueReader.skip();
+                valueReader.skipWhitespace();
+            }
+        }
+
+        if (!valueReader.canRead() || valueReader.peek() != '}') {
+            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
+        }
+        valueReader.skip(); // skip '}'
+
+        selector.setIncludesNonPlayers(false); // 进度只对玩家有效
         return;
     }
 
     // predicate - 战利品表谓词
+    // 格式: predicate=namespace:predicate_name 或 predicate=!namespace:predicate_name
+    // 参考 MC 1.16.5 EntityOptions.register("predicate", ...)
     if (name == "predicate") {
-        // TODO: 需要谓词系统
+        StringReader valueReader(value);
+        const bool negated = shouldInvertValue(valueReader);
+        valueReader.skipWhitespace();
+
+        std::string predicateStr = valueReader.readUnquotedString();
+        ResourceLocation predicateId = ResourceLocation::parse(predicateStr);
+        EntitySelector::PredicateCondition condition;
+        condition.predicate = predicateId;
+        condition.negated = negated;
+        selector.setPredicateCondition(condition);
         return;
     }
 

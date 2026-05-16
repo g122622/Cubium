@@ -698,3 +698,163 @@ TEST_F(EntityArgumentRotationParseTest, YRotationWraparoundAngleTest)
     EXPECT_FALSE(selector.yRotation().testAngle(-169.0f));
     EXPECT_FALSE(selector.yRotation().testAngle(169.999f));
 }
+
+// ========== scores 参数解析测试 ==========
+
+class EntityArgumentScoresParseTest : public ::testing::Test {
+protected:
+    std::shared_ptr<EntityArgumentType> playersArg = EntityArgumentType::players();
+};
+
+TEST_F(EntityArgumentScoresParseTest, ParseSingleScore)
+{
+    StringReader reader("@a[scores={deaths=5}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    const auto& scores = selector.scoreConditions();
+    ASSERT_EQ(scores.size(), 1);
+    EXPECT_TRUE(scores.count("deaths") > 0);
+    EXPECT_EQ(scores.at("deaths").getMin(), 5);
+    EXPECT_EQ(scores.at("deaths").getMax(), 5);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ParseScoreRange)
+{
+    StringReader reader("@a[scores={kills=10..50}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    const auto& scores = selector.scoreConditions();
+    ASSERT_EQ(scores.size(), 1);
+    EXPECT_TRUE(scores.count("kills") > 0);
+    EXPECT_EQ(scores.at("kills").getMin(), 10);
+    EXPECT_EQ(scores.at("kills").getMax(), 50);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ParseMultipleScores)
+{
+    StringReader reader("@a[scores={deaths=1..5,kills=10..,level=20}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasScoreConditions());
+    const auto& scores = selector.scoreConditions();
+    ASSERT_EQ(scores.size(), 3);
+
+    EXPECT_TRUE(scores.count("deaths") > 0);
+    EXPECT_EQ(scores.at("deaths").getMin(), 1);
+    EXPECT_EQ(scores.at("deaths").getMax(), 5);
+
+    EXPECT_TRUE(scores.count("kills") > 0);
+    EXPECT_TRUE(scores.at("kills").hasMin());
+    EXPECT_FALSE(scores.at("kills").hasMax());
+    EXPECT_EQ(scores.at("kills").getMin(), 10);
+
+    EXPECT_TRUE(scores.count("level") > 0);
+    EXPECT_EQ(scores.at("level").getMin(), 20);
+    EXPECT_EQ(scores.at("level").getMax(), 20);
+}
+
+TEST_F(EntityArgumentScoresParseTest, ScoresSetsIncludeNonPlayersFalse)
+{
+    // scores 参数应该自动设置 includesNonPlayers 为 false
+    StringReader reader("@e[scores={deaths=1}]");
+    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    EXPECT_FALSE(selector.includesNonPlayers());
+}
+
+// ========== advancements 参数解析测试 ==========
+
+class EntityArgumentAdvancementsParseTest : public ::testing::Test {
+protected:
+    std::shared_ptr<EntityArgumentType> playersArg = EntityArgumentType::players();
+};
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementComplete)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=true}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    const auto& adv = selector.advancementConditions();
+    ASSERT_EQ(adv.size(), 1);
+
+    mc::ResourceLocation expectedId("minecraft:story/root");
+    EXPECT_TRUE(adv.count(expectedId) > 0);
+    EXPECT_TRUE(adv.at(expectedId).isComplete.has_value());
+    EXPECT_TRUE(adv.at(expectedId).isComplete.value());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementNotComplete)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=false}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    const auto& adv = selector.advancementConditions();
+
+    mc::ResourceLocation expectedId("minecraft:story/root");
+    EXPECT_TRUE(adv.count(expectedId) > 0);
+    EXPECT_TRUE(adv.at(expectedId).isComplete.has_value());
+    EXPECT_FALSE(adv.at(expectedId).isComplete.value());
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithCriteria)
+{
+    StringReader reader("@a[advancements={minecraft:story/mine_stone={got_stone=true}}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    const auto& adv = selector.advancementConditions();
+
+    mc::ResourceLocation expectedId("minecraft:story/mine_stone");
+    EXPECT_TRUE(adv.count(expectedId) > 0);
+    EXPECT_FALSE(adv.at(expectedId).isComplete.has_value()); // 使用准则条件，不是整体完成状态
+    EXPECT_EQ(adv.at(expectedId).criteriaConditions.size(), 1);
+    EXPECT_TRUE(adv.at(expectedId).criteriaConditions.count("got_stone") > 0);
+    EXPECT_TRUE(adv.at(expectedId).criteriaConditions.at("got_stone"));
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, ParseMultipleAdvancements)
+{
+    StringReader reader("@a[advancements={minecraft:story/root=true,minecraft:nether/root=false}]");
+    EntitySelector selector = playersArg->parse(reader);
+    EXPECT_TRUE(selector.hasAdvancementConditions());
+    const auto& adv = selector.advancementConditions();
+    ASSERT_EQ(adv.size(), 2);
+}
+
+TEST_F(EntityArgumentAdvancementsParseTest, AdvancementsSetsIncludeNonPlayersFalse)
+{
+    // advancements 参数应该自动设置 includesNonPlayers 为 false
+    StringReader reader("@e[advancements={minecraft:story/root=true}]");
+    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    EXPECT_FALSE(selector.includesNonPlayers());
+}
+
+// ========== predicate 参数解析测试 ==========
+
+class EntityArgumentPredicateParseTest : public ::testing::Test {
+protected:
+    std::shared_ptr<EntityArgumentType> entitiesArg = EntityArgumentType::entities();
+};
+
+TEST_F(EntityArgumentPredicateParseTest, ParsePredicate)
+{
+    StringReader reader("@e[predicate=minecraft:example_predicate]");
+    EntitySelector selector = entitiesArg->parse(reader);
+    EXPECT_TRUE(selector.hasPredicateCondition());
+    EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
+    EXPECT_FALSE(selector.predicateCondition().negated);
+}
+
+TEST_F(EntityArgumentPredicateParseTest, ParsePredicateNegated)
+{
+    StringReader reader("@e[predicate=!minecraft:example_predicate]");
+    EntitySelector selector = entitiesArg->parse(reader);
+    EXPECT_TRUE(selector.hasPredicateCondition());
+    EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
+    EXPECT_TRUE(selector.predicateCondition().negated);
+}
+
+TEST_F(EntityArgumentPredicateParseTest, ParsePredicateWithoutNamespace)
+{
+    StringReader reader("@e[predicate=example_predicate]");
+    EntitySelector selector = entitiesArg->parse(reader);
+    EXPECT_TRUE(selector.hasPredicateCondition());
+    EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
+}
