@@ -51,6 +51,21 @@ namespace mc {
 namespace entity {
 
 // ============================================================================
+// 辅助函数
+// ============================================================================
+
+/**
+ * @brief 从实体创建随机数生成器
+ *
+ * 使用实体 ID 和存活时间作为种子。
+ */
+math::Random createRandomFromEntity(const Entity& entity)
+{
+    u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
+    return math::Random(seed);
+}
+
+// ============================================================================
 // LlamaSpitEntity 常量
 // ============================================================================
 
@@ -1309,6 +1324,24 @@ void FireworkRocketEntity::tick()
 
     m_lifetime++;
 
+    // 生成飞行粒子 - 参考 MC 1.16.5 FireworkRocketEntity.tick() 第76-83行
+    // 每 2 tick 生成一次粒子，仅在客户端执行
+    if (m_world != nullptr && m_world->isClientSide() && m_lifetime % 2 == 0) {
+        // 粒子位置在火箭下方 0.3 格
+        Vector3 particlePos(x(), y() - 0.3, z());
+
+        // 使用高斯分布随机速度
+        mc::math::Random rng = createRandomFromEntity(*this);
+        f32 vx = static_cast<f32>(rng.nextGaussian() * 0.05);
+        f32 vy = static_cast<f32>(-m_velocity.y * 0.5);  // Y速度与火箭运动方向相反
+        f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
+
+        m_world->addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Firework,
+            particlePos,
+            Vector3(vx, vy, vz));
+    }
+
     // 检查是否爆炸
     // 参考 MC 1.16.5: lifetime = flightTime * 10 + random(6) + random(7)
     // 我们简化为 flightTime * 10
@@ -1324,8 +1357,73 @@ void FireworkRocketEntity::explode()
         dealExplosionDamage();
     }
 
-    // TODO: 解析烟花数据并生成爆炸粒子
-    // 需要粒子系统支持彩色粒子
+    // 生成爆炸粒子 - 参考 MC 1.16.5 FireworkRocketEntity.explode()
+    if (m_world != nullptr && m_world->isClientSide()) {
+        mc::math::Random rng = createRandomFromEntity(*this);
+
+        // 获取爆炸效果数量
+        i32 explosionCount = getExplosionCount();
+
+        if (explosionCount <= 0) {
+            // 无爆炸效果时，生成简单的消散粒子
+            // 参考 MC 1.16.5: 生成 2-4 个 POOF 粒子
+            i32 poofCount = 2 + rng.nextInt(3);
+            for (i32 i = 0; i < poofCount; ++i) {
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(0.0f, 0.0f, 0.0f));
+            }
+        } else {
+            // 有爆炸效果时，生成烟花粒子
+            // 参考 MC 1.16.5 FireworkParticle.Starter
+
+            // 生成爆炸闪光
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Flash,
+                Vector3(x(), y(), z()),
+                Vector3(0.0f, 0.0f, 0.0f));
+
+            // 生成主要爆炸粒子云
+            // 使用 Firework 粒子类型
+            i32 particleCount = 20 + rng.nextInt(20);
+            for (i32 i = 0; i < particleCount; ++i) {
+                // 球形分布
+                f32 theta = rng.nextFloat() * 6.28318530718f;  // 2 * PI
+                f32 phi = rng.nextFloat() * 3.14159265359f;     // PI
+                f32 speed = 0.1f + rng.nextFloat() * 0.3f;
+
+                f32 vx = std::sin(phi) * std::cos(theta) * speed;
+                f32 vy = std::sin(phi) * std::sin(theta) * speed;
+                f32 vz = std::cos(phi) * speed;
+
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Firework,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(vx, vy, vz));
+            }
+
+            // 生成烟雾粒子
+            for (i32 i = 0; i < 5 + rng.nextInt(5); ++i) {
+                f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+                f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+                f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
+
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                    Vector3(x() + ox, y() + oy, z() + oz),
+                    Vector3(0.0f, 0.02f, 0.0f));
+            }
+        }
+    }
 
     remove();
 }
