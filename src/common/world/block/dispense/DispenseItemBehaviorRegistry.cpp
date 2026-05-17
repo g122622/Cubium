@@ -22,12 +22,27 @@
 */
 
 #include "DispenseItemBehaviorRegistry.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../entity/core/Entity.hpp"
+#include "../../../entity/core/EntityType.hpp"
+#include "../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "../../../entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
+#include "../../../entity/entities/projectile/ProjectileEntity.hpp"
 #include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../entity/entities/vehicle/BoatEntity.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/potion/PotionUtils.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../IWorld.hpp"
+#include "../../WorldEvents.hpp"
+#include "../Block.hpp"
+#include "../VanillaBlocks.hpp"
+#include "../../fluid/FluidRegistry.hpp"
 #include "IDispenseItemBehavior.hpp"
 
 namespace mc {
@@ -248,58 +263,123 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f);
 
     // ========================================================================
-    // TODO: 以下发射行为需要额外的系统支持
+    // 火焰弹发射行为
+    // 参考 MC 1.16.5: FireChargeDispenseBehavior
+    // ========================================================================
+    registerBehavior<ProjectileDispenseBehavior>(
+        "minecraft:fire_charge",
+        [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
+            MC_UNUSED(stack);
+            auto entity = entity::SmallFireballEntity::create(&world);
+            if (entity) {
+                entity->setPosition(pos.x, pos.y, pos.z);
+            }
+            return entity;
+        },
+        1.0f,  // velocity
+        6.0f); // inaccuracy
+
+    // ========================================================================
+    // 烟花火箭发射行为
+    // 参考 MC 1.16.5: FireworkRocketDispenseBehavior
+    // ========================================================================
+    registerBehavior<ProjectileDispenseBehavior>(
+        "minecraft:firework_rocket",
+        [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
+            auto entity = entity::FireworkRocketEntity::create(&world);
+            if (entity) {
+                entity->setPosition(pos.x, pos.y, pos.z);
+                auto* firework = dynamic_cast<entity::FireworkRocketEntity*>(entity.get());
+                if (firework && !stack.isEmpty()) {
+                    // 设置烟花物品数据（飞行时间、爆炸效果等）
+                    firework->setFireworkItem(stack);
+                }
+            }
+            return entity;
+        },
+        0.5f,  // velocity - 烟花速度较慢
+        1.0f); // inaccuracy - 烟花偏差小
+
+    // ========================================================================
+    // TNT 发射行为
+    // 参考 MC 1.16.5: TNTDispenseBehavior
+    // ========================================================================
+    registerBehavior(
+        "minecraft:tnt",
+        std::make_unique<DefaultDispenseItemBehavior>());
+
+    // ========================================================================
+    // 船发射行为
+    // 参考 MC 1.16.5: BoatDispenseBehavior
+    // 需要检测目标位置是否有水
     // ========================================================================
 
-    // --- 火焰弹 ---
-    // 需要实现 SmallFireballEntity 并检测目标位置是否可点燃
-    // registerBehavior("minecraft:fire_charge", ...);
+    // 橡木船
+    registerBehavior(
+        "minecraft:oak_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::OAK));
+    // 云杉木船
+    registerBehavior(
+        "minecraft:spruce_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::SPRUCE));
+    // 白桦木船
+    registerBehavior(
+        "minecraft:birch_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::BIRCH));
+    // 丛林木船
+    registerBehavior(
+        "minecraft:jungle_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::JUNGLE));
+    // 金合欢木船
+    registerBehavior(
+        "minecraft:acacia_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::ACACIA));
+    // 深色橡木船
+    registerBehavior(
+        "minecraft:dark_oak_boat",
+        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::DARK_OAK));
 
-    // --- 烟花火箭 ---
-    // 需要实现 FireworkRocketEntity 并读取烟花数据
-    // registerBehavior("minecraft:firework_rocket", ...);
+    // ========================================================================
+    // 水桶/岩浆桶发射行为
+    // 参考 MC 1.16.5: BucketDispenseBehavior
+    // ========================================================================
+    // 获取流体实例
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    fluid::Fluid* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
 
-    // --- 刷怪蛋 ---
-    // 需要实体生成系统和实体类型注册表
-    // for each spawn egg: registerBehavior(..., SpawnEggDispenseBehavior(...));
+    if (waterFluid != nullptr) {
+        registerBehavior(
+            "minecraft:water_bucket",
+            std::make_unique<BucketDispenseBehavior>(*waterFluid));
+    }
+    if (lavaFluid != nullptr) {
+        registerBehavior(
+            "minecraft:lava_bucket",
+            std::make_unique<BucketDispenseBehavior>(*lavaFluid));
+    }
 
-    // --- 船 ---
-    // 需要 BoatEntity 并检测目标位置是否有水
-    // registerBehavior("minecraft:oak_boat", new DispenseBoatBehavior(BoatEntity::Type::OAK));
-    // ... 其他船类型
+    // ========================================================================
+    // 空桶发射行为（收集流体）
+    // ========================================================================
+    registerBehavior(
+        "minecraft:bucket",
+        std::make_unique<EmptyBucketDispenseBehavior>());
 
-    // --- 桶 ---
-    // 需要 FluidState 和流体放置逻辑
-    // registerBehavior("minecraft:water_bucket", new BucketDispenseBehavior(...));
-    // registerBehavior("minecraft:lava_bucket", new BucketDispenseBehavior(...));
+    // ========================================================================
+    // 打火石发射行为
+    // 参考 MC 1.16.5: FlintAndSteelDispenseBehavior
+    // ========================================================================
+    registerBehavior(
+        "minecraft:flint_and_steel",
+        std::make_unique<FlintAndSteelDispenseBehavior>());
 
-    // --- 打火石 ---
-    // 需要 OptionalDispenseBehavior 和火焰方块放置逻辑
-    // registerBehavior("minecraft:flint_and_steel", new FlintAndSteelDispenseBehavior());
-
-    // --- 骨粉 ---
-    // 需要 BonemealEvent 和作物催熟逻辑
-    // registerBehavior("minecraft:bone_meal", new BonemealDispenseBehavior());
-
-    // --- TNT ---
-    // 需要 TNTEntity 和点燃逻辑
-    // registerBehavior("minecraft:tnt", new TNTDispenseBehavior());
-
-    // --- 潜影盒 ---
-    // 需要 OptionalDispenseBehavior 和潜影盒放置逻辑
-    // registerBehavior("minecraft:shulker_box", new ShulkerBoxDispenseBehavior());
-
-    // --- 玻璃瓶 ---
-    // 需要流体检测和药水瓶填充逻辑
-    // registerBehavior("minecraft:glass_bottle", new GlassBottleDispenseBehavior());
-
-    // --- 萤石/重生锚 ---
-    // 需要重生锚充能逻辑
-    // registerBehavior("minecraft:glowstone", new GlowstoneDispenseBehavior());
-
-    // --- 剪刀 ---
-    // 需要蜂巢采集逻辑
-    // registerBehavior("minecraft:shears", new ShearsDispenseBehavior());
+    // ========================================================================
+    // 骨粉发射行为
+    // 参考 MC 1.16.5: BonemealDispenseBehavior
+    // ========================================================================
+    registerBehavior(
+        "minecraft:bone_meal",
+        std::make_unique<BonemealDispenseBehavior>());
 }
 
 } // namespace blocks

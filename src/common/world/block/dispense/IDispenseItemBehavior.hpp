@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,13 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../entity/entities/vehicle/BoatEntity.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include <functional>
@@ -37,6 +38,10 @@ class BlockPos;
 class BlockState;
 enum class Direction : u8;
 class Entity;
+
+namespace fluid {
+class Fluid;
+}
 
 namespace blocks {
 
@@ -53,7 +58,7 @@ namespace blocks {
  *     std::make_unique<ProjectileDispenseBehavior>(createSnowball, 1.1f, 6.0f));
  *
  * // 执行发射
- * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::instance().getBehavior(stack);
+ * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
  * if (behavior) {
  *     behavior->dispense(world, pos, state, stack);
  * }
@@ -229,6 +234,91 @@ private:
     ProjectileFactory m_createProjectile;
     f32 m_velocity;
     f32 m_inaccuracy;
+};
+
+/**
+ * @brief 船发射行为
+ *
+ * 在水面放置船实体。
+ * 如果目标位置不是水，则作为普通物品发射。
+ *
+ * 参考: net.minecraft.dispenser.BoatDispenseBehavior
+ */
+class BoatDispenseBehavior : public DefaultDispenseItemBehavior {
+public:
+    /**
+     * @brief 构造函数
+     * @param type 船的类型（木材种类）
+     */
+    explicit BoatDispenseBehavior(entity::BoatEntity::Type type);
+
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+
+private:
+    entity::BoatEntity::Type m_boatType;
+};
+
+/**
+ * @brief 桶发射行为（装满流体的桶）
+ *
+ * 放置流体到世界中。
+ *
+ * 参考: net.minecraft.dispenser.BucketDispenseBehavior
+ */
+class BucketDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    /**
+     * @brief 构造函数
+     * @param fluid 要放置的流体
+     */
+    explicit BucketDispenseBehavior(fluid::Fluid& fluid);
+
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+
+private:
+    fluid::Fluid* m_fluid;
+};
+
+/**
+ * @brief 空桶发射行为（收集流体）
+ *
+ * 从世界中收集流体到桶中。
+ *
+ * 参考: net.minecraft.dispenser.BucketDispenseBehavior（空桶分支）
+ */
+class EmptyBucketDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    EmptyBucketDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+};
+
+/**
+ * @brief 打火石发射行为
+ *
+ * 点燃发射器前方的方块。
+ *
+ * 参考: net.minecraft.dispenser.FlintAndSteelDispenseBehavior
+ */
+class FlintAndSteelDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    FlintAndSteelDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+};
+
+/**
+ * @brief 骨粉发射行为
+ *
+ * 对发射器前方的方块使用骨粉催熟效果。
+ *
+ * 参考: net.minecraft.dispenser.BonemealDispenseBehavior
+ */
+class BonemealDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    BonemealDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
 };
 
 } // namespace blocks
