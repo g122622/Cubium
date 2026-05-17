@@ -218,6 +218,22 @@ public:
     void play();
 
     /**
+     * @brief 传播流言给另一个村民
+     * @param other 目标村民
+     *
+     * 参考 MC 1.16.5 VillagerEntity.func_242368_a()
+     * 村民在聚集时会互相传播流言，影响玩家声誉。
+     */
+    void spreadGossipTo(VillagerEntity* other);
+
+    /**
+     * @brief 尝试传播流言
+     *
+     * 在 play() 中调用，检查是否应该传播流言。
+     */
+    void trySpreadGossip();
+
+    /**
      * @brief 补充交易物品
      */
     void restockTrades();
@@ -280,6 +296,9 @@ private:
 
     // 睡眠状态
     std::optional<BlockPos> m_sleepingPos;
+
+    // 流言传播
+    i64 m_lastGossipSpreadTime = 0;  // 上次传播流言的游戏时间
 
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;

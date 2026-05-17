@@ -26,6 +26,8 @@
 #include "../../../../../core/Types.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
+#include "../../../../core/Entity.hpp"
+#include "../../../../core/LivingEntity.hpp"
 #include <optional>
 
 namespace mc {

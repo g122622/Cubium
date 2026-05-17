@@ -40,6 +40,7 @@
 #include "../../../../entities/villager/VillagerEntity.hpp"
 #include "../../../../interfaces/IMob.hpp"
 #include "../../../brain/memory/MemoryModuleType.hpp"
+#include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../GoalConstants.hpp"
 #include <cmath>

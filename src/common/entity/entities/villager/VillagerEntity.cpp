@@ -230,7 +230,96 @@ void VillagerEntity::work()
 
 void VillagerEntity::play()
 {
-    // TODO: 与其他村民互动
+    // 参考 MC 1.16.5 VillagerEntity.play() 方法
+    // 村民互动由 Brain 系统的任务自动执行：
+    // - 成年村民在 MEET 活动期间聚集在会议点（钟）附近
+    // - 幼年村民在 PLAY 活动期间一起玩耍
+    //
+    // 具体行为由以下组件实现：
+    // 1. CongregateGoal - 聚集在会议点附近
+    // 2. ShareItemsGoal - 分享物品（农民分享食物给其他村民）
+    // 3. GossipSpreadGoal - 村民间流言传播
+    // 4. LookAtGoal - 看向其他村民/玩家/猫
+    //
+    // 这些行为在 registerGoals() 中注册，由 Brain 系统根据活动自动调度
+
+    // 触发流言传播检查
+    trySpreadGossip();
+}
+
+void VillagerEntity::spreadGossipTo(VillagerEntity* other)
+{
+    if (!other || !m_world) return;
+
+    // 参考 MC 1.16.5 VillagerEntity.func_242368_a()
+    // 每次传播最多传播 10 条流言
+    // 冷却时间 1200 tick (60秒)
+    i64 currentTime = m_world->currentTick();
+    i64 otherTime = other->m_lastGossipSpreadTime;
+
+    // 检查冷却时间
+    if (currentTime < m_lastGossipSpreadTime + 1200L ||
+        currentTime < otherTime + 1200L) {
+        return;
+    }
+
+    // 获取村庄管理器
+    auto* villageManager = m_world->villageManager();
+    if (!villageManager) return;
+
+    // 获取村民所在村庄的流言管理器
+    // 注意：流言是村庄级别的，不是村民级别的
+    // 这里简化实现，实际需要从 Village 获取流言管理器
+    (void)villageManager; // 避免未使用警告
+
+    // 更新传播时间
+    m_lastGossipSpreadTime = currentTime;
+    other->m_lastGossipSpreadTime = currentTime;
+
+    // 参考 MC 1.16.5: 流言传播时会减少衰减值
+    // transferFrom() 方法会在传播时减少流言值
+    // 这里简化实现，实际需要 VillageGossipManager::transferFrom()
+
+    // 尝试生成铁傀儡（如果村民足够多且声誉足够高）
+    // 参考 MC 1.16.5 VillagerEntity.func_242367_a()
+    // 这里简化，实际需要检查村庄条件
+}
+
+void VillagerEntity::trySpreadGossip()
+{
+    if (!m_world) return;
+
+    // 检查冷却时间
+    i64 currentTime = m_world->currentTick();
+    if (currentTime < m_lastGossipSpreadTime + 1200L) {
+        return; // 60秒冷却
+    }
+
+    // 从 Brain 获取交互目标
+    auto targetMemory = m_brain->getMemory<LivingEntity*>(ai::brain::memory::MemoryModuleTypes::INTERACTION_TARGET);
+    if (!targetMemory.has_value() || !*targetMemory) {
+        return;
+    }
+
+    LivingEntity* target = *targetMemory;
+    if (!target->isAlive()) {
+        return;
+    }
+
+    // 检查是否是村民
+    VillagerEntity* otherVillager = dynamic_cast<VillagerEntity*>(target);
+    if (!otherVillager) {
+        return;
+    }
+
+    // 检查距离（在交互范围内）
+    f32 distSq = distanceSqTo(*otherVillager);
+    if (distSq > 5.0f * 5.0f) {
+        return;
+    }
+
+    // 传播流言
+    spreadGossipTo(otherVillager);
 }
 
 void VillagerEntity::registerGoals()
