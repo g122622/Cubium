@@ -82,6 +82,14 @@ public:
     [[nodiscard]] api::TextureFormat format() const override { return m_format; }
     [[nodiscard]] bool isValid() const override { return m_image != VK_NULL_HANDLE; }
     [[nodiscard]] Result<void> upload(const void* data, u64 size, u32 level = 0) override;
+    [[nodiscard]] Result<void> uploadRegion(const void* data,
+        u64 size,
+        u32 offsetX,
+        u32 offsetY,
+        u32 width,
+        u32 height,
+        u32 level = 0,
+        u32 rowLength = 0) override;
     void bind(u32 binding) override;
 
     // Vulkan 特有方法
@@ -192,6 +200,28 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> upload(const api::AtlasBuildResult& result);
+
+    /**
+     * @brief 上传数据到图集的指定区域
+     * @param data 数据指针
+     * @param size 数据大小（字节）
+     * @param offsetX 目标区域 X 偏移（像素）
+     * @param offsetY 目标区域 Y 偏移（像素）
+     * @param width 目标区域宽度（像素）
+     * @param height 目标区域高度（像素）
+     * @param rowLength 源数据行长度（像素），0 表示使用 width
+     * @return 成功或错误
+     *
+     * 此方法用于更新纹理图集的子区域，适用于动画纹理帧更新。
+     * 参考 MC 1.16.5 TextureAtlasSprite.uploadFrames()
+     */
+    [[nodiscard]] Result<void> uploadRegion(const void* data,
+        u64 size,
+        u32 offsetX,
+        u32 offsetY,
+        u32 width,
+        u32 height,
+        u32 rowLength = 0);
 
     void destroy();
 

@@ -24,6 +24,7 @@
 #include "AnimatedSprite.hpp"
 #include "../TridentContext.hpp"
 #include "TridentTexture.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 
@@ -200,6 +201,9 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
 mc::Result<void> AnimatedSprite::uploadFrame(
     TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame)
 {
+    // context 参数保留用于将来可能的扩展（如需要直接访问 Vulkan 命令缓冲区）
+    MC_UNUSED(context);
+
     if (frame.pixels.empty()) {
         return mc::Error(mc::ErrorCode::InvalidData, "Frame has no pixel data");
     }
@@ -212,15 +216,22 @@ mc::Result<void> AnimatedSprite::uploadFrame(
         return mc::Error(mc::ErrorCode::OutOfRange, "Frame position out of atlas bounds");
     }
 
-    // 通过TridentTexture上传纹理区域
-    // 注意：这里需要扩展TridentTextureAtlas以支持区域上传
-    // 暂时使用完整纹理上传的方式
+    // 验证帧数据尺寸
+    if (frame.width != m_frameWidth || frame.height != m_frameHeight) {
+        return mc::Error(mc::ErrorCode::InvalidData, "Frame size does not match sprite frame size");
+    }
 
-    // TODO: 实现纹理子区域上传
-    // 这需要使用vkCmdCopyBufferToImage上传到纹理的特定区域
-    // 参考 MC 的 TextureAtlasSprite.uploadFrames()
+    // 验证像素数据大小 (RGBA = 4 字节/像素)
+    const u64 expectedSize = static_cast<u64>(frame.width) * frame.height * 4;
+    if (frame.pixels.size() != expectedSize) {
+        return mc::Error(mc::ErrorCode::InvalidData, "Frame pixel data size mismatch");
+    }
 
-    return {};
+    // 使用 uploadRegion 上传帧数据到图集的指定位置
+    // 参考 MC 1.16.5 TextureAtlasSprite.uploadFrames()
+    // 使用 glTexSubImage2D 更新纹理的子区域
+    // rowLength = 0 表示紧密排列（每行像素 = width）
+    return atlas.uploadRegion(frame.pixels.data(), frame.pixels.size(), m_atlasX, m_atlasY, m_frameWidth, m_frameHeight, 0);
 }
 
 } // namespace mc::client::renderer::trident

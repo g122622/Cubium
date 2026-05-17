@@ -940,6 +940,192 @@ TEST_F(TridentTextureAtlasTest, UploadAtlasData)
 }
 
 // ============================================================================
+// 纹理子区域上传测试 (Texture Region Upload Tests)
+// ============================================================================
+
+class TextureRegionUploadTest : public TridentTestBase {
+protected:
+    void SetUp() override { TridentTestBase::SetUp(); }
+};
+
+TEST_F(TextureRegionUploadTest, TextureUploadRegion_Basic)
+{
+    // 测试基本的子区域上传
+    TridentTexture texture;
+
+    TextureDesc desc{};
+    desc.width = 64;
+    desc.height = 64;
+    desc.format = TextureFormat::R8G8B8A8_UNORM;
+    desc.mipLevels = 1;
+
+    ASSERT_TRUE(texture.create(s_context, desc).success());
+
+    // 先上传完整纹理（初始数据）
+    std::vector<u8> initialData(64 * 64 * 4, 0);
+    ASSERT_TRUE(texture.upload(initialData.data(), initialData.size()).success());
+
+    // 上传子区域（16x16 区域，位于 (32, 32)）
+    std::vector<u8> regionData(16 * 16 * 4, 255); // 白色像素
+    auto result = texture.uploadRegion(regionData.data(), regionData.size(), 32, 32, 16, 16);
+    EXPECT_TRUE(result.success()) << result.error().message();
+
+    texture.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, TextureUploadRegion_TopLeft)
+{
+    // 测试左上角子区域上传
+    TridentTexture texture;
+
+    TextureDesc desc{};
+    desc.width = 32;
+    desc.height = 32;
+    desc.format = TextureFormat::R8G8B8A8_UNORM;
+    desc.mipLevels = 1;
+
+    ASSERT_TRUE(texture.create(s_context, desc).success());
+
+    // 初始化纹理
+    std::vector<u8> initialData(32 * 32 * 4, 0);
+    ASSERT_TRUE(texture.upload(initialData.data(), initialData.size()).success());
+
+    // 上传到左上角 (0, 0) 的 8x8 区域
+    std::vector<u8> regionData(8 * 8 * 4, 128);
+    auto result = texture.uploadRegion(regionData.data(), regionData.size(), 0, 0, 8, 8);
+    EXPECT_TRUE(result.success()) << result.error().message();
+
+    texture.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, TextureUploadRegion_BottomRight)
+{
+    // 测试右下角子区域上传
+    TridentTexture texture;
+
+    TextureDesc desc{};
+    desc.width = 32;
+    desc.height = 32;
+    desc.format = TextureFormat::R8G8B8A8_UNORM;
+    desc.mipLevels = 1;
+
+    ASSERT_TRUE(texture.create(s_context, desc).success());
+
+    // 初始化纹理
+    std::vector<u8> initialData(32 * 32 * 4, 0);
+    ASSERT_TRUE(texture.upload(initialData.data(), initialData.size()).success());
+
+    // 上传到右下角 (24, 24) 的 8x8 区域
+    std::vector<u8> regionData(8 * 8 * 4, 200);
+    auto result = texture.uploadRegion(regionData.data(), regionData.size(), 24, 24, 8, 8);
+    EXPECT_TRUE(result.success()) << result.error().message();
+
+    texture.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, TextureUploadRegion_OutOfBounds)
+{
+    // 测试边界检查
+    TridentTexture texture;
+
+    TextureDesc desc{};
+    desc.width = 32;
+    desc.height = 32;
+    desc.format = TextureFormat::R8G8B8A8_UNORM;
+    desc.mipLevels = 1;
+
+    ASSERT_TRUE(texture.create(s_context, desc).success());
+
+    // 初始化纹理
+    std::vector<u8> initialData(32 * 32 * 4, 0);
+    ASSERT_TRUE(texture.upload(initialData.data(), initialData.size()).success());
+
+    // 尝试上传超出边界的区域
+    std::vector<u8> regionData(16 * 16 * 4, 255);
+    auto result = texture.uploadRegion(regionData.data(), regionData.size(), 24, 24, 16, 16);
+    EXPECT_FALSE(result.success()); // 应该失败：24 + 16 > 32
+
+    texture.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, TextureUploadRegion_InvalidParams)
+{
+    // 测试无效参数
+    TridentTexture texture;
+
+    TextureDesc desc{};
+    desc.width = 32;
+    desc.height = 32;
+    desc.format = TextureFormat::R8G8B8A8_UNORM;
+    desc.mipLevels = 1;
+
+    ASSERT_TRUE(texture.create(s_context, desc).success());
+
+    // 初始化纹理
+    std::vector<u8> initialData(32 * 32 * 4, 0);
+    ASSERT_TRUE(texture.upload(initialData.data(), initialData.size()).success());
+
+    std::vector<u8> regionData(16 * 16 * 4, 255);
+
+    // 空数据指针
+    auto result = texture.uploadRegion(nullptr, regionData.size(), 0, 0, 16, 16);
+    EXPECT_FALSE(result.success());
+
+    // 零大小
+    result = texture.uploadRegion(regionData.data(), 0, 0, 0, 16, 16);
+    EXPECT_FALSE(result.success());
+
+    // 零宽高
+    result = texture.uploadRegion(regionData.data(), regionData.size(), 0, 0, 0, 16);
+    EXPECT_FALSE(result.success());
+
+    result = texture.uploadRegion(regionData.data(), regionData.size(), 0, 0, 16, 0);
+    EXPECT_FALSE(result.success());
+
+    texture.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, AtlasUploadRegion_Basic)
+{
+    // 测试纹理图集子区域上传
+    TridentTextureAtlas atlas;
+    ASSERT_TRUE(atlas.create(s_context, 64, 64, 16).success());
+
+    // 先上传完整图集数据
+    std::vector<u8> initialData(64 * 64 * 4, 0);
+    ASSERT_TRUE(atlas.uploadRegion(initialData.data(), initialData.size(), 0, 0, 64, 64).success());
+
+    // 上传单个瓦片区域 (16x16，位于瓦片坐标 (1, 2))
+    std::vector<u8> tileData(16 * 16 * 4, 255);
+    auto result = atlas.uploadRegion(tileData.data(), tileData.size(), 16, 32, 16, 16);
+    EXPECT_TRUE(result.success()) << result.error().message();
+
+    atlas.destroy();
+}
+
+TEST_F(TextureRegionUploadTest, AtlasUploadRegion_MultipleTiles)
+{
+    // 测试上传多个瓦片区域
+    TridentTextureAtlas atlas;
+    ASSERT_TRUE(atlas.create(s_context, 64, 64, 16).success());
+
+    // 初始化图集
+    std::vector<u8> initialData(64 * 64 * 4, 0);
+    ASSERT_TRUE(atlas.uploadRegion(initialData.data(), initialData.size(), 0, 0, 64, 64).success());
+
+    // 上传多个瓦片
+    for (u32 y = 0; y < 4; ++y) {
+        for (u32 x = 0; x < 4; ++x) {
+            std::vector<u8> tileData(16 * 16 * 4, static_cast<u8>((x + y * 4) * 16));
+            auto result = atlas.uploadRegion(tileData.data(), tileData.size(), x * 16, y * 16, 16, 16);
+            EXPECT_TRUE(result.success()) << "Upload at (" << x << ", " << y << ") should succeed";
+        }
+    }
+
+    atlas.destroy();
+}
+
+// ============================================================================
 // FrameManager 测试
 // ============================================================================
 

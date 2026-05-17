@@ -296,6 +296,107 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
     return {};
 }
 
+Result<void> TridentTexture::uploadRegion(const void* data,
+    u64 size,
+    u32 offsetX,
+    u32 offsetY,
+    u32 width,
+    u32 height,
+    u32 level,
+    u32 rowLength)
+{
+    if (m_image == VK_NULL_HANDLE || !m_context) {
+        return Error(ErrorCode::OperationFailed, "Texture not initialized");
+    }
+
+    if (!data || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
+    }
+
+    // 验证区域参数
+    if (offsetX + width > m_width || offsetY + height > m_height) {
+        return Error(ErrorCode::OutOfRange, "Upload region out of texture bounds");
+    }
+
+    if (width == 0 || height == 0) {
+        return Error(ErrorCode::InvalidArgument, "Region width and height must be greater than 0");
+    }
+
+    // 验证 mip level
+    if (level >= m_mipLevels) {
+        return Error(ErrorCode::OutOfRange, "Mip level out of range");
+    }
+
+    // 计算 mip level 下的实际偏移和尺寸
+    const u32 mipOffsetX = offsetX >> level;
+    const u32 mipOffsetY = offsetY >> level;
+    const u32 mipWidth = width >> level;
+    const u32 mipHeight = height >> level;
+
+    // 创建暂存缓冲区
+    TridentStagingBuffer stagingBuffer;
+    auto result = stagingBuffer.create(m_context, size);
+    if (result.failed()) {
+        return result;
+    }
+
+    // 映射并复制数据
+    void* mapped = stagingBuffer.map();
+    if (!mapped) {
+        stagingBuffer.destroy();
+        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer");
+    }
+
+    std::memcpy(mapped, data, size);
+    stagingBuffer.unmap();
+
+    // 获取单次命令缓冲区
+    VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
+    if (cmd == VK_NULL_HANDLE) {
+        stagingBuffer.destroy();
+        return Error(ErrorCode::OperationFailed, "Failed to begin command buffer");
+    }
+
+    // 如果纹理当前不在传输目标布局，需要转换
+    // 对于动画纹理更新，纹理应该已经在 SHADER_READ_ONLY_OPTIMAL 布局
+    if (m_layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        transitionLayout(cmd,
+            m_layout,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT);
+    }
+
+    // 设置缓冲区到图像的复制区域
+    // 参考 MC 1.16.5 NativeImage.uploadTextureSub()
+    // 使用 GL_UNPACK_ROW_LENGTH 和 GL_UNPACK_SKIP_PIXELS/SKIP_ROWS 来指定源数据布局
+    // 在 Vulkan 中，bufferRowLength 和 bufferImageHeight 实现相同功能
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = rowLength; // 0 表示使用 width（紧密排列）
+    region.bufferImageHeight = 0;       // 对于 2D 纹理始终为 0
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = level;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {static_cast<i32>(mipOffsetX), static_cast<i32>(mipOffsetY), 0};
+    region.imageExtent = {mipWidth, mipHeight, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer(), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    // 转换回着色器只读布局
+    transitionLayout(cmd,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    m_context->endSingleTimeCommands(cmd);
+    stagingBuffer.destroy();
+
+    return {};
+}
+
 void TridentTexture::bind(u32 binding)
 {
     // 纹理绑定通常通过描述符集完成
@@ -761,6 +862,30 @@ Result<void> TridentTextureAtlas::upload(const api::AtlasBuildResult& result)
     }
 
     return m_texture.upload(result.pixelData.data(), result.pixelData.size(), 0);
+}
+
+Result<void> TridentTextureAtlas::uploadRegion(const void* data,
+    u64 size,
+    u32 offsetX,
+    u32 offsetY,
+    u32 width,
+    u32 height,
+    u32 rowLength)
+{
+    if (!isValid()) {
+        return Error(ErrorCode::OperationFailed, "Atlas not initialized");
+    }
+
+    if (!data || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
+    }
+
+    // 验证区域边界
+    if (offsetX + width > m_width || offsetY + height > m_height) {
+        return Error(ErrorCode::OutOfRange, "Upload region out of atlas bounds");
+    }
+
+    return m_texture.uploadRegion(data, size, offsetX, offsetY, width, height, 0, rowLength);
 }
 
 void TridentTextureAtlas::destroy()

@@ -150,6 +150,30 @@ public:
     [[nodiscard]] virtual Result<void> upload(const void* data, u64 size, u32 level = 0) = 0;
 
     /**
+     * @brief 上传数据到纹理的指定区域
+     * @param data 数据指针
+     * @param size 数据大小（字节）
+     * @param offsetX 目标区域 X 偏移（像素）
+     * @param offsetY 目标区域 Y 偏移（像素）
+     * @param width 目标区域宽度（像素）
+     * @param height 目标区域高度（像素）
+     * @param level mip 层级
+     * @param rowLength 源数据行长度（像素），0 表示使用 width
+     * @return 成功或错误
+     *
+     * 此方法用于更新纹理的子区域，适用于动画纹理等场景。
+     * 参考 MC 1.16.5 NativeImage.uploadTextureSub()
+     */
+    [[nodiscard]] virtual Result<void> uploadRegion(const void* data,
+        u64 size,
+        u32 offsetX,
+        u32 offsetY,
+        u32 width,
+        u32 height,
+        u32 level = 0,
+        u32 rowLength = 0) = 0;
+
+    /**
      * @brief 绑定到指定绑定槽
      * @param binding 绑定槽索引
      */
