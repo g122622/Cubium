@@ -33,6 +33,7 @@ class Player;
 class ItemEntity;
 class BlockState;
 class DamageSource;
+class Item;
 
 namespace entity {
 
@@ -156,6 +157,13 @@ public:
      * @brief 设置船的类型
      */
     void setBoatType(Type type) { m_type = type; }
+
+    /**
+     * @brief 获取船对应的物品
+     * MC 1.16.5: getItemBoat()
+     * @return 对应木材类型的船物品指针
+     */
+    [[nodiscard]] const Item* getBoatItem() const;
 
     /**
      * @brief 获取船的状态

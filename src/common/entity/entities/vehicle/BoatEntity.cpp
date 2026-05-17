@@ -22,6 +22,8 @@
 */
 
 #include "BoatEntity.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
@@ -30,6 +32,7 @@
 #include "../../core/DataParameter.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../utils/ItemDropHelper.hpp"
 #include "../passive/basic/AnimalEntity.hpp"
 #include <cmath>
 
@@ -670,15 +673,57 @@ void BoatEntity::updateFallState(f64 y, bool onGround)
     m_lastYd = y;
 }
 
+const Item* BoatEntity::getBoatItem() const
+{
+    // MC 1.16.5: BoatEntity.getItemBoat()
+    // 根据船类型返回对应的船物品
+    switch (m_type) {
+        case Type::OAK:
+            return Items::OAK_BOAT;
+        case Type::SPRUCE:
+            return Items::SPRUCE_BOAT;
+        case Type::BIRCH:
+            return Items::BIRCH_BOAT;
+        case Type::JUNGLE:
+            return Items::JUNGLE_BOAT;
+        case Type::ACACIA:
+            return Items::ACACIA_BOAT;
+        case Type::DARK_OAK:
+            return Items::DARK_OAK_BOAT;
+        default:
+            return Items::OAK_BOAT;
+    }
+}
+
 void BoatEntity::dropItem()
 {
-    // MC 1.16.5: entityDropItem(this.getItemBoat())
-    // 根据船类型掉落对应物品
-    // TODO: 当物品系统完善后实现
-    // const Item* boatItem = getBoatItem();
-    // if (boatItem != nullptr && m_world != nullptr) {
-    //     spawnItem(boatItem, 1);
-    // }
+    // MC 1.16.5: BoatEntity.attackEntityFrom() 中调用 entityDropItem(this.getItemBoat())
+    // 参考 AbstractMinecartEntity::dropItem() 的实现
+
+    IWorld* worldPtr = world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        return;
+    }
+
+    // 获取对应的船物品
+    const Item* boatItem = getBoatItem();
+    if (boatItem == nullptr) {
+        return;
+    }
+
+    // 创建物品堆
+    ItemStack stack(*boatItem, 1);
+
+    // 如果船有自定义名称，设置到物品上
+    if (hasCustomName()) {
+        stack.setCustomName(customNameText());
+    }
+
+    // 使用 ItemDropHelper 在船的位置生成物品实体
+    // 参考 MC 1.16.5: entityDropItem(stack)
+    math::Random& rng = worldPtr->getRandom();
+    ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng,
+        ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 
 void BoatEntity::dropItemWithDamage()
