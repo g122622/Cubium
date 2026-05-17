@@ -604,3 +604,143 @@ TEST(EntityActionPacketTest, InvalidActionType)
     auto result = packet.deserialize(ser.buffer().data(), ser.buffer().size());
     EXPECT_FALSE(result.success()); // Should fail for invalid action type
 }
+
+// ==================== SteerBoatPacket Tests ====================
+
+TEST(SteerBoatPacketTest, SerializeDeserialize_BothFalse)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(false, false);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FALSE(packet2.leftPaddle());
+    EXPECT_FALSE(packet2.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, SerializeDeserialize_LeftOnly)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, false);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_TRUE(packet2.leftPaddle());
+    EXPECT_FALSE(packet2.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, SerializeDeserialize_RightOnly)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(false, true);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FALSE(packet2.leftPaddle());
+    EXPECT_TRUE(packet2.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, SerializeDeserialize_BothTrue)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, true);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_TRUE(packet2.leftPaddle());
+    EXPECT_TRUE(packet2.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, SetLeftPaddle)
+{
+    SteerBoatPacket packet;
+    packet.setLeftPaddle(true);
+    packet.setRightPaddle(false);
+
+    EXPECT_TRUE(packet.leftPaddle());
+    EXPECT_FALSE(packet.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, SetRightPaddle)
+{
+    SteerBoatPacket packet;
+    packet.setLeftPaddle(false);
+    packet.setRightPaddle(true);
+
+    EXPECT_FALSE(packet.leftPaddle());
+    EXPECT_TRUE(packet.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, PacketType)
+{
+    SteerBoatPacket packet;
+    EXPECT_EQ(packet.type(), PacketType::SteerBoat);
+}
+
+TEST(SteerBoatPacketTest, DefaultValues)
+{
+    SteerBoatPacket packet;
+    EXPECT_FALSE(packet.leftPaddle());
+    EXPECT_FALSE(packet.rightPaddle());
+}
+
+TEST(SteerBoatPacketTest, Deserialize_TooSmall)
+{
+    SteerBoatPacket packet;
+    mc::u8 smallData[] = {0x00}; // 只有一个字节，无法读取两个 bool
+
+    auto result = packet.deserialize(smallData, sizeof(smallData));
+    // 一个 bool 只需要一个字节，但需要读取两个 bool，所以应该失败
+    EXPECT_FALSE(result.success());
+}
+
+TEST(SteerBoatPacketTest, Deserialize_EmptyData)
+{
+    SteerBoatPacket packet;
+    mc::u8 emptyData[] = {};
+
+    auto result = packet.deserialize(emptyData, 0);
+    EXPECT_FALSE(result.success()); // 空数据应该失败
+}
+
+TEST(SteerBoatPacketTest, SerializeDeserialize_MultipleTimes)
+{
+    SteerBoatPacket packet;
+
+    // 测试多次序列化/反序列化
+    for (int i = 0; i < 4; i++) {
+        bool left = (i & 1) != 0;
+        bool right = (i & 2) != 0;
+
+        packet.setPaddleState(left, right);
+        auto result = packet.serialize();
+        ASSERT_TRUE(result.success());
+
+        SteerBoatPacket packet2;
+        auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+        ASSERT_TRUE(result2.success());
+
+        EXPECT_EQ(packet2.leftPaddle(), left);
+        EXPECT_EQ(packet2.rightPaddle(), right);
+    }
+}

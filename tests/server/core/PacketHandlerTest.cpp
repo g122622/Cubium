@@ -699,3 +699,210 @@ TEST(PacketHandlerUseEntityPacketTest, PacketType)
     UseEntityPacket packet;
     EXPECT_EQ(packet.type(), PacketType::UseEntity);
 }
+
+// ==================== SteerBoatPacket Tests ====================
+
+TEST_F(PacketHandlerTest, HandleSteerBoat_UnknownSession_ReturnsIgnore)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, false);
+
+    auto serializeResult = packet.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    const auto& data = serializeResult.value();
+    auto result = m_packetHandler->handleSteerBoat(999, data.data(), data.size());
+
+    EXPECT_EQ(result, PacketHandleResult::Ignore);
+}
+
+TEST_F(PacketHandlerTest, HandleSteerBoat_ValidSession_NoServer_ReturnsSuccess)
+{
+    auto conn = createConnection();
+    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    ASSERT_NE(player, nullptr);
+    m_playerManager->mapSessionToPlayer(1, 1);
+
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, true);
+
+    auto serializeResult = packet.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    const auto& data = serializeResult.value();
+    auto result = m_packetHandler->handleSteerBoat(1, data.data(), data.size());
+
+    // 没有设置 server，应该返回 Success（不阻塞）
+    EXPECT_EQ(result, PacketHandleResult::Success);
+}
+
+TEST_F(PacketHandlerTest, HandleSteerBoat_InvalidPacket_ReturnsError)
+{
+    auto conn = createConnection();
+    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    ASSERT_NE(player, nullptr);
+    m_playerManager->mapSessionToPlayer(1, 1);
+
+    // SteerBoatPacket 需要两个 bool，空数据应该失败
+    mc::u8 invalidData[] = {};
+    auto result = m_packetHandler->handleSteerBoat(1, invalidData, 0);
+
+    EXPECT_EQ(result, PacketHandleResult::Error);
+}
+
+TEST_F(PacketHandlerTest, HandleSteerBoat_TooSmallPacket_ReturnsError)
+{
+    auto conn = createConnection();
+    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    ASSERT_NE(player, nullptr);
+    m_playerManager->mapSessionToPlayer(1, 1);
+
+    // SteerBoatPacket 需要两个 bool，一个字节不够
+    mc::u8 smallData[] = {0x01};
+    auto result = m_packetHandler->handleSteerBoat(1, smallData, 1);
+
+    // 一个字节可以读取一个 bool，但需要两个 bool，应该失败
+    EXPECT_EQ(result, PacketHandleResult::Error);
+}
+
+TEST_F(PacketHandlerTest, HandleSteerBoat_AllPaddleCombinations)
+{
+    auto conn = createConnection();
+    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    ASSERT_NE(player, nullptr);
+    m_playerManager->mapSessionToPlayer(1, 1);
+
+    // 测试所有四种组合
+    struct TestCase {
+        bool left;
+        bool right;
+    };
+
+    TestCase cases[] = {
+        {false, false},
+        {true, false},
+        {false, true},
+        {true, true}
+    };
+
+    for (const auto& tc : cases) {
+        SteerBoatPacket packet;
+        packet.setPaddleState(tc.left, tc.right);
+
+        auto serializeResult = packet.serialize();
+        ASSERT_TRUE(serializeResult.success());
+
+        const auto& data = serializeResult.value();
+        auto result = m_packetHandler->handleSteerBoat(1, data.data(), data.size());
+
+        // 没有实际载具时，也应该返回 Success
+        EXPECT_EQ(result, PacketHandleResult::Success);
+    }
+}
+
+// ==================== SteerBoatPacket Serialization Tests ====================
+
+TEST(PacketHandlerSteerBoatPacketTest, SerializeDeserialize_BothFalse)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(false, false);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FALSE(packet2.leftPaddle());
+    EXPECT_FALSE(packet2.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, SerializeDeserialize_LeftOnly)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, false);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_TRUE(packet2.leftPaddle());
+    EXPECT_FALSE(packet2.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, SerializeDeserialize_RightOnly)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(false, true);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FALSE(packet2.leftPaddle());
+    EXPECT_TRUE(packet2.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, SerializeDeserialize_BothTrue)
+{
+    SteerBoatPacket packet;
+    packet.setPaddleState(true, true);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SteerBoatPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_TRUE(packet2.leftPaddle());
+    EXPECT_TRUE(packet2.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, PacketType)
+{
+    SteerBoatPacket packet;
+    EXPECT_EQ(packet.type(), PacketType::SteerBoat);
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, DefaultValues)
+{
+    SteerBoatPacket packet;
+    EXPECT_FALSE(packet.leftPaddle());
+    EXPECT_FALSE(packet.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, SetIndividualPaddles)
+{
+    SteerBoatPacket packet;
+
+    packet.setLeftPaddle(true);
+    EXPECT_TRUE(packet.leftPaddle());
+    EXPECT_FALSE(packet.rightPaddle());
+
+    packet.setRightPaddle(true);
+    EXPECT_TRUE(packet.leftPaddle());
+    EXPECT_TRUE(packet.rightPaddle());
+
+    packet.setLeftPaddle(false);
+    EXPECT_FALSE(packet.leftPaddle());
+    EXPECT_TRUE(packet.rightPaddle());
+
+    packet.setRightPaddle(false);
+    EXPECT_FALSE(packet.leftPaddle());
+    EXPECT_FALSE(packet.rightPaddle());
+}
+
+TEST(PacketHandlerSteerBoatPacketTest, Deserialize_EmptyData_ReturnsError)
+{
+    SteerBoatPacket packet;
+    auto result = packet.deserialize(nullptr, 0);
+    EXPECT_FALSE(result.success());
+}
