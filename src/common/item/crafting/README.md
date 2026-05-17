@@ -190,11 +190,22 @@ if (recipe) {
   - `parseShapedRecipe()` - 解析有序合成
   - `parseShapelessRecipe()` - 解析无序合成
   - `parseIngredient()` - 解析原料
-  - `parseResult()` - 解析结果物品
+  - `parseResult()` - 解析结果物品（支持 NBT 数据）
 - 支持的原料格式：
   - 单物品: `{ "item": "minecraft:stone" }`
   - 标签: `{ "tag": "minecraft:planks" }`
   - 多选项: `[{ "item": "a" }, { "item": "b" }]`
+- 支持的结果格式：
+  - 字符串形式: `"minecraft:stone"`
+  - 对象形式: `{ "item": "minecraft:stone", "count": 1 }`
+  - 带 NBT 数据（Mojangson 字符串）: `{ "item": "minecraft:iron_sword", "nbt": "{display:{Name:\"Custom Sword\"}}" }`
+  - 带 NBT 数据（JSON 对象）: `{ "item": "minecraft:iron_sword", "nbt": {"display":{"Name":"Custom Sword"}} }`
+
+**NBT 数据解析**（2026-05-17 新增）:
+- 支持 Mojangson 字符串格式解析（使用 `nbt::contexts::mojangson`）
+- 支持 JSON 对象格式直接合并到 ItemStack
+- 参考 MC 1.16.5 `CraftingHelper.getItemStack()` 实现
+- NBT 数据通过 `ItemStack::mergeTag()` 合并到物品堆
 
 ### RecipeLoader.hpp / RecipeLoader.cpp
 
@@ -396,6 +407,7 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 | `ShapedRecipeTest.cpp` | 有序合成构造、匹配、边界测试 |
 | `ShapelessRecipeTest.cpp` | 无序合成构造、匹配测试 |
 | `RecipeLoaderTest.cpp` | JSON 解析、文件加载测试 |
+| `RecipeSerializersTest.cpp` | 配方序列化器测试（parseResult NBT 解析、parseIngredient 测试） |
 
 ### 主要测试场景
 
@@ -425,6 +437,18 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 - 无效 JSON 错误处理
 - 缺少字段错误处理
 - 未知类型错误处理
+
+**RecipeSerializers 测试**:
+- `parseResult()` 字符串形式解析
+- `parseResult()` 对象形式解析（带 count）
+- `parseResult()` NBT JSON 对象格式解析
+- `parseResult()` NBT Mojangson 字符串格式解析
+- `parseResult()` 无效 NBT 字符串处理
+- `parseResult()` 多字段 NBT 合并
+- `parseIngredient()` 单物品解析
+- `parseIngredient()` 物品数组解析
+- `parseIngredient()` 标签解析
+- `parseIngredient()` 未知物品处理
 
 ## 未来扩展
 
