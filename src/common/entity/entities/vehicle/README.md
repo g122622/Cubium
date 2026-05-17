@@ -92,6 +92,35 @@ public:
 - 碰撞推动实体
 - 6种木材变体
 - 伤害系统（碰撞、摔落、岩浆）
+- 物品掉落（受伤害超过阈值时掉落对应木材类型的船物品）
+
+### 船的物品掉落 (2026-05-17 更新)
+
+`BoatEntity` 实现了 `getBoatItem()` 和 `dropItem()` 方法：
+
+```cpp
+// 根据船类型返回对应的船物品
+const Item* BoatEntity::getBoatItem() const;
+
+// 在船位置生成物品实体
+void BoatEntity::dropItem();
+```
+
+**类型映射**：
+| 船类型 | 返回物品 |
+|--------|----------|
+| Type::OAK | Items::OAK_BOAT |
+| Type::SPRUCE | Items::SPRUCE_BOAT |
+| Type::BIRCH | Items::BIRCH_BOAT |
+| Type::JUNGLE | Items::JUNGLE_BOAT |
+| Type::ACACIA | Items::ACACIA_BOAT |
+| Type::DARK_OAK | Items::DARK_OAK_BOAT |
+
+**调用时机**：在 `hurt()` 方法中，当累积伤害超过阈值（40.0F）时自动调用 `dropItem()`。
+
+**自定义名称**：如果船有自定义名称，掉落的船物品会保留该名称。
+
+参考 MC 1.16.5：`BoatEntity.getItemBoat()` 行 202-218
 
 ## 矿车的特性
 
