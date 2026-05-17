@@ -34,8 +34,12 @@
 #include "../../../block/IBucketPickupHandler.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../block/blocks/LiquidBlock.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/redstone/CommandBlockEntity.hpp"
 #include "../../../dimension/DimensionType.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -214,12 +218,53 @@ BlockState CommandBlock::getStateForPlacement(BlockItemUseContext& context)
 void CommandBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
-
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // TODO: 检测红石信号并触发命令
+    // MC 1.16.5: CommandBlock.neighborChanged()
+    // 客户端不处理红石逻辑
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 获取方块实体
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+        return;
+    }
+
+    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+
+    // 检测红石信号
+    bool isPowered = world::redstone::RedstonePower::isPowered(world, pos);
+    bool wasPowered = commandEntity->isPowered();
+
+    // 更新供电状态
+    commandEntity->setPowered(isPowered);
+
+    // 获取命令方块模式
+    blockentity::CommandBlockMode mode = commandEntity->getMode();
+
+    // 只处理脉冲模式（REDSTONE）的红石上升沿触发
+    // 循环模式（AUTO）和连锁模式（SEQUENCE）不通过红石直接触发
+    if (mode == blockentity::CommandBlockMode::Redstone) {
+        // 上升沿触发：从不供电变为供电
+        if (isPowered && !wasPowered) {
+            // 检查条件模式
+            commandEntity->checkCondition(world, getFacing(*world.getBlockState(pos)), isConditional(*world.getBlockState(pos)));
+
+            // 延迟 1 tick 后执行（MC 1.16.5 行为）
+            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        }
+    }
+
+    // 循环模式：如果被供电或设置为自动执行，调度 tick
+    if (mode == blockentity::CommandBlockMode::Auto) {
+        if ((isPowered || commandEntity->isAuto()) && !world.tickManager().isBlockTickScheduled(pos, *this)) {
+            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        }
+    }
 }
 
 i32 CommandBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
@@ -254,7 +299,6 @@ ActionResultType CommandBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -266,12 +310,112 @@ ActionResultType CommandBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Success;
 }
 
-void CommandBlock::execute(IWorld& world, const BlockPos& pos, const BlockState& state)
+std::unique_ptr<BlockEntity> CommandBlock::createBlockEntity(const BlockPos& pos)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    // TODO: 执行命令
+    return std::make_unique<blockentity::CommandBlockEntity>(pos, blockentity::CommandBlockMode::Redstone);
+}
+
+void CommandBlock::execute(IWorld& world, const BlockPos& pos, const BlockState& state,
+    blockentity::CommandBlockEntity* commandEntity)
+{
+    // MC 1.16.5: CommandBlock.execute()
+    if (commandEntity == nullptr) {
+        return;
+    }
+
+    // 检查条件
+    bool conditional = isConditional(state);
+    if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
+        // 条件不满足时重置成功计数
+        commandEntity->setSuccessCount(0);
+        return;
+    }
+
+    // 执行命令
+    if (!commandEntity->getCommand().empty()) {
+        commandEntity->trigger(world);
+    }
+
+    // 触发连锁命令方块
+    executeChain(world, pos, getFacing(state));
+
+    // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
+    // MC 1.16.5: world.updateComparators(pos, this);
+    // 比较器可以检测命令方块的成功计数
+}
+
+void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction facing)
+{
+    // MC 1.16.5: CommandBlock.executeChain()
+    // 沿着 FACING 方向查找并触发连锁命令方块
+
+    // 最大链长度限制（MC 1.16.5 默认值）
+    constexpr i32 MAX_CHAIN_LENGTH = 65536;
+
+    BlockPos currentPos = pos;
+    Direction currentFacing = facing;
+
+    for (i32 i = 0; i < MAX_CHAIN_LENGTH; ++i) {
+        // 移动到下一个位置
+        currentPos = currentPos.offset(currentFacing);
+
+        // 获取方块状态
+        const BlockState* nextState = world.getBlockState(currentPos);
+        if (nextState == nullptr) {
+            break;
+        }
+
+        // 检查是否为连锁命令方块（通过检查是否有 ChainCommandBlock 类型的方法）
+        const Block& nextBlock = nextState->getBlock();
+        // 检查是否是 ChainCommandBlock（通过 dynamic_cast）
+        const ChainCommandBlock* chainBlock = dynamic_cast<const ChainCommandBlock*>(&nextBlock);
+        if (chainBlock == nullptr) {
+            break;
+        }
+
+        // 获取方块实体
+        BlockEntity* entity = world.getBlockEntity(currentPos);
+        if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+            break;
+        }
+
+        auto* chainEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+
+        // 连锁模式必须是 SEQUENCE
+        if (chainEntity->getMode() != blockentity::CommandBlockMode::Sequence) {
+            break;
+        }
+
+        // 检查是否被供电或设置为自动执行
+        if (!chainEntity->isPowered() && !chainEntity->isAuto()) {
+            break;
+        }
+
+        // 检查条件
+        Direction blockFacing = chainBlock->getFacing(*nextState);
+        bool conditional = chainBlock->isConditional(*nextState);
+        if (!chainEntity->checkCondition(world, blockFacing, conditional)) {
+            // 条件不满足，继续链但不执行
+            chainEntity->setSuccessCount(0);
+            currentFacing = blockFacing;
+            continue;
+        }
+
+        // 执行命令
+        if (!chainEntity->getCommand().empty()) {
+            if (!chainEntity->trigger(world)) {
+                // 执行失败，停止链
+                break;
+            }
+        }
+
+        // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
+        // MC 1.16.5: world.updateComparators(currentPos, nextBlock);
+        // 比较器可以检测命令方块的成功计数
+
+        // 继续链
+        currentFacing = blockFacing;
+    }
 }
 
 // ========== RepeatingCommandBlock ==========
@@ -283,8 +427,36 @@ RepeatingCommandBlock::RepeatingCommandBlock(const BlockProperties& properties)
 void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    // 每个 tick 执行命令
-    execute(world, pos, state);
+
+    // MC 1.16.5: RepeatingCommandBlock.tick()
+    // 获取方块实体
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+        return;
+    }
+
+    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+
+    // 检查条件
+    bool conditional = isConditional(state);
+    if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
+        // 条件不满足时重置成功计数
+        commandEntity->setSuccessCount(0);
+        return;
+    }
+
+    // 执行命令
+    execute(world, pos, state, commandEntity);
+
+    // 如果仍然被供电或自动执行，重新调度下一 tick
+    if (commandEntity->isPowered() || commandEntity->isAuto()) {
+        world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+    }
+}
+
+std::unique_ptr<BlockEntity> RepeatingCommandBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::CommandBlockEntity>(pos, blockentity::CommandBlockMode::Auto);
 }
 
 // ========== ChainCommandBlock ==========
@@ -292,6 +464,11 @@ void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 ChainCommandBlock::ChainCommandBlock(const BlockProperties& properties)
     : CommandBlock(properties)
 {}
+
+std::unique_ptr<BlockEntity> ChainCommandBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::CommandBlockEntity>(pos, blockentity::CommandBlockMode::Sequence);
+}
 
 // ========== SlimeBlock ==========
 

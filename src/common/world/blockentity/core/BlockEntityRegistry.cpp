@@ -36,6 +36,7 @@
 #include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/blockentity/processing/FurnaceEntity.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
+#include "world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "world/blockentity/redstone/ComparatorEntity.hpp"
 #include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
@@ -122,6 +123,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册末地折跃门方块实体
     registerType(
         BlockEntityType::EndGateway, [](const BlockPos& pos) { return std::make_unique<blockentity::EndGatewayEntity>(pos); });
+
+    // 注册命令方块实体
+    registerType(
+        BlockEntityType::CommandBlock, [](const BlockPos& pos) { return std::make_unique<blockentity::CommandBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

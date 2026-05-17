@@ -34,6 +34,15 @@ class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
 class ServerWorld;
+class BlockEntity;
+
+namespace blockentity {
+class CommandBlockEntity;
+}
+
+namespace tick {
+enum class TickPriority;
+}
 
 namespace blocks {
 
@@ -222,11 +231,34 @@ public:
 
     [[nodiscard]] bool hasBlockEntity() const override { return true; }
 
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
 protected:
     /**
      * @brief 执行命令
+     *
+     * MC 1.16.5: CommandBlock.execute()
+     * 执行命令方块的命令，并触发连锁执行。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param commandEntity 命令方块实体（可为nullptr）
      */
-    void execute(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void execute(IWorld& world, const BlockPos& pos, const BlockState& state,
+        blockentity::CommandBlockEntity* commandEntity);
+
+    /**
+     * @brief 触发连锁命令方块
+     *
+     * MC 1.16.5: CommandBlock.executeChain()
+     * 沿着 FACING 方向触发连锁命令方块。
+     *
+     * @param world 世界引用
+     * @param pos 当前命令方块位置
+     * @param facing 连锁方向
+     */
+    void executeChain(IWorld& world, const BlockPos& pos, Direction facing);
 };
 
 /**
@@ -242,6 +274,8 @@ public:
     ~RepeatingCommandBlock() override = default;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 };
 
 /**
@@ -255,6 +289,8 @@ class ChainCommandBlock : public CommandBlock {
 public:
     explicit ChainCommandBlock(const BlockProperties& properties);
     ~ChainCommandBlock() override = default;
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 };
 
 /**
