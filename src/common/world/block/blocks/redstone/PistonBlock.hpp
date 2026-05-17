@@ -102,9 +102,9 @@ public:
      *
      * @param state 方块状态
      * @param extended 是否伸出
-     * @return BlockState 更新后的状态
+     * @return const BlockState& 更新后的状态（持久化引用）
      */
-    [[nodiscard]] static BlockState withExtended(BlockState state, bool extended);
+    [[nodiscard]] static const BlockState& withExtended(const BlockState& state, bool extended);
 
     /**
      * @brief 获取活塞朝向

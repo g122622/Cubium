@@ -64,7 +64,7 @@ bool PistonBlock::isExtended(const BlockState& state)
     return state.get(BlockStateProperties::EXTENDED());
 }
 
-BlockState PistonBlock::withExtended(BlockState state, bool extended)
+const BlockState& PistonBlock::withExtended(const BlockState& state, bool extended)
 {
     return state.with(BlockStateProperties::EXTENDED(), extended);
 }
@@ -272,7 +272,7 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
     }
 
     // 更新活塞状态为伸出
-    BlockState newState = withExtended(state, true);
+    const BlockState& newState = withExtended(state, true);
     world.setBlockState(pos, &newState, 67);
 
     return true;
@@ -283,7 +283,7 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
     Direction facing = getFacing(state);
 
     // 更新活塞状态为收回
-    BlockState newState = withExtended(state, false);
+    const BlockState& newState = withExtended(state, false);
     world.setBlockState(pos, &newState, 67);
 
     if (m_sticky) {
@@ -372,8 +372,8 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
 
         BlockPos newPos = movePos.offset(moveDir);
 
-        // 创建移动活塞方块（暂时，需要 PistonBlockEntity 来处理动画）
-        BlockState movingState =
+        // 创建移动活塞方块
+        const BlockState& movingState =
             VanillaBlocks::MOVING_PISTON->defaultState().with(BlockStateProperties::FACING(), facing);
         world.setBlockState(newPos, &movingState, 68);
 
@@ -387,25 +387,26 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
 
     // 如果是伸出，在活塞位置创建移动活塞（用于活塞头动画）
     if (extending) {
-        // 创建活塞头状态
-        BlockState pistonHeadState = VanillaBlocks::PISTON_HEAD->defaultState()
-                                         .with(BlockStateProperties::FACING(), facing)
-                                         .with(PistonHeadBlock::getTypeProperty(),
-                                             m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+        // 创建活塞头状态（使用引用类型获取持久化的 BlockState）
+        // StateHolder::with() 返回 const BlockState&，指向 StateContainer 中预分配的状态
+        const BlockState& pistonHeadState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                                .with(BlockStateProperties::FACING(), facing)
+                                                .with(PistonHeadBlock::getTypeProperty(),
+                                                    m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         // 创建移动活塞方块
-        BlockState movingState = VanillaBlocks::MOVING_PISTON->defaultState()
-                                     .with(BlockStateProperties::FACING(), facing)
-                                     .with(PistonHeadBlock::getTypeProperty(),
-                                         m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+        const BlockState& movingState = VanillaBlocks::MOVING_PISTON->defaultState()
+                                            .with(BlockStateProperties::FACING(), facing)
+                                            .with(PistonHeadBlock::getTypeProperty(),
+                                                m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         world.setBlockState(pos, &movingState, 68);
 
         // 创建 PistonBlockEntity 用于活塞头
-        // 注意：pistonHeadState 是局部变量，需要获取其指针
-        const BlockState* pistonHeadStatePtr = world.getBlockState(pos);
-        // 暂时跳过创建 PistonBlockEntity，因为 pistonHeadState 是局部变量
-        // TODO: 需要从 BlockRegistry 获取持久化的 BlockState 指针
+        // pistonHeadState 是持久化引用，可以安全获取其指针
+        // 参数：pos, pistonState（活塞头状态）, facing, extending, shouldRenderHead
+        auto entity = std::make_unique<blockentity::PistonBlockEntity>(pos, &pistonHeadState, facing, true, true);
+        world.setBlockEntity(pos, entity.release());
     }
 
     return true;
