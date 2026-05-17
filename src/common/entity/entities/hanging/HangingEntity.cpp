@@ -246,35 +246,75 @@ ItemFrameEntity::ItemFrameEntity(BlockPos pos, Direction direction)
 void ItemFrameEntity::tick()
 {
     HangingEntity::tick();
-
-    if (m_item) {
-        if (!m_item->isAlive()) {
-            m_item = nullptr;
-        }
-    }
+    // 物品展示框不需要特殊的 tick 逻辑
+    // ItemStack 是值类型，不需要检查存活状态
 }
 
 void ItemFrameEntity::dropItem()
 {
-    // 掉落展示框物品
-    if (m_item) {
-        m_item = nullptr;
+    // MC 1.16.5: 掉落展示框内的物品
+    if (!m_displayedItem.isEmpty() && m_world != nullptr) {
+        // 生成物品实体
+        math::Random& rng = m_world->getRandom();
+        ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
+        m_displayedItem = ItemStack();
     }
 }
 
-void ItemFrameEntity::setItem(const ItemEntity& item)
+void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
 {
+    // MC 1.16.5: setDisplayedItemWithUpdate
+    if (!stack.isEmpty()) {
+        // 复制物品堆并设置数量为1
+        m_displayedItem = stack;
+        m_displayedItem.setCount(1);
+    } else {
+        m_displayedItem = ItemStack();
+    }
+    // 旋转重置为0
     m_rotation = 0;
 }
 
 void ItemFrameEntity::setItemRotation(i32 rotation)
 {
+    // MC 1.16.5: setRotation
+    // 旋转值限制在 0-7 范围内
     m_rotation = rotation % 8;
+    if (m_rotation < 0) {
+        m_rotation += 8;
+    }
 }
 
 void ItemFrameEntity::rotateItem()
 {
+    // MC 1.16.5: rotateItem - 右键交互时旋转物品
     m_rotation = (m_rotation + 1) % 8;
+}
+
+i32 ItemFrameEntity::getAnalogOutput() const
+{
+    // MC 1.16.5: ItemFrameEntity.getAnalogOutput()
+    // 无物品时返回 0，有物品时返回 rotation % 8 + 1
+    return m_displayedItem.isEmpty() ? 0 : (m_rotation % 8 + 1);
+}
+
+mc::Direction ItemFrameEntity::getHorizontalFacing() const
+{
+    // MC 1.16.5: 将内部方向转换为 mc::Direction
+    // HangingEntity::Direction: SOUTH=0, WEST=1, NORTH=2, EAST=3
+    // mc::Direction: North=2, South=3, West=4, East=5
+    switch (m_direction) {
+        case HangingEntity::Direction::SOUTH:
+            return mc::Direction::South;
+        case HangingEntity::Direction::WEST:
+            return mc::Direction::West;
+        case HangingEntity::Direction::NORTH:
+            return mc::Direction::North;
+        case HangingEntity::Direction::EAST:
+            return mc::Direction::East;
+        default:
+            return mc::Direction::South;
+    }
 }
 
 // ==================== LeashKnotEntity ====================

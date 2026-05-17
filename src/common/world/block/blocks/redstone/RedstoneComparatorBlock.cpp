@@ -22,6 +22,7 @@
 */
 
 #include "RedstoneComparatorBlock.hpp"
+#include "../../../../entity/entities/hanging/HangingEntity.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../IWorld.hpp"
@@ -248,15 +249,31 @@ i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPo
             const Block& behindBlock = behindState->getBlock();
 
             // 检查后面的容器信号
+            i32 maxSignal = input;
             if (behindBlock.hasComparatorInputOverride(*behindState)) {
                 i32 behindSignal = behindBlock.getComparatorInputOverride(*behindState, world, behindPos);
-                if (behindSignal > input) {
-                    input = behindSignal;
-                }
+                maxSignal = std::max(maxSignal, behindSignal);
             }
+
+            // MC 1.16.5: 检查物品展示框的模拟信号
+            // 物品展示框附着在 behindPos 方块的表面上
+            // 物品展示框的朝向必须与比较器的朝向相同
+            entity::ItemFrameEntity* itemFrame = findItemFrame(world, facing, behindPos);
+            if (itemFrame != nullptr) {
+                i32 frameSignal = itemFrame->getAnalogOutput();
+                maxSignal = std::max(maxSignal, frameSignal);
+            }
+
+            return maxSignal;
         }
 
-        // TODO: 检查物品展示框的模拟信号（需要实体系统支持）
+        // MC 1.16.5: 即使 behindPos 没有方块，也要检查物品展示框
+        // 物品展示框可能附着在 inputPos 方块的背面
+        entity::ItemFrameEntity* itemFrame = findItemFrame(world, facing, behindPos);
+        if (itemFrame != nullptr) {
+            i32 frameSignal = itemFrame->getAnalogOutput();
+            input = std::max(input, frameSignal);
+        }
     }
 
     return input;
@@ -293,6 +310,43 @@ ActionResultType RedstoneComparatorBlock::onBlockActivated(const BlockState& sta
     updateState(world, pos, newState);
 
     return ActionResultType::Success;
+}
+
+entity::ItemFrameEntity* RedstoneComparatorBlock::findItemFrame(IWorld& world, Direction facing, const BlockPos& pos)
+{
+    // MC 1.16.5: ComparatorBlock.findItemFrame()
+    // 在指定方块位置创建一个 1x1x1 的 AABB 包围盒
+    AxisAlignedBB searchBox(
+        static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z),
+        static_cast<f64>(pos.x + 1), static_cast<f64>(pos.y + 1), static_cast<f64>(pos.z + 1));
+
+    // 获取该区域内的所有实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
+
+    entity::ItemFrameEntity* foundFrame = nullptr;
+    i32 foundCount = 0;
+
+    for (Entity* entity : entities) {
+        // 检查是否是物品展示框
+        entity::ItemFrameEntity* frame = dynamic_cast<entity::ItemFrameEntity*>(entity);
+        if (frame == nullptr) {
+            continue;
+        }
+
+        // MC 1.16.5: 物品展示框的朝向必须与比较器的朝向相同
+        // 物品展示框贴在方块表面，朝向是它面向的方向
+        // 比较器朝向是它输出信号的方向
+        if (frame->getHorizontalFacing() == facing) {
+            foundFrame = frame;
+            foundCount++;
+            // MC 1.16.5: 只有唯一一个物品展示框时才返回
+            if (foundCount > 1) {
+                return nullptr;  // 多个物品展示框，返回 nullptr
+            }
+        }
+    }
+
+    return foundFrame;
 }
 
 } // namespace blocks

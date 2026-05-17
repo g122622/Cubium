@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../core/Entity.hpp"
 #include <string>
@@ -159,6 +161,11 @@ private:
  *
  * 可以展示物品的框架。
  *
+ * 红石特性：
+ * - 可以输出红石比较器信号（1-8，取决于物品旋转角度）
+ * - 无物品时输出 0
+ * - 有物品时输出 rotation % 8 + 1
+ *
  * 参考 MC 1.16.5 ItemFrameEntity
  */
 class ItemFrameEntity : public HangingEntity {
@@ -174,25 +181,58 @@ public:
 
     /**
      * @brief 设置展示的物品
+     * @param stack 要展示的物品堆
      */
-    void setItem(const ItemEntity& item);
+    void setDisplayedItem(const ItemStack& stack);
 
     /**
-     * @brief 获取展示的物品
+     * @brief 获取展示的物品堆
+     * @return 展示的物品堆（可能为空）
      */
-    [[nodiscard]] const ItemEntity* getItem() const { return m_item; }
+    [[nodiscard]] const ItemStack& getDisplayedItem() const { return m_displayedItem; }
+
+    /**
+     * @brief 检查是否有展示物品
+     */
+    [[nodiscard]] bool hasItem() const { return !m_displayedItem.isEmpty(); }
 
     /**
      * @brief 设置物品旋转
      * @param rotation 0-7（每45度一个位置）
      */
     void setItemRotation(i32 rotation);
+
+    /**
+     * @brief 获取物品旋转值
+     * @return 旋转值 0-7
+     */
     [[nodiscard]] i32 getItemRotation() const { return m_rotation; }
 
     /**
-     * @brief 旋转物品
+     * @brief 旋转物品（右键交互时调用）
      */
     void rotateItem();
+
+    /**
+     * @brief 获取红石比较器模拟输出信号
+     *
+     * MC 1.16.5: getAnalogOutput()
+     * - 无物品: 返回 0
+     * - 有物品: 返回 rotation % 8 + 1（范围 1-8）
+     *
+     * @return 红石信号强度（0-8）
+     */
+    [[nodiscard]] i32 getAnalogOutput() const;
+
+    /**
+     * @brief 获取水平朝向（MC 方向）
+     *
+     * MC 1.16.5: getHorizontalFacing()
+     * 用于红石比较器检测物品展示框朝向。
+     *
+     * @return mc::Direction 水平朝向
+     */
+    [[nodiscard]] mc::Direction getHorizontalFacing() const;
 
     /**
      * @brief 检查是否为无形展示框（Glow Item Frame）
@@ -201,9 +241,9 @@ public:
     void setGlowing(bool glowing) { m_glowing = glowing; }
 
 private:
-    ItemEntity* m_item = nullptr;
-    i32 m_rotation = 0;
-    bool m_glowing = false;
+    ItemStack m_displayedItem;  ///< 展示的物品堆
+    i32 m_rotation = 0;         ///< 旋转值（0-7，每45度一个位置）
+    bool m_glowing = false;     ///< 是否为无形展示框
 };
 
 /**

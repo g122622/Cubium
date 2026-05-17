@@ -34,6 +34,10 @@ namespace mc {
 
 class BlockEntity;
 
+namespace entity {
+class ItemFrameEntity;
+}
+
 namespace blocks {
 
 /**
@@ -221,6 +225,20 @@ private:
      * @return i32 计算后的输出信号强度
      */
     [[nodiscard]] i32 calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+    /**
+     * @brief 查找物品展示框
+     *
+     * MC 1.16.5: findItemFrame
+     * 在指定位置查找朝向特定方向的物品展示框。
+     * 物品展示框必须附着在方块的表面上，且朝向必须与比较器朝向相同。
+     *
+     * @param world 世界引用
+     * @param facing 比较器的朝向（也是物品展示框应有的朝向）
+     * @param pos 要搜索的方块位置
+     * @return ItemFrameEntity* 找到的物品展示框，如果没有或多个则返回 nullptr
+     */
+    [[nodiscard]] static entity::ItemFrameEntity* findItemFrame(IWorld& world, Direction facing, const BlockPos& pos);
 };
 
 } // namespace blocks
