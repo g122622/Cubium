@@ -51,7 +51,7 @@ src/common/util/math/
 - **基本数学函数**
   - `toRadians()` / `toDegrees()` - 角度转换
   - `clamp()` - 数值范围限制
-  - `lerp()` - 线性插值
+  - `lerp()` - 线性插值（支持 f32 和 f64 两个版本）
   - `lerp3()` - 三线性插值（用于 3D 噪声生成）
   - `smoothstep()` - 平滑插值
   - `square()` / `cube()` - 平方/立方
