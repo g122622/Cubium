@@ -163,7 +163,7 @@ Entity (core/Entity.hpp)
 | LlamaSpitEntity | 羊驼攻击狼 | ⏳ 框架完成 |
 | FishingBobberEntity | 钓鱼机制 | ✅ 完整实现 |
 | ShulkerBulletEntity | 潜影贝跟踪攻击 | ✅ 完整实现 |
-| EvokerFangsEntity | 唤魔者召唤尖牙 | ✅ 完整实现 |
+| EvokerFangsEntity | 唤魔者召唤尖牙 | ✅ 完整实现（含队伍伤害检查）|
 | EyeOfEnderEntity | 寻找要塞 | ⏳ 框架完成 |
 | FireworkRocketEntity | 烟花/弩弹药 | ✅ 爆炸伤害已实现 |
 

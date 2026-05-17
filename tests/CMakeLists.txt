@@ -331,6 +331,8 @@ add_executable(mc_tests
     # EndermanEntity AI 目标测试（ResetAngerGoal, WaterAvoidingRandomWalkingGoal）
     entity/EndermanAIGoalsTest.cpp
     entity/EvokerGoalsTest.cpp
+    # EvokerFangsEntity 队伍伤害检查测试
+    entity/EvokerFangsTest.cpp
     entity/VexGoalsTest.cpp
     entity/BrainScheduleTests.cpp
     entity/SensorTests.cpp
