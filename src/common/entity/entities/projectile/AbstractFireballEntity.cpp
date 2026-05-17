@@ -272,8 +272,9 @@ void DragonFireballEntity::createDragonBreathCloud()
     );
     cloud->addEffect(instantDamage);
 
-    // TODO: 设置龙息粒子类型
-    // cloud->setParticleType(ParticleTypes::DRAGON_BREATH);
+    // MC 1.16.5: 设置龙息粒子类型
+    // 参考 AreaEffectCloudEntity.setParticleType() 和 ParticleTypes.DRAGON_BREATH
+    cloud->setParticleType(static_cast<u32>(client::renderer::trident::particle::ParticleTypeId::DragonBreath));
 
     // 生成区域效果云
     worldPtr->spawnEntity(std::move(cloud));
