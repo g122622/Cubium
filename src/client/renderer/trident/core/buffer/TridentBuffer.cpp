@@ -516,73 +516,49 @@ void TridentVertexBuffer::unmap()
 
 Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset)
 {
-    // 需要通过暂存缓冲区上传，这里提供一个简化实现
-    // 实际使用时应该通过 TridentEngine 的暂存缓冲区
     if (!m_context) {
         return Error(ErrorCode::NotInitialized, "Buffer not initialized");
     }
 
-    // 创建临时暂存缓冲区
-    VkDevice device = m_context->device();
-
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-
-    VkBufferCreateInfo stagingInfo{};
-    stagingInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    stagingInfo.size = size;
-    stagingInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stagingInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VkResult result = vkCreateBuffer(device, &stagingInfo, nullptr, &stagingBuffer);
-    if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "Failed to create staging buffer");
+    if (!data || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
     }
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
-
-    auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    if (typeResult.failed()) {
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        return typeResult.error();
+    if (offset + size > m_size) {
+        return Error(ErrorCode::OutOfRange, "Upload range exceeds buffer size");
     }
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = typeResult.value();
-
-    result = vkAllocateMemory(device, &allocInfo, nullptr, &stagingMemory);
-    if (result != VK_SUCCESS) {
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate staging memory");
+    // 创建暂存缓冲区
+    TridentStagingBuffer stagingBuffer;
+    auto result = stagingBuffer.create(m_context, size);
+    if (result.failed()) {
+        return result;
     }
 
-    vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
-
-    // 复制数据到暂存缓冲区
-    void* mapped;
-    result = vkMapMemory(device, stagingMemory, 0, size, 0, &mapped);
-    if (result != VK_SUCCESS) {
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingMemory, nullptr);
-        return Error(ErrorCode::OperationFailed, "Failed to map staging memory");
+    // 上传数据到暂存缓冲区
+    result = stagingBuffer.upload(data, size, 0);
+    if (result.failed()) {
+        stagingBuffer.destroy();
+        return result;
     }
 
-    std::memcpy(mapped, data, size);
-    vkUnmapMemory(device, stagingMemory);
+    // 获取命令缓冲区
+    VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
 
-    // TODO: 需要命令缓冲区来执行复制操作
-    // 这里需要通过 TridentContext 获取命令缓冲区并提交
+    // 复制暂存缓冲区到顶点缓冲区
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = offset;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(cmd, stagingBuffer.buffer(), m_buffer, 1, &copyRegion);
 
-    // 暂时清理暂存缓冲区（实际应该在复制完成后清理）
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingMemory, nullptr);
+    // 提交并等待完成
+    m_context->endSingleTimeCommands(cmd);
 
-    return Error(ErrorCode::Unsupported, "Vertex buffer upload requires command buffer submission");
+    // 清理暂存缓冲区
+    stagingBuffer.destroy();
+
+    return {};
 }
 
 u32 TridentVertexBuffer::vertexCount() const
@@ -730,8 +706,49 @@ void TridentIndexBuffer::unmap() {}
 
 Result<void> TridentIndexBuffer::upload(const void* data, u64 size, u64 offset)
 {
-    // TODO: 实现通过暂存缓冲区上传
-    return Error(ErrorCode::Unsupported, "Index buffer upload requires staging buffer");
+    if (!m_context) {
+        return Error(ErrorCode::NotInitialized, "Buffer not initialized");
+    }
+
+    if (!data || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
+    }
+
+    if (offset + size > m_size) {
+        return Error(ErrorCode::OutOfRange, "Upload range exceeds buffer size");
+    }
+
+    // 创建暂存缓冲区
+    TridentStagingBuffer stagingBuffer;
+    auto result = stagingBuffer.create(m_context, size);
+    if (result.failed()) {
+        return result;
+    }
+
+    // 上传数据到暂存缓冲区
+    result = stagingBuffer.upload(data, size, 0);
+    if (result.failed()) {
+        stagingBuffer.destroy();
+        return result;
+    }
+
+    // 获取命令缓冲区
+    VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
+
+    // 复制暂存缓冲区到索引缓冲区
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = offset;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(cmd, stagingBuffer.buffer(), m_buffer, 1, &copyRegion);
+
+    // 提交并等待完成
+    m_context->endSingleTimeCommands(cmd);
+
+    // 清理暂存缓冲区
+    stagingBuffer.destroy();
+
+    return {};
 }
 
 void TridentIndexBuffer::bind(void* commandBuffer)
