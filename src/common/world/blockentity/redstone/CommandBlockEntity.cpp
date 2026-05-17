@@ -26,8 +26,6 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockState.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/redstone/RedstonePower.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <algorithm>
 
@@ -292,28 +290,7 @@ bool CommandBlockEntity::checkCondition(IWorld& world, Direction facing, bool is
     // 获取背后的方块位置（FACING 的反方向）
     BlockPos behindPos = m_pos.offset(Directions::opposite(facing));
 
-    // 获取背后的方块状态
-    const BlockState* behindState = world.getBlockState(behindPos);
-    if (behindState == nullptr) {
-        m_conditionMet = false;
-        return false;
-    }
-
-    // 检查背后的方块是否为命令方块
-    const Block& behindBlock = behindState->getBlock();
-
-    // 检查是否为命令方块类型
-    bool isCommandBlock = behindBlock.hasBlockEntity() &&
-        (behindState->is(*VanillaBlocks::COMMAND_BLOCK) ||
-            behindState->is(*VanillaBlocks::REPEATING_COMMAND_BLOCK) ||
-            behindState->is(*VanillaBlocks::CHAIN_COMMAND_BLOCK));
-
-    if (!isCommandBlock) {
-        m_conditionMet = false;
-        return false;
-    }
-
-    // 获取背后命令方块的方块实体
+    // 获取背后的方块实体
     BlockEntity* behindEntity = world.getBlockEntity(behindPos);
     if (behindEntity == nullptr || behindEntity->getType() != BlockEntityType::CommandBlock) {
         m_conditionMet = false;

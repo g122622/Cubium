@@ -6,6 +6,8 @@
 
 ```
 redstone/
+├── CommandBlockEntity.hpp     # 命令方块实体
+├── CommandBlockEntity.cpp
 ├── ComparatorEntity.hpp       # 比较器方块实体
 ├── ComparatorEntity.cpp
 ├── DaylightDetectorEntity.hpp # 日光探测器方块实体
@@ -14,6 +16,59 @@ redstone/
 ```
 
 ## 文件介绍
+
+### CommandBlockEntity
+
+命令方块实体，存储命令方块的命令、执行状态和输出信息。
+
+**三种模式：**
+- `CommandBlockMode::Redstone` - 脉冲模式（红石信号上升沿触发）
+- `CommandBlockMode::Auto` - 循环模式（每 tick 自动执行）
+- `CommandBlockMode::Sequence` - 连锁模式（被前一个命令方块触发）
+
+**核心功能：**
+- 存储命令字符串
+- 执行命令并记录成功计数
+- 支持条件执行（检测背后命令方块的成功计数）
+- JSON 序列化/反序列化
+- 实现 `ICommandSource` 接口
+
+**为什么需要 BlockEntity？**
+
+MC Java 中命令方块使用 `CommandBlockTileEntity` 存储命令和状态：
+- 命令字符串可能很长，无法存储在方块状态中
+- 需要存储成功计数用于比较器输出
+- 需要存储最后输出用于日志
+- 循环模式需要 tick 更新
+
+**MC 1.16.5 参考：** `net.minecraft.tileentity.CommandBlockTileEntity`
+
+**使用示例：**
+```cpp
+#include "world/blockentity/redstone/CommandBlockEntity.hpp"
+
+// 创建命令方块实体
+auto entity = std::make_unique<CommandBlockEntity>(BlockPos(0, 64, 0));
+
+// 设置命令
+entity->setCommand("say Hello World");
+
+// 设置模式
+entity->setMode(CommandBlockMode::Auto);
+entity->setAuto(true);
+
+// 执行命令（需要世界对象）
+entity->trigger(world);
+
+// 获取成功计数（用于比较器输出）
+i32 successCount = entity->getSuccessCount();
+```
+
+**条件执行：**
+```cpp
+// 检查条件是否满足（条件模式）
+bool conditionMet = entity->checkCondition(world, Direction::North, isConditional);
+```
 
 ### ComparatorEntity
 
@@ -52,12 +107,16 @@ MC Java 中日光探测器有 `DaylightDetectorTileEntity` 实现 `ITickableTile
 ```mermaid
 graph TB
     subgraph 方块实体
+        CBE[CommandBlockEntity]
         CE[ComparatorEntity]
         DDE[DaylightDetectorEntity]
     end
 
     subgraph 方块
-        RCB[RedstoneComparatorBlock]
+        CB[CommandBlock]
+        RCB[RepeatingCommandBlock]
+        CCB[ChainCommandBlock]
+        RCB2[RedstoneComparatorBlock]
         DDB[DaylightDetectorBlock]
     end
 
@@ -65,58 +124,98 @@ graph TB
         BE[BlockEntity]
     end
 
+    subgraph 接口
+        ICS[ICommandSource]
+    end
+
+    CBE --> BE
+    CBE --> ICS
     CE --> BE
     DDE --> BE
 
-    RCB --> CE
+    CB --> CBE
+    RCB --> CBE
+    CCB --> CBE
+    RCB2 --> CE
     DDB --> DDE
+```
+
+## 命令方块执行流程
+
+```mermaid
+sequenceDiagram
+    participant R as 红石信号
+    participant B as CommandBlock
+    participant E as CommandBlockEntity
+    participant W as World
+    participant C as Command系统
+
+    R->>B: 邻居更新
+    B->>B: 检测信号上升沿
+    B->>E: 检查条件
+    E->>W: 获取背后命令方块
+    E->>E: 检查成功计数
+    B->>W: 调度 tick
+    W->>B: tick 回调
+    B->>E: trigger()
+    E->>W: executeCommand()
+    W->>C: 执行命令
+    C-->>E: 返回结果
+    E->>E: 更新成功计数
+    B->>B: 触发连锁命令方块
 ```
 
 ## 使用方法
 
-### 创建比较器方块实体
+### 创建命令方块实体
 
 ```cpp
-#include "world/blockentity/redstone/ComparatorEntity.hpp"
+#include "world/blockentity/redstone/CommandBlockEntity.hpp"
 
-// 创建
-auto entity = std::make_unique<ComparatorEntity>(BlockPos(0, 64, 0));
+// 创建脉冲命令方块
+auto entity = std::make_unique<CommandBlockEntity>(BlockPos(0, 64, 0));
 
-// 设置输出信号
-entity->setOutputSignal(10);
+// 创建循环命令方块
+auto repeating = std::make_unique<CommandBlockEntity>(BlockPos(0, 64, 0), CommandBlockMode::Auto);
 
-// 获取输出信号
-i32 signal = entity->getOutputSignal(); // 10
+// 创建连锁命令方块
+auto chain = std::make_unique<CommandBlockEntity>(BlockPos(0, 64, 0), CommandBlockMode::Sequence);
 ```
 
 ### 在方块中使用
 
 ```cpp
-// RedstoneComparatorBlock.cpp
+// CommandBlock.cpp
 
-bool RedstoneComparatorBlock::hasBlockEntity() const {
+bool CommandBlock::hasBlockEntity() const {
     return true;
 }
 
-std::unique_ptr<BlockEntity> RedstoneComparatorBlock::createBlockEntity(const BlockPos& pos) {
-    return std::make_unique<ComparatorEntity>(pos);
+std::unique_ptr<BlockEntity> CommandBlock::createBlockEntity(const BlockPos& pos) {
+    return std::make_unique<CommandBlockEntity>(pos);
 }
 
-// 读取存储的信号
-i32 RedstoneComparatorBlock::getStoredOutputSignal(IWorld& world, const BlockPos& pos) const {
-    BlockEntity* be = world.getBlockEntity(pos);
-    if (auto* comparator = dynamic_cast<ComparatorEntity*>(be)) {
-        return comparator->getOutputSignal();
-    }
-    return 0;
+// RepeatingCommandBlock.cpp
+
+std::unique_ptr<BlockEntity> RepeatingCommandBlock::createBlockEntity(const BlockPos& pos) {
+    return std::make_unique<CommandBlockEntity>(pos, CommandBlockMode::Auto);
 }
 
-// 存储信号
-void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) {
-    BlockEntity* be = world.getBlockEntity(pos);
-    if (auto* comparator = dynamic_cast<ComparatorEntity*>(be)) {
-        comparator->setOutputSignal(signal);
-    }
+// ChainCommandBlock.cpp
+
+std::unique_ptr<BlockEntity> ChainCommandBlock::createBlockEntity(const BlockPos& pos) {
+    return std::make_unique<CommandBlockEntity>(pos, CommandBlockMode::Sequence);
+}
+```
+
+### 命令执行
+
+```cpp
+// 触发命令执行
+if (entity->trigger(world)) {
+    // 命令执行成功
+    i32 successCount = entity->getSuccessCount();
+    const std::string& output = entity->getLastOutput();
 }
 ```
 
@@ -125,10 +224,12 @@ void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& p
 - `world/blockentity/BlockEntity.hpp` - 方块实体基类
 - `world/blockentity/BlockEntityType.hpp` - 方块实体类型枚举
 - `world/blockentity/core/BlockEntityRegistry.hpp` - 注册表
+- `command/ICommandSource.hpp` - 命令源接口
 
 ## 测试用例
 
 测试文件位于 `tests/common/world/blockentity/`:
+- `CommandBlockEntityTest.cpp` - 命令方块实体测试
 - `ComparatorEntityTest.cpp` - 比较器实体测试
 - `DaylightDetectorEntityTest.cpp` - 日光探测器实体测试
 
@@ -139,46 +240,85 @@ void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& p
 必须在 `BlockEntityRegistry::registerBuiltinTypes()` 中注册：
 
 ```cpp
-registerType(BlockEntityType::Comparator, [](const BlockPos& pos) {
-    return std::make_unique<ComparatorEntity>(pos);
+registerType(BlockEntityType::CommandBlock, [](const BlockPos& pos) {
+    return std::make_unique<CommandBlockEntity>(pos);
 });
 ```
 
-### 2. 信号范围验证
+### 2. 成功计数范围
 
-输出信号范围是 0-15，需要在 setter 中验证：
+成功计数范围是 0-15，用于比较器输出信号强度：
 
 ```cpp
-void ComparatorEntity::setOutputSignal(i32 signal) {
-    MC_ASSERT(signal >= 0 && signal <= 15);
-    m_outputSignal = signal;
-    setChanged(); // 别忘了标记已修改
+void CommandBlockEntity::setSuccessCount(i32 count) {
+    m_successCount = std::clamp(count, 0, 15);
+    setChanged();
 }
 ```
 
-### 3. 方块创建时创建实体
+### 3. 同一 tick 防止重复执行
+
+`trigger()` 方法会检查 `m_lastExecution` 防止同一 tick 内重复执行：
+
+```cpp
+bool CommandBlockEntity::trigger(IWorld& world) {
+    i64 currentTick = world.currentTick();
+    if (currentTick == m_lastExecution) {
+        return false; // 同一 tick 已执行
+    }
+    // ... 执行命令
+    m_lastExecution = currentTick;
+    return true;
+}
+```
+
+### 4. 条件执行检查
+
+条件模式下需要检查背后命令方块的成功计数：
+
+```cpp
+bool CommandBlockEntity::checkCondition(IWorld& world, Direction facing, bool isConditional) {
+    if (!isConditional) {
+        return true; // 非条件模式
+    }
+    // 获取背后命令方块并检查成功计数
+    BlockPos behindPos = m_pos.offset(Directions::opposite(facing));
+    // ...
+}
+```
+
+### 5. 方块创建时创建实体
 
 方块放置时需要自动创建 BlockEntity：
 
 ```cpp
-void RedstoneComparatorBlock::onBlockAdded(IWorld& world, const BlockPos& pos,
-                                           const BlockState& state) {
-    // 创建 BlockEntity
+void CommandBlock::onBlockAdded(IWorld& world, const BlockPos& pos,
+                                 const BlockState& state) {
     if (!world.getBlockEntity(pos)) {
         world.setBlockEntity(pos, createBlockEntity(pos).release());
     }
-    // ... 其他逻辑
 }
 ```
 
-### 4. 方块移除时清理实体
+### 6. 方块移除时清理实体
 
 方块移除时需要清理 BlockEntity：
 
 ```cpp
-void RedstoneComparatorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos,
-                                             const BlockState& state) {
+void CommandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos,
+                                   const BlockState& state) {
     world.removeBlockEntity(pos);
-    // ... 其他逻辑
+}
+```
+
+### 7. 彩蛋命令
+
+输入命令 "Searge" 会返回 "#itzlipofutzli"（MC 开发者彩蛋）：
+
+```cpp
+if (m_command == "Searge") {
+    m_lastOutput = "#itzlipofutzli";
+    m_successCount = 1;
+    return true;
 }
 ```

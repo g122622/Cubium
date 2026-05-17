@@ -42,6 +42,7 @@ blockentity/
 │   ├── BeaconEntity.hpp/cpp          # 信标
 │   └── README.md
 ├── redstone/                    # 红石类方块实体
+│   ├── CommandBlockEntity.hpp/cpp   # 命令方块实体
 │   ├── ComparatorEntity.hpp/cpp     # 比较器实体
 │   ├── DaylightDetectorEntity.hpp/cpp # 日光探测器实体
 │   └── README.md
@@ -171,8 +172,9 @@ blockentity/
 
 ### redstone/ - 红石类方块实体
 
-提供比较器、日光探测器等红石相关方块实体：
+提供比较器、日光探测器、命令方块等红石相关方块实体：
 
+- **CommandBlockEntity** - 命令方块，存储命令并执行，支持三种模式（脉冲、循环、连锁）
 - **ComparatorEntity** - 比较器，存储输出信号强度
 - **DaylightDetectorEntity** - 日光探测器，定期更新信号
 
@@ -211,6 +213,8 @@ BlockEntity (基类)
 ├── EnchantingTableEntity (附魔台)
 │
 ├── PistonBlockEntity (活塞)
+│
+├── CommandBlockEntity (命令方块) [实现 ICommandSource]
 │
 ├── ComparatorEntity (比较器)
 │

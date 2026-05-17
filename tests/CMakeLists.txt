@@ -248,6 +248,8 @@ add_executable(mc_tests
     common/world/blockentity/CampfireBlockEntityTest.cpp
     # ShulkerBoxEntity 潜影盒测试（动画状态、比较器信号、防递归嵌套）
     common/world/blockentity/ShulkerBoxEntityTest.cpp
+    # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
+    common/world/blockentity/CommandBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
@@ -1067,6 +1069,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/ConduitEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/redstone/CommandBlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
         # 鐗╁搧瀹炰綋鍜屾帀钀借〃
