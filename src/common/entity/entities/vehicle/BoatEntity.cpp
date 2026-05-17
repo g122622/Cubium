@@ -151,9 +151,13 @@ void BoatEntity::tick()
         updateMotion();
 
         // MC 1.16.5: 客户端调用 controlBoat 并发送包
-        if (m_world && m_world->isClientSide()) {
+        // 注意：在 MC 1.16.5 中，客户端和服务端共用同一个 BoatEntity 类
+        // 在我们的架构中，客户端使用 ClientEntity 代理，服务端使用 BoatEntity
+        // 因此这里只在服务端执行 controlBoat（由 PlayerInputPacket 驱动）
+        // 客户端通过 ClientApplication 直接发送 SteerBoatPacket
+        if (m_world && !m_world->isClientSide()) {
+            // 服务端：由 PlayerInputPacket 触发 handleInput 后调用 controlBoat
             controlBoat();
-            // TODO: 发送 CSteerBoatPacket 到服务端
         }
 
         // 执行移动 (MC 1.16.5: this.move(MoverType.SELF, this.getMotion()))

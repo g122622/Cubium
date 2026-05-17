@@ -50,6 +50,7 @@ enum class PacketType : u16 {
     MoveVehicle = 107,             // 载具移动 - MC 1.16.5 CMoveVehiclePacket
     EntityAction = 108,            // 实体动作 (跳跃、潜行等) - MC 1.16.5 CEntityActionPacket
     UseEntity = 109,               // 实体交互 - MC 1.16.5 CUseEntityPacket
+    SteerBoat = 110,               // 船划桨状态 - MC 1.16.5 CSteerBoatPacket
 
     // 服务端 -> 客户端 (登录阶段)
     LoginResponse = 200,

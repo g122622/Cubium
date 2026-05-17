@@ -548,6 +548,33 @@ Result<void> PlayerInputPacket::deserialize(const u8* data, size_t size)
     return {};
 }
 
+// ==================== SteerBoatPacket ====================
+
+Result<std::vector<u8>> SteerBoatPacket::serialize() const
+{
+    // MC 1.16.5 CSteerBoatPacket: 只需要写入两个布尔值
+    // 参考: net.minecraft.network.play.client.CSteerBoatPacket
+    PacketSerializer serializer;
+    serializer.writeBool(m_leftPaddle);
+    serializer.writeBool(m_rightPaddle);
+    return serializer.buffer();
+}
+
+Result<void> SteerBoatPacket::deserialize(const u8* data, size_t size)
+{
+    PacketDeserializer deserializer(data, size);
+
+    auto leftResult = deserializer.readBool();
+    if (!leftResult.success()) return Error(leftResult.error());
+    m_leftPaddle = leftResult.value();
+
+    auto rightResult = deserializer.readBool();
+    if (!rightResult.success()) return Error(rightResult.error());
+    m_rightPaddle = rightResult.value();
+
+    return {};
+}
+
 // ==================== MoveVehiclePacket ====================
 
 Result<std::vector<u8>> MoveVehiclePacket::serialize() const

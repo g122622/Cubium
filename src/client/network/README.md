@@ -137,6 +137,7 @@ void sendCloseContainer(containerId);       // 关闭容器
 void sendPlayerInput(strafeSpeed, forwardSpeed, jumping, sneaking);  // 骑乘输入
 void sendMoveVehicle(x, y, z, yaw, pitch);  // 载具位置同步
 void sendEntityAction(action, auxData);     // 实体动作（马跳跃等）
+void sendSteerBoat(leftPaddle, rightPaddle); // 船划桨状态同步
 ```
 
 **统计信息**:

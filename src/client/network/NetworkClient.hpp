@@ -302,6 +302,13 @@ public:
      */
     void sendEntityAction(network::EntityActionType action, i32 auxData = 0);
 
+    /**
+     * @brief 发送船划桨状态包
+     * @param leftPaddle 左桨是否在划动
+     * @param rightPaddle 右桨是否在划动
+     */
+    void sendSteerBoat(bool leftPaddle, bool rightPaddle);
+
     // 主循环更新
     void poll();
 

@@ -30,6 +30,8 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -293,6 +295,19 @@ void ClientApplication::handleMouseAndMovementInput()
         // 同时发送 MoveVehiclePacket 同步载具位置
         const auto& pos = m_player->position();
         m_networkClient->sendMoveVehicle(pos.x, pos.y, pos.z, m_player->yaw(), m_player->pitch());
+
+        // MC 1.16.5: 如果骑乘的是船，发送划桨状态
+        // 划桨状态：左桨 = 左移或前进，右桨 = 右移或前进
+        // 参考: BoatEntity.controlBoat() 中 setPaddleState(leftInput || forwardInput, rightInput || forwardInput)
+        EntityId vehicleId = m_player->getVehicle();
+        if (vehicleId != INVALID_ENTITY_ID) {
+            ClientEntity* vehicle = m_world.entityManager().getEntity(vehicleId);
+            if (vehicle != nullptr && vehicle->typeId() == mc::entity::EntityTypes::BOAT) {
+                bool leftPaddle = (strafe < 0.0f) || (forward > 0.0f);  // A or W
+                bool rightPaddle = (strafe > 0.0f) || (forward > 0.0f); // D or W
+                m_networkClient->sendSteerBoat(leftPaddle, rightPaddle);
+            }
+        }
     } else {
         // 正常状态：传递输入给玩家进行本地移动
         m_player->handleMovementInput(forward, strafe, jumping, sneaking);

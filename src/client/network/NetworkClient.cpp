@@ -435,6 +435,18 @@ void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxDa
     }
 }
 
+void NetworkClient::sendSteerBoat(bool leftPaddle, bool rightPaddle)
+{
+    // MC 1.16.5: CSteerBoatPacket 发送船的划桨状态
+    network::SteerBoatPacket packet;
+    packet.setPaddleState(leftPaddle, rightPaddle);
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        sendRawData(result.value().data(), result.value().size());
+    }
+}
+
 void NetworkClient::poll()
 {
     if (!m_running) return;

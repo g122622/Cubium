@@ -38,6 +38,7 @@
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -104,6 +105,9 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
 
         case network::PacketType::EntityAction:
             return handleEntityAction(sessionId, payload, payloadSize);
+
+        case network::PacketType::SteerBoat:
+            return handleSteerBoat(sessionId, payload, payloadSize);
 
         case network::PacketType::UseEntity:
             return handleUseEntity(sessionId, payload, payloadSize);
@@ -543,6 +547,77 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
                 static_cast<i32>(packet.action()), playerId);
             break;
     }
+
+    return PacketHandleResult::Success;
+}
+
+PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data, size_t size)
+{
+    // MC 1.16.5: ServerPlayNetHandler.processSteerBoat()
+    PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::trace("PacketHandler: SteerBoat from unknown session {}", sessionId);
+        return PacketHandleResult::Ignore;
+    }
+
+    network::SteerBoatPacket packet;
+    auto result = packet.deserialize(data, size);
+
+    if (result.failed()) {
+        spdlog::error("PacketHandler: Failed to parse SteerBoat from player {}", playerId);
+        return PacketHandleResult::Error;
+    }
+
+    // MC 1.16.5: SteerBoatPacket 用于同步船的划桨状态
+    // leftPaddle: 左桨是否在划动
+    // rightPaddle: 右桨是否在划动
+
+    spdlog::trace("PacketHandler: Player {} steer boat: left={}, right={}",
+        playerId, packet.leftPaddle(), packet.rightPaddle());
+
+    // 验证服务器接口
+    if (m_server == nullptr) {
+        spdlog::trace("PacketHandler: Server not set, cannot process steer boat");
+        return PacketHandleResult::Success;
+    }
+
+    // 获取玩家实体
+    ServerWorld& world = m_server->world();
+    ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+    Player* player = entityManager.getPlayerEntity(playerId, world);
+
+    if (player == nullptr) {
+        spdlog::trace("PacketHandler: Player {} entity not found for steer boat", playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // 检查玩家是否正在骑乘
+    if (!player->isRiding()) {
+        return PacketHandleResult::Success;
+    }
+
+    // 获取载具实体
+    EntityId vehicleId = player->getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID) {
+        return PacketHandleResult::Success;
+    }
+
+    Entity* vehicle = world.getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        spdlog::trace("PacketHandler: Vehicle entity {} not found for player {}", vehicleId, playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: 检查载具是否是船
+    // 只有船需要处理划桨状态
+    auto* boat = dynamic_cast<entity::BoatEntity*>(vehicle);
+    if (boat == nullptr) {
+        // 不是船，忽略
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: 设置船的桨状态
+    boat->setPaddleState(packet.leftPaddle(), packet.rightPaddle());
 
     return PacketHandleResult::Success;
 }

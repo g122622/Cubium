@@ -179,6 +179,15 @@ public:
     PacketHandleResult handleEntityAction(u32 sessionId, const u8* data, size_t size);
 
     /**
+     * @brief 处理船划桨状态
+     * @param sessionId 会话ID
+     * @param data 数据包负载
+     * @param size 负载大小
+     * @return 处理结果
+     */
+    PacketHandleResult handleSteerBoat(u32 sessionId, const u8* data, size_t size);
+
+    /**
      * @brief 处理传送确认
      * @param sessionId 会话ID
      * @param data 数据包负载

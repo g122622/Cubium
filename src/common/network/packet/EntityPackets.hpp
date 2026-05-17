@@ -627,6 +627,53 @@ private:
 };
 
 // ============================================================================
+// 船划桨状态包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 船划桨状态包
+ *
+ * 客户端发送船的划桨状态给服务端。
+ * 仅包含两个布尔值：左桨是否划动、右桨是否划动。
+ *
+ * 参考 MC 1.16.5 CSteerBoatPacket
+ */
+class SteerBoatPacket : public Packet {
+public:
+    SteerBoatPacket()
+        : Packet(PacketType::SteerBoat)
+    {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    /**
+     * @brief 左桨是否正在划动
+     */
+    bool leftPaddle() const { return m_leftPaddle; }
+    void setLeftPaddle(bool left) { m_leftPaddle = left; }
+
+    /**
+     * @brief 右桨是否正在划动
+     */
+    bool rightPaddle() const { return m_rightPaddle; }
+    void setRightPaddle(bool right) { m_rightPaddle = right; }
+
+    /**
+     * @brief 设置两个桨的状态
+     */
+    void setPaddleState(bool left, bool right)
+    {
+        m_leftPaddle = left;
+        m_rightPaddle = right;
+    }
+
+private:
+    bool m_leftPaddle = false;  // 左桨状态
+    bool m_rightPaddle = false; // 右桨状态
+};
+
+// ============================================================================
 // 载具移动包 (客户端 -> 服务端)
 // ============================================================================
 
