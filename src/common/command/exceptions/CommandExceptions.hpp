@@ -65,6 +65,13 @@ enum class CommandErrorType {
     BlockPosUnloaded,   // 方块位置未加载
     BlockPosOutOfWorld, // 方块位置超出世界
 
+    // NBT 路径错误
+    NbtPathNotFound,         // NBT 路径未找到
+    NbtPathMultipleResults,  // NBT 路径匹配多个结果
+    NbtPathInvalidType,      // NBT 路径类型不匹配
+    NbtPathIndexOutOfBounds, // NBT 列表索引越界
+    InvalidNbtPath,          // 无效的 NBT 路径语法
+
     // 权限错误
     PermissionDenied, // 权限不足
 

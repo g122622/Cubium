@@ -373,6 +373,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
