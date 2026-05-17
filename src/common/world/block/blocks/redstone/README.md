@@ -94,7 +94,7 @@ redstone/
 |------|------|
 | `RedstoneDiodeBlock.hpp/cpp` | 红石二极管基类，提供单向传输基础功能 |
 | `RedstoneRepeaterBlock.hpp/cpp` | 红石中继器，信号增强+延迟+锁定 |
-| `RedstoneComparatorBlock.hpp/cpp` | 红石比较器，比较/减法模式信号处理 |
+| `RedstoneComparatorBlock.hpp/cpp` | 红石比较器，比较/减法模式信号处理，支持容器和物品展示框信号检测 |
 
 ### 信号源方块
 
@@ -279,6 +279,8 @@ classDiagram
         +getMode() ComparatorMode
         +isSubtractMode() bool
         +calculateOutput() i32
+        +findItemFrame() ItemFrameEntity*
+        +calculateInputStrength() i32
     }
 
     class ObserverBlock {
@@ -443,6 +445,68 @@ i32 strength = RedstonePower::getWeakPower(world, pos, Direction::North);
 // 获取强信号
 i32 strong = RedstonePower::getStrongPower(world, pos, Direction::Down);
 ```
+
+### 比较器物品展示框信号检测
+
+红石比较器可以检测物品展示框输出的红石信号：
+
+**位置关系**：
+```
+[物品展示框] --> [完整方块] --> [比较器]
+      ↑              ↑            ↑
+   朝向相同      普通方块      检测方向
+```
+
+**信号强度计算**（MC 1.16.5）：
+
+| 条件 | 信号强度 |
+|------|----------|
+| 无物品 | 0 |
+| 有物品，rotation=0 | 1 |
+| 有物品，rotation=1 | 2 |
+| ... | ... |
+| 有物品，rotation=7 | 8 |
+
+**检测逻辑**：
+```cpp
+// 比较器检测物品展示框
+ItemFrameEntity* RedstoneComparatorBlock::findItemFrame(IWorld& world, Direction facing, const BlockPos& pos) {
+    // 在指定位置创建 AABB 搜索区域
+    AxisAlignedBB searchBox(pos.x, pos.y, pos.z, pos.x + 1, pos.y + 1, pos.z + 1);
+    
+    // 获取该区域内的所有实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
+    
+    ItemFrameEntity* foundFrame = nullptr;
+    i32 foundCount = 0;
+    
+    for (Entity* entity : entities) {
+        ItemFrameEntity* frame = dynamic_cast<ItemFrameEntity*>(entity);
+        if (frame == nullptr) continue;
+        
+        // 物品展示框朝向必须与比较器朝向相同
+        if (frame->getHorizontalFacing() == facing) {
+            foundFrame = frame;
+            foundCount++;
+            // 只有唯一一个物品展示框时才返回
+            if (foundCount > 1) return nullptr;
+        }
+    }
+    
+    return foundFrame;
+}
+
+// 获取物品展示框信号强度
+i32 signal = itemFrame->getAnalogOutput();  // 0-8
+```
+
+**关键方法**：
+- `findItemFrame()` - 查找朝向匹配的物品展示框
+- `calculateInputStrength()` - 计算输入信号（包括容器和物品展示框）
+- `ItemFrameEntity::getAnalogOutput()` - 获取物品展示框信号强度（0-8）
+- `ItemFrameEntity::getHorizontalFacing()` - 获取物品展示框朝向
+
+**参考**：MC 1.16.5 `ComparatorBlock.calculateInputStrength()` 和 `ComparatorBlock.findItemFrame()`
 
 ### 更新红石信号
 

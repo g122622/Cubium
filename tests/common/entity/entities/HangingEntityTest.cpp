@@ -153,6 +153,110 @@ TEST_F(HangingEntityTest, ItemFrameRotation)
     // 旋转超过 7 应该回绕
     itemFrame.setItemRotation(10);
     EXPECT_EQ(itemFrame.getItemRotation(), 2); // 10 % 8 = 2
+
+    // 负数旋转
+    itemFrame.setItemRotation(-1);
+    EXPECT_EQ(itemFrame.getItemRotation(), 7); // -1 + 8 = 7
+}
+
+// ============================================================================
+// ItemFrameEntity 红石信号测试
+// ============================================================================
+
+TEST_F(HangingEntityTest, ItemFrameAnalogOutput_NoItem_ReturnsZero)
+{
+    // MC 1.16.5: 无物品时返回 0
+    entity::ItemFrameEntity itemFrame;
+
+    EXPECT_FALSE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
+}
+
+TEST_F(HangingEntityTest, ItemFrameAnalogOutput_WithItem_ReturnsRotationPlusOne)
+{
+    // MC 1.16.5: 有物品时返回 rotation % 8 + 1
+    entity::ItemFrameEntity itemFrame;
+
+    // 设置物品
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond);
+    EXPECT_TRUE(itemFrame.hasItem());
+
+    // rotation = 0 时，信号 = 1
+    itemFrame.setItemRotation(0);
+    EXPECT_EQ(itemFrame.getItemRotation(), 0);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1);
+
+    // rotation = 1 时，信号 = 2
+    itemFrame.setItemRotation(1);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 2);
+
+    // rotation = 7 时，信号 = 8
+    itemFrame.setItemRotation(7);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 8);
+
+    // rotation = 8 时，应该是 0（被 % 8）
+    itemFrame.setItemRotation(8);
+    EXPECT_EQ(itemFrame.getItemRotation(), 0);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1);
+}
+
+TEST_F(HangingEntityTest, ItemFrameAnalogOutput_RotationRange)
+{
+    // MC 1.16.5: 测试所有旋转值的信号强度
+    entity::ItemFrameEntity itemFrame;
+    ItemStack item(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(item);
+
+    // 测试所有旋转值
+    for (i32 rotation = 0; rotation <= 7; ++rotation) {
+        itemFrame.setItemRotation(rotation);
+        EXPECT_EQ(itemFrame.getAnalogOutput(), rotation + 1)
+            << "Expected signal " << (rotation + 1) << " for rotation " << rotation;
+    }
+
+    // 信号范围应该是 1-8
+    EXPECT_GE(itemFrame.getAnalogOutput(), 1);
+    EXPECT_LE(itemFrame.getAnalogOutput(), 8);
+}
+
+TEST_F(HangingEntityTest, ItemFrameSetDisplayedItem_ResetsRotation)
+{
+    // MC 1.16.5: 设置物品时重置旋转为 0
+    entity::ItemFrameEntity itemFrame;
+
+    // 先设置旋转
+    itemFrame.setItemRotation(5);
+    EXPECT_EQ(itemFrame.getItemRotation(), 5);
+
+    // 设置新物品时旋转应该重置
+    ItemStack item(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(item);
+    EXPECT_EQ(itemFrame.getItemRotation(), 0);
+}
+
+TEST_F(HangingEntityTest, ItemFrameHorizontalFacing_ConvertsCorrectly)
+{
+    // MC 1.16.5: 测试方向转换
+    entity::ItemFrameEntity itemFrame;
+
+    // 测试所有方向的转换
+    // HangingEntity::Direction: SOUTH=0, WEST=1, NORTH=2, EAST=3
+    // mc::Direction: North=2, South=3, West=4, East=5
+
+    BlockPos pos(0, 0, 0);
+
+    itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::SOUTH);
+    EXPECT_EQ(itemFrame.getHorizontalFacing(), mc::Direction::South);
+
+    itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::WEST);
+    EXPECT_EQ(itemFrame.getHorizontalFacing(), mc::Direction::West);
+
+    itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::NORTH);
+    EXPECT_EQ(itemFrame.getHorizontalFacing(), mc::Direction::North);
+
+    itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::EAST);
+    EXPECT_EQ(itemFrame.getHorizontalFacing(), mc::Direction::East);
 }
 
 TEST_F(HangingEntityTest, LeashKnotCanAttachEntities)
