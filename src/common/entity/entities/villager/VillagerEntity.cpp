@@ -24,6 +24,7 @@
 #include "VillagerEntity.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
@@ -36,8 +37,15 @@
 #include "../../ai/brain/schedule/Schedule.hpp"
 #include "../../ai/brain/sensor/Sensors.hpp"
 #include "../../ai/goal/goals/villager/VillagerGoals.hpp"
+#include "../../ai/goal/goals/special/WanderingTraderGoals.hpp"
+#include "../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../ai/goal/goals/PanicGoal.hpp"
+#include "../../ai/goal/goals/SwimGoal.hpp"
+#include "../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../core/EntityPose.hpp"
+#include "../../entities/passive/horse/TraderLlamaEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -513,30 +521,186 @@ void WanderingTraderEntity::tick()
 
 void WanderingTraderEntity::restockTrades()
 {
-    // 流浪商人会自动补充交易
-    // TODO: 实现交易补充
+    // MC 1.16.5 WanderingTraderEntity.restock()
+    // 流浪商人会自动补充已用完的交易
+
+    if (m_offers == nullptr) {
+        return;
+    }
+
+    // 遍历所有交易，补充已用完的
+    for (size_t i = 0; i < m_offers->size(); ++i) {
+        MerchantOffer* offer = m_offers->getOffer(i);
+        if (offer != nullptr && offer->isOutOfStock()) {
+            // 重置交易次数
+            offer->restock();
+        }
+    }
 }
 
 void WanderingTraderEntity::spawnLlamas()
 {
-    if (m_hasLlamas || m_llamaCount <= 0) {
+    // MC 1.16.5 WanderingTraderEntity.spawnLlamas()
+    if (m_hasLlamas || m_llamaCount <= 0 || m_world == nullptr) {
         return;
     }
 
-    // TODO: 在流浪商人附近生成贸易羊驼
-    // 每只羊驼有两个箱子用于存储物品
+    // 在流浪商人附近生成贸易羊驼
+    // MC 1.16.5: 最多2只羊驼，生成在商人后方
+    math::Random& rng = m_world->getRandom();
+
+    for (i32 i = 0; i < m_llamaCount && i < 2; ++i) {
+        // 计算生成位置：在商人附近随机位置
+        f64 offsetX = (rng.nextDouble() - 0.5) * 4.0; // -2 到 +2 格
+        f64 offsetZ = (rng.nextDouble() - 0.5) * 4.0;
+
+        f64 spawnX = x() + offsetX;
+        f64 spawnZ = z() + offsetZ;
+        f64 spawnY = y();
+
+        // 创建商队羊驼
+        auto llama = std::make_unique<TraderLlamaEntity>(LegacyEntityType::TraderLlama, EntityId(0));
+        llama->setPosition(spawnX, spawnY, spawnZ);
+        llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
+
+        // TODO: 当拴绳系统实现后，将羊驼拴在商人身上
+        // llama->attachToEntity(this, ...);
+
+        m_world->spawnEntity(std::move(llama));
+    }
 
     m_hasLlamas = true;
 }
 
 void WanderingTraderEntity::registerGoals()
 {
+    using namespace ai::goal;
+    using namespace ai::goal::wandering_trader;
+
     AgeableEntity::registerGoals();
 
-    // TODO: 添加流浪商人特有AI目标
-    // - 寻找村庄
-    // - 补充交易
-    // - 逃跑（遇到威胁时）
+    // ========== 优先级 0: 基础生存 ==========
+    // SwimGoal - 游泳
+    m_goalSelector.addGoal(0, std::make_unique<SwimGoal>(this));
+
+    // ========== 优先级 1: 交易相关 ==========
+    // TradeWithPlayerGoal - 与玩家交易
+    m_goalSelector.addGoal(1, std::make_unique<TradeWithPlayerGoal>(this));
+
+    // ========== 优先级 1: 逃避威胁 ==========
+    // AvoidEntityGoal - 躲避僵尸
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        8.0f,   // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   (entity->legacyType() == LegacyEntityType::Zombie ||
+                    entity->legacyType() == LegacyEntityType::Drowned ||
+                    entity->legacyType() == LegacyEntityType::Husk ||
+                    entity->legacyType() == LegacyEntityType::ZombifiedPiglin);
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避掠夺者
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        15.0f,  // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Pillager;
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避唤魔者
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        12.0f,  // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Evoker;
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避卫道士
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        8.0f,   // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Vindicator;
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避恼鬼
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        8.0f,   // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Vex;
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避幻术师
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        12.0f,  // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Illusioner;
+        }
+    ));
+
+    // AvoidEntityGoal - 躲避疣猪兽
+    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
+        this,
+        10.0f,  // 躲避距离
+        0.5,    // 远距离速度
+        0.5,    // 近距离速度
+        [](const LivingEntity* entity) -> bool {
+            return entity != nullptr &&
+                   entity->legacyType() == LegacyEntityType::Zoglin;
+        }
+    ));
+
+    // PanicGoal - 恐慌逃跑
+    m_goalSelector.addGoal(1, std::make_unique<PanicGoal>(this, 0.5));
+
+    // LookAtCustomerGoal - 看向顾客
+    m_goalSelector.addGoal(1, std::make_unique<LookAtCustomerGoal>(this));
+
+    // ========== 优先级 2: 移动 ==========
+    // MoveToWanderTargetGoal - 向游荡目标移动
+    m_goalSelector.addGoal(2, std::make_unique<MoveToWanderTargetGoal>(this, 2.0, 0.35));
+
+    // ========== 优先级 4: 限制范围 ==========
+    // MoveTowardsRestrictionGoal - 向限制点移动
+    m_goalSelector.addGoal(4, std::make_unique<MoveTowardsRestrictionGoal>(this, 0.35));
+
+    // ========== 优先级 8: 随机移动 ==========
+    // WaterAvoidingRandomWalkingGoal - 避水随机行走
+    m_goalSelector.addGoal(8, std::make_unique<WaterAvoidingRandomWalkingGoal>(this, 0.35));
+
+    // ========== 优先级 9: 看向 ==========
+    // LookAtGoal - 看向玩家
+    m_goalSelector.addGoal(9, std::make_unique<LookAtGoal>(
+        this, 3.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<Player>{}));
+
+    // ========== 优先级 10: 看向生物 ==========
+    // LookAtGoal - 看向附近生物
+    m_goalSelector.addGoal(10, std::make_unique<LookAtGoal>(this, 8.0f));
 }
 
 void WanderingTraderEntity::registerAttributes()

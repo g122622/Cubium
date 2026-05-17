@@ -359,6 +359,16 @@ public:
     void setLlamaCount(i32 count) { m_llamaCount = count; }
 
     /**
+     * @brief 获取游荡目标位置
+     */
+    [[nodiscard]] BlockPos wanderTarget() const { return m_wanderTarget; }
+
+    /**
+     * @brief 设置游荡目标位置
+     */
+    void setWanderTarget(const BlockPos& pos) { m_wanderTarget = pos; }
+
+    /**
      * @brief 补充交易
      */
     void restockTrades();
@@ -374,10 +384,11 @@ protected:
     void updateOffers() override;
 
 private:
-    i32 m_despawnDelay = 0;   // 消失倒计时
-    i32 m_llamaCount = 0;     // 贸易羊驼数量
-    bool m_hasLlamas = false; // 是否已生成羊驼
-    i32 m_tradeCount = 0;     // 交易次数
+    i32 m_despawnDelay = 0;       // 消失倒计时
+    i32 m_llamaCount = 0;         // 贸易羊驼数量
+    bool m_hasLlamas = false;     // 是否已生成羊驼
+    i32 m_tradeCount = 0;         // 交易次数
+    BlockPos m_wanderTarget;      // 游荡目标位置
 };
 
 } // namespace entity

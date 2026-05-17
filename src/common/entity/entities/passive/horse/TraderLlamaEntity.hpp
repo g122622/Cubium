@@ -88,13 +88,17 @@ public:
      * 先补最小语义：被驯服或被骑乘时不消失。
      * 拴绳和 trader 关联逻辑后续补齐。
      */
-    [[nodiscard]] bool canDespawn() const { return !isTame() && !isBeingRidden(); }
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    {
+        (void)distanceToClosestPlayer;
+        return !isTame() && !isBeingRidden();
+    }
 
     void tick() override
     {
         LlamaEntity::tick();
 
-        if (!canDespawn()) {
+        if (isTame() || isBeingRidden()) {
             return;
         }
 
