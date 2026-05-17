@@ -417,8 +417,15 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 200;
     }
 
+    // ========== 木船 (1200 tick = 60 秒) ==========
+    // 参考: MC 1.16.5 第 139 行: addItemTagBurnTime(map, ItemTags.BOATS, 1200);
+    // 所有 6 种木材类型的船
+    if (item == Items::OAK_BOAT || item == Items::SPRUCE_BOAT || item == Items::BIRCH_BOAT ||
+        item == Items::JUNGLE_BOAT || item == Items::ACACIA_BOAT || item == Items::DARK_OAK_BOAT) {
+        return 1200;
+    }
+
     // ========== TODO 待实现的物品 ==========
-    // 木船 (BOAT): 1200 tick (60 秒) - 待物品注册
     // 旗帜 (BANNER): 300 tick - 待方块注册
 
     return 0;

@@ -451,6 +451,16 @@ public:
     static Item* COMMAND_BLOCK_MINECART; // 命令方块矿车
 
     // ========================================================================
+    // 船（6种木材类型）
+    // ========================================================================
+    static Item* OAK_BOAT;      // 橡木船
+    static Item* SPRUCE_BOAT;   // 云杉木船
+    static Item* BIRCH_BOAT;    // 白桦木船
+    static Item* JUNGLE_BOAT;   // 丛林木船
+    static Item* ACACIA_BOAT;   // 金合欢木船
+    static Item* DARK_OAK_BOAT; // 深色橡木船
+
+    // ========================================================================
     // 悬挂实体物品
     // ========================================================================
     static Item* PAINTING;   // 画作
@@ -489,6 +499,7 @@ private:
     static void registerBooks();
     static void registerSponges();
     static void registerMinecarts();
+    static void registerBoats();
     static void registerHangingItems();
     static void registerSigns();
 };

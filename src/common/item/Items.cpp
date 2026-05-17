@@ -54,6 +54,7 @@
 #include "items/tool/ShearsItem.hpp"
 #include "items/tool/ShovelItem.hpp"
 #include "items/tool/SwordItem.hpp"
+#include "items/vehicle/BoatItem.hpp"
 #include "items/vehicle/MinecartItem.hpp"
 #include "items/weapon/ArrowItem.hpp"
 #include "items/weapon/BowItem.hpp"
@@ -435,6 +436,16 @@ Item* Items::HOPPER_MINECART = nullptr;
 Item* Items::COMMAND_BLOCK_MINECART = nullptr;
 
 // ============================================================================
+// 船（6种木材类型）
+// ============================================================================
+Item* Items::OAK_BOAT = nullptr;
+Item* Items::SPRUCE_BOAT = nullptr;
+Item* Items::BIRCH_BOAT = nullptr;
+Item* Items::JUNGLE_BOAT = nullptr;
+Item* Items::ACACIA_BOAT = nullptr;
+Item* Items::DARK_OAK_BOAT = nullptr;
+
+// ============================================================================
 // 悬挂实体物品
 // ============================================================================
 Item* Items::PAINTING = nullptr;
@@ -495,6 +506,7 @@ void Items::initialize()
     registerBooks();        // 书本类物品
     registerSponges();      // 海绵物品
     registerMinecarts();    // 矿车物品
+    registerBoats();        // 船物品
     registerHangingItems(); // 悬挂实体物品
     registerSigns();        // 告示牌物品
 
@@ -1606,6 +1618,46 @@ void Items::registerMinecarts()
         &registry.registerItem<item::MinecartItem>(ResourceLocation("minecraft:command_block_minecart"),
             entity::AbstractMinecartEntity::Type::CommandBlock,
             ItemProperties().maxStackSize(1));
+}
+
+void Items::registerBoats()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 船物品 - MC 1.16.5: maxStackSize = 1
+    // 参考: net.minecraft.item.Items 第 765-770 行
+    // ========================================================================
+
+    // 橡木船
+    OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:oak_boat"),
+        entity::BoatEntity::Type::OAK,
+        ItemProperties().maxStackSize(1));
+
+    // 云杉木船
+    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_boat"),
+        entity::BoatEntity::Type::SPRUCE,
+        ItemProperties().maxStackSize(1));
+
+    // 白桦木船
+    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_boat"),
+        entity::BoatEntity::Type::BIRCH,
+        ItemProperties().maxStackSize(1));
+
+    // 丛林木船
+    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_boat"),
+        entity::BoatEntity::Type::JUNGLE,
+        ItemProperties().maxStackSize(1));
+
+    // 金合欢木船
+    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_boat"),
+        entity::BoatEntity::Type::ACACIA,
+        ItemProperties().maxStackSize(1));
+
+    // 深色橡木船
+    DARK_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_boat"),
+        entity::BoatEntity::Type::DARK_OAK,
+        ItemProperties().maxStackSize(1));
 }
 
 void Items::registerHangingItems()

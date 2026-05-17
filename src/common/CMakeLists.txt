@@ -400,6 +400,7 @@ add_library(mc_common STATIC
 
     # Item - Vehicle Items
     item/items/vehicle/MinecartItem.cpp
+    item/items/vehicle/BoatItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp
