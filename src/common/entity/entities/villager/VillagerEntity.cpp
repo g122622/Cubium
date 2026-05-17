@@ -346,6 +346,15 @@ void VillagerEntity::registerGoals()
     // 优先级5: 收集物品
     m_goalSelector.addGoal(5, std::make_unique<GatherItemsGoal>(this));
 
+    // 优先级6: 村民聚集（MEET 活动期间）
+    m_goalSelector.addGoal(6, std::make_unique<CongregateGoal>(this));
+
+    // 优先级7: 分享物品（农民分享食物）
+    m_goalSelector.addGoal(7, std::make_unique<ShareItemsGoal>(this));
+
+    // 优先级8: 看向实体（村民、玩家、猫等）
+    m_goalSelector.addGoal(8, std::make_unique<LookAtEntitiesGoal>(this));
+
     // 农民特殊目标（替代普通工作目标）
     if (m_villagerData.profession() == VillagerProfession::Farmer) {
         m_goalSelector.addGoal(3, std::make_unique<FarmerWorkGoal>(this));

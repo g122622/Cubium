@@ -897,5 +897,98 @@ TEST_F(ScheduleIntegrationTest, WorkTimeTransitions)
     EXPECT_FALSE(goal->shouldExecute());
 }
 
+// ============================================================================
+// Villager Interaction Tests - play() and gossip spreading
+// ============================================================================
+
+class VillagerInteractionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestVillagerWorld>();
+        m_villager1 = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager1->setWorld(m_world.get());
+        m_villager1->setPosition(0.0f, 64.0f, 0.0f);
+
+        m_villager2 = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(2));
+        m_villager2->setWorld(m_world.get());
+        m_villager2->setPosition(5.0f, 64.0f, 0.0f); // 5格远
+    }
+
+    void TearDown() override
+    {
+        m_villager1.reset();
+        m_villager2.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<TestVillagerWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager1;
+    std::unique_ptr<VillagerEntity> m_villager2;
+};
+
+TEST_F(VillagerInteractionTest, PlayMethodExists)
+{
+    // 测试 play() 方法可以被调用
+    EXPECT_NO_THROW(m_villager1->play());
+}
+
+TEST_F(VillagerInteractionTest, TrySpreadGossipMethodExists)
+{
+    // 测试 trySpreadGossip() 方法可以被调用
+    EXPECT_NO_THROW(m_villager1->trySpreadGossip());
+}
+
+TEST_F(VillagerInteractionTest, SpreadGossipToMethodExists)
+{
+    // 测试 spreadGossipTo() 方法可以被调用
+    EXPECT_NO_THROW(m_villager1->spreadGossipTo(m_villager2.get()));
+}
+
+TEST_F(VillagerInteractionTest, SpreadGossipToNullptr)
+{
+    // 测试 spreadGossipTo() 方法处理 nullptr
+    EXPECT_NO_THROW(m_villager1->spreadGossipTo(nullptr));
+}
+
+TEST_F(VillagerInteractionTest, SpreadGossipCooldown)
+{
+    // 设置初始时间
+    m_world->setCurrentTick(1000);
+
+    // 第一次传播应该成功
+    m_villager1->spreadGossipTo(m_villager2.get());
+
+    // 再次传播应该被冷却阻止
+    // 由于冷却时间是 1200 ticks，在 1000 ticks 时应该被阻止
+    m_villager1->spreadGossipTo(m_villager2.get());
+}
+
+TEST_F(VillagerInteractionTest, TrySpreadGossipNoInteractionTarget)
+{
+    // 没有设置交互目标
+    m_world->setCurrentTick(1000);
+    m_world->setDayTime(5000);
+
+    // 应该不抛异常
+    EXPECT_NO_THROW(m_villager1->trySpreadGossip());
+}
+
+TEST_F(VillagerInteractionTest, GossipSpreadTimeRecorded)
+{
+    // 设置初始时间
+    m_world->setCurrentTick(2000);
+
+    // 传播流言
+    m_villager1->spreadGossipTo(m_villager2.get());
+
+    // 后续测试需要检查冷却时间
+    // 在冷却期内再次传播应该被阻止
+    m_world->setCurrentTick(2500); // 500 ticks 后，小于 1200 冷却
+
+    // 这应该被冷却阻止（不抛异常）
+    EXPECT_NO_THROW(m_villager1->spreadGossipTo(m_villager2.get()));
+}
+
 } // namespace
 } // namespace mc

@@ -1263,6 +1263,496 @@ void VillagerBreedGoal::spawnChild()
     m_villager->resetBreedWillingness();
 }
 
+// ============================================================================
+// CongregateGoal - 村民聚集目标
+// ============================================================================
+
+CongregateGoal::CongregateGoal(VillagerEntity* villager)
+    : m_villager(villager)
+    , m_targetVillagerId(0)
+    , m_interactCooldown(0)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
+}
+
+bool CongregateGoal::shouldExecute()
+{
+    if (!m_villager || !m_villager->world()) return false;
+
+    // 检查是否有会议点（从 Brain 的 MEETING_POINT 记忆获取）
+    auto meetingPoint = m_villager->brain().getMemory<GlobalPos>(ai::brain::memory::MemoryModuleTypes::MEETING_POINT);
+    if (!meetingPoint.has_value()) return false;
+
+    // 检查是否在会议点附近
+    BlockPos meetingPos = meetingPoint->getPos();
+    f32 distSq = m_villager->distanceSqTo(meetingPos.x + 0.5f, static_cast<f32>(meetingPos.y), meetingPos.z + 0.5f);
+    if (distSq > 16.0f * 16.0f) return false; // 超过16格
+
+    // 小概率触发（1%）
+    math::Random rng = m_villager->getRandom();
+    if (rng.nextInt(100) != 0) return false;
+
+    // 查找附近的其他村民
+    findInteractionTarget();
+    return m_targetVillagerId != 0;
+}
+
+bool CongregateGoal::shouldContinueExecuting()
+{
+    if (!m_villager) return false;
+
+    // 检查目标是否仍然有效
+    if (m_targetVillagerId == 0) return false;
+
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) {
+        m_targetVillagerId = 0;
+        return false;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_targetVillagerId = 0;
+        return false;
+    }
+
+    return m_interactCooldown > 0;
+}
+
+void CongregateGoal::startExecuting()
+{
+    m_interactCooldown = INTERACTION_DURATION;
+
+    // 设置交互目标
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (entity) {
+        // 移动到目标
+        m_villager->tryMoveTo(entity->x(), entity->y(), entity->z(), 0.3f);
+    }
+}
+
+void CongregateGoal::resetTask()
+{
+    m_targetVillagerId = 0;
+    m_interactCooldown = 0;
+
+    if (m_villager) {
+        m_villager->clearNavigation();
+    }
+}
+
+void CongregateGoal::tick()
+{
+    if (!m_villager || m_targetVillagerId == 0) return;
+
+    m_interactCooldown--;
+
+    // 获取目标村民
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) {
+        m_targetVillagerId = 0;
+        return;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_targetVillagerId = 0;
+        return;
+    }
+
+    // 检查距离
+    f32 distSq = m_villager->distanceSqTo(*target);
+
+    // 在交互距离内
+    if (distSq <= INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
+        // 看向目标
+        if (auto* lookCtrl = m_villager->lookController()) {
+            lookCtrl->setLookPosition(target->x(), target->y() + target->eyeHeight(), target->z());
+        }
+
+        // 传播流言
+        spreadGossip();
+
+        // 分享物品（农民分享食物）
+        shareItems();
+    } else {
+        // 继续移动到目标
+        m_villager->tryMoveTo(target->x(), target->y(), target->z(), 0.3f);
+    }
+}
+
+void CongregateGoal::findInteractionTarget()
+{
+    if (!m_villager || !m_villager->world()) {
+        m_targetVillagerId = 0;
+        return;
+    }
+
+    m_targetVillagerId = 0;
+
+    // 查找附近的其他村民
+    static constexpr f32 SEARCH_RANGE = 32.0f;
+
+    VillagerEntity* target = EntityUtils::findClosestEntity<VillagerEntity>(
+        m_villager->world(),
+        m_villager->position(),
+        SEARCH_RANGE,
+        m_villager,
+        [](VillagerEntity* entity) {
+            return entity && entity->isAlive();
+        });
+
+    if (target) {
+        m_targetVillagerId = target->id();
+    }
+}
+
+void CongregateGoal::spreadGossip()
+{
+    if (!m_villager || m_targetVillagerId == 0) return;
+
+    // 获取目标村民
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) return;
+
+    VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
+    if (!targetVillager) return;
+
+    // 调用村民的流言传播方法
+    m_villager->spreadGossipTo(targetVillager);
+}
+
+void CongregateGoal::shareItems()
+{
+    if (!m_villager || m_targetVillagerId == 0) return;
+
+    // 只有农民职业会分享食物
+    if (m_villager->profession() != VillagerProfession::Farmer) return;
+
+    // 获取目标村民
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) return;
+
+    VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
+    if (!targetVillager) return;
+
+    // 检查农民是否有足够的食物可以分享
+    IInventory& inventory = m_villager->inventory();
+
+    // 检查是否有面包、土豆、胡萝卜、甜菜根等食物
+    // 参考 MC 1.16.5 ShareItemsTask
+    static constexpr i32 SHARE_THRESHOLD = 32; // 超过半组才分享
+
+    // 简化实现：如果农民有超过 SHARE_THRESHOLD 的食物，分享一半给目标
+    // 实际实现需要检查具体物品类型
+    (void)inventory;
+    (void)targetVillager;
+    // TODO: 实现物品分享逻辑
+}
+
+// ============================================================================
+// LookAtEntitiesGoal - 村民看向实体目标
+// ============================================================================
+
+LookAtEntitiesGoal::LookAtEntitiesGoal(VillagerEntity* villager)
+    : m_villager(villager)
+    , m_lookTargetId(0)
+    , m_lookTime(0)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Look});
+}
+
+bool LookAtEntitiesGoal::shouldExecute()
+{
+    if (!m_villager) return false;
+
+    // 概率检查
+    math::Random rng = m_villager->getRandom();
+    if (rng.nextFloat() >= LOOK_CHANCE) return false;
+
+    // 随机选择目标类型
+    selectTargetType();
+
+    // 查找对应类型的实体
+    LivingEntity* target = nullptr;
+    switch (m_targetType) {
+        case TargetType::Villager:
+            target = EntityUtils::findClosestEntity<VillagerEntity>(
+                m_villager->world(),
+                m_villager->position(),
+                LOOK_RANGE,
+                m_villager,
+                [](LivingEntity* entity) {
+                    return entity && entity->isAlive();
+                });
+            break;
+        case TargetType::Player:
+        case TargetType::Cat:
+        case TargetType::Creature:
+            target = EntityUtils::findClosestEntity<LivingEntity>(
+                m_villager->world(),
+                m_villager->position(),
+                LOOK_RANGE,
+                m_villager,
+                [](LivingEntity* entity) {
+                    return entity && entity->isAlive();
+                });
+            break;
+    }
+
+    if (target) {
+        m_lookTargetId = target->id();
+        // 设置看向时间
+        math::Random rng2 = m_villager->getRandom();
+        m_lookTime = LOOK_MIN_TIME + rng2.nextInt(LOOK_MAX_TIME - LOOK_MIN_TIME);
+        return true;
+    }
+
+    return false;
+}
+
+bool LookAtEntitiesGoal::shouldContinueExecuting()
+{
+    if (!m_villager || m_lookTargetId == 0) return false;
+
+    // 获取目标实体
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_lookTargetId) : nullptr;
+    if (!entity) {
+        m_lookTargetId = 0;
+        return false;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_lookTargetId = 0;
+        return false;
+    }
+
+    // 检查距离
+    f32 distSq = m_villager->distanceSqTo(*target);
+    if (distSq > LOOK_RANGE * LOOK_RANGE) return false;
+
+    return m_lookTime > 0;
+}
+
+void LookAtEntitiesGoal::startExecuting()
+{
+    // 开始看向目标
+}
+
+void LookAtEntitiesGoal::resetTask()
+{
+    m_lookTargetId = 0;
+    m_lookTime = 0;
+}
+
+void LookAtEntitiesGoal::tick()
+{
+    if (!m_villager || m_lookTargetId == 0) return;
+
+    m_lookTime--;
+
+    // 获取目标实体
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_lookTargetId) : nullptr;
+    if (!entity) {
+        m_lookTargetId = 0;
+        return;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_lookTargetId = 0;
+        return;
+    }
+
+    // 使用 LookController 看向目标
+    if (auto* lookCtrl = m_villager->lookController()) {
+        lookCtrl->setLookPosition(target->x(), target->y() + target->eyeHeight(), target->z());
+    }
+}
+
+void LookAtEntitiesGoal::selectTargetType()
+{
+    // 参考 MC 1.16.5 lookAtMany() 的权重
+    // 猫: 8, 村民: 2, 玩家: 2, 生物: 1
+    math::Random rng = m_villager->getRandom();
+    i32 rand = rng.nextInt(13); // 8 + 2 + 2 + 1 = 13
+
+    if (rand < 8) {
+        m_targetType = TargetType::Cat;
+    } else if (rand < 10) {
+        m_targetType = TargetType::Villager;
+    } else if (rand < 12) {
+        m_targetType = TargetType::Player;
+    } else {
+        m_targetType = TargetType::Creature;
+    }
+}
+
+// ============================================================================
+// ShareItemsGoal - 分享物品目标
+// ============================================================================
+
+ShareItemsGoal::ShareItemsGoal(VillagerEntity* villager)
+    : m_villager(villager)
+    , m_targetVillagerId(0)
+    , m_shareCooldown(0)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
+}
+
+bool ShareItemsGoal::shouldExecute()
+{
+    if (!m_villager || !m_villager->world()) return false;
+
+    // 只有农民职业会分享食物
+    if (m_villager->profession() != VillagerProfession::Farmer) return false;
+
+    // 冷却时间
+    if (m_shareCooldown > 0) return false;
+
+    // 检查是否有多余的食物可以分享
+    if (!canAbandonItems()) return false;
+
+    // 查找需要食物的村民
+    static constexpr f32 SEARCH_RANGE = 8.0f;
+
+    VillagerEntity* target = EntityUtils::findClosestEntity<VillagerEntity>(
+        m_villager->world(),
+        m_villager->position(),
+        SEARCH_RANGE,
+        m_villager,
+        [this](VillagerEntity* entity) {
+            // 检查是否是需要食物的村民
+            return entity && entity->isAlive() && targetNeedsFood();
+        });
+
+    if (target) {
+        m_targetVillagerId = target->id();
+        return true;
+    }
+
+    return false;
+}
+
+bool ShareItemsGoal::shouldContinueExecuting()
+{
+    if (!m_villager || m_targetVillagerId == 0) return false;
+
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) {
+        m_targetVillagerId = 0;
+        return false;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_targetVillagerId = 0;
+        return false;
+    }
+
+    // 检查距离
+    f32 distSq = m_villager->distanceSqTo(*target);
+    return distSq <= SHARE_DISTANCE * SHARE_DISTANCE * 4.0f;
+}
+
+void ShareItemsGoal::startExecuting()
+{
+    m_shareCooldown = SHARE_COOLDOWN;
+
+    // 移动到目标
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (entity) {
+        m_villager->tryMoveTo(entity->x(), entity->y(), entity->z(), 0.5f);
+    }
+}
+
+void ShareItemsGoal::resetTask()
+{
+    m_targetVillagerId = 0;
+
+    if (m_villager) {
+        m_villager->clearNavigation();
+    }
+}
+
+void ShareItemsGoal::tick()
+{
+    if (!m_villager || m_targetVillagerId == 0) return;
+
+    if (m_shareCooldown > 0) {
+        m_shareCooldown--;
+    }
+
+    // 获取目标
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) {
+        m_targetVillagerId = 0;
+        return;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(entity);
+    if (!target || !target->isAlive()) {
+        m_targetVillagerId = 0;
+        return;
+    }
+
+    // 看向目标
+    if (auto* lookCtrl = m_villager->lookController()) {
+        lookCtrl->setLookPosition(target->x(), target->y() + target->eyeHeight(), target->z());
+    }
+
+    // 检查距离
+    f32 distSq = m_villager->distanceSqTo(*target);
+    if (distSq <= SHARE_DISTANCE * SHARE_DISTANCE) {
+        // 分享食物
+        shareFoodWithTarget();
+    } else {
+        // 继续移动
+        m_villager->tryMoveTo(target->x(), target->y(), target->z(), 0.5f);
+    }
+}
+
+bool ShareItemsGoal::canAbandonItems() const
+{
+    if (!m_villager) return false;
+
+    // 检查库存中是否有足够的食物
+    // 参考 MC 1.16.5 VillagerEntity.canAbondonItems()
+    IInventory& inventory = m_villager->inventory();
+
+    // 检查小麦（农民有超过半组小麦时分享）
+    // 实际需要检查具体物品类型
+    (void)inventory;
+    return false; // 简化实现
+}
+
+bool ShareItemsGoal::targetNeedsFood() const
+{
+    // 检查目标是否需要食物
+    // 参考 MC 1.16.5 VillagerEntity.wantsMoreFood()
+    return true; // 简化实现
+}
+
+void ShareItemsGoal::shareFoodWithTarget()
+{
+    if (!m_villager || m_targetVillagerId == 0) return;
+
+    // 获取目标
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) return;
+
+    VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
+    if (!targetVillager) return;
+
+    // TODO: 实现实际的物品转移
+    // 需要从农民库存中取出食物物品，给予目标村民
+
+    // 重置目标
+    m_targetVillagerId = 0;
+    m_shareCooldown = SHARE_COOLDOWN;
+}
+
 } // namespace villager
 } // namespace goal
 } // namespace ai

@@ -254,6 +254,36 @@ villager->getOffers()->add(std::move(offer));
 | `stopSleeping()` | 停止睡眠 |
 | `isNightTime()` | 检查是否是夜间时间 |
 
+### 村民互动系统
+
+村民具有社交互动能力，包括聚集时的流言传播：
+
+| 方法 | 描述 |
+|------|------|
+| `play()` | 村民聚集行为入口，触发流言传播检查 |
+| `spreadGossipTo(VillagerEntity* other)` | 传播流言给目标村民 |
+| `trySpreadGossip()` | 检查条件后触发流言传播 |
+
+#### 流言传播机制
+
+村民在聚集时会互相传播流言，影响玩家声誉：
+
+- **冷却时间**: 1200 tick (60秒)
+- **传播距离**: 5格内
+- **触发条件**: Brain 系统的 INTERACTION_TARGET 记忆
+- **参考**: MC 1.16.5 `VillagerEntity.func_242368_a()`
+
+```cpp
+// 在聚集活动中触发流言传播
+void VillagerEntity::play()
+{
+    trySpreadGossip();
+}
+
+// 流言传播示例
+villager1->spreadGossipTo(villager2);
+```
+
 ### 睡眠时间
 
 夜间时间范围：12542 - 23459 tick（MC 1.16.5）

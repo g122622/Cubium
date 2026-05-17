@@ -201,6 +201,45 @@ MC 1.16.5 时间参考：
 - [x] 实现繁殖时的配偶查找（VillagerBreedGoal.findPartner）
 - [x] 实现物品拾取逻辑（GatherItemsGoal）
 - [x] 实现繁殖时床位检查（VillagerBreedGoal.hasEnoughBeds）
+- [x] 实现村民互动功能（play(), spreadGossipTo(), trySpreadGossip()）
+
+## 村民互动系统
+
+村民具有社交互动能力，通过以下方法实现：
+
+### 方法说明
+
+| 方法 | 描述 |
+|------|------|
+| `VillagerEntity::play()` | 村民聚集行为入口，由 Brain 系统在 MEET 活动期间调用 |
+| `VillagerEntity::spreadGossipTo(VillagerEntity* other)` | 传播流言给目标村民 |
+| `VillagerEntity::trySpreadGossip()` | 检查条件后触发流言传播 |
+
+### 流言传播机制
+
+- **冷却时间**: 1200 tick (60秒)
+- **传播距离**: 5格内
+- **触发条件**: Brain 系统的 INTERACTION_TARGET 记忆
+- **参考**: MC 1.16.5 `VillagerEntity.func_242368_a()`
+
+### 互动流程
+
+1. Brain 系统切换到 `Activity::MEET` 活动
+2. 村民前往会议点（钟附近）
+3. `play()` 方法被调用
+4. `trySpreadGossip()` 检查是否有交互目标
+5. 如果有效，调用 `spreadGossipTo()` 传播流言
+
+```cpp
+// 在聚集活动中触发流言传播
+void VillagerEntity::play()
+{
+    trySpreadGossip();
+}
+
+// 流言传播示例
+villager1->spreadGossipTo(villager2);
+```
 
 ## 参考
 

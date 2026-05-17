@@ -431,6 +431,137 @@ private:
     static constexpr f32 BREED_DISTANCE = 2.0f;
 };
 
+/**
+ * @brief 村民聚集目标
+ *
+ * 村民在聚集活动期间与其他村民互动。
+ * 包括流言传播和物品分享。
+ *
+ * 参考 MC 1.16.5 VillagerEntity.play() 和聚集行为
+ */
+class CongregateGoal : public Goal {
+public:
+    explicit CongregateGoal(VillagerEntity* villager);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "CongregateGoal"; }
+
+private:
+    /**
+     * @brief 查找交互目标
+     */
+    void findInteractionTarget();
+
+    /**
+     * @brief 传播流言
+     */
+    void spreadGossip();
+
+    /**
+     * @brief 分享物品（农民分享食物）
+     */
+    void shareItems();
+
+private:
+    VillagerEntity* m_villager;
+    EntityId m_targetVillagerId;
+    i32 m_interactCooldown = 0;
+    static constexpr i32 INTERACTION_DURATION = 100;  // 交互持续时间
+    static constexpr f32 INTERACTION_DISTANCE = 5.0f; // 交互距离
+};
+
+/**
+ * @brief 村民看向实体目标
+ *
+ * 村民随机看向附近的实体（村民、玩家、猫等）。
+ *
+ * 参考 MC 1.16.5 LookAtGoal
+ */
+class LookAtEntitiesGoal : public Goal {
+public:
+    explicit LookAtEntitiesGoal(VillagerEntity* villager);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "LookAtEntitiesGoal"; }
+
+private:
+    /**
+     * @brief 选择目标类型
+     */
+    void selectTargetType();
+
+private:
+    VillagerEntity* m_villager;
+    EntityId m_lookTargetId;
+    i32 m_lookTime = 0;
+
+    enum class TargetType : u8 {
+        Villager,
+        Player,
+        Cat,
+        Creature
+    };
+    TargetType m_targetType = TargetType::Villager;
+
+    static constexpr f32 LOOK_RANGE = 8.0f;          // 看向距离
+    static constexpr f32 LOOK_CHANCE = 0.02f;        // 触发概率
+    static constexpr i32 LOOK_MIN_TIME = 40;         // 最小看向时间
+    static constexpr i32 LOOK_MAX_TIME = 80;         // 最大看向时间
+};
+
+/**
+ * @brief 村民分享物品目标
+ *
+ * 农民分享食物给其他村民。
+ *
+ * 参考 MC 1.16.5 ShareItemsTask
+ */
+class ShareItemsGoal : public Goal {
+public:
+    explicit ShareItemsGoal(VillagerEntity* villager);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "ShareItemsGoal"; }
+
+private:
+    /**
+     * @brief 检查是否有多余的食物可以分享
+     */
+    [[nodiscard]] bool canAbandonItems() const;
+
+    /**
+     * @brief 检查目标是否需要食物
+     */
+    [[nodiscard]] bool targetNeedsFood() const;
+
+    /**
+     * @brief 分享食物给目标
+     */
+    void shareFoodWithTarget();
+
+private:
+    VillagerEntity* m_villager;
+    EntityId m_targetVillagerId;
+    i32 m_shareCooldown = 0;
+    static constexpr f32 SHARE_DISTANCE = 2.0f;    // 分享距离
+    static constexpr i32 SHARE_COOLDOWN = 200;      // 分享冷却
+};
+
 } // namespace villager
 } // namespace goal
 } // namespace ai
