@@ -1094,7 +1094,16 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
 void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
     // MC 1.16.5: 命中方块时生成爆炸粒子
-    // TODO: 服务端粒子广播
+    // 参考 ShulkerBulletEntity.func_230299_a_()
+    // ((ServerWorld)this.world).spawnParticle(ParticleTypes.EXPLOSION, this.getPosX(), this.getPosY(), this.getPosZ(), 2, 0.2D, 0.2D, 0.2D, 0.0D);
+    if (m_world != nullptr) {
+        m_world->addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Explosion,
+            m_position,
+            Vector3(0.0f, 0.0f, 0.0f),  // 速度为 0
+            Vector3(0.2f, 0.2f, 0.2f),  // 随机偏移范围
+            2);                          // 数量 2
+    }
     playSound(SoundEvents::ENTITY_SHULKER_BULLET_HIT, 1.0f, 1.0f);
 }
 
