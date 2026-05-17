@@ -131,8 +131,12 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | EnchantedItemTrigger | `minecraft:enchanted_item` | 完整实现 |
 | FilledBucketTrigger | `minecraft:filled_bucket` | 完整实现 |
 | PlacedBlockTrigger | `minecraft:placed_block` | 完整实现（含服务端集成） |
+| EnterBlockTrigger | `minecraft:enter_block` | 完整实现（含服务端集成） |
+| SlideDownBlockTrigger | `minecraft:slide_down_block` | 完整实现（事件处理已集成，蜂蜜块滑动待实现） |
+| BeeNestDestroyedTrigger | `minecraft:bee_nest_destroyed` | 完整实现（事件处理已集成，蜂巢破坏待实现） |
 | CuredZombieVillagerTrigger | `minecraft:cured_zombie_villager` | 完整实现（含服务端集成） |
 | EffectsChangedTrigger | `minecraft:effects_changed` | 完整实现（含服务端集成） |
+| ChanneledLightningTrigger | `minecraft:channeled_lightning` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 

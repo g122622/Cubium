@@ -1097,6 +1097,29 @@ void Entity::doBlockCollisions(const Vector3& actualMovement, const Vector3& des
     if (m_onGround && !isSteppingCarefully()) {
         block.onEntityWalk(*blockState, *m_world, blockPos, *this);
     }
+
+    // 3. onInsideBlock 回调 - 遍历碰撞箱内所有方块
+    // 参考 MC 1.16.5: Entity.doBlockCollisions() 行 906-920
+    AxisAlignedBB box = m_boundingBox.shrink(0.001);
+    BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
+        static_cast<i32>(std::floor(box.minY)),
+        static_cast<i32>(std::floor(box.minZ)));
+    BlockPos maxPos(static_cast<i32>(std::floor(box.maxX)),
+        static_cast<i32>(std::floor(box.maxY)),
+        static_cast<i32>(std::floor(box.maxZ)));
+
+    for (i32 x = minPos.x; x <= maxPos.x; ++x) {
+        for (i32 y = minPos.y; y <= maxPos.y; ++y) {
+            for (i32 z = minPos.z; z <= maxPos.z; ++z) {
+                BlockPos pos(x, y, z);
+                const BlockState* insideState = m_world->getBlockState(pos);
+                if (insideState != nullptr && !insideState->isAir()) {
+                    // 进入方块回调
+                    onInsideBlock(*insideState);
+                }
+            }
+        }
+    }
 }
 
 void Entity::applyPhysics(f32 /*deltaTime*/)

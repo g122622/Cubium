@@ -374,6 +374,16 @@ public:
     bool onPortalTriggered() override;
 
     /**
+     * @brief 当玩家进入方块碰撞箱时调用
+     *
+     * 触发 EnterBlockTrigger 成就。
+     * 参考 MC 1.16.5: ServerPlayerEntity.onInsideBlock()
+     *
+     * @param blockState 方块状态
+     */
+    void onInsideBlock(const BlockState& blockState) override;
+
+    /**
      * @brief 传送到另一个维度
      *
      * @param targetDim 目标维度ID

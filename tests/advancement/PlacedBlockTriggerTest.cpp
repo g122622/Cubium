@@ -233,9 +233,39 @@ TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerRegistration)
 {
     // 验证进入方块触发器已注册
     auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(EnterBlockTrigger::TRIGGER_ID));
-    // 注意：EnterBlockTrigger 未在 registerBuiltinTriggers 中注册
-    // 所以这里期望返回 nullptr
-    // 如果后续注册了，这个测试需要更新
+    ASSERT_NE(trigger, nullptr);
+    EXPECT_EQ(trigger->getId().toString(), "minecraft:enter_block");
+}
+
+TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerTestConditions)
+{
+    // 测试进入方块触发器的条件检测
+    nlohmann::json conditions = R"({
+        "block": "minecraft:water"
+    })"_json;
+
+    auto* trigger = CriterionTriggers::instance().getTrigger<EnterBlockTrigger>();
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(conditions);
+    ASSERT_TRUE(result.success());
+
+    auto instance = std::dynamic_pointer_cast<EnterBlockTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    // 验证序列化
+    nlohmann::json serialized = instance->conditionsToJson();
+    EXPECT_TRUE(serialized.contains("block"));
+}
+
+// ========== SlideDownBlockTrigger 测试 ==========
+
+TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerRegistration)
+{
+    // 验证滑落触发器已注册
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(SlideDownBlockTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+    EXPECT_EQ(trigger->getId().toString(), "minecraft:slide_down_block");
 }
 
 TEST_F(PlacedBlockTriggerTest, EnterBlockTriggerFromJson)
@@ -287,6 +317,14 @@ TEST_F(PlacedBlockTriggerTest, SlideDownBlockTriggerEmptyConditions)
 }
 
 // ========== BeeNestDestroyedTrigger 测试 ==========
+
+TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerRegistration)
+{
+    // 验证破坏蜂巢触发器已注册
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(BeeNestDestroyedTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+    EXPECT_EQ(trigger->getId().toString(), "minecraft:bee_nest_destroyed");
+}
 
 TEST_F(PlacedBlockTriggerTest, BeeNestDestroyedTriggerFromJson)
 {

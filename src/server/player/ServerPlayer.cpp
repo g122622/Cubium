@@ -580,6 +580,29 @@ bool ServerPlayer::onPortalTriggered()
     return changeDimension(targetDim);
 }
 
+void ServerPlayer::onInsideBlock(const BlockState& blockState)
+{
+    // 参考 MC 1.16.5 ServerPlayerEntity.onInsideBlock()
+    // 触发 EnterBlockTrigger 成就
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 检查方块是否为空气
+    if (blockState.isAir()) {
+        return;
+    }
+
+    // 获取当前位置
+    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y)),
+        static_cast<i32>(std::floor(m_position.z)));
+
+    // 发布 EnterBlockEvent
+    m_world->onEnterBlock(static_cast<PlayerId>(id()), pos, &blockState);
+}
+
 bool ServerPlayer::changeDimension(DimensionId targetDim)
 {
     // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension()

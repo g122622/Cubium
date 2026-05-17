@@ -1891,6 +1891,7 @@ public:
      * 在实体移动后调用，处理与方块的交互：
      * - onLanded: 垂直碰撞后着地
      * - onEntityWalk: 在地面上行走
+     * - onInsideBlock: 实体进入方块碰撞箱
      *
      * 参考: MC 1.16.5 Entity.move() 中的方块回调处理
      *
@@ -1898,6 +1899,22 @@ public:
      * @param desiredMovement 期望移动向量
      */
     void doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement);
+
+    /**
+     * @brief 当实体进入方块碰撞箱时调用
+     *
+     * 每帧遍历实体碰撞箱覆盖的所有方块时调用。
+     * ServerPlayer 重写此方法触发 EnterBlockTrigger 成就。
+     *
+     * 参考 MC 1.16.5: Entity.onInsideBlock(BlockState)
+     *
+     * @param blockState 方块状态
+     */
+    virtual void onInsideBlock(const BlockState& blockState)
+    {
+        // 基类空实现，子类可重写
+        (void)blockState;
+    }
 
     // toString，用于调试，所有实体统一
     [[nodiscard]] std::string toString() const;

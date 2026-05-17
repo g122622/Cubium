@@ -830,6 +830,45 @@ public:
      */
     void onFilledBucket(PlayerId playerId, const ItemStack& bucket) override;
 
+    /**
+     * @brief 通知世界玩家进入方块
+     *
+     * 重写 IWorld::onEnterBlock()，发布 EnterBlockEvent 用于进度触发。
+     * 参考 MC 1.16.5: Entity.onInsideBlock() -> CriteriaTriggers.ENTER_BLOCK
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onEnterBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) override;
+
+    /**
+     * @brief 通知世界玩家在方块上滑落
+     *
+     * 重写 IWorld::onSlideDownBlock()，发布 SlideDownBlockEvent 用于进度触发。
+     * 参考 MC 1.16.5: HoneyBlock.triggerSlideDownBlock()
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onSlideDownBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) override;
+
+    /**
+     * @brief 通知世界蜂巢被破坏
+     *
+     * 重写 IWorld::onBeeNestDestroyed()，发布 BeeNestDestroyedEvent 用于进度触发。
+     * 参考 MC 1.16.5: BeehiveBlock.harvestBlock() -> CriteriaTriggers.BEE_NEST_DESTROYED
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param tool 使用的工具
+     * @param numBeesInside 蜂巢内的蜜蜂数量
+     */
+    void onBeeNestDestroyed(
+        PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack& tool, i32 numBeesInside) override;
+
     // ========== 结构定位 ==========
 
     /**

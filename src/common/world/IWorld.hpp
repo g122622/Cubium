@@ -1231,6 +1231,71 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 玩家进入方块事件回调
+     *
+     * 当玩家进入方块碰撞箱时调用。
+     * ServerWorld 重写此方法来发布 EnterBlockEvent。
+     *
+     * 参考 MC 1.16.5: Entity.onInsideBlock() -> CriteriaTriggers.ENTER_BLOCK
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    virtual void onEnterBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
+    {
+        (void)playerId;
+        (void)pos;
+        (void)state;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 玩家在方块上滑落事件回调
+     *
+     * 当玩家在方块上滑落（如蜂蜜块）时调用。
+     * ServerWorld 重写此方法来发布 SlideDownBlockEvent。
+     *
+     * 参考 MC 1.16.5: HoneyBlock.triggerSlideDownBlock()
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    virtual void onSlideDownBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
+    {
+        (void)playerId;
+        (void)pos;
+        (void)state;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 蜂巢破坏事件回调
+     *
+     * 当玩家破坏蜂巢/蜂箱时调用。
+     * ServerWorld 重写此方法来发布 BeeNestDestroyedEvent。
+     *
+     * 参考 MC 1.16.5: BeehiveBlock.harvestBlock() -> CriteriaTriggers.BEE_NEST_DESTROYED
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param tool 使用的工具
+     * @param numBeesInside 蜂巢内的蜜蜂数量
+     */
+    virtual void onBeeNestDestroyed(
+        PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack& tool, i32 numBeesInside)
+    {
+        (void)playerId;
+        (void)pos;
+        (void)state;
+        (void)tool;
+        (void)numBeesInside;
+        // 默认空实现
+    }
+
     // ========== 结构定位 ==========
 
     /**

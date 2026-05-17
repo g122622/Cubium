@@ -1779,6 +1779,40 @@ void ServerWorld::onFilledBucket(PlayerId playerId, const ItemStack& bucket)
     event::ServerEventBus::instance().publish(bucketEvent);
 }
 
+void ServerWorld::onEnterBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
+{
+    // 发布 EnterBlockEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.ENTER_BLOCK.trigger()
+    if (state == nullptr) {
+        return;
+    }
+    event::EnterBlockEvent enterEvent{currentTick(), playerId, pos, state};
+    event::ServerEventBus::instance().publish(enterEvent);
+}
+
+void ServerWorld::onSlideDownBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
+{
+    // 发布 SlideDownBlockEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.SLIDE_DOWN_BLOCK.trigger()
+    if (state == nullptr) {
+        return;
+    }
+    event::SlideDownBlockEvent slideEvent{currentTick(), playerId, pos, state};
+    event::ServerEventBus::instance().publish(slideEvent);
+}
+
+void ServerWorld::onBeeNestDestroyed(
+    PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack& tool, i32 numBeesInside)
+{
+    // 发布 BeeNestDestroyedEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.BEE_NEST_DESTROYED.trigger()
+    if (state == nullptr) {
+        return;
+    }
+    event::BeeNestDestroyedEvent beeEvent{currentTick(), playerId, pos, state, tool, numBeesInside};
+    event::ServerEventBus::instance().publish(beeEvent);
+}
+
 // ============================================================================
 // 结构定位
 // ============================================================================
