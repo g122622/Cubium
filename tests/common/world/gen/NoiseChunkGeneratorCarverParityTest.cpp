@@ -30,8 +30,8 @@
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 
-#include <array>
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace {
@@ -130,11 +130,9 @@ protected:
      *
      * @note applyCarvers 当前不读取 region 数据，此处仅满足接口约束。
      */
-    static std::array<IChunk*, 9> makeRegionChunks(IChunk* centerChunk)
+    static std::vector<IChunk*> makeRegionChunks(IChunk* centerChunk)
     {
-        std::array<IChunk*, 9> chunks{};
-        chunks.fill(centerChunk);
-        return chunks;
+        return std::vector<IChunk*>(9, centerChunk);
     }
 
     /**
@@ -176,7 +174,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipe
         for (ChunkCoord chunkZ = -12; chunkZ <= 12 && !foundCarvedChunk; ++chunkZ) {
             auto defaultChunk = makeSolidChunk(chunkX, chunkZ);
             auto defaultChunks = makeRegionChunks(defaultChunk.get());
-            WorldGenRegion defaultRegion(chunkX, chunkZ, defaultChunks);
+            WorldGenRegion defaultRegion(chunkX, chunkZ, 1, std::move(defaultChunks));
 
             defaultGenerator.applyCarvers(defaultRegion, *defaultChunk, false);
             const i32 defaultCarved = countNonStoneBlocks(*defaultChunk);
@@ -186,7 +184,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipe
 
             auto injectedChunk = makeSolidChunk(chunkX, chunkZ);
             auto injectedChunks = makeRegionChunks(injectedChunk.get());
-            WorldGenRegion injectedRegion(chunkX, chunkZ, injectedChunks);
+            WorldGenRegion injectedRegion(chunkX, chunkZ, 1, std::move(injectedChunks));
 
             injectedGenerator.applyCarvers(injectedRegion, *injectedChunk, false);
             const i32 injectedCarved = countNonStoneBlocks(*injectedChunk);

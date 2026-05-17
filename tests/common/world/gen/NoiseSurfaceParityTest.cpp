@@ -44,6 +44,7 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
 
+        m_chunks.resize(9);
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
             for (i32 relX = -1; relX <= 1; ++relX) {
                 const i32 index = (relZ + 1) * 3 + (relX + 1);
@@ -58,7 +59,10 @@ protected:
             }
         }
 
-        m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
+        // 保存中心区块指针用于测试
+        m_centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);
+        std::vector<IChunk*> regionChunks = m_chunks;
+        m_region = std::make_unique<WorldGenRegion>(0, 0, 1, std::move(regionChunks));
     }
 
     static void fillChunkWithStonePlateau(ChunkPrimer& chunk)
@@ -90,24 +94,24 @@ protected:
         }
     }
 
-    std::array<IChunk*, 9> m_chunks{};
+    std::vector<IChunk*> m_chunks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
     std::unique_ptr<WorldGenRegion> m_region;
+    ChunkPrimer* m_centerChunk = nullptr;
 };
 
 TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer)
 {
     ASSERT_NE(m_region, nullptr);
 
-    auto* centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);
-    ASSERT_NE(centerChunk, nullptr);
+    ASSERT_NE(m_centerChunk, nullptr);
 
     DimensionSettings settings = DimensionSettings::overworld();
     NoiseChunkGenerator generator(123456789ULL, std::move(settings));
 
-    generator.buildSurface(*m_region, *centerChunk);
+    generator.buildSurface(*m_region, *m_centerChunk);
 
-    auto chunkData = centerChunk->toChunkData();
+    auto chunkData = m_centerChunk->toChunkData();
     ASSERT_NE(chunkData, nullptr);
 
     i32 checkedColumns = 0;

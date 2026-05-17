@@ -335,9 +335,8 @@ TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed)
     biome.setGenerationSettings(settings);
 
     ChunkPrimer chunk(7, -3);
-    std::array<IChunk*, 9> chunks{};
-    chunks.fill(&chunk);
-    WorldGenRegion region(chunk.x(), chunk.z(), chunks);
+    std::vector<IChunk*> chunks(9, &chunk);
+    WorldGenRegion region(chunk.x(), chunk.z(), 1, std::move(chunks));
     DebugChunkGenerator generator;
 
     constexpr u64 worldSeed = 0xABCDEF1234567890ULL;

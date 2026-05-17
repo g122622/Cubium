@@ -30,7 +30,6 @@
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../chunk/ChunkStatus.hpp"
 #include "../settings/DimensionSettings.hpp"
-#include <array>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -210,29 +209,10 @@ public:
      * @brief 构造世界生成区域
      * @param mainX 主区块 X
      * @param mainZ 主区块 Z
-     * @param chunkRadius 区块半径（0 表示只有中心区块，8 表示 17x17 区域）
-     * @param chunks 区块数组（按从左上到右下的顺序排列）
+     * @param chunkRadius 区块半径（0 表示只有中心区块，1 表示 3x3 区域，8 表示 17x17 区域）
+     * @param chunks 区块数组（按从左上到右下的顺序排列，数量为 (2*chunkRadius+1)^2）
      */
     WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks);
-
-    /**
-     * @brief 使用固定大小数组构造世界生成区域
-     *
-     * 该重载用于测试和旧调用路径，要求区块数组数量必须是奇数平方，
-     * 例如 1、9、25，对应半径 0、1、2。
-     * TODO 未来会移除这个函数，以保证代码干净
-     *
-     * @tparam N 区块数组元素数量
-     * @param mainX 主区块 X
-     * @param mainZ 主区块 Z
-     * @param chunks 按从左上到右下顺序排列的区块数组
-     */
-    template <std::size_t N>
-    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, const std::array<IChunk*, N>& chunks)
-        : WorldGenRegion(mainX, mainZ, inferChunkRadius(N), std::vector<IChunk*>(chunks.begin(), chunks.end()))
-    {
-        static_assert(inferChunkRadius(N) >= 0, "WorldGenRegion chunk array size must be an odd square");
-    }
 
     // === 区块访问 ===
 
@@ -448,29 +428,6 @@ public:
     void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
 
 private:
-    /**
-     * @brief 根据区块数量推导区块半径
-     * TODO 未来会移除这个函数，以保证代码干净
-     *
-     * @param chunkCount 区块总数
-     * @return 区块半径；若数量不是奇数平方则返回 -1
-     */
-    static constexpr i32 inferChunkRadius(std::size_t chunkCount)
-    {
-        i32 radius = 0;
-        while (true) {
-            const std::size_t diameter = static_cast<std::size_t>(radius * 2 + 1);
-            const std::size_t expectedCount = diameter * diameter;
-            if (expectedCount == chunkCount) {
-                return radius;
-            }
-            if (expectedCount > chunkCount) {
-                return -1;
-            }
-            ++radius;
-        }
-    }
-
     ChunkCoord m_mainX;
     ChunkCoord m_mainZ;
     i32 m_chunkRadius;

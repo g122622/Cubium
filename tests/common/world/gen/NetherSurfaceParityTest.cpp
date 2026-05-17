@@ -29,7 +29,6 @@
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"
 
-#include <array>
 #include <memory>
 #include <vector>
 
@@ -43,6 +42,7 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
 
+        m_chunks.resize(9);
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
             for (i32 relX = -1; relX <= 1; ++relX) {
                 const i32 index = (relZ + 1) * 3 + (relX + 1);
@@ -52,35 +52,37 @@ protected:
             }
         }
 
-        m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
+        m_centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);
+        std::vector<IChunk*> regionChunks = m_chunks;
+        m_region = std::make_unique<WorldGenRegion>(0, 0, 1, std::move(regionChunks));
     }
 
-    std::array<IChunk*, 9> m_chunks{};
+    std::vector<IChunk*> m_chunks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
     std::unique_ptr<WorldGenRegion> m_region;
+    ChunkPrimer* m_centerChunk = nullptr;
 };
 
 TEST_F(NetherSurfaceParityTest, BedrockUsesConfiguredRoofAndFloorAnchors)
 {
     ASSERT_NE(m_region, nullptr);
 
-    auto* centerChunk = dynamic_cast<ChunkPrimer*>(m_chunks[4]);
-    ASSERT_NE(centerChunk, nullptr);
+    ASSERT_NE(m_centerChunk, nullptr);
 
     NetherChunkGenerator generator(246813579ULL);
-    generator.buildSurface(*m_region, *centerChunk);
+    generator.buildSurface(*m_region, *m_centerChunk);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            const BlockState* floor = centerChunk->getBlockState(x, 0, z);
+            const BlockState* floor = m_centerChunk->getBlockState(x, 0, z);
             ASSERT_NE(floor, nullptr);
             EXPECT_TRUE(floor->is(VanillaBlocks::BEDROCK));
 
-            const BlockState* roof = centerChunk->getBlockState(x, 127, z);
+            const BlockState* roof = m_centerChunk->getBlockState(x, 127, z);
             ASSERT_NE(roof, nullptr);
             EXPECT_TRUE(roof->is(VanillaBlocks::BEDROCK));
 
-            const BlockState* lava = centerChunk->getBlockState(x, generator.lavaLevel(), z);
+            const BlockState* lava = m_centerChunk->getBlockState(x, generator.lavaLevel(), z);
             ASSERT_NE(lava, nullptr);
             EXPECT_TRUE(lava->is(VanillaBlocks::LAVA));
         }

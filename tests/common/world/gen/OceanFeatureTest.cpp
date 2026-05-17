@@ -46,6 +46,7 @@ protected:
     {
         VanillaBlocks::initialize();
 
+        m_chunks.resize(9);
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
             for (i32 relX = -1; relX <= 1; ++relX) {
                 const i32 index = (relZ + 1) * 3 + (relX + 1);
@@ -66,7 +67,7 @@ protected:
             }
         }
 
-        m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
+        m_region = std::make_unique<WorldGenRegion>(0, 0, 1, std::move(m_chunks));
     }
 
     void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state)
@@ -79,7 +80,7 @@ protected:
         return m_region->getBlockState(x, y, z);
     }
 
-    std::array<IChunk*, 9> m_chunks{};
+    std::vector<IChunk*> m_chunks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
     std::unique_ptr<WorldGenRegion> m_region;
 };
