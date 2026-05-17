@@ -104,6 +104,18 @@ class DefaultDispenseItemBehavior : public IDispenseItemBehavior {
 public:
     ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
 
+    /**
+     * @brief 计算发射位置
+     *
+     * 计算物品从发射器射出的位置。
+     * 发射位置 = 方块中心 + 方向偏移 * 0.7
+     *
+     * @param pos 发射器位置
+     * @param direction 发射方向
+     * @return 发射位置（方块出口处，带偏移）
+     */
+    [[nodiscard]] static Vector3 getDispensePosition(const BlockPos& pos, Direction direction);
+
 protected:
     /**
      * @brief 执行投掷逻辑
@@ -139,15 +151,6 @@ protected:
      * @param direction 发射方向
      */
     virtual void spawnParticles(IWorld& world, const BlockPos& pos, Direction direction);
-
-    /**
-     * @brief 计算发射位置
-     *
-     * @param pos 发射器位置
-     * @param direction 发射方向
-     * @return 发射位置（方块出口处，带偏移）
-     */
-    [[nodiscard]] static Vector3 getDispensePosition(const BlockPos& pos, Direction direction);
 };
 
 /**

@@ -11,8 +11,9 @@ src/common/world/fluid/
 ├── Fluid.hpp/cpp              # 流体基类和流体状态
 ├── FlowingFluid.hpp/cpp       # 流动流体抽象类（核心流动算法）
 ├── FluidRegistry.hpp/cpp      # 流体注册表（单例）
+├── Fluids.hpp/cpp             # 内置流体静态访问器（类似 VanillaBlocks）
 ├── FluidTags.hpp/cpp          # 流体标签系统
-├── FLUID_TODO.md              # 待办事项清单
+├── README.md                  # 本文档
 └── fluids/                    # 具体流体实现
     ├── EmptyFluid.hpp/cpp     # 空流体（表示无流体状态）
     ├── WaterFluid.hpp/cpp     # 水流体（源头和流动）
@@ -101,6 +102,45 @@ registry.initialize();
 Fluid* water = Fluid::getFluid(ResourceLocation("minecraft:water"));
 const FluidState& state = water->defaultState();
 ```
+
+### Fluids.hpp/cpp - 内置流体静态访问器
+
+**职责**：提供对内置流体实例的静态访问，类似于 `VanillaBlocks` 对方块的访问方式。
+
+**主要内容**：
+- `Fluids::initialize()` - 初始化内置流体指针（在 FluidRegistry 初始化后调用）
+- `Fluids::EMPTY()` - 获取空流体指针
+- `Fluids::WATER()` - 获取水源流体指针
+- `Fluids::FLOWING_WATER()` - 获取流动水流体指针
+- `Fluids::LAVA()` - 获取岩浆源流体指针
+- `Fluids::FLOWING_LAVA()` - 获取流动岩浆流体指针
+
+**使用示例**：
+```cpp
+// 初始化（在 FluidRegistry::initialize() 之后）
+Fluids::initialize();
+
+// 获取水源流体
+Fluid* water = Fluids::WATER();
+if (water != nullptr) {
+    const FluidState& state = water->defaultState();
+}
+
+// 检查流体状态是否为水
+if (fluidState.getFluid().isIn(fluid::FluidTags::WATER())) {
+    // 处理水相关逻辑
+}
+
+// 检查是否为特定流体
+if (fluidState.getFluid() == *Fluids::LAVA()) {
+    // 处理岩浆相关逻辑
+}
+```
+
+**注意事项**：
+- 必须在 `FluidRegistry::initialize()` 之后调用 `Fluids::initialize()`
+- 返回的指针可能为 `nullptr`，使用前应检查
+- 提供比 `Fluid::getFluid(ResourceLocation("minecraft:water"))` 更高效的访问方式
 
 ### FluidTags.hpp/cpp - 流体标签系统
 

@@ -511,6 +511,264 @@ TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_Idempotent)
     EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
 }
 
+// ============================================================================
+// 火焰弹发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasFireChargeBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:fire_charge"));
+}
+
+TEST_F(DispenseBehaviorTest, FireChargeBehavior_IsProjectileBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:fire_charge");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// 烟花火箭发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasFireworkRocketBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:firework_rocket"));
+}
+
+TEST_F(DispenseBehaviorTest, FireworkRocketBehavior_IsProjectileBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:firework_rocket");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// 船发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasBoatBehaviors)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    // 验证所有6种船已注册
+    EXPECT_TRUE(registry.hasBehavior("minecraft:oak_boat"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:spruce_boat"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:birch_boat"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:jungle_boat"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:acacia_boat"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:dark_oak_boat"));
+}
+
+TEST_F(DispenseBehaviorTest, BoatBehavior_IsDefaultDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:oak_boat");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// 桶发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasBucketBehaviors)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:water_bucket"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:lava_bucket"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:bucket"));
+}
+
+TEST_F(DispenseBehaviorTest, WaterBucketBehavior_IsOptionalDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
+    ASSERT_NE(behavior, nullptr);
+    // 桶行为继承自 OptionalDispenseItemBehavior，初始状态为成功
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, LavaBucketBehavior_IsOptionalDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lava_bucket");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, EmptyBucketBehavior_IsOptionalDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bucket");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// 打火石和骨粉发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasFlintAndSteelBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:flint_and_steel"));
+}
+
+TEST_F(DispenseBehaviorTest, FlintAndSteelBehavior_IsOptionalDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, Registry_HasBoneMealBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:bone_meal"));
+}
+
+TEST_F(DispenseBehaviorTest, BoneMealBehavior_IsOptionalDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bone_meal");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// TNT发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasTntBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:tnt"));
+}
+
+TEST_F(DispenseBehaviorTest, TntBehavior_IsDefaultDispenseBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:tnt");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+// ============================================================================
+// 发射位置计算测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, GetDispensePosition_CalculatesCorrectOffset)
+{
+    // 测试发射位置计算
+    // MC 1.16.5: 发射位置 = 方块中心 + 方向偏移 * 0.7
+    using namespace mc::blocks;
+
+    // 向北发射 (Direction::North = 2, zOffset = -1)
+    BlockPos pos(0, 0, 0);
+    Direction northDir = Direction::North;
+    Vector3 dispensePos = DefaultDispenseItemBehavior::getDispensePosition(pos, northDir);
+
+    // 中心 (0.5, 0.5, 0.5) + 北方向偏移 (0, 0, -0.7) = (0.5, 0.5, -0.2)
+    EXPECT_FLOAT_EQ(dispensePos.x, 0.5f);
+    EXPECT_FLOAT_EQ(dispensePos.y, 0.5f);
+    EXPECT_FLOAT_EQ(dispensePos.z, -0.2f);
+}
+
+TEST_F(DispenseBehaviorTest, GetDispensePosition_EastDirection)
+{
+    using namespace mc::blocks;
+
+    BlockPos pos(10, 20, 30);
+    Direction eastDir = Direction::East;
+    Vector3 dispensePos = DefaultDispenseItemBehavior::getDispensePosition(pos, eastDir);
+
+    // 中心 (10.5, 20.5, 30.5) + 东方向偏移 (0.7, 0, 0) = (11.2, 20.5, 30.5)
+    EXPECT_FLOAT_EQ(dispensePos.x, 11.2f);
+    EXPECT_FLOAT_EQ(dispensePos.y, 20.5f);
+    EXPECT_FLOAT_EQ(dispensePos.z, 30.5f);
+}
+
+TEST_F(DispenseBehaviorTest, GetDispensePosition_UpDirection)
+{
+    using namespace mc::blocks;
+
+    BlockPos pos(0, 0, 0);
+    Direction upDir = Direction::Up;
+    Vector3 dispensePos = DefaultDispenseItemBehavior::getDispensePosition(pos, upDir);
+
+    // 中心 (0.5, 0.5, 0.5) + 上方向偏移 (0, 0.7, 0) = (0.5, 1.2, 0.5)
+    EXPECT_FLOAT_EQ(dispensePos.x, 0.5f);
+    EXPECT_FLOAT_EQ(dispensePos.y, 1.2f);
+    EXPECT_FLOAT_EQ(dispensePos.z, 0.5f);
+}
+
+// ============================================================================
+// 注册表完整性测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_AllProjectileBehaviorsRegistered)
+{
+    // 验证所有投掷物发射行为都已注册
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    // 箭矢类
+    EXPECT_TRUE(registry.hasBehavior("minecraft:arrow"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:spectral_arrow"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:tipped_arrow"));
+
+    // 投掷物品类
+    EXPECT_TRUE(registry.hasBehavior("minecraft:snowball"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:egg"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:ender_pearl"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:experience_bottle"));
+
+    // 药水类
+    EXPECT_TRUE(registry.hasBehavior("minecraft:splash_potion"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
+
+    // 火焰弹和烟花
+    EXPECT_TRUE(registry.hasBehavior("minecraft:fire_charge"));
+    EXPECT_TRUE(registry.hasBehavior("minecraft:firework_rocket"));
+}
+
 } // namespace test
 } // namespace blocks
 } // namespace mc

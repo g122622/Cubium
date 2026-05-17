@@ -65,6 +65,57 @@ public:
 - Y方向额外 +0.1 使投掷物稍向上
 - 播放投掷物音效 1002
 
+#### BoatDispenseBehavior 船发射行为
+
+在水面放置船实体。如果目标位置不是水，则作为普通物品发射。
+
+**特点**：
+- 放置位置：方块中心 + 方向偏移 * 1.125
+- 检测目标位置是否有水（通过 FluidTags::WATER）
+- 支持 6 种木材类型的船
+
+```cpp
+// 注册船发射行为
+registerBehavior("minecraft:oak_boat",
+    std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::OAK));
+```
+
+#### BucketDispenseBehavior 桶发射行为
+
+放置流体到世界中。继承自 OptionalDispenseItemBehavior。
+
+**特点**：
+- 需要流体系统支持（Fluid、FluidState）
+- 成功时播放音效 1000，失败时播放音效 1001
+- 当前为桩实现，待 IWorld 流体放置 API 完善
+
+#### EmptyBucketDispenseBehavior 空桶发射行为
+
+从世界中收集流体到桶中。继承自 OptionalDispenseItemBehavior。
+
+**特点**：
+- 需要检测目标位置的流体
+- 成功时替换为对应流体桶
+- 当前为桩实现，待 IWorld 流体收集 API 完善
+
+#### FlintAndSteelDispenseBehavior 打火石发射行为
+
+点燃发射器前方的方块。继承自 OptionalDispenseItemBehavior。
+
+**特点**：
+- 检查目标方块是否可点燃
+- 消耗打火石耐久度
+- 当前为桩实现，待方块点火 API 完善
+
+#### BonemealDispenseBehavior 骨粉发射行为
+
+对发射器前方的方块使用骨粉催熟效果。继承自 OptionalDispenseItemBehavior。
+
+**特点**：
+- 检查目标方块是否响应骨粉
+- 成功时播放骨粉使用粒子
+- 当前为桩实现，待骨粉催熟 API 完善
+
 ### DispenseItemBehaviorRegistry.hpp
 
 **职责**：管理物品到发射行为的映射。
@@ -107,42 +158,50 @@ public:
 | minecraft:splash_potion | 发射喷溅药水 | 1.1 | 6.0 | 设置 ItemStack 以便 onImpact() 读取效果 |
 | minecraft:lingering_potion | 发射滞留药水 | 1.1 | 6.0 | 设置 ItemStack 以便 onImpact() 读取效果 |
 
-### 药水效果发射器实现细节
+### 火焰弹和烟花
 
-药水箭发射器（tipped_arrow）会从 ItemStack 读取药水效果并应用到箭矢：
+| 物品 | 行为 | 速度 | 偏差 | 说明 |
+|------|------|------|------|------|
+| minecraft:fire_charge | 发射小火球 | 1.0 | 6.0 | 使用 SmallFireballEntity |
+| minecraft:firework_rocket | 发射烟花火箭 | 0.5 | 1.0 | 使用 FireworkRocketEntity，速度较慢、偏差小 |
 
-```cpp
-auto effects = potion::PotionUtils::getEffects(stack);
-if (!effects.empty()) {
-    arrow->setEffects(effects);
-    arrow->setColor(potion::PotionUtils::getColor(effects));
-}
-```
+### 船
 
-喷溅药水和滞留药水发射器设置 ItemStack，由 `PotionEntity::onImpact()` 读取效果：
+| 物品 | 行为 | 说明 |
+|------|------|------|
+| minecraft:oak_boat | 放置船 | BoatDispenseBehavior，检测水面放置 |
+| minecraft:spruce_boat | 放置船 | 同上 |
+| minecraft:birch_boat | 放置船 | 同上 |
+| minecraft:jungle_boat | 放置船 | 同上 |
+| minecraft:acacia_boat | 放置船 | 同上 |
+| minecraft:dark_oak_boat | 放置船 | 同上 |
 
-```cpp
-potion->setItemStack(stack);  // onImpact() 会调用 PotionUtils::getEffects(m_itemStack)
-```
+**BoatDispenseBehavior 算法**：
+1. 计算船的放置位置：方块中心 + 方向偏移 * 1.125
+2. 检查目标位置是否有水
+3. 如果有水，在水面放置船实体
+4. 如果无水，作为普通物品发射
 
-### 待实现的行为
+### 桶
 
-以下发射行为需要额外系统支持：
+| 物品 | 行为 | 状态 |
+|------|------|------|
+| minecraft:water_bucket | 放置水 | 桩实现（待 IWorld 流体放置 API） |
+| minecraft:lava_bucket | 放置岩浆 | 桩实现（待 IWorld 流体放置 API） |
+| minecraft:bucket | 收集流体 | 桩实现（待 IWorld 流体收集 API） |
 
-| 物品 | 所需系统 |
-|------|----------|
-| minecraft:fire_charge | SmallFireballEntity、火焰放置逻辑 |
-| minecraft:firework_rocket | FireworkRocketEntity 烟花数据读取 |
-| minecraft:*_boat | BoatEntity、水面检测 |
-| minecraft:*_bucket | FluidState、流体放置逻辑 |
-| minecraft:flint_and_steel | OptionalDispenseBehavior、火焰放置逻辑 |
-| minecraft:bone_meal | BonemealEvent、作物催熟逻辑 |
-| minecraft:tnt | TNTEntity、点燃逻辑 |
-| minecraft:shulker_box | OptionalDispenseBehavior、潜影盒放置 |
-| minecraft:glass_bottle | 流体检测、药水瓶填充 |
-| minecraft:glowstone | 重生锚充能逻辑 |
-| minecraft:shears | 蜂巢采集逻辑 |
-| minecraft:*_spawn_egg | 实体生成系统 |
+### 工具
+
+| 物品 | 行为 | 状态 |
+|------|------|------|
+| minecraft:flint_and_steel | 点燃方块 | 桩实现（待方块点火 API） |
+| minecraft:bone_meal | 催熟作物 | 桩实现（待骨粉催熟 API） |
+
+### 其他
+
+| 物品 | 行为 | 说明 |
+|------|------|------|
+| minecraft:tnt | 作为物品发射 | 使用 DefaultDispenseItemBehavior |
 
 ## 世界事件 ID
 
