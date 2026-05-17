@@ -101,7 +101,8 @@ Result<std::shared_ptr<ICriterionInstance>> EnterBlockTrigger::fromJson(const nl
 
 void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 EnterBlockEvent 触发
+    // 触发器通过 AdvancementEventHandler::onEnterBlock() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
@@ -202,7 +203,8 @@ Result<std::shared_ptr<ICriterionInstance>> PlacedBlockTrigger::fromJson(const n
 void PlacedBlockTrigger::trigger(
     ServerPlayer& player, const BlockState& state, const BlockPos& pos, const ItemStack& item)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 BlockPlaceEvent 触发
+    // 触发器通过 AdvancementEventHandler::onBlockPlaced() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(pos);
@@ -259,7 +261,8 @@ Result<std::shared_ptr<ICriterionInstance>> SlideDownBlockTrigger::fromJson(cons
 
 void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& state)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 SlideDownBlockEvent 触发
+    // 触发器通过 AdvancementEventHandler::onSlideDownBlock() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
@@ -348,7 +351,8 @@ Result<std::shared_ptr<ICriterionInstance>> BeeNestDestroyedTrigger::fromJson(co
 void BeeNestDestroyedTrigger::trigger(
     ServerPlayer& player, const BlockState& state, const ItemStack& tool, i32 numBeesInside)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 BeeNestDestroyedEvent 触发
+    // 触发器通过 AdvancementEventHandler::onBeeNestDestroyed() 调用基类的 trigger() 模板方法
+    // 此方法保留作为接口，实际触发逻辑在服务端事件处理器中
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(tool);

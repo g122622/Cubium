@@ -726,13 +726,15 @@ struct BeeNestDestroyedEvent : ServerEvent {
     BlockPos pos;            ///< 蜂巢位置
     const BlockState* state; ///< 蜂巢方块状态
     ItemStack tool;          ///< 使用的工具
+    i32 numBeesInside;       ///< 蜂巢内的蜜蜂数量
 
-    BeeNestDestroyedEvent(u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s, const ItemStack& t)
+    BeeNestDestroyedEvent(u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s, const ItemStack& t, i32 bees = 0)
         : ServerEvent(tick)
         , playerId(pid)
         , pos(p)
         , state(s)
         , tool(t)
+        , numBeesInside(bees)
     {}
 };
 

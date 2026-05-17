@@ -159,6 +159,19 @@ public:
         m_filledBucketSubscription = event::ServerEventBus::instance().makeSubscription<event::FilledBucketEvent>(
             [this](const event::FilledBucketEvent& e) { onFilledBucket(e); });
 
+        // 订阅进入方块事件
+        m_enterBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::EnterBlockEvent>(
+            [this](const event::EnterBlockEvent& e) { onEnterBlock(e); });
+
+        // 订阅滑落方块事件
+        m_slideDownBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::SlideDownBlockEvent>(
+            [this](const event::SlideDownBlockEvent& e) { onSlideDownBlock(e); });
+
+        // 订阅蜂巢破坏事件
+        m_beeNestDestroyedSubscription =
+            event::ServerEventBus::instance().makeSubscription<event::BeeNestDestroyedEvent>(
+                [this](const event::BeeNestDestroyedEvent& e) { onBeeNestDestroyed(e); });
+
         initialized_ = true;
     }
 
@@ -183,6 +196,9 @@ public:
         m_itemDurabilitySubscription.unsubscribe();
         m_enchantItemSubscription.unsubscribe();
         m_filledBucketSubscription.unsubscribe();
+        m_enterBlockSubscription.unsubscribe();
+        m_slideDownBlockSubscription.unsubscribe();
+        m_beeNestDestroyedSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -848,6 +864,132 @@ private:
     }
 
     /**
+     * @brief 处理进入方块事件
+     *
+     * 触发 EnterBlockTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.ENTER_BLOCK.trigger()
+     */
+    void onEnterBlock(const event::EnterBlockEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EnterBlockTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查方块状态是否有效
+        if (e.state == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::EnterBlockTriggerInstance>::trigger(
+            *advancements, [&e, world](const mc::advancement::EnterBlockTriggerInstance& instance) {
+                return instance.test(*e.state, *world, e.pos);
+            });
+    }
+
+    /**
+     * @brief 处理滑落方块事件
+     *
+     * 触发 SlideDownBlockTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.SLIDE_DOWN_BLOCK.trigger()
+     */
+    void onSlideDownBlock(const event::SlideDownBlockEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SlideDownBlockTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查方块状态是否有效
+        if (e.state == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::SlideDownBlockTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::SlideDownBlockTriggerInstance& instance) {
+                return instance.test(*e.state);
+            });
+    }
+
+    /**
+     * @brief 处理蜂巢破坏事件
+     *
+     * 触发 BeeNestDestroyedTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.BEE_NEST_DESTROYED.trigger()
+     */
+    void onBeeNestDestroyed(const event::BeeNestDestroyedEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::BeeNestDestroyedTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查方块状态是否有效
+        if (e.state == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::BeeNestDestroyedTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::BeeNestDestroyedTriggerInstance& instance) {
+                return instance.test(*e.state, e.tool, e.numBeesInside);
+            });
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -892,6 +1034,9 @@ private:
     event::ServerEventBus::Subscription<event::ItemDurabilityEvent> m_itemDurabilitySubscription;
     event::ServerEventBus::Subscription<event::EnchantItemEvent> m_enchantItemSubscription;
     event::ServerEventBus::Subscription<event::FilledBucketEvent> m_filledBucketSubscription;
+    event::ServerEventBus::Subscription<event::EnterBlockEvent> m_enterBlockSubscription;
+    event::ServerEventBus::Subscription<event::SlideDownBlockEvent> m_slideDownBlockSubscription;
+    event::ServerEventBus::Subscription<event::BeeNestDestroyedEvent> m_beeNestDestroyedSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;
