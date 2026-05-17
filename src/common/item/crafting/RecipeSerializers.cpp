@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,133 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "item/crafting/RecipeSerializers.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <sstream>
 
 namespace mc {
 namespace crafting {
+
+// ============================================================================
+// NBT 转 JSON 辅助函数
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 NBT 标签转换为 nlohmann::json
+ *
+ * 参考 MC 1.16.5 的 NBT 到 JSON 转换规则：
+ * - 数值类型直接转换
+ * - 字符串直接转换
+ * - 数组转换为 JSON 数组
+ * - 列表转换为 JSON 数组
+ * - 复合标签转换为 JSON 对象
+ *
+ * @param tag NBT 标签
+ * @return 转换后的 JSON 值
+ */
+nlohmann::json nbtToJson(const nbt::tags::tag& tag);
+
+nlohmann::json nbtListToJson(const nbt::tags::list_tag& list)
+{
+    nlohmann::json result = nlohmann::json::array();
+    for (size_t i = 0; i < list.size(); ++i) {
+        auto elem = list[i];
+        if (elem) {
+            result.push_back(nbtToJson(*elem));
+        }
+    }
+    return result;
+}
+
+nlohmann::json nbtToJson(const nbt::tags::tag& tag)
+{
+    using namespace nbt::tags;
+
+    switch (tag.id()) {
+        case nbt::TagId::Byte: {
+            const auto& t = dynamic_cast<const byte_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::Short: {
+            const auto& t = dynamic_cast<const short_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::Int: {
+            const auto& t = dynamic_cast<const int_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::Long: {
+            const auto& t = dynamic_cast<const long_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::Float: {
+            const auto& t = dynamic_cast<const float_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::Double: {
+            const auto& t = dynamic_cast<const double_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::ByteArray: {
+            const auto& t = dynamic_cast<const bytearray_tag&>(tag);
+            nlohmann::json result = nlohmann::json::array();
+            for (i8 val : t.value) {
+                result.push_back(val);
+            }
+            return result;
+        }
+        case nbt::TagId::String: {
+            const auto& t = dynamic_cast<const string_tag&>(tag);
+            return t.value;
+        }
+        case nbt::TagId::List: {
+            const auto& t = dynamic_cast<const list_tag&>(tag);
+            return nbtListToJson(t);
+        }
+        case nbt::TagId::Compound: {
+            const auto& t = dynamic_cast<const compound_tag&>(tag);
+            nlohmann::json result = nlohmann::json::object();
+            for (const auto& [key, value] : t.value) {
+                if (value) {
+                    result[key] = nbtToJson(*value);
+                }
+            }
+            return result;
+        }
+        case nbt::TagId::IntArray: {
+            const auto& t = dynamic_cast<const intarray_tag&>(tag);
+            nlohmann::json result = nlohmann::json::array();
+            for (i32 val : t.value) {
+                result.push_back(val);
+            }
+            return result;
+        }
+        case nbt::TagId::LongArray: {
+            const auto& t = dynamic_cast<const longarray_tag&>(tag);
+            nlohmann::json result = nlohmann::json::array();
+            for (i64 val : t.value) {
+                result.push_back(val);
+            }
+            return result;
+        }
+        case nbt::TagId::End:
+        default:
+            return nlohmann::json();
+    }
+}
+
+} // anonymous namespace
+
+// ============================================================================
+// RecipeSerializers 实现
+// ============================================================================
 
 Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     const ResourceLocation& id, const nlohmann::json& json)
@@ -436,10 +553,46 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
         }
     }
 
-    // TODO: 支持NBT数据解析
-    // if (json.contains("nbt")) { ... }
+    // 创建物品堆
+    ItemStack stack(*item, count);
 
-    return ItemStack(*item, count);
+    // 解析 NBT 数据
+    // 参考 MC 1.16.5 CraftingHelper.getItemStack()
+    // NBT 字段可以是两种格式：
+    // 1. 字符串形式（Mojangson 格式）："{display:{Name:\"Custom Name\"}}"
+    // 2. JSON 对象形式：{"display":{"Name":"Custom Name"}}
+    if (json.contains("nbt")) {
+        const auto& nbtValue = json["nbt"];
+
+        if (nbtValue.is_string()) {
+            // Mojangson 字符串格式
+            std::string nbtString = nbtValue.get<std::string>();
+            try {
+                // 使用 Mojangson 格式解析 NBT 字符串
+                std::istringstream iss(nbtString);
+                iss >> nbt::contexts::mojangson;
+
+                auto parsedTagPtr = nbt::tags::compound_tag::read(iss);
+                if (parsedTagPtr && !iss.fail()) {
+                    // 将 NBT 转换为 JSON 并合并到 ItemStack
+                    nlohmann::json jsonTag = nbtToJson(*parsedTagPtr);
+                    if (jsonTag.is_object() && !jsonTag.empty()) {
+                        stack.mergeTag(jsonTag);
+                    }
+                }
+            }
+            catch (const std::exception&) {
+                // 解析失败，忽略 NBT 数据
+                // 在实际游戏中可能需要记录警告日志
+            }
+        }
+        else if (nbtValue.is_object()) {
+            // JSON 对象格式，直接合并
+            stack.mergeTag(nbtValue);
+        }
+    }
+
+    return stack;
 }
 
 std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std::string>& pattern)
