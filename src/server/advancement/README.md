@@ -131,6 +131,7 @@ m_advancementEventHandler.initialize();
 | `ItemDurabilityEvent` | `ItemDurabilityTrigger` | ✅ 已完成 |
 | `EnchantItemEvent` | `EnchantedItemTrigger` | ✅ 已完成 |
 | `FilledBucketEvent` | `FilledBucketTrigger` | ✅ 已完成 |
+| `BredAnimalsEvent` | `BredAnimalsTrigger` | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
 
 ### 事件处理器架构

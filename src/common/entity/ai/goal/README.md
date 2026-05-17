@@ -236,12 +236,25 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 1. 寻找附近同类型且同样处于爱心状态的配偶
 2. 移动向配偶
 3. 距离足够近时生成幼体
+4. 触发 `BredAnimalsEvent` 事件（用于成就进度检测）
 
 **互斥标志**: `Move`, `Look`
 
 **关键参数**:
 - `m_speed`: 移动速度
 - `SPAWN_BABY_DELAY`: 繁殖延迟 (60 tick)
+- `MATE_SEARCH_RANGE`: 配偶搜索范围 (8.0f)
+- `BREED_DISTANCE_SQ`: 繁殖距离平方 (9.0f，即 3 格)
+
+**成就集成**:
+当繁殖成功时，BreedGoal 会调用 `IWorld::onBredAnimals()` 触发 `BredAnimalsEvent`，
+用于触发 `minecraft:bred_animals` 成就进度。事件包含：
+- 繁殖发起者玩家 ID（从动物的 `getLoveCause()` 获取）
+- 子代实体
+- 父母1 实体
+- 父母2 实体
+
+参考 MC 1.16.5: `AnimalEntity.func_234177_a_()`
 
 ---
 

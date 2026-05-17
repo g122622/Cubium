@@ -200,6 +200,8 @@ add_executable(mc_tests
     advancement/EntityPredicateTest.cpp
     # ItemPredicate 物品谓词测试（含药水匹配）
     advancement/ItemPredicateTest.cpp
+    # BredAnimalsTrigger 动物繁殖触发器测试
+    advancement/BredAnimalsTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试

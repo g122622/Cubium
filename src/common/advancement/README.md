@@ -137,6 +137,7 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | CuredZombieVillagerTrigger | `minecraft:cured_zombie_villager` | 完整实现（含服务端集成） |
 | EffectsChangedTrigger | `minecraft:effects_changed` | 完整实现（含服务端集成） |
 | ChanneledLightningTrigger | `minecraft:channeled_lightning` | 完整实现（含服务端集成） |
+| BredAnimalsTrigger | `minecraft:bred_animals` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 
