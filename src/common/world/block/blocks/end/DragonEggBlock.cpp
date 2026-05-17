@@ -28,6 +28,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/BlockRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
 namespace blocks {
@@ -138,15 +139,12 @@ bool DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockSta
                 f64 particleZ = math::lerp(static_cast<f64>(targetPos.z), static_cast<f64>(pos.z), t)
                     + (random.nextDouble() - 0.5) + 0.5;
 
-                // TODO: 当粒子系统完善后，添加传送门粒子
-                // world.addParticle(ParticleTypes::PORTAL, particleX, particleY, particleZ,
-                //                   static_cast<f64>(velocityX), static_cast<f64>(velocityY), static_cast<f64>(velocityZ));
-                MC_UNUSED(particleX);
-                MC_UNUSED(particleY);
-                MC_UNUSED(particleZ);
-                MC_UNUSED(velocityX);
-                MC_UNUSED(velocityY);
-                MC_UNUSED(velocityZ);
+                // 生成传送门粒子效果
+                // 参考 MC 1.16.5: world.addParticle(ParticleTypes.PORTAL, d1, d2, d3, f, f1, f2)
+                world.addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Portal,
+                    Vector3(static_cast<f32>(particleX), static_cast<f32>(particleY), static_cast<f32>(particleZ)),
+                    Vector3(velocityX, velocityY, velocityZ));
             }
         }
 

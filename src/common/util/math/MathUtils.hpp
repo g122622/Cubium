@@ -74,9 +74,17 @@ template <typename T>
 }
 
 /**
- * @brief 线性插值
+ * @brief 线性插值 (f32 版本)
  */
 [[nodiscard]] inline constexpr f32 lerp(f32 a, f32 b, f32 t) noexcept
+{
+    return a + (b - a) * t;
+}
+
+/**
+ * @brief 线性插值 (f64 版本)
+ */
+[[nodiscard]] inline constexpr f64 lerp(f64 a, f64 b, f64 t) noexcept
 {
     return a + (b - a) * t;
 }
