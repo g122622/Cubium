@@ -706,3 +706,23 @@ if (livingTarget != nullptr) {
     4. 对于末地折跃门，调用方块实体的传送方法立即传送
     5. 设置 `handledPortal = true` 阻止后续碰撞处理
   - 测试覆盖：`tests/entity/ThrowablePortalTest.cpp`
+
+- **龙息火球粒子效果实现（2026-05-17）**：
+  - `DragonFireballEntity::getParticleType()`：返回 `ParticleTypeId::DragonBreath`
+    - 参考 MC 1.16.5 DragonFireballEntity.getParticle()
+    - 龙息火球飞行时产生龙息粒子尾迹（而非普通火球的烟雾粒子）
+  - `DragonFireballEntity::createDragonBreathCloud()`：创建龙息区域效果云
+    - 生成 `AreaEffectCloudEntity`
+    - 设置龙息粒子类型（`ParticleTypeId::DragonBreath`）
+    - 参考 MC 1.16.5 DragonFireballEntity.func_213284_a()
+  - 测试覆盖：`tests/common/entity/entities/projectile/DragonFireballCloudTest.cpp`
+
+- **潜影贝子弹爆炸粒子实现（2026-05-17）**：
+  - `ShulkerBulletEntity::onBlockHit()`：命中方块时生成爆炸粒子
+    - 参考 MC 1.16.5 ShulkerBulletEntity.func_230299_a_()
+    - 粒子类型：`ParticleTypeId::Explosion`
+    - 粒子数量：2
+    - 随机偏移范围：(0.2, 0.2, 0.2)
+    - 初始速度：(0, 0, 0)
+    - 通过 `IWorld::addParticle()` 广播粒子到客户端
+  - 测试覆盖：`tests/common/entity/entities/projectile/ShulkerBulletParticleTest.cpp`

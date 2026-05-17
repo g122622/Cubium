@@ -370,6 +370,10 @@ add_executable(mc_tests
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
+    # DragonFireballEntity 龙息云和粒子类型测试
+    common/entity/entities/projectile/DragonFireballCloudTest.cpp
+    # ShulkerBulletEntity 爆炸粒子效果测试
+    common/entity/entities/projectile/ShulkerBulletParticleTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp
