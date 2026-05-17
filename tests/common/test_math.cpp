@@ -36,6 +36,7 @@ using mc::ChunkPos;
 using mc::Error;
 using mc::ErrorCode;
 using mc::f32;
+using mc::f64;
 using mc::Result;
 using mc::u64;
 using mc::math::approxEqual;
@@ -85,6 +86,33 @@ TEST(MathUtils, Lerp)
     EXPECT_NEAR(lerp(0.0f, 10.0f, 0.5f), 5.0f, 0.0001f);
     EXPECT_NEAR(lerp(0.0f, 10.0f, 0.0f), 0.0f, 0.0001f);
     EXPECT_NEAR(lerp(0.0f, 10.0f, 1.0f), 10.0f, 0.0001f);
+}
+
+TEST(MathUtils, LerpDouble)
+{
+    // f64 版本的 lerp 测试 - 用于高精度场景如龙蛋传送粒子位置计算
+    // 使用显式类型调用避免与f32版本歧义
+    EXPECT_NEAR(lerp(static_cast<f64>(0.0), static_cast<f64>(10.0), static_cast<f64>(0.5)), 5.0, 0.0000001);
+    EXPECT_NEAR(lerp(static_cast<f64>(0.0), static_cast<f64>(10.0), static_cast<f64>(0.0)), 0.0, 0.0000001);
+    EXPECT_NEAR(lerp(static_cast<f64>(0.0), static_cast<f64>(10.0), static_cast<f64>(1.0)), 10.0, 0.0000001);
+
+    // 负值测试
+    EXPECT_NEAR(lerp(static_cast<f64>(-5.0), static_cast<f64>(5.0), static_cast<f64>(0.5)), 0.0, 0.0000001);
+    EXPECT_NEAR(lerp(static_cast<f64>(-10.0), static_cast<f64>(-20.0), static_cast<f64>(0.5)), -15.0, 0.0000001);
+
+    // 大数值测试（验证双精度精度优势）
+    EXPECT_NEAR(lerp(static_cast<f64>(1000000.0), static_cast<f64>(1000001.0), static_cast<f64>(0.5)), 1000000.5, 0.0000001);
+
+    // 龙蛋传送粒子场景测试
+    // 从目标位置插值到源位置
+    const f64 targetX = 100.0;
+    const f64 sourceX = 200.0;
+    const f64 t = 0.5;  // 中间位置
+    EXPECT_NEAR(lerp(targetX, sourceX, t), 150.0, 0.0000001);
+
+    // t=0 时在目标位置，t=1 时在源位置
+    EXPECT_NEAR(lerp(targetX, sourceX, static_cast<f64>(0.0)), targetX, 0.0000001);
+    EXPECT_NEAR(lerp(targetX, sourceX, static_cast<f64>(1.0)), sourceX, 0.0000001);
 }
 
 TEST(MathUtils, IsZero)
