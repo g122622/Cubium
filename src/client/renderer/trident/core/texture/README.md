@@ -67,8 +67,57 @@ textureAtlasTicker.uploadPendingFrames(context, atlas);
 |------|----------------|----------|------|
 | 帧计数器递增 | `frameCounter = (frameCounter + 1) % j` | ✅ 一致 | ✅ |
 | 帧时间获取 | `getFrameTimeSingle(frameCounter)` | ✅ 一致 | ✅ |
-| 插值帧上传 | `InterpolationData.uploadInterpolated()` | ⚠️ TODO | 待实现 |
-| 纹理子区域上传 | `uploadTextureSub()` | ⚠️ TODO | 待实现 |
+| 插值帧上传 | `InterpolationData.uploadInterpolated()` | ✅ 已实现 | ✅ |
+| 纹理子区域上传 | `uploadTextureSub()` | ✅ 已实现 | ✅ |
+
+## TridentTexture 和 TridentTextureAtlas
+
+### 纹理子区域上传
+
+参考 MC 1.16.5 `TextureAtlasSprite.uploadFrames()` 和 `NativeImage.uploadTextureSub()`，实现了纹理子区域上传功能：
+
+**TridentTexture::uploadRegion()**：
+```cpp
+Result<void> uploadRegion(const void* data, u64 size,
+    u32 offsetX, u32 offsetY, u32 width, u32 height,
+    u32 level = 0, u32 rowLength = 0);
+```
+
+**TridentTextureAtlas::uploadRegion()**：
+```cpp
+Result<void> uploadRegion(const void* data, u64 size,
+    u32 offsetX, u32 offsetY, u32 width, u32 height,
+    u32 rowLength = 0);
+```
+
+**参数说明**：
+| 参数 | 说明 |
+|------|------|
+| `offsetX`, `offsetY` | 目标区域在纹理/图集中的偏移（像素） |
+| `width`, `height` | 上传区域尺寸（像素） |
+| `rowLength` | 源数据行长度（像素），0 表示紧密排列，用于精灵表场景 |
+
+**实现细节**：
+1. 使用 `vkCmdCopyBufferToImage` 上传数据到纹理子区域
+2. 通过 `VkBufferImageCopy.imageOffset` 和 `imageExtent` 指定目标区域
+3. `bufferRowLength` 参数对应 OpenGL 的 `GL_UNPACK_ROW_LENGTH`
+4. 正确处理图像布局转换（SHADER_READ_ONLY ↔ TRANSFER_DST）
+5. 完整的边界验证确保上传区域不超出纹理范围
+
+**使用示例**（动画纹理帧更新）：
+```cpp
+// AnimatedSprite::uploadFrame() 实现
+Result<void> AnimatedSprite::uploadFrame(TridentContext* context,
+    TridentTextureAtlas& atlas, const FrameData& frame)
+{
+    // 验证帧数据
+    // ...
+
+    // 上传帧数据到图集的指定位置
+    return atlas.uploadRegion(frame.pixels.data(), frame.pixels.size(),
+        m_atlasX, m_atlasY, m_frameWidth, m_frameHeight, 0);
+}
+```
 
 ## 测试覆盖
 

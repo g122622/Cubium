@@ -368,6 +368,29 @@ if (rt.shouldRenderBefore(otherRt)) {
 | `TextureDesc` | 纹理描述 |
 | `ITexture` | 纹理接口 |
 
+**ITexture 核心方法**：
+```cpp
+// 上传完整纹理数据
+Result<void> upload(const void* data, u64 size, u32 level = 0);
+
+// 上传纹理子区域（用于动画纹理帧更新）
+Result<void> uploadRegion(const void* data, u64 size,
+    u32 offsetX, u32 offsetY, u32 width, u32 height,
+    u32 level = 0, u32 rowLength = 0);
+```
+
+**uploadRegion 参数说明**：
+| 参数 | 说明 |
+|------|------|
+| `data` | 像素数据指针（RGBA 格式） |
+| `size` | 数据大小（字节） |
+| `offsetX`, `offsetY` | 目标区域在纹理中的偏移（像素） |
+| `width`, `height` | 上传区域尺寸（像素） |
+| `level` | mip 层级（默认 0） |
+| `rowLength` | 源数据行长度（像素），0 表示紧密排列 |
+
+**参考**：MC 1.16.5 `NativeImage.uploadTextureSub()`
+
 ---
 
 #### TextureRegion.hpp
