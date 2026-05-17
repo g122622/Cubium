@@ -458,6 +458,7 @@ const SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(Chun
 void ServerChunkManager::onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
     MC_UNUSED(oldLevel);
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::onTicketLevelChanged", "x", x, "z", z, "oldLevel", oldLevel, "newLevel", newLevel);
 
     SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
     lifecycleManager.setLevel(newLevel);
@@ -946,6 +947,8 @@ void ServerChunkManager::checkChunkUnloading()
 
 void ServerChunkManager::updatePlayerPosition(PlayerId player, f64 x, f64 z)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::updatePlayerPosition", "player", player, "x", x, "z", z);
+
     const ChunkCoord chunkX = static_cast<ChunkCoord>(std::floor(x / world::CHUNK_WIDTH));
     const ChunkCoord chunkZ = static_cast<ChunkCoord>(std::floor(z / world::CHUNK_WIDTH));
     m_ticketManager.updatePlayerPosition(player, chunkX, chunkZ);

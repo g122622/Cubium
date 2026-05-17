@@ -23,6 +23,7 @@
 
 #include "ChunkDistanceGraph.hpp"
 #include "ChunkLoadTicket.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -72,6 +73,8 @@ void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level
 
 i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkDistanceGraph::processUpdates");
+
     i32 processed = 0;
 
     while (!m_updateQueue.empty() && processed < maxToProcess) {
@@ -161,6 +164,8 @@ i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const
 
 void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkDistanceGraph::onLevelChanged", "x", x, "z", z, "oldLevel", oldLevel, "newLevel", newLevel);
+
     if (m_levelChangeCallback) {
         m_levelChangeCallback(x, z, oldLevel, newLevel);
     }

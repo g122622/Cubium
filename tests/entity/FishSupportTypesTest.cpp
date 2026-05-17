@@ -24,6 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/goals/FishSwimGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomSwimmingGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
 #include "common/entity/entities/passive/fish/CodEntity.hpp"
@@ -407,6 +409,34 @@ TEST_F(FollowSchoolLeaderGoalTest, MoveToGroupLeaderWorks)
     // 验证群体关系仍然存在
     EXPECT_TRUE(follower->hasGroupLeader());
     EXPECT_EQ(follower->getGroupLeader(), leader.get());
+}
+
+// ============================================================================
+// RandomSwimmingGoal / FishSwimGoal 空值安全回归测试
+// ============================================================================
+
+TEST(FishSwimGoalSafetyTest, RandomSwimmingGoalReturnsFalseWhenBlockStateIsUnavailable)
+{
+    auto world = std::make_unique<TestFishWorld>();
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    cod.setWorld(world.get());
+    cod.setPosition(0.0f, 62.0f, 0.0f);
+    cod.setInWater(true);
+
+    entity::ai::goal::RandomSwimmingGoal goal(&cod, 1.0, 1);
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(FishSwimGoalSafetyTest, FishSwimGoalReturnsFalseWhenBlockStateIsUnavailable)
+{
+    auto world = std::make_unique<TestFishWorld>();
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    cod.setWorld(world.get());
+    cod.setPosition(0.0f, 62.0f, 0.0f);
+    cod.setInWater(true);
+
+    entity::ai::goal::FishSwimGoal goal(&cod, 1.0, 1);
+    EXPECT_FALSE(goal.shouldExecute());
 }
 
 // ============================================================================

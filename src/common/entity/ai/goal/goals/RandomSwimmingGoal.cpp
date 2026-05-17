@@ -148,6 +148,8 @@ bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos)
         return false;
     }
 
+    IWorld* world = m_creature->world();
+
     // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockInWater
     // 简化实现：在当前实体附近随机选择水中的位置
     math::Random rng = m_creature->getRandom();
@@ -166,9 +168,15 @@ bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos)
         f64 targetY = currentY + static_cast<f64>(dy);
         f64 targetZ = currentZ + static_cast<f64>(dz);
 
-        // 检查目标位置是否在水中
+        // 检查目标位置是否在有效世界范围内
         BlockPos targetBlockPos(static_cast<i32>(targetX), static_cast<i32>(targetY), static_cast<i32>(targetZ));
-        if (m_creature->world()->getBlockState(targetBlockPos)->getMaterial().isLiquid()) {
+        if (!world->isWithinWorldBounds(targetBlockPos.x, targetBlockPos.y, targetBlockPos.z)) {
+            continue;
+        }
+
+        // 目标方块可能因为区块未加载而不可用，必须先判空
+        const BlockState* blockState = world->getBlockState(targetBlockPos);
+        if (blockState != nullptr && blockState->getMaterial().isLiquid()) {
             outPos = Vector3(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
             return true;
         }

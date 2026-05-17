@@ -97,8 +97,8 @@ BlockState CakeBlock::updatePostPlacement(const BlockState& state,
         BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
         const BlockState* belowState = world.getBlockState(belowPos);
         if (belowState == nullptr || !belowState->isSolid()) {
-            // 返回空气状态
-            return world.getBlockState(currentPos)->getBlock().defaultState();
+            // 返回空气状态，避免再次读取当前位置方块
+            return VanillaBlocks::AIR->defaultState();
         }
     }
 

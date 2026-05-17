@@ -30,6 +30,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../dimension/DimensionType.hpp"
 #include "../../../explosion/ExplosionMode.hpp"
 #include <unordered_map>
@@ -127,7 +128,7 @@ BlockState BedBlock::updatePostPlacement(const BlockState& state,
     if (facing == otherDir) {
         // 另一半被移除
         if (facingState.isAir()) {
-            return world.getBlockState(currentPos)->getBlock().defaultState();
+            return VanillaBlocks::AIR->defaultState();
         }
         // 同步占用状态
         if (facingState.hasProperty(BlockStateProperties::OCCUPIED())) {

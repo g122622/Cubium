@@ -366,13 +366,6 @@ public:
     void processTicketUpdatesSync() { m_ticketManager.processUpdates(); }
 
     /**
-     * @brief 处理票据系统积压更新
-     *
-     * 这是旧调用点迁移期间保留的薄别名，语义与 `processTicketUpdatesSync()` 完全一致。
-     */
-    void processTicketUpdates() { processTicketUpdatesSync(); }
-
-    /**
      * @brief 获取票据管理器
      */
     [[nodiscard]] world::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }

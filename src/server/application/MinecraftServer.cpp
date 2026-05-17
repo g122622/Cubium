@@ -995,7 +995,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
     if (m_world && m_world->chunkManager()) {
         m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-        m_world->chunkManager()->processTicketUpdates();
+        m_world->chunkManager()->processTicketUpdatesSync();
     }
 
     // 村庄进入检测（用于触发袭击）
@@ -1053,7 +1053,7 @@ void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* d
         // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
         if (m_world && m_world->chunkManager()) {
             m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-            m_world->chunkManager()->processTicketUpdates();
+            m_world->chunkManager()->processTicketUpdatesSync();
         }
     }
 }
@@ -1113,6 +1113,17 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
 
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
+    MC_TRACE_EVENT("server.world",
+        "MinecraftServer::updateEntityTrackingForPlayer",
+        "playerId",
+        playerId,
+        "x",
+        x,
+        "y",
+        y,
+        "z",
+        z);
+
     if (!m_world) {
         return;
     }
@@ -1286,11 +1297,24 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         payloadSize);
 
     switch (packetType) {
-        case network::PacketType::LoginRequest:
+        case network::PacketType::LoginRequest: {
+            MC_TRACE_EVENT("server.network",
+                "HandleLoginRequestPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             handleLoginRequestPacket(sessionId, payload, payloadSize);
             break;
+        }
 
         case network::PacketType::PlayerMove: {
+            MC_TRACE_EVENT("server.network",
+                "HandlePlayerMovePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handlePlayerMovePacket(playerId, payload, payloadSize);
@@ -1299,6 +1323,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::BlockInteraction: {
+            MC_TRACE_EVENT("server.network",
+                "HandleBlockInteractionPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleBlockInteractionPacket(playerId, payload, payloadSize);
@@ -1307,6 +1337,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::PlayerTryUseItemOnBlock: {
+            MC_TRACE_EVENT("server.network",
+                "HandlePlayerTryUseItemOnBlockPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleBlockPlacementPacket(playerId, payload, payloadSize);
@@ -1315,6 +1351,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::HotbarSelect: {
+            MC_TRACE_EVENT("server.network",
+                "HandleHotbarSelectPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleHotbarSelectPacket(playerId, payload, payloadSize);
@@ -1323,6 +1365,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::CreativeInventoryAction: {
+            MC_TRACE_EVENT("server.network",
+                "HandleCreativeInventoryActionPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleCreativeInventoryActionPacket(playerId, payload, payloadSize);
@@ -1331,6 +1379,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ContainerClick: {
+            MC_TRACE_EVENT("server.network",
+                "HandleContainerClickPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleContainerClickPacket(playerId, payload, payloadSize);
@@ -1339,6 +1393,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::CloseContainer: {
+            MC_TRACE_EVENT("server.network",
+                "HandleCloseContainerPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleCloseContainerPacket(playerId, payload, payloadSize);
@@ -1347,6 +1407,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::TeleportConfirm: {
+            MC_TRACE_EVENT("server.network",
+                "HandleTeleportConfirmPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleTeleportConfirmPacket(playerId, payload, payloadSize);
@@ -1355,6 +1421,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::KeepAlive: {
+            MC_TRACE_EVENT("server.network",
+                "HandleKeepAlivePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleKeepAlivePacket(playerId, data, size);
@@ -1363,6 +1435,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ChatMessage: {
+            MC_TRACE_EVENT("server.network",
+                "HandleChatMessagePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleChatMessagePacket(playerId, payload, payloadSize);
@@ -1371,7 +1449,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         default:
-            spdlog::debug("Unhandled packet type: {}", static_cast<int>(packetType));
+            spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
     }
 }

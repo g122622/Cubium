@@ -23,6 +23,7 @@
 
 #include "ChunkLoadTicketManager.hpp"
 #include "ChunkLoadTicket.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <mutex>
 #include <spdlog/spdlog.h>
@@ -473,6 +474,8 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 
 void ChunkLoadTicketManager::processUpdates()
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkLoadTicketManager::processUpdates", "dirtyChunkCount", m_dirtyChunks.size(), "playerCount", m_playerTrackers.size());
+
     // 处理所有玩家追踪器的更新
     for (auto& [playerId, tracker] : m_playerTrackers) {
         tracker->processUpdates(1000);

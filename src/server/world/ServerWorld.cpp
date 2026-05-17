@@ -902,6 +902,8 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
     // 遍历所有已加载区块
     // 参考: MC 1.16.5 ServerWorld.tickEnvironment()
     m_chunkManager->forEachLoadedChunk([this, randomTickSpeed](ChunkData& chunk) {
+        MC_TRACE_EVENT("server.tick", "tickChunk", "x", chunk.x(), "z", chunk.z());
+
         // 获取区块起始坐标（方块坐标）
         i32 chunkX = chunk.x() * 16;
         i32 chunkZ = chunk.z() * 16;

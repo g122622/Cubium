@@ -34,6 +34,8 @@
 #include "../src/common/world/block/BlockRegistry.hpp"
 #include "../src/common/world/block/Material.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/blocks/functional/BedBlock.hpp"
+#include "../src/common/world/block/blocks/functional/CakeBlock.hpp"
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
@@ -1309,6 +1311,41 @@ TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity)
     const BlockState* stateAfterTick = world.getBlockState(sandPos.x, sandPos.y, sandPos.z);
     ASSERT_NE(stateAfterTick, nullptr);
     EXPECT_TRUE(stateAfterTick->isAir());
+}
+
+TEST(FunctionalBlockBehaviorTest, CakeUpdatePostPlacementReturnsAirWhenSupportIsMissing)
+{
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::AIR, nullptr);
+
+    blocks::CakeBlock cake(BlockProperties(Material::ORGANIC).hardness(0.5f).notSolid());
+
+    BlockRulesTestWorld world;
+    const BlockPos cakePos(24, 64, 24);
+    const BlockState& cakeState = cake.defaultState();
+
+    BlockState updatedState = cake.updatePostPlacement(cakeState, Direction::Down, cakeState, world, cakePos, cakePos);
+
+    EXPECT_TRUE(updatedState.isAir());
+}
+
+TEST(FunctionalBlockBehaviorTest, BedUpdatePostPlacementReturnsAirWhenPartnerIsMissing)
+{
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::AIR, nullptr);
+
+    blocks::BedBlock bed(0, BlockProperties(Material::WOOL).hardness(0.2f).notSolid());
+
+    BlockRulesTestWorld world;
+    const BlockPos bedPos(26, 64, 26);
+    const BlockState& bedState = bed.defaultState();
+    const BlockState& airState = VanillaBlocks::AIR->defaultState();
+
+    BlockState updatedState = bed.updatePostPlacement(bedState, Direction::South, airState, world, bedPos, bedPos);
+
+    EXPECT_TRUE(updatedState.isAir());
 }
 
 // ============================================================================

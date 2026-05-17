@@ -27,6 +27,7 @@
 #include "ChunkLoadTicket.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -259,7 +260,11 @@ public:
      * @brief 设置级别变化回调
      * @param callback 回调函数
      */
-    void setLevelChangeCallback(LevelChangeCallback callback) { m_levelChangeCallback = std::move(callback); }
+    void setLevelChangeCallback(LevelChangeCallback callback)
+    {
+        MC_ASSERT_RELEASE(!m_levelChangeCallback);
+        m_levelChangeCallback = std::move(callback);
+    }
 
     /**
      * @brief 追踪变化回调类型
