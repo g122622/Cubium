@@ -410,10 +410,15 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 
 **主要内容**：
 - `TridentBuffer`：Vulkan 缓冲区基类
-- `TridentStagingBuffer`：暂存缓冲区
-- `TridentVertexBuffer`：顶点缓冲区
-- `TridentIndexBuffer`：索引缓冲区
+- `TridentStagingBuffer`：暂存缓冲区（HOST_VISIBLE 内存，用于 CPU 到 GPU 数据传输）
+- `TridentVertexBuffer`：顶点缓冲区（设备本地内存，支持 `upload()` 直接上传）
+- `TridentIndexBuffer`：索引缓冲区（设备本地内存，支持 `upload()` 直接上传）
 - `TridentUniformBuffer`：Uniform 缓冲区（支持多帧轮换）
+
+**数据上传方式**：
+- 顶点/索引缓冲区：使用 `upload(data, size, offset)` 方法，内部通过暂存缓冲区和 `vkCmdCopyBuffer` 实现
+- Uniform 缓冲区：使用 `upload(data, size)` 方法，直接映射 HOST_VISIBLE 内存
+- 暂存缓冲区：使用 `upload()` 上传数据，然后用 `copyTo()` 复制到目标缓冲区
 
 ##### pipeline/TridentPipeline.hpp/cpp - 管线实现
 

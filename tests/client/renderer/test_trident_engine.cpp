@@ -471,6 +471,71 @@ TEST_F(TridentBufferTest, VertexBufferVertexCount)
     vbo.destroy();
 }
 
+TEST_F(TridentBufferTest, VertexBufferDirectUpload)
+{
+    // 测试 TridentVertexBuffer::upload() 直接上传方法
+    TridentVertexBuffer vbo;
+    const u64 bufferSize = sizeof(Vertex) * 4;
+    ASSERT_TRUE(vbo.create(s_context, bufferSize, sizeof(Vertex)).success());
+
+    // 创建测试顶点数据
+    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
+        {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f}};
+
+    // 使用 upload() 方法直接上传
+    auto result = vbo.upload(vertices, sizeof(vertices), 0);
+    EXPECT_TRUE(result.success()) << "Direct upload should succeed: " << result.error().message();
+
+    vbo.destroy();
+}
+
+TEST_F(TridentBufferTest, VertexBufferDirectUploadWithOffset)
+{
+    // 测试带偏移的上传
+    TridentVertexBuffer vbo;
+    const u64 bufferSize = sizeof(Vertex) * 8;
+    ASSERT_TRUE(vbo.create(s_context, bufferSize, sizeof(Vertex)).success());
+
+    // 先上传前 4 个顶点
+    Vertex vertices1[4] = {};
+    auto result = vbo.upload(vertices1, sizeof(vertices1), 0);
+    EXPECT_TRUE(result.success()) << "First upload should succeed: " << result.error().message();
+
+    // 再上传后 4 个顶点（带偏移）
+    Vertex vertices2[4] = {{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}};
+    result = vbo.upload(vertices2, sizeof(vertices2), sizeof(vertices1));
+    EXPECT_TRUE(result.success()) << "Second upload with offset should succeed: " << result.error().message();
+
+    vbo.destroy();
+}
+
+TEST_F(TridentBufferTest, VertexBufferUploadInvalidParameters)
+{
+    TridentVertexBuffer vbo;
+    ASSERT_TRUE(vbo.create(s_context, 1024, sizeof(Vertex)).success());
+
+    Vertex vertices[4] = {};
+
+    // 测试空指针
+    auto result = vbo.upload(nullptr, sizeof(vertices), 0);
+    EXPECT_FALSE(result.success()) << "Should fail with null data pointer";
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+
+    // 测试零大小
+    result = vbo.upload(vertices, 0, 0);
+    EXPECT_FALSE(result.success()) << "Should fail with zero size";
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+
+    // 测试超出范围
+    result = vbo.upload(vertices, sizeof(vertices), 2000);
+    EXPECT_FALSE(result.success()) << "Should fail with out of range offset";
+    EXPECT_EQ(result.error().code(), ErrorCode::OutOfRange);
+
+    vbo.destroy();
+}
+
 TEST_F(TridentBufferTest, CreateIndexBuffer)
 {
     TridentIndexBuffer ibo;
@@ -512,6 +577,66 @@ TEST_F(TridentBufferTest, IndexBufferUploadViaStaging)
     s_context->endSingleTimeCommands(cmd);
 
     staging.destroy();
+    ibo.destroy();
+}
+
+TEST_F(TridentBufferTest, IndexBufferDirectUpload)
+{
+    // 测试 TridentIndexBuffer::upload() 直接上传方法
+    TridentIndexBuffer ibo;
+    ASSERT_TRUE(ibo.create(s_context, sizeof(u32) * 6, IndexType::U32).success());
+
+    u32 indices[6] = {0, 1, 2, 0, 2, 3};
+
+    // 使用 upload() 方法直接上传
+    auto result = ibo.upload(indices, sizeof(indices), 0);
+    EXPECT_TRUE(result.success()) << "Direct upload should succeed: " << result.error().message();
+
+    ibo.destroy();
+}
+
+TEST_F(TridentBufferTest, IndexBufferDirectUploadWithOffset)
+{
+    // 测试带偏移的上传
+    TridentIndexBuffer ibo;
+    const u64 bufferSize = sizeof(u32) * 12;
+    ASSERT_TRUE(ibo.create(s_context, bufferSize, IndexType::U32).success());
+
+    // 先上传前 6 个索引
+    u32 indices1[6] = {0, 1, 2, 0, 2, 3};
+    auto result = ibo.upload(indices1, sizeof(indices1), 0);
+    EXPECT_TRUE(result.success()) << "First upload should succeed: " << result.error().message();
+
+    // 再上传后 6 个索引（带偏移）
+    u32 indices2[6] = {4, 5, 6, 4, 6, 7};
+    result = ibo.upload(indices2, sizeof(indices2), sizeof(indices1));
+    EXPECT_TRUE(result.success()) << "Second upload with offset should succeed: " << result.error().message();
+
+    ibo.destroy();
+}
+
+TEST_F(TridentBufferTest, IndexBufferUploadInvalidParameters)
+{
+    TridentIndexBuffer ibo;
+    ASSERT_TRUE(ibo.create(s_context, 1024, IndexType::U32).success());
+
+    u32 indices[6] = {0, 1, 2, 0, 2, 3};
+
+    // 测试空指针
+    auto result = ibo.upload(nullptr, sizeof(indices), 0);
+    EXPECT_FALSE(result.success()) << "Should fail with null data pointer";
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+
+    // 测试零大小
+    result = ibo.upload(indices, 0, 0);
+    EXPECT_FALSE(result.success()) << "Should fail with zero size";
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+
+    // 测试超出范围
+    result = ibo.upload(indices, sizeof(indices), 2000);
+    EXPECT_FALSE(result.success()) << "Should fail with out of range offset";
+    EXPECT_EQ(result.error().code(), ErrorCode::OutOfRange);
+
     ibo.destroy();
 }
 
