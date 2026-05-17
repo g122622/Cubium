@@ -684,6 +684,139 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 
 ---
 
+## NbtPath 参数类型
+
+### NbtPath.hpp / NbtPathArgumentType.hpp
+
+**职责**：解析和操作 NBT 路径，支持 `/data` 命令的各种操作。
+
+**核心类**：
+
+#### `NbtPath` - NBT 路径
+
+表示完整的 NBT 路径，由多个节点组成。支持路径解析、获取、设置、删除操作。
+
+**支持的路径语法**：
+
+| 语法 | 说明 | 示例 |
+|------|------|------|
+| `"foo"` | 访问复合标签的键 | `foo` |
+| `"foo.bar"` | 访问嵌套键 | `Items[0].id` |
+| `"foo[0]"` | 访问列表的第一个元素 | `Items[0]` |
+| `"foo[-1]"` | 访问列表的最后一个元素 | `Items[-1]` |
+| `"foo[]"` | 访问列表的所有元素 | `Items[]` |
+| `"{foo:bar}"` | 复合过滤器 | `{id:"diamond"}` |
+| `"foo{bar:1}"` | 键名 + 复合过滤器 | `Items{id:"diamond"}` |
+| `"foo[{id:'diamond'}]"` | 列表过滤器 | `Items[{id:"diamond"}]` |
+
+**使用示例**：
+
+```cpp
+// 解析路径
+StringReader reader("Items[0].tag.display.Name");
+NbtPath path = NbtPathArgumentType::nbtPath()->parse(reader);
+
+// 获取值
+auto results = path.get(compoundTag);
+
+// 设置值
+path.set(compoundTag, []() {
+    return std::make_unique<nbt::tags::string_tag>("Custom Name");
+});
+
+// 删除值
+path.remove(compoundTag);
+
+// 合并值
+path.merge(compoundTag, mergeData);
+
+// 列表操作
+path.insert(compoundTag, 1, values);
+path.append(compoundTag, values);
+path.prepend(compoundTag, values);
+```
+
+#### `NbtPathNode` - 路径节点基类
+
+抽象基类，所有路径节点类型的接口：
+
+| 方法 | 说明 |
+|------|------|
+| `get(tag)` | 从标签获取匹配的所有值 |
+| `set(tag, supplier)` | 设置路径指向的值 |
+| `remove(tag)` | 删除路径指向的值 |
+| `getOrCreate(tag, creator)` | 获取或创建目标标签 |
+| `toString()` | 获取节点描述字符串 |
+
+**节点实现类**：
+
+| 类名 | 说明 | 示例 |
+|------|------|------|
+| `NbtPathStringNode` | 字符串节点 | `foo` |
+| `NbtPathIndexNode` | 索引节点 | `[0]`, `[-1]` |
+| `NbtPathAllElementsNode` | 所有元素节点 | `[]` |
+| `NbtPathCompoundFilterNode` | 复合过滤节点 | `{foo:bar}` |
+| `NbtPathListFilterNode` | 列表过滤节点 | `[{id:"diamond"}]` |
+| `NbtPathKeyFilterNode` | 键名过滤器节点 | `foo{bar:1}` |
+
+#### `NbtPathArgumentType` - NBT 路径参数类型
+
+```cpp
+auto nbtPathArg = NbtPathArgumentType::nbtPath();
+StringReader reader("Items[0].tag");
+NbtPath path = nbtPathArg->parse(reader);
+```
+
+#### `NbtCompoundArgumentType` - NBT 复合标签参数类型
+
+解析 Mojangson 格式的 NBT 复合标签：
+
+```cpp
+auto nbtCompoundArg = NbtCompoundArgumentType::nbtCompound();
+StringReader reader("{foo:bar,count:42}");
+auto compound = nbtCompoundArg->parse(reader);
+```
+
+#### `NbtTagArgumentType` - NBT 标签参数类型
+
+解析任意 NBT 标签：
+
+```cpp
+auto nbtTagArg = NbtTagArgumentType::nbtTag();
+
+// 字符串
+StringReader reader1("\"hello\"");
+auto strTag = nbtTagArg->parse(reader1);
+
+// 数字
+StringReader reader2("42");
+auto intTag = nbtTagArg->parse(reader2);
+
+// 列表
+StringReader reader3("[1,2,3]");
+auto listTag = nbtTagArg->parse(reader3);
+```
+
+**NBT 值格式支持**：
+
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| 字符串 | `"text"` 或 `text` | `"hello"`, `hello` |
+| 字节 | `数字b` 或 `数字B` | `10b`, `-5B` |
+| 短整型 | `数字s` 或 `数字S` | `100s`, `1000S` |
+| 整型 | `数字` | `42`, `-100` |
+| 长整型 | `数字l` 或 `数字L` | `100000L` |
+| 浮点 | `数字f` 或 `数字F` | `3.14f` |
+| 双精度 | `数字d` 或 `数字D` 或 `数字.` | `3.14159d`, `2.5` |
+| 布尔 | `true` 或 `false` | `true`, `false` |
+| 复合标签 | `{key:value,...}` | `{foo:bar,count:1}` |
+| 列表 | `[value,...]` | `[1,2,3]` |
+| 字节数组 | `[B;value,...]` | `[B;1,2,3]` |
+| 整型数组 | `[I;value,...]` | `[I;1,2,3]` |
+| 长整型数组 | `[L;value,...]` | `[L;1,2,3]` |
+
+---
+
 ## 更新历史
 
 | 日期 | 版本 | 变更 |
@@ -695,3 +828,4 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 | 2026-05 | 1.4 | 实现 x_rotation/y_rotation 角度范围解析；添加 FloatRange::testAngle() 方法；修复 readSelectorArgumentToken() 支持 `!` 取反前缀；完善选择器参数支持（distance、level、x/y/z、dx/dy/dz、sort、type、tag、name、gamemode、team、x_rotation、y_rotation） |
 | 2026-05 | 1.5 | 实现 scores/advancements/nbt/predicate 参数解析；添加 EntitySelector::NbtCondition、PredicateCondition、AdvancementCondition 结构；在 PlayerResolver 中实现 scores 和 advancements 过滤逻辑；nbt 和 predicate 过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager）；修复 scores/advancements 参数解析 bug |
 | 2026-05 | 1.6 | 修复 scores/advancements 参数解析 bug：新增 readScoresKey/readAdvancementKey/readCriteriaKey 方法正确处理分隔符和 ResourceLocation 格式 |
+| 2026-05 | 1.7 | 添加 NbtPath、NbtPathArgumentType、NbtCompoundArgumentType、NbtTagArgumentType；支持完整的 NBT 路径解析和操作；实现所有路径节点类型（String、Index、AllElements、CompoundFilter、ListFilter、KeyFilter）；支持 Mojangson 格式 NBT 解析 |

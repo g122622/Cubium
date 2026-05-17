@@ -119,6 +119,24 @@ private:
      * @return 列表标签
      */
     [[nodiscard]] static std::unique_ptr<nbt::tags::tag> parseListContent(StringReader& reader);
+
+    /**
+     * @brief 读取 NBT 未引用键名
+     *
+     * 遇到特殊字符时停止: :, 空白
+     * @param reader 字符串读取器
+     * @return 读取的字符串
+     */
+    [[nodiscard]] static std::string readNbtUnquotedKey(StringReader& reader);
+
+    /**
+     * @brief 读取 NBT 未引用字符串值
+     *
+     * 遇到特殊字符时停止: :, ,, }, ], 空白
+     * @param reader 字符串读取器
+     * @return 读取的字符串
+     */
+    [[nodiscard]] static std::string readNbtUnquotedValue(StringReader& reader);
 };
 
 /**

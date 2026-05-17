@@ -840,6 +840,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
@@ -1469,6 +1470,7 @@ add_executable(mc_command_tests
     server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
+    common/command/arguments/NbtPathTest.cpp
 )
 
 target_sources(mc_command_tests
@@ -1575,6 +1577,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp

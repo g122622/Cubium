@@ -257,12 +257,12 @@ std::unique_ptr<nbt::tags::compound_tag> NbtPathArgumentType::parseCompoundFilte
     while (true) {
         reader.skipWhitespace();
 
-        // 解析键名
+        // 解析键名 - 使用 readNbtUnquotedKey 停止在冒号处
         std::string key;
         if (reader.peek() == '"') {
             key = reader.readString();
         } else {
-            key = reader.readUnquotedString();
+            key = readNbtUnquotedKey(reader);
         }
 
         if (key.empty()) {
@@ -289,6 +289,25 @@ std::unique_ptr<nbt::tags::compound_tag> NbtPathArgumentType::parseCompoundFilte
     }
 
     return compound;
+}
+
+std::string NbtPathArgumentType::readNbtUnquotedKey(StringReader& reader)
+{
+    // 读取 NBT 未引用键名，遇到特殊字符时停止
+    // 特殊字符包括: :, 空白
+    std::string result;
+
+    while (reader.canRead()) {
+        char c = reader.peek();
+        // 在 NBT 键名中，冒号表示键值分隔符
+        if (c == ':' || reader.isWhitespace(c)) {
+            break;
+        }
+        result += c;
+        reader.skip();
+    }
+
+    return result;
 }
 
 std::string NbtPathArgumentType::parseKeyName(StringReader& reader)
@@ -323,7 +342,7 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
 {
     char c = reader.peek();
 
-    // 字符串
+    // 字符串（引号包围）
     if (c == '"') {
         std::string value = reader.readString();
         return std::make_unique<nbt::tags::string_tag>(value);
@@ -339,100 +358,129 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
         return parseListContent(reader);
     }
 
-    // 布尔值或数字
-    // 检查是否是布尔值
+    // 布尔值
     if (c == 't' || c == 'T') {
-        std::string word = reader.readUnquotedString();
+        std::string word = readNbtUnquotedValue(reader);
         if (word == "true" || word == "TRUE") {
             return std::make_unique<nbt::tags::byte_tag>(1);
         }
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Invalid value: " + word, reader.getCursor());
+        // 不是布尔值，可能是以 t 开头的未引用字符串
+        return std::make_unique<nbt::tags::string_tag>(word);
     }
     if (c == 'f' || c == 'F') {
-        std::string word = reader.readUnquotedString();
+        std::string word = readNbtUnquotedValue(reader);
         if (word == "false" || word == "FALSE") {
             return std::make_unique<nbt::tags::byte_tag>(0);
         }
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Invalid value: " + word, reader.getCursor());
+        // 不是布尔值，可能是以 f 开头的未引用字符串
+        return std::make_unique<nbt::tags::string_tag>(word);
     }
 
-    // 数字
+    // 数字或未引用字符串
+    // 如果以数字、- 或 + 开头，尝试解析为数字
+    if (std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '+') {
+        i32 start = reader.getCursor();
+        std::string numStr;
+
+        // 读取数字字符串
+        bool hasDot = false;
+        if (c == '-' || c == '+') {
+            numStr += c;
+            reader.skip();
+            c = reader.peek();
+        }
+
+        while (reader.canRead()) {
+            c = reader.peek();
+            if (std::isdigit(static_cast<unsigned char>(c))) {
+                numStr += c;
+                reader.skip();
+            } else if (c == '.' && !hasDot) {
+                hasDot = true;
+                numStr += c;
+                reader.skip();
+            } else {
+                break;
+            }
+        }
+
+        // 检查后面是否跟类型后缀
+        if (reader.canRead()) {
+            c = reader.peek();
+            if (c == 'b' || c == 'B' || c == 's' || c == 'S' || c == 'l' || c == 'L' ||
+                c == 'f' || c == 'F' || c == 'd' || c == 'D') {
+                reader.skip();
+                try {
+                    switch (c) {
+                        case 'b':
+                        case 'B':
+                            return std::make_unique<nbt::tags::byte_tag>(
+                                static_cast<i8>(std::stoi(numStr)));
+                        case 's':
+                        case 'S':
+                            return std::make_unique<nbt::tags::short_tag>(
+                                static_cast<i16>(std::stoi(numStr)));
+                        case 'l':
+                        case 'L':
+                            return std::make_unique<nbt::tags::long_tag>(
+                                std::stoll(numStr));
+                        case 'f':
+                        case 'F':
+                            return std::make_unique<nbt::tags::float_tag>(
+                                std::stof(numStr));
+                        case 'd':
+                        case 'D':
+                            return std::make_unique<nbt::tags::double_tag>(
+                                std::stod(numStr));
+                    }
+                } catch (const std::exception& e) {
+                    throw CommandException(CommandErrorType::InvalidNbtPath,
+                        "Invalid number: " + numStr, start);
+                }
+            }
+        }
+
+        // 没有后缀，根据是否有小数点决定类型
+        try {
+            if (hasDot) {
+                return std::make_unique<nbt::tags::double_tag>(std::stod(numStr));
+            } else {
+                return std::make_unique<nbt::tags::int_tag>(std::stoi(numStr));
+            }
+        } catch (const std::exception& e) {
+            throw CommandException(CommandErrorType::InvalidNbtPath,
+                "Invalid number: " + numStr, start);
+        }
+    }
+
+    // 未引用字符串（如 foo:bar 中的 bar）
+    std::string value = readNbtUnquotedValue(reader);
+    if (!value.empty()) {
+        return std::make_unique<nbt::tags::string_tag>(value);
+    }
+
+    throw CommandException(CommandErrorType::InvalidNbtPath,
+        "Expected value at position " + std::to_string(reader.getCursor()), reader.getCursor());
+}
+
+std::string NbtPathArgumentType::readNbtUnquotedValue(StringReader& reader)
+{
+    // 读取 NBT 未引用字符串值，遇到特殊字符时停止
+    // 特殊字符包括: :, ,, }, ], 空白
     i32 start = reader.getCursor();
-    std::string numStr;
-
-    // 读取数字字符串
-    bool hasDot = false;
-    if (c == '-' || c == '+') {
-        numStr += c;
-        reader.skip();
-        c = reader.peek();
-    }
+    std::string result;
 
     while (reader.canRead()) {
-        c = reader.peek();
-        if (std::isdigit(static_cast<unsigned char>(c))) {
-            numStr += c;
-            reader.skip();
-        } else if (c == '.' && !hasDot) {
-            hasDot = true;
-            numStr += c;
-            reader.skip();
-        } else {
+        char c = reader.peek();
+        // 在 NBT 值中，以下字符表示值的结束
+        if (c == ':' || c == ',' || c == '}' || c == ']' || reader.isWhitespace(c)) {
             break;
         }
+        result += c;
+        reader.skip();
     }
 
-    if (numStr.empty() || numStr == "-" || numStr == "+") {
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Expected number at position " + std::to_string(start), start);
-    }
-
-    // 检查类型后缀
-    char suffix = 0;
-    if (reader.canRead()) {
-        c = reader.peek();
-        if (c == 'b' || c == 'B' || c == 's' || c == 'S' || c == 'l' || c == 'L' ||
-            c == 'f' || c == 'F' || c == 'd' || c == 'D') {
-            suffix = c;
-            reader.skip();
-        }
-    }
-
-    try {
-        switch (suffix) {
-            case 'b':
-            case 'B':
-                return std::make_unique<nbt::tags::byte_tag>(
-                    static_cast<i8>(std::stoi(numStr)));
-            case 's':
-            case 'S':
-                return std::make_unique<nbt::tags::short_tag>(
-                    static_cast<i16>(std::stoi(numStr)));
-            case 'l':
-            case 'L':
-                return std::make_unique<nbt::tags::long_tag>(
-                    std::stoll(numStr));
-            case 'f':
-            case 'F':
-                return std::make_unique<nbt::tags::float_tag>(
-                    std::stof(numStr));
-            case 'd':
-            case 'D':
-                return std::make_unique<nbt::tags::double_tag>(
-                    std::stod(numStr));
-            default:
-                if (hasDot) {
-                    return std::make_unique<nbt::tags::double_tag>(std::stod(numStr));
-                } else {
-                    return std::make_unique<nbt::tags::int_tag>(std::stoi(numStr));
-                }
-        }
-    } catch (const std::exception& e) {
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Invalid number: " + numStr, start);
-    }
+    return result;
 }
 
 std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseListContent(StringReader& reader)

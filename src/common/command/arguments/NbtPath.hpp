@@ -45,6 +45,12 @@ public:
     virtual ~NbtPathNode() = default;
 
     /**
+     * @brief 克隆节点
+     * @return 节点的深拷贝
+     */
+    [[nodiscard]] virtual std::unique_ptr<NbtPathNode> clone() const = 0;
+
+    /**
      * @brief 从 NBT 标签中获取匹配的所有值
      * @param tag 输入的 NBT 标签
      * @return 匹配的标签列表
@@ -254,6 +260,10 @@ public:
         : m_name(std::move(name))
     {}
 
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override {
+        return std::make_unique<NbtPathStringNode>(m_name);
+    }
+
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;
     i32 set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const override;
@@ -280,6 +290,10 @@ public:
         : m_index(index)
     {}
 
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override {
+        return std::make_unique<NbtPathIndexNode>(m_index);
+    }
+
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;
     i32 set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const override;
@@ -304,6 +318,10 @@ class NbtPathAllElementsNode : public NbtPathNode {
 public:
     NbtPathAllElementsNode() = default;
 
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override {
+        return std::make_unique<NbtPathAllElementsNode>();
+    }
+
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;
     i32 set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const override;
@@ -322,6 +340,8 @@ public:
 class NbtPathCompoundFilterNode : public NbtPathNode {
 public:
     explicit NbtPathCompoundFilterNode(std::unique_ptr<nbt::tags::compound_tag> filter);
+
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override;
 
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;
@@ -350,6 +370,8 @@ class NbtPathListFilterNode : public NbtPathNode {
 public:
     explicit NbtPathListFilterNode(std::unique_ptr<nbt::tags::compound_tag> filter);
 
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override;
+
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;
     i32 set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const override;
@@ -376,6 +398,8 @@ private:
 class NbtPathKeyFilterNode : public NbtPathNode {
 public:
     NbtPathKeyFilterNode(std::string name, std::unique_ptr<nbt::tags::compound_tag> filter);
+
+    [[nodiscard]] std::unique_ptr<NbtPathNode> clone() const override;
 
     [[nodiscard]] std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const override;
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::tag* tag) const override;

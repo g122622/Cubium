@@ -43,15 +43,20 @@ NbtPath::NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> 
 NbtPath::NbtPath(const NbtPath& other)
     : m_rawText(other.m_rawText)
 {
-    // 节点需要深拷贝，但 NbtPathNode 是抽象类，这里简化处理
-    // 实际使用中路径通常不需要拷贝
+    // 深拷贝节点
+    for (const auto& node : other.m_nodes) {
+        m_nodes.push_back(node->clone());
+    }
 }
 
 NbtPath& NbtPath::operator=(const NbtPath& other)
 {
     if (this != &other) {
         m_rawText = other.m_rawText;
-        // 节点深拷贝简化处理
+        m_nodes.clear();
+        for (const auto& node : other.m_nodes) {
+            m_nodes.push_back(node->clone());
+        }
     }
     return *this;
 }
@@ -196,27 +201,24 @@ i32 NbtPath::insert(nbt::tags::compound_tag& tag, i32 index,
                 "Expected list at path '" + m_rawText + "'", 0);
         }
 
-        auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(target);
-        if (list == nullptr) {
-            // 可能是其他类型的 list_tag
-            auto* baseList = dynamic_cast<nbt::tags::list_tag*>(target);
-            if (baseList != nullptr && baseList->size() == 0) {
-                // 空列表，需要转换为 tag_list_tag
-                continue;
-            }
+        // 只支持 tag_list_tag 类型的插入操作
+        auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(target);
+        if (tagList == nullptr) {
+            // 对于其他类型的列表（如 int_list_tag），不支持插入
+            // 因为它们有固定类型的元素
             throw CommandException(CommandErrorType::NbtPathInvalidType,
-                "Cannot insert into non-list tag at path '" + m_rawText + "'", 0);
+                "Cannot insert into typed list at path '" + m_rawText + "'", 0);
         }
 
-        i32 insertIndex = index < 0 ? static_cast<i32>(list->size()) + index + 1 : index;
-        if (insertIndex < 0 || insertIndex > static_cast<i32>(list->size())) {
+        i32 insertIndex = index < 0 ? static_cast<i32>(tagList->value.size()) + index + 1 : index;
+        if (insertIndex < 0 || insertIndex > static_cast<i32>(tagList->value.size())) {
             throw CommandException(CommandErrorType::NbtPathIndexOutOfBounds,
-                "Index " + std::to_string(index) + " out of bounds for list of size " + std::to_string(list->size()), 0);
+                "Index " + std::to_string(index) + " out of bounds for list of size " + std::to_string(tagList->value.size()), 0);
         }
 
         // 插入值
         for (const auto& value : values) {
-            list->value.insert(list->value.begin() + insertIndex, value->copy());
+            tagList->value.insert(tagList->value.begin() + insertIndex, value->copy());
             insertIndex++;
             count++;
         }
@@ -570,6 +572,13 @@ NbtPathCompoundFilterNode::NbtPathCompoundFilterNode(std::unique_ptr<nbt::tags::
 {
 }
 
+std::unique_ptr<NbtPathNode> NbtPathCompoundFilterNode::clone() const
+{
+    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
+        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    return std::make_unique<NbtPathCompoundFilterNode>(std::move(filterCopy));
+}
+
 bool NbtPathCompoundFilterNode::matches(const nbt::tags::compound_tag& tag) const
 {
     if (m_filter == nullptr) {
@@ -668,6 +677,13 @@ std::string NbtPathCompoundFilterNode::toString() const
 NbtPathListFilterNode::NbtPathListFilterNode(std::unique_ptr<nbt::tags::compound_tag> filter)
     : m_filter(std::move(filter))
 {
+}
+
+std::unique_ptr<NbtPathNode> NbtPathListFilterNode::clone() const
+{
+    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
+        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    return std::make_unique<NbtPathListFilterNode>(std::move(filterCopy));
 }
 
 bool NbtPathListFilterNode::matches(const nbt::tags::compound_tag& tag) const
@@ -820,6 +836,13 @@ NbtPathKeyFilterNode::NbtPathKeyFilterNode(std::string name, std::unique_ptr<nbt
     : m_name(std::move(name))
     , m_filter(std::move(filter))
 {
+}
+
+std::unique_ptr<NbtPathNode> NbtPathKeyFilterNode::clone() const
+{
+    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
+        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    return std::make_unique<NbtPathKeyFilterNode>(m_name, std::move(filterCopy));
 }
 
 std::vector<nbt::tags::tag*> NbtPathKeyFilterNode::get(nbt::tags::tag* tag) const
