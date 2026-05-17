@@ -176,6 +176,8 @@ add_executable(mc_tests
     common/entity/damage/DamageSourceExplosionTest.cpp
     # 矿车 dropItem() 伤害源检测测试
     common/entity/entities/vehicle/MinecartDropItemTest.cpp
+    # BoatItem 船物品测试
+    common/item/vehicle/BoatItemTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
     # PlayerKilledEntityTrigger 触发器测试
