@@ -1187,10 +1187,9 @@ void EvokerFangsEntity::damageEntities()
 
         // 检查队伍关系：不伤害唤魔者及其队友
         // MC 1.16.5: if (livingentity.isOnSameTeam(this.caster)) return;
-        // TODO: 当 Team 系统实现后启用队伍检查
-        // if (m_owner != nullptr && m_owner->isOnSameTeam(*living)) {
-        //     continue;
-        // }
+        if (m_owner != nullptr && m_owner->isOnSameTeam(*living)) {
+            continue;
+        }
 
         // 造成魔法伤害
         // MC 1.16.5: attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, caster), 6.0F)
