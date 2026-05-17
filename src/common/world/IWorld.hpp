@@ -1296,6 +1296,29 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界动物繁殖
+     *
+     * 当动物繁殖产生幼体时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 BredAnimalsEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
+     *
+     * @param playerId 繁殖发起者玩家ID（喂食动物的玩家）
+     * @param child 幼体实体
+     * @param parent1 父母1
+     * @param parent2 父母2
+     */
+    virtual void onBredAnimals(PlayerId playerId, Entity* child, Entity* parent1, Entity* parent2)
+    {
+        (void)playerId;
+        (void)child;
+        (void)parent1;
+        (void)parent2;
+        // 默认空实现
+    }
+
     // ========== 结构定位 ==========
 
     /**

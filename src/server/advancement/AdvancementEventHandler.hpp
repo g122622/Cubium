@@ -172,6 +172,10 @@ public:
             event::ServerEventBus::instance().makeSubscription<event::BeeNestDestroyedEvent>(
                 [this](const event::BeeNestDestroyedEvent& e) { onBeeNestDestroyed(e); });
 
+        // 订阅动物繁殖事件
+        m_bredAnimalsSubscription = event::ServerEventBus::instance().makeSubscription<event::BredAnimalsEvent>(
+            [this](const event::BredAnimalsEvent& e) { onBredAnimals(e); });
+
         initialized_ = true;
     }
 
@@ -199,6 +203,7 @@ public:
         m_enterBlockSubscription.unsubscribe();
         m_slideDownBlockSubscription.unsubscribe();
         m_beeNestDestroyedSubscription.unsubscribe();
+        m_bredAnimalsSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -990,6 +995,48 @@ private:
     }
 
     /**
+     * @brief 处理动物繁殖事件
+     *
+     * 触发 BredAnimalsTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
+     *
+     * 动物繁殖时触发，检查子代和父母的谓词条件。
+     */
+    void onBredAnimals(const event::BredAnimalsEvent& e)
+    {
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::BredAnimalsTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查子代和父母实体是否有效
+        if (e.child == nullptr || e.parent1 == nullptr || e.parent2 == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::BredAnimalsTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::BredAnimalsTriggerInstance& instance) {
+                return instance.test(*e.child, *e.parent1, *e.parent2);
+            });
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -1037,6 +1084,7 @@ private:
     event::ServerEventBus::Subscription<event::EnterBlockEvent> m_enterBlockSubscription;
     event::ServerEventBus::Subscription<event::SlideDownBlockEvent> m_slideDownBlockSubscription;
     event::ServerEventBus::Subscription<event::BeeNestDestroyedEvent> m_beeNestDestroyedSubscription;
+    event::ServerEventBus::Subscription<event::BredAnimalsEvent> m_bredAnimalsSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

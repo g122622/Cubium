@@ -22,6 +22,7 @@
 */
 
 #include "BreedGoal.hpp"
+#include "../../../../core/Types.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../core/AgeableEntity.hpp"
@@ -152,8 +153,25 @@ void BreedGoal::spawnBaby()
             // 设置幼体年龄
             baby->setGrowingAge(AgeableEntity::BABY_AGE);
 
+            // MC 1.16.5: 获取繁殖发起者玩家
+            // 参考 AnimalEntity.func_234177_a_()
+            // 优先从第一个动物获取 loveCause，如果为空则从第二个动物获取
+            u64 loveCause = m_animal->getLoveCause();
+            if (loveCause == 0) {
+                loveCause = m_targetMate->getLoveCause();
+            }
+
+            // 保存幼体指针（spawnEntity 后 unique_ptr 会被移动）
+            Entity* babyPtr = baby.get();
+
             // 生成到世界中
             world->spawnEntity(std::move(baby));
+
+            // MC 1.16.5: 触发繁殖事件（用于成就触发）
+            // 参考 CriteriaTriggers.BRED_ANIMALS.trigger(serverplayerentity, this, p_234177_2_, ageableentity)
+            if (loveCause != 0) {
+                world->onBredAnimals(static_cast<PlayerId>(loveCause), babyPtr, m_animal, m_targetMate);
+            }
 
             // MC 1.16.5: 生成爱心粒子效果
             m_animal->spawnHeartParticles();

@@ -770,6 +770,19 @@ public:
     void onChanneledLightning(PlayerId casterId, const std::vector<Entity*>& victims) override;
 
     /**
+     * @brief 通知世界动物繁殖
+     *
+     * 重写 IWorld::onBredAnimals()，发布 BredAnimalsEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
+     *
+     * @param playerId 繁殖发起者玩家ID（喂食动物的玩家）
+     * @param child 幼体实体
+     * @param parent1 父母1
+     * @param parent2 父母2
+     */
+    void onBredAnimals(PlayerId playerId, Entity* child, Entity* parent1, Entity* parent2) override;
+
+    /**
      * @brief 通知世界玩家物品销毁
      *
      * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。

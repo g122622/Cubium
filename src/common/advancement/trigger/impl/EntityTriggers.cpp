@@ -186,7 +186,20 @@ Result<std::shared_ptr<ICriterionInstance>> BredAnimalsTrigger::fromJson(const n
 
 void BredAnimalsTrigger::trigger(ServerPlayer& player, const Entity& child, const Entity& parent, const Entity& partner)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 BredAnimalsEvent 触发
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式触发检测：
+    //
+    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<BredAnimalsTrigger>();
+    // trigger->AbstractCriterionTrigger<BredAnimalsTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&child, &parent, &partner](const BredAnimalsTriggerInstance& instance) {
+    //         return instance.test(child, parent, partner);
+    //     }
+    // );
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp 中的 onBredAnimals()
     MC_UNUSED(player);
     MC_UNUSED(child);
     MC_UNUSED(parent);
@@ -243,7 +256,20 @@ Result<std::shared_ptr<ICriterionInstance>> SummonedEntityTrigger::fromJson(cons
 
 void SummonedEntityTrigger::trigger(ServerPlayer& player, const Entity& entity)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 SummonedEntityEvent 触发
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式触发检测：
+    //
+    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<SummonedEntityTrigger>();
+    // trigger->AbstractCriterionTrigger<SummonedEntityTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&entity](const SummonedEntityTriggerInstance& instance) {
+    //         return instance.test(entity);
+    //     }
+    // );
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp（待实现 onSummonedEntity）
     MC_UNUSED(player);
     MC_UNUSED(entity);
 }
@@ -319,7 +345,20 @@ Result<std::shared_ptr<ICriterionInstance>> CuredZombieVillagerTrigger::fromJson
 
 void CuredZombieVillagerTrigger::trigger(ServerPlayer& player, const Entity& zombie, const Entity& villager)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 CuredZombieVillagerEvent 触发
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式触发检测：
+    //
+    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<CuredZombieVillagerTrigger>();
+    // trigger->AbstractCriterionTrigger<CuredZombieVillagerTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&zombie, &villager](const CuredZombieVillagerTriggerInstance& instance) {
+    //         return instance.test(zombie, villager);
+    //     }
+    // );
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp 中的 onCuredZombieVillager()
     MC_UNUSED(player);
     MC_UNUSED(zombie);
     MC_UNUSED(villager);
@@ -396,7 +435,20 @@ Result<std::shared_ptr<ICriterionInstance>> VillagerTradeTrigger::fromJson(const
 
 void VillagerTradeTrigger::trigger(ServerPlayer& player, const Entity& villager, const ItemStack& item)
 {
-    // [TODO 阶段2+3：事件系统集成] 由 VillagerTradeEvent 触发
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式触发检测：
+    //
+    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<VillagerTradeTrigger>();
+    // trigger->AbstractCriterionTrigger<VillagerTradeTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&villager, &item](const VillagerTradeTriggerInstance& instance) {
+    //         return instance.test(villager, item);
+    //     }
+    // );
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp（待实现 onVillagerTrade）
     MC_UNUSED(player);
     MC_UNUSED(villager);
     MC_UNUSED(item);

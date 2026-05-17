@@ -1740,6 +1740,14 @@ void ServerWorld::onChanneledLightning(PlayerId casterId, const std::vector<Enti
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onBredAnimals(PlayerId playerId, Entity* child, Entity* parent1, Entity* parent2)
+{
+    // 发布 BredAnimalsEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
+    event::BredAnimalsEvent event{currentTick(), playerId, child, parent1, parent2};
+    event::ServerEventBus::instance().publish(event);
+}
+
 void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
 {
     // 发布 PlayerDestroyItemEvent 用于进度触发
