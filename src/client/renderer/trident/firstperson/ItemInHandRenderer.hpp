@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #pragma once
@@ -40,6 +40,10 @@ class ResourceManager;
 class ItemTextureAtlas;
 } // namespace mc::client
 
+namespace mc::client::resource {
+struct BakedItemModel;
+}
+
 namespace mc::client::renderer::firstperson {
 
 /**
@@ -48,11 +52,17 @@ namespace mc::client::renderer::firstperson {
  * 负责渲染玩家手中的物品，包括：
  * - 第一人称手持物品
  * - 第三人称手持物品
- * - GUI 牺牲显示
+ * - GUI 物品显示
  * - 地面掉落物
  * - 物品展示框
  *
- * 参考 MC 1.16.5 ItemInHandRenderer
+ * 物品渲染流程：
+ * 1. 获取物品模型 (BakedItemModel)
+ * 2. 根据模型类型选择渲染方式 (Generated/Handheld/Block/Custom)
+ * 3. 应用物品变换 (从模型 JSON 或默认)
+ * 4. 构建网格并渲染
+ *
+ * 参考 MC 1.16.5 ItemRenderer
  */
 class ItemInHandRenderer {
 public:
@@ -84,7 +94,8 @@ public:
     /**
      * @brief 渲染手持物品
      *
-     * 根据变换类型渲染物品。
+     * 根据变换类型渲染物品。会自动检测物品类型（方块物品或普通物品），
+     * 并应用相应的变换和渲染逻辑。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆
@@ -92,12 +103,13 @@ public:
      * @param leftHanded 是否为左手
      */
     void renderItem(
-        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
+        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 渲染方块物品
      *
      * 方块物品需要特殊的变换和渲染逻辑。
+     * 使用 ItemMeshBuilder::buildBlockItemMesh() 构建网格。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆（必须是方块物品）
@@ -105,12 +117,13 @@ public:
      * @param leftHanded 是否为左手
      */
     void renderBlockItem(
-        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
+        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 渲染普通物品
      *
      * 非方块物品的渲染逻辑。
+     * 使用 ItemMeshBuilder::buildHeldItemMesh() 构建网格。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆
@@ -118,7 +131,7 @@ public:
      * @param leftHanded 是否为左手
      */
     void renderRegularItem(
-        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
+        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     // ========== 变换应用 ==========
 
@@ -126,6 +139,7 @@ public:
      * @brief 应用物品变换
      *
      * 根据 TransformType 应用相应的变换到矩阵栈。
+     * 首先尝试从物品模型获取自定义变换，如果模型没有定义则使用默认变换。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆
@@ -134,7 +148,7 @@ public:
      * @return 是否应用了变换
      */
     bool applyTransform(
-        MatrixStack& matrixStack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
+        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
 
     /**
      * @brief 应用默认手持变换
@@ -145,7 +159,29 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void applyDefaultTransform(MatrixStack& matrixStack, TransformType transformType, bool leftHanded = false);
+    void applyDefaultTransform(MatrixStack& stack, TransformType transformType, bool leftHanded = false);
+
+    // ========== 辅助方法 ==========
+
+    /**
+     * @brief 检查物品是否为方块物品
+     *
+     * 方块物品使用 Block 类型模型，需要特殊的渲染逻辑。
+     *
+     * @param itemStack 物品堆
+     * @return 是否为方块物品
+     */
+    [[nodiscard]] static bool isBlockItem(const ItemStack& itemStack);
+
+    /**
+     * @brief 获取物品模型
+     *
+     * 从 ItemModelCache 获取物品的烘焙模型。
+     *
+     * @param itemStack 物品堆
+     * @return 物品模型指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] static const resource::BakedItemModel* getItemModel(const ItemStack& itemStack);
 
     // ========== 访问器 ==========
 

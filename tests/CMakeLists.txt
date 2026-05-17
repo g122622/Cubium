@@ -653,6 +653,7 @@ add_executable(mc_tests
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
+    client/renderer/firstperson/ItemInHandRendererTest.cpp
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
@@ -1140,6 +1141,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemInHandRenderer.cpp
         # 鍖哄潡妯″瀷缂撳瓨
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
