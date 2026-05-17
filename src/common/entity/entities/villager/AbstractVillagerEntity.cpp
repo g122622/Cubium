@@ -23,6 +23,7 @@
 
 #include "AbstractVillagerEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../inventory/AbstractContainerMenu.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -117,6 +118,31 @@ void AbstractVillagerEntity::startTrading(Player* player)
 void AbstractVillagerEntity::stopTrading()
 {
     m_tradingPlayer = nullptr;
+}
+
+// ============================================================================
+// INamedContainerProvider 接口实现
+// ============================================================================
+
+std::unique_ptr<AbstractContainerMenu> AbstractVillagerEntity::createMenu(i32 containerId, Player& player)
+{
+    // TODO: 创建村民交易菜单
+    // 需要实现 MerchantContainer 类
+    // 参考 MC 1.16.5: AbstractVillagerEntity.createMenu()
+    (void)containerId;
+    (void)player;
+    return nullptr;
+}
+
+std::string AbstractVillagerEntity::getDisplayName() const
+{
+    // 返回村民的自定义名称或默认名称
+    // 参考 MC 1.16.5: AbstractVillagerEntity.getDisplayName()
+    if (hasCustomName()) {
+        return customNameText();
+    }
+    // 默认返回实体类型名称
+    return "Villager";
 }
 
 void AbstractVillagerEntity::addExperience(i32 amount)

@@ -45,6 +45,7 @@
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../inventory/CreativeInventory.hpp"
+#include "../../inventory/INamedContainerProvider.hpp"
 #include "../../inventory/Slot.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "GameModeUtils.hpp"
@@ -2181,11 +2182,13 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
 
     // 1. 旁观者模式：只能打开命名容器
     if (isSpectator()) {
-        // TODO: 如果目标实现了 INamedContainerProvider，打开容器
-        // if (auto* provider = dynamic_cast<INamedContainerProvider*>(&target)) {
-        //     openContainer(provider);
-        //     return ActionResultType::Success;
-        // }
+        // 旁观者只能与实现 INamedContainerProvider 的实体交互
+        // 例如：村民交易界面、箱子矿车等
+        if (auto* provider = dynamic_cast<INamedContainerProvider*>(&target)) {
+            if (openContainer(*provider)) {
+                return ActionResultType::Success;
+            }
+        }
         return ActionResultType::Pass;
     }
 
@@ -2241,6 +2244,22 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
     }
 
     return ActionResultType::Pass;
+}
+
+// ============================================================================
+// 容器交互实现
+// ============================================================================
+
+bool Player::openContainer(INamedContainerProvider& provider)
+{
+    // MC 1.16.5: PlayerEntity.openContainer(INamedContainerProvider)
+    // 通过世界打开实体容器
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    return m_world->openEntityContainer(provider, *this);
 }
 
 // ============================================================================

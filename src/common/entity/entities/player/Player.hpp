@@ -49,6 +49,7 @@ namespace mc {
 
 // Forward declaration
 class ItemStack;
+class INamedContainerProvider;
 
 class AbstractContainerMenu;
 class ItemEntity;
@@ -1045,6 +1046,17 @@ public:
      * @brief 清空当前打开的容器菜单
      */
     void clearOpenContainerMenu() { m_openContainerMenu = nullptr; }
+
+    /**
+     * @brief 打开实体容器
+     *
+     * 与实现 INamedContainerProvider 接口的实体交互时调用。
+     * 例如：村民交易界面、箱子矿车等。
+     *
+     * @param provider 命名容器提供者
+     * @return 如果成功打开返回 true
+     */
+    [[nodiscard]] bool openContainer(INamedContainerProvider& provider);
 
     /**
      * @brief 获取手持物品

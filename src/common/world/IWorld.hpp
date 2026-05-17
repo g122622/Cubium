@@ -52,6 +52,7 @@ class IRandom;
 class BlockEntity;
 class Player;
 class ItemStack;
+class INamedContainerProvider;
 enum class Direction : u8;
 enum class ContainerType : u8;
 
@@ -162,7 +163,7 @@ public:
     }
 
     /**
-     * @brief 打开容器
+     * @brief 打开方块容器
      * @param type 容器类型
      * @param pos 方块位置
      * @param player 发起交互的玩家
@@ -172,6 +173,23 @@ public:
     {
         (void)type;
         (void)pos;
+        (void)player;
+        return false;
+    }
+
+    /**
+     * @brief 打开实体容器
+     *
+     * 用于旁观者模式玩家与实体容器交互（如村民交易、矿车容器）。
+     * MC 1.16.5: PlayerEntity.interactOn() 中的 INamedContainerProvider 处理
+     *
+     * @param provider 命名容器提供者（实体）
+     * @param player 发起交互的玩家
+     * @return 如果成功打开返回true
+     */
+    [[nodiscard]] virtual bool openEntityContainer(INamedContainerProvider& provider, Player& player)
+    {
+        (void)provider;
         (void)player;
         return false;
     }

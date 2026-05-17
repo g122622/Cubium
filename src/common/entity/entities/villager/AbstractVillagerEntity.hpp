@@ -26,6 +26,7 @@
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
 #include "../../core/AgeableEntity.hpp"
+#include "../../inventory/INamedContainerProvider.hpp"
 #include <memory>
 
 namespace mc {
@@ -146,10 +147,11 @@ private:
  * @brief 抽象村民实体基类
  *
  * 所有可交易NPC的基类（村民、流浪商人）。
+ * 实现 INamedContainerProvider 接口，支持旁观者模式玩家与村民交互。
  *
  * 参考 MC 1.16.5 AbstractVillagerEntity
  */
-class AbstractVillagerEntity : public AgeableEntity {
+class AbstractVillagerEntity : public AgeableEntity, public INamedContainerProvider {
 public:
     AbstractVillagerEntity(LegacyEntityType type, EntityId id);
     ~AbstractVillagerEntity() override = default;
@@ -157,6 +159,30 @@ public:
     // ========== Entity 接口重写 ==========
 
     void tick() override;
+
+    // ========== INamedContainerProvider 接口实现 ==========
+
+    /**
+     * @brief 创建交易菜单
+     *
+     * 当玩家（包括旁观者）与村民交互时调用。
+     * 创建村民交易界面的容器菜单。
+     *
+     * @param containerId 容器ID（由服务端分配）
+     * @param player 打开容器的玩家
+     * @return 创建的容器菜单，目前返回 nullptr（待实现交易界面）
+     */
+    [[nodiscard]] std::unique_ptr<AbstractContainerMenu> createMenu(i32 containerId, Player& player) override;
+
+    /**
+     * @brief 获取显示名称
+     *
+     * 返回村民在交易界面标题栏显示的名称。
+     * 可以是自定义名称或默认翻译键。
+     *
+     * @return 显示名称
+     */
+    [[nodiscard]] std::string getDisplayName() const override;
 
     // ========== 交易系统 ==========
 

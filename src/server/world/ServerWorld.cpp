@@ -34,6 +34,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -284,6 +285,15 @@ bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player&
     }
 
     return m_onOpenContainer(type, pos, player);
+}
+
+bool ServerWorld::openEntityContainer(INamedContainerProvider& provider, Player& player)
+{
+    if (!m_onOpenEntityContainer) {
+        return false;
+    }
+
+    return m_onOpenEntityContainer(provider, player);
 }
 
 void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)

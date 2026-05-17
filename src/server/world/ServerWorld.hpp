@@ -56,6 +56,7 @@ namespace mc {
 
 // 前向声明
 struct SpawnedEntityData;
+class INamedContainerProvider;
 
 namespace client::renderer::trident::particle {
 enum class ParticleTypeId : u16;
@@ -367,6 +368,7 @@ public:
     // ========== 容器打开回调 ==========
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
+    using OpenEntityContainerCallback = std::function<bool(INamedContainerProvider&, Player&)>;
 
     void setOnOpenContainer(OpenContainerCallback callback)
     {
@@ -377,6 +379,23 @@ public:
         m_onOpenContainer = std::move(callback);
     }
     [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
+
+    /**
+     * @brief 设置实体容器打开回调
+     * @param callback 回调函数
+     */
+    void setOnOpenEntityContainer(OpenEntityContainerCallback callback)
+    {
+        m_onOpenEntityContainer = std::move(callback);
+    }
+
+    /**
+     * @brief 打开实体容器
+     * @param provider 命名容器提供者（村民、矿车等）
+     * @param player 玩家
+     * @return 如果成功打开返回 true
+     */
+    [[nodiscard]] bool openEntityContainer(INamedContainerProvider& provider, Player& player) override;
 
     // ========== 粒子广播回调 ==========
 
@@ -943,6 +962,7 @@ private:
     Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
 
     OpenContainerCallback m_onOpenContainer;
+    OpenEntityContainerCallback m_onOpenEntityContainer;
 
     // 村庄和袭击系统
     std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
