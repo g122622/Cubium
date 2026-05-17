@@ -205,7 +205,7 @@ const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) co
 
 // ========== 实体交互 ==========
 
-void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(state);
     MC_UNUSED(world);

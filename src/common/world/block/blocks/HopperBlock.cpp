@@ -165,7 +165,7 @@ i32 HopperBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return std::min(signal, 15);
 }
 
-void HopperBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void HopperBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
 
     MC_UNUSED(state);

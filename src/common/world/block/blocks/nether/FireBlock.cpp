@@ -276,7 +276,7 @@ void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     trySpread(world, pos, age, random);
 }
 
-void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(state);
     MC_UNUSED(pos);

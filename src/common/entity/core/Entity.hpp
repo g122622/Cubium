@@ -1886,7 +1886,17 @@ public:
     void setNoClip(bool noClip) { m_noClip = noClip; }
 
     /**
-     * @brief 执行方块碰撞回调
+     * @brief 执行方块碰撞回调（无参数版本）
+     *
+     * 遍历实体碰撞箱覆盖的所有方块，调用方块的 onEntityCollision 方法。
+     * 用于在 tick() 中手动触发方块碰撞检测，例如船、矿车等不触发行走的实体。
+     *
+     * 参考 MC 1.16.5: Entity.doBlockCollisions()
+     */
+    void doBlockCollisions();
+
+    /**
+     * @brief 执行方块碰撞回调（移动后版本）
      *
      * 在实体移动后调用，处理与方块的交互：
      * - onLanded: 垂直碰撞后着地
@@ -1898,7 +1908,7 @@ public:
      * @param actualMovement 实际移动向量
      * @param desiredMovement 期望移动向量
      */
-    void doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement);
+    void doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vector3& desiredMovement);
 
     /**
      * @brief 当实体进入方块碰撞箱时调用

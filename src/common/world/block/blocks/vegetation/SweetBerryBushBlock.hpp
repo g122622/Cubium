@@ -119,7 +119,7 @@ public:
      *
      * 减速效果和伤害（AGE > 0 时）。
      */
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 交互 ==========
 

@@ -35,7 +35,7 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.75f, 1.0f);
 }
 
-void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 参考 MC 1.16.5 EndPortalBlock.onEntityCollision
     // 末地传送门是立即传送的，不需要等待时间

@@ -208,7 +208,7 @@ BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(&world);
     MC_UNUSED(&pos);

@@ -182,7 +182,7 @@ public:
      * @param pos 方块位置
      * @param entity 碰撞的实体
      */
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 旋转和镜像 ==========
 

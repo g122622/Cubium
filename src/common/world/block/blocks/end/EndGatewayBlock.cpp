@@ -41,7 +41,7 @@ std::unique_ptr<BlockEntity> EndGatewayBlock::createBlockEntity(const BlockPos& 
     return std::make_unique<blockentity::EndGatewayEntity>(pos);
 }
 
-void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(state);
 

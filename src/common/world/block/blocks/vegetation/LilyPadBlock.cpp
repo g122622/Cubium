@@ -96,7 +96,7 @@ const CollisionShape& LilyPadBlock::getCollisionShape(const BlockState& state) c
     return m_shape;
 }
 
-void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(state);
     MC_UNUSED(world);

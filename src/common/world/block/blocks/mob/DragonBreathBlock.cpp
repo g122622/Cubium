@@ -33,7 +33,7 @@ DragonBreathBlock::DragonBreathBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(state);
     MC_UNUSED(pos);

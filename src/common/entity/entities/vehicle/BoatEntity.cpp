@@ -173,6 +173,11 @@ void BoatEntity::tick()
     // 更新乘客位置
     updateAllPassengerPositions();
 
+    // MC 1.16.5: BoatEntity.tick() 第 319 行
+    // 由于 canTriggerWalking() 返回 false，需要手动调用 doBlockCollisions()
+    // 用于处理气泡柱、仙人掌、甜浆果丛等方块的碰撞效果
+    doBlockCollisions();
+
     // 更新桨动画
     for (i32 i = 0; i <= 1; ++i) {
         if (getPaddleState(i)) {
@@ -666,8 +671,9 @@ void BoatEntity::updateFallState(f64 y, bool onGround)
     // 船没有摔落伤害，但需要更新 lastYd 用于水面检测
     MC_UNUSED(onGround);
 
-    // this.doBlockCollisions();
-    // TODO: 当 doBlockCollisions() 实现后调用
+    // 注意：BoatEntity.canTriggerWalking() 返回 false
+    // 因此 BoatEntity::tick() 中需要手动调用 doBlockCollisions()
+    // 参考 MC 1.16.5: BoatEntity.tick() 第 319 行调用 this.doBlockCollisions()
 
     // 如果在水中，重置摔落距离
     if (isInWater()) {

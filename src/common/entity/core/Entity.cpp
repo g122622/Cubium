@@ -931,7 +931,7 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
 
         // MC 1.16.5 VexEntity.move(): 即使 noClip=true 也要触发方块碰撞
         // 参考 VexEntity.java 行 54-57
-        doBlockCollisions(desiredMovement, desiredMovement);
+        doBlockCollisions();
         return desiredMovement;
     }
 
@@ -1010,7 +1010,7 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
 
     // MC 1.16.5: 方块碰撞回调
     // 参考 Entity.move() 行 610-616
-    doBlockCollisions(actualMovement, desiredMovement);
+    doBlockCollisionsAfterMove(actualMovement, desiredMovement);
 
     // 更新摔落距离并处理摔落伤害
     updateFallDistance();
@@ -1062,7 +1062,46 @@ void Entity::checkOnGround()
     m_onGround = false;
 }
 
-void Entity::doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement)
+void Entity::doBlockCollisions()
+{
+    // MC 1.16.5: Entity.doBlockCollisions()
+    // 参考: Entity.java 行 892-918
+    // 遍历实体碰撞箱覆盖的所有方块，调用方块的 onEntityCollision 方法
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取碰撞箱范围，稍微收缩避免边界精度问题
+    AxisAlignedBB box = m_boundingBox.shrink(0.001);
+    BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
+        static_cast<i32>(std::floor(box.minY)),
+        static_cast<i32>(std::floor(box.minZ)));
+    BlockPos maxPos(static_cast<i32>(std::floor(box.maxX)),
+        static_cast<i32>(std::floor(box.maxY)),
+        static_cast<i32>(std::floor(box.maxZ)));
+
+    // 遍历碰撞箱覆盖的所有方块
+    // 注意：getBlockState 在区块未加载时返回 nullptr，因此不需要预先检查 isAreaLoaded
+    for (i32 x = minPos.x; x <= maxPos.x; ++x) {
+        for (i32 y = minPos.y; y <= maxPos.y; ++y) {
+            for (i32 z = minPos.z; z <= maxPos.z; ++z) {
+                BlockPos pos(x, y, z);
+                const BlockState* blockState = m_world->getBlockState(pos);
+                if (blockState != nullptr && !blockState->isAir()) {
+                    // 调用方块的实体碰撞回调
+                    const Block& block = blockState->getBlock();
+                    block.onEntityCollision(*blockState, *m_world, pos, *this);
+
+                    // 调用实体的"在方块内部"回调
+                    onInsideBlock(*blockState);
+                }
+            }
+        }
+    }
+}
+
+void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vector3& desiredMovement)
 {
     // MC 1.16.5: Entity.move() 中的方块回调处理
     // 参考: Entity.java 行 610-616

@@ -811,15 +811,18 @@ public:
     /**
      * @brief 实体与方块碰撞时调用
      *
-     * 当实体进入方块的碰撞区域时调用。用于特殊方块行为，如漏斗收集物品。
+     * 当实体进入方块的碰撞区域时调用。用于特殊方块行为，如漏斗收集物品、
+     * 仙人掌造成伤害、甜浆果丛减速等。
      * 默认实现为空。
+     *
+     * 参考: net.minecraft.block.Block.onEntityCollision
      *
      * @param state 方块状态
      * @param world 世界引用
      * @param pos 方块位置
      * @param entity 碰撞的实体
      */
-    virtual void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+    virtual void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
     {
         MC_UNUSED(state);
         MC_UNUSED(world);

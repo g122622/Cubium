@@ -500,7 +500,7 @@ void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
     }
 }
 
-void SlimeBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void SlimeBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // MC 1.16.5: SlimeBlock.onEntityCollision
     // 史莱姆块会减缓实体的Y轴速度（类似于蜘蛛网的效果，但更温和）
@@ -562,7 +562,7 @@ void HoneyBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
     entity.setFallDistance(0.0f);
 }
 
-void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // MC 1.16.5: HoneyBlock.onEntityCollision
     // 蜂蜜块减缓实体速度
@@ -793,7 +793,7 @@ const CollisionShape& WebBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-void WebBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void WebBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // MC 1.16.5: WebBlock.onEntityCollision
     // 蜘蛛网大幅减缓实体速度

@@ -151,7 +151,7 @@ const CollisionShape& SweetBerryBushBlock::getCollisionShape(const BlockState& s
     return m_collisionShapesByAge[age];
 }
 
-void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     MC_UNUSED(pos);
 

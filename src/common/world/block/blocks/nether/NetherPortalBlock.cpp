@@ -156,7 +156,7 @@ BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 参考 MC 1.16.5 NetherPortalBlock.onEntityCollision
     // 实体进入传送门后开始传送计时

@@ -94,7 +94,7 @@ public:
 
     // ========== 实体交互 ==========
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 渲染属性 ==========
 

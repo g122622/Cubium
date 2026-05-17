@@ -319,7 +319,7 @@ public:
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 推动反应 ==========
 
@@ -359,7 +359,7 @@ public:
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 推动反应 ==========
 
@@ -518,7 +518,7 @@ public:
      *
      * 大幅减缓实体速度。
      */
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 形状 ==========
 
