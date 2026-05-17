@@ -22,6 +22,7 @@
 */
 
 #include "FirstPersonRenderer.hpp"
+#include "ItemInHandRenderer.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -199,6 +200,14 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
         m_armPipeline->setTextureAtlas(entityTextureAtlas->imageView(), entityTextureAtlas->sampler());
     }
 
+    // 初始化手持物品渲染器
+    auto itemRendererResult = m_itemInHandRenderer.initialize();
+    if (itemRendererResult.failed()) {
+        destroy();
+        spdlog::error("Failed to initialize item in hand renderer: {}", itemRendererResult.error().toString());
+        return itemRendererResult.error();
+    }
+
     m_initialized = true;
     spdlog::info("FirstPersonRenderer: Initialized");
     return {};
@@ -208,6 +217,9 @@ void FirstPersonRenderer::destroy()
 {
     destroyItemMeshes();
     invalidateArmMeshes();
+
+    // 销毁手持物品渲染器
+    m_itemInHandRenderer.destroy();
 
     // 销毁管线
     m_itemPipeline.reset();
@@ -514,6 +526,7 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
     }
 
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
+    const bool leftHanded = side == HandSide::Left;
 
     // 对齐 MC 1.16.5 常规物品分支（非蓄力、非特殊动作）。
     const f32 sqrtSwing = std::sqrt(swingProgress);
@@ -524,6 +537,12 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
 
     transformSideFirstPerson(stack, side, equipProgress);
     transformFirstPerson(stack, side, swingProgress);
+
+    // 应用物品模型变换（从物品 JSON 模型获取自定义变换）
+    m_itemInHandRenderer.applyTransform(stack,
+        itemStack,
+        leftHanded ? TransformType::FirstPersonLeftHand : TransformType::FirstPersonRightHand,
+        leftHanded);
 
     // 根据物品使用动作应用额外变换
     if (isUsingItem && itemStack.getItem() != nullptr) {

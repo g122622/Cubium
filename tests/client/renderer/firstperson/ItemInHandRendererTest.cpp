@@ -29,7 +29,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-using namespace mc::client::renderer::firstperson;
+using namespace mc::client::renderer::trident::firstperson;
 using namespace mc::client::renderer;
 using namespace mc;
 
@@ -60,11 +60,11 @@ TEST_F(ItemInHandRendererTest, InitialState_NotInitialized)
     EXPECT_FALSE(renderer->isInitialized());
 }
 
-TEST_F(ItemInHandRendererTest, Initialize_WithNullEngine_ReturnsError)
+TEST_F(ItemInHandRendererTest, Initialize_Success)
 {
-    auto result = renderer->initialize(nullptr, nullptr);
-    EXPECT_FALSE(result.success());
-    EXPECT_EQ(result.error().code(), ErrorCode::NullPointer);
+    auto result = renderer->initialize();
+    EXPECT_TRUE(result.success());
+    EXPECT_TRUE(renderer->isInitialized());
 }
 
 TEST_F(ItemInHandRendererTest, GetTransforms_ReturnsReference)

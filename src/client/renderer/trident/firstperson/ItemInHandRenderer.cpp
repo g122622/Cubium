@@ -24,15 +24,13 @@
 #include "ItemInHandRenderer.hpp"
 #include "../../../resource/ItemModelCache.hpp"
 #include "../../../resource/ItemModelLoader.hpp"
-#include "../item/ItemMeshBuilder.hpp"
-#include "../core/TridentEngine.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
-namespace mc::client::renderer::firstperson {
+namespace mc::client::renderer::trident::firstperson {
 
 using namespace mc::math;
 
@@ -53,15 +51,8 @@ ItemInHandRenderer::~ItemInHandRenderer()
 // 初始化
 // ============================================================================
 
-Result<void> ItemInHandRenderer::initialize(trident::TridentEngine* engine, ResourceManager* resourceManager)
+Result<void> ItemInHandRenderer::initialize()
 {
-    if (engine == nullptr) {
-        return Error(ErrorCode::NullPointer, "TridentEngine is null");
-    }
-
-    m_engine = engine;
-    m_resourceManager = resourceManager;
-
     // 设置默认变换
     // 第三人称右手
     m_transforms.thirdPersonRight = ItemTransform(0.0f,
@@ -129,8 +120,6 @@ Result<void> ItemInHandRenderer::initialize(trident::TridentEngine* engine, Reso
 
 void ItemInHandRenderer::destroy()
 {
-    m_engine = nullptr;
-    m_resourceManager = nullptr;
     m_initialized = false;
 }
 
@@ -466,4 +455,4 @@ void ItemInHandRenderer::applyDefaultTransform(MatrixStack& stack, TransformType
     }
 }
 
-} // namespace mc::client::renderer::firstperson
+} // namespace mc::client::renderer::trident::firstperson

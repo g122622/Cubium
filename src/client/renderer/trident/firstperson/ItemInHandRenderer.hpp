@@ -28,23 +28,12 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include <memory>
-
-// 前向声明
-namespace mc::client::renderer::trident {
-class TridentEngine;
-}
-
-namespace mc::client {
-class ResourceManager;
-class ItemTextureAtlas;
-} // namespace mc::client
 
 namespace mc::client::resource {
 struct BakedItemModel;
 }
 
-namespace mc::client::renderer::firstperson {
+namespace mc::client::renderer::trident::firstperson {
 
 /**
  * @brief 手持物品渲染器
@@ -78,11 +67,12 @@ public:
     /**
      * @brief 初始化渲染器
      *
-     * @param engine 渲染引擎
-     * @param resourceManager 资源管理器
+     * 设置默认变换参数。此方法不依赖外部资源，
+     * 因为物品模型从 ItemModelCache 单例获取。
+     *
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(trident::TridentEngine* engine, ResourceManager* resourceManager);
+    [[nodiscard]] Result<void> initialize();
 
     /**
      * @brief 销毁资源
@@ -196,10 +186,6 @@ public:
     [[nodiscard]] const ItemCameraTransforms& transforms() const { return m_transforms; }
 
 private:
-    // 渲染引擎
-    trident::TridentEngine* m_engine = nullptr;
-    ResourceManager* m_resourceManager = nullptr;
-
     // 物品相机变换
     ItemCameraTransforms m_transforms;
 
@@ -207,4 +193,4 @@ private:
     bool m_initialized = false;
 };
 
-} // namespace mc::client::renderer::firstperson
+} // namespace mc::client::renderer::trident::firstperson

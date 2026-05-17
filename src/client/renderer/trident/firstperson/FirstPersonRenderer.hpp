@@ -25,6 +25,7 @@
 
 #include "ArmPose.hpp"
 #include "ItemCameraTransforms.hpp"
+#include "ItemInHandRenderer.hpp"
 #include "MatrixStack.hpp"
 #include "PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
@@ -204,6 +205,12 @@ public:
      * @param itemTextureAtlas 物品纹理图集
      */
     void setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas);
+
+    /**
+     * @brief 获取手持物品渲染器
+     */
+    [[nodiscard]] ItemInHandRenderer& itemInHandRenderer() { return m_itemInHandRenderer; }
+    [[nodiscard]] const ItemInHandRenderer& itemInHandRenderer() const { return m_itemInHandRenderer; }
 
     /**
      * @brief 设置玩家皮肤纹理位置
@@ -459,6 +466,9 @@ private:
 
     // 玩家模型
     PlayerModel m_model;
+
+    // 手持物品渲染器
+    ItemInHandRenderer m_itemInHandRenderer;
 
     // 动画状态
     f32 m_prevMainHandEquipProgress = 0.0f;
