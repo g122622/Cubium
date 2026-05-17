@@ -383,6 +383,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/SilverfishGoalsTest.cpp
     # DolphinGoals 海豚 AI 目标测试
     common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
+    # WanderingTraderGoals 流浪商人 AI 目标测试
+    common/entity/ai/goal/goals/special/WanderingTraderGoalsTest.cpp
     # RandomPositionGenerator 随机位置生成器测试
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp

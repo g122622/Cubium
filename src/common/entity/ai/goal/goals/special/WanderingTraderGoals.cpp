@@ -26,10 +26,15 @@
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/Vector3.hpp"
+#include "../../../../core/Entity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
+#include "../../../../effect/EffectInstance.hpp"
+#include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../../../item/Items.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
 #include <cmath>
 
 namespace mc {
@@ -99,8 +104,36 @@ void UseItemGoal::tick()
 
 void UseItemGoal::applyItemEffect()
 {
-    // 简化实现：药水效果将在药水系统完善后实现
-    // 目前只处理基本逻辑
+    // MC 1.16.5: 应用物品效果
+    // 根据物品类型决定效果：
+    // - 牛奶桶：清除所有效果
+    // - 药水：添加对应效果
+
+    if (m_mob == nullptr) {
+        return;
+    }
+
+    // 检查物品类型
+    const Item* item = m_itemStack.getItem();
+    if (item == nullptr) {
+        return;
+    }
+
+    // 牛奶桶 - 清除所有效果
+    if (item == Items::MILK_BUCKET) {
+        m_mob->removeAllEffects();
+        return;
+    }
+
+    // 药水 - 添加隐身效果（流浪商人夜间使用）
+    // 简化实现：直接添加隐身效果
+    // 完整实现应该从药水物品中读取效果
+    effect::EffectInstance invisibilityEffect(
+        effect::EffectType::Invisibility,
+        1200,  // 持续时间：60秒 = 1200 ticks
+        0      // 等级
+    );
+    m_mob->addEffect(invisibilityEffect);
 }
 
 // ============================================================================

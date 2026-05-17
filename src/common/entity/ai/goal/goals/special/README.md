@@ -36,6 +36,8 @@ special/
 ├── PandaGoals.cpp         # 熊猫目标实现
 ├── SilverfishGoals.hpp    # 蠹虫目标头文件
 ├── SilverfishGoals.cpp    # 蠹虫目标实现
+├── WanderingTraderGoals.hpp # 流浪商人目标头文件
+├── WanderingTraderGoals.cpp # 流浪商人目标实现
 └── README.md              # 本文档
 ```
 
@@ -2746,6 +2748,151 @@ void PandaEntity::registerGoals() {
 
 ---
 
+## WanderingTraderGoals - 流浪商人专用目标
+
+包含流浪商人的交易、看向顾客、移动到游荡目标和使用物品行为。
+
+### UseItemGoal - 使用物品目标
+
+**职责**: 使生物在特定条件下使用物品（如喝药水、喝牛奶）。
+流浪商人使用此目标在夜间喝隐身药水、白天喝牛奶恢复可见。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.UseItemGoal`
+
+**执行条件**:
+- 条件判断函数返回 true
+- 冷却时间已过
+
+**行为流程**:
+1. `shouldExecute()`: 检查条件函数和冷却时间
+2. `startExecuting()`: 设置正在使用物品状态
+3. `tick()`: 递增使用时长计数器
+4. 使用完成后调用 `applyItemEffect()` 应用效果
+
+**物品效果处理**:
+- 牛奶桶：清除所有效果 (`removeAllEffects()`)
+- 药水：添加对应效果（如隐身效果）
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| ITEM_USE_DURATION | 32 | 物品使用时长 (ticks, 1.6秒) |
+| COOLDOWN_TICKS | 60 | 冷却时间 (ticks, 3秒) |
+
+**互斥标志**: `Look`
+
+**使用示例**:
+```cpp
+void WanderingTraderEntity::registerGoals() {
+    // 夜间喝隐身药水
+    auto nightCondition = [](MobEntity* mob) -> bool {
+        return mob != nullptr && mob->world() != nullptr && !mob->world()->isDaytime();
+    };
+    ItemStack potion(Items::POTION, 1);
+    m_goalSelector.addGoal(0, std::make_unique<UseItemGoal>(
+        this, potion, ResourceLocation("entity.wandering_trader.drink"), nightCondition));
+}
+```
+
+---
+
+### LookAtCustomerGoal - 看向顾客目标
+
+**职责**: 商人在交易时看向顾客，但不移动位置。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.LookAtCustomerGoal`
+
+**执行条件**:
+- 商人正在与玩家交易 (`isTrading()`)
+
+**行为流程**:
+1. `shouldExecute()`: 检查是否有交易中的玩家
+2. `startExecuting()`: 设置随机看向时间
+3. `tick()`: 计算并设置朝向顾客的 yaw 角度
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| LOOK_MIN_TIME | 40 | 最小看向时间 (ticks, 2秒) |
+| LOOK_MAX_TIME | 80 | 最大看向时间 (ticks, 4秒) |
+
+**互斥标志**: `Look`
+
+**使用示例**:
+```cpp
+void WanderingTraderEntity::registerGoals() {
+    // 优先级 1: 看向顾客
+    m_goalSelector.addGoal(1, std::make_unique<LookAtCustomerGoal>(this));
+}
+```
+
+---
+
+### TradeWithPlayerGoal - 与玩家交易目标
+
+**职责**: 使商人实体在玩家附近时停止移动并准备交易。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.TradeWithPlayerGoal`
+
+**执行条件**:
+- 有交易中的玩家 (`isTrading()`)
+- 玩家存活
+
+**行为流程**:
+1. `shouldExecute()`: 检查是否有交易中的玩家
+2. `startExecuting()`: 停止移动，看向顾客
+3. `tick()`: 持续面向顾客
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| TRADE_DISTANCE | 2.5f | 交易交互距离 |
+
+**互斥标志**: `Look`, `Move`
+
+**使用示例**:
+```cpp
+void WanderingTraderEntity::registerGoals() {
+    // 优先级 1: 与玩家交易
+    m_goalSelector.addGoal(1, std::make_unique<TradeWithPlayerGoal>(this));
+}
+```
+
+---
+
+### MoveToWanderTargetGoal - 向游荡目标移动
+
+**职责**: 流浪商人向指定的游荡目标点移动。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.WanderToTargetGoal`
+
+**执行条件**:
+- 有游荡目标 (`wanderTarget()`)
+- 目标距离超过阈值
+
+**行为流程**:
+1. `shouldExecute()`: 检查是否有游荡目标且距离足够远
+2. `startExecuting()`: 设置导航目标
+3. `tick()`: 检查是否接近目标
+4. `resetTask()`: 清除游荡目标
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| CLOSE_ENOUGH_DISTANCE | 10.0 | 近距离移动阈值 |
+
+**互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void WanderingTraderEntity::registerGoals() {
+    // 优先级 2: 向游荡目标移动
+    m_goalSelector.addGoal(2, std::make_unique<MoveToWanderTargetGoal>(this, 2.0, 0.35));
+}
+```
+
+---
+
 ## 依赖关系图
 
 ```mermaid
@@ -2801,6 +2948,7 @@ graph TD
 | PandaRollGoalTest.* | 熊猫打滚目标测试（构造、互斥标志、执行条件、悬崖检测、开始执行） |
 | PandaPersonalityRollTest.* | 熊猫性格与打滚测试（顽皮、幼年、成年性格判定） |
 | PandaCanPerformActionTest.* | 熊猫动作执行测试（打喷嚏、吃东西、躺着、打滚状态互斥） |
+| WanderingTraderGoalsTest.* | 流浪商人目标测试（构造、互斥标志、执行条件、夜间条件、游荡目标） |
 
 ---
 
