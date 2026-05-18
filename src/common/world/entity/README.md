@@ -112,7 +112,7 @@ src/common/world/entity/
 | `EntityId` | 调用方 | 用于查询/移除的实体ID |
 | `AxisAlignedBB` | 调用方 | 用于空间查询的碰撞箱 |
 | `Vector3` + `range` | 调用方 | 用于范围查询的中心点和半径 |
-| `LegacyEntityType` | 调用方 | 用于类型查询的实体类型 |
+| `EntityTypeId` | 调用方 | 用于类型查询的实体类型ID |
 
 ### 输出
 

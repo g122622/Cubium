@@ -106,8 +106,8 @@ fish/
 ## 使用方法
 
 ```cpp
-mc::CodEntity leader(mc::LegacyEntityType::Cod, 1);
-mc::SalmonEntity follower(mc::LegacyEntityType::Salmon, 2);
+mc::CodEntity leader(1);
+mc::SalmonEntity follower(2);
 
 follower.joinGroup(leader);
 

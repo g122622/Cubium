@@ -135,7 +135,7 @@ bool isLooking = dotProduct > threshold;
 
 ```cpp
 // 创建末影人
-auto enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, entityId);
+auto enderman = std::make_unique<EndermanEntity>(entityId);
 
 // 检查玩家是否激怒末影人
 if (enderman->shouldAttackPlayer(player)) {

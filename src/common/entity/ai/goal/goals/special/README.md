@@ -448,7 +448,7 @@ void LlamaEntity::registerGoals() {
 3. `resetTask()`: 清除攻击目标引用
 
 **狼检测条件**:
-- 实体类型为 `LegacyEntityType::Wolf`
+- 实体类型检查使用 `entity->typeId() == entity::EntityTypeIdNumber::WOLF`
 - 狼存活 (`isAlive()`)
 - 狼未被驯服 (`!isTamed()`)
 
@@ -714,7 +714,7 @@ void GuardianEntity::registerGoals() {
 
 **威胁判定 (isEnemy)**:
 - **玩家**: 非旁观者模式且非创造模式视为威胁
-- **其他生物**: 非水生生物视为威胁（通过 LegacyEntityType 检查）
+- **其他生物**: 非水生生物视为威胁（通过 `typeId()` 检查）
   - 水生生物（不是威胁）: Cod, Salmon, Pufferfish, TropicalFish, Squid, Dolphin, Turtle
   - 其他所有生物都是威胁
 
@@ -2044,7 +2044,7 @@ i32 EvokerSummonSpellGoal::countNearbyVexes() const
     i32 vexCount = 0;
     for (Entity* entity : entities) {
         if (entity == nullptr || entity->isRemoved()) continue;
-        if (entity->legacyType() == LegacyEntityType::Vex) vexCount++;
+        if (entity->typeId() == entity::EntityTypeIdNumber::VEX) vexCount++;
     }
     return vexCount;
 }
@@ -2104,7 +2104,7 @@ SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
     std::vector<SheepEntity*> blueSheep;
     for (Entity* entity : entities) {
         if (entity == nullptr || entity->isRemoved()) continue;
-        if (entity->legacyType() == LegacyEntityType::Sheep) {
+        if (entity->typeId() == entity::EntityTypeIdNumber::SHEEP) {
             SheepEntity* sheep = static_cast<SheepEntity*>(entity);
             if (sheep->getFleeceColor() == DyeColor::Blue) {
                 blueSheep.push_back(sheep);

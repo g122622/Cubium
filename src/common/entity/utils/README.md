@@ -52,10 +52,10 @@ Vector3 velocity = ItemDropHelper::getBlockDropVelocity(rng);
 
 ### EntityUtils.hpp / EntityUtils.cpp
 
-**职责**：旧实体类型到类型标识符的映射。
+**职责**：旧实体类型到类型标识符的映射（已废弃）。
 
 **主要功能**：
-- `legacyTypeToTypeId(LegacyEntityType)` - 将旧实体类型枚举转换为 `minecraft:*` 字符串
+- `legacyTypeToTypeId(LegacyEntityType)` - **已废弃**，请使用 `entity::EntityTypeIdNumber` 命名空间中的常量
 
 ## 模块关系
 

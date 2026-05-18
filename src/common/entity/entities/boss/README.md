@@ -287,7 +287,7 @@ public:
 ### 生成末影龙
 
 ```cpp
-auto dragon = std::make_unique<EnderDragonEntity>(LegacyEntityType::Unknown, id);
+auto dragon = std::make_unique<EnderDragonEntity>(id);
 dragon->setPosition(0, 128, 0);  // 末地中心上方
 dragon->setPhase(EnderDragonEntity::Phase::HoldingPattern);
 world->spawnEntity(std::move(dragon));
@@ -296,7 +296,7 @@ world->spawnEntity(std::move(dragon));
 ### 生成凋灵
 
 ```cpp
-auto wither = std::make_unique<WitherEntity>(LegacyEntityType::Unknown, id);
+auto wither = std::make_unique<WitherEntity>(id);
 wither->setPosition(x, y + 3, z);
 wither->setHealth(1);  // 从1点生命开始
 wither->setPhase(WitherEntity::Phase::Invulnerable);

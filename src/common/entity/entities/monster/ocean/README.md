@@ -50,9 +50,9 @@ m_targetSelector.addGoal(1, std::make_unique<NearestAttackableTargetGoal<LivingE
     10,      // chance - 每10tick检查一次
     [this](const LivingEntity* candidate) -> bool {
         // 1. 类型筛选: 只攻击玩家或鱿鱼
-        auto type = candidate->legacyType();
-        bool isPlayer = (type == LegacyEntityType::Player);
-        bool isSquid = (type == LegacyEntityType::Squid);
+        auto typeId = candidate->typeId();
+        bool isPlayer = (typeId == entity::EntityTypeIdNumber::PLAYER);
+        bool isSquid = (typeId == entity::EntityTypeIdNumber::SQUID);
         if (!isPlayer && !isSquid) return false;
 
         // 2. 玩家模式检查: 创造模式和观察者模式不能被攻击

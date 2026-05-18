@@ -554,26 +554,39 @@ class PigEntity : public AnimalEntity {
 - 通过繁殖流程创建幼体时，`BreedGoal` 会继承父体的类型标识符，避免网络层出现 `minecraft:unknown`。
 - `LegacyEntityType -> typeId` 的具体映射表已经迁移到 `utils/EntityUtils.*`，`core/EntityUtils.hpp` 只保留模板型搜索和距离工具。
 
-## LegacyEntityType 枚举
+## 实体类型标识符
 
-实体旧版类型标识符，用于网络同步和实体类型检查。
+实体类型通过 `typeId()` 方法获取，返回 `entity::EntityTypeIdNumber` 命名空间中的常量。
 
 ### 恼鬼 (Vex) 类型
 
-恼鬼 (`LegacyEntityType::Vex`) 是唤魔者召唤的小型飞行敌对生物：
+恼鬼是唤魔者召唤的小型飞行敌对生物：
 
 ```cpp
-enum class LegacyEntityType : u32 {
+namespace mc::entity::EntityTypeIdNumber {
+    constexpr EntityTypeId PIG = ...;
+    constexpr EntityTypeId VEX = ...;
     // ...
-    Vex = 81,  // 恼鬼
-    // ...
-};
+}
 ```
 
 **用途**:
-- `EvokerSummonSpellGoal::countNearbyVexes()` 使用此类型统计周围恼鬼数量
-- `VexEntity::create()` 使用此类型创建恼鬼实体
+- `EvokerSummonSpellGoal::countNearbyVexes()` 使用类型检查统计周围恼鬼数量
+- `VexEntity::create()` 创建恼鬼实体
 - 网络同步中标识实体类型
+
+**类型检查示例**:
+```cpp
+// 新代码（推荐）
+if (entity->typeId() == entity::EntityTypeIdNumber::VEX) {
+    // 处理恼鬼
+}
+
+// 旧代码（已废弃）
+if (entity->legacyType() == LegacyEntityType::Vex) {
+    // 处理恼鬼
+}
+```
 
 **参考**: MC 1.16.5 `net.minecraft.entity.EntityType.VEX`
 

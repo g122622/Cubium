@@ -524,7 +524,7 @@ world->spawnEntity(std::move(arrow));
 
 ```cpp
 // 恶魂发射火球
-auto fireball = std::make_unique<FireballEntity>(LegacyEntityType::Unknown, id);
+auto fireball = std::make_unique<FireballEntity>(id);
 fireball->setPosition(ghast.x, ghast.y + ghast.eyeHeight, ghast.z);
 fireball->setShooter(&ghast);
 fireball->setAcceleration(
@@ -539,7 +539,7 @@ world->spawnEntity(std::move(fireball));
 
 ```cpp
 // 玩家投掷雪球
-auto snowball = std::make_unique<SnowballEntity>(LegacyEntityType::Unknown, id);
+auto snowball = std::make_unique<SnowballEntity>(id);
 snowball->setPosition(player.x, player.y + player.eyeHeight - 0.1f, player.z);
 snowball->setShooter(&player);
 snowball->shootFrom(player, player.pitch(), player.yaw(), 0.0f, 1.5f, 0.0f);

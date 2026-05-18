@@ -404,7 +404,7 @@ horseModel.setRearingAmount(rearingAngle);
 
 ```cpp
 // 创建马
-auto horse = std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
+auto horse = std::make_unique<HorseEntity>(0);
 horse->randomizeAppearance();  // 随机外观
 horse->setTame(true);
 horse->setSaddle(true);

@@ -109,7 +109,7 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
            + horizontalDist * 0.2;
 
     // 创建箭矢实体
-    auto arrow = std::make_unique<entity::ArrowEntity>(LegacyEntityType::Arrow, EntityId(0));
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));
     arrow->setShotFromCrossbow(true);
     arrow->setDamage(5.0f);
 
@@ -256,16 +256,22 @@ void VexEntity::tick() {
 
 ### VexEntity::create() 实现
 
-恼鬼实体的 `create()` 工厂方法已修正为使用正确的 `LegacyEntityType::Vex` 类型：
+恼鬼实体的 `create()` 工厂方法：
 
 ```cpp
 std::unique_ptr<VexEntity> VexEntity::create(EntityId id)
 {
-    return std::make_unique<VexEntity>(LegacyEntityType::Vex, id);
+    return std::make_unique<VexEntity>(id);
 }
 ```
 
-**注意**: 之前版本使用了 `LegacyEntityType::Unknown`，导致 `countNearbyVexes()` 无法正确识别恼鬼类型。
+**类型检查示例**：
+```cpp
+// 新代码（推荐）
+if (entity->typeId() == entity::EntityTypeIdNumber::VEX) {
+    // 处理恼鬼
+}
+```
 
 ### 参考 MC 1.16.5
 

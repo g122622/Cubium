@@ -391,7 +391,7 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities) {
 
     const Entity* entity = entityManager.getEntity(spawned[0]);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);  // 是物品实体
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);  // 是物品实体
 }
 ```
 

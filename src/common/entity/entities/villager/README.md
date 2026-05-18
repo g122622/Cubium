@@ -323,7 +323,7 @@ villager1->spreadGossipTo(villager2);
 ### 创建村民
 
 ```cpp
-auto villager = std::make_unique<VillagerEntity>(LegacyEntityType::Unknown, id);
+auto villager = std::make_unique<VillagerEntity>(id);
 villager->setVillagerType(VillagerType::Plains);
 villager->setProfession(VillagerProfession::Farmer);
 villager->setPosition(x, y, z);
@@ -356,7 +356,7 @@ villager->addVillagerExperience(10);
 - 一定时间后消失
 
 ```cpp
-auto trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, id);
+auto trader = std::make_unique<WanderingTraderEntity>(id);
 trader->setDespawnDelay(48000);  // 40分钟后消失
 trader->spawnLlamas();           // 生成羊驼
 world->spawnEntity(std::move(trader));

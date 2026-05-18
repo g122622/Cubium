@@ -136,7 +136,7 @@ flowchart TD
 auto bat = BatEntity::create(world);
 
 // 或直接实例化
-BatEntity bat(LegacyEntityType::Bat, entityId);
+BatEntity bat(entityId);
 ```
 
 ### 访问蝙蝠状态

@@ -832,7 +832,7 @@ m_targetSelector.addGoal(1, std::make_unique<NearestAttackableTargetGoal<LivingE
     0,       // chance
     [](const LivingEntity* entity) -> bool {
         if (!entity) return false;
-        return entity->legacyType() == LegacyEntityType::Player;
+        return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
     }
 ));
 

@@ -133,7 +133,7 @@ Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → S
 
 ```cpp
 // 创建岩浆怪
-auto magmaCube = std::make_unique<MagmaCubeEntity>(LegacyEntityType::MagmaCube, EntityId(0));
+auto magmaCube = std::make_unique<MagmaCubeEntity>(EntityId(0));
 magmaCube->setWorld(&world);
 magmaCube->setSlimeSize(4, true);  // 设置为大岩浆怪
 
@@ -389,16 +389,16 @@ MonsterEntity（基类）
 
 ```cpp
 // 创建烈焰人
-auto blaze = std::make_unique<BlazeEntity>(LegacyEntityType::Blaze, EntityId(0));
+auto blaze = std::make_unique<BlazeEntity>(EntityId(0));
 blaze->setWorld(&world);
 
 // 创建岩浆怪
-auto magmaCube = std::make_unique<MagmaCubeEntity>(LegacyEntityType::MagmaCube, EntityId(0));
+auto magmaCube = std::make_unique<MagmaCubeEntity>(EntityId(0));
 magmaCube->setWorld(&world);
 magmaCube->setSlimeSize(4, true);  // 设置为大岩浆怪
 
 // 创建恶魂
-auto ghast = std::make_unique<GhastEntity>(LegacyEntityType::Ghast, EntityId(0));
+auto ghast = std::make_unique<GhastEntity>(EntityId(0));
 ghast->setWorld(&world);
 ghast->setFireballStrength(1);  // 设置火球爆炸威力
 ```

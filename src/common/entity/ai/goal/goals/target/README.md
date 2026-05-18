@@ -75,10 +75,10 @@ m_targetSelector.addGoal(2, std::make_unique<NearestAttackableTargetGoal<MobEnti
 // 攻击特定类型的实体（羊、兔子、狐狸）
 m_targetSelector.addGoal(5, std::make_unique<NearestAttackableTargetGoal<LivingEntity>>(
     this, true, 0, [](const LivingEntity* entity) {
-        auto type = entity->legacyType();
-        return type == LegacyEntityType::Sheep ||
-               type == LegacyEntityType::Rabbit ||
-               type == LegacyEntityType::Fox;
+        auto typeId = entity->typeId();
+        return typeId == entity::EntityTypeIdNumber::SHEEP ||
+               typeId == entity::EntityTypeIdNumber::RABBIT ||
+               typeId == entity::EntityTypeIdNumber::FOX;
     }));
 ```
 
@@ -277,10 +277,10 @@ void WolfEntity::registerGoals()
     // 优先级 5: 未驯服时攻击羊、兔子、狐狸
     m_targetSelector.addGoal(5, std::make_unique<NearestAttackableTargetGoal<LivingEntity>>(
         this, true, 0, [](const LivingEntity* entity) {
-            auto type = entity->legacyType();
-            return type == LegacyEntityType::Sheep ||
-                   type == LegacyEntityType::Rabbit ||
-                   type == LegacyEntityType::Fox;
+            auto typeId = entity->typeId();
+            return typeId == entity::EntityTypeIdNumber::SHEEP ||
+                   typeId == entity::EntityTypeIdNumber::RABBIT ||
+                   typeId == entity::EntityTypeIdNumber::FOX;
         }));
 
     // 优先级 6: 未驯服时攻击幼海龟
@@ -293,10 +293,10 @@ void WolfEntity::registerGoals()
     // 优先级 7: 攻击骷髅类怪物
     m_targetSelector.addGoal(7, std::make_unique<NearestAttackableTargetGoal<LivingEntity>>(
         this, false, 0, [](const LivingEntity* entity) {
-            auto type = entity->legacyType();
-            return type == LegacyEntityType::Skeleton ||
-                   type == LegacyEntityType::Stray ||
-                   type == LegacyEntityType::WitherSkeleton;
+            auto typeId = entity->typeId();
+            return typeId == entity::EntityTypeIdNumber::SKELETON ||
+                   typeId == entity::EntityTypeIdNumber::STRAY ||
+                   typeId == entity::EntityTypeIdNumber::WITHER_SKELETON;
         }));
 }
 ```

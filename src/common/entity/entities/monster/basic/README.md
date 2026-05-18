@@ -188,7 +188,7 @@ if (isAlive() && isInDaylight()) {
 
 ```cpp
 // 创建史莱姆
-auto slime = std::make_unique<SlimeEntity>(LegacyEntityType::Slime, EntityId(0));
+auto slime = std::make_unique<SlimeEntity>(EntityId(0));
 slime->setWorld(&world);
 slime->setSlimeSize(4, true);  // 设置为大史莱姆
 

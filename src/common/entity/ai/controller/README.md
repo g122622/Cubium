@@ -349,8 +349,8 @@ graph BT
 
 ```cpp
 // 在 MobEntity 构造函数中创建
-MobEntity::MobEntity(LegacyEntityType type, EntityId id)
-    : LivingEntity(type, id)
+MobEntity::MobEntity(EntityId id)
+    : LivingEntity(id)
     , m_lookController(std::make_unique<LookController>(this))
     , m_moveController(std::make_unique<MovementController>(this))
     , m_jumpController(std::make_unique<JumpController>(this))
