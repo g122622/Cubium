@@ -57,7 +57,7 @@ S_{chunk} = D_{chunk} - 100 \cdot \mathbf{1}_{frustum} - 8 \cdot \vec{d}_{forwar
 \centering
 \caption{线程池配置对比}
 \label{tab:thread_pool_config}
-\begin{tabularx}{\linewidth}{Xcc}
+\begin{tabular}{lcc}
 \toprule
 \textbf{参数} & \textbf{ServerWorkerPool} & \textbf{MeshWorkerPool} \\
 \midrule
@@ -67,7 +67,7 @@ S_{chunk} = D_{chunk} - 100 \cdot \mathbf{1}_{frustum} - 8 \cdot \vec{d}_{forwar
 队列类型 & 优先级队列 & FIFO队列 \\
 取消机制 & 原子信号 & 原子信号 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
 通过任务分离和优先级调度，区块生成延迟降低约40\%，网格构建对帧率的影响降低约60\%。CPU密集型任务和IO密集型任务互不干扰，系统吞吐量显著提升。

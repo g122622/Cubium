@@ -90,6 +90,32 @@
 
 \subsubsection{方块状态系统紧凑化}
 
+\textbf{背景：什么是方块状态？}
+
+在Minecraft中，方块不仅仅是简单的ID。以熔炉为例，它同时具有方向属性和燃烧状态：
+\begin{itemize}
+    \item \texttt{facing}：朝向（NORTH、SOUTH、EAST、WEST共4个值）
+    \item \texttt{lit}：是否点燃（false、true共2个值）
+\end{itemize}
+
+这两种属性的合法组合共有$4 \times 2 = 8$种，每种组合都是一个独立的\texttt{BlockState}对象。类似地，木门有$2^3 = 8$种状态（开关、铰链位置、上下半），而栅栏的连接状态组合可能多达数十种。Minecraft在启动时会预生成所有方块的所有状态组合——假设有800个方块，平均每个方块20个状态，就是约16000个状态对象。
+
+\textbf{状态空间的多维数组视角}：若将方块的属性空间视为多维离散坐标，则所有状态可以映射到一维数组。以熔炉为例，其8种状态可排列为$2 \times 4$的矩阵，如图\ref{fig:state_matrix}所示。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/state_matrix.png}
+\caption{方块状态空间映射为一维数组示意图。以熔炉为例，\texttt{facing}有4个值、\texttt{lit}有2个值，共8种状态。左侧两行为不同\texttt{lit}值对应的状态，顶部四列为不同\texttt{facing}值对应的状态。每个单元格内的数字为该状态在一维数组中的索引。图中展示了\texttt{with(FACING, EAST)}操作如何通过步长计算实现O(1)状态切换。}
+\label{fig:state_matrix}
+\end{figure}
+
+图中关键概念说明：
+\begin{itemize}
+    \item \textbf{步长（stride）}：某属性变化时，状态索引的增量。\texttt{facing}的步长为1（相邻状态仅\texttt{facing}不同），\texttt{lit}的步长为4（跨过所有\texttt{facing}值才变\texttt{lit}）
+    \item \textbf{索引计算}：\texttt{stateIndex = facing\_index × 1 + lit\_index × 4}
+    \item \textbf{状态切换}：\texttt{targetIndex = currentIndex + (targetValue - currentValue) × stride}，纯整数运算即可定位目标状态
+\end{itemize}
+
 Minecraft中的\texttt{BlockState}和\texttt{FluidState}是典型的高频小对象：方块注册时会为每个方块预生成所有合法状态组合，后续世界存储、渲染、命令解析、结构放置、掉落表匹配等系统都频繁访问这些状态。如果每个状态都额外持有多张哈希表，则会显著放大内存占用，并降低缓存局部性。
 
 \textbf{原始设计问题}：项目早期的\texttt{StateHolder}为每个状态保存两类动态结构：
@@ -129,7 +155,7 @@ index_{target} = index_{current} + (j - i) \times s
 \centering
 \caption{方块状态系统紧凑化前后\texttt{client\_initialize}基准对比}
 \label{tab:blockstate_compact_benchmark}
-\begin{tabularx}{\linewidth}{Xccc}
+\begin{tabular}{lccc}
 \toprule
 \textbf{指标} & \textbf{优化前} & \textbf{优化后} & \textbf{变化} \\
 \midrule
@@ -138,18 +164,40 @@ index_{target} = index_{current} + (j - i) \times s
 最大耗时（ms） & 1347.60 & 990.13 & -26.53\% \\
 吞吐量（ops/s） & 0.79 & 1.10 & +38.75\% \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.48\linewidth]{client_initialize_before.png}
-\includegraphics[width=0.48\linewidth]{client_initialize_after.png}
+\includegraphics[width=0.48\linewidth]{images/client_initialize_before.png}
+\includegraphics[width=0.48\linewidth]{images/client_initialize_after.png}
 \caption{\texttt{client\_initialize}基准的单次迭代耗时对比。左图为优化前，右图为优化后。可以看到优化后整条曲线整体下移，平均值和峰值均明显降低。}
 \label{fig:blockstate_compact_benchmark_curves}
 \end{figure}
 
 这一结果说明，状态系统优化不仅减少了静态内存占用，也直接改善了客户端启动阶段的状态容器构建、默认状态初始化以及依赖状态查询的资源预热路径。由于\texttt{client\_initialize}属于多个子系统共同参与的综合基准，单项数据结构重构仍能带来接近三成的整体耗时下降，说明状态对象曾经是初始化阶段的重要热点。
+
+\textbf{优化前后对比总结}：表\ref{tab:blockstate_comparison}从多个维度对比了优化前后的设计差异。
+
+\begin{table}[h]
+\centering
+\caption{方块状态系统优化前后设计对比}
+\label{tab:blockstate_comparison}
+\begin{tabular}{lcc}
+\toprule
+\textbf{维度} & \textbf{优化前} & \textbf{优化后} \\
+\midrule
+状态对象数据结构 & 每个状态持两张哈希表 & 紧凑的值索引数组 \\
+状态切换方式 & 哈希表查找 + 跳转表访问 & O(1) 整数运算 + 数组访问 \\
+内存布局 & 分散的堆对象 & 连续的一维数组 \\
+单状态对象大小 & 约200+字节 & 约64字节 \\
+状态容器构建 & 枚举 + 哈希匹配 & 按基数直接生成 \\
+缓存友好性 & 差（指针跳转多） & 好（连续内存访问） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+这一重构的核心洞见是：如果状态空间可以表示为多维离散坐标，则所有状态可以按行主序映射到一维数组。每个状态只需存储其在数组中的索引，状态切换则退化为简单的整数运算——这比任何哈希表都更快、更紧凑。
 
 \subsubsection{内存对齐}
 
@@ -227,7 +275,7 @@ Uniform缓冲区结构体对齐要求严格：\texttt{vec4}需要16字节对齐�
 \centering
 \caption{现代C++特性使用统计}
 \label{tab:cpp_features}
-\begin{tabularx}{\linewidth}{Xc}
+\begin{tabular}{lc}
 \toprule
 \textbf{特性} & \textbf{使用次数} \\
 \midrule
@@ -241,7 +289,7 @@ std::optional & 367+ \\
 智能指针 & 5832+ \\
 STL容器 & 4217+ \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
 通过充分利用C++20特性和现代编译器优化，项目在保持代码可读性和类型安全的同时，实现了高性能游戏引擎所需的基础设施。编译期计算将运行时开销转移到编译时，智能指针确保内存安全，原子操作保证线程安全，模板元编程实现类型安全的泛型代码，而状态系统紧凑化则进一步说明：性能优化不仅来自编译器选项，也来自对核心数据结构的持续重构与压缩。在本项目中，这种数据结构级别的优化已经通过基准测试反映为27.93\%的客户端初始化耗时下降和1.39倍的吞吐提升。

@@ -136,7 +136,7 @@ RocksDB支持列族（Column Family）隔离不同类型的数据，本项目按
 \centering
 \caption{存储系统对比}
 \label{tab:storage_comparison}
-\begin{tabularx}{\linewidth}{Xcc}
+\begin{tabular}{lcc}
 \toprule
 \textbf{指标} & \textbf{Java Anvil} & \textbf{本项目RocksDB} \\
 \midrule
@@ -147,7 +147,7 @@ RocksDB支持列族（Column Family）隔离不同类型的数据，本项目按
 并发访问 & 文件锁限制 & 多线程原生支持 \\
 崩溃恢复 & 区块丢失风险 & WAL保证原子性 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
 Section粒度存储使得单个方块更新的写入量从256KB降至约16KB（减少94\%），配合ZSTD压缩（比Zlib快约3倍），区块加载性能提升约5倍。LSM树的写入优化使得大量区块保存时的吞吐量显著提升，WAL机制保证了崩溃恢复的数据完整性。
