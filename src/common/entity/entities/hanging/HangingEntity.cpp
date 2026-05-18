@@ -181,6 +181,11 @@ const std::vector<PaintingEntity::PaintingType> PaintingEntity::PAINTING_TYPES =
     {"Skeleton2", 3, 4},
     {"Bust2", 3, 4}};
 
+std::unique_ptr<Entity> PaintingEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<PaintingEntity>();
+}
+
 PaintingEntity::PaintingEntity()
     : HangingEntity()
 {}
@@ -234,6 +239,11 @@ void PaintingEntity::setMotive(const std::string& motive)
 }
 
 // ==================== ItemFrameEntity ====================
+
+std::unique_ptr<Entity> ItemFrameEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<ItemFrameEntity>();
+}
 
 ItemFrameEntity::ItemFrameEntity()
     : HangingEntity()
@@ -318,6 +328,11 @@ mc::Direction ItemFrameEntity::getHorizontalFacing() const
 }
 
 // ==================== LeashKnotEntity ====================
+
+std::unique_ptr<Entity> LeashKnotEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<LeashKnotEntity>();
+}
 
 LeashKnotEntity::LeashKnotEntity()
     : HangingEntity()

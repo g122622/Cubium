@@ -55,6 +55,13 @@ public:
     EnderCrystalEntity();
     ~EnderCrystalEntity() override = default;
 
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     void tick() override;
 
     [[nodiscard]] f32 width() const override;
@@ -117,6 +124,13 @@ class LightningBoltEntity : public Entity {
 public:
     LightningBoltEntity();
     ~LightningBoltEntity() override = default;
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     void tick() override;
 
@@ -409,6 +423,13 @@ class ArmorStandEntity : public Entity {
 public:
     ArmorStandEntity();
     ~ArmorStandEntity() override = default;
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     void tick() override;
 

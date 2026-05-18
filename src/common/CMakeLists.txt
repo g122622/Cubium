@@ -192,7 +192,7 @@ add_library(mc_common STATIC
     entity/experience/ExperienceDropHandler.cpp
     # Entity - Misc
     entity/entities/misc/MiscEntities.cpp
-    # Entity - Boss (incomplete - needs MerchantOffers, etc.)
+    # Entity - Boss (EnderDragon is incomplete, Wither is complete)
     # entity/entities/boss/EnderDragonEntity.cpp
     entity/entities/boss/WitherEntity.cpp
     # Entity - Villager

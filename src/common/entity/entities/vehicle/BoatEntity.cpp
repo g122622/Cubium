@@ -75,6 +75,11 @@ DataParameter<bool> LEFT_PADDLE_PARAM{4};
 DataParameter<bool> RIGHT_PADDLE_PARAM{5};
 } // namespace
 
+std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<BoatEntity>();
+}
+
 BoatEntity::BoatEntity(Type type)
     : Entity(EntityId(0))
     , m_type(type)

@@ -47,7 +47,7 @@ class ShulkerBulletParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_bullet = std::make_unique<ShulkerBulletEntity>(LegacyEntityType::ShulkerBullet, 1);
+        m_bullet = std::make_unique<ShulkerBulletEntity>(EntityId(1));
     }
 
     std::unique_ptr<ShulkerBulletEntity> m_bullet;
@@ -162,7 +162,7 @@ class EvokerFangsParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_fangs = std::make_unique<EvokerFangsEntity>(LegacyEntityType::EvokerFangs, 1);
+        m_fangs = std::make_unique<EvokerFangsEntity>(EntityId(1));
     }
 
     std::unique_ptr<EvokerFangsEntity> m_fangs;
@@ -206,7 +206,7 @@ class FishingBobberParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_bobber = std::make_unique<FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+        m_bobber = std::make_unique<FishingBobberEntity>(EntityId(1));
     }
 
     std::unique_ptr<FishingBobberEntity> m_bobber;
@@ -251,7 +251,7 @@ class LlamaSpitParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_spit = std::make_unique<LlamaSpitEntity>(LegacyEntityType::LlamaSpit, 1);
+        m_spit = std::make_unique<LlamaSpitEntity>(EntityId(1));
     }
 
     std::unique_ptr<LlamaSpitEntity> m_spit;
@@ -275,7 +275,7 @@ class EyeOfEnderParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_eye = std::make_unique<EyeOfEnderEntity>(LegacyEntityType::EyeOfEnder, 1);
+        m_eye = std::make_unique<EyeOfEnderEntity>(EntityId(1));
     }
 
     std::unique_ptr<EyeOfEnderEntity> m_eye;

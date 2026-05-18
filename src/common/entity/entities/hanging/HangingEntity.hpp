@@ -138,6 +138,13 @@ public:
         i32 height;
     };
 
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     PaintingEntity();
     PaintingEntity(BlockPos pos, Direction direction, const std::string& motive);
 
@@ -170,6 +177,13 @@ private:
  */
 class ItemFrameEntity : public HangingEntity {
 public:
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     ItemFrameEntity();
     ItemFrameEntity(BlockPos pos, Direction direction);
 
@@ -255,6 +269,13 @@ private:
  */
 class LeashKnotEntity : public HangingEntity {
 public:
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     LeashKnotEntity();
     LeashKnotEntity(BlockPos pos, Direction direction);
 

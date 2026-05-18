@@ -440,6 +440,13 @@ private:
  */
 class RideableMinecartEntity : public AbstractMinecartEntity {
 public:
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     RideableMinecartEntity(EntityId id)
         : AbstractMinecartEntity(Type::Rideable, id)
     {}
@@ -458,6 +465,13 @@ public:
 class ChestMinecartEntity : public AbstractMinecartEntity {
 public:
     static constexpr i32 INVENTORY_SIZE = 27; // 3行 x 9列
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     ChestMinecartEntity(EntityId id);
 
@@ -528,6 +542,13 @@ class FurnaceMinecartEntity : public AbstractMinecartEntity {
 public:
     /// 燃料上限（MC 1.16.5: 32000 ticks）
     static constexpr i32 MAX_FUEL = 32000;
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     FurnaceMinecartEntity(EntityId id)
         : AbstractMinecartEntity(Type::Furnace, id)
@@ -619,6 +640,13 @@ public:
     /// 默认引信时间（80 tick = 4秒）
     static constexpr i32 DEFAULT_FUSE = 80;
 
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     TNTMinecartEntity(EntityId id)
         : AbstractMinecartEntity(Type::TNT, id)
     {}
@@ -702,6 +730,13 @@ class HopperMinecartEntity : public AbstractMinecartEntity, public blockentity::
 public:
     static constexpr i32 INVENTORY_SIZE = 5;    ///< 漏斗矿车有5格库存
     static constexpr i32 TRANSFER_COOLDOWN = 4; ///< 传输冷却（tick）
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     HopperMinecartEntity(EntityId id);
     ~HopperMinecartEntity() override = default;

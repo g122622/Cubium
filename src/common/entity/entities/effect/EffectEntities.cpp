@@ -102,6 +102,11 @@ EnderCrystalEntity::EnderCrystalEntity()
     : Entity(EntityId(0))
 {}
 
+std::unique_ptr<Entity> EnderCrystalEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<EnderCrystalEntity>();
+}
+
 f32 EnderCrystalEntity::width() const
 {
     return 2.0f; // MC 1.16.5: 末地水晶宽度
@@ -231,6 +236,11 @@ LightningBoltEntity::LightningBoltEntity()
 {
     // MC 1.16.5: ignoreFrustumCheck = true
     // 闪电总是可见，即使不在视锥内
+}
+
+std::unique_ptr<Entity> LightningBoltEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<LightningBoltEntity>();
 }
 
 f32 LightningBoltEntity::width() const
@@ -720,6 +730,11 @@ u32 AreaEffectCloudEntity::calculateEffectsColor(const std::vector<effect::Effec
 ArmorStandEntity::ArmorStandEntity()
     : Entity(EntityId(0))
 {}
+
+std::unique_ptr<Entity> ArmorStandEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<ArmorStandEntity>();
+}
 
 f32 ArmorStandEntity::width() const
 {

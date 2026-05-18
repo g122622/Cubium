@@ -301,6 +301,13 @@ protected:
  */
 class ZombifiedPiglinEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     ZombifiedPiglinEntity(EntityId id);
     ~ZombifiedPiglinEntity() override = default;
 

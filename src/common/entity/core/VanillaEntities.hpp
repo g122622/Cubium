@@ -91,12 +91,11 @@
 #include "EntityTypeIdNumber.hpp"
 #include "../entities/boss/EnderDragonEntity.hpp"
 #include "../entities/boss/WitherEntity.hpp"
-// #include "../entities/villager/VillagerEntity.hpp"
-// #include "../entities/projectile/ProjectileEntity.hpp"
-// #include "../entities/projectile/AbstractArrowEntity.hpp"
-// #include "../entities/projectile/TridentEntity.hpp"
-// #include "../entities/projectile/ProjectileItemEntity.hpp"
-// #include "../entities/projectile/AbstractFireballEntity.hpp"
+#include "../entities/villager/VillagerEntity.hpp"
+#include "../entities/projectile/AbstractArrowEntity.hpp"
+#include "../entities/projectile/TridentEntity.hpp"
+#include "../entities/projectile/ProjectileItemEntity.hpp"
+#include "../entities/projectile/AbstractFireballEntity.hpp"
 #include "../entities/projectile/OtherProjectiles.hpp"
 #include "../entities/item/ItemEntity.hpp"
 #include "../entities/misc/MiscEntities.hpp"
@@ -104,6 +103,9 @@
 #include "../entities/effect/EffectEntities.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
+#include "../entities/hanging/HangingEntity.hpp"
+#include "../entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "../entities/passive/horse/TraderLlamaEntity.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -584,17 +586,24 @@ private:
                 .canSummon(true)
                 .build());
 
+        // 商队羊驼
+        registry.registerType(EntityTypes::TRADER_LLAMA,
+            EntityType::Builder(&TraderLlamaEntity::create, EntityClassification::Creature)
+                .size(0.9f, 1.87f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
         // ========== Boss ==========
-        // 末影龙 - TODO: 需要完成实现
-        // registry.registerType(
-        //     EntityTypes::ENDER_DRAGON,
+        // 末影龙 - 实现不完整
+        // registry.registerType(EntityTypes::ENDER_DRAGON,
         //     EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
         //         .size(16.0f, 8.0f)
         //         .trackingRange(128)
         //         .updateInterval(1)
         //         .immuneToFire()
-        //         .build()
-        // );
+        //         .build());
 
         // 凋灵
         registry.registerType(EntityTypes::WITHER,
@@ -607,27 +616,23 @@ private:
                 .build());
 
         // ========== 村民 ==========
-        // 村民 - TODO: 需要完成实现
-        // registry.registerType(
-        //     EntityTypes::VILLAGER,
-        //     EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
-        //         .size(0.6f, 1.95f)
-        //         .trackingRange(10)
-        //         .updateInterval(3)
-        //         .canSummon(true)
-        //         .build()
-        // );
+        // 村民
+        registry.registerType(EntityTypes::VILLAGER,
+            EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
+                .size(0.6f, 1.95f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
 
-        // 流浪商人 - TODO: 需要完成实现
-        // registry.registerType(
-        //     EntityTypes::WANDERING_TRADER,
-        //     EntityType::Builder(&WanderingTraderEntity::create, EntityClassification::Creature)
-        //         .size(0.6f, 1.95f)
-        //         .trackingRange(10)
-        //         .updateInterval(3)
-        //         .canSummon(true)
-        //         .build()
-        // );
+        // 流浪商人
+        registry.registerType(EntityTypes::WANDERING_TRADER,
+            EntityType::Builder(&WanderingTraderEntity::create, EntityClassification::Creature)
+                .size(0.6f, 1.95f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
 
         // ========== 更多怪物 ==========
         // 巨人
@@ -643,6 +648,15 @@ private:
         registry.registerType(EntityTypes::PHANTOM,
             EntityType::Builder(&PhantomEntity::create, EntityClassification::Monster)
                 .size(0.9f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 僵尸村民
+        registry.registerType(EntityTypes::ZOMBIE_VILLAGER,
+            EntityType::Builder(&ZombieVillagerEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
@@ -730,6 +744,16 @@ private:
                 .size(1.3964844f, 1.4f)
                 .trackingRange(10)
                 .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 僵尸猪灵
+        registry.registerType(EntityTypes::ZOMBIFIED_PIGLIN,
+            EntityType::Builder(&ZombifiedPiglinEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .immuneToFire()
                 .canSummon(true)
                 .build());
 
@@ -844,6 +868,242 @@ private:
 
         // ========== 玩家 ==========
         // 玩家实体类型由 Player 类自行管理
+
+        // ========== 投掷物 ==========
+        // 箭
+        registry.registerType(EntityTypes::ARROW,
+            EntityType::Builder(&ArrowEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 光灵箭
+        registry.registerType(EntityTypes::SPECTRAL_ARROW,
+            EntityType::Builder(&SpectralArrowEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 三叉戟
+        registry.registerType(EntityTypes::TRIDENT,
+            EntityType::Builder(&TridentEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 雪球
+        registry.registerType(EntityTypes::SNOWBALL,
+            EntityType::Builder(&SnowballEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 鸡蛋
+        registry.registerType(EntityTypes::EGG,
+            EntityType::Builder(&EggEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 末影珍珠
+        registry.registerType(EntityTypes::ENDER_PEARL,
+            EntityType::Builder(&EnderPearlEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 喷溅药水
+        registry.registerType(EntityTypes::POTION,
+            EntityType::Builder(&PotionEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 附魔之瓶
+        registry.registerType(EntityTypes::EXPERIENCE_BOTTLE,
+            EntityType::Builder(&ExperienceBottleEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 火球
+        registry.registerType(EntityTypes::FIREBALL,
+            EntityType::Builder(&FireballEntity::create, EntityClassification::Misc)
+                .size(1.0f, 1.0f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 小火球
+        registry.registerType(EntityTypes::SMALL_FIREBALL,
+            EntityType::Builder(&SmallFireballEntity::create, EntityClassification::Misc)
+                .size(0.3125f, 0.3125f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 龙火球
+        registry.registerType(EntityTypes::DRAGON_FIREBALL,
+            EntityType::Builder(&DragonFireballEntity::create, EntityClassification::Misc)
+                .size(1.0f, 1.0f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 凋灵之首
+        registry.registerType(EntityTypes::WITHER_SKULL,
+            EntityType::Builder(&WitherSkullEntity::create, EntityClassification::Misc)
+                .size(0.3125f, 0.3125f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 羊驼唾液
+        registry.registerType(EntityTypes::LLAMA_SPIT,
+            EntityType::Builder(&LlamaSpitEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 钓鱼浮标
+        registry.registerType(EntityTypes::FISHING_BOBBER,
+            EntityType::Builder(&FishingBobberEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
+        // 末影之眼
+        registry.registerType(EntityTypes::EYE_OF_ENDER,
+            EntityType::Builder(&EyeOfEnderEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 烟花火箭
+        registry.registerType(EntityTypes::FIREWORK_ROCKET,
+            EntityType::Builder(&FireworkRocketEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // ========== 交通工具 ==========
+        // 船
+        registry.registerType(EntityTypes::BOAT,
+            EntityType::Builder(&BoatEntity::create, EntityClassification::Misc)
+                .size(1.375f, 0.5625f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .build());
+
+        // 矿车
+        registry.registerType(EntityTypes::MINECART,
+            EntityType::Builder(&RideableMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
+        // 箱子矿车
+        registry.registerType(EntityTypes::CHEST_MINECART,
+            EntityType::Builder(&ChestMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
+        // 熔炉矿车
+        registry.registerType(EntityTypes::FURNACE_MINECART,
+            EntityType::Builder(&FurnaceMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
+        // 漏斗矿车
+        registry.registerType(EntityTypes::HOPPER_MINECART,
+            EntityType::Builder(&HopperMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
+        // TNT矿车
+        registry.registerType(EntityTypes::TNT_MINECART,
+            EntityType::Builder(&TNTMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
+        // ========== 其他实体 ==========
+        // 下落方块
+        registry.registerType(EntityTypes::FALLING_BLOCK,
+            EntityType::Builder(&FallingBlockEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.98f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 末地水晶
+        registry.registerType(EntityTypes::END_CRYSTAL,
+            EntityType::Builder(&EnderCrystalEntity::create, EntityClassification::Misc)
+                .size(2.0f, 2.0f)
+                .trackingRange(16)
+                .updateInterval(1)
+                .build());
+
+        // 闪电
+        registry.registerType(EntityTypes::LIGHTNING_BOLT,
+            EntityType::Builder(&LightningBoltEntity::create, EntityClassification::Misc)
+                .size(0.0f, 0.0f)
+                .trackingRange(16)
+                .updateInterval(1)
+                .build());
+
+        // 盔甲架
+        registry.registerType(EntityTypes::ARMOR_STAND,
+            EntityType::Builder(&ArmorStandEntity::create, EntityClassification::Misc)
+                .size(0.5f, 1.975f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .build());
+
+        // ========== 悬挂实体 ==========
+        // 画
+        registry.registerType(EntityTypes::PAINTING,
+            EntityType::Builder(&PaintingEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(10)
+                .updateInterval(20)
+                .build());
+
+        // 物品展示框
+        registry.registerType(EntityTypes::ITEM_FRAME,
+            EntityType::Builder(&ItemFrameEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(10)
+                .updateInterval(20)
+                .build());
+
+        // 拴绳结
+        registry.registerType(EntityTypes::LEASH_KNOT,
+            EntityType::Builder(&LeashKnotEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(10)
+                .updateInterval(20)
+                .build());
 
         // ========== 初始化生成放置规则 ==========
         // 这必须在实体注册完成后调用

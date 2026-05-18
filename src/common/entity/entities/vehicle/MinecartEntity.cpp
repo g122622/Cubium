@@ -1010,6 +1010,11 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
 // RideableMinecartEntity
 // ============================================================================
 
+std::unique_ptr<Entity> RideableMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<RideableMinecartEntity>(EntityId(0));
+}
+
 void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
 {
     // MC 1.16.5: 激活铁轨弹出乘客
@@ -1036,6 +1041,11 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 // ============================================================================
 // ChestMinecartEntity
 // ============================================================================
+
+std::unique_ptr<Entity> ChestMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<ChestMinecartEntity>(EntityId(0));
+}
 
 ChestMinecartEntity::ChestMinecartEntity(EntityId id)
     : AbstractMinecartEntity(Type::Chest, id)
@@ -1125,6 +1135,11 @@ IInventory* ChestMinecartEntity::getInventory()
 // ============================================================================
 // FurnaceMinecartEntity
 // ============================================================================
+
+std::unique_ptr<Entity> FurnaceMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<FurnaceMinecartEntity>(EntityId(0));
+}
 
 void FurnaceMinecartEntity::tick()
 {
@@ -1255,6 +1270,11 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
 // ============================================================================
 // TNTMinecartEntity
 // ============================================================================
+
+std::unique_ptr<Entity> TNTMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<TNTMinecartEntity>(EntityId(0));
+}
 
 void TNTMinecartEntity::tick()
 {
@@ -1454,6 +1474,11 @@ void TNTMinecartEntity::explode(f32 speedFactor)
 // ============================================================================
 // HopperMinecartEntity
 // ============================================================================
+
+std::unique_ptr<Entity> HopperMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<HopperMinecartEntity>(EntityId(0));
+}
 
 HopperMinecartEntity::HopperMinecartEntity(EntityId id)
     : AbstractMinecartEntity(Type::Hopper, id)

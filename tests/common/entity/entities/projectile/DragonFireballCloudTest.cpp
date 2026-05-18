@@ -48,7 +48,7 @@ class DragonFireballParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_dragonFireball = std::make_unique<DragonFireballEntity>(LegacyEntityType::DragonFireball, 1);
+        m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityId(1));
     }
 
     std::unique_ptr<DragonFireballEntity> m_dragonFireball;
@@ -216,7 +216,7 @@ class WitherSkullParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_witherSkull = std::make_unique<WitherSkullEntity>(LegacyEntityType::WitherSkull, 1);
+        m_witherSkull = std::make_unique<WitherSkullEntity>(EntityId(1));
     }
 
     std::unique_ptr<WitherSkullEntity> m_witherSkull;
@@ -253,7 +253,7 @@ class SmallFireballParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_smallFireball = std::make_unique<SmallFireballEntity>(LegacyEntityType::SmallFireball, 1);
+        m_smallFireball = std::make_unique<SmallFireballEntity>(EntityId(1));
     }
 
     std::unique_ptr<SmallFireballEntity> m_smallFireball;
@@ -277,7 +277,7 @@ class FireballParticleTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_fireball = std::make_unique<FireballEntity>(LegacyEntityType::Fireball, 1);
+        m_fireball = std::make_unique<FireballEntity>(EntityId(1));
     }
 
     std::unique_ptr<FireballEntity> m_fireball;

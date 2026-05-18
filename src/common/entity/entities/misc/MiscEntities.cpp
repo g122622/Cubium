@@ -50,6 +50,11 @@ FallingBlockEntity::FallingBlockEntity()
     : Entity(EntityId(0))
 {}
 
+std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<FallingBlockEntity>();
+}
+
 void FallingBlockEntity::tick()
 {
     Entity::tick();

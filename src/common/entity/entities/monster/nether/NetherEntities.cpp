@@ -546,6 +546,11 @@ void PiglinBruteEntity::registerAttributes()
 }
 
 // ZombifiedPiglinEntity
+std::unique_ptr<Entity> ZombifiedPiglinEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
+}
+
 ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityId id)
     : MonsterEntity(id)
 {

@@ -72,6 +72,13 @@ public:
      */
     enum class Type : u8 { OAK = 0, SPRUCE = 1, BIRCH = 2, JUNGLE = 3, ACACIA = 4, DARK_OAK = 5 };
 
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     explicit BoatEntity(Type type = Type::OAK);
     ~BoatEntity() override = default;
 
