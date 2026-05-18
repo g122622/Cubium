@@ -7,10 +7,10 @@
 ```
 src/common/world/chunk/
 ├── ChunkData.hpp/cpp              # 区块数据存储
-├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（BFS 级别传播）
+├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（统一来源聚合后的 BFS 级别传播）
 ├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
-├── ChunkLoadTicket.hpp            # 区块加载票据类型定义
-├── ChunkLoadTicketManager.hpp/cpp # 票据管理器
+├── ChunkLoadTicket.hpp            # 显式 ticket 类型与集合定义
+├── ChunkLoadTicketManager.hpp/cpp # 票据管理器与玩家来源聚合器
 ├── ChunkPos.hpp                   # 区块位置类型
 ├── ChunkPrimer.hpp/cpp            # 区块生成中间状态
 ├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
@@ -276,56 +276,60 @@ auto chunkData = primer.toChunkData();
 
 ### ChunkLoadTicket.hpp
 
-**职责**：定义区块加载票据类型，用于管理区块加载优先级。
+**职责**：定义显式 ticket 类型、ticket 实例和 ticket 集合，用于表达非玩家来源的加载请求。
 
 **主要内容**：
-- `Unit` - 空类型，用于不需要值的票据
-- `ChunkLoadTicketType<T>` - 票据类型模板
+- `Unit` - 空类型，用于不需要值的显式 ticket
+- `ChunkLoadTicketType<T>` - 显式 ticket 类型模板
   - 名称、比较器、生命周期
-  - 支持带过期时间的票据（如传送门）
-- `ChunkLoadTicket` - 区块加载票据
-  - 票据类型、级别、时间戳
+  - 支持带过期时间的 ticket（如传送门）
+- `ChunkLoadTicket` - 显式区块加载 ticket
+  - ticket 类型、级别、时间戳
   - 过期检查
-- `ChunkTicketSet` - 票据集合
+- `ChunkTicketSet` - 显式 ticket 集合
   - 自动计算最小级别
-  - 过期票据清理
+  - 过期 ticket 清理
 - `ChunkLoadLevel` - 区块加载级别枚举
   - `Full (31)` - 完全加载
   - `EntityTicking (32)` - 实体可 tick
   - `Border (33)` - 边界区块
   - `Unloaded (34)` - 未加载
-- `TicketTypes` - 预定义票据类型
-  - `PLAYER` - 玩家票据
+- `TicketTypes` - 预定义显式 ticket 类型
   - `FORCED` - 强制加载
   - `PORTAL` - 传送门（300 tick）
   - `POST_TELEPORT` - 传送后（5 tick）
   - 等
 
-**票据级别说明**：
+**边界说明**：
+- 本文件只描述会直接存入 `ChunkTicketSet` 的显式来源
+- 玩家加载来源不再建模为 ticket，而是由 `ChunkLoadTicketManager` 聚合成 player source 后写入统一距离图
+
+**级别说明**：
 - 级别越小，优先级越高
 - Level <= 33 的区块应该被加载
-- 玩家票据级别 = 33 - 视距
+- 玩家来源中心级别虽然也参与同一个 level 体系，但不在本文件定义
 
 ---
 
 ### ChunkLoadTicketManager.hpp/cpp
 
-**职责**：管理所有区块的票据，计算区块加载级别。
+**职责**：统一管理显式 ticket 与玩家 source，聚合后计算区块加载级别。
 
 **主要内容**：
-- `ChunkLoadTicketManager` - 票据管理器
-  - 票据注册/移除
+- `ChunkLoadTicketManager` - 显式 ticket 管理器与来源聚合器
+  - 显式 ticket 注册/移除
   - 玩家位置更新
+  - 玩家来源聚合
   - 玩家追踪管理
   - 级别变化回调
   - 追踪变化回调
 
 **关键方法**：
 ```cpp
-// 注册票据
+// 注册显式 ticket
 manager.registerTicket(TicketTypes::FORCED, x, z, level, ChunkPos(x, z));
 
-// 移除票据
+// 移除显式 ticket
 manager.releaseTicket(TicketTypes::FORCED, x, z, level, ChunkPos(x, z));
 
 // 更新玩家位置
@@ -356,15 +360,15 @@ bool isForced = manager.isForcedChunk(x, z);               // 检查单个区块
 
 **当前实现特性**：
 
-- 票据级别变化会统一驱动区块生命周期，而不是只更新数值
-- 玩家、强制加载、传送门、传送后、世界启动、末影龙、光照等票据都会进入同一调度管线
+- 显式 ticket 和玩家 source 的级别变化会统一驱动区块生命周期，而不是各自维护独立真相
+- 玩家来源、强制加载、传送门、传送后、世界启动、末影龙、光照等来源会先聚合为每个区块的源级别，再进入同一调度管线
 - 当区块离开有效加载范围时，会主动触发取消，避免 Worker 继续消耗算力
 
 **依赖项**：
 
-- `ChunkLoadTicket` - 票据类型
+- `ChunkLoadTicket` - 显式 ticket 类型与集合
 - `ChunkDistanceGraph` - 距离图
-- `PlayerChunkTracker` - 玩家追踪器
+- 内部玩家视距覆盖集合 - 用于 tracking enter/leave 计算
 
 ---
 
@@ -378,11 +382,12 @@ bool isForced = manager.isForcedChunk(x, z);               // 检查单个区块
   - 级别传播算法（Dijkstra 风格）
   - 更新队列处理
   - 级别变化回调
-- `PlayerChunkTracker` - 玩家区块追踪器
-  - 继承 ChunkDistanceGraph
-  - 视距管理
-  - 视距内区块集合
-  - 视距增大/缩小时都会同步更新玩家源级别（避免缩视距后仍保留过低级别）
+
+**当前设计说明**：
+
+- `ChunkDistanceGraph` 只维护聚合后的 source level 和传播后的最终 level
+- 图本身不再承担玩家 enter/leave 追踪职责
+- 玩家视距覆盖集合与追踪回调由 `ChunkLoadTicketManager` 中的独立数据结构维护
 
 **算法原理**：
 
@@ -396,8 +401,8 @@ bool isForced = manager.isForcedChunk(x, z);               // 检查单个区块
 **使用示例**：
 
 ```cpp
-PlayerChunkTracker tracker(10);  // 视距 10
-tracker.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+ChunkDistanceGraph graph;
+graph.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
     if (newLevel <= 33 && oldLevel > 33) {
         // 区块被加载
     } else if (newLevel > 33 && oldLevel <= 33) {
@@ -405,8 +410,8 @@ tracker.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 
     }
 });
 
-tracker.setPlayerPosition(5, 3);
-tracker.processUpdates(1000);
+graph.updateSourceLevel(5, 3, 23, true);
+graph.processUpdates(1000);
 ```
 
 ---
@@ -481,7 +486,7 @@ holder.cancelActiveRequest();
 
 ```mermaid
 flowchart LR
-    A[票据变化] --> B[ChunkLoadTicketManager]
+    A[显式ticket变化/玩家source变化] --> B[ChunkLoadTicketManager]
     B --> C[ServerChunkManager]
     C --> D[SingleChunkLifecycleManager]
     D --> E[ServerWorkerPool]
@@ -507,7 +512,7 @@ chunk 模块负责：
 
 1. **数据存储**：定义区块的数据结构（ChunkData, ChunkSection）
 2. **生成流程**：管理区块生成的各个阶段（ChunkStatus, ChunkPrimer）
-3. **加载管理**：基于票据系统管理区块加载优先级（ChunkLoadTicket）
+3. **加载管理**：基于显式 ticket 和玩家 source 管理区块加载优先级
 4. **生命周期**：管理单个区块从创建到卸载的完整生命周期
 5. **位置计算**：提供区块距离、追踪等计算支持
 
@@ -519,7 +524,8 @@ chunk 模块负责：
 - 方块数据（BlockState）
 - 生物群系数据（BiomeContainer）
 - 玩家位置（用于追踪计算）
-- 加载票据（ChunkLoadTicket）
+- 显式 ticket（ChunkLoadTicket）
+- 玩家 source（由 ChunkLoadTicketManager 聚合）
 
 **输出**：
 
@@ -561,7 +567,7 @@ primer.setChunkStatus(ChunkStatuses::NOISE);
 // 3. 完成生成
 auto chunkData = primer.toChunkData();
 
-// 4. 使用票据系统加载区块
+// 4. 使用统一来源聚合系统加载区块
 ChunkLoadTicketManager ticketManager;
 ticketManager.setViewDistance(10);
 ticketManager.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -579,7 +585,7 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
 ### 常见陷阱
 
 1. **忘记调用 processUpdates()**
-   - 票据和追踪系统的更新是批处理的
+   - 显式 ticket、玩家 source 和追踪系统的更新是批处理的
    - 必须调用 `processUpdates()` 才能处理更新队列
    - 建议：在主循环每帧或固定间隔调用
 
@@ -598,10 +604,11 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
    - 方块光照默认为 0（无光）
    - 需要显式调用 `initializeSkyLight()` 和 `initializeBlockLight()`
 
-5. **票据级别理解**
+5. **level 语义理解**
    - 级别越小优先级越高
    - 级别 <= 33 的区块应该被加载
-   - 玩家票据级别 = 33 - 视距
+   - 显式 ticket 和玩家 source 最终都会收敛到同一个 level 体系
+   - 玩家来源中心级别 = `33 - 视距`
 
 6. **ChunkStatus 比较**
    - 使用 `isAtLeast()` 和 `isBefore()` 进行状态比较

@@ -75,7 +75,7 @@ class SingleChunkLifecycleManager;
  * @endcode
  *
  * 票据类型说明：
- * - 玩家票据：玩家视距范围内的区块
+ * - 玩家来源：通过统一 source aggregator 注入距离图
  * - 强制加载票据：通过 API 添加，永久加载
  * - 传送门票据：临时加载，有过期时间
  *
@@ -85,9 +85,6 @@ class ChunkLoadTicketManager {
 public:
     /// 最大加载级别（Level <= 33 的区块会被加载）
     static constexpr i32 MAX_LOADED_LEVEL = 33;
-
-    /// 玩家票据级别
-    static constexpr i32 PLAYER_TICKET_LEVEL = 31;
 
     ChunkLoadTicketManager();
     ~ChunkLoadTicketManager() = default;
@@ -144,9 +141,9 @@ public:
      * @brief 更新玩家位置
      *
      * 当玩家移动到新区块时调用。会自动：
-     * 1. 移除旧位置的票据
-     * 2. 添加新位置的票据
-     * 3. 触发区块加载/卸载
+     * 1. 更新玩家来源中心点
+     * 2. 重建该玩家的追踪覆盖集合
+     * 3. 触发区块加载/卸载与追踪 enter/leave
      *
      * @param playerId 玩家 ID
      * @param x 新区块 X 坐标
@@ -166,7 +163,7 @@ public:
     /**
      * @brief 移除玩家
      *
-     * 玩家离开时调用。会移除该玩家相关的所有票据。
+     * 玩家离开时调用。会移除该玩家相关的来源和追踪覆盖。
      *
      * @param playerId 玩家 ID
      *
@@ -219,7 +216,7 @@ public:
      * @param distance 视距（区块数）
      *
      * @note 改变视距会触发区块加载/卸载
-     * @note 会更新所有已注册玩家的追踪器
+     * @note 会更新所有已注册玩家的来源和追踪覆盖
      */
     void setViewDistance(i32 distance);
 
@@ -354,12 +351,30 @@ public:
     [[nodiscard]] bool isForcedChunk(ChunkCoord x, ChunkCoord z) const;
 
 private:
+    struct PlayerSourceState {
+        ChunkPos center {0, 0};
+        bool hasPosition = false;
+        std::unordered_set<u64> trackedChunks;
+    };
+
     /// 内部票据操作
     void addTicket(ChunkPos pos, ChunkLoadTicket ticket);
     void removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket);
 
-    /// 设置追踪器回调
-    void setupTrackerCallback(PlayerChunkTracker* tracker);
+    /// 重新计算单个区块的聚合源级别并同步到距离图
+    void refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z);
+
+    /// 更新玩家来源中心区块
+    void updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos);
+
+    /// 计算某个玩家在给定中心和视距下覆盖的区块集合
+    [[nodiscard]] std::unordered_set<u64> buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const;
+
+    /// 应用玩家追踪覆盖变化并派发 enter/leave 回调
+    void applyTrackingDelta(PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks);
+
+    /// 根据当前玩家位置和视距重建所有玩家来源
+    void rebuildAllPlayerSources();
 
     /// 区块位置转键
     [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
@@ -373,15 +388,18 @@ private:
     /// 玩家位置映射
     std::unordered_map<PlayerId, ChunkPos> m_playerPositions;
 
+    /// 玩家来源和追踪状态
+    std::unordered_map<PlayerId, PlayerSourceState> m_playerStates;
+
     /// 区块 -> 追踪该区块的玩家集合（视距范围内）
     /// 用于区块加载完成时发送给所有追踪该区块的玩家
     std::unordered_map<u64, std::unordered_set<PlayerId>> m_chunkTrackingPlayers;
     mutable std::mutex m_trackingPlayersMutex;
 
-    /// 玩家票据追踪器
-    std::unordered_map<PlayerId, std::unique_ptr<PlayerChunkTracker>> m_playerTrackers;
+    /// 区块 -> 玩家来源数量
+    std::unordered_map<u64, i32> m_playerSourceCounts;
 
-    /// 距离传播图（用于强制加载等票据）
+    /// 距离传播图（统一承载 ticket 和玩家来源的聚合结果）
     ChunkDistanceGraph m_distanceGraph;
 
     /// 当前时间（用于票据过期）

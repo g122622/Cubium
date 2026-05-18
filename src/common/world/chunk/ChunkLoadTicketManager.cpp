@@ -25,6 +25,7 @@
 #include "ChunkLoadTicket.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
+#include <optional>
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -46,9 +47,6 @@ namespace mc::world {
 // ============================================================================
 
 namespace TicketTypes {
-// 玩家加载票据
-const ChunkLoadTicketType<ChunkPos> PLAYER = ChunkLoadTicketType<ChunkPos>::create("player");
-
 // 强制加载票据
 const ChunkLoadTicketType<ChunkPos> FORCED = ChunkLoadTicketType<ChunkPos>::create("forced");
 
@@ -136,17 +134,8 @@ void ChunkTicketSet::removeExpired(u64 currentTime)
 ChunkLoadTicketManager::ChunkLoadTicketManager()
     : m_viewDistance(10)
 {
-    // 设置距离图回调（用于强制加载票据等）
+    // 设置距离图回调（统一用于所有来源）
     m_distanceGraph.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
-        if (m_levelChangeCallback) {
-            m_levelChangeCallback(x, z, oldLevel, newLevel);
-        }
-    });
-}
-
-void ChunkLoadTicketManager::setupTrackerCallback(PlayerChunkTracker* tracker)
-{
-    tracker->setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
         if (m_levelChangeCallback) {
             m_levelChangeCallback(x, z, oldLevel, newLevel);
         }
@@ -160,7 +149,6 @@ void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket)
     auto& ticketSet = m_chunkTickets[key];
     ticketSet.addTicket(std::move(ticket));
 
-    // 标记区块为脏
     m_dirtyChunks.insert(key);
 }
 
@@ -185,177 +173,50 @@ void ChunkLoadTicketManager::removeTicket(ChunkPos pos, const ChunkLoadTicket& t
 void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
     ChunkPos newPos(x, z);
-
-    // 获取旧的追踪区块集合
-    std::unordered_set<u64> oldChunks;
-    auto trackerIt = m_playerTrackers.find(playerId);
-    if (trackerIt != m_playerTrackers.end()) {
-        oldChunks = trackerIt->second->chunksInRange();
+    auto& state = m_playerStates[playerId];
+    if (state.hasPosition && state.center.x == x && state.center.z == z) {
+        return;
     }
 
-    // 检查玩家是否已存在
-    auto posIt = m_playerPositions.find(playerId);
-    if (posIt != m_playerPositions.end()) {
-        ChunkPos oldPos = posIt->second;
+    const std::optional<ChunkPos> oldPos = state.hasPosition ? std::optional<ChunkPos>(state.center) : std::nullopt;
+    const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
 
-        if (oldPos.x == x && oldPos.z == z) {
-            return; // 位置没变
-        }
-
-        // 移除旧位置的票据
-        ChunkLoadTicket oldTicket(TicketTypes::PLAYER, PLAYER_TICKET_LEVEL, oldPos);
-        removeTicket(oldPos, oldTicket);
-
-        // 更新玩家追踪器位置
-        if (trackerIt != m_playerTrackers.end()) {
-            trackerIt->second->setPlayerPosition(x, z);
-        }
+    if (oldPos.has_value()) {
+        updatePlayerSourceCenter(&oldPos.value(), &newPos);
     } else {
-        // 创建新的玩家追踪器
-        auto tracker = std::make_unique<PlayerChunkTracker>(m_viewDistance);
-        setupTrackerCallback(tracker.get());
-        tracker->setPlayerPosition(x, z);
-        m_playerTrackers[playerId] = std::move(tracker);
+        updatePlayerSourceCenter(nullptr, &newPos);
     }
 
-    // 更新玩家位置
+    state.center = newPos;
+    state.hasPosition = true;
+    state.trackedChunks = buildTrackedChunkSet(x, z);
     m_playerPositions[playerId] = newPos;
 
-    // 添加新位置的票据
-    ChunkLoadTicket newTicket(TicketTypes::PLAYER, PLAYER_TICKET_LEVEL, newPos);
-    addTicket(newPos, newTicket);
-
-    // 获取新的追踪区块集合
-    std::unordered_set<u64> newChunks;
-    trackerIt = m_playerTrackers.find(playerId);
-    if (trackerIt != m_playerTrackers.end()) {
-        newChunks = trackerIt->second->chunksInRange();
-    }
-
-    // 计算差异并更新区块追踪映射
-    std::vector<TrackingChangeEvent> trackingEvents;
-    {
-        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
-
-        // 进入的区块
-        for (u64 key : newChunks) {
-            if (oldChunks.find(key) == oldChunks.end()) {
-                m_chunkTrackingPlayers[key].insert(playerId);
-
-                // 先收集变化，锁外再派发回调，避免回调里再次查询 tracking 数据时自锁
-                if (m_trackingChangeCallback) {
-                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                    trackingEvents.push_back({playerId, cx, cz, true});
-                }
-            }
-        }
-
-        // 离开的区块
-        for (u64 key : oldChunks) {
-            if (newChunks.find(key) == newChunks.end()) {
-                auto it = m_chunkTrackingPlayers.find(key);
-                if (it != m_chunkTrackingPlayers.end()) {
-                    it->second.erase(playerId);
-                    if (it->second.empty()) {
-                        m_chunkTrackingPlayers.erase(it);
-                    }
-                }
-
-                if (m_trackingChangeCallback) {
-                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                    trackingEvents.push_back({playerId, cx, cz, false});
-                }
-            }
-        }
-    }
-
-    for (const auto& event : trackingEvents) {
-        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
-    }
-
-    // 处理更新
+    applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
     processUpdates();
 }
 
 void ChunkLoadTicketManager::removePlayer(PlayerId playerId)
 {
-    // 获取玩家追踪的区块
-    std::unordered_set<u64> trackedChunks;
-    auto trackerIt = m_playerTrackers.find(playerId);
-    if (trackerIt != m_playerTrackers.end()) {
-        trackedChunks = trackerIt->second->chunksInRange();
+    auto stateIt = m_playerStates.find(playerId);
+    if (stateIt == m_playerStates.end()) {
+        m_playerPositions.erase(playerId);
+        return;
     }
 
-    // 从区块追踪映射中移除玩家，触发离开回调
-    std::vector<TrackingChangeEvent> trackingEvents;
-    {
-        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
-        for (u64 key : trackedChunks) {
-            auto it = m_chunkTrackingPlayers.find(key);
-            if (it != m_chunkTrackingPlayers.end()) {
-                it->second.erase(playerId);
-                if (it->second.empty()) {
-                    m_chunkTrackingPlayers.erase(it);
-                }
-            }
-
-            if (m_trackingChangeCallback) {
-                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                trackingEvents.push_back({playerId, cx, cz, false});
-            }
-        }
+    const PlayerSourceState state = stateIt->second;
+    if (state.hasPosition) {
+        updatePlayerSourceCenter(&state.center, nullptr);
     }
 
-    for (const auto& event : trackingEvents) {
-        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
-    }
-
-    // 移除玩家票据
-    auto posIt = m_playerPositions.find(playerId);
-    if (posIt != m_playerPositions.end()) {
-        ChunkPos pos = posIt->second;
-        ChunkLoadTicket ticket(TicketTypes::PLAYER, PLAYER_TICKET_LEVEL, pos);
-        removeTicket(pos, ticket);
-        m_playerPositions.erase(posIt);
-    }
-
-    // 移除玩家追踪器
-    m_playerTrackers.erase(playerId);
-
-    // 处理更新
+    applyTrackingDelta(playerId, state.trackedChunks, {});
+    m_playerStates.erase(stateIt);
+    m_playerPositions.erase(playerId);
     processUpdates();
 }
 
 i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const
 {
-    u64 key = posToKey(x, z);
-
-    // 首先检查票据集合
-    auto it = m_chunkTickets.find(key);
-    if (it != m_chunkTickets.end()) {
-        i32 ticketLevel = it->second.getMinLevel();
-        if (ticketLevel < ChunkDistanceGraph::MAX_LEVEL) {
-            return ticketLevel;
-        }
-    }
-
-    // 检查所有玩家追踪器，找到最低级别
-    i32 minLevel = ChunkDistanceGraph::MAX_LEVEL;
-    for (const auto& [playerId, tracker] : m_playerTrackers) {
-        i32 level = tracker->getLevel(x, z);
-        if (level < minLevel) {
-            minLevel = level;
-        }
-    }
-
-    if (minLevel < ChunkDistanceGraph::MAX_LEVEL) {
-        return minLevel;
-    }
-
-    // 最后检查距离图（用于强制加载等票据）
     return m_distanceGraph.getLevel(x, z);
 }
 
@@ -365,7 +226,11 @@ void ChunkLoadTicketManager::tick()
 
     // 清理过期票据
     for (auto& [key, ticketSet] : m_chunkTickets) {
+        const size_t oldSize = ticketSet.size();
         ticketSet.removeExpired(m_currentTime);
+        if (ticketSet.size() != oldSize) {
+            m_dirtyChunks.insert(key);
+        }
     }
 
     // 移除空的票据集合
@@ -393,61 +258,12 @@ void ChunkLoadTicketManager::setViewDistance(i32 distance)
 
     m_viewDistance = clampedDistance;
 
-    // 更新所有玩家追踪器并处理追踪变化
-    for (auto& [playerId, tracker] : m_playerTrackers) {
-        // 获取旧的追踪区块
-        std::unordered_set<u64> oldChunks = tracker->chunksInRange();
-
-        // 更新视距
-        tracker->setViewDistance(clampedDistance);
-
-        // 获取新的追踪区块
-        std::unordered_set<u64> newChunks = tracker->chunksInRange();
-
-        // 计算差异并更新区块追踪映射
-        std::vector<TrackingChangeEvent> trackingEvents;
-        {
-            std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
-
-            // 进入的区块
-            for (u64 key : newChunks) {
-                if (oldChunks.find(key) == oldChunks.end()) {
-                    m_chunkTrackingPlayers[key].insert(playerId);
-
-                    if (m_trackingChangeCallback) {
-                        ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                        ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                        trackingEvents.push_back({playerId, cx, cz, true});
-                    }
-                }
-            }
-
-            // 离开的区块
-            for (u64 key : oldChunks) {
-                if (newChunks.find(key) == newChunks.end()) {
-                    auto it = m_chunkTrackingPlayers.find(key);
-                    if (it != m_chunkTrackingPlayers.end()) {
-                        it->second.erase(playerId);
-                        if (it->second.empty()) {
-                            m_chunkTrackingPlayers.erase(it);
-                        }
-                    }
-
-                    if (m_trackingChangeCallback) {
-                        ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                        ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                        trackingEvents.push_back({playerId, cx, cz, false});
-                    }
-                }
-            }
-        }
-
-        for (const auto& event : trackingEvents) {
-            m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
+    for (const auto& [playerId, state] : m_playerStates) {
+        if (state.hasPosition) {
+            m_dirtyChunks.insert(posToKey(state.center.x, state.center.z));
         }
     }
-
-    // 处理更新
+    rebuildAllPlayerSources();
     processUpdates();
 }
 
@@ -476,33 +292,136 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 
 void ChunkLoadTicketManager::processUpdates()
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkLoadTicketManager::processUpdates", "dirtyChunkCount", m_dirtyChunks.size(), "playerCount", m_playerTrackers.size());
+    MC_TRACE_EVENT("server.chunk", "ChunkLoadTicketManager::processUpdates", "dirtyChunkCount", m_dirtyChunks.size(), "playerCount", m_playerStates.size());
 
-    // 处理所有玩家追踪器的更新
-    for (auto& [playerId, tracker] : m_playerTrackers) {
-        tracker->processUpdates(1000);
-    }
-
-    // 更新脏区块的级别
     for (u64 key : m_dirtyChunks) {
         ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
         ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-
-        // 获取票据的最低级别
-        auto it = m_chunkTickets.find(key);
-        i32 ticketLevel = ChunkDistanceGraph::MAX_LEVEL;
-        if (it != m_chunkTickets.end()) {
-            ticketLevel = it->second.getMinLevel();
-        }
-
-        // 更新距离图
-        bool isDecreasing = ticketLevel < m_distanceGraph.getLevel(x, z);
-        m_distanceGraph.updateSourceLevel(x, z, ticketLevel, isDecreasing);
+        refreshChunkSourceLevel(x, z);
     }
     m_dirtyChunks.clear();
 
-    // 处理距离图更新
-    m_distanceGraph.processUpdates(1000); // 每次最多处理 1000 个更新
+    m_distanceGraph.processUpdates(1000);
+}
+
+void ChunkLoadTicketManager::refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
+{
+    const u64 key = posToKey(x, z);
+
+    i32 sourceLevel = ChunkDistanceGraph::MAX_LEVEL;
+    auto ticketIt = m_chunkTickets.find(key);
+    if (ticketIt != m_chunkTickets.end()) {
+        sourceLevel = std::min(sourceLevel, ticketIt->second.getMinLevel());
+    }
+
+    auto playerIt = m_playerSourceCounts.find(key);
+    if (playerIt != m_playerSourceCounts.end() && playerIt->second > 0) {
+        sourceLevel = std::min(sourceLevel, viewDistanceToLevel(m_viewDistance));
+    }
+
+    const bool isDecreasing = sourceLevel < m_distanceGraph.getLevel(x, z);
+    m_distanceGraph.updateSourceLevel(x, z, sourceLevel, isDecreasing);
+}
+
+void ChunkLoadTicketManager::updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos)
+{
+    if (oldPos != nullptr) {
+        const u64 oldKey = posToKey(oldPos->x, oldPos->z);
+        auto it = m_playerSourceCounts.find(oldKey);
+        if (it != m_playerSourceCounts.end()) {
+            --it->second;
+            if (it->second <= 0) {
+                m_playerSourceCounts.erase(it);
+            }
+        }
+        m_dirtyChunks.insert(oldKey);
+    }
+
+    if (newPos != nullptr) {
+        const u64 newKey = posToKey(newPos->x, newPos->z);
+        ++m_playerSourceCounts[newKey];
+        m_dirtyChunks.insert(newKey);
+    }
+}
+
+std::unordered_set<u64> ChunkLoadTicketManager::buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const
+{
+    std::unordered_set<u64> chunks;
+    for (i32 dx = -m_viewDistance; dx <= m_viewDistance; ++dx) {
+        for (i32 dz = -m_viewDistance; dz <= m_viewDistance; ++dz) {
+            const i32 distance = std::max(std::abs(dx), std::abs(dz));
+            if (distance <= m_viewDistance) {
+                chunks.insert(posToKey(centerX + dx, centerZ + dz));
+            }
+        }
+    }
+    return chunks;
+}
+
+void ChunkLoadTicketManager::applyTrackingDelta(PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks)
+{
+    std::vector<TrackingChangeEvent> trackingEvents;
+    {
+        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+
+        for (u64 key : newChunks) {
+            if (oldChunks.find(key) != oldChunks.end()) {
+                continue;
+            }
+            m_chunkTrackingPlayers[key].insert(playerId);
+            if (m_trackingChangeCallback) {
+                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                trackingEvents.push_back({playerId, cx, cz, true});
+            }
+        }
+
+        for (u64 key : oldChunks) {
+            if (newChunks.find(key) != newChunks.end()) {
+                continue;
+            }
+            auto it = m_chunkTrackingPlayers.find(key);
+            if (it != m_chunkTrackingPlayers.end()) {
+                it->second.erase(playerId);
+                if (it->second.empty()) {
+                    m_chunkTrackingPlayers.erase(it);
+                }
+            }
+
+            if (m_trackingChangeCallback) {
+                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                trackingEvents.push_back({playerId, cx, cz, false});
+            }
+        }
+    }
+
+    for (const auto& event : trackingEvents) {
+        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
+    }
+}
+
+void ChunkLoadTicketManager::rebuildAllPlayerSources()
+{
+    for (const auto& [key, count] : m_playerSourceCounts) {
+        MC_UNUSED(count);
+        m_dirtyChunks.insert(key);
+    }
+    m_playerSourceCounts.clear();
+
+    for (auto& [playerId, state] : m_playerStates) {
+        if (!state.hasPosition) {
+            continue;
+        }
+
+        const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
+        state.trackedChunks = buildTrackedChunkSet(state.center.x, state.center.z);
+        applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
+
+        const u64 key = posToKey(state.center.x, state.center.z);
+        ++m_playerSourceCounts[key];
+        m_dirtyChunks.insert(key);
+    }
 }
 
 const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, ChunkCoord z) const

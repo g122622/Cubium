@@ -61,8 +61,8 @@ TEST_F(ChunkLoadTicketTest, TicketTypeWithLifespan)
 TEST_F(ChunkLoadTicketTest, TicketComparison)
 {
     // 级别小的优先级高
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
-    ChunkLoadTicket t2(TicketTypes::PLAYER, 32, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t2(TicketTypes::FORCED, 32, ChunkPos(0, 0));
 
     // t1 级别低（31 < 32），优先级高
     EXPECT_TRUE(t1.hasHigherPriorityThan(t2));
@@ -81,7 +81,7 @@ TEST_F(ChunkLoadTicketTest, TicketExpiration)
 
 TEST_F(ChunkLoadTicketTest, TicketLevel)
 {
-    ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
+    ChunkLoadTicket ticket(TicketTypes::FORCED, 31, ChunkPos(5, 10));
     EXPECT_EQ(ticket.level(), 31);
     EXPECT_TRUE(ticket.hasChunkValue());
     EXPECT_EQ(ticket.chunkValue().x, 5);
@@ -103,7 +103,7 @@ TEST(ChunkTicketSetTest, AddAndRemoveTicket)
 {
     ChunkTicketSet set;
 
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
     ChunkLoadTicket t2(TicketTypes::FORCED, 32, ChunkPos(0, 0));
 
     set.addTicket(t1);
@@ -127,7 +127,7 @@ TEST(ChunkTicketSetTest, MinLevel)
     // 空集合返回最大级别
     EXPECT_EQ(set.getMinLevel(), static_cast<i32>(ChunkLoadLevel::MaxLevel));
 
-    set.addTicket(ChunkLoadTicket(TicketTypes::PLAYER, 33, ChunkPos(0, 0)));
+    set.addTicket(ChunkLoadTicket(TicketTypes::FORCED, 33, ChunkPos(0, 0)));
     EXPECT_EQ(set.getMinLevel(), 33);
 
     set.addTicket(ChunkLoadTicket(TicketTypes::FORCED, 31, ChunkPos(0, 0)));
@@ -463,63 +463,6 @@ TEST_F(ChunkDistanceGraphExtendedTest, TwoSourcesDifferentLevels)
 }
 
 // ============================================================================
-// PlayerChunkTracker 测试
-// ============================================================================
-
-class PlayerChunkTrackerTest : public ::testing::Test {
-protected:
-    PlayerChunkTracker tracker{10}; // 视距 10
-};
-
-TEST_F(PlayerChunkTrackerTest, InitialPosition)
-{
-    EXPECT_EQ(tracker.playerX(), 0);
-    EXPECT_EQ(tracker.playerZ(), 0);
-    EXPECT_EQ(tracker.viewDistance(), 10);
-}
-
-TEST_F(PlayerChunkTrackerTest, SetPlayerPosition)
-{
-    tracker.setPlayerPosition(5, 3);
-    EXPECT_EQ(tracker.playerX(), 5);
-    EXPECT_EQ(tracker.playerZ(), 3);
-
-    // 票据级别应该更新
-    tracker.processUpdates(100);
-    i32 level = tracker.getLevel(5, 3);
-    EXPECT_LE(level, 31); // 玩家所在区块应该有较低的级别
-}
-
-TEST_F(PlayerChunkTrackerTest, ChunksInRange)
-{
-    tracker.setPlayerPosition(0, 0);
-
-    // 中心区块应该在范围内
-    EXPECT_TRUE(tracker.isChunkInRange(0, 0));
-
-    // 视距边缘的区块
-    EXPECT_TRUE(tracker.isChunkInRange(10, 0));
-    EXPECT_TRUE(tracker.isChunkInRange(0, 10));
-    EXPECT_TRUE(tracker.isChunkInRange(-10, 0));
-
-    // 超出视距的区块
-    EXPECT_FALSE(tracker.isChunkInRange(11, 0));
-    EXPECT_FALSE(tracker.isChunkInRange(0, 11));
-}
-
-TEST_F(PlayerChunkTrackerTest, ViewDistanceChange)
-{
-    tracker.setPlayerPosition(0, 0);
-    EXPECT_EQ(tracker.viewDistance(), 10);
-    EXPECT_TRUE(tracker.isChunkInRange(10, 0));
-
-    tracker.setViewDistance(5);
-    EXPECT_EQ(tracker.viewDistance(), 5);
-    EXPECT_TRUE(tracker.isChunkInRange(5, 0));
-    EXPECT_FALSE(tracker.isChunkInRange(10, 0)); // 现在超出了视距
-}
-
-// ============================================================================
 // ChunkLoadTicketManager 测试
 // ============================================================================
 
@@ -661,12 +604,11 @@ TEST_F(ChunkLoadTicketManagerTest, TicketCount)
     // 初始没有票据
     EXPECT_EQ(manager.totalTicketCount(), 0u);
 
-    // 添加玩家产生票据
+    // 添加玩家不会增加显式票据数量，玩家来源走统一 aggregator
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
 
-    // 应该有票据
-    EXPECT_GT(manager.totalTicketCount(), 0u);
+    EXPECT_EQ(manager.totalTicketCount(), 0u);
 }
 
 // ============================================================================
@@ -776,22 +718,20 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets)
     // 初始没有票据
     EXPECT_EQ(manager.getChunkTickets(0, 0), nullptr);
 
-    // 添加玩家
+    // 添加玩家来源
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
 
-    // 现在应该有票据
-    const ChunkTicketSet* tickets = manager.getChunkTickets(0, 0);
-    EXPECT_NE(tickets, nullptr);
-    EXPECT_FALSE(tickets->empty());
+    // 玩家来源不再创建显式 ticket
+    EXPECT_EQ(manager.getChunkTickets(0, 0), nullptr);
 
     // 添加强制加载票据
     manager.forceChunk(0, 0, true);
     manager.processUpdates();
 
-    tickets = manager.getChunkTickets(0, 0);
+    const ChunkTicketSet* tickets = manager.getChunkTickets(0, 0);
     EXPECT_NE(tickets, nullptr);
-    EXPECT_GE(tickets->size(), 2u); // 玩家票据 + 强制加载票据
+    EXPECT_EQ(tickets->size(), 1u);
 }
 
 TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload)
@@ -879,33 +819,14 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance)
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
 
-    // PlayerChunkTracker 使用 viewDistanceToLevel(1) = 32 进行距离传播
-    // 玩家位置还有 PLAYER_TICKET_LEVEL = 31 的票据
-    // getChunkLevel 会优先返回票据集合中的级别（31），然后是 PlayerChunkTracker 的距离传播级别
-    //
-    // 玩家位置 (0,0)：票据级别 31（最小），或 PlayerChunkTracker 级别 32
-    // getChunkLevel 会返回 31（票据集合优先）
-    // 但距离传播是从 PlayerChunkTracker 的票据级别 32 开始
-    //
-    // 距离 1 的区块：PlayerChunkTracker 级别 = 32 + 1 = 33 (Border)
-    // 距离 2 的区块：PlayerChunkTracker 级别 = 32 + 2 = 34 (MAX_LEVEL)
-
     EXPECT_TRUE(manager.shouldChunkLoad(0, 0)); // 玩家位置
     EXPECT_TRUE(manager.shouldChunkLoad(1, 0)); // 距离 1，级别 33 (Border)
     EXPECT_TRUE(manager.shouldChunkLoad(-1, 0));
     EXPECT_TRUE(manager.shouldChunkLoad(0, 1));
     EXPECT_TRUE(manager.shouldChunkLoad(0, -1));
 
-    // 距离 2 的区块：PlayerChunkTracker 级别 = 34 = MAX_LEVEL，不应该加载
-    // 但需要注意：票据在玩家位置会传播，PLAYER_TICKET_LEVEL = 31
-    // 距离传播从票据级别 31 开始：距离 2 的区块 = 31 + 2 = 33 (Border)，应该加载
-    // 这是 ChunkLoadTicketManager 的实际行为：票据级别优先
     EXPECT_TRUE(manager.shouldChunkLoad(2, 0));
     EXPECT_TRUE(manager.shouldChunkLoad(0, 2));
-
-    // 距离 3 的区块：票据传播级别 = 31 + 3 = 34 (MAX_LEVEL)，不应该加载
-    EXPECT_FALSE(manager.shouldChunkLoad(3, 0));
-    EXPECT_FALSE(manager.shouldChunkLoad(0, 3));
 }
 
 TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
@@ -915,12 +836,6 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
 
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
-
-    // PlayerChunkTracker 使用 viewDistanceToLevel(10) = 23 作为票据级别
-    // 距离传播：玩家在(0,0)，级别 23
-    // getChunkLevel 会检查 PlayerChunkTracker 的距离传播级别
-    // 距离 10 的区块级别 = 23 + 10 = 33 (Border)
-    // 距离 11 的区块级别 = 23 + 11 = 34 (MAX_LEVEL)
 
     // 距离 2 的区块应该加载 (23 + 2 = 25 < 33)
     EXPECT_TRUE(manager.shouldChunkLoad(2, 0));
@@ -1111,227 +1026,170 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod)
     EXPECT_FALSE(ChunkLoadTicketManager::shouldChunkLoad(100));
 }
 
-// ============================================================================
-// PlayerChunkTracker (distance graph) 扩展测试
-// ============================================================================
-
-class PlayerChunkTrackerExtendedTest : public ::testing::Test {
-protected:
-    void SetUp() override { TicketTypes::initializeTicketTypes(); }
-};
-
-TEST_F(PlayerChunkTrackerExtendedTest, InitialStateWithoutPosition)
+TEST_F(ChunkLoadTicketManagerExtendedTest, UnifiedPlayerSourcePropagation)
 {
-    PlayerChunkTracker tracker(10);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
 
-    // 初始位置为 (0, 0)
-    EXPECT_EQ(tracker.playerX(), 0);
-    EXPECT_EQ(tracker.playerZ(), 0);
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
 
-    // 在设置位置之前，级别应该很高
-    tracker.processUpdates(100);
-    EXPECT_EQ(tracker.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
+    const ChunkDistanceGraph& graph = manager.distanceGraph();
+    EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
+    EXPECT_EQ(graph.getLevel(5, 0), 33);
+    EXPECT_EQ(graph.getLevel(6, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, PositionChangePropagation)
+TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMoveRebuildsSingleGraph)
 {
-    PlayerChunkTracker tracker(5);
-    tracker.setPlayerPosition(0, 0);
-    tracker.processUpdates(1000);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
 
-    // 验证初始位置周围的级别
-    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(5)); // 28
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
+    EXPECT_EQ(manager.distanceGraph().getLevel(0, 0), viewDistanceToLevel(5));
 
-    // 移动到新位置
-    tracker.setPlayerPosition(10, 10);
-    tracker.processUpdates(1000);
-
-    // 新位置应该有低级别
-    EXPECT_EQ(tracker.getLevel(10, 10), viewDistanceToLevel(5));
-
-    // 旧位置应该恢复高级别
-    EXPECT_EQ(tracker.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
-}
-
-TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel)
-{
-    PlayerChunkTracker tracker(10);
-    tracker.setPlayerPosition(0, 0);
-    tracker.processUpdates(1000);
-
-    i32 oldLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(oldLevel, viewDistanceToLevel(10)); // 23
-
-    // 改变视距到更大值（票据级别降低）
-    // viewDistanceToLevel(15) = 18 < 23，应该能更新
-    tracker.setViewDistance(15);
-    tracker.processUpdates(1000);
-
-    // 级别应该更新为 18（更低的级别意味着更大的加载范围）
-    i32 newLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(newLevel, viewDistanceToLevel(15)); // 18
-    // 视距增大，级别降低
-    EXPECT_LT(newLevel, oldLevel);
-
-    // 验证距离传播
-    // 视距 15，ticketLevel = 18
-    // 距离 15 的区块级别 = 18 + 15 = 33 (Border)
-    EXPECT_EQ(tracker.getLevel(15, 0), 33);
-    EXPECT_EQ(tracker.getLevel(0, 15), 33);
-    // 距离 16 的区块级别 = 18 + 16 = 34 (MAX_LEVEL)
-    EXPECT_EQ(tracker.getLevel(16, 0), 34);
-}
-
-TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceDecreaseUpdatesLevel)
-{
-    PlayerChunkTracker tracker(15);
-    tracker.setPlayerPosition(0, 0);
-    tracker.processUpdates(1000);
-
-    const i32 oldLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(oldLevel, viewDistanceToLevel(15));
-    const i32 oldFarLevel = tracker.getLevel(7, 0);
-
-    // 视距缩小，票据级别应升高（加载范围变小）。
-    tracker.setViewDistance(6);
+    manager.updatePlayerPosition(1, 10, 10);
     for (i32 i = 0; i < 20; ++i) {
-        if (tracker.processUpdates(1000) == 0) {
+        if (manager.distanceGraph().getLevel(0, 0) == ChunkDistanceGraph::MAX_LEVEL &&
+            manager.distanceGraph().getLevel(10, 10) == viewDistanceToLevel(5)) {
             break;
         }
+        manager.processUpdates();
     }
 
-    const i32 newLevel = tracker.getLevel(0, 0);
-    EXPECT_EQ(newLevel, viewDistanceToLevel(6));
-    EXPECT_GT(newLevel, oldLevel);
-
-    // 距离 7 的区块应被提升到 MAX_LEVEL（不再加载）。
-    const i32 newFarLevel = tracker.getLevel(7, 0);
-    EXPECT_GE(newFarLevel, oldFarLevel);
-    EXPECT_EQ(newFarLevel, ChunkDistanceGraph::MAX_LEVEL);
+    EXPECT_EQ(manager.distanceGraph().getLevel(10, 10), viewDistanceToLevel(5));
+    EXPECT_EQ(manager.distanceGraph().getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, MultiplePositionUpdates)
+TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceChangeRebuildsPlayerSourceLevel)
 {
-    PlayerChunkTracker tracker(5);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(10);
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
 
-    std::vector<std::pair<ChunkCoord, ChunkCoord>> positions = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
+    EXPECT_EQ(manager.distanceGraph().getLevel(0, 0), viewDistanceToLevel(10));
 
-    for (const auto& [x, z] : positions) {
-        tracker.setPlayerPosition(x, z);
-        tracker.processUpdates(1000);
-        EXPECT_EQ(tracker.playerX(), x);
-        EXPECT_EQ(tracker.playerZ(), z);
+    manager.setViewDistance(15);
+    for (i32 i = 0; i < 20; ++i) {
+        manager.processUpdates();
     }
+
+    EXPECT_EQ(manager.distanceGraph().getLevel(0, 0), viewDistanceToLevel(15));
+    EXPECT_EQ(manager.distanceGraph().getLevel(15, 0), 33);
+    EXPECT_EQ(manager.distanceGraph().getLevel(16, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, LargeViewDistanceRange)
+TEST_F(ChunkLoadTicketManagerExtendedTest, TrackingPlayersFollowIndependentCoverageSet)
 {
-    PlayerChunkTracker tracker(32);
-    tracker.setPlayerPosition(0, 0);
-    tracker.processUpdates(10000);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(3);
 
-    // 验证大范围内的级别传播
-    EXPECT_EQ(tracker.getLevel(0, 0), viewDistanceToLevel(32)); // 1
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
+    EXPECT_TRUE(manager.isPlayerTracking(1, 3, 0));
+    EXPECT_FALSE(manager.isPlayerTracking(1, 4, 0));
 
-    // 边缘区块
-    EXPECT_EQ(tracker.getLevel(32, 0), 33);
-    EXPECT_EQ(tracker.getLevel(0, 32), 33);
-
-    // 超出范围
-    EXPECT_EQ(tracker.getLevel(33, 0), ChunkDistanceGraph::MAX_LEVEL);
+    manager.updatePlayerPosition(1, 10, 10);
+    manager.processUpdates();
+    EXPECT_FALSE(manager.isPlayerTracking(1, 0, 0));
+    EXPECT_TRUE(manager.isPlayerTracking(1, 13, 10));
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeAfterMove)
+TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersSameCenterKeepSourceUntilLastLeaves)
 {
-    PlayerChunkTracker tracker(5);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
 
-    // 初始位置
-    tracker.setPlayerPosition(0, 0);
-    EXPECT_TRUE(tracker.isChunkInRange(0, 0));
-    EXPECT_TRUE(tracker.isChunkInRange(5, 0));
-    EXPECT_FALSE(tracker.isChunkInRange(6, 0));
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.updatePlayerPosition(2, 0, 0);
+    manager.processUpdates();
 
-    // 移动到新位置
-    tracker.setPlayerPosition(10, 10);
-    EXPECT_TRUE(tracker.isChunkInRange(10, 10));
-    EXPECT_TRUE(tracker.isChunkInRange(15, 10));
-    EXPECT_FALSE(tracker.isChunkInRange(16, 10));
+    EXPECT_TRUE(manager.shouldChunkLoad(5, 0));
 
-    // 旧位置不在范围内
-    EXPECT_FALSE(tracker.isChunkInRange(0, 0));
+    manager.removePlayer(1);
+    manager.processUpdates();
+    EXPECT_TRUE(manager.shouldChunkLoad(5, 0));
+
+    manager.removePlayer(2);
+    for (i32 i = 0; i < 20; ++i) {
+        manager.processUpdates();
+    }
+    EXPECT_FALSE(manager.shouldChunkLoad(5, 0));
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, ChunksInRangeCount)
+TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceShrinkClearsOldPropagationTail)
 {
-    PlayerChunkTracker tracker(3);
-    tracker.setPlayerPosition(0, 0);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(10);
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
 
-    // 视距 3：7x7 = 49 个区块
-    EXPECT_EQ(tracker.chunksInRangeCount(), 49u);
+    EXPECT_TRUE(manager.shouldChunkLoad(10, 0));
 
-    tracker.setViewDistance(5);
-    // 视距 5：11x11 = 121 个区块
-    EXPECT_EQ(tracker.chunksInRangeCount(), 121u);
+    manager.setViewDistance(3);
+    for (i32 i = 0; i < 20; ++i) {
+        manager.processUpdates();
+    }
 
-    // 移动不影响数量
-    tracker.setPlayerPosition(100, 100);
-    EXPECT_EQ(tracker.chunksInRangeCount(), 121u);
+    EXPECT_TRUE(manager.shouldChunkLoad(3, 0));
+    EXPECT_FALSE(manager.shouldChunkLoad(10, 0));
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, EdgeCoordinates)
+TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedTicketAndPlayerSourceUseSingleMinimumLevel)
 {
-    PlayerChunkTracker tracker(5);
-    tracker.setPlayerPosition(0, 0);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
 
-    // 边缘坐标
-    EXPECT_TRUE(tracker.isChunkInRange(5, 5));
-    EXPECT_TRUE(tracker.isChunkInRange(-5, -5));
-    EXPECT_TRUE(tracker.isChunkInRange(5, -5));
-    EXPECT_TRUE(tracker.isChunkInRange(-5, 5));
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.forceChunk(0, 0, true);
+    manager.processUpdates();
 
-    // 刚好超出
-    EXPECT_FALSE(tracker.isChunkInRange(6, 5));
-    EXPECT_FALSE(tracker.isChunkInRange(5, 6));
-    EXPECT_FALSE(tracker.isChunkInRange(-6, -5));
+    const ChunkDistanceGraph& graph = manager.distanceGraph();
+    EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
+    EXPECT_EQ(graph.getLevel(2, 0), viewDistanceToLevel(5) + 2);
+    EXPECT_EQ(graph.getLevel(3, 0), viewDistanceToLevel(5) + 3);
+    EXPECT_EQ(graph.getLevel(6, 0), ChunkDistanceGraph::MAX_LEVEL);
 }
 
-TEST_F(PlayerChunkTrackerExtendedTest, TicketLevelConsistency)
+TEST_F(ChunkLoadTicketManagerExtendedTest, TrackingChangeCallbackReportsEnterAndLeave)
 {
-    PlayerChunkTracker tracker(10);
-    tracker.setPlayerPosition(50, 50);
-    tracker.processUpdates(1000);
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(2);
 
-    // 票据级别应该等于 viewDistanceToLevel(viewDistance)
-    EXPECT_EQ(tracker.ticketLevel(), viewDistanceToLevel(10));
-    EXPECT_EQ(tracker.getLevel(50, 50), tracker.ticketLevel());
-}
-
-TEST_F(PlayerChunkTrackerExtendedTest, LevelChangeCallbackIntegration)
-{
-    PlayerChunkTracker tracker(5);
-
-    std::vector<i32> levelsChanged;
-
-    tracker.setLevelChangeCallback([&](ChunkCoord, ChunkCoord, i32 oldLevel, i32 newLevel) {
-        if (oldLevel != newLevel) {
-            levelsChanged.push_back(newLevel);
-        }
+    std::vector<std::tuple<PlayerId, ChunkCoord, ChunkCoord, bool>> events;
+    manager.setTrackingChangeCallback([&](PlayerId playerId, ChunkCoord x, ChunkCoord z, bool isTracking) {
+        events.emplace_back(playerId, x, z, isTracking);
     });
 
-    tracker.setPlayerPosition(0, 0);
-    tracker.processUpdates(1000);
+    manager.updatePlayerPosition(1, 0, 0);
+    EXPECT_FALSE(events.empty());
 
-    EXPECT_FALSE(levelsChanged.empty());
-
-    // 检查是否有级别变化到我们的票据级别
-    bool hasTicketLevel = false;
-    for (i32 level : levelsChanged) {
-        if (level == tracker.ticketLevel()) {
-            hasTicketLevel = true;
+    bool sawEnterCenter = false;
+    for (const auto& [playerId, x, z, isTracking] : events) {
+        if (playerId == 1 && x == 0 && z == 0 && isTracking) {
+            sawEnterCenter = true;
             break;
         }
     }
-    EXPECT_TRUE(hasTicketLevel);
+    EXPECT_TRUE(sawEnterCenter);
+
+    events.clear();
+    manager.updatePlayerPosition(1, 10, 0);
+
+    bool sawLeaveOldCenter = false;
+    bool sawEnterNewCenter = false;
+    for (const auto& [playerId, x, z, isTracking] : events) {
+        if (playerId == 1 && x == 0 && z == 0 && !isTracking) {
+            sawLeaveOldCenter = true;
+        }
+        if (playerId == 1 && x == 10 && z == 0 && isTracking) {
+            sawEnterNewCenter = true;
+        }
+    }
+    EXPECT_TRUE(sawLeaveOldCenter);
+    EXPECT_TRUE(sawEnterNewCenter);
 }
 
 // ============================================================================
@@ -1395,7 +1253,7 @@ TEST_F(ChunkLoadTicketExtendedTest, DragonTypeTicket)
 
 TEST_F(ChunkLoadTicketExtendedTest, ForceTicksFlag)
 {
-    ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
+    ChunkLoadTicket ticket(TicketTypes::FORCED, 31, ChunkPos(0, 0));
     EXPECT_FALSE(ticket.isForceTicks());
 
     ticket.setForceTicks(true);
@@ -1440,11 +1298,11 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketTypeComparison)
 
 TEST_F(ChunkLoadTicketExtendedTest, TicketEquality)
 {
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
-    ChunkLoadTicket t2(TicketTypes::PLAYER, 31, ChunkPos(5, 10));
-    ChunkLoadTicket t3(TicketTypes::PLAYER, 31, ChunkPos(5, 11)); // 不同位置
-    ChunkLoadTicket t4(TicketTypes::PLAYER, 32, ChunkPos(5, 10)); // 不同级别
-    ChunkLoadTicket t5(TicketTypes::FORCED, 31, ChunkPos(5, 10)); // 不同类型
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(5, 10));
+    ChunkLoadTicket t2(TicketTypes::FORCED, 31, ChunkPos(5, 10));
+    ChunkLoadTicket t3(TicketTypes::FORCED, 31, ChunkPos(5, 11)); // 不同位置
+    ChunkLoadTicket t4(TicketTypes::FORCED, 32, ChunkPos(5, 10)); // 不同级别
+    ChunkLoadTicket t5(TicketTypes::UNKNOWN, 31, ChunkPos(5, 10)); // 不同类型
 
     EXPECT_EQ(t1, t2);
     EXPECT_NE(t1, t3);
@@ -1455,7 +1313,7 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketEquality)
 TEST_F(ChunkLoadTicketExtendedTest, TicketWithNegativeCoordinates)
 {
     // 测试负坐标
-    ChunkLoadTicket ticket(TicketTypes::PLAYER, 31, ChunkPos(-100, -200));
+    ChunkLoadTicket ticket(TicketTypes::FORCED, 31, ChunkPos(-100, -200));
     EXPECT_TRUE(ticket.hasChunkValue());
     EXPECT_EQ(ticket.chunkValue().x, -100);
     EXPECT_EQ(ticket.chunkValue().z, -200);
@@ -1464,9 +1322,9 @@ TEST_F(ChunkLoadTicketExtendedTest, TicketWithNegativeCoordinates)
 TEST_F(ChunkLoadTicketExtendedTest, TicketPriorityOrdering)
 {
     // 相同类型，不同级别
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
-    ChunkLoadTicket t2(TicketTypes::PLAYER, 32, ChunkPos(0, 0));
-    ChunkLoadTicket t3(TicketTypes::PLAYER, 33, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t2(TicketTypes::FORCED, 32, ChunkPos(0, 0));
+    ChunkLoadTicket t3(TicketTypes::FORCED, 33, ChunkPos(0, 0));
 
     // 级别小的优先级高
     EXPECT_TRUE(t1.hasHigherPriorityThan(t2));
@@ -1491,7 +1349,7 @@ TEST_F(ChunkLoadTicketExtendedTest, CustomComparator)
 TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes)
 {
     // 验证所有预定义票据类型
-    EXPECT_EQ(TicketTypes::PLAYER.name(), "player");
+    EXPECT_EQ(TicketTypes::FORCED.name(), "forced");
     EXPECT_EQ(TicketTypes::FORCED.name(), "forced");
     EXPECT_EQ(TicketTypes::PORTAL.name(), "portal");
     EXPECT_EQ(TicketTypes::POST_TELEPORT.name(), "post_teleport");
@@ -1501,7 +1359,6 @@ TEST_F(ChunkLoadTicketExtendedTest, AllPredefinedTicketTypes)
     EXPECT_EQ(TicketTypes::LIGHT.name(), "light");
 
     // 验证生命周期
-    EXPECT_EQ(TicketTypes::PLAYER.lifespan(), 0u);        // 永久
     EXPECT_EQ(TicketTypes::FORCED.lifespan(), 0u);        // 永久
     EXPECT_EQ(TicketTypes::PORTAL.lifespan(), 300u);      // 300 tick
     EXPECT_EQ(TicketTypes::POST_TELEPORT.lifespan(), 5u); // 5 tick
@@ -1521,7 +1378,7 @@ TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes)
     ChunkTicketSet set;
 
     // 添加多种类型的票据
-    set.addTicket(ChunkLoadTicket(TicketTypes::PLAYER, 31, ChunkPos(0, 0)));
+    set.addTicket(ChunkLoadTicket(TicketTypes::FORCED, 31, ChunkPos(0, 0)));
     set.addTicket(ChunkLoadTicket(TicketTypes::FORCED, 31, ChunkPos(0, 0)));
     set.addTicket(ChunkLoadTicket(TicketTypes::PORTAL, 32, ChunkPos(0, 0)));
     set.addTicket(ChunkLoadTicket(TicketTypes::LIGHT, 33, ChunkPos(0, 0)));
@@ -1568,8 +1425,8 @@ TEST_F(ChunkTicketSetExtendedTest, RemoveNonExistentTicket)
 {
     ChunkTicketSet set;
 
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
-    ChunkLoadTicket t2(TicketTypes::PLAYER, 31, ChunkPos(1, 1));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t2(TicketTypes::FORCED, 31, ChunkPos(1, 1));
 
     set.addTicket(t1);
     EXPECT_EQ(set.size(), 1u);
@@ -1590,7 +1447,7 @@ TEST_F(ChunkTicketSetExtendedTest, MinLevelAfterRemoval)
 {
     ChunkTicketSet set;
 
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
     ChunkLoadTicket t2(TicketTypes::FORCED, 32, ChunkPos(0, 0));
     ChunkLoadTicket t3(TicketTypes::PORTAL, 33, ChunkPos(0, 0));
 
@@ -1615,7 +1472,7 @@ TEST_F(ChunkTicketSetExtendedTest, DuplicateTicketHandling)
 {
     ChunkTicketSet set;
 
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
 
     // 添加相同票据多次
     set.addTicket(t1);
@@ -1625,7 +1482,7 @@ TEST_F(ChunkTicketSetExtendedTest, DuplicateTicketHandling)
     EXPECT_EQ(set.size(), 1u); // 只保留一个
 
     // 添加级别相同但值不同的票据
-    ChunkLoadTicket t2(TicketTypes::PLAYER, 31, ChunkPos(1, 1));
+    ChunkLoadTicket t2(TicketTypes::FORCED, 31, ChunkPos(1, 1));
     set.addTicket(t2);
     EXPECT_EQ(set.size(), 2u); // 不同票据
 }
@@ -1634,7 +1491,7 @@ TEST_F(ChunkTicketSetExtendedTest, TicketSetIterator)
 {
     ChunkTicketSet set;
 
-    ChunkLoadTicket t1(TicketTypes::PLAYER, 31, ChunkPos(0, 0));
+    ChunkLoadTicket t1(TicketTypes::FORCED, 31, ChunkPos(0, 0));
     ChunkLoadTicket t2(TicketTypes::FORCED, 32, ChunkPos(0, 0));
     ChunkLoadTicket t3(TicketTypes::PORTAL, 33, ChunkPos(0, 0));
 
@@ -1764,7 +1621,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced)
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
-    // 添加玩家（产生 PLAYER 票据）
+    // 添加玩家来源
     manager.updatePlayerPosition(1, 0, 0);
 
     // 强制加载一个区块
@@ -1801,12 +1658,12 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic)
     EXPECT_FALSE(manager.isForcedChunk(10, 20));
 }
 
-TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerTickets)
+TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerSources)
 {
     ChunkLoadTicketManager manager;
     manager.setViewDistance(5);
 
-    // 添加玩家（产生 PLAYER 票据）
+    // 添加玩家来源
     manager.updatePlayerPosition(1, 50, 50);
     manager.processUpdates();
 

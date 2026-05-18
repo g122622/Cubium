@@ -33,13 +33,13 @@
 namespace mc::world {
 
 // ============================================================================
-// 票据类型 - 定义不同来源的区块加载请求
+// 显式 Ticket 类型 - 定义非玩家来源的区块加载请求
 // ============================================================================
 
 /**
- * @brief 空类型，用于不需要值的票据类型
+ * @brief 空类型，用于不需要值的显式 ticket 类型
  *
- * 某些票据类型（如 START, DRAGON）不需要关联具体的值，
+ * 某些显式 ticket 类型（如 START, DRAGON）不需要关联具体的值，
  * 使用 Unit 作为模板参数。
  */
 struct Unit {
@@ -49,17 +49,21 @@ struct Unit {
 };
 
 /**
- * @brief 区块加载票据类型
+ * @brief 显式区块加载 ticket 类型
  *
- * 参考 Minecraft TicketType，定义不同来源的加载请求。
- * 票据类型用于区分加载原因和优先级。
+ * 参考 Minecraft TicketType，定义会直接存入 `ChunkTicketSet`
+ * 的显式加载请求类型。
  *
- * @tparam T 票据关联的值类型（如 ChunkPos、u32、Unit）
+ * 本文件只描述显式 ticket 来源，例如强制加载、传送门、光照等。
+ * 玩家加载来源不再表示为 ticket，而是由 `ChunkLoadTicketManager`
+ * 作为独立 player source 聚合后注入 `ChunkDistanceGraph`。
+ *
+ * @tparam T 显式 ticket 关联的值类型（如 ChunkPos、u32、Unit）
  *
  * @example
  * @code
- * // 创建玩家票据类型
- * auto playerType = ChunkLoadTicketType<ChunkPos>::create("player");
+ * // 创建永久票据类型
+ * auto forcedType = ChunkLoadTicketType<ChunkPos>::create("forced");
  *
  * // 创建带生命周期的票据类型
  * auto portalType = ChunkLoadTicketType<ChunkPos>::create("portal", 300); // 300 tick
@@ -72,7 +76,7 @@ public:
     using Comparator = std::function<bool(const T&, const T&)>;
 
     /**
-     * @brief 获取票据类型名称
+     * @brief 获取显式 ticket 类型名称
      * @return 类型名称字符串
      */
     [[nodiscard]] const std::string& name() const noexcept { return m_name; }
@@ -90,12 +94,12 @@ public:
     [[nodiscard]] const Comparator& comparator() const noexcept { return m_comparator; }
 
     /**
-     * @brief 创建不带生命周期的票据类型
+     * @brief 创建不带生命周期的显式 ticket 类型
      * @param name 类型名称（必须唯一）
      * @param comp 比较器函数
      * @return 票据类型实例
      *
-     * @note 不带生命周期的票据会一直存在直到被显式移除
+     * @note 不带生命周期的显式 ticket 会一直存在直到被显式移除
      */
     static ChunkLoadTicketType<T> create(const std::string& name, Comparator comp = defaultCompare)
     {
@@ -103,13 +107,13 @@ public:
     }
 
     /**
-     * @brief 创建带生命周期的票据类型
+     * @brief 创建带生命周期的显式 ticket 类型
      * @param name 类型名称（必须唯一）
      * @param lifespan 生命周期（tick 数），过期后自动移除
      * @param comp 比较器函数
      * @return 票据类型实例
      *
-     * @note 生命周期票据常用于临时加载（如传送门）
+     * @note 生命周期 ticket 常用于临时加载（如传送门）
      */
     static ChunkLoadTicketType<T> create(const std::string& name, u32 lifespan, Comparator comp = defaultCompare)
     {
@@ -135,18 +139,10 @@ private:
 };
 
 // ============================================================================
-// 预定义票据类型
+// 预定义显式 ticket 类型
 // ============================================================================
 
 namespace TicketTypes {
-/**
- * @brief 玩家加载票据
- *
- * 当玩家进入区块时添加，离开时移除。
- * 这是最常用的票据类型，用于加载玩家视距范围内的区块。
- */
-extern const ChunkLoadTicketType<ChunkPos> PLAYER;
-
 /**
  * @brief 强制加载票据
  *
@@ -198,9 +194,9 @@ extern const ChunkLoadTicketType<Unit> DRAGON;
 extern const ChunkLoadTicketType<ChunkPos> LIGHT;
 
 /**
- * @brief 初始化所有票据类型
+ * @brief 初始化所有显式 ticket 类型
  *
- * @note 必须在使用任何票据类型之前调用一次
+ * @note 必须在使用任何显式 ticket 类型之前调用一次
  */
 void initializeTicketTypes();
 } // namespace TicketTypes
@@ -210,10 +206,12 @@ void initializeTicketTypes();
 // ============================================================================
 
 /**
- * @brief 区块加载票据
+ * @brief 显式区块加载 ticket
  *
- * 代表一个区块加载请求，包含类型、级别和关联值。
- * 参考 Minecraft 的 Ticket 类。
+ * 代表一个会直接进入 `ChunkTicketSet` 的显式加载请求，
+ * 包含类型、级别和关联值。参考 Minecraft 的 Ticket 类。
+ *
+ * 玩家 source 不使用此类型建模。
  *
  * 票据级别说明：
  * - Level 越小，优先级越高
@@ -222,17 +220,17 @@ void initializeTicketTypes();
  * - Level == 33：加载边界
  * - Level >= 34：未加载
  *
- * @note 票据是不可变的，创建后无法修改
+ * @note 显式 ticket 是不可变的，创建后无法修改
  */
 class ChunkLoadTicket {
 public:
     ChunkLoadTicket() = default;
 
     /**
-     * @brief 构造票据
+     * @brief 构造显式 ticket
      * @tparam T 值类型
-     * @param type 票据类型
-     * @param level 票据级别
+     * @param type 显式 ticket 类型
+     * @param level ticket 级别
      * @param value 关联值
      */
     template <typename T>
@@ -288,10 +286,10 @@ public:
         return m_typeName < other.m_typeName;
     }
 
-    /** @brief 获取票据级别 */
+    /** @brief 获取 ticket 级别 */
     [[nodiscard]] i32 level() const noexcept { return m_level; }
 
-    /** @brief 获取票据类型名称 */
+    /** @brief 获取 ticket 类型名称 */
     [[nodiscard]] const std::string& typeName() const noexcept { return m_typeName; }
 
     /** @brief 获取区块值 */
@@ -336,15 +334,15 @@ private:
 };
 
 // ============================================================================
-// 票据集合 - 每个区块可以有多个票据
+// 显式 ticket 集合 - 每个区块可以有多个显式 ticket
 // ============================================================================
 
 /**
- * @brief 区块票据集合
+ * @brief 区块显式 ticket 集合
  *
- * 管理单个区块的所有票据，自动计算最小级别。
+ * 管理单个区块的所有显式 ticket，自动计算最小级别。
  *
- * @note 一个区块可以有多个票据，最终加载级别由级别最高的票据决定
+ * @note 一个区块可以有多个显式 ticket，最终 ticket 级别由最小 level 决定
  */
 class ChunkTicketSet {
 public:
@@ -408,8 +406,6 @@ enum class ChunkLoadLevel : i32 {
     Border = 33,        ///< 边界区块（实体不 tick）
     EntityTicking = 32, ///< 实体可以 tick
     Full = 31,          ///< 完全加载
-
-    PlayerTicket = 31, ///< 玩家票据级别
     MaxLevel = 34      ///< 最大级别
 };
 
