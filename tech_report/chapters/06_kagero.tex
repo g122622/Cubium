@@ -28,7 +28,14 @@ Java版Minecraft的GUI系统存在以下问题：
 
 \subsection{本项目实现}
 
-Kagero（陽炎）是自研的响应式UI引擎，采用模板编译和状态绑定设计，命名为Kagero寓意UI如热浪般流畅自然。
+Kagero（陽炎）是自研的响应式UI引擎，采用模板编译和状态绑定设计，命名为Kagero寓意UI如热浪般流畅自然。图\ref{fig:kagero_arch}展示了核心架构。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/kagero_ui.png}
+\caption{Kagero UI引擎架构。左图展示响应式状态管理：Reactive<T>自动通知观察者，Computed<T>依赖自动重算，StateStore批量更新避免多次重绘。右图展示模板编译流程：源码经词法分析、语法分析生成AST，再由编译器生成可执行的CompiledTemplate。}
+\label{fig:kagero_arch}
+\end{figure}
 
 \subsubsection{响应式状态管理}
 

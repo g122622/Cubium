@@ -37,7 +37,14 @@ T_{read} = T_{seek} + T_{decompress} + T_{parse}
 
 \subsection{本项目实现}
 
-本项目采用RocksDB作为底层存储引擎，结合Section粒度存储和多层缓存，实现高性能区块持久化。
+本项目采用RocksDB作为底层存储引擎，结合Section粒度存储和多层缓存，实现高性能区块持久化。图\ref{fig:chunk_storage}对比了原版Anvil格式与本项目的Section粒度存储设计。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/chunk_storage.png}
+\caption{存储粒度对比与Section数据格式。左图对比原版Anvil格式（整个区块为一个单元）与Section粒度存储（16个Section独立存储）。右图展示SectionKey和SectionData的二进制编码格式。}
+\label{fig:chunk_storage}
+\end{figure}
 
 \subsubsection{RocksDB存储引擎}
 

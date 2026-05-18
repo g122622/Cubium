@@ -28,7 +28,14 @@ Java版Minecraft使用OpenGL渲染，主要问题包括：
 
 \subsection{本项目实现}
 
-本项目实现了名为Trident的Vulkan渲染引擎，采用显式API控制、多线程网格构建和异步GPU上传。
+本项目实现了名为Trident的Vulkan渲染引擎，采用显式API控制、多线程网格构建和异步GPU上传。整体架构如图\ref{fig:vulkan_pipeline}所示。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/vulkan_pipeline.png}
+\caption{Trident Vulkan渲染管线架构。游戏线程提交区块更新到MeshBuildScheduler，调度器按优先级分发任务到MeshWorkerPool。工作线程构建网格后，通过上传队列异步传输到GPU。Vulkan帧渲染流程使用信号量和栅栏实现CPU-GPU同步。}
+\label{fig:vulkan_pipeline}
+\end{figure}
 
 \subsubsection{渲染引擎抽象}
 

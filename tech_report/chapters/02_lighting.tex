@@ -31,7 +31,16 @@ Java版Minecraft的光照引擎存在以下问题：
 
 \subsubsection{紧凑64位队列编码}
 
-光照传播使用两个FIFO数组队列（增加队列和减少队列），每个队列元素编码为64位整数：
+光照传播使用两个FIFO数组队列（增加队列和减少队列），每个队列元素编码为64位整数，如图\ref{fig:lighting_encoding}所示。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/lighting_system.png}
+\caption{光照系统核心设计。上图为64位队列元素编码格式，将坐标偏移、光照等级、传播方向和标志位紧凑编码。下图为双队列传播算法示意图，增亮队列和减暗队列协同工作，实现$O(n)$复杂度的光照传播。}
+\label{fig:lighting_encoding}
+\end{figure}
+
+每个队列元素编码为：
 
 \begin{equation}
 E_{queue} = \underbrace{x_{rel}}_{6位} \cdot 2^{0} + \underbrace{z_{rel}}_{6位} \cdot 2^{6} + \underbrace{y_{rel}}_{16位} \cdot 2^{12} + \underbrace{L}_{4位} \cdot 2^{28} + \underbrace{D}_{6位} \cdot 2^{32} + \underbrace{F}_{3位} \cdot 2^{38}

@@ -25,7 +25,14 @@ Java版Minecraft的性能分析依赖外部工具：
 
 \subsection{本项目实现}
 
-本项目集成Perfetto性能追踪SDK，实现低开销、高精度的性能观测。
+本项目集成Perfetto性能追踪SDK，实现低开销、高精度的性能观测。整体架构如图\ref{fig:perfetto_arch}所示。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{images/perfetto_system.png}
+\caption{Perfetto集成架构。左图展示追踪数据流：游戏代码通过TRACE\_EVENT宏记录事件，Perfetto管理器将数据写入环形缓冲区，最终输出为protobuf格式。右图展示50+追踪分类的层次结构。}
+\label{fig:perfetto_arch}
+\end{figure}
 
 \subsubsection{架构设计}
 
