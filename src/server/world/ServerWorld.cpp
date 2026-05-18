@@ -87,6 +87,8 @@ using mc::util::core::CoordConverter;
 
 ServerWorld::ServerWorld()
 {
+    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor");
+
     auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
     m_chunkManager->setViewDistance(m_config.viewDistance);

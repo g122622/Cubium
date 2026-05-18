@@ -155,81 +155,85 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     }
 
     // 创建世界
-    ServerWorldConfig worldConfig;
-    worldConfig.viewDistance = config.viewDistance;
-    worldConfig.dimension = 0; // 主世界
-    worldConfig.seed = static_cast<u64>(config.seed);
-    // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
+    {
+        MC_TRACE_EVENT("server.initialization", "IntegratedServer::createWorld");
 
-    m_world = std::make_unique<ServerWorld>(worldConfig);
-    m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
-                                sound::SoundCategory category,
-                                const Vector3& position,
-                                f32 volume,
-                                f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
-    m_world->setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
-                                        const Vector3& pos,
-                                        const Vector3& velocity,
-                                        const Vector3& offset,
-                                        u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
-    m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
-        Entity* entity = m_world->getEntity(entityId);
-        if (entity) {
-            broadcastEntityStatusInRange(entityId, status, entity->position());
-        }
-    });
-    m_world->setOnBroadcastWorldEvent(
-        [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
-    m_world->setOnBroadcastExplosion([this](const Vector3& position,
-                                         f32 strength,
-                                         const std::vector<BlockPos>& affectedBlocks,
-                                         const std::unordered_map<u64, Vector3>& playerKnockback) {
-        broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
-    });
+        ServerWorldConfig worldConfig;
+        worldConfig.viewDistance = config.viewDistance;
+        worldConfig.dimension = 0; // 主世界
+        worldConfig.seed = static_cast<u64>(config.seed);
+        // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
 
-    // 设置命令执行回调（用于命令方块矿车等实体执行命令）
-    // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
-    m_world->setOnExecuteCommand([this](const std::string& command,
-                                         const Vector3d& position,
-                                         i32 permissionLevel) -> i32 {
-        // 准备命令字符串（确保以 '/' 开头）
-        std::string cmd = command;
-        if (!cmd.empty() && cmd[0] != '/') {
-            cmd = "/" + cmd;
-        }
+        m_world = std::make_unique<ServerWorld>(worldConfig);
+        m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
+                                    sound::SoundCategory category,
+                                    const Vector3& position,
+                                    f32 volume,
+                                    f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
+        m_world->setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
+                                            const Vector3& pos,
+                                            const Vector3& velocity,
+                                            const Vector3& offset,
+                                            u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
+        m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
+            Entity* entity = m_world->getEntity(entityId);
+            if (entity) {
+                broadcastEntityStatusInRange(entityId, status, entity->position());
+            }
+        });
+        m_world->setOnBroadcastWorldEvent(
+            [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+        m_world->setOnBroadcastExplosion([this](const Vector3& position,
+                                            f32 strength,
+                                            const std::vector<BlockPos>& affectedBlocks,
+                                            const std::unordered_map<u64, Vector3>& playerKnockback) {
+            broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
+        });
 
-        // 创建命令源
-        // MC 1.16.5: 命令方块矿车命令源的权限级别为 2，无关联玩家
-        command::ServerCommandSource source(this,
-            nullptr,                    // 无关联玩家
-            m_world.get(),              // 世界实例
-            position,                   // 执行位置
-            Vector2f(0.0f, 0.0f),       // 朝向
-            permissionLevel,            // 权限级别（命令方块矿车为 2）
-            0,                          // 玩家ID（无玩家）
-            "@");                       // 名称（命令方块矿车显示为 "@"）
+        // 设置命令执行回调（用于命令方块矿车等实体执行命令）
+        // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
+        m_world->setOnExecuteCommand([this](const std::string& command,
+                                            const Vector3d& position,
+                                            i32 permissionLevel) -> i32 {
+            // 准备命令字符串（确保以 '/' 开头）
+            std::string cmd = command;
+            if (!cmd.empty() && cmd[0] != '/') {
+                cmd = "/" + cmd;
+            }
 
-        // 执行命令
-        auto result = m_commandRegistry->execute(cmd, source);
+            // 创建命令源
+            // MC 1.16.5: 命令方块矿车命令源的权限级别为 2，无关联玩家
+            command::ServerCommandSource source(this,
+                nullptr,                    // 无关联玩家
+                m_world.get(),              // 世界实例
+                position,                   // 执行位置
+                Vector2f(0.0f, 0.0f),       // 朝向
+                permissionLevel,            // 权限级别（命令方块矿车为 2）
+                0,                          // 玩家ID（无玩家）
+                "@");                       // 名称（命令方块矿车显示为 "@"）
 
-        if (result.failed()) {
-            spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
-            return 0;
-        }
+            // 执行命令
+            auto result = m_commandRegistry->execute(cmd, source);
 
-        return result.value();
-    });
+            if (result.failed()) {
+                spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+                return 0;
+            }
 
-    // 设置 TimeManager 引用
-    m_world->setTimeManager(m_timeManager.get());
+            return result.value();
+        });
 
-    // 设置难度回调（从 MinecraftServer 获取难度）
-    m_world->setDifficultyCallback([this]() { return this->difficulty(); });
+        // 设置 TimeManager 引用
+        m_world->setTimeManager(m_timeManager.get());
 
-    // 设置 LootTableManager 引用（用于爆炸时生成方块掉落）
-    m_world->setLootTableManager(&m_lootTableManager);
+        // 设置难度回调（从 MinecraftServer 获取难度）
+        m_world->setDifficultyCallback([this]() { return this->difficulty(); });
 
-    m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
+        // 设置 LootTableManager 引用（用于爆炸时生成方块掉落）
+        m_world->setLootTableManager(&m_lootTableManager);
+
+        m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
+    }
 
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {

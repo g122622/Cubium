@@ -25,6 +25,7 @@
 #include "../block/VanillaBlocks.hpp"
 #include "BiomeEffects.hpp"
 #include <algorithm>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -80,6 +81,8 @@ bool BiomeRegistry::hasBiome(BiomeId id) const
 
 void BiomeRegistry::registerDefaultBiomes()
 {
+    MC_TRACE_EVENT("server.initialization", "BiomeRegistry::registerDefaultBiomes");
+
     // 注册所有默认生物群系
 
     // === 基础生物群系 (0-13) ===

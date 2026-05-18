@@ -212,7 +212,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
 
-    MC_PRECONDITION(m_biomeProvider != nullptr);
+    MC_ASSERT_RELEASE(m_biomeProvider != nullptr);
     if (m_biomeProvider == nullptr) {
         spdlog::warn("[NoiseChunkGenerator] Injected biome provider is null, fallback to LayerBiomeProvider");
         m_biomeProvider = std::make_unique<LayerBiomeProvider>(seed);
@@ -230,6 +230,8 @@ NoiseChunkGenerator::~NoiseChunkGenerator() = default;
 
 void NoiseChunkGenerator::initNoiseGenerators()
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initNoiseGenerators");
+
     const NoiseSettings& noise = m_settings.noise;
 
     // 计算噪声尺寸
@@ -270,6 +272,8 @@ void NoiseChunkGenerator::initNoiseGenerators()
 
 void NoiseChunkGenerator::initBiomeWeights()
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initBiomeWeights");
+
     // 参考 MC 的 field_236081_j_ 查找表
     for (i32 dz = -2; dz <= 2; ++dz) {
         for (i32 dx = -2; dx <= 2; ++dx) {
@@ -282,6 +286,8 @@ void NoiseChunkGenerator::initBiomeWeights()
 
 void NoiseChunkGenerator::initGaussianLUT()
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGaussianLUT");
+
     if (s_gaussianLUTInitialized) {
         return;
     }
@@ -331,6 +337,8 @@ f64 NoiseChunkGenerator::calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz)
 
 void NoiseChunkGenerator::initCarvers()
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initCarvers");
+
     // 洞穴概率参考 MC: 1/7 ≈ 0.14285715
     m_caveCarver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
     m_caveConfig = ProbabilityConfig(0.14285715f);
@@ -346,6 +354,8 @@ void NoiseChunkGenerator::initCarvers()
 
 void NoiseChunkGenerator::initGenerationRegistries()
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGenerationRegistries");
+
     // 初始化结构管理器
     world::gen::structure::StructureRegistry::initialize();
     m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));

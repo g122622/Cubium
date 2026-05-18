@@ -383,6 +383,8 @@ void ChunkLoadTicketManager::tick()
 
 void ChunkLoadTicketManager::setViewDistance(i32 distance)
 {
+    MC_TRACE_EVENT("server.initialization", "ChunkLoadTicketManager::setViewDistance");
+
     const i32 clampedDistance = std::clamp(distance, 2, 32);
 
     if (m_viewDistance == clampedDistance) {

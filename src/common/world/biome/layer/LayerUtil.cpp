@@ -413,8 +413,10 @@ std::unique_ptr<LayerStack> createEndLayers(u64 seed)
 
 LayerBiomeProvider::LayerBiomeProvider(u64 seed, bool isLargeBiomes)
     : BiomeProvider(seed)
-    , m_layerStack(LayerUtil::createOverworldLayers(seed, isLargeBiomes))
-{}
+{
+    MC_TRACE_EVENT("server.initialization", "LayerBiomeProvider::Constructor", "seed", static_cast<i64>(seed), "isLargeBiomes", isLargeBiomes);
+    m_layerStack = LayerUtil::createOverworldLayers(seed, isLargeBiomes);
+}
 
 BiomeId LayerBiomeProvider::getBiome(i32 x, i32 y, i32 z) const
 {
