@@ -94,17 +94,22 @@ ClientApplication::~ClientApplication()
 
 Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 {
-    // 初始化性能追踪
-    mc::perfetto::TraceConfig traceConfig;
-    traceConfig.outputPath = "client_trace.perfetto-trace";
-    traceConfig.bufferSizeKb = 65536; // 64MB
-    mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
-    mc::perfetto::PerfettoManager::instance().startTracing();
+    const bool enablePerfettoTracing = !params.benchmarkExitAfterInitialize;
+    if (enablePerfettoTracing) {
+        // 初始化性能追踪
+        mc::perfetto::TraceConfig traceConfig;
+        traceConfig.outputPath = "client_trace.perfetto-trace";
+        traceConfig.bufferSizeKb = 65536; // 64MB
+        mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
+        mc::perfetto::PerfettoManager::instance().startTracing();
 
-    // 设置进程和主线程名称
-    mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
-    mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
-    spdlog::info("Perfetto tracing initialized");
+        // 设置进程和主线程名称
+        mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
+        mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
+        spdlog::info("Perfetto tracing initialized");
+    } else {
+        spdlog::info("Benchmark initialize-only mode enabled, skipping client perfetto tracing");
+    }
 
     MC_TRACE_EVENT("client.initialization", "ClientApplication::initialize");
 
@@ -173,6 +178,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     // 完成 Shell 初始化，进入主菜单
     if (!m_stateMachine.finishInitializing()) {
         return Error(ErrorCode::InvalidState, "Failed to transition to MainMenu state");
+    }
+
+    // benchmark 模式：只测 Shell 初始化，initialize 返回后立即退出
+    if (params.benchmarkExitAfterInitialize) {
+        spdlog::info("Benchmark initialize-only mode finished shell initialization, skipping main menu and gameplay");
+        m_initialized = true;
+        return Result<void>::ok();
     }
 
     // Quick-play 模式：直接启动世界
@@ -601,10 +613,12 @@ void ClientApplication::shutdown()
 
     m_window.destroy();
 
-    // 关闭性能追踪
-    mc::perfetto::PerfettoManager::instance().stopTracing();
-    mc::perfetto::PerfettoManager::instance().shutdown();
-    spdlog::info("Perfetto tracing stopped");
+    if (!m_launchParams.benchmarkExitAfterInitialize) {
+        // 关闭性能追踪
+        mc::perfetto::PerfettoManager::instance().stopTracing();
+        mc::perfetto::PerfettoManager::instance().shutdown();
+        spdlog::info("Perfetto tracing stopped");
+    }
 
     spdlog::info("Client stopped.");
 }

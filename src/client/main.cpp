@@ -101,6 +101,8 @@ void printHelp()
               << "  --skip-integrated   Skip integrated server (for external server)\n"
               << "  --quick-play <id>   Skip main menu and load world with given level ID\n"
               << "  --quick-play-new    Skip main menu and create a new world\n"
+              << "  --benchmark-exit-after-initialize\n"
+              << "                      Run only ClientApplication::initialize shell path, then exit\n"
               << std::endl;
 }
 
@@ -155,9 +157,12 @@ int main(int argc, char* argv[])
         if (arg == "--quick-play" && i + 1 < argc) {
             params.quickPlayLevelId = argv[++i];
         }
-        // if (arg == "--quick-play-new") {
-        params.quickPlayNew = true;
-        // }
+        if (arg == "--quick-play-new") {
+            params.quickPlayNew = true;
+        }
+        if (arg == "--benchmark-exit-after-initialize") {
+            params.benchmarkExitAfterInitialize = true;
+        }
     }
 
     try {
@@ -169,6 +174,11 @@ int main(int argc, char* argv[])
         if (initResult.failed()) {
             spdlog::error("Failed to initialize client: {}", initResult.error().toString());
             return 1;
+        }
+
+        if (params.benchmarkExitAfterInitialize) {
+            spdlog::info("Benchmark initialize-only run completed successfully");
+            return 0;
         }
 
         // 运行主循环

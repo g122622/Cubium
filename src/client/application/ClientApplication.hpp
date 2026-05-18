@@ -101,6 +101,7 @@ struct ClientLaunchParams {
     // 其他启动参数
     std::optional<std::string> settingsPath; // 自定义设置文件路径
     bool skipIntegratedServer = false;       // 跳过内置服务器
+    bool benchmarkExitAfterInitialize = false; // benchmark 模式：initialize 完成后立即退出
 
     // Quick-play 选项（跳过主菜单直接进入世界）
     std::optional<std::string> quickPlayLevelId; // 直接加载指定世界
@@ -124,7 +125,7 @@ public:
      *
      * @param params 启动参数（可选覆盖）
      */
-    [[nodiscard]] Result<void> initialize(const ClientLaunchParams& params = {});
+    [[nodiscard]] Result<void> initialize(const ClientLaunchParams& params);
 
     /**
      * @brief 运行客户端主循环

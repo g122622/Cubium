@@ -5,6 +5,7 @@ add_executable(mc_benchmarks
     BenchmarkRegistry.cpp
     BenchmarkResultWriter.cpp
     BenchmarkRunner.cpp
+    cases/ClientInitializeBenchmark.cpp
     cases/ChunkGenerationBenchmark.cpp
     # cases/ChunkMeshBenchmark.cpp - 暂时禁用，依赖客户端渲染模块
     cases/LightingBenchmark.cpp

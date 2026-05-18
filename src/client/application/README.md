@@ -95,6 +95,7 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 | `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
 | `quickPlayLevelId` | `std::optional<std::string>` | Quick-play：直接加载指定世界 |
 | `quickPlayNew` | `bool` | Quick-play：直接创建新世界 |
+| `benchmarkExitAfterInitialize` | `bool` | benchmark 模式：只执行 shell 初始化并在 `initialize()` 返回后退出 |
 
 #### ClientApplication 类
 
@@ -192,6 +193,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 12. **物理引擎** - 创建 PhysicsEngine
 13. **玩家实体** - 创建 Player 实体
 14. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层，包括准星目标信息覆盖层
+
+#### benchmark 初始化退出模式
+
+- 当命令行传入 `--benchmark-exit-after-initialize` 时，客户端只执行 shell 初始化。
+- 该模式不会进入 Quick-play，不会显示主菜单，不会启动游戏会话，不会连接内置服务端。
+- `initialize()` 成功返回后，`main.cpp` 会直接退出进程，让 benchmark 进程以外部进程生命周期测量启动耗时。
+- 该模式下客户端不会初始化自己的 Perfetto trace，但仍保留正常日志和 `shutdown()` 清理流程。
 
 #### 音频线程协作
 

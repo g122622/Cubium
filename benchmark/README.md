@@ -16,6 +16,7 @@ benchmark/
 ├── scripts/
 │   └── visualize.py            # 基于统一 CSV 生成每个 case 的图像
 └── cases/
+    ├── ClientInitializeBenchmark.cpp # 启动外部 minecraft-client 进程并测量 initialize 完成退出耗时
     ├── ChunkGenerationBenchmark.cpp  # 区块生成性能测试
     ├── LightingBenchmark.cpp         # 光照引擎性能测试
     └── ChunkMeshBenchmark.cpp        # 区块网格生成（暂时禁用）
@@ -36,6 +37,7 @@ flowchart TB
     subgraph 用例
         Registry --> ChunkGen[ChunkGenerationBenchmark]
         Registry --> Lighting[LightingBenchmark]
+        Registry --> ClientInit[ClientInitializeBenchmark]
     end
 
     subgraph 依赖
@@ -43,6 +45,7 @@ flowchart TB
         ChunkGen --> VanillaBlocks[common/world/block]
         Lighting --> WorldLight[world/lighting 模块]
         Lighting --> VanillaBlocks
+        ClientInit --> ClientExe[minecraft-client.exe]
     end
 ```
 
@@ -89,6 +92,19 @@ flowchart TB
         "seed": 12345,
         "chunkX": 0,
         "chunkZ": 0
+      }
+    },
+    {
+      "name": "client_initialize",
+      "threadCount": 1,
+      "measurement": {
+        "warmupIterations": 1,
+        "measuredIterations": 3,
+        "minDurationMs": 1
+      },
+      "parameters": {
+        "clientExecutable": "build/bin/RelWithDebInfo/minecraft-client.exe",
+        "timeoutMs": 300000
       }
     }
   ]
@@ -201,6 +217,20 @@ const bool g_registered = []() {
 
 参数：
 - `updatesPerIteration`：每次迭代的光照更新数量
+
+### ClientInitializeBenchmark
+
+测试外部 `minecraft-client.exe` 从进程启动到 `ClientApplication::initialize` 完成并退出的耗时。
+
+参数：
+- `clientExecutable`：客户端可执行文件路径，必填
+- `timeoutMs`：单次启动超时时间，选填，默认 300000
+
+实现约束：
+- benchmark 框架不会链接 client 目标
+- case 会硬编码附加 `--benchmark-exit-after-initialize`
+- client 在该模式下只做 shell 初始化，不进入世界、不连接服务器、不运行主循环
+- client 自身不写 perfetto trace，但仍执行正常 shutdown 收尾
 
 ### ChunkMeshBenchmark（暂时禁用）
 

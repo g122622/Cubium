@@ -38,6 +38,19 @@
       "parameters": {
         "updatesPerIteration": 1024
       }
+    },
+    {
+      "name": "client_initialize",
+      "threadCount": 1,
+      "measurement": {
+        "warmupIterations": 0,
+        "measuredIterations": 10,
+        "minDurationMs": 1
+      },
+      "parameters": {
+        "clientExecutable": "E:/dev/minecraft-reborn-branch-1/build/bin/RelWithDebInfo/minecraft-client.exe",
+        "timeoutMs": 300000
+      }
     }
   ]
 }

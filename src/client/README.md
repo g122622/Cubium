@@ -740,6 +740,7 @@ cmake --build --preset windows-clang-relwithdebinfo
 | `--skip-integrated` | 跳过内置服务器（连接外部服务器时使用） |
 | `--quick-play <id>` | 跳过主菜单，直接加载指定世界 |
 | `--quick-play-new` | 跳过主菜单，直接创建新世界 |
+| `--benchmark-exit-after-initialize` | 只执行 `ClientApplication::initialize` 的 shell 初始化路径，然后立即退出 |
 
 ```powershell
 # Quick-play 示例
