@@ -97,8 +97,8 @@ StructureBlock::StructureBlock(const BlockProperties& properties)
     // 参考 MC 1.16.5: StructureBlock.fillStateContainer() - builder.add(MODE)
     auto container = StateContainer<Block, BlockState>::Builder(*this)
                          .add(BlockStateProperties::STRUCTURE_MODE())
-                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 
@@ -146,8 +146,8 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
 {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
-        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
+        [](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
         });
     createBlockState(std::move(container));
 }
@@ -182,8 +182,8 @@ CommandBlock::CommandBlock(const BlockProperties& properties)
                          .add(BlockStateProperties::FACING())
                          .add(BlockStateProperties::CONDITIONAL())
                          .add(BlockStateProperties::POWERED())
-                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 

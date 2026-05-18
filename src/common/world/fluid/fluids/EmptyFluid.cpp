@@ -32,9 +32,14 @@ EmptyFluid::EmptyFluid()
 {
     // 空流体没有任何属性，创建空的状态容器
     auto container =
-        StateContainer<Fluid, FluidState>::Builder(*this).create([this](const Fluid& fluid, auto values, u32 id) {
-            return std::make_unique<FluidState>(fluid, std::move(values), id);
-        });
+        StateContainer<Fluid, FluidState>::Builder(*this).create(
+            [this](const Fluid& fluid,
+                auto values,
+                const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
+                const std::vector<FluidState*>* allStates,
+                u32 id) {
+                return std::make_unique<FluidState>(fluid, std::move(values), propertyLayouts, allStates, id);
+            });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());
 }

@@ -45,7 +45,7 @@ public:
         : Block(BlockProperties(Material::ROCK))
     {
         auto container = StateContainer<Block, BlockState>::Builder(*this).create(
-            [](const Block& block, auto values, u32 id) { return std::make_unique<BlockState>(block, values, id); });
+            [](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
         createBlockState(std::move(container));
     }
 

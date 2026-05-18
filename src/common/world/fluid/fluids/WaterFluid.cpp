@@ -162,8 +162,12 @@ WaterSourceFluid::WaterSourceFluid()
     // 源头没有LEVEL属性，只有FALLING
     auto container = StateContainer<Fluid, FluidState>::Builder(*this)
                          .add(FluidProperties::FALLING())
-                         .create([this](const Fluid& fluid, auto values, u32 id) {
-                             return std::make_unique<FluidState>(fluid, std::move(values), id);
+                         .create([this](const Fluid& fluid,
+                                          auto values,
+                                          const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
+                                          const std::vector<FluidState*>* allStates,
+                                          u32 id) {
+                             return std::make_unique<FluidState>(fluid, std::move(values), propertyLayouts, allStates, id);
                          });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());
@@ -188,8 +192,12 @@ WaterFlowingFluid::WaterFlowingFluid()
     auto container = StateContainer<Fluid, FluidState>::Builder(*this)
                          .add(FluidProperties::LEVEL_1_8())
                          .add(FluidProperties::FALLING())
-                         .create([this](const Fluid& fluid, auto values, u32 id) {
-                             return std::make_unique<FluidState>(fluid, std::move(values), id);
+                         .create([this](const Fluid& fluid,
+                                          auto values,
+                                          const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
+                                          const std::vector<FluidState*>* allStates,
+                                          u32 id) {
+                             return std::make_unique<FluidState>(fluid, std::move(values), propertyLayouts, allStates, id);
                          });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());

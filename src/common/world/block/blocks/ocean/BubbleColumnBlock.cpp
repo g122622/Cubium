@@ -45,8 +45,8 @@ BubbleColumnBlock::BubbleColumnBlock(const BlockProperties& properties)
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::DRAG())
-            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
+            .create([this](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 

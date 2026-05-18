@@ -59,9 +59,8 @@ bool StatePropertiesPredicate::Matcher::match(const BlockState& state) const
     }
 
     // 检查方块状态是否有此属性
-    const auto& values = state.values();
-    auto it = values.find(property);
-    if (it == values.end()) {
+    const auto valueIndex = state.getValueIndex(*property);
+    if (!valueIndex.has_value()) {
         // 状态中没有此属性
         return false;
     }
@@ -101,14 +100,13 @@ bool StatePropertiesPredicate::ExactMatcher::matchExact(const BlockState& state,
     }
 
     // 获取当前属性值索引
-    const auto& values = state.values();
-    auto it = values.find(property);
-    if (it == values.end()) {
+    const auto valueIndex = state.getValueIndex(*property);
+    if (!valueIndex.has_value()) {
         return false;
     }
 
     // 比较索引值
-    return it->second == *optIndex;
+    return *valueIndex == *optIndex;
 }
 
 // ============================================================================
@@ -147,13 +145,12 @@ std::unique_ptr<StatePropertiesPredicate::Matcher> StatePropertiesPredicate::Ran
 bool StatePropertiesPredicate::RangedMatcher::matchExact(const BlockState& state, const IProperty* property) const
 {
     // 获取当前属性值索引
-    const auto& values = state.values();
-    auto it = values.find(property);
-    if (it == values.end()) {
+    const auto valueIndex = state.getValueIndex(*property);
+    if (!valueIndex.has_value()) {
         return false;
     }
 
-    size_t currentIndex = it->second;
+    size_t currentIndex = *valueIndex;
     std::string currentValueStr = property->valueToString(currentIndex);
 
     // 检查最小值

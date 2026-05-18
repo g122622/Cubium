@@ -1241,8 +1241,8 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
 
                 bool matches = true;
                 for (const auto& [prop, index] : wanted) {
-                    const auto it = candidate->values().find(prop);
-                    if (it == candidate->values().end() || it->second != index) {
+                    const auto valueIndex = candidate->getValueIndex(*prop);
+                    if (!valueIndex.has_value() || *valueIndex != index) {
                         matches = false;
                         break;
                     }
@@ -1721,18 +1721,18 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
             const IProperty* facingProp = sourceContainer.getProperty("facing");
             const IProperty* targetFacingProp = targetContainer.getProperty("facing");
             if (facingProp && targetFacingProp) {
-                auto valueIndexIt = state->values().find(facingProp);
-                if (valueIndexIt != state->values().end()) {
+                auto valueIndex = state->getValueIndex(*facingProp);
+                if (valueIndex.has_value()) {
                     // 尝试在目标方块上设置相同属性值
-                    size_t sourceIndex = valueIndexIt->second;
+                    size_t sourceIndex = *valueIndex;
                     std::string valueStr = facingProp->valueToString(sourceIndex);
                     auto parsedValue = targetFacingProp->parseValue(valueStr);
                     if (parsedValue) {
                         // 遍历目标方块的所有状态，找到具有目标属性值的状态
                         for (const auto& candidate : targetContainer.validStates()) {
                             if (!candidate) continue;
-                            auto targetValueIt = candidate->values().find(targetFacingProp);
-                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                            auto targetValueIndex = candidate->getValueIndex(*targetFacingProp);
+                            if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
                                 break;
                             }
@@ -1745,25 +1745,27 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
             const IProperty* halfProp = sourceContainer.getProperty("half");
             const IProperty* targetHalfProp = targetContainer.getProperty("half");
             if (halfProp && targetHalfProp && targetState) {
-                auto valueIndexIt = state->values().find(halfProp);
-                if (valueIndexIt != state->values().end()) {
-                    size_t sourceIndex = valueIndexIt->second;
+                auto valueIndex = state->getValueIndex(*halfProp);
+                if (valueIndex.has_value()) {
+                    size_t sourceIndex = *valueIndex;
                     std::string valueStr = halfProp->valueToString(sourceIndex);
                     auto parsedValue = targetHalfProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
                             if (!candidate) continue;
                             // 检查是否保持 FACING 值
-                            auto targetFacingValueIt = candidate->values().find(targetFacingProp);
-                            auto sourceFacingValueIt = targetState->values().find(targetFacingProp);
+                            auto targetFacingValueIndex =
+                                targetFacingProp ? candidate->getValueIndex(*targetFacingProp) : std::nullopt;
+                            auto sourceFacingValueIndex =
+                                targetFacingProp ? targetState->getValueIndex(*targetFacingProp) : std::nullopt;
                             bool facingMatches = (targetFacingProp == nullptr) ||
-                                (targetFacingValueIt != candidate->values().end() &&
-                                    sourceFacingValueIt != targetState->values().end() &&
-                                    targetFacingValueIt->second == sourceFacingValueIt->second);
+                                (targetFacingValueIndex.has_value() &&
+                                    sourceFacingValueIndex.has_value() &&
+                                    *targetFacingValueIndex == *sourceFacingValueIndex);
                             if (!facingMatches) continue;
 
-                            auto targetValueIt = candidate->values().find(targetHalfProp);
-                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                            auto targetValueIndex = candidate->getValueIndex(*targetHalfProp);
+                            if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
                                 break;
                             }
@@ -1776,16 +1778,16 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
             const IProperty* typeProp = sourceContainer.getProperty("type");
             const IProperty* targetTypeProp = targetContainer.getProperty("type");
             if (typeProp && targetTypeProp && targetState) {
-                auto valueIndexIt = state->values().find(typeProp);
-                if (valueIndexIt != state->values().end()) {
-                    size_t sourceIndex = valueIndexIt->second;
+                auto valueIndex = state->getValueIndex(*typeProp);
+                if (valueIndex.has_value()) {
+                    size_t sourceIndex = *valueIndex;
                     std::string valueStr = typeProp->valueToString(sourceIndex);
                     auto parsedValue = targetTypeProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
                             if (!candidate) continue;
-                            auto targetValueIt = candidate->values().find(targetTypeProp);
-                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                            auto targetValueIndex = candidate->getValueIndex(*targetTypeProp);
+                            if (targetValueIndex.has_value() && *targetValueIndex == *parsedValue) {
                                 targetState = candidate.get();
                                 break;
                             }

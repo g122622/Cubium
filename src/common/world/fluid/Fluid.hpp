@@ -72,14 +72,18 @@ public:
      * 创建一个空的流体状态。主要用于 STL 容器支持。
      */
     FluidState()
-        : StateHolder<Fluid, FluidState>(nullptr, {}, 0)
+        : StateHolder<Fluid, FluidState>(nullptr, {}, nullptr, nullptr, 0)
         , m_fluidId(0)
     {}
 
     /**
      * @brief 构造流体状态
      */
-    FluidState(const Fluid& fluid, std::unordered_map<const IProperty*, size_t> values, u32 stateId);
+    FluidState(const Fluid& fluid,
+        std::vector<size_t> valueIndices,
+        const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
+        const std::vector<FluidState*>* allStates,
+        u32 stateId);
 
     // ========== 流体属性 ==========
 

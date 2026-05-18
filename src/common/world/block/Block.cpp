@@ -287,8 +287,8 @@ Block::Block(BlockProperties properties)
     // 这与 Java 版 StateContainer 行为一致，可避免遗漏 createBlockState()
     // 时在注册阶段出现空指针崩溃。
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
-        [](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
+        [](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
         });
     createBlockState(std::move(container));
 }

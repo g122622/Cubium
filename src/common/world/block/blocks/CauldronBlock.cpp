@@ -51,8 +51,8 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
                          .add(BlockStateProperties::LEVEL_0_3())
-                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 

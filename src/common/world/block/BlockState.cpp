@@ -39,8 +39,12 @@ namespace mc {
 // BlockState
 // ============================================================================
 
-BlockState::BlockState(const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 stateId)
-    : StateHolder<Block, BlockState>(&block, std::move(values), stateId)
+BlockState::BlockState(const Block& block,
+    std::vector<size_t> valueIndices,
+    const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+    const std::vector<BlockState*>* allStates,
+    u32 stateId)
+    : StateHolder<Block, BlockState>(&block, std::move(valueIndices), propertyLayouts, allStates, stateId)
 {
     cacheProperties();
 }
@@ -139,16 +143,16 @@ const BlockSoundType& BlockState::getSoundType() const
 
 std::string BlockState::toModelKey() const
 {
-    if (m_values.empty()) {
+    if (m_valueIndices.empty()) {
         return "";
     }
 
     // 按属性名排序，确保模型键稳定且与资源系统缓存键一致
     // 直接拼接字符串，避免 ostringstream 的格式化和分配开销。
     std::vector<std::pair<const IProperty*, size_t>> sortedValues;
-    sortedValues.reserve(m_values.size());
-    for (const auto& entry : m_values) {
-        sortedValues.emplace_back(entry.first, entry.second);
+    sortedValues.reserve(m_propertyLayouts.size());
+    for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
+        sortedValues.emplace_back(m_propertyLayouts[i].property, m_valueIndices[i]);
     }
 
     std::sort(sortedValues.begin(), sortedValues.end(), [](const auto& a, const auto& b) {

@@ -19,7 +19,7 @@ Java版Minecraft的光照引擎存在以下问题：
 \begin{enumerate}
     \item \textbf{优先级队列开销}：使用\texttt{MergingPriorityQueue}进行传播，每次插入和取出操作的时间复杂度为$O(\log n)$，当光照更新涉及数千个方块时，队列操作成为瓶颈
     \item \textbf{数据布局分散}：光照数据存储在独立的\texttt{ChunkNibbleArray}对象中，与区块数据分离，导致缓存不友好
-    \item \textbf{状态管理复杂}：存在多个中间状态（如\texttt{INIT}、\texttt{QUEUED}、\texttt{IN_PROGRESS}等），状态转换逻辑复杂且容易出错
+    \item \textbf{状态管理复杂}：存在多个中间状态（如\texttt{INIT}、\texttt{QUEUED}、\texttt{IN\_PROGRESS}等），状态转换逻辑复杂且容易出错
     \item \textbf{主线程阻塞}：光照更新在主线程执行，大量光照计算会导致帧率下降
 \end{enumerate}
 

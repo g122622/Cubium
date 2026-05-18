@@ -42,8 +42,8 @@ BrewingStandBlock::BrewingStandBlock(const BlockProperties& properties)
                          .add(BlockStateProperties::HAS_BOTTLE_0())
                          .add(BlockStateProperties::HAS_BOTTLE_1())
                          .add(BlockStateProperties::HAS_BOTTLE_2())
-                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 

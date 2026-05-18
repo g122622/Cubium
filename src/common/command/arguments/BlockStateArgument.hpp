@@ -237,8 +237,8 @@ private:
 
                 bool matches = true;
                 for (const auto& [prop, index] : wantedProps) {
-                    const auto it = candidate->values().find(prop);
-                    if (it == candidate->values().end() || it->second != index) {
+                    const auto valueIndex = candidate->getValueIndex(*prop);
+                    if (!valueIndex.has_value() || *valueIndex != index) {
                         matches = false;
                         break;
                     }

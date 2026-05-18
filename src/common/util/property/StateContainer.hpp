@@ -36,6 +36,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -58,8 +59,8 @@ namespace mc {
 template <typename Owner, typename State>
 class StateContainer {
 public:
-    using StateFactory =
-        std::function<std::unique_ptr<State>(const Owner&, std::unordered_map<const IProperty*, size_t>, u32)>;
+    using StateFactory = std::function<std::unique_ptr<State>(
+        const Owner&, std::vector<size_t>, const std::vector<typename StateHolder<Owner, State>::PropertyLayout>*, const std::vector<State*>*, u32)>;
 
     /**
      * @brief 构建器
@@ -211,6 +212,8 @@ public:
     }
 
 private:
+    using PropertyLayout = typename StateHolder<Owner, State>::PropertyLayout;
+
     StateContainer(Owner& owner,
         std::unordered_map<std::string, const IProperty*> propertiesToTransfer,
         std::vector<std::unique_ptr<IProperty>> ownedProperties,
@@ -232,60 +235,36 @@ private:
         for (const auto* prop : props) {
             totalStates *= prop->valueCount();
         }
-        m_states.reserve(totalStates);
-        std::vector<size_t> indices(props.size(), 0);
-        std::unordered_map<const IProperty*, size_t> values;
+
+        m_propertyLayouts.clear();
+        m_propertyLayouts.reserve(props.size());
+
+        size_t stride = 1;
         for (const auto* prop : props) {
-            values[prop] = 0;
+            m_propertyLayouts.push_back(PropertyLayout{prop, m_propertyLayouts.size(), stride});
+            stride *= prop->valueCount();
         }
-        std::vector<std::pair<std::unordered_map<const IProperty*, size_t>, State*>> stateMap;
-        stateMap.reserve(totalStates);
+
+        m_states.reserve(totalStates);
+        m_statePointers.clear();
+        m_statePointers.reserve(totalStates);
 
         u32 stateId = 0;
-        while (true) {
-            auto state = factory(m_owner, values, stateId);
-            stateMap.emplace_back(values, state.get());
+        for (size_t flatIndex = 0; flatIndex < totalStates; ++flatIndex) {
+            std::vector<size_t> valueIndices(props.size(), 0);
+            size_t remaining = flatIndex;
+            for (size_t propIndex = 0; propIndex < props.size(); ++propIndex) {
+                const size_t valueCount = props[propIndex]->valueCount();
+                valueIndices[propIndex] = remaining % valueCount;
+                remaining /= valueCount;
+            }
+
+            auto state = factory(m_owner, std::move(valueIndices), &m_propertyLayouts, &m_statePointers, stateId);
+            m_statePointers.push_back(state.get());
             m_states.push_back(std::move(state));
             stateId++;
-            size_t propIndex = 0;
-            while (propIndex < props.size()) {
-                indices[propIndex]++;
-                if (indices[propIndex] < props[propIndex]->valueCount()) {
-                    values[props[propIndex]] = indices[propIndex];
-                    break;
-                }
-                indices[propIndex] = 0;
-                values[props[propIndex]] = 0;
-                propIndex++;
-            }
-            if (propIndex >= props.size()) break;
         }
 
-        for (auto& [vals, state] : stateMap) {
-            std::unordered_map<const IProperty*, std::vector<const State*>> transitions;
-            for (const auto* prop : props) {
-                std::vector<const State*> valueTransitions(prop->valueCount(), nullptr);
-                for (size_t i = 0; i < prop->valueCount(); ++i) {
-                    auto targetValues = vals;
-                    targetValues[prop] = i;
-                    for (auto& [targetVals, targetState] : stateMap) {
-                        bool match = true;
-                        for (const auto* p : props) {
-                            if (targetValues[p] != targetVals[p]) {
-                                match = false;
-                                break;
-                            }
-                        }
-                        if (match) {
-                            valueTransitions[i] = targetState;
-                            break;
-                        }
-                    }
-                }
-                transitions[prop] = std::move(valueTransitions);
-            }
-            state->initTransitions(std::move(transitions));
-        }
         for (const auto& state : m_states) {
             m_stateIdMap[state->stateId()] = state.get();
         }
@@ -295,6 +274,8 @@ private:
     std::unordered_map<std::string, const IProperty*> m_properties;
     std::vector<std::unique_ptr<IProperty>> m_ownedProperties;
     std::vector<std::unique_ptr<State>> m_states;
+    std::vector<State*> m_statePointers;
+    std::vector<PropertyLayout> m_propertyLayouts;
     std::unordered_map<u32, State*> m_stateIdMap;
 };
 

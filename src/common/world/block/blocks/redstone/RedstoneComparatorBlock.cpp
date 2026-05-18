@@ -77,8 +77,8 @@ RedstoneComparatorBlock::RedstoneComparatorBlock(const BlockProperties& properti
                          .add(BlockStateProperties::HORIZONTAL_FACING())
                          .add(BlockStateProperties::POWERED())
                          .add(MODE_PROP())
-                         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 

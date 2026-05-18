@@ -354,8 +354,8 @@ private:
  * public:
  *     StoneBlock() : Block(BlockProperties(Material::ROCK).hardness(1.5f)) {
  *         auto container = StateContainer<Block, BlockState>::Builder(*this)
- *             .create([](const Block& block, auto values, u32 id) {
- *                 return std::make_unique<BlockState>(block, values, id);
+ *             .create([](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+ *                 return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
  *             });
  *         createBlockState(std::move(container));
  *     }

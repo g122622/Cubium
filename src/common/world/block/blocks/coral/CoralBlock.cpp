@@ -72,8 +72,8 @@ CoralBlock::CoralBlock(CoralColor color, u32 deadBlock, const BlockProperties& p
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::WATERLOGGED())
-            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
+            .create([this](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -154,8 +154,8 @@ CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockPropert
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::WATERLOGGED())
             .add(BlockStateProperties::HORIZONTAL_FACING())
-            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
+            .create([this](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -272,8 +272,8 @@ CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const Bloc
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::WATERLOGGED())
             .add(BlockStateProperties::FACING())
-            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), id);
+            .create([this](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 

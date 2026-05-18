@@ -39,8 +39,12 @@ namespace fluid {
 // FluidState 实现
 // ============================================================================
 
-FluidState::FluidState(const Fluid& fluid, std::unordered_map<const IProperty*, size_t> values, u32 stateId)
-    : StateHolder<Fluid, FluidState>(&fluid, std::move(values), stateId)
+FluidState::FluidState(const Fluid& fluid,
+    std::vector<size_t> valueIndices,
+    const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
+    const std::vector<FluidState*>* allStates,
+    u32 stateId)
+    : StateHolder<Fluid, FluidState>(&fluid, std::move(valueIndices), propertyLayouts, allStates, stateId)
 {
     m_fluidId = fluid.fluidId();
 }

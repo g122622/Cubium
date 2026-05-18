@@ -88,6 +88,69 @@
 
 \textbf{shrink\_to\_fit}：释放多余容量，减少内存占用。
 
+\subsubsection{方块状态系统紧凑化}
+
+Minecraft中的\texttt{BlockState}和\texttt{FluidState}是典型的高频小对象：方块注册时会为每个方块预生成所有合法状态组合，后续世界存储、渲染、命令解析、结构放置、掉落表匹配等系统都频繁访问这些状态。如果每个状态都额外持有多张哈希表，则会显著放大内存占用，并降低缓存局部性。
+
+\textbf{原始设计问题}：项目早期的\texttt{StateHolder}为每个状态保存两类动态结构：
+\begin{itemize}
+    \item \texttt{unordered\_map<const IProperty*, size\_t>}：记录每个属性当前取值的索引
+    \item \texttt{unordered\_map<const IProperty*, vector<const State*>>}：记录\texttt{with()}状态切换的跳转表
+\end{itemize}
+
+这种设计虽然接口直接，但存在两个明显缺陷。第一，每个状态对象都重复保存属性键和值，形成较大的对象图和额外的堆分配。第二，\texttt{StateContainer}在构建时需要枚举所有状态，并对每个属性值组合做匹配查找，构建复杂度较高。
+
+\textbf{优化后的布局}：本项目将状态系统改为“容器持有元数据，状态持有紧凑索引”的方案：
+\begin{itemize}
+    \item 每个\texttt{StateContainer}保存属性布局表（属性指针、槽位索引、stride）
+    \item 每个具体状态仅保存\texttt{vector<size\_t>}形式的属性值索引数组
+    \item \texttt{with()}不再查哈希表，而是通过当前状态在线性布局中的索引和属性stride直接计算目标状态位置
+\end{itemize}
+
+\textbf{核心思想}：若一个方块的属性空间可表示为多维离散坐标，则所有状态可以按行主序或列主序映射到一维数组。设某属性对应的stride为$s$，当前值索引为$i$，目标值索引为$j$，则目标状态的一维索引可直接由
+\[
+index_{target} = index_{current} + (j - i) \times s
+\]
+计算得到。这样就将原本依赖哈希查询和跳转表的状态切换，降为纯整数运算和一次数组访问。
+
+\textbf{工程收益}：
+\begin{itemize}
+    \item 每个状态实例不再持有两张哈希表，显著减少内存占用
+    \item 状态对象尺寸更小，更容易驻留在CPU缓存中
+    \item \texttt{StateContainer}构建过程由“枚举+匹配”转为直接按基数生成，初始化成本更低
+    \item \texttt{BlockState}与\texttt{FluidState}共享同一套紧凑状态框架，避免重复实现
+\end{itemize}
+
+\textbf{兼容层处理}：为了不破坏上层系统，命令解析、结构模板、Loot条件匹配等原本依赖\texttt{values().find(...)}的代码，统一迁移为基于\texttt{getValueIndex()}的查询接口。这样既保留了类型安全的属性访问能力，又避免了重新暴露笨重的哈希表表示。
+
+\textbf{基准测试结果}：为了量化此次重构的收益，项目对客户端初始化路径执行了\texttt{client\_initialize}单线程基准测试，各测试均执行10次迭代、无warmup。优化前平均耗时为1262.10ms，优化后平均耗时为909.61ms；最大值从1347.60ms降至990.13ms，最小值从1208.87ms降至855.49ms。按平均值计算，客户端初始化时间缩短了27.93\%，等效吞吐量从0.79 ops/s提升到1.10 ops/s，提升38.75\%，加速比约为1.39倍。
+
+\begin{table}[h]
+\centering
+\caption{方块状态系统紧凑化前后\texttt{client\_initialize}基准对比}
+\label{tab:blockstate_compact_benchmark}
+\begin{tabularx}{\linewidth}{Xccc}
+\toprule
+\textbf{指标} & \textbf{优化前} & \textbf{优化后} & \textbf{变化} \\
+\midrule
+平均耗时（ms） & 1262.10 & 909.61 & -27.93\% \\
+最小耗时（ms） & 1208.87 & 855.49 & -29.23\% \\
+最大耗时（ms） & 1347.60 & 990.13 & -26.53\% \\
+吞吐量（ops/s） & 0.79 & 1.10 & +38.75\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\linewidth]{client_initialize_before.png}
+\includegraphics[width=0.48\linewidth]{client_initialize_after.png}
+\caption{\texttt{client\_initialize}基准的单次迭代耗时对比。左图为优化前，右图为优化后。可以看到优化后整条曲线整体下移，平均值和峰值均明显降低。}
+\label{fig:blockstate_compact_benchmark_curves}
+\end{figure}
+
+这一结果说明，状态系统优化不仅减少了静态内存占用，也直接改善了客户端启动阶段的状态容器构建、默认状态初始化以及依赖状态查询的资源预热路径。由于\texttt{client\_initialize}属于多个子系统共同参与的综合基准，单项数据结构重构仍能带来接近三成的整体耗时下降，说明状态对象曾经是初始化阶段的重要热点。
+
 \subsubsection{内存对齐}
 
 在Vulkan渲染相关代码中大量使用\texttt{alignas}确保GPU缓冲区的内存对齐：
@@ -138,6 +201,8 @@ Uniform缓冲区结构体对齐要求严格：\texttt{vec4}需要16字节对齐�
 
 \textbf{数据布局}：光照引擎使用紧凑的64位编码将坐标、等级、方向打包到单个整数，提高缓存利用率。
 
+\textbf{状态布局}：方块状态系统采用“属性布局表 + 值索引数组 + stride寻址”设计，将状态切换转化为整数运算。相比基于哈希表的表示，这种布局更加连续，适合大量只读访问和频繁状态跳转的工作负载。
+
 \textbf{预分配缓存}：线程池预分配任务缓存，避免频繁内存分配。
 
 \textbf{局部性优化}：区块生成时按Z字形顺序访问相邻区块，提高缓存命中率。
@@ -179,4 +244,4 @@ STL容器 & 4217+ \\
 \end{tabularx}
 \end{table}
 
-通过充分利用C++20特性和现代编译器优化，项目在保持代码可读性和类型安全的同时，实现了高性能游戏引擎所需的基础设施。编译期计算将运行时开销转移到编译时，智能指针确保内存安全，原子操作保证线程安全，模板元编程实现类型安全的泛型代码。
+通过充分利用C++20特性和现代编译器优化，项目在保持代码可读性和类型安全的同时，实现了高性能游戏引擎所需的基础设施。编译期计算将运行时开销转移到编译时，智能指针确保内存安全，原子操作保证线程安全，模板元编程实现类型安全的泛型代码，而状态系统紧凑化则进一步说明：性能优化不仅来自编译器选项，也来自对核心数据结构的持续重构与压缩。在本项目中，这种数据结构级别的优化已经通过基准测试反映为27.93\%的客户端初始化耗时下降和1.39倍的吞吐提升。

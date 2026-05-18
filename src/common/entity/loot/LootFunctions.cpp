@@ -929,8 +929,6 @@ ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) c
     nlohmann::json& blockStateTag = stack.getOrCreateChildTag("BlockStateTag");
 
     // 遍历 BlockState 的所有属性
-    const auto& allValues = blockState->values();
-
     // 获取方块的属性名称映射（通过 StateContainer）
     const auto& blockProperties = blockState->getBlock().stateContainer().properties();
 
@@ -950,10 +948,10 @@ ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) c
         }
 
         // 获取属性值
-        auto it = allValues.find(prop);
-        if (it != allValues.end()) {
+        const auto valueIndex = blockState->getValueIndex(*prop);
+        if (valueIndex.has_value()) {
             // 获取属性值的字符串表示
-            std::string valueStr = prop->valueToString(it->second);
+            std::string valueStr = prop->valueToString(*valueIndex);
             blockStateTag[propName] = valueStr;
         }
     }

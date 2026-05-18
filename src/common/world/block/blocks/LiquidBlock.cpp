@@ -58,8 +58,12 @@ LiquidBlock::LiquidBlock(fluid::FlowingFluid& fluid, BlockProperties properties)
     // 创建方块状态容器，包含LEVEL属性
     auto container = StateContainer<Block, BlockState>::Builder(*this)
                          .add(LEVEL_0_15())
-                         .create([this](const Block& block, auto values, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), id);
+                         .create([this](const Block& block,
+                                          auto values,
+                                          const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                                          const std::vector<BlockState*>* allStates,
+                                          u32 id) {
+                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                          });
     createBlockState(std::move(container));
 

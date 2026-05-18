@@ -24,11 +24,13 @@
 #pragma once
 
 #include "Property.hpp"
+#include <cstddef>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 
@@ -50,6 +52,17 @@ namespace mc {
 template <typename Owner, typename State>
 class StateHolder {
 public:
+    struct PropertyEntry {
+        const IProperty* property = nullptr;
+        size_t valueIndex = 0;
+    };
+
+    struct PropertyLayout {
+        const IProperty* property = nullptr;
+        size_t slotIndex = 0;
+        size_t stateStride = 0;
+    };
+
     virtual ~StateHolder() = default;
 
     /**
@@ -64,12 +77,12 @@ public:
     template <typename T>
     [[nodiscard]] typename Property<T>::ValueReturnType get(const Property<T>& prop) const
     {
-        auto it = m_values.find(&prop);
-        if (it == m_values.end()) {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
             throw std::invalid_argument(
                 "Cannot get property " + prop.name() + " as it does not exist in " + ownerName());
         }
-        return static_cast<const Property<T>&>(prop).valueAt(it->second);
+        return static_cast<const Property<T>&>(prop).valueAt(m_valueIndices[slotIndex]);
     }
 
     /**
@@ -79,11 +92,11 @@ public:
     template <typename T>
     [[nodiscard]] std::optional<T> getOptional(const Property<T>& prop) const
     {
-        auto it = m_values.find(&prop);
-        if (it == m_values.end()) {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
             return std::nullopt;
         }
-        return static_cast<const Property<T>&>(prop).valueAt(it->second);
+        return static_cast<const Property<T>&>(prop).valueAt(m_valueIndices[slotIndex]);
     }
 
     /**
@@ -92,8 +105,8 @@ public:
     template <typename T>
     [[nodiscard]] const State& with(const Property<T>& prop, const T& value) const
     {
-        auto it = m_values.find(&prop);
-        if (it == m_values.end()) {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
             throw std::invalid_argument(
                 "Cannot set property " + prop.name() + " as it does not exist in " + ownerName());
         }
@@ -103,17 +116,21 @@ public:
             throw std::invalid_argument("Invalid value for property " + prop.name());
         }
 
-        if (it->second == *optIndex) {
+        if (m_valueIndices[slotIndex] == *optIndex) {
             return static_cast<const State&>(*this);
         }
 
-        auto transIt = m_transitions.find(&prop);
-        if (transIt == m_transitions.end() || transIt->second.size() <= *optIndex) {
+        const PropertyLayout& layout = m_propertyLayouts[slotIndex];
+        if (layout.property != &prop) {
             throw std::invalid_argument("Cannot set property " + prop.name() + " to " + prop.valueToString(value) +
                 " on " + ownerName() + ", it is not an allowed value");
         }
 
-        return *transIt->second[*optIndex];
+        const size_t currentIndex = static_cast<size_t>(m_stateIndex);
+        const size_t currentValueIndex = m_valueIndices[slotIndex];
+        const size_t targetIndex =
+            currentIndex + ((*optIndex - currentValueIndex) * layout.stateStride);
+        return *(*m_allStates)[targetIndex];
     }
 
     /**
@@ -122,14 +139,14 @@ public:
     template <typename T>
     [[nodiscard]] const State& cycle(const Property<T>& prop) const
     {
-        auto it = m_values.find(&prop);
-        if (it == m_values.end()) {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
             throw std::invalid_argument(
                 "Cannot cycle property " + prop.name() + " as it does not exist in " + ownerName());
         }
 
         const auto& values = prop.allowedValues();
-        size_t currentIndex = it->second;
+        size_t currentIndex = m_valueIndices[slotIndex];
         size_t nextIndex = (currentIndex + 1) % values.size();
 
         return with(prop, values[nextIndex]);
@@ -141,13 +158,30 @@ public:
     template <typename T>
     [[nodiscard]] bool hasProperty(const Property<T>& prop) const
     {
-        return m_values.find(&prop) != m_values.end();
+        return findPropertySlot(prop) != kInvalidIndex;
     }
 
     /**
      * @brief 获取所有属性值（内部索引表示）
      */
-    [[nodiscard]] const std::unordered_map<const IProperty*, size_t>& values() const { return m_values; }
+    [[nodiscard]] std::vector<PropertyEntry> values() const
+    {
+        std::vector<PropertyEntry> result;
+        result.reserve(m_propertyLayouts.size());
+        for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
+            result.push_back(PropertyEntry{m_propertyLayouts[i].property, m_valueIndices[i]});
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::optional<size_t> getValueIndex(const IProperty& prop) const
+    {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
+            return std::nullopt;
+        }
+        return m_valueIndices[slotIndex];
+    }
 
     /**
      * @brief 获取状态ID
@@ -161,10 +195,12 @@ public:
     {
         std::ostringstream ss;
         ss << ownerName();
-        if (!m_values.empty()) {
+        if (!m_propertyLayouts.empty()) {
             ss << '[';
             bool first = true;
-            for (const auto& [prop, valueIndex] : m_values) {
+            for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
+                const IProperty* prop = m_propertyLayouts[i].property;
+                const size_t valueIndex = m_valueIndices[i];
                 if (!first) ss << ',';
                 ss << prop->name() << '=' << prop->valueToString(valueIndex);
                 first = false;
@@ -182,19 +218,18 @@ public:
     [[nodiscard]] bool operator!=(const StateHolder& other) const { return m_stateId != other.m_stateId; }
 
 protected:
-    StateHolder(const Owner* owner, std::unordered_map<const IProperty*, size_t> values, u32 stateId)
+    StateHolder(const Owner* owner,
+        std::vector<size_t> valueIndices,
+        const std::vector<PropertyLayout>* propertyLayouts,
+        const std::vector<State*>* allStates,
+        u32 stateId)
         : m_owner(owner)
-        , m_values(std::move(values))
+        , m_valueIndices(std::move(valueIndices))
+        , m_propertyLayouts(propertyLayouts ? *propertyLayouts : std::vector<PropertyLayout>{})
+        , m_allStates(allStates)
+        , m_stateIndex(stateId)
         , m_stateId(stateId)
     {}
-
-    /**
-     * @brief 初始化转换表（由StateContainer调用）
-     */
-    void initTransitions(std::unordered_map<const IProperty*, std::vector<const State*>> transitions)
-    {
-        m_transitions = std::move(transitions);
-    }
 
     /**
      * @brief 设置状态ID（由BlockRegistry调用）
@@ -206,10 +241,23 @@ protected:
      */
     [[nodiscard]] virtual std::string ownerName() const { return "Unknown"; }
 
+    [[nodiscard]] size_t findPropertySlot(const IProperty& prop) const
+    {
+        for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
+            if (m_propertyLayouts[i].property == &prop) {
+                return i;
+            }
+        }
+        return kInvalidIndex;
+    }
+
     const Owner* m_owner;
-    std::unordered_map<const IProperty*, size_t> m_values;
+    std::vector<size_t> m_valueIndices;
+    std::vector<PropertyLayout> m_propertyLayouts;
+    const std::vector<State*>* m_allStates = nullptr;
+    u32 m_stateIndex = 0;
     u32 m_stateId;
-    std::unordered_map<const IProperty*, std::vector<const State*>> m_transitions;
+    static constexpr size_t kInvalidIndex = static_cast<size_t>(-1);
 
     // 允许StateContainer和BlockRegistry访问
     template <typename O, typename S>

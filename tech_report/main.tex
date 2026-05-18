@@ -98,7 +98,7 @@
 
 \begin{abstract}
 \noindent
-Minecraft Reborn是一个采用C++20编写的现代化Minecraft游戏引擎，使用Vulkan进行渲染，旨在复制Java版1.16.5的游戏体验。本文详细阐述了项目中八项核心性能优化技术：（1）CPU/IO分离的线程池设计，实现任务类型感知的优先级调度；（2）基于Starlight的光照引擎重构，采用紧凑编码和双队列传播算法；（3）基于RocksDB的区块存储系统，以Section粒度替代传统Anvil格式；（4）Trident Vulkan渲染管线，实现多线程网格构建和异步GPU上传；（5）Perfetto性能追踪系统的完整集成；（6）Kagero响应式UI引擎，采用模板编译和状态绑定；（7）xoroshiro128++高性能随机数生成器；（8）现代C++性能优化实践，包括编译器配置、内存管理和模板元编程。实验表明，相比Java版原版实现，这些优化在区块加载、光照计算、渲染吞吐量等关键指标上取得显著提升。
+Minecraft Reborn是一个采用C++20编写的现代化Minecraft游戏引擎，使用Vulkan进行渲染，旨在复制Java版1.16.5的游戏体验。本文详细阐述了项目中八项核心性能优化技术：（1）CPU/IO分离的线程池设计，实现任务类型感知的优先级调度；（2）基于Starlight的光照引擎重构，采用紧凑编码和双队列传播算法；（3）基于RocksDB的区块存储系统，以Section粒度替代传统Anvil格式；（4）Trident Vulkan渲染管线，实现多线程网格构建和异步GPU上传；（5）Perfetto性能追踪系统的完整集成；（6）Kagero响应式UI引擎，采用模板编译和状态绑定；（7）xoroshiro128++高性能随机数生成器；（8）现代C++性能优化实践，包括编译器配置、内存管理、模板元编程以及方块状态系统的数据结构重构。实验表明，相比Java版原版实现，这些优化在区块加载、光照计算、渲染吞吐量、状态切换开销和内存占用等关键指标上取得显著提升。其中，仅方块状态系统紧凑化一项，就使客户端初始化基准\texttt{client\_initialize}的平均耗时从1262.10ms降至909.61ms，下降27.93\%，吞吐量提升至原来的1.39倍。
 
 \noindent\textbf{关键词}：游戏引擎；性能优化；Vulkan；RocksDB；线程池；光照引擎
 \end{abstract}
@@ -119,7 +119,7 @@ Minecraft Reborn是一个采用C++20编写的现代化Minecraft游戏引擎，�
 
 \section{总结}
 
-本文详细阐述了Minecraft Reborn项目中八项核心性能优化技术的实现细节。通过CPU/IO分离的线程池设计、Starlight风格的光照引擎、RocksDB存储系统、Trident Vulkan渲染管线、Perfetto性能追踪、Kagero UI引擎、xoroshiro128++随机数生成器和现代C++性能优化实践，项目在保持与Java版Minecraft 1.16.5功能兼容的同时，获得了显著的性能提升。
+本文详细阐述了Minecraft Reborn项目中八项核心性能优化技术的实现细节。通过CPU/IO分离的线程池设计、Starlight风格的光照引擎、RocksDB存储系统、Trident Vulkan渲染管线、Perfetto性能追踪、Kagero UI引擎、xoroshiro128++随机数生成器和现代C++性能优化实践，项目在保持与Java版Minecraft 1.16.5功能兼容的同时，获得了显著的性能提升。其中，近期完成的方块状态系统重构进一步证明，底层数据结构压缩与缓存友好布局可以在不改变上层游戏逻辑的前提下，持续释放C++实现的性能潜力。
 
 这些优化技术的核心思想可以总结为：
 \begin{enumerate}
