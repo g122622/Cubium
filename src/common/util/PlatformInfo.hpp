@@ -36,6 +36,7 @@ struct MemoryInfo {
     u64 availablePhysicalMB; // 可用物理内存 (MB)
     u64 usedPhysicalMB;      // 已用物理内存 (MB)
     u64 processUsedMB;       // 进程已用内存 (MB)
+    u64 processPeakMB;       // 进程峰值内存 (MB)
     u32 usagePercent;        // 使用百分比
 };
 
@@ -105,6 +106,15 @@ public:
     static u64 getProcessMemoryMB();
 
     /**
+     * @brief 获取当前进程峰值内存使用量 (MB)
+     *
+     * Windows: 使用 GetProcessMemoryInfo (PeakWorkingSetSize)
+     * Linux: 读取 /proc/self/status (VmHWM)
+     * macOS: 使用 task_info (resident_size_max)
+     */
+    static u64 getProcessPeakMemoryMB();
+
+    /**
      * @brief 从Vulkan设备属性提取GPU信息
      *
      * @param properties Vulkan物理设备属性
@@ -131,16 +141,19 @@ private:
     static MemoryInfo getMemoryInfoWindows();
     static CpuInfo getCpuInfoWindows();
     static u64 getProcessMemoryMBWindows();
+    static u64 getProcessPeakMemoryMBWindows();
     static std::string getPlatformNameWindows();
 #elif defined(__linux__)
     static MemoryInfo getMemoryInfoLinux();
     static CpuInfo getCpuInfoLinux();
     static u64 getProcessMemoryMBLinux();
+    static u64 getProcessPeakMemoryMBLinux();
     static std::string getPlatformNameLinux();
 #elif defined(__APPLE__)
     static MemoryInfo getMemoryInfoMacOS();
     static CpuInfo getCpuInfoMacOS();
     static u64 getProcessMemoryMBMacOS();
+    static u64 getProcessPeakMemoryMBMacOS();
     static std::string getPlatformNameMacOS();
 #endif
 };

@@ -69,6 +69,11 @@ u64 PlatformInfo::getProcessMemoryMB()
     return getProcessMemoryMBWindows();
 }
 
+u64 PlatformInfo::getProcessPeakMemoryMB()
+{
+    return getProcessPeakMemoryMBWindows();
+}
+
 std::string PlatformInfo::getPlatformName()
 {
     return getPlatformNameWindows();
@@ -87,6 +92,7 @@ MemoryInfo PlatformInfo::getMemoryInfoWindows()
         info.usedPhysicalMB = info.totalPhysicalMB - info.availablePhysicalMB;
         info.usagePercent = status.dwMemoryLoad;
         info.processUsedMB = getProcessMemoryMBWindows();
+        info.processPeakMB = getProcessPeakMemoryMBWindows();
     } else {
         spdlog::warn("Failed to get memory info: {}", GetLastError());
     }
@@ -159,6 +165,15 @@ u64 PlatformInfo::getProcessMemoryMBWindows()
     return 0;
 }
 
+u64 PlatformInfo::getProcessPeakMemoryMBWindows()
+{
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return pmc.PeakWorkingSetSize / (1024 * 1024);
+    }
+    return 0;
+}
+
 std::string PlatformInfo::getPlatformNameWindows()
 {
     OSVERSIONINFOEXA osvi;
@@ -211,6 +226,11 @@ u64 PlatformInfo::getProcessMemoryMB()
     return getProcessMemoryMBLinux();
 }
 
+u64 PlatformInfo::getProcessPeakMemoryMB()
+{
+    return getProcessPeakMemoryMBLinux();
+}
+
 std::string PlatformInfo::getPlatformName()
 {
     return getPlatformNameLinux();
@@ -227,6 +247,7 @@ MemoryInfo PlatformInfo::getMemoryInfoLinux()
         info.usedPhysicalMB = info.totalPhysicalMB - info.availablePhysicalMB;
         info.usagePercent = static_cast<u32>((info.usedPhysicalMB * 100) / info.totalPhysicalMB);
         info.processUsedMB = getProcessMemoryMBLinux();
+        info.processPeakMB = getProcessPeakMemoryMBLinux();
     }
 
     return info;
@@ -309,6 +330,30 @@ u64 PlatformInfo::getProcessMemoryMBLinux()
     return 0;
 }
 
+u64 PlatformInfo::getProcessPeakMemoryMBLinux()
+{
+    std::ifstream status("/proc/self/status");
+    if (status.is_open()) {
+        std::string line;
+        while (std::getline(status, line)) {
+            if (line.find("VmHWM:") == 0) {
+                // VmHWM: 12345 kB (peak resident set size)
+                size_t pos = line.find(':');
+                if (pos != std::string::npos) {
+                    std::string value = line.substr(pos + 1);
+                    size_t numStart = value.find_first_not_of(" \t");
+                    size_t numEnd = value.find_first_of(" \tk", numStart);
+                    if (numStart != std::string::npos) {
+                        u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
+                        return kb / 1024;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 std::string PlatformInfo::getPlatformNameLinux()
 {
     std::ifstream osRelease("/etc/os-release");
@@ -351,6 +396,11 @@ u64 PlatformInfo::getProcessMemoryMB()
     return getProcessMemoryMBMacOS();
 }
 
+u64 PlatformInfo::getProcessPeakMemoryMB()
+{
+    return getProcessPeakMemoryMBMacOS();
+}
+
 std::string PlatformInfo::getPlatformName()
 {
     return getPlatformNameMacOS();
@@ -380,6 +430,7 @@ MemoryInfo PlatformInfo::getMemoryInfoMacOS()
     }
 
     info.processUsedMB = getProcessMemoryMBMacOS();
+    info.processPeakMB = getProcessPeakMemoryMBMacOS();
 
     return info;
 }
@@ -448,6 +499,18 @@ u64 PlatformInfo::getProcessMemoryMBMacOS()
 
     if (task_info(mach_task_self(), TASK_BASIC_INFO_64, reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS) {
         return info.resident_size / (1024 * 1024);
+    }
+    return 0;
+}
+
+u64 PlatformInfo::getProcessPeakMemoryMBMacOS()
+{
+    // macOS 使用 TASK_VM_INFO 获取峰值内存
+    task_vm_info_data_t vmInfo;
+    mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+
+    if (task_info(mach_task_self(), TASK_VM_INFO, reinterpret_cast<task_info_t>(&vmInfo), &count) == KERN_SUCCESS) {
+        return vmInfo.resident_size_max / (1024 * 1024);
     }
     return 0;
 }

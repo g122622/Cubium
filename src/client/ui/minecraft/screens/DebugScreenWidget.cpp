@@ -95,6 +95,7 @@ void DebugScreenWidget::updateSystemInfo()
         m_systemInfoTimer = 0.0f;
         auto memInfo = util::PlatformInfo::getMemoryInfo();
         m_processMemoryMB = memInfo.processUsedMB;
+        m_processPeakMemoryMB = memInfo.processPeakMB;
         m_memoryPercent = memInfo.usagePercent;
         m_totalMemoryMB = memInfo.totalPhysicalMB;
     }
@@ -281,6 +282,10 @@ void DebugScreenWidget::buildRightDebugText()
     f32 allocatedPercent =
         m_totalMemoryMB > 0 ? (static_cast<f32>(m_processMemoryMB) / m_totalMemoryMB) * 100.0f : 0.0f;
     oss << "Allocated: " << std::setw(3) << static_cast<i32>(allocatedPercent) << "%";
+    m_rightLines.push_back(oss.str());
+
+    oss.str("");
+    oss << "Peak: " << std::setw(4) << m_processPeakMemoryMB << "MB";
     m_rightLines.push_back(oss.str());
 
     m_rightLines.push_back("");

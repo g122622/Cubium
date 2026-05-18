@@ -211,6 +211,7 @@ private:
 
     // 内存信息
     u64 m_processMemoryMB = 0;
+    u64 m_processPeakMemoryMB = 0;
     u32 m_memoryPercent = 0;
     u64 m_totalMemoryMB = 0;
 
