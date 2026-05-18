@@ -107,6 +107,7 @@ ServerWorld::~ServerWorld()
 
 Result<void> ServerWorld::initialize()
 {
+    MC_TRACE_EVENT("server.initialization", "ServerWorld::initialize");
     spdlog::info("Initializing server world with seed {}...", m_config.seed);
 
     if (m_initialized) {

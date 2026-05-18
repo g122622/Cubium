@@ -47,6 +47,8 @@ SaveManager::~SaveManager()
 
 void SaveManager::initialize(const AutoSaveConfig& config)
 {
+    MC_TRACE_EVENT("server.initialization", "SaveManager::initialize");
+
     if (m_initialized) {
         return;
     }
@@ -59,7 +61,7 @@ void SaveManager::initialize(const AutoSaveConfig& config)
 }
 
 void SaveManager::shutdown()
-{
+{   
     if (!m_initialized) {
         return;
     }

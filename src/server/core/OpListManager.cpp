@@ -27,6 +27,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::server::core {
 
@@ -238,6 +239,8 @@ void OpListManager::clear()
 
 Result<void> OpListManager::load(const std::filesystem::path& path)
 {
+    MC_TRACE_EVENT("server.initialization", "OpListManager::load", "path", path.string());
+
     std::lock_guard<std::mutex> lock(m_mutex);
 
     m_filePath = path;

@@ -34,6 +34,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/IChunk.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 
 namespace mc::server {
@@ -46,6 +47,8 @@ WeatherManager::~WeatherManager() = default;
 
 void WeatherManager::initialize(u64 seed)
 {
+    MC_TRACE_EVENT("server.initialization", "WeatherManager::initialize");
+
     m_random = std::make_unique<mc::math::Random>(seed);
 
     // 初始化天气状态
@@ -67,6 +70,8 @@ void WeatherManager::initialize(u64 seed)
 
 void WeatherManager::tick()
 {
+    MC_TRACE_EVENT("server.tick", "WeatherManager::tick");
+
     // 重置变化标志
     m_weatherChanged = false;
     m_strengthChanged = false;
