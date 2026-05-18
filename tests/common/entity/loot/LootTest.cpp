@@ -531,7 +531,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceKillerNonPlayer)
     LootContext context(m_world, rng);
 
     // 创建非玩家实体作为 KILLER_ENTITY
-    Entity zombie(LegacyEntityType::Zombie, EntityId(4));
+    Entity zombie(EntityId(4));
     context.set(LootParams::KILLER_ENTITY, &zombie);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1216,7 +1216,7 @@ TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName)
     LootContext context(m_world, rng);
 
     // 创建一个没有自定义名称的实体
-    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    Entity entity(EntityId(1), nullptr);
     context.set(LootParams::THIS_ENTITY, &entity);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1236,7 +1236,7 @@ TEST_F(LootTest, CopyNameFunction_EntityWithCustomName)
     LootContext context(m_world, rng);
 
     // 创建一个有自定义名称的实体
-    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    Entity entity(EntityId(1), nullptr);
     entity.setCustomName("Custom Pig Name");
     context.set(LootParams::THIS_ENTITY, &entity);
 
@@ -1258,7 +1258,7 @@ TEST_F(LootTest, CopyNameFunction_KillerEntity)
     LootContext context(m_world, rng);
 
     // 创建击杀者实体
-    Entity killer(LegacyEntityType::Zombie, EntityId(2), nullptr);
+    Entity killer(EntityId(2), nullptr);
     killer.setCustomName("Killer Zombie");
     context.set(LootParams::KILLER_ENTITY, &killer);
 
@@ -1364,10 +1364,10 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent)
     ASSERT_NE(diamond, nullptr);
 
     // 创建多个实体
-    Entity thisEntity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    Entity thisEntity(EntityId(1), nullptr);
     thisEntity.setCustomName("This Pig");
 
-    Entity killerEntity(LegacyEntityType::Zombie, EntityId(2), nullptr);
+    Entity killerEntity(EntityId(2), nullptr);
     killerEntity.setCustomName("Killer Zombie");
 
     Player player(EntityId(3), "PlayerName");
@@ -1436,7 +1436,7 @@ TEST_F(LootTest, CopyNameFunction_OverwritesExistingName)
     LootContext context(m_world, rng);
 
     // 创建实体
-    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    Entity entity(EntityId(1), nullptr);
     entity.setCustomName("New Name");
     context.set(LootParams::THIS_ENTITY, &entity);
 

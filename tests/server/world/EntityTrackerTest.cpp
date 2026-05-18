@@ -41,7 +41,7 @@ using namespace mc::server;
 class TestEntity : public Entity {
 public:
     TestEntity(EntityId id)
-        : Entity(LegacyEntityType::Unknown, id)
+        : Entity(id)
     {
         // 设置位置
         setPosition(0.0f, 64.0f, 0.0f);
@@ -53,7 +53,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityId id)
-        : LivingEntity(LegacyEntityType::Unknown, id)
+        : LivingEntity(id)
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -65,7 +65,7 @@ public:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity(EntityId id)
-        : MobEntity(LegacyEntityType::Unknown, id)
+        : MobEntity(id)
     {
         registerAttributes();
         setHealth(maxHealth());

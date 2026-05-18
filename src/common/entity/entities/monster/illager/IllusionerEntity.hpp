@@ -66,7 +66,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    IllusionerEntity(LegacyEntityType type, EntityId id);
+    IllusionerEntity(EntityId id);
     ~IllusionerEntity() override = default;
 
     // 禁止拷贝

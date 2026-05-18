@@ -47,7 +47,7 @@ namespace entity {
 // ==================== FallingBlockEntity ====================
 
 FallingBlockEntity::FallingBlockEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {}
 
 void FallingBlockEntity::tick()
@@ -317,11 +317,11 @@ void FallingBlockEntity::hurtEntities(IWorld* world)
 // ==================== TNTEntity ====================
 
 TNTEntity::TNTEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {}
 
-TNTEntity::TNTEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+TNTEntity::TNTEntity(EntityId id)
+    : Entity(id)
 {}
 
 std::unique_ptr<Entity> TNTEntity::create(IWorld* world)

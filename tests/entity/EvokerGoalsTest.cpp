@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -58,8 +59,8 @@ TEST_F(EvokerGoalsTest, VexEntityType_IsCorrect)
 {
     // 验证 Vex 实体类型已正确定义
     // 这是 countNearbyVexes() 功能的前提条件
-    EXPECT_NE(static_cast<u32>(LegacyEntityType::Vex), static_cast<u32>(LegacyEntityType::Unknown));
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Vex), 82u);
+    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::Unknown));
+    // Vex 的网络 ID 是 82
 }
 
 TEST_F(EvokerGoalsTest, SearchRange_IsCorrect)
@@ -253,13 +254,13 @@ TEST_F(EvokerGoalsTest, FangsAttack_WarmupDelay_IsCorrect)
 TEST_F(EvokerGoalsTest, EntityType_VexIsNotEvoker)
 {
     // 验证 Vex 和 Evoker 是不同的实体类型
-    EXPECT_NE(static_cast<u32>(LegacyEntityType::Vex), static_cast<u32>(LegacyEntityType::Evoker));
+    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::EVOKER));
 }
 
 TEST_F(EvokerGoalsTest, EntityType_VexIsNotPlayer)
 {
     // 验证 Vex 不是玩家类型
-    EXPECT_NE(static_cast<u32>(LegacyEntityType::Vex), static_cast<u32>(LegacyEntityType::Player));
+    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::PLAYER));
 }
 
 // ============================================================================

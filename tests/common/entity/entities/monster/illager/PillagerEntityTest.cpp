@@ -83,7 +83,7 @@ private:
 
 TEST(PillagerEntityTest, Construction)
 {
-    PillagerEntity pillager(LegacyEntityType::Pillager, EntityId(1));
+    PillagerEntity pillager(EntityId(1));
 
     // 验证掠夺者尺寸
     EXPECT_FLOAT_EQ(pillager.width(), 0.6f);
@@ -96,7 +96,7 @@ TEST(PillagerEntityTest, Construction)
 
 TEST(PillagerEntityTest, Attributes)
 {
-    PillagerEntity pillager(LegacyEntityType::Pillager, EntityId(1));
+    PillagerEntity pillager(EntityId(1));
 
     // MC 1.16.5 PillagerEntity 属性
     EXPECT_FLOAT_EQ(static_cast<f32>(pillager.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 24.0f);
@@ -107,7 +107,7 @@ TEST(PillagerEntityTest, Attributes)
 
 TEST(PillagerEntityTest, CrossbowUserInterface)
 {
-    PillagerEntity pillager(LegacyEntityType::Pillager, EntityId(1));
+    PillagerEntity pillager(EntityId(1));
 
     // 验证 ICrossbowUser 接口
     entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(&pillager);
@@ -128,7 +128,7 @@ TEST(PillagerEntityTest, CrossbowUserInterface)
 
 TEST(PillagerEntityTest, RangedAttackInterface)
 {
-    PillagerEntity pillager(LegacyEntityType::Pillager, EntityId(1));
+    PillagerEntity pillager(EntityId(1));
 
     // 验证 IRangedAttackMob 接口
     entity::IRangedAttackMob* rangedAttacker = dynamic_cast<entity::IRangedAttackMob*>(&pillager);
@@ -153,7 +153,7 @@ TEST(PillagerEntityTest, CreateFactory)
 
 TEST(PillagerEntityTest, ChargingState)
 {
-    PillagerEntity pillager(LegacyEntityType::Pillager, EntityId(1));
+    PillagerEntity pillager(EntityId(1));
 
     // 默认不装填
     EXPECT_FALSE(pillager.isCharging());
@@ -174,7 +174,7 @@ TEST(PillagerEntityTest, ChargingState)
 
 TEST(VindicatorEntityTest, Construction)
 {
-    VindicatorEntity vindicator(LegacyEntityType::Vindicator, EntityId(1));
+    VindicatorEntity vindicator(EntityId(1));
 
     // 验证卫道士尺寸
     EXPECT_FLOAT_EQ(vindicator.width(), 0.6f);
@@ -186,7 +186,7 @@ TEST(VindicatorEntityTest, Construction)
 
 TEST(VindicatorEntityTest, Attributes)
 {
-    VindicatorEntity vindicator(LegacyEntityType::Vindicator, EntityId(1));
+    VindicatorEntity vindicator(EntityId(1));
 
     // MC 1.16.5 VindicatorEntity 属性
     EXPECT_FLOAT_EQ(static_cast<f32>(vindicator.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 24.0f);
@@ -197,7 +197,7 @@ TEST(VindicatorEntityTest, Attributes)
 
 TEST(VindicatorEntityTest, AggressiveState)
 {
-    VindicatorEntity vindicator(LegacyEntityType::Vindicator, EntityId(1));
+    VindicatorEntity vindicator(EntityId(1));
 
     // 默认不攻击
     EXPECT_FALSE(vindicator.isAggressive());

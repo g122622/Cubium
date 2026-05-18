@@ -37,7 +37,7 @@ namespace mc {
  */
 class StrayEntity : public AbstractSkeletonEntity {
 public:
-    StrayEntity(LegacyEntityType type, EntityId id);
+    StrayEntity(EntityId id);
 
     ~StrayEntity() override = default;
 

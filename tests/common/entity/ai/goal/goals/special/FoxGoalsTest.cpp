@@ -38,7 +38,7 @@ class FoxGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        fox = std::make_unique<FoxEntity>(LegacyEntityType::Fox, EntityId(1));
+        fox = std::make_unique<FoxEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -330,7 +330,7 @@ class FoxEntityStateTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        fox = std::make_unique<FoxEntity>(LegacyEntityType::Fox, EntityId(1));
+        fox = std::make_unique<FoxEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -520,7 +520,7 @@ class FoxEntityTrustTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        fox = std::make_unique<FoxEntity>(LegacyEntityType::Fox, EntityId(1));
+        fox = std::make_unique<FoxEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -603,7 +603,7 @@ class FoxEntitySoundTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        fox = std::make_unique<FoxEntity>(LegacyEntityType::Fox, EntityId(1));
+        fox = std::make_unique<FoxEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -647,7 +647,7 @@ class FoxEntityBreedTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        fox = std::make_unique<FoxEntity>(LegacyEntityType::Fox, EntityId(1));
+        fox = std::make_unique<FoxEntity>(EntityId(1));
     }
 
     void TearDown() override

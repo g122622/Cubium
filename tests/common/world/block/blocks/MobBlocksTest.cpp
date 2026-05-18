@@ -24,6 +24,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
@@ -466,8 +467,8 @@ private:
  */
 class MockLivingEntity : public LivingEntity {
 public:
-    MockLivingEntity(LegacyEntityType type, EntityId id)
-        : LivingEntity(type, id, nullptr)
+    MockLivingEntity(EntityId id)
+        : LivingEntity(id, nullptr)
     {}
 
     void tick() override {}
@@ -538,7 +539,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建海龟实体
-    TurtleEntity turtle(LegacyEntityType::Turtle, EntityId(1));
+    TurtleEntity turtle(EntityId(1));
     turtle.setPosition(5.5f, 1.0f, 5.5f);
 
     // 海龟走过不应该踩破蛋
@@ -560,7 +561,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建僵尸实体（僵尸不会踩破海龟蛋）
-    MockLivingEntity zombie(LegacyEntityType::Zombie, EntityId(1));
+    MockLivingEntity zombie(EntityId(1));
     zombie.setPosition(5.5f, 5.0f, 5.5f);
 
     // 僵尸摔落在蛋上
@@ -582,7 +583,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建尸壳实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity husk(LegacyEntityType::Husk, EntityId(1));
+    MockLivingEntity husk(EntityId(1));
     husk.setPosition(5.5f, 5.0f, 5.5f);
 
     // 尸壳摔落在蛋上
@@ -603,7 +604,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建溺尸实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity drowned(LegacyEntityType::Drowned, EntityId(1));
+    MockLivingEntity drowned(EntityId(1));
     drowned.setPosition(5.5f, 5.0f, 5.5f);
 
     // 溺尸摔落在蛋上
@@ -624,7 +625,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建蝙蝠实体（蝙蝠不能踩破蛋）
-    MockLivingEntity bat(LegacyEntityType::Bat, EntityId(1));
+    MockLivingEntity bat(EntityId(1));
     bat.setPosition(5.5f, 5.0f, 5.5f);
 
     // 蝙蝠摔落在蛋上
@@ -645,7 +646,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建物品实体（非 LivingEntity，不能踩破蛋）
-    Entity item(LegacyEntityType::Item, EntityId(1));
+    Entity item(EntityId(1));
     item.setPosition(5.5f, 5.0f, 5.5f);
 
     // 物品摔落在蛋上
@@ -757,7 +758,7 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer)
     // 验证生成的实体类型
     Entity* spawned = world_.getSpawnedEntity(0);
     ASSERT_NE(spawned, nullptr);
-    EXPECT_EQ(spawned->legacyType(), LegacyEntityType::Silverfish);
+    EXPECT_EQ(spawned->typeId(), entity::EntityTypeIdNumber::SILVERFISH);
 }
 
 TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient)
@@ -876,8 +877,8 @@ TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_MultipleMappings)
  */
 class DamageTrackingLivingEntity : public LivingEntity {
 public:
-    DamageTrackingLivingEntity(LegacyEntityType type, EntityId id, IWorld* world = nullptr)
-        : LivingEntity(type, id, world)
+    DamageTrackingLivingEntity(EntityId id, IWorld* world = nullptr)
+        : LivingEntity(id, world)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
         , m_lastDamageType(static_cast<DamageType>(255)) // 无效类型作为初始值
@@ -930,7 +931,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_TakesDamag
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -954,7 +955,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_ClientSide_NoDamage)
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -977,7 +978,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_NonLivingEntity_NoDamag
     world_.setBlockAt(pos, &state);
 
     // 创建非生物实体（物品实体）
-    Entity item(LegacyEntityType::Item, EntityId(1));
+    Entity item(EntityId(1));
     item.setPosition(0.5f, 0.0f, 0.5f);
 
     // 触发碰撞 - 不应该崩溃
@@ -997,7 +998,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_Mult
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1021,7 +1022,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBypassesArm
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(LegacyEntityType::Pig, EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1046,23 +1047,24 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_Al
     world_.setBlockAt(pos, &state);
 
     // 测试不同类型的生物实体
-    std::vector<LegacyEntityType> entityTypes = {
-        LegacyEntityType::Pig,
-        LegacyEntityType::Cow,
-        LegacyEntityType::Zombie,
-        LegacyEntityType::Skeleton,
-        LegacyEntityType::Player,
+    // 注意：EntityTypeIdNumber 在未初始化注册表时值为 0，这里只测试伤害逻辑
+    std::vector<entity::EntityTypeId> entityTypeIds = {
+        entity::EntityTypeIdNumber::PIG,
+        entity::EntityTypeIdNumber::COW,
+        entity::EntityTypeIdNumber::ZOMBIE,
+        entity::EntityTypeIdNumber::SKELETON,
+        entity::EntityTypeIdNumber::PLAYER,
     };
 
-    for (size_t i = 0; i < entityTypes.size(); ++i) {
-        DamageTrackingLivingEntity entity(entityTypes[i], EntityId(static_cast<u32>(i + 1)), &world_);
+    for (size_t i = 0; i < entityTypeIds.size(); ++i) {
+        DamageTrackingLivingEntity entity(EntityId(static_cast<u32>(i + 1)), &world_);
         entity.setPosition(0.5f, 0.0f, 0.5f);
         entity.setHealth(20.0f);
 
         dragonBreath_->onEntityCollision(state, world_, pos, entity);
 
-        EXPECT_EQ(entity.hurtCount(), 1) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take damage";
-        EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take 1.0 damage";
-        EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath) << "Entity type " << static_cast<int>(entityTypes[i]) << " should take dragon breath damage";
+        EXPECT_EQ(entity.hurtCount(), 1) << "Entity type " << entityTypeIds[i] << " should take damage";
+        EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f) << "Entity type " << entityTypeIds[i] << " should take 1.0 damage";
+        EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath) << "Entity type " << entityTypeIds[i] << " should take dragon breath damage";
     }
 }

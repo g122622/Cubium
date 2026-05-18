@@ -44,8 +44,8 @@
 
 namespace mc {
 
-IronGolemEntity::IronGolemEntity(LegacyEntityType type, EntityId id)
-    : GolemEntity(type, id)
+IronGolemEntity::IronGolemEntity(EntityId id)
+    : GolemEntity(id)
 {
     // MC 1.16.5: IronGolemEntity 构造函数中设置 stepHeight = 1.0F
     // 铁傀儡可以走上1格高的方块
@@ -60,7 +60,7 @@ IronGolemEntity::IronGolemEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, 0);
+    return std::make_unique<IronGolemEntity>(0);
 }
 
 void IronGolemEntity::tick()
@@ -127,7 +127,7 @@ void IronGolemEntity::registerGoals()
         [](const LivingEntity* entity) -> bool {
             if (!entity || !entity->isAlive()) return false;
             // 铁傀儡不攻击苦力怕
-            if (entity->legacyType() == LegacyEntityType::Creeper) return false;
+            if (entity->typeId() == entity::EntityTypeIdNumber::CREEPER) return false;
             // 攻击敌对生物（实现了 IMob 接口/是 MonsterEntity 子类）
             const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
             return monster != nullptr;
@@ -205,17 +205,17 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     return success;
 }
 
-bool IronGolemEntity::canAttackEntity(LegacyEntityType entityType) const
+bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
 {
     // MC 1.16.5: IronGolemEntity.canAttack(EntityType<?> typeIn)
 
     // 玩家创建的铁傀儡不攻击玩家
-    if (isPlayerCreated() && entityType == LegacyEntityType::Player) {
+    if (isPlayerCreated() && typeId == entity::EntityTypeIdNumber::PLAYER) {
         return false;
     }
 
     // 铁傀儡不攻击苦力怕
-    if (entityType == LegacyEntityType::Creeper) {
+    if (typeId == entity::EntityTypeIdNumber::CREEPER) {
         return false;
     }
 

@@ -216,7 +216,7 @@ protected:
     void SetUp() override
     {
         player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, EntityId(2));
+        enderman = std::make_unique<EndermanEntity>(EntityId(2));
     }
 
     void TearDown() override
@@ -327,7 +327,7 @@ class EndermanStareGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, EntityId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -368,7 +368,7 @@ class EndermanFindPlayerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, EntityId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -409,7 +409,7 @@ protected:
     void SetUp() override
     {
         player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, EntityId(2));
+        enderman = std::make_unique<EndermanEntity>(EntityId(2));
     }
 
     void TearDown() override

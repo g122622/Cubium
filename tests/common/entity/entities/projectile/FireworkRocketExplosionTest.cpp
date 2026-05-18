@@ -52,7 +52,7 @@ namespace mc {
 class FireworkTestLivingEntity : public LivingEntity {
 public:
     FireworkTestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -164,7 +164,7 @@ namespace {
  */
 TEST(FireworkRocketBasicTest, DimensionsCorrect)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     EXPECT_FLOAT_EQ(firework.width(), 0.25f);
     EXPECT_FLOAT_EQ(firework.height(), 0.25f);
@@ -175,7 +175,7 @@ TEST(FireworkRocketBasicTest, DimensionsCorrect)
  */
 TEST(FireworkRocketBasicTest, DefaultFlightTime)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     // 默认飞行时间为 1
     EXPECT_EQ(firework.flightTime(), 1);
@@ -186,7 +186,7 @@ TEST(FireworkRocketBasicTest, DefaultFlightTime)
  */
 TEST(FireworkRocketBasicTest, SetFlightTime)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     firework.setFlightTime(3);
     EXPECT_EQ(firework.flightTime(), 3);
@@ -197,7 +197,7 @@ TEST(FireworkRocketBasicTest, SetFlightTime)
  */
 TEST(FireworkRocketBasicTest, ShotFromCrossbowFlag)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     EXPECT_FALSE(firework.shotFromCrossbow());
 
@@ -214,7 +214,7 @@ TEST(FireworkRocketBasicTest, ShotFromCrossbowFlag)
  */
 TEST(FireworkRocketItemTest, GetExplosionCountEmpty)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     // 空物品
     ItemStack emptyStack(Items::AIR, 0);
@@ -228,7 +228,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountEmpty)
  */
 TEST(FireworkRocketItemTest, GetExplosionCountNoExplosions)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     // 创建烟花火箭物品，只设置飞行时间
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
@@ -246,7 +246,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountNoExplosions)
  */
 TEST(FireworkRocketItemTest, GetExplosionCountSingle)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
     nlohmann::json& tag = stack.getOrCreateTag();
@@ -265,7 +265,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountSingle)
  */
 TEST(FireworkRocketItemTest, GetExplosionCountMultiple)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     // 7 个爆炸效果（最大）
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
@@ -287,7 +287,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountMultiple)
  */
 TEST(FireworkRocketItemTest, ReadsFlightTimeFromItem)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
     nlohmann::json& tag = stack.getOrCreateTag();
@@ -304,7 +304,7 @@ TEST(FireworkRocketItemTest, ReadsFlightTimeFromItem)
  */
 TEST(FireworkRocketItemTest, FlightTimeMinimumOne)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
     nlohmann::json& tag = stack.getOrCreateTag();
@@ -322,7 +322,7 @@ TEST(FireworkRocketItemTest, FlightTimeMinimumOne)
  */
 TEST(FireworkRocketItemTest, FireworkItemStorage)
 {
-    entity::FireworkRocketEntity firework(LegacyEntityType::FireworkRocket, EntityId(1));
+    entity::FireworkRocketEntity firework(EntityId(1));
 
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
     nlohmann::json& tag = stack.getOrCreateTag();
@@ -448,7 +448,7 @@ protected:
  */
 TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_NoBlocks)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
 
     auto& target = m_world->addEntity<FireworkTestLivingEntity>();
@@ -463,7 +463,7 @@ TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_NoBlocks)
  */
 TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_DistantTarget)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
 
     auto& target = m_world->addEntity<FireworkTestLivingEntity>();
@@ -495,7 +495,7 @@ protected:
  */
 TEST_F(FireworkRocketDamageApplicationTest, DealsDamageToLivingEntity)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
     firework.setShotFromCrossbow(true);
 
@@ -533,7 +533,7 @@ TEST_F(FireworkRocketDamageApplicationTest, DealsDamageToLivingEntity)
  */
 TEST_F(FireworkRocketDamageApplicationTest, DamageDecreasesWithDistance)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
     firework.setShotFromCrossbow(true);
 
@@ -568,7 +568,7 @@ TEST_F(FireworkRocketDamageApplicationTest, DamageDecreasesWithDistance)
  */
 TEST_F(FireworkRocketDamageApplicationTest, NoDamageOutOfRange)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
     firework.setShotFromCrossbow(true);
 
@@ -603,7 +603,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NoDamageOutOfRange)
 TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
 {
     // 创建第一个烟花（1 个爆炸效果）
-    auto& firework1 = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework1 = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework1.setPosition(0.0, 0.0, 0.0);
     firework1.setShotFromCrossbow(true);
 
@@ -622,7 +622,7 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
     f32 damage1 = target1.lastDamage;
 
     // 创建第二个烟花（3 个爆炸效果）
-    auto& firework2 = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(2));
+    auto& firework2 = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(2));
     firework2.setPosition(0.0, 10.0, 0.0);
     firework2.setShotFromCrossbow(true);
 
@@ -653,7 +653,7 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
  */
 TEST_F(FireworkRocketDamageApplicationTest, NoExplosionNoDamage)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
     firework.setShotFromCrossbow(true);
 
@@ -683,7 +683,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NoExplosionNoDamage)
  */
 TEST_F(FireworkRocketDamageApplicationTest, NonLivingEntityNotHarmed)
 {
-    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(1));
+    auto& firework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(1));
     firework.setPosition(0.0, 0.0, 0.0);
     firework.setShotFromCrossbow(true);
 
@@ -697,7 +697,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NonLivingEntityNotHarmed)
     firework.setFireworkItem(stack);
 
     // 创建另一个烟花火箭作为非生物目标
-    auto& otherFirework = m_world->addEntity<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(2));
+    auto& otherFirework = m_world->addEntity<entity::FireworkRocketEntity>(EntityId(2));
     otherFirework.setPosition(2.0, 0.0, 0.0);
 
     // 执行爆炸伤害

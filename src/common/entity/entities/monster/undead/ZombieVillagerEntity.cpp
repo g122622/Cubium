@@ -79,8 +79,8 @@ constexpr i32 NAUSEA_DURATION = 200; // 10秒
 // 构造函数
 // ============================================================================
 
-ZombieVillagerEntity::ZombieVillagerEntity(LegacyEntityType type, EntityId id)
-    : ZombieEntity(type, id)
+ZombieVillagerEntity::ZombieVillagerEntity(EntityId id)
+    : ZombieEntity(id)
 {
     // MC 1.16.5: 僵尸村民比普通僵尸慢
     // 职业随机设置（在 VanillaEntities 中设置）
@@ -95,7 +95,7 @@ ZombieVillagerEntity::ZombieVillagerEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombieVillagerEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ZombieVillagerEntity>(EntityId(0));
 }
 
 // ============================================================================
@@ -253,7 +253,7 @@ void ZombieVillagerEntity::finishConverting()
         newEntity = villagerType->create(m_world);
     } else {
         // 回退：直接创建 VillagerEntity
-        newEntity = std::make_unique<entity::VillagerEntity>(LegacyEntityType::Unknown, 0);
+        newEntity = std::make_unique<entity::VillagerEntity>(EntityId(0));
     }
 
     if (!newEntity) {

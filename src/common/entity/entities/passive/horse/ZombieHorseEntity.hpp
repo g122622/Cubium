@@ -47,10 +47,9 @@ class ZombieHorseEntity : public AbstractHorseEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    ZombieHorseEntity(LegacyEntityType type, EntityId id);
+    ZombieHorseEntity(EntityId id);
     ~ZombieHorseEntity() override = default;
 
     // 禁止拷贝

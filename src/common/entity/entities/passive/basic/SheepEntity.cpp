@@ -48,11 +48,11 @@ namespace mc {
 std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<SheepEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SheepEntity>(0);
 }
 
-SheepEntity::SheepEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+SheepEntity::SheepEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -132,7 +132,7 @@ bool SheepEntity::canMateWith(const AnimalEntity& other) const
 std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
 {
     // MC 1.16.5: 创建小羊
-    auto baby = std::make_unique<SheepEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<SheepEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

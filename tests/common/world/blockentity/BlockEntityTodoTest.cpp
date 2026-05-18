@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) 2026 Guo Yi
 * 
 * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -453,7 +453,7 @@ TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection)
         BlockPos(0, 64, 0), VanillaBlocks::getState(VanillaBlocks::STONE), Direction::East, true, false);
 
     DummyWorld world;
-    Entity pushedEntity(LegacyEntityType::Item, 101, &world);
+    Entity pushedEntity(EntityId(101), &world);
     pushedEntity.setPosition(0.5f, 64.1f, 0.5f);
     const f32 beforeX = pushedEntity.x();
 

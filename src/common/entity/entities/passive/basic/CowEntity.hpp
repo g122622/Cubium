@@ -42,7 +42,7 @@ class DamageSource;
  */
 class CowEntity : public AnimalEntity {
 public:
-    CowEntity(LegacyEntityType type, EntityId id);
+    CowEntity(EntityId id);
     ~CowEntity() override = default;
 
     /**

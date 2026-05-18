@@ -41,7 +41,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(LegacyEntityType::Panda, EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -218,7 +218,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(LegacyEntityType::Panda, EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -306,7 +306,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(LegacyEntityType::Panda, EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityId(1));
     }
 
     void TearDown() override

@@ -113,7 +113,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -123,7 +123,7 @@ public:
 class TestRabbitEntity final : public RabbitEntity {
 public:
     TestRabbitEntity()
-        : RabbitEntity(LegacyEntityType::Rabbit, 2)
+        : RabbitEntity(EntityId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -133,7 +133,7 @@ public:
 class TestWolfEntity final : public WolfEntity {
 public:
     TestWolfEntity()
-        : WolfEntity(LegacyEntityType::Wolf, 3)
+        : WolfEntity(EntityId(3))
     {
         registerAttributes();
         setHealth(maxHealth());

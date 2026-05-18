@@ -105,14 +105,14 @@ protected:
 
 TEST_F(FoxEntityTest, FoxType_DefaultIsRed)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     // 默认类型是红色狐狸
     EXPECT_EQ(fox.getFoxType(), FoxEntity::FoxType::Red);
 }
 
 TEST_F(FoxEntityTest, FoxType_CanSetAndGetType)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.setFoxType(FoxEntity::FoxType::Snow);
     EXPECT_EQ(fox.getFoxType(), FoxEntity::FoxType::Snow);
@@ -125,7 +125,7 @@ TEST_F(FoxEntityTest, FoxType_CanSetAndGetType)
 
 TEST_F(FoxEntityTest, TrustSystem_NoTrustedPlayersInitially)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     EXPECT_FALSE(fox.trusts(12345));
     EXPECT_FALSE(fox.getFirstTrustedPlayer().has_value());
@@ -133,7 +133,7 @@ TEST_F(FoxEntityTest, TrustSystem_NoTrustedPlayersInitially)
 
 TEST_F(FoxEntityTest, TrustSystem_CanAddTrustedPlayer)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.addTrustedPlayer(12345);
     EXPECT_TRUE(fox.trusts(12345));
@@ -142,7 +142,7 @@ TEST_F(FoxEntityTest, TrustSystem_CanAddTrustedPlayer)
 
 TEST_F(FoxEntityTest, TrustSystem_CanAddMultipleTrustedPlayers)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.addTrustedPlayer(111);
     fox.addTrustedPlayer(222);
@@ -154,7 +154,7 @@ TEST_F(FoxEntityTest, TrustSystem_CanAddMultipleTrustedPlayers)
 
 TEST_F(FoxEntityTest, TrustSystem_MaxTwoTrustedPlayers)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.addTrustedPlayer(111);
     fox.addTrustedPlayer(222);
@@ -167,7 +167,7 @@ TEST_F(FoxEntityTest, TrustSystem_MaxTwoTrustedPlayers)
 
 TEST_F(FoxEntityTest, TrustSystem_CanRemoveTrustedPlayer)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.addTrustedPlayer(12345);
     EXPECT_TRUE(fox.trusts(12345));
@@ -178,7 +178,7 @@ TEST_F(FoxEntityTest, TrustSystem_CanRemoveTrustedPlayer)
 
 TEST_F(FoxEntityTest, TrustSystem_DoesNotAddDuplicate)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.addTrustedPlayer(12345);
     fox.addTrustedPlayer(12345); // 重复添加
@@ -193,7 +193,7 @@ TEST_F(FoxEntityTest, TrustSystem_DoesNotAddDuplicate)
 
 TEST_F(FoxEntityTest, IsBreedingItem_AcceptsSweetBerries)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     ItemStack sweetBerriesStack(Items::SWEET_BERRIES, 1);
     EXPECT_TRUE(fox.isBreedingItem(sweetBerriesStack));
@@ -201,7 +201,7 @@ TEST_F(FoxEntityTest, IsBreedingItem_AcceptsSweetBerries)
 
 TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     // 测试不接受其他物品
     if (Items::WHEAT != nullptr) {
@@ -223,12 +223,12 @@ TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems)
 
 TEST_F(FoxEntityTest, SpawnBaby_CreatesChildFox)
 {
-    FoxEntity parent1(LegacyEntityType::Unknown, 1);
+    FoxEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setFoxType(FoxEntity::FoxType::Red);
 
-    FoxEntity parent2(LegacyEntityType::Unknown, 2);
+    FoxEntity parent2(EntityId(2));
     parent2.setFoxType(FoxEntity::FoxType::Snow);
 
     auto baby = parent1.spawnBaby(parent2);
@@ -243,12 +243,12 @@ TEST_F(FoxEntityTest, SpawnBaby_CreatesChildFox)
 
 TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType)
 {
-    FoxEntity parent1(LegacyEntityType::Unknown, 1);
+    FoxEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setFoxType(FoxEntity::FoxType::Red);
 
-    FoxEntity parent2(LegacyEntityType::Unknown, 2);
+    FoxEntity parent2(EntityId(2));
     parent2.setFoxType(FoxEntity::FoxType::Snow);
 
     // 多次测试类型继承（由于随机性，50%概率继承任一父母）
@@ -258,12 +258,12 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType)
 
     for (int i = 0; i < iterations; ++i) {
         // 每次创建新的父实体来获得不同的随机种子
-        FoxEntity p1(LegacyEntityType::Unknown, static_cast<EntityId>(i * 2 + 1));
+        FoxEntity p1(static_cast<EntityId>(i * 2 + 1));
         p1.setWorld(&m_world);
         p1.setPosition(0.0f, 64.0f, 0.0f);
         p1.setFoxType(FoxEntity::FoxType::Red);
 
-        FoxEntity p2(LegacyEntityType::Unknown, static_cast<EntityId>(i * 2 + 2));
+        FoxEntity p2(static_cast<EntityId>(i * 2 + 2));
         p2.setFoxType(FoxEntity::FoxType::Snow);
 
         auto baby = p1.spawnBaby(p2);
@@ -287,14 +287,14 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsParentType)
 
 TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers)
 {
-    FoxEntity parent1(LegacyEntityType::Unknown, 1);
+    FoxEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setFoxType(FoxEntity::FoxType::Red);
     parent1.addTrustedPlayer(111);
     parent1.addTrustedPlayer(222);
 
-    FoxEntity parent2(LegacyEntityType::Unknown, 2);
+    FoxEntity parent2(EntityId(2));
     parent2.setWorld(&m_world); // 设置世界以获得随机数
     parent2.setFoxType(FoxEntity::FoxType::Snow);
     parent2.addTrustedPlayer(333);
@@ -318,12 +318,12 @@ TEST_F(FoxEntityTest, SpawnBaby_InheritsTrustedPlayers)
 
 TEST_F(FoxEntityTest, SpawnBaby_PositionIsSet)
 {
-    FoxEntity parent(LegacyEntityType::Unknown, 1);
+    FoxEntity parent(EntityId(1));
     parent.setWorld(&m_world);
     parent.setPosition(100.0f, 64.0f, -50.0f);
     parent.setFoxType(FoxEntity::FoxType::Red);
 
-    FoxEntity partner(LegacyEntityType::Unknown, 2);
+    FoxEntity partner(EntityId(2));
     partner.setFoxType(FoxEntity::FoxType::Snow);
 
     auto baby = parent.spawnBaby(parent);
@@ -339,7 +339,7 @@ TEST_F(FoxEntityTest, SpawnBaby_PositionIsSet)
 
 TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     // MC 1.16.5: 狐狸生命值为 10
     EXPECT_DOUBLE_EQ(fox.maxHealth(), 10.0);
@@ -354,10 +354,10 @@ TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(FoxEntityTest, EyeHeight_DifferentForChildAndAdult)
 {
-    FoxEntity adultFox(LegacyEntityType::Unknown, 1);
+    FoxEntity adultFox(EntityId(1));
     adultFox.setChild(false);
 
-    FoxEntity childFox(LegacyEntityType::Unknown, 2);
+    FoxEntity childFox(EntityId(2));
     childFox.setChild(true);
 
     // 成体眼睛高度 0.4，幼体 0.2
@@ -369,13 +369,13 @@ TEST_F(FoxEntityTest, EyeHeight_DifferentForChildAndAdult)
 
 TEST_F(FoxEntityTest, SleepState_DefaultNotSleeping)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     EXPECT_FALSE(fox.isSleeping());
 }
 
 TEST_F(FoxEntityTest, SleepState_CanSetSleeping)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
 
     fox.setSleeping(true);
     EXPECT_TRUE(fox.isSleeping());
@@ -388,14 +388,14 @@ TEST_F(FoxEntityTest, SleepState_CanSetSleeping)
 
 TEST_F(FoxEntityTest, HeldItem_DefaultNotHolding)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     EXPECT_FALSE(fox.isHoldingItem());
     EXPECT_EQ(fox.getHeldItem(), nullptr);
 }
 
 TEST_F(FoxEntityTest, HeldItem_CanSetAndClear)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
     fox.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -416,7 +416,7 @@ TEST_F(FoxEntityTest, HeldItem_CanSetAndClear)
 
 TEST_F(FoxEntityTest, DropHeldItem_DropsItemInWorld)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
     fox.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -439,7 +439,7 @@ TEST_F(FoxEntityTest, DropHeldItem_DropsItemInWorld)
 
 TEST_F(FoxEntityTest, DropHeldItem_DoesNothingWhenEmpty)
 {
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
     fox.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -459,7 +459,7 @@ TEST_F(FoxEntityTest, Goals_AvoidEntityGoalRegistered)
 {
     // [已完成] 验证 AvoidEntityGoal 已正确注册 - 2026/05/16
     // MC 1.16.5: 狐狸躲避未信任的玩家，检测距离 16 格，逃跑速度 1.6/1.4
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
 
     const auto& goals = fox.goalSelector().getAllGoals();
@@ -484,7 +484,7 @@ TEST_F(FoxEntityTest, Goals_TemptGoalRegistered)
 {
     // [已完成] 验证 TemptGoal 已正确注册 - 2026/05/16
     // MC 1.16.5: 狐狸被甜浆果诱惑，跟随速度 1.0
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
 
     const auto& goals = fox.goalSelector().getAllGoals();
@@ -507,7 +507,7 @@ TEST_F(FoxEntityTest, Goals_HasBasicAnimalGoals)
     // 验证狐狸注册了基本的 AI 目标
     // 注意：MC 1.16.5 中 FoxEntity 自己注册所有目标，不依赖 AnimalEntity 基类
     // AnimalEntity::registerGoals() 的注释说明基类不注册任何目标
-    FoxEntity fox(LegacyEntityType::Unknown, 1);
+    FoxEntity fox(EntityId(1));
     fox.setWorld(&m_world);
 
     const auto& goals = fox.goalSelector().getAllGoals();

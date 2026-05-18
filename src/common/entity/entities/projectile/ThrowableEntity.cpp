@@ -43,8 +43,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-ThrowableEntity::ThrowableEntity(LegacyEntityType type, EntityId id)
-    : ProjectileEntity(type, id)
+ThrowableEntity::ThrowableEntity(EntityId id)
+    : ProjectileEntity(id)
 {}
 
 void ThrowableEntity::tick()

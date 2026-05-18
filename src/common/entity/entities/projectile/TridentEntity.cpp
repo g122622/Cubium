@@ -50,8 +50,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-TridentEntity::TridentEntity(LegacyEntityType type, EntityId id)
-    : AbstractArrowEntity(type, id)
+TridentEntity::TridentEntity(EntityId id)
+    : AbstractArrowEntity(id)
 {
     m_damage = 8.0f; // 三叉戟伤害更高
     setPickupStatus(PickupStatus::Allowed);
@@ -59,7 +59,7 @@ TridentEntity::TridentEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<TridentEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<TridentEntity>(0);
 }
 
 void TridentEntity::tick()

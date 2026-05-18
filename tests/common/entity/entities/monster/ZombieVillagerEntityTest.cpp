@@ -121,7 +121,7 @@ protected:
         m_world = std::make_unique<ZombieVillagerTestWorld>();
 
         // 创建僵尸村民
-        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityId(1));
         m_zombieVillager->setWorld(m_world.get());
         m_zombieVillager->setPosition(0.0, 64.0, 0.0);
     }

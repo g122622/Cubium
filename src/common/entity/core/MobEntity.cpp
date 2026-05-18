@@ -44,8 +44,8 @@
 
 namespace mc {
 
-MobEntity::MobEntity(LegacyEntityType type, EntityId id)
-    : LivingEntity(type, id)
+MobEntity::MobEntity(EntityId id)
+    : LivingEntity(id)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
     , m_jumpController(std::make_unique<entity::ai::controller::JumpController>(this))

@@ -42,8 +42,8 @@ using namespace mc::math;
 // BossEntity
 // ============================================================================
 
-BossEntity::BossEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id)
+BossEntity::BossEntity(EntityId id)
+    : MobEntity(id)
 {
     // Boss 级实体默认显示生命条
 }
@@ -52,8 +52,8 @@ BossEntity::BossEntity(LegacyEntityType type, EntityId id)
 // EnderDragonPartEntity
 // ============================================================================
 
-EnderDragonPartEntity::EnderDragonPartEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+EnderDragonPartEntity::EnderDragonPartEntity(EntityId id)
+    : Entity(id)
 {
     // 部件尺寸较小，用于碰撞检测
 }
@@ -93,11 +93,11 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
 
 std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EnderDragonEntity>(LegacyEntityType::EnderDragon, EntityId(0));
+    return std::make_unique<EnderDragonEntity>(EntityId(0));
 }
 
-EnderDragonEntity::EnderDragonEntity(LegacyEntityType type, EntityId id)
-    : BossEntity(type, id)
+EnderDragonEntity::EnderDragonEntity(EntityId id)
+    : BossEntity(id)
 {
     // MC 1.16.5: 初始化龙部件
     initDragonParts();
@@ -116,49 +116,49 @@ void EnderDragonEntity::initDragonParts()
     // 部件列表顺序：头、颈、身、尾1、尾2、尾3、左翼、右翼
 
     // 头部
-    m_dragonPartHead = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartHead = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartHead->setPart(EnderDragonPartEntity::Part::Head);
     m_dragonPartHead->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartHead);
 
     // 颈部
-    m_dragonPartNeck = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartNeck = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartNeck->setPart(EnderDragonPartEntity::Part::Neck);
     m_dragonPartNeck->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartNeck);
 
     // 身体
-    m_dragonPartBody = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartBody = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartBody->setPart(EnderDragonPartEntity::Part::Body);
     m_dragonPartBody->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartBody);
 
     // 尾部1
-    m_dragonPartTail1 = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartTail1 = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartTail1->setPart(EnderDragonPartEntity::Part::Tail1);
     m_dragonPartTail1->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail1);
 
     // 尾部2
-    m_dragonPartTail2 = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartTail2 = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartTail2->setPart(EnderDragonPartEntity::Part::Tail2);
     m_dragonPartTail2->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail2);
 
     // 尾部3
-    m_dragonPartTail3 = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartTail3 = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartTail3->setPart(EnderDragonPartEntity::Part::Tail3);
     m_dragonPartTail3->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail3);
 
     // 左翼
-    m_dragonPartLeftWing = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartLeftWing = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartLeftWing->setPart(EnderDragonPartEntity::Part::WingLeft);
     m_dragonPartLeftWing->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartLeftWing);
 
     // 右翼
-    m_dragonPartRightWing = new EnderDragonPartEntity(LegacyEntityType::EnderDragonPart, EntityId(0));
+    m_dragonPartRightWing = new EnderDragonPartEntity(EntityId(0));
     m_dragonPartRightWing->setPart(EnderDragonPartEntity::Part::WingRight);
     m_dragonPartRightWing->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartRightWing);
@@ -456,7 +456,7 @@ void EnderDragonEntity::updateDragonEnderCrystal()
     f32 nearestDistSq = CRYSTAL_SEARCH_RANGE * CRYSTAL_SEARCH_RANGE;
 
     for (Entity* entity : entities) {
-        if (entity && entity->getTypeId() == LegacyEntityType::EnderCrystal) {
+        if (entity && entity->typeId() == entity::EntityTypeIdNumber::END_CRYSTAL) {
             f32 dx = static_cast<f32>(entity->x() - x());
             f32 dy = static_cast<f32>(entity->y() - y());
             f32 dz = static_cast<f32>(entity->z() - z());
@@ -499,7 +499,7 @@ void EnderDragonEntity::collideWithEntities()
         for (Entity* entity : entities) {
             if (entity && entity != this && !entity->isDead()) {
                 // 只对玩家造成伤害
-                if (entity->getTypeId() == LegacyEntityType::Player) {
+                if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
                     // MC 1.16.5: 龙碰撞造成 10 点伤害
                     // 注意：实际伤害应该在 attackEntitiesInList 中处理
                     attackEntitiesInList();
@@ -536,7 +536,7 @@ void EnderDragonEntity::attackEntitiesInList()
     for (Entity* entity : entities) {
         if (entity && !entity->isDead()) {
             // 对玩家造成伤害
-            if (entity->getTypeId() == LegacyEntityType::Player) {
+            if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
                 // MC 1.16.5: 龙冲撞造成伤害
                 // 这里简化处理，实际应该使用 DamageSources::mobAttack(this)
                 // entity->hurt(DamageSources::mobAttack(this), 10.0f);

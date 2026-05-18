@@ -50,7 +50,7 @@ namespace {
 
 class StriderEntityMountedYOffsetTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityId(1)); }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -328,7 +328,7 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded)
 
 class StriderEntityBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityId(1)); }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -394,7 +394,7 @@ TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge)
 
     // 幼体眼睛高度 = 0.5
     // 参考 MC 1.16.5 StriderEntity.getEyeHeight()
-    StriderEntity childStrider(LegacyEntityType::Strider, EntityId(2));
+    StriderEntity childStrider(EntityId(2));
     childStrider.setChild(true);
     EXPECT_TRUE(childStrider.isChild());
     EXPECT_FLOAT_EQ(childStrider.eyeHeight(), 0.5f);
@@ -440,7 +440,7 @@ TEST_F(StriderEntityBasicTest, HeightAccessorWorks)
 
 class StriderEntityEquipableTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(1)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityId(1)); }
 
     std::unique_ptr<StriderEntity> strider;
 };

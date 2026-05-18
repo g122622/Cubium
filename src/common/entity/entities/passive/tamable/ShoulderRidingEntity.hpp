@@ -37,11 +37,10 @@ class ShoulderRidingEntity : public TameableEntity {
 public:
     /**
      * @brief 构造肩膀乘坐实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    ShoulderRidingEntity(LegacyEntityType type, EntityId id)
-        : TameableEntity(type, id)
+    ShoulderRidingEntity(EntityId id)
+        : TameableEntity(id)
     {}
 
     ~ShoulderRidingEntity() override = default;

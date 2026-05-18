@@ -53,7 +53,7 @@ class LivingEntity;
  */
 class WitherSkeletonEntity : public AbstractSkeletonEntity {
 public:
-    WitherSkeletonEntity(LegacyEntityType type, EntityId id);
+    WitherSkeletonEntity(EntityId id);
 
     ~WitherSkeletonEntity() override = default;
 

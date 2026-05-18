@@ -64,7 +64,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PhantomEntity(LegacyEntityType type, EntityId id);
+    PhantomEntity(EntityId id);
     ~PhantomEntity() override = default;
 
     // 禁止拷贝

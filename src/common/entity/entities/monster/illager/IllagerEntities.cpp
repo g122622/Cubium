@@ -53,11 +53,11 @@ namespace mc {
 
 std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)
 {
-    return std::make_unique<PillagerEntity>(LegacyEntityType::Pillager, EntityId(0));
+    return std::make_unique<PillagerEntity>(EntityId(0));
 }
 
-PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
+PillagerEntity::PillagerEntity(EntityId id)
+    : AbstractIllagerEntity(id)
 {
     registerAttributes();
 }
@@ -132,7 +132,7 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 
     // 创建箭矢实体
     // MC 1.16.5: 掠夺者不消耗弹药，直接创建箭矢
-    auto arrow = std::make_unique<entity::ArrowEntity>(LegacyEntityType::Arrow, EntityId(0));
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));
     arrow->setWorld(m_world);
     arrow->setPosition(x(), y() + eyeHeight() - 0.15, z());
     arrow->setShooter(this);
@@ -240,11 +240,11 @@ void PillagerEntity::registerAttributes()
 
 std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world)
 {
-    return std::make_unique<VindicatorEntity>(LegacyEntityType::Vindicator, EntityId(0));
+    return std::make_unique<VindicatorEntity>(EntityId(0));
 }
 
-VindicatorEntity::VindicatorEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
+VindicatorEntity::VindicatorEntity(EntityId id)
+    : AbstractIllagerEntity(id)
 {
     registerAttributes();
 }

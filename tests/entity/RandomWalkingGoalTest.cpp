@@ -41,7 +41,7 @@ using namespace mc::entity::ai::goal;
 class TestCreatureEntity : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(LegacyEntityType::Unknown, 1)
+        : CreatureEntity(EntityId(1))
     {
         // 注册属性
         registerAttributes();

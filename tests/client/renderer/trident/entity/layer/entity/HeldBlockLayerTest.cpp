@@ -120,7 +120,7 @@ TEST_F(EndermanBlockHoldingTest, TypeCheckNonEndermanEntity)
  */
 TEST_F(EndermanBlockHoldingTest, DefaultNoBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     EXPECT_FALSE(enderman.isHoldingBlock()) << "New EndermanEntity should not be holding a block by default";
 
@@ -135,7 +135,7 @@ TEST_F(EndermanBlockHoldingTest, DefaultNoBlock)
  */
 TEST_F(EndermanBlockHoldingTest, SetHeldBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 使用一个假的 BlockState 指针进行测试
     // 实际渲染时会从 BlockRegistry 获取真实的 BlockState
@@ -155,7 +155,7 @@ TEST_F(EndermanBlockHoldingTest, SetHeldBlock)
  */
 TEST_F(EndermanBlockHoldingTest, ClearHeldBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 先设置一个方块
     const BlockState* fakeBlockState = reinterpret_cast<const BlockState*>(0x1000);
@@ -178,7 +178,7 @@ TEST_F(EndermanBlockHoldingTest, ClearHeldBlock)
  */
 TEST_F(EndermanBlockHoldingTest, MultipleSetHeldBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     const BlockState* state1 = reinterpret_cast<const BlockState*>(0x1000);
     const BlockState* state2 = reinterpret_cast<const BlockState*>(0x2000);
@@ -215,7 +215,7 @@ TEST_F(EndermanBlockHoldingTest, MultipleSetHeldBlock)
  */
 TEST_F(EndermanBlockHoldingTest, ShouldRenderLogicNoBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 模拟 HeldBlockLayer::shouldRender 的逻辑
     // if constexpr (std::is_base_of_v<EndermanEntity, TEntity>) {
@@ -238,7 +238,7 @@ TEST_F(EndermanBlockHoldingTest, ShouldRenderLogicNoBlock)
  */
 TEST_F(EndermanBlockHoldingTest, ShouldRenderLogicWithBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 设置持有方块
     const BlockState* fakeBlockState = reinterpret_cast<const BlockState*>(0x1000);
@@ -287,7 +287,7 @@ TEST_F(EndermanBlockHoldingTest, ShouldRenderLogicNonEndermanEntity)
  */
 TEST_F(EndermanBlockHoldingTest, GetHeldBlockLogicNoBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 模拟 HeldBlockLayer::getHeldBlock 的逻辑
     // if constexpr (std::is_base_of_v<EndermanEntity, TEntity>) {
@@ -310,7 +310,7 @@ TEST_F(EndermanBlockHoldingTest, GetHeldBlockLogicNoBlock)
  */
 TEST_F(EndermanBlockHoldingTest, GetHeldBlockLogicWithBlock)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 设置持有方块
     const BlockState* fakeBlockState = reinterpret_cast<const BlockState*>(0x1000);
@@ -360,7 +360,7 @@ TEST_F(EndermanBlockHoldingTest, GetHeldBlockLogicNonEndermanEntity)
  */
 TEST_F(EndermanBlockHoldingTest, ScreamingState)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 默认不尖叫
     EXPECT_FALSE(enderman.isScreaming()) << "EndermanEntity should not be screaming by default";
@@ -381,7 +381,7 @@ TEST_F(EndermanBlockHoldingTest, ScreamingState)
  */
 TEST_F(EndermanBlockHoldingTest, AngryState)
 {
-    EndermanEntity enderman(LegacyEntityType::Enderman, EntityId(1));
+    EndermanEntity enderman(EntityId(1));
 
     // 默认不愤怒
     EXPECT_FALSE(enderman.isAngry()) << "EndermanEntity should not be angry by default";

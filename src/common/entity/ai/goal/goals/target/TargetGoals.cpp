@@ -284,8 +284,8 @@ void HurtByTargetGoal::startExecuting()
             if (ally == m_target) continue;
 
             // MC 1.16.5: 检查是否是同类型
-            // 使用 legacyType 比较
-            if (ally->legacyType() == m_mob->legacyType()) {
+            // 使用 typeId 比较
+            if (ally->typeId() == m_mob->typeId()) {
                 ally->setAttackTarget(m_target);
             }
         }

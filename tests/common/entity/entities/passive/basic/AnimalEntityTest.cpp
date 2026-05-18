@@ -93,21 +93,21 @@ private:
 // 具体的 AnimalEntity 子类用于测试
 class TestAnimalEntity : public AnimalEntity {
 public:
-    TestAnimalEntity(LegacyEntityType type, EntityId id)
-        : AnimalEntity(type, id)
+    TestAnimalEntity(EntityId id)
+        : AnimalEntity(id)
     {}
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override
     {
-        return std::make_unique<TestAnimalEntity>(LegacyEntityType::Pig, 0);
+        return std::make_unique<TestAnimalEntity>(EntityId(0));
     }
 };
 
 // 具体的 MonsterEntity 子类用于测试
 class TestMonsterEntity : public MonsterEntity {
 public:
-    TestMonsterEntity(LegacyEntityType type, EntityId id)
-        : MonsterEntity(type, id)
+    TestMonsterEntity(EntityId id)
+        : MonsterEntity(id)
     {}
 };
 
@@ -121,7 +121,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsHighScoreOnGrassBlock)
     world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
     world.setBrightness(1.0f);
 
-    TestAnimalEntity animal(LegacyEntityType::Pig, EntityId(1));
+    TestAnimalEntity animal(EntityId(1));
     animal.setWorld(&world);
 
     // 脚下是草方块，应该返回 10.0F
@@ -137,7 +137,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsBrightnessMinusHalfOnNonGrassBlock)
     world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     world.setBrightness(1.0f);
 
-    TestAnimalEntity animal(LegacyEntityType::Pig, EntityId(1));
+    TestAnimalEntity animal(EntityId(1));
     animal.setWorld(&world);
 
     // 脚下是石头，亮度 1.0，应该返回 1.0 - 0.5 = 0.5F
@@ -153,7 +153,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsNegativeScoreInDarkness)
     world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     world.setBrightness(0.0f);
 
-    TestAnimalEntity animal(LegacyEntityType::Pig, EntityId(1));
+    TestAnimalEntity animal(EntityId(1));
     animal.setWorld(&world);
 
     // 脚下是石头，亮度 0.0，应该返回 0.0 - 0.5 = -0.5F
@@ -165,7 +165,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     VanillaBlocks::initialize();
 
-    TestAnimalEntity animal(LegacyEntityType::Pig, EntityId(1));
+    TestAnimalEntity animal(EntityId(1));
     // 没有 world，应该返回 0.0f
     f32 weight = animal.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -181,7 +181,7 @@ TEST(AnimalEntityGetPathWeightTest, PrefersGrassOverHighBrightness)
     world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
     world.setBrightness(0.0f);
 
-    TestAnimalEntity animal(LegacyEntityType::Pig, EntityId(1));
+    TestAnimalEntity animal(EntityId(1));
     animal.setWorld(&world);
 
     f32 grassWeight = animal.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -207,7 +207,7 @@ TEST(MonsterEntityGetPathWeightTest, PrefersDarkness)
     PathWeightTestWorld world;
     world.setBrightness(0.0f); // 完全黑暗
 
-    TestMonsterEntity monster(LegacyEntityType::Zombie, EntityId(1));
+    TestMonsterEntity monster(EntityId(1));
     monster.setWorld(&world);
 
     // 亮度 0.0，应该返回 0.5 - 0.0 = 0.5F
@@ -222,7 +222,7 @@ TEST(MonsterEntityGetPathWeightTest, DislikesBrightness)
     PathWeightTestWorld world;
     world.setBrightness(1.0f); // 完全明亮
 
-    TestMonsterEntity monster(LegacyEntityType::Zombie, EntityId(1));
+    TestMonsterEntity monster(EntityId(1));
     monster.setWorld(&world);
 
     // 亮度 1.0，应该返回 0.5 - 1.0 = -0.5F
@@ -234,7 +234,7 @@ TEST(MonsterEntityGetPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     VanillaBlocks::initialize();
 
-    TestMonsterEntity monster(LegacyEntityType::Zombie, EntityId(1));
+    TestMonsterEntity monster(EntityId(1));
     // 没有 world，应该返回 0.0f
     f32 weight = monster.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -247,7 +247,7 @@ TEST(MonsterEntityGetPathWeightTest, MediumBrightness)
     PathWeightTestWorld world;
     world.setBrightness(0.5f);
 
-    TestMonsterEntity monster(LegacyEntityType::Zombie, EntityId(1));
+    TestMonsterEntity monster(EntityId(1));
     monster.setWorld(&world);
 
     // 亮度 0.5，应该返回 0.5 - 0.5 = 0.0F
@@ -261,7 +261,7 @@ TEST(MonsterEntityGetPathWeightTest, SlightlyDarkPreferredOverBright)
 
     PathWeightTestWorld world;
 
-    TestMonsterEntity monster(LegacyEntityType::Zombie, EntityId(1));
+    TestMonsterEntity monster(EntityId(1));
     monster.setWorld(&world);
 
     // 较暗位置

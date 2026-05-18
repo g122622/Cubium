@@ -25,6 +25,7 @@
 
 #include "../../../../entities/monster/end/EndermanEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../core/Entity.hpp"
@@ -63,7 +64,7 @@ bool EndermanStareGoal::shouldExecute()
     m_targetPlayer = m_enderman->getAttackTarget();
 
     // 检查是否是玩家
-    if (m_targetPlayer == nullptr || m_targetPlayer->legacyType() != LegacyEntityType::Player) {
+    if (m_targetPlayer == nullptr || m_targetPlayer->typeId() != entity::EntityTypeIdNumber::PLAYER) {
         return false;
     }
 

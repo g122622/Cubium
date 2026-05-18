@@ -36,7 +36,6 @@ using mc::entity::VillagerEntity;
 using mc::entity::VillagerProfession;
 using mc::entity::ai::GoalFlag;
 using mc::EntityId;
-using mc::LegacyEntityType;
 using mc::BlockPos;
 
 namespace mc {
@@ -105,7 +104,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -217,7 +216,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
     }
 
@@ -289,7 +288,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -470,7 +469,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setProfession(VillagerProfession::Farmer);
         m_villager->setWorkStation(BlockPos(0, 64, 0));
@@ -540,7 +539,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -611,7 +610,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -661,7 +660,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -704,7 +703,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -747,7 +746,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
         m_villager->setProfession(VillagerProfession::Farmer);
@@ -808,7 +807,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -906,11 +905,11 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager1 = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(1));
+        m_villager1 = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager1->setWorld(m_world.get());
         m_villager1->setPosition(0.0f, 64.0f, 0.0f);
 
-        m_villager2 = std::make_unique<VillagerEntity>(LegacyEntityType::Villager, EntityId(2));
+        m_villager2 = std::make_unique<VillagerEntity>(EntityId(2));
         m_villager2->setWorld(m_world.get());
         m_villager2->setPosition(5.0f, 64.0f, 0.0f); // 5格远
     }

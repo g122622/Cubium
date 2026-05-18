@@ -53,10 +53,9 @@ class CreeperEntity : public MonsterEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    CreeperEntity(LegacyEntityType type, EntityId id);
+    CreeperEntity(EntityId id);
     ~CreeperEntity() override = default;
 
     // 禁止拷贝

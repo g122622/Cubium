@@ -32,15 +32,15 @@
 
 namespace mc {
 
-DonkeyEntity::DonkeyEntity(LegacyEntityType type, EntityId id)
-    : AbstractChestedHorseEntity(type, id)
+DonkeyEntity::DonkeyEntity(EntityId id)
+    : AbstractChestedHorseEntity(id)
 {
     setJumpStrength(0.5f);
 }
 
 std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<DonkeyEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<DonkeyEntity>(0);
 }
 
 bool DonkeyEntity::isBreedingItem(const ItemStack& itemStack) const
@@ -81,7 +81,7 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 
     if (partnerHorse != nullptr) {
         // 驴 + 马 = 骡
-        auto mule = std::make_unique<MuleEntity>(LegacyEntityType::Unknown, 0);
+        auto mule = std::make_unique<MuleEntity>(0);
         mule->setChild(true);
         mule->setPosition(x(), y(), z());
 
@@ -91,7 +91,7 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
     }
 
     // 驴 + 驴 = 驴
-    auto baby = std::make_unique<DonkeyEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<DonkeyEntity>(0);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

@@ -46,7 +46,7 @@ class MoveToLavaGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        strider = std::make_unique<StriderEntity>(LegacyEntityType::Unknown, 0);
+        strider = std::make_unique<StriderEntity>(EntityId(0));
     }
 
     void TearDown() override
@@ -129,7 +129,7 @@ class StriderEntityGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        strider = std::make_unique<StriderEntity>(LegacyEntityType::Unknown, 0);
+        strider = std::make_unique<StriderEntity>(EntityId(0));
     }
 
     void TearDown() override

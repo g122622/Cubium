@@ -30,8 +30,8 @@
 
 namespace mc {
 
-ElderGuardianEntity::ElderGuardianEntity(LegacyEntityType type, EntityId id)
-    : GuardianEntity(type, id)
+ElderGuardianEntity::ElderGuardianEntity(EntityId id)
+    : GuardianEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -39,7 +39,7 @@ ElderGuardianEntity::ElderGuardianEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ElderGuardianEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ElderGuardianEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ElderGuardianEntity>(EntityId(0));
 }
 
 void ElderGuardianEntity::tick()

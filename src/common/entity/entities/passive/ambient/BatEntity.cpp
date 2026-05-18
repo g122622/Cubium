@@ -30,8 +30,8 @@
 
 namespace mc {
 
-BatEntity::BatEntity(LegacyEntityType type, EntityId id)
-    : AmbientEntity(type, id)
+BatEntity::BatEntity(EntityId id)
+    : AmbientEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -45,7 +45,7 @@ BatEntity::BatEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<BatEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<BatEntity>(0);
 }
 
 bool BatEntity::canRest() const

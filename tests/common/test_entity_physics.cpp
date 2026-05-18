@@ -45,7 +45,7 @@ using namespace mc;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityId id = 1)
-        : LivingEntity(LegacyEntityType::Player, id, nullptr)
+        : LivingEntity(id, nullptr)
     {
         // 设置默认属性
         setHealth(20.0f);

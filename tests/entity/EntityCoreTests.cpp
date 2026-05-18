@@ -294,7 +294,7 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
     registry.clear();
 
     auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
-        return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+        return std::make_unique<Entity>(EntityId(0));
     };
 
     auto registerResult = registry.registerType(
@@ -311,25 +311,23 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
     registry.clear();
 }
 
-TEST(Entity, LegacyTypeIdMapping)
+TEST(Entity, DefaultTypeIdIsUnknown)
 {
-    Entity pig(LegacyEntityType::Pig, 1);
-    Entity wolf(LegacyEntityType::Wolf, 2);
-    Entity zombie(LegacyEntityType::Zombie, 3);
-    Entity unknown(LegacyEntityType::Unknown, 4);
-
-    EXPECT_EQ(pig.getTypeId(), "minecraft:pig");
-    EXPECT_EQ(wolf.getTypeId(), "minecraft:wolf");
-    EXPECT_EQ(zombie.getTypeId(), "minecraft:zombie");
-    EXPECT_EQ(unknown.getTypeId(), "minecraft:unknown");
+    // Entity created without a factory has no type ID set
+    // getTypeId() returns "minecraft:unknown" for untyped entities
+    Entity entity(EntityId(1));
+    EXPECT_EQ(entity.getTypeId(), "minecraft:unknown");
+    EXPECT_EQ(entity.typeId(), 0);
 }
 
-TEST(Entity, ExplicitTypeIdOverridesLegacyMapping)
+TEST(Entity, ExplicitTypeIdCanBeSet)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
-    entity.setTypeId("minecraft:custom_pig");
+    Entity testEntity(EntityId(1));
+    testEntity.setTypeId("minecraft:custom_entity");
 
-    EXPECT_EQ(entity.getTypeId(), "minecraft:custom_pig");
+    EXPECT_EQ(testEntity.getTypeId(), "minecraft:custom_entity");
+    // typeId() returns 0 until EntityTypeIdNumber::initialize() is called
+    // and the type is registered in the registry
 }
 
 // ============================================================================
@@ -662,14 +660,14 @@ TEST(EntityDataManager, UniqueIds)
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(LegacyEntityType::Pig, 100)
+        : MobEntity(EntityId(100))
     {}
 };
 
 TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 {
     TestMobEntity vehicle;
-    Entity rider(LegacyEntityType::Player, 101);
+    Entity rider(EntityId(101));
 
     EXPECT_EQ(vehicle.isBeingRidden(), vehicle.hasPassengers());
     EXPECT_FALSE(rider.isRiding());
@@ -704,7 +702,7 @@ TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 class TestInteractableEntity : public Entity {
 public:
     TestInteractableEntity()
-        : Entity(LegacyEntityType::Pig, 1)
+        : Entity(EntityId(1))
         , m_processInitialInteractCalled(false)
         , m_applyPlayerInteractionCalled(false)
         , m_lastHitPosition(0.0f, 0.0f, 0.0f)
@@ -763,7 +761,7 @@ TEST(EntityInteractionTest, VirtualMethodsCanBeOverridden)
     TestInteractableEntity entity;
 
     // 验证实体创建成功
-    EXPECT_EQ(entity.legacyType(), LegacyEntityType::Pig);
+    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PIG);
     EXPECT_EQ(entity.id(), EntityId(1));
 }
 
@@ -837,7 +835,7 @@ TEST(EntityInteractionTest, OverriddenMethodCanReturnDifferentResults)
 
     // 测试返回 Success
     entity.setReturnValue(ActionResultType::Success);
-    EXPECT_EQ(entity.legacyType(), LegacyEntityType::Pig);
+    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PIG);
 
     // 测试返回 Fail
     entity.setReturnValue(ActionResultType::Fail);
@@ -860,6 +858,6 @@ TEST(EntityInteractionTest, PolymorphicCallWorks)
     Entity* basePtr = &derivedEntity;
 
     // 验证基类指针指向正确的对象
-    EXPECT_EQ(basePtr->legacyType(), LegacyEntityType::Pig);
+    EXPECT_EQ(basePtr->typeId(), entity::EntityTypeIdNumber::PIG);
     EXPECT_EQ(basePtr->id(), EntityId(1));
 }

@@ -47,11 +47,11 @@ std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
-    return std::make_unique<ChickenEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ChickenEntity>(0);
 }
 
-ChickenEntity::ChickenEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+ChickenEntity::ChickenEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -119,7 +119,7 @@ bool ChickenEntity::canMateWith(const AnimalEntity& other) const
 std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // 创建小鸡
-    auto baby = std::make_unique<ChickenEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<ChickenEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

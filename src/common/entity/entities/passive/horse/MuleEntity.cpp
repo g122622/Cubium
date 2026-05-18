@@ -27,15 +27,15 @@
 
 namespace mc {
 
-MuleEntity::MuleEntity(LegacyEntityType type, EntityId id)
-    : AbstractChestedHorseEntity(type, id)
+MuleEntity::MuleEntity(EntityId id)
+    : AbstractChestedHorseEntity(id)
 {
     setJumpStrength(0.5f);
 }
 
 std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<MuleEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<MuleEntity>(0);
 }
 
 void MuleEntity::registerGoals()

@@ -149,7 +149,7 @@ protected:
 
 TEST_F(SheepEntityTest, InitialState)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
 
     // 初始状态
     EXPECT_FALSE(sheep.isSheared());
@@ -159,7 +159,7 @@ TEST_F(SheepEntityTest, InitialState)
 
 TEST_F(SheepEntityTest, SetFleeceColor)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
 
     sheep.setFleeceColor(DyeColor::Red);
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::Red);
@@ -170,7 +170,7 @@ TEST_F(SheepEntityTest, SetFleeceColor)
 
 TEST_F(SheepEntityTest, SetSheared)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
 
     EXPECT_FALSE(sheep.isSheared());
     EXPECT_TRUE(sheep.isShearable());
@@ -186,7 +186,7 @@ TEST_F(SheepEntityTest, SetSheared)
 
 TEST_F(SheepEntityTest, ChildCannotBeSheared)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
     sheep.setChild(true);
 
     EXPECT_FALSE(sheep.isShearable());
@@ -194,7 +194,7 @@ TEST_F(SheepEntityTest, ChildCannotBeSheared)
 
 TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
     sheep.setSheared(true);
 
     EXPECT_TRUE(sheep.isSheared());
@@ -206,7 +206,7 @@ TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 
 TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth)
 {
-    SheepEntity sheep(LegacyEntityType::Unknown, 1);
+    SheepEntity sheep(EntityId(1));
     sheep.setChild(true);
     sheep.setGrowingAge(-24000); // 幼羊，-24000 ticks
 
@@ -352,7 +352,7 @@ private:
 class TestMobEntity final : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(LegacyEntityType::Sheep, 1)
+        : MobEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

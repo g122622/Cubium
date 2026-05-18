@@ -289,7 +289,7 @@ TEST_F(ItemDropHelperTest, SpawnWithThrowerUuid)
     ASSERT_NE(entity, nullptr);
 
     // 验证实体类型是物品
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
 }
 
 // ============================================================================

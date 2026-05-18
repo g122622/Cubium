@@ -96,7 +96,7 @@ protected:
 TEST_F(CatEntityTestFixture, IsTameItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鳕鱼驯服
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isTameItem(codStack));
@@ -105,7 +105,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsTameItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鲑鱼驯服
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isTameItem(salmonStack));
@@ -114,7 +114,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能驯服猫（骨头用于驯服狼）
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isTameItem(boneStack));
@@ -123,7 +123,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_Seeds_ReturnsFalse)
 {
     // MC 1.16.5: 种子不能驯服猫（种子用于驯服鹦鹉）
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack wheatSeedsStack(Items::WHEAT_SEEDS, 1);
     EXPECT_FALSE(cat.isTameItem(wheatSeedsStack));
@@ -132,7 +132,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Seeds_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_CookedFish_ReturnsFalse)
 {
     // MC 1.16.5: 熟鱼不能驯服猫
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack cookedCodStack(Items::COOKED_COD, 1);
     ItemStack cookedSalmonStack(Items::COOKED_SALMON, 1);
@@ -143,7 +143,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_CookedFish_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_NullItem_ReturnsFalse)
 {
     // 空物品应该返回 false
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isTameItem(emptyStack));
@@ -156,7 +156,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_NullItem_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鳕鱼繁殖
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isBreedingItem(codStack));
@@ -165,7 +165,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鲑鱼繁殖
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isBreedingItem(salmonStack));
@@ -174,7 +174,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能用于繁殖猫
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isBreedingItem(boneStack));
@@ -183,7 +183,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_CookedFish_ReturnsFalse)
 {
     // MC 1.16.5: 熟鱼不能用于繁殖猫
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack cookedCodStack(Items::COOKED_COD, 1);
     ItemStack cookedSalmonStack(Items::COOKED_SALMON, 1);
@@ -198,7 +198,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_CookedFish_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsFoodItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 生鳕鱼可以用来喂养猫（治疗）
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isFoodItem(codStack));
@@ -207,7 +207,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsFoodItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 生鲑鱼可以用来喂养猫（治疗）
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isFoodItem(salmonStack));
@@ -216,7 +216,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsFoodItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能用来喂养猫
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isFoodItem(boneStack));
@@ -229,7 +229,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, CatType_RandomlySet)
 {
     // 构造函数会随机设置皮肤类型
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     // 验证皮肤类型在有效范围内 (0-10)
     u8 typeValue = static_cast<u8>(cat.getCatType());
     EXPECT_LE(typeValue, 10);
@@ -237,7 +237,7 @@ TEST_F(CatEntityTestFixture, CatType_RandomlySet)
 
 TEST_F(CatEntityTestFixture, CatType_SetAndGet)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     cat.setCatType(CatEntity::CatType::Siamese);
     EXPECT_EQ(cat.getCatType(), CatEntity::CatType::Siamese);
@@ -252,7 +252,7 @@ TEST_F(CatEntityTestFixture, CatType_SetAndGet)
 TEST_F(CatEntityTestFixture, CatType_AllTypesValid)
 {
     // 验证所有皮肤类型都可以设置
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     for (u8 i = 0; i <= 10; ++i) {
         cat.setCatType(static_cast<CatEntity::CatType>(i));
@@ -266,20 +266,20 @@ TEST_F(CatEntityTestFixture, CatType_AllTypesValid)
 
 TEST_F(CatEntityTestFixture, TamedState_DefaultIsFalse)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 
 TEST_F(CatEntityTestFixture, TamedState_SetTrue)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(true);
     EXPECT_TRUE(cat.isTamed());
 }
 
 TEST_F(CatEntityTestFixture, TamedState_SetFalse)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(true);
     EXPECT_TRUE(cat.isTamed());
 
@@ -293,20 +293,20 @@ TEST_F(CatEntityTestFixture, TamedState_SetFalse)
 
 TEST_F(CatEntityTestFixture, SittingState_DefaultIsFalse)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, SittingState_SetTrue)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setSitting(true);
     EXPECT_TRUE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, SittingState_Toggle)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isSitting());
 
     cat.toggleSitting();
@@ -322,14 +322,14 @@ TEST_F(CatEntityTestFixture, SittingState_Toggle)
 
 TEST_F(CatEntityTestFixture, EyeHeight_Adult)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setChild(false);
     EXPECT_FLOAT_EQ(cat.eyeHeight(), 0.35f);
 }
 
 TEST_F(CatEntityTestFixture, EyeHeight_Child)
 {
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setChild(true);
     EXPECT_FLOAT_EQ(cat.eyeHeight(), 0.2f);
 }
@@ -342,7 +342,7 @@ TEST_F(CatEntityTestFixture, Size_ConstantsValid)
 {
     // MC 1.16.5: 猫的尺寸常量
     // 验证实体构造成功，说明尺寸常量有效
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 
@@ -352,8 +352,8 @@ TEST_F(CatEntityTestFixture, Size_ConstantsValid)
 
 TEST_F(CatEntityTestFixture, SpawnBaby_ReturnsCatEntity)
 {
-    CatEntity parent1(LegacyEntityType::Unknown, 0);
-    CatEntity parent2(LegacyEntityType::Unknown, 1);
+    CatEntity parent1(EntityId(0));
+    CatEntity parent2(EntityId(1));
 
     parent1.setPosition(100.0, 64.0, 200.0);
 
@@ -375,7 +375,7 @@ TEST_F(CatEntityTestFixture, CatTemptGoal_UntamedCat_Registered)
 {
     // MC 1.16.5: 未驯服的猫应该有 TemptGoal
     // 由于目标在构造函数中注册，我们验证实体构造成功
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(false);
 
     // 验证实体状态正确
@@ -385,7 +385,7 @@ TEST_F(CatEntityTestFixture, CatTemptGoal_UntamedCat_Registered)
 TEST_F(CatEntityTestFixture, CatTemptGoal_TamedCat_StillRegistered)
 {
     // MC 1.16.5: 驯服后 TemptGoal 仍然注册，但 shouldExecute 返回 false
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(true);
 
     // 验证实体状态正确
@@ -399,7 +399,7 @@ TEST_F(CatEntityTestFixture, CatTemptGoal_TamedCat_StillRegistered)
 TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_UntamedCat_Registered)
 {
     // MC 1.16.5: 未驯服的猫应该有 AvoidPlayerGoal
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(false);
 
     // 验证实体状态正确
@@ -409,7 +409,7 @@ TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_UntamedCat_Registered)
 TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_TamedCat_Removed)
 {
     // MC 1.16.5: 驯服后 AvoidPlayerGoal 应该被移除
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     cat.setTamed(true);
 
     // 验证实体状态正确
@@ -423,7 +423,7 @@ TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_TamedCat_Removed)
 TEST_F(CatEntityTestFixture, SetupTamedAI_Tamed_RemovesAvoidPlayerGoal)
 {
     // MC 1.16.5: 驯服后应该移除 AvoidPlayerGoal
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     // 初始状态：未驯服
     EXPECT_FALSE(cat.isTamed());
@@ -436,7 +436,7 @@ TEST_F(CatEntityTestFixture, SetupTamedAI_Tamed_RemovesAvoidPlayerGoal)
 TEST_F(CatEntityTestFixture, SetupTamedAI_UntamedToTamedToUntamed)
 {
     // MC 1.16.5: 测试驯服状态的切换
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     // 未驯服
     cat.setTamed(false);
@@ -458,7 +458,7 @@ TEST_F(CatEntityTestFixture, SetupTamedAI_UntamedToTamedToUntamed)
 TEST_F(CatEntityTestFixture, TameItem_Equals_BreedingItem)
 {
     // MC 1.16.5: 猫的驯服物品和繁殖物品相同
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack codStack(Items::COD, 1);
     ItemStack salmonStack(Items::SALMON, 1);
@@ -484,7 +484,7 @@ TEST_F(CatEntityTestFixture, TameItem_Equals_BreedingItem)
 TEST_F(CatEntityTestFixture, Polymorphism_IsTameItem)
 {
     // 验证通过基类指针调用 isTameItem 正确工作
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     TameableEntity* tameable = &cat;
 
     ItemStack codStack(Items::COD, 1);
@@ -497,7 +497,7 @@ TEST_F(CatEntityTestFixture, Polymorphism_IsTameItem)
 TEST_F(CatEntityTestFixture, Polymorphism_IsBreedingItem)
 {
     // 验证通过基类指针调用 isBreedingItem 正确工作
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     AnimalEntity* animal = &cat;
 
     ItemStack codStack(Items::COD, 1);
@@ -514,7 +514,7 @@ TEST_F(CatEntityTestFixture, Polymorphism_IsBreedingItem)
 TEST_F(CatEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isTameItem(emptyStack));
@@ -523,7 +523,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isBreedingItem(emptyStack));
@@ -532,7 +532,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsFoodItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isFoodItem(emptyStack));
@@ -547,14 +547,14 @@ TEST_F(CatEntityTestFixture, Constants_TemptSpeed)
     // MC 1.16.5: 猫的诱惑速度是 0.6
     // 验证常量存在（通过代码访问）
     // 这里我们验证实体构造成功，说明常量有效
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 
 TEST_F(CatEntityTestFixture, Constants_AvoidDistance)
 {
     // MC 1.16.5: 猫的逃避检测距离是 16.0f
-    CatEntity cat(LegacyEntityType::Unknown, 0);
+    CatEntity cat(EntityId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 

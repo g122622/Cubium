@@ -81,11 +81,10 @@ class LivingEntity : public Entity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      * @param world 世界指针（可选）
      */
-    LivingEntity(LegacyEntityType type, EntityId id, IWorld* world = nullptr);
+    LivingEntity(EntityId id, IWorld* world = nullptr);
 
     ~LivingEntity() override = default;
 

@@ -23,6 +23,7 @@
 
 #include "FoxGoals.hpp"
 #include "../../../../entities/passive/special/FoxEntity.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../controller/MovementController.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
@@ -103,10 +104,10 @@ bool FoxPassiveGoal::hasAlertableTarget() const
             continue;
         }
 
-        auto type = living->legacyType();
+        auto type = living->typeId();
 
         // 鸡、兔子 -> 警觉
-        if (type == LegacyEntityType::Chicken || type == LegacyEntityType::Rabbit) {
+        if (type == entity::EntityTypeIdNumber::CHICKEN || type == entity::EntityTypeIdNumber::RABBIT) {
             return true;
         }
 
@@ -158,8 +159,8 @@ bool FoxFollowTargetGoal::shouldExecute()
         return false;
     }
 
-    auto type = target->legacyType();
-    if (type != LegacyEntityType::Chicken && type != LegacyEntityType::Rabbit) {
+    auto type = target->typeId();
+    if (type != entity::EntityTypeIdNumber::CHICKEN && type != entity::EntityTypeIdNumber::RABBIT) {
         return false;
     }
 

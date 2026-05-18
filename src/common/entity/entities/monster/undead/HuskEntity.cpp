@@ -26,8 +26,8 @@
 
 namespace mc {
 
-HuskEntity::HuskEntity(LegacyEntityType type, EntityId id)
-    : ZombieEntity(type, id)
+HuskEntity::HuskEntity(EntityId id)
+    : ZombieEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -35,7 +35,7 @@ HuskEntity::HuskEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<HuskEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<HuskEntity>(EntityId(0));
 }
 
 void HuskEntity::registerAttributes()

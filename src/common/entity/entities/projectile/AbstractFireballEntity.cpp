@@ -39,19 +39,19 @@
 namespace mc {
 namespace entity {
 
-AbstractFireballEntity::AbstractFireballEntity(LegacyEntityType type, EntityId id)
-    : DamagingProjectileEntity(type, id)
+AbstractFireballEntity::AbstractFireballEntity(EntityId id)
+    : DamagingProjectileEntity(id)
 {}
 
-FireballEntity::FireballEntity(LegacyEntityType type, EntityId id)
-    : AbstractFireballEntity(type, id)
+FireballEntity::FireballEntity(EntityId id)
+    : AbstractFireballEntity(id)
 {
     setDamage(6.0f);
 }
 
 std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<FireballEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<FireballEntity>(0);
 }
 
 void FireballEntity::onEntityHit(const RayTraceResult& result)
@@ -112,15 +112,15 @@ void FireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-SmallFireballEntity::SmallFireballEntity(LegacyEntityType type, EntityId id)
-    : AbstractFireballEntity(type, id)
+SmallFireballEntity::SmallFireballEntity(EntityId id)
+    : AbstractFireballEntity(id)
 {
     setDamage(5.0f);
 }
 
 std::unique_ptr<Entity> SmallFireballEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SmallFireballEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SmallFireballEntity>(0);
 }
 
 void SmallFireballEntity::onEntityHit(const RayTraceResult& result)
@@ -197,15 +197,15 @@ void SmallFireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-DragonFireballEntity::DragonFireballEntity(LegacyEntityType type, EntityId id)
-    : AbstractFireballEntity(type, id)
+DragonFireballEntity::DragonFireballEntity(EntityId id)
+    : AbstractFireballEntity(id)
 {
     setDamage(12.0f);
 }
 
 std::unique_ptr<Entity> DragonFireballEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<DragonFireballEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<DragonFireballEntity>(0);
 }
 
 void DragonFireballEntity::onEntityHit(const RayTraceResult& result)
@@ -290,15 +290,15 @@ client::renderer::trident::particle::ParticleTypeId DragonFireballEntity::getPar
     return client::renderer::trident::particle::ParticleTypeId::DragonBreath;
 }
 
-WitherSkullEntity::WitherSkullEntity(LegacyEntityType type, EntityId id)
-    : AbstractFireballEntity(type, id)
+WitherSkullEntity::WitherSkullEntity(EntityId id)
+    : AbstractFireballEntity(id)
 {
     setDamage(8.0f);
 }
 
 std::unique_ptr<Entity> WitherSkullEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WitherSkullEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<WitherSkullEntity>(0);
 }
 
 void WitherSkullEntity::onEntityHit(const RayTraceResult& result)

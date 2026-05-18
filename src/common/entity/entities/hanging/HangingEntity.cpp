@@ -41,11 +41,11 @@ namespace entity {
 // ==================== HangingEntity ====================
 
 HangingEntity::HangingEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {}
 
 HangingEntity::HangingEntity(BlockPos pos, Direction direction)
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
     , m_hangingPos(pos)
     , m_direction(direction)
 {

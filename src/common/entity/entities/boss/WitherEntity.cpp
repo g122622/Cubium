@@ -62,11 +62,11 @@ DataParameter<i32> WitherEntity::INVULNERABILITY_TIME = EntityDataManager::creat
 
 std::unique_ptr<Entity> WitherEntity::create(IWorld* world)
 {
-    return std::make_unique<WitherEntity>(LegacyEntityType::Wither, EntityId(0));
+    return std::make_unique<WitherEntity>(EntityId(0));
 }
 
-WitherEntity::WitherEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id)
+WitherEntity::WitherEntity(EntityId id)
+    : MobEntity(id)
 {
     // MC 1.16.5 WitherEntity 构造函数
     setExperienceValue(50);
@@ -126,7 +126,7 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const
     Entity* trueSource = source.getTrueSource();
     if (trueSource != nullptr && trueSource != this) {
         // 检查攻击者是否也是凋灵
-        if (trueSource->legacyType() == LegacyEntityType::Wither) {
+        if (trueSource->typeId() == entity::EntityTypeIdNumber::WITHER) {
             return true;
         }
     }
@@ -137,10 +137,10 @@ bool WitherEntity::isInvulnerableTo(DamageSource& source) const
         if (immediateSource != nullptr) {
             // 检查是否是箭矢（包括普通箭、光灵箭、三叉戟等投射物）
             // MC 1.16.5: if (entity instanceof AbstractArrowEntity)
-            LegacyEntityType entityType = immediateSource->legacyType();
-            if (entityType == LegacyEntityType::Arrow ||
-                entityType == LegacyEntityType::SpectralArrow ||
-                entityType == LegacyEntityType::Trident) {
+            auto entityType = immediateSource->typeId();
+            if (entityType == entity::EntityTypeIdNumber::ARROW ||
+                entityType == entity::EntityTypeIdNumber::SPECTRAL_ARROW ||
+                entityType == entity::EntityTypeIdNumber::TRIDENT) {
                 return true;
             }
         }
@@ -164,7 +164,7 @@ bool WitherEntity::hurt(DamageSource& source, f32 amount)
     Entity* trueSource = source.getTrueSource();
     if (trueSource != nullptr && trueSource != this) {
         // 检查攻击者是否是凋灵
-        if (trueSource->legacyType() == LegacyEntityType::Wither) {
+        if (trueSource->typeId() == entity::EntityTypeIdNumber::WITHER) {
             return false;
         }
         // 检查攻击者是否是亡灵生物
@@ -306,7 +306,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
     }
 
     // 创建凋灵之首实体
-    auto skull = std::make_unique<WitherSkullEntity>(LegacyEntityType::WitherSkull, EntityId(0));
+    auto skull = std::make_unique<WitherSkullEntity>(EntityId(0));
     skull->setPosition(Vector3(headX, headY, headZ));
     skull->setShooter(this);
     // MC 1.16.5: 蓝色凋灵之首的运动因子为 0.73，普通为 0.95
@@ -562,7 +562,7 @@ void WitherEntity::updateHeadTargets()
 
             // 检查是否是创造模式玩家（创造模式和旁观者模式的玩家不能被作为目标）
             // MC 1.16.5: 创造模式和旁观者模式无敌
-            if (living->legacyType() == LegacyEntityType::Player) {
+            if (living->typeId() == entity::EntityTypeIdNumber::PLAYER) {
                 Player* player = dynamic_cast<Player*>(living);
                 if (player != nullptr && (player->isCreative() || player->isSpectator())) {
                     continue;
@@ -754,7 +754,7 @@ void WitherEntity::registerGoals()
     m_goalSelector.addGoal(
         6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 7: 随机看向

@@ -46,8 +46,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-ProjectileEntity::ProjectileEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+ProjectileEntity::ProjectileEntity(EntityId id)
+    : Entity(id)
 {
     m_noGravity = false;
 }

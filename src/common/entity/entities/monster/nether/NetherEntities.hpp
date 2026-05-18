@@ -51,7 +51,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    GhastEntity(LegacyEntityType type, EntityId id);
+    GhastEntity(EntityId id);
     ~GhastEntity() override = default;
 
     // ========== 飞行特性 ==========
@@ -122,7 +122,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    MagmaCubeEntity(LegacyEntityType type, EntityId id);
+    MagmaCubeEntity(EntityId id);
     ~MagmaCubeEntity() override = default;
 
     // ========== 体型 ==========
@@ -194,7 +194,7 @@ protected:
  */
 class AbstractPiglinEntity : public MonsterEntity {
 public:
-    AbstractPiglinEntity(LegacyEntityType type, EntityId id);
+    AbstractPiglinEntity(EntityId id);
     ~AbstractPiglinEntity() override = default;
 
     // ========== 猪灵状态 ==========
@@ -231,7 +231,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PiglinEntity(LegacyEntityType type, EntityId id);
+    PiglinEntity(EntityId id);
     ~PiglinEntity() override = default;
 
     // ========== 交易相关 ==========
@@ -284,7 +284,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PiglinBruteEntity(LegacyEntityType type, EntityId id);
+    PiglinBruteEntity(EntityId id);
     ~PiglinBruteEntity() override = default;
 
 protected:
@@ -301,7 +301,7 @@ protected:
  */
 class ZombifiedPiglinEntity : public MonsterEntity {
 public:
-    ZombifiedPiglinEntity(LegacyEntityType type, EntityId id);
+    ZombifiedPiglinEntity(EntityId id);
     ~ZombifiedPiglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -339,7 +339,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    HoglinEntity(LegacyEntityType type, EntityId id);
+    HoglinEntity(EntityId id);
     ~HoglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -387,7 +387,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    ZoglinEntity(LegacyEntityType type, EntityId id);
+    ZoglinEntity(EntityId id);
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }

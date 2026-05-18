@@ -48,8 +48,8 @@
 
 namespace mc {
 
-RavagerEntity::RavagerEntity(LegacyEntityType type, EntityId id)
-    : AbstractRaiderEntity(type, id)
+RavagerEntity::RavagerEntity(EntityId id)
+    : AbstractRaiderEntity(id)
 {
     // MC 1.16.5: RavagerEntity 构造函数中设置 stepHeight = 1.0F
     // 劫掠兽可以走上1格高的方块
@@ -71,7 +71,7 @@ RavagerEntity::RavagerEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<RavagerEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<RavagerEntity>(EntityId(0));
 }
 
 void RavagerEntity::tick()

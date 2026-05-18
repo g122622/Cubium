@@ -26,6 +26,7 @@
 #include "../../core/Types.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/core/EntityClassification.hpp"
+#include "../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/Vector3.hpp"
 #include <functional>
@@ -118,10 +119,10 @@ public:
 
     /**
      * @brief 获取指定类型的所有实体
-     * @param type 实体类型
+     * @param typeId 实体类型ID (来自 EntityTypeIdNumber)
      * @return 实体列表
      */
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(LegacyEntityType type) const;
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const;
 
     /**
      * @brief 按分类统计实体数量

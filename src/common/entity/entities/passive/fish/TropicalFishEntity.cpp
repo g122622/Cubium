@@ -30,15 +30,15 @@
 
 namespace mc {
 
-TropicalFishEntity::TropicalFishEntity(LegacyEntityType type, EntityId id)
-    : AbstractGroupFishEntity(type, id)
+TropicalFishEntity::TropicalFishEntity(EntityId id)
+    : AbstractGroupFishEntity(id)
 {
     randomizeVariant();
 }
 
 std::unique_ptr<Entity> TropicalFishEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<TropicalFishEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<TropicalFishEntity>(0);
 }
 
 TropicalFishEntity::FishShape TropicalFishEntity::getShape() const

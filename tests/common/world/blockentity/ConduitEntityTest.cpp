@@ -349,7 +349,7 @@ TEST_F(UuidTest, UuidStringFormat)
 class MockLivingEntityForConduit : public LivingEntity {
 public:
     explicit MockLivingEntityForConduit(EntityId id)
-        : LivingEntity(LegacyEntityType::Player, id, nullptr)
+        : LivingEntity(id, nullptr)
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -360,7 +360,7 @@ public:
 class MockMobEntityForConduit : public LivingEntity, public entity::IMob {
 public:
     explicit MockMobEntityForConduit(EntityId id)
-        : LivingEntity(LegacyEntityType::Zombie, id, nullptr)
+        : LivingEntity(id, nullptr)
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -371,7 +371,7 @@ public:
 class MockNonLivingEntityForConduit : public Entity {
 public:
     explicit MockNonLivingEntityForConduit(EntityId id)
-        : Entity(LegacyEntityType::Item, id, nullptr)
+        : Entity(id, nullptr)
     {}
 };
 

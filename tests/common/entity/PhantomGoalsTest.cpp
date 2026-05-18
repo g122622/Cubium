@@ -19,7 +19,7 @@ class PhantomEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
     }
 
     void TearDown() override { phantom.reset(); }
@@ -121,7 +121,7 @@ class PhantomAttackPlayerTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
         goal = std::make_unique<PhantomAttackPlayerTargetGoal>(phantom.get());
     }
 
@@ -159,7 +159,7 @@ class PhantomOrbitPointGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
         goal = std::make_unique<PhantomOrbitPointGoal>(phantom.get());
     }
 
@@ -216,7 +216,7 @@ class PhantomPickAttackGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
         goal = std::make_unique<PhantomPickAttackGoal>(phantom.get());
     }
 
@@ -263,7 +263,7 @@ class PhantomSweepAttackGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
         goal = std::make_unique<PhantomSweepAttackGoal>(phantom.get());
     }
 
@@ -328,7 +328,7 @@ class PhantomGoalsIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityId(0));
         targetGoal = std::make_unique<PhantomAttackPlayerTargetGoal>(phantom.get());
         orbitGoal = std::make_unique<PhantomOrbitPointGoal>(phantom.get());
         pickGoal = std::make_unique<PhantomPickAttackGoal>(phantom.get());

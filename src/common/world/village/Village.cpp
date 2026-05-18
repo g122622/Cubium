@@ -200,8 +200,7 @@ void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInteres
         }
 
         // 检查是否为村民实体
-        // LegacyEntityType::Villager = 100
-        if (entity->legacyType() != LegacyEntityType::Villager) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::VILLAGER) {
             // 不是村民，可能是数据错误，移除
             villagersToRemove.push_back(villagerId);
             continue;

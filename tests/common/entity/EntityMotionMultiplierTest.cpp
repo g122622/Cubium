@@ -38,7 +38,7 @@ namespace {
 class TestEntity : public Entity {
 public:
     TestEntity()
-        : Entity(LegacyEntityType::Player, 1)
+        : Entity(EntityId(1))
     {
         // 初始化尺寸
         refreshDimensions();
@@ -53,7 +53,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         setHealth(maxHealth());
     }

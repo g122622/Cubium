@@ -29,8 +29,8 @@
 
 namespace mc {
 
-SpellcastingIllagerEntity::SpellcastingIllagerEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
+SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityId id)
+    : AbstractIllagerEntity(id)
 {}
 
 SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(i32 id)

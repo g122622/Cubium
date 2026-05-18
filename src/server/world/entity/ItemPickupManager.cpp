@@ -22,6 +22,7 @@
 */
 
 #include "ItemPickupManager.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -57,7 +58,7 @@ void ItemPickupManager::tick(IServer& server)
     processItemMerging(server);
 
     // 获取所有玩家实体并检查拾取
-    auto players = server.entityManager().getEntitiesByType(LegacyEntityType::Player);
+    auto players = server.entityManager().getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
     for (Entity* entity : players) {
         if (entity && entity->isAlive()) {
             checkPlayerPickup(server, *entity);
@@ -91,7 +92,7 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
         }
 
         // 只处理物品实体
-        if (entity->legacyType() != LegacyEntityType::Item) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
             continue;
         }
 
@@ -123,7 +124,7 @@ bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntit
     }
 
     // 检查是否是玩家
-    if (player.legacyType() != LegacyEntityType::Player) {
+    if (player.typeId() != entity::EntityTypeIdNumber::PLAYER) {
         return false;
     }
 
@@ -161,7 +162,7 @@ void ItemPickupManager::processItemMerging(IServer& server)
     // 收集所有存活的物品实体
     std::vector<ItemEntity*> itemEntities;
     server.entityManager().forEachEntity([&itemEntities](Entity* entity) {
-        if (entity && entity->isAlive() && entity->legacyType() == LegacyEntityType::Item) {
+        if (entity && entity->isAlive() && entity->typeId() == entity::EntityTypeIdNumber::ITEM) {
             itemEntities.push_back(static_cast<ItemEntity*>(entity));
         }
         return true; // 继续遍历
@@ -249,7 +250,7 @@ f32 ItemPickupManager::calculatePickupRange(const Entity& player) const
     f32 range = PICKUP_RANGE;
 
     // 潜行时范围缩小
-    if (player.legacyType() == LegacyEntityType::Player) {
+    if (player.typeId() == entity::EntityTypeIdNumber::PLAYER) {
         const Player* playerEntity = static_cast<const Player*>(&player);
         if (playerEntity->isSneaking()) {
             range = PICKUP_RANGE_SNEAKING;

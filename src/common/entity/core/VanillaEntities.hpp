@@ -88,6 +88,7 @@
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityType.hpp"
+#include "EntityTypeIdNumber.hpp"
 #include "../entities/boss/EnderDragonEntity.hpp"
 #include "../entities/boss/WitherEntity.hpp"
 // #include "../entities/villager/VillagerEntity.hpp"
@@ -847,6 +848,9 @@ private:
         // ========== 初始化生成放置规则 ==========
         // 这必须在实体注册完成后调用
         world::spawn::EntitySpawnPlacementRegistry::initializeDefaults();
+
+        // 初始化实体类型 ID 缓存
+        EntityTypeIdNumber::initialize();
 
         spdlog::info("Registered {} entity types", registry.size());
     }

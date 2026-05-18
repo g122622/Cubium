@@ -122,7 +122,7 @@ protected:
         m_world = std::make_unique<ZombieTestWorld>();
 
         // 创建僵尸
-        m_zombie = std::make_unique<ZombieEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_zombie = std::make_unique<ZombieEntity>(EntityId(1));
         m_zombie->setWorld(m_world.get());
         m_zombie->setPosition(0.0, 64.0, 0.0);
     }
@@ -355,7 +355,7 @@ TEST_F(ZombieEntityTest, ConvertToDrownedResetsConversionState)
 TEST_F(ZombieEntityTest, ConvertToDrownedWithoutWorld)
 {
     // 创建没有世界的僵尸
-    auto zombieNoWorld = std::make_unique<ZombieEntity>(LegacyEntityType::Unknown, EntityId(2));
+    auto zombieNoWorld = std::make_unique<ZombieEntity>(EntityId(2));
 
     // 不应该崩溃
     zombieNoWorld->convertToDrowned();

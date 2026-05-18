@@ -57,8 +57,8 @@ namespace mc {
 
 // ==================== OcelotEntity ====================
 
-OcelotEntity::OcelotEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+OcelotEntity::OcelotEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -69,7 +69,7 @@ OcelotEntity::OcelotEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<OcelotEntity>(LegacyEntityType::Ocelot, 0);
+    return std::make_unique<OcelotEntity>(0);
 }
 
 bool OcelotEntity::trustsPlayer(u64 playerId) const
@@ -111,7 +111,7 @@ std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
     // 创建一个新的豹猫实体，不需要继承父母特征
-    auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Ocelot, 0);
+    auto baby = std::make_unique<OcelotEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

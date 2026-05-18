@@ -44,10 +44,9 @@ class AbstractFishEntity : public WaterMobEntity {
 public:
     /**
      * @brief 构造鱼类实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    AbstractFishEntity(LegacyEntityType type, EntityId id);
+    AbstractFishEntity(EntityId id);
     ~AbstractFishEntity() override = default;
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;

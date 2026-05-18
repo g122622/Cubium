@@ -70,10 +70,9 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    PufferfishEntity(LegacyEntityType type, EntityId id);
+    PufferfishEntity(EntityId id);
     ~PufferfishEntity() override = default;
 
     // 禁止拷贝

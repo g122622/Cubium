@@ -70,7 +70,7 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities)
 
     const Entity* entity = entityManager.getEntity(spawned[0]);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
 }
 
 TEST(BlockDropHandlerTest, SpawnDropsEmptyListReturnsEmpty)
@@ -107,7 +107,7 @@ TEST(BlockDropHandlerTest, SpawnDropsMultipleItems)
     for (EntityId id : spawned) {
         const Entity* entity = entityManager.getEntity(id);
         ASSERT_NE(entity, nullptr);
-        EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
+        EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
     }
 }
 
@@ -129,7 +129,7 @@ TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay)
     ASSERT_NE(entity, nullptr);
 
     // 验证是物品实体
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
 
     // 验证拾取延迟被设置
     const auto* itemEntity = dynamic_cast<const ItemEntity*>(entity);

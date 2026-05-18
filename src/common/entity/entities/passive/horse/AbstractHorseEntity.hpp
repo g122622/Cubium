@@ -55,10 +55,9 @@ class AbstractHorseEntity : public AnimalEntity, public entity::IJumpingMount, p
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    AbstractHorseEntity(LegacyEntityType type, EntityId id);
+    AbstractHorseEntity(EntityId id);
     ~AbstractHorseEntity() override = default;
 
     // 禁止拷贝

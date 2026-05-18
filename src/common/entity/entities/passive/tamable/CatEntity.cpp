@@ -123,8 +123,8 @@ bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 // CatEntity 实现
 // ============================================================================
 
-CatEntity::CatEntity(LegacyEntityType type, EntityId id)
-    : TameableEntity(type, id)
+CatEntity::CatEntity(EntityId id)
+    : TameableEntity(id)
 {
     // 随机设置皮肤类型
     setRandomCatType();
@@ -138,7 +138,7 @@ CatEntity::CatEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<CatEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<CatEntity>(0);
 }
 
 void CatEntity::setRandomCatType()
@@ -171,7 +171,7 @@ bool CatEntity::isFoodItem(const ItemStack& itemStack) const
 std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // 创建小猫
-    auto baby = std::make_unique<CatEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<CatEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

@@ -43,10 +43,9 @@ class DonkeyEntity : public AbstractChestedHorseEntity {
 public:
     /**
      * @brief 构造驴实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    DonkeyEntity(LegacyEntityType type, EntityId id);
+    DonkeyEntity(EntityId id);
     ~DonkeyEntity() override = default;
 
     DonkeyEntity(const DonkeyEntity&) = delete;

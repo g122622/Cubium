@@ -26,8 +26,8 @@
 
 namespace mc {
 
-AmbientEntity::AmbientEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id)
+AmbientEntity::AmbientEntity(EntityId id)
+    : MobEntity(id)
 {
     // 注册属性
     registerAttributes();

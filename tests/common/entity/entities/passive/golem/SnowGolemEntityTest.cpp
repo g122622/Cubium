@@ -73,7 +73,7 @@ protected:
 
 TEST_F(SnowGolemEntityTest, Pumpkin_DefaultHasPumpkin)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // 默认戴着南瓜
     EXPECT_TRUE(golem.hasPumpkin());
@@ -82,7 +82,7 @@ TEST_F(SnowGolemEntityTest, Pumpkin_DefaultHasPumpkin)
 
 TEST_F(SnowGolemEntityTest, Pumpkin_CanSetAndClear)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     golem.setPumpkin(false);
     EXPECT_FALSE(golem.hasPumpkin());
@@ -95,7 +95,7 @@ TEST_F(SnowGolemEntityTest, Pumpkin_CanSetAndClear)
 
 TEST_F(SnowGolemEntityTest, Shear_ReturnsCarvedPumpkin)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
     golem.setWorld(&m_world);
 
     EXPECT_TRUE(golem.hasPumpkin());
@@ -124,7 +124,7 @@ TEST_F(SnowGolemEntityTest, Shear_ReturnsCarvedPumpkin)
 
 TEST_F(SnowGolemEntityTest, Shear_NoPumpkin_ReturnsEmpty)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
     golem.setWorld(&m_world);
 
     // 先剪切一次
@@ -140,7 +140,7 @@ TEST_F(SnowGolemEntityTest, Shear_NoPumpkin_ReturnsEmpty)
 
 TEST_F(SnowGolemEntityTest, Attributes_HasCorrectBaseValues)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // MC 1.16.5: 雪傀儡生命值为 4
     EXPECT_DOUBLE_EQ(golem.maxHealth(), 4.0);
@@ -153,7 +153,7 @@ TEST_F(SnowGolemEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(SnowGolemEntityTest, Dimensions_CorrectValues)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // MC 1.16.5: 雪傀儡尺寸
     EXPECT_FLOAT_EQ(golem.width(), 0.7f);
@@ -165,7 +165,7 @@ TEST_F(SnowGolemEntityTest, Dimensions_CorrectValues)
 
 TEST_F(SnowGolemEntityTest, AttackInterval_CorrectValue)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // MC 1.16.5: 攻击间隔 20 ticks（1秒）
     EXPECT_EQ(golem.getAttackInterval(), 20);
@@ -175,7 +175,7 @@ TEST_F(SnowGolemEntityTest, AttackInterval_CorrectValue)
 
 TEST_F(SnowGolemEntityTest, WaterSensitive_IsTrue)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // 雪傀儡对水敏感
     EXPECT_TRUE(golem.isWaterSensitive());
@@ -197,7 +197,7 @@ TEST_F(SnowGolemEntityTest, Create_ReturnsValidEntity)
 
 TEST_F(SnowGolemEntityTest, Inheritance_IsGolemEntity)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // 验证继承关系
     GolemEntity* golemBase = dynamic_cast<GolemEntity*>(&golem);
@@ -215,7 +215,7 @@ TEST_F(SnowGolemEntityTest, Inheritance_IsGolemEntity)
 
 TEST_F(SnowGolemEntityTest, Sounds_ReturnCorrectEvents)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // 环境音效
     auto ambient = golem.getAmbientSound();
@@ -230,7 +230,7 @@ TEST_F(SnowGolemEntityTest, Sounds_ReturnCorrectEvents)
 
 TEST_F(SnowGolemEntityTest, MeltConstants_IndirectVerification)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
 
     // 验证常量通过行为间接体现
     // MELT_TEMPERATURE = 1.0f - 温度 > 1.0 时融化
@@ -246,7 +246,7 @@ TEST_F(SnowGolemEntityTest, MeltConstants_IndirectVerification)
 
 TEST_F(SnowGolemEntityTest, RangedAttack_CreatesSnowball)
 {
-    SnowGolemEntity golem(LegacyEntityType::Unknown, 1);
+    SnowGolemEntity golem(EntityId(1));
     golem.setWorld(&m_world);
     golem.setPosition(0.0, 64.0, 0.0);
 

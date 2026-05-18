@@ -108,7 +108,7 @@ private:
 class TestVillagerEntity : public Entity {
 public:
     TestVillagerEntity(EntityId id, IWorld* world = nullptr)
-        : Entity(LegacyEntityType::Villager, id, world)
+        : Entity(id, world)
     {}
 
     void tick() override { /* 空实现 */ }
@@ -219,7 +219,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage)
     Village village(BlockPos(0, 64, 0));
 
     // 创建一个非村民实体（使用 Unknown 类型）
-    auto nonVillager = std::make_unique<Entity>(LegacyEntityType::Unknown, EntityId(1), &m_world);
+    auto nonVillager = std::make_unique<Entity>(EntityId(1), &m_world);
     nonVillager->setPosition(10.0f, 64.0f, 10.0f);
     m_world.addTestEntity(nonVillager.get(), 1);
 

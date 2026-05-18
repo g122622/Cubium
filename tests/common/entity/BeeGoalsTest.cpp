@@ -48,7 +48,7 @@ class BeeGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
     }
 
     void TearDown() override { bee.reset(); }
@@ -311,7 +311,7 @@ class BeePassiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         // Create a concrete implementation for testing
         goal = std::make_unique<BeePassiveGoalConcrete>(bee.get());
     }
@@ -399,7 +399,7 @@ class BeeStingGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeStingGoal>(bee.get());
     }
 
@@ -438,7 +438,7 @@ class BeeEnterHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeEnterHiveGoal>(bee.get());
     }
 
@@ -477,7 +477,7 @@ class BeePollinateGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeePollinateGoal>(bee.get());
     }
 
@@ -509,7 +509,7 @@ class BeeUpdateHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeUpdateHiveGoal>(bee.get());
     }
 
@@ -548,7 +548,7 @@ class BeeFindHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeFindHiveGoal>(bee.get());
     }
 
@@ -588,7 +588,7 @@ class BeeFindFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeFindFlowerGoal>(bee.get());
     }
 
@@ -621,7 +621,7 @@ class BeeFindPollinationTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeFindPollinationTargetGoal>(bee.get());
     }
 
@@ -654,7 +654,7 @@ class BeeWanderGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeWanderGoal>(bee.get());
     }
 
@@ -679,7 +679,7 @@ class BeeAngerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeAngerGoal>(bee.get());
     }
 
@@ -711,7 +711,7 @@ class BeeAttackPlayerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeAttackPlayerGoal>(bee.get(), 10);
     }
 
@@ -750,7 +750,7 @@ class BeeResetAngerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+        bee = std::make_unique<BeeEntity>(EntityId(0));
         goal = std::make_unique<BeeResetAngerGoal>(bee.get());
     }
 

@@ -27,8 +27,8 @@
 
 namespace mc {
 
-AbstractRaiderEntity::AbstractRaiderEntity(LegacyEntityType type, EntityId id)
-    : PatrollerEntity(type, id)
+AbstractRaiderEntity::AbstractRaiderEntity(EntityId id)
+    : PatrollerEntity(id)
 {}
 
 void AbstractRaiderEntity::joinRaid(world::village::raid::Raid* raid, i32 wave)

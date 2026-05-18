@@ -147,7 +147,7 @@ private:
 class TNTEntity : public Entity {
 public:
     TNTEntity();
-    TNTEntity(LegacyEntityType type, EntityId id);
+    explicit TNTEntity(EntityId id);
     ~TNTEntity() override = default;
 
     /**

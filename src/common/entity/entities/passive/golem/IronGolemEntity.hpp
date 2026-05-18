@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../core/EntityTypeIdNumber.hpp"
 #include "GolemEntity.hpp"
 #include <memory>
 
@@ -52,10 +53,9 @@ class IronGolemEntity : public GolemEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    IronGolemEntity(LegacyEntityType type, EntityId id);
+    IronGolemEntity(EntityId id);
     ~IronGolemEntity() override = default;
 
     // 禁止拷贝
@@ -159,10 +159,10 @@ public:
 
     /**
      * @brief 检查是否可以攻击指定实体类型
-     * @param entityType 实体类型
+     * @param typeId 实体类型ID
      * @return 是否可以攻击
      */
-    [[nodiscard]] bool canAttackEntity(LegacyEntityType entityType) const;
+    [[nodiscard]] bool canAttackEntity(entity::EntityTypeId typeId) const;
 
 protected:
     // ========== AI 目标注册 ==========

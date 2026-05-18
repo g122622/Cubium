@@ -175,7 +175,7 @@ protected:
 
 TEST_F(MooshroomEntityTest, DefaultType_IsRed)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
     EXPECT_TRUE(mooshroom.isRed());
     EXPECT_FALSE(mooshroom.isBrown());
@@ -183,7 +183,7 @@ TEST_F(MooshroomEntityTest, DefaultType_IsRed)
 
 TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
@@ -200,7 +200,7 @@ TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -217,7 +217,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -234,7 +234,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -252,7 +252,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(true); // 客户端生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -272,7 +272,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -289,7 +289,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBounds)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(true);
     mooshroom.setWorld(&m_world);
 
@@ -328,7 +328,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBou
 
 TEST_F(MooshroomEntityTest, InheritsFromCowEntity)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 验证哞菇继承自牛
     CowEntity* cow = dynamic_cast<CowEntity*>(&mooshroom);
@@ -341,7 +341,7 @@ TEST_F(MooshroomEntityTest, InheritsFromCowEntity)
 
 TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 哞菇总是可以被剪毛
     EXPECT_TRUE(mooshroom.isShearable());
@@ -351,7 +351,7 @@ TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue)
 
 TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false); // 服务端模式
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -375,7 +375,7 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed)
 
 TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -396,7 +396,7 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown)
 
 TEST_F(MooshroomEntityTest, Shear_PlaysShearSound)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -414,7 +414,7 @@ TEST_F(MooshroomEntityTest, Shear_PlaysShearSound)
 
 TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     m_world.setClientSide(false); // 服务端也生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -433,7 +433,7 @@ TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
 
 TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 成年哞菇可以用碗取汤
     EXPECT_FALSE(mooshroom.isChild());
@@ -447,7 +447,7 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl)
 
 TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
     mooshroom.setChild(true);
 
     // 幼年哞菇不能用碗取汤
@@ -461,7 +461,7 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild)
 
 TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 非碗物品
     if (mc::Items::DIAMOND != nullptr) {
@@ -478,7 +478,7 @@ TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems)
 
 TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 获取蘑菇汤
     ItemStack stew = mooshroom.getStew();
@@ -495,10 +495,10 @@ TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom)
 {
-    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity parent1(EntityId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+    MooshroomEntity parent2(EntityId(2));
     parent2.setPosition(102.0, 64.0, 100.0);
 
     // 繁殖
@@ -515,11 +515,11 @@ TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType)
 {
-    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity parent1(EntityId(1));
     parent1.setMooshroomType(MooshroomEntity::MooshroomType::Red);
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+    MooshroomEntity parent2(EntityId(2));
     parent2.setMooshroomType(MooshroomEntity::MooshroomType::Red);
     parent2.setPosition(102.0, 64.0, 100.0);
 
@@ -539,10 +539,10 @@ TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent)
 {
-    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity parent1(EntityId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+    MooshroomEntity parent2(EntityId(2));
 
     // 繁殖
     auto baby = parent1.spawnBaby(parent2);
@@ -560,7 +560,7 @@ TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent)
 
 TEST_F(MooshroomEntityTest, ImplementsIShearable)
 {
-    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    MooshroomEntity mooshroom(EntityId(1));
 
     // 验证实现 IShearable 接口
     entity::IShearable* shearable = dynamic_cast<entity::IShearable*>(&mooshroom);

@@ -106,7 +106,7 @@ protected:
 
 TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
     // 默认类型由 setRandomRabbitType 设置，测试概率分布
     // 由于随机性，我们只测试类型在有效范围内
     EXPECT_GE(static_cast<u8>(rabbit.getRabbitType()), 0);
@@ -115,7 +115,7 @@ TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown)
 
 TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::White);
     EXPECT_EQ(rabbit.getRabbitType(), RabbitEntity::RabbitType::White);
@@ -130,7 +130,7 @@ TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType)
 
 TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
     EXPECT_FALSE(rabbit.isKillerRabbit());
@@ -143,7 +143,7 @@ TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     ItemStack carrotStack(Items::CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(carrotStack));
@@ -151,7 +151,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     ItemStack goldenCarrotStack(Items::GOLDEN_CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(goldenCarrotStack));
@@ -159,7 +159,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     // 获取蒲公英方块物品
     const BlockItem* dandelionItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DANDELION);
@@ -171,7 +171,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     // 测试不接受其他物品
     if (Items::WHEAT != nullptr) {
@@ -188,12 +188,12 @@ TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems)
 
 TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit)
 {
-    RabbitEntity parent1(LegacyEntityType::Unknown, 1);
+    RabbitEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setRabbitType(RabbitEntity::RabbitType::Brown);
 
-    RabbitEntity parent2(LegacyEntityType::Unknown, 2);
+    RabbitEntity parent2(EntityId(2));
     parent2.setRabbitType(RabbitEntity::RabbitType::White);
 
     auto baby = parent1.spawnBaby(parent2);
@@ -208,12 +208,12 @@ TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit)
 
 TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType)
 {
-    RabbitEntity parent1(LegacyEntityType::Unknown, 1);
+    RabbitEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setRabbitType(RabbitEntity::RabbitType::Gold);
 
-    RabbitEntity parent2(LegacyEntityType::Unknown, 2);
+    RabbitEntity parent2(EntityId(2));
     parent2.setRabbitType(RabbitEntity::RabbitType::SaltAndPepper);
 
     // 多次测试类型继承（由于随机性）
@@ -238,7 +238,7 @@ TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType)
 
 TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
 
     EXPECT_EQ(rabbit.getSoundCategory(), sound::SoundCategory::Neutral);
@@ -246,7 +246,7 @@ TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit)
 
 TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
     rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
 
     EXPECT_EQ(rabbit.getSoundCategory(), sound::SoundCategory::Hostile);
@@ -256,7 +256,7 @@ TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit)
 
 TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
 
     // MC 1.16.5: 兔子生命值为 3
     EXPECT_DOUBLE_EQ(rabbit.maxHealth(), 3.0);
@@ -269,7 +269,7 @@ TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize)
 {
-    RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity rabbit(EntityId(1));
     rabbit.setChild(false); // 设置为成体
 
     // MC 1.16.5: 兔子宽度 0.4，高度 0.5
@@ -284,10 +284,10 @@ TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize)
 
 TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult)
 {
-    RabbitEntity adultRabbit(LegacyEntityType::Unknown, 1);
+    RabbitEntity adultRabbit(EntityId(1));
     adultRabbit.setChild(false);
 
-    RabbitEntity childRabbit(LegacyEntityType::Unknown, 2);
+    RabbitEntity childRabbit(EntityId(2));
     childRabbit.setChild(true);
 
     // 成体眼睛高度 0.35，幼体 0.2

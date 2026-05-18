@@ -238,7 +238,7 @@ class EndermanHeldBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, 1);
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -290,7 +290,7 @@ class EndermanPlaceBlockGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, 1);
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         goal = std::make_unique<entity::ai::goal::EndermanPlaceBlockGoal>(enderman.get());
     }
 
@@ -328,7 +328,7 @@ class EndermanTakeBlockGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, 1);
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         goal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
     }
 

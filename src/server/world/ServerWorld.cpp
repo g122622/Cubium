@@ -1652,7 +1652,7 @@ void ServerWorld::updateAllPlayersSleepingFlag()
     bool allSleeping = true;
 
     // 获取所有玩家实体
-    auto players = m_entityManager.getEntitiesByType(LegacyEntityType::Player);
+    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
     if (players.empty()) {
         m_allPlayersSleeping = false;
         return;
@@ -1713,7 +1713,7 @@ void ServerWorld::checkSleepStatus()
 void ServerWorld::wakeUpAllPlayers()
 {
     // 获取所有玩家实体并唤醒
-    auto players = m_entityManager.getEntitiesByType(LegacyEntityType::Player);
+    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
     for (Entity* entity : players) {
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr && player->isSleeping()) {

@@ -81,13 +81,13 @@ constexpr i32 MIN_CATCHABLE_TICKS = 20; // 最小捕获窗口 (1秒)
 constexpr i32 MAX_CATCHABLE_TICKS = 40; // 最大捕获窗口 (2秒)
 } // namespace
 
-LlamaSpitEntity::LlamaSpitEntity(LegacyEntityType type, EntityId id)
-    : ThrowableEntity(type, id)
+LlamaSpitEntity::LlamaSpitEntity(EntityId id)
+    : ThrowableEntity(id)
 {}
 
 std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<LlamaSpitEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<LlamaSpitEntity>(0);
 }
 
 void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
@@ -123,15 +123,15 @@ void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
 // FishingBobberEntity
 // ============================================================================
 
-FishingBobberEntity::FishingBobberEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+FishingBobberEntity::FishingBobberEntity(EntityId id)
+    : Entity(id)
 {
     m_noGravity = false;
 }
 
 std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<FishingBobberEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<FishingBobberEntity>(0);
 }
 
 void FishingBobberEntity::setShooter(Entity* shooter)
@@ -757,8 +757,8 @@ void FishingBobberEntity::syncCaughtEntityId()
 // ShulkerBulletEntity
 // ============================================================================
 
-ShulkerBulletEntity::ShulkerBulletEntity(LegacyEntityType type, EntityId id)
-    : ProjectileEntity(type, id)
+ShulkerBulletEntity::ShulkerBulletEntity(EntityId id)
+    : ProjectileEntity(id)
     , m_direction(Direction::Up)
     , m_targetDelta(0.0, 0.0, 0.0)
 {
@@ -767,7 +767,7 @@ ShulkerBulletEntity::ShulkerBulletEntity(LegacyEntityType type, EntityId id)
 }
 
 ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis)
-    : ShulkerBulletEntity(LegacyEntityType::ShulkerBullet, 0)
+    : ShulkerBulletEntity(0)
 {
     if (shooter) {
         setShooter(shooter);
@@ -789,7 +789,7 @@ ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, E
 
 std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ShulkerBulletEntity>(0);
 }
 
 void ShulkerBulletEntity::setTarget(Entity* target)
@@ -1120,15 +1120,15 @@ void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
 // EvokerFangsEntity
 // ============================================================================
 
-EvokerFangsEntity::EvokerFangsEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+EvokerFangsEntity::EvokerFangsEntity(EntityId id)
+    : Entity(id)
 {
     m_warmupDelay = 0;
 }
 
 std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EvokerFangsEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<EvokerFangsEntity>(0);
 }
 
 void EvokerFangsEntity::tick()
@@ -1217,15 +1217,15 @@ void EvokerFangsEntity::damageEntities()
 // EyeOfEnderEntity
 // ============================================================================
 
-EyeOfEnderEntity::EyeOfEnderEntity(LegacyEntityType type, EntityId id)
-    : Entity(type, id)
+EyeOfEnderEntity::EyeOfEnderEntity(EntityId id)
+    : Entity(id)
 {
     m_noGravity = false;
 }
 
 std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EyeOfEnderEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<EyeOfEnderEntity>(0);
 }
 
 void EyeOfEnderEntity::tick()
@@ -1274,8 +1274,8 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 // FireworkRocketEntity
 // ============================================================================
 
-FireworkRocketEntity::FireworkRocketEntity(LegacyEntityType type, EntityId id)
-    : ProjectileEntity(type, id)
+FireworkRocketEntity::FireworkRocketEntity(EntityId id)
+    : ProjectileEntity(id)
     , m_fireworkItem(Items::AIR, 0)  // 初始化为空物品
 {
     m_noGravity = false;
@@ -1283,7 +1283,7 @@ FireworkRocketEntity::FireworkRocketEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<FireworkRocketEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<FireworkRocketEntity>(0);
 }
 
 void FireworkRocketEntity::setFireworkItem(const ItemStack& item)

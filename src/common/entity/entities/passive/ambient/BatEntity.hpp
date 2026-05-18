@@ -51,10 +51,9 @@ class BatEntity : public AmbientEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    BatEntity(LegacyEntityType type, EntityId id);
+    BatEntity(EntityId id);
     ~BatEntity() override = default;
 
     // 禁止拷贝

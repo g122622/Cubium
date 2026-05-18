@@ -125,8 +125,8 @@ private:
 
 // ==================== SpiderEntity ====================
 
-SpiderEntity::SpiderEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+SpiderEntity::SpiderEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -137,7 +137,7 @@ SpiderEntity::SpiderEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SpiderEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SpiderEntity>(EntityId(0));
 }
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const
@@ -193,7 +193,7 @@ void SpiderEntity::registerGoals()
     // 优先级 6: 看向玩家（8格距离）
     m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0F, 0.02F,
         [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 6: 随机看向

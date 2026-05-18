@@ -38,8 +38,8 @@
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
-#include "../utils/EntityUtils.hpp"
 #include "EntityRegistry.hpp"
+#include "EntityTypeIdNumber.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "spdlog/spdlog.h"
 
@@ -70,9 +70,8 @@ entity::DataParameter<i8> POSE_PARAM{6};
 // Entity 实现
 // ============================================================================
 
-Entity::Entity(LegacyEntityType type, EntityId id, IWorld* world)
+Entity::Entity(EntityId id, IWorld* world)
     : m_id(id)
-    , m_legacyType(type)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_prevPosition(0.0f, 0.0f, 0.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
@@ -262,11 +261,24 @@ bool Entity::hasTag(const std::string& tag) const
 
 std::string Entity::getTypeId() const
 {
+    // 返回实体类型标识符，如果未设置则返回 "minecraft:unknown"
     if (!m_typeId.empty()) {
         return m_typeId;
     }
 
-    return EntityUtils::legacyTypeToTypeId(m_legacyType);
+    return "minecraft:unknown";
+}
+
+entity::EntityTypeId Entity::typeId() const
+{
+    // 通过类型字符串查询注册表获取数字ID
+    if (!m_typeId.empty()) {
+        const entity::EntityType* type = entity::EntityRegistry::instance().getType(m_typeId);
+        if (type != nullptr) {
+            return type->id();
+        }
+    }
+    return 0; // 未知类型返回 0
 }
 
 std::optional<ResourceLocation> Entity::makeSoundEventId(std::string_view suffix) const
@@ -1250,12 +1262,12 @@ bool Entity::addPassenger(Entity& passenger)
     //     this.passengers.add(passenger);
     // }
     bool isServerSide = m_world && !m_world->isClientSide();
-    bool isPlayer = passenger.legacyType() == LegacyEntityType::Player;
+    bool isPlayer = passenger.typeId() == entity::EntityTypeIdNumber::PLAYER;
     EntityId controllingId = getControllingPassenger();
     bool controllingIsPlayer = false;
     if (controllingId != INVALID_ENTITY_ID && m_world) {
         Entity* controlling = m_world->getEntity(controllingId);
-        controllingIsPlayer = controlling != nullptr && controlling->legacyType() == LegacyEntityType::Player;
+        controllingIsPlayer = controlling != nullptr && controlling->typeId() == entity::EntityTypeIdNumber::PLAYER;
     }
 
     if (isServerSide && isPlayer && !controllingIsPlayer) {
@@ -1625,7 +1637,7 @@ bool Entity::canPassengerSteer() const
         Entity* controller = m_world->getEntity(controllerId);
         if (controller != nullptr) {
             // 检查控制者是否是玩家
-            if (controller->legacyType() == LegacyEntityType::Player) {
+            if (controller->typeId() == entity::EntityTypeIdNumber::PLAYER) {
                 // MC 1.16.5: return ((PlayerEntity)entity).isUser();
                 // 玩家需要检查是否是本地玩家
                 Player* player = dynamic_cast<Player*>(controller);

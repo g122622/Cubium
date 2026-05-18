@@ -42,8 +42,8 @@
 
 namespace mc {
 
-ZombieEntity::ZombieEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+ZombieEntity::ZombieEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 僵尸可以在阳光下燃烧
     setBurnsInDaylight(true);
@@ -57,7 +57,7 @@ ZombieEntity::ZombieEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombieEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ZombieEntity>(EntityId(0));
 }
 
 std::optional<ResourceLocation> ZombieEntity::getAmbientSound() const
@@ -293,7 +293,7 @@ void ZombieEntity::convertToDrowned()
         newEntity = drownedType->create(worldPtr);
     } else {
         // 回退：直接创建实体类
-        newEntity = std::make_unique<DrownedEntity>(LegacyEntityType::Unknown, 0);
+        newEntity = std::make_unique<DrownedEntity>(EntityId(0));
     }
 
     DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());

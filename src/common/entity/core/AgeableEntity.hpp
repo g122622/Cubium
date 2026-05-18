@@ -40,10 +40,9 @@ class AgeableEntity : public CreatureEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    AgeableEntity(LegacyEntityType type, EntityId id);
+    AgeableEntity(EntityId id);
     ~AgeableEntity() override = default;
 
     // 禁止拷贝

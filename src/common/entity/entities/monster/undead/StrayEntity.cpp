@@ -25,8 +25,8 @@
 
 namespace mc {
 
-StrayEntity::StrayEntity(LegacyEntityType type, EntityId id)
-    : AbstractSkeletonEntity(type, id)
+StrayEntity::StrayEntity(EntityId id)
+    : AbstractSkeletonEntity(id)
 {
     registerGoals();
     registerAttributes();
@@ -37,7 +37,7 @@ StrayEntity::StrayEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> StrayEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<StrayEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<StrayEntity>(EntityId(0));
 }
 
 void StrayEntity::registerAttributes()

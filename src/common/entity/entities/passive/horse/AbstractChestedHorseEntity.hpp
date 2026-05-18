@@ -37,11 +37,10 @@ class AbstractChestedHorseEntity : public AbstractHorseEntity {
 public:
     /**
      * @brief 构造可携带箱子的马类实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    AbstractChestedHorseEntity(LegacyEntityType type, EntityId id)
-        : AbstractHorseEntity(type, id)
+    AbstractChestedHorseEntity(EntityId id)
+        : AbstractHorseEntity(id)
     {}
 
     ~AbstractChestedHorseEntity() override = default;

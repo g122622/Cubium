@@ -54,7 +54,7 @@ TEST(CoatTypesTest, NormalizesIdsLikeVanilla)
 
 TEST(HorseAppearanceSupportTypesTest, HorseStoresPackedVariantWithSupportTypes)
 {
-    HorseEntity horse(LegacyEntityType::Horse, 1);
+    HorseEntity horse(EntityId(1));
 
     horse.setColor(CoatColors::Black);
     horse.setMarking(CoatTypes::WhiteDots);

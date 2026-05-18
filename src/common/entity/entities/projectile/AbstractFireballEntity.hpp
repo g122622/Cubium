@@ -57,14 +57,14 @@ public:
     [[nodiscard]] f32 height() const override { return 1.0f; }
 
 protected:
-    AbstractFireballEntity(LegacyEntityType type, EntityId id);
+    explicit AbstractFireballEntity(EntityId id);
 };
 
 class FireballEntity : public AbstractFireballEntity {
 public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    FireballEntity(LegacyEntityType type, EntityId id);
+    explicit FireballEntity(EntityId id);
 
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
@@ -84,7 +84,7 @@ class SmallFireballEntity : public AbstractFireballEntity {
 public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    SmallFireballEntity(LegacyEntityType type, EntityId id);
+    explicit SmallFireballEntity(EntityId id);
 
     [[nodiscard]] f32 width() const override { return 0.3125f; }
     [[nodiscard]] f32 height() const override { return 0.3125f; }
@@ -98,7 +98,7 @@ class DragonFireballEntity : public AbstractFireballEntity {
 public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    DragonFireballEntity(LegacyEntityType type, EntityId id);
+    explicit DragonFireballEntity(EntityId id);
 
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
@@ -125,7 +125,7 @@ class WitherSkullEntity : public AbstractFireballEntity {
 public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    WitherSkullEntity(LegacyEntityType type, EntityId id);
+    explicit WitherSkullEntity(EntityId id);
 
     [[nodiscard]] f32 width() const override { return 0.3125f; }
     [[nodiscard]] f32 height() const override { return 0.3125f; }

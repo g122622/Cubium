@@ -25,8 +25,8 @@
 
 namespace mc {
 
-AgeableEntity::AgeableEntity(LegacyEntityType type, EntityId id)
-    : CreatureEntity(type, id)
+AgeableEntity::AgeableEntity(EntityId id)
+    : CreatureEntity(id)
 {}
 
 void AgeableEntity::setGrowingAge(i32 age)

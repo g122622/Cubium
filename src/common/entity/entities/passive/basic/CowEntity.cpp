@@ -43,11 +43,11 @@ std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
-    return std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<CowEntity>(0);
 }
 
-CowEntity::CowEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+CowEntity::CowEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -104,7 +104,7 @@ bool CowEntity::canMateWith(const AnimalEntity& other) const
 std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // 创建小牛
-    auto baby = std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<CowEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

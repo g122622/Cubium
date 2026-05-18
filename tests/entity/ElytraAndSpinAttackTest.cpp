@@ -46,7 +46,7 @@ using namespace mc::entity;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Unknown, EntityId(1), nullptr)
+        : LivingEntity(EntityId(1), nullptr)
     {
         // 注册数据参数
         registerData();
@@ -74,7 +74,7 @@ TEST_F(ElytraFlyingTest, DefaultNotFlying)
 TEST_F(ElytraFlyingTest, SetFallFlyingFlagReturnsTrue)
 {
     // 设置 FallFlying 标志
-    entity->addFlag(EntityFlags::FallFlying);
+    entity->addFlag(mc::EntityFlags::FallFlying);
 
     // 现在应该返回 true
     EXPECT_TRUE(entity->isElytraFlying());
@@ -83,30 +83,30 @@ TEST_F(ElytraFlyingTest, SetFallFlyingFlagReturnsTrue)
 TEST_F(ElytraFlyingTest, RemoveFallFlyingFlagReturnsFalse)
 {
     // 设置标志
-    entity->addFlag(EntityFlags::FallFlying);
+    entity->addFlag(mc::EntityFlags::FallFlying);
     EXPECT_TRUE(entity->isElytraFlying());
 
     // 移除标志
-    entity->removeFlag(EntityFlags::FallFlying);
+    entity->removeFlag(mc::EntityFlags::FallFlying);
     EXPECT_FALSE(entity->isElytraFlying());
 }
 
 TEST_F(ElytraFlyingTest, FlagPersistAcrossMultipleOperations)
 {
     // 设置标志
-    entity->addFlag(EntityFlags::FallFlying);
+    entity->addFlag(mc::EntityFlags::FallFlying);
     EXPECT_TRUE(entity->isElytraFlying());
 
     // 设置其他标志
-    entity->addFlag(EntityFlags::Sprinting);
-    entity->addFlag(EntityFlags::Invisible);
+    entity->addFlag(mc::EntityFlags::Sprinting);
+    entity->addFlag(mc::EntityFlags::Invisible);
 
     // FallFlying 标志应该仍然存在
     EXPECT_TRUE(entity->isElytraFlying());
 
     // 移除其他标志
-    entity->removeFlag(EntityFlags::Sprinting);
-    entity->removeFlag(EntityFlags::Invisible);
+    entity->removeFlag(mc::EntityFlags::Sprinting);
+    entity->removeFlag(mc::EntityFlags::Invisible);
 
     // FallFlying 标志应该仍然存在
     EXPECT_TRUE(entity->isElytraFlying());
@@ -115,7 +115,7 @@ TEST_F(ElytraFlyingTest, FlagPersistAcrossMultipleOperations)
 TEST_F(ElytraFlyingTest, FallFlyingFlagValue)
 {
     // 验证 FallFlying 标志值正确（第7位）
-    EXPECT_EQ(static_cast<u8>(EntityFlags::FallFlying), 0x80);
+    EXPECT_EQ(static_cast<u8>(mc::EntityFlags::FallFlying), 0x80);
 }
 
 /**
@@ -254,7 +254,7 @@ protected:
 TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingSetsPose)
 {
     // 设置鞘翅飞行标志
-    entity->addFlag(EntityFlags::FallFlying);
+    entity->addFlag(mc::EntityFlags::FallFlying);
 
     // 验证标志设置
     EXPECT_TRUE(entity->isElytraFlying());
@@ -283,7 +283,7 @@ TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingHigherPriorityThanSpinAttack)
     // 在 updatePose() 中，鞘翅飞行优先判断
 
     // 设置鞘翅飞行标志
-    entity->addFlag(EntityFlags::FallFlying);
+    entity->addFlag(mc::EntityFlags::FallFlying);
     entity->startSpinAttack(20);
 
     // 鞘翅飞行应该为 true

@@ -51,7 +51,7 @@ TEST_F(ItemEntityTest, Creation)
     ItemEntity entity(1, stack, 100.0, 64.0, 200.0);
 
     EXPECT_EQ(entity.id(), 1);
-    EXPECT_EQ(entity.legacyType(), LegacyEntityType::Item);
+    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::ITEM);
     EXPECT_EQ(entity.getItemStack().getCount(), 10);
     EXPECT_EQ(entity.getItemStack().getItem(), m_diamond);
 }

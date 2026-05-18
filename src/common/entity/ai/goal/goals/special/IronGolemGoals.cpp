@@ -28,6 +28,7 @@
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../core/CreatureEntity.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
@@ -488,7 +489,7 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
             }
 
             // MC 1.16.5: 不攻击苦力怕
-            if (candidate->legacyType() == LegacyEntityType::Creeper) {
+            if (candidate->typeId() == entity::EntityTypeIdNumber::CREEPER) {
                 return false;
             }
 

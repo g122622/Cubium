@@ -68,10 +68,9 @@ public:
 protected:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    ProjectileItemEntity(LegacyEntityType type, EntityId id);
+    explicit ProjectileItemEntity(EntityId id);
 
     // 物品堆
     ItemStack m_itemStack;
@@ -94,7 +93,7 @@ public:
     /**
      * @brief 构造函数
      */
-    SnowballEntity(LegacyEntityType type, EntityId id);
+    explicit SnowballEntity(EntityId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -120,7 +119,7 @@ public:
     /**
      * @brief 构造函数
      */
-    EggEntity(LegacyEntityType type, EntityId id);
+    explicit EggEntity(EntityId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -153,7 +152,7 @@ public:
     /**
      * @brief 构造函数
      */
-    EnderPearlEntity(LegacyEntityType type, EntityId id);
+    explicit EnderPearlEntity(EntityId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -179,7 +178,7 @@ public:
     /**
      * @brief 构造函数
      */
-    PotionEntity(LegacyEntityType type, EntityId id);
+    explicit PotionEntity(EntityId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -217,7 +216,7 @@ public:
     /**
      * @brief 构造函数
      */
-    ExperienceBottleEntity(LegacyEntityType type, EntityId id);
+    explicit ExperienceBottleEntity(EntityId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 

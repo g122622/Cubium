@@ -28,7 +28,6 @@ src/common/entity/
 │
 ├── utils/                          # 非模板实体工具
 │   ├── ItemDropHelper.hpp/cpp      # 物品掉落工具类（统一随机速度、生成物品实体）
-│   ├── EntityUtils.hpp/cpp         # LegacyEntityType -> typeId 映射
 │   └── README.md                   # 工具模块说明
 │
 ├── player/                     # 玩家相关模块
@@ -814,13 +813,13 @@ if (result.shouldJump) {
 // 1. 定义实体类
 class MyEntity : public MobEntity {
 public:
-    MyEntity(LegacyEntityType type, EntityId id)
-        : MobEntity(type, id) {
+    explicit MyEntity(EntityId id)
+        : MobEntity(id) {
         registerGoals();
     }
 
     static std::unique_ptr<Entity> create(IWorld* world) {
-        return std::make_unique<MyEntity>(LegacyEntityType::Unknown, 0);
+        return std::make_unique<MyEntity>(0);
     }
 
 protected:
@@ -838,6 +837,11 @@ EntityRegistry::instance().registerType(
         .trackingRange(10)
         .build()
 );
+
+// 3. 类型比较使用 EntityTypeIdNumber
+if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
+    // 处理猪
+}
 ```
 
 ### 创建自定义 AI 目标
@@ -1032,11 +1036,32 @@ void asyncTask() {
 
 **解决方案**：生成后立即重置计时器，否则鸡会批量发射鸡蛋。
 
-### 13. Entity::getTypeId() 类型注入
+### 13. Entity::typeId() 类型比较
 
-**问题**：依赖 `LegacyEntityType` 单独决定网络实体类型，很多工厂构造仍传 `LegacyEntityType::Unknown`。
+**问题**：旧代码使用 `LegacyEntityType` 枚举进行类型比较，现已废弃。
 
-**解决方案**：`Entity::getTypeId()` 现在优先使用在 `EntityType::create(...)` 期间注入的显式运行时 `typeId`。保证实体通过注册表创建时注入注册名，繁殖等旁路也要显式继承父类型。
+**解决方案**：使用新的 `typeId()` 方法和 `EntityTypeIdNumber` 命名空间进行类型比较：
+
+```cpp
+// 旧代码（已废弃）
+if (entity->legacyType() == LegacyEntityType::PIG) {
+    // ...
+}
+
+// 新代码
+if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
+    // ...
+}
+
+// 实体构造函数也简化了
+class PigEntity : public AnimalEntity {
+public:
+    explicit PigEntity(EntityId id)  // 不再需要 LegacyEntityType 参数
+        : AnimalEntity(id) {}
+};
+```
+
+**注意**：`EntityTypeIdNumber` 变量在 `VanillaEntities::registerAll()` 后初始化，确保在实体类型注册后使用。
 
 ### 14. EntityMetadataPacket 同步
 

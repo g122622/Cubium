@@ -23,6 +23,7 @@
 
 #include "StonePressurePlateBlock.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
@@ -57,9 +58,9 @@ i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockP
     // 石头压力板只被生物触发（不包括物品）
     for (Entity* entity : entities) {
         if (entity != nullptr) {
-            LegacyEntityType type = entity->legacyType();
+            entity::EntityTypeId type = entity->typeId();
             // 石头压力板只检测玩家（后续可添加 Mob 类型）
-            if (type == LegacyEntityType::Player) {
+            if (type == entity::EntityTypeIdNumber::PLAYER) {
                 return 15; // 有生物就输出最大信号
             }
             // Item 类型不触发石头压力板

@@ -54,7 +54,7 @@ namespace entity {
 class TestEntity : public Entity {
 public:
     TestEntity(EntityId id)
-        : Entity(LegacyEntityType::Pig, id, nullptr)
+        : Entity(id, nullptr)
     {
     }
 };

@@ -105,7 +105,7 @@ TEST_F(PiglinEntityTest, CreateFactory)
 {
     auto entity = PiglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Piglin);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::PIGLIN);
 }
 
 /**
@@ -227,7 +227,7 @@ TEST_F(PiglinBruteEntityTest, CreateFactory)
 {
     auto entity = PiglinBruteEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::PiglinBrute);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::PIGLIN_BRUTE);
 }
 
 /**
@@ -252,9 +252,9 @@ TEST_F(PiglinBruteEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::ZombifiedPiglin);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
 }
 
 /**
@@ -262,7 +262,7 @@ TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
  */
 TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
     EXPECT_TRUE(entity->isImmuneToFire());
 }
 
@@ -271,7 +271,7 @@ TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, AngerState)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(LegacyEntityType::ZombifiedPiglin, EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
     auto* zombifiedPiglin = entity.get();
 
     // 默认不愤怒
@@ -300,7 +300,7 @@ TEST_F(HoglinEntityTest, CreateFactory)
 {
     auto entity = HoglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Hoglin);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::HOGLIN);
 }
 
 /**
@@ -354,7 +354,7 @@ TEST_F(ZoglinEntityTest, CreateFactory)
 {
     auto entity = ZoglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Zoglin);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ZOGLIN);
 }
 
 /**
@@ -379,20 +379,8 @@ TEST_F(ZoglinEntityTest, BabyState)
 }
 
 // ============================================================================
-// 实体类型枚举测试
+// 实体类型测试 - 类型ID通过 EntityTypeIdNumber 验证
 // ============================================================================
 
-/**
- * @brief 测试 LegacyEntityType 枚举值
- */
-TEST(NetherEntityTypesTest, LegacyEntityTypeValues)
-{
-    // 验证下界实体类型枚举值
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Ghast), 66);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::MagmaCube), 67);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Piglin), 68);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::PiglinBrute), 69);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Hoglin), 70);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::Zoglin), 71);
-    EXPECT_EQ(static_cast<u32>(LegacyEntityType::ZombifiedPiglin), 72);
-}
+// 注：LegacyEntityType 枚举已废弃，实体类型现在通过 EntityTypeIdNumber 验证
+// 上述测试已经通过 EntityTypeIdNumber::PIGLIN 等验证了类型ID

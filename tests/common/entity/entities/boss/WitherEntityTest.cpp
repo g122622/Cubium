@@ -185,7 +185,7 @@ protected:
 
 TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 所有头部目标初始值应该为 0（无目标）
     EXPECT_EQ(wither.getWatchedTargetId(0), 0); // 主头
@@ -195,7 +195,7 @@ TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero)
 
 TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 设置主头目标
     wither.updateWatchedTargetId(0, 100);
@@ -212,7 +212,7 @@ TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget)
 
 TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 设置不同头的不同目标
     wither.updateWatchedTargetId(0, 111);
@@ -233,7 +233,7 @@ TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets)
 
 TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 设置并清除目标
     wither.updateWatchedTargetId(0, 500);
@@ -245,7 +245,7 @@ TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget)
 
 TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 无效索引应该返回 0
     EXPECT_EQ(wither.getWatchedTargetId(-1), 0);
@@ -257,7 +257,7 @@ TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero)
 
 TEST_F(WitherEntityTest, Invulnerability_GetAndSet)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     EXPECT_EQ(wither.getInvulTime(), 0);
     EXPECT_FALSE(wither.isInvulnerablePhase());
@@ -273,7 +273,7 @@ TEST_F(WitherEntityTest, Invulnerability_GetAndSet)
 
 TEST_F(WitherEntityTest, Invulnerability_Ignite)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 初始状态
@@ -289,7 +289,7 @@ TEST_F(WitherEntityTest, Invulnerability_Ignite)
 
 TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 凋灵最大生命值为 300
@@ -312,7 +312,7 @@ TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf)
 
 TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 无敌阶段不能远程攻击
     wither.setInvulTime(100);
@@ -327,7 +327,7 @@ TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability)
 
 TEST_F(WitherEntityTest, Attributes_DefaultValues)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // MC 1.16.5 凋灵属性
@@ -341,7 +341,7 @@ TEST_F(WitherEntityTest, Attributes_DefaultValues)
 
 TEST_F(WitherEntityTest, CreatureAttribute_IsUndead)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 凋灵是亡灵生物
     EXPECT_EQ(wither.getCreatureAttribute(), CreatureAttribute::Undead);
@@ -349,7 +349,7 @@ TEST_F(WitherEntityTest, CreatureAttribute_IsUndead)
 
 TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 凋灵是 Boss
     EXPECT_FALSE(wither.isNonBoss());
@@ -359,7 +359,7 @@ TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse)
 
 TEST_F(WitherEntityTest, GetBossName_DefaultName)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
 
     // 无自定义名称时返回默认名称
     EXPECT_EQ(wither.getBossName(), "Wither");
@@ -368,7 +368,7 @@ TEST_F(WitherEntityTest, GetBossName_DefaultName)
 
 TEST_F(WitherEntityTest, GetBossName_CustomName)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -381,7 +381,7 @@ TEST_F(WitherEntityTest, GetBossName_CustomName)
 
 TEST_F(WitherEntityTest, GetBossName_EmptyCustomName)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -396,7 +396,7 @@ TEST_F(WitherEntityTest, GetBossName_EmptyCustomName)
 
 TEST_F(WitherEntityTest, GetBossName_ClearCustomName)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -417,7 +417,7 @@ TEST_F(WitherEntityTest, BreakNearbyBlocks_RespectsWitherImmuneTag)
     // 初始化 BlockTags
     BlockTags::initialize();
 
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 0.0, 0.0));
 
@@ -439,7 +439,7 @@ TEST_F(WitherEntityTest, BreakNearbyBlocks_RespectsMobGriefingRule)
 {
     BlockTags::initialize();
 
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 0.0, 0.0));
 
@@ -485,7 +485,7 @@ TEST_F(WitherEntityTest, BreakNearbyBlocks_RangeCalculation)
 
 TEST_F(WitherEntityTest, Hurt_ImmuneToWitherDamage)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
     wither.setHealth(300.0f);
 
@@ -498,7 +498,7 @@ TEST_F(WitherEntityTest, Hurt_ImmuneToWitherDamage)
 
 TEST_F(WitherEntityTest, Hurt_ImmuneToDrownDamage)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 凋灵免疫溺水伤害
@@ -508,7 +508,7 @@ TEST_F(WitherEntityTest, Hurt_ImmuneToDrownDamage)
 
 TEST_F(WitherEntityTest, Hurt_ImmuneDuringInvulnerabilityPhase)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
     wither.setHealth(300.0f);
 
@@ -527,7 +527,7 @@ TEST_F(WitherEntityTest, Hurt_ImmuneDuringInvulnerabilityPhase)
 
 TEST_F(WitherEntityTest, Hurt_TriggerBlockBreakCounter)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
     wither.setHealth(300.0f);
 
@@ -545,7 +545,7 @@ TEST_F(WitherEntityTest, Hurt_TriggerBlockBreakCounter)
 
 TEST_F(WitherEntityTest, Hurt_ChargedImmuneToArrows)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 满血时不充能，不免疫箭矢
@@ -582,7 +582,7 @@ TEST_F(WitherEntityTest, BlockBreakCooldown_IsCorrect)
 
 TEST_F(WitherEntityTest, BlueSkull_ChargedStateAffectsSkullType)
 {
-    entity::WitherEntity wither(LegacyEntityType::Wither, EntityId(1));
+    entity::WitherEntity wither(EntityId(1));
     wither.setWorld(m_world.get());
 
     // 满血时不充能

@@ -49,7 +49,7 @@ public:
      * @param type 实体类型
      * @param id 实体 ID
      */
-    ParrotEntity(LegacyEntityType type, EntityId id);
+    ParrotEntity(EntityId id);
     ~ParrotEntity() override = default;
 
     ParrotEntity(const ParrotEntity&) = delete;

@@ -38,6 +38,7 @@
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -207,7 +208,7 @@ public:
     {
         std::vector<SkeletonEntity*> result;
         for (const auto& entity : m_entities) {
-            if (entity && entity->legacyType() == LegacyEntityType::Skeleton) {
+            if (entity && entity->typeId() == entity::EntityTypeIdNumber::SKELETON) {
                 auto* skeleton = dynamic_cast<SkeletonEntity*>(entity.get());
                 if (skeleton) {
                     result.push_back(skeleton);
@@ -222,7 +223,7 @@ public:
     {
         std::vector<SkeletonHorseEntity*> result;
         for (const auto& entity : m_entities) {
-            if (entity && entity->legacyType() == LegacyEntityType::SkeletonHorse) {
+            if (entity && entity->typeId() == entity::EntityTypeIdNumber::SKELETON_HORSE) {
                 auto* horse = dynamic_cast<SkeletonHorseEntity*>(entity.get());
                 if (horse) {
                     result.push_back(horse);
@@ -302,7 +303,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, EntityTypes_Registered)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -322,7 +323,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -339,7 +340,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(false);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -355,7 +356,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -370,7 +371,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -390,7 +391,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -404,7 +405,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
     // 不设置世界
 
@@ -418,7 +419,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
 
     // 骷髅马默认跳跃强度应该是 1.0
     EXPECT_FLOAT_EQ(horse->getJumpStrength(), 1.0f);
@@ -429,7 +430,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
 
     // 骷髅马默认已驯服
     EXPECT_TRUE(horse->isTame());
@@ -440,7 +441,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, SetTrap_RegistersAndRemovesGoal)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
 
     // 初始状态：无陷阱
     EXPECT_FALSE(horse->isTrap());
@@ -477,7 +478,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstants_MatchMC1165)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstructor_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(LegacyEntityType::SkeletonHorse, EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
     horse->setTrap(true);
 
     // 创建 Goal 应该不崩溃

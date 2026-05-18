@@ -106,7 +106,7 @@ private:
 
 TEST(ShulkerEntityTest, Construction)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 验证默认状态
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -124,12 +124,12 @@ TEST(ShulkerEntityTest, CreateFactory)
 {
     auto entity = ShulkerEntity::create(nullptr);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->legacyType(), LegacyEntityType::Shulker);
+    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::SHULKER);
 }
 
 TEST(ShulkerEntityTest, ExperienceValue)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
     // MC 1.16.5: 潜影贝掉落 5 点经验
     EXPECT_EQ(shulker.experienceValue(), 5);
 }
@@ -140,7 +140,7 @@ TEST(ShulkerEntityTest, ExperienceValue)
 
 TEST(ShulkerEntityTest, ShellStateTransitions)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 初始状态：闭合
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -175,7 +175,7 @@ TEST(ShulkerEntityTest, ShellStateTransitions)
 
 TEST(ShulkerEntityTest, PeekAmountAnimation)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 初始开壳程度为 0
     EXPECT_FLOAT_EQ(shulker.getPeekAmount(), 0.0f);
@@ -198,7 +198,7 @@ TEST(ShulkerEntityTest, PeekAmountAnimation)
 
 TEST(ShulkerEntityTest, AttachmentFacing)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 默认朝向
     EXPECT_EQ(shulker.getAttachmentFacing(), Direction::Down);
@@ -216,7 +216,7 @@ TEST(ShulkerEntityTest, AttachmentFacing)
 
 TEST(ShulkerEntityTest, AttachmentPosition)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 设置附着位置
     BlockPos pos(10, 20, 30);
@@ -230,7 +230,7 @@ TEST(ShulkerEntityTest, AttachmentPosition)
 
 TEST(ShulkerEntityTest, AttackCooldown)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 初始冷却为 0
     EXPECT_EQ(shulker.getAttackCooldown(), 0);
@@ -246,7 +246,7 @@ TEST(ShulkerEntityTest, AttackCooldown)
 
 TEST(ShulkerEntityTest, ImmuneWhenClosed)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 闭合时免疫
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -267,7 +267,7 @@ TEST(ShulkerEntityTest, ImmuneWhenClosed)
 
 TEST(ShulkerEntityTest, Color)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 默认颜色是紫色
     EXPECT_EQ(shulker.getColor(), ShulkerEntity::ShulkerColor::Purple);
@@ -286,7 +286,7 @@ TEST(ShulkerEntityTest, Color)
 
 TEST(ShulkerBulletEntityTest, Construction)
 {
-    entity::ShulkerBulletEntity bullet(LegacyEntityType::ShulkerBullet, EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityId(1));
 
     // 验证子弹尺寸
     // MC 1.16.5: 潜影贝子弹是 0.3125 x 0.3125 的小型投射物
@@ -296,7 +296,7 @@ TEST(ShulkerBulletEntityTest, Construction)
 
 TEST(ShulkerBulletEntityTest, Direction)
 {
-    entity::ShulkerBulletEntity bullet(LegacyEntityType::ShulkerBullet, EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityId(1));
 
     // 默认方向是 Up
     EXPECT_EQ(bullet.direction(), Direction::Up);
@@ -304,7 +304,7 @@ TEST(ShulkerBulletEntityTest, Direction)
 
 TEST(ShulkerBulletEntityTest, CanBeCollidedWith)
 {
-    entity::ShulkerBulletEntity bullet(LegacyEntityType::ShulkerBullet, EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityId(1));
 
     // 子弹可以被碰撞（玩家可以击中它）
     EXPECT_TRUE(bullet.canBeCollidedWith());
@@ -312,7 +312,7 @@ TEST(ShulkerBulletEntityTest, CanBeCollidedWith)
 
 TEST(ShulkerBulletEntityTest, NotBurning)
 {
-    entity::ShulkerBulletEntity bullet(LegacyEntityType::ShulkerBullet, EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityId(1));
 
     // 子弹不会燃烧
     EXPECT_FALSE(bullet.isBurning());
@@ -324,7 +324,7 @@ TEST(ShulkerBulletEntityTest, NotBurning)
 
 TEST(ShulkerEntityTest, AmbientSoundWhenClosed)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 闭合时不播放环境音效
     auto ambientSound = shulker.getAmbientSound();
@@ -333,7 +333,7 @@ TEST(ShulkerEntityTest, AmbientSoundWhenClosed)
 
 TEST(ShulkerEntityTest, AmbientSoundWhenOpen)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 打开后可以播放环境音效
     shulker.openShell();
@@ -346,7 +346,7 @@ TEST(ShulkerEntityTest, AmbientSoundWhenOpen)
 
 TEST(ShulkerEntityTest, DeathSound)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 测试死亡音效
     auto deathSound = shulker.getDeathSound();
@@ -359,7 +359,7 @@ TEST(ShulkerEntityTest, DeathSound)
 
 TEST(ShulkerEntityTest, DoesNotBurnInDaylight)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 潜影贝不会在日光下燃烧
     EXPECT_FALSE(shulker.shouldBurnInDaylight());
@@ -371,7 +371,7 @@ TEST(ShulkerEntityTest, DoesNotBurnInDaylight)
 
 TEST(ShulkerEntityTest, AttackingState)
 {
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 初始不攻击
     EXPECT_FALSE(shulker.isAttacking());
@@ -391,7 +391,7 @@ TEST(ShulkerEntityTest, AttackingState)
 TEST(ShulkerEntityTest, ShootBulletWithoutTargetDoesNothing)
 {
     // 没有攻击目标时不会发射子弹
-    ShulkerEntity shulker(LegacyEntityType::Shulker, EntityId(1));
+    ShulkerEntity shulker(EntityId(1));
 
     // 没有设置世界和攻击目标
     shulker.shootBullet();

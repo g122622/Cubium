@@ -42,8 +42,8 @@
 
 namespace mc {
 
-AnimalEntity::AnimalEntity(LegacyEntityType type, EntityId id)
-    : AgeableEntity(type, id)
+AnimalEntity::AnimalEntity(EntityId id)
+    : AgeableEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -68,7 +68,7 @@ bool AnimalEntity::canMateWith(const AnimalEntity& other) const
     }
 
     // 使用实体类型比较（避免 RTTI 开销）
-    if (legacyType() != other.legacyType()) {
+    if (typeId() != other.typeId()) {
         return false;
     }
 

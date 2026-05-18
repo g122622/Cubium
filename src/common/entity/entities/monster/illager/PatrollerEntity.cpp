@@ -28,8 +28,8 @@
 
 namespace mc {
 
-PatrollerEntity::PatrollerEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+PatrollerEntity::PatrollerEntity(EntityId id)
+    : MonsterEntity(id)
 {}
 
 void PatrollerEntity::setPatrolTarget(const BlockPos& patrolTarget)

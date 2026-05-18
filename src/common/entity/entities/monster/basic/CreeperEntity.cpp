@@ -41,8 +41,8 @@
 
 namespace mc {
 
-CreeperEntity::CreeperEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+CreeperEntity::CreeperEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 苦力怕不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -56,7 +56,7 @@ CreeperEntity::CreeperEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<CreeperEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<CreeperEntity>(EntityId(0));
 }
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
@@ -255,8 +255,8 @@ void CreeperEntity::registerGoals()
                 if (!entity) return false;
                 // 检查是否为猫或豹猫
                 // MC 1.16.5: instanceof CatEntity || instanceof OcelotEntity
-                auto type = entity->legacyType();
-                return type == LegacyEntityType::Cat || type == LegacyEntityType::Ocelot;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::CAT || type == entity::EntityTypeIdNumber::OCELOT;
             }));
 
     // 优先级 4: 近战攻击（用于接近玩家）
@@ -270,7 +270,7 @@ void CreeperEntity::registerGoals()
         6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 只看向玩家
-            return entity->legacyType() == LegacyEntityType::Player;
+            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 6: 随机看向
@@ -285,7 +285,7 @@ void CreeperEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 // MC 1.16.5: 苦力怕只攻击玩家
                 if (!entity) return false;
-                return entity->legacyType() == LegacyEntityType::Player;
+                return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
             }));
 }
 

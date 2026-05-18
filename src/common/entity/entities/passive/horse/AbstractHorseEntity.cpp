@@ -56,8 +56,8 @@ namespace mc {
 entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM{0};
 entity::DataParameter<i64> AbstractHorseEntity::OWNER_UUID_PARAM{1};
 
-AbstractHorseEntity::AbstractHorseEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+AbstractHorseEntity::AbstractHorseEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // MC 1.16.5: AbstractHorseEntity 构造函数中设置 stepHeight = 1.0F
     // 马类可以走上1格高的方块
@@ -561,7 +561,7 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
     Entity::updatePassengerPosition(passenger);
 
     // 如果乘客是 MobEntity，同步 renderYawOffset
-    if (passenger.legacyType() == LegacyEntityType::Player) {
+    if (passenger.typeId() == entity::EntityTypeIdNumber::PLAYER) {
         // 对于玩家，不需要同步 renderYawOffset（玩家自己管理朝向）
     } else {
         // 对于其他 MobEntity，同步 renderYawOffset

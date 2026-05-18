@@ -34,7 +34,6 @@
 using mc::entity::WanderingTraderEntity;
 using mc::entity::ai::GoalFlag;
 using mc::EntityId;
-using mc::LegacyEntityType;
 using mc::BlockPos;
 
 namespace mc {
@@ -72,7 +71,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -125,7 +124,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -179,7 +178,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -257,7 +256,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -386,7 +385,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }

@@ -39,7 +39,7 @@ namespace mc {
  */
 class SkeletonEntity : public AbstractSkeletonEntity {
 public:
-    SkeletonEntity(LegacyEntityType type, EntityId id);
+    SkeletonEntity(EntityId id);
     ~SkeletonEntity() override = default;
 
     SkeletonEntity(const SkeletonEntity&) = delete;

@@ -65,8 +65,8 @@ using physics::MOTION_THRESHOLD;
 // 构造函数
 // ============================================================================
 
-LivingEntity::LivingEntity(LegacyEntityType type, EntityId id, IWorld* world)
-    : Entity(type, id, world)
+LivingEntity::LivingEntity(EntityId id, IWorld* world)
+    : Entity(id, world)
     , m_combatTracker(this)
 {
     // MC 1.16.5: LivingEntity 构造函数中设置 stepHeight = 0.6F

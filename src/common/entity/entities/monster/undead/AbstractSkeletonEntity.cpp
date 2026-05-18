@@ -41,8 +41,8 @@
 
 namespace mc {
 
-AbstractSkeletonEntity::AbstractSkeletonEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+AbstractSkeletonEntity::AbstractSkeletonEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 在构造函数中创建战斗目标（但不添加到选择器）
     // setCombatTask() 会在 onInitialSpawn() 或需要时被调用

@@ -57,11 +57,11 @@ namespace entity {
 
 std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<VillagerEntity>(LegacyEntityType::Villager, 0);
+    return std::make_unique<VillagerEntity>(0);
 }
 
-VillagerEntity::VillagerEntity(LegacyEntityType type, EntityId id)
-    : AbstractVillagerEntity(type, id)
+VillagerEntity::VillagerEntity(EntityId id)
+    : AbstractVillagerEntity(id)
     , m_brain(std::make_unique<VillagerBrain>())
 {
     registerAttributes();
@@ -195,7 +195,7 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
 {
-    auto child = std::make_unique<VillagerEntity>(LegacyEntityType::Unknown, 0);
+    auto child = std::make_unique<VillagerEntity>(0);
     child->setChild(true);
 
     // 继承村民类型
@@ -493,11 +493,11 @@ void VillagerEntity::updateOffers()
 
 std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(0));
+    return std::make_unique<WanderingTraderEntity>(0);
 }
 
-WanderingTraderEntity::WanderingTraderEntity(LegacyEntityType type, EntityId id)
-    : AbstractVillagerEntity(type, id)
+WanderingTraderEntity::WanderingTraderEntity(EntityId id)
+    : AbstractVillagerEntity(id)
 {
     m_despawnDelay = 48000; // 40分钟 = 48000 ticks
     registerAttributes();
@@ -559,7 +559,7 @@ void WanderingTraderEntity::spawnLlamas()
         f64 spawnY = y();
 
         // 创建商队羊驼
-        auto llama = std::make_unique<TraderLlamaEntity>(LegacyEntityType::TraderLlama, EntityId(0));
+        auto llama = std::make_unique<TraderLlamaEntity>(EntityId(0));
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 
@@ -596,10 +596,10 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   (entity->legacyType() == LegacyEntityType::Zombie ||
-                    entity->legacyType() == LegacyEntityType::Drowned ||
-                    entity->legacyType() == LegacyEntityType::Husk ||
-                    entity->legacyType() == LegacyEntityType::ZombifiedPiglin);
+                   (entity->typeId() == entity::EntityTypeIdNumber::ZOMBIE ||
+                    entity->typeId() == entity::EntityTypeIdNumber::DROWNED ||
+                    entity->typeId() == entity::EntityTypeIdNumber::HUSK ||
+                    entity->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
         }
     ));
 
@@ -611,7 +611,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Pillager;
+                   entity->typeId() == entity::EntityTypeIdNumber::PILLAGER;
         }
     ));
 
@@ -623,7 +623,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Evoker;
+                   entity->typeId() == entity::EntityTypeIdNumber::EVOKER;
         }
     ));
 
@@ -635,7 +635,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Vindicator;
+                   entity->typeId() == entity::EntityTypeIdNumber::VINDICATOR;
         }
     ));
 
@@ -647,7 +647,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Vex;
+                   entity->typeId() == entity::EntityTypeIdNumber::VEX;
         }
     ));
 
@@ -659,7 +659,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Illusioner;
+                   entity->typeId() == entity::EntityTypeIdNumber::ILLUSIONER;
         }
     ));
 
@@ -671,7 +671,7 @@ void WanderingTraderEntity::registerGoals()
         0.5,    // 近距离速度
         [](const LivingEntity* entity) -> bool {
             return entity != nullptr &&
-                   entity->legacyType() == LegacyEntityType::Zoglin;
+                   entity->typeId() == entity::EntityTypeIdNumber::ZOGLIN;
         }
     ));
 

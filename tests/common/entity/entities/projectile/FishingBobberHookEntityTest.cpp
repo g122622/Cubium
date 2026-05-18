@@ -117,8 +117,8 @@ private:
  */
 class TestEntity : public Entity {
 public:
-    TestEntity(LegacyEntityType type, EntityId id)
-        : Entity(type, id)
+    TestEntity(EntityId id)
+        : Entity(id)
     {
     }
 
@@ -146,7 +146,7 @@ protected:
  */
 TEST_F(FishingBobberHookEntityTest, InitialStateIsFlying)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
     EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Flying);
 }
 
@@ -155,7 +155,7 @@ TEST_F(FishingBobberHookEntityTest, InitialStateIsFlying)
  */
 TEST_F(FishingBobberHookEntityTest, InitialCaughtEntityIsNull)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
     EXPECT_EQ(bobber.getCaughtEntity(), nullptr);
     EXPECT_EQ(bobber.getCaughtEntityId(), 0);
 }
@@ -165,8 +165,8 @@ TEST_F(FishingBobberHookEntityTest, InitialCaughtEntityIsNull)
  */
 TEST_F(FishingBobberHookEntityTest, SetShooterCorrectlySetsAngler)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
-    auto& testEntity = m_world->addEntity<TestEntity>(LegacyEntityType::Player, 2);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    auto& testEntity = m_world->addEntity<TestEntity>(EntityId(2));
 
     bobber.setShooter(&testEntity);
 
@@ -179,7 +179,7 @@ TEST_F(FishingBobberHookEntityTest, SetShooterCorrectlySetsAngler)
  */
 TEST_F(FishingBobberHookEntityTest, SetFishingBonusCorrectlySetsBonus)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
 
     bobber.setFishingBonus(3, 2); // 海之眷顾 III，饵钓 II
     // 注意：这个测试只验证方法可以调用，实际效果在钓鱼逻辑中体现
@@ -192,7 +192,7 @@ TEST_F(FishingBobberHookEntityTest, SetFishingBonusCorrectlySetsBonus)
  */
 TEST_F(FishingBobberHookEntityTest, BobberDimensionsCorrect)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
 
     EXPECT_FLOAT_EQ(bobber.width(), 0.25f);
     EXPECT_FLOAT_EQ(bobber.height(), 0.25f);
@@ -203,8 +203,8 @@ TEST_F(FishingBobberHookEntityTest, BobberDimensionsCorrect)
  */
 TEST_F(FishingBobberHookEntityTest, ReelInWithoutCatchReturnsZero)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
-    auto& testEntity = m_world->addEntity<TestEntity>(LegacyEntityType::Player, 2);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    auto& testEntity = m_world->addEntity<TestEntity>(EntityId(2));
 
     bobber.setShooter(&testEntity);
     // 在 Flying 状态下收杆
@@ -219,7 +219,7 @@ TEST_F(FishingBobberHookEntityTest, ReelInWithoutCatchReturnsZero)
  */
 TEST_F(FishingBobberHookEntityTest, BobberRemovesWhenAnglerIsNull)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
     // 不设置钓鱼者
 
     bobber.tick();
@@ -232,7 +232,7 @@ TEST_F(FishingBobberHookEntityTest, BobberRemovesWhenAnglerIsNull)
  */
 TEST_F(FishingBobberHookEntityTest, InOpenWaterInitialValue)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
 
     EXPECT_FALSE(bobber.isInOpenWater());
 }
@@ -244,7 +244,7 @@ TEST_F(FishingBobberHookEntityTest, InOpenWaterInitialValue)
  */
 TEST_F(FishingBobberHookEntityTest, HookedStateClearsVelocity)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, 1);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
 
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setVelocity(1.0f, 0.5f, 1.0f); // 设置初始速度

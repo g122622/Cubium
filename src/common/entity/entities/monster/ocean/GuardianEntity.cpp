@@ -38,8 +38,8 @@
 
 namespace mc {
 
-GuardianEntity::GuardianEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+GuardianEntity::GuardianEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -50,7 +50,7 @@ GuardianEntity::GuardianEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<GuardianEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<GuardianEntity>(EntityId(0));
 }
 
 bool GuardianEntity::isInWater() const
@@ -105,15 +105,15 @@ void GuardianEntity::registerGoals()
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            return entity->legacyType() == LegacyEntityType::Player;
+            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 8: 看向同类守卫者 (12格内，低频率)
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            auto type = entity->legacyType();
-            return type == LegacyEntityType::Guardian || type == LegacyEntityType::ElderGuardian;
+            auto type = entity->typeId();
+            return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
         }));
 
     // 优先级 9: 随机看向
@@ -134,9 +134,9 @@ void GuardianEntity::registerGoals()
                 }
 
                 // 类型筛选: 只攻击玩家或鱿鱼
-                auto type = candidate->legacyType();
-                bool isPlayer = (type == LegacyEntityType::Player);
-                bool isSquid = (type == LegacyEntityType::Squid);
+                auto type = candidate->typeId();
+                bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
+                bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
                 if (!isPlayer && !isSquid) {
                     return false;
                 }

@@ -22,6 +22,7 @@
 */
 
 #include "ItemEntity.hpp"
+#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -53,7 +54,7 @@ std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/)
 // ============================================================================
 
 ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
-    : Entity(LegacyEntityType::Item, id)
+    : Entity(id)
     , m_itemStack(stack)
 {
     setPosition(x, y, z);
@@ -68,7 +69,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
 }
 
 ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
-    : Entity(LegacyEntityType::Item, id)
+    : Entity(id)
     , m_itemStack(stack)
 {
     setPosition(x, y, z);
@@ -201,7 +202,7 @@ void ItemEntity::updateMerge()
 
     for (Entity* entity : nearbyEntities) {
         // 只处理物品实体
-        if (entity->legacyType() != LegacyEntityType::Item) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
             continue;
         }
 
@@ -431,7 +432,7 @@ void ItemEntity::applyLavaPhysics()
 void ItemEntity::serialize(network::PacketSerializer& ser) const
 {
     // 实体类型和ID
-    ser.writeU32(static_cast<u32>(m_legacyType));
+    ser.writeU32(static_cast<u32>(entity::EntityTypeIdNumber::ITEM));
     ser.writeU32(static_cast<u32>(m_id));
 
     // 位置（网络协议使用 f64）

@@ -44,8 +44,8 @@
 
 namespace mc {
 
-RabbitEntity::RabbitEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+RabbitEntity::RabbitEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 随机设置皮肤类型
     setRandomRabbitType();
@@ -59,7 +59,7 @@ RabbitEntity::RabbitEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<RabbitEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<RabbitEntity>(0);
 }
 
 void RabbitEntity::setRandomRabbitType()
@@ -101,7 +101,7 @@ bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
 std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
 {
     // MC 1.16.5: RabbitEntity.createChild()
-    auto baby = std::make_unique<RabbitEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<RabbitEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
@@ -205,7 +205,7 @@ void RabbitEntity::registerGoals()
             }));
 
     // 优先级 2: 逃离狼（10格，速度2.2）
-    // 注意：狼是 WolfEntity，需要检查 LegacyEntityType::Wolf
+    // 注意：狼是 WolfEntity，需要检查 typeId() == EntityTypeIdNumber::WOLF
     m_goalSelector.addGoal(2,
         new entity::ai::goal::AvoidEntityGoal(this,
             10.0f, // avoidDistance - 检测狼的距离
@@ -213,7 +213,7 @@ void RabbitEntity::registerGoals()
             2.2,   // nearSpeed
             [this](const LivingEntity* entity) -> bool {
                 if (isKillerRabbit()) return false;
-                return entity->legacyType() == LegacyEntityType::Wolf;
+                return entity->typeId() == entity::EntityTypeIdNumber::WOLF;
             }));
 
     // 优先级 2: 逃离怪物（4格，速度2.2）

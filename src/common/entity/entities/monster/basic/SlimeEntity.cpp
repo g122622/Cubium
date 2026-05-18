@@ -41,8 +41,8 @@
 
 namespace mc {
 
-SlimeEntity::SlimeEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+SlimeEntity::SlimeEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 史莱姆不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -56,7 +56,7 @@ SlimeEntity::SlimeEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SlimeEntity>(LegacyEntityType::Slime, EntityId(0));
+    return std::make_unique<SlimeEntity>(EntityId(0));
 }
 
 void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)

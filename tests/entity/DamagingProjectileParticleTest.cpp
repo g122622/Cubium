@@ -123,7 +123,7 @@ private:
 class TestDamagingProjectile : public DamagingProjectileEntity {
 public:
     TestDamagingProjectile(IWorld* world)
-        : DamagingProjectileEntity(LegacyEntityType::Unknown, EntityId(1))
+        : DamagingProjectileEntity(EntityId(1))
     {
         setWorld(world);
         m_position = Vector3(100.0f, 64.0f, 200.0f);
@@ -156,7 +156,7 @@ public:
 class TestDragonFireball : public DragonFireballEntity {
 public:
     TestDragonFireball(IWorld* world)
-        : DragonFireballEntity(LegacyEntityType::Unknown, EntityId(1))
+        : DragonFireballEntity(EntityId(1))
     {
         setWorld(world);
         m_position = Vector3(100.0f, 64.0f, 200.0f);

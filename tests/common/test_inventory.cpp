@@ -57,7 +57,7 @@ namespace {
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

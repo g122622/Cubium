@@ -104,7 +104,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_IncreasesJumpForce)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    HorseEntity horse(EntityId(1));
     horse.setWorld(&world);
 
     // 设置固定的跳跃强度以便测试
@@ -150,7 +150,7 @@ TEST(HorseJumpBoostTest, JumpBoostLevel_AddsCorrectAmount)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    HorseEntity horse(EntityId(1));
     horse.setWorld(&world);
 
     // 初始无效果
@@ -195,7 +195,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_Removed_JumpForceReturnsToNormal)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    HorseEntity horse(EntityId(1));
     horse.setWorld(&world);
 
     // 添加跳跃提升 II
@@ -221,7 +221,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksWithOtherEffects)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    HorseEntity horse(EntityId(1));
     horse.setWorld(&world);
 
     // 添加速度效果
@@ -252,7 +252,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试马
     {
-        HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+        HorseEntity horse(EntityId(1));
         horse.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(
@@ -263,7 +263,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试驴
     {
-        DonkeyEntity donkey(LegacyEntityType::Donkey, EntityId(2));
+        DonkeyEntity donkey(EntityId(2));
         donkey.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(
@@ -274,7 +274,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试骡
     {
-        MuleEntity mule(LegacyEntityType::Mule, EntityId(3));
+        MuleEntity mule(EntityId(3));
         mule.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(

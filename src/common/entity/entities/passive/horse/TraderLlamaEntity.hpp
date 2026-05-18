@@ -40,11 +40,10 @@ class TraderLlamaEntity : public LlamaEntity {
 public:
     /**
      * @brief 构造商队羊驼
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    TraderLlamaEntity(LegacyEntityType type, EntityId id)
-        : LlamaEntity(type, id)
+    TraderLlamaEntity(EntityId id)
+        : LlamaEntity(id)
     {}
 
     ~TraderLlamaEntity() override = default;
@@ -59,7 +58,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* /*world*/)
     {
-        return std::make_unique<TraderLlamaEntity>(LegacyEntityType::TraderLlama, 0);
+        return std::make_unique<TraderLlamaEntity>(0);
     }
 
     /**

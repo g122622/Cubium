@@ -73,10 +73,9 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    PandaEntity(LegacyEntityType type, EntityId id);
+    PandaEntity(EntityId id);
     ~PandaEntity() override = default;
 
     // 禁止拷贝

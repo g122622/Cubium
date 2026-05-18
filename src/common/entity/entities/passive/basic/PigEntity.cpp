@@ -46,11 +46,11 @@ namespace mc {
 std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<PigEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<PigEntity>(0);
 }
 
-PigEntity::PigEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+PigEntity::PigEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -92,7 +92,7 @@ bool PigEntity::canMateWith(const AnimalEntity& other) const
 std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // MC 1.16.5: 创建小猪
-    auto baby = std::make_unique<PigEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<PigEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

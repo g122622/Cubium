@@ -83,7 +83,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    OcelotEntity(LegacyEntityType type, EntityId id);
+    OcelotEntity(EntityId id);
     ~OcelotEntity() override = default;
 
     // 禁止拷贝

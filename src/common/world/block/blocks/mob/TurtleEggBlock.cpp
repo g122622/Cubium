@@ -24,6 +24,7 @@
 #include "TurtleEggBlock.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../sound/SoundCategory.hpp"
@@ -206,7 +207,7 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         //     worldIn.addEntity(turtleentity);
         // }
         for (i32 i = 0; i < eggs; ++i) {
-            auto turtle = std::make_unique<TurtleEntity>(LegacyEntityType::Turtle, EntityId(0));
+            auto turtle = std::make_unique<TurtleEntity>(EntityId(0));
             if (turtle) {
                 // MC 1.16.5: 设置为幼体（-24000 ticks = 20分钟）
                 turtle->setChild(true);
@@ -278,16 +279,15 @@ bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const
     // }
 
     // 获取实体类型
-    LegacyEntityType type = entity.legacyType();
+    entity::EntityTypeId type = entity.typeId();
 
     // 海龟和蝙蝠不能踩破蛋
-    if (type == LegacyEntityType::Turtle || type == LegacyEntityType::Bat) {
+    if (type == entity::EntityTypeIdNumber::TURTLE || type == entity::EntityTypeIdNumber::BAT) {
         return false;
     }
 
     // 非生物实体不能踩破（物品、箭矢等）
     // 检查是否为生物实体：玩家和怪物类实体可以踩破
-    // LegacyEntityType 中 Player = 1, 被动生物 10-49, 敌对生物 50-150
     // 使用动态类型检查判断是否为 LivingEntity
     auto* living = dynamic_cast<LivingEntity*>(&entity);
     if (living == nullptr) {
@@ -295,7 +295,7 @@ bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const
     }
 
     // 玩家总是可以踩破
-    if (type == LegacyEntityType::Player) {
+    if (type == entity::EntityTypeIdNumber::PLAYER) {
         return true;
     }
 
@@ -352,22 +352,20 @@ bool TurtleEggBlock::isZombieType(Entity& entity) const
     // MC 1.16.5: 检查实体是否为僵尸类
     // 使用 instanceof ZombieEntity 检查，由于 ZombieEntity 是基类，
     // HuskEntity、DrownedEntity 等是子类
-    // 但在当前项目中，这些是独立的实体类型，需要通过 LegacyEntityType 检查
+    // 但在当前项目中，这些是独立的实体类型，需要通过 typeId 检查
 
-    LegacyEntityType type = entity.legacyType();
+    entity::EntityTypeId type = entity.typeId();
 
     // MC 1.16.5: 只有 ZombieEntity 及其子类（Husk、Drowned）会踩破海龟蛋
     // 注意：MC 中 ZombieVillager 也是 ZombieEntity 的子类，但当前项目中未定义
     // Skeleton、Stray、WitherSkeleton 虽然是亡灵，但不是僵尸类，不会踩破蛋
-    switch (type) {
-        case LegacyEntityType::Zombie:
-        case LegacyEntityType::Husk:
-        case LegacyEntityType::Drowned:
-            // 僵尸及其变种会踩破海龟蛋
-            return true;
-        default:
-            return false;
+    if (type == entity::EntityTypeIdNumber::ZOMBIE ||
+        type == entity::EntityTypeIdNumber::HUSK ||
+        type == entity::EntityTypeIdNumber::DROWNED) {
+        // 僵尸及其变种会踩破海龟蛋
+        return true;
     }
+    return false;
 }
 
 const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const

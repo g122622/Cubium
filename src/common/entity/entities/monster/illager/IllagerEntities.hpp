@@ -58,10 +58,9 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    PillagerEntity(LegacyEntityType type, EntityId id);
+    PillagerEntity(EntityId id);
     ~PillagerEntity() override = default;
 
     // 禁止拷贝
@@ -146,10 +145,9 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    VindicatorEntity(LegacyEntityType type, EntityId id);
+    VindicatorEntity(EntityId id);
     ~VindicatorEntity() override = default;
 
     // 禁止拷贝

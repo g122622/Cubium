@@ -46,8 +46,8 @@
 
 namespace mc {
 
-IllusionerEntity::IllusionerEntity(LegacyEntityType type, EntityId id)
-    : SpellcastingIllagerEntity(type, id)
+IllusionerEntity::IllusionerEntity(EntityId id)
+    : SpellcastingIllagerEntity(id)
 {
     registerGoals();
     registerAttributes();
@@ -58,7 +58,7 @@ IllusionerEntity::IllusionerEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> IllusionerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<IllusionerEntity>(LegacyEntityType::Illusioner, EntityId(0));
+    return std::make_unique<IllusionerEntity>(EntityId(0));
 }
 
 void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
@@ -157,7 +157,7 @@ void IllusionerEntity::registerGoals()
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
         this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            return entity->legacyType() == LegacyEntityType::Player;
+            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 10: 看向生物
@@ -165,7 +165,7 @@ void IllusionerEntity::registerGoals()
         this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 看向所有 MobEntity
-            return entity->legacyType() != LegacyEntityType::Player;
+            return entity->typeId() != entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 目标选择器 (targetSelector)

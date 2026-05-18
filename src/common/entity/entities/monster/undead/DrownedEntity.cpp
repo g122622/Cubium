@@ -27,8 +27,8 @@
 
 namespace mc {
 
-DrownedEntity::DrownedEntity(LegacyEntityType type, EntityId id)
-    : ZombieEntity(type, id)
+DrownedEntity::DrownedEntity(EntityId id)
+    : ZombieEntity(id)
 {
     // MC 1.16.5: DrownedEntity 构造函数中设置 stepHeight = 1.0F
     // 溺尸可以走上1格高的方块
@@ -44,7 +44,7 @@ DrownedEntity::DrownedEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<DrownedEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<DrownedEntity>(EntityId(0));
 }
 
 bool DrownedEntity::isInWater() const

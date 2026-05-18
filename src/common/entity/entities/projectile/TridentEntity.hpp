@@ -47,7 +47,7 @@ public:
     /**
      * @brief 构造函数
      */
-    TridentEntity(LegacyEntityType type, EntityId id);
+    explicit TridentEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 

@@ -56,10 +56,9 @@ class WitchEntity : public AbstractRaiderEntity, public entity::IRangedAttackMob
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    WitchEntity(LegacyEntityType type, EntityId id);
+    WitchEntity(EntityId id);
     ~WitchEntity() override = default;
 
     // 禁止拷贝

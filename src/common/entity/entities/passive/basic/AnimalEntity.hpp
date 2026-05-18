@@ -44,10 +44,9 @@ class AnimalEntity : public AgeableEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    AnimalEntity(LegacyEntityType type, EntityId id);
+    AnimalEntity(EntityId id);
     ~AnimalEntity() override = default;
 
     // 禁止拷贝

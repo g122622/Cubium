@@ -54,7 +54,7 @@ namespace mc::client::renderer::entity::layer::effect::test {
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, EntityId(1))
+        : LivingEntity(EntityId(1))
     {}
 
     void tick() override {}

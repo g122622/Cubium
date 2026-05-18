@@ -40,7 +40,7 @@ protected:
     void SetUp() override
     {
         // 创建一个简单的 LivingEntity 用于测试
-        m_living = std::make_unique<LivingEntity>(LegacyEntityType::Unknown, 1);
+        m_living = std::make_unique<LivingEntity>(EntityId(1));
         m_living->registerData();
     }
 
@@ -54,7 +54,7 @@ protected:
     void SetUp() override
     {
         // 创建一个简单的 Entity 用于测试
-        m_entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1);
+        m_entity = std::make_unique<Entity>(EntityId(1));
         m_entity->registerData();
     }
 
@@ -164,7 +164,7 @@ TEST_F(EntityGlowingTest, SetGlowing_Toggle)
 TEST_F(EntityGlowingTest, GlowingFlag_NotSetByDefault)
 {
     // 默认没有 Glowing 标志
-    EXPECT_FALSE(m_entity->hasFlag(EntityFlags::Glowing));
+    EXPECT_FALSE(m_entity->hasFlag(mc::EntityFlags::Glowing));
 }
 
 TEST_F(EntityGlowingTest, GlowingFlag_SetBySetGlowing)
@@ -184,7 +184,7 @@ class LivingEntityGlowEffectTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_living = std::make_unique<LivingEntity>(LegacyEntityType::Unknown, 1);
+        m_living = std::make_unique<LivingEntity>(EntityId(1));
         m_living->registerData();
     }
 

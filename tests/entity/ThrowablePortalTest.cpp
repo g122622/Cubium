@@ -45,7 +45,7 @@ namespace {
 class TestThrowableEntity : public entity::ThrowableEntity {
 public:
     explicit TestThrowableEntity(EntityId id)
-        : ThrowableEntity(LegacyEntityType::Snowball, id)
+        : ThrowableEntity(id)
     {
         // 设置碰撞箱
         m_boundingBox = AxisAlignedBB::fromPosition(Vector3(0.0, 0.0, 0.0), 0.25f, 0.25f);

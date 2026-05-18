@@ -36,8 +36,8 @@
 
 namespace mc {
 
-VexEntity::VexEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+VexEntity::VexEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 恼鬼使用专用的飞行移动控制器
     // 参考 VexEntity 构造函数: this.moveController = new VexEntity.MoveHelperController(this);
@@ -49,7 +49,7 @@ VexEntity::VexEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<VexEntity>(LegacyEntityType::Vex, 0);
+    return std::make_unique<VexEntity>(EntityId(0));
 }
 
 void VexEntity::tick()
@@ -98,7 +98,7 @@ void VexEntity::registerGoals()
         3.0f,
         1.0f,
         [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // MC 1.16.5: 优先级 10: 看向生物（距离8格）

@@ -138,7 +138,7 @@ private:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(LegacyEntityType::Cow, 1)
+        : CreatureEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

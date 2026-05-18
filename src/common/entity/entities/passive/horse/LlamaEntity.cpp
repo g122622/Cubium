@@ -75,15 +75,15 @@ constexpr i32 LLAMA_ATTACK_INTERVAL = 40;        // 攻击间隔 ticks
 // 构造函数
 // ============================================================================
 
-LlamaEntity::LlamaEntity(LegacyEntityType type, EntityId id)
-    : AbstractChestedHorseEntity(type, id)
+LlamaEntity::LlamaEntity(EntityId id)
+    : AbstractChestedHorseEntity(id)
 {
     randomizeAppearance();
 }
 
 std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<LlamaEntity>(0);
 }
 
 void LlamaEntity::randomizeAppearance()
@@ -182,7 +182,7 @@ std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
     // MC 1.16.5: LlamaEntity.func_241840_a(ServerWorld, AgeableEntity)
     math::Random rng(ticksExisted());
 
-    auto baby = std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<LlamaEntity>(0);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 
@@ -323,7 +323,7 @@ void LlamaEntity::spit(LivingEntity* target)
     }
 
     // 创建口水实体
-    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(LegacyEntityType::Unknown, 0);
+    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityId(0));
 
     // 设置发射者
     spitEntity->setShooter(this);

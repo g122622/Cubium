@@ -83,7 +83,7 @@ TEST(EntityIsInRainTest, NoRainReturnsFalse)
     MockRainTestWorld world;
     world.setRaining(false);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
 
@@ -99,7 +99,7 @@ TEST(EntityIsInRainTest, RainingButPositionNotRainableReturnsFalse)
     world.setRaining(true);
     world.setCanRainAtResult(false); // 位置不可降雨（如在室内或沙漠生物群系）
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
 
@@ -115,7 +115,7 @@ TEST(EntityIsInRainTest, RainingAndPositionRainableReturnsTrue)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
 
@@ -127,7 +127,7 @@ TEST(EntityIsInRainTest, RainingAndPositionRainableReturnsTrue)
  */
 TEST(EntityIsInRainTest, NullWorldReturnsFalse)
 {
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(nullptr);
     enderman.setPosition(0.0, 64.0, 0.0);
 
@@ -146,7 +146,7 @@ TEST(EntityIsInRainTest, EndermanInWaterReturnsTrue)
     MockRainTestWorld world;
     world.setRaining(false);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(true);
@@ -163,7 +163,7 @@ TEST(EntityIsInRainTest, EndermanInRainReturnsTrue)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(false);
@@ -180,7 +180,7 @@ TEST(EntityIsInRainTest, EndermanInWaterAndRainReturnsTrue)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(true);
@@ -196,7 +196,7 @@ TEST(EntityIsInRainTest, EndermanNotInWaterOrRainReturnsFalse)
     MockRainTestWorld world;
     world.setRaining(false);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(false);
@@ -217,7 +217,7 @@ TEST(EntityIsInRainTest, IsWetWhenInRainReturnsTrue)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(false);
@@ -236,7 +236,7 @@ TEST(EntityIsInRainTest, IsWetWhenInWaterReturnsTrue)
     MockRainTestWorld world;
     world.setRaining(false);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(true);
@@ -255,7 +255,7 @@ TEST(EntityIsInRainTest, IsWetWhenNotWetReturnsFalse)
     MockRainTestWorld world;
     world.setRaining(false);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
     enderman.setInWater(false);
@@ -287,7 +287,7 @@ TEST(EntityIsInRainTest, DualPositionCheckLogic)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
 
@@ -317,7 +317,7 @@ TEST(EntityIsInRainTest, PositionCalculationForFootAndTop)
     world.setRaining(true);
     world.setCanRainAtResult(true);
 
-    EndermanEntity enderman(LegacyEntityType::Unknown, 1);
+    EndermanEntity enderman(EntityId(1));
     enderman.setWorld(&world);
     enderman.setPosition(10.5, 64.0, 20.5);
 

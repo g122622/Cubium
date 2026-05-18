@@ -89,7 +89,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    CatEntity(LegacyEntityType type, EntityId id);
+    CatEntity(EntityId id);
     ~CatEntity() override = default;
 
     // 禁止拷贝

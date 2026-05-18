@@ -111,7 +111,7 @@ private:
 class TestTargetEntity : public Entity {
 public:
     TestTargetEntity(EntityId id, bool collidable)
-        : Entity(LegacyEntityType::Unknown, id)
+        : Entity(id)
         , m_collidable(collidable)
     {}
 
@@ -124,14 +124,14 @@ private:
 class RotationProbeEntity : public Entity {
 public:
     explicit RotationProbeEntity(EntityId id)
-        : Entity(LegacyEntityType::Unknown, id)
+        : Entity(id)
     {}
 };
 
 class ExposedProjectileEntity : public entity::ProjectileEntity {
 public:
     explicit ExposedProjectileEntity(EntityId id)
-        : ProjectileEntity(LegacyEntityType::Unknown, id)
+        : ProjectileEntity(id)
     {}
 
     void setLeftShooterFlag(bool value) { m_leftShooter = value; }

@@ -47,10 +47,9 @@ class HorseEntity : public AbstractHorseEntity {
 public:
     /**
      * @brief 构造马实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    HorseEntity(LegacyEntityType type, EntityId id);
+    HorseEntity(EntityId id);
     ~HorseEntity() override = default;
 
     HorseEntity(const HorseEntity&) = delete;

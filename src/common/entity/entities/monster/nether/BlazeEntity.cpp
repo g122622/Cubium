@@ -38,8 +38,8 @@
 
 namespace mc {
 
-BlazeEntity::BlazeEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+BlazeEntity::BlazeEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 烈焰人不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -56,7 +56,7 @@ BlazeEntity::BlazeEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<BlazeEntity>(LegacyEntityType::Blaze, EntityId(0));
+    return std::make_unique<BlazeEntity>(EntityId(0));
 }
 
 std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const

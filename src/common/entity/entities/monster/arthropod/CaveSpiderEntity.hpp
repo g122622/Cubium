@@ -49,10 +49,9 @@ class CaveSpiderEntity : public SpiderEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    CaveSpiderEntity(LegacyEntityType type, EntityId id);
+    CaveSpiderEntity(EntityId id);
 
     ~CaveSpiderEntity() override = default;
 

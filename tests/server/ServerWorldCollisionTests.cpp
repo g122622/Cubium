@@ -152,7 +152,7 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionNoEntities)
 TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity)
 {
     // 创建实体
-    auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity = std::make_unique<Entity>(EntityId(1), world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
 
     EntityId entityId = world->spawnEntity(std::move(entity));
@@ -170,7 +170,7 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity)
 TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf)
 {
     // 创建实体
-    auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity = std::make_unique<Entity>(EntityId(1), world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
 
     EntityId entityId = world->spawnEntity(std::move(entity));
@@ -187,11 +187,11 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf)
 TEST_F(ServerWorldCollisionTest, GetEntityCollisions)
 {
     // 创建多个实体
-    auto entity1 = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity1 = std::make_unique<Entity>(EntityId(1), world.get());
     entity1->setPosition(5.0f, 5.0f, 5.0f);
     world->spawnEntity(std::move(entity1));
 
-    auto entity2 = std::make_unique<Entity>(LegacyEntityType::Unknown, 2, world.get());
+    auto entity2 = std::make_unique<Entity>(EntityId(2), world.get());
     entity2->setPosition(5.5f, 5.0f, 5.0f);
     world->spawnEntity(std::move(entity2));
 
@@ -309,7 +309,7 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt)
 
 TEST_F(ServerWorldCollisionTest, SpawnEntity)
 {
-    auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity = std::make_unique<Entity>(EntityId(1), world.get());
     entity->setPosition(10.0f, 64.0f, 10.0f);
 
     EntityId id = world->spawnEntity(std::move(entity));
@@ -319,7 +319,7 @@ TEST_F(ServerWorldCollisionTest, SpawnEntity)
 
 TEST_F(ServerWorldCollisionTest, RemoveEntity)
 {
-    auto entity = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity = std::make_unique<Entity>(EntityId(1), world.get());
     EntityId id = world->spawnEntity(std::move(entity));
 
     auto removed = world->removeEntity(id);
@@ -330,11 +330,11 @@ TEST_F(ServerWorldCollisionTest, RemoveEntity)
 TEST_F(ServerWorldCollisionTest, GetEntitiesInAABB)
 {
     // 创建多个实体
-    auto entity1 = std::make_unique<Entity>(LegacyEntityType::Unknown, 1, world.get());
+    auto entity1 = std::make_unique<Entity>(EntityId(1), world.get());
     entity1->setPosition(0.0f, 0.0f, 0.0f);
     world->spawnEntity(std::move(entity1));
 
-    auto entity2 = std::make_unique<Entity>(LegacyEntityType::Unknown, 2, world.get());
+    auto entity2 = std::make_unique<Entity>(EntityId(2), world.get());
     entity2->setPosition(100.0f, 100.0f, 100.0f);
     world->spawnEntity(std::move(entity2));
 

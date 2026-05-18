@@ -52,8 +52,8 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-SnowGolemEntity::SnowGolemEntity(LegacyEntityType type, EntityId id)
-    : GolemEntity(type, id)
+SnowGolemEntity::SnowGolemEntity(EntityId id)
+    : GolemEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -68,7 +68,7 @@ SnowGolemEntity::SnowGolemEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SnowGolemEntity>(LegacyEntityType::SnowGolem, EntityId(0));
+    return std::make_unique<SnowGolemEntity>(0);
 }
 
 // ============================================================================

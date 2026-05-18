@@ -30,8 +30,8 @@
 
 namespace mc {
 
-SquidEntity::SquidEntity(LegacyEntityType type, EntityId id)
-    : WaterMobEntity(type, id)
+SquidEntity::SquidEntity(EntityId id)
+    : WaterMobEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -42,7 +42,7 @@ SquidEntity::SquidEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SquidEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SquidEntity>(0);
 }
 
 void SquidEntity::sprayInk()

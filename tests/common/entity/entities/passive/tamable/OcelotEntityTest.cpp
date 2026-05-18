@@ -112,7 +112,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 豹猫使用生鳕鱼繁殖
     // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(ocelot.isBreedingItem(codStack));
@@ -121,7 +121,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 豹猫使用生鲑鱼繁殖
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(ocelot.isBreedingItem(salmonStack));
@@ -130,7 +130,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedCod_ReturnsFalse)
 {
     // 熟鱼不能用于繁殖
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack cookedCodStack(Items::COOKED_COD, 1);
     EXPECT_FALSE(ocelot.isBreedingItem(cookedCodStack));
@@ -139,7 +139,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedCod_ReturnsFalse)
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedSalmon_ReturnsFalse)
 {
     // 熟鲑鱼不能用于繁殖
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack cookedSalmonStack(Items::COOKED_SALMON, 1);
     EXPECT_FALSE(ocelot.isBreedingItem(cookedSalmonStack));
@@ -151,7 +151,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_CookedSalmon_ReturnsFalse)
 
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_NonFish_ReturnsFalse)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // 小麦不能用于豹猫繁殖
     ItemStack wheatStack(Items::WHEAT, 1);
@@ -180,7 +180,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_NonFish_ReturnsFalse)
 
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(ocelot.isBreedingItem(emptyStack));
@@ -188,7 +188,7 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 
 TEST_F(OcelotEntityTestFixture, IsBreedingItem_NullItem_ReturnsFalse)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ItemStack nullStack(nullptr, 1);
     EXPECT_FALSE(ocelot.isBreedingItem(nullStack));
@@ -200,8 +200,8 @@ TEST_F(OcelotEntityTestFixture, IsBreedingItem_NullItem_ReturnsFalse)
 
 TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesChildOcelot)
 {
-    OcelotEntity parent1(LegacyEntityType::Unknown, 0);
-    OcelotEntity parent2(LegacyEntityType::Unknown, 0);
+    OcelotEntity parent1(EntityId(0));
+    OcelotEntity parent2(EntityId(0));
 
     auto baby = parent1.spawnBaby(parent2);
     ASSERT_NE(baby, nullptr);
@@ -216,7 +216,7 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesChildOcelot)
 
 TEST_F(OcelotEntityTestFixture, SpawnBaby_PositionSetCorrectly)
 {
-    OcelotEntity parent(LegacyEntityType::Unknown, 0);
+    OcelotEntity parent(EntityId(0));
     parent.setPosition(100.0, 64.0, -50.0);
 
     auto baby = parent.spawnBaby(parent);
@@ -230,8 +230,8 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_PositionSetCorrectly)
 
 TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesNewEntity)
 {
-    OcelotEntity parent1(LegacyEntityType::Unknown, 0);
-    OcelotEntity parent2(LegacyEntityType::Unknown, 0);
+    OcelotEntity parent1(EntityId(0));
+    OcelotEntity parent2(EntityId(0));
 
     auto baby1 = parent1.spawnBaby(parent2);
     auto baby2 = parent1.spawnBaby(parent2);
@@ -248,7 +248,7 @@ TEST_F(OcelotEntityTestFixture, SpawnBaby_CreatesNewEntity)
 
 TEST_F(OcelotEntityTestFixture, TrustSystem_NotTrustingInitially)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     EXPECT_FALSE(ocelot.isTrusting());
     EXPECT_EQ(ocelot.getTrustingPlayerId(), 0u);
@@ -256,7 +256,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_NotTrustingInitially)
 
 TEST_F(OcelotEntityTestFixture, TrustSystem_CanSetTrusting)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ocelot.setTrusting(true);
     EXPECT_TRUE(ocelot.isTrusting());
@@ -267,7 +267,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CanSetTrusting)
 
 TEST_F(OcelotEntityTestFixture, TrustSystem_CanTrustPlayer)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ocelot.setPlayerTrust(12345, true);
     EXPECT_TRUE(ocelot.trustsPlayer(12345));
@@ -276,7 +276,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CanTrustPlayer)
 
 TEST_F(OcelotEntityTestFixture, TrustSystem_DoesNotTrustOtherPlayers)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ocelot.setPlayerTrust(12345, true);
     EXPECT_FALSE(ocelot.trustsPlayer(67890));
@@ -286,7 +286,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CannotChangeTrustOnceSet)
 {
     // 一旦建立信任，不能更改为其他玩家
     // 参考 MC 1.16.5: setPlayerTrust 只在 !m_trusting 时设置
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ocelot.setPlayerTrust(12345, true);
     EXPECT_EQ(ocelot.getTrustingPlayerId(), 12345u);
@@ -302,7 +302,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_CannotChangeTrustOnceSet)
 
 TEST_F(OcelotEntityTestFixture, Fleeing_CanSetFleeingState)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     EXPECT_FALSE(ocelot.isFleeing());
 
@@ -319,14 +319,14 @@ TEST_F(OcelotEntityTestFixture, Fleeing_CanSetFleeingState)
 
 TEST_F(OcelotEntityTestFixture, OcelotType_DefaultIsWild)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     EXPECT_EQ(ocelot.getOcelotType(), OcelotEntity::OcelotType::Wild);
 }
 
 TEST_F(OcelotEntityTestFixture, OcelotType_CanSetType)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     ocelot.setOcelotType(OcelotEntity::OcelotType::Tabby);
     EXPECT_EQ(ocelot.getOcelotType(), OcelotEntity::OcelotType::Tabby);
@@ -341,7 +341,7 @@ TEST_F(OcelotEntityTestFixture, OcelotType_CanSetType)
 
 TEST_F(OcelotEntityTestFixture, Attributes_HasCorrectBaseValues)
 {
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // MC 1.16.5: 豹猫生命值为 10
     EXPECT_DOUBLE_EQ(ocelot.maxHealth(), 10.0);
@@ -356,7 +356,7 @@ TEST_F(OcelotEntityTestFixture, Attributes_HasCorrectBaseValues)
 
 TEST_F(OcelotEntityTestFixture, EyeHeight_AdultIsHigher)
 {
-    OcelotEntity adult(LegacyEntityType::Unknown, 0);
+    OcelotEntity adult(EntityId(0));
     adult.setChild(false);
 
     EXPECT_FLOAT_EQ(adult.eyeHeight(), 0.6f);
@@ -364,7 +364,7 @@ TEST_F(OcelotEntityTestFixture, EyeHeight_AdultIsHigher)
 
 TEST_F(OcelotEntityTestFixture, EyeHeight_ChildIsLower)
 {
-    OcelotEntity child(LegacyEntityType::Unknown, 0);
+    OcelotEntity child(EntityId(0));
     child.setChild(true);
 
     EXPECT_FLOAT_EQ(child.eyeHeight(), 0.3f);
@@ -377,7 +377,7 @@ TEST_F(OcelotEntityTestFixture, EyeHeight_ChildIsLower)
 TEST_F(OcelotEntityTestFixture, FallDamage_Immune)
 {
     // MC 1.16.5: 豹猫免疫摔落伤害
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // canTakeFallDamage() 应该返回 false
     EXPECT_FALSE(ocelot.canTakeFallDamage());
@@ -390,7 +390,7 @@ TEST_F(OcelotEntityTestFixture, FallDamage_Immune)
 TEST_F(OcelotEntityTestFixture, CanDespawn_NotTrusting_CanDespawnAfterTime)
 {
     // MC 1.16.5: 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(false);
 
     // 刚创建时不能消失
@@ -405,7 +405,7 @@ TEST_F(OcelotEntityTestFixture, CanDespawn_NotTrusting_CanDespawnAfterTime)
 TEST_F(OcelotEntityTestFixture, CanDespawn_Trusting_NeverDespawns)
 {
     // MC 1.16.5: 已信任的豹猫永远不会消失
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(true);
 
     // 无论距离玩家多远、存在多久，信任的豹猫都不消失
@@ -420,7 +420,7 @@ TEST_F(OcelotEntityTestFixture, CanDespawn_Trusting_NeverDespawns)
 TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_NotTrusting_ShouldExecute)
 {
     // 未信任的豹猫应该执行躲避玩家的目标
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(false);
 
     // 创建躲避目标
@@ -436,7 +436,7 @@ TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_NotTrusting_ShouldExecute)
 TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_Trusting_ShouldNotExecute)
 {
     // 已信任的豹猫不应该执行躲避玩家的目标
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(true);
 
     // 创建躲避目标
@@ -450,7 +450,7 @@ TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_Trusting_ShouldNotExecute)
 TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_TrustingChanged_UpdatesBehavior)
 {
     // 测试信任状态改变时行为变化
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(false);
 
     entity::ai::goal::OcelotAvoidPlayerGoal goal(&ocelot, 16.0f, 0.8, 1.33);
@@ -474,7 +474,7 @@ TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_TrustingChanged_UpdatesBehavior)
 TEST_F(OcelotEntityTestFixture, TemptGoal_IsScaredByPlayerMovement_NotTrusting)
 {
     // 未信任的豹猫应该被玩家快速移动吓跑
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(false);
 
     // 创建诱惑目标
@@ -495,7 +495,7 @@ TEST_F(OcelotEntityTestFixture, TemptGoal_IsScaredByPlayerMovement_NotTrusting)
 TEST_F(OcelotEntityTestFixture, TemptGoal_IsScaredByPlayerMovement_Trusting)
 {
     // 已信任的豹猫不应该被玩家快速移动吓跑
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(true);
 
     // 创建诱惑目标
@@ -521,7 +521,7 @@ TEST_F(OcelotEntityTestFixture, AttackGoal_StopAttackDistance)
     // 测试 OcelotAttackGoal 的停止追踪距离
     // STOP_ATTACK_DISTANCE_SQ = 225.0f (15*15)
 
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     entity::ai::goal::OcelotAttackGoal goal(&ocelot);
 
     // GoalFlag 应该包含 Move 和 Look
@@ -531,7 +531,7 @@ TEST_F(OcelotEntityTestFixture, AttackGoal_StopAttackDistance)
 TEST_F(OcelotEntityTestFixture, AttackGoal_AttackDamage)
 {
     // MC 1.16.5: 豹猫攻击伤害为 3.0
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // 验证攻击伤害属性
     f64 attackDamage = ocelot.getAttributeValue(
@@ -547,7 +547,7 @@ TEST_F(OcelotEntityTestFixture, TargetSelector_Chicken)
 {
     // 验证豹猫会把小鸡作为攻击目标
     // NearestAttackableTargetGoal<ChickenEntity> 应该被添加到目标选择器
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // registerGoals() 在构造函数中调用
     // 验证目标选择器已正确设置
@@ -558,7 +558,7 @@ TEST_F(OcelotEntityTestFixture, TargetSelector_Turtle)
 {
     // 验证豹猫会把海龟作为攻击目标
     // NearestAttackableTargetGoal<TurtleEntity> 应该被添加到目标选择器
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // registerGoals() 在构造函数中调用
 }
@@ -579,7 +579,7 @@ TEST_F(OcelotEntityTestFixture, GoalPriorities_CorrectOrder)
     // 10: WaterAvoidingRandomWalkingGoal
     // 11: LookAtGoal
 
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // 验证目标已注册
     // 具体优先级验证需要访问 GoalSelector 内部
@@ -593,7 +593,7 @@ TEST_F(OcelotEntityTestFixture, Constants_TemptSpeed)
 {
     // 诱惑速度 = 0.6
     // 这是通过 TemptGoal 构造函数传递的
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     // 验证实体创建成功
 }
 
@@ -602,20 +602,20 @@ TEST_F(OcelotEntityTestFixture, Constants_AvoidSpeeds)
     // 远距离逃避速度 = 0.8
     // 近距离逃避速度 = 1.33
     // 检测距离 = 16.0f
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 }
 
 TEST_F(OcelotEntityTestFixture, Constants_AttackCooldown)
 {
     // 攻击冷却 = 20 ticks
     // 停止追踪距离平方 = 225.0f (15*15)
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 }
 
 TEST_F(OcelotEntityTestFixture, Constants_DespawnTicks)
 {
     // 消失所需tick数 = 2400 (2分钟)
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     // 未信任的豹猫 2400 tick 后可消失
 }
 
@@ -626,7 +626,7 @@ TEST_F(OcelotEntityTestFixture, Constants_DespawnTicks)
 TEST_F(OcelotEntityTestFixture, TrustSystem_AffectsFleeing)
 {
     // 信任后停止逃跑
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // 未信任时可以逃跑
     ocelot.setFleeing(true);
@@ -642,7 +642,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_AffectsFleeing)
 TEST_F(OcelotEntityTestFixture, TrustSystem_DespawnPrevented)
 {
     // 信任的豹猫不会消失
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
     ocelot.setTrusting(true);
 
     // canDespawn 应该返回 false
@@ -656,7 +656,7 @@ TEST_F(OcelotEntityTestFixture, TrustSystem_DespawnPrevented)
 TEST_F(OcelotEntityTestFixture, DynamicAI_SetupTrustingAI)
 {
     // setupTrustingAI() 应该根据信任状态动态添加/移除 AvoidPlayerGoal
-    OcelotEntity ocelot(LegacyEntityType::Unknown, 0);
+    OcelotEntity ocelot(EntityId(0));
 
     // 初始未信任
     EXPECT_FALSE(ocelot.isTrusting());

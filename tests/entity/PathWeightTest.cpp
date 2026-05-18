@@ -92,7 +92,7 @@ private:
 class TestAnimalEntity final : public AnimalEntity {
 public:
     TestAnimalEntity()
-        : AnimalEntity(LegacyEntityType::Pig, 1)
+        : AnimalEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -116,7 +116,7 @@ protected:
 class TestMonsterEntity final : public MonsterEntity {
 public:
     TestMonsterEntity()
-        : MonsterEntity(LegacyEntityType::Zombie, 2)
+        : MonsterEntity(EntityId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -136,7 +136,7 @@ protected:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(LegacyEntityType::Cow, 3)
+        : CreatureEntity(EntityId(3))
     {
         registerAttributes();
         setHealth(maxHealth());

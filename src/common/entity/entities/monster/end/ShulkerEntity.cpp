@@ -49,8 +49,8 @@ static const std::string COVERED_ARMOR_BONUS_ID = "shulker_covered_armor_bonus";
 // ShulkerEntity 实现
 // ============================================================================
 
-ShulkerEntity::ShulkerEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+ShulkerEntity::ShulkerEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // 潜影贝不移动
     setExperienceValue(5);
@@ -58,7 +58,7 @@ ShulkerEntity::ShulkerEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ShulkerEntity>(LegacyEntityType::Shulker, 0);
+    return std::make_unique<ShulkerEntity>(EntityId(0));
 }
 
 void ShulkerEntity::updatePeekTicks(i32 peekTicks)
@@ -298,21 +298,21 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
         Entity* attacker = source.directSource();
         // 检查是否是投射物（通过检查实体类型）
         if (attacker != nullptr) {
-            LegacyEntityType type = attacker->legacyType();
+            auto type = attacker->typeId();
             // 投射物类型：箭、三叉戟、火球等
-            if (type == LegacyEntityType::Arrow ||
-                type == LegacyEntityType::SpectralArrow ||
-                type == LegacyEntityType::Trident ||
-                type == LegacyEntityType::Fireball ||
-                type == LegacyEntityType::SmallFireball ||
-                type == LegacyEntityType::DragonFireball ||
-                type == LegacyEntityType::WitherSkull ||
-                type == LegacyEntityType::Snowball ||
-                type == LegacyEntityType::Egg ||
-                type == LegacyEntityType::EnderPearl ||
-                type == LegacyEntityType::Potion ||
-                type == LegacyEntityType::LlamaSpit ||
-                type == LegacyEntityType::ShulkerBullet) {
+            if (type == entity::EntityTypeIdNumber::ARROW ||
+                type == entity::EntityTypeIdNumber::SPECTRAL_ARROW ||
+                type == entity::EntityTypeIdNumber::TRIDENT ||
+                type == entity::EntityTypeIdNumber::FIREBALL ||
+                type == entity::EntityTypeIdNumber::SMALL_FIREBALL ||
+                type == entity::EntityTypeIdNumber::DRAGON_FIREBALL ||
+                type == entity::EntityTypeIdNumber::WITHER_SKULL ||
+                type == entity::EntityTypeIdNumber::SNOWBALL ||
+                type == entity::EntityTypeIdNumber::EGG ||
+                type == entity::EntityTypeIdNumber::ENDER_PEARL ||
+                type == entity::EntityTypeIdNumber::POTION ||
+                type == entity::EntityTypeIdNumber::LLAMA_SPIT ||
+                type == entity::EntityTypeIdNumber::SHULKER_BULLET) {
                 return false;
             }
         }

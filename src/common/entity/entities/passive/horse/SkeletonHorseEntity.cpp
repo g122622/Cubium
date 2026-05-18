@@ -33,8 +33,8 @@
 
 namespace mc {
 
-SkeletonHorseEntity::SkeletonHorseEntity(LegacyEntityType type, EntityId id)
-    : AbstractHorseEntity(type, id)
+SkeletonHorseEntity::SkeletonHorseEntity(EntityId id)
+    : AbstractHorseEntity(id)
 {
     // 骷髅马默认已驯服
     setTame(true);
@@ -44,7 +44,7 @@ SkeletonHorseEntity::SkeletonHorseEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SkeletonHorseEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SkeletonHorseEntity>(0);
 }
 
 bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const

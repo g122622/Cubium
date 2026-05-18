@@ -58,8 +58,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 // AbstractArrowEntity
 // ============================================================================
 
-AbstractArrowEntity::AbstractArrowEntity(LegacyEntityType type, EntityId id)
-    : ProjectileEntity(type, id)
+AbstractArrowEntity::AbstractArrowEntity(EntityId id)
+    : ProjectileEntity(id)
 {
     m_noGravity = false;
 }
@@ -473,20 +473,20 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
 // ArrowEntity
 // ============================================================================
 
-ArrowEntity::ArrowEntity(LegacyEntityType type, EntityId id)
-    : AbstractArrowEntity(type, id)
+ArrowEntity::ArrowEntity(EntityId id)
+    : AbstractArrowEntity(id)
 {
     m_damage = 2.0f;
 }
 
 std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ArrowEntity>(0);
 }
 
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
-    auto arrow = std::make_unique<ArrowEntity>(LegacyEntityType::Unknown, 0);
+    auto arrow = std::make_unique<ArrowEntity>(0);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);
@@ -583,15 +583,15 @@ ItemStack ArrowEntity::getArrowStack() const
 // SpectralArrowEntity
 // ============================================================================
 
-SpectralArrowEntity::SpectralArrowEntity(LegacyEntityType type, EntityId id)
-    : AbstractArrowEntity(type, id)
+SpectralArrowEntity::SpectralArrowEntity(EntityId id)
+    : AbstractArrowEntity(id)
 {
     m_damage = 2.0f;
 }
 
 std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SpectralArrowEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SpectralArrowEntity>(0);
 }
 
 void SpectralArrowEntity::tick()

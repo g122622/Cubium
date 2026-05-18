@@ -35,11 +35,11 @@ namespace mc {
 
 std::unique_ptr<Entity> PhantomEntity::create(IWorld* world)
 {
-    return std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+    return std::make_unique<PhantomEntity>(EntityId(0));
 }
 
-PhantomEntity::PhantomEntity(LegacyEntityType type, EntityId id)
-    : FlyingEntity(type, id)
+PhantomEntity::PhantomEntity(EntityId id)
+    : FlyingEntity(id)
 {
     // MC 1.16.5: 幻翼在阳光下燃烧
     setExperienceValue(5);

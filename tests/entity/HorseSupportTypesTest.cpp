@@ -34,10 +34,10 @@ namespace {
 
 TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 {
-    HorseEntity horse(LegacyEntityType::Horse, 1);
-    DonkeyEntity donkey(LegacyEntityType::Donkey, 2);
-    MuleEntity mule(LegacyEntityType::Mule, 3);
-    LlamaEntity llama(LegacyEntityType::Llama, 4);
+    HorseEntity horse(EntityId(1));
+    DonkeyEntity donkey(EntityId(2));
+    MuleEntity mule(EntityId(3));
+    LlamaEntity llama(EntityId(4));
 
     EXPECT_EQ(dynamic_cast<AbstractChestedHorseEntity*>(&horse), nullptr);
     EXPECT_NE(dynamic_cast<AbstractChestedHorseEntity*>(&donkey), nullptr);
@@ -47,9 +47,9 @@ TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 
 TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 {
-    DonkeyEntity donkey(LegacyEntityType::Donkey, 1);
-    MuleEntity mule(LegacyEntityType::Mule, 2);
-    LlamaEntity llama(LegacyEntityType::Llama, 3);
+    DonkeyEntity donkey(EntityId(1));
+    MuleEntity mule(EntityId(2));
+    LlamaEntity llama(EntityId(3));
 
     EXPECT_FALSE(donkey.hasChest());
     EXPECT_EQ(donkey.getInventorySize(), 2);
@@ -74,7 +74,7 @@ TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 
 TEST(HorseSupportTypesTest, LlamaStrengthIsClampedToVanillaRange)
 {
-    LlamaEntity llama(LegacyEntityType::Llama, 1);
+    LlamaEntity llama(EntityId(1));
 
     llama.setStrength(0);
     EXPECT_EQ(llama.getStrength(), 1);

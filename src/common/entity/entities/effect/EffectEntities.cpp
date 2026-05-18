@@ -99,7 +99,7 @@ void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 ampli
 // ==================== EnderCrystalEntity ====================
 
 EnderCrystalEntity::EnderCrystalEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {}
 
 f32 EnderCrystalEntity::width() const
@@ -174,7 +174,7 @@ void EnderCrystalEntity::healDragon()
         }
 
         // 检查是否为末影龙
-        if (entity->legacyType() == LegacyEntityType::EnderDragon) {
+        if (entity->typeId() == entity::EntityTypeIdNumber::ENDER_DRAGON) {
             f32 dx = static_cast<f32>(entity->x() - x());
             f32 dy = static_cast<f32>(entity->y() - y());
             f32 dz = static_cast<f32>(entity->z() - z());
@@ -227,7 +227,7 @@ void EnderCrystalEntity::explode()
 // ==================== LightningBoltEntity ====================
 
 LightningBoltEntity::LightningBoltEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {
     // MC 1.16.5: ignoreFrustumCheck = true
     // 闪电总是可见，即使不在视锥内
@@ -466,7 +466,7 @@ void LightningBoltEntity::damageEntities()
 // ==================== AreaEffectCloudEntity ====================
 
 AreaEffectCloudEntity::AreaEffectCloudEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {
     // MC 1.16.5: AreaEffectCloudEntity 无碰撞
     setNoClip(true);
@@ -718,7 +718,7 @@ u32 AreaEffectCloudEntity::calculateEffectsColor(const std::vector<effect::Effec
 // ==================== ArmorStandEntity ====================
 
 ArmorStandEntity::ArmorStandEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+    : Entity(EntityId(0))
 {}
 
 f32 ArmorStandEntity::width() const

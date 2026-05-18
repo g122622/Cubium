@@ -35,6 +35,7 @@
 #include "EntityDataManager.hpp"
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
+#include "EntityTypeIdNumber.hpp"
 #include "MoverType.hpp"
 #include <array>
 #include <functional>
@@ -51,6 +52,13 @@ class IWorld;
 class BlockState;
 class DamageSource;
 
+namespace entity {
+
+// 前向声明 EntityTypeId
+using EntityTypeId = u16;
+
+} // namespace entity
+
 namespace scoreboard {
 class Team;
 } // namespace scoreboard
@@ -65,121 +73,6 @@ enum class PushReaction : u8 {
     Normal,  // 正常推动
     Destroy, // 被推动时销毁
     Ignore   // 忽略推动
-};
-
-// ============================================================================
-// 旧实体类型枚举（兼容）
-// TODO 彻底移除这个旧枚举，改用 mc::entity::EntityType
-//
-// 注意：新代码应使用 mc::entity::EntityType 类
-// 此枚举保留用于向后兼容
-// ============================================================================
-enum class LegacyEntityType : u32 {
-    Unknown = 0,
-    Player = 1,
-    Item = 2,          // 物品实体
-    ExperienceOrb = 3, // 经验球实体
-
-    // 被动生物
-    Pig = 10,
-    Cow = 11,
-    Sheep = 12,
-    Chicken = 13,
-    Rabbit = 14,
-    Mooshroom = 15,
-    Wolf = 16,
-    Cat = 17,
-    Ocelot = 18,
-    Parrot = 19,
-    Fox = 20,
-    Panda = 21,
-    PolarBear = 22,
-    Turtle = 23,
-    Bee = 24,
-    Strider = 25,
-    Squid = 26,
-    Dolphin = 27,
-    Cod = 28,
-    Salmon = 29,
-    Pufferfish = 30,
-    TropicalFish = 31,
-    Bat = 32,
-    IronGolem = 33,
-    SnowGolem = 34,
-    Horse = 35,
-    Donkey = 36,
-    Mule = 37,
-    SkeletonHorse = 38,
-    ZombieHorse = 39,
-    Llama = 40,
-    TraderLlama = 41,
-
-    // 敌对生物
-    Zombie = 50,
-    Skeleton = 51,
-    Husk = 52,
-    Drowned = 53,
-    Stray = 54,
-    WitherSkeleton = 55,
-    Phantom = 56,
-    Spider = 57,
-    CaveSpider = 58,
-    Endermite = 59,
-    Silverfish = 60,
-    Creeper = 61,
-    Slime = 62,
-    Giant = 63,
-    Enderman = 64,
-    Shulker = 65,
-    Ghast = 66,
-    MagmaCube = 67,
-    Piglin = 68,
-    PiglinBrute = 69,
-    Hoglin = 70,
-    Zoglin = 71,
-    ZombifiedPiglin = 72, // 僵尸猪灵
-    Vindicator = 73,
-    Evoker = 74,
-    Illusioner = 75,
-    Pillager = 76,
-    Guardian = 77,
-    ElderGuardian = 78,
-    Witch = 79,
-    Ravager = 80,
-    Blaze = 81,
-    Vex = 82,       // 恼鬼
-
-    // Boss
-    Wither = 90,
-    EnderDragon = 91,
-
-    // 载具
-    Boat = 110,
-    Minecart = 111,
-
-    // 投掷物
-    Snowball = 120,
-    Egg = 121,
-    EnderPearl = 122,
-    ExperienceBottle = 123,
-    Potion = 124,
-    Arrow = 125,
-    SpectralArrow = 126,
-    Trident = 127,
-    Fireball = 128,
-    SmallFireball = 129,
-    DragonFireball = 130,
-    WitherSkull = 131,
-    LlamaSpit = 132,
-    ShulkerBullet = 133,
-    EvokerFangs = 134,
-    FishingBobber = 135,
-    EyeOfEnder = 136,
-    FireworkRocket = 137,
-
-    // 其他
-    Villager = 100,
-    // 后续添加更多
 };
 
 // 引入 mc::entity::EntityPose 到 mc 命名空间以保持兼容
@@ -248,11 +141,10 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      * @param world 世界指针（可选）
      */
-    Entity(LegacyEntityType type, EntityId id, IWorld* world = nullptr);
+    Entity(EntityId id, IWorld* world = nullptr);
     virtual ~Entity() = default;
 
     // 禁止拷贝
@@ -283,7 +175,6 @@ public:
      * 不应该在其他地方使用。
      */
     void setId(EntityId id) { m_id = id; }
-    [[nodiscard]] LegacyEntityType legacyType() const { return m_legacyType; }
     [[nodiscard]] const std::string& uuid() const { return m_uuid; }
     void setUuid(const std::string& uuid) { m_uuid = uuid; }
 
@@ -299,6 +190,19 @@ public:
      * 当实体由注册表工厂创建时，调用方应传入注册名（如 minecraft:pig）。
      */
     void setTypeId(const std::string& typeId) { m_typeId = typeId; }
+
+    /**
+     * @brief 获取实体类型数字ID
+     * @return 实体类型数字ID，用于快速类型比较
+     *
+     * 使用示例：
+     * @code
+     * if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
+     *     // 处理猪
+     * }
+     * @endcode
+     */
+    [[nodiscard]] entity::EntityTypeId typeId() const;
 
     // ========== 世界访问 ==========
 
@@ -1938,7 +1842,6 @@ protected:
     [[nodiscard]] std::optional<ResourceLocation> makeSoundEventId(std::string_view suffix) const;
 
     EntityId m_id;
-    LegacyEntityType m_legacyType;
     std::string m_uuid;     // UUID 字符串
     std::string m_typeId;   // 资源标识符（如 minecraft:pig）
     Vector3 m_position;     // 当前位置

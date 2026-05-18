@@ -25,6 +25,7 @@
 
 #include "../../../../entities/monster/illager/EvokerEntity.hpp"
 #include "../../../../entities/passive/basic/SheepEntity.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../../../world/IWorld.hpp"
@@ -201,7 +202,7 @@ i32 EvokerSummonSpellGoal::countNearbyVexes() const
             continue;
         }
         // 检查是否为恼鬼实体
-        if (entity->legacyType() == LegacyEntityType::Vex) {
+        if (entity->typeId() == entity::EntityTypeIdNumber::VEX) {
             vexCount++;
         }
     }
@@ -345,7 +346,7 @@ SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
             continue;
         }
         // 检查是否为羊实体
-        if (entity->legacyType() == LegacyEntityType::Sheep) {
+        if (entity->typeId() == entity::EntityTypeIdNumber::SHEEP) {
             SheepEntity* sheep = static_cast<SheepEntity*>(entity);
             // 检查羊毛颜色是否为蓝色
             if (sheep->getFleeceColor() == DyeColor::Blue) {

@@ -54,10 +54,9 @@ class TameableEntity : public AnimalEntity, public entity::IAngerable {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    TameableEntity(LegacyEntityType type, EntityId id);
+    TameableEntity(EntityId id);
     ~TameableEntity() override = default;
 
     // 禁止拷贝

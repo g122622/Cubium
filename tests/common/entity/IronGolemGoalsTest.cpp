@@ -38,7 +38,7 @@ class IronGolemGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -55,7 +55,7 @@ class ShowVillagerFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
         goal = std::make_unique<entity::ai::goal::ShowVillagerFlowerGoal>(ironGolem.get());
     }
 
@@ -115,7 +115,7 @@ class MoveTowardsTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
         goal = std::make_unique<entity::ai::goal::MoveTowardsTargetGoal>(ironGolem.get(), 0.9, 32.0f);
     }
 
@@ -158,7 +158,7 @@ class IronGolemEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
     }
 
     void TearDown() override
@@ -208,13 +208,13 @@ TEST_F(IronGolemEntityTest, CanAttackEntity)
 {
     // 玩家创建的铁傀儡不攻击玩家
     ironGolem->setPlayerCreated(true);
-    EXPECT_FALSE(ironGolem->canAttackEntity(LegacyEntityType::Player));
+    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::PLAYER));
 
     // 铁傀儡不攻击苦力怕
-    EXPECT_FALSE(ironGolem->canAttackEntity(LegacyEntityType::Creeper));
+    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::CREEPER));
 
     // 可以攻击其他实体
-    EXPECT_TRUE(ironGolem->canAttackEntity(LegacyEntityType::Zombie));
+    EXPECT_TRUE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::ZOMBIE));
 }
 
 TEST_F(IronGolemEntityTest, IAngerableInterface)
@@ -247,7 +247,7 @@ class GolemEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        golem = std::make_unique<IronGolemEntity>(LegacyEntityType::IronGolem, EntityId(1));
+        golem = std::make_unique<IronGolemEntity>(EntityId(1));
     }
 
     void TearDown() override

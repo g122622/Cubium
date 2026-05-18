@@ -43,11 +43,11 @@ namespace mc {
 
 std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, EntityId(0));
+    return std::make_unique<EndermiteEntity>(EntityId(0));
 }
 
-EndermiteEntity::EndermiteEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+EndermiteEntity::EndermiteEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 末影螨不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -91,7 +91,7 @@ void EndermiteEntity::registerGoals()
     goalSelector().addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
@@ -101,7 +101,7 @@ void EndermiteEntity::registerGoals()
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
                 // 攻击最近的玩家
-                return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
             }));
 }
 
@@ -121,11 +121,11 @@ void EndermiteEntity::registerAttributes()
 
 std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SilverfishEntity>(LegacyEntityType::Silverfish, EntityId(0));
+    return std::make_unique<SilverfishEntity>(EntityId(0));
 }
 
-SilverfishEntity::SilverfishEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+SilverfishEntity::SilverfishEntity(EntityId id)
+    : MonsterEntity(id)
     , m_summonGoal(nullptr)
 {
     // MC 1.16.5: 蠹虫不在阳光下燃烧
@@ -183,7 +183,7 @@ void SilverfishEntity::registerGoals()
     goalSelector().addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
     goalSelector().addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
@@ -193,7 +193,7 @@ void SilverfishEntity::registerGoals()
     targetSelector().addGoal(2,
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
             }));
 }
 

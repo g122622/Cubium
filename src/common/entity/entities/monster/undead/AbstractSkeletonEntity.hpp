@@ -110,7 +110,7 @@ public:
     void tick() override;
 
 protected:
-    AbstractSkeletonEntity(LegacyEntityType type, EntityId id);
+    AbstractSkeletonEntity(EntityId id);
 
     void registerGoals() override;
     void registerAttributes() override;

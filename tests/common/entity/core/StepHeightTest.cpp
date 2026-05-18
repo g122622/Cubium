@@ -41,8 +41,8 @@ namespace {
  */
 class TestEntity : public Entity {
 public:
-    TestEntity(LegacyEntityType type = LegacyEntityType::Unknown, EntityId id = 0)
-        : Entity(type, id)
+    TestEntity(EntityId id = EntityId(0))
+        : Entity(id)
     {
     }
 
@@ -57,8 +57,8 @@ public:
  */
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(LegacyEntityType type = LegacyEntityType::Unknown, EntityId id = 0)
-        : LivingEntity(type, id)
+    TestLivingEntity(EntityId id = EntityId(0))
+        : LivingEntity(id)
     {
     }
 
@@ -130,7 +130,7 @@ TEST(StepHeightTest, LivingEntityCanOverrideStepHeight)
 
 TEST(StepHeightTest, IronGolemEntityStepHeightIsOne)
 {
-    IronGolemEntity entity(LegacyEntityType::IronGolem, 0);
+    IronGolemEntity entity(EntityId(0));
     // MC 1.16.5: IronGolemEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -156,7 +156,7 @@ TEST(StepHeightTest, AbstractHorseEntityStepHeightIsOne)
 
 TEST(StepHeightTest, EndermanEntityStepHeightIsOne)
 {
-    EndermanEntity entity(LegacyEntityType::Enderman, 0);
+    EndermanEntity entity(EntityId(0));
     // MC 1.16.5: EndermanEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -167,7 +167,7 @@ TEST(StepHeightTest, EndermanEntityStepHeightIsOne)
 
 TEST(StepHeightTest, DrownedEntityStepHeightIsOne)
 {
-    DrownedEntity entity(LegacyEntityType::Drowned, 0);
+    DrownedEntity entity(EntityId(0));
     // MC 1.16.5: DrownedEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -178,7 +178,7 @@ TEST(StepHeightTest, DrownedEntityStepHeightIsOne)
 
 TEST(StepHeightTest, RavagerEntityStepHeightIsOne)
 {
-    RavagerEntity entity(LegacyEntityType::Ravager, 0);
+    RavagerEntity entity(EntityId(0));
     // MC 1.16.5: RavagerEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -189,7 +189,7 @@ TEST(StepHeightTest, RavagerEntityStepHeightIsOne)
 
 TEST(StepHeightTest, TurtleEntityStepHeightIsOne)
 {
-    TurtleEntity entity(LegacyEntityType::Turtle, 0);
+    TurtleEntity entity(EntityId(0));
     // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }

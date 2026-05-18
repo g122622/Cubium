@@ -257,25 +257,25 @@ TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem)
 
 TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated)
 {
-    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    entity::SnowballEntity snowball(EntityId(1));
     EXPECT_TRUE(snowball.isAlive());
 }
 
 TEST_F(ThrowableItemTest, EggEntity_CanBeCreated)
 {
-    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    entity::EggEntity egg(EntityId(1));
     EXPECT_TRUE(egg.isAlive());
 }
 
 TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated)
 {
-    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    entity::EnderPearlEntity pearl(EntityId(1));
     EXPECT_TRUE(pearl.isAlive());
 }
 
 TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
 {
-    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    entity::ExperienceBottleEntity bottle(EntityId(1));
     EXPECT_TRUE(bottle.isAlive());
 }
 
@@ -286,28 +286,28 @@ TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
 TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    entity::SnowballEntity snowball(EntityId(1));
     EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
 }
 
 TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    entity::EggEntity egg(EntityId(1));
     EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
 }
 
 TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    entity::EnderPearlEntity pearl(EntityId(1));
     EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
 }
 
 TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    entity::ExperienceBottleEntity bottle(EntityId(1));
     EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
 }
 

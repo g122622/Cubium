@@ -60,10 +60,9 @@ class MobEntity : public LivingEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    MobEntity(LegacyEntityType type, EntityId id);
+    MobEntity(EntityId id);
 
     ~MobEntity() override;
 

@@ -110,7 +110,7 @@ constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
 // ============================================================================
 
 Player::Player(EntityId id, const std::string& username)
-    : LivingEntity(LegacyEntityType::Player, id)
+    : LivingEntity(id)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {

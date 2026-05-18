@@ -76,7 +76,7 @@ DataParameter<bool> RIGHT_PADDLE_PARAM{5};
 } // namespace
 
 BoatEntity::BoatEntity(Type type)
-    : Entity(LegacyEntityType::Boat, EntityId(0))
+    : Entity(EntityId(0))
     , m_type(type)
 {
     // MC 1.16.5: preventEntitySpawning = true

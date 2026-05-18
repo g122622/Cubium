@@ -39,10 +39,9 @@ class MuleEntity : public AbstractChestedHorseEntity {
 public:
     /**
      * @brief 构造骡实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    MuleEntity(LegacyEntityType type, EntityId id);
+    MuleEntity(EntityId id);
     ~MuleEntity() override = default;
 
     MuleEntity(const MuleEntity&) = delete;

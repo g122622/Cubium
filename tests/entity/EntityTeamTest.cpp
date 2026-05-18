@@ -118,7 +118,7 @@ private:
 class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
-        : Entity(LegacyEntityType::Unknown, EntityId(1))
+        : Entity(EntityId(1))
     {
     }
 

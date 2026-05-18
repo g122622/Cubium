@@ -40,11 +40,10 @@ class AbstractGroupFishEntity : public AbstractFishEntity {
 public:
     /**
      * @brief 构造群游鱼类实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    AbstractGroupFishEntity(LegacyEntityType type, EntityId id)
-        : AbstractFishEntity(type, id)
+    AbstractGroupFishEntity(EntityId id)
+        : AbstractFishEntity(id)
     {}
 
     ~AbstractGroupFishEntity() override = default;

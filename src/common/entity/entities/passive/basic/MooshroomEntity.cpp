@@ -38,8 +38,8 @@
 
 namespace mc {
 
-MooshroomEntity::MooshroomEntity(LegacyEntityType type, EntityId id)
-    : CowEntity(type, id)
+MooshroomEntity::MooshroomEntity(EntityId id)
+    : CowEntity(id)
 {
     // 默认红色哞菇
     // 注册 AI 目标（继承自 CowEntity）
@@ -48,7 +48,7 @@ MooshroomEntity::MooshroomEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<MooshroomEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<MooshroomEntity>(0);
 }
 
 std::vector<ItemStack> MooshroomEntity::shear(Player* player)
@@ -90,7 +90,7 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
     }
 
     // 创建新的牛实体替代哞菇
-    auto cow = std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
+    auto cow = std::make_unique<CowEntity>(0);
 
     // 继承位置和朝向
     cow->setPosition(x(), y(), z());
@@ -148,7 +148,7 @@ ItemStack MooshroomEntity::getStew()
 std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 {
     // MC 1.16.5: MooshroomEntity.createChild()
-    auto baby = std::make_unique<MooshroomEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<MooshroomEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

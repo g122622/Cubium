@@ -147,7 +147,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        endermite = std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, static_cast<EntityId>(1));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(1));
         endermite->setWorld(world.get());
     }
 
@@ -193,12 +193,12 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影人
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, static_cast<EntityId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(1));
         enderman->setWorld(world.get());
         enderman->setPosition(0.0, 64.0, 0.0);
 
         // 创建末影螨
-        endermite = std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, static_cast<EntityId>(2));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(2));
         endermite->setWorld(world.get());
         endermite->setPosition(5.0, 64.0, 0.0);  // 末影人5格外
     }
@@ -219,13 +219,13 @@ TEST_F(EndermanEndermiteTargetTest, EndermiteEntityClassExists)
 {
     // 验证 EndermiteEntity 类可以正常创建
     EXPECT_NE(endermite.get(), nullptr);
-    EXPECT_EQ(endermite->legacyType(), LegacyEntityType::Endermite);
+    EXPECT_EQ(endermite->typeId(), entity::EntityTypeIdNumber::ENDERMITE);
 }
 
 TEST_F(EndermanEndermiteTargetTest, EndermiteHasCorrectLegacyType)
 {
     // 验证末影螨的 LegacyEntityType
-    EXPECT_EQ(endermite->legacyType(), LegacyEntityType::Endermite);
+    EXPECT_EQ(endermite->typeId(), entity::EntityTypeIdNumber::ENDERMITE);
 }
 
 TEST_F(EndermanEndermiteTargetTest, EndermiteIsAlive)
@@ -264,13 +264,13 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影螨（玩家生成）
-        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, static_cast<EntityId>(1));
+        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(1));
         playerSpawnedEndermite->setWorld(world.get());
         playerSpawnedEndermite->setPosition(5.0, 64.0, 0.0);
         playerSpawnedEndermite->setSpawnedByPlayer(true);
 
         // 创建末影螨（自然生成）
-        naturalEndermite = std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, static_cast<EntityId>(2));
+        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(2));
         naturalEndermite->setWorld(world.get());
         naturalEndermite->setPosition(5.0, 64.0, 0.0);
         naturalEndermite->setSpawnedByPlayer(false);
@@ -338,7 +338,7 @@ TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
     };
 
     // 创建一个末影人作为非末影螨实体
-    auto enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, static_cast<EntityId>(3));
+    auto enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(3));
     enderman->setWorld(world.get());
     enderman->setPosition(5.0, 64.0, 0.0);
 
@@ -353,7 +353,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        enderman = std::make_unique<EndermanEntity>(LegacyEntityType::Enderman, static_cast<EntityId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(1));
         enderman->setWorld(world.get());
     }
 
@@ -382,7 +382,7 @@ TEST_F(EndermanGoalsRegistrationTest, EndermanHasGoalSelector)
 TEST_F(EndermanGoalsRegistrationTest, EndermanHasCorrectLegacyType)
 {
     // 验证末影人的 LegacyEntityType
-    EXPECT_EQ(enderman->legacyType(), LegacyEntityType::Enderman);
+    EXPECT_EQ(enderman->typeId(), entity::EntityTypeIdNumber::ENDERMAN);
 }
 
 } // namespace

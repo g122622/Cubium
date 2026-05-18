@@ -45,10 +45,9 @@ class HuskEntity : public ZombieEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    HuskEntity(LegacyEntityType type, EntityId id);
+    HuskEntity(EntityId id);
 
     ~HuskEntity() override = default;
 

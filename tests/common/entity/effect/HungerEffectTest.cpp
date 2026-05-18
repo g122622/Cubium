@@ -147,7 +147,7 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
 {
     // 饥饿效果对非玩家实体不应该做任何事情
     // 这个测试验证 tick 不会崩溃
-    MobEntity mob(LegacyEntityType::Zombie, EntityId(2));
+    MobEntity mob(EntityId(2));
     mob.setWorld(m_world.get());
     mob.setPosition(0.0f, 64.0f, 0.0f);
 

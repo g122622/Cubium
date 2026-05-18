@@ -153,19 +153,6 @@ constexpr Size MAX_ENTITIES_PER_CHUNK = 1024;
 constexpr Size MAX_PLAYERS = 256;
 constexpr Size MAX_ENTITIES = 65536;
 
-// 实体类型ID（旧枚举，用于网络同步）
-// 注意：新代码应使用 mc::entity::EntityType 类和 mc::entity::EntityTypeId
-enum class LegacyEntityTypeId : u32 {
-    None = 0,
-    Player = 1,
-    Zombie = 2,
-    Skeleton = 3,
-    Creeper = 4,
-    Spider = 5,
-    Enderman = 6,
-    // ... 更多实体类型
-};
-
 // 实体状态
 enum class EntityStatus : u8 { Valid = 0, Dead = 1, Removed = 2 };
 

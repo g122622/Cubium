@@ -32,7 +32,7 @@ namespace {
 
 TEST(TraderLlamaEntityTest, InheritsFromLlamaAndExposesTraderFlag)
 {
-    TraderLlamaEntity traderLlama(LegacyEntityType::TraderLlama, 1);
+    TraderLlamaEntity traderLlama(EntityId(1));
 
     EXPECT_NE(dynamic_cast<LlamaEntity*>(&traderLlama), nullptr);
     EXPECT_TRUE(traderLlama.isTraderLlama());
@@ -41,7 +41,7 @@ TEST(TraderLlamaEntityTest, InheritsFromLlamaAndExposesTraderFlag)
 
 TEST(TraderLlamaEntityTest, UntamedTraderLlamaDespawnsWhenDelayExpires)
 {
-    TraderLlamaEntity traderLlama(LegacyEntityType::TraderLlama, 1);
+    TraderLlamaEntity traderLlama(EntityId(1));
     traderLlama.setDespawnDelay(1);
 
     traderLlama.tick();
@@ -51,14 +51,14 @@ TEST(TraderLlamaEntityTest, UntamedTraderLlamaDespawnsWhenDelayExpires)
 
 TEST(TraderLlamaEntityTest, TamedOrRiddenTraderLlamaDoesNotDespawn)
 {
-    TraderLlamaEntity tamedTraderLlama(LegacyEntityType::TraderLlama, 1);
+    TraderLlamaEntity tamedTraderLlama(EntityId(1));
     tamedTraderLlama.setTame(true);
     tamedTraderLlama.setDespawnDelay(1);
     tamedTraderLlama.tick();
     EXPECT_FALSE(tamedTraderLlama.isRemoved());
     EXPECT_EQ(tamedTraderLlama.getDespawnDelay(), 1);
 
-    TraderLlamaEntity riddenTraderLlama(LegacyEntityType::TraderLlama, 2);
+    TraderLlamaEntity riddenTraderLlama(EntityId(2));
     Player rider(1, "Steve");
     riddenTraderLlama.setRider(&rider);
     riddenTraderLlama.setDespawnDelay(1);

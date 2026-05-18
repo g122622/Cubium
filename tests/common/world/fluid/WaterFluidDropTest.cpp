@@ -269,7 +269,7 @@ TEST(WaterFluidDropTest, ItemDropHelperSpawnEntities)
     for (EntityId id : spawnedIds) {
         Entity* entity = world.getEntity(id);
         ASSERT_NE(entity, nullptr);
-        EXPECT_EQ(entity->legacyType(), LegacyEntityType::Item);
+        EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
     }
 }
 

@@ -23,6 +23,7 @@
 
 #include "DetectorRailBlock.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../../world/IWorld.hpp"
 
@@ -69,8 +70,8 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
         }
 
         // 检查是否为矿车类型
-        // 使用 LegacyEntityType::Minecart 检测
-        if (entity->legacyType() == LegacyEntityType::Minecart) {
+        // 使用 EntityTypeIdNumber::MINECART 检测
+        if (entity->typeId() == entity::EntityTypeIdNumber::MINECART) {
             shouldBePowered = true;
             break;
         }

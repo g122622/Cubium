@@ -54,10 +54,9 @@ class BlazeEntity : public MonsterEntity, public entity::IRangedAttackMob {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    BlazeEntity(LegacyEntityType type, EntityId id);
+    BlazeEntity(EntityId id);
     ~BlazeEntity() override = default;
 
     // 禁止拷贝

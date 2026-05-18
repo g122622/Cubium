@@ -62,10 +62,9 @@ class MonsterEntity : public CreatureEntity, public entity::IMob {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    MonsterEntity(LegacyEntityType type, EntityId id);
+    MonsterEntity(EntityId id);
 
     ~MonsterEntity() override = default;
 
@@ -125,14 +124,14 @@ public:
      * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
      */
     [[nodiscard]] static bool canMonsterSpawnInLight(
-        LegacyEntityType type, IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
+        IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（无光照检查）
      * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawn()
      */
     [[nodiscard]] static bool canMonsterSpawn(
-        LegacyEntityType type, IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
+        IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
 
     // ========== 行为 ==========
 

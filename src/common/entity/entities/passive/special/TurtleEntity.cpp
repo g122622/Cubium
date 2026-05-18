@@ -47,8 +47,8 @@
 
 namespace mc {
 
-TurtleEntity::TurtleEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+TurtleEntity::TurtleEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
     // 海龟可以走上1格高的方块
@@ -63,7 +63,7 @@ TurtleEntity::TurtleEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<TurtleEntity>(0);
 }
 
 void TurtleEntity::setHomePos(const BlockPos& pos)
@@ -99,7 +99,7 @@ std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // MC 1.16.5: TurtleEntity.createChild()
     // 创建小海龟，继承出生地记忆
-    auto baby = std::make_unique<TurtleEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<TurtleEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
@@ -227,7 +227,7 @@ void TurtleEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
         [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 9: 随机游荡（只在陆地上）

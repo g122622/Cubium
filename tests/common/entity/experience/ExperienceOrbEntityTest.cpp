@@ -265,7 +265,7 @@ TEST_F(ExperienceOrbEntityTest, TrackingPlayer)
 
 TEST_F(ExperienceOrbEntityTest, EntityType)
 {
-    EXPECT_EQ(orb->legacyType(), LegacyEntityType::ExperienceOrb);
+    EXPECT_EQ(orb->typeId(), entity::EntityTypeIdNumber::EXPERIENCE_ORB);
 }
 
 // ==================== ExperienceOrbEntity Integration Tests ====================

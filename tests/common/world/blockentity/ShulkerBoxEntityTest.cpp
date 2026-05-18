@@ -527,7 +527,7 @@ TEST_F(ShulkerBoxEntityTest, CanOpen_WhenBlocked_ReturnsFalse)
     world.setBlockState(10, 20, 30, state);
 
     // 模拟有实体阻挡
-    Entity dummyEntity(LegacyEntityType::Unknown, 1);
+    Entity dummyEntity(EntityId(1));
     world.setEntitiesInAabbResult({&dummyEntity});
 
     // 验证无法打开

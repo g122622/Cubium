@@ -110,7 +110,7 @@ protected:
 
 TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 骨头是驯服狼的唯一物品
     ItemStack boneStack(Items::BONE, 1);
@@ -119,7 +119,7 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 肉类不能驯服狼，只能繁殖
     ItemStack porkchopStack(Items::PORKCHOP, 1);
@@ -138,7 +138,7 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -146,7 +146,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::COOKED_PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -154,7 +154,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -162,7 +162,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::COOKED_BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -170,7 +170,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -178,7 +178,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::COOKED_CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -186,7 +186,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -194,7 +194,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::COOKED_RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -202,7 +202,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::MUTTON, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -210,7 +210,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedMutton_ReturnsTrue)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::COOKED_MUTTON, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -224,7 +224,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue)
 {
     // 参考: MC 1.16.5 WolfEntity.isBreedingItem()
     // 狼可以用任何肉类繁殖，腐肉在 Foods.java 中标记为 .meat()
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::ROTTEN_FLESH, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -233,7 +233,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue)
 TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue)
 {
     // 狼的食物（用于治疗）与繁殖物品相同
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack stack(Items::ROTTEN_FLESH, 1);
     EXPECT_TRUE(wolf.isFoodItem(stack));
@@ -245,7 +245,7 @@ TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 小麦不能用于狼繁殖
     ItemStack wheatStack(Items::WHEAT, 1);
@@ -262,7 +262,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 骨头只能驯服，不能繁殖
     ItemStack boneStack(Items::BONE, 1);
@@ -275,7 +275,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(wolf.isBreedingItem(emptyStack));
@@ -283,7 +283,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(wolf.isTameItem(emptyStack));
@@ -295,8 +295,8 @@ TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
 {
-    WolfEntity parent1(LegacyEntityType::Unknown, 0);
-    WolfEntity parent2(LegacyEntityType::Unknown, 0);
+    WolfEntity parent1(EntityId(0));
+    WolfEntity parent2(EntityId(0));
 
     auto baby = parent1.spawnBaby(parent2);
     ASSERT_NE(baby, nullptr);
@@ -315,7 +315,7 @@ TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
 
 TEST_F(WolfEntityTestFixture, OnTamed_IncreasesMaxHealth)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 驯服前生命值为 8
     EXPECT_EQ(wolf.maxHealth(), 8.0f);
@@ -328,7 +328,7 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesMaxHealth)
 
 TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 驯服前攻击力为 2
     // 注意：需要使用 getAttributeValueUnsafe 或检查属性是否存在
@@ -351,7 +351,7 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 
 TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 默认颈圈颜色为红色 (14)
     EXPECT_EQ(wolf.getCollarColor(), 14);
@@ -359,7 +359,7 @@ TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
 
 TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     // 设置为蓝色 (11)
     wolf.setCollarColor(11);
@@ -376,7 +376,7 @@ TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
 
 TEST_F(WolfEntityTestFixture, TailAngle_HealthyWolf)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
     wolf.setHealth(8.0f); // 满血
 
     // 健康狼尾巴角度应该接近 TAIL_ANGLE_HEALTHY (0.698f)
@@ -387,7 +387,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_HealthyWolf)
 
 TEST_F(WolfEntityTestFixture, TailAngle_UnhealthyWolf)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
     wolf.setHealth(2.0f); // 低血量
 
     // 不健康狼尾巴角度应该接近 TAIL_ANGLE_UNHEALTHY (-0.175f)
@@ -398,7 +398,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_UnhealthyWolf)
 
 TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
     wolf.setAngry(true);
 
     // 愤怒狼尾巴角度应该竖起
@@ -412,7 +412,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
 
 TEST_F(WolfEntityTestFixture, Interested_CanBeSet)
 {
-    WolfEntity wolf(LegacyEntityType::Unknown, 0);
+    WolfEntity wolf(EntityId(0));
 
     EXPECT_FALSE(wolf.isInterested());
 

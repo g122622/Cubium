@@ -29,8 +29,8 @@
 
 namespace mc {
 
-CreatureEntity::CreatureEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id)
+CreatureEntity::CreatureEntity(EntityId id)
+    : MobEntity(id)
 {}
 
 bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed)

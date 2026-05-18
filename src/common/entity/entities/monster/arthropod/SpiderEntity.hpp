@@ -66,10 +66,9 @@ class SpiderEntity : public MonsterEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    SpiderEntity(LegacyEntityType type, EntityId id);
+    SpiderEntity(EntityId id);
     ~SpiderEntity() override = default;
 
     // 禁止拷贝

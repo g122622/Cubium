@@ -48,10 +48,9 @@ class GolemEntity : public CreatureEntity, public entity::IAngerable {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    GolemEntity(LegacyEntityType type, EntityId id);
+    GolemEntity(EntityId id);
     ~GolemEntity() override = default;
 
     // 禁止拷贝

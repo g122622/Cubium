@@ -45,15 +45,15 @@ namespace {
 
 } // namespace
 
-HorseEntity::HorseEntity(LegacyEntityType type, EntityId id)
-    : AbstractHorseEntity(type, id)
+HorseEntity::HorseEntity(EntityId id)
+    : AbstractHorseEntity(id)
 {
     randomizeAppearance();
 }
 
 std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<HorseEntity>(0);
 }
 
 i32 HorseEntity::getVariant() const
@@ -117,7 +117,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 
     if (partnerDonkey != nullptr) {
         // 马 + 驴 = 骡
-        auto mule = std::make_unique<MuleEntity>(LegacyEntityType::Unknown, 0);
+        auto mule = std::make_unique<MuleEntity>(0);
         mule->setChild(true);
         mule->setPosition(x(), y(), z());
 
@@ -127,7 +127,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
     }
 
     // 马 + 马 = 马
-    auto baby = std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<HorseEntity>(0);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

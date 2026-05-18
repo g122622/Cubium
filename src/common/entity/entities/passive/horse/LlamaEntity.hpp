@@ -59,10 +59,9 @@ public:
 
     /**
      * @brief 构造羊驼实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    LlamaEntity(LegacyEntityType type, EntityId id);
+    LlamaEntity(EntityId id);
     ~LlamaEntity() override = default;
 
     LlamaEntity(const LlamaEntity&) = delete;

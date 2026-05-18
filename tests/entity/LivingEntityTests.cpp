@@ -116,7 +116,7 @@ private:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(LegacyEntityType::Cow, 2)
+        : MobEntity(EntityId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -132,7 +132,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -388,7 +388,7 @@ TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved)
     VanillaBlocks::initialize();
 
     GroundSupportWorld world;
-    MobEntity mob(LegacyEntityType::Pig, 1);
+    MobEntity mob(EntityId(1));
     mob.setWorld(&world);
     mob.setPosition(0.3f, 1.0f, 0.3f);
 
@@ -798,7 +798,7 @@ TEST(LivingEntityTest, CanBreatheUnderwater_Default)
 class TestUndeadEntity : public LivingEntity {
 public:
     TestUndeadEntity()
-        : LivingEntity(LegacyEntityType::Zombie, 1)
+        : LivingEntity(EntityId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

@@ -64,8 +64,8 @@ constexpr i32 BOOST_DURATION_MAX = 700;     // 最大加速时间
 constexpr f32 LAVA_BUOYANCY = 0.05f;        // 熔岩浮力
 } // namespace
 
-StriderEntity::StriderEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+StriderEntity::StriderEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // MC 1.16.5: preventEntitySpawning = true
     // 设置 AI 导航优先级
@@ -78,7 +78,7 @@ StriderEntity::StriderEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> StriderEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(0));
+    return std::make_unique<StriderEntity>(0);
 }
 
 // ========== 熔岩状态 ==========
@@ -157,7 +157,7 @@ bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // MC 1.16.5: 创建小炽足兽
-    auto baby = std::make_unique<StriderEntity>(LegacyEntityType::Strider, EntityId(0));
+    auto baby = std::make_unique<StriderEntity>(0);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;

@@ -38,14 +38,14 @@
 
 namespace mc {
 
-PufferfishEntity::PufferfishEntity(LegacyEntityType type, EntityId id)
-    : AbstractFishEntity(type, id)
+PufferfishEntity::PufferfishEntity(EntityId id)
+    : AbstractFishEntity(id)
 {
 }
 
 std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<PufferfishEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<PufferfishEntity>(0);
 }
 
 f32 PufferfishEntity::getPuffSize() const

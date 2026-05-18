@@ -31,8 +31,8 @@
 
 namespace mc {
 
-CaveSpiderEntity::CaveSpiderEntity(LegacyEntityType type, EntityId id)
-    : SpiderEntity(type, id)
+CaveSpiderEntity::CaveSpiderEntity(EntityId id)
+    : SpiderEntity(id)
 {
     // 注册属性
     registerAttributes();
@@ -40,7 +40,7 @@ CaveSpiderEntity::CaveSpiderEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<CaveSpiderEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<CaveSpiderEntity>(EntityId(0));
 }
 
 void CaveSpiderEntity::registerAttributes()

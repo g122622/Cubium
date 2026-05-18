@@ -323,7 +323,7 @@ void CrossbowItem::fireProjectiles(
         if (item == Items::FIREWORK_ROCKET) {
             // 创建烟花火箭实体
             auto firework =
-                std::make_unique<entity::FireworkRocketEntity>(LegacyEntityType::FireworkRocket, EntityId(0));
+                std::make_unique<entity::FireworkRocketEntity>(EntityId(0));
             firework->setWorld(&world);
             firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());
             firework->setShooter(&shooter);

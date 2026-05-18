@@ -26,6 +26,7 @@
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../core/CreatureEntity.hpp"
@@ -230,7 +231,7 @@ void RunAroundLikeCrazyGoal::tick()
         if (!passenger) return;
 
         // 检查是否为玩家
-        if (passenger->legacyType() != LegacyEntityType::Player) return;
+        if (passenger->typeId() != entity::EntityTypeIdNumber::PLAYER) return;
 
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
@@ -346,7 +347,7 @@ bool PuffGoal::isEnemy(const LivingEntity* entity)
     // return false;
 
     // 检查是否为玩家
-    if (entity->legacyType() == LegacyEntityType::Player) {
+    if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
         // 需要使用 dynamic_cast 安全转换
         const Player* player = dynamic_cast<const Player*>(entity);
         if (player) {
@@ -361,21 +362,19 @@ bool PuffGoal::isEnemy(const LivingEntity* entity)
     // MC 1.16.5: 检查生物属性是否为水生
     // 水生生物不是敌人，其他生物是敌人
     // 检查实体类型是否为水生生物
-    LegacyEntityType type = entity->legacyType();
-    switch (type) {
-        // 水生生物 - 不是敌人
-        case LegacyEntityType::Cod:
-        case LegacyEntityType::Salmon:
-        case LegacyEntityType::Pufferfish:
-        case LegacyEntityType::TropicalFish:
-        case LegacyEntityType::Squid:
-        case LegacyEntityType::Dolphin:
-        case LegacyEntityType::Turtle:
-            return false;
-        default:
-            // 其他所有生物都是敌人（包括怪物、陆地动物等）
-            return true;
+    entity::EntityTypeId type = entity->typeId();
+    // 水生生物 - 不是敌人
+    if (type == entity::EntityTypeIdNumber::COD ||
+        type == entity::EntityTypeIdNumber::SALMON ||
+        type == entity::EntityTypeIdNumber::PUFFERFISH ||
+        type == entity::EntityTypeIdNumber::TROPICAL_FISH ||
+        type == entity::EntityTypeIdNumber::SQUID ||
+        type == entity::EntityTypeIdNumber::DOLPHIN ||
+        type == entity::EntityTypeIdNumber::TURTLE) {
+        return false;
     }
+    // 其他所有生物都是敌人（包括怪物、陆地动物等）
+    return true;
 }
 
 bool PuffGoal::findNearbyEnemy()
@@ -443,8 +442,8 @@ bool LlamaFollowCaravanGoal::shouldExecute()
 
     for (Entity* entity : entities) {
         // 只检查羊驼类型（普通羊驼和流浪商人羊驼）
-        LegacyEntityType type = entity->legacyType();
-        if (type != LegacyEntityType::Llama && type != LegacyEntityType::TraderLlama) {
+        entity::EntityTypeId type = entity->typeId();
+        if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
             continue;
         }
 
@@ -651,7 +650,7 @@ bool LlamaDefendTargetGoal::shouldExecute()
 
     for (Entity* entity : entities) {
         // 只检查狼
-        if (entity->legacyType() != LegacyEntityType::Wolf) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::WOLF) {
             continue;
         }
 
@@ -729,7 +728,7 @@ bool TriggerSkeletonTrapGoal::shouldExecute()
 
     for (Entity* entity : entities) {
         // 只检查玩家
-        if (entity->legacyType() != LegacyEntityType::Player) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
             continue;
         }
 

@@ -46,7 +46,7 @@ protected:
     void SetUp() override
     {
         // 创建鱿鱼实体
-        squid = std::make_unique<SquidEntity>(LegacyEntityType::Unknown, 0);
+        squid = std::make_unique<SquidEntity>(EntityId(0));
     }
 
     void TearDown() override { squid.reset(); }
@@ -110,7 +110,7 @@ class SquidMoveRandomGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(LegacyEntityType::Unknown, 0);
+        squid = std::make_unique<SquidEntity>(EntityId(0));
         goal = std::make_unique<SquidMoveRandomGoal>(squid.get());
     }
 
@@ -183,7 +183,7 @@ class SquidFleeGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(LegacyEntityType::Unknown, 0);
+        squid = std::make_unique<SquidEntity>(EntityId(0));
         goal = std::make_unique<SquidFleeGoal>(squid.get());
     }
 

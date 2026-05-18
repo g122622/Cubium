@@ -36,8 +36,8 @@
 
 namespace mc {
 
-WitherSkeletonEntity::WitherSkeletonEntity(LegacyEntityType type, EntityId id)
-    : AbstractSkeletonEntity(type, id)
+WitherSkeletonEntity::WitherSkeletonEntity(EntityId id)
+    : AbstractSkeletonEntity(id)
 {
     registerGoals();
     registerAttributes();
@@ -48,7 +48,7 @@ WitherSkeletonEntity::WitherSkeletonEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> WitherSkeletonEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WitherSkeletonEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<WitherSkeletonEntity>(EntityId(0));
 }
 
 void WitherSkeletonEntity::registerGoals()

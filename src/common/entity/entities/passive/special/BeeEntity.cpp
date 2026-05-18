@@ -55,8 +55,8 @@ entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM{1};
 // 构造与生命周期
 // ============================================================================
 
-BeeEntity::BeeEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+BeeEntity::BeeEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -67,7 +67,7 @@ BeeEntity::BeeEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<BeeEntity>(0);
 }
 
 void BeeEntity::registerData()
@@ -235,7 +235,7 @@ std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // MC 1.16.5: 创建小蜜蜂
     // 参考: BeeEntity.createChild(ServerWorld, AgeableEntity)
-    auto baby = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<BeeEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

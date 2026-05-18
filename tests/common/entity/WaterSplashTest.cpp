@@ -163,7 +163,7 @@ private:
 class TestEntity : public Entity {
 public:
     TestEntity(IWorld* world)
-        : Entity(LegacyEntityType::Player, EntityId(1), world)
+        : Entity(EntityId(1), world)
     {
         // 初始化实体
         m_position = Vector3(100.0f, 64.0f, 200.0f);

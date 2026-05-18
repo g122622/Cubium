@@ -169,7 +169,7 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
 
     // 正常投掷模式
     // 创建三叉戟实体
-    auto tridentEntity = std::make_unique<entity::TridentEntity>(LegacyEntityType::Trident, EntityId(0));
+    auto tridentEntity = std::make_unique<entity::TridentEntity>(EntityId(0));
     tridentEntity->setWorld(&world);
     tridentEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());
     tridentEntity->setShooter(player);

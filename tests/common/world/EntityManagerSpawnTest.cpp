@@ -54,7 +54,7 @@ namespace {
 class ReentrantQueryEntity final : public Entity {
 public:
     explicit ReentrantQueryEntity(EntityManager* manager)
-        : Entity(LegacyEntityType::Cow, 0, nullptr)
+        : Entity(EntityId(0), nullptr)
         , m_manager(manager)
     {}
 

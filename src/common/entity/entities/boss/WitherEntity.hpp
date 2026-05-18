@@ -89,7 +89,7 @@ public:
     /**
      * @brief 构造函数
      */
-    WitherEntity(LegacyEntityType type, EntityId id);
+    explicit WitherEntity(EntityId id);
 
     ~WitherEntity() override = default;
 

@@ -46,8 +46,8 @@
 
 namespace mc {
 
-ParrotEntity::ParrotEntity(LegacyEntityType type, EntityId id)
-    : ShoulderRidingEntity(type, id)
+ParrotEntity::ParrotEntity(EntityId id)
+    : ShoulderRidingEntity(id)
 {
     randomizeVariant();
     registerGoals();
@@ -56,7 +56,7 @@ ParrotEntity::ParrotEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ParrotEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ParrotEntity>(0);
 }
 
 void ParrotEntity::randomizeVariant()

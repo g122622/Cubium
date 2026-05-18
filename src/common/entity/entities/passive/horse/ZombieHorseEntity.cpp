@@ -28,8 +28,8 @@
 
 namespace mc {
 
-ZombieHorseEntity::ZombieHorseEntity(LegacyEntityType type, EntityId id)
-    : AbstractHorseEntity(type, id)
+ZombieHorseEntity::ZombieHorseEntity(EntityId id)
+    : AbstractHorseEntity(id)
 {
     // 僵尸马默认已驯服
     setTame(true);
@@ -39,7 +39,7 @@ ZombieHorseEntity::ZombieHorseEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombieHorseEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<ZombieHorseEntity>(0);
 }
 
 bool ZombieHorseEntity::canBeRiddenBy(Player* player) const

@@ -61,7 +61,7 @@ void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Blo
     // world.addEntity(silverfishentity);
     // silverfishentity.spawnExplosionParticle();
 
-    auto silverfish = std::make_unique<SilverfishEntity>(LegacyEntityType::Silverfish, EntityId(0));
+    auto silverfish = std::make_unique<SilverfishEntity>(EntityId(0));
     if (silverfish) {
         // 设置位置（方块中心）
         silverfish->setPosition(

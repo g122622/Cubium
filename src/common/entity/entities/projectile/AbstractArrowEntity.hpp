@@ -193,10 +193,9 @@ public:
 protected:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    AbstractArrowEntity(LegacyEntityType type, EntityId id);
+    explicit AbstractArrowEntity(EntityId id);
 
     /**
      * @brief 箭矢命中实体时的处理
@@ -287,7 +286,7 @@ public:
     /**
      * @brief 构造函数
      */
-    ArrowEntity(LegacyEntityType type, EntityId id);
+    explicit ArrowEntity(EntityId id);
 
     /**
      * @brief 从发射者创建
@@ -388,7 +387,7 @@ public:
     /**
      * @brief 构造函数
      */
-    SpectralArrowEntity(LegacyEntityType type, EntityId id);
+    explicit SpectralArrowEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 

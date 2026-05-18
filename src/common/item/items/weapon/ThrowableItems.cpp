@@ -42,7 +42,7 @@ SnowballItem::SnowballItem(const ItemProperties& properties)
 entity::ProjectileItemEntity* SnowballItem::createProjectile(
     IWorld& world, Player& player, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::SnowballEntity>(LegacyEntityType::Snowball, 0);
+    auto entity = std::make_unique<entity::SnowballEntity>(0);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
@@ -61,7 +61,7 @@ EggItem::EggItem(const ItemProperties& properties)
 
 entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& player, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EggEntity>(LegacyEntityType::Egg, 0);
+    auto entity = std::make_unique<entity::EggEntity>(0);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
@@ -80,7 +80,7 @@ EnderPearlItem::EnderPearlItem(const ItemProperties& properties)
 entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
     IWorld& world, Player& player, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EnderPearlEntity>(LegacyEntityType::EnderPearl, 0);
+    auto entity = std::make_unique<entity::EnderPearlEntity>(0);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
@@ -99,7 +99,7 @@ ExperienceBottleItem::ExperienceBottleItem(const ItemProperties& properties)
 entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
     IWorld& world, Player& player, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::ExperienceBottleEntity>(LegacyEntityType::ExperienceBottle, 0);
+    auto entity = std::make_unique<entity::ExperienceBottleEntity>(0);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);

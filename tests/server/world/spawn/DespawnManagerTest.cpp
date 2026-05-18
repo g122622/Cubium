@@ -43,8 +43,8 @@ namespace {
 // 测试用的 MobEntity 子类
 class TestMob : public MobEntity {
 public:
-    TestMob(LegacyEntityType type, EntityId id)
-        : MobEntity(type, id)
+    TestMob(EntityId id)
+        : MobEntity(id)
     {}
 
     void tick() override { MobEntity::tick(); }
@@ -54,8 +54,8 @@ public:
 // 测试用的 MonsterEntity 子类
 class TestMonster : public MonsterEntity {
 public:
-    TestMonster(LegacyEntityType type, EntityId id)
-        : MonsterEntity(type, id)
+    TestMonster(EntityId id)
+        : MonsterEntity(id)
     {}
 
     void registerGoals() override {}
@@ -64,8 +64,8 @@ public:
 // 测试用的 AnimalEntity 子类
 class TestAnimal : public AnimalEntity {
 public:
-    TestAnimal(LegacyEntityType type, EntityId id)
-        : AnimalEntity(type, id)
+    TestAnimal(EntityId id)
+        : AnimalEntity(id)
     {}
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
@@ -98,27 +98,27 @@ private:
 
 TEST(MobEntityPersistenceTest, DefaultPersistenceIsFalse)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     EXPECT_FALSE(mob.isNoDespawnRequired());
 }
 
 TEST(MobEntityPersistenceTest, EnablePersistenceSetsFlag)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     mob.enablePersistence();
     EXPECT_TRUE(mob.isNoDespawnRequired());
 }
 
 TEST(MobEntityPersistenceTest, PreventDespawnReturnsIsRiding)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     // 默认没有骑乘任何实体
     EXPECT_FALSE(mob.preventDespawn());
 }
 
 TEST(MobEntityPersistenceTest, CanDespawnDefaultReturnsTrue)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     EXPECT_TRUE(mob.canDespawn(100.0));
 }
 
@@ -126,7 +126,7 @@ TEST(MobEntityPersistenceTest, CanDespawnDefaultReturnsTrue)
 
 TEST(AnimalEntityDespawnTest, CanDespawnReturnsFalse)
 {
-    TestAnimal animal(LegacyEntityType::Pig, 1);
+    TestAnimal animal(EntityId(1));
     // 动物不会消失
     EXPECT_FALSE(animal.canDespawn(100.0));
     EXPECT_FALSE(animal.canDespawn(200.0));
@@ -136,7 +136,7 @@ TEST(AnimalEntityDespawnTest, CanDespawnReturnsFalse)
 
 TEST(MonsterEntityDespawnTest, IsDespawnPeacefulReturnsTrue)
 {
-    TestMonster monster(LegacyEntityType::Zombie, 1);
+    TestMonster monster(EntityId(1));
     // 怪物在和平模式下会消失
     EXPECT_TRUE(monster.isDespawnPeaceful());
 }
@@ -145,14 +145,14 @@ TEST(MonsterEntityDespawnTest, IsDespawnPeacefulReturnsTrue)
 
 TEST(MobEntityHomeTest, DefaultNoHome)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     EXPECT_FALSE(mob.hasHome());
     EXPECT_LT(mob.maximumHomeDistance(), 0.0f);
 }
 
 TEST(MobEntityHomeTest, SetHome)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     mob.setHomePosAndDistance(BlockPos(100, 64, 200), 50);
 
     EXPECT_TRUE(mob.hasHome());
@@ -162,7 +162,7 @@ TEST(MobEntityHomeTest, SetHome)
 
 TEST(MobEntityHomeTest, IsWithinHomeDistance)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     mob.setHomePosAndDistance(BlockPos(0, 0, 0), 10);
 
     // 在范围内
@@ -178,7 +178,7 @@ TEST(MobEntityHomeTest, IsWithinHomeDistance)
 
 TEST(MobEntityHomeTest, ClearHome)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     mob.setHomePosAndDistance(BlockPos(100, 64, 200), 50);
     EXPECT_TRUE(mob.hasHome());
 
@@ -189,7 +189,7 @@ TEST(MobEntityHomeTest, ClearHome)
 
 TEST(MobEntityHomeTest, NoHomeAllowsAllPositions)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     // 没有设置家范围时，任何位置都允许
     EXPECT_TRUE(mob.isWithinHomeDistanceFromPosition(BlockPos(100000, 0, 0)));
     EXPECT_TRUE(mob.isWithinHomeDistanceFromPosition(BlockPos(0, 0, 0)));
@@ -199,13 +199,13 @@ TEST(MobEntityHomeTest, NoHomeAllowsAllPositions)
 
 TEST(MobEntityIdleTimeTest, DefaultIdleTimeIsZero)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     EXPECT_EQ(mob.idleTime(), 0);
 }
 
 TEST(MobEntityIdleTimeTest, SetIdleTime)
 {
-    TestMob mob(LegacyEntityType::Zombie, 1);
+    TestMob mob(EntityId(1));
     mob.setIdleTime(100);
     EXPECT_EQ(mob.idleTime(), 100);
 }

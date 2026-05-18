@@ -29,13 +29,13 @@
 
 namespace mc {
 
-CodEntity::CodEntity(LegacyEntityType type, EntityId id)
-    : AbstractGroupFishEntity(type, id)
+CodEntity::CodEntity(EntityId id)
+    : AbstractGroupFishEntity(id)
 {}
 
 std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<CodEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<CodEntity>(0);
 }
 
 void CodEntity::registerAttributes()

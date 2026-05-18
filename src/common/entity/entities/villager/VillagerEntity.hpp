@@ -74,7 +74,7 @@ public:
     /**
      * @brief 构造函数
      */
-    VillagerEntity(LegacyEntityType type, EntityId id);
+    VillagerEntity(EntityId id);
 
     ~VillagerEntity() override = default;
 
@@ -323,7 +323,7 @@ public:
     /**
      * @brief 构造函数
      */
-    WanderingTraderEntity(LegacyEntityType type, EntityId id);
+    WanderingTraderEntity(EntityId id);
 
     ~WanderingTraderEntity() override = default;
 

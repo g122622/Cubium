@@ -123,7 +123,7 @@ protected:
 
 TEST_F(MagmaCubeEntityTest, InheritsFromSlimeEntity)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 验证岩浆怪继承自史莱姆
     EXPECT_NE(dynamic_cast<SlimeEntity*>(&magmaCube), nullptr);
@@ -131,7 +131,7 @@ TEST_F(MagmaCubeEntityTest, InheritsFromSlimeEntity)
 
 TEST_F(MagmaCubeEntityTest, SetSlimeSize_UpdatesAttributes)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     // 设置尺寸为 4
@@ -155,7 +155,7 @@ TEST_F(MagmaCubeEntityTest, SetSlimeSize_UpdatesAttributes)
 TEST_F(MagmaCubeEntityTest, SetSlimeSize_UpdatesArmorAttribute)
 {
     // MC 1.16.5: 岩浆怪护甲 = size * 3
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     // 尺寸 1: 护甲 = 1 * 3 = 3
@@ -174,11 +174,11 @@ TEST_F(MagmaCubeEntityTest, SetSlimeSize_UpdatesArmorAttribute)
 TEST_F(MagmaCubeEntityTest, ArmorAttribute_ComparedToSlime)
 {
     // 岩浆怪有护甲，史莱姆没有护甲
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
     magmaCube.setSlimeSize(4, true);
 
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    SlimeEntity slime(EntityId(2));
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
 
@@ -196,7 +196,7 @@ TEST_F(MagmaCubeEntityTest, GetJumpDelay_IsApproximatelyFourTimesSlimeDelay)
     // 史莱姆: 10-30 tick (实际是 10-29)
     // 岩浆怪: 40-120 tick (实际是 40-116)
 
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 测试岩浆怪跳跃延迟范围
     i32 minDelay = INT32_MAX;
@@ -226,7 +226,7 @@ TEST_F(MagmaCubeEntityTest, GetJumpDelay_IsApproximatelyFourTimesSlimeDelay)
 TEST_F(MagmaCubeEntityTest, GetJumpDelay_RangeValidation)
 {
     // MC 1.16.5: 岩浆怪跳跃延迟范围 40-120 tick
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     i32 minDelay = INT32_MAX;
     i32 maxDelay = INT32_MIN;
@@ -245,8 +245,8 @@ TEST_F(MagmaCubeEntityTest, GetJumpDelay_RangeValidation)
 TEST_F(MagmaCubeEntityTest, GetJumpDelay_ComparedToSlimeRange)
 {
     // 验证岩浆怪的跳跃延迟大约是史莱姆的 4 倍
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    MagmaCubeEntity magmaCube(EntityId(1));
+    SlimeEntity slime(EntityId(2));
 
     // 计算史莱姆和岩浆怪的平均跳跃延迟
     i64 slimeSum = 0;
@@ -272,7 +272,7 @@ TEST_F(MagmaCubeEntityTest, GetJumpDelay_ComparedToSlimeRange)
 TEST_F(MagmaCubeEntityTest, CanDamagePlayer_SmallMagmaCubeCanDamage)
 {
     // MC 1.16.5: 小型岩浆怪也能伤害玩家（与史莱姆不同）
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     // 小型岩浆怪（尺寸 1）可以伤害玩家
@@ -287,11 +287,11 @@ TEST_F(MagmaCubeEntityTest, CanDamagePlayer_SmallMagmaCubeCanDamage)
 TEST_F(MagmaCubeEntityTest, CanDamagePlayer_ComparedToSlime)
 {
     // 岩浆怪 vs 史莱姆的小型实体伤害能力对比
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
     magmaCube.setSlimeSize(1, false);
 
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    SlimeEntity slime(EntityId(2));
     slime.setWorld(&m_world);
     slime.setSlimeSize(1, false);
 
@@ -306,7 +306,7 @@ TEST_F(MagmaCubeEntityTest, CanDamagePlayer_ComparedToSlime)
 TEST_F(MagmaCubeEntityTest, SquishAmount_SetterAndGetter)
 {
     // 测试挤压量的设置和获取
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     magmaCube.setSquishAmount(1.0f);
     EXPECT_FLOAT_EQ(magmaCube.squishAmount(), 1.0f);
@@ -318,8 +318,8 @@ TEST_F(MagmaCubeEntityTest, SquishAmount_SetterAndGetter)
 TEST_F(MagmaCubeEntityTest, SquishAmount_ComparisonWithSlime)
 {
     // 验证岩浆怪和史莱姆都能设置和获取挤压量
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    MagmaCubeEntity magmaCube(EntityId(1));
+    SlimeEntity slime(EntityId(2));
 
     magmaCube.setSquishAmount(0.9f);
     slime.setSquishAmount(0.6f);
@@ -336,7 +336,7 @@ TEST_F(MagmaCubeEntityTest, SquishAmount_ComparisonWithSlime)
 TEST_F(MagmaCubeEntityTest, GetSquishParticle_ReturnsFlame)
 {
     // MC 1.16.5: 岩浆怪使用火焰粒子
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     auto particleType = magmaCube.getSquishParticle();
     EXPECT_EQ(particleType, client::renderer::trident::particle::ParticleTypeId::Flame);
@@ -345,8 +345,8 @@ TEST_F(MagmaCubeEntityTest, GetSquishParticle_ReturnsFlame)
 TEST_F(MagmaCubeEntityTest, GetSquishParticle_ComparedToSlime)
 {
     // 岩浆怪 vs 史莱姆的粒子类型对比
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    MagmaCubeEntity magmaCube(EntityId(1));
+    SlimeEntity slime(EntityId(2));
 
     // 岩浆怪: 火焰粒子
     EXPECT_EQ(magmaCube.getSquishParticle(), client::renderer::trident::particle::ParticleTypeId::Flame);
@@ -359,7 +359,7 @@ TEST_F(MagmaCubeEntityTest, GetSquishParticle_ComparedToSlime)
 TEST_F(MagmaCubeEntityTest, IsImmuneToFire_ReturnsTrue)
 {
     // MC 1.16.5: 岩浆怪免疫火焰
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     EXPECT_TRUE(magmaCube.isImmuneToFire());
 }
@@ -367,8 +367,8 @@ TEST_F(MagmaCubeEntityTest, IsImmuneToFire_ReturnsTrue)
 TEST_F(MagmaCubeEntityTest, IsImmuneToFire_ComparedToSlime)
 {
     // 岩浆怪 vs 史莱姆的火焰免疫对比
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    MagmaCubeEntity magmaCube(EntityId(1));
+    SlimeEntity slime(EntityId(2));
 
     // 岩浆怪免疫火焰
     EXPECT_TRUE(magmaCube.isImmuneToFire());
@@ -380,7 +380,7 @@ TEST_F(MagmaCubeEntityTest, IsImmuneToFire_ComparedToSlime)
 
 TEST_F(MagmaCubeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 小岩浆怪
     magmaCube.setSlimeSize(1, false);
@@ -398,7 +398,7 @@ TEST_F(MagmaCubeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize)
 
 TEST_F(MagmaCubeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 小岩浆怪
     magmaCube.setSlimeSize(1, false);
@@ -415,7 +415,7 @@ TEST_F(MagmaCubeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize)
 
 TEST_F(MagmaCubeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 小岩浆怪
     magmaCube.setSlimeSize(1, false);
@@ -433,7 +433,7 @@ TEST_F(MagmaCubeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize)
 TEST_F(MagmaCubeEntityTest, GetJumpSound_ReturnsCorrectSound)
 {
     // MC 1.16.5: 岩浆怪跳跃音效与史莱姆不同
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     auto sound = magmaCube.getJumpSound();
     ASSERT_TRUE(sound.has_value());
@@ -445,7 +445,7 @@ TEST_F(MagmaCubeEntityTest, GetJumpSound_ReturnsCorrectSound)
 TEST_F(MagmaCubeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne)
 {
     // MC 1.16.5: 岩浆怪分裂逻辑继承自史莱姆
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     magmaCube.setSlimeSize(1, false);
     EXPECT_FALSE(magmaCube.canSplit());
@@ -460,7 +460,7 @@ TEST_F(MagmaCubeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne)
 TEST_F(MagmaCubeEntityTest, IsSmallSlime_InheritsFromSlimeEntity)
 {
     // 岩浆怪的 isSmallSlime 继承自史莱姆
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     magmaCube.setSlimeSize(1, false);
     EXPECT_TRUE(magmaCube.isSmallSlime());
@@ -477,7 +477,7 @@ TEST_F(MagmaCubeEntityTest, IsSmallSlime_InheritsFromSlimeEntity)
 TEST_F(MagmaCubeEntityTest, GetAttackDamage_AddsTwo)
 {
     // MC 1.16.5: 岩浆怪攻击伤害 = 属性值 + 2.0F
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     // 尺寸 1: 基础伤害 1, 总伤害 = 1 + 2 = 3
@@ -498,7 +498,7 @@ TEST_F(MagmaCubeEntityTest, GetAttackDamage_AddsTwo)
 TEST_F(MagmaCubeEntityTest, TargetSelector_InheritsFromSlimeEntity)
 {
     // 岩浆怪继承史莱姆的目标选择器
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     const auto& targetSelector = magmaCube.targetSelector();
@@ -511,7 +511,7 @@ TEST_F(MagmaCubeEntityTest, TargetSelector_InheritsFromSlimeEntity)
 TEST_F(MagmaCubeEntityTest, GoalSelector_InheritsFromSlimeEntity)
 {
     // 岩浆怪继承史莱姆的 AI 目标
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     const auto& goalSelector = magmaCube.goalSelector();
@@ -525,7 +525,7 @@ TEST_F(MagmaCubeEntityTest, GoalSelector_InheritsFromSlimeEntity)
 
 TEST_F(MagmaCubeEntityTest, GetDimensions_ScalesWithSize)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
 
     // 尺寸计算与史莱姆相同
     // size = 1: 0.6 * 0.255 = 0.153
@@ -545,7 +545,7 @@ TEST_F(MagmaCubeEntityTest, GetDimensions_ScalesWithSize)
 
 TEST_F(MagmaCubeEntityTest, ExperienceValue_EqualsSize)
 {
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
 
     // 经验值继承自史莱姆，等于尺寸
@@ -564,11 +564,11 @@ TEST_F(MagmaCubeEntityTest, ExperienceValue_EqualsSize)
 TEST_F(MagmaCubeEntityTest, ComprehensiveComparison_WithSlimeEntity)
 {
     // 综合对比岩浆怪与史莱姆的差异
-    MagmaCubeEntity magmaCube(LegacyEntityType::MagmaCube, EntityId(1));
+    MagmaCubeEntity magmaCube(EntityId(1));
     magmaCube.setWorld(&m_world);
     magmaCube.setSlimeSize(4, true);
 
-    SlimeEntity slime(LegacyEntityType::Slime, EntityId(2));
+    SlimeEntity slime(EntityId(2));
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
 

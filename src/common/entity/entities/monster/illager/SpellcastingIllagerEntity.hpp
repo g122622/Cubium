@@ -53,7 +53,7 @@ public:
         Blindness = 5   ///< 失明法术（幻术师）- 深蓝/深紫色 (0.1, 0.1, 0.2)
     };
 
-    SpellcastingIllagerEntity(LegacyEntityType type, EntityId id);
+    SpellcastingIllagerEntity(EntityId id);
     ~SpellcastingIllagerEntity() override = default;
 
     [[nodiscard]] bool isSpellcasting() const { return m_spellTicks > 0; }

@@ -25,8 +25,8 @@
 
 namespace mc {
 
-SkeletonEntity::SkeletonEntity(LegacyEntityType type, EntityId id)
-    : AbstractSkeletonEntity(type, id)
+SkeletonEntity::SkeletonEntity(EntityId id)
+    : AbstractSkeletonEntity(id)
 {
     registerGoals();
     registerAttributes();
@@ -36,7 +36,7 @@ SkeletonEntity::SkeletonEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> SkeletonEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SkeletonEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SkeletonEntity>(EntityId(0));
 }
 
 void SkeletonEntity::registerGoals()

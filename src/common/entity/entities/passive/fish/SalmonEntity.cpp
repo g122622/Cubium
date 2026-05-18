@@ -29,13 +29,13 @@
 
 namespace mc {
 
-SalmonEntity::SalmonEntity(LegacyEntityType type, EntityId id)
-    : AbstractGroupFishEntity(type, id)
+SalmonEntity::SalmonEntity(EntityId id)
+    : AbstractGroupFishEntity(id)
 {}
 
 std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SalmonEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<SalmonEntity>(0);
 }
 
 void SalmonEntity::registerAttributes()

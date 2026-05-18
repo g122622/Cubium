@@ -25,6 +25,7 @@
 #include "../../../../../entity/entities/passive/water/DolphinEntity.hpp"
 #include "../../../../../entity/entities/player/Player.hpp"
 #include "../../../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../../entity/core/LivingEntity.hpp"
 #include "../../../../../entity/core/MobEntity.hpp"
 #include "../../../../../entity/effect/EffectInstance.hpp"
@@ -365,7 +366,7 @@ void SwimToTreasureGoal::tick()
         }
 
         // 看向目标
-        m_dolphin->lookAt(targetPos.x, targetPos.y, targetPos.z);
+        m_dolphin->lookAt(static_cast<f64>(targetPos.x), static_cast<f64>(targetPos.y), static_cast<f64>(targetPos.z));
 
         // 导航到目标位置
         hasPath = m_dolphin->tryMoveTo(targetPos.x, targetPos.y, targetPos.z, 1.3);
@@ -472,9 +473,9 @@ void SwimWithPlayerGoal::tick()
 
     // 看向玩家
     m_dolphin->lookAt(
-        m_targetPlayer->x(),
-        m_targetPlayer->y() + m_targetPlayer->eyeHeight(),
-        m_targetPlayer->z()
+        static_cast<f64>(m_targetPlayer->x()),
+        static_cast<f64>(m_targetPlayer->y() + m_targetPlayer->eyeHeight()),
+        static_cast<f64>(m_targetPlayer->z())
     );
 
     f32 distSq = m_dolphin->distanceSqTo(*m_targetPlayer);
@@ -736,7 +737,7 @@ ItemEntity* PlayWithItemsGoal::findNearbyItem() const
         }
 
         // 检查是否是物品实体
-        if (entity->legacyType() != LegacyEntityType::Item) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
             continue;
         }
 
@@ -915,9 +916,9 @@ void FollowBoatGoal::tick()
 
     // 看向玩家
     m_dolphin->lookAt(
-        m_player->x(),
-        m_player->y() + m_player->eyeHeight(),
-        m_player->z()
+        static_cast<f64>(m_player->x()),
+        static_cast<f64>(m_player->y() + m_player->eyeHeight()),
+        static_cast<f64>(m_player->z())
     );
 }
 
@@ -941,7 +942,7 @@ Player* FollowBoatGoal::findPlayerDrivingBoat()
         }
 
         // 检查是否是船
-        if (entity->legacyType() != LegacyEntityType::Boat) {
+        if (entity->typeId() != entity::EntityTypeIdNumber::BOAT) {
             continue;
         }
 

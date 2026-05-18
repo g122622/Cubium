@@ -107,7 +107,7 @@ private:
 class MockEntityWithTeamForSweep : public Entity {
 public:
     MockEntityWithTeamForSweep()
-        : Entity(LegacyEntityType::Unknown, EntityId(1))
+        : Entity(EntityId(1))
     {
     }
 

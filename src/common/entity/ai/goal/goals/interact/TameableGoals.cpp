@@ -25,6 +25,7 @@
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
@@ -265,7 +266,7 @@ bool BegGoal::shouldExecute()
     f32 closestDistance = m_maxDistance * m_maxDistance; // 使用平方距离比较
 
     for (Entity* entity : entities) {
-        if (entity == nullptr || entity->legacyType() != LegacyEntityType::Player) {
+        if (entity == nullptr || entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
             continue;
         }
 

@@ -205,10 +205,9 @@ public:
 protected:
     /**
      * @brief 构造函数（子类调用）
-     * @param type 实体类型
      * @param id 实体ID
      */
-    ProjectileEntity(LegacyEntityType type, EntityId id);
+    explicit ProjectileEntity(EntityId id);
 
     /**
      * @brief 更新旋转（根据速度方向）

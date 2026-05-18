@@ -44,10 +44,9 @@ class FlyingEntity : public MobEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    FlyingEntity(LegacyEntityType type, EntityId id);
+    FlyingEntity(EntityId id);
 
     ~FlyingEntity() override = default;
 

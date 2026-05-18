@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "common/core/EnumSet.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
 #include "common/entity/core/EntityUtils.hpp"
@@ -90,25 +91,25 @@ TEST_F(GuardianAttackGoalTest, TargetTypes_PlayerAndSquidOnly)
     //     && p_test_1_.getDistanceSq(this.parentEntity) > 9.0D;
 
     // 验证目标类型筛选逻辑
-    std::vector<LegacyEntityType> validTargets = {LegacyEntityType::Player, LegacyEntityType::Squid};
+    std::vector<entity::EntityTypeId> validTargets = {entity::EntityTypeIdNumber::PLAYER, entity::EntityTypeIdNumber::SQUID};
 
-    std::vector<LegacyEntityType> invalidTargets = {LegacyEntityType::Zombie,
-        LegacyEntityType::Skeleton,
-        LegacyEntityType::Cow,
-        LegacyEntityType::Pig,
-        LegacyEntityType::Dolphin,  // 同为水生生物，但不被攻击
-        LegacyEntityType::Guardian, // 同类
-        LegacyEntityType::ElderGuardian};
+    std::vector<entity::EntityTypeId> invalidTargets = {entity::EntityTypeIdNumber::ZOMBIE,
+        entity::EntityTypeIdNumber::SKELETON,
+        entity::EntityTypeIdNumber::COW,
+        entity::EntityTypeIdNumber::PIG,
+        entity::EntityTypeIdNumber::DOLPHIN,  // 同为水生生物，但不被攻击
+        entity::EntityTypeIdNumber::GUARDIAN, // 同类
+        entity::EntityTypeIdNumber::ELDER_GUARDIAN};
 
     // 验证有效目标
     for (auto type : validTargets) {
-        bool isValid = (type == LegacyEntityType::Player || type == LegacyEntityType::Squid);
+        bool isValid = (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::SQUID);
         EXPECT_TRUE(isValid) << "Expected valid target type";
     }
 
     // 验证无效目标
     for (auto type : invalidTargets) {
-        bool isValid = (type == LegacyEntityType::Player || type == LegacyEntityType::Squid);
+        bool isValid = (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::SQUID);
         EXPECT_FALSE(isValid) << "Expected invalid target type";
     }
 }
@@ -199,10 +200,10 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate)
     // 这与我们实现 selectTarget() 的逻辑一致
 
     // 模拟目标筛选谓词
-    auto guardianTargetPredicate = [](LegacyEntityType type, f64 distSq) -> bool {
+    auto guardianTargetPredicate = [](entity::EntityTypeId type, f64 distSq) -> bool {
         // 类型筛选
-        bool isPlayer = (type == LegacyEntityType::Player);
-        bool isSquid = (type == LegacyEntityType::Squid);
+        bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
+        bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
         if (!isPlayer && !isSquid) {
             return false;
         }
@@ -216,21 +217,21 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate)
     };
 
     // 测试玩家在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Player, 10.0)); // 3.16 格
+    EXPECT_TRUE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 10.0)); // 3.16 格
 
     // 测试玩家太近
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 8.0)); // 2.83 格
+    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 8.0)); // 2.83 格
 
     // 测试玩家正好在边界
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Player, 9.0)); // 正好 3 格
+    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 9.0)); // 正好 3 格
 
     // 测试鱿鱼在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(LegacyEntityType::Squid, 16.0)); // 4 格
+    EXPECT_TRUE(guardianTargetPredicate(entity::EntityTypeIdNumber::SQUID, 16.0)); // 4 格
 
     // 测试其他生物被排除
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Zombie, 10.0));
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Dolphin, 10.0));
-    EXPECT_FALSE(guardianTargetPredicate(LegacyEntityType::Guardian, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::ZOMBIE, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::DOLPHIN, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::GUARDIAN, 10.0));
 }
 
 // ============================================================================

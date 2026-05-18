@@ -39,7 +39,7 @@ class DolphinGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(LegacyEntityType::Dolphin, EntityId(1));
+        dolphin = std::make_unique<DolphinEntity>(EntityId(1));
     }
 
     void TearDown() override

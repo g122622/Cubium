@@ -153,7 +153,7 @@ private:
  */
 class AbstractVillagerEntity : public AgeableEntity, public INamedContainerProvider {
 public:
-    AbstractVillagerEntity(LegacyEntityType type, EntityId id);
+    AbstractVillagerEntity(EntityId id);
     ~AbstractVillagerEntity() override = default;
 
     // ========== Entity 接口重写 ==========

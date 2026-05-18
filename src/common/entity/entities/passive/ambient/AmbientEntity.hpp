@@ -41,10 +41,9 @@ class AmbientEntity : public MobEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    AmbientEntity(LegacyEntityType type, EntityId id);
+    AmbientEntity(EntityId id);
     ~AmbientEntity() override = default;
 
     [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Ambient; }

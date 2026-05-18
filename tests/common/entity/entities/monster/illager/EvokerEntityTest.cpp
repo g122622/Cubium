@@ -90,7 +90,7 @@ private:
 
 TEST(EvokerEntityTest, Construction)
 {
-    EvokerEntity evoker(LegacyEntityType::Unknown, EntityId(1));
+    EvokerEntity evoker(EntityId(1));
 
     // 验证唤魔者尺寸
     // MC 1.16.5: 唤魔者尺寸与普通灾厄村民相同
@@ -104,7 +104,7 @@ TEST(EvokerEntityTest, Construction)
 
 TEST(EvokerEntityTest, Attributes)
 {
-    EvokerEntity evoker(LegacyEntityType::Unknown, EntityId(1));
+    EvokerEntity evoker(EntityId(1));
 
     // MC 1.16.5 唤魔者属性
     // 最大生命值 24.0
@@ -117,7 +117,7 @@ TEST(EvokerEntityTest, Attributes)
 
 TEST(EvokerEntityTest, Spellcasting)
 {
-    EvokerEntity evoker(LegacyEntityType::Unknown, EntityId(1));
+    EvokerEntity evoker(EntityId(1));
 
     // 默认不施法
     EXPECT_FALSE(evoker.isSpellcasting());
@@ -160,7 +160,7 @@ TEST(EvokerEntityTest, CreateFactory)
 
 TEST(EvokerEntityTest, SpellCooldowns)
 {
-    EvokerEntity evoker(LegacyEntityType::Unknown, EntityId(1));
+    EvokerEntity evoker(EntityId(1));
 
     // 验证冷却常量
     // FANGS_COOLDOWN = 100 ticks (5秒)
@@ -179,7 +179,7 @@ TEST(EvokerEntityTest, SpellCooldowns)
 
 TEST(EvokerFangsEntityTest, Construction)
 {
-    entity::EvokerFangsEntity fangs(LegacyEntityType::Unknown, EntityId(1));
+    entity::EvokerFangsEntity fangs(EntityId(1));
 
     // 验证尖牙尺寸
     EXPECT_FLOAT_EQ(fangs.width(), 0.5f);
@@ -192,7 +192,7 @@ TEST(EvokerFangsEntityTest, Construction)
 
 TEST(EvokerFangsEntityTest, WarmupDelay)
 {
-    entity::EvokerFangsEntity fangs(LegacyEntityType::Unknown, EntityId(1));
+    entity::EvokerFangsEntity fangs(EntityId(1));
 
     // 设置预热延迟
     fangs.setWarmupDelay(10);
@@ -204,7 +204,7 @@ TEST(EvokerFangsEntityTest, WarmupDelay)
 
 TEST(EvokerFangsEntityTest, Owner)
 {
-    entity::EvokerFangsEntity fangs(LegacyEntityType::Unknown, EntityId(1));
+    entity::EvokerFangsEntity fangs(EntityId(1));
 
     // 默认无所有者
     EXPECT_EQ(fangs.owner(), nullptr);
@@ -216,7 +216,7 @@ TEST(EvokerFangsEntityTest, Owner)
 
 TEST(EvokerFangsEntityTest, AnimationProgress)
 {
-    entity::EvokerFangsEntity fangs(LegacyEntityType::Unknown, EntityId(1));
+    entity::EvokerFangsEntity fangs(EntityId(1));
 
     // 动画进度在未开始攻击时应为 0
     EXPECT_FLOAT_EQ(fangs.getAnimationProgress(0.0f), 0.0f);

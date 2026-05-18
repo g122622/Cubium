@@ -47,7 +47,7 @@ namespace mc {
  */
 class PatrollerEntity : public MonsterEntity {
 public:
-    PatrollerEntity(LegacyEntityType type, EntityId id);
+    PatrollerEntity(EntityId id);
     ~PatrollerEntity() override = default;
 
     PatrollerEntity(const PatrollerEntity&) = delete;

@@ -53,8 +53,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 // ProjectileItemEntity
 // ============================================================================
 
-ProjectileItemEntity::ProjectileItemEntity(LegacyEntityType type, EntityId id)
-    : ThrowableEntity(type, id)
+ProjectileItemEntity::ProjectileItemEntity(EntityId id)
+    : ThrowableEntity(id)
 {}
 
 void ProjectileItemEntity::tick()
@@ -67,13 +67,13 @@ void ProjectileItemEntity::tick()
 // SnowballEntity
 // ============================================================================
 
-SnowballEntity::SnowballEntity(LegacyEntityType type, EntityId id)
-    : ProjectileItemEntity(type, id)
+SnowballEntity::SnowballEntity(EntityId id)
+    : ProjectileItemEntity(id)
 {}
 
 std::unique_ptr<Entity> SnowballEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SnowballEntity>(LegacyEntityType::Snowball, 0);
+    return std::make_unique<SnowballEntity>(0);
 }
 
 const Item* SnowballEntity::getDefaultItem() const
@@ -124,13 +124,13 @@ void SnowballEntity::onImpact(const RayTraceResult& /*result*/)
 // EggEntity
 // ============================================================================
 
-EggEntity::EggEntity(LegacyEntityType type, EntityId id)
-    : ProjectileItemEntity(type, id)
+EggEntity::EggEntity(EntityId id)
+    : ProjectileItemEntity(id)
 {}
 
 std::unique_ptr<Entity> EggEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EggEntity>(LegacyEntityType::Egg, 0);
+    return std::make_unique<EggEntity>(0);
 }
 
 const Item* EggEntity::getDefaultItem() const
@@ -185,13 +185,13 @@ bool EggEntity::tryHatchChicken()
 // EnderPearlEntity
 // ============================================================================
 
-EnderPearlEntity::EnderPearlEntity(LegacyEntityType type, EntityId id)
-    : ProjectileItemEntity(type, id)
+EnderPearlEntity::EnderPearlEntity(EntityId id)
+    : ProjectileItemEntity(id)
 {}
 
 std::unique_ptr<Entity> EnderPearlEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EnderPearlEntity>(LegacyEntityType::EnderPearl, 0);
+    return std::make_unique<EnderPearlEntity>(0);
 }
 
 const Item* EnderPearlEntity::getDefaultItem() const
@@ -241,13 +241,13 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result)
 // PotionEntity
 // ============================================================================
 
-PotionEntity::PotionEntity(LegacyEntityType type, EntityId id)
-    : ProjectileItemEntity(type, id)
+PotionEntity::PotionEntity(EntityId id)
+    : ProjectileItemEntity(id)
 {}
 
 std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<PotionEntity>(LegacyEntityType::Potion, 0);
+    return std::make_unique<PotionEntity>(0);
 }
 
 const Item* PotionEntity::getDefaultItem() const
@@ -385,13 +385,13 @@ void PotionEntity::onImpact(const RayTraceResult& result)
 // ExperienceBottleEntity
 // ============================================================================
 
-ExperienceBottleEntity::ExperienceBottleEntity(LegacyEntityType type, EntityId id)
-    : ProjectileItemEntity(type, id)
+ExperienceBottleEntity::ExperienceBottleEntity(EntityId id)
+    : ProjectileItemEntity(id)
 {}
 
 std::unique_ptr<Entity> ExperienceBottleEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ExperienceBottleEntity>(LegacyEntityType::ExperienceBottle, 0);
+    return std::make_unique<ExperienceBottleEntity>(0);
 }
 
 const Item* ExperienceBottleEntity::getDefaultItem() const

@@ -23,6 +23,7 @@
 
 #include "AbstractPressurePlateBlock.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
@@ -164,8 +165,8 @@ bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos&
     for (Entity* entity : entities) {
         if (entity != nullptr) {
             // 检查实体类型：玩家、生物、物品实体都可以触发压力板
-            LegacyEntityType type = entity->legacyType();
-            if (type == LegacyEntityType::Player || type == LegacyEntityType::Item) {
+            entity::EntityTypeId type = entity->typeId();
+            if (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::ITEM) {
                 return true;
             }
             // 后续可以添加更多类型：Mob, Animal 等

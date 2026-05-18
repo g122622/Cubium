@@ -47,8 +47,8 @@
 
 namespace mc {
 
-FoxEntity::FoxEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+FoxEntity::FoxEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -59,7 +59,7 @@ FoxEntity::FoxEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<FoxEntity>(0);
 }
 
 // ========== 信任系统 ==========
@@ -305,7 +305,7 @@ bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 {
     // MC 1.16.5: FoxEntity.func_241840_a() (createChild)
-    auto baby = std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<FoxEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
@@ -441,8 +441,8 @@ void FoxEntity::registerGoals()
         1.4,   // 远距离逃跑速度
         [](const LivingEntity* entity) -> bool {
             if (entity == nullptr) return false;
-            auto type = entity->legacyType();
-            return type == LegacyEntityType::Wolf || type == LegacyEntityType::PolarBear;
+            auto type = entity->typeId();
+            return type == entity::EntityTypeIdNumber::WOLF || type == entity::EntityTypeIdNumber::POLAR_BEAR;
         }));
 
     // 优先级 5: 跟踪猎物（扑击的前置阶段）

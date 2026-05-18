@@ -40,7 +40,7 @@ entity::ProjectileItemEntity* SplashPotionItem::createProjectile(
     IWorld& world, Player& player, const ItemStack& stack) const
 {
     // 创建药水实体（喷溅型）
-    auto entity = std::make_unique<entity::PotionEntity>(LegacyEntityType::Potion, 0);
+    auto entity = std::make_unique<entity::PotionEntity>(0);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);

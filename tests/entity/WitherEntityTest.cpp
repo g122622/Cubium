@@ -47,14 +47,14 @@ protected:
 };
 
 // ============================================================================
-// LegacyEntityType::Vex 测试
+// Vex 测试
 // ============================================================================
 
 TEST_F(WitherEntityGameModeTest, VexEntityType_IsDefined)
 {
     // 验证 Vex 实体类型已定义
     // 这是 countNearbyVexes() 功能所需的前提条件
-    EXPECT_NE(LegacyEntityType::Vex, LegacyEntityType::Unknown);
+    EXPECT_NE(entity::EntityTypeIdNumber::VEX, entity::EntityTypeIdNumber::Unknown);
     // 注意：Vex 实体类型 ID 可能随注册顺序变化，不检查具体值
 }
 

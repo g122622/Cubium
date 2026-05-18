@@ -48,8 +48,8 @@
 
 namespace mc {
 
-PandaEntity::PandaEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+PandaEntity::PandaEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 随机生成性格
     randomizePersonality();
@@ -63,7 +63,7 @@ PandaEntity::PandaEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<PandaEntity>(0);
 }
 
 void PandaEntity::randomizePersonality()
@@ -213,7 +213,7 @@ void PandaEntity::updatePersonalityFromGenes()
 std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
 {
     // MC 1.16.5: PandaEntity.func_241840_a()
-    auto baby = std::make_unique<PandaEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<PandaEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);

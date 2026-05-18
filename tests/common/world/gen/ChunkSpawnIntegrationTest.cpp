@@ -67,7 +67,7 @@ protected:
         registry.registerType(EntityTypes::PIG,
             EntityType::Builder(
                 [](IWorld*) -> std::unique_ptr<Entity> {
-                    return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+                    return std::make_unique<Entity>(EntityId(0));
                 },
                 EntityClassification::Creature)
                 .size(0.9f, 0.9f)
@@ -79,7 +79,7 @@ protected:
         registry.registerType(EntityTypes::COW,
             EntityType::Builder(
                 [](IWorld*) -> std::unique_ptr<Entity> {
-                    return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+                    return std::make_unique<Entity>(EntityId(0));
                 },
                 EntityClassification::Creature)
                 .size(0.9f, 1.4f)
@@ -91,7 +91,7 @@ protected:
         registry.registerType(EntityTypes::SHEEP,
             EntityType::Builder(
                 [](IWorld*) -> std::unique_ptr<Entity> {
-                    return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+                    return std::make_unique<Entity>(EntityId(0));
                 },
                 EntityClassification::Creature)
                 .size(0.9f, 1.3f)
@@ -103,7 +103,7 @@ protected:
         registry.registerType(EntityTypes::CHICKEN,
             EntityType::Builder(
                 [](IWorld*) -> std::unique_ptr<Entity> {
-                    return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+                    return std::make_unique<Entity>(EntityId(0));
                 },
                 EntityClassification::Creature)
                 .size(0.4f, 0.7f)

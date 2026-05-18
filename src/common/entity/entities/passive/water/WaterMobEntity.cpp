@@ -31,8 +31,8 @@
 
 namespace mc {
 
-WaterMobEntity::WaterMobEntity(LegacyEntityType type, EntityId id)
-    : CreatureEntity(type, id)
+WaterMobEntity::WaterMobEntity(EntityId id)
+    : CreatureEntity(id)
 {
     // 注册属性
     registerAttributes();

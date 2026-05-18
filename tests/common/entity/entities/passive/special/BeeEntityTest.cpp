@@ -112,7 +112,7 @@ protected:
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsDandelion)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* dandelionItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DANDELION);
     ASSERT_NE(dandelionItem, nullptr);
@@ -123,7 +123,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsDandelion)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPoppy)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* poppyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::POPPY);
     ASSERT_NE(poppyItem, nullptr);
@@ -134,7 +134,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPoppy)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsBlueOrchid)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* blueOrchidItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BLUE_ORCHID);
     ASSERT_NE(blueOrchidItem, nullptr);
@@ -145,7 +145,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsBlueOrchid)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsAllium)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* alliumItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ALLIUM);
     ASSERT_NE(alliumItem, nullptr);
@@ -156,7 +156,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsAllium)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsSunflower)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* sunflowerItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SUNFLOWER);
     ASSERT_NE(sunflowerItem, nullptr);
@@ -167,7 +167,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsSunflower)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilac)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* lilacItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::LILAC);
     ASSERT_NE(lilacItem, nullptr);
@@ -178,7 +178,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilac)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsRoseBush)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* roseBushItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ROSE_BUSH);
     ASSERT_NE(roseBushItem, nullptr);
@@ -189,7 +189,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsRoseBush)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPeony)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* peonyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PEONY);
     ASSERT_NE(peonyItem, nullptr);
@@ -200,7 +200,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPeony)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsCornflower)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* cornflowerItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CORNFLOWER);
     ASSERT_NE(cornflowerItem, nullptr);
@@ -211,7 +211,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsCornflower)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilyOfTheValley)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* lilyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::LILY_OF_THE_VALLEY);
     ASSERT_NE(lilyItem, nullptr);
@@ -222,7 +222,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilyOfTheValley)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsTulips)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // 测试所有颜色的郁金香
     const BlockItem* redTulipItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::RED_TULIP);
@@ -243,7 +243,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsTulips)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsWitherRose)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     const BlockItem* witherRoseItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WITHER_ROSE);
     ASSERT_NE(witherRoseItem, nullptr);
@@ -254,7 +254,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsWitherRose)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsWheat)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     if (Items::WHEAT != nullptr) {
         ItemStack wheatStack(Items::WHEAT, 1);
@@ -264,7 +264,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsWheat)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsCarrot)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     if (Items::CARROT != nullptr) {
         ItemStack carrotStack(Items::CARROT, 1);
@@ -274,7 +274,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsCarrot)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsEmptyStack)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     ItemStack emptyStack;
     EXPECT_FALSE(bee.isBreedingItem(emptyStack));
@@ -282,7 +282,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsEmptyStack)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsDiamond)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // 使用钻石作为非花朵物品测试
     // 注意：STONE 可能在某些测试环境中未注册为 BlockItem
@@ -298,11 +298,11 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsDiamond)
 
 TEST_F(BeeEntityTest, SpawnBaby_CreatesChildBee)
 {
-    BeeEntity parent1(LegacyEntityType::Unknown, 1);
+    BeeEntity parent1(EntityId(1));
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
 
-    BeeEntity parent2(LegacyEntityType::Unknown, 2);
+    BeeEntity parent2(EntityId(2));
 
     auto baby = parent1.spawnBaby(parent2);
 
@@ -316,11 +316,11 @@ TEST_F(BeeEntityTest, SpawnBaby_CreatesChildBee)
 
 TEST_F(BeeEntityTest, SpawnBaby_PositionNearParent)
 {
-    BeeEntity parent(LegacyEntityType::Unknown, 1);
+    BeeEntity parent(EntityId(1));
     parent.setWorld(&m_world);
     parent.setPosition(100.0f, 64.0f, 200.0f);
 
-    BeeEntity partner(LegacyEntityType::Unknown, 2);
+    BeeEntity partner(EntityId(2));
 
     auto baby = parent.spawnBaby(partner);
 
@@ -342,13 +342,13 @@ TEST_F(BeeEntityTest, SpawnBaby_PositionNearParent)
 
 TEST_F(BeeEntityTest, NectarState_DefaultFalse)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     EXPECT_FALSE(bee.hasNectar());
 }
 
 TEST_F(BeeEntityTest, NectarState_CanSetAndGet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     bee.setHasNectar(true);
     EXPECT_TRUE(bee.hasNectar());
@@ -363,13 +363,13 @@ TEST_F(BeeEntityTest, NectarState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, StungState_DefaultFalse)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     EXPECT_FALSE(bee.hasStung());
 }
 
 TEST_F(BeeEntityTest, StungState_CanSetAndGet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     bee.setHasStung(true);
     EXPECT_TRUE(bee.hasStung());
@@ -384,13 +384,13 @@ TEST_F(BeeEntityTest, StungState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, FlyingState_DefaultFalse)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     EXPECT_FALSE(bee.isFlying());
 }
 
 TEST_F(BeeEntityTest, FlyingState_CanSetAndGet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     bee.setFlying(true);
     EXPECT_TRUE(bee.isFlying());
@@ -405,13 +405,13 @@ TEST_F(BeeEntityTest, FlyingState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, HivePosition_DefaultNoHive)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     EXPECT_FALSE(bee.hasHive());
 }
 
 TEST_F(BeeEntityTest, HivePosition_CanSetAndGet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     BlockPos hivePos(100, 64, 200);
     bee.setHivePos(hivePos);
@@ -426,13 +426,13 @@ TEST_F(BeeEntityTest, HivePosition_CanSetAndGet)
 
 TEST_F(BeeEntityTest, FlowerPosition_DefaultNoFlower)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     EXPECT_FALSE(bee.hasFlower());
 }
 
 TEST_F(BeeEntityTest, FlowerPosition_CanSetAndGet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     BlockPos flowerPos(50, 64, 100);
     bee.setFlowerPos(flowerPos);
@@ -447,7 +447,7 @@ TEST_F(BeeEntityTest, FlowerPosition_CanSetAndGet)
 
 TEST_F(BeeEntityTest, Attributes_HasCorrectBaseValues)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // MC 1.16.5: 蜜蜂生命值为 10
     EXPECT_DOUBLE_EQ(bee.maxHealth(), 10.0);
@@ -462,7 +462,7 @@ TEST_F(BeeEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(BeeEntityTest, EyeHeight_IsCorrect)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     // MC 1.16.5: 蜜蜂眼睛高度 0.3
     EXPECT_FLOAT_EQ(bee.eyeHeight(), 0.3f);
 }
@@ -473,7 +473,7 @@ TEST_F(BeeEntityTest, EyeHeight_IsCorrect)
 
 TEST_F(BeeEntityTest, Anger_CanSetAngerTime)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     bee.setAngerTime(100);
     EXPECT_EQ(bee.getAngerTime(), 100);
@@ -482,7 +482,7 @@ TEST_F(BeeEntityTest, Anger_CanSetAngerTime)
 
 TEST_F(BeeEntityTest, Anger_CanSetAngry)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     bee.setAngry(true);
     EXPECT_TRUE(bee.isAngry());
@@ -491,7 +491,7 @@ TEST_F(BeeEntityTest, Anger_CanSetAngry)
 
 TEST_F(BeeEntityTest, Anger_CanClearAnger)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // 先设置为愤怒状态
     bee.setAngerTime(100);
@@ -509,7 +509,7 @@ TEST_F(BeeEntityTest, Anger_CanClearAnger)
 
 TEST_F(BeeEntityTest, Attributes_HasAttackDamage)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // MC 1.16.5: 蜜蜂攻击伤害为 2.0
     // 注意：需要在构造函数中设置属性
@@ -519,7 +519,7 @@ TEST_F(BeeEntityTest, Attributes_HasAttackDamage)
 
 TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // MC 1.16.5: 蜜蜂跟随范围为 48.0
     EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 48.0);
@@ -527,7 +527,7 @@ TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 
 TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
 
     // MC 1.16.5: 蜜蜂飞行速度为 0.6
     // 属性值已经设置
@@ -543,7 +543,7 @@ TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 
 TEST_F(BeeEntityTest, UnderwaterTimer_InitialState)
 {
-    BeeEntity bee(LegacyEntityType::Unknown, 1);
+    BeeEntity bee(EntityId(1));
     bee.setWorld(&m_world);
 
     // 初始状态下溺水计时器应为 0

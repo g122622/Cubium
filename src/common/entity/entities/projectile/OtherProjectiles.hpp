@@ -49,7 +49,7 @@ public:
     /**
      * @brief 构造函数
      */
-    LlamaSpitEntity(LegacyEntityType type, EntityId id);
+    explicit LlamaSpitEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -99,7 +99,7 @@ public:
     /**
      * @brief 构造函数
      */
-    FishingBobberEntity(LegacyEntityType type, EntityId id);
+    explicit FishingBobberEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -297,7 +297,7 @@ public:
     /**
      * @brief 默认构造函数
      */
-    ShulkerBulletEntity(LegacyEntityType type, EntityId id);
+    explicit ShulkerBulletEntity(EntityId id);
 
     /**
      * @brief 带目标的构造函数
@@ -403,7 +403,7 @@ public:
     /**
      * @brief 构造函数
      */
-    EvokerFangsEntity(LegacyEntityType type, EntityId id);
+    explicit EvokerFangsEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -478,7 +478,7 @@ public:
     /**
      * @brief 构造函数
      */
-    EyeOfEnderEntity(LegacyEntityType type, EntityId id);
+    explicit EyeOfEnderEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -541,7 +541,7 @@ public:
     /**
      * @brief 构造函数
      */
-    FireworkRocketEntity(LegacyEntityType type, EntityId id);
+    explicit FireworkRocketEntity(EntityId id);
 
     // ========== Entity 接口重写 ==========
 

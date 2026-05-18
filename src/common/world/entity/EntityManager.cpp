@@ -151,13 +151,13 @@ std::vector<Entity*> EntityManager::getEntitiesInRange(const Vector3& pos, f32 r
     return result;
 }
 
-std::vector<Entity*> EntityManager::getEntitiesByType(LegacyEntityType type) const
+std::vector<Entity*> EntityManager::getEntitiesByType(entity::EntityTypeId typeId) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
-        if (entity->legacyType() == type && !entity->isRemoved()) {
+        if (entity->typeId() == typeId && !entity->isRemoved()) {
             result.push_back(entity.get());
         }
     }
@@ -295,7 +295,7 @@ std::vector<Entity*> EntityManager::getPlayers() const
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
-        if (entity && !entity->isRemoved() && entity->legacyType() == LegacyEntityType::Player) {
+        if (entity && !entity->isRemoved() && entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
             result.push_back(entity.get());
         }
     }

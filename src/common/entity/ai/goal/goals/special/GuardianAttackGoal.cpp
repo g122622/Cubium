@@ -29,6 +29,7 @@
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../core/Entity.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../damage/DamageSource.hpp"
@@ -111,7 +112,7 @@ void GuardianAttackGoal::startExecuting()
     m_tickCounter = -10;
 
     // 检测是否为远古守卫者
-    m_isElder = (m_guardian->legacyType() == LegacyEntityType::ElderGuardian);
+    m_isElder = (m_guardian->typeId() == entity::EntityTypeIdNumber::ELDER_GUARDIAN);
 
     // 清除路径
     if (m_guardian->navigator() != nullptr) {
@@ -250,9 +251,9 @@ LivingEntity* GuardianAttackGoal::selectTarget() const
             }
 
             // 2. 类型筛选: 只攻击玩家或鱿鱼
-            auto type = candidate->legacyType();
-            bool isPlayer = (type == LegacyEntityType::Player);
-            bool isSquid = (type == LegacyEntityType::Squid);
+            entity::EntityTypeId type = candidate->typeId();
+            bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
+            bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
             if (!isPlayer && !isSquid) {
                 return false;
             }

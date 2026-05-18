@@ -233,6 +233,7 @@ constexpr const char* HORSE = "minecraft:horse";
 constexpr const char* DONKEY = "minecraft:donkey";
 constexpr const char* MULE = "minecraft:mule";
 constexpr const char* LLAMA = "minecraft:llama";
+constexpr const char* TRADER_LLAMA = "minecraft:trader_llama";
 constexpr const char* SKELETON_HORSE = "minecraft:skeleton_horse";
 constexpr const char* ZOMBIE_HORSE = "minecraft:zombie_horse";
 

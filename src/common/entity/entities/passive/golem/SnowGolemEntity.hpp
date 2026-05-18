@@ -52,10 +52,9 @@ class SnowGolemEntity : public GolemEntity, public entity::IShearable, public en
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    SnowGolemEntity(LegacyEntityType type, EntityId id);
+    SnowGolemEntity(EntityId id);
     ~SnowGolemEntity() override = default;
 
     // 禁止拷贝

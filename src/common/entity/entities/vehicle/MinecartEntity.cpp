@@ -74,7 +74,7 @@ entity::DataParameter<bool> SHOW_BLOCK_PARAM{5};
 // ============================================================================
 
 AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityId id)
-    : Entity(LegacyEntityType::Minecart, id)
+    : Entity(id)
     , m_type(type)
 {
     // MC 1.16.5: 矿车默认属性
@@ -82,7 +82,7 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityId id)
 }
 
 AbstractMinecartEntity::AbstractMinecartEntity(Type type)
-    : Entity(LegacyEntityType::Minecart, EntityId(0))
+    : Entity(EntityId(0))
     , m_type(type)
 {
     registerData();
@@ -305,7 +305,7 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos)
     const auto& passengers = getPassengers();
     if (!passengers.empty()) {
         Entity* passenger = worldPtr->getEntity(passengers[0]);
-        if (passenger != nullptr && passenger->legacyType() == LegacyEntityType::Player) {
+        if (passenger != nullptr && passenger->typeId() == entity::EntityTypeIdNumber::PLAYER) {
             // 获取乘客的移动输入速度
             f64 passengerSpeedSq =
                 passenger->velocityX() * passenger->velocityX() + passenger->velocityZ() * passenger->velocityZ();
@@ -640,15 +640,15 @@ void AbstractMinecartEntity::handleEntityCollisions()
             continue;
         }
 
-        LegacyEntityType entityType = entity->legacyType();
+        auto entityType = entity->typeId();
 
         // 跳过玩家（玩家碰撞由其他逻辑处理）
-        if (entityType == LegacyEntityType::Player) {
+        if (entityType == entity::EntityTypeIdNumber::PLAYER) {
             continue;
         }
 
         // 矿车间碰撞处理
-        if (entityType == LegacyEntityType::Minecart) {
+        if (entityType == entity::EntityTypeIdNumber::MINECART) {
             AbstractMinecartEntity* otherCart = static_cast<AbstractMinecartEntity*>(entity);
 
             // 计算碰撞方向
@@ -983,7 +983,7 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     //     ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
     bool isCreative = false;
     Entity* attacker = source.source();
-    if (attacker != nullptr && attacker->legacyType() == LegacyEntityType::Player) {
+    if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::PLAYER) {
         Player* player = static_cast<Player*>(attacker);
         isCreative = player->isCreative();
     }

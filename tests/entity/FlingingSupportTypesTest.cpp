@@ -35,7 +35,7 @@ namespace {
 class FlingingDummyTarget : public LivingEntity {
 public:
     explicit FlingingDummyTarget(EntityId id)
-        : LivingEntity(LegacyEntityType::Unknown, id)
+        : LivingEntity(id)
     {}
 };
 
@@ -47,7 +47,7 @@ TEST(FlingingSupportTypesTest, HoglinAndZoglinImplementMarker)
 
 TEST(FlingingSupportTypesTest, AttackWithFlingAppliesDamageAndKnockback)
 {
-    HoglinEntity hoglin(LegacyEntityType::Hoglin, 1);
+    HoglinEntity hoglin(EntityId(1));
     hoglin.setPosition(0.0f, 64.0f, 0.0f);
 
     FlingingDummyTarget target(2);
@@ -64,7 +64,7 @@ TEST(FlingingSupportTypesTest, AttackWithFlingAppliesDamageAndKnockback)
 
 TEST(FlingingSupportTypesTest, HoglinAttackUpdatesAnimationTicks)
 {
-    HoglinEntity hoglin(LegacyEntityType::Hoglin, 1);
+    HoglinEntity hoglin(EntityId(1));
     hoglin.setPosition(0.0f, 64.0f, 0.0f);
 
     FlingingDummyTarget target(2);

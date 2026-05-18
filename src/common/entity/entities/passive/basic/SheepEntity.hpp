@@ -73,7 +73,7 @@ enum class DyeColor : u8 {
  */
 class SheepEntity : public AnimalEntity, public entity::IShearable {
 public:
-    SheepEntity(LegacyEntityType type, EntityId id);
+    SheepEntity(EntityId id);
     ~SheepEntity() override = default;
 
     /**

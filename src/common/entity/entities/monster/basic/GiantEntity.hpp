@@ -47,10 +47,9 @@ class GiantEntity : public MonsterEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    GiantEntity(LegacyEntityType type, EntityId id);
+    GiantEntity(EntityId id);
     ~GiantEntity() override = default;
 
     // 禁止拷贝

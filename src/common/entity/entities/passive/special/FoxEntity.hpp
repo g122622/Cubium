@@ -77,10 +77,9 @@ public:
 
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    FoxEntity(LegacyEntityType type, EntityId id);
+    FoxEntity(EntityId id);
     ~FoxEntity() override = default;
 
     // 禁止拷贝

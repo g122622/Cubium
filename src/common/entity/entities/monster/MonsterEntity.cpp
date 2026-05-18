@@ -38,8 +38,8 @@
 
 namespace mc {
 
-MonsterEntity::MonsterEntity(LegacyEntityType type, EntityId id)
-    : CreatureEntity(type, id)
+MonsterEntity::MonsterEntity(EntityId id)
+    : CreatureEntity(id)
 {
     // MC 1.16.5: 怪物默认经验值为 5
     setExperienceValue(5);
@@ -190,7 +190,7 @@ bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::
 }
 
 bool MonsterEntity::canMonsterSpawnInLight(
-    LegacyEntityType /*type*/, IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& random)
+    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& random)
 {
     // MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
     // 检查难度（非和平模式）
@@ -232,7 +232,7 @@ bool MonsterEntity::canMonsterSpawnInLight(
 }
 
 bool MonsterEntity::canMonsterSpawn(
-    LegacyEntityType /*type*/, IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& /*random*/)
+    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& /*random*/)
 {
     // MC 1.16.5 MonsterEntity.canMonsterSpawn()
     // 检查难度（非和平模式）

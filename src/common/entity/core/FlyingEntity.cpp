@@ -32,8 +32,8 @@
 
 namespace mc {
 
-FlyingEntity::FlyingEntity(LegacyEntityType type, EntityId id)
-    : MobEntity(type, id)
+FlyingEntity::FlyingEntity(EntityId id)
+    : MobEntity(id)
 {
     // 飞行生物默认不受重力影响
     // MC 1.16.5: FlyingEntity 构造函数没有特殊操作

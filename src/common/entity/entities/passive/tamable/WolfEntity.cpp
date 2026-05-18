@@ -52,8 +52,8 @@
 
 namespace mc {
 
-WolfEntity::WolfEntity(LegacyEntityType type, EntityId id)
-    : TameableEntity(type, id)
+WolfEntity::WolfEntity(EntityId id)
+    : TameableEntity(id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -65,7 +65,7 @@ WolfEntity::WolfEntity(LegacyEntityType type, EntityId id)
 std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<WolfEntity>(0);
 }
 
 bool WolfEntity::isTameItem(const ItemStack& itemStack) const
@@ -96,7 +96,7 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
 std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // 创建小狼
-    auto baby = std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
+    auto baby = std::make_unique<WolfEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
@@ -239,8 +239,8 @@ void WolfEntity::registerGoals()
                 // 只在未驯服时避开羊驼
                 if (isTamed()) return false;
                 // 检查是否是羊驼
-                if (entity->legacyType() != LegacyEntityType::Llama &&
-                    entity->legacyType() != LegacyEntityType::TraderLlama) {
+                if (entity->typeId() != entity::EntityTypeIdNumber::LLAMA &&
+                    entity->typeId() != entity::EntityTypeIdNumber::TRADER_LLAMA) {
                     return false;
                 }
                 // 检查羊驼的强度
@@ -301,10 +301,10 @@ void WolfEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 羊、兔子、狐狸
-                auto type = entity->legacyType();
-                return type == LegacyEntityType::Sheep ||
-                       type == LegacyEntityType::Rabbit ||
-                       type == LegacyEntityType::Fox;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::SHEEP ||
+                       type == entity::EntityTypeIdNumber::RABBIT ||
+                       type == entity::EntityTypeIdNumber::FOX;
             }));
 
     // 优先级 6: 未驯服时攻击幼海龟（不在水中） - MC 1.16.5 优先级为 6
@@ -331,10 +331,10 @@ void WolfEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 骷髅、流浪者、凋灵骷髅
-                auto type = entity->legacyType();
-                return type == LegacyEntityType::Skeleton ||
-                       type == LegacyEntityType::Stray ||
-                       type == LegacyEntityType::WitherSkeleton;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::SKELETON ||
+                       type == entity::EntityTypeIdNumber::STRAY ||
+                       type == entity::EntityTypeIdNumber::WITHER_SKELETON;
             }));
 
     // 注意：优先级 8 的 ResetAngerGoal 需要 IAngerable 接口完整实现

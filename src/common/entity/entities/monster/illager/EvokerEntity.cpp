@@ -48,15 +48,15 @@
 
 namespace mc {
 
-EvokerEntity::EvokerEntity(LegacyEntityType type, EntityId id)
-    : SpellcastingIllagerEntity(type, id)
+EvokerEntity::EvokerEntity(EntityId id)
+    : SpellcastingIllagerEntity(id)
 {
     registerAttributes();
 }
 
 std::unique_ptr<Entity> EvokerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EvokerEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<EvokerEntity>(EntityId(0));
 }
 
 void EvokerEntity::startCasting(i32 spellType)
@@ -178,7 +178,7 @@ void EvokerEntity::spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle,
 
     if (foundSolidGround) {
         // 创建唤魔者尖牙实体
-        auto fangs = std::make_unique<entity::EvokerFangsEntity>(LegacyEntityType::Unknown, 0);
+        auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityId(0));
         fangs->setPosition(posX, groundY, posZ);
         fangs->setRotation(angle * math::RAD_TO_DEG, 0.0f);
         fangs->setWarmupDelay(warmupDelay);
@@ -207,7 +207,7 @@ void EvokerEntity::summonVex()
             static_cast<i32>(z()) + offsetZ);
 
         // 创建恼鬼实体
-        auto vex = std::make_unique<VexEntity>(LegacyEntityType::Unknown, 0);
+        auto vex = std::make_unique<VexEntity>(EntityId(0));
         vex->setPosition(static_cast<f32>(spawnPos.x), static_cast<f32>(spawnPos.y), static_cast<f32>(spawnPos.z));
         vex->setRotation(0.0f, 0.0f);
 
@@ -251,7 +251,7 @@ void EvokerEntity::registerGoals()
     goalSelector().addGoal(2, new entity::ai::goal::AvoidEntityGoal(
                                  this, 8.0f, 0.6, 1.0,
                                  [](const LivingEntity* e) -> bool {
-                                     return e != nullptr && e->legacyType() == LegacyEntityType::Player;
+                                     return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
                                  }));
     goalSelector().addGoal(4, new entity::ai::goal::EvokerSummonSpellGoal(this));
     goalSelector().addGoal(5, new entity::ai::goal::EvokerAttackSpellGoal(this));
@@ -259,7 +259,7 @@ void EvokerEntity::registerGoals()
     goalSelector().addGoal(8, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
     goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f,
                                  [](const LivingEntity* e) -> bool {
-                                     return e != nullptr && e->legacyType() == LegacyEntityType::Player;
+                                     return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
                                  }));
     goalSelector().addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
                                  [](const LivingEntity* e) -> bool {

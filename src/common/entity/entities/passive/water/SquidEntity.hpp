@@ -46,10 +46,9 @@ class SquidEntity : public WaterMobEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    SquidEntity(LegacyEntityType type, EntityId id);
+    SquidEntity(EntityId id);
     ~SquidEntity() override = default;
 
     // 禁止拷贝

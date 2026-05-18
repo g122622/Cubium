@@ -238,7 +238,7 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     explicit TestLivingEntity(const std::string& typeId = "minecraft:player")
-        : LivingEntity(LegacyEntityType::Player, 1)
+        : LivingEntity(EntityId(1))
     {
         setTypeId(typeId);
         setHealth(maxHealth());
@@ -253,7 +253,7 @@ public:
 class TestFoxEntity : public LivingEntity {
 public:
     TestFoxEntity()
-        : LivingEntity(LegacyEntityType::Fox, 2)
+        : LivingEntity(EntityId(2))
     {
         setTypeId("minecraft:fox");
         setHealth(maxHealth());
@@ -266,7 +266,7 @@ public:
 class TestBeeEntity : public LivingEntity {
 public:
     TestBeeEntity()
-        : LivingEntity(LegacyEntityType::Bee, 3)
+        : LivingEntity(EntityId(3))
     {
         setTypeId("minecraft:bee");
         setHealth(maxHealth());

@@ -163,7 +163,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(1.0f);
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -176,7 +176,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseWhenSkyNotVisible)
     m_world->setCanSeeSky(false); // 天空不可见
     m_world->setBrightness(1.0f);
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -189,7 +189,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.3f); // 低亮度
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -203,7 +203,7 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.8f); // 高亮度
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -235,7 +235,7 @@ TEST_F(PhantomEntityTest, DoesNotBurnAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.2f);
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -245,7 +245,7 @@ TEST_F(PhantomEntityTest, DoesNotBurnAtNight)
 
 TEST_F(PhantomEntityTest, SizeAffectsDimensions)
 {
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
 
     // 默认尺寸 0
     EXPECT_EQ(phantom.getPhantomSize(), 0);
@@ -261,7 +261,7 @@ TEST_F(PhantomEntityTest, SizeAffectsDimensions)
 
 TEST_F(PhantomEntityTest, SizeAffectsAttackDamage)
 {
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
 
     // 尺寸 0 -> 基础伤害 6.0
     phantom.setPhantomSize(0);
@@ -274,7 +274,7 @@ TEST_F(PhantomEntityTest, SizeAffectsAttackDamage)
 
 TEST_F(PhantomEntityTest, AttackPhaseDefaultIsCircle)
 {
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     EXPECT_EQ(phantom.getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE);
 }
 
@@ -344,7 +344,7 @@ TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
 {
     m_world->setBrightness(0.75f);
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -354,7 +354,7 @@ TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
 
 TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld)
 {
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     // 不设置世界
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -366,7 +366,7 @@ TEST_F(GetBrightnessTest, UsesEyeHeightForPosition)
 {
     m_world->setBrightness(0.9f);
 
-    PhantomEntity phantom(LegacyEntityType::Phantom, EntityId(1));
+    PhantomEntity phantom(EntityId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(10.0f, 64.0f, 20.0f);
 
@@ -445,7 +445,7 @@ protected:
     void setupBoatRiding(const Vector3& phantomPos, const Vector3* boatPos = nullptr)
     {
         // 创建幻翼
-        m_phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(1));
+        m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
         m_phantom->setWorld(m_world.get());
         m_phantom->setPosition(phantomPos.x, phantomPos.y, phantomPos.z);
         m_world->addTestEntity(m_phantom.get());
@@ -493,7 +493,7 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
     m_world->setBrightness(0.8f);
 
     // 创建幻翼
-    m_phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(1));
+    m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
     m_phantom->setWorld(m_world.get());
     m_phantom->setPosition(0.0f, 64.0f, 0.0f);
     m_world->addTestEntity(m_phantom.get());
@@ -508,7 +508,7 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
 
     // 验证船实体创建正确
     EXPECT_EQ(m_boat->id(), EntityId(2));
-    EXPECT_EQ(m_boat->legacyType(), LegacyEntityType::Boat);
+    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
     EXPECT_NE(m_boat->getStatus(), entity::BoatStatus::UnderWater) << "Boat should not be underwater";
 
     // 验证 dynamic_cast 能正确识别 BoatEntity
@@ -537,7 +537,7 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingNonBoatNoPositionOffset)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.8f);
 
-    m_phantom = std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(1));
+    m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
     m_phantom->setWorld(m_world.get());
     m_phantom->setPosition(0.0f, 64.0f, 0.0f);
     m_world->addTestEntity(m_phantom.get());
@@ -559,7 +559,7 @@ TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly)
     m_boat->setId(EntityId(1));
 
     EXPECT_EQ(m_boat->id(), EntityId(1));
-    EXPECT_EQ(m_boat->legacyType(), LegacyEntityType::Boat);
+    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 验证 dynamic_cast 可以正确识别 BoatEntity
     Entity* entityPtr = m_boat.get();
@@ -572,8 +572,8 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
     auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE);
 
-    EXPECT_EQ(oakBoat->legacyType(), LegacyEntityType::Boat);
-    EXPECT_EQ(spruceBoat->legacyType(), LegacyEntityType::Boat);
+    EXPECT_EQ(oakBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
+    EXPECT_EQ(spruceBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 两种船都应该能被 dynamic_cast 识别
     Entity* oakPtr = oakBoat.get();

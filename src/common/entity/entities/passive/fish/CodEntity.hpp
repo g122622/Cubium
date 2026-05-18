@@ -44,10 +44,9 @@ class CodEntity : public AbstractGroupFishEntity {
 public:
     /**
      * @brief 构造鳕鱼实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    CodEntity(LegacyEntityType type, EntityId id);
+    CodEntity(EntityId id);
     ~CodEntity() override = default;
 
     CodEntity(const CodEntity&) = delete;

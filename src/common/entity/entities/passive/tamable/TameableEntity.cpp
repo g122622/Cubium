@@ -31,8 +31,8 @@
 
 namespace mc {
 
-TameableEntity::TameableEntity(LegacyEntityType type, EntityId id)
-    : AnimalEntity(type, id)
+TameableEntity::TameableEntity(EntityId id)
+    : AnimalEntity(id)
 {
     // 注册属性
     registerAttributes();

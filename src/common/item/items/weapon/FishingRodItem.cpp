@@ -88,7 +88,7 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         i32 speedBonus = enchant::EnchantmentHelper::getEnchantmentLevel(rodStack, &enchant::AllEnchantments::LURE);
 
         // 创建浮标实体
-        auto bobber = std::make_unique<entity::FishingBobberEntity>(LegacyEntityType::FishingBobber, EntityId(0));
+        auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityId(0));
         bobber->setWorld(&world);
         bobber->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
         bobber->setShooter(&player);

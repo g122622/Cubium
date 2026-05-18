@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include <gtest/gtest.h>
@@ -37,17 +37,17 @@ using namespace mc;
 
 TEST(Entity, Construction)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     EXPECT_EQ(entity.id(), 1u);
-    EXPECT_EQ(entity.legacyType(), LegacyEntityType::Player);
+    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PLAYER);
     EXPECT_FALSE(entity.uuid().empty());
     EXPECT_FALSE(entity.isRemoved());
 }
 
 TEST(Entity, Position)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     entity.setPosition(100.5, 64.0, -200.25);
     EXPECT_FLOAT_EQ(entity.x(), 100.5f);
@@ -62,7 +62,7 @@ TEST(Entity, Position)
 
 TEST(Entity, Rotation)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     entity.setRotation(90.0f, 45.0f);
     EXPECT_FLOAT_EQ(entity.yaw(), 90.0f);
@@ -71,7 +71,7 @@ TEST(Entity, Rotation)
 
 TEST(Entity, Velocity)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     entity.setVelocity(1.0, 2.0, 3.0);
     auto vel = entity.velocity();
@@ -82,7 +82,7 @@ TEST(Entity, Velocity)
 
 TEST(Entity, Move)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
     entity.setPosition(0.0, 0.0, 0.0);
 
     entity.move(10.0, 5.0, -3.0);
@@ -93,7 +93,7 @@ TEST(Entity, Move)
 
 TEST(Entity, Rotate)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
     entity.setRotation(0.0f, 0.0f);
 
     entity.rotate(90.0f, 45.0f);
@@ -110,7 +110,7 @@ TEST(Entity, Rotate)
 
 TEST(Entity, BoundingBox)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
     entity.setPosition(0.0, 0.0, 0.0);
 
     auto box = entity.boundingBox();
@@ -120,7 +120,7 @@ TEST(Entity, BoundingBox)
 
 TEST(Entity, Flags)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     entity.addFlag(EntityFlags::OnFire);
     EXPECT_TRUE(entity.hasFlag(EntityFlags::OnFire));
@@ -136,7 +136,7 @@ TEST(Entity, Flags)
 
 TEST(Entity, Tick)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     EXPECT_EQ(entity.ticksExisted(), 0u);
 
@@ -702,7 +702,7 @@ TEST(Player, SerializeDeserialize)
 
 TEST(Entity, PortalCooldown)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     // 初始状态：冷却为0，可以传送
     EXPECT_EQ(entity.portalCooldown(), 0);
@@ -724,7 +724,7 @@ TEST(Entity, PortalCooldown)
 
 TEST(Entity, PortalTime)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     // 初始状态：传送门时间为0
     EXPECT_EQ(entity.portalTime(), 0);
@@ -745,7 +745,7 @@ TEST(Entity, PortalTime)
 
 TEST(Entity, GetMaxInPortalTime)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
     // MC 1.16.5: 非玩家实体基类返回 0
     // 检查条件 portalCounter++ >= 0 第一次进入就满足
     // 实际效果：非玩家实体需要 1 tick 传送
@@ -758,7 +758,7 @@ TEST(Entity, GetMaxInPortalTime)
 
 TEST(Entity, TickPortalNotInPortal)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
     entity.setPortalTime(10);
 
     // 不在传送门中时，传送门时间递减
@@ -772,7 +772,7 @@ TEST(Entity, TickPortalNotInPortal)
 
 TEST(Entity, TickPortalNotInPortalZero)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
     entity.setPortalTime(2);
 
     // 传送门时间不会低于0
@@ -787,7 +787,7 @@ TEST(Entity, TickPortalNotInPortalZero)
 
 TEST(Entity, TickPortalInPortal)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
 
     // MC 1.16.5: 非玩家实体基类 getMaxInPortalTime() 返回 0
     // 检查条件 portalCounter++ > maxPortalTime
@@ -805,7 +805,7 @@ TEST(Entity, TickPortalInPortal)
 
 TEST(Entity, TickPortalInPortalWithCooldown)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
 
     // 有冷却时不能传送
     entity.setInPortal(true);
@@ -883,7 +883,7 @@ TEST(Entity, TickPortalPlayerInterrupted)
 
 TEST(Entity, PortalPos)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
     BlockPos portalPos(100, 64, 200);
 
     entity.setPortalPos(portalPos);
@@ -894,7 +894,7 @@ TEST(Entity, PortalPos)
 
 TEST(Entity, TickPortalCooldownDecrement)
 {
-    Entity entity(LegacyEntityType::Player, 1);
+    Entity entity(EntityId(1));
 
     // 设置冷却
     entity.triggerPortalCooldown();
@@ -911,7 +911,7 @@ TEST(Entity, TickPortalCooldownDecrement)
 
 TEST(Entity, OnPortalTriggered)
 {
-    Entity entity(LegacyEntityType::Pig, 1);
+    Entity entity(EntityId(1));
 
     // 设置传送门状态
     entity.setInPortal(true);

@@ -44,10 +44,9 @@ class SalmonEntity : public AbstractGroupFishEntity {
 public:
     /**
      * @brief 构造鲑鱼实体
-     * @param type 实体类型
      * @param id 实体 ID
      */
-    SalmonEntity(LegacyEntityType type, EntityId id);
+    SalmonEntity(EntityId id);
     ~SalmonEntity() override = default;
 
     SalmonEntity(const SalmonEntity&) = delete;

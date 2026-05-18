@@ -37,8 +37,8 @@
 
 namespace mc {
 
-EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+EndermanEntity::EndermanEntity(EntityId id)
+    : MonsterEntity(id)
 {
     // MC 1.16.5: 末影人不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -56,7 +56,7 @@ EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EndermanEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<EndermanEntity>(EntityId(0));
 }
 
 std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
@@ -398,7 +398,7 @@ void EndermanEntity::registerGoals()
     m_goalSelector.addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 8: 随机看向

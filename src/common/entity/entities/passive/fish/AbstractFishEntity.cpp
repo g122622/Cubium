@@ -35,8 +35,8 @@
 
 namespace mc {
 
-AbstractFishEntity::AbstractFishEntity(LegacyEntityType type, EntityId id)
-    : WaterMobEntity(type, id)
+AbstractFishEntity::AbstractFishEntity(EntityId id)
+    : WaterMobEntity(id)
 {
     // 设置鱼类最大空气供应量（480 ticks = 24秒）
     setAir(maxAir());
@@ -73,7 +73,7 @@ void AbstractFishEntity::registerGoals()
                 return false;
             }
             // 只躲避玩家
-            if (entity->legacyType() != LegacyEntityType::Player) {
+            if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
                 return false;
             }
             // 不躲避旁观者模式和创造模式玩家

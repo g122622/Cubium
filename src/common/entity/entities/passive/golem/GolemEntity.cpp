@@ -27,8 +27,8 @@
 
 namespace mc {
 
-GolemEntity::GolemEntity(LegacyEntityType type, EntityId id)
-    : CreatureEntity(type, id)
+GolemEntity::GolemEntity(EntityId id)
+    : CreatureEntity(id)
 {
     // 注册属性
     registerAttributes();

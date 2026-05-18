@@ -105,7 +105,7 @@ protected:
 
 TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires)
 {
-    ChickenEntity chicken(LegacyEntityType::Unknown, 1);
+    ChickenEntity chicken(EntityId(1));
     chicken.setWorld(&m_world);
     chicken.setPosition(0.5f, 64.0f, 0.5f);
 

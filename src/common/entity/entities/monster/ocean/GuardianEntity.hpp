@@ -51,10 +51,9 @@ class GuardianEntity : public MonsterEntity {
 public:
     /**
      * @brief 构造函数
-     * @param type 实体类型
      * @param id 实体ID
      */
-    GuardianEntity(LegacyEntityType type, EntityId id);
+    GuardianEntity(EntityId id);
     ~GuardianEntity() override = default;
 
     // 禁止拷贝
