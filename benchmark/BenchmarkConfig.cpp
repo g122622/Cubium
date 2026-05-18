@@ -105,19 +105,39 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
         return traceEnabled.error();
     }
 
-    auto traceOutputPath = requireString(root, "traceOutputPath");
-    if (!traceOutputPath.success()) {
-        return traceOutputPath.error();
-    }
-
-    auto resultOutputPath = requireString(root, "resultOutputPath");
-    if (!resultOutputPath.success()) {
-        return resultOutputPath.error();
-    }
-
     auto globalThreadCount = requireInt(root, "threadCount");
     if (!globalThreadCount.success()) {
         return globalThreadCount.error();
+    }
+
+    auto outputDirectory = requireString(root, "outputDirectory");
+    if (!outputDirectory.success()) {
+        return outputDirectory.error();
+    }
+
+    auto resultJsonFileName = requireString(root, "resultJsonFileName");
+    if (!resultJsonFileName.success()) {
+        return resultJsonFileName.error();
+    }
+
+    auto resultCsvFileName = requireString(root, "resultCsvFileName");
+    if (!resultCsvFileName.success()) {
+        return resultCsvFileName.error();
+    }
+
+    auto traceFileName = requireString(root, "traceFileName");
+    if (!traceFileName.success()) {
+        return traceFileName.error();
+    }
+
+    auto visualizeScriptPath = requireString(root, "visualizeScriptPath");
+    if (!visualizeScriptPath.success()) {
+        return visualizeScriptPath.error();
+    }
+
+    auto pythonExecutable = requireString(root, "pythonExecutable");
+    if (!pythonExecutable.success()) {
+        return pythonExecutable.error();
     }
 
     if (!root.contains("measurement") || !root.at("measurement").is_object()) {
@@ -134,10 +154,14 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
 
     BenchmarkConfig config{
         traceEnabled.value(),
-        std::filesystem::path(traceOutputPath.value()),
-        std::filesystem::path(resultOutputPath.value()),
         globalThreadCount.value(),
         measurementConfig.value(),
+        std::filesystem::path(outputDirectory.value()),
+        std::filesystem::path(resultJsonFileName.value()),
+        std::filesystem::path(resultCsvFileName.value()),
+        std::filesystem::path(traceFileName.value()),
+        std::filesystem::path(visualizeScriptPath.value()),
+        std::filesystem::path(pythonExecutable.value()),
         {}};
 
     for (const auto& caseJson : root.at("cases")) {
@@ -172,7 +196,7 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
             caseName.value(),
             caseThreadCount.value(),
             caseMeasurement.value(),
-            config.traceOutputPath,
+            config.traceFileName,
             caseJson.at("parameters")});
     }
 

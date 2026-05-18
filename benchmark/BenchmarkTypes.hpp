@@ -56,10 +56,14 @@ struct CaseRuntimeConfig {
 
 struct BenchmarkConfig {
     bool traceEnabled;
-    std::filesystem::path traceOutputPath;
-    std::filesystem::path resultOutputPath;
     i32 threadCount;
     MeasurementConfig measurement;
+    std::filesystem::path outputDirectory;
+    std::filesystem::path resultJsonFileName;
+    std::filesystem::path resultCsvFileName;
+    std::filesystem::path traceFileName;
+    std::filesystem::path visualizeScriptPath;
+    std::filesystem::path pythonExecutable;
     std::vector<CaseRuntimeConfig> cases;
 };
 
@@ -79,6 +83,7 @@ struct BenchmarkResult {
     BenchmarkStatus status;
     std::string errorMessage;
     std::optional<BenchmarkMetrics> metrics;
+    std::vector<double> iterationDurationsMs;
 };
 
 } // namespace mc::benchmark

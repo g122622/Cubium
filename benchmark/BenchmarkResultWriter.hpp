@@ -30,4 +30,7 @@ namespace mc::benchmark {
 [[nodiscard]] Result<void> writeBenchmarkResults(
     const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results);
 
+[[nodiscard]] Result<void> writeBenchmarkResultCsv(
+    const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results);
+
 } // namespace mc::benchmark

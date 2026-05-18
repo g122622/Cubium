@@ -96,6 +96,7 @@ BenchmarkResult executeBenchmarkCase(IBenchmarkCase& benchmarkCase, const CaseRu
     BenchmarkResult result;
     result.name = config.name;
     result.status = BenchmarkStatus::Success;
+    result.iterationDurationsMs = durationsMs;
     result.metrics = BenchmarkMetrics{
         totalMs,
         averageMs,

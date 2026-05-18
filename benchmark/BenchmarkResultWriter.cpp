@@ -23,10 +23,28 @@
 
 #include "BenchmarkResultWriter.hpp"
 
+#include <fmt/format.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
 namespace mc::benchmark {
+namespace {
+
+[[nodiscard]] std::string escapeCsvField(std::string_view value)
+{
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const char ch : value) {
+        if (ch == '"') {
+            escaped += "\"\"";
+        } else {
+            escaped += ch;
+        }
+    }
+    return escaped;
+}
+
+} // namespace
 
 Result<void> writeBenchmarkResults(const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results)
 {
@@ -53,6 +71,8 @@ Result<void> writeBenchmarkResults(const std::filesystem::path& outputPath, cons
             };
         }
 
+        resultJson["iterationDurationsMs"] = result.iterationDurationsMs;
+
         root["results"].push_back(std::move(resultJson));
     }
 
@@ -62,6 +82,49 @@ Result<void> writeBenchmarkResults(const std::filesystem::path& outputPath, cons
     }
 
     output << root.dump(2);
+    return Result<void>::ok();
+}
+
+Result<void> writeBenchmarkResultCsv(const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results)
+{
+    std::ofstream output(outputPath);
+    if (!output.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, std::string("failed to open benchmark csv file: ") + outputPath.string());
+    }
+
+    output << "caseName,status,errorMessage,threadCount,warmupIterations,measuredIterations,iteration,durationMs\n";
+
+    for (const auto& result : results) {
+        const i32 threadCount = result.metrics.has_value() ? result.metrics->threadCount : 0;
+        const i32 warmupIterations = result.metrics.has_value() ? result.metrics->warmupIterations : 0;
+        const i32 measuredIterations = result.metrics.has_value() ? result.metrics->measuredIterations : 0;
+
+        if (result.iterationDurationsMs.empty()) {
+            output << fmt::format(
+                "\"{}\",{},\"{}\",{},{},{},,\n",
+                escapeCsvField(result.name),
+                static_cast<i32>(result.status),
+                escapeCsvField(result.errorMessage),
+                threadCount,
+                warmupIterations,
+                measuredIterations);
+            continue;
+        }
+
+        for (size_t iterationIndex = 0; iterationIndex < result.iterationDurationsMs.size(); ++iterationIndex) {
+            output << fmt::format(
+                "\"{}\",{},\"{}\",{},{},{},{},{}\n",
+                escapeCsvField(result.name),
+                static_cast<i32>(result.status),
+                escapeCsvField(result.errorMessage),
+                threadCount,
+                warmupIterations,
+                measuredIterations,
+                iterationIndex,
+                result.iterationDurationsMs[iterationIndex]);
+        }
+    }
+
     return Result<void>::ok();
 }
 
