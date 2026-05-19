@@ -62,7 +62,7 @@ storage/
 - `SingleLevelStorageManager` 通过 getter 方法暴露单存档子服务
 - 区块运行时不应再直接依赖 `SectionCodec`、`SectionKey`、`RocksDBDatabase`、`WorldStoragePaths`
 - 区块持久化细节统一收口到 `SingleLevelStorageManager::saveChunk()` / `loadChunk()`
-- 存档发现与路径细节统一收口到 `GlobalStorageManager::listWorlds()` / `resolveWorldPath()` / `savesDirectory()`
+- 存档发现与路径细节统一收口到 `GlobalStorageManager::listWorlds()` / `openLevel()` / `savesDirectory()`
 
 ### 使用示例
 
@@ -75,16 +75,9 @@ if (!storageResult.success()) {
 }
 auto storage = std::move(storageResult.value());
 
-// 通过子服务访问
-auto& sectionMgr = storage->sectionManager(dimension);
-auto data = sectionMgr.loadSection(key);
-
-// 或直接通过门面读写完整区块
+// 直接通过门面读写完整区块
 auto loadResult = storage->loadChunk(chunkX, chunkZ, dimension);
 auto saveResult = storage->saveChunk(chunk, dimension);
-
-// 保存数据
-sectionMgr.saveSection(key, data);
 
 // 全量保存（/save-all 或服务器关闭时使用）
 auto fullSaveResult = m_storage.saveAll();
@@ -230,17 +223,8 @@ std::vector<SectionKey> getDirtyKeys() const;
 
 **使用示例**：
 ```cpp
-auto& storage = world.storage();
-auto* taskManager = storage.taskManager();
-
-auto task = StorageTask::createLoadTask(key, [](const std::atomic<bool>& cancelSignal) {
-    if (cancelSignal.load(std::memory_order_acquire)) {
-        return false;
-    }
-    return true;
-});
-
-taskManager->submit(std::move(task), util::TaskPriority::High);
+StorageTaskManager` 由 `SingleLevelStorageManager` 内部持有并分发给 `SectionManager`，
+外部运行时代码不再直接访问它。
 ```
 
 **模块关系**：
@@ -300,8 +284,8 @@ GlobalStorageManager globalStorage;
 auto storageResult = globalStorage.openLevel("world", config);
 auto storage = std::move(storageResult.value());
 
-auto& sectionManager = storage->sectionManager(dimension);
-auto future = sectionManager.loadSectionAsync(key, util::TaskPriority::High);
+区块运行时应通过 `saveChunk()` / `loadChunk()` 访问持久化数据，
+而不是直接取得 `SectionManager`。
 ```
 
 ## 容易踩的坑

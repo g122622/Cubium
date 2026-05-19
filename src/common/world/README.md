@@ -575,7 +575,7 @@ auto levelId = service.createWorld(request);
 
 **Key Components:**
 - **GlobalStorageManager**: 跨存档发现、列表、路径解析与打开入口
-- **SingleLevelStorageManager**: 单存档持久化门面，暴露 `sectionManager()`、`flushAllDirty()`、`saveAll()`、备份与玩家数据接口
+- **SingleLevelStorageManager**: 单存档持久化门面，暴露 `loadChunk()`、`saveChunk()`、`flushAllDirty()`、`saveAll()`、玩家数据与自动保存接口
 - **LevelDatCodec**: Reads/writes gzip-compressed NBT `level.dat` files
 - **WorldListService**: Enumerates, creates, deletes, backs up worlds
 - **WorldSessionLock**: RAII lock to prevent concurrent world access

@@ -64,33 +64,7 @@ TEST_F(SingleLevelStorageManagerTest, OpenClose)
     EXPECT_FALSE(storage.isOpen());
 }
 
-TEST_F(SingleLevelStorageManagerTest, SectionManagerAccess)
-{
-    SingleLevelStorageManager storage;
-    SingleLevelStorageConfig config;
-
-    auto result = storage.open(testDir, config);
-    ASSERT_TRUE(result.success());
-
-    EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(0);
-        (void)mgr;
-    });
-
-    EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(1);
-        (void)mgr;
-    });
-
-    EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(2);
-        (void)mgr;
-    });
-
-    storage.close();
-}
-
-TEST_F(SingleLevelStorageManagerTest, SaveAndLoadSection)
+TEST_F(SingleLevelStorageManagerTest, SaveAndLoadChunk)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
@@ -99,24 +73,25 @@ TEST_F(SingleLevelStorageManagerTest, SaveAndLoadSection)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
-    SectionKey key(0, 0, 0, 0);
-    SectionData originalData = createTestSectionData(0, 0, 0, 0, 42);
+    ChunkData chunk(0, 0);
+    ChunkSection* section = chunk.createSection(0);
+    ASSERT_NE(section, nullptr);
+    section->setBlockStateId(0, 0, 0, 42);
+    chunk.setLoaded(true);
+    chunk.setFullyGenerated(true);
+    chunk.setDirty(false);
 
-    auto saveResult = mgr.saveSectionSync(key, originalData);
+    auto saveResult = storage.saveChunk(chunk, 0);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto loadResult = mgr.loadSectionSync(key);
+    auto loadResult = storage.loadChunk(0, 0, 0);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+    ASSERT_TRUE(loadResult.value().has_value());
 
-    const auto loadedData = loadResult.value();
-    ASSERT_NE(loadedData, nullptr);
-
-    EXPECT_EQ(loadedData->key.chunkX, 0);
-    EXPECT_EQ(loadedData->key.chunkZ, 0);
-    EXPECT_EQ(loadedData->key.sectionY, 0);
-    EXPECT_EQ(loadedData->nonEmptyBlockCount, 100u);
-    EXPECT_EQ(loadedData->getBlockStateId(0, 0, 0), 42u);
+    const ChunkData& loadedChunk = loadResult.value().value();
+    const ChunkSection* loadedSection = loadedChunk.getSection(0);
+    ASSERT_NE(loadedSection, nullptr);
+    EXPECT_EQ(loadedSection->getBlockStateId(0, 0, 0), 42u);
 
     storage.close();
 }
@@ -129,34 +104,29 @@ TEST_F(SingleLevelStorageManagerTest, MultipleSections)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
-
     for (i32 cx = -1; cx <= 1; ++cx) {
         for (i32 cz = -1; cz <= 1; ++cz) {
-            for (i8 sy = 0; sy < 3; ++sy) {
-                SectionKey key(cx, cz, sy, 0);
-                SectionData data = createTestSectionData(cx, cz, sy, 0, static_cast<u32>(cx * 100 + cz * 10 + sy));
-
-                auto saveResult = mgr.saveSectionSync(key, data);
-                ASSERT_TRUE(saveResult.success())
-                    << "Failed to save section at (" << cx << ", " << cz << ", " << static_cast<int>(sy) << ")";
-            }
+            ChunkData chunk(cx, cz);
+            ChunkSection* section = chunk.createSection(0);
+            ASSERT_NE(section, nullptr);
+            u32 expectedBlockId = static_cast<u32>((cx + 2) * 100 + (cz + 2) * 10);
+            section->setBlockStateId(0, 0, 0, expectedBlockId);
+            chunk.setLoaded(true);
+            chunk.setFullyGenerated(true);
+            chunk.setDirty(false);
+            ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
         }
     }
 
     for (i32 cx = -1; cx <= 1; ++cx) {
         for (i32 cz = -1; cz <= 1; ++cz) {
-            for (i8 sy = 0; sy < 3; ++sy) {
-                SectionKey key(cx, cz, sy, 0);
-
-                auto loadResult = mgr.loadSectionSync(key);
-                ASSERT_TRUE(loadResult.success());
-
-                const auto sectionSnapshot = loadResult.value();
-                ASSERT_NE(sectionSnapshot, nullptr);
-                u32 expectedBlockId = static_cast<u32>(cx * 100 + cz * 10 + sy);
-                EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), expectedBlockId);
-            }
+            auto loadResult = storage.loadChunk(cx, cz, 0);
+            ASSERT_TRUE(loadResult.success());
+            ASSERT_TRUE(loadResult.value().has_value());
+            const ChunkSection* section = loadResult.value().value().getSection(0);
+            ASSERT_NE(section, nullptr);
+            u32 expectedBlockId = static_cast<u32>((cx + 2) * 100 + (cz + 2) * 10);
+            EXPECT_EQ(section->getBlockStateId(0, 0, 0), expectedBlockId);
         }
     }
 
@@ -172,13 +142,15 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirty)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
-
     for (int i = 0; i < 10; ++i) {
-        SectionKey key(i, 0, 0, 0);
-        SectionData data = createTestSectionData(i, 0, 0, 0, i);
-        auto saveResult = mgr.saveSectionSync(key, data);
-        ASSERT_TRUE(saveResult.success());
+        ChunkData chunk(i, 0);
+        ChunkSection* section = chunk.createSection(0);
+        ASSERT_NE(section, nullptr);
+        section->setBlockStateId(0, 0, 0, static_cast<u32>(i));
+        chunk.setLoaded(true);
+        chunk.setFullyGenerated(true);
+        chunk.setDirty(false);
+        ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
     }
 
     auto flushResult = storage.flushAllDirty();
@@ -196,57 +168,63 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
     ASSERT_TRUE(result.success());
 
     {
-        auto& overworld = storage.sectionManager(0);
-        SectionKey key(0, 0, 0, 0);
-        SectionData data = createTestSectionData(0, 0, 0, 0, 1);
-        auto saveResult = overworld.saveSectionSync(key, data);
-        ASSERT_TRUE(saveResult.success());
+        ChunkData chunk(0, 0);
+        ChunkSection* section = chunk.createSection(0);
+        ASSERT_NE(section, nullptr);
+        section->setBlockStateId(0, 0, 0, 1);
+        chunk.setLoaded(true);
+        chunk.setFullyGenerated(true);
+        chunk.setDirty(false);
+        ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
     }
 
     {
-        auto& nether = storage.sectionManager(1);
-        SectionKey key(0, 0, 0, 1);
-        SectionData data = createTestSectionData(0, 0, 0, 1, 2);
-        auto saveResult = nether.saveSectionSync(key, data);
-        ASSERT_TRUE(saveResult.success());
+        ChunkData chunk(0, 0);
+        ChunkSection* section = chunk.createSection(0);
+        ASSERT_NE(section, nullptr);
+        section->setBlockStateId(0, 0, 0, 2);
+        chunk.setLoaded(true);
+        chunk.setFullyGenerated(true);
+        chunk.setDirty(false);
+        ASSERT_TRUE(storage.saveChunk(chunk, 1).success());
     }
 
     {
-        auto& theEnd = storage.sectionManager(2);
-        SectionKey key(0, 0, 0, 2);
-        SectionData data = createTestSectionData(0, 0, 0, 2, 3);
-        auto saveResult = theEnd.saveSectionSync(key, data);
-        ASSERT_TRUE(saveResult.success());
+        ChunkData chunk(0, 0);
+        ChunkSection* section = chunk.createSection(0);
+        ASSERT_NE(section, nullptr);
+        section->setBlockStateId(0, 0, 0, 3);
+        chunk.setLoaded(true);
+        chunk.setFullyGenerated(true);
+        chunk.setDirty(false);
+        ASSERT_TRUE(storage.saveChunk(chunk, 2).success());
     }
 
     {
-        auto& overworld = storage.sectionManager(0);
-        auto loadResult = overworld.loadSectionSync(SectionKey(0, 0, 0, 0));
+        auto loadResult = storage.loadChunk(0, 0, 0);
         ASSERT_TRUE(loadResult.success());
-
-        const auto sectionSnapshot = loadResult.value();
-        ASSERT_NE(sectionSnapshot, nullptr);
-        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 1u);
+        ASSERT_TRUE(loadResult.value().has_value());
+        const ChunkSection* section = loadResult.value().value().getSection(0);
+        ASSERT_NE(section, nullptr);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 1u);
     }
 
     {
-        auto& nether = storage.sectionManager(1);
-        auto loadResult = nether.loadSectionSync(SectionKey(0, 0, 0, 1));
+        auto loadResult = storage.loadChunk(0, 0, 1);
         ASSERT_TRUE(loadResult.success());
-
-        const auto sectionSnapshot = loadResult.value();
-        ASSERT_NE(sectionSnapshot, nullptr);
-        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 2u);
+        ASSERT_TRUE(loadResult.value().has_value());
+        const ChunkSection* section = loadResult.value().value().getSection(0);
+        ASSERT_NE(section, nullptr);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 2u);
     }
 
     {
-        auto& theEnd = storage.sectionManager(2);
-        auto loadResult = theEnd.loadSectionSync(SectionKey(0, 0, 0, 2));
+        auto loadResult = storage.loadChunk(0, 0, 2);
         ASSERT_TRUE(loadResult.success());
-
-        const auto sectionSnapshot = loadResult.value();
-        ASSERT_NE(sectionSnapshot, nullptr);
-        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 3u);
+        ASSERT_TRUE(loadResult.value().has_value());
+        const ChunkSection* section = loadResult.value().value().getSection(0);
+        ASSERT_NE(section, nullptr);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 3u);
     }
 
     storage.close();
@@ -262,13 +240,14 @@ TEST_F(SingleLevelStorageManagerTest, ReopenPreservesData)
         auto result = storage.open(testDir, config);
         ASSERT_TRUE(result.success());
 
-        auto& mgr = storage.sectionManager(0);
-
-        SectionKey key(10, 20, 5, 0);
-        SectionData data = createTestSectionData(10, 20, 5, 0, 999);
-
-        auto saveResult = mgr.saveSectionSync(key, data);
-        ASSERT_TRUE(saveResult.success());
+        ChunkData chunk(10, 20);
+        ChunkSection* section = chunk.createSection(5);
+        ASSERT_NE(section, nullptr);
+        section->setBlockStateId(0, 0, 0, 999);
+        chunk.setLoaded(true);
+        chunk.setFullyGenerated(true);
+        chunk.setDirty(false);
+        ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
 
         auto flushResult = storage.flushAllDirty();
         ASSERT_TRUE(flushResult.success());
@@ -283,19 +262,15 @@ TEST_F(SingleLevelStorageManagerTest, ReopenPreservesData)
         auto result = storage.open(testDir, config);
         ASSERT_TRUE(result.success());
 
-        auto& mgr = storage.sectionManager(0);
-
-        SectionKey key(10, 20, 5, 0);
-        auto loadResult = mgr.loadSectionSync(key);
+        auto loadResult = storage.loadChunk(10, 20, 0);
         ASSERT_TRUE(loadResult.success());
-
-        const auto sectionSnapshot = loadResult.value();
-        ASSERT_NE(sectionSnapshot, nullptr);
-
-        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 999u);
-        EXPECT_EQ(sectionSnapshot->key.chunkX, 10);
-        EXPECT_EQ(sectionSnapshot->key.chunkZ, 20);
-        EXPECT_EQ(sectionSnapshot->key.sectionY, 5);
+        ASSERT_TRUE(loadResult.value().has_value());
+        const ChunkData& chunk = loadResult.value().value();
+        const ChunkSection* section = chunk.getSection(5);
+        ASSERT_NE(section, nullptr);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 999u);
+        EXPECT_EQ(chunk.x(), 10);
+        EXPECT_EQ(chunk.z(), 20);
 
         storage.close();
     }
@@ -310,26 +285,35 @@ TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
+    ChunkData chunk(30, 40);
+    ChunkSection* section = chunk.createSection(6);
+    ASSERT_NE(section, nullptr);
+    section->setBlockStateId(0, 0, 0, 123);
+    chunk.setLoaded(true);
+    chunk.setFullyGenerated(true);
+    chunk.setDirty(false);
 
-    SectionKey key(30, 40, 6, 0);
-    SectionData data = createTestSectionData(30, 40, 6, 0, 123);
-
-    auto saveResult = mgr.saveSectionSync(key, data);
+    auto saveResult = storage.saveChunk(chunk, 0);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto loadResult = mgr.loadSectionSync(key);
+    auto loadResult = storage.loadChunk(30, 40, 0);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+    ASSERT_TRUE(loadResult.value().has_value());
 
-    const auto initialSnapshot = loadResult.value();
-    ASSERT_NE(initialSnapshot, nullptr);
-    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
+    const ChunkData& initialChunk = loadResult.value().value();
+    const ChunkSection* initialSection = initialChunk.getSection(6);
+    ASSERT_NE(initialSection, nullptr);
+    EXPECT_EQ(initialSection->getBlockStateId(0, 0, 0), 123u);
 
-    SectionData updatedData = createTestSectionData(30, 40, 6, 0, 777);
-    auto overwriteResult = mgr.saveSectionSync(key, updatedData);
+    ChunkData updatedChunk(30, 40);
+    ChunkSection* updatedSection = updatedChunk.createSection(6);
+    ASSERT_NE(updatedSection, nullptr);
+    updatedSection->setBlockStateId(0, 0, 0, 777);
+    updatedChunk.setLoaded(true);
+    updatedChunk.setFullyGenerated(true);
+    updatedChunk.setDirty(false);
+    auto overwriteResult = storage.saveChunk(updatedChunk, 0);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
-
-    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
 
     auto fullSaveResult = storage.saveAll();
     ASSERT_TRUE(fullSaveResult.success()) << fullSaveResult.error().message();
@@ -341,13 +325,12 @@ TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot
         auto reopenResult = reopenedStorage.open(testDir, config);
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
-        auto& reopenedMgr = reopenedStorage.sectionManager(0);
-        auto reopenedLoadResult = reopenedMgr.loadSectionSync(key);
+        auto reopenedLoadResult = reopenedStorage.loadChunk(30, 40, 0);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
-        const auto reopenedSnapshot = reopenedLoadResult.value();
-        ASSERT_NE(reopenedSnapshot, nullptr);
-
-        EXPECT_EQ(reopenedSnapshot->getBlockStateId(0, 0, 0), 777u);
+        ASSERT_TRUE(reopenedLoadResult.value().has_value());
+        const ChunkSection* reopenedSection = reopenedLoadResult.value().value().getSection(6);
+        ASSERT_NE(reopenedSection, nullptr);
+        EXPECT_EQ(reopenedSection->getBlockStateId(0, 0, 0), 777u);
 
         reopenedStorage.close();
     }
@@ -362,26 +345,32 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSna
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
-
-    SectionKey key(50, 60, 7, 0);
-    SectionData data = createTestSectionData(50, 60, 7, 0, 456);
-
-    auto saveResult = mgr.saveSectionSync(key, data);
+    ChunkData chunk(50, 60);
+    ChunkSection* section = chunk.createSection(7);
+    ASSERT_NE(section, nullptr);
+    section->setBlockStateId(0, 0, 0, 456);
+    chunk.setLoaded(true);
+    chunk.setFullyGenerated(true);
+    chunk.setDirty(false);
+    auto saveResult = storage.saveChunk(chunk, 0);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto loadResult = mgr.loadSectionSync(key);
+    auto loadResult = storage.loadChunk(50, 60, 0);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+    ASSERT_TRUE(loadResult.value().has_value());
+    const ChunkSection* initialSection = loadResult.value().value().getSection(7);
+    ASSERT_NE(initialSection, nullptr);
+    EXPECT_EQ(initialSection->getBlockStateId(0, 0, 0), 456u);
 
-    const auto initialSnapshot = loadResult.value();
-    ASSERT_NE(initialSnapshot, nullptr);
-    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
-
-    SectionData updatedData = createTestSectionData(50, 60, 7, 0, 888);
-    auto overwriteResult = mgr.saveSectionSync(key, updatedData);
+    ChunkData updatedChunk(50, 60);
+    ChunkSection* updatedSection = updatedChunk.createSection(7);
+    ASSERT_NE(updatedSection, nullptr);
+    updatedSection->setBlockStateId(0, 0, 0, 888);
+    updatedChunk.setLoaded(true);
+    updatedChunk.setFullyGenerated(true);
+    updatedChunk.setDirty(false);
+    auto overwriteResult = storage.saveChunk(updatedChunk, 0);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
-
-    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
 
     auto flushResult = storage.flushAllDirty();
     ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
@@ -393,13 +382,12 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSna
         auto reopenResult = reopenedStorage.open(testDir, config);
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
-        auto& reopenedMgr = reopenedStorage.sectionManager(0);
-        auto reopenedLoadResult = reopenedMgr.loadSectionSync(key);
+        auto reopenedLoadResult = reopenedStorage.loadChunk(50, 60, 0);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
-        const auto reopenedSnapshot = reopenedLoadResult.value();
-        ASSERT_NE(reopenedSnapshot, nullptr);
-
-        EXPECT_EQ(reopenedSnapshot->getBlockStateId(0, 0, 0), 888u);
+        ASSERT_TRUE(reopenedLoadResult.value().has_value());
+        const ChunkSection* reopenedSection = reopenedLoadResult.value().value().getSection(7);
+        ASSERT_NE(reopenedSection, nullptr);
+        EXPECT_EQ(reopenedSection->getBlockStateId(0, 0, 0), 888u);
 
         reopenedStorage.close();
     }
@@ -413,12 +401,10 @@ TEST_F(SingleLevelStorageManagerTest, InvalidSectionKey)
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0);
-    SectionKey nonexistentKey(99999, 99999, 15, 0);
-    auto loadResult = mgr.loadSectionSync(nonexistentKey);
+    auto loadResult = storage.loadChunk(99999, 99999, 0);
 
     EXPECT_TRUE(loadResult.success());
-    EXPECT_EQ(loadResult.value(), nullptr);
+    EXPECT_FALSE(loadResult.value().has_value());
 
     storage.close();
 }

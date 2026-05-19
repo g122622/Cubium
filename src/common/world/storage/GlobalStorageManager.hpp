@@ -35,30 +35,60 @@
 
 namespace mc::world::storage {
 
+/**
+ * @brief 跨存档全局存储门面
+ *
+ * 该类只负责“存档集合”层面的能力：
+ * - 枚举存档列表
+ * - 查询存档摘要
+ * - 创建、删除、重命名存档
+ * - 解析 saves/backups 根目录与单个存档目录
+ * - 打开指定存档并返回对应的 `SingleLevelStorageManager`
+ *
+ * 该类不持有任何已打开存档的运行时状态。
+ * 每次 `openLevel()` 都会创建一个新的单存档运行时门面，
+ * 其生命周期由调用方显式持有和管理。
+ */
 class GlobalStorageManager {
 public:
+    /**
+     * @brief 使用默认路径构造全局存储门面
+     *
+     * 默认使用 `WorldStoragePaths::defaultPaths()` 解析
+     * 当前工作目录下的 `saves/` 与 `backups/`。
+     */
     GlobalStorageManager();
-    explicit GlobalStorageManager(WorldStoragePaths paths);
 
+    /**
+     * @brief 列出所有存档
+     * @return 世界列表条目集合，失败返回错误
+     */
     [[nodiscard]] Result<std::vector<WorldListEntry>> listWorlds();
-    [[nodiscard]] Result<WorldListEntry> getWorldSummary(const std::string& levelId);
-    [[nodiscard]] bool worldExists(const std::string& levelId);
-    [[nodiscard]] Result<std::string> createWorld(const CreateWorldRequest& request);
-    Result<void> deleteWorld(const std::string& levelId);
-    Result<void> renameWorld(const std::string& levelId, const std::string& newDisplayName);
-    Result<void> updateLastPlayed(const std::string& levelId, i64 lastPlayedMs);
-    [[nodiscard]] Result<BackupWorldResult> backupWorld(const BackupWorldRequest& request);
+
+    /**
+     * @brief 打开指定存档
+     *
+     * 该方法会根据 `levelId` 解析存档目录，创建新的
+     * `SingleLevelStorageManager`，并执行 `open(...)`。
+     *
+     * 返回的运行时门面由调用方独占持有。
+     *
+     * @param levelId 存档目录名
+     * @param config 单存档运行时存储配置
+     * @return 已打开的单存档运行时门面
+     */
     [[nodiscard]] Result<std::unique_ptr<SingleLevelStorageManager>> openLevel(
         const std::string& levelId, const SingleLevelStorageConfig& config);
 
-    [[nodiscard]] std::filesystem::path resolveWorldPath(const std::string& levelId) const;
+    /**
+     * @brief 获取 saves 根目录
+     * @return saves 目录路径
+     */
     [[nodiscard]] const std::filesystem::path& savesDirectory() const noexcept;
-    [[nodiscard]] const std::filesystem::path& backupsDirectory() const noexcept;
-    [[nodiscard]] const WorldStoragePaths& paths() const noexcept;
 
 private:
-    WorldStoragePaths m_paths;
-    WorldListService m_worldListService;
+    WorldStoragePaths m_paths = WorldStoragePaths::defaultPaths();
+    WorldListService m_worldListService{m_paths};
 };
 
 } // namespace mc::world::storage

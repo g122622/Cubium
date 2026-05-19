@@ -279,7 +279,7 @@ server/application/
 - 在 `stopCore()` 中统一停止计算池
 - `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `SingleLevelStorageManager`
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
-- 世界目录解析改由 `GlobalStorageManager::resolveWorldPath()` / `openLevel()` 承担
+- 世界目录选择与打开改由 `GlobalStorageManager::openLevel()` 承担
 
 ## 模块关系
 
