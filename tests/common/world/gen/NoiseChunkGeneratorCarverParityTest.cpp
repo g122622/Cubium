@@ -39,8 +39,8 @@ namespace {
 /**
  * @brief NoiseChunkGenerator 雕刻阶段一致性测试
  *
- * 验证默认构造路径与注入 BiomeProvider 构造路径在空气雕刻阶段行为一致，
- * 防止某一构造路径遗漏关键初始化逻辑。
+ * 验证两次独立注入 BiomeProvider 的构造路径在空气雕刻阶段行为一致，
+ * 防止显式装配路径遗漏关键初始化逻辑。
  */
 class NoiseChunkGeneratorCarverParityTest : public ::testing::Test {
 protected:
@@ -162,7 +162,8 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipe
     constexpr u64 seed = 0x4D435245424F524EULL;
 
     DimensionSettings defaultSettings = DimensionSettings::overworld();
-    NoiseChunkGenerator defaultGenerator(seed, std::move(defaultSettings));
+    NoiseChunkGenerator defaultGenerator(
+        seed, std::move(defaultSettings), std::make_unique<LayerBiomeProvider>(seed, false));
 
     DimensionSettings injectedSettings = DimensionSettings::overworld();
     auto injectedProvider = std::make_unique<LayerBiomeProvider>(seed, false);
@@ -212,13 +213,13 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     // 创建生成器时高斯查找表应该被初始化
     constexpr u64 seed = 12345ULL;
     DimensionSettings settings = DimensionSettings::overworld();
-    NoiseChunkGenerator generator(seed, std::move(settings));
+    NoiseChunkGenerator generator(seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, false));
 
     // 验证生成器成功创建（高斯查找表作为静态成员初始化）
     // 如果初始化失败，会有编译或运行时错误
     EXPECT_NO_THROW({
         DimensionSettings settings2 = DimensionSettings::overworld();
-        NoiseChunkGenerator generator2(seed, std::move(settings2));
+        NoiseChunkGenerator generator2(seed, std::move(settings2), std::make_unique<LayerBiomeProvider>(seed, false));
     });
 }
 

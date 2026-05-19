@@ -34,6 +34,8 @@
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
+#include "common/world/storage/save/SaveManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/BannedPlayerList.hpp"
@@ -321,6 +323,11 @@ public:
     [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const { return m_lootTableManager; }
 
 protected:
+    void attachWorldBindings(ServerWorld& world);
+    void attachWorldCommandBindings(ServerWorld& world);
+    [[nodiscard]] Result<void> initializeSharedStorage(const std::string& worldName);
+    void shutdownSharedStorage();
+
     /**
      * @brief 初始化核心管理器
      */
@@ -781,8 +788,12 @@ protected:
     std::unique_ptr<core::BannedIpList> m_bannedIpList;
     std::unique_ptr<core::OpListManager> m_opListManager;
 
-    // 世界（由子类创建并设置）
-    std::unique_ptr<ServerWorld> m_world;
+    // 主世界快捷引用；真实所有权由 ServerDimension 持有
+    ServerWorld* m_world = nullptr;
+
+    // 世界级共享存储
+    world::storage::WorldStorageService m_storage;
+    std::unique_ptr<world::storage::SaveManager> m_saveManager;
 
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;

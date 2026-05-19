@@ -55,7 +55,7 @@ namespace mc {
  * 使用方法：
  * @code
  * DimensionSettings settings = DimensionSettings::overworld();
- * NoiseChunkGenerator generator(seed, std::move(settings));
+ * NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeProvider));
  *
  * ChunkPrimer primer(chunkX, chunkZ);
  * generator.generateBiomes(region, primer);
@@ -67,13 +67,6 @@ namespace mc {
  */
 class NoiseChunkGenerator : public BaseChunkGenerator {
 public:
-    /**
-     * @brief 构造噪声区块生成器
-     * @param seed 世界种子
-     * @param settings 维度设置
-     */
-    NoiseChunkGenerator(u64 seed, DimensionSettings settings);
-
     /**
      * @brief 构造噪声区块生成器（带生物群系提供者）
      * @param seed 世界种子

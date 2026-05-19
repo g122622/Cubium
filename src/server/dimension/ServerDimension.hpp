@@ -48,7 +48,7 @@ class MinecraftServer;
  *
  * 继承 Dimension，添加服务端特有的功能：
  * - ServerWorld 管理
- * - 区块管理器
+ * - 运行时世界引用
  * - 玩家追踪
  * - 传送门位置记录
  *
@@ -62,14 +62,12 @@ public:
      * @param id 维度ID
      * @param type 维度类型
      * @param generator 区块生成器
-     * @param biomeProvider 生物群系提供者
      * @param seed 世界种子
      * @param viewDistance 视野距离
      */
     ServerDimension(DimensionId id,
         DimensionType type,
         std::unique_ptr<IChunkGenerator> generator,
-        std::unique_ptr<BiomeProvider> biomeProvider,
         u64 seed,
         i32 viewDistance);
 
@@ -114,17 +112,19 @@ public:
     [[nodiscard]] server::ServerWorld* world() { return m_world.get(); }
     [[nodiscard]] const server::ServerWorld* world() const { return m_world.get(); }
 
+    void setWorld(std::unique_ptr<server::ServerWorld> world);
+
     /**
      * @brief 获取区块管理器
      */
-    [[nodiscard]] server::ServerChunkManager* chunkManager() { return m_chunkManager.get(); }
-    [[nodiscard]] const server::ServerChunkManager* chunkManager() const { return m_chunkManager.get(); }
+    [[nodiscard]] server::ServerChunkManager* chunkManager();
+    [[nodiscard]] const server::ServerChunkManager* chunkManager() const;
 
     /**
      * @brief 获取光照管理器
      */
-    [[nodiscard]] WorldLightManager* lightManager() { return m_lightManager.get(); }
-    [[nodiscard]] const WorldLightManager* lightManager() const { return m_lightManager.get(); }
+    [[nodiscard]] WorldLightManager* lightManager();
+    [[nodiscard]] const WorldLightManager* lightManager() const;
 
     // ========== 玩家追踪 ==========
 
@@ -200,8 +200,6 @@ public:
 
 private:
     std::unique_ptr<server::ServerWorld> m_world;
-    std::unique_ptr<server::ServerChunkManager> m_chunkManager;
-    std::unique_ptr<WorldLightManager> m_lightManager;
 
     std::vector<PlayerId> m_players;
     std::unordered_set<u64> m_portalPositions; // 使用哈希的 BlockPos

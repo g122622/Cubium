@@ -47,7 +47,7 @@ class WorldLightManager;
  * auto dimension = Dimension::createOverworld(seed);
  * auto& type = dimension.type();
  * auto spawnPoint = dimension.spawnPoint();
- * auto biome = dimension.biomeProvider()->getBiome(x, y, z);
+ * auto biome = dimension.generator()->getBiomeProvider()->getBiome(x, y, z);
  * @endcode
  *
  * @note 维度实例是不可变的，应在初始化时创建。
@@ -59,13 +59,11 @@ public:
      *
      * @param id 维度ID
      * @param type 维度类型
-     * @param generator 区块生成器
-     * @param biomeProvider 生物群系提供者
+     * @param generator 区块生成器；对于仅承载运行时世界句柄的维度包装器可以为空
      */
     Dimension(DimensionId id,
         DimensionType type,
-        std::unique_ptr<IChunkGenerator> generator,
-        std::unique_ptr<BiomeProvider> biomeProvider);
+        std::unique_ptr<IChunkGenerator> generator);
 
     virtual ~Dimension() = default;
 
@@ -102,8 +100,11 @@ public:
     /**
      * @brief 获取生物群系提供者
      */
-    [[nodiscard]] BiomeProvider* biomeProvider() { return m_biomeProvider.get(); }
-    [[nodiscard]] const BiomeProvider* biomeProvider() const { return m_biomeProvider.get(); }
+    [[nodiscard]] BiomeProvider* biomeProvider() { return m_generator != nullptr ? m_generator->getBiomeProvider() : nullptr; }
+    [[nodiscard]] const BiomeProvider* biomeProvider() const
+    {
+        return m_generator != nullptr ? m_generator->getBiomeProvider() : nullptr;
+    }
 
     // ========== 出生点 ==========
 
@@ -223,7 +224,6 @@ protected:
     DimensionId m_id;
     DimensionType m_type;
     std::unique_ptr<IChunkGenerator> m_generator;
-    std::unique_ptr<BiomeProvider> m_biomeProvider;
     Vector3d m_spawnPoint{0.0, 64.0, 0.0};
 };
 

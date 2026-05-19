@@ -154,187 +154,66 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
         spdlog::debug("No ops.json found or failed to load: {}", opsResult.error().message());
     }
 
-    // 创建世界
-    {
-        MC_TRACE_EVENT("server.initialization", "IntegratedServer::createWorld");
-
-        ServerWorldConfig worldConfig;
-        worldConfig.viewDistance = config.viewDistance;
-        worldConfig.dimension = 0; // 主世界
-        worldConfig.seed = static_cast<u64>(config.seed);
-        // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
-
-        m_world = std::make_unique<ServerWorld>(worldConfig);
-        m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
-                                    sound::SoundCategory category,
-                                    const Vector3& position,
-                                    f32 volume,
-                                    f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
-        m_world->setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
-                                            const Vector3& pos,
-                                            const Vector3& velocity,
-                                            const Vector3& offset,
-                                            u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
-        m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
-            Entity* entity = m_world->getEntity(entityId);
-            if (entity) {
-                broadcastEntityStatusInRange(entityId, status, entity->position());
-            }
-        });
-        m_world->setOnBroadcastWorldEvent(
-            [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
-        m_world->setOnBroadcastExplosion([this](const Vector3& position,
-                                            f32 strength,
-                                            const std::vector<BlockPos>& affectedBlocks,
-                                            const std::unordered_map<u64, Vector3>& playerKnockback) {
-            broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
-        });
-
-        // 设置命令执行回调（用于命令方块矿车等实体执行命令）
-        // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
-        m_world->setOnExecuteCommand([this](const std::string& command,
-                                            const Vector3d& position,
-                                            i32 permissionLevel) -> i32 {
-            // 准备命令字符串（确保以 '/' 开头）
-            std::string cmd = command;
-            if (!cmd.empty() && cmd[0] != '/') {
-                cmd = "/" + cmd;
-            }
-
-            // 创建命令源
-            // MC 1.16.5: 命令方块矿车命令源的权限级别为 2，无关联玩家
-            command::ServerCommandSource source(this,
-                nullptr,                    // 无关联玩家
-                m_world.get(),              // 世界实例
-                position,                   // 执行位置
-                Vector2f(0.0f, 0.0f),       // 朝向
-                permissionLevel,            // 权限级别（命令方块矿车为 2）
-                0,                          // 玩家ID（无玩家）
-                "@");                       // 名称（命令方块矿车显示为 "@"）
-
-            // 执行命令
-            auto result = m_commandRegistry->execute(cmd, source);
-
-            if (result.failed()) {
-                spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
-                return 0;
-            }
-
-            return result.value();
-        });
-
-        // 设置 TimeManager 引用
-        m_world->setTimeManager(m_timeManager.get());
-
-        // 设置难度回调（从 MinecraftServer 获取难度）
-        m_world->setDifficultyCallback([this]() { return this->difficulty(); });
-
-        // 设置 LootTableManager 引用（用于爆炸时生成方块掉落）
-        m_world->setLootTableManager(&m_lootTableManager);
-
-        m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
-    }
-
-    auto worldInitResult = m_world->initialize();
-    if (worldInitResult.failed()) {
+    auto storageInitResult = initializeSharedStorage(config.worldName);
+    if (storageInitResult.failed()) {
         return Error(
-            ErrorCode::InitializationFailed, "Failed to initialize world: " + worldInitResult.error().message());
+            ErrorCode::InitializationFailed, "Failed to initialize shared world storage: " + storageInitResult.error().message());
     }
 
-    // 根据世界类型创建区块管理器
-    {
-        MC_TRACE_EVENT("server.initialization", "IntegratedServer::initializeChunkManager");
-
-        std::unique_ptr<IChunkGenerator> chunkGenerator;
-        switch (config.worldType) {
-            case WorldType::Debug:
-                spdlog::info("Using DebugChunkGenerator for debug world");
-                chunkGenerator = std::make_unique<DebugChunkGenerator>();
-                break;
-            case WorldType::Flat:
-                spdlog::info("Using flat world settings");
-                chunkGenerator =
-                    std::make_unique<NoiseChunkGenerator>(static_cast<u64>(config.seed), DimensionSettings::flat());
-                break;
-            case WorldType::LargeBiomes:
-                spdlog::info("Using large biomes world settings");
-                chunkGenerator = std::make_unique<NoiseChunkGenerator>(static_cast<u64>(config.seed),
-                    DimensionSettings::overworld(),
-                    std::make_unique<LayerBiomeProvider>(static_cast<u64>(config.seed), true));
-                break;
-            case WorldType::Amplified:
-                spdlog::info("Using amplified world settings");
-                {
-                    DimensionSettings amplifiedSettings = DimensionSettings::overworld();
-                    amplifiedSettings.noise = NoiseSettings::amplified();
-                    chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                        static_cast<u64>(config.seed), std::move(amplifiedSettings));
-                }
-                break;
-            case WorldType::Default:
-            default:
-                spdlog::info("Using NoiseChunkGenerator for normal world");
-                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                    static_cast<u64>(config.seed), DimensionSettings::overworld());
-                break;
-        }
-        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
-        chunkManager->setWorkerPool(&m_computationWorkerPool);
-        chunkManager->setViewDistance(config.viewDistance);
-        auto chunkManagerInitResult = chunkManager->initialize();
-        if (chunkManagerInitResult.failed()) {
-            return Error(ErrorCode::InitializationFailed,
-                "Failed to initialize chunk manager: " + chunkManagerInitResult.error().message());
-        }
-        m_world->setChunkManager(std::move(chunkManager));
+    // 初始化维度管理器
+    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance, config.worldType);
+    if (dimInitResult.failed()) {
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to initialize dimension manager: " + dimInitResult.error().message());
     }
 
-    // 创建光照管理器
-    auto lightManager = std::make_unique<WorldLightManager>(m_world.get(), true, true);
-    m_world->setLightManager(std::move(lightManager));
+    auto* overworld = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    m_world = overworld->world();
+    MC_ASSERT_RELEASE(m_world != nullptr);
 
-    // 初始化世界出生点
-    m_world->initializeWorldSpawn();
+    attachWorldBindings(*m_world);
+    attachWorldCommandBindings(*m_world);
 
-    // 设置 RaidManager 回调
-    setupRaidManagerCallbacks();
+    // 设置命令执行回调（用于命令方块矿车等实体执行命令）
+    // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
+    m_world->setOnExecuteCommand([this](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
+        std::string cmd = command;
+        if (!cmd.empty() && cmd[0] != '/') {
+            cmd = "/" + cmd;
+        }
 
-    // 初始化世界
+        command::ServerCommandSource source(this, nullptr, m_world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
+        auto result = m_commandRegistry->execute(cmd, source);
+        if (result.failed()) {
+            spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+            return 0;
+        }
+
+        return result.value();
+    });
+
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
         return worldResult;
     }
 
-    // 调试模式特殊初始化
     if (m_world->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
-
-        // 设置游戏模式为旁观者
         m_config.defaultGameMode = GameMode::Spectator;
-
-        // 禁用日光周期，设置时间为正午（6000）
         if (m_timeManager) {
-            m_timeManager->setDayTime(6000); // 正午
+            m_timeManager->setDayTime(6000);
             m_timeManager->setDaylightCycleEnabled(false);
             spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
         }
-
-        // 禁用天气（晴朗）
         if (m_world->weatherManager()) {
-            m_world->weatherManager()->setClear(999999999); // 长时间晴天
+            m_world->weatherManager()->setClear(999999999);
             spdlog::info("Debug world: Weather set to clear");
         }
     }
 
-    // 初始化交互管理器
+    setupRaidManagerCallbacks();
     initializeInteractionManagers();
-
-    // 初始化维度管理器
-    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance);
-    if (dimInitResult.failed()) {
-        return Error(ErrorCode::InitializationFailed,
-            "Failed to initialize dimension manager: " + dimInitResult.error().message());
-    }
 
     // 初始化同步管理器
     initializeSyncManagers();

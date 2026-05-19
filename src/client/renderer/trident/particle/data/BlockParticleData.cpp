@@ -31,7 +31,7 @@ BlockParticleData::BlockParticleData(ParticleTypeId type, BlockState blockState)
     : m_type(type)
     , m_blockState(std::move(blockState))
 {
-    MC_ASSERT_MSG(requiresBlockState(type), "BlockParticleData requires a block-type particle");
+    MC_ASSERT_RELEASE_MSG(requiresBlockState(type), "BlockParticleData requires a block-type particle");
 }
 
 std::string BlockParticleData::getTypeName() const

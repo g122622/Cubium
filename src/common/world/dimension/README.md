@@ -82,7 +82,7 @@ if (!nether.bedWorks()) {
 
 ### Dimension.hpp/cpp
 
-**职责**: 维度实例类，组合维度类型、区块生成器和生物群系提供者。
+**职责**: 维度实例类，组合维度类型与区块生成器；生物群系提供者现在归属于区块生成器。
 
 **主要成员**:
 
@@ -91,7 +91,6 @@ if (!nether.bedWorks()) {
 | `m_id` | `DimensionId` | 维度ID |
 | `m_type` | `DimensionType` | 维度类型 |
 | `m_generator` | `IChunkGenerator*` | 区块生成器 |
-| `m_biomeProvider` | `BiomeProvider*` | 生物群系提供者 |
 | `m_spawnPoint` | `Vector3d` | 出生点位置 |
 
 **工厂方法**:
@@ -102,7 +101,7 @@ if (!nether.bedWorks()) {
 **使用示例**:
 ```cpp
 auto overworld = Dimension::createOverworld(seed);
-auto biome = overworld->biomeProvider()->getBiome(x, y, z);
+auto biome = overworld->generator()->getBiomeProvider()->getBiome(x, y, z);
 auto spawnPoint = overworld->spawnPoint();
 ```
 

@@ -110,11 +110,8 @@ src/server/application/
 - Generic right-click block activation is routed to `BlockInteractionManager::handleBlockUse()` when placement path does not apply
 - The world sound callback is attached during initialization so local entity sounds reach the client through the same server broadcast path
 - World type routing:
-  - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
-  - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
-  - `LargeBiomes` -> `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
-  - `Amplified` -> `NoiseChunkGenerator + NoiseSettings::amplified()`
-  - `Debug` -> `DebugChunkGenerator`
+  - 由 `ServerDimensionManager` 统一装配主世界 `ServerWorld`
+  - `IntegratedServer` 只提供 `WorldType` 配置，不再直接创建主世界 `NoiseChunkGenerator`
 
 **Configuration (`IntegratedServerConfig`):**
 
@@ -160,12 +157,9 @@ struct IntegratedServerConfig {
 - Creative inventory login and slot writes use the same shared creative inventory helper and `CreativeInventoryActionPacket` path as the integrated server
 - Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
 - The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
-- Full world type support with proper chunk generator selection:
-  - `Default` → `NoiseChunkGenerator + DimensionSettings::overworld()`
-  - `Flat` → `NoiseChunkGenerator + DimensionSettings::flat()`
-  - `LargeBiomes` → `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
-  - `Amplified` → `NoiseChunkGenerator + NoiseSettings::amplified()`
-  - `Debug` → `DebugChunkGenerator` (spectator mode, fixed time, clear weather)
+- Full world type support:
+  - 主世界生成模式通过 `ServerDimensionManager::initialize(..., overworldType)` 统一下发
+  - `StandaloneServer` 不再直接装配主世界 chunk pipeline
 
 **Configuration (`StandaloneServerParams`):**
 

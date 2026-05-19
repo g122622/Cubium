@@ -38,7 +38,7 @@ SoundEvent::SoundEvent(std::string_view idString)
 
 void SoundEvent::setAttenuationDistance(f32 distance) noexcept
 {
-    MC_ASSERT_MSG(distance > 0.0f, "Attenuation distance must be positive");
+    MC_ASSERT_RELEASE_MSG(distance > 0.0f, "Attenuation distance must be positive");
     m_attenuationDistance = distance;
 }
 

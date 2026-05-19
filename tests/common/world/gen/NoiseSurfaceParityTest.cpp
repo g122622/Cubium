@@ -25,6 +25,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -107,7 +108,8 @@ TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer)
     ASSERT_NE(m_centerChunk, nullptr);
 
     DimensionSettings settings = DimensionSettings::overworld();
-    NoiseChunkGenerator generator(123456789ULL, std::move(settings));
+    NoiseChunkGenerator generator(
+        123456789ULL, std::move(settings), std::make_unique<LayerBiomeProvider>(123456789ULL, false));
 
     generator.buildSurface(*m_region, *m_centerChunk);
 

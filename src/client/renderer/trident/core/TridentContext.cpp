@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <set>
 #include <spdlog/spdlog.h>
+#include "common/perfetto/TraceEvents.hpp"
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
@@ -135,6 +136,8 @@ TridentContext& TridentContext::operator=(TridentContext&& other) noexcept
 
 Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig& config)
 {
+    MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentContext already initialized");
     }

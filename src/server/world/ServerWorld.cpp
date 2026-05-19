@@ -48,15 +48,10 @@
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gamerule/GameRules.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
-#include "common/world/storage/core/WorldStoragePaths.hpp"
-#include "common/world/storage/db/ConsistencyMode.hpp"
-#include "common/world/storage/save/SaveManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
@@ -85,20 +80,18 @@ using mc::util::core::CoordConverter;
 // ServerWorld 实现
 // ============================================================================
 
-ServerWorld::ServerWorld()
-{
-    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor");
-
-    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
-    m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
-    m_chunkManager->setViewDistance(m_config.viewDistance);
-}
-
 ServerWorld::ServerWorld(const ServerWorldConfig& config)
     : m_config(config)
 {
-    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
-    m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
+    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor", "dimension", config.dimension);
+}
+
+ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<ServerChunkManager> chunkManager)
+    : m_config(config)
+    , m_chunkManager(std::move(chunkManager))
+{
+    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor", "dimension", config.dimension);
+    MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
 
@@ -116,40 +109,17 @@ Result<void> ServerWorld::initialize()
         return Result<void>::ok();
     }
 
-    // 初始化存储系统
-    auto paths = world::storage::WorldStoragePaths::defaultPaths();
-    auto worldPath = paths.worldDir(m_config.worldName);
+    MC_ASSERT_RELEASE(m_storage != nullptr);
+    MC_ASSERT_RELEASE(m_saveManager != nullptr);
+    MC_ASSERT_RELEASE(m_storage->isOpen());
 
-    world::storage::WorldStorageConfig storageConfig;
-    storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
-    storageConfig.sectionCacheCapacity = 2048;
-    storageConfig.enableBackup = true;
-
-    auto storageResult = m_storage.open(worldPath, storageConfig);
-    if (storageResult.failed()) {
-        spdlog::error("Failed to open world storage: {}", storageResult.error().message());
-        return storageResult;
-    }
-    spdlog::info("World storage opened at {}", worldPath.string());
-
-    m_saveManager = std::make_unique<world::storage::SaveManager>(m_storage);
-    world::storage::AutoSaveConfig saveConfig;
-    m_saveManager->initialize(saveConfig);
-    m_saveManager->startAutoSave();
-
-    if (!m_chunkManager) {
-        auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
-        m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
-        m_chunkManager->setViewDistance(m_config.viewDistance);
-    }
+    MC_ASSERT_RELEASE(m_chunkManager != nullptr);
 
     // 确保区块管理器始终使用世界配置中的视距。
     m_chunkManager->setViewDistance(m_config.viewDistance);
 
     auto result = m_chunkManager->initialize();
     if (result.failed()) {
-        m_saveManager.reset();
-        m_storage.close();
         return result;
     }
 
@@ -184,7 +154,7 @@ void ServerWorld::shutdown()
     m_initialized = false;
 
     // 先保存所有脏数据
-    if (m_storage.isOpen()) {
+    if (m_storage != nullptr && m_storage->isOpen()) {
         auto saveResult = saveAll();
         if (saveResult.failed()) {
             spdlog::error("Failed to save world: {}", saveResult.error().message());
@@ -209,12 +179,7 @@ void ServerWorld::shutdown()
     m_physicsEngine.reset();
     m_collisionCache.reset();
 
-    m_saveManager.reset();
-
     m_chunkManager.reset();
-
-    // 关闭存储系统
-    m_storage.close();
 
     spdlog::info("Server world shut down");
 }
@@ -223,13 +188,13 @@ Result<size_t> ServerWorld::saveAll()
 {
     MC_TRACE_EVENT("server.world", "ServerWorld::saveAll");
 
-    if (!m_storage.isOpen()) {
+    if (m_storage == nullptr || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
-    auto* saveManager = m_saveManager.get();
+    auto* saveManager = m_saveManager;
     if (saveManager == nullptr) {
-        auto result = m_storage.saveAll();
+        auto result = m_storage->saveAll();
         if (result.failed()) {
             return result.error();
         }
@@ -245,6 +210,13 @@ Result<size_t> ServerWorld::saveAll()
 
     spdlog::info("Saved {} cached sections", result.value());
     return result.value();
+}
+
+void ServerWorld::setSharedStorage(world::storage::WorldStorageService* storage, world::storage::SaveManager* saveManager)
+{
+    MC_ASSERT_RELEASE(!m_initialized);
+    m_storage = storage;
+    m_saveManager = saveManager;
 }
 
 void ServerWorld::setConfig(const ServerWorldConfig& config)

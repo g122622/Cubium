@@ -25,8 +25,6 @@
 #include "../world/ServerWorld.hpp" // 需要完整定义以使用 unique_ptr
 #include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include <limits>
 
 namespace mc {
 
@@ -37,10 +35,9 @@ namespace mc {
 ServerDimension::ServerDimension(DimensionId id,
     DimensionType type,
     std::unique_ptr<IChunkGenerator> generator,
-    std::unique_ptr<BiomeProvider> biomeProvider,
     u64 seed,
     i32 viewDistance)
-    : Dimension(id, std::move(type), std::move(generator), std::move(biomeProvider))
+    : Dimension(id, std::move(type), std::move(generator))
     , m_seed(seed)
     , m_viewDistance(viewDistance)
 {}
@@ -60,9 +57,12 @@ Result<void> ServerDimension::initialize()
         return {};
     }
 
-    // TODO: 创建 ServerWorld
-    // 目前 ServerWorld 需要完整的配置，这里先占位
-    // 实际创建将在 ServerDimensionManager 中完成
+    MC_ASSERT_RELEASE(m_world != nullptr);
+
+    auto result = m_world->initialize();
+    if (result.failed()) {
+        return result;
+    }
 
     m_initialized = true;
     return {};
@@ -77,8 +77,6 @@ void ServerDimension::shutdown()
     m_players.clear();
     m_portalPositions.clear();
 
-    m_lightManager.reset();
-    m_chunkManager.reset();
     m_world.reset();
 
     m_initialized = false;
@@ -92,22 +90,35 @@ void ServerDimension::tick()
 {
     Dimension::tick();
 
-    // 更新区块管理器
-    if (m_chunkManager) {
-        m_chunkManager->tick();
+    if (m_world != nullptr) {
+        m_world->tick();
     }
+}
 
-    // 更新光照管理器
-    // 参考 MC 1.16.5: ServerChunkProvider.ChunkExecutor.driveOne() 中调用 lightManager.func_215588_z_()
-    // 光照更新使用 Integer.MAX_VALUE 作为最大更新数量，同时更新天空光照和方块光照
-    if (m_lightManager) {
-        // 检查是否有待处理的光照工作
-        if (m_lightManager->hasLightWork()) {
-            // 处理所有待处理的光照更新
-            // 参数：maxUpdates=最大整数（处理所有）, updateSkyLight=根据维度类型, updateBlockLight=true
-            m_lightManager->tick(std::numeric_limits<i32>::max(), type().hasSkyLight(), true);
-        }
-    }
+void ServerDimension::setWorld(std::unique_ptr<server::ServerWorld> world)
+{
+    MC_ASSERT_RELEASE(!m_initialized);
+    m_world = std::move(world);
+}
+
+server::ServerChunkManager* ServerDimension::chunkManager()
+{
+    return m_world != nullptr ? m_world->chunkManager() : nullptr;
+}
+
+const server::ServerChunkManager* ServerDimension::chunkManager() const
+{
+    return m_world != nullptr ? m_world->chunkManager() : nullptr;
+}
+
+WorldLightManager* ServerDimension::lightManager()
+{
+    return m_world != nullptr ? m_world->lightManager() : nullptr;
+}
+
+const WorldLightManager* ServerDimension::lightManager() const
+{
+    return m_world != nullptr ? m_world->lightManager() : nullptr;
 }
 
 // ============================================================================

@@ -150,10 +150,13 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
 
     // 打开数据库
     std::vector<rocksdb::ColumnFamilyHandle*> cfHandles;
-    rocksdb::Status status = rocksdb::DB::Open(dbOptions, path.string(), cfDescriptors, &cfHandles, &db->m_db);
+    {
+        MC_TRACE_EVENT("storage.db", "rocksdb::DB::Open", "path", path.string());
 
-    if (!status.ok()) {
-        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open database: {}", status.ToString()));
+        rocksdb::Status status = rocksdb::DB::Open(dbOptions, path.string(), cfDescriptors, &cfHandles, &db->m_db);
+        if (!status.ok()) {
+            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open database: {}", status.ToString()));
+        }
     }
 
     // 存储列族句柄

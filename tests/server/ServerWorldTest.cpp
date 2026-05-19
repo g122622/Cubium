@@ -26,6 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
@@ -83,6 +84,16 @@ public:
 
 class ServerWorldTest : public ::testing::Test {
 protected:
+    static std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
+    {
+        auto world = std::make_unique<ServerWorld>(config);
+        auto generator = std::make_unique<NoiseChunkGenerator>(
+            config.seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(config.seed, false));
+        auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+        return world;
+    }
+
     void SetUp() override
     {
         // 初始化方块注册表
@@ -91,8 +102,9 @@ protected:
         ServerWorldConfig config;
         config.viewDistance = 10;
         config.dimension = 0;
+        config.seed = 12345;
         // 注意：isDebugWorld 字段已移除，改用 isDebugWorld() 方法通过检测区块生成器类型判断
-        world = std::make_unique<ServerWorld>(config);
+        world = createTestWorld(config);
     }
 
     void TearDown() override { world.reset(); }
@@ -104,21 +116,16 @@ protected:
 // 构造和初始化测试
 // ============================================================================
 
-TEST_F(ServerWorldTest, DefaultConstructor)
-{
-    ServerWorld defaultWorld;
-    EXPECT_EQ(defaultWorld.chunkCount(), 0);
-}
-
 TEST_F(ServerWorldTest, ConfigConstructor)
 {
     ServerWorldConfig config;
     config.viewDistance = 8;
     config.dimension = 1;
+    config.seed = 12345;
 
-    ServerWorld configuredWorld(config);
-    EXPECT_EQ(configuredWorld.config().viewDistance, 8);
-    EXPECT_EQ(configuredWorld.config().dimension, 1);
+    auto configuredWorld = createTestWorld(config);
+    EXPECT_EQ(configuredWorld->config().viewDistance, 8);
+    EXPECT_EQ(configuredWorld->config().dimension, 1);
 }
 
 TEST_F(ServerWorldTest, Initialize)
@@ -327,11 +334,11 @@ TEST_F(ServerWorldTest, Initialize_AppliesConfiguredViewDistance)
     config.dimension = 0;
     config.seed = 12345;
 
-    ServerWorld configuredWorld(config);
-    auto result = configuredWorld.initialize();
+    auto configuredWorld = createTestWorld(config);
+    auto result = configuredWorld->initialize();
     ASSERT_TRUE(result.success());
-    ASSERT_NE(configuredWorld.chunkManager(), nullptr);
-    EXPECT_EQ(configuredWorld.chunkManager()->viewDistance(), 18);
+    ASSERT_NE(configuredWorld->chunkManager(), nullptr);
+    EXPECT_EQ(configuredWorld->chunkManager()->viewDistance(), 18);
 }
 
 TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance)
@@ -341,15 +348,9 @@ TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance)
     config.dimension = 0;
     config.seed = 67890;
 
-    ServerWorld configuredWorld(config);
-
-    auto generator = std::make_unique<NoiseChunkGenerator>(config.seed, DimensionSettings::overworld());
-    auto chunkManager = std::make_unique<ServerChunkManager>(configuredWorld, std::move(generator));
-    ASSERT_NE(chunkManager, nullptr);
-
-    configuredWorld.setChunkManager(std::move(chunkManager));
-    ASSERT_NE(configuredWorld.chunkManager(), nullptr);
-    EXPECT_EQ(configuredWorld.chunkManager()->viewDistance(), 18);
+    auto configuredWorld = createTestWorld(config);
+    ASSERT_NE(configuredWorld->chunkManager(), nullptr);
+    EXPECT_EQ(configuredWorld->chunkManager()->viewDistance(), 18);
 }
 
 // ============================================================================

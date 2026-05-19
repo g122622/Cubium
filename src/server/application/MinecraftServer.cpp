@@ -55,6 +55,8 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/storage/core/WorldStoragePaths.hpp"
+#include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
@@ -314,6 +316,72 @@ void MinecraftServer::initializeCoreManagers()
     m_ioWorkerPool.start();
 }
 
+void MinecraftServer::attachWorldBindings(ServerWorld& world)
+{
+    world.setOnPlaySound([this](const ResourceLocation& soundEventId,
+                             sound::SoundCategory category,
+                             const Vector3& position,
+                             f32 volume,
+                             f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
+    world.setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
+                                     const Vector3& pos,
+                                     const Vector3& velocity,
+                                     const Vector3& offset,
+                                     u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
+    world.setOnBroadcastEntityStatus([this, &world](EntityId entityId, u8 status) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastEntityStatusInRange(entityId, status, entity->position());
+        }
+    });
+    world.setOnBroadcastWorldEvent(
+        [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    world.setOnBroadcastExplosion([this](const Vector3& position,
+                                      f32 strength,
+                                      const std::vector<BlockPos>& affectedBlocks,
+                                      const std::unordered_map<u64, Vector3>& playerKnockback) {
+        broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
+    });
+}
+
+void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
+{
+    world.setTimeManager(m_timeManager.get());
+    world.setDifficultyCallback([this]() { return this->difficulty(); });
+    world.setLootTableManager(&m_lootTableManager);
+}
+
+Result<void> MinecraftServer::initializeSharedStorage(const std::string& worldName)
+{
+    auto paths = world::storage::WorldStoragePaths::defaultPaths();
+    auto worldPath = paths.worldDir(worldName);
+
+    world::storage::WorldStorageConfig storageConfig;
+    storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
+    storageConfig.sectionCacheCapacity = 2048;
+    storageConfig.enableBackup = true;
+
+    m_storage.setIoWorkerPool(&m_ioWorkerPool);
+    auto storageResult = m_storage.open(worldPath, storageConfig);
+    if (storageResult.failed()) {
+        spdlog::error("Failed to open world storage: {}", storageResult.error().message());
+        return storageResult;
+    }
+    spdlog::info("World storage opened at {}", worldPath.string());
+
+    m_saveManager = std::make_unique<world::storage::SaveManager>(m_storage);
+    world::storage::AutoSaveConfig saveConfig;
+    m_saveManager->initialize(saveConfig);
+    m_saveManager->startAutoSave();
+    return Result<void>::ok();
+}
+
+void MinecraftServer::shutdownSharedStorage()
+{
+    m_saveManager.reset();
+    m_storage.close();
+}
+
 Result<void> MinecraftServer::initializeWorld()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeWorld");
@@ -519,7 +587,7 @@ void MinecraftServer::setupWorldCallbacks()
             if (!entityType || !entityType->canSummon()) {
                 continue;
             }
-            auto entity = entityType->create(m_world.get());
+            auto entity = entityType->create(m_world);
             if (!entity) {
                 continue;
             }
@@ -661,7 +729,8 @@ void MinecraftServer::shutdownManagers()
         m_dimensionManager->shutdown();
     }
     m_dimensionManager.reset();
-    m_world.reset();
+    m_world = nullptr;
+    shutdownSharedStorage();
     m_gameModeManager.reset();
     m_packetHandler.reset();
     m_positionTracker.reset();
@@ -1093,7 +1162,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
         // 执行命令
         mc::command::ServerCommandSource source(this,
             nullptr,
-            m_world.get(),
+            m_world,
             Vector3d(player->x, player->y, player->z),
             Vector2f(player->yaw, player->pitch),
             4,

@@ -43,18 +43,18 @@ src/server/world/
 - **命令执行回调**（`setOnExecuteCommand`，用于命令方块矿车等实体执行命令）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
-- 存档保存编排（通过 `SaveManager` 驱动自动保存与全量保存）
+- 使用世界级共享 `WorldStorageService` / `SaveManager` 访问与保存维度数据
 - 天气状态管理
 
 `ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlockState`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
 
-`ServerWorld` 现在还会把实体声音统一挂到 `setOnPlaySound(...)`。`MinecraftServer` 在创建世界时会把这个回调接到广播逻辑上，因此 `LivingEntity`、`MobEntity` 和 `Player` 的声音事件都能走同一条路径。
+`ServerWorld` 现在还会把实体声音统一挂到 `setOnPlaySound(...)`。`MinecraftServer` 在从 `ServerDimensionManager` 获取主世界后，会把这个回调接到广播逻辑上，因此 `LivingEntity`、`MobEntity` 和 `Player` 的声音事件都能走同一条路径。
 
 **关键成员**：
 ```cpp
 class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLightingProvider {
     ServerWorldConfig m_config;                              // 世界配置
-    std::unique_ptr<ServerChunkManager> m_chunkManager;      // 区块管理器
+    std::unique_ptr<ServerChunkManager> m_chunkManager;      // 区块管理器（必须外部注入）
     EntityManager m_entityManager;                            // 实体管理器
     EntityTracker m_entityTracker;                            // 实体追踪器
     std::unique_ptr<PhysicsEngine> m_physicsEngine;           // 物理引擎
@@ -97,7 +97,7 @@ i32 executeCommand(const std::string& command,
 **使用示例**：
 
 ```cpp
-// IntegratedServer 初始化时设置回调
+// MinecraftServer 在绑定主世界时设置回调
 m_world->setOnExecuteCommand([this](const std::string& command,
                                      const Vector3d& position,
                                      i32 permissionLevel) -> i32 {
@@ -240,6 +240,12 @@ void tickBlockEntities() {
 }
 ```
 
+**共享存储约束**：
+- `ServerWorld` 不再独占 `WorldStorageService`
+- `ServerWorld` 不再创建自己的 `SaveManager`
+- 存储与保存协调器由 `MinecraftServer` 创建一次，并注入所有维度 runtime
+- 因此三个维度共享同一份 `WorldSessionLock`、数据库连接和自动保存编排
+
 **爆炸系统集成**：
 - `ServerWorld` 持有 `LootTableManager` 引用，用于爆炸掉落生成
 - `MinecraftServer` 初始化时通过 `setLootTableManager()` 设置
@@ -331,7 +337,7 @@ Player* target = world->getClosestPlayer(attacker.position(), 64.0f, &attacker);
 
 **模块关系**：
 - `MinecraftServer` 创建、启动、停止计算线程池
-- `ServerWorld` 保存线程池引用，并在切换区块管理器时重新绑定
+- 世界级存储服务保存 IO 线程池引用，并被所有维度共享
 - `ServerChunkManager` 仅负责提交区块生成任务，不负责线程池生命周期
 
 **关键方法**：
@@ -830,7 +836,19 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 
 **解决方案**：所有方块写入测试和同步测试都必须先初始化世界，确保 `m_lightManager` 和 `m_tickManager` 已经创建。
 
-### 8. 替换 ChunkManager 时视距回退
+### 8. ServerWorld 不再默认自建 ChunkManager
+
+**问题**：旧代码假设 `ServerWorld` 默认构造或 `initialize()` 会自动创建主世界 `NoiseChunkGenerator + ServerChunkManager`，这会和维度管理器的统一装配形成双轨。
+
+**解决方案**：现在 `ServerWorld` 必须由外部先注入 `ServerChunkManager`，再调用 `initialize()`。主调者应通过 `ServerDimensionManager` 或测试装配 helper 显式创建完整 pipeline。
+
+### 9. 多维度重复打开世界存档
+
+**问题**：如果每个维度的 `ServerWorld` 都自己 `open()` 世界目录，就会在下界或末地初始化时重复获取同一个 `WorldSessionLock`，导致世界被判定为“已被其他进程锁定”。
+
+**解决方案**：现在 `WorldStorageService` 与 `SaveManager` 提升到 `MinecraftServer` 层，只初始化一次，再注入三个维度对应的 `ServerWorld`。
+
+### 10. 替换 ChunkManager 时视距回退
 
 **问题**：替换 `ServerChunkManager` 后，如果未同步 `viewDistance`，新管理器会使用默认值 10，导致首帧加载区块数量异常。
 

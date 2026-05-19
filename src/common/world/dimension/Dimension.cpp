@@ -39,12 +39,10 @@ namespace mc {
 
 Dimension::Dimension(DimensionId id,
     DimensionType type,
-    std::unique_ptr<IChunkGenerator> generator,
-    std::unique_ptr<BiomeProvider> biomeProvider)
+    std::unique_ptr<IChunkGenerator> generator)
     : m_id(id)
     , m_type(std::move(type))
     , m_generator(std::move(generator))
-    , m_biomeProvider(std::move(biomeProvider))
 {}
 
 // ============================================================================
@@ -66,16 +64,13 @@ std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
     DimensionType dimType = DimensionType::overworld();
 
     // 创建生物群系提供者
-    auto biomeProvider = std::make_unique<LayerBiomeProvider>(seed, false);
-
-    // 创建区块生成器
     auto settings = DimensionSettings::overworld();
-    auto generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings));
+    auto generator =
+        std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, false));
 
     auto dimension = std::make_unique<Dimension>(0, // DimensionId::Overworld
         std::move(dimType),
-        std::move(generator),
-        std::move(biomeProvider));
+        std::move(generator));
 
     // 主世界默认出生点
     dimension->m_spawnPoint = Vector3d(0.0, 64.0, 0.0);
@@ -88,16 +83,12 @@ std::unique_ptr<Dimension> Dimension::createNether(u64 seed)
     DimensionType dimType = DimensionType::nether();
 
     // 下界使用 NetherBiomeProvider
-    auto biomeProvider = std::make_unique<biome::nether::NetherBiomeProvider>(seed);
-
-    // 创建下界区块生成器
     auto settings = DimensionSettings::nether();
     auto generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
 
     auto dimension = std::make_unique<Dimension>(DimensionManager::NETHER, // -1 (MC 1.16.5 标准)
         std::move(dimType),
-        std::move(generator),
-        std::move(biomeProvider));
+        std::move(generator));
 
     // 下界默认出生点
     dimension->m_spawnPoint = Vector3d(0.0, 64.0, 0.0);
@@ -110,16 +101,12 @@ std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed)
     DimensionType dimType = DimensionType::theEnd();
 
     // 末地使用 EndBiomeProvider
-    auto biomeProvider = std::make_unique<biome::end::EndBiomeProvider>(seed);
-
-    // 创建末地区块生成器
     auto settings = DimensionSettings::end();
     auto generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
 
     auto dimension = std::make_unique<Dimension>(DimensionManager::THE_END, // 1 (MC 1.16.5 标准)
         std::move(dimType),
-        std::move(generator),
-        std::move(biomeProvider));
+        std::move(generator));
 
     // 末地默认出生点（末地传送门平台位置）
     dimension->m_spawnPoint = Vector3d(100.0, 49.0, 0.0);

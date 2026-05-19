@@ -20,9 +20,9 @@ server/dimension/
 **职责**: 服务端维度实例，继承 `Dimension` 基类，添加服务端特有功能。
 
 **主要功能**:
-- `ServerWorld` 管理
-- `ServerChunkManager` 管理
-- `WorldLightManager` 管理
+- 持有单个维度的 `ServerWorld` runtime
+- 通过 `world()` 转发访问 `ServerChunkManager`
+- 通过 `world()` 转发访问 `WorldLightManager`
 - 玩家追踪（添加/移除玩家）
 - 传送门位置记录（POI 系统）
 - 维度 tick 更新
@@ -35,20 +35,8 @@ server/dimension/
 - `recordPortalPosition()/findNearestPortal()` - 传送门追踪
 
 **使用示例**:
-```cpp
-auto dimension = std::make_unique<ServerDimension>(
-    DimensionManager::OVERWORLD,
-    DimensionType::overworld(),
-    std::move(generator),
-    std::move(biomeProvider),
-    seed,
-    viewDistance
-);
-
-dimension->initialize();
-dimension->addPlayer(playerId);
-dimension->tick();
-```
+`ServerDimension` 不再拥有独立的 `BiomeProvider` / `ServerChunkManager` / `WorldLightManager` 真相源。
+区块生成与光照等 runtime 状态统一挂在内部的 `ServerWorld` 上，`ServerDimension` 负责维度级编排与玩家/传送门附加状态。
 
 ### ServerDimensionManager.hpp/cpp
 
@@ -56,12 +44,14 @@ dimension->tick();
 
 **主要功能**:
 - 创建和管理所有维度实例
+- 创建主世界 / 下界 / 末地三个 `ServerWorld` runtime
+- 为三个维度注入同一个世界级 `WorldStorageService` 与 `SaveManager`
 - 玩家维度映射追踪
 - 维度切换逻辑
 - 维度加载/卸载
 
 **关键方法**:
-- `initialize(seed, viewDistance)` - 初始化所有维度
+- `initialize(seed, viewDistance, overworldType)` - 初始化所有维度与主世界生成模式
 - `getDimension(id)` - 获取维度实例
 - `getPlayerDimension(playerId)` - 获取玩家当前维度
 - `transferPlayerToDimension(playerId, targetDim, position)` - 维度切换
@@ -70,15 +60,13 @@ dimension->tick();
 **使用示例**:
 ```cpp
 ServerDimensionManager dimensionManager(&server);
-dimensionManager.initialize(seed, viewDistance);
+dimensionManager.initialize(seed, viewDistance, WorldType::Default);
 
-// 玩家进入维度
+ServerDimension* overworld = dimensionManager.getOverworld();
+ServerWorld* world = overworld->world();
+
 dimensionManager.playerJoinDimension(playerId, DimensionManager::OVERWORLD);
-
-// 维度切换
 dimensionManager.transferPlayerToDimension(playerId, DimensionManager::NETHER);
-
-// 每帧更新
 dimensionManager.tick();
 ```
 
@@ -95,9 +83,8 @@ dimensionManager.tick();
 │  │  │  ┌───────────┐  │ │  ┌───────────┐  │ │┌───────────┐│ │    │
 │  │  │  │ServerWorld│  │ │  │ServerWorld│  │ ││ServerWorld││ │    │
 │  │  │  └───────────┘  │ │  └───────────┘  │ │└───────────┘│ │    │
-│  │  │  ┌────────────┐ │ │  ┌────────────┐ │ │┌────────────┐│ │    │
-│  │  │  │ChunkManager│ │ │  │ChunkManager│ │ ││ChunkManager││ │    │
-│  │  │  └────────────┘ │ │  └────────────┘ │ │└────────────┘│ │    │
+│  │  │  │共享 Storage │ │ │  │共享 Storage │ │ ││共享 Storage ││ │    │
+│  │  │  │共享 SaveMgr │ │ │  │共享 SaveMgr │ │ ││共享 SaveMgr ││ │    │
 │  │  └─────────────────┘ └─────────────────┘ └─────────────┘ │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                              │                                   │
@@ -153,6 +140,20 @@ auto nearestPortal = dimension->findNearestPortal(playerPos, 128);
 dimension->forgetPortalPosition(portalPos);
 ```
 
+## 共享存储
+
+`ServerDimensionManager` 现在负责为三个维度创建 runtime `ServerWorld`，并把同一份世界级存储资源注入进去：
+
+- 一份 `WorldStorageService`
+- 一份 `SaveManager`
+- 一次 `WorldSessionLock`
+
+这意味着：
+
+- 主世界、下界、末地不会重复打开同一个世界目录
+- `ServerWorld::storage()` 在三个维度上返回同一个门面对象
+- `ServerWorld::saveManager()` 在三个维度上返回同一个保存协调器
+
 ## 光照更新
 
 `ServerDimension::tick()` 方法中包含光照更新逻辑，参考 MC 1.16.5 `ServerChunkProvider.ChunkExecutor.driveOne()` 实现：
@@ -189,8 +190,9 @@ void ServerDimension::tick() {
 |------|------|
 | `common/world/dimension` | 继承 `Dimension` 和 `DimensionManager` |
 | `server/application/MinecraftServer` | 持有 `ServerDimensionManager` |
-| `server/world/ServerWorld` | 每个维度持有一个 `ServerWorld` |
-| `server/world/ServerChunkManager` | 每个维度持有一个区块管理器 |
+| `server/world/ServerWorld` | 每个维度持有一个 runtime `ServerWorld` |
+| `common/world/storage/WorldStorageService` | 三个维度共享同一个世界级存储门面 |
+| `common/world/storage/save/SaveManager` | 三个维度共享同一个世界级保存协调器 |
 | `server/player/ServerPlayer` | 通过 `m_playerDimensions` 追踪玩家维度 |
 | `server/core/TeleportManager` | 处理同维度传送，维度切换由 `ServerDimensionManager` 处理 |
 

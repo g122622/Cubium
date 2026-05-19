@@ -486,6 +486,8 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
 
 void ClientApplication::initializeUi()
 {
+    MC_TRACE_EVENT("client.initialization", "initializeUi");
+
     if (m_renderer->isGuiRendererInitialized()) {
         auto* guiFont = m_renderer->guiRenderer().font();
         if (guiFont == nullptr) {

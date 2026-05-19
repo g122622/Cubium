@@ -48,9 +48,9 @@ void ParticleRegistry::registerType(ParticleTypeId id,
     bool ignoreDistance)
 {
 
-    MC_ASSERT_MSG(isValidParticleType(id), "Invalid particle type ID");
+    MC_ASSERT_RELEASE_MSG(isValidParticleType(id), "Invalid particle type ID");
     // factory 可以为 nullptr，用于仅注册元数据的情况
-    MC_ASSERT_MSG(!name.empty(), "Particle name cannot be empty");
+    MC_ASSERT_RELEASE_MSG(!name.empty(), "Particle name cannot be empty");
 
     ParticleTypeInfo info;
     info.id = id;

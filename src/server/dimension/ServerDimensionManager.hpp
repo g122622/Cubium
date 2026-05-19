@@ -25,7 +25,7 @@
 
 #include "ServerDimension.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/biome/BiomeProvider.hpp"
+#include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <functional>
@@ -86,7 +86,7 @@ public:
      * @param viewDistance 视野距离
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(u64 seed, i32 viewDistance);
+    [[nodiscard]] Result<void> initialize(u64 seed, i32 viewDistance, WorldType overworldType = WorldType::Default);
 
     /**
      * @brief 关闭维度管理器
@@ -257,6 +257,7 @@ protected:
     // 配置
     u64 m_seed = 0;
     i32 m_viewDistance = 10;
+    WorldType m_overworldType = WorldType::Default;
 
     // 回调
     DimensionChangeCallback m_dimensionChangeCallback;
@@ -272,6 +273,8 @@ protected:
      * @return 维度实例
      */
     [[nodiscard]] std::unique_ptr<ServerDimension> createServerDimension(DimensionId id, u64 seed);
+    [[nodiscard]] std::unique_ptr<server::ServerWorld> createServerWorld(
+        DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const;
 
     /**
      * @brief 发送维度切换数据包

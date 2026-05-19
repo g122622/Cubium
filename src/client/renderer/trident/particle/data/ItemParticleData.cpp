@@ -32,7 +32,7 @@ ItemParticleData::ItemParticleData(ParticleTypeId type, const ItemStack& itemSta
     : m_type(type)
     , m_itemStack(itemStack)
 {
-    MC_ASSERT_MSG(requiresItemData(type), "ItemParticleData requires an item-type particle");
+    MC_ASSERT_RELEASE_MSG(requiresItemData(type), "ItemParticleData requires an item-type particle");
 }
 
 std::string ItemParticleData::getTypeName() const

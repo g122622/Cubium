@@ -25,6 +25,7 @@
 #include "TridentContext.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::client::renderer::trident {
 
@@ -82,6 +83,8 @@ TridentSwapchain& TridentSwapchain::operator=(TridentSwapchain&& other) noexcept
 
 Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapChainConfig& config)
 {
+    MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Swapchain already initialized");
     }

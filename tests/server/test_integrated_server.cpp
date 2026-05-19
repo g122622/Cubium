@@ -120,6 +120,54 @@ TEST(IntegratedServerTest, ConfigValues)
     server.stop();
 }
 
+TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
+{
+    IntegratedServer server;
+    IntegratedServerConfig config;
+    config.worldName = "test_world_runtime_binding";
+    config.seed = 12345;
+    config.viewDistance = 8;
+
+    auto result = server.initialize(config);
+    ASSERT_TRUE(result.success());
+
+    auto* overworld = server.dimensionManager().getOverworld();
+    ASSERT_NE(overworld, nullptr);
+    ASSERT_NE(overworld->world(), nullptr);
+    EXPECT_EQ(overworld->world(), &server.world());
+
+    server.stop();
+}
+
+TEST(IntegratedServerTest, DimensionsShareStorageAndSaveManager)
+{
+    IntegratedServer server;
+    IntegratedServerConfig config;
+    config.worldName = "test_world_shared_storage";
+    config.seed = 67890;
+    config.viewDistance = 8;
+
+    auto result = server.initialize(config);
+    ASSERT_TRUE(result.success());
+
+    auto* overworld = server.dimensionManager().getOverworld();
+    auto* nether = server.dimensionManager().getNether();
+    auto* theEnd = server.dimensionManager().getTheEnd();
+    ASSERT_NE(overworld, nullptr);
+    ASSERT_NE(nether, nullptr);
+    ASSERT_NE(theEnd, nullptr);
+    ASSERT_NE(overworld->world(), nullptr);
+    ASSERT_NE(nether->world(), nullptr);
+    ASSERT_NE(theEnd->world(), nullptr);
+
+    EXPECT_EQ(&overworld->world()->storage(), &nether->world()->storage());
+    EXPECT_EQ(&overworld->world()->storage(), &theEnd->world()->storage());
+    EXPECT_EQ(overworld->world()->saveManager(), nether->world()->saveManager());
+    EXPECT_EQ(overworld->world()->saveManager(), theEnd->world()->saveManager());
+
+    server.stop();
+}
+
 TEST(IntegratedServerTest, TickCountIncreases)
 {
     IntegratedServer server;

@@ -27,7 +27,6 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
-#include "../../biome/layer/LayerUtil.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../carver/UnderwaterCarver.hpp"
@@ -43,7 +42,6 @@
 #include <algorithm>
 #include <cmath>
 #include <mutex>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -175,26 +173,6 @@ namespace {
 // NoiseChunkGenerator 实现
 // ============================================================================
 
-NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings)
-    : BaseChunkGenerator(seed, std::move(settings))
-    , m_noiseSizeX(0)
-    , m_noiseSizeY(0)
-    , m_noiseSizeZ(0)
-    , m_verticalNoiseGranularity(0)
-    , m_horizontalNoiseGranularity(0)
-{
-    initNoiseGenerators();
-    initBiomeWeights();
-    initGaussianLUT();
-
-    // 使用完整的生物群系列表
-    BiomeRegistry::instance().initialize();
-    m_biomeProvider = std::make_unique<LayerBiomeProvider>(seed);
-
-    initCarvers();
-    initGenerationRegistries();
-}
-
 NoiseChunkGenerator::NoiseChunkGenerator(
     u64 seed, DimensionSettings settings, std::unique_ptr<BiomeProvider> biomeProvider)
     : BaseChunkGenerator(seed, std::move(settings))
@@ -213,10 +191,6 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     BiomeRegistry::instance().initialize();
 
     MC_ASSERT_RELEASE(m_biomeProvider != nullptr);
-    if (m_biomeProvider == nullptr) {
-        spdlog::warn("[NoiseChunkGenerator] Injected biome provider is null, fallback to LayerBiomeProvider");
-        m_biomeProvider = std::make_unique<LayerBiomeProvider>(seed);
-    }
 
     initCarvers();
     initGenerationRegistries();

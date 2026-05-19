@@ -25,6 +25,7 @@
 #include "../application/MinecraftServer.hpp"
 #include "../sync/ChunkSendManager.hpp"
 #include "../world/ServerChunkManager.hpp"
+#include "../world/ServerWorld.hpp"
 #include "common/core/Result.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
@@ -37,10 +38,12 @@
 #include "common/world/gen/chunk/EndChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -60,7 +63,7 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 // 初始化
 // ============================================================================
 
-Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance)
+Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, WorldType overworldType)
 {
     MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::initialize");
 
@@ -70,25 +73,42 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance)
 
     m_seed = seed;
     m_viewDistance = viewDistance;
+    m_overworldType = overworldType;
 
-    // 调用基类初始化，创建 Dimension 实例
-    DimensionManager::initialize(seed);
-
-    // 为每个维度创建 ServerDimension 包装
-    // 注意：这里需要重新创建 ServerDimension 实例
-    m_dimensions.clear(); // 清除基类创建的 Dimension 实例
+    m_dimensions.clear();
 
     // 创建主世界
     auto overworld = createServerDimension(OVERWORLD, seed);
-    MC_ASSERT_MSG(registerDimension(std::move(overworld)), "Failed to register overworld");
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    MC_ASSERT_RELEASE(overworld->id() == OVERWORLD);
+    const bool overworldRegistered = registerDimension(std::move(overworld));
+    MC_ASSERT_RELEASE_MSG(overworldRegistered, "Failed to register overworld");
+    auto* registeredOverworld = static_cast<ServerDimension*>(DimensionManager::getDimension(OVERWORLD));
+    MC_ASSERT_RELEASE(registeredOverworld != nullptr);
+    auto overworldInitResult = registeredOverworld->initialize();
+    MC_ASSERT_RELEASE_MSG(overworldInitResult.success(), "Failed to initialize overworld");
 
     // 创建下界
     auto nether = createServerDimension(NETHER, seed);
-    MC_ASSERT_MSG(registerDimension(std::move(nether)), "Failed to register nether");
+    MC_ASSERT_RELEASE(nether != nullptr);
+    MC_ASSERT_RELEASE(nether->id() == NETHER);
+    const bool netherRegistered = registerDimension(std::move(nether));
+    MC_ASSERT_RELEASE_MSG(netherRegistered, "Failed to register nether");
+    auto* registeredNether = static_cast<ServerDimension*>(DimensionManager::getDimension(NETHER));
+    MC_ASSERT_RELEASE(registeredNether != nullptr);
+    auto netherInitResult = registeredNether->initialize();
+    MC_ASSERT_RELEASE_MSG(netherInitResult.success(), "Failed to initialize nether");
 
     // 创建末地
     auto theEnd = createServerDimension(THE_END, seed);
-    MC_ASSERT_MSG(registerDimension(std::move(theEnd)), "Failed to register the end");
+    MC_ASSERT_RELEASE(theEnd != nullptr);
+    MC_ASSERT_RELEASE(theEnd->id() == THE_END);
+    const bool endRegistered = registerDimension(std::move(theEnd));
+    MC_ASSERT_RELEASE_MSG(endRegistered, "Failed to register the end");
+    auto* registeredEnd = static_cast<ServerDimension*>(DimensionManager::getDimension(THE_END));
+    MC_ASSERT_RELEASE(registeredEnd != nullptr);
+    auto endInitResult = registeredEnd->initialize();
+    MC_ASSERT_RELEASE_MSG(endInitResult.success(), "Failed to initialize the end");
 
     m_initialized = true;
     return {};
@@ -347,39 +367,82 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(D
             type = DimensionType::theEnd();
             break;
         default:
-            MC_ASSERT_MSG(false, "Unknown dimension id");
+            MC_ASSERT_RELEASE_MSG(false, "Unknown dimension id");
             return nullptr;
     }
 
     // 根据维度类型创建生成器和生物群系提供者
     std::unique_ptr<IChunkGenerator> generator;
-    std::unique_ptr<BiomeProvider> biomeProvider;
 
     switch (id) {
         case OVERWORLD: {
+            if (m_overworldType == WorldType::Debug) {
+                generator = std::make_unique<DebugChunkGenerator>();
+                break;
+            }
+
             auto settings = DimensionSettings::overworld();
-            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings));
-            biomeProvider = std::make_unique<LayerBiomeProvider>(seed, false);
+            bool isLargeBiomes = false;
+            switch (m_overworldType) {
+                case WorldType::Flat:
+                    settings = DimensionSettings::flat();
+                    break;
+                case WorldType::LargeBiomes:
+                    isLargeBiomes = true;
+                    break;
+                case WorldType::Amplified:
+                    settings.noise = NoiseSettings::amplified();
+                    break;
+                case WorldType::Default:
+                case WorldType::Debug:
+                    break;
+            }
+
+            generator = std::make_unique<NoiseChunkGenerator>(
+                seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, isLargeBiomes));
             break;
         }
         case NETHER: {
             auto settings = DimensionSettings::nether();
             generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
-            biomeProvider = std::make_unique<biome::nether::NetherBiomeProvider>(seed);
             break;
         }
         case THE_END: {
             auto settings = DimensionSettings::end();
             generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
-            biomeProvider = std::make_unique<biome::end::EndBiomeProvider>(seed);
             break;
         }
         default:
             return nullptr;
     }
 
-    return std::make_unique<ServerDimension>(
-        id, std::move(type), std::move(generator), std::move(biomeProvider), seed, m_viewDistance);
+    auto world = createServerWorld(id, seed, std::move(generator));
+    auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
+    dimension->setWorld(std::move(world));
+    return dimension;
+}
+
+std::unique_ptr<server::ServerWorld> ServerDimensionManager::createServerWorld(
+    DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const
+{
+    MC_ASSERT_RELEASE(m_server != nullptr);
+    MC_ASSERT_RELEASE(generator != nullptr);
+
+    server::ServerWorldConfig worldConfig;
+    worldConfig.viewDistance = m_viewDistance;
+    worldConfig.dimension = id;
+    worldConfig.seed = seed;
+
+    auto world = std::make_unique<server::ServerWorld>(worldConfig);
+    auto chunkManager = std::make_unique<server::ServerChunkManager>(*world, std::move(generator));
+    chunkManager->setWorkerPool(&m_server->m_computationWorkerPool);
+    chunkManager->setViewDistance(m_viewDistance);
+    world->setChunkManager(std::move(chunkManager));
+    world->setSharedStorage(&m_server->m_storage, m_server->m_saveManager.get());
+    world->setTimeManager(&m_server->timeManager());
+    world->setDifficultyCallback([server = m_server]() { return server->difficulty(); });
+    world->setLootTableManager(&m_server->m_lootTableManager);
+    return world;
 }
 
 void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos)
