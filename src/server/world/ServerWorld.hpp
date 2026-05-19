@@ -150,10 +150,11 @@ public:
     void setSharedStorage(world::storage::SingleLevelStorageManager* storage);
 
     /**
-     * @brief 保存所有脏数据
+     * @brief 触发共享存储执行全量保存
      *
-     * 遍历所有维度的 SectionManager，刷新脏Section到磁盘。
-     * 通常在服务器关闭时调用。
+     * 该方法会直接委托给世界级共享 SingleLevelStorageManager，
+     * 因此会一次性保存所有维度和玩家数据。
+     * 适用于 `/save-all` 这类显式全量保存入口。
      */
     Result<size_t> saveAll();
 

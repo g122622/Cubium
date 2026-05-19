@@ -149,18 +149,14 @@ Result<void> ServerWorld::initialize()
 
 void ServerWorld::shutdown()
 {
+    if (!m_initialized && m_chunkManager == nullptr && m_weatherManager == nullptr && m_lightManager == nullptr &&
+        m_tickManager == nullptr && m_physicsEngine == nullptr && m_collisionCache == nullptr &&
+        m_villageManager == nullptr && m_raidManager == nullptr) {
+        return;
+    }
+
     spdlog::info("Shutting down server world...");
     m_initialized = false;
-
-    // 先保存所有脏数据
-    if (m_storage != nullptr && m_storage->isOpen()) {
-        auto saveResult = saveAll();
-        if (saveResult.failed()) {
-            spdlog::error("Failed to save world: {}", saveResult.error().message());
-        } else {
-            spdlog::info("Saved {} cached sections during shutdown", saveResult.value());
-        }
-    }
 
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();

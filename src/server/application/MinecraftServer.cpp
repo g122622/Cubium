@@ -393,6 +393,21 @@ void MinecraftServer::shutdownSharedStorage()
     m_storage.reset();
 }
 
+Result<size_t> MinecraftServer::saveAllWorldData()
+{
+    if (!m_storage || !m_storage->isOpen()) {
+        return Error(ErrorCode::InvalidState, "Shared storage not open");
+    }
+
+    auto result = m_storage->saveAll();
+    if (result.failed()) {
+        return result.error();
+    }
+
+    spdlog::info("Saved {} cached sections and player data during shutdown", result.value());
+    return result.value();
+}
+
 Result<void> MinecraftServer::initializeWorld()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeWorld");
@@ -816,6 +831,13 @@ bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& p
 
 void MinecraftServer::shutdownManagers()
 {
+    if (m_storage && m_storage->isOpen()) {
+        auto saveResult = saveAllWorldData();
+        if (saveResult.failed()) {
+            spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
+        }
+    }
+
     // 关闭成就事件处理器
     m_advancementEventHandler.shutdown();
 

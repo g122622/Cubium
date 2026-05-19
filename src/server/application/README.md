@@ -286,6 +286,7 @@ server/application/
 - `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `SingleLevelStorageManager`
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
 - 世界目录选择与打开改由 `GlobalStorageManager::openLevel()` 承担
+- 共享 `SingleLevelStorageManager` 的全量保存职责固定在 `MinecraftServer::shutdownManagers()`，关服时只执行一次 `saveAll()`，避免 3 个维度 world 各自重复落盘
 
 ## 模块关系
 

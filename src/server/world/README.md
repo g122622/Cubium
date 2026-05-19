@@ -313,7 +313,8 @@ Player* target = world->getClosestPlayer(attacker.position(), 64.0f, &attacker);
 - 时间管理（由 `TimeManager` 管理）
 
 **存储相关补充**：
-- `ServerWorld::saveAll()` 现在会走 `SingleLevelStorageManager::saveAll()`，用于 `/save-all` 和关服前全量落盘。
+- `ServerWorld::saveAll()` 现在会走 `SingleLevelStorageManager::saveAll()`，一次性覆盖所有维度与玩家数据，适用于 `/save-all` 这类显式全量保存入口。
+- 关服前的全量落盘职责已经收敛到 `MinecraftServer` 层统一执行一次，`ServerWorld::shutdown()` 不再对共享存储重复触发全量保存。
 - `ServerWorld::tick()` 会驱动 `SingleLevelStorageManager::tickAutoSave()`，使自动保存可以按 tick 运行。
 - `/save-on` 和 `/save-off` 已接入 `SingleLevelStorageManager` 的自动保存启动/停止接口。
 
@@ -849,6 +850,12 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 **问题**：如果每个维度的 `ServerWorld` 都自己 `open()` 世界目录，就会在下界或末地初始化时重复获取同一个 `WorldSessionLock`，导致世界被判定为“已被其他进程锁定”。
 
 **解决方案**：现在 `SingleLevelStorageManager` 提升到 `MinecraftServer` 层，只初始化一次，再注入三个维度对应的 `ServerWorld`。
+
+### 11. 共享存储重复全量保存
+
+**问题**：三个 `ServerWorld` 共享同一个 `SingleLevelStorageManager`。如果每个 world 在析构或 `shutdown()` 时都执行一次 `saveAll()`，关服时会出现重复全量落盘和重复日志。
+
+**解决方案**：共享存储的全量保存职责必须固定在 `MinecraftServer` 层统一执行一次；`ServerWorld::shutdown()` 只负责释放自身运行时资源，不负责对共享存储做重复全量保存。
 
 ### 10. 替换 ChunkManager 时视距回退
 

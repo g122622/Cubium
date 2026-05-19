@@ -327,6 +327,7 @@ protected:
     void attachWorldBindings(ServerWorld& world);
     void attachWorldCommandBindings(ServerWorld& world);
     [[nodiscard]] Result<void> initializeSharedStorage(const std::string& worldName);
+    [[nodiscard]] Result<size_t> saveAllWorldData();
     void shutdownSharedStorage();
 
     /**
