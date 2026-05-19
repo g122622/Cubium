@@ -47,13 +47,6 @@ PlayerDataManager::PlayerDataManager(RocksDBDatabase& db)
 
 PlayerDataManager::~PlayerDataManager()
 {
-    // 自动保存脏数据
-    if (!m_dirtyUuids.empty()) {
-        auto result = saveAllDirty();
-        if (result.failed()) {
-            spdlog::error("Failed to save dirty player data on shutdown: {}", result.error().message());
-        }
-    }
     spdlog::debug("PlayerDataManager shutdown");
 }
 

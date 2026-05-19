@@ -66,6 +66,9 @@ public:
 
     /**
      * @brief 析构函数
+     *
+     * 不在析构中隐式保存。
+     * 记分板持久化由服务器关闭流程统一触发。
      */
     ~ServerScoreboard() override;
 

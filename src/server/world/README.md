@@ -857,6 +857,15 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 
 **解决方案**：共享存储的全量保存职责必须固定在 `MinecraftServer` 层统一执行一次；`ServerWorld::shutdown()` 只负责释放自身运行时资源，不负责对共享存储做重复全量保存。
 
+### 12. 析构函数里偷偷做业务关闭
+
+**问题**：如果析构函数里除了释放本对象资源，还顺便执行保存、发包、广播、跨模块回调这类业务关闭逻辑，就很容易出现重复副作用，而且调用方无法准确编排关闭顺序。
+
+**解决方案**：当前规则是：
+- 析构函数只允许做兜底式本地释放；
+- `shutdown()/close()` 必须做到幂等；
+- 全量保存、网络断开通知、共享资源关闭等跨对象副作用必须由上层统一显式调用。
+
 ### 10. 替换 ChunkManager 时视距回退
 
 **问题**：替换 `ServerChunkManager` 后，如果未同步 `viewDistance`，新管理器会使用默认值 10，导致首帧加载区块数量异常。

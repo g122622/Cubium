@@ -116,6 +116,10 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
 
 void ServerDimensionManager::shutdown()
 {
+    if (!m_initialized) {
+        return;
+    }
+
     // 清理玩家映射
     m_playerDimensions.clear();
     m_dimensionPlayers.clear();

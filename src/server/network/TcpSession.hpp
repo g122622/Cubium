@@ -110,6 +110,8 @@ public:
     [[nodiscard]] std::vector<u8> takeNextSendBuffer();
 
 private:
+    void closeLocally();
+
     SessionId m_id;
     SessionState m_state = SessionState::Connecting;
     TcpServer* m_server;

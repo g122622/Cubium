@@ -48,13 +48,7 @@ ServerScoreboard::ServerScoreboard(IServer& server)
     : m_server(server)
 {}
 
-ServerScoreboard::~ServerScoreboard()
-{
-    // 析构时自动保存脏数据
-    if (m_dirty && m_dataManager) {
-        m_dataManager->saveScoreboard(*this);
-    }
-}
+ServerScoreboard::~ServerScoreboard() {}
 
 void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player)
 {

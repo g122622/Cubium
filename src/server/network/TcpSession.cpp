@@ -40,7 +40,7 @@ TcpSession::TcpSession(SessionId id, TcpServer* server)
 TcpSession::~TcpSession()
 {
     if (m_state != SessionState::Disconnected) {
-        disconnect("Session destroyed");
+        closeLocally();
     }
 }
 
@@ -88,6 +88,15 @@ void TcpSession::disconnect(const std::string& reason)
 
     if (m_onDisconnect) {
         m_onDisconnect(this, reason);
+    }
+}
+
+void TcpSession::closeLocally()
+{
+    m_state = SessionState::Disconnected;
+    {
+        std::lock_guard<std::mutex> lock(m_sendMutex);
+        m_sendQueue.clear();
     }
 }
 

@@ -307,6 +307,7 @@ flowchart TD
 - 计算池和 IO 池职责不同，不要复用同一个 `ServerWorkerPool`。
 - `ServerChunkManager` 现在只接受外部注入的池指针，不能再假设自己拥有生命周期。
 - `SingleLevelStorageManager` 的异步任务需要在 `open()` 之后才可使用。
+- 生命周期规则现在要求：析构函数只做“兜底释放”，不负责隐式全量保存或带网络副作用的关闭逻辑；共享资源的保存/关闭必须由 `MinecraftServer` 顶层统一编排。
 
 ## 测试用例
 

@@ -584,6 +584,10 @@ auto levelId = service.createWorld(request);
 - **SectionManager**: Per-dimension Section cache/load/save manager
 - **AutoSave**: 周期性脏数据刷新，已内聚进 `SingleLevelStorageManager` 并接入 `ServerWorld`、`/save-on`、`/save-off`
 
+**生命周期规则补充：**
+- `SingleLevelStorageManager` 是共享存储门面，关闭流程中的全量保存应由上层统一显式调用，而不是依赖内部子管理器或析构函数偷偷补保存。
+- `PlayerDataManager` 这类子管理器析构时不再隐式落盘，避免与共享存储关闭流程重复。
+
 See `storage/README.md` for detailed documentation.
 
 ## Module Relationships
