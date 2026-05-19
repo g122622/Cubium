@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -36,7 +36,9 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
+#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -57,7 +59,6 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
-#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -429,6 +430,41 @@ protected:
     void sendKeepAliveToAll();
 
     /**
+     * @brief 填充创造模式初始物品栏
+     */
+    void initializeCreativeInventory(PlayerInventory& inventory);
+
+    /**
+     * @brief 设置区块发送/卸载回调
+     */
+    void setupChunkSendCallback();
+
+    /**
+     * @brief 设置袭击事件回调
+     */
+    void setupRaidManagerCallbacks();
+
+    /**
+     * @brief 发送区块数据给指定玩家
+     */
+    void sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
+
+    /**
+     * @brief 发送卸载区块通知给指定玩家
+     */
+    void sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 广播光照更新给所有在线玩家
+     */
+    void broadcastLightUpdate(ChunkCoord x,
+        ChunkCoord z,
+        i32 sectionY,
+        const std::vector<u8>& skyLight,
+        const std::vector<u8>& blockLight,
+        bool trustEdges);
+
+    /**
      * @brief 轮询网络事件（子类实现）
      *
      * IntegratedServer 从 LocalEndpoint 接收数据包
@@ -501,7 +537,7 @@ protected:
     /**
      * @brief 处理方块放置数据包（子类实现特定逻辑）
      */
-    virtual void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size);
 
     /**
      * @brief 处理快捷栏选择数据包（子类实现特定逻辑）
@@ -511,7 +547,7 @@ protected:
     /**
      * @brief 处理创造模式背包动作数据包（子类实现特定逻辑）
      */
-    virtual void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size);
 
     /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）
@@ -539,17 +575,40 @@ protected:
      * @param blockLight 方块光照数据
      * @param trustEdges 是否信任边缘光照
      */
-    virtual void broadcastLightUpdate(ChunkCoord x,
-        ChunkCoord z,
-        i32 sectionY,
-        const std::vector<u8>& skyLight,
-        const std::vector<u8>& blockLight,
-        bool trustEdges) = 0;
-
     /**
      * @brief 发送传送包给指定玩家
      */
     void sendTeleportPacket(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
+
+    /**
+     * @brief 处理玩家创造模式切换后的额外同步
+     */
+    virtual void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory);
+
+    /**
+     * @brief 返回玩家当前手持物品
+     */
+    [[nodiscard]] virtual ItemStack getHeldItemForPlacement(PlayerId playerId) = 0;
+
+    /**
+     * @brief 返回玩家当前选中槽位
+     */
+    [[nodiscard]] virtual i32 getSelectedHotbarSlot(PlayerId playerId) = 0;
+
+    /**
+     * @brief 设置玩家指定槽位物品
+     */
+    virtual void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) = 0;
+
+    /**
+     * @brief 同步玩家物品栏到客户端
+     */
+    virtual void syncPlayerInventory(PlayerId playerId) = 0;
+
+    /**
+     * @brief 尝试打开工作台容器
+     */
+    [[nodiscard]] virtual bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) = 0;
 
     /**
      * @brief 发送方块更新包给指定玩家

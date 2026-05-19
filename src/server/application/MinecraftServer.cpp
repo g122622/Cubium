@@ -27,12 +27,14 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
+#include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -43,12 +45,14 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
@@ -73,6 +77,15 @@
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
+
+namespace {
+
+[[nodiscard]] bool isCraftingTableState(const BlockState* state)
+{
+    return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
+}
+
+} // namespace
 
 MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     : m_config(config)
@@ -477,6 +490,7 @@ void MinecraftServer::initializeChunkSyncManagers()
         std::make_unique<sync::ChunkSendManager>(*m_world->chunkManager(), m_world->chunkManager()->ticketManager());
 
     m_lightSyncManager = std::make_unique<sync::LightSyncManager>(*m_world->lightManager(), *m_world->chunkManager());
+    setupChunkSendCallback();
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
@@ -704,6 +718,97 @@ void MinecraftServer::setupWorldCallbacks()
     });
 }
 
+void MinecraftServer::setupChunkSendCallback()
+{
+    chunkSendManager().setOnChunkSend(
+        [this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
+            sendChunkDataToPlayer(playerId, x, z, data);
+            MC_TRACE_INSTANT("server.chunk",
+                "ChunkSent",
+                "Chunk",
+                fmt::format("({}, {})", x, z),
+                "DataSize",
+                data.size(),
+                [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](
+                    ::perfetto::EventContext ctx) { flow(ctx); });
+        });
+
+    chunkSendManager().setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+        sendUnloadChunkToPlayer(playerId, x, z);
+        MC_TRACE_INSTANT("server.chunk", "ChunkUnloaded", "Chunk", fmt::format("({}, {})", x, z));
+    });
+}
+
+void MinecraftServer::setupRaidManagerCallbacks()
+{
+    if (!m_world || !m_world->raidManager()) {
+        return;
+    }
+
+    auto* raidManager = m_world->raidManager();
+    world::village::raid::RaidCallbacks callbacks;
+
+    callbacks.onRaidStarted = [this](const world::village::raid::Raid& raid, BlockPos center) {
+        broadcastSound(SoundEvents::EVENT_RAID_HORN,
+            sound::SoundCategory::Neutral,
+            Vector3(static_cast<f32>(center.x) + 0.5f, static_cast<f32>(center.y), static_cast<f32>(center.z) + 0.5f),
+            64.0f,
+            1.0f);
+
+        spdlog::info("Raid {} started at village center ({}, {}, {})", raid.id(), center.x, center.y, center.z);
+    };
+
+    callbacks.onRaidVictory =
+        [this](const world::village::raid::Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel) {
+            constexpr i32 HERO_EFFECT_DURATION = 48000;
+
+            for (const auto& heroUuid : heroes) {
+                const std::string heroUuidStr = util::uuidToString(heroUuid);
+
+                m_playerManager->forEachPlayer([this, &heroUuidStr, badOmenLevel, &raid](ServerPlayerData& playerData) {
+                    Player* player = playerEntityManager().getPlayerEntity(playerData.playerId, *m_world);
+                    if (player == nullptr || player->uuid() != heroUuidStr) {
+                        return;
+                    }
+
+                    entity::effect::EffectInstance heroEffect(entity::effect::EffectType::HeroOfTheVillage,
+                        HERO_EFFECT_DURATION,
+                        badOmenLevel - 1,
+                        false,
+                        true,
+                        true);
+                    player->addEffect(std::move(heroEffect));
+
+                    spdlog::info(
+                        "Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
+                        playerData.username,
+                        heroUuidStr,
+                        badOmenLevel,
+                        raid.id());
+                });
+            }
+
+            BlockPos center = raid.center();
+            spdlog::info("Raid {} victory at ({}, {}, {}) - {} heroes rewarded",
+                raid.id(),
+                center.x,
+                center.y,
+                center.z,
+                heroes.size());
+        };
+
+    callbacks.onRaidLoss = [](const world::village::raid::Raid& raid) {
+        BlockPos center = raid.center();
+        spdlog::info("Raid {} failed at ({}, {}, {})", raid.id(), center.x, center.y, center.z);
+    };
+
+    callbacks.onWaveStarted = [](const world::village::raid::Raid& raid, i32 wave, BlockPos spawnPos) {
+        spdlog::info("Raid {} wave {} started at ({}, {}, {})", raid.id(), wave, spawnPos.x, spawnPos.y, spawnPos.z);
+    };
+
+    raidManager->setCallbacks(std::move(callbacks));
+}
+
 bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
 {
     return containerManager().openContainer(player.playerId(), type, pos).success();
@@ -895,6 +1000,80 @@ void MinecraftServer::sendKeepAliveToAll()
             }
 
             m_keepAliveManager->recordKeepAliveSent(player.playerId, timestamp, tick);
+        }
+    });
+}
+
+void MinecraftServer::initializeCreativeInventory(PlayerInventory& inventory)
+{
+    inventory.clear();
+    inventory.setSelectedSlot(0);
+    fillCreativeModeInventory(inventory);
+}
+
+void MinecraftServer::sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
+{
+    DimensionId dimension = 0;
+    if (m_dimensionManager) {
+        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
+        if (resolvedDimension >= 0) {
+            dimension = resolvedDimension;
+        }
+    }
+
+    network::ChunkDataPacket packet(x, z, dimension, data);
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::ChunkData, ser.buffer());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
+    DimensionId dimension = 0;
+    if (m_dimensionManager) {
+        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
+        if (resolvedDimension >= 0) {
+            dimension = resolvedDimension;
+        }
+    }
+
+    network::UnloadChunkPacket packet(x, z, dimension);
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
+    ChunkCoord z,
+    i32 sectionY,
+    const std::vector<u8>& skyLight,
+    const std::vector<u8>& blockLight,
+    bool trustEdges)
+{
+    MC_TRACE_EVENT("server.lighting",
+        "BroadcastLightUpdate",
+        "Section",
+        fmt::format("({}, {}, {})", x, sectionY, z),
+        "SkyLightSize",
+        skyLight.size(),
+        "BlockLightSize",
+        blockLight.size(),
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
+    network::LightUpdatePacket packet(
+        x, z, sectionY, std::vector<u8>(skyLight), std::vector<u8>(blockLight), trustEdges);
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LightUpdate, ser.buffer());
+    m_playerManager->forEachPlayer([&fullPacket](ServerPlayerData& player) {
+        if (player.loggedIn && player.hasConnection()) {
+            player.send(fullPacket.data(), fullPacket.size());
         }
     });
 }
@@ -1225,6 +1404,86 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     }
 }
 
+void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    network::PacketDeserializer deser(data, size);
+    auto result = network::PlayerTryUseItemOnBlockPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse block placement packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    const BlockPos pos(packet.x(), packet.y(), packet.z());
+    const BlockState* clickedState = m_world ? m_world->getBlockState(pos) : nullptr;
+    const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+
+    const auto tryOpenCrafting = [this, playerId, pos, clickedState]() {
+        return isCraftingTableState(clickedState) && tryOpenCraftingContainer(playerId, pos);
+    };
+
+    ItemStack heldStack = getHeldItemForPlacement(playerId);
+    if (heldStack.isEmpty()) {
+        if (!tryOpenCrafting()) {
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
+        }
+        return;
+    }
+
+    const Item* heldItem = heldStack.getItem();
+    const bool holdingBlockItem =
+        heldItem != nullptr && BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr;
+
+    if (!holdingBlockItem) {
+        if (!tryOpenCrafting()) {
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
+        }
+        return;
+    }
+
+    auto interactionResult =
+        blockInteractionManager().handleBlockPlacement(playerId, pos, packet.hitPosition(), packet.face(), heldStack);
+
+    if (interactionResult.success() && interactionResult.value().blockPlaced &&
+        interactionResult.value().itemConsumed) {
+        const i32 selectedSlot = getSelectedHotbarSlot(playerId);
+        ItemStack updatedStack = heldStack;
+        updatedStack.shrink(1);
+        setInventoryItem(playerId, selectedSlot, updatedStack);
+        syncPlayerInventory(playerId);
+    }
+}
+
+void MinecraftServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn || player->gameMode != GameMode::Creative) {
+        return;
+    }
+
+    network::PacketDeserializer deser(data, size);
+    auto result = CreativeInventoryActionPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse creative inventory action packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    const i32 slotIndex = packet.slotIndex();
+    if (slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
+        spdlog::warn("Ignoring creative inventory action with invalid slot {}", slotIndex);
+        return;
+    }
+
+    setInventoryItem(playerId, slotIndex, packet.item());
+    syncPlayerInventory(playerId);
+}
+
 // ============================================================================
 // 数据包发送辅助方法
 // ============================================================================
@@ -1237,6 +1496,12 @@ void MinecraftServer::sendTeleportPacket(PlayerId playerId, f64 x, f64 y, f64 z,
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory)
+{
+    MC_UNUSED(playerId);
+    MC_UNUSED(inventory);
 }
 
 void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode)

@@ -93,19 +93,9 @@ protected:
     // ========== 数据包处理（特有逻辑） ==========
 
     void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) override;
-    void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
-
-protected:
-    void broadcastLightUpdate(ChunkCoord x,
-        ChunkCoord z,
-        i32 sectionY,
-        const std::vector<u8>& skyLight,
-        const std::vector<u8>& blockLight,
-        bool trustEdges) override;
 
 public:
     // ========== StandaloneServer 特有接口 ==========
@@ -139,6 +129,12 @@ public:
         return m_playerEntityManager;
     }
 
+    [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
+    [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
+    void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) override;
+    void syncPlayerInventory(PlayerId playerId) override;
+    [[nodiscard]] bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) override;
+
 private:
     void mainLoop();
 
@@ -149,10 +145,6 @@ private:
     // 网络事件处理
     void onClientConnect(TcpSession* session);
     void onClientDisconnect(TcpSession* session, const std::string& reason);
-
-    // 回调设置
-    void setupChunkSendCallback();
-    void setupRaidManagerCallbacks();
 
     // 数据包发送
     void sendLoginResponse(TcpSession* session,

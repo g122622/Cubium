@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -75,13 +75,6 @@ protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;
 
-    void broadcastLightUpdate(ChunkCoord x,
-        ChunkCoord z,
-        i32 sectionY,
-        const std::vector<u8>& skyLight,
-        const std::vector<u8>& blockLight,
-        bool trustEdges) override;
-
     [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
     {
         (void)sessionId;
@@ -98,9 +91,7 @@ protected:
     // ========== 数据包处理（特有逻辑） ==========
 
     void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) override;
-    void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
@@ -147,19 +138,11 @@ public:
 private:
     void mainLoop();
 
-    // 设置区块发送回调
-    void setupChunkSendCallback();
-
-    // 设置 RaidManager 回调
-    void setupRaidManagerCallbacks();
-
     // 发送数据包
     void sendLoginResponse(
         bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void sendPlayerInventory();
-    void sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
-    void sendUnloadChunk(ChunkCoord x, ChunkCoord z);
     void sendContainerContent(const AbstractContainerMenu& menu);
     void sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
     void sendCloseContainer(ContainerId containerId);
@@ -168,6 +151,13 @@ private:
     [[nodiscard]] bool openContainerMenu(ContainerType type, const BlockPos& pos);
     void closeCurrentContainer(bool sendClosePacket);
     void openCraftingTableMenu();
+
+    void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory) override;
+    [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
+    [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
+    void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) override;
+    void syncPlayerInventory(PlayerId playerId) override;
+    [[nodiscard]] bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) override;
 
     // 玩家数据便捷方法
     ServerPlayerData* getPlayerData()

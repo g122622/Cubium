@@ -68,12 +68,18 @@ src/server/application/
 - `getPlayerIdForSession()` - Map session ID to player ID
 - `sendPacketToPlayer()` - Send to specific player
 - `handleLoginRequestPacket()` - Login handling
-- `handleBlockPlacementPacket()` - Block placement handling
 - `handleHotbarSelectPacket()` - Hotbar selection handling
 - `handleContainerClickPacket()` - Container interaction handling
-- `handleCreativeInventoryActionPacket()` - Creative inventory slot write-back handling
 - `handleCloseContainerPacket()` - Container close handling
-- `broadcastLightUpdate()` - Light update broadcasting
+
+**Shared Base-Class Handlers / Hooks:**
+
+- `handleBlockPlacementPacket()` - Shared placement / block-use flow in `MinecraftServer`, subclasses only provide inventory/container hooks
+- `handleCreativeInventoryActionPacket()` - Shared creative inventory slot write-back flow in `MinecraftServer`
+- `broadcastLightUpdate()` - Shared LightUpdate packet serialization and broadcast path in `MinecraftServer`
+- `setupChunkSendCallback()` - Shared chunk send/unload callback installation in `MinecraftServer`
+- `setupRaidManagerCallbacks()` - Shared raid event callback installation in `MinecraftServer`
+- `getHeldItemForPlacement()` / `getSelectedHotbarSlot()` / `setInventoryItem()` / `syncPlayerInventory()` / `tryOpenCraftingContainer()` - subclass hooks for local-vs-remote inventory/container differences
 
 **Tick Phases:**
 
@@ -503,8 +509,7 @@ std::lock_guard<std::mutex> lock(server.m_clientDataMutex);
 5. `initializeInteractionManagers()` - Block, mining, container managers
 6. `initializeSyncManagers()` - Entity sync
 7. `initializeChunkSyncManagers()` - Block update, chunk/light sync
-8. `setupChunkSendCallback()` - Network callbacks
-9. `setupWorldCallbacks()` - World event callbacks（包括方块变化回调）
+8. `setupWorldCallbacks()` - World event callbacks（包括方块变化回调）
 
 ### 3. Packet Handling Must Check Session Validity
 

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IntegratedServer.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -40,7 +40,6 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/sound/SoundEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -49,10 +48,10 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/command/CommandRegistry.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include "server/command/ServerCommandSource.hpp"
-#include "server/command/CommandRegistry.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -62,31 +61,6 @@
 namespace mc::server {
 
 namespace {
-
-/**
- * @brief 发送游戏数据包到本地端点
- */
-template <typename PacketT>
-void sendGamePacket(network::LocalEndpoint* endpoint, network::PacketType packetType, const PacketT& packet)
-{
-    if (endpoint == nullptr || !endpoint->isConnected()) {
-        return;
-    }
-
-    network::PacketSerializer payload;
-    packet.serialize(payload);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(packetType, payload.buffer());
-    endpoint->send(fullPacket.data(), fullPacket.size());
-}
-
-/**
- * @brief 检查方块状态是否为工作台
- */
-bool isCraftingTableState(const BlockState* state)
-{
-    return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
-}
 
 /**
  * @brief 获取菜单玩家（临时方案）
@@ -156,12 +130,13 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 
     auto storageInitResult = initializeSharedStorage(config.worldName);
     if (storageInitResult.failed()) {
-        return Error(
-            ErrorCode::InitializationFailed, "Failed to initialize shared world storage: " + storageInitResult.error().message());
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to initialize shared world storage: " + storageInitResult.error().message());
     }
 
     // 初始化维度管理器
-    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance, config.worldType);
+    auto dimInitResult =
+        m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance, config.worldType);
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());
@@ -177,21 +152,23 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 
     // 设置命令执行回调（用于命令方块矿车等实体执行命令）
     // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
-    m_world->setOnExecuteCommand([this](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
-        std::string cmd = command;
-        if (!cmd.empty() && cmd[0] != '/') {
-            cmd = "/" + cmd;
-        }
+    m_world->setOnExecuteCommand(
+        [this](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
+            std::string cmd = command;
+            if (!cmd.empty() && cmd[0] != '/') {
+                cmd = "/" + cmd;
+            }
 
-        command::ServerCommandSource source(this, nullptr, m_world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
-        auto result = m_commandRegistry->execute(cmd, source);
-        if (result.failed()) {
-            spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
-            return 0;
-        }
+            command::ServerCommandSource source(
+                this, nullptr, m_world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
+            auto result = m_commandRegistry->execute(cmd, source);
+            if (result.failed()) {
+                spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+                return 0;
+            }
 
-        return result.value();
-    });
+            return result.value();
+        });
 
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
@@ -220,9 +197,6 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 
     // 初始化区块同步管理器（需要 world 已初始化）
     initializeChunkSyncManagers();
-
-    // 设置区块发送回调（子类特有）
-    setupChunkSendCallback();
 
     // 设置世界回调（包括光照变化回调）
     setupWorldCallbacks();
@@ -464,69 +438,6 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         "Player '{}' (PlayerId={}, EntityId={}) joined the game", username, m_clientPlayerId, m_clientEntityId);
 }
 
-void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size)
-{
-    (void)playerId; // 单玩家模式，playerId 总是 m_clientPlayerId
-    MC_TRACE_EVENT("server.network", "HandleBlockPlacement");
-
-    network::PacketDeserializer deser(data, size);
-    auto result = network::PlayerTryUseItemOnBlockPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse block placement packet: {}", result.error().message());
-        return;
-    }
-
-    const auto& packet = result.value();
-    const BlockPos clickedPos(packet.x(), packet.y(), packet.z());
-    const BlockState* clickedState = m_world ? m_world->getBlockState(clickedPos) : nullptr;
-    const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
-
-    const auto tryOpenCraftingMenu = [this, clickedState]() {
-        if (isCraftingTableState(clickedState)) {
-            openCraftingTableMenu();
-            return true;
-        }
-        return false;
-    };
-
-    // 获取手持物品
-    ItemStack heldStack = m_clientInventory.getSelectedStack();
-    if (heldStack.isEmpty()) {
-        // 空手右键时优先尝试交互方块（例如工作台）。
-        if (!tryOpenCraftingMenu()) {
-            (void)blockInteractionManager().handleBlockUse(
-                m_clientPlayerId, clickedPos, hand, packet.hitPosition(), packet.face());
-        }
-        return;
-    }
-
-    const Item* heldItem = heldStack.getItem();
-    const bool holdingBlockItem =
-        (heldItem != nullptr) && (BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr);
-
-    if (!holdingBlockItem) {
-        if (!tryOpenCraftingMenu()) {
-            (void)blockInteractionManager().handleBlockUse(
-                m_clientPlayerId, clickedPos, hand, packet.hitPosition(), packet.face());
-        }
-        return;
-    }
-
-    auto placementResult = blockInteractionManager().handleBlockPlacement(
-        m_clientPlayerId, clickedPos, packet.hitPosition(), packet.face(), heldStack);
-
-    if (placementResult.success() && placementResult.value().blockPlaced) {
-        // 更新物品栏
-        if (placementResult.value().itemConsumed) {
-            i32 selectedSlot = m_clientInventory.getSelectedSlot();
-            ItemStack updatedStack = m_clientInventory.getItem(selectedSlot);
-            updatedStack.shrink(1);
-            m_clientInventory.setItem(selectedSlot, updatedStack);
-            sendPlayerInventory();
-        }
-    }
-}
-
 void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
@@ -544,34 +455,6 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     }
 
     m_clientInventory.setSelectedSlot(result.value().slot());
-}
-
-void IntegratedServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)
-{
-    (void)playerId;
-    MC_TRACE_EVENT("server.network", "HandleCreativeInventoryAction");
-
-    auto* player = getPlayerData();
-    if (!player || !player->loggedIn || player->gameMode != GameMode::Creative) {
-        return;
-    }
-
-    network::PacketDeserializer deser(data, size);
-    auto result = CreativeInventoryActionPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse creative inventory action packet: {}", result.error().message());
-        return;
-    }
-
-    const auto& packet = result.value();
-    const i32 slotIndex = packet.slotIndex();
-    if (slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
-        spdlog::warn("Ignoring creative inventory action with invalid slot {}", slotIndex);
-        return;
-    }
-
-    m_clientInventory.setItem(slotIndex, packet.item());
-    sendPlayerInventory();
 }
 
 void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
@@ -660,66 +543,50 @@ void IntegratedServer::sendPlayerInventory()
     sendToClient(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
-{
-    MC_TRACE_EVENT("server.chunk",
-        "sendChunkData",
-        "Chunk",
-        fmt::format("({}, {})", x, z),
-        "DataSize",
-        data.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    DimensionId dimension = 0;
-    if (m_dimensionManager) {
-        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(m_clientPlayerId);
-        if (resolvedDimension >= 0) {
-            dimension = resolvedDimension;
-        }
-    }
-    network::ChunkDataPacket packet(x, z, dimension, data);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::ChunkData, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
-}
-
-void IntegratedServer::sendUnloadChunk(ChunkCoord x, ChunkCoord z)
-{
-    DimensionId dimension = 0;
-    if (m_dimensionManager) {
-        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(m_clientPlayerId);
-        if (resolvedDimension >= 0) {
-            dimension = resolvedDimension;
-        }
-    }
-    network::UnloadChunkPacket packet(x, z, dimension);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
-}
-
 void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
 {
-    sendGamePacket(
-        m_serverEndpoint, network::PacketType::ContainerContent, ContainerPacketHandler::createContentPacket(menu));
+    if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
+        return;
+    }
+
+    network::PacketSerializer payload;
+    auto packet = ContainerPacketHandler::createContentPacket(menu);
+    packet.serialize(payload);
+
+    auto fullPacket =
+        core::ConnectionManager::encapsulatePacket(network::PacketType::ContainerContent, payload.buffer());
+    m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
 void IntegratedServer::sendOpenContainer(
     ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount)
 {
     (void)slotCount; // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
-    sendGamePacket(m_serverEndpoint,
-        network::PacketType::OpenContainer,
-        ContainerPacketHandler::createOpenContainerPacket(containerId, ContainerTypes::toNetworkType(type), title));
+    if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
+        return;
+    }
+
+    network::PacketSerializer payload;
+    auto packet =
+        ContainerPacketHandler::createOpenContainerPacket(containerId, ContainerTypes::toNetworkType(type), title);
+    packet.serialize(payload);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::OpenContainer, payload.buffer());
+    m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
 void IntegratedServer::sendCloseContainer(ContainerId containerId)
 {
-    sendGamePacket(m_serverEndpoint, network::PacketType::CloseContainer, CloseContainerPacket(containerId));
+    if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
+        return;
+    }
+
+    network::PacketSerializer payload;
+    CloseContainerPacket packet(containerId);
+    packet.serialize(payload);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::CloseContainer, payload.buffer());
+    m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
 void IntegratedServer::sendToClient(const u8* data, size_t size)
@@ -881,133 +748,42 @@ void IntegratedServer::openCraftingTableMenu()
     (void)openContainerMenu(ContainerType::Crafting, BlockPos());
 }
 
-void IntegratedServer::setupChunkSendCallback()
+void IntegratedServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory)
 {
-    // 设置区块发送回调 - 当区块数据准备好时发送给客户端
-    chunkSendManager().setOnChunkSend(
-        [this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
-            // 单玩家模式，忽略 playerId
-            (void)playerId;
-            sendChunkData(x, z, data);
-            MC_TRACE_INSTANT("server.chunk",
-                "ChunkSent",
-                "Chunk",
-                fmt::format("({}, {})", x, z),
-                "DataSize",
-                data.size(),
-                [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](
-                    ::perfetto::EventContext ctx) { flow(ctx); }); // 这里需要闭合 MC_TRACE_INSTANT 的括号
-        });
-
-    // 设置区块卸载回调
-    chunkSendManager().setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
-        // 单玩家模式，忽略 playerId
-        (void)playerId;
-        sendUnloadChunk(x, z);
-        MC_TRACE_INSTANT("server.chunk", "ChunkUnloaded", "Chunk", fmt::format("({}, {})", x, z));
-    }); // 闭合 setOnChunkUnload 的 lambda 和函数调用
+    MC_UNUSED(playerId);
+    MC_UNUSED(inventory);
 }
 
-void IntegratedServer::setupRaidManagerCallbacks()
+ItemStack IntegratedServer::getHeldItemForPlacement(PlayerId playerId)
 {
-    if (!m_world || !m_world->raidManager()) {
-        return;
-    }
-
-    auto* raidManager = m_world->raidManager();
-    world::village::raid::RaidCallbacks callbacks;
-
-    // 袭击开始回调：播放号角声
-    callbacks.onRaidStarted = [this](const world::village::raid::Raid& raid, BlockPos center) {
-        // 播放袭击号角声
-        broadcastSound(SoundEvents::EVENT_RAID_HORN,
-            sound::SoundCategory::Neutral,
-            Vector3(static_cast<f32>(center.x) + 0.5f, static_cast<f32>(center.y), static_cast<f32>(center.z) + 0.5f),
-            64.0f, // 广播范围
-            1.0f   // 音调
-        );
-
-        spdlog::info("Raid {} started at village center ({}, {}, {})", raid.id(), center.x, center.y, center.z);
-    };
-
-    // 袭击胜利回调：给予英雄效果
-    callbacks.onRaidVictory =
-        [this](const world::village::raid::Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel) {
-            // 村庄英雄效果持续时间为 40 分钟 (48000 ticks)
-            // 等级 = 不祥之兆等级
-            constexpr i32 HERO_EFFECT_DURATION = 48000;
-
-            for (const auto& heroUuid : heroes) {
-                // 通过 UUID 字符串查找玩家
-                const std::string heroUuidStr = util::uuidToString(heroUuid);
-
-                // 单玩家模式：检查是否是当前玩家
-                Player* player = m_playerEntityManager.getPlayerEntity(m_clientPlayerId, *m_world);
-                if (player != nullptr && player->uuid() == heroUuidStr) {
-                    // 给予村庄英雄效果
-                    entity::effect::EffectInstance heroEffect(entity::effect::EffectType::HeroOfTheVillage,
-                        HERO_EFFECT_DURATION,
-                        badOmenLevel - 1, // amplifier = level - 1
-                        false,            // ambient
-                        true,             // visible
-                        true              // showIcon
-                    );
-                    player->addEffect(std::move(heroEffect));
-
-                    spdlog::info("Player received Hero of the Village effect (level {}) for raid {} victory",
-                        badOmenLevel,
-                        raid.id());
-                }
-            }
-
-            BlockPos center = raid.center();
-            spdlog::info("Raid {} victory at ({}, {}, {}) - {} heroes rewarded",
-                raid.id(),
-                center.x,
-                center.y,
-                center.z,
-                heroes.size());
-        };
-
-    // 袭击失败回调
-    callbacks.onRaidLoss = [this](const world::village::raid::Raid& raid) {
-        BlockPos center = raid.center();
-        spdlog::info("Raid {} failed at ({}, {}, {})", raid.id(), center.x, center.y, center.z);
-    };
-
-    // 波次开始回调
-    callbacks.onWaveStarted = [this](const world::village::raid::Raid& raid, i32 wave, BlockPos spawnPos) {
-        spdlog::info("Raid {} wave {} started at ({}, {}, {})", raid.id(), wave, spawnPos.x, spawnPos.y, spawnPos.z);
-    };
-
-    raidManager->setCallbacks(std::move(callbacks));
+    MC_UNUSED(playerId);
+    return m_clientInventory.getSelectedStack();
 }
 
-void IntegratedServer::broadcastLightUpdate(ChunkCoord x,
-    ChunkCoord z,
-    i32 sectionY,
-    const std::vector<u8>& skyLight,
-    const std::vector<u8>& blockLight,
-    bool trustEdges)
+i32 IntegratedServer::getSelectedHotbarSlot(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.lighting",
-        "IntegratedServer::BroadcastLightUpdate",
-        "Section",
-        fmt::format("({}, {}, {})", x, sectionY, z),
-        "SkyLightSize",
-        skyLight.size(),
-        "BlockLightSize",
-        blockLight.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+    MC_UNUSED(playerId);
+    return m_clientInventory.getSelectedSlot();
+}
 
-    network::LightUpdatePacket packet(
-        x, z, sectionY, std::vector<u8>(skyLight), std::vector<u8>(blockLight), trustEdges);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
+void IntegratedServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack)
+{
+    MC_UNUSED(playerId);
+    m_clientInventory.setItem(slotIndex, stack);
+}
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LightUpdate, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
+void IntegratedServer::syncPlayerInventory(PlayerId playerId)
+{
+    MC_UNUSED(playerId);
+    sendPlayerInventory();
+}
+
+bool IntegratedServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
+{
+    MC_UNUSED(playerId);
+    MC_UNUSED(pos);
+    openCraftingTableMenu();
+    return true;
 }
 
 } // namespace mc::server
