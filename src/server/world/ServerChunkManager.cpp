@@ -27,9 +27,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/storage/db/SectionCodec.hpp"
-#include "common/world/storage/db/SectionKey.hpp"
-#include "common/world/storage/section/SectionManager.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
 #include <chrono>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -759,38 +757,9 @@ void ServerChunkManager::saveChunkSectionsSync(const ChunkData& chunk)
         return;
     }
 
-    auto& storageService = m_world->storage();
-    auto dimension = m_world->dimension();
-    auto& sectionManager = storageService.sectionManager(dimension);
-
-    std::vector<BiomeId> biomes;
-    {
-        const auto biomeBytes = chunk.getBiomes().serialize();
-        biomes.reserve(biomeBytes.size() / 2);
-        for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
-            const u16 low = static_cast<u16>(biomeBytes[i]);
-            const u16 high = static_cast<u16>(biomeBytes[i + 1]);
-            biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
-        }
-    }
-
-    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk.getSection(sectionY);
-        if (!section) {
-            continue;
-        }
-
-        world::storage::SectionKey sectionKey(chunk.x(), chunk.z(), sectionY, dimension);
-        auto sectionDataResult = world::storage::SectionCodec::fromChunkSection(*section, sectionKey, biomes);
-        if (!sectionDataResult.success()) {
-            continue;
-        }
-
-        auto saveResult = sectionManager.saveSectionSync(sectionKey, sectionDataResult.value());
-        if (saveResult.failed()) {
-            spdlog::error(
-                "Save section failed ({}, {}, {}): {}", chunk.x(), sectionY, chunk.z(), saveResult.error().message());
-        }
+    auto saveResult = m_world->storage().saveChunk(chunk, m_world->dimension());
+    if (saveResult.failed()) {
+        spdlog::error("Save chunk failed ({}, {}): {}", chunk.x(), chunk.z(), saveResult.error().message());
     }
 }
 
@@ -802,67 +771,15 @@ std::unique_ptr<ChunkData> ServerChunkManager::tryToLoadChunkFromStorageSync(Chu
         return nullptr;
     }
 
-    auto& storageService = m_world->storage();
-    auto dimension = m_world->dimension();
-    auto& sectionManager = storageService.sectionManager(dimension);
-
-    auto chunk = std::make_unique<ChunkData>(x, z);
-    bool hasAnySection = false;
-    bool hasBiomes = false;
-    mc::BiomeContainer biomeContainer;
-
-    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        world::storage::SectionKey sectionKey(x, z, sectionY, dimension);
-        auto loadResult = sectionManager.loadSectionSync(sectionKey);
-        if (loadResult.failed() || !loadResult.value()) {
-            continue;
-        }
-
-        const auto sectionData = loadResult.value();
-        if (!sectionData) {
-            continue;
-        }
-
-        if (!hasBiomes && sectionData->biomes.size() == mc::BiomeContainer::BIOME_SIZE) {
-            for (i32 biomeY = 0; biomeY < mc::BiomeContainer::BIOME_HEIGHT; ++biomeY) {
-                for (i32 biomeZ = 0; biomeZ < mc::BiomeContainer::BIOME_DEPTH; ++biomeZ) {
-                    for (i32 biomeX = 0; biomeX < mc::BiomeContainer::BIOME_WIDTH; ++biomeX) {
-                        const size_t biomeIndex = static_cast<size_t>(
-                            biomeY * mc::BiomeContainer::BIOME_WIDTH * mc::BiomeContainer::BIOME_DEPTH +
-                            biomeZ * mc::BiomeContainer::BIOME_WIDTH + biomeX);
-                        biomeContainer.setBiome(biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
-                    }
-                }
-            }
-            hasBiomes = true;
-        }
-
-        ChunkSection* section = chunk->createSection(sectionY);
-        if (!section) {
-            continue;
-        }
-
-        auto applyResult = world::storage::SectionCodec::toChunkSection(*sectionData, *section);
-        if (applyResult.failed()) {
-            spdlog::error("Apply section data failed ({}, {}, {}): {}", x, sectionY, z, applyResult.error().message());
-            continue;
-        }
-
-        hasAnySection = true;
-    }
-
-    if (!hasAnySection) {
+    auto loadResult = m_world->storage().loadChunk(x, z, m_world->dimension());
+    if (loadResult.failed()) {
+        spdlog::error("Load chunk failed ({}, {}): {}", x, z, loadResult.error().message());
         return nullptr;
     }
-
-    if (hasBiomes) {
-        chunk->setBiomes(std::move(biomeContainer));
+    if (!loadResult.value().has_value()) {
+        return nullptr;
     }
-
-    chunk->setLoaded(true);
-    chunk->setFullyGenerated(true);
-    chunk->setDirty(false);
-    return chunk;
+    return std::make_unique<ChunkData>(std::move(loadResult.value().value()));
 }
 
 // ============================================================================

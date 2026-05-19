@@ -37,7 +37,7 @@
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/world/storage/core/WorldStoragePaths.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/list/WorldNameSanitizer.hpp"
 
 #include <GLFW/glfw3.h>
@@ -629,9 +629,10 @@ void ClientApplication::showCreateWorld()
 
         // 使用 WorldNameSanitizer 生成可用的世界目录名
         // 参考 MC 1.16.5 CreateWorldScreen.calcSaveDirName() 和 FileUtil.findAvailableName()
-        auto storagePaths = world::storage::WorldStoragePaths::defaultPaths();
+        world::storage::WorldStorageService storageService;
         auto levelIdResult =
-            world::storage::WorldNameSanitizer::findAvailableLevelId(storagePaths.savesDir(), request.displayName);
+            world::storage::WorldNameSanitizer::findAvailableLevelId(storageService.savesDirectory(),
+                request.displayName);
 
         if (!levelIdResult.success()) {
             spdlog::error("[Session] Failed to generate levelId: {}", levelIdResult.error().toString());

@@ -55,7 +55,6 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -353,8 +352,7 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
 
 Result<void> MinecraftServer::initializeSharedStorage(const std::string& worldName)
 {
-    auto paths = world::storage::WorldStoragePaths::defaultPaths();
-    auto worldPath = paths.worldDir(worldName);
+    auto worldPath = m_storage.resolveWorldPath(worldName);
 
     world::storage::WorldStorageConfig storageConfig;
     storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
@@ -373,6 +371,8 @@ Result<void> MinecraftServer::initializeSharedStorage(const std::string& worldNa
     world::storage::AutoSaveConfig saveConfig;
     m_saveManager->initialize(saveConfig);
     m_saveManager->startAutoSave();
+    m_scoreboard->setDataManager(m_storage.scoreboardDataManager());
+    m_scoreboard->load();
     return Result<void>::ok();
 }
 

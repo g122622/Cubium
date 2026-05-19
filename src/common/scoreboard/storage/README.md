@@ -53,7 +53,7 @@ storage/
 
 #### 键设计
 
-使用 RocksDB 列族 `scoreboard`，键格式：
+底层仍使用 RocksDB 列族 `scoreboard`，但对外必须经由 `WorldStorageService` 进入，键格式：
 
 - `obj:{name}` - 目标数据
 - `score:{objective}:{player}` - 分数数据
@@ -152,10 +152,10 @@ if (!teamData.prefix.empty()) {
 
 ```cpp
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
-#include "world/storage/db/RocksDBDatabase.hpp"
+#include "world/storage/WorldStorageService.hpp"
 
 // 在 WorldStorageService 中
-m_scoreboardDataManager = std::make_unique<scoreboard::ScoreboardDataManager>(*m_db);
+m_scoreboardDataManager = std::make_unique<scoreboard::ScoreboardDataManager>(*this);
 ```
 
 ### 保存记分板
@@ -235,7 +235,7 @@ void ServerScoreboard::load() {
 
 ## 依赖关系
 
-- **RocksDBDatabase**: 底层数据库
+- **WorldStorageService**: 单存档门面入口，ScoreboardDataManager 通过它访问底层数据库
 - **NBT 序列化**: 使用 `util/nbt/NBT.hpp`
 - **ITextComponent**: 使用 `util/text/ITextComponent.hpp` 进行 JSON 序列化
 - **Scoreboard**: 核心记分板类

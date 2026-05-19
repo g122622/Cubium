@@ -277,6 +277,8 @@ server/application/
 - 在子类创建 `ServerChunkManager` 后调用 `setWorkerPool(&m_computationWorkerPool)` 注入计算池
 - 在 `stopCore()` 中统一停止计算池
 - `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `WorldStorageService`
+- `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
+- 世界目录解析改由 `WorldStorageService::resolveWorldPath()` 承担
 
 ## 模块关系
 

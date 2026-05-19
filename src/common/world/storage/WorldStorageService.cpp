@@ -23,7 +23,9 @@
 
 #include "WorldStorageService.hpp"
 #include "perfetto/TraceEvents.hpp"
+#include "scoreboard/storage/ScoreboardDataManager.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
+#include "world/storage/db/SectionCodec.hpp"
 #include <stdexcept>
 #include <spdlog/spdlog.h>
 
@@ -165,6 +167,7 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, c
 
     // 4.1 初始化玩家数据管理器
     m_playerDataManager = std::make_unique<PlayerDataManager>(*m_db);
+    m_scoreboardDataManager = std::make_unique<mc::scoreboard::ScoreboardDataManager>(*this);
 
     // 4.2 存储任务管理器由服务器注入的 IO Worker 池驱动
     if (!m_ioWorkerPool) {
@@ -205,6 +208,7 @@ void WorldStorageService::close()
 
     // 3. 关闭备份管理器
     m_backupManager.reset();
+    m_scoreboardDataManager.reset();
 
     // 4. 关闭数据库
     m_db.reset();
@@ -299,6 +303,105 @@ Result<size_t> WorldStorageService::saveAll()
     return totalSaved;
 }
 
+Result<void> WorldStorageService::saveChunk(const ChunkData& chunk, DimensionId dimension)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    auto& manager = sectionManager(dimension);
+
+    std::vector<BiomeId> biomes;
+    const auto biomeBytes = chunk.getBiomes().serialize();
+    biomes.reserve(biomeBytes.size() / 2);
+    for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
+        const u16 low = static_cast<u16>(biomeBytes[i]);
+        const u16 high = static_cast<u16>(biomeBytes[i + 1]);
+        biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
+    }
+
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (!section) {
+            continue;
+        }
+
+        SectionKey key(chunk.x(), chunk.z(), sectionY, dimension);
+        auto sectionDataResult = SectionCodec::fromChunkSection(*section, key, biomes);
+        if (sectionDataResult.failed()) {
+            return sectionDataResult.error();
+        }
+
+        auto saveResult = manager.saveSectionSync(key, sectionDataResult.value());
+        if (saveResult.failed()) {
+            return saveResult.error();
+        }
+    }
+
+    return Result<void>::ok();
+}
+
+Result<std::optional<ChunkData>> WorldStorageService::loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    auto& manager = sectionManager(dimension);
+    ChunkData chunk(x, z);
+    bool hasAnySection = false;
+    bool hasBiomes = false;
+    BiomeContainer biomeContainer;
+
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        SectionKey key(x, z, sectionY, dimension);
+        auto loadResult = manager.loadSectionSync(key);
+        if (loadResult.failed()) {
+            return loadResult.error();
+        }
+        if (!loadResult.value()) {
+            continue;
+        }
+
+        const auto& sectionData = loadResult.value();
+        if (!hasBiomes && sectionData->biomes.size() == BiomeContainer::BIOME_SIZE) {
+            for (i32 biomeY = 0; biomeY < BiomeContainer::BIOME_HEIGHT; ++biomeY) {
+                for (i32 biomeZ = 0; biomeZ < BiomeContainer::BIOME_DEPTH; ++biomeZ) {
+                    for (i32 biomeX = 0; biomeX < BiomeContainer::BIOME_WIDTH; ++biomeX) {
+                        const size_t biomeIndex = static_cast<size_t>(
+                            biomeY * BiomeContainer::BIOME_WIDTH * BiomeContainer::BIOME_DEPTH +
+                            biomeZ * BiomeContainer::BIOME_WIDTH + biomeX);
+                        biomeContainer.setBiome(biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+                    }
+                }
+            }
+            hasBiomes = true;
+        }
+
+        ChunkSection* section = chunk.createSection(sectionY);
+        MC_ASSERT_RELEASE(section != nullptr);
+        auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
+        if (applyResult.failed()) {
+            return applyResult.error();
+        }
+
+        hasAnySection = true;
+    }
+
+    if (!hasAnySection) {
+        return std::optional<ChunkData>{};
+    }
+
+    if (hasBiomes) {
+        chunk.setBiomes(std::move(biomeContainer));
+    }
+
+    chunk.setLoaded(true);
+    chunk.setFullyGenerated(true);
+    chunk.setDirty(false);
+    return std::optional<ChunkData>(std::move(chunk));
+}
+
 // ============================================================================
 // 子服务访问
 // ============================================================================
@@ -380,6 +483,16 @@ void WorldStorageService::setConsistencyMode(ConsistencyMode mode)
 {
     m_config.consistencyMode = mode;
     spdlog::info("Changed consistency mode to {}", static_cast<i32>(mode));
+}
+
+std::filesystem::path WorldStorageService::resolveWorldPath(const std::string& worldName) const
+{
+    return m_worldListService->paths().worldDir(worldName);
+}
+
+std::filesystem::path WorldStorageService::savesDirectory() const
+{
+    return m_worldListService->paths().savesDir();
 }
 
 // ============================================================================

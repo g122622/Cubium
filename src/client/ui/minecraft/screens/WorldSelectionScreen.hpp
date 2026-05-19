@@ -25,6 +25,7 @@
 
 #include "../../kagero/widget/ListWidget.hpp"
 #include "TemplateScreen.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/list/WorldListService.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
 #include <functional>
@@ -57,7 +58,7 @@ private:
     void updateBindingValues();
     void publishWorldCollection();
 
-    world::storage::WorldListService m_worldListService;
+    world::storage::WorldStorageService m_storageService;
     std::vector<world::storage::WorldListEntry> m_worlds;
     std::vector<std::string> m_worldNames;
     const world::storage::WorldListEntry* m_selectedWorld = nullptr;

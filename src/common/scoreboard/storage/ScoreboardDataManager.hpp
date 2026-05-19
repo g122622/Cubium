@@ -33,7 +33,7 @@
 #include <unordered_set>
 
 namespace mc::world::storage {
-class RocksDBDatabase;
+class WorldStorageService;
 }
 
 namespace mc::scoreboard {
@@ -42,7 +42,7 @@ namespace mc::scoreboard {
  * @brief 记分板数据管理器
  *
  * 负责记分板数据的持久化存储和加载。
- * 使用 RocksDB 作为后端存储，采用缓存 + 脏标记模式。
+ * 使用 WorldStorageService 作为后端存储入口，采用缓存 + 脏标记模式。
  *
  * 键设计：
  * - "objectives:{name}" - 目标数据
@@ -57,9 +57,9 @@ public:
     /**
      * @brief 构造函数
      *
-     * @param db RocksDB 数据库实例引用
+     * @param storage 世界存储门面
      */
-    explicit ScoreboardDataManager(world::storage::RocksDBDatabase& db);
+    explicit ScoreboardDataManager(world::storage::WorldStorageService& storage);
 
     /**
      * @brief 析构函数
@@ -273,7 +273,7 @@ private:
      */
     [[nodiscard]] static Result<std::pair<std::string, std::string>> parseScoreKey(const std::vector<u8>& key);
 
-    world::storage::RocksDBDatabase& m_db;
+    world::storage::WorldStorageService& m_storage;
 
     mutable std::mutex m_cacheMutex;
 

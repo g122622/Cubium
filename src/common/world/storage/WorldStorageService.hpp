@@ -29,6 +29,7 @@
 #include "world/storage/core/WorldStoragePaths.hpp"
 #include "world/storage/db/ConsistencyMode.hpp"
 #include "world/storage/db/RocksDBConfig.hpp"
+#include "world/storage/db/SectionKey.hpp"
 #include "world/storage/list/WorldListService.hpp"
 #include "world/storage/player/PlayerDataManager.hpp"
 #include "world/storage/section/SectionManager.hpp"
@@ -38,6 +39,10 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
+
+namespace mc::scoreboard {
+class ScoreboardDataManager;
+}
 
 namespace mc::world::storage {
 
@@ -96,6 +101,8 @@ struct WorldStorageConfig {
  * @endcode
  */
 class WorldStorageService {
+    friend class mc::scoreboard::ScoreboardDataManager;
+
 public:
     /**
      * @brief 构造函数
@@ -163,6 +170,28 @@ public:
      * @return 成功保存的 Section 数量，或错误
      */
     Result<size_t> saveAll();
+
+    /**
+     * @brief 将区块写入指定维度的 section 存储
+     *
+     * 该接口把区块与 section 编解码细节收口在存储门面内部，
+     * 外部世界运行时不再直接依赖 SectionKey / SectionCodec。
+     *
+     * @param chunk 要写入的区块
+     * @param dimension 目标维度
+     * @return 成功或错误
+     */
+    Result<void> saveChunk(const ChunkData& chunk, DimensionId dimension);
+
+    /**
+     * @brief 从指定维度的 section 存储读取区块
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param dimension 目标维度
+     * @return 若存在则返回区块数据，否则返回空 optional
+     */
+    [[nodiscard]] Result<std::optional<ChunkData>> loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     // ========== 子服务访问 ==========
 
@@ -252,6 +281,19 @@ public:
     [[nodiscard]] const PlayerDataManager* playerDataManager() const { return m_playerDataManager.get(); }
 
     /**
+     * @brief 获取记分板数据管理器
+     *
+     * 记分板持久化属于单存档状态，必须经由 WorldStorageService 访问。
+     *
+     * @return 记分板数据管理器指针，如果存储未打开则为空
+     */
+    [[nodiscard]] mc::scoreboard::ScoreboardDataManager* scoreboardDataManager() { return m_scoreboardDataManager.get(); }
+    [[nodiscard]] const mc::scoreboard::ScoreboardDataManager* scoreboardDataManager() const
+    {
+        return m_scoreboardDataManager.get();
+    }
+
+    /**
      * @brief 创建备份
      *
      * 便捷方法，创建世界快照。
@@ -293,6 +335,25 @@ public:
      * @brief 获取存储路径
      */
     [[nodiscard]] const std::filesystem::path& worldPath() const { return m_worldPath; }
+
+    /**
+     * @brief 根据世界名解析世界目录
+     *
+     * 目录布局规则属于存储门面职责，业务层不应直接依赖 WorldStoragePaths。
+     *
+     * @param worldName 存档目录名
+     * @return 世界目录路径
+     */
+    [[nodiscard]] std::filesystem::path resolveWorldPath(const std::string& worldName) const;
+
+    /**
+     * @brief 返回默认 saves 目录
+     *
+     * 仅供通过门面间接访问存档根目录的上层逻辑使用。
+     *
+     * @return 默认 saves 目录路径
+     */
+    [[nodiscard]] std::filesystem::path savesDirectory() const;
 
     // ========== 统计信息 ==========
 
@@ -353,6 +414,7 @@ private:
     std::optional<WorldSessionLock> m_sessionLock;
     std::unique_ptr<BackupManager> m_backupManager;
     std::unique_ptr<PlayerDataManager> m_playerDataManager;
+    std::unique_ptr<mc::scoreboard::ScoreboardDataManager> m_scoreboardDataManager;
     util::ServerWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 

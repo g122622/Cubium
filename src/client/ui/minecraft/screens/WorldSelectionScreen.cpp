@@ -34,7 +34,6 @@ WorldSelectionScreen::WorldSelectionScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
                          kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
           "worldSelection")
-    , m_worldListService(world::storage::WorldStoragePaths::defaultPaths())
 {
     expose("worlds.empty", &m_worldsEmpty);
     expose("worlds.selected", &m_hasSelection);
@@ -130,7 +129,7 @@ void WorldSelectionScreen::updateBindingValues()
 
 void WorldSelectionScreen::refreshWorldList()
 {
-    auto result = m_worldListService.listWorlds();
+    auto result = m_storageService.worldListService().listWorlds();
     if (result.success()) {
         m_worlds = std::move(result.value());
         m_worldNames.clear();

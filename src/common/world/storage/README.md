@@ -59,6 +59,8 @@ storage/
 - **外部模块**（如 ServerWorld、MinecraftServer）只能访问 `WorldStorageService`
 - **内部模块**（如 SectionManager、RocksDBDatabase、SectionCache）不允许被外部直接访问
 - `WorldStorageService` 通过 getter 方法暴露子服务
+- 区块运行时不应再直接依赖 `SectionCodec`、`SectionKey`、`RocksDBDatabase`、`WorldStoragePaths`
+- 这类细节现在统一收口到 `WorldStorageService::saveChunk()`、`loadChunk()`、`resolveWorldPath()`、`savesDirectory()` 等门面接口
 
 ### 使用示例
 
@@ -74,6 +76,10 @@ if (!result.success()) {
 // 通过子服务访问
 auto& sectionMgr = m_storage.sectionManager(dimension);
 auto data = sectionMgr.loadSection(key);
+
+// 或直接通过门面读写完整区块
+auto loadResult = m_storage.loadChunk(chunkX, chunkZ, dimension);
+auto saveResult = m_storage.saveChunk(chunk, dimension);
 
 // 保存数据
 sectionMgr.saveSection(key, data);
@@ -541,34 +547,17 @@ sequenceDiagram
 
 ## 与区块系统集成
 
-存储系统已与 `ServerChunkManager` 集成：
+存储系统已与 `ServerChunkManager` 集成，区块运行时现在只通过 `WorldStorageService` 访问完整区块持久化：
 
 ```cpp
-// 区块加载时从存储读取
-ChunkData* ServerChunkManager::loadChunkFromStorage(ChunkCoord x, ChunkCoord z) {
-    auto& sectionMgr = m_world.storage().sectionManager(dimension);
-    auto chunk = std::make_unique<ChunkData>(x, z);
-    for (i8 sectionY = 0; sectionY < CHUNK_SECTIONS; ++sectionY) {
-        SectionKey key(x, z, sectionY, dimension);
-        auto result = sectionMgr.loadSection(key);
-        if (result.success() && result.value()) {
-            SectionCodec::toChunkSection(*result.value(), chunk->getOrCreateSection(sectionY));
-        }
-    }
-    // 读取到的生物群系会回填到 chunk 中，避免区块保存后丢失 biome 数据。
-    return chunk;
+auto loadResult = m_world.storage().loadChunk(x, z, dimension);
+if (loadResult.success() && loadResult.value().has_value()) {
+    auto chunk = std::make_unique<ChunkData>(std::move(loadResult.value().value()));
 }
 
-// 区块卸载时保存到存储
-void ServerChunkManager::saveChunkSections(const ChunkData& chunk) {
-    auto& sectionMgr = m_world.storage().sectionManager(chunk.dimension());
-    for (i8 sectionY = 0; sectionY < CHUNK_SECTIONS; ++sectionY) {
-        SectionKey key(chunk.x(), chunk.z(), sectionY, chunk.dimension());
-        auto dataResult = SectionCodec::fromChunkSection(*section, key, biomes);
-        if (dataResult.success()) {
-            sectionMgr.saveSection(key, dataResult.value());
-        }
-    }
+auto saveResult = m_world.storage().saveChunk(chunk, dimension);
+if (saveResult.failed()) {
+    spdlog::error("Failed to save chunk: {}", saveResult.error().message());
 }
 ```
 

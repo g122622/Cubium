@@ -44,6 +44,8 @@ src/server/world/
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 使用世界级共享 `WorldStorageService` / `SaveManager` 访问与保存维度数据
+- 区块运行时不再直接包含 `SectionCodec` / `SectionKey` / `SectionManager`
+- 完整区块持久化统一通过 `WorldStorageService::loadChunk()` / `saveChunk()` 进入存储门面
 - 天气状态管理
 
 `ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlockState`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
