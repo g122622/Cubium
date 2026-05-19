@@ -1,28 +1,27 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "MinecraftServer.hpp"
-#include "common/world/storage/save/AutoSave.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -57,6 +56,7 @@
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
+#include "common/world/storage/save/AutoSave.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
@@ -1180,16 +1180,8 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
 
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
-    MC_TRACE_EVENT("server.world",
-        "MinecraftServer::updateEntityTrackingForPlayer",
-        "playerId",
-        playerId,
-        "x",
-        x,
-        "y",
-        y,
-        "z",
-        z);
+    MC_TRACE_EVENT(
+        "server.world", "MinecraftServer::updateEntityTrackingForPlayer", "playerId", playerId, "x", x, "y", y, "z", z);
 
     if (!m_world) {
         return;
@@ -1365,23 +1357,15 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
 
     switch (packetType) {
         case network::PacketType::LoginRequest: {
-            MC_TRACE_EVENT("server.network",
-                "HandleLoginRequestPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleLoginRequestPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             handleLoginRequestPacket(sessionId, payload, payloadSize);
             break;
         }
 
         case network::PacketType::PlayerMove: {
-            MC_TRACE_EVENT("server.network",
-                "HandlePlayerMovePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandlePlayerMovePacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handlePlayerMovePacket(playerId, payload, payloadSize);
@@ -1390,12 +1374,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::BlockInteraction: {
-            MC_TRACE_EVENT("server.network",
-                "HandleBlockInteractionPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleBlockInteractionPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleBlockInteractionPacket(playerId, payload, payloadSize);
@@ -1418,12 +1398,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::HotbarSelect: {
-            MC_TRACE_EVENT("server.network",
-                "HandleHotbarSelectPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleHotbarSelectPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleHotbarSelectPacket(playerId, payload, payloadSize);
@@ -1446,12 +1422,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ContainerClick: {
-            MC_TRACE_EVENT("server.network",
-                "HandleContainerClickPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleContainerClickPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleContainerClickPacket(playerId, payload, payloadSize);
@@ -1460,12 +1432,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::CloseContainer: {
-            MC_TRACE_EVENT("server.network",
-                "HandleCloseContainerPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleCloseContainerPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleCloseContainerPacket(playerId, payload, payloadSize);
@@ -1474,12 +1442,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::TeleportConfirm: {
-            MC_TRACE_EVENT("server.network",
-                "HandleTeleportConfirmPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleTeleportConfirmPacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleTeleportConfirmPacket(playerId, payload, payloadSize);
@@ -1488,12 +1452,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::KeepAlive: {
-            MC_TRACE_EVENT("server.network",
-                "HandleKeepAlivePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleKeepAlivePacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleKeepAlivePacket(playerId, data, size);
@@ -1502,12 +1462,8 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ChatMessage: {
-            MC_TRACE_EVENT("server.network",
-                "HandleChatMessagePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
+            MC_TRACE_EVENT(
+                "server.network", "HandleChatMessagePacket", "sessionId", sessionId, "payloadSize", payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleChatMessagePacket(playerId, payload, payloadSize);

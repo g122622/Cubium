@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
 #include "entity/ai/goal/GoalFlag.hpp"
-#include "entity/ai/goal/goals/special/IronGolemGoals.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "entity/ai/goal/goals/special/IronGolemGoals.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 
 namespace mc {
@@ -36,15 +36,9 @@ namespace test {
 
 class IronGolemGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
-    }
+    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        ironGolem.reset();
-    }
+    void TearDown() override { ironGolem.reset(); }
 
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
@@ -156,15 +150,9 @@ TEST_F(MoveTowardsTargetGoalTest, MutexFlags)
 
 class IronGolemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
-    }
+    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        ironGolem.reset();
-    }
+    void TearDown() override { ironGolem.reset(); }
 
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
@@ -245,15 +233,9 @@ TEST_F(IronGolemEntityTest, Dimensions)
 
 class GolemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        golem = std::make_unique<IronGolemEntity>(EntityId(1));
-    }
+    void SetUp() override { golem = std::make_unique<IronGolemEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        golem.reset();
-    }
+    void TearDown() override { golem.reset(); }
 
     std::unique_ptr<IronGolemEntity> golem;
 };

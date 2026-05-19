@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
+#include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
 #include "../MeleeAttackGoal.hpp"
 #include "../target/TargetGoals.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../../util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -172,15 +172,15 @@ private:
     /// 检查是否完成授粉
     [[nodiscard]] bool completedPollination() const { return m_pollinationTicks > 400; }
 
-    i32 m_pollinationTicks = 0;      ///< 授粉进度
-    i32 m_lastSoundTick = 0;         ///< 上次播放声音的tick
-    i32 m_totalTicks = 0;            ///< 总计时间
-    bool m_running = false;          ///< 是否正在授粉
-    math::Vector3f m_nextTarget;     ///< 下一个飞向目标
+    i32 m_pollinationTicks = 0;  ///< 授粉进度
+    i32 m_lastSoundTick = 0;     ///< 上次播放声音的tick
+    i32 m_totalTicks = 0;        ///< 总计时间
+    bool m_running = false;      ///< 是否正在授粉
+    math::Vector3f m_nextTarget; ///< 下一个飞向目标
 
-    static constexpr f32 FLOWER_SEARCH_RANGE = 5.0f;   ///< 花朵搜索范围
-    static constexpr i32 POLLINATION_DURATION = 400;   ///< 授粉所需时间
-    static constexpr i32 MAX_POLLINATION_TIME = 600;   ///< 最大授粉时间
+    static constexpr f32 FLOWER_SEARCH_RANGE = 5.0f; ///< 花朵搜索范围
+    static constexpr i32 POLLINATION_DURATION = 400; ///< 授粉所需时间
+    static constexpr i32 MAX_POLLINATION_TIME = 600; ///< 最大授粉时间
 };
 
 /**
@@ -243,12 +243,12 @@ private:
     /// 检查是否太远
     [[nodiscard]] bool isTooFar(const BlockPos& pos) const;
 
-    i32 m_ticks = 0;                          ///< 计时器
-    std::vector<BlockPos> m_possibleHives;    ///< 可能的蜂巢列表
-    i32 m_stuckCounter = 0;                   ///< 路径卡住计数器
+    i32 m_ticks = 0;                       ///< 计时器
+    std::vector<BlockPos> m_possibleHives; ///< 可能的蜂巢列表
+    i32 m_stuckCounter = 0;                ///< 路径卡住计数器
 
-    static constexpr i32 MAX_NAVIGATION_TIME = 600;  ///< 最大导航时间
-    static constexpr i32 STUCK_THRESHOLD = 60;       ///< 路径卡住阈值
+    static constexpr i32 MAX_NAVIGATION_TIME = 600; ///< 最大导航时间
+    static constexpr i32 STUCK_THRESHOLD = 60;      ///< 路径卡住阈值
 };
 
 /**
@@ -273,10 +273,10 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "BeeFindFlowerGoal"; }
 
 private:
-    i32 m_ticks = 0;  ///< 计时器
+    i32 m_ticks = 0; ///< 计时器
 
-    static constexpr i32 MAX_NAVIGATION_TIME = 600;  ///< 最大导航时间
-    static constexpr i32 TICKS_WITHOUT_NECTAR_THRESHOLD = 2400;  ///< 2分钟无花粉阈值
+    static constexpr i32 MAX_NAVIGATION_TIME = 600;             ///< 最大导航时间
+    static constexpr i32 TICKS_WITHOUT_NECTAR_THRESHOLD = 2400; ///< 2分钟无花粉阈值
 };
 
 /**
@@ -304,7 +304,7 @@ private:
     /// 促进作物生长
     void growCrop(const BlockPos& pos);
 
-    static constexpr i32 MAX_CROPS_GROWN = 10;  ///< 每次授粉最多促进的作物数
+    static constexpr i32 MAX_CROPS_GROWN = 10; ///< 每次授粉最多促进的作物数
 };
 
 /**
@@ -336,10 +336,10 @@ private:
 
     BeeEntity* m_bee;
 
-    static constexpr f32 WANDER_RANGE = 8.0f;     ///< 漫游范围
-    static constexpr f32 WANDER_HEIGHT = 7.0f;    ///< 漫游高度范围
-    static constexpr f32 HIVE_RETURN_DISTANCE = 22.0f;  ///< 触发返回蜂巢的距离
-    static constexpr i32 WANDER_CHANCE = 10;      ///< 漫游概率倒数
+    static constexpr f32 WANDER_RANGE = 8.0f;          ///< 漫游范围
+    static constexpr f32 WANDER_HEIGHT = 7.0f;         ///< 漫游高度范围
+    static constexpr f32 HIVE_RETURN_DISTANCE = 22.0f; ///< 触发返回蜂巢的距离
+    static constexpr i32 WANDER_CHANCE = 10;           ///< 漫游概率倒数
 };
 
 // ============================================================================
@@ -396,7 +396,7 @@ private:
     LivingEntity* m_targetPlayer = nullptr;
     i32 m_chance;
 
-    static constexpr f32 TARGET_RANGE = 10.0f;  ///< 目标搜索范围
+    static constexpr f32 TARGET_RANGE = 10.0f; ///< 目标搜索范围
 };
 
 /**

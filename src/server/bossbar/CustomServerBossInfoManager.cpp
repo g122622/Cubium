@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "CustomServerBossInfoManager.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "common/network/packet/BossInfoPacket.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -35,8 +35,7 @@ namespace server {
 
 CustomServerBossInfoManager::CustomServerBossInfoManager(IServer& server)
     : m_server(server)
-{
-}
+{}
 
 CustomServerBossInfoManager::~CustomServerBossInfoManager() = default;
 
@@ -151,8 +150,8 @@ void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, 
     // 序列化并发送
     auto result = packet.serialize();
     if (!result.success()) {
-        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Add): {}",
-            result.error().message());
+        spdlog::error(
+            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Add): {}", result.error().message());
         return;
     }
 
@@ -171,8 +170,8 @@ void CustomServerBossInfoManager::sendRemovePacket(CustomServerBossInfo& bossInf
     // 序列化并发送
     auto result = packet.serialize();
     if (!result.success()) {
-        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Remove): {}",
-            result.error().message());
+        spdlog::error(
+            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Remove): {}", result.error().message());
         return;
     }
 
@@ -204,8 +203,7 @@ void CustomServerBossInfoManager::broadcastUpdate(CustomServerBossInfo& bossInfo
     mc::network::BossInfoPacket packet = [&]() {
         switch (updateType) {
             case BossInfoUpdateType::UpdatePercent:
-                return mc::network::BossInfoPacket::updatePercent(
-                    bossInfo.uuid(), bossInfo.percent());
+                return mc::network::BossInfoPacket::updatePercent(bossInfo.uuid(), bossInfo.percent());
 
             case BossInfoUpdateType::UpdateName: {
                 auto nameCopy = bossInfo.name().deepCopy();
@@ -214,36 +212,29 @@ void CustomServerBossInfoManager::broadcastUpdate(CustomServerBossInfo& bossInfo
 
             case BossInfoUpdateType::UpdateStyle:
                 return mc::network::BossInfoPacket::updateStyle(
-                    bossInfo.uuid(),
-                    static_cast<u8>(bossInfo.color()),
-                    static_cast<u8>(bossInfo.overlay()));
+                    bossInfo.uuid(), static_cast<u8>(bossInfo.color()), static_cast<u8>(bossInfo.overlay()));
 
             case BossInfoUpdateType::UpdateProperties:
                 return mc::network::BossInfoPacket::updateProperties(
-                    bossInfo.uuid(),
-                    bossInfo.darkenSky(),
-                    bossInfo.playEndBossMusic(),
-                    bossInfo.createFog());
+                    bossInfo.uuid(), bossInfo.darkenSky(), bossInfo.playEndBossMusic(), bossInfo.createFog());
 
             default:
                 // 其他类型默认使用百分比更新
-                return mc::network::BossInfoPacket::updatePercent(
-                    bossInfo.uuid(), bossInfo.percent());
+                return mc::network::BossInfoPacket::updatePercent(bossInfo.uuid(), bossInfo.percent());
         }
     }();
 
     // 序列化
     auto result = packet.serialize();
     if (!result.success()) {
-        spdlog::error("CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Update): {}",
-            result.error().message());
+        spdlog::error(
+            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Update): {}", result.error().message());
         return;
     }
 
     // 广播给所有可见玩家
     for (PlayerId playerId : playerIds) {
-        m_server.connectionManager().sendPacketToPlayer(
-            playerId, mc::network::PacketType::BossInfo, result.value());
+        m_server.connectionManager().sendPacketToPlayer(playerId, mc::network::PacketType::BossInfo, result.value());
     }
 
     // 标记数据需要保存

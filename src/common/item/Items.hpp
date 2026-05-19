@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -207,10 +207,10 @@ public:
     // ========================================================================
     // 马铠 - 用于装备马提供护甲
     // ========================================================================
-    static Item* LEATHER_HORSE_ARMOR;  // 皮革马铠 - +3 护甲
-    static Item* IRON_HORSE_ARMOR;     // 铁马铠 - +5 护甲
-    static Item* GOLDEN_HORSE_ARMOR;   // 金马铠 - +7 护甲
-    static Item* DIAMOND_HORSE_ARMOR;  // 钻石马铠 - +11 护甲
+    static Item* LEATHER_HORSE_ARMOR; // 皮革马铠 - +3 护甲
+    static Item* IRON_HORSE_ARMOR;    // 铁马铠 - +5 护甲
+    static Item* GOLDEN_HORSE_ARMOR;  // 金马铠 - +7 护甲
+    static Item* DIAMOND_HORSE_ARMOR; // 钻石马铠 - +11 护甲
 
     // ========================================================================
     // 食物
@@ -348,7 +348,7 @@ public:
     // 农产品
     // ========================================================================
     static Item* WHEAT;
-    static Item* HAY_BLOCK;  // 干草块 - 用于喂养马属动物
+    static Item* HAY_BLOCK; // 干草块 - 用于喂养马属动物
     static Item* PUMPKIN;
     static Item* MELON;
     // MELON_SLICE 在食物部分声明
@@ -411,8 +411,8 @@ public:
     // ========================================================================
     // 骑乘控制物品
     // ========================================================================
-    static Item* CARROT_ON_A_STICK;         // 胡萝卜钓竿 - 控制猪
-    static Item* WARPED_FUNGUS_ON_A_STICK;   // 诡异菌钓竿 - 控制炽足兽
+    static Item* CARROT_ON_A_STICK;        // 胡萝卜钓竿 - 控制猪
+    static Item* WARPED_FUNGUS_ON_A_STICK; // 诡异菌钓竿 - 控制炽足兽
 
     // ========================================================================
     // 桶类

@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/core/Types.hpp"
-#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -83,10 +83,7 @@ TEST_F(FireballEntityTest, SetDamage_UpdatesValue)
 
 class SmallFireballEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_smallFireball = std::make_unique<SmallFireballEntity>(EntityId(0));
-    }
+    void SetUp() override { m_smallFireball = std::make_unique<SmallFireballEntity>(EntityId(0)); }
 
     std::unique_ptr<SmallFireballEntity> m_smallFireball;
 };
@@ -107,10 +104,7 @@ TEST_F(SmallFireballEntityTest, DefaultValues_AreCorrect)
 
 class DragonFireballEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityId(0));
-    }
+    void SetUp() override { m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityId(0)); }
 
     std::unique_ptr<DragonFireballEntity> m_dragonFireball;
 };
@@ -131,10 +125,7 @@ TEST_F(DragonFireballEntityTest, DefaultValues_AreCorrect)
 
 class WitherSkullEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_witherSkull = std::make_unique<WitherSkullEntity>(EntityId(0));
-    }
+    void SetUp() override { m_witherSkull = std::make_unique<WitherSkullEntity>(EntityId(0)); }
 
     std::unique_ptr<WitherSkullEntity> m_witherSkull;
 };
@@ -168,8 +159,7 @@ TEST_F(WitherSkullEntityTest, SetBlue_UpdatesValue)
 // MC 1.16.5 伤害参数常量测试
 // ============================================================================
 
-class FireballConstantsTest : public ::testing::Test {
-};
+class FireballConstantsTest : public ::testing::Test {};
 
 TEST_F(FireballConstantsTest, FireballDamage_MatchesMC1165)
 {

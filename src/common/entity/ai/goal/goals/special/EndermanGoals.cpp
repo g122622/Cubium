@@ -1,46 +1,46 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EndermanGoals.hpp"
 
-#include "../../../../entities/monster/end/EndermanEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
+#include "../../../../../world/block/BlockRegistry.hpp"
+#include "../../../../../world/block/BlockState.hpp"
+#include "../../../../../world/block/BlockTags.hpp"
+#include "../../../../../world/gamerule/GameRules.hpp"
+#include "../../../../core/Entity.hpp"
 #include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
+#include "../../../../entities/monster/end/EndermanEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 #include "../../../controller/LookController.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockTags.hpp"
-#include "../../../../../world/block/Block.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/BlockRegistry.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../../world/gamerule/GameRules.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -98,9 +98,7 @@ void EndermanStareGoal::tick()
     // MC 1.16.5: 注视目标玩家的眼睛位置
     if (m_targetPlayer != nullptr) {
         m_enderman->lookController()->setLookPosition(
-            m_targetPlayer->x(),
-            m_targetPlayer->y() + m_targetPlayer->eyeHeight(),
-            m_targetPlayer->z());
+            m_targetPlayer->x(), m_targetPlayer->y() + m_targetPlayer->eyeHeight(), m_targetPlayer->z());
     }
 }
 
@@ -125,10 +123,8 @@ bool EndermanFindPlayerGoal::shouldExecute()
     }
 
     // 获取附近的所有实体
-    std::vector<Entity*> entities = world->getEntitiesInRange(
-        m_enderman->position(),
-        static_cast<f32>(TARGET_DISTANCE),
-        m_enderman);
+    std::vector<Entity*> entities =
+        world->getEntitiesInRange(m_enderman->position(), static_cast<f32>(TARGET_DISTANCE), m_enderman);
 
     // 遍历寻找最近符合条件的玩家
     Player* closestPlayer = nullptr;
@@ -344,9 +340,12 @@ void EndermanPlaceBlockGoal::tick()
     m_enderman->setHeldBlockState(nullptr);
 }
 
-bool EndermanPlaceBlockGoal::canPlaceBlock(IWorld* world, const BlockPos& pos, const BlockState* state,
-                                             const BlockState* currentState, const BlockState* belowState,
-                                             const BlockPos& belowPos) const
+bool EndermanPlaceBlockGoal::canPlaceBlock(IWorld* world,
+    const BlockPos& pos,
+    const BlockState* state,
+    const BlockState* currentState,
+    const BlockState* belowState,
+    const BlockPos& belowPos) const
 {
     // MC 1.16.5: EndermanEntity.PlaceBlockGoal.func_220836_a()
     // 1. 目标位置必须是空气
@@ -377,10 +376,14 @@ bool EndermanPlaceBlockGoal::canPlaceBlock(IWorld* world, const BlockPos& pos, c
     // 完整实现需要 Block::isValidPosition
 
     // 6. 放置位置不能有实体碰撞
-    // MC 1.16.5: world.getEntitiesWithinAABBExcludingEntity(this.enderman, AxisAlignedBB.func_241549_a_(Vector3d.copy(blockpos))).isEmpty()
-    AxisAlignedBB box(
-        static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z),
-        static_cast<f32>(pos.x + 1), static_cast<f32>(pos.y + 1), static_cast<f32>(pos.z + 1));
+    // MC 1.16.5: world.getEntitiesWithinAABBExcludingEntity(this.enderman,
+    // AxisAlignedBB.func_241549_a_(Vector3d.copy(blockpos))).isEmpty()
+    AxisAlignedBB box(static_cast<f32>(pos.x),
+        static_cast<f32>(pos.y),
+        static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1),
+        static_cast<f32>(pos.y + 1),
+        static_cast<f32>(pos.z + 1));
     std::vector<Entity*> entities = world->getEntitiesInAABB(box, m_enderman);
     if (!entities.empty()) {
         return false;

@@ -1,24 +1,24 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file OnAStickItemTest.cpp
@@ -78,15 +78,9 @@ public:
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    void registerEntity(EntityId id, Entity* entity)
-    {
-        m_entities[id] = entity;
-    }
+    void registerEntity(EntityId id, Entity* entity) { m_entities[id] = entity; }
 
-    void clearEntities()
-    {
-        m_entities.clear();
-    }
+    void clearEntities() { m_entities.clear(); }
 
 private:
     std::unordered_map<EntityId, Entity*> m_entities;
@@ -97,15 +91,9 @@ private:
  */
 class OnAStickItemTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite()
-    {
-        Items::initialize();
-    }
+    static void SetUpTestSuite() { Items::initialize(); }
 
-    void SetUp() override
-    {
-        m_world = std::make_unique<StickItemTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<StickItemTestWorld>(); }
 
     std::unique_ptr<StickItemTestWorld> m_world;
 };
@@ -139,13 +127,11 @@ TEST_F(OnAStickItemTest, CarrotOnAStickProperties)
     ASSERT_NE(item, nullptr);
 
     // 验证耐久度
-    EXPECT_EQ(item->maxDamage(), CarrotOnAStickItem::MAX_DAMAGE)
-        << "CarrotOnAStick should have 25 max damage";
+    EXPECT_EQ(item->maxDamage(), CarrotOnAStickItem::MAX_DAMAGE) << "CarrotOnAStick should have 25 max damage";
     EXPECT_EQ(item->maxDamage(), 25);
 
     // 验证附魔能力
-    EXPECT_EQ(item->getItemEnchantability(), 1)
-        << "OnAStickItem should have enchantability of 1";
+    EXPECT_EQ(item->getItemEnchantability(), 1) << "OnAStickItem should have enchantability of 1";
 }
 
 TEST_F(OnAStickItemTest, WarpedFungusOnAStickProperties)
@@ -159,8 +145,7 @@ TEST_F(OnAStickItemTest, WarpedFungusOnAStickProperties)
     EXPECT_EQ(item->maxDamage(), 100);
 
     // 验证附魔能力
-    EXPECT_EQ(item->getItemEnchantability(), 1)
-        << "OnAStickItem should have enchantability of 1";
+    EXPECT_EQ(item->getItemEnchantability(), 1) << "OnAStickItem should have enchantability of 1";
 }
 
 TEST_F(OnAStickItemTest, CarrotOnAStickEntityId)
@@ -168,8 +153,7 @@ TEST_F(OnAStickItemTest, CarrotOnAStickEntityId)
     auto* carrotStick = static_cast<OnAStickItem*>(Items::CARROT_ON_A_STICK);
     ASSERT_NE(carrotStick, nullptr);
 
-    EXPECT_EQ(carrotStick->getEntityTypeId(), "minecraft:pig")
-        << "CarrotOnAStick should target minecraft:pig";
+    EXPECT_EQ(carrotStick->getEntityTypeId(), "minecraft:pig") << "CarrotOnAStick should target minecraft:pig";
 }
 
 TEST_F(OnAStickItemTest, WarpedFungusOnAStickEntityId)
@@ -252,8 +236,7 @@ TEST_F(OnAStickItemTest, CarrotOnAStickUseCount)
     constexpr i32 costPerUse = 7;
     constexpr i32 expectedUses = maxDamage / costPerUse; // 3
 
-    EXPECT_EQ(expectedUses, 3)
-        << "CarrotOnAStick should allow 3 uses before breaking";
+    EXPECT_EQ(expectedUses, 3) << "CarrotOnAStick should allow 3 uses before breaking";
 
     // 计算实际使用次数
     i32 uses = 0;
@@ -274,8 +257,7 @@ TEST_F(OnAStickItemTest, WarpedFungusOnAStickUseCount)
     constexpr i32 costPerUse = 1;
     constexpr i32 expectedUses = maxDamage / costPerUse; // 100
 
-    EXPECT_EQ(expectedUses, 100)
-        << "WarpedFungusOnAStick should allow 100 uses before breaking";
+    EXPECT_EQ(expectedUses, 100) << "WarpedFungusOnAStick should allow 100 uses before breaking";
 }
 
 // ============================================================================

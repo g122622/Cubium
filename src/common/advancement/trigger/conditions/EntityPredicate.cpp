@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EntityPredicate.hpp"
-#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/world/IWorld.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::advancement {
 
@@ -33,13 +33,8 @@ namespace mc::advancement {
 
 void EntityPredicate::updateIsAny()
 {
-    m_isAny = !m_type.has_value() &&
-              m_distance.isAny() &&
-              m_location.isAny() &&
-              m_effects.isAny() &&
-              m_nbt.isAny() &&
-              m_flags.isAny() &&
-              m_equipment.isAny();
+    m_isAny = !m_type.has_value() && m_distance.isAny() && m_location.isAny() && m_effects.isAny() && m_nbt.isAny() &&
+        m_flags.isAny() && m_equipment.isAny();
 }
 
 bool EntityPredicate::test(const Entity& entity) const
@@ -351,14 +346,10 @@ Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::js
     }
 
     // 计算是否为任意匹配
-    predicate.m_isAny = !predicate.m_isProjectile.has_value() &&
-                        !predicate.m_isExplosion.has_value() &&
-                        !predicate.m_bypassesArmor.has_value() &&
-                        !predicate.m_bypassesInvulnerability.has_value() &&
-                        !predicate.m_bypassesMagic.has_value() &&
-                        !predicate.m_isFire.has_value() &&
-                        !predicate.m_isMagic.has_value() &&
-                        !predicate.m_isLightning.has_value();
+    predicate.m_isAny = !predicate.m_isProjectile.has_value() && !predicate.m_isExplosion.has_value() &&
+        !predicate.m_bypassesArmor.has_value() && !predicate.m_bypassesInvulnerability.has_value() &&
+        !predicate.m_bypassesMagic.has_value() && !predicate.m_isFire.has_value() && !predicate.m_isMagic.has_value() &&
+        !predicate.m_isLightning.has_value();
 
     return predicate;
 }

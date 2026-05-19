@@ -1,38 +1,38 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "SlimeEntity.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityType.hpp"
-#include "../../../damage/DamageSource.hpp"
 #include "../../../ai/controller/JumpController.hpp"
 #include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/goal/goals/special/SlimeGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntityType.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -272,10 +272,9 @@ void SlimeEntity::registerGoals()
     // 优先级 1: 攻击玩家，距离 <= 10，需要视线，高度差 <= 4
     // 优先级 3: 攻击铁傀儡，需要视线
     m_targetSelector.addGoal(1,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-            this,
-            true,   // checkSight
-            10,     // chance
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
+            true, // checkSight
+            10,   // chance
             [this](const LivingEntity* target) -> bool {
                 // MC 1.16.5: Y 轴高度差必须 <= 4.0 格
                 if (target == nullptr || !target->isAlive()) {
@@ -285,9 +284,8 @@ void SlimeEntity::registerGoals()
                 return yDiff <= 4.0;
             }));
     m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(
-            this,
-            true));  // checkSight
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this,
+            true)); // checkSight
 }
 
 void SlimeEntity::registerAttributes()

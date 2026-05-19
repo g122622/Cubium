@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so condition, to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so condition, to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -198,8 +198,7 @@ TEST_F(TurtleEntityTest, IsOnLand_ReturnsOppositeOfIsInWater)
 class TurtleLayEggTestWorld final : public test::BaseTestWorld {
 public:
     // 播放的音效记录
-    struct PlayedSound
-    {
+    struct PlayedSound {
         ResourceLocation soundId;
         sound::SoundCategory category;
         Vector3 position;
@@ -256,10 +255,7 @@ public:
     [[nodiscard]] const std::vector<PlayedSound>& playedSounds() const { return m_playedSounds; }
 
     // 设置指定位置为空气
-    void setAir(const BlockPos& pos)
-    {
-        m_blocks.erase(pos);
-    }
+    void setAir(const BlockPos& pos) { m_blocks.erase(pos); }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -269,10 +265,7 @@ private:
 
 class TurtleLayEggTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-    }
+    void SetUp() override { VanillaBlocks::initialize(); }
 
     TurtleLayEggTestWorld m_world;
 };
@@ -384,10 +377,10 @@ TEST_F(TurtleEntityTest, TurtleEggBlock_EggCountRange)
 
     // 超出范围会被 clamp
     BlockState stateUnder = turtleEgg->withEggs(0);
-    EXPECT_EQ(turtleEgg->getEggs(stateUnder), 1);  // 最小值
+    EXPECT_EQ(turtleEgg->getEggs(stateUnder), 1); // 最小值
 
     BlockState stateOver = turtleEgg->withEggs(5);
-    EXPECT_EQ(turtleEgg->getEggs(stateOver), 4);  // 最大值
+    EXPECT_EQ(turtleEgg->getEggs(stateOver), 4); // 最大值
 }
 
 TEST_F(TurtleEntityTest, TurtleEggBlock_HatchRange)
@@ -406,10 +399,10 @@ TEST_F(TurtleEntityTest, TurtleEggBlock_HatchRange)
 
     // 超出范围会被 clamp
     BlockState stateUnder = turtleEgg->withHatch(-1);
-    EXPECT_EQ(turtleEgg->getHatch(stateUnder), 0);  // 最小值
+    EXPECT_EQ(turtleEgg->getHatch(stateUnder), 0); // 最小值
 
     BlockState stateOver = turtleEgg->withHatch(3);
-    EXPECT_EQ(turtleEgg->getHatch(stateOver), 2);  // 最大值
+    EXPECT_EQ(turtleEgg->getHatch(stateOver), 2); // 最大值
 }
 
 // ============================================================================

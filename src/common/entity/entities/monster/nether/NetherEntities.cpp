@@ -1,49 +1,49 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "NetherEntities.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/projectile/AbstractFireballEntity.hpp"
-#include "../../../entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../ai/controller/GhastMovementController.hpp"
 #include "../../../ai/goal/GoalFlag.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/special/GhastGoals.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/GhastGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../entities/projectile/AbstractArrowEntity.hpp"
+#include "../../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../../entities/projectile/OtherProjectiles.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../inventory/PlayerInventory.hpp"
@@ -165,19 +165,18 @@ void GhastEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::GhastFireballAttackGoal>(this));
 
     // 目标选择器：攻击最近的玩家
-    // MC 1.16.5: targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, PlayerEntity.class, 10, true, false, ...))
-    // 条件：玩家与恶魂的Y坐标差不超过4格
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-        this,
-        true,   // checkSight - 需要视线检查
-        10,     // chance - 每10tick检查一次
-        [](const LivingEntity* entity) -> bool {
-            // MC 1.16.5: Math.abs(player.getPosY() - this.getPosY()) <= 4.0D
-            // 这里在 NearestAttackableTargetGoal 中检查可能不太准确
-            // 但恶魂的Y坐标检查主要影响目标选择，影响不大
-            return true;
-        }
-    ));
+    // MC 1.16.5: targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, PlayerEntity.class, 10, true, false,
+    // ...)) 条件：玩家与恶魂的Y坐标差不超过4格
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
+            true, // checkSight - 需要视线检查
+            10,   // chance - 每10tick检查一次
+            [](const LivingEntity* entity) -> bool {
+                // MC 1.16.5: Math.abs(player.getPosY() - this.getPosY()) <= 4.0D
+                // 这里在 NearestAttackableTargetGoal 中检查可能不太准确
+                // 但恶魂的Y坐标检查主要影响目标选择，影响不大
+                return true;
+            }));
 }
 
 void GhastEntity::registerAttributes()
@@ -432,8 +431,7 @@ void PiglinEntity::registerGoals()
 
     // 优先级 2: 弩远程攻击（仅成年猪灵）
     if (!m_isBaby) {
-        m_goalSelector.addGoal(
-            2, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 15.0f));
+        m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 15.0f));
     }
 
     // 优先级 3: 近战攻击（备用，当没有弩或弩无法使用时）
@@ -443,24 +441,23 @@ void PiglinEntity::registerGoals()
 
     // 优先级 5: 避开僵尸猪灵
     // MC 1.16.5: 猪灵害怕僵尸猪灵和僵尸疣兽
-    m_goalSelector.addGoal(
-        5, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-               this, 24.0f, 1.0, 1.2,
-               entity::ai::goal::AvoidEntityGoal::EntityPredicate([](const LivingEntity* entity) {
-                   if (!entity || !entity->isAlive()) return false;
-                   // 避开僵尸猪灵和僵尸疣兽
-                   auto type = entity->typeId();
-                   return type == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN ||
-                          type == entity::EntityTypeIdNumber::ZOGLIN;
-               })));
+    m_goalSelector.addGoal(5,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+            this, 24.0f, 1.0, 1.2, entity::ai::goal::AvoidEntityGoal::EntityPredicate([](const LivingEntity* entity) {
+                if (!entity || !entity->isAlive()) return false;
+                // 避开僵尸猪灵和僵尸疣兽
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN ||
+                    type == entity::EntityTypeIdNumber::ZOGLIN;
+            })));
 
     // 优先级 7: 避开水随机行走
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-                                  entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(8,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 9: 随机看向
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -469,15 +466,14 @@ void PiglinEntity::registerGoals()
     if (!m_isBaby) {
         // 优先级 2: 攻击未穿戴金装备的玩家
         // MC 1.16.5: 猪灵攻击没有穿戴金装备的玩家
-        m_targetSelector.addGoal(
-            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-                   this, true, 10,
-                   [](const LivingEntity* entity) {
-                       const Player* player = dynamic_cast<const Player*>(entity);
-                       if (!player || !player->isAlive()) return false;
-                       // 攻击未穿戴金装备的玩家
-                       return !player->isWearingGoldArmor();
-                   }));
+        m_targetSelector.addGoal(2,
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
+                this, true, 10, [](const LivingEntity* entity) {
+                    const Player* player = dynamic_cast<const Player*>(entity);
+                    if (!player || !player->isAlive()) return false;
+                    // 攻击未穿戴金装备的玩家
+                    return !player->isWearingGoldArmor();
+                }));
     }
 }
 
@@ -516,9 +512,9 @@ void PiglinBruteEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-                                  entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(8,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 9: 随机看向
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -531,8 +527,7 @@ void PiglinBruteEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 3: 攻击玩家（不检查金装备）
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 }
 
 void PiglinBruteEntity::registerAttributes()
@@ -583,9 +578,9 @@ void ZombifiedPiglinEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-                                  entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(8,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 9: 随机看向
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -662,9 +657,9 @@ void HoglinEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-                                  entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(8,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 9: 随机看向
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -739,9 +734,9 @@ void ZoglinEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-                                  entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(8,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 9: 随机看向
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -757,17 +752,16 @@ void ZoglinEntity::registerGoals()
             2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
         // 优先级 3: 攻击其他生物（排除僵尸疣兽和幼年生物）
-        m_targetSelector.addGoal(
-            3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-                   this, true, 10,
-                   entity::ai::goal::TargetPredicate([](const LivingEntity* entity) {
-                       if (!entity || !entity->isAlive()) return false;
-                       auto type = entity->typeId();
-                       // 排除僵尸疣兽自己
-                       if (type == entity::EntityTypeIdNumber::ZOGLIN) return false;
-                       // TODO: 排除幼年生物和创造/旁观模式玩家
-                       return true;
-                   })));
+        m_targetSelector.addGoal(3,
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+                this, true, 10, entity::ai::goal::TargetPredicate([](const LivingEntity* entity) {
+                    if (!entity || !entity->isAlive()) return false;
+                    auto type = entity->typeId();
+                    // 排除僵尸疣兽自己
+                    if (type == entity::EntityTypeIdNumber::ZOGLIN) return false;
+                    // TODO: 排除幼年生物和创造/旁观模式玩家
+                    return true;
+                })));
     }
 }
 

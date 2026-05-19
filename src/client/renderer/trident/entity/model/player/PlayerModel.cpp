@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PlayerModel.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -297,10 +297,14 @@ void PlayerModel::setModelVisibilitiesFromFlags(u8 playerModelParts)
     // 根据玩家皮肤部件位掩码设置所有外层皮肤部件的可见性
     setPartVisible(PlayerModelPart::Hat, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::Hat)) != 0);
     setPartVisible(PlayerModelPart::Jacket, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::Jacket)) != 0);
-    setPartVisible(PlayerModelPart::LeftPantsLeg, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftPantsLeg)) != 0);
-    setPartVisible(PlayerModelPart::RightPantsLeg, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightPantsLeg)) != 0);
-    setPartVisible(PlayerModelPart::LeftSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftSleeve)) != 0);
-    setPartVisible(PlayerModelPart::RightSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightSleeve)) != 0);
+    setPartVisible(
+        PlayerModelPart::LeftPantsLeg, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftPantsLeg)) != 0);
+    setPartVisible(PlayerModelPart::RightPantsLeg,
+        (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightPantsLeg)) != 0);
+    setPartVisible(
+        PlayerModelPart::LeftSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::LeftSleeve)) != 0);
+    setPartVisible(
+        PlayerModelPart::RightSleeve, (playerModelParts & getPlayerModelPartMask(PlayerModelPart::RightSleeve)) != 0);
     // Cape 由 CapeLayer 单独处理，这里不设置
 }
 

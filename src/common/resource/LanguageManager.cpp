@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "LanguageManager.hpp"
 #include "IResourcePack.hpp"
@@ -88,12 +88,11 @@ Result<void> LanguageManager::loadLanguage(
     // 如果没有加载任何翻译，记录警告但不返回错误
     // 这允许使用翻译键作为回退
     if (totalLoaded == 0) {
-        spdlog::warn("[LanguageManager] No translations loaded for language '{}' (namespace: {})",
-            languageCode, namespace_);
+        spdlog::warn(
+            "[LanguageManager] No translations loaded for language '{}' (namespace: {})", languageCode, namespace_);
     }
 
-    spdlog::info("[LanguageManager] Loaded {} translations for language: {}",
-        m_translations.size(), languageCode);
+    spdlog::info("[LanguageManager] Loaded {} translations for language: {}", m_translations.size(), languageCode);
 
     // 触发回调
     if (m_onLanguageChanged) {
@@ -126,8 +125,8 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
         return parseResult.error();
     }
 
-    spdlog::debug("[LanguageManager] Loaded {} entries from {} in pack '{}'",
-        parseResult.value(), filePath, pack.name());
+    spdlog::debug(
+        "[LanguageManager] Loaded {} entries from {} in pack '{}'", parseResult.value(), filePath, pack.name());
 
     return parseResult;
 }
@@ -250,8 +249,8 @@ std::vector<LanguageInfo> LanguageManager::getBuiltinLanguages()
         {"cs_cz", "Čeština", "CZ", false},
         {"hu_hu", "Magyar", "HU", false},
         {"tr_tr", "Türkçe", "TR", false},
-        {"ar_sa", "العربية", "SA", true},  // RTL
-        {"he_il", "עברית", "IL", true},    // RTL
+        {"ar_sa", "العربية", "SA", true}, // RTL
+        {"he_il", "עברית", "IL", true},   // RTL
     };
 }
 

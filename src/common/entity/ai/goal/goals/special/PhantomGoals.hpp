@@ -15,11 +15,11 @@
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
+#include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../../util/math/Vector3.hpp"
 
 namespace mc {
 class PhantomEntity;
@@ -73,9 +73,9 @@ private:
      */
     Player* findAttackablePlayer();
 
-    PhantomEntity* m_phantom;       ///< 幻翼实体
-    i32 m_tickDelay = 20;           ///< 搜索延迟（MC 1.16.5: 初始20，成功后60）
-    static constexpr f64 SEARCH_RANGE = 64.0;  ///< 搜索范围（MC 1.16.5）
+    PhantomEntity* m_phantom;                 ///< 幻翼实体
+    i32 m_tickDelay = 20;                     ///< 搜索延迟（MC 1.16.5: 初始20，成功后60）
+    static constexpr f64 SEARCH_RANGE = 64.0; ///< 搜索范围（MC 1.16.5）
 };
 
 /**
@@ -100,7 +100,7 @@ protected:
      */
     [[nodiscard]] bool isNearOrbitOffset() const;
 
-    PhantomEntity* m_phantom;       ///< 幻翼实体
+    PhantomEntity* m_phantom; ///< 幻翼实体
 };
 
 /**
@@ -147,10 +147,10 @@ private:
      */
     void updateOrbitOffset();
 
-    f32 m_orbitAngle = 0.0f;         ///< 当前环绕角度
-    f32 m_orbitRadius = 5.0f;        ///< 环绕半径（MC 1.16.5: 5.0 + random(10.0)）
-    f32 m_orbitHeightOffset = 0.0f;  ///< 高度偏移（MC 1.16.5: -4.0 + random(9.0)）
-    f32 m_orbitDirection = 1.0f;     ///< 环绕方向（1.0或-1.0）
+    f32 m_orbitAngle = 0.0f;        ///< 当前环绕角度
+    f32 m_orbitRadius = 5.0f;       ///< 环绕半径（MC 1.16.5: 5.0 + random(10.0)）
+    f32 m_orbitHeightOffset = 0.0f; ///< 高度偏移（MC 1.16.5: -4.0 + random(9.0)）
+    f32 m_orbitDirection = 1.0f;    ///< 环绕方向（1.0或-1.0）
 };
 
 /**
@@ -203,8 +203,8 @@ private:
      */
     void setOrbitPositionAboveTarget();
 
-    PhantomEntity* m_phantom;       ///< 幻翼实体
-    i32 m_tickDelay = 0;             ///< 攻击阶段切换延迟
+    PhantomEntity* m_phantom; ///< 幻翼实体
+    i32 m_tickDelay = 0;      ///< 攻击阶段切换延迟
 };
 
 /**
@@ -258,7 +258,7 @@ private:
      */
     bool checkForCats();
 
-    i32 m_catCheckTimer = 0;         ///< 猫检测计时器（每20tick检测一次）
+    i32 m_catCheckTimer = 0; ///< 猫检测计时器（每20tick检测一次）
 };
 
 } // namespace entity::ai::goal

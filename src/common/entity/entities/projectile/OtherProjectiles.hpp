@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -260,19 +260,19 @@ private:
      */
     void syncCaughtEntityId();
 
-    Player* m_angler = nullptr;    // 钓鱼者
+    Player* m_angler = nullptr;       // 钓鱼者
     Entity* m_caughtEntity = nullptr; // 被钩住的实体
-    EntityId m_caughtEntityId = 0; // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
-    State m_state = State::Flying; // 当前状态
-    i32 m_ticksCaughtDelay = 0;    // 咬钩等待计时器
-    i32 m_ticksCatchableDelay = 0; // 鱼接近计时器
-    i32 m_ticksCatchable = 0;      // 可捕获窗口期
-    f32 m_fishAngle = 0.0f;        // 鱼的角度（用于动画）
-    bool m_inOpenWater = false;    // 是否在开放水域
-    i32 m_luckBonus = 0;           // 海之眷顾附魔等级
-    i32 m_speedBonus = 0;          // 饵钓附魔等级
-    i32 m_outOfWaterTime = 0;      // 离开水的时间计数器
-    i32 m_lifetime = 0;            // 存在时间
+    EntityId m_caughtEntityId = 0;    // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
+    State m_state = State::Flying;    // 当前状态
+    i32 m_ticksCaughtDelay = 0;       // 咬钩等待计时器
+    i32 m_ticksCatchableDelay = 0;    // 鱼接近计时器
+    i32 m_ticksCatchable = 0;         // 可捕获窗口期
+    f32 m_fishAngle = 0.0f;           // 鱼的角度（用于动画）
+    bool m_inOpenWater = false;       // 是否在开放水域
+    i32 m_luckBonus = 0;              // 海之眷顾附魔等级
+    i32 m_speedBonus = 0;             // 饵钓附魔等级
+    i32 m_outOfWaterTime = 0;         // 离开水的时间计数器
+    i32 m_lifetime = 0;               // 存在时间
 };
 
 /**
@@ -365,19 +365,19 @@ private:
      */
     void updateFlight();
 
-    Entity* m_target = nullptr;          ///< 目标实体
-    std::string m_targetUuid;            ///< 目标UUID（用于重新查找）
+    Entity* m_target = nullptr;            ///< 目标实体
+    std::string m_targetUuid;              ///< 目标UUID（用于重新查找）
     Direction m_direction = Direction::Up; ///< 当前移动方向
-    i32 m_flightSteps = 0;               ///< 剩余飞行步数
-    Vector3d m_targetDelta;              ///< 目标速度增量
+    i32 m_flightSteps = 0;                 ///< 剩余飞行步数
+    Vector3d m_targetDelta;                ///< 目标速度增量
 
     // 常量
-    static constexpr f32 BULLET_SPEED = 0.15;    ///< 子弹速度
-    static constexpr f32 ACCELERATION = 1.025;   ///< 加速度因子
-    static constexpr i32 MIN_STEPS = 10;         ///< 最小飞行步数
-    static constexpr i32 MAX_STEPS_EXTRA = 5;    ///< 额外飞行步数范围
+    static constexpr f32 BULLET_SPEED = 0.15;          ///< 子弹速度
+    static constexpr f32 ACCELERATION = 1.025;         ///< 加速度因子
+    static constexpr i32 MIN_STEPS = 10;               ///< 最小飞行步数
+    static constexpr i32 MAX_STEPS_EXTRA = 5;          ///< 额外飞行步数范围
     static constexpr f32 LEVITATION_DURATION = 200.0f; ///< 漂浮效果持续时间（ticks）
-    static constexpr f32 DAMAGE = 4.0f;          ///< 伤害值
+    static constexpr f32 DAMAGE = 4.0f;                ///< 伤害值
 };
 
 /**
@@ -454,10 +454,10 @@ private:
      */
     void damageEntities();
 
-    LivingEntity* m_owner = nullptr;     ///< 所有者（唤魔者）
-    i32 m_warmupDelay = 0;               ///< 预热延迟（ticks）
-    bool m_sentAttackEvent = false;      ///< 是否已发送攻击事件
-    i32 m_lifeTicks = 22;                ///< 生命时长（ticks），MC 1.16.5 默认22
+    LivingEntity* m_owner = nullptr;        ///< 所有者（唤魔者）
+    i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
+    bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
+    i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），MC 1.16.5 默认22
     bool m_clientSideAttackStarted = false; ///< 客户端攻击开始标志
 };
 

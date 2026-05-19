@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -236,17 +236,17 @@ public:
     [[nodiscard]] bool shouldTrackOutput() const { return m_trackOutput; }
 
 private:
-    std::string m_command;           ///< 存储的命令
-    i32 m_successCount = 0;          ///< 成功计数（用于比较器输出）
-    std::string m_lastOutput;        ///< 最后的输出
-    std::string m_customName;        ///< 自定义名称（"@"" 表示默认）
+    std::string m_command;                                ///< 存储的命令
+    i32 m_successCount = 0;                               ///< 成功计数（用于比较器输出）
+    std::string m_lastOutput;                             ///< 最后的输出
+    std::string m_customName;                             ///< 自定义名称（"@"" 表示默认）
     CommandBlockMode m_mode = CommandBlockMode::Redstone; ///< 执行模式
-    bool m_auto = false;             ///< 是否自动执行（循环模式）
-    bool m_powered = false;          ///< 是否被红石供电
-    bool m_conditionMet = true;      ///< 条件是否满足
-    bool m_trackOutput = true;       ///< 是否追踪输出
-    bool m_updateLastExecution = true; ///< 是否更新最后执行时间
-    i64 m_lastExecution = -1;        ///< 最后执行的游戏时间（防止同一 tick 重复执行）
+    bool m_auto = false;                                  ///< 是否自动执行（循环模式）
+    bool m_powered = false;                               ///< 是否被红石供电
+    bool m_conditionMet = true;                           ///< 条件是否满足
+    bool m_trackOutput = true;                            ///< 是否追踪输出
+    bool m_updateLastExecution = true;                    ///< 是否更新最后执行时间
+    i64 m_lastExecution = -1;                             ///< 最后执行的游戏时间（防止同一 tick 重复执行）
 };
 
 } // namespace blockentity

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "server/core/PacketHandler.hpp"
 #include "common/network/connection/LocalConnection.hpp"
@@ -40,11 +40,11 @@
 
 using namespace mc::server::core;
 using namespace mc::network;
-using mc::server::ServerCoreConfig;
 using mc::Hand;
 using mc::PlayerId;
 using mc::u32;
 using mc::u8;
+using mc::server::ServerCoreConfig;
 
 /**
  * @brief PacketHandler 单元测试
@@ -73,8 +73,7 @@ protected:
         m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, m_config);
         m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, m_config);
 
-        m_packetHandler = std::make_unique<PacketHandler>(
-            *m_playerManager,
+        m_packetHandler = std::make_unique<PacketHandler>(*m_playerManager,
             *m_connectionManager,
             *m_teleportManager,
             *m_keepAliveManager,
@@ -137,7 +136,8 @@ TEST_F(PacketHandlerTest, HandlePlayerInput_ValidSession_NoServer_ReturnsSuccess
 {
     // 添加玩家并映射会话
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -162,7 +162,8 @@ TEST_F(PacketHandlerTest, HandlePlayerInput_InvalidPacket_ReturnsError)
 {
     // 添加玩家
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -177,7 +178,8 @@ TEST_F(PacketHandlerTest, HandlePlayerInput_ClampsInputValues)
 {
     // 添加玩家
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -218,7 +220,8 @@ TEST_F(PacketHandlerTest, HandleMoveVehicle_UnknownSession_ReturnsIgnore)
 TEST_F(PacketHandlerTest, HandleMoveVehicle_ValidSession_NoServer_ReturnsSuccess)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -239,7 +242,8 @@ TEST_F(PacketHandlerTest, HandleMoveVehicle_ValidSession_NoServer_ReturnsSuccess
 TEST_F(PacketHandlerTest, HandleMoveVehicle_InvalidPacket_ReturnsError)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -252,7 +256,8 @@ TEST_F(PacketHandlerTest, HandleMoveVehicle_InvalidPacket_ReturnsError)
 TEST_F(PacketHandlerTest, HandleMoveVehicle_ValidPosition_ReturnsSuccess)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -292,7 +297,8 @@ TEST_F(PacketHandlerTest, HandleUseEntity_UnknownSession_ReturnsIgnore)
 TEST_F(PacketHandlerTest, HandleUseEntity_ValidSession_NoServer_ReturnsSuccess)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -314,7 +320,8 @@ TEST_F(PacketHandlerTest, HandleUseEntity_ValidSession_NoServer_ReturnsSuccess)
 TEST_F(PacketHandlerTest, HandleUseEntity_InvalidPacket_ReturnsError)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -330,16 +337,13 @@ TEST_F(PacketHandlerTest, HandleUseEntity_InvalidPacket_ReturnsError)
 TEST_F(PacketHandlerTest, HandleUseEntity_AllActionTypes)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
     // 测试所有交互类型
-    UseEntityAction actions[] = {
-        UseEntityAction::Interact,
-        UseEntityAction::Attack,
-        UseEntityAction::InteractAt
-    };
+    UseEntityAction actions[] = {UseEntityAction::Interact, UseEntityAction::Attack, UseEntityAction::InteractAt};
 
     for (auto action : actions) {
         UseEntityPacket packet;
@@ -382,7 +386,8 @@ TEST_F(PacketHandlerTest, HandleEntityAction_UnknownSession_ReturnsIgnore)
 TEST_F(PacketHandlerTest, HandleEntityAction_ValidSession_NoServer_ReturnsSuccess)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -404,7 +409,8 @@ TEST_F(PacketHandlerTest, HandleEntityAction_ValidSession_NoServer_ReturnsSucces
 TEST_F(PacketHandlerTest, HandleEntityAction_InvalidPacket_ReturnsError)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -419,19 +425,18 @@ TEST_F(PacketHandlerTest, HandleEntityAction_InvalidPacket_ReturnsError)
 TEST_F(PacketHandlerTest, HandleEntityAction_AllActionTypes)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
     // 测试所有动作类型
-    EntityActionType actions[] = {
-        EntityActionType::PressShiftKey,
+    EntityActionType actions[] = {EntityActionType::PressShiftKey,
         EntityActionType::ReleaseShiftKey,
         EntityActionType::StartSprinting,
         EntityActionType::StopSprinting,
         EntityActionType::StartRidingJump,
-        EntityActionType::StopRidingJump
-    };
+        EntityActionType::StopRidingJump};
 
     for (auto action : actions) {
         EntityActionPacket packet;
@@ -455,7 +460,8 @@ TEST_F(PacketHandlerTest, HandleEntityAction_AllActionTypes)
 TEST_F(PacketHandlerTest, HandlePacket_DispatchesToCorrectHandler)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -520,8 +526,7 @@ TEST_F(PacketHandlerTest, LoginCallback)
 
     // 测试登录失败回调（空数据）
     auto conn = createConnection();
-    LoginResult result = m_packetHandler->handleLoginRequest(
-        1, conn, nullptr, 0);
+    LoginResult result = m_packetHandler->handleLoginRequest(1, conn, nullptr, 0);
 
     // 登录失败（空数据）应该触发失败回调
     EXPECT_FALSE(loginSuccessCalled);
@@ -543,7 +548,8 @@ TEST_F(PacketHandlerTest, ChatCallback)
 
     // 添加玩家
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -719,7 +725,8 @@ TEST_F(PacketHandlerTest, HandleSteerBoat_UnknownSession_ReturnsIgnore)
 TEST_F(PacketHandlerTest, HandleSteerBoat_ValidSession_NoServer_ReturnsSuccess)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -739,7 +746,8 @@ TEST_F(PacketHandlerTest, HandleSteerBoat_ValidSession_NoServer_ReturnsSuccess)
 TEST_F(PacketHandlerTest, HandleSteerBoat_InvalidPacket_ReturnsError)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -753,7 +761,8 @@ TEST_F(PacketHandlerTest, HandleSteerBoat_InvalidPacket_ReturnsError)
 TEST_F(PacketHandlerTest, HandleSteerBoat_TooSmallPacket_ReturnsError)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -768,7 +777,8 @@ TEST_F(PacketHandlerTest, HandleSteerBoat_TooSmallPacket_ReturnsError)
 TEST_F(PacketHandlerTest, HandleSteerBoat_AllPaddleCombinations)
 {
     auto conn = createConnection();
-    auto* player = m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     m_playerManager->mapSessionToPlayer(1, 1);
 
@@ -778,12 +788,7 @@ TEST_F(PacketHandlerTest, HandleSteerBoat_AllPaddleCombinations)
         bool right;
     };
 
-    TestCase cases[] = {
-        {false, false},
-        {true, false},
-        {false, true},
-        {true, true}
-    };
+    TestCase cases[] = {{false, false}, {true, false}, {false, true}, {true, true}};
 
     for (const auto& tc : cases) {
         SteerBoatPacket packet;

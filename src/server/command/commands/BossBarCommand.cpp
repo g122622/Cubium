@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "BossBarCommand.hpp"
 
@@ -29,8 +29,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
-#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/bossbar/CustomServerBossInfo.hpp"
+#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -91,9 +91,8 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
     for (const auto& colorName : {"pink", "blue", "red", "green", "yellow", "purple", "white"}) {
         auto colorValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(colorName);
-        colorValueNode->setCommand([colorName](CommandContext<ServerCommandSource>& ctx) {
-            return setColor(ctx, std::string(colorName));
-        });
+        colorValueNode->setCommand(
+            [colorName](CommandContext<ServerCommandSource>& ctx) { return setColor(ctx, std::string(colorName)); });
         colorNode->addChild(colorValueNode);
     }
     setIdArg->addChild(colorNode);
@@ -102,9 +101,8 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto styleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("style");
     for (const auto& styleName : {"progress", "notched_6", "notched_10", "notched_12", "notched_20"}) {
         auto styleValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(styleName);
-        styleValueNode->setCommand([styleName](CommandContext<ServerCommandSource>& ctx) {
-            return setStyle(ctx, std::string(styleName));
-        });
+        styleValueNode->setCommand(
+            [styleName](CommandContext<ServerCommandSource>& ctx) { return setStyle(ctx, std::string(styleName)); });
         styleNode->addChild(styleValueNode);
     }
     setIdArg->addChild(styleNode);
@@ -435,7 +433,8 @@ i32 BossBarCommand::setPlayers(CommandContext<ServerCommandSource>& context)
     if (players.empty()) {
         ss << "Removed all players from boss bar '" << idStr << "'";
     } else {
-        ss << "Set players of boss bar '" << idStr << "' to " << players.size() << " player" << (players.size() == 1 ? "" : "s");
+        ss << "Set players of boss bar '" << idStr << "' to " << players.size() << " player"
+           << (players.size() == 1 ? "" : "s");
     }
     source.sendMessage(ss.str());
     return static_cast<i32>(players.size());
@@ -528,7 +527,8 @@ i32 BossBarCommand::getPlayers(CommandContext<ServerCommandSource>& context)
     }
 
     std::ostringstream ss;
-    ss << bossInfo->formattedName()->getFormattedText() << " has " << players.size() << " player" << (players.size() == 1 ? "" : "s") << ": ";
+    ss << bossInfo->formattedName()->getFormattedText() << " has " << players.size() << " player"
+       << (players.size() == 1 ? "" : "s") << ": ";
 
     bool first = true;
     for (PlayerId playerId : players) {

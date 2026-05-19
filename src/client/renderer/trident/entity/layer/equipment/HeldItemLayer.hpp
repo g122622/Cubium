@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
-#include "../core/LayerRenderer.hpp"
 #include "../../core/IEntityRenderer.hpp"
 #include "../../model/base/BipedModel.hpp"
+#include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
@@ -150,8 +150,7 @@ protected:
      * @param handSide 手侧（左手或右手）
      * @param outMatrix 输出变换矩阵
      */
-    virtual void computeItemTransform(
-        const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
+    virtual void computeItemTransform(const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
 
     /**
      * @brief 静态方法：计算手持物品变换矩阵（供测试使用）
@@ -167,8 +166,7 @@ protected:
      * @param handSide 手侧（左手或右手）
      * @param outMatrix 输出变换矩阵
      */
-    static void computeItemTransformStatic(
-        const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
+    static void computeItemTransformStatic(const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
 
     /**
      * @brief 获取关联的模型
@@ -179,5 +177,5 @@ private:
     mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
 };
 
-} // namespace mc::client::renderer::entity::layer::equipment
+} // namespace client::renderer::entity::layer::equipment
 } // namespace mc

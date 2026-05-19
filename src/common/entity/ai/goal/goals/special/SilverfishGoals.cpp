@@ -1,39 +1,39 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "SilverfishGoals.hpp"
-#include "entity/core/MobEntity.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/pathfinding/PathNavigator.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "util/Direction.hpp"
+#include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/gamerule/GameRules.hpp"
-#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
@@ -75,15 +75,14 @@ bool SilverfishHideInStoneGoal::shouldExecute()
     math::Random rng = m_silverfish->getRandom();
 
     // MC 1.16.5: 检查 mobGriefing 游戏规则 && 1/10 概率
-    if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
-        && rng.nextInt(MERGE_CHANCE) == 0) {
+    if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING) &&
+        rng.nextInt(MERGE_CHANCE) == 0) {
         // 随机选择一个方向
         auto allDirs = Directions::all();
         m_facing = allDirs[rng.nextInt(static_cast<i32>(allDirs.size()))];
 
         // 计算检查位置（蠹虫位置 + 0.5 高度偏移 + 方向偏移）
-        BlockPos checkPos(
-            static_cast<BlockCoord>(std::floor(m_silverfish->x())),
+        BlockPos checkPos(static_cast<BlockCoord>(std::floor(m_silverfish->x())),
             static_cast<BlockCoord>(std::floor(m_silverfish->y() + 0.5)),
             static_cast<BlockCoord>(std::floor(m_silverfish->z())));
         checkPos = checkPos.offset(m_facing);
@@ -124,8 +123,7 @@ void SilverfishHideInStoneGoal::startExecuting()
         }
 
         // 计算目标位置
-        BlockPos targetPos(
-            static_cast<BlockCoord>(std::floor(m_silverfish->x())),
+        BlockPos targetPos(static_cast<BlockCoord>(std::floor(m_silverfish->x())),
             static_cast<BlockCoord>(std::floor(m_silverfish->y() + 0.5)),
             static_cast<BlockCoord>(std::floor(m_silverfish->z())));
         targetPos = targetPos.offset(m_facing);
@@ -213,13 +211,11 @@ void SilverfishSummonOthersGoal::tick()
                     if (state != nullptr) {
                         const Block& block = state->getBlock();
                         // 检查是否是虫蚀方块（InfestedBlock 类型）
-                        const blocks::InfestedBlock* infestedBlock =
-                            dynamic_cast<const blocks::InfestedBlock*>(&block);
+                        const blocks::InfestedBlock* infestedBlock = dynamic_cast<const blocks::InfestedBlock*>(&block);
 
                         if (infestedBlock != nullptr) {
                             // 检查 mobGriefing 游戏规则
-                            if (world->getGameRules().getBoolean(
-                                    world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+                            if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
                                 // 破坏方块（会生成蠹虫）
                                 // MC 1.16.5: world.destroyBlock(blockpos1, true, this.silverfish)
                                 const BlockState* airState = BlockRegistry::instance().airState();
@@ -229,7 +225,8 @@ void SilverfishSummonOthersGoal::tick()
                                 }
                             } else {
                                 // 转换为原版方块
-                                // MC 1.16.5: world.setBlockState(blockpos1, ((SilverfishBlock)block).getMimickedBlock().getDefaultState(), 3)
+                                // MC 1.16.5: world.setBlockState(blockpos1,
+                                // ((SilverfishBlock)block).getMimickedBlock().getDefaultState(), 3)
                                 u32 hostBlockId = infestedBlock->getHostBlock();
                                 const Block* hostBlock = BlockRegistry::instance().getBlock(hostBlockId);
                                 if (hostBlock != nullptr) {
@@ -244,11 +241,11 @@ void SilverfishSummonOthersGoal::tick()
                         }
                     }
                 }
-                endZLoop:;
+            endZLoop:;
             }
-            endXLoop:;
+        endXLoop:;
         }
-        endYLoop:;
+    endYLoop:;
     }
 }
 

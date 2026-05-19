@@ -1,28 +1,38 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "AbstractHorseEntity.hpp"
 
+#include "../../../../core/Types.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
+#include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
@@ -35,19 +45,9 @@
 #include "../../../core/DataParameter.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/LivingEntity.hpp"
-#include "../../../../core/Types.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ActionResult.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../network/packet/EntityPackets.hpp"
-#include "../../../../util/math/MathConstants.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include <cmath>
 
 namespace mc {
@@ -395,7 +395,8 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
                 // MC 1.16.5: 跳跃提升药水效果加成
                 // if (this.isPotionActive(Effects.JUMP_BOOST)) {
-                //     d1 = d0 + (double)((float)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) * 0.1F);
+                //     d1 = d0 + (double)((float)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) *
+                //     0.1F);
                 // }
                 const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
                 if (jumpBoostLevel > 0) {
@@ -529,7 +530,8 @@ void AbstractHorseEntity::updateRiding()
         m_allowStandSliding = false;
 
         // 扬蹄动画渐出（使用三次方实现平滑过渡）
-        m_rearingAmount += (0.8f * m_rearingAmount * m_rearingAmount * m_rearingAmount - m_rearingAmount) * 0.6f - 0.05f;
+        m_rearingAmount +=
+            (0.8f * m_rearingAmount * m_rearingAmount * m_rearingAmount - m_rearingAmount) * 0.6f - 0.05f;
         if (m_rearingAmount < 0.0f) {
             m_rearingAmount = 0.0f;
         }
@@ -592,15 +594,16 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
         //     this.getPosZ() - (double)(f1 * f)
         // );
         f64 passengerX = static_cast<f64>(x() + offsetX * sinYaw);
-        f64 passengerY = static_cast<f64>(y()) + getMountedYOffset() + passenger.getYOffset() + static_cast<f64>(offsetY);
+        f64 passengerY =
+            static_cast<f64>(y()) + getMountedYOffset() + passenger.getYOffset() + static_cast<f64>(offsetY);
         f64 passengerZ = static_cast<f64>(z() - offsetX * cosYaw);
 
         passenger.setPosition(static_cast<f32>(passengerX), static_cast<f32>(passengerY), static_cast<f32>(passengerZ));
 
         // 如果乘客是 LivingEntity，同步 renderYawOffset
-        // MC 1.16.5: if (passenger instanceof LivingEntity) { ((LivingEntity)passenger).renderYawOffset = this.renderYawOffset; }
-        // 由于我们没有直接访问 LivingEntity 的 renderYawOffset setter，这里跳过
-        // renderYawOffset 的同步已在 travel() 方法中通过 setRotation() 实现
+        // MC 1.16.5: if (passenger instanceof LivingEntity) { ((LivingEntity)passenger).renderYawOffset =
+        // this.renderYawOffset; } 由于我们没有直接访问 LivingEntity 的 renderYawOffset setter，这里跳过 renderYawOffset
+        // 的同步已在 travel() 方法中通过 setRotation() 实现
     }
 }
 
@@ -797,13 +800,8 @@ bool AbstractHorseEntity::isFoodItem(const ItemStack& itemStack) const
         return false;
     }
 
-    return item == Items::WHEAT ||
-           item == Items::SUGAR ||
-           item == Items::HAY_BLOCK ||
-           item == Items::APPLE ||
-           item == Items::GOLDEN_CARROT ||
-           item == Items::GOLDEN_APPLE ||
-           item == Items::ENCHANTED_GOLDEN_APPLE;
+    return item == Items::WHEAT || item == Items::SUGAR || item == Items::HAY_BLOCK || item == Items::APPLE ||
+        item == Items::GOLDEN_CARROT || item == Items::GOLDEN_APPLE || item == Items::ENCHANTED_GOLDEN_APPLE;
 }
 
 bool AbstractHorseEntity::handleEating(Player* player, ItemStack& itemStack)
@@ -814,41 +812,41 @@ bool AbstractHorseEntity::handleEating(Player* player, ItemStack& itemStack)
         return false;
     }
 
-    bool flag = false;      // 是否有任何效果
-    f32 healAmount = 0.0f;  // 治疗量
-    i32 growthAmount = 0;   // 成长加速值（ticks）
-    i32 temperAmount = 0;   // 驯服进度增加值
+    bool flag = false;     // 是否有任何效果
+    f32 healAmount = 0.0f; // 治疗量
+    i32 growthAmount = 0;  // 成长加速值（ticks）
+    i32 temperAmount = 0;  // 驯服进度增加值
 
     // MC 1.16.5: 根据食物类型计算效果
     if (item == Items::WHEAT) {
-        healAmount = 2.0f;      // 治疗 2 点生命值
-        growthAmount = 20;      // 成长加速 20 ticks（1 秒）
-        temperAmount = 3;       // 驯服进度 +3
+        healAmount = 2.0f; // 治疗 2 点生命值
+        growthAmount = 20; // 成长加速 20 ticks（1 秒）
+        temperAmount = 3;  // 驯服进度 +3
     } else if (item == Items::SUGAR) {
-        healAmount = 1.0f;      // 治疗 1 点生命值
-        growthAmount = 30;      // 成长加速 30 ticks（1.5 秒）
-        temperAmount = 3;       // 驯服进度 +3
+        healAmount = 1.0f; // 治疗 1 点生命值
+        growthAmount = 30; // 成长加速 30 ticks（1.5 秒）
+        temperAmount = 3;  // 驯服进度 +3
     } else if (item == Items::HAY_BLOCK) {
-        healAmount = 20.0f;     // 治疗 20 点生命值
-        growthAmount = 180;     // 成长加速 180 ticks（9 秒）
+        healAmount = 20.0f; // 治疗 20 点生命值
+        growthAmount = 180; // 成长加速 180 ticks（9 秒）
         // 注意：干草块不增加驯服进度
     } else if (item == Items::APPLE) {
-        healAmount = 3.0f;      // 治疗 3 点生命值
-        growthAmount = 60;      // 成长加速 60 ticks（3 秒）
-        temperAmount = 3;       // 驯服进度 +3
+        healAmount = 3.0f; // 治疗 3 点生命值
+        growthAmount = 60; // 成长加速 60 ticks（3 秒）
+        temperAmount = 3;  // 驯服进度 +3
     } else if (item == Items::GOLDEN_CARROT) {
-        healAmount = 4.0f;      // 治疗 4 点生命值
-        growthAmount = 60;      // 成长加速 60 ticks（3 秒）
-        temperAmount = 5;       // 驯服进度 +5
+        healAmount = 4.0f; // 治疗 4 点生命值
+        growthAmount = 60; // 成长加速 60 ticks（3 秒）
+        temperAmount = 5;  // 驯服进度 +5
         // 金胡萝卜可以触发繁殖
         if (m_world != nullptr && !m_world->isClientSide() && isTame() && getGrowingAge() == 0 && canBreed()) {
             flag = true;
             setInLove();
         }
     } else if (item == Items::GOLDEN_APPLE || item == Items::ENCHANTED_GOLDEN_APPLE) {
-        healAmount = 10.0f;     // 治疗 10 点生命值
-        growthAmount = 240;     // 成长加速 240 ticks（12 秒）
-        temperAmount = 10;      // 驯服进度 +10
+        healAmount = 10.0f; // 治疗 10 点生命值
+        growthAmount = 240; // 成长加速 240 ticks（12 秒）
+        temperAmount = 10;  // 驯服进度 +10
         // 金苹果可以触发繁殖
         if (m_world != nullptr && !m_world->isClientSide() && isTame() && getGrowingAge() == 0 && canBreed()) {
             flag = true;
@@ -950,7 +948,8 @@ void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, A
     // 更新属性
     offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, offspring.m_horseHealth);
     offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, offspring.m_speed);
-    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, offspring.getJumpStrength());
+    offspring.m_attributes.setBaseValue(
+        entity::attribute::Attributes::HORSE_JUMP_STRENGTH, offspring.getJumpStrength());
 }
 
 f32 AbstractHorseEntity::getModifiedMaxHealth() const

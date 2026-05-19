@@ -1,44 +1,44 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/entity/entities/projectile/OtherProjectiles.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/item/core/ItemStack.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/util/math/random/Random.hpp"
 
-#include <nlohmann/json.hpp>
 #include <cmath>
 #include <memory>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -86,8 +86,7 @@ class FireworkRocketTestWorld : public test::BaseTestWorld {
 public:
     FireworkRocketTestWorld()
         : m_random(12345) // 固定种子用于可重复测试
-    {
-    }
+    {}
 
     [[nodiscard]] Entity* getEntity(EntityId id) override
     {
@@ -309,7 +308,7 @@ TEST(FireworkRocketItemTest, FlightTimeMinimumOne)
     ItemStack stack(Items::FIREWORK_ROCKET, 1);
     nlohmann::json& tag = stack.getOrCreateTag();
     tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 0;  // 设置为 0
+    tag["Fireworks"]["Flight"] = 0; // 设置为 0
 
     firework.setFireworkItem(stack);
 
@@ -358,9 +357,7 @@ TEST(FireworkRocketDamageFormulaTest, BaseDamageCalculation)
     // 3 个爆炸效果：基础伤害 = 5 + 3 * 2 = 11
     // 7 个爆炸效果：基础伤害 = 5 + 7 * 2 = 19
 
-    auto calculateBaseDamage = [](i32 explosionCount) -> f32 {
-        return 5.0f + static_cast<f32>(explosionCount * 2);
-    };
+    auto calculateBaseDamage = [](i32 explosionCount) -> f32 { return 5.0f + static_cast<f32>(explosionCount * 2); };
 
     EXPECT_FLOAT_EQ(calculateBaseDamage(1), 7.0f);
     EXPECT_FLOAT_EQ(calculateBaseDamage(3), 11.0f);
@@ -452,7 +449,7 @@ TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_NoBlocks)
     firework.setPosition(0.0, 0.0, 0.0);
 
     auto& target = m_world->addEntity<FireworkTestLivingEntity>();
-    target.setPosition(2.0, 0.0, 0.0);  // 距离 2 格
+    target.setPosition(2.0, 0.0, 0.0); // 距离 2 格
 
     // 无阻挡，应该能看到
     EXPECT_TRUE(firework.canSeeEntity(target));
@@ -467,7 +464,7 @@ TEST_F(FireworkRocketLineOfSightTest, CanSeeEntity_DistantTarget)
     firework.setPosition(0.0, 0.0, 0.0);
 
     auto& target = m_world->addEntity<FireworkTestLivingEntity>();
-    target.setPosition(4.0, 0.0, 0.0);  // 距离 4 格
+    target.setPosition(4.0, 0.0, 0.0); // 距离 4 格
 
     // 无阻挡，应该能看到
     EXPECT_TRUE(firework.canSeeEntity(target));
@@ -510,7 +507,7 @@ TEST_F(FireworkRocketDamageApplicationTest, DealsDamageToLivingEntity)
 
     // 创建目标实体，放在爆炸范围内
     auto& target = m_world->addEntity<FireworkTestLivingEntity>();
-    target.setPosition(2.0, 0.0, 0.0);  // 距离 2 格
+    target.setPosition(2.0, 0.0, 0.0); // 距离 2 格
 
     // 记录初始生命值
     f32 initialHealth = target.health();

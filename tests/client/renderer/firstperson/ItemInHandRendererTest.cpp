@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "client/renderer/trident/firstperson/ItemInHandRenderer.hpp"
 #include "client/renderer/trident/firstperson/MatrixStack.hpp"
@@ -145,9 +145,8 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_FirstPersonRight)
     EXPECT_NEAR(translation.z, 1.13f, 0.01f);
 
     // 验证矩阵不是单位矩阵（有变换应用）
-    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
-                 std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
-                 std::abs(matrix(2, 2) - 1.0f) < 0.001f);
+    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f && std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f);
 }
 
 TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_FirstPersonLeft)
@@ -170,9 +169,8 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_Gui)
 
     // GUI 有 X 轴 30 度和 Y 轴 225 度旋转，所以不能简单验证对角线
     // 验证矩阵不是单位矩阵（有变换应用）
-    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
-                 std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
-                 std::abs(matrix(2, 2) - 1.0f) < 0.001f);
+    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f && std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f);
 }
 
 TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_Ground)
@@ -258,9 +256,8 @@ TEST_F(ItemInHandRendererTest, ApplyTransform_EmptyStack_UsesDefault)
 
     // 验证矩阵已被修改（有旋转）
     const Matrix4f& matrix = stack->last();
-    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
-                 std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
-                 std::abs(matrix(2, 2) - 1.0f) < 0.001f);
+    EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f && std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f);
 }
 
 // ============================================================================

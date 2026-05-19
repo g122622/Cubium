@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file IRideableTest.cpp
@@ -35,16 +35,16 @@
  * - 加速时使用正弦函数：speed += speed * 1.15 * sin(progress * PI)
  */
 
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
-#include "entity/interfaces/IRideable.hpp"
-#include "entity/core/BoostHelper.hpp"
-#include "entity/core/MobEntity.hpp"
-#include "entity/core/EntityDataManager.hpp"
 #include "entity/attribute/Attributes.hpp"
-#include "util/math/random/Random.hpp"
+#include "entity/core/BoostHelper.hpp"
+#include "entity/core/EntityDataManager.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/interfaces/IRideable.hpp"
 #include "util/math/MathConstants.hpp"
+#include "util/math/random/Random.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -77,14 +77,16 @@ public:
     f32 getSteeringSpeed() const override { return m_steeringSpeed; }
     void setSteeringSpeed(f32 speed) { m_steeringSpeed = speed; }
 
-    bool boost() override {
+    bool boost() override
+    {
         math::Random rng = getRandom();
         return m_boostHelper.boost(rng);
     }
 
     bool canBeSteered() const override { return m_saddled; }
 
-    void travelTowards(const Vector3& travelVec) override {
+    void travelTowards(const Vector3& travelVec) override
+    {
         m_travelCalled = true;
         m_lastTravelVec = travelVec;
     }
@@ -97,7 +99,8 @@ public:
     bool wasTravelCalled() const { return m_travelCalled; }
     const Vector3& getLastTravelVec() const { return m_lastTravelVec; }
 
-    void resetTravelState() {
+    void resetTravelState()
+    {
         m_travelCalled = false;
         m_lastTravelVec = Vector3(0.0f, 0.0f, 0.0f);
     }
@@ -174,7 +177,7 @@ TEST(IRideableSpeedTest, BoostSpeedCalculation)
         f32 speed = baseSpeed + baseSpeed * 1.15f * std::sin(progress * math::PI);
 
         // 验证速度在合理范围内
-        EXPECT_GE(speed, baseSpeed); // 加速时速度不应低于基础速度
+        EXPECT_GE(speed, baseSpeed);         // 加速时速度不应低于基础速度
         EXPECT_LE(speed, baseSpeed * 2.15f); // 最大加速约为 2.15 倍
 
         // 在加速开始和结束时，速度应接近基础速度
@@ -362,13 +365,13 @@ TEST(IRideableSpeedTest, SetAndGetAIMoveSpeedSymmetry)
     // 测试多个速度值
     std::vector<f32> testSpeeds = {
         0.0f,
-        0.05625f,  // 猪骑乘速度
-        0.09625f,  // 炽足兽正常骑乘速度
-        0.1f,      // 默认速度
-        0.175f,    // 炽足兽基础速度
-        0.25f,     // 猪基础速度
-        0.5f,      // 较高速度
-        1.0f       // 最大速度
+        0.05625f, // 猪骑乘速度
+        0.09625f, // 炽足兽正常骑乘速度
+        0.1f,     // 默认速度
+        0.175f,   // 炽足兽基础速度
+        0.25f,    // 猪基础速度
+        0.5f,     // 较高速度
+        1.0f      // 最大速度
     };
 
     for (f32 speed : testSpeeds) {

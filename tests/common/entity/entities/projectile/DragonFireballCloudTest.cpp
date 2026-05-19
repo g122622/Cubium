@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
-#include "common/entity/entities/effect/EffectEntities.hpp"
-#include "common/entity/effect/EffectType.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -46,10 +46,7 @@ using namespace mc::entity;
  */
 class DragonFireballParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityId(1));
-    }
+    void SetUp() override { m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityId(1)); }
 
     std::unique_ptr<DragonFireballEntity> m_dragonFireball;
 };
@@ -71,10 +68,7 @@ TEST_F(DragonFireballParticleTest, DefaultValues_AreCorrect)
 
 class DragonBreathCloudParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
-    }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -134,8 +128,7 @@ TEST_F(DragonBreathCloudParticleTest, DragonBreathCloud_DefaultRadius)
 TEST_F(DragonBreathCloudParticleTest, DragonBreathCloud_AddEffect)
 {
     // MC 1.16.5: 龙息云添加瞬间伤害 II 效果
-    effect::EffectInstance instantDamage(
-        effect::EffectType::InstantDamage,
+    effect::EffectInstance instantDamage(effect::EffectType::InstantDamage,
         1,     // 持续时间（瞬间效果只需要1 tick）
         1,     // amplifier = 1 表示等级 II
         false, // 不是环境效果
@@ -180,8 +173,7 @@ TEST_F(DragonBreathCloudParticleTest, DragonBreathCloud_ReapplicationDelay)
 // 粒子类型枚举验证测试
 // ============================================================================
 
-class ProjectileParticleTypeEnumTest : public ::testing::Test {
-};
+class ProjectileParticleTypeEnumTest : public ::testing::Test {};
 
 TEST_F(ProjectileParticleTypeEnumTest, ExplosionParticle_ValueCorrect)
 {
@@ -214,10 +206,7 @@ TEST_F(ProjectileParticleTypeEnumTest, DragonBreathParticle_ValueCorrect)
 
 class WitherSkullParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_witherSkull = std::make_unique<WitherSkullEntity>(EntityId(1));
-    }
+    void SetUp() override { m_witherSkull = std::make_unique<WitherSkullEntity>(EntityId(1)); }
 
     std::unique_ptr<WitherSkullEntity> m_witherSkull;
 };
@@ -251,10 +240,7 @@ TEST_F(WitherSkullParticleTest, BlueFlag_DefaultFalse)
 
 class SmallFireballParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_smallFireball = std::make_unique<SmallFireballEntity>(EntityId(1));
-    }
+    void SetUp() override { m_smallFireball = std::make_unique<SmallFireballEntity>(EntityId(1)); }
 
     std::unique_ptr<SmallFireballEntity> m_smallFireball;
 };
@@ -275,10 +261,7 @@ TEST_F(SmallFireballParticleTest, DefaultValues_AreCorrect)
 
 class FireballParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_fireball = std::make_unique<FireballEntity>(EntityId(1));
-    }
+    void SetUp() override { m_fireball = std::make_unique<FireballEntity>(EntityId(1)); }
 
     std::unique_ptr<FireballEntity> m_fireball;
 };

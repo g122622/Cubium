@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -216,9 +216,7 @@ public:
      * MC 1.16.5: canPerformAction()
      * 检查熊猫是否不在任何阻止动作的状态
      */
-    [[nodiscard]] bool canPerformAction() const {
-        return !isSneezing() && !isEating() && !isLying() && !isRolling();
-    }
+    [[nodiscard]] bool canPerformAction() const { return !isSneezing() && !isEating() && !isLying() && !isRolling(); }
 
     /**
      * @brief 是否正在打喷嚏
@@ -376,9 +374,9 @@ private:
     u8 m_hiddenGene = 0;
 
     // 打滚持续时间常量
-    static constexpr i32 ROLL_DURATION = 32;        // 打滚总持续时间（ticks）
-    static constexpr f32 ROLL_SPEED_ADULT = 0.2f;   // 成年熊猫打滚速度
-    static constexpr f32 ROLL_SPEED_CHILD = 0.1f;   // 幼年熊猫打滚速度（减半）
+    static constexpr i32 ROLL_DURATION = 32;         // 打滚总持续时间（ticks）
+    static constexpr f32 ROLL_SPEED_ADULT = 0.2f;    // 成年熊猫打滚速度
+    static constexpr f32 ROLL_SPEED_CHILD = 0.1f;    // 幼年熊猫打滚速度（减半）
     static constexpr f32 ROLL_JUMP_VELOCITY = 0.27f; // 打滚跳跃速度
 };
 

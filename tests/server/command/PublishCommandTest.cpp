@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file PublishCommandTest.cpp
@@ -402,10 +402,7 @@ public:
     [[nodiscard]] server::core::TeleportManager& teleportManager() override { return m_teleportManager; }
     [[nodiscard]] const server::core::TeleportManager& teleportManager() const override { return m_teleportManager; }
     [[nodiscard]] server::core::KeepAliveManager& keepAliveManager() override { return m_keepAliveManager; }
-    [[nodiscard]] const server::core::KeepAliveManager& keepAliveManager() const override
-    {
-        return m_keepAliveManager;
-    }
+    [[nodiscard]] const server::core::KeepAliveManager& keepAliveManager() const override { return m_keepAliveManager; }
     [[nodiscard]] server::core::PositionTracker& positionTracker() override { return m_positionTracker; }
     [[nodiscard]] const server::core::PositionTracker& positionTracker() const override { return m_positionTracker; }
     [[nodiscard]] server::core::PacketHandler& packetHandler() override { return m_packetHandler; }
@@ -413,15 +410,9 @@ public:
     [[nodiscard]] server::core::GameModeManager& gameModeManager() override { return m_gameModeManager; }
     [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override { return m_gameModeManager; }
     [[nodiscard]] server::core::WhitelistManager& whitelistManager() override { return m_whitelistManager; }
-    [[nodiscard]] const server::core::WhitelistManager& whitelistManager() const override
-    {
-        return m_whitelistManager;
-    }
+    [[nodiscard]] const server::core::WhitelistManager& whitelistManager() const override { return m_whitelistManager; }
     [[nodiscard]] server::core::BannedPlayerList& bannedPlayerList() override { return m_bannedPlayerList; }
-    [[nodiscard]] const server::core::BannedPlayerList& bannedPlayerList() const override
-    {
-        return m_bannedPlayerList;
-    }
+    [[nodiscard]] const server::core::BannedPlayerList& bannedPlayerList() const override { return m_bannedPlayerList; }
     [[nodiscard]] server::core::BannedIpList& bannedIpList() override { return m_bannedIpList; }
     [[nodiscard]] const server::core::BannedIpList& bannedIpList() const override { return m_bannedIpList; }
     [[nodiscard]] server::core::OpListManager& opListManager() override { return m_opListManager; }
@@ -711,12 +702,7 @@ TEST_F(PublishCommandTest, PublishCommandSucceedsOnIntegratedServer)
 TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
 {
     // 测试带自定义端口的 publish 命令
-    ServerCommandSource source(&m_integratedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        4);
+    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 25566", source);
 
@@ -728,12 +714,7 @@ TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
 TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
 {
     // 测试带端口和作弊设置的 publish 命令
-    ServerCommandSource source(&m_integratedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        4);
+    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 25566 true", source);
 
@@ -745,12 +726,7 @@ TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
 TEST_F(PublishCommandTest, PublishCommandInvalidPortTooLow)
 {
     // 测试端口值过低 - 解析失败，因为 IntegerArgumentType 限制范围是 [1, 65535]
-    ServerCommandSource source(&m_integratedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        4);
+    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 0", source);
 
@@ -761,12 +737,7 @@ TEST_F(PublishCommandTest, PublishCommandInvalidPortTooLow)
 TEST_F(PublishCommandTest, PublishCommandInvalidPortTooHigh)
 {
     // 测试端口值过高 - 解析失败，因为 IntegerArgumentType 限制范围是 [1, 65535]
-    ServerCommandSource source(&m_integratedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        4);
+    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 70000", source);
 

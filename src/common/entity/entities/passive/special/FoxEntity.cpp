@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "FoxEntity.hpp"
 #include "../../../../core/Types.hpp"
@@ -260,11 +260,7 @@ bool FoxEntity::canAct() const
 {
     // MC 1.16.5 func_213478_eo
     // 可以行动的条件：非坐下、非蹲伏、非睡眠、非卡住、非激怒
-    return !isSitting() &&
-           !isCrouching() &&
-           !isSleeping() &&
-           !isStuck() &&
-           !isFoxAggroed();
+    return !isSitting() && !isCrouching() && !isSleeping() && !isStuck() && !isFoxAggroed();
 }
 
 void FoxEntity::resetAllStates()
@@ -411,39 +407,39 @@ void FoxEntity::registerGoals()
     // SHOULD_AVOID = !isDiscrete() && CAN_AI_TARGET.test(this)
     // isDiscrete() 检查玩家是否隐形/旁观者等，CAN_AI_TARGET 检查是否可作为AI目标
     // [已完成] 实现 AvoidEntityGoal 躲避未信任的玩家 - 2026/05/16
-    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-        this,
-        16.0f, // 检测距离：16格
-        1.6,   // 近距离逃跑速度（更快）
-        1.4,   // 远距离逃跑速度
-        [this](const LivingEntity* entity) -> bool {
-            if (entity == nullptr) return false;
-            // 只躲避玩家
-            const Player* player = dynamic_cast<const Player*>(entity);
-            if (player == nullptr) return false;
-            // MC 1.16.5: SHOULD_AVOID 检查
-            // isDiscrete() = isSpectator() || isInvisible() || ...
-            // CAN_AI_TARGET = !isCreative() && !isSpectator() && isAlive()
-            if (player->isSpectator() || player->isCreative()) return false;
-            // 不躲避信任的玩家
-            if (trusts(player->id())) return false;
-            // 不躲避当狐狸处于攻击状态时（即 isFoxAggroed 为 false）
-            // 当前简化实现：没有 isFoxAggroed 状态，始终躲避
-            return !isFoxAggroed();
-        }));
+    m_goalSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
+            16.0f, // 检测距离：16格
+            1.6,   // 近距离逃跑速度（更快）
+            1.4,   // 远距离逃跑速度
+            [this](const LivingEntity* entity) -> bool {
+                if (entity == nullptr) return false;
+                // 只躲避玩家
+                const Player* player = dynamic_cast<const Player*>(entity);
+                if (player == nullptr) return false;
+                // MC 1.16.5: SHOULD_AVOID 检查
+                // isDiscrete() = isSpectator() || isInvisible() || ...
+                // CAN_AI_TARGET = !isCreative() && !isSpectator() && isAlive()
+                if (player->isSpectator() || player->isCreative()) return false;
+                // 不躲避信任的玩家
+                if (trusts(player->id())) return false;
+                // 不躲避当狐狸处于攻击状态时（即 isFoxAggroed 为 false）
+                // 当前简化实现：没有 isFoxAggroed 状态，始终躲避
+                return !isFoxAggroed();
+            }));
 
     // 优先级 4: 躲避狼和北极熊
     // MC 1.16.5: 狐狸会躲避野生狼和北极熊
-    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-        this,
-        8.0f,  // 检测距离
-        1.6,   // 近距离逃跑速度
-        1.4,   // 远距离逃跑速度
-        [](const LivingEntity* entity) -> bool {
-            if (entity == nullptr) return false;
-            auto type = entity->typeId();
-            return type == entity::EntityTypeIdNumber::WOLF || type == entity::EntityTypeIdNumber::POLAR_BEAR;
-        }));
+    m_goalSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
+            8.0f, // 检测距离
+            1.6,  // 近距离逃跑速度
+            1.4,  // 远距离逃跑速度
+            [](const LivingEntity* entity) -> bool {
+                if (entity == nullptr) return false;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::WOLF || type == entity::EntityTypeIdNumber::POLAR_BEAR;
+            }));
 
     // 优先级 5: 跟踪猎物（扑击的前置阶段）
     // [已完成] 实现 FoxFollowTargetGoal - 2026/05/16
@@ -491,22 +487,21 @@ void FoxEntity::registerGoals()
     // 优先级 3: 食物诱惑（甜浆果）
     // MC 1.16.5: new TemptGoal(this, 1.0D, Ingredient.fromItems(Items.SWEET_BERRIES), false)
     // [已完成] 实现 TemptGoal 甜浆果诱惑 - 2026/05/16
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::TemptGoal>(
-        this,
-        1.0,  // 跟随速度
-        [](const ItemStack& stack) -> bool {
-            const Item* item = stack.getItem();
-            return item == Items::SWEET_BERRIES;
-        },
-        false // 不被玩家移动吓跑
-    ));
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::TemptGoal>(
+            this,
+            1.0, // 跟随速度
+            [](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                return item == Items::SWEET_BERRIES;
+            },
+            false // 不被玩家移动吓跑
+            ));
 
     // 优先级 12: 看向玩家
-    m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this,
-        24.0f,
-        entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-        entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(12,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 24.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 13: 坐下观察
     // [已完成] 实现 FoxSitAndLookGoal - 2026/05/16

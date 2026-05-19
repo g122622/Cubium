@@ -1,40 +1,40 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "WitchEntity.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/potion/PotionUtils.hpp"
+#include "../../../../item/potion/Potions.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../interfaces/IRangedAttackMob.hpp"
-#include "../../../../item/potion/PotionUtils.hpp"
-#include "../../../../item/potion/Potions.hpp"
-#include "../../../../item/Items.hpp"
 #include "sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -183,10 +183,9 @@ void WitchEntity::applyDrankPotionEffect(entity::effect::EffectType effectType)
         // - 速度药水：3:00 (3600 ticks)
         constexpr i32 POTION_DURATION = 3600; // 3分钟 = 3600 ticks
 
-        entity::effect::EffectInstance effect(
-            effectType,
+        entity::effect::EffectInstance effect(effectType,
             POTION_DURATION,
-            0,    // amplifier = 0 (效果等级 I)
+            0,     // amplifier = 0 (效果等级 I)
             false, // 非环境效果
             true,  // 显示粒子
             true   // 显示图标
@@ -249,8 +248,7 @@ void WitchEntity::registerGoals()
     // MC 1.16.5: 女巫 AI 目标
     // priority 1: 游泳目标（已在父类注册）
     // priority 2: 药水攻击
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RangedAttackGoal>(
-        this, 1.0, 60, 60, ATTACK_RADIUS));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RangedAttackGoal>(this, 1.0, 60, 60, ATTACK_RADIUS));
 
     // priority 3: 随机行走（避开水）
     // priority 4: 看向玩家
@@ -419,8 +417,7 @@ void WitchEntity::throwPotionAt(LivingEntity* target, entity::effect::EffectType
     // 投掷方向添加额外高度补偿
     f64 adjustedY = dy + static_cast<f64>(horizontalDist * 0.2f);
 
-    potion->shoot(static_cast<f32>(dx), static_cast<f32>(adjustedY), static_cast<f32>(dz),
-                  velocity, inaccuracy);
+    potion->shoot(static_cast<f32>(dx), static_cast<f32>(adjustedY), static_cast<f32>(dz), velocity, inaccuracy);
 
     // 播放投掷音效
     // MC 1.16.5: this.world.playSound((PlayerEntity)null, this.getPosX(), this.getPosY(), this.getPosZ(),

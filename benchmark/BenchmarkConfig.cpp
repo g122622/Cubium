@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "BenchmarkConfig.hpp"
 
@@ -34,7 +34,8 @@ using json = nlohmann::json;
 [[nodiscard]] Result<i32> requireInt(const json& object, std::string_view fieldName)
 {
     if (!object.contains(fieldName) || !object.at(fieldName).is_number_integer()) {
-        return Error(ErrorCode::InvalidArgument, std::string("Missing or invalid integer field: ") + std::string(fieldName));
+        return Error(
+            ErrorCode::InvalidArgument, std::string("Missing or invalid integer field: ") + std::string(fieldName));
     }
     return object.at(fieldName).get<i32>();
 }
@@ -42,7 +43,8 @@ using json = nlohmann::json;
 [[nodiscard]] Result<bool> requireBool(const json& object, std::string_view fieldName)
 {
     if (!object.contains(fieldName) || !object.at(fieldName).is_boolean()) {
-        return Error(ErrorCode::InvalidArgument, std::string("Missing or invalid boolean field: ") + std::string(fieldName));
+        return Error(
+            ErrorCode::InvalidArgument, std::string("Missing or invalid boolean field: ") + std::string(fieldName));
     }
     return object.at(fieldName).get<bool>();
 }
@@ -50,7 +52,8 @@ using json = nlohmann::json;
 [[nodiscard]] Result<std::string> requireString(const json& object, std::string_view fieldName)
 {
     if (!object.contains(fieldName) || !object.at(fieldName).is_string()) {
-        return Error(ErrorCode::InvalidArgument, std::string("Missing or invalid string field: ") + std::string(fieldName));
+        return Error(
+            ErrorCode::InvalidArgument, std::string("Missing or invalid string field: ") + std::string(fieldName));
     }
     return object.at(fieldName).get<std::string>();
 }
@@ -92,7 +95,8 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
     json root;
     try {
         input >> root;
-    } catch (const json::exception& exception) {
+    }
+    catch (const json::exception& exception) {
         return Error(ErrorCode::InvalidArgument, std::string("failed to parse benchmark config: ") + exception.what());
     }
 
@@ -152,8 +156,7 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
         return Error(ErrorCode::InvalidArgument, "missing or invalid cases array");
     }
 
-    BenchmarkConfig config{
-        traceEnabled.value(),
+    BenchmarkConfig config{traceEnabled.value(),
         globalThreadCount.value(),
         measurementConfig.value(),
         std::filesystem::path(outputDirectory.value()),
@@ -192,8 +195,7 @@ Result<BenchmarkConfig> loadBenchmarkConfig(const std::filesystem::path& rootDir
             return Error(ErrorCode::InvalidArgument, std::string("missing parameters for case: ") + caseName.value());
         }
 
-        config.cases.push_back(CaseRuntimeConfig{
-            caseName.value(),
+        config.cases.push_back(CaseRuntimeConfig{caseName.value(),
             caseThreadCount.value(),
             caseMeasurement.value(),
             config.traceFileName,

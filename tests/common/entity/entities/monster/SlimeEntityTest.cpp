@@ -1,36 +1,36 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
-#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -703,15 +703,15 @@ TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_EdgeCases)
     f64 slimeY = slime.y();
 
     // 精确在边界（高度差恰好 4.0）
-    f64 playerY1 = slimeY + 4.0;  // 上方边界
-    f64 playerY2 = slimeY - 4.0;  // 下方边界
+    f64 playerY1 = slimeY + 4.0; // 上方边界
+    f64 playerY2 = slimeY - 4.0; // 下方边界
 
     EXPECT_LE(std::abs(playerY1 - slimeY), 4.0) << "Exactly 4 blocks above should be within limit";
     EXPECT_LE(std::abs(playerY2 - slimeY), 4.0) << "Exactly 4 blocks below should be within limit";
 
     // 略微超出边界
-    f64 playerY3 = slimeY + 4.001;  // 上方超出
-    f64 playerY4 = slimeY - 4.001;  // 下方超出
+    f64 playerY3 = slimeY + 4.001; // 上方超出
+    f64 playerY4 = slimeY - 4.001; // 下方超出
 
     EXPECT_GT(std::abs(playerY3 - slimeY), 4.0) << "4.001 blocks above should exceed limit";
     EXPECT_GT(std::abs(playerY4 - slimeY), 4.0) << "4.001 blocks below should exceed limit";

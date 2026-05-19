@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -40,15 +40,11 @@ public:
         : m_name(name)
         , m_allowFriendlyFire(true)
         , m_seeFriendlyInvisibles(false)
-    {
-    }
+    {}
 
     [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
 
-    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override
-    {
-        return nullptr;
-    }
+    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
     void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
 
     [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
@@ -61,10 +57,7 @@ public:
     [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
     void clearMembers() override {}
 
-    [[nodiscard]] text::TextFormatting getColor() const noexcept override
-    {
-        return text::TextFormatting::White;
-    }
+    [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
     void setColor(text::TextFormatting) override {}
 
     [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
@@ -75,10 +68,7 @@ public:
     [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return m_allowFriendlyFire; }
     void setAllowFriendlyFire(bool allow) override { m_allowFriendlyFire = allow; }
 
-    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override
-    {
-        return m_seeFriendlyInvisibles;
-    }
+    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return m_seeFriendlyInvisibles; }
     void setSeeFriendlyInvisibles(bool see) override { m_seeFriendlyInvisibles = see; }
 
     [[nodiscard]] scoreboard::TeamVisibility getNameTagVisibility() const noexcept override
@@ -99,8 +89,7 @@ public:
     }
     void setCollisionRule(scoreboard::TeamCollisionRule) override {}
 
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(
-        const text::ITextComponent&) const override
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
     {
         return nullptr;
     }
@@ -119,8 +108,7 @@ class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
         : Entity(EntityId(1))
-    {
-    }
+    {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
 
@@ -299,8 +287,8 @@ TEST_F(EntityTeamTest, IsOnScoreboardTeam_SameTeamObject_ReturnsTrue)
 TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_TeammatesNotHit)
 {
     // 模拟横扫攻击场景：队友不应被攻击
-    m_entity1->setTeam(m_team1.get());  // 攻击者
-    m_entity2->setTeam(m_team1.get());  // 队友
+    m_entity1->setTeam(m_team1.get()); // 攻击者
+    m_entity2->setTeam(m_team1.get()); // 队友
 
     // isOnSameTeam 返回 true，表示是队友，不应被攻击
     EXPECT_TRUE(m_entity1->isOnSameTeam(*m_entity2));
@@ -309,8 +297,8 @@ TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_TeammatesNotHit)
 TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_EnemiesHit)
 {
     // 模拟横扫攻击场景：敌人应被攻击
-    m_entity1->setTeam(m_team1.get());  // 攻击者（红队）
-    m_entity2->setTeam(m_team2.get());  // 敌人（蓝队）
+    m_entity1->setTeam(m_team1.get()); // 攻击者（红队）
+    m_entity2->setTeam(m_team2.get()); // 敌人（蓝队）
 
     // isOnSameTeam 返回 false，表示不是队友，可以被攻击
     EXPECT_FALSE(m_entity1->isOnSameTeam(*m_entity2));
@@ -319,7 +307,7 @@ TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_EnemiesHit)
 TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_NoTeamEntityCanBeHit)
 {
     // 模拟横扫攻击场景：没有队伍的实体可以被攻击
-    m_entity1->setTeam(m_team1.get());  // 攻击者（红队）
+    m_entity1->setTeam(m_team1.get()); // 攻击者（红队）
     // entityNoTeam 没有队伍
 
     // 没有队伍的实体不算队友，可以被攻击

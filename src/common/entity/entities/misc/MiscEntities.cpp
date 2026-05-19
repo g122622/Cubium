@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including, modification, merge, publish,
-* distribute, sublicense, and/or sell copies of the Software, and to permit
-* persons to whom the Software is furnished to do so, subject to the following
-* conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including, modification, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to permit
+ * persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "MiscEntities.hpp"
 #include "../../../core/Types.hpp"
@@ -29,8 +29,8 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
-#include "../../../world/block/blocks/FallingBlock.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../../world/block/blocks/FallingBlock.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
@@ -98,10 +98,7 @@ void FallingBlockEntity::handleLanding()
     // MC 1.16.5: 获取落地点位置
     // 落地点是实体当前所在的方块位置
     BlockPos landingPos(
-        static_cast<i32>(std::floor(x())),
-        static_cast<i32>(std::floor(y())),
-        static_cast<i32>(std::floor(z()))
-    );
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
     // 获取下落的方块
     Block* block = Block::getBlock(m_blockId);
@@ -153,7 +150,8 @@ void FallingBlockEntity::handleLanding()
     remove();
 }
 
-bool FallingBlockEntity::tryPlaceBlock(IWorld* world, const BlockPos& landingPos, const BlockState* fallingState, const BlockState* hitState)
+bool FallingBlockEntity::tryPlaceBlock(
+    IWorld* world, const BlockPos& landingPos, const BlockState* fallingState, const BlockState* hitState)
 {
     if (world == nullptr || fallingState == nullptr) {
         return false;
@@ -247,15 +245,13 @@ void FallingBlockEntity::dropItem(IWorld* world, const BlockPos& pos)
 
     // 使用 ItemDropHelper 在方块位置生成物品实体
     math::Random& rng = world->getRandom();
-    ItemDropHelper::spawnItemEntity(
-        world,
+    ItemDropHelper::spawnItemEntity(world,
         stack,
         static_cast<f64>(pos.x) + 0.5,
         static_cast<f64>(pos.y) + 0.5,
         static_cast<f64>(pos.z) + 0.5,
         rng,
-        ItemDropHelper::DEFAULT_PICKUP_DELAY
-    );
+        ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 
 void FallingBlockEntity::hurtEntities(IWorld* world)
@@ -278,10 +274,8 @@ void FallingBlockEntity::hurtEntities(IWorld* world)
 
     // 计算伤害值
     // 伤害 = min(floor(下落距离 * HURT_AMOUNT), MAX_HURT_AMOUNT)
-    i32 damage = static_cast<i32>(std::min(
-        static_cast<f32>(effectiveDistance) * HURT_AMOUNT,
-        static_cast<f32>(MAX_HURT_AMOUNT)
-    ));
+    i32 damage = static_cast<i32>(
+        std::min(static_cast<f32>(effectiveDistance) * HURT_AMOUNT, static_cast<f32>(MAX_HURT_AMOUNT)));
 
     if (damage <= 0) {
         return;
@@ -298,7 +292,8 @@ void FallingBlockEntity::hurtEntities(IWorld* world)
     // 创建伤害来源
     EnvironmentalDamage anvilDamage = DamageSources::anvil();
     EnvironmentalDamage fallingBlockDamageSource = DamageSources::fallingBlock();
-    DamageSource* damageSource = isAnvil ? static_cast<DamageSource*>(&anvilDamage) : static_cast<DamageSource*>(&fallingBlockDamageSource);
+    DamageSource* damageSource =
+        isAnvil ? static_cast<DamageSource*>(&anvilDamage) : static_cast<DamageSource*>(&fallingBlockDamageSource);
 
     // 对每个实体造成伤害
     for (Entity* entity : entities) {

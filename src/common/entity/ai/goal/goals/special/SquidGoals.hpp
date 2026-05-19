@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
-#include "../../../../../core/Types.hpp"
 
 namespace mc {
 
@@ -80,11 +80,11 @@ private:
     SquidEntity* m_squid;
 
     // MC 1.16.5 常量
-    static constexpr i32 IDLE_THRESHOLD = 100;      // 空闲tick阈值
-    static constexpr i32 RANDOM_CHANCE = 50;        // 1/50概率触发新方向
-    static constexpr f32 HORIZONTAL_SPEED = 0.2f;   // 水平移动向量大小
-    static constexpr f32 VERTICAL_MIN = -0.1f;      // 垂直移动向量最小值
-    static constexpr f32 VERTICAL_RANGE = 0.2f;     // 垂直移动向量范围
+    static constexpr i32 IDLE_THRESHOLD = 100;    // 空闲tick阈值
+    static constexpr i32 RANDOM_CHANCE = 50;      // 1/50概率触发新方向
+    static constexpr f32 HORIZONTAL_SPEED = 0.2f; // 水平移动向量大小
+    static constexpr f32 VERTICAL_MIN = -0.1f;    // 垂直移动向量最小值
+    static constexpr f32 VERTICAL_RANGE = 0.2f;   // 垂直移动向量范围
 };
 
 /**
@@ -139,12 +139,12 @@ private:
     i32 m_tickCounter = 0;
 
     // MC 1.16.5 常量
-    static constexpr f64 FLEE_DISTANCE_SQ = 100.0;      // 触发逃跑的距离平方阈值 (10^2)
-    static constexpr f32 BASE_FLEE_SPEED = 3.0f;        // 基础逃跑速度
-    static constexpr f64 DISTANCE_THRESHOLD = 5.0;      // 速度衰减开始距离
-    static constexpr f32 SPEED_SCALE = 20.0f;           // 速度缩放因子
-    static constexpr i32 BUBBLE_INTERVAL = 10;          // 气泡粒子产生间隔
-    static constexpr i32 BUBBLE_OFFSET = 5;             // 气泡粒子产生偏移
+    static constexpr f64 FLEE_DISTANCE_SQ = 100.0; // 触发逃跑的距离平方阈值 (10^2)
+    static constexpr f32 BASE_FLEE_SPEED = 3.0f;   // 基础逃跑速度
+    static constexpr f64 DISTANCE_THRESHOLD = 5.0; // 速度衰减开始距离
+    static constexpr f32 SPEED_SCALE = 20.0f;      // 速度缩放因子
+    static constexpr i32 BUBBLE_INTERVAL = 10;     // 气泡粒子产生间隔
+    static constexpr i32 BUBBLE_OFFSET = 5;        // 气泡粒子产生偏移
 };
 
 } // namespace entity::ai::goal

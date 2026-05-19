@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/FoxGoals.hpp"
-#include "entity/entities/passive/special/FoxEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/entities/passive/special/FoxEntity.hpp"
 
 namespace mc {
 namespace test {
@@ -36,15 +36,9 @@ namespace test {
 
 class FoxGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        fox = std::make_unique<FoxEntity>(EntityId(1));
-    }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        fox.reset();
-    }
+    void TearDown() override { fox.reset(); }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -328,15 +322,9 @@ TEST_F(FoxGoalsTest, FoxRevengeGoal_ShouldExecuteReturnsFalse)
 
 class FoxEntityStateTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        fox = std::make_unique<FoxEntity>(EntityId(1));
-    }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        fox.reset();
-    }
+    void TearDown() override { fox.reset(); }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -518,15 +506,9 @@ TEST_F(FoxEntityStateTest, WakeUp)
 
 class FoxEntityTrustTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        fox = std::make_unique<FoxEntity>(EntityId(1));
-    }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        fox.reset();
-    }
+    void TearDown() override { fox.reset(); }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -570,7 +552,7 @@ TEST_F(FoxEntityTrustTest, MaxTrustedPlayers)
 
     // 添加第三个玩家（应该替换最早的）
     fox->addTrustedPlayer(3);
-    EXPECT_FALSE(fox->trusts(1));  // 第一个被替换
+    EXPECT_FALSE(fox->trusts(1)); // 第一个被替换
     EXPECT_TRUE(fox->trusts(2));
     EXPECT_TRUE(fox->trusts(3));
 }
@@ -590,7 +572,7 @@ TEST_F(FoxEntityTrustTest, GetFirstTrustedPlayer)
 TEST_F(FoxEntityTrustTest, DuplicateTrust)
 {
     fox->addTrustedPlayer(12345);
-    fox->addTrustedPlayer(12345);  // 重复添加
+    fox->addTrustedPlayer(12345); // 重复添加
 
     // 应该只有一个信任玩家
     EXPECT_TRUE(fox->trusts(12345));
@@ -601,15 +583,9 @@ TEST_F(FoxEntityTrustTest, DuplicateTrust)
 
 class FoxEntitySoundTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        fox = std::make_unique<FoxEntity>(EntityId(1));
-    }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        fox.reset();
-    }
+    void TearDown() override { fox.reset(); }
 
     std::unique_ptr<FoxEntity> fox;
 };
@@ -645,15 +621,9 @@ TEST_F(FoxEntitySoundTest, DeathSound)
 
 class FoxEntityBreedTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        fox = std::make_unique<FoxEntity>(EntityId(1));
-    }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        fox.reset();
-    }
+    void TearDown() override { fox.reset(); }
 
     std::unique_ptr<FoxEntity> fox;
 };

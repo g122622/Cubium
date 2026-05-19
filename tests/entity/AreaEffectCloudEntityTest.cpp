@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -222,8 +222,8 @@ TEST_F(AreaEffectCloudEntityTest, CreeperLingeringCloudParameters_AreCorrect)
 TEST_F(AreaEffectCloudEntityTest, ColorCalculation_MultipleEffects)
 {
     // 添加多个效果，颜色应该是混合的
-    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));      // 蓝色
-    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0));   // 红色
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));    // 蓝色
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0)); // 红色
 
     u32 color = m_cloud->getColor();
     EXPECT_NE(color, 0); // 颜色应该被计算
@@ -233,8 +233,7 @@ TEST_F(AreaEffectCloudEntityTest, ColorCalculation_MultipleEffects)
 // 效果类型颜色测试
 // ============================================================================
 
-class EffectColorTest : public ::testing::Test {
-};
+class EffectColorTest : public ::testing::Test {};
 
 TEST_F(EffectColorTest, GetEffectColor_ReturnsValidColors)
 {
@@ -269,8 +268,7 @@ TEST_F(EffectColorTest, IsInstantEffect_ReturnsCorrectValues)
 // EffectInstance 测试
 // ============================================================================
 
-class EffectInstanceTest : public ::testing::Test {
-};
+class EffectInstanceTest : public ::testing::Test {};
 
 TEST_F(EffectInstanceTest, Constructor_SetsCorrectValues)
 {
@@ -395,8 +393,8 @@ protected:
 
         // 模拟滞留药水的效果（持续时间在效果云中为原持续时间的 1/4）
         // 例如：速度药水原持续时间 3600 tick (3分钟)，在效果云中为 900 tick
-        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 900, 0));        // 速度 I
-        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 900, 0));    // 力量 I
+        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 900, 0));    // 速度 I
+        m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 900, 0)); // 力量 I
     }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
@@ -467,8 +465,7 @@ TEST_F(LingeringPotionCloudScenarioTest, SetOwner_CanBeSet)
 // 效果持续时间除以 4 的逻辑测试
 // ============================================================================
 
-class LingeringPotionDurationTest : public ::testing::Test {
-};
+class LingeringPotionDurationTest : public ::testing::Test {};
 
 TEST_F(LingeringPotionDurationTest, DurationDividedByFour)
 {
@@ -506,8 +503,7 @@ TEST_F(LingeringPotionDurationTest, DurationDividedByFour_InstantEffect)
 // 滞留药水效果云参数与苦力怕药水云对比测试
 // ============================================================================
 
-class LingeringPotionVsCreeperCloudTest : public ::testing::Test {
-};
+class LingeringPotionVsCreeperCloudTest : public ::testing::Test {};
 
 TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLargerRadius)
 {
@@ -563,8 +559,7 @@ TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameWaitTime)
 // 瞬间效果处理测试
 // ============================================================================
 
-class InstantEffectTest : public ::testing::Test {
-};
+class InstantEffectTest : public ::testing::Test {};
 
 TEST_F(InstantEffectTest, IsInstantEffect_IdentifiesCorrectTypes)
 {
@@ -600,8 +595,7 @@ TEST_F(InstantEffectTest, GetEffectColor_InstantEffectsHaveColors)
 // canBeHitWithPotion 测试
 // ============================================================================
 
-class CanBeHitWithPotionTest : public ::testing::Test {
-};
+class CanBeHitWithPotionTest : public ::testing::Test {};
 
 // 注意：完整的 canBeHitWithPotion 测试需要 Mock LivingEntity，
 // 这里测试 isInstantEffect 的正确性，它是瞬间效果处理的关键
@@ -639,8 +633,7 @@ TEST_F(CanBeHitWithPotionTest, DurationEffects_AreNotInstant)
 // 效果乘数测试（MC 1.16.5 药水云效果强度）
 // ============================================================================
 
-class EffectMultiplierTest : public ::testing::Test {
-};
+class EffectMultiplierTest : public ::testing::Test {};
 
 TEST_F(EffectMultiplierTest, AreaEffectCloudMultiplier_IsHalf)
 {
@@ -689,10 +682,7 @@ TEST_F(EffectMultiplierTest, SplashPotionMultiplier_IsFull)
 
 class AreaEffectCloudLifecycleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
-    }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -743,10 +733,7 @@ TEST_F(AreaEffectCloudLifecycleTest, RadiusOnUse_DefaultIsZero)
 
 class AreaEffectCloudColorTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
-    }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -769,8 +756,8 @@ TEST_F(AreaEffectCloudColorTest, SingleEffect_ColorMatchesEffect)
 TEST_F(AreaEffectCloudColorTest, MultipleEffects_ColorIsBlended)
 {
     // 多个效果时，颜色应该是混合的
-    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));     // 蓝色
-    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0));   // 红色
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));    // 蓝色
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 600, 0)); // 红色
 
     u32 cloudColor = m_cloud->getColor();
     u32 speedColor = effect::getEffectColor(effect::EffectType::Speed);

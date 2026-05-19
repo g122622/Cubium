@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -77,10 +77,10 @@ private:
     i32 m_attackCooldown = 0;
 
     // 常量
-    static constexpr f64 MIN_CHARGE_DISTANCE_SQ = 4.0;    // 最小冲锋距离（2格的平方）
-    static constexpr f64 STOP_CHASE_DISTANCE_SQ = 9.0;    // 停止追击距离（3格的平方）
-    static constexpr i32 ATTACK_COOLDOWN_TICKS = 20;      // 攻击冷却（1秒）
-    static constexpr i32 CHARGE_PROBABILITY = 7;          // 冲锋概率倒数（1/7 ≈ 14%）
+    static constexpr f64 MIN_CHARGE_DISTANCE_SQ = 4.0; // 最小冲锋距离（2格的平方）
+    static constexpr f64 STOP_CHASE_DISTANCE_SQ = 9.0; // 停止追击距离（3格的平方）
+    static constexpr i32 ATTACK_COOLDOWN_TICKS = 20;   // 攻击冷却（1秒）
+    static constexpr i32 CHARGE_PROBABILITY = 7;       // 冲锋概率倒数（1/7 ≈ 14%）
 };
 
 /**
@@ -110,11 +110,11 @@ private:
     VexEntity* m_vex;
 
     // 常量
-    static constexpr i32 RANDOM_PROBABILITY = 7;          // 随机移动概率倒数（1/7 ≈ 14%）
-    static constexpr f32 WANDER_SPEED = 0.25f;            // 漫游速度
-    static constexpr i32 WANDER_RANGE_X = 7;              // X轴漫游范围（±7格）
-    static constexpr i32 WANDER_RANGE_Y = 5;              // Y轴漫游范围（±5格）
-    static constexpr i32 WANDER_RANGE_Z = 7;              // Z轴漫游范围（±7格）
+    static constexpr i32 RANDOM_PROBABILITY = 7; // 随机移动概率倒数（1/7 ≈ 14%）
+    static constexpr f32 WANDER_SPEED = 0.25f;   // 漫游速度
+    static constexpr i32 WANDER_RANGE_X = 7;     // X轴漫游范围（±7格）
+    static constexpr i32 WANDER_RANGE_Y = 5;     // Y轴漫游范围（±5格）
+    static constexpr i32 WANDER_RANGE_Z = 7;     // Z轴漫游范围（±7格）
 };
 
 /**

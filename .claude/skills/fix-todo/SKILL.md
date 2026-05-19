@@ -82,3 +82,10 @@ enum class Operation : u8 {
     // ...
 }}}}
 ```
+
+提交代码之前，必须使用clang-format对你修改的文件进行格式化：
+
+```
+clang-format -i src\common\xxx\Foo.cpp
+clang-format -i src\common\xxx\Foo.hpp
+```

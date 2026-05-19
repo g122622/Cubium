@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "world/block/BlockPos.hpp"
@@ -97,8 +97,7 @@ TEST_F(CommandBlockEntityTest, Create_NeedsTickReturnsFalseForRedstoneMode)
 
 // ========== 带模式的构造函数测试 ==========
 
-class CommandBlockEntityModeTest : public ::testing::Test {
-};
+class CommandBlockEntityModeTest : public ::testing::Test {};
 
 TEST_F(CommandBlockEntityModeTest, Create_RedstoneMode_HasCorrectMode)
 {
@@ -112,7 +111,7 @@ TEST_F(CommandBlockEntityModeTest, Create_AutoMode_HasCorrectMode)
 {
     CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
     EXPECT_EQ(entity.getMode(), CommandBlockMode::Auto);
-    EXPECT_TRUE(entity.isAuto()); // 循环模式默认自动执行
+    EXPECT_TRUE(entity.isAuto());    // 循环模式默认自动执行
     EXPECT_TRUE(entity.needsTick()); // 循环模式需要每 tick 更新
 }
 
@@ -586,8 +585,7 @@ TEST_F(CommandBlockEntityChangedTest, SendMessage_MarksChanged)
 
 // ========== 模式相关测试 ==========
 
-class CommandBlockEntityModeBehaviorTest : public ::testing::Test {
-};
+class CommandBlockEntityModeBehaviorTest : public ::testing::Test {};
 
 TEST_F(CommandBlockEntityModeBehaviorTest, RedstoneMode_DoesNotNeedTick)
 {

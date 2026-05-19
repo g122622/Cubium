@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -51,12 +51,12 @@ class IRecipeBase;
  * 用于区分不同类型的合成界面的配方书状态。
  */
 enum class RecipeBookCategory : u8 {
-    Crafting,       ///< 工作台合成
-    Furnace,        ///< 熔炉
-    BlastFurnace,   ///< 高炉
-    Smoker,         ///< 烟熏炉
+    Crafting,     ///< 工作台合成
+    Furnace,      ///< 熔炉
+    BlastFurnace, ///< 高炉
+    Smoker,       ///< 烟熏炉
 
-    Count           ///< 分类数量
+    Count ///< 分类数量
 };
 
 /**
@@ -85,7 +85,7 @@ public:
      * @brief 单个分类的状态
      */
     struct CategoryStatus {
-        bool guiOpen = false;           ///< GUI是否打开
+        bool guiOpen = false;            ///< GUI是否打开
         bool filteringCraftable = false; ///< 是否过滤为可合成物品
 
         CategoryStatus() = default;
@@ -208,10 +208,7 @@ public:
      * @param recipeId 配方资源位置
      * @return 是否在配方书中
      */
-    [[nodiscard]] bool isBookRecipe(const ResourceLocation& recipeId) const noexcept
-    {
-        return isUnlocked(recipeId);
-    }
+    [[nodiscard]] bool isBookRecipe(const ResourceLocation& recipeId) const noexcept { return isUnlocked(recipeId); }
 
     // ========== 新配方管理 ==========
 
@@ -246,19 +243,13 @@ public:
      * @brief 获取所有已解锁的配方ID
      * @return 已解锁配方ID集合
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getUnlockedRecipes() const noexcept
-    {
-        return m_recipes;
-    }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getUnlockedRecipes() const noexcept { return m_recipes; }
 
     /**
      * @brief 获取所有新解锁的配方ID
      * @return 新解锁配方ID集合
      */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getNewRecipes() const noexcept
-    {
-        return m_newRecipes;
-    }
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getNewRecipes() const noexcept { return m_newRecipes; }
 
     // ========== 状态管理 ==========
 
@@ -301,9 +292,9 @@ public:
     [[nodiscard]] size_t getNewCount() const noexcept { return m_newRecipes.size(); }
 
 protected:
-    std::unordered_set<ResourceLocation> m_recipes;     ///< 已解锁的配方
-    std::unordered_set<ResourceLocation> m_newRecipes;  ///< 新解锁的配方（待显示）
-    RecipeBookStatus m_status;                          ///< GUI状态
+    std::unordered_set<ResourceLocation> m_recipes;    ///< 已解锁的配方
+    std::unordered_set<ResourceLocation> m_newRecipes; ///< 新解锁的配方（待显示）
+    RecipeBookStatus m_status;                         ///< GUI状态
 };
 
 /**

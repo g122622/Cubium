@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
-#include <gtest/gtest.h>
 #include <sstream>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace command {
@@ -74,7 +74,8 @@ TEST_F(NbtPathTest, GetExamples)
     bool hasFilter = false;
 
     for (const auto& ex : examples) {
-        if (ex.find('.') == std::string::npos && ex.find('[') == std::string::npos && ex.find('{') == std::string::npos) {
+        if (ex.find('.') == std::string::npos && ex.find('[') == std::string::npos &&
+            ex.find('{') == std::string::npos) {
             hasSimple = true;
         }
         if (ex.find('.') != std::string::npos) {
@@ -495,9 +496,7 @@ TEST_F(NbtPathTest, PathSet)
     NbtPath path = argType.parse(reader);
 
     // 设置新值
-    i32 count = path.set(root, []() {
-        return std::make_unique<nbt::tags::string_tag>("new");
-    });
+    i32 count = path.set(root, []() { return std::make_unique<nbt::tags::string_tag>("new"); });
 
     EXPECT_EQ(count, 1);
 
@@ -581,7 +580,8 @@ TEST_F(NbtPathTest, PathInsertIntoTagList)
     EXPECT_NO_THROW({
         try {
             i32 count = path.insert(root, 1, values);
-        } catch (const CommandException& e) {
+        }
+        catch (const CommandException& e) {
             // 如果抛出异常，测试仍然通过（记录当前行为）
         }
     });
@@ -607,7 +607,8 @@ TEST_F(NbtPathTest, PathAppendToTagList)
     EXPECT_NO_THROW({
         try {
             i32 count = path.append(root, values);
-        } catch (const CommandException& e) {
+        }
+        catch (const CommandException& e) {
             // 如果抛出异常，测试仍然通过
         }
     });
@@ -633,7 +634,8 @@ TEST_F(NbtPathTest, PathPrependToTagList)
     EXPECT_NO_THROW({
         try {
             i32 count = path.prepend(root, values);
-        } catch (const CommandException& e) {
+        }
+        catch (const CommandException& e) {
             // 如果抛出异常，测试仍然通过
         }
     });

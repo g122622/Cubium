@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -477,9 +477,8 @@ public:
      *
      * 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
      */
-    using CommandExecuteCallback = std::function<i32(const std::string& command,
-        const Vector3d& position,
-        i32 permissionLevel)>;
+    using CommandExecuteCallback =
+        std::function<i32(const std::string& command, const Vector3d& position, i32 permissionLevel)>;
 
     void setOnExecuteCommand(CommandExecuteCallback callback) { m_onExecuteCommand = std::move(callback); }
 
@@ -520,9 +519,8 @@ public:
      * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
-    [[nodiscard]] i32 executeCommand(const std::string& command,
-        const Vector3d& position,
-        i32 permissionLevel) override;
+    [[nodiscard]] i32 executeCommand(
+        const std::string& command, const Vector3d& position, i32 permissionLevel) override;
 
     /**
      * @brief 设置掉落表管理器
@@ -836,7 +834,8 @@ public:
      * @param oldDurability 旧耐久度
      * @param newDurability 新耐久度
      */
-    void onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability) override;
+    void onItemDurabilityChange(
+        PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability) override;
 
     /**
      * @brief 通知世界附魔完成
@@ -897,8 +896,11 @@ public:
      * @param tool 使用的工具
      * @param numBeesInside 蜂巢内的蜜蜂数量
      */
-    void onBeeNestDestroyed(
-        PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack& tool, i32 numBeesInside) override;
+    void onBeeNestDestroyed(PlayerId playerId,
+        const BlockPos& pos,
+        const BlockState* state,
+        const ItemStack& tool,
+        i32 numBeesInside) override;
 
     // ========== 结构定位 ==========
 
@@ -917,8 +919,7 @@ public:
      * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索），默认 false
      * @return 最近结构位置，如果未找到返回空
      */
-    [[nodiscard]] std::optional<BlockPos> findNearestStructure(
-        const BlockPos& center,
+    [[nodiscard]] std::optional<BlockPos> findNearestStructure(const BlockPos& center,
         world::gen::structure::StructureType structureType,
         i32 maxDistance,
         bool skipExisting = false) override;
@@ -953,7 +954,7 @@ private:
     std::unique_ptr<WorldLightManager> m_lightManager;
     std::unique_ptr<WeatherManager> m_weatherManager;
     server::ItemPickupManager m_itemPickupManager;
-    core::TimeManager* m_timeManager = nullptr; // 外部引用，不拥有
+    core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
@@ -976,8 +977,8 @@ private:
     EntityStatusCallback m_onBroadcastEntityStatus;
     WorldEventCallback m_onBroadcastWorldEvent;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
-    RaidEventCallback m_onRaidEvent;                   ///< 袭击事件回调
-    CommandExecuteCallback m_onExecuteCommand;         ///< 命令执行回调
+    RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调
+    CommandExecuteCallback m_onExecuteCommand; ///< 命令执行回调
 
     // 随机刻系统
     math::Random m_random; ///< 世界随机数生成器

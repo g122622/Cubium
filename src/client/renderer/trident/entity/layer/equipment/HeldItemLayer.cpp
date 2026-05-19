@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "HeldItemLayer.hpp"
 #include "../../../item/ItemMeshBuilder.hpp"
@@ -171,7 +171,8 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
         deathTime = static_cast<f32>(entity.deathTime());
     }
 
-    pipeline.drawMesh(cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+    pipeline.drawMesh(
+        cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
     spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
         item->getItem()->itemLocation().toString(),
@@ -237,7 +238,8 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
         // 调用模型的 translateHand 方法获取手臂变换
         // 这会返回手臂的旋转点和旋转角度的组合变换
         // 转换 HandSide：mc::HandSide -> model::HandSide
-        model::HandSide modelHandSide = (handSide == mc::HandSide::Left) ? model::HandSide::Left : model::HandSide::Right;
+        model::HandSide modelHandSide =
+            (handSide == mc::HandSide::Left) ? model::HandSide::Left : model::HandSide::Right;
         model->translateHand(modelHandSide, armMatrix);
     }
 
@@ -257,11 +259,7 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
     // [ 0, 0, 0, 1]   [0, 0, 0, 1]   [ 0, 0, 0, 1]
 
     std::array<f64, 16> itemRotation = {
-        -1.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 1.0, 0.0,
-         0.0, 1.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 1.0
-    };
+        -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 步骤 3：应用手部偏移
     // MC 1.16.5: translate((flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
@@ -274,11 +272,7 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
 
     // 构建偏移矩阵
     std::array<f64, 16> translation = {
-        1.0, 0.0, 0.0, xOffset,
-        0.0, 1.0, 0.0, yOffset,
-        0.0, 0.0, 1.0, zOffset,
-        0.0, 0.0, 0.0, 1.0
-    };
+        1.0, 0.0, 0.0, xOffset, 0.0, 1.0, 0.0, yOffset, 0.0, 0.0, 1.0, zOffset, 0.0, 0.0, 0.0, 1.0};
 
     // 组合所有变换：outMatrix = armMatrix * itemRotation * translation
     // 矩阵乘法顺序：从右到左应用

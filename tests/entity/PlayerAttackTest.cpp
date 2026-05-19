@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/item/enchantment/enchantments/weapon/SweepingEnchantment.hpp"
 #include "common/item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
+#include "common/item/enchantment/enchantments/weapon/SweepingEnchantment.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
@@ -44,14 +44,10 @@ class MockTeamForSweep : public scoreboard::Team {
 public:
     explicit MockTeamForSweep(const std::string& name)
         : m_name(name)
-    {
-    }
+    {}
 
     [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
-    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override
-    {
-        return nullptr;
-    }
+    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
     void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
     [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
     {
@@ -62,10 +58,7 @@ public:
     bool removeMember(const std::string&) override { return false; }
     [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
     void clearMembers() override {}
-    [[nodiscard]] text::TextFormatting getColor() const noexcept override
-    {
-        return text::TextFormatting::White;
-    }
+    [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
     void setColor(text::TextFormatting) override {}
     [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
     void setPrefix(std::unique_ptr<text::ITextComponent>) override {}
@@ -90,8 +83,7 @@ public:
         return scoreboard::TeamCollisionRule::Always;
     }
     void setCollisionRule(scoreboard::TeamCollisionRule) override {}
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(
-        const text::ITextComponent&) const override
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
     {
         return nullptr;
     }
@@ -108,8 +100,7 @@ class MockEntityWithTeamForSweep : public Entity {
 public:
     MockEntityWithTeamForSweep()
         : Entity(EntityId(1))
-    {
-    }
+    {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
 
@@ -148,7 +139,7 @@ TEST_F(SweepAttackFilterTest, ArmorStand_MarkerMode_ShouldBeExcluded)
 
     // 标记模式盔甲架应该被排除
     EXPECT_TRUE(armorStand.isMarker());
-    EXPECT_FALSE(armorStand.canBeCollidedWith());  // 标记模式不可碰撞
+    EXPECT_FALSE(armorStand.canBeCollidedWith()); // 标记模式不可碰撞
 }
 
 TEST_F(SweepAttackFilterTest, ArmorStand_NonMarkerMode_ShouldBeIncluded)
@@ -159,7 +150,7 @@ TEST_F(SweepAttackFilterTest, ArmorStand_NonMarkerMode_ShouldBeIncluded)
 
     // 非标记模式盔甲架不应该被排除
     EXPECT_FALSE(armorStand.isMarker());
-    EXPECT_TRUE(armorStand.canBeCollidedWith());  // 可以碰撞
+    EXPECT_TRUE(armorStand.canBeCollidedWith()); // 可以碰撞
 }
 
 TEST_F(SweepAttackFilterTest, ArmorStand_DefaultNotMarker)

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "OtherProjectiles.hpp"
 #include "../../../sound/SoundEvents.hpp"
@@ -276,10 +276,7 @@ void FishingBobberEntity::tick()
                     // 浮标跟随实体位置
                     // MC 1.16.5: 设置位置到实体高度的 80% 处
                     setPosition(
-                        m_caughtEntity->x(),
-                        m_caughtEntity->y() + m_caughtEntity->height() * 0.8,
-                        m_caughtEntity->z()
-                    );
+                        m_caughtEntity->x(), m_caughtEntity->y() + m_caughtEntity->height() * 0.8, m_caughtEntity->z());
                 }
             } else {
                 // 没有被钩住的实体，恢复飞行状态
@@ -447,8 +444,8 @@ i32 FishingBobberEntity::spawnCatchItems()
     }
 
     // 获取掉落表管理器
-    const loot::LootTable* fishingTable = m_world->lootTableManager() ?
-        m_world->lootTableManager()->getTable("minecraft:gameplay/fishing") : nullptr;
+    const loot::LootTable* fishingTable =
+        m_world->lootTableManager() ? m_world->lootTableManager()->getTable("minecraft:gameplay/fishing") : nullptr;
     if (!fishingTable) {
         // 如果掉落表不存在，返回默认值
         return 1;
@@ -464,15 +461,15 @@ i32 FishingBobberEntity::spawnCatchItems()
 
     // 构建掉落上下文
     auto context = loot::LootContextBuilder(*m_world)
-        .withRandom(random)
-        .withLuck(totalLuck)
-        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
-        .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(m_angler))
-        .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, m_inOpenWater)
-        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
-            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
-        })
-        .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
+                       .withRandom(random)
+                       .withLuck(totalLuck)
+                       .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
+                       .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(m_angler))
+                       .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, m_inOpenWater)
+                       .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
+                           return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
+                       })
+                       .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
 
     if (!context) {
         return 1;
@@ -500,13 +497,16 @@ i32 FishingBobberEntity::spawnCatchItems()
         }
 
         // 使用 ItemDropHelper 生成物品实体
-        ItemDropHelper::spawnItemEntity(
-            m_world,
+        ItemDropHelper::spawnItemEntity(m_world,
             drop,
-            x(), y() + 0.5, z(), // 在浮标位置生成
-            vx, vy, vz,           // 朝玩家方向飞
-            10,                   // 拾取延迟 10 ticks
-            m_angler->uuid()      // 所有者 UUID，防止立即拾取自己的物品
+            x(),
+            y() + 0.5,
+            z(), // 在浮标位置生成
+            vx,
+            vy,
+            vz,              // 朝玩家方向飞
+            10,              // 拾取延迟 10 ticks
+            m_angler->uuid() // 所有者 UUID，防止立即拾取自己的物品
         );
     }
 
@@ -550,13 +550,8 @@ void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
         f64 offsetY = random.nextDouble() * 0.2;
         f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
 
-        auto orb = std::make_unique<ExperienceOrbEntity>(
-            m_world,
-            x() + offsetX,
-            y() + 0.5 + offsetY,
-            z() + offsetZ,
-            orbXp
-        );
+        auto orb =
+            std::make_unique<ExperienceOrbEntity>(m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp);
 
         // 设置拾取延迟
         orb->setPickupDelay(10);
@@ -631,7 +626,7 @@ RayTraceResult FishingBobberEntity::performRayTrace()
         end,
         searchBox,
         [this](const Entity& candidate) { return canHitEntity(candidate); },
-        0.3f  // collisionExpansion
+        0.3f // collisionExpansion
     );
 
     if (entityResult.type == RayTraceResultType::Entity) {
@@ -720,11 +715,7 @@ void FishingBobberEntity::bringInHookedEntity()
     }
 
     // 计算从浮标指向钓鱼者的方向向量
-    Vector3d direction(
-        m_angler->x() - x(),
-        m_angler->y() - y(),
-        m_angler->z() - z()
-    );
+    Vector3d direction(m_angler->x() - x(), m_angler->y() - y(), m_angler->z() - z());
 
     // 缩放到 10% 的力
     // MC 1.16.5: direction.scale(0.1D)
@@ -733,10 +724,7 @@ void FishingBobberEntity::bringInHookedEntity()
     // 叠加到被钩实体的速度上
     // MC 1.16.5: caughtEntity.setMotion(caughtEntity.getMotion().add(vector3d))
     m_caughtEntity->addVelocity(
-        static_cast<f32>(direction.x),
-        static_cast<f32>(direction.y),
-        static_cast<f32>(direction.z)
-    );
+        static_cast<f32>(direction.x), static_cast<f32>(direction.y), static_cast<f32>(direction.z));
 }
 
 void FishingBobberEntity::syncCaughtEntityId()
@@ -813,8 +801,7 @@ void ShulkerBulletEntity::tick()
     if (m_world != nullptr) {
         // 检查目标是否有效
         Player* playerTarget = dynamic_cast<Player*>(m_target);
-        if (m_target == nullptr || !m_target->isAlive() ||
-            (playerTarget != nullptr && playerTarget->isSpectator())) {
+        if (m_target == nullptr || !m_target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
             // 目标无效，下落
             if (!m_noGravity) {
                 m_velocity.y -= 0.04;
@@ -929,8 +916,8 @@ void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
         static_cast<i32>(std::floor(m_position.y)),
         static_cast<i32>(std::floor(m_position.z)));
     f64 distSq = static_cast<f64>(myPos.x - targetPos.x) * (myPos.x - targetPos.x) +
-                 static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
-                 static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
+        static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
+        static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
 
     if (distSq >= 4.0 && m_world != nullptr) { // 距离 >= 2格
         std::vector<Direction> possibleDirs;
@@ -1083,7 +1070,7 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
             // MC 1.16.5: 200 ticks = 10秒漂浮
             livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Levitation,
                 static_cast<i32>(LEVITATION_DURATION),
-                0,  // amplifier = 0 (I级效果)
+                0, // amplifier = 0 (I级效果)
                 false,
                 true,
                 true));
@@ -1095,14 +1082,14 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
     // MC 1.16.5: 命中方块时生成爆炸粒子
     // 参考 ShulkerBulletEntity.func_230299_a_()
-    // ((ServerWorld)this.world).spawnParticle(ParticleTypes.EXPLOSION, this.getPosX(), this.getPosY(), this.getPosZ(), 2, 0.2D, 0.2D, 0.2D, 0.0D);
+    // ((ServerWorld)this.world).spawnParticle(ParticleTypes.EXPLOSION, this.getPosX(), this.getPosY(), this.getPosZ(),
+    // 2, 0.2D, 0.2D, 0.2D, 0.0D);
     if (m_world != nullptr) {
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Explosion,
+        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Explosion,
             m_position,
-            Vector3(0.0f, 0.0f, 0.0f),  // 速度为 0
-            Vector3(0.2f, 0.2f, 0.2f),  // 随机偏移范围
-            2);                          // 数量 2
+            Vector3(0.0f, 0.0f, 0.0f), // 速度为 0
+            Vector3(0.2f, 0.2f, 0.2f), // 随机偏移范围
+            2);                        // 数量 2
     }
     playSound(SoundEvents::ENTITY_SHULKER_BULLET_HIT, 1.0f, 1.0f);
 }
@@ -1276,7 +1263,7 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 
 FireworkRocketEntity::FireworkRocketEntity(EntityId id)
     : ProjectileEntity(id)
-    , m_fireworkItem(Items::AIR, 0)  // 初始化为空物品
+    , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
 {
     m_noGravity = false;
 }
@@ -1341,13 +1328,11 @@ void FireworkRocketEntity::tick()
         // 使用高斯分布随机速度
         mc::math::Random rng = createRandomFromEntity(*this);
         f32 vx = static_cast<f32>(rng.nextGaussian() * 0.05);
-        f32 vy = static_cast<f32>(-m_velocity.y * 0.5);  // Y速度与火箭运动方向相反
+        f32 vy = static_cast<f32>(-m_velocity.y * 0.5); // Y速度与火箭运动方向相反
         f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
 
         m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Firework,
-            particlePos,
-            Vector3(vx, vy, vz));
+            client::renderer::trident::particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
     }
 
     // 检查是否爆炸
@@ -1381,8 +1366,7 @@ void FireworkRocketEntity::explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(
-                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
                     Vector3(x() + ox, y() + oy, z() + oz),
                     Vector3(0.0f, 0.0f, 0.0f));
             }
@@ -1391,8 +1375,7 @@ void FireworkRocketEntity::explode()
             // 参考 MC 1.16.5 FireworkParticle.Starter
 
             // 生成爆炸闪光
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Flash,
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Flash,
                 Vector3(x(), y(), z()),
                 Vector3(0.0f, 0.0f, 0.0f));
 
@@ -1401,8 +1384,8 @@ void FireworkRocketEntity::explode()
             i32 particleCount = 20 + rng.nextInt(20);
             for (i32 i = 0; i < particleCount; ++i) {
                 // 球形分布
-                f32 theta = rng.nextFloat() * 6.28318530718f;  // 2 * PI
-                f32 phi = rng.nextFloat() * 3.14159265359f;     // PI
+                f32 theta = rng.nextFloat() * 6.28318530718f; // 2 * PI
+                f32 phi = rng.nextFloat() * 3.14159265359f;   // PI
                 f32 speed = 0.1f + rng.nextFloat() * 0.3f;
 
                 f32 vx = std::sin(phi) * std::cos(theta) * speed;
@@ -1413,8 +1396,7 @@ void FireworkRocketEntity::explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(
-                    client::renderer::trident::particle::ParticleTypeId::Firework,
+                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Firework,
                     Vector3(x() + ox, y() + oy, z() + oz),
                     Vector3(vx, vy, vz));
             }
@@ -1425,8 +1407,7 @@ void FireworkRocketEntity::explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
 
-                m_world->addParticle(
-                    client::renderer::trident::particle::ParticleTypeId::Poof,
+                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
                     Vector3(x() + ox, y() + oy, z() + oz),
                     Vector3(0.0f, 0.02f, 0.0f));
             }
@@ -1455,7 +1436,7 @@ void FireworkRocketEntity::dealExplosionDamage()
 
     // 爆炸半径 5 格
     constexpr f32 EXPLOSION_RADIUS = 5.0f;
-    constexpr f64 EXPLOSION_RADIUS_SQ = 25.0;  // 5.0 * 5.0
+    constexpr f64 EXPLOSION_RADIUS_SQ = 25.0; // 5.0 * 5.0
 
     // 获取爆炸范围内的所有 LivingEntity
     AxisAlignedBB searchBox = boundingBox().grow(EXPLOSION_RADIUS);
@@ -1516,11 +1497,7 @@ bool FireworkRocketEntity::canSeeEntity(const Entity& target) const
 
     for (f64 heightOffset : HEIGHT_OFFSETS) {
         // 计算目标点位置
-        Vector3 targetPoint(
-            targetPos.x,
-            targetPos.y + target.height() * heightOffset,
-            targetPos.z
-        );
+        Vector3 targetPoint(targetPos.x, targetPos.y + target.height() * heightOffset, targetPos.z);
 
         // 创建射线追踪上下文
         // 使用 COLLIDER 模式检测方块碰撞，忽略流体

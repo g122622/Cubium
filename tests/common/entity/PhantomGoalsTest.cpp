@@ -17,10 +17,7 @@ using namespace mc::entity::ai::goal;
 
 class PhantomEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
-    }
+    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityId(0)); }
 
     void TearDown() override { phantom.reset(); }
 
@@ -380,7 +377,7 @@ TEST_F(PhantomGoalsIntegrationTest, AttackPhase_TransitionsCorrectly)
     EXPECT_EQ(phantom->getAttackPhase(), PhantomEntity::AttackPhase::SWOOP);
 
     // 检查 goal 应该执行的条件
-    EXPECT_TRUE(orbitGoal->shouldExecute()); // 无目标时应该执行
+    EXPECT_TRUE(orbitGoal->shouldExecute());  // 无目标时应该执行
     EXPECT_FALSE(sweepGoal->shouldExecute()); // 无目标时不应该执行
 }
 
@@ -406,8 +403,8 @@ TEST_F(PhantomEntityTest, Constants_AreCorrect)
     // MC 1.16.5: BASE_ATTACK_DAMAGE = 6.0f
     // 通过常量验证（属性需要初始化后才能测试）
     // 这里验证幻翼的基本常量
-    EXPECT_EQ(phantom->getPhantomSize(), 0);  // 默认大小为0
-    EXPECT_EQ(phantom->getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE);  // 默认环绕阶段
+    EXPECT_EQ(phantom->getPhantomSize(), 0);                                  // 默认大小为0
+    EXPECT_EQ(phantom->getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE); // 默认环绕阶段
 }
 
 TEST_F(PhantomEntityTest, Size_AffectsDimensions)

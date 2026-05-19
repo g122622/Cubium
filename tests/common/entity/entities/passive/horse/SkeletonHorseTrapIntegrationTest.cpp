@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file SkeletonHorseTrapIntegrationTest.cpp
@@ -34,18 +34,18 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
-#include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
-#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
+#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {
@@ -166,8 +166,7 @@ public:
         return m_mockPlayer;
     }
 
-    [[nodiscard]] Player* getClosestPlayer(
-        const Vector3& pos, f32 maxDistance, const Entity* exclude) override
+    [[nodiscard]] Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude) override
     {
         (void)pos;
         (void)maxDistance;
@@ -201,7 +200,11 @@ public:
 
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& entities() const { return m_entities; }
 
-    void clearEntities() { m_entities.clear(); m_nextEntityId = EntityId(1); }
+    void clearEntities()
+    {
+        m_entities.clear();
+        m_nextEntityId = EntityId(1);
+    }
 
     /// 获取所有骷髅实体
     std::vector<SkeletonEntity*> getSkeletons() const
@@ -257,15 +260,9 @@ protected:
         }
     }
 
-    void SetUp() override
-    {
-        m_world = std::make_unique<SkeletonHorseTrapTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SkeletonHorseTrapTestWorld>(); }
 
-    void TearDown() override
-    {
-        m_world.reset();
-    }
+    void TearDown() override { m_world.reset(); }
 
     std::unique_ptr<SkeletonHorseTrapTestWorld> m_world;
 };
@@ -280,8 +277,7 @@ protected:
 TEST_F(SkeletonHorseTrapIntegrationTest, EntityTypes_Registered)
 {
     // 验证骷髅实体类型已注册
-    const entity::EntityType* skeletonType =
-        entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON);
+    const entity::EntityType* skeletonType = entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON);
     EXPECT_NE(skeletonType, nullptr) << "SKELETON entity type should be registered";
 
     // 验证骷髅马实体类型已注册

@@ -1,36 +1,36 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/StrayEntity.hpp"
 #include "common/entity/entities/monster/undead/WitherSkeletonEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/effect/EffectType.hpp"
 
 #include <type_traits>
 
@@ -61,36 +61,34 @@ TEST(SkeletonSupportTypesTest, VariantDaylightBehaviorMatchesDefaults)
 TEST(WitherSkeletonEntityStaticTest, IsImmuneToWitherEffect)
 {
     // 静态测试：验证 WitherSkeletonEntity 有 isImmuneWitherEffect 方法
-    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::isImmuneWitherEffect),
-                                bool (WitherSkeletonEntity::*)() const>));
+    EXPECT_TRUE((
+        std::is_same_v<decltype(&WitherSkeletonEntity::isImmuneWitherEffect), bool (WitherSkeletonEntity::*)() const>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, HasStoneSword)
 {
     // 静态测试：验证 WitherSkeletonEntity 有 hasStoneSword 方法
-    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::hasStoneSword),
-                                bool (WitherSkeletonEntity::*)() const>));
+    EXPECT_TRUE(
+        (std::is_same_v<decltype(&WitherSkeletonEntity::hasStoneSword), bool (WitherSkeletonEntity::*)() const>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, HasCorrectEyeHeight)
 {
     // 静态测试：验证 WitherSkeletonEntity 有 eyeHeight 方法
-    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::eyeHeight),
-                                f32 (WitherSkeletonEntity::*)() const>));
+    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::eyeHeight), f32 (WitherSkeletonEntity::*)() const>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, HasSetCombatTaskOverride)
 {
     // 静态测试：验证 WitherSkeletonEntity 重写了 setCombatTask
-    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::setCombatTask),
-                                void (WitherSkeletonEntity::*)()>));
+    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::setCombatTask), void (WitherSkeletonEntity::*)()>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, HasAttackEntityAsMobOverride)
 {
     // 静态测试：验证 WitherSkeletonEntity 重写了 attackEntityAsMob
     EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::attackEntityAsMob),
-                                bool (WitherSkeletonEntity::*)(LivingEntity&)>));
+        bool (WitherSkeletonEntity::*)(LivingEntity&)>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, WitherDurationConstant)
@@ -105,8 +103,7 @@ TEST(WitherSkeletonEntityStaticTest, WitherDurationConstant)
 TEST(AbstractSkeletonEntityStaticTest, HasCombatTaskMethod)
 {
     // 静态测试：验证 AbstractSkeletonEntity 有 setCombatTask 方法
-    EXPECT_TRUE((std::is_same_v<decltype(&AbstractSkeletonEntity::setCombatTask),
-                                void (AbstractSkeletonEntity::*)()>));
+    EXPECT_TRUE((std::is_same_v<decltype(&AbstractSkeletonEntity::setCombatTask), void (AbstractSkeletonEntity::*)()>));
 }
 
 TEST(AbstractSkeletonEntityStaticTest, HasVirtualDestructor)

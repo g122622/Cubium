@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
+#include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
 #include "../MeleeAttackGoal.hpp"
 #include "../target/TargetGoals.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../../util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -164,12 +164,12 @@ private:
     LivingEntity* m_target = nullptr;
 
     // MC 1.16.5 常量
-    static constexpr f64 POUNCE_HORIZONTAL_FACTOR = 0.8;   // 水平方向扑击因子
-    static constexpr f64 POUNCE_VERTICAL_FACTOR = 0.9;     // 垂直方向扑击因子
-    static constexpr f32 ATTACK_DISTANCE = 2.0f;           // 攻击距离
-    static constexpr f32 MIN_MOTION_Y_SQ = 0.05f;          // 最小垂直速度平方
-    static constexpr f32 MAX_PITCH_ANGLE = 15.0f;          // 最大俯仰角
-    static constexpr f32 STUCK_PITCH_ANGLE = 60.0f;        // 卡在雪中时的俯仰角
+    static constexpr f64 POUNCE_HORIZONTAL_FACTOR = 0.8; // 水平方向扑击因子
+    static constexpr f64 POUNCE_VERTICAL_FACTOR = 0.9;   // 垂直方向扑击因子
+    static constexpr f32 ATTACK_DISTANCE = 2.0f;         // 攻击距离
+    static constexpr f32 MIN_MOTION_Y_SQ = 0.05f;        // 最小垂直速度平方
+    static constexpr f32 MAX_PITCH_ANGLE = 15.0f;        // 最大俯仰角
+    static constexpr f32 STUCK_PITCH_ANGLE = 60.0f;      // 卡在雪中时的俯仰角
 };
 
 /**
@@ -294,7 +294,7 @@ private:
     i32 m_eatTimer = 0;
     bool m_reached = false;
 
-    static constexpr i32 EAT_DURATION = 40; // 吃浆果需要 40 tick
+    static constexpr i32 EAT_DURATION = 40;       // 吃浆果需要 40 tick
     static constexpr f64 REACH_DISTANCE_SQ = 2.0; // 到达目标的距离平方
 };
 

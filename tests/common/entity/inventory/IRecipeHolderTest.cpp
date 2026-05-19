@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file IRecipeHolderTest.cpp
@@ -32,15 +32,15 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/entity/inventory/IRecipeHolder.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/IRecipeHolder.hpp"
 #include "common/item/crafting/IRecipe.hpp"
-#include "common/item/crafting/RecipeBook.hpp"
 #include "common/item/crafting/Ingredient.hpp"
+#include "common/item/crafting/RecipeBook.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/gamerule/GameRules.hpp"
-#include "server/player/ServerPlayer.hpp"
 #include "item/Items.hpp"
+#include "server/player/ServerPlayer.hpp"
 
 using namespace mc;
 using namespace mc::world::gamerule;
@@ -59,8 +59,7 @@ public:
     MockWorld()
         : BaseTestWorld()
         , m_gameRules()
-    {
-    }
+    {}
 
     // ========== GameRules 访问 ==========
 
@@ -91,8 +90,7 @@ public:
         : m_id(id)
         , m_isDynamic(isDynamic)
         , m_ingredients()
-    {
-    }
+    {}
 
     [[nodiscard]] ResourceLocation getId() const override { return m_id; }
 
@@ -104,20 +102,11 @@ public:
 
     [[nodiscard]] bool isDynamic() const override { return m_isDynamic; }
 
-    [[nodiscard]] crafting::RecipeType getType() const override
-    {
-        return crafting::RecipeType::Crafting;
-    }
+    [[nodiscard]] crafting::RecipeType getType() const override { return crafting::RecipeType::Crafting; }
 
-    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override
-    {
-        return m_ingredients;
-    }
+    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override { return m_ingredients; }
 
-    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory&) const override
-    {
-        return {};
-    }
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory&) const override { return {}; }
 
 private:
     ResourceLocation m_id;
@@ -132,18 +121,11 @@ class TestRecipeHolder : public IRecipeHolder {
 public:
     TestRecipeHolder()
         : m_recipeUsed(nullptr)
-    {
-    }
+    {}
 
-    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override
-    {
-        m_recipeUsed = recipe;
-    }
+    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override { m_recipeUsed = recipe; }
 
-    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override
-    {
-        return m_recipeUsed;
-    }
+    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override { return m_recipeUsed; }
 
 private:
     const crafting::IRecipe<IInventory>* m_recipeUsed;
@@ -165,12 +147,9 @@ protected:
         holder_ = std::make_unique<TestRecipeHolder>();
 
         // 创建测试配方
-        normalRecipe_ = std::make_unique<MockRecipe>(
-            ResourceLocation("minecraft", "test_recipe"), false);
-        dynamicRecipe_ = std::make_unique<MockRecipe>(
-            ResourceLocation("minecraft", "dynamic_recipe"), true);
-        anotherRecipe_ = std::make_unique<MockRecipe>(
-            ResourceLocation("minecraft", "another_recipe"), false);
+        normalRecipe_ = std::make_unique<MockRecipe>(ResourceLocation("minecraft", "test_recipe"), false);
+        dynamicRecipe_ = std::make_unique<MockRecipe>(ResourceLocation("minecraft", "dynamic_recipe"), true);
+        anotherRecipe_ = std::make_unique<MockRecipe>(ResourceLocation("minecraft", "another_recipe"), false);
     }
 
     void TearDown() override

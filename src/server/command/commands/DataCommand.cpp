@@ -1,44 +1,44 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "DataCommand.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/arguments/NbtPathArgumentType.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/NbtPathArgumentType.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "server/command/data/DataAccessor.hpp"
 #include "server/application/IServer.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/command/data/DataAccessor.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <sstream>
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cmath>
+#include <sstream>
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
 using mc::nbt::operator<<;
@@ -52,26 +52,25 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     // 创建主命令节点
     auto dataNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("data");
-    dataNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(2);
-    });
+    dataNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(dataNode,
-        support::makeMetadata(
-            "Gets, merges, modifies, or removes block entity and entity NBT data.",
+        support::makeMetadata("Gets, merges, modifies, or removes block entity and entity NBT data.",
             "/data <get|set|merge|remove> <target> [<path>]",
-            2, {}, true));
+            2,
+            {},
+            true));
 
     // ========== /data get 子命令 ==========
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
 
     // /data get block <pos> [<path>] [<scale>]
     auto getBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto getBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto getBlockPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
-    auto getBlockScaleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "scale", FloatArgumentType::floatArg());
+    auto getBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto getBlockPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
+    auto getBlockScaleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
     getBlockScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getBlock(ctx); });
     getBlockPathArg->addChild(getBlockScaleArg);
@@ -85,10 +84,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto getEntityTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entity());
-    auto getEntityPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
-    auto getEntityScaleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "scale", FloatArgumentType::floatArg());
+    auto getEntityPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
+    auto getEntityScaleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
     getEntityScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getEntity(ctx); });
     getEntityPathArg->addChild(getEntityScaleArg);
@@ -102,10 +101,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto getStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", ResourceLocationArgumentType::resourceLocation());
-    auto getStoragePathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
-    auto getStorageScaleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "scale", FloatArgumentType::floatArg());
+    auto getStoragePathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
+    auto getStorageScaleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
     getStorageScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getStorage(ctx); });
     getStoragePathArg->addChild(getStorageScaleArg);
@@ -122,10 +121,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data set block <pos> <path> <value>
     auto setBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto setBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto setBlockPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
+    auto setBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto setBlockPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     auto setBlockValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
         "value", NbtTagArgumentType::nbtTag());
 
@@ -139,10 +138,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto setEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto setEntityTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entity());
-    auto setEntityPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
-    auto setEntityValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
-        "value", NbtTagArgumentType::nbtTag());
+    auto setEntityPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
+    auto setEntityValueArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
+            "value", NbtTagArgumentType::nbtTag());
 
     setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setEntity(ctx); });
     setEntityPathArg->addChild(setEntityValueArg);
@@ -154,10 +154,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto setStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto setStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", ResourceLocationArgumentType::resourceLocation());
-    auto setStoragePathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
-    auto setStorageValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
-        "value", NbtTagArgumentType::nbtTag());
+    auto setStoragePathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
+    auto setStorageValueArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
+            "value", NbtTagArgumentType::nbtTag());
 
     setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setStorage(ctx); });
     setStoragePathArg->addChild(setStorageValueArg);
@@ -172,10 +173,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data merge block <pos> <nbt>
     auto mergeBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto mergeBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto mergeBlockNbtArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
-        "nbt", NbtCompoundArgumentType::nbtCompound());
+    auto mergeBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto mergeBlockNbtArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
+            "nbt", NbtCompoundArgumentType::nbtCompound());
 
     mergeBlockNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeBlock(ctx); });
     mergeBlockPosArg->addChild(mergeBlockNbtArg);
@@ -186,8 +188,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto mergeEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto mergeEntityTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entity());
-    auto mergeEntityNbtArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
-        "nbt", NbtCompoundArgumentType::nbtCompound());
+    auto mergeEntityNbtArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
+            "nbt", NbtCompoundArgumentType::nbtCompound());
 
     mergeEntityNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeEntity(ctx); });
     mergeEntityTargetArg->addChild(mergeEntityNbtArg);
@@ -198,8 +201,9 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto mergeStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto mergeStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", ResourceLocationArgumentType::resourceLocation());
-    auto mergeStorageNbtArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
-        "nbt", NbtCompoundArgumentType::nbtCompound());
+    auto mergeStorageNbtArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
+            "nbt", NbtCompoundArgumentType::nbtCompound());
 
     mergeStorageNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeStorage(ctx); });
     mergeStorageIdArg->addChild(mergeStorageNbtArg);
@@ -213,10 +217,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data remove block <pos> <path>
     auto removeBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto removeBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto removeBlockPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
+    auto removeBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto removeBlockPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
     removeBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeBlock(ctx); });
     removeBlockPosArg->addChild(removeBlockPathArg);
@@ -227,8 +231,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
     auto removeEntityTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entity());
-    auto removeEntityPathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
+    auto removeEntityPathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
     removeEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeEntity(ctx); });
     removeEntityTargetArg->addChild(removeEntityPathArg);
@@ -239,8 +243,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
     auto removeStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "id", ResourceLocationArgumentType::resourceLocation());
-    auto removeStoragePathArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>(
-        "path", NbtPathArgumentType::nbtPath());
+    auto removeStoragePathArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
     removeStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeStorage(ctx); });
     removeStorageIdArg->addChild(removeStoragePathArg);
@@ -306,7 +310,8 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
                     source.sendMessage("Found " + std::to_string(results.size()) + " matches");
                     return static_cast<i32>(results.size());
                 }
-            } catch (const CommandException& e) {
+            }
+            catch (const CommandException& e) {
                 sendError(source, e.message());
                 return 0;
             }
@@ -315,7 +320,8 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
             source.sendMessage(accessor.getQueryMessage(*data));
             return 1;
         }
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -390,7 +396,8 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
                     source.sendMessage("Found " + std::to_string(results.size()) + " matches");
                     return static_cast<i32>(results.size());
                 }
-            } catch (const CommandException& e) {
+            }
+            catch (const CommandException& e) {
                 sendError(source, e.message());
                 return 0;
             }
@@ -398,7 +405,8 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
             source.sendMessage(accessor.getQueryMessage(*data));
             return 1;
         }
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -456,7 +464,8 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
                     source.sendMessage("Found " + std::to_string(results.size()) + " matches");
                     return static_cast<i32>(results.size());
                 }
-            } catch (const CommandException& e) {
+            }
+            catch (const CommandException& e) {
                 sendError(source, e.message());
                 return 0;
             }
@@ -464,7 +473,8 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
             source.sendMessage(accessor.getQueryMessage(*data));
             return 1;
         }
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -509,7 +519,8 @@ i32 DataCommand::setBlock(CommandContext<ServerCommandSource>& context)
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -569,7 +580,8 @@ i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -600,7 +612,8 @@ i32 DataCommand::setStorage(CommandContext<ServerCommandSource>& context)
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -632,7 +645,8 @@ i32 DataCommand::mergeBlock(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*nbt);
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -681,7 +695,8 @@ i32 DataCommand::mergeEntity(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*nbt);
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -701,7 +716,8 @@ i32 DataCommand::mergeStorage(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*nbt);
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -742,7 +758,8 @@ i32 DataCommand::removeBlock(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*data);
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -800,7 +817,8 @@ i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*data);
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }
@@ -829,7 +847,8 @@ i32 DataCommand::removeStorage(CommandContext<ServerCommandSource>& context)
         accessor.mergeData(*data);
         source.sendMessage(accessor.getModifiedMessage());
         return count;
-    } catch (const CommandException& e) {
+    }
+    catch (const CommandException& e) {
         sendError(source, e.message());
         return 0;
     }

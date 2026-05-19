@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction or without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction or without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -122,8 +122,8 @@ TEST_F(GhastEntityTest, LookVectorCalculation_Forward)
 {
     // 测试朝向正前方的 look 向量计算
     // yaw = 0 (正南方向), pitch = 0 (水平)
-    const f32 yaw = 0.0f;    // 正南
-    const f32 pitch = 0.0f;  // 水平
+    const f32 yaw = 0.0f;   // 正南
+    const f32 pitch = 0.0f; // 水平
 
     const f32 yawRad = yaw * DEG_TO_RAD;
     const f32 pitchRad = pitch * DEG_TO_RAD;
@@ -146,8 +146,8 @@ TEST_F(GhastEntityTest, LookVectorCalculation_East)
 {
     // 测试朝向东的 look 向量计算
     // yaw = -90 (正东方向), pitch = 0 (水平)
-    const f32 yaw = -90.0f;  // 正东
-    const f32 pitch = 0.0f;  // 水平
+    const f32 yaw = -90.0f; // 正东
+    const f32 pitch = 0.0f; // 水平
 
     const f32 yawRad = yaw * DEG_TO_RAD;
     const f32 pitchRad = pitch * DEG_TO_RAD;
@@ -167,7 +167,7 @@ TEST_F(GhastEntityTest, LookVectorCalculation_Down)
     // 测试朝下的 look 向量计算
     // yaw = 0, pitch = 90 (向下看)
     const f32 yaw = 0.0f;
-    const f32 pitch = 90.0f;  // 向下看
+    const f32 pitch = 90.0f; // 向下看
 
     const f32 yawRad = yaw * DEG_TO_RAD;
     const f32 pitchRad = pitch * DEG_TO_RAD;
@@ -188,7 +188,7 @@ TEST_F(GhastEntityTest, FireballPositionCalculation)
     // 恶魂位置 (0, 64, 0)，朝向正南 (yaw=0, pitch=0)
     const f64 ghastX = 0.0;
     const f64 ghastY = 64.0;
-    const f64 ghastEyeHeight = 2.6;  // MC 1.16.5: 恶魂眼睛高度
+    const f64 ghastEyeHeight = 2.6; // MC 1.16.5: 恶魂眼睛高度
     const f64 ghastZ = 0.0;
 
     const f32 yaw = 0.0f;
@@ -276,11 +276,11 @@ TEST_F(GhastEntityTest, DirectionVectorCalculation)
     // 目标位置 (10, 66, 10)，火球位置 (0, 66.6, 4)
     const f64 targetX = 10.0;
     const f64 targetY = 66.0;
-    const f64 targetEyeHeight = 1.62;  // 玩家眼睛高度
+    const f64 targetEyeHeight = 1.62; // 玩家眼睛高度
     const f64 targetZ = 10.0;
 
     const f32 fireballX = 0.0f;
-    const f32 fireballY = 66.6f;  // 恶魂眼睛高度 + 0.5
+    const f32 fireballY = 66.6f; // 恶魂眼睛高度 + 0.5
     const f32 fireballZ = 4.0f;
 
     // MC 1.16.5 方向向量计算:
@@ -293,7 +293,7 @@ TEST_F(GhastEntityTest, DirectionVectorCalculation)
 
     // 验证方向向量分量
     EXPECT_FLOAT_EQ(dx, 10.0f);
-    EXPECT_GT(dz, 0.0f);  // 目标在火球前方
+    EXPECT_GT(dz, 0.0f); // 目标在火球前方
 }
 
 // ============================================================================

@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "DataAccessor.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include <sstream>
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
@@ -54,8 +54,9 @@ std::unique_ptr<nbt::tags::compound_tag> BlockDataAccessor::getData() const
 
     if (m_blockEntity == nullptr) {
         throw CommandException(CommandErrorType::NbtPathNotFound,
-            "No block entity at position " + std::to_string(m_pos.x) + ", " +
-            std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z), 0);
+            "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
+                std::to_string(m_pos.z),
+            0);
     }
 
     // 保存方块实体数据到 NBT
@@ -104,8 +105,9 @@ void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_blockEntity == nullptr) {
         throw CommandException(CommandErrorType::NbtPathNotFound,
-            "No block entity at position " + std::to_string(m_pos.x) + ", " +
-            std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z), 0);
+            "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
+                std::to_string(m_pos.z),
+            0);
     }
 
     // 从 NBT 转换为 JSON 并加载到方块实体
@@ -117,7 +119,8 @@ void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
         std::string jsonStr = dynamic_cast<const nbt::tags::string_tag&>(*jsonIt->second).value;
         try {
             jsonData = nlohmann::json::parse(jsonStr);
-        } catch (...) {
+        }
+        catch (...) {
             jsonData = nlohmann::json::object();
         }
     }
@@ -164,14 +167,13 @@ void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 
 std::string BlockDataAccessor::getDisplayName() const
 {
-    return "block at " + std::to_string(m_pos.x) + ", " +
-           std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z);
+    return "block at " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z);
 }
 
 std::string BlockDataAccessor::getModifiedMessage() const
 {
-    return "Modified block data at " + std::to_string(m_pos.x) + ", " +
-           std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z);
+    return "Modified block data at " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
+        std::to_string(m_pos.z);
 }
 
 std::string BlockDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
@@ -198,8 +200,7 @@ std::string BlockDataAccessor::getGetMessage(const NbtPath& path, double scale, 
 
 EntityDataAccessor::EntityDataAccessor(Entity* entity)
     : m_entity(entity)
-{
-}
+{}
 
 bool EntityDataAccessor::isPlayer() const
 {
@@ -209,8 +210,7 @@ bool EntityDataAccessor::isPlayer() const
 std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
 {
     if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
-            "Entity not found", 0);
+        throw CommandException(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
     }
 
     auto compound = std::make_unique<nbt::tags::compound_tag>();
@@ -259,14 +259,12 @@ std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
 void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
-            "Entity not found", 0);
+        throw CommandException(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
     }
 
     // 玩家实体不允许直接修改 NBT
     if (isPlayer()) {
-        throw CommandException(CommandErrorType::NbtPathInvalidType,
-            "Cannot modify player data directly", 0);
+        throw CommandException(CommandErrorType::NbtPathInvalidType, "Cannot modify player data directly", 0);
     }
 
     // 合并数据
@@ -347,14 +345,12 @@ std::string EntityDataAccessor::getGetMessage(const NbtPath& path, double scale,
 StorageDataAccessor::StorageDataAccessor(CommandStorage* storage, const ResourceLocation& id)
     : m_storage(storage)
     , m_id(id)
-{
-}
+{}
 
 std::unique_ptr<nbt::tags::compound_tag> StorageDataAccessor::getData() const
 {
     if (m_storage == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
-            "Command storage not available", 0);
+        throw CommandException(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
     }
 
     return m_storage->get(m_id);
@@ -363,8 +359,7 @@ std::unique_ptr<nbt::tags::compound_tag> StorageDataAccessor::getData() const
 void StorageDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_storage == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
-            "Command storage not available", 0);
+        throw CommandException(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
     }
 
     auto existing = m_storage->get(m_id);
@@ -419,8 +414,7 @@ std::unique_ptr<nbt::tags::compound_tag> CommandStorage::get(const ResourceLocat
     if (it != m_storage.end() && it->second != nullptr) {
         // 返回深拷贝
         auto copy = it->second->copy();
-        return std::unique_ptr<nbt::tags::compound_tag>(
-            dynamic_cast<nbt::tags::compound_tag*>(copy.release()));
+        return std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(copy.release()));
     }
     return std::make_unique<nbt::tags::compound_tag>();
 }
@@ -429,8 +423,7 @@ void CommandStorage::set(const ResourceLocation& id, const nbt::tags::compound_t
 {
     std::string key = id.toString();
     auto copy = data.copy();
-    m_storage[key] = std::unique_ptr<nbt::tags::compound_tag>(
-        dynamic_cast<nbt::tags::compound_tag*>(copy.release()));
+    m_storage[key] = std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(copy.release()));
     m_dirty = true;
 }
 
@@ -481,7 +474,8 @@ void CommandStorage::load(const nlohmann::json& json)
                 if (compound) {
                     m_storage[it.key()] = std::move(compound);
                 }
-            } catch (...) {
+            }
+            catch (...) {
                 // 解析失败，跳过
             }
         }

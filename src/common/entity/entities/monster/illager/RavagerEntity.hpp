@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -221,9 +221,9 @@ private:
     // ========== 成员变量 ==========
 
     // 攻击状态
-    i32 m_attackTick = 0;    // 攻击动画 tick
-    i32 m_stunTick = 0;      // 眩晕 tick
-    i32 m_roarTick = 0;      // 咆哮 tick
+    i32 m_attackTick = 0; // 攻击动画 tick
+    i32 m_stunTick = 0;   // 眩晕 tick
+    i32 m_roarTick = 0;   // 咆哮 tick
 
     // 骑乘
     Entity* m_rider = nullptr;
@@ -233,15 +233,15 @@ private:
 
     // 常量 - 公开用于测试
 public:
-    static constexpr i32 ATTACK_DURATION = 10;     // 攻击动画持续时间 (ticks)
-    static constexpr i32 STUN_DURATION = 40;       // 眩晕持续时间 (ticks)
-    static constexpr i32 ROAR_DURATION = 20;       // 咆哮持续时间 (ticks)
-    static constexpr f32 ATTACK_DAMAGE = 12.0f;    // 攻击伤害
-    static constexpr f32 ROAR_DAMAGE = 6.0f;       // 咆哮伤害
-    static constexpr f32 ROAR_RANGE = 4.0f;        // 咆哮范围
-    static constexpr f32 LAUNCH_POWER = 4.0f;      // 发射力度
-    static constexpr f32 LAUNCH_Y_POWER = 0.2f;    // 发射 Y 轴力度
-    static constexpr f32 STUN_CHANCE = 0.5;        // 眩晕概率
+    static constexpr i32 ATTACK_DURATION = 10;  // 攻击动画持续时间 (ticks)
+    static constexpr i32 STUN_DURATION = 40;    // 眩晕持续时间 (ticks)
+    static constexpr i32 ROAR_DURATION = 20;    // 咆哮持续时间 (ticks)
+    static constexpr f32 ATTACK_DAMAGE = 12.0f; // 攻击伤害
+    static constexpr f32 ROAR_DAMAGE = 6.0f;    // 咆哮伤害
+    static constexpr f32 ROAR_RANGE = 4.0f;     // 咆哮范围
+    static constexpr f32 LAUNCH_POWER = 4.0f;   // 发射力度
+    static constexpr f32 LAUNCH_Y_POWER = 0.2f; // 发射 Y 轴力度
+    static constexpr f32 STUN_CHANCE = 0.5;     // 眩晕概率
 };
 
 } // namespace mc

@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software being
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software being
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "WaterAvoidingRandomFlyingGoal.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../core/CreatureEntity.hpp"
 #include "../../../controller/MovementController.hpp"
@@ -38,8 +38,7 @@ namespace mc::entity::ai::goal {
 
 WaterAvoidingRandomFlyingGoal::WaterAvoidingRandomFlyingGoal(CreatureEntity* creature, f64 speed)
     : WaterAvoidingRandomFlyingGoal(creature, speed, 0.001f)
-{
-}
+{}
 
 WaterAvoidingRandomFlyingGoal::WaterAvoidingRandomFlyingGoal(CreatureEntity* creature, f64 speed, f32 chance)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
@@ -148,7 +147,8 @@ bool WaterAvoidingRandomFlyingGoal::getRandomPosition()
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         // 使用 RandomPositionGenerator 获取随机位置
         Vector3 targetPos;
-        if (!util::RandomPositionGenerator::findRandomTargetBlock(m_creature, XZ_RANGE, Y_RANGE, std::nullopt, targetPos)) {
+        if (!util::RandomPositionGenerator::findRandomTargetBlock(
+                m_creature, XZ_RANGE, Y_RANGE, std::nullopt, targetPos)) {
             continue;
         }
 

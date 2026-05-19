@@ -1,33 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PandaEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/gamerule/GameRules.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
@@ -39,11 +41,9 @@
 #include "../../../ai/goal/goals/special/PandaGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../../world/IWorld.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
@@ -378,8 +378,7 @@ void PandaEntity::onSneezeComplete()
 
     // 使用熊猫当前运动速度作为粒子速度
     Vector3 vel = velocity();
-    m_world->addParticle(
-        client::renderer::trident::particle::ParticleTypeId::Sneeze,
+    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Sneeze,
         Vector3(particleX, particleY, particleZ),
         Vector3(vel.x, 0.0f, vel.z));
 
@@ -398,7 +397,8 @@ void PandaEntity::onSneezeComplete()
     }
 
     // 4. 1/700概率掉落粘液球（需要游戏规则 doMobLoot）
-    // MC 1.16.5: if (!this.world.isRemote && this.rand.nextInt(700) == 0 && this.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT))
+    // MC 1.16.5: if (!this.world.isRemote && this.rand.nextInt(700) == 0 &&
+    // this.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT))
     if (!m_world->isClientSide()) {
         const auto& gameRules = m_world->getGameRules();
         if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
@@ -434,19 +434,15 @@ void PandaEntity::updateRoll()
             // MC 1.16.5:
             // float f = this.rotationYaw * ((float)Math.PI / 180F);
             // float f1 = this.isChild() ? 0.1F : 0.2F;
-            // this.rollDelta = new Vector3d(vec3d.x + (double)(-MathHelper.sin(f) * f1), 0.0D, vec3d.z + (double)(MathHelper.cos(f) * f1));
-            // this.setMotion(this.rollDelta.add(0.0D, 0.27D, 0.0D));
+            // this.rollDelta = new Vector3d(vec3d.x + (double)(-MathHelper.sin(f) * f1), 0.0D, vec3d.z +
+            // (double)(MathHelper.cos(f) * f1)); this.setMotion(this.rollDelta.add(0.0D, 0.27D, 0.0D));
 
             f32 yawRad = math::toRadians(yaw());
             f32 speed = isChild() ? ROLL_SPEED_CHILD : ROLL_SPEED_ADULT;
             f32 sinYaw = std::sin(yawRad);
             f32 cosYaw = std::cos(yawRad);
 
-            m_rollVelocity = Vector3(
-                vel.x + (-sinYaw * speed),
-                0.0,
-                vel.z + (cosYaw * speed)
-            );
+            m_rollVelocity = Vector3(vel.x + (-sinYaw * speed), 0.0, vel.z + (cosYaw * speed));
 
             // 设置初始速度（包含跳跃）
             setVelocity(m_rollVelocity.x, ROLL_JUMP_VELOCITY, m_rollVelocity.z);

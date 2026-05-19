@@ -1,28 +1,29 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
@@ -30,13 +31,12 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -62,26 +62,14 @@ public:
     {}
 
     // 设置周围的熊猫实体（用于跳跃测试）
-    void setNearbyPandas(std::vector<Entity*> pandas)
-    {
-        m_nearbyPandas = std::move(pandas);
-    }
+    void setNearbyPandas(std::vector<Entity*> pandas) { m_nearbyPandas = std::move(pandas); }
 
     // 设置游戏规则 doMobLoot
-    void setDoMobLoot(bool value)
-    {
-        m_doMobLoot = value;
-    }
+    void setDoMobLoot(bool value) { m_doMobLoot = value; }
 
     // 获取游戏规则
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override
-    {
-        return m_gameRules;
-    }
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override
-    {
-        return m_gameRules;
-    }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
 
     // 返回预设的实体列表
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
@@ -100,9 +88,8 @@ public:
     }
 
     // 记录粒子生成
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-                     const Vector3& pos,
-                     const Vector3& velocity) override
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_lastParticleType = type;
         m_lastParticlePos = pos;
@@ -112,10 +99,10 @@ public:
 
     // 记录声音播放
     void playSound(const ResourceLocation& soundEventId,
-                   sound::SoundCategory category,
-                   const Vector3& position,
-                   f32 volume,
-                   f32 pitch) override
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
     {
         m_lastSoundId = soundEventId;
         m_soundPlayCount++;
@@ -129,7 +116,10 @@ public:
     [[nodiscard]] i32 getParticleSpawnCount() const { return m_particleSpawnCount; }
     [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
     [[nodiscard]] i32 getSpawnedEntityCount() const { return static_cast<i32>(m_spawnedEntities.size()); }
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getLastParticleType() const { return m_lastParticleType; }
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getLastParticleType() const
+    {
+        return m_lastParticleType;
+    }
     [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
     [[nodiscard]] const Vector3& getLastParticlePosition() const { return m_lastParticlePos; }
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& getSpawnedEntities() const { return m_spawnedEntities; }
@@ -142,7 +132,8 @@ private:
     // 记录调用
     i32 m_particleSpawnCount = 0;
     i32 m_soundPlayCount = 0;
-    client::renderer::trident::particle::ParticleTypeId m_lastParticleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(0);
+    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
+        static_cast<client::renderer::trident::particle::ParticleTypeId>(0);
     ResourceLocation m_lastSoundId;
     Vector3 m_lastParticlePos;
     Vector3 m_lastParticleVelocity;

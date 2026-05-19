@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EvokerEntity.hpp"
 #include "VexEntity.hpp"
@@ -144,9 +144,8 @@ void EvokerEntity::spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle,
     }
 
     // 从上往下找到合适的生成位置
-    BlockPos blockPos(static_cast<i32>(std::floor(posX)),
-        static_cast<i32>(std::floor(maxY)),
-        static_cast<i32>(std::floor(posZ)));
+    BlockPos blockPos(
+        static_cast<i32>(std::floor(posX)), static_cast<i32>(std::floor(maxY)), static_cast<i32>(std::floor(posZ)));
 
     bool foundSolidGround = false;
     f32 groundY = 0.0f;
@@ -202,9 +201,7 @@ void EvokerEntity::summonVex()
         math::Random& rng = m_world->getRandom();
         i32 offsetX = -2 + rng.nextInt(5);
         i32 offsetZ = -2 + rng.nextInt(5);
-        BlockPos spawnPos(static_cast<i32>(x()) + offsetX,
-            static_cast<i32>(y()) + 1,
-            static_cast<i32>(z()) + offsetZ);
+        BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);
 
         // 创建恼鬼实体
         auto vex = std::make_unique<VexEntity>(EntityId(0));
@@ -248,23 +245,20 @@ void EvokerEntity::registerGoals()
 
     goalSelector().addGoal(0, new entity::ai::goal::SwimGoal(this));
     goalSelector().addGoal(1, new entity::ai::goal::EvokerCastingSpellGoal(this));
-    goalSelector().addGoal(2, new entity::ai::goal::AvoidEntityGoal(
-                                 this, 8.0f, 0.6, 1.0,
-                                 [](const LivingEntity* e) -> bool {
-                                     return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
-                                 }));
+    goalSelector().addGoal(
+        2, new entity::ai::goal::AvoidEntityGoal(this, 8.0f, 0.6, 1.0, [](const LivingEntity* e) -> bool {
+            return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        }));
     goalSelector().addGoal(4, new entity::ai::goal::EvokerSummonSpellGoal(this));
     goalSelector().addGoal(5, new entity::ai::goal::EvokerAttackSpellGoal(this));
     goalSelector().addGoal(6, new entity::ai::goal::EvokerWololoSpellGoal(this));
     goalSelector().addGoal(8, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
-    goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f,
-                                 [](const LivingEntity* e) -> bool {
-                                     return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
-                                 }));
-    goalSelector().addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-                                 [](const LivingEntity* e) -> bool {
-                                     return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
-                                 }));
+    goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f, [](const LivingEntity* e) -> bool {
+        return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
+    }));
+    goalSelector().addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* e) -> bool {
+        return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
+    }));
 
     // 目标选择器
     // MC 1.16.5: HurtByTargetGoal 会呼唤其他灾厄村民

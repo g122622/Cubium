@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IronGolemGoals.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
@@ -322,8 +322,7 @@ bool ShowVillagerFlowerGoal::shouldExecute()
     Vector3 pos = m_ironGolem->position();
 
     entity::VillagerEntity* nearestVillager = EntityUtils::findClosestEntity<entity::VillagerEntity>(
-        world, pos, SEARCH_RANGE, m_ironGolem,
-        [](entity::VillagerEntity* villager) -> bool {
+        world, pos, SEARCH_RANGE, m_ironGolem, [](entity::VillagerEntity* villager) -> bool {
             if (!villager) return false;
             return villager->isAlive();
         });
@@ -396,8 +395,7 @@ bool DefendVillageTargetGoal::shouldExecute()
 
     // 首先找到附近的村民
     entity::VillagerEntity* nearestVillager = EntityUtils::findClosestEntity<entity::VillagerEntity>(
-        world, m_golem->position(), 16.0f, nullptr,
-        [](entity::VillagerEntity* villager) -> bool {
+        world, m_golem->position(), 16.0f, nullptr, [](entity::VillagerEntity* villager) -> bool {
             return villager != nullptr && villager->isAlive();
         });
 
@@ -469,13 +467,13 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
 
     // MC 1.16.5: 搜索附近的敌对生物（IMob），但不包括苦力怕
     // IronGolemEntity.registerGoals() line 82-84:
-    // this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, MobEntity.class, 5, false, false, (p_234199_0_) -> {
+    // this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, MobEntity.class, 5, false, false,
+    // (p_234199_0_) -> {
     //     return p_234199_0_ instanceof IMob && !(p_234199_0_ instanceof CreeperEntity);
     // }));
 
     MobEntity* nearestTarget = EntityUtils::findClosestEntity<MobEntity>(
-        world, m_golem->position(), SEARCH_RANGE, m_golem,
-        [this](MobEntity* candidate) -> bool {
+        world, m_golem->position(), SEARCH_RANGE, m_golem, [this](MobEntity* candidate) -> bool {
             if (!candidate || !candidate->isAlive()) {
                 return false;
             }

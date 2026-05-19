@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -133,9 +133,8 @@ public:
             [this](const event::PlayerLocationEvent& e) { onPlayerLocation(e); });
 
         // 订阅维度变化事件
-        m_dimensionChangeSubscription =
-            event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
-                [this](const event::DimensionChangeEvent& e) { onDimensionChange(e); });
+        m_dimensionChangeSubscription = event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
+            [this](const event::DimensionChangeEvent& e) { onDimensionChange(e); });
 
         // 订阅引雷附魔触发事件
         m_channeledLightningSubscription =
@@ -147,9 +146,8 @@ public:
             [this](const event::ConsumeItemEvent& e) { onConsumeItem(e); });
 
         // 订阅物品耐久变化事件
-        m_itemDurabilitySubscription =
-            event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
-                [this](const event::ItemDurabilityEvent& e) { onItemDurability(e); });
+        m_itemDurabilitySubscription = event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
+            [this](const event::ItemDurabilityEvent& e) { onItemDurability(e); });
 
         // 订阅附魔事件
         m_enchantItemSubscription = event::ServerEventBus::instance().makeSubscription<event::EnchantItemEvent>(
@@ -464,8 +462,8 @@ private:
         }
 
         // 获取村民位置所在的村庄
-        mc::world::village::Village* village = villageManager->getVillageAt(
-            mc::BlockPos(static_cast<i32>(villager->x()), static_cast<i32>(villager->y()), static_cast<i32>(villager->z())));
+        mc::world::village::Village* village = villageManager->getVillageAt(mc::BlockPos(
+            static_cast<i32>(villager->x()), static_cast<i32>(villager->y()), static_cast<i32>(villager->z())));
 
         if (village == nullptr) {
             // 村民不在任何村庄内，不更新声望
@@ -485,8 +483,10 @@ private:
         // MC 1.16.5: this.gossip.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, 25);
         village->addGossip(playerIdentifier, mc::world::village::VillageGossipType::MinorPositive, 25);
 
-        spdlog::info("VillageGossip: Player {} cured zombie villager, gained MajorPositive(+20) and MinorPositive(+25) at village {}",
-            starterUuid, village->getId());
+        spdlog::info("VillageGossip: Player {} cured zombie villager, gained MajorPositive(+20) and MinorPositive(+25) "
+                     "at village {}",
+            starterUuid,
+            village->getId());
     }
 
     /**
@@ -498,8 +498,7 @@ private:
     void onPlayerSleep(const event::PlayerSleepEvent& e)
     {
         // 获取触发器
-        auto* trigger =
-            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SleptInBedTrigger>();
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SleptInBedTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -738,7 +737,8 @@ private:
     void onConsumeItem(const event::ConsumeItemEvent& e)
     {
         // 获取触发器
-        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ConsumeItemTrigger>();
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::ConsumeItemTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -757,10 +757,8 @@ private:
         }
 
         // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::ConsumeItemTriggerInstance>::trigger(
-            *advancements, [&e](const mc::advancement::ConsumeItemTriggerInstance& instance) {
-                return instance.test(e.item);
-            });
+        trigger->AbstractCriterionTrigger<mc::advancement::ConsumeItemTriggerInstance>::trigger(*advancements,
+            [&e](const mc::advancement::ConsumeItemTriggerInstance& instance) { return instance.test(e.item); });
     }
 
     /**
@@ -862,10 +860,8 @@ private:
         }
 
         // 触发检测
-        trigger->AbstractCriterionTrigger<mc::advancement::FilledBucketTriggerInstance>::trigger(
-            *advancements, [&e](const mc::advancement::FilledBucketTriggerInstance& instance) {
-                return instance.test(e.bucket);
-            });
+        trigger->AbstractCriterionTrigger<mc::advancement::FilledBucketTriggerInstance>::trigger(*advancements,
+            [&e](const mc::advancement::FilledBucketTriggerInstance& instance) { return instance.test(e.bucket); });
     }
 
     /**
@@ -877,8 +873,7 @@ private:
     void onEnterBlock(const event::EnterBlockEvent& e)
     {
         // 获取触发器
-        auto* trigger =
-            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EnterBlockTrigger>();
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EnterBlockTrigger>();
 
         if (trigger == nullptr) {
             return;
@@ -948,10 +943,8 @@ private:
         }
 
         // 触发检测 - 使用基类模板方法
-        trigger->AbstractCriterionTrigger<mc::advancement::SlideDownBlockTriggerInstance>::trigger(
-            *advancements, [&e](const mc::advancement::SlideDownBlockTriggerInstance& instance) {
-                return instance.test(*e.state);
-            });
+        trigger->AbstractCriterionTrigger<mc::advancement::SlideDownBlockTriggerInstance>::trigger(*advancements,
+            [&e](const mc::advancement::SlideDownBlockTriggerInstance& instance) { return instance.test(*e.state); });
     }
 
     /**

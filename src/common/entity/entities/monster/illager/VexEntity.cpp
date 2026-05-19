@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "VexEntity.hpp"
 #include "../../../ai/controller/VexMovementController.hpp"
 #include "../../../ai/goal/GoalFlag.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../ai/goal/goals/special/VexGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -93,20 +93,14 @@ void VexEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::VexMoveRandomGoal>(this));
 
     // MC 1.16.5: 优先级 9: 看向玩家（距离3格，概率1.0）
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this,
-        3.0f,
-        1.0f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // MC 1.16.5: 优先级 10: 看向生物（距离8格）
-    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this,
-        8.0f,
-        0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // MC 1.16.5: MobEntity.class
             return entity != nullptr && dynamic_cast<const MobEntity*>(entity) != nullptr;
         }));
@@ -119,11 +113,11 @@ void VexEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::VexCopyOwnerTargetGoal>(this));
 
     // MC 1.16.5: 优先级 3: 攻击最近的玩家（需要视线检查）
-    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-        this,
-        true,   // checkSight - 需要视线检查
-        0       // chance - 每tick都检查
-    ));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
+            true, // checkSight - 需要视线检查
+            0     // chance - 每tick都检查
+            ));
 }
 
 void VexEntity::registerAttributes()

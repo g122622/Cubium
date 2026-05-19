@@ -1,30 +1,30 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
-#include "common/entity/ai/goal/goals/special/SilverfishGoals.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/special/SilverfishGoals.hpp"
 
 namespace mc {
 namespace {
@@ -315,7 +315,7 @@ TEST_F(SilverfishGoalsIntegrationTest, ConstantsAreIndependent)
 
     // 常量值不同，表示不同的行为
     EXPECT_NE(entity::ai::goal::SilverfishHideInStoneGoal::MERGE_CHANCE,
-              entity::ai::goal::SilverfishSummonOthersGoal::SUMMON_DURATION);
+        entity::ai::goal::SilverfishSummonOthersGoal::SUMMON_DURATION);
 }
 
 /**
@@ -382,7 +382,7 @@ TEST_F(SilverfishGoalsIntegrationTest, TraversalOrderYAxis)
     }
 
     EXPECT_EQ(actualOrder, expectedOrder);
-    EXPECT_EQ(actualOrder.size(), 11u);  // 11 个值
+    EXPECT_EQ(actualOrder.size(), 11u); // 11 个值
 }
 
 /**
@@ -397,8 +397,8 @@ TEST_F(SilverfishGoalsIntegrationTest, TraversalOrderXZAxis)
     }
 
     // 验证范围
-    EXPECT_EQ(expectedOrder.size(), 21u);  // 21 个值
-    EXPECT_EQ(expectedOrder.front(), 0);   // 从 0 开始
+    EXPECT_EQ(expectedOrder.size(), 21u); // 21 个值
+    EXPECT_EQ(expectedOrder.front(), 0);  // 从 0 开始
     EXPECT_TRUE(std::find(expectedOrder.begin(), expectedOrder.end(), -10) != expectedOrder.end());
     EXPECT_TRUE(std::find(expectedOrder.begin(), expectedOrder.end(), 10) != expectedOrder.end());
 }

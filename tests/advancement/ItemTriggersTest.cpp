@@ -1,34 +1,34 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
-#include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/impl/ItemTriggers.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <nlohmann/json.hpp>
 
@@ -66,8 +66,7 @@ protected:
 TEST_F(ItemTriggersTest, ConsumeItemTriggerRegistration)
 {
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(ConsumeItemTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(ConsumeItemTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:consume_item");
 }
@@ -166,8 +165,7 @@ TEST_F(ItemTriggersTest, ConsumeItemConditionsToJsonRoundtrip)
 TEST_F(ItemTriggersTest, ItemDurabilityTriggerRegistration)
 {
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(ItemDurabilityTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(ItemDurabilityTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:item_durability_changed");
 }
@@ -224,13 +222,12 @@ TEST_F(ItemTriggersTest, ItemDurabilityTestWithMatchingConditions)
     IntBounds delta(IntBounds::between(1, 10));
 
     // 创建触发器实例
-    auto instance = std::make_shared<ItemDurabilityTriggerInstance>(
-        std::move(itemResult).value(), durability, delta);
+    auto instance = std::make_shared<ItemDurabilityTriggerInstance>(std::move(itemResult).value(), durability, delta);
 
     // 创建物品栈
     if (Items::DIAMOND_SWORD != nullptr) {
         ItemStack sword(Items::DIAMOND_SWORD, 1);
-        sword.setDamage(500);  // 耐久度 = maxDamage - damage
+        sword.setDamage(500); // 耐久度 = maxDamage - damage
 
         // 旧耐久度为 100（假设 maxDamage = 600）
         i32 oldDurability = 100;
@@ -279,8 +276,7 @@ TEST_F(ItemTriggersTest, ItemDurabilityConditionsToJsonRoundtrip)
 TEST_F(ItemTriggersTest, EnchantedItemTriggerRegistration)
 {
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(EnchantedItemTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(EnchantedItemTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:enchanted_item");
 }
@@ -333,8 +329,7 @@ TEST_F(ItemTriggersTest, EnchantedItemTestWithMatchingConditions)
     IntBounds levels(IntBounds::between(5, 30));
 
     // 创建触发器实例
-    auto instance = std::make_shared<EnchantedItemTriggerInstance>(
-        std::move(itemResult).value(), levels);
+    auto instance = std::make_shared<EnchantedItemTriggerInstance>(std::move(itemResult).value(), levels);
 
     // 创建物品栈
     if (Items::DIAMOND_SWORD != nullptr) {
@@ -380,8 +375,7 @@ TEST_F(ItemTriggersTest, EnchantedItemConditionsToJsonRoundtrip)
 TEST_F(ItemTriggersTest, FilledBucketTriggerRegistration)
 {
     // 验证触发器已注册
-    auto* trigger = CriterionTriggers::instance().getTrigger(
-        ResourceLocation(FilledBucketTrigger::TRIGGER_ID));
+    auto* trigger = CriterionTriggers::instance().getTrigger(ResourceLocation(FilledBucketTrigger::TRIGGER_ID));
     ASSERT_NE(trigger, nullptr);
     EXPECT_EQ(trigger->getId().toString(), "minecraft:filled_bucket");
 }

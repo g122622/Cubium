@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
-#include "../target/TargetGoals.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
+#include "../target/TargetGoals.hpp"
 #include "core/Types.hpp"
 #include <functional>
 
@@ -125,15 +125,15 @@ private:
 
     EndermanEntity* m_enderman;
     Player* m_targetPlayer = nullptr;
-    i32 m_aggroTime = 0;          // 激怒计时器
-    i32 m_teleportTime = 0;       // 瞬移计时器
+    i32 m_aggroTime = 0;    // 激怒计时器
+    i32 m_teleportTime = 0; // 瞬移计时器
 
     // 常量
-    static constexpr i32 AGGRO_DURATION = 5;        // 激怒持续时间（ticks）
-    static constexpr f64 TELEPORT_NEAR_DISTANCE_SQ = 16.0;   // 近距离瞬移阈值（4格的平方）
-    static constexpr f64 TELEPORT_FAR_DISTANCE_SQ = 256.0;   // 远距离瞬移阈值（16格的平方）
-    static constexpr i32 TELEPORT_COOLDOWN_TICKS = 30;       // 瞬移冷却（ticks）
-    static constexpr i32 TARGET_DISTANCE = 10;      // 目标搜索距离（格）
+    static constexpr i32 AGGRO_DURATION = 5;               // 激怒持续时间（ticks）
+    static constexpr f64 TELEPORT_NEAR_DISTANCE_SQ = 16.0; // 近距离瞬移阈值（4格的平方）
+    static constexpr f64 TELEPORT_FAR_DISTANCE_SQ = 256.0; // 远距离瞬移阈值（16格的平方）
+    static constexpr i32 TELEPORT_COOLDOWN_TICKS = 30;     // 瞬移冷却（ticks）
+    static constexpr i32 TARGET_DISTANCE = 10;             // 目标搜索距离（格）
 };
 
 /**
@@ -178,9 +178,12 @@ private:
      * @param belowPos 下方方块的位置
      * @return 如果可以放置返回 true
      */
-    [[nodiscard]] bool canPlaceBlock(IWorld* world, const BlockPos& pos, const BlockState* state,
-                                      const BlockState* currentState, const BlockState* belowState,
-                                      const BlockPos& belowPos) const;
+    [[nodiscard]] bool canPlaceBlock(IWorld* world,
+        const BlockPos& pos,
+        const BlockState* state,
+        const BlockState* currentState,
+        const BlockState* belowState,
+        const BlockPos& belowPos) const;
 
     EndermanEntity* m_enderman;
 

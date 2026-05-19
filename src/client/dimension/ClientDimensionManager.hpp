@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -43,11 +43,11 @@ class ClientWorld;
  * 存储从服务器接收的维度信息，包含维度属性。
  */
 struct ClientDimensionInfo {
-    DimensionId id = 0;           ///< 维度ID (0=主世界, -1=下界, 1=末地)
-    std::string name;             ///< 维度名称 (如 "minecraft:overworld")
-    bool hasSkyLight = true;      ///< 是否有天空光照
-    bool hasCeiling = false;      ///< 是否有天花板
-    f32 ambientLight = 0.0f;      ///< 环境光照强度
+    DimensionId id = 0;      ///< 维度ID (0=主世界, -1=下界, 1=末地)
+    std::string name;        ///< 维度名称 (如 "minecraft:overworld")
+    bool hasSkyLight = true; ///< 是否有天空光照
+    bool hasCeiling = false; ///< 是否有天花板
+    f32 ambientLight = 0.0f; ///< 环境光照强度
 };
 
 /**
@@ -165,7 +165,10 @@ public:
     /**
      * @brief 获取可用维度信息列表
      */
-    [[nodiscard]] const std::vector<ClientDimensionInfo>& availableDimensionInfos() const { return m_availableDimensions; }
+    [[nodiscard]] const std::vector<ClientDimensionInfo>& availableDimensionInfos() const
+    {
+        return m_availableDimensions;
+    }
 
     /**
      * @brief 检查维度是否可用

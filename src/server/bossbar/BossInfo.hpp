@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -38,13 +38,13 @@ namespace server {
  * 参考 MC 1.16.5: net.minecraft.world.BossInfo.Color
  */
 enum class BossInfoColor : u8 {
-    Pink = 0,    // 粉色
-    Blue = 1,    // 蓝色
-    Red = 2,     // 红色
-    Green = 3,   // 绿色
-    Yellow = 4,  // 黄色
-    Purple = 5,  // 紫色
-    White = 6,   // 白色
+    Pink = 0,   // 粉色
+    Blue = 1,   // 蓝色
+    Red = 2,    // 红色
+    Green = 3,  // 绿色
+    Yellow = 4, // 黄色
+    Purple = 5, // 紫色
+    White = 6,  // 白色
 };
 
 /**
@@ -54,11 +54,11 @@ enum class BossInfoColor : u8 {
  * 参考 MC 1.16.5: net.minecraft.world.BossInfo.Overlay
  */
 enum class BossInfoOverlay : u8 {
-    Progress = 0,    // 平滑进度条
-    Notched6 = 1,    // 6 分割
-    Notched10 = 2,   // 10 分割
-    Notched12 = 3,   // 12 分割
-    Notched20 = 4,   // 20 分割
+    Progress = 0,  // 平滑进度条
+    Notched6 = 1,  // 6 分割
+    Notched10 = 2, // 10 分割
+    Notched12 = 3, // 12 分割
+    Notched20 = 4, // 20 分割
 };
 
 /**

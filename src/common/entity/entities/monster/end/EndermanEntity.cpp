@@ -1,31 +1,29 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EndermanEntity.hpp"
 #include "../../player/Player.hpp"
 #include "../arthropod/EndermiteEntity.hpp"
-#include "util/math/random/Random.hpp"
-#include "world/IWorld.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -33,6 +31,8 @@
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -343,7 +343,8 @@ bool EndermanEntity::hurt(DamageSource& source, f32 amount)
 
     if (hurtResult) {
         // 非生物伤害（摔落、窒息、岩浆等）：90%概率随机瞬移
-        // MC 1.16.5: if (!this.world.isRemote && !(source.getTrueSource() instanceof LivingEntity) && this.rand.nextInt(10) != 0)
+        // MC 1.16.5: if (!this.world.isRemote && !(source.getTrueSource() instanceof LivingEntity) &&
+        // this.rand.nextInt(10) != 0)
         if (m_world != nullptr && !m_world->isClientSide()) {
             Entity* trueSource = source.getTrueSource();
             bool isLivingSource = (trueSource != nullptr && dynamic_cast<LivingEntity*>(trueSource) != nullptr);
@@ -420,10 +421,9 @@ void EndermanEntity::registerGoals()
     // MC 1.16.5: NearestAttackableTargetGoal<>(this, EndermiteEntity.class, 10, true, false, predicate)
     // 只攻击玩家生成的末影螨（通过末影珍珠传送生成）
     m_targetSelector.addGoal(3,
-        new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(
-            this,
-            true,  // checkSight - 需要视线可见
-            0,     // chance - 每 tick 检查
+        new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(this,
+            true, // checkSight - 需要视线可见
+            0,    // chance - 每 tick 检查
             [](const LivingEntity* entity) -> bool {
                 // MC 1.16.5: field_213627_bA - 只攻击玩家生成的末影螨
                 if (entity == nullptr || !entity->isAlive()) {

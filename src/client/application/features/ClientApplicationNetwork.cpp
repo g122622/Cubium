@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "../ClientApplication.hpp"
 
@@ -1131,7 +1131,8 @@ void ClientApplication::setupNetworkCallbacks()
         const bool isDimensionChange = (currentDim != dimension);
 
         if (isDimensionChange) {
-            spdlog::info("[Respawn] Dimension change: {} -> {}", static_cast<i32>(currentDim), static_cast<i32>(dimension));
+            spdlog::info(
+                "[Respawn] Dimension change: {} -> {}", static_cast<i32>(currentDim), static_cast<i32>(dimension));
 
             // 1. 开始维度切换
             m_dimensionManager.beginDimensionChange(dimension, Vector3d(0, 0, 0));
@@ -1179,11 +1180,9 @@ void ClientApplication::setupNetworkCallbacks()
         // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
         // 创建新的 ClientPlayerEntity 并重置位置预测
         if (m_predictor && m_player) {
-            m_predictor->reset(
-                Vector3(m_player->position().x, m_player->position().y, m_player->position().z),
+            m_predictor->reset(Vector3(m_player->position().x, m_player->position().y, m_player->position().z),
                 m_player->yaw(),
-                m_player->pitch()
-            );
+                m_player->pitch());
         }
 
         // 11. 发送维度切换确认包（如果是维度切换）

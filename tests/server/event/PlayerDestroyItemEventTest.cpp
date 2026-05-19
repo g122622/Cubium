@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
 #include <atomic>
 
 using namespace mc;
@@ -140,9 +140,7 @@ TEST_F(PlayerDestroyItemEventTest, ServerWorld_OnPlayerDestroyItem_MultipleEvent
     std::atomic<i32> eventCount{0};
 
     auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent&) {
-            eventCount++;
-        });
+        [&](const PlayerDestroyItemEvent&) { eventCount++; });
 
     // 发布多个事件
     ItemStack item1(Items::DIAMOND_SWORD, 1);
@@ -170,9 +168,7 @@ TEST_F(PlayerDestroyItemEventTest, DifferentItemTypes)
     std::vector<ItemStack> receivedItems;
 
     auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent& e) {
-            receivedItems.push_back(e.item);
-        });
+        [&](const PlayerDestroyItemEvent& e) { receivedItems.push_back(e.item); });
 
     // 发布不同物品的事件
     ItemStack sword(Items::DIAMOND_SWORD, 1);
@@ -211,9 +207,7 @@ TEST_F(PlayerDestroyItemEventTest, Timestamp_UsesWorldTick)
     // 订阅事件
     u64 receivedTick = 0;
     auto subscription = event::ServerEventBus::instance().makeSubscription<PlayerDestroyItemEvent>(
-        [&](const PlayerDestroyItemEvent& e) {
-            receivedTick = e.timestamp;
-        });
+        [&](const PlayerDestroyItemEvent& e) { receivedTick = e.timestamp; });
 
     // 发布事件
     ItemStack item(Items::DIAMOND_SWORD, 1);

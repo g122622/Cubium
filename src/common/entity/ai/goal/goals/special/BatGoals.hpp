@@ -14,10 +14,10 @@
 
 #pragma once
 
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
+#include "../../Goal.hpp"
+#include "../../GoalFlag.hpp"
 
 namespace mc {
 class BatEntity;
@@ -96,10 +96,10 @@ private:
      */
     bool isTargetValid(const BlockPos& pos) const;
 
-    BatEntity* m_bat;          ///< 蝙蝠实体
-    BlockPos m_targetPos;       ///< 目标位置
-    bool m_hasTarget = false;   ///< 是否有有效目标
-    i32 m_cooldown = 0;         ///< 冷却计时器
+    BatEntity* m_bat;         ///< 蝙蝠实体
+    BlockPos m_targetPos;     ///< 目标位置
+    bool m_hasTarget = false; ///< 是否有有效目标
+    i32 m_cooldown = 0;       ///< 冷却计时器
 };
 
 /**
@@ -175,9 +175,9 @@ private:
      */
     bool canRestAtCurrentPosition() const;
 
-    BatEntity* m_bat;           ///< 蝙蝠实体
-    i32 m_turnTimer = 0;        ///< 转头计时器
-    f32 m_targetYaw = 0.0f;     ///< 目标转头角度
+    BatEntity* m_bat;       ///< 蝙蝠实体
+    i32 m_turnTimer = 0;    ///< 转头计时器
+    f32 m_targetYaw = 0.0f; ///< 目标转头角度
 };
 
 } // namespace entity::ai::goal

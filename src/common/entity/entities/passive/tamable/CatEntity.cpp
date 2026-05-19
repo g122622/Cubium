@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR THE DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR THE DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "CatEntity.hpp"
 #include "../../../../core/Types.hpp"
@@ -48,8 +48,7 @@ namespace mc {
 // CatTemptGoal 实现
 // ============================================================================
 
-CatEntity::CatTemptGoal::CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate itemPredicate,
-                                       bool scaredByMovement)
+CatEntity::CatTemptGoal::CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement)
     : TemptGoal(cat, speed, std::move(itemPredicate), scaredByMovement)
     , m_cat(cat)
 {
@@ -71,28 +70,27 @@ bool CatEntity::CatTemptGoal::shouldExecute()
 // CatAvoidPlayerGoal 实现
 // ============================================================================
 
-CatEntity::CatAvoidPlayerGoal::CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDistance, f64 farSpeed,
-                                                   f64 nearSpeed)
+CatEntity::CatAvoidPlayerGoal::CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDistance, f64 farSpeed, f64 nearSpeed)
     : AvoidEntityGoal(cat,
-                      avoidDistance,
-                      farSpeed,
-                      nearSpeed,
-                      // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
-                      // 只避开可以作为 AI 目标的玩家
-                      [](const LivingEntity* entity) -> bool {
-                          if (entity == nullptr) {
-                              return false;
-                          }
-                          // 检查是否是玩家
-                          const Player* player = dynamic_cast<const Player*>(entity);
-                          if (player == nullptr) {
-                              return false;
-                          }
-                          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
-                          // !isSpectator() && isAlive()
-                          // 注意：创造模式玩家也应该被避开
-                          return !player->isSpectator() && player->isAlive();
-                      })
+          avoidDistance,
+          farSpeed,
+          nearSpeed,
+          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
+          // 只避开可以作为 AI 目标的玩家
+          [](const LivingEntity* entity) -> bool {
+              if (entity == nullptr) {
+                  return false;
+              }
+              // 检查是否是玩家
+              const Player* player = dynamic_cast<const Player*>(entity);
+              if (player == nullptr) {
+                  return false;
+              }
+              // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
+              // !isSpectator() && isAlive()
+              // 注意：创造模式玩家也应该被避开
+              return !player->isSpectator() && player->isAlive();
+          })
     , m_cat(cat)
 {
     // MC 1.16.5: CatEntity.AvoidPlayerGoal 继承自 AvoidEntityGoal
@@ -151,8 +149,7 @@ bool CatEntity::isTameItem(const ItemStack& itemStack) const
 {
     // 猫用生鳕鱼或生鲑鱼驯服
     const Item* item = itemStack.getItem();
-    if (item == nullptr)
-        return false;
+    if (item == nullptr) return false;
     return item == Items::COD || item == Items::SALMON;
 }
 
@@ -202,13 +199,14 @@ void CatEntity::registerGoals()
     // 优先级 3: 食物诱惑（生鱼用于驯服）
     // MC 1.16.5: this.temptGoal = new CatEntity.TemptGoal(this, 0.6D, BREEDING_ITEMS, true);
     // 注意：scaredByMovement = true，猫会被玩家快速移动吓跑
-    m_temptGoal = new CatTemptGoal(this,
-                                    TEMPT_SPEED,
-                                    [](const ItemStack& stack) -> bool {
-                                        const Item* item = stack.getItem();
-                                        return item != nullptr && (item == Items::COD || item == Items::SALMON);
-                                    },
-                                    true); // scaredByMovement = true
+    m_temptGoal = new CatTemptGoal(
+        this,
+        TEMPT_SPEED,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && (item == Items::COD || item == Items::SALMON);
+        },
+        true); // scaredByMovement = true
     m_goalSelector.addGoal(3, m_temptGoal);
 
     // 优先级 4: 避开玩家（未驯服时）- 在 setupTamedAI() 中动态添加

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -430,7 +430,7 @@ TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_NotTrusting_ShouldExecute)
     // 这里测试的是信任检查逻辑
     // 如果没有玩家，shouldExecute 返回 false（继承自 AvoidEntityGoal）
     // 如果有玩家且未信任，shouldExecute 返回 true
-    EXPECT_FALSE(ocelot.isTrusting());  // 确认未信任
+    EXPECT_FALSE(ocelot.isTrusting()); // 确认未信任
 }
 
 TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_Trusting_ShouldNotExecute)
@@ -478,12 +478,14 @@ TEST_F(OcelotEntityTestFixture, TemptGoal_IsScaredByPlayerMovement_NotTrusting)
     ocelot.setTrusting(false);
 
     // 创建诱惑目标
-    entity::ai::goal::OcelotTemptGoal goal(&ocelot, 0.6,
+    entity::ai::goal::OcelotTemptGoal goal(
+        &ocelot,
+        0.6,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
             return item != nullptr && (item == Items::COD || item == Items::SALMON);
         },
-        true);  // scaredByMovement = true
+        true); // scaredByMovement = true
 
     // 未信任时，isScaredByPlayerMovement 应该返回 true
     // 注意：TemptGoal 基类的 m_scaredByMovement 为 true
@@ -499,12 +501,14 @@ TEST_F(OcelotEntityTestFixture, TemptGoal_IsScaredByPlayerMovement_Trusting)
     ocelot.setTrusting(true);
 
     // 创建诱惑目标
-    entity::ai::goal::OcelotTemptGoal goal(&ocelot, 0.6,
+    entity::ai::goal::OcelotTemptGoal goal(
+        &ocelot,
+        0.6,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
             return item != nullptr && (item == Items::COD || item == Items::SALMON);
         },
-        true);  // scaredByMovement = true
+        true); // scaredByMovement = true
 
     // 已信任时，isScaredByPlayerMovement 应该返回 false
     // return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
@@ -534,8 +538,7 @@ TEST_F(OcelotEntityTestFixture, AttackGoal_AttackDamage)
     OcelotEntity ocelot(EntityId(0));
 
     // 验证攻击伤害属性
-    f64 attackDamage = ocelot.getAttributeValue(
-        entity::attribute::Attributes::ATTACK_DAMAGE, 0.0);
+    f64 attackDamage = ocelot.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0);
     EXPECT_DOUBLE_EQ(attackDamage, 3.0);
 }
 

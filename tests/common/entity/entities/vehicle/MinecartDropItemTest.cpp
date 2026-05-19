@@ -15,12 +15,12 @@
  * - FurnaceMinecartEntity.killMinecart() 行82-88
  */
 
-#include <gtest/gtest.h>
-#include "entity/damage/DamageSource.hpp"
-#include "entity/entities/vehicle/MinecartEntity.hpp"
-#include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "entity/entities/vehicle/MinecartEntity.hpp"
 #include "item/core/ItemStack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -63,7 +63,8 @@ std::unique_ptr<DamageSource> createDrownDamage()
 
 class TNTMinecartDropTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化测试环境
     }
 };
@@ -154,8 +155,8 @@ TEST_F(TNTMinecartDropTest, NullptrSource_HandledSafely)
 TEST_F(TNTMinecartDropTest, SpeedThreshold_AffectsDrop)
 {
     // 速度阈值 = 0.01 (sqrt(0.01) = 0.1)
-    f64 lowSpeed = 0.009;   // 低速度
-    f64 highSpeed = 0.02;   // 高速度
+    f64 lowSpeed = 0.009; // 低速度
+    f64 highSpeed = 0.02; // 高速度
 
     f64 lowSpeedSq = lowSpeed * lowSpeed;
     f64 highSpeedSq = highSpeed * highSpeed;
@@ -176,7 +177,8 @@ TEST_F(TNTMinecartDropTest, SpeedThreshold_AffectsDrop)
 
 class FurnaceMinecartDropTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化测试环境
     }
 };
@@ -233,7 +235,8 @@ TEST_F(FurnaceMinecartDropTest, NullptrSource_DropsFurnace)
 
 class ChestMinecartDropTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化测试环境
     }
 };
@@ -275,7 +278,8 @@ TEST_F(ChestMinecartDropTest, NullptrSource_DropsInventory)
 
 class AbstractMinecartDropTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化测试环境
     }
 };
@@ -334,25 +338,23 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
         std::string name;
     };
 
-    std::vector<TestCase> testCases = {
-        { DamageType::InFire, true, false, "InFire" },
-        { DamageType::OnFire, true, false, "OnFire" },
-        { DamageType::Lava, true, false, "Lava" },
-        { DamageType::HotFloor, true, false, "HotFloor" },
-        { DamageType::Explosion, false, true, "Explosion" },
-        { DamageType::ExplosionPlayer, false, true, "ExplosionPlayer" },
-        { DamageType::Drown, false, false, "Drown" },
-        { DamageType::Fall, false, false, "Fall" },
-        { DamageType::Starve, false, false, "Starve" },
-        { DamageType::Cactus, false, false, "Cactus" },
-        { DamageType::OutOfWorld, false, false, "OutOfWorld" },
-        { DamageType::Magic, false, false, "Magic" },
-        { DamageType::Wither, false, false, "Wither" },
-        { DamageType::Anvil, false, false, "Anvil" },
-        { DamageType::FallingBlock, false, false, "FallingBlock" },
-        { DamageType::DragonBreath, false, false, "DragonBreath" },
-        { DamageType::Fireworks, false, false, "Fireworks" }
-    };
+    std::vector<TestCase> testCases = {{DamageType::InFire, true, false, "InFire"},
+        {DamageType::OnFire, true, false, "OnFire"},
+        {DamageType::Lava, true, false, "Lava"},
+        {DamageType::HotFloor, true, false, "HotFloor"},
+        {DamageType::Explosion, false, true, "Explosion"},
+        {DamageType::ExplosionPlayer, false, true, "ExplosionPlayer"},
+        {DamageType::Drown, false, false, "Drown"},
+        {DamageType::Fall, false, false, "Fall"},
+        {DamageType::Starve, false, false, "Starve"},
+        {DamageType::Cactus, false, false, "Cactus"},
+        {DamageType::OutOfWorld, false, false, "OutOfWorld"},
+        {DamageType::Magic, false, false, "Magic"},
+        {DamageType::Wither, false, false, "Wither"},
+        {DamageType::Anvil, false, false, "Anvil"},
+        {DamageType::FallingBlock, false, false, "FallingBlock"},
+        {DamageType::DragonBreath, false, false, "DragonBreath"},
+        {DamageType::Fireworks, false, false, "Fireworks"}};
 
     for (const auto& tc : testCases) {
         EnvironmentalDamage damage(tc.type);
@@ -376,13 +378,9 @@ class TestArrowEntity : public AbstractArrowEntity {
 public:
     TestArrowEntity(EntityId id)
         : AbstractArrowEntity(id)
-    {
-    }
+    {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/)
-    {
-        return std::make_unique<TestArrowEntity>(EntityId(0));
-    }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestArrowEntity>(EntityId(0)); }
 
     // 提供纯虚函数的最小化实现
     void tick() override { Entity::tick(); }
@@ -402,7 +400,8 @@ public:
  */
 class TNTMinecartArrowTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 初始化测试环境
     }
 };
@@ -480,24 +479,22 @@ TEST_F(TNTMinecartArrowTest, ArrowVelocity_AffectsExplosionPower)
     };
 
     std::vector<TestCase> testCases = {
-        { 0.0f, 0.0f, 0.0f, 0.0 },         // 静止
-        { 1.0f, 0.0f, 0.0f, 1.0 },         // 水平速度 1.0
-        { 0.0f, 1.0f, 0.0f, 1.0 },         // 垂直速度 1.0
-        { 3.0f, 4.0f, 0.0f, 25.0 },        // 3-4-5 三角形
-        { 2.0f, 2.0f, 2.0f, 12.0 },        // 对角线
+        {0.0f, 0.0f, 0.0f, 0.0},  // 静止
+        {1.0f, 0.0f, 0.0f, 1.0},  // 水平速度 1.0
+        {0.0f, 1.0f, 0.0f, 1.0},  // 垂直速度 1.0
+        {3.0f, 4.0f, 0.0f, 25.0}, // 3-4-5 三角形
+        {2.0f, 2.0f, 2.0f, 12.0}, // 对角线
     };
 
     for (const auto& tc : testCases) {
         arrow->setVelocity(Vector3(tc.vx, tc.vy, tc.vz));
         Vector3 vel = arrow->velocity();
 
-        f64 speedSq = static_cast<f64>(vel.x) * vel.x
-                    + static_cast<f64>(vel.y) * vel.y
-                    + static_cast<f64>(vel.z) * vel.z;
+        f64 speedSq =
+            static_cast<f64>(vel.x) * vel.x + static_cast<f64>(vel.y) * vel.y + static_cast<f64>(vel.z) * vel.z;
 
         EXPECT_DOUBLE_EQ(speedSq, tc.expectedSpeedSq)
-            << "Velocity (" << tc.vx << ", " << tc.vy << ", " << tc.vz
-            << ") speedSq should be " << tc.expectedSpeedSq;
+            << "Velocity (" << tc.vx << ", " << tc.vy << ", " << tc.vz << ") speedSq should be " << tc.expectedSpeedSq;
 
         // 爆炸威力计算（参考 MC 1.16.5）
         f64 speed = std::sqrt(speedSq);

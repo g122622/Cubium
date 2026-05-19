@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "Items.hpp"
 
@@ -48,6 +48,7 @@
 #include "items/special/MilkBucketItem.hpp"
 #include "items/special/NameTagItem.hpp"
 #include "items/special/SaddleItem.hpp"
+#include "items/special/StickItems.hpp"
 #include "items/tool/AxeItem.hpp"
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/PickaxeItem.hpp"
@@ -65,7 +66,6 @@
 #include "items/weapon/ThrowableItems.hpp"
 #include "items/weapon/TippedArrowItem.hpp"
 #include "items/weapon/TridentItem.hpp"
-#include "items/special/StickItems.hpp"
 #include "tier/ItemTiers.hpp"
 
 namespace {
@@ -953,32 +953,32 @@ void Items::registerArmor()
     // 马铠 - 用于装备马提供护甲
     // ========================================================================
     // 皮革马铠 - +3 护甲
-    LEATHER_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
-        ResourceLocation("minecraft:leather_horse_armor"),
-        ItemProperties().maxStackSize(1),
-        3,
-        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
+    LEATHER_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:leather_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            3,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
 
     // 铁马铠 - +5 护甲
-    IRON_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
-        ResourceLocation("minecraft:iron_horse_armor"),
-        ItemProperties().maxStackSize(1),
-        5,
-        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_iron.png"));
+    IRON_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:iron_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            5,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_iron.png"));
 
     // 金马铠 - +7 护甲
-    GOLDEN_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
-        ResourceLocation("minecraft:golden_horse_armor"),
-        ItemProperties().maxStackSize(1),
-        7,
-        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_gold.png"));
+    GOLDEN_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:golden_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            7,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_gold.png"));
 
     // 钻石马铠 - +11 护甲
-    DIAMOND_HORSE_ARMOR = &registry.registerItem<item::items::HorseArmorItem>(
-        ResourceLocation("minecraft:diamond_horse_armor"),
-        ItemProperties().maxStackSize(1),
-        11,
-        ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
+    DIAMOND_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:diamond_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            11,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
 }
 
 void Items::registerFood()
@@ -1290,7 +1290,8 @@ void Items::registerCrops()
 
     // 干草块 - 用于喂养马属动物，恢复大量生命值
     // 参考: new BlockItem(Blocks.HAY_BLOCK, new Item.Properties().group(ItemGroup.DECORATIONS))
-    HAY_BLOCK = &registerBlockBackedItem(registry, VanillaBlocks::HAY_BLOCK, "hay_block", ItemProperties().maxStackSize(64));
+    HAY_BLOCK =
+        &registerBlockBackedItem(registry, VanillaBlocks::HAY_BLOCK, "hay_block", ItemProperties().maxStackSize(64));
 
     PUMPKIN = &registry.registerItem(ResourceLocation("minecraft:pumpkin"), ItemProperties().maxStackSize(64));
 
@@ -1334,18 +1335,21 @@ void Items::registerAquaticMaterials()
     // 海草 - 海龟食物，也是水下装饰方块
     // 参考: new BlockItem(Blocks.SEAGRASS, new Item.Properties().group(ItemGroup.DECORATIONS))
     // 注意：海草物品从方块获取，使用 registerBlockBackedItem
-    SEAGRASS = &registerBlockBackedItem(registry, VanillaBlocks::SEAGRASS, "seagrass", ItemProperties().maxStackSize(64));
+    SEAGRASS =
+        &registerBlockBackedItem(registry, VanillaBlocks::SEAGRASS, "seagrass", ItemProperties().maxStackSize(64));
 
     // 注意：DRIED_KELP 已在 registerFood() 中注册为食物
 
     // 下界真菌
     // 绯红菌 - 可用于某些合成
     // 参考: new BlockItem(Blocks.CRIMSON_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
-    CRIMSON_FUNGUS = &registerBlockBackedItem(registry, VanillaBlocks::CRIMSON_FUNGUS, "crimson_fungus", ItemProperties().maxStackSize(64));
+    CRIMSON_FUNGUS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_FUNGUS, "crimson_fungus", ItemProperties().maxStackSize(64));
 
     // 诡异菌 - 炽足兽食物
     // 参考: new BlockItem(Blocks.WARPED_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
-    WARPED_FUNGUS = &registerBlockBackedItem(registry, VanillaBlocks::WARPED_FUNGUS, "warped_fungus", ItemProperties().maxStackSize(64));
+    WARPED_FUNGUS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_FUNGUS, "warped_fungus", ItemProperties().maxStackSize(64));
 }
 
 void Items::registerBrewingIngredients()
@@ -1464,16 +1468,16 @@ void Items::registerWeapons()
     // 胡萝卜钓竿 - 控制猪
     // 参考: new CarrotOnAStickItem(new Item.Properties().maxDamage(25).group(ItemGroup.TRANSPORTATION))
     // MC 1.16.5: 耐久度25，每次加速消耗7耐久
-    CARROT_ON_A_STICK = &registry.registerItem<item::CarrotOnAStickItem>(
-        ResourceLocation("minecraft:carrot_on_a_stick"),
-        ItemProperties().maxDamage(item::CarrotOnAStickItem::MAX_DAMAGE));
+    CARROT_ON_A_STICK =
+        &registry.registerItem<item::CarrotOnAStickItem>(ResourceLocation("minecraft:carrot_on_a_stick"),
+            ItemProperties().maxDamage(item::CarrotOnAStickItem::MAX_DAMAGE));
 
     // 诡异菌钓竿 - 控制炽足兽
     // 参考: new WarpedFungusOnAStickItem(new Item.Properties().maxDamage(100).group(ItemGroup.TRANSPORTATION))
     // MC 1.16.5: 耐久度100，每次加速消耗1耐久
-    WARPED_FUNGUS_ON_A_STICK = &registry.registerItem<item::WarpedFungusOnAStickItem>(
-        ResourceLocation("minecraft:warped_fungus_on_a_stick"),
-        ItemProperties().maxDamage(item::WarpedFungusOnAStickItem::MAX_DAMAGE));
+    WARPED_FUNGUS_ON_A_STICK =
+        &registry.registerItem<item::WarpedFungusOnAStickItem>(ResourceLocation("minecraft:warped_fungus_on_a_stick"),
+            ItemProperties().maxDamage(item::WarpedFungusOnAStickItem::MAX_DAMAGE));
 }
 
 void Items::registerThrowables()
@@ -1630,29 +1634,24 @@ void Items::registerBoats()
     // ========================================================================
 
     // 橡木船
-    OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:oak_boat"),
-        entity::BoatEntity::Type::OAK,
-        ItemProperties().maxStackSize(1));
+    OAK_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:oak_boat"), entity::BoatEntity::Type::OAK, ItemProperties().maxStackSize(1));
 
     // 云杉木船
-    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_boat"),
-        entity::BoatEntity::Type::SPRUCE,
-        ItemProperties().maxStackSize(1));
+    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:spruce_boat"), entity::BoatEntity::Type::SPRUCE, ItemProperties().maxStackSize(1));
 
     // 白桦木船
-    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_boat"),
-        entity::BoatEntity::Type::BIRCH,
-        ItemProperties().maxStackSize(1));
+    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:birch_boat"), entity::BoatEntity::Type::BIRCH, ItemProperties().maxStackSize(1));
 
     // 丛林木船
-    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_boat"),
-        entity::BoatEntity::Type::JUNGLE,
-        ItemProperties().maxStackSize(1));
+    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:jungle_boat"), entity::BoatEntity::Type::JUNGLE, ItemProperties().maxStackSize(1));
 
     // 金合欢木船
-    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_boat"),
-        entity::BoatEntity::Type::ACACIA,
-        ItemProperties().maxStackSize(1));
+    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:acacia_boat"), entity::BoatEntity::Type::ACACIA, ItemProperties().maxStackSize(1));
 
     // 深色橡木船
     DARK_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_boat"),
@@ -1685,57 +1684,49 @@ void Items::registerSigns()
     // ========================================================================
 
     // 橡木告示牌
-    OAK_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:oak_sign"),
+    OAK_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:oak_sign"),
         *VanillaBlocks::OAK_SIGN,
         *VanillaBlocks::OAK_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 云杉木告示牌
-    SPRUCE_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:spruce_sign"),
+    SPRUCE_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:spruce_sign"),
         *VanillaBlocks::SPRUCE_SIGN,
         *VanillaBlocks::SPRUCE_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 白桦木告示牌
-    BIRCH_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:birch_sign"),
+    BIRCH_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:birch_sign"),
         *VanillaBlocks::BIRCH_SIGN,
         *VanillaBlocks::BIRCH_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 丛林木告示牌
-    JUNGLE_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:jungle_sign"),
+    JUNGLE_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:jungle_sign"),
         *VanillaBlocks::JUNGLE_SIGN,
         *VanillaBlocks::JUNGLE_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 金合欢木告示牌
-    ACACIA_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:acacia_sign"),
+    ACACIA_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:acacia_sign"),
         *VanillaBlocks::ACACIA_SIGN,
         *VanillaBlocks::ACACIA_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 深色橡木告示牌
-    DARK_OAK_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:dark_oak_sign"),
+    DARK_OAK_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:dark_oak_sign"),
         *VanillaBlocks::DARK_OAK_SIGN,
         *VanillaBlocks::DARK_OAK_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 绯红告示牌（下界木材）
-    CRIMSON_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:crimson_sign"),
+    CRIMSON_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:crimson_sign"),
         *VanillaBlocks::CRIMSON_SIGN,
         *VanillaBlocks::CRIMSON_WALL_SIGN,
         ItemProperties().maxStackSize(16));
 
     // 诡异告示牌（下界木材）
-    WARPED_SIGN = &registry.registerItem<WallOrFloorItem>(
-        ResourceLocation("minecraft:warped_sign"),
+    WARPED_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:warped_sign"),
         *VanillaBlocks::WARPED_SIGN,
         *VanillaBlocks::WARPED_WALL_SIGN,
         ItemProperties().maxStackSize(16));

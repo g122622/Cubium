@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "AbstractArrowEntity.hpp"
 #include "../../../item/Items.hpp"
@@ -522,12 +522,9 @@ void ArrowEntity::tick()
             f32 oz = (rng.nextFloat() - 0.5f) * width();
 
             Vector3 pos(x() + ox, y() + oy, z() + oz);
-            Vector3 colorVel(r, g, b);  // 颜色作为速度参数传递
+            Vector3 colorVel(r, g, b); // 颜色作为速度参数传递
 
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::EntityEffect,
-                pos,
-                colorVel);
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect, pos, colorVel);
         }
     }
 }
@@ -603,8 +600,7 @@ void SpectralArrowEntity::tick()
     if (!m_inGround && m_world && m_world->isClientSide()) {
         // 使用 INSTANT_EFFECT 粒子（对应 ParticleTypes.INSTANT_EFFECT）
         // 粒子位置：箭矢当前位置，速度为零
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::InstantSpell,
+        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::InstantSpell,
             Vector3(x(), y(), z()),
             Vector3(0.0f, 0.0f, 0.0f));
     }
@@ -624,10 +620,7 @@ void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (livingTarget != nullptr) {
         // 施加发光效果，持续时间 m_glowDuration ticks（默认 200 ticks = 10 秒）
-        livingTarget->addEffect(entity::effect::EffectInstance(
-            entity::effect::EffectType::Glowing,
-            m_glowDuration,
-            0));
+        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, m_glowDuration, 0));
     }
 }
 

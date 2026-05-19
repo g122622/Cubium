@@ -1,39 +1,39 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
-* @file TeamCommandTest.cpp
-* @brief TeamCommand 单元测试
-*
-* 测试 /team 命令的所有子命令：
-* - add: 创建队伍
-* - remove: 移除队伍
-* - list: 列出队伍
-* - empty: 清空队伍
-* - join: 加入队伍
-* - leave: 离开队伍
-* - modify: 修改队伍属性
-*/
+ * @file TeamCommandTest.cpp
+ * @brief TeamCommand 单元测试
+ *
+ * 测试 /team 命令的所有子命令：
+ * - add: 创建队伍
+ * - remove: 移除队伍
+ * - list: 列出队伍
+ * - empty: 清空队伍
+ * - join: 加入队伍
+ * - leave: 离开队伍
+ * - modify: 修改队伍属性
+ */
 
 #include <gtest/gtest.h>
 
@@ -100,8 +100,8 @@ class ContainerManager;
 namespace mc::command {
 
 /**
-* @brief 命令测试使用的假连接。
-*/
+ * @brief 命令测试使用的假连接。
+ */
 class FakeConnection final : public network::IServerConnection {
 public:
     void send(const u8* data, size_t size) override
@@ -131,8 +131,8 @@ private:
 };
 
 /**
-* @brief 测试服务器，用于命令测试。
-*/
+ * @brief 测试服务器，用于命令测试。
+ */
 class TeamTestServer final : public server::IServer {
 public:
     TeamTestServer()
@@ -280,7 +280,10 @@ public:
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
     [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override
+    {
+        throw std::logic_error("unused");
+    }
 
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }

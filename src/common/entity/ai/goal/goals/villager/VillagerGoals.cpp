@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "VillagerGoals.hpp"
 #include "../../../../../item/Items.hpp"
@@ -219,7 +219,8 @@ std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const
     if (!villageManager) return std::nullopt;
 
     auto& poiStorage = villageManager->getPOIStorage();
-    BlockPos villagerPos(static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
+    BlockPos villagerPos(
+        static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
 
     // 参考 MC 1.16.5: 村民搜索床位的范围是48格
     constexpr f32 BED_SEARCH_RANGE = 48.0f;
@@ -234,8 +235,8 @@ std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const
 
     // 遍历所有床类型
     for (i32 bedType = static_cast<i32>(PointOfInterestType::BedRed);
-         bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
-         ++bedType) {
+        bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
+        ++bedType) {
 
         PointOfInterestType poiType = static_cast<PointOfInterestType>(bedType);
         auto result = poiStorage.findNearestFree(villagerPos, poiType, BED_SEARCH_RANGE);
@@ -601,8 +602,7 @@ void GatherItemsGoal::findNearbyItems()
 
     // 使用 EntityUtils 查找最近的 ItemEntity
     // 参考 MC 1.16.5 VillagerEntity 的拾取逻辑
-    ItemEntity* item = EntityUtils::findClosestEntity<ItemEntity>(
-        m_villager->world(),
+    ItemEntity* item = EntityUtils::findClosestEntity<ItemEntity>(m_villager->world(),
         m_villager->position(),
         PICKUP_RANGE,
         m_villager, // 排除自己（虽然村民不是 ItemEntity）
@@ -869,11 +869,7 @@ void AvoidHostileGoal::findNearestHostile()
     // 使用 EntityUtils 查找最近的敌对生物
     // 参考 MC 1.16.5: 村民逃离僵尸、掠夺者、劫掠兽、恼鬼等
     LivingEntity* hostile = EntityUtils::findClosestEntity<LivingEntity>(
-        m_villager->world(),
-        m_villager->position(),
-        FLEE_RANGE,
-        m_villager,
-        [](LivingEntity* entity) {
+        m_villager->world(), m_villager->position(), FLEE_RANGE, m_villager, [](LivingEntity* entity) {
             // 检查是否存活
             if (!entity || !entity->isAlive()) return false;
 
@@ -969,14 +965,15 @@ bool GoToBedGoal::shouldExecute()
     if (!villageManager) return false;
 
     auto& poiStorage = villageManager->getPOIStorage();
-    BlockPos villagerPos(static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
+    BlockPos villagerPos(
+        static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
     constexpr f32 BED_SEARCH_RANGE = 48.0f;
 
     // 遍历所有床类型
     using namespace world::village::poi;
     for (i32 bedType = static_cast<i32>(PointOfInterestType::BedRed);
-         bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
-         ++bedType) {
+        bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
+        ++bedType) {
 
         PointOfInterestType poiType = static_cast<PointOfInterestType>(bedType);
         auto result = poiStorage.findNearestFree(villagerPos, poiType, BED_SEARCH_RANGE);
@@ -1042,7 +1039,8 @@ void GoToBedGoal::tick()
                 const auto* poi = poiStorage.getPOI(m_bedPos);
                 if (!poi || !poi->isOccupied()) {
                     // 占用床位
-                    poiStorage.acquirePOI(m_bedPos, static_cast<u64>(m_villager->id()), m_villager->world()->currentTick());
+                    poiStorage.acquirePOI(
+                        m_bedPos, static_cast<u64>(m_villager->id()), m_villager->world()->currentTick());
 
                     // 开始睡眠
                     m_villager->startSleeping(m_bedPos);
@@ -1155,7 +1153,8 @@ bool VillagerBreedGoal::hasEnoughBeds() const
     }
 
     auto& poiStorage = villageManager->getPOIStorage();
-    BlockPos villagerPos(static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
+    BlockPos villagerPos(
+        static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
 
     // 搜索48格范围内的所有床
     using namespace world::village::poi;
@@ -1164,8 +1163,8 @@ bool VillagerBreedGoal::hasEnoughBeds() const
 
     // 遍历所有床类型
     for (i32 bedType = static_cast<i32>(PointOfInterestType::BedRed);
-         bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
-         ++bedType) {
+        bedType <= static_cast<i32>(PointOfInterestType::BedYellow);
+        ++bedType) {
 
         PointOfInterestType poiType = static_cast<PointOfInterestType>(bedType);
         auto pois = poiStorage.findAllInRange(villagerPos, BED_SEARCH_RANGE, poiType);
@@ -1201,8 +1200,7 @@ void VillagerBreedGoal::findPartner()
     // 搜索附近愿意繁殖的村民
     static constexpr f32 PARTNER_SEARCH_RANGE = 8.0f;
 
-    VillagerEntity* partner = EntityUtils::findClosestEntity<VillagerEntity>(
-        m_villager->world(),
+    VillagerEntity* partner = EntityUtils::findClosestEntity<VillagerEntity>(m_villager->world(),
         m_villager->position(),
         PARTNER_SEARCH_RANGE,
         m_villager,
@@ -1394,11 +1392,7 @@ void CongregateGoal::findInteractionTarget()
     static constexpr f32 SEARCH_RANGE = 32.0f;
 
     VillagerEntity* target = EntityUtils::findClosestEntity<VillagerEntity>(
-        m_villager->world(),
-        m_villager->position(),
-        SEARCH_RANGE,
-        m_villager,
-        [](VillagerEntity* entity) {
+        m_villager->world(), m_villager->position(), SEARCH_RANGE, m_villager, [](VillagerEntity* entity) {
             return entity && entity->isAlive();
         });
 
@@ -1478,11 +1472,7 @@ bool LookAtEntitiesGoal::shouldExecute()
     switch (m_targetType) {
         case TargetType::Villager:
             target = EntityUtils::findClosestEntity<VillagerEntity>(
-                m_villager->world(),
-                m_villager->position(),
-                LOOK_RANGE,
-                m_villager,
-                [](LivingEntity* entity) {
+                m_villager->world(), m_villager->position(), LOOK_RANGE, m_villager, [](LivingEntity* entity) {
                     return entity && entity->isAlive();
                 });
             break;
@@ -1490,11 +1480,7 @@ bool LookAtEntitiesGoal::shouldExecute()
         case TargetType::Cat:
         case TargetType::Creature:
             target = EntityUtils::findClosestEntity<LivingEntity>(
-                m_villager->world(),
-                m_villager->position(),
-                LOOK_RANGE,
-                m_villager,
-                [](LivingEntity* entity) {
+                m_villager->world(), m_villager->position(), LOOK_RANGE, m_villager, [](LivingEntity* entity) {
                     return entity && entity->isAlive();
                 });
             break;
@@ -1618,11 +1604,7 @@ bool ShareItemsGoal::shouldExecute()
     static constexpr f32 SEARCH_RANGE = 8.0f;
 
     VillagerEntity* target = EntityUtils::findClosestEntity<VillagerEntity>(
-        m_villager->world(),
-        m_villager->position(),
-        SEARCH_RANGE,
-        m_villager,
-        [this](VillagerEntity* entity) {
+        m_villager->world(), m_villager->position(), SEARCH_RANGE, m_villager, [this](VillagerEntity* entity) {
             // 检查是否是需要食物的村民
             return entity && entity->isAlive() && targetNeedsFood();
         });

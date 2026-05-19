@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PistonBlock.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
@@ -45,12 +45,17 @@ PistonBlock::PistonBlock(const BlockProperties& properties, bool sticky)
 {
 
     // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-                         .add(BlockStateProperties::FACING())
-                         .add(BlockStateProperties::EXTENDED())
-                         .create([](const Block& block, std::vector<size_t> values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
-                             return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-                         });
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::FACING())
+            .add(BlockStateProperties::EXTENDED())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
@@ -389,16 +394,18 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
     if (extending) {
         // 创建活塞头状态（使用引用类型获取持久化的 BlockState）
         // StateHolder::with() 返回 const BlockState&，指向 StateContainer 中预分配的状态
-        const BlockState& pistonHeadState = VanillaBlocks::PISTON_HEAD->defaultState()
-                                                .with(BlockStateProperties::FACING(), facing)
-                                                .with(PistonHeadBlock::getTypeProperty(),
-                                                    m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+        const BlockState& pistonHeadState =
+            VanillaBlocks::PISTON_HEAD->defaultState()
+                .with(BlockStateProperties::FACING(), facing)
+                .with(PistonHeadBlock::getTypeProperty(),
+                    m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         // 创建移动活塞方块
-        const BlockState& movingState = VanillaBlocks::MOVING_PISTON->defaultState()
-                                            .with(BlockStateProperties::FACING(), facing)
-                                            .with(PistonHeadBlock::getTypeProperty(),
-                                                m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
+        const BlockState& movingState =
+            VanillaBlocks::MOVING_PISTON->defaultState()
+                .with(BlockStateProperties::FACING(), facing)
+                .with(PistonHeadBlock::getTypeProperty(),
+                    m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
         world.setBlockState(pos, &movingState, 68);
 

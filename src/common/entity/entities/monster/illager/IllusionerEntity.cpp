@@ -1,28 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IllusionerEntity.hpp"
 
+#include "../../../../item/Items.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
@@ -33,15 +38,10 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
-#include "../../../entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entities/passive/golem/IronGolemEntity.hpp"
-#include "../../../entities/villager/AbstractVillagerEntity.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../entities/projectile/AbstractArrowEntity.hpp"
+#include "../../../entities/villager/AbstractVillagerEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -97,13 +97,14 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
 
     // 发射箭矢
     arrow->shoot(static_cast<f32>(dx),
-                 static_cast<f32>(dy + horizontalDist * 0.2),
-                 static_cast<f32>(dz),
-                 ARROW_VELOCITY, // 1.6F
-                 inaccuracy);
+        static_cast<f32>(dy + horizontalDist * 0.2),
+        static_cast<f32>(dz),
+        ARROW_VELOCITY, // 1.6F
+        inaccuracy);
 
     // 播放射箭音效
-    // MC 1.16.5: this.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.getRNG().nextFloat() * 0.4F + 0.8F))
+    // MC 1.16.5: this.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.getRNG().nextFloat() * 0.4F +
+    // 0.8F))
     math::Random rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
@@ -147,22 +148,21 @@ void IllusionerEntity::registerGoals()
     // 优先级 6: 弓箭远程攻击
     // MC 1.16.5: new RangedBowAttackGoal<>(this, 0.5D, 20, 15.0F)
     // 参数：移动速度 0.5，攻击间隔 20 ticks
-    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
-        this, 0.5, 20, 20));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::RangedBowAttackGoal>(this, 0.5, 20, 20));
 
     // 优先级 8: 随机行走
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6, 1));
 
     // 优先级 9: 看向玩家
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 10: 看向生物
-    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 看向所有 MobEntity
             return entity->typeId() != entity::EntityTypeIdNumber::PLAYER;
@@ -175,16 +175,17 @@ void IllusionerEntity::registerGoals()
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 2: 攻击玩家（300 ticks 未见记忆）
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-        this, true, 300));
+    m_targetSelector.addGoal(
+        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 300));
 
     // 优先级 3: 攻击村民（300 ticks 未见记忆）
-    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
-        this, false, 300));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+            this, false, 300));
 
     // 优先级 3: 攻击铁傀儡（300 ticks 未见记忆）
-    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(
-        this, false, 300));
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false, 300));
 }
 
 void IllusionerEntity::registerAttributes()

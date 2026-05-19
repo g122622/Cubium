@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -92,8 +92,11 @@ public:
     }
 
     // 追踪 playSound 调用
-    void playSound(const ResourceLocation& soundId, sound::SoundCategory category,
-                   const Vector3& pos, f32 volume, f32 pitch) override
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& pos,
+        f32 volume,
+        f32 pitch) override
     {
         m_lastSoundId = soundId;
         m_soundPlayCount++;
@@ -699,7 +702,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
     // 广播状态应该是 TamingSucceeded(7) 或 TamingFailed(6)
     u8 status = world.getLastBroadcastStatus();
     bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-                          status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 
@@ -865,7 +868,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_OffHand_UsesOffHandItem)
     ItemStack appleStack(Items::APPLE, 10);
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
     player.inventory().setItem(0, appleStack); // 主手
-    player.inventory().setItem(40, seedStack);  // 副手槽位
+    player.inventory().setItem(40, seedStack); // 副手槽位
     player.inventory().setSelectedSlot(0);
 
     world.resetSoundTracking();

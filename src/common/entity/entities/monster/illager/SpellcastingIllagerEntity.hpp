@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -45,12 +45,12 @@ public:
      * 每种法术类型对应不同的粒子颜色（RGB 值作为速度参数）
      */
     enum class SpellType : u8 {
-        None = 0,       ///< 无施法
-        SummonVex = 1,  ///< 召唤恼鬼（唤魔者）- 淡蓝白色 (0.7, 0.7, 0.8)
-        Fangs = 2,      ///< 尖牙攻击（唤魔者）- 棕色 (0.4, 0.3, 0.35)
-        Wololo = 3,     ///< 唔噜噜法术（唤魔者）- 橙黄色 (0.7, 0.5, 0.2)
-        Disappear = 4,  ///< 消失/镜像法术（幻术师）- 蓝色 (0.3, 0.3, 0.8)
-        Blindness = 5   ///< 失明法术（幻术师）- 深蓝/深紫色 (0.1, 0.1, 0.2)
+        None = 0,      ///< 无施法
+        SummonVex = 1, ///< 召唤恼鬼（唤魔者）- 淡蓝白色 (0.7, 0.7, 0.8)
+        Fangs = 2,     ///< 尖牙攻击（唤魔者）- 棕色 (0.4, 0.3, 0.35)
+        Wololo = 3,    ///< 唔噜噜法术（唤魔者）- 橙黄色 (0.7, 0.5, 0.2)
+        Disappear = 4, ///< 消失/镜像法术（幻术师）- 蓝色 (0.3, 0.3, 0.8)
+        Blindness = 5  ///< 失明法术（幻术师）- 深蓝/深紫色 (0.1, 0.1, 0.2)
     };
 
     SpellcastingIllagerEntity(EntityId id);

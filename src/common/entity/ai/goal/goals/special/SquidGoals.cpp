@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "SquidGoals.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
@@ -63,9 +63,8 @@ void SquidMoveRandomGoal::tick()
         // 检查是否需要生成新的移动向量
         // 条件：1/50概率 或 不在水中 或 没有移动向量
         math::Random rng = m_squid->getRandom();
-        bool needNewVector = (rng.nextInt(RANDOM_CHANCE) == 0) ||
-                             (!m_squid->isInWater()) ||
-                             (!m_squid->hasMovementVector());
+        bool needNewVector =
+            (rng.nextInt(RANDOM_CHANCE) == 0) || (!m_squid->isInWater()) || (!m_squid->hasMovementVector());
 
         if (needNewVector) {
             // 生成随机角度 [0, 2π)
@@ -177,10 +176,7 @@ void SquidFleeGoal::tick()
 
         // 设置移动向量（除以 20 转换为每 tick 速度）
         m_squid->setMovementVector(
-            static_cast<f32>(dx) / SPEED_SCALE,
-            static_cast<f32>(dy) / SPEED_SCALE,
-            static_cast<f32>(dz) / SPEED_SCALE
-        );
+            static_cast<f32>(dx) / SPEED_SCALE, static_cast<f32>(dy) / SPEED_SCALE, static_cast<f32>(dz) / SPEED_SCALE);
     }
 
     // 每 10 tick 的第 5 tick 产生气泡粒子

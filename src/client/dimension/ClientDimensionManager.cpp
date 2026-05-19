@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ClientDimensionManager.hpp"
 #include <algorithm>
@@ -27,8 +27,7 @@
 
 namespace mc {
 
-ClientDimensionManager::ClientDimensionManager()
-{}
+ClientDimensionManager::ClientDimensionManager() {}
 
 void ClientDimensionManager::initialize(const std::vector<DimensionId>& dimensionInfo)
 {
@@ -89,7 +88,11 @@ void ClientDimensionManager::initialize(const std::vector<ClientDimensionInfo>& 
     spdlog::info("[ClientDimensionManager] Initialized with {} dimensions", m_availableDimensions.size());
     for (const auto& dim : m_availableDimensions) {
         spdlog::debug("[ClientDimensionManager]   - Dimension {}: {} (hasSkyLight={}, hasCeiling={}, ambientLight={})",
-            static_cast<i32>(dim.id), dim.name, dim.hasSkyLight, dim.hasCeiling, dim.ambientLight);
+            static_cast<i32>(dim.id),
+            dim.name,
+            dim.hasSkyLight,
+            dim.hasCeiling,
+            dim.ambientLight);
     }
 }
 
@@ -129,17 +132,18 @@ void ClientDimensionManager::beginDimensionChange(DimensionId targetDimension, c
     const ClientDimensionInfo* targetInfo = getDimensionInfo(targetDimension);
     if (targetInfo) {
         spdlog::info("[ClientDimensionManager] Beginning dimension change to {} ({})",
-            static_cast<i32>(targetDimension), targetInfo->name);
+            static_cast<i32>(targetDimension),
+            targetInfo->name);
     } else {
-        spdlog::info("[ClientDimensionManager] Beginning dimension change to {}",
-            static_cast<i32>(targetDimension));
+        spdlog::info("[ClientDimensionManager] Beginning dimension change to {}", static_cast<i32>(targetDimension));
     }
 }
 
 void ClientDimensionManager::completeDimensionChange()
 {
     spdlog::info("[ClientDimensionManager] Dimension change completed: {} -> {}",
-        static_cast<i32>(m_currentDimension), static_cast<i32>(m_targetDimension));
+        static_cast<i32>(m_currentDimension),
+        static_cast<i32>(m_targetDimension));
 
     m_currentDimension = m_targetDimension;
     m_transitionState = TransitionState::None;

@@ -1,30 +1,30 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "NbtPath.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <sstream>
 #include <algorithm>
+#include <sstream>
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
 using mc::nbt::operator<<;
@@ -37,8 +37,7 @@ namespace command {
 NbtPath::NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes)
     : m_rawText(std::move(rawText))
     , m_nodes(std::move(nodes))
-{
-}
+{}
 
 NbtPath::NbtPath(const NbtPath& other)
     : m_rawText(other.m_rawText)
@@ -85,12 +84,11 @@ const nbt::tags::tag* NbtPath::getSingle(const nbt::tags::compound_tag& tag) con
 {
     auto results = get(tag);
     if (results.empty()) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
-            "NBT path '" + m_rawText + "' not found", 0);
+        throw CommandException(CommandErrorType::NbtPathNotFound, "NBT path '" + m_rawText + "' not found", 0);
     }
     if (results.size() > 1) {
-        throw CommandException(CommandErrorType::NbtPathMultipleResults,
-            "NBT path '" + m_rawText + "' returned multiple results", 0);
+        throw CommandException(
+            CommandErrorType::NbtPathMultipleResults, "NBT path '" + m_rawText + "' returned multiple results", 0);
     }
     return results[0];
 }
@@ -105,8 +103,7 @@ bool NbtPath::exists(const nbt::tags::compound_tag& tag) const
     return !get(tag).empty();
 }
 
-i32 NbtPath::set(nbt::tags::compound_tag& tag,
-                  std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (m_nodes.empty()) {
         return 0;
@@ -171,8 +168,8 @@ i32 NbtPath::remove(nbt::tags::compound_tag& tag) const
     return count;
 }
 
-i32 NbtPath::insert(nbt::tags::compound_tag& tag, i32 index,
-                     const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
+i32 NbtPath::insert(
+    nbt::tags::compound_tag& tag, i32 index, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     if (m_nodes.empty() || values.empty()) {
         return 0;
@@ -197,8 +194,8 @@ i32 NbtPath::insert(nbt::tags::compound_tag& tag, i32 index,
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::List) {
-            throw CommandException(CommandErrorType::NbtPathInvalidType,
-                "Expected list at path '" + m_rawText + "'", 0);
+            throw CommandException(
+                CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
         }
 
         // 只支持 tag_list_tag 类型的插入操作
@@ -206,14 +203,16 @@ i32 NbtPath::insert(nbt::tags::compound_tag& tag, i32 index,
         if (tagList == nullptr) {
             // 对于其他类型的列表（如 int_list_tag），不支持插入
             // 因为它们有固定类型的元素
-            throw CommandException(CommandErrorType::NbtPathInvalidType,
-                "Cannot insert into typed list at path '" + m_rawText + "'", 0);
+            throw CommandException(
+                CommandErrorType::NbtPathInvalidType, "Cannot insert into typed list at path '" + m_rawText + "'", 0);
         }
 
         i32 insertIndex = index < 0 ? static_cast<i32>(tagList->value.size()) + index + 1 : index;
         if (insertIndex < 0 || insertIndex > static_cast<i32>(tagList->value.size())) {
             throw CommandException(CommandErrorType::NbtPathIndexOutOfBounds,
-                "Index " + std::to_string(index) + " out of bounds for list of size " + std::to_string(tagList->value.size()), 0);
+                "Index " + std::to_string(index) + " out of bounds for list of size " +
+                    std::to_string(tagList->value.size()),
+                0);
         }
 
         // 插入值
@@ -227,15 +226,13 @@ i32 NbtPath::insert(nbt::tags::compound_tag& tag, i32 index,
     return count;
 }
 
-i32 NbtPath::append(nbt::tags::compound_tag& tag,
-                     const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
+i32 NbtPath::append(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     // append 等同于 insert 在末尾
     return insert(tag, -1, values);
 }
 
-i32 NbtPath::prepend(nbt::tags::compound_tag& tag,
-                      const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
+i32 NbtPath::prepend(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     // prepend 等同于 insert 在开头
     return insert(tag, 0, values);
@@ -254,9 +251,7 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     for (size_t i = 0; i < m_nodes.size(); ++i) {
         std::vector<nbt::tags::tag*> next;
         for (nbt::tags::tag* t : targets) {
-            auto nodeResults = m_nodes[i]->getOrCreate(t, []() {
-                return std::make_unique<nbt::tags::compound_tag>();
-            });
+            auto nodeResults = m_nodes[i]->getOrCreate(t, []() { return std::make_unique<nbt::tags::compound_tag>(); });
             next.insert(next.end(), nodeResults.begin(), nodeResults.end());
         }
         targets = std::move(next);
@@ -268,8 +263,8 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::Compound) {
-            throw CommandException(CommandErrorType::NbtPathInvalidType,
-                "Expected compound tag at path '" + m_rawText + "'", 0);
+            throw CommandException(
+                CommandErrorType::NbtPathInvalidType, "Expected compound tag at path '" + m_rawText + "'", 0);
         }
 
         auto* compound = dynamic_cast<nbt::tags::compound_tag*>(target);
@@ -329,8 +324,7 @@ std::vector<const nbt::tags::tag*> NbtPathStringNode::get(const nbt::tags::tag* 
     return result;
 }
 
-i32 NbtPathStringNode::set(nbt::tags::tag* tag,
-                            std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathStringNode::set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (tag == nullptr || tag->id() != nbt::TagId::Compound) {
         return 0;
@@ -365,8 +359,7 @@ i32 NbtPathStringNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathStringNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     std::vector<nbt::tags::tag*> result;
     if (tag == nullptr || tag->id() != nbt::TagId::Compound) {
@@ -436,8 +429,7 @@ std::vector<const nbt::tags::tag*> NbtPathIndexNode::get(const nbt::tags::tag* t
     return result;
 }
 
-i32 NbtPathIndexNode::set(nbt::tags::tag* tag,
-                           std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathIndexNode::set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (tag == nullptr || tag->id() != nbt::TagId::List || valueSupplier == nullptr) {
         return 0;
@@ -484,8 +476,7 @@ i32 NbtPathIndexNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathIndexNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     // 索引节点不支持创建
     MC_UNUSED(creator);
@@ -532,8 +523,8 @@ std::vector<const nbt::tags::tag*> NbtPathAllElementsNode::get(const nbt::tags::
     return result;
 }
 
-i32 NbtPathAllElementsNode::set(nbt::tags::tag* tag,
-                                 std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathAllElementsNode::set(
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     // 空列表节点不支持设置（需要知道具体索引）
     MC_UNUSED(tag);
@@ -558,8 +549,7 @@ i32 NbtPathAllElementsNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathAllElementsNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     MC_UNUSED(creator);
     return get(tag);
@@ -569,13 +559,13 @@ std::vector<nbt::tags::tag*> NbtPathAllElementsNode::getOrCreate(
 
 NbtPathCompoundFilterNode::NbtPathCompoundFilterNode(std::unique_ptr<nbt::tags::compound_tag> filter)
     : m_filter(std::move(filter))
-{
-}
+{}
 
 std::unique_ptr<NbtPathNode> NbtPathCompoundFilterNode::clone() const
 {
-    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
-        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    auto filterCopy = m_filter
+        ? std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release()))
+        : nullptr;
     return std::make_unique<NbtPathCompoundFilterNode>(std::move(filterCopy));
 }
 
@@ -638,8 +628,8 @@ std::vector<const nbt::tags::tag*> NbtPathCompoundFilterNode::get(const nbt::tag
     return result;
 }
 
-i32 NbtPathCompoundFilterNode::set(nbt::tags::tag* tag,
-                                    std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathCompoundFilterNode::set(
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     // 过滤器节点不支持设置
     MC_UNUSED(tag);
@@ -655,8 +645,7 @@ i32 NbtPathCompoundFilterNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathCompoundFilterNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     MC_UNUSED(creator);
     return get(tag);
@@ -676,13 +665,13 @@ std::string NbtPathCompoundFilterNode::toString() const
 
 NbtPathListFilterNode::NbtPathListFilterNode(std::unique_ptr<nbt::tags::compound_tag> filter)
     : m_filter(std::move(filter))
-{
-}
+{}
 
 std::unique_ptr<NbtPathNode> NbtPathListFilterNode::clone() const
 {
-    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
-        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    auto filterCopy = m_filter
+        ? std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release()))
+        : nullptr;
     return std::make_unique<NbtPathListFilterNode>(std::move(filterCopy));
 }
 
@@ -755,8 +744,8 @@ std::vector<const nbt::tags::tag*> NbtPathListFilterNode::get(const nbt::tags::t
     return result;
 }
 
-i32 NbtPathListFilterNode::set(nbt::tags::tag* tag,
-                                std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathListFilterNode::set(
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (tag == nullptr || tag->id() != nbt::TagId::List || valueSupplier == nullptr) {
         return 0;
@@ -797,7 +786,7 @@ i32 NbtPathListFilterNode::remove(nbt::tags::tag* tag) const
     }
 
     i32 count = 0;
-    for (auto it = list->value.begin(); it != list->value.end(); ) {
+    for (auto it = list->value.begin(); it != list->value.end();) {
         if (*it && (*it)->id() == nbt::TagId::Compound) {
             auto* compound = dynamic_cast<nbt::tags::compound_tag*>(it->get());
             if (compound && matches(*compound)) {
@@ -813,8 +802,7 @@ i32 NbtPathListFilterNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathListFilterNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     MC_UNUSED(creator);
     return get(tag);
@@ -835,13 +823,13 @@ std::string NbtPathListFilterNode::toString() const
 NbtPathKeyFilterNode::NbtPathKeyFilterNode(std::string name, std::unique_ptr<nbt::tags::compound_tag> filter)
     : m_name(std::move(name))
     , m_filter(std::move(filter))
-{
-}
+{}
 
 std::unique_ptr<NbtPathNode> NbtPathKeyFilterNode::clone() const
 {
-    auto filterCopy = m_filter ? std::unique_ptr<nbt::tags::compound_tag>(
-        dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release())) : nullptr;
+    auto filterCopy = m_filter
+        ? std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(m_filter->copy().release()))
+        : nullptr;
     return std::make_unique<NbtPathKeyFilterNode>(m_name, std::move(filterCopy));
 }
 
@@ -868,8 +856,7 @@ std::vector<nbt::tags::tag*> NbtPathKeyFilterNode::get(nbt::tags::tag* tag) cons
         if (childCompound != nullptr) {
             for (const auto& [key, value] : m_filter->value) {
                 auto childIt = childCompound->value.find(key);
-                if (childIt == childCompound->value.end() ||
-                    childIt->second->id() != value->id()) {
+                if (childIt == childCompound->value.end() || childIt->second->id() != value->id()) {
                     return result;
                 }
             }
@@ -903,8 +890,7 @@ std::vector<const nbt::tags::tag*> NbtPathKeyFilterNode::get(const nbt::tags::ta
         if (childCompound != nullptr) {
             for (const auto& [key, value] : m_filter->value) {
                 auto childIt = childCompound->value.find(key);
-                if (childIt == childCompound->value.end() ||
-                    childIt->second->id() != value->id()) {
+                if (childIt == childCompound->value.end() || childIt->second->id() != value->id()) {
                     return result;
                 }
             }
@@ -915,8 +901,7 @@ std::vector<const nbt::tags::tag*> NbtPathKeyFilterNode::get(const nbt::tags::ta
     return result;
 }
 
-i32 NbtPathKeyFilterNode::set(nbt::tags::tag* tag,
-                               std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+i32 NbtPathKeyFilterNode::set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (tag == nullptr || tag->id() != nbt::TagId::Compound || valueSupplier == nullptr) {
         return 0;
@@ -938,8 +923,7 @@ i32 NbtPathKeyFilterNode::set(nbt::tags::tag* tag,
         if (childCompound != nullptr) {
             for (const auto& [key, value] : m_filter->value) {
                 auto childIt = childCompound->value.find(key);
-                if (childIt == childCompound->value.end() ||
-                    childIt->second->id() != value->id()) {
+                if (childIt == childCompound->value.end() || childIt->second->id() != value->id()) {
                     return 0;
                 }
             }
@@ -963,8 +947,7 @@ i32 NbtPathKeyFilterNode::remove(nbt::tags::tag* tag) const
 }
 
 std::vector<nbt::tags::tag*> NbtPathKeyFilterNode::getOrCreate(
-    nbt::tags::tag* tag,
-    std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
+    nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const
 {
     MC_UNUSED(creator);
     return get(tag);

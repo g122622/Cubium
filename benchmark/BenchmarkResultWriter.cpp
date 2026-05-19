@@ -1,30 +1,30 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "BenchmarkResultWriter.hpp"
 
-#include <fmt/format.h>
 #include <fstream>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 namespace mc::benchmark {
@@ -78,18 +78,21 @@ Result<void> writeBenchmarkResults(const std::filesystem::path& outputPath, cons
 
     std::ofstream output(outputPath);
     if (!output.is_open()) {
-        return Error(ErrorCode::FileOpenFailed, std::string("failed to open benchmark result file: ") + outputPath.string());
+        return Error(
+            ErrorCode::FileOpenFailed, std::string("failed to open benchmark result file: ") + outputPath.string());
     }
 
     output << root.dump(2);
     return Result<void>::ok();
 }
 
-Result<void> writeBenchmarkResultCsv(const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results)
+Result<void> writeBenchmarkResultCsv(
+    const std::filesystem::path& outputPath, const std::vector<BenchmarkResult>& results)
 {
     std::ofstream output(outputPath);
     if (!output.is_open()) {
-        return Error(ErrorCode::FileOpenFailed, std::string("failed to open benchmark csv file: ") + outputPath.string());
+        return Error(
+            ErrorCode::FileOpenFailed, std::string("failed to open benchmark csv file: ") + outputPath.string());
     }
 
     output << "caseName,status,errorMessage,threadCount,warmupIterations,measuredIterations,iteration,durationMs\n";
@@ -100,8 +103,7 @@ Result<void> writeBenchmarkResultCsv(const std::filesystem::path& outputPath, co
         const i32 measuredIterations = result.metrics.has_value() ? result.metrics->measuredIterations : 0;
 
         if (result.iterationDurationsMs.empty()) {
-            output << fmt::format(
-                "\"{}\",{},\"{}\",{},{},{},,\n",
+            output << fmt::format("\"{}\",{},\"{}\",{},{},{},,\n",
                 escapeCsvField(result.name),
                 static_cast<i32>(result.status),
                 escapeCsvField(result.errorMessage),
@@ -112,8 +114,7 @@ Result<void> writeBenchmarkResultCsv(const std::filesystem::path& outputPath, co
         }
 
         for (size_t iterationIndex = 0; iterationIndex < result.iterationDurationsMs.size(); ++iterationIndex) {
-            output << fmt::format(
-                "\"{}\",{},\"{}\",{},{},{},{},{}\n",
+            output << fmt::format("\"{}\",{},\"{}\",{},{},{},{},{}\n",
                 escapeCsvField(result.name),
                 static_cast<i32>(result.status),
                 escapeCsvField(result.errorMessage),

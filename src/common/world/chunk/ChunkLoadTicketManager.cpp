@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ChunkLoadTicketManager.hpp"
 #include "ChunkLoadTicket.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
-#include <optional>
 #include <mutex>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 namespace {
@@ -292,7 +292,12 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 
 void ChunkLoadTicketManager::processUpdates()
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkLoadTicketManager::processUpdates", "dirtyChunkCount", m_dirtyChunks.size(), "playerCount", m_playerStates.size());
+    MC_TRACE_EVENT("server.chunk",
+        "ChunkLoadTicketManager::processUpdates",
+        "dirtyChunkCount",
+        m_dirtyChunks.size(),
+        "playerCount",
+        m_playerStates.size());
 
     for (u64 key : m_dirtyChunks) {
         ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
@@ -358,7 +363,8 @@ std::unordered_set<u64> ChunkLoadTicketManager::buildTrackedChunkSet(ChunkCoord 
     return chunks;
 }
 
-void ChunkLoadTicketManager::applyTrackingDelta(PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks)
+void ChunkLoadTicketManager::applyTrackingDelta(
+    PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks)
 {
     std::vector<TrackingChangeEvent> trackingEvents;
     {

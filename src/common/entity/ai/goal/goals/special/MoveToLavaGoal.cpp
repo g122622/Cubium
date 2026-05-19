@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "MoveToLavaGoal.hpp"
 #include "../../../../../core/Constants.hpp"
@@ -45,8 +45,7 @@ namespace mc::entity::ai::goal {
 
 MoveToBlockGoal::MoveToBlockGoal(CreatureEntity* creature, f64 speed, i32 searchLength)
     : MoveToBlockGoal(creature, speed, searchLength, 1)
-{
-}
+{}
 
 MoveToBlockGoal::MoveToBlockGoal(CreatureEntity* creature, f64 speed, i32 searchLength, i32 verticalSearchRange)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Jump})
@@ -85,9 +84,8 @@ bool MoveToBlockGoal::shouldContinueExecuting()
 
     // MC 1.16.5: 检查超时计数器和目标有效性
     // timeoutCounter >= -maxStayTicks && timeoutCounter <= 1200 && shouldMoveTo(...)
-    return m_timeoutCounter >= -m_maxStayTicks
-        && m_timeoutCounter <= 1200
-        && shouldMoveTo(m_creature->world(), m_destinationBlock);
+    return m_timeoutCounter >= -m_maxStayTicks && m_timeoutCounter <= 1200 &&
+        shouldMoveTo(m_creature->world(), m_destinationBlock);
 }
 
 void MoveToBlockGoal::startExecuting()
@@ -178,12 +176,10 @@ void MoveToBlockGoal::moveToTarget()
     }
 
     BlockPos targetPos = getTargetPosition();
-    m_creature->tryMoveTo(
-        static_cast<f64>(targetPos.x) + 0.5,
+    m_creature->tryMoveTo(static_cast<f64>(targetPos.x) + 0.5,
         static_cast<f64>(targetPos.y),
         static_cast<f64>(targetPos.z) + 0.5,
-        m_movementSpeed
-    );
+        m_movementSpeed);
 }
 
 bool MoveToBlockGoal::isWithinDistance(const BlockPos& pos, f64 distSq) const
@@ -209,11 +205,9 @@ bool MoveToBlockGoal::searchForDestination()
     i32 yRange = m_verticalSearchRange;
 
     // 使用实体位置作为搜索中心
-    BlockPos centerPos(
-        static_cast<i32>(std::floor(m_creature->x())),
+    BlockPos centerPos(static_cast<i32>(std::floor(m_creature->x())),
         static_cast<i32>(std::floor(m_creature->y())),
-        static_cast<i32>(std::floor(m_creature->z()))
-    );
+        static_cast<i32>(std::floor(m_creature->z())));
 
     // 获取 MobEntity 以检查家范围（CreatureEntity 继承自 MobEntity）
     MobEntity* mob = dynamic_cast<MobEntity*>(m_creature);
@@ -224,9 +218,7 @@ bool MoveToBlockGoal::searchForDestination()
         // 水平螺旋搜索
         for (i32 layer = 0; layer < range; ++layer) {
             for (i32 dx = 0; dx <= layer; dx = (dx > 0 ? -dx : 1 - dx)) {
-                for (i32 dz = (dx < layer && dx > -layer ? layer : 0);
-                     dz <= layer;
-                     dz = (dz > 0 ? -dz : 1 - dz)) {
+                for (i32 dz = (dx < layer && dx > -layer ? layer : 0); dz <= layer; dz = (dz > 0 ? -dz : 1 - dz)) {
 
                     BlockPos checkPos(centerPos.x + dx, centerPos.y + y - 1, centerPos.z + dz);
 
@@ -263,8 +255,7 @@ bool MoveToBlockGoal::searchForDestination()
 
 MoveToLavaGoal::MoveToLavaGoal(CreatureEntity* creature, f64 speed)
     : MoveToBlockGoal(creature, speed, 8, 2) // MC 1.16.5: searchLength=8, verticalSearchRange=2
-{
-}
+{}
 
 BlockPos MoveToLavaGoal::getTargetPosition() const
 {

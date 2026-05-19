@@ -1,41 +1,41 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "VexGoals.hpp"
 
-#include "../../../../entities/monster/illager/VexEntity.hpp"
+#include "../../../../../sound/SoundEvents.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/block/BlockState.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../sound/SoundEvents.hpp"
-#include "../../../../../world/block/Block.hpp"
+#include "../../../../entities/monster/illager/VexEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../controller/MovementController.hpp"
-#include "../../GoalFlag.hpp"
 #include "../../GoalConstants.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/AxisAlignedBB.hpp"
+#include "../../GoalFlag.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -90,9 +90,8 @@ bool VexChargeAttackGoal::shouldContinueExecuting()
     // 1. 移动控制器正在更新
     // 2. 正在充电
     // 3. 有攻击目标且存活
-    return moveController && moveController->isUpdating()
-        && m_vex->isCharging()
-        && attackTarget && attackTarget->isAlive();
+    return moveController && moveController->isUpdating() && m_vex->isCharging() && attackTarget &&
+        attackTarget->isAlive();
 }
 
 void VexChargeAttackGoal::startExecuting()
@@ -103,8 +102,7 @@ void VexChargeAttackGoal::startExecuting()
     if (!attackTarget) return;
 
     // MC 1.16.5: 获取目标的眼睛位置
-    Vector3 targetEyePos(
-        static_cast<f64>(attackTarget->x()),
+    Vector3 targetEyePos(static_cast<f64>(attackTarget->x()),
         static_cast<f64>(attackTarget->y() + attackTarget->eyeHeight()),
         static_cast<f64>(attackTarget->z()));
 
@@ -162,8 +160,7 @@ void VexChargeAttackGoal::tick()
         m_vex->setCharging(false);
     } else if (distSq < STOP_CHASE_DISTANCE_SQ) {
         // MC 1.16.5: 如果距离 < 3格，继续追击目标的眼睛位置
-        Vector3 targetEyePos(
-            static_cast<f64>(attackTarget->x()),
+        Vector3 targetEyePos(static_cast<f64>(attackTarget->x()),
             static_cast<f64>(attackTarget->y() + attackTarget->eyeHeight()),
             static_cast<f64>(attackTarget->z()));
         auto* moveController = m_vex->moveController();
@@ -246,8 +243,7 @@ void VexMoveRandomGoal::tick()
                 // 找到空气位置，移动到那里
                 auto* moveController = m_vex->moveController();
                 if (moveController) {
-                    moveController->setMoveTo(
-                        static_cast<f64>(targetPos.x) + 0.5,
+                    moveController->setMoveTo(static_cast<f64>(targetPos.x) + 0.5,
                         static_cast<f64>(targetPos.y) + 0.5,
                         static_cast<f64>(targetPos.z) + 0.5,
                         WANDER_SPEED);
@@ -257,11 +253,11 @@ void VexMoveRandomGoal::tick()
                 if (m_vex->attackTarget() == nullptr) {
                     auto* lookController = m_vex->lookController();
                     if (lookController) {
-                        lookController->setLookPosition(
-                            static_cast<f64>(targetPos.x) + 0.5,
+                        lookController->setLookPosition(static_cast<f64>(targetPos.x) + 0.5,
                             static_cast<f64>(targetPos.y) + 0.5,
                             static_cast<f64>(targetPos.z) + 0.5,
-                            180.0f, 20.0f);
+                            180.0f,
+                            20.0f);
                     }
                 }
                 break;
@@ -273,10 +269,9 @@ void VexMoveRandomGoal::tick()
 // ==================== VexCopyOwnerTargetGoal ====================
 
 VexCopyOwnerTargetGoal::VexCopyOwnerTargetGoal(VexEntity* vex)
-    : TargetGoal(vex, false)  // MC 1.16.5: checkSight = false，在shouldExecute中手动检查
+    : TargetGoal(vex, false) // MC 1.16.5: checkSight = false，在shouldExecute中手动检查
     , m_vex(vex)
-{
-}
+{}
 
 bool VexCopyOwnerTargetGoal::shouldExecute()
 {

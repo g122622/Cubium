@@ -1,42 +1,41 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include <gtest/gtest.h>
 #include "advancement/trigger/conditions/EntityPredicate.hpp"
-#include "advancement/trigger/conditions/EntityFlagsPredicate.hpp"
-#include "advancement/trigger/conditions/EntityEquipmentPredicate.hpp"
-#include "advancement/trigger/conditions/NBTPredicate.hpp"
-#include "advancement/trigger/conditions/LocationPredicate.hpp"
 #include "advancement/MinMaxBounds.hpp"
+#include "advancement/trigger/conditions/EntityEquipmentPredicate.hpp"
+#include "advancement/trigger/conditions/EntityFlagsPredicate.hpp"
+#include "advancement/trigger/conditions/LocationPredicate.hpp"
+#include "advancement/trigger/conditions/NBTPredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
 using namespace mc::advancement;
 
 // ========== EntityFlagsPredicate 测试 ==========
 
-class EntityFlagsPredicateTest : public ::testing::Test
-{
+class EntityFlagsPredicateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
@@ -66,13 +65,11 @@ TEST_F(EntityFlagsPredicateTest, OnFireFlag)
 
 TEST_F(EntityFlagsPredicateTest, MultipleFlags)
 {
-    nlohmann::json json = {
-        {"is_on_fire", false},
+    nlohmann::json json = {{"is_on_fire", false},
         {"is_sneaking", true},
         {"is_sprinting", false},
         {"is_swimming", true},
-        {"is_baby", true}
-    };
+        {"is_baby", true}};
 
     auto result = EntityFlagsPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -96,10 +93,7 @@ TEST_F(EntityFlagsPredicateTest, MultipleFlags)
 
 TEST_F(EntityFlagsPredicateTest, ToJsonRoundTrip)
 {
-    nlohmann::json json = {
-        {"is_on_fire", true},
-        {"is_baby", false}
-    };
+    nlohmann::json json = {{"is_on_fire", true}, {"is_baby", false}};
 
     auto result = EntityFlagsPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -116,8 +110,7 @@ TEST_F(EntityFlagsPredicateTest, ToJsonRoundTrip)
 
 // ========== EntityEquipmentPredicate 测试 ==========
 
-class EntityEquipmentPredicateTest : public ::testing::Test
-{
+class EntityEquipmentPredicateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
@@ -145,9 +138,7 @@ TEST_F(EntityEquipmentPredicateTest, EmptyObjectReturnsAny)
 
 TEST_F(EntityEquipmentPredicateTest, WithHeadEquipment)
 {
-    nlohmann::json json = {
-        {"head", {{"item", "minecraft:diamond_helmet"}}}
-    };
+    nlohmann::json json = {{"head", {{"item", "minecraft:diamond_helmet"}}}};
 
     auto result = EntityEquipmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -160,14 +151,12 @@ TEST_F(EntityEquipmentPredicateTest, WithHeadEquipment)
 
 TEST_F(EntityEquipmentPredicateTest, WithAllEquipment)
 {
-    nlohmann::json json = {
-        {"head", {{"item", "minecraft:diamond_helmet"}}},
+    nlohmann::json json = {{"head", {{"item", "minecraft:diamond_helmet"}}},
         {"chest", {{"item", "minecraft:diamond_chestplate"}}},
         {"legs", {{"item", "minecraft:diamond_leggings"}}},
         {"feet", {{"item", "minecraft:diamond_boots"}}},
         {"mainhand", {{"item", "minecraft:diamond_sword"}}},
-        {"offhand", {{"item", "minecraft:shield"}}}
-    };
+        {"offhand", {{"item", "minecraft:shield"}}}};
 
     auto result = EntityEquipmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -183,8 +172,7 @@ TEST_F(EntityEquipmentPredicateTest, WithAllEquipment)
 
 // ========== NBTPredicate 测试 ==========
 
-class NBTPredicateTest : public ::testing::Test
-{
+class NBTPredicateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
@@ -213,8 +201,7 @@ TEST_F(NBTPredicateTest, StringJsonReturnsAny)
 
 // ========== DistancePredicate 测试 ==========
 
-class DistancePredicateTest : public ::testing::Test
-{
+class DistancePredicateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
@@ -265,9 +252,9 @@ TEST_F(DistancePredicateTest, AtLeast)
     auto predicate = DistancePredicate::atLeast(10.0);
     EXPECT_FALSE(predicate.isAny());
 
-    EXPECT_FALSE(predicate.test(0, 0, 0, 9, 0, 0));   // 距离 9
-    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0));  // 距离 10
-    EXPECT_TRUE(predicate.test(0, 0, 0, 15, 0, 0));  // 距离 15
+    EXPECT_FALSE(predicate.test(0, 0, 0, 9, 0, 0)); // 距离 9
+    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0)); // 距离 10
+    EXPECT_TRUE(predicate.test(0, 0, 0, 15, 0, 0)); // 距离 15
 }
 
 TEST_F(DistancePredicateTest, AtMost)
@@ -275,9 +262,9 @@ TEST_F(DistancePredicateTest, AtMost)
     auto predicate = DistancePredicate::atMost(10.0);
     EXPECT_FALSE(predicate.isAny());
 
-    EXPECT_TRUE(predicate.test(0, 0, 0, 9, 0, 0));    // 距离 9
-    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0));   // 距离 10
-    EXPECT_FALSE(predicate.test(0, 0, 0, 11, 0, 0));  // 距离 11
+    EXPECT_TRUE(predicate.test(0, 0, 0, 9, 0, 0));   // 距离 9
+    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0));  // 距离 10
+    EXPECT_FALSE(predicate.test(0, 0, 0, 11, 0, 0)); // 距离 11
 }
 
 TEST_F(DistancePredicateTest, Between)
@@ -285,11 +272,11 @@ TEST_F(DistancePredicateTest, Between)
     auto predicate = DistancePredicate::between(5.0, 10.0);
     EXPECT_FALSE(predicate.isAny());
 
-    EXPECT_FALSE(predicate.test(0, 0, 0, 4, 0, 0));   // 距离 4
-    EXPECT_TRUE(predicate.test(0, 0, 0, 5, 0, 0));    // 距离 5
-    EXPECT_TRUE(predicate.test(0, 0, 0, 7.5, 0, 0));  // 距离 7.5
-    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0));   // 距离 10
-    EXPECT_FALSE(predicate.test(0, 0, 0, 11, 0, 0));  // 距离 11
+    EXPECT_FALSE(predicate.test(0, 0, 0, 4, 0, 0));  // 距离 4
+    EXPECT_TRUE(predicate.test(0, 0, 0, 5, 0, 0));   // 距离 5
+    EXPECT_TRUE(predicate.test(0, 0, 0, 7.5, 0, 0)); // 距离 7.5
+    EXPECT_TRUE(predicate.test(0, 0, 0, 10, 0, 0));  // 距离 10
+    EXPECT_FALSE(predicate.test(0, 0, 0, 11, 0, 0)); // 距离 11
 }
 
 TEST_F(DistancePredicateTest, ToJsonRoundTrip)
@@ -312,8 +299,7 @@ TEST_F(DistancePredicateTest, ToJsonRoundTrip)
 
 // ========== EntityPredicate 测试 ==========
 
-class EntityPredicateTest : public ::testing::Test
-{
+class EntityPredicateTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
@@ -344,10 +330,7 @@ TEST_F(EntityPredicateTest, TypeOnly)
 
 TEST_F(EntityPredicateTest, WithDistance)
 {
-    nlohmann::json json = {
-        {"type", "minecraft:zombie"},
-        {"distance", {{"min", 5.0}, {"max", 20.0}}}
-    };
+    nlohmann::json json = {{"type", "minecraft:zombie"}, {"distance", {{"min", 5.0}, {"max", 20.0}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -357,10 +340,7 @@ TEST_F(EntityPredicateTest, WithDistance)
 
 TEST_F(EntityPredicateTest, WithFlags)
 {
-    nlohmann::json json = {
-        {"type", "minecraft:zombie"},
-        {"flags", {{"is_on_fire", true}, {"is_baby", false}}}
-    };
+    nlohmann::json json = {{"type", "minecraft:zombie"}, {"flags", {{"is_on_fire", true}, {"is_baby", false}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -374,12 +354,7 @@ TEST_F(EntityPredicateTest, WithFlags)
 
 TEST_F(EntityPredicateTest, WithEquipment)
 {
-    nlohmann::json json = {
-        {"type", "minecraft:skeleton"},
-        {"equipment", {
-            {"mainhand", {{"item", "minecraft:bow"}}}
-        }}
-    };
+    nlohmann::json json = {{"type", "minecraft:skeleton"}, {"equipment", {{"mainhand", {{"item", "minecraft:bow"}}}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -391,11 +366,7 @@ TEST_F(EntityPredicateTest, WithEquipment)
 TEST_F(EntityPredicateTest, WithEffects)
 {
     nlohmann::json json = {
-        {"type", "minecraft:zombie"},
-        {"effects", {
-            {"minecraft:regeneration", {{"amplifier", {{"min", 0}}}}}
-        }}
-    };
+        {"type", "minecraft:zombie"}, {"effects", {{"minecraft:regeneration", {{"amplifier", {{"min", 0}}}}}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -405,14 +376,10 @@ TEST_F(EntityPredicateTest, WithEffects)
 
 TEST_F(EntityPredicateTest, ComplexPredicate)
 {
-    nlohmann::json json = {
-        {"type", "minecraft:zombie"},
+    nlohmann::json json = {{"type", "minecraft:zombie"},
         {"distance", {{"max", 30.0}}},
         {"flags", {{"is_baby", true}}},
-        {"equipment", {
-            {"head", {{"item", "minecraft:diamond_helmet"}}}
-        }}
-    };
+        {"equipment", {{"head", {{"item", "minecraft:diamond_helmet"}}}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -423,18 +390,16 @@ TEST_F(EntityPredicateTest, ComplexPredicate)
     EXPECT_FALSE(result.value().getDistance().isAny());
     EXPECT_FALSE(result.value().getFlags().isAny());
     EXPECT_FALSE(result.value().getEquipment().isAny());
-    EXPECT_TRUE(result.value().getEffects().isAny()); // 未指定
-    EXPECT_TRUE(result.value().getNbt().isAny());     // 未指定
+    EXPECT_TRUE(result.value().getEffects().isAny());  // 未指定
+    EXPECT_TRUE(result.value().getNbt().isAny());      // 未指定
     EXPECT_TRUE(result.value().getLocation().isAny()); // 未指定
 }
 
 TEST_F(EntityPredicateTest, ToJsonRoundTrip)
 {
-    nlohmann::json json = {
-        {"type", "minecraft:skeleton"},
+    nlohmann::json json = {{"type", "minecraft:skeleton"},
         {"distance", {{"min", 10.0}, {"max", 50.0}}},
-        {"flags", {{"is_on_fire", false}}}
-    };
+        {"flags", {{"is_on_fire", false}}}};
 
     auto result = EntityPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
@@ -445,8 +410,7 @@ TEST_F(EntityPredicateTest, ToJsonRoundTrip)
     auto result2 = EntityPredicate::fromJson(serialized);
     EXPECT_TRUE(result2.success());
 
-    EXPECT_EQ(result.value().getType().value().toString(),
-              result2.value().getType().value().toString());
+    EXPECT_EQ(result.value().getType().value().toString(), result2.value().getType().value().toString());
     EXPECT_FALSE(result2.value().getDistance().isAny());
     EXPECT_FALSE(result2.value().getFlags().isAny());
 }

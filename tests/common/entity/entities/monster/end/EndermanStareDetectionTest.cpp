@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file EndermanStareDetectionTest.cpp
@@ -35,13 +35,13 @@
  * - EndermanFindPlayerGoal 查找玩家目标选择器
  */
 
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
 #include "common/core/Types.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/ai/goal/goals/special/EndermanGoals.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 namespace mc {
@@ -51,15 +51,9 @@ namespace test {
 
 class PlayerLookVectorTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
 
-    void TearDown() override
-    {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
@@ -145,15 +139,9 @@ TEST_F(PlayerLookVectorTest, GetLookVector_Normalized)
 
 class PlayerEyePositionTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
 
-    void TearDown() override
-    {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
@@ -187,15 +175,9 @@ TEST_F(PlayerEyePositionTest, GetEyePosition_ChangesWithPosition)
 
 class PlayerPumpkinTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
 
-    void TearDown() override
-    {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
@@ -325,15 +307,9 @@ TEST_F(PlayerLookingAtTest, IsLookingAt_SlightlyOffCenter_MayBeLooking)
 
 class EndermanStareGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        enderman = std::make_unique<EndermanEntity>(EntityId(1));
-    }
+    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        enderman.reset();
-    }
+    void TearDown() override { enderman.reset(); }
 
     std::unique_ptr<EndermanEntity> enderman;
 };
@@ -366,15 +342,9 @@ TEST_F(EndermanStareGoalTest, ShouldExecute_WithoutTarget_ReturnsFalse)
 
 class EndermanFindPlayerGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        enderman = std::make_unique<EndermanEntity>(EntityId(1));
-    }
+    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        enderman.reset();
-    }
+    void TearDown() override { enderman.reset(); }
 
     std::unique_ptr<EndermanEntity> enderman;
 };
@@ -454,8 +424,7 @@ TEST_F(EndermanShouldAttackPlayerTest, ShouldAttackPlayer_LookingDirectly_MayRet
 
 // ==================== 常量验证测试 ====================
 
-class EndermanConstantsTest : public ::testing::Test {
-};
+class EndermanConstantsTest : public ::testing::Test {};
 
 TEST_F(EndermanConstantsTest, EndermanStareGoal_StareRangeIsCorrect)
 {
@@ -505,15 +474,9 @@ TEST_F(EndermanConstantsTest, EndermanEntity_AngerDurationIsCorrect)
 
 class LookVectorPrecisionTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
-    }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
 
-    void TearDown() override
-    {
-        player.reset();
-    }
+    void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
 };
@@ -526,8 +489,7 @@ TEST_F(LookVectorPrecisionTest, MultipleAngles_AllNormalized)
             player->setRotation(yaw, pitch);
             Vector3 lookVec = player->getLookVector();
             f32 length = lookVec.length();
-            EXPECT_NEAR(length, 1.0f, 0.0001f)
-                << "yaw=" << yaw << ", pitch=" << pitch;
+            EXPECT_NEAR(length, 1.0f, 0.0001f) << "yaw=" << yaw << ", pitch=" << pitch;
         }
     }
 }

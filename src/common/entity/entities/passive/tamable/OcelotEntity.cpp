@@ -1,55 +1,55 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED " IS ", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED " IS ", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "OcelotEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/controller/LookController.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/goal/GoalConstants.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/pathfinding/PathNavigator.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityPose.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityUtils.hpp"
-#include "../../../core/MobEntity.hpp"
 #include "../../../core/LivingEntity.hpp"
-#include "../../../core/EntityPose.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../entities/passive/basic/ChickenEntity.hpp"
 #include "../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 #include <unordered_set>
 
@@ -218,13 +218,14 @@ void OcelotEntity::registerGoals()
     // 优先级 3: 食物诱惑（生鱼）
     // MC 1.16.5: this.aiTempt = new OcelotEntity.TemptGoal(this, 0.6D, BREEDING_ITEMS, true);
     // 注意：scaredByMovement = true，玩家快速移动会吓跑豹猫
-    m_temptGoal = new entity::ai::goal::OcelotTemptGoal(this,
-                                                         TEMPT_SPEED,
-                                                         [](const ItemStack& stack) -> bool {
-                                                             const Item* item = stack.getItem();
-                                                             return item != nullptr && (item == Items::COD || item == Items::SALMON);
-                                                         },
-                                                         true); // scaredByMovement = true
+    m_temptGoal = new entity::ai::goal::OcelotTemptGoal(
+        this,
+        TEMPT_SPEED,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && (item == Items::COD || item == Items::SALMON);
+        },
+        true); // scaredByMovement = true
     m_goalSelector.addGoal(3, m_temptGoal);
 
     // 优先级 4: 躲避玩家（未信任时）- 在 setupTrustingAI() 中动态添加
@@ -242,7 +243,8 @@ void OcelotEntity::registerGoals()
 
     // 优先级 10: 避水随机漫步
     // MC 1.16.5: new WaterAvoidingRandomWalkingGoal(this, 0.8D, 1.0000001E-5F)
-    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8, 1.0000001E-5f));
+    m_goalSelector.addGoal(
+        10, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8, 1.0000001E-5f));
 
     // 优先级 11: 看向玩家
     m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
@@ -250,11 +252,14 @@ void OcelotEntity::registerGoals()
     // 目标选择器：攻击小鸡和小海龟
     // MC 1.16.5:
     // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, ChickenEntity.class, false));
-    // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, TurtleEntity.class, 10, false, false, TurtleEntity.TARGET_DRY_BABY));
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ChickenEntity>>(this, false, 0));
+    // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, TurtleEntity.class, 10, false, false,
+    // TurtleEntity.TARGET_DRY_BABY));
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ChickenEntity>>(this, false, 0));
     // 注意：TurtleEntity.TARGET_DRY_BABY 是一个谓词，用于筛选干燥的小海龟
     // 当前简化实现：攻击所有海龟
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this, false, 10));
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this, false, 10));
 }
 
 void OcelotEntity::registerAttributes()
@@ -283,8 +288,8 @@ void OcelotEntity::setupTrustingAI()
 
     if (m_avoidPlayerGoal == nullptr) {
         // 创建躲避玩家目标
-        m_avoidPlayerGoal = new entity::ai::goal::OcelotAvoidPlayerGoal(
-            this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
+        m_avoidPlayerGoal =
+            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
     }
 
     // 先移除已有的 AvoidPlayerGoal
@@ -314,24 +319,24 @@ namespace entity::ai::goal {
 
 OcelotAvoidPlayerGoal::OcelotAvoidPlayerGoal(OcelotEntity* ocelot, f32 avoidDistance, f64 farSpeed, f64 nearSpeed)
     : AvoidEntityGoal(ocelot,
-                      avoidDistance,
-                      farSpeed,
-                      nearSpeed,
-                      // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
-                      // 只避开可以作为 AI 目标的玩家
-                      [](const LivingEntity* entity) -> bool {
-                          if (entity == nullptr) {
-                              return false;
-                          }
-                          // 检查是否是玩家
-                          const Player* player = dynamic_cast<const Player*>(entity);
-                          if (player == nullptr) {
-                              return false;
-                          }
-                          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
-                          // !isSpectator() && isAlive()
-                          return !player->isSpectator() && player->isAlive();
-                      })
+          avoidDistance,
+          farSpeed,
+          nearSpeed,
+          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
+          // 只避开可以作为 AI 目标的玩家
+          [](const LivingEntity* entity) -> bool {
+              if (entity == nullptr) {
+                  return false;
+              }
+              // 检查是否是玩家
+              const Player* player = dynamic_cast<const Player*>(entity);
+              if (player == nullptr) {
+                  return false;
+              }
+              // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
+              // !isSpectator() && isAlive()
+              return !player->isSpectator() && player->isAlive();
+          })
     , m_ocelot(ocelot)
 {
     // MC 1.16.5: OcelotEntity.AvoidEntityGoal 继承自 AvoidEntityGoal

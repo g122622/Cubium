@@ -1,34 +1,34 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
 #include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
 #include "../../../../../resource/ResourceLocation.hpp"
-#include "../../Goal.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/LivingEntity.hpp"
+#include "../../Goal.hpp"
 #include <functional>
 #include <optional>
 
@@ -76,8 +76,8 @@ public:
      * @param soundEvent 使用物品时播放的声音事件
      * @param condition 使用条件判断函数
      */
-    UseItemGoal(class MobEntity* mob, const ItemStack& stack,
-                const ResourceLocation& soundEvent, UseCondition condition);
+    UseItemGoal(
+        class MobEntity* mob, const ItemStack& stack, const ResourceLocation& soundEvent, UseCondition condition);
 
     /**
      * @brief 检查是否应该开始执行
@@ -122,9 +122,9 @@ private:
     ItemStack m_itemStack;
     ResourceLocation m_soundEvent;
     UseCondition m_condition;
-    i32 m_useDuration = 0;    // 使用时长计数
-    i32 m_cooldown = 0;       // 冷却时间
-    bool m_isUsing = false;   // 是否正在使用
+    i32 m_useDuration = 0;  // 使用时长计数
+    i32 m_cooldown = 0;     // 冷却时间
+    bool m_isUsing = false; // 是否正在使用
 
     static constexpr i32 ITEM_USE_DURATION = 32; // 物品使用时长（ticks）
     static constexpr i32 COOLDOWN_TICKS = 60;    // 冷却时间（ticks）

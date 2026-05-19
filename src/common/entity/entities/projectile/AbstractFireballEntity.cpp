@@ -1,23 +1,23 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the above copyright notice
-* and this permission notice shall be included in all copies or substantial portions
-* of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the above copyright notice
+ * and this permission notice shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "AbstractFireballEntity.hpp"
 
@@ -64,7 +64,8 @@ void FireballEntity::onEntityHit(const RayTraceResult& result)
     Entity* shooter = getShooter();
 
     // MC 1.16.5: 创建火球伤害来源
-    // DamageSource.func_233547_a_(this, shooter) -> IndirectEntityDamageSource("fireball", shooter, this).setFireDamage().setProjectile()
+    // DamageSource.func_233547_a_(this, shooter) -> IndirectEntityDamageSource("fireball", shooter,
+    // this).setFireDamage().setProjectile()
     auto damageSource = DamageSources::fireball(this, shooter, false);
 
     // MC 1.16.5: 对 LivingEntity 造成 6.0 点伤害
@@ -75,12 +76,12 @@ void FireballEntity::onEntityHit(const RayTraceResult& result)
 
     // MC 1.16.5: 触发爆炸（爆炸半径 = explosionPower，默认 1.0）
     if (worldPtr != nullptr) {
-        world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+        world::explosion::ExplosionMode mode =
+            worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
-        worldPtr->createExplosion(
-            result.hitPosition,
+        worldPtr->createExplosion(result.hitPosition,
             static_cast<f32>(m_explosionPower),
             mode,
             true, // 产生火焰
@@ -97,12 +98,12 @@ void FireballEntity::onBlockHit(const RayTraceResult& result)
 
     // MC 1.16.5: 方块命中时同样触发爆炸
     if (worldPtr != nullptr) {
-        world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+        world::explosion::ExplosionMode mode =
+            worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
-        worldPtr->createExplosion(
-            result.hitPosition,
+        worldPtr->createExplosion(result.hitPosition,
             static_cast<f32>(m_explosionPower),
             mode,
             true, // 产生火焰
@@ -254,16 +255,15 @@ void DragonFireballEntity::createDragonBreathCloud()
 
     // MC 1.16.5 龙息云参数
     cloud->setRadius(3.0f);
-    cloud->setDuration(600);      // 30秒
-    cloud->setRadiusPerTick((7.0f - 3.0f) / 600.0f);  // 逐渐扩展到7.0
-    cloud->setWaitTime(10);       // 0.5秒等待时间
-    cloud->setReapplicationDelay(20);  // 1秒重应用延迟
+    cloud->setDuration(600);                         // 30秒
+    cloud->setRadiusPerTick((7.0f - 3.0f) / 600.0f); // 逐渐扩展到7.0
+    cloud->setWaitTime(10);                          // 0.5秒等待时间
+    cloud->setReapplicationDelay(20);                // 1秒重应用延迟
 
     // 添加瞬间伤害 II 效果
     // EffectInstance(type, duration, amplifier, ambient, visible, showIcon)
     // 瞬间伤害效果持续时间可以是1 tick，因为它是瞬间生效的
-    entity::effect::EffectInstance instantDamage(
-        entity::effect::EffectType::InstantDamage,
+    entity::effect::EffectInstance instantDamage(entity::effect::EffectType::InstantDamage,
         1,     // 持续时间（瞬间效果只需要1 tick）
         1,     // amplifier = 1 表示等级 II
         false, // 不是环境效果
@@ -312,10 +312,9 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
     LivingEntity* livingShooter = shooter != nullptr ? dynamic_cast<LivingEntity*>(shooter) : nullptr;
 
     // MC 1.16.5: 凋灵之首造成伤害
-    // DamageSource.func_233549_a_(this, shooter) -> IndirectEntityDamageSource("witherSkull", shooter, this).setProjectile()
-    // 如果 shooter 是 LivingEntity，使用投射物伤害；否则使用魔法伤害
-    IndirectEntityDamageSource damageSource(
-        livingShooter != nullptr ? DamageType::MobProjectile : DamageType::Magic,
+    // DamageSource.func_233549_a_(this, shooter) -> IndirectEntityDamageSource("witherSkull", shooter,
+    // this).setProjectile() 如果 shooter 是 LivingEntity，使用投射物伤害；否则使用魔法伤害
+    IndirectEntityDamageSource damageSource(livingShooter != nullptr ? DamageType::MobProjectile : DamageType::Magic,
         shooter != nullptr ? shooter : this,
         this,
         false);
@@ -348,10 +347,10 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
                 Difficulty diff = worldPtr->difficulty();
                 switch (diff) {
                     case Difficulty::Normal:
-                        witherDuration = 200;  // 10 秒
+                        witherDuration = 200; // 10 秒
                         break;
                     case Difficulty::Hard:
-                        witherDuration = 800;  // 40 秒
+                        witherDuration = 800; // 40 秒
                         break;
                     case Difficulty::Easy:
                     case Difficulty::Peaceful:
@@ -362,10 +361,9 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
             }
 
             if (witherDuration > 0) {
-                entity::effect::EffectInstance witherEffect(
-                    entity::effect::EffectType::Wither,
+                entity::effect::EffectInstance witherEffect(entity::effect::EffectType::Wither,
                     witherDuration,
-                    1  // II级 = amplifier 1
+                    1 // II级 = amplifier 1
                 );
                 livingTarget->addEffect(std::move(witherEffect));
             }
@@ -382,7 +380,8 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
 
     // MC 1.16.5: 凋灵之首爆炸半径 1.0
     if (worldPtr != nullptr) {
-        world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+        world::explosion::ExplosionMode mode =
+            worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
@@ -390,8 +389,7 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
         // TODO: 蓝色凋灵之首有特殊的方块破坏规则，需要在爆炸系统中实现
         (void)m_blue;
 
-        worldPtr->createExplosion(
-            result.hitPosition,
+        worldPtr->createExplosion(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS, // 1.0f
             mode,
             false, // 不生成火焰
@@ -408,15 +406,15 @@ void WitherSkullEntity::onBlockHit(const RayTraceResult& result)
 
     // MC 1.16.5: 凋灵之首在方块上爆炸
     if (worldPtr != nullptr) {
-        world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+        world::explosion::ExplosionMode mode =
+            worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
         // 蓝色凋灵之首破坏更多方块类型
         (void)m_blue;
 
-        worldPtr->createExplosion(
-            result.hitPosition,
+        worldPtr->createExplosion(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS, // 1.0f
             mode,
             false, // 不生成火焰

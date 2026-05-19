@@ -1,47 +1,47 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "DolphinGoals.hpp"
-#include "../../../../../entity/entities/passive/water/DolphinEntity.hpp"
-#include "../../../../../entity/entities/player/Player.hpp"
-#include "../../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../../entity/core/LivingEntity.hpp"
 #include "../../../../../entity/core/MobEntity.hpp"
 #include "../../../../../entity/effect/EffectInstance.hpp"
 #include "../../../../../entity/effect/EffectType.hpp"
+#include "../../../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../../../entity/entities/passive/water/DolphinEntity.hpp"
+#include "../../../../../entity/entities/player/Player.hpp"
 #include "../../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
+#include "../../../../../network/packet/EntityPackets.hpp"
+#include "../../../../../util/Direction.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
 #include "../../../../../world/gen/structure/Structure.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
-#include "../../../../../network/packet/EntityPackets.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/Direction.hpp"
 #include <cmath>
 
 namespace mc {
@@ -75,9 +75,8 @@ bool DolphinJumpGoal::shouldExecute()
     i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
 
     Vector3 pos = m_dolphin->position();
-    BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
-                     static_cast<i32>(std::floor(pos.y)),
-                     static_cast<i32>(std::floor(pos.z)));
+    BlockPos blockPos(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 
     // MC 1.16.5: 检查所有跳跃距离
     for (i32 scale : JUMP_DISTANCES) {
@@ -146,10 +145,11 @@ void DolphinJumpGoal::tick()
         if (world != nullptr) {
             Vector3 pos = m_dolphin->position();
             BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
-                             static_cast<i32>(std::floor(pos.y)),
-                             static_cast<i32>(std::floor(pos.z)));
+                static_cast<i32>(std::floor(pos.y)),
+                static_cast<i32>(std::floor(pos.z)));
             const fluid::FluidState* fluidState = world->getFluidState(blockPos);
-            m_inWater = fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+            m_inWater = fluidState != nullptr && !fluidState->isEmpty() &&
+                fluidState->getFluid().isIn(fluid::FluidTags::WATER());
         }
     }
 
@@ -165,15 +165,10 @@ void DolphinJumpGoal::tick()
 
     if (vy * vy < 0.03 && m_dolphin->pitch() != 0.0f) {
         // 缓慢恢复俯仰角
-        m_dolphin->setRotationPitch(
-            math::lerp(m_dolphin->pitch(), 0.0f, 0.2f)
-        );
+        m_dolphin->setRotationPitch(math::lerp(m_dolphin->pitch(), 0.0f, 0.2f));
     } else {
         // 根据运动方向计算俯仰角
-        f64 pitch = std::copysign(
-            std::acos(horizontalSpeed / velocity.length()) * (180.0 / math::PI),
-            -vy
-        );
+        f64 pitch = std::copysign(std::acos(horizontalSpeed / velocity.length()) * (180.0 / math::PI), -vy);
         m_dolphin->setRotationPitch(static_cast<f32>(pitch));
     }
 }
@@ -326,11 +321,9 @@ void SwimToTreasureGoal::tick()
     // MC 1.16.5: 如果接近目标或路径结束，重新计算路径
     if (m_dolphin->closeToTarget() || !m_dolphin->hasPath()) {
         // 计算朝向宝藏的中心位置
-        Vector3 treasureCenter(
-            static_cast<f64>(treasurePos.x) + 0.5,
+        Vector3 treasureCenter(static_cast<f64>(treasurePos.x) + 0.5,
             static_cast<f64>(treasurePos.y) + 0.5,
-            static_cast<f64>(treasurePos.z) + 0.5
-        );
+            static_cast<f64>(treasurePos.z) + 0.5);
 
         // 使用 RandomPositionGenerator.findRandomTargetTowardsScaled 生成路径点
         // MC 1.16.5: RandomPositionGenerator.findRandomTargetTowardsScaled(this, 16, 1, treasureCenter, PI/8)
@@ -346,14 +339,13 @@ void SwimToTreasureGoal::tick()
 
         // 如果仍然失败，检查目标位置是否是水
         if (hasPath) {
-            BlockPos targetBlockPos(
-                static_cast<i32>(std::floor(targetPos.x)),
+            BlockPos targetBlockPos(static_cast<i32>(std::floor(targetPos.x)),
                 static_cast<i32>(std::floor(targetPos.y)),
-                static_cast<i32>(std::floor(targetPos.z))
-            );
+                static_cast<i32>(std::floor(targetPos.z)));
 
             const fluid::FluidState* fluidState = world->getFluidState(targetBlockPos);
-            if (fluidState == nullptr || fluidState->isEmpty() || !fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+            if (fluidState == nullptr || fluidState->isEmpty() ||
+                !fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
                 // 目标不是水，尝试其他位置
                 hasPath = entity::ai::util::RandomPositionGenerator::findRandomTargetBlock(
                     m_dolphin, 8, 5, std::nullopt, targetPos);
@@ -380,7 +372,8 @@ void SwimToTreasureGoal::tick()
     // MC 1.16.5: world.setEntityState(this.dolphin, (byte)38);
     math::Random rng = m_dolphin->getRandom();
     if (rng.nextInt(80) == 0) {
-        world->broadcastEntityStatus(m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
+        world->broadcastEntityStatus(
+            m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
     }
 }
 
@@ -399,17 +392,12 @@ std::optional<BlockPos> SwimToTreasureGoal::findStructure(i32 structureType) con
 
     // 获取海豚的方块位置
     Vector3 pos = m_dolphin->position();
-    BlockPos dolphinPos(static_cast<i32>(std::floor(pos.x)),
-                       static_cast<i32>(std::floor(pos.y)),
-                       static_cast<i32>(std::floor(pos.z)));
+    BlockPos dolphinPos(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 
     // 使用世界 API 查找最近的结构
     // 搜索范围为 50 格（MC 1.16.5: 第 560 行）
-    return world->findNearestStructure(
-        dolphinPos,
-        type,
-        m_searchRadius,
-        false);
+    return world->findNearestStructure(dolphinPos, type, m_searchRadius, false);
 }
 
 // ============================================================================
@@ -448,14 +436,13 @@ void SwimWithPlayerGoal::startExecuting()
 {
     if (m_targetPlayer != nullptr) {
         // 给玩家添加海豚的恩惠效果
-        m_targetPlayer->addEffect(entity::effect::EffectInstance(
-            entity::effect::EffectType::DolphinsGrace,
+        m_targetPlayer->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::DolphinsGrace,
             EFFECT_DURATION,
             0,     // amplifier = 0 (I级)
             false, // ambient
             true,  // visible
             true   // showIcon
-        ));
+            ));
     }
 }
 
@@ -472,11 +459,9 @@ void SwimWithPlayerGoal::tick()
     }
 
     // 看向玩家
-    m_dolphin->lookAt(
-        static_cast<f64>(m_targetPlayer->x()),
+    m_dolphin->lookAt(static_cast<f64>(m_targetPlayer->x()),
         static_cast<f64>(m_targetPlayer->y() + m_targetPlayer->eyeHeight()),
-        static_cast<f64>(m_targetPlayer->z())
-    );
+        static_cast<f64>(m_targetPlayer->z()));
 
     f32 distSq = m_dolphin->distanceSqTo(*m_targetPlayer);
 
@@ -494,13 +479,7 @@ void SwimWithPlayerGoal::tick()
         math::Random rng = m_dolphin->getRandom();
         if (rng.nextInt(EFFECT_INTERVAL) == 0) {
             m_targetPlayer->addEffect(entity::effect::EffectInstance(
-                entity::effect::EffectType::DolphinsGrace,
-                EFFECT_DURATION,
-                0,
-                false,
-                true,
-                true
-            ));
+                entity::effect::EffectType::DolphinsGrace, EFFECT_DURATION, 0, false, true, true));
         }
     }
 }
@@ -513,11 +492,7 @@ Player* SwimWithPlayerGoal::findSwimmingPlayer() const
     }
 
     // 获取附近所有实体
-    std::vector<Entity*> entities = world->getEntitiesInRange(
-        m_dolphin->position(),
-        SEARCH_RADIUS,
-        m_dolphin
-    );
+    std::vector<Entity*> entities = world->getEntitiesInRange(m_dolphin->position(), SEARCH_RADIUS, m_dolphin);
 
     Player* closestPlayer = nullptr;
     f64 closestDist = SEARCH_RADIUS * SEARCH_RADIUS;
@@ -703,13 +678,7 @@ void PlayWithItemsGoal::throwItem(ItemStack& stack)
 
     // 生成物品实体
     ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(
-        world,
-        stack,
-        m_dolphin->x(), y, m_dolphin->z(),
-        vx, vy, vz,
-        PICKUP_DELAY,
-        m_dolphin->uuid()
-    );
+        world, stack, m_dolphin->x(), y, m_dolphin->z(), vx, vy, vz, PICKUP_DELAY, m_dolphin->uuid());
 
     MC_UNUSED(itemEntity);
 }
@@ -722,11 +691,7 @@ ItemEntity* PlayWithItemsGoal::findNearbyItem() const
     }
 
     // 获取附近所有实体
-    std::vector<Entity*> entities = world->getEntitiesInRange(
-        m_dolphin->position(),
-        SEARCH_RADIUS,
-        m_dolphin
-    );
+    std::vector<Entity*> entities = world->getEntitiesInRange(m_dolphin->position(), SEARCH_RADIUS, m_dolphin);
 
     ItemEntity* closestItem = nullptr;
     f64 closestDist = SEARCH_RADIUS * SEARCH_RADIUS;
@@ -833,9 +798,8 @@ void FollowBoatGoal::tick()
 
     // 根据状态设置移动速度
     // GoInBoatDirection 状态下，玩家不操作时不移动
-    f32 speed = (m_state == BoatFollowState::GoInBoatDirection)
-        ? (isOperating ? GO_IN_DIRECTION_SPEED : 0.0f)
-        : GO_TO_BOAT_SPEED;
+    f32 speed = (m_state == BoatFollowState::GoInBoatDirection) ? (isOperating ? GO_IN_DIRECTION_SPEED : 0.0f)
+                                                                : GO_TO_BOAT_SPEED;
 
     // 应用相对移动（模拟 MC 的 moveRelative 行为）
     // MC 1.16.5: this.swimmer.moveRelative(f, new Vector3d(...))
@@ -855,22 +819,18 @@ void FollowBoatGoal::tick()
             i32 dx = static_cast<i32>(-std::round(std::sin(yawRad)));
             i32 dz = static_cast<i32>(std::round(std::cos(yawRad)));
 
-            BlockPos playerPos(
-                static_cast<i32>(std::floor(m_player->x())),
+            BlockPos playerPos(static_cast<i32>(std::floor(m_player->x())),
                 static_cast<i32>(std::floor(m_player->y())),
-                static_cast<i32>(std::floor(m_player->z()))
-            );
+                static_cast<i32>(std::floor(m_player->z())));
 
             // 目标位置：船尾后方，下移一格
             BlockPos targetPos(playerPos.x + dx, playerPos.y - 1, playerPos.z + dz);
 
             // 尝试移动到该位置
-            m_dolphin->tryMoveTo(
-                static_cast<f64>(targetPos.x) + 0.5,
+            m_dolphin->tryMoveTo(static_cast<f64>(targetPos.x) + 0.5,
                 static_cast<f64>(targetPos.y),
                 static_cast<f64>(targetPos.z) + 0.5,
-                NAVIGATE_SPEED
-            );
+                NAVIGATE_SPEED);
 
             // 当距离小于4格时，切换到跟随状态
             f32 dist = m_dolphin->distanceTo(*m_player);
@@ -888,22 +848,18 @@ void FollowBoatGoal::tick()
             i32 dx = static_cast<i32>(std::round(std::sin(yawRad)));
             i32 dz = static_cast<i32>(-std::round(std::cos(yawRad)));
 
-            BlockPos playerPos(
-                static_cast<i32>(std::floor(m_player->x())),
+            BlockPos playerPos(static_cast<i32>(std::floor(m_player->x())),
                 static_cast<i32>(std::floor(m_player->y())),
-                static_cast<i32>(std::floor(m_player->z()))
-            );
+                static_cast<i32>(std::floor(m_player->z())));
 
             // 目标位置：船前方10格，下移一格
             BlockPos targetPos(playerPos.x + dx * 10, playerPos.y - 1, playerPos.z + dz * 10);
 
             // 尝试移动到该位置
-            m_dolphin->tryMoveTo(
-                static_cast<f64>(targetPos.x) + 0.5,
+            m_dolphin->tryMoveTo(static_cast<f64>(targetPos.x) + 0.5,
                 static_cast<f64>(targetPos.y),
                 static_cast<f64>(targetPos.z) + 0.5,
-                NAVIGATE_SPEED
-            );
+                NAVIGATE_SPEED);
 
             // 当距离超过12格时，切回游向船状态
             f32 dist = m_dolphin->distanceTo(*m_player);
@@ -915,11 +871,9 @@ void FollowBoatGoal::tick()
     }
 
     // 看向玩家
-    m_dolphin->lookAt(
-        static_cast<f64>(m_player->x()),
+    m_dolphin->lookAt(static_cast<f64>(m_player->x()),
         static_cast<f64>(m_player->y() + m_player->eyeHeight()),
-        static_cast<f64>(m_player->z())
-    );
+        static_cast<f64>(m_player->z()));
 }
 
 Player* FollowBoatGoal::findPlayerDrivingBoat()
@@ -930,11 +884,7 @@ Player* FollowBoatGoal::findPlayerDrivingBoat()
     }
 
     // MC 1.16.5: 获取5格范围内的所有实体
-    std::vector<Entity*> entities = world->getEntitiesInRange(
-        m_dolphin->position(),
-        SEARCH_RADIUS,
-        m_dolphin
-    );
+    std::vector<Entity*> entities = world->getEntitiesInRange(m_dolphin->position(), SEARCH_RADIUS, m_dolphin);
 
     for (Entity* entity : entities) {
         if (entity == nullptr) {

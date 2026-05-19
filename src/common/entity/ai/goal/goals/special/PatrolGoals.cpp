@@ -1,34 +1,34 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PatrolGoals.hpp"
-#include "../../../../entities/monster/illager/PatrollerEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../util/math/Vector3.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/monster/illager/PatrollerEntity.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -130,11 +130,9 @@ void PatrolGoal::tick()
             // 情况 3: 正常移动逻辑
             // MC 1.16.5: 计算移动目标位置
             // 使用巡逻目标中心点
-            Vector3 targetCenter(
-                static_cast<f32>(patrolTarget.x) + 0.5f,
+            Vector3 targetCenter(static_cast<f32>(patrolTarget.x) + 0.5f,
                 static_cast<f32>(patrolTarget.y) + 0.5f,
-                static_cast<f32>(patrolTarget.z) + 0.5f
-            );
+                static_cast<f32>(patrolTarget.z) + 0.5f);
 
             Vector3 currentPos = m_patroller->position();
 
@@ -143,21 +141,15 @@ void PatrolGoal::tick()
             // vector3d = vector3d.rotateYaw(90.0F).scale(0.4D).add(vector3d)
             // vector3d3 = vector3d.subtract(vector3d1).normalize().scale(10.0D).add(vector3d1)
             Vector3 toTarget = targetCenter - currentPos;
-            Vector3 rotated = Vector3(
-                -toTarget.z * 0.4f,  // 旋转 90 度
+            Vector3 rotated = Vector3(-toTarget.z * 0.4f, // 旋转 90 度
                 toTarget.y,
-                toTarget.x * 0.4f
-            );
+                toTarget.x * 0.4f);
             Vector3 offset = rotated + currentPos;
             Vector3 moveDirection = (offset - currentPos).normalized() * 10.0f;
             Vector3 moveTarget = currentPos + moveDirection;
 
             // 找到地面高度
-            BlockPos targetBlockPos(
-                floorTo<i32>(moveTarget.x),
-                floorTo<i32>(moveTarget.y),
-                floorTo<i32>(moveTarget.z)
-            );
+            BlockPos targetBlockPos(floorTo<i32>(moveTarget.x), floorTo<i32>(moveTarget.y), floorTo<i32>(moveTarget.z));
 
             // MC 1.16.5: world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, blockpos)
             // 使用世界高度查询获取地面位置（不含树叶）
@@ -168,12 +160,10 @@ void PatrolGoal::tick()
             f64 speed = isLeader ? m_leaderSpeed : m_memberSpeed;
 
             // 尝试移动
-            bool moveSuccess = nav->moveTo(
-                static_cast<f64>(groundPos.x) + 0.5,
+            bool moveSuccess = nav->moveTo(static_cast<f64>(groundPos.x) + 0.5,
                 static_cast<f64>(groundPos.y),
                 static_cast<f64>(groundPos.z) + 0.5,
-                speed
-            );
+                speed);
 
             if (!moveSuccess) {
                 // MC 1.16.5: 移动失败 -> 随机移动 + 设置冷却
@@ -199,9 +189,7 @@ std::vector<PatrollerEntity*> PatrolGoal::getNearbyPatrollers() const
     if (!world) return result;
 
     // MC 1.16.5: 获取碰撞箱扩展 16 格内的所有 PatrollerEntity
-    auto entities = world->getEntitiesInAABB(
-        m_patroller->boundingBox().grow(NEARBY_PATROLLER_RANGE)
-    );
+    auto entities = world->getEntitiesInAABB(m_patroller->boundingBox().grow(NEARBY_PATROLLER_RANGE));
 
     for (Entity* entity : entities) {
         // 检查是否是 PatrollerEntity
@@ -234,11 +222,9 @@ bool PatrolGoal::moveRandomly()
     i32 offsetX = -RANDOM_MOVE_RANGE + rng.nextInt(RANDOM_MOVE_RANGE * 2);
     i32 offsetZ = -RANDOM_MOVE_RANGE + rng.nextInt(RANDOM_MOVE_RANGE * 2);
 
-    BlockPos targetPos(
-        floorTo<i32>(currentPos.x) + offsetX,
-        0,  // Y 稍后获取
-        floorTo<i32>(currentPos.z) + offsetZ
-    );
+    BlockPos targetPos(floorTo<i32>(currentPos.x) + offsetX,
+        0, // Y 稍后获取
+        floorTo<i32>(currentPos.z) + offsetZ);
 
     // 获取地面高度
     i32 groundY = world->getHeight(targetPos.x, targetPos.z);
@@ -246,12 +232,10 @@ bool PatrolGoal::moveRandomly()
     PathNavigator* nav = m_patroller->navigator();
     if (!nav) return false;
 
-    return nav->moveTo(
-        static_cast<f64>(targetPos.x) + 0.5,
+    return nav->moveTo(static_cast<f64>(targetPos.x) + 0.5,
         static_cast<f64>(groundY),
         static_cast<f64>(targetPos.z) + 0.5,
-        m_memberSpeed
-    );
+        m_memberSpeed);
 }
 
 } // namespace mc::entity::ai::goal

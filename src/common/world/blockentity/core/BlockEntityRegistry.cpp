@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -117,16 +117,16 @@ void BlockEntityRegistry::registerBuiltinTypes()
     registerType(BlockEntityType::Sign, [](const BlockPos& pos) { return std::make_unique<SignEntity>(pos); });
 
     // 注册营火方块实体
-    registerType(
-        BlockEntityType::Campfire, [](const BlockPos& pos) { return std::make_unique<blockentity::CampfireBlockEntity>(pos); });
+    registerType(BlockEntityType::Campfire,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::CampfireBlockEntity>(pos); });
 
     // 注册末地折跃门方块实体
-    registerType(
-        BlockEntityType::EndGateway, [](const BlockPos& pos) { return std::make_unique<blockentity::EndGatewayEntity>(pos); });
+    registerType(BlockEntityType::EndGateway,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::EndGatewayEntity>(pos); });
 
     // 注册命令方块实体
-    registerType(
-        BlockEntityType::CommandBlock, [](const BlockPos& pos) { return std::make_unique<blockentity::CommandBlockEntity>(pos); });
+    registerType(BlockEntityType::CommandBlock,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::CommandBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

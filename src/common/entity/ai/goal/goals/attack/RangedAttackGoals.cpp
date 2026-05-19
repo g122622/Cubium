@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "RangedAttackGoals.hpp"
 #include "../../../../../core/Types.hpp"
@@ -416,8 +416,8 @@ void RangedCrossbowAttackGoal::tick()
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
 
     // MC 1.16.5: 移动逻辑
-    bool shouldMove = (distSq > static_cast<f64>(m_attackRadiusSq) || m_seenTime < MIN_SEEN_TIME)
-        && m_moveCooldown == 0;
+    bool shouldMove =
+        (distSq > static_cast<f64>(m_attackRadiusSq) || m_seenTime < MIN_SEEN_TIME) && m_moveCooldown == 0;
 
     if (shouldMove && m_crossbowState != CrossbowState::Charging) {
         // 向目标移动
@@ -440,18 +440,18 @@ void RangedCrossbowAttackGoal::tick()
 
     // 状态机处理
     switch (m_crossbowState) {
-    case CrossbowState::Uncharged:
-        handleUnchargedState();
-        break;
-    case CrossbowState::Charging:
-        handleChargingState();
-        break;
-    case CrossbowState::Charged:
-        handleChargedState();
-        break;
-    case CrossbowState::ReadyToAttack:
-        handleReadyToAttackState();
-        break;
+        case CrossbowState::Uncharged:
+            handleUnchargedState();
+            break;
+        case CrossbowState::Charging:
+            handleChargingState();
+            break;
+        case CrossbowState::Charged:
+            handleChargedState();
+            break;
+        case CrossbowState::ReadyToAttack:
+            handleReadyToAttackState();
+            break;
     }
 }
 

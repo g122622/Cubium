@@ -1,39 +1,39 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
-* @file TriggerCommandTest.cpp
-* @brief TriggerCommand 单元测试
-*
-* 测试 /trigger 命令的所有子命令：
-* - trigger <objective>: 增加 1 分
-* - trigger <objective> add <value>: 增加指定分数
-* - trigger <objective> set <value>: 设置指定分数
-*
-* 测试触发器锁定机制：
-* - 触发器使用后自动锁定
-* - /scoreboard players enable 可以重新启用
-*/
+ * @file TriggerCommandTest.cpp
+ * @brief TriggerCommand 单元测试
+ *
+ * 测试 /trigger 命令的所有子命令：
+ * - trigger <objective>: 增加 1 分
+ * - trigger <objective> add <value>: 增加指定分数
+ * - trigger <objective> set <value>: 设置指定分数
+ *
+ * 测试触发器锁定机制：
+ * - 触发器使用后自动锁定
+ * - /scoreboard players enable 可以重新启用
+ */
 
 #include <gtest/gtest.h>
 
@@ -99,8 +99,8 @@ class ContainerManager;
 namespace mc::command {
 
 /**
-* @brief 测试用的假连接
-*/
+ * @brief 测试用的假连接
+ */
 class FakeConnectionForTrigger final : public network::IServerConnection {
 public:
     void send(const u8* data, size_t size) override
@@ -128,8 +128,8 @@ private:
 };
 
 /**
-* @brief 测试服务器，用于 TriggerCommand 测试
-*/
+ * @brief 测试服务器，用于 TriggerCommand 测试
+ */
 class TriggerTestServer final : public server::IServer {
 public:
     TriggerTestServer()
@@ -280,7 +280,10 @@ public:
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
     [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override
+    {
+        throw std::logic_error("unused");
+    }
 
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
@@ -302,8 +305,7 @@ public:
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
 
     void sendSoundToPlayer(PlayerId, const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
-    {
-    }
+    {}
 
 private:
     server::ServerCoreConfig m_config{};
@@ -416,14 +418,7 @@ TEST_F(TriggerCommandTest, TriggerSuccess)
     ASSERT_NE(score, nullptr);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Steve");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger", source);
 
     EXPECT_EQ(result.value(), 1);
@@ -445,14 +440,7 @@ TEST_F(TriggerCommandTest, TriggerAddSuccess)
     score->setScorePoints(10);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Steve");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger add 5", source);
 
     EXPECT_EQ(result.value(), 15);
@@ -474,14 +462,7 @@ TEST_F(TriggerCommandTest, TriggerSetSuccess)
     score->setScorePoints(10);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Steve");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger set 100", source);
 
     EXPECT_EQ(result.value(), 100);
@@ -502,14 +483,7 @@ TEST_F(TriggerCommandTest, TriggerAlreadyUsed)
     ASSERT_NE(score, nullptr);
     score->setLocked(true); // 已锁定
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Steve");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger", source);
     // 已锁定的触发器应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -527,15 +501,9 @@ TEST_F(TriggerCommandTest, EnableTriggerViaScoreboard)
     ASSERT_NE(objective, nullptr);
 
     // 使用 scoreboard players enable 启用触发器
-    ServerCommandSource adminSource(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        2,
-        0,
-        "Admin");
-    auto enableResult = m_server.commandRegistry().execute("/scoreboard players enable Steve test_trigger", adminSource);
+    ServerCommandSource adminSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    auto enableResult =
+        m_server.commandRegistry().execute("/scoreboard players enable Steve test_trigger", adminSource);
     EXPECT_EQ(enableResult.value(), 1);
 
     // 验证触发器已准备
@@ -544,14 +512,7 @@ TEST_F(TriggerCommandTest, EnableTriggerViaScoreboard)
     EXPECT_FALSE(score->isLocked());
 
     // 现在可以使用触发器
-    ServerCommandSource playerSource(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Steve");
+    ServerCommandSource playerSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto triggerResult = m_server.commandRegistry().execute("/trigger test_trigger", playerSource);
     EXPECT_EQ(triggerResult.value(), 1);
     EXPECT_EQ(score->getScorePoints(), 1);
@@ -567,14 +528,7 @@ TEST_F(TriggerCommandTest, EnableNonTriggerObjective)
     auto* objective = scoreboard.addObjective("test_dummy", *dummyCriteria);
     ASSERT_NE(objective, nullptr);
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        2,
-        0,
-        "Admin");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players enable Steve test_dummy", source);
     // 非 trigger 判据时应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -582,14 +536,7 @@ TEST_F(TriggerCommandTest, EnableNonTriggerObjective)
 
 TEST_F(TriggerCommandTest, EnableNonExistentObjective)
 {
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        2,
-        0,
-        "Admin");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players enable Steve nonexistent", source);
     // 目标不存在时应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -632,25 +579,11 @@ TEST_F(TriggerCommandTest, ReenableTrigger)
     ASSERT_NE(objective, nullptr);
 
     // 准备触发器
-    ServerCommandSource adminSource(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        2,
-        0,
-        "Admin");
+    ServerCommandSource adminSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     m_server.commandRegistry().execute("/scoreboard players enable Player1 retrigger", adminSource);
 
     // 第一次触发
-    ServerCommandSource playerSource(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        0,
-        1,
-        "Player1");
+    ServerCommandSource playerSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Player1");
     auto result1 = m_server.commandRegistry().execute("/trigger retrigger add 10", playerSource);
     EXPECT_EQ(result1.value(), 10);
 
@@ -700,14 +633,7 @@ TEST_F(TriggerCommandTest, ListPlayers)
     ASSERT_NE(score, nullptr);
     score->setScorePoints(42);
 
-    ServerCommandSource source(&m_server,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
-        2,
-        0,
-        "Admin");
+    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players list Steve", source);
     EXPECT_EQ(result.value(), 1);
 }

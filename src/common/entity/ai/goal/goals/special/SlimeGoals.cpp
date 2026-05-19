@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "SlimeGoals.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
@@ -70,8 +70,8 @@ void SlimeFloatGoal::tick()
     // 设置游泳速度
     // MC 1.16.5: 使用 MoveHelperController.setSpeed(1.2D)
     // 在我们的实现中，使用 setAIMoveSpeed 来设置移动速度
-    m_slime->setAIMoveSpeed(static_cast<f32>(SWIM_SPEED * m_slime->getAttributeValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, 0.2)));
+    m_slime->setAIMoveSpeed(
+        static_cast<f32>(SWIM_SPEED * m_slime->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2)));
 }
 
 // ============================================================================
@@ -164,11 +164,7 @@ void SlimeAttackGoal::tick()
     // 史莱姆通过跳跃和移动控制器来移动
     // 设置移动方向和速度
     if (m_slime->moveController() != nullptr) {
-        m_slime->moveController()->setMoveTo(
-            m_attackTarget->x(),
-            m_attackTarget->y(),
-            m_attackTarget->z(),
-            1.0);
+        m_slime->moveController()->setMoveTo(m_attackTarget->x(), m_attackTarget->y(), m_attackTarget->z(), 1.0);
     }
 }
 
@@ -270,8 +266,8 @@ void SlimeHopGoal::tick()
     // 设置移动速度为 1.0
     // MC 1.16.5: 使用 MoveHelperController.setSpeed(1.0D)
     // 在我们的实现中，使用 setAIMoveSpeed 来设置移动速度
-    m_slime->setAIMoveSpeed(static_cast<f32>(1.0 * m_slime->getAttributeValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, 0.2)));
+    m_slime->setAIMoveSpeed(
+        static_cast<f32>(1.0 * m_slime->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2)));
 }
 
 } // namespace mc::entity::ai::goal

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file test_player_layers.cpp
@@ -31,9 +31,9 @@
  * - HeadLayer 构造和基础功能
  */
 
-#include <gtest/gtest.h>
-#include <memory>
 #include "common/core/Types.hpp"
+#include <memory>
+#include <gtest/gtest.h>
 
 // 前向声明和模拟类型
 
@@ -56,21 +56,19 @@ enum class PlayerModelPart : u8 {
 }
 
 // 模拟 EquipmentSlot 枚举
-enum class EquipmentSlot : u8 {
-    MainHand = 0,
-    OffHand = 1,
-    Feet = 2,
-    Legs = 3,
-    Chest = 4,
-    Head = 5,
-    Count = 6
-};
+enum class EquipmentSlot : u8 { MainHand = 0, OffHand = 1, Feet = 2, Legs = 3, Chest = 4, Head = 5, Count = 6 };
 
 // 模拟 ItemStack（简化版本用于测试）
 class MockItemStack {
 public:
-    MockItemStack() : m_empty(true), m_itemId(0) {}
-    MockItemStack(u32 itemId) : m_empty(false), m_itemId(itemId) {}
+    MockItemStack()
+        : m_empty(true)
+        , m_itemId(0)
+    {}
+    MockItemStack(u32 itemId)
+        : m_empty(false)
+        , m_itemId(itemId)
+    {}
 
     [[nodiscard]] bool isEmpty() const { return m_empty; }
     [[nodiscard]] u32 getItemId() const { return m_itemId; }
@@ -93,12 +91,12 @@ class MockPlayer {
 public:
     MockPlayer()
         : m_playerModelParts(getPlayerModelPartMask(PlayerModelPart::Cape) |
-                             getPlayerModelPartMask(PlayerModelPart::Jacket) |
-                             getPlayerModelPartMask(PlayerModelPart::Hat))
+              getPlayerModelPartMask(PlayerModelPart::Jacket) | getPlayerModelPartMask(PlayerModelPart::Hat))
         , m_chestItem()
     {}
 
-    void setWearingCape(bool wearing) {
+    void setWearingCape(bool wearing)
+    {
         if (wearing) {
             m_playerModelParts |= getPlayerModelPartMask(PlayerModelPart::Cape);
         } else {
@@ -106,20 +104,18 @@ public:
         }
     }
 
-    [[nodiscard]] bool isWearing(PlayerModelPart part) const {
+    [[nodiscard]] bool isWearing(PlayerModelPart part) const
+    {
         return (m_playerModelParts & getPlayerModelPartMask(part)) != 0;
     }
 
-    void setChestItem(const MockItemStack& item) {
-        m_chestItem = item;
-    }
+    void setChestItem(const MockItemStack& item) { m_chestItem = item; }
 
-    [[nodiscard]] const MockItemStack& getChestItem() const {
-        return m_chestItem;
-    }
+    [[nodiscard]] const MockItemStack& getChestItem() const { return m_chestItem; }
 
     // 模拟 getEquipment
-    [[nodiscard]] const MockItemStack& getEquipment(EquipmentSlot slot) const {
+    [[nodiscard]] const MockItemStack& getEquipment(EquipmentSlot slot) const
+    {
         if (slot == EquipmentSlot::Chest) {
             return m_chestItem;
         }
@@ -170,10 +166,7 @@ bool shouldRenderCape(const mc::MockPlayer& player, bool hasCapeTexture)
 
 class CapeLayerShouldRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_player = std::make_unique<mc::MockPlayer>();
-    }
+    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };
@@ -260,10 +253,7 @@ bool shouldRenderElytra(const mc::MockPlayer& player, bool hasElytraTexture, boo
 
 class ElytraLayerShouldRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_player = std::make_unique<mc::MockPlayer>();
-    }
+    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };
@@ -340,10 +330,7 @@ const mc::MockItemStack* getHeadItem(const mc::MockPlayer& player)
 
 class HeadLayerBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_player = std::make_unique<mc::MockPlayer>();
-    }
+    void SetUp() override { m_player = std::make_unique<mc::MockPlayer>(); }
 
     std::unique_ptr<mc::MockPlayer> m_player;
 };
@@ -359,8 +346,7 @@ TEST_F(HeadLayerBasicTest, GetHeadItemReturnsNullForEmptySlot)
 // PlayerModelPart 枚举测试
 // ============================================================================
 
-class PlayerModelPartMaskTest : public ::testing::Test {
-};
+class PlayerModelPartMaskTest : public ::testing::Test {};
 
 TEST_F(PlayerModelPartMaskTest, MaskValuesCorrect)
 {
@@ -378,8 +364,7 @@ TEST_F(PlayerModelPartMaskTest, CanCombineMasks)
 {
     // 验证可以组合多个部件
     mc::u8 allParts = mc::getPlayerModelPartMask(mc::PlayerModelPart::Cape) |
-                      mc::getPlayerModelPartMask(mc::PlayerModelPart::Jacket) |
-                      mc::getPlayerModelPartMask(mc::PlayerModelPart::Hat);
+        mc::getPlayerModelPartMask(mc::PlayerModelPart::Jacket) | mc::getPlayerModelPartMask(mc::PlayerModelPart::Hat);
 
     EXPECT_TRUE((allParts & mc::getPlayerModelPartMask(mc::PlayerModelPart::Cape)) != 0);
     EXPECT_TRUE((allParts & mc::getPlayerModelPartMask(mc::PlayerModelPart::Jacket)) != 0);
@@ -413,8 +398,7 @@ TEST_F(PlayerModelPartMaskTest, CanToggleParts)
  * 3. CapeLayer - 披风
  * 4. ElytraLayer - 鞘翅
  */
-class LayerPriorityTest : public ::testing::Test {
-};
+class LayerPriorityTest : public ::testing::Test {};
 
 TEST_F(LayerPriorityTest, LayerOrderMatchesMC1165)
 {

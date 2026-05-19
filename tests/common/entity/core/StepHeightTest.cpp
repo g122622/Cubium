@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/entities/monster/end/EndermanEntity.hpp"
+#include "entity/entities/monster/illager/RavagerEntity.hpp"
+#include "entity/entities/monster/undead/DrownedEntity.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/passive/horse/AbstractHorseEntity.hpp"
-#include "entity/entities/monster/end/EndermanEntity.hpp"
-#include "entity/entities/monster/undead/DrownedEntity.hpp"
-#include "entity/entities/monster/illager/RavagerEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "physics/PhysicsConstants.hpp"
 
@@ -43,13 +43,9 @@ class TestEntity : public Entity {
 public:
     TestEntity(EntityId id = EntityId(0))
         : Entity(id)
-    {
-    }
+    {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/)
-    {
-        return std::make_unique<TestEntity>();
-    }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestEntity>(); }
 };
 
 /**
@@ -59,13 +55,9 @@ class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityId id = EntityId(0))
         : LivingEntity(id)
-    {
-    }
+    {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/)
-    {
-        return std::make_unique<TestLivingEntity>();
-    }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestLivingEntity>(); }
 
 protected:
     void registerAttributes() override { LivingEntity::registerAttributes(); }

@@ -1,31 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PufferfishEntity.hpp"
 
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
@@ -33,15 +35,12 @@
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
 
 namespace mc {
 
 PufferfishEntity::PufferfishEntity(EntityId id)
     : AbstractFishEntity(id)
-{
-}
+{}
 
 std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
 {
@@ -54,11 +53,11 @@ f32 PufferfishEntity::getPuffSize() const
     // 返回碰撞箱缩放因子，基础尺寸为 0.7 x 0.7
     switch (m_puffState) {
         case PuffState::Deflated:
-            return 0.5f;  // 0.7 * 0.5 = 0.35
+            return 0.5f; // 0.7 * 0.5 = 0.35
         case PuffState::SemiPuffed:
-            return 0.7f;  // 0.7 * 0.7 = 0.49
+            return 0.7f; // 0.7 * 0.7 = 0.49
         case PuffState::FullyPuffed:
-            return 1.0f;  // 0.7 * 1.0 = 0.7
+            return 1.0f; // 0.7 * 1.0 = 0.7
         default:
             return 0.5f;
     }
@@ -209,13 +208,12 @@ void PufferfishEntity::attackNearbyEnemies()
             // MC 1.16.5: 添加中毒效果
             // mobentity.addPotionEffect(new EffectInstance(Effects.POISON, 60 * i, 0));
             i32 poisonDuration = 60 * static_cast<i32>(m_puffState);
-            mob->addEffect(entity::effect::EffectInstance(
-                entity::effect::EffectType::Poison,
+            mob->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
                 poisonDuration,
-                0,  // amplifier (0 = Poison I)
-                false,  // ambient
-                true    // visible
-            ));
+                0,     // amplifier (0 = Poison I)
+                false, // ambient
+                true   // visible
+                ));
 
             // 播放刺击音效
             playSound(SoundEvents::ENTITY_PUFFER_FISH_STING, 1.0f, 1.0f);

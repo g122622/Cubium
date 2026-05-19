@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "../BenchmarkRegistry.hpp"
 
@@ -41,8 +41,7 @@ public:
     [[nodiscard]] Result<void> validateConfig(const CaseRuntimeConfig& config) const override
     {
         if (!config.parameters.contains("clientExecutable") || !config.parameters.at("clientExecutable").is_string()) {
-            return Error(ErrorCode::InvalidArgument,
-                "client_initialize requires string parameter: clientExecutable");
+            return Error(ErrorCode::InvalidArgument, "client_initialize requires string parameter: clientExecutable");
         }
 
         if (config.parameters.contains("timeoutMs") && !config.parameters.at("timeoutMs").is_number_integer()) {
@@ -56,8 +55,7 @@ public:
     {
         m_clientExecutable = std::filesystem::path(config.parameters.at("clientExecutable").get<std::string>());
         if (!std::filesystem::exists(m_clientExecutable)) {
-            return Error(ErrorCode::NotFound,
-                "client_initialize executable not found: " + m_clientExecutable.string());
+            return Error(ErrorCode::NotFound, "client_initialize executable not found: " + m_clientExecutable.string());
         }
 
         m_timeoutMs = 300000;
@@ -105,16 +103,16 @@ public:
             TerminateProcess(processInfo.hProcess, 124);
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
-            return Error(ErrorCode::OperationFailed,
-                "client_initialize timed out after " + std::to_string(m_timeoutMs) + " ms");
+            return Error(
+                ErrorCode::OperationFailed, "client_initialize timed out after " + std::to_string(m_timeoutMs) + " ms");
         }
 
         if (waitResult != WAIT_OBJECT_0) {
             const DWORD waitError = GetLastError();
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
-            return Error(ErrorCode::OperationFailed,
-                "client_initialize wait failed, win32=" + std::to_string(waitError));
+            return Error(
+                ErrorCode::OperationFailed, "client_initialize wait failed, win32=" + std::to_string(waitError));
         }
 
         DWORD exitCode = 0;
@@ -130,8 +128,8 @@ public:
         CloseHandle(processInfo.hProcess);
 
         if (exitCode != 0) {
-            return Error(ErrorCode::OperationFailed,
-                "client_initialize process exited with code " + std::to_string(exitCode));
+            return Error(
+                ErrorCode::OperationFailed, "client_initialize process exited with code " + std::to_string(exitCode));
         }
 
         return Result<void>::ok();
@@ -149,9 +147,8 @@ private:
 };
 
 const bool g_registered = []() {
-    BenchmarkRegistry::instance().registerCase("client_initialize", []() {
-        return std::make_unique<ClientInitializeBenchmark>();
-    });
+    BenchmarkRegistry::instance().registerCase(
+        "client_initialize", []() { return std::make_unique<ClientInitializeBenchmark>(); });
     return true;
 }();
 

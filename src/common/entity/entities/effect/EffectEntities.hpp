@@ -1,22 +1,22 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -305,7 +305,11 @@ public:
     /**
      * @brief 设置效果颜色（ARGB）
      */
-    void setColor(u32 color) { m_color = color; m_colorSet = true; }
+    void setColor(u32 color)
+    {
+        m_color = color;
+        m_colorSet = true;
+    }
     [[nodiscard]] u32 getColor() const { return m_color; }
 
     /**
@@ -383,24 +387,24 @@ private:
 
     // MC 1.16.5 字段
     std::vector<effect::EffectInstance> m_effects; ///< 效果列表
-    std::map<EntityId, i32> m_reapplicationMap;     ///< 重应用延迟映射（实体ID -> 下次可应用时间）
+    std::map<EntityId, i32> m_reapplicationMap;    ///< 重应用延迟映射（实体ID -> 下次可应用时间）
 
-    f32 m_radius = 3.0f;          ///< 当前半径
-    f32 m_initialRadius = 3.0f;   ///< 初始半径
-    f32 m_radiusOnUse = 0.0f;     ///< 每次使用时半径变化
-    f32 m_radiusPerTick = 0.0f;   ///< 每tick半径变化
+    f32 m_radius = 3.0f;        ///< 当前半径
+    f32 m_initialRadius = 3.0f; ///< 初始半径
+    f32 m_radiusOnUse = 0.0f;   ///< 每次使用时半径变化
+    f32 m_radiusPerTick = 0.0f; ///< 每tick半径变化
 
     i32 m_duration = 600;          ///< 持续时间 (ticks)，默认 30 秒
     i32 m_waitTime = 20;           ///< 等待时间 (ticks)
     i32 m_reapplicationDelay = 20; ///< 效果重应用延迟 (ticks)
     i32 m_durationOnUse = 0;       ///< 每次使用时持续时间变化
 
-    i32 m_ticksLived = 0;          ///< 已存活时间 (ticks)
-    u32 m_color = 0;               ///< 效果颜色 (ARGB)
-    bool m_colorSet = false;       ///< 颜色是否已设置
+    i32 m_ticksLived = 0;    ///< 已存活时间 (ticks)
+    u32 m_color = 0;         ///< 效果颜色 (ARGB)
+    bool m_colorSet = false; ///< 颜色是否已设置
 
     LivingEntity* m_owner = nullptr; ///< 拥有者（苦力怕等）
-    u32 m_particleType = 0;        ///< 粒子类型
+    u32 m_particleType = 0;          ///< 粒子类型
 
     // MC 1.16.5 默认值常量
     static constexpr f32 DEFAULT_RADIUS = 3.0f;

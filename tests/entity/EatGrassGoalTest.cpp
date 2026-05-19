@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity::ai::goal;
@@ -293,10 +293,7 @@ class EatGrassTestWorld final : public test::BaseTestWorld {
 public:
     EatGrassTestWorld() = default;
 
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
-    {
-        m_blocks[BlockPos(x, y, z)] = state;
-    }
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -312,7 +309,7 @@ public:
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
     {
-        (void)flags;  // 测试中忽略 flags
+        (void)flags; // 测试中忽略 flags
         m_blocks[BlockPos(x, y, z)] = state;
         return true;
     }
@@ -429,7 +426,7 @@ TEST_F(EatGrassGoalGameRuleTest, GrassBlockTurnsToDirt_WhenMobGriefingEnabled)
 TEST_F(EatGrassGoalGameRuleTest, GrassBlockUnchanged_WhenMobGriefingDisabled)
 {
     EatGrassTestWorld world;
-    world.setMobGriefing(false);  // 禁用生物破坏
+    world.setMobGriefing(false); // 禁用生物破坏
     world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
     // 验证初始状态
@@ -439,8 +436,7 @@ TEST_F(EatGrassGoalGameRuleTest, GrassBlockUnchanged_WhenMobGriefingDisabled)
 
     // 当 mobGriefing=false 时，不应该改变方块
     // 模拟 eatGrass 中的逻辑
-    const bool canGrief = world.getGameRules().getBoolean(
-        world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    const bool canGrief = world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
     EXPECT_FALSE(canGrief);
 
     // 不执行任何方块操作（符合 mobGriefing=false 的逻辑）
@@ -478,8 +474,7 @@ TEST_F(EatGrassGoalGameRuleTest, ShortGrassUnchanged_WhenMobGriefingDisabled)
     world.setMobGriefing(false);
     world.setBlock(0, 64, 0, &VanillaBlocks::SHORT_GRASS->defaultState());
 
-    const bool canGrief = world.getGameRules().getBoolean(
-        world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    const bool canGrief = world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
     EXPECT_FALSE(canGrief);
 
     // 方块应保持不变

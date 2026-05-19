@@ -1,36 +1,36 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
 #include "../BreedGoal.hpp"
 #include "../PanicGoal.hpp"
 #include "../RandomWalkingGoal.hpp"
 #include "../TemptGoal.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
 #include <functional>
 
 namespace mc {
@@ -75,15 +75,15 @@ private:
 
     TurtleEntity* m_turtle;
     f64 m_speed;
-    bool m_gaveUp = false;        // 是否放弃（找不到路径）
-    i32 m_closeToHomeTimer = 0;   // 接近出生地的计时器
+    bool m_gaveUp = false;      // 是否放弃（找不到路径）
+    i32 m_closeToHomeTimer = 0; // 接近出生地的计时器
 
     // MC 1.16.5 常量
-    static constexpr f64 HOME_DISTANCE_TRIGGER = 64.0;   // 触发回家的距离
-    static constexpr f64 HOME_DISTANCE_ARRIVE = 7.0;     // 到达出生地的距离
-    static constexpr i32 MAX_TRAVEL_TIME = 600;          // 最大旅行时间 (ticks)
-    static constexpr i32 PATH_RECALC_DELAY = 10;         // 路径重算延迟
-    static constexpr i32 RANDOM_TRIGGER_CHANCE = 700;    // 随机触发概率倒数
+    static constexpr f64 HOME_DISTANCE_TRIGGER = 64.0; // 触发回家的距离
+    static constexpr f64 HOME_DISTANCE_ARRIVE = 7.0;   // 到达出生地的距离
+    static constexpr i32 MAX_TRAVEL_TIME = 600;        // 最大旅行时间 (ticks)
+    static constexpr i32 PATH_RECALC_DELAY = 10;       // 路径重算延迟
+    static constexpr i32 RANDOM_TRIGGER_CHANCE = 700;  // 随机触发概率倒数
 };
 
 /**
@@ -131,9 +131,9 @@ private:
     i32 m_timeoutCounter = 0;
 
     // MC 1.16.5 常量
-    static constexpr i32 SEARCH_RANGE = 16;         // 搜索范围
-    static constexpr f64 HOME_DISTANCE_MAX = 9.0;   // 距离出生地最大距离
-    static constexpr i32 MAX_TIMEOUT = 1200;        // 最大超时 (ticks)
+    static constexpr i32 SEARCH_RANGE = 16;       // 搜索范围
+    static constexpr f64 HOME_DISTANCE_MAX = 9.0; // 距离出生地最大距离
+    static constexpr i32 MAX_TIMEOUT = 1200;      // 最大超时 (ticks)
 };
 
 /**
@@ -222,9 +222,9 @@ private:
     i32 m_timeoutCounter = 0;
 
     // MC 1.16.5 常量
-    static constexpr i32 SEARCH_RANGE_HORIZONTAL = 24;  // 水平搜索范围
-    static constexpr i32 SEARCH_RANGE_VERTICAL = 1;     // 垂直搜索范围
-    static constexpr i32 MAX_TIMEOUT = 1200;            // 最大超时 (ticks)
+    static constexpr i32 SEARCH_RANGE_HORIZONTAL = 24; // 水平搜索范围
+    static constexpr i32 SEARCH_RANGE_VERTICAL = 1;    // 垂直搜索范围
+    static constexpr i32 MAX_TIMEOUT = 1200;           // 最大超时 (ticks)
 };
 
 /**

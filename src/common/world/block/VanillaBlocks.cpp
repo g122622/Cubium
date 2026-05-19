@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "VanillaBlocks.hpp"
 #include "../fluid/FluidRegistry.hpp"
@@ -35,6 +35,7 @@
 #include "blocks/FallingBlock.hpp"
 #include "blocks/FenceGateBlock.hpp"
 #include "blocks/LiquidBlock.hpp"
+#include "blocks/ShulkerBoxBlock.hpp"
 #include "blocks/SignBlock.hpp"
 #include "blocks/TrappedChestBlock.hpp"
 #include "blocks/agricultural/FarmlandBlock.hpp"
@@ -71,7 +72,6 @@
 #include "blocks/functional/LoomBlock.hpp"
 #include "blocks/functional/RespawnAnchorBlock.hpp"
 #include "blocks/functional/SmithingTableBlock.hpp"
-#include "blocks/ShulkerBoxBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ice/SnowBlock.hpp"
 #include "blocks/mob/BeehiveBlock.hpp"
@@ -1903,8 +1903,10 @@ void VanillaBlocks::registerInfestedBlocks()
     blocks::InfestedBlock::registerInfestedBlock(COBBLESTONE->blockId(), INFESTED_COBBLESTONE->blockId());
     blocks::InfestedBlock::registerInfestedBlock(STONE_BRICKS->blockId(), INFESTED_STONE_BRICKS->blockId());
     blocks::InfestedBlock::registerInfestedBlock(MOSSY_STONE_BRICKS->blockId(), INFESTED_MOSSY_STONE_BRICKS->blockId());
-    blocks::InfestedBlock::registerInfestedBlock(CRACKED_STONE_BRICKS->blockId(), INFESTED_CRACKED_STONE_BRICKS->blockId());
-    blocks::InfestedBlock::registerInfestedBlock(CHISELED_STONE_BRICKS->blockId(), INFESTED_CHISELED_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        CRACKED_STONE_BRICKS->blockId(), INFESTED_CRACKED_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        CHISELED_STONE_BRICKS->blockId(), INFESTED_CHISELED_STONE_BRICKS->blockId());
 
     // 初始化映射表
     blocks::InfestedBlock::initializeMappings();

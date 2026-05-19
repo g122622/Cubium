@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IllagerEntities.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
@@ -34,6 +34,7 @@
 #include "entity/core/EntityRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/OtherProjectiles.hpp"
 #include "entity/interfaces/ICrossbowUser.hpp"
@@ -41,7 +42,6 @@
 #include "item/core/ItemStack.hpp"
 #include "item/items/weapon/ArrowItem.hpp"
 #include "item/items/weapon/CrossbowItem.hpp"
-#include "entity/entities/player/Player.hpp"
 #include "sound/SoundEvents.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -184,15 +184,15 @@ void PillagerEntity::registerGoals()
     // m_goalSelector.addGoal(2, std::make_unique<FindTargetGoal>(this, 10.0f));
 
     // 优先级 3: 弩远程攻击
-    m_goalSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 8.0f));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::RangedCrossbowAttackGoal>(this, 1.0, 8.0f));
 
     // 优先级 8: 随机行走
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6));
 
     // 优先级 9: 看向玩家
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 15.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(9,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 15.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 10: 看向生物
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 15.0f));
@@ -202,22 +202,21 @@ void PillagerEntity::registerGoals()
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 2: 攻击玩家
-    m_targetSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
-            [](const LivingEntity* entity) {
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this, true, 10, [](const LivingEntity* entity) {
                 // 检查是否是村民
                 // TODO: 使用 VillagerEntity 类型检查
                 return entity != nullptr && entity->isAlive();
             }));
 
     // 优先级 3: 攻击铁傀儡
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
-            [](const LivingEntity* entity) {
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this, true, 10, [](const LivingEntity* entity) {
                 // 检查是否是铁傀儡
                 // TODO: 使用 IronGolemEntity 类型检查
                 return entity != nullptr && entity->isAlive();
@@ -273,8 +272,9 @@ void VindicatorEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6));
 
     // 优先级 9: 看向玩家
-    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 3.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(9,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 3.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 10: 看向生物
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
@@ -284,22 +284,17 @@ void VindicatorEntity::registerGoals()
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 2: 攻击玩家
-    m_targetSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
-            [](const LivingEntity* entity) {
-                return entity != nullptr && entity->isAlive();
-            }));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this, true, 10, [](const LivingEntity* entity) { return entity != nullptr && entity->isAlive(); }));
 
     // 优先级 3: 攻击铁傀儡
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this, true, 10,
-            [](const LivingEntity* entity) {
-                return entity != nullptr && entity->isAlive();
-            }));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+            this, true, 10, [](const LivingEntity* entity) { return entity != nullptr && entity->isAlive(); }));
 }
 
 void VindicatorEntity::registerAttributes()

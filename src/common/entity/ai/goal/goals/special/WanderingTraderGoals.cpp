@@ -1,31 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "WanderingTraderGoals.hpp"
+#include "../../../../../item/Items.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
-#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
@@ -33,8 +35,6 @@
 #include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
-#include "../../../../../item/Items.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
 #include <cmath>
 
 namespace mc {
@@ -47,8 +47,8 @@ namespace wandering_trader {
 // UseItemGoal - 简化实现，待后续完善药水系统
 // ============================================================================
 
-UseItemGoal::UseItemGoal(MobEntity* mob, const ItemStack& stack,
-                         const ResourceLocation& soundEvent, UseCondition condition)
+UseItemGoal::UseItemGoal(
+    MobEntity* mob, const ItemStack& stack, const ResourceLocation& soundEvent, UseCondition condition)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
     , m_mob(mob)
     , m_itemStack(stack)
@@ -128,10 +128,9 @@ void UseItemGoal::applyItemEffect()
     // 药水 - 添加隐身效果（流浪商人夜间使用）
     // 简化实现：直接添加隐身效果
     // 完整实现应该从药水物品中读取效果
-    effect::EffectInstance invisibilityEffect(
-        effect::EffectType::Invisibility,
-        1200,  // 持续时间：60秒 = 1200 ticks
-        0      // 等级
+    effect::EffectInstance invisibilityEffect(effect::EffectType::Invisibility,
+        1200, // 持续时间：60秒 = 1200 ticks
+        0     // 等级
     );
     m_mob->addEffect(invisibilityEffect);
 }
@@ -417,11 +416,9 @@ Vector3 MoveToWanderTargetGoal::calculateMoveTarget(const BlockPos& target) cons
     }
 
     // MC 1.16.5: 计算从当前位置到目标的方向向量，然后扩展10格
-    Vector3 direction(
-        static_cast<f32>(target.x - m_mob->x()),
+    Vector3 direction(static_cast<f32>(target.x - m_mob->x()),
         static_cast<f32>(target.y - m_mob->y()),
-        static_cast<f32>(target.z - m_mob->z())
-    );
+        static_cast<f32>(target.z - m_mob->z()));
 
     // 归一化
     f32 length = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
@@ -433,11 +430,9 @@ Vector3 MoveToWanderTargetGoal::calculateMoveTarget(const BlockPos& target) cons
 
     // 扩展10格
     constexpr f32 EXTEND_DISTANCE = 10.0f;
-    Vector3 moveTarget(
-        m_mob->x() + direction.x * EXTEND_DISTANCE,
+    Vector3 moveTarget(m_mob->x() + direction.x * EXTEND_DISTANCE,
         m_mob->y() + direction.y * EXTEND_DISTANCE,
-        m_mob->z() + direction.z * EXTEND_DISTANCE
-    );
+        m_mob->z() + direction.z * EXTEND_DISTANCE);
 
     return moveTarget;
 }

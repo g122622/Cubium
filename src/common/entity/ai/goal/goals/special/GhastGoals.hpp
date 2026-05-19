@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file GhastGoals.hpp
@@ -35,9 +35,9 @@
 
 #pragma once
 
+#include "../../../../../core/Types.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
-#include "../../../../../core/Types.hpp"
 
 namespace mc {
 
@@ -89,8 +89,8 @@ public:
 private:
     GhastEntity* m_ghast;
 
-    static constexpr f64 WANDER_RANGE = 16.0; ///< 随机漫游范围（格）
-    static constexpr f64 MIN_DISTANCE_SQ = 1.0; ///< 最小目标距离平方
+    static constexpr f64 WANDER_RANGE = 16.0;      ///< 随机漫游范围（格）
+    static constexpr f64 MIN_DISTANCE_SQ = 1.0;    ///< 最小目标距离平方
     static constexpr f64 MAX_DISTANCE_SQ = 3600.0; ///< 最大目标距离平方（60^2）
 };
 
@@ -188,9 +188,9 @@ private:
     i32 m_attackTimer = 0;
 
     static constexpr f64 ATTACK_RANGE_SQ = 4096.0; ///< 攻击范围平方（64^2）
-    static constexpr f64 CHARGE_SOUND_TICK = 10; ///< 充能音效tick
-    static constexpr i32 CHARGE_DURATION = 20; ///< 充能持续时间（ticks）
-    static constexpr i32 COOLDOWN_DURATION = 40; ///< 攻击冷却（ticks）
+    static constexpr f64 CHARGE_SOUND_TICK = 10;   ///< 充能音效tick
+    static constexpr i32 CHARGE_DURATION = 20;     ///< 充能持续时间（ticks）
+    static constexpr i32 COOLDOWN_DURATION = 40;   ///< 攻击冷却（ticks）
 };
 
 } // namespace entity::ai::goal

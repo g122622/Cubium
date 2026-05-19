@@ -10,8 +10,8 @@
  * 5. FurnaceMinecartEntity::dropItem() - 爆炸伤害时的行为
  */
 
-#include <gtest/gtest.h>
 #include "entity/damage/DamageSource.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 
@@ -21,7 +21,8 @@ using namespace mc;
 
 class DamageSourceExplosionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // 测试前准备
     }
 };
@@ -119,7 +120,8 @@ TEST_F(DamageSourceExplosionTest, DamageSources_Explosion_CreatesExplosionDamage
 
     // 玩家爆炸 - EntityDamageSource 在 mc 命名空间
     EntityDamageSource explosionPlayerSource = DamageSources::explosionPlayer(nullptr);
-    EXPECT_TRUE(explosionPlayerSource.isExplosion()) << "DamageSources::explosionPlayer() should create explosion damage";
+    EXPECT_TRUE(explosionPlayerSource.isExplosion())
+        << "DamageSources::explosionPlayer() should create explosion damage";
 }
 
 // ============================================================================
@@ -241,12 +243,7 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
 {
     // 火焰相关类型
     std::vector<DamageType> fireTypes = {
-        DamageType::InFire,
-        DamageType::OnFire,
-        DamageType::Lava,
-        DamageType::HotFloor,
-        DamageType::Fireball
-    };
+        DamageType::InFire, DamageType::OnFire, DamageType::Lava, DamageType::HotFloor, DamageType::Fireball};
 
     for (auto type : fireTypes) {
         EnvironmentalDamage damage(type);
@@ -255,10 +252,7 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
     }
 
     // 爆炸相关类型
-    std::vector<DamageType> explosionTypes = {
-        DamageType::Explosion,
-        DamageType::ExplosionPlayer
-    };
+    std::vector<DamageType> explosionTypes = {DamageType::Explosion, DamageType::ExplosionPlayer};
 
     for (auto type : explosionTypes) {
         EnvironmentalDamage damage(type);
@@ -267,8 +261,7 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
     }
 
     // 非火焰非爆炸类型
-    std::vector<DamageType> otherTypes = {
-        DamageType::Drown,
+    std::vector<DamageType> otherTypes = {DamageType::Drown,
         DamageType::Starve,
         DamageType::Cactus,
         DamageType::Fall,
@@ -280,12 +273,12 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
         DamageType::Anvil,
         DamageType::FallingBlock,
         DamageType::DragonBreath,
-        DamageType::Fireworks
-    };
+        DamageType::Fireworks};
 
     for (auto type : otherTypes) {
         EnvironmentalDamage damage(type);
         EXPECT_FALSE(damage.isFire()) << "DamageType " << static_cast<int>(type) << " should not be fire damage";
-        EXPECT_FALSE(damage.isExplosion()) << "DamageType " << static_cast<int>(type) << " should not be explosion damage";
+        EXPECT_FALSE(damage.isExplosion())
+            << "DamageType " << static_cast<int>(type) << " should not be explosion damage";
     }
 }

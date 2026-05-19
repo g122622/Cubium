@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -163,10 +163,7 @@ TEST_F(EntityPlayerModelTest, SetVisible_ShowsAllParts)
  */
 class PlayerModelArmRenderTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_model = std::make_unique<PlayerModel>(0.0, false);
-    }
+    void SetUp() override { m_model = std::make_unique<PlayerModel>(0.0, false); }
 
     /**
      * @brief 计算可见部件数量
@@ -191,8 +188,8 @@ TEST_F(PlayerModelArmRenderTest, RenderRightArm_RestoresVisibility)
 {
     // 设置特定可见性状态
     m_model->setVisible(true);
-    m_model->getModelHead()->setVisible(false);  // 头部不可见
-    m_model->getLeftArm()->setVisible(false);    // 左臂不可见
+    m_model->getModelHead()->setVisible(false); // 头部不可见
+    m_model->getLeftArm()->setVisible(false);   // 左臂不可见
 
     // 记录渲染前的状态
     bool headVisibleBefore = m_model->getModelHead()->isVisible();
@@ -212,8 +209,8 @@ TEST_F(PlayerModelArmRenderTest, RenderLeftArm_RestoresVisibility)
 {
     // 设置特定可见性状态
     m_model->setVisible(true);
-    m_model->getModelHead()->setVisible(false);   // 头部不可见
-    m_model->getRightArm()->setVisible(false);    // 右臂不可见
+    m_model->getModelHead()->setVisible(false); // 头部不可见
+    m_model->getRightArm()->setVisible(false);  // 右臂不可见
 
     // 记录渲染前的状态
     bool headVisibleBefore = m_model->getModelHead()->isVisible();
@@ -478,14 +475,14 @@ TEST_F(EntityPlayerModelTest, RenderEars_DoesNotThrow)
 
 TEST_F(EntityPlayerModelTest, TranslateHand_DoesNotThrow)
 {
-    EXPECT_NO_THROW(m_standardModel->translateHand(0));  // Right
-    EXPECT_NO_THROW(m_standardModel->translateHand(1));  // Left
+    EXPECT_NO_THROW(m_standardModel->translateHand(0)); // Right
+    EXPECT_NO_THROW(m_standardModel->translateHand(1)); // Left
 }
 
 TEST_F(EntityPlayerModelTest, SlimModel_TranslateHandDoesNotThrow)
 {
-    EXPECT_NO_THROW(m_slimModel->translateHand(0));  // Right
-    EXPECT_NO_THROW(m_slimModel->translateHand(1));  // Left
+    EXPECT_NO_THROW(m_slimModel->translateHand(0)); // Right
+    EXPECT_NO_THROW(m_slimModel->translateHand(1)); // Left
 }
 
 // ============================================================================
@@ -498,10 +495,7 @@ TEST_F(EntityPlayerModelTest, SlimModel_TranslateHandDoesNotThrow)
  */
 class PlayerModelPartVisibilityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_model = std::make_unique<PlayerModel>(0.0, false);
-    }
+    void SetUp() override { m_model = std::make_unique<PlayerModel>(0.0, false); }
 
     std::unique_ptr<PlayerModel> m_model;
 };

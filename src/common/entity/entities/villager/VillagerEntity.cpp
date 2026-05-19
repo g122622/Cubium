@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "VillagerEntity.hpp"
 #include "../../../item/Items.hpp"
@@ -27,22 +27,22 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/village/VillageManager.hpp"
+#include "../../../world/village/poi/PointOfInterestStorage.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
 #include "../../../world/village/trade/VillagerTrades.hpp"
 #include "../../../world/village/trade/WanderingTraderTrades.hpp"
-#include "../../../world/village/poi/PointOfInterestStorage.hpp"
-#include "../../../world/village/VillageManager.hpp"
 #include "../../ai/brain/memory/MemoryModuleType.hpp"
 #include "../../ai/brain/schedule/Activity.hpp"
 #include "../../ai/brain/schedule/Schedule.hpp"
 #include "../../ai/brain/sensor/Sensors.hpp"
-#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
-#include "../../ai/goal/goals/special/WanderingTraderGoals.hpp"
 #include "../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../ai/goal/goals/PanicGoal.hpp"
 #include "../../ai/goal/goals/SwimGoal.hpp"
 #include "../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../ai/goal/goals/special/WanderingTraderGoals.hpp"
+#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../core/EntityPose.hpp"
 #include "../../entities/passive/horse/TraderLlamaEntity.hpp"
@@ -167,15 +167,13 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
     if (item == nullptr) return false;
 
     // 默认可拾取物品：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
-    static const Item* allowedItems[] = {
-        Items::BREAD,
+    static const Item* allowedItems[] = {Items::BREAD,
         Items::POTATO,
         Items::CARROT,
         Items::WHEAT,
         Items::WHEAT_SEEDS,
         Items::BEETROOT,
-        Items::BEETROOT_SEEDS
-    };
+        Items::BEETROOT_SEEDS};
 
     // 检查是否在默认列表中
     for (const Item* allowedItem : allowedItems) {
@@ -266,8 +264,7 @@ void VillagerEntity::spreadGossipTo(VillagerEntity* other)
     i64 otherTime = other->m_lastGossipSpreadTime;
 
     // 检查冷却时间
-    if (currentTime < m_lastGossipSpreadTime + 1200L ||
-        currentTime < otherTime + 1200L) {
+    if (currentTime < m_lastGossipSpreadTime + 1200L || currentTime < otherTime + 1200L) {
         return;
     }
 
@@ -589,91 +586,78 @@ void WanderingTraderEntity::registerGoals()
 
     // ========== 优先级 1: 逃避威胁 ==========
     // AvoidEntityGoal - 躲避僵尸
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        8.0f,   // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   (entity->typeId() == entity::EntityTypeIdNumber::ZOMBIE ||
-                    entity->typeId() == entity::EntityTypeIdNumber::DROWNED ||
-                    entity->typeId() == entity::EntityTypeIdNumber::HUSK ||
-                    entity->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            8.0f, // 躲避距离
+            0.5,  // 远距离速度
+            0.5,  // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr &&
+                    (entity->typeId() == entity::EntityTypeIdNumber::ZOMBIE ||
+                        entity->typeId() == entity::EntityTypeIdNumber::DROWNED ||
+                        entity->typeId() == entity::EntityTypeIdNumber::HUSK ||
+                        entity->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
+            }));
 
     // AvoidEntityGoal - 躲避掠夺者
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        15.0f,  // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::PILLAGER;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            15.0f, // 躲避距离
+            0.5,   // 远距离速度
+            0.5,   // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PILLAGER;
+            }));
 
     // AvoidEntityGoal - 躲避唤魔者
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        12.0f,  // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::EVOKER;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            12.0f, // 躲避距离
+            0.5,   // 远距离速度
+            0.5,   // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::EVOKER;
+            }));
 
     // AvoidEntityGoal - 躲避卫道士
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        8.0f,   // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::VINDICATOR;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            8.0f, // 躲避距离
+            0.5,  // 远距离速度
+            0.5,  // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::VINDICATOR;
+            }));
 
     // AvoidEntityGoal - 躲避恼鬼
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        8.0f,   // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::VEX;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            8.0f, // 躲避距离
+            0.5,  // 远距离速度
+            0.5,  // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::VEX;
+            }));
 
     // AvoidEntityGoal - 躲避幻术师
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        12.0f,  // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::ILLUSIONER;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            12.0f, // 躲避距离
+            0.5,   // 远距离速度
+            0.5,   // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::ILLUSIONER;
+            }));
 
     // AvoidEntityGoal - 躲避疣猪兽
-    m_goalSelector.addGoal(1, std::make_unique<AvoidEntityGoal>(
-        this,
-        10.0f,  // 躲避距离
-        0.5,    // 远距离速度
-        0.5,    // 近距离速度
-        [](const LivingEntity* entity) -> bool {
-            return entity != nullptr &&
-                   entity->typeId() == entity::EntityTypeIdNumber::ZOGLIN;
-        }
-    ));
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            10.0f, // 躲避距离
+            0.5,   // 远距离速度
+            0.5,   // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::ZOGLIN;
+            }));
 
     // PanicGoal - 恐慌逃跑
     m_goalSelector.addGoal(1, std::make_unique<PanicGoal>(this, 0.5));
@@ -695,8 +679,8 @@ void WanderingTraderEntity::registerGoals()
 
     // ========== 优先级 9: 看向 ==========
     // LookAtGoal - 看向玩家
-    m_goalSelector.addGoal(9, std::make_unique<LookAtGoal>(
-        this, 3.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<Player>{}));
+    m_goalSelector.addGoal(
+        9, std::make_unique<LookAtGoal>(this, 3.0f, LookAtGoal::DEFAULT_LOOK_CHANCE, TypeFilter<Player>{}));
 
     // ========== 优先级 10: 看向生物 ==========
     // LookAtGoal - 看向附近生物

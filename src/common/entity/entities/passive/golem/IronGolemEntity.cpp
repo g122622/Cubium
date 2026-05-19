@@ -1,39 +1,39 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IronGolemEntity.hpp"
 
-#include "entity/ai/goal/GoalSelector.hpp"
-#include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/controller/LookController.hpp"
 #include "entity/ai/goal/GoalConstants.hpp"
-#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/goal/goals/SwimGoal.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
-#include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/ai/goal/goals/special/IronGolemGoals.hpp"
-#include "entity/ai/controller/LookController.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
@@ -120,18 +120,18 @@ void IronGolemEntity::registerGoals()
 
     // 优先级 3: 攻击敌对生物（MC 1.16.5: NearestAttackableTargetGoal<MobEntity>）
     // 排除苦力怕，因为铁傀儡不攻击苦力怕
-    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-        this,
-        true,   // checkSight
-        5,      // chance (每5tick检查一次)
-        [](const LivingEntity* entity) -> bool {
-            if (!entity || !entity->isAlive()) return false;
-            // 铁傀儡不攻击苦力怕
-            if (entity->typeId() == entity::EntityTypeIdNumber::CREEPER) return false;
-            // 攻击敌对生物（实现了 IMob 接口/是 MonsterEntity 子类）
-            const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
-            return monster != nullptr;
-        }));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            true, // checkSight
+            5,    // chance (每5tick检查一次)
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                // 铁傀儡不攻击苦力怕
+                if (entity->typeId() == entity::EntityTypeIdNumber::CREEPER) return false;
+                // 攻击敌对生物（实现了 IMob 接口/是 MonsterEntity 子类）
+                const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
+                return monster != nullptr;
+            }));
 
     // 优先级 4: 重置愤怒（MC 1.16.5: ResetAngerGoal<>(this, false)）
     // 当前项目暂未实现 UNIVERSAL_ANGER 游戏规则，暂时不添加

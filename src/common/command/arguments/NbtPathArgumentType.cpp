@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "NbtPathArgumentType.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
-#include <sstream>
 #include <cctype>
+#include <sstream>
 
 namespace mc {
 namespace command {
@@ -60,8 +60,7 @@ NbtPath NbtPathArgumentType::parse(StringReader& reader)
     }
 
     if (nodes.empty()) {
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Empty NBT path", start);
+        throw CommandException(CommandErrorType::InvalidNbtPath, "Empty NBT path", start);
     }
 
     std::string rawText(reader.getString().substr(start, reader.getCursor() - start));
@@ -208,8 +207,8 @@ std::unique_ptr<NbtPathNode> NbtPathArgumentType::parseNode(StringReader& reader
     // 处理复合过滤器（仅第一个节点）
     if (c == '{') {
         if (!isFirst) {
-            throw CommandException(CommandErrorType::InvalidNbtPath,
-                "Compound filter only allowed at path start", reader.getCursor());
+            throw CommandException(
+                CommandErrorType::InvalidNbtPath, "Compound filter only allowed at path start", reader.getCursor());
         }
         auto filter = parseCompoundFilter(reader);
         return std::make_unique<NbtPathCompoundFilterNode>(std::move(filter));
@@ -266,8 +265,8 @@ std::unique_ptr<nbt::tags::compound_tag> NbtPathArgumentType::parseCompoundFilte
         }
 
         if (key.empty()) {
-            throw CommandException(CommandErrorType::InvalidNbtPath,
-                "Empty key in compound filter", reader.getCursor());
+            throw CommandException(
+                CommandErrorType::InvalidNbtPath, "Empty key in compound filter", reader.getCursor());
         }
 
         reader.skipWhitespace();
@@ -331,8 +330,8 @@ std::string NbtPathArgumentType::parseKeyName(StringReader& reader)
     }
 
     if (result.empty()) {
-        throw CommandException(CommandErrorType::InvalidNbtPath,
-            "Expected key name at position " + std::to_string(start), start);
+        throw CommandException(
+            CommandErrorType::InvalidNbtPath, "Expected key name at position " + std::to_string(start), start);
     }
 
     return result;
@@ -407,35 +406,30 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
         // 检查后面是否跟类型后缀
         if (reader.canRead()) {
             c = reader.peek();
-            if (c == 'b' || c == 'B' || c == 's' || c == 'S' || c == 'l' || c == 'L' ||
-                c == 'f' || c == 'F' || c == 'd' || c == 'D') {
+            if (c == 'b' || c == 'B' || c == 's' || c == 'S' || c == 'l' || c == 'L' || c == 'f' || c == 'F' ||
+                c == 'd' || c == 'D') {
                 reader.skip();
                 try {
                     switch (c) {
                         case 'b':
                         case 'B':
-                            return std::make_unique<nbt::tags::byte_tag>(
-                                static_cast<i8>(std::stoi(numStr)));
+                            return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>(std::stoi(numStr)));
                         case 's':
                         case 'S':
-                            return std::make_unique<nbt::tags::short_tag>(
-                                static_cast<i16>(std::stoi(numStr)));
+                            return std::make_unique<nbt::tags::short_tag>(static_cast<i16>(std::stoi(numStr)));
                         case 'l':
                         case 'L':
-                            return std::make_unique<nbt::tags::long_tag>(
-                                std::stoll(numStr));
+                            return std::make_unique<nbt::tags::long_tag>(std::stoll(numStr));
                         case 'f':
                         case 'F':
-                            return std::make_unique<nbt::tags::float_tag>(
-                                std::stof(numStr));
+                            return std::make_unique<nbt::tags::float_tag>(std::stof(numStr));
                         case 'd':
                         case 'D':
-                            return std::make_unique<nbt::tags::double_tag>(
-                                std::stod(numStr));
+                            return std::make_unique<nbt::tags::double_tag>(std::stod(numStr));
                     }
-                } catch (const std::exception& e) {
-                    throw CommandException(CommandErrorType::InvalidNbtPath,
-                        "Invalid number: " + numStr, start);
+                }
+                catch (const std::exception& e) {
+                    throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                 }
             }
         }
@@ -447,9 +441,9 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
             } else {
                 return std::make_unique<nbt::tags::int_tag>(std::stoi(numStr));
             }
-        } catch (const std::exception& e) {
-            throw CommandException(CommandErrorType::InvalidNbtPath,
-                "Invalid number: " + numStr, start);
+        }
+        catch (const std::exception& e) {
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
         }
     }
 
@@ -460,7 +454,8 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
     }
 
     throw CommandException(CommandErrorType::InvalidNbtPath,
-        "Expected value at position " + std::to_string(reader.getCursor()), reader.getCursor());
+        "Expected value at position " + std::to_string(reader.getCursor()),
+        reader.getCursor());
 }
 
 std::string NbtPathArgumentType::readNbtUnquotedValue(StringReader& reader)

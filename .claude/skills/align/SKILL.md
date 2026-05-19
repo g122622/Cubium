@@ -75,4 +75,12 @@ enum class Operation : u8 {
 
 自查完成之后，执行`/simplify`命令，进行代码简化，去除冗余、合并重复、提升可读性、提升性能等。
 
+提交代码之前，必须使用clang-format对你修改的文件进行格式化：
+
+```
+clang-format -i src\common\xxx\Foo.cpp
+clang-format -i src\common\xxx\Foo.hpp
+```
+
 最后，生成简体中文提交信息并提交代码。
+

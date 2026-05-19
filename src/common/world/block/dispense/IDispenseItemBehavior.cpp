@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IDispenseItemBehavior.hpp"
 
@@ -33,15 +33,15 @@
 #include "../../../item/Items.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
-#include "../Block.hpp"
 #include "../../fluid/Fluid.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../fluid/FluidTags.hpp"
+#include "../Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -264,8 +264,7 @@ BoatDispenseBehavior::BoatDispenseBehavior(entity::BoatEntity::Type type)
     : m_boatType(type)
 {}
 
-ItemStack BoatDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+ItemStack BoatDispenseBehavior::dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
     // 参考 MC 1.16.5: DispenseBoatBehavior
     Direction direction = state.get(BlockStateProperties::FACING());
@@ -281,7 +280,8 @@ ItemStack BoatDispenseBehavior::dispense(
     const fluid::FluidState* fluidState = world.getFluidState(targetPos);
 
     // 检查是否是水
-    bool isWater = fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    bool isWater =
+        fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 
     // 如果目标位置没有水，检查下方
     f32 waterLevel = 0.0f;
@@ -291,7 +291,8 @@ ItemStack BoatDispenseBehavior::dispense(
         // 检查下方是否有水
         BlockPos belowPos = targetPos.offset(Direction::Down);
         const fluid::FluidState* belowFluid = world.getFluidState(belowPos);
-        bool isBelowWater = belowFluid != nullptr && !belowFluid->isEmpty() && belowFluid->getFluid().isIn(fluid::FluidTags::WATER());
+        bool isBelowWater =
+            belowFluid != nullptr && !belowFluid->isEmpty() && belowFluid->getFluid().isIn(fluid::FluidTags::WATER());
         if (!isBelowWater || belowFluid->getLevel() == 0) {
             // 下方也没有水，作为普通物品发射
             return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);

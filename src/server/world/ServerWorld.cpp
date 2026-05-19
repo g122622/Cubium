@@ -1,25 +1,25 @@
 ﻿/*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 // 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
 // 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
@@ -1201,7 +1201,8 @@ const Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance,
 {
     const Player* closestPlayer = nullptr;
     f64 closestDistSq = std::numeric_limits<f64>::max();
-    f64 maxDistSq = (maxDistance < 0.0f) ? std::numeric_limits<f64>::max() : static_cast<f64>(maxDistance) * maxDistance;
+    f64 maxDistSq =
+        (maxDistance < 0.0f) ? std::numeric_limits<f64>::max() : static_cast<f64>(maxDistance) * maxDistance;
 
     auto players = m_entityManager.getPlayers();
     for (const Entity* entity : players) {
@@ -1810,44 +1811,41 @@ const char* structureTypeToName(world::gen::structure::StructureType type)
 {
     using namespace world::gen::structure;
     switch (type) {
-    case StructureType::Shipwreck:
-        return "shipwreck";
-    case StructureType::OceanRuin:
-        return "ocean_ruin";
-    case StructureType::BuriedTreasure:
-        return "buried_treasure";
-    case StructureType::Village:
-        return "village";
-    case StructureType::Stronghold:
-        return "stronghold";
-    case StructureType::Mineshaft:
-        return "mineshaft";
-    case StructureType::Monument:
-        return "ocean_monument";
-    case StructureType::Temple:
-        return "temple"; // 包括沙漠神殿、丛林神庙等
-    case StructureType::RuinedPortal:
-        return "ruined_portal";
-    case StructureType::WoodlandMansion:
-        return "woodland_mansion";
-    case StructureType::Fortress:
-        return "fortress";
-    case StructureType::Bastion:
-        return "bastion";
-    case StructureType::EndCity:
-        return "end_city";
-    default:
-        return nullptr;
+        case StructureType::Shipwreck:
+            return "shipwreck";
+        case StructureType::OceanRuin:
+            return "ocean_ruin";
+        case StructureType::BuriedTreasure:
+            return "buried_treasure";
+        case StructureType::Village:
+            return "village";
+        case StructureType::Stronghold:
+            return "stronghold";
+        case StructureType::Mineshaft:
+            return "mineshaft";
+        case StructureType::Monument:
+            return "ocean_monument";
+        case StructureType::Temple:
+            return "temple"; // 包括沙漠神殿、丛林神庙等
+        case StructureType::RuinedPortal:
+            return "ruined_portal";
+        case StructureType::WoodlandMansion:
+            return "woodland_mansion";
+        case StructureType::Fortress:
+            return "fortress";
+        case StructureType::Bastion:
+            return "bastion";
+        case StructureType::EndCity:
+            return "end_city";
+        default:
+            return nullptr;
     }
 }
 
 } // anonymous namespace
 
 std::optional<BlockPos> ServerWorld::findNearestStructure(
-    const BlockPos& center,
-    world::gen::structure::StructureType structureType,
-    i32 maxDistance,
-    bool skipExisting)
+    const BlockPos& center, world::gen::structure::StructureType structureType, i32 maxDistance, bool skipExisting)
 {
     MC_UNUSED(skipExisting); // 当前实现不使用此参数
 
@@ -1857,8 +1855,7 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
         return std::nullopt;
     }
 
-    const world::gen::structure::Structure* structure =
-        world::gen::structure::StructureRegistry::get(structureName);
+    const world::gen::structure::Structure* structure = world::gen::structure::StructureRegistry::get(structureName);
     if (structure == nullptr) {
         return std::nullopt;
     }
@@ -1910,8 +1907,7 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
 
                 // 使用结构静态方法检查是否在此区块生成结构
                 i32 startX, startZ;
-                bool hasStructure = world::gen::structure::Structure::findStructureStart(
-                    worldSeed,
+                bool hasStructure = world::gen::structure::Structure::findStructureStart(worldSeed,
                     candidateChunkX,
                     candidateChunkZ,
                     settings,

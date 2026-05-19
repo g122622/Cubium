@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "TurtleEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/Vector3.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -145,9 +145,8 @@ void TurtleEntity::layEgg()
     }
 
     // 获取海龟脚下位置
-    BlockPos footPos(static_cast<i32>(std::floor(x())),
-        static_cast<i32>(std::floor(y())),
-        static_cast<i32>(std::floor(z())));
+    BlockPos footPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
     // 检查脚下是否是沙子类方块
     const BlockState* belowState = world()->getBlockState(footPos.down());
@@ -187,9 +186,8 @@ void TurtleEntity::layEgg()
     f32 pitch = 0.9f + getRandom().nextFloat() * 0.2f;
     world()->playSound(SoundEvents::ENTITY_TURTLE_LAY_EGG,
         sound::SoundCategory::Blocks,
-        Vector3(static_cast<f32>(footPos.x) + 0.5f,
-            static_cast<f32>(footPos.y) + 0.5f,
-            static_cast<f32>(footPos.z) + 0.5f),
+        Vector3(
+            static_cast<f32>(footPos.x) + 0.5f, static_cast<f32>(footPos.y) + 0.5f, static_cast<f32>(footPos.z) + 0.5f),
         0.3f,
         pitch);
 }
@@ -224,8 +222,8 @@ void TurtleEntity::registerGoals()
 
     // 优先级 8: 看向玩家
     // MC 1.16.5: LookAtGoal(this, PlayerEntity.class, 8.0F)
-    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));

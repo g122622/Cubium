@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ExecuteCommand.hpp"
 
@@ -29,10 +29,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -175,8 +175,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // ========== positioned <pos> run <command> ==========
     // /execute positioned <pos> run <command> - 在指定位置执行命令
     auto positionedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("positioned");
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
-        "pos", Vec3ArgumentType::vec3());
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     auto posRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto posCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -190,10 +189,10 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
     auto ifNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("if");
     auto ifBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto ifBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto ifBlockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "block", StringArgumentType::string());
+    auto ifBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto ifBlockArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
     auto ifBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto ifBlockCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -209,10 +208,10 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /execute unless block <pos> <block> run <command> - 如果指定位置不是指定方块则执行
     auto unlessNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("unless");
     auto unlessBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto unlessBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
-        "pos", BlockPosArgumentType::blockPos());
-    auto unlessBlockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "block", StringArgumentType::string());
+    auto unlessBlockPosArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto unlessBlockArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
     auto unlessBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto unlessBlockCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -304,8 +303,7 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context)
         server::ServerWorld* world = iworld != nullptr ? static_cast<server::ServerWorld*>(iworld) : nullptr;
 
         // 创建修改位置和世界的命令源
-        ServerCommandSource modifiedSource = source.withPosition(
-            Vector3d(playerData->x, playerData->y, playerData->z));
+        ServerCommandSource modifiedSource = source.withPosition(Vector3d(playerData->x, playerData->y, playerData->z));
         if (world != nullptr) {
             modifiedSource = modifiedSource.withWorld(world);
         }

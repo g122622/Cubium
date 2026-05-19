@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -38,9 +38,9 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::entity::pipeline {
@@ -56,41 +56,41 @@ namespace mc::client::renderer::entity::layer::entity {
 namespace VillagerLayerDetail {
 /// 村民类型名称（生物群系），对应 VillagerType 枚举
 inline const char* VILLAGER_TYPE_NAMES[] = {
-    "desert", // VillagerType::Desert = 0
-    "jungle", // VillagerType::Jungle = 1
-    "plains", // VillagerType::Plains = 2
+    "desert",  // VillagerType::Desert = 0
+    "jungle",  // VillagerType::Jungle = 1
+    "plains",  // VillagerType::Plains = 2
     "savanna", // VillagerType::Savanna = 3
-    "snow", // VillagerType::Snow = 4
-    "swamp", // VillagerType::Swamp = 5
-    "taiga" // VillagerType::Taiga = 6
+    "snow",    // VillagerType::Snow = 4
+    "swamp",   // VillagerType::Swamp = 5
+    "taiga"    // VillagerType::Taiga = 6
 };
 
 /// 村民职业名称，对应 VillagerProfession 枚举
 inline const char* VILLAGER_PROFESSION_NAMES[] = {
-    "none", // VillagerProfession::None = 0
-    "armorer", // VillagerProfession::Armorer = 1
-    "butcher", // VillagerProfession::Butcher = 2
-    "cartographer", // VillagerProfession::Cartographer = 3
-    "cleric", // VillagerProfession::Cleric = 4
-    "farmer", // VillagerProfession::Farmer = 5
-    "fisherman", // VillagerProfession::Fisherman = 6
-    "fletcher", // VillagerProfession::Fletcher = 7
+    "none",          // VillagerProfession::None = 0
+    "armorer",       // VillagerProfession::Armorer = 1
+    "butcher",       // VillagerProfession::Butcher = 2
+    "cartographer",  // VillagerProfession::Cartographer = 3
+    "cleric",        // VillagerProfession::Cleric = 4
+    "farmer",        // VillagerProfession::Farmer = 5
+    "fisherman",     // VillagerProfession::Fisherman = 6
+    "fletcher",      // VillagerProfession::Fletcher = 7
     "leatherworker", // VillagerProfession::Leatherworker = 8
-    "librarian", // VillagerProfession::Librarian = 9
-    "mason", // VillagerProfession::Mason = 10
-    "nitwit", // VillagerProfession::Nitwit = 11
-    "shepherd", // VillagerProfession::Shepherd = 12
-    "toolsmith", // VillagerProfession::Toolsmith = 13
-    "weaponsmith" // VillagerProfession::Weaponsmith = 14
+    "librarian",     // VillagerProfession::Librarian = 9
+    "mason",         // VillagerProfession::Mason = 10
+    "nitwit",        // VillagerProfession::Nitwit = 11
+    "shepherd",      // VillagerProfession::Shepherd = 12
+    "toolsmith",     // VillagerProfession::Toolsmith = 13
+    "weaponsmith"    // VillagerProfession::Weaponsmith = 14
 };
 
 /// 村民等级徽章名称
 inline const char* VILLAGER_LEVEL_NAMES[] = {
-    "stone", // 等级 1 - 新手 (Novice)
-    "iron", // 等级 2 - 学徒 (Apprentice)
-    "gold", // 等级 3 - 老手 (Journeyman)
+    "stone",   // 等级 1 - 新手 (Novice)
+    "iron",    // 等级 2 - 学徒 (Apprentice)
+    "gold",    // 等级 3 - 老手 (Journeyman)
     "emerald", // 等级 4 - 专家 (Expert)
-    "diamond" // 等级 5 - 大师 (Master)
+    "diamond"  // 等级 5 - 大师 (Master)
 };
 
 constexpr i32 VILLAGER_TYPE_COUNT = 7;
@@ -128,7 +128,8 @@ constexpr i32 VILLAGER_MAX_LEVEL = 5;
  * @tparam TEntity 村民实体类型 (VillagerEntity 或 ZombieVillagerEntity)
  * @tparam TModel 村民模型类型
  */
-template <typename TEntity = ::mc::entity::VillagerEntity, typename TModel = ::mc::client::renderer::entity::model::animal::VillagerModel>
+template <typename TEntity = ::mc::entity::VillagerEntity,
+    typename TModel = ::mc::client::renderer::entity::model::animal::VillagerModel>
 class VillagerLayer : public layer::core::LayerRenderer<TEntity> {
 public:
     /**
@@ -136,8 +137,7 @@ public:
      * @param renderer 关联的渲染器
      * @param texturePrefix 纹理路径前缀 ("villager" 或 "zombie_villager")
      */
-    explicit VillagerLayer(
-        mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>& renderer,
+    explicit VillagerLayer(mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>& renderer,
         const std::string& texturePrefix = "villager")
         : m_renderer(&renderer)
         , m_texturePrefix(texturePrefix)
@@ -177,12 +177,14 @@ public:
         const ::mc::entity::VillagerData& data = entity.villagerData();
         const ::mc::entity::VillagerType type = data.type();
         const ::mc::entity::VillagerProfession profession = data.profession();
-        const i32 level = std::clamp(data.level(), VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
+        const i32 level =
+            std::clamp(data.level(), VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
 
         // 判断渲染条件
         const bool isChild = isChildEntity(entity);
         const bool shouldRenderProfession = (profession != ::mc::entity::VillagerProfession::None) && !isChild;
-        const bool shouldRenderLevel = shouldRenderProfession && (profession != ::mc::entity::VillagerProfession::Nitwit);
+        const bool shouldRenderLevel =
+            shouldRenderProfession && (profession != ::mc::entity::VillagerProfession::Nitwit);
 
         // 获取模型
         TModel* model = getParentModel();
@@ -217,7 +219,8 @@ public:
         if (shouldRenderProfession) {
             ResourceLocation professionTexture = getProfessionTexture(profession);
             if (pipeline::EntityMesh* professionMesh = getOrCreateMeshForTexture(pipeline, *model, professionTexture)) {
-                pipeline.drawMesh(cmd, *professionMesh, modelMatrix, entityPos, scale, overlayColor, hurtTime, deathTime);
+                pipeline.drawMesh(
+                    cmd, *professionMesh, modelMatrix, entityPos, scale, overlayColor, hurtTime, deathTime);
             }
         }
 
@@ -305,7 +308,8 @@ public:
      */
     [[nodiscard]] ResourceLocation getLevelTexture(i32 level) const
     {
-        const i32 clampedLevel = std::clamp(level, VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
+        const i32 clampedLevel =
+            std::clamp(level, VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
         const i32 index = clampedLevel - VillagerLayerDetail::VILLAGER_MIN_LEVEL;
         return buildTexturePath(std::string("profession_level/") + VillagerLayerDetail::VILLAGER_LEVEL_NAMES[index]);
     }
@@ -339,7 +343,8 @@ public:
      */
     [[nodiscard]] static const char* getLevelName(i32 level)
     {
-        const i32 clampedLevel = std::clamp(level, VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
+        const i32 clampedLevel =
+            std::clamp(level, VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
         const i32 index = clampedLevel - VillagerLayerDetail::VILLAGER_MIN_LEVEL;
         return VillagerLayerDetail::VILLAGER_LEVEL_NAMES[index];
     }
@@ -386,7 +391,8 @@ private:
      */
     [[nodiscard]] std::array<f64, 16> computeModelMatrix(const TEntity& entity) const
     {
-        std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+        std::array<f64, 16> modelMatrix = {
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
         // 应用 Y 轴旋转（yaw）
         // 使用 entity.yaw() 方法（Entity 基类方法）
@@ -491,7 +497,7 @@ private:
     }
 
     mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
-    std::string m_texturePrefix; ///< "villager" 或 "zombie_villager"
+    std::string m_texturePrefix;                                  ///< "villager" 或 "zombie_villager"
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr; ///< 纹理图集指针
 
     /// 静态网格缓存（按纹理路径索引）

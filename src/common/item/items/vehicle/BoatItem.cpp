@@ -23,8 +23,7 @@ namespace item {
 BoatItem::BoatItem(entity::BoatEntity::Type boatType, const ItemProperties& properties)
     : Item(std::move(properties))
     , m_boatType(boatType)
-{
-}
+{}
 
 ActionResultType BoatItem::onItemUse(ItemUseContext& context)
 {

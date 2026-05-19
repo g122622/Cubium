@@ -1,25 +1,25 @@
 ﻿/*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -285,10 +285,7 @@ public:
      * 示例: scores={deaths=1..5,kills=10..} 会返回 {"deaths": IntRange(1, unbounded), "kills": IntRange(10, unbounded)}
      */
     [[nodiscard]] const std::map<std::string, IntRange>& scoreConditions() const noexcept { return m_scores; }
-    void addScoreCondition(const std::string& objective, const IntRange& range)
-    {
-        m_scores[objective] = range;
-    }
+    void addScoreCondition(const std::string& objective, const IntRange& range) { m_scores[objective] = range; }
     [[nodiscard]] bool hasScoreConditions() const noexcept { return !m_scores.empty(); }
 
     // ========== 进度条件 ==========
@@ -301,8 +298,8 @@ public:
      * - 如果 criteriaConditions 不为空，检查各个准则的完成状态
      */
     struct AdvancementCondition {
-        std::optional<bool> isComplete;                                  // 整体完成状态检查
-        std::map<std::string, bool> criteriaConditions;                  // 准则完成状态检查
+        std::optional<bool> isComplete;                 // 整体完成状态检查
+        std::map<std::string, bool> criteriaConditions; // 准则完成状态检查
 
         [[nodiscard]] bool hasCondition() const noexcept
         {
@@ -334,8 +331,8 @@ public:
      * 存储 NBT 标签匹配条件，支持取反。
      */
     struct NbtCondition {
-        std::shared_ptr<nbt::tags::compound_tag> nbt;   // NBT 数据
-        bool negated = false;                      // 是否取反
+        std::shared_ptr<nbt::tags::compound_tag> nbt; // NBT 数据
+        bool negated = false;                         // 是否取反
 
         [[nodiscard]] bool hasCondition() const noexcept { return nbt != nullptr; }
     };
@@ -352,8 +349,8 @@ public:
      * 存储战利品表谓词引用，支持取反。
      */
     struct PredicateCondition {
-        ResourceLocation predicate;               // 谓词 ID
-        bool negated = false;                      // 是否取反
+        ResourceLocation predicate; // 谓词 ID
+        bool negated = false;       // 是否取反
 
         [[nodiscard]] bool hasCondition() const noexcept { return predicate.isValid(); }
     };
@@ -442,10 +439,10 @@ private:
     FloatRange m_yRotation; // 偏航角范围（yaw，-180 到 180 度）
 
     // 新增条件存储
-    std::map<std::string, IntRange> m_scores;                                // 记分板分数条件
-    std::map<ResourceLocation, AdvancementCondition> m_advancements;         // 进度条件
-    NbtCondition m_nbt;                                                       // NBT 条件
-    PredicateCondition m_predicate;                                           // 谓词条件
+    std::map<std::string, IntRange> m_scores;                        // 记分板分数条件
+    std::map<ResourceLocation, AdvancementCondition> m_advancements; // 进度条件
+    NbtCondition m_nbt;                                              // NBT 条件
+    PredicateCondition m_predicate;                                  // 谓词条件
 };
 
 /**

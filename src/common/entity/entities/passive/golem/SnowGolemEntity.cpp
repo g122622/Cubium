@@ -1,28 +1,40 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "SnowGolemEntity.hpp"
 
+#include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/damage/DamageSource.hpp"
+#include "entity/entities/monster/MonsterEntity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "entity/utils/ItemDropHelper.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
 #include "sound/SoundCategory.hpp"
 #include "sound/SoundEvents.hpp"
 #include "util/math/random/Random.hpp"
@@ -32,18 +44,6 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/gamerule/GameRules.hpp"
-#include "entity/ai/goal/goals/LookAtGoal.hpp"
-#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
-#include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/attribute/Attributes.hpp"
-#include "entity/damage/DamageSource.hpp"
-#include "entity/utils/ItemDropHelper.hpp"
-#include "item/items/block/BlockItemRegistry.hpp"
-#include "entity/entities/monster/MonsterEntity.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "entity/entities/projectile/ProjectileItemEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -85,18 +85,14 @@ std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/)
         // MC 1.16.5: 播放剪刀音效
         if (world() != nullptr) {
             world()->playSound(
-                SoundEvents::ENTITY_SNOW_GOLEM_SHEAR,
-                sound::SoundCategory::Neutral,
-                m_position,
-                1.0f,
-                1.0f
-            );
+                SoundEvents::ENTITY_SNOW_GOLEM_SHEAR, sound::SoundCategory::Neutral, m_position, 1.0f, 1.0f);
         }
 
         // MC 1.16.5: 掉落雕刻南瓜
         // 通过 BlockItemRegistry 获取 CARVED_PUMPKIN 方块对应的物品
         if (VanillaBlocks::CARVED_PUMPKIN != nullptr) {
-            const BlockItem* carvedPumpkinItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CARVED_PUMPKIN);
+            const BlockItem* carvedPumpkinItem =
+                BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CARVED_PUMPKIN);
             if (carvedPumpkinItem != nullptr) {
                 drops.emplace_back(static_cast<const Item*>(carvedPumpkinItem), 1);
             }
@@ -128,7 +124,8 @@ bool SnowGolemEntity::willMelt() const
     }
 
     // 获取当前位置的生物群系
-    BlockPos pos(static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+    BlockPos pos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
     // 通过区块获取生物群系
     const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
@@ -181,7 +178,11 @@ void SnowGolemEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*c
 
     // 发射雪球
     // MC 1.16.5: velocity = 1.6, inaccuracy = 12
-    snowball->shoot(static_cast<f32>(dx), static_cast<f32>(dy + verticalOffset), static_cast<f32>(dz), SNOWBALL_VELOCITY, SNOWBALL_INACCURACY);
+    snowball->shoot(static_cast<f32>(dx),
+        static_cast<f32>(dy + verticalOffset),
+        static_cast<f32>(dz),
+        SNOWBALL_VELOCITY,
+        SNOWBALL_INACCURACY);
 
     // 播放投掷音效
     // MC 1.16.5: entity.snow_golem.shoot
@@ -266,13 +267,11 @@ void SnowGolemEntity::registerGoals()
     // 优先级 1: RangedAttackGoal（雪球攻击）
     // MC 1.16.5: new RangedAttackGoal(this, 1.25D, 20, 10.0F)
     // 参数：移动速度 1.25，攻击间隔 20 ticks，攻击半径 10 格
-    m_goalSelector.addGoal(
-        1, std::make_unique<entity::ai::goal::RangedAttackGoal>(this, 1.25, 20, 20, 10.0f));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RangedAttackGoal>(this, 1.25, 20, 20, 10.0f));
 
     // 优先级 2: WaterAvoidingRandomWalkingGoal（避水随机行走）
     // MC 1.16.5: new WaterAvoidingRandomWalkingGoal(this, 1.0D, 1.0000001E-5F)
-    m_goalSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0, 1.0e-5f));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0, 1.0e-5f));
 
     // 优先级 3: LookAtGoal（看向玩家）
     // MC 1.16.5: new LookAtGoal(this, PlayerEntity.class, 6.0F)
@@ -286,15 +285,16 @@ void SnowGolemEntity::registerGoals()
 
     // 目标选择器：
     // 优先级 1: NearestAttackableTargetGoal<MobEntity>（攻击敌对生物）
-    // MC 1.16.5: new NearestAttackableTargetGoal<>(this, MobEntity.class, 10, true, false, (p_213621_0_) -> { return p_213621_0_ instanceof IMob; })
-    // 使用筛选器选择 IMob 类型的实体（敌对生物）
-    m_targetSelector.addGoal(
-        1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<MobEntity>>(this, true, 10, [](const LivingEntity* entity) -> bool {
-            // MC 1.16.5: 检查是否是 IMob（敌对生物）
-            // MonsterEntity 继承自 MobEntity 并实现 IMob 语义
-            const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
-            return monster != nullptr;
-        }));
+    // MC 1.16.5: new NearestAttackableTargetGoal<>(this, MobEntity.class, 10, true, false, (p_213621_0_) -> { return
+    // p_213621_0_ instanceof IMob; }) 使用筛选器选择 IMob 类型的实体（敌对生物）
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<MobEntity>>(
+            this, true, 10, [](const LivingEntity* entity) -> bool {
+                // MC 1.16.5: 检查是否是 IMob（敌对生物）
+                // MonsterEntity 继承自 MobEntity 并实现 IMob 语义
+                const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
+                return monster != nullptr;
+            }));
 }
 
 // ============================================================================
@@ -360,11 +360,9 @@ void SnowGolemEntity::placeSnowLayer()
         i32 offsetX = (i % 2) * 2 - 1;
         i32 offsetZ = (i / 2) * 2 - 1;
 
-        BlockPos pos(
-            static_cast<i32>(std::floor(x() + static_cast<f32>(offsetX) * 0.25f)),
+        BlockPos pos(static_cast<i32>(std::floor(x() + static_cast<f32>(offsetX) * 0.25f)),
             static_cast<i32>(std::floor(y())),
-            static_cast<i32>(std::floor(z() + static_cast<f32>(offsetZ) * 0.25f))
-        );
+            static_cast<i32>(std::floor(z() + static_cast<f32>(offsetZ) * 0.25f)));
 
         // 检查位置是否为空气
         const BlockState* currentState = worldPtr->getBlockState(pos.x, pos.y, pos.z);

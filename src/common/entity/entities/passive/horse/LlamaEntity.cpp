@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHERWISE DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHERWISE DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "LlamaEntity.hpp"
 
@@ -28,17 +28,17 @@
 #include "../../../../item/tag/ItemTags.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/AgeableEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../entities/projectile/OtherProjectiles.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/GoalFlag.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "../../../ai/goal/goals/special/SpecialGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/AgeableEntity.hpp"
+#include "../../../core/EntityUtils.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../entities/player/Player.hpp"
+#include "../../../entities/projectile/OtherProjectiles.hpp"
 #include "world/IWorld.hpp"
 
 #include <algorithm>
@@ -52,23 +52,23 @@ namespace mc {
 
 namespace {
 // 商队系统常量 (MC 1.16.5)
-constexpr f64 CARAVAN_SEARCH_RADIUS = 9.0;       // 搜索半径
-constexpr f64 CARAVAN_SEARCH_HEIGHT = 4.0;       // 搜索高度
-constexpr f64 CARAVAN_MIN_JOIN_DISTANCE_SQ = 4.0; // 最小加入距离平方 (2格)
+constexpr f64 CARAVAN_SEARCH_RADIUS = 9.0;            // 搜索半径
+constexpr f64 CARAVAN_SEARCH_HEIGHT = 4.0;            // 搜索高度
+constexpr f64 CARAVAN_MIN_JOIN_DISTANCE_SQ = 4.0;     // 最小加入距离平方 (2格)
 constexpr f64 CARAVAN_MAX_FOLLOW_DISTANCE_SQ = 676.0; // 最大跟随距离平方 (26格)
-constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;     // 跟随间距
-constexpr i32 CARAVAN_MAX_LENGTH = 8;            // 商队最大长度
+constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;          // 跟随间距
+constexpr i32 CARAVAN_MAX_LENGTH = 8;                 // 商队最大长度
 
 // 远程攻击常量 (MC 1.16.5)
-constexpr f32 LLAMA_SPIT_SPEED = 1.5f;           // 口水速度
-constexpr f32 LLAMA_SPIT_INACCURACY = 10.0f;     // 口水散布
-constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f;          // 口水伤害
+constexpr f32 LLAMA_SPIT_SPEED = 1.5f;       // 口水速度
+constexpr f32 LLAMA_SPIT_INACCURACY = 10.0f; // 口水散布
+constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f;      // 口水伤害
 
 // AI 速度常量
-constexpr f64 LLAMA_CARAVAN_SPEED = 2.1;         // 商队跟随速度
-constexpr f64 LLAMA_RANGED_ATTACK_SPEED = 1.25;  // 远程攻击移动速度
+constexpr f64 LLAMA_CARAVAN_SPEED = 2.1;          // 商队跟随速度
+constexpr f64 LLAMA_RANGED_ATTACK_SPEED = 1.25;   // 远程攻击移动速度
 constexpr f32 LLAMA_RANGED_ATTACK_RADIUS = 20.0f; // 远程攻击半径
-constexpr i32 LLAMA_ATTACK_INTERVAL = 40;        // 攻击间隔 ticks
+constexpr i32 LLAMA_ATTACK_INTERVAL = 40;         // 攻击间隔 ticks
 } // namespace
 
 // ============================================================================
@@ -351,13 +351,11 @@ void LlamaEntity::spit(LivingEntity* target)
     f32 compensation = horizontalDist * 0.2f;
 
     // 发射
-    spitEntity->shoot(
-        static_cast<f32>(targetX),
+    spitEntity->shoot(static_cast<f32>(targetX),
         static_cast<f32>(targetY + compensation),
         static_cast<f32>(targetZ),
         LLAMA_SPIT_SPEED,
-        LLAMA_SPIT_INACCURACY
-    );
+        LLAMA_SPIT_INACCURACY);
 
     // 生成实体
     m_world->spawnEntity(std::move(spitEntity));
@@ -399,12 +397,14 @@ void LlamaEntity::registerGoals()
 
     // MC 1.16.5: LlamaEntity.registerGoals()
     // 优先级 2: 商队跟随目标
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::LlamaFollowCaravanGoal>(this, static_cast<f32>(LLAMA_CARAVAN_SPEED)));
+    m_goalSelector.addGoal(
+        2, std::make_unique<entity::ai::goal::LlamaFollowCaravanGoal>(this, static_cast<f32>(LLAMA_CARAVAN_SPEED)));
 
     // 优先级 3: 远程攻击目标
     // 参数：速度 1.25, 攻击间隔 40 ticks, 攻击半径 20 格
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::RangedAttackGoal>(
-        this, LLAMA_RANGED_ATTACK_SPEED, LLAMA_ATTACK_INTERVAL, LLAMA_ATTACK_INTERVAL, LLAMA_RANGED_ATTACK_RADIUS));
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::RangedAttackGoal>(
+            this, LLAMA_RANGED_ATTACK_SPEED, LLAMA_ATTACK_INTERVAL, LLAMA_ATTACK_INTERVAL, LLAMA_RANGED_ATTACK_RADIUS));
 
     // Target 优先级 1: 被攻击后反击
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));

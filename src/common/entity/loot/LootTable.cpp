@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "LootTable.hpp"
 #include "LootConditions.hpp"
@@ -480,7 +480,8 @@ void LootTableManager::initializeDefaultTables()
         // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:lily_pad", RandomValueRange(1.0f, 1.0f), 17, -2));
 
         // 皮革靴子 - 权重 10 (需要设置损坏)
-        pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:leather_boots", RandomValueRange(1.0f, 1.0f), 10, -2));
+        pool->addEntry(
+            std::make_unique<ItemLootEntry>("minecraft:leather_boots", RandomValueRange(1.0f, 1.0f), 10, -2));
 
         // 皮革 - 权重 10
         pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:leather", RandomValueRange(1.0f, 1.0f), 10, -2));
@@ -507,7 +508,8 @@ void LootTableManager::initializeDefaultTables()
         pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:ink_sac", RandomValueRange(10.0f, 10.0f), 1, -2));
 
         // 绊线钩 - 权重 10 (项目中暂未定义，暂时跳过)
-        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:tripwire_hook", RandomValueRange(1.0f, 1.0f), 10, -2));
+        // pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:tripwire_hook", RandomValueRange(1.0f, 1.0f), 10,
+        // -2));
 
         // 腐肉 - 权重 10
         pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:rotten_flesh", RandomValueRange(1.0f, 1.0f), 10, -2));
@@ -544,7 +546,8 @@ void LootTableManager::initializeDefaultTables()
         pool->addEntry(std::move(bowEntry));
 
         // 钓鱼竿（附魔）- 权重 1 (需要附魔函数)
-        auto fishingRodEntry = std::make_unique<ItemLootEntry>("minecraft:fishing_rod", RandomValueRange(1.0f, 1.0f), 1, 2);
+        auto fishingRodEntry =
+            std::make_unique<ItemLootEntry>("minecraft:fishing_rod", RandomValueRange(1.0f, 1.0f), 1, 2);
         fishingRodEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
         // TODO: 添加附魔函数 EnchantWithLevelsFunction
         pool->addEntry(std::move(fishingRodEntry));
@@ -556,7 +559,8 @@ void LootTableManager::initializeDefaultTables()
         pool->addEntry(std::move(bookEntry));
 
         // 鹦鹉螺壳 - 权重 1
-        auto nautilusEntry = std::make_unique<ItemLootEntry>("minecraft:nautilus_shell", RandomValueRange(1.0f, 1.0f), 1, 2);
+        auto nautilusEntry =
+            std::make_unique<ItemLootEntry>("minecraft:nautilus_shell", RandomValueRange(1.0f, 1.0f), 1, 2);
         nautilusEntry->addCondition(std::make_unique<FishingOpenWaterCondition>(true));
         pool->addEntry(std::move(nautilusEntry));
 

@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
 #include "../../../../../util/math/Vector3.hpp"
+#include "../../../../../world/block/BlockPos.hpp"
+#include "../../Goal.hpp"
 
 namespace mc {
 
@@ -240,8 +240,8 @@ public:
     // MC 1.16.5 常量 - 公开以便测试
     static constexpr f32 SEARCH_RADIUS = 8.0f;
     static constexpr f32 THROW_VELOCITY = 0.3f;
-    static constexpr i32 PICKUP_DELAY = 40;      // 扔出物品的拾取延迟
-    static constexpr i32 MIN_COOLDOWN = 100;     // 最小冷却时间
+    static constexpr i32 PICKUP_DELAY = 40;  // 扔出物品的拾取延迟
+    static constexpr i32 MIN_COOLDOWN = 100; // 最小冷却时间
 
 private:
     /**
@@ -266,8 +266,8 @@ private:
  * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.BoatGoals
  */
 enum class BoatFollowState : u8 {
-    GoToBoat,           // 游向船
-    GoInBoatDirection   // 跟随船的行进方向
+    GoToBoat,         // 游向船
+    GoInBoatDirection // 跟随船的行进方向
 };
 
 /**
@@ -328,13 +328,13 @@ private:
     i32 m_navigationTimer = 0;
 
     // MC 1.16.5 常量
-    static constexpr f32 SEARCH_RADIUS = 5.0f;           // 搜索船的范围
-    static constexpr f32 GO_TO_BOAT_SPEED = 0.015f;      // 游向船的速度
-    static constexpr f32 GO_IN_DIRECTION_SPEED = 0.01f;  // 跟随方向的速度
-    static constexpr f32 SWITCH_TO_FOLLOW_DISTANCE = 4.0f;  // 切换到跟随状态的距离
+    static constexpr f32 SEARCH_RADIUS = 5.0f;                // 搜索船的范围
+    static constexpr f32 GO_TO_BOAT_SPEED = 0.015f;           // 游向船的速度
+    static constexpr f32 GO_IN_DIRECTION_SPEED = 0.01f;       // 跟随方向的速度
+    static constexpr f32 SWITCH_TO_FOLLOW_DISTANCE = 4.0f;    // 切换到跟随状态的距离
     static constexpr f32 SWITCH_TO_APPROACH_DISTANCE = 12.0f; // 切换回接近状态的距离
-    static constexpr i32 NAVIGATION_UPDATE_INTERVAL = 10;  // 导航更新间隔（ticks）
-    static constexpr f32 NAVIGATE_SPEED = 1.0f;  // 导航速度
+    static constexpr i32 NAVIGATION_UPDATE_INTERVAL = 10;     // 导航更新间隔（ticks）
+    static constexpr f32 NAVIGATE_SPEED = 1.0f;               // 导航速度
 };
 
 } // namespace entity::ai::goal

@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.hpp"
-#include "common/entity/ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/FollowMobGoal.hpp"
-#include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
+#include "common/entity/ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -81,15 +81,9 @@ public:
 
 class LandOnOwnersShoulderGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        parrot = std::make_unique<ParrotEntity>(EntityId(1));
-    }
+    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        parrot.reset();
-    }
+    void TearDown() override { parrot.reset(); }
 
     std::unique_ptr<ParrotEntity> parrot;
 };
@@ -159,10 +153,7 @@ protected:
         creature->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override
-    {
-        creature.reset();
-    }
+    void TearDown() override { creature.reset(); }
 
     std::unique_ptr<TestFlyingCreature> creature;
 };
@@ -245,10 +236,7 @@ protected:
         mob->setPositionForTest(0.0, 64.0, 0.0);
     }
 
-    void TearDown() override
-    {
-        mob.reset();
-    }
+    void TearDown() override { mob.reset(); }
 
     std::unique_ptr<TestMob> mob;
 };
@@ -329,10 +317,7 @@ protected:
         parrot = std::make_unique<ParrotEntity>(EntityId(1));
     }
 
-    void TearDown() override
-    {
-        parrot.reset();
-    }
+    void TearDown() override { parrot.reset(); }
 
     std::unique_ptr<ParrotEntity> parrot;
 };
@@ -366,8 +351,8 @@ TEST_F(ParrotGoalsTest, Parrot_IsShoulderRidingEntity)
     // 鹦鹉是 ShoulderRidingEntity
     // 注意: canSitOnShoulder() 需要 m_rideCooldownCounter > 100
     // 初始状态下为 0，所以返回 false
-    EXPECT_FALSE(parrot->canSitOnShoulder());  // 冷却时间未到
-    EXPECT_FALSE(parrot->isOnShoulder());      // 未在肩膀上
+    EXPECT_FALSE(parrot->canSitOnShoulder()); // 冷却时间未到
+    EXPECT_FALSE(parrot->isOnShoulder());     // 未在肩膀上
 }
 
 TEST_F(ParrotGoalsTest, Parrot_HasCorrectHealth)

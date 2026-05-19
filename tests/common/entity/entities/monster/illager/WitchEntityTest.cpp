@@ -1,35 +1,35 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/entities/monster/illager/WitchEntity.hpp"
-#include "common/entity/effect/EffectType.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/illager/WitchEntity.hpp"
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
 
 namespace mc {
@@ -158,8 +158,7 @@ TEST(WitchEntityTest, SpeedEffectCanBeAdded)
     WitchEntity witch(EntityId(1));
 
     // 添加速度效果
-    entity::effect::EffectInstance speedEffect(
-        entity::effect::EffectType::Speed,
+    entity::effect::EffectInstance speedEffect(entity::effect::EffectType::Speed,
         3600,  // 持续时间
         0,     // 等级 I
         false, // 非环境效果
@@ -179,13 +178,7 @@ TEST(WitchEntityTest, WaterBreathingEffectCanBeAdded)
 
     // 添加水肺效果
     entity::effect::EffectInstance waterBreathingEffect(
-        entity::effect::EffectType::WaterBreathing,
-        3600,
-        0,
-        false,
-        true,
-        true
-    );
+        entity::effect::EffectType::WaterBreathing, 3600, 0, false, true, true);
 
     witch.addEffect(std::move(waterBreathingEffect));
 
@@ -198,13 +191,7 @@ TEST(WitchEntityTest, FireResistanceEffectCanBeAdded)
 
     // 添加抗火效果
     entity::effect::EffectInstance fireResistanceEffect(
-        entity::effect::EffectType::FireResistance,
-        3600,
-        0,
-        false,
-        true,
-        true
-    );
+        entity::effect::EffectType::FireResistance, 3600, 0, false, true, true);
 
     witch.addEffect(std::move(fireResistanceEffect));
 

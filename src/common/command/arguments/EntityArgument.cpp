@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EntityArgument.hpp"
 
@@ -340,12 +340,13 @@ void EntityArgumentType::applySelectorArgument(
             auto tag = nbt::tags::read(nbt::deduce_tag(nbtStream), nbtStream);
             if (tag != nullptr && tag->id() == nbt::TagId::Compound) {
                 EntitySelector::NbtCondition condition;
-                condition.nbt = std::shared_ptr<nbt::tags::compound_tag>(
-                    dynamic_cast<nbt::tags::compound_tag*>(tag.release()));
+                condition.nbt =
+                    std::shared_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(tag.release()));
                 condition.negated = negated;
                 selector.setNbtCondition(condition);
             }
-        } catch (const std::exception&) {
+        }
+        catch (const std::exception&) {
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Invalid NBT format", cursor);
         }
         return;
@@ -375,7 +376,8 @@ void EntityArgumentType::applySelectorArgument(
 
             valueReader.skipWhitespace();
             if (!valueReader.canRead() || valueReader.peek() != '=') {
-                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '=' after objective name", cursor);
+                throw CommandException(
+                    CommandErrorType::EntitySelectorInvalid, "Expected '=' after objective name", cursor);
             }
             valueReader.skip(); // skip '='
             valueReader.skipWhitespace();
@@ -424,7 +426,8 @@ void EntityArgumentType::applySelectorArgument(
 
             valueReader.skipWhitespace();
             if (!valueReader.canRead() || valueReader.peek() != '=') {
-                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '=' after advancement id", cursor);
+                throw CommandException(
+                    CommandErrorType::EntitySelectorInvalid, "Expected '=' after advancement id", cursor);
             }
             valueReader.skip(); // skip '='
             valueReader.skipWhitespace();
@@ -490,7 +493,8 @@ void EntityArgumentType::applySelectorArgument(
                     } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                         condition.isComplete = false;
                     } else {
-                        throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                        throw CommandException(
+                            CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
                     }
                 }
             }
@@ -505,7 +509,8 @@ void EntityArgumentType::applySelectorArgument(
         }
 
         if (!valueReader.canRead() || valueReader.peek() != '}') {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
+            throw CommandException(
+                CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
         }
         valueReader.skip(); // skip '}'
 

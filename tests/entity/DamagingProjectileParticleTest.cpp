@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <vector>
 #include <gtest/gtest.h>
@@ -134,9 +134,9 @@ public:
     void setTestPosition(const Vector3& pos) { m_position = pos; }
 
     // 暴露 protected 方法用于测试
-    using DamagingProjectileEntity::spawnWaterParticles;
     using DamagingProjectileEntity::getParticleType;
     using DamagingProjectileEntity::spawnTrailParticles;
+    using DamagingProjectileEntity::spawnWaterParticles;
 
     // 重写 tick 以避免射线检测
     void tick() override
@@ -232,9 +232,8 @@ TEST(DamagingProjectileParticleTest, WaterParticlePositionCorrectlyOffset)
     ASSERT_EQ(particles.size(), 4u);
 
     // MC 1.16.5: 粒子位置 = pos - velocity * 0.25
-    Vector3 expectedPos(position.x - velocity.x * 0.25f,
-                        position.y - velocity.y * 0.25f,
-                        position.z - velocity.z * 0.25f);
+    Vector3 expectedPos(
+        position.x - velocity.x * 0.25f, position.y - velocity.y * 0.25f, position.z - velocity.z * 0.25f);
 
     for (const auto& p : particles) {
         EXPECT_FLOAT_EQ(p.position.x, expectedPos.x);

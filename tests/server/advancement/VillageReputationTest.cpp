@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -27,8 +27,8 @@
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossip.hpp"
 #include "common/world/village/VillageGossipType.hpp"
-#include <memory>
 #include <algorithm>
+#include <memory>
 
 using namespace mc;
 using namespace mc::world::village;
@@ -59,10 +59,7 @@ protected:
         m_village->setId(1);
     }
 
-    void TearDown() override
-    {
-        m_village.reset();
-    }
+    void TearDown() override { m_village.reset(); }
 
     std::unique_ptr<Village> m_village;
 };
@@ -214,7 +211,7 @@ TEST_F(VillageGossipCureTest, CureZombieVillager_PriceModifierNegativeReputation
     u64 playerId = std::hash<std::string>{}("test-player-uuid");
 
     // 添加负面声望
-    m_village->addGossip(playerId, VillageGossipType::MajorNegative, 5); // -100 * 5 = -500
+    m_village->addGossip(playerId, VillageGossipType::MajorNegative, 5);  // -100 * 5 = -500
     m_village->addGossip(playerId, VillageGossipType::MinorNegative, 10); // -20 * 10 = -200
 
     // 验证声誉
@@ -327,11 +324,11 @@ TEST_F(VillageGossipManagerTest, GetReputation_MultipleTypes)
     u64 playerId = 12345;
 
     // 添加多种类型的声望（使用较小的值）
-    m_manager.addGossip(playerId, VillageGossipType::MajorPositive, 1);   // +100 * 1 = +100
-    m_manager.addGossip(playerId, VillageGossipType::MinorPositive, 1);   // +20 * 1 = +20
-    m_manager.addGossip(playerId, VillageGossipType::Trading, 5);          // +2 * 5 = +10
-    m_manager.addGossip(playerId, VillageGossipType::MinorNegative, 1);    // -20 * 1 = -20
-    m_manager.addGossip(playerId, VillageGossipType::MajorNegative, 1);    // -100 * 1 = -100
+    m_manager.addGossip(playerId, VillageGossipType::MajorPositive, 1); // +100 * 1 = +100
+    m_manager.addGossip(playerId, VillageGossipType::MinorPositive, 1); // +20 * 1 = +20
+    m_manager.addGossip(playerId, VillageGossipType::Trading, 5);       // +2 * 5 = +10
+    m_manager.addGossip(playerId, VillageGossipType::MinorNegative, 1); // -20 * 1 = -20
+    m_manager.addGossip(playerId, VillageGossipType::MajorNegative, 1); // -100 * 1 = -100
 
     // 总声誉: 100 + 20 + 10 - 20 - 100 = 10
     EXPECT_EQ(m_manager.getReputation(playerId), 10);
@@ -350,8 +347,8 @@ TEST_F(VillageGossipManagerTest, GetReputation_Clamped)
 
     // 添加大量负面声望
     u64 player2 = 67890;
-    m_manager.addGossip(player2, VillageGossipType::MajorNegative, 100);  // -10000
-    m_manager.addGossip(player2, VillageGossipType::MinorNegative, 200);  // -4000
+    m_manager.addGossip(player2, VillageGossipType::MajorNegative, 100); // -10000
+    m_manager.addGossip(player2, VillageGossipType::MinorNegative, 200); // -4000
 
     // 声誉应该被限制在 -1000
     EXPECT_EQ(m_manager.getReputation(player2), -1000);

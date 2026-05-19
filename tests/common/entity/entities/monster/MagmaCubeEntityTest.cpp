@@ -1,37 +1,37 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
-#include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -140,12 +140,14 @@ TEST_F(MagmaCubeEntityTest, SetSlimeSize_UpdatesAttributes)
     // 验证属性
     EXPECT_EQ(magmaCube.getSlimeSize(), 4);
     // HP = size * size = 16
-    EXPECT_FLOAT_EQ(static_cast<f32>(magmaCube.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 16.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(magmaCube.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0)), 16.0f);
     // Speed = 0.2 + 0.1 * size = 0.6
     EXPECT_FLOAT_EQ(
         static_cast<f32>(magmaCube.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0)), 0.6f);
     // AttackDamage = size = 4
-    EXPECT_FLOAT_EQ(static_cast<f32>(magmaCube.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 4.0f);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(magmaCube.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 4.0f);
     // 生命值应该被重置为最大值
     EXPECT_FLOAT_EQ(magmaCube.health(), magmaCube.maxHealth());
 }
@@ -263,7 +265,7 @@ TEST_F(MagmaCubeEntityTest, GetJumpDelay_ComparedToSlimeRange)
     // 岩浆怪的平均延迟应该约为史莱姆的 4 倍
     // 史莱姆平均约 19.5，岩浆怪平均约 78
     f32 ratio = magmaAvg / slimeAvg;
-    EXPECT_GE(ratio, 3.4f);  // 允许一些随机误差
+    EXPECT_GE(ratio, 3.4f); // 允许一些随机误差
     EXPECT_LE(ratio, 4.6f);
 }
 
@@ -584,8 +586,7 @@ TEST_F(MagmaCubeEntityTest, ComprehensiveComparison_WithSlimeEntity)
     EXPECT_FALSE(slime.isImmuneToFire());
 
     // 2. 护甲
-    EXPECT_GT(
-        magmaCube.getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0),
+    EXPECT_GT(magmaCube.getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0),
         slime.getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0));
 
     // 3. 跳跃延迟

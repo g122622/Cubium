@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "../src/common/entity/core/Entity.hpp"
 #include "../src/common/item/context/BlockItemUseContext.hpp"
@@ -34,13 +34,13 @@
 #include "../src/common/world/block/BlockRegistry.hpp"
 #include "../src/common/world/block/Material.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
-#include "../src/common/world/block/blocks/functional/BedBlock.hpp"
-#include "../src/common/world/block/blocks/functional/CakeBlock.hpp"
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "../src/common/world/block/blocks/coral/CoralBlock.hpp"
+#include "../src/common/world/block/blocks/functional/BedBlock.hpp"
+#include "../src/common/world/block/blocks/functional/CakeBlock.hpp"
 #include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
@@ -63,8 +63,12 @@ public:
         : Block(properties)
     {
         // 创建空状态容器
-        auto container =
-            StateContainer<Block, BlockState>::Builder(*this).create([](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+            [](const Block& block,
+                auto values,
+                const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                const std::vector<BlockState*>* allStates,
+                u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
@@ -77,7 +81,11 @@ public:
         : Block(properties)
     {
         auto container = StateContainer<Block, BlockState>::Builder(*this).addAxis("axis").create(
-            [](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+            [](const Block& block,
+                auto values,
+                const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                const std::vector<BlockState*>* allStates,
+                u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
@@ -96,7 +104,11 @@ public:
         : Block(properties)
     {
         auto container = StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").create(
-            [](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+            [](const Block& block,
+                auto values,
+                const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                const std::vector<BlockState*>* allStates,
+                u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
@@ -115,7 +127,11 @@ public:
     {
         auto container =
             StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").addBoolean("lit").create(
-                [](const Block& block, auto values, const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts, const std::vector<BlockState*>* allStates, u32 id) {
+                [](const Block& block,
+                    auto values,
+                    const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                    const std::vector<BlockState*>* allStates,
+                    u32 id) {
                     return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
@@ -316,8 +332,7 @@ public:
                             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                             const std::vector<BlockState*>* allStates,
                             u32 id) {
-                    return std::make_unique<BlockState>(
-                        block, std::move(values), propertyLayouts, allStates, id);
+                    return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
@@ -340,8 +355,7 @@ public:
                             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                             const std::vector<BlockState*>* allStates,
                             u32 id) {
-                    return std::make_unique<BlockState>(
-                        block, std::move(values), propertyLayouts, allStates, id);
+                    return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));

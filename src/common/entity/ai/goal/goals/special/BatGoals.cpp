@@ -10,11 +10,11 @@
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
-#include "../../../../entities/passive/ambient/BatEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/block/BlockState.hpp"
+#include "../../../../entities/passive/ambient/BatEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -142,11 +142,9 @@ void BatRandomFlyGoal::tick()
         // 计算新的速度向量
         // signum(dx) * 0.5 - vel.x) * 0.1
         // Y轴调整更强 (0.7 而非 0.5)
-        math::Vector3 newVel(
-            static_cast<f32>((signum(static_cast<f64>(dx)) * 0.5 - currentVel.x) * 0.1),
+        math::Vector3 newVel(static_cast<f32>((signum(static_cast<f64>(dx)) * 0.5 - currentVel.x) * 0.1),
             static_cast<f32>((signum(static_cast<f64>(dy)) * 0.7 - currentVel.y) * 0.1),
-            static_cast<f32>((signum(static_cast<f64>(dz)) * 0.5 - currentVel.z) * 0.1)
-        );
+            static_cast<f32>((signum(static_cast<f64>(dz)) * 0.5 - currentVel.z) * 0.1));
 
         m_bat->setVelocity(newVel);
 
@@ -374,11 +372,9 @@ bool BatRestGoal::canRestAtCurrentPosition() const
 
     // 检查上方是否有固体方块
     math::Vector3 pos = m_bat->position();
-    BlockPos abovePos(
-        static_cast<i32>(std::floor(pos.x)),
+    BlockPos abovePos(static_cast<i32>(std::floor(pos.x)),
         static_cast<i32>(std::floor(pos.y + m_bat->height() + 0.1f)),
-        static_cast<i32>(std::floor(pos.z))
-    );
+        static_cast<i32>(std::floor(pos.z)));
 
     const BlockState* state = m_bat->world()->getBlockState(abovePos);
     if (state == nullptr) {

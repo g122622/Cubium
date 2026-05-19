@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -40,7 +40,7 @@ namespace entity::ai::goal {
 class BeePollinateGoal;
 class BeeFindHiveGoal;
 class BeeFindFlowerGoal;
-}
+} // namespace entity::ai::goal
 
 /**
  * @brief 蜜蜂实体
@@ -396,15 +396,15 @@ private:
 
     // ========== 计时器 ==========
     i32 m_underWaterTimer = 0;
-    i32 m_timeSinceSting = 0;  ///< 蛰刺后经过的 tick 数
+    i32 m_timeSinceSting = 0; ///< 蛰刺后经过的 tick 数
 
     // ========== MC 1.16.5 计时器和计数器 ==========
-    i32 m_ticksWithoutNectarSinceExitingHive = 0;  ///< 离巢后无花粉的tick数
-    i32 m_cropsGrownSincePollination = 0;          ///< 授粉后促生长的作物数
-    i32 m_stayOutOfHiveCountdown = 0;              ///< 不进入蜂巢的倒计时
-    i32 m_remainingCooldownBeforeLocatingNewHive = 0;  ///< 寻找新蜂巢冷却
+    i32 m_ticksWithoutNectarSinceExitingHive = 0;       ///< 离巢后无花粉的tick数
+    i32 m_cropsGrownSincePollination = 0;               ///< 授粉后促生长的作物数
+    i32 m_stayOutOfHiveCountdown = 0;                   ///< 不进入蜂巢的倒计时
+    i32 m_remainingCooldownBeforeLocatingNewHive = 0;   ///< 寻找新蜂巢冷却
     i32 m_remainingCooldownBeforeLocatingNewFlower = 0; ///< 寻找新花朵冷却
-    bool m_pollinating = false;                    ///< 是否正在授粉
+    bool m_pollinating = false;                         ///< 是否正在授粉
 
     // ========== 常量 ==========
     static constexpr i32 MAX_ANGER_TIME = 1200; // 60秒

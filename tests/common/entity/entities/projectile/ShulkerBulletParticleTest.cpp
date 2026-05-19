@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
-#include "common/entity/entities/projectile/OtherProjectiles.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/EntityDataManager.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -45,10 +45,7 @@ using namespace mc::entity;
  */
 class ShulkerBulletParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_bullet = std::make_unique<ShulkerBulletEntity>(EntityId(1));
-    }
+    void SetUp() override { m_bullet = std::make_unique<ShulkerBulletEntity>(EntityId(1)); }
 
     std::unique_ptr<ShulkerBulletEntity> m_bullet;
 };
@@ -94,8 +91,7 @@ TEST_F(ShulkerBulletParticleTest, SetTarget_UpdatesTarget)
 // 粒子类型验证测试
 // ============================================================================
 
-class ExplosionParticleTypeTest : public ::testing::Test {
-};
+class ExplosionParticleTypeTest : public ::testing::Test {};
 
 TEST_F(ExplosionParticleTypeTest, ExplosionParticle_ValueCorrect)
 {
@@ -130,8 +126,7 @@ TEST_F(ExplosionParticleTypeTest, ExplosionParticle_CanBeUsedForShulkerBullet)
  * - 随机偏移范围：0.2 (x, y, z)
  * - 初始速度：0.0
  */
-class ShulkerBulletParticleParamsTest : public ::testing::Test {
-};
+class ShulkerBulletParticleParamsTest : public ::testing::Test {};
 
 TEST_F(ShulkerBulletParticleParamsTest, ExplosionParticleCount_IsTwo)
 {
@@ -160,10 +155,7 @@ TEST_F(ShulkerBulletParticleParamsTest, ExplosionParticleVelocity_IsZero)
 
 class EvokerFangsParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_fangs = std::make_unique<EvokerFangsEntity>(EntityId(1));
-    }
+    void SetUp() override { m_fangs = std::make_unique<EvokerFangsEntity>(EntityId(1)); }
 
     std::unique_ptr<EvokerFangsEntity> m_fangs;
 };
@@ -204,10 +196,7 @@ TEST_F(EvokerFangsParticleTest, GetAnimationProgress_ReturnsValidRange)
 
 class FishingBobberParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_bobber = std::make_unique<FishingBobberEntity>(EntityId(1));
-    }
+    void SetUp() override { m_bobber = std::make_unique<FishingBobberEntity>(EntityId(1)); }
 
     std::unique_ptr<FishingBobberEntity> m_bobber;
 };
@@ -249,10 +238,7 @@ TEST_F(FishingBobberParticleTest, IsInOpenWater_InitiallyFalse)
 
 class LlamaSpitParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_spit = std::make_unique<LlamaSpitEntity>(EntityId(1));
-    }
+    void SetUp() override { m_spit = std::make_unique<LlamaSpitEntity>(EntityId(1)); }
 
     std::unique_ptr<LlamaSpitEntity> m_spit;
 };
@@ -273,10 +259,7 @@ TEST_F(LlamaSpitParticleTest, DefaultValues_AreCorrect)
 
 class EyeOfEnderParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_eye = std::make_unique<EyeOfEnderEntity>(EntityId(1));
-    }
+    void SetUp() override { m_eye = std::make_unique<EyeOfEnderEntity>(EntityId(1)); }
 
     std::unique_ptr<EyeOfEnderEntity> m_eye;
 };

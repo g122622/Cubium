@@ -1,49 +1,49 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "RavagerEntity.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockRegistry.hpp"
+#include "../../../../world/block/BlockState.hpp"
+#include "../../../../world/block/BlockTags.hpp"
+#include "../../../../world/gamerule/GameRules.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/RavagerGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/pathfinding/PathFinder.hpp"
+#include "../../../ai/pathfinding/PathNavigator.hpp"
+#include "../../../ai/pathfinding/RavagerNodeProcessor.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../ai/goal/goals/special/RavagerGoals.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/pathfinding/PathFinder.hpp"
-#include "../../../ai/pathfinding/RavagerNodeProcessor.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
 #include "../../../damage/DamageSource.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/BlockTags.hpp"
-#include "../../../../world/block/BlockState.hpp"
-#include "../../../../world/block/BlockRegistry.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../entities/player/Player.hpp"
 #include <memory>
 
 namespace mc {
@@ -170,10 +170,7 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
         if (target) {
             // 应用碰撞效果
             target->addVelocity(
-                static_cast<f32>(x() - target->x()) * 0.1f,
-                0.0f,
-                static_cast<f32>(z() - target->z()) * 0.1f
-            );
+                static_cast<f32>(x() - target->x()) * 0.1f, 0.0f, static_cast<f32>(z() - target->z()) * 0.1f);
         }
     } else {
         // 发射目标
@@ -252,16 +249,16 @@ void RavagerEntity::spawnStunParticles()
     // getPosX() - (double)getWidth() * Math.sin((double)(renderYawOffset * ((float)Math.PI / 180F)))
     //           + (this.rand.nextDouble() * 0.6D - 0.3D)
     f32 renderYawOffsetRad = math::toRadians(renderYawOffset());
-    f64 offsetX = -static_cast<f64>(width()) * std::sin(static_cast<f64>(renderYawOffsetRad))
-                + (rng.nextDouble() * 0.6 - 0.3);
+    f64 offsetX =
+        -static_cast<f64>(width()) * std::sin(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
     // getPosY() + (double)getHeight() - 0.3D
     f64 offsetY = y() + static_cast<f64>(height()) - 0.3;
 
     // getPosZ() + (double)getWidth() * Math.cos((double)(renderYawOffset * ((float)Math.PI / 180F)))
     //          + (this.rand.nextDouble() * 0.6D - 0.3D)
-    f64 offsetZ = static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad))
-                + (rng.nextDouble() * 0.6 - 0.3);
+    f64 offsetZ =
+        static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
     // MC 1.16.5: ParticleTypes.ENTITY_EFFECT
     // 颜色参数: (0.498, 0.514, 0.573) - 灰色效果粒子
@@ -338,8 +335,9 @@ void RavagerEntity::registerGoals()
 
     // 优先级 6: 看向玩家
     // MC 1.16.5: new LookAtGoal(this, PlayerEntity.class, 6.0F)
-    goalSelector().addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 6.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
+    goalSelector().addGoal(6,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 6.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 10: 看向生物
     // MC 1.16.5: new LookAtGoal(this, MobEntity.class, 8.0F)
@@ -355,11 +353,13 @@ void RavagerEntity::registerGoals()
 
     // 优先级 4: 攻击村民
     // 注: VillagerEntity 需要实现后添加
-    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this, true));
+    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
+    // true));
 
     // 优先级 4: 攻击铁傀儡
     // 注: IronGolemEntity 需要实现后添加
-    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this,
+    // true));
 }
 
 void RavagerEntity::registerAttributes()

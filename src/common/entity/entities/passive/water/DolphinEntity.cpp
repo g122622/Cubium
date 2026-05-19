@@ -1,51 +1,51 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "DolphinEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/BlockPos.hpp"
-#include "../../../ai/pathfinding/Path.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/GoalFlag.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/FindWaterGoal.hpp"
-#include "../../../ai/goal/goals/RandomSwimmingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/goal/goals/RandomSwimmingGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/special/DolphinGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/pathfinding/Path.hpp"
 #include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../core/MobEntity.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include <cmath>
 
@@ -143,10 +143,7 @@ bool DolphinEntity::closeToTarget() const
 
     // 检查是否在 12 格范围内
     Vector3 targetCenter(
-        static_cast<f64>(targetPos.x) + 0.5,
-        static_cast<f64>(targetPos.y),
-        static_cast<f64>(targetPos.z) + 0.5
-    );
+        static_cast<f64>(targetPos.x) + 0.5, static_cast<f64>(targetPos.y), static_cast<f64>(targetPos.z) + 0.5);
 
     f64 distSq = (position() - targetCenter).lengthSquared();
     constexpr f64 CLOSE_DISTANCE_SQ = 12.0 * 12.0;
@@ -242,8 +239,8 @@ void DolphinEntity::registerGoals()
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 优先级 5: 看向玩家和跳跃
-    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    m_goalSelector.addGoal(
+        5, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::DolphinJumpGoal>(this, 10));
@@ -256,7 +253,8 @@ void DolphinEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FollowBoatGoal>(this));
 
     // 优先级 9: 避开守卫者
-    // m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::AvoidEntityGoal>(this, GuardianEntity::class, 8.0f, 1.0, 1.0));
+    // m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
+    // GuardianEntity::class, 8.0f, 1.0, 1.0));
 
     // 目标选择器
     // 优先级 1: 被攻击后反击，并呼叫同类

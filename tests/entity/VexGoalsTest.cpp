@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/core/Types.hpp"
-#include "common/entity/ai/goal/goals/special/VexGoals.hpp"
 #include "common/entity/ai/controller/VexMovementController.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/special/VexGoals.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -158,7 +158,7 @@ TEST_F(VexGoalsTest, MoveRandom_WanderRange_Calculation)
 
     // nextInt(15) 返回 [0, 14]
     // 减去 7 后范围: [-7, 7]
-    i32 minOffset = 0 - WANDER_RANGE_X;       // -7
+    i32 minOffset = 0 - WANDER_RANGE_X;                  // -7
     i32 maxOffset = (RANDOM_RANGE - 1) - WANDER_RANGE_X; // 7
 
     EXPECT_EQ(minOffset, -7);
@@ -254,8 +254,8 @@ TEST_F(VexGoalsTest, VexEntity_LimitedLife_IsCorrect)
     // 召唤时: lifeTime = 20 * (30 + random.nextInt(90))
     // 范围: 600-2400 ticks (30-120 秒)
 
-    constexpr i32 MIN_LIFE_TIME = 20 * 30;  // 600 ticks = 30 秒
-    constexpr i32 MAX_LIFE_TIME = 20 * 120; // 2400 ticks = 120 秒
+    constexpr i32 MIN_LIFE_TIME = 20 * 30;   // 600 ticks = 30 秒
+    constexpr i32 MAX_LIFE_TIME = 20 * 120;  // 2400 ticks = 120 秒
     constexpr i32 LIFE_TIME_RANGE = 20 * 90; // 1800 ticks = 90 秒
 
     EXPECT_EQ(MIN_LIFE_TIME, 600);

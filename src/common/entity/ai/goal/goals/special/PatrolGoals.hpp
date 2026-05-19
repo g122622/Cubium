@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
-#include "../../Goal.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
+#include "../../Goal.hpp"
 #include <vector>
 
 namespace mc {
@@ -81,12 +81,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "PatrolGoal"; }
 
     // MC 1.16.5 常量（公开以便测试）
-    static constexpr f64 ARRIVAL_THRESHOLD = 10.0;        // 到达目标阈值（格）
-    static constexpr f64 ARRIVAL_THRESHOLD_SQ = 100.0;    // 到达目标阈值平方
-    static constexpr f64 NEARBY_PATROLLER_RANGE = 16.0;   // 搜索附近队员范围
+    static constexpr f64 ARRIVAL_THRESHOLD = 10.0;          // 到达目标阈值（格）
+    static constexpr f64 ARRIVAL_THRESHOLD_SQ = 100.0;      // 到达目标阈值平方
+    static constexpr f64 NEARBY_PATROLLER_RANGE = 16.0;     // 搜索附近队员范围
     static constexpr f64 NEARBY_PATROLLER_RANGE_SQ = 256.0; // 搜索范围平方
-    static constexpr i64 COOLDOWN_TICKS = 200L;           // 移动失败冷却时间
-    static constexpr i32 RANDOM_MOVE_RANGE = 8;           // 随机移动范围
+    static constexpr i64 COOLDOWN_TICKS = 200L;             // 移动失败冷却时间
+    static constexpr i32 RANDOM_MOVE_RANGE = 8;             // 随机移动范围
 
 private:
     /**
@@ -102,9 +102,9 @@ private:
     [[nodiscard]] bool moveRandomly();
 
     PatrollerEntity* m_patroller;
-    f64 m_memberSpeed;      // 队员速度
-    f64 m_leaderSpeed;      // 队长速度
-    i64 m_cooldownTime = -1LL;  // 冷却时间戳（游戏 tick），初始为 -1 表示无冷却
+    f64 m_memberSpeed;         // 队员速度
+    f64 m_leaderSpeed;         // 队长速度
+    i64 m_cooldownTime = -1LL; // 冷却时间戳（游戏 tick），初始为 -1 表示无冷却
 };
 
 } // namespace entity::ai::goal

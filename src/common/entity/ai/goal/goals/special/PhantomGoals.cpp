@@ -6,18 +6,18 @@
  */
 
 #include "PhantomGoals.hpp"
+#include "../../../../../core/Constants.hpp"
+#include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../sound/SoundEvents.hpp"
-#include "../../../../entities/monster/basic/PhantomEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../../core/Constants.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/block/BlockState.hpp"
+#include "../../../../core/EntityUtils.hpp"
+#include "../../../../entities/monster/basic/PhantomEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -29,7 +29,7 @@ namespace mc::entity::ai::goal {
 PhantomAttackPlayerTargetGoal::PhantomAttackPlayerTargetGoal(PhantomEntity* phantom)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
     , m_phantom(phantom)
-    , m_tickDelay(20)  // MC 1.16.5: 初始延迟20tick
+    , m_tickDelay(20) // MC 1.16.5: 初始延迟20tick
 {
     MC_ASSERT_RELEASE(phantom != nullptr);
 }
@@ -49,7 +49,7 @@ bool PhantomAttackPlayerTargetGoal::shouldExecute()
     Player* player = findAttackablePlayer();
     if (player != nullptr) {
         m_phantom->setAttackTarget(player);
-        m_tickDelay = 60;  // MC 1.16.5: 成功后60tick延迟
+        m_tickDelay = 60; // MC 1.16.5: 成功后60tick延迟
         return true;
     }
 
@@ -105,11 +105,7 @@ Player* PhantomAttackPlayerTargetGoal::findAttackablePlayer()
     // MC 1.16.5: 搜索范围 16x64x16
     // 使用 EntityUtils 搜索玩家
     Player* nearestPlayer = EntityUtils::findClosestEntity<Player>(
-        world,
-        pos,
-        static_cast<f32>(SEARCH_RANGE),
-        m_phantom,
-        [this](Player* player) -> bool {
+        world, pos, static_cast<f32>(SEARCH_RANGE), m_phantom, [this](Player* player) -> bool {
             if (player == nullptr || !player->isAlive()) {
                 return false;
             }
@@ -164,8 +160,7 @@ PhantomOrbitPointGoal::PhantomOrbitPointGoal(PhantomEntity* phantom)
     , m_orbitRadius(5.0f)
     , m_orbitHeightOffset(0.0f)
     , m_orbitDirection(1.0f)
-{
-}
+{}
 
 bool PhantomOrbitPointGoal::shouldExecute()
 {
@@ -187,7 +182,7 @@ void PhantomOrbitPointGoal::startExecuting()
     math::Random rng = m_phantom->getRandom();
 
     // MC 1.16.5: 初始化环绕参数
-    m_orbitRadius = 5.0f + rng.nextFloat() * 10.0f;      // 5.0 + [0, 10.0)
+    m_orbitRadius = 5.0f + rng.nextFloat() * 10.0f;       // 5.0 + [0, 10.0)
     m_orbitHeightOffset = -4.0f + rng.nextFloat() * 9.0f; // -4.0 + [0, 9.0)
     m_orbitDirection = rng.nextBoolean() ? 1.0f : -1.0f;  // 随机方向
 
@@ -233,11 +228,9 @@ void PhantomOrbitPointGoal::tick()
     IWorld* world = m_phantom->world();
 
     // 检查下方方块
-    BlockPos belowPos(
-        static_cast<i32>(std::floor(pos.x)),
+    BlockPos belowPos(static_cast<i32>(std::floor(pos.x)),
         static_cast<i32>(std::floor(pos.y - 1.0)),
-        static_cast<i32>(std::floor(pos.z))
-    );
+        static_cast<i32>(std::floor(pos.z)));
     const BlockState* belowState = world->getBlockState(belowPos);
 
     if (offset.y < pos.y && belowState != nullptr && !belowState->getBlock().isAir(*belowState)) {
@@ -247,11 +240,9 @@ void PhantomOrbitPointGoal::tick()
     }
 
     // 检查上方方块
-    BlockPos abovePos(
-        static_cast<i32>(std::floor(pos.x)),
+    BlockPos abovePos(static_cast<i32>(std::floor(pos.x)),
         static_cast<i32>(std::floor(pos.y + 1.0)),
-        static_cast<i32>(std::floor(pos.z))
-    );
+        static_cast<i32>(std::floor(pos.z)));
     const BlockState* aboveState = world->getBlockState(abovePos);
 
     if (offset.y > pos.y && aboveState != nullptr && !aboveState->getBlock().isAir(*aboveState)) {
@@ -273,11 +264,9 @@ void PhantomOrbitPointGoal::updateOrbitOffset()
     // 如果环绕位置未初始化，使用当前位置
     if (orbitPos.x == 0 && orbitPos.y == 0 && orbitPos.z == 0) {
         math::Vector3 pos = m_phantom->position();
-        orbitPos = BlockPos(
-            static_cast<i32>(std::floor(pos.x)),
+        orbitPos = BlockPos(static_cast<i32>(std::floor(pos.x)),
             static_cast<i32>(std::floor(pos.y)),
-            static_cast<i32>(std::floor(pos.z))
-        );
+            static_cast<i32>(std::floor(pos.z)));
         m_phantom->setOrbitPosition(orbitPos);
     }
 
@@ -290,11 +279,9 @@ void PhantomOrbitPointGoal::updateOrbitOffset()
     f32 offsetY = -4.0f + m_orbitHeightOffset;
     f32 offsetZ = m_orbitRadius * std::sin(m_orbitAngle);
 
-    math::Vector3f offset(
-        static_cast<f32>(orbitPos.x) + offsetX,
+    math::Vector3f offset(static_cast<f32>(orbitPos.x) + offsetX,
         static_cast<f32>(orbitPos.y) + offsetY,
-        static_cast<f32>(orbitPos.z) + offsetZ
-    );
+        static_cast<f32>(orbitPos.z) + offsetZ);
 
     m_phantom->setOrbitOffset(offset);
 }
@@ -343,15 +330,11 @@ void PhantomPickAttackGoal::resetTask()
 
         // 获取最高方块位置 + 10~30格
         i32 surfaceY = m_phantom->world()->getHeight(
-            static_cast<i32>(std::floor(targetPos.x)),
-            static_cast<i32>(std::floor(targetPos.z))
-        );
+            static_cast<i32>(std::floor(targetPos.x)), static_cast<i32>(std::floor(targetPos.z)));
 
-        BlockPos newOrbitPos(
-            static_cast<i32>(std::floor(targetPos.x)),
+        BlockPos newOrbitPos(static_cast<i32>(std::floor(targetPos.x)),
             surfaceY + 10 + rng.nextInt(20),
-            static_cast<i32>(std::floor(targetPos.z))
-        );
+            static_cast<i32>(std::floor(targetPos.z)));
 
         m_phantom->setOrbitPosition(newOrbitPos);
     }
@@ -404,11 +387,7 @@ void PhantomPickAttackGoal::setOrbitPositionAboveTarget()
         orbitY = world::SEA_LEVEL + 1;
     }
 
-    BlockPos orbitPos(
-        static_cast<i32>(std::floor(targetPos.x)),
-        orbitY,
-        static_cast<i32>(std::floor(targetPos.z))
-    );
+    BlockPos orbitPos(static_cast<i32>(std::floor(targetPos.x)), orbitY, static_cast<i32>(std::floor(targetPos.z)));
 
     m_phantom->setOrbitPosition(orbitPos);
 }
@@ -420,8 +399,7 @@ void PhantomPickAttackGoal::setOrbitPositionAboveTarget()
 PhantomSweepAttackGoal::PhantomSweepAttackGoal(PhantomEntity* phantom)
     : PhantomMoveGoal(phantom)
     , m_catCheckTimer(0)
-{
-}
+{}
 
 bool PhantomSweepAttackGoal::shouldExecute()
 {
@@ -480,11 +458,7 @@ void PhantomSweepAttackGoal::tick()
 
     // MC 1.16.5: 设置环绕偏移为目标位置（眼睛高度 0.5）
     math::Vector3f targetPos = target->position();
-    math::Vector3f offset(
-        targetPos.x,
-        targetPos.y + target->eyeHeight() * 0.5f,
-        targetPos.z
-    );
+    math::Vector3f offset(targetPos.x, targetPos.y + target->eyeHeight() * 0.5f, targetPos.z);
     m_phantom->setOrbitOffset(offset);
 
     // MC 1.16.5: 检测碰撞
@@ -500,9 +474,11 @@ void PhantomSweepAttackGoal::tick()
         // MC 1.16.5: 播放攻击音效
         // world.playEvent(1039, getPosition(), 0) - 事件ID 1039 是幻翼攻击事件
         if (IWorld* world = m_phantom->world()) {
-            world->playEvent(1039, BlockPos(math::floorTo<i32>(m_phantom->x()),
-                                            math::floorTo<i32>(m_phantom->y()),
-                                            math::floorTo<i32>(m_phantom->z())), 0);
+            world->playEvent(1039,
+                BlockPos(math::floorTo<i32>(m_phantom->x()),
+                    math::floorTo<i32>(m_phantom->y()),
+                    math::floorTo<i32>(m_phantom->z())),
+                0);
         }
     }
     // MC 1.16.5: 水平碰撞或受伤时切回环绕
@@ -514,7 +490,7 @@ void PhantomSweepAttackGoal::tick()
 bool PhantomSweepAttackGoal::checkForCats()
 {
     if (m_phantom == nullptr || m_phantom->world() == nullptr) {
-        return true;  // 无猫时继续
+        return true; // 无猫时继续
     }
 
     // MC 1.16.5: 每20tick检测一次猫

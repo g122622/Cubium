@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -31,8 +31,8 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
-#include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
 #include "common/entity/entities/monster/arthropod/CaveSpiderEntity.hpp"
+#include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -51,8 +51,7 @@ public:
     SpiderTestWorld()
         : m_difficulty(Difficulty::Normal)
         , m_brightness(0.0f)
-    {
-    }
+    {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -110,10 +109,7 @@ private:
 
 class SpiderEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -167,10 +163,7 @@ TEST_F(SpiderEntityTest, ShouldNotBurnInDaylight)
 
 class SpiderLightLevelTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -223,10 +216,7 @@ TEST_F(SpiderLightLevelTest, NoAttackInBright_LightLevel7AndAbove)
 
 class SpiderAttackGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -245,8 +235,8 @@ TEST_F(SpiderAttackGoalTest, BrightnessThreshold_IsCorrect)
 
     // 光照等级转换验证
     // 亮度 = 光照等级 / 15.0F
-    u8 lightLevel7 = 7;   // 亮度约 0.467
-    u8 lightLevel8 = 8;   // 亮度约 0.533
+    u8 lightLevel7 = 7; // 亮度约 0.467
+    u8 lightLevel8 = 8; // 亮度约 0.533
 
     f32 brightness7 = static_cast<f32>(lightLevel7) / 15.0F;
     f32 brightness8 = static_cast<f32>(lightLevel8) / 15.0F;
@@ -263,7 +253,7 @@ TEST_F(SpiderAttackGoalTest, AttackReachSqr_IsCorrect)
 
     // 验证公式正确性
     f32 spiderAttackBase = 4.0F;
-    f32 playerWidth = 0.6F;  // 玩家宽度
+    f32 playerWidth = 0.6F;                               // 玩家宽度
     f32 expectedReachSq = spiderAttackBase + playerWidth; // 4.6
 
     EXPECT_FLOAT_EQ(expectedReachSq, 4.6F);
@@ -311,10 +301,7 @@ TEST_F(SpiderAttackGoalTest, OnePercentChanceToStopInBrightness)
 
 class SpiderTargetGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -357,10 +344,7 @@ TEST_F(SpiderTargetGoalTest, SelectTarget_InDarkness)
 
 class CaveSpiderEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -395,7 +379,7 @@ TEST_F(CaveSpiderEntityTest, Attributes_AreCorrect)
     f64 moveSpeed = caveSpider->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
     f64 attackDamage = caveSpider->getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0);
 
-    EXPECT_DOUBLE_EQ(maxHealth, 12.0);  // 普通蜘蛛是16.0
+    EXPECT_DOUBLE_EQ(maxHealth, 12.0); // 普通蜘蛛是16.0
     EXPECT_DOUBLE_EQ(moveSpeed, 0.3);
     EXPECT_DOUBLE_EQ(attackDamage, 2.0);
 }
@@ -418,10 +402,7 @@ TEST_F(CaveSpiderEntityTest, PoisonDuration_CanBeSet)
 
 class CaveSpiderPoisonTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };
@@ -495,10 +476,10 @@ TEST_F(CaveSpiderPoisonTest, PoisonEffectParameters)
     EXPECT_EQ(static_cast<int>(poisonType), 19); // Poison = 19
 
     // 验证效果实例参数
-    i32 amplifier = 0;       // 等级 0 = 中毒 I
-    bool ambient = false;    // 不是环境效果
-    bool visible = true;     // 显示粒子
-    bool showIcon = true;    // 显示图标
+    i32 amplifier = 0;    // 等级 0 = 中毒 I
+    bool ambient = false; // 不是环境效果
+    bool visible = true;  // 显示粒子
+    bool showIcon = true; // 显示图标
 
     EXPECT_EQ(amplifier, 0);
     EXPECT_FALSE(ambient);
@@ -510,8 +491,7 @@ TEST_F(CaveSpiderPoisonTest, PoisonEffectParameters)
 // SpiderEntity 继承关系测试
 // ============================================================================
 
-class SpiderInheritanceTest : public ::testing::Test {
-};
+class SpiderInheritanceTest : public ::testing::Test {};
 
 TEST_F(SpiderInheritanceTest, SpiderInheritsFromMonster)
 {
@@ -536,8 +516,7 @@ TEST_F(SpiderInheritanceTest, CaveSpiderInheritsFromSpider)
 // AI 目标优先级测试
 // ============================================================================
 
-class SpiderAIPriorityTest : public ::testing::Test {
-};
+class SpiderAIPriorityTest : public ::testing::Test {};
 
 TEST_F(SpiderAIPriorityTest, GoalPriorities_AreCorrect)
 {
@@ -592,10 +571,7 @@ TEST_F(SpiderAIPriorityTest, WaterAvoidingWalkSpeed)
 
 class SpiderComparisonTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        m_world = std::make_unique<SpiderTestWorld>();
-    }
+    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
 
     std::unique_ptr<SpiderTestWorld> m_world;
 };

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "DispenseItemBehaviorRegistry.hpp"
 #include "../../../core/Types.hpp"
@@ -40,9 +40,9 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
+#include "../../fluid/FluidRegistry.hpp"
 #include "../Block.hpp"
 #include "../VanillaBlocks.hpp"
-#include "../../fluid/FluidRegistry.hpp"
 #include "IDispenseItemBehavior.hpp"
 
 namespace mc {
@@ -304,9 +304,7 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     // TNT 发射行为
     // 参考 MC 1.16.5: TNTDispenseBehavior
     // ========================================================================
-    registerBehavior(
-        "minecraft:tnt",
-        std::make_unique<DefaultDispenseItemBehavior>());
+    registerBehavior("minecraft:tnt", std::make_unique<DefaultDispenseItemBehavior>());
 
     // ========================================================================
     // 船发射行为
@@ -315,29 +313,18 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     // ========================================================================
 
     // 橡木船
-    registerBehavior(
-        "minecraft:oak_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::OAK));
+    registerBehavior("minecraft:oak_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::OAK));
     // 云杉木船
-    registerBehavior(
-        "minecraft:spruce_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::SPRUCE));
+    registerBehavior("minecraft:spruce_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::SPRUCE));
     // 白桦木船
-    registerBehavior(
-        "minecraft:birch_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::BIRCH));
+    registerBehavior("minecraft:birch_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::BIRCH));
     // 丛林木船
-    registerBehavior(
-        "minecraft:jungle_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::JUNGLE));
+    registerBehavior("minecraft:jungle_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::JUNGLE));
     // 金合欢木船
-    registerBehavior(
-        "minecraft:acacia_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::ACACIA));
+    registerBehavior("minecraft:acacia_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::ACACIA));
     // 深色橡木船
     registerBehavior(
-        "minecraft:dark_oak_boat",
-        std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::DARK_OAK));
+        "minecraft:dark_oak_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::DARK_OAK));
 
     // ========================================================================
     // 水桶/岩浆桶发射行为
@@ -348,38 +335,28 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     fluid::Fluid* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
 
     if (waterFluid != nullptr) {
-        registerBehavior(
-            "minecraft:water_bucket",
-            std::make_unique<BucketDispenseBehavior>(*waterFluid));
+        registerBehavior("minecraft:water_bucket", std::make_unique<BucketDispenseBehavior>(*waterFluid));
     }
     if (lavaFluid != nullptr) {
-        registerBehavior(
-            "minecraft:lava_bucket",
-            std::make_unique<BucketDispenseBehavior>(*lavaFluid));
+        registerBehavior("minecraft:lava_bucket", std::make_unique<BucketDispenseBehavior>(*lavaFluid));
     }
 
     // ========================================================================
     // 空桶发射行为（收集流体）
     // ========================================================================
-    registerBehavior(
-        "minecraft:bucket",
-        std::make_unique<EmptyBucketDispenseBehavior>());
+    registerBehavior("minecraft:bucket", std::make_unique<EmptyBucketDispenseBehavior>());
 
     // ========================================================================
     // 打火石发射行为
     // 参考 MC 1.16.5: FlintAndSteelDispenseBehavior
     // ========================================================================
-    registerBehavior(
-        "minecraft:flint_and_steel",
-        std::make_unique<FlintAndSteelDispenseBehavior>());
+    registerBehavior("minecraft:flint_and_steel", std::make_unique<FlintAndSteelDispenseBehavior>());
 
     // ========================================================================
     // 骨粉发射行为
     // 参考 MC 1.16.5: BonemealDispenseBehavior
     // ========================================================================
-    registerBehavior(
-        "minecraft:bone_meal",
-        std::make_unique<BonemealDispenseBehavior>());
+    registerBehavior("minecraft:bone_meal", std::make_unique<BonemealDispenseBehavior>());
 }
 
 } // namespace blocks

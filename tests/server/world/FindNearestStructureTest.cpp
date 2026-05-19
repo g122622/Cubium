@@ -22,9 +22,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
-#include "common/world/block/BlockPos.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;

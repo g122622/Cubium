@@ -1,28 +1,34 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
+#include "../entities/boss/EnderDragonEntity.hpp"
+#include "../entities/boss/WitherEntity.hpp"
+#include "../entities/effect/EffectEntities.hpp"
+#include "../entities/hanging/HangingEntity.hpp"
+#include "../entities/item/ItemEntity.hpp"
+#include "../entities/misc/MiscEntities.hpp"
 #include "../entities/monster/MonsterEntity.hpp"
 #include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "../entities/monster/arthropod/EndermiteEntity.hpp"
@@ -49,6 +55,8 @@
 #include "../entities/monster/undead/StrayEntity.hpp"
 #include "../entities/monster/undead/WitherSkeletonEntity.hpp"
 #include "../entities/monster/undead/ZombieEntity.hpp"
+#include "../entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "../entities/orb/ExperienceOrbEntity.hpp"
 #include "../entities/passive/ambient/AmbientEntity.hpp"
 #include "../entities/passive/ambient/BatEntity.hpp"
 #include "../entities/passive/basic/ChickenEntity.hpp"
@@ -71,6 +79,7 @@
 #include "../entities/passive/horse/LlamaEntity.hpp"
 #include "../entities/passive/horse/MuleEntity.hpp"
 #include "../entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "../entities/passive/horse/TraderLlamaEntity.hpp"
 #include "../entities/passive/horse/ZombieHorseEntity.hpp"
 #include "../entities/passive/special/BeeEntity.hpp"
 #include "../entities/passive/special/FoxEntity.hpp"
@@ -85,27 +94,18 @@
 #include "../entities/passive/water/DolphinEntity.hpp"
 #include "../entities/passive/water/SquidEntity.hpp"
 #include "../entities/passive/water/WaterMobEntity.hpp"
+#include "../entities/projectile/AbstractArrowEntity.hpp"
+#include "../entities/projectile/AbstractFireballEntity.hpp"
+#include "../entities/projectile/OtherProjectiles.hpp"
+#include "../entities/projectile/ProjectileItemEntity.hpp"
+#include "../entities/projectile/TridentEntity.hpp"
+#include "../entities/vehicle/BoatEntity.hpp"
+#include "../entities/vehicle/MinecartEntity.hpp"
+#include "../entities/villager/VillagerEntity.hpp"
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityType.hpp"
 #include "EntityTypeIdNumber.hpp"
-#include "../entities/boss/EnderDragonEntity.hpp"
-#include "../entities/boss/WitherEntity.hpp"
-#include "../entities/villager/VillagerEntity.hpp"
-#include "../entities/projectile/AbstractArrowEntity.hpp"
-#include "../entities/projectile/TridentEntity.hpp"
-#include "../entities/projectile/ProjectileItemEntity.hpp"
-#include "../entities/projectile/AbstractFireballEntity.hpp"
-#include "../entities/projectile/OtherProjectiles.hpp"
-#include "../entities/item/ItemEntity.hpp"
-#include "../entities/misc/MiscEntities.hpp"
-#include "../entities/orb/ExperienceOrbEntity.hpp"
-#include "../entities/effect/EffectEntities.hpp"
-#include "../entities/vehicle/BoatEntity.hpp"
-#include "../entities/vehicle/MinecartEntity.hpp"
-#include "../entities/hanging/HangingEntity.hpp"
-#include "../entities/monster/undead/ZombieVillagerEntity.hpp"
-#include "../entities/passive/horse/TraderLlamaEntity.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 

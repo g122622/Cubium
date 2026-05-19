@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "network/packet/BossInfoPacket.hpp"
 #include "util/text/StringTextComponent.hpp"
@@ -29,8 +29,8 @@
 using namespace mc::network;
 using namespace mc::text;
 using mc::f32;
-using mc::u8;
 using mc::u64;
+using mc::u8;
 
 // ==================== BossInfoPacket 基础测试 ====================
 
@@ -62,8 +62,7 @@ TEST_F(BossInfoPacketTest, DefaultConstruction)
 TEST_F(BossInfoPacketTest, CreateAddPacket)
 {
     auto name = std::make_unique<StringTextComponent>("Ender Dragon");
-    auto packet = BossInfoPacket::add(
-        testUuid, std::move(name), 0.75f, 2, 0, true, true, false);
+    auto packet = BossInfoPacket::add(testUuid, std::move(name), 0.75f, 2, 0, true, true, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_EQ(packet.uuid(), testUuid);
@@ -139,8 +138,7 @@ TEST_F(BossInfoPacketSerializeTest, SerializeDeserializeAddPacket)
     style.setColor(TextFormatting::Red);
     name->setStyle(style);
 
-    auto original = BossInfoPacket::add(
-        testUuid, std::move(name), 0.8f, 2, 1, true, false, true);
+    auto original = BossInfoPacket::add(testUuid, std::move(name), 0.8f, 2, 1, true, false, true);
 
     auto result = original.serialize();
     ASSERT_TRUE(result.success()) << result.error().message();
@@ -249,8 +247,7 @@ TEST_F(BossInfoPacketSerializeTest, SerializeDeserializeUpdatePropertiesPacket)
 TEST_F(BossInfoPacketSerializeTest, SerializeDeserializeAllFlagsEnabled)
 {
     auto name = std::make_unique<StringTextComponent>("Full Boss");
-    auto original = BossInfoPacket::add(
-        testUuid, std::move(name), 1.0f, 6, 4, true, true, true);
+    auto original = BossInfoPacket::add(testUuid, std::move(name), 1.0f, 6, 4, true, true, true);
 
     auto result = original.serialize();
     ASSERT_TRUE(result.success()) << result.error().message();
@@ -296,14 +293,12 @@ TEST_F(BossInfoPacketSerializeTest, SerializeDeserializeFullPercent)
 
 TEST_F(BossInfoPacketSerializeTest, AllActionTypesSerialize)
 {
-    std::vector<BossInfoAction> actions = {
-        BossInfoAction::Add,
+    std::vector<BossInfoAction> actions = {BossInfoAction::Add,
         BossInfoAction::Remove,
         BossInfoAction::UpdatePercent,
         BossInfoAction::UpdateName,
         BossInfoAction::UpdateStyle,
-        BossInfoAction::UpdateProperties
-    };
+        BossInfoAction::UpdateProperties};
 
     for (auto action : actions) {
         BossInfoPacket packet;
@@ -354,7 +349,8 @@ TEST(BossInfoPacketErrorTest, DeserializeEmptyData)
 
 TEST(BossInfoPacketErrorTest, DeserializeTruncatedData)
 {
-    auto original = BossInfoPacket::add(12345ULL, std::make_unique<StringTextComponent>("Test"), 0.5f, 0, 0, false, false, false);
+    auto original =
+        BossInfoPacket::add(12345ULL, std::make_unique<StringTextComponent>("Test"), 0.5f, 0, 0, false, false, false);
     auto result = original.serialize();
     ASSERT_TRUE(result.success());
 
@@ -493,8 +489,7 @@ TEST(BossInfoPacketScenarioTest, SimulateBossSpawn)
     style.setColor(TextFormatting::DarkPurple);
     name->setStyle(style);
 
-    auto packet = BossInfoPacket::add(
-        12345ULL, std::move(name), 1.0f, 5, 0, true, true, false);
+    auto packet = BossInfoPacket::add(12345ULL, std::move(name), 1.0f, 5, 0, true, true, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_FLOAT_EQ(packet.percent(), 1.0f);
@@ -540,8 +535,7 @@ TEST(BossInfoPacketScenarioTest, SimulateCustomBossbarCreate)
 {
     // 模拟 /bossbar add 命令
     auto name = std::make_unique<StringTextComponent>("Custom Boss Bar");
-    auto packet = BossInfoPacket::add(
-        99999ULL, std::move(name), 0.0f, 6, 0, false, false, false);
+    auto packet = BossInfoPacket::add(99999ULL, std::move(name), 0.0f, 6, 0, false, false, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_FLOAT_EQ(packet.percent(), 0.0f);
@@ -651,7 +645,8 @@ TEST(BossInfoPacketBoundaryTest, RapidUpdateSequence)
     u64 uuid = 12345ULL;
 
     // Add
-    auto addPacket = BossInfoPacket::add(uuid, std::make_unique<StringTextComponent>("Boss"), 1.0f, 0, 0, false, false, false);
+    auto addPacket =
+        BossInfoPacket::add(uuid, std::make_unique<StringTextComponent>("Boss"), 1.0f, 0, 0, false, false, false);
     auto addResult = addPacket.serialize();
     ASSERT_TRUE(addResult.success());
 

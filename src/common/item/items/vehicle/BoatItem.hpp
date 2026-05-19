@@ -28,8 +28,7 @@ namespace item {
  * - 船自动朝向玩家的朝向
  * - 非创造模式消耗物品
  */
-class BoatItem : public Item
-{
+class BoatItem : public Item {
 public:
     /**
      * @brief 构造函数

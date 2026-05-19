@@ -11,10 +11,10 @@
  * - BoatEntity.attackEntityFrom() 行 149-170
  */
 
-#include <gtest/gtest.h>
 #include "entity/entities/vehicle/BoatEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
+#include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity;
@@ -149,22 +149,20 @@ TEST_F(BoatEntityGetBoatItemTest, AllTypes_HaveCorrespondingItems)
     };
 
     std::vector<TestCase> testCases = {
-        { BoatEntity::Type::OAK, Items::OAK_BOAT, "OAK" },
-        { BoatEntity::Type::SPRUCE, Items::SPRUCE_BOAT, "SPRUCE" },
-        { BoatEntity::Type::BIRCH, Items::BIRCH_BOAT, "BIRCH" },
-        { BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE" },
-        { BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA" },
-        { BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK" },
+        {BoatEntity::Type::OAK, Items::OAK_BOAT, "OAK"},
+        {BoatEntity::Type::SPRUCE, Items::SPRUCE_BOAT, "SPRUCE"},
+        {BoatEntity::Type::BIRCH, Items::BIRCH_BOAT, "BIRCH"},
+        {BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE"},
+        {BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA"},
+        {BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK"},
     };
 
     for (const auto& tc : testCases) {
         BoatEntity boat(tc.type);
         const Item* item = boat.getBoatItem();
 
-        EXPECT_NE(item, nullptr)
-            << "getBoatItem() should not return nullptr for type " << tc.name;
-        EXPECT_EQ(item, tc.expectedItem)
-            << "Type " << tc.name << " should return correct item";
+        EXPECT_NE(item, nullptr) << "getBoatItem() should not return nullptr for type " << tc.name;
+        EXPECT_EQ(item, tc.expectedItem) << "Type " << tc.name << " should return correct item";
     }
 }
 
@@ -379,12 +377,12 @@ TEST_F(BoatEntityTypeTest, BoatType_ItemMapping_Complete)
     // 完整的类型映射表
     // 注意：item->getName() 返回翻译键格式 "item.minecraft:xxx_boat"
     std::vector<TestCase> testCases = {
-        { BoatEntity::Type::OAK, Items::OAK_BOAT, "OAK", "item.minecraft:oak_boat" },
-        { BoatEntity::Type::SPRUCE, Items::SPRUCE_BOAT, "SPRUCE", "item.minecraft:spruce_boat" },
-        { BoatEntity::Type::BIRCH, Items::BIRCH_BOAT, "BIRCH", "item.minecraft:birch_boat" },
-        { BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE", "item.minecraft:jungle_boat" },
-        { BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA", "item.minecraft:acacia_boat" },
-        { BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK", "item.minecraft:dark_oak_boat" },
+        {BoatEntity::Type::OAK, Items::OAK_BOAT, "OAK", "item.minecraft:oak_boat"},
+        {BoatEntity::Type::SPRUCE, Items::SPRUCE_BOAT, "SPRUCE", "item.minecraft:spruce_boat"},
+        {BoatEntity::Type::BIRCH, Items::BIRCH_BOAT, "BIRCH", "item.minecraft:birch_boat"},
+        {BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE", "item.minecraft:jungle_boat"},
+        {BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA", "item.minecraft:acacia_boat"},
+        {BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK", "item.minecraft:dark_oak_boat"},
     };
 
     for (const auto& tc : testCases) {
@@ -392,15 +390,12 @@ TEST_F(BoatEntityTypeTest, BoatType_ItemMapping_Complete)
         const Item* item = boat.getBoatItem();
 
         // 验证物品指针不为空
-        ASSERT_NE(item, nullptr)
-            << "getBoatItem() for type " << tc.name << " should not return nullptr";
+        ASSERT_NE(item, nullptr) << "getBoatItem() for type " << tc.name << " should not return nullptr";
 
         // 验证物品指针正确
-        EXPECT_EQ(item, tc.expectedItem)
-            << "Type " << tc.name << " should map to correct item";
+        EXPECT_EQ(item, tc.expectedItem) << "Type " << tc.name << " should map to correct item";
 
         // 验证物品名称正确
-        EXPECT_EQ(item->getName(), tc.itemId)
-            << "Item should have correct name for " << tc.name;
+        EXPECT_EQ(item->getName(), tc.itemId) << "Item should have correct name for " << tc.name;
     }
 }

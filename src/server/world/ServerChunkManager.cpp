@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ServerChunkManager.hpp"
 #include "../sync/ChunkSendManager.hpp"
@@ -321,7 +321,8 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
                     static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
                 std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
                 std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
-                collectNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
+                collectNeighborChunks(
+                    chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
                 WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(neighbors));
 
                 if (status == ChunkStatuses::STRUCTURE_STARTS) {
@@ -456,7 +457,16 @@ const SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(Chun
 void ServerChunkManager::onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
     MC_UNUSED(oldLevel);
-    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::onTicketLevelChanged", "x", x, "z", z, "oldLevel", oldLevel, "newLevel", newLevel);
+    MC_TRACE_EVENT("server.chunk",
+        "ServerChunkManager::onTicketLevelChanged",
+        "x",
+        x,
+        "z",
+        z,
+        "oldLevel",
+        oldLevel,
+        "newLevel",
+        newLevel);
 
     SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
     lifecycleManager.setLevel(newLevel);
@@ -531,8 +541,13 @@ void ServerChunkManager::executeGenerationSync(
         std::vector<IChunk*> neighbors(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
         std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
         std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
-        collectNeighborChunks(
-            lifecycleManager.x(), lifecycleManager.z(), regionRadius, primer, neighbors, loadedNeighbors, missingNeighbors);
+        collectNeighborChunks(lifecycleManager.x(),
+            lifecycleManager.z(),
+            regionRadius,
+            primer,
+            neighbors,
+            loadedNeighbors,
+            missingNeighbors);
         WorldGenRegion region(lifecycleManager.x(), lifecycleManager.z(), regionRadius, std::move(neighbors));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {

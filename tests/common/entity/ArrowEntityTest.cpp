@@ -1,30 +1,30 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/effect/EffectType.hpp"
+#include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
@@ -217,7 +217,7 @@ TEST_F(ArrowEntityTest, GetArrowStack_ColorStoredInNBT)
     auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
 
     // 设置颜色和效果
-    arrow->setColor(0xFF5733FF);  // 自定义颜色
+    arrow->setColor(0xFF5733FF); // 自定义颜色
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
 
     // 获取物品堆
@@ -254,28 +254,28 @@ TEST_F(ArrowEntityTest, EffectColor_PoisonIsGreen)
 {
     // 验证中毒效果的颜色
     u32 poisonColor = potion::PotionUtils::getEffectColor(entity::effect::EffectType::Poison);
-    EXPECT_EQ(poisonColor, 0x4E9331FF);  // 绿色 (ARGB)
+    EXPECT_EQ(poisonColor, 0x4E9331FF); // 绿色 (ARGB)
 }
 
 TEST_F(ArrowEntityTest, EffectColor_SpeedIsLightBlue)
 {
     // 验证速度效果的颜色
     u32 speedColor = potion::PotionUtils::getEffectColor(entity::effect::EffectType::Speed);
-    EXPECT_EQ(speedColor, 0x7CAFC6FF);  // 淡蓝色 (ARGB)
+    EXPECT_EQ(speedColor, 0x7CAFC6FF); // 淡蓝色 (ARGB)
 }
 
 TEST_F(ArrowEntityTest, EffectColor_RegenerationIsPink)
 {
     // 验证生命恢复效果的颜色
     u32 regenColor = potion::PotionUtils::getEffectColor(entity::effect::EffectType::Regeneration);
-    EXPECT_EQ(regenColor, 0xCD5CABFF);  // 粉红色 (ARGB)
+    EXPECT_EQ(regenColor, 0xCD5CABFF); // 粉红色 (ARGB)
 }
 
 TEST_F(ArrowEntityTest, ColorCalculation_MultipleEffects_Average)
 {
     // 创建多个效果，验证颜色计算
     std::vector<entity::effect::EffectInstance> effects;
-    effects.emplace_back(entity::effect::EffectType::Poison, 100, 0);      // 0x4E9331FF
+    effects.emplace_back(entity::effect::EffectType::Poison, 100, 0);       // 0x4E9331FF
     effects.emplace_back(entity::effect::EffectType::Regeneration, 100, 0); // 0xCD5CABFF
 
     u32 calculatedColor = potion::PotionUtils::getColor(effects);
@@ -330,7 +330,7 @@ TEST_F(ArrowEntityTest, SpectralArrow_GetArrowStack_ReturnsSpectralArrow)
 
 TEST_F(ArrowEntityTest, ColorRGBExtraction_RedChannel)
 {
-    u32 color = 0xFFFF0000;  // 红色
+    u32 color = 0xFFFF0000; // 红色
     f32 r = static_cast<f32>((color >> 16) & 0xFF) / 255.0f;
     f32 g = static_cast<f32>((color >> 8) & 0xFF) / 255.0f;
     f32 b = static_cast<f32>(color & 0xFF) / 255.0f;
@@ -342,7 +342,7 @@ TEST_F(ArrowEntityTest, ColorRGBExtraction_RedChannel)
 
 TEST_F(ArrowEntityTest, ColorRGBExtraction_GreenChannel)
 {
-    u32 color = 0xFF00FF00;  // 绿色
+    u32 color = 0xFF00FF00; // 绿色
     f32 r = static_cast<f32>((color >> 16) & 0xFF) / 255.0f;
     f32 g = static_cast<f32>((color >> 8) & 0xFF) / 255.0f;
     f32 b = static_cast<f32>(color & 0xFF) / 255.0f;
@@ -354,7 +354,7 @@ TEST_F(ArrowEntityTest, ColorRGBExtraction_GreenChannel)
 
 TEST_F(ArrowEntityTest, ColorRGBExtraction_BlueChannel)
 {
-    u32 color = 0xFF0000FF;  // 蓝色
+    u32 color = 0xFF0000FF; // 蓝色
     f32 r = static_cast<f32>((color >> 16) & 0xFF) / 255.0f;
     f32 g = static_cast<f32>((color >> 8) & 0xFF) / 255.0f;
     f32 b = static_cast<f32>(color & 0xFF) / 255.0f;
@@ -374,9 +374,9 @@ TEST_F(ArrowEntityTest, ColorRGBExtraction_PoisonGreen)
     u8 b = color & 0xFF;
 
     // 验证 RGB 分量提取正确
-    EXPECT_EQ(r, 0x93);  // 红色分量
-    EXPECT_EQ(g, 0x31);  // 绿色分量
-    EXPECT_EQ(b, 0xFF);  // 蓝色分量
+    EXPECT_EQ(r, 0x93); // 红色分量
+    EXPECT_EQ(g, 0x31); // 绿色分量
+    EXPECT_EQ(b, 0xFF); // 蓝色分量
 }
 
 TEST_F(ArrowEntityTest, ColorRGBExtraction_DefaultColorIsWhite)

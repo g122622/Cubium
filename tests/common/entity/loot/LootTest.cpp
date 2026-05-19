@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "common/TestWorldHelper.hpp"
 #include "core/Constants.hpp"
@@ -2413,10 +2413,8 @@ TEST_F(LootTest, FishingLootTable_FishTableExists)
     ASSERT_EQ(1, items.size());
     // 应该是四种鱼之一
     const std::string itemId = items[0].getItem()->toString();
-    EXPECT_TRUE(itemId == "minecraft:cod" ||
-                itemId == "minecraft:salmon" ||
-                itemId == "minecraft:tropical_fish" ||
-                itemId == "minecraft:pufferfish");
+    EXPECT_TRUE(itemId == "minecraft:cod" || itemId == "minecraft:salmon" || itemId == "minecraft:tropical_fish" ||
+        itemId == "minecraft:pufferfish");
 }
 
 TEST_F(LootTest, FishingLootTable_JunkTableExists)
@@ -2449,10 +2447,8 @@ TEST_F(LootTest, FishingLootTable_TreasureTableExists)
     math::Random rng(12345);
 
     // 必须设置开放水域为 true 才能生成宝藏
-    auto context = LootContextBuilder(m_world)
-                      .withRandom(rng)
-                      .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                      .build();
+    auto context =
+        LootContextBuilder(m_world).withRandom(rng).withOwnedValue(LootParams::IS_IN_OPEN_WATER, true).build();
     auto items = treasureTable->generate(*context);
 
     ASSERT_EQ(1, items.size());
@@ -2472,13 +2468,12 @@ TEST_F(LootTest, FishingLootTable_MainTableExists)
 
     // 设置掉落表解析器，因为主表使用 TableLootEntry 引用子表
     auto context = LootContextBuilder(m_world)
-                      .withRandom(rng)
-                      .withLuck(0.0f)
-                      .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                      .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
-                          return manager.getTable(id);
-                      })
-                      .build();
+                       .withRandom(rng)
+                       .withLuck(0.0f)
+                       .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                       .withLootTableResolver(
+                           [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                       .build();
     auto items = fishingTable->generate(*context);
 
     ASSERT_EQ(1, items.size());
@@ -2499,10 +2494,8 @@ TEST_F(LootTest, FishingLootTable_TreasureRequiresOpenWater)
     math::Random rng(12345);
 
     // 在非开放水域中测试
-    auto closedWaterContext = LootContextBuilder(m_world)
-                                  .withRandom(rng)
-                                  .withOwnedValue(LootParams::IS_IN_OPEN_WATER, false)
-                                  .build();
+    auto closedWaterContext =
+        LootContextBuilder(m_world).withRandom(rng).withOwnedValue(LootParams::IS_IN_OPEN_WATER, false).build();
     auto items = treasureTable->generate(*closedWaterContext);
 
     // 在非开放水域，宝藏表不应该生成任何物品（所有条目都有开放水域条件）
@@ -2521,10 +2514,8 @@ TEST_F(LootTest, FishingLootTable_TreasureInOpenWater)
     math::Random rng(12345);
 
     // 在开放水域中测试
-    auto openWaterContext = LootContextBuilder(m_world)
-                                .withRandom(rng)
-                                .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                                .build();
+    auto openWaterContext =
+        LootContextBuilder(m_world).withRandom(rng).withOwnedValue(LootParams::IS_IN_OPEN_WATER, true).build();
     auto items = treasureTable->generate(*openWaterContext);
 
     // 在开放水域，宝藏表应该能生成物品
@@ -2533,12 +2524,8 @@ TEST_F(LootTest, FishingLootTable_TreasureInOpenWater)
 
     // 应该是宝藏物品之一
     const std::string itemId = items[0].getItem()->toString();
-    EXPECT_TRUE(itemId == "minecraft:name_tag" ||
-                itemId == "minecraft:saddle" ||
-                itemId == "minecraft:bow" ||
-                itemId == "minecraft:fishing_rod" ||
-                itemId == "minecraft:book" ||
-                itemId == "minecraft:nautilus_shell");
+    EXPECT_TRUE(itemId == "minecraft:name_tag" || itemId == "minecraft:saddle" || itemId == "minecraft:bow" ||
+        itemId == "minecraft:fishing_rod" || itemId == "minecraft:book" || itemId == "minecraft:nautilus_shell");
 }
 
 TEST_F(LootTest, FishingLootTable_LuckAffectsQuality)
@@ -2559,23 +2546,19 @@ TEST_F(LootTest, FishingLootTable_LuckAffectsQuality)
 
         // 高幸运值（海之眷顾 III 提供约 0.06 的幸运值）
         auto context = LootContextBuilder(m_world)
-                          .withRandom(rng)
-                          .withLuck(0.06f)
-                          .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                          .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
-                              return manager.getTable(id);
-                          })
-                          .build();
+                           .withRandom(rng)
+                           .withLuck(0.06f)
+                           .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                           .withLootTableResolver(
+                               [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                           .build();
         auto items = fishingTable->generate(*context);
 
         if (items.size() == 1) {
             const std::string itemId = items[0].getItem()->toString();
             // 宝藏物品
-            if (itemId == "minecraft:name_tag" ||
-                itemId == "minecraft:saddle" ||
-                itemId == "minecraft:bow" ||
-                itemId == "minecraft:fishing_rod" ||
-                itemId == "minecraft:book" ||
+            if (itemId == "minecraft:name_tag" || itemId == "minecraft:saddle" || itemId == "minecraft:bow" ||
+                itemId == "minecraft:fishing_rod" || itemId == "minecraft:book" ||
                 itemId == "minecraft:nautilus_shell") {
                 treasureCount++;
             }
@@ -2607,32 +2590,26 @@ TEST_F(LootTest, FishingLootTable_FishJunkTreasureDistribution)
     for (i32 i = 0; i < iterations; ++i) {
         math::Random rng(i);
         auto context = LootContextBuilder(m_world)
-                          .withRandom(rng)
-                          .withLuck(0.0f)
-                          .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
-                          .withLootTableResolver([&manager](const std::string& id) -> const LootTable* {
-                              return manager.getTable(id);
-                          })
-                          .build();
+                           .withRandom(rng)
+                           .withLuck(0.0f)
+                           .withOwnedValue(LootParams::IS_IN_OPEN_WATER, true)
+                           .withLootTableResolver(
+                               [&manager](const std::string& id) -> const LootTable* { return manager.getTable(id); })
+                           .build();
         auto items = fishingTable->generate(*context);
 
         if (items.size() == 1) {
             const std::string itemId = items[0].getItem()->toString();
 
             // 鱼类
-            if (itemId == "minecraft:cod" ||
-                itemId == "minecraft:salmon" ||
-                itemId == "minecraft:tropical_fish" ||
+            if (itemId == "minecraft:cod" || itemId == "minecraft:salmon" || itemId == "minecraft:tropical_fish" ||
                 itemId == "minecraft:pufferfish") {
                 fishCount++;
             }
             // 宝藏
-            else if (itemId == "minecraft:name_tag" ||
-                     itemId == "minecraft:saddle" ||
-                     itemId == "minecraft:bow" ||
-                     itemId == "minecraft:fishing_rod" ||
-                     itemId == "minecraft:book" ||
-                     itemId == "minecraft:nautilus_shell") {
+            else if (itemId == "minecraft:name_tag" || itemId == "minecraft:saddle" || itemId == "minecraft:bow" ||
+                itemId == "minecraft:fishing_rod" || itemId == "minecraft:book" ||
+                itemId == "minecraft:nautilus_shell") {
                 treasureCount++;
             }
             // 垃圾
@@ -2654,7 +2631,7 @@ TEST_F(LootTest, FishingLootTable_FishJunkTreasureDistribution)
     f32 treasureRatio = static_cast<f32>(treasureCount) / iterations;
 
     // 鱼约 85%，垃圾约 10%，宝藏约 5%
-    EXPECT_GT(fishRatio, 0.75f);   // 允许 10% 误差
-    EXPECT_GT(junkRatio, 0.05f);   // 允许 5% 误差
+    EXPECT_GT(fishRatio, 0.75f);     // 允许 10% 误差
+    EXPECT_GT(junkRatio, 0.05f);     // 允许 5% 误差
     EXPECT_GT(treasureRatio, 0.01f); // 允许 4% 误差
 }

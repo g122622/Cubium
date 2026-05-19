@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "Player.hpp"
 #include "../../../item/armor/ArmorMaterial.hpp"
@@ -2151,12 +2151,10 @@ void Player::attack(Entity& target)
                     // 触发 PlayerDestroyItem 事件
                     // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
                     if (m_world) {
-                        m_world->onPlayerDestroyItem(
-                            static_cast<PlayerId>(id()),
+                        m_world->onPlayerDestroyItem(static_cast<PlayerId>(id()),
                             mainHandCopy,
                             0, // 主手槽位
-                            Hand::MainHand
-                        );
+                            Hand::MainHand);
                     }
                 }
             }
@@ -2229,11 +2227,7 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
                         // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
                         if (m_world) {
                             m_world->onPlayerDestroyItem(
-                                static_cast<PlayerId>(id()),
-                                itemstackCopy,
-                                hand == Hand::MainHand ? 0 : 40,
-                                hand
-                            );
+                                static_cast<PlayerId>(id()), itemstackCopy, hand == Hand::MainHand ? 0 : 40, hand);
                         }
                         inventory().setItem(hand == Hand::MainHand ? 0 : 40, ItemStack());
                     }
@@ -2315,7 +2309,7 @@ bool Player::isWearingPumpkin() const
     // 南瓜灯物品的 resource location 是 minecraft:jack_o_lantern
     const ResourceLocation& itemId = item->itemLocation();
     return itemId == ResourceLocation("minecraft:carved_pumpkin") ||
-           itemId == ResourceLocation("minecraft:jack_o_lantern");
+        itemId == ResourceLocation("minecraft:jack_o_lantern");
 }
 
 bool Player::isLookingAt(const Entity& target) const
@@ -2359,8 +2353,8 @@ bool Player::isWearingGoldArmor() const
     // 金制盔甲可以使猪灵对玩家保持中立
 
     // 遍历四个盔甲槽位
-    for (i32 slotIndex = static_cast<i32>(EquipmentSlot::Feet);
-         slotIndex <= static_cast<i32>(EquipmentSlot::Head); ++slotIndex) {
+    for (i32 slotIndex = static_cast<i32>(EquipmentSlot::Feet); slotIndex <= static_cast<i32>(EquipmentSlot::Head);
+        ++slotIndex) {
         const ItemStack& armor = getEquipment(static_cast<EquipmentSlot>(slotIndex));
         if (armor.isEmpty()) {
             continue;

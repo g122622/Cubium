@@ -1,48 +1,48 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ParrotEntity.hpp"
 
+#include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ActionResult.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../attribute/Attributes.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/interact/LandOnOwnersShoulderGoal.hpp"
+#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
+#include "../../../ai/goal/goals/movement/FollowMobGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
-#include "../../../ai/goal/goals/movement/FollowMobGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityUtils.hpp"
-#include "../../../../core/Types.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../../network/packet/EntityPackets.hpp"
-#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
@@ -119,23 +119,21 @@ void ParrotEntity::registerGoals()
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.25));
 
     // 优先级 1: 看向玩家
-    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::LookAtGoal>(
-        this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-        entity::ai::goal::TypeFilter<Player>{}));
+    m_goalSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::LookAtGoal>(
+            this, 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 2: 坐下、跟随主人、随机飞行
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::SitGoal>(this));
     // FollowOwnerGoal: speed=1.0, minDistance=5.0, maxDistance=1.0, canTeleportToLeaves=true
     // 注意：MC原版的 maxDistance 参数是 1.0F，表示距离主人很近时停止跟随
     // 这里的参数含义与项目中的 FollowOwnerGoal 略有不同，需要适配
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::FollowOwnerGoal>(
-        this, 1.0, 5.0f, 10.0f, 32.0f));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::FollowOwnerGoal>(this, 1.0, 5.0f, 10.0f, 32.0f));
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::WaterAvoidingRandomFlyingGoal>(this, 1.0));
 
     // 优先级 3: 落到主人肩膀、跟随其他生物
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::LandOnOwnersShoulderGoal>(this));
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FollowMobGoal>(
-        this, 1.0, 3.0f, 7.0f));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FollowMobGoal>(this, 1.0, 3.0f, 7.0f));
 }
 
 void ParrotEntity::registerAttributes()
@@ -184,8 +182,9 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
 
         // 播放吃东西声音
         if (!isSilent()) {
-            playSound(SoundEvents::ENTITY_PARROT_EAT, 1.0f,
-                      1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+            playSound(SoundEvents::ENTITY_PARROT_EAT,
+                1.0f,
+                1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
         }
 
         // 服务端处理驯服逻辑

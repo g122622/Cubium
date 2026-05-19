@@ -1,46 +1,46 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "FoxGoals.hpp"
-#include "../../../../entities/passive/special/FoxEntity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../GoalConstants.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../damage/DamageSource.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../../entities/monster/MonsterEntity.hpp"
-#include "../../../../attribute/Attributes.hpp"
 #include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/BlockState.hpp"
+#include "../../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../attribute/Attributes.hpp"
+#include "../../../../core/CreatureEntity.hpp"
+#include "../../../../core/EntityTypeIdNumber.hpp"
+#include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../damage/DamageSource.hpp"
+#include "../../../../entities/monster/MonsterEntity.hpp"
+#include "../../../../entities/passive/special/FoxEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
+#include "../../../controller/LookController.hpp"
+#include "../../../controller/MovementController.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
+#include "../../GoalConstants.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -82,9 +82,8 @@ bool FoxPassiveGoal::hasShelter() const
     }
 
     // MC 1.16.5: 检查是否看不到天空且路径权重 >= 0
-    BlockPos pos(static_cast<i32>(m_fox->x()),
-                 static_cast<i32>(m_fox->boundingBox().maxY),
-                 static_cast<i32>(m_fox->z()));
+    BlockPos pos(
+        static_cast<i32>(m_fox->x()), static_cast<i32>(m_fox->boundingBox().maxY), static_cast<i32>(m_fox->z()));
     return !m_fox->world()->canSeeSky(pos) && m_fox->getPathWeight(pos.x, pos.y, pos.z) >= 0.0f;
 }
 
@@ -131,11 +130,8 @@ bool FoxPassiveGoal::hasAlertableTarget() const
 bool FoxPassiveGoal::canAct() const
 {
     // MC 1.16.5 func_213478_eo
-    return !m_fox->isSitting() &&
-           !m_fox->isCrouching() &&
-           !m_fox->isSleeping() &&
-           !m_fox->isStuck() &&
-           !m_fox->isFoxAggroed();
+    return !m_fox->isSitting() && !m_fox->isCrouching() && !m_fox->isSleeping() && !m_fox->isStuck() &&
+        !m_fox->isFoxAggroed();
 }
 
 // ============================================================================
@@ -265,11 +261,9 @@ bool FoxFollowTargetGoal::isPathClear(FoxEntity* fox, LivingEntity* target)
         }
 
         for (int k = 1; k < 4; ++k) {
-            BlockPos pos(
-                static_cast<i32>(fox->x() + checkX),
+            BlockPos pos(static_cast<i32>(fox->x() + checkX),
                 static_cast<i32>(fox->y() + k),
-                static_cast<i32>(fox->z() + checkZ)
-            );
+                static_cast<i32>(fox->z() + checkZ));
 
             const BlockState* state = world->getBlockState(pos);
             if (state != nullptr && !state->getMaterial().isReplaceable()) {
@@ -355,11 +349,9 @@ void FoxPounceGoal::startExecuting()
     }
 
     Vector3 currentVel = m_fox->velocity();
-    m_fox->setVelocity(
-        currentVel.x + dx * POUNCE_HORIZONTAL_FACTOR,
+    m_fox->setVelocity(currentVel.x + dx * POUNCE_HORIZONTAL_FACTOR,
         POUNCE_VERTICAL_FACTOR,
-        currentVel.z + dz * POUNCE_HORIZONTAL_FACTOR
-    );
+        currentVel.z + dz * POUNCE_HORIZONTAL_FACTOR);
 
     m_fox->clearNavigation();
 }
@@ -394,8 +386,10 @@ void FoxPounceGoal::tick()
         f32 currentPitch = m_fox->pitch();
         f32 targetPitch = 0.0f;
         f32 diff = targetPitch - currentPitch;
-        while (diff < -180.0f) diff += 360.0f;
-        while (diff >= 180.0f) diff -= 360.0f;
+        while (diff < -180.0f)
+            diff += 360.0f;
+        while (diff >= 180.0f)
+            diff -= 360.0f;
         f32 newPitch = currentPitch + 0.2f * diff;
         m_fox->setRotation(m_fox->yaw(), newPitch);
     } else {
@@ -419,9 +413,7 @@ void FoxPounceGoal::tick()
         Vector3 vel = m_fox->velocity();
 
         if (m_fox->world() != nullptr && vel.y != 0.0f) {
-            BlockPos pos(static_cast<i32>(m_fox->x()),
-                         static_cast<i32>(m_fox->y()),
-                         static_cast<i32>(m_fox->z()));
+            BlockPos pos(static_cast<i32>(m_fox->x()), static_cast<i32>(m_fox->y()), static_cast<i32>(m_fox->z()));
             const BlockState* state = m_fox->world()->getBlockState(pos);
 
             if (state != nullptr && state->is(VanillaBlocks::SNOW)) {
@@ -440,15 +432,11 @@ void FoxPounceGoal::tick()
 FoxBiteGoal::FoxBiteGoal(FoxEntity* fox, f64 speed, bool useLongMemory)
     : MeleeAttackGoal(fox, speed, useLongMemory)
     , m_foxEntity(fox)
-{
-}
+{}
 
 bool FoxBiteGoal::shouldExecute()
 {
-    if (m_foxEntity->isSitting() ||
-        m_foxEntity->isSleeping() ||
-        m_foxEntity->isCrouching() ||
-        m_foxEntity->isStuck()) {
+    if (m_foxEntity->isSitting() || m_foxEntity->isSleeping() || m_foxEntity->isCrouching() || m_foxEntity->isStuck()) {
         return false;
     }
     return MeleeAttackGoal::shouldExecute();
@@ -456,10 +444,7 @@ bool FoxBiteGoal::shouldExecute()
 
 bool FoxBiteGoal::shouldContinueExecuting()
 {
-    if (m_foxEntity->isSitting() ||
-        m_foxEntity->isSleeping() ||
-        m_foxEntity->isCrouching() ||
-        m_foxEntity->isStuck()) {
+    if (m_foxEntity->isSitting() || m_foxEntity->isSleeping() || m_foxEntity->isCrouching() || m_foxEntity->isStuck()) {
         return false;
     }
     return MeleeAttackGoal::shouldContinueExecuting();
@@ -622,17 +607,11 @@ bool FoxEatBerriesGoal::shouldContinueExecuting()
     return false;
 }
 
-void FoxEatBerriesGoal::startExecuting()
-{
-}
+void FoxEatBerriesGoal::startExecuting() {}
 
-void FoxEatBerriesGoal::resetTask()
-{
-}
+void FoxEatBerriesGoal::resetTask() {}
 
-void FoxEatBerriesGoal::tick()
-{
-}
+void FoxEatBerriesGoal::tick() {}
 
 // ============================================================================
 // FoxFindItemsGoal - 狐狸寻找物品目标（简化实现）
@@ -650,13 +629,9 @@ bool FoxFindItemsGoal::shouldExecute()
     return false;
 }
 
-void FoxFindItemsGoal::startExecuting()
-{
-}
+void FoxFindItemsGoal::startExecuting() {}
 
-void FoxFindItemsGoal::tick()
-{
-}
+void FoxFindItemsGoal::tick() {}
 
 // ============================================================================
 // FoxSitAndLookGoal - 狐狸坐下观察目标
@@ -675,9 +650,7 @@ bool FoxSitAndLookGoal::canFoxStart()
         return false;
     }
 
-    if (m_fox->getLastHurtBy() != nullptr ||
-        m_fox->isSleeping() ||
-        m_fox->attackTarget() != nullptr) {
+    if (m_fox->getLastHurtBy() != nullptr || m_fox->isSleeping() || m_fox->attackTarget() != nullptr) {
         return false;
     }
 
@@ -729,13 +702,11 @@ void FoxSitAndLookGoal::tick()
 
     auto* lookController = m_fox->lookController();
     if (lookController != nullptr) {
-        lookController->setLookPosition(
-            m_fox->x() + m_lookX,
+        lookController->setLookPosition(m_fox->x() + m_lookX,
             m_fox->y() + m_fox->eyeHeight(),
             m_fox->z() + m_lookZ,
             static_cast<f32>(m_fox->getHorizontalFaceSpeed()),
-            static_cast<f32>(m_fox->getVerticalFaceSpeed())
-        );
+            static_cast<f32>(m_fox->getVerticalFaceSpeed()));
     }
 }
 
@@ -757,8 +728,7 @@ void FoxSitAndLookGoal::chooseRandomLookDirection()
 FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
     : entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(fox, true, 10)
     , m_foxEntity(fox)
-{
-}
+{}
 
 bool FoxRevengeGoal::shouldExecute()
 {

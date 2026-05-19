@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "WolfEntity.hpp"
 #include "../../../../core/Types.hpp"
@@ -27,27 +27,27 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
-#include "../basic/SheepEntity.hpp"
+#include "../../player/Player.hpp"
 #include "../basic/RabbitEntity.hpp"
+#include "../basic/SheepEntity.hpp"
+#include "../horse/LlamaEntity.hpp"
 #include "../special/FoxEntity.hpp"
 #include "../special/TurtleEntity.hpp"
-#include "../horse/LlamaEntity.hpp"
-#include "../../player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -234,8 +234,7 @@ void WolfEntity::registerGoals()
     // 羊驼有强度属性，强度高的羊驼可以吓跑狼
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-            this, 24.0f, 1.5, 1.5,
-            [this](const LivingEntity* entity) -> bool {
+            this, 24.0f, 1.5, 1.5, [this](const LivingEntity* entity) -> bool {
                 // 只在未驯服时避开羊驼
                 if (isTamed()) return false;
                 // 检查是否是羊驼
@@ -294,26 +293,23 @@ void WolfEntity::registerGoals()
     // 优先级 5: 未驯服时攻击羊、兔子、狐狸 - MC 1.16.5 优先级为 5
     // TARGET_ENTITIES 谓词：羊、兔子、狐狸
     m_targetSelector.addGoal(5,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this,
-            true,   // checkSight
-            0,      // chance (每tick检查)
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            true, // checkSight
+            0,    // chance (每tick检查)
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 羊、兔子、狐狸
                 auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::SHEEP ||
-                       type == entity::EntityTypeIdNumber::RABBIT ||
-                       type == entity::EntityTypeIdNumber::FOX;
+                return type == entity::EntityTypeIdNumber::SHEEP || type == entity::EntityTypeIdNumber::RABBIT ||
+                    type == entity::EntityTypeIdNumber::FOX;
             }));
 
     // 优先级 6: 未驯服时攻击幼海龟（不在水中） - MC 1.16.5 优先级为 6
     // 使用 NonTamedTargetGoal，只在未驯服时执行
     // TurtleEntity.TARGET_DRY_BABY 谓词：幼体且不在水中
     m_targetSelector.addGoal(6,
-        std::make_unique<entity::ai::goal::NonTamedTargetGoal<TurtleEntity>>(
-            this,
-            true,   // checkSight
+        std::make_unique<entity::ai::goal::NonTamedTargetGoal<TurtleEntity>>(this,
+            true, // checkSight
             [](const LivingEntity* entity) -> bool {
                 // TARGET_DRY_BABY: 幼体且不在水中
                 const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
@@ -324,17 +320,15 @@ void WolfEntity::registerGoals()
     // 优先级 7: 攻击骷髅类怪物 - MC 1.16.5 优先级为 7
     // 无论是否驯服，狼都会攻击骷髅类怪物
     m_targetSelector.addGoal(7,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this,
-            false,  // checkSight - 不需要视线检查，骷髅是敌对生物
-            0,      // chance
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            false, // checkSight - 不需要视线检查，骷髅是敌对生物
+            0,     // chance
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 骷髅、流浪者、凋灵骷髅
                 auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::SKELETON ||
-                       type == entity::EntityTypeIdNumber::STRAY ||
-                       type == entity::EntityTypeIdNumber::WITHER_SKELETON;
+                return type == entity::EntityTypeIdNumber::SKELETON || type == entity::EntityTypeIdNumber::STRAY ||
+                    type == entity::EntityTypeIdNumber::WITHER_SKELETON;
             }));
 
     // 注意：优先级 8 的 ResetAngerGoal 需要 IAngerable 接口完整实现

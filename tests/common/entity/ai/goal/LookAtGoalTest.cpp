@@ -1,28 +1,28 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include <gtest/gtest.h>
 #include <memory>
+#include <gtest/gtest.h>
 
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
@@ -37,15 +37,9 @@ namespace test {
 
 class LookAtGoalTypeFilterTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        pig = std::make_unique<PigEntity>(EntityId(1));
-    }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
 
-    void TearDown() override
-    {
-        pig.reset();
-    }
+    void TearDown() override { pig.reset(); }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -102,10 +96,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_PigEntity)
 {
     // 使用 TypeFilter 构造看向猪的 LookAtGoal
     auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        8.0f,
-        entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-        entity::ai::goal::TypeFilter<PigEntity>{});
+        pig.get(), 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<PigEntity>{});
 
     EXPECT_NE(goal, nullptr);
     EXPECT_EQ(goal->getTypeName(), "LookAtGoal");
@@ -114,11 +105,8 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_PigEntity)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_Player)
 {
     // 使用 TypeFilter 构造看向玩家的 LookAtGoal
-    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        10.0f,
-        0.05f,
-        entity::ai::goal::TypeFilter<Player>{});
+    auto goal =
+        std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 10.0f, 0.05f, entity::ai::goal::TypeFilter<Player>{});
 
     EXPECT_NE(goal, nullptr);
 }
@@ -126,8 +114,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_Player)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_StriderEntity)
 {
     // 使用 TypeFilter 构造看向炽足兽的 LookAtGoal
-    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
+    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(),
         8.0f,
         entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
         entity::ai::goal::TypeFilter<StriderEntity>{});
@@ -139,10 +126,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_LivingEntity)
 {
     // 使用 TypeFilter 构造看向任意 LivingEntity 的 LookAtGoal
     auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        12.0f,
-        0.02f,
-        entity::ai::goal::TypeFilter<LivingEntity>{});
+        pig.get(), 12.0f, 0.02f, entity::ai::goal::TypeFilter<LivingEntity>{});
 
     EXPECT_NE(goal, nullptr);
 }
@@ -152,10 +136,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilterConstructor_LivingEntity)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilter_MutexFlags)
 {
     auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        8.0f,
-        entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-        entity::ai::goal::TypeFilter<PigEntity>{});
+        pig.get(), 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<PigEntity>{});
 
     // LookAtGoal 应该只有 Look 标志
     auto flags = goal->getMutexFlags();
@@ -170,9 +151,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_TypeFilter_MutexFlags)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_DefaultConstructor)
 {
     // 默认构造函数（看向任意 LivingEntity）
-    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        8.0f);
+    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 8.0f);
 
     EXPECT_NE(goal, nullptr);
     EXPECT_EQ(goal->getTypeName(), "LookAtGoal");
@@ -181,10 +160,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_DefaultConstructor)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_ChanceConstructor)
 {
     // 带概率的构造函数
-    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        10.0f,
-        0.05f);
+    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 10.0f, 0.05f);
 
     EXPECT_NE(goal, nullptr);
 }
@@ -194,11 +170,8 @@ TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_ChanceConstructor)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_CustomFilter)
 {
     // 使用自定义过滤函数
-    auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        10.0f,
-        0.02f,
-        [](const LivingEntity* entity) -> bool {
+    auto goal =
+        std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 10.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向成年动物
             const AnimalEntity* animal = dynamic_cast<const AnimalEntity*>(entity);
             return animal != nullptr && !animal->isChild();
@@ -242,10 +215,7 @@ TEST_F(LookAtGoalTypeFilterTest, LookRandomlyGoal_MutexFlags)
 TEST_F(LookAtGoalTypeFilterTest, LookAtGoal_ShouldExecuteReturnsFalseWithoutWorld)
 {
     auto goal = std::make_unique<entity::ai::goal::LookAtGoal>(
-        pig.get(),
-        8.0f,
-        entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE,
-        entity::ai::goal::TypeFilter<PigEntity>{});
+        pig.get(), 8.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<PigEntity>{});
 
     // 无世界时不应执行
     EXPECT_FALSE(goal->shouldExecute());

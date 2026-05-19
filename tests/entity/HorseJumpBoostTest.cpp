@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -109,7 +109,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_IncreasesJumpForce)
 
     // 设置固定的跳跃强度以便测试
     horse.setJumpStrength(0.5f);
-    horse.setSaddle(true);  // 需要鞍才能跳跃
+    horse.setSaddle(true); // 需要鞍才能跳跃
 
     // 设置跳跃力度为满 (100%)
     horse.setJumpPower(100);
@@ -158,8 +158,7 @@ TEST(HorseJumpBoostTest, JumpBoostLevel_AddsCorrectAmount)
 
     // 添加跳跃提升 I (amplifier = 0, level = 1)
     {
-        entity::effect::EffectInstance jumpBoostI(
-            entity::effect::EffectType::JumpBoost, 200, 0, false, true);
+        entity::effect::EffectInstance jumpBoostI(entity::effect::EffectType::JumpBoost, 200, 0, false, true);
         horse.addEffect(std::move(jumpBoostI));
         EXPECT_EQ(horse.getEffectLevel(entity::effect::EffectType::JumpBoost), 1);
         // 跳跃提升 I 应增加 0.1 的跳跃力度
@@ -168,8 +167,7 @@ TEST(HorseJumpBoostTest, JumpBoostLevel_AddsCorrectAmount)
 
     // 添加跳跃提升 II (amplifier = 1, level = 2)
     {
-        entity::effect::EffectInstance jumpBoostII(
-            entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+        entity::effect::EffectInstance jumpBoostII(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
         horse.addEffect(std::move(jumpBoostII));
         EXPECT_EQ(horse.getEffectLevel(entity::effect::EffectType::JumpBoost), 2);
         // 跳跃提升 II 应增加 0.2 的跳跃力度
@@ -178,8 +176,7 @@ TEST(HorseJumpBoostTest, JumpBoostLevel_AddsCorrectAmount)
 
     // 添加跳跃提升 III (amplifier = 2, level = 3)
     {
-        entity::effect::EffectInstance jumpBoostIII(
-            entity::effect::EffectType::JumpBoost, 200, 2, false, true);
+        entity::effect::EffectInstance jumpBoostIII(entity::effect::EffectType::JumpBoost, 200, 2, false, true);
         horse.addEffect(std::move(jumpBoostIII));
         EXPECT_EQ(horse.getEffectLevel(entity::effect::EffectType::JumpBoost), 3);
         // 跳跃提升 III 应增加 0.3 的跳跃力度
@@ -199,8 +196,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_Removed_JumpForceReturnsToNormal)
     horse.setWorld(&world);
 
     // 添加跳跃提升 II
-    entity::effect::EffectInstance jumpBoostII(
-        entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+    entity::effect::EffectInstance jumpBoostII(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
     horse.addEffect(std::move(jumpBoostII));
     EXPECT_TRUE(horse.hasEffect(entity::effect::EffectType::JumpBoost));
     EXPECT_EQ(horse.getEffectLevel(entity::effect::EffectType::JumpBoost), 2);
@@ -225,14 +221,12 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksWithOtherEffects)
     horse.setWorld(&world);
 
     // 添加速度效果
-    entity::effect::EffectInstance speedEffect(
-        entity::effect::EffectType::Speed, 200, 1, false, true);
+    entity::effect::EffectInstance speedEffect(entity::effect::EffectType::Speed, 200, 1, false, true);
     horse.addEffect(std::move(speedEffect));
     EXPECT_TRUE(horse.hasEffect(entity::effect::EffectType::Speed));
 
     // 添加跳跃提升 II
-    entity::effect::EffectInstance jumpBoostII(
-        entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+    entity::effect::EffectInstance jumpBoostII(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
     horse.addEffect(std::move(jumpBoostII));
 
     // 验证两个效果都存在
@@ -255,8 +249,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
         HorseEntity horse(EntityId(1));
         horse.setWorld(&world);
 
-        entity::effect::EffectInstance jumpBoost(
-            entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+        entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
         horse.addEffect(std::move(jumpBoost));
         EXPECT_EQ(horse.getEffectLevel(entity::effect::EffectType::JumpBoost), 2);
     }
@@ -266,8 +259,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
         DonkeyEntity donkey(EntityId(2));
         donkey.setWorld(&world);
 
-        entity::effect::EffectInstance jumpBoost(
-            entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+        entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
         donkey.addEffect(std::move(jumpBoost));
         EXPECT_EQ(donkey.getEffectLevel(entity::effect::EffectType::JumpBoost), 2);
     }
@@ -277,8 +269,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
         MuleEntity mule(EntityId(3));
         mule.setWorld(&world);
 
-        entity::effect::EffectInstance jumpBoost(
-            entity::effect::EffectType::JumpBoost, 200, 1, false, true);
+        entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
         mule.addEffect(std::move(jumpBoost));
         EXPECT_EQ(mule.getEffectLevel(entity::effect::EffectType::JumpBoost), 2);
     }

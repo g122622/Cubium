@@ -66,3 +66,11 @@ enum class Operation : u8 {
 代码编写结束之后，请你进行严格的多轮自查，检查是否完整实现、是否留有TODO、是否未完整集成到现有游戏流程中导致形成“孤岛代码”、测试用例是否完备且合理且足够复杂以便暴露问题、没用了的旧代码是否彻底清除、相关文档（readme）是否更新等。
 
 最后，生成简体中文提交信息并提交代码。
+
+提交代码之前，必须使用clang-format对你修改的文件进行格式化：
+
+```
+clang-format -i src\common\xxx\Foo.cpp
+clang-format -i src\common\xxx\Foo.hpp
+```
+

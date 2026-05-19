@@ -1,36 +1,36 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "IllusionerGoals.hpp"
-#include "../../../../core/LivingEntity.hpp"
+#include "../../../../../util/assert/AssertAll.hpp"
+#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/EntityUtils.hpp"
+#include "../../../../core/LivingEntity.hpp"
 #include "../../../../effect/EffectInstance.hpp"
 #include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/monster/illager/IllusionerEntity.hpp"
 #include "../../../controller/LookController.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../util/math/random/Random.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -99,12 +99,7 @@ void IllusionerSpellGoal::tick()
     LivingEntity* target = m_illusioner->attackTarget();
     if (target != nullptr) {
         m_illusioner->lookController()->setLookPosition(
-            target->x(),
-            target->y() + target->eyeHeight(),
-            target->z(),
-            30.0f,
-            30.0f
-        );
+            target->x(), target->y() + target->eyeHeight(), target->z(), 30.0f, 30.0f);
     }
 
     // 施法准备阶段
@@ -124,8 +119,7 @@ void IllusionerSpellGoal::tick()
 IllusionerBlindnessSpellGoal::IllusionerBlindnessSpellGoal(IllusionerEntity* illusioner)
     : IllusionerSpellGoal(illusioner)
     , m_lastTargetId(0)
-{
-}
+{}
 
 bool IllusionerBlindnessSpellGoal::shouldExecute()
 {
@@ -195,10 +189,9 @@ void IllusionerBlindnessSpellGoal::castSpell()
     }
 
     // MC 1.16.5: 施加失明效果，持续 400 ticks (20秒)
-    entity::effect::EffectInstance blindness(
-        entity::effect::EffectType::Blindness,
+    entity::effect::EffectInstance blindness(entity::effect::EffectType::Blindness,
         BLINDNESS_DURATION,
-        0,    // amplifier = 0 (效果等级 I)
+        0,     // amplifier = 0 (效果等级 I)
         false, // 非环境效果
         true,  // 显示粒子
         true   // 显示图标
@@ -218,8 +211,7 @@ SpellcastingIllagerEntity::SpellType IllusionerBlindnessSpellGoal::getSpellType(
 
 IllusionerMirrorSpellGoal::IllusionerMirrorSpellGoal(IllusionerEntity* illusioner)
     : IllusionerSpellGoal(illusioner)
-{
-}
+{}
 
 bool IllusionerMirrorSpellGoal::shouldExecute()
 {
@@ -257,10 +249,9 @@ void IllusionerMirrorSpellGoal::castSpell()
     }
 
     // MC 1.16.5: 施加隐身效果，持续 1200 ticks (60秒)
-    entity::effect::EffectInstance invisibility(
-        entity::effect::EffectType::Invisibility,
+    entity::effect::EffectInstance invisibility(entity::effect::EffectType::Invisibility,
         INVISIBILITY_DURATION,
-        0,    // amplifier = 0 (效果等级 I)
+        0,     // amplifier = 0 (效果等级 I)
         false, // 非环境效果
         true,  // 显示粒子
         true   // 显示图标

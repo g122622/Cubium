@@ -1,40 +1,40 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "BeeGoals.hpp"
-#include "../../../../entities/passive/special/BeeEntity.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../GoalConstants.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/Block.hpp"
-#include "../../../../../world/block/BlockTags.hpp"
-#include "../../../../../world/block/blocks/agricultural/CropBlock.hpp"
 #include "../../../../../entity/core/EntityUtils.hpp"
 #include "../../../../../entity/damage/DamageSource.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../world/block/Block.hpp"
+#include "../../../../../world/block/BlockState.hpp"
+#include "../../../../../world/block/BlockTags.hpp"
+#include "../../../../../world/block/blocks/agricultural/CropBlock.hpp"
+#include "../../../../entities/passive/special/BeeEntity.hpp"
+#include "../../../controller/MovementController.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
+#include "../../GoalConstants.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -48,8 +48,7 @@ namespace entity::ai::goal {
 BeePassiveGoal::BeePassiveGoal(BeeEntity* bee)
     : Goal()
     , m_bee(bee)
-{
-}
+{}
 
 bool BeePassiveGoal::shouldExecute()
 {
@@ -70,8 +69,7 @@ bool BeePassiveGoal::shouldContinueExecuting()
 BeeStingGoal::BeeStingGoal(BeeEntity* bee)
     : MeleeAttackGoal(bee, 1.4, true)
     , m_beeEntity(bee)
-{
-}
+{}
 
 bool BeeStingGoal::shouldExecute()
 {
@@ -104,8 +102,7 @@ void BeeStingGoal::tick()
 
 BeeEnterHiveGoal::BeeEnterHiveGoal(BeeEntity* bee)
     : BeePassiveGoal(bee)
-{
-}
+{}
 
 bool BeeEnterHiveGoal::canBeeStart()
 {
@@ -127,9 +124,9 @@ bool BeeEnterHiveGoal::canBeeStart()
     // 检查是否在蜂巢附近（2格内）
     BlockPos hivePos = m_bee->getHivePos();
     math::Vector3 beePos = m_bee->position();
-    f64 distSq = (beePos.x - hivePos.x - 0.5) * (beePos.x - hivePos.x - 0.5)
-               + (beePos.y - hivePos.y - 0.5) * (beePos.y - hivePos.y - 0.5)
-               + (beePos.z - hivePos.z - 0.5) * (beePos.z - hivePos.z - 0.5);
+    f64 distSq = (beePos.x - hivePos.x - 0.5) * (beePos.x - hivePos.x - 0.5) +
+        (beePos.y - hivePos.y - 0.5) * (beePos.y - hivePos.y - 0.5) +
+        (beePos.z - hivePos.z - 0.5) * (beePos.z - hivePos.z - 0.5);
 
     if (distSq > 4.0) { // 2格距离平方
         return false;
@@ -279,12 +276,13 @@ void BeePollinateGoal::tick()
     }
 
     BlockPos flowerPos = m_bee->getFlowerPos();
-    math::Vector3f flowerCenter(static_cast<f32>(flowerPos.x + 0.5), static_cast<f32>(flowerPos.y + 0.6), static_cast<f32>(flowerPos.z + 0.5));
+    math::Vector3f flowerCenter(
+        static_cast<f32>(flowerPos.x + 0.5), static_cast<f32>(flowerPos.y + 0.6), static_cast<f32>(flowerPos.z + 0.5));
     math::Vector3 beePos = m_bee->position();
 
-    f64 distSq = (beePos.x - flowerCenter.x) * (beePos.x - flowerCenter.x)
-               + (beePos.y - flowerCenter.y) * (beePos.y - flowerCenter.y)
-               + (beePos.z - flowerCenter.z) * (beePos.z - flowerCenter.z);
+    f64 distSq = (beePos.x - flowerCenter.x) * (beePos.x - flowerCenter.x) +
+        (beePos.y - flowerCenter.y) * (beePos.y - flowerCenter.y) +
+        (beePos.z - flowerCenter.z) * (beePos.z - flowerCenter.z);
 
     if (distSq > 1.0) {
         // 飞向花朵
@@ -380,8 +378,7 @@ void BeePollinateGoal::moveToNextTarget()
 
 BeeUpdateHiveGoal::BeeUpdateHiveGoal(BeeEntity* bee)
     : BeePassiveGoal(bee)
-{
-}
+{}
 
 bool BeeUpdateHiveGoal::canBeeStart()
 {
@@ -444,12 +441,10 @@ std::vector<BlockPos> BeeUpdateHiveGoal::findNearbyFreeHives() const
 
     // 按距离排序
     std::sort(hives.begin(), hives.end(), [&beePos](const BlockPos& a, const BlockPos& b) {
-        f64 distA = (a.x - beePos.x) * (a.x - beePos.x)
-                  + (a.y - beePos.y) * (a.y - beePos.y)
-                  + (a.z - beePos.z) * (a.z - beePos.z);
-        f64 distB = (b.x - beePos.x) * (b.x - beePos.x)
-                  + (b.y - beePos.y) * (b.y - beePos.y)
-                  + (b.z - beePos.z) * (b.z - beePos.z);
+        f64 distA = (a.x - beePos.x) * (a.x - beePos.x) + (a.y - beePos.y) * (a.y - beePos.y) +
+            (a.z - beePos.z) * (a.z - beePos.z);
+        f64 distB = (b.x - beePos.x) * (b.x - beePos.x) + (b.y - beePos.y) * (b.y - beePos.y) +
+            (b.z - beePos.z) * (b.z - beePos.z);
         return distA < distB;
     });
 
@@ -545,8 +540,8 @@ void BeeFindHiveGoal::tick()
     if (auto* nav = m_bee->navigator()) {
         if (nav->noPath()) {
             // 没有路径
-            f64 distSq = (beePos.x - hivePos.x) * (beePos.x - hivePos.x)
-                       + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
+            f64 distSq =
+                (beePos.x - hivePos.x) * (beePos.x - hivePos.x) + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
 
             if (distSq > 256.0) { // 16格
                 // 太远了，放弃
@@ -576,17 +571,15 @@ void BeeFindHiveGoal::tick()
 bool BeeFindHiveGoal::isCloseEnough(const BlockPos& pos) const
 {
     math::Vector3 beePos = m_bee->position();
-    f64 distSq = (beePos.x - pos.x - 0.5) * (beePos.x - pos.x - 0.5)
-               + (beePos.y - pos.y - 0.5) * (beePos.y - pos.y - 0.5)
-               + (beePos.z - pos.z - 0.5) * (beePos.z - pos.z - 0.5);
+    f64 distSq = (beePos.x - pos.x - 0.5) * (beePos.x - pos.x - 0.5) +
+        (beePos.y - pos.y - 0.5) * (beePos.y - pos.y - 0.5) + (beePos.z - pos.z - 0.5) * (beePos.z - pos.z - 0.5);
     return distSq <= 4.0; // 2格距离平方
 }
 
 bool BeeFindHiveGoal::isTooFar(const BlockPos& pos) const
 {
     math::Vector3 beePos = m_bee->position();
-    f64 distSq = (beePos.x - pos.x) * (beePos.x - pos.x)
-               + (beePos.z - pos.z) * (beePos.z - pos.z);
+    f64 distSq = (beePos.x - pos.x) * (beePos.x - pos.x) + (beePos.z - pos.z) * (beePos.z - pos.z);
     return distSq > 1024.0; // 32格距离平方
 }
 
@@ -635,8 +628,8 @@ bool BeeFindFlowerGoal::canBeeStart()
     // 检查是否已经足够近
     math::Vector3 beePos = m_bee->position();
     BlockPos flowerPos = m_bee->getFlowerPos();
-    f64 distSq = (beePos.x - flowerPos.x - 0.5) * (beePos.x - flowerPos.x - 0.5)
-               + (beePos.z - flowerPos.z - 0.5) * (beePos.z - flowerPos.z - 0.5);
+    f64 distSq = (beePos.x - flowerPos.x - 0.5) * (beePos.x - flowerPos.x - 0.5) +
+        (beePos.z - flowerPos.z - 0.5) * (beePos.z - flowerPos.z - 0.5);
 
     return distSq > 4.0; // 超过2格距离
 }
@@ -677,8 +670,8 @@ void BeeFindFlowerGoal::tick()
         if (nav->noPath()) {
             // 检查是否太远
             math::Vector3 beePos = m_bee->position();
-            f64 distSq = (beePos.x - flowerPos.x) * (beePos.x - flowerPos.x)
-                       + (beePos.z - flowerPos.z) * (beePos.z - flowerPos.z);
+            f64 distSq = (beePos.x - flowerPos.x) * (beePos.x - flowerPos.x) +
+                (beePos.z - flowerPos.z) * (beePos.z - flowerPos.z);
 
             if (distSq > 1024.0) { // 32格
                 m_bee->setFlowerPos(BlockPos::zero());
@@ -695,8 +688,7 @@ void BeeFindFlowerGoal::tick()
 
 BeeFindPollinationTargetGoal::BeeFindPollinationTargetGoal(BeeEntity* bee)
     : BeePassiveGoal(bee)
-{
-}
+{}
 
 bool BeeFindPollinationTargetGoal::canBeeStart()
 {
@@ -860,8 +852,7 @@ math::Vector3f BeeWanderGoal::getRandomLocation()
 
     if (m_bee->hasHive()) {
         BlockPos hivePos = m_bee->getHivePos();
-        f64 distSq = (beePos.x - hivePos.x) * (beePos.x - hivePos.x)
-                   + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
+        f64 distSq = (beePos.x - hivePos.x) * (beePos.x - hivePos.x) + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
 
         if (distSq > HIVE_RETURN_DISTANCE * HIVE_RETURN_DISTANCE) {
             // 飞回蜂巢方向
@@ -898,10 +889,9 @@ bool BeeWanderGoal::isValidLocation(const math::Vector3f& /*pos*/) const
 // ============================================================================
 
 BeeAngerGoal::BeeAngerGoal(BeeEntity* bee)
-    : HurtByTargetGoal(bee, true)  // alertAllies = true
+    : HurtByTargetGoal(bee, true) // alertAllies = true
     , m_beeEntity(bee)
-{
-}
+{}
 
 bool BeeAngerGoal::shouldContinueExecuting()
 {
@@ -924,8 +914,7 @@ BeeAttackPlayerGoal::BeeAttackPlayerGoal(BeeEntity* bee, i32 chance)
     : TargetGoal(bee, true)
     , m_beeEntity(bee)
     , m_chance(chance)
-{
-}
+{}
 
 bool BeeAttackPlayerGoal::shouldExecute()
 {
@@ -989,8 +978,7 @@ bool BeeAttackPlayerGoal::canSting() const
 BeeResetAngerGoal::BeeResetAngerGoal(BeeEntity* bee)
     : Goal()
     , m_bee(bee)
-{
-}
+{}
 
 bool BeeResetAngerGoal::shouldExecute()
 {

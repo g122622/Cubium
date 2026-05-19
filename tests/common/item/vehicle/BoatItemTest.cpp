@@ -12,10 +12,10 @@
 
 #include <gtest/gtest.h>
 
+#include "entity/entities/vehicle/BoatEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/vehicle/BoatItem.hpp"
-#include "entity/entities/vehicle/BoatEntity.hpp"
 
 using namespace mc;
 using namespace mc::item;
@@ -27,10 +27,7 @@ using namespace mc::entity;
 
 class BoatItemTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
 // ============================================================================
@@ -50,19 +47,16 @@ TEST_F(BoatItemTest, ConstructorAndGetBoatType)
         std::string name;
     };
 
-    std::vector<TestCase> testCases = {
-        { BoatEntity::Type::OAK, "OAK" },
-        { BoatEntity::Type::SPRUCE, "SPRUCE" },
-        { BoatEntity::Type::BIRCH, "BIRCH" },
-        { BoatEntity::Type::JUNGLE, "JUNGLE" },
-        { BoatEntity::Type::ACACIA, "ACACIA" },
-        { BoatEntity::Type::DARK_OAK, "DARK_OAK" }
-    };
+    std::vector<TestCase> testCases = {{BoatEntity::Type::OAK, "OAK"},
+        {BoatEntity::Type::SPRUCE, "SPRUCE"},
+        {BoatEntity::Type::BIRCH, "BIRCH"},
+        {BoatEntity::Type::JUNGLE, "JUNGLE"},
+        {BoatEntity::Type::ACACIA, "ACACIA"},
+        {BoatEntity::Type::DARK_OAK, "DARK_OAK"}};
 
     for (const auto& tc : testCases) {
         BoatItem boatItem(tc.type, ItemProperties().maxStackSize(1));
-        EXPECT_EQ(boatItem.getBoatType(), tc.type)
-            << "BoatItem should have correct type for " << tc.name;
+        EXPECT_EQ(boatItem.getBoatType(), tc.type) << "BoatItem should have correct type for " << tc.name;
     }
 }
 
@@ -108,14 +102,12 @@ TEST_F(BoatItemTest, BoatItemResourceLocations)
         std::string expectedId;
     };
 
-    std::vector<TestCase> testCases = {
-        { Items::OAK_BOAT, "minecraft:oak_boat" },
-        { Items::SPRUCE_BOAT, "minecraft:spruce_boat" },
-        { Items::BIRCH_BOAT, "minecraft:birch_boat" },
-        { Items::JUNGLE_BOAT, "minecraft:jungle_boat" },
-        { Items::ACACIA_BOAT, "minecraft:acacia_boat" },
-        { Items::DARK_OAK_BOAT, "minecraft:dark_oak_boat" }
-    };
+    std::vector<TestCase> testCases = {{Items::OAK_BOAT, "minecraft:oak_boat"},
+        {Items::SPRUCE_BOAT, "minecraft:spruce_boat"},
+        {Items::BIRCH_BOAT, "minecraft:birch_boat"},
+        {Items::JUNGLE_BOAT, "minecraft:jungle_boat"},
+        {Items::ACACIA_BOAT, "minecraft:acacia_boat"},
+        {Items::DARK_OAK_BOAT, "minecraft:dark_oak_boat"}};
 
     for (const auto& tc : testCases) {
         ASSERT_NE(tc.item, nullptr) << "Item should not be null for " << tc.expectedId;
@@ -195,19 +187,16 @@ TEST_F(BoatItemTest, BoatBurnTime)
  */
 TEST_F(BoatItemTest, BoatItemsHaveValidIds)
 {
-    Item* boats[] = {
-        Items::OAK_BOAT,
+    Item* boats[] = {Items::OAK_BOAT,
         Items::SPRUCE_BOAT,
         Items::BIRCH_BOAT,
         Items::JUNGLE_BOAT,
         Items::ACACIA_BOAT,
-        Items::DARK_OAK_BOAT
-    };
+        Items::DARK_OAK_BOAT};
 
     for (size_t i = 0; i < 6; ++i) {
         ASSERT_NE(boats[i], nullptr) << "Boat item at index " << i << " should not be null";
-        EXPECT_NE(boats[i]->itemId(), ItemId(0))
-            << "Boat item should have non-zero ID";
+        EXPECT_NE(boats[i]->itemId(), ItemId(0)) << "Boat item should have non-zero ID";
     }
 }
 
@@ -218,20 +207,17 @@ TEST_F(BoatItemTest, BoatItemsHaveValidIds)
  */
 TEST_F(BoatItemTest, BoatItemsAreDistinct)
 {
-    Item* boats[] = {
-        Items::OAK_BOAT,
+    Item* boats[] = {Items::OAK_BOAT,
         Items::SPRUCE_BOAT,
         Items::BIRCH_BOAT,
         Items::JUNGLE_BOAT,
         Items::ACACIA_BOAT,
-        Items::DARK_OAK_BOAT
-    };
+        Items::DARK_OAK_BOAT};
 
     // 验证每对船物品都不同
     for (size_t i = 0; i < 6; ++i) {
         for (size_t j = i + 1; j < 6; ++j) {
-            EXPECT_NE(boats[i], boats[j])
-                << "Boat items at index " << i << " and " << j << " should be different";
+            EXPECT_NE(boats[i], boats[j]) << "Boat items at index " << i << " and " << j << " should be different";
             EXPECT_NE(boats[i]->itemId(), boats[j]->itemId())
                 << "Boat items at index " << i << " and " << j << " should have different IDs";
         }

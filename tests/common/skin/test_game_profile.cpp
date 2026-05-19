@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
@@ -191,8 +191,8 @@ TEST_F(GameProfileTest, ToJson_EmptyProfile)
     nlohmann::json json = profile.toJson();
 
     EXPECT_TRUE(json.is_object());
-    EXPECT_FALSE(json.contains("Name"));    // 空名称不写入
-    EXPECT_FALSE(json.contains("Id"));      // 无效 UUID 不写入
+    EXPECT_FALSE(json.contains("Name")); // 空名称不写入
+    EXPECT_FALSE(json.contains("Id"));   // 无效 UUID 不写入
     EXPECT_FALSE(json.contains("Properties"));
 }
 
@@ -233,10 +233,7 @@ TEST_F(GameProfileTest, ToJson_PropertyWithoutSignature)
 
 TEST_F(GameProfileTest, FromJson_StringUUID)
 {
-    nlohmann::json json = {
-        {"Name", "TestPlayer"},
-        {"Id", "550e8400-e29b-41d4-a716-446655440000"}
-    };
+    nlohmann::json json = {{"Name", "TestPlayer"}, {"Id", "550e8400-e29b-41d4-a716-446655440000"}};
 
     auto result = GameProfile::fromJson(json);
     ASSERT_TRUE(result.success());
@@ -256,8 +253,7 @@ TEST_F(GameProfileTest, FromJson_IntArrayUUID)
 {
     // MC NBT 格式：UUID 存储为 4 个 int
     nlohmann::json json = {
-        {"Name", "IntArrayUUID"},
-        {"Id", {1430752512, -490278444, -1488612266, 1149116928}} // 对应 UUID
+        {"Name", "IntArrayUUID"}, {"Id", {1430752512, -490278444, -1488612266, 1149116928}} // 对应 UUID
     };
 
     auto result = GameProfile::fromJson(json);
@@ -270,13 +266,10 @@ TEST_F(GameProfileTest, FromJson_IntArrayUUID)
 
 TEST_F(GameProfileTest, FromJson_WithProperties)
 {
-    nlohmann::json json = {
-        {"Name", "PlayerWithSkin"},
+    nlohmann::json json = {{"Name", "PlayerWithSkin"},
         {"Id", "550e8400-e29b-41d4-a716-446655440000"},
         {"Properties",
-         {{"textures",
-           nlohmann::json::array({{{"Value", "base64Data"}, {"Signature", "signatureData"}}})}}}
-    };
+            {{"textures", nlohmann::json::array({{{"Value", "base64Data"}, {"Signature", "signatureData"}}})}}}};
 
     auto result = GameProfile::fromJson(json);
     ASSERT_TRUE(result.success());

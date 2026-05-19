@@ -1,32 +1,32 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
 #include "../../../../core/Types.hpp"
-#include "../basic/AnimalEntity.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,7 +40,7 @@ namespace entity::ai::goal {
 class OcelotAvoidPlayerGoal;
 class OcelotTemptGoal;
 class OcelotAttackGoal;
-}
+} // namespace entity::ai::goal
 
 /**
  * @brief 豹猫实体
@@ -240,12 +240,12 @@ private:
     entity::ai::goal::OcelotTemptGoal* m_temptGoal = nullptr;
 
     // 常量 - 参考 MC 1.16.5 OcelotEntity
-    static constexpr f64 TEMPT_SPEED = 0.6;        // 诱惑速度
-    static constexpr f64 AVOID_FAR_SPEED = 0.8;    // 远距离逃避速度
-    static constexpr f64 AVOID_NEAR_SPEED = 1.33;  // 近距离逃避速度
-    static constexpr f32 AVOID_DISTANCE = 16.0f;   // 逃避检测距离
-    static constexpr f32 ATTACK_DAMAGE = 3.0f;     // 攻击伤害
-    static constexpr i32 DESPAWN_TICKS = 2400;     // 消失所需tick数（2分钟）
+    static constexpr f64 TEMPT_SPEED = 0.6;       // 诱惑速度
+    static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
+    static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度
+    static constexpr f32 AVOID_DISTANCE = 16.0f;  // 逃避检测距离
+    static constexpr f32 ATTACK_DAMAGE = 3.0f;    // 攻击伤害
+    static constexpr i32 DESPAWN_TICKS = 2400;    // 消失所需tick数（2分钟）
 
     /**
      * @brief 根据信任状态动态调整 AI 目标

@@ -1,41 +1,41 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "core/Constants.hpp"
+#include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
 #include "world/block/blocks/ocean/BubbleColumnBlock.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
 #include "world/fluid/fluids/WaterFluid.hpp"
-#include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"
-#include "util/property/Properties.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -86,10 +86,7 @@ public:
         return nullptr;
     }
 
-    void setFluidState(i32 x, i32 y, i32 z, const fluid::FluidState& state)
-    {
-        m_fluids[BlockPos(x, y, z)] = state;
-    }
+    void setFluidState(i32 x, i32 y, i32 z, const fluid::FluidState& state) { m_fluids[BlockPos(x, y, z)] = state; }
 
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
@@ -284,16 +281,14 @@ TEST_F(BubbleColumnBlockTest, GetDrag_InheritsFromBubbleColumn)
     BubbleColumnBlock* bubbleBlock = getBubbleColumnBlock();
     ASSERT_NE(bubbleBlock, nullptr);
 
-    const BlockState& dragState = VanillaBlocks::BUBBLE_COLUMN->defaultState()
-        .with(BlockStateProperties::DRAG(), true);
+    const BlockState& dragState = VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), true);
     world.setBlockAt(BlockPos(0, 0, 0), &dragState);
 
     // 继承气泡柱的 DRAG 状态
     EXPECT_TRUE(BubbleColumnBlock::getDrag(world, BlockPos(0, 0, 0)));
 
     // 设置上升气泡柱
-    const BlockState& upState = VanillaBlocks::BUBBLE_COLUMN->defaultState()
-        .with(BlockStateProperties::DRAG(), false);
+    const BlockState& upState = VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), false);
     world.setBlockAt(BlockPos(0, 0, 0), &upState);
 
     EXPECT_FALSE(BubbleColumnBlock::getDrag(world, BlockPos(0, 0, 0)));
@@ -352,13 +347,11 @@ TEST_F(BubbleColumnBlockTest, IsDrag_ReturnsCorrectValue)
     ASSERT_NE(block, nullptr);
 
     // 下拖气泡柱
-    const BlockState& dragState = VanillaBlocks::BUBBLE_COLUMN->defaultState()
-        .with(BlockStateProperties::DRAG(), true);
+    const BlockState& dragState = VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), true);
     EXPECT_TRUE(block->isDrag(dragState));
 
     // 上升气泡柱
-    const BlockState& upState = VanillaBlocks::BUBBLE_COLUMN->defaultState()
-        .with(BlockStateProperties::DRAG(), false);
+    const BlockState& upState = VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), false);
     EXPECT_FALSE(block->isDrag(upState));
 }
 

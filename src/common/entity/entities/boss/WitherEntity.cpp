@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "WitherEntity.hpp"
 #include "../../../core/Constants.hpp"
@@ -169,8 +169,8 @@ bool WitherEntity::hurt(DamageSource& source, f32 amount)
         }
         // 检查攻击者是否是亡灵生物
         LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
-        if (livingSource != nullptr && livingSource->getCreatureAttribute() == CreatureAttribute::Undead
-            && dynamic_cast<Player*>(trueSource) == nullptr) {
+        if (livingSource != nullptr && livingSource->getCreatureAttribute() == CreatureAttribute::Undead &&
+            dynamic_cast<Player*>(trueSource) == nullptr) {
             // 亡灵生物（非玩家）攻击凋灵不造成伤害
             return false;
         }
@@ -367,8 +367,7 @@ void WitherEntity::spawnParticles()
                 f32 headY = getHeadY(head);
                 f32 headZ = getHeadZ(head);
 
-                worldPtr->addParticle(
-                    client::renderer::trident::particle::ParticleTypeId::Smoke,
+                worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::Smoke,
                     Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.3,
                         headY + (getRandom().nextDouble() - 0.5) * 0.3,
                         headZ + (getRandom().nextDouble() - 0.5) * 0.3),
@@ -381,8 +380,7 @@ void WitherEntity::spawnParticles()
     if (getInvulTime() > 0 && getInvulTime() % 8 == 0) {
         // 在身体周围生成紫色粒子
         for (i32 i = 0; i < 3; ++i) {
-            worldPtr->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+            worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
                 Vector3(x() + (getRandom().nextDouble() - 0.5) * width() * 2.0,
                     y() + getRandom().nextDouble() * height(),
                     z() + (getRandom().nextDouble() - 0.5) * width() * 2.0),
@@ -407,8 +405,7 @@ void WitherEntity::die(DamageSource& source)
     if (Items::NETHER_STAR != nullptr) {
         ItemStack netherStar(Items::NETHER_STAR, 1);
         math::Random rng = getRandom();
-        ItemEntity* itemEntity = ItemDropHelper::spawnItemAtEntity(
-            this,
+        ItemEntity* itemEntity = ItemDropHelper::spawnItemAtEntity(this,
             netherStar,
             0.5f, // offsetY
             rng,
@@ -668,9 +665,8 @@ void WitherEntity::breakNearbyBlocks()
 
                 // MC 1.16.5: world.destroyBlock(pos, true, this)
                 // 将方块设置为空气，并掉落物品
-                const BlockState* airState = VanillaBlocks::AIR != nullptr
-                    ? &VanillaBlocks::AIR->defaultState()
-                    : nullptr;
+                const BlockState* airState =
+                    VanillaBlocks::AIR != nullptr ? &VanillaBlocks::AIR->defaultState() : nullptr;
 
                 if (airState != nullptr) {
                     // 设置为空气方块，flags=3 表示通知邻居并更新客户端
@@ -699,18 +695,18 @@ void WitherEntity::explodeOnSpawn()
     }
 
     // MC 1.16.5: 检查 mobGriefing 游戏规则决定爆炸模式
-    world::explosion::ExplosionMode mode = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
+    world::explosion::ExplosionMode mode =
+        worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)
         ? world::explosion::ExplosionMode::Destroy
         : world::explosion::ExplosionMode::None;
 
     // 创建爆炸
     // MC 1.16.5: 爆炸半径 7.0，不生成火焰
-    worldPtr->createExplosion(
-        position(),
+    worldPtr->createExplosion(position(),
         game::explosion::WITHER_SPAWN_RADIUS, // 7.0f
         mode,
         false, // 不生成火焰
-        this    // 爆炸源
+        this   // 爆炸源
     );
 
     // MC 1.16.5: 播放全局音效
@@ -737,13 +733,13 @@ void WitherEntity::registerGoals()
 
     // 优先级 2: 远程攻击（主头发射凋灵之首）
     // 使用 IRangedAttackMob 接口的 attackEntityWithRangedAttack
-    m_goalSelector.addGoal(2, new entity::ai::goal::RangedAttackGoal(
-        this,
-        1.0,   // 移动速度倍率
-        40,    // 最小攻击间隔 (ticks)
-        60,    // 最大攻击间隔 (ticks)
-        20.0f  // 攻击半径
-    ));
+    m_goalSelector.addGoal(2,
+        new entity::ai::goal::RangedAttackGoal(this,
+            1.0,  // 移动速度倍率
+            40,   // 最小攻击间隔 (ticks)
+            60,   // 最大攻击间隔 (ticks)
+            20.0f // 攻击半径
+            ));
 
     // 优先级 5: 避水随机行走
     // MC 1.16.5: WaterAvoidingRandomWalkingGoal(this, 1.0)
@@ -769,18 +765,17 @@ void WitherEntity::registerGoals()
     // 优先级 2: 攻击非亡灵生物
     // MC 1.16.5: NearestAttackableTargetGoal<MobEntity>(this, MobEntity.class, 0, false, false, NOT_UNDEAD)
     // NOT_UNDEAD 谓词：排除亡灵生物
-    m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<MobEntity>(
-        this,
-        false,  // checkSight
-        0,      // chance (每tick检查)
-        [](const LivingEntity* entity) -> bool {
-            if (entity == nullptr || !entity->isAlive()) {
-                return false;
-            }
-            // 排除亡灵生物
-            return entity->getCreatureAttribute() != CreatureAttribute::Undead;
-        }
-    ));
+    m_targetSelector.addGoal(2,
+        new entity::ai::goal::NearestAttackableTargetGoal<MobEntity>(this,
+            false, // checkSight
+            0,     // chance (每tick检查)
+            [](const LivingEntity* entity) -> bool {
+                if (entity == nullptr || !entity->isAlive()) {
+                    return false;
+                }
+                // 排除亡灵生物
+                return entity->getCreatureAttribute() != CreatureAttribute::Undead;
+            }));
 }
 
 // ========== WitherDoNothingGoal 实现 ==========
@@ -788,8 +783,7 @@ void WitherEntity::registerGoals()
 WitherDoNothingGoal::WitherDoNothingGoal(WitherEntity* wither)
     : ai::Goal(EnumSet<ai::GoalFlag>{ai::GoalFlag::Move, ai::GoalFlag::Jump, ai::GoalFlag::Look})
     , m_wither(wither)
-{
-}
+{}
 
 bool WitherDoNothingGoal::shouldExecute()
 {

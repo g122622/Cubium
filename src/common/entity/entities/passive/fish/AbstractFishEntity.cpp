@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "AbstractFishEntity.hpp"
 
-#include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/FishSwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../player/Player.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -63,26 +63,26 @@ void AbstractFishEntity::registerGoals()
     // 优先级 2: 避开玩家
     // MC 1.16.5: this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, PlayerEntity.class, 8.0F, 1.6D, 1.4D,
     // EntityPredicates.NOT_SPECTATING::test));
-    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
-        this,
-        8.0f,   // 避开距离：8格
-        1.6,    // 近距离逃跑速度（更快）
-        1.4,    // 远距离逃跑速度
-        [](const LivingEntity* entity) -> bool {
-            if (entity == nullptr || !entity->isAlive()) {
-                return false;
-            }
-            // 只躲避玩家
-            if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
-                return false;
-            }
-            // 不躲避旁观者模式和创造模式玩家
-            const Player* player = dynamic_cast<const Player*>(entity);
-            if (player != nullptr && (player->isSpectator() || player->isCreative())) {
-                return false;
-            }
-            return true;
-        }));
+    m_goalSelector.addGoal(2,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
+            8.0f, // 避开距离：8格
+            1.6,  // 近距离逃跑速度（更快）
+            1.4,  // 远距离逃跑速度
+            [](const LivingEntity* entity) -> bool {
+                if (entity == nullptr || !entity->isAlive()) {
+                    return false;
+                }
+                // 只躲避玩家
+                if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
+                    return false;
+                }
+                // 不躲避旁观者模式和创造模式玩家
+                const Player* player = dynamic_cast<const Player*>(entity);
+                if (player != nullptr && (player->isSpectator() || player->isCreative())) {
+                    return false;
+                }
+                return true;
+            }));
 
     // 优先级 4: 鱼类游泳目标（继承自 RandomSwimmingGoal，检查 canRandomSwim()）
     // MC 1.16.5 AbstractFishEntity.SwimGoal 继承自 RandomSwimmingGoal(1.0D, 40)

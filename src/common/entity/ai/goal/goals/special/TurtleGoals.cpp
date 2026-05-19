@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "TurtleGoals.hpp"
 #include "../../../../../item/Items.hpp"
@@ -95,9 +95,7 @@ bool TurtleGoHomeGoal::shouldContinueExecuting()
     f64 dz = m_turtle->z() - (homePos.z + 0.5);
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
-    return distSq > HOME_DISTANCE_ARRIVE * HOME_DISTANCE_ARRIVE
-        && !m_gaveUp
-        && m_closeToHomeTimer <= MAX_TRAVEL_TIME;
+    return distSq > HOME_DISTANCE_ARRIVE * HOME_DISTANCE_ARRIVE && !m_gaveUp && m_closeToHomeTimer <= MAX_TRAVEL_TIME;
 }
 
 void TurtleGoHomeGoal::startExecuting()
@@ -154,9 +152,7 @@ void TurtleGoHomeGoal::tick()
     // 看向出生地方向
     if (auto* lookCtrl = m_turtle->lookController()) {
         lookCtrl->setLookPosition(
-            static_cast<f64>(homePos.x) + 0.5,
-            static_cast<f64>(homePos.y),
-            static_cast<f64>(homePos.z) + 0.5);
+            static_cast<f64>(homePos.x) + 0.5, static_cast<f64>(homePos.y), static_cast<f64>(homePos.z) + 0.5);
     }
 }
 
@@ -167,14 +163,12 @@ bool TurtleGoHomeGoal::tryFindPathToHome()
     const BlockPos& homePos = m_turtle->getHomePos();
 
     // MC 1.16.5: 使用 RandomPositionGenerator 找到通往出生地的路径
-    Vector3 targetPos(static_cast<f64>(homePos.x) + 0.5,
-        static_cast<f64>(homePos.y),
-        static_cast<f64>(homePos.z) + 0.5);
+    Vector3 targetPos(
+        static_cast<f64>(homePos.x) + 0.5, static_cast<f64>(homePos.y), static_cast<f64>(homePos.z) + 0.5);
 
     Vector3 movePos;
     // 首先尝试向目标方向移动
-    if (util::RandomPositionGenerator::findRandomTargetTowards(
-            m_turtle, 16, 3, targetPos, movePos)) {
+    if (util::RandomPositionGenerator::findRandomTargetTowards(m_turtle, 16, 3, targetPos, movePos)) {
         auto* nav = m_turtle->navigator();
         if (nav) {
             return nav->moveTo(movePos.x, movePos.y, movePos.z, m_speed);
@@ -243,9 +237,7 @@ bool TurtleLayEggGoal::shouldContinueExecuting()
     f64 dz = m_turtle->z() - (homePos.z + 0.5);
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
-    return distSq <= HOME_DISTANCE_MAX * HOME_DISTANCE_MAX
-        && m_foundTarget
-        && m_timeoutCounter <= MAX_TIMEOUT;
+    return distSq <= HOME_DISTANCE_MAX * HOME_DISTANCE_MAX && m_foundTarget && m_timeoutCounter <= MAX_TIMEOUT;
 }
 
 void TurtleLayEggGoal::startExecuting()
@@ -256,8 +248,7 @@ void TurtleLayEggGoal::startExecuting()
 
     // 移动到目标位置
     if (m_foundTarget) {
-        m_turtle->tryMoveTo(
-            static_cast<f64>(m_targetPos.x) + 0.5,
+        m_turtle->tryMoveTo(static_cast<f64>(m_targetPos.x) + 0.5,
             static_cast<f64>(m_targetPos.y),
             static_cast<f64>(m_targetPos.z) + 0.5,
             m_speed);
@@ -281,8 +272,7 @@ void TurtleLayEggGoal::tick()
 
     // 看向目标位置
     if (auto* lookCtrl = m_turtle->lookController()) {
-        lookCtrl->setLookPosition(
-            static_cast<f64>(m_targetPos.x) + 0.5,
+        lookCtrl->setLookPosition(static_cast<f64>(m_targetPos.x) + 0.5,
             static_cast<f64>(m_targetPos.y) + 0.5,
             static_cast<f64>(m_targetPos.z) + 0.5);
     }
@@ -302,8 +292,7 @@ void TurtleLayEggGoal::tick()
         // 继续移动到目标位置
         auto* nav = m_turtle->navigator();
         if (nav && nav->noPath()) {
-            m_turtle->tryMoveTo(
-                static_cast<f64>(m_targetPos.x) + 0.5,
+            m_turtle->tryMoveTo(static_cast<f64>(m_targetPos.x) + 0.5,
                 static_cast<f64>(m_targetPos.y),
                 static_cast<f64>(m_targetPos.z) + 0.5,
                 m_speed);
@@ -337,8 +326,7 @@ bool TurtleLayEggGoal::findLayEggPosition()
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
 
     IWorld* world = m_turtle->world();
-    BlockPos entityPos(
-        static_cast<i32>(std::floor(m_turtle->x())),
+    BlockPos entityPos(static_cast<i32>(std::floor(m_turtle->x())),
         static_cast<i32>(std::floor(m_turtle->y())),
         static_cast<i32>(std::floor(m_turtle->z())));
 
@@ -377,9 +365,7 @@ bool TurtleTravelGoal::shouldExecute()
     if (m_turtle == nullptr) return false;
 
     // MC 1.16.5: 不在回家状态 AND 没有蛋 AND 在水中
-    return !m_turtle->isGoingHome()
-        && !m_turtle->hasEgg()
-        && m_turtle->isInWater();
+    return !m_turtle->isGoingHome() && !m_turtle->hasEgg() && m_turtle->isInWater();
 }
 
 bool TurtleTravelGoal::shouldContinueExecuting()
@@ -389,11 +375,8 @@ bool TurtleTravelGoal::shouldContinueExecuting()
     auto* nav = m_turtle->navigator();
 
     // MC 1.16.5: 有路径 AND 未放弃 AND 不在回家 AND 不在恋爱 AND 没有蛋
-    return nav != nullptr && !nav->noPath()
-        && !m_gaveUp
-        && !m_turtle->isGoingHome()
-        && !m_turtle->isInLove()
-        && !m_turtle->hasEgg();
+    return nav != nullptr && !nav->noPath() && !m_gaveUp && !m_turtle->isGoingHome() && !m_turtle->isInLove() &&
+        !m_turtle->hasEgg();
 }
 
 void TurtleTravelGoal::startExecuting()
@@ -442,9 +425,9 @@ void TurtleTravelGoal::setRandomTravelPos()
     mc::math::Random rng = m_turtle->getRandom();
 
     // MC 1.16.5: 在 512 格范围内随机选择目标
-    i32 k = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;   // X: -512 到 +512
+    i32 k = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;                   // X: -512 到 +512
     i32 l = rng.nextInt(TRAVEL_VERTICAL_RANGE * 2 + 1) - TRAVEL_VERTICAL_RANGE; // Y: -4 到 +4
-    i32 i1 = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE; // Z: -512 到 +512
+    i32 i1 = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;                  // Z: -512 到 +512
 
     // MC 1.16.5: 确保不会游到海平面以上
     // 海平面高度 = 63
@@ -453,8 +436,7 @@ void TurtleTravelGoal::setRandomTravelPos()
         l = 0;
     }
 
-    m_travelPos = BlockPos(
-        static_cast<i32>(std::floor(m_turtle->x())) + k,
+    m_travelPos = BlockPos(static_cast<i32>(std::floor(m_turtle->x())) + k,
         static_cast<i32>(std::floor(m_turtle->y())) + l,
         static_cast<i32>(std::floor(m_turtle->z())) + i1);
 }
@@ -464,13 +446,11 @@ bool TurtleTravelGoal::tryFindPathToTravelPos()
     if (m_turtle == nullptr) return false;
 
     // MC 1.16.5: 使用 RandomPositionGenerator 找到通往旅行目标的路径
-    Vector3 targetPos(static_cast<f64>(m_travelPos.x) + 0.5,
-        static_cast<f64>(m_travelPos.y),
-        static_cast<f64>(m_travelPos.z) + 0.5);
+    Vector3 targetPos(
+        static_cast<f64>(m_travelPos.x) + 0.5, static_cast<f64>(m_travelPos.y), static_cast<f64>(m_travelPos.z) + 0.5);
 
     Vector3 movePos;
-    bool found = util::RandomPositionGenerator::findRandomTargetTowards(
-        m_turtle, 16, 3, targetPos, movePos);
+    bool found = util::RandomPositionGenerator::findRandomTargetTowards(m_turtle, 16, 3, targetPos, movePos);
 
     if (found) {
         // MC 1.16.5: 检查区域是否已加载
@@ -480,8 +460,7 @@ bool TurtleTravelGoal::tryFindPathToTravelPos()
 
         IWorld* world = m_turtle->world();
         // 检查目标位置是否在世界范围内
-        if (world && !world->isWithinWorldBounds(
-                checkX - CHECK_RANGE, 0, checkZ - CHECK_RANGE)) {
+        if (world && !world->isWithinWorldBounds(checkX - CHECK_RANGE, 0, checkZ - CHECK_RANGE)) {
             found = false;
         }
     }
@@ -591,8 +570,7 @@ bool TurtleGoToWaterGoal::findWater()
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
 
     IWorld* world = m_turtle->world();
-    BlockPos entityPos(
-        static_cast<i32>(std::floor(m_turtle->x())),
+    BlockPos entityPos(static_cast<i32>(std::floor(m_turtle->x())),
         static_cast<i32>(std::floor(m_turtle->y())),
         static_cast<i32>(std::floor(m_turtle->z())));
 
@@ -636,8 +614,7 @@ bool TurtleGoToWaterGoal::findWater()
 TurtleMateGoal::TurtleMateGoal(TurtleEntity* turtle, f64 speed)
     : BreedGoal(turtle, speed)
     , m_turtle(turtle)
-{
-}
+{}
 
 bool TurtleMateGoal::shouldExecute()
 {
@@ -655,8 +632,7 @@ bool TurtleMateGoal::shouldExecute()
 TurtlePanicGoal::TurtlePanicGoal(TurtleEntity* turtle, f64 speed)
     : PanicGoal(turtle, speed)
     , m_turtle(turtle)
-{
-}
+{}
 
 bool TurtlePanicGoal::shouldExecute()
 {
@@ -671,8 +647,7 @@ bool TurtlePanicGoal::shouldExecute()
 
 TurtleTemptGoal::TurtleTemptGoal(TurtleEntity* turtle, f64 speed)
     : TemptGoal(turtle, speed, isSeagrass, false)
-{
-}
+{}
 
 bool TurtleTemptGoal::isSeagrass(const ItemStack& stack)
 {
@@ -687,8 +662,7 @@ bool TurtleTemptGoal::isSeagrass(const ItemStack& stack)
 TurtleWanderGoal::TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance)
     : RandomWalkingGoal(turtle, speed, chance)
     , m_turtle(turtle)
-{
-}
+{}
 
 bool TurtleWanderGoal::shouldExecute()
 {

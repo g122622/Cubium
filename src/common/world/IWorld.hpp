@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -445,8 +445,8 @@ public:
         // 世界边界检查: -30000000 到 30000000
         constexpr i32 WORLD_BORDER_MIN = -30000000;
         constexpr i32 WORLD_BORDER_MAX = 30000000;
-        if (pos.x < WORLD_BORDER_MIN || pos.x >= WORLD_BORDER_MAX || pos.z < WORLD_BORDER_MIN
-            || pos.z >= WORLD_BORDER_MAX) {
+        if (pos.x < WORLD_BORDER_MIN || pos.x >= WORLD_BORDER_MAX || pos.z < WORLD_BORDER_MIN ||
+            pos.z >= WORLD_BORDER_MAX) {
             return 15; // 世界边界外返回最大亮度
         }
         return getLightSubtracted(pos, skyDarkening);
@@ -483,8 +483,7 @@ public:
     {
         // 使用 InternalLightUtils 计算天空减暗因子
         // 根据当前时间和天气状态
-        return InternalLightUtils::calculateSkyDarkening(
-            dayTime(), isRaining(), isThundering());
+        return InternalLightUtils::calculateSkyDarkening(dayTime(), isRaining(), isThundering());
     }
 
     /**
@@ -656,7 +655,8 @@ public:
     /**
      * @brief 获取最近的玩家
      *
-     * 参考 MC 1.16.5: World.getClosestPlayer(double x, double y, double z, double maxDistance, @Nullable Predicate<Entity> predicate)
+     * 参考 MC 1.16.5: World.getClosestPlayer(double x, double y, double z, double maxDistance, @Nullable
+     * Predicate<Entity> predicate)
      *
      * @param pos 中心位置
      * @param maxDistance 最大距离（-1 表示无限制）
@@ -685,8 +685,7 @@ public:
      * @param exclude 排除的玩家（可以是 nullptr）
      * @return 最近的玩家指针，如果没有玩家返回 nullptr
      */
-    [[nodiscard]] virtual Player* getClosestPlayer(
-        const Vector3& pos, f32 maxDistance, const Entity* exclude)
+    [[nodiscard]] virtual Player* getClosestPlayer(const Vector3& pos, f32 maxDistance, const Entity* exclude)
     {
         (void)pos;
         (void)maxDistance;
@@ -1354,8 +1353,7 @@ public:
      * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
      * @return 最近的结构位置，如果未找到返回空
      */
-    [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(
-        const BlockPos& center,
+    [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(const BlockPos& center,
         world::gen::structure::StructureType structureType,
         i32 maxDistance,
         bool skipExisting = false)
@@ -1383,9 +1381,7 @@ public:
      * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
-    [[nodiscard]] virtual i32 executeCommand(const std::string& command,
-        const Vector3d& position,
-        i32 permissionLevel)
+    [[nodiscard]] virtual i32 executeCommand(const std::string& command, const Vector3d& position, i32 permissionLevel)
     {
         (void)command;
         (void)position;

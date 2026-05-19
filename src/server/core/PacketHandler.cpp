@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "PacketHandler.hpp"
 #include "ConnectionManager.hpp"
@@ -28,12 +28,6 @@
 #include "PositionTracker.hpp"
 #include "TeleportManager.hpp"
 #include "TimeManager.hpp"
-#include "server/application/IServer.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/advancement/PlayerAdvancements.hpp"
-#include "server/advancement/TriggerInstantiation.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -46,6 +40,12 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
+#include "server/application/IServer.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
@@ -402,9 +402,8 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     Vector3 packetPos(packet.x(), packet.y(), packet.z());
 
     Vector3 vehicleVel = vehicle->velocity();
-    f64 vehicleSpeedSq = static_cast<f64>(vehicleVel.x) * vehicleVel.x +
-                         static_cast<f64>(vehicleVel.y) * vehicleVel.y +
-                         static_cast<f64>(vehicleVel.z) * vehicleVel.z;
+    f64 vehicleSpeedSq = static_cast<f64>(vehicleVel.x) * vehicleVel.x + static_cast<f64>(vehicleVel.y) * vehicleVel.y +
+        static_cast<f64>(vehicleVel.z) * vehicleVel.z;
 
     f64 dx = packetPos.x - vehiclePos.x;
     f64 dy = packetPos.y - vehiclePos.y;
@@ -416,7 +415,9 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     constexpr f64 MAX_VEHICLE_SPEED_SQ = 100.0;
     if (deltaSq - vehicleSpeedSq > MAX_VEHICLE_SPEED_SQ) {
         spdlog::warn("PacketHandler: Player {} vehicle moved too quickly! delta={:.2f}, speed={:.2f}",
-            playerId, std::sqrt(deltaSq), std::sqrt(vehicleSpeedSq));
+            playerId,
+            std::sqrt(deltaSq),
+            std::sqrt(vehicleSpeedSq));
         // MC 1.16.5: 发送校正包回客户端，恢复到服务端已知位置
         // 暂时不实现校正包，只记录警告
         // 实际应该发送 SMoveVehiclePacket 回客户端
@@ -435,7 +436,8 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     player->setRotation(player->yaw(), packet.pitch() * 0.5f);
 
     // 更新位置追踪器
-    m_positionTracker.updatePosition(playerId, packetPos.x, packetPos.y, packetPos.z, packet.yaw(), packet.pitch(), vehicle->onGround());
+    m_positionTracker.updatePosition(
+        playerId, packetPos.x, packetPos.y, packetPos.z, packet.yaw(), packet.pitch(), vehicle->onGround());
 
     return PacketHandleResult::Success;
 }
@@ -511,7 +513,8 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
                     if (jumpingMount != nullptr && jumpingMount->canJump()) {
                         i32 jumpPower = packet.auxData();
                         jumpingMount->startJumping(jumpPower);
-                        spdlog::trace("PacketHandler: Player {} started riding jump with power {}", playerId, jumpPower);
+                        spdlog::trace(
+                            "PacketHandler: Player {} started riding jump with power {}", playerId, jumpPower);
                     }
                 }
             }
@@ -543,8 +546,8 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
             break;
 
         default:
-            spdlog::trace("PacketHandler: Unhandled entity action {} for player {}",
-                static_cast<i32>(packet.action()), playerId);
+            spdlog::trace(
+                "PacketHandler: Unhandled entity action {} for player {}", static_cast<i32>(packet.action()), playerId);
             break;
     }
 
@@ -572,8 +575,8 @@ PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data,
     // leftPaddle: 左桨是否在划动
     // rightPaddle: 右桨是否在划动
 
-    spdlog::trace("PacketHandler: Player {} steer boat: left={}, right={}",
-        playerId, packet.leftPaddle(), packet.rightPaddle());
+    spdlog::trace(
+        "PacketHandler: Player {} steer boat: left={}, right={}", playerId, packet.leftPaddle(), packet.rightPaddle());
 
     // 验证服务器接口
     if (m_server == nullptr) {
@@ -751,7 +754,9 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
         constexpr f32 MAX_INTERACTION_DISTANCE_SQ = 36.0f;
         if (distanceSq >= MAX_INTERACTION_DISTANCE_SQ) {
             spdlog::debug("PacketHandler: Player {} too far from entity {} (distance={:.2f})",
-                playerId, packet.entityId(), std::sqrt(distanceSq));
+                playerId,
+                packet.entityId(),
+                std::sqrt(distanceSq));
             return PacketHandleResult::Ignore;
         }
     }
@@ -811,7 +816,7 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
             auto* advancements = serverPlayer->getAdvancements();
             if (advancements != nullptr) {
                 auto* trigger = advancement::CriterionTriggers::instance()
-                    .getTrigger<advancement::PlayerInteractedWithEntityTrigger>();
+                                    .getTrigger<advancement::PlayerInteractedWithEntityTrigger>();
                 if (trigger != nullptr) {
                     ItemStack heldItem = player->getHeldItem(packet.hand());
                     trigger->AbstractCriterionTrigger<advancement::PlayerInteractedWithEntityTriggerInstance>::trigger(

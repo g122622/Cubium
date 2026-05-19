@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "CustomServerBossInfo.hpp"
 #include "CustomServerBossInfoManager.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TextStyle.hpp"
-#include "common/util/text/TextEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -36,11 +36,11 @@ namespace server {
 CustomServerBossInfo::CustomServerBossInfo(
     const ResourceLocation& id, std::unique_ptr<text::ITextComponent> name, CustomServerBossInfoManager& manager)
     : ServerBossInfo(
-        // 使用 id 的哈希值作为 UUID（简化实现，实际 MC 使用随机 UUID）
-        std::hash<std::string> {}(id.toString()),
-        std::move(name),
-        BossInfoColor::White,
-        BossInfoOverlay::Progress)
+          // 使用 id 的哈希值作为 UUID（简化实现，实际 MC 使用随机 UUID）
+          std::hash<std::string>{}(id.toString()),
+          std::move(name),
+          BossInfoColor::White,
+          BossInfoOverlay::Progress)
     , m_id(id)
     , m_manager(manager)
 {
@@ -274,7 +274,8 @@ std::unique_ptr<CustomServerBossInfo> CustomServerBossInfo::fromNbt(
         try {
             nlohmann::json json = nlohmann::json::parse(nameJson);
             name = text::ITextComponent::fromJson(json);
-        } catch (...) {
+        }
+        catch (...) {
             name = std::make_unique<text::StringTextComponent>(id.path());
         }
     }

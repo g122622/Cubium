@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "EndGatewayEntity.hpp"
 
@@ -37,8 +37,7 @@ namespace blockentity {
 
 EndGatewayEntity::EndGatewayEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::EndGateway, pos)
-{
-}
+{}
 
 // ========== 方块实体接口 ==========
 
@@ -60,8 +59,7 @@ void EndGatewayEntity::tick(IWorld& world)
         // 在冷却期间不执行传送
         if (!isCoolingDown()) {
             // 获取方块碰撞箱内的实体
-            auto entities = world.getEntitiesInAABB(
-                AxisAlignedBB::fromBlock(m_pos.x, m_pos.y, m_pos.z));
+            auto entities = world.getEntitiesInAABB(AxisAlignedBB::fromBlock(m_pos.x, m_pos.y, m_pos.z));
 
             if (!entities.empty()) {
                 // 随机选择一个实体传送
@@ -101,8 +99,8 @@ bool EndGatewayEntity::load(const nlohmann::json& data)
 
     if (data.contains("ExitPortal")) {
         const auto& exitPortal = data["ExitPortal"];
-        if (exitPortal.is_object() &&
-            exitPortal.contains("X") && exitPortal.contains("Y") && exitPortal.contains("Z")) {
+        if (exitPortal.is_object() && exitPortal.contains("X") && exitPortal.contains("Y") &&
+            exitPortal.contains("Z")) {
             i32 x = exitPortal["X"].get<i32>();
             i32 y = exitPortal["Y"].get<i32>();
             i32 z = exitPortal["Z"].get<i32>();
@@ -180,8 +178,7 @@ void EndGatewayEntity::teleportEntity(IWorld& world, Entity& entity)
 
         // 执行传送
         // 传送到目标位置的中心
-        entity.attemptTeleport(
-            static_cast<f64>(targetPos.x) + 0.5,
+        entity.attemptTeleport(static_cast<f64>(targetPos.x) + 0.5,
             static_cast<f64>(targetPos.y),
             static_cast<f64>(targetPos.z) + 0.5,
             true); // 播放传送效果
@@ -207,7 +204,9 @@ f32 EndGatewayEntity::getSpawnPercent(f32 partialTicks) const
 
 f32 EndGatewayEntity::getCooldownPercent(f32 partialTicks) const
 {
-    return 1.0f - math::clamp((static_cast<f32>(m_teleportCooldown) - partialTicks) / static_cast<f32>(TRIGGER_COOLDOWN), 0.0f, 1.0f);
+    return 1.0f -
+        math::clamp(
+            (static_cast<f32>(m_teleportCooldown) - partialTicks) / static_cast<f32>(TRIGGER_COOLDOWN), 0.0f, 1.0f);
 }
 
 void EndGatewayEntity::triggerCooldown(IWorld& world)

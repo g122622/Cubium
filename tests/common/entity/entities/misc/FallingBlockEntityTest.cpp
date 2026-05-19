@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 /**
  * @file FallingBlockEntityTest.cpp
@@ -32,8 +32,8 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
@@ -144,7 +144,8 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except = nullptr) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override
     {
         std::vector<Entity*> result;
         for (const auto& entity : m_spawnedEntities) {
@@ -153,9 +154,8 @@ public:
             }
             // 简化：检查实体位置是否在碰撞箱内
             Vector3 pos = entity->position();
-            if (pos.x >= box.minX && pos.x <= box.maxX &&
-                pos.y >= box.minY && pos.y <= box.maxY &&
-                pos.z >= box.minZ && pos.z <= box.maxZ) {
+            if (pos.x >= box.minX && pos.x <= box.maxX && pos.y >= box.minY && pos.y <= box.maxY && pos.z >= box.minZ &&
+                pos.z <= box.maxZ) {
                 result.push_back(entity.get());
             }
         }
@@ -293,10 +293,10 @@ TEST_F(FallingBlockEntityTest, SetBlockId)
 {
     auto entity = std::make_unique<FallingBlockEntity>();
 
-    entity->setBlockId(12);  // 砂岩
+    entity->setBlockId(12); // 砂岩
     EXPECT_EQ(entity->getBlockId(), 12);
 
-    entity->setBlockId(0);   // 空气
+    entity->setBlockId(0); // 空气
     EXPECT_EQ(entity->getBlockId(), 0);
 }
 
@@ -377,7 +377,7 @@ TEST_F(FallingBlockEntityTest, LandingPlacesBlockOnGround)
 
     auto entity = std::make_unique<FallingBlockEntity>();
     entity->setWorld(&m_world);
-    entity->setPosition(0.5f, 1.0f, 0.5f);  // 地面上方 1 格
+    entity->setPosition(0.5f, 1.0f, 0.5f); // 地面上方 1 格
     entity->setBlockId(sandState->blockId());
     entity->setFallStartPos(10.0);
     entity->setVelocity(0.0f, -0.1f, 0.0f);
@@ -450,7 +450,7 @@ TEST_F(FallingBlockEntityTest, DontSetBlockPreventsPlacement)
     entity->setPosition(0.5f, 1.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
     entity->setFallStartPos(10.0);
-    entity->setDontSetBlock(true);  // 不放置方块
+    entity->setDontSetBlock(true); // 不放置方块
     entity->setVelocity(0.0f, -0.1f, 0.0f);
 
     // Tick 直到落地
@@ -479,7 +479,7 @@ TEST_F(FallingBlockEntityTest, ShouldDropItemFalsePreventsItemDrop)
     entity->setPosition(0.5f, 0.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
     entity->setFallStartPos(10.0);
-    entity->setShouldDropItem(false);  // 不掉落物品
+    entity->setShouldDropItem(false); // 不掉落物品
 
     // Tick 直到实体被移除
     for (int i = 0; i < 100; ++i) {
@@ -508,10 +508,10 @@ TEST_F(FallingBlockEntityTest, HurtEntitiesWhenEnabled)
     // 创建一个会伤害实体的下落方块
     auto entity = std::make_unique<FallingBlockEntity>();
     entity->setWorld(&m_world);
-    entity->setPosition(0.5f, 5.0f, 0.5f);  // 从较高位置下落
+    entity->setPosition(0.5f, 5.0f, 0.5f); // 从较高位置下落
     entity->setBlockId(sandState->blockId());
-    entity->setFallStartPos(100.0);  // 较高的起始位置
-    entity->setHurtEntities(true);   // 启用伤害
+    entity->setFallStartPos(100.0); // 较高的起始位置
+    entity->setHurtEntities(true);  // 启用伤害
 
     // 验证伤害标志已设置
     EXPECT_TRUE(entity->shouldHurtEntities());
@@ -602,7 +602,7 @@ TEST_F(FallingBlockEntityTest, MaxFallTimeTriggersLanding)
 {
     auto entity = std::make_unique<FallingBlockEntity>();
     entity->setWorld(&m_world);
-    entity->setPosition(0.0f, 100.0f, 0.0f);  // 高位置，不会落地
+    entity->setPosition(0.0f, 100.0f, 0.0f); // 高位置，不会落地
 
     // Tick 600+ 次
     for (int i = 0; i < 610; ++i) {

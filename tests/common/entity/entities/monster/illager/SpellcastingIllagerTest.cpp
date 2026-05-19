@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
@@ -48,8 +48,7 @@ protected:
  */
 TEST_F(SpellcastingIllagerParticleColorTest, SummonVexParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::SummonVex);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::SummonVex);
 
     // 淡蓝白色 (0.7, 0.7, 0.8)
     EXPECT_FLOAT_EQ(color.x, 0.7f);
@@ -65,8 +64,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, SummonVexParticleColor)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, FangsParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::Fangs);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Fangs);
 
     // 棕色 (0.4, 0.3, 0.35)
     EXPECT_FLOAT_EQ(color.x, 0.4f);
@@ -82,8 +80,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, FangsParticleColor)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, WololoParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::Wololo);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Wololo);
 
     // 橙黄色 (0.7, 0.5, 0.2)
     EXPECT_FLOAT_EQ(color.x, 0.7f);
@@ -99,8 +96,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, WololoParticleColor)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, DisappearParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::Disappear);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Disappear);
 
     // 蓝色 (0.3, 0.3, 0.8)
     EXPECT_FLOAT_EQ(color.x, 0.3f);
@@ -116,8 +112,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, DisappearParticleColor)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, BlindnessParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::Blindness);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Blindness);
 
     // 深蓝/深紫色 (0.1, 0.1, 0.2)
     EXPECT_FLOAT_EQ(color.x, 0.1f);
@@ -133,8 +128,7 @@ TEST_F(SpellcastingIllagerParticleColorTest, BlindnessParticleColor)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, NoneParticleColor)
 {
-    auto color = SpellcastingIllagerEntity::getSpellParticleColor(
-        SpellcastingIllagerEntity::SpellType::None);
+    auto color = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::None);
 
     // 黑色 (0.0, 0.0, 0.0) - 不显示粒子
     EXPECT_FLOAT_EQ(color.x, 0.0f);
@@ -169,23 +163,22 @@ TEST_F(SpellcastingIllagerParticleColorTest, SpellTypeFromIdConversion)
 TEST_F(SpellcastingIllagerParticleColorTest, ParticleColorsAreUnique)
 {
     auto noneColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::None);
-    auto summonVexColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::SummonVex);
+    auto summonVexColor =
+        SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::SummonVex);
     auto fangsColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Fangs);
     auto wololoColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Wololo);
-    auto disappearColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Disappear);
-    auto blindnessColor = SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Blindness);
+    auto disappearColor =
+        SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Disappear);
+    auto blindnessColor =
+        SpellcastingIllagerEntity::getSpellParticleColor(SpellcastingIllagerEntity::SpellType::Blindness);
 
     // 所有颜色应该彼此不同
-    std::vector<Vector3> colors = {
-        noneColor, summonVexColor, fangsColor, wololoColor, disappearColor, blindnessColor
-    };
+    std::vector<Vector3> colors = {noneColor, summonVexColor, fangsColor, wololoColor, disappearColor, blindnessColor};
 
     for (size_t i = 0; i < colors.size(); ++i) {
         for (size_t j = i + 1; j < colors.size(); ++j) {
             // 每对颜色应该不同
-            bool sameColor = (colors[i].x == colors[j].x &&
-                              colors[i].y == colors[j].y &&
-                              colors[i].z == colors[j].z);
+            bool sameColor = (colors[i].x == colors[j].x && colors[i].y == colors[j].y && colors[i].z == colors[j].z);
             EXPECT_FALSE(sameColor) << "Colors at index " << i << " and " << j << " are the same";
         }
     }
@@ -198,14 +191,12 @@ TEST_F(SpellcastingIllagerParticleColorTest, ParticleColorsAreUnique)
  */
 TEST_F(SpellcastingIllagerParticleColorTest, ParticleColorsAreInValidRange)
 {
-    std::vector<SpellcastingIllagerEntity::SpellType> allTypes = {
-        SpellcastingIllagerEntity::SpellType::None,
+    std::vector<SpellcastingIllagerEntity::SpellType> allTypes = {SpellcastingIllagerEntity::SpellType::None,
         SpellcastingIllagerEntity::SpellType::SummonVex,
         SpellcastingIllagerEntity::SpellType::Fangs,
         SpellcastingIllagerEntity::SpellType::Wololo,
         SpellcastingIllagerEntity::SpellType::Disappear,
-        SpellcastingIllagerEntity::SpellType::Blindness
-    };
+        SpellcastingIllagerEntity::SpellType::Blindness};
 
     for (auto type : allTypes) {
         auto color = SpellcastingIllagerEntity::getSpellParticleColor(type);

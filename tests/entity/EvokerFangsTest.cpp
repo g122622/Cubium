@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include <gtest/gtest.h>
 
 #include "common/scoreboard/core/Team.hpp"
-#include "entity/core/Entity.hpp"
-#include "entity/core/LivingEntity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/core/LivingEntity.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -56,15 +56,11 @@ public:
         : m_name(name)
         , m_allowFriendlyFire(true)
         , m_seeFriendlyInvisibles(false)
-    {
-    }
+    {}
 
     [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
 
-    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override
-    {
-        return nullptr;
-    }
+    [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
     void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
 
     [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
@@ -77,10 +73,7 @@ public:
     [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
     void clearMembers() override {}
 
-    [[nodiscard]] text::TextFormatting getColor() const noexcept override
-    {
-        return text::TextFormatting::White;
-    }
+    [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
     void setColor(text::TextFormatting) override {}
 
     [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
@@ -91,10 +84,7 @@ public:
     [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return m_allowFriendlyFire; }
     void setAllowFriendlyFire(bool allow) override { m_allowFriendlyFire = allow; }
 
-    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override
-    {
-        return m_seeFriendlyInvisibles;
-    }
+    [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return m_seeFriendlyInvisibles; }
     void setSeeFriendlyInvisibles(bool see) override { m_seeFriendlyInvisibles = see; }
 
     [[nodiscard]] scoreboard::TeamVisibility getNameTagVisibility() const noexcept override
@@ -115,8 +105,7 @@ public:
     }
     void setCollisionRule(scoreboard::TeamCollisionRule) override {}
 
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(
-        const text::ITextComponent&) const override
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
     {
         return nullptr;
     }
@@ -135,8 +124,7 @@ class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
         : Entity(EntityId(1))
-    {
-    }
+    {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
 
@@ -224,8 +212,8 @@ TEST_F(EvokerFangsTest, AxisAlignedBB_Expand_ForDamage)
     // 验证扩展后的范围
     EXPECT_FLOAT_EQ(expanded.minX, -0.2f);
     EXPECT_FLOAT_EQ(expanded.maxX, 0.7f);
-    EXPECT_FLOAT_EQ(expanded.minY, 0.0f);  // Y 方向不变
-    EXPECT_FLOAT_EQ(expanded.maxY, 0.8f);  // Y 方向不变
+    EXPECT_FLOAT_EQ(expanded.minY, 0.0f); // Y 方向不变
+    EXPECT_FLOAT_EQ(expanded.maxY, 0.8f); // Y 方向不变
     EXPECT_FLOAT_EQ(expanded.minZ, -0.2f);
     EXPECT_FLOAT_EQ(expanded.maxZ, 0.7f);
 }
@@ -263,10 +251,8 @@ TEST_F(EvokerFangsTest, TeamCheck_SameTeam_PreventsDamage)
     m_teammate->setTeam(m_evokerTeam.get());
 
     // 验证 isOnSameTeam 逻辑
-    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate))
-        << "唤魔者和队友应该在同一队伍";
-    EXPECT_TRUE(m_teammate->isOnSameTeam(*m_evoker))
-        << "队友和唤魔者应该在同一队伍（双向检查）";
+    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate)) << "唤魔者和队友应该在同一队伍";
+    EXPECT_TRUE(m_teammate->isOnSameTeam(*m_evoker)) << "队友和唤魔者应该在同一队伍（双向检查）";
 
     // 验证 EvokerFangsEntity::damageEntities() 会跳过队友
     // 代码路径：
@@ -284,10 +270,8 @@ TEST_F(EvokerFangsTest, TeamCheck_DifferentTeam_AllowsDamage)
     m_enemy->setTeam(m_enemyTeam.get());
 
     // 验证 isOnSameTeam 返回 false
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_enemy))
-        << "唤魔者和敌人应该不在同一队伍";
-    EXPECT_FALSE(m_enemy->isOnSameTeam(*m_evoker))
-        << "敌人和唤魔者应该不在同一队伍（双向检查）";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_enemy)) << "唤魔者和敌人应该不在同一队伍";
+    EXPECT_FALSE(m_enemy->isOnSameTeam(*m_evoker)) << "敌人和唤魔者应该不在同一队伍（双向检查）";
 
     // 验证 EvokerFangsEntity::damageEntities() 会对敌人造成伤害
     // 代码路径：
@@ -306,10 +290,8 @@ TEST_F(EvokerFangsTest, TeamCheck_NoTeamEntity_AllowsDamage)
     // m_neutralEntity 没有设置队伍
 
     // 验证 isOnSameTeam 返回 false（一方没有队伍）
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity))
-        << "唤魔者和无队伍实体应该不在同一队伍";
-    EXPECT_FALSE(m_neutralEntity->isOnSameTeam(*m_evoker))
-        << "无队伍实体和唤魔者应该不在同一队伍";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity)) << "唤魔者和无队伍实体应该不在同一队伍";
+    EXPECT_FALSE(m_neutralEntity->isOnSameTeam(*m_evoker)) << "无队伍实体和唤魔者应该不在同一队伍";
 
     // 验证 EvokerFangsEntity::damageEntities() 会对无队伍实体造成伤害
 }
@@ -319,10 +301,8 @@ TEST_F(EvokerFangsTest, TeamCheck_BothNoTeam_PreventsSameTeamCheck)
     // MC 1.16.5: 两个都没有队伍的实体，isOnSameTeam 返回 false
 
     // 两个实体都没有设置队伍
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity))
-        << "两个无队伍实体不应该算作同一队伍";
-    EXPECT_FALSE(m_neutralEntity->isOnSameTeam(*m_evoker))
-        << "两个无队伍实体不应该算作同一队伍";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity)) << "两个无队伍实体不应该算作同一队伍";
+    EXPECT_FALSE(m_neutralEntity->isOnSameTeam(*m_evoker)) << "两个无队伍实体不应该算作同一队伍";
 
     // 验证无队伍唤魔者的尖牙会对所有实体造成伤害
     // 因为 m_owner->isOnSameTeam(*living) 返回 false
@@ -333,8 +313,7 @@ TEST_F(EvokerFangsTest, TeamCheck_SelfCheck_ReturnsTrue)
     // MC 1.16.5: 实体与自己检查 isOnSameTeam 返回 true
     m_evoker->setTeam(m_evokerTeam.get());
 
-    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_evoker))
-        << "实体与自己应该在同一队伍";
+    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_evoker)) << "实体与自己应该在同一队伍";
 
     // 但 EvokerFangsEntity::damageEntities() 中有单独的检查：
     // if (living == m_owner) continue;
@@ -350,7 +329,7 @@ TEST_F(EvokerFangsTest, TeamCheck_OwnerNull_PreventsTeamCheck)
     // 所有范围内的 LivingEntity 都会受到伤害
 
     // 这个测试验证逻辑正确性：nullptr 检查保护了 isOnSameTeam 调用
-    EXPECT_TRUE(true);  // 逻辑验证测试
+    EXPECT_TRUE(true); // 逻辑验证测试
 }
 
 // ============================================================================
@@ -364,10 +343,8 @@ TEST_F(EvokerFangsTest, EntityFilter_ExcludesOwner)
 
     // 验证实体相等性比较
     MockEntityWithTeam* ownerPtr = m_evoker.get();
-    EXPECT_NE(ownerPtr, m_teammate.get())
-        << "唤魔者和队友应该是不同的实体";
-    EXPECT_EQ(ownerPtr, m_evoker.get())
-        << "唤魔者指针应该等于自己";
+    EXPECT_NE(ownerPtr, m_teammate.get()) << "唤魔者和队友应该是不同的实体";
+    EXPECT_EQ(ownerPtr, m_evoker.get()) << "唤魔者指针应该等于自己";
 
     // EvokerFangsEntity::damageEntities() 中的过滤逻辑：
     // for (Entity* entity : entities) {
@@ -386,7 +363,7 @@ TEST_F(EvokerFangsTest, EntityFilter_ExcludesNonLiving)
 
     // 这个测试验证 dynamic_cast 过滤非 LivingEntity 的逻辑
     // ItemEntity、XPOrbEntity 等非 LivingEntity 会被跳过
-    EXPECT_TRUE(true);  // 逻辑验证测试
+    EXPECT_TRUE(true); // 逻辑验证测试
 }
 
 TEST_F(EvokerFangsTest, EntityFilter_EntityState_Initial)
@@ -399,12 +376,10 @@ TEST_F(EvokerFangsTest, EntityFilter_EntityState_Initial)
 
     // 测试实体初始状态
     // 新创建的实体应该是存活状态
-    EXPECT_TRUE(m_evoker->isAlive())
-        << "实体初始状态应该是存活的";
+    EXPECT_TRUE(m_evoker->isAlive()) << "实体初始状态应该是存活的";
 
     // 实体初始状态不是无敌的
-    EXPECT_FALSE(m_evoker->isInvulnerable())
-        << "实体初始状态不应该是无敌的";
+    EXPECT_FALSE(m_evoker->isInvulnerable()) << "实体初始状态不应该是无敌的";
 }
 
 // ============================================================================
@@ -464,8 +439,8 @@ TEST_F(EvokerFangsTest, Implementation_DamageFlow_Complete)
     // m_neutralEntity 没有队伍
 
     // 2. 验证队伍关系
-    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate))    << "唤魔者和队友：同队";
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_enemy))       << "唤魔者和敌人：不同队";
+    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate)) << "唤魔者和队友：同队";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_enemy)) << "唤魔者和敌人：不同队";
     EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity)) << "唤魔者与中立实体：不同队";
 
     // 3. 模拟 EvokerFangsEntity::damageEntities() 的过滤逻辑
@@ -504,8 +479,7 @@ TEST_F(EvokerFangsTest, EdgeCase_TeamComparisonByPointer)
     m_teammate->setTeam(teamB.get());
 
     // 不同指针，即使名称相同，也不算同一队伍
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_teammate))
-        << "不同 Team 对象（即使名称相同）不算同一队伍";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_teammate)) << "不同 Team 对象（即使名称相同）不算同一队伍";
 
     // 这意味着尖牙会伤害"同名不同对象队伍"的实体
 }
@@ -515,13 +489,11 @@ TEST_F(EvokerFangsTest, EdgeCase_NullTeamComparison)
     // 验证 null 队伍的处理
 
     // 两个实体都没有队伍
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity))
-        << "两个无队伍实体不应算作同一队伍";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity)) << "两个无队伍实体不应算作同一队伍";
 
     // 一个有队伍，一个没有
     m_evoker->setTeam(m_evokerTeam.get());
-    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity))
-        << "有队伍实体与无队伍实体不应算作同一队伍";
+    EXPECT_FALSE(m_evoker->isOnSameTeam(*m_neutralEntity)) << "有队伍实体与无队伍实体不应算作同一队伍";
 }
 
 TEST_F(EvokerFangsTest, EdgeCase_SelfInDamageRange)
@@ -559,8 +531,7 @@ TEST_F(EvokerFangsTest, TeamFriendlyFire_Setting_DoesNotAffectFangs)
     m_teammate->setTeam(m_evokerTeam.get());
 
     // 即使允许友军伤害，尖牙仍然不伤害队友
-    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate))
-        << "允许友军伤害不影响 isOnSameTeam 判断";
+    EXPECT_TRUE(m_evoker->isOnSameTeam(*m_teammate)) << "允许友军伤害不影响 isOnSameTeam 判断";
 
     // 验证友军伤害设置确实为 true
     EXPECT_TRUE(m_evokerTeam->getAllowFriendlyFire());

@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -131,10 +131,10 @@ private:
  * 参考 MC 1.16.5 RangedCrossbowAttackGoal.CrossbowState
  */
 enum class CrossbowState : u8 {
-    Uncharged,      // 未装填
-    Charging,       // 装填中
-    Charged,        // 已装填
-    ReadyToAttack   // 准备攻击
+    Uncharged,    // 未装填
+    Charging,     // 装填中
+    Charged,      // 已装填
+    ReadyToAttack // 准备攻击
 };
 
 /**
@@ -209,19 +209,19 @@ private:
     f32 m_attackRadiusSq;
 
     CrossbowState m_crossbowState = CrossbowState::Uncharged;
-    i32 m_seenTime = 0;           // 能看到目标的时间
-    i32 m_chargeTime = 0;         // 装填计时器
-    i32 m_cooldownTime = 0;       // 装填后等待时间
-    i32 m_moveCooldown = 0;       // 移动冷却
+    i32 m_seenTime = 0;     // 能看到目标的时间
+    i32 m_chargeTime = 0;   // 装填计时器
+    i32 m_cooldownTime = 0; // 装填后等待时间
+    i32 m_moveCooldown = 0; // 移动冷却
 
     // MC 1.16.5 常量
-    static constexpr i32 MIN_SEEN_TIME = 5;          // 最小可见时间才开始攻击
-    static constexpr i32 CHARGED_WAIT_MIN = 20;      // 装填后最小等待时间
-    static constexpr i32 CHARGED_WAIT_MAX = 40;      // 装填后最大等待时间
-    static constexpr i32 MOVE_COOLDOWN_MIN = 20;     // 移动冷却最小值
-    static constexpr i32 MOVE_COOLDOWN_MAX = 40;     // 移动冷却最大值
-    static constexpr f32 ARROW_VELOCITY = 3.15f;     // 箭矢速度
-    static constexpr f32 FIREWORK_VELOCITY = 1.6f;   // 烟花速度
+    static constexpr i32 MIN_SEEN_TIME = 5;        // 最小可见时间才开始攻击
+    static constexpr i32 CHARGED_WAIT_MIN = 20;    // 装填后最小等待时间
+    static constexpr i32 CHARGED_WAIT_MAX = 40;    // 装填后最大等待时间
+    static constexpr i32 MOVE_COOLDOWN_MIN = 20;   // 移动冷却最小值
+    static constexpr i32 MOVE_COOLDOWN_MAX = 40;   // 移动冷却最大值
+    static constexpr f32 ARROW_VELOCITY = 3.15f;   // 箭矢速度
+    static constexpr f32 FIREWORK_VELOCITY = 1.6f; // 烟花速度
 };
 
 } // namespace entity::ai::goal

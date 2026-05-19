@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED " IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #include "ShulkerEntity.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
@@ -71,8 +71,7 @@ void ShulkerEntity::updatePeekTicks(i32 peekTicks)
         // 闭合时（peekTicks == 0）获得额外护甲
         if (m_peekTicks == 0) {
             // 添加护甲加成
-            entity::attribute::AttributeModifier modifier(
-                COVERED_ARMOR_BONUS_ID,
+            entity::attribute::AttributeModifier modifier(COVERED_ARMOR_BONUS_ID,
                 "Shulker covered armor bonus",
                 ARMOR_BONUS,
                 entity::attribute::Operation::Addition);
@@ -148,8 +147,8 @@ bool ShulkerEntity::tryTeleportToNewPosition()
         }
 
         // 检查碰撞
-        AxisAlignedBB testBox(targetPos.x, targetPos.y, targetPos.z,
-            targetPos.x + 1.0, targetPos.y + 1.0, targetPos.z + 1.0);
+        AxisAlignedBB testBox(
+            targetPos.x, targetPos.y, targetPos.z, targetPos.x + 1.0, targetPos.y + 1.0, targetPos.z + 1.0);
         if (m_world->hasBlockCollision(testBox)) {
             continue;
         }
@@ -180,9 +179,8 @@ bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
     }
 
     // 检查附着方块
-    BlockPos attachPos(pos.x + Directions::xOffset(facing),
-        pos.y + Directions::yOffset(facing),
-        pos.z + Directions::zOffset(facing));
+    BlockPos attachPos(
+        pos.x + Directions::xOffset(facing), pos.y + Directions::yOffset(facing), pos.z + Directions::zOffset(facing));
     const BlockState* attachState = m_world->getBlockState(attachPos);
     if (attachState == nullptr) {
         return false;
@@ -194,8 +192,7 @@ bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
     }
 
     // 检查潜影贝位置是否没有碰撞
-    AxisAlignedBB shulkerBox(pos.x, pos.y, pos.z,
-        pos.x + 1.0, pos.y + 1.0, pos.z + 1.0);
+    AxisAlignedBB shulkerBox(pos.x, pos.y, pos.z, pos.x + 1.0, pos.y + 1.0, pos.z + 1.0);
     return !m_world->hasBlockCollision(shulkerBox);
 }
 
@@ -222,7 +219,8 @@ void ShulkerEntity::shootBullet()
     }
 
     // 创建潜影贝子弹
-    auto bullet = std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing));
+    auto bullet =
+        std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing));
     m_world->spawnEntity(std::move(bullet));
 
     // 设置攻击冷却
@@ -300,18 +298,13 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
         if (attacker != nullptr) {
             auto type = attacker->typeId();
             // 投射物类型：箭、三叉戟、火球等
-            if (type == entity::EntityTypeIdNumber::ARROW ||
-                type == entity::EntityTypeIdNumber::SPECTRAL_ARROW ||
-                type == entity::EntityTypeIdNumber::TRIDENT ||
-                type == entity::EntityTypeIdNumber::FIREBALL ||
+            if (type == entity::EntityTypeIdNumber::ARROW || type == entity::EntityTypeIdNumber::SPECTRAL_ARROW ||
+                type == entity::EntityTypeIdNumber::TRIDENT || type == entity::EntityTypeIdNumber::FIREBALL ||
                 type == entity::EntityTypeIdNumber::SMALL_FIREBALL ||
                 type == entity::EntityTypeIdNumber::DRAGON_FIREBALL ||
-                type == entity::EntityTypeIdNumber::WITHER_SKULL ||
-                type == entity::EntityTypeIdNumber::SNOWBALL ||
-                type == entity::EntityTypeIdNumber::EGG ||
-                type == entity::EntityTypeIdNumber::ENDER_PEARL ||
-                type == entity::EntityTypeIdNumber::POTION ||
-                type == entity::EntityTypeIdNumber::LLAMA_SPIT ||
+                type == entity::EntityTypeIdNumber::WITHER_SKULL || type == entity::EntityTypeIdNumber::SNOWBALL ||
+                type == entity::EntityTypeIdNumber::EGG || type == entity::EntityTypeIdNumber::ENDER_PEARL ||
+                type == entity::EntityTypeIdNumber::POTION || type == entity::EntityTypeIdNumber::LLAMA_SPIT ||
                 type == entity::EntityTypeIdNumber::SHULKER_BULLET) {
                 return false;
             }
@@ -355,8 +348,8 @@ void ShulkerEntity::registerGoals()
 
     // 行为目标
     // LookAtGoal: 看向玩家，距离8格，概率0.02（使用过滤函数）
-    goalSelector().addGoal(1, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
-        [](const LivingEntity* entity) -> bool {
+    goalSelector().addGoal(
+        1, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return dynamic_cast<const Player*>(entity) != nullptr;
         }));

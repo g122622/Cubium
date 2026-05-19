@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -137,12 +137,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "LlamaFollowCaravanGoal"; }
 
     // MC 1.16.5 常量（公开用于测试）
-    static constexpr f64 SEARCH_RADIUS = 9.0;             // 搜索半径
-    static constexpr f64 SEARCH_HEIGHT = 4.0;             // 搜索高度
-    static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;      // 最小加入距离平方 (2格)
-    static constexpr f64 MAX_FOLLOW_DISTANCE_SQ = 676.0;  // 最大跟随距离平方 (26格)
-    static constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;   // 跟随间距
-    static constexpr i32 MAX_CARAVAN_LENGTH = 8;          // 商队最大长度
+    static constexpr f64 SEARCH_RADIUS = 9.0;            // 搜索半径
+    static constexpr f64 SEARCH_HEIGHT = 4.0;            // 搜索高度
+    static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;     // 最小加入距离平方 (2格)
+    static constexpr f64 MAX_FOLLOW_DISTANCE_SQ = 676.0; // 最大跟随距离平方 (26格)
+    static constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;  // 跟随间距
+    static constexpr i32 MAX_CARAVAN_LENGTH = 8;         // 商队最大长度
 
 private:
     /**
@@ -155,8 +155,8 @@ private:
 
     LlamaEntity* m_llama;
     f32 m_speed;
-    f64 m_speedModifier;        // 速度修正（距离太远时加速）
-    i32 m_distCheckCounter;     // 距离检查计数器
+    f64 m_speedModifier;    // 速度修正（距离太远时加速）
+    i32 m_distCheckCounter; // 距离检查计数器
 };
 
 /**
@@ -329,8 +329,8 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "TriggerSkeletonTrapGoal"; }
 
     // MC 1.16.5 常量（公开用于测试）
-    static constexpr f64 PLAYER_DETECTION_RANGE = 10.0;            // 玩家检测范围
-    static constexpr f64 PLAYER_DETECTION_RANGE_SQ = 100.0;        // 玩家检测范围平方
+    static constexpr f64 PLAYER_DETECTION_RANGE = 10.0;     // 玩家检测范围
+    static constexpr f64 PLAYER_DETECTION_RANGE_SQ = 100.0; // 玩家检测范围平方
 
 private:
     SkeletonHorseEntity* m_horse;

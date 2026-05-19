@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 #pragma once
 
@@ -427,10 +427,10 @@ struct ItemDurabilityEvent : ServerEvent {
  * - 盾牌格挡损坏
  */
 struct PlayerDestroyItemEvent : ServerEvent {
-    PlayerId playerId;    ///< 玩家ID
-    ItemStack item;       ///< 销毁前的物品副本
-    i32 slot;             ///< 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
-    Hand hand;            ///< 使用的手（MainHand 或 OffHand）
+    PlayerId playerId; ///< 玩家ID
+    ItemStack item;    ///< 销毁前的物品副本
+    i32 slot;          ///< 物品所在槽位（主手=0，副手=40，其他为物品栏槽位，-1表示未知）
+    Hand hand;         ///< 使用的手（MainHand 或 OffHand）
 
     PlayerDestroyItemEvent(u64 tick, PlayerId pid, const ItemStack& i, i32 s, Hand h)
         : ServerEvent(tick)
@@ -467,9 +467,9 @@ struct EnchantItemEvent : ServerEvent {
  * @brief 效果变化事件
  */
 struct EffectChangedEvent : ServerEvent {
-    PlayerId playerId;                              ///< 玩家ID
+    PlayerId playerId;                            ///< 玩家ID
     const entity::effect::EffectInstance* effect; ///< 效果实例
-    bool added;                                     ///< true=添加效果，false=移除效果
+    bool added;                                   ///< true=添加效果，false=移除效果
 
     EffectChangedEvent(u64 tick, PlayerId pid, const entity::effect::EffectInstance* e, bool a)
         : ServerEvent(tick)
@@ -728,7 +728,8 @@ struct BeeNestDestroyedEvent : ServerEvent {
     ItemStack tool;          ///< 使用的工具
     i32 numBeesInside;       ///< 蜂巢内的蜜蜂数量
 
-    BeeNestDestroyedEvent(u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s, const ItemStack& t, i32 bees = 0)
+    BeeNestDestroyedEvent(
+        u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s, const ItemStack& t, i32 bees = 0)
         : ServerEvent(tick)
         , playerId(pid)
         , pos(p)
@@ -805,8 +806,8 @@ struct EnterBlockEvent : ServerEvent {
  * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING
  */
 struct ChanneledLightningEvent : ServerEvent {
-    PlayerId casterId;              ///< 施法者ID（引雷附魔的玩家）
-    std::vector<Entity*> victims;   ///< 被闪电击中的实体列表
+    PlayerId casterId;            ///< 施法者ID（引雷附魔的玩家）
+    std::vector<Entity*> victims; ///< 被闪电击中的实体列表
 
     ChanneledLightningEvent(u64 tick, PlayerId caster, std::vector<Entity*> v)
         : ServerEvent(tick)
