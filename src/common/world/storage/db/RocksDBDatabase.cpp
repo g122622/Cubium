@@ -372,6 +372,53 @@ Result<void> RocksDBDatabase::writeBatch(rocksdb::WriteBatch& batch, bool sync)
     return {};
 }
 
+Result<std::vector<Result<std::vector<u8>>>> RocksDBDatabase::multiGet(
+    const std::string& cfName, const std::vector<std::vector<u8>>& keys)
+{
+    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::multiGet", "cf", cfName, "count", keys.size());
+
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Database is not open");
+    }
+
+    auto* cf = getCF(cfName);
+    if (!cf) {
+        return Error(ErrorCode::NotFound, fmt::format("Column family not found: {}", cfName));
+    }
+
+    rocksdb::ReadOptions options = m_config.createReadOptions();
+    std::vector<rocksdb::Slice> keySlices;
+    keySlices.reserve(keys.size());
+
+    for (const auto& key : keys) {
+        keySlices.emplace_back(reinterpret_cast<const char*>(key.data()), key.size());
+    }
+
+    std::vector<rocksdb::ColumnFamilyHandle*> handles(keys.size(), cf);
+    std::vector<std::string> values(keys.size());
+    std::vector<rocksdb::Status> statuses = m_db->MultiGet(options, handles, keySlices, &values);
+    std::vector<Result<std::vector<u8>>> results;
+    results.reserve(keys.size());
+
+    for (size_t i = 0; i < statuses.size(); ++i) {
+        const auto& status = statuses[i];
+        if (status.ok()) {
+            results.emplace_back(std::vector<u8>(values[i].begin(), values[i].end()));
+            continue;
+        }
+
+        if (status.IsNotFound()) {
+            results.emplace_back(Error(ErrorCode::NotFound, "Key not found"));
+            continue;
+        }
+
+        results.emplace_back(
+            Error(ErrorCode::FileReadFailed, fmt::format("Failed to read key: {}", status.ToString())));
+    }
+
+    return results;
+}
+
 // ============================================================================
 // 范围操作
 // ============================================================================

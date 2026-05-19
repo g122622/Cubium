@@ -178,6 +178,16 @@ public:
      */
     Result<void> writeBatch(rocksdb::WriteBatch& batch, bool sync = false);
 
+    /**
+     * @brief 同列族批量读取
+     *
+     * @param cfName 列族名
+     * @param keys 键列表
+     * @return 与输入顺序一致的读取结果列表
+     */
+    Result<std::vector<Result<std::vector<u8>>>> multiGet(
+        const std::string& cfName, const std::vector<std::vector<u8>>& keys);
+
     // ========================================================================
     // 范围操作
     // ========================================================================

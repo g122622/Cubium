@@ -144,10 +144,13 @@ public:
     /**
      * @brief 批量加载Section
      *
+     * 先命中缓存，再对未命中的 Section 执行一次 RocksDB 批量读取。
+     * 返回结果顺序与输入 keys 完全一致；某个位置返回空 shared_ptr 表示 Section 不存在。
+     *
      * @param keys Section标识列表
-     * @param callback 加载完成回调
+     * @return 与输入顺序一致的加载结果列表
      */
-    void loadSectionsSync(const std::vector<SectionKey>& keys, LoadCallback callback);
+    Result<std::vector<std::shared_ptr<const SectionData>>> loadSectionsSync(const std::vector<SectionKey>& keys);
 
     // ========================================================================
     // Section保存
@@ -326,6 +329,14 @@ private:
      * @brief 从数据库加载Section
      */
     Result<std::shared_ptr<const SectionData>> loadFromDatabase(const SectionKey& key);
+
+    /**
+     * @brief 从数据库批量加载多个 Section
+     *
+     * @param keys Section 标识列表
+     * @return 与输入顺序一致的加载结果列表
+     */
+    Result<std::vector<std::shared_ptr<const SectionData>>> loadFromDatabaseBatch(const std::vector<SectionKey>& keys);
 
     /**
      * @brief 保存Section到数据库

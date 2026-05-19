@@ -111,14 +111,52 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     return future;
 }
 
-void SectionManager::loadSectionsSync(const std::vector<SectionKey>& keys, LoadCallback callback)
+Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadSectionsSync(
+    const std::vector<SectionKey>& keys)
 {
     MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsSync", "count", keys.size());
 
-    for (const auto& key : keys) {
-        auto result = loadSectionSync(key);
-        callback(key, result.success() ? result.value() : nullptr);
+    std::vector<std::shared_ptr<const SectionData>> results(keys.size());
+    std::vector<SectionKey> missedKeys;
+    std::vector<size_t> missedIndexes;
+    missedKeys.reserve(keys.size());
+    missedIndexes.reserve(keys.size());
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const auto& key = keys[i];
+        if (key.dimension != m_dimension) {
+            return Error(ErrorCode::InvalidArgument,
+                fmt::format("Dimension mismatch: expected {}, got {}",
+                    static_cast<i32>(m_dimension),
+                    static_cast<i32>(key.dimension)));
+        }
+
+        auto cached = m_cache.get(key);
+        if (cached) {
+            results[i] = std::static_pointer_cast<const SectionData>(cached);
+            continue;
+        }
+
+        missedKeys.push_back(key);
+        missedIndexes.push_back(i);
     }
+
+    if (missedKeys.empty()) {
+        return results;
+    }
+
+    auto batchResult = loadFromDatabaseBatch(missedKeys);
+    if (batchResult.failed()) {
+        return batchResult.error();
+    }
+
+    const auto& missedResults = batchResult.value();
+    MC_ASSERT_RELEASE(missedResults.size() == missedIndexes.size());
+    for (size_t i = 0; i < missedResults.size(); ++i) {
+        results[missedIndexes[i]] = missedResults[i];
+    }
+
+    return results;
 }
 
 // ============================================================================
@@ -515,6 +553,55 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(cons
     m_cache.put(key, data, false);
 
     return std::static_pointer_cast<const SectionData>(data);
+}
+
+Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadFromDatabaseBatch(
+    const std::vector<SectionKey>& keys)
+{
+    MC_TRACE_EVENT("storage.section", "SectionManager::loadFromDatabaseBatch", "count", keys.size());
+
+    std::vector<std::vector<u8>> keyBytesList;
+    keyBytesList.reserve(keys.size());
+    for (const auto& key : keys) {
+        keyBytesList.push_back(key.toKey());
+    }
+
+    auto multiGetResult = m_db.multiGet(m_cfName, keyBytesList);
+    if (multiGetResult.failed()) {
+        return multiGetResult.error();
+    }
+
+    const auto& rawResults = multiGetResult.value();
+    MC_ASSERT_RELEASE(rawResults.size() == keys.size());
+
+    std::vector<std::shared_ptr<const SectionData>> results;
+    results.reserve(keys.size());
+
+    for (size_t i = 0; i < rawResults.size(); ++i) {
+        const auto& rawResult = rawResults[i];
+        const auto& key = keys[i];
+
+        if (rawResult.failed()) {
+            if (rawResult.error().code() == ErrorCode::NotFound) {
+                results.emplace_back(nullptr);
+                continue;
+            }
+            return rawResult.error();
+        }
+
+        const auto& value = rawResult.value();
+        auto deserializeResult = SectionData::deserialize(value.data(), value.size());
+        if (deserializeResult.failed()) {
+            return deserializeResult.error();
+        }
+
+        auto data = std::make_shared<SectionData>(std::move(deserializeResult.value()));
+        data->key = key;
+        m_cache.put(key, data, false);
+        results.push_back(std::static_pointer_cast<const SectionData>(data));
+    }
+
+    return results;
 }
 
 Result<void> SectionManager::saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)

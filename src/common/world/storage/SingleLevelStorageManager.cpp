@@ -325,17 +325,26 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     bool hasBiomes = false;
     BiomeContainer biomeContainer;
 
+    std::vector<SectionKey> keys;
+    keys.reserve(world::CHUNK_SECTIONS);
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        SectionKey key(x, z, sectionY, dimension);
-        auto loadResult = manager.loadSectionSync(key);
-        if (loadResult.failed()) {
-            return loadResult.error();
-        }
-        if (!loadResult.value()) {
+        keys.emplace_back(x, z, sectionY, dimension);
+    }
+
+    auto loadResult = manager.loadSectionsSync(keys);
+    if (loadResult.failed()) {
+        return loadResult.error();
+    }
+
+    const auto& sections = loadResult.value();
+    MC_ASSERT_RELEASE(sections.size() == keys.size());
+
+    for (size_t i = 0; i < sections.size(); ++i) {
+        const auto& sectionData = sections[i];
+        if (!sectionData) {
             continue;
         }
 
-        const auto& sectionData = loadResult.value();
         if (!hasBiomes && sectionData->biomes.size() == BiomeContainer::BIOME_SIZE) {
             for (i32 biomeY = 0; biomeY < BiomeContainer::BIOME_HEIGHT; ++biomeY) {
                 for (i32 biomeZ = 0; biomeZ < BiomeContainer::BIOME_DEPTH; ++biomeZ) {
@@ -350,6 +359,7 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
             hasBiomes = true;
         }
 
+        const i8 sectionY = keys[i].sectionY;
         ChunkSection* section = chunk.createSection(sectionY);
         MC_ASSERT_RELEASE(section != nullptr);
         auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
