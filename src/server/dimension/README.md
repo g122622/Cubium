@@ -45,7 +45,7 @@ server/dimension/
 **主要功能**:
 - 创建和管理所有维度实例
 - 创建主世界 / 下界 / 末地三个 `ServerWorld` runtime
-- 为三个维度注入同一个世界级 `WorldStorageService` 与 `SaveManager`
+- 为三个维度注入同一个世界级 `SingleLevelStorageManager`
 - 玩家维度映射追踪
 - 维度切换逻辑
 - 维度加载/卸载
@@ -144,15 +144,14 @@ dimension->forgetPortalPosition(portalPos);
 
 `ServerDimensionManager` 现在负责为三个维度创建 runtime `ServerWorld`，并把同一份世界级存储资源注入进去：
 
-- 一份 `WorldStorageService`
-- 一份 `SaveManager`
+- 一份 `SingleLevelStorageManager`
 - 一次 `WorldSessionLock`
 
 这意味着：
 
 - 主世界、下界、末地不会重复打开同一个世界目录
 - `ServerWorld::storage()` 在三个维度上返回同一个门面对象
-- `ServerWorld::saveManager()` 在三个维度上返回同一个保存协调器
+- `ServerWorld::storage()` 在三个维度上返回同一个单存档存储门面
 
 ## 光照更新
 
@@ -191,8 +190,7 @@ void ServerDimension::tick() {
 | `common/world/dimension` | 继承 `Dimension` 和 `DimensionManager` |
 | `server/application/MinecraftServer` | 持有 `ServerDimensionManager` |
 | `server/world/ServerWorld` | 每个维度持有一个 runtime `ServerWorld` |
-| `common/world/storage/WorldStorageService` | 三个维度共享同一个世界级存储门面 |
-| `common/world/storage/save/SaveManager` | 三个维度共享同一个世界级保存协调器 |
+| `common/world/storage/SingleLevelStorageManager` | 三个维度共享同一个世界级单存档存储门面 |
 | `server/player/ServerPlayer` | 通过 `m_playerDimensions` 追踪玩家维度 |
 | `server/core/TeleportManager` | 处理同维度传送，维度切换由 `ServerDimensionManager` 处理 |
 

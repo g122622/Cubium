@@ -23,6 +23,7 @@
 
 #include "AutoSave.hpp"
 #include "perfetto/TraceEvents.hpp"
+#include "world/storage/SingleLevelStorageManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
@@ -31,7 +32,7 @@ namespace mc::world::storage {
 // 构造与析构
 // ============================================================================
 
-AutoSave::AutoSave(WorldStorageService& storage)
+AutoSave::AutoSave(SingleLevelStorageManager& storage)
     : m_storage(storage)
 {}
 

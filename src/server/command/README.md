@@ -309,7 +309,7 @@ public:
 
 **实现状态：**
 
-- 已接入 `ServerWorld` 内部的 `SaveManager`
+- 已接入 `ServerWorld` 持有的 `SingleLevelStorageManager`
 - 命令层只负责调用保存协调器的 `startAutoSave()` / `stopAutoSave()`
 
 #### HelpCommand - /help 命令

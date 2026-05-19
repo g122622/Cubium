@@ -34,8 +34,8 @@
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/storage/WorldStorageService.hpp"
-#include "common/world/storage/save/SaveManager.hpp"
+#include "common/world/storage/GlobalStorageManager.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/BannedPlayerList.hpp"
@@ -792,8 +792,8 @@ protected:
     ServerWorld* m_world = nullptr;
 
     // 世界级共享存储
-    world::storage::WorldStorageService m_storage;
-    std::unique_ptr<world::storage::SaveManager> m_saveManager;
+    world::storage::GlobalStorageManager m_globalStorage;
+    std::unique_ptr<world::storage::SingleLevelStorageManager> m_storage;
 
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;

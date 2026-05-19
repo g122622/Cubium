@@ -129,7 +129,7 @@ void WorldSelectionScreen::updateBindingValues()
 
 void WorldSelectionScreen::refreshWorldList()
 {
-    auto result = m_storageService.worldListService().listWorlds();
+    auto result = m_globalStorage.listWorlds();
     if (result.success()) {
         m_worlds = std::move(result.value());
         m_worldNames.clear();

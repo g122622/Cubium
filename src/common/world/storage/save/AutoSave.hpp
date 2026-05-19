@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../WorldStorageService.hpp"
+#include "common/core/Result.hpp"
 #include "DirtyTracker.hpp"
 #include <atomic>
 #include <chrono>
@@ -31,6 +31,8 @@
 #include <mutex>
 
 namespace mc::world::storage {
+
+class SingleLevelStorageManager;
 
 /**
  * @brief 自动保存配置
@@ -85,7 +87,7 @@ public:
      * @brief 构造函数
      * @param storage 存储服务引用
      */
-    explicit AutoSave(WorldStorageService& storage);
+    explicit AutoSave(SingleLevelStorageManager& storage);
 
     /**
      * @brief 析构函数
@@ -202,7 +204,7 @@ private:
     void pruneOldSnapshots();
 
 private:
-    WorldStorageService& m_storage;
+    SingleLevelStorageManager& m_storage;
     AutoSaveConfig m_config;
     std::atomic<bool> m_running{false};
     mutable std::mutex m_mutex;

@@ -70,7 +70,7 @@ src/client/application/features/
 
 - `src/client/application/ClientApplication.cpp`
 - `common/entity`、`common/item`、`common/world`、`common/screen`
-- `common/world/storage/WorldStorageService.hpp`（会话管理：通过门面获取 saves 目录）
+- `common/world/storage/GlobalStorageManager.hpp`（会话管理：通过全局门面获取 saves 目录）
 - `common/world/storage/list/WorldNameSanitizer.hpp`（会话管理：生成合法世界目录名）
 - `client/input/InputManager`
 - `client/network/NetworkClient`

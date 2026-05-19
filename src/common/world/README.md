@@ -574,14 +574,15 @@ auto levelId = service.createWorld(request);
 ```
 
 **Key Components:**
-- **WorldStorageService**: World persistence facade, exposes `sectionManager()`, `flushAllDirty()`, `saveAll()`, backup APIs
+- **GlobalStorageManager**: 跨存档发现、列表、路径解析与打开入口
+- **SingleLevelStorageManager**: 单存档持久化门面，暴露 `sectionManager()`、`flushAllDirty()`、`saveAll()`、备份与玩家数据接口
 - **LevelDatCodec**: Reads/writes gzip-compressed NBT `level.dat` files
 - **WorldListService**: Enumerates, creates, deletes, backs up worlds
 - **WorldSessionLock**: RAII lock to prevent concurrent world access
 - **WorldNameSanitizer**: Handles directory naming conflicts (World, World (1), etc.)
 - **WorldStoragePaths**: Manages saves/ and backups/ directory paths
 - **SectionManager**: Per-dimension Section cache/load/save manager
-- **SaveManager / AutoSave**: Save orchestration and periodic dirty flush, already wired into `ServerWorld` and `/save-on` / `/save-off`
+- **AutoSave**: 周期性脏数据刷新，已内聚进 `SingleLevelStorageManager` 并接入 `ServerWorld`、`/save-on`、`/save-off`
 
 See `storage/README.md` for detailed documentation.
 

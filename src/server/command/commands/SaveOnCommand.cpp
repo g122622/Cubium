@@ -49,14 +49,13 @@ i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     auto* serverWorld = server ? server->world().asServerWorld() : nullptr;
-    auto* saveManager = serverWorld ? serverWorld->saveManager() : nullptr;
-
-    if (!saveManager) {
-        source.sendMessage("Error: Save manager not available");
+    auto* storage = serverWorld ? &serverWorld->storage() : nullptr;
+    if (!storage) {
+        source.sendMessage("Error: Storage manager not available");
         return 0;
     }
 
-    saveManager->startAutoSave();
+    storage->startAutoSave();
     source.sendMessage("Automatic saving is now enabled");
     return 1;
 }

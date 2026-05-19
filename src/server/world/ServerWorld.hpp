@@ -37,8 +37,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/storage/WorldStorageService.hpp"
-#include "common/world/storage/save/SaveManager.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -131,34 +130,24 @@ public:
      * @brief 获取存储服务
      *
      * 这是访问存档功能的唯一入口。
-     * 通过返回的 WorldStorageService 可以访问所有子服务：
-     * - sectionManager(dimension): Section级存储
-     * - worldListService(): 世界列表管理
-     * - backupManager(): 快照管理
      */
-    [[nodiscard]] world::storage::WorldStorageService& storage()
+    [[nodiscard]] world::storage::SingleLevelStorageManager& storage()
     {
         MC_ASSERT_RELEASE(m_storage != nullptr);
         return *m_storage;
     }
-    [[nodiscard]] const world::storage::WorldStorageService& storage() const
+    [[nodiscard]] const world::storage::SingleLevelStorageManager& storage() const
     {
         MC_ASSERT_RELEASE(m_storage != nullptr);
         return *m_storage;
     }
-
-    /**
-     * @brief 获取保存协调器
-     */
-    [[nodiscard]] world::storage::SaveManager* saveManager() { return m_saveManager; }
-    [[nodiscard]] const world::storage::SaveManager* saveManager() const { return m_saveManager; }
 
     /**
      * @brief 检查存储服务是否已打开
      */
     [[nodiscard]] bool isStorageOpen() const { return m_storage != nullptr && m_storage->isOpen(); }
 
-    void setSharedStorage(world::storage::WorldStorageService* storage, world::storage::SaveManager* saveManager);
+    void setSharedStorage(world::storage::SingleLevelStorageManager* storage);
 
     /**
      * @brief 保存所有脏数据
@@ -954,8 +943,7 @@ private:
 
 private:
     ServerWorldConfig m_config;
-    world::storage::WorldStorageService* m_storage = nullptr; ///< 世界级共享存储服务（不拥有）
-    world::storage::SaveManager* m_saveManager = nullptr;     ///< 世界级保存协调器（不拥有）
+    world::storage::SingleLevelStorageManager* m_storage = nullptr; ///< 世界级共享单存档存储门面（不拥有）
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;

@@ -438,7 +438,7 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::createServerWorld(
     chunkManager->setWorkerPool(&m_server->m_computationWorkerPool);
     chunkManager->setViewDistance(m_viewDistance);
     world->setChunkManager(std::move(chunkManager));
-    world->setSharedStorage(&m_server->m_storage, m_server->m_saveManager.get());
+    world->setSharedStorage(m_server->m_storage.get());
     world->setTimeManager(&m_server->timeManager());
     world->setDifficultyCallback([server = m_server]() { return server->difficulty(); });
     world->setLootTableManager(&m_server->m_lootTableManager);

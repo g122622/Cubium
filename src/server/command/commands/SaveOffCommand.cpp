@@ -49,14 +49,13 @@ i32 SaveOffCommand::disableAutoSave(CommandContext<ServerCommandSource>& context
 
     auto* server = source.server();
     auto* serverWorld = server ? server->world().asServerWorld() : nullptr;
-    auto* saveManager = serverWorld ? serverWorld->saveManager() : nullptr;
-
-    if (!saveManager) {
-        source.sendMessage("Error: Save manager not available");
+    auto* storage = serverWorld ? &serverWorld->storage() : nullptr;
+    if (!storage) {
+        source.sendMessage("Error: Storage manager not available");
         return 0;
     }
 
-    saveManager->stopAutoSave();
+    storage->stopAutoSave();
     source.sendMessage("Automatic saving is now disabled");
     return 1;
 }

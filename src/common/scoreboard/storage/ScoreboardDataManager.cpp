@@ -23,7 +23,7 @@
 
 #include "ScoreboardDataManager.hpp"
 #include "../../util/nbt/Nbt.hpp"
-#include "../../world/storage/WorldStorageService.hpp"
+#include "../../world/storage/SingleLevelStorageManager.hpp"
 #include "../../world/storage/db/ColumnFamilies.hpp"
 #include "../../world/storage/db/RocksDBDatabase.hpp"
 #include <sstream>
@@ -105,7 +105,7 @@ static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector
 
 // ========== 构造/析构 ==========
 
-ScoreboardDataManager::ScoreboardDataManager(world::storage::WorldStorageService& storage)
+ScoreboardDataManager::ScoreboardDataManager(world::storage::SingleLevelStorageManager& storage)
     : m_storage(storage)
 {}
 
@@ -160,6 +160,9 @@ Result<std::optional<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::
     auto key = makeObjectiveKey(name);
     auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
+        if (dataResult.error().code() == ErrorCode::NotFound) {
+            return std::nullopt;
+        }
         return dataResult.error();
     }
 
@@ -306,6 +309,9 @@ Result<std::optional<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::load
     auto key = makeScoreKey(objectiveName, playerName);
     auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
+        if (dataResult.error().code() == ErrorCode::NotFound) {
+            return std::nullopt;
+        }
         return dataResult.error();
     }
 
@@ -477,6 +483,9 @@ Result<std::optional<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadT
     auto key = makeTeamKey(name);
     auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
+        if (dataResult.error().code() == ErrorCode::NotFound) {
+            return std::nullopt;
+        }
         return dataResult.error();
     }
 
@@ -631,6 +640,11 @@ Result<std::vector<ScoreboardSaveData::DisplaySlotData>> ScoreboardDataManager::
     std::vector<u8> key(keyStr.begin(), keyStr.end());
     auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
+        if (dataResult.error().code() == ErrorCode::NotFound) {
+            m_displaySlotCache.clear();
+            m_displaySlotsLoaded = true;
+            return m_displaySlotCache;
+        }
         return dataResult.error();
     }
 

@@ -110,7 +110,6 @@ Result<void> ServerWorld::initialize()
     }
 
     MC_ASSERT_RELEASE(m_storage != nullptr);
-    MC_ASSERT_RELEASE(m_saveManager != nullptr);
     MC_ASSERT_RELEASE(m_storage->isOpen());
 
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
@@ -192,18 +191,7 @@ Result<size_t> ServerWorld::saveAll()
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
-    auto* saveManager = m_saveManager;
-    if (saveManager == nullptr) {
-        auto result = m_storage->saveAll();
-        if (result.failed()) {
-            return result.error();
-        }
-
-        spdlog::info("Saved {} cached sections", result.value());
-        return result.value();
-    }
-
-    auto result = saveManager->saveAll();
+    auto result = m_storage->saveAll();
     if (result.failed()) {
         return result.error();
     }
@@ -212,11 +200,10 @@ Result<size_t> ServerWorld::saveAll()
     return result.value();
 }
 
-void ServerWorld::setSharedStorage(world::storage::WorldStorageService* storage, world::storage::SaveManager* saveManager)
+void ServerWorld::setSharedStorage(world::storage::SingleLevelStorageManager* storage)
 {
     MC_ASSERT_RELEASE(!m_initialized);
     m_storage = storage;
-    m_saveManager = saveManager;
 }
 
 void ServerWorld::setConfig(const ServerWorldConfig& config)
@@ -809,8 +796,8 @@ void ServerWorld::tick()
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
 
-    if (m_saveManager) {
-        m_saveManager->tick(currentTick);
+    if (m_storage) {
+        m_storage->tickAutoSave(currentTick);
     }
 
     // 调试世界不执行计划刻

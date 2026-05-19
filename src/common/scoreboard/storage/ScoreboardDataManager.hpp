@@ -33,7 +33,7 @@
 #include <unordered_set>
 
 namespace mc::world::storage {
-class WorldStorageService;
+class SingleLevelStorageManager;
 }
 
 namespace mc::scoreboard {
@@ -42,7 +42,7 @@ namespace mc::scoreboard {
  * @brief 记分板数据管理器
  *
  * 负责记分板数据的持久化存储和加载。
- * 使用 WorldStorageService 作为后端存储入口，采用缓存 + 脏标记模式。
+ * 使用 SingleLevelStorageManager 作为后端存储入口，采用缓存 + 脏标记模式。
  *
  * 键设计：
  * - "objectives:{name}" - 目标数据
@@ -59,7 +59,7 @@ public:
      *
      * @param storage 世界存储门面
      */
-    explicit ScoreboardDataManager(world::storage::WorldStorageService& storage);
+    explicit ScoreboardDataManager(world::storage::SingleLevelStorageManager& storage);
 
     /**
      * @brief 析构函数
@@ -273,7 +273,7 @@ private:
      */
     [[nodiscard]] static Result<std::pair<std::string, std::string>> parseScoreKey(const std::vector<u8>& key);
 
-    world::storage::WorldStorageService& m_storage;
+    world::storage::SingleLevelStorageManager& m_storage;
 
     mutable std::mutex m_cacheMutex;
 

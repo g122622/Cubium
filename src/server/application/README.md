@@ -226,7 +226,8 @@ The `application` module serves as the **entry point and orchestrator** for the 
 
 - **计算线程池**：`MinecraftServer::m_computationWorkerPool`
     - 用于区块生成、区块状态推进等计算型异步任务
-- **存储 IO 线程池**：`WorldStorageService` 内部持有
+- **存储 IO 线程池**：`MinecraftServer::m_ioWorkerPool`
+    - 由 `MinecraftServer` 持有，再注入到 `SingleLevelStorageManager`
     - 用于 Section 读写、刷新与其他持久化任务
 - **模块专属线程池**：客户端网格构建、资源加载等仍按各自模块管理
 
@@ -276,9 +277,9 @@ server/application/
 - 新增 `m_computationWorkerPool`
 - 在子类创建 `ServerChunkManager` 后调用 `setWorkerPool(&m_computationWorkerPool)` 注入计算池
 - 在 `stopCore()` 中统一停止计算池
-- `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `WorldStorageService`
+- `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `SingleLevelStorageManager`
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
-- 世界目录解析改由 `WorldStorageService::resolveWorldPath()` 承担
+- 世界目录解析改由 `GlobalStorageManager::resolveWorldPath()` / `openLevel()` 承担
 
 ## 模块关系
 
@@ -287,8 +288,10 @@ flowchart TD
     A[MinecraftServer] --> B[m_computationWorkerPool]
     A --> C[ServerWorld]
     C --> D[ServerChunkManager]
-    C --> E[WorldStorageService]
-    E --> F[StorageTaskManager]
+    A --> E[GlobalStorageManager]
+    A --> H[SingleLevelStorageManager]
+    C --> H
+    H --> F[StorageTaskManager]
     F --> G[Storage IO WorkerPool]
 ```
 
@@ -296,7 +299,7 @@ flowchart TD
 
 - 计算池和 IO 池职责不同，不要复用同一个 `ServerWorkerPool`。
 - `ServerChunkManager` 现在只接受外部注入的池指针，不能再假设自己拥有生命周期。
-- `WorldStorageService` 的异步任务需要在 `open()` 之后才可使用。
+- `SingleLevelStorageManager` 的异步任务需要在 `open()` 之后才可使用。
 
 ## 测试用例
 

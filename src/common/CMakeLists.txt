@@ -838,7 +838,8 @@ add_library(mc_common STATIC
     world/border/WorldBorder.cpp
 
     # World - Storage
-    world/storage/WorldStorageService.cpp
+    world/storage/GlobalStorageManager.cpp
+    world/storage/SingleLevelStorageManager.cpp
     world/storage/core/WorldStoragePaths.cpp
     world/storage/core/WorldSessionLock.cpp
     world/storage/core/LevelDatCodec.cpp
@@ -853,7 +854,6 @@ add_library(mc_common STATIC
     world/storage/snapshot/BackupManager.cpp
     world/storage/save/DirtyTracker.cpp
     world/storage/save/AutoSave.cpp
-    world/storage/save/SaveManager.cpp
     world/storage/task/StorageTask.cpp
     world/storage/task/StorageTaskManager.cpp
     world/storage/player/PlayerSaveData.cpp

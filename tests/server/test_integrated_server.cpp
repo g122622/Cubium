@@ -139,7 +139,7 @@ TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
     server.stop();
 }
 
-TEST(IntegratedServerTest, DimensionsShareStorageAndSaveManager)
+TEST(IntegratedServerTest, DimensionsShareStorage)
 {
     IntegratedServer server;
     IntegratedServerConfig config;
@@ -162,9 +162,6 @@ TEST(IntegratedServerTest, DimensionsShareStorageAndSaveManager)
 
     EXPECT_EQ(&overworld->world()->storage(), &nether->world()->storage());
     EXPECT_EQ(&overworld->world()->storage(), &theEnd->world()->storage());
-    EXPECT_EQ(overworld->world()->saveManager(), nether->world()->saveManager());
-    EXPECT_EQ(overworld->world()->saveManager(), theEnd->world()->saveManager());
-
     server.stop();
 }
 

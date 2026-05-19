@@ -57,7 +57,7 @@ player/
 ## 使用示例
 
 ```cpp
-// 通过 WorldStorageService 获取玩家数据管理器
+// 通过 SingleLevelStorageManager 获取玩家数据管理器
 auto& storage = world.storage();
 auto* playerMgr = storage.playerDataManager();
 
@@ -106,7 +106,7 @@ if (result.success() && result.value()) {
 
 ## 依赖项
 
-- **WorldStorageService** - 提供数据库访问
+- **SingleLevelStorageManager** - 提供单存档数据库访问
 - **RocksDBDatabase** - 底层存储
 - **NbtIo** - NBT 序列化
 - **zlib** - gzip 压缩
@@ -116,6 +116,6 @@ if (result.success() && result.value()) {
 1. **玩家 UUID**: 使用基于用户名的离线模式 UUID（MC 1.16.5 标准算法：`UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(UTF_8))`）
 2. **物品序列化**: 背包物品序列化已实现，使用 `ItemStack::toNbt()` 和 `ItemStack::fromNbt()` 方法
 3. **效果序列化**: 药水效果序列化已实现，使用 `EffectInstance::toNbt()` 和 `EffectInstance::fromNbt()` 方法
-4. **自动保存**: 通过 SaveManager 的自动保存机制，玩家数据会在世界保存时一起保存
+4. **自动保存**: 通过 SingleLevelStorageManager 内部的 AutoSave 机制，玩家数据会在世界保存时一起保存
 5. **物品格式**: 遵循 MC 1.16.5 ItemStack NBT 格式（id, Count, tag）
 6. **效果格式**: 遵循 MC 1.16.5 EffectInstance NBT 格式（Id, Amplifier, Duration, Ambient, ShowParticles, ShowIcon）

@@ -7,7 +7,7 @@
 1. **世界元数据管理**：level.dat NBT 编解码、世界列表管理
 2. **RocksDB 存储层**：高性能 Section 级区块存储
 3. **会话锁和命名规范化**：防止多进程访问冲突
-4. **统一门面接口**：WorldStorageService 作为唯一对外接口
+4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
 5. **保存协调**：`flushAllDirty()` 用于增量落盘，`saveAll()` 用于全量落盘
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
@@ -16,7 +16,8 @@
 
 ```
 storage/
-├── WorldStorageService.hpp/cpp  # [核心] 存储系统门面类（唯一对外接口）
+├── GlobalStorageManager.hpp/cpp      # [核心] 跨存档全局门面
+├── SingleLevelStorageManager.hpp/cpp # [核心] 单存档运行时门面
 ├── core/                        # 核心存储基础设施
 │   ├── LevelDatCodec.hpp/cpp    # level.dat NBT 编解码器
 │   ├── WorldStoragePaths.hpp/cpp # 存档路径配置
@@ -42,7 +43,6 @@ storage/
 ├── save/                        # 保存管理
 │   ├── DirtyTracker.hpp/cpp     # 脏Section追踪
 │   ├── AutoSave.hpp/cpp         # 自动保存
-│   └── SaveManager.hpp/cpp      # 保存协调
 ├── player/                      # 玩家数据存储
 │   ├── PlayerSaveData.hpp/cpp   # 玩家数据结构和NBT序列化
 │   ├── PlayerDataManager.hpp/cpp # 玩家数据管理器（缓存+持久化）
@@ -54,32 +54,34 @@ storage/
 
 ### 访问控制原则
 
-**重要**：`WorldStorageService` 是存储模块的唯一对外接口。
+**重要**：存储模块对外分成两层门面。
 
-- **外部模块**（如 ServerWorld、MinecraftServer）只能访问 `WorldStorageService`
+- **跨存档调用方**（世界选择、存档创建、路径解析）只能访问 `GlobalStorageManager`
+- **单存档运行时调用方**（如 ServerWorld、MinecraftServer）只能访问 `SingleLevelStorageManager`
 - **内部模块**（如 SectionManager、RocksDBDatabase、SectionCache）不允许被外部直接访问
-- `WorldStorageService` 通过 getter 方法暴露子服务
+- `SingleLevelStorageManager` 通过 getter 方法暴露单存档子服务
 - 区块运行时不应再直接依赖 `SectionCodec`、`SectionKey`、`RocksDBDatabase`、`WorldStoragePaths`
-- 这类细节现在统一收口到 `WorldStorageService::saveChunk()`、`loadChunk()`、`resolveWorldPath()`、`savesDirectory()` 等门面接口
+- 区块持久化细节统一收口到 `SingleLevelStorageManager::saveChunk()` / `loadChunk()`
+- 存档发现与路径细节统一收口到 `GlobalStorageManager::listWorlds()` / `resolveWorldPath()` / `savesDirectory()`
 
 ### 使用示例
 
 ```cpp
-// 在 ServerWorld 中初始化
-storage::WorldStorageService m_storage;
-
-auto result = m_storage.open(worldPath, storageConfig);
-if (!result.success()) {
+// 通过 GlobalStorageManager 打开单个存档
+storage::GlobalStorageManager globalStorage;
+auto storageResult = globalStorage.openLevel("world", storageConfig);
+if (!storageResult.success()) {
     // 处理错误
 }
+auto storage = std::move(storageResult.value());
 
 // 通过子服务访问
-auto& sectionMgr = m_storage.sectionManager(dimension);
+auto& sectionMgr = storage->sectionManager(dimension);
 auto data = sectionMgr.loadSection(key);
 
 // 或直接通过门面读写完整区块
-auto loadResult = m_storage.loadChunk(chunkX, chunkZ, dimension);
-auto saveResult = m_storage.saveChunk(chunk, dimension);
+auto loadResult = storage->loadChunk(chunkX, chunkZ, dimension);
+auto saveResult = storage->saveChunk(chunk, dimension);
 
 // 保存数据
 sectionMgr.saveSection(key, data);
@@ -91,7 +93,7 @@ if (!fullSaveResult.success()) {
 }
 
 // 关闭时自动保存脏数据
-m_storage.close();  // 自动调用 flushAllDirty()
+storage->close();  // 自动调用 flushAllDirty()
 ```
 
 ## 存储架构
@@ -242,7 +244,7 @@ taskManager->submit(std::move(task), util::TaskPriority::High);
 ```
 
 **模块关系**：
-- `WorldStorageService` 负责创建和销毁 `StorageTaskManager`
+- `SingleLevelStorageManager` 负责创建和销毁 `StorageTaskManager`
 - `SectionManager` 通过 `StorageTaskManager` 提交异步任务
 - `StorageTask` 只负责执行逻辑，不直接管理线程
 
@@ -264,13 +266,13 @@ taskManager->submit(std::move(task), util::TaskPriority::High);
 - 取消任务
 - 等待所有任务完成
 
-该类不拥有线程池，线程池生命周期由 `WorldStorageService` 负责。
+该类不拥有线程池，线程池生命周期由 `MinecraftServer` 持有并注入 `SingleLevelStorageManager`。
 
 ## 模块关系
 
 ```mermaid
 flowchart LR
-    A[WorldStorageService] --> B[StorageTaskManager]
+    A[SingleLevelStorageManager] --> B[StorageTaskManager]
     B --> C[ServerWorkerPool]
     D[SectionManager] --> B
     D --> E[RocksDBDatabase]
@@ -288,28 +290,29 @@ flowchart LR
 
 ## 依赖项
 
-- 内部：`SectionManager`、`SectionCache`、`RocksDBDatabase`、`WorldStorageService`、`StorageTaskManager`
+- 内部：`SectionManager`、`SectionCache`、`RocksDBDatabase`、`SingleLevelStorageManager`、`StorageTaskManager`
 - 外部：`rocksdb`、`fmt`、`spdlog`、`GTest`
 
 ## 使用方法
 
 ```cpp
-WorldStorageService storage;
-storage.open(worldPath, config);
+GlobalStorageManager globalStorage;
+auto storageResult = globalStorage.openLevel("world", config);
+auto storage = std::move(storageResult.value());
 
-auto& sectionManager = storage.sectionManager(dimension);
+auto& sectionManager = storage->sectionManager(dimension);
 auto future = sectionManager.loadSectionAsync(key, util::TaskPriority::High);
 ```
 
 ## 容易踩的坑
 
-- `StorageTaskManager` 不拥有线程池，必须先由 `WorldStorageService::open()` 建立 IO 池。
+- `StorageTaskManager` 不拥有线程池，必须先由 `SingleLevelStorageManager::open()` 建立存储上下文，并在外部注入 IO 池。
 - 异步接口当前仍然通过 `promise/future` 回传结果，调用方必须等待 future。
 - `SectionManager` 的异步任务是共享同一个任务池，不要在外部重复启动额外线程。
 
 ## 测试用例
 
-- `tests/common/world/storage/WorldStorageServiceTest.cpp`
+- `tests/common/world/storage/SingleLevelStorageManagerTest.cpp`
 - `tests/common/world/storage/SectionCodecTest.cpp`
 - `tests/common/world/storage/StorageTaskTest.cpp`
 
@@ -435,9 +438,8 @@ saves/
 
 ### 保存协调层
 
-- `WorldStorageService::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和关闭流程使用。
-- `WorldStorageService::saveAll()`：保存所有已缓存 Section，供 `/save-all` 和全量落盘使用。
-- `SaveManager`：已实现保存编排，并由 `ServerWorld`、`/save-all` 与自动保存路径接入。
+- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和关闭流程使用。
+- `SingleLevelStorageManager::saveAll()`：保存所有已缓存 Section，供 `/save-all` 和全量落盘使用。
 - `AutoSave`：定时触发脏数据保存，并可选创建快照。
 
 ## 数据流向
@@ -491,7 +493,7 @@ sequenceDiagram
 sequenceDiagram
     participant Game as 游戏逻辑
     participant World as ServerWorld
-    participant Storage as WorldStorageService
+    participant Storage as SingleLevelStorageManager
     participant Manager as SectionManager
 
     Game->>World: saveAll()
@@ -547,7 +549,7 @@ sequenceDiagram
 
 ## 与区块系统集成
 
-存储系统已与 `ServerChunkManager` 集成，区块运行时现在只通过 `WorldStorageService` 访问完整区块持久化：
+存储系统已与 `ServerChunkManager` 集成，区块运行时现在只通过 `SingleLevelStorageManager` 访问完整区块持久化：
 
 ```cpp
 auto loadResult = m_world.storage().loadChunk(x, z, dimension);
@@ -575,7 +577,7 @@ if (saveResult.failed()) {
 玩家数据存储在 `players` 列族中，使用 `PlayerDataManager` 管理：
 
 ```cpp
-// 通过 WorldStorageService 获取玩家数据管理器
+// 通过 SingleLevelStorageManager 获取玩家数据管理器
 auto* playerDataManager = storage.playerDataManager();
 
 // 保存玩家数据
@@ -598,7 +600,7 @@ if (dataResult.success() && dataResult.value()) {
 
 ## 测试用例
 
-- `tests/common/world/storage/WorldStorageServiceTest.cpp` - 存储门面、打开/关闭、全局刷新
+- `tests/common/world/storage/SingleLevelStorageManagerTest.cpp` - 单存档存储门面、打开/关闭、缓存刷新与回读
 - `tests/common/world/storage/SectionCodecTest.cpp` - 序列化/反序列化、区块数据 round-trip
 - `tests/server/test_server_chunk_manager.cpp` - 区块与存储集成
 - `tests/server/ServerWorldTest.cpp` - 世界生命周期和保存流
@@ -609,7 +611,7 @@ if (dataResult.success() && dataResult.value()) {
 - 生物群系 4x4x4 采样 round-trip
 - 快照创建与清理
 - 一致性模式对写入路径的影响
-- `SaveManager` / `AutoSave` 的触发路径（已接入 `ServerWorld`）
+- `AutoSave` 的触发路径（已接入 `ServerWorld`）
 
 ## 架构图
 

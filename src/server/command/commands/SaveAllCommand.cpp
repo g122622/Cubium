@@ -25,7 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/world/storage/WorldStorageService.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"

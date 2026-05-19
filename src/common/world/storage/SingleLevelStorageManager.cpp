@@ -21,34 +21,29 @@
 * 
 */
 
-#include "WorldStorageService.hpp"
+#include "SingleLevelStorageManager.hpp"
 #include "perfetto/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
-#include "world/storage/db/ColumnFamilies.hpp"
+#include "world/storage/save/AutoSave.hpp"
 #include "world/storage/db/SectionCodec.hpp"
-#include <stdexcept>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 namespace mc::world::storage {
 
-// ============================================================================
-// 构造与析构
-// ============================================================================
+SingleLevelStorageManager::SingleLevelStorageManager() = default;
 
-WorldStorageService::WorldStorageService()
-    : m_worldListService(std::make_unique<WorldListService>(WorldStoragePaths::defaultPaths()))
-{}
-
-WorldStorageService::~WorldStorageService()
+SingleLevelStorageManager::~SingleLevelStorageManager()
 {
     close();
 }
 
-WorldStorageService::WorldStorageService(WorldStorageService&& other) noexcept
+SingleLevelStorageManager::SingleLevelStorageManager(SingleLevelStorageManager&& other) noexcept
     : m_db(std::move(other.m_db))
-    , m_worldListService(std::move(other.m_worldListService))
     , m_sessionLock(std::move(other.m_sessionLock))
     , m_backupManager(std::move(other.m_backupManager))
+    , m_playerDataManager(std::move(other.m_playerDataManager))
+    , m_scoreboardDataManager(std::move(other.m_scoreboardDataManager))
     , m_taskManager(std::move(other.m_taskManager))
     , m_sectionManagers(std::move(other.m_sectionManagers))
     , m_config(std::move(other.m_config))
@@ -64,14 +59,15 @@ WorldStorageService::WorldStorageService(WorldStorageService&& other) noexcept
     other.m_ioWorkerPool = nullptr;
 }
 
-WorldStorageService& WorldStorageService::operator=(WorldStorageService&& other) noexcept
+SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStorageManager&& other) noexcept
 {
     if (this != &other) {
         close();
         m_db = std::move(other.m_db);
-        m_worldListService = std::move(other.m_worldListService);
         m_sessionLock = std::move(other.m_sessionLock);
         m_backupManager = std::move(other.m_backupManager);
+        m_playerDataManager = std::move(other.m_playerDataManager);
+        m_scoreboardDataManager = std::move(other.m_scoreboardDataManager);
         m_taskManager = std::move(other.m_taskManager);
         m_sectionManagers = std::move(other.m_sectionManagers);
         m_config = std::move(other.m_config);
@@ -89,7 +85,7 @@ WorldStorageService& WorldStorageService::operator=(WorldStorageService&& other)
     return *this;
 }
 
-void WorldStorageService::setIoWorkerPool(util::ServerWorkerPool* workerPool)
+void SingleLevelStorageManager::setIoWorkerPool(util::ServerWorkerPool* workerPool)
 {
     m_ioWorkerPool = workerPool;
 
@@ -107,13 +103,10 @@ void WorldStorageService::setIoWorkerPool(util::ServerWorkerPool* workerPool)
     }
 }
 
-// ============================================================================
-// 生命周期管理
-// ============================================================================
-
-Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, const WorldStorageConfig& config)
+Result<void> SingleLevelStorageManager::open(
+    const std::filesystem::path& worldPath, const SingleLevelStorageConfig& config)
 {
-    MC_TRACE_EVENT("server.world", "WorldStorageService::open", "path", worldPath.string());
+    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::open", "path", worldPath.string());
 
     if (isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage already open");
@@ -122,7 +115,6 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, c
     m_config = config;
     m_worldPath = worldPath;
 
-    // 1. 创建目录结构
     std::filesystem::path dbPath = worldPath / "db";
     std::filesystem::path backupPath = worldPath / "backups";
 
@@ -132,19 +124,16 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, c
         if (config.enableBackup) {
             std::filesystem::create_directories(backupPath);
         }
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create directories: {}", e.what()));
     }
 
-    // 2. 获取会话锁
     auto lockResult = WorldSessionLock::acquire(worldPath);
     if (!lockResult.success()) {
         return lockResult.error();
     }
     m_sessionLock.emplace(std::move(lockResult.value()));
 
-    // 3. 打开数据库
     RocksDBConfig dbConfig = config.rocksdbConfig.value_or(RocksDBConfig{});
     dbConfig.consistencyMode = config.consistencyMode;
 
@@ -155,7 +144,6 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, c
     }
     m_db = dbResult.value();
 
-    // 4. 初始化备份管理器
     if (config.enableBackup) {
         auto backupResult = BackupManager::open(backupPath);
         if (backupResult.success()) {
@@ -165,69 +153,61 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath, c
         }
     }
 
-    // 4.1 初始化玩家数据管理器
     m_playerDataManager = std::make_unique<PlayerDataManager>(*m_db);
     m_scoreboardDataManager = std::make_unique<mc::scoreboard::ScoreboardDataManager>(*this);
 
-    // 4.2 存储任务管理器由服务器注入的 IO Worker 池驱动
     if (!m_ioWorkerPool) {
         m_taskManager.reset();
     } else if (!m_taskManager) {
         m_taskManager = std::make_unique<StorageTaskManager>(*m_ioWorkerPool);
     }
 
-    // 5. 清空 SectionManager 缓存
     m_sectionManagers.clear();
 
-    spdlog::info("WorldStorageService opened at {} (consistency: {})",
+    spdlog::info(
+        "SingleLevelStorageManager opened at {} (consistency: {})",
         worldPath.string(),
         static_cast<i32>(config.consistencyMode));
 
     return {};
 }
 
-void WorldStorageService::close()
+void SingleLevelStorageManager::close()
 {
     if (!isOpen()) {
         return;
     }
 
-    MC_TRACE_EVENT("server.world", "WorldStorageService::close");
+    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::close");
 
-    // 1. 刷新所有脏数据
     auto flushResult = flushAllDirty();
     if (!flushResult.success()) {
         spdlog::error("Failed to flush dirty sections: {}", flushResult.error().message());
     }
 
-    // 2. 清空 SectionManager
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
         m_sectionManagers.clear();
     }
 
-    // 3. 关闭备份管理器
     m_backupManager.reset();
     m_scoreboardDataManager.reset();
-
-    // 4. 关闭数据库
+    m_playerDataManager.reset();
+    m_autoSave.reset();
+    m_autoSaveInitialized = false;
     m_db.reset();
-
-    // 5. 断开 IO Worker 池引用，池本身由 MinecraftServer 统一管理
     m_taskManager.reset();
     m_ioWorkerPool = nullptr;
-
-    // 6. 释放会话锁
     m_sessionLock.reset();
 
-    spdlog::info("WorldStorageService closed");
+    spdlog::info("SingleLevelStorageManager closed");
 
     m_worldPath.clear();
 }
 
-Result<size_t> WorldStorageService::flushAllDirty()
+Result<size_t> SingleLevelStorageManager::flushAllDirty()
 {
-    MC_TRACE_EVENT("server.world", "WorldStorageService::flushAllDirty");
+    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::flushAllDirty");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -235,7 +215,6 @@ Result<size_t> WorldStorageService::flushAllDirty()
 
     size_t totalFlushed = 0;
 
-    // 保存脏Section
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
         for (auto& [dim, manager] : m_sectionManagers) {
@@ -247,7 +226,6 @@ Result<size_t> WorldStorageService::flushAllDirty()
         }
     }
 
-    // 保存脏玩家数据
     if (m_playerDataManager) {
         auto playerResult = m_playerDataManager->saveAllDirty();
         if (playerResult.failed()) {
@@ -257,16 +235,12 @@ Result<size_t> WorldStorageService::flushAllDirty()
         }
     }
 
-    if (totalFlushed > 0) {
-        spdlog::debug("Flushed {} dirty sections and player data", totalFlushed);
-    }
-
     return totalFlushed;
 }
 
-Result<size_t> WorldStorageService::saveAll()
+Result<size_t> SingleLevelStorageManager::saveAll()
 {
-    MC_TRACE_EVENT("server.world", "WorldStorageService::saveAll");
+    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::saveAll");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -274,7 +248,6 @@ Result<size_t> WorldStorageService::saveAll()
 
     size_t totalSaved = 0;
 
-    // 保存所有Section
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
         for (auto& [dim, manager] : m_sectionManagers) {
@@ -286,7 +259,6 @@ Result<size_t> WorldStorageService::saveAll()
         }
     }
 
-    // 保存所有玩家数据
     if (m_playerDataManager) {
         auto playerResult = m_playerDataManager->saveAll();
         if (playerResult.failed()) {
@@ -303,7 +275,7 @@ Result<size_t> WorldStorageService::saveAll()
     return totalSaved;
 }
 
-Result<void> WorldStorageService::saveChunk(const ChunkData& chunk, DimensionId dimension)
+Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, DimensionId dimension)
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -341,7 +313,8 @@ Result<void> WorldStorageService::saveChunk(const ChunkData& chunk, DimensionId 
     return Result<void>::ok();
 }
 
-Result<std::optional<ChunkData>> WorldStorageService::loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(
+    ChunkCoord x, ChunkCoord z, DimensionId dimension)
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -402,11 +375,7 @@ Result<std::optional<ChunkData>> WorldStorageService::loadChunk(ChunkCoord x, Ch
     return std::optional<ChunkData>(std::move(chunk));
 }
 
-// ============================================================================
-// 子服务访问
-// ============================================================================
-
-SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
+SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
 {
     if (!isOpen()) {
         throw std::runtime_error("Storage not open");
@@ -420,7 +389,6 @@ SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
         }
     }
 
-    // 创建新的 SectionManager
     auto* manager = createSectionManager(dimension);
     if (!manager) {
         throw std::runtime_error(
@@ -429,7 +397,7 @@ SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
     return *manager;
 }
 
-const SectionManager& WorldStorageService::sectionManager(DimensionId dimension) const
+const SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension) const
 {
     if (!isOpen()) {
         throw std::runtime_error("Storage not open");
@@ -443,16 +411,16 @@ const SectionManager& WorldStorageService::sectionManager(DimensionId dimension)
     return *it->second;
 }
 
-bool WorldStorageService::hasSectionManager(DimensionId dimension) const
+bool SingleLevelStorageManager::hasSectionManager(DimensionId dimension) const
 {
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     return m_sectionManagers.find(dimension) != m_sectionManagers.end();
 }
 
-SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
+SectionManager* SingleLevelStorageManager::createSectionManager(DimensionId dimension)
 {
     MC_TRACE_EVENT(
-        "server.world", "WorldStorageService::createSectionManager", "dimension", static_cast<i32>(dimension));
+        "server.world", "SingleLevelStorageManager::createSectionManager", "dimension", static_cast<i32>(dimension));
 
     SectionManager::Config config;
     config.cacheCapacity = m_config.sectionCacheCapacity;
@@ -467,85 +435,52 @@ SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
     if (!inserted) {
         return nullptr;
     }
-
-    spdlog::debug("Created SectionManager for dimension {} with cache capacity {}",
-        static_cast<i32>(dimension),
-        m_config.sectionCacheCapacity);
-
     return it->second.get();
 }
 
-// ============================================================================
-// 配置
-// ============================================================================
-
-void WorldStorageService::setConsistencyMode(ConsistencyMode mode)
+void SingleLevelStorageManager::setConsistencyMode(ConsistencyMode mode)
 {
     m_config.consistencyMode = mode;
     spdlog::info("Changed consistency mode to {}", static_cast<i32>(mode));
 }
 
-std::filesystem::path WorldStorageService::resolveWorldPath(const std::string& worldName) const
-{
-    return m_worldListService->paths().worldDir(worldName);
-}
-
-std::filesystem::path WorldStorageService::savesDirectory() const
-{
-    return m_worldListService->paths().savesDir();
-}
-
-// ============================================================================
-// 统计信息
-// ============================================================================
-
-std::unordered_map<DimensionId, SectionCache::CacheStats> WorldStorageService::getCacheStats() const
+std::unordered_map<DimensionId, SectionCache::CacheStats> SingleLevelStorageManager::getCacheStats() const
 {
     std::unordered_map<DimensionId, SectionCache::CacheStats> stats;
-
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     for (const auto& [dim, manager] : m_sectionManagers) {
         stats[dim] = manager->getCacheStats();
     }
-
     return stats;
 }
 
-size_t WorldStorageService::getTotalDirtyCount() const
+size_t SingleLevelStorageManager::getTotalDirtyCount() const
 {
     size_t total = 0;
-
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     for (const auto& [dim, manager] : m_sectionManagers) {
         total += manager->getDirtyCount();
     }
-
     return total;
 }
 
-std::vector<DimensionId> WorldStorageService::getOpenDimensions() const
+std::vector<DimensionId> SingleLevelStorageManager::getOpenDimensions() const
 {
     std::vector<DimensionId> dimensions;
-
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     dimensions.reserve(m_sectionManagers.size());
     for (const auto& [dim, manager] : m_sectionManagers) {
         dimensions.push_back(dim);
     }
-
     return dimensions;
 }
 
-// ============================================================================
-// Section 缓存管理
-// ============================================================================
-
-void WorldStorageService::setCacheCapacity(DimensionId dimension, size_t capacity)
+void SingleLevelStorageManager::setCacheCapacity(DimensionId dimension, size_t capacity)
 {
     sectionManager(dimension).setCacheCapacity(capacity);
 }
 
-void WorldStorageService::clearCache(DimensionId dimension)
+void SingleLevelStorageManager::clearCache(DimensionId dimension)
 {
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     auto it = m_sectionManagers.find(dimension);
@@ -554,7 +489,7 @@ void WorldStorageService::clearCache(DimensionId dimension)
     }
 }
 
-void WorldStorageService::clearAllCaches()
+void SingleLevelStorageManager::clearAllCaches()
 {
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     for (auto& [dim, manager] : m_sectionManagers) {
@@ -562,11 +497,7 @@ void WorldStorageService::clearAllCaches()
     }
 }
 
-// ============================================================================
-// 备份管理
-// ============================================================================
-
-Result<BackupID> WorldStorageService::createBackup(const std::string& name, const std::string& description)
+Result<BackupID> SingleLevelStorageManager::createBackup(const std::string& name, const std::string& description)
 {
     if (!m_backupManager) {
         return Error(ErrorCode::InvalidState, "Backup manager not enabled");
@@ -579,13 +510,91 @@ Result<BackupID> WorldStorageService::createBackup(const std::string& name, cons
     return m_backupManager->createBackup(*m_db, name, description);
 }
 
-Result<size_t> WorldStorageService::pruneOldBackups(size_t keepCount)
+Result<size_t> SingleLevelStorageManager::pruneOldBackups(size_t keepCount)
 {
     if (!m_backupManager) {
         return Error(ErrorCode::InvalidState, "Backup manager not enabled");
     }
 
     return m_backupManager->pruneOldBackups(keepCount);
+}
+
+void SingleLevelStorageManager::initializeAutoSave(const AutoSaveConfig& config)
+{
+    MC_TRACE_EVENT("server.initialization", "SingleLevelStorageManager::initializeAutoSave");
+
+    if (m_autoSaveInitialized) {
+        return;
+    }
+
+    m_autoSave = std::make_unique<AutoSave>(*this);
+    m_autoSave->setConfig(config);
+    m_autoSaveInitialized = true;
+    spdlog::info("AutoSave initialized");
+}
+
+void SingleLevelStorageManager::shutdownAutoSave()
+{
+    if (!m_autoSaveInitialized) {
+        return;
+    }
+
+    if (m_autoSave) {
+        m_autoSave->stop();
+    }
+
+    auto result = saveAll();
+    if (result.failed()) {
+        spdlog::error("Failed to save data during auto-save shutdown: {}", result.error().message());
+    }
+
+    m_autoSave.reset();
+    m_autoSaveInitialized = false;
+    spdlog::info("AutoSave shutdown complete");
+}
+
+void SingleLevelStorageManager::startAutoSave()
+{
+    MC_ASSERT_RELEASE(m_autoSave != nullptr);
+    m_autoSave->start();
+}
+
+void SingleLevelStorageManager::stopAutoSave()
+{
+    if (m_autoSave) {
+        m_autoSave->stop();
+    }
+}
+
+bool SingleLevelStorageManager::isAutoSaveRunning() const
+{
+    return m_autoSave != nullptr && m_autoSave->isRunning();
+}
+
+void SingleLevelStorageManager::tickAutoSave(u64 tickCount)
+{
+    if (m_autoSave && m_autoSave->isRunning()) {
+        m_autoSave->tick(tickCount);
+    }
+}
+
+Result<size_t> SingleLevelStorageManager::saveNow()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+    return flushAllDirty();
+}
+
+Result<size_t> SingleLevelStorageManager::saveNowWithSnapshot(const std::string& snapshotName)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+    if (!m_autoSave) {
+        return Error(ErrorCode::InvalidState, "AutoSave not initialized");
+    }
+    return m_autoSave->saveNowWithSnapshot(snapshotName);
 }
 
 } // namespace mc::world::storage

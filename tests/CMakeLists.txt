@@ -687,7 +687,7 @@ add_executable(mc_tests
     common/util/text/TextComponentTest.cpp
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
-    common/world/storage/WorldStorageServiceTest.cpp
+    common/world/storage/SingleLevelStorageManagerTest.cpp
     # 村庄系统测试
     common/world/village/VillageTest.cpp
     # 村庄交易系统测试
@@ -880,7 +880,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/IChunk.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/SingleChunkLifecycleManager.cpp
         # 存储系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/WorldStorageService.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/GlobalStorageManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/SingleLevelStorageManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/LevelDatCodec.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldStoragePaths.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldSessionLock.cpp
@@ -895,7 +896,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/snapshot/BackupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/DirtyTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/AutoSave.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/SaveManager.cpp
         # 村庄系统
         ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp

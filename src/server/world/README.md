@@ -43,9 +43,9 @@ src/server/world/
 - **命令执行回调**（`setOnExecuteCommand`，用于命令方块矿车等实体执行命令）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
-- 使用世界级共享 `WorldStorageService` / `SaveManager` 访问与保存维度数据
+- 使用世界级共享 `SingleLevelStorageManager` 访问与保存维度数据
 - 区块运行时不再直接包含 `SectionCodec` / `SectionKey` / `SectionManager`
-- 完整区块持久化统一通过 `WorldStorageService::loadChunk()` / `saveChunk()` 进入存储门面
+- 完整区块持久化统一通过 `SingleLevelStorageManager::loadChunk()` / `saveChunk()` 进入存储门面
 - 天气状态管理
 
 `ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlockState`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
@@ -243,8 +243,8 @@ void tickBlockEntities() {
 ```
 
 **共享存储约束**：
-- `ServerWorld` 不再独占 `WorldStorageService`
-- `ServerWorld` 不再创建自己的 `SaveManager`
+- `ServerWorld` 不再独占 `SingleLevelStorageManager`
+- `ServerWorld` 不再创建自己的独立保存协调器
 - 存储与保存协调器由 `MinecraftServer` 创建一次，并注入所有维度 runtime
 - 因此三个维度共享同一份 `WorldSessionLock`、数据库连接和自动保存编排
 
@@ -313,9 +313,9 @@ Player* target = world->getClosestPlayer(attacker.position(), 64.0f, &attacker);
 - 时间管理（由 `TimeManager` 管理）
 
 **存储相关补充**：
-- `ServerWorld::saveAll()` 现在会走 `SaveManager::saveAll()`，用于 `/save-all` 和关服前全量落盘。
-- `ServerWorld::tick()` 会驱动 `SaveManager::tick()`，使自动保存可以按 tick 运行。
-- `/save-on` 和 `/save-off` 已接入 `SaveManager` 的启动/停止接口。
+- `ServerWorld::saveAll()` 现在会走 `SingleLevelStorageManager::saveAll()`，用于 `/save-all` 和关服前全量落盘。
+- `ServerWorld::tick()` 会驱动 `SingleLevelStorageManager::tickAutoSave()`，使自动保存可以按 tick 运行。
+- `/save-on` 和 `/save-off` 已接入 `SingleLevelStorageManager` 的自动保存启动/停止接口。
 
 ---
 
@@ -848,7 +848,7 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 
 **问题**：如果每个维度的 `ServerWorld` 都自己 `open()` 世界目录，就会在下界或末地初始化时重复获取同一个 `WorldSessionLock`，导致世界被判定为“已被其他进程锁定”。
 
-**解决方案**：现在 `WorldStorageService` 与 `SaveManager` 提升到 `MinecraftServer` 层，只初始化一次，再注入三个维度对应的 `ServerWorld`。
+**解决方案**：现在 `SingleLevelStorageManager` 提升到 `MinecraftServer` 层，只初始化一次，再注入三个维度对应的 `ServerWorld`。
 
 ### 10. 替换 ChunkManager 时视距回退
 

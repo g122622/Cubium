@@ -22,6 +22,7 @@
 */
 
 #include "MinecraftServer.hpp"
+#include "common/world/storage/save/AutoSave.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -352,34 +353,31 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
 
 Result<void> MinecraftServer::initializeSharedStorage(const std::string& worldName)
 {
-    auto worldPath = m_storage.resolveWorldPath(worldName);
-
-    world::storage::WorldStorageConfig storageConfig;
+    world::storage::SingleLevelStorageConfig storageConfig;
     storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
     storageConfig.sectionCacheCapacity = 2048;
     storageConfig.enableBackup = true;
 
-    m_storage.setIoWorkerPool(&m_ioWorkerPool);
-    auto storageResult = m_storage.open(worldPath, storageConfig);
+    auto storageResult = m_globalStorage.openLevel(worldName, storageConfig);
     if (storageResult.failed()) {
         spdlog::error("Failed to open world storage: {}", storageResult.error().message());
-        return storageResult;
+        return storageResult.error();
     }
-    spdlog::info("World storage opened at {}", worldPath.string());
+    m_storage = storageResult.value();
+    m_storage->setIoWorkerPool(&m_ioWorkerPool);
+    spdlog::info("World storage opened at {}", m_storage->worldPath().string());
 
-    m_saveManager = std::make_unique<world::storage::SaveManager>(m_storage);
     world::storage::AutoSaveConfig saveConfig;
-    m_saveManager->initialize(saveConfig);
-    m_saveManager->startAutoSave();
-    m_scoreboard->setDataManager(m_storage.scoreboardDataManager());
+    m_storage->initializeAutoSave(saveConfig);
+    m_storage->startAutoSave();
+    m_scoreboard->setDataManager(m_storage->scoreboardDataManager());
     m_scoreboard->load();
     return Result<void>::ok();
 }
 
 void MinecraftServer::shutdownSharedStorage()
 {
-    m_saveManager.reset();
-    m_storage.close();
+    m_storage.reset();
 }
 
 Result<void> MinecraftServer::initializeWorld()

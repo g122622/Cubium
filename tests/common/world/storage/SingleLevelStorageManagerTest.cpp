@@ -1,96 +1,57 @@
-/*
-* Copyright (c) 2026 Guo Yi
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-* 
-*/
-
-#include "world/storage/WorldStorageService.hpp"
+#include "world/storage/SingleLevelStorageManager.hpp"
 #include "core/Types.hpp"
-#include "world/chunk/ChunkData.hpp"
-#include "world/storage/db/SectionCodec.hpp"
 #include "world/storage/db/SectionKey.hpp"
+#include <ctime>
 #include <filesystem>
-#include <fstream>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
 
-// 测试用生物群系 ID
 namespace TestBiomes {
 constexpr BiomeId PLAINS = 1;
 }
 
-// 测试用临时目录
 class StorageTestBase : public ::testing::Test {
 protected:
     std::filesystem::path testDir;
 
     void SetUp() override
     {
-        // 创建临时测试目录
         testDir = std::filesystem::temp_directory_path() / "mc_storage_test" / std::to_string(std::time(nullptr));
         std::filesystem::create_directories(testDir);
     }
 
     void TearDown() override
     {
-        // 清理测试目录
         if (std::filesystem::exists(testDir)) {
             std::error_code ec;
             std::filesystem::remove_all(testDir, ec);
         }
     }
 
-    // 创建简单的测试 Section 数据
     SectionData createTestSectionData(ChunkCoord x, ChunkCoord z, i8 sectionY, DimensionId dim, u32 fillBlockId = 1)
     {
         SectionData data;
         data.key = SectionKey(x, z, sectionY, dim);
-
-        // 初始化默认数据
         data.initializeDefaults();
 
-        // 填充一些方块
         for (size_t i = 0; i < 100; ++i) {
             data.blockStates[i] = fillBlockId;
         }
         data.nonEmptyBlockCount = 100;
-
-        // 设置生物群系
         data.biomes.resize(64, TestBiomes::PLAINS);
-
         return data;
     }
 };
 
-class WorldStorageServiceTest : public StorageTestBase {
-protected:
-    void SetUp() override { StorageTestBase::SetUp(); }
-};
+class SingleLevelStorageManagerTest : public StorageTestBase {};
 
-TEST_F(WorldStorageServiceTest, OpenClose)
+TEST_F(SingleLevelStorageManagerTest, OpenClose)
 {
-    WorldStorageService storage;
+    SingleLevelStorageManager storage;
 
-    WorldStorageConfig config;
+    SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Eventual;
     config.sectionCacheCapacity = 100;
 
@@ -103,54 +64,48 @@ TEST_F(WorldStorageServiceTest, OpenClose)
     EXPECT_FALSE(storage.isOpen());
 }
 
-TEST_F(WorldStorageServiceTest, SectionManagerAccess)
+TEST_F(SingleLevelStorageManagerTest, SectionManagerAccess)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    // 访问主世界的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(0); // Overworld
+        auto& mgr = storage.sectionManager(0);
         (void)mgr;
     });
 
-    // 访问下界的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(1); // Nether
+        auto& mgr = storage.sectionManager(1);
         (void)mgr;
     });
 
-    // 访问末地的 SectionManager
     EXPECT_NO_THROW({
-        auto& mgr = storage.sectionManager(2); // The End
+        auto& mgr = storage.sectionManager(2);
         (void)mgr;
     });
 
     storage.close();
 }
 
-TEST_F(WorldStorageServiceTest, SaveAndLoadSection)
+TEST_F(SingleLevelStorageManagerTest, SaveAndLoadSection)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
     config.sectionCacheCapacity = 10;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0); // Overworld
-
-    // 创建并保存 Section
+    auto& mgr = storage.sectionManager(0);
     SectionKey key(0, 0, 0, 0);
     SectionData originalData = createTestSectionData(0, 0, 0, 0, 42);
 
     auto saveResult = mgr.saveSectionSync(key, originalData);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    // 加载 Section
     auto loadResult = mgr.loadSectionSync(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
 
@@ -166,17 +121,16 @@ TEST_F(WorldStorageServiceTest, SaveAndLoadSection)
     storage.close();
 }
 
-TEST_F(WorldStorageServiceTest, MultipleSections)
+TEST_F(SingleLevelStorageManagerTest, MultipleSections)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto& mgr = storage.sectionManager(0); // Overworld
+    auto& mgr = storage.sectionManager(0);
 
-    // 保存多个 Section
     for (i32 cx = -1; cx <= 1; ++cx) {
         for (i32 cz = -1; cz <= 1; ++cz) {
             for (i8 sy = 0; sy < 3; ++sy) {
@@ -190,7 +144,6 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
         }
     }
 
-    // 验证加载
     for (i32 cx = -1; cx <= 1; ++cx) {
         for (i32 cz = -1; cz <= 1; ++cz) {
             for (i8 sy = 0; sy < 3; ++sy) {
@@ -210,10 +163,10 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
     storage.close();
 }
 
-TEST_F(WorldStorageServiceTest, FlushAllDirty)
+TEST_F(SingleLevelStorageManagerTest, FlushAllDirty)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Strong;
 
     auto result = storage.open(testDir, config);
@@ -221,7 +174,6 @@ TEST_F(WorldStorageServiceTest, FlushAllDirty)
 
     auto& mgr = storage.sectionManager(0);
 
-    // 保存多个 Section
     for (int i = 0; i < 10; ++i) {
         SectionKey key(i, 0, 0, 0);
         SectionData data = createTestSectionData(i, 0, 0, 0, i);
@@ -229,24 +181,22 @@ TEST_F(WorldStorageServiceTest, FlushAllDirty)
         ASSERT_TRUE(saveResult.success());
     }
 
-    // 刷新所有脏数据
     auto flushResult = storage.flushAllDirty();
     ASSERT_TRUE(flushResult.success());
 
     storage.close();
 }
 
-TEST_F(WorldStorageServiceTest, DifferentDimensions)
+TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    // 在不同维度保存 Section
     {
-        auto& overworld = storage.sectionManager(0); // Overworld
+        auto& overworld = storage.sectionManager(0);
         SectionKey key(0, 0, 0, 0);
         SectionData data = createTestSectionData(0, 0, 0, 0, 1);
         auto saveResult = overworld.saveSectionSync(key, data);
@@ -254,7 +204,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
     }
 
     {
-        auto& nether = storage.sectionManager(1); // Nether
+        auto& nether = storage.sectionManager(1);
         SectionKey key(0, 0, 0, 1);
         SectionData data = createTestSectionData(0, 0, 0, 1, 2);
         auto saveResult = nether.saveSectionSync(key, data);
@@ -262,14 +212,13 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
     }
 
     {
-        auto& theEnd = storage.sectionManager(2); // The End
+        auto& theEnd = storage.sectionManager(2);
         SectionKey key(0, 0, 0, 2);
         SectionData data = createTestSectionData(0, 0, 0, 2, 3);
         auto saveResult = theEnd.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
     }
 
-    // 验证各维度数据独立
     {
         auto& overworld = storage.sectionManager(0);
         auto loadResult = overworld.loadSectionSync(SectionKey(0, 0, 0, 0));
@@ -303,11 +252,11 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
     storage.close();
 }
 
-TEST_F(WorldStorageServiceTest, ReopenPreservesData)
+TEST_F(SingleLevelStorageManagerTest, ReopenPreservesData)
 {
     {
-        WorldStorageService storage;
-        WorldStorageConfig config;
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
         config.consistencyMode = ConsistencyMode::Strong;
 
         auto result = storage.open(testDir, config);
@@ -321,17 +270,15 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
         auto saveResult = mgr.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
 
-        // 强制刷新
         auto flushResult = storage.flushAllDirty();
         ASSERT_TRUE(flushResult.success());
 
         storage.close();
     }
 
-    // 重新打开验证数据持久化
     {
-        WorldStorageService storage;
-        WorldStorageConfig config;
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
 
         auto result = storage.open(testDir, config);
         ASSERT_TRUE(result.success());
@@ -354,10 +301,10 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
     }
 }
 
-TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
+TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Eventual;
 
     auto result = storage.open(testDir, config);
@@ -378,7 +325,6 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
     ASSERT_NE(initialSnapshot, nullptr);
     EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
 
-    // 通过正常保存覆盖同一 Section，验证已返回的快照仍保持原值。
     SectionData updatedData = createTestSectionData(30, 40, 6, 0, 777);
     auto overwriteResult = mgr.saveSectionSync(key, updatedData);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
@@ -391,7 +337,7 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
     storage.close();
 
     {
-        WorldStorageService reopenedStorage;
+        SingleLevelStorageManager reopenedStorage;
         auto reopenResult = reopenedStorage.open(testDir, config);
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
@@ -407,10 +353,10 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
     }
 }
 
-TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
+TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Eventual;
 
     auto result = storage.open(testDir, config);
@@ -431,7 +377,6 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
     ASSERT_NE(initialSnapshot, nullptr);
     EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
 
-    // 通过正常保存覆盖同一 Section，验证已返回的快照不受后续缓存替换影响。
     SectionData updatedData = createTestSectionData(50, 60, 7, 0, 888);
     auto overwriteResult = mgr.saveSectionSync(key, updatedData);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
@@ -444,7 +389,7 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
     storage.close();
 
     {
-        WorldStorageService reopenedStorage;
+        SingleLevelStorageManager reopenedStorage;
         auto reopenResult = reopenedStorage.open(testDir, config);
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
@@ -460,21 +405,18 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
     }
 }
 
-TEST_F(WorldStorageServiceTest, InvalidSectionKey)
+TEST_F(SingleLevelStorageManagerTest, InvalidSectionKey)
 {
-    WorldStorageService storage;
-    WorldStorageConfig config;
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
     auto& mgr = storage.sectionManager(0);
-
-    // 尝试加载不存在的 Section
     SectionKey nonexistentKey(99999, 99999, 15, 0);
     auto loadResult = mgr.loadSectionSync(nonexistentKey);
 
-    // 应该返回 nullptr 表示不存在
     EXPECT_TRUE(loadResult.success());
     EXPECT_EQ(loadResult.value(), nullptr);
 
