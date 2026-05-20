@@ -636,7 +636,7 @@ private:
         std::vector<IChunk*> neighbors;
         std::vector<std::shared_ptr<ChunkData>> loadedNeighbors;
         std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors;
-        WorldGenRegion region;
+        std::unique_ptr<WorldGenRegion> region;
     };
 
     /**

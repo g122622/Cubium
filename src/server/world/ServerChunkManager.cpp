@@ -497,21 +497,21 @@ void ServerChunkManager::doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const
         auto context = doCreateWorldGenRegion(chunk, std::max(0, status.taskRange()));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
-            m_generator->generateStructureStarts(context.region, chunk);
+            m_generator->generateStructureStarts(*context.region, chunk);
         } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
-            m_generator->generateStructureReferences(context.region, chunk);
+            m_generator->generateStructureReferences(*context.region, chunk);
         } else if (status == ChunkStatuses::BIOMES) {
-            m_generator->generateBiomes(context.region, chunk);
+            m_generator->generateBiomes(*context.region, chunk);
         } else if (status == ChunkStatuses::NOISE) {
-            m_generator->generateNoise(context.region, chunk);
+            m_generator->generateNoise(*context.region, chunk);
         } else if (status == ChunkStatuses::SURFACE) {
-            m_generator->buildSurface(context.region, chunk);
+            m_generator->buildSurface(*context.region, chunk);
         } else if (status == ChunkStatuses::CARVERS) {
-            m_generator->applyCarvers(context.region, chunk, false);
+            m_generator->applyCarvers(*context.region, chunk, false);
         } else if (status == ChunkStatuses::LIQUID_CARVERS) {
-            m_generator->applyCarvers(context.region, chunk, true);
+            m_generator->applyCarvers(*context.region, chunk, true);
         } else if (status == ChunkStatuses::FEATURES) {
-            m_generator->placeFeatures(context.region, chunk);
+            m_generator->placeFeatures(*context.region, chunk);
         } else if (status == ChunkStatuses::HEIGHTMAPS) {
             chunk.updateAllHeightmaps();
         }
@@ -528,7 +528,7 @@ void ServerChunkManager::doSpawnInitialMobs(ChunkPrimer& chunk)
 
     std::vector<SpawnedEntityData> entities;
     auto context = doCreateWorldGenRegion(chunk, 1);
-    m_generator->spawnInitialMobs(context.region, chunk, entities);
+    m_generator->spawnInitialMobs(*context.region, chunk, entities);
 
     for (auto& entityData : entities) {
         chunk.addSpawnedEntity(std::move(entityData));
@@ -646,7 +646,7 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRe
     NeighborRegionContext context{std::vector<IChunk*>(chunkCount, nullptr),
         std::vector<std::shared_ptr<ChunkData>>(chunkCount),
         std::vector<std::unique_ptr<ChunkPrimer>>(chunkCount),
-        WorldGenRegion(centerChunk.x(), centerChunk.z(), radius, {})};
+        nullptr};
     collectNeighborChunks(centerChunk.x(),
         centerChunk.z(),
         radius,
@@ -654,7 +654,8 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRe
         context.neighbors,
         context.loadedNeighbors,
         context.missingNeighbors);
-    context.region = WorldGenRegion(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
+    context.region =
+        std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
     return context;
 }
 
