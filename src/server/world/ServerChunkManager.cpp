@@ -381,13 +381,15 @@ SingleChunkLifecycleManager& ServerChunkManager::getOrCreateLifecycleManager(Chu
 
 SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(ChunkCoord x, ChunkCoord z)
 {
-    const u64 key = posToKey(x, z);
-    std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
-    auto it = m_lifecycleManagers.find(key);
-    return it != m_lifecycleManagers.end() ? it->second.get() : nullptr;
+    return doFindLifecycleManager(x, z);
 }
 
 const SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(ChunkCoord x, ChunkCoord z) const
+{
+    return doFindLifecycleManager(x, z);
+}
+
+SingleChunkLifecycleManager* ServerChunkManager::doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const
 {
     const u64 key = posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -492,29 +494,24 @@ void ServerChunkManager::doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const
             continue;
         }
 
-        const i32 regionRadius = std::max(0, status.taskRange());
-        std::vector<IChunk*> neighbors(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
-        std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
-        std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
-        collectNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
-        WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(neighbors));
+        auto context = doCreateWorldGenRegion(chunk, std::max(0, status.taskRange()));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
-            m_generator->generateStructureStarts(region, chunk);
+            m_generator->generateStructureStarts(context.region, chunk);
         } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
-            m_generator->generateStructureReferences(region, chunk);
+            m_generator->generateStructureReferences(context.region, chunk);
         } else if (status == ChunkStatuses::BIOMES) {
-            m_generator->generateBiomes(region, chunk);
+            m_generator->generateBiomes(context.region, chunk);
         } else if (status == ChunkStatuses::NOISE) {
-            m_generator->generateNoise(region, chunk);
+            m_generator->generateNoise(context.region, chunk);
         } else if (status == ChunkStatuses::SURFACE) {
-            m_generator->buildSurface(region, chunk);
+            m_generator->buildSurface(context.region, chunk);
         } else if (status == ChunkStatuses::CARVERS) {
-            m_generator->applyCarvers(region, chunk, false);
+            m_generator->applyCarvers(context.region, chunk, false);
         } else if (status == ChunkStatuses::LIQUID_CARVERS) {
-            m_generator->applyCarvers(region, chunk, true);
+            m_generator->applyCarvers(context.region, chunk, true);
         } else if (status == ChunkStatuses::FEATURES) {
-            m_generator->placeFeatures(region, chunk);
+            m_generator->placeFeatures(context.region, chunk);
         } else if (status == ChunkStatuses::HEIGHTMAPS) {
             chunk.updateAllHeightmaps();
         }
@@ -530,15 +527,8 @@ void ServerChunkManager::doSpawnInitialMobs(ChunkPrimer& chunk)
     }
 
     std::vector<SpawnedEntityData> entities;
-    constexpr i32 spawnRegionRadius = 1;
-    std::vector<IChunk*> neighbors(
-        static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
-    std::vector<std::shared_ptr<ChunkData>> loadedNeighbors(neighbors.size());
-    std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors(neighbors.size());
-    collectNeighborChunks(
-        chunk.x(), chunk.z(), spawnRegionRadius, &chunk, neighbors, loadedNeighbors, missingNeighbors);
-    WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(neighbors));
-    m_generator->spawnInitialMobs(region, chunk, entities);
+    auto context = doCreateWorldGenRegion(chunk, 1);
+    m_generator->spawnInitialMobs(context.region, chunk, entities);
 
     for (auto& entityData : entities) {
         chunk.addSpawnedEntity(std::move(entityData));
@@ -647,6 +637,25 @@ void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
             neighbors[index] = missingNeighbors[index].get();
         }
     }
+}
+
+ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRegion(IChunk& centerChunk, i32 radius)
+{
+    const size_t chunkCount = static_cast<size_t>((radius * 2 + 1) * (radius * 2 + 1));
+
+    NeighborRegionContext context{std::vector<IChunk*>(chunkCount, nullptr),
+        std::vector<std::shared_ptr<ChunkData>>(chunkCount),
+        std::vector<std::unique_ptr<ChunkPrimer>>(chunkCount),
+        WorldGenRegion(centerChunk.x(), centerChunk.z(), radius, {})};
+    collectNeighborChunks(centerChunk.x(),
+        centerChunk.z(),
+        radius,
+        &centerChunk,
+        context.neighbors,
+        context.loadedNeighbors,
+        context.missingNeighbors);
+    context.region = WorldGenRegion(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
+    return context;
 }
 
 // ============================================================================

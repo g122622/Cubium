@@ -495,6 +495,15 @@ private:
     [[nodiscard]] const SingleChunkLifecycleManager* findLifecycleManager(ChunkCoord x, ChunkCoord z) const;
 
     /**
+     * @brief 查询现有单区块生命周期管理器的共享实现
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return 若存在则返回指针，否则返回 nullptr
+     */
+    [[nodiscard]] SingleChunkLifecycleManager* doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+
+    /**
      * @brief 统一提交区块请求
      *
      * 这是同步/异步请求的公共入口。
@@ -619,6 +628,25 @@ private:
         std::vector<IChunk*>& neighbors,
         std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
         std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors);
+
+    /**
+     * @brief WorldGenRegion 构造所需的邻居窗口
+     */
+    struct NeighborRegionContext {
+        std::vector<IChunk*> neighbors;
+        std::vector<std::shared_ptr<ChunkData>> loadedNeighbors;
+        std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors;
+        WorldGenRegion region;
+    };
+
+    /**
+     * @brief 为指定中心区块创建 WorldGenRegion 及其持有上下文
+     *
+     * @param centerChunk 中心区块
+     * @param radius 邻域半径
+     * @return 邻居窗口上下文
+     */
+    [[nodiscard]] NeighborRegionContext doCreateWorldGenRegion(IChunk& centerChunk, i32 radius);
 
     /**
      * @brief 在给定 Primer 上推进到目标生成阶段
