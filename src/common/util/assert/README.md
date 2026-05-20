@@ -1,61 +1,56 @@
-# Assert Library
+#Assert Library
 
 一个功能强大的运行时断言库，支持多种断言级别、堆栈跟踪和自定义处理器。
 
-## 目录结构
+##目录结构
 
+``` src / common / util / assert /
+├── Assert.hpp #核心类和接口定义
+├── Assert.cpp #实现文件（跨平台堆栈跟踪）
+├── AssertMacros.hpp #断言宏定义
+├── AssertAll.hpp #统一包含入口
+└── README.md #本文档
 ```
-src/common/util/assert/
-├── Assert.hpp           # 核心类和接口定义
-├── Assert.cpp           # 实现文件（跨平台堆栈跟踪）
-├── AssertMacros.hpp     # 断言宏定义
-├── AssertAll.hpp        # 统一包含入口
-└── README.md            # 本文档
-```
 
-## 文件详细介绍
+                           ##文件详细介绍
 
-### Assert.hpp - 核心头文件
+                           ## #Assert.hpp -
+        核心头文件
 
-**职责**：定义断言库的核心类型、接口和管理器。
+            ** 职责**：定义断言库的核心类型、接口和管理器。
 
-**主要内容**：
+                ** 主要内容**：
 
-| 类型 | 说明 |
-|------|------|
-| `AssertLevel` | 断言级别枚举（Debug/Release/Fatal） |
-| `AssertFailure` | 断言失败信息结构体 |
-| `AssertHandler` | 自定义处理器函数类型 |
-| `AssertConfig` | 断言配置结构体 |
-| `AssertManager` | 单例管理器类 |
-| `AssertException` | 断言异常类 |
-| `detail::formatValue<T>()` | 值格式化帮助函数（模板） |
-| `detail::formatComparisonMessage<T, U>()` | 比较断言消息格式化 |
+    | 类型 | 说明 | | -- -- --| -- -- --| | `AssertLevel` | 断言级别枚举（Debug / Release / Fatal） |
+    | `AssertFailure` | 断言失败信息结构体 | | `AssertHandler` | 自定义处理器函数类型 | | `AssertConfig` |
+    断言配置结构体 | | `AssertManager` | 单例管理器类 | | `AssertException` | 断言异常类 |
+    | `detail::formatValue<T>()` | 值格式化帮助函数（模板） |
+    | `detail::formatComparisonMessage<T, U>()` | 比较断言消息格式化 |
 
-**关键接口**：
+    **关键接口**：
 
 ```cpp
-// AssertManager 单例管理器
-class AssertManager {
+     // AssertManager 单例管理器
+     class AssertManager {
 public:
-    static AssertManager& instance();              // 获取单例
-    void setConfig(const AssertConfig& config);    // 设置配置
-    const AssertConfig& config() const;            // 获取配置
-    void setHandler(AssertHandler handler);        // 设置处理器
-    [[noreturn]] void handleFailure(...);          // 处理断言失败
-    bool handleRecoverableFailure(...);            // 处理可恢复失败
-    std::string captureStackTrace() const;              // 捕获堆栈跟踪
+    static AssertManager& instance();           // 获取单例
+    void setConfig(const AssertConfig& config); // 设置配置
+    const AssertConfig& config() const;         // 获取配置
+    void setHandler(AssertHandler handler);     // 设置处理器
+    [[noreturn]] void handleFailure(...);       // 处理断言失败
+    bool handleRecoverableFailure(...);         // 处理可恢复失败
+    std::string captureStackTrace() const;      // 捕获堆栈跟踪
 };
 
 // AssertFailure 断言失败信息
 struct AssertFailure {
-    std::string expression;      // 断言表达式
-    std::string message;         // 自定义消息
-    std::string file;            // 文件名
+    std::string expression; // 断言表达式
+    std::string message;    // 自定义消息
+    std::string file;       // 文件名
     i32 line;               // 行号
-    std::string function;        // 函数名
+    std::string function;   // 函数名
     AssertLevel level;      // 断言级别
-    std::string stackTrace;      // 堆栈跟踪（可选）
+    std::string stackTrace; // 堆栈跟踪（可选）
 };
 
 // AssertConfig 配置选项
@@ -147,7 +142,7 @@ struct AssertConfig {
 **使用方式**：
 
 ```cpp
-#include "common/util/assert/AssertAll.hpp"  // 包含所有断言功能
+#include "common/util/assert/AssertAll.hpp" // 包含所有断言功能
 ```
 
 ## 文件关系图
@@ -254,57 +249,61 @@ MC_ASSERT_FATAL(state == State::Ready);
 MC_ASSERT_FATAL_MSG(initialized, "System not initialized");
 ```
 
-### 比较断言
+    ## #比较断言
 
 ```cpp
-// 比较断言会输出两个值的实际内容
-int expected = 42;
+    // 比较断言会输出两个值的实际内容
+    int expected = 42;
 int actual = 100;
 
-MC_ASSERT_EQ(expected, actual);   // 失败时显示: expected = 42, actual = 100
-MC_ASSERT_NE(a, b);               // 不相等断言
-MC_ASSERT_LT(a, b);               // 小于断言
-MC_ASSERT_LE(a, b);               // 小于等于断言
-MC_ASSERT_GT(a, b);               // 大于断言
-MC_ASSERT_GE(a, b);               // 大于等于断言
+MC_ASSERT_EQ(expected, actual); // 失败时显示: expected = 42, actual = 100
+MC_ASSERT_NE(a, b);             // 不相等断言
+MC_ASSERT_LT(a, b);             // 小于断言
+MC_ASSERT_LE(a, b);             // 小于等于断言
+MC_ASSERT_GT(a, b);             // 大于断言
+MC_ASSERT_GE(a, b);             // 大于等于断言
 ```
 
-### 指针和范围断言
+    ## #指针和范围断言
 
 ```cpp
-// 指针断言
-int* ptr = nullptr;
-MC_ASSERT_NULL(ptr);              // 检查指针为空
-MC_ASSERT_NOT_NULL(&value);       // 检查指针非空
+    // 指针断言
+    int* ptr = nullptr;
+MC_ASSERT_NULL(ptr);        // 检查指针为空
+MC_ASSERT_NOT_NULL(&value); // 检查指针非空
 
 // 范围断言
-MC_ASSERT_RANGE(index, 0, size - 1);     // 0 <= index <= size-1
-MC_ASSERT_INDEX(row, height);            // 0 <= row < height
-MC_ASSERT_INDEX_U(uindex, size);         // uindex < size（无符号）
+MC_ASSERT_RANGE(index, 0, size - 1); // 0 <= index <= size-1
+MC_ASSERT_INDEX(row, height);        // 0 <= row < height
+MC_ASSERT_INDEX_U(uindex, size);     // uindex < size（无符号）
 ```
 
-### 特殊断言
+    ## #特殊断言
 
 ```cpp
-// 标记不可达代码
-switch (value) {
-    case 0: /* ... */ break;
-    case 1: /* ... */ break;
+    // 标记不可达代码
+    switch (value)
+{
+    case 0: /* ... */
+        break;
+    case 1: /* ... */
+        break;
     default:
-        MC_ASSERT_UNREACHABLE();  // 永远不应该到达这里
+        MC_ASSERT_UNREACHABLE(); // 永远不应该到达这里
 }
 
 // 总是失败
 MC_ASSERT_FAIL("Critical error: database connection lost");
 
 // 标记未实现功能
-MC_ASSERT_NOT_IMPLEMENTED();  // 消息为当前函数名
+MC_ASSERT_NOT_IMPLEMENTED(); // 消息为当前函数名
 ```
 
-### 前置/后置条件
+    ## #前置 /
+    后置条件
 
-```cpp
-void processData(const std::vector<int>& data) {
+```cpp void processData(const std::vector<int>& data)
+{
     // 前置条件
     MC_PRECONDITION(!data.empty());
     MC_PRECONDITION_MSG(data.size() <= MAX_SIZE, "Data too large");
@@ -317,20 +316,21 @@ void processData(const std::vector<int>& data) {
 
 class Container {
     int m_count;
-    void validate() {
+    void validate()
+    {
         // 不变量检查
         MC_INVARIANT(m_count >= 0);
     }
 };
 ```
 
-### 自定义处理器
+    ## #自定义处理器
 
-```cpp
-void myAssertHandler(const mc::assert::AssertFailure& failure) {
+```cpp void
+    myAssertHandler(const mc::assert::AssertFailure& failure)
+{
     // 记录日志
-    spdlog::error("Assertion failed: {} at {}:{}",
-                  failure.expression, failure.file, failure.line);
+    spdlog::error("Assertion failed: {} at {}:{}", failure.expression, failure.file, failure.line);
 
     // 发送错误报告
     sendErrorReport(failure);
@@ -339,11 +339,12 @@ void myAssertHandler(const mc::assert::AssertFailure& failure) {
     throw mc::assert::AssertException(failure);
 }
 
-int main() {
+int main()
+{
     mc::assert::AssertConfig config;
     config.handler = myAssertHandler;
-    config.captureStackTrace = true;   // 启用堆栈跟踪
-    config.breakOnFailure = true;      // 触发调试器断点
+    config.captureStackTrace = true; // 启用堆栈跟踪
+    config.breakOnFailure = true;    // 触发调试器断点
 
     mc::assert::AssertManager::instance().setConfig(config);
 
@@ -351,62 +352,55 @@ int main() {
 }
 ```
 
-### 调试辅助
+    ## #调试辅助
 
 ```cpp
-// 仅在 Debug 模式执行的代码
-MC_DEBUG_ONLY(debugLog("Checking state..."));
+        // 仅在 Debug 模式执行的代码
+        MC_DEBUG_ONLY(debugLog("Checking state..."));
 MC_DEBUG_ONLY(validateInternalState());
 
 // 标记未使用变量（避免编译器警告）
-void callback(int value, void* userdata) {
+void callback(int value, void* userdata)
+{
     MC_UNUSED(userdata);
     process(value);
 }
 ```
 
-## 容易踩的坑
+    ##容易踩的坑
 
-### 1. 断言中的副作用
+    ## #1. 断言中的副作用
 
-**问题**：Debug 断言在 Release 模式下被禁用，其中的代码不会执行。
+        ** 问题**：Debug 断言在 Release 模式下被禁用，其中的代码不会执行。
 
 ```cpp
-// ❌ 错误：initialize() 在 Release 中不会被调用
-MC_ASSERT(initialize());
+            // ❌ 错误：initialize() 在 Release 中不会被调用
+            MC_ASSERT(initialize());
 
 // ✅ 正确：先执行，再断言
 bool ok = initialize();
 MC_ASSERT(ok);
 ```
 
-### 2. 断言级别选择错误
+    ## #2. 断言级别选择错误
 
-| 级别 | Debug 构建 | Release 构建 | 适用场景 |
-|------|-----------|-------------|---------|
-| Debug | ✅ 启用 | ❌ 禁用 | 开发调试、内部不变量 |
-| Release | ✅ 启用 | ✅ 启用 | 关键检查、边界验证 |
-| Fatal | ✅ 启用 | ✅ 启用 | 不可恢复错误、程序状态严重错误 |
+    | 级别 | Debug 构建 | Release 构建 | 适用场景 | | -- -- --| -- -- -- -- -- -| -- -- -- -- -- -- -| -- -- -- -- -| |
+    Debug | ✅ 启用 | ❌ 禁用 | 开发调试、内部不变量 | | Release | ✅ 启用 | ✅ 启用 | 关键检查、边界验证 | |
+    Fatal | ✅ 启用 | ✅ 启用 | 不可恢复错误、程序状态严重错误 |
 
-**建议**：
-- 开发调试用 `MC_ASSERT`
-- 安全关键检查用 `MC_ASSERT_RELEASE`
-- 不可恢复错误用 `MC_ASSERT_FATAL`
+    **建议**： - 开发调试用 `MC_ASSERT` - 安全关键检查用 `MC_ASSERT_RELEASE` -
+        不可恢复错误用 `MC_ASSERT_FATAL`
 
-### 3. 比较断言的类型要求
+        ## #3. 比较断言的类型要求
 
-比较断言要求操作数支持对应的运算符：
+            比较断言要求操作数支持对应的运算符：
 
 ```cpp
-// 自定义类型需要定义运算符
-struct Vec2 {
+        // 自定义类型需要定义运算符
+        struct Vec2 {
     int x, y;
-    bool operator==(const Vec2& other) const {
-        return x == other.x && y == other.y;
-    }
-    bool operator<(const Vec2& other) const {
-        return x < other.x || (x == other.x && y < other.y);
-    }
+    bool operator==(const Vec2& other) const { return x == other.x && y == other.y; }
+    bool operator<(const Vec2& other) const { return x < other.x || (x == other.x && y < other.y); }
 };
 
 // 现在可以使用
@@ -414,34 +408,39 @@ MC_ASSERT_EQ(vec1, vec2);
 MC_ASSERT_LT(vec1, vec2);
 ```
 
-### 4. 多线程环境
+    ## #4. 多线程环境
 
-断言管理器是单例，处理器应该是线程安全的：
+        断言管理器是单例，处理器应该是线程安全的：
+
+            默认 `defaultAssertHandler()` 现在会用全局互斥锁串行化整段断言输出，并把 Perfetto
+    停止日志放在同一个临界区里，避免多线程同时断言时控制台输出互相穿插。
 
 ```cpp
-// ❌ 不安全：非线程安全的处理器
-void unsafeHandler(const AssertFailure& failure) {
-    static std::string buffer;  // 非线程安全
+    // ❌ 不安全：非线程安全的处理器
+    void unsafeHandler(const AssertFailure& failure)
+{
+    static std::string buffer; // 非线程安全
     buffer = failure.expression;
     log(buffer);
 }
 
 // ✅ 安全：线程安全的处理器
 std::mutex g_logMutex;
-void threadSafeHandler(const AssertFailure& failure) {
+void threadSafeHandler(const AssertFailure& failure)
+{
     std::lock_guard<std::mutex> lock(g_logMutex);
     logToFile(failure);
 }
 ```
 
-### 5. 断言 vs 异常
+    ## #5. 断言 vs 异常
 
-- **断言**：用于检查程序内部逻辑错误（不可恢复）
-- **异常**：用于处理可预期的错误条件（可恢复）
+    - **断言**：用于检查程序内部逻辑错误（不可恢复） -
+    **异常**：用于处理可预期的错误条件（可恢复）
 
 ```cpp
-// 断言：检查内部不变量（程序错误）
-MC_ASSERT(m_count >= 0);
+         // 断言：检查内部不变量（程序错误）
+         MC_ASSERT(m_count >= 0);
 
 // 异常：处理外部输入（用户错误）
 if (userInput < 0) {
@@ -449,28 +448,29 @@ if (userInput < 0) {
 }
 ```
 
-### 6. 堆栈跟踪性能开销
+    ## #6. 堆栈跟踪性能开销
 
-启用堆栈跟踪有性能开销，建议仅在调试时启用：
+        启用堆栈跟踪有性能开销，建议仅在调试时启用：
 
 ```cpp
 // 调试配置
 #ifdef NDEBUG
-    AssertConfig config;  // 生产环境不捕获堆栈跟踪
-    config.captureStackTrace = false;
+            AssertConfig config; // 生产环境不捕获堆栈跟踪
+config.captureStackTrace = false;
 #else
-    AssertConfig config;  // 开发环境捕获堆栈跟踪
-    config.captureStackTrace = true;
+            AssertConfig config; // 开发环境捕获堆栈跟踪
+config.captureStackTrace = true;
 #endif
 ```
 
-### 7. Release 构建中的性能
+    ## #7. Release 构建中的性能
 
-即使在 Release 构建，`MC_ASSERT_RELEASE` 也会有轻微开销：
+        即使在 Release 构建，`MC_ASSERT_RELEASE` 也会有轻微开销：
 
 ```cpp
-// 热点代码路径中谨慎使用
-for (int i = 0; i < millions; ++i) {
+    // 热点代码路径中谨慎使用
+    for (int i = 0; i < millions; ++i)
+{
     // ❌ 可能影响性能
     MC_ASSERT_RELEASE(data[i] != nullptr);
 
@@ -546,13 +546,13 @@ for (int i = 0; i < millions; ++i) {
 ### 运行测试
 
 ```powershell
-# 运行所有断言测试
+#运行所有断言测试
 ./build/bin/Release/mc_tests.exe --gtest_filter="*Assert*"
 
-# 运行 AssertTest 测试套件
+#运行 AssertTest 测试套件
 ./build/bin/Release/mc_tests.exe --gtest_filter="AssertTest.*"
 
-# 运行 MacroTest 测试套件
+#运行 MacroTest 测试套件
 ./build/bin/Release/mc_tests.exe --gtest_filter="MacroTest.*"
 ```
 
@@ -594,115 +594,121 @@ MC_ASSERT_MSG(ptr, "null");
 MC_ASSERT_MSG(ptr, "Player pointer must not be null after spawn");
 ```
 
-### 2. 断言前置条件
+    ## #2. 断言前置条件
 
-```cpp
-void processChunk(Chunk* chunk) {
+```cpp void
+    processChunk(Chunk* chunk)
+{
     MC_PRECONDITION(chunk != nullptr);
     MC_PRECONDITION_MSG(chunk->isLoaded(), "Chunk must be loaded before processing");
     // ...
 }
 ```
 
-### 3. 断言类不变量
+    ## #3. 断言类不变量
 
-```cpp
-class Buffer {
+```cpp class Buffer {
     size_t m_size, m_capacity;
     char* m_data;
 
-    void validate() const {
+    void validate() const
+    {
         MC_INVARIANT(m_size <= m_capacity);
         MC_INVARIANT(m_data != nullptr || m_capacity == 0);
     }
 };
 ```
 
-### 4. 使用比较断言获得更好的错误信息
+    ## #4. 使用比较断言获得更好的错误信息
 
 ```cpp
-// ❌ 简单断言看不到值
-MC_ASSERT(count == expectedCount);
+        // ❌ 简单断言看不到值
+        MC_ASSERT(count == expectedCount);
 
 // ✅ 比较断言显示两个值
 MC_ASSERT_EQ(count, expectedCount);
 // 输出: count = 5, expectedCount = 10
 ```
 
-### 5. 在 Release 构建中保持关键检查
+    ## #5. 在 Release 构建中保持关键检查
 
 ```cpp
-// 安全关键检查应在所有构建中启用
-MC_ASSERT_RELEASE(inputIndex < bufferSize);
+        // 安全关键检查应在所有构建中启用
+        MC_ASSERT_RELEASE(inputIndex < bufferSize);
 MC_ASSERT_FATAL(criticalPointer != nullptr);
 ```
 
-## 架构图
+    ##架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           用户代码                                   │
+│ 用户代码                                   │
 │                                                                     │
-│   MC_ASSERT(ptr != nullptr);                                        │
-│   MC_ASSERT_RELEASE(index < size);                                  │
-│   MC_ASSERT_EQ(expected, actual);                                   │
+│ MC_ASSERT(ptr != nullptr);
+│
+│ MC_ASSERT_RELEASE(index < size);
+│
+│ MC_ASSERT_EQ(expected, actual);
+│
 └───────────────────────────────┬─────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      AssertMacros.hpp                               │
+│ AssertMacros
+        .hpp                               │
 │                                                                     │
-│   #define MC_ASSERT(cond) MC_ASSERT_IMPL(cond, nullptr, Debug)      │
-│   #define MC_ASSERT_RELEASE(cond) MC_ASSERT_IMPL(cond, nullptr, Re) │
-│   #define MC_ASSERT_EQ(a, b) ...                                    │
+│ #define MC_ASSERT(cond) MC_ASSERT_IMPL(cond, nullptr, Debug)      │
+│ #define MC_ASSERT_RELEASE(cond) MC_ASSERT_IMPL(cond, nullptr, Re) │
+│ #define MC_ASSERT_EQ(a, b)...                                    │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Assert.hpp                                  │
+│ Assert.hpp                                  │
 │                                                                     │
 │   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │
-│   │  AssertLevel    │  │  AssertFailure  │  │  AssertConfig   │    │
-│   │  - Debug        │  │  - expression   │  │  - handler      │    │
-│   │  - Release      │  │  - message      │  │  - stackTrace   │    │
-│   │  - Fatal        │  │  - file/line    │  │  - breakOnFail  │    │
+│   │ AssertLevel    │  │ AssertFailure  │  │ AssertConfig   │    │
+│   │ -
+    Debug        │  │ - expression   │  │ - handler      │    │
+│   │ - Release      │  │ - message      │  │ - stackTrace   │    │
+│   │ - Fatal        │  │ - file / line │  │ - breakOnFail  │    │
 │   └─────────────────┘  └─────────────────┘  └─────────────────┘    │
 │                                                                     │
 │   ┌─────────────────────────────────────────────────────────────┐  │
-│   │                     AssertManager (单例)                     │  │
+│   │ AssertManager(单例)                     │  │
 │   │                                                             │  │
-│   │  - instance()         - handleFailure()                    │  │
-│   │  - setConfig()        - handleRecoverableFailure()         │  │
-│   │  - setHandler()       - captureStackTrace()                │  │
+│   │ - instance() - handleFailure()                    │  │
+│   │ - setConfig() - handleRecoverableFailure()         │  │
+│   │ - setHandler() - captureStackTrace()                │  │
 │   └─────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │   ┌─────────────────┐  ┌─────────────────────────────────────┐    │
-│   │ AssertException │  │         处理器函数                   │    │
-│   │                 │  │  - defaultAssertHandler()           │    │
-│   │  - failure()    │  │  - logAssertHandler()              │    │
-│   │  - what()       │  │  - throwAssertHandler()            │    │
+│   │ AssertException │  │ 处理器函数                   │    │
+│   │                 │  │ - defaultAssertHandler()           │    │
+│   │ - failure()    │  │ - logAssertHandler()              │    │
+│   │ - what()       │  │ - throwAssertHandler()            │    │
 │   └─────────────────┘  └─────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Assert.cpp                                  │
+│ Assert.cpp                                  │
 │                                                                     │
 │   ┌─────────────────────────────────────────────────────────────┐  │
-│   │                    跨平台堆栈跟踪                             │  │
+│   │ 跨平台堆栈跟踪                             │  │
 │   │                                                             │  │
-│   │   Windows: CaptureStackBackTrace + DbgHelp                  │  │
-│   │   Linux/macOS: backtrace + abi::__cxa_demangle              │  │
+│   │ Windows : CaptureStackBackTrace + DbgHelp                  │  │
+│   │ Linux / macOS : backtrace + abi::__cxa_demangle              │  │
 │   └─────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │   ┌─────────────────────────────────────────────────────────────┐  │
-│   │                    值格式化帮助函数                           │  │
+│   │ 值格式化帮助函数                           │  │
 │   │                                                             │  │
-│   │   detail::formatValue<T>()        - 通用值格式化            │  │
-│   │   detail::formatValue(const char*) - 字符串（带引号）       │  │
-│   │   detail::formatValue(bool)       - 布尔值格式化            │  │
-│   │   detail::formatValue(T*)         - 指针格式化              │  │
-│   │   detail::formatComparisonMessage() - 比较消息格式化        │  │
+│   │ detail::formatValue<T>() - 通用值格式化            │  │
+│   │ detail::formatValue(const char*) - 字符串（带引号）       │  │
+│   │ detail::formatValue(bool) - 布尔值格式化            │  │
+│   │ detail::formatValue(T*) - 指针格式化              │  │
+│   │ detail::formatComparisonMessage() - 比较消息格式化        │  │
 │   └─────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
 ```

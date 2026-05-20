@@ -185,6 +185,11 @@ std::string formatFailureMessage(
     const char* expression, const char* message, const char* file, i32 line, const char* function);
 
 /**
+ * @brief 格式化默认断言处理器输出块
+ */
+std::string formatFailureBlock(const AssertFailure& failure);
+
+/**
  * @brief 值格式化帮助器
  */
 template <typename T>

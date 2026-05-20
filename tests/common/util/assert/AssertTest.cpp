@@ -22,8 +22,12 @@
  */
 
 #include "common/util/assert/AssertAll.hpp"
+#include <barrier>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc::assert;
@@ -554,4 +558,66 @@ TEST_F(AssertTest, DefaultHandlerFormat)
     EXPECT_NE(message.find("test.cpp"), std::string::npos);
     EXPECT_NE(message.find("100"), std::string::npos);
     EXPECT_NE(message.find("testFunction"), std::string::npos);
+}
+
+TEST_F(AssertTest, FormatFailureBlockIsThreadComposable)
+{
+    constexpr i32 THREAD_COUNT = 8;
+
+    std::mutex outputMutex;
+    std::string combinedOutput;
+    std::barrier syncPoint(THREAD_COUNT);
+    std::vector<std::thread> threads;
+    threads.reserve(THREAD_COUNT);
+
+    for (i32 i = 0; i < THREAD_COUNT; ++i) {
+        threads.emplace_back([&, i]() {
+            AssertFailure failure;
+            failure.expression = "expr_" + std::to_string(i);
+            failure.message = "message_" + std::to_string(i);
+            failure.file = "file_" + std::to_string(i) + ".cpp";
+            failure.line = 100 + i;
+            failure.function = "function_" + std::to_string(i);
+            failure.level = AssertLevel::Release;
+
+            const std::string block = detail::formatFailureBlock(failure);
+
+            syncPoint.arrive_and_wait();
+
+            std::lock_guard<std::mutex> lock(outputMutex);
+            combinedOutput += block;
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    i32 bannerCount = 0;
+    std::size_t searchPos = 0;
+    while ((searchPos = combinedOutput.find("ASSERTION FAILED", searchPos)) != std::string::npos) {
+        ++bannerCount;
+        ++searchPos;
+    }
+
+    EXPECT_EQ(bannerCount, THREAD_COUNT);
+
+    for (i32 i = 0; i < THREAD_COUNT; ++i) {
+        const std::string expression = "Expression: expr_" + std::to_string(i);
+        const std::string message = "Message:    message_" + std::to_string(i);
+        const std::string location = "Location:   file_" + std::to_string(i) + ".cpp:" + std::to_string(100 + i);
+        const std::string function = "Function:   function_" + std::to_string(i);
+
+        const std::size_t expressionPos = combinedOutput.find(expression);
+        ASSERT_NE(expressionPos, std::string::npos);
+
+        const std::size_t messagePos = combinedOutput.find(message, expressionPos);
+        ASSERT_NE(messagePos, std::string::npos);
+
+        const std::size_t locationPos = combinedOutput.find(location, messagePos);
+        ASSERT_NE(locationPos, std::string::npos);
+
+        const std::size_t functionPos = combinedOutput.find(function, locationPos);
+        ASSERT_NE(functionPos, std::string::npos);
+    }
 }

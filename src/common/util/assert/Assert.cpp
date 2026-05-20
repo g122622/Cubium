@@ -26,6 +26,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 
 #include "common/perfetto/PerfettoManager.hpp"
 
@@ -44,6 +45,16 @@
 #endif
 
 namespace mc::assert {
+
+namespace {
+
+std::mutex& getAssertOutputMutex()
+{
+    static std::mutex s_assertOutputMutex;
+    return s_assertOutputMutex;
+}
+
+} // namespace
 
 // ============================================================================
 // AssertManager
@@ -222,30 +233,13 @@ std::string AssertManager::captureStackTrace() const
 
 [[noreturn]] void defaultAssertHandler(const AssertFailure& failure)
 {
-    std::cerr << "\n";
-    std::cerr << "========================================\n";
-    std::cerr << "            ASSERTION FAILED            \n";
-    std::cerr << "========================================\n";
-    std::cerr << "\n";
-    std::cerr << "Expression: " << failure.expression << "\n";
+    std::lock_guard<std::mutex> lock(getAssertOutputMutex());
 
-    if (!failure.message.empty()) {
-        std::cerr << "Message:    " << failure.message << "\n";
-    }
+    std::cerr << detail::formatFailureBlock(failure) << std::flush;
 
-    std::cerr << "\n";
-    std::cerr << "Location:   " << failure.file << ":" << failure.line << "\n";
-    std::cerr << "Function:   " << failure.function << "\n";
-
-    if (!failure.stackTrace.empty()) {
-        std::cerr << "\n" << failure.stackTrace << "\n";
-    }
-
-    std::cerr << "========================================\n";
-    std::cerr << std::flush;
-
-    mc::perfetto::PerfettoManager::instance().stopTracing();
-    mc::perfetto::PerfettoManager::instance().shutdown();
+    auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
+    perfettoManager.stopTracing();
+    perfettoManager.shutdown();
     std::cout << "Perfetto tracing stopped due to assertion failure" << std::endl;
 
     std::abort();
@@ -317,6 +311,36 @@ std::string formatFailureMessage(
     oss << "\n  at " << (file ? file : "???") << ":" << line;
     oss << "\n  in " << (function ? function : "???");
 
+    return oss.str();
+}
+
+std::string formatFailureBlock(const AssertFailure& failure)
+{
+    std::ostringstream oss;
+    oss << "\n";
+    oss << "========================================\n";
+    oss << "            ASSERTION FAILED            \n";
+    oss << "========================================\n";
+    oss << "\n";
+    oss << "Expression: " << failure.expression << "\n";
+
+    if (!failure.message.empty()) {
+        oss << "Message:    " << failure.message << "\n";
+    }
+
+    oss << "\n";
+    oss << "Location:   " << failure.file << ":" << failure.line << "\n";
+    oss << "Function:   " << failure.function << "\n";
+
+    if (!failure.stackTrace.empty()) {
+        oss << "\n" << failure.stackTrace;
+        if (!failure.stackTrace.empty() && failure.stackTrace.back() != '\n') {
+            oss << "\n";
+        }
+        oss << "\n";
+    }
+
+    oss << "========================================\n";
     return oss.str();
 }
 
