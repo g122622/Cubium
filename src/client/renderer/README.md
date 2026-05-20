@@ -450,7 +450,6 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
   - `Flat`：平面光照（每面统一光照）
   - `Smooth`：平滑光照（逐顶点 AO）
 - 可选贪婪网格合并
-- `ChunkMeshCache`：网格缓存
 
 ##### AmbientOcclusionCalculator.hpp/cpp - AO 计算器
 

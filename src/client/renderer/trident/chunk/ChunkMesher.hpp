@@ -425,49 +425,6 @@ struct ChunkRenderData {
 };
 
 // ============================================================================
-// 区块网格缓存
-// ============================================================================
-
-class ChunkMeshCache {
-public:
-    explicit ChunkMeshCache(size_t maxCachedChunks = 256);
-
-    // 获取或创建区块渲染数据
-    [[nodiscard]] ChunkRenderData* getOrCreate(const ChunkId& id);
-    [[nodiscard]] ChunkRenderData* get(const ChunkId& id);
-    [[nodiscard]] const ChunkRenderData* get(const ChunkId& id) const;
-
-    // 标记区块需要更新
-    void markDirty(const ChunkId& id);
-
-    // 移除区块
-    void remove(const ChunkId& id);
-
-    // 清除所有缓存
-    void clear();
-
-    // 获取需要更新的区块数量
-    [[nodiscard]] size_t dirtyCount() const { return m_dirtyCount; }
-
-    // 获取缓存大小
-    [[nodiscard]] size_t size() const { return m_cache.size(); }
-
-    // 遍历所有缓存项
-    template <typename Func>
-    void forEach(Func&& func)
-    {
-        for (auto& [id, data] : m_cache) {
-            func(id, data);
-        }
-    }
-
-private:
-    std::unordered_map<ChunkId, ChunkRenderData> m_cache;
-    size_t m_maxCachedChunks;
-    size_t m_dirtyCount = 0;
-};
-
-// ============================================================================
 // 区块网格构建任务
 // ============================================================================
 
