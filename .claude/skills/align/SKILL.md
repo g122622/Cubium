@@ -83,4 +83,3 @@ clang-format -i src\common\xxx\Foo.hpp
 ```
 
 最后，生成简体中文提交信息并提交代码。
-

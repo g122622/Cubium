@@ -1441,7 +1441,7 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
 
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
         if (!miningManager().tryCompleteMining(playerId, pos)) {
-            spdlog::debug("Ignored premature StopDestroyBlock from player {} at {}", playerId, pos.toString());
+            spdlog::warn("Ignored premature StopDestroyBlock from player {} at {}", playerId, pos.toString());
         }
     }
 }

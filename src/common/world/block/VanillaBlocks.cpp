@@ -816,17 +816,17 @@ void VanillaBlocks::registerBaseBlocks()
 
     // 空气 - ID 0
     AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown());
+        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
 
     // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
     // 参考 MC 1.16.5: net.minecraft.block.Blocks.CAVE_AIR
     CAVE_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:cave_air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown());
+        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
 
     // 虚空空气 - 用于世界边界外的空气空间
     // 参考 MC 1.16.5: net.minecraft.block.Blocks.VOID_AIR
     VOID_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:void_air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown());
+        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
 
     // 石头 - ID 1
     // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
@@ -893,7 +893,7 @@ void VanillaBlocks::registerBaseBlocks()
     // 基岩 - ID 8
     // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F).noDrops())
     BEDROCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:bedrock"), BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f));
+        ResourceLocation("minecraft:bedrock"), BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 沙子 - ID 9
     // 参考: new SandBlock(14406560, Properties.create(Material.SAND).hardnessAndResistance(0.5F))
@@ -1455,19 +1455,19 @@ void VanillaBlocks::registerNetherBlocks()
     // 参考: new
     // FireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     FIRE = &registry.registerBlock<blocks::FireBlock>(ResourceLocation("minecraft:fire"),
-        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(15));
+        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 灵魂火 - 蓝色火焰，伤害更高
     // 参考: new
     // SoulFireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(10))
     SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(ResourceLocation("minecraft:soul_fire"),
-        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10));
+        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10).noLootTable());
 
     // 下界传送门
     // 参考: new
     // NetherPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(11))
     NETHER_PORTAL = &registry.registerBlock<blocks::NetherPortalBlock>(ResourceLocation("minecraft:nether_portal"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(11));
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(11).noLootTable());
 
     // 下界疣 - 作物方块
     // 参考: new NetherWartBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
@@ -2059,20 +2059,20 @@ void VanillaBlocks::registerEndBlocks()
     // 参考: new
     // EndPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15));
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 末地传送门框架 - 放置末影之眼激活传送门
     // 参考: new EndPortalFrameBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F,
     // 3600000.0F).setLightLevel(1))
     END_PORTAL_FRAME =
         &registry.registerBlock<blocks::EndPortalFrameBlock>(ResourceLocation("minecraft:end_portal_frame"),
-            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).lightLevel(1));
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).lightLevel(1).noLootTable());
 
     // 末地折跃门 - 在末地之间传送
     // 参考: new
     // EndGatewayBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     END_GATEWAY = &registry.registerBlock<blocks::EndGatewayBlock>(ResourceLocation("minecraft:end_gateway"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15));
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 紫颂植物 - 末地植物
     // 参考: new ChorusPlantBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
@@ -2704,13 +2704,13 @@ void VanillaBlocks::registerRedstoneBlocks()
 
     // 活塞头
     PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(
-        ResourceLocation("minecraft:piston_head"), BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f));
+        ResourceLocation("minecraft:piston_head"), BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
 
     // 移动中的活塞
     // 参考: new MovingPistonBlock(Properties.create(Material.PISTON).hardnessAndResistance(-1.0F))
     // MC Java: 移动中的活塞是不可破坏的，硬度为 -1.0
     MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-        BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f));
+        BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable());
 
     // 发射器
     // 参考: new DispenserBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))

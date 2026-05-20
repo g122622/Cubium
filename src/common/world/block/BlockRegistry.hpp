@@ -99,6 +99,12 @@ public:
         auto block = std::make_unique<BlockType>(std::forward<Args>(args)...);
         block->m_blockLocation = id;
 
+        // MC原版行为：若未显式设置掉落表ID且未禁止，则自动推导为 "<namespace>:blocks/<path>"
+        // 例如 minecraft:stone → minecraft:blocks/stone
+        if (block->m_lootTableId.empty() && !block->m_noLootTable && id.isValid()) {
+            block->m_lootTableId = id.namespace_() + ":blocks/" + id.path();
+        }
+
         // 动态分配方块ID（AIR 获得 ID 0）
         u32 blockId = allocateBlockId(id);
         block->m_blockId = blockId;

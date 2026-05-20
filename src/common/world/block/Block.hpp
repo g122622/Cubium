@@ -211,8 +211,27 @@ public:
     BlockProperties& lootTableId(const std::string& id)
     {
         m_lootTableId = id;
+        m_noLootTable = false;
         return *this;
     }
+
+    /**
+     * @brief 禁止自动推导掉落表ID
+     *
+     * 适用于不应有任何掉落物的方块（如空气），
+     * 防止注册时自动推导出 "minecraft:blocks/air" 等无意义掉落表ID。
+     */
+    BlockProperties& noLootTable()
+    {
+        m_noLootTable = true;
+        m_lootTableId.clear();
+        return *this;
+    }
+
+    /**
+     * @brief 是否显式禁止掉落表
+     */
+    [[nodiscard]] bool noLootTable() const { return m_noLootTable; }
 
     /**
      * @brief 设置声音类型
@@ -333,6 +352,7 @@ private:
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
     std::string m_lootTableId;
+    bool m_noLootTable = false; // 显式禁止自动推导掉落表ID（如空气方块）
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE; // 默认使用石头声音
     f32 m_slipperiness = 0.6f;                                   // MC默认滑度
     f32 m_speedFactor = 1.0f;                                    // MC默认速度因子
@@ -1735,8 +1755,9 @@ protected:
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
 
-    // 掉落表ID（默认为空，表示无自定义掉落表）
+    // 掉落表ID（注册时若为空且未禁止，将自动推导为 "<namespace>:blocks/<path>"）
     std::string m_lootTableId;
+    bool m_noLootTable = false; // 显式禁止掉落表
 
     // 声音类型（默认为石头声音）
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;
