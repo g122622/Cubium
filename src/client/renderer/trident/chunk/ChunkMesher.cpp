@@ -170,6 +170,24 @@ struct FaceLayerRenderData {
     i32 tintIndex = -1;
 };
 
+struct CachedLiquidFaceLayers {
+    std::vector<FaceLayerRenderData> stillLayers;
+    std::vector<FaceLayerRenderData> flowLayers;
+};
+
+struct LiquidFaceLayerCacheState {
+    ResourceManager* resourceManager = nullptr;
+    std::unordered_map<const BlockState*, CachedLiquidFaceLayers> layersByBlockState;
+
+    void reset(ResourceManager* currentResourceManager)
+    {
+        resourceManager = currentResourceManager;
+        layersByBlockState.clear();
+    }
+};
+
+thread_local LiquidFaceLayerCacheState t_liquidFaceLayerCache;
+
 [[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(
     const BlockAppearance* appearance, const std::string& faceName)
 {
@@ -241,37 +259,47 @@ struct FaceLayerRenderData {
     }
 
     ResourceManager* resourceManager = modelCache->resourceManager();
-    const ResourceLocation& blockLocation = block->blockLocation();
+    if (t_liquidFaceLayerCache.resourceManager != resourceManager) {
+        t_liquidFaceLayerCache.reset(resourceManager);
+    }
 
-    const bool isWater = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "water";
-    const bool isLava = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "lava";
+    auto cacheIt = t_liquidFaceLayerCache.layersByBlockState.find(block);
+    if (cacheIt == t_liquidFaceLayerCache.layersByBlockState.end()) {
+        CachedLiquidFaceLayers cachedLayers;
+        const ResourceLocation& blockLocation = block->blockLocation();
 
-    const std::string stillName = isWater ? "water_still" : isLava ? "lava_still" : blockLocation.path() + "_still";
-    const std::string flowName = isWater ? "water_flow" : isLava ? "lava_flow" : blockLocation.path() + "_flow";
+        const bool isWater = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "water";
+        const bool isLava = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "lava";
 
-    const ResourceLocation stillTexture(blockLocation.namespace_(), "textures/block/" + stillName);
-    const ResourceLocation flowTexture(blockLocation.namespace_(), "textures/block/" + flowName);
+        const std::string stillName = isWater ? "water_still" : isLava ? "lava_still" : blockLocation.path() + "_still";
+        const std::string flowName = isWater ? "water_flow" : isLava ? "lava_flow" : blockLocation.path() + "_flow";
+
+        const ResourceLocation stillTexture(blockLocation.namespace_(), "textures/block/" + stillName);
+        const ResourceLocation flowTexture(blockLocation.namespace_(), "textures/block/" + flowName);
+
+        const TextureRegion* stillRegion = resourceManager->getTextureRegion(stillTexture);
+        const TextureRegion* flowRegion = resourceManager->getTextureRegion(flowTexture);
+
+        if (stillRegion == nullptr) {
+            stillRegion = flowRegion;
+        }
+        if (flowRegion == nullptr) {
+            flowRegion = stillRegion;
+        }
+
+        if (stillRegion != nullptr) {
+            cachedLayers.stillLayers.push_back(FaceLayerRenderData{*stillRegion, -1});
+        }
+        if (flowRegion != nullptr) {
+            cachedLayers.flowLayers.push_back(FaceLayerRenderData{*flowRegion, -1});
+        }
+
+        cacheIt = t_liquidFaceLayerCache.layersByBlockState.emplace(block, std::move(cachedLayers)).first;
+    }
 
     const bool useStillTexture = (face == Face::Top || face == Face::Bottom);
-    const TextureRegion* region = nullptr;
-
-    if (useStillTexture) {
-        region = resourceManager->getTextureRegion(stillTexture);
-        if (region == nullptr) {
-            region = resourceManager->getTextureRegion(flowTexture);
-        }
-    } else {
-        region = resourceManager->getTextureRegion(flowTexture);
-        if (region == nullptr) {
-            region = resourceManager->getTextureRegion(stillTexture);
-        }
-    }
-
-    if (region == nullptr) {
-        return {};
-    }
-
-    return {FaceLayerRenderData{*region, -1}};
+    const auto& cachedResult = useStillTexture ? cacheIt->second.stillLayers : cacheIt->second.flowLayers;
+    return cachedResult;
 }
 
 [[nodiscard]] const BlockState* getMeshBlockStateAt(
