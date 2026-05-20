@@ -49,6 +49,8 @@ class World;
  */
 class ItemEntity : public Entity {
 public:
+    static constexpr u16 ITEM_COUNT_PARAM_ID = 100;
+
     // ========== 常量 ==========
 
     /// 默认拾取延迟（ticks）

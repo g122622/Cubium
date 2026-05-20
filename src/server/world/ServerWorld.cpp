@@ -361,6 +361,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         y,
         "z",
         z,
+        "state",
+        state->toString(),
         [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 

@@ -22,6 +22,7 @@
  */
 
 #include "ItemEntity.hpp"
+#include "../../../../common/perfetto/TraceEvents.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -57,6 +58,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
     : Entity(id)
     , m_itemStack(stack)
 {
+    m_dataManager.registerParam(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
 
@@ -72,6 +74,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z,
     : Entity(id)
     , m_itemStack(stack)
 {
+    m_dataManager.registerParam(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
     setVelocity(vx, vy, vz);
@@ -84,6 +87,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z,
 void ItemEntity::setItemStack(const ItemStack& stack)
 {
     m_itemStack = stack;
+    m_dataManager.set(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
 }
 
 // ============================================================================
@@ -92,6 +96,8 @@ void ItemEntity::setItemStack(const ItemStack& stack)
 
 void ItemEntity::tick()
 {
+    MC_TRACE_EVENT("game.entity", "ItemEntity::tick", "entityId", id(), "age", m_age, "count", getCount());
+
     // 更新前保存位置
     m_prevPosition = m_position;
     m_prevYaw = m_yaw;
@@ -127,6 +133,15 @@ void ItemEntity::tick()
 
 bool ItemEntity::onPlayerPickup(Player& player)
 {
+    MC_TRACE_EVENT("game.entity",
+        "ItemEntity::onPlayerPickup",
+        "entityId",
+        id(),
+        "playerId",
+        player.playerId(),
+        "count",
+        getCount());
+
     if (!canBePickedUp()) {
         return false;
     }
@@ -238,6 +253,17 @@ void ItemEntity::updateMerge()
 
 bool ItemEntity::tryMergeWith(ItemEntity& other)
 {
+    MC_TRACE_EVENT("game.entity",
+        "ItemEntity::tryMergeWith",
+        "thisId",
+        id(),
+        "otherId",
+        other.id(),
+        "thisCount",
+        getCount(),
+        "otherCount",
+        other.getCount());
+
     if (!canMergeWith(other)) {
         return false;
     }

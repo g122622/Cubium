@@ -32,6 +32,7 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
@@ -53,6 +54,13 @@ EntityTracker::EntityTracker()
 
 void EntityTracker::trackEntity(Entity* entity)
 {
+    MC_TRACE_EVENT("server.entity",
+        "EntityTracker::trackEntity",
+        "entityId",
+        entity ? entity->id() : -1,
+        "typeId",
+        entity ? entity->getTypeId() : "");
+
     if (!entity) return;
 
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -95,6 +103,83 @@ void EntityTracker::untrackEntity(EntityId entityId)
     spdlog::debug("EntityTracker: Stopped tracking entity {}", entityId);
 }
 
+void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
+{
+    MC_TRACE_EVENT("server.entity", "EntityTracker::untrackEntity", "entityId", entityId);
+
+    std::vector<PlayerId> playersToNotify;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+
+        playersToNotify.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+        for (PlayerId playerId : playersToNotify) {
+            auto playerIt = m_playerTrackedEntities.find(playerId);
+            if (playerIt != m_playerTrackedEntities.end()) {
+                playerIt->second.erase(entityId);
+            }
+        }
+
+        m_trackedEntities.erase(it);
+    }
+
+    for (PlayerId playerId : playersToNotify) {
+        sendDestroyPacket(server, playerId, entityId);
+    }
+
+    spdlog::debug("EntityTracker: Stopped tracking entity {} and sent destroy", entityId);
+}
+
+void EntityTracker::broadcastDestroyToTrackingPlayers(IServer& server, EntityId entityId)
+{
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+        for (PlayerId playerId : trackingPlayers) {
+            auto trackedIt = m_playerTrackedEntities.find(playerId);
+            if (trackedIt != m_playerTrackedEntities.end()) {
+                trackedIt->second.erase(entityId);
+            }
+        }
+        m_trackedEntities.erase(it);
+    }
+
+    sendDestroyPacket(server, trackingPlayers, entityId);
+}
+
+void EntityTracker::broadcastItemEntityResync(IServer& server, const Entity& entity)
+{
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entity.id());
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+        it->second.lastPosition = entity.position();
+        it->second.lastYaw = entity.yaw();
+        it->second.lastPitch = entity.pitch();
+        it->second.needsFullUpdate = false;
+    }
+
+    for (PlayerId playerId : trackingPlayers) {
+        sendItemEntityResyncPacket(server, playerId, entity);
+    }
+}
+
 bool EntityTracker::isTracking(EntityId entityId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -109,6 +194,8 @@ size_t EntityTracker::trackedEntityCount() const
 
 void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos)
 {
+    MC_TRACE_EVENT("server.entity", "EntityTracker::updatePlayerTracking", "playerId", playerId);
+
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 获取玩家当前追踪的实体集合
@@ -190,6 +277,8 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
 
 void EntityTracker::tick(IServer& server)
 {
+    MC_TRACE_EVENT("server.entity", "EntityTracker::tick", "trackedCount", m_trackedEntities.size());
+
     std::vector<std::pair<EntityId, std::vector<PlayerId>>> removedEntities;
     std::vector<EntityId> entitiesToErase;
 
@@ -452,6 +541,13 @@ void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, Entity
     }
 }
 
+void EntityTracker::sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId)
+{
+    for (PlayerId playerId : playerIds) {
+        sendDestroyPacket(server, playerId, entityId);
+    }
+}
+
 void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* entity)
 {
     if (!entity) return;
@@ -478,6 +574,46 @@ void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* e
 
         player->send(fullPacket.data(), fullPacket.size());
     }
+}
+
+void EntityTracker::sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity)
+{
+    auto* itemEntity = dynamic_cast<const ItemEntity*>(&entity);
+    if (itemEntity == nullptr) {
+        return;
+    }
+
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    if (!player || !player->hasConnection()) {
+        return;
+    }
+
+    network::SpawnEntityPacket packet;
+    packet.setEntityId(static_cast<u32>(itemEntity->id()));
+    packet.setUuid(util::uuidFromString(itemEntity->uuid()));
+    packet.setEntityTypeId(itemEntity->getTypeId());
+    packet.setPosition(itemEntity->x(), itemEntity->y(), itemEntity->z());
+    packet.setRotation(itemEntity->yaw(), itemEntity->pitch());
+
+    const auto velocity = itemEntity->velocity();
+    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
+    packet.setItemStack(itemEntity->getItemStack());
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        return;
+    }
+
+    network::PacketSerializer fullPacket;
+    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeBytes(result.value());
+    player->send(fullPacket.data(), fullPacket.size());
 }
 
 } // namespace mc::server

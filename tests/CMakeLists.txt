@@ -869,6 +869,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalServerConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketSerializer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketDeserializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/Packet.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/EntityPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkData.cpp

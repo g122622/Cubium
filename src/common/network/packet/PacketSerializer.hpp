@@ -25,6 +25,7 @@
 
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
+#include "PacketDeserializer.hpp"
 #include <array>
 #include <cstring>
 #include <string>
@@ -160,66 +161,6 @@ public:
 
 private:
     std::vector<u8> m_buffer;
-    size_t m_readPos = 0;
-};
-
-// 数据包反序列化器 (读取现有数据)
-class PacketDeserializer {
-public:
-    explicit PacketDeserializer(const u8* data, size_t size);
-    explicit PacketDeserializer(const std::vector<u8>& data);
-
-    // 读取操作
-    [[nodiscard]] Result<u8> readU8();
-    [[nodiscard]] Result<u16> readU16();
-    [[nodiscard]] Result<u32> readU32();
-    [[nodiscard]] Result<u64> readU64();
-    [[nodiscard]] Result<i8> readI8();
-    [[nodiscard]] Result<i16> readI16();
-    [[nodiscard]] Result<i32> readI32();
-    [[nodiscard]] Result<i64> readI64();
-    [[nodiscard]] Result<f32> readF32();
-    [[nodiscard]] Result<f64> readF64();
-    [[nodiscard]] Result<bool> readBool();
-    [[nodiscard]] Result<std::string> readString();
-    [[nodiscard]] Result<std::vector<u8>> readBytes(size_t size);
-
-    /**
-     * @brief 直接读取字节到目标缓冲区（零拷贝）
-     * @param dest 目标缓冲区指针
-     * @param size 要读取的字节数
-     * @return 成功返回空，失败返回错误
-     */
-    [[nodiscard]] Result<void> readBytesInto(u8* dest, size_t size);
-
-    /**
-     * @brief 直接读取字节到固定大小数组（零拷贝）
-     * @tparam N 数组大小
-     * @param dest 目标数组
-     * @return 成功返回空，失败返回错误
-     */
-    template <size_t N>
-    [[nodiscard]] Result<void> readBytesInto(std::array<u8, N>& dest)
-    {
-        return readBytesInto(dest.data(), N);
-    }
-
-    // VarInt/VarLong 读取
-    [[nodiscard]] Result<i32> readVarInt();
-    [[nodiscard]] Result<i64> readVarLong();
-    [[nodiscard]] Result<u32> readVarUInt();
-    [[nodiscard]] Result<u64> readVarULong();
-
-    // 状态查询
-    const u8* data() const { return m_data; }
-    size_t size() const { return m_size; }
-    size_t remaining() const { return m_size - m_readPos; }
-    bool hasRemaining(size_t bytes) const { return remaining() >= bytes; }
-    void reset() { m_readPos = 0; }
-
-private:
-    const u8* m_data;
-    size_t m_size;
     size_t m_readPos = 0;
 };
 

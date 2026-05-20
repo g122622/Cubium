@@ -27,11 +27,12 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/Packet.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -42,7 +43,6 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -54,6 +54,8 @@ namespace mc::server {
 
 void ItemPickupManager::tick(IServer& server)
 {
+    MC_TRACE_EVENT("server.entity", "ItemPickupManager::tick");
+
     // 处理物品合并
     processItemMerging(server);
 
@@ -117,6 +119,15 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
 
 bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntity& itemEntity)
 {
+    MC_TRACE_EVENT("server.entity",
+        "ItemPickupManager::tryPickupItem",
+        "entityId",
+        itemEntity.id(),
+        "playerId",
+        player.id(),
+        "count",
+        itemEntity.getCount());
+
     // 获取物品堆
     ItemStack& stack = const_cast<ItemStack&>(itemEntity.getItemStack());
     if (stack.isEmpty()) {
@@ -159,6 +170,8 @@ bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntit
 
 void ItemPickupManager::processItemMerging(IServer& server)
 {
+    MC_TRACE_EVENT("server.entity", "ItemPickupManager::processItemMerging");
+
     // 收集所有存活的物品实体
     std::vector<ItemEntity*> itemEntities;
     server.entityManager().forEachEntity([&itemEntities](Entity* entity) {
@@ -233,6 +246,7 @@ void ItemPickupManager::processItemMerging(IServer& server)
                 if (distSq <= MERGE_RANGE_SQ) {
                     // 尝试合并
                     if (item1->tryMergeWith(*item2)) {
+                        sendItemEntityUpdate(server, *item1);
                         spdlog::debug("ItemEntity {} merged into {}", item2->id(), item1->id());
                     }
                 }
@@ -319,51 +333,46 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player)
 
 void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity)
 {
-    network::SpawnEntityPacket packet;
-    packet.setEntityId(static_cast<u32>(itemEntity.id()));
-
-    std::array<u8, 16> uuid = {};
-    uuid[0] = static_cast<u8>(itemEntity.id() & 0xFF);
-    uuid[1] = static_cast<u8>((itemEntity.id() >> 8) & 0xFF);
-    uuid[2] = static_cast<u8>((itemEntity.id() >> 16) & 0xFF);
-    uuid[3] = static_cast<u8>((itemEntity.id() >> 24) & 0xFF);
-    packet.setUuid(uuid);
-
-    packet.setEntityTypeId(itemEntity.getTypeId());
-    packet.setPosition(itemEntity.x(), itemEntity.y(), itemEntity.z());
-    packet.setRotation(itemEntity.yaw(), itemEntity.pitch());
-
-    const auto velocity = itemEntity.velocity();
-    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
-    packet.setItemStack(itemEntity.getItemStack());
-
-    auto result = packet.serialize();
-    if (result.failed()) {
+    const Entity* entity = server.entityManager().getEntity(itemEntity.id());
+    if (entity == nullptr) {
         return;
     }
 
-    network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeBytes(result.value());
+    std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
+    if (metadata.size() <= 1) {
+        return;
+    }
 
     server.playerManager().forEachPlayer([&](ServerPlayerData& playerData) {
         if (!playerData.hasConnection()) {
             return;
         }
 
-        auto trackedEntities = server.entityTracker().getPlayerTrackedEntities(playerData.playerId);
-        if (std::find(trackedEntities.begin(), trackedEntities.end(), itemEntity.id()) == trackedEntities.end()) {
+        auto playerTracked = server.entityTracker().getPlayerTrackedEntities(playerData.playerId);
+        if (std::find(playerTracked.begin(), playerTracked.end(), itemEntity.id()) == playerTracked.end()) {
             return;
         }
 
+        network::EntityMetadataPacket packet;
+        packet.setEntityId(static_cast<u32>(itemEntity.id()));
+        packet.setMetadata(metadata);
+
+        auto result = packet.serialize();
+        if (result.failed()) {
+            return;
+        }
+
+        network::PacketSerializer fullPacket;
+        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityMetadata));
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeBytes(result.value());
         playerData.send(fullPacket.buffer().data(), fullPacket.buffer().size());
     });
+
+    const_cast<Entity*>(entity)->dataManager().clearDirty();
 }
 
 // ============================================================================

@@ -573,6 +573,9 @@ void ClientApplication::setupNetworkCallbacks()
                                   f32 vy,
                                   f32 vz,
                                   const ItemStack* itemStack) {
+        MC_TRACE_INSTANT(
+            "client.entity", "onSpawnEntity", "entityId", entityId, "typeId", typeId, "hasItem", itemStack != nullptr);
+
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
         if (!entity) {
@@ -587,10 +590,15 @@ void ClientApplication::setupNetworkCallbacks()
         entity->setRotation(yaw, pitch);
         entity->setVelocity(vx, vy, vz);
 
-        if (typeId == mc::entity::EntityTypes::ITEM && itemStack) {
-            entity->setItemStack(*itemStack);
-            mc::math::Random rng(static_cast<u64>(entityId) * 341873128712ULL + 132897987541ULL);
-            entity->setHoverStart(rng.nextFloat() * 6.28318530718f);
+        if (typeId == mc::entity::EntityTypes::ITEM) {
+            if (itemStack) {
+                entity->setItemStack(*itemStack);
+            }
+
+            if (entity->hoverStart() == 0.0f) {
+                mc::math::Random rng(static_cast<u64>(entityId) * 341873128712ULL + 132897987541ULL);
+                entity->setHoverStart(rng.nextFloat() * 6.28318530718f);
+            }
         }
     };
 
@@ -618,6 +626,8 @@ void ClientApplication::setupNetworkCallbacks()
         };
 
     callbacks.onEntityDestroy = [this](const std::vector<u32>& entityIds) {
+        MC_TRACE_INSTANT("client.entity", "onEntityDestroy", "count", entityIds.size());
+
         auto& entityManager = m_world.entityManager();
         for (u32 entityId : entityIds) {
             // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
@@ -650,6 +660,8 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityTeleport = [this](u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch) {
+        MC_TRACE_INSTANT("client.entity", "onEntityTeleport", "entityId", entityId);
+
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
@@ -687,6 +699,8 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
+        MC_TRACE_INSTANT("client.entity", "onEntityMetadata", "entityId", entityId, "size", metadata.size());
+
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {

@@ -457,6 +457,24 @@ void MinecraftServer::initializeInteractionManagers()
     m_containerManager->setInventoryManager(m_inventoryManager.get());
     m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
     m_miningManager->setInventoryManager(m_inventoryManager.get());
+    m_miningManager->setOnMiningComplete([this](PlayerId playerId, const BlockPos& pos) {
+        MC_ASSERT_RELEASE(m_blockInteractionManager != nullptr);
+        auto result = m_blockInteractionManager->handleBlockBreak(playerId, pos);
+        if (result.failed()) {
+            spdlog::debug("Mining completion block break failed for player {} at {}: {}",
+                playerId,
+                pos.toString(),
+                result.error().message());
+            return;
+        }
+
+        if (!result.value().blockBroken) {
+            spdlog::debug("Mining completion did not break block for player {} at {}: {}",
+                playerId,
+                pos.toString(),
+                result.value().message);
+        }
+    });
 
     // 设置服务器接口到 BlockInteractionManager（用于告示牌命令执行等）
     m_blockInteractionManager->setServer(this);
@@ -622,7 +640,8 @@ void MinecraftServer::setupWorldCallbacks()
             if (m_world->physicsEngine()) {
                 entity->setPhysicsEngine(m_world->physicsEngine());
             }
-            m_world->entityManager().addEntity(std::move(entity));
+            const EntityId spawnedId = m_world->spawnEntity(std::move(entity));
+            MC_UNUSED(spawnedId);
         }
     });
 
@@ -1420,9 +1439,10 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     // 处理挖掘状态
     miningManager().handleBlockInteraction(playerId, pos, packet.action());
 
-    // 处理方块破坏
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
-        auto interactionResult = blockInteractionManager().handleBlockBreak(playerId, pos);
+        if (!miningManager().tryCompleteMining(playerId, pos)) {
+            spdlog::debug("Ignored premature StopDestroyBlock from player {} at {}", playerId, pos.toString());
+        }
     }
 }
 

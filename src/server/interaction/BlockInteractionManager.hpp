@@ -35,6 +35,7 @@
 
 namespace mc {
 class BlockState;
+class Player;
 class ServerPlayer;
 namespace loot {
 class LootTableManager;
@@ -217,6 +218,11 @@ private:
      * @return 手持物品堆，如果无法获取则返回空堆
      */
     [[nodiscard]] ItemStack getHeldTool(PlayerId playerId) const;
+
+    /**
+     * @brief 获取真实玩家实体，用于 loot / owner 上下文。
+     */
+    [[nodiscard]] Player* getPlayerEntity(PlayerId playerId) const;
 
     /**
      * @brief 将方块设置为空气并触发回调

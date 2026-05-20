@@ -29,6 +29,7 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -106,6 +107,15 @@ ItemStack BlockInteractionManager::getHeldTool(PlayerId playerId) const
         return ItemStack();
     }
     return m_inventoryManager->getHeldItem(playerId);
+}
+
+Player* BlockInteractionManager::getPlayerEntity(PlayerId playerId) const
+{
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+
+    return m_server->playerEntityManager().getPlayerEntity(playerId, m_world);
 }
 
 u32 BlockInteractionManager::setBlockToAir(const BlockPos& pos, const BlockState& oldState, PlayerId playerId)
@@ -484,11 +494,22 @@ bool BlockInteractionManager::wouldCollideWithPlayer(
 void BlockInteractionManager::generateBlockDrops(
     const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool)
 {
+    MC_TRACE_EVENT("server.world",
+        "BlockInteractionManager::generateBlockDrops",
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
+    Player* player = getPlayerEntity(playerId);
+
     // 使用 BlockDropHandler 生成掉落物
-    auto drops = BlockDropHandler::generateDrops(m_world, pos, state, nullptr, tool, m_lootTableManager);
+    auto drops = BlockDropHandler::generateDrops(m_world, pos, state, player, tool, m_lootTableManager);
 
     if (!drops.empty()) {
-        BlockDropHandler::spawnDrops(m_world, pos, drops, "");
+        const std::string throwerUuid = player != nullptr ? player->uuid() : std::string();
+        BlockDropHandler::spawnDrops(m_world, pos, drops, throwerUuid);
     }
 
     // 处理矿石经验掉落

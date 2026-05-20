@@ -26,9 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -544,7 +546,7 @@ public:
     /**
      * @brief 触发元数据同步后的本地状态刷新
      */
-    void syncMetadataFromDataManager() {}
+    void syncMetadataFromDataManager();
 
     /**
      * @brief 检查实体是否处于愤怒状态
@@ -586,7 +588,13 @@ public:
      * 用于客户端接收 SpawnEntity 包时设置 ItemEntity 的物品
      * @param stack 物品堆
      */
-    void setItemStack(const ItemStack& stack) { m_itemStack = std::make_unique<ItemStack>(stack); }
+    void setItemStack(const ItemStack& stack);
+    void clearItemStack();
+    [[nodiscard]] const std::optional<ItemStack>& metadataItemStack() const { return m_metadataItemStack; }
+    [[nodiscard]] bool hasMetadataItemStack() const { return m_metadataItemStack.has_value(); }
+    [[nodiscard]] u32 itemRenderStateVersion() const { return m_itemRenderStateVersion; }
+    [[nodiscard]] std::optional<i32> metadataPickupDelay() const { return m_metadataPickupDelay; }
+    [[nodiscard]] std::optional<i32> metadataAge() const { return m_metadataAge; }
 
     // ========== XP 支持（用于 ExperienceOrb 渲染） ==========
 
@@ -694,6 +702,10 @@ private:
 
     // ItemEntity 物品数据
     std::unique_ptr<ItemStack> m_itemStack;
+    std::optional<ItemStack> m_metadataItemStack;
+    std::optional<i32> m_metadataPickupDelay;
+    std::optional<i32> m_metadataAge;
+    u32 m_itemRenderStateVersion = 0;
 
     // ExperienceOrb 经验值数据
     i32 m_xpValue = 1; // 默认值为1
@@ -729,6 +741,11 @@ private:
 
     // 解析后的元数据
     entity::EntityDataManager m_dataManager;
+
+    void updateItemRenderStateVersion();
+    void syncItemEntityMetadataFromRawBytes();
+    bool tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset);
+    bool tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const;
 };
 
 } // namespace mc::client

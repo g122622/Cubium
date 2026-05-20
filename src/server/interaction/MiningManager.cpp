@@ -24,6 +24,7 @@
 #include "MiningManager.hpp"
 #include "InventoryManager.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -86,6 +87,14 @@ void MiningManager::setInventoryManager(InventoryManager* inventoryManager)
 
 void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId)
 {
+    MC_TRACE_EVENT("server.world.mining",
+        "MiningManager::startMining",
+        "playerId",
+        playerId,
+        "pos",
+        pos.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
     auto& state = m_miningStates[playerId];
     state.position = pos;
     state.progress = 0.0f;
@@ -99,6 +108,8 @@ void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId
 
 void MiningManager::abortMining(PlayerId playerId)
 {
+    MC_TRACE_EVENT("server.world.mining", "MiningManager::abortMining", "playerId", playerId);
+
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
         if (it->second.active) {
@@ -125,15 +136,15 @@ void MiningManager::handleBlockInteraction(
             break;
 
         case network::BlockInteractionAction::StopDestroyBlock:
-            // 停止挖掘状态
-            abortMining(playerId);
+            MC_UNUSED(playerId);
+            MC_UNUSED(pos);
             break;
     }
 }
 
 void MiningManager::tick(ServerWorld& world)
 {
-    MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "phase", "tick");
+    MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "activeCount", m_miningStates.size());
 
     for (auto& [playerId, state] : m_miningStates) {
         if (!state.active) {
@@ -171,6 +182,15 @@ void MiningManager::tick(ServerWorld& world)
 
         // 检查是否完成
         if (state.progress >= 1.0f) {
+            MC_TRACE_INSTANT("server.world.mining",
+                "MiningManager::miningComplete",
+                "playerId",
+                playerId,
+                "pos",
+                state.position.toString(),
+                [flow = ::perfetto::Flow::ProcessScoped(state.position.toId())](
+                    ::perfetto::EventContext ctx) { flow(ctx); });
+
             // 调用挖掘完成回调
             if (m_onMiningComplete) {
                 m_onMiningComplete(playerId, state.position);
@@ -204,6 +224,35 @@ std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) cons
     return std::nullopt;
 }
 
+bool MiningManager::tryCompleteMining(PlayerId playerId, const BlockPos& pos)
+{
+    MC_TRACE_EVENT("server.world.mining",
+        "MiningManager::tryCompleteMining",
+        "playerId",
+        playerId,
+        "pos",
+        pos.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
+    auto it = m_miningStates.find(playerId);
+    MC_ASSERT_RELEASE(it != m_miningStates.end());
+
+    MiningState& state = it->second;
+    if (!state.active || state.position != pos || state.progress < 1.0f) {
+        spdlog::warn("[Mining] Player {} attempted to complete mining at ({}, {}, {}) but conditions not met (active={}, progress={:.2f})",
+            playerId,
+            pos.x,
+            pos.y,
+            pos.z,
+            state.active,
+            state.progress);
+        return false;
+    }
+
+    m_miningStates.erase(it);
+    return true;
+}
+
 void MiningManager::setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback)
 {
     m_onBreakAnimBroadcast = std::move(callback);
@@ -220,6 +269,14 @@ void MiningManager::setOnMiningComplete(std::function<void(PlayerId, const Block
 
 f32 MiningManager::calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const
 {
+    MC_TRACE_EVENT("server.world.mining",
+        "MiningManager::calculateMiningSpeed",
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
     // 1. 获取方块状态
     const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {

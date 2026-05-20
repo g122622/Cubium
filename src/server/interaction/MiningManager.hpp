@@ -130,6 +130,14 @@ public:
     [[nodiscard]] std::optional<BlockPos> getMiningPosition(PlayerId playerId) const;
 
     /**
+     * @brief 处理 StopDestroyBlock。
+     *
+     * 服务端只在当前玩家已经将目标方块挖到完成状态时返回 true，
+     * 外层调用方据此决定是否真正执行方块破坏。
+     */
+    [[nodiscard]] bool tryCompleteMining(PlayerId playerId, const BlockPos& pos);
+
+    /**
      * @brief 设置破坏动画广播回调
      * @param callback 回调函数 (playerId, x, y, z, stage)
      */

@@ -37,6 +37,7 @@
 #include "GameStateChangePacket.hpp"
 #include "InventoryPackets.hpp"
 #include "Packet.hpp"
+#include "PacketDeserializer.hpp"
 #include "PacketSerializer.hpp"
 #include "ParticlePacket.hpp"
 #include "ProtocolPackets.hpp"

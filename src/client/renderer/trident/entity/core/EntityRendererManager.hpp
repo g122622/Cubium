@@ -247,11 +247,16 @@ public:
     void initializeDefaults();
 
 private:
+    struct StaticMeshEntry {
+        pipeline::EntityMesh mesh;
+        u32 itemRenderStateVersion = 0;
+    };
+
     std::unordered_map<std::string, std::unique_ptr<core::EntityRenderer>> m_renderers;
     std::unordered_map<std::string, RendererCreator> m_creators;
 
     // 静态实体网格缓存（用于非动画实体，如 ItemEntity、ExperienceOrb）
-    std::unordered_map<EntityId, pipeline::EntityMesh> m_meshes;
+    std::unordered_map<EntityId, StaticMeshEntry> m_meshes;
 
     // 动画实体网格缓存（用于动画实体）
     std::unique_ptr<core::AnimatedMeshCache> m_animatedMeshCache;

@@ -159,10 +159,7 @@ private:
     void sendInventoryUpdate(IServer& server, Player& player);
 
     /**
-     * @brief 发送掉落物剩余数量更新包
-     *
-     * @param server 服务器接口
-     * @param itemEntity 物品实体
+     * @brief 通过 EntityTracker 的统一重同步路径刷新物品实体状态。
      */
     void sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity);
 

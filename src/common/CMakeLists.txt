@@ -36,6 +36,7 @@ add_library(mc_common STATIC
     # Network - Packet
     network/packet/Packet.cpp
     network/packet/PacketSerializer.cpp
+    network/packet/PacketDeserializer.cpp
     network/packet/CommandTreePacket.cpp
     network/packet/AdvancementPackets.cpp
     network/packet/InventoryPackets.cpp

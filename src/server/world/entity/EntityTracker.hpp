@@ -85,6 +85,13 @@ public:
     void untrackEntity(EntityId entityId);
 
     /**
+     * @brief 停止追踪实体并向当前追踪玩家发送销毁包
+     * @param server 服务器接口
+     * @param entityId 实体ID
+     */
+    void untrackEntity(IServer& server, EntityId entityId);
+
+    /**
      * @brief 检查实体是否正在被追踪
      * @param entityId 实体ID
      */
@@ -171,6 +178,7 @@ private:
      * @param entityId 实体ID
      */
     void sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId);
+    void sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId);
 
     /**
      * @brief 发送实体移动包给玩家
@@ -184,6 +192,20 @@ private:
      * @brief 发送实体元数据包给玩家
      */
     void sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata);
+    void sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity);
+
+public:
+    /**
+     * @brief 向当前追踪该实体的所有玩家稳定广播销毁包。
+     */
+    void broadcastDestroyToTrackingPlayers(IServer& server, EntityId entityId);
+
+    /**
+     * @brief 向当前追踪该实体的所有玩家重发完整的 item spawn 状态。
+     *
+     * 这里用于服务端无法仅靠 metadata 表达 ItemStack 变化时的统一兜底同步。
+     */
+    void broadcastItemEntityResync(IServer& server, const Entity& entity);
 
 private:
     mutable std::mutex m_mutex;

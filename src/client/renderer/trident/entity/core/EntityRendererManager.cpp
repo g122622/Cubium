@@ -65,6 +65,7 @@
 #include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -125,7 +126,7 @@ void EntityRendererManager::clearMeshes()
 {
     if (m_pipeline) {
         for (auto& [id, mesh] : m_meshes) {
-            m_pipeline->destroyMesh(mesh);
+            m_pipeline->destroyMesh(mesh.mesh);
         }
     }
     m_meshes.clear();
@@ -266,6 +267,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // ItemEntity 特殊渲染：应用浮动和旋转动画
         f64 bobOffset = calculateItemBobOffset(entity, partialTicks);
         f64 rotation = calculateItemRotation(entity, partialTicks);
+        i32 itemLayerCount = 1;
+        if (const ItemStack* itemStack = entity.itemStack(); itemStack != nullptr && !itemStack->isEmpty()) {
+            itemLayerCount = renderer::projectile::ItemEntityRenderer::getItemCountForRender(itemStack->getCount());
+        }
 
         // Y 翻转
         modelMatrix[5] = -1.0f;
@@ -284,9 +289,17 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         Vector3f pos(
             static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y + bobOffset), static_cast<f32>(posInterp.z));
 
-        // 绘制网格（使用更大的缩放）
-        m_pipeline->drawMesh(
-            cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+        for (i32 layerIndex = 0; layerIndex < itemLayerCount; ++layerIndex) {
+            Vector3f layerPos = pos;
+            if (layerIndex > 0) {
+                layerPos.y += 0.015f * static_cast<f32>(layerIndex);
+                layerPos.x += 0.01f * static_cast<f32>(layerIndex);
+                layerPos.z += 0.005f * static_cast<f32>(layerIndex);
+            }
+
+            m_pipeline->drawMesh(
+                cmd, *mesh, modelMatrix, layerPos, MODEL_SCALE * 16.0f, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+        }
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
         f64 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
@@ -433,11 +446,28 @@ f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64
 
 EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
 {
+    MC_TRACE_EVENT("rendering.entity",
+        "EntityRendererManager::getOrCreateMesh",
+        "entityId",
+        entity.id(),
+        "typeId",
+        entity.typeId(),
+        "itemRenderStateVersion",
+        entity.itemRenderStateVersion());
+
     EntityId id = entity.id();
     auto it = m_meshes.find(id);
 
     if (it != m_meshes.end()) {
-        return &it->second;
+        if (normalizeEntityTypeId(entity.typeId()) == entity::EntityTypes::ITEM &&
+            it->second.itemRenderStateVersion != entity.itemRenderStateVersion()) {
+            updateMesh(entity);
+            it = m_meshes.find(id);
+            if (it == m_meshes.end()) {
+                return nullptr;
+            }
+        }
+        return &it->second.mesh;
     }
 
     // 生成新网格
@@ -468,13 +498,16 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
         return nullptr;
     }
 
-    EntityMesh mesh = std::move(result.value());
-    mesh.posX = entity.x();
-    mesh.posY = entity.y();
-    mesh.posZ = entity.z();
+    StaticMeshEntry meshEntry;
+    meshEntry.mesh = std::move(result.value());
+    meshEntry.mesh.posX = entity.x();
+    meshEntry.mesh.posY = entity.y();
+    meshEntry.mesh.posZ = entity.z();
+    meshEntry.itemRenderStateVersion =
+        normalizedType == entity::EntityTypes::ITEM ? entity.itemRenderStateVersion() : 0;
 
-    m_meshes[id] = std::move(mesh);
-    return &m_meshes[id];
+    m_meshes[id] = std::move(meshEntry);
+    return &m_meshes[id].mesh;
 }
 
 void EntityRendererManager::updateMesh(ClientEntity& entity)
@@ -494,7 +527,17 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
         return;
     }
 
-    (void)m_pipeline->updateMesh(it->second, vertices, indices);
+    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
+    if (normalizedType == entity::EntityTypes::ITEM) {
+        remapItemEntityUv(entity, vertices);
+    } else {
+        remapUvToAtlasRegion(normalizedType, vertices);
+    }
+
+    (void)m_pipeline->updateMesh(it->second.mesh, vertices, indices);
+    if (normalizedType == entity::EntityTypes::ITEM) {
+        it->second.itemRenderStateVersion = entity.itemRenderStateVersion();
+    }
 }
 
 void EntityRendererManager::removeMesh(EntityId entityId)
@@ -502,7 +545,7 @@ void EntityRendererManager::removeMesh(EntityId entityId)
     auto it = m_meshes.find(entityId);
     if (it != m_meshes.end()) {
         if (m_pipeline) {
-            m_pipeline->destroyMesh(it->second);
+            m_pipeline->destroyMesh(it->second.mesh);
         }
         m_meshes.erase(it);
     }

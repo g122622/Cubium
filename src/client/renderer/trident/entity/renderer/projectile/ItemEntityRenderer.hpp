@@ -112,7 +112,10 @@ private:
      * @param count 物品数量
      * @return 渲染的模型数量 (1-5)
      */
+public:
     [[nodiscard]] static i32 getItemCountForRender(i32 count);
+
+private:
 
     pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr;
 
