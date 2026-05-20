@@ -22,7 +22,8 @@
       ]
     },
     "entt",
-    "perfetto"
+    "perfetto",
+    "abseil"
   ],
   "features": {
     "vulkan": {

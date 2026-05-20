@@ -621,6 +621,21 @@ private:
         std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors);
 
     /**
+     * @brief 在给定 Primer 上推进到目标生成阶段
+     *
+     * @param chunk 目标区块 Primer
+     * @param targetStatus 目标生成阶段
+     */
+    void doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus);
+
+    /**
+     * @brief 在 HEIGHTMAPS 完成后执行初始生物生成
+     *
+     * @param chunk 目标区块 Primer
+     */
+    void doSpawnInitialMobs(ChunkPrimer& chunk);
+
+    /**
      * @brief 执行同步区块生成
      *
      * 该函数主要供同步请求路径使用，用于在当前线程直接推进到目标阶段。
