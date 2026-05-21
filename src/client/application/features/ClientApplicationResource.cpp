@@ -54,25 +54,21 @@ Result<void> ClientApplication::initializeResources()
         spdlog::warn("Failed to initialize vanilla resource pack: {}", vanillaResult.error().toString());
     }
 
-    // 添加项目内置资源包（提供 sounds.json、音效文件等）
-    // 路径: resources/data/minecraft/ -> assets/minecraft/
-    auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
+    // 添加项目内置资源包（提供基础纹理、模型等）
+    // 内置包位于可执行文件旁的 resources/data/minecraft/
+    auto builtinResourcesPack = std::make_shared<FolderResourcePack>(m_gameDirectory.builtinPackDir().string());
     auto builtinResult = builtinResourcesPack->initialize();
     if (builtinResult.success()) {
         (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
-        spdlog::info("Added built-in resources pack (sounds, etc.)");
+        spdlog::info("Added built-in resource pack from: {}", m_gameDirectory.builtinPackDir().string());
     } else {
-        spdlog::warn("Failed to initialize built-in resources pack: {}", builtinResult.error().toString());
+        spdlog::warn("Failed to initialize built-in resource pack: {}", builtinResult.error().toString());
     }
 
-    // 2. 扫描资源包目录
-    std::string resourcePackDir = m_settings.resourcePackDir.get();
-    if (resourcePackDir.empty()) {
-        resourcePackDir = "resourcepacks";
-    }
-
-    spdlog::info("Scanning resource pack directory: {}", resourcePackDir);
-    auto scanResult = m_resourcePackList.scanDirectory(std::filesystem::path(resourcePackDir));
+    // 2. 扫描资源包目录（从游戏目录获取路径）
+    auto resourcePackDir = m_gameDirectory.resourcePacksDir();
+    spdlog::info("Scanning resource pack directory: {}", resourcePackDir.string());
+    auto scanResult = m_resourcePackList.scanDirectory(resourcePackDir);
     if (scanResult.success()) {
         spdlog::info("Found {} resource packs", scanResult.value());
     } else {
@@ -155,9 +151,9 @@ void ClientApplication::reloadResources()
         (void)m_resourceManager->addResourcePack(std::move(vanillaPack));
     }
 
-    // 添加项目内置资源包（提供 sounds.json、音效文件等）
-    // 路径: resources/data/minecraft/ -> assets/minecraft/
-    auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
+    // 添加项目内置资源包（提供基础纹理、模型等）
+    // 内置包位于可执行文件旁的 resources/data/minecraft/
+    auto builtinResourcesPack = std::make_shared<FolderResourcePack>(m_gameDirectory.builtinPackDir().string());
     auto builtinResult = builtinResourcesPack->initialize();
     if (builtinResult.success()) {
         (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));

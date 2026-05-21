@@ -56,14 +56,14 @@ PacketHandler::PacketHandler(PlayerManager& playerManager,
     KeepAliveManager& keepAliveManager,
     PositionTracker& positionTracker,
     TimeManager& timeManager,
-    const ServerCoreConfig& config)
+    GameMode defaultGameMode)
     : m_playerManager(playerManager)
     , m_connectionManager(connectionManager)
     , m_teleportManager(teleportManager)
     , m_keepAliveManager(keepAliveManager)
     , m_positionTracker(positionTracker)
     , m_timeManager(timeManager)
-    , m_config(config)
+    , m_defaultGameMode(defaultGameMode)
 {}
 
 PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, size_t size)
@@ -180,7 +180,7 @@ LoginResult PacketHandler::handleLoginRequest(
     m_playerManager.mapSessionToPlayer(sessionId, playerId);
 
     // 设置初始状态
-    player->gameMode = m_config.defaultGameMode;
+    player->gameMode = m_defaultGameMode;
     player->loggedIn = true;
 
     result.success = true;

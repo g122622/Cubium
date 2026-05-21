@@ -49,7 +49,6 @@
 #include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
@@ -131,20 +130,20 @@ private:
 class DedicatedTestServer final : public server::IServer {
 public:
     DedicatedTestServer()
-        : m_playerManager(m_config)
+        : m_playerManager(20)
         , m_inventoryManager(m_playerManager)
         , m_connectionManager(m_playerManager)
         , m_timeManager(0, 1000)
         , m_teleportManager(m_playerManager)
-        , m_keepAliveManager(m_playerManager, m_config)
-        , m_positionTracker(m_playerManager, m_config)
+        , m_keepAliveManager(m_playerManager, 15000, 30000)
+        , m_positionTracker(m_playerManager, 10)
         , m_packetHandler(m_playerManager,
               m_connectionManager,
               m_teleportManager,
               m_keepAliveManager,
               m_positionTracker,
               m_timeManager,
-              m_config)
+              GameMode::Survival)
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
     {}
@@ -279,9 +278,9 @@ public:
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
 
-    [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
-    [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
-    [[nodiscard]] u64 seed() const override { return m_config.seed; }
+    [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
+    [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return m_timeManager.currentTick(); }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty difficulty) override { m_difficulty = difficulty; }
@@ -328,7 +327,9 @@ public:
     [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
 
 private:
-    server::ServerCoreConfig m_config{};
+    i32 m_viewDistance = 10;
+    i32 m_maxPlayers = 20;
+    u64 m_seed = 0;
     bool m_running = true;
     Difficulty m_difficulty = Difficulty::Normal;
     GameMode m_defaultGameMode = GameMode::Survival;
@@ -361,20 +362,20 @@ private:
 class IntegratedTestServer final : public server::IServer {
 public:
     IntegratedTestServer()
-        : m_playerManager(m_config)
+        : m_playerManager(20)
         , m_inventoryManager(m_playerManager)
         , m_connectionManager(m_playerManager)
         , m_timeManager(0, 1000)
         , m_teleportManager(m_playerManager)
-        , m_keepAliveManager(m_playerManager, m_config)
-        , m_positionTracker(m_playerManager, m_config)
+        , m_keepAliveManager(m_playerManager, 15000, 30000)
+        , m_positionTracker(m_playerManager, 10)
         , m_packetHandler(m_playerManager,
               m_connectionManager,
               m_teleportManager,
               m_keepAliveManager,
               m_positionTracker,
               m_timeManager,
-              m_config)
+              GameMode::Survival)
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
     {}
@@ -510,9 +511,9 @@ public:
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
 
-    [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
-    [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
-    [[nodiscard]] u64 seed() const override { return m_config.seed; }
+    [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
+    [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return m_timeManager.currentTick(); }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty difficulty) override { m_difficulty = difficulty; }
@@ -559,7 +560,9 @@ public:
     [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
 
 private:
-    server::ServerCoreConfig m_config{};
+    i32 m_viewDistance = 10;
+    i32 m_maxPlayers = 20;
+    u64 m_seed = 0;
     bool m_running = true;
     Difficulty m_difficulty = Difficulty::Normal;
     GameMode m_defaultGameMode = GameMode::Survival;

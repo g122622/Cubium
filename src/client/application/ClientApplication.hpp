@@ -43,6 +43,7 @@
 #include "client/dimension/ClientDimensionManager.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -85,21 +86,15 @@ namespace mc::client {
 /**
  * @brief 客户端启动参数
  *
- * 用于命令行覆盖设置文件中的配置。
+ * 仅包含运行时行为参数和配置文件路径。
+ * 所有配置值（窗口大小、用户名、服务器地址等）统一从配置文件读取，
+ * 不通过命令行覆盖。
  */
 struct ClientLaunchParams {
-    // 窗口配置覆盖（可选）
-    std::optional<i32> windowWidth;
-    std::optional<i32> windowHeight;
-    std::optional<bool> fullscreen;
+    // 配置文件路径（可选，未指定时使用默认路径）
+    std::optional<std::string> configPath;
 
-    // 服务器配置覆盖（可选）
-    std::optional<std::string> serverAddress;
-    std::optional<u16> serverPort;
-    std::optional<std::string> username;
-
-    // 其他启动参数
-    std::optional<std::string> settingsPath;   // 自定义设置文件路径
+    // 运行时行为参数
     bool skipIntegratedServer = false;         // 跳过内置服务器
     bool benchmarkExitAfterInitialize = false; // benchmark 模式：initialize 完成后立即退出
 
@@ -408,6 +403,8 @@ private:
     ClientSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
     std::filesystem::path m_settingsPath;
+    // 游戏目录管理器（统一管理资源包、数据包、存档等路径）
+    GameDirectory m_gameDirectory;
     Window m_window;
     InputManager m_input;
     std::unique_ptr<renderer::trident::TridentEngine> m_renderer;

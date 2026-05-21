@@ -335,6 +335,7 @@ add_executable(minecraft-client
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp

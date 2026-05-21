@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "ServerCoreConfig.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -43,7 +42,7 @@ class PlayerManager;
  *
  * 使用示例：
  * @code
- * PositionTracker posTracker(playerManager, config);
+ * PositionTracker posTracker(playerManager, viewDistance);
  * posTracker.updatePosition(playerId, x, y, z, yaw, pitch, onGround);
  *
  * // 获取需要加载/卸载的区块
@@ -56,9 +55,9 @@ public:
     /**
      * @brief 构造位置追踪器
      * @param playerManager 玩家管理器引用
-     * @param config 配置引用
+     * @param viewDistance 默认视距
      */
-    PositionTracker(PlayerManager& playerManager, const ServerCoreConfig& config);
+    PositionTracker(PlayerManager& playerManager, i32 viewDistance);
 
     // ========== 位置更新 ==========
 

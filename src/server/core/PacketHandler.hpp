@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "ServerCoreConfig.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/packet/Packet.hpp"
 #include <functional>
@@ -119,7 +119,7 @@ public:
         KeepAliveManager& keepAliveManager,
         PositionTracker& positionTracker,
         TimeManager& timeManager,
-        const ServerCoreConfig& config);
+        GameMode defaultGameMode);
 
     // ========== 数据包处理 ==========
 
@@ -269,7 +269,7 @@ private:
     KeepAliveManager& m_keepAliveManager;
     PositionTracker& m_positionTracker;
     TimeManager& m_timeManager;
-    const ServerCoreConfig& m_config;
+    GameMode m_defaultGameMode;
 
     // 服务器接口（用于访问玩家实体和世界）
     IServer* m_server = nullptr;

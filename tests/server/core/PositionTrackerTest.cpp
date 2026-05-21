@@ -28,7 +28,6 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include <algorithm>
 #include <vector>
 #include <gtest/gtest.h>
@@ -37,7 +36,6 @@ using namespace mc::server::core;
 using namespace mc::network;
 using mc::ChunkCoord;
 using mc::ChunkPos;
-using mc::server::ServerCoreConfig;
 
 /**
  * @brief PositionTracker 单元测试
@@ -49,7 +47,7 @@ protected:
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
-        m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, m_config);
+        m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, 10);
     }
 
     void TearDown() override
@@ -64,7 +62,6 @@ protected:
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
-    ServerCoreConfig m_config;
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<PositionTracker> m_positionTracker;
@@ -185,9 +182,8 @@ TEST_F(PositionTrackerTest, SetViewDistance)
 
 TEST_F(PositionTrackerTest, CalculateChunkUpdates)
 {
-    m_config.viewDistance = 2;
-    m_playerManager = std::make_unique<PlayerManager>(m_config);
-    m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, m_config);
+    m_playerManager = std::make_unique<PlayerManager>(20);
+    m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, 2);
 
     auto conn = createConnection();
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);

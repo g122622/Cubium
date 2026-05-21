@@ -23,6 +23,8 @@
 
 #include "ClientSettings.hpp"
 
+#include "common/core/DefaultValues.hpp"
+
 #include <fstream>
 #include <spdlog/spdlog.h>
 
@@ -33,11 +35,11 @@ std::vector<std::unique_ptr<KeyBinding>> ClientSettings::s_keyBindings;
 
 ClientSettings::ClientSettings()
     // 视频设置
-    : renderDistance("renderDistance", 2, 32, 12)
-    , framerateLimit("framerateLimit", 0, 260, 120)
-    , guiScale("guiScale", 0, 4, 0)
-    , fullscreen("fullscreen", false)
-    , vsync("vsync", true)
+    : renderDistance("renderDistance", 2, 32, defaults::client::renderDistance)
+    , framerateLimit("framerateLimit", 0, 260, defaults::client::framerateLimit)
+    , guiScale("guiScale", 0, 4, defaults::client::guiScale)
+    , fullscreen("fullscreen", defaults::client::fullscreen)
+    , vsync("vsync", defaults::client::vsync)
     , graphics("graphics",
           {static_cast<u8>(GraphicsMode::Fast), static_cast<u8>(GraphicsMode::Fancy)},
           static_cast<u8>(GraphicsMode::Fancy),
@@ -46,56 +48,55 @@ ClientSettings::ClientSettings()
           {static_cast<u8>(CloudMode::Off), static_cast<u8>(CloudMode::Fast), static_cast<u8>(CloudMode::Fancy)},
           static_cast<u8>(CloudMode::Fancy),
           {"off", "fast", "fancy"})
-    , mipmapLevels("mipmapLevels", 0, 4, 4)
-    , fovEffectScale("fovEffectScale", 0.0f, 1.0f, 1.0f)
-    , screenShakeScale("screenShakeScale", 0.0f, 1.0f, 1.0f)
-    , fogDensity("fogDensity", 0.0f, 2.0f, 1.0f)
+    , mipmapLevels("mipmapLevels", 0, 4, defaults::client::mipmapLevels)
+    , fovEffectScale("fovEffectScale", 0.0f, 1.0f, defaults::client::fovEffectScale)
+    , screenShakeScale("screenShakeScale", 0.0f, 1.0f, defaults::client::screenShakeScale)
+    , fogDensity("fogDensity", 0.0f, 2.0f, defaults::client::fogDensity)
     , ambientOcclusion("ambientOcclusion",
           {static_cast<u8>(AmbientOcclusionMode::Off),
               static_cast<u8>(AmbientOcclusionMode::Min),
               static_cast<u8>(AmbientOcclusionMode::Max)},
           static_cast<u8>(AmbientOcclusionMode::Max),
           {"off", "min", "max"})
-    , biomeBlendRadius("biomeBlendRadius", 0, 7, 2) // MC 默认 2 (5x5 混合区域)
-    , antiAliasing("antiAliasing", true)
+    , biomeBlendRadius("biomeBlendRadius", 0, 7, defaults::client::biomeBlendRadius)
+    , antiAliasing("antiAliasing", defaults::client::antiAliasing)
 
     // 音频设置
-    , masterVolume("masterVolume", 0.0f, 1.0f, 1.0f)
-    , musicVolume("musicVolume", 0.0f, 1.0f, 0.5f)
-    , recordVolume("recordVolume", 0.0f, 1.0f, 1.0f)
-    , weatherVolume("weatherVolume", 0.0f, 1.0f, 1.0f)
-    , blockVolume("blockVolume", 0.0f, 1.0f, 1.0f)
-    , hostileVolume("hostileVolume", 0.0f, 1.0f, 1.0f)
-    , neutralVolume("neutralVolume", 0.0f, 1.0f, 1.0f)
-    , playerVolume("playerVolume", 0.0f, 1.0f, 1.0f)
-    , ambientVolume("ambientVolume", 0.0f, 1.0f, 1.0f)
-    , voiceVolume("voiceVolume", 0.0f, 1.0f, 1.0f)
+    , masterVolume("masterVolume", 0.0f, 1.0f, defaults::client::masterVolume)
+    , musicVolume("musicVolume", 0.0f, 1.0f, defaults::client::musicVolume)
+    , recordVolume("recordVolume", 0.0f, 1.0f, defaults::client::recordVolume)
+    , weatherVolume("weatherVolume", 0.0f, 1.0f, defaults::client::weatherVolume)
+    , blockVolume("blockVolume", 0.0f, 1.0f, defaults::client::blockVolume)
+    , hostileVolume("hostileVolume", 0.0f, 1.0f, defaults::client::hostileVolume)
+    , neutralVolume("neutralVolume", 0.0f, 1.0f, defaults::client::neutralVolume)
+    , playerVolume("playerVolume", 0.0f, 1.0f, defaults::client::playerVolume)
+    , ambientVolume("ambientVolume", 0.0f, 1.0f, defaults::client::ambientVolume)
+    , voiceVolume("voiceVolume", 0.0f, 1.0f, defaults::client::voiceVolume)
 
     // 控制设置
-    , mouseSensitivity("mouseSensitivity", 0.0f, 1.0f, 0.5f)
-    , invertMouse("invertMouse", false)
-    , rawMouseInput("rawMouseInput", true)
-    , mouseWheelSensitivity("mouseWheelSensitivity", 0.0f, 1.0f, 1.0f)
-    , autoJump("autoJump", false)
+    , mouseSensitivity("mouseSensitivity", 0.0f, 1.0f, defaults::client::mouseSensitivity)
+    , invertMouse("invertMouse", defaults::client::invertMouse)
+    , rawMouseInput("rawMouseInput", defaults::client::rawMouseInput)
+    , mouseWheelSensitivity("mouseWheelSensitivity", 0.0f, 1.0f, defaults::client::mouseWheelSensitivity)
+    , autoJump("autoJump", defaults::client::autoJump)
 
     // 游戏设置
-    , viewBobbing("viewBobbing", true)
-    , fov("fov", 30.0f, 110.0f, 70.0f)
-    , showFps("showFps", false)
-    , showDebug("showDebug", false)
-    , language("language", "zh_cn")
+    , viewBobbing("viewBobbing", defaults::client::viewBobbing)
+    , fov("fov", 30.0f, 110.0f, defaults::client::fov)
+    , showFps("showFps", defaults::client::showFps)
+    , showDebug("showDebug", defaults::client::showDebug)
+    , language("language", defaults::client::language)
 
     // 网络设置
-    , serverAddress("serverAddress", "127.0.0.1")
-    , serverPort("serverPort", 1, 65535, 19132)
+    , serverAddress("serverAddress", defaults::client::serverAddress)
+    , serverPort("serverPort", 1, 65535, defaults::server::serverPort)
     , username("username", "Player")
 
     // 日志设置
-    , logLevel("logLevel", "info")
+    , logLevel("logLevel", defaults::client::logLevel)
 
     // 资源包设置
     , resourcePacks("resourcePacks")
-    , resourcePackDir("resourcePackDir", "resourcepacks")
 {
     // 注册视频设置
     registerOption("video", &renderDistance);
@@ -149,7 +150,6 @@ ClientSettings::ClientSettings()
 
     // 注册资源包设置
     registerOption("resourcePacks", &resourcePacks);
-    registerOption("resourcePacks", &resourcePackDir);
 }
 
 void ClientSettings::initializeKeyBindings()

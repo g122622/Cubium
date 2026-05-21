@@ -27,10 +27,10 @@
 
 namespace mc::server::core {
 
-KeepAliveManager::KeepAliveManager(PlayerManager& playerManager, const ServerCoreConfig& config)
+KeepAliveManager::KeepAliveManager(PlayerManager& playerManager, i32 keepAliveInterval, i32 keepAliveTimeout)
     : m_playerManager(playerManager)
-    , m_keepAliveInterval(config.keepAliveInterval)
-    , m_keepAliveTimeout(config.keepAliveTimeout)
+    , m_keepAliveInterval(keepAliveInterval)
+    , m_keepAliveTimeout(keepAliveTimeout)
 {}
 
 bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) const

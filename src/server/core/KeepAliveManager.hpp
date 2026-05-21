@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "ServerCoreConfig.hpp"
 #include "common/core/Types.hpp"
 #include <vector>
 
@@ -40,7 +39,7 @@ class PlayerManager;
  *
  * 使用示例：
  * @code
- * KeepAliveManager kaMgr(playerManager, config);
+ * KeepAliveManager kaMgr(playerManager, keepAliveInterval, keepAliveTimeout);
  *
  * // 每个 tick 检查是否需要发送心跳
  * auto players = kaMgr.getPlayersNeedingKeepAlive(currentTickMs);
@@ -60,9 +59,10 @@ public:
     /**
      * @brief 构造心跳管理器
      * @param playerManager 玩家管理器引用
-     * @param config 配置引用
+     * @param keepAliveInterval 心跳间隔（毫秒）
+     * @param keepAliveTimeout 心跳超时（毫秒）
      */
-    KeepAliveManager(PlayerManager& playerManager, const ServerCoreConfig& config);
+    KeepAliveManager(PlayerManager& playerManager, i32 keepAliveInterval, i32 keepAliveTimeout);
 
     // ========== 心跳发送 ==========
 

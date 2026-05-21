@@ -24,9 +24,11 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "common/core/DefaultValues.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <mutex>
 #include <thread>
@@ -34,15 +36,18 @@
 namespace mc::server {
 
 /**
- * @brief 内置服务端配置
+ * @brief 内置服务器初始化参数
+ *
+ * 用于从客户端传入集成服务器的世界创建参数。
+ * 运行时配置通过 ServerSettings 管理。
  */
-struct IntegratedServerConfig {
-    std::string worldName = "singleplayer";
-    i64 seed = 0; // TODO 这个会被后面代码覆盖，导致数据流混乱，需要重构配置系统
+struct IntegratedServerParams {
+    std::string worldName = defaults::integratedServer::worldName;
+    i64 seed = defaults::integratedServer::seed;
     GameMode defaultGameMode = GameMode::Survival;
-    i32 viewDistance = 6;
-    i32 tickRate = 20;                        // TPS
-    WorldType worldType = WorldType::Default; // 默认使用调试模式
+    i32 viewDistance = defaults::integratedServer::viewDistance;
+    i32 tickRate = defaults::integratedServer::tickRate;
+    WorldType worldType = WorldType::Default;
 };
 
 /**
@@ -102,7 +107,7 @@ public:
     /**
      * @brief 初始化并启动服务端线程
      */
-    [[nodiscard]] Result<void> initialize(const IntegratedServerConfig& config);
+    [[nodiscard]] Result<void> initialize(const IntegratedServerParams& params);
 
     /**
      * @brief 停止服务端线程
@@ -117,9 +122,9 @@ public:
     [[nodiscard]] network::LocalEndpoint* getClientEndpoint();
 
     /**
-     * @brief 获取配置
+     * @brief 获取初始化参数
      */
-    [[nodiscard]] const IntegratedServerConfig& config() const noexcept { return m_integratedConfig; }
+    [[nodiscard]] const IntegratedServerParams& params() const noexcept { return m_params; }
 
     /**
      * @brief 获取客户端玩家ID
@@ -174,7 +179,8 @@ private:
         return m_playerEntityManager;
     }
 
-    IntegratedServerConfig m_integratedConfig;
+    IntegratedServerParams m_params;
+    ServerSettings m_integratedSettings;
 
     // 服务端线程
     std::unique_ptr<std::thread> m_serverThread;

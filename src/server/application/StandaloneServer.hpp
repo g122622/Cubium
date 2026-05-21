@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "server/network/TcpServer.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -37,14 +38,9 @@ namespace mc::server {
 /**
  * @brief 独立服务器启动参数
  *
- * 用于命令行覆盖设置文件中的配置。
+ * 仅用于指定配置文件路径，其他配置通过配置文件管理。
  */
 struct StandaloneServerParams {
-    std::optional<u16> port;
-    std::optional<std::string> bindAddress;
-    std::optional<u32> maxPlayers;
-    std::optional<std::string> worldName;
-    std::optional<i64> seed;
     std::optional<std::string> settingsPath;
 };
 
@@ -157,6 +153,8 @@ private:
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
     std::filesystem::path m_settingsPath;
+    // 游戏目录管理器（统一管理数据包、存档等路径）
+    GameDirectory m_gameDirectory;
     std::unique_ptr<TcpServer> m_tcpServer;
 
     // 玩家实体管理器

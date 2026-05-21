@@ -33,7 +33,6 @@
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include <gtest/gtest.h>
@@ -44,7 +43,6 @@ using mc::Hand;
 using mc::PlayerId;
 using mc::u32;
 using mc::u8;
-using mc::server::ServerCoreConfig;
 
 /**
  * @brief PacketHandler 单元测试
@@ -63,15 +61,11 @@ protected:
         m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
 
-        m_config.viewDistance = 6;
-        m_config.keepAliveInterval = 1000;
-        m_config.keepAliveTimeout = 5000;
-
         m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
         m_timeManager = std::make_unique<TimeManager>(0, 0);
         m_teleportManager = std::make_unique<TeleportManager>(*m_playerManager);
-        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, m_config);
-        m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, m_config);
+        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, 1000, 5000);
+        m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, 6);
 
         m_packetHandler = std::make_unique<PacketHandler>(*m_playerManager,
             *m_connectionManager,
@@ -79,7 +73,7 @@ protected:
             *m_keepAliveManager,
             *m_positionTracker,
             *m_timeManager,
-            m_config);
+            mc::GameMode::Survival);
     }
 
     void TearDown() override
@@ -99,7 +93,6 @@ protected:
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
-    ServerCoreConfig m_config;
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<ConnectionManager> m_connectionManager;

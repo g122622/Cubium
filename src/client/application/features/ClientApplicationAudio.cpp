@@ -46,13 +46,13 @@ Result<void> ClientApplication::initializeAudio()
 
     spdlog::info("Initializing sound system...");
 
-    // 添加内部资源包到 ResourcePackList（用于 sounds.json）
-    // 内部资源包具有最低优先级（-1），外部资源包可以覆盖
-    auto builtinPackResult = m_resourcePackList.addPack(std::filesystem::path("resources/data/minecraft"), true, -1);
+    // 添加内部资源包到 ResourcePackList（用于声音事件定义）
+    // 内置包具有最低优先级（-1），外部资源包可以覆盖
+    auto builtinPackResult = m_resourcePackList.addPack(m_gameDirectory.builtinPackDir(), true, -1);
     if (builtinPackResult.success() && builtinPackResult.value().initialized) {
-        spdlog::info("Added built-in resources pack to sound system");
+        spdlog::info("Added built-in resource pack to sound system");
     } else {
-        spdlog::warn("Failed to add built-in resources pack: {}",
+        spdlog::warn("Failed to add built-in resource pack: {}",
             builtinPackResult.success() ? builtinPackResult.value().error : builtinPackResult.error().toString());
     }
 

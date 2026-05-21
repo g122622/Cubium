@@ -47,7 +47,7 @@ TEST(IntegratedServerTest, CreateServer)
 TEST(IntegratedServerTest, InitializeServer)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.worldName = "test_world";
     config.seed = 12345;
     config.viewDistance = 8;
@@ -63,7 +63,7 @@ TEST(IntegratedServerTest, InitializeServer)
 TEST(IntegratedServerTest, GetClientEndpoint)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.seed = 1;
 
     auto result = server.initialize(config);
@@ -79,7 +79,7 @@ TEST(IntegratedServerTest, GetClientEndpoint)
 TEST(IntegratedServerTest, DoubleInitializeFails)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
 
     auto result1 = server.initialize(config);
     EXPECT_TRUE(result1.success());
@@ -102,7 +102,7 @@ TEST(IntegratedServerTest, StopWithoutInitialize)
 TEST(IntegratedServerTest, ConfigValues)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.worldName = "my_world";
     config.seed = 42;
     config.viewDistance = 16;
@@ -111,7 +111,7 @@ TEST(IntegratedServerTest, ConfigValues)
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
 
-    const auto& serverConfig = server.config();
+    const auto& serverConfig = server.params();
     EXPECT_EQ(serverConfig.worldName, "my_world");
     EXPECT_EQ(serverConfig.seed, 42);
     EXPECT_EQ(serverConfig.viewDistance, 16);
@@ -123,7 +123,7 @@ TEST(IntegratedServerTest, ConfigValues)
 TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.worldName = "test_world_runtime_binding";
     config.seed = 12345;
     config.viewDistance = 8;
@@ -142,7 +142,7 @@ TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
 TEST(IntegratedServerTest, DimensionsShareStorage)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.worldName = "test_world_shared_storage";
     config.seed = 67890;
     config.viewDistance = 8;
@@ -168,7 +168,7 @@ TEST(IntegratedServerTest, DimensionsShareStorage)
 TEST(IntegratedServerTest, TickCountIncreases)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.tickRate = 100; // 100 TPS for faster testing
 
     auto result = server.initialize(config);
@@ -188,7 +188,7 @@ TEST(IntegratedServerTest, TickCountIncreases)
 TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.tickRate = 100;
 
     auto result = server.initialize(config);
@@ -243,7 +243,7 @@ protected:
     }
 
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     LocalEndpoint* clientEndpoint = nullptr;
 };
 
@@ -324,7 +324,7 @@ TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting)
 TEST(IntegratedServerDisconnectTest, ClientDisconnect)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -350,7 +350,7 @@ TEST(IntegratedServerDisconnectTest, ServerStopClosesEndpoint)
 
     {
         IntegratedServer server;
-        IntegratedServerConfig config;
+        IntegratedServerParams config;
 
         auto result = server.initialize(config);
         ASSERT_TRUE(result.success());
@@ -393,7 +393,7 @@ TEST(IntegratedServerTypeTest, TypeMethodsWorkBeforeInitialization)
 TEST(IntegratedServerTypeTest, TypeMethodsWorkAfterInitialization)
 {
     IntegratedServer server;
-    IntegratedServerConfig config;
+    IntegratedServerParams config;
     config.seed = 1;
 
     auto result = server.initialize(config);

@@ -100,11 +100,7 @@ void printHelp()
     std::cout << "Usage: minecraft-server [options]\n\n"
               << "Options:\n"
               << "  -h, --help          Show this help message\n"
-              << "  -p, --port <port>   Set server port (default: 19132)\n"
-              << "  -n, --name <name>   Set server/world name (default: world)\n"
-              << "  -s, --seed <seed>   Set world seed (default: random)\n"
-              << "  --settings <path>   Use custom server.json path\n"
-              << "  -m, --max <count>   Set max players (default: 20)\n"
+              << "  --config <path>     Use custom config file path\n"
               << "  -v, --verbose       Enable verbose logging (debug level)\n"
               << std::endl;
 }
@@ -134,19 +130,7 @@ int main(int argc, char* argv[])
             printHelp();
             return 0;
         }
-        if ((arg == "-p" || arg == "--port") && i + 1 < argc) {
-            params.port = static_cast<mc::u16>(std::stoi(argv[++i]));
-        }
-        if ((arg == "-n" || arg == "--name") && i + 1 < argc) {
-            params.worldName = argv[++i];
-        }
-        if ((arg == "-s" || arg == "--seed") && i + 1 < argc) {
-            params.seed = std::stoll(argv[++i]);
-        }
-        if ((arg == "-m" || arg == "--max") && i + 1 < argc) {
-            params.maxPlayers = static_cast<mc::u32>(std::stoi(argv[++i]));
-        }
-        if (arg == "--settings" && i + 1 < argc) {
+        if (arg == "--config" && i + 1 < argc) {
             params.settingsPath = argv[++i];
         }
         if (arg == "-v" || arg == "--verbose") {

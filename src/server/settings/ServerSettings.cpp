@@ -23,31 +23,31 @@
 
 #include "ServerSettings.hpp"
 
-#include <fstream>
+#include "common/core/DefaultValues.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
 
 ServerSettings::ServerSettings()
     // 网络设置
-    : serverPort("serverPort", 1, 65535, 19132)
-    , bindAddress("bindAddress", "0.0.0.0")
-    , maxPlayers("maxPlayers", 1, 1000, 20)
-    , onlineMode("onlineMode", true)
-    , motd("motd", "A Minecraft Reborn Server")
-    , p2pEnabled("p2pEnabled", false)
+    : serverPort("serverPort", 1, 65535, defaults::server::serverPort)
+    , bindAddress("bindAddress", defaults::server::bindAddress)
+    , maxPlayers("maxPlayers", 1, 1000, defaults::server::maxPlayers)
+    , onlineMode("onlineMode", defaults::server::onlineMode)
+    , motd("motd", defaults::server::motd)
+    , p2pEnabled("p2pEnabled", defaults::server::p2pEnabled)
 
     // 世界设置
-    , worldName("worldName", "world")
-    , levelName("levelName", "Minecraft Reborn Server")
-    , levelSeed("levelSeed", "")
+    , worldName("worldName", defaults::server::worldName)
+    , levelName("levelName", defaults::server::levelName)
+    , levelSeed("levelSeed", defaults::server::levelSeed)
     , levelType("levelType",
           {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified, LevelType::Debug},
           LevelType::Default,
           {"default", "flat", "largeBiomes", "amplified", "debug_all_block_states"})
-    , resourcePackDirectory("resourcePackDirectory", "resourcepacks")
-    , generateStructures("generateStructures", true)
-    , enableCommandBlock("enableCommandBlock", false)
+    , generateStructures("generateStructures", defaults::server::generateStructures)
+    , enableCommandBlock("enableCommandBlock", defaults::server::enableCommandBlock)
 
     // 游戏设置
     , defaultGameMode("defaultGameMode",
@@ -58,29 +58,31 @@ ServerSettings::ServerSettings()
           {DifficultyValue::Peaceful, DifficultyValue::Easy, DifficultyValue::Normal, DifficultyValue::Hard},
           DifficultyValue::Normal,
           {"peaceful", "easy", "normal", "hard"})
-    , hardcore("hardcore", false)
-    , pvpEnabled("pvpEnabled", true)
-    , allowFlight("allowFlight", false)
-    , playerIdleTimeout("playerIdleTimeout", 0, 1440, 0)
-    , tickRate("tickRate", 1, 20, 20)
+    , hardcore("hardcore", defaults::server::hardcore)
+    , pvpEnabled("pvpEnabled", defaults::server::pvpEnabled)
+    , allowFlight("allowFlight", defaults::server::allowFlight)
+    , playerIdleTimeout("playerIdleTimeout", 0, 1440, defaults::server::playerIdleTimeout)
+    , tickRate("tickRate", 1, 20, defaults::server::tickRate)
 
     // 性能设置
-    , viewDistance("viewDistance", 2, 32, 10)
-    , simulationDistance("simulationDistance", 2, 32, 10)
-    , maxEntitiesPerChunk("maxEntitiesPerChunk", 1, 1024, 128)
-    , chunkLoadRate("chunkLoadRate", 1, 100, 16)
+    , viewDistance("viewDistance", 2, 32, defaults::server::viewDistance)
+    , simulationDistance("simulationDistance", 2, 32, defaults::server::simulationDistance)
+    , maxEntitiesPerChunk("maxEntitiesPerChunk", 1, 1024, defaults::server::maxEntitiesPerChunk)
+    , chunkLoadRate("chunkLoadRate", 1, 100, defaults::server::chunkLoadRate)
 
     // 安全设置
-    , whiteList("whiteList", false)
-    , blackList("blackList", true)
-    , maxTickTime("maxTickTime", 1000, 60000, 60000)
-    , maxPacketSize("maxPacketSize", 1024, 16777216, 2097152) // 2MB
+    , whiteList("whiteList", defaults::server::whiteList)
+    , blackList("blackList", defaults::server::blackList)
+    , maxTickTime("maxTickTime", 1000, 60000, defaults::server::maxTickTime)
+    , maxPacketSize("maxPacketSize", 1024, 16777216, defaults::server::maxPacketSize)
+    , keepAliveInterval("keepAliveInterval", 1000, 60000, defaults::serverCore::keepAliveIntervalMs)
+    , keepAliveTimeout("keepAliveTimeout", 5000, 120000, defaults::serverCore::keepAliveTimeoutMs)
 
     // 日志设置
-    , logLevel("logLevel", "info")
-    , logToFile("logToFile", false)
-    , logFile("logFile", "server.log")
-    , debugLogging("debugLogging", false)
+    , logLevel("logLevel", defaults::server::serverLogLevel)
+    , logToFile("logToFile", defaults::server::logToFile)
+    , logFile("logFile", defaults::server::logFile)
+    , debugLogging("debugLogging", defaults::server::debugLogging)
 {
     // 注册网络设置
     registerOption("network", &serverPort);
@@ -95,7 +97,6 @@ ServerSettings::ServerSettings()
     registerOption("world", &levelName);
     registerOption("world", &levelSeed);
     registerOption("world", &levelType);
-    registerOption("world", &resourcePackDirectory);
     registerOption("world", &generateStructures);
     registerOption("world", &enableCommandBlock);
 
@@ -119,12 +120,29 @@ ServerSettings::ServerSettings()
     registerOption("security", &blackList);
     registerOption("security", &maxTickTime);
     registerOption("security", &maxPacketSize);
+    registerOption("security", &keepAliveInterval);
+    registerOption("security", &keepAliveTimeout);
 
     // 注册日志设置
     registerOption("log", &logLevel);
     registerOption("log", &logToFile);
     registerOption("log", &logFile);
     registerOption("log", &debugLogging);
+}
+
+u64 ServerSettings::parseSeed() const
+{
+    const auto& seedStr = levelSeed.get();
+    if (seedStr.empty()) {
+        return 0;
+    }
+
+    try {
+        return static_cast<u64>(std::stoll(seedStr));
+    }
+    catch (...) {
+        return std::hash<std::string>{}(seedStr);
+    }
 }
 
 Result<void> ServerSettings::generateDefaultConfig(const std::filesystem::path& path)

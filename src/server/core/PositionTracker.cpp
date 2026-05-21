@@ -28,9 +28,9 @@
 
 namespace mc::server::core {
 
-PositionTracker::PositionTracker(PlayerManager& playerManager, const ServerCoreConfig& config)
+PositionTracker::PositionTracker(PlayerManager& playerManager, i32 viewDistance)
     : m_playerManager(playerManager)
-    , m_defaultViewDistance(config.viewDistance)
+    , m_defaultViewDistance(viewDistance)
 {}
 
 bool PositionTracker::updatePosition(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch, bool onGround)

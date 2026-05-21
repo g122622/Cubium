@@ -53,6 +53,7 @@
 #include "client/ui/screen/CreativeScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/Items.hpp"
@@ -123,27 +124,25 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     // 设置状态机回调
     setupStateMachineCallbacks();
 
-    // 加载设置
-    std::string settingsPath =
-        params.settingsPath.value_or(ClientSettings::getSettingsPath("minecraft-reborn").string());
-    auto settingsResult = loadSettings(settingsPath);
+    // 加载设置（从配置文件路径推导游戏目录，未指定时使用默认路径）
+    std::filesystem::path settingsFilePath;
+    if (params.configPath.has_value()) {
+        settingsFilePath = std::filesystem::path(*params.configPath);
+    } else {
+        settingsFilePath = GameDirectory::defaultDirectory().clientOptionsPath();
+    }
+    auto settingsResult = loadSettings(settingsFilePath.string());
     if (settingsResult.failed()) {
-        spdlog::warn(
-            "Failed to load settings from {}: {}. Using defaults.", settingsPath, settingsResult.error().toString());
+        spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
+            settingsFilePath.string(),
+            settingsResult.error().toString());
     }
 
-    // 应用命令行覆盖
-    if (params.fullscreen.has_value()) {
-        m_settings.fullscreen.set(*params.fullscreen);
-    }
-    if (params.serverAddress.has_value()) {
-        m_settings.serverAddress.set(*params.serverAddress);
-    }
-    if (params.serverPort.has_value()) {
-        m_settings.serverPort.set(*params.serverPort);
-    }
-    if (params.username.has_value()) {
-        m_settings.username.set(*params.username);
+    // 从配置文件路径推导游戏目录，并确保目录结构存在
+    m_gameDirectory = GameDirectory::fromConfigPath(settingsFilePath);
+    auto dirResult = m_gameDirectory.ensureDirectoriesExist();
+    if (dirResult.failed()) {
+        spdlog::warn("Failed to create game directories: {}", dirResult.error().toString());
     }
 
     // 应用设置到系统
@@ -569,7 +568,8 @@ void ClientApplication::shutdown()
     }
 
     // 保存设置
-    const auto savePath = m_settingsPath.empty() ? ClientSettings::getSettingsPath("minecraft-reborn") : m_settingsPath;
+    const auto savePath =
+        m_settingsPath.empty() ? GameDirectory::defaultDirectory().clientOptionsPath() : m_settingsPath;
     auto saveResult = m_settings.saveSettings(savePath);
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());

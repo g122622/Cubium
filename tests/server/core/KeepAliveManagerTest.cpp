@@ -30,14 +30,12 @@
 #include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
 using namespace mc::network;
-using mc::server::ServerCoreConfig;
 
 /**
  * @brief KeepAliveManager 单元测试
@@ -49,9 +47,7 @@ protected:
         m_connectionPair = std::make_unique<LocalConnectionPair>();
         m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
-        m_config.keepAliveInterval = 1000;
-        m_config.keepAliveTimeout = 5000;
-        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, m_config);
+        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, 1000, 5000);
     }
 
     void TearDown() override
@@ -66,7 +62,6 @@ protected:
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
-    ServerCoreConfig m_config;
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<KeepAliveManager> m_keepAliveManager;
@@ -210,19 +205,19 @@ TEST_F(KeepAliveManagerTest, GetLastKeepAliveReceivedNonexistentPlayer)
 
 TEST(KeepAlivePacketHandler, HandleFullPacket)
 {
-    mc::server::ServerCoreConfig config;
-    config.viewDistance = 6;
-    config.keepAliveInterval = 1000;
-    config.keepAliveTimeout = 5000;
-
     mc::server::core::PlayerManager playerManager;
     mc::server::core::ConnectionManager connectionManager(playerManager);
     mc::server::core::TimeManager timeManager(0, 0);
     mc::server::core::TeleportManager teleportManager(playerManager);
-    mc::server::core::KeepAliveManager keepAliveManager(playerManager, config);
-    mc::server::core::PositionTracker positionTracker(playerManager, config);
-    mc::server::core::PacketHandler packetHandler(
-        playerManager, connectionManager, teleportManager, keepAliveManager, positionTracker, timeManager, config);
+    mc::server::core::KeepAliveManager keepAliveManager(playerManager, 1000, 5000);
+    mc::server::core::PositionTracker positionTracker(playerManager, 6);
+    mc::server::core::PacketHandler packetHandler(playerManager,
+        connectionManager,
+        teleportManager,
+        keepAliveManager,
+        positionTracker,
+        timeManager,
+        mc::GameMode::Survival);
 
     auto connectionPair = std::make_unique<mc::network::LocalConnectionPair>();
     connectionPair->connect();

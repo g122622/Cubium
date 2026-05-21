@@ -27,11 +27,9 @@
 
 namespace mc::server::core {
 
-PlayerManager::PlayerManager(const ServerCoreConfig& config)
-    : m_maxPlayers(config.maxPlayers)
-{
-    m_chunkSyncManager.setDefaultViewDistance(config.viewDistance);
-}
+PlayerManager::PlayerManager(i32 maxPlayers)
+    : m_maxPlayers(maxPlayers)
+{}
 
 ServerPlayerData* PlayerManager::addPlayer(
     PlayerId playerId, const std::string& uuid, const std::string& username, network::ConnectionPtr connection)

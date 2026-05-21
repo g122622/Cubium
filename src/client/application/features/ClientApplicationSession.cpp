@@ -165,13 +165,13 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     // 启动内置服务端
     m_integratedServer = std::make_unique<server::IntegratedServer>();
-    server::IntegratedServerConfig serverConfig;
-    serverConfig.seed = config.seed;
-    serverConfig.viewDistance = config.viewDistance;
-    serverConfig.defaultGameMode = config.defaultGameMode;
-    serverConfig.worldName = config.levelId;
+    server::IntegratedServerParams serverParams;
+    serverParams.seed = config.seed;
+    serverParams.viewDistance = config.viewDistance;
+    serverParams.defaultGameMode = config.defaultGameMode;
+    serverParams.worldName = config.levelId;
 
-    auto serverResult = m_integratedServer->initialize(serverConfig);
+    auto serverResult = m_integratedServer->initialize(serverParams);
     if (serverResult.failed()) {
         spdlog::error("[Session] Failed to initialize integrated server: {}", serverResult.error().toString());
         m_integratedServer.reset();

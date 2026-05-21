@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "ServerCoreConfig.hpp"
 #include "ServerPlayerData.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include <atomic>
@@ -59,10 +59,10 @@ public:
     PlayerManager() = default;
 
     /**
-     * @brief 构造玩家管理器（带配置）
-     * @param config 配置引用（用于默认视距等设置）
+     * @brief 构造玩家管理器（带最大玩家数）
+     * @param maxPlayers 最大玩家数
      */
-    explicit PlayerManager(const ServerCoreConfig& config);
+    explicit PlayerManager(i32 maxPlayers);
 
     // ========== 玩家生命周期 ==========
 
@@ -219,16 +219,6 @@ public:
     [[nodiscard]] u32 nextSessionId() { return m_nextSessionId.fetch_add(1); }
 
     // ========== 配置 ==========
-
-    /**
-     * @brief 设置配置
-     * @param config 配置引用
-     */
-    void setConfig(const ServerCoreConfig& config)
-    {
-        m_maxPlayers = config.maxPlayers;
-        m_chunkSyncManager.setDefaultViewDistance(config.viewDistance);
-    }
 
     /**
      * @brief 设置最大玩家数

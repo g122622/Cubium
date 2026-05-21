@@ -25,7 +25,6 @@
 #include "common/core/Types.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include <gtest/gtest.h>
 

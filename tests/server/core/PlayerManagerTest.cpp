@@ -26,13 +26,11 @@
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
 using namespace mc::network;
-using mc::server::ServerCoreConfig;
 
 /**
  * @brief PlayerManager 单元测试
@@ -53,7 +51,6 @@ protected:
         return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
     }
 
-    ServerCoreConfig m_config;
     std::unique_ptr<LocalConnectionPair> m_connectionPair;
 };
 
@@ -66,9 +63,7 @@ TEST_F(PlayerManagerTest, DefaultConstruction)
 
 TEST_F(PlayerManagerTest, ConstructionWithConfig)
 {
-    m_config.maxPlayers = 50;
-    m_config.viewDistance = 12;
-    PlayerManager manager(m_config);
+    PlayerManager manager(50);
     EXPECT_EQ(manager.maxPlayers(), 50);
 }
 
@@ -102,8 +97,7 @@ TEST_F(PlayerManagerTest, AddPlayerDuplicate)
 
 TEST_F(PlayerManagerTest, AddPlayerWhenFull)
 {
-    m_config.maxPlayers = 2;
-    PlayerManager manager(m_config);
+    PlayerManager manager(2);
 
     auto conn1 = createConnection();
     auto conn2 = createConnection();

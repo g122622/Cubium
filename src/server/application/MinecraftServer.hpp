@@ -50,7 +50,6 @@
 #include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
@@ -61,6 +60,7 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/settings/ServerSettings.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -116,9 +116,9 @@ class MinecraftServer : public IServer {
 public:
     /**
      * @brief 构造函数
-     * @param config 服务器配置
+     * @param settings 服务端设置引用
      */
-    explicit MinecraftServer(const ServerCoreConfig& config);
+    explicit MinecraftServer(ServerSettings& settings);
 
     /**
      * @brief 析构函数
@@ -278,13 +278,16 @@ public:
 
     // ========== 配置 ==========
 
-    [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
-    [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
-    [[nodiscard]] u64 seed() const override { return m_config.seed; }
+    [[nodiscard]] i32 viewDistance() const override { return m_settings.viewDistance.get(); }
+    [[nodiscard]] i32 maxPlayers() const override { return m_settings.maxPlayers.get(); }
+    [[nodiscard]] u64 seed() const override { return m_settings.parseSeed(); }
     [[nodiscard]] u64 currentTick() const override;
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty difficulty) override;
-    [[nodiscard]] GameMode defaultGameMode() const override { return m_config.defaultGameMode; }
+    [[nodiscard]] GameMode defaultGameMode() const override
+    {
+        return static_cast<GameMode>(m_settings.defaultGameMode.get());
+    }
     void setDefaultGameMode(GameMode mode) override;
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
@@ -294,9 +297,10 @@ public:
     // ========== 便捷方法 ==========
 
     /**
-     * @brief 获取配置
+     * @brief 获取服务端设置
      */
-    [[nodiscard]] const ServerCoreConfig& config() const { return m_config; }
+    [[nodiscard]] ServerSettings& settings() { return m_settings; }
+    [[nodiscard]] const ServerSettings& settings() const { return m_settings; }
 
     /**
      * @brief 获取计算型 Worker 池
@@ -832,7 +836,7 @@ protected:
     void stopCore();
 
 protected:
-    ServerCoreConfig m_config;
+    ServerSettings& m_settings;
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};
     Difficulty m_difficulty = Difficulty::Normal;

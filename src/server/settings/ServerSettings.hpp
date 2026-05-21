@@ -38,7 +38,7 @@ namespace mc::server {
  * 使用示例:
  * @code
  * ServerSettings settings;
- * settings.load("server.properties");
+ * settings.load("server_options.json");
  *
  * // 访问设置
  * u16 port = settings.serverPort.get();
@@ -95,14 +95,11 @@ public:
     /// 关卡名称
     StringOption levelName;
 
-    /// 世界种子（0 表示随机）
+    /// 世界种子（空字符串表示随机）
     StringOption levelSeed;
 
     /// 世界类型
     EnumOption<u8> levelType;
-
-    /// 资源包目录
-    StringOption resourcePackDirectory;
 
     /// 是否生成结构
     BooleanOption generateStructures;
@@ -167,6 +164,12 @@ public:
     /// 最大数据包大小（字节）
     RangeOption maxPacketSize;
 
+    /// 心跳间隔（毫秒）
+    RangeOption keepAliveInterval;
+
+    /// 心跳超时（毫秒）
+    RangeOption keepAliveTimeout;
+
     // ========================================================================
     // 日志设置
     // ========================================================================
@@ -182,6 +185,19 @@ public:
 
     /// 是否记录调试信息
     BooleanOption debugLogging;
+
+    // ========================================================================
+    // 便捷方法
+    // ========================================================================
+
+    /**
+     * @brief 解析种子字符串为 u64
+     *
+     * 空字符串返回 0（随机种子）。
+     * 纯数字字符串直接转换为 u64。
+     * 非数字字符串使用哈希值作为种子。
+     */
+    [[nodiscard]] u64 parseSeed() const;
 
     /**
      * @brief 生成默认服务端配置文件

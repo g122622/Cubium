@@ -35,7 +35,7 @@ void printBanner()
     std::cout << R"(
   __  __      _____           _____ ______
  |  \/  | /\  / ____|    /\   |  __ \___  /
- | \  /  /  \ | |       /  \  | |__) | / /
+ | \  / /  \ | |       /  \  | |__) | / /
  | |\/| / /\ \| |      / /\ \ |  ___/ / /
  | |\/| |/ ____ \ |____ / ____ \| |   / /__
  |_|  _/_/    \_\_____/_/    \_\_|  /_____/
@@ -90,14 +90,8 @@ void printHelp()
     std::cout << "Usage: minecraft-client [options]\n\n"
               << "Options:\n"
               << "  -h, --help          Show this help message\n"
-              << "  -w, --width <px>    Set window width (default: 1280)\n"
-              << "  -H, --height <px>   Set window height (default: 720)\n"
-              << "  -f, --fullscreen    Start in fullscreen mode\n"
-              << "  -s, --server <addr> Server address to connect to\n"
-              << "  -p, --port <port>   Server port (default: 19132)\n"
-              << "  -u, --username <n>  Player username\n"
-              << "  --settings <path>   Use custom options.json path\n"
-              << "  -v, --verbose       Enable verbose logging\n"
+              << "  --config <path>     Use custom config file path\n"
+              << "  -v, --verbose       Enable verbose logging (debug level)\n"
               << "  --skip-integrated   Skip integrated server (for external server)\n"
               << "  --quick-play <id>   Skip main menu and load world with given level ID\n"
               << "  --quick-play-new    Skip main menu and create a new world\n"
@@ -127,26 +121,8 @@ int main(int argc, char* argv[])
             printHelp();
             return 0;
         }
-        if ((arg == "-w" || arg == "--width") && i + 1 < argc) {
-            params.windowWidth = std::stoi(argv[++i]);
-        }
-        if ((arg == "-H" || arg == "--height") && i + 1 < argc) {
-            params.windowHeight = std::stoi(argv[++i]);
-        }
-        if (arg == "-f" || arg == "--fullscreen") {
-            params.fullscreen = true;
-        }
-        if ((arg == "-s" || arg == "--server") && i + 1 < argc) {
-            params.serverAddress = argv[++i];
-        }
-        if ((arg == "-p" || arg == "--port") && i + 1 < argc) {
-            params.serverPort = static_cast<mc::u16>(std::stoi(argv[++i]));
-        }
-        if ((arg == "-u" || arg == "--username") && i + 1 < argc) {
-            params.username = argv[++i];
-        }
-        if (arg == "--settings" && i + 1 < argc) {
-            params.settingsPath = argv[++i];
+        if (arg == "--config" && i + 1 < argc) {
+            params.configPath = argv[++i];
         }
         if (arg == "-v" || arg == "--verbose") {
             // 通过设置日志级别来启用详细日志

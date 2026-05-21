@@ -74,7 +74,7 @@ Player& getMenuPlayer()
 } // namespace
 
 IntegratedServer::IntegratedServer()
-    : MinecraftServer(ServerCoreConfig{})
+    : MinecraftServer(m_integratedSettings)
 {}
 
 IntegratedServer::~IntegratedServer()
@@ -86,10 +86,10 @@ IntegratedServer::~IntegratedServer()
 
 Result<void> IntegratedServer::initialize()
 {
-    return initialize(IntegratedServerConfig{});
+    return initialize(IntegratedServerParams{});
 }
 
-Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
+Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 {
     MC_TRACE_EVENT("server.initialization", "IntegratedServer::initialize");
 
@@ -97,21 +97,22 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
         return Error(ErrorCode::AlreadyExists, "Server already initialized");
     }
 
-    // 保存集成服务器特有配置
-    m_integratedConfig = config;
+    // 保存集成服务器参数
+    m_params = params;
 
-    // 设置核心配置
-    m_config.viewDistance = config.viewDistance;
-    m_config.defaultGameMode = config.defaultGameMode;
-    m_config.seed = static_cast<u64>(config.seed);
-    m_config.maxPlayers = 1; // 内置服务器只支持单人
-    m_config.tickRate = config.tickRate;
+    // 将参数应用到设置
+    m_integratedSettings.viewDistance.set(params.viewDistance);
+    m_integratedSettings.defaultGameMode.set(static_cast<i32>(params.defaultGameMode));
+    m_integratedSettings.levelSeed.set(params.seed != 0 ? std::to_string(params.seed) : "");
+    m_integratedSettings.maxPlayers.set(1); // 内置服务器只支持单人
+    m_integratedSettings.tickRate.set(params.tickRate);
+    m_integratedSettings.worldName.set(params.worldName);
 
     // 初始化游戏注册表
     initializeRegistries(false);
 
     spdlog::info("Initializing integrated server...");
-    spdlog::info("World: {}, Seed: {}, View distance: {}", config.worldName, config.seed, config.viewDistance);
+    spdlog::info("World: {}, Seed: {}, View distance: {}", params.worldName, params.seed, params.viewDistance);
 
     // 创建本地连接对
     m_connectionPair = std::make_unique<network::LocalConnectionPair>();
@@ -128,7 +129,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
         spdlog::debug("No ops.json found or failed to load: {}", opsResult.error().message());
     }
 
-    auto storageInitResult = initializeSharedStorage(config.worldName);
+    auto storageInitResult = initializeSharedStorage(params.worldName);
     if (storageInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize shared world storage: " + storageInitResult.error().message());
@@ -136,7 +137,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 
     // 初始化维度管理器
     auto dimInitResult =
-        m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance, config.worldType);
+        m_dimensionManager->initialize(static_cast<u64>(params.seed), params.viewDistance, params.worldType);
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());
@@ -177,7 +178,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 
     if (m_world->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
-        m_config.defaultGameMode = GameMode::Spectator;
+        m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
         if (m_timeManager) {
             m_timeManager->setDayTime(6000);
             m_timeManager->setDaylightCycleEnabled(false);
@@ -296,11 +297,11 @@ const PlayerInventory* IntegratedServer::playerInventory(PlayerId playerId) cons
 void IntegratedServer::mainLoop()
 {
     using clock = std::chrono::steady_clock;
-    const auto tickDuration = std::chrono::milliseconds(1000 / m_config.tickRate);
+    const auto tickDuration = std::chrono::milliseconds(1000 / m_settings.tickRate.get());
 
     mc::perfetto::PerfettoManager::instance().setThreadName("IntegratedServerThread");
 
-    spdlog::info("Integrated server started ({} TPS)", m_config.tickRate);
+    spdlog::info("Integrated server started ({} TPS)", m_settings.tickRate.get());
 
     while (m_running.load(std::memory_order_acquire)) {
         MC_TRACE_EVENT("server.tick", "MainLoopIteration");
@@ -384,7 +385,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     // 设置玩家初始状态
-    setupInitialPlayerState(playerData, m_config.defaultGameMode);
+    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
     MC_ASSERT(m_world != nullptr);

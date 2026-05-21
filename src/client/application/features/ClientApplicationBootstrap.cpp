@@ -372,12 +372,12 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
         spdlog::info("Starting integrated server...");
 
         m_integratedServer = std::make_unique<server::IntegratedServer>();
-        server::IntegratedServerConfig serverConfig;
-        serverConfig.seed = 12345;
-        serverConfig.viewDistance = m_settings.renderDistance.get();
-        serverConfig.defaultGameMode = GameMode::Creative;
+        server::IntegratedServerParams serverParams;
+        serverParams.seed = 12345;
+        serverParams.viewDistance = m_settings.renderDistance.get();
+        serverParams.defaultGameMode = GameMode::Creative;
 
-        auto serverResult = m_integratedServer->initialize(serverConfig);
+        auto serverResult = m_integratedServer->initialize(serverParams);
         if (serverResult.failed()) {
             spdlog::error("Failed to initialize integrated server: {}", serverResult.error().toString());
             releaseRendererDependentResources();

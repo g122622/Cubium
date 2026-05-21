@@ -22,6 +22,8 @@
  */
 
 #include "StandaloneServer.hpp"
+#include "common/core/DefaultValues.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
@@ -64,7 +66,7 @@
 namespace mc::server {
 
 StandaloneServer::StandaloneServer()
-    : MinecraftServer(ServerCoreConfig{})
+    : MinecraftServer(m_settings)
 {}
 
 StandaloneServer::~StandaloneServer()
@@ -86,41 +88,34 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     // 加载设置
-    std::string settingsPath = params.settingsPath.value_or(ServerSettings::getDefaultPath().string());
-    auto settingsResult = loadSettings(settingsPath);
+    std::filesystem::path settingsFilePath;
+    if (params.settingsPath.has_value()) {
+        settingsFilePath = std::filesystem::path(*params.settingsPath);
+    } else {
+        settingsFilePath = GameDirectory::defaultDirectory().serverOptionsPath();
+    }
+    auto settingsResult = loadSettings(settingsFilePath.string());
     if (settingsResult.failed()) {
+        spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
+            settingsFilePath.string(),
+            settingsResult.error().toString());
+    }
+
+    // 从配置文件路径推导游戏目录，并确保目录结构存在
+    m_gameDirectory = GameDirectory::fromConfigPath(settingsFilePath);
+    auto dirResult = m_gameDirectory.ensureDirectoriesExist();
+    if (dirResult.failed()) {
+        spdlog::warn("Failed to create game directories: {}", dirResult.error().toString());
+    }
+
+    // 扫描数据包目录
+    auto dataPackDir = m_gameDirectory.dataPacksDir();
+    auto scanResult = resourcePackList().scanDirectory(dataPackDir);
+    if (scanResult.failed()) {
         spdlog::warn(
-            "Failed to load settings from {}: {}. Using defaults.", settingsPath, settingsResult.error().toString());
-    }
-
-    // 应用命令行覆盖
-    if (params.port.has_value()) {
-        m_settings.serverPort.set(*params.port);
-    }
-    if (params.bindAddress.has_value()) {
-        m_settings.bindAddress.set(*params.bindAddress);
-    }
-    if (params.maxPlayers.has_value()) {
-        m_settings.maxPlayers.set(static_cast<i32>(*params.maxPlayers));
-    }
-    if (params.worldName.has_value()) {
-        m_settings.worldName.set(*params.worldName);
-    }
-    if (params.seed.has_value()) {
-        m_settings.levelSeed.set(std::to_string(*params.seed));
-    }
-
-    const auto settingsDir = m_settingsPath.parent_path();
-    if (!settingsDir.empty()) {
-        const auto resourcePackDir = settingsDir / m_settings.resourcePackDirectory.get();
-        auto scanResult = resourcePackList().scanDirectory(resourcePackDir);
-        if (scanResult.failed()) {
-            spdlog::warn("Failed to scan resource pack directory '{}': {}",
-                resourcePackDir.string(),
-                scanResult.error().toString());
-        } else {
-            spdlog::info("Scanned {} resource packs from '{}'", scanResult.value(), resourcePackDir.string());
-        }
+            "Failed to scan data pack directory '{}': {}", dataPackDir.string(), scanResult.error().toString());
+    } else {
+        spdlog::info("Scanned {} data packs from '{}'", scanResult.value(), dataPackDir.string());
     }
 
     // 应用设置到系统
@@ -161,42 +156,35 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化游戏注册表（包括实体类型）
     initializeRegistries(true);
 
-    // 设置核心配置
-    m_config.viewDistance = m_settings.viewDistance.get();
-    m_config.maxPlayers = m_settings.maxPlayers.get();
-    m_config.seed = static_cast<u64>(std::stoll(m_settings.levelSeed.get()));
-    m_config.tickRate = 20;
-    m_config.defaultGameMode = GameMode::Survival;
-
-    // 初始化核心管理器
+    // 初始化核心管理器（从设置中读取配置）
     initializeCoreManagers();
 
     // 加载白名单、封禁列表和 OP 列表
-    const auto dataDir = m_settingsPath.parent_path();
-    if (!dataDir.empty()) {
+    if (m_gameDirectory.isValid()) {
+        const auto& gameRoot = m_gameDirectory.root();
         // 加载白名单
-        auto whitelistPath = dataDir / "whitelist.json";
+        auto whitelistPath = gameRoot / "whitelist.json";
         auto whitelistResult = m_whitelistManager->load(whitelistPath);
         if (whitelistResult.failed()) {
             spdlog::warn("Failed to load whitelist: {}", whitelistResult.error().message());
         }
 
         // 加载玩家封禁列表
-        auto bannedPlayersPath = dataDir / "banned-players.json";
+        auto bannedPlayersPath = gameRoot / "banned-players.json";
         auto bannedPlayersResult = m_bannedPlayerList->load(bannedPlayersPath);
         if (bannedPlayersResult.failed()) {
             spdlog::warn("Failed to load banned players: {}", bannedPlayersResult.error().message());
         }
 
         // 加载 IP 封禁列表
-        auto bannedIpsPath = dataDir / "banned-ips.json";
+        auto bannedIpsPath = gameRoot / "banned-ips.json";
         auto bannedIpsResult = m_bannedIpList->load(bannedIpsPath);
         if (bannedIpsResult.failed()) {
             spdlog::warn("Failed to load banned IPs: {}", bannedIpsResult.error().message());
         }
 
         // 加载 OP 列表
-        auto opsPath = dataDir / "ops.json";
+        auto opsPath = gameRoot / "ops.json";
         auto opsResult = m_opListManager->load(opsPath);
         if (opsResult.failed()) {
             spdlog::warn("Failed to load ops: {}", opsResult.error().message());
@@ -379,7 +367,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     if (m_world->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
-        m_config.defaultGameMode = GameMode::Spectator;
+        m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
         if (m_timeManager) {
             m_timeManager->setDayTime(6000);
             m_timeManager->setDaylightCycleEnabled(false);
@@ -459,7 +447,8 @@ void StandaloneServer::stop()
     }
 
     // 保存设置
-    const auto savePath = m_settingsPath.empty() ? ServerSettings::getDefaultPath() : m_settingsPath;
+    const auto savePath =
+        m_settingsPath.empty() ? GameDirectory::defaultDirectory().serverOptionsPath() : m_settingsPath;
     auto saveResult = m_settings.saveSettings(savePath);
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
@@ -735,7 +724,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     session->setState(SessionState::Playing);
 
     // 设置玩家初始状态
-    setupInitialPlayerState(playerData, m_config.defaultGameMode);
+    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
     Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,

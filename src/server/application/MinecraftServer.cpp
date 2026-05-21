@@ -89,8 +89,8 @@ namespace {
 
 } // namespace
 
-MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
-    : m_config(config)
+MinecraftServer::MinecraftServer(ServerSettings& settings)
+    : m_settings(settings)
     , m_computationWorkerPool(-1, "ServerCompute")
     , m_ioWorkerPool(-1, "ServerIO")
     , m_lootTableManager()
@@ -132,7 +132,7 @@ std::vector<u8> MinecraftServer::serializeDifficultyPacket()
 
 void MinecraftServer::setDefaultGameMode(GameMode mode)
 {
-    m_config.defaultGameMode = mode;
+    m_settings.defaultGameMode.set(static_cast<i32>(mode));
 }
 
 void MinecraftServer::setPlayerIdleTimeoutMinutes(i32 timeoutMinutes)
@@ -286,20 +286,21 @@ void MinecraftServer::initializeCoreManagers()
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeCoreManagers");
 
     // 创建核心管理器
-    m_playerManager = std::make_unique<core::PlayerManager>(m_config);
+    m_playerManager = std::make_unique<core::PlayerManager>(m_settings.maxPlayers.get());
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
     // 与 Java 版一致：世界初始白天时间从 1000 开始（清晨后）
     m_timeManager = std::make_unique<core::TimeManager>(0, 1000);
     m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
-    m_keepAliveManager = std::make_unique<core::KeepAliveManager>(*m_playerManager, m_config);
-    m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_config);
+    m_keepAliveManager = std::make_unique<core::KeepAliveManager>(
+        *m_playerManager, m_settings.keepAliveInterval.get(), m_settings.keepAliveTimeout.get());
+    m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_settings.viewDistance.get());
     m_packetHandler = std::make_unique<core::PacketHandler>(*m_playerManager,
         *m_connectionManager,
         *m_teleportManager,
         *m_keepAliveManager,
         *m_positionTracker,
         *m_timeManager,
-        m_config);
+        static_cast<GameMode>(m_settings.defaultGameMode.get()));
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
     m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
