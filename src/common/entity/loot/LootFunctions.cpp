@@ -1133,7 +1133,7 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
 
     for (const auto& modifier : m_modifiers) {
         // 生成或使用 UUID
-        std::string uuid = modifier.uuid.empty() ? generateUUID() : modifier.uuid;
+        std::string uuid = modifier.uuid.empty() ? generateUUID(random) : modifier.uuid;
 
         // 随机选择槽位
         i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand); // 默认主手
@@ -1191,14 +1191,10 @@ i32 SetAttributesFunction::parseSlotName(const std::string& slotName)
     return static_cast<i32>(EquipmentSlot::MainHand);
 }
 
-std::string SetAttributesFunction::generateUUID()
+std::string SetAttributesFunction::generateUUID(math::Random& random)
 {
-    // 生成随机 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
-    // 使用 std::mt19937_64 生成 64 位随机数
-    static std::mt19937_64 gen(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-
-    u64 part1 = gen();
-    u64 part2 = gen();
+    const u64 part1 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
+    const u64 part2 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
 
     // 格式化为 UUID v4 格式
     char buf[64];

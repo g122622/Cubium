@@ -84,8 +84,10 @@ public:
         Generic, // 通用
         Entity,  // 实体相关
         Block,   // 方块相关
+        Chest,   // 容器
         Fishing, // 钓鱼
-        Gift     // 礼物
+        Gift,    // 礼物
+        Barter   // 以物易物
     };
 
     LootParameterSet() = default;
@@ -114,8 +116,12 @@ public:
                 return "minecraft:block";
             case Type::Fishing:
                 return "minecraft:fishing";
+            case Type::Chest:
+                return "minecraft:chest";
             case Type::Gift:
                 return "minecraft:gift";
+            case Type::Barter:
+                return "minecraft:barter";
             default:
                 return "minecraft:generic";
         }
@@ -174,6 +180,7 @@ extern const LootParameter<BlockEntity> BLOCK_ENTITY; // 方块实体
 // 附魔等级参数
 extern const LootParameter<i32> FORTUNE_LEVEL;    // 时运附魔等级
 extern const LootParameter<i32> SILK_TOUCH_LEVEL; // 精准采集附魔等级
+extern const LootParameter<i32> LOOTING_MODIFIER; // 掠夺附魔等级修正
 
 // 爆炸相关参数
 extern const LootParameter<f32> EXPLOSION_RADIUS; // 爆炸半径
@@ -195,6 +202,7 @@ extern LootParameterSet chest();
 extern LootParameterSet entity();
 extern LootParameterSet fishing();
 extern LootParameterSet gift();
+extern LootParameterSet barter();
 extern LootParameterSet generic();
 } // namespace LootParameterSets
 

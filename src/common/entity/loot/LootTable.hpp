@@ -302,13 +302,6 @@ public:
      */
     [[nodiscard]] static const LootTable& getEmptyTable();
 
-    // ========== 内置掉落表 ==========
-
-    /**
-     * @brief 初始化内置掉落表
-     */
-    void initializeDefaultTables();
-
 private:
     std::unordered_map<std::string, std::unique_ptr<LootTable>> m_tables;
 };

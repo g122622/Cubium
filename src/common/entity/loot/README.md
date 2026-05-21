@@ -361,16 +361,10 @@ for (i32 i = 0; i < rollCount; ++i) {
 - 池管理（添加、移除、查询）
 - 参数集验证
 - 循环引用检测
-- 内置掉落表初始化
 
-**内置掉落表** (`LootTableManager::initializeDefaultTables()`):
-- 实体掉落: 猪、牛、羊、鸡
-- 方块掉落: 钻石矿、石头、煤矿、铁矿、金矿、红石矿、青金石矿、圆石、下界金矿
-- 钓鱼掉落 (2026-05-16):
-  - `minecraft:gameplay/fishing` - 主表（根据幸运值选择子表）
-  - `minecraft:gameplay/fishing/fish` - 鱼表（鳕鱼、鲑鱼、热带鱼、河豚）
-  - `minecraft:gameplay/fishing/junk` - 垃圾表（皮革靴、皮革、骨头、线等）
-  - `minecraft:gameplay/fishing/treasure` - 宝藏表（命名牌、鞍、弓等，需开放水域）
+**掉落表来源**:
+- 运行时通过 `LootTableLoader` 从 `data/<namespace>/loot_tables/*.json` 加载
+- 支持目录扫描与资源包覆盖
 
 **生成流程**:
 ```cpp
@@ -540,7 +534,7 @@ auto drops = lootTable.generate(*context);
 ┌─────────────────────────────────────────────────────────────┐
 │                      LootTableManager                        │
 │  - 管理所有注册的掉落表                                        │
-│  - 提供内置掉落表初始化                                        │
+│  - 管理已注册掉落表并提供空表                                 │
 └─────────────────────────────────────────────────────────────┘
                               │
                               │ 管理
@@ -760,9 +754,9 @@ auto table = LootTableBuilder()
 
 ```cpp
 LootTableManager manager;
-manager.initializeDefaultTables();
+LootTableLoader loader(manager);
+loader.loadFromDirectory("data/minecraft/loot_tables");
 
-// 获取内置掉落表
 const LootTable* pigDrops = manager.getTable("minecraft:entities/pig");
 if (pigDrops) {
     auto drops = pigDrops->generate(*context);

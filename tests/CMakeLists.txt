@@ -503,6 +503,8 @@ add_executable(mc_tests
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp
+    common/entity/loot/LootTableLoaderTest.cpp
+    common/entity/loot/LootJsonIntegrationTest.cpp
     # SetStewEffectFunction 测试
     common/entity/loot/SetStewEffectTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试

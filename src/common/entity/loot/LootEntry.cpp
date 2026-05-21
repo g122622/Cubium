@@ -235,16 +235,7 @@ std::unique_ptr<LootEntry> TagLootEntry::clone() const
 
 void TagLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
 {
-    if (m_expand) {
-        // 展开模式：每个标签物品作为独立候选条目
-        // 注意：此方法要求调用方管理条目生命周期。
-        // 当前 LootPool 未使用 expand，因此 expand=true 时
-        // 由 generate() 统一处理随机选择逻辑。
-        consumer(*const_cast<TagLootEntry*>(this));
-    } else {
-        // 非展开模式：自身作为单个候选条目
-        consumer(*const_cast<TagLootEntry*>(this));
-    }
+    consumer(*const_cast<TagLootEntry*>(this));
 }
 
 bool TagLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
@@ -263,30 +254,26 @@ bool TagLootEntry::generate(std::function<void(const ItemStack&)> consumer, Loot
 
     const auto& items = tag->getItems();
     if (m_expand) {
-        // 展开模式：在 expand() 中已处理为独立 ItemLootEntry，
-        // 此处不应被调用（由池的加权选择调用 ItemLootEntry::generate）
-        // 但如果直接调用 generate，随机选择一个物品
-        auto it = items.begin();
-        std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
-        const Item* item = *it;
-        ItemStack stack(*item, 1);
-        stack = applyFunctions(std::move(stack), context);
-        if (!stack.isEmpty()) {
-            consumer(stack);
+        bool anyGenerated = false;
+        for (const Item* item : items) {
+            ItemStack stack(*item, 1);
+            stack = applyFunctions(std::move(stack), context);
+            if (!stack.isEmpty()) {
+                consumer(stack);
+                anyGenerated = true;
+            }
         }
-        return true;
-    } else {
-        // 非展开模式：从标签中随机选择一个物品
-        auto it = items.begin();
-        std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
-        const Item* item = *it;
-        ItemStack stack(*item, 1);
-        stack = applyFunctions(std::move(stack), context);
-        if (!stack.isEmpty()) {
-            consumer(stack);
-        }
-        return true;
+        return anyGenerated;
     }
+
+    auto it = items.begin();
+    std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
+    ItemStack stack(**it, 1);
+    stack = applyFunctions(std::move(stack), context);
+    if (!stack.isEmpty()) {
+        consumer(stack);
+    }
+    return true;
 }
 
 // ============================================================================
@@ -323,8 +310,8 @@ bool DynamicLootEntry::generate(std::function<void(const ItemStack&)> consumer, 
         return false;
     }
 
-    // 目前仅支持 minecraft:Contents（从容器方块实体中读取物品）
-    if (m_name == "minecraft:Contents" || m_name == "Contents") {
+    // 目前仅支持 minecraft:contents（从容器方块实体中读取物品）
+    if (m_name == "minecraft:contents" || m_name == "contents") {
         // 从上下文获取方块实体
         auto* blockEntity = context.get<BlockEntity>(LootParams::BLOCK_ENTITY);
         if (blockEntity) {

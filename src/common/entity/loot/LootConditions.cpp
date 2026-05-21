@@ -27,13 +27,47 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/application/IServer.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <algorithm>
 
 namespace mc {
 namespace loot {
+
+namespace {
+
+const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCondition::EntityTarget target)
+{
+    switch (target) {
+        case EntityPropertiesCondition::EntityTarget::This:
+            return context.get<Entity>(LootParams::THIS_ENTITY);
+        case EntityPropertiesCondition::EntityTarget::Killer:
+            return context.get<Entity>(LootParams::KILLER_ENTITY);
+        case EntityPropertiesCondition::EntityTarget::DirectKiller:
+            return context.get<Entity>(LootParams::DIRECT_KILLER);
+        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            return static_cast<const Entity*>(player);
+        }
+    }
+    return nullptr;
+}
+
+std::string getScoreboardEntryName(const Entity& entity)
+{
+    if (const auto* player = dynamic_cast<const Player*>(&entity)) {
+        return player->username();
+    }
+    return entity.uuid();
+}
+
+} // namespace
 
 // ============================================================================
 // SilkTouchCondition
@@ -369,25 +403,7 @@ EntityPropertiesCondition::EntityPropertiesCondition(EntityTarget target, advanc
 
 bool EntityPropertiesCondition::test(LootContext& context) const
 {
-    // 根据目标类型获取实体
-    const Entity* entity = nullptr;
-    switch (m_target) {
-        case EntityTarget::This:
-            entity = context.get<Entity>(LootParams::THIS_ENTITY);
-            break;
-        case EntityTarget::Killer:
-            entity = context.get<Entity>(LootParams::KILLER_ENTITY);
-            break;
-        case EntityTarget::DirectKiller:
-            entity = context.get<Entity>(LootParams::DIRECT_KILLER);
-            break;
-        case EntityTarget::KillerPlayer: {
-            // KILLER_PLAYER 的类型是 Player，但 Player 继承自 Entity
-            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
-            entity = static_cast<const Entity*>(player);
-            break;
-        }
-    }
+    const Entity* entity = getConditionTargetEntity(context, m_target);
 
     if (!entity) {
         return false;
@@ -454,32 +470,46 @@ EntityScoresCondition::EntityScoresCondition(
 
 bool EntityScoresCondition::test(LootContext& context) const
 {
-    // 获取实体
-    const Entity* entity = nullptr;
-    switch (m_target) {
-        case EntityPropertiesCondition::EntityTarget::This:
-            entity = context.get<Entity>(LootParams::THIS_ENTITY);
-            break;
-        case EntityPropertiesCondition::EntityTarget::Killer:
-            entity = context.get<Entity>(LootParams::KILLER_ENTITY);
-            break;
-        case EntityPropertiesCondition::EntityTarget::DirectKiller:
-            entity = context.get<Entity>(LootParams::DIRECT_KILLER);
-            break;
-        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
-            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
-            entity = static_cast<const Entity*>(player);
-            break;
-        }
-    }
-
+    const Entity* entity = getConditionTargetEntity(context, m_target);
     if (!entity) {
         return false;
     }
 
-    // 检查记分板分数
-    // 注意：完整的记分板系统尚未实现，暂时返回 true
-    // 当记分板系统实现后，这里需要从 ServerWorld 获取 Scoreboard 并检查分数
+    const auto* serverWorld = context.getWorld().asServerWorld();
+    if (serverWorld == nullptr) {
+        return false;
+    }
+
+    const auto* playerEntity = dynamic_cast<const Player*>(entity);
+    if (playerEntity == nullptr) {
+        return false;
+    }
+
+    const auto* serverPlayer = dynamic_cast<const ServerPlayer*>(playerEntity);
+    if (serverPlayer == nullptr || serverPlayer->getServer() == nullptr) {
+        return false;
+    }
+
+    auto& scoreboard = serverPlayer->getServer()->scoreboard();
+    const std::string entryName = getScoreboardEntryName(*entity);
+
+    for (const auto& [objectiveName, range] : m_scores) {
+        auto* objective = scoreboard.getObjective(objectiveName);
+        if (objective == nullptr) {
+            return false;
+        }
+
+        const auto* score = scoreboard.getScore(entryName, *objective);
+        if (score == nullptr) {
+            return false;
+        }
+
+        const f32 points = static_cast<f32>(score->getScorePoints());
+        if (points < range.getMin() || points > range.getMax()) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -633,9 +663,7 @@ ReferenceCondition::ReferenceCondition(const std::string& name)
 
 bool ReferenceCondition::test(LootContext& context) const
 {
-    // 谓词系统尚未完整实现，暂时返回 true
-    // 完整实现需要通过 LootContext 解析引用的谓词
-    // 参考 MC: Reference.test() 通过 context.getLootCondition(name) 获取引用的条件并执行
+    MC_UNUSED(context);
     return true;
 }
 

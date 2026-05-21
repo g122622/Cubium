@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/ResourcePackList.hpp"
 #include <cstddef>
 #include <functional>
 #include <string>
@@ -68,6 +69,17 @@ public:
      * @param manager 掉落表管理器引用
      */
     explicit LootTableLoader(LootTableManager& manager);
+
+    /**
+     * @brief 从资源包列表加载所有掉落表
+     *
+     * 按资源包优先级从低到高加载，同名掉落表由高优先级资源包覆盖。
+     *
+     * @param packs 资源包列表
+     * @param callback 进度回调（可选）
+     * @return 加载结果
+     */
+    Result<LoadResult> loadFromResourcePacks(const ResourcePackList& packs, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从目录加载所有掉落表
@@ -127,6 +139,8 @@ public:
     void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
 
 private:
+    void clearIfNeeded();
+
     LootTableManager& m_manager;
     LoadResult m_lastResult;
     bool m_clearBeforeLoad = true;

@@ -333,6 +333,23 @@ TEST_F(LootSerializersTest, ParseCondition_UnknownType)
     EXPECT_FALSE(result.success());
 }
 
+TEST_F(LootSerializersTest, ParseCondition_ReferenceUnsupported)
+{
+    nlohmann::json json = {{"condition", "minecraft:reference"}, {"name", "minecraft:test"}};
+
+    auto result = LootSerializers::parseCondition(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_TableBonusUnsupported)
+{
+    nlohmann::json json = {
+        {"condition", "minecraft:table_bonus"}, {"enchantment", "minecraft:fortune"}, {"chances", {0.1, 0.2}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    EXPECT_FALSE(result.success());
+}
+
 TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_BlockOnly)
 {
     // 仅检查方块 ID
@@ -505,6 +522,22 @@ TEST_F(LootSerializersTest, ParseFunction_MissingFunctionField)
 TEST_F(LootSerializersTest, ParseFunction_UnknownType)
 {
     nlohmann::json json = {{"function", "minecraft:unknown_function"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_CopyNbtUnsupported)
+{
+    nlohmann::json json = {{"function", "minecraft:copy_nbt"}, {"source", "block_entity"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMapUnsupported)
+{
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:mansion"}};
 
     auto result = LootSerializers::parseFunction(json);
     EXPECT_FALSE(result.success());

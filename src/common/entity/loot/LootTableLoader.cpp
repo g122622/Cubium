@@ -23,8 +23,10 @@
 
 #include "LootTableLoader.hpp"
 #include "LootTable.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -38,6 +40,65 @@ LootTableLoader::LootTableLoader(LootTableManager& manager)
     : m_manager(manager)
 {}
 
+void LootTableLoader::clearIfNeeded()
+{
+    if (m_clearBeforeLoad) {
+        m_manager.clear();
+    }
+}
+
+Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
+    const ResourcePackList& packs, ProgressCallback callback)
+{
+    m_lastResult = LoadResult{};
+    clearIfNeeded();
+
+    auto listResult = packs.listResources("data", ".json");
+    if (!listResult.success()) {
+        return listResult.error();
+    }
+
+    std::vector<std::string> lootTableResources;
+    for (const auto& path : listResult.value()) {
+        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos) {
+            continue;
+        }
+        lootTableResources.push_back(path);
+    }
+
+    size_t current = 0;
+    const size_t total = lootTableResources.size();
+    for (const auto& resourcePath : lootTableResources) {
+        const std::string id = pathToLootTableId(resourcePath);
+        if (callback) {
+            callback(current, total, id);
+        }
+
+        auto readResult = packs.readTextResource(resourcePath);
+        if (!readResult.success()) {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
+            ++current;
+            continue;
+        }
+
+        auto loadResult = loadJson(id, readResult.value());
+        if (loadResult.success()) {
+            ++m_lastResult.successCount;
+        } else {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + loadResult.error().toString());
+        }
+        ++current;
+    }
+
+    if (callback) {
+        callback(total, total, "");
+    }
+
+    return m_lastResult;
+}
+
 Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
     const std::string& directoryPath, ProgressCallback callback)
 {
@@ -45,11 +106,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
         return Error(ErrorCode::FileNotFound, "Directory not found: " + directoryPath);
     }
 
-    if (m_clearBeforeLoad) {
-        m_manager.clear();
-    }
-
     m_lastResult = LoadResult{};
+    clearIfNeeded();
 
     // 收集所有 .json 文件
     std::vector<fs::path> jsonFiles;
@@ -148,19 +206,28 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
     std::string genericPath = path.generic_string();
 
     // 查找 "loot_tables" 的位置
-    auto lootTablesPos = genericPath.find("/loot_tables/");
+    size_t lootTablesPos = genericPath.find("/loot_tables/");
+    size_t lootTablesTokenSize = std::string("/loot_tables/").size();
+    if (lootTablesPos == std::string::npos) {
+        lootTablesPos = genericPath.find("loot_tables/");
+        lootTablesTokenSize = std::string("loot_tables/").size();
+    }
+
     if (lootTablesPos != std::string::npos) {
         // 从 loot_tables 前面提取 namespace
         auto dataPos = genericPath.rfind("/data/", lootTablesPos);
+        if (dataPos == std::string::npos && genericPath.rfind("data/", 0) == 0) {
+            dataPos = 0;
+        }
         if (dataPos != std::string::npos) {
             // data/<namespace>/loot_tables/...
-            size_t namespaceStart = dataPos + 6; // 跳过 "/data/"
+            size_t namespaceStart = dataPos == 0 ? 5 : dataPos + 6; // 跳过 "data/" 或 "/data/"
             size_t namespaceEnd = lootTablesPos;
             namespaceStr = genericPath.substr(namespaceStart, namespaceEnd - namespaceStart);
         }
 
         // 从 loot_tables/ 后面提取路径（不含 .json 扩展名）
-        size_t pathStart = lootTablesPos + 14; // 跳过 "/loot_tables/"
+        size_t pathStart = lootTablesPos + lootTablesTokenSize;
         relativePath = genericPath.substr(pathStart);
 
         // 去掉 .json 扩展名

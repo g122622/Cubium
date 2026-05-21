@@ -559,31 +559,30 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 初始化战利品表管理器（从 JSON 文件动态加载）
     {
         loot::LootTableLoader lootLoader(m_lootTableManager);
-        std::string lootTablePath = "data/minecraft/loot_tables";
-
-        // 尝试从 vanilla 资源包路径加载
-        std::string vanillaPath = "D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/loot_tables";
-        if (std::filesystem::exists(vanillaPath)) {
-            lootTablePath = vanillaPath;
-        }
-
-        auto lootLoadResult = lootLoader.loadFromDirectory(lootTablePath);
+        auto lootLoadResult = lootLoader.loadFromDirectory("data/minecraft/loot_tables");
         if (lootLoadResult.failed()) {
-            spdlog::warn("Failed to load loot tables from '{}': {}", lootTablePath, lootLoadResult.error().toString());
-            // 回退到内置默认表
-            m_lootTableManager.initializeDefaultTables();
-            spdlog::info("Loot tables initialized (fallback to defaults)");
+            spdlog::warn(
+                "Failed to load loot tables from 'data/minecraft/loot_tables': {}", lootLoadResult.error().toString());
         } else {
             const auto& result = lootLoadResult.value();
-            spdlog::info("Loaded {} loot tables from '{}' ({} failed){}",
-                result.successCount,
-                lootTablePath,
-                result.failedCount,
-                result.failedCount > 0 ? "" : "");
-            if (!result.errors.empty()) {
-                for (const auto& err : result.errors) {
-                    spdlog::warn("  Loot table error: {}", err);
-                }
+            spdlog::info(
+                "Loaded {} loot tables from local data directory ({} failed)", result.successCount, result.failedCount);
+            for (const auto& err : result.errors) {
+                spdlog::warn("Loot table error: {}", err);
+            }
+        }
+
+        lootLoader.setClearBeforeLoad(false);
+        auto resourcePackLoadResult = lootLoader.loadFromResourcePacks(m_resourcePackList);
+        if (resourcePackLoadResult.failed()) {
+            spdlog::warn(
+                "Failed to load loot tables from resource packs: {}", resourcePackLoadResult.error().toString());
+        } else {
+            const auto& result = resourcePackLoadResult.value();
+            spdlog::info(
+                "Loaded {} loot tables from resource packs ({} failed)", result.successCount, result.failedCount);
+            for (const auto& err : result.errors) {
+                spdlog::warn("Loot table error: {}", err);
             }
         }
     }

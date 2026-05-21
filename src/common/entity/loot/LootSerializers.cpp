@@ -370,17 +370,8 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseFortuneCondition(co
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::parseTableBonusCondition(const nlohmann::json& json)
 {
-    // table_bonus 条件用于附魔表加成
-    // 格式: {"condition": "minecraft:table_bonus", "enchantment": "minecraft:fortune", "chances": [0.1, 0.15, 0.2,
-    // 0.25]} 这是一个简化的实现，实际应该根据附魔等级检查概率 目前我们将其转换为 FortuneCondition
-
-    if (!json.contains("chances") || !json["chances"].is_array()) {
-        return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(0));
-    }
-
-    // 简化：如果 chances 数组非空，创建 FortuneCondition
-    // 实际实现需要更复杂的逻辑
-    return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(0));
+    (void)json;
+    return Error(ErrorCode::Unsupported, "minecraft:table_bonus is not supported yet");
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::parseRandomChanceCondition(const nlohmann::json& json)
@@ -674,12 +665,8 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseDamageSourcePropert
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::parseReferenceCondition(const nlohmann::json& json)
 {
-    if (!json.contains("name") || !json["name"].is_string()) {
-        return Error(ErrorCode::InvalidData, "reference condition missing 'name' field");
-    }
-
-    std::string name = json["name"].get<std::string>();
-    return castToBase<ReferenceCondition, LootCondition>(std::make_unique<ReferenceCondition>(name));
+    (void)json;
+    return Error(ErrorCode::Unsupported, "minecraft:reference is not supported yet");
 }
 
 // ============================================================================
@@ -1058,46 +1045,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyBlockStateFuncti
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNbtFunction(const nlohmann::json& json)
 {
-    CopyNbtFunction::Source source = CopyNbtFunction::Source::This;
-
-    if (json.contains("source") && json["source"].is_string()) {
-        std::string sourceStr = json["source"].get<std::string>();
-        if (sourceStr == "this") {
-            source = CopyNbtFunction::Source::This;
-        } else if (sourceStr == "killer") {
-            source = CopyNbtFunction::Source::Killer;
-        } else if (sourceStr == "killer_player") {
-            source = CopyNbtFunction::Source::KillerPlayer;
-        } else if (sourceStr == "block_entity") {
-            source = CopyNbtFunction::Source::BlockEntity;
-        }
-    }
-
-    auto function = std::make_unique<CopyNbtFunction>(source);
-
-    // 解析操作
-    if (json.contains("ops") && json["ops"].is_array()) {
-        for (const auto& op : json["ops"]) {
-            if (!op.contains("source") || !op.contains("target") || !op.contains("op")) {
-                continue;
-            }
-
-            std::string sourcePath = op["source"].get<std::string>();
-            std::string targetPath = op["target"].get<std::string>();
-            std::string opStr = op["op"].get<std::string>();
-
-            CopyNbtFunction::Operation operation = CopyNbtFunction::Operation::Replace;
-            if (opStr == "append") {
-                operation = CopyNbtFunction::Operation::Append;
-            } else if (opStr == "merge") {
-                operation = CopyNbtFunction::Operation::Merge;
-            }
-
-            function->addOperation(sourcePath, targetPath, operation);
-        }
-    }
-
-    return castToBase<CopyNbtFunction, LootFunction>(std::move(function));
+    (void)json;
+    return Error(ErrorCode::Unsupported, "minecraft:copy_nbt is not supported yet");
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseFillPlayerHeadFunction(const nlohmann::json& json)
@@ -1235,24 +1184,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLootTableFunction
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseExplorationMapFunction(const nlohmann::json& json)
 {
-    ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
-
-    if (json.contains("destination") && json["destination"].is_string()) {
-        std::string destStr = json["destination"].get<std::string>();
-        if (destStr == "minecraft:buried_treasure" || destStr == "buried_treasure") {
-            destination = ExplorationMapFunction::Destination::BuriedTreasure;
-        } else if (destStr == "minecraft:mansion" || destStr == "mansion") {
-            destination = ExplorationMapFunction::Destination::Mansion;
-        } else if (destStr == "minecraft:monument" || destStr == "monument") {
-            destination = ExplorationMapFunction::Destination::Monument;
-        } else if (destStr == "minecraft:shipwreck" || destStr == "shipwreck") {
-            destination = ExplorationMapFunction::Destination::Shipwreck;
-        } else if (destStr == "minecraft:ruined_portal" || destStr == "ruined_portal") {
-            destination = ExplorationMapFunction::Destination::RuinedPortal;
-        }
-    }
-
-    return castToBase<ExplorationMapFunction, LootFunction>(std::make_unique<ExplorationMapFunction>(destination));
+    (void)json;
+    return Error(ErrorCode::Unsupported, "minecraft:exploration_map is not supported yet");
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetStewEffectFunction(const nlohmann::json& json)

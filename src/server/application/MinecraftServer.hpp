@@ -30,6 +30,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/resource/ResourcePackList.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
@@ -322,6 +323,8 @@ public:
      */
     [[nodiscard]] mc::loot::LootTableManager& lootTableManager() { return m_lootTableManager; }
     [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const { return m_lootTableManager; }
+    [[nodiscard]] ResourcePackList& resourcePackList() { return m_resourcePackList; }
+    [[nodiscard]] const ResourcePackList& resourcePackList() const { return m_resourcePackList; }
 
 protected:
     void attachWorldBindings(ServerWorld& world);
@@ -883,6 +886,7 @@ protected:
 
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
+    ResourcePackList m_resourcePackList;
 
     // 刷怪系统
     std::unique_ptr<::mc::world::spawn::NaturalSpawner> m_naturalSpawner;

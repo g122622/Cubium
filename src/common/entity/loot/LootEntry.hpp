@@ -274,9 +274,10 @@ private:
 /**
  * @brief 标签掉落条目
  *
- * 从物品标签中随机选择物品生成。
- * expand=true 时每个标签物品作为独立候选条目，权重均分；
- * expand=false 时从标签中随机选择一个物品。
+ * 从物品标签中选择物品生成。
+ * expand=true 时为标签中的每个物品各生成一次；
+ * expand=false
+ * 时从标签中随机选择一个物品。
  * 参考: net.minecraft.loot.TagLootEntry
  */
 class TagLootEntry : public LootEntry {
@@ -316,7 +317,7 @@ class DynamicLootEntry : public LootEntry {
 public:
     /**
      * @brief 构造动态条目
-     * @param name 动态名称（如 "minecraft:Contents"）
+     * @param name 动态名称（如 "minecraft:contents"）
      * @param weight 权重
      * @param quality 质量
      */

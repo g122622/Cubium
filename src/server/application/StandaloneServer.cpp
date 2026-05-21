@@ -110,6 +110,19 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         m_settings.levelSeed.set(std::to_string(*params.seed));
     }
 
+    const auto settingsDir = m_settingsPath.parent_path();
+    if (!settingsDir.empty()) {
+        const auto resourcePackDir = settingsDir / m_settings.resourcePackDirectory.get();
+        auto scanResult = resourcePackList().scanDirectory(resourcePackDir);
+        if (scanResult.failed()) {
+            spdlog::warn("Failed to scan resource pack directory '{}': {}",
+                resourcePackDir.string(),
+                scanResult.error().toString());
+        } else {
+            spdlog::info("Scanned {} resource packs from '{}'", scanResult.value(), resourcePackDir.string());
+        }
+    }
+
     // 应用设置到系统
     applySettings();
 

@@ -51,6 +51,7 @@ const LootParameter<BlockEntity> BLOCK_ENTITY("block_entity");
 // 附魔等级参数
 const LootParameter<i32> FORTUNE_LEVEL("fortune_level");
 const LootParameter<i32> SILK_TOUCH_LEVEL("silk_touch_level");
+const LootParameter<i32> LOOTING_MODIFIER("looting_modifier");
 
 // 爆炸相关参数
 const LootParameter<f32> EXPLOSION_RADIUS("explosion_radius");
@@ -85,7 +86,7 @@ LootParameterSet block()
 
 LootParameterSet chest()
 {
-    LootParameterSet set(LootParameterSet::Type::Generic);
+    LootParameterSet set(LootParameterSet::Type::Chest);
     set.addRequired(LootParams::BLOCK_POS);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::BLOCK_ENTITY);
@@ -100,6 +101,7 @@ LootParameterSet entity()
     set.addOptional(LootParams::KILLER_PLAYER);
     set.addOptional(LootParams::DIRECT_KILLER);
     set.addOptional(LootParams::DAMAGE_SOURCE);
+    set.addOptional(LootParams::LOOTING_MODIFIER);
     return set;
 }
 
@@ -110,6 +112,7 @@ LootParameterSet fishing()
     set.addRequired(LootParams::TOOL);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::IS_IN_OPEN_WATER);
+    set.addOptional(LootParams::LOOTING_MODIFIER);
     return set;
 }
 
@@ -118,6 +121,14 @@ LootParameterSet gift()
     LootParameterSet set(LootParameterSet::Type::Gift);
     set.addRequired(LootParams::BLOCK_POS);
     set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::KILLER_PLAYER);
+    return set;
+}
+
+LootParameterSet barter()
+{
+    LootParameterSet set(LootParameterSet::Type::Barter);
+    set.addRequired(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::KILLER_PLAYER);
     return set;
 }
@@ -231,7 +242,7 @@ LootContextBuilder& LootContextBuilder::withLootingModifier(i32 level)
     return *this;
 }
 
-std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& /* paramSet */)
+std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& paramSet)
 {
     // 创建随机数生成器
     static thread_local math::Random defaultRandom(0);
@@ -251,6 +262,9 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& /
     // 设置幸运值
     context->setLuck(m_luck);
     context->setLootingModifier(m_lootingModifier);
+    if (m_lootingModifier != 0) {
+        context->setOwnedValue(LootParams::LOOTING_MODIFIER, m_lootingModifier);
+    }
 
     // 复制参数
     for (const auto& [id, value] : m_params) {
@@ -266,6 +280,8 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& /
     if (m_lootTableResolver) {
         context->setLootTableResolver(std::move(m_lootTableResolver));
     }
+
+    MC_UNUSED(paramSet);
 
     return context;
 }

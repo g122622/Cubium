@@ -716,7 +716,7 @@ private:
      * @brief 生成随机 UUID
      * @return UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
      */
-    static std::string generateUUID();
+    static std::string generateUUID(math::Random& random);
 };
 
 /**

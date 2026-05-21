@@ -125,11 +125,10 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
 
             if (!extension.empty()) {
                 std::string ext = entry.path().extension().string();
-                if (extension[0] != '.') {
-                    ext = ext.substr(1); // 移除前导点
-                }
-
                 std::string checkExt(extension);
+                if (!ext.empty() && ext[0] == '.') {
+                    ext = ext.substr(1);
+                }
                 if (checkExt[0] == '.') {
                     checkExt = checkExt.substr(1);
                 }

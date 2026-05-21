@@ -31,6 +31,7 @@
 #include "entity/loot/LootFunctions.hpp"
 #include "entity/loot/LootPool.hpp"
 #include "entity/loot/LootTable.hpp"
+#include "entity/loot/LootTableLoader.hpp"
 #include "entity/loot/RandomRanges.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -45,8 +46,244 @@
 #include "world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+
 using namespace mc;
 using namespace mc::loot;
+
+namespace {
+
+std::filesystem::path makeUniqueLootTempDir()
+{
+    const auto base = std::filesystem::temp_directory_path();
+    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    const auto dir = base / ("mc_loot_test_" + std::to_string(static_cast<long long>(now)));
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+void writeLootFile(const std::filesystem::path& root, const std::string& relativePath, const std::string& json)
+{
+    const auto fullPath = root / relativePath;
+    std::filesystem::create_directories(fullPath.parent_path());
+    std::ofstream file(fullPath, std::ios::binary);
+    file << json;
+}
+
+void loadLegacyEquivalentLootTables(LootTableManager& manager)
+{
+    const auto tempRoot = makeUniqueLootTempDir();
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/blocks/diamond_ore.json",
+        R"({
+          "type": "minecraft:block",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:diamond_ore",
+                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                }
+              ]
+            },
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:diamond",
+                  "conditions": [
+                    {
+                      "condition": "minecraft:inverted",
+                      "term": { "condition": "minecraft:silk_touch" }
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "function": "minecraft:apply_bonus",
+                      "formula": "minecraft:ore_drops"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/blocks/coal_ore.json",
+        R"({
+          "type": "minecraft:block",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:coal_ore",
+                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                }
+              ]
+            },
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:coal",
+                  "conditions": [
+                    {
+                      "condition": "minecraft:inverted",
+                      "term": { "condition": "minecraft:silk_touch" }
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "function": "minecraft:apply_bonus",
+                      "formula": "minecraft:ore_drops"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/blocks/stone.json",
+        R"({
+          "type": "minecraft:block",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:stone",
+                  "conditions": [{ "condition": "minecraft:silk_touch" }]
+                }
+              ]
+            },
+            {
+              "rolls": 1,
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:cobblestone",
+                  "conditions": [
+                    {
+                      "condition": "minecraft:inverted",
+                      "term": { "condition": "minecraft:silk_touch" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/gameplay/fishing/fish.json",
+        R"({
+          "type": "minecraft:fishing",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                { "type": "minecraft:item", "name": "minecraft:cod", "weight": 60 },
+                { "type": "minecraft:item", "name": "minecraft:salmon", "weight": 25 },
+                { "type": "minecraft:item", "name": "minecraft:tropical_fish", "weight": 2 },
+                { "type": "minecraft:item", "name": "minecraft:pufferfish", "weight": 13 }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/gameplay/fishing/junk.json",
+        R"({
+          "type": "minecraft:fishing",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                { "type": "minecraft:item", "name": "minecraft:leather_boots", "weight": 10, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:leather", "weight": 10, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:bone", "weight": 10, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:string", "weight": 5, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:fishing_rod", "weight": 2, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:bowl", "weight": 10, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:stick", "weight": 5, "quality": -2 },
+                { "type": "minecraft:item", "name": "minecraft:ink_sac", "weight": 1, "quality": -2, "functions": [{ "function": "minecraft:set_count", "count": 10 }] },
+                { "type": "minecraft:item", "name": "minecraft:rotten_flesh", "weight": 10, "quality": -2 }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/gameplay/fishing/treasure.json",
+        R"({
+          "type": "minecraft:fishing",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                { "type": "minecraft:item", "name": "minecraft:name_tag", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:item", "name": "minecraft:saddle", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:item", "name": "minecraft:bow", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:item", "name": "minecraft:fishing_rod", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:item", "name": "minecraft:book", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:item", "name": "minecraft:nautilus_shell", "weight": 1, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/gameplay/fishing.json",
+        R"({
+          "type": "minecraft:fishing",
+          "pools": [
+            {
+              "rolls": 1,
+              "entries": [
+                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/junk", "weight": 10, "quality": -2 },
+                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/treasure", "weight": 5, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/fish", "weight": 85, "quality": -1 }
+              ]
+            }
+          ]
+        })");
+
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/entities/pig.json",
+        R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":3},"entries":[{"type":"minecraft:item","name":"minecraft:porkchop"}]}]})");
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/entities/cow.json",
+        R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":3},"entries":[{"type":"minecraft:item","name":"minecraft:beef"}]}]})");
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/entities/sheep.json",
+        R"({"type":"minecraft:entity","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:wool"}]},{"rolls":{"min":1,"max":2},"entries":[{"type":"minecraft:item","name":"minecraft:mutton"}]}]})");
+    writeLootFile(tempRoot,
+        "data/minecraft/loot_tables/entities/chicken.json",
+        R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":2},"entries":[{"type":"minecraft:item","name":"minecraft:chicken"},{"type":"minecraft:item","name":"minecraft:feather","functions":[{"function":"minecraft:set_count","count":{"min":0,"max":2}}]}]}]})");
+
+    LootTableLoader loader(manager);
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_tables").string());
+    ASSERT_TRUE(result.success());
+    ASSERT_EQ(11u, result.value().successCount);
+
+    std::error_code ec;
+    std::filesystem::remove_all(tempRoot, ec);
+}
+
+} // namespace
 
 // Test implementation of IWorld for loot testing
 class LootTestWorld : public test::BaseTestWorld {
@@ -244,7 +481,7 @@ TEST_F(LootTest, LootTableManager_RegisterAndGet)
 TEST_F(LootTest, LootTableManager_DefaultTables)
 {
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     EXPECT_TRUE(manager.hasTable("minecraft:entities/pig"));
     EXPECT_TRUE(manager.hasTable("minecraft:entities/cow"));
@@ -1821,7 +2058,7 @@ TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch)
 {
     // 测试钻石矿精准采集掉落
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/diamond_ore");
     ASSERT_NE(table, nullptr);
@@ -1845,7 +2082,7 @@ TEST_F(LootTest, LootTable_DiamondOreWithFortune)
     // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
     // 这个测试验证在没有工具的情况下，掉落数量固定为 1
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/diamond_ore");
     ASSERT_NE(table, nullptr);
@@ -1869,7 +2106,7 @@ TEST_F(LootTest, LootTable_CoalOreWithSilkTouch)
 {
     // 测试煤矿精准采集掉落
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/coal_ore");
     ASSERT_NE(table, nullptr);
@@ -1891,7 +2128,7 @@ TEST_F(LootTest, LootTable_CoalOreWithFortune)
     // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
     // 这个测试验证在没有工具的情况下，掉落数量固定为 1
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/coal_ore");
     ASSERT_NE(table, nullptr);
@@ -1915,7 +2152,7 @@ TEST_F(LootTest, LootTable_StoneWithSilkTouch)
 {
     // 测试石头精准采集掉落石头
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/stone");
     ASSERT_NE(table, nullptr);
@@ -1935,7 +2172,7 @@ TEST_F(LootTest, LootTable_StoneWithoutSilkTouch)
 {
     // 测试石头普通挖掘掉落圆石
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* table = manager.getTable("minecraft:blocks/stone");
     ASSERT_NE(table, nullptr);
@@ -2400,7 +2637,7 @@ TEST_F(LootTest, FishingLootTable_FishTableExists)
 {
     // 测试鱼表存在
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* fishTable = manager.getTable("minecraft:gameplay/fishing/fish");
     ASSERT_NE(fishTable, nullptr);
@@ -2421,7 +2658,7 @@ TEST_F(LootTest, FishingLootTable_JunkTableExists)
 {
     // 测试垃圾表存在
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* junkTable = manager.getTable("minecraft:gameplay/fishing/junk");
     ASSERT_NE(junkTable, nullptr);
@@ -2439,7 +2676,7 @@ TEST_F(LootTest, FishingLootTable_TreasureTableExists)
 {
     // 测试宝藏表存在
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
     ASSERT_NE(treasureTable, nullptr);
@@ -2459,7 +2696,7 @@ TEST_F(LootTest, FishingLootTable_MainTableExists)
 {
     // 测试主表存在
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
     ASSERT_NE(fishingTable, nullptr);
@@ -2484,7 +2721,7 @@ TEST_F(LootTest, FishingLootTable_TreasureRequiresOpenWater)
 {
     // 测试宝藏条目需要开放水域条件
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
     ASSERT_NE(treasureTable, nullptr);
@@ -2506,7 +2743,7 @@ TEST_F(LootTest, FishingLootTable_TreasureInOpenWater)
 {
     // 测试在开放水域中可以钓到宝藏
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* treasureTable = manager.getTable("minecraft:gameplay/fishing/treasure");
     ASSERT_NE(treasureTable, nullptr);
@@ -2532,7 +2769,7 @@ TEST_F(LootTest, FishingLootTable_LuckAffectsQuality)
 {
     // 测试幸运值影响掉落质量
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
     ASSERT_NE(fishingTable, nullptr);
@@ -2577,7 +2814,7 @@ TEST_F(LootTest, FishingLootTable_FishJunkTreasureDistribution)
 {
     // 测试鱼/垃圾/宝藏的分布
     LootTableManager manager;
-    manager.initializeDefaultTables();
+    loadLegacyEquivalentLootTables(manager);
 
     const LootTable* fishingTable = manager.getTable("minecraft:gameplay/fishing");
     ASSERT_NE(fishingTable, nullptr);

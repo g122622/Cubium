@@ -45,6 +45,7 @@ ServerSettings::ServerSettings()
           {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified, LevelType::Debug},
           LevelType::Default,
           {"default", "flat", "largeBiomes", "amplified", "debug_all_block_states"})
+    , resourcePackDirectory("resourcePackDirectory", "resourcepacks")
     , generateStructures("generateStructures", true)
     , enableCommandBlock("enableCommandBlock", false)
 
@@ -94,6 +95,7 @@ ServerSettings::ServerSettings()
     registerOption("world", &levelName);
     registerOption("world", &levelSeed);
     registerOption("world", &levelType);
+    registerOption("world", &resourcePackDirectory);
     registerOption("world", &generateStructures);
     registerOption("world", &enableCommandBlock);
 

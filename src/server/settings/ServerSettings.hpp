@@ -101,6 +101,9 @@ public:
     /// 世界类型
     EnumOption<u8> levelType;
 
+    /// 资源包目录
+    StringOption resourcePackDirectory;
+
     /// 是否生成结构
     BooleanOption generateStructures;
 
