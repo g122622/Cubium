@@ -242,7 +242,7 @@ The `application` module serves as the **entry point and orchestrator** for the 
 | Direction  | Component       | Description                                                              |
 | ---------- | --------------- | ------------------------------------------------------------------------ |
 | **Input**  | Network packets | Player movement, block interactions, chat, login                         |
-| **Input**  | Configuration   | `ServerCoreConfig` / `IntegratedServerConfig` / `StandaloneServerParams` |
+| **Input**  | Configuration   | `ServerSettings` / `IntegratedServerParams` / `StandaloneServerParams` |
 | **Input**  | World data      | Chunk requests, entity spawning                                          |
 | **Output** | Network packets | Chunk data, entity updates, teleport, game state                         |
 | **Output** | World changes   | Block modifications, entity spawning/removal                             |

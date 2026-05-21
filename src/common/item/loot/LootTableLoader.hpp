@@ -25,6 +25,7 @@
 
 #include "LootTableManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/DataPackList.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include <cstddef>
@@ -79,6 +80,19 @@ public:
      * @return 加载结果
      */
     Result<LoadResult> loadFromResourcePacks(const ResourcePackList& packs, ProgressCallback callback = nullptr);
+
+    /**
+     * @brief 从数据包列表加载所有掉落表
+     *
+     * 使用 DataPackList 的 PackType::ServerData 限定接口从数据包加载掉落表。
+     * 按数据包优先级从低到高加载，同名掉落表由高优先级数据包覆盖。
+     *
+     * @param dataPacks 数据包列表
+     * @param callback 进度回调（可选）
+     * @return 加载结果
+     */
+    Result<LoadResult> loadFromDataPackList(
+        const mc::resource::DataPackList& dataPacks, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从目录加载所有掉落表

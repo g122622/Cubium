@@ -7,12 +7,14 @@
 ```text
 src/common/resource/
 ├── ResourceLocation.hpp/cpp        # 资源定位符（namespace:path）
+├── PackType.hpp                    # 资源包类型枚举（ClientResources/ServerData）
 ├── IResourcePack.hpp/cpp           # 资源包接口
 ├── FolderResourcePack.hpp/cpp      # 文件夹资源包
 ├── ZipResourcePack.hpp/cpp         # ZIP 资源包
 ├── InMemoryResourcePack.hpp/cpp    # 内存资源包
 ├── PackMetadata.hpp/cpp            # pack.mcmeta 解析
-├── ResourcePackList.hpp/cpp        # 资源包列表与优先级管理
+├── ResourcePackList.hpp/cpp        # 客户端资源包列表与优先级管理
+├── DataPackList.hpp/cpp            # 服务端数据包列表管理
 ├── VanillaResources.hpp/cpp        # 原版基础资源
 ├── LanguageManager.hpp/cpp         # 多语言翻译管理器
 ├── metadata/                       # 资源元数据
@@ -34,12 +36,14 @@ src/common/resource/
 ## 文件介绍
 
 - `ResourceLocation`：统一的资源定位符，负责 `namespace:path` 解析与路径转换。
-- `IResourcePack`：资源包抽象接口，文件夹包、ZIP 包和内存包都实现它。
+- `PackType`：资源包类型枚举，区分 `ClientResources`（映射到 `assets/` 目录）和 `ServerData`（映射到 `data/` 目录）。
+- `IResourcePack`：资源包抽象接口，文件夹包、ZIP 包和内存包都实现它。支持 `PackType` 参数的方法。
 - `FolderResourcePack`：从目录读取资源。
 - `ZipResourcePack`：从 ZIP 读取资源，当前内部缓存已加锁。
 - `InMemoryResourcePack`：内置资源包，适合原版默认资源。
 - `PackMetadata`：读取 `pack.mcmeta`。
-- `ResourcePackList`：资源包列表、启用状态、优先级、并发查询、`containsPack()`、`getPackInfo()` 和变更通知。
+- `ResourcePackList`：客户端资源包列表、启用状态、优先级、并发查询、`containsPack()`、`getPackInfo()` 和变更通知。
+- `DataPackList`：服务端数据包列表管理，限定 `PackType::ServerData`，提供战利品表、配方等数据的加载接口。
 - `VanillaResources`：原版模型/方块状态等基础资源。
 - `LanguageManager`：多语言翻译管理器，从资源包加载语言文件，支持占位符替换。
 - `compat/`：旧版与新版资源路径兼容。

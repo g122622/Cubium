@@ -575,49 +575,33 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     }
     spdlog::info("Dispense item behaviors initialized");
 
-    // 初始化战利品表管理器（从 JSON 文件动态加载）
+    // 初始化战利品表管理器（从数据包加载）
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::LootTables");
         loot::LootTableLoader lootLoader(m_lootTableManager);
-        auto lootLoadResult = lootLoader.loadFromDirectory("data/minecraft/loot_tables");
-        if (lootLoadResult.failed()) {
-            spdlog::error(
-                "Failed to load loot tables from 'data/minecraft/loot_tables': {}", lootLoadResult.error().toString());
+        auto dataPackLoadResult = lootLoader.loadFromDataPackList(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load loot tables from data packs: {}", dataPackLoadResult.error().toString());
         } else {
-            const auto& result = lootLoadResult.value();
-            spdlog::info(
-                "Loaded {} loot tables from local data directory ({} failed)", result.successCount, result.failedCount);
-            for (const auto& err : result.errors) {
-                spdlog::error("Loot table error: {}", err);
-            }
-        }
-
-        lootLoader.setClearBeforeLoad(false);
-        auto resourcePackLoadResult = lootLoader.loadFromResourcePacks(m_resourcePackList);
-        if (resourcePackLoadResult.failed()) {
-            spdlog::error(
-                "Failed to load loot tables from resource packs: {}", resourcePackLoadResult.error().toString());
-        } else {
-            const auto& result = resourcePackLoadResult.value();
-            spdlog::info(
-                "Loaded {} loot tables from resource packs ({} failed)", result.successCount, result.failedCount);
+            const auto& result = dataPackLoadResult.value();
+            spdlog::info("Loaded {} loot tables from data packs ({} failed)", result.successCount, result.failedCount);
             for (const auto& err : result.errors) {
                 spdlog::error("Loot table error: {}", err);
             }
         }
     }
 
-    // 加载配方
+    // 加载配方（从数据包加载）
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Recipes");
         RecipeLoader recipeLoader;
-        auto recipeLoadResult = recipeLoader.loadFromDirectory("data/minecraft/recipes");
-        if (recipeLoadResult.failed()) {
-            spdlog::error("Failed to load crafting recipes: {}", recipeLoadResult.error().toString());
+        auto dataPackLoadResult = recipeLoader.loadFromDataPackList(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load crafting recipes from data packs: {}", dataPackLoadResult.error().toString());
         } else {
-            spdlog::info("Loaded {} crafting recipes ({} failed)",
-                recipeLoadResult.value().successCount,
-                recipeLoadResult.value().failedCount);
+            spdlog::info("Loaded {} crafting recipes from data packs ({} failed)",
+                dataPackLoadResult.value().successCount,
+                dataPackLoadResult.value().failedCount);
         }
     }
 

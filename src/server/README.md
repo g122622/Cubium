@@ -12,7 +12,6 @@ server/
 │   ├── IntegratedServer.hpp/cpp # 内置服务器（单机模式）
 │   └── StandaloneServer.hpp/cpp  # 独立服务器（多人模式）
 ├── core/                 # 核心管理器
-│   ├── ServerCoreConfig.hpp   # 配置结构体
 │   ├── ServerPlayerData.hpp   # 玩家数据
 │   ├── PlayerManager.hpp/cpp  # 玩家生命周期管理
 │   ├── ConnectionManager.hpp/cpp  # 网络连接管理
@@ -83,8 +82,8 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `IServer` | 服务器接口，定义所有管理器的访问方法 |
-| `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由） |
+| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dataPackList()`、`lootTableManager()`） |
+| `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理） |
 | `IntegratedServer` | 内置服务器，使用 LocalConnection 与客户端通信（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
 
@@ -94,7 +93,6 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `ServerCoreConfig` | 配置结构体（视距、心跳间隔、种子等） |
 | `ServerPlayerData` | 服务端玩家状态（位置、心跳、传送等） |
 | `PlayerManager` | 玩家生命周期（注册、移除、遍历），线程安全 |
 | `ConnectionManager` | 网络消息发送、广播、断开连接 |
@@ -181,6 +179,8 @@ TCP 网络通信实现。
 - `/list` - 列出玩家
 - `/help` - 帮助信息
 - `/execute` - 执行嵌套命令（支持 as、at、positioned、if/unless block 子命令）
+- `/datapack` - 数据包管理（enable/disable/list），通过 `DataPackList` 操作
+- `/reload` - 重新加载数据包内容（战利品表、配方等）
 
 命令建议现在直接从命令树生成，参数节点可以挂接自定义建议提供器，因此别名、重定向和未来的动态候选项都能统一走同一条补全路径。
 
@@ -379,20 +379,23 @@ chunkManager.setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
 ### 4. Manager 初始化顺序
 
 `MinecraftServer` 的初始化顺序：
-1. `initializeCoreManagers()` - 核心 Manager
-2. `initializeWorld()` - 世界和区块管理器
-3. `initializeInteractionManagers()` - 交互 Manager
-4. `initializeSyncManagers()` - 同步 Manager
-5. `initializeChunkSyncManagers()` - 区块同步（在 world 之后）
-6. `setupWorldCallbacks()` - 设置回调
+1. `initializeRegistries()` - 游戏注册表（方块、物品、附魔、战利品表、配方），从 `DataPackList` 加载数据
+2. `initializeCoreManagers()` - 核心 Manager
+3. `initializeWorld()` - 世界和区块管理器
+4. `initializeInteractionManagers()` - 交互 Manager
+5. `initializeSyncManagers()` - 同步 Manager
+6. `initializeChunkSyncManagers()` - 区块同步（在 world 之后）
+7. `setupWorldCallbacks()` - 设置回调
 
 ### 5. 心跳超时配置
 
-默认心跳间隔 15 秒，超时 30 秒：
+默认心跳间隔和超时通过 `ServerSettings` 和 `mc::defaults::serverCore` 命名空间管理：
 ```cpp
-ServerCoreConfig config;
-config.keepAliveInterval = 15000;  // 毫秒
-config.keepAliveTimeout = 30000;   // 毫秒
+// 默认值定义在 src/common/core/DefaultValues.hpp
+namespace mc::defaults::serverCore {
+    inline constexpr i32 keepAliveIntervalMs = 15000;
+    inline constexpr i32 keepAliveTimeoutMs = 30000;
+}
 ```
 
 ### 6. 命令注册

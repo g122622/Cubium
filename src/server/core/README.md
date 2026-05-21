@@ -6,7 +6,6 @@
 
 ```
 src/server/core/
-├── ServerCoreConfig.hpp      # 服务端核心配置结构
 ├── ServerPlayerData.hpp      # 服务端玩家数据结构
 ├── PlayerManager.hpp/cpp     # 玩家生命周期管理器
 ├── ConnectionManager.hpp/cpp # 连接与消息管理器
@@ -23,29 +22,6 @@ src/server/core/
 ```
 
 ## 文件详解
-
-### ServerCoreConfig.hpp
-
-服务端核心配置结构，定义服务器运行时参数。
-
-```cpp
-struct ServerCoreConfig {
-    i32 viewDistance = 10;           // 视距（区块数）
-    i32 keepAliveInterval = 15000;   // 心跳间隔（毫秒）
-    i32 keepAliveTimeout = 30000;    // 心跳超时（毫秒）
-    GameMode defaultGameMode = GameMode::Survival;  // 默认游戏模式
-    u64 seed = 12345;                // 世界种子
-    i32 maxPlayers = 20;             // 最大玩家数
-    i32 tickRate = 20;               // 服务器 TPS
-};
-```
-
-**常量定义：**
-- `TICK_DURATION_MS = 50` - Tick 持续时间（20 TPS）
-- `KEEPALIVE_CHECK_INTERVAL_TICKS = 300` - 心跳检查间隔
-- `CLEANUP_INTERVAL_TICKS = 20` - 断开连接清理间隔
-
----
 
 ### ServerPlayerData.hpp
 
@@ -759,7 +735,7 @@ packetHandler.setServer(&server);
 
 ```
                     ┌─────────────────────┐
-                    │  ServerCoreConfig   │
+                    │    ServerSettings   │
                     └──────────┬──────────┘
                                │
                                ▼
@@ -841,7 +817,7 @@ packetHandler.setServer(&server);
 | 来源 | 数据类型 | 处理方式 |
 |------|----------|----------|
 | 网络层 | 原始数据包 | `PacketHandler::handlePacket()` |
-| 配置 | `ServerCoreConfig` | 构造函数注入 |
+| 配置 | `ServerSettings` | 通过 MinecraftServer 引用 |
 | 外部调用 | 玩家操作请求 | 各管理器公共方法 |
 
 ### 输出
@@ -883,7 +859,6 @@ packetHandler.setServer(&server);
 ### 基本初始化
 
 ```cpp
-#include "server/core/ServerCoreConfig.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/TimeManager.hpp"
@@ -895,11 +870,8 @@ packetHandler.setServer(&server);
 
 using namespace mc::server::core;
 
-// 创建配置
-ServerCoreConfig config;
-config.viewDistance = 12;
-config.maxPlayers = 50;
-config.keepAliveInterval = 15000;
+// 配置通过 ServerSettings 管理
+// ServerSettings& m_settings;
 config.keepAliveTimeout = 30000;
 
 // 创建管理器
@@ -1092,7 +1064,7 @@ cmake --build --preset windows-clang-relwithdebinfo
 
 管理器通过构造函数接收依赖：
 ```cpp
-KeepAliveManager(PlayerManager& playerManager, const ServerCoreConfig& config);
+KeepAliveManager(PlayerManager& playerManager, ServerSettings& settings);
 PacketHandler(PlayerManager&, ConnectionManager&, TeleportManager&, ...);
 ```
 

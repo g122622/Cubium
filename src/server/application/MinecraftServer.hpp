@@ -31,6 +31,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/resource/DataPackList.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
@@ -326,10 +327,12 @@ public:
     /**
      * @brief 获取掉落表管理器
      */
-    [[nodiscard]] mc::loot::LootTableManager& lootTableManager() { return m_lootTableManager; }
-    [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const { return m_lootTableManager; }
+    [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override { return m_lootTableManager; }
+    [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override { return m_lootTableManager; }
     [[nodiscard]] ResourcePackList& resourcePackList() { return m_resourcePackList; }
     [[nodiscard]] const ResourcePackList& resourcePackList() const { return m_resourcePackList; }
+    [[nodiscard]] mc::resource::DataPackList& dataPackList() override { return m_dataPackList; }
+    [[nodiscard]] const mc::resource::DataPackList& dataPackList() const override { return m_dataPackList; }
 
 protected:
     void attachWorldBindings(ServerWorld& world);
@@ -892,6 +895,7 @@ protected:
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
     ResourcePackList m_resourcePackList;
+    mc::resource::DataPackList m_dataPackList;
 
     // 刷怪系统
     std::unique_ptr<::mc::world::spawn::NaturalSpawner> m_naturalSpawner;

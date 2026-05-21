@@ -25,6 +25,7 @@
 
 #include "MinecraftServer.hpp"
 #include "common/core/DefaultValues.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -181,6 +182,7 @@ private:
 
     IntegratedServerParams m_params;
     ServerSettings m_integratedSettings;
+    GameDirectory m_gameDirectory;
 
     // 服务端线程
     std::unique_ptr<std::thread> m_serverThread;

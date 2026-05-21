@@ -102,6 +102,60 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
     return m_lastResult;
 }
 
+Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackList(
+    const mc::resource::DataPackList& dataPacks, ProgressCallback callback)
+{
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromDataPackList");
+
+    m_lastResult = LoadResult{};
+    clearIfNeeded();
+
+    auto listResult = dataPacks.listResources("", ".json");
+    if (!listResult.success()) {
+        return listResult.error();
+    }
+
+    std::vector<std::string> lootTableResources;
+    for (const auto& path : listResult.value()) {
+        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos) {
+            continue;
+        }
+        lootTableResources.push_back(path);
+    }
+
+    size_t current = 0;
+    const size_t total = lootTableResources.size();
+    for (const auto& resourcePath : lootTableResources) {
+        const std::string id = pathToLootTableId(resourcePath);
+        if (callback) {
+            callback(current, total, id);
+        }
+
+        auto readResult = dataPacks.readTextResource(resourcePath);
+        if (!readResult.success()) {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
+            ++current;
+            continue;
+        }
+
+        auto loadResult = loadJson(id, readResult.value());
+        if (loadResult.success()) {
+            ++m_lastResult.successCount;
+        } else {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + loadResult.error().toString());
+        }
+        ++current;
+    }
+
+    if (callback) {
+        callback(total, total, "");
+    }
+
+    return m_lastResult;
+}
+
 Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
     const std::string& directoryPath, ProgressCallback callback)
 {

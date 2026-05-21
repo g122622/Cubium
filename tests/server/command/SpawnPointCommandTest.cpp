@@ -277,6 +277,18 @@ public:
         throw std::logic_error("unused");
     }
 
+    [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const resource::DataPackList& dataPackList() const override
+    {
+        throw std::logic_error("unused");
+    }
+
+    [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
 

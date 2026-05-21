@@ -277,6 +277,18 @@ public:
         throw std::logic_error("unused");
     }
 
+    [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const resource::DataPackList& dataPackList() const override
+    {
+        throw std::logic_error("unused");
+    }
+
+    [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+
     [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }
     [[nodiscard]] u64 seed() const override { return m_seed; }

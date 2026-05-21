@@ -37,6 +37,12 @@ class PhysicsEngine;
 class EntityManager;
 class PlayerInventory;
 class ServerDimensionManager;
+namespace loot {
+class LootTableManager;
+}
+namespace resource {
+class DataPackList;
+}
 namespace server {
 class ServerPlayerEntityManager;
 }
@@ -268,6 +274,22 @@ public:
 
     [[nodiscard]] virtual mc::command::CommandRegistry& commandRegistry() = 0;
     [[nodiscard]] virtual const mc::command::CommandRegistry& commandRegistry() const = 0;
+
+    // ========== 数据包系统 ==========
+
+    /**
+     * @brief 获取数据包列表
+     * @return 数据包列表引用
+     */
+    [[nodiscard]] virtual resource::DataPackList& dataPackList() = 0;
+    [[nodiscard]] virtual const resource::DataPackList& dataPackList() const = 0;
+
+    /**
+     * @brief 获取掉落表管理器
+     * @return 掉落表管理器引用
+     */
+    [[nodiscard]] virtual loot::LootTableManager& lootTableManager() = 0;
+    [[nodiscard]] virtual const loot::LootTableManager& lootTableManager() const = 0;
 
     // ========== 记分板系统 ==========
 

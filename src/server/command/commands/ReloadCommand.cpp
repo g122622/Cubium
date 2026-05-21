@@ -24,8 +24,12 @@
 #include "ReloadCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/item/crafting/RecipeLoader.hpp"
+#include "common/item/loot/LootTableLoader.hpp"
+#include "common/resource/DataPackList.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -46,14 +50,46 @@ i32 ReloadCommand::reload(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
+    auto* server = source.server();
+    if (!server) {
+        source.sendMessage("Failed to reload: server not available");
+        return 0;
+    }
+
     source.sendMessage("Reloading server resources...");
 
-    // TODO: 实现资源重新加载系统
-    // 1. 重新加载数据包
-    // 2. 重新加载进度
-    // 3. 重新加载战利品表
-    // 4. 重新加载函数
-    // 5. 通知客户端
+    auto& dataPacks = server->dataPackList();
+
+    // 1. 重新加载战利品表
+    auto& lootTableManager = server->lootTableManager();
+    loot::LootTableLoader lootLoader(lootTableManager);
+    auto lootResult = lootLoader.loadFromDataPackList(dataPacks);
+    if (lootResult.failed()) {
+        source.sendMessage("Failed to reload loot tables: " + lootResult.error().toString());
+        spdlog::error("Failed to reload loot tables: {}", lootResult.error().toString());
+    } else {
+        const auto& result = lootResult.value();
+        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " loot tables" +
+            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        for (const auto& err : result.errors) {
+            spdlog::error("Loot table error: {}", err);
+        }
+    }
+
+    // 2. 重新加载配方
+    RecipeLoader recipeLoader;
+    auto recipeResult = recipeLoader.loadFromDataPackList(dataPacks);
+    if (recipeResult.failed()) {
+        source.sendMessage("Failed to reload recipes: " + recipeResult.error().toString());
+        spdlog::error("Failed to reload recipes: {}", recipeResult.error().toString());
+    } else {
+        const auto& result = recipeResult.value();
+        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " recipes" +
+            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        for (const auto& err : result.errors) {
+            spdlog::error("Recipe error: {}", err);
+        }
+    }
 
     source.sendMessage("Reload complete!");
     return 1;

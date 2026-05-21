@@ -12,6 +12,8 @@ src/common/core/
 ├── Constants.hpp                # Math, game, network, world, entity constants
 ├── EnumSet.hpp                  # Enum set utility (bitset-based)
 ├── BlockRaycastResult.hpp       # Block raycast result type
+├── GameDirectory.hpp/cpp        # 游戏目录管理器（统一管理所有游戏路径）
+├── DefaultValues.hpp            # 集中默认值定义
 └── settings/
     ├── SettingsBase.hpp         # Settings base class
     ├── SettingsBase.cpp         # Settings implementation

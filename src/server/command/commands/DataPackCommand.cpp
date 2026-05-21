@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/resource/DataPackList.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <sstream>
@@ -68,17 +69,38 @@ i32 DataPackCommand::enableDataPack(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
 
-    std::ostringstream ss;
-    ss << "Enabled data pack '" << name << "'";
-    source.sendMessage(ss.str());
+    auto* server = source.server();
+    if (!server) {
+        source.sendMessage("Failed to enable data pack: server not available");
+        return 0;
+    }
 
-    // TODO: 实现数据包系统
-    // 1. 查找数据包
-    // 2. 验证依赖
-    // 3. 加载数据包
-    // 4. 通知客户端
+    auto& dataPacks = server->dataPackList();
 
-    return 1;
+    // Search for a pack matching the given name (by path or pack name)
+    auto allPacks = dataPacks.getAllPacks();
+    std::string matchedPath;
+    for (const auto& packInfo : allPacks) {
+        // Match by the last component of the path (directory/zip name)
+        std::filesystem::path packPath(packInfo.path);
+        if (packPath.filename().string() == name || packPath.stem().string() == name) {
+            matchedPath = packInfo.path;
+            break;
+        }
+    }
+
+    if (matchedPath.empty()) {
+        source.sendMessage("Unknown data pack '" + name + "'");
+        return 0;
+    }
+
+    if (dataPacks.setEnabled(matchedPath, true)) {
+        source.sendMessage("Enabled data pack '" + name + "'");
+        return 1;
+    }
+
+    source.sendMessage("Failed to enable data pack '" + name + "'");
+    return 0;
 }
 
 i32 DataPackCommand::disableDataPack(CommandContext<ServerCommandSource>& context)
@@ -86,22 +108,82 @@ i32 DataPackCommand::disableDataPack(CommandContext<ServerCommandSource>& contex
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
 
-    std::ostringstream ss;
-    ss << "Disabled data pack '" << name << "'";
-    source.sendMessage(ss.str());
+    auto* server = source.server();
+    if (!server) {
+        source.sendMessage("Failed to disable data pack: server not available");
+        return 0;
+    }
 
-    // TODO: 实现数据包系统
+    auto& dataPacks = server->dataPackList();
 
-    return 1;
+    auto allPacks = dataPacks.getAllPacks();
+    std::string matchedPath;
+    for (const auto& packInfo : allPacks) {
+        std::filesystem::path packPath(packInfo.path);
+        if (packPath.filename().string() == name || packPath.stem().string() == name) {
+            matchedPath = packInfo.path;
+            break;
+        }
+    }
+
+    if (matchedPath.empty()) {
+        source.sendMessage("Unknown data pack '" + name + "'");
+        return 0;
+    }
+
+    if (dataPacks.setEnabled(matchedPath, false)) {
+        source.sendMessage("Disabled data pack '" + name + "'");
+        return 1;
+    }
+
+    source.sendMessage("Failed to disable data pack '" + name + "'");
+    return 0;
 }
 
 i32 DataPackCommand::listDataPacks(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    // TODO: 实现数据包系统
-    source.sendMessage("There are no data packs enabled");
+    auto* server = source.server();
+    if (!server) {
+        source.sendMessage("No data packs available");
+        return 0;
+    }
 
+    auto& dataPacks = server->dataPackList();
+    auto allPacks = dataPacks.getAllPacks();
+
+    if (allPacks.empty()) {
+        source.sendMessage("There are no data packs available");
+        return 0;
+    }
+
+    std::ostringstream enabledList;
+    std::ostringstream disabledList;
+    i32 enabledCount = 0;
+    i32 disabledCount = 0;
+
+    for (const auto& packInfo : allPacks) {
+        std::filesystem::path packPath(packInfo.path);
+        std::string packName = packPath.stem().string();
+
+        if (packInfo.enabled) {
+            if (enabledCount > 0) {
+                enabledList << ", ";
+            }
+            enabledList << packName;
+            ++enabledCount;
+        } else {
+            if (disabledCount > 0) {
+                disabledList << ", ";
+            }
+            disabledList << packName;
+            ++disabledCount;
+        }
+    }
+
+    source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
+    source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
     return 1;
 }
 

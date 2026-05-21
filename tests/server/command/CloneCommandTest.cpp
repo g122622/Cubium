@@ -182,6 +182,18 @@ public:
         throw std::logic_error("unused");
     }
 
+    [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const resource::DataPackList& dataPackList() const override
+    {
+        throw std::logic_error("unused");
+    }
+
+    [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override
+    {
+        throw std::logic_error("unused");
+    }
+
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("world not available in unit test"); }

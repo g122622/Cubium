@@ -24,6 +24,7 @@
 #include "item/crafting/RecipeLoader.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "resource/DataPackList.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -76,6 +77,65 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(
             ++result.failedCount;
             result.errors.push_back(filePath.filename().string() + ": " + loadResult.error().message());
         }
+    }
+
+    m_lastResult = result;
+    return result;
+}
+
+Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackList(
+    const mc::resource::DataPackList& dataPacks, ProgressCallback callback)
+{
+    LoadResult result;
+    m_lastResult = LoadResult{};
+
+    if (m_clearBeforeLoad) {
+        crafting::RecipeManager::instance().clear();
+    }
+
+    auto listResult = dataPacks.listResources("", ".json");
+    if (!listResult.success()) {
+        return listResult.error();
+    }
+
+    std::vector<std::string> recipeResources;
+    for (const auto& path : listResult.value()) {
+        if (path.find("/recipes/") == std::string::npos && path.find("recipes/") == std::string::npos) {
+            continue;
+        }
+        recipeResources.push_back(path);
+    }
+
+    size_t current = 0;
+    const size_t total = recipeResources.size();
+
+    for (const auto& resourcePath : recipeResources) {
+        ResourceLocation id = pathToRecipeId(resourcePath);
+
+        if (callback) {
+            callback(current, total, id.toString());
+        }
+
+        auto readResult = dataPacks.readTextResource(resourcePath);
+        if (!readResult.success()) {
+            ++result.failedCount;
+            result.errors.push_back(resourcePath + ": " + readResult.error().toString());
+            ++current;
+            continue;
+        }
+
+        auto loadResult = loadRecipeJson(id, readResult.value());
+        if (loadResult.success()) {
+            ++result.successCount;
+        } else {
+            ++result.failedCount;
+            result.errors.push_back(resourcePath + ": " + loadResult.error().message());
+        }
+        ++current;
+    }
+
+    if (callback) {
+        callback(total, total, "");
     }
 
     m_lastResult = result;

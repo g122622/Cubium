@@ -110,7 +110,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     // 扫描数据包目录
     auto dataPackDir = m_gameDirectory.dataPacksDir();
-    auto scanResult = resourcePackList().scanDirectory(dataPackDir);
+    auto scanResult = m_dataPackList.scanDirectory(dataPackDir);
     if (scanResult.failed()) {
         spdlog::warn(
             "Failed to scan data pack directory '{}': {}", dataPackDir.string(), scanResult.error().toString());

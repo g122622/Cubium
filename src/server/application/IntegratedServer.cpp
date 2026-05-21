@@ -108,6 +108,22 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     m_integratedSettings.tickRate.set(params.tickRate);
     m_integratedSettings.worldName.set(params.worldName);
 
+    // 初始化游戏目录并扫描数据包
+    m_gameDirectory = GameDirectory::defaultDirectory();
+    auto dirResult = m_gameDirectory.ensureDirectoriesExist();
+    if (dirResult.failed()) {
+        spdlog::warn("Failed to create game directories: {}", dirResult.error().toString());
+    }
+
+    auto dataPackDir = m_gameDirectory.dataPacksDir();
+    auto scanResult = m_dataPackList.scanDirectory(dataPackDir);
+    if (scanResult.failed()) {
+        spdlog::warn(
+            "Failed to scan data pack directory '{}': {}", dataPackDir.string(), scanResult.error().toString());
+    } else if (scanResult.value() > 0) {
+        spdlog::info("Scanned {} data packs from '{}'", scanResult.value(), dataPackDir.string());
+    }
+
     // 初始化游戏注册表
     initializeRegistries(false);
 
