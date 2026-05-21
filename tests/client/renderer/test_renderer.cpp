@@ -34,7 +34,9 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
+#include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace mc;
 
@@ -48,12 +50,41 @@ public:
 
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const override
     {
-        return m_resources.find(std::string(resourcePath)) != m_resources.end();
+        return hasResource(resource::PackType::ClientResources, resourcePath);
+    }
+
+    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
+    {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string path(resourcePath);
+        bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
+        std::string full;
+        if (hasTypePrefix) {
+            full = path;
+        } else {
+            full = typeDir + "/" + path;
+        }
+        return m_resources.find(full) != m_resources.end();
     }
 
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override
     {
-        const auto it = m_resources.find(std::string(resourcePath));
+        return readResource(resource::PackType::ClientResources, resourcePath);
+    }
+
+    [[nodiscard]] Result<std::vector<u8>> readResource(
+        resource::PackType type, std::string_view resourcePath) const override
+    {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string path(resourcePath);
+        bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
+        std::string full;
+        if (hasTypePrefix) {
+            full = path;
+        } else {
+            full = typeDir + "/" + path;
+        }
+        const auto it = m_resources.find(full);
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
         }
@@ -74,6 +105,33 @@ public:
                 result.push_back(path);
             }
         }
+        return result;
+    }
+
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        resource::PackType type, std::string_view directory, std::string_view extension) const override
+    {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string fullDirectory = typeDir + "/" + std::string(directory);
+        return listResources(fullDirectory, extension);
+    }
+
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override
+    {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string prefix = typeDir + "/";
+        std::unordered_set<std::string> namespaces;
+        for (const auto& [path, _] : m_resources) {
+            if (path.size() > prefix.size() && path.substr(0, prefix.size()) == prefix) {
+                std::string rest = path.substr(prefix.size());
+                size_t slashPos = rest.find('/');
+                if (slashPos != std::string::npos) {
+                    namespaces.insert(rest.substr(0, slashPos));
+                }
+            }
+        }
+        std::vector<std::string> result(namespaces.begin(), namespaces.end());
+        std::sort(result.begin(), result.end());
         return result;
     }
 

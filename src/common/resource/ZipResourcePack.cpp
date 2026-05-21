@@ -137,13 +137,44 @@ Result<void> ZipResourcePack::initialize()
 
 bool ZipResourcePack::hasResource(std::string_view resourcePath) const
 {
-    std::string normalized = normalizePath(resourcePath);
+    return hasResource(resource::PackType::ClientResources, resourcePath);
+}
+
+bool ZipResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
+{
+    // 如果 resourcePath 已经包含类型目录前缀（assets/ 或 data/），直接使用；
+    // 否则自动添加前缀
+    std::string typeDir(resource::packTypeDirectoryName(type));
+    std::string path(resourcePath);
+    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
+
+    std::string normalized;
+    if (hasTypePrefix) {
+        normalized = normalizePath(resourcePath);
+    } else {
+        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
+    }
     return m_entries.find(normalized) != m_entries.end();
 }
 
 Result<std::vector<u8>> ZipResourcePack::readResource(std::string_view resourcePath) const
 {
-    std::string normalized = normalizePath(resourcePath);
+    return readResource(resource::PackType::ClientResources, resourcePath);
+}
+
+Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
+{
+    // 如果 resourcePath 已经包含类型目录前缀，直接使用；否则自动添加前缀
+    std::string typeDir(resource::packTypeDirectoryName(type));
+    std::string path(resourcePath);
+    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
+
+    std::string normalized;
+    if (hasTypePrefix) {
+        normalized = normalizePath(resourcePath);
+    } else {
+        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
+    }
 
     // 先查缓存，避免并发读取时重复解压同一个条目
     {
@@ -240,6 +271,39 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(
 
     std::sort(resources.begin(), resources.end());
     return resources;
+}
+
+Result<std::vector<std::string>> ZipResourcePack::listResources(
+    resource::PackType type, std::string_view directory, std::string_view extension) const
+{
+    // 在类型目录前缀下搜索
+    std::string typeDir(resource::packTypeDirectoryName(type));
+    std::string fullDirectory = typeDir + "/" + std::string(directory);
+    return listResources(fullDirectory, extension);
+}
+
+Result<std::vector<std::string>> ZipResourcePack::getResourceNamespaces(resource::PackType type) const
+{
+    std::string typeDir(resource::packTypeDirectoryName(type));
+    std::string prefix = typeDir + "/";
+
+    std::unordered_set<std::string> namespaces;
+
+    for (const auto& path : m_entries) {
+        // 检查路径是否以类型目录前缀开头
+        if (path.size() > prefix.size() && path.substr(0, prefix.size()) == prefix) {
+            // 提取类型目录下的第一级子目录作为命名空间
+            std::string rest = path.substr(prefix.size());
+            size_t slashPos = rest.find('/');
+            if (slashPos != std::string::npos) {
+                namespaces.insert(rest.substr(0, slashPos));
+            }
+        }
+    }
+
+    std::vector<std::string> result(namespaces.begin(), namespaces.end());
+    std::sort(result.begin(), result.end());
+    return result;
 }
 
 // ============================================================================

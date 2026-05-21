@@ -34,6 +34,33 @@
 
 namespace mc {
 
+Result<void> SettingsBase::loadOrGenerate(const std::filesystem::path& path)
+{
+    spdlog::debug("Loading or generating settings at: {}", path.string());
+
+    // 检查文件是否存在
+    if (!std::filesystem::exists(path)) {
+        spdlog::info("Settings file not found, generating default: {}", path.string());
+
+        // 先重置为默认值
+        resetToDefaults();
+
+        // 生成默认配置文件
+        auto genResult = generateDefaultConfig(path);
+        if (genResult.failed()) {
+            spdlog::warn("Failed to generate default settings file: {}", genResult.error().toString());
+            // 生成失败不影响程序运行，使用内存中的默认值
+            return Result<void>::ok();
+        }
+
+        spdlog::info("Default settings file generated: {}", path.string());
+        return Result<void>::ok();
+    }
+
+    // 文件存在，正常加载
+    return load(path);
+}
+
 Result<void> SettingsBase::load(const std::filesystem::path& path)
 {
     spdlog::debug("Loading settings from: {}", path.string());

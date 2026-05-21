@@ -127,6 +127,12 @@ ServerSettings::ServerSettings()
     registerOption("log", &debugLogging);
 }
 
+Result<void> ServerSettings::generateDefaultConfig(const std::filesystem::path& path)
+{
+    resetToDefaults();
+    return save(path);
+}
+
 Result<void> ServerSettings::loadSettings(const std::filesystem::path& path)
 {
     auto result = load(path);

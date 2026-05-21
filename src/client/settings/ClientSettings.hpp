@@ -307,6 +307,17 @@ public:
      */
     [[nodiscard]] static const std::vector<std::unique_ptr<KeyBinding>>& getAllKeyBindings();
 
+    /**
+     * @brief 生成默认客户端配置文件
+     *
+     * 将所有选项重置为默认值并保存到指定路径。
+     * 当配置文件不存在时由 loadOrGenerate() 调用。
+     *
+     * @param path 配置文件路径
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> generateDefaultConfig(const std::filesystem::path& path) override;
+
     // ========================================================================
     // 加载/保存
     // ========================================================================

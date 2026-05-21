@@ -9,6 +9,7 @@ add_subdirectory(perfetto)
 add_library(mc_common STATIC
     # Core
     core/Result.cpp
+    core/GameDirectory.cpp
     core/settings/SettingsBase.cpp
 
     # Input
@@ -984,6 +985,7 @@ add_library(mc_common STATIC
     resource/FolderResourcePack.cpp
     resource/ZipResourcePack.cpp
     resource/ResourcePackList.cpp
+    resource/DataPackList.cpp
     resource/InMemoryResourcePack.cpp
     resource/VanillaResources.cpp
 

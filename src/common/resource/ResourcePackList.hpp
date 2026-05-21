@@ -273,6 +273,56 @@ public:
         std::string_view directory, std::string_view extension = "") const;
 
     // ========================================================================
+    // PackType 感知的资源访问
+    // ========================================================================
+
+    /**
+     * @brief 检查指定类型的资源是否存在
+     *
+     * @param type 资源包类型（ClientResources 或 ServerData）
+     * @param resourcePath 资源路径
+     * @return 是否存在
+     */
+    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const;
+
+    /**
+     * @brief 读取指定类型的资源
+     *
+     * @param type 资源包类型
+     * @param resourcePath 资源路径
+     * @return 资源数据，或错误
+     */
+    [[nodiscard]] Result<std::vector<u8>> readResource(resource::PackType type, std::string_view resourcePath) const;
+
+    /**
+     * @brief 读取指定类型的文本资源
+     *
+     * @param type 资源包类型
+     * @param resourcePath 资源路径
+     * @return 文本内容，或错误
+     */
+    [[nodiscard]] Result<std::string> readTextResource(resource::PackType type, std::string_view resourcePath) const;
+
+    /**
+     * @brief 列出指定类型目录下的资源
+     *
+     * @param type 资源包类型
+     * @param directory 目录路径（相对于类型目录根，如 "minecraft/loot_tables"）
+     * @param extension 文件扩展名过滤（可选）
+     * @return 资源路径列表
+     */
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        resource::PackType type, std::string_view directory, std::string_view extension = "") const;
+
+    /**
+     * @brief 获取指定类型的所有命名空间
+     *
+     * @param type 资源包类型
+     * @return 命名空间列表（如 ["minecraft", "mymod"]）
+     */
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const;
+
+    // ========================================================================
     // 设置同步
     // ========================================================================
 

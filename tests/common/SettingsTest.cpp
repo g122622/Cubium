@@ -322,6 +322,13 @@ public:
     RangeOption resolution{"resolution", 640, 3840, 1920};
     BooleanOption fullscreen{"fullscreen", false};
     FloatOption volume{"volume", 0.0f, 1.0f, 0.8f};
+
+protected:
+    [[nodiscard]] Result<void> generateDefaultConfig(const std::filesystem::path& path) override
+    {
+        resetToDefaults();
+        return save(path);
+    }
 };
 
 class SettingsBaseTest : public ::testing::Test {

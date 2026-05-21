@@ -73,6 +73,17 @@ public:
     SettingsBase(SettingsBase&&) = default;
     SettingsBase& operator=(SettingsBase&&) = default;
 
+    /**
+     * @brief 从文件加载设置，若文件不存在则生成默认配置后加载
+     *
+     * 如果指定路径的设置文件不存在，会调用 generateDefaultConfig() 生成默认配置文件，
+     * 然后加载该文件。这确保用户首次启动时自动获得配置文件。
+     *
+     * @param path 设置文件路径
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> loadOrGenerate(const std::filesystem::path& path);
+
     // ========================================================================
     // 文件操作
     // ========================================================================
@@ -189,6 +200,20 @@ public:
     [[nodiscard]] static std::filesystem::path ensureSettingsDir(const std::string& appName);
 
 protected:
+    /**
+     * @brief 生成默认配置文件
+     *
+     * 子类必须实现此方法以生成默认的配置文件内容。
+     * 当 loadOrGenerate() 发现配置文件不存在时调用此方法。
+     *
+     * 实现应先将所有选项重置为默认值（resetToDefaults()），
+     * 然后将当前设置保存到指定路径。
+     *
+     * @param path 配置文件路径
+     * @return 成功或错误
+     */
+    [[nodiscard]] virtual Result<void> generateDefaultConfig(const std::filesystem::path& path) = 0;
+
     /**
      * @brief 通知设置变更
      *

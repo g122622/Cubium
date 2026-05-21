@@ -70,12 +70,24 @@ std::string ResourceLocation::toString() const
 
 std::string ResourceLocation::toFilePath() const
 {
-    return "assets/" + m_namespace + "/" + m_path;
+    return toFilePath(resource::PackType::ClientResources);
 }
 
 std::string ResourceLocation::toFilePath(std::string_view extension) const
 {
-    std::string result = "assets/" + m_namespace + "/" + m_path;
+    return toFilePath(resource::PackType::ClientResources, extension);
+}
+
+std::string ResourceLocation::toFilePath(resource::PackType type) const
+{
+    // ClientResources -> "assets/namespace/path"
+    // ServerData -> "data/namespace/path"
+    return std::string(resource::packTypeDirectoryName(type)) + "/" + m_namespace + "/" + m_path;
+}
+
+std::string ResourceLocation::toFilePath(resource::PackType type, std::string_view extension) const
+{
+    std::string result = toFilePath(type);
     if (!extension.empty()) {
         if (extension[0] != '.') {
             result += '.';

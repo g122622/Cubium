@@ -205,6 +205,12 @@ const std::vector<std::unique_ptr<KeyBinding>>& ClientSettings::getAllKeyBinding
     return s_keyBindings;
 }
 
+Result<void> ClientSettings::generateDefaultConfig(const std::filesystem::path& path)
+{
+    resetToDefaults();
+    return save(path);
+}
+
 Result<void> ClientSettings::loadSettings(const std::filesystem::path& path)
 {
     // 加载基本设置

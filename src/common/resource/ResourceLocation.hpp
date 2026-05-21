@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../core/Types.hpp"
+#include "PackType.hpp"
 #include <string>
 
 namespace mc {
@@ -56,11 +57,19 @@ public:
     // 转换为完整字符串 "namespace:path"
     [[nodiscard]] std::string toString() const;
 
-    // 转换为文件路径 "assets/namespace/path"
+    // 转换为文件路径 "assets/namespace/path"（默认 ClientResources）
     [[nodiscard]] std::string toFilePath() const;
 
-    // 转换为文件路径（带扩展名）"assets/namespace/path.ext"
+    // 转换为文件路径（带扩展名）"assets/namespace/path.ext"（默认 ClientResources）
     [[nodiscard]] std::string toFilePath(std::string_view extension) const;
+
+    // 根据 PackType 转换为文件路径
+    // ClientResources -> "assets/namespace/path"
+    // ServerData -> "data/namespace/path"
+    [[nodiscard]] std::string toFilePath(resource::PackType type) const;
+
+    // 根据 PackType 转换为文件路径（带扩展名）
+    [[nodiscard]] std::string toFilePath(resource::PackType type, std::string_view extension) const;
 
     // 比较
     [[nodiscard]] bool operator==(const ResourceLocation& other) const;

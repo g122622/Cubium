@@ -56,9 +56,15 @@ public:
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const override;
+    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override;
+    [[nodiscard]] Result<std::vector<u8>> readResource(
+        resource::PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
         std::string_view directory, std::string_view extension = "") const override;
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        resource::PackType type, std::string_view directory, std::string_view extension = "") const override;
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
     // 额外方法
