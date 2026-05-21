@@ -12,3 +12,17 @@
 clang-format -i src\common\xxx\Foo.cpp
 clang-format -i src\common\xxx\Foo.hpp
 ```
+
+如果遇到了 vcpkg 构建失败，按照下面命令解决：
+
+手动执行 CMake configure，**关闭 vcpkg manifest install**：
+
+```powershell
+cmake .. -DVCPKG_MANIFEST_INSTALL=OFF -G "Ninja Multi-Config"
+```
+
+这跳过了 vcpkg install 步骤，CMake 成功完成配置并重新生成了 ninja 构建文件。之后正常构建即可：
+
+```powershell
+cmake --build --preset windows-clang-relwithdebinfo
+```

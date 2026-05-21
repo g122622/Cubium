@@ -120,19 +120,6 @@ tests/common/command/arguments/
 | `XRotationAngleTestMatchesParsed` | 解析后的角度测试匹配 |
 | `YRotationWraparoundAngleTest` | 跨越边界角度测试 |
 
-## 运行测试
-
-```powershell
-# 运行所有 EntityArgument 测试
-ctest --test-dir build -C RelWithDebInfo -R "EntityArgument" --output-on-failure
-
-# 运行特定测试套件
-./build/bin/RelWithDebInfo/mc_command_tests.exe --gtest_filter="FloatRangeTest.*"
-./build/bin/RelWithDebInfo/mc_command_tests.exe --gtest_filter="EntitySelectorTest.*"
-./build/bin/RelWithDebInfo/mc_command_tests.exe --gtest_filter="EntityArgumentParseTest.*"
-./build/bin/RelWithDebInfo/mc_command_tests.exe --gtest_filter="EntityArgumentRotationParseTest.*"
-```
-
 ## 测试覆盖要点
 
 ### 角度范围环绕处理

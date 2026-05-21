@@ -38,7 +38,7 @@ cmake -S . -B build
 # 编译
 cmake --build --preset windows-clang-relwithdebinfo
 
-# 注：即使在开发过程中，也要尽量使用RelWithDebInfo构建，因为Debug运行非常慢，除非必要否则不要用。
+# 注：即使在开发过程中，也要尽量使用relwithdebinfo构建，因为Debug运行非常慢，除非必要否则不要用。
 # 这行命令除了编译cpp代码之外，还会编译着色器
 # 对于macos这类系统，默认只会启动一个核心构建，导致很慢，建议加上 -j6，并耐心等待10分钟左右以完成构建
 # 对于Windows，不用加 -j6 这类后缀，系统会自动吃满全部核心

@@ -416,7 +416,6 @@ audioService.setAmbientPlayerPosition(x, y, z);
 
 - `tests/common/resource/ResourcePackListSelfContainedTest.cpp`：验证资源包读取链路，间接覆盖音频资源加载依赖。
 - `tests/common/test_block.cpp`：覆盖若干会触发音效的方块行为。
-- 全量回归：`ctest --test-dir build -C RelWithDebInfo --output-on-failure`
 
 ## Mermaid 图表
 

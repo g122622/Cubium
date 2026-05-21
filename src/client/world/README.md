@@ -201,12 +201,6 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 间接相关：
 - `tests/client/renderer/test_renderer.cpp`（`ChunkMesher` 构建路径）
 
-建议命令：
-
-```powershell
-ctest --test-dir build -C RelWithDebInfo -R "MeshBuildSchedulerTest|MeshWorkerPoolTest|ClientWorldLightUpdateTest|ClientWorldClearChunksTest|ClientWeatherLightningFlashTest|ChunkMesher" --output-on-failure
-```
-
 ## 10. Mermaid 图表
 
 ```mermaid

@@ -141,9 +141,3 @@ const glm::vec4& fogColor = skyRenderer.fogColor();
 
 间接相关：
 - `tests/client/renderer/test_trident_engine.cpp` - TridentEngine 初始化测试
-
-建议命令：
-
-```powershell
-ctest --test-dir build -C RelWithDebInfo -R "TridentEngine" --output-on-failure
-```

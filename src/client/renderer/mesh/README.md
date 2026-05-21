@@ -145,12 +145,6 @@ scheduler.drainCompleted(
 - `tests/client/test_mesh_build_scheduler.cpp`
   - 最新任务胜出、视锥优先、超视距 pending 取消。
 
-建议命令：
-
-```powershell
-ctest --test-dir build -C RelWithDebInfo -R "MeshWorkerPoolTest|MeshBuildSchedulerTest" --output-on-failure
-```
-
 ## 10. Mermaid 图表
 
 ```mermaid

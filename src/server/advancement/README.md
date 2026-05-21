@@ -276,12 +276,6 @@ common/advancement/                    server/advancement/
 - `tests/server/advancement/AdvancementEventHandlerTest.cpp` - getServerPlayer 架构验证、事件订阅生命周期
 - `tests/server/advancement/VillageReputationTest.cpp` - 村庄声望更新、治愈僵尸村民声望测试
 
-运行测试：
-```bash
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*Advancement*"
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="AdvancementEventHandlerTest*"
-```
-
 ### AdvancementEventHandler 测试覆盖
 
 | 测试用例 | 描述 |

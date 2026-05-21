@@ -169,7 +169,6 @@ std::cout << text->getUnformattedText();  // 输出: “钻石”
 - `tests/common/resource/ResourcePackListSelfContainedTest.cpp`：自包含资源包读取测试。
 - `tests/common/resource/LanguageManagerTest.cpp`：语言管理器和翻译组件测试。
 - `tests/client/resource/test_resource_location.cpp`：资源定位符相关测试。
-- 全量回归：`ctest --test-dir build -C RelWithDebInfo --output-on-failure`
 
 ## Mermaid 图表
 
