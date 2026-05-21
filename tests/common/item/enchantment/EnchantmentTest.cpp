@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "entity/loot/LootFunctions.hpp"
+#include "item/loot/functions/LootFunctions.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/enchantment/Enchantment.hpp"

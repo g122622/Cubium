@@ -28,9 +28,10 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
-#include "common/entity/loot/LootTable.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -109,8 +110,6 @@ protected:
     }
 
     [[nodiscard]] ItemStack heldItem() const { return m_inventoryManager->getHeldItem(m_playerId); }
-
-protected:
     static constexpr PlayerId m_playerId = 1;
 
     std::unique_ptr<server::ServerWorld> m_world;

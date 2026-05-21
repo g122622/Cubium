@@ -26,7 +26,7 @@
 #include "../../MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>

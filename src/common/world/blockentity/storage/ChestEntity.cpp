@@ -23,8 +23,8 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "entity/loot/LootContext.hpp"
-#include "entity/loot/LootTable.hpp"
+#include "item/loot/context/LootContext.hpp"
+#include "item/loot/LootTable.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"

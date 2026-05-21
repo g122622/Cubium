@@ -24,7 +24,8 @@
 #pragma once
 
 #include "IServer.hpp"
-#include "common/entity/loot/LootTable.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"

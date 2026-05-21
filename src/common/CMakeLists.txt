@@ -211,16 +211,71 @@ add_library(mc_common STATIC
     entity/entities/projectile/OtherProjectiles.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
-    # Entity - Loot System
-    entity/loot/LootContext.cpp
-    entity/loot/LootEntry.cpp
-    entity/loot/LootPool.cpp
-    entity/loot/LootTable.cpp
-    entity/loot/LootTableLoader.cpp
-    entity/loot/LootConditions.cpp
-    entity/loot/StatePropertiesPredicate.cpp
-    entity/loot/LootFunctions.cpp
-    entity/loot/LootSerializers.cpp
+    # Item - Loot System
+    item/loot/conditions/SilkTouchCondition.cpp
+    item/loot/conditions/FortuneCondition.cpp
+    item/loot/conditions/RandomChanceCondition.cpp
+    item/loot/conditions/RandomChanceWithLuckCondition.cpp
+    item/loot/conditions/NotCondition.cpp
+    item/loot/conditions/AndCondition.cpp
+    item/loot/conditions/OrCondition.cpp
+    item/loot/conditions/BlockStateCondition.cpp
+    item/loot/conditions/ToolTypeCondition.cpp
+    item/loot/conditions/SurvivesExplosionCondition.cpp
+    item/loot/conditions/KilledByPlayerCondition.cpp
+    item/loot/conditions/EntityPropertiesCondition.cpp
+    item/loot/conditions/EntityScoresCondition.cpp
+    item/loot/conditions/LocationCheckCondition.cpp
+    item/loot/conditions/WeatherCheckCondition.cpp
+    item/loot/conditions/TimeCheckCondition.cpp
+    item/loot/conditions/DamageSourcePropertiesCondition.cpp
+    item/loot/conditions/ReferenceCondition.cpp
+    item/loot/conditions/FishingOpenWaterCondition.cpp
+    item/loot/conditions/LootConditionBuilder.cpp
+    item/loot/context/LootParameterSet.cpp
+    item/loot/context/LootParams.cpp
+    item/loot/context/LootParameterSets.cpp
+    item/loot/context/LootContext.cpp
+    item/loot/context/LootContextBuilder.cpp
+    item/loot/entries/LootEntry.cpp
+    item/loot/entries/EmptyLootEntry.cpp
+    item/loot/entries/ItemLootEntry.cpp
+    item/loot/entries/TableLootEntry.cpp
+    item/loot/entries/TagLootEntry.cpp
+    item/loot/entries/DynamicLootEntry.cpp
+    item/loot/entries/AlternativesLootEntry.cpp
+    item/loot/entries/SequenceLootEntry.cpp
+    item/loot/entries/GroupLootEntry.cpp
+    item/loot/entries/LootEntryBuilder.cpp
+    item/loot/StatePropertiesPredicate.cpp
+    item/loot/LootPool.cpp
+    item/loot/LootTable.cpp
+    item/loot/LootTableManager.cpp
+    item/loot/LootTableLoader.cpp
+    item/loot/LootSerializers.cpp
+    item/loot/functions/LootFunction.cpp
+    item/loot/functions/SetCountFunction.cpp
+    item/loot/functions/ApplyBonusFunction.cpp
+    item/loot/functions/LootingEnchantBonusFunction.cpp
+    item/loot/functions/SetDamageFunction.cpp
+    item/loot/functions/SetNameFunction.cpp
+    item/loot/functions/SetLoreFunction.cpp
+    item/loot/functions/LimitCountFunction.cpp
+    item/loot/functions/FurnaceSmeltFunction.cpp
+    item/loot/functions/EnchantWithLevelsFunction.cpp
+    item/loot/functions/EnchantRandomlyFunction.cpp
+    item/loot/functions/ExplosionDecayFunction.cpp
+    item/loot/functions/SetNbtFunction.cpp
+    item/loot/functions/CopyNameFunction.cpp
+    item/loot/functions/CopyBlockStateFunction.cpp
+    item/loot/functions/CopyNbtFunction.cpp
+    item/loot/functions/FillPlayerHeadFunction.cpp
+    item/loot/functions/SetAttributesFunction.cpp
+    item/loot/functions/SetContentsFunction.cpp
+    item/loot/functions/SetLootTableFunction.cpp
+    item/loot/functions/ExplorationMapFunction.cpp
+    item/loot/functions/SetStewEffectFunction.cpp
+    item/loot/functions/LootFunctionBuilder.cpp
     entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
     entity/combat/DifficultyHelper.cpp

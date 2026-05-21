@@ -28,7 +28,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
-#include "common/entity/loot/LootTableLoader.hpp"
+#include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"

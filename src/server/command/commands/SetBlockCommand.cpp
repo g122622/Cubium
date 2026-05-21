@@ -26,7 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/entity/loot/LootTable.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"

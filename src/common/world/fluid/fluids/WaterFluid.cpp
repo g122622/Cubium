@@ -22,8 +22,9 @@
  */
 
 #include "WaterFluid.hpp"
-#include "../../../entity/loot/LootContext.hpp"
-#include "../../../entity/loot/LootTable.hpp"
+#include "../../../item/loot/context/LootContext.hpp"
+#include "../../../item/loot/LootTable.hpp"
+#include "../../../item/loot/LootTableManager.hpp"
 #include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/FluidProperties.hpp"

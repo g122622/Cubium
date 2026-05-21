@@ -25,8 +25,8 @@
 
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/loot/LootConditions.hpp"
-#include "common/entity/loot/LootContext.hpp"
+#include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"

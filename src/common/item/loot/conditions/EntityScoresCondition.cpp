@@ -1,0 +1,121 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "common/item/loot/conditions/EntityScoresCondition.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "server/application/IServer.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerWorld.hpp"
+
+namespace mc {
+namespace loot {
+
+namespace {
+
+const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCondition::EntityTarget target)
+{
+    switch (target) {
+        case EntityPropertiesCondition::EntityTarget::This:
+            return context.get<Entity>(LootParams::THIS_ENTITY);
+        case EntityPropertiesCondition::EntityTarget::Killer:
+            return context.get<Entity>(LootParams::KILLER_ENTITY);
+        case EntityPropertiesCondition::EntityTarget::DirectKiller:
+            return context.get<Entity>(LootParams::DIRECT_KILLER);
+        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            return static_cast<const Entity*>(player);
+        }
+    }
+    return nullptr;
+}
+
+std::string getScoreboardEntryName(const Entity& entity)
+{
+    if (const auto* player = dynamic_cast<const Player*>(&entity)) {
+        return player->username();
+    }
+    return entity.uuid();
+}
+
+} // namespace
+
+EntityScoresCondition::EntityScoresCondition(
+    EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores)
+    : m_target(target)
+    , m_scores(std::move(scores))
+{}
+
+bool EntityScoresCondition::test(LootContext& context) const
+{
+    const Entity* entity = getConditionTargetEntity(context, m_target);
+    if (!entity) {
+        return false;
+    }
+
+    const auto* serverWorld = context.getWorld().asServerWorld();
+    if (serverWorld == nullptr) {
+        return false;
+    }
+
+    const auto* playerEntity = dynamic_cast<const Player*>(entity);
+    if (playerEntity == nullptr) {
+        return false;
+    }
+
+    const auto* serverPlayer = dynamic_cast<const ServerPlayer*>(playerEntity);
+    if (serverPlayer == nullptr || serverPlayer->getServer() == nullptr) {
+        return false;
+    }
+
+    auto& scoreboard = serverPlayer->getServer()->scoreboard();
+    const std::string entryName = getScoreboardEntryName(*entity);
+
+    for (const auto& [objectiveName, range] : m_scores) {
+        auto* objective = scoreboard.getObjective(objectiveName);
+        if (objective == nullptr) {
+            return false;
+        }
+
+        const auto* score = scoreboard.getScore(entryName, *objective);
+        if (score == nullptr) {
+            return false;
+        }
+
+        const f32 points = static_cast<f32>(score->getScorePoints());
+        if (points < range.getMin() || points > range.getMax()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::unique_ptr<LootCondition> EntityScoresCondition::clone() const
+{
+    return std::make_unique<EntityScoresCondition>(m_target, m_scores);
+}
+
+} // namespace loot
+} // namespace mc

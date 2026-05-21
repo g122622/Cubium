@@ -1088,14 +1088,48 @@ target_sources(mc_tests
         # 鐗╁搧瀹炰綋鍜屾帀钀借〃
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
         # 鎺夎惤绯荤粺
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContextBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParameterSet.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParams.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParameterSets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/math/random/RandomRanges.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootTable.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootSerializers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootConditions.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/StatePropertiesPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/LootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/EmptyLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/ItemLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/TableLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/TagLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/DynamicLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/AlternativesLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/SequenceLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/GroupLootEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/LootEntryBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTable.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootSerializers.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/SilkTouchCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/FortuneCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceWithLuckCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/NotCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/AndCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/OrCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/BlockStateCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/ToolTypeCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/SurvivesExplosionCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/KilledByPlayerCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityPropertiesCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityScoresCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LocationCheckCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/WeatherCheckCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/TimeCheckCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/DamageSourcePropertiesCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/ReferenceCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/FishingOpenWaterCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LootConditionBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/StatePropertiesPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableLoader.cpp
         # 成就系统
         ${CMAKE_SOURCE_DIR}/src/common/advancement/Advancement.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementProgress.cpp

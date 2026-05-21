@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/entity/loot/LootContext.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>

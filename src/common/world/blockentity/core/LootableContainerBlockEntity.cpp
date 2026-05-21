@@ -23,8 +23,9 @@
 
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "entity/loot/LootContext.hpp"
-#include "entity/loot/LootTable.hpp"
+#include "item/loot/context/LootContext.hpp"
+#include "item/loot/LootTable.hpp"
+#include "item/loot/LootTableManager.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 

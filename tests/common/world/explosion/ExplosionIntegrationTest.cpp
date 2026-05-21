@@ -24,8 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
-#include "common/entity/loot/LootContext.hpp"
-#include "common/entity/loot/LootTable.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"

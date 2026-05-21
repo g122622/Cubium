@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/loot/LootConditions.hpp"
+#include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include <chrono>

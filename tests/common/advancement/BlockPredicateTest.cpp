@@ -33,7 +33,7 @@
  */
 
 #include "advancement/trigger/conditions/BlockPredicate.hpp"
-#include "entity/loot/StatePropertiesPredicate.hpp"
+#include "item/loot/StatePropertiesPredicate.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"

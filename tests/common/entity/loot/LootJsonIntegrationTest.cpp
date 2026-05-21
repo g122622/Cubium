@@ -1,6 +1,7 @@
-#include "entity/loot/LootEntry.hpp"
-#include "entity/loot/LootSerializers.hpp"
 #include "item/Items.hpp"
+#include "item/loot/LootSerializers.hpp"
+#include "item/loot/entries/DynamicLootEntry.hpp"
+#include "item/loot/entries/LootEntry.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

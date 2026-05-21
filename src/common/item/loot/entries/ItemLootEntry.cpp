@@ -1,0 +1,95 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "ItemLootEntry.hpp"
+#include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+
+namespace mc {
+namespace loot {
+
+// ============================================================================
+// ItemLootEntry
+// ============================================================================
+
+ItemLootEntry::ItemLootEntry(const std::string& itemId, const RandomValueRange& count, i32 weight, i32 quality)
+    : LootEntry(weight, quality)
+    , m_itemId(itemId)
+    , m_count(count)
+{}
+
+std::unique_ptr<LootEntry> ItemLootEntry::clone() const
+{
+    auto entry = std::make_unique<ItemLootEntry>(m_itemId, m_count, m_weight, m_quality);
+    // 复制条件
+    for (const auto& cond : m_conditions) {
+        entry->addCondition(cond->clone());
+    }
+    // 复制函数
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
+    return entry;
+}
+
+void ItemLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
+    consumer(*const_cast<ItemLootEntry*>(this));
+}
+
+bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
+    // 检查条件
+    if (!testConditions(context)) {
+        return false;
+    }
+
+    // 获取物品
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation(m_itemId));
+    if (!item) {
+        return false;
+    }
+
+    // 计算数量
+    i32 count = m_count.generateInt(context.getRandom());
+    if (count <= 0) {
+        return true; // 数量为0不算失败
+    }
+
+    // 创建物品堆
+    ItemStack stack(*item, count);
+
+    // 应用条目级函数
+    stack = applyFunctions(std::move(stack), context);
+
+    // 如果函数返回空堆，则不生成物品
+    if (!stack.isEmpty()) {
+        consumer(stack);
+    }
+
+    return true;
+}
+
+} // namespace loot
+} // namespace mc

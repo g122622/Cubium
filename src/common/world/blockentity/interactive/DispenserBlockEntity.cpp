@@ -22,8 +22,8 @@
  */
 
 #include "DispenserBlockEntity.hpp"
-#include "entity/loot/LootContext.hpp"
-#include "entity/loot/LootTable.hpp"
+#include "item/loot/context/LootContext.hpp"
+#include "item/loot/LootTable.hpp"
 #include "item/core/ItemStack.hpp"
 #include <random>
 

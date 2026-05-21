@@ -1,6 +1,6 @@
-#include "entity/loot/LootTableLoader.hpp"
+#include "item/loot/LootTableLoader.hpp"
 #include "common/resource/ResourcePackList.hpp"
-#include "entity/loot/LootTable.hpp"
+#include "item/loot/LootTable.hpp"
 #include "item/Items.hpp"
 #include "resource/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
