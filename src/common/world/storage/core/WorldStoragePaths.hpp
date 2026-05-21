@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/GameDirectory.hpp"
+
 #include <filesystem>
 #include <string>
 
@@ -63,12 +65,20 @@ public:
     explicit WorldStoragePaths(std::filesystem::path savesDir, std::filesystem::path backupsDir);
 
     /**
-     * @brief 使用默认路径构造
+     * @brief 使用默认游戏目录构造
      *
-     * saves 目录为当前工作目录下的 "saves"，
-     * backups 目录为 saves 同级的 "backups"。
+     * saves 和 backups 目录从默认游戏目录 (~/minecraft_reborn/) 推导。
      */
     static WorldStoragePaths defaultPaths();
+
+    /**
+     * @brief 从 GameDirectory 构造
+     *
+     * 使用 GameDirectory 提供的 saves/ 和 backups/ 路径。
+     *
+     * @param gameDir 游戏目录实例
+     */
+    static WorldStoragePaths fromGameDirectory(const GameDirectory& gameDir);
 
     // ============================================================================
     // 基础路径

@@ -34,7 +34,12 @@ WorldStoragePaths::WorldStoragePaths(std::filesystem::path savesDir, std::filesy
 
 WorldStoragePaths WorldStoragePaths::defaultPaths()
 {
-    return WorldStoragePaths(std::filesystem::current_path() / "saves", std::filesystem::current_path() / "backups");
+    return fromGameDirectory(GameDirectory::defaultDirectory());
+}
+
+WorldStoragePaths WorldStoragePaths::fromGameDirectory(const GameDirectory& gameDir)
+{
+    return WorldStoragePaths(gameDir.savesDir(), gameDir.backupsDir());
 }
 
 // ============================================================================
