@@ -24,6 +24,7 @@
 #pragma once
 
 #include "LootContext.hpp"
+#include "LootFunctions.hpp"
 #include "LootPool.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -103,6 +104,25 @@ public:
      */
     [[nodiscard]] size_t poolCount() const { return m_pools.size(); }
 
+    // ========== 表级函数 ==========
+
+    /**
+     * @brief 添加表级函数
+     *
+     * 表级函数应用于此表中所有池生成的物品。
+     */
+    void addFunction(std::unique_ptr<LootFunction> function);
+
+    /**
+     * @brief 获取表级函数
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+
+    /**
+     * @brief 应用所有表级函数到物品
+     */
+    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+
     // ========== 参数集 ==========
 
     /**
@@ -169,6 +189,7 @@ private:
     std::string m_id;
     LootParameterSet m_paramSet;
     std::vector<std::unique_ptr<LootPool>> m_pools;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
 };
 
 /**
@@ -208,6 +229,15 @@ public:
     }
 
     /**
+     * @brief 添加表级函数
+     */
+    LootTableBuilder& function(std::unique_ptr<LootFunction> func)
+    {
+        m_functions.push_back(std::move(func));
+        return *this;
+    }
+
+    /**
      * @brief 构建掉落表
      */
     [[nodiscard]] std::unique_ptr<LootTable> build() const;
@@ -216,6 +246,7 @@ private:
     std::string m_id;
     LootParameterSet m_paramSet;
     std::vector<std::unique_ptr<LootPool>> m_pools;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
 };
 
 /**
@@ -253,6 +284,11 @@ public:
      * @brief 检查是否有掉落表
      */
     [[nodiscard]] bool hasTable(const std::string& id) const;
+
+    /**
+     * @brief 清空所有已注册的掉落表
+     */
+    void clear();
 
     /**
      * @brief 获取所有已注册的掉落表ID

@@ -25,6 +25,7 @@
 
 #include "LootConditions.hpp"
 #include "LootEntry.hpp"
+#include "LootFunctions.hpp"
 #include "RandomRanges.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
@@ -115,6 +116,44 @@ public:
      */
     void setName(const std::string& name) { m_name = name; }
 
+    // ========== 条件和函数 ==========
+
+    /**
+     * @brief 添加池级条件
+     *
+     * 条件用于控制整个池是否生成。
+     * 所有条件必须通过，池才会执行掷骰。
+     */
+    void addCondition(std::unique_ptr<LootCondition> condition);
+
+    /**
+     * @brief 获取池级条件
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
+
+    /**
+     * @brief 测试所有条件
+     * @return 所有条件是否通过
+     */
+    [[nodiscard]] bool testConditions(LootContext& context) const;
+
+    /**
+     * @brief 添加池级函数
+     *
+     * 函数应用于此池中所有条目生成的物品。
+     */
+    void addFunction(std::unique_ptr<LootFunction> function);
+
+    /**
+     * @brief 获取池级函数
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const { return m_functions; }
+
+    /**
+     * @brief 应用所有池级函数到物品
+     */
+    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+
     // ========== 生成 ==========
 
     /**
@@ -134,6 +173,8 @@ private:
 private:
     std::string m_name;
     std::vector<std::unique_ptr<LootEntry>> m_entries;
+    std::vector<std::unique_ptr<LootCondition>> m_conditions;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
     RandomValueRange m_rolls{1.0f, 1.0f};
     RandomValueRange m_bonusRolls{0.0f, 0.0f};
 };
@@ -193,6 +234,24 @@ public:
     }
 
     /**
+     * @brief 添加池级条件
+     */
+    LootPoolBuilder& condition(std::unique_ptr<LootCondition> cond)
+    {
+        m_conditions.push_back(std::move(cond));
+        return *this;
+    }
+
+    /**
+     * @brief 添加池级函数
+     */
+    LootPoolBuilder& function(std::unique_ptr<LootFunction> func)
+    {
+        m_functions.push_back(std::move(func));
+        return *this;
+    }
+
+    /**
      * @brief 添加物品条目
      */
     LootPoolBuilder& item(const std::string& itemId, i32 count = 1, i32 weight = 1);
@@ -207,6 +266,8 @@ private:
     RandomValueRange m_rolls{1.0f, 1.0f};
     RandomValueRange m_bonusRolls{0.0f, 0.0f};
     std::vector<std::unique_ptr<LootEntry>> m_entries;
+    std::vector<std::unique_ptr<LootCondition>> m_conditions;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
 };
 
 } // namespace loot

@@ -27,6 +27,7 @@
 #include "LootSerializers.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -64,6 +65,26 @@ std::unique_ptr<LootPool> LootTable::removePool(const std::string& name)
         }
     }
     return nullptr;
+}
+
+void LootTable::addFunction(std::unique_ptr<LootFunction> function)
+{
+    if (function) {
+        m_functions.push_back(std::move(function));
+    }
+}
+
+ItemStack LootTable::applyFunctions(ItemStack stack, LootContext& context) const
+{
+    for (const auto& func : m_functions) {
+        if (func->testConditions(context)) {
+            stack = func->apply(stack, context);
+            if (stack.isEmpty()) {
+                return stack;
+            }
+        }
+    }
+    return stack;
 }
 
 std::vector<ItemStack> LootTable::generate(LootContext& context) const
@@ -107,15 +128,39 @@ void LootTable::generate(std::function<void(const ItemStack&)> consumer, LootCon
 
 void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
+    // 参数集校验：检查必需参数是否已提供
+    if (m_paramSet.getType() != LootParameterSet::Type::Empty &&
+        m_paramSet.getType() != LootParameterSet::Type::Generic) {
+        auto providedIds = context.getParamIds();
+        if (!m_paramSet.validate(providedIds)) {
+            spdlog::warn("Loot table '{}' parameter set validation failed: missing required parameters", m_id);
+        }
+    }
+
     // 循环检测
     if (!context.pushLootTable(this)) {
         // 检测到循环引用，跳过
         return;
     }
 
+    // 如果有表级函数，包装 consumer 以应用函数
+    std::function<void(const ItemStack&)> tableConsumer;
+    if (m_functions.empty()) {
+        tableConsumer = consumer;
+    } else {
+        tableConsumer = [this, &consumer, &context](const ItemStack& stack) {
+            if (!stack.isEmpty()) {
+                ItemStack result = applyFunctions(stack, context);
+                if (!result.isEmpty()) {
+                    consumer(result);
+                }
+            }
+        };
+    }
+
     // 执行所有池
     for (auto& pool : m_pools) {
-        pool->generate(consumer, context);
+        pool->generate(tableConsumer, context);
     }
 
     context.popLootTable(this);
@@ -143,6 +188,9 @@ std::unique_ptr<LootTable> LootTableBuilder::build() const
 
     for (const auto& pool : m_pools) {
         table->addPool(pool->clone());
+    }
+    for (const auto& func : m_functions) {
+        table->addFunction(func->clone());
     }
 
     return table;
@@ -172,6 +220,11 @@ const LootTable* LootTableManager::getTable(const std::string& id) const
 bool LootTableManager::hasTable(const std::string& id) const
 {
     return m_tables.find(id) != m_tables.end();
+}
+
+void LootTableManager::clear()
+{
+    m_tables.clear();
 }
 
 std::vector<std::string> LootTableManager::getAllTableIds() const

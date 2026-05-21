@@ -23,6 +23,7 @@
 
 #include "LootPool.hpp"
 #include "LootConditions.hpp"
+#include "LootFunctions.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -42,6 +43,39 @@ void LootPool::addEntry(std::unique_ptr<LootEntry> entry)
     m_entries.push_back(std::move(entry));
 }
 
+void LootPool::addCondition(std::unique_ptr<LootCondition> condition)
+{
+    m_conditions.push_back(std::move(condition));
+}
+
+bool LootPool::testConditions(LootContext& context) const
+{
+    for (const auto& cond : m_conditions) {
+        if (!cond->test(context)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void LootPool::addFunction(std::unique_ptr<LootFunction> function)
+{
+    m_functions.push_back(std::move(function));
+}
+
+ItemStack LootPool::applyFunctions(ItemStack stack, LootContext& context) const
+{
+    for (const auto& func : m_functions) {
+        if (func->testConditions(context)) {
+            stack = func->apply(stack, context);
+            if (stack.isEmpty()) {
+                return stack;
+            }
+        }
+    }
+    return stack;
+}
+
 std::unique_ptr<LootPool> LootPool::clone() const
 {
     auto pool = std::make_unique<LootPool>(m_rolls, m_bonusRolls);
@@ -49,19 +83,45 @@ std::unique_ptr<LootPool> LootPool::clone() const
     for (const auto& entry : m_entries) {
         pool->addEntry(entry->clone());
     }
+    for (const auto& cond : m_conditions) {
+        pool->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        pool->addFunction(func->clone());
+    }
     return pool;
 }
 
 void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
+    // 检查池级条件
+    if (!testConditions(context)) {
+        return;
+    }
+
     // 计算掷骰次数 = 基础次数 + 幸运值加成
     math::Random& random = context.getRandom();
     i32 rollCount =
         m_rolls.generateInt(random) + static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
 
+    // 如果有池级函数，包装 consumer 以应用函数
+    std::function<void(const ItemStack&)> poolConsumer;
+    if (m_functions.empty()) {
+        poolConsumer = consumer;
+    } else {
+        poolConsumer = [this, &consumer, &context](const ItemStack& stack) {
+            if (!stack.isEmpty()) {
+                ItemStack result = applyFunctions(stack, context);
+                if (!result.isEmpty()) {
+                    consumer(result);
+                }
+            }
+        };
+    }
+
     // 执行每次掷骰
     for (i32 i = 0; i < rollCount; ++i) {
-        generateRoll(consumer, context);
+        generateRoll(poolConsumer, context);
     }
 }
 
@@ -133,6 +193,12 @@ std::unique_ptr<LootPool> LootPoolBuilder::build() const
 
     for (const auto& entry : m_entries) {
         pool->addEntry(entry->clone());
+    }
+    for (const auto& cond : m_conditions) {
+        pool->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        pool->addFunction(func->clone());
     }
 
     return pool;

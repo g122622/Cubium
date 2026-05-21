@@ -25,7 +25,13 @@
 #include "LootConditions.hpp"
 #include "LootFunctions.hpp"
 #include "LootTable.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -206,6 +212,150 @@ bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer, Lo
 }
 
 // ============================================================================
+// TagLootEntry
+// ============================================================================
+
+TagLootEntry::TagLootEntry(const std::string& tagId, bool expand, i32 weight, i32 quality)
+    : LootEntry(weight, quality)
+    , m_tagId(tagId)
+    , m_expand(expand)
+{}
+
+std::unique_ptr<LootEntry> TagLootEntry::clone() const
+{
+    auto entry = std::make_unique<TagLootEntry>(m_tagId, m_expand, m_weight, m_quality);
+    for (const auto& cond : m_conditions) {
+        entry->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
+    return entry;
+}
+
+void TagLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
+    if (m_expand) {
+        // 展开模式：每个标签物品作为独立候选条目
+        // 注意：此方法要求调用方管理条目生命周期。
+        // 当前 LootPool 未使用 expand，因此 expand=true 时
+        // 由 generate() 统一处理随机选择逻辑。
+        consumer(*const_cast<TagLootEntry*>(this));
+    } else {
+        // 非展开模式：自身作为单个候选条目
+        consumer(*const_cast<TagLootEntry*>(this));
+    }
+}
+
+bool TagLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
+    // 检查条件
+    if (!testConditions(context)) {
+        return false;
+    }
+
+    // 查找标签
+    auto* tag = item::tag::ItemTags::getTag(m_tagId);
+    if (!tag || tag->getItems().empty()) {
+        // 标签不存在或为空，不生成物品
+        return false;
+    }
+
+    const auto& items = tag->getItems();
+    if (m_expand) {
+        // 展开模式：在 expand() 中已处理为独立 ItemLootEntry，
+        // 此处不应被调用（由池的加权选择调用 ItemLootEntry::generate）
+        // 但如果直接调用 generate，随机选择一个物品
+        auto it = items.begin();
+        std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
+        const Item* item = *it;
+        ItemStack stack(*item, 1);
+        stack = applyFunctions(std::move(stack), context);
+        if (!stack.isEmpty()) {
+            consumer(stack);
+        }
+        return true;
+    } else {
+        // 非展开模式：从标签中随机选择一个物品
+        auto it = items.begin();
+        std::advance(it, context.getRandom().nextInt(static_cast<i32>(items.size())));
+        const Item* item = *it;
+        ItemStack stack(*item, 1);
+        stack = applyFunctions(std::move(stack), context);
+        if (!stack.isEmpty()) {
+            consumer(stack);
+        }
+        return true;
+    }
+}
+
+// ============================================================================
+// DynamicLootEntry
+// ============================================================================
+
+DynamicLootEntry::DynamicLootEntry(const std::string& name, i32 weight, i32 quality)
+    : LootEntry(weight, quality)
+    , m_name(name)
+{}
+
+std::unique_ptr<LootEntry> DynamicLootEntry::clone() const
+{
+    auto entry = std::make_unique<DynamicLootEntry>(m_name, m_weight, m_quality);
+    for (const auto& cond : m_conditions) {
+        entry->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
+    return entry;
+}
+
+void DynamicLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
+{
+    // 动态条目不展开，自身作为候选条目
+    consumer(*const_cast<DynamicLootEntry*>(this));
+}
+
+bool DynamicLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+{
+    // 检查条件
+    if (!testConditions(context)) {
+        return false;
+    }
+
+    // 目前仅支持 minecraft:Contents（从容器方块实体中读取物品）
+    if (m_name == "minecraft:Contents" || m_name == "Contents") {
+        // 从上下文获取方块实体
+        auto* blockEntity = context.get<BlockEntity>(LootParams::BLOCK_ENTITY);
+        if (blockEntity) {
+            auto* containerEntity = dynamic_cast<ContainerBlockEntity*>(blockEntity);
+            if (containerEntity) {
+                IInventory* inventory = containerEntity->getInventory();
+                if (inventory) {
+                    bool anyItems = false;
+                    for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+                        ItemStack stack = inventory->getItem(i);
+                        if (!stack.isEmpty()) {
+                            stack = applyFunctions(std::move(stack), context);
+                            if (!stack.isEmpty()) {
+                                consumer(stack);
+                                anyItems = true;
+                            }
+                        }
+                    }
+                    return anyItems;
+                }
+            }
+        }
+        // 无方块实体或非容器，返回 false
+        return false;
+    }
+
+    // 未知动态名称，不生成物品
+    return false;
+}
+
+// ============================================================================
 // AlternativesLootEntry
 // ============================================================================
 
@@ -383,6 +533,23 @@ LootEntryBuilder LootEntryBuilder::table(const std::string& tableId)
     return builder;
 }
 
+LootEntryBuilder LootEntryBuilder::tag(const std::string& tagId, bool expand)
+{
+    LootEntryBuilder builder;
+    builder.m_tagId = tagId;
+    builder.m_expand = expand;
+    builder.m_type = LootEntryType::Tag;
+    return builder;
+}
+
+LootEntryBuilder LootEntryBuilder::dynamic_(const std::string& name)
+{
+    LootEntryBuilder builder;
+    builder.m_dynamicName = name;
+    builder.m_type = LootEntryType::Dynamic;
+    return builder;
+}
+
 LootEntryBuilder& LootEntryBuilder::count(f32 min, f32 max)
 {
     m_count = RandomValueRange(min, max);
@@ -405,6 +572,12 @@ std::unique_ptr<LootEntry> LootEntryBuilder::build() const
             break;
         case LootEntryType::Table:
             entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
+            break;
+        case LootEntryType::Tag:
+            entry = std::make_unique<TagLootEntry>(m_tagId, m_expand, m_weight, m_quality);
+            break;
+        case LootEntryType::Dynamic:
+            entry = std::make_unique<DynamicLootEntry>(m_dynamicName, m_weight, m_quality);
             break;
         case LootEntryType::Empty:
         default:

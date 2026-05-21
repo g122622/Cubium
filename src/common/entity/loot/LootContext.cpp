@@ -60,6 +60,76 @@ const LootParameter<bool> IS_IN_OPEN_WATER("is_in_open_water");
 } // namespace LootParams
 
 // ============================================================================
+// LootParameterSets - 预定义参数集合
+// ============================================================================
+
+namespace LootParameterSets {
+
+LootParameterSet empty()
+{
+    return LootParameterSet(LootParameterSet::Type::Empty);
+}
+
+LootParameterSet block()
+{
+    LootParameterSet set(LootParameterSet::Type::Block);
+    set.addRequired(LootParams::BLOCK_STATE);
+    set.addRequired(LootParams::BLOCK_POS);
+    set.addRequired(LootParams::TOOL);
+    set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::BLOCK_ENTITY);
+    set.addOptional(LootParams::FORTUNE_LEVEL);
+    set.addOptional(LootParams::SILK_TOUCH_LEVEL);
+    return set;
+}
+
+LootParameterSet chest()
+{
+    LootParameterSet set(LootParameterSet::Type::Generic);
+    set.addRequired(LootParams::BLOCK_POS);
+    set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::BLOCK_ENTITY);
+    return set;
+}
+
+LootParameterSet entity()
+{
+    LootParameterSet set(LootParameterSet::Type::Entity);
+    set.addRequired(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::KILLER_ENTITY);
+    set.addOptional(LootParams::KILLER_PLAYER);
+    set.addOptional(LootParams::DIRECT_KILLER);
+    set.addOptional(LootParams::DAMAGE_SOURCE);
+    return set;
+}
+
+LootParameterSet fishing()
+{
+    LootParameterSet set(LootParameterSet::Type::Fishing);
+    set.addRequired(LootParams::BLOCK_POS);
+    set.addRequired(LootParams::TOOL);
+    set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::IS_IN_OPEN_WATER);
+    return set;
+}
+
+LootParameterSet gift()
+{
+    LootParameterSet set(LootParameterSet::Type::Gift);
+    set.addRequired(LootParams::BLOCK_POS);
+    set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::KILLER_PLAYER);
+    return set;
+}
+
+LootParameterSet generic()
+{
+    return LootParameterSet(LootParameterSet::Type::Generic);
+}
+
+} // namespace LootParameterSets
+
+// ============================================================================
 // LootParameterSet
 // ============================================================================
 

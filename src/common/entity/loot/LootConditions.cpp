@@ -22,9 +22,14 @@
  */
 
 #include "LootConditions.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -310,6 +315,336 @@ std::unique_ptr<LootCondition> ToolTypeCondition::clone() const
 }
 
 // ============================================================================
+// SurvivesExplosionCondition
+// ============================================================================
+
+bool SurvivesExplosionCondition::test(LootContext& context) const
+{
+    // 检查上下文中是否有爆炸半径参数
+    auto* radius = context.get<f32>(LootParams::EXPLOSION_RADIUS);
+    if (!radius) {
+        // 非爆炸破坏，物品总是存活
+        return true;
+    }
+
+    // 爆炸半径为0或负数，物品存活
+    if (*radius <= 0.0f) {
+        return true;
+    }
+
+    // 以 1/radius 的概率存活
+    f32 chance = 1.0f / *radius;
+    return context.getRandom().nextFloat() < chance;
+}
+
+std::unique_ptr<LootCondition> SurvivesExplosionCondition::clone() const
+{
+    return std::make_unique<SurvivesExplosionCondition>();
+}
+
+// ============================================================================
+// KilledByPlayerCondition
+// ============================================================================
+
+bool KilledByPlayerCondition::test(LootContext& context) const
+{
+    // 检查 KILLER_PLAYER 参数是否存在且非 null
+    return context.has(LootParams::KILLER_PLAYER);
+}
+
+std::unique_ptr<LootCondition> KilledByPlayerCondition::clone() const
+{
+    return std::make_unique<KilledByPlayerCondition>();
+}
+
+// ============================================================================
+// EntityPropertiesCondition
+// ============================================================================
+
+EntityPropertiesCondition::EntityPropertiesCondition(EntityTarget target, advancement::EntityPredicate predicate)
+    : m_target(target)
+    , m_predicate(std::move(predicate))
+    , m_isAny(m_predicate.isAny())
+{}
+
+bool EntityPropertiesCondition::test(LootContext& context) const
+{
+    // 根据目标类型获取实体
+    const Entity* entity = nullptr;
+    switch (m_target) {
+        case EntityTarget::This:
+            entity = context.get<Entity>(LootParams::THIS_ENTITY);
+            break;
+        case EntityTarget::Killer:
+            entity = context.get<Entity>(LootParams::KILLER_ENTITY);
+            break;
+        case EntityTarget::DirectKiller:
+            entity = context.get<Entity>(LootParams::DIRECT_KILLER);
+            break;
+        case EntityTarget::KillerPlayer: {
+            // KILLER_PLAYER 的类型是 Player，但 Player 继承自 Entity
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            entity = static_cast<const Entity*>(player);
+            break;
+        }
+    }
+
+    if (!entity) {
+        return false;
+    }
+
+    // 空谓词只检查实体是否存在
+    if (m_isAny) {
+        return true;
+    }
+
+    // 使用 EntityPredicate 的 test(world, x, y, z, entity) 方法
+    // 位置使用实体的当前位置
+    return m_predicate.test(context.getWorld(),
+        static_cast<f64>(entity->x()),
+        static_cast<f64>(entity->y()),
+        static_cast<f64>(entity->z()),
+        *entity);
+}
+
+std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const
+{
+    return std::make_unique<EntityPropertiesCondition>(m_target, m_predicate);
+}
+
+EntityPropertiesCondition::EntityTarget EntityPropertiesCondition::parseEntityTarget(const std::string& str)
+{
+    if (str == "this") {
+        return EntityTarget::This;
+    } else if (str == "killer") {
+        return EntityTarget::Killer;
+    } else if (str == "direct_killer") {
+        return EntityTarget::DirectKiller;
+    } else if (str == "killer_player") {
+        return EntityTarget::KillerPlayer;
+    }
+    return EntityTarget::This;
+}
+
+std::string EntityPropertiesCondition::entityTargetToString(EntityTarget target)
+{
+    switch (target) {
+        case EntityTarget::This:
+            return "this";
+        case EntityTarget::Killer:
+            return "killer";
+        case EntityTarget::DirectKiller:
+            return "direct_killer";
+        case EntityTarget::KillerPlayer:
+            return "killer_player";
+        default:
+            return "this";
+    }
+}
+
+// ============================================================================
+// EntityScoresCondition
+// ============================================================================
+
+EntityScoresCondition::EntityScoresCondition(
+    EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores)
+    : m_target(target)
+    , m_scores(std::move(scores))
+{}
+
+bool EntityScoresCondition::test(LootContext& context) const
+{
+    // 获取实体
+    const Entity* entity = nullptr;
+    switch (m_target) {
+        case EntityPropertiesCondition::EntityTarget::This:
+            entity = context.get<Entity>(LootParams::THIS_ENTITY);
+            break;
+        case EntityPropertiesCondition::EntityTarget::Killer:
+            entity = context.get<Entity>(LootParams::KILLER_ENTITY);
+            break;
+        case EntityPropertiesCondition::EntityTarget::DirectKiller:
+            entity = context.get<Entity>(LootParams::DIRECT_KILLER);
+            break;
+        case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            entity = static_cast<const Entity*>(player);
+            break;
+        }
+    }
+
+    if (!entity) {
+        return false;
+    }
+
+    // 检查记分板分数
+    // 注意：完整的记分板系统尚未实现，暂时返回 true
+    // 当记分板系统实现后，这里需要从 ServerWorld 获取 Scoreboard 并检查分数
+    return true;
+}
+
+std::unique_ptr<LootCondition> EntityScoresCondition::clone() const
+{
+    return std::make_unique<EntityScoresCondition>(m_target, m_scores);
+}
+
+// ============================================================================
+// LocationCheckCondition
+// ============================================================================
+
+LocationCheckCondition::LocationCheckCondition(
+    advancement::LocationPredicate predicate, i32 offsetX, i32 offsetY, i32 offsetZ)
+    : m_predicate(std::move(predicate))
+    , m_offsetX(offsetX)
+    , m_offsetY(offsetY)
+    , m_offsetZ(offsetZ)
+    , m_isAny(m_predicate.isAny())
+{}
+
+bool LocationCheckCondition::test(LootContext& context) const
+{
+    // 从 BLOCK_POS 获取位置
+    auto* blockPos = context.get<BlockPos>(LootParams::BLOCK_POS);
+    if (blockPos) {
+        f64 x = static_cast<f64>(blockPos->x + m_offsetX);
+        f64 y = static_cast<f64>(blockPos->y + m_offsetY);
+        f64 z = static_cast<f64>(blockPos->z + m_offsetZ);
+
+        if (m_isAny) {
+            return true;
+        }
+        return m_predicate.test(context.getWorld(), x, y, z);
+    }
+
+    // 从实体获取位置
+    auto* entity = context.get<Entity>(LootParams::THIS_ENTITY);
+    if (entity) {
+        f64 x = static_cast<f64>(entity->x()) + static_cast<f64>(m_offsetX);
+        f64 y = static_cast<f64>(entity->y()) + static_cast<f64>(m_offsetY);
+        f64 z = static_cast<f64>(entity->z()) + static_cast<f64>(m_offsetZ);
+
+        if (m_isAny) {
+            return true;
+        }
+        return m_predicate.test(context.getWorld(), x, y, z);
+    }
+
+    return false;
+}
+
+std::unique_ptr<LootCondition> LocationCheckCondition::clone() const
+{
+    return std::make_unique<LocationCheckCondition>(m_predicate, m_offsetX, m_offsetY, m_offsetZ);
+}
+
+// ============================================================================
+// WeatherCheckCondition
+// ============================================================================
+
+WeatherCheckCondition::WeatherCheckCondition(std::optional<bool> raining, std::optional<bool> thundering)
+    : m_raining(std::move(raining))
+    , m_thundering(std::move(thundering))
+{}
+
+bool WeatherCheckCondition::test(LootContext& context) const
+{
+    IWorld& world = context.getWorld();
+
+    if (m_raining.has_value() && *m_raining != world.isRaining()) {
+        return false;
+    }
+
+    if (m_thundering.has_value() && *m_thundering != world.isThundering()) {
+        return false;
+    }
+
+    return true;
+}
+
+std::unique_ptr<LootCondition> WeatherCheckCondition::clone() const
+{
+    return std::make_unique<WeatherCheckCondition>(m_raining, m_thundering);
+}
+
+// ============================================================================
+// TimeCheckCondition
+// ============================================================================
+
+TimeCheckCondition::TimeCheckCondition(i64 period, RandomValueRange value)
+    : m_period(period)
+    , m_value(std::move(value))
+    , m_hasPeriod(period > 0)
+{}
+
+bool TimeCheckCondition::test(LootContext& context) const
+{
+    IWorld& world = context.getWorld();
+    i64 dayTime = world.dayTime();
+
+    if (m_hasPeriod && m_period > 0) {
+        dayTime = dayTime % m_period;
+    }
+
+    i32 timeValue = static_cast<i32>(dayTime);
+    f32 floatTime = static_cast<f32>(timeValue);
+    return floatTime >= m_value.getMin() && floatTime <= m_value.getMax();
+}
+
+std::unique_ptr<LootCondition> TimeCheckCondition::clone() const
+{
+    return std::make_unique<TimeCheckCondition>(m_period, m_value);
+}
+
+// ============================================================================
+// DamageSourcePropertiesCondition
+// ============================================================================
+
+DamageSourcePropertiesCondition::DamageSourcePropertiesCondition(advancement::DamageSourcePredicate predicate)
+    : m_predicate(std::move(predicate))
+    , m_isAny(m_predicate.isAny())
+{}
+
+bool DamageSourcePropertiesCondition::test(LootContext& context) const
+{
+    auto* damageSource = context.get<DamageSource>(LootParams::DAMAGE_SOURCE);
+    if (!damageSource) {
+        return false;
+    }
+
+    if (m_isAny) {
+        return true;
+    }
+
+    return m_predicate.test(*damageSource);
+}
+
+std::unique_ptr<LootCondition> DamageSourcePropertiesCondition::clone() const
+{
+    return std::make_unique<DamageSourcePropertiesCondition>(m_predicate);
+}
+
+// ============================================================================
+// ReferenceCondition
+// ============================================================================
+
+ReferenceCondition::ReferenceCondition(const std::string& name)
+    : m_name(name)
+{}
+
+bool ReferenceCondition::test(LootContext& context) const
+{
+    // 谓词系统尚未完整实现，暂时返回 true
+    // 完整实现需要通过 LootContext 解析引用的谓词
+    // 参考 MC: Reference.test() 通过 context.getLootCondition(name) 获取引用的条件并执行
+    return true;
+}
+
+std::unique_ptr<LootCondition> ReferenceCondition::clone() const
+{
+    return std::make_unique<ReferenceCondition>(m_name);
+}
+
+// ============================================================================
 // LootConditionBuilder
 // ============================================================================
 
@@ -362,6 +697,60 @@ std::unique_ptr<LootCondition> LootConditionBuilder::blockState(
 std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType)
 {
     return std::make_unique<ToolTypeCondition>(toolType);
+}
+
+// ============================================================================
+// 新增条件工厂方法
+// ============================================================================
+
+std::unique_ptr<LootCondition> LootConditionBuilder::survivesExplosion()
+{
+    return std::make_unique<SurvivesExplosionCondition>();
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::killedByPlayer()
+{
+    return std::make_unique<KilledByPlayerCondition>();
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::entityProperties(
+    EntityPropertiesCondition::EntityTarget target, advancement::EntityPredicate predicate)
+{
+    return std::make_unique<EntityPropertiesCondition>(target, std::move(predicate));
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::entityScores(
+    EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores)
+{
+    return std::make_unique<EntityScoresCondition>(target, std::move(scores));
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::locationCheck(
+    advancement::LocationPredicate predicate, i32 offsetX, i32 offsetY, i32 offsetZ)
+{
+    return std::make_unique<LocationCheckCondition>(std::move(predicate), offsetX, offsetY, offsetZ);
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::weatherCheck(
+    std::optional<bool> raining, std::optional<bool> thundering)
+{
+    return std::make_unique<WeatherCheckCondition>(std::move(raining), std::move(thundering));
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::timeCheck(i64 period, RandomValueRange value)
+{
+    return std::make_unique<TimeCheckCondition>(period, std::move(value));
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::damageSourceProperties(
+    advancement::DamageSourcePredicate predicate)
+{
+    return std::make_unique<DamageSourcePropertiesCondition>(std::move(predicate));
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::reference(const std::string& name)
+{
+    return std::make_unique<ReferenceCondition>(name);
 }
 
 // ============================================================================

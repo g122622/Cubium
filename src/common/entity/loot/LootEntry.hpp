@@ -272,6 +272,70 @@ private:
 };
 
 /**
+ * @brief 标签掉落条目
+ *
+ * 从物品标签中随机选择物品生成。
+ * expand=true 时每个标签物品作为独立候选条目，权重均分；
+ * expand=false 时从标签中随机选择一个物品。
+ * 参考: net.minecraft.loot.TagLootEntry
+ */
+class TagLootEntry : public LootEntry {
+public:
+    /**
+     * @brief 构造标签条目
+     * @param tagId 标签ID（如 "minecraft:creeper_drop_music_discs"）
+     * @param expand 是否展开为独立条目
+     * @param weight 权重
+     * @param quality 质量
+     */
+    TagLootEntry(const std::string& tagId, bool expand = false, i32 weight = 1, i32 quality = 0);
+
+    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Tag; }
+    [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
+
+    [[nodiscard]] const std::string& getTagId() const { return m_tagId; }
+    [[nodiscard]] bool isExpand() const { return m_expand; }
+
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
+
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
+
+private:
+    std::string m_tagId;
+    bool m_expand;
+};
+
+/**
+ * @brief 动态掉落条目
+ *
+ * 根据动态名称从上下文中获取物品。
+ * 目前仅支持 "minecraft:contents"，用于从方块实体容器中读取物品。
+ * 参考: net.minecraft.loot.DynamicLootEntry
+ */
+class DynamicLootEntry : public LootEntry {
+public:
+    /**
+     * @brief 构造动态条目
+     * @param name 动态名称（如 "minecraft:Contents"）
+     * @param weight 权重
+     * @param quality 质量
+     */
+    DynamicLootEntry(const std::string& name, i32 weight = 1, i32 quality = 0);
+
+    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Dynamic; }
+    [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
+
+    [[nodiscard]] const std::string& getName() const { return m_name; }
+
+    void expand(LootContext& context, std::function<void(LootEntry&)> consumer) const override;
+
+    bool generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const override;
+
+private:
+    std::string m_name;
+};
+
+/**
  * @brief 替代条目
  *
  * 尝试多个条目，直到一个成功。
@@ -390,6 +454,16 @@ public:
     static LootEntryBuilder table(const std::string& tableId);
 
     /**
+     * @brief 构建标签条目
+     */
+    static LootEntryBuilder tag(const std::string& tagId, bool expand = false);
+
+    /**
+     * @brief 构建动态条目
+     */
+    static LootEntryBuilder dynamic_(const std::string& name);
+
+    /**
      * @brief 设置数量
      */
     LootEntryBuilder& count(f32 min, f32 max);
@@ -425,6 +499,9 @@ public:
 private:
     std::string m_itemId;
     std::string m_tableId;
+    std::string m_tagId;
+    std::string m_dynamicName;
+    bool m_expand = false;
     LootEntryType m_type = LootEntryType::Empty;
     RandomValueRange m_count{1.0f, 1.0f};
     i32 m_weight = 1;

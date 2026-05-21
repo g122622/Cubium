@@ -183,6 +183,22 @@ extern const LootParameter<bool> IS_IN_OPEN_WATER; // 是否在开放水域
 } // namespace LootParams
 
 /**
+ * @brief 预定义参数集合工厂
+ *
+ * 提供每种掉落表类型对应的参数集合，包含正确的必需和可选参数。
+ * 参考: net.minecraft.loot.LootParameterSets
+ */
+namespace LootParameterSets {
+extern LootParameterSet empty();
+extern LootParameterSet block();
+extern LootParameterSet chest();
+extern LootParameterSet entity();
+extern LootParameterSet fishing();
+extern LootParameterSet gift();
+extern LootParameterSet generic();
+} // namespace LootParameterSets
+
+/**
  * @brief 掉落上下文
  *
  * 包含生成掉落物所需的所有上下文信息。
@@ -212,6 +228,19 @@ public:
     [[nodiscard]] bool has(const LootParameter<T>& param) const
     {
         return m_params.find(param.getId()) != m_params.end();
+    }
+
+    /**
+     * @brief 获取所有已设置的参数ID列表
+     */
+    [[nodiscard]] std::vector<std::string> getParamIds() const
+    {
+        std::vector<std::string> ids;
+        ids.reserve(m_params.size());
+        for (const auto& [id, _] : m_params) {
+            ids.push_back(id);
+        }
+        return ids;
     }
 
     /**

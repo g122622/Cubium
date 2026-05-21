@@ -216,6 +216,7 @@ add_library(mc_common STATIC
     entity/loot/LootEntry.cpp
     entity/loot/LootPool.cpp
     entity/loot/LootTable.cpp
+    entity/loot/LootTableLoader.cpp
     entity/loot/LootConditions.cpp
     entity/loot/StatePropertiesPredicate.cpp
     entity/loot/LootFunctions.cpp

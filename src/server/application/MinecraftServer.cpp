@@ -28,6 +28,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/loot/LootTableLoader.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
@@ -74,6 +75,7 @@
 #include "server/world/spawn/DespawnManager.hpp"
 #include "server/world/spawn/NaturalSpawner.hpp"
 #include "server/world/weather/WeatherManager.hpp"
+#include <filesystem>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -554,9 +556,37 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
     spdlog::info("Dispense item behaviors initialized");
 
-    // 初始化战利品表管理器
-    m_lootTableManager.initializeDefaultTables();
-    spdlog::info("Loot tables initialized");
+    // 初始化战利品表管理器（从 JSON 文件动态加载）
+    {
+        loot::LootTableLoader lootLoader(m_lootTableManager);
+        std::string lootTablePath = "data/minecraft/loot_tables";
+
+        // 尝试从 vanilla 资源包路径加载
+        std::string vanillaPath = "D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/loot_tables";
+        if (std::filesystem::exists(vanillaPath)) {
+            lootTablePath = vanillaPath;
+        }
+
+        auto lootLoadResult = lootLoader.loadFromDirectory(lootTablePath);
+        if (lootLoadResult.failed()) {
+            spdlog::warn("Failed to load loot tables from '{}': {}", lootTablePath, lootLoadResult.error().toString());
+            // 回退到内置默认表
+            m_lootTableManager.initializeDefaultTables();
+            spdlog::info("Loot tables initialized (fallback to defaults)");
+        } else {
+            const auto& result = lootLoadResult.value();
+            spdlog::info("Loaded {} loot tables from '{}' ({} failed){}",
+                result.successCount,
+                lootTablePath,
+                result.failedCount,
+                result.failedCount > 0 ? "" : "");
+            if (!result.errors.empty()) {
+                for (const auto& err : result.errors) {
+                    spdlog::warn("  Loot table error: {}", err);
+                }
+            }
+        }
+    }
 
     // 加载配方
     RecipeLoader recipeLoader;

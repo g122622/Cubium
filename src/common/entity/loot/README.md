@@ -12,6 +12,7 @@ src/common/entity/loot/
 ├── LootEntry.hpp/cpp        # 掉落条目，定义单个掉落项
 ├── LootPool.hpp/cpp         # 掉落池，按权重随机选择条目
 ├── LootTable.hpp/cpp        # 掉落表，管理多个池
+├── LootTableLoader.hpp/cpp  # 掉落表加载器，从 JSON 文件动态加载掉落表
 ├── LootSerializers.hpp/cpp  # JSON 序列化器，从 JSON 解析掉落表
 ├── StatePropertiesPredicate.hpp/cpp  # 方块状态属性匹配谓词
 └── (RandomRanges 已移至 common/util/math/random/)
@@ -300,7 +301,9 @@ if (limit > 0 && stack.count > limit) stack.count = limit
 |------|---------|------|
 | `EmptyLootEntry` | `Empty` | 空条目，不生成物品 |
 | `ItemLootEntry` | `Item` | 物品条目，生成指定物品 |
+| `TagLootEntry` | `Tag` | 标签条目，从物品标签中随机选择 |
 | `TableLootEntry` | `Table` | 掉落表引用条目 |
+| `DynamicLootEntry` | `Dynamic` | 动态条目，从容器方块实体读取物品 |
 | `AlternativesLootEntry` | `Alternatives` | 替代条目，尝试多个直到成功 |
 | `SequenceLootEntry` | `Sequence` | 序列条目，按顺序执行直到失败 |
 | `GroupLootEntry` | `Group` | 组条目，执行所有子条目 |
@@ -445,9 +448,16 @@ auto drops = lootTable.generate(*context);
 - `minecraft:alternative` → OrCondition
 - `minecraft:block_state_property` → BlockStateCondition
 - `minecraft:match_tool` → ToolTypeCondition
-- `minecraft:killed_by_player` → 占位实现
-- `minecraft:entity_properties` → 占位实现
-- `minecraft:survives_explosion` → 占位实现
+- `minecraft:killed_by_player` → KilledByPlayerCondition
+- `minecraft:entity_properties` → EntityPropertiesCondition
+- `minecraft:survives_explosion` → SurvivesExplosionCondition
+- `minecraft:entity_scores` → EntityScoresCondition
+- `minecraft:location_check` → LocationCheckCondition
+- `minecraft:weather_check` → WeatherCheckCondition
+- `minecraft:time_check` → TimeCheckCondition
+- `minecraft:damage_source_properties` → DamageSourcePropertiesCondition
+- `minecraft:reference` → ReferenceCondition
+- `minecraft:fishing_hook_in_open_water` → FishingOpenWaterCondition
 
 **支持的函数类型**:
 - `minecraft:set_count` → SetCountFunction
@@ -475,7 +485,9 @@ auto drops = lootTable.generate(*context);
 **支持的条目类型**:
 - `minecraft:empty` → EmptyLootEntry
 - `minecraft:item` → ItemLootEntry
+- `minecraft:tag` → TagLootEntry
 - `minecraft:loot_table` → TableLootEntry
+- `minecraft:dynamic` → DynamicLootEntry
 - `minecraft:alternatives` → AlternativesLootEntry
 - `minecraft:sequence` → SequenceLootEntry
 - `minecraft:group` → GroupLootEntry
@@ -923,12 +935,6 @@ entry.generate(consumer, context);  // 条件在这里检查
 | LootFunctionBuilder | 所有新函数工厂方法 |
 | LootSerializers | RandomValueRange/IRandomRange 解析、条件解析、函数解析、条目解析、池解析、掉落表解析、序列化、往返测试、BlockStateCondition JSON解析（含properties字段） |
 
-### 运行测试
-
-```powershell
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="Loot*"
-```
-
 ---
 
 ## 参考实现
@@ -947,19 +953,12 @@ entry.generate(consumer, context);  // 条件在这里检查
 ## 未来计划
 
 1. ~~**JSON 解析** - 实现从数据包加载掉落表~~ ✅ 已完成
-2. **更多条件** - 添加实体属性、生物群系、天气等条件
-3. **更多条目** - 标签条目、动态条目
-4. **缓存优化** - 掉落表缓存和预编译
-5. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
-   - ~~CopyNameFunction~~ ✅ 已完成（从实体/方块实体复制名称）
-   - ~~CopyBlockStateFunction~~ ✅ 已完成（复制 BlockState 属性到 ItemStack 的 BlockStateTag）
-   - ~~SetNbtFunction~~ ✅ 已完成（使用 Mojangson 格式解析 NBT 字符串并合并到 ItemStack）
+2. ~~**更多条件** - 添加实体属性、生物群系、天气等条件~~ ✅ 已完成（15种条件类型全部实现）
+3. ~~**更多条目** - 标签条目、动态条目~~ ✅ 已完成（TagLootEntry、DynamicLootEntry）
+4. ~~**JSON 动态加载** - 从资源包 JSON 文件加载掉落表~~ ✅ 已完成（LootTableLoader）
+5. **缓存优化** - 掉落表缓存和预编译
+6. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
    - CopyNbtFunction（需要 NBT 路径解析）
-   - ~~FillPlayerHeadFunction~~ ✅ 已完成（将玩家信息写入 SkullOwner NBT 标签）
-   - ~~SetAttributesFunction~~ ✅ 已完成（为物品添加属性修饰符，支持随机数值、多槽位、UUID生成）
-   - ~~SetContentsFunction~~ ✅ 已完成（设置容器物品内容物到 BlockEntityTag.Items）
    - ExplorationMapFunction（需要地图数据系统）
-   - ~~SetStewEffectFunction~~ ✅ 已完成（为谜之炖菜添加状态效果，支持随机选择和持续时间）
-   - ~~SetLootTableFunction~~ ✅ 已完成（设置掉落表到 BlockEntityTag）
-6. ~~**FurnaceSmeltFunction 熔炼函数** - 已通过 RecipeManager 实现完整功能~~ ✅ 已完成
-7. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持
+7. ~~**FurnaceSmeltFunction 熔炼函数** - 已通过 RecipeManager 实现完整功能~~ ✅ 已完成
+8. ~~**Pool/Table 级别函数** - Pool 和 Table 级别的函数支持~~ ✅ 已完成

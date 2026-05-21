@@ -339,6 +339,12 @@ private:
     static Result<std::unique_ptr<LootCondition>> parseKilledByPlayerCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> parseEntityPropertiesCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> parseSurvivesExplosionCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseEntityScoresCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseLocationCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseWeatherCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseTimeCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseDamageSourcePropertiesCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> parseReferenceCondition(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> parseTableBonusCondition(const nlohmann::json& json);
 
     // ========================================================================
@@ -374,6 +380,8 @@ private:
     static Result<std::unique_ptr<LootEntry>> parseEmptyEntry(const nlohmann::json& json);
     static Result<std::unique_ptr<LootEntry>> parseItemEntry(const nlohmann::json& json);
     static Result<std::unique_ptr<LootEntry>> parseTableEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> parseTagEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> parseDynamicEntry(const nlohmann::json& json);
     static Result<std::unique_ptr<LootEntry>> parseAlternativesEntry(const nlohmann::json& json);
     static Result<std::unique_ptr<LootEntry>> parseSequenceEntry(const nlohmann::json& json);
     static Result<std::unique_ptr<LootEntry>> parseGroupEntry(const nlohmann::json& json);

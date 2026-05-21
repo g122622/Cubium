@@ -25,9 +25,14 @@
 
 #include "LootContext.hpp"
 #include "StatePropertiesPredicate.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -368,6 +373,333 @@ private:
 };
 
 /**
+ * @brief 爆炸存活条件
+ *
+ * 检查物品是否在爆炸中存活。
+ * 若上下文中没有爆炸半径参数，则总是返回 true（非爆炸破坏）。
+ * 若有爆炸半径，则以 1/radius 的概率存活。
+ *
+ * 参考: net.minecraft.loot.conditions.SurvivesExplosion
+ *
+ * 这是方块掉落表中最常用的条件，几乎所有方块都使用。
+ */
+class SurvivesExplosionCondition : public LootCondition {
+public:
+    SurvivesExplosionCondition() = default;
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "survives_explosion"; }
+};
+
+/**
+ * @brief 被玩家击杀条件
+ *
+ * 检查实体是否被玩家击杀。
+ * 通过检查 LootContext 中的 KILLER_PLAYER 参数是否存在来判断。
+ *
+ * 参考: net.minecraft.loot.conditions.KilledByPlayer
+ */
+class KilledByPlayerCondition : public LootCondition {
+public:
+    KilledByPlayerCondition() = default;
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "killed_by_player"; }
+};
+
+/**
+ * @brief 实体属性条件
+ *
+ * 检查指定实体（this/killer/direct_killer/killer_player）是否满足属性谓词。
+ * 使用 advancement 命名空间中的 EntityPredicate 进行匹配。
+ *
+ * 参考: net.minecraft.loot.conditions.EntityHasProperty
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:entity_properties",
+ *   "entity": "this",
+ *   "predicate": {
+ *     "flags": { "is_on_fire": true }
+ *   }
+ * }
+ * @endcode
+ */
+class EntityPropertiesCondition : public LootCondition {
+public:
+    /**
+     * @brief 实体目标类型
+     */
+    enum class EntityTarget {
+        This,         // 当前实体
+        Killer,       // 击杀者
+        DirectKiller, // 直接击杀者
+        KillerPlayer  // 击杀玩家
+    };
+
+    EntityPropertiesCondition() = default;
+
+    /**
+     * @brief 构造实体属性条件
+     * @param target 实体目标
+     * @param predicate 实体谓词（空谓词表示只检查实体是否存在）
+     */
+    EntityPropertiesCondition(EntityTarget target, advancement::EntityPredicate predicate);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "entity_properties"; }
+
+    [[nodiscard]] EntityTarget getTarget() const { return m_target; }
+    [[nodiscard]] const advancement::EntityPredicate& getPredicate() const { return m_predicate; }
+
+    /**
+     * @brief 将字符串转换为 EntityTarget
+     */
+    [[nodiscard]] static EntityTarget parseEntityTarget(const std::string& str);
+
+    /**
+     * @brief 将 EntityTarget 转换为字符串
+     */
+    [[nodiscard]] static std::string entityTargetToString(EntityTarget target);
+
+private:
+    EntityTarget m_target = EntityTarget::This;
+    advancement::EntityPredicate m_predicate;
+    bool m_isAny = true; // 空谓词，只检查实体是否存在
+};
+
+/**
+ * @brief 实体分数条件
+ *
+ * 检查指定实体的记分板分数是否在指定范围内。
+ * 参考: net.minecraft.loot.conditions.EntityHasScore
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:entity_scores",
+ *   "entity": "this",
+ *   "scores": {
+ *     "objective_name": { "min": 1, "max": 10 }
+ *   }
+ * }
+ * @endcode
+ */
+class EntityScoresCondition : public LootCondition {
+public:
+    EntityScoresCondition() = default;
+
+    /**
+     * @brief 构造实体分数条件
+     * @param target 实体目标
+     * @param scores 记分板目标名到分数范围的映射
+     */
+    EntityScoresCondition(
+        EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "entity_scores"; }
+
+    [[nodiscard]] EntityPropertiesCondition::EntityTarget getTarget() const { return m_target; }
+    [[nodiscard]] const std::unordered_map<std::string, RandomValueRange>& getScores() const { return m_scores; }
+
+private:
+    EntityPropertiesCondition::EntityTarget m_target = EntityPropertiesCondition::EntityTarget::This;
+    std::unordered_map<std::string, RandomValueRange> m_scores;
+};
+
+/**
+ * @brief 位置检查条件
+ *
+ * 检查指定偏移位置是否满足位置谓词（生物群系、维度等）。
+ * 参考: net.minecraft.loot.conditions.LocationCheck
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:location_check",
+ *   "predicate": { "biome": "minecraft:jungle" },
+ *   "offsetY": 1
+ * }
+ * @endcode
+ */
+class LocationCheckCondition : public LootCondition {
+public:
+    LocationCheckCondition() = default;
+
+    /**
+     * @brief 构造位置检查条件
+     * @param predicate 位置谓词
+     * @param offsetX X偏移（默认0）
+     * @param offsetY Y偏移（默认0）
+     * @param offsetZ Z偏移（默认0）
+     */
+    LocationCheckCondition(advancement::LocationPredicate predicate, i32 offsetX = 0, i32 offsetY = 0, i32 offsetZ = 0);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "location_check"; }
+
+    [[nodiscard]] const advancement::LocationPredicate& getPredicate() const { return m_predicate; }
+    [[nodiscard]] i32 getOffsetX() const { return m_offsetX; }
+    [[nodiscard]] i32 getOffsetY() const { return m_offsetY; }
+    [[nodiscard]] i32 getOffsetZ() const { return m_offsetZ; }
+
+private:
+    advancement::LocationPredicate m_predicate;
+    i32 m_offsetX = 0;
+    i32 m_offsetY = 0;
+    i32 m_offsetZ = 0;
+    bool m_isAny = true;
+};
+
+/**
+ * @brief 天气检查条件
+ *
+ * 检查当前世界的天气状态（下雨/雷暴）。
+ * 参考: net.minecraft.loot.conditions.WeatherCheck
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:weather_check",
+ *   "raining": true,
+ *   "thundering": false
+ * }
+ * @endcode
+ *
+ * 可选字段：raining 和 thundering，不设置则不检查对应天气。
+ */
+class WeatherCheckCondition : public LootCondition {
+public:
+    WeatherCheckCondition() = default;
+
+    /**
+     * @brief 构造天气检查条件
+     * @param raining 是否要求下雨（nullopt 表示不检查）
+     * @param thundering 是否要求雷暴（nullopt 表示不检查）
+     */
+    WeatherCheckCondition(std::optional<bool> raining, std::optional<bool> thundering);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "weather_check"; }
+
+    [[nodiscard]] const std::optional<bool>& getRaining() const { return m_raining; }
+    [[nodiscard]] const std::optional<bool>& getThundering() const { return m_thundering; }
+
+private:
+    std::optional<bool> m_raining;
+    std::optional<bool> m_thundering;
+};
+
+/**
+ * @brief 时间检查条件
+ *
+ * 检查当前游戏时间是否在指定范围内，可选取模。
+ * 参考: net.minecraft.loot.conditions.TimeCheck
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:time_check",
+ *   "period": 24000,
+ *   "value": { "min": 0, "max": 12000 }
+ * }
+ * @endcode
+ */
+class TimeCheckCondition : public LootCondition {
+public:
+    TimeCheckCondition() = default;
+
+    /**
+     * @brief 构造时间检查条件
+     * @param period 取模周期（0表示不取模）
+     * @param value 时间值范围
+     */
+    TimeCheckCondition(i64 period, RandomValueRange value);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "time_check"; }
+
+    [[nodiscard]] i64 getPeriod() const { return m_period; }
+    [[nodiscard]] const RandomValueRange& getValue() const { return m_value; }
+
+private:
+    i64 m_period = 0;         // 0 表示不取模
+    RandomValueRange m_value; // 时间值范围
+    bool m_hasPeriod = false;
+};
+
+/**
+ * @brief 伤害源属性条件
+ *
+ * 检查伤害源是否满足指定属性谓词。
+ * 参考: net.minecraft.loot.conditions.DamageSourceProperties
+ *
+ * JSON 格式示例:
+ * @code
+ * {
+ *   "condition": "minecraft:damage_source_properties",
+ *   "predicate": { "is_lightning": true }
+ * }
+ * @endcode
+ */
+class DamageSourcePropertiesCondition : public LootCondition {
+public:
+    DamageSourcePropertiesCondition() = default;
+
+    /**
+     * @brief 构造伤害源属性条件
+     * @param predicate 伤害源谓词
+     */
+    explicit DamageSourcePropertiesCondition(advancement::DamageSourcePredicate predicate);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "damage_source_properties"; }
+
+    [[nodiscard]] const advancement::DamageSourcePredicate& getPredicate() const { return m_predicate; }
+
+private:
+    advancement::DamageSourcePredicate m_predicate;
+    bool m_isAny = true;
+};
+
+/**
+ * @brief 引用条件
+ *
+ * 引用另一个已注册的条件谓词（predicate），实现条件复用。
+ * 目前谓词系统尚未完整实现，此条件作为占位。
+ * 参考: net.minecraft.loot.conditions.Reference
+ */
+class ReferenceCondition : public LootCondition {
+public:
+    ReferenceCondition() = default;
+
+    /**
+     * @brief 构造引用条件
+     * @param name 引用的谓词名称
+     */
+    explicit ReferenceCondition(const std::string& name);
+
+    [[nodiscard]] bool test(LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::string getType() const override { return "reference"; }
+
+    [[nodiscard]] const std::string& getName() const { return m_name; }
+
+private:
+    std::string m_name;
+};
+
+/**
  * @brief 掉落条件构建器
  *
  * 提供流畅的条件构建接口。
@@ -447,6 +779,72 @@ public:
      * @param toolType 工具类型
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> toolType(u8 toolType);
+
+    // ========== 新增条件工厂方法 ==========
+
+    /**
+     * @brief 创建爆炸存活条件
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> survivesExplosion();
+
+    /**
+     * @brief 创建被玩家击杀条件
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> killedByPlayer();
+
+    /**
+     * @brief 创建实体属性条件
+     * @param target 实体目标
+     * @param predicate 实体谓词
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> entityProperties(
+        EntityPropertiesCondition::EntityTarget target, advancement::EntityPredicate predicate);
+
+    /**
+     * @brief 创建实体分数条件
+     * @param target 实体目标
+     * @param scores 分数映射
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> entityScores(
+        EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores);
+
+    /**
+     * @brief 创建位置检查条件
+     * @param predicate 位置谓词
+     * @param offsetX X偏移
+     * @param offsetY Y偏移
+     * @param offsetZ Z偏移
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> locationCheck(
+        advancement::LocationPredicate predicate, i32 offsetX = 0, i32 offsetY = 0, i32 offsetZ = 0);
+
+    /**
+     * @brief 创建天气检查条件
+     * @param raining 是否要求下雨（nullopt 不检查）
+     * @param thundering 是否要求雷暴（nullopt 不检查）
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> weatherCheck(
+        std::optional<bool> raining = std::nullopt, std::optional<bool> thundering = std::nullopt);
+
+    /**
+     * @brief 创建时间检查条件
+     * @param period 取模周期（0不取模）
+     * @param value 时间值范围
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> timeCheck(i64 period, RandomValueRange value);
+
+    /**
+     * @brief 创建伤害源属性条件
+     * @param predicate 伤害源谓词
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> damageSourceProperties(
+        advancement::DamageSourcePredicate predicate);
+
+    /**
+     * @brief 创建引用条件
+     * @param name 引用的谓词名称
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> reference(const std::string& name);
 };
 
 /**
