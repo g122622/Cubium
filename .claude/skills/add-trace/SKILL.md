@@ -83,6 +83,53 @@ void ClientWorld::onLightUpdate(i32 chunkX,
     requestChunkMeshRebuild(id);
 }
 
+void MinecraftServer::initializeRegistries(bool registerEntities)
+{
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
+
+    // 初始化方块注册表
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Blocks");
+        VanillaBlocks::initialize();
+    }
+    spdlog::info("Vanilla blocks initialized");
+
+    // 初始化物品注册表
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Items");
+        Items::initialize();
+    }
+    spdlog::info("Vanilla items initialized");
+
+    // 初始化附魔注册表
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Enchantments");
+        item::enchant::EnchantmentRegistry::initialize();
+    }
+    spdlog::info("Enchantments initialized");
+
+    // 初始化方块物品注册表
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::BlockItems");
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+    }
+    spdlog::info("Block items initialized");
+
+    // 初始化物品标签（必须在所有物品注册后）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTags");
+        item::tag::ItemTags::initialize();
+    }
+    spdlog::info("Item tags initialized");
+
+    // 初始化发射器行为注册表
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DispenseBehaviors");
+        blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
+    }
+    spdlog::info("Dispense item behaviors initialized");
+}
+
 ```
 
 ## 要点
@@ -93,6 +140,7 @@ void ClientWorld::onLightUpdate(i32 chunkX,
 4. 【可选】追踪宏的最后一个参数是一个lambda表达式，lambda表达式接受一个`perfetto::EventContext`参数，用户可以在lambda中使用这个参数来触发Flow事件。Flow事件可以用来关联不同函数中的事件，方便在perfetto UI中分析调用关系。如果你追踪的函数参数中有可以用来唯一标识调用实例的信息（比如实体ID、区块位置、方块Pos等），建议使用这些信息来构造Flow ID，这样可以在perfetto UI中清晰地看到同一个实体或区块的事件是如何流转的。
 5. 追踪宏采用RAII机制，尽量放在当前作用域顶部，且离开当前作用域时会自动结束事件，因此不需要手动结束事件。
 6. 尽量使用MC_TRACE_EVENT而不是MC_TRACE_INSTANT，因为前者可以记录一个时间区间，而后者只能记录一瞬间，导致信息量减少，除非你确实只关心一个瞬间事件（比如用户按下键盘、收到网络包），否则建议使用MC_TRACE_EVENT。
+7. 引入trace之前，必须检查当前文件是否包含了 `#include "common/perfetto/TraceEvents.hpp"` 如果没有包含，则需要增加这个包含语句。
 
 ## 任务开始前
 

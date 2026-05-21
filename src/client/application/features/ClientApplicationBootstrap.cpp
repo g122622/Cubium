@@ -223,18 +223,26 @@ Result<void> ClientApplication::initializeRenderer()
     {
         MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers");
 
-        auto skyInitResult = m_renderer->initializeSkyRenderer();
-        if (skyInitResult.failed()) {
-            spdlog::warn("Failed to initialize sky renderer: {}", skyInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::SkyRenderer");
+            auto skyInitResult = m_renderer->initializeSkyRenderer();
+            if (skyInitResult.failed()) {
+                spdlog::warn("Failed to initialize sky renderer: {}", skyInitResult.error().toString());
+            }
         }
 
-        auto guiInitResult = m_renderer->initializeGuiRenderer();
-        if (guiInitResult.failed()) {
-            spdlog::warn("Failed to initialize GUI renderer: {}", guiInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::GuiRenderer");
+            auto guiInitResult = m_renderer->initializeGuiRenderer();
+            if (guiInitResult.failed()) {
+                spdlog::warn("Failed to initialize GUI renderer: {}", guiInitResult.error().toString());
+            }
         }
 
         // 初始化 GUI 纹理管理器（用于背包屏幕等容器GUI）
         if (m_renderer->isGuiRendererInitialized()) {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::GuiTextureManager");
+
             spdlog::info("Initializing GUI texture manager...");
             m_guiTextureManager = std::make_unique<renderer::trident::gui::GuiTextureManager>();
             auto textureMgrInit = m_guiTextureManager->initialize(m_renderer->device(),
@@ -264,13 +272,17 @@ Result<void> ClientApplication::initializeRenderer()
         }
 
         // 实体渲染器必须先初始化（创建 EntityPipeline）
-        auto entityInitResult = m_renderer->initializeEntityRenderer();
-        if (entityInitResult.failed()) {
-            spdlog::warn("Failed to initialize entity renderer: {}", entityInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::EntityRenderer");
+            auto entityInitResult = m_renderer->initializeEntityRenderer();
+            if (entityInitResult.failed()) {
+                spdlog::warn("Failed to initialize entity renderer: {}", entityInitResult.error().toString());
+            }
         }
 
         // 实体纹理图集在 EntityPipeline 创建后初始化
         if (m_resourceManager) {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::EntityTextureAtlas");
             spdlog::info("Initializing entity texture atlas...");
             auto entityAtlasResult = m_renderer->initializeEntityTextureAtlas(m_resourceManager.get());
             if (entityAtlasResult.failed()) {
@@ -279,6 +291,7 @@ Result<void> ClientApplication::initializeRenderer()
         }
 
         if (m_resourceManager) {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::ItemRenderer");
             auto itemInitResult = m_renderer->initializeItemRenderer(m_resourceManager.get());
             if (itemInitResult.failed()) {
                 spdlog::warn("Failed to initialize item renderer: {}", itemInitResult.error().toString());
@@ -286,45 +299,64 @@ Result<void> ClientApplication::initializeRenderer()
         }
 
         // 初始化雾效果管理器
-        auto fogInitResult = m_renderer->initializeFogManager();
-        if (fogInitResult.failed()) {
-            spdlog::warn("Failed to initialize fog manager: {}", fogInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::FogManager");
+            auto fogInitResult = m_renderer->initializeFogManager();
+            if (fogInitResult.failed()) {
+                spdlog::warn("Failed to initialize fog manager: {}", fogInitResult.error().toString());
+            }
         }
 
         // 初始化云渲染器
-        auto cloudInitResult = m_renderer->initializeCloudRenderer(m_resourceManager.get());
-        if (cloudInitResult.failed()) {
-            spdlog::warn("Failed to initialize cloud renderer: {}", cloudInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::CloudRenderer");
+            auto cloudInitResult = m_renderer->initializeCloudRenderer(m_resourceManager.get());
+            if (cloudInitResult.failed()) {
+                spdlog::warn("Failed to initialize cloud renderer: {}", cloudInitResult.error().toString());
+            }
         }
 
         // 初始化粒子管理器
-        auto particleInitResult = m_renderer->initializeParticleManager();
-        if (particleInitResult.failed()) {
-            spdlog::warn("Failed to initialize particle manager: {}", particleInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::ParticleManager");
+            auto particleInitResult = m_renderer->initializeParticleManager();
+            if (particleInitResult.failed()) {
+                spdlog::warn("Failed to initialize particle manager: {}", particleInitResult.error().toString());
+            }
         }
 
         // 初始化天气渲染器
-        auto weatherInitResult = m_renderer->initializeWeatherRenderer();
-        if (weatherInitResult.failed()) {
-            spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
-        } else {
-            // 设置图形模式（Fancy/Fast）
-            // 参考 MC 1.16.5: Fast 模式渲染半径 5，Fancy 模式渲染半径 10
-            const bool isFancy = m_settings.graphics.get() == static_cast<u8>(GraphicsMode::Fancy);
-            m_renderer->weatherRenderer().setFancyGraphics(isFancy);
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::WeatherRenderer");
+            auto weatherInitResult = m_renderer->initializeWeatherRenderer();
+            if (weatherInitResult.failed()) {
+                spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
+            } else {
+                // 设置图形模式（Fancy/Fast）
+                // 参考 MC 1.16.5: Fast 模式渲染半径 5，Fancy 模式渲染半径 10
+                const bool isFancy = m_settings.graphics.get() == static_cast<u8>(GraphicsMode::Fancy);
+                m_renderer->weatherRenderer().setFancyGraphics(isFancy);
+            }
         }
 
         // 初始化破坏进度渲染器
-        auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer(m_resourceManager.get());
-        if (breakProgressInitResult.failed()) {
-            spdlog::warn(
-                "Failed to initialize break progress renderer: {}", breakProgressInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::BreakProgressRenderer");
+            auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer(m_resourceManager.get());
+            if (breakProgressInitResult.failed()) {
+                spdlog::warn(
+                    "Failed to initialize break progress renderer: {}", breakProgressInitResult.error().toString());
+            }
         }
 
         // 初始化第一人称手部渲染器
-        auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
-        if (firstPersonInitResult.failed()) {
-            spdlog::warn("Failed to initialize first person renderer: {}", firstPersonInitResult.error().toString());
+        {
+            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::FirstPersonRenderer");
+            auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
+            if (firstPersonInitResult.failed()) {
+                spdlog::warn(
+                    "Failed to initialize first person renderer: {}", firstPersonInitResult.error().toString());
+            }
         }
     }
 

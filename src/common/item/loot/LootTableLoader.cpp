@@ -23,6 +23,7 @@
 
 #include "LootTableLoader.hpp"
 #include "LootTable.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include <filesystem>
 #include <fstream>
@@ -50,6 +51,8 @@ void LootTableLoader::clearIfNeeded()
 Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
     const ResourcePackList& packs, ProgressCallback callback)
 {
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromResourcePacks");
+
     m_lastResult = LoadResult{};
     clearIfNeeded();
 
@@ -102,6 +105,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
 Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
     const std::string& directoryPath, ProgressCallback callback)
 {
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromDirectory", "directory", directoryPath);
+
     if (!fs::exists(directoryPath)) {
         return Error(ErrorCode::FileNotFound, "Directory not found: " + directoryPath);
     }
@@ -151,6 +156,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
 
 Result<std::string> LootTableLoader::loadFile(const std::string& filePath)
 {
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFile", "filePath", filePath);
+
     // 从文件路径推导掉落表ID
     std::string id = pathToLootTableId(filePath);
 
@@ -169,6 +176,8 @@ Result<std::string> LootTableLoader::loadFile(const std::string& filePath)
 
 Result<std::string> LootTableLoader::loadJson(const std::string& id, const std::string& jsonString)
 {
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadJson", "id", id);
+
     // 解析 JSON
     nlohmann::json json;
     try {

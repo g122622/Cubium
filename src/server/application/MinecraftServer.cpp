@@ -28,11 +28,11 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
-#include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
@@ -533,86 +533,118 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
 
     // 初始化方块注册表
-    VanillaBlocks::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Blocks");
+        VanillaBlocks::initialize();
+    }
     spdlog::info("Vanilla blocks initialized");
 
     // 初始化物品注册表
-    Items::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Items");
+        Items::initialize();
+    }
     spdlog::info("Vanilla items initialized");
 
     // 初始化附魔注册表
-    item::enchant::EnchantmentRegistry::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Enchantments");
+        item::enchant::EnchantmentRegistry::initialize();
+    }
     spdlog::info("Enchantments initialized");
 
     // 初始化方块物品注册表
-    BlockItemRegistry::instance().initializeVanillaBlockItems();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::BlockItems");
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+    }
     spdlog::info("Block items initialized");
 
     // 初始化物品标签（必须在所有物品注册后）
-    item::tag::ItemTags::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTags");
+        item::tag::ItemTags::initialize();
+    }
     spdlog::info("Item tags initialized");
 
     // 初始化发射器行为注册表
-    blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DispenseBehaviors");
+        blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
+    }
     spdlog::info("Dispense item behaviors initialized");
 
     // 初始化战利品表管理器（从 JSON 文件动态加载）
     {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::LootTables");
         loot::LootTableLoader lootLoader(m_lootTableManager);
         auto lootLoadResult = lootLoader.loadFromDirectory("data/minecraft/loot_tables");
         if (lootLoadResult.failed()) {
-            spdlog::warn(
+            spdlog::error(
                 "Failed to load loot tables from 'data/minecraft/loot_tables': {}", lootLoadResult.error().toString());
         } else {
             const auto& result = lootLoadResult.value();
             spdlog::info(
                 "Loaded {} loot tables from local data directory ({} failed)", result.successCount, result.failedCount);
             for (const auto& err : result.errors) {
-                spdlog::warn("Loot table error: {}", err);
+                spdlog::error("Loot table error: {}", err);
             }
         }
 
         lootLoader.setClearBeforeLoad(false);
         auto resourcePackLoadResult = lootLoader.loadFromResourcePacks(m_resourcePackList);
         if (resourcePackLoadResult.failed()) {
-            spdlog::warn(
+            spdlog::error(
                 "Failed to load loot tables from resource packs: {}", resourcePackLoadResult.error().toString());
         } else {
             const auto& result = resourcePackLoadResult.value();
             spdlog::info(
                 "Loaded {} loot tables from resource packs ({} failed)", result.successCount, result.failedCount);
             for (const auto& err : result.errors) {
-                spdlog::warn("Loot table error: {}", err);
+                spdlog::error("Loot table error: {}", err);
             }
         }
     }
 
     // 加载配方
-    RecipeLoader recipeLoader;
-    auto recipeLoadResult = recipeLoader.loadFromDirectory("data/minecraft/recipes");
-    if (recipeLoadResult.failed()) {
-        spdlog::warn("Failed to load crafting recipes: {}", recipeLoadResult.error().toString());
-    } else {
-        spdlog::info("Loaded {} crafting recipes ({} failed)",
-            recipeLoadResult.value().successCount,
-            recipeLoadResult.value().failedCount);
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Recipes");
+        RecipeLoader recipeLoader;
+        auto recipeLoadResult = recipeLoader.loadFromDirectory("data/minecraft/recipes");
+        if (recipeLoadResult.failed()) {
+            spdlog::error("Failed to load crafting recipes: {}", recipeLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} crafting recipes ({} failed)",
+                recipeLoadResult.value().successCount,
+                recipeLoadResult.value().failedCount);
+        }
     }
 
     // 注册实体类型（可选）
     if (registerEntities) {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Entities");
         entity::VanillaEntities::registerAll();
     }
 
     // 初始化预定义日程（村民AI行为日程）
-    entity::ai::brain::schedule::Schedule::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Schedules");
+        entity::ai::brain::schedule::Schedule::initialize();
+    }
     spdlog::info("Schedules initialized");
 
     // 初始化记忆模块类型
-    entity::ai::brain::memory::MemoryModuleTypes::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::MemoryModules");
+        entity::ai::brain::memory::MemoryModuleTypes::initialize();
+    }
     spdlog::info("Memory module types initialized");
 
     // 初始化村民交易配方表
-    world::village::trade::VillagerTrades::initialize();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::VillagerTrades");
+        world::village::trade::VillagerTrades::initialize();
+    }
 }
 
 void MinecraftServer::setupWorldCallbacks()

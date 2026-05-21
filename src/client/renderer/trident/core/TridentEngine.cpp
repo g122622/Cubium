@@ -1679,6 +1679,7 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
     if (!m_itemTextureAtlasInitialized) {
         if (!m_itemTextureAtlas.isValid()) {
+            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::CreateAtlas");
             auto createResult =
                 m_itemTextureAtlas.create(device(), physicalDevice(), commandPool(), graphicsQueue(), 4096, 4096);
             if (createResult.failed()) {
@@ -1686,23 +1687,29 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
             }
         }
 
-        std::vector<IResourcePack*> resourcePacks;
-        resourcePacks.reserve(resourceManager->resourcePackCount());
-        for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
-            IResourcePack* pack = resourceManager->getResourcePack(i);
-            if (pack != nullptr) {
-                resourcePacks.push_back(pack);
+        {
+            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::LoadFromResourcePacks");
+            std::vector<IResourcePack*> resourcePacks;
+            resourcePacks.reserve(resourceManager->resourcePackCount());
+            for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
+                IResourcePack* pack = resourceManager->getResourcePack(i);
+                if (pack != nullptr) {
+                    resourcePacks.push_back(pack);
+                }
+            }
+
+            auto loadResult = m_itemTextureAtlas.loadFromResourcePacks(resourcePacks);
+            if (loadResult.failed()) {
+                return loadResult.error();
             }
         }
 
-        auto loadResult = m_itemTextureAtlas.loadFromResourcePacks(resourcePacks);
-        if (loadResult.failed()) {
-            return loadResult.error();
-        }
-
-        auto uploadResult = m_itemTextureAtlas.upload();
-        if (uploadResult.failed()) {
-            return uploadResult.error();
+        {
+            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::UploadAtlas");
+            auto uploadResult = m_itemTextureAtlas.upload();
+            if (uploadResult.failed()) {
+                return uploadResult.error();
+            }
         }
 
         m_itemTextureAtlasInitialized = true;
@@ -1710,11 +1717,14 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
     }
 
     // 创建物品渲染器
-    m_itemRendererPtr = std::make_unique<item::ItemRenderer>();
-    auto result = m_itemRendererPtr->initialize(resourceManager, &m_itemTextureAtlas);
-    if (result.failed()) {
-        m_itemRendererPtr.reset();
-        return result.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::CreateItemRenderer");
+        m_itemRendererPtr = std::make_unique<item::ItemRenderer>();
+        auto result = m_itemRendererPtr->initialize(resourceManager, &m_itemTextureAtlas);
+        if (result.failed()) {
+            m_itemRendererPtr.reset();
+            return result.error();
+        }
     }
 
     if (m_guiRendererInitialized && m_guiRendererPtr && m_itemTextureAtlas.isValid()) {
@@ -1816,9 +1826,12 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     spdlog::info("Initializing entity texture atlas...");
 
     // 初始化实体纹理图集
-    auto initResult = m_entityTextureAtlas.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
-    if (initResult.failed()) {
-        return initResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::InitAtlas");
+        auto initResult = m_entityTextureAtlas.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
+        if (initResult.failed()) {
+            return initResult.error();
+        }
     }
 
     // 构建资源包列表（按优先级从低到高）
@@ -1833,9 +1846,13 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     spdlog::info("EntityTextureAtlas: Loading textures from {} resource packs", packs.size());
 
     // 使用新的自动发现方法加载所有实体纹理
-    EntityTextureLoader textureLoader;
-    auto loadResult = textureLoader.loadAllEntityTextures(packs, m_entityTextureAtlas);
-    u32 loadedCount = loadResult.success() ? loadResult.value() : 0;
+    u32 loadedCount = 0;
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::LoadTextures");
+        EntityTextureLoader textureLoader;
+        auto loadResult = textureLoader.loadAllEntityTextures(packs, m_entityTextureAtlas);
+        loadedCount = loadResult.success() ? loadResult.value() : 0;
+    }
 
     // 加载本地玩家皮肤（可选）
     // 优先级高于资源包中的默认 steve/alex 纹理。
@@ -1868,6 +1885,7 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
         spdlog::info("Total {} entity textures loaded", loadedCount);
 
         // 构建纹理图集
+        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::BuildAtlas");
         auto buildResult = m_entityTextureAtlas.build();
         if (buildResult.failed()) {
             spdlog::warn("Failed to build entity texture atlas: {}", buildResult.error().toString());

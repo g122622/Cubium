@@ -145,25 +145,34 @@ Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig&
     m_config = config;
 
     // 创建 Instance
-    auto instanceResult = createInstanceOnly(config);
-    if (instanceResult.failed()) {
-        return instanceResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateInstance");
+        auto instanceResult = createInstanceOnly(config);
+        if (instanceResult.failed()) {
+            return instanceResult.error();
+        }
     }
 
     // 创建 Surface
-    VkSurfaceKHR surface;
-    VkResult result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
-    if (result != VK_SUCCESS) {
-        destroy();
-        return Error(ErrorCode::OperationFailed, "Failed to create window surface: " + std::to_string(result));
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateSurface");
+        VkSurfaceKHR surface;
+        VkResult result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
+        if (result != VK_SUCCESS) {
+            destroy();
+            return Error(ErrorCode::OperationFailed, "Failed to create window surface: " + std::to_string(result));
+        }
+        setSurface(surface);
     }
-    setSurface(surface);
 
     // 创建设备
-    auto deviceResult = createDevice();
-    if (deviceResult.failed()) {
-        destroy();
-        return deviceResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateDevice");
+        auto deviceResult = createDevice();
+        if (deviceResult.failed()) {
+            destroy();
+            return deviceResult.error();
+        }
     }
 
     m_initialized = true;
@@ -256,42 +265,54 @@ Result<void> TridentContext::createDevice()
     }
 
     // 选择物理设备
-    auto physicalResult = pickPhysicalDevice();
-    if (physicalResult.failed()) {
-        return physicalResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::PickPhysicalDevice");
+        auto physicalResult = pickPhysicalDevice();
+        if (physicalResult.failed()) {
+            return physicalResult.error();
+        }
     }
 
     // 创建逻辑设备
-    auto deviceResult = createLogicalDevice();
-    if (deviceResult.failed()) {
-        return deviceResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::CreateLogicalDevice");
+        auto deviceResult = createLogicalDevice();
+        if (deviceResult.failed()) {
+            return deviceResult.error();
+        }
     }
 
     // 获取队列
-    vkGetDeviceQueue(m_device, m_queueFamilies.graphicsFamily.value(), 0, &m_graphicsQueue);
-    vkGetDeviceQueue(m_device, m_queueFamilies.presentFamily.value(), 0, &m_presentQueue);
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::GetQueues");
+        vkGetDeviceQueue(m_device, m_queueFamilies.graphicsFamily.value(), 0, &m_graphicsQueue);
+        vkGetDeviceQueue(m_device, m_queueFamilies.presentFamily.value(), 0, &m_presentQueue);
 
-    if (m_queueFamilies.hasTransfer()) {
-        vkGetDeviceQueue(m_device, m_queueFamilies.transferFamily.value(), 0, &m_transferQueue);
-    } else {
-        m_transferQueue = m_graphicsQueue;
-    }
+        if (m_queueFamilies.hasTransfer()) {
+            vkGetDeviceQueue(m_device, m_queueFamilies.transferFamily.value(), 0, &m_transferQueue);
+        } else {
+            m_transferQueue = m_graphicsQueue;
+        }
 
-    if (m_queueFamilies.hasCompute()) {
-        vkGetDeviceQueue(m_device, m_queueFamilies.computeFamily.value(), 0, &m_computeQueue);
-    } else {
-        m_computeQueue = m_graphicsQueue;
+        if (m_queueFamilies.hasCompute()) {
+            vkGetDeviceQueue(m_device, m_queueFamilies.computeFamily.value(), 0, &m_computeQueue);
+        } else {
+            m_computeQueue = m_graphicsQueue;
+        }
     }
 
     // 创建命令池（用于单次命令）
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-    poolInfo.queueFamilyIndex = m_queueFamilies.graphicsFamily.value();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::CreateCommandPool");
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolInfo.queueFamilyIndex = m_queueFamilies.graphicsFamily.value();
 
-    VkResult poolResult = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
-    if (poolResult != VK_SUCCESS) {
-        return Error(ErrorCode::OperationFailed, "Failed to create command pool");
+        VkResult poolResult = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
+        if (poolResult != VK_SUCCESS) {
+            return Error(ErrorCode::OperationFailed, "Failed to create command pool");
+        }
     }
 
     spdlog::info("Vulkan device created");

@@ -96,9 +96,12 @@ Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapCha
     m_context = context;
     m_config = config;
 
-    auto result = createSwapchain();
-    if (result.failed()) {
-        return result.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::initialize::CreateSwapchain");
+        auto result = createSwapchain();
+        if (result.failed()) {
+            return result.error();
+        }
     }
 
     m_initialized = true;
@@ -191,6 +194,8 @@ Result<void> TridentSwapchain::present(u32 imageIndex, VkSemaphore waitSemaphore
 
 Result<void> TridentSwapchain::createSwapchain()
 {
+    MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain");
+
     SwapChainSupportDetails swapChainSupport = m_context->querySwapChainSupport();
 
     VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainSupport.formats);
@@ -239,9 +244,12 @@ Result<void> TridentSwapchain::createSwapchain()
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    VkResult result = vkCreateSwapchainKHR(m_context->device(), &createInfo, nullptr, &m_swapchain);
-    if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OperationFailed, "Failed to create swapchain: " + std::to_string(result));
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain::CreateSwapchainKHR");
+        VkResult result = vkCreateSwapchainKHR(m_context->device(), &createInfo, nullptr, &m_swapchain);
+        if (result != VK_SUCCESS) {
+            return Error(ErrorCode::OperationFailed, "Failed to create swapchain: " + std::to_string(result));
+        }
     }
 
     // 获取图像
@@ -254,10 +262,13 @@ Result<void> TridentSwapchain::createSwapchain()
     m_extent = extent;
 
     // 创建图像视图
-    auto viewResult = createImageViews();
-    if (viewResult.failed()) {
-        destroySwapchain();
-        return viewResult.error();
+    {
+        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain::CreateImageViews");
+        auto viewResult = createImageViews();
+        if (viewResult.failed()) {
+            destroySwapchain();
+            return viewResult.error();
+        }
     }
 
     return {};
