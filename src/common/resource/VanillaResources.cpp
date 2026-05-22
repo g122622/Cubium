@@ -210,27 +210,27 @@ std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack()
 void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
 {
     // 基础方块模型（无父模型）
-    pack.addResource("assets/minecraft/models/block/cube.json", MODEL_CUBE);
+    pack.addClientResource("minecraft/models/block/cube.json", MODEL_CUBE);
 
     // 单面纹理方块
-    pack.addResource("assets/minecraft/models/block/cube_all.json", MODEL_CUBE_ALL);
+    pack.addClientResource("minecraft/models/block/cube_all.json", MODEL_CUBE_ALL);
 
     // 柱状方块
-    pack.addResource("assets/minecraft/models/block/cube_column.json", MODEL_CUBE_COLUMN);
+    pack.addClientResource("minecraft/models/block/cube_column.json", MODEL_CUBE_COLUMN);
 
     // 树叶
-    pack.addResource("assets/minecraft/models/block/leaves.json", MODEL_LEAVES);
+    pack.addClientResource("minecraft/models/block/leaves.json", MODEL_LEAVES);
 
     // 交叉纹理
-    pack.addResource("assets/minecraft/models/block/cross.json", MODEL_CROSS);
-    pack.addResource("assets/minecraft/models/block/tinted_cross.json", MODEL_TINTED_CROSS);
+    pack.addClientResource("minecraft/models/block/cross.json", MODEL_CROSS);
+    pack.addClientResource("minecraft/models/block/tinted_cross.json", MODEL_TINTED_CROSS);
 
     // 空气
-    pack.addResource("assets/minecraft/models/block/air.json", MODEL_AIR);
+    pack.addClientResource("minecraft/models/block/air.json", MODEL_AIR);
 
     // 原版方块的完整模型定义
     // 石头
-    pack.addResource("assets/minecraft/models/block/stone.json", R"({
+    pack.addClientResource("minecraft/models/block/stone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/stone"
@@ -238,7 +238,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 泥土
-    pack.addResource("assets/minecraft/models/block/dirt.json", R"({
+    pack.addClientResource("minecraft/models/block/dirt.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/dirt"
@@ -246,7 +246,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 草方块
-    pack.addResource("assets/minecraft/models/block/grass_block.json", R"({
+    pack.addClientResource("minecraft/models/block/grass_block.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/grass_block_top",
@@ -282,7 +282,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 基岩
-    pack.addResource("assets/minecraft/models/block/bedrock.json", R"({
+    pack.addClientResource("minecraft/models/block/bedrock.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/bedrock"
@@ -290,7 +290,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 沙子
-    pack.addResource("assets/minecraft/models/block/sand.json", R"({
+    pack.addClientResource("minecraft/models/block/sand.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/sand"
@@ -298,7 +298,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 砾石
-    pack.addResource("assets/minecraft/models/block/gravel.json", R"({
+    pack.addClientResource("minecraft/models/block/gravel.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/gravel"
@@ -306,7 +306,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 橡木木板
-    pack.addResource("assets/minecraft/models/block/oak_planks.json", R"({
+    pack.addClientResource("minecraft/models/block/oak_planks.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/oak_planks"
@@ -314,7 +314,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 橡木原木
-    pack.addResource("assets/minecraft/models/block/oak_log.json", R"({
+    pack.addClientResource("minecraft/models/block/oak_log.json", R"({
         "parent": "block/cube_column",
         "textures": {
             "end": "block/oak_log_top",
@@ -323,7 +323,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 橡木树叶
-    pack.addResource("assets/minecraft/models/block/oak_leaves.json", R"({
+    pack.addClientResource("minecraft/models/block/oak_leaves.json", R"({
         "parent": "block/leaves",
         "textures": {
             "all": "block/oak_leaves"
@@ -331,7 +331,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 圆石
-    pack.addResource("assets/minecraft/models/block/cobblestone.json", R"({
+    pack.addClientResource("minecraft/models/block/cobblestone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/cobblestone"
@@ -339,7 +339,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 苔石圆石
-    pack.addResource("assets/minecraft/models/block/mossy_cobblestone.json", R"({
+    pack.addClientResource("minecraft/models/block/mossy_cobblestone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/mossy_cobblestone"
@@ -347,49 +347,49 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 各类矿石
-    pack.addResource("assets/minecraft/models/block/coal_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/coal_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/coal_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/iron_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/iron_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/iron_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/gold_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/gold_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/gold_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/diamond_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/diamond_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/diamond_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/emerald_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/emerald_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/emerald_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/lapis_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/lapis_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/lapis_ore"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/redstone_ore.json", R"({
+    pack.addClientResource("minecraft/models/block/redstone_ore.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/redstone_ore"
@@ -397,42 +397,42 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 矿物方块
-    pack.addResource("assets/minecraft/models/block/diamond_block.json", R"({
+    pack.addClientResource("minecraft/models/block/diamond_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/diamond_block"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/gold_block.json", R"({
+    pack.addClientResource("minecraft/models/block/gold_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/gold_block"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/iron_block.json", R"({
+    pack.addClientResource("minecraft/models/block/iron_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/iron_block"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/emerald_block.json", R"({
+    pack.addClientResource("minecraft/models/block/emerald_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/emerald_block"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/lapis_block.json", R"({
+    pack.addClientResource("minecraft/models/block/lapis_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/lapis_block"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/redstone_block.json", R"({
+    pack.addClientResource("minecraft/models/block/redstone_block.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/redstone_block"
@@ -440,42 +440,42 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 石头变种
-    pack.addResource("assets/minecraft/models/block/granite.json", R"({
+    pack.addClientResource("minecraft/models/block/granite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/granite"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/polished_granite.json", R"({
+    pack.addClientResource("minecraft/models/block/polished_granite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/polished_granite"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/diorite.json", R"({
+    pack.addClientResource("minecraft/models/block/diorite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/diorite"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/polished_diorite.json", R"({
+    pack.addClientResource("minecraft/models/block/polished_diorite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/polished_diorite"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/andesite.json", R"({
+    pack.addClientResource("minecraft/models/block/andesite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/andesite"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/polished_andesite.json", R"({
+    pack.addClientResource("minecraft/models/block/polished_andesite.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/polished_andesite"
@@ -483,7 +483,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 砂岩
-    pack.addResource("assets/minecraft/models/block/sandstone.json", R"({
+    pack.addClientResource("minecraft/models/block/sandstone.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/sandstone_side",
@@ -497,14 +497,14 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 其他方块
-    pack.addResource("assets/minecraft/models/block/bricks.json", R"({
+    pack.addClientResource("minecraft/models/block/bricks.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/bricks"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/bookshelf.json", R"({
+    pack.addClientResource("minecraft/models/block/bookshelf.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/oak_planks",
@@ -517,7 +517,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/tnt.json", R"({
+    pack.addClientResource("minecraft/models/block/tnt.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/tnt_side",
@@ -530,14 +530,14 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/sponge.json", R"({
+    pack.addClientResource("minecraft/models/block/sponge.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/sponge"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/wet_sponge.json", R"({
+    pack.addClientResource("minecraft/models/block/wet_sponge.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/wet_sponge"
@@ -545,49 +545,49 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 下界方块
-    pack.addResource("assets/minecraft/models/block/netherrack.json", R"({
+    pack.addClientResource("minecraft/models/block/netherrack.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/netherrack"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/glowstone.json", R"({
+    pack.addClientResource("minecraft/models/block/glowstone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/glowstone"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/end_stone.json", R"({
+    pack.addClientResource("minecraft/models/block/end_stone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/end_stone"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/obsidian.json", R"({
+    pack.addClientResource("minecraft/models/block/obsidian.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/obsidian"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/soul_sand.json", R"({
+    pack.addClientResource("minecraft/models/block/soul_sand.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/soul_sand"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/soul_soil.json", R"({
+    pack.addClientResource("minecraft/models/block/soul_soil.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/soul_soil"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/basalt.json", R"({
+    pack.addClientResource("minecraft/models/block/basalt.json", R"({
         "parent": "block/cube_column",
         "textures": {
             "end": "block/basalt_top",
@@ -595,7 +595,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/polished_basalt.json", R"({
+    pack.addClientResource("minecraft/models/block/polished_basalt.json", R"({
         "parent": "block/cube_column",
         "textures": {
             "end": "block/polished_basalt_top",
@@ -603,21 +603,21 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/blackstone.json", R"({
+    pack.addClientResource("minecraft/models/block/blackstone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/blackstone"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/polished_blackstone.json", R"({
+    pack.addClientResource("minecraft/models/block/polished_blackstone.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/polished_blackstone"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/crying_obsidian.json", R"({
+    pack.addClientResource("minecraft/models/block/crying_obsidian.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/crying_obsidian"
@@ -625,14 +625,14 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 冰和雪
-    pack.addResource("assets/minecraft/models/block/ice.json", R"({
+    pack.addClientResource("minecraft/models/block/ice.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/ice"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/snow.json", R"({
+    pack.addClientResource("minecraft/models/block/snow.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/snow"
@@ -640,7 +640,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 水（透明方块）
-    pack.addResource("assets/minecraft/models/block/water.json", R"({
+    pack.addClientResource("minecraft/models/block/water.json", R"({
         "textures": {
             "particle": "block/water_still"
         },
@@ -661,7 +661,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // 岩浆
-    pack.addResource("assets/minecraft/models/block/lava.json", R"({
+    pack.addClientResource("minecraft/models/block/lava.json", R"({
         "textures": {
             "particle": "block/lava_still"
         },
@@ -696,7 +696,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_planks.json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(type) + "_planks.json", model);
     }
 
     // 羊毛
@@ -729,18 +729,18 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, color);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(color) + "_wool.json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(color) + "_wool.json", model);
     }
 
     // 泥土变种
-    pack.addResource("assets/minecraft/models/block/coarse_dirt.json", R"({
+    pack.addClientResource("minecraft/models/block/coarse_dirt.json", R"({
         "parent": "block/cube_all",
         "textures": {
             "all": "block/coarse_dirt"
         }
     })");
 
-    pack.addResource("assets/minecraft/models/block/podzol.json", R"({
+    pack.addClientResource("minecraft/models/block/podzol.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/podzol_side",
@@ -770,7 +770,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
             model.replace(pos, 2, type);
             pos = model.find("%s", pos + strlen(type));
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_log.json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(type) + "_log.json", model);
     }
 
     // Leaves variants
@@ -788,7 +788,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_leaves.json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(type) + "_leaves.json", model);
     }
 
     // Saplings
@@ -806,7 +806,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_sapling.json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(type) + "_sapling.json", model);
     }
 
     // Flowers
@@ -835,7 +835,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, flower);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(flower) + ".json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(flower) + ".json", model);
     }
 
     // 草与蕨类（需要生物群系着色）
@@ -853,11 +853,11 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             model.replace(pos, 2, plant);
         }
-        pack.addResource("assets/minecraft/models/block/" + std::string(plant) + ".json", model);
+        pack.addClientResource("minecraft/models/block/" + std::string(plant) + ".json", model);
     }
 
     // Tall grass
-    pack.addResource("assets/minecraft/models/block/tall_grass.json", R"({
+    pack.addClientResource("minecraft/models/block/tall_grass.json", R"({
         "parent": "block/tinted_cross",
         "textures": {
             "cross": "block/tall_grass_top"
@@ -865,7 +865,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
     })");
 
     // Crafting table
-    pack.addResource("assets/minecraft/models/block/crafting_table.json", R"({
+    pack.addClientResource("minecraft/models/block/crafting_table.json", R"({
         "parent": "block/cube",
         "textures": {
             "particle": "block/crafting_table_front",
@@ -975,11 +975,11 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             json.replace(pos, 2, block);
         }
-        pack.addResource("assets/minecraft/blockstates/" + std::string(block) + ".json", json);
+        pack.addClientResource("minecraft/blockstates/" + std::string(block) + ".json", json);
     }
 
     // Oak log (has axis property)
-    pack.addResource("assets/minecraft/blockstates/oak_log.json", R"({
+    pack.addClientResource("minecraft/blockstates/oak_log.json", R"({
         "variants": {
             "axis=y": { "model": "oak_log" },
             "axis=z": { "model": "oak_log", "x": 90 },
@@ -988,14 +988,14 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
     })");
 
     // Air
-    pack.addResource("assets/minecraft/blockstates/air.json", R"({
+    pack.addClientResource("minecraft/blockstates/air.json", R"({
         "variants": {
             "normal": { "model": "air" }
         }
     })");
 
     // Oak leaves
-    pack.addResource("assets/minecraft/blockstates/oak_leaves.json", R"({
+    pack.addClientResource("minecraft/blockstates/oak_leaves.json", R"({
         "variants": {
             "normal": { "model": "oak_leaves" }
         }
@@ -1018,7 +1018,7 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
             json.replace(pos, 2, type);
             pos = json.find("%s", pos + strlen(type));
         }
-        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_log.json", json);
+        pack.addClientResource("minecraft/blockstates/" + std::string(type) + "_log.json", json);
     }
 
     // Leaves blockstates
@@ -1035,7 +1035,7 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             json.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_leaves.json", json);
+        pack.addClientResource("minecraft/blockstates/" + std::string(type) + "_leaves.json", json);
     }
 
     // Sapling blockstates
@@ -1052,7 +1052,7 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             json.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_sapling.json", json);
+        pack.addClientResource("minecraft/blockstates/" + std::string(type) + "_sapling.json", json);
     }
 
     // Flower and vegetation blockstates
@@ -1083,11 +1083,11 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
         if (pos != std::string::npos) {
             json.replace(pos, 2, flower);
         }
-        pack.addResource("assets/minecraft/blockstates/" + std::string(flower) + ".json", json);
+        pack.addClientResource("minecraft/blockstates/" + std::string(flower) + ".json", json);
     }
 
     // Crafting table
-    pack.addResource("assets/minecraft/blockstates/crafting_table.json", R"({
+    pack.addClientResource("minecraft/blockstates/crafting_table.json", R"({
         "variants": {
             "normal": { "model": "crafting_table" }
         }

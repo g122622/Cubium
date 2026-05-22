@@ -302,8 +302,6 @@ private:
     // 游戏会话初始化（启动世界时调用）
     [[nodiscard]] Result<void> initializeGameSession(const WorldLaunchConfig& config);
 
-    // 旧的游戏系统初始化（兼容 quick-play）
-    [[nodiscard]] Result<void> initializeGameplaySystems(const ClientLaunchParams& params);
     void initializeUi();
     void setupInputBindings();
     void setupCamera();

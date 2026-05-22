@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
             return 0;
         }
         if (arg == "--config" && i + 1 < argc) {
-            params.settingsPath = argv[++i];
+            params.configPath = argv[++i];
         }
         if (arg == "-v" || arg == "--verbose") {
             verboseLogging = true;

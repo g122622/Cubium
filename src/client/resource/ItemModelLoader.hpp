@@ -182,7 +182,7 @@ public:
      * @brief 构造函数
      * @param resourcePacks 资源包列表（按优先级从高到低）
      */
-    explicit ItemModelLoader(const std::vector<IResourcePack*>& resourcePacks);
+    explicit ItemModelLoader(const std::vector<ResourcePackPtr>& resourcePacks);
 
     /**
      * @brief 加载所有物品模型
@@ -215,7 +215,7 @@ public:
     void clearCache();
 
 private:
-    const std::vector<IResourcePack*>& m_resourcePacks;
+    const std::vector<ResourcePackPtr>& m_resourcePacks;
     std::map<ResourceLocation, UnbakedItemModel> m_unbakedModels;
     std::map<ResourceLocation, BakedItemModel> m_bakedModels;
 

@@ -51,8 +51,8 @@ namespace mc {
  *         registerOption("renderDistance", &renderDistance);
  *     }
  *
- *     BooleanOption fullscreen{"fullscreen", false};
- *     RangeOption renderDistance{"renderDistance", 2, 32, 12};
+ *     BooleanOption fullscreen{"fullscreen", fullscreenDefault};
+ *     RangeOption renderDistance{"renderDistance", 2, 32, renderDistanceDefault};
  * };
  *
  * MySettings settings;
@@ -174,30 +174,6 @@ public:
      * @brief 触发自动保存（如果有变更且启用了自动保存）
      */
     void triggerAutoSave() const;
-
-    // ========================================================================
-    // 设置文件路径
-    // ========================================================================
-
-    /**
-     * @brief 获取默认设置文件路径
-     *
-     * 根据操作系统返回合适的设置文件路径：
-     * - Windows: %APPDATA%/appName/options.json
-     * - Linux: ~/.config/appName/options.json
-     * - macOS: ~/Library/Application Support/appName/options.json
-     *
-     * @param appName 应用名称
-     * @return 设置文件路径
-     */
-    [[nodiscard]] static std::filesystem::path getSettingsPath(const std::string& appName);
-
-    /**
-     * @brief 确保设置目录存在
-     * @param appName 应用名称
-     * @return 设置目录路径
-     */
-    [[nodiscard]] static std::filesystem::path ensureSettingsDir(const std::string& appName);
 
 protected:
     /**

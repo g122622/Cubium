@@ -92,25 +92,13 @@ Result<void> SoundHandler::reload()
 
             // 尝试直接检查 assets/<namespace>/sounds.json 是否存在
             // 使用 listResources 获取 assets 下的直接子目录
-            auto namespacesResult = m_resourcePacks.listResources("assets", "");
+            auto namespacesResult = m_resourcePacks.getResourceNamespaces();
             if (!namespacesResult.success()) {
                 continue;
             }
 
             std::set<std::string> foundNamespaces;
-            for (const auto& nsPath : namespacesResult.value()) {
-                // 提取命名空间名称
-                // 格式: assets/<namespace>/...
-                std::string namespace_;
-                if (nsPath.size() > 7 && nsPath.substr(0, 7) == "assets/") {
-                    auto slashPos = nsPath.find('/', 7);
-                    if (slashPos != std::string::npos) {
-                        namespace_ = nsPath.substr(7, slashPos - 7);
-                    } else {
-                        namespace_ = nsPath.substr(7);
-                    }
-                }
-
+            for (const auto& namespace_ : namespacesResult.value()) {
                 if (namespace_.empty() || processedNamespaces.count(namespace_) > 0) {
                     continue;
                 }
@@ -188,16 +176,16 @@ std::vector<ResourceLocation> SoundHandler::getPreloadSounds() const
 Result<size_t> SoundHandler::loadSoundsJson(const IResourcePack& pack, std::string_view namespace_)
 {
     // 构建 sounds.json 路径
-    std::string jsonPath = "assets/" + std::string(namespace_) + "/sounds.json";
+    std::string jsonPath = std::string(namespace_) + "/sounds.json";
 
     // 检查文件是否存在
-    if (!pack.hasResource(jsonPath)) {
+    if (!pack.hasResource(resource::PackType::ClientResources, jsonPath)) {
         // 不是错误，只是该命名空间没有声音定义
         return 0;
     }
 
     // 读取文件内容
-    auto contentResult = pack.readTextResource(jsonPath);
+    auto contentResult = pack.readTextResource(resource::PackType::ClientResources, jsonPath);
     if (!contentResult.success()) {
         m_warningCount++;
         spdlog::warn("SoundHandler: Failed to read {}: {}", jsonPath, contentResult.error().message());

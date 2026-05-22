@@ -415,11 +415,15 @@ TEST_F(SettingsBaseTest, ResetGroupToDefaults)
     EXPECT_FLOAT_EQ(settings.volume.get(), 0.5f);
 }
 
-TEST_F(SettingsBaseTest, GetSettingsPath)
+TEST_F(SettingsBaseTest, LoadOrGenerateCreatesFile)
 {
-    auto path = SettingsBase::getSettingsPath("test_app");
-    EXPECT_FALSE(path.empty());
-    EXPECT_TRUE(path.string().find("test_app") != std::string::npos);
+    TestSettings settings;
+    auto path = testDir / "generated_settings.json";
+    ASSERT_FALSE(std::filesystem::exists(path));
+
+    auto result = settings.loadOrGenerate(path);
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(std::filesystem::exists(path));
 }
 
 // ============================================================================
@@ -551,7 +555,7 @@ TEST_F(ClientSettingsTest, DefaultValues)
     EXPECT_FALSE(settings.fullscreen.get());
     EXPECT_TRUE(settings.vsync.get());
     EXPECT_FLOAT_EQ(settings.mouseSensitivity.get(), 0.5f);
-    EXPECT_EQ(settings.serverPort.get(), 19132);
+    EXPECT_EQ(settings.serverPort.get(), 25565);
 }
 
 TEST_F(ClientSettingsTest, InitializeKeyBindings)
@@ -638,7 +642,7 @@ TEST_F(ServerSettingsTest, DefaultValues)
 {
     ServerSettings settings;
 
-    EXPECT_EQ(settings.serverPort.get(), 19132);
+    EXPECT_EQ(settings.serverPort.get(), 25565);
     EXPECT_EQ(settings.maxPlayers.get(), 20);
     EXPECT_TRUE(settings.onlineMode.get());
     EXPECT_EQ(settings.viewDistance.get(), 10);

@@ -19,18 +19,6 @@ src/common/resource/
 ├── LanguageManager.hpp/cpp         # 多语言翻译管理器
 ├── metadata/                       # 资源元数据
 │   └── AnimationMetadata.hpp/cpp   # 动画纹理元数据（.mcmeta）
-├── compat/                         # 版本兼容层
-│   ├── PackFormat.hpp/cpp
-│   ├── ResourceMapper.hpp/cpp
-│   ├── TextureMapper.hpp/cpp
-│   ├── v1_12/ResourceMapperV112.hpp/cpp
-│   ├── v1_13/ResourceMapperV113.hpp/cpp
-│   └── unified/                    # 统一资源表示
-│       ├── UnifiedResource.hpp
-│       ├── UnifiedModel.hpp
-│       └── UnifiedBlockState.hpp
-└── loader/
-    └── ResourceLoader.hpp/cpp       # 统一资源加载管线
 ```
 
 ## 文件介绍
@@ -46,7 +34,6 @@ src/common/resource/
 - `DataPackList`：服务端数据包列表管理，限定 `PackType::ServerData`，提供战利品表、配方等数据的加载接口。
 - `VanillaResources`：原版模型/方块状态等基础资源。
 - `LanguageManager`：多语言翻译管理器，从资源包加载语言文件，支持占位符替换。
-- `compat/`：旧版与新版资源路径兼容。
 - `loader/`：统一资源加载流程，面向纹理/模型/方块状态等上层消费。
 
 ## 模块关系
@@ -56,7 +43,6 @@ src/common/resource/
 - `ResourceManager` 消费 `ResourcePackList` 和 `VanillaResources` 构建纹理图集与模型缓存。
 - `LanguageManager` 从 `ResourcePackList` 加载语言文件，为 `TranslationTextComponent` 提供翻译服务。
 - `ZipResourcePack`、`FolderResourcePack` 是 `ResourcePackList` 的具体数据源。
-- `ResourceLoader` 适合做统一格式读取，`ResourcePackList` 更偏”资源包集合管理”。
 
 ## 整体职责
 
@@ -173,27 +159,3 @@ std::cout << text->getUnformattedText();  // 输出: “钻石”
 - `tests/common/resource/ResourcePackListSelfContainedTest.cpp`：自包含资源包读取测试。
 - `tests/common/resource/LanguageManagerTest.cpp`：语言管理器和翻译组件测试。
 - `tests/client/resource/test_resource_location.cpp`：资源定位符相关测试。
-
-## Mermaid 图表
-
-```mermaid
-flowchart TB
-    Packs[“资源包目录 / ZIP / 内置包”] --> List[“ResourcePackList”]
-    List --> Reader[“客户端渲染/音频/资源加载器”]
-    List --> Audio[“AudioService / SoundHandler”]
-    List --> Render[“ResourceManager / BlockModelCache”]
-    List --> Compat[“compat 版本兼容层”]
-    List --> Lang[“LanguageManager”]
-    Lang --> Text[“TranslationTextComponent”]
-    Compat --> Unified[“统一纹理 / 模型 / 方块状态”]
-
-    style Packs fill:#ffd166,stroke:#b7791f,color:#111
-    style List fill:#8ecae6,stroke:#1d4ed8,color:#111
-    style Reader fill:#90be6d,stroke:#2f6f3e,color:#111
-    style Audio fill:#f4a261,stroke:#b45309,color:#111
-    style Render fill:#cdb4db,stroke:#6d28d9,color:#111
-    style Compat fill:#bde0fe,stroke:#2563eb,color:#111
-    style Unified fill:#f1f5f9,stroke:#475569,color:#111
-    style Lang fill:#fbbf24,stroke:#b45309,color:#111
-    style Text fill:#a7f3d0,stroke:#059669,color:#111
-```

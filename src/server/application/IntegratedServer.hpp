@@ -44,6 +44,7 @@ namespace mc::server {
  */
 struct IntegratedServerParams {
     std::string worldName = defaults::integratedServer::worldName;
+    std::string gameDirectoryRoot;
     i64 seed = defaults::integratedServer::seed;
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = defaults::integratedServer::viewDistance;

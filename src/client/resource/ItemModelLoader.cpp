@@ -182,7 +182,7 @@ ResourceLocation BakedItemModel::resolveTexture(std::string_view textureRef) con
 // ItemModelLoader
 // ============================================================================
 
-ItemModelLoader::ItemModelLoader(const std::vector<IResourcePack*>& resourcePacks)
+ItemModelLoader::ItemModelLoader(const std::vector<ResourcePackPtr>& resourcePacks)
     : m_resourcePacks(resourcePacks)
 {
     loadDefaultTransforms();
@@ -241,10 +241,13 @@ Result<void> ItemModelLoader::loadAllModels()
 Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath)
 {
     // 按优先级从高到低遍历资源包
-    for (auto* pack : m_resourcePacks) {
+    std::string relativePath = filePath;
+    relativePath.erase(0, std::string("assets/").size());
+
+    for (const auto& pack : m_resourcePacks) {
         if (pack == nullptr) continue;
 
-        auto result = pack->readTextResource(filePath);
+        auto result = pack->readTextResource(mc::resource::PackType::ClientResources, relativePath);
         if (result.success() && !result.value().empty()) {
             return result;
         }

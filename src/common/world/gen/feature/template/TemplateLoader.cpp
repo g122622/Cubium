@@ -333,16 +333,15 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
     const IResourcePack& pack, const ResourceLocation& location)
 {
-    // 构建资源路径: assets/<namespace>/structures/<path>.nbt
-    // 参考 MC 1.16.5 TemplateManager.func_227458_a_
-    const std::string basePath = "assets/" + location.namespace_() + "/structures/" + location.path();
+    // 构建资源路径: <namespace>/structures/<path>.nbt
+    const std::string basePath = location.namespace_() + "/structures/" + location.path();
     std::string path = basePath + ".nbt";
 
     // 尝试读取资源
-    auto result = pack.readResource(path);
+    auto result = pack.readResource(resource::PackType::ClientResources, path);
     if (!result.success() || result.value().empty()) {
         // 尝试不带 .nbt 后缀
-        result = pack.readResource(basePath);
+        result = pack.readResource(resource::PackType::ClientResources, basePath);
         if (!result.success() || result.value().empty()) {
             return nullptr;
         }

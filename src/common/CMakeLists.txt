@@ -992,16 +992,6 @@ add_library(mc_common STATIC
     # Resource - Metadata
     resource/metadata/AnimationMetadata.cpp
 
-    # Resource - Compatibility Layer
-    resource/compat/PackFormat.cpp
-    resource/compat/ResourceMapper.cpp
-    resource/compat/TextureMapper.cpp
-    resource/compat/v1_12/ResourceMapperV112.cpp
-    resource/compat/v1_13/ResourceMapperV113.cpp
-
-    # Resource - Loader
-    resource/loader/ResourceLoader.cpp
-
     # Resource - Language
     resource/LanguageManager.cpp
 

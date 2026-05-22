@@ -55,15 +55,11 @@ public:
 
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
-    [[nodiscard]] bool hasResource(std::string_view resourcePath) const override;
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override;
-    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<u8>> readResource(
         resource::PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension = "") const override;
-    [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension = "") const override;
+        resource::PackType type, std::string_view directory, std::string_view extension) const override;
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
@@ -81,6 +77,7 @@ private:
      * @brief 规范化资源路径
      */
     [[nodiscard]] static std::string normalizePath(std::string_view path);
+    [[nodiscard]] static std::string makeTypedPath(resource::PackType type, std::string_view path);
 
     std::filesystem::path m_zipPath;           ///< ZIP 文件路径
     std::string m_name;                        ///< 资源包名称（文件名）

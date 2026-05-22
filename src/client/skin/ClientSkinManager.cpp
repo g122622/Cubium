@@ -34,7 +34,7 @@
 namespace mc::client::skin {
 
 ClientSkinManager::ClientSkinManager()
-    : m_skinManager(std::make_unique<::mc::skin::SkinManager>("./cache/skins"))
+    : m_skinManager(std::make_unique<::mc::skin::SkinManager>(""))
     , m_textureAtlas(std::make_unique<renderer::entity::pipeline::EntityTextureAtlas>())
 {}
 

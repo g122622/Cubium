@@ -42,8 +42,8 @@ namespace mc::resource {
 /**
  * @brief 数据包列表管理器
  *
- * 专门管理服务端数据包（PackType::ServerData）。
- * 内部复用 IResourcePack 接口，但所有资源访问方法限定为 ServerData 类型。
+ * 专门管理服务端数据包。
+ * 数据包资源路径统一相对于 data/ 根目录，禁止再经由通用 PackType 资源接口分流。
  *
  * 数据包目录结构遵循 Minecraft 1.16.5 规范：
  * @code
@@ -124,7 +124,7 @@ public:
      * @param priority 优先级
      * @return 添加的数据包信息，或错误
      */
-    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path, bool enabled = true, i32 priority = 0);
+    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path, bool enabled, i32 priority);
 
     /**
      * @brief 移除数据包
@@ -239,7 +239,7 @@ public:
      * @return 资源路径列表
      */
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension = "") const;
+        std::string_view directory, std::string_view extension) const;
 
     /**
      * @brief 获取所有命名空间

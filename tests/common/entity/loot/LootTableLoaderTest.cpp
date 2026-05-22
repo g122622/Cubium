@@ -1,7 +1,7 @@
 #include "item/loot/LootTableLoader.hpp"
 #include "common/resource/ResourcePackList.hpp"
-#include "item/loot/LootTable.hpp"
 #include "item/Items.hpp"
+#include "item/loot/LootTable.hpp"
 #include "resource/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
 
@@ -103,12 +103,12 @@ TEST_F(LootTableLoaderTest, FolderResourcePack_ListResourcesAndReadTextForLootTa
     FolderResourcePack pack(packDir.string());
     ASSERT_TRUE(pack.initialize().success());
 
-    auto listResult = pack.listResources("data", ".json");
+    auto listResult = pack.listResources(resource::PackType::ServerData, "minecraft/loot_tables", ".json");
     ASSERT_TRUE(listResult.success());
     ASSERT_EQ(1u, listResult.value().size());
     EXPECT_NE(std::string::npos, listResult.value()[0].find("loot_tables"));
 
-    auto readResult = pack.readTextResource(listResult.value()[0]);
+    auto readResult = pack.readTextResource(resource::PackType::ServerData, listResult.value()[0]);
     ASSERT_TRUE(readResult.success());
     EXPECT_NE(std::string::npos, readResult.value().find("\"minecraft:diamond\""));
 

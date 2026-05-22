@@ -24,8 +24,6 @@
 #include "ResourceManager.hpp"
 #include "ItemModelCache.hpp"
 #include "common/resource/FolderResourcePack.hpp"
-#include "common/resource/compat/ResourceMapper.hpp"
-#include "common/resource/compat/TextureMapper.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -34,15 +32,6 @@
 
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
 #include <stb_image.h>
-
-namespace mc {
-namespace resource {
-namespace compat {
-// Import for easy access
-using TextureMapper = mc::resource::compat::TextureMapper;
-} // namespace compat
-} // namespace resource
-} // namespace mc
 
 namespace mc {
 
@@ -281,12 +270,7 @@ Result<void> ResourceManager::loadAllResources()
     // 因为需要纹理区域数据
 
     // 初始化物品模型缓存
-    std::vector<IResourcePack*> packPtrs;
-    packPtrs.reserve(m_resourcePacks.size());
-    for (const auto& pack : m_resourcePacks) {
-        packPtrs.push_back(pack.get());
-    }
-    client::resource::ItemModelCache::instance().initialize(packPtrs);
+    client::resource::ItemModelCache::instance().initialize(m_resourcePacks);
 
     spdlog::info("ResourceManager: Loaded {} block states, {} models",
         m_blockStateLoader.getLoadedBlockStates().size(),
@@ -308,89 +292,69 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     builder.setMaxSize(4096, 4096);
     builder.setPadding(0);
 
-    // 使用 compat 层的 TextureMapper 进行路径映射
-    const auto& texMapper = resource::compat::TextureMapper::instance();
-
     // 统计
     size_t addedCount = 0;
-    size_t variantCount = 0;
     size_t failedCount = 0;
     std::vector<std::string> failedTextures;
 
     for (const auto& texLoc : textures) {
         bool added = false;
 
-        // 获取纹理路径的所有变体（包括 block/blocks 路径互换和名称映射）
-        std::string texPath = texLoc.path();
-        auto pathVariants = texMapper.getPathVariants(texPath);
-
         // 遍历资源包（后添加的优先级更高）
         for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !added; ++it) {
             auto& pack = *it;
+            std::string relativePath = texLoc.toFilePath(resource::PackType::ClientResources, "png");
+            relativePath.erase(0, std::string("assets/").size());
 
-            // 尝试所有路径变体
-            for (const auto& variantPath : pathVariants) {
-                ResourceLocation variantLoc(texLoc.namespace_(), variantPath);
-                std::string filePath = variantLoc.toFilePath("png");
+            if (!pack->hasResource(resource::PackType::ClientResources, relativePath)) {
+                continue;
+            }
 
-                if (pack->hasResource(filePath)) {
-                    auto readResult = pack->readResource(filePath);
-                    if (readResult.success()) {
-                        int width, height, channels;
-                        stbi_uc* pixels = stbi_load_from_memory(readResult.value().data(),
-                            static_cast<int>(readResult.value().size()),
-                            &width,
-                            &height,
-                            &channels,
-                            4);
+            auto readResult = pack->readResource(resource::PackType::ClientResources, relativePath);
+            if (!readResult.success()) {
+                continue;
+            }
 
-                        if (pixels) {
-                            std::vector<u8> pixelData(pixels, pixels + width * height * 4);
-                            stbi_image_free(pixels);
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+            stbi_uc* pixels = stbi_load_from_memory(
+                readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
 
-                            u32 frameWidth = static_cast<u32>(width);
-                            u32 frameHeight = static_cast<u32>(height);
+            if (pixels) {
+                std::vector<u8> pixelData(pixels, pixels + width * height * 4);
+                stbi_image_free(pixels);
 
-                            const std::string mcmetaPath = filePath + ".mcmeta";
-                            if (pack->hasResource(mcmetaPath)) {
-                                const auto mcmetaResult = pack->readResource(mcmetaPath);
-                                if (mcmetaResult.success()) {
-                                    static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
-                                        static_cast<u32>(width),
-                                        static_cast<u32>(height),
-                                        frameWidth,
-                                        frameHeight));
-                                }
-                            }
+                u32 frameWidth = static_cast<u32>(width);
+                u32 frameHeight = static_cast<u32>(height);
 
-                            // 用原始请求名称注册
-                            builder.addTextureFrame(texLoc,
-                                pixelData,
-                                static_cast<u32>(width),
-                                static_cast<u32>(height),
-                                frameWidth,
-                                frameHeight);
-                            added = true;
-                            addedCount++;
-
-                            // 检查是否使用了变体路径
-                            if (variantPath != texPath) {
-                                variantCount++;
-                            }
-                            break;
-                        }
+                const std::string mcmetaPath = relativePath + ".mcmeta";
+                if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
+                    const auto mcmetaResult = pack->readResource(resource::PackType::ClientResources, mcmetaPath);
+                    if (mcmetaResult.success()) {
+                        static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
+                            static_cast<u32>(width),
+                            static_cast<u32>(height),
+                            frameWidth,
+                            frameHeight));
                     }
                 }
+
+                builder.addTextureFrame(
+                    texLoc, pixelData, static_cast<u32>(width), static_cast<u32>(height), frameWidth, frameHeight);
+                added = true;
+                addedCount++;
             }
         }
 
         if (!added) {
-            failedTextures.push_back(texLoc.toString() + " -> " + texLoc.toFilePath("png"));
+            failedTextures.push_back(
+                texLoc.toString() + " -> " + texLoc.toFilePath(resource::PackType::ClientResources, "png"));
             failedCount++;
         }
     }
 
-    spdlog::info("Texture atlas: {} added ({} via variant mapping), {} failed", addedCount, variantCount, failedCount);
+    spdlog::info("Texture atlas: {} added, {} failed", addedCount, failedCount);
 
     // 输出失败纹理的详细信息
     if (failedCount > 0) {
@@ -513,18 +477,6 @@ const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& t
         return &it->second;
     }
 
-    // 使用 compat 层尝试路径变体
-    const auto& texMapper = resource::compat::TextureMapper::instance();
-    auto pathVariants = texMapper.getPathVariants(textureLocation.path());
-
-    for (const auto& variantPath : pathVariants) {
-        ResourceLocation variantLoc(textureLocation.namespace_(), variantPath);
-        it = m_textureRegions.find(variantLoc);
-        if (it != m_textureRegions.end()) {
-            return &it->second;
-        }
-    }
-
     return nullptr;
 }
 
@@ -536,45 +488,40 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& 
         return Error(ErrorCode::NotFound, "No resource packs available for texture: " + textureLocation.toString());
     }
 
-    const auto& texMapper = resource::compat::TextureMapper::instance();
-    const auto pathVariants = texMapper.getPathVariants(textureLocation.path());
-
     for (auto packIt = m_resourcePacks.rbegin(); packIt != m_resourcePacks.rend(); ++packIt) {
         const auto& pack = *packIt;
-        for (const auto& variantPath : pathVariants) {
-            const ResourceLocation variantLocation(textureLocation.namespace_(), variantPath);
-            const std::string filePath = variantLocation.toFilePath("png");
-            if (!pack->hasResource(filePath)) {
-                continue;
-            }
-
-            const auto readResult = pack->readResource(filePath);
-            if (readResult.failed()) {
-                continue;
-            }
-
-            int width = 0;
-            int height = 0;
-            int channels = 0;
-            stbi_uc* pixels = stbi_load_from_memory(
-                readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
-
-            if (pixels == nullptr || width <= 0 || height <= 0) {
-                if (pixels != nullptr) {
-                    stbi_image_free(pixels);
-                }
-                continue;
-            }
-
-            DecodedTexture decoded{};
-            decoded.width = static_cast<u32>(width);
-            decoded.height = static_cast<u32>(height);
-            decoded.pixels.assign(
-                pixels, pixels + (static_cast<size_t>(decoded.width) * static_cast<size_t>(decoded.height) * 4));
-            stbi_image_free(pixels);
-
-            return decoded;
+        std::string relativePath = textureLocation.toFilePath(resource::PackType::ClientResources, "png");
+        relativePath.erase(0, std::string("assets/").size());
+        if (!pack->hasResource(resource::PackType::ClientResources, relativePath)) {
+            continue;
         }
+
+        const auto readResult = pack->readResource(resource::PackType::ClientResources, relativePath);
+        if (readResult.failed()) {
+            continue;
+        }
+
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        stbi_uc* pixels = stbi_load_from_memory(
+            readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
+
+        if (pixels == nullptr || width <= 0 || height <= 0) {
+            if (pixels != nullptr) {
+                stbi_image_free(pixels);
+            }
+            continue;
+        }
+
+        DecodedTexture decoded{};
+        decoded.width = static_cast<u32>(width);
+        decoded.height = static_cast<u32>(height);
+        decoded.pixels.assign(
+            pixels, pixels + (static_cast<size_t>(decoded.width) * static_cast<size_t>(decoded.height) * 4));
+        stbi_image_free(pixels);
+
+        return decoded;
     }
 
     return Error(ErrorCode::NotFound, "Texture not found in any resource pack: " + textureLocation.toString());
@@ -707,9 +654,6 @@ void ResourceManager::computeBlockAppearances()
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
 
-    // 使用 compat 层进行纹理路径映射
-    const auto& texMapper = resource::compat::TextureMapper::instance();
-
     u32 totalAppearances = 0;
     u32 appearancesWithTextures = 0;
 
@@ -795,18 +739,6 @@ const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& 
     auto it = m_textureRegions.find(texLoc);
     if (it != m_textureRegions.end()) {
         return &it->second;
-    }
-
-    // 2. 使用 compat 层尝试所有路径变体
-    const auto& texMapper = resource::compat::TextureMapper::instance();
-    auto pathVariants = texMapper.getPathVariants(texLoc.path());
-
-    for (const auto& variantPath : pathVariants) {
-        ResourceLocation variantLoc(texLoc.namespace_(), variantPath);
-        it = m_textureRegions.find(variantLoc);
-        if (it != m_textureRegions.end()) {
-            return &it->second;
-        }
     }
 
     return nullptr;

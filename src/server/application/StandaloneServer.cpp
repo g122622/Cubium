@@ -89,8 +89,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     // 加载设置
     std::filesystem::path settingsFilePath;
-    if (params.settingsPath.has_value()) {
-        settingsFilePath = std::filesystem::path(*params.settingsPath);
+    if (params.configPath.has_value()) {
+        settingsFilePath = std::filesystem::path(*params.configPath);
     } else {
         settingsFilePath = GameDirectory::defaultDirectory().serverOptionsPath();
     }
@@ -191,7 +191,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         }
     }
 
-    auto storageInitResult = initializeSharedStorage(m_settings.worldName.get());
+    auto storageInitResult = initializeSharedStorage(m_gameDirectory, m_settings.worldName.get());
     if (storageInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize shared world storage: " + storageInitResult.error().message());

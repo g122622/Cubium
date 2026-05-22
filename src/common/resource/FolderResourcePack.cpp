@@ -70,45 +70,17 @@ Result<void> FolderResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool FolderResourcePack::hasResource(std::string_view resourcePath) const
-{
-    return hasResource(resource::PackType::ClientResources, resourcePath);
-}
-
 bool FolderResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
 {
-    // resourcePath 应该已经包含类型目录前缀（assets/ 或 data/）
-    // 如果不包含，自动添加
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
-    std::string fullPath;
-    if (hasTypePrefix) {
-        fullPath = normalizePath(resourcePath);
-    } else {
-        fullPath = normalizePath(typeDir + "/" + std::string(resourcePath));
-    }
+    const std::string fullPath =
+        normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
     return fs::exists(fullPath) && fs::is_regular_file(fullPath);
-}
-
-Result<std::vector<u8>> FolderResourcePack::readResource(std::string_view resourcePath) const
-{
-    return readResource(resource::PackType::ClientResources, resourcePath);
 }
 
 Result<std::vector<u8>> FolderResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
 {
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
-    std::string fullPath;
-    if (hasTypePrefix) {
-        fullPath = normalizePath(resourcePath);
-    } else {
-        fullPath = normalizePath(typeDir + "/" + std::string(resourcePath));
-    }
+    const std::string fullPath =
+        normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
 
     if (!fs::exists(fullPath)) {
         return Error(ErrorCode::ResourceNotFound,
@@ -136,9 +108,10 @@ Result<std::vector<u8>> FolderResourcePack::readResource(resource::PackType type
 }
 
 Result<std::vector<std::string>> FolderResourcePack::listResources(
-    std::string_view directory, std::string_view extension) const
+    resource::PackType type, std::string_view directory, std::string_view extension) const
 {
-    std::string fullPath = m_rootPath + "/" + std::string(directory);
+    std::string fullPath =
+        m_rootPath + "/" + std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(directory);
 
     if (!fs::exists(fullPath) || !fs::is_directory(fullPath)) {
         return Error(ErrorCode::NotFound,
@@ -166,8 +139,8 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
                 if (ext != checkExt) continue;
             }
 
-            // 返回相对于资源包根目录的路径
-            std::string relativePath = fs::relative(entry.path(), m_rootPath).string();
+            const fs::path basePath = fs::path(m_rootPath) / resource::packTypeDirectoryName(type);
+            std::string relativePath = fs::relative(entry.path(), basePath).string();
             // 将反斜杠转换为正斜杠
             for (char& c : relativePath) {
                 if (c == '\\') c = '/';
@@ -180,15 +153,6 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
     }
 
     return resources;
-}
-
-Result<std::vector<std::string>> FolderResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
-{
-    // 在类型目录前缀下搜索
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string fullDirectory = typeDir + "/" + std::string(directory);
-    return listResources(fullDirectory, extension);
 }
 
 Result<std::vector<std::string>> FolderResourcePack::getResourceNamespaces(resource::PackType type) const

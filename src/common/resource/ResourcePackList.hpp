@@ -42,9 +42,10 @@ namespace mc {
 /**
  * @brief 资源包列表管理器
  *
- * 管理多个资源包，支持文件夹和 ZIP 格式的资源包。
+ * 管理多个客户端资源包，支持文件夹和 ZIP 格式的资源包。
  * 实现类似 Minecraft 1.16.5 的资源加载优先级系统：
- * - 高优先级的资源包后加载，其资源会覆盖低优先级的同名资源
+ * -
+ * 高优先级的资源包后加载，其资源会覆盖低优先级的同名资源
  * - 查找资源时，先从高优先级资源包查找
  *
  * 使用示例:
@@ -61,7 +62,7 @@ namespace mc {
  * auto packs = packList.getEnabledPacks();
  *
  * // 查找资源
- * auto data = packList.readResource("assets/minecraft/textures/block/stone.png");
+ * auto data = packList.readResource("minecraft/textures/block/stone.png");
  *
  * // 从设置同步
  * packList.loadFromSettings(settings.resourcePacks);
@@ -124,7 +125,7 @@ public:
      * @param priority 优先级
      * @return 添加的资源包信息，或错误
      */
-    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path, bool enabled = true, i32 priority = 0);
+    [[nodiscard]] Result<PackInfo> addPack(const std::filesystem::path& path, bool enabled, i32 priority);
 
     /**
      * @brief 移除资源包
@@ -238,8 +239,9 @@ public:
      *
      * 按优先级从高到低检查各资源包。
      *
-     * @param resourcePath 资源路径（如 "assets/minecraft/textures/block/stone.png"）
-     * @return 是否存在
+     * @param resourcePath 资源路径（相对于 assets/ 根，如 "minecraft/textures/block/stone.png"）
+     * @return
+     * 是否存在
      */
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const;
 
@@ -270,57 +272,15 @@ public:
      * @return 资源路径列表
      */
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension = "") const;
-
-    // ========================================================================
-    // PackType 感知的资源访问
-    // ========================================================================
+        std::string_view directory, std::string_view extension) const;
 
     /**
-     * @brief 检查指定类型的资源是否存在
+     * @brief 获取所有客户端资源命名空间
      *
-     * @param type 资源包类型（ClientResources 或 ServerData）
-     * @param resourcePath 资源路径
-     * @return 是否存在
-     */
-    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const;
-
-    /**
-     * @brief 读取指定类型的资源
-     *
-     * @param type 资源包类型
-     * @param resourcePath 资源路径
-     * @return 资源数据，或错误
-     */
-    [[nodiscard]] Result<std::vector<u8>> readResource(resource::PackType type, std::string_view resourcePath) const;
-
-    /**
-     * @brief 读取指定类型的文本资源
-     *
-     * @param type 资源包类型
-     * @param resourcePath 资源路径
-     * @return 文本内容，或错误
-     */
-    [[nodiscard]] Result<std::string> readTextResource(resource::PackType type, std::string_view resourcePath) const;
-
-    /**
-     * @brief 列出指定类型目录下的资源
-     *
-     * @param type 资源包类型
-     * @param directory 目录路径（相对于类型目录根，如 "minecraft/loot_tables"）
-     * @param extension 文件扩展名过滤（可选）
-     * @return 资源路径列表
-     */
-    [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension = "") const;
-
-    /**
-     * @brief 获取指定类型的所有命名空间
-     *
-     * @param type 资源包类型
      * @return 命名空间列表（如 ["minecraft", "mymod"]）
+
      */
-    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const;
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces() const;
 
     // ========================================================================
     // 设置同步

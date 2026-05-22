@@ -33,9 +33,9 @@ InMemoryResourcePack::InMemoryResourcePack(std::string name)
     , m_metadata(3, "Built-in resources") // pack_format 3 for 1.16.x
 {}
 
-void InMemoryResourcePack::addResource(std::string path, std::string content)
+void InMemoryResourcePack::addClientResource(std::string path, std::string content)
 {
-    std::string normalized = normalizePath(path);
+    std::string normalized = makeTypedPath(resource::PackType::ClientResources, path);
     std::vector<u8> data(content.begin(), content.end());
     m_resources[normalized] = std::move(data);
 
@@ -54,9 +54,29 @@ void InMemoryResourcePack::addResource(std::string path, std::string content)
     }
 }
 
-void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data)
+void InMemoryResourcePack::addServerDataResource(std::string path, std::string content)
 {
-    std::string normalized = normalizePath(path);
+    std::string normalized = makeTypedPath(resource::PackType::ServerData, path);
+    std::vector<u8> data(content.begin(), content.end());
+    m_resources[normalized] = std::move(data);
+
+    size_t lastSlash = normalized.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+        std::string dir = normalized.substr(0, lastSlash);
+        while (!dir.empty()) {
+            m_directories.insert(dir);
+            size_t pos = dir.find_last_of('/');
+            if (pos == std::string::npos) {
+                break;
+            }
+            dir = dir.substr(0, pos);
+        }
+    }
+}
+
+void InMemoryResourcePack::addClientResource(std::string path, std::vector<u8> data)
+{
+    std::string normalized = makeTypedPath(resource::PackType::ClientResources, path);
     m_resources[normalized] = std::move(data);
 
     // 自动添加目录条目
@@ -74,9 +94,28 @@ void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data)
     }
 }
 
-void InMemoryResourcePack::addDirectory(std::string directory)
+void InMemoryResourcePack::addServerDataResource(std::string path, std::vector<u8> data)
 {
-    std::string normalized = normalizePath(directory);
+    std::string normalized = makeTypedPath(resource::PackType::ServerData, path);
+    m_resources[normalized] = std::move(data);
+
+    size_t lastSlash = normalized.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+        std::string dir = normalized.substr(0, lastSlash);
+        while (!dir.empty()) {
+            m_directories.insert(dir);
+            size_t pos = dir.find_last_of('/');
+            if (pos == std::string::npos) {
+                break;
+            }
+            dir = dir.substr(0, pos);
+        }
+    }
+}
+
+void InMemoryResourcePack::addDirectory(resource::PackType type, std::string directory)
+{
+    std::string normalized = makeTypedPath(type, directory);
     m_directories.insert(normalized);
 }
 
@@ -86,46 +125,15 @@ Result<void> InMemoryResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool InMemoryResourcePack::hasResource(std::string_view resourcePath) const
-{
-    return hasResource(resource::PackType::ClientResources, resourcePath);
-}
-
 bool InMemoryResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
 {
-    // 如果 resourcePath 已经包含类型目录前缀（assets/ 或 data/），直接使用；
-    // 否则自动添加前缀
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
-    std::string normalized;
-    if (hasTypePrefix) {
-        normalized = normalizePath(resourcePath);
-    } else {
-        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
-    }
+    const std::string normalized = makeTypedPath(type, resourcePath);
     return m_resources.find(normalized) != m_resources.end();
-}
-
-Result<std::vector<u8>> InMemoryResourcePack::readResource(std::string_view resourcePath) const
-{
-    return readResource(resource::PackType::ClientResources, resourcePath);
 }
 
 Result<std::vector<u8>> InMemoryResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
 {
-    // 如果 resourcePath 已经包含类型目录前缀，直接使用；否则自动添加前缀
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
-    std::string normalized;
-    if (hasTypePrefix) {
-        normalized = normalizePath(resourcePath);
-    } else {
-        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
-    }
+    const std::string normalized = makeTypedPath(type, resourcePath);
 
     auto it = m_resources.find(normalized);
     if (it != m_resources.end()) {
@@ -138,10 +146,10 @@ Result<std::vector<u8>> InMemoryResourcePack::readResource(resource::PackType ty
 }
 
 Result<std::vector<std::string>> InMemoryResourcePack::listResources(
-    std::string_view directory, std::string_view extension) const
+    resource::PackType type, std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
-    std::string normalizedDir = normalizePath(directory);
+    std::string normalizedDir = makeTypedPath(type, directory);
 
     // 确保目录以斜杠结尾
     if (!normalizedDir.empty() && normalizedDir.back() != '/') {
@@ -153,11 +161,13 @@ Result<std::vector<std::string>> InMemoryResourcePack::listResources(
         if (path.size() > normalizedDir.size() && path.substr(0, normalizedDir.size()) == normalizedDir) {
 
             // 检查扩展名
+            std::string relativePath = path.substr(normalizedDir.size());
             if (extension.empty()) {
-                resources.push_back(path);
+                resources.push_back(relativePath);
             } else {
-                if (path.size() >= extension.size() && path.substr(path.size() - extension.size()) == extension) {
-                    resources.push_back(path);
+                if (relativePath.size() >= extension.size() &&
+                    relativePath.substr(relativePath.size() - extension.size()) == extension) {
+                    resources.push_back(relativePath);
                 }
             }
         }
@@ -167,15 +177,6 @@ Result<std::vector<std::string>> InMemoryResourcePack::listResources(
     std::sort(resources.begin(), resources.end());
 
     return resources;
-}
-
-Result<std::vector<std::string>> InMemoryResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
-{
-    // 在类型目录前缀下搜索
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string fullDirectory = typeDir + "/" + std::string(directory);
-    return listResources(fullDirectory, extension);
 }
 
 Result<std::vector<std::string>> InMemoryResourcePack::getResourceNamespaces(resource::PackType type) const
@@ -215,6 +216,11 @@ std::string InMemoryResourcePack::normalizePath(std::string_view path)
     }
 
     return result;
+}
+
+std::string InMemoryResourcePack::makeTypedPath(resource::PackType type, std::string_view path)
+{
+    return normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
 
 } // namespace mc

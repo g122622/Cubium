@@ -69,14 +69,14 @@ public:
      * @param physicalDevice 物理设备
      * @param commandPool 命令池
      * @param graphicsQueue 图形队列
-     * @param cacheDir 缓存目录（默认为 "./cache/skins"）
+     * @param cacheDir 缓存目录路径（如 ~/minecraft_reborn/cache/skins）
      * @return 成功或错误
      */
     Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
-        const std::string& cacheDir = "./cache/skins");
+        const std::string& cacheDir);
 
     /**
      * @brief 关闭客户端皮肤管理器

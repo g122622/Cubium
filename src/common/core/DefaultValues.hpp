@@ -39,6 +39,7 @@ inline constexpr const char* dataPacksDirName = "datapacks";
 inline constexpr const char* savesDirName = "saves";
 inline constexpr const char* backupsDirName = "backups";
 inline constexpr const char* logsDirName = "logs";
+inline constexpr const char* cacheDirName = "cache";
 inline constexpr const char* builtinDirName = "builtin";
 } // namespace game
 

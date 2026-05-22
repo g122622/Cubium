@@ -78,7 +78,8 @@ void CapeLayer::render(Player& player, ...) {
 
 // 初始化
 mc::client::skin::ClientSkinManager skinManager;
-skinManager.initialize(device, physicalDevice, commandPool, graphicsQueue);
+std::string skinCacheDir = (gameDirectory.cacheDir() / "skins").string();
+skinManager.initialize(device, physicalDevice, commandPool, graphicsQueue, skinCacheDir);
 
 // 注册玩家皮肤
 auto result = skinManager.registerPlayerSkin(profile);

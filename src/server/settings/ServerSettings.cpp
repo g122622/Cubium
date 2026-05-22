@@ -173,9 +173,4 @@ Result<void> ServerSettings::saveSettings(const std::filesystem::path& path)
     return Result<void>::ok();
 }
 
-std::filesystem::path ServerSettings::getDefaultPath()
-{
-    return SettingsBase::getSettingsPath("minecraft-server") / "server.json";
-}
-
 } // namespace mc::server

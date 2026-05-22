@@ -100,6 +100,7 @@ public:
      * @brief 获取资源包数量
      */
     [[nodiscard]] size_t resourcePackCount() const { return m_resourcePacks.size(); }
+    [[nodiscard]] const std::vector<ResourcePackPtr>& resourcePacks() const { return m_resourcePacks; }
 
     // ========================================================================
     // 资源加载

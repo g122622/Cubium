@@ -46,6 +46,7 @@ namespace mc {
  * ├── saves/                       # 存档目录
  * ├── backups/                     # 备份目录
  * ├── logs/                        # 日志目录
+ * ├── cache/                       # 缓存目录
  * └── builtin/                     # 内置包目录（随游戏分发）
  *     └── minecraft/               # 内置原版包
  *         ├── pack.mcmeta
@@ -160,6 +161,12 @@ public:
      * @return ~/minecraft_reborn/logs/
      */
     [[nodiscard]] std::filesystem::path logsDir() const;
+
+    /**
+     * @brief 获取缓存目录
+     * @return ~/minecraft_reborn/cache/
+     */
+    [[nodiscard]] std::filesystem::path cacheDir() const;
 
     /**
      * @brief 获取内置包目录

@@ -33,7 +33,7 @@ ItemModelCache& ItemModelCache::instance()
     return instance;
 }
 
-bool ItemModelCache::initialize(const std::vector<IResourcePack*>& resourcePacks)
+bool ItemModelCache::initialize(const std::vector<ResourcePackPtr>& resourcePacks)
 {
     if (m_initialized) {
         return true;

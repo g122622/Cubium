@@ -36,11 +36,8 @@ namespace mc {
 /**
  * @brief 资源包抽象接口
  *
- * 提供统一的资源读取接口，支持文件夹和ZIP资源包。
- * 通过 PackType 参数区分客户端资源（assets/）和服务端数据（data/）。
- *
- * 不带 PackType 参数的方法默认使用 ClientResources，
- * 保持与现有代码的向后兼容性。
+ * 提供统一的资源读取接口，支持文件夹和 ZIP 资源包。
+ * 所有资源访问都必须显式指定 PackType，禁止再使用默认客户端资源语义。
  */
 class IResourcePack {
 public:
@@ -52,33 +49,20 @@ public:
     // 获取元数据
     [[nodiscard]] virtual const PackMetadata& metadata() const = 0;
 
-    // 检查资源是否存在（默认 ClientResources）
-    [[nodiscard]] virtual bool hasResource(std::string_view resourcePath) const = 0;
-
     // 检查指定类型的资源是否存在
     [[nodiscard]] virtual bool hasResource(resource::PackType type, std::string_view resourcePath) const = 0;
-
-    // 读取资源内容（默认 ClientResources）
-    [[nodiscard]] virtual Result<std::vector<u8>> readResource(std::string_view resourcePath) const = 0;
 
     // 读取指定类型的资源内容
     [[nodiscard]] virtual Result<std::vector<u8>> readResource(
         resource::PackType type, std::string_view resourcePath) const = 0;
 
-    // 读取文本资源（默认 ClientResources）
-    [[nodiscard]] virtual Result<std::string> readTextResource(std::string_view resourcePath) const;
-
     // 读取指定类型的文本资源
     [[nodiscard]] virtual Result<std::string> readTextResource(
         resource::PackType type, std::string_view resourcePath) const;
 
-    // 列出目录下的所有资源（默认 ClientResources）
-    [[nodiscard]] virtual Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension = "") const = 0;
-
     // 列出指定类型目录下的所有资源
     [[nodiscard]] virtual Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension = "") const = 0;
+        resource::PackType type, std::string_view directory, std::string_view extension) const = 0;
 
     // 获取指定类型的所有命名空间
     [[nodiscard]] virtual Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const = 0;

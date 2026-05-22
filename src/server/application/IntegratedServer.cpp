@@ -109,7 +109,8 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     m_integratedSettings.worldName.set(params.worldName);
 
     // 初始化游戏目录并扫描数据包
-    m_gameDirectory = GameDirectory::defaultDirectory();
+    m_gameDirectory = params.gameDirectoryRoot.empty() ? GameDirectory::defaultDirectory()
+                                                       : GameDirectory::fromRoot(params.gameDirectoryRoot);
     auto dirResult = m_gameDirectory.ensureDirectoriesExist();
     if (dirResult.failed()) {
         spdlog::warn("Failed to create game directories: {}", dirResult.error().toString());
@@ -145,7 +146,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         spdlog::debug("No ops.json found or failed to load: {}", opsResult.error().message());
     }
 
-    auto storageInitResult = initializeSharedStorage(params.worldName);
+    auto storageInitResult = initializeSharedStorage(m_gameDirectory, params.worldName);
     if (storageInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize shared world storage: " + storageInitResult.error().message());

@@ -126,8 +126,9 @@ namespace {
 Result<std::vector<u8>> loadTexturePixels(
     IResourcePack& pack, const ResourceLocation& location, u32& outWidth, u32& outHeight)
 {
-    const std::string pngPath = location.toFilePath("png");
-    const auto readResult = pack.readResource(pngPath);
+    std::string pngPath = location.toFilePath(resource::PackType::ClientResources, "png");
+    pngPath.erase(0, std::string("assets/").size());
+    const auto readResult = pack.readResource(resource::PackType::ClientResources, pngPath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -388,7 +389,8 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
 
         for (const std::string& textureName : particleTextures) {
             ResourceLocation location("minecraft", "particle/" + textureName);
-            const std::string path = location.toFilePath("png");
+            std::string path = location.toFilePath(resource::PackType::ClientResources, "png");
+            path.erase(0, std::string("assets/").size());
 
             // 检查是否已加载（优先使用第一个找到的纹理）
             if (builder.getTextureLocations().size() > 0) {
@@ -417,8 +419,8 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
             f64 frameTime = 0.1f;    // 默认帧时间
 
             const std::string mcmetaPath = path + ".mcmeta";
-            if (pack->hasResource(mcmetaPath)) {
-                auto mcmetaResult = pack->readResource(mcmetaPath);
+            if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
+                auto mcmetaResult = pack->readResource(resource::PackType::ClientResources, mcmetaPath);
                 if (mcmetaResult.success()) {
                     static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
                         mcmetaResult.value(), width, height, frameWidth, frameHeight, frameTime));

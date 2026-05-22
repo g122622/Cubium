@@ -41,7 +41,7 @@ namespace mc::server {
  * 仅用于指定配置文件路径，其他配置通过配置文件管理。
  */
 struct StandaloneServerParams {
-    std::optional<std::string> settingsPath;
+    std::optional<std::string> configPath;
 };
 
 /**

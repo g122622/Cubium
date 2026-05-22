@@ -1689,16 +1689,7 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
         {
             MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::LoadFromResourcePacks");
-            std::vector<IResourcePack*> resourcePacks;
-            resourcePacks.reserve(resourceManager->resourcePackCount());
-            for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
-                IResourcePack* pack = resourceManager->getResourcePack(i);
-                if (pack != nullptr) {
-                    resourcePacks.push_back(pack);
-                }
-            }
-
-            auto loadResult = m_itemTextureAtlas.loadFromResourcePacks(resourcePacks);
+            auto loadResult = m_itemTextureAtlas.loadFromResourcePacks(resourceManager->resourcePacks());
             if (loadResult.failed()) {
                 return loadResult.error();
             }

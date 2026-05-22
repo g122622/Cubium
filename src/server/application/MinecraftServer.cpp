@@ -367,14 +367,15 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
     world.setLootTableManager(&m_lootTableManager);
 }
 
-Result<void> MinecraftServer::initializeSharedStorage(const std::string& worldName)
+Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId)
 {
     world::storage::SingleLevelStorageConfig storageConfig;
     storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
     storageConfig.sectionCacheCapacity = 2048;
     storageConfig.enableBackup = true;
 
-    auto storageResult = m_globalStorage.openLevel(worldName, storageConfig);
+    m_globalStorage = world::storage::GlobalStorageManager(gameDirectory);
+    auto storageResult = m_globalStorage.openLevel(levelId, storageConfig);
     if (storageResult.failed()) {
         spdlog::error("Failed to open world storage: {}", storageResult.error().message());
         return storageResult.error();

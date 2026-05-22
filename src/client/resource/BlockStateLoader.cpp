@@ -80,7 +80,7 @@ Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
     m_resourcePack = &resourcePack;
 
     // 列出所有方块状态文件
-    auto result = resourcePack.listResources("assets/minecraft/blockstates", "json");
+    auto result = resourcePack.listResources(resource::PackType::ClientResources, "minecraft/blockstates", "json");
 
     if (result.failed()) {
         // 目录可能不存在
@@ -104,7 +104,7 @@ Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
         }
 
         // 读取并解析
-        auto readResult = resourcePack.readTextResource(file);
+        auto readResult = resourcePack.readTextResource(resource::PackType::ClientResources, file);
         if (readResult.failed()) {
             continue;
         }

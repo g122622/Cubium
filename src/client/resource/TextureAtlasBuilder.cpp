@@ -89,10 +89,11 @@ Result<void> TextureAtlasBuilder::addTexture(IResourcePack& resourcePack, const 
     }
 
     // 构建文件路径
-    std::string filePath = location.toFilePath("png");
+    std::string filePath = location.toFilePath(resource::PackType::ClientResources, "png");
+    filePath.erase(0, std::string("assets/").size());
 
     // 读取纹理数据
-    auto readResult = resourcePack.readResource(filePath);
+    auto readResult = resourcePack.readResource(resource::PackType::ClientResources, filePath);
     if (readResult.failed()) {
         return readResult.error();
     }

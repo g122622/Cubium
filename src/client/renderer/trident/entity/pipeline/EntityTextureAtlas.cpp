@@ -488,9 +488,10 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
     mc::IResourcePack& pack, const ResourceLocation& location, std::vector<u8>& outData, u32& outWidth, u32& outHeight)
 {
     // 尝试直接加载（使用文件路径格式）
-    std::string filePath = location.toFilePath();
+    std::string filePath = location.toFilePath(resource::PackType::ClientResources);
+    filePath.erase(0, std::string("assets/").size());
 
-    auto result = pack.readResource(filePath);
+    auto result = pack.readResource(resource::PackType::ClientResources, filePath);
     if (result.success()) {
         auto& data = result.value();
         int width, height, channels;
@@ -516,9 +517,10 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
         if (lastSlash != std::string::npos) {
             std::string fileName = path.substr(lastSlash + 1);
             ResourceLocation altLoc(location.namespace_(), "textures/entity/" + fileName);
-            std::string altPath = altLoc.toFilePath();
+            std::string altPath = altLoc.toFilePath(resource::PackType::ClientResources);
+            altPath.erase(0, std::string("assets/").size());
 
-            result = pack.readResource(altPath);
+            result = pack.readResource(resource::PackType::ClientResources, altPath);
             if (result.success()) {
                 auto& data = result.value();
                 int width, height, channels;
@@ -540,8 +542,8 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
     // 尝试不带 textures/ 前缀的路径（某些资源包格式）
     std::string texturePath = location.path();
     if (texturePath.find("textures/") == 0) {
-        std::string directPath = "assets/" + location.namespace_() + "/" + texturePath;
-        result = pack.readResource(directPath);
+        std::string directPath = location.namespace_() + "/" + texturePath;
+        result = pack.readResource(resource::PackType::ClientResources, directPath);
         if (result.success()) {
             auto& data = result.value();
             int width, height, channels;

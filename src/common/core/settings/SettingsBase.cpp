@@ -27,11 +27,6 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996) // 禁用 getenv 不安全警告
-#endif
-
 namespace mc {
 
 Result<void> SettingsBase::loadOrGenerate(const std::filesystem::path& path)
@@ -230,63 +225,4 @@ void SettingsBase::onSettingChanged()
     triggerAutoSave();
 }
 
-std::filesystem::path SettingsBase::getSettingsPath(const std::string& appName)
-{
-    std::filesystem::path basePath;
-
-#if defined(_WIN32)
-    // Windows: %APPDATA%/appName/options.json
-    const char* appData = std::getenv("APPDATA");
-    if (appData) {
-        basePath = std::filesystem::path(appData);
-    } else {
-        // 回退到用户主目录
-        const char* userProfile = std::getenv("USERPROFILE");
-        if (userProfile) {
-            basePath = std::filesystem::path(userProfile) / "AppData" / "Roaming";
-        } else {
-            basePath = std::filesystem::current_path();
-        }
-    }
-#elif defined(__APPLE__)
-    // macOS: ~/Library/Application Support/appName/options.json
-    const char* home = std::getenv("HOME");
-    if (home) {
-        basePath = std::filesystem::path(home) / "Library" / "Application Support";
-    } else {
-        basePath = std::filesystem::current_path();
-    }
-#else
-    // Linux: ~/.config/appName/options.json
-    const char* home = std::getenv("HOME");
-    if (home) {
-        basePath = std::filesystem::path(home) / ".config";
-    } else {
-        basePath = std::filesystem::current_path();
-    }
-#endif
-
-    return basePath / appName / "options.json";
-}
-
-std::filesystem::path SettingsBase::ensureSettingsDir(const std::string& appName)
-{
-    auto path = getSettingsPath(appName);
-    auto dir = path.parent_path();
-
-    if (!std::filesystem::exists(dir)) {
-        std::error_code ec;
-        std::filesystem::create_directories(dir, ec);
-        if (ec) {
-            spdlog::warn("Failed to create settings directory: {}", dir.string());
-        }
-    }
-
-    return dir;
-}
-
 } // namespace mc
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif

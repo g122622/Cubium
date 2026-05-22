@@ -43,11 +43,6 @@ public:
 
     const PackMetadata& metadata() const override { return m_metadata; }
 
-    bool hasResource(std::string_view resourcePath) const override
-    {
-        return hasResource(resource::PackType::ClientResources, resourcePath);
-    }
-
     bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
         std::string typeDir(resource::packTypeDirectoryName(type));
@@ -60,11 +55,6 @@ public:
             full = typeDir + "/" + path;
         }
         return m_resources.find(full) != m_resources.end();
-    }
-
-    Result<std::vector<u8>> readResource(std::string_view resourcePath) const override
-    {
-        return readResource(resource::PackType::ClientResources, resourcePath);
     }
 
     Result<std::vector<u8>> readResource(resource::PackType type, std::string_view resourcePath) const override
@@ -86,14 +76,15 @@ public:
     }
 
     Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension) const override
+        resource::PackType type, std::string_view directory, std::string_view extension) const override
     {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string fullDirectory = typeDir + "/" + std::string(directory);
         std::vector<std::string> results;
-        const std::string prefix(directory);
         const std::string ext(extension);
 
         for (const auto& [path, _] : m_resources) {
-            const bool prefixMatched = path.find(prefix) != std::string::npos;
+            const bool prefixMatched = path.rfind(fullDirectory, 0) == 0;
             const bool extensionMatched =
                 ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (prefixMatched && extensionMatched) {
@@ -102,14 +93,6 @@ public:
         }
 
         return results;
-    }
-
-    Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const override
-    {
-        std::string typeDir(resource::packTypeDirectoryName(type));
-        std::string fullDirectory = typeDir + "/" + std::string(directory);
-        return listResources(fullDirectory, extension);
     }
 
     Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override
@@ -244,7 +227,7 @@ TEST(ItemTextureAtlasTest, LoadItemTextureWithoutPngSuffixInLocation)
     pack.addResource("assets/minecraft/textures/item/copilot_test_item.png", oneByOnePng());
 
     ItemTextureAtlas atlas;
-    std::vector<IResourcePack*> packs = {&pack};
+    std::vector<ResourcePackPtr> packs = {std::shared_ptr<IResourcePack>(&pack, [](IResourcePack*) {})};
     auto result = atlas.loadFromResourcePacks(packs);
 
     ASSERT_TRUE(result.success());
@@ -266,7 +249,7 @@ TEST(ItemTextureAtlasTest, BlockItemCanLoadFromItemTexturePath)
     pack.addResource("assets/minecraft/textures/item/copilot_test_block_item.png", oneByOnePng());
 
     ItemTextureAtlas atlas;
-    std::vector<IResourcePack*> packs = {&pack};
+    std::vector<ResourcePackPtr> packs = {std::shared_ptr<IResourcePack>(&pack, [](IResourcePack*) {})};
     auto result = atlas.loadFromResourcePacks(packs);
 
     ASSERT_TRUE(result.success());
@@ -287,7 +270,7 @@ TEST(ItemTextureAtlasTest, BlockItemFallsBackToBlockTexturePath)
     pack.addResource("assets/minecraft/textures/block/stone.png", oneByOnePng());
 
     ItemTextureAtlas atlas;
-    std::vector<IResourcePack*> packs = {&pack};
+    std::vector<ResourcePackPtr> packs = {std::shared_ptr<IResourcePack>(&pack, [](IResourcePack*) {})};
     auto result = atlas.loadFromResourcePacks(packs);
 
     ASSERT_TRUE(result.success());

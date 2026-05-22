@@ -171,11 +171,11 @@ Result<void> GuiTextureLoader::loadSpritesFromJson(GuiTextureAtlas& atlas, const
     for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend(); ++it) {
         auto& pack = *it;
 
-        if (!pack->hasResource(resourcePath)) {
+        if (!pack->hasResource(resource::PackType::ClientResources, resourcePath)) {
             continue;
         }
 
-        auto readResult = pack->readResource(resourcePath);
+        auto readResult = pack->readResource(resource::PackType::ClientResources, resourcePath);
         if (readResult.failed()) {
             continue;
         }
@@ -320,14 +320,14 @@ Result<void> GuiTextureLoader::findTexture(const std::string& location, std::vec
 
         spdlog::info("[GuiTextureLoader] Checking pack '{}'", packName);
 
-        if (!pack->hasResource(resourcePath)) {
+        if (!pack->hasResource(resource::PackType::ClientResources, resourcePath)) {
             spdlog::info("[GuiTextureLoader] Pack '{}' does not have resource '{}'", packName, resourcePath);
             continue;
         }
 
         spdlog::info("[GuiTextureLoader] Pack '{}' has resource '{}'", packName, resourcePath);
 
-        auto readResult = pack->readResource(resourcePath);
+        auto readResult = pack->readResource(resource::PackType::ClientResources, resourcePath);
         if (readResult.success()) {
             outData = std::move(readResult.value());
             spdlog::info("[GuiTextureLoader] Successfully read {} bytes from pack '{}'", outData.size(), packName);
@@ -349,10 +349,10 @@ std::string GuiTextureLoader::buildResourcePath(const std::string& location)
     if (colonPos != std::string::npos) {
         std::string namespace_ = location.substr(0, colonPos);
         std::string path = location.substr(colonPos + 1);
-        return "assets/" + namespace_ + "/" + path;
+        return namespace_ + "/" + path;
     }
     // 默认命名空间
-    return "assets/minecraft/" + location;
+    return "minecraft/" + location;
 }
 
 } // namespace mc::client::renderer::trident::gui

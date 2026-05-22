@@ -176,6 +176,11 @@ std::filesystem::path GameDirectory::logsDir() const
     return m_root / "logs";
 }
 
+std::filesystem::path GameDirectory::cacheDir() const
+{
+    return m_root / "cache";
+}
+
 std::filesystem::path GameDirectory::builtinPackDir() const
 {
     // 内置包位于可执行文件旁的 resources/builtin/
@@ -202,6 +207,7 @@ Result<void> GameDirectory::ensureDirectoriesExist() const
         savesDir(),
         backupsDir(),
         logsDir(),
+        cacheDir(),
     };
 
     for (const auto& dir : dirs) {

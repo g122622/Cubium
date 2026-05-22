@@ -166,6 +166,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     // 启动内置服务端
     m_integratedServer = std::make_unique<server::IntegratedServer>();
     server::IntegratedServerParams serverParams;
+    serverParams.gameDirectoryRoot = m_gameDirectory.root().string();
     serverParams.seed = config.seed;
     serverParams.viewDistance = config.viewDistance;
     serverParams.defaultGameMode = config.defaultGameMode;
@@ -189,8 +190,12 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     // 初始化皮肤管理器
     m_skinManager = std::make_unique<skin::ClientSkinManager>();
-    auto skinResult = m_skinManager->initialize(
-        m_renderer->device(), m_renderer->physicalDevice(), m_renderer->commandPool(), m_renderer->graphicsQueue());
+    std::string skinCacheDir = (m_gameDirectory.cacheDir() / "skins").string();
+    auto skinResult = m_skinManager->initialize(m_renderer->device(),
+        m_renderer->physicalDevice(),
+        m_renderer->commandPool(),
+        m_renderer->graphicsQueue(),
+        skinCacheDir);
     if (skinResult.failed()) {
         spdlog::warn("[Session] Failed to initialize skin manager: {}", skinResult.error().toString());
         // 皮肤管理器初始化失败不是致命错误

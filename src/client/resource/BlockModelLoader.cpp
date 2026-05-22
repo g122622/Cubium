@@ -353,10 +353,7 @@ std::string BlockStateDefinition::normalizeStateKey(std::string_view stateKey)
 
 Result<void> BlockModelLoader::loadFromResourcePack(IResourcePack& resourcePack)
 {
-    m_resourcePack = &resourcePack;
-
-    // 列出所有模型文件
-    auto result = resourcePack.listResources("assets/minecraft/models/block", "json");
+    auto result = resourcePack.listResources(resource::PackType::ClientResources, "minecraft/models/block", "json");
 
     if (result.failed()) {
         // 目录可能不存在，不算错误
@@ -375,22 +372,16 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
         return it->second;
     }
 
-    // 构建文件路径
-    // 模型路径格式: "anvil_undamaged" -> "assets/minecraft/models/block/anvil_undamaged.json"
-    // 或 "minecraft:block/anvil_undamaged" -> "assets/minecraft/models/block/anvil_undamaged.json"
+    // 构建相对于 assets/ 根目录的路径
     std::string filePath;
     std::string path = location.path();
 
-    // 检查路径是否已包含 "models/block"
     if (path.find("models/block") != std::string::npos || path.find("models\\block") != std::string::npos) {
-        // 已经是完整路径
-        filePath = location.toFilePath("json");
+        filePath = location.namespace_() + "/" + path + ".json";
     } else if (path.find("block/") == 0 || path.find("block\\") == 0) {
-        // 以 "block/" 开头，需要添加 "models/"
-        filePath = "assets/" + location.namespace_() + "/models/" + path + ".json";
+        filePath = location.namespace_() + "/models/" + path + ".json";
     } else {
-        // 简短模型名，添加 "models/block/" 前缀
-        filePath = "assets/" + location.namespace_() + "/models/block/" + path + ".json";
+        filePath = location.namespace_() + "/models/block/" + path + ".json";
     }
 
     // 从资源包列表中读取模型文件
@@ -415,25 +406,16 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
 
 Result<std::string> BlockModelLoader::readModelFromResourcePacks(const std::string& filePath)
 {
-    // 优先从资源包列表中查找（支持多资源包）
-    if (!m_resourcePackList.empty()) {
-        // 从后向前查找，后添加的资源包优先级更高
-        for (size_t i = m_resourcePackList.size(); i > 0; --i) {
-            IResourcePack* pack = m_resourcePackList[i - 1];
-            if (pack && pack->hasResource(filePath)) {
-                auto result = pack->readTextResource(filePath);
-                if (result.success()) {
-                    return result.value();
-                }
-            }
-        }
-    }
+    std::string relativePath = filePath;
+    relativePath.erase(0, std::string("assets/").size());
 
-    // 回退到单个资源包
-    if (m_resourcePack) {
-        auto result = m_resourcePack->readTextResource(filePath);
-        if (result.success()) {
-            return result.value();
+    for (size_t i = m_resourcePacks.size(); i > 0; --i) {
+        const auto& pack = m_resourcePacks[i - 1];
+        if (pack && pack->hasResource(resource::PackType::ClientResources, relativePath)) {
+            auto result = pack->readTextResource(resource::PackType::ClientResources, relativePath);
+            if (result.success()) {
+                return result.value();
+            }
         }
     }
 
@@ -442,10 +424,7 @@ Result<std::string> BlockModelLoader::readModelFromResourcePacks(const std::stri
 
 void BlockModelLoader::setResourcePackList(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
 {
-    m_resourcePackList.clear();
-    for (const auto& ptr : resourcePacks) {
-        m_resourcePackList.push_back(ptr.get());
-    }
+    m_resourcePacks = resourcePacks;
 }
 
 Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& location)

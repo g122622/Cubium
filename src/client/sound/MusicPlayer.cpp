@@ -372,7 +372,7 @@ void MusicPlayer::startPlaying(const MusicSelector& selector)
     m_currentSoundId = m_engine.play(std::move(sound));
 
     if (m_currentSoundId == 0) {
-        spdlog::warn("MusicPlayer: Failed to play music: {}", selector.soundEventId.toString());
+        spdlog::error("MusicPlayer: Failed to play music: {}", selector.soundEventId.toString());
         return;
     }
 

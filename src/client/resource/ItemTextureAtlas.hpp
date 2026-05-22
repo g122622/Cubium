@@ -96,16 +96,6 @@ public:
     [[nodiscard]] Result<void> loadFromResourcePacks(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks);
 
     /**
-     * @brief 从资源包加载物品纹理（裸指针版本）
-     *
-     * 用于与 ResourceManager 的资源包访问接口兼容。
-     *
-     * @param resourcePacks 资源包列表（不拥有）
-     * @return 成功或错误
-     */
-    [[nodiscard]] Result<void> loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks);
-
-    /**
      * @brief 上传纹理数据到GPU
      *
      * 必须在调用 loadFromResourcePacks() 之后调用。

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "world/storage/SingleLevelStorageManager.hpp"
 #include "world/storage/core/WorldStoragePaths.hpp"
@@ -58,6 +59,8 @@ public:
      * 当前工作目录下的 `saves/` 与 `backups/`。
      */
     GlobalStorageManager();
+    explicit GlobalStorageManager(WorldStoragePaths paths);
+    explicit GlobalStorageManager(const GameDirectory& gameDirectory);
 
     /**
      * @brief 列出所有存档

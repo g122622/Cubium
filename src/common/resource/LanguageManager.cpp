@@ -106,15 +106,15 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
     const IResourcePack& pack, const std::string& languageCode, const std::string& namespace_)
 {
     // 构建语言文件路径: assets/<namespace>/lang/<lang_code>.json
-    std::string filePath = "assets/" + namespace_ + "/lang/" + languageCode + ".json";
+    std::string filePath = namespace_ + "/lang/" + languageCode + ".json";
 
     // 检查资源是否存在
-    if (!pack.hasResource(filePath)) {
+    if (!pack.hasResource(resource::PackType::ClientResources, filePath)) {
         return Error(ErrorCode::ResourceNotFound, "Language file not found: " + filePath);
     }
 
     // 读取文件内容
-    auto readResult = pack.readTextResource(filePath);
+    auto readResult = pack.readTextResource(resource::PackType::ClientResources, filePath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -206,13 +206,13 @@ std::vector<std::string> LanguageManager::getAvailableLanguages(
     std::set<std::string> languages;
 
     // 列出所有 lang 目录下的 .json 文件
-    std::string directory = "assets/" + namespace_ + "/lang";
+    std::string directory = namespace_ + "/lang";
     auto listResult = packList.listResources(directory, ".json");
 
     if (listResult.success()) {
         for (const auto& path : listResult.value()) {
             // 从路径提取语言代码
-            // 格式: assets/minecraft/lang/en_us.json
+            // 格式: minecraft/lang/en_us.json
             size_t lastSlash = path.find_last_of('/');
             size_t dotPos = path.find_last_of('.');
             if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {

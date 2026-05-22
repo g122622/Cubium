@@ -25,7 +25,16 @@
 
 namespace mc::world::storage {
 
-GlobalStorageManager::GlobalStorageManager() {}
+GlobalStorageManager::GlobalStorageManager() = default;
+
+GlobalStorageManager::GlobalStorageManager(WorldStoragePaths paths)
+    : m_paths(std::move(paths))
+    , m_worldListService(m_paths)
+{}
+
+GlobalStorageManager::GlobalStorageManager(const GameDirectory& gameDirectory)
+    : GlobalStorageManager(WorldStoragePaths::fromGameDirectory(gameDirectory))
+{}
 
 Result<std::vector<WorldListEntry>> GlobalStorageManager::listWorlds()
 {

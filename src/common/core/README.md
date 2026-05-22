@@ -293,6 +293,7 @@ Settings management with JSON persistence and change notifications.
 ```cpp
 class SettingsBase {
 public:
+    Result<void> loadOrGenerate(const std::filesystem::path& path);
     Result<void> load(const std::filesystem::path& path);
     Result<void> save(const std::filesystem::path& path) const;
 
@@ -306,10 +307,8 @@ public:
     void enableAutoSave(std::filesystem::path path);
     void disableAutoSave();
 
-    static std::filesystem::path getSettingsPath(const std::string& appName);
-    static std::filesystem::path ensureSettingsDir(const std::string& appName);
-
 protected:
+    virtual Result<void> generateDefaultConfig(const std::filesystem::path& path) = 0;
     void onSettingChanged();
 };
 ```

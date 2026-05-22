@@ -107,16 +107,16 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parseFromResourcePack(
         auto colonPos = resourcePath.find(':');
         std::string namespace_ = resourcePath.substr(0, colonPos);
         std::string path = resourcePath.substr(colonPos + 1);
-        resourcePath = "assets/" + namespace_ + "/" + path;
+        resourcePath = namespace_ + "/" + path;
     }
 
     // 检查资源是否存在
-    if (!resourcePack.hasResource(resourcePath)) {
+    if (!resourcePack.hasResource(resource::PackType::ClientResources, resourcePath)) {
         return Error(ErrorCode::NotFound, std::string("Sprite definition not found: ") + spriteDefPath);
     }
 
     // 读取资源
-    auto readResult = resourcePack.readTextResource(resourcePath);
+    auto readResult = resourcePack.readTextResource(resource::PackType::ClientResources, resourcePath);
     if (readResult.failed()) {
         return Error(ErrorCode::FileReadFailed, std::string("Failed to read sprite definition: ") + spriteDefPath);
     }

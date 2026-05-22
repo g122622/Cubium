@@ -125,7 +125,7 @@ skin/
 #include "common/skin/network/PlayerSkinInfo.hpp"
 
 // 创建皮肤管理器
-mc::skin::SkinManager skinManager("./cache/skins");
+mc::skin::SkinManager skinManager((gameDirectory.cacheDir() / "skins").string());
 skinManager.initialize();
 
 // 加载玩家皮肤

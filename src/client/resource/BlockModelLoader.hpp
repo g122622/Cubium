@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include <map>
@@ -203,8 +204,7 @@ public:
 
 private:
     std::map<ResourceLocation, UnbakedBlockModel> m_unbakedModels;
-    IResourcePack* m_resourcePack = nullptr;        // 当前资源包（向后兼容）
-    std::vector<IResourcePack*> m_resourcePackList; // 所有资源包列表（原始指针）
+    std::vector<ResourcePackPtr> m_resourcePacks;
 
     // 从所有资源包中读取模型文件
     [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);

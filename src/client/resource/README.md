@@ -54,12 +54,6 @@ struct DecodedTexture {
 - `loadTextureRGBA()` - 加载并解码纹理
 - `reload()` - 重新加载所有资源
 
-**关键实现细节**：
-
-1. 资源包按添加顺序优先级处理，后添加的优先级更高
-2. 使用 `TextureMapper` 兼容层处理 MC 1.12/1.13+ 的纹理路径差异
-3. 构建 `BlockAppearance` 需要先构建纹理图集（依赖纹理区域数据）
-
 ---
 
 ### BlockModelLoader.hpp/cpp
@@ -279,12 +273,6 @@ class TextureAtlasBuilder {
 2. `textures/items/<item>.png` (MC 1.12)
 3. 对于方块物品，回退到 `textures/block/<block>.png`
 
-**关键实现细节**：
-
-- 支持 Vulkan 纹理上传（使用暂存缓冲区）
-- 自动缩放大尺寸纹理（最大64x64）
-- 使用 TextureMapper 兼容 MC 1.12/1.13+ 路径
-
 ---
 
 ### DestroyStageTextures.hpp/cpp
@@ -434,7 +422,6 @@ static constexpr u32 TEXTURE_SIZE = 16;       // 16x16像素
 - `common/core/Types.hpp` - 基础类型
 - `common/core/Result.hpp` - 错误处理
 - `common/resource/` - 资源包接口、ResourceLocation
-- `common/resource/compat/TextureMapper.hpp` - 纹理路径兼容
 - `common/world/block/Block.hpp` - 方块注册表
 - `common/item/` - 物品注册表
 - `renderer/MeshTypes.hpp` - TextureRegion 定义
@@ -511,8 +498,6 @@ DestroyStageTextures::instance().getTextureUV(stage, u0, v0, u1, v1);
 ### 2. 纹理路径兼容性
 
 **问题**：MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。
-
-**解决**：ResourceManager 使用 `TextureMapper::getPathVariants()` 自动尝试所有路径变体。
 
 ### 3. 模型烘焙依赖
 

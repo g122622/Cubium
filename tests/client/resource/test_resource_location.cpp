@@ -27,9 +27,33 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include "common/resource/ZipResourcePack.hpp"
+#include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+namespace {
+
+std::filesystem::path makeTempPackDir()
+{
+    const auto dir = std::filesystem::temp_directory_path() / "mc_resource_location_test_pack";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    std::filesystem::create_directories(dir / "assets/minecraft/blockstates");
+
+    std::ofstream mcmeta(dir / "pack.mcmeta", std::ios::binary);
+    mcmeta << R"({"pack":{"pack_format":6,"description":"test"}})";
+    mcmeta.close();
+
+    std::ofstream blockstate(dir / "assets/minecraft/blockstates/oak_log.json", std::ios::binary);
+    blockstate << R"({"variants":{"axis=y":{"model":"minecraft:block/oak_log"}}})";
+    blockstate.close();
+
+    return dir;
+}
+
+} // namespace
 
 // ResourceLocation测试
 TEST(ResourceLocationTest, DefaultConstructor)
@@ -69,13 +93,13 @@ TEST(ResourceLocationTest, ToString)
 TEST(ResourceLocationTest, ToFilePath)
 {
     ResourceLocation loc("minecraft:textures/blocks/stone");
-    EXPECT_EQ(loc.toFilePath(), "assets/minecraft/textures/blocks/stone");
+    EXPECT_EQ(loc.toFilePath(resource::PackType::ClientResources), "assets/minecraft/textures/blocks/stone");
 }
 
 TEST(ResourceLocationTest, ToFilePathWithExtension)
 {
     ResourceLocation loc("minecraft:textures/blocks/stone");
-    EXPECT_EQ(loc.toFilePath("png"), "assets/minecraft/textures/blocks/stone.png");
+    EXPECT_EQ(loc.toFilePath(resource::PackType::ClientResources, "png"), "assets/minecraft/textures/blocks/stone.png");
 }
 
 TEST(ResourceLocationTest, Comparison)
@@ -125,8 +149,8 @@ TEST(PackMetadataTest, IsCompatible)
 // FolderResourcePack测试 - 使用测试资源包
 TEST(FolderResourcePackTest, LoadPackMetadata)
 {
-    // 使用实际的资源包路径
-    FolderResourcePack pack("z:/方块概念材质");
+    const auto packDir = makeTempPackDir();
+    FolderResourcePack pack(packDir.string());
 
     auto result = pack.initialize();
     if (result.success()) {
@@ -137,23 +161,25 @@ TEST(FolderResourcePackTest, LoadPackMetadata)
 
 TEST(FolderResourcePackTest, HasResource)
 {
-    FolderResourcePack pack("z:/方块概念材质");
+    const auto packDir = makeTempPackDir();
+    FolderResourcePack pack(packDir.string());
 
     auto result = pack.initialize();
     if (result.success()) {
-        EXPECT_TRUE(pack.hasResource("pack.mcmeta"));
-        EXPECT_TRUE(pack.hasResource("assets/minecraft/blockstates/oak_log.json"));
-        EXPECT_FALSE(pack.hasResource("nonexistent/file.json"));
+        EXPECT_TRUE(pack.hasResource(resource::PackType::ClientResources, "../pack.mcmeta"));
+        EXPECT_TRUE(pack.hasResource(resource::PackType::ClientResources, "minecraft/blockstates/oak_log.json"));
+        EXPECT_FALSE(pack.hasResource(resource::PackType::ClientResources, "nonexistent/file.json"));
     }
 }
 
 TEST(FolderResourcePackTest, ReadResource)
 {
-    FolderResourcePack pack("z:/方块概念材质");
+    const auto packDir = makeTempPackDir();
+    FolderResourcePack pack(packDir.string());
 
     auto result = pack.initialize();
     if (result.success()) {
-        auto readResult = pack.readResource("pack.mcmeta");
+        auto readResult = pack.readResource(resource::PackType::ClientResources, "../pack.mcmeta");
         if (readResult.success()) {
             EXPECT_FALSE(readResult.value().empty());
         }
@@ -162,11 +188,12 @@ TEST(FolderResourcePackTest, ReadResource)
 
 TEST(FolderResourcePackTest, ReadTextResource)
 {
-    FolderResourcePack pack("z:/方块概念材质");
+    const auto packDir = makeTempPackDir();
+    FolderResourcePack pack(packDir.string());
 
     auto result = pack.initialize();
     if (result.success()) {
-        auto readResult = pack.readTextResource("pack.mcmeta");
+        auto readResult = pack.readTextResource(resource::PackType::ClientResources, "../pack.mcmeta");
         if (readResult.success()) {
             EXPECT_TRUE(readResult.value().find("pack") != std::string::npos);
         }
@@ -175,11 +202,12 @@ TEST(FolderResourcePackTest, ReadTextResource)
 
 TEST(FolderResourcePackTest, ListResources)
 {
-    FolderResourcePack pack("z:/方块概念材质");
+    const auto packDir = makeTempPackDir();
+    FolderResourcePack pack(packDir.string());
 
     auto result = pack.initialize();
     if (result.success()) {
-        auto listResult = pack.listResources("assets/minecraft/blockstates", "json");
+        auto listResult = pack.listResources(resource::PackType::ClientResources, "minecraft/blockstates", "json");
         if (listResult.success()) {
             EXPECT_FALSE(listResult.value().empty());
 

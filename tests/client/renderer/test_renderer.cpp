@@ -48,11 +48,6 @@ public:
 
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
 
-    [[nodiscard]] bool hasResource(std::string_view resourcePath) const override
-    {
-        return hasResource(resource::PackType::ClientResources, resourcePath);
-    }
-
     [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
         std::string typeDir(resource::packTypeDirectoryName(type));
@@ -65,11 +60,6 @@ public:
             full = typeDir + "/" + path;
         }
         return m_resources.find(full) != m_resources.end();
-    }
-
-    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override
-    {
-        return readResource(resource::PackType::ClientResources, resourcePath);
     }
 
     [[nodiscard]] Result<std::vector<u8>> readResource(
@@ -92,13 +82,14 @@ public:
     }
 
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        std::string_view directory, std::string_view extension) const override
+        resource::PackType type, std::string_view directory, std::string_view extension) const override
     {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string fullDirectory = typeDir + "/" + std::string(directory);
         std::vector<std::string> result;
-        const std::string dirPrefix(directory);
         const std::string ext(extension);
         for (const auto& [path, _] : m_resources) {
-            const bool inDir = dirPrefix.empty() || path.rfind(dirPrefix, 0) == 0;
+            const bool inDir = fullDirectory.empty() || path.rfind(fullDirectory, 0) == 0;
             const bool extMatch =
                 ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (inDir && extMatch) {
@@ -106,14 +97,6 @@ public:
             }
         }
         return result;
-    }
-
-    [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const override
-    {
-        std::string typeDir(resource::packTypeDirectoryName(type));
-        std::string fullDirectory = typeDir + "/" + std::string(directory);
-        return listResources(fullDirectory, extension);
     }
 
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override

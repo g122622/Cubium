@@ -68,16 +68,6 @@ std::string ResourceLocation::toString() const
     return m_namespace + ":" + m_path;
 }
 
-std::string ResourceLocation::toFilePath() const
-{
-    return toFilePath(resource::PackType::ClientResources);
-}
-
-std::string ResourceLocation::toFilePath(std::string_view extension) const
-{
-    return toFilePath(resource::PackType::ClientResources, extension);
-}
-
 std::string ResourceLocation::toFilePath(resource::PackType type) const
 {
     // ClientResources -> "assets/namespace/path"

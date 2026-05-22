@@ -194,11 +194,11 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     const std::vector<std::string>& charRows)
 {
     // 构建完整资源路径
-    std::string fullPath = "textures/";
+    std::string fullPath = "minecraft/textures/";
     fullPath += texturePath;
 
     // 加载纹理
-    auto dataResult = pack.readResource(fullPath);
+    auto dataResult = pack.readResource(resource::PackType::ClientResources, fullPath);
     if (!dataResult.success()) {
         return Error(ErrorCode::FileReadFailed, "Failed to load font texture: " + fullPath);
     }

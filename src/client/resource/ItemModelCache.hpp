@@ -46,7 +46,7 @@ public:
      * @param resourcePacks 资源包列表（按优先级从高到低）
      * @return 是否成功
      */
-    bool initialize(const std::vector<IResourcePack*>& resourcePacks);
+    bool initialize(const std::vector<ResourcePackPtr>& resourcePacks);
 
     /**
      * @brief 清理缓存

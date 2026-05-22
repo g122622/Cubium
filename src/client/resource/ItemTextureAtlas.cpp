@@ -28,7 +28,6 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include "common/resource/compat/TextureMapper.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -97,8 +96,9 @@ Result<void> loadTexturePixels(IResourcePack& pack,
     u32& outFrameWidth,
     u32& outFrameHeight)
 {
-    const std::string pngPath = location.toFilePath("png");
-    const auto readResult = pack.readResource(pngPath);
+    std::string pngPath = location.toFilePath(resource::PackType::ClientResources, "png");
+    pngPath.erase(0, std::string("assets/").size());
+    const auto readResult = pack.readResource(resource::PackType::ClientResources, pngPath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -122,8 +122,8 @@ Result<void> loadTexturePixels(IResourcePack& pack,
     outFrameHeight = outHeight;
 
     const std::string mcmetaPath = pngPath + ".mcmeta";
-    if (pack.hasResource(mcmetaPath)) {
-        const auto mcmetaResult = pack.readResource(mcmetaPath);
+    if (pack.hasResource(resource::PackType::ClientResources, mcmetaPath)) {
+        const auto mcmetaResult = pack.readResource(resource::PackType::ClientResources, mcmetaPath);
         if (mcmetaResult.success()) {
             static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
                 mcmetaResult.value(), outWidth, outHeight, outFrameWidth, outFrameHeight));
@@ -334,19 +334,6 @@ void ItemTextureAtlas::destroy()
 
 Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
 {
-    std::vector<IResourcePack*> packs;
-    packs.reserve(resourcePacks.size());
-    for (const auto& pack : resourcePacks) {
-        if (pack != nullptr) {
-            packs.push_back(pack.get());
-        }
-    }
-
-    return loadFromResourcePacks(packs);
-}
-
-Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<IResourcePack*>& resourcePacks)
-{
     if (resourcePacks.empty()) {
         spdlog::warn("ItemTextureAtlas: No resource packs provided");
         return {};
@@ -361,31 +348,15 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<IResource
     const u32 atlasHeight = (m_height > 0) ? m_height : 1024;
     builder.setMaxSize(atlasWidth, atlasHeight);
 
-    const auto& textureMapper = resource::compat::TextureMapper::instance();
-
     auto tryLoadToBuilder = [&](const ResourceLocation& atlasKey,
                                 const std::vector<ResourceLocation>& sourceCandidates) -> bool {
-        std::vector<ResourceLocation> expandedCandidates;
-        expandedCandidates.reserve(sourceCandidates.size() * 2);
-        for (const auto& candidate : sourceCandidates) {
-            expandedCandidates.push_back(candidate);
-
-            const auto variants = textureMapper.getPathVariants(candidate.path());
-            for (const auto& variantPath : variants) {
-                if (variantPath == candidate.path()) {
-                    continue;
-                }
-                expandedCandidates.emplace_back(candidate.namespace_(), variantPath);
-            }
-        }
-
         for (auto packIt = resourcePacks.rbegin(); packIt != resourcePacks.rend(); ++packIt) {
-            IResourcePack* pack = *packIt;
+            const auto& pack = *packIt;
             if (pack == nullptr) {
                 continue;
             }
 
-            for (const auto& sourceLoc : expandedCandidates) {
+            for (const auto& sourceLoc : sourceCandidates) {
                 std::vector<u8> pixels;
                 u32 width = 0;
                 u32 height = 0;

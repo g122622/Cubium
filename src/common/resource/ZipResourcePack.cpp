@@ -113,8 +113,8 @@ Result<void> ZipResourcePack::initialize()
 
     // 读取 pack.mcmeta
     const std::string mcmetaPath = "pack.mcmeta";
-    if (hasResource(mcmetaPath)) {
-        auto dataResult = readResource(mcmetaPath);
+    if (m_entries.find(mcmetaPath) != m_entries.end()) {
+        auto dataResult = readResource(resource::PackType::ClientResources, "../pack.mcmeta");
         if (dataResult.success()) {
             const auto& data = dataResult.value();
             std::string jsonStr(data.begin(), data.end());
@@ -135,45 +135,19 @@ Result<void> ZipResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool ZipResourcePack::hasResource(std::string_view resourcePath) const
-{
-    return hasResource(resource::PackType::ClientResources, resourcePath);
-}
-
 bool ZipResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
 {
-    // 如果 resourcePath 已经包含类型目录前缀（assets/ 或 data/），直接使用；
-    // 否则自动添加前缀
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
-    std::string normalized;
-    if (hasTypePrefix) {
-        normalized = normalizePath(resourcePath);
-    } else {
-        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
-    }
+    const std::string normalized = makeTypedPath(type, resourcePath);
     return m_entries.find(normalized) != m_entries.end();
-}
-
-Result<std::vector<u8>> ZipResourcePack::readResource(std::string_view resourcePath) const
-{
-    return readResource(resource::PackType::ClientResources, resourcePath);
 }
 
 Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
 {
-    // 如果 resourcePath 已经包含类型目录前缀，直接使用；否则自动添加前缀
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string path(resourcePath);
-    bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-
     std::string normalized;
-    if (hasTypePrefix) {
-        normalized = normalizePath(resourcePath);
+    if (resourcePath == "../pack.mcmeta") {
+        normalized = "pack.mcmeta";
     } else {
-        normalized = normalizePath(typeDir + "/" + std::string(resourcePath));
+        normalized = makeTypedPath(type, resourcePath);
     }
 
     // 先查缓存，避免并发读取时重复解压同一个条目
@@ -242,10 +216,10 @@ Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, s
 }
 
 Result<std::vector<std::string>> ZipResourcePack::listResources(
-    std::string_view directory, std::string_view extension) const
+    resource::PackType type, std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
-    std::string normalizedDir = normalizePath(directory);
+    std::string normalizedDir = makeTypedPath(type, directory);
 
     // 确保目录以斜杠结尾
     if (!normalizedDir.empty() && normalizedDir.back() != '/') {
@@ -259,27 +233,20 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(
         }
 
         // 检查扩展名
+        std::string relativePath = path.substr(normalizedDir.size());
         if (extension.empty()) {
-            resources.push_back(path);
+            resources.push_back(relativePath);
             continue;
         }
 
-        if (path.size() >= extension.size() && path.substr(path.size() - extension.size()) == extension) {
-            resources.push_back(path);
+        if (relativePath.size() >= extension.size() &&
+            relativePath.substr(relativePath.size() - extension.size()) == extension) {
+            resources.push_back(relativePath);
         }
     }
 
     std::sort(resources.begin(), resources.end());
     return resources;
-}
-
-Result<std::vector<std::string>> ZipResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
-{
-    // 在类型目录前缀下搜索
-    std::string typeDir(resource::packTypeDirectoryName(type));
-    std::string fullDirectory = typeDir + "/" + std::string(directory);
-    return listResources(fullDirectory, extension);
 }
 
 Result<std::vector<std::string>> ZipResourcePack::getResourceNamespaces(resource::PackType type) const
@@ -333,6 +300,11 @@ std::string ZipResourcePack::normalizePath(std::string_view path)
     }
 
     return result;
+}
+
+std::string ZipResourcePack::makeTypedPath(resource::PackType type, std::string_view path)
+{
+    return normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
 
 } // namespace mc

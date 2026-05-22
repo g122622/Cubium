@@ -336,7 +336,7 @@ bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePack
         for (auto* pack : resourcePacks) {
             if (!pack) continue;
 
-            auto result = pack->readResource(path);
+            auto result = pack->readResource(resource::PackType::ClientResources, path);
             if (result.success() && !result.value().empty()) {
                 // 解码 PNG
                 int width, height, channels;

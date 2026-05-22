@@ -815,14 +815,6 @@ app.run();
 **解决方案**:
 - 每帧结束时调用 `input.endFrame()`
 
-### 7. 资源路径兼容性
-
-**问题**: MC 1.12 和 1.13+ 资源路径不同。
-
-**解决方案**:
-- 使用 `TextureMapper` 自动映射
-- 通过 `ResourceManager::loadTextureRGBA()` 加载
-
 ### 8. 线程安全
 
 **问题**: 多线程访问共享资源导致崩溃。

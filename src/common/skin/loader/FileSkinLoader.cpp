@@ -143,7 +143,8 @@ Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocati
     SkinLoadResult result;
 
     // 从资源包读取
-    auto readResult = m_resourcePack->readResource(location.toFilePath());
+    auto readResult =
+        m_resourcePack->readResource(resource::PackType::ClientResources, location.toFilePath(resource::PackType::ClientResources));
     if (!readResult.success()) {
         return readResult.error();
     }

@@ -216,20 +216,6 @@ src/common/
 │   ├── ResourcePackList.hpp  # 资源包列表
 │   ├── PackMetadata.hpp      # pack.mcmeta
 │   ├── VanillaResources.hpp  # 原版资源
-│   ├── compat/               # MC 版本兼容层
-│   │   ├── PackFormat.hpp
-│   │   ├── ResourceMapper.hpp
-│   │   ├── TextureMapper.hpp
-│   │   ├── v1_12/            # MC 1.12 映射
-│   │   │   └── ResourceMapperV112.hpp
-│   │   ├── v1_13/            # MC 1.13+ 映射
-│   │   │   └── ResourceMapperV113.hpp
-│   │   └── unified/          # 统一表示
-│   │       ├── UnifiedResource.hpp
-│   │       ├── UnifiedModel.hpp
-│   │       └── UnifiedBlockState.hpp
-│   └── loader/
-│       └── ResourceLoader.hpp
 │
 ├── screen/                   # 屏幕类型
 │   ├── IScreen.hpp
@@ -496,7 +482,6 @@ src/common/
 资源包系统，支持 MC 1.12-1.19+ 资源包格式：
 - 资源定位符、资源包接口
 - 文件夹/ZIP/内存资源包实现
-- **compat/**: 版本兼容层 (纹理映射、资源映射)
 
 ### screen/
 屏幕类型定义 (主菜单、背包、暂停等)
@@ -705,7 +690,6 @@ target_link_libraries(your_target mc_common)
 | `item/crafting/*.cpp` | 合成配方测试 |
 | `item/enchantment/EnchantmentTest.cpp` | 附魔系统 |
 | `item/tool/ToolTests.cpp` | 工具测试 |
-| `resource/compat/CompatLayerTest.cpp` | 资源兼容层 |
 | `util/assert/AssertTest.cpp` | 断言库 |
 | `util/cache/CacheBenchmark.cpp` | 缓存性能测试 |
 | `world/biome/layer/*.cpp` | 群系层生成 |

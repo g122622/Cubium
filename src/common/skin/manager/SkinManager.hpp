@@ -63,7 +63,7 @@ struct SkinLoadCallbacks {
  *
  * 使用示例：
  * @code
- * SkinManager manager("./cache/skins");
+ * SkinManager manager(gameDirectory.cacheDir() / "skins");
  * manager.initialize();
  *
  * // 添加玩家

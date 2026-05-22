@@ -19,6 +19,10 @@ add_executable(mc_tests
     common/test_network.cpp
     common/test_world.cpp
     common/test_core.cpp
+    common/GameDirectoryTest.cpp
+    common/DefaultValuesTest.cpp
+    common/PackTypeTest.cpp
+    common/DataPackListTest.cpp
     # common/test_blockid.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
     # common/test_noise.cpp     # 宸茬Щ闄?- Noise 绫诲凡鍒犻櫎
     common/test_entity.cpp
@@ -570,7 +574,6 @@ add_executable(mc_tests
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
-    common/resource/compat/CompatLayerTest.cpp
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
     common/resource/ResourcePackListSelfContainedTest.cpp
@@ -1205,13 +1208,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemTextureAtlas.cpp
-        # 璧勬簮鍖呭吋瀹瑰眰
-        ${CMAKE_SOURCE_DIR}/src/common/resource/compat/PackFormat.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/compat/ResourceMapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/compat/TextureMapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/compat/v1_12/ResourceMapperV112.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/compat/v1_13/ResourceMapperV113.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/loader/ResourceLoader.cpp
+
         ${CMAKE_SOURCE_DIR}/src/common/resource/VanillaResources.cpp
         # Kagero UI 模板系统（仅核心解析组件）
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Ast.cpp

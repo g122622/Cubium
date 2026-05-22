@@ -70,6 +70,7 @@
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/storage/GlobalStorageManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <algorithm>
@@ -191,16 +192,28 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::info("[QuickPlay] Starting world directly...");
 
         WorldLaunchConfig config;
+        world::storage::GlobalStorageManager storageManager(m_gameDirectory);
         if (params.quickPlayNew) {
-            config.levelId = "Test World";
-            config.displayName = "Test World";
-            config.seed = 12345; // Test World使用固定种子
+            config.levelId = "quick_play_world";
+            config.displayName = "Quick Play World";
+            config.seed = 0;
             config.isNewWorld = true;
         } else {
             config.levelId = *params.quickPlayLevelId;
-            config.displayName = *params.quickPlayLevelId;
-            // TODO 第一版使用固定种子，后续从存档 level.dat 读取
-            config.seed = 12345;
+            auto summaryResult = storageManager.listWorlds();
+            if (summaryResult.success()) {
+                for (const auto& entry : summaryResult.value()) {
+                    if (entry.levelId == config.levelId) {
+                        config.displayName = entry.displayName;
+                        config.seed = static_cast<i64>(entry.seed);
+                        config.worldType = entry.worldType;
+                        break;
+                    }
+                }
+            }
+            if (config.displayName.empty()) {
+                config.displayName = config.levelId;
+            }
         }
         config.viewDistance = m_settings.renderDistance.get();
 
