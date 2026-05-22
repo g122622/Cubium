@@ -135,6 +135,8 @@ server/
 
 `ServerWorld` 通过回调机制获取难度，允许运行时动态修改难度（如通过 `/difficulty` 命令）。难度回调由 `MinecraftServer` 在初始化时设置。
 
+多维度 tick 现在统一由 `ServerDimensionManager::tick()` 驱动；`MinecraftServer` 持有的 `m_world` 只是主世界快捷引用，不能再在顶层单独执行一次 `m_world->tick()`，否则主世界会被重复 tick。
+
 | 类 | 职责 |
 |---|---|
 | `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气、难度回调） |
@@ -265,6 +267,14 @@ TCP 网络通信实现。
    → ChunkSendManager → ChunkData 序列化 → 发送给客户端
    ```
 
+3. **世界 tick 调度**：
+   ```
+   MinecraftServer::tick()
+   → ServerDimensionManager::tick()
+   → ServerDimension::tick()
+   → 各维度自己的 ServerWorld::tick()
+   ```
+
 4. **方块更新同步**：
     ```
     ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager
@@ -387,7 +397,13 @@ chunkManager.setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
 6. `initializeChunkSyncManagers()` - 区块同步（在 world 之后）
 7. `setupWorldCallbacks()` - 设置回调
 
-### 5. 心跳超时配置
+### 5. 主世界快捷引用与维度调度
+
+- `MinecraftServer::m_world` 指向主世界 `ServerWorld`，主要用于主世界相关管理器访问、回调绑定和单世界逻辑入口。
+- 所有维度的 `ServerWorld::tick()` 都必须通过 `ServerDimensionManager::tick()` 统一调度。
+- 如果在 `MinecraftServer::tick()` 中再手动调用一次 `m_world->tick()`，主世界会被额外执行一次，而其他维度不会，造成 tick 频率不一致。
+
+### 6. 心跳超时配置
 
 默认心跳间隔和超时通过 `ServerSettings` 和 `mc::defaults::serverCore` 命名空间管理：
 ```cpp
@@ -398,7 +414,7 @@ namespace mc::defaults::serverCore {
 }
 ```
 
-### 6. 命令注册
+### 7. 命令注册
 
 命令在 `CommandRegistry::registerDefaults()` 中自动注册。自定义命令需手动注册：
 ```cpp
@@ -411,7 +427,7 @@ server.commandRegistry().dispatcher().registerCommand(
 );
 ```
 
-### 7. 实体追踪距离
+### 8. 实体追踪距离
 
 默认追踪距离为 10 区块，可通过 `EntityTracker::setTrackingDistance()` 调整。
 

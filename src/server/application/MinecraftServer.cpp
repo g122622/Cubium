@@ -190,12 +190,6 @@ void MinecraftServer::tick()
         m_timeManager->tick();
     }
 
-    // world tick
-    if (m_world) {
-        MC_TRACE_EVENT("server.tick", "TickWorld");
-        m_world->tick();
-    }
-
     // 自然刷怪（在世界 tick 后、实体 tick 前执行）
     if (m_naturalSpawner && m_world) {
         MC_TRACE_EVENT("server.tick", "NaturalSpawn");

@@ -83,16 +83,20 @@ src/server/application/
 
 **Tick Phases:**
 
-1. `tickCore()` - Time update, weather update, cleanup disconnected players, keep-alive check
-2. `tickEntities()` - Entity tick, item pickup, entity tracking
-3. `entitySyncManager().tick()` - Sync entity positions
-4. `miningManager().tick()` - Update mining progress
-5. `pollNetwork()` - Process network packets (subclass-specific)
-6. `chunkSendManager().processPendingSends()` - Send queued chunks
-7. `blockUpdateSyncManager().flushPendingUpdates()` - Send queued block updates
-8. `chunkManager().tick()` - Update chunk loading/unloading
-9. `tickLighting()` - Light engine update
-10. `tickKeepAlive()` - Send keep-alive packets
+1. `m_timeManager->tick()` - 更新时间，推进全局 tick 和 day time
+2. 清理断开连接玩家 - 回收玩家追踪与区块票据
+3. `m_dimensionManager->tick()` - 统一驱动所有维度；每个 `ServerDimension::tick()` 内部再调用各自的 `ServerWorld::tick()`
+4. `m_naturalSpawner->tick(*m_world, ...)` - 以主世界为入口执行自然刷怪
+5. `m_despawnManager->tick(*m_world)` - 以主世界为入口执行生物消失检查
+6. `tickEntities()` - 主世界实体 tick、物品拾取、实体追踪
+7. `entitySyncManager().tick()` - 同步实体位置
+8. `miningManager().tick(*m_world)` - 更新挖掘进度
+9. `pollNetwork()` - 处理网络事件（子类实现）
+10. `chunkSendManager().processPendingSends()` - 发送待发区块
+11. `blockUpdateSyncManager().flushPendingUpdates()` - 发送待处理方块更新
+12. `tickKeepAlive()` - 发送心跳并配合超时检查
+
+`MinecraftServer::m_world` 当前是**主世界快捷引用**，用于共享主世界相关的管理器访问、回调绑定和单世界逻辑入口；顶层 world tick 调度已经收敛到 `ServerDimensionManager`，不能再直接在 `MinecraftServer::tick()` 里额外调用一次 `m_world->tick()`，否则主世界会重复 tick。
 
 ---
 
@@ -284,6 +288,7 @@ server/application/
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
 - 世界目录选择与打开改由 `GlobalStorageManager::openLevel()` 承担
 - 共享 `SingleLevelStorageManager` 的全量保存职责固定在 `MinecraftServer::shutdownManagers()`，关服时只执行一次 `saveAll()`，避免 3 个维度 world 各自重复落盘
+- `m_world` 仅缓存 `ServerDimensionManager` 装配出的主世界指针；实际 world tick 由 `m_dimensionManager->tick()` 统一驱动，避免主世界重复 tick
 
 ## 模块关系
 
@@ -305,6 +310,7 @@ flowchart TD
 - `ServerChunkManager` 现在只接受外部注入的池指针，不能再假设自己拥有生命周期。
 - `SingleLevelStorageManager` 的异步任务需要在 `open()` 之后才可使用。
 - 生命周期规则现在要求：析构函数只做“兜底释放”，不负责隐式全量保存或带网络副作用的关闭逻辑；共享资源的保存/关闭必须由 `MinecraftServer` 顶层统一编排。
+- `MinecraftServer::tick()` 不能再直接调用 `m_world->tick()`；主世界已经包含在 `m_dimensionManager->tick()` 里，再调一次会让 `ServerWorld::tick()`、`ServerChunkManager::tick()`、光照和天气等逻辑重复执行。
 
 ## 测试用例
 
