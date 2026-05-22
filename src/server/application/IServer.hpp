@@ -32,9 +32,6 @@
 
 namespace mc {
 class AbstractContainerMenu;
-class WorldLightManager;
-class PhysicsEngine;
-class EntityManager;
 class PlayerInventory;
 class ServerDimensionManager;
 namespace loot {
@@ -45,7 +42,8 @@ class DataPackList;
 }
 namespace server {
 class ServerPlayerEntityManager;
-}
+class ServerWorld;
+} // namespace server
 namespace time {
 class GameTime;
 }
@@ -54,9 +52,6 @@ namespace tick {
 class TickManager;
 }
 } // namespace world
-namespace network {
-class ChunkSyncManager;
-}
 namespace command {
 class CommandRegistry;
 }
@@ -89,18 +84,6 @@ class MiningManager;
 class ContainerManager;
 class InventoryManager;
 } // namespace interaction
-
-namespace sync {
-class EntitySyncManager;
-class ChunkSendManager;
-class LightSyncManager;
-} // namespace sync
-
-class ServerWorld;
-class ServerChunkManager;
-class EntityTracker;
-class ItemPickupManager;
-class WeatherManager;
 
 /**
  * @brief 服务器接口
@@ -203,31 +186,14 @@ public:
     [[nodiscard]] virtual ServerDimensionManager& dimensionManager() = 0;
     [[nodiscard]] virtual const ServerDimensionManager& dimensionManager() const = 0;
 
-    // ========== 世界管理器 ==========
+    // ========== 世界访问（维度感知）==========
 
-    [[nodiscard]] virtual ServerWorld& world() = 0;
-    [[nodiscard]] virtual const ServerWorld& world() const = 0;
-
-    [[nodiscard]] virtual ServerChunkManager& chunkManager() = 0;
-    [[nodiscard]] virtual const ServerChunkManager& chunkManager() const = 0;
-
-    [[nodiscard]] virtual WorldLightManager* lightManager() = 0;
-    [[nodiscard]] virtual const WorldLightManager* lightManager() const = 0;
-
-    [[nodiscard]] virtual mc::EntityManager& entityManager() = 0;
-    [[nodiscard]] virtual const mc::EntityManager& entityManager() const = 0;
-
-    [[nodiscard]] virtual EntityTracker& entityTracker() = 0;
-    [[nodiscard]] virtual const EntityTracker& entityTracker() const = 0;
-
-    [[nodiscard]] virtual PhysicsEngine* physicsEngine() = 0;
-    [[nodiscard]] virtual const PhysicsEngine* physicsEngine() const = 0;
-
-    [[nodiscard]] virtual WeatherManager& weatherManager() = 0;
-    [[nodiscard]] virtual const WeatherManager& weatherManager() const = 0;
-
-    [[nodiscard]] virtual ItemPickupManager& itemPickupManager() = 0;
-    [[nodiscard]] virtual const ItemPickupManager& itemPickupManager() const = 0;
+    /**
+     * @brief 获取指定玩家所在维度的世界
+     * @param playerId 玩家ID
+     * @return 玩家所在维度的 ServerWorld 指针，玩家不在任何维度时返回 nullptr
+     */
+    [[nodiscard]] virtual ServerWorld* getPlayerWorld(PlayerId playerId) = 0;
 
     // ========== 玩家实体管理 ==========
 
@@ -258,17 +224,6 @@ public:
      */
     [[nodiscard]] virtual PlayerInventory* playerInventory(PlayerId playerId) = 0;
     [[nodiscard]] virtual const PlayerInventory* playerInventory(PlayerId playerId) const = 0;
-
-    // ========== 同步管理器 ==========
-
-    [[nodiscard]] virtual sync::EntitySyncManager& entitySyncManager() = 0;
-    [[nodiscard]] virtual const sync::EntitySyncManager& entitySyncManager() const = 0;
-
-    [[nodiscard]] virtual sync::ChunkSendManager& chunkSendManager() = 0;
-    [[nodiscard]] virtual const sync::ChunkSendManager& chunkSendManager() const = 0;
-
-    [[nodiscard]] virtual sync::LightSyncManager& lightSyncManager() = 0;
-    [[nodiscard]] virtual const sync::LightSyncManager& lightSyncManager() const = 0;
 
     // ========== 命令系统 ==========
 

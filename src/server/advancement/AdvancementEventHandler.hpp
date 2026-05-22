@@ -44,6 +44,7 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -452,8 +453,12 @@ private:
             return;
         }
 
-        // 获取 ServerWorld
-        mc::server::ServerWorld& world = m_server->world();
+        // 获取主世界（村庄和袭击仅存在于主世界）
+        auto* overworld = m_server->dimensionManager().getOverworld();
+        if (overworld == nullptr || overworld->world() == nullptr) {
+            return;
+        }
+        mc::server::ServerWorld& world = *overworld->world();
 
         // 获取 VillageManager
         mc::world::village::VillageManager* villageManager = world.villageManager();
@@ -1046,8 +1051,12 @@ private:
         // 获取 ServerPlayerEntityManager
         auto& entityManager = m_server->playerEntityManager();
 
-        // 获取 ServerWorld
-        auto& world = m_server->world();
+        // 获取主世界
+        auto* overworld = m_server->dimensionManager().getOverworld();
+        if (overworld == nullptr || overworld->world() == nullptr) {
+            return nullptr;
+        }
+        auto& world = *overworld->world();
 
         // 通过 PlayerId 获取 Player 实体
         mc::Player* player = entityManager.getPlayerEntity(playerId, world);

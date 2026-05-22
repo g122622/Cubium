@@ -183,41 +183,16 @@ public:
     }
 
     [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const resource::DataPackList& dataPackList() const override
-    {
-        throw std::logic_error("unused");
-    }
+    [[nodiscard]] const resource::DataPackList& dataPackList() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override
-    {
-        throw std::logic_error("unused");
-    }
+    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("world not available in unit test"); }
-    [[nodiscard]] const server::ServerWorld& world() const override
-    {
-        throw std::logic_error("world not available in unit test");
-    }
-    [[nodiscard]] server::ServerChunkManager& chunkManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerChunkManager& chunkManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] WorldLightManager* lightManager() override { return nullptr; }
-    [[nodiscard]] const WorldLightManager* lightManager() const override { return nullptr; }
-    [[nodiscard]] EntityManager& entityManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const EntityManager& entityManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::EntityTracker& entityTracker() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::EntityTracker& entityTracker() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] server::WeatherManager& weatherManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::WeatherManager& weatherManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ItemPickupManager& itemPickupManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override
-    {
-        throw std::logic_error("unused");
-    }
+
+    [[nodiscard]] server::ServerWorld* getPlayerWorld(PlayerId) override { return nullptr; }
+
     [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
     {
         throw std::logic_error("unused");
@@ -259,21 +234,6 @@ public:
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override
     {
         return m_inventoryManager.getInventory(playerId);
-    }
-    [[nodiscard]] server::sync::EntitySyncManager& entitySyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::sync::ChunkSendManager& chunkSendManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::sync::LightSyncManager& lightSyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override
-    {
-        throw std::logic_error("unused");
     }
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }

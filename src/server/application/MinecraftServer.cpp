@@ -42,7 +42,6 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
-#include "common/network/sync/ChunkSync.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/TimeUtils.hpp"
@@ -56,7 +55,6 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -67,14 +65,16 @@
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/sync/BlockUpdateSyncManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
+#include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/LightSyncManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
-#include "server/world/spawn/DespawnManager.hpp"
-#include "server/world/spawn/NaturalSpawner.hpp"
-#include "server/world/weather/WeatherManager.hpp"
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
@@ -190,17 +190,7 @@ void MinecraftServer::tick()
         m_timeManager->tick();
     }
 
-    // 自然刷怪（在世界 tick 后、实体 tick 前执行）
-    if (m_naturalSpawner && m_world) {
-        MC_TRACE_EVENT("server.tick", "NaturalSpawn");
-        m_naturalSpawner->tick(*m_world, true, true);
-    }
-
-    // 生物消失检查（在刷怪后执行）
-    if (m_despawnManager && m_world) {
-        MC_TRACE_EVENT("server.tick", "DespawnCheck");
-        m_despawnManager->tick(*m_world);
-    }
+    // 自然刷怪和生物消失由 ServerDimension::tick() 处理
 
     // 清理断开连接的玩家
     if (m_tickCounter % CLEANUP_INTERVAL == 0) {
@@ -210,9 +200,15 @@ void MinecraftServer::tick()
         m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
         // 清理玩家相关的追踪和票据
         for (PlayerId playerId : removedPlayers) {
-            m_chunkSendManager->removePlayer(playerId);
-            if (m_world && m_world->chunkManager()) {
-                m_world->chunkManager()->removePlayer(playerId);
+            // 从维度同步管理器中移除玩家
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+            if (playerDim) {
+                if (playerDim->world() && playerDim->world()->chunkManager()) {
+                    playerDim->world()->chunkManager()->removePlayer(playerId);
+                }
+                if (auto* cs = playerDim->chunkSendManager()) {
+                    cs->removePlayer(playerId);
+                }
             }
         }
     }
@@ -228,11 +224,16 @@ void MinecraftServer::tick()
     // 执行实体 tick
     tickEntities();
 
-    // 同步实体位置
-    entitySyncManager().tick();
+    // 实体同步由 ServerDimension::tick() 处理
 
-    // 更新挖掘进度
-    miningManager().tick(*m_world);
+    // 更新挖掘进度（遍历所有维度）
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            miningManager().tick(*world);
+        }
+    });
 
     // 处理网络事件（子类实现）
     pollNetwork();
@@ -249,22 +250,23 @@ void MinecraftServer::tick()
         auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTimeMs);
         for (PlayerId playerId : timedOutPlayers) {
             spdlog::warn("MinecraftServer: Player {} timed out", playerId);
-            // 清理玩家相关的追踪和票据
-            m_chunkSendManager->removePlayer(playerId);
-            if (m_world && m_world->chunkManager()) {
-                m_world->chunkManager()->removePlayer(playerId);
+            // 从维度同步管理器中移除玩家
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+            if (playerDim) {
+                if (playerDim->world() && playerDim->world()->chunkManager()) {
+                    playerDim->world()->chunkManager()->removePlayer(playerId);
+                }
+                if (auto* cs = playerDim->chunkSendManager()) {
+                    cs->removePlayer(playerId);
+                }
             }
             m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
         }
     }
 
-    // 处理区块发送队列
-    chunkSendManager().processPendingSends();
+    // 区块发送由 ServerDimension::tick() 处理
 
-    // 统一发送待处理的方块更新
-    if (m_blockUpdateSyncManager) {
-        m_blockUpdateSyncManager->flushPendingUpdates();
-    }
+    // 方块更新同步由 ServerDimension::tick() 处理
 
     // 心跳（每 15 秒）
     tickKeepAlive();
@@ -414,9 +416,10 @@ Result<void> MinecraftServer::initializeWorld()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeWorld");
 
-    // ServerWorld 在子类中创建
-    if (!m_world) {
-        return Error(ErrorCode::NotInitialized, "World not created");
+    // 检查维度管理器是否已初始化且主世界维度存在
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (!overworld || !overworld->world()) {
+        return Error(ErrorCode::NotInitialized, "Overworld dimension not initialized");
     }
 
     // 初始化物理引擎
@@ -425,9 +428,8 @@ Result<void> MinecraftServer::initializeWorld()
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
 
-    // 初始化刷怪系统
-    m_naturalSpawner = std::make_unique<::mc::world::spawn::NaturalSpawner>();
-    m_despawnManager = std::make_unique<::mc::world::spawn::DespawnManager>();
+    // 初始化命令注册表
+    m_commandRegistry = std::make_unique<command::CommandRegistry>();
 
     return Result<void>::ok();
 }
@@ -436,8 +438,11 @@ void MinecraftServer::initializeInteractionManagers()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeInteractionManagers");
 
-    m_blockInteractionManager =
-        std::make_unique<interaction::BlockInteractionManager>(*m_world, *m_playerManager, m_lootTableManager);
+    auto* overworld = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+
+    m_blockInteractionManager = std::make_unique<interaction::BlockInteractionManager>(
+        *overworld->world(), *m_playerManager, m_lootTableManager);
 
     m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_connectionManager);
 
@@ -492,40 +497,14 @@ void MinecraftServer::initializeSyncManagers()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeSyncManagers");
 
-    if (!m_world) {
-        spdlog::error("Cannot initialize sync managers: world not created");
-        return;
-    }
-
-    m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(m_world->entityManager());
-
-    // ChunkSendManager/BlockUpdateSyncManager/LightSyncManager 在 world 初始化后由子类创建
+    // 同步管理器已移入 ServerDimension，由 ServerDimension::initialize() 创建
 }
 
 void MinecraftServer::initializeChunkSyncManagers()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeChunkSyncManagers");
 
-    if (!m_world || !m_world->chunkManager() || !m_world->lightManager()) {
-        spdlog::warn("Cannot initialize chunk sync managers: world not ready");
-        return;
-    }
-
-    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(m_world->chunkManager()->ticketManager());
-    m_blockUpdateSyncManager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
-        network::BlockUpdatePacket packet(x, y, z, blockStateId);
-        network::PacketSerializer ser;
-        packet.serialize(ser);
-
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-    });
-
-    m_chunkSendManager =
-        std::make_unique<sync::ChunkSendManager>(*m_world->chunkManager(), m_world->chunkManager()->ticketManager());
-
-    m_lightSyncManager = std::make_unique<sync::LightSyncManager>(*m_world->lightManager(), *m_world->chunkManager());
-    setupChunkSendCallback();
+    // 区块同步管理器已移入 ServerDimension，由 ServerDimension::initialize() 创建
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
@@ -633,161 +612,201 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
 void MinecraftServer::setupWorldCallbacks()
 {
-    if (!m_world || !m_world->chunkManager()) {
-        return;
-    }
-
-    // 设置区块发送管理器（用于区块卸载前发送卸载包）
-    m_world->chunkManager()->setChunkSendManager(m_chunkSendManager.get());
-
-    // 设置区块加载回调 - 当区块加载/生成完成时触发
-    m_world->chunkManager()->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
-        // 初始化区块光照
-        lightSyncManager().initializeChunkLighting(x, z);
-        // 区块加载完成后，自动发送给追踪该区块的玩家
-        if (m_chunkSendManager) {
-            m_chunkSendManager->sendChunkToTrackingPlayers(x, z);
-        }
-        // // TODO 通知村庄管理器区块加载
-        // if (m_villageManager) {
-        //     m_villageManager->onChunkLoaded(x, z);
-        // }
-    });
-
-    // 设置区块卸载回调 - 当区块即将卸载时触发
-    m_world->chunkManager()->setChunkUnloadedCallback([this](ChunkCoord x, ChunkCoord z) {
-        // // TODO 通知村庄管理器区块卸载（用于清理 POI 等）
-        // if (m_villageManager) {
-        //     m_villageManager->onChunkUnloaded(x, z);
-        // }
-    });
-
-    // 设置追踪变化回调 - 当玩家进入/离开区块视距时触发
-    m_world->chunkManager()->ticketManager().setTrackingChangeCallback(
-        [this](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
-            if (m_chunkSendManager) {
-                m_chunkSendManager->onPlayerTrackingChange(player, x, z, isTracking);
-            }
-        });
-
-    // 设置实体生成回调
-    m_world->chunkManager()->setEntitySpawnCallback([this](const std::vector<SpawnedEntityData>& entities) {
-        for (const auto& entityData : entities) {
-            const auto* entityType = entity::EntityRegistry::instance().getType(entityData.entityTypeId);
-            if (!entityType || !entityType->canSummon()) {
-                continue;
-            }
-            auto entity = entityType->create(m_world);
-            if (!entity) {
-                continue;
-            }
-            entity->setPosition(Vector3(entityData.x, entityData.y, entityData.z));
-            if (m_world->physicsEngine()) {
-                entity->setPhysicsEngine(m_world->physicsEngine());
-            }
-            const EntityId spawnedId = m_world->spawnEntity(std::move(entity));
-            MC_UNUSED(spawnedId);
-        }
-    });
-
-    // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
-    m_world->setOnLightChanged([this](LightType type, const SectionPos& pos) {
-        // 用MC_TRACE_EVENT会导致编译器死循环，故用MC_TRACE_INSTANT
-        MC_TRACE_INSTANT("server.lighting",
-            "ServerWorld::OnLightChangedCallback.START",
-            "Type",
-            (type == LightType::SKY) ? "Sky" : "Block",
-            "Section",
-            fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-            [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
-
-        // 同步光照数据到 ChunkSection
-        lightSyncManager().markLightChanged(type, pos);
-
-        // 广播光照更新给客户端
-        auto* lightManager = m_world->lightManager();
-        if (!lightManager) {
+    // 为所有维度设置回调
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (!world || !world->chunkManager()) {
             return;
         }
 
-        std::vector<u8> skyLight;
-        std::vector<u8> blockLight;
+        // 设置区块加载回调 - 当区块加载/生成完成时触发
+        world->chunkManager()->setChunkLoadedCallback([this, serverDim](ChunkCoord x, ChunkCoord z) {
+            // 初始化区块光照
+            if (auto* ls = serverDim->lightSyncManager()) {
+                ls->initializeChunkLighting(x, z);
+            }
+            // 发送区块给追踪玩家
+            if (auto* cs = serverDim->chunkSendManager()) {
+                cs->sendChunkToTrackingPlayers(x, z);
+            }
+        });
 
-        // 获取光照数据
-        if (type == LightType::SKY && lightManager->getSkyLightEngine()) {
-            auto* data = lightManager->getData(LightType::SKY, pos);
-            if (data) {
-                skyLight = data->toByteArray();
+        // 设置区块卸载回调 - 当区块即将卸载时触发
+        world->chunkManager()->setChunkUnloadedCallback([this, serverDim](ChunkCoord x, ChunkCoord z) {
+            if (auto* cs = serverDim->chunkSendManager()) {
+                cs->onChunkPreUnload(x, z);
             }
-        } else if (type == LightType::BLOCK && lightManager->getBlockLightEngine()) {
-            auto* data = lightManager->getData(LightType::BLOCK, pos);
-            if (data) {
-                blockLight = data->toByteArray();
+        });
+
+        // 设置追踪变化回调 - 当玩家进入/离开区块视距时触发
+        world->chunkManager()->ticketManager().setTrackingChangeCallback(
+            [serverDim](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
+                if (auto* cs = serverDim->chunkSendManager()) {
+                    cs->onPlayerTrackingChange(player, x, z, isTracking);
+                }
+            });
+
+        // 设置实体生成回调
+        world->chunkManager()->setEntitySpawnCallback([this, world](const std::vector<SpawnedEntityData>& entities) {
+            for (const auto& entityData : entities) {
+                const auto* entityType = entity::EntityRegistry::instance().getType(entityData.entityTypeId);
+                if (!entityType || !entityType->canSummon()) {
+                    continue;
+                }
+                auto entity = entityType->create(world);
+                if (!entity) {
+                    continue;
+                }
+                entity->setPosition(Vector3(entityData.x, entityData.y, entityData.z));
+                if (world->physicsEngine()) {
+                    entity->setPhysicsEngine(world->physicsEngine());
+                }
+                const EntityId spawnedId = world->spawnEntity(std::move(entity));
+                MC_UNUSED(spawnedId);
             }
+        });
+
+        // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
+        world->setOnLightChanged([this, serverDim](LightType type, const SectionPos& pos) {
+            MC_TRACE_INSTANT("server.lighting",
+                "ServerWorld::OnLightChangedCallback.START",
+                "Type",
+                (type == LightType::SKY) ? "Sky" : "Block",
+                "Section",
+                fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
+
+            // 通知光照同步管理器
+            if (auto* ls = serverDim->lightSyncManager()) {
+                ls->markLightChanged(type, pos);
+            }
+
+            // 广播光照更新给客户端
+            auto* lightManager = serverDim->lightManager();
+            if (!lightManager) {
+                return;
+            }
+
+            std::vector<u8> skyLight;
+            std::vector<u8> blockLight;
+
+            // 获取光照数据
+            if (type == LightType::SKY && lightManager->getSkyLightEngine()) {
+                auto* data = lightManager->getData(LightType::SKY, pos);
+                if (data) {
+                    skyLight = data->toByteArray();
+                }
+            } else if (type == LightType::BLOCK && lightManager->getBlockLightEngine()) {
+                auto* data = lightManager->getData(LightType::BLOCK, pos);
+                if (data) {
+                    blockLight = data->toByteArray();
+                }
+            }
+
+            // 发送光照更新包
+            if (!skyLight.empty() || !blockLight.empty()) {
+                broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
+            }
+
+            MC_TRACE_INSTANT("server.lighting",
+                "ServerWorld::OnLightChangedCallback.END",
+                "Type",
+                (type == LightType::SKY) ? "Sky" : "Block",
+                "Section",
+                fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+                [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
+        });
+
+        world->setOnOpenContainer([this](ContainerType type, const BlockPos& pos, Player& player) {
+            return openContainerRequest(type, pos, player);
+        });
+
+        // 设置方块变化回调：写入后记录到同步管理器，统一在 tick 末发送
+        world->setOnBlockChanged([serverDim](const BlockPos& pos, u32 blockStateId) {
+            if (auto* bus = serverDim->blockUpdateSyncManager()) {
+                bus->queueBlockUpdate(pos, blockStateId);
+            }
+        });
+
+        // 设置方块同步回调
+        if (auto* bus = serverDim->blockUpdateSyncManager()) {
+            bus->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
+                network::BlockUpdatePacket packet(x, y, z, blockStateId);
+                network::PacketSerializer ser;
+                packet.serialize(ser);
+
+                auto fullPacket =
+                    core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
+                sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+            });
         }
 
-        // 发送光照更新包
-        if (!skyLight.empty() || !blockLight.empty()) {
-            broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
+        // 设置实体同步回调
+        if (auto* es = serverDim->entitySyncManager()) {
+            es->setOnEntitySpawn([this, serverDim](EntityId entityId, const Entity& entity) {
+                MC_UNUSED(entityId);
+                MC_UNUSED(entity);
+                // 实体生成广播由 EntityTracker 处理
+            });
+
+            es->setOnEntityRemove([this, serverDim](EntityId entityId) {
+                MC_UNUSED(entityId);
+                // 实体移除广播由 EntityTracker 处理
+            });
+
+            es->setOnEntityMove([this, serverDim](EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch) {
+                MC_UNUSED(entityId);
+                MC_UNUSED(pos);
+                MC_UNUSED(yaw);
+                MC_UNUSED(pitch);
+                // 实体移动广播由 EntityTracker 处理
+            });
+
+            es->setOnEntityStatus([this, serverDim](EntityId entityId, u8 status) {
+                MC_UNUSED(entityId);
+                MC_UNUSED(status);
+                // 实体状态广播由 EntityTracker 处理
+            });
         }
 
-        MC_TRACE_INSTANT("server.lighting",
-            "ServerWorld::OnLightChangedCallback.END",
-            "Type",
-            (type == LightType::SKY) ? "Sky" : "Block",
-            "Section",
-            fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-            [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
+        // 设置区块发送回调
+        if (auto* cs = serverDim->chunkSendManager()) {
+            cs->setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
+                MC_UNUSED(x);
+                MC_UNUSED(z);
+                sendPacketToPlayer(playerId, data.data(), data.size());
+            });
+
+            cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
+                network::UnloadChunkPacket packet(x, z, 0); // dimension will be set per-context
+                network::PacketSerializer ser;
+                packet.serialize(ser);
+
+                auto fullPacket =
+                    core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
+                sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+            });
+        }
     });
 
-    m_world->setOnOpenContainer([this](ContainerType type, const BlockPos& pos, Player& player) {
-        return openContainerRequest(type, pos, player);
-    });
-
-    // 设置方块变化回调：写入后记录到同步管理器，统一在 tick 末发送。
-    m_world->setOnBlockChanged([this](const BlockPos& pos, u32 blockStateId) {
-        MC_ASSERT_RELEASE(m_blockUpdateSyncManager != nullptr);
-        m_blockUpdateSyncManager->queueBlockUpdate(pos, blockStateId);
-    });
-
-    // 设置方块破坏回调 - 播放破坏声音
+    // 方块交互回调（全局，不按维度区分）
     m_blockInteractionManager->setOnBlockBreak([this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
-        // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_Callback", "playerId", playerId,
-        //                             "x", pos.x, "y", pos.y, "z", pos.z);
-
-        // 获取方块的破坏声音
         const auto& soundType = state.getSoundType();
         Vector3 position(
             static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
-
-        // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_BroadcastSound",
-        //                             "sound", soundType.getBreakSound().toString().c_str(),
-        //                             "volume", soundType.getVolume(),
-        //                             "pitch", soundType.getPitch());
-
-        // 广播声音给范围内的玩家（16格范围）
         broadcastSoundInRange(soundType.getBreakSound(),
             sound::SoundCategory::Blocks,
             position,
-            16.0f * soundType.getVolume(), // 距离 = 16 * volume
+            16.0f * soundType.getVolume(),
             soundType.getVolume(),
             soundType.getPitch());
-
-        // 发送方块更新给所有追踪该区块的玩家
-        if (m_chunkSendManager) {
-            // 广播方块更新给所有玩家（他们会收到区块更新）
-            // 注意：方块更新已经通过 m_world.setBlockState 触发
-        }
     });
 
-    // 设置方块放置回调 - 播放放置声音
     m_blockInteractionManager->setOnBlockPlace([this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
-        // 获取方块的放置声音
         const auto& soundType = state.getSoundType();
         Vector3 position(
             static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
-
-        // 广播声音给范围内的玩家（16格范围）
         broadcastSoundInRange(soundType.getPlaceSound(),
             sound::SoundCategory::Blocks,
             position,
@@ -799,32 +818,18 @@ void MinecraftServer::setupWorldCallbacks()
 
 void MinecraftServer::setupChunkSendCallback()
 {
-    chunkSendManager().setOnChunkSend(
-        [this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
-            sendChunkDataToPlayer(playerId, x, z, data);
-            MC_TRACE_INSTANT("server.chunk",
-                "ChunkSent",
-                "Chunk",
-                fmt::format("({}, {})", x, z),
-                "DataSize",
-                data.size(),
-                [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](
-                    ::perfetto::EventContext ctx) { flow(ctx); });
-        });
-
-    chunkSendManager().setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
-        sendUnloadChunkToPlayer(playerId, x, z);
-        MC_TRACE_INSTANT("server.chunk", "ChunkUnloaded", "Chunk", fmt::format("({}, {})", x, z));
-    });
+    // ChunkSendManager 已移入 ServerDimension，回调由 attachWorldBindings 设置
 }
 
 void MinecraftServer::setupRaidManagerCallbacks()
 {
-    if (!m_world || !m_world->raidManager()) {
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->raidManager()) {
         return;
     }
 
-    auto* raidManager = m_world->raidManager();
+    auto* world = overworld->world();
+    auto* raidManager = world->raidManager();
     world::village::raid::RaidCallbacks callbacks;
 
     callbacks.onRaidStarted = [this](const world::village::raid::Raid& raid, BlockPos center) {
@@ -838,33 +843,34 @@ void MinecraftServer::setupRaidManagerCallbacks()
     };
 
     callbacks.onRaidVictory =
-        [this](const world::village::raid::Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel) {
+        [this, world](const world::village::raid::Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel) {
             constexpr i32 HERO_EFFECT_DURATION = 48000;
 
             for (const auto& heroUuid : heroes) {
                 const std::string heroUuidStr = util::uuidToString(heroUuid);
 
-                m_playerManager->forEachPlayer([this, &heroUuidStr, badOmenLevel, &raid](ServerPlayerData& playerData) {
-                    Player* player = playerEntityManager().getPlayerEntity(playerData.playerId, *m_world);
-                    if (player == nullptr || player->uuid() != heroUuidStr) {
-                        return;
-                    }
+                m_playerManager->forEachPlayer(
+                    [this, &heroUuidStr, badOmenLevel, &raid, world](ServerPlayerData& playerData) {
+                        Player* player = playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+                        if (player == nullptr || player->uuid() != heroUuidStr) {
+                            return;
+                        }
 
-                    entity::effect::EffectInstance heroEffect(entity::effect::EffectType::HeroOfTheVillage,
-                        HERO_EFFECT_DURATION,
-                        badOmenLevel - 1,
-                        false,
-                        true,
-                        true);
-                    player->addEffect(std::move(heroEffect));
+                        entity::effect::EffectInstance heroEffect(entity::effect::EffectType::HeroOfTheVillage,
+                            HERO_EFFECT_DURATION,
+                            badOmenLevel - 1,
+                            false,
+                            true,
+                            true);
+                        player->addEffect(std::move(heroEffect));
 
-                    spdlog::info(
-                        "Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
-                        playerData.username,
-                        heroUuidStr,
-                        badOmenLevel,
-                        raid.id());
-                });
+                        spdlog::info(
+                            "Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
+                            playerData.username,
+                            heroUuidStr,
+                            badOmenLevel,
+                            raid.id());
+                    });
             }
 
             BlockPos center = raid.center();
@@ -905,10 +911,6 @@ void MinecraftServer::shutdownManagers()
     // 关闭成就事件处理器
     m_advancementEventHandler.shutdown();
 
-    m_blockUpdateSyncManager.reset();
-    m_lightSyncManager.reset();
-    m_chunkSendManager.reset();
-    m_entitySyncManager.reset();
     m_inventoryManager.reset();
     m_containerManager.reset();
     m_miningManager.reset();
@@ -918,7 +920,6 @@ void MinecraftServer::shutdownManagers()
         m_dimensionManager->shutdown();
     }
     m_dimensionManager.reset();
-    m_world = nullptr;
     shutdownSharedStorage();
     m_gameModeManager.reset();
     m_packetHandler.reset();
@@ -932,16 +933,24 @@ void MinecraftServer::shutdownManagers()
 
 void MinecraftServer::tickEntities()
 {
-    if (!m_world) return;
-
     MC_TRACE_EVENT("server.tick", "EntityTick", "phase", "entities");
-    m_world->entityManager().tick();
 
-    // 物品拾取处理
-    m_world->itemPickupManager().tick(*this);
+    // 遍历所有维度执行实体 tick
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (!world) {
+            return;
+        }
 
-    // 实体追踪更新
-    m_world->entityTracker().tick(*this);
+        world->entityManager().tick();
+
+        // 物品拾取处理
+        world->itemPickupManager().tick(*world, *this);
+
+        // 实体追踪更新
+        world->entityTracker().tick(*this, *world);
+    });
 }
 
 void MinecraftServer::tickKeepAlive()
@@ -970,9 +979,11 @@ void MinecraftServer::sendWeatherUpdate()
 {
     MC_TRACE_EVENT("server.tick", "sendWeatherUpdate", "phase", "weather_sync");
 
-    if (!m_world || !m_world->weatherManager()) return;
+    // 天气仅存在于主世界
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
 
-    auto& weatherMgr = *m_world->weatherManager();
+    auto& weatherMgr = *overworld->world()->weatherManager();
     f32 rainStrength = weatherMgr.rainStrength();
     f32 thunderStrength = weatherMgr.thunderStrength();
 
@@ -1028,9 +1039,11 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
 {
     MC_TRACE_EVENT("server.player", "SendInitialWeatherState", "phase", "weather_sync");
 
-    if (!m_world || !m_world->weatherManager()) return;
+    // 天气仅存在于主世界
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
 
-    auto& weatherMgr = *m_world->weatherManager();
+    auto& weatherMgr = *overworld->world()->weatherManager();
     f32 rainStrength = weatherMgr.rainStrength();
     f32 thunderStrength = weatherMgr.thunderStrength();
 
@@ -1169,84 +1182,14 @@ u64 MinecraftServer::currentTick() const
     return m_timeManager ? m_timeManager->currentTick() : m_tickCounter;
 }
 
-ServerChunkManager& MinecraftServer::chunkManager()
-{
-    MC_ASSERT(m_world != nullptr);
-    return *m_world->chunkManager();
-}
+// ============================================================================
+// 维度感知世界访问
+// ============================================================================
 
-const ServerChunkManager& MinecraftServer::chunkManager() const
+ServerWorld* MinecraftServer::getPlayerWorld(PlayerId playerId)
 {
-    MC_ASSERT(m_world != nullptr);
-    return *m_world->chunkManager();
-}
-
-WorldLightManager* MinecraftServer::lightManager()
-{
-    return m_world ? m_world->lightManager() : nullptr;
-}
-
-const WorldLightManager* MinecraftServer::lightManager() const
-{
-    return m_world ? m_world->lightManager() : nullptr;
-}
-
-mc::EntityManager& MinecraftServer::entityManager()
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->entityManager();
-}
-
-const mc::EntityManager& MinecraftServer::entityManager() const
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->entityManager();
-}
-
-EntityTracker& MinecraftServer::entityTracker()
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->entityTracker();
-}
-
-const EntityTracker& MinecraftServer::entityTracker() const
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->entityTracker();
-}
-
-PhysicsEngine* MinecraftServer::physicsEngine()
-{
-    return m_world ? m_world->physicsEngine() : nullptr;
-}
-
-const PhysicsEngine* MinecraftServer::physicsEngine() const
-{
-    return m_world ? m_world->physicsEngine() : nullptr;
-}
-
-WeatherManager& MinecraftServer::weatherManager()
-{
-    MC_ASSERT(m_world != nullptr && m_world->weatherManager() != nullptr);
-    return *m_world->weatherManager();
-}
-
-const WeatherManager& MinecraftServer::weatherManager() const
-{
-    MC_ASSERT(m_world != nullptr && m_world->weatherManager() != nullptr);
-    return *m_world->weatherManager();
-}
-
-ItemPickupManager& MinecraftServer::itemPickupManager()
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->itemPickupManager();
-}
-
-const ItemPickupManager& MinecraftServer::itemPickupManager() const
-{
-    MC_ASSERT(m_world != nullptr);
-    return m_world->itemPickupManager();
+    auto* dim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+    return dim ? dim->world() : nullptr;
 }
 
 // ============================================================================
@@ -1305,8 +1248,9 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
             break;
     }
 
-    if (m_world) {
-        m_world->entityManager().forEachEntity([playerId, player](Entity* entity) {
+    auto* world = getPlayerWorld(playerId);
+    if (world) {
+        world->entityManager().forEachEntity([playerId, player](Entity* entity) {
             auto* playerEntity = dynamic_cast<Player*>(entity);
             if (playerEntity == nullptr || playerEntity->playerId() != playerId) {
                 return true;
@@ -1325,17 +1269,18 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
 
     // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
     // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
-    if (m_world && m_world->chunkManager()) {
-        m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-        m_world->chunkManager()->processTicketUpdatesSync();
+    if (world && world->chunkManager()) {
+        world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
+        world->chunkManager()->processTicketUpdatesSync();
     }
 
     // 村庄进入检测（用于触发袭击）
-    // 仅在位置实际改变时检测
-    if (m_world && packet.type() != network::PlayerMovePacket::MoveType::Rotation &&
+    // 仅在位置实际改变时检测，村庄/袭击仅存在于主世界
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (overworld && overworld->world() && packet.type() != network::PlayerMovePacket::MoveType::Rotation &&
         packet.type() != network::PlayerMovePacket::MoveType::GroundOnly) {
-        auto* villageManager = m_world->villageManager();
-        auto* raidManager = m_world->raidManager();
+        auto* villageManager = overworld->world()->villageManager();
+        auto* raidManager = overworld->world()->raidManager();
         if (villageManager && raidManager) {
             BlockPos currentPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
             world::village::Village* enteredVillage = villageManager->checkPlayerEnterVillage(currentPos, prevPos);
@@ -1383,9 +1328,10 @@ void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* d
 
         // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
         // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
-        if (m_world && m_world->chunkManager()) {
-            m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-            m_world->chunkManager()->processTicketUpdatesSync();
+        auto* world = getPlayerWorld(playerId);
+        if (world && world->chunkManager()) {
+            world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
+            world->chunkManager()->processTicketUpdatesSync();
         }
     }
 }
@@ -1425,7 +1371,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
         // 执行命令
         mc::command::ServerCommandSource source(this,
             nullptr,
-            m_world,
+            getPlayerWorld(playerId),
             Vector3d(player->x, player->y, player->z),
             Vector2f(player->yaw, player->pitch),
             4,
@@ -1448,7 +1394,8 @@ void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f6
     MC_TRACE_EVENT(
         "server.world", "MinecraftServer::updateEntityTrackingForPlayer", "playerId", playerId, "x", x, "y", y, "z", z);
 
-    if (!m_world) {
+    auto* world = getPlayerWorld(playerId);
+    if (!world) {
         return;
     }
 
@@ -1457,8 +1404,8 @@ void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f6
         return;
     }
 
-    m_world->entityTracker().updatePlayerTracking(
-        *this, playerId, Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
+    world->entityTracker().updatePlayerTracking(
+        *this, *world, playerId, Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
 }
 
 void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* data, size_t size)
@@ -1507,7 +1454,8 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* da
 
     const auto& packet = result.value();
     const BlockPos pos(packet.x(), packet.y(), packet.z());
-    const BlockState* clickedState = m_world ? m_world->getBlockState(pos) : nullptr;
+    auto* playerWorld = getPlayerWorld(playerId);
+    const BlockState* clickedState = playerWorld ? playerWorld->getBlockState(pos) : nullptr;
     const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
 
     const auto tryOpenCrafting = [this, playerId, pos, clickedState]() {
@@ -1595,10 +1543,11 @@ void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode
 {
     if (!player) return;
 
-    // 获取世界出生点
+    // 获取世界出生点（从主世界维度获取）
     Vector3d spawnPoint(0.0, 64.0, 0.0); // 默认值
-    if (m_world) {
-        spawnPoint = m_world->worldSpawnPoint();
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (overworld && overworld->world()) {
+        spawnPoint = overworld->world()->worldSpawnPoint();
     }
 
     // 设置初始位置
@@ -1625,8 +1574,12 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     auto fullTimePacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());
     sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
 
-    // 发送世界出生点（指南针指向位置）
-    Vector3d worldSpawn = m_world->worldSpawnPoint();
+    // 发送世界出生点（指南针指向位置，从主世界维度获取）
+    Vector3d worldSpawn(0.0, 64.0, 0.0);
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (overworld && overworld->world()) {
+        worldSpawn = overworld->world()->worldSpawnPoint();
+    }
     network::SpawnPositionPacket spawnPosPacket(BlockPos(static_cast<BlockCoord>(worldSpawn.x),
         static_cast<BlockCoord>(worldSpawn.y),
         static_cast<BlockCoord>(worldSpawn.z)));

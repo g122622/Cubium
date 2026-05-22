@@ -40,6 +40,7 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -120,7 +121,8 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
         }
 
         // 获取玩家实体用于位置和音效
-        Player* player = server->playerEntityManager().getPlayerEntity(playerId, server->world());
+        server::ServerWorld* playerWorld = server->getPlayerWorld(playerId);
+        Player* player = playerWorld ? server->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
         if (player == nullptr) {
             continue;
         }
@@ -147,7 +149,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
                 // 在玩家位置掉落物品
                 // 参考 MC 1.16.5: player.dropItem(stack, false) 并设置 noPickupDelay 和 owner
                 math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
-                ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(&server->world(),
+                ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(playerWorld,
                     dropStack,
                     player->x(),
                     player->y() + 0.5,

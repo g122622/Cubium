@@ -22,9 +22,16 @@
  */
 
 #include "ServerDimension.hpp"
-#include "../world/ServerWorld.hpp" // 需要完整定义以使用 unique_ptr
+#include "../sync/BlockUpdateSyncManager.hpp"
+#include "../sync/ChunkSendManager.hpp"
+#include "../sync/EntitySyncManager.hpp"
+#include "../sync/LightSyncManager.hpp"
+#include "../world/ServerWorld.hpp"
+#include "../world/spawn/DespawnManager.hpp"
+#include "../world/spawn/NaturalSpawner.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 
 namespace mc {
 
@@ -61,6 +68,22 @@ Result<void> ServerDimension::initialize()
         return result;
     }
 
+    // 创建同步管理器
+    m_entitySyncManager = std::make_unique<server::sync::EntitySyncManager>(m_world->entityManager());
+    m_chunkSendManager = std::make_unique<server::sync::ChunkSendManager>(
+        *m_world->chunkManager(), m_world->chunkManager()->ticketManager());
+    m_blockUpdateSyncManager =
+        std::make_unique<server::sync::BlockUpdateSyncManager>(m_world->chunkManager()->ticketManager());
+    m_lightSyncManager =
+        std::make_unique<server::sync::LightSyncManager>(*m_world->lightManager(), *m_world->chunkManager());
+
+    // 设置区块发送管理器指针
+    m_world->chunkManager()->setChunkSendManager(m_chunkSendManager.get());
+
+    // 创建生物生成管理器
+    m_naturalSpawner = std::make_unique<world::spawn::NaturalSpawner>();
+    m_despawnManager = std::make_unique<world::spawn::DespawnManager>();
+
     m_initialized = true;
     return {};
 }
@@ -70,6 +93,16 @@ void ServerDimension::shutdown()
     if (!m_initialized) {
         return;
     }
+
+    // 清理同步管理器（必须在世界之前释放）
+    m_lightSyncManager.reset();
+    m_blockUpdateSyncManager.reset();
+    m_chunkSendManager.reset();
+    m_entitySyncManager.reset();
+
+    // 清理生物生成管理器
+    m_despawnManager.reset();
+    m_naturalSpawner.reset();
 
     m_players.clear();
     m_portalPositions.clear();
@@ -89,6 +122,33 @@ void ServerDimension::tick()
 
     if (m_world != nullptr) {
         m_world->tick();
+
+        // 实体同步
+        if (m_entitySyncManager) {
+            m_entitySyncManager->tick();
+        }
+
+        // 区块发送处理
+        if (m_chunkSendManager) {
+            m_chunkSendManager->processPendingSends();
+        }
+
+        // 方块更新同步刷新
+        if (m_blockUpdateSyncManager) {
+            m_blockUpdateSyncManager->flushPendingUpdates();
+        }
+
+        // 自然刷怪（仅主世界和下界有 hostile 刷怪）
+        if (m_naturalSpawner) {
+            bool hostile = (id() == DimensionManager::OVERWORLD || id() == DimensionManager::NETHER);
+            bool passive = (id() == DimensionManager::OVERWORLD);
+            m_naturalSpawner->tick(*m_world, hostile, passive);
+        }
+
+        // 生物消失检查
+        if (m_despawnManager) {
+            m_despawnManager->tick(*m_world);
+        }
     }
 }
 

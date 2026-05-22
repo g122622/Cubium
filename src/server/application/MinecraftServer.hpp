@@ -39,7 +39,6 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
-#include "common/world/village/raid/RaidManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/core/BannedIpList.hpp"
@@ -62,31 +61,14 @@
 #include "server/interaction/MiningManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
-#include "server/sync/BlockUpdateSyncManager.hpp"
-#include "server/sync/ChunkSendManager.hpp"
-#include "server/sync/EntitySyncManager.hpp"
-#include "server/sync/LightSyncManager.hpp"
 #include <atomic>
 #include <cmath>
 #include <memory>
 #include <unordered_map>
 
 namespace mc {
-class WorldLightManager;
-class PhysicsEngine;
-class EntityManager;
 class BlockPos;
-class Player;
 enum class ContainerType : u8;
-namespace server {
-class EntityTracker;
-class ItemPickupManager;
-class WeatherManager;
-} // namespace server
-namespace world::spawn {
-class NaturalSpawner;
-class DespawnManager;
-} // namespace world::spawn
 namespace command {
 class CommandRegistry;
 }
@@ -180,36 +162,14 @@ public:
     [[nodiscard]] core::OpListManager& opListManager() override { return *m_opListManager; }
     [[nodiscard]] const core::OpListManager& opListManager() const override { return *m_opListManager; }
 
-    // ========== 世界管理器 ==========
+    // ========== 世界访问（维度感知）==========
 
-    [[nodiscard]] ServerWorld& world() override { return *m_world; }
-    [[nodiscard]] const ServerWorld& world() const override { return *m_world; }
+    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId playerId) override;
 
     // ========== 维度管理器 ==========
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { return *m_dimensionManager; }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return *m_dimensionManager; }
-
-    [[nodiscard]] ServerChunkManager& chunkManager() override;
-    [[nodiscard]] const ServerChunkManager& chunkManager() const override;
-
-    [[nodiscard]] WorldLightManager* lightManager() override;
-    [[nodiscard]] const WorldLightManager* lightManager() const override;
-
-    [[nodiscard]] mc::EntityManager& entityManager() override;
-    [[nodiscard]] const mc::EntityManager& entityManager() const override;
-
-    [[nodiscard]] EntityTracker& entityTracker() override;
-    [[nodiscard]] const EntityTracker& entityTracker() const override;
-
-    [[nodiscard]] PhysicsEngine* physicsEngine() override;
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override;
-
-    [[nodiscard]] WeatherManager& weatherManager() override;
-    [[nodiscard]] const WeatherManager& weatherManager() const override;
-
-    [[nodiscard]] ItemPickupManager& itemPickupManager() override;
-    [[nodiscard]] const ItemPickupManager& itemPickupManager() const override;
 
     // ========== 玩家实体管理 ==========
 
@@ -244,23 +204,6 @@ public:
 
     [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
-
-    // ========== 同步管理器 ==========
-
-    [[nodiscard]] sync::EntitySyncManager& entitySyncManager() override { return *m_entitySyncManager; }
-    [[nodiscard]] const sync::EntitySyncManager& entitySyncManager() const override { return *m_entitySyncManager; }
-
-    [[nodiscard]] sync::BlockUpdateSyncManager& blockUpdateSyncManager() { return *m_blockUpdateSyncManager; }
-    [[nodiscard]] const sync::BlockUpdateSyncManager& blockUpdateSyncManager() const
-    {
-        return *m_blockUpdateSyncManager;
-    }
-
-    [[nodiscard]] sync::ChunkSendManager& chunkSendManager() override { return *m_chunkSendManager; }
-    [[nodiscard]] const sync::ChunkSendManager& chunkSendManager() const override { return *m_chunkSendManager; }
-
-    [[nodiscard]] sync::LightSyncManager& lightSyncManager() override { return *m_lightSyncManager; }
-    [[nodiscard]] const sync::LightSyncManager& lightSyncManager() const override { return *m_lightSyncManager; }
 
     // ========== 命令系统 ==========
 
@@ -859,9 +802,6 @@ protected:
     std::unique_ptr<core::BannedIpList> m_bannedIpList;
     std::unique_ptr<core::OpListManager> m_opListManager;
 
-    // 主世界快捷引用；真实所有权由 ServerDimension 持有
-    ServerWorld* m_world = nullptr;
-
     // 世界级共享存储
     world::storage::GlobalStorageManager m_globalStorage;
     std::unique_ptr<world::storage::SingleLevelStorageManager> m_storage;
@@ -877,12 +817,6 @@ protected:
     util::ServerWorkerPool m_computationWorkerPool;
     util::ServerWorkerPool m_ioWorkerPool;
 
-    // 同步管理器
-    std::unique_ptr<sync::EntitySyncManager> m_entitySyncManager;
-    std::unique_ptr<sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
-    std::unique_ptr<sync::ChunkSendManager> m_chunkSendManager;
-    std::unique_ptr<sync::LightSyncManager> m_lightSyncManager;
-
     // 命令
     std::unique_ptr<mc::command::CommandRegistry> m_commandRegistry;
 
@@ -896,10 +830,6 @@ protected:
     mc::loot::LootTableManager m_lootTableManager;
     ResourcePackList m_resourcePackList;
     mc::resource::DataPackList m_dataPackList;
-
-    // 刷怪系统
-    std::unique_ptr<::mc::world::spawn::NaturalSpawner> m_naturalSpawner;
-    std::unique_ptr<::mc::world::spawn::DespawnManager> m_despawnManager;
 
     // 成就事件处理器
     advancement::AdvancementEventHandler m_advancementEventHandler;

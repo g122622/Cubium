@@ -531,16 +531,19 @@ void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId)
     ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / 16.0f));
     ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / 16.0f));
 
-    auto& chunkSendManager = m_server->chunkSendManager();
-    i32 viewDistance = m_viewDistance;
+    // 通过维度的 ChunkSendManager 卸载区块
+    auto* chunkSendMgr = dim->chunkSendManager();
+    if (chunkSendMgr) {
+        i32 viewDistance = m_viewDistance;
 
-    // 卸载视野范围内的所有区块
-    for (ChunkCoord dx = -viewDistance; dx <= viewDistance; ++dx) {
-        for (ChunkCoord dz = -viewDistance; dz <= viewDistance; ++dz) {
-            if (dx * dx + dz * dz <= viewDistance * viewDistance) {
-                ChunkCoord cx = playerChunkX + dx;
-                ChunkCoord cz = playerChunkZ + dz;
-                chunkSendManager.unloadChunkFromPlayers(cx, cz, {playerId});
+        // 卸载视野范围内的所有区块
+        for (ChunkCoord dx = -viewDistance; dx <= viewDistance; ++dx) {
+            for (ChunkCoord dz = -viewDistance; dz <= viewDistance; ++dz) {
+                if (dx * dx + dz * dz <= viewDistance * viewDistance) {
+                    ChunkCoord cx = playerChunkX + dx;
+                    ChunkCoord cz = playerChunkZ + dz;
+                    chunkSendMgr->unloadChunkFromPlayers(cx, cz, {playerId});
+                }
             }
         }
     }
@@ -562,16 +565,19 @@ void ServerDimensionManager::loadPlayerChunks(PlayerId playerId, ServerDimension
     ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / 16.0f));
     ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / 16.0f));
 
-    auto& chunkSendManager = m_server->chunkSendManager();
-    i32 viewDistance = m_viewDistance;
+    // 通过维度的 ChunkSendManager 加载区块
+    auto* chunkSendMgr = dim->chunkSendManager();
+    if (chunkSendMgr) {
+        i32 viewDistance = m_viewDistance;
 
-    // 加载视野范围内的所有区块
-    for (ChunkCoord dx = -viewDistance; dx <= viewDistance; ++dx) {
-        for (ChunkCoord dz = -viewDistance; dz <= viewDistance; ++dz) {
-            if (dx * dx + dz * dz <= viewDistance * viewDistance) {
-                ChunkCoord cx = playerChunkX + dx;
-                ChunkCoord cz = playerChunkZ + dz;
-                chunkSendManager.sendChunkToPlayers(cx, cz, {playerId});
+        // 加载视野范围内的所有区块
+        for (ChunkCoord dx = -viewDistance; dx <= viewDistance; ++dx) {
+            for (ChunkCoord dz = -viewDistance; dz <= viewDistance; ++dz) {
+                if (dx * dx + dz * dz <= viewDistance * viewDistance) {
+                    ChunkCoord cx = playerChunkX + dx;
+                    ChunkCoord cz = playerChunkZ + dz;
+                    chunkSendMgr->sendChunkToPlayers(cx, cz, {playerId});
+                }
             }
         }
     }

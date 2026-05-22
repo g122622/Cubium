@@ -52,18 +52,18 @@ namespace mc::server {
 // tick
 // ============================================================================
 
-void ItemPickupManager::tick(IServer& server)
+void ItemPickupManager::tick(ServerWorld& world, IServer& server)
 {
     MC_TRACE_EVENT("server.entity", "ItemPickupManager::tick");
 
     // 处理物品合并
-    processItemMerging(server);
+    processItemMerging(world, server);
 
     // 获取所有玩家实体并检查拾取
-    auto players = server.entityManager().getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
+    auto players = world.entityManager().getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
     for (Entity* entity : players) {
         if (entity && entity->isAlive()) {
-            checkPlayerPickup(server, *entity);
+            checkPlayerPickup(world, server, *entity);
         }
     }
 }
@@ -72,7 +72,7 @@ void ItemPickupManager::tick(IServer& server)
 // checkPlayerPickup
 // ============================================================================
 
-void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
+void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, Entity& player)
 {
     // 计算拾取范围
     f32 range = calculatePickupRange(player);
@@ -86,7 +86,7 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
         playerPos.y + player.height() + range,
         playerPos.z + range);
 
-    auto nearbyEntities = server.world().getEntitiesInAABB(searchBox, &player);
+    auto nearbyEntities = world.getEntitiesInAABB(searchBox, &player);
 
     for (Entity* entity : nearbyEntities) {
         if (!entity || !entity->isAlive()) {
@@ -106,7 +106,7 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
         }
 
         // 尝试拾取
-        if (tryPickupItem(server, player, *itemEntity)) {
+        if (tryPickupItem(world, server, player, *itemEntity)) {
             // 物品被完全拾取，标记移除
             itemEntity->remove();
         }
@@ -117,7 +117,7 @@ void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player)
 // tryPickupItem
 // ============================================================================
 
-bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntity& itemEntity)
+bool ItemPickupManager::tryPickupItem(ServerWorld& world, IServer& server, Entity& player, ItemEntity& itemEntity)
 {
     MC_TRACE_EVENT("server.entity",
         "ItemPickupManager::tryPickupItem",
@@ -160,7 +160,7 @@ bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntit
         return fullyPickedUp;
     }
 
-    sendItemEntityUpdate(server, itemEntity);
+    sendItemEntityUpdate(world, server, itemEntity);
     return false;
 }
 
@@ -168,13 +168,13 @@ bool ItemPickupManager::tryPickupItem(IServer& server, Entity& player, ItemEntit
 // processItemMerging
 // ============================================================================
 
-void ItemPickupManager::processItemMerging(IServer& server)
+void ItemPickupManager::processItemMerging(ServerWorld& world, IServer& server)
 {
     MC_TRACE_EVENT("server.entity", "ItemPickupManager::processItemMerging");
 
     // 收集所有存活的物品实体
     std::vector<ItemEntity*> itemEntities;
-    server.entityManager().forEachEntity([&itemEntities](Entity* entity) {
+    world.entityManager().forEachEntity([&itemEntities](Entity* entity) {
         if (entity && entity->isAlive() && entity->typeId() == entity::EntityTypeIdNumber::ITEM) {
             itemEntities.push_back(static_cast<ItemEntity*>(entity));
         }
@@ -246,7 +246,7 @@ void ItemPickupManager::processItemMerging(IServer& server)
                 if (distSq <= MERGE_RANGE_SQ) {
                     // 尝试合并
                     if (item1->tryMergeWith(*item2)) {
-                        sendItemEntityUpdate(server, *item1);
+                        sendItemEntityUpdate(world, server, *item1);
                         spdlog::debug("ItemEntity {} merged into {}", item2->id(), item1->id());
                     }
                 }
@@ -331,9 +331,9 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player)
 // sendItemEntityUpdate
 // ============================================================================
 
-void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity)
+void ItemPickupManager::sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity)
 {
-    const Entity* entity = server.entityManager().getEntity(itemEntity.id());
+    const Entity* entity = world.entityManager().getEntity(itemEntity.id());
     if (entity == nullptr) {
         return;
     }
@@ -348,7 +348,7 @@ void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& 
             return;
         }
 
-        auto playerTracked = server.entityTracker().getPlayerTrackedEntities(playerData.playerId);
+        auto playerTracked = world.entityTracker().getPlayerTrackedEntities(playerData.playerId);
         if (std::find(playerTracked.begin(), playerTracked.end(), itemEntity.id()) == playerTracked.end()) {
             return;
         }

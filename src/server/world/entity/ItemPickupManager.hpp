@@ -32,13 +32,12 @@ namespace mc {
 class Entity;
 class ItemEntity;
 class Player;
-class ItemStack;
-class AxisAlignedBB;
 
 namespace server {
 
 // 前向声明
 class IServer;
+class ServerWorld;
 
 /**
  * @brief 物品拾取管理器
@@ -95,27 +94,30 @@ public:
      * 检查所有玩家附近的ItemEntity，触发拾取。
      * 应在每tick调用。
      *
-     * @param server 服务器接口
+     * @param world 玩家所在维度的 ServerWorld
+     * @param server 服务器接口（用于发送数据包）
      */
-    void tick(IServer& server);
+    void tick(ServerWorld& world, IServer& server);
 
     /**
      * @brief 检查单个玩家的拾取
      *
-     * @param server 服务器接口
+     * @param world 玩家所在维度的 ServerWorld
+     * @param server 服务器接口（用于发送数据包）
      * @param player 玩家实体
      */
-    void checkPlayerPickup(IServer& server, Entity& player);
+    void checkPlayerPickup(ServerWorld& world, IServer& server, Entity& player);
 
     /**
      * @brief 尝试拾取物品
      *
-     * @param server 服务器接口
+     * @param world 物品所在维度的 ServerWorld
+     * @param server 服务器接口（用于发送数据包）
      * @param player 玩家实体
      * @param itemEntity 物品实体
      * @return true 如果物品被完全拾取（实体应被移除）
      */
-    bool tryPickupItem(IServer& server, Entity& player, ItemEntity& itemEntity);
+    bool tryPickupItem(ServerWorld& world, IServer& server, Entity& player, ItemEntity& itemEntity);
 
     // ========== 物品合并 ==========
 
@@ -124,9 +126,10 @@ public:
      *
      * 检查附近的ItemEntity，合并相同物品。
      *
-     * @param server 服务器接口
+     * @param world 物品所在维度的 ServerWorld
+     * @param server 服务器接口（用于发送数据包）
      */
-    void processItemMerging(IServer& server);
+    void processItemMerging(ServerWorld& world, IServer& server);
 
 private:
     /**
@@ -160,8 +163,11 @@ private:
 
     /**
      * @brief 通过 EntityTracker 的统一重同步路径刷新物品实体状态。
+     *
+     * @param world 物品所在维度的 ServerWorld
+     * @param server 服务器接口
      */
-    void sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity);
+    void sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity);
 
     /**
      * @brief 发送物品拾取动画包

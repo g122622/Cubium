@@ -54,6 +54,7 @@
 #include "server/core/PositionTracker.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/TcpConnection.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -201,9 +202,15 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         [this](ContainerId containerId, mc::ContainerType type, const BlockPos& pos, PlayerInventory* playerInventory) {
             ContainerMenuCreateResult result;
 
-            if (m_world == nullptr || playerInventory == nullptr) {
+            if (playerInventory == nullptr) {
                 return result;
             }
+
+            auto* overworld = m_dimensionManager->getOverworld();
+            if (overworld == nullptr || overworld->world() == nullptr) {
+                return result;
+            }
+            auto* world = overworld->world();
 
             switch (type) {
                 case mc::ContainerType::Crafting: {
@@ -215,7 +222,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 case mc::ContainerType::Generic9x3:
                 case mc::ContainerType::Generic9x6:
                 case mc::ContainerType::ShulkerBox: {
-                    BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                    BlockEntity* blockEntity = world->getBlockEntity(pos);
                     if (blockEntity == nullptr) {
                         return result;
                     }
@@ -226,8 +233,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                     }
 
                     auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-                    if (chest->isDoubleChest(*m_world)) {
-                        auto doubleInventory = chest->getDoubleInventory(*m_world);
+                    if (chest->isDoubleChest(*world)) {
+                        auto doubleInventory = chest->getDoubleInventory(*world);
                         if (!doubleInventory) {
                             return result;
                         }
@@ -245,7 +252,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 case mc::ContainerType::Furnace:
                 case mc::ContainerType::BlastFurnace:
                 case mc::ContainerType::Smoker: {
-                    BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                    BlockEntity* blockEntity = world->getBlockEntity(pos);
                     if (blockEntity == nullptr) {
                         return result;
                     }
@@ -264,8 +271,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 case mc::ContainerType::Enchantment: {
                     // MC 1.16.5: 附魔台容器创建
                     // 参考: net.minecraft.inventory.container.EnchantmentContainer
-                    result.menu =
-                        std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, m_world);
+                    result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
                     return result;
                 }
                 case mc::ContainerType::Player:
@@ -294,14 +300,17 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     containerManager().setOnContainerClose(
         [this](PlayerId playerId, ContainerId containerId, mc::ContainerType type, const BlockPos& pos) {
-            if (m_world &&
-                (type == mc::ContainerType::Generic9x3 || type == mc::ContainerType::Generic9x6 ||
-                    type == mc::ContainerType::ShulkerBox)) {
-                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
-                if (blockEntity != nullptr &&
-                    (blockEntity->getType() == BlockEntityType::Chest ||
-                        blockEntity->getType() == BlockEntityType::TrappedChest)) {
-                    static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+            if (type == mc::ContainerType::Generic9x3 || type == mc::ContainerType::Generic9x6 ||
+                type == mc::ContainerType::ShulkerBox) {
+                auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+                auto* world = playerDim ? playerDim->world() : nullptr;
+                if (world) {
+                    BlockEntity* blockEntity = world->getBlockEntity(pos);
+                    if (blockEntity != nullptr &&
+                        (blockEntity->getType() == BlockEntityType::Chest ||
+                            blockEntity->getType() == BlockEntityType::TrappedChest)) {
+                        static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+                    }
                 }
             }
 
@@ -354,18 +363,22 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     auto* overworld = m_dimensionManager->getOverworld();
     MC_ASSERT_RELEASE(overworld != nullptr);
-    m_world = overworld->world();
-    MC_ASSERT_RELEASE(m_world != nullptr);
 
-    attachWorldBindings(*m_world);
-    attachWorldCommandBindings(*m_world);
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            attachWorldBindings(*world);
+            attachWorldCommandBindings(*world);
+        }
+    });
 
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
         return Error(ErrorCode::InitializationFailed, "Failed to initialize world: " + worldResult.error().message());
     }
 
-    if (m_world->isDebugWorld()) {
+    if (overworld->world() && overworld->world()->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
         m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
         if (m_timeManager) {
@@ -373,8 +386,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             m_timeManager->setDaylightCycleEnabled(false);
             spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
         }
-        if (m_world->weatherManager()) {
-            m_world->weatherManager()->setClear(999999999);
+        if (overworld->world()->weatherManager()) {
+            overworld->world()->weatherManager()->setClear(999999999);
             spdlog::info("Debug world: Weather set to clear");
         }
     }
@@ -593,10 +606,11 @@ void StandaloneServer::applySettings()
 
     m_settings.viewDistance.onChange([this](i32 value) {
         spdlog::info("View distance changed to: {}", value);
-        if (m_world) {
-            auto config = m_world->config();
+        auto* overworld = m_dimensionManager->getOverworld();
+        if (overworld && overworld->world()) {
+            auto config = overworld->world()->config();
             config.viewDistance = value;
-            m_world->setConfig(config);
+            overworld->world()->setConfig(config);
         }
     });
 
@@ -727,9 +741,11 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
+    auto* overworldDim = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworldDim != nullptr && overworldDim->world() != nullptr);
     Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,
         username,
-        *m_world,
+        *overworldDim->world(),
         static_cast<f32>(playerData->x),
         static_cast<f32>(playerData->y),
         static_cast<f32>(playerData->z));
@@ -854,7 +870,8 @@ void StandaloneServer::sendLoginResponse(TcpSession* session,
     const std::string& username,
     const std::string& message)
 {
-    bool isDebugWorld = m_world && m_world->isDebugWorld();
+    bool isDebugWorld = m_dimensionManager->getOverworld() && m_dimensionManager->getOverworld()->world() &&
+        m_dimensionManager->getOverworld()->world()->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);

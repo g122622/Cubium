@@ -37,6 +37,22 @@ class ServerWorld;
 class ServerChunkManager;
 } // namespace server
 
+namespace server {
+namespace sync {
+class EntitySyncManager;
+class ChunkSendManager;
+class BlockUpdateSyncManager;
+class LightSyncManager;
+} // namespace sync
+} // namespace server
+
+namespace world {
+namespace spawn {
+class NaturalSpawner;
+class DespawnManager;
+} // namespace spawn
+} // namespace world
+
 class WorldLightManager;
 
 namespace server {
@@ -123,6 +139,52 @@ public:
     [[nodiscard]] WorldLightManager* lightManager();
     [[nodiscard]] const WorldLightManager* lightManager() const;
 
+    // ========== 同步管理器 ==========
+
+    /**
+     * @brief 获取实体同步管理器
+     */
+    [[nodiscard]] server::sync::EntitySyncManager* entitySyncManager() { return m_entitySyncManager.get(); }
+    [[nodiscard]] const server::sync::EntitySyncManager* entitySyncManager() const { return m_entitySyncManager.get(); }
+
+    /**
+     * @brief 获取区块发送管理器
+     */
+    [[nodiscard]] server::sync::ChunkSendManager* chunkSendManager() { return m_chunkSendManager.get(); }
+    [[nodiscard]] const server::sync::ChunkSendManager* chunkSendManager() const { return m_chunkSendManager.get(); }
+
+    /**
+     * @brief 获取方块更新同步管理器
+     */
+    [[nodiscard]] server::sync::BlockUpdateSyncManager* blockUpdateSyncManager()
+    {
+        return m_blockUpdateSyncManager.get();
+    }
+    [[nodiscard]] const server::sync::BlockUpdateSyncManager* blockUpdateSyncManager() const
+    {
+        return m_blockUpdateSyncManager.get();
+    }
+
+    /**
+     * @brief 获取光照同步管理器
+     */
+    [[nodiscard]] server::sync::LightSyncManager* lightSyncManager() { return m_lightSyncManager.get(); }
+    [[nodiscard]] const server::sync::LightSyncManager* lightSyncManager() const { return m_lightSyncManager.get(); }
+
+    // ========== 生物生成 ==========
+
+    /**
+     * @brief 获取自然生成管理器
+     */
+    [[nodiscard]] world::spawn::NaturalSpawner* naturalSpawner() { return m_naturalSpawner.get(); }
+    [[nodiscard]] const world::spawn::NaturalSpawner* naturalSpawner() const { return m_naturalSpawner.get(); }
+
+    /**
+     * @brief 获取生物消失管理器
+     */
+    [[nodiscard]] world::spawn::DespawnManager* despawnManager() { return m_despawnManager.get(); }
+    [[nodiscard]] const world::spawn::DespawnManager* despawnManager() const { return m_despawnManager.get(); }
+
     // ========== 玩家追踪 ==========
 
     /**
@@ -197,6 +259,16 @@ public:
 
 private:
     std::unique_ptr<server::ServerWorld> m_world;
+
+    // 同步管理器（每个维度各自持有）
+    std::unique_ptr<server::sync::EntitySyncManager> m_entitySyncManager;
+    std::unique_ptr<server::sync::ChunkSendManager> m_chunkSendManager;
+    std::unique_ptr<server::sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
+    std::unique_ptr<server::sync::LightSyncManager> m_lightSyncManager;
+
+    // 生物生成管理器
+    std::unique_ptr<world::spawn::NaturalSpawner> m_naturalSpawner;
+    std::unique_ptr<world::spawn::DespawnManager> m_despawnManager;
 
     std::vector<PlayerId> m_players;
     std::unordered_set<u64> m_portalPositions; // 使用哈希的 BlockPos

@@ -25,13 +25,14 @@ src/server/application/
   - Lifecycle management: `initialize()`, `shutdown()`, `tick()`, `isRunning()`
   - Core managers access: `playerManager()`, `connectionManager()`, `timeManager()`, `teleportManager()`, `keepAliveManager()`, `positionTracker()`, `packetHandler()`, `gameModeManager()`
   - Permission managers access: `whitelistManager()`, `bannedPlayerList()`, `bannedIpList()`, `opListManager()`
-  - World managers access: `world()`, `chunkManager()`, `lightManager()`, `entityManager()`, `entityTracker()`, `physicsEngine()`, `weatherManager()`, `itemPickupManager()`
+  - Dimension-aware world access: `dimensionManager()`, `getPlayerWorld(PlayerId)`
   - Interaction managers access: `blockInteractionManager()`, `miningManager()`, `containerManager()`, `inventoryManager()`
     - Player inventory access: `playerInventory(playerId)`
-  - Sync managers access: `entitySyncManager()`, `chunkSendManager()`, `lightSyncManager()`
   - Command system access: `commandRegistry()`
   - Scoreboard system access: `scoreboard()`
   - Configuration access: `viewDistance()`, `maxPlayers()`, `seed()`, `currentTick()`
+
+  **注意**: `m_world`、单世界访问器（`world()`、`chunkManager()`、`lightManager()`、`entityManager()`、`entityTracker()`、`physicsEngine()`、`weatherManager()`、`itemPickupManager()`）以及同步管理器访问器（`entitySyncManager()`、`chunkSendManager()`、`lightSyncManager()`、`blockUpdateSyncManager()`）已从 IServer 移除。同步管理器和刷怪管理器现在由 `ServerDimension` 持有，通过 `dimensionManager()` 获取维度后访问。
 
 **Design Pattern:** Interface Segregation - provides clean abstraction for server types without exposing implementation details.
 
@@ -55,8 +56,8 @@ src/server/application/
 - `initializeCoreManagers()` - Creates PlayerManager, ConnectionManager, TimeManager, etc.
 - `initializeWorld()` - Initializes world and command registry
 - `initializeInteractionManagers()` - Creates BlockInteractionManager, MiningManager, etc.
-- `initializeSyncManagers()` - Creates EntitySyncManager
-- `initializeChunkSyncManagers()` - Creates BlockUpdateSyncManager, ChunkSendManager, LightSyncManager
+- `initializeSyncManagers()` - 已移除；同步管理器现在在 `ServerDimension::initialize()` 中创建
+- `initializeChunkSyncManagers()` - 已移除；区块同步管理器现在在 `ServerDimension::initialize()` 中创建
 - `initializeRegistries()` - Loads vanilla blocks, items, enchantments, recipes
 - `setupWorldCallbacks()` - Sets up chunk loading, block change, entity spawning, and light change callbacks
 - `shutdownManagers()` - Cleanup in correct order
@@ -85,18 +86,19 @@ src/server/application/
 
 1. `m_timeManager->tick()` - 更新时间，推进全局 tick 和 day time
 2. 清理断开连接玩家 - 回收玩家追踪与区块票据
-3. `m_dimensionManager->tick()` - 统一驱动所有维度；每个 `ServerDimension::tick()` 内部再调用各自的 `ServerWorld::tick()`
-4. `m_naturalSpawner->tick(*m_world, ...)` - 以主世界为入口执行自然刷怪
-5. `m_despawnManager->tick(*m_world)` - 以主世界为入口执行生物消失检查
-6. `tickEntities()` - 主世界实体 tick、物品拾取、实体追踪
-7. `entitySyncManager().tick()` - 同步实体位置
-8. `miningManager().tick(*m_world)` - 更新挖掘进度
-9. `pollNetwork()` - 处理网络事件（子类实现）
-10. `chunkSendManager().processPendingSends()` - 发送待发区块
-11. `blockUpdateSyncManager().flushPendingUpdates()` - 发送待处理方块更新
-12. `tickKeepAlive()` - 发送心跳并配合超时检查
+3. `m_dimensionManager->tick()` - 统一驱动所有维度；每个 `ServerDimension::tick()` 内部依次执行：
+   - `ServerWorld::tick()` - 世界 tick（区块管理器、光照、天气、实体、物理等）
+   - `entitySyncManager()->tick()` - 同步该维度实体位置
+   - `chunkSendManager()->processPendingSends()` - 发送该维度待发区块
+   - `blockUpdateSyncManager()->flushPendingUpdates()` - 发送该维度待处理方块更新
+   - `naturalSpawner()->tick()` - 该维度自然刷怪（仅主世界和下界有 hostile 刷怪，仅主世界有 passive 刷怪）
+   - `despawnManager()->tick()` - 该维度生物消失检查
+4. `tickEntities()` - 主世界实体 tick、物品拾取、实体追踪
+5. `miningManager().tick()` - 更新挖掘进度（遍历所有维度）
+6. `pollNetwork()` - 处理网络事件（子类实现）
+7. `tickKeepAlive()` - 发送心跳并配合超时检查
 
-`MinecraftServer::m_world` 当前是**主世界快捷引用**，用于共享主世界相关的管理器访问、回调绑定和单世界逻辑入口；顶层 world tick 调度已经收敛到 `ServerDimensionManager`，不能再直接在 `MinecraftServer::tick()` 里额外调用一次 `m_world->tick()`，否则主世界会重复 tick。
+**注意**: `m_world` 成员已移除。原由 `m_world` 提供的快捷访问（刷怪、同步等）已下沉到 `ServerDimension`。原 `MinecraftServer::tick()` 中的 `m_naturalSpawner->tick()`、`m_despawnManager->tick()`、`entitySyncManager().tick()`、`chunkSendManager().processPendingSends()`、`blockUpdateSyncManager().flushPendingUpdates()` 调用均已移入 `ServerDimension::tick()`，由维度各自执行。
 
 ---
 
@@ -288,14 +290,23 @@ server/application/
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
 - 世界目录选择与打开改由 `GlobalStorageManager::openLevel()` 承担
 - 共享 `SingleLevelStorageManager` 的全量保存职责固定在 `MinecraftServer::shutdownManagers()`，关服时只执行一次 `saveAll()`，避免 3 个维度 world 各自重复落盘
-- `m_world` 仅缓存 `ServerDimensionManager` 装配出的主世界指针；实际 world tick 由 `m_dimensionManager->tick()` 统一驱动，避免主世界重复 tick
+- `MinecraftServer` 不再持有 `m_world` 成员。原 `m_world` 提供的主世界快捷引用和同步管理器访问已移至 `ServerDimension`。世界 tick 调度由 `m_dimensionManager->tick()` 统一驱动，同步管理器和刷怪管理器在各维度的 `ServerDimension::tick()` 中独立执行。
+- `MinecraftServer` 不再持有同步管理器（`m_entitySyncManager`、`m_chunkSendManager`、`m_blockUpdateSyncManager`、`m_lightSyncManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。
+- `MinecraftServer` 不再持有刷怪管理器（`m_naturalSpawner`、`m_despawnManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。
+- `IServer` 接口新增 `getPlayerWorld(PlayerId)` 方法用于维度感知的世界访问，替代原有的 `world()` 单世界访问器。
 
 ## 模块关系
 
 ```mermaid
 flowchart TD
     A[MinecraftServer] --> B[m_computationWorkerPool]
-    A --> C[ServerWorld]
+    A --> DM[ServerDimensionManager]
+    DM --> OW[ServerDimension 主世界]
+    DM --> NT[ServerDimension 下界]
+    DM --> ED[ServerDimension 末地]
+    OW --> C[ServerWorld]
+    NT --> C2[ServerWorld]
+    ED --> C3[ServerWorld]
     C --> D[ServerChunkManager]
     A --> E[GlobalStorageManager]
     A --> H[SingleLevelStorageManager]
@@ -309,8 +320,9 @@ flowchart TD
 - 计算池和 IO 池职责不同，不要复用同一个 `ServerWorkerPool`。
 - `ServerChunkManager` 现在只接受外部注入的池指针，不能再假设自己拥有生命周期。
 - `SingleLevelStorageManager` 的异步任务需要在 `open()` 之后才可使用。
-- 生命周期规则现在要求：析构函数只做“兜底释放”，不负责隐式全量保存或带网络副作用的关闭逻辑；共享资源的保存/关闭必须由 `MinecraftServer` 顶层统一编排。
-- `MinecraftServer::tick()` 不能再直接调用 `m_world->tick()`；主世界已经包含在 `m_dimensionManager->tick()` 里，再调一次会让 `ServerWorld::tick()`、`ServerChunkManager::tick()`、光照和天气等逻辑重复执行。
+- 生命周期规则现在要求：析构函数只做”兜底释放”，不负责隐式全量保存或带网络副作用的关闭逻辑；共享资源的保存/关闭必须由 `MinecraftServer` 顶层统一编排。
+- `m_world` 已从 `MinecraftServer` 移除。所有世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
+- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）和刷怪管理器（NaturalSpawner、DespawnManager）现在由各 `ServerDimension` 持有，不再从 `MinecraftServer` 访问。
 
 ## 测试用例
 
@@ -392,7 +404,10 @@ CommandBlockMinecartEntity::executeCommand()
 **回调初始化**（在 `IntegratedServer::initialize()` 中）：
 
 ```cpp
-m_world->setOnExecuteCommand([this](const std::string& command,
+// 通过维度管理器获取主世界设置回调
+auto* overworld = m_dimensionManager->getOverworld();
+auto* world = overworld->world();
+world->setOnExecuteCommand([this](const std::string& command,
                                      const Vector3d& position,
                                      i32 permissionLevel) -> i32 {
     // 自动添加 '/' 前缀（如果缺失）
@@ -400,12 +415,12 @@ m_world->setOnExecuteCommand([this](const std::string& command,
     if (!cmd.empty() && cmd[0] != '/') {
         cmd = "/" + cmd;
     }
-    
+
     // 创建命令源（使用命令方块矿车的权限级别 2）
     command::ServerCommandSource source(this,
-        nullptr, m_world.get(), position, Vector2f(0.0f, 0.0f),
+        nullptr, world, position, Vector2f(0.0f, 0.0f),
         permissionLevel, 0, "@");
-    
+
     // 执行命令
     auto result = m_commandRegistry->execute(cmd, source);
     if (result.failed()) {
@@ -471,10 +486,15 @@ auto& playerManager = server.playerManager();
 auto& timeManager = server.timeManager();
 auto& teleportManager = server.teleportManager();
 
-// World access
-auto& world = server.world();
-auto& chunkManager = server.chunkManager();
-auto& weatherManager = server.weatherManager();
+// Dimension-aware world access (replaces server.world())
+auto* playerWorld = server.getPlayerWorld(playerId);
+
+// Access dimension-specific managers through ServerDimension
+auto& dimensionManager = server.dimensionManager();
+auto* overworld = dimensionManager.getOverworld();
+auto* chunkSendMgr = overworld->chunkSendManager();
+auto* entitySyncMgr = overworld->entitySyncManager();
+auto* naturalSpawner = overworld->naturalSpawner();
 
 // Configuration
 i32 viewDistance = server.viewDistance();
@@ -512,9 +532,10 @@ std::lock_guard<std::mutex> lock(server.m_clientDataMutex);
 3. Create World, ChunkManager, LightManager
 4. `initializeWorld()` - Command registry
 5. `initializeInteractionManagers()` - Block, mining, container managers
-6. `initializeSyncManagers()` - Entity sync
-7. `initializeChunkSyncManagers()` - Block update, chunk/light sync
-8. `setupWorldCallbacks()` - World event callbacks（包括方块变化回调）
+6. `ServerDimension::initialize()` - Creates sync managers (EntitySyncManager, ChunkSendManager, BlockUpdateSyncManager, LightSyncManager) and spawn managers (NaturalSpawner, DespawnManager) per dimension
+7. `setupWorldCallbacks()` - World event callbacks（包括方块变化回调）
+
+**注意**: `initializeSyncManagers()` 和 `initializeChunkSyncManagers()` 已从 MinecraftServer 移除，同步管理器现在在各维度的 `ServerDimension::initialize()` 中创建。
 
 ### 3. Packet Handling Must Check Session Validity
 
@@ -532,15 +553,24 @@ void handlePacket(PlayerId playerId, ...) {
 }
 ```
 
-### 4. World Pointer May Be Null
+### 4. Dimension-Aware World Access
 
-**Problem:** `m_world` is set by subclass after initialization.
+**Problem:** `m_world` has been removed from `MinecraftServer`. World access must go through `ServerDimension`.
 
-**Solution:** Always check before use:
+**Solution:** Use `dimensionManager()` or `getPlayerWorld()` to access worlds:
 
 ```cpp
-if (!m_world || !m_world->chunkManager()) {
-    return;  // Not ready
+// 获取玩家所在维度的世界
+auto* world = server.getPlayerWorld(playerId);
+if (!world) {
+    return;  // Player not in any dimension
+}
+
+// 获取特定维度的世界
+auto& dimMgr = server.dimensionManager();
+auto* overworld = dimMgr.getOverworld();
+if (overworld && overworld->world()) {
+    auto& chunkMgr = *overworld->world()->chunkManager();
 }
 ```
 
@@ -627,21 +657,23 @@ if (result.failed() && result.error().code() == ErrorCode::AlreadyExists) {
 
 ```mermaid
 flowchart LR
-    init["MinecraftServer 初始化"] --> sync["initializeChunkSyncManagers()"]
-    sync --> block["BlockUpdateSyncManager"]
-    sync --> chunk["ChunkSendManager"]
-    sync --> light["LightSyncManager"]
+    init["MinecraftServer 初始化"] --> dim["ServerDimension::initialize()"]
+    dim --> block["BlockUpdateSyncManager"]
+    dim --> chunk["ChunkSendManager"]
+    dim --> light["LightSyncManager"]
+    dim --> entity["EntitySyncManager"]
     world["ServerWorld::setBlockState"] --> callback["setOnBlockChanged"]
     callback --> block
-    block --> flush["tick 末 flushPendingUpdates()"]
+    block --> flush["ServerDimension::tick() 末 flushPendingUpdates()"]
     flush --> packet["BlockUpdatePacket"]
     packet --> client["客户端"]
 
     style init fill:#ffd166,stroke:#b7791f,color:#111
-    style sync fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style dim fill:#8ecae6,stroke:#1d4ed8,color:#111
     style block fill:#90be6d,stroke:#2f6f3e,color:#111
     style chunk fill:#f4a261,stroke:#b45309,color:#111
     style light fill:#cdb4db,stroke:#6d28d9,color:#111
+    style entity fill:#a8dadc,stroke:#457b9d,color:#111
     style world fill:#ffe8a3,stroke:#c99700,color:#111
     style callback fill:#bde0fe,stroke:#2563eb,color:#111
     style flush fill:#e9c46a,stroke:#a16207,color:#111

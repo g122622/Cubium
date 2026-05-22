@@ -31,6 +31,7 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -44,7 +45,8 @@ namespace {
 
 [[nodiscard]] world::storage::SingleLevelStorageManager* getSharedStorage(server::IServer& server)
 {
-    auto* serverWorld = server.world().asServerWorld();
+    auto* overworld = server.dimensionManager().getOverworld();
+    auto* serverWorld = (overworld && overworld->world()) ? overworld->world()->asServerWorld() : nullptr;
     if (serverWorld == nullptr || !serverWorld->isStorageOpen()) {
         return nullptr;
     }

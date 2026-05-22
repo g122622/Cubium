@@ -43,6 +43,7 @@
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -124,7 +125,7 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
             return handleChatMessage(sessionId, payload, payloadSize);
 
         default:
-            spdlog::trace(
+            spdlog::error(
                 "PacketHandler: Unhandled packet type {} from session {}", static_cast<int>(packetType), sessionId);
             return PacketHandleResult::Ignore;
     }
@@ -253,17 +254,21 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     // MC 1.16.5: ServerPlayNetHandler.processInput()
     // 将输入传递给玩家骑乘的载具
     if (m_server == nullptr) {
-        spdlog::trace("PacketHandler: Server not set, cannot process player input");
+        spdlog::error("PacketHandler: Server not set, cannot process player input");
         return PacketHandleResult::Success;
     }
 
     // 获取玩家实体
-    ServerWorld& world = m_server->world();
+    ServerWorld* world = m_server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::error("PacketHandler: Player {} world not found", playerId);
+        return PacketHandleResult::Success;
+    }
     ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-    Player* player = entityManager.getPlayerEntity(playerId, world);
+    Player* player = entityManager.getPlayerEntity(playerId, *world);
 
     if (player == nullptr) {
-        spdlog::trace("PacketHandler: Player {} entity not found", playerId);
+        spdlog::error("PacketHandler: Player {} entity not found", playerId);
         return PacketHandleResult::Success;
     }
 
@@ -293,7 +298,7 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
         return PacketHandleResult::Success;
     }
 
-    Entity* vehicle = world.getEntity(vehicleId);
+    Entity* vehicle = world->getEntity(vehicleId);
     if (vehicle == nullptr) {
         spdlog::trace("PacketHandler: Vehicle entity {} not found for player {}", vehicleId, playerId);
         return PacketHandleResult::Success;
@@ -360,12 +365,16 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     }
 
     // 获取玩家实体
-    ServerWorld& world = m_server->world();
+    ServerWorld* world = m_server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::error("PacketHandler: Player {} world not found for vehicle move", playerId);
+        return PacketHandleResult::Success;
+    }
     ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-    Player* player = entityManager.getPlayerEntity(playerId, world);
+    Player* player = entityManager.getPlayerEntity(playerId, *world);
 
     if (player == nullptr) {
-        spdlog::trace("PacketHandler: Player {} entity not found for vehicle move", playerId);
+        spdlog::error("PacketHandler: Player {} entity not found for vehicle move", playerId);
         return PacketHandleResult::Success;
     }
 
@@ -446,7 +455,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
 {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Entity action from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: Entity action from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -478,12 +487,16 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
     }
 
     // 获取玩家实体
-    ServerWorld& world = m_server->world();
+    ServerWorld* world = m_server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::trace("PacketHandler: Player {} world not found for entity action", playerId);
+        return PacketHandleResult::Success;
+    }
     ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-    Player* player = entityManager.getPlayerEntity(playerId, world);
+    Player* player = entityManager.getPlayerEntity(playerId, *world);
 
     if (player == nullptr) {
-        spdlog::trace("PacketHandler: Player {} entity not found for entity action", playerId);
+        spdlog::error("PacketHandler: Player {} entity not found for entity action", playerId);
         return PacketHandleResult::Success;
     }
 
@@ -507,7 +520,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
             // MC 1.16.5: 开始马跳跃蓄力
             if (player->isRiding()) {
                 EntityId vehicleId = player->getVehicle();
-                Entity* vehicle = world.getEntity(vehicleId);
+                Entity* vehicle = world->getEntity(vehicleId);
                 if (vehicle != nullptr) {
                     auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
                     if (jumpingMount != nullptr && jumpingMount->canJump()) {
@@ -524,7 +537,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
             // MC 1.16.5: 停止马跳跃蓄力（释放跳跃键）
             if (player->isRiding()) {
                 EntityId vehicleId = player->getVehicle();
-                Entity* vehicle = world.getEntity(vehicleId);
+                Entity* vehicle = world->getEntity(vehicleId);
                 if (vehicle != nullptr) {
                     auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
                     if (jumpingMount != nullptr) {
@@ -546,7 +559,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
             break;
 
         default:
-            spdlog::trace(
+            spdlog::error(
                 "PacketHandler: Unhandled entity action {} for player {}", static_cast<i32>(packet.action()), playerId);
             break;
     }
@@ -559,7 +572,7 @@ PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data,
     // MC 1.16.5: ServerPlayNetHandler.processSteerBoat()
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: SteerBoat from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: SteerBoat from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -585,12 +598,16 @@ PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data,
     }
 
     // 获取玩家实体
-    ServerWorld& world = m_server->world();
+    ServerWorld* world = m_server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::trace("PacketHandler: Player {} world not found for steer boat", playerId);
+        return PacketHandleResult::Success;
+    }
     ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-    Player* player = entityManager.getPlayerEntity(playerId, world);
+    Player* player = entityManager.getPlayerEntity(playerId, *world);
 
     if (player == nullptr) {
-        spdlog::trace("PacketHandler: Player {} entity not found for steer boat", playerId);
+        spdlog::error("PacketHandler: Player {} entity not found for steer boat", playerId);
         return PacketHandleResult::Success;
     }
 
@@ -605,9 +622,9 @@ PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data,
         return PacketHandleResult::Success;
     }
 
-    Entity* vehicle = world.getEntity(vehicleId);
+    Entity* vehicle = world->getEntity(vehicleId);
     if (vehicle == nullptr) {
-        spdlog::trace("PacketHandler: Vehicle entity {} not found for player {}", vehicleId, playerId);
+        spdlog::error("PacketHandler: Vehicle entity {} not found for player {}", vehicleId, playerId);
         return PacketHandleResult::Success;
     }
 
@@ -629,7 +646,7 @@ PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8*
 {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Teleport confirm from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: Teleport confirm from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -711,7 +728,7 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
     // MC 1.16.5: ServerPlayNetHandler.processUseEntity()
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: UseEntity from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: UseEntity from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -726,24 +743,28 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
 
     // 验证服务器接口
     if (m_server == nullptr) {
-        spdlog::trace("PacketHandler: Server not set, cannot process use entity");
+        spdlog::error("PacketHandler: Server not set, cannot process use entity");
         return PacketHandleResult::Success;
     }
 
     // 获取玩家实体和世界
-    ServerWorld& world = m_server->world();
+    ServerWorld* world = m_server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::trace("PacketHandler: Player {} world not found for use entity", playerId);
+        return PacketHandleResult::Success;
+    }
     ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-    Player* player = entityManager.getPlayerEntity(playerId, world);
+    Player* player = entityManager.getPlayerEntity(playerId, *world);
 
     if (player == nullptr) {
-        spdlog::trace("PacketHandler: Player {} entity not found for use entity", playerId);
+        spdlog::error("PacketHandler: Player {} entity not found for use entity", playerId);
         return PacketHandleResult::Success;
     }
 
     // 获取目标实体
-    Entity* target = world.getEntity(packet.entityId());
+    Entity* target = world->getEntity(packet.entityId());
     if (target == nullptr) {
-        spdlog::debug("PacketHandler: Target entity {} not found", packet.entityId());
+        spdlog::error("PacketHandler: Target entity {} not found", packet.entityId());
         return PacketHandleResult::Ignore;
     }
 
@@ -753,7 +774,7 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
         f32 distanceSq = player->distanceSqTo(*target);
         constexpr f32 MAX_INTERACTION_DISTANCE_SQ = 36.0f;
         if (distanceSq >= MAX_INTERACTION_DISTANCE_SQ) {
-            spdlog::debug("PacketHandler: Player {} too far from entity {} (distance={:.2f})",
+            spdlog::warn("PacketHandler: Player {} too far from entity {} (distance={:.2f})",
                 playerId,
                 packet.entityId(),
                 std::sqrt(distanceSq));

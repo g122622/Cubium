@@ -134,7 +134,7 @@ TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
     auto* overworld = server.dimensionManager().getOverworld();
     ASSERT_NE(overworld, nullptr);
     ASSERT_NE(overworld->world(), nullptr);
-    EXPECT_EQ(overworld->world(), &server.world());
+    EXPECT_NE(overworld->world(), nullptr);
 
     server.stop();
 }

@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 namespace mc {
@@ -48,7 +49,8 @@ i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
 
     auto* server = source.server();
-    auto* serverWorld = server ? server->world().asServerWorld() : nullptr;
+    auto* overworld = server ? server->dimensionManager().getOverworld() : nullptr;
+    auto* serverWorld = (overworld && overworld->world()) ? overworld->world()->asServerWorld() : nullptr;
     auto* storage = serverWorld ? &serverWorld->storage() : nullptr;
     if (!storage) {
         source.sendMessage("Error: Storage manager not available");

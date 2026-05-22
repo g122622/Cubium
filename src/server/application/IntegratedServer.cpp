@@ -51,6 +51,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -162,38 +163,51 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 
     auto* overworld = m_dimensionManager->getOverworld();
     MC_ASSERT_RELEASE(overworld != nullptr);
-    m_world = overworld->world();
-    MC_ASSERT_RELEASE(m_world != nullptr);
+    MC_ASSERT_RELEASE(overworld->world() != nullptr);
 
-    attachWorldBindings(*m_world);
-    attachWorldCommandBindings(*m_world);
+    // 为所有维度绑定世界回调和命令绑定
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            attachWorldBindings(*world);
+            attachWorldCommandBindings(*world);
+        }
+    });
 
     // 设置命令执行回调（用于命令方块矿车等实体执行命令）
     // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
-    m_world->setOnExecuteCommand(
-        [this](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
-            std::string cmd = command;
-            if (!cmd.empty() && cmd[0] != '/') {
-                cmd = "/" + cmd;
-            }
+    // 为所有维度设置命令执行回调
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            world->setOnExecuteCommand(
+                [this, world](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
+                    std::string cmd = command;
+                    if (!cmd.empty() && cmd[0] != '/') {
+                        cmd = "/" + cmd;
+                    }
 
-            command::ServerCommandSource source(
-                this, nullptr, m_world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
-            auto result = m_commandRegistry->execute(cmd, source);
-            if (result.failed()) {
-                spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
-                return 0;
-            }
+                    command::ServerCommandSource source(
+                        this, nullptr, world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
+                    auto result = m_commandRegistry->execute(cmd, source);
+                    if (result.failed()) {
+                        spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+                        return 0;
+                    }
 
-            return result.value();
-        });
+                    return result.value();
+                });
+        }
+    });
 
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
         return worldResult;
     }
 
-    if (m_world->isDebugWorld()) {
+    if (overworld->world()->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
         m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
         if (m_timeManager) {
@@ -201,8 +215,8 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
             m_timeManager->setDaylightCycleEnabled(false);
             spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
         }
-        if (m_world->weatherManager()) {
-            m_world->weatherManager()->setClear(999999999);
+        if (overworld->world()->weatherManager()) {
+            overworld->world()->weatherManager()->setClear(999999999);
             spdlog::info("Debug world: Weather set to clear");
         }
     }
@@ -262,10 +276,14 @@ void IntegratedServer::stop()
     }
     m_serverThread.reset();
 
-    // 清理玩家实体
-    if (m_world) {
-        m_playerEntityManager.clearAll(*m_world);
-    }
+    // 清理玩家实体（遍历所有维度）
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            m_playerEntityManager.clearAll(*world);
+        }
+    });
 
     // 停止核心组件
     stopCore();
@@ -405,10 +423,12 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
-    MC_ASSERT(m_world != nullptr);
+    // 玩家始终在主世界生成
+    auto* overworld = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
     Player* playerEntity = m_playerEntityManager.createPlayerEntity(m_clientPlayerId,
         username,
-        *m_world,
+        *overworld->world(),
         static_cast<f32>(playerData->x),
         static_cast<f32>(playerData->y),
         static_cast<f32>(playerData->z));
@@ -532,7 +552,8 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 void IntegratedServer::sendLoginResponse(
     bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message)
 {
-    bool isDebugWorld = m_world && m_world->isDebugWorld();
+    auto* overworldForLogin = m_dimensionManager->getOverworld();
+    bool isDebugWorld = overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
@@ -658,11 +679,13 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
         }
         case ContainerType::Generic9x3:
         case ContainerType::Generic9x6: {
-            if (m_world == nullptr) {
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(m_clientPlayerId);
+            auto* playerWorld = playerDim ? playerDim->world() : nullptr;
+            if (playerWorld == nullptr) {
                 return false;
             }
 
-            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+            BlockEntity* blockEntity = playerWorld->getBlockEntity(pos);
             if (blockEntity == nullptr) {
                 return false;
             }
@@ -673,8 +696,8 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
             }
 
             auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-            if (chest->isDoubleChest(*m_world)) {
-                auto doubleInventory = chest->getDoubleInventory(*m_world);
+            if (chest->isDoubleChest(*playerWorld)) {
+                auto doubleInventory = chest->getDoubleInventory(*playerWorld);
                 if (!doubleInventory) {
                     return false;
                 }
@@ -692,11 +715,13 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
         case ContainerType::Furnace:
         case ContainerType::BlastFurnace:
         case ContainerType::Smoker: {
-            if (m_world == nullptr) {
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(m_clientPlayerId);
+            auto* playerWorld = playerDim ? playerDim->world() : nullptr;
+            if (playerWorld == nullptr) {
                 return false;
             }
 
-            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+            BlockEntity* blockEntity = playerWorld->getBlockEntity(pos);
             if (blockEntity == nullptr) {
                 return false;
             }
@@ -738,10 +763,12 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
         return;
     }
 
-    if (m_world &&
+    auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(m_clientPlayerId);
+    auto* playerWorld = playerDim ? playerDim->world() : nullptr;
+    if (playerWorld &&
         (m_openContainerType == ContainerType::Generic9x3 || m_openContainerType == ContainerType::Generic9x6 ||
             m_openContainerType == ContainerType::ShulkerBox)) {
-        BlockEntity* blockEntity = m_world->getBlockEntity(m_openContainerPos);
+        BlockEntity* blockEntity = playerWorld->getBlockEntity(m_openContainerPos);
         if (blockEntity != nullptr &&
             (blockEntity->getType() == BlockEntityType::Chest ||
                 blockEntity->getType() == BlockEntityType::TrappedChest)) {

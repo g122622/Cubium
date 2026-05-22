@@ -39,6 +39,7 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -192,7 +193,8 @@ size_t EntityTracker::trackedEntityCount() const
     return m_trackedEntities.size();
 }
 
-void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos)
+void EntityTracker::updatePlayerTracking(
+    IServer& server, ServerWorld& world, PlayerId playerId, const Vector3& playerPos)
 {
     MC_TRACE_EVENT("server.entity", "EntityTracker::updatePlayerTracking", "playerId", playerId);
 
@@ -205,7 +207,7 @@ void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, con
 
     // 检查所有被追踪的实体
     for (auto& [entityId, tracked] : m_trackedEntities) {
-        Entity* entity = server.entityManager().getEntity(entityId);
+        Entity* entity = world.entityManager().getEntity(entityId);
         if (!entity) continue;
 
         // 获取实体追踪范围
@@ -223,7 +225,7 @@ void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, con
 
     // 开始追踪新实体
     for (EntityId entityId : toStartTracking) {
-        Entity* entity = server.entityManager().getEntity(entityId);
+        Entity* entity = world.entityManager().getEntity(entityId);
         if (entity) {
             sendSpawnPacket(server, playerId, entity);
             trackedSet.insert(entityId);
@@ -275,7 +277,7 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
     return result;
 }
 
-void EntityTracker::tick(IServer& server)
+void EntityTracker::tick(IServer& server, ServerWorld& world)
 {
     MC_TRACE_EVENT("server.entity", "EntityTracker::tick", "trackedCount", m_trackedEntities.size());
 
@@ -286,7 +288,7 @@ void EntityTracker::tick(IServer& server)
         std::lock_guard<std::mutex> lock(m_mutex);
 
         for (auto& [entityId, tracked] : m_trackedEntities) {
-            Entity* entity = server.entityManager().getEntity(entityId);
+            Entity* entity = world.entityManager().getEntity(entityId);
             if (!entity || entity->isRemoved()) {
                 std::vector<PlayerId> players(tracked.trackingPlayers.begin(), tracked.trackingPlayers.end());
                 removedEntities.emplace_back(entityId, std::move(players));

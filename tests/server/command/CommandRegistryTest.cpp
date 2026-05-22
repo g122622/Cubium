@@ -189,25 +189,9 @@ public:
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerWorld& world() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ServerChunkManager& chunkManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerChunkManager& chunkManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] WorldLightManager* lightManager() override { return nullptr; }
-    [[nodiscard]] const WorldLightManager* lightManager() const override { return nullptr; }
-    [[nodiscard]] mc::EntityManager& entityManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const mc::EntityManager& entityManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::EntityTracker& entityTracker() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::EntityTracker& entityTracker() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] server::WeatherManager& weatherManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::WeatherManager& weatherManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::ItemPickupManager& itemPickupManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override
-    {
-        throw std::logic_error("unused");
-    }
+
+    [[nodiscard]] server::ServerWorld* getPlayerWorld(PlayerId) override { return nullptr; }
+
     [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
     {
         throw std::logic_error("unused");
@@ -250,21 +234,6 @@ public:
     {
         return m_inventoryManager.getInventory(playerId);
     }
-    [[nodiscard]] server::sync::EntitySyncManager& entitySyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::sync::ChunkSendManager& chunkSendManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::ChunkSendManager& chunkSendManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::sync::LightSyncManager& lightSyncManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::sync::LightSyncManager& lightSyncManager() const override
-    {
-        throw std::logic_error("unused");
-    }
 
     [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
@@ -278,16 +247,10 @@ public:
     }
 
     [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const resource::DataPackList& dataPackList() const override
-    {
-        throw std::logic_error("unused");
-    }
+    [[nodiscard]] const resource::DataPackList& dataPackList() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override
-    {
-        throw std::logic_error("unused");
-    }
+    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }

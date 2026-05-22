@@ -28,6 +28,7 @@
 #include "common/world/weather/WeatherState.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 
@@ -94,8 +95,14 @@ i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    auto* overworld = server->dimensionManager().getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        source.sendMessage("Weather manager not available");
+        return 0;
+    }
+
     i32 duration = context.getArgument<i32>("duration");
-    server->weatherManager().setClear(duration);
+    overworld->world()->weatherManager()->setClear(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -114,8 +121,14 @@ i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    auto* overworld = server->dimensionManager().getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        source.sendMessage("Weather manager not available");
+        return 0;
+    }
+
     i32 duration = context.getArgument<i32>("duration");
-    server->weatherManager().setRain(duration);
+    overworld->world()->weatherManager()->setRain(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -134,8 +147,14 @@ i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    auto* overworld = server->dimensionManager().getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        source.sendMessage("Weather manager not available");
+        return 0;
+    }
+
     i32 duration = context.getArgument<i32>("duration");
-    server->weatherManager().setThunder(duration);
+    overworld->world()->weatherManager()->setThunder(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -154,7 +173,13 @@ i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& weatherMgr = server->weatherManager();
+    auto* overworld = server->dimensionManager().getOverworld();
+    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+        source.sendMessage("Weather manager not available");
+        return 0;
+    }
+
+    auto& weatherMgr = *overworld->world()->weatherManager();
     auto type = static_cast<i32>(weatherMgr.weatherType());
     f32 rainStrength = weatherMgr.rainStrength();
     f32 thunderStrength = weatherMgr.thunderStrength();

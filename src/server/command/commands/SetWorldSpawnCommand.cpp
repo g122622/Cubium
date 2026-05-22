@@ -78,7 +78,9 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     dimension->setSpawnPoint(pos);
 
     // 同步更新 ServerWorld 的世界出生点
-    server->world().setWorldSpawnPoint(pos);
+    if (dimension->world()) {
+        dimension->world()->setWorldSpawnPoint(pos);
+    }
 
     // 广播新的出生点到所有玩家
     broadcastSpawnPosition(server, pos);
@@ -109,7 +111,9 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     dimension->setSpawnPoint(pos);
 
     // 同步更新 ServerWorld 的世界出生点
-    server->world().setWorldSpawnPoint(pos);
+    if (dimension->world()) {
+        dimension->world()->setWorldSpawnPoint(pos);
+    }
 
     // 广播新的出生点到所有玩家
     broadcastSpawnPosition(server, pos);

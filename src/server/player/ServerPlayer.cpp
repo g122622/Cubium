@@ -706,6 +706,12 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
         // 更新实体的维度属性
         setDimension(targetDim);
         setPosition(static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z));
+
+        // 更新 m_world 指针到目标维度的 ServerWorld
+        ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
+        if (targetDimension != nullptr) {
+            setWorld(targetDimension->world());
+        }
     }
 
     return success;

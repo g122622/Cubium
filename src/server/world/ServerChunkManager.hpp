@@ -409,6 +409,13 @@ public:
     void setChunkSendManager(sync::ChunkSendManager* manager) { m_chunkSendManager = manager; }
 
     /**
+     * @brief 获取区块发送管理器
+     * @return 区块发送管理器指针，可能为 nullptr
+     */
+    [[nodiscard]] sync::ChunkSendManager* chunkSendManager() { return m_chunkSendManager; }
+    [[nodiscard]] const sync::ChunkSendManager* chunkSendManager() const { return m_chunkSendManager; }
+
+    /**
      * @brief 每 tick 推进区块管理状态
      *
      * 该函数会：

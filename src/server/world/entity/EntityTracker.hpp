@@ -32,6 +32,10 @@
 #include <vector>
 
 namespace mc::server {
+class ServerWorld;
+}
+
+namespace mc::server {
 
 // 前向声明
 class IServer;
@@ -110,11 +114,12 @@ public:
      * 根据玩家位置更新应该追踪的实体列表。
      * 应在玩家移动时调用。
      *
-     * @param server 服务器接口
+     * @param server 服务器接口（用于发送数据包）
+     * @param world 世界引用（用于访问实体管理器）
      * @param playerId 玩家ID
      * @param playerPos 玩家位置
      */
-    void updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos);
+    void updatePlayerTracking(IServer& server, ServerWorld& world, PlayerId playerId, const Vector3& playerPos);
 
     /**
      * @brief 移除玩家的所有追踪
@@ -136,9 +141,10 @@ public:
      *
      * 检查所有追踪实体的位置变化，发送更新包。
      *
-     * @param server 服务器接口
+     * @param server 服务器接口（用于发送数据包）
+     * @param world 世界引用（用于访问实体管理器）
      */
-    void tick(IServer& server);
+    void tick(IServer& server, ServerWorld& world);
 
     // ========== 配置 ==========
 
