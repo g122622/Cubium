@@ -43,6 +43,7 @@
 #include "util/math/random/RandomRanges.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
@@ -74,6 +75,16 @@ void writeLootFile(const std::filesystem::path& root, const std::string& relativ
     std::filesystem::create_directories(fullPath.parent_path());
     std::ofstream file(fullPath, std::ios::binary);
     file << json;
+}
+
+std::unique_ptr<LootContext> buildBlockLootContext(IWorld& world, math::Random& rng, const BlockState& state)
+{
+    static const BlockPos s_blockPos(8, 64, -5);
+    return LootContextBuilder(world)
+        .withRandom(rng)
+        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&state))
+        .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&s_blockPos))
+        .build();
 }
 
 void loadLegacyEquivalentLootTables(LootTableManager& manager)
@@ -427,6 +438,25 @@ TEST_F(LootTest, LootContext_LootingModifier)
 
     ASSERT_NE(context, nullptr);
     EXPECT_EQ(3, context->getLootingModifier());
+}
+
+TEST_F(LootTest, LootParameterSet_BlockAllowsMissingTool)
+{
+    VanillaBlocks::initialize();
+
+    const BlockState* state = VanillaBlocks::DIRT ? &VanillaBlocks::DIRT->getDefaultState() : nullptr;
+    ASSERT_NE(state, nullptr);
+
+    const BlockPos pos(12, 64, -3);
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+                       .withRandom(rng)
+                       .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
+                       .withParameter(LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos))
+                       .build();
+
+    ASSERT_NE(context, nullptr);
+    EXPECT_TRUE(LootParameterSets::block().validate(context->getParamIds()));
 }
 
 // LootEntry Tests
@@ -2068,9 +2098,11 @@ TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch)
     ASSERT_NE(table, nullptr);
 
     math::Random rng(12345);
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::DIAMOND_ORE, nullptr);
 
     // 设置精准采集
-    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::DIAMOND_ORE->getDefaultState());
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);
@@ -2092,9 +2124,12 @@ TEST_F(LootTest, LootTable_DiamondOreWithFortune)
     ASSERT_NE(table, nullptr);
 
     math::Random rng(12345);
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::DIAMOND_ORE, nullptr);
 
     // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
-    auto context = LootContextBuilder(m_world).withRandom(rng).withLootingModifier(3).build();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::DIAMOND_ORE->getDefaultState());
+    context->setLootingModifier(3);
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -2116,8 +2151,10 @@ TEST_F(LootTest, LootTable_CoalOreWithSilkTouch)
     ASSERT_NE(table, nullptr);
 
     math::Random rng(12345);
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::COAL_ORE, nullptr);
 
-    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::COAL_ORE->getDefaultState());
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);
@@ -2138,9 +2175,12 @@ TEST_F(LootTest, LootTable_CoalOreWithFortune)
     ASSERT_NE(table, nullptr);
 
     math::Random rng(12345);
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::COAL_ORE, nullptr);
 
     // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
-    auto context = LootContextBuilder(m_world).withRandom(rng).withLootingModifier(3).build();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::COAL_ORE->getDefaultState());
+    context->setLootingModifier(3);
 
     // 多次生成验证在没有工具时掉落数量固定为 1
     for (int i = 0; i < 10; ++i) {
@@ -2162,8 +2202,10 @@ TEST_F(LootTest, LootTable_StoneWithSilkTouch)
     ASSERT_NE(table, nullptr);
 
     math::Random rng(12345);
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
 
-    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    auto context = buildBlockLootContext(m_world, rng, VanillaBlocks::STONE->getDefaultState());
     context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
 
     auto items = table->generate(*context);

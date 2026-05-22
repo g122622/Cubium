@@ -43,7 +43,7 @@ LootParameterSet block()
     LootParameterSet set(LootParameterSet::Type::Block);
     set.addRequired(LootParams::BLOCK_STATE);
     set.addRequired(LootParams::BLOCK_POS);
-    set.addRequired(LootParams::TOOL);
+    set.addOptional(LootParams::TOOL);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::BLOCK_ENTITY);
     set.addOptional(LootParams::FORTUNE_LEVEL);

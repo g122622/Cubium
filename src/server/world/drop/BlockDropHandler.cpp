@@ -78,6 +78,7 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
         }
     } else {
         // 使用默认掉落逻辑
+        spdlog::warn("Block {} at {} has no loot table, using default drops", block.blockLocation().toString(), pos.toString());
         drops = getDefaultDrops(state);
     }
 

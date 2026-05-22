@@ -93,6 +93,7 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
 
     // 处理物品堆叠
     auto consumer = [&items](const ItemStack& stack) {
+        spdlog::info("LootTable::generate received item stack: {} x{}", stack.getItem() ? stack.getItem()->itemLocation().toString() : "null", stack.getCount());
         if (!stack.isEmpty()) {
             // 尝试合并到现有堆
             for (auto& existing : items) {
@@ -118,6 +119,7 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
     };
 
     recursiveGenerate(consumer, context);
+    spdlog::info("Generated {} item stacks from loot table '{}'", items.size(), m_id);
     return items;
 }
 
@@ -140,6 +142,8 @@ void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer
     // 循环检测
     if (!context.pushLootTable(this)) {
         // 检测到循环引用，跳过
+        spdlog::error("Detected loot table recursion loop at '{}', skipping loot generation to prevent infinite loop",
+            m_id);
         return;
     }
 
