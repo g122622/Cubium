@@ -259,7 +259,8 @@ The `application` module serves as the **entry point and orchestrator** for the 
 server/application/
 ├── server/core/           # PlayerManager, ConnectionManager, TimeManager, etc.
 ├── server/interaction/    # BlockInteractionManager, MiningManager, etc.
-├── server/sync/           # EntitySyncManager, ChunkSendManager, LightSyncManager
+├── server/dimension/      # ServerDimension, ServerDimensionManager
+├── server/sync/           # EntitySyncManager, ChunkSendManager, LightSyncManager (由 ServerDimension 持有)
 ├── server/world/          # ServerWorld, ServerChunkManager, WeatherManager
 ├── server/network/        # TcpServer, TcpSession
 ├── server/command/        # CommandRegistry

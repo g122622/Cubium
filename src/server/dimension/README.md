@@ -23,20 +23,38 @@ server/dimension/
 - 持有单个维度的 `ServerWorld` runtime
 - 通过 `world()` 转发访问 `ServerChunkManager`
 - 通过 `world()` 转发访问 `WorldLightManager`
+- 持有维度级同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）
+- 持有维度级刷怪管理器（NaturalSpawner、DespawnManager）
 - 玩家追踪（添加/移除玩家）
 - 传送门位置记录（POI 系统）
-- 维度 tick 更新
+- 维度 tick 更新（包含世界 tick、同步管理器 tick、刷怪 tick）
 
 **关键方法**:
-- `initialize()` - 初始化维度资源
-- `shutdown()` - 清理维度资源
-- `tick()` - 维度刻更新（包含区块管理器和光照管理器更新）
+- `initialize()` - 初始化维度资源，创建同步管理器和刷怪管理器
+- `shutdown()` - 清理维度资源，释放同步管理器和刷怪管理器
+- `tick()` - 维度刻更新（包含 ServerWorld::tick()、同步管理器 tick、刷怪管理器 tick）
 - `addPlayer()/removePlayer()` - 玩家管理
 - `recordPortalPosition()/findNearestPortal()` - 传送门追踪
+- `entitySyncManager()` / `chunkSendManager()` / `blockUpdateSyncManager()` / `lightSyncManager()` - 同步管理器访问
+- `naturalSpawner()` / `despawnManager()` - 刷怪管理器访问
 
 **使用示例**:
 `ServerDimension` 不再拥有独立的 `BiomeProvider` / `ServerChunkManager` / `WorldLightManager` 真相源。
 区块生成与光照等 runtime 状态统一挂在内部的 `ServerWorld` 上，`ServerDimension` 负责维度级编排与玩家/传送门附加状态。
+
+同步管理器和刷怪管理器由 `ServerDimension` 独立持有，每个维度有自己的一套实例：
+
+```cpp
+// 通过维度访问同步管理器
+auto* entitySync = dimension->entitySyncManager();
+auto* chunkSend = dimension->chunkSendManager();
+auto* blockUpdateSync = dimension->blockUpdateSyncManager();
+auto* lightSync = dimension->lightSyncManager();
+
+// 通过维度访问刷怪管理器
+auto* spawner = dimension->naturalSpawner();
+auto* despawn = dimension->despawnManager();
+```
 
 ### ServerDimensionManager.hpp/cpp
 
@@ -82,6 +100,18 @@ dimensionManager.tick();
 │  │  │   (Overworld)   │ │    (Nether)     │ │  (TheEnd)   │ │    │
 │  │  │  ┌───────────┐  │ │  ┌───────────┐  │ │┌───────────┐│ │    │
 │  │  │  │ServerWorld│  │ │  │ServerWorld│  │ ││ServerWorld││ │    │
+│  │  │  └───────────┘  │ │  └───────────┘  │ │└───────────┘│ │    │
+│  │  │  ┌───────────┐  │ │  ┌───────────┐  │ │┌───────────┐│ │    │
+│  │  │  │sync 管理器│  │ │  │sync 管理器│  │ ││sync 管理器││ │    │
+│  │  │  │ EntitySync│  │ │  │ EntitySync│  │ ││ EntitySync││ │    │
+│  │  │  │ ChunkSend │  │ │  │ ChunkSend │  │ ││ ChunkSend ││ │    │
+│  │  │  │ BlockUpd  │  │ │  │ BlockUpd  │  │ ││ BlockUpd  ││ │    │
+│  │  │  │ LightSync │  │ │  │ LightSync │  │ ││ LightSync ││ │    │
+│  │  │  └───────────┘  │ │  └───────────┘  │ │└───────────┘│ │    │
+│  │  │  ┌───────────┐  │ │  ┌───────────┐  │ │┌───────────┐│ │    │
+│  │  │  │刷怪管理器│  │ │  │刷怪管理器│  │ ││刷怪管理器││ │    │
+│  │  │  │NaturalSpn │  │ │  │NaturalSpn │  │ ││NaturalSpn ││ │    │
+│  │  │  │DespawnMgr │  │ │  │DespawnMgr │  │ ││DespawnMgr ││ │    │
 │  │  │  └───────────┘  │ │  └───────────┘  │ │└───────────┘│ │    │
 │  │  │  │共享 Storage │ │ │  │共享 Storage │ │ ││共享 Storage ││ │    │
 │  │  │  │共享 SaveMgr │ │ │  │共享 SaveMgr │ │ ││共享 SaveMgr ││ │    │
@@ -153,32 +183,20 @@ dimension->forgetPortalPosition(portalPos);
 - `ServerWorld::storage()` 在三个维度上返回同一个门面对象
 - `ServerWorld::storage()` 在三个维度上返回同一个单存档存储门面
 
-## 光照更新
+## ServerDimension::tick() 流程
 
-`ServerDimension::tick()` 方法中包含光照更新逻辑，参考 MC 1.16.5 `ServerChunkProvider.ChunkExecutor.driveOne()` 实现：
+`ServerDimension::tick()` 方法按顺序执行以下逻辑，参考 MC 1.16.5 `MinecraftServer.tickServer()` 中每个维度的处理：
 
-```cpp
-void ServerDimension::tick() {
-    Dimension::tick();
-
-    // 更新区块管理器
-    if (m_chunkManager) {
-        m_chunkManager->tick();
-    }
-
-    // 更新光照管理器
-    if (m_lightManager) {
-        if (m_lightManager->hasLightWork()) {
-            // 处理所有待处理的光照更新
-            // 参数：maxUpdates=最大值（处理所有）, updateSkyLight=根据维度类型, updateBlockLight=true
-            m_lightManager->tick(std::numeric_limits<i32>::max(), type().hasSkyLight(), true);
-        }
-    }
-}
-```
+1. `Dimension::tick()` - 基类 tick
+2. `m_world->tick()` - 世界 tick（区块管理器、光照、天气、实体、物理等）
+3. `m_entitySyncManager->tick()` - 同步该维度的实体位置
+4. `m_chunkSendManager->processPendingSends()` - 发送该维度的待发区块
+5. `m_blockUpdateSyncManager->flushPendingUpdates()` - 发送该维度的待处理方块更新
+6. `m_naturalSpawner->tick()` - 自然刷怪（仅主世界和下界有 hostile 刷怪，仅主世界有 passive 刷怪）
+7. `m_despawnManager->tick()` - 生物消失检查
 
 **光照更新要点**：
-- 使用 `hasLightWork()` 检查是否有待处理的光照工作，避免不必要的处理
+- 世界 tick 内部通过 `hasLightWork()` 检查是否有待处理的光照工作，避免不必要的处理
 - 使用 `std::numeric_limits<i32>::max()` 作为最大更新数量，处理所有待处理的光照
 - 根据 `type().hasSkyLight()` 动态决定是否更新天空光照（下界和末地没有天空光照）
 - 方块光照始终更新
@@ -188,7 +206,9 @@ void ServerDimension::tick() {
 | 模块 | 关系 |
 |------|------|
 | `common/world/dimension` | 继承 `Dimension` 和 `DimensionManager` |
-| `server/application/MinecraftServer` | 持有 `ServerDimensionManager` |
+| `server/application/MinecraftServer` | 持有 `ServerDimensionManager`；不再持有同步管理器和刷怪管理器 |
+| `server/sync/` | 同步管理器由 `ServerDimension` 持有和 tick |
+| `server/world/spawn/` | 刷怪管理器由 `ServerDimension` 持有和 tick |
 | `server/world/ServerWorld` | 每个维度持有一个 runtime `ServerWorld` |
 | `common/world/storage/SingleLevelStorageManager` | 三个维度共享同一个世界级单存档存储门面 |
 | `server/player/ServerPlayer` | 通过 `m_playerDimensions` 追踪玩家维度 |
@@ -235,6 +255,9 @@ packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
 4. **主世界不可卸载**: 主世界维度是默认出生点，不能卸载
 5. **线程安全**: 维度切换涉及多个管理器，需要在主线程执行
 6. **游戏模式获取**: 维度切换包中的游戏模式应从 `ServerPlayerData::gameMode` 获取，而非硬编码
+7. **同步管理器是维度级的**: 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）由各 `ServerDimension` 独立持有，不能从 `MinecraftServer` 直接访问。访问时需先获取目标维度：`dimensionManager.getDimension(id)->entitySyncManager()`
+8. **刷怪管理器是维度级的**: NaturalSpawner 和 DespawnManager 由各 `ServerDimension` 独立持有，tick 时根据维度类型决定是否执行（仅主世界和下界有 hostile 刷怪，仅主世界有 passive 刷怪）
+9. **初始化顺序**: `ServerDimension::initialize()` 中同步管理器的创建必须在 `ServerWorld::initialize()` 之后，因为同步管理器依赖 `ServerChunkManager` 和 `WorldLightManager`
 
 ## 测试用例
 

@@ -26,11 +26,14 @@ server/
 │   ├── MiningManager.hpp/cpp  # 挖掘进度
 │   ├── ContainerManager.hpp/cpp # 容器管理
 │   └── InventoryManager.hpp/cpp # 物品栏管理
-├── sync/                 # 同步管理器
+├── sync/                 # 同步管理器（运行时由 ServerDimension 持有）
 │   ├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步
 │   ├── ChunkSendManager.hpp/cpp # 区块发送
 │   ├── EntitySyncManager.hpp/cpp # 实体同步
 │   └── LightSyncManager.hpp/cpp  # 光照同步
+├── dimension/            # 维度管理
+│   ├── ServerDimension.hpp/cpp         # 服务端维度实例（持有同步管理器和刷怪管理器）
+│   └── ServerDimensionManager.hpp/cpp  # 服务端维度管理器
 ├── world/                # 世界管理
 │   ├── ServerWorld.hpp/cpp     # 服务端世界
 │   ├── ServerChunkManager.hpp/cpp # 区块管理
@@ -83,7 +86,7 @@ server/
 | 类 | 职责 |
 |---|---|
 | `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
-| `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理） |
+| `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理）。不再持有 `m_world`、同步管理器和刷怪管理器，这些已下沉到 `ServerDimension` |
 | `IntegratedServer` | 内置服务器，使用 LocalConnection 与客户端通信（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
 
@@ -118,6 +121,8 @@ server/
 
 管理服务端到客户端的数据同步。
 
+**重要**：同步管理器现在由各 `ServerDimension` 独立持有（每个维度一套），而非 `MinecraftServer`。初始化在 `ServerDimension::initialize()` 中完成，tick 在 `ServerDimension::tick()` 中执行。
+
 区块发送和光照同步现在都会在需要跨线程或跨回调持有数据时，改用 `ServerChunkManager::getChunkShared()` 获取共享快照，避免 worker 线程完成回调与区块卸载之间的生命周期竞争。
 
 | 类 | 职责 |
@@ -135,7 +140,22 @@ server/
 
 `ServerWorld` 通过回调机制获取难度，允许运行时动态修改难度（如通过 `/difficulty` 命令）。难度回调由 `MinecraftServer` 在初始化时设置。
 
-多维度 tick 现在统一由 `ServerDimensionManager::tick()` 驱动；`MinecraftServer` 持有的 `m_world` 只是主世界快捷引用，不能再在顶层单独执行一次 `m_world->tick()`，否则主世界会被重复 tick。
+**重要架构变更**：
+- `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
+- `NaturalSpawner` 和 `DespawnManager` 现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
+- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
+- 多维度 tick 由 `ServerDimensionManager::tick()` 统一驱动。
+
+### dimension/ - 维度管理
+
+服务端维度实例和管理器，负责多维度生命周期、玩家维度追踪和维度切换。
+
+| 类 | 职责 |
+|---|---|
+| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager） |
+| `ServerDimensionManager` | 管理所有 ServerDimension 实例，处理玩家维度切换和维度 tick 调度 |
+
+同步管理器和刷怪管理器在 `ServerDimension::initialize()` 中创建，在 `ServerDimension::tick()` 中按顺序 tick（详见 `src/server/dimension/README.md`）。
 
 | 类 | 职责 |
 |---|---|
@@ -226,13 +246,25 @@ TCP 网络通信实现。
 │  │  ContainerManager │ InventoryManager                │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │                    sync/ 管理器                       │    │
-│  │  BlockUpdateSyncManager │ ChunkSendManager │ EntitySyncManager │ LightSyncManager│
-│  └─────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                     world/                           │    │
-│  │  ServerWorld │ ServerChunkManager │ ChunkGenerateTask │    │
-│  │  EntityTracker │ ItemPickupManager │ WeatherManager  │    │
+│  │              ServerDimensionManager                   │    │
+│  │  ┌───────────────────────────────────────────────┐   │    │
+│  │  │         ServerDimension (每个维度)             │   │    │
+│  │  │  ┌─────────────────────────────────────────┐  │   │    │
+│  │  │  │ sync/ 管理器（维度级，每个维度独立一套） │  │   │    │
+│  │  │  │ BlockUpdateSyncManager │ ChunkSendManager│  │   │    │
+│  │  │  │ EntitySyncManager │ LightSyncManager     │  │   │    │
+│  │  │  └─────────────────────────────────────────┘  │   │    │
+│  │  │  ┌─────────────────────────────────────────┐  │   │    │
+│  │  │  │ spawn/ 管理器（维度级）                   │  │   │    │
+│  │  │  │ NaturalSpawner │ DespawnManager          │  │   │    │
+│  │  │  └─────────────────────────────────────────┘  │   │    │
+│  │  │  ┌─────────────────────────────────────────┐  │   │    │
+│  │  │  │ world/                                      │  │   │    │
+│  │  │  │ ServerWorld │ ServerChunkManager           │  │   │    │
+│  │  │  │ EntityTracker │ ItemPickupManager          │  │   │    │
+│  │  │  │ WeatherManager                              │  │   │    │
+│  │  │  └─────────────────────────────────────────┘  │   │    │
+│  │  └───────────────────────────────────────────────┘   │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │                  command/ 命令系统                    │    │
@@ -267,18 +299,23 @@ TCP 网络通信实现。
    → ChunkSendManager → ChunkData 序列化 → 发送给客户端
    ```
 
-3. **世界 tick 调度**：
+4. **世界 tick 调度**：
    ```
    MinecraftServer::tick()
    → ServerDimensionManager::tick()
-   → ServerDimension::tick()
-   → 各维度自己的 ServerWorld::tick()
+   → 遍历每个 ServerDimension::tick()
+       → ServerWorld::tick()
+       → entitySyncManager()->tick()
+       → chunkSendManager()->processPendingSends()
+       → blockUpdateSyncManager()->flushPendingUpdates()
+       → naturalSpawner()->tick()
+       → despawnManager()->tick()
    ```
 
-4. **方块更新同步**：
+5. **方块更新同步**：
     ```
     ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager
-    → tick 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
+    → ServerDimension::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
     ```
 
 5. **区块生成**：
@@ -393,15 +430,14 @@ chunkManager.setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
 2. `initializeCoreManagers()` - 核心 Manager
 3. `initializeWorld()` - 世界和区块管理器
 4. `initializeInteractionManagers()` - 交互 Manager
-5. `initializeSyncManagers()` - 同步 Manager
-6. `initializeChunkSyncManagers()` - 区块同步（在 world 之后）
-7. `setupWorldCallbacks()` - 设置回调
+5. `ServerDimension::initialize()` - 每个维度独立创建同步管理器和刷怪管理器（替代原 `initializeSyncManagers()` + `initializeChunkSyncManagers()`）
+6. `setupWorldCallbacks()` - 设置回调（遍历所有维度）
 
-### 5. 主世界快捷引用与维度调度
+### 5. 维度感知的世界访问
 
-- `MinecraftServer::m_world` 指向主世界 `ServerWorld`，主要用于主世界相关管理器访问、回调绑定和单世界逻辑入口。
-- 所有维度的 `ServerWorld::tick()` 都必须通过 `ServerDimensionManager::tick()` 统一调度。
-- 如果在 `MinecraftServer::tick()` 中再手动调用一次 `m_world->tick()`，主世界会被额外执行一次，而其他维度不会，造成 tick 频率不一致。
+- `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
+- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）和刷怪管理器（NaturalSpawner、DespawnManager）现在由各 `ServerDimension` 持有，不再从 `MinecraftServer` 访问。
+- 所有维度的 `ServerWorld::tick()` 都通过 `ServerDimensionManager::tick()` 统一调度，每个维度在自己的 `ServerDimension::tick()` 中独立执行同步和刷怪逻辑。
 
 ### 6. 心跳超时配置
 
@@ -470,11 +506,12 @@ server.commandRegistry().dispatcher().registerCommand(
 ```mermaid
 flowchart LR
     client["客户端"] --> server["MinecraftServer"]
-    server --> sync["server/sync"]
+    server --> dim["ServerDimension"]
+    dim --> sync["sync/ 管理器<br/>(维度级)"]
     sync --> block["BlockUpdateSyncManager"]
     sync --> chunk["ChunkSendManager"]
     sync --> light["LightSyncManager"]
-    server --> world["server/world"]
+    dim --> world["ServerWorld"]
     world --> callback["setOnBlockChanged"]
     callback --> block
     block --> packet["BlockUpdatePacket"]
@@ -482,8 +519,9 @@ flowchart LR
 
     style client fill:#f1f5f9,stroke:#475569,color:#111
     style server fill:#ffd166,stroke:#b7791f,color:#111
-    style sync fill:#8ecae6,stroke:#1d4ed8,color:#111
-    style block fill:#90be6d,stroke:#2f6f3e,color:#111
+    style dim fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style sync fill:#90be6d,stroke:#2f6f3e,color:#111
+    style block fill:#bde0fe,stroke:#2563eb,color:#111
     style chunk fill:#f4a261,stroke:#b45309,color:#111
     style light fill:#cdb4db,stroke:#6d28d9,color:#111
     style world fill:#ffe8a3,stroke:#c99700,color:#111
