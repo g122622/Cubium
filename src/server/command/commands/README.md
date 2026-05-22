@@ -42,7 +42,7 @@ src/server/command/commands/
   - `/execute if block <pos> <block> run <command>` - 条件执行（方块检测）
   - `/execute unless block <pos> <block> run <command>` - 反条件执行（方块检测）
   - 使用 `StringArgumentType::greedyString()` 捕获剩余命令文本
-  - 通过 `ServerCommandSource::withPlayer()/withPosition()/withWorld()` 创建派生命令源
+  - 通过 `ServerCommandSource::withPlayer()/withPosition()/withDimension()` 创建派生命令源
   - 通过 `CommandRegistry::execute()` 执行嵌套命令
 - `ExperienceCommand.*`：管理经验值和等级。
 - `FillCommand.*`：填充区域方块。

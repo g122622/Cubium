@@ -562,6 +562,11 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
 void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension)
 {
     if (dimension != m_dimensionId) {
+        spdlog::warn("Received chunk unload for dimension {} but current dimension is {}, discarding chunk ({}, {})",
+            static_cast<i32>(dimension),
+            static_cast<i32>(m_dimensionId),
+            x,
+            z);
         return;
     }
 

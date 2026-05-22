@@ -120,7 +120,7 @@ if (result.success()) {
 **职责：**
 
 - 表示命令执行的来源（玩家或控制台）
-- 提供服务器、玩家、世界访问接口
+- 提供服务器、玩家、维度感知世界访问接口
 - 管理权限等级
 - 支持创建派生命令源
 - 支持静默输出和权限上限派生，便于实现更接近原版的命令上下文切换
@@ -134,7 +134,7 @@ public:
     ServerCommandSource(
         server::IServer* server,
         ServerPlayer* player = nullptr,
-        server::ServerWorld* world = nullptr,
+        DimensionId dimensionId = 0,
         const Vector3d& position = Vector3d(0, 0, 0),
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
@@ -167,7 +167,7 @@ public:
     ServerCommandSource withPlayer(ServerPlayer* player) const;
     ServerCommandSource withPosition(const Vector3d& pos) const;
     ServerCommandSource withRotation(const Vector2f& rot) const;
-    ServerCommandSource withWorld(server::ServerWorld* world) const;
+    ServerCommandSource withDimension(DimensionId dimensionId) const;
     ServerCommandSource withFeedbackDisabled() const;
     ServerCommandSource withSuppressedOutput() const;
     ServerCommandSource withPermissionLevel(i32 level) const;
@@ -968,7 +968,7 @@ public:
 
 - 使用 `StringArgumentType::greedyString()` 捕获剩余命令文本
 - 通过 `ServerCommandSource::withPlayer()` 创建以目标身份执行的派生命令源
-- 通过 `ServerCommandSource::withPosition()` 和 `withWorld()` 修改执行位置
+- 通过 `ServerCommandSource::withPosition()` 和 `withDimension()` 修改执行位置
 - 通过 `CommandRegistry::execute()` 执行嵌套命令
 - 支持 `as` 和 `at` 对多个目标迭代执行，结果值为执行结果之和
 - 方块检测使用 `BlockRegistry::getBlock()` 解析方块 ID
@@ -1153,7 +1153,7 @@ auto& registry = mc::command::CommandRegistry::getGlobal();
 mc::command::ServerCommandSource source(
     server,          // IServer 指针
     player,          // ServerPlayer 指针
-    world,           // ServerWorld 指针
+    dimensionId,     // 维度 ID
     player->position(),
     player->rotation(),
     2,               // 权限等级

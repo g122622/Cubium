@@ -1206,10 +1206,8 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         // 13. 发送维度切换确认包（如果是维度切换）
-        // 参考 MC 1.16.5: 客户端需要发送确认包
         if (isDimensionChange && m_networkClient) {
-            // TODO: 当 ConfirmDimensionChangePacket 发送方法实现后添加
-            // m_networkClient->sendConfirmDimensionChange(dimension);
+            m_networkClient->sendConfirmDimensionChange(dimension);
         }
     };
 

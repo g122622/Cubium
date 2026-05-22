@@ -600,7 +600,7 @@ TEST_F(PublishCommandTest, PublishCommandRequiresPermissionLevel4)
     // 创建一个权限等级 0 的命令源
     ServerCommandSource noPermSource(&m_integratedServer,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         0); // 权限等级 0
@@ -615,11 +615,7 @@ TEST_F(PublishCommandTest, PublishCommandRequiresPermissionLevel4)
 TEST_F(PublishCommandTest, PublishCommandFailsOnDedicatedServer)
 {
     // 在独立服务器上执行 publish 命令应该失败
-    ServerCommandSource source(&m_dedicatedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
+    ServerCommandSource source(&m_dedicatedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0),
         4); // 权限等级 4
 
     const auto result = m_dedicatedServer.commandRegistry().execute("publish", source);
@@ -632,11 +628,7 @@ TEST_F(PublishCommandTest, PublishCommandFailsOnDedicatedServer)
 TEST_F(PublishCommandTest, PublishCommandSucceedsOnIntegratedServer)
 {
     // 在集成服务器上执行 publish 命令应该成功
-    ServerCommandSource source(&m_integratedServer,
-        nullptr,
-        nullptr,
-        Vector3d(0, 0, 0),
-        Vector2f(0, 0),
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0),
         4); // 权限等级 4
 
     const auto result = m_integratedServer.commandRegistry().execute("publish", source);
@@ -649,7 +641,7 @@ TEST_F(PublishCommandTest, PublishCommandSucceedsOnIntegratedServer)
 TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
 {
     // 测试带自定义端口的 publish 命令
-    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 25566", source);
 
@@ -661,7 +653,7 @@ TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
 TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
 {
     // 测试带端口和作弊设置的 publish 命令
-    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 25566 true", source);
 
@@ -673,7 +665,7 @@ TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
 TEST_F(PublishCommandTest, PublishCommandInvalidPortTooLow)
 {
     // 测试端口值过低 - 解析失败，因为 IntegerArgumentType 限制范围是 [1, 65535]
-    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 0", source);
 
@@ -684,7 +676,7 @@ TEST_F(PublishCommandTest, PublishCommandInvalidPortTooLow)
 TEST_F(PublishCommandTest, PublishCommandInvalidPortTooHigh)
 {
     // 测试端口值过高 - 解析失败，因为 IntegerArgumentType 限制范围是 [1, 65535]
-    ServerCommandSource source(&m_integratedServer, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
 
     const auto result = m_integratedServer.commandRegistry().execute("publish 70000", source);
 

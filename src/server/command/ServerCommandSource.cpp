@@ -26,6 +26,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
@@ -36,7 +37,7 @@ namespace command {
 
 ServerCommandSource::ServerCommandSource(server::IServer* server,
     ServerPlayer* player,
-    server::ServerWorld* world,
+    DimensionId dimensionId,
     const Vector3d& position,
     const Vector2f& rotation,
     i32 permissionLevel,
@@ -45,7 +46,7 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     : m_server(server)
     , m_player(player)
     , m_playerId(player ? player->playerId() : playerId)
-    , m_world(world)
+    , m_dimensionId(dimensionId)
     , m_position(position)
     , m_rotation(rotation)
     , m_permissionLevel(permissionLevel)
@@ -59,6 +60,16 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     } else {
         m_name = "Console";
     }
+}
+
+server::ServerWorld* ServerCommandSource::world() const noexcept
+{
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+
+    auto* dimension = m_server->dimensionManager().getDimension(m_dimensionId);
+    return dimension != nullptr ? dimension->world() : nullptr;
 }
 
 void ServerCommandSource::sendMessage(const std::string& message, const std::optional<Uuid>& /*senderUuid*/
@@ -141,10 +152,10 @@ ServerCommandSource ServerCommandSource::withRotation(const Vector2f& rot) const
     return source;
 }
 
-ServerCommandSource ServerCommandSource::withWorld(server::ServerWorld* world) const
+ServerCommandSource ServerCommandSource::withDimension(DimensionId dimensionId) const
 {
     ServerCommandSource source(*this);
-    source.m_world = world;
+    source.m_dimensionId = dimensionId;
     return source;
 }
 
@@ -178,7 +189,7 @@ ServerCommandSource ServerCommandSource::forConsole(server::IServer* server)
 {
     return ServerCommandSource(server,
         nullptr, // 无玩家
-        nullptr, // 无世界
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         4,

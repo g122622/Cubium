@@ -66,7 +66,7 @@ public:
      */
     ServerCommandSource(server::IServer* server,
         ServerPlayer* player = nullptr,
-        server::ServerWorld* world = nullptr,
+        DimensionId dimensionId = 0,
         const Vector3d& position = Vector3d(0, 0, 0),
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
@@ -110,7 +110,12 @@ public:
     /**
      * @brief 获取世界实例
      */
-    [[nodiscard]] server::ServerWorld* world() const noexcept { return m_world; }
+    [[nodiscard]] server::ServerWorld* world() const noexcept;
+
+    /**
+     * @brief 获取维度ID
+     */
+    [[nodiscard]] DimensionId dimensionId() const noexcept { return m_dimensionId; }
 
     // ========== 位置和朝向 ==========
 
@@ -166,9 +171,9 @@ public:
     [[nodiscard]] ServerCommandSource withRotation(const Vector2f& rot) const;
 
     /**
-     * @brief 创建指定世界的新命令源
+     * @brief 创建指定维度的新命令源
      */
-    [[nodiscard]] ServerCommandSource withWorld(server::ServerWorld* world) const;
+    [[nodiscard]] ServerCommandSource withDimension(DimensionId dimensionId) const;
 
     /**
      * @brief 创建禁用反馈的新命令源
@@ -206,7 +211,7 @@ private:
     server::IServer* m_server;
     ServerPlayer* m_player;
     PlayerId m_playerId;
-    server::ServerWorld* m_world;
+    DimensionId m_dimensionId;
     Vector3d m_position;
     Vector2f m_rotation;
     i32 m_permissionLevel;

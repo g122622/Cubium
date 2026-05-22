@@ -313,6 +313,20 @@ void NetworkClient::sendTeleportConfirm(u32 teleportId)
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
+void NetworkClient::sendConfirmDimensionChange(DimensionId dimension)
+{
+    network::ConfirmDimensionChangePacket packet;
+    packet.setDimension(dimension);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize ConfirmDimensionChange packet: {}", result.error().message());
+        return;
+    }
+
+    sendRawData(result.value().data(), result.value().size());
+}
+
 void NetworkClient::sendKeepAlive(u64 id)
 {
     network::KeepAlivePacket packet;

@@ -391,7 +391,7 @@ TEST_F(TriggerCommandTest, TriggerSuccess)
     ASSERT_NE(score, nullptr);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger", source);
 
     EXPECT_EQ(result.value(), 1);
@@ -413,7 +413,7 @@ TEST_F(TriggerCommandTest, TriggerAddSuccess)
     score->setScorePoints(10);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger add 5", source);
 
     EXPECT_EQ(result.value(), 15);
@@ -435,7 +435,7 @@ TEST_F(TriggerCommandTest, TriggerSetSuccess)
     score->setScorePoints(10);
     score->setLocked(false);
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger set 100", source);
 
     EXPECT_EQ(result.value(), 100);
@@ -456,7 +456,7 @@ TEST_F(TriggerCommandTest, TriggerAlreadyUsed)
     ASSERT_NE(score, nullptr);
     score->setLocked(true); // 已锁定
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto result = m_server.commandRegistry().execute("/trigger test_trigger", source);
     // 已锁定的触发器应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -474,7 +474,7 @@ TEST_F(TriggerCommandTest, EnableTriggerViaScoreboard)
     ASSERT_NE(objective, nullptr);
 
     // 使用 scoreboard players enable 启用触发器
-    ServerCommandSource adminSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    ServerCommandSource adminSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto enableResult =
         m_server.commandRegistry().execute("/scoreboard players enable Steve test_trigger", adminSource);
     EXPECT_EQ(enableResult.value(), 1);
@@ -485,7 +485,7 @@ TEST_F(TriggerCommandTest, EnableTriggerViaScoreboard)
     EXPECT_FALSE(score->isLocked());
 
     // 现在可以使用触发器
-    ServerCommandSource playerSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
+    ServerCommandSource playerSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Steve");
     auto triggerResult = m_server.commandRegistry().execute("/trigger test_trigger", playerSource);
     EXPECT_EQ(triggerResult.value(), 1);
     EXPECT_EQ(score->getScorePoints(), 1);
@@ -501,7 +501,7 @@ TEST_F(TriggerCommandTest, EnableNonTriggerObjective)
     auto* objective = scoreboard.addObjective("test_dummy", *dummyCriteria);
     ASSERT_NE(objective, nullptr);
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players enable Steve test_dummy", source);
     // 非 trigger 判据时应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -509,7 +509,7 @@ TEST_F(TriggerCommandTest, EnableNonTriggerObjective)
 
 TEST_F(TriggerCommandTest, EnableNonExistentObjective)
 {
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players enable Steve nonexistent", source);
     // 目标不存在时应该返回 0（失败）
     EXPECT_EQ(result.value(), 0);
@@ -552,11 +552,11 @@ TEST_F(TriggerCommandTest, ReenableTrigger)
     ASSERT_NE(objective, nullptr);
 
     // 准备触发器
-    ServerCommandSource adminSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    ServerCommandSource adminSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     m_server.commandRegistry().execute("/scoreboard players enable Player1 retrigger", adminSource);
 
     // 第一次触发
-    ServerCommandSource playerSource(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Player1");
+    ServerCommandSource playerSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Player1");
     auto result1 = m_server.commandRegistry().execute("/trigger retrigger add 10", playerSource);
     EXPECT_EQ(result1.value(), 10);
 
@@ -606,7 +606,7 @@ TEST_F(TriggerCommandTest, ListPlayers)
     ASSERT_NE(score, nullptr);
     score->setScorePoints(42);
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Admin");
     auto result = m_server.commandRegistry().execute("/scoreboard players list Steve", source);
     EXPECT_EQ(result.value(), 1);
 }

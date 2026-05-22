@@ -371,7 +371,7 @@ TEST_F(ExecuteCommandTest, ExecuteCommandRequiresPermissionLevel2)
     // 创建一个权限等级 0 的命令源
     mc::command::ServerCommandSource lowPermSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         mc::Vector3d(0, 0, 0),
         mc::Vector2f(0, 0),
         0, // 权限等级 0

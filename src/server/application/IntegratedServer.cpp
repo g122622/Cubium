@@ -190,7 +190,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
                     }
 
                     command::ServerCommandSource source(
-                        this, nullptr, world, position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
+                        this, nullptr, world->dimension(), position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
                     auto result = m_commandRegistry->execute(cmd, source);
                     if (result.failed()) {
                         spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());

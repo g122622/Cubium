@@ -375,7 +375,7 @@ TEST_F(SpawnPointCommandTest, SpawnPointCommandRequiresPermissionLevel2)
     // 创建一个权限等级 0 的命令源
     ServerCommandSource lowPermSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         0, // 权限等级 0
@@ -500,7 +500,7 @@ TEST_F(SpawnPointCommandTest, SpawnPointWithPermissionLevel2)
     // 创建权限等级 2 的命令源
     ServerCommandSource permSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(100, 64, 200),
         Vector2f(0, 0),
         2, // 权限等级 2
@@ -518,7 +518,7 @@ TEST_F(SpawnPointCommandTest, SpawnPointWithPermissionLevel4)
     // 创建权限等级 4 的命令源（控制台级别）
     ServerCommandSource permSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         4, // 权限等级 4

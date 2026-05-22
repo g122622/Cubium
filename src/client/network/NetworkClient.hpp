@@ -269,6 +269,7 @@ public:
     void sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand = 0);
     void sendHotbarSelect(i32 slot);
     void sendTeleportConfirm(u32 teleportId);
+    void sendConfirmDimensionChange(DimensionId dimension);
     void sendKeepAlive(u64 id);
     void sendChatMessage(const std::string& message);
     void sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet);

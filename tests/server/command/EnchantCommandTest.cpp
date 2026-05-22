@@ -376,7 +376,7 @@ TEST_F(EnchantCommandTest, EnchantCommandRequiresPermissionLevel2)
     // 创建一个权限等级 0 的命令源
     ServerCommandSource lowPermSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         0, // 权限等级 0

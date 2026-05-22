@@ -401,7 +401,7 @@ protected:
 
         return ServerCommandSource(&m_server,
             nullptr,
-            nullptr,
+            0,
             Vector3d(playerData->x, playerData->y, playerData->z),
             Vector2f(playerData->yaw, playerData->pitch),
             2,

@@ -297,15 +297,10 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context)
             continue;
         }
 
-        // 获取玩家所在的世界
-        ServerPlayer* player = getPlayerEntity(source, playerId);
-        IWorld* iworld = player != nullptr ? player->world() : nullptr;
-        server::ServerWorld* world = iworld != nullptr ? static_cast<server::ServerWorld*>(iworld) : nullptr;
-
-        // 创建修改位置和世界的命令源
+        // 创建修改位置和维度的命令源
         ServerCommandSource modifiedSource = source.withPosition(Vector3d(playerData->x, playerData->y, playerData->z));
-        if (world != nullptr) {
-            modifiedSource = modifiedSource.withWorld(world);
+        if (auto* playerWorld = server->getPlayerWorld(playerId)) {
+            modifiedSource = modifiedSource.withDimension(playerWorld->dimension());
         }
 
         // 执行嵌套命令

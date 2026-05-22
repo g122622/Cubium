@@ -393,7 +393,7 @@ TEST_F(TellRawCommandTest, TellRawCommandRequiresPermissionLevel2)
     // 创建一个权限等级 2 的命令源
     ServerCommandSource opSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         2, // 权限等级 2
@@ -515,7 +515,7 @@ TEST_F(TellRawCommandTest, TellRawCommandWithLowPermission)
     // 创建一个权限等级 1 的命令源（低于所需的 2）
     ServerCommandSource lowPermSource(&m_server,
         nullptr,
-        nullptr,
+        0,
         Vector3d(0, 0, 0),
         Vector2f(0, 0),
         1, // 权限等级 1

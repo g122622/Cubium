@@ -428,9 +428,6 @@ Result<void> MinecraftServer::initializeWorld()
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
 
-    // 初始化命令注册表
-    m_commandRegistry = std::make_unique<command::CommandRegistry>();
-
     return Result<void>::ok();
 }
 
@@ -1369,9 +1366,13 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
 
     if (!message.empty() && message[0] == '/') {
         // 执行命令
+        DimensionId commandDimension = 0;
+        if (auto* playerWorld = getPlayerWorld(playerId)) {
+            commandDimension = playerWorld->dimension();
+        }
         mc::command::ServerCommandSource source(this,
             nullptr,
-            getPlayerWorld(playerId),
+            commandDimension,
             Vector3d(player->x, player->y, player->z),
             Vector2f(player->yaw, player->pitch),
             4,

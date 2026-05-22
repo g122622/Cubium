@@ -79,6 +79,40 @@ TEST_F(ClientWorldClearChunksTest, ClearChunksWithUnloadCallback)
     EXPECT_EQ(unloadCount, 0); // 空世界没有区块要卸载
 }
 
+TEST_F(ClientWorldClearChunksTest, ClearChunksDoesNotResetDimensionId)
+{
+    m_world.setDimensionId(-1);
+
+    m_world.clearChunks();
+
+    EXPECT_EQ(m_world.dimensionId(), -1);
+}
+
+TEST_F(ClientWorldClearChunksTest, ChunkDataFromWrongDimensionIsDiscarded)
+{
+    m_world.setDimensionId(0);
+
+    std::vector<u8> invalidChunkData;
+    m_world.onChunkData(0, 0, -1, std::move(invalidChunkData));
+
+    EXPECT_EQ(m_world.chunkCount(), 0u);
+}
+
+TEST_F(ClientWorldClearChunksTest, ChunkUnloadFromWrongDimensionIsDiscarded)
+{
+    int unloadCount = 0;
+    m_world.setChunkUnloadCallback([&unloadCount](const ChunkId& id) {
+        (void)id;
+        ++unloadCount;
+    });
+
+    m_world.setDimensionId(0);
+    m_world.onChunkUnload(0, 0, -1);
+
+    EXPECT_EQ(m_world.chunkCount(), 0u);
+    EXPECT_EQ(unloadCount, 0);
+}
+
 // ========== ClientDimensionManager 测试 ==========
 
 /**

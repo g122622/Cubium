@@ -129,7 +129,7 @@ bool SignCommandHelper::executeCommand(const std::string& command, mc::ServerPla
     // MC 1.16.5: 告示牌命令源的权限级别为 2，位置为告示牌位置
     command::ServerCommandSource source(player.getServer(),
         &player,
-        player.getWorld(),
+        player.dimension(),
         Vector3d(
             static_cast<f64>(signPos.x) + 0.5, static_cast<f64>(signPos.y) + 0.5, static_cast<f64>(signPos.z) + 0.5),
         Vector2f(0.0f, 0.0f),

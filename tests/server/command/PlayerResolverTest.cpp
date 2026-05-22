@@ -520,7 +520,7 @@ TEST_F(PlayerResolverTest, ResolveSelfReturnsOwnPlayerId)
     m_server.addTestPlayer(1, "Alice");
     m_server.addTestPlayer(2, "Bob");
 
-    ServerCommandSource source(&m_server, nullptr, nullptr, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Alice");
+    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Alice");
 
     EntitySelector selector = EntitySelector::self();
 
