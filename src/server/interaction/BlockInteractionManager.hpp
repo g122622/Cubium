@@ -104,8 +104,7 @@ public:
     /**
      * @brief 构造函数
      */
-    BlockInteractionManager(
-        ServerWorld& world, core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager);
+    BlockInteractionManager(core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager);
 
     /**
      * @brief 设置物品栏管理器（用于物品消耗）
@@ -200,7 +199,7 @@ private:
      * @param pos 方块位置
      * @return 方块状态指针，如果无效或为空气则返回 nullptr
      */
-    [[nodiscard]] const BlockState* getNonAirBlockState(const BlockPos& pos) const;
+    [[nodiscard]] const BlockState* getNonAirBlockState(ServerWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查是否可以在当前世界执行修改操作
@@ -209,7 +208,7 @@ private:
      *
      * @return 如果禁止修改则返回错误，否则返回 std::nullopt
      */
-    [[nodiscard]] std::optional<Error> checkWorldModificationAllowed() const;
+    [[nodiscard]] std::optional<Error> checkWorldModificationAllowed(ServerWorld& world) const;
 
     /**
      * @brief 获取玩家手持物品
@@ -222,7 +221,7 @@ private:
     /**
      * @brief 获取真实玩家实体，用于 loot / owner 上下文。
      */
-    [[nodiscard]] Player* getPlayerEntity(PlayerId playerId) const;
+    [[nodiscard]] Player* getPlayerEntity(PlayerId playerId, ServerWorld& world) const;
 
     /**
      * @brief 将方块设置为空气并触发回调
@@ -232,7 +231,7 @@ private:
      * @param playerId 玩家ID（用于回调）
      * @return 空气方块状态ID，如果失败返回 0
      */
-    u32 setBlockToAir(const BlockPos& pos, const BlockState& oldState, PlayerId playerId);
+    u32 setBlockToAir(ServerWorld& world, const BlockPos& pos, const BlockState& oldState, PlayerId playerId);
 
     /**
      * @brief 验证玩家是否可以与方块交互（距离检查）
@@ -242,7 +241,8 @@ private:
     /**
      * @brief 验证玩家是否可以破坏方块
      */
-    [[nodiscard]] bool canBreakBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) const;
+    [[nodiscard]] bool canBreakBlock(
+        ServerWorld& world, PlayerId playerId, const BlockPos& pos, const BlockState* state) const;
 
     /**
      * @brief 检查候选放置方块是否与玩家碰撞箱相交
@@ -253,9 +253,15 @@ private:
         PlayerId playerId, const BlockPos& placePos, const BlockState& state) const;
 
     /**
+     * @brief 获取玩家当前所在维度的世界
+     */
+    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId playerId) const;
+
+    /**
      * @brief 生成方块掉落物
      */
-    void generateBlockDrops(const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool);
+    void generateBlockDrops(
+        ServerWorld& world, const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool);
 
     /**
      * @brief 处理告示牌命令执行
@@ -266,10 +272,9 @@ private:
      * @param player 执行命令的玩家
      * @return 如果执行了命令返回 true
      */
-    bool handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player);
+    bool handleSignCommand(ServerWorld& world, const BlockPos& pos, mc::ServerPlayer& player);
 
 private:
-    ServerWorld& m_world;
     core::PlayerManager& m_playerManager;
     loot::LootTableManager& m_lootTableManager;
     InventoryManager* m_inventoryManager = nullptr;

@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
-#include "server/core/PlayerManager.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include "common/BaseTestServer.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootTable.hpp"
@@ -36,10 +36,14 @@
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-
 using namespace mc;
 
 namespace {
+
+class BlockInteractionTestServer final : public test::BaseTestServer {
+public:
+    explicit BlockInteractionTestServer(server::ServerWorld& world) { setPlayerWorld(&world); }
+};
 
 class BlockInteractionManagerPlacementTest : public ::testing::Test {
 protected:
@@ -62,6 +66,7 @@ protected:
         m_connectionPair = std::make_unique<network::LocalConnectionPair>();
         m_connectionPair->connect();
 
+        m_server = std::make_unique<BlockInteractionTestServer>(*m_world);
         m_playerManager = std::make_unique<server::core::PlayerManager>();
         auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
         m_player = m_playerManager->addPlayer(m_playerId,
@@ -79,9 +84,10 @@ protected:
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
         m_inventoryManager->initializeInventory(m_playerId);
 
-        m_blockInteractionManager = std::make_unique<server::interaction::BlockInteractionManager>(
-            *m_world, *m_playerManager, m_lootTableManager);
+        m_blockInteractionManager =
+            std::make_unique<server::interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
         m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
+        m_blockInteractionManager->setServer(m_server.get());
     }
 
     void TearDown() override
@@ -113,6 +119,7 @@ protected:
     static constexpr PlayerId m_playerId = 1;
 
     std::unique_ptr<server::ServerWorld> m_world;
+    std::unique_ptr<BlockInteractionTestServer> m_server;
     std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;

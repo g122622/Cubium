@@ -72,11 +72,12 @@ struct BlockPlacementResult {
 |------|------|
 | `validatePlayer()` | 验证玩家数据有效性（存在且已登录） |
 | `validateInteractionPreconditions()` | 组合验证：玩家验证 + 距离验证 + Y范围验证（可选） |
-| `getNonAirBlockState()` | 获取方块状态并检查是否为空气 |
-| `checkWorldModificationAllowed()` | 检查是否可以在当前世界执行修改操作（调试世界检查） |
+| `getNonAirBlockState()` | 在玩家当前维度世界中获取方块状态并检查是否为空气 |
+| `checkWorldModificationAllowed()` | 检查玩家当前维度世界是否允许修改（调试世界检查） |
 | `getHeldTool()` | 获取玩家手持物品 |
-| `setBlockToAir()` | 将方块设置为空气并触发回调 |
-| `handleSignCommand()` | 处理告示牌命令执行（右键点击告示牌时触发） |
+| `setBlockToAir()` | 在玩家当前维度世界中将方块设置为空气并触发回调 |
+| `getPlayerWorld()` | 通过 `IServer::getPlayerWorld(PlayerId)` 解析玩家当前维度世界 |
+| `handleSignCommand()` | 在玩家当前维度世界中处理告示牌命令执行（右键点击告示牌时触发） |
 
 **交互距离验证**：
 - 玩家眼睛位置到方块中心距离平方 <= 36.0（6格）
@@ -88,9 +89,10 @@ struct BlockPlacementResult {
 **告示牌命令执行**（MC 1.16.5）：
 当玩家右键点击告示牌（`handleBlockUse`）时，会自动检查并执行告示牌文本中的点击事件：
 1. 检测方块是否为告示牌（`BlockEntityType::Sign`）
-2. 获取 `ServerPlayer` 实体（通过 `IServer::playerEntityManager()`）
-3. 调用 `SignCommandHelper::executeSignCommands()` 执行命令
-4. 仅执行 `RunCommand` 类型的点击事件（其他类型如 `OpenUrl` 由客户端处理）
+2. 通过 `IServer::getPlayerWorld(PlayerId)` 获取玩家当前世界
+3. 获取 `ServerPlayer` 实体（通过 `IServer::playerEntityManager()`）
+4. 调用 `SignCommandHelper::executeSignCommands()` 执行命令
+5. 仅执行 `RunCommand` 类型的点击事件（其他类型如 `OpenUrl` 由客户端处理）
 
 ---
 
@@ -325,7 +327,7 @@ struct OpenContainer {
 
 | 模块 | 依赖 |
 |------|------|
-| BlockInteractionManager | ServerWorld, PlayerManager, LootTableManager, InventoryManager, BlockDropHandler, BlockItemRegistry, IServer |
+| BlockInteractionManager | PlayerManager, LootTableManager, InventoryManager, BlockDropHandler, BlockItemRegistry, IServer |
 | MiningManager | PlayerManager, ConnectionManager, ServerWorld, InventoryManager |
 | ContainerManager | PlayerManager |
 | InventoryManager | PlayerManager |
@@ -440,8 +442,8 @@ struct OpenContainer {
 m_inventoryManager = std::make_unique<interaction::InventoryManager>(*m_playerManager);
 m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_connectionManager);
 m_containerManager = std::make_unique<interaction::ContainerManager>(*m_playerManager);
-m_blockInteractionManager = std::make_unique<interaction::BlockInteractionManager>(
-    *m_world, *m_playerManager, *m_lootTableManager);
+m_blockInteractionManager =
+    std::make_unique<interaction::BlockInteractionManager>(*m_playerManager, *m_lootTableManager);
 
 // 设置依赖
 m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
@@ -479,7 +481,10 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const Player
 
 ```cpp
 void MinecraftServer::tick() {
-    m_miningManager->tick(*m_world);
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        m_miningManager->tick(*serverDim->world());
+    });
 }
 ```
 
@@ -550,6 +555,14 @@ void MinecraftServer::tick() {
 - `setSelectedSlot` 限制范围为 0-8
 - `setItem` 限制范围为 0-35（主背包+快捷栏）
 - 添加边界检查和日志警告
+
+### 9. 不要把方块交互器重新绑回主世界
+
+**问题**：`BlockInteractionManager` 现在必须按玩家维度解析 `ServerWorld`，不能在构造期固定抓住主世界。
+
+**解决方案**：
+- 交互时通过 `IServer::getPlayerWorld(playerId)` 获取当前世界。
+- 告示牌命令、掉落物、方块状态查询都基于该玩家当前维度执行。
 
 ---
 

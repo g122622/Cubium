@@ -272,6 +272,11 @@ public:
      */
     [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override { return m_lootTableManager; }
     [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override { return m_lootTableManager; }
+    [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return m_storage.get(); }
+    [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override
+    {
+        return m_storage.get();
+    }
     [[nodiscard]] ResourcePackList& resourcePackList() { return m_resourcePackList; }
     [[nodiscard]] const ResourcePackList& resourcePackList() const { return m_resourcePackList; }
     [[nodiscard]] mc::resource::DataPackList& dataPackList() override { return m_dataPackList; }

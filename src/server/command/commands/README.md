@@ -76,7 +76,7 @@ src/server/command/commands/
 - `StopCommand.*`：请求服务器停机。
 - `TeleportCommand.*`：处理 `/tp` 与 `/teleport` 的传送逻辑。
 - `TimeCommand.*`：修改或查询游戏时间。
-- `WeatherCommand.*`：修改或查询天气状态。
+- `WeatherCommand.*`：修改或查询天气状态，统一通过 `ServerCommandSource::world()` 获取当前世界天气管理器。
 - `TeamCommand.*`：队伍系统管理命令。
   - `/team add <team>`：创建新队伍
   - `/team remove <team>`：移除队伍
@@ -107,6 +107,7 @@ src/server/command/commands/
 - 每个命令通过 `ServerCommandSource` 读取权限、玩家、世界和反馈输出。
 - `support/` 目录提供共享的元数据、参数解析、玩家解析等辅助逻辑。
 - `/clear` 通过 `IServer` 的抽象库存接口工作，不再直接绑定具体服务器实现。
+- `save-all` / `save-on` / `save-off` 通过 `IServer::sharedStorage()` 获取共享存储，不再绕主世界。
 
 ## 整体职责
 

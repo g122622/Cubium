@@ -37,6 +37,19 @@
 namespace mc {
 namespace command {
 
+namespace {
+
+[[nodiscard]] server::WeatherManager* getWeatherManager(ServerCommandSource& source)
+{
+    auto* world = source.world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+    return world->weatherManager();
+}
+
+} // namespace
+
 void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     using namespace mc::command;
@@ -89,20 +102,14 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (!server) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
-
-    auto* overworld = server->dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+    auto* weatherManager = getWeatherManager(source);
+    if (weatherManager == nullptr) {
         source.sendMessage("Weather manager not available");
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    overworld->world()->weatherManager()->setClear(duration);
+    weatherManager->setClear(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -115,20 +122,14 @@ i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context)
 i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (!server) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
-
-    auto* overworld = server->dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+    auto* weatherManager = getWeatherManager(source);
+    if (weatherManager == nullptr) {
         source.sendMessage("Weather manager not available");
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    overworld->world()->weatherManager()->setRain(duration);
+    weatherManager->setRain(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -141,20 +142,14 @@ i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context)
 i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (!server) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
-
-    auto* overworld = server->dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+    auto* weatherManager = getWeatherManager(source);
+    if (weatherManager == nullptr) {
         source.sendMessage("Weather manager not available");
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    overworld->world()->weatherManager()->setThunder(duration);
+    weatherManager->setThunder(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -167,22 +162,15 @@ i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context)
 i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (!server) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
-
-    auto* overworld = server->dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+    auto* weatherMgr = getWeatherManager(source);
+    if (weatherMgr == nullptr) {
         source.sendMessage("Weather manager not available");
         return 0;
     }
 
-    auto& weatherMgr = *overworld->world()->weatherManager();
-    auto type = static_cast<i32>(weatherMgr.weatherType());
-    f32 rainStrength = weatherMgr.rainStrength();
-    f32 thunderStrength = weatherMgr.thunderStrength();
+    auto type = static_cast<i32>(weatherMgr->weatherType());
+    f32 rainStrength = weatherMgr->rainStrength();
+    f32 thunderStrength = weatherMgr->thunderStrength();
 
     std::string typeStr;
     switch (type) {

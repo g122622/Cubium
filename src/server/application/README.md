@@ -295,6 +295,7 @@ server/application/
 - `MinecraftServer` 不再持有同步管理器（`m_entitySyncManager`、`m_chunkSendManager`、`m_blockUpdateSyncManager`、`m_lightSyncManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。
 - `MinecraftServer` 不再持有刷怪管理器（`m_naturalSpawner`、`m_despawnManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。
 - `IServer` 接口新增 `getPlayerWorld(PlayerId)` 方法用于维度感知的世界访问，替代原有的 `world()` 单世界访问器。
+- `IServer` 提供 `sharedStorage()` 作为跨维度共享存储入口，`save-*` 等命令不再通过主世界 `ServerWorld` 绕行。
 
 ## 模块关系
 

@@ -142,6 +142,7 @@ server/
 
 **重要架构变更**：
 - `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
+- 共享存储访问必须通过 `IServer::sharedStorage()` 进行，不再通过主世界 `ServerWorld` 绕行。
 - `NaturalSpawner` 和 `DespawnManager` 现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
 - 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
 - 多维度 tick 由 `ServerDimensionManager::tick()` 统一驱动。

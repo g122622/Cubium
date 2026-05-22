@@ -422,8 +422,7 @@ Result<void> MinecraftServer::initializeWorld()
         return Error(ErrorCode::NotInitialized, "Overworld dimension not initialized");
     }
 
-    // 初始化物理引擎
-    // TODO: 创建碰撞世界适配器
+    // 物理系统当前通过各维度 world 自身暴露的碰撞查询能力工作，这里不再保留未接入占位。
 
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
@@ -435,11 +434,8 @@ void MinecraftServer::initializeInteractionManagers()
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeInteractionManagers");
 
-    auto* overworld = m_dimensionManager->getOverworld();
-    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
-
-    m_blockInteractionManager = std::make_unique<interaction::BlockInteractionManager>(
-        *overworld->world(), *m_playerManager, m_lootTableManager);
+    m_blockInteractionManager =
+        std::make_unique<interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
 
     m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_connectionManager);
 

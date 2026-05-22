@@ -85,6 +85,9 @@ AdvancementEventHandler 需要从 PlayerId 获取 ServerPlayer 以触发成就�
 PlayerId (事件携带)
        │
        ▼
+IServer::getPlayerWorld(playerId)
+       │
+       ▼
 IServer::playerEntityManager()
        │
        ▼
@@ -104,7 +107,9 @@ ServerPlayer*
 
 1. **不使用 PlayerManager**：`PlayerManager::getPlayer()` 返回 `ServerPlayerData`，这是网络会话数据结构，不持有 `ServerPlayer` 引用。
 
-2. **使用 ServerPlayerEntityManager**：这是正确的路径，它维护 `PlayerId ↔ EntityId` 映射，并能从 `EntityManager` 获取 `Player` 实体。
+2. **先解析玩家当前世界**：必须先通过 `IServer::getPlayerWorld(PlayerId)` 获取玩家当前维度的 `ServerWorld`。
+
+3. **使用 ServerPlayerEntityManager**：这是正确的路径，它维护 `PlayerId ↔ EntityId` 映射，并能从对应维度的 `EntityManager` 获取 `Player` 实体。
 
 3. **初始化顺序**：必须在 `initialize()` 之前调用 `setServer(this)`。
 
@@ -139,6 +144,7 @@ m_advancementEventHandler.initialize();
 AdvancementEventHandler 使用两种方式获取玩家：
 
 1. **通过 PlayerId（事件携带）**：用于 `InventoryChangedEvent`、`PlayerKillEntityEvent`、`BlockPlaceEvent`
+   - 先使用 `IServer::getPlayerWorld(playerId)` 获取玩家当前世界
    - 使用 `IServer::playerEntityManager()` 获取 `ServerPlayerEntityManager`
    - 通过 `getPlayerEntity(playerId, world)` 获取 `Player*`
    - 转换为 `ServerPlayer*`

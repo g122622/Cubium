@@ -207,6 +207,10 @@ public:
 
 **权限等级：** 2
 
+**实现约束：**
+- 天气命令通过 `ServerCommandSource::world()` 获取当前命令上下文世界。
+- 不再允许命令层直接通过 `getOverworld()` 获取天气管理器。
+
 #### TimeCommand - /time 命令
 
 控制游戏时间。
@@ -309,8 +313,8 @@ public:
 
 **实现状态：**
 
-- 已接入 `ServerWorld` 持有的 `SingleLevelStorageManager`
-- 命令层只负责调用保存协调器的 `startAutoSave()` / `stopAutoSave()`
+- 已接入 `IServer::sharedStorage()` 返回的共享 `SingleLevelStorageManager`
+- 命令层不再通过主世界 `ServerWorld` 绕行存储入口
 
 #### HelpCommand - /help 命令
 

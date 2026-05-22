@@ -67,8 +67,7 @@ struct ClientChunk {
 /**
  * @brief 客户端世界管理器
  *
- * 管理客户端区块数据、异步网格构建和天气时间同步。
- * TODO 为什么不继承 IWorld？这是严重的设计问题！
+ * 管理客户端区块数据、异步网格构建、维度校验和天气时间同步。
  */
 class ClientWorld : public ICollisionWorld {
 public:

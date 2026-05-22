@@ -45,12 +45,11 @@ namespace {
 
 [[nodiscard]] world::storage::SingleLevelStorageManager* getSharedStorage(server::IServer& server)
 {
-    auto* overworld = server.dimensionManager().getOverworld();
-    auto* serverWorld = (overworld && overworld->world()) ? overworld->world()->asServerWorld() : nullptr;
-    if (serverWorld == nullptr || !serverWorld->isStorageOpen()) {
+    auto* storage = server.sharedStorage();
+    if (storage == nullptr || !storage->isOpen()) {
         return nullptr;
     }
-    return &serverWorld->storage();
+    return storage;
 }
 
 } // namespace

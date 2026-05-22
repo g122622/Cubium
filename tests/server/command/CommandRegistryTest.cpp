@@ -23,251 +23,16 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/BaseTestServer.hpp"
 #include "common/item/Items.hpp"
-#include "common/network/connection/IServerConnection.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "common/util/UuidUtils.hpp"
-#include "server/application/IServer.hpp"
-#include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PacketHandler.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/WhitelistManager.hpp"
-#include "server/interaction/InventoryManager.hpp"
-#include "server/scoreboard/ServerScoreboard.hpp"
-
-#include <stdexcept>
-#include <vector>
-
-// Forward declaration for ServerPlayerEntityManager (only needed for interface declaration)
-namespace mc::server {
-class ServerPlayerEntityManager;
-class ServerScoreboard;
-} // namespace mc::server
 
 namespace mc::command {
 namespace {
-
-/**
- * @brief 命令测试使用的假连接。
- *
- * 该连接只负责满足 `PlayerManager`、`ConnectionManager` 与 `TeleportManager`
- * 对连接接口的最小要求，并记录发送行为，避免测试依赖真实网络层。
- */
-class FakeConnection final : public network::IServerConnection {
+class FakeServer final : public test::BaseTestServer {
 public:
-    /**
-     * @brief 记录一次发送。
-     *
-     * @param data 数据指针。
-     * @param size 数据长度。
-     */
-    void send(const u8* data, size_t size) override
-    {
-        if (data != nullptr && size > 0) {
-            m_sentData.insert(m_sentData.end(), data, data + size);
-        }
-    }
-
-    /**
-     * @brief 断开连接。
-     *
-     * @param reason 断开原因。
-     */
-    void disconnect(const std::string& reason = "") override
-    {
-        m_disconnectReason = reason;
-        m_connected = false;
-    }
-
-    /**
-     * @brief 查询连接是否仍有效。
-     *
-     * @return `true` 表示仍连接。
-     */
-    [[nodiscard]] bool isConnected() const override { return m_connected; }
-
-    /**
-     * @brief 获取连接标识字符串。
-     */
-    [[nodiscard]] std::string identifier() const override { return "FakeConnection"; }
-
-    /**
-     * @brief 获取连接类型。
-     */
-    [[nodiscard]] network::ConnectionType type() const override { return network::ConnectionType::Local; }
-
-    /**
-     * @brief 获取远程地址（IP 地址）。
-     */
-    [[nodiscard]] std::string getAddress() const override { return ""; }
-
-    /**
-     * @brief 获取最近一次断开原因。
-     */
-    [[nodiscard]] const std::string& disconnectReason() const noexcept { return m_disconnectReason; }
-
-    [[nodiscard]] size_t sentBytes() const noexcept { return m_sentData.size(); }
-
-private:
-    bool m_connected = true;
-    std::string m_disconnectReason;
-    std::vector<u8> m_sentData;
-};
-
-class FakeServer final : public server::IServer {
-public:
-    FakeServer()
-        : m_playerManager(20)
-        , m_inventoryManager(m_playerManager)
-        , m_connectionManager(m_playerManager)
-        , m_timeManager(0, 1000)
-        , m_teleportManager(m_playerManager)
-        , m_keepAliveManager(m_playerManager, 15000, 30000)
-        , m_positionTracker(m_playerManager, 10)
-        , m_packetHandler(m_playerManager,
-              m_connectionManager,
-              m_teleportManager,
-              m_keepAliveManager,
-              m_positionTracker,
-              m_timeManager,
-              GameMode::Survival)
-        , m_gameModeManager(m_playerManager, m_connectionManager)
-        , m_commandRegistry()
-        , m_scoreboard(*this)
-    {
-        Items::initialize();
-    }
-
-    [[nodiscard]] Result<void> initialize() override { return Result<void>::ok(); }
-    void shutdown() override { m_running = false; }
-    void tick() override {}
-    [[nodiscard]] bool isRunning() const override { return m_running; }
-
-    [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
-    [[nodiscard]] bool isDedicated() const noexcept override { return true; }
-
-    [[nodiscard]] server::core::PlayerManager& playerManager() override { return m_playerManager; }
-    [[nodiscard]] const server::core::PlayerManager& playerManager() const override { return m_playerManager; }
-    [[nodiscard]] server::core::ConnectionManager& connectionManager() override { return m_connectionManager; }
-    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override
-    {
-        return m_connectionManager;
-    }
-    [[nodiscard]] server::core::TimeManager& timeManager() override { return m_timeManager; }
-    [[nodiscard]] const server::core::TimeManager& timeManager() const override { return m_timeManager; }
-    [[nodiscard]] server::core::TeleportManager& teleportManager() override { return m_teleportManager; }
-    [[nodiscard]] const server::core::TeleportManager& teleportManager() const override { return m_teleportManager; }
-    [[nodiscard]] server::core::KeepAliveManager& keepAliveManager() override { return m_keepAliveManager; }
-    [[nodiscard]] const server::core::KeepAliveManager& keepAliveManager() const override { return m_keepAliveManager; }
-    [[nodiscard]] server::core::PositionTracker& positionTracker() override { return m_positionTracker; }
-    [[nodiscard]] const server::core::PositionTracker& positionTracker() const override { return m_positionTracker; }
-    [[nodiscard]] server::core::PacketHandler& packetHandler() override { return m_packetHandler; }
-    [[nodiscard]] const server::core::PacketHandler& packetHandler() const override { return m_packetHandler; }
-    [[nodiscard]] server::core::GameModeManager& gameModeManager() override { return m_gameModeManager; }
-    [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override { return m_gameModeManager; }
-    [[nodiscard]] server::core::WhitelistManager& whitelistManager() override { return m_whitelistManager; }
-    [[nodiscard]] const server::core::WhitelistManager& whitelistManager() const override { return m_whitelistManager; }
-    [[nodiscard]] server::core::BannedPlayerList& bannedPlayerList() override { return m_bannedPlayerList; }
-    [[nodiscard]] const server::core::BannedPlayerList& bannedPlayerList() const override { return m_bannedPlayerList; }
-    [[nodiscard]] server::core::BannedIpList& bannedIpList() override { return m_bannedIpList; }
-    [[nodiscard]] const server::core::BannedIpList& bannedIpList() const override { return m_bannedIpList; }
-    [[nodiscard]] server::core::OpListManager& opListManager() override { return m_opListManager; }
-    [[nodiscard]] const server::core::OpListManager& opListManager() const override { return m_opListManager; }
-
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
-
-    [[nodiscard]] server::ServerWorld* getPlayerWorld(PlayerId) override { return nullptr; }
-
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::interaction::MiningManager& miningManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::MiningManager& miningManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::interaction::ContainerManager& containerManager() override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-    [[nodiscard]] server::interaction::InventoryManager& inventoryManager() override { return m_inventoryManager; }
-    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override
-    {
-        return m_inventoryManager;
-    }
-    [[nodiscard]] mc::PlayerInventory* playerInventory(PlayerId playerId) override
-    {
-        return m_inventoryManager.getInventory(playerId);
-    }
-    [[nodiscard]] const mc::PlayerInventory* playerInventory(PlayerId playerId) const override
-    {
-        return m_inventoryManager.getInventory(playerId);
-    }
-
-    [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return m_commandRegistry; }
-    [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
-
-    [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
-    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
-    [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override
-    {
-        throw std::logic_error("unused");
-    }
-
-    [[nodiscard]] resource::DataPackList& dataPackList() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const resource::DataPackList& dataPackList() const override { throw std::logic_error("unused"); }
-
-    [[nodiscard]] loot::LootTableManager& lootTableManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const loot::LootTableManager& lootTableManager() const override { throw std::logic_error("unused"); }
-
-    [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
-    [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }
-    [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] u64 currentTick() const override { return m_timeManager.currentTick(); }
-    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    void setDifficulty(Difficulty difficulty) override { m_difficulty = difficulty; }
-    [[nodiscard]] GameMode defaultGameMode() const override { return m_defaultGameMode; }
-    void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
-    [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
-    void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
-    void broadcastServerMessage(std::string_view message) override { m_lastBroadcastMessage = std::string(message); }
-    void requestStop() override
-    {
-        m_stopRequested = true;
-        m_running = false;
-    }
+    FakeServer() { Items::initialize(); }
 
     void broadcastParticleInRange(u32 type,
         f64 x,
@@ -288,18 +53,13 @@ public:
         m_lastParticleZ = z;
         m_lastParticleCount = count;
         m_particleBroadcastCalled = true;
-        (void)velocityX;
-        (void)velocityY;
-        (void)velocityZ;
-        (void)offsetX;
-        (void)offsetY;
-        (void)offsetZ;
-        (void)range;
-    }
-
-    void sendSoundToPlayer(PlayerId, const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
-    {
-        // 空实现，用于测试
+        MC_UNUSED(velocityX);
+        MC_UNUSED(velocityY);
+        MC_UNUSED(velocityZ);
+        MC_UNUSED(offsetX);
+        MC_UNUSED(offsetY);
+        MC_UNUSED(offsetZ);
+        MC_UNUSED(range);
     }
 
     [[nodiscard]] bool particleBroadcastCalled() const noexcept { return m_particleBroadcastCalled; }
@@ -318,66 +78,16 @@ public:
      *
      * @warning 测试用例应保证 `playerId` 唯一，否则 `PlayerManager` 会拒绝插入。
      */
-    [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const std::string& username)
-    {
-        auto connection = std::make_shared<FakeConnection>();
-        std::string uuid = util::uuidToString(util::generateOfflineUuid(username));
-        auto* player = m_playerManager.addPlayer(playerId, uuid, username, connection);
-        if (player != nullptr) {
-            m_connections.push_back(connection);
-            m_inventoryManager.initializeInventory(playerId);
-        }
-        return player;
-    }
-
-    /**
-     * @brief 查询最近插入的测试连接。
-     *
-     * @return 最近一个测试连接；若不存在则返回空指针。
-     */
-    [[nodiscard]] std::shared_ptr<FakeConnection> lastConnection() const
-    {
-        return m_connections.empty() ? nullptr : m_connections.back();
-    }
-
-    [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
-    [[nodiscard]] bool stopRequested() const noexcept { return m_stopRequested; }
+    using test::BaseTestServer::lastConnection;
+    using test::BaseTestServer::stopRequested;
 
 private:
-    i32 m_viewDistance = 10;
-    i32 m_maxPlayers = 20;
-    u64 m_seed = 0;
-    bool m_running = true;
-    Difficulty m_difficulty = Difficulty::Normal;
-    GameMode m_defaultGameMode = GameMode::Survival;
-    i32 m_idleTimeoutMinutes = 0;
-    bool m_stopRequested = false;
-    std::string m_lastBroadcastMessage;
-
-    // 粒子广播记录
     bool m_particleBroadcastCalled = false;
     u32 m_lastParticleType = 0;
     f64 m_lastParticleX = 0.0;
     f64 m_lastParticleY = 0.0;
     f64 m_lastParticleZ = 0.0;
     u32 m_lastParticleCount = 0;
-
-    server::core::PlayerManager m_playerManager;
-    server::interaction::InventoryManager m_inventoryManager;
-    server::core::ConnectionManager m_connectionManager;
-    server::core::TimeManager m_timeManager;
-    server::core::TeleportManager m_teleportManager;
-    server::core::KeepAliveManager m_keepAliveManager;
-    server::core::PositionTracker m_positionTracker;
-    server::core::PacketHandler m_packetHandler;
-    server::core::GameModeManager m_gameModeManager;
-    server::core::WhitelistManager m_whitelistManager;
-    server::core::BannedPlayerList m_bannedPlayerList;
-    server::core::BannedIpList m_bannedIpList;
-    server::core::OpListManager m_opListManager;
-    mc::command::CommandRegistry m_commandRegistry;
-    server::ServerScoreboard m_scoreboard;
-    std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };
 
 class CommandRegistryServerTest : public ::testing::Test {

@@ -51,6 +51,9 @@ namespace world {
 namespace tick {
 class TickManager;
 }
+namespace storage {
+class SingleLevelStorageManager;
+}
 } // namespace world
 namespace command {
 class CommandRegistry;
@@ -245,6 +248,14 @@ public:
      */
     [[nodiscard]] virtual loot::LootTableManager& lootTableManager() = 0;
     [[nodiscard]] virtual const loot::LootTableManager& lootTableManager() const = 0;
+
+    /**
+     * @brief 获取共享世界存储。
+     *
+     * 返回跨维度共享的单关卡存储入口，不再要求调用方通过主世界绕行。
+     */
+    [[nodiscard]] virtual world::storage::SingleLevelStorageManager* sharedStorage() = 0;
+    [[nodiscard]] virtual const world::storage::SingleLevelStorageManager* sharedStorage() const = 0;
 
     // ========== 记分板系统 ==========
 

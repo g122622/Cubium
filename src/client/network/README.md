@@ -54,8 +54,8 @@ src/client/network/
 
 **游戏事件**:
 - `onTeleport(x, y, z, yaw, pitch, teleportId)`: 传送
-- `onChunkData(x, z, data)`: 区块数据
-- `onChunkUnload(x, z)`: 卸载区块
+- `onChunkData(x, z, dimension, data)`: 区块数据（携带维度 ID）
+- `onChunkUnload(x, z, dimension)`: 卸载区块（携带维度 ID）
 - `onPlayerSpawn(playerId, username, x, y, z)`: 玩家生成
 - `onPlayerDespawn(playerId)`: 玩家消失
 - `onBlockUpdate(x, y, z, blockStateId)`: 方块更新
@@ -375,6 +375,7 @@ callbacks.onConnected = []() {
     spdlog::info("Connected to server!");
 };
 callbacks.onChunkData = [](mc::ChunkCoord x, mc::ChunkCoord z,
+                           mc::DimensionId dimension,
                            const std::vector<mc::u8>& data) {
     // 处理区块数据
 };

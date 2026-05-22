@@ -66,8 +66,9 @@ namespace mc::server::advancement {
  * 这通过以下路径实现：
  *
  * 1. IServer::playerEntityManager() → ServerPlayerEntityManager
- * 2. ServerPlayerEntityManager::getPlayerEntity(playerId, world) → Player*
- * 3. Player::asServerPlayer() → ServerPlayer*
+ * 2. IServer::getPlayerWorld(playerId) → ServerWorld*
+ * 3. ServerPlayerEntityManager::getPlayerEntity(playerId, world) → Player*
+ * 4. Player::asServerPlayer() → ServerPlayer*
  *
  * 注意：不使用 PlayerManager::getPlayer() 获取 ServerPlayerData，
  * 因为 ServerPlayerData 只存储网络会话数据，不持有 ServerPlayer 引用。
@@ -1048,18 +1049,15 @@ private:
             return nullptr;
         }
 
-        // 获取 ServerPlayerEntityManager
-        auto& entityManager = m_server->playerEntityManager();
-
-        // 获取主世界
-        auto* overworld = m_server->dimensionManager().getOverworld();
-        if (overworld == nullptr || overworld->world() == nullptr) {
+        ServerWorld* world = m_server->getPlayerWorld(playerId);
+        if (world == nullptr) {
             return nullptr;
         }
-        auto& world = *overworld->world();
+
+        auto& entityManager = m_server->playerEntityManager();
 
         // 通过 PlayerId 获取 Player 实体
-        mc::Player* player = entityManager.getPlayerEntity(playerId, world);
+        mc::Player* player = entityManager.getPlayerEntity(playerId, *world);
         if (player == nullptr) {
             return nullptr;
         }

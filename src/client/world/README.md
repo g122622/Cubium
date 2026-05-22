@@ -34,7 +34,9 @@ src/client/world/
 - 每帧驱动：`update(const MeshSchedulerViewState&)`。
 - 网格系统：`initializeMeshSystem(threadCount, config)`、`shutdownMeshSystem()`、`processMeshBuildResults(maxPerFrame)`。
 - 区块同步：`onChunkData(...)`、`onChunkUnload(...)`。
-- 维度切换：`clearChunks()` - 清空所有区块数据，用于维度切换时重置世界状态。
+- 当前维度标签：`dimensionId()`、`setDimensionId()`。
+- 维度错误区块保护：收到不属于当前维度的区块包/卸载包时记录告警并丢弃。
+- 维度切换：`setDimensionId()` 先更新当前维度，再通过 `clearChunks()` 清空旧维度区块，随后 `resetWeather()` 清空天气状态。
 
 ### ClientWeather.hpp
 
@@ -176,6 +178,8 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 
 - `update()` 不再接收“仅相机位置”。
   - 必须传完整 `MeshSchedulerViewState`，否则视锥优先与取消策略失效。
+- 维度切换顺序不能乱。
+  - 正确顺序是先 `setDimensionId()`，再 `clearChunks()`，这样迟到的旧维度区块包才会被丢弃。
 - 区块卸载时要先取消调度任务。
   - 已在 `onChunkUnload()` 中调用 `MeshBuildScheduler::cancelChunk`。
 - 不要假设每次 `onChunkData` 都是新建区块。

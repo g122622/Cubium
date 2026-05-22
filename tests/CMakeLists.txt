@@ -33,6 +33,7 @@ add_executable(mc_tests
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
     common/TestWorldHelper.cpp
+    common/BaseTestServer.cpp
     common/test_block.cpp
     common/test_chunk_generation.cpp
     common/test_biome.cpp
@@ -1498,6 +1499,7 @@ if(MC_BUILD_CLIENT)
 endif()
 
 add_executable(mc_command_tests
+    common/BaseTestServer.cpp
     server/command/CommandRegistryTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/TeamCommandTest.cpp
@@ -1659,6 +1661,7 @@ target_include_directories(mc_command_tests
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/tests
 )
 
 mc_disable_all_warnings_for_tests(mc_command_tests)

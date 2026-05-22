@@ -84,18 +84,18 @@ std::optional<Error> BlockInteractionManager::validateInteractionPreconditions(
     return std::nullopt;
 }
 
-const BlockState* BlockInteractionManager::getNonAirBlockState(const BlockPos& pos) const
+const BlockState* BlockInteractionManager::getNonAirBlockState(ServerWorld& world, const BlockPos& pos) const
 {
-    const BlockState* state = m_world.getBlockState(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return nullptr;
     }
     return state;
 }
 
-std::optional<Error> BlockInteractionManager::checkWorldModificationAllowed() const
+std::optional<Error> BlockInteractionManager::checkWorldModificationAllowed(ServerWorld& world) const
 {
-    if (m_world.isDebugWorld()) {
+    if (world.isDebugWorld()) {
         return Error(ErrorCode::PermissionDenied, "Cannot modify blocks in debug world");
     }
     return std::nullopt;
@@ -109,23 +109,24 @@ ItemStack BlockInteractionManager::getHeldTool(PlayerId playerId) const
     return m_inventoryManager->getHeldItem(playerId);
 }
 
-Player* BlockInteractionManager::getPlayerEntity(PlayerId playerId) const
+Player* BlockInteractionManager::getPlayerEntity(PlayerId playerId, ServerWorld& world) const
 {
     if (m_server == nullptr) {
         return nullptr;
     }
 
-    return m_server->playerEntityManager().getPlayerEntity(playerId, m_world);
+    return m_server->playerEntityManager().getPlayerEntity(playerId, world);
 }
 
-u32 BlockInteractionManager::setBlockToAir(const BlockPos& pos, const BlockState& oldState, PlayerId playerId)
+u32 BlockInteractionManager::setBlockToAir(
+    ServerWorld& world, const BlockPos& pos, const BlockState& oldState, PlayerId playerId)
 {
     Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
     if (!airBlock) {
         return 0;
     }
 
-    m_world.setBlockState(pos, &airBlock->defaultState());
+    world.setBlockState(pos, &airBlock->defaultState());
 
     if (m_onBlockBreak) {
         m_onBlockBreak(playerId, pos, oldState);
@@ -139,11 +140,18 @@ u32 BlockInteractionManager::setBlockToAir(const BlockPos& pos, const BlockState
 // ============================================================================
 
 BlockInteractionManager::BlockInteractionManager(
-    ServerWorld& world, core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager)
-    : m_world(world)
-    , m_playerManager(playerManager)
+    core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager)
+    : m_playerManager(playerManager)
     , m_lootTableManager(lootTableManager)
 {}
+
+ServerWorld* BlockInteractionManager::getPlayerWorld(PlayerId playerId) const
+{
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+    return m_server->getPlayerWorld(playerId);
+}
 
 void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryManager)
 {
@@ -173,8 +181,13 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
         return std::move(*preconditionError);
     }
 
+    ServerWorld* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
     // 获取方块状态
-    const BlockState* state = getNonAirBlockState(pos);
+    const BlockState* state = getNonAirBlockState(*world, pos);
     if (!state) {
         return BlockInteractionResult{false, "No block to interact with"};
     }
@@ -191,15 +204,15 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
 
         case network::BlockInteractionAction::StopDestroyBlock:
             // 完成破坏
-            if (canBreakBlock(playerId, pos, state)) {
+            if (canBreakBlock(*world, playerId, pos, state)) {
                 // 获取手持物品作为工具
                 ItemStack tool = getHeldTool(playerId);
 
                 // 生成掉落物
-                generateBlockDrops(pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
+                generateBlockDrops(*world, pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
 
                 // 设置为空气
-                setBlockToAir(pos, *state, playerId);
+                setBlockToAir(*world, pos, *state, playerId);
 
                 return BlockInteractionResult{true, "Block destroyed"};
             }
@@ -226,7 +239,12 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 检查世界修改权限
-    auto worldError = checkWorldModificationAllowed();
+    ServerWorld* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
+    auto worldError = checkWorldModificationAllowed(*world);
     if (worldError) {
         return std::move(*worldError);
     }
@@ -260,7 +278,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     }
 
     // 创建放置上下文（player 为 nullptr，因为我们通过 InventoryManager 管理）
-    BlockItemUseContext context(m_world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
+    BlockItemUseContext context(*world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
 
     // 先检查是否可以放置（位置有效性检查）
     if (!context.canPlace()) {
@@ -331,8 +349,13 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         return std::move(*preconditionError);
     }
 
+    ServerWorld* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
     // 获取方块状态
-    const BlockState* state = getNonAirBlockState(pos);
+    const BlockState* state = getNonAirBlockState(*world, pos);
     if (!state) {
         return BlockInteractionResult{false, "No block to use"};
     }
@@ -351,22 +374,22 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     Player interactionPlayer(playerId, playerData->username);
     const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
 
-    ActionResultType result = block->onBlockActivated(*state, m_world, pos, interactionPlayer, hand, hitResult);
+    ActionResultType result = block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
 
     // MC 1.16.5: 如果方块交互成功，检查是否为告示牌并执行命令
     bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
     if (handled && m_server != nullptr) {
         // 检查是否为告示牌方块
-        BlockEntity* blockEntity = m_world.getBlockEntity(pos);
+        BlockEntity* blockEntity = world->getBlockEntity(pos);
         if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
             // 获取实际的 ServerPlayer 实体
             ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-            Player* playerEntity = entityManager.getPlayerEntity(playerId, m_world);
+            Player* playerEntity = entityManager.getPlayerEntity(playerId, *world);
             if (playerEntity != nullptr) {
                 mc::ServerPlayer* serverPlayer = playerEntity->asServerPlayer();
                 if (serverPlayer != nullptr) {
                     // 执行告示牌命令
-                    handleSignCommand(pos, *serverPlayer);
+                    handleSignCommand(*world, pos, *serverPlayer);
                 }
             }
         }
@@ -386,7 +409,12 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
     // 检查世界修改权限
-    auto worldError = checkWorldModificationAllowed();
+    ServerWorld* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
+    auto worldError = checkWorldModificationAllowed(*world);
     if (worldError) {
         return std::move(*worldError);
     }
@@ -398,7 +426,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     }
 
     // 获取方块状态
-    const BlockState* state = getNonAirBlockState(pos);
+    const BlockState* state = getNonAirBlockState(*world, pos);
     if (!state) {
         return BlockBreakResult{false, 0, "No block to break"};
     }
@@ -406,7 +434,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     const BlockState oldState = *state;
 
     // 检查是否可破坏
-    if (!canBreakBlock(playerId, pos, state)) {
+    if (!canBreakBlock(*world, playerId, pos, state)) {
         return BlockBreakResult{false, 0, "Cannot break this block"};
     }
 
@@ -414,10 +442,10 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     ItemStack tool = getHeldTool(playerId);
 
     // 生成掉落物
-    generateBlockDrops(pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+    generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
 
     // 设置为空气
-    u32 newBlockStateId = setBlockToAir(pos, oldState, playerId);
+    u32 newBlockStateId = setBlockToAir(*world, pos, oldState, playerId);
 
     return BlockBreakResult{true, newBlockStateId, "Block destroyed"};
 }
@@ -459,8 +487,10 @@ bool BlockInteractionManager::canInteract(PlayerId playerId, const BlockPos& pos
     return distanceSquared <= MAX_INTERACT_DISTANCE_SQ;
 }
 
-bool BlockInteractionManager::canBreakBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) const
+bool BlockInteractionManager::canBreakBlock(
+    ServerWorld& world, PlayerId playerId, const BlockPos& pos, const BlockState* state) const
 {
+    MC_UNUSED(world);
     if (!state || state->isAir() || state->hardness() < 0.0f) {
         return false;
     }
@@ -492,7 +522,7 @@ bool BlockInteractionManager::wouldCollideWithPlayer(
 }
 
 void BlockInteractionManager::generateBlockDrops(
-    const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool)
+    ServerWorld& world, const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool)
 {
     MC_TRACE_EVENT("server.world",
         "BlockInteractionManager::generateBlockDrops",
@@ -502,14 +532,14 @@ void BlockInteractionManager::generateBlockDrops(
         playerId,
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    Player* player = getPlayerEntity(playerId);
+    Player* player = getPlayerEntity(playerId, world);
 
     // 使用 BlockDropHandler 生成掉落物
-    auto drops = BlockDropHandler::generateDrops(m_world, pos, state, player, tool, m_lootTableManager);
+    auto drops = BlockDropHandler::generateDrops(world, pos, state, player, tool, m_lootTableManager);
 
     if (!drops.empty()) {
         const std::string throwerUuid = player != nullptr ? player->uuid() : std::string();
-        BlockDropHandler::spawnDrops(m_world, pos, drops, throwerUuid);
+        BlockDropHandler::spawnDrops(world, pos, drops, throwerUuid);
     }
 
     // 处理矿石经验掉落
@@ -517,16 +547,16 @@ void BlockInteractionManager::generateBlockDrops(
     const u64 seed = static_cast<u64>(static_cast<u64>(pos.x)) ^ static_cast<u64>(static_cast<u64>(pos.y) << 1) ^
         static_cast<u64>(static_cast<u64>(pos.z) << 2) ^ static_cast<u64>(std::hash<PlayerId>{}(playerId));
     math::Random rng(seed);
-    BlockDropHandler::handleBlockBreakExperience(m_world, pos, state, tool, rng);
+    BlockDropHandler::handleBlockBreakExperience(world, pos, state, tool, rng);
 }
 
-bool BlockInteractionManager::handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player)
+bool BlockInteractionManager::handleSignCommand(ServerWorld& world, const BlockPos& pos, mc::ServerPlayer& player)
 {
     // MC 1.16.5: 参考 SignBlock.onBlockActivated()
     // 当玩家右键点击告示牌时，执行告示牌上的命令
 
     // 获取方块实体
-    BlockEntity* blockEntity = m_world.getBlockEntity(pos);
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (!blockEntity || blockEntity->getType() != BlockEntityType::Sign) {
         return false;
     }

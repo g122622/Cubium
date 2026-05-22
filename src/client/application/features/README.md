@@ -32,10 +32,13 @@ src/client/application/features/
 - `ClientApplicationInput.cpp`：输入绑定、相机初始化、鼠标捕获、挖掘状态机、放置和玩家位置同步逻辑。
 - `ClientApplicationNetwork.cpp`：网络回调、补全候选收集和聊天命令处理逻辑。包含实体状态处理（如驯服成功/失败粒子效果）。同时包含重生/维度切换的完整逻辑：
   - 维度切换检测（比较当前维度和目标维度）
+  - `beginDimensionChange()`
+  - `ClientWorld::setDimensionId()`
   - 区块清空（`ClientWorld::clearChunks()`）
   - 实体清空（保留本地玩家）
+  - 天气重置（`ClientWorld::resetWeather()`）
   - 渲染器区块缓冲清理
-  - 维度管理器状态更新
+  - `completeDimensionChange()`
   - 云高度和渲染参数更新
   - 玩家状态重置（`keepData` 参数控制）
   - 客户端预测器重置

@@ -49,9 +49,7 @@ i32 SaveOffCommand::disableAutoSave(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
 
     auto* server = source.server();
-    auto* overworld = server ? server->dimensionManager().getOverworld() : nullptr;
-    auto* serverWorld = (overworld && overworld->world()) ? overworld->world()->asServerWorld() : nullptr;
-    auto* storage = serverWorld ? &serverWorld->storage() : nullptr;
+    auto* storage = server ? server->sharedStorage() : nullptr;
     if (!storage) {
         source.sendMessage("Error: Storage manager not available");
         return 0;
