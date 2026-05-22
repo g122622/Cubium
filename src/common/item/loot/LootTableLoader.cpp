@@ -25,6 +25,7 @@
 #include "LootTable.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/IResourcePack.hpp"
+#include "common/resource/PackType.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -56,7 +57,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
     m_lastResult = LoadResult{};
     clearIfNeeded();
 
-    auto listResult = packs.listResources("data", ".json");
+    auto listResult = packs.listResources(resource::PackType::ServerData, "", ".json");
     if (!listResult.success()) {
         return listResult.error();
     }
@@ -77,7 +78,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
             callback(current, total, id);
         }
 
-        auto readResult = packs.readTextResource(resourcePath);
+        auto readResult = packs.readTextResource(resource::PackType::ServerData, resourcePath);
         if (!readResult.success()) {
             ++m_lastResult.failedCount;
             m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
@@ -261,7 +262,8 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
 
     // 从文件路径中提取相对路径部分：
     // 查找 "loot_tables" 目录，然后向上找到 namespace
-    // 格式：data/<namespace>/loot_tables/<category>/<name>.json
+    // 新格式（相对于 data/ 根目录）：<namespace>/loot_tables/<category>/<name>.json
+    // 旧格式（包含 data/ 前缀）：data/<namespace>/loot_tables/<category>/<name>.json
     std::string namespaceStr = "minecraft";
     std::string relativePath;
 
@@ -278,15 +280,22 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
 
     if (lootTablesPos != std::string::npos) {
         // 从 loot_tables 前面提取 namespace
+        // 优先检查旧格式 data/<namespace>/loot_tables/...
         auto dataPos = genericPath.rfind("/data/", lootTablesPos);
         if (dataPos == std::string::npos && genericPath.rfind("data/", 0) == 0) {
             dataPos = 0;
         }
         if (dataPos != std::string::npos) {
-            // data/<namespace>/loot_tables/...
+            // 旧格式：data/<namespace>/loot_tables/...
             size_t namespaceStart = dataPos == 0 ? 5 : dataPos + 6; // 跳过 "data/" 或 "/data/"
             size_t namespaceEnd = lootTablesPos;
             namespaceStr = genericPath.substr(namespaceStart, namespaceEnd - namespaceStart);
+        } else if (lootTablesPos > 0 && genericPath[lootTablesPos] == '/') {
+            // 新格式：<namespace>/loot_tables/...（相对于类型目录根）
+            // lootTablesPos 指向 "/loot_tables/" 中的 '/'，namespace 在它之前
+            namespaceStr = genericPath.substr(0, lootTablesPos);
+        } else if (lootTablesPos == 0) {
+            // 路径以 "loot_tables/" 开头（没有 namespace），使用默认值 minecraft
         }
 
         // 从 loot_tables/ 后面提取路径（不含 .json 扩展名）

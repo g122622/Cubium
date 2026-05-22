@@ -68,7 +68,8 @@ TEST(ResourcePackListSelfContainedTest, ScanAndReadResourceFromFolderPack)
     EXPECT_EQ(list.enabledPackCount(), 1u);
 
     // ResourcePackList 是按优先级遍历启用包读取资源
-    auto readResult = list.readTextResource("assets/minecraft/test.txt");
+    // 路径相对于 PackType 根目录（如 assets/），不含 "assets/" 前缀
+    auto readResult = list.readTextResource("minecraft/test.txt");
     ASSERT_TRUE(readResult.success());
     EXPECT_EQ(readResult.value(), "hello");
 

@@ -240,9 +240,9 @@ Result<void> ItemModelLoader::loadAllModels()
 
 Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath)
 {
-    // 按优先级从高到低遍历资源包
-    std::string relativePath = filePath;
-    relativePath.erase(0, std::string("assets/").size());
+    // filePath 已是相对于 PackType 根目录的路径（如 "minecraft/models/item/stone.json"）
+    // 无需再剥离 "assets/" 前缀
+    const std::string& relativePath = filePath;
 
     for (const auto& pack : m_resourcePacks) {
         if (pack == nullptr) continue;
@@ -264,8 +264,8 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
         return it->second;
     }
 
-    // 构建文件路径
-    std::string filePath = "assets/" + location.namespace_() + "/models/" + location.path() + ".json";
+    // 构建相对于 PackType 根目录的路径（不含 "assets/" 前缀）
+    std::string filePath = location.namespace_() + "/models/" + location.path() + ".json";
 
     // 从资源包读取
     auto readResult = readModelFromResourcePacks(filePath);

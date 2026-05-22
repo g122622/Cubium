@@ -163,8 +163,10 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
 
 std::string SoundLoader::toAudioPath(const ResourceLocation& location)
 {
-    // minecraft:sounds/dig/stone1 -> assets/minecraft/sounds/dig/stone1.ogg
-    return fmt::format("assets/{}/sounds/{}.ogg", location.namespace_(), location.path());
+    // 返回相对于 PackType 根目录的路径（不含 "assets/" 前缀）
+    // ResourcePackList::readResource 会自动添加 PackType 目录前缀
+    // minecraft:sounds/dig/stone1 -> minecraft/sounds/dig/stone1.ogg
+    return fmt::format("{}/sounds/{}.ogg", location.namespace_(), location.path());
 }
 
 } // namespace mc::client::sound

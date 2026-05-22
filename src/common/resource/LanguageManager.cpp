@@ -212,11 +212,12 @@ std::vector<std::string> LanguageManager::getAvailableLanguages(
     if (listResult.success()) {
         for (const auto& path : listResult.value()) {
             // 从路径提取语言代码
-            // 格式: minecraft/lang/en_us.json
+            // 格式: minecraft/lang/en_us.json 或 en_us.json（无目录前缀）
             size_t lastSlash = path.find_last_of('/');
             size_t dotPos = path.find_last_of('.');
-            if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
-                std::string code = path.substr(lastSlash + 1, dotPos - lastSlash - 1);
+            if (dotPos != std::string::npos && (lastSlash == std::string::npos || dotPos > lastSlash)) {
+                size_t nameStart = (lastSlash != std::string::npos) ? lastSlash + 1 : 0;
+                std::string code = path.substr(nameStart, dotPos - nameStart);
                 languages.insert(code);
             }
         }

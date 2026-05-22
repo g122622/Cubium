@@ -406,8 +406,9 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
 
 Result<std::string> BlockModelLoader::readModelFromResourcePacks(const std::string& filePath)
 {
-    std::string relativePath = filePath;
-    relativePath.erase(0, std::string("assets/").size());
+    // filePath 已是相对于 PackType 根目录的路径（如 "minecraft/models/block/stone.json"）
+    // 无需再剥离 "assets/" 前缀
+    const std::string& relativePath = filePath;
 
     for (size_t i = m_resourcePacks.size(); i > 0; --i) {
         const auto& pack = m_resourcePacks[i - 1];

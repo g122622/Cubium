@@ -471,10 +471,15 @@ size_t ResourcePackList::enabledPackCount() const
 
 bool ResourcePackList::hasResource(std::string_view resourcePath) const
 {
+    return hasResource(resource::PackType::ClientResources, resourcePath);
+}
+
+bool ResourcePackList::hasResource(resource::PackType type, std::string_view resourcePath) const
+{
     MC_TRACE_EVENT("client.resource", "ResourcePackList::hasResource", "resourcePath", resourcePath);
 
     for (const auto& pack : getEnabledPacks()) {
-        if (pack->hasResource(resource::PackType::ClientResources, resourcePath)) {
+        if (pack->hasResource(type, resourcePath)) {
             return true;
         }
     }
@@ -484,14 +489,19 @@ bool ResourcePackList::hasResource(std::string_view resourcePath) const
 
 Result<std::vector<u8>> ResourcePackList::readResource(std::string_view resourcePath) const
 {
+    return readResource(resource::PackType::ClientResources, resourcePath);
+}
+
+Result<std::vector<u8>> ResourcePackList::readResource(resource::PackType type, std::string_view resourcePath) const
+{
     MC_TRACE_EVENT("client.resource", "ResourcePackList::readResource", "resourcePath", resourcePath);
 
     for (const auto& pack : getEnabledPacks()) {
-        if (!pack->hasResource(resource::PackType::ClientResources, resourcePath)) {
+        if (!pack->hasResource(type, resourcePath)) {
             continue;
         }
 
-        auto result = pack->readResource(resource::PackType::ClientResources, resourcePath);
+        auto result = pack->readResource(type, resourcePath);
         if (result.success()) {
             return result;
         }
@@ -505,9 +515,14 @@ Result<std::vector<u8>> ResourcePackList::readResource(std::string_view resource
 
 Result<std::string> ResourcePackList::readTextResource(std::string_view resourcePath) const
 {
+    return readTextResource(resource::PackType::ClientResources, resourcePath);
+}
+
+Result<std::string> ResourcePackList::readTextResource(resource::PackType type, std::string_view resourcePath) const
+{
     MC_TRACE_EVENT("client.resource", "ResourcePackList::readTextResource", "resourcePath", resourcePath);
 
-    auto dataResult = readResource(resourcePath);
+    auto dataResult = readResource(type, resourcePath);
     if (dataResult.failed()) {
         return dataResult.error();
     }
@@ -519,6 +534,12 @@ Result<std::string> ResourcePackList::readTextResource(std::string_view resource
 Result<std::vector<std::string>> ResourcePackList::listResources(
     std::string_view directory, std::string_view extension) const
 {
+    return listResources(resource::PackType::ClientResources, directory, extension);
+}
+
+Result<std::vector<std::string>> ResourcePackList::listResources(
+    resource::PackType type, std::string_view directory, std::string_view extension) const
+{
     MC_TRACE_EVENT(
         "client.resource", "ResourcePackList::listResources", "directory", directory, "extension", extension);
 
@@ -526,7 +547,7 @@ Result<std::vector<std::string>> ResourcePackList::listResources(
     std::set<std::string> seen;
 
     for (const auto& pack : getEnabledPacks()) {
-        auto listResult = pack->listResources(resource::PackType::ClientResources, directory, extension);
+        auto listResult = pack->listResources(type, directory, extension);
         if (!listResult.success()) {
             continue;
         }

@@ -226,14 +226,19 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(
         normalizedDir += '/';
     }
 
+    // 类型目录前缀，如 "assets/" 或 "data/"
+    // 返回的路径应相对于类型目录根，与 FolderResourcePack 保持一致
+    std::string typePrefix = std::string(resource::packTypeDirectoryName(type)) + "/";
+
     for (const auto& path : m_entries) {
         // 检查是否在指定目录下
         if (path.size() <= normalizedDir.size() || path.substr(0, normalizedDir.size()) != normalizedDir) {
             continue;
         }
 
-        // 检查扩展名
-        std::string relativePath = path.substr(normalizedDir.size());
+        // 相对于类型目录根的路径（如 "minecraft/blockstates/stone.json"）
+        std::string relativePath = path.substr(typePrefix.size());
+
         if (extension.empty()) {
             resources.push_back(relativePath);
             continue;

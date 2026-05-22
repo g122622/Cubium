@@ -57,8 +57,13 @@ TEST_F(LootTableLoaderTest, PathToLootTableId_StandardPath)
     LootTableManager manager;
     LootTableLoader loader(manager);
 
+    // 旧格式（包含 data/ 前缀）
     EXPECT_EQ("minecraft:blocks/stone", loader.pathToLootTableId("data/minecraft/loot_tables/blocks/stone.json"));
     EXPECT_EQ("mod_id:entities/boss", loader.pathToLootTableId("data/mod_id/loot_tables/entities/boss.json"));
+
+    // 新格式（相对于 data/ 根目录，不含 data/ 前缀）
+    EXPECT_EQ("minecraft:blocks/stone", loader.pathToLootTableId("minecraft/loot_tables/blocks/stone.json"));
+    EXPECT_EQ("mod_id:entities/boss", loader.pathToLootTableId("mod_id/loot_tables/entities/boss.json"));
 }
 
 TEST_F(LootTableLoaderTest, LoadFromDirectory_LoadsJsonFiles)

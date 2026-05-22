@@ -143,8 +143,12 @@ Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocati
     SkinLoadResult result;
 
     // 从资源包读取
-    auto readResult =
-        m_resourcePack->readResource(resource::PackType::ClientResources, location.toFilePath(resource::PackType::ClientResources));
+    // toFilePath(PackType) 返回 "assets/namespace/path" 格式，
+    // readResource 需要相对于 PackType 根目录的路径（不含 "assets/" 前缀）
+    std::string resourcePath = location.toFilePath(resource::PackType::ClientResources);
+    resourcePath.erase(0, std::string("assets/").size());
+
+    auto readResult = m_resourcePack->readResource(resource::PackType::ClientResources, resourcePath);
     if (!readResult.success()) {
         return readResult.error();
     }

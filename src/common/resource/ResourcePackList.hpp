@@ -28,6 +28,7 @@
 #include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/IResourcePack.hpp"
+#include "common/resource/PackType.hpp"
 #include "common/resource/ZipResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
@@ -246,6 +247,15 @@ public:
     [[nodiscard]] bool hasResource(std::string_view resourcePath) const;
 
     /**
+     * @brief 检查指定类型的资源是否存在
+     *
+     * @param type 资源包类型
+     * @param resourcePath 资源路径（相对于类型目录根，如 "minecraft/textures/block/stone.png"）
+     * @return 是否存在
+     */
+    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const;
+
+    /**
      * @brief 读取资源
      *
      * 按优先级从高到低查找资源，返回第一个找到的。
@@ -256,11 +266,29 @@ public:
     [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const;
 
     /**
+     * @brief 读取指定类型的资源
+     *
+     * @param type 资源包类型
+     * @param resourcePath 资源路径（相对于类型目录根）
+     * @return 资源数据，或错误
+     */
+    [[nodiscard]] Result<std::vector<u8>> readResource(resource::PackType type, std::string_view resourcePath) const;
+
+    /**
      * @brief 读取文本资源
      * @param resourcePath 资源路径
      * @return 文本内容，或错误
      */
     [[nodiscard]] Result<std::string> readTextResource(std::string_view resourcePath) const;
+
+    /**
+     * @brief 读取指定类型的文本资源
+     *
+     * @param type 资源包类型
+     * @param resourcePath 资源路径（相对于类型目录根）
+     * @return 文本内容，或错误
+     */
+    [[nodiscard]] Result<std::string> readTextResource(resource::PackType type, std::string_view resourcePath) const;
 
     /**
      * @brief 列出资源
@@ -273,6 +301,17 @@ public:
      */
     [[nodiscard]] Result<std::vector<std::string>> listResources(
         std::string_view directory, std::string_view extension) const;
+
+    /**
+     * @brief 列出指定类型的资源
+     *
+     * @param type 资源包类型
+     * @param directory 目录路径（相对于类型目录根）
+     * @param extension 文件扩展名过滤（可选）
+     * @return 资源路径列表
+     */
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        resource::PackType type, std::string_view directory, std::string_view extension) const;
 
     /**
      * @brief 获取所有客户端资源命名空间

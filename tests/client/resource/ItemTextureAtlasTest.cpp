@@ -45,29 +45,13 @@ public:
 
     bool hasResource(resource::PackType type, std::string_view resourcePath) const override
     {
-        std::string typeDir(resource::packTypeDirectoryName(type));
-        std::string path(resourcePath);
-        bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-        std::string full;
-        if (hasTypePrefix) {
-            full = path;
-        } else {
-            full = typeDir + "/" + path;
-        }
+        std::string full = makeTypedPath(type, resourcePath);
         return m_resources.find(full) != m_resources.end();
     }
 
     Result<std::vector<u8>> readResource(resource::PackType type, std::string_view resourcePath) const override
     {
-        std::string typeDir(resource::packTypeDirectoryName(type));
-        std::string path(resourcePath);
-        bool hasTypePrefix = path.size() > typeDir.size() && path.substr(0, typeDir.size() + 1) == typeDir + "/";
-        std::string full;
-        if (hasTypePrefix) {
-            full = path;
-        } else {
-            full = typeDir + "/" + path;
-        }
+        std::string full = makeTypedPath(type, resourcePath);
         auto it = m_resources.find(full);
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
@@ -80,6 +64,10 @@ public:
     {
         std::string typeDir(resource::packTypeDirectoryName(type));
         std::string fullDirectory = typeDir + "/" + std::string(directory);
+        if (!fullDirectory.empty() && fullDirectory.back() != '/') {
+            fullDirectory += '/';
+        }
+        std::string typePrefix = typeDir + "/";
         std::vector<std::string> results;
         const std::string ext(extension);
 
@@ -88,7 +76,8 @@ public:
             const bool extensionMatched =
                 ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (prefixMatched && extensionMatched) {
-                results.push_back(path);
+                // 返回相对于类型目录根的路径，与 FolderResourcePack 一致
+                results.push_back(path.substr(typePrefix.size()));
             }
         }
 
@@ -121,6 +110,17 @@ public:
 private:
     PackMetadata m_metadata{6, "test"};
     std::unordered_map<std::string, std::vector<u8>> m_resources;
+
+    static std::string makeTypedPath(resource::PackType type, std::string_view resourcePath)
+    {
+        std::string typeDir(resource::packTypeDirectoryName(type));
+        std::string path(resourcePath);
+        std::string prefix = typeDir + "/";
+        if (path.size() > prefix.size() && path.substr(0, prefix.size()) == prefix) {
+            return path;
+        }
+        return prefix + path;
+    }
 };
 
 const std::vector<u8>& oneByOnePng()
