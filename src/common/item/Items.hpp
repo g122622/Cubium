@@ -355,6 +355,9 @@ public:
     // CARROT 在食物部分声明
     // POTATO 在食物部分声明
     // BEETROOT 在食物部分声明
+    static Item* CACTUS;   // 仙人掌 - 方块物品
+    static Item* LILY_PAD; // 睡莲 - 方块物品
+    static Item* VINE;     // 藤蔓 - 方块物品
     static Item* SUGAR_CANE;
     static Item* SUGAR;
     static Item* BAMBOO; // 竹子 - 熊猫食物
@@ -372,6 +375,9 @@ public:
     static Item* HEART_OF_THE_SEA; // 海洋之心 - 宝藏物品
     static Item* NAUTILUS_SHELL;   // 鹦鹉螺壳 - 溺尸掉落/钓鱼
     static Item* PHANTOM_MEMBRANE; // 幻翼膜 - 幻翼掉落
+    static Item* DRIED_KELP_BLOCK; // 干海带块 - 方块物品
+    static Item* SEA_PICKLE;       // 海泡菜 - 方块物品
+    static Item* KELP;             // 海带 - 水下植物方块物品
     static Item* SEAGRASS;         // 海草 - 海龟食物
     // DRIED_KELP 在食物部分声明
 

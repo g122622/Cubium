@@ -27,13 +27,13 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceConstants.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/LootTable.hpp"
-#include "common/item/loot/LootTableManager.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -62,6 +62,13 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
     // 检查方块是否有掉落表
     const Block& block = state.owner();
     const loot::LootTable* lootTable = block.getLootTable(lootTableManager);
+    spdlog::info("BlockDropHandler::generateDrops block='{}' lootTableId='{}' lootTableFound={} pos={} tool={} x{}",
+        block.blockLocation().toString(),
+        block.getLootTableId(),
+        lootTable != nullptr,
+        pos.toString(),
+        (tool && tool->getItem()) ? tool->getItem()->itemLocation().toString() : "null",
+        tool ? tool->getCount() : 0);
 
     if (lootTable) {
         // 使用掉落表生成掉落
@@ -69,16 +76,33 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
 
         auto context = buildLootContext(world, pos, state, player, tool, random);
         if (context) {
+            spdlog::info(
+                "BlockDropHandler::generateDrops built loot context for block='{}': hasBlockState={} hasBlockPos={} "
+                "hasTool={} hasThisEntity={} hasKillerPlayer={} hasExplosionRadius={} luck={} lootingModifier={}",
+                block.blockLocation().toString(),
+                context->has(loot::LootParams::BLOCK_STATE),
+                context->has(loot::LootParams::BLOCK_POS),
+                context->has(loot::LootParams::TOOL),
+                context->has(loot::LootParams::THIS_ENTITY),
+                context->has(loot::LootParams::KILLER_PLAYER),
+                context->has(loot::LootParams::EXPLOSION_RADIUS),
+                context->getLuck(),
+                context->getLootingModifier());
             // 设置掉落表解析器
             context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
                 return lootTableManager.getTable(id);
             });
 
             drops = lootTable->generate(*context);
+            spdlog::info("BlockDropHandler::generateDrops loot table '{}' returned {} drops for block '{}'",
+                block.getLootTableId(),
+                drops.size(),
+                block.blockLocation().toString());
         }
     } else {
         // 使用默认掉落逻辑
-        spdlog::warn("Block {} at {} has no loot table, using default drops", block.blockLocation().toString(), pos.toString());
+        spdlog::warn(
+            "Block {} at {} has no loot table, using default drops", block.blockLocation().toString(), pos.toString());
         drops = getDefaultDrops(state);
     }
 

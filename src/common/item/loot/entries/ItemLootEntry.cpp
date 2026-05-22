@@ -22,9 +22,10 @@
  */
 
 #include "ItemLootEntry.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
-#include "common/item/core/ItemRegistry.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -61,18 +62,23 @@ void ItemLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntr
 bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
     // 检查条件
-    if (!testConditions(context)) {
+    const bool conditionsPassed = testConditions(context);
+    spdlog::info("ItemLootEntry::generate itemId='{}' conditionsPassed={}", m_itemId, conditionsPassed);
+    if (!conditionsPassed) {
         return false;
     }
 
     // 获取物品
     const Item* item = ItemRegistry::instance().getItem(ResourceLocation(m_itemId));
     if (!item) {
+        spdlog::warn("ItemLootEntry::generate could not resolve item '{}'", m_itemId);
         return false;
     }
 
     // 计算数量
     i32 count = m_count.generateInt(context.getRandom());
+    spdlog::info(
+        "ItemLootEntry::generate resolved item='{}' generatedCount={}", item->itemLocation().toString(), count);
     if (count <= 0) {
         return true; // 数量为0不算失败
     }
@@ -82,10 +88,16 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer, Loo
 
     // 应用条目级函数
     stack = applyFunctions(std::move(stack), context);
+    spdlog::info("ItemLootEntry::generate after functions item='{}' count={} empty={}",
+        stack.getItem() ? stack.getItem()->itemLocation().toString() : "null",
+        stack.getCount(),
+        stack.isEmpty());
 
     // 如果函数返回空堆，则不生成物品
     if (!stack.isEmpty()) {
         consumer(stack);
+    } else {
+        spdlog::warn("ItemLootEntry::generate stack became empty for itemId='{}' after functions", m_itemId);
     }
 
     return true;

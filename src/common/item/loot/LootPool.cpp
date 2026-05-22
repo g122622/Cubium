@@ -26,6 +26,7 @@
 #include "entries/ItemLootEntry.hpp"
 #include "functions/LootFunctions.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -96,7 +97,10 @@ std::unique_ptr<LootPool> LootPool::clone() const
 void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
     // 检查池级条件
-    if (!testConditions(context)) {
+    const bool conditionsPassed = testConditions(context);
+    spdlog::info(
+        "LootPool::generate pool='{}' conditionsPassed={} entryCount={}", m_name, conditionsPassed, m_entries.size());
+    if (!conditionsPassed) {
         return;
     }
 
@@ -104,6 +108,7 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
     math::Random& random = context.getRandom();
     i32 rollCount =
         m_rolls.generateInt(random) + static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
+    spdlog::info("LootPool::generate pool='{}' rollCount={} luck={}", m_name, rollCount, context.getLuck());
 
     // 如果有池级函数，包装 consumer 以应用函数
     std::function<void(const ItemStack&)> poolConsumer;
@@ -129,6 +134,7 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
 void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
     if (m_entries.empty()) {
+        spdlog::info("LootPool::generateRoll pool='{}' skipped because there are no entries", m_name);
         return;
     }
 
@@ -143,6 +149,10 @@ void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, Loot
 
     for (auto& entry : m_entries) {
         i32 effectiveWeight = entry->getEffectiveWeight(context.getLuck());
+        spdlog::info("LootPool::generateRoll pool='{}' entryType='{}' effectiveWeight={}",
+            m_name,
+            static_cast<i32>(entry->getType()),
+            effectiveWeight);
         if (effectiveWeight > 0) {
             weightedEntries.push_back({entry.get(), effectiveWeight});
             totalWeight += effectiveWeight;
@@ -150,11 +160,18 @@ void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, Loot
     }
 
     if (weightedEntries.empty() || totalWeight <= 0) {
+        spdlog::warn("LootPool::generateRoll pool='{}' found no weighted entries: weightedEntryCount={} totalWeight={}",
+            m_name,
+            weightedEntries.size(),
+            totalWeight);
         return;
     }
 
     // 如果只有一个条目，直接生成
     if (weightedEntries.size() == 1) {
+        spdlog::info("LootPool::generateRoll pool='{}' selected sole entryType='{}'",
+            m_name,
+            static_cast<i32>(weightedEntries[0].entry->getType()));
         weightedEntries[0].entry->generate(consumer, context);
         return;
     }
@@ -166,12 +183,19 @@ void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, Loot
     for (const auto& we : weightedEntries) {
         selected -= we.weight;
         if (selected < 0) {
+            spdlog::info("LootPool::generateRoll pool='{}' selected entryType='{}' weight={}",
+                m_name,
+                static_cast<i32>(we.entry->getType()),
+                we.weight);
             we.entry->generate(consumer, context);
             return;
         }
     }
 
     // 如果选中了最后一个
+    spdlog::info("LootPool::generateRoll pool='{}' fell back to last entryType='{}'",
+        m_name,
+        static_cast<i32>(weightedEntries.back().entry->getType()));
     weightedEntries.back().entry->generate(consumer, context);
 }
 

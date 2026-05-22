@@ -344,6 +344,9 @@ Item* Items::MELON = nullptr;
 // CARROT 已在食物部分声明
 // POTATO 已在食物部分声明
 // BEETROOT 已在食物部分声明
+Item* Items::CACTUS = nullptr;
+Item* Items::LILY_PAD = nullptr;
+Item* Items::VINE = nullptr;
 Item* Items::SUGAR_CANE = nullptr;
 Item* Items::SUGAR = nullptr;
 Item* Items::BAMBOO = nullptr;
@@ -357,6 +360,9 @@ Item* Items::SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
 Item* Items::PHANTOM_MEMBRANE = nullptr;
+Item* Items::DRIED_KELP_BLOCK = nullptr;
+Item* Items::SEA_PICKLE = nullptr;
+Item* Items::KELP = nullptr;
 Item* Items::SEAGRASS = nullptr;
 // DRIED_KELP 已在食物部分声明
 
@@ -1299,6 +1305,12 @@ void Items::registerCrops()
 
     // 注意：MELON_SLICE, CARROT, POTATO, BEETROOT 已在 registerFood() 中注册为食物
     // 这里不再重复注册
+    CACTUS = &registerBlockBackedItem(registry, VanillaBlocks::CACTUS, "cactus", ItemProperties().maxStackSize(64));
+
+    LILY_PAD =
+        &registerBlockBackedItem(registry, VanillaBlocks::LILY_PAD, "lily_pad", ItemProperties().maxStackSize(64));
+
+    VINE = &registerBlockBackedItem(registry, VanillaBlocks::VINE, "vine", ItemProperties().maxStackSize(64));
 
     SUGAR_CANE = &registry.registerItem(ResourceLocation("minecraft:sugar_cane"), ItemProperties().maxStackSize(64));
 
@@ -1331,6 +1343,18 @@ void Items::registerAquaticMaterials()
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     PHANTOM_MEMBRANE =
         &registry.registerItem(ResourceLocation("minecraft:phantom_membrane"), ItemProperties().maxStackSize(64));
+
+    // 干海带块 - 可作为方块放置
+    DRIED_KELP_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::DRIED_KELP_BLOCK, "dried_kelp_block", ItemProperties().maxStackSize(64));
+
+    // 海泡菜 - 水下装饰与照明方块
+    SEA_PICKLE =
+        &registerBlockBackedItem(registry, VanillaBlocks::SEA_PICKLE, "sea_pickle", ItemProperties().maxStackSize(64));
+
+    // 海带 - 方块掉落直接产出该物品，也是可放置的水下植物方块物品
+    // 先按 block-backed item 注册，确保 loot table 能解析到 minecraft:kelp
+    KELP = &registerBlockBackedItem(registry, VanillaBlocks::KELP, "kelp", ItemProperties().maxStackSize(64));
 
     // 海草 - 海龟食物，也是水下装饰方块
     // 参考: new BlockItem(Blocks.SEAGRASS, new Item.Properties().group(ItemGroup.DECORATIONS))
