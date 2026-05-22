@@ -262,13 +262,11 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data) {
-        MC_UNUSED(dimension);
-        m_world.onChunkData(x, z, std::vector<u8>(data));
+        m_world.onChunkData(x, z, dimension, std::vector<u8>(data));
     };
 
     callbacks.onChunkUnload = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension) {
-        MC_UNUSED(dimension);
-        m_world.onChunkUnload(x, z);
+        m_world.onChunkUnload(x, z, dimension);
     };
 
     callbacks.onPlayerSpawn = [this](PlayerId playerId, const std::string& username, f64 x, f64 y, f64 z) {
@@ -1151,37 +1149,45 @@ void ClientApplication::setupNetworkCallbacks()
             // 1. 开始维度切换
             m_dimensionManager.beginDimensionChange(dimension, Vector3d(0, 0, 0));
 
-            // 2. 清空世界区块
+            // 2. 设置新维度ID（后续收到的旧维度区块数据将被丢弃）
+            m_world.setDimensionId(dimension);
+
+            // 3. 清空世界区块
             // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
             // 当维度改变时创建新的 ClientWorld，这会清空所有区块
             m_world.clearChunks();
 
-            // 3. 清空实体管理器（保留本地玩家）
+            // 4. 清空实体管理器（保留本地玩家）
             // 参考 MC 1.16.5: this.world.removeAllEntities()
             m_world.entityManager().clear();
 
-            // 4. 清理渲染器的区块缓冲
+            // 5. 重置天气状态
+            // 参考 MC 1.16.5: 新 ClientWorld 天气状态为初始值
+            // 下界和末地不应有降雨/雷暴
+            m_world.resetWeather();
+
+            // 6. 清理渲染器的区块缓冲
             if (m_renderer && m_renderer->isChunkRendererInitialized()) {
                 m_renderer->chunkRenderer().clearChunks();
             }
 
-            // 5. 完成维度切换
+            // 7. 完成维度切换
             m_dimensionManager.completeDimensionChange();
 
-            // 6. 更新云高度和渲染参数
+            // 8. 更新云高度和渲染参数
             updateCloudHeight();
 
             spdlog::info("[Respawn] Dimension change completed");
         }
 
-        // 7. 更新游戏模式
+        // 9. 更新游戏模式
         if (m_player) {
             m_player->setGameMode(gameMode);
 
-            // 8. 更新玩家维度属性
+            // 10. 更新玩家维度属性
             m_player->setDimension(dimension);
 
-            // 9. 如果 keepData 为 false（死亡重生），重置玩家状态
+            // 11. 如果 keepData 为 false（死亡重生），重置玩家状态
             // 参考 MC 1.16.5 PlayerList.func_232644_a_():
             // keepData=false 时调用 copyFrom(oldPlayer, false)，不保留背包和经验
             // 然后设置生命值、饥饿值等
@@ -1190,7 +1196,7 @@ void ClientApplication::setupNetworkCallbacks()
             }
         }
 
-        // 10. 重置预测器
+        // 12. 重置预测器
         // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
         // 创建新的 ClientPlayerEntity 并重置位置预测
         if (m_predictor && m_player) {
@@ -1199,7 +1205,7 @@ void ClientApplication::setupNetworkCallbacks()
                 m_player->pitch());
         }
 
-        // 11. 发送维度切换确认包（如果是维度切换）
+        // 13. 发送维度切换确认包（如果是维度切换）
         // 参考 MC 1.16.5: 客户端需要发送确认包
         if (isDimensionChange && m_networkClient) {
             // TODO: 当 ConfirmDimensionChangePacket 发送方法实现后添加

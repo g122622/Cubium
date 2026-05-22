@@ -514,8 +514,17 @@ void ClientWorld::getNeighborChunks(const ChunkId& id, const ChunkData* neighbor
     neighbors[5] = nullptr;
 }
 
-void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data)
+void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data)
 {
+    if (dimension != m_dimensionId) {
+        spdlog::warn("Received chunk data for dimension {} but current dimension is {}, discarding chunk ({}, {})",
+            static_cast<i32>(dimension),
+            static_cast<i32>(m_dimensionId),
+            x,
+            z);
+        return;
+    }
+
     const ChunkId id(x, z);
 
     auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
@@ -550,8 +559,12 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data
     scheduleNeighborMeshRebuild(id);
 }
 
-void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z)
+void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension)
 {
+    if (dimension != m_dimensionId) {
+        return;
+    }
+
     const ChunkId id(x, z);
 
     if (m_meshBuildScheduler) {
@@ -720,6 +733,11 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
             chunk->activeMeshTaskId = 0;
         },
         dynamicBudget);
+}
+
+void ClientWorld::resetWeather()
+{
+    m_weather.reset();
 }
 
 void ClientWorld::onRainStrengthChange(f32 strength)

@@ -610,6 +610,7 @@ void ClientApplication::initializeUi()
                 debugWidget->setWorld(&m_world);
                 debugWidget->setEntityManager(&m_world.entityManager());
                 debugWidget->setNetworkClient(m_networkClient.get());
+                debugWidget->setDimensionManager(&m_dimensionManager);
                 debugWidget->setRenderDistance(m_settings.renderDistance.get());
                 if (m_player) {
                     debugWidget->setPlayer(m_player.get());

@@ -22,6 +22,7 @@
  */
 
 #include "DebugScreenWidget.hpp"
+#include "client/dimension/ClientDimensionManager.hpp"
 #include "client/network/NetworkClient.hpp"
 #include "client/renderer/Camera.hpp"
 #include "client/renderer/trident/sky/CelestialCalculations.hpp"
@@ -147,8 +148,19 @@ void DebugScreenWidget::buildLeftDebugText()
     m_leftLines.push_back(oss.str());
 
     // 维度信息
-    m_leftLines.push_back("Dimension: minecraft:overworld");
-    m_leftLines.push_back("minecraft:overworld ForcedChunks: 0");
+    if (m_dimensionManager != nullptr) {
+        const auto* dimInfo = m_dimensionManager->getDimensionInfo(m_dimensionManager->currentDimension());
+        const std::string dimName = dimInfo ? dimInfo->name : "minecraft:overworld";
+        oss.str("");
+        oss << "Dimension: " << dimName;
+        m_leftLines.push_back(oss.str());
+        oss.str("");
+        oss << dimName << " ForcedChunks: 0";
+        m_leftLines.push_back(oss.str());
+    } else {
+        m_leftLines.push_back("Dimension: minecraft:overworld");
+        m_leftLines.push_back("minecraft:overworld ForcedChunks: 0");
+    }
     m_leftLines.push_back("");
 
     // 位置信息

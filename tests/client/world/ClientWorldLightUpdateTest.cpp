@@ -92,7 +92,7 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     std::vector<u8> chunkBytes = createSerializedChunkData();
     ASSERT_FALSE(chunkBytes.empty());
 
-    world.onChunkData(0, 0, std::move(chunkBytes));
+    world.onChunkData(0, 0, 0, std::move(chunkBytes));
 
     const MeshBuildScheduler* scheduler = world.meshBuildScheduler();
     ASSERT_NE(scheduler, nullptr);

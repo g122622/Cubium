@@ -34,6 +34,7 @@
 namespace mc {
 class Player;
 class BlockRaycastResult;
+class ClientDimensionManager;
 } // namespace mc
 
 namespace mc::client {
@@ -96,6 +97,11 @@ public:
      * @brief 设置玩家
      */
     void setPlayer(const mc::Player* player) { m_player = player; }
+
+    /**
+     * @brief 设置维度管理器
+     */
+    void setDimensionManager(const mc::ClientDimensionManager* dm) { m_dimensionManager = dm; }
 
     /**
      * @brief 设置GPU信息
@@ -177,6 +183,7 @@ private:
     const mc::client::NetworkClient* m_networkClient = nullptr;
     const mc::BlockRaycastResult* m_targetBlock = nullptr;
     const mc::Player* m_player = nullptr;
+    const mc::ClientDimensionManager* m_dimensionManager = nullptr;
 
     // ========== 调试数据 ==========
     std::string m_version = "Minecraft Reborn 0.1.0";

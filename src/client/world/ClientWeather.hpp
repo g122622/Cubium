@@ -47,6 +47,21 @@ public:
     // ========== 状态更新 ==========
 
     /**
+     * @brief 重置天气状态
+     *
+     * 维度切换时调用，清除降雨、雷暴和闪电状态。
+     * 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn() 中创建新 ClientWorld 时天气自然重置。
+     */
+    void reset()
+    {
+        m_rainStrength = 0.0f;
+        m_prevRainStrength = 0.0f;
+        m_thunderStrength = 0.0f;
+        m_prevThunderStrength = 0.0f;
+        m_lightningFlashTime = 0;
+    }
+
+    /**
      * @brief 更新降雨强度
      *
      * 由 GameStateChangePacket (RainStrengthChange) 调用

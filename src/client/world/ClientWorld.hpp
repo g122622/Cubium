@@ -143,8 +143,33 @@ public:
 
     [[nodiscard]] u64 seed() const { return m_seed; }
 
-    void onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data);
-    void onChunkUnload(ChunkCoord x, ChunkCoord z);
+    // ========== 维度 ==========
+
+    /**
+     * @brief 获取当前维度ID
+     */
+    [[nodiscard]] DimensionId dimensionId() const { return m_dimensionId; }
+
+    /**
+     * @brief 设置当前维度ID
+     *
+     * 在维度切换时调用，用于验证后续收到的区块数据包是否属于当前维度。
+     * 应在 clearChunks() 之前调用。
+     */
+    void setDimensionId(DimensionId dimensionId) { m_dimensionId = dimensionId; }
+
+    // ========== 天气 ==========
+
+    /**
+     * @brief 重置天气状态
+     *
+     * 维度切换时调用，清除降雨、雷暴和闪电状态。
+     * 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn() 中创建新 ClientWorld 时天气自然重置。
+     */
+    void resetWeather();
+
+    void onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data);
+    void onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     /**
      * @brief 清空所有区块数据
@@ -308,6 +333,7 @@ private:
 
     i32 m_renderDistance = 12;
     u64 m_seed = 0;
+    DimensionId m_dimensionId = 0; ///< 当前维度ID，用于验证区块数据包
 
     glm::vec3 m_cameraPosition{0.0f, 0.0f, 0.0f};
 
