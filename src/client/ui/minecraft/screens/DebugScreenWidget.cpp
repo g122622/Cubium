@@ -230,7 +230,7 @@ void DebugScreenWidget::buildLeftDebugText()
                 m_leftLines.push_back(oss.str());
                 m_leftLines.push_back("Server Light: (?? sky, ?? block)");
             } else {
-                m_leftLines.push_back("Outside of world...");
+                m_leftLines.push_back("BlockLoaded is false, outside of world...");
             }
 
             // 生物群系
@@ -255,7 +255,7 @@ void DebugScreenWidget::buildLeftDebugText()
                 m_leftLines.push_back(oss.str());
             }
         } else {
-            m_leftLines.push_back("Outside of world...");
+            m_leftLines.push_back("World is null, outside of world...");
         }
     } else {
         m_leftLines.push_back("No camera");

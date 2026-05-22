@@ -1564,9 +1564,11 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     MC_TRACE_EVENT(
         "server.player", "MinecraftServer::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
 
-    // 发送传送
-    u32 teleportId = m_teleportManager->requestTeleport(playerId, x, y, z, yaw, pitch);
-    sendTeleportPacket(playerId, x, y, z, yaw, pitch, teleportId);
+    // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
+    // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
+    // 紧接着回两次 TeleportConfirm，第二次会因为服务端已清除 waitingTeleportConfirm
+    // 而被当作无效确认，进而打乱首次区块加载时序。
+    m_teleportManager->requestTeleport(playerId, x, y, z, yaw, pitch);
 
     // 立即发送时间，避免客户端在首次周期同步前短暂显示默认时间(0)
     const auto& time = timeManager().gameTimeObj();
