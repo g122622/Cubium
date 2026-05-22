@@ -27,6 +27,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <initializer_list>
 #include <queue>
 #include <unordered_map>
@@ -247,6 +248,8 @@ template <typename NodeT>
 template <typename S>
 [[nodiscard]] CommandTreeSnapshot buildCommandTreeSnapshot(const CommandDispatcher<S>& dispatcher)
 {
+    MC_TRACE_EVENT("server.network", "buildCommandTreeSnapshot");
+
     CommandTreeSnapshot snapshot;
     auto root = dispatcher.getRoot();
     if (!root) {

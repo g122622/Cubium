@@ -87,6 +87,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
 
+    // 注意，下面加trace的方式不推荐，建议进入相关函数，然后在函数内部顶部加trace，这样能避免外层函数全是trace，影响可读性。除非相关逻辑没有被封装为函数，时才可以在外层函数加trace。
+
     // 初始化方块注册表
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Blocks");
@@ -141,6 +143,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 5. 追踪宏采用RAII机制，尽量放在当前作用域顶部，且离开当前作用域时会自动结束事件，因此不需要手动结束事件。
 6. 尽量使用MC_TRACE_EVENT而不是MC_TRACE_INSTANT，因为前者可以记录一个时间区间，而后者只能记录一瞬间，导致信息量减少，除非你确实只关心一个瞬间事件（比如用户按下键盘、收到网络包），否则建议使用MC_TRACE_EVENT。
 7. 引入trace之前，必须检查当前文件是否包含了 `#include "common/perfetto/TraceEvents.hpp"` 如果没有包含，则需要增加这个包含语句。
+8. 建议进入相关函数，然后在函数内部顶部加trace，这样能避免外层函数全是trace，影响可读性。除非相关逻辑没有被封装为函数，时才可以在外层函数加trace。
 
 ## 任务开始前
 

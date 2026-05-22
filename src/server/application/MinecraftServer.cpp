@@ -1538,6 +1538,8 @@ void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerIn
 
 void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode)
 {
+    MC_TRACE_EVENT("server.player", "MinecraftServer::setupInitialPlayerState", "gameMode", static_cast<i32>(gameMode));
+
     if (!player) return;
 
     // 获取世界出生点（从主世界维度获取）
@@ -1559,6 +1561,9 @@ void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode
 
 void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch)
 {
+    MC_TRACE_EVENT(
+        "server.player", "MinecraftServer::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
+
     // 发送传送
     u32 teleportId = m_teleportManager->requestTeleport(playerId, x, y, z, yaw, pitch);
     sendTeleportPacket(playerId, x, y, z, yaw, pitch, teleportId);
@@ -1598,6 +1603,8 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
 void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
 {
+    MC_TRACE_EVENT("server.network", "MinecraftServer::sendCommandTreePacket", "playerId", playerId);
+
     MC_ASSERT_RELEASE(m_commandRegistry != nullptr);
 
     network::CommandTreePacket packet(m_commandRegistry->getCommandTreeJson());

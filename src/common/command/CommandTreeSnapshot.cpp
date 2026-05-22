@@ -23,6 +23,7 @@
 
 #include "CommandTreeSnapshot.hpp"
 
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 
 namespace mc::command {
@@ -56,6 +57,8 @@ namespace {
 
 nlohmann::json CommandTreeSnapshot::toJson() const
 {
+    MC_TRACE_EVENT("server.network", "CommandTreeSnapshot::toJson", "nodeCount", nodes.size());
+
     nlohmann::json json;
     json["nodes"] = nlohmann::json::array();
 
@@ -86,6 +89,8 @@ std::string CommandTreeSnapshot::toJsonString() const
 
 Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& json)
 {
+    MC_TRACE_EVENT("io.resource", "CommandTreeSnapshot::fromJson");
+
     if (!json.is_object()) {
         return Error(ErrorCode::InvalidData, "Command tree snapshot must be a JSON object");
     }

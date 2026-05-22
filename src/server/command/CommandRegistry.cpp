@@ -89,6 +89,7 @@
 #include "commands/WeatherCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/WorldBorderCommand.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -103,6 +104,8 @@ CommandRegistry::CommandRegistry()
 
 Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSource& source)
 {
+    MC_TRACE_EVENT("server.network", "CommandRegistry::execute", "input", input);
+
     auto result = m_dispatcher.execute(input, source);
     if (result.success()) {
         return result.value().result();
@@ -112,6 +115,7 @@ Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSour
 
 std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source)
 {
+    MC_TRACE_EVENT("server.network", "CommandRegistry::getSuggestions", "input", input);
     return m_dispatcher.getSuggestions(input, source);
 }
 
@@ -127,6 +131,8 @@ std::string CommandRegistry::getCommandTreeJson() const
 
 void CommandRegistry::registerDefaults()
 {
+    MC_TRACE_EVENT("server.initialization", "CommandRegistry::registerDefaults");
+
     if (m_defaultsRegistered) {
         return;
     }

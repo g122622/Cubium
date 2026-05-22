@@ -57,6 +57,7 @@
 #include "server/world/ServerWorld.hpp"
 
 #include "common/util/assert/AssertAll.hpp"
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -378,7 +379,7 @@ void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size)
 {
     (void)sessionId;
-    MC_TRACE_EVENT("server.network", "HandleLoginRequest");
+    MC_TRACE_EVENT("server.network", "IntegratedServer::handleLoginRequestPacket");
 
     network::PacketDeserializer deser(data, size);
     auto result = network::LoginRequestPacket::deserialize(deser);
@@ -424,41 +425,54 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
     // 玩家始终在主世界生成
-    auto* overworld = m_dimensionManager->getOverworld();
-    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
-    Player* playerEntity = m_playerEntityManager.createPlayerEntity(m_clientPlayerId,
-        username,
-        *overworld->world(),
-        static_cast<f32>(playerData->x),
-        static_cast<f32>(playerData->y),
-        static_cast<f32>(playerData->z));
+    {
+        MC_TRACE_EVENT("server.network",
+            "IntegratedServer::handleLoginRequestPacket::CreatePlayerEntity",
+            "username",
+            username,
+            "playerId",
+            m_clientPlayerId);
 
-    if (!playerEntity) {
-        spdlog::error("Failed to create player entity for {}", username);
-        m_playerManager->removePlayer(m_clientPlayerId);
-        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
-        return;
+        auto* overworld = m_dimensionManager->getOverworld();
+        MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+        Player* playerEntity = m_playerEntityManager.createPlayerEntity(m_clientPlayerId,
+            username,
+            *overworld->world(),
+            static_cast<f32>(playerData->x),
+            static_cast<f32>(playerData->y),
+            static_cast<f32>(playerData->z));
+
+        if (!playerEntity) {
+            spdlog::error("Failed to create player entity for {}", username);
+            m_playerManager->removePlayer(m_clientPlayerId);
+            sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+            return;
+        }
+
+        // 记录实体ID
+        m_clientEntityId = playerEntity->id();
     }
 
-    // 记录实体ID
-    m_clientEntityId = playerEntity->id();
-
     // 初始化物品栏
-    m_clientInventory.clear();
-    m_clientInventory.setSelectedSlot(0);
+    {
+        MC_TRACE_EVENT("server.player", "IntegratedServer::handleLoginRequestPacket::InitInventory");
 
-    if (playerData->gameMode == GameMode::Creative) {
-        if (Items::DIAMOND_PICKAXE != nullptr) {
-            m_clientInventory.setItem(0, ItemStack(*Items::DIAMOND_PICKAXE, 1));
-        }
-        i32 slot = 1;
-        BlockItemRegistry::instance().forEachBlockItem([this, &slot](const BlockItem& item) {
-            if (slot >= PlayerInventory::TOTAL_SIZE) {
-                return;
+        m_clientInventory.clear();
+        m_clientInventory.setSelectedSlot(0);
+
+        if (playerData->gameMode == GameMode::Creative) {
+            if (Items::DIAMOND_PICKAXE != nullptr) {
+                m_clientInventory.setItem(0, ItemStack(*Items::DIAMOND_PICKAXE, 1));
             }
-            m_clientInventory.setItem(slot, ItemStack(item, 64));
-            ++slot;
-        });
+            i32 slot = 1;
+            BlockItemRegistry::instance().forEachBlockItem([this, &slot](const BlockItem& item) {
+                if (slot >= PlayerInventory::TOTAL_SIZE) {
+                    return;
+                }
+                m_clientInventory.setItem(slot, ItemStack(item, 64));
+                ++slot;
+            });
+        }
     }
 
     // 发送登录成功响应（包含 playerId 和 entityId）
@@ -552,6 +566,15 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 void IntegratedServer::sendLoginResponse(
     bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message)
 {
+    MC_TRACE_EVENT("server.network",
+        "IntegratedServer::sendLoginResponse",
+        "success",
+        success,
+        "playerId",
+        playerId,
+        "entityId",
+        entityId);
+
     auto* overworldForLogin = m_dimensionManager->getOverworld();
     bool isDebugWorld = overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
@@ -564,6 +587,9 @@ void IntegratedServer::sendLoginResponse(
 
 void IntegratedServer::sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
 {
+    MC_TRACE_EVENT(
+        "server.network", "IntegratedServer::sendTeleport", "x", x, "y", y, "z", z, "teleportId", teleportId);
+
     network::TeleportPacket packet(x, y, z, yaw, pitch, teleportId);
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -574,6 +600,8 @@ void IntegratedServer::sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32
 
 void IntegratedServer::sendPlayerInventory()
 {
+    MC_TRACE_EVENT("server.network", "IntegratedServer::sendPlayerInventory");
+
     PlayerInventoryPacket packet(m_clientInventory);
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -584,6 +612,8 @@ void IntegratedServer::sendPlayerInventory()
 
 void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
 {
+    MC_TRACE_EVENT("server.network", "IntegratedServer::sendContainerContent", "containerId", menu.getId());
+
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
     }
@@ -600,6 +630,13 @@ void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
 void IntegratedServer::sendOpenContainer(
     ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount)
 {
+    MC_TRACE_EVENT("server.network",
+        "IntegratedServer::sendOpenContainer",
+        "containerId",
+        containerId,
+        "type",
+        static_cast<i32>(type));
+
     (void)slotCount; // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
@@ -616,6 +653,8 @@ void IntegratedServer::sendOpenContainer(
 
 void IntegratedServer::sendCloseContainer(ContainerId containerId)
 {
+    MC_TRACE_EVENT("server.network", "IntegratedServer::sendCloseContainer", "containerId", containerId);
+
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
     }
@@ -630,6 +669,8 @@ void IntegratedServer::sendCloseContainer(ContainerId containerId)
 
 void IntegratedServer::sendToClient(const u8* data, size_t size)
 {
+    MC_TRACE_EVENT("server.network", "IntegratedServer::sendToClient", "size", size);
+
     if (m_serverEndpoint && m_serverEndpoint->isConnected()) {
         m_serverEndpoint->send(data, size);
     }
@@ -637,6 +678,15 @@ void IntegratedServer::sendToClient(const u8* data, size_t size)
 
 void IntegratedServer::sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage)
 {
+    MC_TRACE_EVENT("server.network",
+        "IntegratedServer::sendBlockBreakAnim",
+        "breakerId",
+        breakerId,
+        "pos",
+        fmt::format("({}, {}, {})", x, y, z),
+        "stage",
+        stage);
+
     network::BlockBreakAnimPacket packet;
     packet.setBreakerEntityId(breakerId);
     packet.setPosition(BlockPos(x, y, z));
