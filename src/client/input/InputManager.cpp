@@ -22,6 +22,7 @@
  */
 
 #include "InputManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <unordered_map>
 #include <GLFW/glfw3.h>
@@ -74,6 +75,8 @@ void InputManager::initialize(GLFWwindow* window)
 
 void InputManager::update()
 {
+    MC_TRACE_EVENT("rendering.frame", "InputManager::update");
+
     if (m_window) {
         std::unordered_set<i32> currentMouseButtonsPressed;
         for (i32 button = GLFW_MOUSE_BUTTON_1; button <= GLFW_MOUSE_BUTTON_LAST; ++button) {

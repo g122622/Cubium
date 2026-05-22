@@ -30,6 +30,7 @@
 #include "../world/spawn/DespawnManager.hpp"
 #include "../world/spawn/NaturalSpawner.hpp"
 #include "common/core/Result.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 
@@ -118,6 +119,8 @@ void ServerDimension::shutdown()
 
 void ServerDimension::tick()
 {
+    MC_TRACE_EVENT("server.tick", "ServerDimension::tick");
+
     Dimension::tick();
 
     if (m_world != nullptr) {

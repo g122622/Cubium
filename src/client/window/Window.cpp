@@ -22,6 +22,7 @@
  */
 
 #include "Window.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
@@ -181,6 +182,7 @@ bool Window::shouldClose() const
 
 void Window::pollEvents()
 {
+    MC_TRACE_EVENT("rendering.frame", "Window::pollEvents");
     glfwPollEvents();
 }
 

@@ -24,6 +24,7 @@
 #include "ChunkSync.hpp"
 #include "../../world/WorldConstants.hpp"
 #include "../../world/block/Block.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -37,6 +38,9 @@ namespace mc::network {
 
 Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 {
+    MC_TRACE_EVENT("client.network", "ChunkSerializer::serializeChunk", [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunk.x(), chunk.z()).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     PacketSerializer ser;
 
     // 写入区块坐标
@@ -124,6 +128,9 @@ std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section)
 Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
 {
+    MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk", [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     PacketDeserializer deser(data.data(), data.size());
 
     auto chunk = std::make_unique<ChunkData>(x, z);
@@ -166,6 +173,8 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 
     const u8 biomeCount = biomeCountResult.value();
     if (biomeCount > 0) {
+        MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.biomes");
+
         auto biomeDataResult = deser.readBytes(static_cast<size_t>(biomeCount) * sizeof(BiomeId));
         if (biomeDataResult.failed()) {
             return biomeDataResult.error();
@@ -182,6 +191,8 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 
     // 读取区块段
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+        MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.section");
+
         if ((sectionMask & (1 << i)) == 0) continue;
 
         auto sizeResult = deser.readU16();

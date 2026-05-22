@@ -1010,13 +1010,9 @@ void NetworkClient::handleChunkData(network::PacketDeserializer& deser)
     }
 
     auto& packet = result.value();
-    spdlog::debug("[NetworkClient::handleChunkData] Received chunk data: ({}, {}) dim={} size: {} bytes",
-        packet.x(),
-        packet.z(),
-        packet.dimension(),
-        packet.data().size());
 
     if (m_callbacks.onChunkData) {
+        MC_TRACE_EVENT("client.network", "NetworkClient::handleChunkDataCallback", "pos", fmt::format("({}, {})", packet.x(), packet.z()));
         m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
     }
 }

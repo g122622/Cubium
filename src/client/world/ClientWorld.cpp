@@ -516,6 +516,8 @@ void ClientWorld::getNeighborChunks(const ChunkId& id, const ChunkData* neighbor
 
 void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data)
 {
+    MC_TRACE_EVENT("client.network", "ClientWorld::onChunkData", "chunkX", x, "chunkZ", z, "dimension", static_cast<i32>(dimension), "dataSize", data.size());
+
     if (dimension != m_dimensionId) {
         spdlog::warn("Received chunk data for dimension {} but current dimension is {}, discarding chunk ({}, {})",
             static_cast<i32>(dimension),

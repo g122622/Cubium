@@ -28,6 +28,8 @@
 #include "../../util/Direction.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include "PacketSerializer.hpp"
 #include <memory>
 
@@ -831,6 +833,8 @@ public:
 
     [[nodiscard]] static Result<ChunkDataPacket> deserialize(PacketDeserializer& deser)
     {
+        MC_TRACE_EVENT("client.network", "deserializeChunkDataPacket");
+
         ChunkDataPacket packet;
 
         auto xResult = deser.readI32();
@@ -840,6 +844,9 @@ public:
         auto zResult = deser.readI32();
         if (zResult.failed()) return zResult.error();
         packet.m_z = zResult.value();
+
+        MC_TRACE_INSTANT("client.network", "readChunkCoordinates", [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(packet.m_x, packet.m_z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
         auto dimResult = deser.readI32();
         if (dimResult.failed()) return dimResult.error();

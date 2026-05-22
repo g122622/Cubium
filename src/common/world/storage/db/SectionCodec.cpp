@@ -578,6 +578,7 @@ Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 
 
 Result<std::vector<u8>> SectionCodec::decompress(const u8* compressedData, size_t compressedSize, size_t expectedSize)
 {
+    // TODO rocksdb 已经内置压缩，考虑未来通过宏禁用掉这个函数。
     MC_TRACE_EVENT(
         "storage.db", "SectionCodec::decompress", "compressedSize", compressedSize, "expectedSize", expectedSize);
 

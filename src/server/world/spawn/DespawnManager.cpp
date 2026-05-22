@@ -30,6 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -37,6 +38,8 @@ namespace mc::world::spawn {
 
 void DespawnManager::tick(::mc::server::ServerWorld& world)
 {
+    MC_TRACE_EVENT("server.tick", "DespawnManager::tick");
+
     if (!m_enabled) {
         return;
     }

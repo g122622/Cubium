@@ -32,6 +32,7 @@
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -131,6 +132,8 @@ void ClientApplication::closeInventoryScreenIfModeMismatch()
 
 void ClientApplication::handleEvents()
 {
+    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleEvents");
+
     m_window.pollEvents();
     m_input.update();
 
@@ -143,6 +146,8 @@ void ClientApplication::handleEvents()
 
 [[nodiscard]] bool ClientApplication::handleUiOverlayInput()
 {
+    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleUiOverlayInput");
+
     // 处理聊天框键盘输入（优先于游戏输入）
     // 检查聊天框是否打开
     auto* chatWidget = m_kageroEngine
@@ -197,6 +202,8 @@ void ClientApplication::handleEvents()
 
 void ClientApplication::handleGameplayInput()
 {
+    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleGameplayInput");
+
     auto* chatWidget = m_kageroEngine
         ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
         : nullptr;
@@ -210,6 +217,8 @@ void ClientApplication::handleGameplayInput()
 
 bool ClientApplication::handleGameplayShortcutInput(ui::minecraft::widgets::ChatWidget* chatWidget)
 {
+    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleGameplayShortcutInput");
+
     // 检查ALT键切换鼠标捕获
     if (m_input.isKeyJustPressed(GLFW_KEY_LEFT_ALT) || m_input.isKeyJustPressed(GLFW_KEY_RIGHT_ALT)) {
         toggleMouseCapture();
