@@ -31,6 +31,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -45,6 +46,7 @@
 #include <algorithm>
 #include <chrono>
 #include <utility>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::spawn {
@@ -175,6 +177,7 @@ NaturalSpawner::NaturalSpawner()
 void NaturalSpawner::spawnInChunk(
     mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::Random& random)
 {
+    MC_TRACE_EVENT("server.entity", "NaturalSpawner::spawnInChunk", "chunkX", chunkX, "chunkZ", chunkZ);
     // 获取区块的世界坐标范围
     i32 minX = world::toWorldCoord(chunkX);
     i32 minZ = world::toWorldCoord(chunkZ);
@@ -242,6 +245,7 @@ void NaturalSpawner::spawnInChunk(
 
 void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool passive)
 {
+    MC_TRACE_EVENT("server.entity", "NaturalSpawner::tick", "hostile", hostile, "passive", passive);
     // 参考 MC 1.16.5 WorldEntitySpawner.func_234979_a_
 
     // 和平模式下不生成敌对生物
@@ -347,6 +351,10 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
     EntityDensityManager& densityManager,
     math::Random& random)
 {
+    MC_TRACE_EVENT("server.entity",
+        "NaturalSpawner::spawnForClassificationInChunk",
+        "classification",
+        static_cast<i32>(classification));
     if (!chunk) {
         return;
     }
@@ -477,6 +485,12 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
 i32 NaturalSpawner::trySpawnAt(
     mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random)
 {
+    MC_TRACE_EVENT("server.entity",
+        "NaturalSpawner::trySpawnAt",
+        "pos",
+        fmt::format("({}, {}, {})", x, y, z),
+        "entityType",
+        entry.entityTypeId);
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entry.entityTypeId);

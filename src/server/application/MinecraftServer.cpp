@@ -178,7 +178,7 @@ void MinecraftServer::shutdown()
 
 void MinecraftServer::tick()
 {
-    MC_TRACE_EVENT("server.tick", "MinecraftServerTick", "phase", "server_tick");
+    MC_TRACE_EVENT("server.tick", "MinecraftServerTick");
 
     if (!m_running.load()) {
         return;
@@ -186,22 +186,25 @@ void MinecraftServer::tick()
 
     // 更新时间
     {
-        MC_TRACE_EVENT("server.tick", "TickTime", "phase", "time");
+        MC_TRACE_EVENT("server.tick", "TickTime");
         m_timeManager->tick();
     }
 
     // world tick
     if (m_world) {
+        MC_TRACE_EVENT("server.tick", "TickWorld");
         m_world->tick();
     }
 
     // 自然刷怪（在世界 tick 后、实体 tick 前执行）
     if (m_naturalSpawner && m_world) {
+        MC_TRACE_EVENT("server.tick", "NaturalSpawn");
         m_naturalSpawner->tick(*m_world, true, true);
     }
 
     // 生物消失检查（在刷怪后执行）
     if (m_despawnManager && m_world) {
+        MC_TRACE_EVENT("server.tick", "DespawnCheck");
         m_despawnManager->tick(*m_world);
     }
 
@@ -224,6 +227,7 @@ void MinecraftServer::tick()
 
     // 更新所有维度
     if (m_dimensionManager) {
+        MC_TRACE_EVENT("server.tick", "TickAllDimensions");
         m_dimensionManager->tick();
     }
 
