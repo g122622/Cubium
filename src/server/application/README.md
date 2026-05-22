@@ -119,15 +119,17 @@ src/server/application/
   - 由 `ServerDimensionManager` 统一装配主世界 `ServerWorld`
   - `IntegratedServer` 只提供 `WorldType` 配置，不再直接创建主世界 `NoiseChunkGenerator`
 
-**Configuration (`IntegratedServerConfig`):**
+**Configuration (`IntegratedServerParams`):**
 
 ```cpp
-struct IntegratedServerConfig {
-    std::string worldName = "singleplayer";
-    i64 seed = 0;
-    GameMode defaultGameMode = GameMode::Survival;
-    i32 viewDistance = 6;
-    i32 tickRate = 20;  // TPS
+struct IntegratedServerParams {
+    std::string worldName;
+    std::string gameDirectoryRoot;
+    i64 seed;
+    GameMode defaultGameMode;
+    i32 viewDistance;
+    i32 tickRate;
+    WorldType worldType;
 };
 ```
 
@@ -171,12 +173,7 @@ struct IntegratedServerConfig {
 
 ```cpp
 struct StandaloneServerParams {
-    std::optional<u16> port;
-    std::optional<std::string> bindAddress;
-    std::optional<u32> maxPlayers;
-    std::optional<std::string> worldName;
-    std::optional<i64> seed;
-    std::optional<std::string> settingsPath;
+    std::optional<std::string> configPath;
 };
 ```
 

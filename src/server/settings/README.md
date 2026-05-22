@@ -73,7 +73,6 @@ public:
     // 加载/保存方法
     Result<void> loadSettings(const std::filesystem::path& path);
     Result<void> saveSettings(const std::filesystem::path& path);
-    static std::filesystem::path getDefaultPath();
 };
 ```
 
@@ -120,7 +119,7 @@ namespace DifficultyValue {
 - **构造函数**：初始化所有选项的默认值、范围约束，并注册到分组
 - **loadSettings()**：从 JSON 文件加载设置，不存在时使用默认值
 - **saveSettings()**：将当前设置保存到 JSON 文件
-- **getDefaultPath()**：获取操作系统特定的设置文件路径
+- **generateDefaultConfig()**：配置文件不存在时生成默认配置内容
 
 ## 文件关系图
 
@@ -264,8 +263,8 @@ settings.saveSettings("server.json");
 
 ```cpp
 ServerSettings settings;
-auto path = ServerSettings::getDefaultPath();
-settings.loadSettings(path);
+mc::GameDirectory gameDir = mc::GameDirectory::defaultDirectory();
+settings.loadSettings(gameDir.serverOptionsPath());
 
 // ... 修改设置 ...
 

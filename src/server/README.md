@@ -321,8 +321,7 @@ TCP 网络通信实现。
 
 mc::server::StandaloneServer server;
 mc::server::StandaloneServerParams params;
-params.port = 25565;
-params.maxPlayers = 20;
+params.configPath = "C:/games/minecraft_reborn/server_options.json";
 
 auto result = server.initialize(params);
 if (result.success()) {
@@ -334,8 +333,9 @@ if (result.success()) {
 ```cpp
 #include "server/application/IntegratedServer.hpp"
 
-mc::server::IntegratedServerConfig config;
+mc::server::IntegratedServerParams config;
 config.worldName = "singleplayer";
+config.gameDirectoryRoot = "C:/games/minecraft_reborn";
 config.seed = 12345;
 config.viewDistance = 6;
 

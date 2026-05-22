@@ -81,17 +81,11 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 
 #### ClientLaunchParams 结构体
 
-客户端启动参数配置，用于命令行覆盖设置文件中的配置：
+客户端启动参数配置，仅包含配置文件路径和运行时行为参数：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `windowWidth` | `std::optional<i32>` | 窗口宽度覆盖 |
-| `windowHeight` | `std::optional<i32>` | 窗口高度覆盖 |
-| `fullscreen` | `std::optional<bool>` | 全屏模式覆盖 |
-| `serverAddress` | `std::optional<std::string>` | 服务器地址覆盖 |
-| `serverPort` | `std::optional<u16>` | 服务器端口覆盖 |
-| `username` | `std::optional<std::string>` | 用户名覆盖 |
-| `settingsPath` | `std::optional<std::string>` | 自定义设置文件路径 |
+| `configPath` | `std::optional<std::string>` | 自定义配置文件路径 |
 | `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
 | `quickPlayLevelId` | `std::optional<std::string>` | Quick-play：直接加载指定世界 |
 | `quickPlayNew` | `bool` | Quick-play：直接创建新世界 |
