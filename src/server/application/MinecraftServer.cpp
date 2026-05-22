@@ -766,9 +766,7 @@ void MinecraftServer::setupWorldCallbacks()
         // 设置区块发送回调
         if (auto* cs = serverDim->chunkSendManager()) {
             cs->setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
-                MC_UNUSED(x);
-                MC_UNUSED(z);
-                sendPacketToPlayer(playerId, data.data(), data.size());
+                sendChunkDataToPlayer(playerId, x, z, data);
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {

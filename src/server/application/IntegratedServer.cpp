@@ -449,6 +449,10 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
             return;
         }
 
+        // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界，
+        // 首次区块票据和区块包维度也会失去上下文。
+        m_dimensionManager->playerJoinDimension(m_clientPlayerId, overworld->id());
+
         // 记录实体ID
         m_clientEntityId = playerEntity->id();
     }
