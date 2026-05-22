@@ -82,7 +82,7 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dataPackList()`、`lootTableManager()`） |
+| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
 | `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理） |
 | `IntegratedServer` | 内置服务器，使用 LocalConnection 与客户端通信（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |

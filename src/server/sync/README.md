@@ -120,7 +120,7 @@ ServerWorld::setBlockState()
     → setOnBlockChanged 回调
     → BlockUpdateSyncManager.queueBlockUpdate()
 
-MinecraftServer::tick()
+ServerDimension::tick()
     → chunkSendManager.processPendingSends()
     → blockUpdateSyncManager.flushPendingUpdates()
     → 按区块取 tracking 玩家
@@ -182,7 +182,7 @@ MinecraftServer::tick()
 
 ### 整体职责
 
-sync 模块是服务端数据同步的核心模块，负责将世界数据（区块、实体、光照）同步给客户端。主要职责包括：
+sync 模块是服务端数据同步的核心模块，负责将世界数据（区块、实体、光照）同步给客户端。每个 `ServerDimension` 实例各自持有一套独立的同步管理器，确保多维度之间数据隔离。主要职责包括：
 
 1. **区块同步**：管理区块的发送、卸载，与玩家追踪系统集成
 2. **实体同步**：追踪实体状态变化，广播给相关玩家
@@ -240,75 +240,89 @@ sync/
 #### 备注
 
 - `BlockUpdateSyncManager` 本身只负责 pending 去重和 flush，不直接拼接网络包
-- `MinecraftServer` 在 flush 回调里把 `BlockUpdatePacket` 序列化后发送给玩家
+- 网络发送回调在 `MinecraftServer::setupWorldCallbacks()` 中设置，通过各维度的 `ServerDimension` 实例访问对应的同步管理器
 - 所有 block update 的最终目标玩家都来自 `ChunkLoadTicketManager::getTrackingPlayers()`
+- 同步管理器由各 `ServerDimension` 独立持有，每个维度有自己的一套同步管理器实例
 
 ### 使用方法
 
-sync 模块的管理器由 MinecraftServer 创建和管理：
+sync 模块的管理器由各 `ServerDimension` 创建和管理（每个维度各自持有独立的同步管理器实例）：
 
 ```cpp
-// MinecraftServer.hpp
-class MinecraftServer : public IServer {
+// ServerDimension.hpp - 每个维度持有自己的同步管理器
+class ServerDimension : public Dimension {
     // ...
     std::unique_ptr<sync::EntitySyncManager> m_entitySyncManager;
-    std::unique_ptr<sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
     std::unique_ptr<sync::ChunkSendManager> m_chunkSendManager;
+    std::unique_ptr<sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
     std::unique_ptr<sync::LightSyncManager> m_lightSyncManager;
     // ...
 };
 
-// 初始化（在 MinecraftServer::initializeSyncManagers() 中）
-void MinecraftServer::initializeSyncManagers() {
-    m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(entityManager());
-}
+// 初始化（在 ServerDimension::initialize() 中）
+void ServerDimension::initialize() {
+    m_world->initialize();
 
-// 初始化区块同步（在 MinecraftServer::initializeChunkSyncManagers() 中）
-void MinecraftServer::initializeChunkSyncManagers() {
-    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(
-        chunkManager().ticketManager());
-    m_blockUpdateSyncManager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
-        network::BlockUpdatePacket packet(x, y, z, blockStateId);
-        network::PacketSerializer ser;
-        packet.serialize(ser);
-
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-    });
-
+    // 创建同步管理器
+    m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(m_world->entityManager());
     m_chunkSendManager = std::make_unique<sync::ChunkSendManager>(
-        chunkManager(), chunkManager().ticketManager());
+        *m_world->chunkManager(), m_world->chunkManager()->ticketManager());
+    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(
+        m_world->chunkManager()->ticketManager());
     m_lightSyncManager = std::make_unique<sync::LightSyncManager>(
-        *m_lightManager, chunkManager());
+        *m_world->lightManager(), *m_world->chunkManager());
+
+    // 设置区块发送管理器指针
+    m_world->chunkManager()->setChunkSendManager(m_chunkSendManager.get());
 }
 
-// 设置回调（在 MinecraftServer::setupWorldCallbacks() 中）
+// 设置回调（在 MinecraftServer::setupWorldCallbacks() 中，遍历所有维度）
 void MinecraftServer::setupWorldCallbacks() {
-    // 区块加载完成回调
-    chunkManager().setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
-        lightSyncManager().initializeChunkLighting(x, z);
-        chunkSendManager().sendChunkToTrackingPlayers(x, z);
-    });
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
 
-    // 方块变化回调：写入后进入 pending 队列，统一在 tick 末发送。
-    world().setOnBlockChanged([this](const BlockPos& pos, u32 blockStateId) {
-        blockUpdateSyncManager().queueBlockUpdate(pos, blockStateId);
-    });
-    
-    // 追踪变化回调
-    chunkManager().ticketManager().setTrackingChangeCallback(
-        [this](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
-            chunkSendManager().onPlayerTrackingChange(player, x, z, isTracking);
+        // 区块加载完成回调
+        world->chunkManager()->setChunkLoadedCallback([serverDim](ChunkCoord x, ChunkCoord z) {
+            serverDim->lightSyncManager()->initializeChunkLighting(x, z);
+            serverDim->chunkSendManager()->sendChunkToTrackingPlayers(x, z);
         });
+
+        // 方块变化回调：写入后进入 pending 队列，统一在 tick 末发送。
+        world->setOnBlockChanged([serverDim](const BlockPos& pos, u32 blockStateId) {
+            serverDim->blockUpdateSyncManager()->queueBlockUpdate(pos, blockStateId);
+        });
+
+        // 追踪变化回调
+        world->chunkManager()->ticketManager().setTrackingChangeCallback(
+            [serverDim](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
+                serverDim->chunkSendManager()->onPlayerTrackingChange(player, x, z, isTracking);
+            });
+    });
 }
 
-// 主循环调用
-void MinecraftServer::tick() {
-    // ...
-    m_chunkSendManager->processPendingSends();  // 处理待发送区块
-    m_blockUpdateSyncManager->flushPendingUpdates();  // 统一发送方块更新
-    m_entitySyncManager->tick();                 // 同步实体位置
-    // ...
+// 维度 tick（在 ServerDimension::tick() 中）
+void ServerDimension::tick() {
+    Dimension::tick();
+
+    if (m_world != nullptr) {
+        m_world->tick();
+
+        // 实体同步
+        if (m_entitySyncManager) {
+            m_entitySyncManager->tick();
+        }
+
+        // 区块发送处理
+        if (m_chunkSendManager) {
+            m_chunkSendManager->processPendingSends();
+        }
+
+        // 方块更新同步刷新
+        if (m_blockUpdateSyncManager) {
+            m_blockUpdateSyncManager->flushPendingUpdates();
+        }
+    }
 }
 ```
 
@@ -339,7 +353,7 @@ void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z,
 
 **问题描述**：如果 `setOnChunkSend` 等回调未设置，区块数据会被序列化但不会发送。
 
-**解决方案**：在 MinecraftServer 初始化时设置所有回调。
+**解决方案**：在 `MinecraftServer::setupWorldCallbacks()` 中为每个维度设置所有回调。回调通过 `ServerDimension` 指针捕获对应维度的同步管理器。
 
 ```cpp
 m_chunkSendManager->setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, 
@@ -435,39 +449,46 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              MinecraftServer                                 │
 │                                                                             │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
-│  │ PlayerManager   │    │ ServerChunk     │    │ EntityManager   │         │
-│  │                 │    │ Manager         │    │                 │         │
-│  └────────┬────────┘    └────────┬────────┘    └────────┬────────┘         │
-│           │                      │                      │                   │
-│           │ 玩家位置更新          │ 区块加载/卸载         │ 实体生成/移动      │
-│           ▼                      ▼                      ▼                   │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         sync 模块                                    │   │
-│  │                                                                     │   │
-│  │  ┌───────────────────┐                                           │   │
-│  │  │ ChunkSendManager  │◄──── ChunkLoadTicketManager (追踪玩家)     │   │
-│  │  │                   │                                           │   │
-│  │  │ - sendChunk       │                                           │   │
-│  │  │ - unloadChunk     │                                           │   │
-│  │  │ - processPending  │                                           │   │
-│  │  └─────────┬─────────┘                                           │   │
-│  │            │                                                      │   │
-│  │            │ 区块数据包                                           │   │
-│  │            ▼                                                      │   │
-│  │  ┌───────────────────┐    ┌───────────────────┐                  │   │
-│  │  │ EntitySyncManager │    │ LightSyncManager  │                  │   │
-│  │  │                   │    │                   │                  │   │
-│  │  │ - tick()          │    │ - initLighting    │                  │   │
-│  │  │ - spawnEntity     │    │ - markChanged     │                  │   │
-│  │  │ - removeEntity    │    │ - syncToChunk     │                  │   │
-│  │  └─────────┬─────────┘    └─────────┬─────────┘                  │   │
-│  │            │                        │                             │   │
-│  │            │ 实体数据包              │ 光照数据                    │   │
-│  │            ▼                        ▼                             │   │
-│  └────────────┼────────────────────────┼─────────────────────────────┘   │
-│               │                        │                                  │
-│               ▼                        ▼                                  │
+│  ┌─────────────────┐    ┌───────────────────────────────────────────┐      │
+│  │ PlayerManager   │    │       ServerDimensionManager               │      │
+│  │                 │    │                                           │      │
+│  └────────┬────────┘    │  ┌─────────────────────────────────────┐ │      │
+│           │             │  │       ServerDimension (每个维度)     │ │      │
+│           │             │  │                                     │ │      │
+│           │             │  │  ┌──────────────┐ ┌──────────────┐  │ │      │
+│           │             │  │  │ ServerWorld  │ │ ServerChunk  │  │ │      │
+│           │             │  │  │              │ │ Manager      │  │ │      │
+│           │             │  │  └──────┬───────┘ └──────┬───────┘  │ │      │
+│           │             │  │         │                │           │ │      │
+│           │ 玩家位置更新 │  │         │ 区块加载/卸载  │ 实体生成   │ │      │
+│           ▼             │  │         ▼                ▼           │ │      │
+│           │             │  │  ┌─────────────────────────────────┐│ │      │
+│           │             │  │  │       sync 模块（维度级）         ││ │      │
+│           │             │  │  │                                 ││ │      │
+│           │             │  │  │  ┌───────────────────┐          ││ │      │
+│           │             │  │  │  │ ChunkSendManager  │◄── 追踪  ││ │      │
+│           │             │  │  │  │                   │   玩家   ││ │      │
+│           │             │  │  │  └─────────┬─────────┘          ││ │      │
+│           │             │  │  │            │                     ││ │      │
+│           │             │  │  │            ▼                     ││ │      │
+│           │             │  │  │  ┌───────────────────┐          ││ │      │
+│           │             │  │  │  │ EntitySyncManager │          ││ │      │
+│           │             │  │  │  │ - tick()          │          ││ │      │
+│           │             │  │  │  └─────────┬─────────┘          ││ │      │
+│           │             │  │  │            │                     ││ │      │
+│           │             │  │  │  ┌───────────────────┐          ││ │      │
+│           │             │  │  │  │ BlockUpdateSync   │          ││ │      │
+│           │             │  │  │  │ Manager           │          ││ │      │
+│           │             │  │  │  └─────────┬─────────┘          ││ │      │
+│           │             │  │  │            │                     ││ │      │
+│           │             │  │  │  ┌───────────────────┐          ││ │      │
+│           │             │  │  │  │ LightSyncManager  │          ││ │      │
+│           │             │  │  │  └─────────┬─────────┘          ││ │      │
+│           │             │  │  │            │                     ││ │      │
+│           │             │  │  └────────────┼─────────────────────┘│ │      │
+│           │             │  └───────────────┼──────────────────────┘ │      │
+│           │             └──────────────────┼───────────────────────┘      │
+│           ▼                                ▼                              │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                         网络层                                       │   │
 │  │                                                                     │   │
@@ -486,33 +507,29 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 
 ```
 ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager.queueBlockUpdate()
-→ MinecraftServer::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 客户端
+→ ServerDimension::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 客户端
 ```
 
 ## 初始化顺序
 
-sync 模块的初始化有严格的顺序要求：
+sync 模块的初始化有严格的顺序要求（现在在 ServerDimension::initialize() 中完成）：
 
 ```
-1. initializeSyncManagers()
+1. ServerDimension::initialize()
+   └── ServerWorld::initialize()
+       └── 创建 ServerChunkManager
+       └── 创建 WorldLightManager
    └── 创建 EntitySyncManager（仅依赖 EntityManager）
-
-2. initializeWorld()
-   └── 创建 ServerWorld
-   └── 创建 ServerChunkManager
-   └── 创建 WorldLightManager
-
-3. initializeChunkSyncManagers()
-    └── 创建 BlockUpdateSyncManager（依赖 ChunkLoadTicketManager）
    └── 创建 ChunkSendManager（依赖 ServerChunkManager + ChunkLoadTicketManager）
+   └── 创建 BlockUpdateSyncManager（依赖 ChunkLoadTicketManager）
    └── 创建 LightSyncManager（依赖 WorldLightManager + ServerChunkManager）
+   └── 设置区块发送管理器指针到 ServerChunkManager
 
-4. setupWorldCallbacks()
+2. MinecraftServer::setupWorldCallbacks()（遍历所有维度）
    └── 设置区块加载回调 → LightSyncManager.initializeChunkLighting()
                         → ChunkSendManager.sendChunkToTrackingPlayers()
-    └── 设置方块变化回调 → BlockUpdateSyncManager.queueBlockUpdate()
+   └── 设置方块变化回调 → BlockUpdateSyncManager.queueBlockUpdate()
    └── 设置追踪变化回调 → ChunkSendManager.onPlayerTrackingChange()
-   └── 设置光照变化回调 → (网络发送光照更新)
 ```
 
 ## 性能考虑
@@ -528,10 +545,10 @@ sync 模块的初始化有严格的顺序要求：
 ```mermaid
 flowchart LR
     world["ServerWorld::setBlockState"] --> callback["setOnBlockChanged"]
-    callback --> manager["BlockUpdateSyncManager"]
+    callback --> manager["BlockUpdateSyncManager<br/>(per-dimension)"]
     manager --> ticket["ChunkLoadTicketManager"]
     ticket --> players["追踪该区块的玩家"]
-    manager --> flush["flushPendingUpdates()"]
+    manager --> flush["ServerDimension::tick()<br/>flushPendingUpdates()"]
     flush --> packet["BlockUpdatePacket"]
     packet --> client["客户端"]
 
