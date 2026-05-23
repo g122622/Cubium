@@ -199,6 +199,53 @@ index_{target} = index_{current} + (j - i) \times s
 
 这一重构的核心洞见是：如果状态空间可以表示为多维离散坐标，则所有状态可以按行主序映射到一维数组。每个状态只需存储其在数组中的索引，状态切换则退化为简单的整数运算——这比任何哈希表都更快、更紧凑。
 
+\subsubsection{区块反序列化路径优化}
+
+\textbf{背景：Minecraft 的区块同步是什么？}
+
+对不熟悉 Minecraft 的读者来说，可以先把世界想象成一个巨大的三维数组。游戏不会一次性把整张世界地图都发给客户端，而是把世界拆成很多个 \emph{chunk} 逐块同步。一个 chunk 的大小是 $16 \times 256 \times 16$ 个方块，也就是一根竖直的 16x16 柱体，高度覆盖整个可玩世界。
+
+如果直接把整个 chunk 当成一个整体处理，单次就要涉及 65536 个方块，数据量太大，所以 Minecraft 又把 chunk 在垂直方向切成 16 个 \emph{section}。每个 section 是 $16 \times 16 \times 16 = 4096$ 个方块，是网络同步和内部存储的更小粒度单元。这样做的好处是：只有某一段需要更新时，不必重发整根柱体。
+
+\textbf{背景：一条 chunk 数据里都包含什么？}
+
+客户端收到区块数据后，不只是把方块 ID 放回数组里这么简单，还要恢复成后续渲染、光照和碰撞系统都能直接使用的结构。这里面通常包含几类信息：
+
+\begin{itemize}
+    \item \textbf{chunk 坐标}：\texttt{x} / \texttt{z}，用于说明这块数据对应世界中的哪一列。
+    \item \textbf{section mask}：16 位掩码，表示哪些垂直 section 实际存在。空 section 可以省略，不必全发。
+    \item \textbf{heightmap}：一个 16x16 的高度图，记录每个 XZ 位置最高的非空气方块高度，供天空光照、地形轮廓和部分生成逻辑使用。
+    \item \textbf{biomes}：4x4x4 的生物群系采样，用来决定草色、天空颜色、降雨表现等外观效果。
+    \item \textbf{section 数据}：每个 section 里包含 4096 个方块状态 ID，以及天空光照和方块光照数组。
+\end{itemize}
+
+\textbf{为什么这条路径会慢？}
+
+在网络同步路径中，\texttt{ChunkSerializer::deserializeChunk} 负责把服务端发送的整块区块数据还原成\texttt{ChunkData}。这条路径的特点不是纯计算，而是连续字节流解析、临时缓冲区分配和跨层数据搬运。优化前，函数会先把每个 section 读入临时\texttt{std::vector<u8>}，再逐项解析方块状态并拷贝光照数组；因此 \textit{wall duration} 主要消耗在内存搬运和容器重分配上，而不是函数本身的逻辑。
+
+在 Perfetto 里，\textit{wall duration} 表示函数从进入到退出的总耗时，\textit{self duration} 表示扣掉子调用以后，函数自身真正消耗的时间。截图里优化前的 wall duration 大约在 0.4--0.7ms，而 self duration 只有个位数到十几微秒，这说明热点并不在“这层函数写了很多计算”，而在它触发的 section 解析、缓冲区拷贝和对象构建。
+
+\textbf{优化思路：}将高度图、biome 和 section 数据改为直接写入目标缓冲区，配合\texttt{PacketDeserializer::readBytesInto} 与\texttt{ChunkSection::deserialize} 消除中间 vector；同时让\texttt{ChunkSection::serialize} / 反序列化使用连续内存和一次性\texttt{memcpy} 处理 blockStates 与光照数据。这样做虽然不是典型的 SIMD 向量化，但能显著减少分配次数、缓存失效和分支开销，更适合这类内存密集型工作负载。
+
+\begin{figure}[h]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{images/chunkdeser_before.png}
+\par\small 优化前
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{images/chunkdeser_after.png}
+\par\small 优化后
+\end{minipage}
+\caption{\texttt{ChunkSerializer::deserializeChunk} 的 Perfetto 对比。左图为优化前，右图为优化后。可以看到 wall duration 由约0.4--0.7ms降至约0.12--0.19ms，而 self duration 始终只有个位数到十几微秒，说明主要收益来自削减临时缓冲区和逐段解析带来的内存开销。}
+\label{fig:chunkdeserialize_compare}
+\end{figure}
+
+\textbf{结果解读}：从追踪结果看，这条路径更像内存带宽受限而非算术受限。优化后，\texttt{deserializeChunk} 的外层墙钟时间明显下降，而自身指令复杂度没有明显增加，说明改动是通过更好的数据布局和更少的拷贝拿到的收益，而不是单纯依赖编译器自动向量化。
+
 \subsubsection{内存对齐}
 
 在Vulkan渲染相关代码中大量使用\texttt{alignas}确保GPU缓冲区的内存对齐：
