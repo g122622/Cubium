@@ -32,6 +32,13 @@ namespace mc::client {
 
 namespace {
 
+bool shouldSuppressMissingTextureWarning(const ResourceLocation& location)
+{
+    const std::string texturePath = location.toString();
+    return texturePath == "minecraft:textures/entity/villager/profession/none.png" ||
+        texturePath == "minecraft:textures/entity/zombie_villager/profession/none.png";
+}
+
 /**
  * @brief 特殊实体的纹理路径映射
  *
@@ -317,6 +324,8 @@ u32 EntityTextureLoader::loadAdditionalTextures(const std::vector<IResourcePack*
                     spdlog::debug(
                         "EntityTextureLoader: Loaded additional texture {} for entity {}", loc.toString(), entityName);
                     break;
+                } else if (!shouldSuppressMissingTextureWarning(loc)) {
+                    spdlog::warn("Failed to load entity texture: {} - {}", loc.toString(), result.error().toString());
                 }
             }
         }

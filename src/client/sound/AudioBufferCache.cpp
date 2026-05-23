@@ -23,69 +23,10 @@
 
 #include "client/sound/AudioBufferCache.hpp"
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::sound {
-
-// ============================================================================
-// AudioBufferWrapper 实现
-// ============================================================================
-
-AudioBufferWrapper::AudioBufferWrapper(AudioBufferId id, AudioFormat format, f32 duration, IAudioBackend* backend)
-    : m_id(id)
-    , m_format(format)
-    , m_duration(duration)
-    , m_backend(backend)
-    , m_valid(id != 0)
-{
-    // 计算样本数量
-    if (format.sampleRate > 0 && format.channels > 0 && format.bitsPerSample > 0) {
-        m_sampleCount = static_cast<size_t>(duration * format.sampleRate);
-    }
-}
-
-AudioBufferWrapper::~AudioBufferWrapper()
-{
-    if (m_valid && m_backend && m_id != 0) {
-        m_backend->destroyBuffer(m_id);
-        m_valid = false;
-    }
-}
-
-AudioBufferWrapper::AudioBufferWrapper(AudioBufferWrapper&& other) noexcept
-    : m_id(other.m_id)
-    , m_format(other.m_format)
-    , m_duration(other.m_duration)
-    , m_sampleCount(other.m_sampleCount)
-    , m_backend(other.m_backend)
-    , m_valid(other.m_valid)
-{
-    other.m_id = 0;
-    other.m_valid = false;
-    other.m_backend = nullptr;
-}
-
-AudioBufferWrapper& AudioBufferWrapper::operator=(AudioBufferWrapper&& other) noexcept
-{
-    if (this != &other) {
-        // 销毁当前缓冲区
-        if (m_valid && m_backend && m_id != 0) {
-            m_backend->destroyBuffer(m_id);
-        }
-
-        m_id = other.m_id;
-        m_format = other.m_format;
-        m_duration = other.m_duration;
-        m_sampleCount = other.m_sampleCount;
-        m_backend = other.m_backend;
-        m_valid = other.m_valid;
-
-        other.m_id = 0;
-        other.m_valid = false;
-        other.m_backend = nullptr;
-    }
-    return *this;
-}
 
 // ============================================================================
 // AudioBufferCache 实现
@@ -125,9 +66,12 @@ Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
     }
 
     AudioBufferId bufferId = bufferResult.value();
-
-    // 创建缓冲区包装器
-    auto buffer = std::make_shared<AudioBufferWrapper>(bufferId, audioData.format, audioData.duration, &backend);
+    auto buffer = backend.getBuffer(bufferId);
+    if (!buffer || !buffer->isValid()) {
+        backend.destroyBuffer(bufferId);
+        return Error(ErrorCode::OperationFailed,
+            fmt::format("Failed to retrieve backend buffer after creation: {}", location.toString()));
+    }
 
     // 存入缓存
     CacheEntry entry;

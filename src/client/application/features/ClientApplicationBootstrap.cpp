@@ -689,15 +689,6 @@ Result<void> ClientApplication::initializeShell(const ClientLaunchParams& params
     // 初始化核心注册表
     initializeCoreRegistries();
 
-    // 初始化音频系统
-    {
-        auto audioResult = initializeAudio();
-        if (audioResult.failed()) {
-            spdlog::error("Failed to initialize audio system: {}", audioResult.error().toString());
-            // 音频初始化失败不是致命错误
-        }
-    }
-
     // 初始化资源系统
     {
         MC_TRACE_EVENT("client.initialization", "InitializeResources");
@@ -707,6 +698,15 @@ Result<void> ClientApplication::initializeShell(const ClientLaunchParams& params
             spdlog::error("Failed to initialize resource system: {}. Using default rendering.",
                 resourceResult.error().toString());
             // 资源初始化失败不是致命错误
+        }
+    }
+
+    // 初始化音频系统
+    {
+        auto audioResult = initializeAudio();
+        if (audioResult.failed()) {
+            spdlog::error("Failed to initialize audio system: {}", audioResult.error().toString());
+            // 音频初始化失败不是致命错误
         }
     }
 

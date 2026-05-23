@@ -37,55 +37,6 @@
 namespace mc::client::sound {
 
 /**
- * @brief 音频缓冲区包装器
- *
- * 包装 AudioBufferId 和音频元数据，支持共享和自动清理。
- */
-class AudioBufferWrapper : public IAudioBuffer {
-public:
-    /**
-     * @brief 构造缓冲区包装器
-     *
-     * @param id 缓冲区 ID
-     * @param format 音频格式
-     * @param duration 音频时长
-     * @param backend 音频后端（用于销毁缓冲区）
-     */
-    AudioBufferWrapper(AudioBufferId id, AudioFormat format, f32 duration, IAudioBackend* backend);
-
-    /**
-     * @brief 析构函数（自动销毁缓冲区）
-     */
-    ~AudioBufferWrapper() override;
-
-    // 禁止拷贝
-    AudioBufferWrapper(const AudioBufferWrapper&) = delete;
-    AudioBufferWrapper& operator=(const AudioBufferWrapper&) = delete;
-
-    // 允许移动
-    AudioBufferWrapper(AudioBufferWrapper&& other) noexcept;
-    AudioBufferWrapper& operator=(AudioBufferWrapper&& other) noexcept;
-
-    // ========================================================================
-    // IAudioBuffer 接口
-    // ========================================================================
-
-    [[nodiscard]] AudioBufferId getId() const noexcept override { return m_id; }
-    [[nodiscard]] const AudioFormat& getFormat() const noexcept override { return m_format; }
-    [[nodiscard]] f32 getDuration() const noexcept override { return m_duration; }
-    [[nodiscard]] size_t getSampleCount() const noexcept override { return m_sampleCount; }
-    [[nodiscard]] bool isValid() const noexcept override { return m_valid && m_id != 0; }
-
-private:
-    AudioBufferId m_id = 0;
-    AudioFormat m_format;
-    f32 m_duration = 0.0f;
-    size_t m_sampleCount = 0;
-    IAudioBackend* m_backend = nullptr;
-    bool m_valid = false;
-};
-
-/**
  * @brief 音频缓冲区缓存管理器
  *
  * 管理音频缓冲区的创建、缓存和生命周期。

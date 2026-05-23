@@ -32,6 +32,24 @@
 
 namespace mc {
 
+namespace {
+
+std::string normalizePathSeparators(std::string path)
+{
+    std::replace(path.begin(), path.end(), '\\', '/');
+    return path;
+}
+
+std::string toLowerAscii(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return value;
+}
+
+} // namespace
+
 // ============================================================================
 // 线程安全说明
 //
@@ -68,7 +86,7 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         const auto& path = entry.path();
 
         // 跳过已存在的资源包
-        std::string normalizedPath = normalizePath(path);
+        std::string normalizedPath = normalizePathKey(path);
         if (containsPack(normalizedPath)) {
             continue;
         }
@@ -116,7 +134,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         return Error(ErrorCode::FileNotFound, "Resource pack not found: " + path.string());
     }
 
-    std::string normalizedPath = normalizePath(path);
+    std::string normalizedPath = normalizePathKey(path);
 
     // 先在锁内做一次“已存在”检查：如果只是更新开关/优先级，应该快速返回，
     // 不要做昂贵的 ZIP 打开与初始化。
@@ -210,11 +228,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
 
 bool ResourcePackList::removePack(const std::string& path)
 {
-    std::string normalizedPath = path;
-    // 如果路径不是规范的，尝试规范化
-    if (normalizedPath.find('\\') != std::string::npos) {
-        std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
-    }
+    std::string normalizedPath = normalizePathKey(std::filesystem::path(path));
 
     bool removed = false;
     {
@@ -657,10 +671,23 @@ std::string ResourcePackList::normalizePath(const std::filesystem::path& path)
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::normalizePath");
 
-    std::string result = path.string();
-    // 统一使用正斜杠
-    std::replace(result.begin(), result.end(), '\\', '/');
-    return result;
+    return normalizePathSeparators(path.string());
+}
+
+std::string ResourcePackList::normalizePathKey(const std::filesystem::path& path)
+{
+    MC_TRACE_EVENT("client.resource", "ResourcePackList::normalizePathKey");
+
+    std::filesystem::path normalizedPath = path;
+    std::error_code ec;
+    auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
+    if (!ec) {
+        normalizedPath = canonicalPath;
+    } else {
+        normalizedPath = path.lexically_normal();
+    }
+
+    return toLowerAscii(normalizePathSeparators(normalizedPath.string()));
 }
 
 bool ResourcePackList::isZipFile(const std::filesystem::path& path)

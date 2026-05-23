@@ -370,6 +370,11 @@ private:
     [[nodiscard]] static std::string normalizePath(const std::filesystem::path& path);
 
     /**
+     * @brief 生成用于去重比较的路径键
+     */
+    [[nodiscard]] static std::string normalizePathKey(const std::filesystem::path& path);
+
+    /**
      * @brief 检查是否是 ZIP 文件
      */
     [[nodiscard]] static bool isZipFile(const std::filesystem::path& path);

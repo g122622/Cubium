@@ -39,6 +39,27 @@
 
 namespace mc::client {
 
+namespace {
+
+void addBuiltinFolderPackIfPresent(ResourceManager& resourceManager, const std::filesystem::path& builtinPackDir)
+{
+    if (!std::filesystem::exists(builtinPackDir)) {
+        spdlog::info("Built-in resource pack directory not found, skipping: {}", builtinPackDir.string());
+        return;
+    }
+
+    auto builtinResourcesPack = std::make_shared<FolderResourcePack>(builtinPackDir.string());
+    auto builtinResult = builtinResourcesPack->initialize();
+    if (builtinResult.success()) {
+        (void)resourceManager.addResourcePack(std::move(builtinResourcesPack));
+        spdlog::info("Added built-in resource pack from: {}", builtinPackDir.string());
+    } else {
+        spdlog::warn("Failed to initialize built-in resource pack: {}", builtinResult.error().toString());
+    }
+}
+
+} // namespace
+
 Result<void> ClientApplication::initializeResources()
 {
     // 1. 创建 ResourceManager 并首先添加内置资源包（最低优先级）
@@ -56,14 +77,7 @@ Result<void> ClientApplication::initializeResources()
 
     // 添加项目内置资源包（提供基础纹理、模型等）
     // 内置包位于可执行文件旁的 resources/data/minecraft/
-    auto builtinResourcesPack = std::make_shared<FolderResourcePack>(m_gameDirectory.builtinPackDir().string());
-    auto builtinResult = builtinResourcesPack->initialize();
-    if (builtinResult.success()) {
-        (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
-        spdlog::info("Added built-in resource pack from: {}", m_gameDirectory.builtinPackDir().string());
-    } else {
-        spdlog::warn("Failed to initialize built-in resource pack: {}", builtinResult.error().toString());
-    }
+    addBuiltinFolderPackIfPresent(*m_resourceManager, m_gameDirectory.builtinPackDir());
 
     // 2. 扫描资源包目录（从游戏目录获取路径）
     auto resourcePackDir = m_gameDirectory.resourcePacksDir();
@@ -153,11 +167,7 @@ void ClientApplication::reloadResources()
 
     // 添加项目内置资源包（提供基础纹理、模型等）
     // 内置包位于可执行文件旁的 resources/data/minecraft/
-    auto builtinResourcesPack = std::make_shared<FolderResourcePack>(m_gameDirectory.builtinPackDir().string());
-    auto builtinResult = builtinResourcesPack->initialize();
-    if (builtinResult.success()) {
-        (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
-    }
+    addBuiltinFolderPackIfPresent(*m_resourceManager, m_gameDirectory.builtinPackDir());
 
     // 重新添加启用的资源包
     auto enabledPacks = m_resourcePackList.getEnabledPacks();

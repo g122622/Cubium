@@ -138,27 +138,32 @@
     {
       "name": "windows-clang-debug",
       "configurePreset": "windows-clang-debug",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "jobs": 16
     },
     {
       "name": "windows-clang-relwithdebinfo",
       "configurePreset": "windows-clang-relwithdebinfo",
-      "configuration": "RelWithDebInfo"
+      "configuration": "RelWithDebInfo",
+      "jobs": 16
     },
     {
       "name": "windows-clang-release",
       "configurePreset": "windows-clang-release",
-      "configuration": "Release"
+      "configuration": "Release",
+      "jobs": 16
     },
     {
       "name": "macos-debug",
       "configurePreset": "macos-debug",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "jobs": 6
     },
     {
       "name": "macos-release",
       "configurePreset": "macos-release",
-      "configuration": "Release"
+      "configuration": "Release",
+      "jobs": 6
     }
   ],
   "testPresets": [

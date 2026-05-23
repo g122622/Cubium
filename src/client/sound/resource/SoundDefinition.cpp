@@ -205,6 +205,7 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
         return Error(ErrorCode::InvalidData, "'sounds' must be an array");
     }
 
+    const auto originalSoundCount = soundsJson.size();
     for (const auto& soundJson : soundsJson) {
         auto result = SoundDefinition::parse(soundJson, namespace_);
         if (result.success()) {
@@ -215,9 +216,12 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
         }
     }
 
-    // 至少需要一个有效的声音
     if (def.sounds.empty()) {
-        return Error(ErrorCode::InvalidData, "Sound event must have at least one valid sound");
+        if (originalSoundCount == 0) {
+            spdlog::info("Sound event '{}' is intentionally empty", std::string(eventId));
+        } else {
+            spdlog::warn("Sound event '{}' has no valid sound entries after parsing", std::string(eventId));
+        }
     }
 
     return def;
