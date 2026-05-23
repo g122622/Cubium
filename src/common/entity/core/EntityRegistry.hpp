@@ -24,7 +24,9 @@
 #pragma once
 
 #include "../../core/Result.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "EntityType.hpp"
+#include <fmt/format.h>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -132,13 +134,12 @@ public:
      * @brief 通过ID获取实体类型
      * @param id 实体类型ID
      * @return 实体类型引用
-     * @throws std::out_of_range 如果ID无效
+     * @note 如果ID无效，会触发断言失败
      */
     [[nodiscard]] const EntityType& getTypeOrThrow(EntityTypeId id) const
     {
-        if (id == 0 || id > static_cast<EntityTypeId>(m_types.size())) {
-            throw std::out_of_range("Invalid entity type ID: " + std::to_string(id));
-        }
+        MC_ASSERT_RELEASE_MSG(id != 0 && id <= static_cast<EntityTypeId>(m_types.size()),
+            fmt::format("Invalid entity type ID: {}", id).c_str());
         return m_types[static_cast<size_t>(id - 1)];
     }
 

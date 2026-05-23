@@ -26,7 +26,6 @@
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
@@ -113,7 +112,7 @@ public:
     [[nodiscard]] virtual std::string getTypeName() const { return getName(); }
     [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
     [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
-    virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
+    virtual Result<void> parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
     [[nodiscard]] const std::string& getUsageText() const { return m_usageText; }
     void setUsageText(const std::string& text) { m_usageText = text; }
@@ -260,7 +259,10 @@ public:
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Root; }
     [[nodiscard]] std::string getName() const noexcept override { return ""; }
-    void parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override {}
+    Result<void> parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override
+    {
+        return Result<void>::ok();
+    }
 };
 
 /**
@@ -279,15 +281,15 @@ public:
     [[nodiscard]] std::string getName() const noexcept override { return m_literal; }
     [[nodiscard]] const std::string& getLiteral() const noexcept { return m_literal; }
 
-    void parse(StringReader& reader, CommandContext<S>& /*context*/) const override
+    Result<void> parse(StringReader& reader, CommandContext<S>& /*context*/) const override
     {
         const i32 start = reader.getCursor();
         const std::string literal = reader.readUnquotedString();
         if (literal != m_literal) {
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::DispatcherExpectedLiteral, "Expected literal '" + m_literal + "'", start);
+            return Error(ErrorCode::CommandExpectedLiteral, "Expected literal '" + m_literal + "'");
         }
+        return Result<void>::ok();
     }
 
     bool equals(const CommandNode<S>& other) const override
@@ -309,7 +311,7 @@ private:
 template <typename S, typename T>
 class ArgumentCommandNode : public CommandNode<S> {
 public:
-    using Parser = std::function<T(std::string_view, i32&, CommandException&)>;
+    using Parser = std::function<Result<T>(std::string_view, i32&)>;
 
     /**
      * @brief 使用解析函数构造
@@ -327,19 +329,16 @@ public:
      */
     ArgumentCommandNode(const std::string& name, std::shared_ptr<ArgumentType<T>> argumentType)
         : m_name(name)
-        , m_parser([this](std::string_view input, i32& cursor, CommandException& error) -> T {
+        , m_parser([this](std::string_view input, i32& cursor) -> Result<T> {
             StringReader reader(input);
             reader.setCursor(cursor);
-            try {
-                T result = m_argumentType->parse(reader);
-                cursor = reader.getCursor();
-                return result;
-            }
-            catch (const CommandException& e) {
-                error = e;
+            auto result = m_argumentType->parse(reader);
+            if (result.failed()) {
                 cursor = -1;
-                return T{};
+                return result.error();
             }
+            cursor = reader.getCursor();
+            return result.value();
         })
         , m_argumentType(std::move(argumentType))
     {}
@@ -361,29 +360,28 @@ public:
         return m_argumentType ? m_argumentType->getExamples() : std::vector<std::string>{};
     }
 
-    void parse(StringReader& reader, CommandContext<S>& context) const override
+    Result<void> parse(StringReader& reader, CommandContext<S>& context) const override
     {
         const i32 start = reader.getCursor();
         i32 cursor = start;
-        T result = parse(reader.getString(), cursor);
+        auto result = parseWithResult(reader.getString(), cursor);
+        if (result.failed()) {
+            return result.error();
+        }
         reader.setCursor(cursor);
-        context.setArgument(m_name, result, start);
+        context.setArgument(m_name, result.value(), start);
+        return Result<void>::ok();
     }
 
     /**
      * @brief 解析参数值
      * @param input 输入字符串
      * @param cursor 当前位置（会被更新）
-     * @return 解析结果，失败时抛出异常
+     * @return 解析结果，成功返回值，失败返回错误
      */
-    [[nodiscard]] T parse(std::string_view input, i32& cursor) const
+    [[nodiscard]] Result<T> parseWithResult(std::string_view input, i32& cursor) const
     {
-        CommandException error(CommandErrorType::Unknown, "Parse error");
-        T result = m_parser(input, cursor, error);
-        if (cursor < 0) {
-            throw error;
-        }
-        return result;
+        return m_parser(input, cursor);
     }
 
     /**

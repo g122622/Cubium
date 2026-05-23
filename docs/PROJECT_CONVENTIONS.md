@@ -286,7 +286,32 @@ MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
 
 ## 错误处理模式
 
-对可能失败的操作使用 `Result<T>`：
+### 禁用异常
+
+**本项目全面禁用 C++ 异常机制。** 所有错误处理使用 `Result<T>` 类型或断言。
+
+**替代方案：**
+- **可恢复错误**：使用 `Result<T>` 类型
+- **不可恢复错误**：使用 `MC_ASSERT_RELEASE` / `MC_ASSERT_RELEASE_MSG`
+
+**边界处理：** 与第三方库交互时，在边界捕获异常并转换为 `Result<T>`：
+
+```cpp
+// JSON 解析边界处理
+auto result = mc::json::parse(jsonString);
+if (result.failed()) {
+    return result.error();
+}
+
+// ASIO 网络边界处理
+try {
+    asio::connect(*m_socket, endpoints);
+} catch (const asio::system_error& e) {
+    return Error(ErrorCode::ConnectionFailed, e.what());
+}
+```
+
+### Result<T> 使用模式
 
 ```cpp
 // 返回值或错误
@@ -304,6 +329,41 @@ if (result.success()) {
 } else {
     // 处理错误
 }
+
+// 使用 MC_TRY_VAR 简化错误传播
+Result<void> process() {
+    MC_TRY_VAR(value, divide(10, 2));  // 失败时自动返回错误
+    // 使用 value...
+    return Result<void>::ok();
+}
+
+// 使用 expect() 提供更好的错误信息
+int value = result.expect("divide() should never fail");
+
+// 使用 MC_TRY_VOID 处理 Result<void>
+Result<void> save() {
+    MC_TRY_VOID(validate());
+    MC_TRY_VOID(writeToFile());
+    return Result<void>::ok();
+}
+```
+
+### JSON 安全解析
+
+使用 `mc::json::parse()` 进行安全的 JSON 解析（不抛出异常）：
+
+```cpp
+#include "util/JsonUtils.hpp"
+
+auto result = mc::json::parse(jsonString);
+if (result.failed()) {
+    return result.error();
+}
+const auto& json = result.value();
+
+// 类型安全的字段获取
+auto nameResult = mc::json::getString(json, "name");
+auto countResult = mc::json::getInt(json, "count");
 ```
 
 ### 错误码
@@ -318,6 +378,9 @@ if (result.success()) {
 | 渲染 | InitializationFailed, OperationFailed, CapacityExceeded, Unsupported |
 | 权限 | PermissionDenied, Unauthorized |
 | 资源包 | ResourcePackNotFound, ResourcePackInvalid, ResourceNotFound, ResourceParseError, TextureLoadFailed, TextureAtlasFull, ModelNotFound, BlockStateNotFound |
+| 命令 | CommandNotFound, CommandSyntaxError, CommandPermissionDenied, CommandExecutionFailed, CommandInvalidArgument, CommandExpectedArgument, CommandExpectedLiteral, CommandExpectedSeparator |
+| 数据解析 | JsonParseError, NbtParseError, InvalidFormat, DataValidationFailed |
+| 存档 | WorldNotFound, WorldCorrupted, WorldLocked, WorldIncompatible, ChunkNotFound, ChunkCorrupted, ChunkSaveFailed, ChunkLoadFailed, SnapshotNotFound, SnapshotCorrupted, SnapshotCreateFailed, SnapshotRestoreFailed, ImportFailed, ExportFailed, RocksDBError, VersionTooNew, ChecksumMismatch |
 
 ## 断言库
 

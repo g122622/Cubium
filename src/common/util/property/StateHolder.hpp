@@ -24,10 +24,11 @@
 #pragma once
 
 #include "Property.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cstddef>
+#include <fmt/format.h>
 #include <memory>
 #include <sstream>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -78,10 +79,8 @@ public:
     [[nodiscard]] typename Property<T>::ValueReturnType get(const Property<T>& prop) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot get property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex,
+            fmt::format("Cannot get property {} as it does not exist in {}", prop.name(), ownerName()).c_str());
         return static_cast<const Property<T>&>(prop).valueAt(m_valueIndices[slotIndex]);
     }
 
@@ -106,25 +105,20 @@ public:
     [[nodiscard]] const State& with(const Property<T>& prop, const T& value) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot set property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex,
+            fmt::format("Cannot set property {} as it does not exist in {}", prop.name(), ownerName()).c_str());
 
         auto optIndex = prop.indexOf(value);
-        if (!optIndex) {
-            throw std::invalid_argument("Invalid value for property " + prop.name());
-        }
+        MC_ASSERT_RELEASE_MSG(optIndex.has_value(), fmt::format("Invalid value for property {}", prop.name()).c_str());
 
         if (m_valueIndices[slotIndex] == *optIndex) {
             return static_cast<const State&>(*this);
         }
 
         const PropertyLayout& layout = m_propertyLayouts[slotIndex];
-        if (layout.property != &prop) {
-            throw std::invalid_argument("Cannot set property " + prop.name() + " to " + prop.valueToString(value) +
-                " on " + ownerName() + ", it is not an allowed value");
-        }
+        MC_ASSERT_RELEASE_MSG(layout.property == &prop,
+            fmt::format("Cannot set property {} to {} on {}, it is not an allowed value",
+                prop.name(), prop.valueToString(value), ownerName()).c_str());
 
         const size_t currentIndex = static_cast<size_t>(m_stateIndex);
         const size_t currentValueIndex = m_valueIndices[slotIndex];
@@ -139,10 +133,8 @@ public:
     [[nodiscard]] const State& cycle(const Property<T>& prop) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot cycle property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex,
+            fmt::format("Cannot cycle property {} as it does not exist in {}", prop.name(), ownerName()).c_str());
 
         const auto& values = prop.allowedValues();
         size_t currentIndex = m_valueIndices[slotIndex];

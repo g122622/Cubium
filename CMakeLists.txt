@@ -205,6 +205,22 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Configuring Windows build with Clang: ${CMAKE_CXX_COMPILER}")
 endif()
 
+# ============================================================
+# 禁用 C++ 异常
+# ============================================================
+# 项目全面禁用异常以提高性能并减小二进制体积
+# 错误处理使用 Result<T> 模式和 MC_ASSERT_RELEASE 断言
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-fno-exceptions -fno-rtti)
+elseif(MSVC)
+    add_compile_options(/EHs-c- /GR-)
+endif()
+
+# 禁用第三方库的异常
+add_compile_definitions(SPDLOG_NO_EXCEPTIONS)
+add_compile_definitions(ASIO_NO_EXCEPTIONS)
+add_compile_definitions(ASIO_NO_DEPRECATED)
+
 if(WIN32)
     # 统一 Windows 目标版本，避免 Asio 反复发出 _WIN32_WINNT 警告。
     add_compile_definitions(_WIN32_WINNT=0x0A00 WINVER=0x0A00)

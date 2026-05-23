@@ -1,5 +1,5 @@
 ﻿# tests/CMakeLists.txt
-# 娴嬭瘯閰嶇疆
+# 测试配置
 
 find_package(GTest CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
@@ -10,6 +10,15 @@ function(mc_disable_all_warnings_for_tests target)
         target_compile_options(${target} PRIVATE -w)
     elseif(MSVC)
         target_compile_options(${target} PRIVATE /W0)
+    endif()
+endfunction()
+
+# 测试目标启用异常（GTest 需要）
+function(mc_enable_exceptions_for_tests target)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${target} PRIVATE -fexceptions)
+    elseif(MSVC)
+        target_compile_options(${target} PRIVATE /EHsc)
     endif()
 endfunction()
 
@@ -1306,6 +1315,7 @@ target_compile_definitions(mc_tests
 )
 
 mc_disable_all_warnings_for_tests(mc_tests)
+mc_enable_exceptions_for_tests(mc_tests)
 mc_copy_runtime_dlls(mc_tests)
 
 # 资源测试可执行文件
@@ -1357,6 +1367,7 @@ target_include_directories(mc_resource_tests
 
 # stb_image 瀹炵幇鏀惧湪TextureAtlasBuilder.cpp涓?
 mc_disable_all_warnings_for_tests(mc_resource_tests)
+mc_enable_exceptions_for_tests(mc_resource_tests)
 mc_copy_runtime_dlls(mc_resource_tests)
 
 # 鍙戠幇娴嬭瘯
@@ -1468,6 +1479,7 @@ if(MC_BUILD_CLIENT)
     )
 
     mc_disable_all_warnings_for_tests(mc_trident_tests)
+    mc_enable_exceptions_for_tests(mc_trident_tests)
     mc_copy_runtime_dlls(mc_trident_tests)
 
     mc_register_gtests(mc_trident_tests)
@@ -1665,6 +1677,7 @@ target_include_directories(mc_command_tests
 )
 
 mc_disable_all_warnings_for_tests(mc_command_tests)
+mc_enable_exceptions_for_tests(mc_command_tests)
 mc_copy_runtime_dlls(mc_command_tests)
 
 mc_register_gtests(mc_command_tests)
@@ -1742,6 +1755,7 @@ target_include_directories(mc_village_tests
 )
 
 mc_disable_all_warnings_for_tests(mc_village_tests)
+mc_enable_exceptions_for_tests(mc_village_tests)
 mc_copy_runtime_dlls(mc_village_tests)
 
 mc_register_gtests(mc_village_tests)

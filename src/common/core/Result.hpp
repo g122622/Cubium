@@ -24,11 +24,11 @@
 #pragma once
 
 #include "Types.hpp"
+#include "util/assert/AssertMacros.hpp"
 
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -105,6 +105,22 @@ enum class ErrorCode : i32 {
     TextureAtlasFull = -705,
     ModelNotFound = -706,
     BlockStateNotFound = -707,
+
+    // 命令错误 (-800 到 -899)
+    CommandNotFound = -800,
+    CommandSyntaxError = -801,
+    CommandPermissionDenied = -802,
+    CommandExecutionFailed = -803,
+    CommandInvalidArgument = -804,
+    CommandExpectedArgument = -805,
+    CommandExpectedLiteral = -806,
+    CommandExpectedSeparator = -807,
+
+    // 数据解析错误 (-900 到 -949)
+    JsonParseError = -900,
+    NbtParseError = -901,
+    InvalidFormat = -902,
+    DataValidationFailed = -903,
 
     // 存档错误 (1000-1099)
     WorldNotFound = -1000,
@@ -260,28 +276,41 @@ public:
 
     [[nodiscard]] explicit operator bool() const noexcept { return success(); }
 
-    // 获取值
+    // 获取值（失败时断言终止）
     [[nodiscard]] T& value() &
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
         return *m_value;
     }
 
     [[nodiscard]] const T& value() const&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
         return *m_value;
     }
 
     [[nodiscard]] T&& value() &&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
+        return std::move(*m_value);
+    }
+
+    // 获取值并附带自定义错误消息（失败时断言终止）
+    [[nodiscard]] T& expect(const char* message) &
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
+        return *m_value;
+    }
+
+    [[nodiscard]] const T& expect(const char* message) const&
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
+        return *m_value;
+    }
+
+    [[nodiscard]] T&& expect(const char* message) &&
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
         return std::move(*m_value);
     }
 
@@ -349,6 +378,12 @@ public:
     // 获取错误
     [[nodiscard]] const Error& error() const noexcept { return m_error; }
 
+    // 断言成功
+    void expect(const char* message) const
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
+    }
+
     // 静态工厂方法
     static Result ok() { return Result(); }
 
@@ -388,25 +423,31 @@ public:
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() &
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
         return takeValue();
     }
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() const&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
         return const_cast<Result*>(this)->takeValue();
     }
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() &&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(success(), "Result::value() called on error result");
+        return takeValue();
+    }
+
+    [[nodiscard]] std::unique_ptr<T, Deleter> expect(const char* message) &
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
+        return takeValue();
+    }
+
+    [[nodiscard]] std::unique_ptr<T, Deleter> expect(const char* message) &&
+    {
+        MC_ASSERT_RELEASE_MSG(success(), message);
         return takeValue();
     }
 
@@ -461,5 +502,55 @@ private:
         }                                 \
         var = std::move(_result.value()); \
     } while (0)
+
+/**
+ * @brief MC_TRY_VAR - 声明变量并赋值，失败时返回错误
+ *
+ * 使用示例:
+ * @code
+ * Result<void> process() {
+ *     MC_TRY_VAR(value, parseValue());  // 声明 value 并赋值
+ *     // 使用 value
+ *     return Result<void>::ok();
+ * }
+ * @endcode
+ */
+#define MC_TRY_VAR(var, expr)              \
+    auto _result_##var = (expr);           \
+    if (_result_##var.failed()) {          \
+        return _result_##var.error();      \
+    }                                      \
+    auto var = std::move(_result_##var.value())
+
+/**
+ * @brief MC_TRY_VOID - 用于 Result<void> 的错误传播
+ *
+ * 使用示例:
+ * @code
+ * Result<void> process() {
+ *     MC_TRY_VOID(initialize());  // 失败时返回错误
+ *     MC_TRY_VOID(loadData());
+ *     return Result<void>::ok();
+ * }
+ * @endcode
+ */
+#define MC_TRY_VOID(expr)                  \
+    do {                                   \
+        auto _result = (expr);             \
+        if (_result.failed()) {            \
+            return _result.error();        \
+        }                                  \
+    } while (0)
+
+/**
+ * @brief MC_EXPECT - 获取值或断言失败
+ *
+ * 使用示例:
+ * @code
+ * Result<int> result = getValue();
+ * int value = MC_EXPECT(result, "getValue() must succeed");
+ * @endcode
+ */
+#define MC_EXPECT(result, message) (result).expect(message)
 
 } // namespace mc

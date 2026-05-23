@@ -163,7 +163,7 @@ public:
         if (it != tag.value.end()) {
             // NBT 没有布尔类型，从 Byte 读取
             if (it->second->id() == nbt::TagId::Byte) {
-                i8 value = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+                i8 value = static_cast<const nbt::tags::byte_tag&>(*it->second).value;
                 setSaddledFromBoolean(value != 0);
             }
         }

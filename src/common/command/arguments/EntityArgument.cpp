@@ -64,7 +64,7 @@ bool FloatRange::testAngle(f32 value) const noexcept
     }
 }
 
-EntitySelector EntityArgumentType::parse(StringReader& reader)
+Result<EntitySelector> EntityArgumentType::parse(StringReader& reader)
 {
     const i32 start = reader.getCursor();
 
@@ -72,19 +72,28 @@ EntitySelector EntityArgumentType::parse(StringReader& reader)
         return parseSelector(reader, start);
     }
 
-    const std::string name = reader.readString();
-    return EntitySelector::byUsername(name);
+    auto nameResult = reader.readString();
+    if (nameResult.failed()) {
+        return nameResult.error();
+    }
+    return EntitySelector::byUsername(nameResult.value());
 }
 
-EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start)
+Result<EntitySelector> EntityArgumentType::parseSelector(StringReader& reader, i32 start)
 {
     reader.skip();
 
     if (!reader.canRead()) {
-        throw CommandException(CommandErrorType::EntitySelectorInvalid, "Missing selector type", start);
+        reader.setCursor(start);
+        return Error(ErrorCode::CommandSyntaxError, "Missing selector type");
     }
 
-    const char typeChar = reader.read();
+    auto charResult = reader.read();
+    if (charResult.failed()) {
+        reader.setCursor(start);
+        return charResult.error();
+    }
+    const char typeChar = charResult.value();
     EntitySelector selector;
 
     switch (typeChar) {
@@ -110,19 +119,25 @@ EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start
             break;
         default:
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::EntitySelectorInvalid, "Unknown selector type: @" + std::string(1, typeChar), start);
+            return Error(ErrorCode::CommandSyntaxError, "Unknown selector type: @" + std::string(1, typeChar));
     }
 
     if (reader.canRead() && reader.peek() == '[') {
-        parseSelectorArguments(reader, selector);
+        auto argResult = parseSelectorArguments(reader, selector);
+        if (argResult.failed()) {
+            reader.setCursor(start);
+            return argResult.error();
+        }
     }
 
-    validateSelector(selector, start);
+    auto validationResult = validateSelector(selector, start);
+    if (validationResult.failed()) {
+        return validationResult.error();
+    }
     return selector;
 }
 
-void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySelector& selector)
+Result<void> EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySelector& selector)
 {
     reader.skip();
 
@@ -135,20 +150,28 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
         const std::string paramName = readSelectorArgumentToken(reader);
         reader.skipWhitespace();
         if (!reader.canRead() || reader.peek() != '=') {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid,
-                "Expected '=' after selector argument name",
-                reader.getCursor());
+            return Error(ErrorCode::CommandSyntaxError, "Expected '=' after selector argument name");
         }
 
         reader.skip();
         reader.skipWhitespace();
 
         const i32 cursor = reader.getCursor();
-        const std::string paramValue = reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
-            ? reader.readString()
-            : readSelectorArgumentToken(reader);
+        std::string paramValue;
+        if (reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE) {
+            auto strResult = reader.readString();
+            if (strResult.failed()) {
+                return strResult.error();
+            }
+            paramValue = strResult.value();
+        } else {
+            paramValue = readSelectorArgumentToken(reader);
+        }
 
-        applySelectorArgument(selector, paramName, paramValue, cursor);
+        auto applyResult = applySelectorArgument(selector, paramName, paramValue, cursor);
+        if (applyResult.failed()) {
+            return applyResult.error();
+        }
         reader.skipWhitespace();
         if (reader.canRead() && reader.peek() == ',') {
             reader.skip();
@@ -156,31 +179,31 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
     }
 
     if (!reader.canRead() || reader.peek() != ']') {
-        throw CommandException(
-            CommandErrorType::EntitySelectorInvalid, "Expected ']' to close selector arguments", reader.getCursor());
+        return Error(ErrorCode::CommandSyntaxError, "Expected ']' to close selector arguments");
     }
 
     reader.skip();
+    return Result<void>::ok();
 }
 
-void EntityArgumentType::applySelectorArgument(
+Result<void> EntityArgumentType::applySelectorArgument(
     EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor)
 {
     // limit / c - 结果数量限制
     if (name == "limit" || name == "c") {
         const i32 limit = std::stoi(value);
         if (limit < 1) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Limit must be at least 1", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Limit must be at least 1");
         }
         selector.setLimit(limit);
         selector.setSingle(limit == 1);
-        return;
+        return Result<void>::ok();
     }
 
     // name - 实体名称（支持取反）
     if (name == "name") {
         if (selector.hasUsername() || selector.hasUsernameNegated()) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Name already set", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Name already set");
         }
         StringReader valueReader(value);
         if (shouldInvertValue(valueReader)) {
@@ -188,59 +211,65 @@ void EntityArgumentType::applySelectorArgument(
         } else {
             selector.setUsername(value);
         }
-        return;
+        return Result<void>::ok();
     }
 
     // distance - 距离范围
     if (name == "distance") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
-        selector.distance() = range;
+        auto rangeResult = parseFloatRange(valueReader);
+        if (rangeResult.failed()) {
+            return rangeResult.error();
+        }
+        selector.distance() = rangeResult.value();
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
 
     // level - 等级范围（仅玩家）
     if (name == "level") {
         StringReader valueReader(value);
-        IntRange range = parseIntRange(valueReader);
-        selector.level() = range;
+        auto rangeResult = parseIntRange(valueReader);
+        if (rangeResult.failed()) {
+            return rangeResult.error();
+        }
+        selector.level() = rangeResult.value();
         selector.setIncludesNonPlayers(false);
-        return;
+        return Result<void>::ok();
     }
 
     // x, y, z - 坐标偏移
     if (name == "x") {
         selector.setX(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
     if (name == "y") {
         selector.setY(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
     if (name == "z") {
         selector.setZ(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
 
     // dx, dy, dz - 体积尺寸
     if (name == "dx") {
         selector.setDx(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
     if (name == "dy") {
         selector.setDy(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
     if (name == "dz") {
         selector.setDz(std::stof(value));
         selector.setCurrentWorldOnly(true);
-        return;
+        return Result<void>::ok();
     }
 
     // sort - 排序方式
@@ -254,15 +283,15 @@ void EntityArgumentType::applySelectorArgument(
         } else if (value == "arbitrary") {
             selector.setSort(EntitySelectorSort::Arbitrary);
         } else {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Unknown sort type: " + value, cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Unknown sort type: " + value);
         }
-        return;
+        return Result<void>::ok();
     }
 
     // type - 实体类型（支持取反和标签）
     if (name == "type") {
         if (selector.hasEntityType()) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Type already set", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Type already set");
         }
         StringReader valueReader(value);
         bool negated = shouldInvertValue(valueReader);
@@ -273,7 +302,7 @@ void EntityArgumentType::applySelectorArgument(
             selector.setIncludesNonPlayers(false);
         }
         selector.setEntityType(typeStr, negated);
-        return;
+        return Result<void>::ok();
     }
 
     // tag - 实体标签（支持取反，可多次使用）
@@ -281,46 +310,52 @@ void EntityArgumentType::applySelectorArgument(
         StringReader valueReader(value);
         bool negated = shouldInvertValue(valueReader);
         selector.addTag(valueReader.getRemaining(), negated);
-        return;
+        return Result<void>::ok();
     }
 
     // gamemode - 游戏模式（支持取反，仅玩家）
     if (name == "gamemode" || name == "m") {
         if (selector.hasGameMode()) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Gamemode already set", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Gamemode already set");
         }
         StringReader valueReader(value);
         bool negated = shouldInvertValue(valueReader);
         selector.setGameMode(valueReader.getRemaining(), negated);
         selector.setIncludesNonPlayers(false);
-        return;
+        return Result<void>::ok();
     }
 
     // team - 队伍（支持取反）
     if (name == "team") {
         if (selector.hasTeam()) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Team already set", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Team already set");
         }
         StringReader valueReader(value);
         bool negated = shouldInvertValue(valueReader);
         selector.setTeam(valueReader.getRemaining(), negated);
-        return;
+        return Result<void>::ok();
     }
 
     // x_rotation - 俯仰角范围（pitch，-90 到 90 度）
     if (name == "x_rotation") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
-        selector.xRotation() = range;
-        return;
+        auto rangeResult = parseFloatRange(valueReader);
+        if (rangeResult.failed()) {
+            return rangeResult.error();
+        }
+        selector.xRotation() = rangeResult.value();
+        return Result<void>::ok();
     }
 
     // y_rotation - 偏航角范围（yaw，-180 到 180 度）
     if (name == "y_rotation") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
-        selector.yRotation() = range;
-        return;
+        auto rangeResult = parseFloatRange(valueReader);
+        if (rangeResult.failed()) {
+            return rangeResult.error();
+        }
+        selector.yRotation() = rangeResult.value();
+        return Result<void>::ok();
     }
 
     // nbt - NBT 数据（支持取反）
@@ -347,9 +382,9 @@ void EntityArgumentType::applySelectorArgument(
             }
         }
         catch (const std::exception&) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Invalid NBT format", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Invalid NBT format");
         }
-        return;
+        return Result<void>::ok();
     }
 
     // scores - 记分板分数
@@ -360,7 +395,7 @@ void EntityArgumentType::applySelectorArgument(
         valueReader.skipWhitespace();
 
         if (!valueReader.canRead() || valueReader.peek() != '{') {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '{' for scores", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Expected '{' for scores");
         }
         valueReader.skip(); // skip '{'
         valueReader.skipWhitespace();
@@ -371,20 +406,22 @@ void EntityArgumentType::applySelectorArgument(
             // 读取目标名称（遇到 = 时停止）
             const std::string objectiveName = readScoresKey(valueReader);
             if (objectiveName.empty()) {
-                throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected objective name", cursor);
+                return Error(ErrorCode::CommandSyntaxError, "Expected objective name");
             }
 
             valueReader.skipWhitespace();
             if (!valueReader.canRead() || valueReader.peek() != '=') {
-                throw CommandException(
-                    CommandErrorType::EntitySelectorInvalid, "Expected '=' after objective name", cursor);
+                return Error(ErrorCode::CommandSyntaxError, "Expected '=' after objective name");
             }
             valueReader.skip(); // skip '='
             valueReader.skipWhitespace();
 
             // 读取分数范围
-            IntRange range = parseIntRange(valueReader);
-            selector.addScoreCondition(objectiveName, range);
+            auto rangeResult = parseIntRange(valueReader);
+            if (rangeResult.failed()) {
+                return rangeResult.error();
+            }
+            selector.addScoreCondition(objectiveName, rangeResult.value());
 
             valueReader.skipWhitespace();
             if (valueReader.canRead() && valueReader.peek() == ',') {
@@ -394,12 +431,12 @@ void EntityArgumentType::applySelectorArgument(
         }
 
         if (!valueReader.canRead() || valueReader.peek() != '}') {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '}' to close scores", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Expected '}' to close scores");
         }
         valueReader.skip(); // skip '}'
 
         selector.setIncludesNonPlayers(false); // 记分板只对玩家有效
-        return;
+        return Result<void>::ok();
     }
 
     // advancements - 进度
@@ -410,7 +447,7 @@ void EntityArgumentType::applySelectorArgument(
         valueReader.skipWhitespace();
 
         if (!valueReader.canRead() || valueReader.peek() != '{') {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected '{' for advancements", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Expected '{' for advancements");
         }
         valueReader.skip(); // skip '{'
         valueReader.skipWhitespace();
@@ -426,8 +463,7 @@ void EntityArgumentType::applySelectorArgument(
 
             valueReader.skipWhitespace();
             if (!valueReader.canRead() || valueReader.peek() != '=') {
-                throw CommandException(
-                    CommandErrorType::EntitySelectorInvalid, "Expected '=' after advancement id", cursor);
+                return Error(ErrorCode::CommandSyntaxError, "Expected '=' after advancement id");
             }
             valueReader.skip(); // skip '='
             valueReader.skipWhitespace();
@@ -446,14 +482,12 @@ void EntityArgumentType::applySelectorArgument(
                     // 读取准则名称（遇到 = 时停止）
                     const std::string criteriaName = readCriteriaKey(valueReader);
                     if (criteriaName.empty()) {
-                        throw CommandException(
-                            CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
+                        return Error(ErrorCode::CommandSyntaxError, "Expected criteria name");
                     }
 
                     valueReader.skipWhitespace();
                     if (!valueReader.canRead() || valueReader.peek() != '=') {
-                        throw CommandException(
-                            CommandErrorType::EntitySelectorInvalid, "Expected '=' after criteria name", cursor);
+                        return Error(ErrorCode::CommandSyntaxError, "Expected '=' after criteria name");
                     }
                     valueReader.skip(); // skip '='
                     valueReader.skipWhitespace();
@@ -466,8 +500,7 @@ void EntityArgumentType::applySelectorArgument(
                         } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                             condition.criteriaConditions[criteriaName] = false;
                         } else {
-                            throw CommandException(
-                                CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                            return Error(ErrorCode::CommandSyntaxError, "Expected true or false");
                         }
                     }
 
@@ -479,8 +512,7 @@ void EntityArgumentType::applySelectorArgument(
                 }
 
                 if (!valueReader.canRead() || valueReader.peek() != '}') {
-                    throw CommandException(
-                        CommandErrorType::EntitySelectorInvalid, "Expected '}' to close criteria", cursor);
+                    return Error(ErrorCode::CommandSyntaxError, "Expected '}' to close criteria");
                 }
                 valueReader.skip(); // skip '}'
             } else {
@@ -493,8 +525,7 @@ void EntityArgumentType::applySelectorArgument(
                     } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                         condition.isComplete = false;
                     } else {
-                        throw CommandException(
-                            CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                        return Error(ErrorCode::CommandSyntaxError, "Expected true or false");
                     }
                 }
             }
@@ -509,13 +540,12 @@ void EntityArgumentType::applySelectorArgument(
         }
 
         if (!valueReader.canRead() || valueReader.peek() != '}') {
-            throw CommandException(
-                CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
+            return Error(ErrorCode::CommandSyntaxError, "Expected '}' to close advancements");
         }
         valueReader.skip(); // skip '}'
 
         selector.setIncludesNonPlayers(false); // 进度只对玩家有效
-        return;
+        return Result<void>::ok();
     }
 
     // predicate - 战利品表谓词
@@ -532,25 +562,25 @@ void EntityArgumentType::applySelectorArgument(
         condition.predicate = predicateId;
         condition.negated = negated;
         selector.setPredicateCondition(condition);
-        return;
+        return Result<void>::ok();
     }
 
     // 未知参数
-    throw CommandException(CommandErrorType::EntitySelectorInvalid, "Unknown selector argument: " + name, cursor);
+    return Error(ErrorCode::CommandSyntaxError, "Unknown selector argument: " + name);
 }
 
-void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 start)
+Result<void> EntityArgumentType::validateSelector(const EntitySelector& selector, i32 start)
 {
     if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
-        throw CommandException(CommandErrorType::EntitySelectorNotAllowed, "Only players can be selected here", start);
+        return Error(ErrorCode::CommandPermissionDenied, "Only players can be selected here");
     }
 
     if (isSingle() && !selector.isSingle() && selector.limit() > 1) {
-        throw CommandException(isPlayersOnly() ? CommandErrorType::PlayerTooMany : CommandErrorType::EntityTooMany,
+        return Error(isPlayersOnly() ? ErrorCode::CommandInvalidArgument : ErrorCode::CommandInvalidArgument,
             isPlayersOnly() ? "Only one player is allowed, but provided multiple"
-                            : "Only one entity is allowed, but provided multiple",
-            start);
+                            : "Only one entity is allowed, but provided multiple");
     }
+    return Result<void>::ok();
 }
 
 std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
@@ -582,10 +612,7 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
         }
     }
 
-    if (reader.getCursor() == start) {
-        throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected selector argument token", start);
-    }
-
+    // 注意：此函数不返回错误，调用者应检查 cursor 是否移动
     const size_t startIndex = static_cast<size_t>(start);
     const size_t endIndex = static_cast<size_t>(reader.getCursor());
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
@@ -654,7 +681,7 @@ bool EntityArgumentType::shouldInvertValue(StringReader& reader)
     return false;
 }
 
-FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
+Result<FloatRange> EntityArgumentType::parseFloatRange(StringReader& reader)
 {
     FloatRange range;
 
@@ -672,7 +699,11 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
         reader.skip(); // skip first '.'
         reader.skip(); // skip second '.'
         hasMax = true;
-        maxValue = reader.readFloat();
+        auto floatResult = reader.readFloat();
+        if (floatResult.failed()) {
+            return floatResult.error();
+        }
+        maxValue = floatResult.value();
     } else {
         // 读取最小值
         // 注意：需要手动处理负数和浮点数，因为 ".." 可能紧随其后
@@ -713,7 +744,8 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
         }
 
         if (!hasDigits) {
-            throw CommandException(CommandErrorType::FloatExpected, "Expected float", start);
+            reader.setCursor(start);
+            return Error(ErrorCode::CommandSyntaxError, "Expected float");
         }
 
         minValue = static_cast<f32>(negative ? -(intPart + fracPart) : (intPart + fracPart));
@@ -724,7 +756,11 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
             reader.skip(); // skip first '.'
             reader.skip(); // skip second '.'
             if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
-                maxValue = reader.readFloat();
+                auto floatResult = reader.readFloat();
+                if (floatResult.failed()) {
+                    return floatResult.error();
+                }
+                maxValue = floatResult.value();
                 hasMax = true;
             }
         } else {
@@ -740,7 +776,7 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
     return range;
 }
 
-IntRange EntityArgumentType::parseIntRange(StringReader& reader)
+Result<IntRange> EntityArgumentType::parseIntRange(StringReader& reader)
 {
     IntRange range;
 
@@ -757,11 +793,19 @@ IntRange EntityArgumentType::parseIntRange(StringReader& reader)
         hasMax = true;
         // 读取最大值，检查是否还有内容
         if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
-            maxValue = reader.readInt();
+            auto intResult = reader.readInt();
+            if (intResult.failed()) {
+                return intResult.error();
+            }
+            maxValue = intResult.value();
         }
     } else {
         // 读取最小值
-        minValue = reader.readInt();
+        auto intResult = reader.readInt();
+        if (intResult.failed()) {
+            return intResult.error();
+        }
+        minValue = intResult.value();
         hasMin = true;
 
         // 检查是否有 ".." 表示范围
@@ -769,7 +813,11 @@ IntRange EntityArgumentType::parseIntRange(StringReader& reader)
             reader.skip(); // skip first '.'
             reader.skip(); // skip second '.'
             if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',' && reader.peek() != '}') {
-                maxValue = reader.readInt();
+                auto maxResult = reader.readInt();
+                if (maxResult.failed()) {
+                    return maxResult.error();
+                }
+                maxValue = maxResult.value();
                 hasMax = true;
             }
         } else {

@@ -296,7 +296,8 @@ bool MobEntity::isInDaylight() const
         EntityId vehicleId = getVehicle();
         if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
             const Entity* vehicle = m_world->getEntity(vehicleId);
-            if (vehicle != nullptr && dynamic_cast<const entity::BoatEntity*>(vehicle) != nullptr) {
+            // 使用 typeId() 检查是否为船
+            if (vehicle != nullptr && vehicle->typeId() == entity::EntityTypeIdNumber::BOAT) {
                 pos = pos.up();
             }
         }

@@ -24,6 +24,8 @@
 #pragma once
 
 #include "Property.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include <fmt/format.h>
 #include <sstream>
 
 namespace mc {
@@ -60,17 +62,11 @@ public:
      * @param min 最小值（包含）
      * @param max 最大值（包含）
      * @return 属性实例
-     * @throws std::invalid_argument 如果 min < 0 或 max <= min
      */
     [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const std::string& name, i32 min, i32 max)
     {
-        if (min < 0) {
-            throw std::invalid_argument("Min value of " + name + " must be 0 or greater");
-        }
-        if (max <= min) {
-            throw std::invalid_argument(
-                "Max value of " + name + " must be greater than min (" + std::to_string(min) + ")");
-        }
+        MC_ASSERT_RELEASE_MSG(min >= 0, fmt::format("Min value of {} must be 0 or greater", name).c_str());
+        MC_ASSERT_RELEASE_MSG(max > min, fmt::format("Max value of {} must be greater than min ({})", name, min).c_str());
         return std::unique_ptr<IntegerProperty>(new IntegerProperty(name, min, max));
     }
 
@@ -94,21 +90,28 @@ public:
      */
     [[nodiscard]] std::optional<i32> parse(std::string_view str) const override
     {
-        try {
-            size_t pos = 0;
-            i32 value = std::stoi(std::string(str), &pos);
-            if (pos != str.length()) {
-                return std::nullopt;
-            }
-            // 检查值是否在允许范围内
-            if (value < m_min || value > m_max) {
-                return std::nullopt;
-            }
-            return value;
+        // 尝试解析整数
+        size_t pos = 0;
+        i32 value = 0;
+        bool success = false;
+
+        // 手动解析避免异常
+        std::string s(str);
+        char* end = nullptr;
+        long longVal = std::strtol(s.c_str(), &end, 10);
+        if (end != s.c_str() && *end == '\0' && longVal >= INT_MIN && longVal <= INT_MAX) {
+            value = static_cast<i32>(longVal);
+            success = true;
         }
-        catch (const std::exception&) {
+
+        if (!success) {
             return std::nullopt;
         }
+        // 检查值是否在允许范围内
+        if (value < m_min || value > m_max) {
+            return std::nullopt;
+        }
+        return value;
     }
 
     /**
@@ -129,8 +132,9 @@ public:
     [[nodiscard]] bool equals(const IProperty& other) const override
     {
         if (!Property<i32>::equals(other)) return false;
-        const auto* intOther = dynamic_cast<const IntegerProperty*>(&other);
-        if (!intOther) return false;
+        // 使用 typeName() 比较代替 dynamic_cast
+        if (other.typeName() != typeName()) return false;
+        const auto* intOther = static_cast<const IntegerProperty*>(&other);
         return m_min == intOther->m_min && m_max == intOther->m_max;
     }
 

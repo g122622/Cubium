@@ -52,9 +52,11 @@
 #pragma once
 
 #include "core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <cctype>
 #include <cstddef>
+#include <fmt/format.h>
 #include <istream>
 #include <map>
 #include <memory>
@@ -113,15 +115,15 @@ namespace mc {
 namespace nbt {
 
 /**
- * @brief 从输入流读取一个字符，遇到EOF抛出异常
+ * @brief 从输入流读取一个字符，遇到EOF触发断言
  * @param input 输入流
  * @return 读取的字符
- * @throws std::runtime_error 如果到达EOF
+ * @note 如果到达EOF，触发断言失败
  */
 inline int cheof(std::istream& input)
 {
     int value = input.get();
-    if (value == EOF) throw std::runtime_error("Unexpected EOF while reading NBT data");
+    MC_ASSERT_RELEASE_MSG(value != EOF, "Unexpected EOF while reading NBT data");
     return value;
 }
 
@@ -426,7 +428,7 @@ void scan_sequence_text(std::istream& input, F element_action)
             case ']':
                 return;
             default:
-                throw std::runtime_error(std::string("unexpected character: ") + static_cast<char>(next));
+                MC_ASSERT_RELEASE_MSG(false, fmt::format("unexpected character: {}", static_cast<char>(next)).c_str());
         }
     }
 }
@@ -642,7 +644,8 @@ template <typename tag_type>
 std::unique_ptr<tag_type> cast(std::unique_ptr<tag>&& ptr)
 {
     static_assert(std::is_base_of<tag, tag_type>::value);
-    std::unique_ptr<tag_type> result(dynamic_cast<tag_type*>(ptr.release()));
+    MC_ASSERT_RELEASE_MSG(ptr->id() == tag_type::tid, "NBT tag type mismatch in cast");
+    std::unique_ptr<tag_type> result(static_cast<tag_type*>(ptr.release()));
     return result;
 }
 
@@ -650,7 +653,8 @@ template <typename tag_type>
 std::unique_ptr<const tag_type> cast(std::unique_ptr<const tag>& ptr)
 {
     static_assert(std::is_base_of<tag, tag_type>::value);
-    std::unique_ptr<const tag_type> result(dynamic_cast<const tag_type*>(ptr.release()));
+    MC_ASSERT_RELEASE_MSG(ptr->id() == tag_type::tid, "NBT tag type mismatch in cast");
+    std::unique_ptr<const tag_type> result(static_cast<const tag_type*>(ptr.release()));
     return result;
 }
 
@@ -1085,17 +1089,24 @@ struct compound_tag final : public tag {
 
     /**
      * @brief 获取值（标签类型版本）
+     * @note 使用断言检查类型正确性
      */
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
     typename TagT::value_type& get(const std::string& name)
     {
-        return dynamic_cast<TagT&>(*value.at(name)).value;
+        auto it = value.find(name);
+        MC_ASSERT_RELEASE_MSG(it != value.end(), fmt::format("NBT key not found: {}", name).c_str());
+        MC_ASSERT_RELEASE_MSG(it->second->id() == TagT::tid, fmt::format("NBT type mismatch for key: {}", name).c_str());
+        return static_cast<TagT&>(*it->second).value;
     }
 
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
     const typename TagT::value_type& get(const std::string& name) const
     {
-        return dynamic_cast<const TagT&>(*value.at(name)).value;
+        auto it = value.find(name);
+        MC_ASSERT_RELEASE_MSG(it != value.end(), fmt::format("NBT key not found: {}", name).c_str());
+        MC_ASSERT_RELEASE_MSG(it->second->id() == TagT::tid, fmt::format("NBT type mismatch for key: {}", name).c_str());
+        return static_cast<const TagT&>(*it->second).value;
     }
 
     /**
@@ -1112,7 +1123,9 @@ struct compound_tag final : public tag {
             value.emplace(name, std::move(ptr));
             return result;
         } else {
-            return dynamic_cast<TagType&>(*iter->second).value;
+            MC_ASSERT_RELEASE_MSG(iter->second->id() == TagType::tid,
+                fmt::format("NBT type mismatch for key: {}", name).c_str());
+            return static_cast<TagType&>(*iter->second).value;
         }
     }
 
@@ -1200,11 +1213,11 @@ std::vector<number_t> load_array_text_impl(std::istream& input)
     std::vector<number_t> result;
     skip_space(input);
     char a = static_cast<char>(cheof(input));
-    if (a != '[') throw std::runtime_error("failed to open array tag");
+    MC_ASSERT_RELEASE_MSG(a == '[', "failed to open array tag");
     a = static_cast<char>(cheof(input));
-    if (a != tags::tag_of<std::vector<number_t>>::prefix) throw std::runtime_error("wrong array tag type");
+    MC_ASSERT_RELEASE_MSG(a == tags::tag_of<std::vector<number_t>>::prefix, "wrong array tag type");
     a = static_cast<char>(cheof(input));
-    if (a != ';') throw std::runtime_error("unexpected symbol in array tag");
+    MC_ASSERT_RELEASE_MSG(a == ';', "unexpected symbol in array tag");
     scan_sequence_text(input, [&] { result.push_back(load_text<number_t>(input)); });
     result.shrink_to_fit();
     return result;

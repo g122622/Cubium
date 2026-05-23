@@ -174,11 +174,6 @@ public:
     void findAmbiguities(std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback) const;
 
 private:
-    /**
-     * @brief 执行命令节点
-     */
-    i32 executeCommand(const CommandContext<S>& context, NodePtr node, StringReader& reader);
-
     RootNodePtr m_root;
 };
 
@@ -430,24 +425,23 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             auto childContext =
                 std::make_unique<CommandContext<S>>(currentContext->copyFor(currentContext->getRootNode()));
 
-            try {
-                child->parse(childReader, *childContext);
-                childContext->setCurrentNode(child);
+            auto parseResult = child->parse(childReader, *childContext);
+            if (parseResult.failed()) {
+                considerResult(ParseResults<S>(parseResult.getError(), childReader.getCursor()));
+                return;
+            }
+            childContext->setCurrentNode(child);
 
-                if (child->hasRedirect()) {
-                    auto redirectTarget = child->getRedirect();
-                    if (redirectTarget && redirectStack.insert(redirectTarget.get()).second) {
-                        considerResult(parseRecursive(childReader, redirectTarget, std::move(childContext)));
-                        redirectStack.erase(redirectTarget.get());
-                    } else {
-                        considerResult(parseRecursive(childReader, child, std::move(childContext)));
-                    }
+            if (child->hasRedirect()) {
+                auto redirectTarget = child->getRedirect();
+                if (redirectTarget && redirectStack.insert(redirectTarget.get()).second) {
+                    considerResult(parseRecursive(childReader, redirectTarget, std::move(childContext)));
+                    redirectStack.erase(redirectTarget.get());
                 } else {
                     considerResult(parseRecursive(childReader, child, std::move(childContext)));
                 }
-            }
-            catch (const CommandException& e) {
-                considerResult(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()));
+            } else {
+                considerResult(parseRecursive(childReader, child, std::move(childContext)));
             }
         };
 
@@ -472,11 +466,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
         }
 
         return ParseResults<S>(
-            CommandException(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
-                                                                      : CommandErrorType::DispatcherUnknownArgument,
-                currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
-                currentReader.getCursor())
-                .withInput(currentContext->getInput()),
+            Error(currentNode->getType() == NodeType::Root ? ErrorCode::CommandNotFound : ErrorCode::CommandInvalidArgument,
+                currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument"),
             currentReader.getCursor());
     };
 
@@ -486,8 +477,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 template <typename S>
 Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
 {
-    if (const auto exception = parse.getException(); exception.has_value()) {
-        return Error(ErrorCode::InvalidArgument, exception->message());
+    if (parse.hasError()) {
+        return parse.getError();
     }
 
     auto* context = parse.getContext();
@@ -497,19 +488,11 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
 
     auto node = context->getCurrentNode();
     if (!node || !node->hasCommand()) {
-        return Error(ErrorCode::Unknown, "No command to execute");
+        return Error(ErrorCode::CommandNotFound, "No command to execute");
     }
 
-    try {
-        i32 result = node->getCommand()(*context);
-        return CommandResult::success(result);
-    }
-    catch (const CommandException& e) {
-        return Error(ErrorCode::Unknown, e.message());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::Unknown, e.what());
-    }
+    i32 result = node->getCommand()(*context);
+    return CommandResult::success(result);
 }
 
 template <typename S>
@@ -631,16 +614,14 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view i
                 StringReader childReader = reader;
                 auto childContext = std::make_unique<CommandContext<S>>(context->copyFor(context->getRootNode()));
 
-                try {
-                    child->parse(childReader, *childContext);
+                auto parseResult = child->parse(childReader, *childContext);
+                if (parseResult.success()) {
                     childContext->setCurrentNode(child);
                     matchedReader = childReader;
                     matchedContext = std::move(childContext);
                     matchedNode = child->hasRedirect() ? child->getRedirect() : child;
                     matched = true;
                     break;
-                }
-                catch (const CommandException&) {
                 }
             }
         }

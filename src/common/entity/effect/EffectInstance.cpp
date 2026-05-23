@@ -234,7 +234,9 @@ void EffectInstance::applyEffect(LivingEntity& entity)
             // MC 1.16.5: 每tick增加饥饿消耗
             // 参考 EffectInstance.performEffect() 第455-459行
             // exhaustion += 0.005F * (amplifier + 1)
-            if (auto* player = dynamic_cast<Player*>(&entity)) {
+            // 检查是否为玩家类型（通过typeId）
+            if (entity.typeId() == entity::EntityTypeIdNumber::PLAYER) {
+                auto* player = static_cast<Player*>(&entity);
                 player->addExhaustion(0.005f * static_cast<f32>(m_amplifier + 1));
             }
             break;
@@ -345,9 +347,9 @@ EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag)
     auto it = tag.value.find(nbt_keys::ID);
     if (it != tag.value.end()) {
         if (it->second->id() == nbt::TagId::Byte) {
-            type = static_cast<EffectType>(dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value);
+            type = static_cast<EffectType>(static_cast<const nbt::tags::byte_tag&>(*it->second).value);
         } else if (it->second->id() == nbt::TagId::Int) {
-            type = static_cast<EffectType>(dynamic_cast<const nbt::tags::int_tag&>(*it->second).value);
+            type = static_cast<EffectType>(static_cast<const nbt::tags::int_tag&>(*it->second).value);
         }
     }
 
@@ -356,9 +358,9 @@ EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag)
     it = tag.value.find(nbt_keys::AMPLIFIER);
     if (it != tag.value.end()) {
         if (it->second->id() == nbt::TagId::Byte) {
-            amplifier = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+            amplifier = static_cast<const nbt::tags::byte_tag&>(*it->second).value;
         } else if (it->second->id() == nbt::TagId::Int) {
-            amplifier = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+            amplifier = static_cast<const nbt::tags::int_tag&>(*it->second).value;
         }
     }
 
@@ -366,26 +368,26 @@ EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag)
     i32 duration = 600; // 默认30秒
     it = tag.value.find(nbt_keys::DURATION);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Int) {
-        duration = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        duration = static_cast<const nbt::tags::int_tag&>(*it->second).value;
     }
 
     // 读取标志
     bool ambient = false;
     it = tag.value.find(nbt_keys::AMBIENT);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
-        ambient = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        ambient = static_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
     }
 
     bool visible = true;
     it = tag.value.find(nbt_keys::SHOW_PARTICLES);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
-        visible = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        visible = static_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
     }
 
     bool showIcon = true;
     it = tag.value.find(nbt_keys::SHOW_ICON);
     if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
-        showIcon = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        showIcon = static_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
     }
 
     return EffectInstance(type, duration, amplifier, ambient, visible, showIcon);

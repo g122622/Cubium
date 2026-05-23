@@ -26,6 +26,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <any>
 #include <memory>
@@ -89,7 +90,7 @@ public:
     {
         auto it = m_arguments.find(name);
         if (it == m_arguments.end()) {
-            throw std::out_of_range("Argument not found: " + name);
+            MC_ASSERT_RELEASE_MSG(false, "Argument not found");
         }
         return std::any_cast<T>(it->second.value);
     }
@@ -197,7 +198,7 @@ public:
         , m_remaining(remaining)
     {}
 
-    ParseResults(CommandException error, i32 cursor)
+    ParseResults(Error error, i32 cursor)
         : m_error(std::move(error))
         , m_errorCursor(cursor)
     {}
@@ -210,41 +211,57 @@ public:
     ParseResults(const ParseResults&) = delete;
     ParseResults& operator=(const ParseResults&) = delete;
 
-    [[nodiscard]] bool isSuccess() const noexcept { return !m_error.has_value(); }
-    [[nodiscard]] bool isFailure() const noexcept { return m_error.has_value(); }
+    [[nodiscard]] bool isSuccess() const noexcept { return m_error.code() == ErrorCode::Success; }
+    [[nodiscard]] bool isFailure() const noexcept { return m_error.code() != ErrorCode::Success; }
 
     [[nodiscard]] CommandContext<S>* getContext() noexcept { return m_context.get(); }
     [[nodiscard]] const CommandContext<S>* getContext() const noexcept { return m_context.get(); }
 
     [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
 
-    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept { return m_error; }
+    [[nodiscard]] const Error& getError() const noexcept { return m_error; }
     [[nodiscard]] i32 getErrorCursor() const noexcept { return m_errorCursor; }
 
     /**
-     * @brief 获取异常（如果有）
+     * @brief 获取错误消息（如果有）
      */
-    [[nodiscard]] std::optional<CommandException> getException() const
+    [[nodiscard]] std::string getErrorMessage() const
     {
-        // 检查是否有解析异常
-        if (m_error) {
-            return m_error;
+        // 检查是否有解析错误
+        if (m_error.code() != ErrorCode::Success) {
+            return m_error.message();
         }
 
         // 检查是否还有未读取的内容（需要有效的上下文）
         if (m_context && !m_remaining.empty()) {
-            // 计算未读取部分的起始位置
-            i32 cursor = static_cast<i32>(m_context->getInput().size()) - static_cast<i32>(m_remaining.size());
-            return CommandException(CommandErrorType::DispatcherUnknownArgument, "Unknown argument", cursor);
+            return "Unknown argument";
         }
 
-        return std::nullopt;
+        return "";
+    }
+
+    /**
+     * @brief 检查是否有错误
+     */
+    [[nodiscard]] bool hasError() const noexcept
+    {
+        // 检查是否有解析错误
+        if (m_error.code() != ErrorCode::Success) {
+            return true;
+        }
+
+        // 检查是否还有未读取的内容
+        if (m_context && !m_remaining.empty()) {
+            return true;
+        }
+
+        return false;
     }
 
 private:
     std::unique_ptr<CommandContext<S>> m_context;
     std::string_view m_remaining;
-    std::optional<CommandException> m_error;
+    Error m_error;
     i32 m_errorCursor = -1;
 };
 

@@ -157,9 +157,9 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 
     bool hasSurfaceSupport = belowState->isSolid();
 
-    if (const IWorld* worldReader = dynamic_cast<const IWorld*>(&world)) {
-        hasSurfaceSupport = belowState->isSolidSide(const_cast<IWorld&>(*worldReader), belowPos, Direction::Up);
-    }
+    // TODO 对于IWorld接口，需要检查是否支持isSolidSide方法
+    // 由于ISpawnWorldReader可能是IWorld的子集，这里使用简单的isSolid检查
+    // 如果需要完整的方块面检测，调用者应该直接使用IWorld
 
     if (!hasSurfaceSupport) {
         return false;

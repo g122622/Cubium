@@ -23,6 +23,7 @@
 
 #include "EntityFlagsPredicate.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 
@@ -54,9 +55,12 @@ bool EntityFlagsPredicate::test(const Entity& entity) const
     // MC 1.16.5: entity.isSprinting()
     // 注意：isSprinting() 和 isSwimming() 只在 Player 类中实现
     if (m_isSprinting.has_value()) {
-        // 尝试转换为 Player，只有玩家才有疾跑状态
-        const Player* player = dynamic_cast<const Player*>(&entity);
-        bool isSprinting = (player != nullptr && player->isSprinting());
+        // 使用 EntityUtils::isEntityType<Player> 替代 dynamic_cast
+        bool isSprinting = false;
+        if (EntityUtils::isEntityType<Player>(&entity)) {
+            const Player* player = static_cast<const Player*>(&entity);
+            isSprinting = player->isSprinting();
+        }
         if (isSprinting != m_isSprinting.value()) {
             return false;
         }
@@ -65,9 +69,12 @@ bool EntityFlagsPredicate::test(const Entity& entity) const
     // 检查是否游泳
     // MC 1.16.5: entity.isSwimming()
     if (m_isSwimming.has_value()) {
-        // 尝试转换为 Player，只有玩家才有游泳状态
-        const Player* player = dynamic_cast<const Player*>(&entity);
-        bool isSwimming = (player != nullptr && player->isSwimming());
+        // 使用 EntityUtils::isEntityType<Player> 替代 dynamic_cast
+        bool isSwimming = false;
+        if (EntityUtils::isEntityType<Player>(&entity)) {
+            const Player* player = static_cast<const Player*>(&entity);
+            isSwimming = player->isSwimming();
+        }
         if (isSwimming != m_isSwimming.value()) {
             return false;
         }

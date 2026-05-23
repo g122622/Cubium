@@ -23,6 +23,7 @@
 
 #include "ItemStack.hpp"
 #include "../../entity/core/Entity.hpp"
+#include "../../entity/core/EntityUtils.hpp"
 #include "../../entity/core/LivingEntity.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include "../../resource/ResourceLocation.hpp"
@@ -263,8 +264,9 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         if (world != nullptr) {
             i32 newDurability = maxDamage - m_damage;
             // 尝试获取玩家ID（如果是玩家）
-            Player* player = dynamic_cast<Player*>(entity);
-            if (player != nullptr) {
+            // 使用 EntityUtils::isEntityType<Player> 替代 dynamic_cast
+            if (EntityUtils::isEntityType<Player>(entity)) {
+                Player* player = static_cast<Player*>(entity);
                 world->onItemDurabilityChange(player->id(), *this, oldDurability, newDurability);
             }
         }
@@ -840,7 +842,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
     }
 
-    std::string itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+    std::string itemId = static_cast<const nbt::tags::string_tag&>(*it->second).value;
 
     // 查找物品
     ResourceLocation itemLocation(itemId);
@@ -851,9 +853,9 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
     it = tag.value.find(nbt_keys::COUNT);
     if (it != tag.value.end()) {
         if (it->second->id() == nbt::TagId::Byte) {
-            count = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+            count = static_cast<const nbt::tags::byte_tag&>(*it->second).value;
         } else if (it->second->id() == nbt::TagId::Int) {
-            count = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+            count = static_cast<const nbt::tags::int_tag&>(*it->second).value;
         }
     }
 

@@ -24,11 +24,12 @@
 #pragma once
 
 #include "Block.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -89,10 +90,10 @@ public:
         // 避免重复注册同一资源位置导致旧状态指针悬挂
         auto existingIt = m_blocks.find(id);
         if (existingIt != m_blocks.end()) {
-            auto* existing = dynamic_cast<BlockType*>(existingIt->second.get());
-            if (existing == nullptr) {
-                throw std::logic_error("Block id already registered with different type: " + id.toString());
-            }
+            // 使用 static_cast 替代 dynamic_cast，因为类型检查已通过编译时 static_assert
+            auto* existing = static_cast<BlockType*>(existingIt->second.get());
+            MC_ASSERT_RELEASE_MSG(existing != nullptr || existingIt->second->m_blockLocation == id,
+                fmt::format("Block id already registered with different type: {}", id.toString()).c_str());
             return *existing;
         }
 
@@ -111,14 +112,10 @@ public:
 
         // 注册所有状态
         const auto& validStates = block->stateContainer().validStates();
-        if (validStates.empty()) {
-            throw std::logic_error("Block has no valid states: " + id.toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!validStates.empty(), fmt::format("Block has no valid states: {}", id.toString()).c_str());
 
         for (const auto& state : validStates) {
-            if (!state) {
-                throw std::logic_error("Block has null state in container: " + id.toString());
-            }
+            MC_ASSERT_RELEASE_MSG(state, fmt::format("Block has null state in container: {}", id.toString()).c_str());
 
             state->m_blockId = block->m_blockId;
             u32 stateId = allocateStateId();

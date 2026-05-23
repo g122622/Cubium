@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,7 +26,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -458,7 +458,7 @@ public:
         : m_mode(mode)
     {}
 
-    [[nodiscard]] EntitySelector parse(StringReader& reader) override;
+    [[nodiscard]] Result<EntitySelector> parse(StringReader& reader) override;
 
     [[nodiscard]] std::string getTypeName() const override
     {
@@ -513,18 +513,19 @@ public:
     [[nodiscard]] Mode mode() const noexcept { return m_mode; }
 
 private:
-    [[nodiscard]] EntitySelector parseSelector(StringReader& reader, i32 start);
-    void parseSelectorArguments(StringReader& reader, EntitySelector& selector);
-    void applySelectorArgument(EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
-    void validateSelector(const EntitySelector& selector, i32 start);
+    [[nodiscard]] Result<EntitySelector> parseSelector(StringReader& reader, i32 start);
+    Result<void> parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    Result<void> applySelectorArgument(
+        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
+    Result<void> validateSelector(const EntitySelector& selector, i32 start);
 
     [[nodiscard]] static std::string readSelectorArgumentToken(StringReader& reader);
     [[nodiscard]] static std::string readScoresKey(StringReader& reader);
     [[nodiscard]] static std::string readAdvancementKey(StringReader& reader);
     [[nodiscard]] static std::string readCriteriaKey(StringReader& reader);
     [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
-    [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
-    [[nodiscard]] IntRange parseIntRange(StringReader& reader);
+    [[nodiscard]] Result<FloatRange> parseFloatRange(StringReader& reader);
+    [[nodiscard]] Result<IntRange> parseIntRange(StringReader& reader);
 
     Mode m_mode;
 };

@@ -23,6 +23,7 @@
 
 #include "MobEffectsPredicate.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -148,10 +149,11 @@ bool MobEffectsPredicate::test(const Entity& entity) const
     }
 
     // 尝试转换为 LivingEntity（只有 LivingEntity 有效果）
-    const LivingEntity* living = dynamic_cast<const LivingEntity*>(&entity);
-    if (living == nullptr) {
+    // 使用 EntityUtils::isEntityType 替代 dynamic_cast
+    if (!EntityUtils::isEntityType<LivingEntity>(&entity)) {
         return false;
     }
+    const LivingEntity* living = static_cast<const LivingEntity*>(&entity);
 
     return test(*living);
 }

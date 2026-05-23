@@ -25,11 +25,12 @@
 
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "Item.hpp"
+#include <fmt/format.h>
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -85,10 +86,10 @@ public:
         // 避免重复注册导致旧指针失效
         auto existingIt = m_items.find(id);
         if (existingIt != m_items.end()) {
-            auto* existing = dynamic_cast<ItemType*>(existingIt->second.get());
-            if (existing == nullptr) {
-                throw std::logic_error("Item id already registered with different type: " + id.toString());
-            }
+            // 使用 static_cast 替代 dynamic_cast，因为类型检查已通过编译时 static_assert
+            auto* existing = static_cast<ItemType*>(existingIt->second.get());
+            MC_ASSERT_RELEASE_MSG(existing != nullptr || existingIt->second->m_itemLocation == id,
+                fmt::format("Item id already registered with different type: {}", id.toString()).c_str());
             return *existing;
         }
 

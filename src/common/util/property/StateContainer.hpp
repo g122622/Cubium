@@ -29,12 +29,13 @@
 #include "IntegerProperty.hpp"
 #include "Property.hpp"
 #include "StateHolder.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 #include <functional>
 #include <memory>
 #include <regex>
 #include <sstream>
-#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -79,9 +80,7 @@ public:
          */
         Builder& add(std::unique_ptr<IProperty> prop)
         {
-            if (!prop) {
-                throw std::invalid_argument("Property cannot be null");
-            }
+            MC_ASSERT_RELEASE_MSG(prop, "Property cannot be null");
             validateProperty(*prop);
             const std::string name = prop->name();
             const IProperty* rawProp = prop.get();
@@ -95,9 +94,7 @@ public:
          */
         Builder& add(const IProperty* prop)
         {
-            if (!prop) {
-                throw std::invalid_argument("Property cannot be null");
-            }
+            MC_ASSERT_RELEASE_MSG(prop, "Property cannot be null");
             validateProperty(*prop);
             m_properties[prop->name()] = prop;
             return *this;
@@ -160,21 +157,16 @@ public:
         void validateProperty(const IProperty& prop)
         {
             static const std::regex NAME_PATTERN("^[a-z0-9_]+$");
-            if (!std::regex_match(prop.name(), NAME_PATTERN)) {
-                throw std::invalid_argument("Invalid property name: " + prop.name());
-            }
-            if (prop.valueCount() <= 1) {
-                throw std::invalid_argument("Property " + prop.name() + " must have more than 1 possible value");
-            }
+            MC_ASSERT_RELEASE_MSG(std::regex_match(prop.name(), NAME_PATTERN),
+                fmt::format("Invalid property name: {}", prop.name()).c_str());
+            MC_ASSERT_RELEASE_MSG(prop.valueCount() > 1,
+                fmt::format("Property {} must have more than 1 possible value", prop.name()).c_str());
             for (size_t i = 0; i < prop.valueCount(); ++i) {
-                if (!std::regex_match(prop.valueToString(i), NAME_PATTERN)) {
-                    throw std::invalid_argument(
-                        "Property " + prop.name() + " has invalid value name: " + prop.valueToString(i));
-                }
+                MC_ASSERT_RELEASE_MSG(std::regex_match(prop.valueToString(i), NAME_PATTERN),
+                    fmt::format("Property {} has invalid value name: {}", prop.name(), prop.valueToString(i)).c_str());
             }
-            if (m_properties.find(prop.name()) != m_properties.end()) {
-                throw std::invalid_argument("Duplicate property: " + prop.name());
-            }
+            MC_ASSERT_RELEASE_MSG(m_properties.find(prop.name()) == m_properties.end(),
+                fmt::format("Duplicate property: {}", prop.name()).c_str());
         }
     };
 
@@ -199,7 +191,7 @@ public:
     [[nodiscard]] std::string toString() const
     {
         std::ostringstream ss;
-        ss << "StateContainer{owner=" << typeid(Owner).name();
+        ss << "StateContainer{owner=" << m_owner.name();
         if (!m_properties.empty()) {
             ss << ", properties=[";
             bool first = true;

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <cfloat>
 #include <memory>
@@ -54,10 +54,9 @@ public:
     /**
      * @brief 解析参数值
      * @param reader 字符串读取器
-     * @return 解析后的值
-     * @throws CommandException 如果解析失败
+     * @return 解析结果，成功返回值，失败返回错误
      */
-    [[nodiscard]] virtual T parse(StringReader& reader) = 0;
+    [[nodiscard]] virtual Result<T> parse(StringReader& reader) = 0;
 
     /**
      * @brief 获取参数类型名称（用于帮助信息）
@@ -98,7 +97,7 @@ public:
         : m_type(type)
     {}
 
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string> parse(StringReader& reader) override
     {
         switch (m_type) {
             case StringType::SingleWord:
@@ -111,7 +110,7 @@ public:
                 return remaining;
             }
         }
-        return "";
+        return std::string("");
     }
 
     [[nodiscard]] std::string getTypeName() const override
@@ -161,7 +160,7 @@ public:
 
     // ========== 静态获取方法 ==========
 
-    static std::string getString(StringReader& reader) { return reader.readString(); }
+    static Result<std::string> getString(StringReader& reader) { return reader.readString(); }
 
 private:
     StringType m_type;
@@ -181,23 +180,26 @@ public:
         , m_max(max)
     {}
 
-    [[nodiscard]] i32 parse(StringReader& reader) override
+    [[nodiscard]] Result<i32> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
-        i32 result = reader.readInt();
-
-        if (result < m_min) {
+        auto result = reader.readInt();
+        if (result.failed()) {
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::IntegerTooLow, "Integer must be at least " + std::to_string(m_min), start);
-        }
-        if (result > m_max) {
-            reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::IntegerTooHigh, "Integer must be at most " + std::to_string(m_max), start);
+            return result.error();
         }
 
-        return result;
+        i32 value = result.value();
+        if (value < m_min) {
+            reader.setCursor(start);
+            return Error(ErrorCode::CommandInvalidArgument, "Integer must be at least " + std::to_string(m_min));
+        }
+        if (value > m_max) {
+            reader.setCursor(start);
+            return Error(ErrorCode::CommandInvalidArgument, "Integer must be at most " + std::to_string(m_max));
+        }
+
+        return value;
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "integer"; }
@@ -225,7 +227,7 @@ public:
 
     // ========== 静态获取方法 ==========
 
-    static i32 getInteger(StringReader& reader) { return reader.readInt(); }
+    static Result<i32> getInteger(StringReader& reader) { return reader.readInt(); }
 
 private:
     i32 m_min;
@@ -244,23 +246,26 @@ public:
         , m_max(max)
     {}
 
-    [[nodiscard]] f32 parse(StringReader& reader) override
+    [[nodiscard]] Result<f32> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
-        f64 result = reader.readDouble();
-
-        if (result < m_min) {
+        auto result = reader.readDouble();
+        if (result.failed()) {
             reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::FloatTooLow, "Float must be at least " + std::to_string(m_min), start);
-        }
-        if (result > m_max) {
-            reader.setCursor(start);
-            throw CommandException(
-                CommandErrorType::FloatTooHigh, "Float must be at most " + std::to_string(m_max), start);
+            return result.error();
         }
 
-        return static_cast<f32>(result);
+        f64 value = result.value();
+        if (value < m_min) {
+            reader.setCursor(start);
+            return Error(ErrorCode::CommandInvalidArgument, "Float must be at least " + std::to_string(m_min));
+        }
+        if (value > m_max) {
+            reader.setCursor(start);
+            return Error(ErrorCode::CommandInvalidArgument, "Float must be at most " + std::to_string(m_max));
+        }
+
+        return static_cast<f32>(value);
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "float"; }
@@ -286,7 +291,7 @@ public:
         return std::make_shared<FloatArgumentType>(min, max);
     }
 
-    static f32 getFloat(StringReader& reader) { return static_cast<f32>(reader.readDouble()); }
+    static Result<f32> getFloat(StringReader& reader) { return reader.readFloat(); }
 
 private:
     f32 m_min;
@@ -300,7 +305,7 @@ private:
  */
 class BoolArgumentType : public ArgumentType<bool> {
 public:
-    [[nodiscard]] bool parse(StringReader& reader) override { return reader.readBool(); }
+    [[nodiscard]] Result<bool> parse(StringReader& reader) override { return reader.readBool(); }
 
     [[nodiscard]] std::string getTypeName() const override { return "bool"; }
 
@@ -310,7 +315,7 @@ public:
 
     static std::shared_ptr<BoolArgumentType> boolArg() { return std::make_shared<BoolArgumentType>(); }
 
-    static bool getBool(StringReader& reader) { return reader.readBool(); }
+    static Result<bool> getBool(StringReader& reader) { return reader.readBool(); }
 };
 
 // ========== 枚举参数模板 ==========
@@ -343,7 +348,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] T parse(StringReader& reader) override
+    [[nodiscard]] Result<T> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
         std::string name = reader.readUnquotedString();
@@ -351,7 +356,7 @@ public:
         auto it = m_values.find(name);
         if (it == m_values.end()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown value: " + name, start);
+            return Error(ErrorCode::CommandInvalidArgument, "Unknown value: " + name);
         }
 
         return it->second;

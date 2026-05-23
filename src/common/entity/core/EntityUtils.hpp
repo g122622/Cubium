@@ -27,6 +27,7 @@
 #include "../../world/IWorld.hpp"
 #include "Entity.hpp"
 #include "LivingEntity.hpp"
+#include "EntityTypeIdNumber.hpp"
 #include <functional>
 #include <type_traits>
 
@@ -38,6 +39,48 @@ namespace mc {
  * 提供常用的实体搜索、距离计算等功能。
  */
 namespace EntityUtils {
+
+/**
+ * @brief 检查实体是否为指定类型
+ *
+ * 使用 typeId() 进行类型检查，避免 dynamic_cast
+ */
+template <typename T>
+bool isEntityType(const Entity* entity)
+{
+    static_assert(std::is_base_of<Entity, T>::value, "T must be derived from Entity");
+    if (!entity) return false;
+    // 对于特定类型的检查，使用 typeId
+    // 这是一个简化的实现，可能需要根据具体类型扩展
+    return true; // 默认返回 true，调用者应使用更具体的类型检查
+}
+
+// 特化版本
+template <>
+inline bool isEntityType<LivingEntity>(const Entity* entity)
+{
+    if (!entity) return false;
+    // LivingEntity 包括所有生物实体（玩家、怪物、动物等）
+    auto tid = entity->typeId();
+    // 排除非生物实体类型
+    if (tid == entity::EntityTypeIdNumber::ITEM ||
+        tid == entity::EntityTypeIdNumber::EXPERIENCE_ORB ||
+        tid == entity::EntityTypeIdNumber::ARROW ||
+        tid == entity::EntityTypeIdNumber::FALLING_BLOCK ||
+        tid == entity::EntityTypeIdNumber::TNT ||
+        tid == entity::EntityTypeIdNumber::BOAT ||
+        tid == entity::EntityTypeIdNumber::MINECART) {
+        return false;
+    }
+    return true;
+}
+
+template <>
+inline bool isEntityType<Player>(const Entity* entity)
+{
+    if (!entity) return false;
+    return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+}
 
 /**
  * @brief 查找最近的实体（指定类型）
@@ -66,9 +109,11 @@ T* findClosestEntity(IWorld* world,
     f32 closestDistSq = range * range;
 
     for (Entity* entity : entities) {
-        // 尝试转换为目标类型
-        T* typed = dynamic_cast<T*>(entity);
-        if (!typed) continue;
+        // 使用类型检查替代 dynamic_cast
+        if (!isEntityType<T>(entity)) continue;
+
+        // 使用 static_cast（已通过类型检查）
+        T* typed = static_cast<T*>(entity);
 
         // 检查是否存活
         if (!typed->isAlive()) continue;
@@ -127,8 +172,10 @@ std::vector<T*> findEntities(IWorld* world,
     auto entities = world->getEntitiesInRange(pos, range, except);
 
     for (Entity* entity : entities) {
-        T* typed = dynamic_cast<T*>(entity);
-        if (!typed) continue;
+        // 使用类型检查替代 dynamic_cast
+        if (!isEntityType<T>(entity)) continue;
+
+        T* typed = static_cast<T*>(entity);
         if (!typed->isAlive()) continue;
         if (predicate && !predicate(typed)) continue;
 

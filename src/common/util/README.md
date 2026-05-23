@@ -62,6 +62,7 @@ util/
 ├── CompressionUtils.hpp       # gzip 压缩/解压工具
 ├── CompressionUtils.cpp
 ├── Direction.hpp              # 方向枚举
+├── JsonUtils.hpp              # JSON 安全解析工具（不抛异常）
 ├── NibbleArray.hpp            # 4位数组
 ├── NibbleArray.cpp
 ├── PlatformInfo.hpp           # 平台信息
@@ -540,6 +541,57 @@ if (compressed.empty()) {
     // 压缩失败
 }
 ```
+
+#### JsonUtils
+
+JSON 安全解析工具（不抛异常）：
+
+```cpp
+#include "util/JsonUtils.hpp"
+
+using namespace mc::json;
+
+// 安全解析 JSON 字符串（不会抛出异常）
+auto result = parse(jsonString);
+if (result.failed()) {
+    spdlog::error("JSON parse failed: {}", result.error().message());
+    return result.error();
+}
+const auto& json = result.value();
+
+// 带上下文的解析
+auto result = parseWithContext(jsonString, "config.json");
+
+// 验证 JSON 是否有效
+if (!isValid(jsonString)) {
+    return Error(ErrorCode::InvalidData, "Invalid JSON");
+}
+
+// 安全获取字段
+auto fieldResult = getField(json, "fieldName");
+if (fieldResult.failed()) {
+    // 字段不存在或类型不匹配
+}
+
+// 类型化的字段获取
+auto strResult = getString(json, "name");
+auto intResult = getInt(json, "value");
+auto floatResult = getFloat(json, "ratio");
+auto boolResult = getBool(json, "enabled");
+auto arrayResult = getArray(json, "items");
+auto objectResult = getObject(json, "config");
+
+// 可选字段获取
+auto optionalField = getOptionalField(json, "optionalKey");
+if (optionalField.has_value()) {
+    // 字段存在
+}
+```
+
+**注意事项：**
+- 所有 `parse` 函数使用 `nlohmann::json::parse(str, nullptr, false)` 模式，不会抛出异常
+- 使用 `is_discarded()` 检测解析失败
+- 类型化的 `get*` 函数会验证字段类型并返回适当的错误码
 
 ---
 

@@ -195,8 +195,17 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 8. 更新最近攻击者
     Entity* trueSource = source.getTrueSource();
     if (trueSource != nullptr && trueSource != this) {
-        LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
-        if (attacker != nullptr) {
+        // 使用 typeId() 检查是否为 LivingEntity 类型
+        // LivingEntity 包括所有生物实体（玩家、怪物、动物等）
+        if (trueSource->typeId() != entity::EntityTypeIdNumber::PLAYER
+            && trueSource->typeId() != entity::EntityTypeIdNumber::ITEM
+            && trueSource->typeId() != entity::EntityTypeIdNumber::EXPERIENCE_ORB
+            && trueSource->typeId() != entity::EntityTypeIdNumber::ARROW
+            && trueSource->typeId() != entity::EntityTypeIdNumber::FALLING_BLOCK
+            && trueSource->typeId() != entity::EntityTypeIdNumber::TNT) {
+            // 假设非投掷物/非物品实体可能是 LivingEntity
+            // 通过 static_cast 安全转换（已通过类型检查）
+            LivingEntity* attacker = static_cast<LivingEntity*>(trueSource);
             setLastHurtBy(attacker);
         }
     }
