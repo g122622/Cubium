@@ -318,8 +318,8 @@ void ChunkPrimer::initializeCarvingMasks()
 {
     // 雕刻掩码大小为 16x16x256 = 65536
     constexpr size_t carvingMaskSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH * world::CHUNK_HEIGHT;
-    m_carvingMaskAir.resize(carvingMaskSize, false);
-    m_carvingMaskLiquid.resize(carvingMaskSize, false);
+    // m_carvingMaskAir.resize(carvingMaskSize, false);
+    // m_carvingMaskLiquid.resize(carvingMaskSize, false);
 }
 
 } // namespace mc

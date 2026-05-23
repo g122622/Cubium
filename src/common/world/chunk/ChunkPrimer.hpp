@@ -176,14 +176,14 @@ public:
     /**
      * @brief 获取雕刻掩码（空气雕刻）
      */
-    [[nodiscard]] std::vector<bool>& getCarvingMaskAir() { return m_carvingMaskAir; }
-    [[nodiscard]] const std::vector<bool>& getCarvingMaskAir() const { return m_carvingMaskAir; }
+    // [[nodiscard]] std::vector<bool>& getCarvingMaskAir() { return m_carvingMaskAir; }
+    // [[nodiscard]] const std::vector<bool>& getCarvingMaskAir() const { return m_carvingMaskAir; }
 
     /**
      * @brief 获取雕刻掩码（液体雕刻）
      */
-    [[nodiscard]] std::vector<bool>& getCarvingMaskLiquid() { return m_carvingMaskLiquid; }
-    [[nodiscard]] const std::vector<bool>& getCarvingMaskLiquid() const { return m_carvingMaskLiquid; }
+    // [[nodiscard]] std::vector<bool>& getCarvingMaskLiquid() { return m_carvingMaskLiquid; }
+    // [[nodiscard]] const std::vector<bool>& getCarvingMaskLiquid() const { return m_carvingMaskLiquid; }
 
     // ============================================================================
     // 高度图管理
@@ -321,8 +321,8 @@ private:
     std::vector<BlockCoord> m_lightPositions;
 
     // 雕刻掩码（用于追踪哪些位置被雕刻过）
-    std::vector<bool> m_carvingMaskAir;
-    std::vector<bool> m_carvingMaskLiquid;
+    // std::vector<bool> m_carvingMaskAir;
+    // std::vector<bool> m_carvingMaskLiquid;
 
     // 区块生成时生成的实体
     std::vector<SpawnedEntityData> m_spawnedEntities;
