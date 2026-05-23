@@ -236,6 +236,24 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_WOOL, "red_wool");
     registerSimpleBlock(VanillaBlocks::BLACK_WOOL, "black_wool");
 
+    // 地毯 (16色)
+    registerSimpleBlock(VanillaBlocks::WHITE_CARPET, "white_carpet");
+    registerSimpleBlock(VanillaBlocks::ORANGE_CARPET, "orange_carpet");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_CARPET, "magenta_carpet");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CARPET, "light_blue_carpet");
+    registerSimpleBlock(VanillaBlocks::YELLOW_CARPET, "yellow_carpet");
+    registerSimpleBlock(VanillaBlocks::LIME_CARPET, "lime_carpet");
+    registerSimpleBlock(VanillaBlocks::PINK_CARPET, "pink_carpet");
+    registerSimpleBlock(VanillaBlocks::GRAY_CARPET, "gray_carpet");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CARPET, "light_gray_carpet");
+    registerSimpleBlock(VanillaBlocks::CYAN_CARPET, "cyan_carpet");
+    registerSimpleBlock(VanillaBlocks::PURPLE_CARPET, "purple_carpet");
+    registerSimpleBlock(VanillaBlocks::BLUE_CARPET, "blue_carpet");
+    registerSimpleBlock(VanillaBlocks::BROWN_CARPET, "brown_carpet");
+    registerSimpleBlock(VanillaBlocks::GREEN_CARPET, "green_carpet");
+    registerSimpleBlock(VanillaBlocks::RED_CARPET, "red_carpet");
+    registerSimpleBlock(VanillaBlocks::BLACK_CARPET, "black_carpet");
+
     // 其他
     registerSimpleBlock(VanillaBlocks::SNOW, "snow");
     registerSimpleBlock(VanillaBlocks::ICE, "ice");
@@ -245,12 +263,30 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 功能方块
     registerSimpleBlock(VanillaBlocks::CRAFTING_TABLE, "crafting_table");
+    registerSimpleBlock(VanillaBlocks::BARREL, "barrel");
+    registerSimpleBlock(VanillaBlocks::CARTOGRAPHY_TABLE, "cartography_table");
+    registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE, "fletching_table");
+    registerSimpleBlock(VanillaBlocks::SMITHING_TABLE, "smithing_table");
+    registerSimpleBlock(VanillaBlocks::COMPOSTER, "composter");
+    registerSimpleBlock(VanillaBlocks::LECTERN, "lectern");
+    registerSimpleBlock(VanillaBlocks::LOOM, "loom");
+    registerSimpleBlock(VanillaBlocks::JUKEBOX, "jukebox");
+    registerSimpleBlock(VanillaBlocks::CHEST, "chest");
+    registerSimpleBlock(VanillaBlocks::TRAPPED_CHEST, "trapped_chest");
 
     // 石砖系列
     registerSimpleBlock(VanillaBlocks::STONE_BRICKS, "stone_bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICKS, "mossy_stone_bricks");
     registerSimpleBlock(VanillaBlocks::CRACKED_STONE_BRICKS, "cracked_stone_bricks");
     registerSimpleBlock(VanillaBlocks::CHISELED_STONE_BRICKS, "chiseled_stone_bricks");
+
+    // 虫蚀方块
+    registerSimpleBlock(VanillaBlocks::INFESTED_STONE, "infested_stone");
+    registerSimpleBlock(VanillaBlocks::INFESTED_COBBLESTONE, "infested_cobblestone");
+    registerSimpleBlock(VanillaBlocks::INFESTED_STONE_BRICKS, "infested_stone_bricks");
+    registerSimpleBlock(VanillaBlocks::INFESTED_MOSSY_STONE_BRICKS, "infested_mossy_stone_bricks");
+    registerSimpleBlock(VanillaBlocks::INFESTED_CRACKED_STONE_BRICKS, "infested_cracked_stone_bricks");
+    registerSimpleBlock(VanillaBlocks::INFESTED_CHISELED_STONE_BRICKS, "infested_chiseled_stone_bricks");
 
     // 石英系列
     registerSimpleBlock(VanillaBlocks::QUARTZ_BLOCK, "quartz_block");
@@ -286,6 +322,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::NETHER_WART_BLOCK, "nether_wart_block");
     registerSimpleBlock(VanillaBlocks::CRIMSON_STEM, "crimson_stem");
     registerSimpleBlock(VanillaBlocks::WARPED_STEM, "warped_stem");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_HYPHAE, "crimson_hyphae");
+    registerSimpleBlock(VanillaBlocks::WARPED_HYPHAE, "warped_hyphae");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CRIMSON_STEM, "stripped_crimson_stem");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_WARPED_STEM, "stripped_warped_stem");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE, "stripped_crimson_hyphae");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_WARPED_HYPHAE, "stripped_warped_hyphae");
     registerSimpleBlock(VanillaBlocks::CRIMSON_NYLIUM, "crimson_nylium");
     registerSimpleBlock(VanillaBlocks::WARPED_NYLIUM, "warped_nylium");
     registerSimpleBlock(VanillaBlocks::SHROOMLIGHT, "shroomlight");
@@ -306,6 +348,34 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_SAND, "red_sand");
     registerSimpleBlock(VanillaBlocks::DRIED_KELP_BLOCK, "dried_kelp_block");
     registerSimpleBlock(VanillaBlocks::SEA_PICKLE, "sea_pickle");
+
+    // 珊瑚方块 - 活
+    registerSimpleBlock(VanillaBlocks::TUBE_CORAL_BLOCK, "tube_coral_block");
+    registerSimpleBlock(VanillaBlocks::BRAIN_CORAL_BLOCK, "brain_coral_block");
+    registerSimpleBlock(VanillaBlocks::BUBBLE_CORAL_BLOCK, "bubble_coral_block");
+    registerSimpleBlock(VanillaBlocks::FIRE_CORAL_BLOCK, "fire_coral_block");
+    registerSimpleBlock(VanillaBlocks::HORN_CORAL_BLOCK, "horn_coral_block");
+
+    // 珊瑚方块 - 死
+    registerSimpleBlock(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, "dead_tube_coral_block");
+    registerSimpleBlock(VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK, "dead_brain_coral_block");
+    registerSimpleBlock(VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK, "dead_bubble_coral_block");
+    registerSimpleBlock(VanillaBlocks::DEAD_FIRE_CORAL_BLOCK, "dead_fire_coral_block");
+    registerSimpleBlock(VanillaBlocks::DEAD_HORN_CORAL_BLOCK, "dead_horn_coral_block");
+
+    // 珊瑚扇 - 活
+    registerSimpleBlock(VanillaBlocks::TUBE_CORAL_FAN, "tube_coral_fan");
+    registerSimpleBlock(VanillaBlocks::BRAIN_CORAL_FAN, "brain_coral_fan");
+    registerSimpleBlock(VanillaBlocks::BUBBLE_CORAL_FAN, "bubble_coral_fan");
+    registerSimpleBlock(VanillaBlocks::FIRE_CORAL_FAN, "fire_coral_fan");
+    registerSimpleBlock(VanillaBlocks::HORN_CORAL_FAN, "horn_coral_fan");
+
+    // 珊瑚扇 - 死
+    registerSimpleBlock(VanillaBlocks::DEAD_TUBE_CORAL_FAN, "dead_tube_coral_fan");
+    registerSimpleBlock(VanillaBlocks::DEAD_BRAIN_CORAL_FAN, "dead_brain_coral_fan");
+    registerSimpleBlock(VanillaBlocks::DEAD_BUBBLE_CORAL_FAN, "dead_bubble_coral_fan");
+    registerSimpleBlock(VanillaBlocks::DEAD_FIRE_CORAL_FAN, "dead_fire_coral_fan");
+    registerSimpleBlock(VanillaBlocks::DEAD_HORN_CORAL_FAN, "dead_horn_coral_fan");
     registerSimpleBlock(VanillaBlocks::SEAGRASS, "seagrass");
     registerSimpleBlock(VanillaBlocks::TALL_SEAGRASS, "tall_seagrass");
     registerSimpleBlock(VanillaBlocks::BAMBOO, "bamboo");
@@ -338,6 +408,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::GREEN_STAINED_GLASS, "green_stained_glass");
     registerSimpleBlock(VanillaBlocks::RED_STAINED_GLASS, "red_stained_glass");
     registerSimpleBlock(VanillaBlocks::BLACK_STAINED_GLASS, "black_stained_glass");
+
+    // 染色玻璃板
+    registerSimpleBlock(VanillaBlocks::GLASS_PANE, "glass_pane");
 
     // 混凝土 (16色)
     registerSimpleBlock(VanillaBlocks::WHITE_CONCRETE, "white_concrete");
@@ -475,6 +548,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DRAGON_EGG, "dragon_egg");
     registerSimpleBlock(VanillaBlocks::CONDUIT, "conduit");
 
+    // 装饰/实用方块
+    registerSimpleBlock(VanillaBlocks::CARVED_PUMPKIN, "carved_pumpkin");
+    registerSimpleBlock(VanillaBlocks::END_ROD, "end_rod");
+    registerSimpleBlock(VanillaBlocks::RESPAWN_ANCHOR, "respawn_anchor");
+    registerSimpleBlock(VanillaBlocks::CHAIN, "chain");
+    registerSimpleBlock(VanillaBlocks::LADDER, "ladder");
+    registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
+    registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");
+
     // 楼梯
     registerSimpleBlock(VanillaBlocks::OAK_STAIRS, "oak_stairs");
     registerSimpleBlock(VanillaBlocks::STONE_STAIRS, "stone_stairs");
@@ -482,6 +564,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PRISMARINE_STAIRS, "prismarine_stairs");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_BRICK_STAIRS, "prismarine_brick_stairs");
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_STAIRS, "dark_prismarine_stairs");
+    registerSimpleBlock(VanillaBlocks::STONE_BRICK_STAIRS, "stone_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_STAIRS, "mossy_stone_brick_stairs");
 
     // 台阶
     registerSimpleBlock(VanillaBlocks::OAK_SLAB, "oak_slab");
@@ -490,10 +574,13 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PRISMARINE_SLAB, "prismarine_slab");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_BRICK_SLAB, "prismarine_brick_slab");
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_SLAB, "dark_prismarine_slab");
+    registerSimpleBlock(VanillaBlocks::STONE_BRICK_SLAB, "stone_brick_slab");
+    registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_SLAB, "mossy_stone_brick_slab");
 
     // 墙
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_WALL, "cobblestone_wall");
     registerSimpleBlock(VanillaBlocks::STONE_BRICK_WALL, "stone_brick_wall");
+    registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_WALL, "mossy_stone_brick_wall");
 
     // 栅栏
     registerSimpleBlock(VanillaBlocks::OAK_FENCE, "oak_fence");
@@ -506,10 +593,10 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor");
 
     // 红石方块
-    registerSimpleBlock(VanillaBlocks::REDSTONE_WIRE, "redstone_wire");
+    // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
+    // REDSTONE_BLOCK 已在矿物方块中注册
     registerSimpleBlock(VanillaBlocks::REDSTONE_TORCH, "redstone_torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
-    registerSimpleBlock(VanillaBlocks::REDSTONE_BLOCK, "redstone_block");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");
     registerSimpleBlock(VanillaBlocks::OBSERVER, "observer");
@@ -540,6 +627,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::POWERED_RAIL, "powered_rail");
     registerSimpleBlock(VanillaBlocks::DETECTOR_RAIL, "detector_rail");
     registerSimpleBlock(VanillaBlocks::ACTIVATOR_RAIL, "activator_rail");
+
+    // 其他未分类方块
+    registerSimpleBlock(VanillaBlocks::DEAD_BUSH, "dead_bush");
+    registerSimpleBlock(VanillaBlocks::TURTLE_EGG, "turtle_egg");
+    registerSimpleBlock(VanillaBlocks::WARPED_WART_BLOCK, "warped_wart_block");
+    registerSimpleBlock(VanillaBlocks::WEEPING_VINES, "weeping_vines");
+    registerSimpleBlock(VanillaBlocks::TWISTING_VINES, "twisting_vines");
+    registerSimpleBlock(VanillaBlocks::END_PORTAL_FRAME, "end_portal_frame");
+    registerSimpleBlock(VanillaBlocks::CHORUS_FLOWER, "chorus_flower");
 
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");

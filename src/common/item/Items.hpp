@@ -485,6 +485,487 @@ public:
     static Item* CRIMSON_SIGN;  // 绯红告示牌
     static Item* WARPED_SIGN;   // 诡异告示牌
 
+    // ========================================================================
+    // 基础建筑方块
+    // ========================================================================
+    static Item* DIRT;        // 泥土
+    static Item* GRASS_BLOCK; // 草方块
+    static Item* SAND;        // 沙子
+    static Item* GRAVEL;      // 沙砾
+    static Item* BEDROCK;     // 基岩
+    static Item* OBSIDIAN;    // 黑曜石
+    static Item* NETHERRACK;  // 下界岩
+    static Item* GLOWSTONE;   // 荧石
+    static Item* END_STONE;   // 末地石
+    static Item* ICE;         // 冰
+    static Item* CLAY;        // 黏土块
+    static Item* SNOW;        // 雪
+    static Item* SNOW_BLOCK;  // 雪块
+    static Item* TERRACOTTA;  // 陶瓦
+    static Item* BRICKS;      // 砖块
+    static Item* BOOKSHELF;   // 书架
+    static Item* BONE_BLOCK;  // 骨块
+    static Item* SLIME_BLOCK; // 史莱姆块
+    static Item* HONEY_BLOCK; // 蜂蜜块
+    static Item* RED_SAND;    // 红沙
+    static Item* COBWEB;      // 蛛网
+    static Item* FARMLAND;    // 耕地
+    static Item* GRASS_PATH;  // 草径
+    static Item* MYCELIUM;    // 菌丝
+    static Item* PACKED_ICE;  // 浮冰
+    static Item* BLUE_ICE;    // 蓝冰
+    static Item* COARSE_DIRT; // 砂土
+    static Item* PODZOL;      // 灰化土
+
+    // ========================================================================
+    // 石头变种
+    // ========================================================================
+    static Item* GRANITE;           // 花岗岩
+    static Item* POLISHED_GRANITE;  // 磨制花岗岩
+    static Item* DIORITE;           // 闪长岩
+    static Item* POLISHED_DIORITE;  // 磨制闪长岩
+    static Item* ANDESITE;          // 安山岩
+    static Item* POLISHED_ANDESITE; // 磨制安山岩
+
+    // ========================================================================
+    // 砂岩
+    // ========================================================================
+    static Item* SANDSTONE;          // 砂岩
+    static Item* CHISELED_SANDSTONE; // 錾制砂岩
+    static Item* CUT_SANDSTONE;      // 切制砂岩
+    static Item* RED_SANDSTONE;      // 红砂岩
+
+    // ========================================================================
+    // 矿物方块
+    // ========================================================================
+    static Item* DIAMOND_BLOCK;   // 钻石块
+    static Item* COAL_BLOCK;      // 煤炭块
+    static Item* GOLD_BLOCK;      // 金块
+    static Item* IRON_BLOCK;      // 铁块
+    static Item* LAPIS_BLOCK;     // 青金石块
+    static Item* EMERALD_BLOCK;   // 绿宝石块
+    static Item* REDSTONE_BLOCK;  // 红石块
+    static Item* NETHERITE_BLOCK; // 下界合金块
+
+    // ========================================================================
+    // 下界方块
+    // ========================================================================
+    static Item* SOUL_SAND;               // 灵魂沙
+    static Item* SOUL_SOIL;               // 灵魂土
+    static Item* BASALT;                  // 玄武岩
+    static Item* POLISHED_BASALT;         // 磨制玄武岩
+    static Item* BLACKSTONE;              // 黑石
+    static Item* POLISHED_BLACKSTONE;     // 磨制黑石
+    static Item* CRYING_OBSIDIAN;         // 哭泣的黑曜石
+    static Item* MAGMA;                   // 岩浆块
+    static Item* NETHER_WART_BLOCK;       // 地狱疣块
+    static Item* WARPED_WART_BLOCK;       // 诡异疣块
+    static Item* CRIMSON_STEM;            // 绯红菌柄
+    static Item* WARPED_STEM;             // 诡异菌柄
+    static Item* CRIMSON_NYLIUM;          // 绯红菌岩
+    static Item* WARPED_NYLIUM;           // 诡异菌岩
+    static Item* CRIMSON_HYPHAE;          // 绯红菌丝体
+    static Item* WARPED_HYPHAE;           // 诡异菌丝体
+    static Item* STRIPPED_CRIMSON_STEM;   // 去皮绯红菌柄
+    static Item* STRIPPED_WARPED_STEM;    // 去皮诡异菌柄
+    static Item* STRIPPED_CRIMSON_HYPHAE; // 去皮绯红菌丝体
+    static Item* STRIPPED_WARPED_HYPHAE;  // 去皮诡异菌丝体
+    static Item* SHROOMLIGHT;             // 荧光菇
+    static Item* WEEPING_VINES;           // 垂泪藤
+    static Item* TWISTING_VINES;          // 缠怨藤
+    static Item* DEAD_BUSH;               // 枯萎的灌木
+
+    // ========================================================================
+    // 木材和去皮原木
+    // ========================================================================
+    static Item* OAK_WOOD;               // 橡木
+    static Item* SPRUCE_WOOD;            // 云杉木
+    static Item* BIRCH_WOOD;             // 白桦木
+    static Item* JUNGLE_WOOD;            // 丛林木
+    static Item* ACACIA_WOOD;            // 金合欢木
+    static Item* DARK_OAK_WOOD;          // 深色橡木
+    static Item* STRIPPED_OAK_LOG;       // 去皮橡木原木
+    static Item* STRIPPED_SPRUCE_LOG;    // 去皮云杉木原木
+    static Item* STRIPPED_BIRCH_LOG;     // 去皮白桦木原木
+    static Item* STRIPPED_JUNGLE_LOG;    // 去皮丛林木原木
+    static Item* STRIPPED_ACACIA_LOG;    // 去皮金合欢木原木
+    static Item* STRIPPED_DARK_OAK_LOG;  // 去皮深色橡木原木
+    static Item* STRIPPED_OAK_WOOD;      // 去皮橡木
+    static Item* STRIPPED_SPRUCE_WOOD;   // 去皮云杉木
+    static Item* STRIPPED_BIRCH_WOOD;    // 去皮白桦木
+    static Item* STRIPPED_JUNGLE_WOOD;   // 去皮丛林木
+    static Item* STRIPPED_ACACIA_WOOD;   // 去皮金合欢木
+    static Item* STRIPPED_DARK_OAK_WOOD; // 去皮深色橡木
+
+    // ========================================================================
+    // 树叶
+    // ========================================================================
+    static Item* OAK_LEAVES;      // 橡树树叶
+    static Item* SPRUCE_LEAVES;   // 云杉树叶
+    static Item* BIRCH_LEAVES;    // 白桦树叶
+    static Item* JUNGLE_LEAVES;   // 丛林树叶
+    static Item* ACACIA_LEAVES;   // 金合欢树叶
+    static Item* DARK_OAK_LEAVES; // 深色橡树树叶
+
+    // ========================================================================
+    // 树苗
+    // ========================================================================
+    static Item* OAK_SAPLING;      // 橡树树苗
+    static Item* SPRUCE_SAPLING;   // 云杉树苗
+    static Item* BIRCH_SAPLING;    // 白桦树苗
+    static Item* JUNGLE_SAPLING;   // 丛林树苗
+    static Item* ACACIA_SAPLING;   // 金合欢树苗
+    static Item* DARK_OAK_SAPLING; // 深色橡树树苗
+
+    // ========================================================================
+    // 植被和花
+    // ========================================================================
+    static Item* SHORT_GRASS;          // 矮草
+    static Item* TALL_GRASS;           // 高草
+    static Item* FERN;                 // 蕨
+    static Item* DANDELION;            // 蒲公英
+    static Item* POPPY;                // 虞美人
+    static Item* BLUE_ORCHID;          // 蓝花美耳草
+    static Item* ALLIUM;               // 绒球葱
+    static Item* AZURE_BLUET;          // 蓝花美耳草
+    static Item* RED_TULIP;            // 红色郁金香
+    static Item* ORANGE_TULIP;         // 橙色郁金香
+    static Item* WHITE_TULIP;          // 白色郁金香
+    static Item* PINK_TULIP;           // 粉色郁金香
+    static Item* OXEYE_DAISY;          // 滨菊
+    static Item* LILY_OF_THE_VALLEY;   // 铃兰
+    static Item* SUNFLOWER;            // 向日葵
+    static Item* LILAC;                // 紫丁香
+    static Item* ROSE_BUSH;            // 玫瑰丛
+    static Item* PEONY;                // 牡丹
+    static Item* CORNFLOWER;           // 矢车菊
+    static Item* WITHER_ROSE;          // 凋零玫瑰
+    static Item* BROWN_MUSHROOM;       // 棕色蘑菇
+    static Item* RED_MUSHROOM;         // 红色蘑菇
+    static Item* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块
+    static Item* RED_MUSHROOM_BLOCK;   // 红色蘑菇方块
+    static Item* MUSHROOM_STEM;        // 蘑菇柄
+
+    // ========================================================================
+    // 羊毛 (16色)
+    // ========================================================================
+    static Item* WHITE_WOOL;
+    static Item* ORANGE_WOOL;
+    static Item* MAGENTA_WOOL;
+    static Item* LIGHT_BLUE_WOOL;
+    static Item* YELLOW_WOOL;
+    static Item* LIME_WOOL;
+    static Item* PINK_WOOL;
+    static Item* GRAY_WOOL;
+    static Item* LIGHT_GRAY_WOOL;
+    static Item* CYAN_WOOL;
+    static Item* PURPLE_WOOL;
+    static Item* BLUE_WOOL;
+    static Item* BROWN_WOOL;
+    static Item* GREEN_WOOL;
+    static Item* RED_WOOL;
+    static Item* BLACK_WOOL;
+
+    // ========================================================================
+    // 地毯 (16色)
+    // ========================================================================
+    static Item* WHITE_CARPET;
+    static Item* ORANGE_CARPET;
+    static Item* MAGENTA_CARPET;
+    static Item* LIGHT_BLUE_CARPET;
+    static Item* YELLOW_CARPET;
+    static Item* LIME_CARPET;
+    static Item* PINK_CARPET;
+    static Item* GRAY_CARPET;
+    static Item* LIGHT_GRAY_CARPET;
+    static Item* CYAN_CARPET;
+    static Item* PURPLE_CARPET;
+    static Item* BLUE_CARPET;
+    static Item* BROWN_CARPET;
+    static Item* GREEN_CARPET;
+    static Item* RED_CARPET;
+    static Item* BLACK_CARPET;
+
+    // ========================================================================
+    // 染色玻璃 (16色)
+    // ========================================================================
+    static Item* WHITE_STAINED_GLASS;
+    static Item* ORANGE_STAINED_GLASS;
+    static Item* MAGENTA_STAINED_GLASS;
+    static Item* LIGHT_BLUE_STAINED_GLASS;
+    static Item* YELLOW_STAINED_GLASS;
+    static Item* LIME_STAINED_GLASS;
+    static Item* PINK_STAINED_GLASS;
+    static Item* GRAY_STAINED_GLASS;
+    static Item* LIGHT_GRAY_STAINED_GLASS;
+    static Item* CYAN_STAINED_GLASS;
+    static Item* PURPLE_STAINED_GLASS;
+    static Item* BLUE_STAINED_GLASS;
+    static Item* BROWN_STAINED_GLASS;
+    static Item* GREEN_STAINED_GLASS;
+    static Item* RED_STAINED_GLASS;
+    static Item* BLACK_STAINED_GLASS;
+
+    // ========================================================================
+    // 混凝土 (16色)
+    // ========================================================================
+    static Item* WHITE_CONCRETE;
+    static Item* ORANGE_CONCRETE;
+    static Item* MAGENTA_CONCRETE;
+    static Item* LIGHT_BLUE_CONCRETE;
+    static Item* YELLOW_CONCRETE;
+    static Item* LIME_CONCRETE;
+    static Item* PINK_CONCRETE;
+    static Item* GRAY_CONCRETE;
+    static Item* LIGHT_GRAY_CONCRETE;
+    static Item* CYAN_CONCRETE;
+    static Item* PURPLE_CONCRETE;
+    static Item* BLUE_CONCRETE;
+    static Item* BROWN_CONCRETE;
+    static Item* GREEN_CONCRETE;
+    static Item* RED_CONCRETE;
+    static Item* BLACK_CONCRETE;
+
+    // ========================================================================
+    // 混凝土粉末 (16色)
+    // ========================================================================
+    static Item* WHITE_CONCRETE_POWDER;
+    static Item* ORANGE_CONCRETE_POWDER;
+    static Item* MAGENTA_CONCRETE_POWDER;
+    static Item* LIGHT_BLUE_CONCRETE_POWDER;
+    static Item* YELLOW_CONCRETE_POWDER;
+    static Item* LIME_CONCRETE_POWDER;
+    static Item* PINK_CONCRETE_POWDER;
+    static Item* GRAY_CONCRETE_POWDER;
+    static Item* LIGHT_GRAY_CONCRETE_POWDER;
+    static Item* CYAN_CONCRETE_POWDER;
+    static Item* PURPLE_CONCRETE_POWDER;
+    static Item* BLUE_CONCRETE_POWDER;
+    static Item* BROWN_CONCRETE_POWDER;
+    static Item* GREEN_CONCRETE_POWDER;
+    static Item* RED_CONCRETE_POWDER;
+    static Item* BLACK_CONCRETE_POWDER;
+
+    // ========================================================================
+    // 陶瓦 (16色)
+    // ========================================================================
+    static Item* WHITE_TERRACOTTA;
+    static Item* ORANGE_TERRACOTTA;
+    static Item* MAGENTA_TERRACOTTA;
+    static Item* LIGHT_BLUE_TERRACOTTA;
+    static Item* YELLOW_TERRACOTTA;
+    static Item* LIME_TERRACOTTA;
+    static Item* PINK_TERRACOTTA;
+    static Item* GRAY_TERRACOTTA;
+    static Item* LIGHT_GRAY_TERRACOTTA;
+    static Item* CYAN_TERRACOTTA;
+    static Item* PURPLE_TERRACOTTA;
+    static Item* BLUE_TERRACOTTA;
+    static Item* BROWN_TERRACOTTA;
+    static Item* GREEN_TERRACOTTA;
+    static Item* RED_TERRACOTTA;
+    static Item* BLACK_TERRACOTTA;
+
+    // ========================================================================
+    // 功能方块
+    // ========================================================================
+    static Item* CRAFTING_TABLE;    // 合成台
+    static Item* CHEST;             // 箱子
+    static Item* TRAPPED_CHEST;     // 陷阱箱
+    static Item* BREWING_STAND;     // 酿造台
+    static Item* ENCHANTING_TABLE;  // 附魔台
+    static Item* CAULDRON;          // 炼药锅
+    static Item* ENDER_CHEST;       // 末影箱
+    static Item* SHULKER_BOX;       // 潜影盒
+    static Item* BEACON;            // 信标
+    static Item* LANTERN;           // 灯笼
+    static Item* SOUL_LANTERN;      // 灵魂灯笼
+    static Item* CAMPFIRE;          // 营火
+    static Item* SOUL_CAMPFIRE;     // 灵魂营火
+    static Item* JACK_O_LANTERN;    // 南瓜灯
+    static Item* CONDUIT;           // 潮涌核心
+    static Item* LOOM;              // 织布机
+    static Item* BARREL;            // 木桶
+    static Item* CARTOGRAPHY_TABLE; // 制图台
+    static Item* FLETCHING_TABLE;   // 制箭台
+    static Item* SMITHING_TABLE;    // 锻造台
+    static Item* COMPOSTER;         // 堆肥桶
+    static Item* LECTERN;           // 讲台
+    static Item* JUKEBOX;           // 唱片机
+    static Item* RESPAWN_ANCHOR;    // 重生锚
+
+    // ========================================================================
+    // 装饰/实用方块
+    // ========================================================================
+    static Item* LADDER;           // 梯子
+    static Item* SCAFFOLDING;      // 脚手架
+    static Item* CHAIN;            // 锁链
+    static Item* IRON_BARS;        // 铁栏杆
+    static Item* GLASS_PANE;       // 玻璃板
+    static Item* CARVED_PUMPKIN;   // 雕刻过的南瓜
+    static Item* END_ROD;          // 末地烛
+    static Item* END_PORTAL_FRAME; // 末地传送门框架
+    static Item* DRAGON_EGG;       // 龙蛋
+    static Item* TURTLE_EGG;       // 海龟蛋
+    static Item* CHORUS_FLOWER;    // 紫颂花
+
+    // ========================================================================
+    // 红石方块
+    // ========================================================================
+    // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
+    static Item* REDSTONE_TORCH;                // 红石火把
+    static Item* REDSTONE_LAMP;                 // 红石灯
+    static Item* REDSTONE_REPEATER;             // 红石中继器
+    static Item* REDSTONE_COMPARATOR;           // 红石比较器
+    static Item* OBSERVER;                      // 观察者
+    static Item* LEVER;                         // 拉杆
+    static Item* STONE_BUTTON;                  // 石头按钮
+    static Item* OAK_BUTTON;                    // 橡木按钮
+    static Item* SPRUCE_BUTTON;                 // 云杉木按钮
+    static Item* BIRCH_BUTTON;                  // 白桦木按钮
+    static Item* JUNGLE_BUTTON;                 // 丛林木按钮
+    static Item* ACACIA_BUTTON;                 // 金合欢木按钮
+    static Item* DARK_OAK_BUTTON;               // 深色橡木按钮
+    static Item* CRIMSON_BUTTON;                // 绯红木按钮
+    static Item* WARPED_BUTTON;                 // 诡异木按钮
+    static Item* STONE_PRESSURE_PLATE;          // 石头压力板
+    static Item* OAK_PRESSURE_PLATE;            // 橡木压力板
+    // TODO 以后补充这些物品
+    // static Item* SPRUCE_PRESSURE_PLATE;         // 云杉木压力板
+    // static Item* BIRCH_PRESSURE_PLATE;          // 白桦木压力板
+    // static Item* JUNGLE_PRESSURE_PLATE;         // 丛林木压力板
+    // static Item* ACACIA_PRESSURE_PLATE;         // 金合欢木压力板
+    // static Item* DARK_OAK_PRESSURE_PLATE;       // 深色橡木压力板
+    static Item* LIGHT_WEIGHTED_PRESSURE_PLATE; // 轻质测重压力板
+    static Item* HEAVY_WEIGHTED_PRESSURE_PLATE; // 重质测重压力板
+    static Item* DAYLIGHT_DETECTOR;             // 阳光探测器
+    static Item* PISTON;                        // 活塞
+    static Item* STICKY_PISTON;                 // 粘性活塞
+    static Item* DISPENSER;                     // 发射器
+    static Item* DROPPER;                       // 投掷器
+    static Item* NOTE_BLOCK;                    // 音符盒
+    static Item* TNT;                           // TNT
+    static Item* TARGET;                        // 标靶
+    static Item* TRIPWIRE;                      // 绊线
+    static Item* TRIPWIRE_HOOK;                 // 绊线钩
+
+    // ========================================================================
+    // 铁轨
+    // ========================================================================
+    static Item* RAIL;           // 铁轨
+    static Item* POWERED_RAIL;   // 充能铁轨
+    static Item* DETECTOR_RAIL;  // 探测铁轨
+    static Item* ACTIVATOR_RAIL; // 激活铁轨
+
+    // ========================================================================
+    // 门、栅栏、活板门
+    // ========================================================================
+    static Item* OAK_DOOR;       // 橡木门
+    static Item* IRON_DOOR;      // 铁门
+    static Item* OAK_FENCE;      // 橡木栅栏
+    static Item* OAK_FENCE_GATE; // 橡木栅栏门
+    static Item* OAK_TRAPDOOR;   // 橡木活板门
+    static Item* IRON_TRAPDOOR;  // 铁活板门
+
+    // ========================================================================
+    // 楼梯、台阶、墙
+    // ========================================================================
+    static Item* OAK_STAIRS;               // 橡木楼梯
+    static Item* STONE_STAIRS;             // 石头楼梯
+    static Item* COBBLESTONE_STAIRS;       // 圆石楼梯
+    static Item* STONE_BRICK_STAIRS;       // 石砖楼梯
+    static Item* MOSSY_STONE_BRICK_STAIRS; // 苔石砖楼梯
+    static Item* OAK_SLAB;                 // 橡木台阶
+    static Item* STONE_SLAB;               // 石头台阶
+    static Item* COBBLESTONE_SLAB;         // 圆石台阶
+    static Item* STONE_BRICK_SLAB;         // 石砖台阶
+    static Item* MOSSY_STONE_BRICK_SLAB;   // 苔石砖台阶
+    static Item* COBBLESTONE_WALL;         // 圆石墙
+    static Item* STONE_BRICK_WALL;         // 石砖墙
+    static Item* MOSSY_STONE_BRICK_WALL;   // 苔石砖墙
+
+    // ========================================================================
+    // 末地方块
+    // ========================================================================
+    static Item* END_STONE_BRICKS; // 末地石砖
+    static Item* PURPUR_BLOCK;     // 紫珀块
+    static Item* PURPUR_PILLAR;    // 紫珀柱
+
+    // ========================================================================
+    // 海晶方块
+    // ========================================================================
+    static Item* PRISMARINE;              // 海晶石
+    static Item* PRISMARINE_BRICKS;       // 海晶砖
+    static Item* DARK_PRISMARINE;         // 暗海晶石
+    static Item* PRISMARINE_STAIRS;       // 海晶石楼梯
+    static Item* PRISMARINE_BRICK_STAIRS; // 海晶砖楼梯
+    static Item* DARK_PRISMARINE_STAIRS;  // 暗海晶石楼梯
+    static Item* PRISMARINE_SLAB;         // 海晶石台阶
+    static Item* PRISMARINE_BRICK_SLAB;   // 海晶砖台阶
+    static Item* DARK_PRISMARINE_SLAB;    // 暗海晶石台阶
+    static Item* SEA_LANTERN;             // 海晶灯
+
+    // ========================================================================
+    // 石砖系列
+    // ========================================================================
+    static Item* STONE_BRICKS;          // 石砖
+    static Item* MOSSY_STONE_BRICKS;    // 苔石砖
+    static Item* CRACKED_STONE_BRICKS;  // 裂纹石砖
+    static Item* CHISELED_STONE_BRICKS; // 錾制石砖
+
+    // ========================================================================
+    // 虫蚀方块
+    // ========================================================================
+    static Item* INFESTED_STONE;                 // 虫蚀石头
+    static Item* INFESTED_COBBLESTONE;           // 虫蚀圆石
+    static Item* INFESTED_STONE_BRICKS;          // 虫蚀石砖
+    static Item* INFESTED_MOSSY_STONE_BRICKS;    // 虫蚀苔石砖
+    static Item* INFESTED_CRACKED_STONE_BRICKS;  // 虫蚀裂纹石砖
+    static Item* INFESTED_CHISELED_STONE_BRICKS; // 虫蚀錾制石砖
+
+    // ========================================================================
+    // 石英系列
+    // ========================================================================
+    static Item* QUARTZ_BLOCK;          // 石英块
+    static Item* CHISELED_QUARTZ_BLOCK; // 錾制石英块
+    static Item* QUARTZ_PILLAR;         // 石英柱
+
+    // ========================================================================
+    // 珊瑚方块 - 活
+    // ========================================================================
+    static Item* TUBE_CORAL_BLOCK;   // 管珊瑚方块
+    static Item* BRAIN_CORAL_BLOCK;  // 脑珊瑚方块
+    static Item* BUBBLE_CORAL_BLOCK; // 气泡珊瑚方块
+    static Item* FIRE_CORAL_BLOCK;   // 火珊瑚方块
+    static Item* HORN_CORAL_BLOCK;   // 角珊瑚方块
+
+    // ========================================================================
+    // 珊瑚方块 - 死
+    // ========================================================================
+    static Item* DEAD_TUBE_CORAL_BLOCK;   // 死管珊瑚方块
+    static Item* DEAD_BRAIN_CORAL_BLOCK;  // 死脑珊瑚方块
+    static Item* DEAD_BUBBLE_CORAL_BLOCK; // 死气泡珊瑚方块
+    static Item* DEAD_FIRE_CORAL_BLOCK;   // 死火珊瑚方块
+    static Item* DEAD_HORN_CORAL_BLOCK;   // 死角珊瑚方块
+
+    // ========================================================================
+    // 珊瑚扇 - 活
+    // ========================================================================
+    static Item* TUBE_CORAL_FAN;   // 管珊瑚扇
+    static Item* BRAIN_CORAL_FAN;  // 脑珊瑚扇
+    static Item* BUBBLE_CORAL_FAN; // 气泡珊瑚扇
+    static Item* FIRE_CORAL_FAN;   // 火珊瑚扇
+    static Item* HORN_CORAL_FAN;   // 角珊瑚扇
+
+    // ========================================================================
+    // 珊瑚扇 - 死
+    // ========================================================================
+    static Item* DEAD_TUBE_CORAL_FAN;   // 死管珊瑚扇
+    static Item* DEAD_BRAIN_CORAL_FAN;  // 死脑珊瑚扇
+    static Item* DEAD_BUBBLE_CORAL_FAN; // 死气泡珊瑚扇
+    static Item* DEAD_FIRE_CORAL_FAN;   // 死火珊瑚扇
+    static Item* DEAD_HORN_CORAL_FAN;   // 死角珊瑚扇
+
 private:
     static bool s_initialized;
 
@@ -508,6 +989,16 @@ private:
     static void registerBoats();
     static void registerHangingItems();
     static void registerSigns();
+    static void registerBuildingBlocks();
+    static void registerWool();
+    static void registerCarpets();
+    static void registerStainedGlass();
+    static void registerConcrete();
+    static void registerTerracotta();
+    static void registerVegetation();
+    static void registerRedstone();
+    static void registerCoral();
+    static void registerDoorsFencesStairs();
 };
 
 } // namespace mc
