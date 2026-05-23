@@ -32,6 +32,7 @@
 #include "../blockentity/BlockEntity.hpp"
 #include "../fluid/Fluid.hpp"
 #include <algorithm>
+#include <cstring>
 #include <stdexcept>
 
 #pragma pop_macro("BYTE_SIZE")
@@ -219,39 +220,47 @@ void ChunkSection::setBlockLight(i32 x, i32 y, i32 z, u8 light)
 
 std::vector<u8> ChunkSection::serialize() const
 {
-    std::vector<u8> data;
     // 格式: 块数量 + 方块状态ID + 天空光照 + 方块光照
     // 注意：NibbleArray::BYTE_SIZE = 2048 = VOLUME / 2
-    data.reserve(2 + m_blockStates.size() * 4 + NibbleArray::BYTE_SIZE * 2);
+    constexpr size_t SECTION_DATA_SIZE = 2 + VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
+
+    std::vector<u8> data(SECTION_DATA_SIZE);
+    u8* out = data.data();
 
     // 块数量
-    data.push_back(static_cast<u8>(m_blockCount >> 8));
-    data.push_back(static_cast<u8>(m_blockCount & 0xFF));
+    *out++ = static_cast<u8>(m_blockCount >> 8);
+    *out++ = static_cast<u8>(m_blockCount & 0xFF);
 
-    // 方块状态ID (u32) - 使用小端序与 ChunkSerializer::serializeSection 保持一致
+    // 方块状态ID (u32) - 以小端序写入，与网络同步格式保持一致
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    std::memcpy(out, m_blockStates.data(), m_blockStates.size() * sizeof(u32));
+    out += m_blockStates.size() * sizeof(u32);
+#else
     for (u32 stateId : m_blockStates) {
-        data.push_back(static_cast<u8>(stateId & 0xFF));
-        data.push_back(static_cast<u8>((stateId >> 8) & 0xFF));
-        data.push_back(static_cast<u8>((stateId >> 16) & 0xFF));
-        data.push_back(static_cast<u8>((stateId >> 24) & 0xFF));
+        *out++ = static_cast<u8>(stateId & 0xFF);
+        *out++ = static_cast<u8>((stateId >> 8) & 0xFF);
+        *out++ = static_cast<u8>((stateId >> 16) & 0xFF);
+        *out++ = static_cast<u8>((stateId >> 24) & 0xFF);
     }
+#endif
 
     // 天空光照
     const auto& skyLightData = m_skyLight.data();
     if (!skyLightData.empty()) {
-        data.insert(data.end(), skyLightData.begin(), skyLightData.end());
+        std::memcpy(out, skyLightData.data(), NibbleArray::BYTE_SIZE);
     } else {
         // 如果为空，写入全亮数据
-        data.insert(data.end(), NibbleArray::BYTE_SIZE, 0xFF);
+        std::fill_n(out, NibbleArray::BYTE_SIZE, 0xFF);
     }
+    out += NibbleArray::BYTE_SIZE;
 
     // 方块光照
     const auto& blockLightData = m_blockLight.data();
     if (!blockLightData.empty()) {
-        data.insert(data.end(), blockLightData.begin(), blockLightData.end());
+        std::memcpy(out, blockLightData.data(), NibbleArray::BYTE_SIZE);
     } else {
         // 如果为空，写入全黑数据
-        data.insert(data.end(), NibbleArray::BYTE_SIZE, 0);
+        std::fill_n(out, NibbleArray::BYTE_SIZE, 0x00);
     }
 
     return data;
@@ -260,7 +269,7 @@ std::vector<u8> ChunkSection::serialize() const
 Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, size_t size)
 {
     // 新格式大小: 2 + VOLUME * 4 + BYTE_SIZE * 2
-    constexpr size_t expectedSize = 2 + VOLUME * 4 + NibbleArray::BYTE_SIZE * 2;
+    constexpr size_t expectedSize = 2 + VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
     if (size < expectedSize) {
         return Error(ErrorCode::InvalidArgument, "Invalid section data size");
     }
@@ -273,20 +282,28 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     offset += 2;
 
     // 方块状态ID - 使用小端序与 ChunkSerializer::serializeSection 保持一致
+    const size_t blockStateBytes = VOLUME * sizeof(u32);
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    std::memcpy(section->m_blockStates.data(), data + offset, blockStateBytes);
+    offset += blockStateBytes;
+#else
     for (size_t i = 0; i < VOLUME; ++i) {
         section->m_blockStates[i] = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
             (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24);
         offset += 4;
     }
+#endif
 
     // 天空光照
-    std::vector<u8> skyLightData(data + offset, data + offset + NibbleArray::BYTE_SIZE);
-    section->m_skyLight = NibbleArray(std::move(skyLightData));
+    auto& skyLightData = section->m_skyLight.data();
+    skyLightData.resize(NibbleArray::BYTE_SIZE);
+    std::memcpy(skyLightData.data(), data + offset, NibbleArray::BYTE_SIZE);
     offset += NibbleArray::BYTE_SIZE;
 
     // 方块光照
-    std::vector<u8> blockLightData(data + offset, data + offset + NibbleArray::BYTE_SIZE);
-    section->m_blockLight = NibbleArray(std::move(blockLightData));
+    auto& blockLightData = section->m_blockLight.data();
+    blockLightData.resize(NibbleArray::BYTE_SIZE);
+    std::memcpy(blockLightData.data(), data + offset, NibbleArray::BYTE_SIZE);
 
     section->rebuildTickCounters();
     return std::move(section);
