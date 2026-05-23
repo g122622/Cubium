@@ -161,7 +161,7 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
     // 选择随机声音（使用成员变量 m_rng 确保每次选择不同）
     const SoundDefinition* soundDef = eventDef->selectSound(m_rng);
     if (!soundDef) {
-        spdlog::warn("[SoundEngine] No sounds available for: {}", sound->getSoundEventId().toString());
+        // spdlog::warn("[SoundEngine] No sounds available for: {}", sound->getSoundEventId().toString());
         return 0;
     }
 
