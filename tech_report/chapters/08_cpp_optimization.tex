@@ -225,7 +225,46 @@ index_{target} = index_{current} + (j - i) \times s
 
 在 Perfetto 里，\textit{wall duration} 表示函数从进入到退出的总耗时，\textit{self duration} 表示扣掉子调用以后，函数自身真正消耗的时间。截图里优化前的 wall duration 大约在 0.4--0.7ms，而 self duration 只有个位数到十几微秒，这说明热点并不在“这层函数写了很多计算”，而在它触发的 section 解析、缓冲区拷贝和对象构建。
 
-\textbf{优化思路：}将高度图、biome 和 section 数据改为直接写入目标缓冲区，配合\texttt{PacketDeserializer::readBytesInto} 与\texttt{ChunkSection::deserialize} 消除中间 vector；同时让\texttt{ChunkSection::serialize} / 反序列化使用连续内存和一次性\texttt{memcpy} 处理 blockStates 与光照数据。这样做虽然不是典型的 SIMD 向量化，但能显著减少分配次数、缓存失效和分支开销，更适合这类内存密集型工作负载。
+\textbf{优化思路}
+
+Perfetto 追踪显示，\texttt{deserializeChunk} 的 wall duration 约 0.4--0.7\,ms，而 self duration 仅有十几微秒，说明瓶颈不在函数自身的计算逻辑，而在它触发的底层内存操作——临时堆分配、逐元素写入和重复拷贝。具体而言，优化前的代码存在三类问题：
+
+\begin{enumerate}
+    \item \textbf{冗余的临时缓冲区}：\texttt{readBytes()} 每次调用都 \texttt{new} 一个 \texttt{std::vector<u8>}，将字节流数据拷入其中，返回给调用方后再拷入最终目标。对于高度图（256\,B）、生物群系和每个 section 的数据，这意味着多一次堆分配加一次冗余拷贝。
+    \item \textbf{逐元素写入}：序列化时，4096 个方块状态各用 4 次 \texttt{push\_back} 拼接到输出向量（共 16384 次 \texttt{push\_back}）；反序列化时，逐个读取 4 字节、移位拼合、再调用 \texttt{setBlockStateIdFast()}。每次 \texttt{push\_back} 都要检查容量、可能触发重分配；每次 \texttt{setBlockStateIdFast()} 还会额外执行方块计数和 tick 计数器的逐块更新。
+    \item \textbf{序列化器增量增长}：\texttt{serializeChunk} 使用默认构造的 \texttt{PacketSerializer}，其内部 \texttt{std::vector<u8>} 容量从零开始，随着数据写入反复扩容，产生多次 \texttt{realloc} + \texttt{memcpy}。
+\end{enumerate}
+
+针对这三个瓶颈，优化采取了三组对应的策略：
+
+\begin{enumerate}
+    \item \textbf{零拷贝直写——以 \texttt{readBytesInto()} 替代 \texttt{readBytes()}}。
+
+    原始的 \texttt{readBytes(size)} 在反序列化器内部构造 \texttt{std::vector<u8>}，用迭代器拷贝数据后按值返回；调用方再从临时向量中读取。新的 \texttt{readBytesInto(dest, size)} 直接将字节流 \texttt{memcpy} 到调用方提供的缓冲区，跳过堆分配和中间向量。具体应用：
+
+    \begin{itemize}
+        \item 高度图：用栈上 \texttt{std::array<u8, 256>} 接收，彻底消除堆分配。
+        \item 生物群系：调用方预建好精确大小的 \texttt{std::vector<u8>}，\texttt{readBytesInto} 直写其中。
+        \item Section 数据：同样预分配向量，直写后传给 \texttt{deserializeChunkSection()}。
+    \end{itemize}
+
+    \item \textbf{批量连续拷贝——以 \texttt{memcpy} 替代逐元素循环}。
+
+    4096 个方块状态在内存中本质上是 $4096 \times 4 = 16384$ 字节的连续数据。在 little-endian 平台（覆盖所有现代 x86/ARM），其字节序与网络字节流一致，可以直接用一次 \texttt{memcpy} 完成整块搬移：
+
+    \begin{itemize}
+        \item \textbf{反序列化}：将原来的 4096 次循环（每次读 4 字节、移位、或运算、调用 \texttt{setBlockStateIdFast()}）替换为一次 \texttt{memcpy} 写入 \texttt{m\_blockStates}，并在结束后调用一次 \texttt{rebuildTickCounters()} 重建计数器。光照数据同理：直接 \texttt{resize} section 内部向量后 \texttt{memcpy}，不再构造临时向量再移动构造 \texttt{NibbleArray}。
+        \item \textbf{序列化}：将 4096$\times$4 次 \texttt{push\_back} 替换为一次 \texttt{memcpy}。输出缓冲区使用精确大小的 \texttt{std::vector<u8>(SECTION\_DATA\_SIZE)} 构造（而非 \texttt{reserve} + 反复 \texttt{push\_back}），配合裸指针 \texttt{u8* out} 顺序写入：先写 2 字节 \texttt{blockCount}，再 \texttt{memcpy} 方块状态（16\,KB），再 \texttt{memcpy} 两个光照数组。总写入次数从 16384+ 次 \texttt{push\_back} 降至 3 次 \texttt{memcpy} + 2 次指针写入。
+    \end{itemize}
+
+    非little-endian平台保留逐字节回退路径，由编译期 \texttt{\#if} 切换。
+
+    \item \textbf{精确预分配——一次性确定缓冲区容量}。
+
+    \texttt{serializeChunk} 在构造 \texttt{PacketSerializer} 前先遍历各 section 计算精确字节大小，然后传入 \texttt{PacketSerializer(expectedSize)}，内部一次 \texttt{reserve} 即可容纳整包数据，消除了增量扩容带来的多次 \texttt{realloc}。高度图的序列化也从 256 次 \texttt{writeU8} 改为先填入栈上 \texttt{std::array}、再单次 \texttt{writeBytes} 批量写入。
+\end{enumerate}
+
+整体而言，这三组策略的核心逻辑是一致的：\textbf{将"逐元素写入 + 中间缓冲区"的模式替换为"预分配 + 连续拷贝"的模式}。这在内存密集型路径上尤为有效——减少了堆分配次数（每次 \texttt{new} 都涉及内核态切换或锁竞争）、消除了冗余数据拷贝、改善了缓存局部性（连续 \texttt{memcpy} 对 prefetcher 友好），同时将逐块维护的计数器更新分摊为一次批量重建。
 
 \begin{figure}[h]
 \centering
@@ -244,7 +283,7 @@ index_{target} = index_{current} + (j - i) \times s
 \label{fig:chunkdeserialize_compare}
 \end{figure}
 
-\textbf{结果解读}：从追踪结果看，这条路径更像内存带宽受限而非算术受限。优化后，\texttt{deserializeChunk} 的外层墙钟时间明显下降，而自身指令复杂度没有明显增加，说明改动是通过更好的数据布局和更少的拷贝拿到的收益，而不是单纯依赖编译器自动向量化。
+\textbf{结果解读}：优化后 \texttt{deserializeChunk} 的 wall duration 由约 0.4--0.7\,ms 降至约 0.12--0.19\,ms，降幅约 70\%。self duration 基本不变，印证了收益来自更少的堆分配和更连续的内存访问模式，而非指令级别的优化。这符合内存带宽受限路径的典型特征：减少拷贝次数和改善局部性的收益远大于减少算术运算。
 
 \subsubsection{内存对齐}
 
