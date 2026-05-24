@@ -43,6 +43,11 @@ void TemplateManager::setResourcePack(const IResourcePack* pack)
     m_resourcePack = pack;
 }
 
+void TemplateManager::setDataPackList(const resource::DataPackList* dataPackList)
+{
+    m_dataPackList = dataPackList;
+}
+
 const Template* TemplateManager::getTemplate(const ResourceLocation& location)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -101,7 +106,20 @@ void TemplateManager::clear()
 
 std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& location)
 {
-    // 尝试从资源包加载
+    // 优先从 DataPackList 加载（支持多数据包优先级）
+    if (m_dataPackList) {
+        std::string resourcePath =
+            std::string(location.namespace_()) + "/structures/" + std::string(location.path()) + ".nbt";
+        auto result = m_dataPackList->readResource(resourcePath);
+        if (result.success() && !result.value().empty()) {
+            auto templ = TemplateLoader::loadFromCompressedNbt(result.value());
+            if (templ) {
+                return templ;
+            }
+        }
+    }
+
+    // 尝试从单个资源包加载
     if (m_resourcePack) {
         auto templ = TemplateLoader::loadFromResourcePack(*m_resourcePack, location);
         if (templ) {

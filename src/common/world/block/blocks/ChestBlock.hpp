@@ -160,6 +160,30 @@ public:
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
+    // ========== 旋转和镜像 ==========
+
+    /**
+     * @brief 旋转箱子方块
+     *
+     * 旋转箱子的朝向（HORIZONTAL_FACING），保持类型和含水状态。
+     *
+     * @param state 方块状态
+     * @param rotation 旋转类型
+     * @return 旋转后的方块状态
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像箱子方块
+     *
+     * 镜像箱子的朝向（HORIZONTAL_FACING），并交换左/右类型。
+     *
+     * @param state 方块状态
+     * @param mirror 镜像类型
+     * @return 镜像后的方块状态
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     // ========== 移除处理 ==========
 
     /**

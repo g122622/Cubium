@@ -804,11 +804,11 @@ bool Template::placeInWorld(
 
                 // MC 1.16.5: TileEntity.mirror() 和 TileEntity.rotate() 默认是空实现
                 // 只有 StructureBlockTileEntity 等特定 TileEntity 会重写
-                // 当前 BlockEntity 系统使用 JSON 格式，完整的 NBT 加载需要后续实现
+                // 加载 NBT 数据到方块实体
+                tileEntity->loadFromNBT(*processedBlock.nbt);
 
                 // 为战利品表容器设置随机种子
                 // 参考 Template.func_237146_a_ 第253-254行
-                // 完整实现需要：tileEntity.loadFromNBT(nbt)
             }
         }
 

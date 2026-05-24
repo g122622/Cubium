@@ -24,6 +24,7 @@
 #pragma once
 
 #include "resource/ResourceLocation.hpp"
+#include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
@@ -110,6 +111,26 @@ public:
         data["y"] = m_pos.y;
         data["z"] = m_pos.z;
     }
+
+    /**
+     * @brief 从NBT加载数据
+     * @param tag NBT复合标签
+     * @return 是否成功
+     *
+     * 从结构模板加载方块实体状态。
+     * 子类应重写此方法以加载自定义NBT数据。
+     * 用于Jigsaw结构生成时恢复方块实体数据。
+     */
+    virtual bool loadFromNBT(const nbt::CompoundTag& tag);
+
+    /**
+     * @brief 保存数据到NBT
+     * @param tag 输出NBT复合标签
+     *
+     * 保存方块实体状态到结构模板。
+     * 子类应重写此方法以保存自定义NBT数据。
+     */
+    virtual void saveToNBT(nbt::CompoundTag& tag) const;
 
     /**
      * @brief 每tick更新

@@ -864,12 +864,20 @@ add_library(mc_common STATIC
     world/gen/structure/structures/ShipwreckStructure.cpp
     world/gen/structure/structures/OceanRuinStructure.cpp
     world/gen/structure/structures/FortressStructure.cpp
+    world/gen/structure/structures/IglooStructure.cpp
+    world/gen/structure/structures/SwampHutStructure.cpp
+    world/gen/structure/structures/NetherFossilStructure.cpp
+    world/gen/structure/structures/PillagerOutpostStructure.cpp
+    world/gen/structure/structures/EndCityStructure.cpp
+    world/gen/structure/structures/WoodlandMansionStructure.cpp
+    world/gen/structure/structures/BastionRemnantStructure.cpp
     world/gen/structure/JigsawStructure.cpp
 
     # World - Generation - Jigsaw
     world/gen/jigsaw/JigsawPiece.cpp
     world/gen/jigsaw/JigsawPattern.cpp
     world/gen/jigsaw/JigsawManager.cpp
+    world/gen/jigsaw/TemplatePoolLoader.cpp
 
     # World - Generation - Template
     world/gen/feature/template/Template.cpp

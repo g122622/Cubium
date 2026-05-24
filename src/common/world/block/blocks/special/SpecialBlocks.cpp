@@ -38,6 +38,7 @@
 #include "../../../blockentity/redstone/CommandBlockEntity.hpp"
 #include "../../../dimension/DimensionType.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "../../../gen/jigsaw/JigsawOrientation.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include <queue>
@@ -149,14 +150,40 @@ ActionResultType StructureBlock::onBlockActivated(const BlockState& state,
 JigsawBlock::JigsawBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this).create(
-        [](const Block& block,
-            std::vector<size_t> values,
-            const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-            const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+    // 创建状态容器，添加 ORIENTATION 属性
+    // 参考 MC 1.16.5: JigsawBlock.fillStateContainer() - builder.add(ORIENTATION)
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::ORIENTATION())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
     createBlockState(std::move(container));
+
+    // 设置默认状态：NorthUp
+    // 参考 MC 1.16.5: JigsawBlock.getDefaultState()
+    setDefaultState(
+        defaultState().with(BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientation::NorthUp));
+}
+
+const BlockState& JigsawBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // MC 1.16.5: JigsawBlock.rotate()
+    world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
+    world::gen::jigsaw::JigsawOrientation newOrientation = world::gen::jigsaw::JigsawOrientations::rotate(orientation, rotation);
+    return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
+}
+
+const BlockState& JigsawBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // MC 1.16.5: JigsawBlock.mirror()
+    world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
+    world::gen::jigsaw::JigsawOrientation newOrientation = world::gen::jigsaw::JigsawOrientations::mirror(orientation, mirror);
+    return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
 ActionResultType JigsawBlock::onBlockActivated(const BlockState& state,

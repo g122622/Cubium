@@ -541,6 +541,18 @@ protected:
 namespace StructurePieceTypes {
 constexpr i32 RUINED_PORTAL = 50;
 constexpr i32 BURIED_TREASURE = 53;
+// Igloo
+constexpr i32 IGLOO = 54;
+// Swamp Hut
+constexpr i32 SWAMP_HUT = 55;
+// Nether Fossil
+constexpr i32 NETHER_FOSSIL = 56;
+// End City
+constexpr i32 END_CITY = 57;
+// Woodland Mansion
+constexpr i32 WOODLAND_MANSION = 58;
+// Bastion Remnant
+constexpr i32 BASTION_REMNANT = 59;
 // 废弃矿井片段
 constexpr i32 MINESHAFT_ROOM = 60;
 constexpr i32 MINESHAFT_CORRIDOR = 61;

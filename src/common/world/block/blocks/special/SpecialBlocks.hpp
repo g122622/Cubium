@@ -161,6 +161,12 @@ public:
     explicit JigsawBlock(const BlockProperties& properties);
     ~JigsawBlock() override = default;
 
+    // ========== 旋转和镜像 ==========
+
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     // ========== 交互 ==========
 
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,

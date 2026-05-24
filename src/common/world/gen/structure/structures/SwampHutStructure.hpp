@@ -1,0 +1,92 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "../../feature/template/Template.hpp"
+#include "../Structure.hpp"
+#include <vector>
+
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
+
+/**
+ * @brief 沼泽小屋（女巫小屋）
+ *
+ * 在沼泽生物群系中生成的女巫小屋结构。
+ * 包含炼药台、炼药锅和蘑菇盆栽。
+ * 女巫可以在小屋内生成。
+ *
+ * 参考: MC 1.16.5 SwampHutStructure.java / WoodlandMansionStructure.java
+ */
+class SwampHutStructure : public Structure {
+public:
+    SwampHutStructure();
+    ~SwampHutStructure() override = default;
+
+    [[nodiscard]] const std::string& name() const override { return s_name; }
+    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
+    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
+
+    [[nodiscard]] bool canGenerate(
+        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+
+    [[nodiscard]] std::unique_ptr<StructureStart> generate(
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+
+private:
+    static const std::string s_name;
+    static constexpr StructureSeparationSettings s_settings{32, 8, 14357619};
+    static const std::vector<BiomeId> s_validBiomes;
+};
+
+/**
+ * @brief 沼泽小屋结构片段
+ */
+class SwampHutPiece : public StructurePiece {
+public:
+    SwampHutPiece(const BlockPos& pos, feature::template_::Rotation rotation);
+
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
+
+private:
+    void generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void generateFloor(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void generateWalls(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds);
+
+    feature::template_::Rotation m_rotation;
+};
+
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

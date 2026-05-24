@@ -338,10 +338,11 @@ std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
     std::string path = basePath + ".nbt";
 
     // 尝试读取资源
-    auto result = pack.readResource(resource::PackType::ClientResources, path);
+    // 结构模板位于数据包路径 data/<namespace>/structures/<path>.nbt
+    auto result = pack.readResource(resource::PackType::ServerData, path);
     if (!result.success() || result.value().empty()) {
         // 尝试不带 .nbt 后缀
-        result = pack.readResource(resource::PackType::ClientResources, basePath);
+        result = pack.readResource(resource::PackType::ServerData, basePath);
         if (!result.success() || result.value().empty()) {
             return nullptr;
         }

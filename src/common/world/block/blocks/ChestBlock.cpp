@@ -259,6 +259,60 @@ i32 ChestBlock::getComparatorInputOverride(const BlockState& state, IWorld& worl
     return chest->getComparatorSignal(world);
 }
 
+// ========== 旋转和镜像 ==========
+
+const BlockState& ChestBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // MC 1.16.5: ChestBlock.rotate()
+    // 旋转箱子的朝向（HORIZONTAL_FACING）
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction newFacing = Directions::rotateDirection(facing, rotation);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+}
+
+const BlockState& ChestBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // MC 1.16.5: ChestBlock.mirror()
+    // 镜像箱子的朝向，并交换左/右类型
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockStateProperties::ChestType chestType = state.get(BlockStateProperties::CHEST_TYPE());
+
+    // 镜像朝向
+    Direction newFacing = facing;
+    switch (mirror) {
+        case Mirror::LeftRight:
+            // 南北镜像：东西互换
+            if (facing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (facing == Direction::West) {
+                newFacing = Direction::East;
+            }
+            break;
+        case Mirror::FrontBack:
+            // 前后镜像：南北互换
+            if (facing == Direction::North) {
+                newFacing = Direction::South;
+            } else if (facing == Direction::South) {
+                newFacing = Direction::North;
+            }
+            break;
+        case Mirror::None:
+        default:
+            break;
+    }
+
+    // 镜像时交换左/右类型
+    BlockStateProperties::ChestType newType = chestType;
+    if (chestType == BlockStateProperties::ChestType::Left) {
+        newType = BlockStateProperties::ChestType::Right;
+    } else if (chestType == BlockStateProperties::ChestType::Right) {
+        newType = BlockStateProperties::ChestType::Left;
+    }
+
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing)
+        .with(BlockStateProperties::CHEST_TYPE(), newType);
+}
+
 // ========== 静态工具方法 ==========
 
 Direction ChestBlock::getConnectedDirection(const BlockState& state)

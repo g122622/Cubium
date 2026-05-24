@@ -25,17 +25,24 @@
 #include "../../../resource/ResourceLocation.hpp"
 #include "../jigsaw/JigsawPattern.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
+#include "structures/BastionRemnantStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
 #include "structures/DesertPyramidStructure.hpp"
+#include "structures/EndCityStructure.hpp"
 #include "structures/FortressStructure.hpp"
+#include "structures/IglooStructure.hpp"
 #include "structures/JungleTempleStructure.hpp"
 #include "structures/MineshaftStructure.hpp"
+#include "structures/NetherFossilStructure.hpp"
 #include "structures/OceanMonumentStructure.hpp"
 #include "structures/OceanRuinStructure.hpp"
+#include "structures/PillagerOutpostStructure.hpp"
 #include "structures/RuinedPortalStructure.hpp"
 #include "structures/ShipwreckStructure.hpp"
 #include "structures/StrongholdStructure.hpp"
+#include "structures/SwampHutStructure.hpp"
 #include "structures/VillageStructure.hpp"
+#include "structures/WoodlandMansionStructure.hpp"
 
 namespace mc::world::gen::structure {
 
@@ -73,6 +80,13 @@ void StructureRegistry::initialize()
     registerStructure(std::make_unique<ShipwreckStructure>());
     registerStructure(std::make_unique<OceanRuinStructure>());
     registerStructure(std::make_unique<FortressStructure>());
+    registerStructure(std::make_unique<IglooStructure>());
+    registerStructure(std::make_unique<SwampHutStructure>());
+    registerStructure(std::make_unique<NetherFossilStructure>());
+    registerStructure(std::make_unique<PillagerOutpostStructure>());
+    registerStructure(std::make_unique<WoodlandMansionStructure>());
+    registerStructure(std::make_unique<EndCityStructure>());
+    registerStructure(std::make_unique<BastionRemnantStructure>());
 
     s_initialized = true;
 }

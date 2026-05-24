@@ -479,4 +479,13 @@ const Material& Material::ORGANIC = []() -> const Material& {
     return material;
 }();
 
+const Material& Material::BARRIER = []() -> const Material& {
+    static const Material material = MaterialBuilder()
+                                          .solid()
+                                          .opaque()
+                                          .pushReaction(Material::PushReaction::Block)
+                                          .build();
+    return material;
+}();
+
 } // namespace mc

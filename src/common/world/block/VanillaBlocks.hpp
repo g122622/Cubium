@@ -148,6 +148,11 @@ public:
     static Block* COMPOSTER;         // 堆肥桶
     static Block* LECTERN;           // 讲台
     static Block* JUKEBOX;           // 唱片机
+    static Block* SPAWNER;           // 刷怪笼
+    static Block* STRUCTURE_BLOCK;   // 结构方块
+    static Block* STRUCTURE_VOID;    // 结构空位
+    static Block* JIGSAW;            // 拼图方块
+    static Block* BARRIER;           // 屏障
 
     // ========================================================================
     // 含水方块
@@ -723,6 +728,7 @@ private:
     static void registerPumpkinMelonBlocks();    // 南瓜和西瓜系列
     static void registerRedstoneBlocks();        // 红石方块
     static void registerStairsSlabsWalls();      // 楼梯、台阶、墙、栅栏、活板门
+    static void registerSpecialBlocks();         // 特殊方块（刷怪笼、结构方块、屏障等）
 };
 
 } // namespace mc

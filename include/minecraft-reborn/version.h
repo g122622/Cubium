@@ -11,13 +11,13 @@
 #define MC_VERSION_NAME "Minecraft Reborn"
 
 // ==================== Git 信息 ====================
-#define MC_GIT_COMMIT_HASH "9227809"
-#define MC_GIT_COMMIT_HASH_FULL "9227809ce27a914b4f8029a3a6c17d856d0d760c"
+#define MC_GIT_COMMIT_HASH "c2dd19a"
+#define MC_GIT_COMMIT_HASH_FULL "c2dd19aa148e2b38ef6dac273e62c21d0700c0c4"
 #define MC_GIT_BRANCH "main"
 #define MC_GIT_DIRTY
 
 // ==================== 构建信息 ====================
-#define MC_BUILD_TIME "2026-05-24T09:30:22Z"
+#define MC_BUILD_TIME "2026-05-24T12:24:10Z"
 #define MC_BUILD_TYPE "RelWithDebInfo"
 #define MC_BUILD_PLATFORM "Windows"
 #define MC_BUILD_ARCH "x64"

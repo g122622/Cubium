@@ -510,6 +510,13 @@ Block* VanillaBlocks::FIRE_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::HORN_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::CONDUIT = nullptr;
 
+// 特殊方块
+Block* VanillaBlocks::SPAWNER = nullptr;
+Block* VanillaBlocks::STRUCTURE_BLOCK = nullptr;
+Block* VanillaBlocks::STRUCTURE_VOID = nullptr;
+Block* VanillaBlocks::JIGSAW = nullptr;
+Block* VanillaBlocks::BARRIER = nullptr;
+
 // 告示牌
 Block* VanillaBlocks::OAK_SIGN = nullptr;
 Block* VanillaBlocks::OAK_WALL_SIGN = nullptr;
@@ -795,6 +802,10 @@ void VanillaBlocks::initialize()
         MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
         registerStairsSlabsWalls();
     }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerSpecialBlocks");
+        registerSpecialBlocks();
+    }
 
     // 初始化方块标签（必须在所有方块注册后）
     BlockTags::initialize();
@@ -816,17 +827,35 @@ void VanillaBlocks::registerBaseBlocks()
 
     // 空气 - ID 0
     AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
+        BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
+            .noLootTable());
 
     // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
     // 参考 MC 1.16.5: net.minecraft.block.Blocks.CAVE_AIR
     CAVE_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:cave_air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
+        BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
+            .noLootTable());
 
     // 虚空空气 - 用于世界边界外的空气空间
     // 参考 MC 1.16.5: net.minecraft.block.Blocks.VOID_AIR
     VOID_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:void_air"),
-        BlockProperties(Material::AIR).noCollision().notSolid().replaceable().opacity(0).propagatesSkylightDown().noLootTable());
+        BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
+            .noLootTable());
 
     // 石头 - ID 1
     // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
@@ -892,8 +921,8 @@ void VanillaBlocks::registerBaseBlocks()
 
     // 基岩 - ID 8
     // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F).noDrops())
-    BEDROCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:bedrock"), BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+    BEDROCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bedrock"),
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 沙子 - ID 9
     // 参考: new SandBlock(14406560, Properties.create(Material.SAND).hardnessAndResistance(0.5F))
@@ -2703,8 +2732,8 @@ void VanillaBlocks::registerRedstoneBlocks()
     );
 
     // 活塞头
-    PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(
-        ResourceLocation("minecraft:piston_head"), BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
+    PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(ResourceLocation("minecraft:piston_head"),
+        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
 
     // 移动中的活塞
     // 参考: new MovingPistonBlock(Properties.create(Material.PISTON).hardnessAndResistance(-1.0F))
@@ -2865,6 +2894,40 @@ void VanillaBlocks::registerStairsSlabsWalls()
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
         true // iron
     );
+}
+
+// ============================================================================
+// 特殊方块注册（刷怪笼、结构方块、屏障等）
+// ============================================================================
+void VanillaBlocks::registerSpecialBlocks()
+{
+    auto& registry = BlockRegistry::instance();
+
+    // 刷怪笼 - 方块实体，生成生物
+    // 参考 MC 1.16.5: new SpawnerBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
+    SPAWNER = &registry.registerBlock<blocks::SpawnerBlock>(ResourceLocation("minecraft:spawner"),
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 结构方块 - 创造模式专用，用于保存/加载结构
+    // 参考 MC 1.16.5: new StructureBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F,
+    // 3600000.0F))
+    STRUCTURE_BLOCK = &registry.registerBlock<blocks::StructureBlock>(ResourceLocation("minecraft:structure_block"),
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 结构空位 - 结构生成时不会替换现有方块
+    // 参考 MC 1.16.5: new StructureVoidBlock(Properties.create(Material.STRUCTURE_VOID).noCollision())
+    STRUCTURE_VOID = &registry.registerBlock<blocks::StructureVoidBlock>(ResourceLocation("minecraft:structure_void"),
+        BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable());
+
+    // 拼图方块 - Jigsaw 结构生成系统核心
+    // 参考 MC 1.16.5: new JigsawBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
+    JIGSAW = &registry.registerBlock<blocks::JigsawBlock>(ResourceLocation("minecraft:jigsaw"),
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 屏障 - 不可见的不可破坏方块
+    // 参考 MC 1.16.5: new BarrierBlock(Properties.create(Material.BARRIER).hardnessAndResistance(-1.0F, 3600000.0F))
+    BARRIER = &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
+        BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 }
 
 } // namespace mc

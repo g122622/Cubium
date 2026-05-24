@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../../../resource/DataPackList.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
@@ -44,6 +45,7 @@ namespace template_ {
  *
  * 管理结构模板的加载、缓存和访问。
  * 支持从资源包加载 .nbt 格式的结构模板文件。
+ * 支持从 DataPackList 加载结构模板（优先级高于单个资源包）。
  */
 class TemplateManager {
 public:
@@ -55,6 +57,16 @@ public:
      * @param pack 资源包指针
      */
     void setResourcePack(const IResourcePack* pack);
+
+    /**
+     * @brief 设置数据包列表
+     *
+     * DataPackList 的优先级高于单个资源包。模板加载时会优先从 DataPackList 加载，
+     * 如果 DataPackList 中没有找到，则回退到单个资源包或文件系统。
+     *
+     * @param dataPackList 数据包列表指针
+     */
+    void setDataPackList(const resource::DataPackList* dataPackList);
 
     /**
      * @brief 获取模板（如果不存在则尝试加载）
@@ -108,6 +120,7 @@ private:
     std::mutex m_mutex;
     std::unique_ptr<Template> m_emptyTemplate;
     const IResourcePack* m_resourcePack = nullptr;
+    const resource::DataPackList* m_dataPackList = nullptr;
 };
 
 } // namespace template_

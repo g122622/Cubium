@@ -22,8 +22,10 @@
  */
 
 #include "world/blockentity/BlockEntity.hpp"
+#include "util/nbt/Nbt.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
 
@@ -40,6 +42,24 @@ void BlockEntity::setChanged()
     m_changed = true;
     // 子类如 ContainerBlockEntity 会在需要时更新红石比较器
     // 当前基类无需额外操作
+}
+
+bool BlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    MC_UNUSED(tag);
+    // 基类不处理任何NBT数据
+    // 子类应重写此方法以加载自定义数据
+    return true;
+}
+
+void BlockEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    // 保存基础信息
+    tag.put("id", blockEntityTypeToId(m_type).toString());
+    tag.put("x", m_pos.x);
+    tag.put("y", m_pos.y);
+    tag.put("z", m_pos.z);
+    // 子类应重写此方法以保存自定义数据
 }
 
 } // namespace mc
