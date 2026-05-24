@@ -832,7 +832,7 @@ ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept
 
 void ChunkData::initLightData()
 {
-    // 初始化空映射（大小为 LIGHT_SECTIONS，包含上下缓冲区）
+    // 初始化空映射（底层存储仍为 LIGHT_SECTIONS，但有效数据只覆盖真实 world sections）
     m_skyEmptinessMap.fill(false);
     m_blockEmptinessMap.fill(false);
     m_hasSkyEmptinessMap = false;
@@ -877,7 +877,8 @@ void ChunkData::setSkyEmptinessMap(const bool* map)
         return;
     }
 
-    std::copy_n(map, LIGHT_SECTIONS, m_skyEmptinessMap.begin());
+    m_skyEmptinessMap.fill(false);
+    std::copy_n(map, world::CHUNK_SECTIONS, m_skyEmptinessMap.begin());
     m_hasSkyEmptinessMap = true;
 }
 
@@ -897,7 +898,8 @@ void ChunkData::setBlockEmptinessMap(const bool* map)
         return;
     }
 
-    std::copy_n(map, LIGHT_SECTIONS, m_blockEmptinessMap.begin());
+    m_blockEmptinessMap.fill(false);
+    std::copy_n(map, world::CHUNK_SECTIONS, m_blockEmptinessMap.begin());
     m_hasBlockEmptinessMap = true;
 }
 

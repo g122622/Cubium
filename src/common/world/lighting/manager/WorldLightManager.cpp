@@ -27,6 +27,7 @@
 #include "../../WorldConstants.hpp"
 #include "../../chunk/ChunkData.hpp"
 #include "../../chunk/IChunk.hpp"
+#include "../IChunkLightProvider.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -246,10 +247,76 @@ u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    if (m_skyLight != nullptr) {
-        return m_skyLight->getLightFor(x, y, z);
+    if (m_skyLight == nullptr) {
+        return 0;
     }
-    return 0;
+
+    const ChunkCoord chunkX = x >> 4;
+    const ChunkCoord chunkZ = z >> 4;
+    const IChunk* chunk = m_provider->getChunkForLight(chunkX, chunkZ);
+
+    const i32 minSection = world::MIN_BUILD_HEIGHT >> 4;
+    const i32 maxSection = (world::MAX_BUILD_HEIGHT - 1) >> 4;
+    const i32 minLightSection = minSection - 1;
+    const i32 maxLightSection = maxSection + 1;
+
+    if (chunk == nullptr || !chunk->isLightCorrect()) {
+        return 15;
+    }
+
+    const ChunkLoadStatus status = chunk->getStatus();
+    if (status != ChunkLoadStatus::Generated && status != ChunkLoadStatus::Loaded) {
+        return 15;
+    }
+
+    i32 sectionY = y >> 4;
+    if (sectionY > maxLightSection) {
+        return 15;
+    }
+    if (sectionY < minLightSection) {
+        sectionY = minLightSection;
+        y = sectionY << 4;
+    }
+
+    SWMRNibbleArray* const* nibbles = chunk->getSkyNibbles();
+    if (nibbles == nullptr) {
+        return 15;
+    }
+
+    SWMRNibbleArray* immediate = nibbles[static_cast<size_t>(sectionY - minLightSection)];
+    if (immediate == nullptr) {
+        return 15;
+    }
+    if (!immediate->isNullVisible()) {
+        return immediate->getVisible(x, y, z);
+    }
+
+    const bool* emptinessMap = chunk->getSkyEmptinessMap();
+    if (emptinessMap == nullptr) {
+        return 15;
+    }
+
+    i32 lowestY = minLightSection - 1;
+    for (i32 currY = maxSection; currY >= minSection; --currY) {
+        if (emptinessMap[currY - minSection]) {
+            continue;
+        }
+        lowestY = currY;
+        break;
+    }
+
+    if (sectionY > lowestY) {
+        return 15;
+    }
+
+    for (i32 currY = sectionY + 1; currY <= maxLightSection; ++currY) {
+        SWMRNibbleArray* nibble = nibbles[static_cast<size_t>(currY - minLightSection)];
+        if (nibble != nullptr && !nibble->isNullVisible()) {
+            return nibble->getVisible(x, 0, z);
+        }
+    }
+
+    return 15;
 }
 
 // ============================================================================
@@ -258,18 +325,25 @@ u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const
 
 void WorldLightManager::setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain)
 {
-
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    const i32 centerX = (pos.x << 4) + 7;
+    const i32 centerY = (pos.y << 4) + 7;
+    const i32 centerZ = (pos.z << 4) + 7;
 
     switch (type) {
         case LightType::BLOCK:
             if (m_blockLight != nullptr) {
+                m_blockLight->setupCaches(m_provider, centerX, centerY, centerZ, true, false);
                 m_blockLight->setData(pos, array, retain);
+                m_blockLight->destroyCaches();
             }
             break;
         case LightType::SKY:
             if (m_skyLight != nullptr) {
+                m_skyLight->setupCaches(m_provider, centerX, centerY, centerZ, true, false);
                 m_skyLight->setData(pos, array, retain);
+                m_skyLight->destroyCaches();
             }
             break;
     }
@@ -279,15 +353,25 @@ SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& po
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    const i32 centerX = (pos.x << 4) + 7;
+    const i32 centerY = (pos.y << 4) + 7;
+    const i32 centerZ = (pos.z << 4) + 7;
+
     switch (type) {
         case LightType::BLOCK:
             if (m_blockLight != nullptr) {
-                return m_blockLight->getData(pos);
+                m_blockLight->setupCaches(m_provider, centerX, centerY, centerZ, true, false);
+                SWMRNibbleArray* data = m_blockLight->getData(pos);
+                m_blockLight->destroyCaches();
+                return data;
             }
             break;
         case LightType::SKY:
             if (m_skyLight != nullptr) {
-                return m_skyLight->getData(pos);
+                m_skyLight->setupCaches(m_provider, centerX, centerY, centerZ, true, false);
+                SWMRNibbleArray* data = m_skyLight->getData(pos);
+                m_skyLight->destroyCaches();
+                return data;
             }
             break;
     }
@@ -299,7 +383,7 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 通过存储层保留数据
-    // 目前简化实现，后续可扩展
+    // TODO 目前简化实现，后续可扩展
     (void)pos;
     (void)retain;
 }

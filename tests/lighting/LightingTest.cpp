@@ -27,6 +27,7 @@
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <climits>
 #include <gtest/gtest.h>
 
@@ -489,6 +490,42 @@ TEST_F(LightEngineUtilsTest, RootPos)
 class DirectionLightTest : public ::testing::Test {
 protected:
 };
+
+// ============================================================================
+// SWMRNibbleArray 测试
+// ============================================================================
+
+class SWMRNibbleArrayTest : public ::testing::Test {
+protected:
+};
+
+TEST_F(SWMRNibbleArrayTest, UpdatingWritesStayInvisibleUntilUpdateVisible)
+{
+    mc::SWMRNibbleArray nibble;
+
+    EXPECT_EQ(nibble.getVisible(0), 0);
+    EXPECT_EQ(nibble.getUpdating(0), 0);
+
+    nibble.set(0, 9);
+
+    EXPECT_EQ(nibble.getUpdating(0), 9);
+    EXPECT_EQ(nibble.getVisible(0), 0);
+
+    EXPECT_TRUE(nibble.updateVisible());
+    EXPECT_EQ(nibble.getVisible(0), 9);
+}
+
+TEST_F(SWMRNibbleArrayTest, SetFullStaysInvisibleUntilUpdateVisible)
+{
+    mc::SWMRNibbleArray nibble;
+
+    nibble.setFull();
+    EXPECT_EQ(nibble.getUpdating(0), 15);
+    EXPECT_EQ(nibble.getVisible(0), 0);
+
+    EXPECT_TRUE(nibble.updateVisible());
+    EXPECT_EQ(nibble.getVisible(0), 15);
+}
 
 TEST_F(DirectionLightTest, FromDelta)
 {

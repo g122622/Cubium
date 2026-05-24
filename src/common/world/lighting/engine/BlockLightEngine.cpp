@@ -134,11 +134,10 @@ void BlockStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* cons
 
 bool BlockStarLightEngine::canUseChunk(const IChunk* chunk) const
 {
-    // 区块必须处于 LIGHT 状态或之后，且光照数据正确
-    // 参考 Moonrise: chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (isClientSide ||
-    // chunk.isLightCorrect())
-    ChunkLoadStatus status = chunk->getStatus();
-    return status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded;
+    // 与 Moonrise 保持一致：服务端只允许 light-correct 的区块参与传播。
+    const ChunkLoadStatus status = chunk->getStatus();
+    const bool hasRequiredStatus = status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded;
+    return hasRequiredStatus && (m_isClientSide || chunk->isLightCorrect());
 }
 
 // ============================================================================
@@ -456,27 +455,23 @@ u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
 
 void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)
 {
-    // 设置指定区块段的光照数据（从存档加载）
-    i32 chunkY = pos.y;
+    const i32 chunkY = pos.y;
     if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
         return;
     }
 
-    // 获取缓存中的区块
     const IChunk* chunk = getChunkInCache(pos.x, pos.z);
     if (chunk == nullptr) {
         return;
     }
 
-    // 获取区块的 Nibble 数组
     SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
     if (nibbles == nullptr) {
         return;
     }
 
-    // 计算索引
-    i32 index = chunkY - m_minLightSection;
-    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    const i32 index = chunkY - m_minLightSection;
+    const i32 totalSections = m_maxLightSection - m_minLightSection + 1;
     if (index < 0 || index >= totalSections) {
         return;
     }
@@ -497,25 +492,23 @@ void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& arr
         nibble->updateVisible();
     }
 
-    // 同时更新缓存
-    setNibbleInCache(pos.x, chunkY, pos.z, nibble);
+    if (getChunkInCache(pos.x, pos.z) != nullptr) {
+        setNibbleInCache(pos.x, chunkY, pos.z, nibble);
+    }
 }
 
 SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos)
 {
-    // 获取指定区块段的光照数据（用于保存）
-    i32 chunkY = pos.y;
+    const i32 chunkY = pos.y;
     if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
         return nullptr;
     }
 
-    // 首先尝试从缓存获取
     SWMRNibbleArray* cached = getNibbleFromCache(pos.x, chunkY, pos.z);
     if (cached != nullptr) {
         return cached;
     }
 
-    // 如果缓存中没有，尝试从区块获取
     const IChunk* chunk = getChunkInCache(pos.x, pos.z);
     if (chunk == nullptr) {
         return nullptr;
@@ -526,8 +519,8 @@ SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos)
         return nullptr;
     }
 
-    i32 index = chunkY - m_minLightSection;
-    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    const i32 index = chunkY - m_minLightSection;
+    const i32 totalSections = m_maxLightSection - m_minLightSection + 1;
     if (index < 0 || index >= totalSections) {
         return nullptr;
     }

@@ -261,6 +261,18 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 **解决**：测试前先初始化世界。
 
+### 15. Block/Sky 对 light-correct 的使用必须一致
+
+**问题**：如果只让天空光检查 `chunk->isLightCorrect()`，而方块光对未校正区块继续参与传播，会导致两套光照对同一区块的可用性判定分裂。
+
+**解决**：服务端下 Block/Sky 两套引擎都必须要求 `chunk->isLightCorrect()`；只有客户端路径可以放宽。
+
+### 16. Light section 下标不是世界 section 下标
+
+**问题**：把 `SectionPos.y == 0` 误当作 `LIGHT_SECTIONS` 的第一个槽位，会把读写路由到错误的 light section。
+
+**解决**：light section 有上下缓冲层，默认映射是 `index = sectionY - minLightSection`。在当前高度配置下，`LIGHT_SECTIONS[0]` 对应 `sectionY == -1`，不是 `0`。
+
 ---
 
 ## 涉及的测试用例

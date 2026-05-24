@@ -291,7 +291,7 @@ void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAcces
         }
         std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptinessChanges, false);
         if (!result.empty()) {
-            auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+            auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxSection - m_minSection + 1));
             setEmptinessMap(chunk, rawMap.get());
         }
     }
@@ -420,7 +420,7 @@ void StarLightEngine::forceHandleEmptySectionChanges(
     // 处理空段变化，但不使用 unlit 模式
     std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptySections, false);
     if (!result.empty()) {
-        auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+        auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxSection - m_minSection + 1));
         setEmptinessMap(chunk, rawMap.get());
     }
 
@@ -688,8 +688,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
 
         std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
         if (!emptinessUpdate.empty()) {
-            auto rawMap =
-                copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+            auto rawMap = copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxSection - m_minSection + 1));
             setEmptinessMap(chunk, rawMap.get());
             setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
         }

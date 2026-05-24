@@ -30,9 +30,64 @@
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
 
 using namespace mc::network;
 using namespace mc;
+
+namespace {
+
+class LightManagerDataProvider final : public mc::StarLightLightingProvider {
+public:
+    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
+
+    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
+    {
+        if (m_chunk == nullptr || m_chunk->x() != x || m_chunk->z() != z) {
+            return nullptr;
+        }
+        return m_chunk;
+    }
+
+    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
+    {
+        if (m_chunk == nullptr || m_chunk->x() != x || m_chunk->z() != z) {
+            return nullptr;
+        }
+        return m_chunk;
+    }
+
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override
+    {
+        if (m_chunk == nullptr || pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
+            return nullptr;
+        }
+        return m_chunk->getBlockState(pos.x & 15, pos.y, pos.z & 15);
+    }
+
+    mc::IWorld* getWorld() override { return reinterpret_cast<mc::IWorld*>(this); }
+    const mc::IWorld* getWorld() const override { return reinterpret_cast<const mc::IWorld*>(this); }
+
+    void markLightChanged(mc::LightType, const mc::SectionPos&) override {}
+    bool hasSkyLight() const override { return true; }
+    mc::i32 getMinBuildHeight() const override { return mc::world::MIN_BUILD_HEIGHT; }
+    mc::i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
+    mc::i32 getSectionCount() const override { return mc::world::CHUNK_SECTIONS; }
+
+    const mc::ChunkData* getChunk(mc::ChunkCoord x, mc::ChunkCoord z) const
+    {
+        if (m_chunk == nullptr || m_chunk->x() != x || m_chunk->z() != z) {
+            return nullptr;
+        }
+        return m_chunk;
+    }
+
+private:
+    mc::ChunkData* m_chunk = nullptr;
+};
+
+} // namespace
 
 // ============================================================================
 // LightUpdatePacket 测试
@@ -611,6 +666,69 @@ TEST_F(LightNibbleArrayTest, ConstructFromData)
     // 奇数索引存储高4位 (A = 1010 = 10)
     EXPECT_EQ(arrayFromData.get(0), 0xB); // 索引0，低4位
     EXPECT_EQ(arrayFromData.get(1), 0xA); // 索引1，高4位
+}
+
+TEST(LightManagerDataAccessTest, SetDataAndGetDataWorkWithoutPrimedCaches)
+{
+    LightManagerDataProvider provider;
+    ChunkData chunk(0, 0);
+    chunk.setStatus(ChunkLoadStatus::Generated);
+    chunk.setLightCorrect(true);
+    provider.setChunk(&chunk);
+
+    WorldLightManager lightManager(&provider, true, true);
+
+    NibbleArray blockArray;
+    blockArray.set(1, 2, 3, 11);
+
+    NibbleArray skyArray;
+    skyArray.set(4, 5, 6, 13);
+
+    const SectionPos lightSection(0, -1, 0);
+
+    lightManager.setData(LightType::BLOCK, lightSection, blockArray, false);
+    lightManager.setData(LightType::SKY, lightSection, skyArray, false);
+
+    SWMRNibbleArray* blockNibble = lightManager.getData(LightType::BLOCK, lightSection);
+    SWMRNibbleArray* skyNibble = lightManager.getData(LightType::SKY, lightSection);
+
+    ASSERT_NE(blockNibble, nullptr);
+    ASSERT_NE(skyNibble, nullptr);
+
+    EXPECT_EQ(blockNibble->getVisible(1, 2, 3), static_cast<u8>(11));
+    EXPECT_EQ(skyNibble->getVisible(4, 5, 6), static_cast<u8>(13));
+}
+
+TEST(LightManagerDataAccessTest, SkyReadFallsBackToUpperVisibleNibbleWhenCurrentSectionIsNull)
+{
+    LightManagerDataProvider provider;
+    ChunkData chunk(0, 0);
+    chunk.setStatus(ChunkLoadStatus::Generated);
+    chunk.setLightCorrect(true);
+    provider.setChunk(&chunk);
+
+    WorldLightManager lightManager(&provider, false, true);
+
+    std::array<bool, mc::world::CHUNK_SECTIONS> emptinessMap{};
+    emptinessMap.fill(false);
+    chunk.setSkyEmptinessMap(emptinessMap.data());
+
+    NibbleArray upperArray;
+    upperArray.set(2, 0, 3, 12);
+
+    const SectionPos upperLightSection(0, 0, 0);
+    lightManager.setData(LightType::SKY, upperLightSection, upperArray, false);
+
+    const u8 light = lightManager.getSkyLight(2, -11, 3);
+    EXPECT_EQ(light, static_cast<u8>(12));
+}
+
+TEST(LightManagerDataAccessTest, SkyReadReturnsFifteenForUnavailableChunk)
+{
+    LightManagerDataProvider provider;
+    WorldLightManager lightManager(&provider, false, true);
+
+    EXPECT_EQ(lightManager.getSkyLight(0, 64, 0), static_cast<u8>(15));
 }
 
 // ============================================================================

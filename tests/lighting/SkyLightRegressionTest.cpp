@@ -30,6 +30,8 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include <unordered_map>
 
 namespace {
 
@@ -49,39 +51,39 @@ public:
         , m_maxBuildHeight(maxBuildHeight)
     {}
 
-    void setChunk(mc::ChunkData* chunk) { m_chunk = chunk; }
+    void setChunk(mc::ChunkData* chunk)
+    {
+        m_chunks.clear();
+        addChunk(chunk);
+    }
+
+    void addChunk(mc::ChunkData* chunk)
+    {
+        if (chunk == nullptr) {
+            return;
+        }
+        m_chunks[chunk->pos().toId()] = chunk;
+    }
 
     mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override
     {
-        if (m_chunk == nullptr) {
-            return nullptr;
-        }
-        if (m_chunk->x() != x || m_chunk->z() != z) {
-            return nullptr;
-        }
-        return m_chunk;
+        const auto it = m_chunks.find(mc::ChunkPos(x, z).toId());
+        return it == m_chunks.end() ? nullptr : it->second;
     }
 
     const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override
     {
-        if (m_chunk == nullptr) {
-            return nullptr;
-        }
-        if (m_chunk->x() != x || m_chunk->z() != z) {
-            return nullptr;
-        }
-        return m_chunk;
+        const auto it = m_chunks.find(mc::ChunkPos(x, z).toId());
+        return it == m_chunks.end() ? nullptr : it->second;
     }
 
     const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override
     {
-        if (m_chunk == nullptr) {
+        const auto it = m_chunks.find(mc::ChunkPos(pos.chunkX(), pos.chunkZ()).toId());
+        if (it == m_chunks.end()) {
             return nullptr;
         }
-        if (pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
-            return nullptr;
-        }
-        return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
+        return it->second->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
     mc::IWorld* getWorld() override { return nullptr; }
@@ -99,7 +101,7 @@ public:
     mc::i32 getSectionCount() const override { return (m_maxBuildHeight - m_minBuildHeight) >> 4; }
 
 private:
-    mc::ChunkData* m_chunk = nullptr;
+    std::unordered_map<mc::u64, mc::ChunkData*> m_chunks;
     mc::i32 m_minBuildHeight;
     mc::i32 m_maxBuildHeight;
 };
@@ -288,6 +290,107 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock)
     // Y=69 -> localY=5
     mc::u8 light = nibble->getUpdating(8, 5, 8);
     EXPECT_GT(light, static_cast<mc::u8>(0));
+}
+
+TEST(SkyLightRegressionTest, LightChunkPropagatesAcrossChunkBoundary)
+{
+    ensureVanillaBlocksInitialized();
+
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
+    mc::ChunkData sourceChunk(0, 0);
+    mc::ChunkData neighbourChunk(1, 0);
+    sourceChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    neighbourChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    sourceChunk.setLightCorrect(true);
+    neighbourChunk.setLightCorrect(true);
+    provider.addChunk(&sourceChunk);
+    provider.addChunk(&neighbourChunk);
+
+    mc::WorldLightManager lightManager(&provider, false, true);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+
+    sourceChunk.setBlockState(15, 79, 8, stoneState);
+    neighbourChunk.setBlockState(0, 79, 8, stoneState);
+
+    lightManager.updateSectionStatus(mc::SectionPos(0, 4, 0), false);
+    lightManager.updateSectionStatus(mc::SectionPos(1, 4, 0), false);
+
+    lightManager.lightChunk(&sourceChunk, true);
+    lightManager.lightChunk(&neighbourChunk, true);
+
+    EXPECT_LT(lightManager.getSkyLight(15, 78, 8), static_cast<mc::u8>(15));
+    EXPECT_LT(lightManager.getSkyLight(16, 78, 8), static_cast<mc::u8>(15));
+}
+
+TEST(SkyLightRegressionTest, CheckChunkEdgesRepairsCrossChunkBoundaryAfterNeighbourAppears)
+{
+    ensureVanillaBlocksInitialized();
+
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
+    mc::ChunkData sourceChunk(0, 0);
+    mc::ChunkData neighbourChunk(1, 0);
+    sourceChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    neighbourChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    sourceChunk.setLightCorrect(true);
+    neighbourChunk.setLightCorrect(true);
+    provider.setChunk(&sourceChunk);
+
+    mc::WorldLightManager lightManager(&provider, false, true);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    sourceChunk.setBlockState(15, 79, 8, stoneState);
+
+    lightManager.updateSectionStatus(mc::SectionPos(0, 4, 0), false);
+    lightManager.lightChunk(&sourceChunk, true);
+
+    provider.addChunk(&neighbourChunk);
+    neighbourChunk.setBlockState(0, 79, 8, stoneState);
+    lightManager.updateSectionStatus(mc::SectionPos(1, 4, 0), false);
+    lightManager.lightChunk(&neighbourChunk, true);
+    lightManager.checkChunkEdges(0, 0);
+    lightManager.checkChunkEdges(1, 0);
+
+    EXPECT_LT(lightManager.getSkyLight(15, 78, 8), static_cast<mc::u8>(15));
+    EXPECT_LT(lightManager.getSkyLight(16, 78, 8), static_cast<mc::u8>(15));
+}
+
+TEST(SkyLightRegressionTest, CrossChunkRoofClosureDarkensBoundaryCells)
+{
+    ensureVanillaBlocksInitialized();
+
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
+    mc::ChunkData sourceChunk(0, 0);
+    mc::ChunkData neighbourChunk(1, 0);
+    sourceChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    neighbourChunk.setStatus(mc::ChunkLoadStatus::Generated);
+    sourceChunk.setLightCorrect(true);
+    neighbourChunk.setLightCorrect(true);
+    provider.addChunk(&sourceChunk);
+    provider.addChunk(&neighbourChunk);
+
+    mc::WorldLightManager lightManager(&provider, false, true);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+
+    lightManager.updateSectionStatus(mc::SectionPos(0, 4, 0), false);
+    lightManager.updateSectionStatus(mc::SectionPos(1, 4, 0), false);
+
+    lightManager.lightChunk(&sourceChunk, true);
+    lightManager.lightChunk(&neighbourChunk, true);
+
+    const mc::u8 beforeLeft = lightManager.getSkyLight(15, 78, 8);
+    const mc::u8 beforeRight = lightManager.getSkyLight(16, 78, 8);
+    EXPECT_EQ(beforeLeft, static_cast<mc::u8>(15));
+    EXPECT_EQ(beforeRight, static_cast<mc::u8>(15));
+
+    sourceChunk.setBlockState(15, 79, 8, stoneState);
+    neighbourChunk.setBlockState(0, 79, 8, stoneState);
+
+    lightManager.checkBlock(15, 79, 8);
+    lightManager.checkBlock(16, 79, 8);
+    lightManager.checkChunkEdges(0, 0);
+    lightManager.checkChunkEdges(1, 0);
+
+    EXPECT_LT(lightManager.getSkyLight(15, 78, 8), static_cast<mc::u8>(15));
+    EXPECT_LT(lightManager.getSkyLight(16, 78, 8), static_cast<mc::u8>(15));
 }
 
 } // namespace

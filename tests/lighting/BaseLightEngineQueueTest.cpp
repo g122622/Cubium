@@ -241,6 +241,7 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap)
     TestChunkProvider provider;
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
+    chunk.setLightCorrect(true);
     chunk.setBlockEmptinessMap(nullptr);
     provider.setChunk(&chunk);
 
@@ -256,21 +257,16 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap)
     for (mc::i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
         EXPECT_TRUE(emptinessMap[sectionIndex]);
     }
-
-    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS;
-        ++sectionIndex) {
-        EXPECT_FALSE(emptinessMap[sectionIndex]);
-    }
 }
 
 TEST(BaseLightEngineQueueTest, ChunkDataEmptinessMapsRoundTripWithoutNullCrash)
 {
     mc::ChunkData chunk(0, 0);
 
-    std::array<bool, mc::ChunkData::LIGHT_SECTIONS> skyMap{};
-    std::array<bool, mc::ChunkData::LIGHT_SECTIONS> blockMap{};
+    std::array<bool, mc::world::CHUNK_SECTIONS> skyMap{};
+    std::array<bool, mc::world::CHUNK_SECTIONS> blockMap{};
 
-    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
         skyMap[static_cast<size_t>(sectionIndex)] = (sectionIndex % 2) == 0;
         blockMap[static_cast<size_t>(sectionIndex)] = (sectionIndex % 2) != 0;
     }
@@ -284,9 +280,15 @@ TEST(BaseLightEngineQueueTest, ChunkDataEmptinessMapsRoundTripWithoutNullCrash)
     ASSERT_NE(skyResult, nullptr);
     ASSERT_NE(blockResult, nullptr);
 
-    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
         EXPECT_EQ(skyResult[sectionIndex], skyMap[static_cast<size_t>(sectionIndex)]);
         EXPECT_EQ(blockResult[sectionIndex], blockMap[static_cast<size_t>(sectionIndex)]);
+    }
+
+    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS;
+        ++sectionIndex) {
+        EXPECT_FALSE(skyResult[sectionIndex]);
+        EXPECT_FALSE(blockResult[sectionIndex]);
     }
 
     chunk.setSkyEmptinessMap(nullptr);

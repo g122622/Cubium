@@ -783,36 +783,75 @@ u8 SkyStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
 
 void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)
 {
-    // 设置指定区块段的光照数据
-    i32 sectionY = pos.y;
+    const i32 sectionY = pos.y;
     if (sectionY < m_minLightSection || sectionY > m_maxLightSection) {
         return;
     }
 
-    SWMRNibbleArray* nibble = getNibbleFromCache(pos.x, sectionY, pos.z);
-    if (nibble == nullptr) {
-        nibble = new SWMRNibbleArray(nullptr, true);
-        setNibbleInCache(pos.x, sectionY, pos.z, nibble);
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
+    if (chunk == nullptr) {
+        return;
     }
 
-    // 从 NibbleArray 复制数据
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return;
+    }
+
+    const i32 index = sectionY - m_minLightSection;
+    const i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return;
+    }
+
+    SWMRNibbleArray* nibble = nibbles[index];
+    if (nibble == nullptr) {
+        return;
+    }
+
     nibble->setNonNull();
     for (i32 i = 0; i < 4096; ++i) {
         nibble->set(i, array.get(i));
     }
 
     if (!retain) {
-        nibble->setHidden();
+        nibble->updateVisible();
+    }
+
+    if (getChunkInCache(pos.x, pos.z) != nullptr) {
+        setNibbleInCache(pos.x, sectionY, pos.z, nibble);
     }
 }
 
 SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos)
 {
-    i32 sectionY = pos.y;
+    const i32 sectionY = pos.y;
     if (sectionY < m_minLightSection || sectionY > m_maxLightSection) {
         return nullptr;
     }
-    return getNibbleFromCache(pos.x, sectionY, pos.z);
+
+    SWMRNibbleArray* cached = getNibbleFromCache(pos.x, sectionY, pos.z);
+    if (cached != nullptr) {
+        return cached;
+    }
+
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return nullptr;
+    }
+
+    const i32 index = sectionY - m_minLightSection;
+    const i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return nullptr;
+    }
+
+    return nibbles[index];
 }
 
 void SkyStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
