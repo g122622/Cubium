@@ -21,9 +21,18 @@
  *
  */
 
-#include "AnimalRenderers.hpp"
+#pragma once
 
-// 动物渲染器类定义在头文件中内联实现
-// 注册函数已移至 RendererRegistration.cpp 统一管理
+namespace mc::client::renderer::entity::renderer {
 
-namespace mc::client::renderer::entity::renderer::animal {} // namespace mc::client::renderer::entity::renderer::animal
+/**
+ * @brief 初始化渲染器注册
+ *
+ * 注册所有实体渲染器到 RendererFactory。
+ * 此函数应在游戏启动时调用一次。
+ *
+ * 与 ModelRegistration::initializeModelRegistration() 对应。
+ */
+void initializeRendererRegistration();
+
+} // namespace mc::client::renderer::entity::renderer

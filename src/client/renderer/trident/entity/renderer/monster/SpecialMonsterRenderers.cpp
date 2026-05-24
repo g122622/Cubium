@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, the subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -22,53 +22,8 @@
  */
 
 #include "SpecialMonsterRenderers.hpp"
-#include "../../core/EntityRendererManager.hpp"
 
-namespace mc::client::renderer::entity::renderer::monster {
+// 特殊怪物渲染器类定义在头文件中内联实现
+// 注册函数已移至 RendererRegistration.cpp 统一管理
 
-void registerSpecialMonsterRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:wither",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WitherRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:slime", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SlimeRenderer>(); });
-
-    manager.registerRenderer("minecraft:guardian",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<GuardianRenderer>(); });
-
-    manager.registerRenderer("minecraft:elder_guardian",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ElderGuardianRenderer>(); });
-
-    manager.registerRenderer("minecraft:shulker",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ShulkerRenderer>(); });
-
-    manager.registerRenderer("minecraft:silverfish",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SilverfishRenderer>(); });
-
-    manager.registerRenderer("minecraft:endermite",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EndermiteRenderer>(); });
-}
-
-void registerIllagerRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:vex", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<VexRenderer>(); });
-
-    manager.registerRenderer("minecraft:vindicator",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<VindicatorRenderer>(); });
-
-    manager.registerRenderer("minecraft:evoker",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EvokerRenderer>(); });
-
-    manager.registerRenderer("minecraft:pillager",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PillagerRenderer>(); });
-
-    manager.registerRenderer("minecraft:ravager",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<RavagerRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:witch", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WitchRenderer>(); });
-}
-
-} // namespace mc::client::renderer::entity::renderer::monster
+namespace mc::client::renderer::entity::renderer::monster {} // namespace mc::client::renderer::entity::renderer::monster

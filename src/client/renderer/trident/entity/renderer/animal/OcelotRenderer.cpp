@@ -76,10 +76,4 @@ ResourceLocation OcelotRenderer::getEntityTexture(const OcelotEntity& entity) co
     return ResourceLocation("minecraft", "textures/entity/cat/ocelot.png");
 }
 
-void registerOcelotRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:ocelot",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<OcelotRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::animal

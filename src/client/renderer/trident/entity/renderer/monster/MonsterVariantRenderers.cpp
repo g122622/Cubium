@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, the subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -22,29 +22,8 @@
  */
 
 #include "MonsterVariantRenderers.hpp"
-#include "../../core/EntityRendererManager.hpp"
 
-namespace mc::client::renderer::entity::renderer::monster {
+// 怪物变体渲染器类定义在头文件中内联实现
+// 注册函数已移至 RendererRegistration.cpp 统一管理
 
-void registerMonsterVariantRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:zombie_villager",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ZombieVillagerRenderer>(); });
-
-    manager.registerRenderer("minecraft:drowned",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<DrownedRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:husk", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<HuskRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:stray", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<StrayRenderer>(); });
-
-    manager.registerRenderer("minecraft:cave_spider",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CaveSpiderRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:giant", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<GiantRenderer>(); });
-}
-
-} // namespace mc::client::renderer::entity::renderer::monster
+namespace mc::client::renderer::entity::renderer::monster {} // namespace mc::client::renderer::entity::renderer::monster

@@ -96,9 +96,4 @@ private:
     bool m_meshGenerated = false;
 };
 
-/**
- * @brief 注册投掷物渲染器
- */
-void registerProjectileRenderers(::mc::client::renderer::entity::EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::projectile

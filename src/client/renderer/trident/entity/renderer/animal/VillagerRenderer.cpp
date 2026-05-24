@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, the subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -22,7 +22,6 @@
  */
 
 #include "VillagerRenderer.hpp"
-#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 
@@ -60,12 +59,6 @@ ResourceLocation VillagerRenderer::getEntityTexture(const ::mc::entity::Villager
 {
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");
-}
-
-void registerVillagerRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:villager",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<VillagerRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

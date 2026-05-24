@@ -293,6 +293,4 @@ public:
     void render(Entity& entity, f64 partialTicks) override;
 };
 
-void registerSpecialEntityRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::special

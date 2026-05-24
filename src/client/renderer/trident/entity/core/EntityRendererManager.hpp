@@ -26,12 +26,12 @@
 #include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/RendererFactory.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
-#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -60,8 +60,6 @@ namespace mc::client::renderer::entity {
  */
 class EntityRendererManager {
 public:
-    using RendererCreator = std::function<std::unique_ptr<core::EntityRenderer>()>;
-
     EntityRendererManager();
     ~EntityRendererManager();
 
@@ -70,13 +68,6 @@ public:
     EntityRendererManager& operator=(const EntityRendererManager&) = delete;
 
     // ========== 渲染器管理 ==========
-
-    /**
-     * @brief 注册渲染器
-     * @param typeId 实体类型ID
-     * @param creator 渲染器创建函数
-     */
-    void registerRenderer(const std::string& typeId, RendererCreator creator);
 
     /**
      * @brief 获取渲染器
@@ -253,7 +244,6 @@ private:
     };
 
     std::unordered_map<std::string, std::unique_ptr<core::EntityRenderer>> m_renderers;
-    std::unordered_map<std::string, RendererCreator> m_creators;
 
     // 静态实体网格缓存（用于非动画实体，如 ItemEntity、ExperienceOrb）
     std::unordered_map<EntityId, StaticMeshEntry> m_meshes;

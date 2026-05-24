@@ -117,10 +117,4 @@ void WolfRenderer::setupLayers()
     // 添加狼项圈层 - 待层渲染器系统完善后实现
 }
 
-void registerWolfRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:wolf", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WolfRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::animal

@@ -117,10 +117,4 @@ ResourceLocation LlamaRenderer::getEntityTexture(const ::mc::LlamaEntity& entity
     return ResourceLocation("minecraft", textureName);
 }
 
-void registerLlamaRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:llama", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LlamaRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::animal

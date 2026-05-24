@@ -123,6 +123,7 @@ add_executable(minecraft-client
     renderer/trident/entity/core/EntityRendererManager.cpp
     renderer/trident/entity/core/AnimationContext.cpp
     renderer/trident/entity/core/AnimatedMeshCache.cpp
+    renderer/trident/entity/core/RendererFactory.cpp
     renderer/trident/entity/pipeline/EntityPipeline.cpp
     renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
     renderer/trident/entity/util/ShadowRenderer.cpp
@@ -160,7 +161,8 @@ add_executable(minecraft-client
     renderer/trident/entity/model/aquatic/AquaticModels.cpp
     renderer/trident/entity/model/projectile/ProjectileModels.cpp
     renderer/trident/entity/model/player/PlayerModel.cpp
-    # 实体渲染器
+    # 实体渲染器注册
+    renderer/trident/entity/renderer/RendererRegistration.cpp
     renderer/trident/entity/renderer/projectile/ItemEntityRenderer.cpp
     renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp
     renderer/trident/entity/renderer/projectile/ProjectileRenderers.cpp

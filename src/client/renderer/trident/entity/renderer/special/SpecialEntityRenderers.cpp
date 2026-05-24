@@ -22,11 +22,12 @@
  */
 
 #include "SpecialEntityRenderers.hpp"
-#include "../../core/EntityRendererManager.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/Vector4.hpp"
 
 namespace mc::client::renderer::entity::renderer::special {
 
@@ -550,59 +551,6 @@ void FireworkRocketRenderer::render(Entity& entity, f64 partialTicks)
 
     (void)entity;
     (void)partialTicks;
-}
-
-// ==================== Registration ====================
-
-void registerSpecialEntityRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:end_crystal",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EnderCrystalRenderer>(); });
-
-    manager.registerRenderer("minecraft:shulker_bullet",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ShulkerBulletRenderer>(); });
-
-    manager.registerRenderer("minecraft:llama_spit",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LlamaSpitRenderer>(); });
-
-    manager.registerRenderer("minecraft:spectral_arrow",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SpectralArrowRenderer>(); });
-
-    manager.registerRenderer("minecraft:wither_skull",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WitherSkullRenderer>(); });
-
-    manager.registerRenderer("minecraft:dragon_fireball",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<DragonFireballRenderer>(); });
-
-    manager.registerRenderer("minecraft:evoker_fangs",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EvokerFangsRenderer>(); });
-
-    manager.registerRenderer("minecraft:lightning_bolt",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LightningBoltRenderer>(); });
-
-    manager.registerRenderer("minecraft:area_effect_cloud",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<AreaEffectCloudRenderer>(); });
-
-    manager.registerRenderer("minecraft:falling_block",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<FallingBlockRenderer>(); });
-
-    manager.registerRenderer("minecraft:item_frame",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ItemFrameRenderer>(); });
-
-    manager.registerRenderer("minecraft:painting",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PaintingRenderer>(); });
-
-    manager.registerRenderer("minecraft:leash_knot",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<LeashKnotRenderer>(); });
-
-    manager.registerRenderer("minecraft:armor_stand",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ArmorStandRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:tnt", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<TNTRenderer>(); });
-
-    manager.registerRenderer("minecraft:firework_rocket",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<FireworkRocketRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::special

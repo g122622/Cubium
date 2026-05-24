@@ -127,10 +127,4 @@ void HorseRenderer::setupLayers()
     // - HorseArmorLayer: 马铠
 }
 
-void registerHorseRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:horse", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<HorseRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::animal

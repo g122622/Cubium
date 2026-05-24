@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, the subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -22,13 +22,16 @@
  */
 
 #include "ProjectileRenderers.hpp"
-#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::renderer::projectile {
+
+namespace {
+using mc::math::PI_DOUBLE;
+}
 
 // ==================== 箭矢渲染器 ====================
 
@@ -150,20 +153,6 @@ void TridentRenderer::generateTridentMesh()
     // - 长杆
     // - 三个叉尖
     m_meshGenerated = true;
-}
-
-// ==================== 注册函数 ====================
-
-void registerProjectileRenderers(::mc::client::renderer::entity::EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:arrow", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ArrowRenderer>(); });
-
-    manager.registerRenderer("minecraft:spectral_arrow",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SpectralArrowRenderer>(); });
-
-    manager.registerRenderer("minecraft:trident",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<TridentRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::projectile

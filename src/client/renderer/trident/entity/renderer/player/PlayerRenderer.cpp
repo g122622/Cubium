@@ -333,15 +333,4 @@ void PlayerRenderer::setupLayers()
     spdlog::debug("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
 }
 
-void registerPlayerRenderers(EntityRendererManager& manager)
-{
-    // 注册标准手臂玩家渲染器
-    manager.registerRenderer("minecraft:player",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PlayerRenderer>(false); });
-
-    // 注册纤细手臂玩家渲染器（通过不同的实体类型 ID 或运行时切换）
-    manager.registerRenderer("minecraft:player_slim",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PlayerRenderer>(true); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::player

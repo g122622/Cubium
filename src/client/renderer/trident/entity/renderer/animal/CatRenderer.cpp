@@ -117,10 +117,4 @@ ResourceLocation CatRenderer::getCatTexture(u32 catType)
     return ResourceLocation("minecraft", CAT_TEXTURES[catType]);
 }
 
-void registerCatRenderer(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:cat", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CatRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::animal

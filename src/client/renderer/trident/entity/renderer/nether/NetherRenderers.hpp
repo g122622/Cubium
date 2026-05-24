@@ -213,6 +213,4 @@ public:
     }
 };
 
-void registerNetherRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::nether

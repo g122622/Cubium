@@ -220,10 +220,4 @@ private:
     const TextureRegion* m_elytraRegion = nullptr;
 };
 
-/**
- * @brief 注册玩家渲染器
- * @param manager 实体渲染器管理器引用
- */
-void registerPlayerRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::player

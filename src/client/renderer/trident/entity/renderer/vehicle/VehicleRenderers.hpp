@@ -156,9 +156,4 @@ private:
     void calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks);
 };
 
-/**
- * @brief 注册载具渲染器
- */
-void registerVehicleRenderers(::mc::client::renderer::entity::EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::vehicle

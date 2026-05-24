@@ -22,7 +22,6 @@
  */
 
 #include "VehicleRenderers.hpp"
-#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
@@ -303,46 +302,6 @@ void MinecartRenderer::calculateCartDirection(::mc::AbstractMinecartEntity& mine
 {
     (void)minecart;
     (void)partialTicks;
-}
-
-// ==================== 注册函数 ====================
-
-void registerVehicleRenderers(::mc::client::renderer::entity::EntityRendererManager& manager)
-{
-    // 注册各种木材类型的船
-    manager.registerRenderer("minecraft:boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Oak); });
-
-    manager.registerRenderer("minecraft:spruce_boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Spruce); });
-
-    manager.registerRenderer("minecraft:birch_boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Birch); });
-
-    manager.registerRenderer("minecraft:jungle_boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Jungle); });
-
-    manager.registerRenderer("minecraft:acacia_boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::Acacia); });
-
-    manager.registerRenderer("minecraft:dark_oak_boat",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BoatRenderer>(BoatType::DarkOak); });
-
-    // 注册矿车
-    manager.registerRenderer("minecraft:minecart",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
-
-    manager.registerRenderer("minecraft:chest_minecart",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
-
-    manager.registerRenderer("minecraft:furnace_minecart",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
-
-    manager.registerRenderer("minecraft:hopper_minecart",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
-
-    manager.registerRenderer("minecraft:tnt_minecart",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<MinecartRenderer>(); });
 }
 
 } // namespace mc::client::renderer::entity::renderer::vehicle

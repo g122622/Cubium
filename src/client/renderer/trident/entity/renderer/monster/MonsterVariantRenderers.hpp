@@ -153,6 +153,4 @@ public:
     }
 };
 
-void registerMonsterVariantRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::monster

@@ -537,7 +537,4 @@ public:
     }
 };
 
-void registerSpecialMonsterRenderers(EntityRendererManager& manager);
-void registerIllagerRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::monster

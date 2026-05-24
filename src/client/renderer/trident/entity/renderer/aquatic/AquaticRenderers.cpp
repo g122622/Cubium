@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, the subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -22,29 +22,8 @@
  */
 
 #include "AquaticRenderers.hpp"
-#include "../../core/EntityRendererManager.hpp"
 
-namespace mc::client::renderer::entity::renderer::aquatic {
+// 水生生物渲染器类定义在头文件中内联实现
+// 注册函数已移至 RendererRegistration.cpp 统一管理
 
-void registerAquaticRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer(
-        "minecraft:cod", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CodRenderer>(); });
-
-    manager.registerRenderer("minecraft:salmon",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SalmonRenderer>(); });
-
-    manager.registerRenderer("minecraft:dolphin",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<DolphinRenderer>(); });
-
-    manager.registerRenderer("minecraft:turtle",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<TurtleRenderer>(); });
-
-    manager.registerRenderer("minecraft:tropical_fish",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<TropicalFishARenderer>(); });
-
-    manager.registerRenderer("minecraft:pufferfish",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PufferfishRenderer>(); });
-}
-
-} // namespace mc::client::renderer::entity::renderer::aquatic
+namespace mc::client::renderer::entity::renderer::aquatic {} // namespace mc::client::renderer::entity::renderer::aquatic

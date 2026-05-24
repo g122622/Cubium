@@ -176,6 +176,4 @@ public:
     }
 };
 
-void registerAquaticRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::aquatic
