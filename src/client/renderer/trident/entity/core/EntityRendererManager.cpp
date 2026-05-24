@@ -23,18 +23,8 @@
 
 #include "EntityRendererManager.hpp"
 #include "../effect/fire/FireEffect.hpp"
-#include "../model/animal/CatModel.hpp"
-#include "../model/animal/HorseModel.hpp"
-#include "../model/animal/LlamaModel.hpp"
-#include "../model/animal/OcelotModel.hpp"
-#include "../model/animal/VillagerModel.hpp"
-#include "../model/animal/WolfModel.hpp"
-#include "../model/monster/BlazeModel.hpp"
-#include "../model/monster/CreeperModel.hpp"
-#include "../model/monster/EndermanModel.hpp"
-#include "../model/monster/SkeletonModel.hpp"
-#include "../model/monster/SpiderModel.hpp"
-#include "../model/monster/ZombieModel.hpp"
+#include "../model/core/ModelFactory.hpp"
+#include "../model/ModelRegistration.hpp"
 #include "../pipeline/EntityTextureAtlas.hpp"
 #include "../renderer/animal/AnimalRenderers.hpp"
 #include "../renderer/animal/CatRenderer.hpp"
@@ -554,6 +544,9 @@ void EntityRendererManager::removeMesh(EntityId entityId)
 
 void EntityRendererManager::initializeDefaults()
 {
+    // 首先注册所有模型
+    model::initializeModelRegistration();
+
     // 使用 EntityTypes 常量注册渲染器，避免重复注册
     // 所有注册都使用规范化的命名空间格式
     namespace ET = entity::EntityTypes;
@@ -562,6 +555,10 @@ void EntityRendererManager::initializeDefaults()
     using namespace renderer::aquatic;
     using namespace renderer::nether;
     using namespace renderer::projectile;
+
+    // TODO 不要在 EntityRendererManager 中直接注册所有渲染器，应该学一下model侧下面这些文件组成的架构：
+    // E:\dev\minecraft-reborn-branch-1\src\client\renderer\trident\entity\model\ModelRegistration.cpp
+    // E:\dev\minecraft-reborn-branch-1\src\client\renderer\trident\entity\model\core\ModelFactory.cpp
 
     // ==================== 基础动物渲染器 ====================
     registerRenderer(ET::PIG, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<PigRenderer>(); });
@@ -883,9 +880,6 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     ClientEntity& entity, core::AnimationContext& context)
 {
     std::string normalizedId = normalizeEntityTypeId(entity.typeId());
-    namespace ET = entity::EntityTypes;
-    using namespace model::animal;
-    using namespace model::monster;
 
     // 从 ClientEntity 读取动画状态
     // MC 1.16.5 公式 (LivingRenderer.java:100):
@@ -934,150 +928,9 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     // 计算哈希
     context.computeHash();
 
-    // 根据实体类型创建模型
-    if (normalizedId == ET::PIG) {
-        auto model = std::make_unique<PigModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::COW) {
-        auto model = std::make_unique<CowModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::SHEEP) {
-        auto model = std::make_unique<SheepModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::CHICKEN) {
-        auto model = std::make_unique<ChickenModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::WOLF) {
-        auto model = std::make_unique<WolfModel>();
-        model->setAnimState(false, false, false, 0.0f, 0.0f, 0.0f);
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::OCELOT) {
-        auto model = std::make_unique<OcelotModel>(0.0f);
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::CAT) {
-        auto model = std::make_unique<CatModel>(0.0f);
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::HORSE) {
-        auto model = std::make_unique<HorseModel>(0.0f);
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::VILLAGER) {
-        auto model = std::make_unique<VillagerModel>(0.0f);
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::ZOMBIE) {
-        auto model = std::make_unique<ZombieModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::SKELETON) {
-        auto model = std::make_unique<SkeletonModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::CREEPER) {
-        auto model = std::make_unique<CreeperModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::SPIDER) {
-        auto model = std::make_unique<SpiderModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::ENDERMAN) {
-        auto model = std::make_unique<EndermanModel>();
-        model->setAngles(context.limbSwing,
-            context.limbSwingAmount,
-            context.ageInTicks,
-            context.netHeadYaw,
-            context.headPitch,
-            context.scale * 16.0);
-        return model;
-    }
-    if (normalizedId == ET::BLAZE) {
-        auto model = std::make_unique<BlazeModel>();
+    // 使用 ModelFactory 创建模型
+    auto model = model::ModelFactory::instance().createModel(normalizedId);
+    if (model) {
         model->setAngles(context.limbSwing,
             context.limbSwingAmount,
             context.ageInTicks,
@@ -1087,7 +940,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
         return model;
     }
 
-    // 未知实体类型
+    spdlog::warn("createModelForEntity: No model found for entity type: {}", normalizedId);
     return nullptr;
 }
 

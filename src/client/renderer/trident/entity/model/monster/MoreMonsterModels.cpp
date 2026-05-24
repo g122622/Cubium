@@ -237,7 +237,6 @@ void IllagerModel::setAngles(
 
         case IllagerArmPose::Crossed:
         default:
-            // 交叉手臂 - 显示手臂模型，隐藏独立手臂
             break;
     }
 

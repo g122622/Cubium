@@ -131,8 +131,10 @@ add_executable(minecraft-client
     # 实体模型
     renderer/trident/entity/model/core/EntityModel.cpp
     renderer/trident/entity/model/core/ModelRenderer.cpp
+    renderer/trident/entity/model/core/ModelFactory.cpp
     renderer/trident/entity/model/core/AgeableModel.cpp
     renderer/trident/entity/model/core/SegmentedModel.cpp
+    renderer/trident/entity/model/ModelRegistration.cpp
     renderer/trident/entity/model/base/BipedModel.cpp
     renderer/trident/entity/model/base/QuadrupedModel.cpp
     renderer/trident/entity/model/animal/AnimalModels.cpp
