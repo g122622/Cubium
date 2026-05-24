@@ -71,31 +71,4 @@ void registerIllagerRenderers(EntityRendererManager& manager)
         "minecraft:witch", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<WitchRenderer>(); });
 }
 
-void registerPassiveMobRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:iron_golem",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<IronGolemRenderer>(); });
-
-    manager.registerRenderer("minecraft:snow_golem",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SnowGolemRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:bee", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BeeRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:fox", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<FoxRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:panda", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PandaRenderer>(); });
-
-    manager.registerRenderer("minecraft:polar_bear",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PolarBearRenderer>(); });
-
-    manager.registerRenderer("minecraft:parrot",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ParrotRenderer>(); });
-
-    manager.registerRenderer("minecraft:phantom",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<PhantomRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::monster

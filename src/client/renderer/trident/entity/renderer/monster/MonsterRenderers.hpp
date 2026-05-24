@@ -148,11 +148,4 @@ private:
     void setupLayers();
 };
 
-/**
- * @brief 注册所有怪物渲染器
- *
- * @param manager 实体渲染器管理器引用
- */
-void registerMonsterRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::monster

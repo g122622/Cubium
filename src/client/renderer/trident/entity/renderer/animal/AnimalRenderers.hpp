@@ -226,11 +226,4 @@ public:
     }
 };
 
-/**
- * @brief 注册所有动物渲染器
- *
- * @param manager 实体渲染器管理器引用
- */
-void registerAnimalRenderers(EntityRendererManager& manager);
-
 } // namespace mc::client::renderer::entity::renderer::animal

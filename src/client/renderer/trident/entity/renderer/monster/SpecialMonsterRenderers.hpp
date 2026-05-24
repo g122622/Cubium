@@ -539,6 +539,5 @@ public:
 
 void registerSpecialMonsterRenderers(EntityRendererManager& manager);
 void registerIllagerRenderers(EntityRendererManager& manager);
-void registerPassiveMobRenderers(EntityRendererManager& manager);
 
 } // namespace mc::client::renderer::entity::renderer::monster

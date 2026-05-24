@@ -48,6 +48,7 @@
 #include "../renderer/monster/MonsterVariantRenderers.hpp"
 #include "../renderer/monster/SpecialMonsterRenderers.hpp"
 #include "../renderer/nether/NetherRenderers.hpp"
+#include "../renderer/player/PlayerRenderer.hpp"
 #include "../renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "../renderer/projectile/ItemEntityRenderer.hpp"
 #include "../renderer/projectile/ProjectileRenderers.hpp"
@@ -580,6 +581,8 @@ void EntityRendererManager::initializeDefaults()
     registerRenderer(ET::CAT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<CatRenderer>(); });
     registerRenderer(
         ET::PARROT, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<ParrotRenderer>(); });
+    registerRenderer(
+        ET::PHANTOM, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<PhantomRenderer>(); });
 
     // ==================== 马类型渲染器 ====================
     registerRenderer(ET::HORSE, []() -> std::unique_ptr<EntityRenderer> { return std::make_unique<HorseRenderer>(); });
@@ -660,6 +663,9 @@ void EntityRendererManager::initializeDefaults()
     // ==================== 特殊实体渲染器 ====================
     renderer::special::registerSpecialEntityRenderers(*this);
 
+    // ==================== 玩家渲染器 ====================
+    renderer::player::registerPlayerRenderers(*this);
+
     // ==================== ItemEntity 渲染器 ====================
     registerRenderer(ET::ITEM, [this]() -> std::unique_ptr<EntityRenderer> {
         auto renderer = std::make_unique<ItemEntityRenderer>();
@@ -708,160 +714,54 @@ bool EntityRendererManager::generateModelMesh(
 
     // 使用 EntityTypes 常量进行比较
     namespace ET = entity::EntityTypes;
-    using namespace model::animal;
 
-    if (normalizedId == ET::PIG) {
-        PigModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::COW) {
-        CowModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::SHEEP) {
-        SheepModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::CHICKEN) {
-        ChickenModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::WOLF) {
-        WolfModel model;
-        model.setAnimState(false, false, false, 0.0f, 0.0f, 0.0f);
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::OCELOT) {
-        OcelotModel model(0.0f);
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::CAT) {
-        CatModel model(0.0f);
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::HORSE) {
-        HorseModel model(0.0f);
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::VILLAGER) {
-        VillagerModel model(0.0f);
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-
-    // 怪物模型
-    if (normalizedId == ET::ZOMBIE) {
-        model::monster::ZombieModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::SKELETON) {
-        model::monster::SkeletonModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::CREEPER) {
-        model::monster::CreeperModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::SPIDER) {
-        model::monster::SpiderModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::ENDERMAN) {
-        model::monster::EndermanModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-    if (normalizedId == ET::BLAZE) {
-        model::monster::BlazeModel model;
-        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
-        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
-        remapUvToAtlasRegion(normalizedId, vertices);
-        return true;
-    }
-
+    // 只有 ItemEntity 和 ExperienceOrb 使用静态网格
+    // 所有生物实体都使用动画网格路径（通过 createModelForEntity）
     if (normalizedId == ET::ITEM) {
         // ItemEntity 使用简单的四边形网格
         // 物品图标会在渲染时根据 ItemStack 动态获取纹理
-        generateItemEntityMesh(vertices, indices);
+        generateBillboardMesh(vertices, indices, 0.25, 0.25);
         return true;
     }
     if (normalizedId == ET::EXPERIENCE_ORB) {
         // ExperienceOrb 使用简单的四边形网格（billboard）
         // 颜色会根据经验和时间动态变化
-        generateExperienceOrbMesh(vertices, indices);
+        generateBillboardMesh(vertices, indices, 0.25, 0.25);
         return true;
     }
 
-    // 未知实体类型
-    spdlog::warn("Unknown entity type for mesh generation: {}", normalizedId);
+    // 其他实体类型使用动画网格，不在此生成静态网格
     return false;
 }
 
-void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+void EntityRendererManager::generateBillboardMesh(
+    std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 width, f64 height)
 {
-    // 生成一个简单的四边形网格用于 ItemEntity
-    // 物品图标是一个面向摄像机的 billboard（双面渲染）
-    // 尺寸参考 MC 1.16.5：物品在地面上的渲染大小约为 0.25 块
+    // 生成一个双面 billboard 四边形网格
+    // 用于 ItemEntity 和 ExperienceOrb 等静态网格实体
+    // 参考 MC 1.16.5 ItemRenderer 和 ExperienceOrbRenderer
 
-    constexpr f64 HALF_SIZE = 0.125f; // 物品尺寸的一半 (0.25 / 2)
-    constexpr f64 Y_OFFSET = 0.25f;   // 地面偏移
+    const f64 halfWidth = width * 0.5;
+    const f64 yOffset = 0.25; // 地面偏移
 
-    // 创建一个垂直的四边形（面向 +Z 方向）
+    // 创建双面四边形（billboard）
+    // 正面朝向 +Z，背面朝向 -Z
     // 实际渲染时会根据摄像机朝向旋转
     vertices = {
         // 背面（法线 -Z）
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f),         // 左下
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f), // 左上
-        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f),  // 右上
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f),          // 右下
+        ModelVertex(-halfWidth, yOffset, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0),
+        ModelVertex(-halfWidth, yOffset + height, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0),
+        ModelVertex(halfWidth, yOffset + height, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0),
+        ModelVertex(halfWidth, yOffset, 0.0, 1.0, 1.0, 0.0, 0.0, -1.0),
         // 正面（法线 +Z）
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),          // 左下
-        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),  // 左上
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f), // 右上
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),         // 右下
+        ModelVertex(halfWidth, yOffset, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0),
+        ModelVertex(halfWidth, yOffset + height, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
+        ModelVertex(-halfWidth, yOffset + height, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
+        ModelVertex(-halfWidth, yOffset, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0),
     };
 
-    indices = {// 背面
+    indices = {
+        // 背面
         0,
         1,
         2,
@@ -874,48 +774,8 @@ void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& ver
         6,
         4,
         6,
-        7};
-}
-
-void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
-{
-    // 生成一个简单的四边形网格用于经验球
-    // 经验球使用 billboard 方式渲染，始终面向摄像机
-    // 参考 MC 1.16.5 ExperienceOrbRenderer
-
-    // 经验球基础大小：0.25 块，会根据经验值等级动态缩放
-    constexpr f64 HALF_SIZE = 0.125f; // 基础尺寸的一半
-    constexpr f64 Y_OFFSET = 0.25f;   // 地面偏移
-
-    // 创建双面四边形（billboard）
-    // 颜色会在渲染时根据经验值和时间动态计算
-    vertices = {
-        // 背面（法线 -Z）
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f),
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f),
-        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f),
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f),
-        // 正面（法线 +Z）
-        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
-        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
-        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),
-        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+        7,
     };
-
-    indices = {// 背面
-        0,
-        1,
-        2,
-        0,
-        2,
-        3,
-        // 正面
-        4,
-        5,
-        6,
-        4,
-        6,
-        7};
 }
 
 void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<ModelVertex>& vertices)

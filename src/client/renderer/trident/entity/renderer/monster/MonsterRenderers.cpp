@@ -240,27 +240,4 @@ void BlazeRenderer::setupLayers()
     // 烈焰人没有特殊的层渲染器
 }
 
-// ==================== 注册函数 ====================
-
-void registerMonsterRenderers(EntityRendererManager& manager)
-{
-    manager.registerRenderer("minecraft:zombie",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<ZombieRenderer>(); });
-
-    manager.registerRenderer("minecraft:skeleton",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SkeletonRenderer>(); });
-
-    manager.registerRenderer("minecraft:creeper",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<CreeperRenderer>(); });
-
-    manager.registerRenderer("minecraft:spider",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<SpiderRenderer>(); });
-
-    manager.registerRenderer("minecraft:enderman",
-        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<EndermanRenderer>(); });
-
-    manager.registerRenderer(
-        "minecraft:blaze", []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<BlazeRenderer>(); });
-}
-
 } // namespace mc::client::renderer::entity::renderer::monster

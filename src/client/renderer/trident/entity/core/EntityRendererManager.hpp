@@ -294,24 +294,18 @@ private:
         const std::string& typeId, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
-     * @brief 生成 ItemEntity 的网格
+     * @brief 生成 billboard 四边形网格
      *
-     * ItemEntity 使用简单的四边形网格来显示物品图标
-     *
-     * @param vertices 输出顶点
-     * @param indices 输出索引
-     */
-    void generateItemEntityMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
-
-    /**
-     * @brief 生成 ExperienceOrb 的网格
-     *
-     * ExperienceOrb 使用简单的四边形网格（billboard 方式）
+     * 用于 ItemEntity 和 ExperienceOrb 等静态网格实体。
+     * 生成一个双面的 billboard 四边形。
      *
      * @param vertices 输出顶点
      * @param indices 输出索引
+     * @param width billboard 宽度
+     * @param height billboard 高度
      */
-    void generateExperienceOrbMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void generateBillboardMesh(
+        std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 width, f64 height);
 
     /**
      * @brief 将 ItemEntity 的 UV 映射到物品纹理图集
