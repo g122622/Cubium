@@ -27,6 +27,7 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../feature/template/TemplateLoader.hpp"
 #include "../feature/template/TemplateManager.hpp"
+#include "JigsawManager.hpp"
 
 namespace mc {
 namespace world {
@@ -37,9 +38,6 @@ namespace jigsaw {
 using feature::template_::Template;
 using feature::template_::TemplateJigsawBlockInfo;
 using feature::template_::TemplateManager;
-
-// 静态模板管理器实例（用于加载 Jigsaw 模板）
-static TemplateManager s_jigsawTemplateManager;
 
 std::string EmptyJigsawPiece::s_typeName = "empty_pool_element";
 std::string SingleJigsawPiece::s_typeName = "single_pool_element";
@@ -62,7 +60,8 @@ bool JigsawPiece::loadJointsFromTemplate(
     const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size)
 {
     ResourceLocation loc(templateName);
-    const Template* templ = s_jigsawTemplateManager.getTemplate(loc);
+    // 使用 JigsawManager 的 TemplateManager 以确保数据包集成
+    const Template* templ = JigsawManager::getTemplateManager().getTemplate(loc);
 
     if (!templ) {
         return false;

@@ -56,6 +56,9 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
@@ -574,6 +577,20 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
                 dataPackLoadResult.value().successCount,
                 dataPackLoadResult.value().failedCount);
         }
+    }
+
+    // 加载模板池（从数据包加载）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::TemplatePools");
+        size_t poolCount = world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(m_dataPackList);
+        spdlog::info("Loaded {} template pools from data packs", poolCount);
+    }
+
+    // 设置 JigsawManager 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
+        world::gen::jigsaw::JigsawManager::getTemplateManager().setDataPackList(&m_dataPackList);
+        spdlog::info("Jigsaw TemplateManager configured with data pack list");
     }
 
     // 注册实体类型（可选）
