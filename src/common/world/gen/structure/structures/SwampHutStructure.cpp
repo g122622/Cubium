@@ -223,6 +223,7 @@ void SwampHutPiece::generateRoof(IWorldWriter& world, const StructureBoundingBox
 {
     // MC 1.16.5: 梯形屋顶，由云杉楼梯构成
     // 使用橡木楼梯代替（项目中暂无云杉楼梯）
+    // 注: 楼梯朝向需要根据位置设置，此处使用默认状态
 
     // 第一层屋顶（最宽）
     for (int x = m_minX - 1; x <= m_maxX + 1; ++x) {
@@ -230,7 +231,6 @@ void SwampHutPiece::generateRoof(IWorldWriter& world, const StructureBoundingBox
             BlockPos pos(x, m_minY + 4, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_STAIRS) {
-                    // TODO: 设置楼梯朝向
                     world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::OAK_STAIRS->defaultState(), 2);
                 }
             }

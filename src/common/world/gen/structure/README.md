@@ -4,7 +4,7 @@
 
 ## 概述
 
-`src/common/world/gen/structure` 目录实现了 Minecraft 1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门、埋藏宝藏、沉船和海底废墟等。
+`src/common/world/gen/structure` 目录实现了 Minecraft 1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门、埋藏宝藏、沉船、海底废墟、雪屋、沼泽小屋、下界化石、掠夺者前哨站、末地城、林地府邸和堡垒遗迹等。
 
 ## 目录结构
 
@@ -21,26 +21,47 @@ structure/
 └── structures/                    # 具体结构实现
     ├── README.md                  # 结构实现子目录说明
     ├── VillageStructure.hpp       # 村庄结构
-    ├── VillageStructure.cpp
     ├── StrongholdStructure.hpp    # 要塞结构
-    ├── StrongholdStructure.cpp
     ├── MineshaftStructure.hpp     # 废弃矿井结构
-    ├── MineshaftStructure.cpp
     ├── DesertPyramidStructure.hpp # 沙漠神殿结构
-    ├── DesertPyramidStructure.cpp
     ├── JungleTempleStructure.hpp  # 丛林神庙结构
-    ├── JungleTempleStructure.cpp
     ├── OceanMonumentStructure.hpp # 海洋纪念碑结构
-    ├── OceanMonumentStructure.cpp
     ├── RuinedPortalStructure.hpp  # 废弃传送门结构
-    ├── RuinedPortalStructure.cpp
     ├── BuriedTreasureStructure.hpp # 埋藏宝藏结构
-    ├── BuriedTreasureStructure.cpp
     ├── ShipwreckStructure.hpp      # 沉船结构
-    ├── ShipwreckStructure.cpp
     ├── OceanRuinStructure.hpp      # 海底废墟结构
-    └── OceanRuinStructure.cpp
+    ├── FortressStructure.hpp       # 下界要塞结构
+    ├── IglooStructure.hpp          # 雪屋结构
+    ├── SwampHutStructure.hpp       # 沼泽小屋（女巫小屋）结构
+    ├── NetherFossilStructure.hpp   # 下界化石结构
+    ├── PillagerOutpostStructure.hpp # 掠夺者前哨站结构
+    ├── EndCityStructure.hpp        # 末地城结构
+    ├── WoodlandMansionStructure.hpp # 林地府邸结构
+    └── BastionRemnantStructure.hpp  # 堡垒遗迹结构
 ```
+
+## 已实现结构列表
+
+| 结构类型 | 类名 | 生成生物群系 | 实现方式 |
+|---------|------|-------------|---------|
+| 村庄 | VillageStructure | 平原、沙漠、热带草原、针叶林、雪地 | Jigsaw |
+| 要塞 | StrongholdStructure | 所有生物群系 | Jigsaw |
+| 废弃矿井 | MineshaftStructure | 所有生物群系 | 程序化 |
+| 沙漠神殿 | DesertPyramidStructure | 沙漠 | 模板 |
+| 丛林神庙 | JungleTempleStructure | 丛林 | 模板 |
+| 海洋纪念碑 | OceanMonumentStructure | 深海 | 程序化 |
+| 废弃传送门 | RuinedPortalStructure | 所有生物群系 | 模板 |
+| 埋藏宝藏 | BuriedTreasureStructure | 沙滩、雪地海滩 | 程序化 |
+| 沉船 | ShipwreckStructure | 海洋 | 模板 |
+| 海底废墟 | OceanRuinStructure | 海洋 | 模板 |
+| 下界要塞 | FortressStructure | 下界荒地 | Jigsaw |
+| 雪屋 | IglooStructure | 雪地苔原、雪地针叶林 | 程序化 |
+| 沼泽小屋 | SwampHutStructure | 沼泽 | 程序化 |
+| 下界化石 | NetherFossilStructure | 灵魂沙峡谷 | 程序化 |
+| 掠夺者前哨站 | PillagerOutpostStructure | 平原、沙漠、热带草原等 | Jigsaw |
+| 末地城 | EndCityStructure | 末地外岛 | 程序化 |
+| 林地府邸 | WoodlandMansionStructure | 黑森林 | 程序化 |
+| 堡垒遗迹 | BastionRemnantStructure | 下界（除玄武岩三角洲） | Jigsaw |
 
 ## 文件详细说明
 

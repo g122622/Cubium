@@ -90,10 +90,10 @@ bool PillagerOutpostStructure::isNearVillage(
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);
 
-    // MC 1.16.5: 检查 21x21 区块范围内是否有村庄
-    // 如果在范围内有村庄起始位置，则不生成前哨站
-    // 简化实现：总是返回 false（实际需要查询村庄结构）
-    // TODO: 实现村庄结构检测
+    // MC 1.16.5: 检查 21x21 区块范围内是否有村庄起始位置
+    // 如果在范围内有村庄，则不生成前哨站
+    // 简化实现: 暂不实现村庄检测，允许前哨站在任何位置生成
+    // 完整实现需要查询 VillageStructure 的起始位置
     return false;
 }
 

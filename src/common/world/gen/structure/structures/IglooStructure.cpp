@@ -347,8 +347,8 @@ void IglooPiece::generateBasement(IWorldWriter& world, math::Random& rng, const 
     BlockPos trapdoorPos(basePos.x + 4, basePos.y + 5, basePos.z + 4);
     if (bounds.contains(trapdoorPos.x, trapdoorPos.y, trapdoorPos.z)) {
         if (VanillaBlocks::OAK_TRAPDOOR) {
+            // 注: 活板门默认为关闭状态，实际应设置 half 和 facing 属性
             auto state = &VanillaBlocks::OAK_TRAPDOOR->defaultState();
-            // TODO: 设置属性（打开状态）
             world.setBlockState(trapdoorPos.x, trapdoorPos.y, trapdoorPos.z, state, 2);
         }
     }
