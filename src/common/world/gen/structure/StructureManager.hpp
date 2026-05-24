@@ -36,6 +36,10 @@ namespace mc {
 // 前向声明
 class IWorldWriter;
 
+namespace resource {
+class DataPackList;
+}
+
 namespace world::gen::jigsaw {
 class JigsawPatternRegistry;
 }
@@ -54,6 +58,17 @@ public:
     [[nodiscard]] static const Structure* get(const std::string& name);
     [[nodiscard]] static const std::vector<const Structure*>& getAll();
     [[nodiscard]] static bool isInitialized() { return s_initialized; }
+
+    /**
+     * @brief 从数据包加载模板池
+     *
+     * 加载数据包中的模板池 JSON 文件并注册到 JigsawPatternRegistry。
+     * 应在 initialize() 之后调用，或在加载世界数据包时调用。
+     *
+     * @param dataPackList 数据包列表
+     * @return 加载的模板池数量
+     */
+    static size_t loadTemplatePoolsFromDataPacks(const resource::DataPackList& dataPackList);
 
 private:
     static std::unordered_map<std::string, std::unique_ptr<Structure>>& getStructures();

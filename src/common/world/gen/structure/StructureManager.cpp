@@ -22,9 +22,11 @@
  */
 
 #include "StructureManager.hpp"
+#include "../../../resource/DataPackList.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../jigsaw/JigsawPattern.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
+#include "../jigsaw/TemplatePoolLoader.hpp"
 #include "structures/BastionRemnantStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
 #include "structures/DesertPyramidStructure.hpp"
@@ -385,3 +387,14 @@ math::Random StructureManager::createRandom(i32 chunkX, i32 chunkZ, i32 salt) co
 }
 
 } // namespace mc::world::gen::structure
+
+// StructureRegistry loadTemplatePoolsFromDataPacks 实现
+size_t mc::world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(
+    const resource::DataPackList& dataPackList)
+{
+    auto result = jigsaw::TemplatePoolLoader::loadFromDataPackList(dataPackList);
+    if (result.success()) {
+        return result.value();
+    }
+    return 0;
+}
