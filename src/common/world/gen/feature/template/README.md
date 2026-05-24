@@ -569,15 +569,13 @@ MC 1.16.5 中模板放置时，方块按特定顺序排列：
 - `BlockEntity::loadFromNBT(nbt::CompoundTag&)` 方法（当前使用 JSON 格式）
 - 战利品表种子设置（`LockableLootTileEntity`）
 
-### 4. Jigsaw 方块 orientation 属性
+### 4. ✅ 已完成：Jigsaw 方块 orientation 属性
 
-当前 `JigsawPiece` 从模板加载时，Jigsaw 方块的 orientation（方向）属性无法从方块状态读取。
-原因：`JigsawBlock` 尚未注册 `ORIENTATION` 属性到 `BlockStateProperties`。
-当前行为：所有 Jigsaw 方块使用默认方向 `NorthUp`。
-完整实现需要：
-- 在 `BlockStateProperties` 中添加 `ORIENTATION` 枚举属性
-- 更新 `JigsawBlock` 构造函数注册该属性
-- 更新 `JigsawPiece::loadJointsFromTemplate` 读取属性值
+Jigsaw 方块的 orientation（方向）属性现已正确支持：
+- `BlockStateProperties::ORIENTATION()` 枚举属性已注册
+- `JigsawBlock` 构造函数已注册该属性
+- `JigsawPiece::loadJointsFromTemplate` 正确读取属性值
+- `JigsawBlock::rotate()` 和 `JigsawBlock::mirror()` 正确处理方向变换
 
 ### 5. JigsawJunction 地形适配
 
@@ -673,4 +671,4 @@ settings.setBlockUpdateFlags(18);
 - BlackStoneReplacementProcessor: `net.minecraft.world.gen.feature.template.BlackStoneReplacementProcessor`
 - BlockAgeProcessor (BlockMosinessProcessor): `net.minecraft.world.gen.feature.template.BlockAgeProcessor`
 
-*最后更新: 2026-05-03*
+*最后更新: 2026-05-24*

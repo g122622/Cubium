@@ -1040,21 +1040,22 @@ graph TB
 | JigsawMatcher 连接匹配 | ✅ 完成 | 名称匹配、方向匹配、名称旋转 |
 | JigsawPattern 模板池 | ✅ 完成 | 权重系统、随机选择、洗牌算法 |
 | JigsawPatternRegistry | ✅ 完成 | 模板池注册和查询 |
+| TemplatePoolLoader | ✅ 完成 | 从数据包加载模板池 JSON |
 | JigsawManager.assemble | ✅ 完成 | BFS 组装算法、连接点处理 |
 | JigsawManager.assembleAndPlace | ✅ 完成 | 组装并放置到世界 |
 | 坐标变换（旋转/镜像） | ✅ 完成 | 0/90/180/270度旋转、X/Z镜像 |
 | 边界框计算与重叠检测 | ✅ 完成 | AABB 碰撞检测 |
 | JigsawJunction 数据结构 | ✅ 完成 | 地形适配信息存储 |
 | 回退方块放置 | ✅ 完成 | 连接失败时放置石砖 |
+| DataPackList 集成 | ✅ 完成 | TemplateManager 支持从数据包加载模板 |
 
 ### 已知限制
 
 | 限制 | 原因 | 解决方案 |
 |------|------|----------|
 | JigsawJunction 地形对齐 | 需要 Heightmap 系统 | 待 Heightmap 实现后集成 |
-| Jigsaw 方块状态读取 | 需要 BlockState 解析 | 当前从模板 NBT 读取 |
 | 实体 NBT 加载 | 需要 Entity::loadFromNBT | 待实体系统完善 |
-| 方块实体 NBT 加载 | 需要 BlockEntity::loadFromNBT | 待方块实体系统完善 |
+| processors 字段未解析 | 当前大多数模板池使用 `minecraft:empty` | 按需实现 ProcessorRegistry |
 
 ### 外部依赖
 
@@ -1062,8 +1063,10 @@ graph TB
 |------|------|------|
 | TemplateManager | template/ | ✅ 已实现 |
 | Template | template/ | ✅ 已实现 |
+| TemplatePoolLoader | jigsaw/ | ✅ 已实现 |
 | ResourceLocation | resource/ | ✅ 已实现 |
 | IResourcePack | resource/ | ✅ 已实现 |
+| DataPackList | resource/ | ✅ 已实现 |
 | Random | util/math/random/ | ✅ 已实现 |
 | StructureBoundingBox | world/gen/structure/ | ✅ 已实现 |
 | Heightmap | world/chunk/ | ⚠️ 部分实现 |
@@ -1076,5 +1079,7 @@ graph TB
 - 相关目录：`src/common/world/gen/structure/` - 结构生成系统
 
 ---
+
+*最后更新：2026-05-24*
 
 *最后更新：2026-05-03*
