@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
     // 设置日志级别
     if (verboseLogging) {
         spdlog::set_level(spdlog::level::debug);
-        spdlog::debug("Verbose logging enabled");
+        spdlog::info("Verbose logging enabled");
     } else {
         spdlog::set_level(spdlog::level::info);
     }

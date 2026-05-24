@@ -1291,7 +1291,6 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
         MC_ASSERT_RELEASE(false);
     }
 
-    // spdlog::debug("Spawned entity with ID {}", id);
     return id;
 }
 
@@ -1304,7 +1303,6 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
     if (entity) {
         // 从追踪器中移除
         m_entityTracker.untrackEntity(id);
-        // spdlog::debug("Removed entity with ID {}", id);
     } else {
         spdlog::error("Attempted to remove non-existent entity with ID {}", id);
     }
@@ -1590,8 +1588,6 @@ void ServerWorld::skipToMorning()
     i64 newTime = ((currentTime / 24000) + 1) * 24000;
 
     m_timeManager->setDayTime(newTime);
-
-    spdlog::debug("ServerWorld: skipped to morning (dayTime {} -> {})", currentTime, newTime);
 }
 
 bool ServerWorld::canSkipNight() const

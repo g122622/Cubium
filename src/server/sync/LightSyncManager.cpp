@@ -90,13 +90,11 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     if (isLightCorrect && hasLightStatus) {
         // 区块已正确光照，只需要重新加载光照数据并检查边缘
         // 与 Moonrise 一致：使用 forceLoadInChunk + checkChunkEdges
-        // spdlog::debug("[LightSync] Chunk ({}, {}) already light correct, using forceLoadInChunk", x, z);
         m_lightManager.forceLoadInChunk(chunkData, emptySections);
         m_lightManager.checkChunkEdges(x, z);
     } else {
         // 区块需要完整光照计算
         // 与 Moonrise 一致：设置 lightCorrect = false，执行 lightChunk，然后设置 lightCorrect = true
-        // spdlog::debug("[LightSync] Chunk ({}, {}) needs lighting", x, z);
 
         // 先更新空区块段状态
         BlockStarLightEngine* blockLightEngine = m_lightManager.getBlockLightEngine();
@@ -127,8 +125,6 @@ void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLeve
     m_lightManager.checkBlock(x, y, z);
 
     if (newLightLevel > oldLightLevel) {
-        spdlog::debug(
-            "[LightSync] Emission increased at ({}, {}, {}): {} -> {}", x, y, z, oldLightLevel, newLightLevel);
         m_lightManager.onBlockEmissionIncrease(x, y, z, newLightLevel);
     }
 }

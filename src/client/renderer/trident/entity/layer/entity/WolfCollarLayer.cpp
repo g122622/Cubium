@@ -109,7 +109,7 @@ void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
 
     pipeline.drawMesh(cmd, *mesh, collarTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    spdlog::trace("WolfCollarLayer: Rendered collar with color ({}, {}, {})", color.x, color.y, color.z);
+    // spdlog::trace("WolfCollarLayer: Rendered collar with color ({}, {}, {})", color.x, color.y, color.z);
 
     (void)context;
 }

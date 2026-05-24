@@ -215,13 +215,13 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property)
 
     if (!property.hasSignature()) {
         // 没有签名，在离线模式下可以接受
-        spdlog::debug("SkinMetadataParser: No signature for textures property");
+        spdlog::warn("SkinMetadataParser: No signature for textures property");
         return true; // 允许无签名
     }
 
     // 生产环境应该验证签名
     // 当前简化实现：跳过验证
-    spdlog::debug("SkinMetadataParser: Signature verification not implemented, skipping");
+    spdlog::warn("SkinMetadataParser: Signature verification not implemented, skipping");
     return true;
 }
 

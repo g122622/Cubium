@@ -357,7 +357,6 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path)
 
             // 跳过已过期的条目
             if (entry.hasExpired()) {
-                spdlog::debug("Skipping expired ban entry: uuid={}, name={}", entry.uuid, entry.name);
                 continue;
             }
 

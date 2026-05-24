@@ -116,7 +116,6 @@ EntityId EntitySyncManager::spawnEntity(std::unique_ptr<Entity> entity)
         }
     }
 
-    spdlog::debug("Spawned entity {} at ({}, {}, {})", entityId, pos.x, pos.y, pos.z);
     return entityId;
 }
 
@@ -137,7 +136,6 @@ std::unique_ptr<Entity> EntitySyncManager::removeEntity(EntityId entityId)
         m_onEntityRemove(entityId);
     }
 
-    spdlog::debug("Removed entity {}", entityId);
     return removedEntity;
 }
 
@@ -171,11 +169,11 @@ void EntitySyncManager::broadcastEntitySpawn(EntityId entityId, const Entity& en
     if (m_onEntitySpawn) {
         m_onEntitySpawn(entityId, entity);
     }
-    spdlog::trace("Broadcast entity spawn: {} at ({}, {}, {})",
-        entityId,
-        entity.position().x,
-        entity.position().y,
-        entity.position().z);
+    // spdlog::trace("Broadcast entity spawn: {} at ({}, {}, {})",
+    //     entityId,
+    //     entity.position().x,
+    //     entity.position().y,
+    //     entity.position().z);
 }
 
 void EntitySyncManager::broadcastEntityRemove(EntityId entityId)
@@ -184,7 +182,7 @@ void EntitySyncManager::broadcastEntityRemove(EntityId entityId)
     if (m_onEntityRemove) {
         m_onEntityRemove(entityId);
     }
-    spdlog::trace("Broadcast entity remove: {}", entityId);
+    // spdlog::trace("Broadcast entity remove: {}", entityId);
 }
 
 void EntitySyncManager::setOnEntitySpawn(std::function<void(EntityId, const Entity&)> callback)
@@ -212,7 +210,7 @@ void EntitySyncManager::broadcastEntityStatus(EntityId entityId, u8 status)
     if (m_onEntityStatus) {
         m_onEntityStatus(entityId, status);
     }
-    spdlog::trace("Broadcast entity status: {} status={}", entityId, static_cast<int>(status));
+    // spdlog::trace("Broadcast entity status: {} status={}", entityId, static_cast<int>(status));
 }
 
 } // namespace mc::server::sync

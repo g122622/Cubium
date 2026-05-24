@@ -1285,7 +1285,7 @@ void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug("Received EntityDestroy: {} entities", packet.entityIds().size());
+    // spdlog::debug("Received EntityDestroy: {} entities", packet.entityIds().size());
 
     if (m_callbacks.onEntityDestroy) {
         m_callbacks.onEntityDestroy(packet.entityIds());
@@ -1369,8 +1369,8 @@ void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug(
-        "Received EntityMetadata for entity {}, metadata size: {}", packet.entityId(), packet.metadata().size());
+    // spdlog::debug(
+    //     "Received EntityMetadata for entity {}, metadata size: {}", packet.entityId(), packet.metadata().size());
 
     if (m_callbacks.onEntityMetadata) {
         m_callbacks.onEntityMetadata(packet.entityId(), packet.metadata());
@@ -1467,28 +1467,24 @@ void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser)
 
     switch (reason) {
         case network::GameStateChangeReason::EndRaining:
-            spdlog::debug("Weather: EndRaining received");
             if (m_callbacks.onEndRaining) {
                 m_callbacks.onEndRaining();
             }
             break;
 
         case network::GameStateChangeReason::BeginRaining:
-            spdlog::debug("Weather: BeginRaining received");
             if (m_callbacks.onBeginRaining) {
                 m_callbacks.onBeginRaining();
             }
             break;
 
         case network::GameStateChangeReason::RainStrengthChange:
-            spdlog::debug("Weather: RainStrengthChange received, value={}", value);
             if (m_callbacks.onRainStrengthChange) {
                 m_callbacks.onRainStrengthChange(value);
             }
             break;
 
         case network::GameStateChangeReason::ThunderStrengthChange:
-            spdlog::debug("Weather: ThunderStrengthChange received, value={}", value);
             if (m_callbacks.onThunderStrengthChange) {
                 m_callbacks.onThunderStrengthChange(value);
             }
@@ -1817,11 +1813,11 @@ void NetworkClient::handleMovingSound(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug("[NetworkClient] Received MovingSound: {} for entity {} vol={} pitch={}",
-        packet.getSoundEventId().toString(),
-        packet.getEntityId(),
-        packet.getVolume(),
-        packet.getPitch());
+    // spdlog::debug("[NetworkClient] Received MovingSound: {} for entity {} vol={} pitch={}",
+    //     packet.getSoundEventId().toString(),
+    //     packet.getEntityId(),
+    //     packet.getVolume(),
+    //     packet.getPitch());
 
     if (m_callbacks.onMovingSound) {
         m_callbacks.onMovingSound(packet.getSoundEventId(),
@@ -1844,12 +1840,12 @@ void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug("[NetworkClient] Received WorldEvent: id={}, pos=({},{},{}), data={}",
-        packet.getEventId(),
-        packet.getX(),
-        packet.getY(),
-        packet.getZ(),
-        packet.getData());
+    // spdlog::debug("[NetworkClient] Received WorldEvent: id={}, pos=({},{},{}), data={}",
+    //     packet.getEventId(),
+    //     packet.getX(),
+    //     packet.getY(),
+    //     packet.getZ(),
+    //     packet.getData());
 
     if (m_callbacks.onWorldEvent) {
         m_callbacks.onWorldEvent(packet.getEventId(), packet.getX(), packet.getY(), packet.getZ(), packet.getData());
@@ -1868,9 +1864,9 @@ void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug("[NetworkClient] Received SetPassengers: vehicle={}, passengers={}",
-        packet.entityId(),
-        packet.passengerIds().size());
+    // spdlog::debug("[NetworkClient] Received SetPassengers: vehicle={}, passengers={}",
+    //     packet.entityId(),
+    //     packet.passengerIds().size());
 
     if (m_callbacks.onSetPassengers) {
         m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());

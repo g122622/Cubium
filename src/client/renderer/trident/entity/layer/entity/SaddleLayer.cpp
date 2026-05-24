@@ -97,7 +97,7 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     pipeline.drawMesh(
         cmd, *mesh, saddleTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("SaddleLayer: Rendered saddle on entity");
+    // spdlog::trace("SaddleLayer: Rendered saddle on entity");
 
     (void)context;
 }

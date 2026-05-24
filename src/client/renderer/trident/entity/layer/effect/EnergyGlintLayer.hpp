@@ -168,7 +168,7 @@ void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
 
-    spdlog::trace("EnergyGlintLayer: Rendered glint effect on entity");
+    // spdlog::trace("EnergyGlintLayer: Rendered glint effect on entity");
 
     (void)cmd;
 }

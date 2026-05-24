@@ -135,7 +135,7 @@ void SkinManager::removePlayerInfo(const std::array<u8, 16>& uuid)
     std::string key = uuidToKey(uuid);
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     m_playerInfos.erase(key);
-    spdlog::debug("SkinManager: Removed player info for {}", key);
+    spdlog::info("SkinManager: Removed player info for {}", key);
 }
 
 void SkinManager::clearAllPlayerInfos()
@@ -201,7 +201,7 @@ bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<Pl
             info->setSkinLocation(location);
             info->setSkinType(textures.skinType());
             info->setLoadState(SkinLoadState::Loaded);
-            spdlog::debug("SkinManager: Loaded skin from cache for hash {}", hash);
+            spdlog::info("SkinManager: Loaded skin from cache for hash {}", hash);
             return true;
         }
     }

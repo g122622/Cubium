@@ -155,7 +155,7 @@ void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(TEntity& entity,
     pipeline.drawMesh(
         cmd, it->second, headTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("HeadLayer: Rendered head item '{}'", item->getItem()->itemLocation().toString());
+    // spdlog::trace("HeadLayer: Rendered head item '{}'", item->getItem()->itemLocation().toString());
 }
 
 template <typename TEntity, typename TModel>

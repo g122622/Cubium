@@ -79,7 +79,7 @@ void CapeLayer::renderPipeline(::mc::Player& entity,
 
     pipeline.drawMesh(cmd, *mesh, capeTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("CapeLayer: Rendered cape with swing angle {:.1f}", swingAngle);
+    // spdlog::trace("CapeLayer: Rendered cape with swing angle {:.1f}", swingAngle);
 }
 
 void CapeLayer::render(::mc::Player& entity,

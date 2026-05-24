@@ -79,8 +79,6 @@ void EntityTracker::trackEntity(Entity* entity)
     tracked.needsFullUpdate = true;
 
     m_trackedEntities[entityId] = tracked;
-
-    spdlog::debug("EntityTracker: Started tracking entity {} ({})", entityId, entity->getTypeId());
 }
 
 void EntityTracker::untrackEntity(EntityId entityId)
@@ -101,7 +99,6 @@ void EntityTracker::untrackEntity(EntityId entityId)
     }
 
     m_trackedEntities.erase(it);
-    spdlog::debug("EntityTracker: Stopped tracking entity {}", entityId);
 }
 
 void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
@@ -132,8 +129,6 @@ void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
     for (PlayerId playerId : playersToNotify) {
         sendDestroyPacket(server, playerId, entityId);
     }
-
-    spdlog::debug("EntityTracker: Stopped tracking entity {} and sent destroy", entityId);
 }
 
 void EntityTracker::broadcastDestroyToTrackingPlayers(IServer& server, EntityId entityId)
@@ -259,7 +254,6 @@ void EntityTracker::removePlayer(PlayerId playerId)
     }
 
     m_playerTrackedEntities.erase(trackedSet);
-    spdlog::debug("EntityTracker: Removed player {} from tracking", playerId);
 }
 
 std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId) const
@@ -308,19 +302,6 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                 std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
 
             if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
-                if (!tracked.trackingPlayers.empty()) {
-                    spdlog::debug("EntityTracker: Entity {} moved from ({:.1f},{:.1f},{:.1f}) to "
-                                  "({:.1f},{:.1f},{:.1f}), sending to {} players",
-                        entityId,
-                        tracked.lastPosition.x,
-                        tracked.lastPosition.y,
-                        tracked.lastPosition.z,
-                        currentPos.x,
-                        currentPos.y,
-                        currentPos.z,
-                        tracked.trackingPlayers.size());
-                }
-
                 for (PlayerId playerId : tracked.trackingPlayers) {
                     sendMovePacket(server, playerId, entity);
                 }
@@ -440,10 +421,6 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
                 fullPacket.writeBytes(result.value());
 
                 player->send(fullPacket.data(), fullPacket.size());
-                spdlog::debug("Sent SpawnExperienceOrb packet for entity {} (xp: {}) to player {}",
-                    entity->id(),
-                    xpOrb->getXpValue(),
-                    playerId);
             }
         } else {
             // 其他非生物实体，使用 SpawnEntityPacket
@@ -468,9 +445,6 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             if (itemEntity != nullptr) {
                 packet.setItemStack(itemEntity->getItemStack());
                 const auto& stack = itemEntity->getItemStack();
-                spdlog::debug("SpawnEntity packet includes ItemStack: {} x{}",
-                    stack.getItem() ? std::to_string(stack.getItem()->itemId()) : "null",
-                    stack.getCount());
             }
 
             auto result = packet.serialize();
@@ -485,10 +459,6 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
                 fullPacket.writeBytes(result.value());
 
                 player->send(fullPacket.data(), fullPacket.size());
-                spdlog::debug("Sent SpawnEntity packet for entity {} (type: {}) to player {}",
-                    entity->id(),
-                    entity->getTypeId(),
-                    playerId);
             }
         }
     }
@@ -539,7 +509,6 @@ void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, Entity
         fullPacket.writeBytes(result.value());
 
         player->send(fullPacket.data(), fullPacket.size());
-        spdlog::debug("Sent EntityDestroy packet for entity {} to player {}", entityId, playerId);
     }
 }
 

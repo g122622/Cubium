@@ -145,7 +145,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
 
     // 阈值触发
     if (dirtyCount >= config.dirtyThreshold) {
-        spdlog::debug("AutoSave triggered by threshold: {} >= {}", dirtyCount, config.dirtyThreshold);
+        spdlog::info("AutoSave triggered by threshold: {} >= {}", dirtyCount, config.dirtyThreshold);
         return true;
     }
 
@@ -157,7 +157,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
     }
 
     if (tickCount - lastSaveTick >= ticksPerInterval && dirtyCount > 0) {
-        spdlog::debug("AutoSave triggered by timer: {} ticks elapsed", tickCount - lastSaveTick);
+        spdlog::info("AutoSave triggered by timer: {} ticks elapsed", tickCount - lastSaveTick);
         return true;
     }
 

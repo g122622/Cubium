@@ -93,7 +93,7 @@ void ElytraLayer<TEntity>::renderPipeline(TEntity& entity,
     pipeline.drawMesh(
         cmd, *mesh, elytraTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("ElytraLayer: Rendered elytra with spread angle {:.1f}", spreadAngle);
+    // spdlog::trace("ElytraLayer: Rendered elytra with spread angle {:.1f}", spreadAngle);
 }
 
 template <typename TEntity>

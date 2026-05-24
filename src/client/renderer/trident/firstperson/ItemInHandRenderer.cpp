@@ -211,16 +211,16 @@ void ItemInHandRenderer::renderBlockItem(
     // 获取物品模型用于验证
     const resource::BakedItemModel* model = getItemModel(itemStack);
     if (model == nullptr) {
-        spdlog::trace("ItemInHandRenderer: No model for block item {}",
-            itemStack.isEmpty() ? "empty" : itemStack.getItem()->itemLocation().toString());
+        // spdlog::trace("ItemInHandRenderer: No model for block item {}",
+        //     itemStack.isEmpty() ? "empty" : itemStack.getItem()->itemLocation().toString());
         return;
     }
 
     // 网格构建和渲染由调用者完成
     // 此处仅记录日志用于调试
-    spdlog::trace("ItemInHandRenderer: Rendering block item {} with {} elements",
-        itemStack.getItem()->itemLocation().toString(),
-        model->elements.size());
+    // spdlog::trace("ItemInHandRenderer: Rendering block item {} with {} elements",
+    //     itemStack.getItem()->itemLocation().toString(),
+    //     model->elements.size());
 }
 
 void ItemInHandRenderer::renderRegularItem(

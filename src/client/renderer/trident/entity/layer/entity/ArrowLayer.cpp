@@ -75,7 +75,7 @@ void ArrowLayer<TEntity>::renderPipeline(TEntity& entity,
         renderArrowPipeline(entity, randX, randY, randZ, randYaw, randPitch, cmd, context, pipeline);
     }
 
-    spdlog::trace("ArrowLayer: Rendered {} arrows on entity", arrowCount);
+    // spdlog::trace("ArrowLayer: Rendered {} arrows on entity", arrowCount);
 }
 
 template <typename TEntity>

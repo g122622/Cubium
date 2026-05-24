@@ -258,7 +258,7 @@ void FireEffect::renderFireLayers(VkCommandBuffer cmd,
         // 创建网格
         auto meshResult = pipeline.createMesh(vertices, indices);
         if (!meshResult.success()) {
-            spdlog::trace("FireEffect: Failed to create fire mesh for layer {}", layer);
+            // spdlog::trace("FireEffect: Failed to create fire mesh for layer {}", layer);
             continue;
         }
 
@@ -318,11 +318,11 @@ void FireEffect::renderFireLayers(VkCommandBuffer cmd,
         f1 *= 0.9;
     }
 
-    spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers",
-        x,
-        y,
-        z,
-        static_cast<i32>(height / fireSize / 0.45));
+    // spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers",
+    //     x,
+    //     y,
+    //     z,
+    //     static_cast<i32>(height / fireSize / 0.45));
 }
 
 bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePacks)

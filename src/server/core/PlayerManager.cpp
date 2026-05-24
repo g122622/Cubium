@@ -90,8 +90,6 @@ void PlayerManager::removePlayer(PlayerId playerId)
     // 移除玩家
     m_players.erase(it);
     m_chunkSyncManager.removeTracker(playerId);
-
-    spdlog::debug("PlayerManager: Player {} ({}) removed", username, playerId);
 }
 
 void PlayerManager::removePlayerBySessionId(u32 sessionId)

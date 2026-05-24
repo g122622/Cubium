@@ -95,10 +95,6 @@ void ServerPlayer::sendChatMessage(const std::string& message)
 
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
-
-    if (!sendFullPacket(fullPacket)) {
-        spdlog::debug("ServerPlayer: chat message not sent (player={}, no connection)", username());
-    }
 }
 
 void ServerPlayer::sendSystemMessage(const std::string& message)
@@ -123,7 +119,6 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
     // - actionBar = false: 显示在聊天区域
 
     if (!hasConnection()) {
-        spdlog::debug("ServerPlayer: status message not sent (player={}, no connection)", username());
         return;
     }
 
@@ -142,7 +137,6 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
             server::core::ConnectionManager::encapsulatePacket(network::PacketType::Title, payloadResult.value());
 
         if (!sendFullPacket(fullPacket)) {
-            spdlog::debug("ServerPlayer: actionbar message not sent (player={}, no connection)", username());
         }
     } else {
         // 发送到聊天区域
@@ -660,10 +654,6 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
                 if (portalInfo.has_value() && portalInfo->valid) {
                     // 找到已存在的传送门，使用其位置
                     targetPos = portalInfo->position;
-                    spdlog::debug("ServerPlayer: found existing portal at ({:.1f}, {:.1f}, {:.1f})",
-                        targetPos.x,
-                        targetPos.y,
-                        targetPos.z);
                 } else {
                     // 没找到传送门，创建新传送门
                     PortalInfo newPortal = teleporter.createPortal(*targetWorld, targetPos);

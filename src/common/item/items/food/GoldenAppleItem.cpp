@@ -147,7 +147,7 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
         stack.shrink(1);
     }
 
-    spdlog::debug("GoldenAppleItem: Started curing zombie villager at ({}, {}, {}), "
+    spdlog::info("GoldenAppleItem: Started curing zombie villager at ({}, {}, {}), "
                   "conversion time: {} ticks, starter: {}",
         zombieVillager->x(),
         zombieVillager->y(),

@@ -123,14 +123,11 @@ void InventoryManager::initializeInventory(PlayerId playerId)
     auto& inventory = m_inventories[playerId];
     inventory.clear();
     inventory.setSelectedSlot(0);
-
-    spdlog::debug("Initialized inventory for player {}", playerId);
 }
 
 void InventoryManager::cleanupInventory(PlayerId playerId)
 {
     m_inventories.erase(playerId);
-    spdlog::debug("Cleaned up inventory for player {}", playerId);
 }
 
 void InventoryManager::setOnInventoryUpdate(std::function<void(PlayerId, const PlayerInventory&)> callback)

@@ -226,7 +226,7 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
 {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Player input from unknown session {}", sessionId);
+        // spdlog::trace("PacketHandler: Player input from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -244,12 +244,12 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     // jumping: 是否跳跃
     // sneaking: 是否潜行（下马）
 
-    spdlog::trace("PacketHandler: Player {} input: strafe={:.2f}, forward={:.2f}, jump={}, sneak={}",
-        playerId,
-        packet.strafeSpeed(),
-        packet.forwardSpeed(),
-        packet.isJumping(),
-        packet.isSneaking());
+    // spdlog::trace("PacketHandler: Player {} input: strafe={:.2f}, forward={:.2f}, jump={}, sneak={}",
+    //     playerId,
+    //     packet.strafeSpeed(),
+    //     packet.forwardSpeed(),
+    //     packet.isJumping(),
+    //     packet.isSneaking());
 
     // MC 1.16.5: ServerPlayNetHandler.processInput()
     // 将输入传递给玩家骑乘的载具
@@ -335,7 +335,7 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
 {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Move vehicle from unknown session {}", sessionId);
+        // spdlog::trace("PacketHandler: Move vehicle from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -350,13 +350,13 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     // MC 1.16.5: MoveVehiclePacket 由客户端发送以同步载具位置
     // 服务端需要验证位置并将更新广播给其他玩家
 
-    spdlog::trace("PacketHandler: Player {} move vehicle: ({:.2f}, {:.2f}, {:.2f}) yaw={:.1f} pitch={:.1f}",
-        playerId,
-        packet.x(),
-        packet.y(),
-        packet.z(),
-        packet.yaw(),
-        packet.pitch());
+    // spdlog::trace("PacketHandler: Player {} move vehicle: ({:.2f}, {:.2f}, {:.2f}) yaw={:.1f} pitch={:.1f}",
+    //     playerId,
+    //     packet.x(),
+    //     packet.y(),
+    //     packet.z(),
+    //     packet.yaw(),
+    //     packet.pitch());
 
     // 验证服务器接口
     if (m_server == nullptr) {

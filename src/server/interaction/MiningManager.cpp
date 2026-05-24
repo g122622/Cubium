@@ -112,13 +112,6 @@ void MiningManager::abortMining(PlayerId playerId)
 
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
-        if (it->second.active) {
-            spdlog::debug("[Mining] Player {} aborted mining at ({}, {}, {})",
-                playerId,
-                it->second.position.x,
-                it->second.position.y,
-                it->second.position.z);
-        }
         m_miningStates.erase(it);
     }
 }

@@ -247,7 +247,6 @@ void ItemPickupManager::processItemMerging(ServerWorld& world, IServer& server)
                     // 尝试合并
                     if (item1->tryMergeWith(*item2)) {
                         sendItemEntityUpdate(world, server, *item1);
-                        spdlog::debug("ItemEntity {} merged into {}", item2->id(), item1->id());
                     }
                 }
             }

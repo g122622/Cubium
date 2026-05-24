@@ -145,8 +145,8 @@ void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockS
 
     pipeline.drawMesh(cmd, *mesh, blockTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
-    spdlog::trace(
-        "HeldBlockLayer: Rendered held block at ({}, {}, {}) with color ({}, {}, {}, {})", x, y, z, r, g, b, a);
+    // spdlog::trace(
+    //     "HeldBlockLayer: Rendered held block at ({}, {}, {}) with color ({}, {}, {}, {})", x, y, z, r, g, b, a);
 
     (void)context;
 }

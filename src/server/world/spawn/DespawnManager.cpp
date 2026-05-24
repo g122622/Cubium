@@ -67,11 +67,6 @@ void DespawnManager::tick(::mc::server::ServerWorld& world)
 
         if (shouldDespawn(*mob, world)) {
             mob->remove();
-            spdlog::debug("DespawnManager: Despawning mob {} at ({}, {}, {})",
-                mob->id(),
-                mob->position().x,
-                mob->position().y,
-                mob->position().z);
         }
 
         ++checksThisTick;

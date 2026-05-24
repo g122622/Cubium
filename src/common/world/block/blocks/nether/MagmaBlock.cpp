@@ -93,11 +93,10 @@ void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
     if (aboveState != nullptr) {
         const fluid::FluidState* fluidState = aboveState->getFluidState();
         if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-            // 产生气泡粒子
+            // TODO 产生气泡粒子
             // world.addParticle(ParticleTypes::LARGE_SMOKE, ...)
             // world.playSound(SoundEvents::BLOCK_FIRE_EXTINGUISH, ...)
             MC_UNUSED(random);
-            spdlog::debug("MagmaBlock at ({}, {}, {}): bubble effect in water", pos.x, pos.y, pos.z);
         }
     }
 }

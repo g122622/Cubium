@@ -42,12 +42,12 @@ namespace mc::world::storage {
 PlayerDataManager::PlayerDataManager(RocksDBDatabase& db)
     : m_db(db)
 {
-    spdlog::debug("PlayerDataManager initialized");
+    // spdlog::debug("PlayerDataManager initialized");
 }
 
 PlayerDataManager::~PlayerDataManager()
 {
-    spdlog::debug("PlayerDataManager shutdown");
+    // spdlog::debug("PlayerDataManager shutdown");
 }
 
 // ============================================================================
@@ -98,7 +98,7 @@ Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const std::string& uuid)
         m_cache[uuid] = std::move(playerData);
     }
 
-    spdlog::debug("Loaded player data for {}", uuid);
+    // spdlog::debug("Loaded player data for {}", uuid);
     return ptr;
 }
 

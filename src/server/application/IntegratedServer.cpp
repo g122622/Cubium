@@ -145,7 +145,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     // 白名单和封禁列表在集成服务器中通常不需要
     auto opsResult = m_opListManager->load("ops.json");
     if (opsResult.failed()) {
-        spdlog::debug("No ops.json found or failed to load: {}", opsResult.error().message());
+        spdlog::error("No ops.json found or failed to load: {}", opsResult.error().message());
     }
 
     auto storageInitResult = initializeSharedStorage(m_gameDirectory, params.worldName);

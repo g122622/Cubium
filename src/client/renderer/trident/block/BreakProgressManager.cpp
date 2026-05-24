@@ -82,7 +82,7 @@ u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress)
 
     // 阶段变化时播放击打音效
     if (newStage != m_localDamageStage && newStage > 0) {
-        spdlog::trace("BreakProgressManager: Damage stage updated to {}", newStage);
+        // spdlog::trace("BreakProgressManager: Damage stage updated to {}", newStage);
 
         // 播放击打音效
         if (m_hitSoundCallback) {
@@ -144,7 +144,7 @@ void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockP
         it->second.damageStage = static_cast<u8>(stage);
         it->second.lastUpdateTick = currentTick;
 
-        spdlog::trace("BreakProgressManager: Updated remote progress for entity {}, stage {}", breakerId, stage);
+        // spdlog::trace("BreakProgressManager: Updated remote progress for entity {}, stage {}", breakerId, stage);
     }
 }
 
@@ -156,7 +156,7 @@ void BreakProgressManager::removeRemoteProgress(EntityId breakerId)
         removeFromPositionIndex(pos, breakerId);
         m_remoteProgressByEntity.erase(it);
 
-        spdlog::debug("BreakProgressManager: Removed remote progress for entity {}", breakerId);
+        // spdlog::debug("BreakProgressManager: Removed remote progress for entity {}", breakerId);
     }
 }
 

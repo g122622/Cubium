@@ -114,9 +114,6 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
         m_onContainerOpen(playerId, containerId, type, title, slotCount);
     }
 
-    spdlog::debug(
-        "Player {} opened container type {} at ({}, {}, {})", playerId, static_cast<i32>(type), pos.x, pos.y, pos.z);
-
     return containerId;
 }
 

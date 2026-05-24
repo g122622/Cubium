@@ -96,7 +96,7 @@ void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
 
-    spdlog::trace("EyesLayer: Rendered eyes for entity");
+    // spdlog::trace("EyesLayer: Rendered eyes for entity");
 
     (void)texture;
     (void)cmd;

@@ -245,7 +245,7 @@ protected:
         pipeline.drawMesh(
             cmd, meshCache.mesh.value(), bodyPartTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-        spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
+        // spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
     }
 
     /**

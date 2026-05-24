@@ -133,7 +133,7 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 
     pipeline.drawMesh(cmd, *mesh, woolTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    spdlog::trace("SheepWoolLayer: Rendered wool with color ({}, {}, {})", color.x, color.y, color.z);
+    // spdlog::trace("SheepWoolLayer: Rendered wool with color ({}, {}, {})", color.x, color.y, color.z);
 
     (void)context;
 }

@@ -174,10 +174,10 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
     pipeline.drawMesh(
         cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
-        item->getItem()->itemLocation().toString(),
-        handSide == mc::HandSide::Right ? "right" : "left",
-        hand == mc::Hand::MainHand ? "main" : "off");
+    // spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
+    //     item->getItem()->itemLocation().toString(),
+    //     handSide == mc::HandSide::Right ? "right" : "left",
+    //     hand == mc::Hand::MainHand ? "main" : "off");
 }
 
 template <typename TEntity, typename TModel>
