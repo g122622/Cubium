@@ -833,7 +833,7 @@ bool EntityRendererManager::generateModelMesh(
     }
 
     // 未知实体类型
-    spdlog::debug("Unknown entity type for mesh generation: {}", normalizedId);
+    spdlog::warn("Unknown entity type for mesh generation: {}", normalizedId);
     return false;
 }
 

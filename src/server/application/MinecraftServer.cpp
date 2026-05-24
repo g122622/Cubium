@@ -924,10 +924,12 @@ void MinecraftServer::shutdownManagers()
 
 void MinecraftServer::tickEntities()
 {
-    MC_TRACE_EVENT("server.tick", "EntityTick", "phase", "entities");
+    MC_TRACE_EVENT("server.tick", "MinecraftServer::tickEntities()", "phase", "entities");
 
     // 遍历所有维度执行实体 tick
     m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        MC_TRACE_EVENT("server.tick", "MinecraftServer::tickEntities().Dim", "dim", dim.type().name());
+
         auto* serverDim = static_cast<ServerDimension*>(&dim);
         auto* world = serverDim->world();
         if (!world) {
