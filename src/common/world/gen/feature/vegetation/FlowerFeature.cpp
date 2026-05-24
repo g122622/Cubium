@@ -55,80 +55,102 @@ bool FlowerFeature::place(
     i32 placedCount = 0;
     i32 xzSpread = config.xzSpread;
 
+    // MC 1.16.5 RandomPatchFeature: 使用 getHeight 获取地表位置
+    // 当 project=true 时，使用世界表面高度；否则使用传入的 pos
+    BlockPos surfacePos(pos.x, world.getHeight(pos.x, pos.z), pos.z);
+
     for (i32 i = 0; i < config.tries; ++i) {
-        // 在指定范围内随机选择位置
-        i32 dx = random.nextInt(xzSpread) - random.nextInt(xzSpread);
-        i32 dz = random.nextInt(xzSpread) - random.nextInt(xzSpread);
+        // MC 1.16.5: nextInt(spread + 1) - nextInt(spread + 1)
+        // 注意: MC 使用 xSpread, ySpread, zSpread 分别计算
+        i32 dx = random.nextInt(xzSpread + 1) - random.nextInt(xzSpread + 1);
+        i32 dz = random.nextInt(xzSpread + 1) - random.nextInt(xzSpread + 1);
+        // TODO: 添加 ySpread 支持
 
-        BlockPos placePos(pos.x + dx, pos.y, pos.z + dz);
+        BlockPos placePos(surfacePos.x + dx, surfacePos.y, surfacePos.z + dz);
 
-        // 寻找有效的Y坐标
-        for (i32 y = 128; y >= 1; --y) {
-            BlockPos checkPos(placePos.x, y, placePos.z);
-            const BlockState* state = world.getBlockState(checkPos);
+        // MC 1.16.5: 检查是否为空气或可替换
+        const BlockState* currentState = world.getBlockState(placePos);
+        if (currentState && !currentState->isAir()) {
+            continue;
+        }
 
-            if (!state || state->isAir()) {
-                placePos = checkPos;
-                break;
+        // MC 1.16.5: 检查方块是否可以放置 (blockstate.isValidPosition)
+        const BlockState* flower = config.getRandomFlower(random);
+        if (!flower) {
+            continue;
+        }
+
+        // MC 1.16.5: 检查下方方块是否在白名单中（如果有白名单）
+        // 或不在黑名单中
+        BlockPos groundPos = placePos.down();
+        const BlockState* groundState = world.getBlockState(groundPos);
+
+        if (!isValidGround(world, groundPos, config)) {
+            continue;
+        }
+
+        // MC 1.16.5: 检查是否需要水
+        if (config.requiresWater) {
+            if (!hasAdjacentWater(world, groundPos)) {
+                continue;
             }
         }
 
-        // 检查是否可以放置
-        if (canPlaceAt(world, placePos, config)) {
-            const BlockState* flower = config.getRandomFlower(random);
-            if (flower) {
-                world.setBlockState(placePos, flower);
-                ++placedCount;
-            }
-        }
+        world.setBlockState(placePos, flower);
+        ++placedCount;
     }
 
     return placedCount > 0;
 }
 
-bool FlowerFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
-{
-    const BlockState* state = world.getBlockState(pos);
-    if (state && !state->isAir()) {
-        return false;
-    }
-
-    // 检查下方方块
-    if (!isValidGround(world, BlockPos(pos.x, pos.y - 1, pos.z))) {
-        return false;
-    }
-
-    // 检查是否需要水
-    if (config.requiresWater) {
-        // 检查周围是否有水
-        bool hasWater = false;
-        for (i32 dx = -4; dx <= 4; ++dx) {
-            for (i32 dz = -4; dz <= 4; ++dz) {
-                BlockPos waterPos(pos.x + dx, pos.y - 1, pos.z + dz);
-                const BlockState* waterState = world.getBlockState(waterPos);
-                if (waterState && waterState->blockId() == VanillaBlocks::WATER->blockId()) {
-                    hasWater = true;
-                    break;
-                }
-            }
-            if (hasWater) break;
-        }
-        if (!hasWater) return false;
-    }
-
-    return true;
-}
-
-bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
+bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) return false;
 
     u32 blockId = state->blockId();
 
-    // 花卉可以生长在草方块和泥土上
+    // MC 1.16.5: 检查白名单（如果有）
+    if (!config.whitelist.empty()) {
+        // 白名单检查：方块ID是否在白名单中
+        bool inWhitelist = false;
+        for (const auto* whitelistState : config.whitelist) {
+            if (whitelistState && whitelistState->blockId() == blockId) {
+                inWhitelist = true;
+                break;
+            }
+        }
+        if (!inWhitelist) return false;
+    }
+
+    // MC 1.16.5: 检查黑名单
+    for (const auto* blacklistState : config.blacklist) {
+        if (blacklistState && *state == *blacklistState) {
+            return false;
+        }
+    }
+
+    // 花卉可以生长在草方块、泥土、灰化土和砂土上
     return blockId == VanillaBlocks::GRASS_BLOCK->blockId() || blockId == VanillaBlocks::DIRT->blockId() ||
+        (VanillaBlocks::PODZOL && blockId == VanillaBlocks::PODZOL->blockId()) ||
+        (VanillaBlocks::COARSE_DIRT && blockId == VanillaBlocks::COARSE_DIRT->blockId()) ||
         (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
+}
+
+bool FlowerFeature::hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const
+{
+    // MC 1.16.5: 检查四个水平方向是否有水
+    constexpr i32 DX[] = {-1, 1, 0, 0};
+    constexpr i32 DZ[] = {0, 0, -1, 1};
+
+    for (i32 i = 0; i < 4; ++i) {
+        BlockPos waterPos(pos.x + DX[i], pos.y, pos.z + DZ[i]);
+        const BlockState* state = world.getBlockState(waterPos);
+        if (state && state->blockId() == VanillaBlocks::WATER->blockId()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ============================================================================

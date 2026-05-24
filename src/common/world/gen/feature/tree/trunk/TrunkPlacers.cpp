@@ -22,6 +22,9 @@
  */
 
 #include "TrunkPlacers.hpp"
+#include "../../../../../core/Constants.hpp"
+#include "../../../../../core/Types.hpp"
+#include "../../../../../util/Direction.hpp"
 #include "../../../../block/BlockRegistry.hpp"
 #include "../../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/IChunkGenerator.hpp"
@@ -306,7 +309,7 @@ std::unique_ptr<TrunkPlacer> FancyTrunkPlacer::clone() const
 }
 
 // ============================================================================
-// ForkyTrunkPlacer 实现
+// ForkyTrunkPlacer 实现 - 参考 MC ForkyTrunkPlacer.java
 // ============================================================================
 
 ForkyTrunkPlacer::ForkyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
@@ -322,66 +325,72 @@ std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
 {
     std::vector<FoliagePosition> foliagePositions;
 
-    // 主树干
-    for (i32 y = 0; y < height; ++y) {
-        placeBlock(world, BlockPos(startPos.x, startPos.y + y, startPos.z), trunkBlocks, trunkBlock);
-    }
+    // 参考 MC 1.16.5 ForkyTrunkPlacer.func_230384_a_ (第29-81行)
 
-    // 在上半部分生成分叉
-    i32 branchStartY = startPos.y + height / 2;
-    i32 numBranches = 2 + random.nextInt(3);
+    // MC 第32-36行: 在树干底部放置泥土
+    placeDirtUnder(world, startPos.down());
 
-    for (i32 i = 0; i < numBranches; ++i) {
-        // 分叉起点
-        i32 branchY = branchStartY + random.nextInt(height / 2);
-        BlockPos branchStart(startPos.x, branchY, startPos.z);
+    // MC 第37-39行: 随机方向和弯曲参数
+    i32 bendStart = height - random.nextInt(4) - 1; // 开始弯曲的高度
+    i32 bendLength = 1 + random.nextInt(2);         // 弯曲长度
 
-        // 分叉长度和方向
-        i32 branchLength = 2 + random.nextInt(4);
-        BlockPos branchEnd = generateBranch(world, random, branchStart, branchLength, trunkBlocks, trunkBlock);
+    // MC 第41-43行: 随机选择第一个弯曲方向（只能是水平方向）
+    // Direction 水平顺序: South=0, West=1, North=2, East=3 (在 Planes.HORIZONTAL 中)
+    // 但这里我们直接使用偏移量计算
+    i32 dirIndex = random.nextInt(4);
+    constexpr i32 DX[] = {0, 1, 0, -1}; // South, West, North, East 对应的 X 偏移
+    constexpr i32 DZ[] = {1, 0, -1, 0}; // South, West, North, East 对应的 Z 偏移
+    i32 dx = DX[dirIndex];
+    i32 dz = DZ[dirIndex];
 
-        // 在分叉末端添加树叶
-        foliagePositions.emplace_back(BlockPos(branchEnd.x, branchEnd.y + 1, branchEnd.z), 2 + random.nextInt(2), true);
-    }
-
-    // 顶部树叶
-    foliagePositions.emplace_back(BlockPos(startPos.x, startPos.y + height, startPos.z), 2, true);
-
-    return foliagePositions;
-}
-
-BlockPos ForkyTrunkPlacer::generateBranch(WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& startPos,
-    i32 length,
-    std::set<BlockPos>& trunkBlocks,
-    const BlockState* trunkBlock)
-{
-    // 随机方向
-    i32 dx = random.nextInt(3) - 1; // -1, 0, 1
-    i32 dz = random.nextInt(3) - 1;
-
-    // 确保方向不为零
-    if (dx == 0 && dz == 0) {
-        dx = random.nextBoolean() ? 1 : -1;
-    }
+    // MC 第45-47行: 随机选择第二个弯曲方向（可选侧分支）
+    i32 dirIndex1 = random.nextInt(4);
+    bool hasSideBranch = dirIndex != dirIndex1;
+    i32 dx1 = DX[dirIndex1];
+    i32 dz1 = DZ[dirIndex1];
 
     i32 x = startPos.x;
-    i32 y = startPos.y;
     i32 z = startPos.z;
+    i32 topY = startPos.y + height - 1;
 
-    for (i32 i = 0; i < length; ++i) {
-        x += dx;
-        z += dz;
-        // 分叉略微向上生长
-        if (random.nextInt(3) == 0) {
-            y += 1;
+    // MC 第47-62行: 生成树干
+    for (i32 dy = 0; dy < height; ++dy) {
+        i32 currentY = startPos.y + dy;
+
+        // 主树干
+        placeBlock(world, BlockPos(startPos.x, currentY, startPos.z), trunkBlocks, trunkBlock);
+
+        // MC 第52-59行: 弯曲逻辑
+        if (dy >= bendStart && bendLength > 0) {
+            // 向第一个方向弯曲
+            x += dx;
+            z += dz;
+            --bendLength;
+
+            // 放置弯曲位置的方块
+            placeBlock(world, BlockPos(x, currentY, z), trunkBlocks, trunkBlock);
+
+            // MC 第56-59行: 如果有侧分支，也放置
+            if (hasSideBranch && dy < height - 1) {
+                i32 sideX = startPos.x + dx1;
+                i32 sideZ = startPos.z + dz1;
+                placeBlock(world, BlockPos(sideX, currentY, sideZ), trunkBlocks, trunkBlock);
+            }
         }
-
-        placeBlock(world, BlockPos(x, y, z), trunkBlocks, trunkBlock);
     }
 
-    return BlockPos(x, y, z);
+    // MC 第64行: 主分支树叶位置，radiusBonus = 1
+    foliagePositions.emplace_back(BlockPos(x, topY, z), 1, true);
+
+    // MC 第66-78行: 侧分支树叶位置
+    if (hasSideBranch) {
+        i32 sideX = startPos.x + dx1;
+        i32 sideZ = startPos.z + dz1;
+        // 侧分支的 radiusBonus = 0
+        foliagePositions.emplace_back(BlockPos(sideX, topY, sideZ), 0, false);
+    }
+
+    return foliagePositions;
 }
 
 std::unique_ptr<TrunkPlacer> ForkyTrunkPlacer::clone() const

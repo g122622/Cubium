@@ -25,6 +25,7 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
@@ -159,7 +160,7 @@ i32 BigBrownMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 c
     (void)totalHeight;
 
     // 棕色蘑菇：只有顶部有盖
-    // 参考 MC: height <= 3 ? 0 : capRadius
+    // 参考 MC 1.16.5 BigBrownMushroomFeature.func_225563_a_: height <= 3 ? 0 : capRadius
     return currentHeight <= 3 ? 0 : capRadius;
 }
 
@@ -169,16 +170,22 @@ void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
     i32 height,
     const BigMushroomFeatureConfig& config)
 {
+    (void)random;
+
     i32 capRadius = config.capRadius;
 
-    // 棕色蘑菇盖：平顶，略带边缘
-    // 参考 MC BigBrownMushroomFeature.generateCap
+    // MC 1.16.5 BigBrownMushroomFeature.func_225564_a_
+    // 生成棕色蘑菇盖，设置正确的方向属性
     for (i32 dx = -capRadius; dx <= capRadius; ++dx) {
         for (i32 dz = -capRadius; dz <= capRadius; ++dz) {
-            bool isEdgeX = (dx == -capRadius || dx == capRadius);
-            bool isEdgeZ = (dz == -capRadius || dz == capRadius);
+            bool isWest = (dx == -capRadius);
+            bool isEast = (dx == capRadius);
+            bool isNorth = (dz == -capRadius);
+            bool isSouth = (dz == capRadius);
+            bool isEdgeX = isWest || isEast;
+            bool isEdgeZ = isNorth || isSouth;
 
-            // 跳过角落
+            // 跳过四角
             if (isEdgeX && isEdgeZ) {
                 continue;
             }
@@ -188,14 +195,37 @@ void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
             // 检查是否可以放置
             const BlockState* currentState = world.getBlockState(capPos);
             if (currentState && !currentState->isAir()) {
-                continue;
+                // 允许替换树叶
+                if (!currentState->is(VanillaBlocks::OAK_LEAVES) && !currentState->is(VanillaBlocks::SPRUCE_LEAVES) &&
+                    !currentState->is(VanillaBlocks::BIRCH_LEAVES) && !currentState->is(VanillaBlocks::JUNGLE_LEAVES) &&
+                    !currentState->is(VanillaBlocks::ACACIA_LEAVES) &&
+                    !currentState->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                    continue;
+                }
             }
 
-            // 计算边缘方向
-            // 参考 MC 的 west/east/north/south 属性
-            // 当前实现直接放置蘑菇盖状态
+            // MC 1.16.5: 计算边缘方向属性
+            // flag6 = flag || flag5 && j == 1 - i  (west)
+            // flag7 = flag1 || flag5 && j == i - 1 (east)
+            // flag8 = flag2 || flag4 && k == 1 - i  (north)
+            // flag9 = flag3 || flag4 && k == i - 1  (south)
+            bool west = isWest || (isEdgeZ && dx == 1 - capRadius);
+            bool east = isEast || (isEdgeZ && dx == capRadius - 1);
+            bool north = isNorth || (isEdgeX && dz == 1 - capRadius);
+            bool south = isSouth || (isEdgeX && dz == capRadius - 1);
+
+            // 放置蘑菇盖，设置方向属性
             if (config.capState) {
-                world.setBlockState(capPos, config.capState);
+                const BlockState* capWithProps = config.capState;
+                // 使用 BlockStateProperties 设置属性
+                capWithProps = &capWithProps->with(BlockStateProperties::WEST(), west);
+                capWithProps = &capWithProps->with(BlockStateProperties::EAST(), east);
+                capWithProps = &capWithProps->with(BlockStateProperties::NORTH(), north);
+                capWithProps = &capWithProps->with(BlockStateProperties::SOUTH(), south);
+                // 棕色蘑菇盖：DOWN=true, UP=false（因为是平顶）
+                capWithProps = &capWithProps->with(BlockStateProperties::DOWN(), true);
+                capWithProps = &capWithProps->with(BlockStateProperties::UP(), false);
+                world.setBlockState(capPos, capWithProps);
             }
         }
     }
@@ -210,14 +240,14 @@ i32 BigRedMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 cap
     (void)baseRadius;
 
     // 红色蘑菇：多层蘑菇盖
-    // 参考 MC: height < totalHeight - 3 ? 0 : (height == totalHeight ? capRadius : capRadius - 1)
-    if (currentHeight < totalHeight - 3) {
-        return 0;
+    // 参考 MC 1.16.5 BigRedMushroomFeature.func_225563_a_
+    i32 radius = 0;
+    if (currentHeight < totalHeight && currentHeight >= totalHeight - 3) {
+        radius = capRadius;
+    } else if (currentHeight == totalHeight) {
+        radius = capRadius;
     }
-    if (currentHeight == totalHeight) {
-        return capRadius;
-    }
-    return capRadius > 0 ? capRadius - 1 : 0;
+    return radius;
 }
 
 void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
@@ -226,36 +256,66 @@ void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
     i32 height,
     const BigMushroomFeatureConfig& config)
 {
+    (void)random;
+
     i32 capRadius = config.capRadius;
     i32 innerRadius = capRadius - 2;
 
+    // MC 1.16.5 BigRedMushroomFeature.func_225564_a_
     // 红色蘑菇盖：多层圆顶形状
-    // 参考 MC BigRedMushroomFeature.generateCap
     for (i32 y = height - 3; y <= height; ++y) {
         i32 currentRadius = (y < height) ? capRadius : (capRadius - 1);
 
         for (i32 dx = -currentRadius; dx <= currentRadius; ++dx) {
             for (i32 dz = -currentRadius; dz <= currentRadius; ++dz) {
-                bool isEdgeX = (dx == -currentRadius || dx == currentRadius);
-                bool isEdgeZ = (dz == -currentRadius || dz == currentRadius);
-                bool isEdge = isEdgeX || isEdgeZ;
+                bool isWest = (dx == -currentRadius);
+                bool isEast = (dx == currentRadius);
+                bool isNorth = (dz == -currentRadius);
+                bool isSouth = (dz == currentRadius);
+                bool isEdgeX = isWest || isEast;
+                bool isEdgeZ = isNorth || isSouth;
 
-                // 顶层或非对角位置
-                if (y >= height || isEdge != (isEdgeX && isEdgeZ)) {
+                // MC 1.16.5: i >= height || flag4 != flag5
+                // 只在顶层或非对角位置放置
+                if (y >= height || isEdgeX != isEdgeZ) {
                     BlockPos capPos(pos.x + dx, pos.y + y, pos.z + dz);
 
                     // 检查是否可以放置
                     const BlockState* currentState = world.getBlockState(capPos);
                     if (currentState && !currentState->isAir()) {
-                        continue;
+                        // 允许替换树叶
+                        if (!currentState->is(VanillaBlocks::OAK_LEAVES) &&
+                            !currentState->is(VanillaBlocks::SPRUCE_LEAVES) &&
+                            !currentState->is(VanillaBlocks::BIRCH_LEAVES) &&
+                            !currentState->is(VanillaBlocks::JUNGLE_LEAVES) &&
+                            !currentState->is(VanillaBlocks::ACACIA_LEAVES) &&
+                            !currentState->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                            continue;
+                        }
                     }
 
-                    // 计算 up 属性（顶层为 true）
-                    bool isTop = (y >= height - 1);
+                    // MC 1.16.5: 计算方向属性
+                    // UP = i >= height - 1
+                    // WEST = l < -k  (dx < -innerRadius)
+                    // EAST = l > k   (dx > innerRadius)
+                    // NORTH = i1 < -k (dz < -innerRadius)
+                    // SOUTH = i1 > k  (dz > innerRadius)
+                    bool isUp = (y >= height - 1);
+                    bool west = (dx < -innerRadius);
+                    bool east = (dx > innerRadius);
+                    bool north = (dz < -innerRadius);
+                    bool south = (dz > innerRadius);
 
-                    // 放置蘑菇盖
+                    // 放置蘑菇盖，设置方向属性
                     if (config.capState) {
-                        world.setBlockState(capPos, config.capState);
+                        const BlockState* capWithProps = config.capState;
+                        capWithProps = &capWithProps->with(BlockStateProperties::UP(), isUp);
+                        capWithProps = &capWithProps->with(BlockStateProperties::DOWN(), true);
+                        capWithProps = &capWithProps->with(BlockStateProperties::WEST(), west);
+                        capWithProps = &capWithProps->with(BlockStateProperties::EAST(), east);
+                        capWithProps = &capWithProps->with(BlockStateProperties::NORTH(), north);
+                        capWithProps = &capWithProps->with(BlockStateProperties::SOUTH(), south);
+                        world.setBlockState(capPos, capWithProps);
                     }
                 }
             }

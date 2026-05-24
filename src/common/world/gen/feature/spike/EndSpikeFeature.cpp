@@ -29,6 +29,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 namespace mc {
 
@@ -63,37 +64,36 @@ std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed)
 {
     std::vector<EndSpike> spikes;
 
-    // 参考 MC 1.16.5: SpikeFeature.EndSpike
-    // 10根柱子，均匀分布在半径为43的圆上
-    // 每根柱子的角度偏移由种子决定
+    // 参考 MC 1.16.5: SpikeFeature.EndSpikeCacheLoader.load()
+    // 10根柱子，使用种子随机打乱高度/半径索引
 
     math::Random rng(worldSeed);
+    // MC: long i = random.nextLong() & 65535L;
+    u64 cacheKey = rng.nextLong() & 65535ULL;
+    math::Random shuffleRng(static_cast<u64>(cacheKey));
 
-    // 生成随机偏移角度
-    f64 angleOffset = rng.nextDouble() * mc::math::PI_DOUBLE * 2.0;
-
-    // 高度和半径数据（MC原版数据）
-    static const i32 heights[] = {76, 79, 82, 85, 88, 91, 94, 97, 100, 103};
-    static const i32 radii[] = {2, 2, 2, 2, 2, 3, 3, 3, 4, 4};
-    static const bool guarded[] = {false, false, false, false, false, false, false, true, true, true};
-
-    // 随机打乱顺序
+    // 创建索引 0-9 并打乱
     std::vector<i32> indices = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    for (i32 i = 9; i > 0; --i) {
-        i32 j = rng.nextInt(i + 1);
-        std::swap(indices[i], indices[j]);
-    }
+    std::shuffle(indices.begin(), indices.end(), std::mt19937(static_cast<u32>(cacheKey)));
 
     // 生成10根柱子
     for (i32 i = 0; i < 10; ++i) {
-        f64 angle = angleOffset + (i * 2.0 * mc::math::PI_DOUBLE / 10.0);
+        // MC 1.16.5: angle = 2 * (-PI + (PI/10) * i)
+        f64 angle = 2.0 * (-mc::math::PI_DOUBLE + (mc::math::PI_DOUBLE / 10.0) * static_cast<f64>(i));
 
-        // 半径43的圆上分布
-        i32 x = static_cast<i32>(std::cos(angle) * 43.0);
-        i32 z = static_cast<i32>(std::sin(angle) * 43.0);
+        // MC 1.16.5: 使用半径 42 (不是 43)
+        i32 x = static_cast<i32>(std::floor(42.0 * std::cos(angle)));
+        i32 z = static_cast<i32>(std::floor(42.0 * std::sin(angle)));
 
         i32 idx = indices[i];
-        spikes.emplace_back(x, z, radii[idx], heights[idx], guarded[idx]);
+        // MC 1.16.5: radius = 2 + l / 3 (l 是打乱后的索引 0-9)
+        i32 radius = 2 + idx / 3;
+        // MC 1.16.5: height = 76 + l * 3
+        i32 height = 76 + idx * 3;
+        // MC 1.16.5: guarded = l == 1 || l == 2
+        bool guarded = (idx == 1 || idx == 2);
+
+        spikes.emplace_back(x, z, radius, height, guarded);
     }
 
     return spikes;
@@ -153,7 +153,10 @@ bool EndSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) con
 
 void EndSpikeFeature::generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike)
 {
+    (void)random;
+
     const BlockState* obsidian = VanillaBlocks::getState(VanillaBlocks::OBSIDIAN);
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
     // 柱子中心坐标
     i32 baseX = spike.centerX;
@@ -161,15 +164,21 @@ void EndSpikeFeature::generateSpike(WorldGenRegion& world, math::Random& random,
     i32 radius = spike.radius;
     i32 height = spike.height;
 
-    // 生成柱子的基座（从Y=0开始，到目标高度）
-    for (i32 y = 0; y < height; ++y) {
-        // 圆形截面
-        for (i32 x = -radius; x <= radius; ++x) {
-            for (i32 z = -radius; z <= radius; ++z) {
-                // 检查是否在圆形范围内
-                i32 distSq = x * x + z * z;
-                if (distSq <= radius * radius) {
+    // MC 1.16.5 EndSpikeFeature.placeSpike():
+    // 遍历整个柱子区域（包括上方10格）
+    for (i32 x = -radius; x <= radius; ++x) {
+        for (i32 z = -radius; z <= radius; ++z) {
+            for (i32 y = 0; y <= height + 10; ++y) {
+                // 计算到中心的距离平方
+                f64 distSq = static_cast<f64>(x * x + z * z);
+
+                // MC: blockpos.distanceSq(centerX, y, centerZ, false) <= radius*radius + 1
+                if (distSq <= static_cast<f64>(radius * radius + 1) && y < height) {
+                    // 在柱子范围内且低于高度：放置黑曜石
                     world.setBlockState(baseX + x, y, baseZ + z, obsidian);
+                } else if (y > 65) {
+                    // Y > 65 的区域清除为空气
+                    world.setBlockState(baseX + x, y, baseZ + z, air);
                 }
             }
         }
@@ -177,47 +186,54 @@ void EndSpikeFeature::generateSpike(WorldGenRegion& world, math::Random& random,
 
     // 如果需要笼子，生成铁栏杆
     if (spike.guarded) {
-        BlockPos topPos(baseX, height - 1, baseZ);
+        BlockPos topPos(baseX, height, baseZ);
         generateCage(world, topPos, radius);
     }
 }
 
 void EndSpikeFeature::generateCage(WorldGenRegion& world, const BlockPos& topPos, i32 radius)
 {
-    // 使用基岩作为笼子材料（因为铁栏杆尚未实现）
-    const BlockState* cageBlock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    // MC 1.16.5: 使用铁栏杆作为笼子材料
+    const BlockState* cageBlock = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
 
     if (!cageBlock) {
         return;
     }
 
-    i32 cageRadius = radius + 2;
-    i32 cageHeight = 3;
+    // MC 1.16.5 EndSpikeFeature.placeSpike(): 生成铁栏杆笼子
+    // 循环范围: k, l 从 -2 到 2, i1 从 0 到 3
+    for (i32 k = -2; k <= 2; ++k) {
+        for (i32 l = -2; l <= 2; ++l) {
+            for (i32 y = 0; y <= 3; ++y) {
+                bool isOuterK = std::abs(k) == 2;
+                bool isOuterL = std::abs(l) == 2;
+                bool isTop = (y == 3);
 
-    // 生成笼子
-    for (i32 y = 0; y < cageHeight; ++y) {
-        for (i32 x = -cageRadius; x <= cageRadius; ++x) {
-            for (i32 z = -cageRadius; z <= cageRadius; ++z) {
-                // 只生成边缘的栏杆
-                i32 distSq = x * x + z * z;
-                bool isEdge = (distSq >= (cageRadius - 1) * (cageRadius - 1) && distSq <= cageRadius * cageRadius);
+                // MC: if (flag || flag1 || flag2)
+                if (isOuterK || isOuterL || isTop) {
+                    // 计算铁栏杆连接方向
+                    // MC: flag3 = k == -2 || k == 2 || flag2 (north/south)
+                    // MC: flag4 = l == -2 || l == 2 || flag2 (west/east)
+                    bool connectNS = isOuterK || isTop;
+                    bool connectWE = isOuterL || isTop;
 
-                // 边缘栏杆
-                if (isEdge) {
-                    world.setBlockState(topPos.x + x, topPos.y + y, topPos.z + z, cageBlock);
+                    // 设置方向属性
+                    const BlockState* barState = cageBlock;
+                    barState = &barState->with(BlockStateProperties::NORTH(), connectNS && l != -2);
+                    barState = &barState->with(BlockStateProperties::SOUTH(), connectNS && l != 2);
+                    barState = &barState->with(BlockStateProperties::WEST(), connectWE && k != -2);
+                    barState = &barState->with(BlockStateProperties::EAST(), connectWE && k != 2);
+
+                    world.setBlockState(topPos.x + k, topPos.y + y, topPos.z + l, barState);
                 }
             }
         }
     }
 
-    // 笼子顶部
-    for (i32 x = -cageRadius; x <= cageRadius; ++x) {
-        for (i32 z = -cageRadius; z <= cageRadius; ++z) {
-            i32 distSq = x * x + z * z;
-            if (distSq <= cageRadius * cageRadius) {
-                world.setBlockState(topPos.x + x, topPos.y + cageHeight, topPos.z + z, cageBlock);
-            }
-        }
+    // 在柱子顶部放置基岩作为水晶底座
+    const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    if (bedrock) {
+        world.setBlockState(topPos.x, topPos.y, topPos.z, bedrock);
     }
 }
 

@@ -137,18 +137,6 @@ public:
 
     [[nodiscard]] const char* name() const override { return "forky"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
-
-private:
-    /**
-     * @brief 生成分叉
-     * @return 分叉末端位置
-     */
-    BlockPos generateBranch(WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& startPos,
-        i32 length,
-        std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock);
 };
 
 /**

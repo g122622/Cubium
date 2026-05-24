@@ -32,7 +32,7 @@ namespace mc {
 /**
  * @brief 花卉特征配置
  *
- * 参考 MC DefaultFlowerFeature / FlowerFeatureConfig
+ * 参考 MC 1.16.5 BlockClusterFeatureConfig
  */
 struct FlowerFeatureConfig : public IFeatureConfig {
     /// 可放置的花卉方块状态列表（随机选择）
@@ -41,11 +41,20 @@ struct FlowerFeatureConfig : public IFeatureConfig {
     /// 花卉尝试放置次数
     i32 tries = 64;
 
-    /// 每次尝试的 XZ 范围
+    /// X 方向扩散范围
     i32 xzSpread = 7;
 
     /// 是否需要特定方块才能放置
     bool requiresWater = false;
+
+    /// 白名单：允许放置的下方方块类型（空=所有）
+    std::vector<const BlockState*> whitelist;
+
+    /// 黑名单：禁止放置的下方方块状态
+    std::vector<const BlockState*> blacklist;
+
+    /// 是否可替换（允许覆盖可替换方块）
+    bool isReplaceable = false;
 
     FlowerFeatureConfig() = default;
 
@@ -73,7 +82,7 @@ struct FlowerFeatureConfig : public IFeatureConfig {
  * @brief 花卉特征
  *
  * 在指定位置周围随机放置花卉。
- * 参考 MC DefaultFlowerFeature
+ * 参考 MC 1.16.5 RandomPatchFeature / DefaultFlowersFeature
  */
 class FlowerFeature {
 public:
@@ -89,14 +98,21 @@ public:
 
 private:
     /**
-     * @brief 检查花卉是否可以放置在指定位置
+     * @brief 检查下方方块是否支持花卉生长
+     * @param world 世界区域
+     * @param pos 下方方块位置
+     * @param config 配置（用于白名单/黑名单检查）
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const;
+    [[nodiscard]] bool isValidGround(
+        WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const;
 
     /**
-     * @brief 检查下方方块是否支持花卉生长
+     * @brief 检查是否有相邻的水
+     * @param world 世界区域
+     * @param pos 检查位置
+     * @return 四个水平方向是否有水
      */
-    [[nodiscard]] bool isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

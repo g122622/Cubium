@@ -63,8 +63,8 @@ void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 
 bool BlobFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
-    // 参考 MC BlobFoliagePlacer.func_230373_a_
-    // 跳过角落的方块，使树叶看起来更自然
+    // 参考 MC 1.16.5 BlobFoliagePlacer.func_230373_a_ (第49-51行)
+    // MC 源码: return dx == radius && dz == radius && (random.nextInt(2) == 0 || dy == 0);
 
     // 计算到中心的距离
     i32 absDx = std::abs(dx);
@@ -76,10 +76,10 @@ bool BlobFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz,
         absDz = std::min(absDz, std::abs(dz - 1));
     }
 
-    // 角落位置的方块有概率跳过
-    // 当 dx == radius 且 dz == radius 时，有50%概率跳过
+    // MC 逻辑：角落位置且（50%概率或dy==0）时跳过
+    // 注意：当 dy == 0 时总是跳过（意味着底部角落不放置树叶）
     if (absDx == radius && absDz == radius) {
-        return random.nextInt(0, 1) == 0 && dy != 0;
+        return random.nextInt(0, 2) == 0 || dy == 0;
     }
 
     return false;

@@ -408,17 +408,20 @@ void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 
 bool JungleFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    i32 dist = std::abs(dx) + std::abs(dz);
-    if (dist > radius) {
+    // 参考 MC 1.16.5 JungleFoliagePlacer.func_230373_a_ (第44-50行)
+    // MC 源码使用欧几里得距离平方比较
+    // if (dx + dz >= 7) return true;
+    // else return dx * dx + dz * dz > radius * radius;
+
+    // MC 逻辑：如果距离过大则跳过
+    // 第一个条件：曼哈顿距离 >= 7 时跳过（防止过大的树叶）
+    if (std::abs(dx) + std::abs(dz) >= 7) {
         return true;
     }
 
-    // 丛林木树叶较稀疏
-    if (dist == radius && random.nextFloat() < 0.4f) {
-        return true;
-    }
-
-    return false;
+    // 第二个条件：使用欧几里得距离平方比较（圆形判定）
+    // 如果 dx*dx + dz*dz > radius*radius 则跳过
+    return dx * dx + dz * dz > radius * radius;
 }
 
 std::unique_ptr<FoliagePlacer> JungleFoliagePlacer::clone() const
@@ -471,17 +474,18 @@ void MegaPineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 bool MegaPineFoliagePlacer::shouldSkip(
     math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    i32 dist = std::abs(dx) + std::abs(dz);
-    if (dist > radius) {
+    // 参考 MC 1.16.5 MegaPineFoliagePlacer.func_230373_a_ (第55-61行)
+    // 与 JungleFoliagePlacer 相同的逻辑
+    // if (dx + dz >= 7) return true;
+    // else return dx * dx + dz * dz > radius * radius;
+
+    // 第一个条件：曼哈顿距离 >= 7 时跳过
+    if (std::abs(dx) + std::abs(dz) >= 7) {
         return true;
     }
 
-    // 边缘稀疏
-    if (dist >= radius - 1 && random.nextFloat() < 0.3f) {
-        return true;
-    }
-
-    return false;
+    // 第二个条件：使用欧几里得距离平方比较
+    return dx * dx + dz * dz > radius * radius;
 }
 
 std::unique_ptr<FoliagePlacer> MegaPineFoliagePlacer::clone() const
@@ -588,20 +592,17 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     }
 }
 
-bool FancyFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+bool FancyFoliagePlacer::shouldSkip(
+    math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    // 更密集的球形
-    f32 dist = std::sqrt(static_cast<f32>(dx * dx + dy * dy * 0.25f + dz * dz));
-    if (dist > radius + 1) {
-        return true;
-    }
+    // 参考 MC 1.16.5 FancyFoliagePlacer.func_230373_a_ (第35-37行)
+    // MC 源码: return MathHelper.abs((float)dx + 0.5F) + MathHelper.abs((float)dz + 0.5F) > (float)(radius * radius);
+    // 注意：这里使用半径的平方作为阈值，创建更圆形的树叶
 
-    // 边缘随机跳过
-    if (dist > radius - 0.5f && random.nextFloat() < 0.2f) {
-        return true;
-    }
+    f32 absDx = std::abs(static_cast<f32>(dx) + 0.5f);
+    f32 absDz = std::abs(static_cast<f32>(dz) + 0.5f);
 
-    return false;
+    return absDx + absDz > static_cast<f32>(radius * radius);
 }
 
 std::unique_ptr<FoliagePlacer> FancyFoliagePlacer::clone() const
