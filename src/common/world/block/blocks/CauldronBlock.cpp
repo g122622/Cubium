@@ -274,7 +274,12 @@ ActionResultType CauldronBlock::handleBucketInteraction(
         if (currentLevel < 3 && !world.isClientSide()) {
             // 水桶装水：空炼药锅 -> 满炼药锅
             setLevel(world, pos, state, 3);
-            playFillSound(world, pos);
+            // MC 1.16.5: 水桶倒入炼药锅使用 ITEM_BUCKET_EMPTY（水桶倒空）
+            world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
 
             // 非创造模式：替换为空桶
             if (!player.abilities().creativeMode) {
@@ -301,7 +306,12 @@ ActionResultType CauldronBlock::handleBucketInteraction(
         if (currentLevel == 3 && !world.isClientSide()) {
             // 空桶取水：满炼药锅 -> 空炼药锅
             setLevel(world, pos, state, 0);
-            playEmptySound(world, pos);
+            // MC 1.16.5: 空桶从炼药锅取水使用 ITEM_BUCKET_FILL（桶装满）
+            world.playSound(SoundEvents::ITEM_BUCKET_FILL,
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
 
             // 非创造模式：替换为水桶
             if (!player.abilities().creativeMode) {

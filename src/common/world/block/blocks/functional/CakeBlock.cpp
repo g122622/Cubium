@@ -53,15 +53,19 @@ CakeBlock::CakeBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::BITES_0_6(), 0));
 
     // 预计算各片数的形状
-    // 蛋糕高度8像素，每吃一片从一侧减少2像素
+    // 参考 MC 1.16.5: 蛋糕从左侧开始吃，每吃一片减少2像素宽度
+    // SHAPES[0] = (1,0,1)->(15,8,15) 完整蛋糕
+    // SHAPES[1] = (3,0,1)->(15,8,15) 吃了1片
+    // SHAPES[2] = (5,0,1)->(15,8,15) 吃了2片
+    // ...
+    // SHAPES[6] = (13,0,1)->(15,8,15) 吃了6片（最后一片）
     constexpr f32 P = 1.0f / 16.0f;
-    constexpr f32 heights[] = {15.0f, 13.0f, 11.0f, 9.0f, 7.0f, 5.0f, 3.0f};
+    constexpr i32 startX[] = {1, 3, 5, 7, 9, 11, 13};
 
     for (int i = 0; i < 7; ++i) {
-        // 从右侧开始吃，每片减少2像素宽度
-        f32 startX = 1.0f * P;
-        f32 endX = heights[i] * P;
-        m_shapesByBites[i] = CollisionShape::box(startX, 0.0f, 1.0f * P, endX, 8.0f * P, 15.0f * P);
+        // 从左侧开始吃，每片增加2像素起始X位置
+        m_shapesByBites[i] = CollisionShape::box(
+            static_cast<f32>(startX[i]) * P, 0.0f, 1.0f * P, 15.0f * P, 8.0f * P, 15.0f * P);
     }
 }
 

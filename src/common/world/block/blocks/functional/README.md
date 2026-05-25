@@ -184,6 +184,8 @@ Block (基类)
 - [ ] GrindstoneBlock: AttachFace属性支持、完整VoxelShape、GUI打开
 - [ ] StonecutterBlock: isTransparent/allowsMovement方法
 - [ ] LoomBlock: 正确VoxelShape、GUI打开
+- [x] CakeBlock: 形状计算修复（2026-05-25 完成，对齐MC 1.16.5）
+- [x] CauldronBlock: 音效修复（2026-05-25 完成，水桶倒入/取水音效对齐MC 1.16.5）
 
 ## 已实现功能详解
 
