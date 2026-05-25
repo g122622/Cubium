@@ -23,6 +23,7 @@
 
 #include "entity/inventory/IRecipeHolder.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/IRecipe.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "world/IWorld.hpp"
@@ -33,6 +34,8 @@ namespace mc {
 void IRecipeHolder::onCrafting(Player& player)
 {
     // MC 1.16.5: 如果配方不是动态的，解锁配方并清除
+    // 注意：由于模板类型不兼容，此默认实现不工作
+    // CraftResultInventory 重写了此方法来使用正确的类型
     const crafting::IRecipe<IInventory>* recipe = getRecipeUsed();
     if (recipe != nullptr && !recipe->isDynamic()) {
         // 获取配方 ID

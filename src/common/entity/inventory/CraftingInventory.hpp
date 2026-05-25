@@ -33,6 +33,16 @@
 
 namespace mc {
 
+// Forward declarations
+class CraftingInventory;
+
+namespace crafting {
+template <typename C>
+class IRecipe;
+// CraftingRecipe is a type alias defined in RecipeManager.hpp
+// using CraftingRecipe = IRecipe<CraftingInventory>;
+} // namespace crafting
+
 /**
  * @brief 合成网格背包
  *
@@ -274,20 +284,67 @@ public:
     // ========== IRecipeHolder接口 ==========
 
     /**
-     * @brief 设置当前使用的配方
+     * @brief 设置当前使用的配方（IInventory版本，不推荐使用）
      * @param recipe 配方指针，nullptr表示清除
+     * @deprecated 使用 setCraftingRecipeUsed 代替
      */
-    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override { m_recipeUsed = recipe; }
+    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override
+    {
+        // 注意：由于模板类型不兼容，此方法不推荐使用
+        // 使用 setCraftingRecipeUsed 代替
+        m_craftingRecipeUsed = nullptr;
+        (void)recipe;
+    }
 
     /**
-     * @brief 获取当前使用的配方
+     * @brief 获取当前使用的配方（IInventory版本，不推荐使用）
      * @return 配方指针，如果没有返回nullptr
+     * @deprecated 使用 getCraftingRecipeUsed 代替
      */
-    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override { return m_recipeUsed; }
+    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override
+    {
+        // 注意：由于模板类型不兼容，此方法不推荐使用
+        // 使用 getCraftingRecipeUsed 代替
+        return nullptr;
+    }
+
+    /**
+     * @brief 合成完成时调用（重写IRecipeHolder）
+     * @param player 玩家
+     *
+     * MC 1.16.5: 如果配方不是动态的，解锁配方并清除。
+     */
+    void onCrafting(Player& player) override;
+
+    /**
+     * @brief 设置当前使用的合成配方
+     * @param recipe 合成配方指针，nullptr表示清除
+     * @note 使用 crafting::CraftingRecipe 类型（IRecipe<CraftingInventory> 的别名）
+     */
+    void setCraftingRecipeUsed(const crafting::IRecipe<mc::CraftingInventory>* recipe)
+    {
+        m_craftingRecipeUsed = recipe;
+    }
+
+    /**
+     * @brief 获取当前使用的合成配方
+     * @return 合成配方指针，如果没有返回nullptr
+     * @note 返回 crafting::CraftingRecipe 类型（IRecipe<CraftingInventory> 的别名）
+     */
+    [[nodiscard]] const crafting::IRecipe<mc::CraftingInventory>* getCraftingRecipeUsed() const
+    {
+        return m_craftingRecipeUsed;
+    }
+
+    /**
+     * @brief 获取当前使用的配方ID
+     * @return 配方ID，如果没有返回空
+     */
+    [[nodiscard]] ResourceLocation getRecipeUsedId() const;
 
 private:
     ItemStack m_result;
-    const crafting::IRecipe<IInventory>* m_recipeUsed = nullptr;
+    const crafting::IRecipe<mc::CraftingInventory>* m_craftingRecipeUsed = nullptr; ///< 当前使用的合成配方
 };
 
 } // namespace mc

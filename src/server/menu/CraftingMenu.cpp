@@ -52,11 +52,15 @@ bool canStackResultWithCarried(const ItemStack& carried, const ItemStack& result
     return carried.getCount() + result.getCount() <= carried.getMaxStackSize();
 }
 
-void shrinkCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe* recipe)
+void processCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe* recipe)
 {
     if (recipe == nullptr) {
         return;
     }
+
+    // MC 1.16.5: 使用 getRemainingItems() 获取剩余物品
+    // 剩余物品包括：水桶->空桶、玻璃瓶->玻璃瓶、碗->碗等
+    std::vector<ItemStack> remaining = recipe->getRemainingItems(grid);
 
     for (i32 slot = 0; slot < grid.getContainerSize(); ++slot) {
         ItemStack stack = grid.getItem(slot);
@@ -64,9 +68,23 @@ void shrinkCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe*
             continue;
         }
 
-        stack.shrink(std::max(1, recipe->getIngredientCount(slot)));
-        grid.setItem(slot, stack.isEmpty() ? ItemStack() : stack);
+        // 减少物品数量
+        i32 count = std::max(1, recipe->getIngredientCount(slot));
+        stack.shrink(count);
+
+        // 如果有剩余物品（如空桶），替换原物品
+        if (slot < static_cast<i32>(remaining.size()) && !remaining[slot].isEmpty()) {
+            grid.setItem(slot, remaining[slot]);
+        } else {
+            grid.setItem(slot, stack.isEmpty() ? ItemStack() : stack);
+        }
     }
+}
+
+void shrinkCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe* recipe)
+{
+    // 兼容旧接口，调用新的处理函数
+    processCraftingGrid(grid, recipe);
 }
 
 } // namespace
@@ -129,7 +147,9 @@ void CraftingMenu::addCraftingGridSlots(i32 startX, i32 startY)
 void CraftingMenu::addResultSlot(i32 x, i32 y)
 {
     // 结果槽位：不能放入物品，只能取出
-    addSlot(std::make_unique<ResultSlot>(&m_result, 0, x, y, &m_craftingGrid));
+    // MC 1.16.5: 传入玩家指针用于触发配方解锁和成就
+    Player* player = m_playerInventory != nullptr ? m_playerInventory->getPlayer() : nullptr;
+    addSlot(std::make_unique<ResultSlot>(&m_result, 0, x, y, &m_craftingGrid, player));
 }
 
 void CraftingMenu::slotsChanged(IInventory* inventory)
@@ -243,8 +263,11 @@ void CraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
+        // MC 1.16.5: 设置当前使用的配方，用于配方解锁
+        m_result.setCraftingRecipeUsed(m_currentRecipe);
     } else {
         m_result.clear();
+        m_result.setCraftingRecipeUsed(nullptr);
     }
 
     broadcastChanges();
@@ -296,7 +319,9 @@ InventoryCraftingMenu::InventoryCraftingMenu(ContainerId id, PlayerInventory* pl
     // 槽位 45: 副手 (77, 62)
 
     // 添加结果槽位 (槽位 0)
-    addSlot(std::make_unique<ResultSlot>(&m_result, 0, 154, 28, &m_craftingGrid));
+    // MC 1.16.5: 传入玩家指针用于触发配方解锁和成就
+    Player* player = m_playerInventory != nullptr ? m_playerInventory->getPlayer() : nullptr;
+    addSlot(std::make_unique<ResultSlot>(&m_result, 0, 154, 28, &m_craftingGrid, player));
 
     // 添加合成网格槽位 (槽位 1-4)
     for (i32 y = 0; y < 2; ++y) {
@@ -449,8 +474,11 @@ void InventoryCraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
+        // MC 1.16.5: 设置当前使用的配方，用于配方解锁
+        m_result.setCraftingRecipeUsed(m_currentRecipe);
     } else {
         m_result.clear();
+        m_result.setCraftingRecipeUsed(nullptr);
     }
 
     broadcastChanges();

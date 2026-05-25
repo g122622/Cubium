@@ -30,6 +30,12 @@
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/item/crafting/special/ArmorDyeRecipe.hpp"
+#include "common/item/crafting/special/BookCloningRecipe.hpp"
+#include "common/item/crafting/special/MapCloningRecipe.hpp"
+#include "common/item/crafting/special/RepairItemRecipe.hpp"
+#include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
@@ -503,6 +509,33 @@ void MinecraftServer::initializeChunkSyncManagers()
     // 区块同步管理器已移入 ServerDimension，由 ServerDimension::initialize() 创建
 }
 
+void MinecraftServer::registerSpecialRecipes()
+{
+    using namespace crafting;
+
+    // 注册物品修复配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<RepairItemRecipe>(ResourceLocation("minecraft", "repair_item")));
+
+    // 注册盔甲染色配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")));
+
+    // 注册书复制配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<BookCloningRecipe>(ResourceLocation("minecraft", "book_cloning")));
+
+    // 注册地图复制配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<MapCloningRecipe>(ResourceLocation("minecraft", "map_cloning")));
+
+    // 注册药水箭配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
+
+    spdlog::info("Special recipes registered (5 recipes)");
+}
+
 void MinecraftServer::initializeRegistries(bool registerEntities)
 {
     MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
@@ -577,6 +610,9 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
                 dataPackLoadResult.value().successCount,
                 dataPackLoadResult.value().failedCount);
         }
+
+        // 注册特殊配方（动态配方，不从数据包加载）
+        registerSpecialRecipes();
     }
 
     // 加载模板池（从数据包加载）

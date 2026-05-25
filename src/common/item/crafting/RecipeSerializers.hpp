@@ -107,12 +107,34 @@ public:
     };
 
     /**
-     * @brief 从JSON解析配方
+     * @brief 从JSON解析合成配方（有序/无序）
+     * @param id 配方ID
+     * @param json JSON数据
+     * @return 解析的配方，或错误
+     *
+     * 支持的配方类型：
+     * - minecraft:crafting_shaped
+     * - minecraft:crafting_shapeless
+     */
+    static Result<std::unique_ptr<CraftingRecipe>> fromJson(const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 从JSON解析切石机配方
      * @param id 配方ID
      * @param json JSON数据
      * @return 解析的配方，或错误
      */
-    static Result<std::unique_ptr<CraftingRecipe>> fromJson(const ResourceLocation& id, const nlohmann::json& json);
+    static Result<std::unique_ptr<StonecuttingRecipe>> parseStonecuttingRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 从JSON解析锻造台配方
+     * @param id 配方ID
+     * @param json JSON数据
+     * @return 解析的配方，或错误
+     */
+    static Result<std::unique_ptr<SmithingRecipe>> parseSmithingRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
 
     /**
      * @brief 从JSON解析熔炼类配方

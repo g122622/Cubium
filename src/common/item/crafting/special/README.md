@@ -16,6 +16,8 @@ src/common/item/crafting/special/
 ├── BookCloningRecipe.cpp    # 书复制配方实现
 ├── MapCloningRecipe.hpp     # 地图复制配方
 ├── MapCloningRecipe.cpp     # 地图复制配方实现
+├── TippedArrowRecipe.hpp    # 药水箭配方
+├── TippedArrowRecipe.cpp    # 药水箭配方实现
 └── README.md                # 本文档
 ```
 
@@ -29,15 +31,17 @@ src/common/item/crafting/special/
 - 无固定合成图案
 - 动态匹配物品组合
 - 结果物品可能带有 NBT 数据
+- 动态配方（`isDynamic()` 返回 true），不会出现在配方书中
 
 ### RepairItemRecipe（物品修复）
 
-**功能**：在铁砧中修复可损坏物品。
+**功能**：在工作台中修复两个相同类型的可损坏物品。
 
 **合成逻辑**：
 - 两个相同类型的可损坏物品
-- 结果物品耐久度 = 剩余耐久度之和 + 10%最大耐久度
-- 结果物品继承两个输入中较高的附魔等级
+- 结果物品耐久度 = min(剩余耐久度1 + 剩余耐久度2 + 最大耐久度 × 5%, 最大耐久度)
+- 结果物品**只继承诅咒附魔**（绑定诅咒、消失诅咒），普通附魔会丢失
+- 注意：铁砧修复的耐久度奖励为12%且会合并附魔，与工作台修复不同
 
 ### ArmorDyeRecipe（盔甲染色）
 
@@ -91,6 +95,20 @@ src/common/item/crafting/special/
 - 结果物品数量 = 空地图数量 + 1（原地图保留）
 - 复制的地图与原地图共享数据
 
+### TippedArrowRecipe（药水箭）
+
+**功能**：使用滞留药水和箭合成药水箭。
+
+**合成逻辑**：
+- 中心格子：滞留药水（LINGERING_POTION）
+- 周围格子：箭（ARROW，至少1支，最多8支）
+- 每支箭变成一支药水箭，继承滞留药水的效果
+- 最多产出 8 支药水箭
+
+**特点**：
+- 保留滞留药水的自定义效果和颜色
+- 结果药水箭与输入药水效果相同
+
 ## 使用方法
 
 特殊配方通过 `RecipeManager` 注册，与普通配方一样使用：
@@ -103,6 +121,28 @@ auto recipe = std::make_unique<ArmorDyeRecipe>(
     ResourceLocation("minecraft", "armor_dye")
 );
 RecipeManager::instance().registerRecipe(std::move(recipe));
+```
+
+## 注册位置
+
+特殊配方在 `MinecraftServer::registerSpecialRecipes()` 中统一注册：
+
+```cpp
+void MinecraftServer::registerSpecialRecipes()
+{
+    using namespace crafting;
+
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<RepairItemRecipe>(ResourceLocation("minecraft", "repair_item")));
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")));
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<BookCloningRecipe>(ResourceLocation("minecraft", "book_cloning")));
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<MapCloningRecipe>(ResourceLocation("minecraft", "map_cloning")));
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
+}
 ```
 
 ## 匹配逻辑
@@ -133,6 +173,7 @@ bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const override 
 2. **染料物品**：需要检查所有 16 种染料 + 墨囊 + 可可豆
 3. **剩余物品**：使用 `getRemainingItems()` 返回不消耗的物品
 4. **NBT 复制**：复制 NBT 数据时注意深拷贝
+5. **动态配方**：特殊配方的 `isDynamic()` 返回 true，不会出现在配方书中
 
 ## 测试用例
 
@@ -146,3 +187,4 @@ bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const override 
 | `item/core/ItemStack.hpp` | 物品堆操作 |
 | `item/items/armor/DyeableArmorItem.hpp` | 可染色盔甲 |
 | `entity/inventory/CraftingInventory.hpp` | 合成容器 |
+| `item/potion/PotionUtils.hpp` | 药水工具类（药水箭配方） |

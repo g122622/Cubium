@@ -22,7 +22,9 @@
  */
 
 #include "entity/inventory/CraftingInventory.hpp"
-#include "item/core/Item.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "item/crafting/IRecipe.hpp"
+#include "item/crafting/RecipeManager.hpp"
 #include "network/packet/PacketSerializer.hpp"
 
 namespace mc {
@@ -282,6 +284,26 @@ void CraftResultInventory::setChanged()
 void CraftResultInventory::serialize(network::PacketSerializer& ser) const
 {
     m_result.serialize(ser);
+}
+
+void CraftResultInventory::onCrafting(Player& player)
+{
+    // MC 1.16.5: 如果配方不是动态的，解锁配方并清除
+    // 参考: net.minecraft.inventory.CraftResultInventory.onCrafting
+    if (m_craftingRecipeUsed != nullptr && !m_craftingRecipeUsed->isDynamic()) {
+        // 获取配方 ID
+        ResourceLocation recipeId = m_craftingRecipeUsed->getId();
+
+        // 触发配方解锁成就（仅对 ServerPlayer 有效）
+        player.unlockRecipe(recipeId);
+
+        m_craftingRecipeUsed = nullptr;
+    }
+}
+
+ResourceLocation CraftResultInventory::getRecipeUsedId() const
+{
+    return m_craftingRecipeUsed != nullptr ? m_craftingRecipeUsed->getId() : ResourceLocation();
 }
 
 } // namespace mc

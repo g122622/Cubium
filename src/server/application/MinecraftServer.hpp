@@ -328,6 +328,15 @@ protected:
     void initializeRegistries(bool registerEntities = false);
 
     /**
+     * @brief 注册特殊配方
+     *
+     * 注册内置的动态配方（RepairItemRecipe、ArmorDyeRecipe、BookCloningRecipe、
+     * MapCloningRecipe、TippedArrowRecipe 等）。
+     * 这些配方不从数据包加载，而是在代码中动态注册。
+     */
+    void registerSpecialRecipes();
+
+    /**
      * @brief 设置世界回调
      *
      * 设置区块加载回调、实体生成回调、光照变化回调

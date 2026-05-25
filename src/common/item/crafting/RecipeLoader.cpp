@@ -172,7 +172,54 @@ Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id
         return Error(ErrorCode::ResourceParseError, "JSON parse error in recipe " + id.toString() + ": " + e.what());
     }
 
-    // 使用RecipeSerializers解析配方
+    // 获取配方类型
+    if (!json.contains("type") || !json["type"].is_string()) {
+        return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field: " + id.toString());
+    }
+
+    std::string type = json["type"].get<std::string>();
+
+    // 根据类型分发到对应的解析方法
+    // 熔炼类配方
+    if (type == "minecraft:smelting" || type == "minecraft:blasting" || type == "minecraft:smoking" ||
+        type == "minecraft:campfire_cooking") {
+        auto recipeResult = crafting::RecipeSerializers::fromSmeltingJson(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        if (!crafting::RecipeManager::instance().registerSmeltingRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Smelting recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 切石机配方
+    if (type == "minecraft:stonecutting") {
+        auto recipeResult = crafting::RecipeSerializers::parseStonecuttingRecipe(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        // 切石机配方使用专门的注册方法
+        if (!crafting::RecipeManager::instance().registerStonecuttingRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Stonecutting recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 锻造台配方
+    if (type == "minecraft:smithing") {
+        auto recipeResult = crafting::RecipeSerializers::parseSmithingRecipe(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        // 锻造台配方使用专门的注册方法
+        if (!crafting::RecipeManager::instance().registerSmithingRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Smithing recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 合成配方（有序/无序）
     auto recipeResult = crafting::RecipeSerializers::fromJson(id, json);
     if (recipeResult.failed()) {
         return recipeResult.error();

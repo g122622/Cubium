@@ -45,7 +45,9 @@ bool RecipeManager::registerRecipe(std::unique_ptr<CraftingRecipe> recipe)
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (m_recipesById.find(id) != m_recipesById.end() ||
-        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end()) {
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end()) {
         return false;
     }
 
@@ -75,7 +77,9 @@ bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recip
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
-        m_recipesById.find(id) != m_recipesById.end()) {
+        m_recipesById.find(id) != m_recipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end()) {
         return false;
     }
 
@@ -84,6 +88,54 @@ bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recip
     m_smeltingRecipesById[id] = std::move(recipe);
 
     m_smeltingRecipesByType[type].push_back(recipePtr);
+    return true;
+}
+
+bool RecipeManager::registerStonecuttingRecipe(std::unique_ptr<StonecuttingRecipe> recipe)
+{
+    if (!recipe) {
+        return false;
+    }
+
+    ResourceLocation id = recipe->getId();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end() ||
+        m_recipesById.find(id) != m_recipesById.end() ||
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end()) {
+        return false;
+    }
+
+    const StonecuttingRecipe* recipePtr = recipe.get();
+    m_stonecuttingRecipesById[id] = std::move(recipe);
+
+    m_stonecuttingRecipesByType[RecipeType::Stonecutting].push_back(recipePtr);
+    return true;
+}
+
+bool RecipeManager::registerSmithingRecipe(std::unique_ptr<SmithingRecipe> recipe)
+{
+    if (!recipe) {
+        return false;
+    }
+
+    ResourceLocation id = recipe->getId();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (m_smithingRecipesById.find(id) != m_smithingRecipesById.end() ||
+        m_recipesById.find(id) != m_recipesById.end() ||
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end()) {
+        return false;
+    }
+
+    const SmithingRecipe* recipePtr = recipe.get();
+    m_smithingRecipesById[id] = std::move(recipe);
+
+    m_smithingRecipesByType[RecipeType::Smithing].push_back(recipePtr);
     return true;
 }
 
@@ -102,7 +154,9 @@ bool RecipeManager::hasRecipe(const ResourceLocation& id) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_recipesById.find(id) != m_recipesById.end() ||
-        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end();
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end();
 }
 
 std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const
@@ -164,6 +218,102 @@ const SmeltingRecipe* RecipeManager::getSmeltingRecipe(const ItemStack& input, R
     }
 
     return nullptr;
+}
+
+const StonecuttingRecipe* RecipeManager::getStonecuttingRecipe(const ResourceLocation& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_stonecuttingRecipesById.find(id);
+    if (it != m_stonecuttingRecipesById.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+const SmithingRecipe* RecipeManager::getSmithingRecipe(const ResourceLocation& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_smithingRecipesById.find(id);
+    if (it != m_smithingRecipesById.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+std::vector<const StonecuttingRecipe*> RecipeManager::getAllStonecuttingRecipes() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<const StonecuttingRecipe*> result;
+    result.reserve(m_stonecuttingRecipesById.size());
+
+    for (const auto& pair : m_stonecuttingRecipesById) {
+        result.push_back(pair.second.get());
+    }
+
+    return result;
+}
+
+std::vector<const SmithingRecipe*> RecipeManager::getAllSmithingRecipes() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<const SmithingRecipe*> result;
+    result.reserve(m_smithingRecipesById.size());
+
+    for (const auto& pair : m_smithingRecipesById) {
+        result.push_back(pair.second.get());
+    }
+
+    return result;
+}
+
+std::vector<const StonecuttingRecipe*> RecipeManager::findStonecuttingRecipes(const ItemStack& input) const
+{
+    std::vector<const StonecuttingRecipe*> result;
+
+    if (input.isEmpty()) {
+        return result;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    for (const auto& pair : m_stonecuttingRecipesById) {
+        const StonecuttingRecipe* recipe = pair.second.get();
+        if (recipe != nullptr) {
+            const Ingredient& ingredient = recipe->getIngredient();
+            if (ingredient.test(input)) {
+                result.push_back(recipe);
+            }
+        }
+    }
+
+    return result;
+}
+
+std::vector<const SmithingRecipe*> RecipeManager::findSmithingRecipes(const ItemStack& input) const
+{
+    std::vector<const SmithingRecipe*> result;
+
+    if (input.isEmpty()) {
+        return result;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    for (const auto& pair : m_smithingRecipesById) {
+        const SmithingRecipe* recipe = pair.second.get();
+        if (recipe != nullptr) {
+            const Ingredient& base = recipe->getBase();
+            if (base.test(input)) {
+                result.push_back(recipe);
+            }
+        }
+    }
+
+    return result;
 }
 
 const CraftingRecipe* RecipeManager::findMatchingRecipe(const CraftingInventory& inventory) const
@@ -250,7 +400,8 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(const Item
 size_t RecipeManager::getRecipeCount() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_recipesById.size() + m_smeltingRecipesById.size();
+    return m_recipesById.size() + m_smeltingRecipesById.size() + m_stonecuttingRecipesById.size() +
+        m_smithingRecipesById.size();
 }
 
 void RecipeManager::clear()
@@ -258,8 +409,12 @@ void RecipeManager::clear()
     std::lock_guard<std::mutex> lock(m_mutex);
     m_recipesById.clear();
     m_smeltingRecipesById.clear();
+    m_stonecuttingRecipesById.clear();
+    m_smithingRecipesById.clear();
     m_recipesByType.clear();
     m_smeltingRecipesByType.clear();
+    m_stonecuttingRecipesByType.clear();
+    m_smithingRecipesByType.clear();
     m_recipesByResult.clear();
 }
 

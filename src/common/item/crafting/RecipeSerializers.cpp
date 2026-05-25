@@ -26,6 +26,7 @@
 #include "util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <sstream>
+#include <unordered_set>
 
 namespace mc {
 namespace crafting {
@@ -175,40 +176,26 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
         }
         return result.error();
     }
-    // 熔炉
-    else if (type == "minecraft:smelting") {
-        auto result = parseSmeltingRecipe(id, json, DEFAULT_SMELTING_TIME);
-        if (result.success()) {
-            // 转换为 CraftingRecipe 不适用，熔炼配方独立存储
-            return Error(ErrorCode::ResourceParseError, "Smelting recipes should be loaded via fromSmeltingJson");
-        }
-        return result.error();
+    // 切石机 - 返回错误提示使用专门的方法
+    else if (type == "minecraft:stonecutting") {
+        return Error(ErrorCode::ResourceParseError,
+            "Stonecutting recipes should be loaded via parseStonecuttingRecipe. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
     }
-    // 高炉
-    else if (type == "minecraft:blasting") {
-        auto result = parseBlastingRecipe(id, json);
-        if (result.success()) {
-            return Error(ErrorCode::ResourceParseError, "Blasting recipes should be loaded via fromSmeltingJson");
-        }
-        return result.error();
+    // 锻造台 - 返回错误提示使用专门的方法
+    else if (type == "minecraft:smithing") {
+        return Error(ErrorCode::ResourceParseError,
+            "Smithing recipes should be loaded via parseSmithingRecipe. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
     }
-    // 烟熏炉
-    else if (type == "minecraft:smoking") {
-        auto result = parseSmokingRecipe(id, json);
-        if (result.success()) {
-            return Error(ErrorCode::ResourceParseError, "Smoking recipes should be loaded via fromSmeltingJson");
-        }
-        return result.error();
+    // 熔炼类配方 - 返回错误提示使用专门的方法
+    else if (type == "minecraft:smelting" || type == "minecraft:blasting" ||
+             type == "minecraft:smoking" || type == "minecraft:campfire_cooking") {
+        return Error(ErrorCode::ResourceParseError,
+            "Smelting recipes should be loaded via fromSmeltingJson. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
     }
-    // 营火烹饪
-    else if (type == "minecraft:campfire_cooking") {
-        auto result = parseCampfireCookingRecipe(id, json);
-        if (result.success()) {
-            return Error(
-                ErrorCode::ResourceParseError, "Campfire cooking recipes should be loaded via fromSmeltingJson");
-        }
-        return result.error();
-    } else {
+    else {
         return Error(ErrorCode::ResourceParseError, "Unsupported recipe type: " + type);
     }
 }
@@ -685,13 +672,45 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
 
     // 构建键到原料的映射
     std::unordered_map<char, Ingredient> keyMap;
+    std::unordered_set<char> usedKeys; // 记录pattern中使用的key
+
+    // 先收集pattern中使用的所有字符
+    for (const std::string& row : pattern) {
+        for (char c : row) {
+            if (c != ' ') {
+                usedKeys.insert(c);
+            }
+        }
+    }
+
+    // 解析key对象
     for (auto it = key.begin(); it != key.end(); ++it) {
-        char c = it.key()[0]; // 键是单个字符
+        // MC 1.16.5验证：key必须是单字符
+        if (it.key().size() != 1) {
+            return Error(ErrorCode::ResourceParseError,
+                "Invalid key entry: '" + it.key() + "' is an invalid symbol (must be 1 character only).");
+        }
+
+        char c = it.key()[0];
+
+        // MC 1.16.5验证：空格是保留符号
+        if (c == ' ') {
+            return Error(ErrorCode::ResourceParseError, "Invalid key entry: ' ' is a reserved symbol.");
+        }
+
         auto ingResult = parseIngredient(it.value());
         if (!ingResult.success()) {
             return ingResult.error();
         }
         keyMap[c] = ingResult.value();
+    }
+
+    // MC 1.16.5验证：检查key中定义但未在pattern中使用的符号
+    for (const auto& [keyChar, _] : keyMap) {
+        if (usedKeys.find(keyChar) == usedKeys.end()) {
+            return Error(ErrorCode::ResourceParseError,
+                "Key defines symbols that aren't used in pattern: '" + std::string(1, keyChar) + "'");
+        }
     }
 
     // 按行列顺序解析原料
@@ -711,6 +730,113 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
     }
 
     return ingredients;
+}
+
+// ============================================================================
+// 切石机配方解析
+// ============================================================================
+
+Result<std::unique_ptr<StonecuttingRecipe>> RecipeSerializers::parseStonecuttingRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // 解析group（可选，切石机配方通常不使用）
+    std::string group;
+    if (json.contains("group") && json["group"].is_string()) {
+        group = json["group"].get<std::string>();
+    }
+
+    // 解析ingredient
+    if (!json.contains("ingredient")) {
+        return Error(ErrorCode::ResourceParseError, "Stonecutting recipe missing 'ingredient'");
+    }
+
+    auto ingResult = parseIngredient(json["ingredient"]);
+    if (!ingResult.success()) {
+        return ingResult.error();
+    }
+
+    // MC 1.16.5: 切石机配方的result是字符串形式，count是单独字段
+    // 格式1: "result": "minecraft:stone_bricks", "count": 1
+    // 格式2: "result": { "item": "minecraft:stone_bricks", "count": 1 }
+    if (!json.contains("result")) {
+        return Error(ErrorCode::ResourceParseError, "Stonecutting recipe missing 'result'");
+    }
+
+    // 解析结果物品
+    ItemStack resultStack;
+    const auto& resultValue = json["result"];
+
+    if (resultValue.is_string()) {
+        // 字符串形式：仅物品ID
+        std::string itemId = resultValue.get<std::string>();
+        ResourceLocation loc(itemId);
+        Item* item = ItemRegistry::instance().getItem(loc);
+        if (!item) {
+            return Error(ErrorCode::ResourceParseError, "Unknown item: " + itemId);
+        }
+
+        // 解析count（可选，默认为1）
+        i32 count = 1;
+        if (json.contains("count") && json["count"].is_number_integer()) {
+            count = json["count"].get<i32>();
+            if (count < 1) {
+                count = 1;
+            }
+        }
+
+        resultStack = ItemStack(*item, count);
+    } else if (resultValue.is_object()) {
+        // 对象形式：使用parseResult解析
+        auto parseResult = RecipeSerializers::parseResult(resultValue);
+        if (!parseResult.success()) {
+            return parseResult.error();
+        }
+        resultStack = parseResult.value();
+    } else {
+        return Error(ErrorCode::ResourceParseError, "Stonecutting recipe 'result' must be string or object");
+    }
+
+    return std::make_unique<StonecuttingRecipe>(id, group, ingResult.value(), resultStack, resultStack.getCount());
+}
+
+// ============================================================================
+// 锻造台配方解析
+// ============================================================================
+
+Result<std::unique_ptr<SmithingRecipe>> RecipeSerializers::parseSmithingRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // 解析base（基础物品）
+    if (!json.contains("base")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing recipe missing 'base'");
+    }
+
+    auto baseResult = parseIngredient(json["base"]);
+    if (!baseResult.success()) {
+        return baseResult.error();
+    }
+
+    // 解析addition（添加物）
+    if (!json.contains("addition")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing recipe missing 'addition'");
+    }
+
+    auto additionResult = parseIngredient(json["addition"]);
+    if (!additionResult.success()) {
+        return additionResult.error();
+    }
+
+    // 解析result
+    if (!json.contains("result")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing recipe missing 'result'");
+    }
+
+    auto resultStack = parseResult(json["result"]);
+    if (!resultStack.success()) {
+        return resultStack.error();
+    }
+
+    return std::make_unique<SmithingRecipe>(id, baseResult.value(), additionResult.value(), resultStack.value());
 }
 
 } // namespace crafting

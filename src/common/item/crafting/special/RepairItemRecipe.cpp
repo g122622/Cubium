@@ -86,7 +86,9 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
     ItemStack result(stack1.getItem(), 1);
 
     // 计算修复后的耐久度
-    // MC 原版公式: newDamage = maxDamage - min((remaining1 + remaining2 + maxDamage * 5%), maxDamage)
+    // MC 1.16.5 工作台修复公式:
+    // 结果耐久度 = min(剩余耐久1 + 剩余耐久2 + 最大耐久 * 5%, 最大耐久)
+    // 注意：铁砧修复使用12%奖励，与工作台不同
     i32 maxDamage = stack1.getMaxDamage();
     i32 remaining1 = maxDamage - stack1.getDamage();
     i32 remaining2 = maxDamage - stack2.getDamage();
@@ -96,10 +98,10 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
 
     result.setDamage(newDamage);
 
-    // 合并诅咒附魔（取最高等级）
-    // 注意：MC 原版只合并诅咒附魔，普通附魔不合并
+    // MC 1.16.5 工作台修复：只保留诅咒附魔（绑定诅咒、消失诅咒）
+    // 普通附魔会丢失！这与铁砧修复不同
     using EnchantEntry = std::pair<const item::enchant::Enchantment*, i32>;
-    std::vector<EnchantEntry> combinedEnchants;
+    std::vector<EnchantEntry> combinedCurses;
 
     auto enchants1 = item::enchant::EnchantmentHelper::getEnchantments(stack1);
     auto enchants2 = item::enchant::EnchantmentHelper::getEnchantments(stack2);
@@ -108,34 +110,34 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
     for (const auto& [enchant, level] : enchants1) {
         if (enchant != nullptr && enchant->isCurse()) {
             // 检查是否已在列表中
-            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(), [enchant](const EnchantEntry& e) {
+            auto it = std::find_if(combinedCurses.begin(), combinedCurses.end(), [enchant](const EnchantEntry& e) {
                 return e.first == enchant;
             });
 
-            if (it != combinedEnchants.end()) {
+            if (it != combinedCurses.end()) {
                 it->second = std::max(it->second, level);
             } else {
-                combinedEnchants.emplace_back(enchant, level);
+                combinedCurses.emplace_back(enchant, level);
             }
         }
     }
 
     for (const auto& [enchant, level] : enchants2) {
         if (enchant != nullptr && enchant->isCurse()) {
-            auto it = std::find_if(combinedEnchants.begin(), combinedEnchants.end(), [enchant](const EnchantEntry& e) {
+            auto it = std::find_if(combinedCurses.begin(), combinedCurses.end(), [enchant](const EnchantEntry& e) {
                 return e.first == enchant;
             });
 
-            if (it != combinedEnchants.end()) {
+            if (it != combinedCurses.end()) {
                 it->second = std::max(it->second, level);
             } else {
-                combinedEnchants.emplace_back(enchant, level);
+                combinedCurses.emplace_back(enchant, level);
             }
         }
     }
 
     // 应用诅咒附魔
-    for (const auto& [enchant, level] : combinedEnchants) {
+    for (const auto& [enchant, level] : combinedCurses) {
         if (enchant != nullptr && level > 0) {
             result.addEnchantment(enchant->id(), level);
         }
