@@ -1,222 +1,198 @@
-# 结构生成系统 (Structure Generation System)
+#结构生成系统(Structure Generation System)
 
-[中文](#概述) | [English](#overview)
+[中文](#概述) |
+    [English](#overview)
 
-## 概述
+            ##概述
 
-`src/common/world/gen/structure` 目录实现了 Minecraft 1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门、埋藏宝藏、沉船、海底废墟、雪屋、沼泽小屋、下界化石、掠夺者前哨站、末地城、林地府邸和堡垒遗迹等。
+`src / common
+        / world / gen /
+        structure` 目录实现了 Minecraft
+        1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门、埋藏宝藏、沉船、海底废墟、雪屋、沼泽小屋、下界化石、掠夺者前哨站、末地城、林地府邸和堡垒遗迹等。
 
-## 目录结构
+        ##目录结构
 
-```
-structure/
-├── Structure.hpp                  # 结构基类定义
-├── Structure.cpp                  # 结构基类实现
-├── StructureBoundingBox.hpp       # 结构边界框
-├── JigsawStructure.hpp            # Jigsaw 结构（基于模板池的结构）
+``` structure
+        /
+├── Structure.hpp #结构基类定义
+├── Structure.cpp #结构基类实现
+├── StructureBoundingBox.hpp #结构边界框
+├── JigsawStructure.hpp #Jigsaw 结构（基于模板池的结构）
 ├── JigsawStructure.cpp
-├── StructureManager.hpp           # 结构管理器和注册表
+├── StructureManager.hpp #结构管理器和注册表
 ├── StructureManager.cpp
-├── pieces/                        # 结构片段（预留目录）
-└── structures/                    # 具体结构实现
-    ├── README.md                  # 结构实现子目录说明
-    ├── VillageStructure.hpp       # 村庄结构
-    ├── StrongholdStructure.hpp    # 要塞结构
-    ├── MineshaftStructure.hpp     # 废弃矿井结构
-    ├── DesertPyramidStructure.hpp # 沙漠神殿结构
-    ├── JungleTempleStructure.hpp  # 丛林神庙结构
-    ├── OceanMonumentStructure.hpp # 海洋纪念碑结构
-    ├── RuinedPortalStructure.hpp  # 废弃传送门结构
-    ├── BuriedTreasureStructure.hpp # 埋藏宝藏结构
-    ├── ShipwreckStructure.hpp      # 沉船结构
-    ├── OceanRuinStructure.hpp      # 海底废墟结构
-    ├── FortressStructure.hpp       # 下界要塞结构
-    ├── IglooStructure.hpp          # 雪屋结构
-    ├── SwampHutStructure.hpp       # 沼泽小屋（女巫小屋）结构
-    ├── NetherFossilStructure.hpp   # 下界化石结构
-    ├── PillagerOutpostStructure.hpp # 掠夺者前哨站结构
-    ├── EndCityStructure.hpp        # 末地城结构
-    ├── WoodlandMansionStructure.hpp # 林地府邸结构
-    └── BastionRemnantStructure.hpp  # 堡垒遗迹结构
+├── pieces / #结构片段（预留目录）
+└── structures /
+        #具体结构实现
+    ├── README.md #结构实现子目录说明
+    ├── VillageStructure.hpp #村庄结构
+    ├── StrongholdStructure.hpp #要塞结构
+    ├── MineshaftStructure.hpp #废弃矿井结构
+    ├── DesertPyramidStructure.hpp #沙漠神殿结构
+    ├── JungleTempleStructure.hpp #丛林神庙结构
+    ├── OceanMonumentStructure.hpp #海洋纪念碑结构
+    ├── RuinedPortalStructure.hpp #废弃传送门结构
+    ├── BuriedTreasureStructure.hpp #埋藏宝藏结构
+    ├── ShipwreckStructure.hpp #沉船结构
+    ├── OceanRuinStructure.hpp #海底废墟结构
+    ├── FortressStructure.hpp #下界要塞结构
+    ├── IglooStructure.hpp #雪屋结构
+    ├── SwampHutStructure.hpp #沼泽小屋（女巫小屋）结构
+    ├── NetherFossilStructure.hpp #下界化石结构
+    ├── PillagerOutpostStructure.hpp #掠夺者前哨站结构
+    ├── EndCityStructure.hpp #末地城结构
+    ├── WoodlandMansionStructure.hpp #林地府邸结构
+    └── BastionRemnantStructure.hpp #堡垒遗迹结构
 ```
 
-## 已实现结构列表
+        ##已实现结构列表
 
-| 结构类型 | 类名 | 生成生物群系 | 实现方式 |
-|---------|------|-------------|---------|
-| 村庄 | VillageStructure | 平原、沙漠、热带草原、针叶林、雪地 | Jigsaw |
-| 要塞 | StrongholdStructure | 所有生物群系 | Jigsaw |
-| 废弃矿井 | MineshaftStructure | 所有生物群系 | 程序化 |
-| 沙漠神殿 | DesertPyramidStructure | 沙漠 | 模板 |
-| 丛林神庙 | JungleTempleStructure | 丛林 | 模板 |
-| 海洋纪念碑 | OceanMonumentStructure | 深海 | 程序化 |
-| 废弃传送门 | RuinedPortalStructure | 所有生物群系 | 模板 |
-| 埋藏宝藏 | BuriedTreasureStructure | 沙滩、雪地海滩 | 程序化 |
-| 沉船 | ShipwreckStructure | 海洋 | 模板 |
-| 海底废墟 | OceanRuinStructure | 海洋 | 模板 |
-| 下界要塞 | FortressStructure | 下界荒地 | Jigsaw |
-| 雪屋 | IglooStructure | 雪地苔原、雪地针叶林 | 程序化 |
-| 沼泽小屋 | SwampHutStructure | 沼泽 | 程序化 |
-| 下界化石 | NetherFossilStructure | 灵魂沙峡谷 | 程序化 |
-| 掠夺者前哨站 | PillagerOutpostStructure | 平原、沙漠、热带草原等 | Jigsaw |
-| 末地城 | EndCityStructure | 末地外岛 | 程序化 |
-| 林地府邸 | WoodlandMansionStructure | 黑森林 | 程序化 |
-| 堡垒遗迹 | BastionRemnantStructure | 下界（除玄武岩三角洲） | Jigsaw |
+    | 结构类型 | 类名 | 生成生物群系 | 实现方式 | | -- -- -- -- -| -- -- --| -- -- -- -- -- -- -| -- -- -- -- -| | 村庄
+    | VillageStructure | 平原、沙漠、热带草原、针叶林、雪地 | Jigsaw | | 要塞 | StrongholdStructure | 主世界多数生物群系
+    | 递归 StructurePiece | | 废弃矿井 | MineshaftStructure | 所有生物群系 | 程序化 | | 沙漠神殿
+    | DesertPyramidStructure | 沙漠 | 模板 | | 丛林神庙 | JungleTempleStructure | 丛林 | 模板 | | 海洋纪念碑
+    | OceanMonumentStructure | 深海 | 程序化 | | 废弃传送门 | RuinedPortalStructure | 所有生物群系 | 模板 | | 埋藏宝藏
+    | BuriedTreasureStructure | 沙滩、雪地海滩 | 程序化 | | 沉船 | ShipwreckStructure | 海洋 | 模板 | | 海底废墟
+    | OceanRuinStructure | 海洋 | 模板 | | 下界要塞 | FortressStructure | 下界荒地 | Jigsaw | | 雪屋 | IglooStructure
+    | 雪地苔原、雪地针叶林 | 程序化 | | 沼泽小屋 | SwampHutStructure | 沼泽 | 程序化 | | 下界化石
+    | NetherFossilStructure | 灵魂沙峡谷 | 程序化 | | 掠夺者前哨站 | PillagerOutpostStructure | 平原、沙漠、热带草原等
+    | Jigsaw | | 末地城 | EndCityStructure | 末地外岛 | 程序化 | | 林地府邸 | WoodlandMansionStructure | 黑森林 | 程序化
+    | | 堡垒遗迹 | BastionRemnantStructure | 下界（除玄武岩三角洲） | Jigsaw |
 
-## 文件详细说明
+    ##文件详细说明
 
-### 核心文件
+        ## #核心文件
 
-#### Structure.hpp / Structure.cpp
+        ####Structure.hpp
+        /
+        Structure.cpp
 
-**职责**: 定义所有结构类型的基类，提供结构生成的通用接口和基础设施。
+            ** 职责** : 定义所有结构类型的基类，提供结构生成的通用接口和基础设施。
 
-**主要内容**:
+                            ** 主要内容** :
 
-```mermaid
-classDiagram
-    class Structure {
-        <<abstract>>
-        -StructureType m_type
-        +name() const std::string&
-        +separationSettings() const StructureSeparationSettings
-        +validBiomes() const vector~BiomeId~&
-        +canGenerate(world, generator, rng, chunkX, chunkZ) bool
-        +generate(world, generator, rng, chunkX, chunkZ) unique_ptr~StructureStart~
-        +placeInChunk(world, chunk, start, chunkX, chunkZ) void
-        +findStructureStart(seed, chunkX, chunkZ, settings, outStartX, outStartZ) bool
-        #createRandom(seed, chunkX, chunkZ, salt) Random
-    }
-    
-    class StructurePiece {
-        <<abstract>>
-        -i32 m_type
-        -i32 m_minX, m_minY, m_minZ
-        -i32 m_maxX, m_maxY, m_maxZ
-        +generate(world, rng, chunkX, chunkZ, chunkBounds) void
-        +intersectsChunk(chunkX, chunkZ) bool
-    }
-    
-    class StructureStart {
-        -vector~unique_ptr~StructurePiece~~ m_pieces
-        -i32 m_chunkX, m_chunkZ
-        +addPiece(piece) void
-        +pieces() const vector~unique_ptr~StructurePiece~~&
-        +isValid() bool
-    }
-    
-    Structure <|-- StructureStart : contains
-    StructureStart <|-- StructurePiece : contains
+```mermaid classDiagram class Structure {
+    << abstract >> -StructureType m_type + name() const std::string &
+        +separationSettings() const StructureSeparationSettings +
+            validBiomes() const vector ~BiomeId ~&+canGenerate(world, generator, rng, chunkX, chunkZ) bool +
+            generate(world, generator, rng, chunkX, chunkZ) unique_ptr ~StructureStart
+            ~+placeInChunk(world, chunk, start, chunkX, chunkZ) void +
+            findStructureStart(seed, chunkX, chunkZ, settings, outStartX, outStartZ) bool
+#createRandom(seed, chunkX, chunkZ, salt) Random
+}
+
+class StructurePiece {
+    << abstract >> -i32 m_type - i32 m_minX, m_minY, m_minZ - i32 m_maxX, m_maxY,
+        m_maxZ + generate(world, rng, chunkX, chunkZ, chunkBounds) void + intersectsChunk(chunkX, chunkZ) bool
+}
+
+class StructureStart {
+    - vector ~unique_ptr ~StructurePiece ~~m_pieces -
+        i32 m_chunkX,
+        m_chunkZ + addPiece(piece)void + pieces()const vector ~unique_ptr ~StructurePiece ~~&+isValid()bool
+}
+
+        Structure < |
+    --StructureStart : contains StructureStart < |
+    --StructurePiece : contains
 ```
 
-**关键类型**:
+                           ** 关键类型** :
 
-| 类型 | 说明 |
-|------|------|
-| `StructureType` | 结构类型枚举（Temple, Monument, Stronghold, Village 等） |
-| `StructureSeparationSettings` | 结构间距设置（spacing, separation, salt） |
-| `StructurePiece` | 结构片段基类，定义单个可生成片段 |
-| `StructureStart` | 结构实例，包含一组结构片段 |
-| `Rotation` | 旋转枚举（定义在 Direction.hpp） |
-| `Mirror` | 镜像枚举（定义在 Direction.hpp） |
+    | 类型 | 说明 | | -- -- --| -- -- --| | `StructureType` | 结构类型枚举（Temple,
+    Monument, Stronghold, Village 等） | | `StructureSeparationSettings` | 结构间距设置（spacing, separation,
+    salt） | | `StructurePiece` | 结构片段基类，定义单个可生成片段 | | `StructureStart` | 结构实例，包含一组结构片段 |
+    | `Rotation` | 旋转枚举（定义在 Direction.hpp） | | `Mirror` | 镜像枚举（定义在 Direction.hpp） |
 
-**旋转和镜像工具**（定义在 `util/Direction.hpp`）:
+                                                                       ** 旋转和镜像工具**（定义在 `util /
+        Direction.hpp`）:
 
 ```cpp
-// 旋转工具函数（Rotations 命名空间）
-Rotation rot = Rotation::Clockwise90;
-i32 degrees = Rotations::toDegrees(rot);           // 90
-Rotation inv = Rotations::getInverse(rot);         // CounterClockwise90
-Rotation sum = Rotations::add(Rotation::Clockwise90, Rotation::Clockwise90);  // Clockwise180
+            // 旋转工具函数（Rotations 命名空间）
+            Rotation rot = Rotation::Clockwise90;
+i32 degrees = Rotations::toDegrees(rot);                                     // 90
+Rotation inv = Rotations::getInverse(rot);                                   // CounterClockwise90
+Rotation sum = Rotations::add(Rotation::Clockwise90, Rotation::Clockwise90); // Clockwise180
 
 // 镜像工具函数（Mirrors 命名空间）
 Mirror mir = Mirror::LeftRight;
-Mirror mirInv = Mirrors::getInverse(mir);  // LeftRight（镜像自逆）
+Mirror mirInv = Mirrors::getInverse(mir); // LeftRight（镜像自逆）
 
 // 方向旋转
-Direction rotated = Directions::rotateDirection(Direction::North, Rotation::Clockwise90);  // East
+Direction rotated = Directions::rotateDirection(Direction::North, Rotation::Clockwise90); // East
 ```
 
-**关键方法**:
+        ** 关键方法** :
 
-- `findStructureStart()`: 使用网格算法确定是否在指定区块生成结构起点
-- `canGenerate()`: 检查是否可以在指定位置生成结构
-- `generate()`: 生成结构实例
-- `placeInChunk()`: 将结构片段放置到区块中
+    - `findStructureStart()`: 使用网格算法确定是否在指定区块生成结构起点
+                              - `canGenerate()`: 检查是否可以在指定位置生成结构
+                                                 - `generate()`
+    : 生成结构实例
+      - `placeInChunk()`: 将结构片段放置到区块中
 
-#### StructureBoundingBox.hpp
+                          ####StructureBoundingBox.hpp
 
-**职责**: 定义结构边界框，用于判断结构片段与区块的交集。
+                              ** 职责** : 定义结构边界框，用于判断结构片段与区块的交集。
 
-**主要内容**:
+                                              ** 主要内容** :
 
-```cpp
-class StructureBoundingBox {
-    i32 m_minX, m_minY, m_minZ;  // 最小坐标
-    i32 m_maxX, m_maxY, m_maxZ;  // 最大坐标
-    bool m_valid;                 // 是否有效
-    
+```cpp class StructureBoundingBox {
+    i32 m_minX, m_minY, m_minZ; // 最小坐标
+    i32 m_maxX, m_maxY, m_maxZ; // 最大坐标
+    bool m_valid;               // 是否有效
+
     // 静态工厂方法
     static StructureBoundingBox fromChunk(i32 chunkX, i32 chunkZ);
-    
+
     // 查询方法
     bool contains(i32 x, i32 y, i32 z) const;
     bool intersectsChunk(i32 chunkX, i32 chunkZ) const;
     i32 xSpan(), ySpan(), zSpan() const;
-    
+
     // 修改方法
     void expandToInclude(i32 x, i32 y, i32 z);
 };
 ```
 
-#### JigsawStructure.hpp / JigsawStructure.cpp
+        ####JigsawStructure.hpp /
+        JigsawStructure.cpp
 
-**职责**: 实现 Jigsaw 拼图系统结构，用于复杂结构如村庄、要塞的生成。
+            ** 职责** : 实现 Jigsaw 拼图系统结构，用于复杂结构如村庄、要塞的生成。
 
-**特点**:
-- 基于 Jigsaw 模板池动态组装结构
-- 支持 BFS（广度优先搜索）扩展算法
-- 可配置起始模板池和最大深度
+                            ** 特点** : -基于 Jigsaw 模板池动态组装结构 -
+    支持 BFS（广度优先搜索）扩展算法 -
+    可配置起始模板池和最大深度
 
-**配置结构**:
+        ** 配置结构** :
 
-```cpp
-struct JigsawConfig {
-    ResourceLocation startPool;  // 起始模板池
-    i32 size = 7;                // 最大递归深度
+```cpp struct JigsawConfig {
+    ResourceLocation startPool; // 起始模板池
+    i32 size = 7;               // 最大递归深度
 };
 ```
 
-#### StructureManager.hpp / StructureManager.cpp
+    ####StructureManager.hpp /
+    StructureManager.cpp
 
-**职责**: 管理所有结构类型的注册、查询和生成协调。
+        ** 职责** : 管理所有结构类型的注册、查询和生成协调。
 
-**主要内容**:
+                        ** 主要内容** :
 
-```mermaid
-classDiagram
-    class StructureRegistry {
-        -static unordered_map~std::string,unique_ptr~Structure~~ s_structures
-        -static vector~const Structure*~ s_structureList
-        -static bool s_initialized
-        +static initialize() void
-        +static registerStructure(structure) void
-        +static get(name) const Structure*
-        +static getAll() const vector~const Structure*~
-        -static initializeDefaultJigsawPatterns() void
-        -static registerVillagePatterns(registry) void
-        -static registerStrongholdPatterns(registry) void
-    }
-    
-    class StructureManager {
-        -i64 m_seed
-        -i32 m_referenceDistance
-        +StructureManager(seed)
-        +shouldGenerateStructureStart(structure, chunkX, chunkZ) bool
-        +generateStructureStart(structure, world, generator, rng, chunkX, chunkZ) unique_ptr~StructureStart~
-        +placeStructureInChunk(structure, world, chunk, start, chunkX, chunkZ) void
-        +clearCache() void
-        -createRandom(chunkX, chunkZ, salt) Random
+```mermaid classDiagram class StructureRegistry {
+    - static unordered_map ~std::string,
+        unique_ptr ~Structure ~~s_structures - static vector ~const Structure * ~s_structureList -
+        static bool s_initialized + static initialize()void + static registerStructure(structure)void +
+        static get(name)const Structure * +static getAll()const vector ~const Structure *
+            ~-static initializeDefaultJigsawPatterns()void -
+        static registerVillagePatterns(registry)void - static registerStrongholdPatterns(registry)void
+}
+
+class StructureManager {
+    - i64 m_seed -
+        i32 m_referenceDistance + StructureManager(seed) + shouldGenerateStructureStart(structure, chunkX, chunkZ)bool +
+        generateStructureStart(structure, world, generator, rng, chunkX, chunkZ)unique_ptr ~StructureStart
+        ~+placeStructureInChunk(structure, world, chunk, start, chunkX, chunkZ)void +
+        clearCache()void - createRandom(chunkX, chunkZ, salt)Random
     }
     
     StructureRegistry <-- StructureManager : uses
@@ -275,7 +251,7 @@ sequenceDiagram
 
 #### StrongholdStructure（要塞）
 
-**职责**: 生成末地传送门要塞，使用递归片段系统组装复杂走廊和房间。
+**职责**: 生成末地传送门要塞，使用递归 `StructurePiece` 片段系统组装复杂走廊和房间。
 
 **特点**:
 - 使用 StrongholdPieces 系统递归生成
@@ -402,6 +378,17 @@ sequenceDiagram
 | salt | 10387313 | 随机种子盐 |
 
 **有效生物群系**: DeepOcean, DeepWarmOcean, DeepLukewarmOcean, DeepColdOcean, DeepFrozenOcean
+
+**当前实现状态说明**:
+
+- 已切换到 `OceanMonumentPieces` 体系，包含 `RoomDefinition`、基础房间图生成、`EntryRoom` / `CoreRoom` /
+  `SimpleRoom` / `SimpleTopRoom` / `DoubleX/XY/Y/YZ/ZRoom` / `WingRoom` / `Penthouse` 等房型。
+- 多数单房间 `generate()` 已按 MC 1.16.5 体块布局实现，且已包含 Elder Guardian 生成入口。
+- 但整体仍未与 Java 版完全对齐，主要偏差包括：
+  - `OceanMonumentStructure::generate()` 采用 eager placement，在 `generate()` 阶段直接把整座纪念碑写入世界。
+  - 朝向当前固定为 `Direction::North`，尚未对齐 Java 的随机水平朝向。
+  - `generateRoomGraph()` 与 `OceanMonumentBuilding` 的 claim 顺序、helper 优先级、特殊房间连接语义仍有偏差。
+  - Elder Guardian 仅做基础 `spawnEntity()`，尚未补齐 Java 版结构生成初始化/持久化语义。
 
 #### RuinedPortalStructure（废弃传送门）
 

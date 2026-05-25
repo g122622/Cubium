@@ -103,15 +103,25 @@ void StrongholdStructure::initializeBiomes()
 bool StrongholdStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
-    // 要塞位置由种子决定，不能随机生成
-    // 需要检查当前位置是否是预计算的要塞位置
-    // 简化实现：允许在任何位置生成
     MC_UNUSED(world);
     MC_UNUSED(generator);
     MC_UNUSED(rng);
-    MC_UNUSED(chunkX);
-    MC_UNUSED(chunkZ);
-    return true;
+
+    /**
+     * @brief 检查指定区块是否命中预计算的要塞起点。
+     *
+     * TODO 当前实现仍未完成 Java 版 biome locate 校正，但至少必须保证：
+     * 要塞不会在任意区块都返回 true，而是只在 65 个预计算环形位置上生成。
+     */
+    const i64 worldSeed = static_cast<i64>(world.seed());
+    for (i32 index = 0; index < 65; ++index) {
+        const auto [strongholdChunkX, strongholdChunkZ] = calculateStrongholdPos(index, worldSeed);
+        if (strongholdChunkX == chunkX && strongholdChunkZ == chunkZ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(

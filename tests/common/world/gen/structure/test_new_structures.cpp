@@ -24,11 +24,13 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/structures/BastionRemnantStructure.hpp"
 #include "common/world/gen/structure/structures/DesertPyramidStructure.hpp"
@@ -63,6 +65,13 @@ namespace {
 
 class StructureTestWorld : public mc::test::BaseTestWorld {
 public:
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        MC_UNUSED(entity);
+        ++m_spawnedEntityCount;
+        return EntityId(static_cast<u32>(m_spawnedEntityCount));
+    }
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         const auto it = m_blocks.find(pack(x, y, z));
@@ -92,6 +101,8 @@ public:
         return it != m_blocks.end() ? it->second : nullptr;
     }
 
+    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntityCount; }
+
 private:
     [[nodiscard]] static i64 pack(i32 x, i32 y, i32 z)
     {
@@ -99,6 +110,7 @@ private:
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
+    size_t m_spawnedEntityCount = 0;
 };
 
 } // namespace
@@ -117,6 +129,34 @@ StructureTestWorld buildMonumentPieceWorld(PieceT& piece)
     world.fill(piece.boundingBox(), &VanillaBlocks::WATER->defaultState());
     return world;
 }
+
+class FixedBiomeChunkGenerator final : public IChunkGenerator {
+public:
+    explicit FixedBiomeChunkGenerator(BiomeId biome)
+        : m_biome(biome)
+    {}
+
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return m_biome; }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biome; }
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return 64; }
+    [[nodiscard]] u64 seed() const override { return 12345; }
+    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
+    [[nodiscard]] i32 seaLevel() const override { return m_settings.seaLevel; }
+
+    void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+    void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+    void applyCarvers(WorldGenRegion&, ChunkPrimer&, bool) override {}
+    void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+private:
+    BiomeId m_biome;
+    DimensionSettings m_settings = DimensionSettings::overworld();
+};
 
 } // namespace
 
@@ -345,7 +385,7 @@ TEST_F(NewStructuresTest, BastionRemnant_NameAndSettings)
 {
     BastionRemnantStructure structure;
 
-    EXPECT_EQ(structure.name(), "Bastion_Remnant");
+    EXPECT_EQ(structure.name(), "bastion_remnant");
     EXPECT_EQ(structure.separationSettings().spacing, 27);
     EXPECT_EQ(structure.separationSettings().separation, 4);
     EXPECT_EQ(structure.separationSettings().salt, 30084232);
@@ -537,6 +577,20 @@ TEST_F(NewStructuresTest, StrongholdPieces_WeightInitialization)
     EXPECT_TRUE(hasLibrary);
 }
 
+TEST_F(NewStructuresTest, Stronghold_CanGenerateIsNotUniversal)
+{
+    StrongholdStructure structure;
+    StructureTestWorld world;
+    FixedBiomeChunkGenerator generator(Plains);
+    math::Random rng(12345);
+
+    // MC 原版要塞位置由预计算结果决定，不应在任意区块都返回 true。
+    const bool originCanGenerate = structure.canGenerate(world, generator, rng, 0, 0);
+    const bool farCanGenerate = structure.canGenerate(world, generator, rng, 200, -200);
+
+    EXPECT_FALSE(originCanGenerate && farCanGenerate);
+}
+
 // ============================================================================
 // DesertPyramidStructure Tests (P4)
 // ============================================================================
@@ -642,4 +696,16 @@ TEST_F(NewStructuresTest, OceanMonument_RoomDefinitionFindsSource)
 
     EXPECT_TRUE(leaf.findSource(1));
     EXPECT_TRUE(middle.findSource(2));
+}
+
+TEST_F(NewStructuresTest, OceanMonument_PenthouseSpawnsElderGuardian)
+{
+    StructureBoundingBox bounds(0, 39, 0, 57, 61, 57);
+    OceanMonumentPenthouse penthouse(Direction::North, bounds);
+    StructureTestWorld world = buildMonumentPieceWorld(penthouse);
+    math::Random rng(12345);
+
+    penthouse.generate(world, rng, 0, 0, bounds);
+
+    EXPECT_EQ(world.spawnedEntityCount(), 1u);
 }
