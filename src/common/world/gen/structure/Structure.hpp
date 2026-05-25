@@ -126,6 +126,7 @@ public:
     virtual ~StructurePiece() = default;
 
     [[nodiscard]] i32 type() const { return m_type; }
+    [[nodiscard]] i32 getComponentType() const { return m_type; } ///< 别名，与 MC 1.16.5 对齐
     [[nodiscard]] i32 minX() const { return m_minX; }
     [[nodiscard]] i32 minY() const { return m_minY; }
     [[nodiscard]] i32 minZ() const { return m_minZ; }
@@ -137,6 +138,11 @@ public:
      * @brief 获取边界框
      */
     [[nodiscard]] StructureBoundingBox getBoundingBox() const;
+
+    /**
+     * @brief 获取边界框（返回值）
+     */
+    [[nodiscard]] StructureBoundingBox boundingBox() const;
 
     /**
      * @brief 检查是否与区块相交

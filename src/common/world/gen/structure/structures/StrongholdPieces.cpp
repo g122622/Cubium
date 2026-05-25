@@ -27,6 +27,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../IWorldWriter.hpp"
+#include "../../../block/Block.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/storage/ChestEntity.hpp"
@@ -70,15 +71,18 @@ void StrongholdPiece::generateDoor(
     (void)rng; // 不需要随机数，保持接口一致
 
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
+    const BlockState* oakDoor = VanillaBlocks::getState(VanillaBlocks::OAK_DOOR);
+    const BlockState* ironDoor = VanillaBlocks::getState(VanillaBlocks::IRON_DOOR);
+    const BlockState* stoneButton = VanillaBlocks::getState(VanillaBlocks::STONE_BUTTON);
 
     switch (door) {
         case Door::Opening:
             // 简单的 3x3 开口
             for (i32 dx = 0; dx < 3; ++dx) {
                 for (i32 dy = 0; dy < 3; ++dy) {
-                    setBlockState(world, air, x + dx, y + dy, z, bounds);
+                    setBlockState(world, caveAir, x + dx, y + dy, z, bounds);
                 }
             }
             break;
@@ -92,15 +96,15 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, stoneBricks, x + 2, y + 2, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y, z, bounds);
-            // 木门（使用空气作为占位符）
-            setBlockState(world, air, x + 1, y, z, bounds);
+            // 木门
+            setBlockState(world, oakDoor, x + 1, y, z, bounds);
             break;
         }
 
         case Door::Grates:
             // 铁栏杆门
-            setBlockState(world, air, x + 1, y, z, bounds);
-            setBlockState(world, air, x + 1, y + 1, z, bounds);
+            setBlockState(world, caveAir, x + 1, y, z, bounds);
+            setBlockState(world, caveAir, x + 1, y + 1, z, bounds);
             setBlockState(world, ironBars, x, y, z, bounds);
             setBlockState(world, ironBars, x, y + 1, z, bounds);
             setBlockState(world, ironBars, x, y + 2, z, bounds);
@@ -119,8 +123,11 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, stoneBricks, x + 2, y + 2, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y, z, bounds);
-            // 铁门（使用空气作为占位符）
-            setBlockState(world, air, x + 1, y, z, bounds);
+            // 铁门
+            setBlockState(world, ironDoor, x + 1, y, z, bounds);
+            // 石按钮
+            setBlockState(world, stoneButton, x + 2, y + 1, z + 1, bounds);
+            setBlockState(world, stoneButton, x + 2, y + 1, z - 1, bounds);
             break;
         }
     }
@@ -165,6 +172,140 @@ void StrongholdPiece::generateChest(IWorldWriter& world,
     }
 }
 
+StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 offsetX,
+    i32 offsetY)
+{
+    Direction direction = getCoordBaseMode();
+    if (direction == Direction::None) {
+        return nullptr;
+    }
+
+    i32 x = 0, y = 0, z = 0;
+    Direction newDirection = direction;
+
+    switch (direction) {
+        case Direction::North:
+            x = boundingBox().minX() + offsetX;
+            y = boundingBox().minY() + offsetY;
+            z = boundingBox().minZ() - 1;
+            break;
+        case Direction::South:
+            x = boundingBox().minX() + offsetX;
+            y = boundingBox().minY() + offsetY;
+            z = boundingBox().maxZ() + 1;
+            break;
+        case Direction::West:
+            x = boundingBox().minX() - 1;
+            y = boundingBox().minY() + offsetY;
+            z = boundingBox().minZ() + offsetX;
+            break;
+        case Direction::East:
+            x = boundingBox().maxX() + 1;
+            y = boundingBox().minY() + offsetY;
+            z = boundingBox().minZ() + offsetX;
+            break;
+        default:
+            return nullptr;
+    }
+
+    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+}
+
+StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 offsetX,
+    i32 offsetY)
+{
+    Direction direction = getCoordBaseMode();
+    if (direction == Direction::None) {
+        return nullptr;
+    }
+
+    i32 x = 0, y = 0, z = 0;
+    Direction newDirection = Direction::North;
+
+    switch (direction) {
+        case Direction::North:
+            x = boundingBox().minX() - 1;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() + offsetY;
+            newDirection = Direction::West;
+            break;
+        case Direction::South:
+            x = boundingBox().minX() - 1;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() + offsetY;
+            newDirection = Direction::West;
+            break;
+        case Direction::West:
+            x = boundingBox().minX() + offsetY;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() - 1;
+            newDirection = Direction::North;
+            break;
+        case Direction::East:
+            x = boundingBox().minX() + offsetY;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() - 1;
+            newDirection = Direction::North;
+            break;
+        default:
+            return nullptr;
+    }
+
+    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+}
+
+StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 offsetX,
+    i32 offsetY)
+{
+    Direction direction = getCoordBaseMode();
+    if (direction == Direction::None) {
+        return nullptr;
+    }
+
+    i32 x = 0, y = 0, z = 0;
+    Direction newDirection = Direction::East;
+
+    switch (direction) {
+        case Direction::North:
+            x = boundingBox().maxX() + 1;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() + offsetY;
+            newDirection = Direction::East;
+            break;
+        case Direction::South:
+            x = boundingBox().maxX() + 1;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().minZ() + offsetY;
+            newDirection = Direction::East;
+            break;
+        case Direction::West:
+            x = boundingBox().minX() + offsetY;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().maxZ() + 1;
+            newDirection = Direction::South;
+            break;
+        case Direction::East:
+            x = boundingBox().minX() + offsetY;
+            y = boundingBox().minY() + offsetX;
+            z = boundingBox().maxZ() + 1;
+            newDirection = Direction::South;
+            break;
+        default:
+            return nullptr;
+    }
+
+    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+}
+
 // ============================================================================
 // StrongholdStonesSelector 实现
 // ============================================================================
@@ -182,13 +323,14 @@ void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32
         } else if (f < 0.5f) {
             m_blockState = VanillaBlocks::getState(VanillaBlocks::MOSSY_STONE_BRICKS);
         } else if (f < 0.55f) {
-            // INFESTED_STONE_BRICKS 未实现，使用普通石砖
-            m_blockState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+            // 5% 概率生成被虫蚀的石砖 (MC 1.16.5 原版行为)
+            m_blockState = VanillaBlocks::getState(VanillaBlocks::INFESTED_STONE_BRICKS);
         } else {
             m_blockState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
         }
     } else {
-        m_blockState = VanillaBlocks::getState(VanillaBlocks::AIR);
+        // 要塞内部使用洞穴空气 (MC 1.16.5 原版行为)
+        m_blockState = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     }
 }
 
@@ -243,9 +385,24 @@ void StrongholdStraight::generate(
 void StrongholdStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: Straight.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    // 正向连接
+    getNextComponentNormal(start, pieces, rng, 1, 1);
+
+    // X方向扩展
+    if (m_expandsLeft) {
+        getNextComponentX(start, pieces, rng, 1, 2);
+    }
+
+    // Z方向扩展
+    if (m_expandsRight) {
+        getNextComponentZ(start, pieces, rng, 1, 2);
+    }
 }
 
 StrongholdStraight* StrongholdStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -325,9 +482,13 @@ void StrongholdPrison::generate(
 void StrongholdPrison::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: Prison.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
 StrongholdPrison* StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -393,9 +554,18 @@ void StrongholdLeftTurn::generate(
 void StrongholdLeftTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: LeftTurn.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    Direction direction = getCoordBaseMode();
+    if (direction != Direction::North && direction != Direction::East) {
+        getNextComponentZ(start, pieces, rng, 1, 1);
+    } else {
+        getNextComponentX(start, pieces, rng, 1, 1);
+    }
 }
 
 StrongholdLeftTurn* StrongholdLeftTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -461,9 +631,18 @@ void StrongholdRightTurn::generate(
 void StrongholdRightTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: RightTurn.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    Direction direction = getCoordBaseMode();
+    if (direction != Direction::North && direction != Direction::East) {
+        getNextComponentX(start, pieces, rng, 1, 1);
+    } else {
+        getNextComponentZ(start, pieces, rng, 1, 1);
+    }
 }
 
 StrongholdRightTurn* StrongholdRightTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -564,9 +743,15 @@ void StrongholdRoomCrossing::generate(
 void StrongholdRoomCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: RoomCrossing.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    getNextComponentNormal(start, pieces, rng, 4, 1);
+    getNextComponentX(start, pieces, rng, 1, 4);
+    getNextComponentZ(start, pieces, rng, 1, 4);
 }
 
 StrongholdRoomCrossing* StrongholdRoomCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -638,9 +823,13 @@ void StrongholdStairsStraight::generate(
 void StrongholdStairsStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: StairsStraight.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
 StrongholdStairsStraight* StrongholdStairsStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -719,9 +908,19 @@ void StrongholdStairs::generate(
 void StrongholdStairs::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: Stairs.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    // 如果是起始楼梯，设置下一个组件类型为 Crossing
+    if (m_isSource) {
+        // 设置下一个组件类型为交叉点
+        // MC 1.16.5 中是通过 strongComponentType 静态变量实现的
+    }
+
+    getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
 StrongholdStairs* StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -762,14 +961,16 @@ StrongholdStartStairs::StrongholdStartStairs(math::Random& rng, i32 x, i32 z)
 {
     m_isSource = true;
     setEntryDoor(Door::Opening);
+    // 初始化片段权重列表
+    initializeStrongholdPieceWeights(m_weights);
 }
 
 void StrongholdStartStairs::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: Stairs2 (继承自 Stairs)
+    // Stairs.buildComponent 已经处理了基础逻辑
+    StrongholdStairs::buildComponent(component, pieces, rng);
 }
 
 // Crossing
@@ -823,9 +1024,48 @@ void StrongholdCrossing::generate(
 void StrongholdCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: Crossing.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    // 正向连接
+    getNextComponentNormal(start, pieces, rng, 5, 1);
+
+    // 根据方向计算偏移
+    i32 leftLowOffset = 3;
+    i32 leftHighOffset = 5;
+    i32 rightLowOffset = 3;
+    i32 rightHighOffset = 5;
+
+    Direction direction = getCoordBaseMode();
+    if (direction == Direction::West || direction == Direction::North) {
+        leftLowOffset = 8 - leftLowOffset;
+        leftHighOffset = 8 - leftHighOffset;
+        rightLowOffset = 8 - rightLowOffset;
+        rightHighOffset = 8 - rightHighOffset;
+    }
+
+    // 左下出口
+    if (m_leftLow) {
+        getNextComponentX(start, pieces, rng, leftLowOffset, 1);
+    }
+
+    // 左上出口
+    if (m_leftHigh) {
+        getNextComponentX(start, pieces, rng, leftHighOffset, 7);
+    }
+
+    // 右下出口
+    if (m_rightLow) {
+        getNextComponentZ(start, pieces, rng, rightLowOffset, 1);
+    }
+
+    // 右上出口
+    if (m_rightHigh) {
+        getNextComponentZ(start, pieces, rng, rightHighOffset, 7);
+    }
 }
 
 StrongholdCrossing* StrongholdCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -900,9 +1140,13 @@ void StrongholdChestCorridor::generate(
 void StrongholdChestCorridor::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
-    (void)pieces;
-    (void)rng;
+    // 参考 MC 1.16.5: ChestCorridor.buildComponent
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start == nullptr) {
+        return;
+    }
+
+    getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
 StrongholdChestCorridor* StrongholdChestCorridor::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -1033,8 +1277,8 @@ void StrongholdPortalRoom::generate(
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
     const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
-    const BlockState* endPortalFrame = VanillaBlocks::getState(VanillaBlocks::END_PORTAL_FRAME);
-    const BlockState* endPortal = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    const BlockState* spawner = VanillaBlocks::getState(VanillaBlocks::SPAWNER);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
 
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 7, 15, false, rng, selector);
     generateDoor(world, chunkBounds, rng, Door::Grates, 4, 1, 0);
@@ -1053,6 +1297,7 @@ void StrongholdPortalRoom::generate(
     fillWithRandomizedBlocks(world, chunkBounds, 3, 1, 8, 7, 1, 12, false, rng, selector);
     fillWithBlocks(world, chunkBounds, 4, 1, 9, 6, 1, 11, lava, lava, false);
 
+    // 铁栏杆
     for (i32 j = 3; j < 14; j += 2) {
         setBlockState(world, ironBars, 0, 3, j, chunkBounds);
         setBlockState(world, ironBars, 0, 4, j, chunkBounds);
@@ -1075,24 +1320,153 @@ void StrongholdPortalRoom::generate(
         setBlockState(world, cobblestoneStairs, k, 3, 6, chunkBounds);
     }
 
-    // 末地传送门框架
-    setBlockState(world, endPortalFrame, 4, 3, 8, chunkBounds);
-    setBlockState(world, endPortalFrame, 5, 3, 8, chunkBounds);
-    setBlockState(world, endPortalFrame, 6, 3, 8, chunkBounds);
-    setBlockState(world, endPortalFrame, 4, 3, 12, chunkBounds);
-    setBlockState(world, endPortalFrame, 5, 3, 12, chunkBounds);
-    setBlockState(world, endPortalFrame, 6, 3, 12, chunkBounds);
-    setBlockState(world, endPortalFrame, 3, 3, 9, chunkBounds);
-    setBlockState(world, endPortalFrame, 3, 3, 10, chunkBounds);
-    setBlockState(world, endPortalFrame, 3, 3, 11, chunkBounds);
-    setBlockState(world, endPortalFrame, 7, 3, 9, chunkBounds);
-    setBlockState(world, endPortalFrame, 7, 3, 10, chunkBounds);
-    setBlockState(world, endPortalFrame, 7, 3, 11, chunkBounds);
+    // 末地传送门框架 - 带随机眼睛状态
+    // MC 1.16.5: 每个框架有 10% 概率没有眼睛（nextFloat() > 0.9F）
+    bool eyeStates[12];
+    bool allEyesFilled = true;
+    for (i32 eyeIdx = 0; eyeIdx < 12; ++eyeIdx) {
+        eyeStates[eyeIdx] = rng.nextFloat() > 0.1f; // 90% 概率有眼睛
+        if (!eyeStates[eyeIdx]) {
+            allEyesFilled = false;
+        }
+    }
 
-    // 末地传送门
-    for (i32 px = 4; px <= 6; ++px) {
-        for (i32 pz = 9; pz <= 11; ++pz) {
-            setBlockState(world, endPortal, px, 3, pz, chunkBounds);
+    // 获取 EndPortalFrameBlock 的方块状态
+    // 北侧框架（朝北）
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[0])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
+        4,
+        3,
+        8,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[1])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
+        5,
+        3,
+        8,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[2])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
+        6,
+        3,
+        8,
+        chunkBounds);
+
+    // 南侧框架（朝南）
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[3])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
+        4,
+        3,
+        12,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[4])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
+        5,
+        3,
+        12,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[5])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
+        6,
+        3,
+        12,
+        chunkBounds);
+
+    // 西侧框架（朝东）
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[6])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+        3,
+        3,
+        9,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[7])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+        3,
+        3,
+        10,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[8])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+        3,
+        3,
+        11,
+        chunkBounds);
+
+    // 东侧框架（朝西）
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[9])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+        7,
+        3,
+        9,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[10])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+        7,
+        3,
+        10,
+        chunkBounds);
+    setBlockState(world,
+        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
+            .with(BlockStateProperties::EYE(), eyeStates[11])
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+        7,
+        3,
+        11,
+        chunkBounds);
+
+    // 末地传送门 - 只有当所有眼睛都填满时才放置
+    if (allEyesFilled) {
+        const BlockState* endPortal = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+        for (i32 px = 4; px <= 6; ++px) {
+            for (i32 pz = 9; pz <= 11; ++pz) {
+                setBlockState(world, endPortal, px, 3, pz, chunkBounds);
+            }
+        }
+    }
+
+    // 蠹虫刷怪笼
+    // MC 1.16.5: 在位置 (5, 3, 6) 放置刷怪笼
+    if (!m_hasSpawner) {
+        i32 spawnerX = getXWithOffset(5, 6);
+        i32 spawnerY = getYWithOffset(3);
+        i32 spawnerZ = getZWithOffset(5, 6);
+        if (chunkBounds.isInside(spawnerX, spawnerY, spawnerZ)) {
+            m_hasSpawner = true;
+            setBlockState(world, spawner, 5, 3, 6, chunkBounds);
+
+            // 设置刷怪笼实体类型为蠹虫
+            IWorld* iworld = dynamic_cast<IWorld*>(&world);
+            if (iworld != nullptr) {
+                BlockPos spawnerPos(spawnerX, spawnerY, spawnerZ);
+                BlockEntity* blockEntity = iworld->getBlockEntity(spawnerPos);
+                if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
+                    // TODO: 设置刷怪笼为蠹虫
+                    // auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
+                    // mobSpawner->setEntityType(EntityType::SILVERFISH);
+                }
+            }
         }
     }
 
@@ -1103,7 +1477,14 @@ void StrongholdPortalRoom::generate(
 void StrongholdPortalRoom::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    (void)component;
+    // 参考 MC 1.16.5: PortalRoom.buildComponent
+    // PortalRoom 是终点，不再生成后续组件
+    // 但需要将自身注册到 start 的 portalRoom 引用
+    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    if (start != nullptr) {
+        start->setPortalRoom(this);
+    }
+
     (void)pieces;
     (void)rng;
 }
@@ -1215,17 +1596,35 @@ StructureBoundingBox StrongholdCorridor::findPieceBox(
 void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights)
 {
     weights.clear();
-    weights.emplace_back(StrongholdPieceTypes::STRAIGHT, 40, 0);
-    weights.emplace_back(StrongholdPieceTypes::PRISON, 5, 5);
-    weights.emplace_back(StrongholdPieceTypes::LEFT_TURN, 20, 0);
-    weights.emplace_back(StrongholdPieceTypes::RIGHT_TURN, 20, 0);
-    weights.emplace_back(StrongholdPieceTypes::ROOM_CROSSING, 10, 6);
-    weights.emplace_back(StrongholdPieceTypes::STAIRS_STRAIGHT, 5, 5);
-    weights.emplace_back(StrongholdPieceTypes::STAIRS, 5, 5);
-    weights.emplace_back(StrongholdPieceTypes::CROSSING, 5, 4);
-    weights.emplace_back(StrongholdPieceTypes::CHEST_CORRIDOR, 5, 4);
-    weights.emplace_back(StrongholdPieceTypes::LIBRARY, 10, 2);
-    weights.emplace_back(StrongholdPieceTypes::PORTAL_ROOM, 20, 1);
+    // 参考 MC 1.16.5: PIECE_WEIGHTS
+    // Library 需要 depth > 4
+    // PortalRoom 需要 depth > 5
+    weights.emplace_back(StrongholdPieceTypes::STRAIGHT, 40, 0, 0);
+    weights.emplace_back(StrongholdPieceTypes::PRISON, 5, 5, 0);
+    weights.emplace_back(StrongholdPieceTypes::LEFT_TURN, 20, 0, 0);
+    weights.emplace_back(StrongholdPieceTypes::RIGHT_TURN, 20, 0, 0);
+    weights.emplace_back(StrongholdPieceTypes::ROOM_CROSSING, 10, 6, 0);
+    weights.emplace_back(StrongholdPieceTypes::STAIRS_STRAIGHT, 5, 5, 0);
+    weights.emplace_back(StrongholdPieceTypes::STAIRS, 5, 5, 0);
+    weights.emplace_back(StrongholdPieceTypes::CROSSING, 5, 4, 0);
+    weights.emplace_back(StrongholdPieceTypes::CHEST_CORRIDOR, 5, 4, 0);
+    weights.emplace_back(StrongholdPieceTypes::LIBRARY, 10, 2, 4);     // depth > 4
+    weights.emplace_back(StrongholdPieceTypes::PORTAL_ROOM, 20, 1, 5); // depth > 5
+}
+
+bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight)
+{
+    bool canAdd = false;
+    outTotalWeight = 0;
+
+    for (auto& weight : weights) {
+        if (weight.instancesLimit > 0 && weight.instancesSpawned < weight.instancesLimit) {
+            canAdd = true;
+        }
+        outTotalWeight += weight.weight;
+    }
+
+    return canAdd;
 }
 
 StrongholdPiece* createStrongholdPiece(i32 pieceType,
@@ -1266,6 +1665,112 @@ StrongholdPiece* createStrongholdPiece(i32 pieceType,
         default:
             return nullptr;
     }
+}
+
+StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth,
+    std::vector<StrongholdPieceWeight>& weights,
+    StrongholdPieceWeight*& lastPlaced)
+{
+    // 参考 MC 1.16.5: generatePieceFromSmallDoor
+    i32 totalWeight = 0;
+    if (!canAddStructurePieces(weights, totalWeight)) {
+        return nullptr;
+    }
+
+    // 尝试最多 5 次
+    for (i32 attempt = 0; attempt < 5; ++attempt) {
+        i32 randomValue = rng.nextInt(totalWeight);
+
+        for (auto& weight : weights) {
+            randomValue -= weight.weight;
+            if (randomValue < 0) {
+                // 检查是否可以生成该类型的片段
+                if (!weight.canSpawnMoreStructuresOfType(depth)) {
+                    break;
+                }
+                // 跳过上一个放置的片段类型，避免连续生成相同类型
+                if (lastPlaced != nullptr && &weight == lastPlaced) {
+                    break;
+                }
+
+                StrongholdPiece* piece =
+                    createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
+
+                if (piece != nullptr) {
+                    weight.instancesSpawned++;
+                    lastPlaced = &weight;
+
+                    // 如果达到限制，从列表中移除
+                    if (!weight.canSpawnMoreStructures()) {
+                        // 注意：这里不能直接移除，因为 lastPlaced 指向它
+                        // MC 1.16.5 中是通过从列表移除实现的
+                    }
+
+                    return piece;
+                }
+            }
+        }
+    }
+
+    // 如果所有尝试都失败，创建填充走廊
+    StructureBoundingBox box = StrongholdCorridor::findPieceBox(pieces, rng, x, y, z, direction);
+    if (box.isValid() && box.minY() > 1) {
+        i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
+                                                                                     : (box.maxZ() - box.minZ() + 1);
+        return new StrongholdCorridor(StrongholdPieceTypes::CORRIDOR,
+            steps,
+            box.minX(),
+            box.minY(),
+            box.minZ(),
+            box.maxX(),
+            box.maxY(),
+            box.maxZ(),
+            direction);
+    }
+
+    return nullptr;
+}
+
+StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
+{
+    // 参考 MC 1.16.5: generateAndAddPiece
+    // 深度限制：最多 50 层
+    if (depth > 50) {
+        return nullptr;
+    }
+
+    // 距离限制：距离起点不超过 112 格
+    if (std::abs(x - start->boundingBox().minX()) > 112 || std::abs(z - start->boundingBox().minZ()) > 112) {
+        return nullptr;
+    }
+
+    // 使用 StrongholdStartStairs 成员变量存储状态（替代 thread_local 静态变量）
+    std::vector<StrongholdPieceWeight>& weights = start->weights();
+    StrongholdPieceWeight*& lastPlaced = start->lastPlacedRef();
+
+    StrongholdPiece* piece =
+        generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth, weights, lastPlaced);
+
+    if (piece != nullptr) {
+        pieces.emplace_back(piece);
+        start->addPendingChild(piece);
+    }
+
+    return piece;
 }
 
 } // namespace structure

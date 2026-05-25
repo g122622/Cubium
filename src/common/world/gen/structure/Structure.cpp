@@ -54,6 +54,11 @@ StructureBoundingBox StructurePiece::getBoundingBox() const
     return StructureBoundingBox(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
 }
 
+StructureBoundingBox StructurePiece::boundingBox() const
+{
+    return StructureBoundingBox(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
+}
+
 bool StructurePiece::intersectsChunk(i32 chunkX, i32 chunkZ) const
 {
     i32 chunkMinX = chunkX << 4;

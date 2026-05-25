@@ -35,6 +35,7 @@ namespace structure {
 
 // 前向声明
 class StrongholdPiece;
+class StrongholdStartStairs;
 
 /**
  * @brief 要塞片段权重
@@ -47,16 +48,22 @@ struct StrongholdPieceWeight {
     i32 weight;           ///< 选择权重
     i32 instancesSpawned; ///< 已生成数量
     i32 instancesLimit;   ///< 最大数量 (0 = 无限制)
+    i32 minDepth;         ///< 最小深度条件 (0 = 无条件)
 
-    StrongholdPieceWeight(i32 type, i32 w, i32 limit)
+    StrongholdPieceWeight(i32 type, i32 w, i32 limit, i32 depth = 0)
         : pieceType(type)
         , weight(w)
         , instancesSpawned(0)
         , instancesLimit(limit)
+        , minDepth(depth)
     {}
 
     [[nodiscard]] bool canSpawnMoreStructuresOfType(i32 depth) const
     {
+        // 检查深度条件
+        if (minDepth > 0 && depth <= minDepth) {
+            return false;
+        }
         return instancesLimit == 0 || instancesSpawned < instancesLimit;
     }
 
@@ -110,21 +117,39 @@ public:
 
     /**
      * @brief 获取下一个组件（正向）
+     *
+     * 参考 MC 1.16.5: Stronghold.getNextComponentNormal
+     * 在当前片段前方生成下一个连接片段
      */
-    [[nodiscard]] StructurePiece* getNextComponentNormal(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng, i32 offsetX, i32 offsetY);
+    StructurePiece* getNextComponentNormal(StrongholdStartStairs* start,
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng,
+        i32 offsetX,
+        i32 offsetY);
 
     /**
      * @brief 获取下一个组件（X方向）
+     *
+     * 参考 MC 1.16.5: Stronghold.getNextComponentX
+     * 在当前片段左侧或右侧生成连接片段
      */
-    [[nodiscard]] StructurePiece* getNextComponentX(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng, i32 offsetX, i32 offsetY);
+    StructurePiece* getNextComponentX(StrongholdStartStairs* start,
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng,
+        i32 offsetX,
+        i32 offsetY);
 
     /**
      * @brief 获取下一个组件（Z方向）
+     *
+     * 参考 MC 1.16.5: Stronghold.getNextComponentZ
+     * 在当前片段左侧或右侧生成连接片段
      */
-    [[nodiscard]] StructurePiece* getNextComponentZ(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng, i32 offsetX, i32 offsetY);
+    StructurePiece* getNextComponentZ(StrongholdStartStairs* start,
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng,
+        i32 offsetX,
+        i32 offsetY);
 
 protected:
     /**
@@ -446,6 +471,7 @@ protected:
  * @brief 要塞起始楼梯
  *
  * 参考 MC 1.16.5: StrongholdPieces.Stairs2
+ * 存储要塞生成的全局状态（权重列表、lastPlaced等）
  */
 class StrongholdStartStairs : public StrongholdStairs {
 public:
@@ -456,6 +482,7 @@ public:
 
     [[nodiscard]] StrongholdPieceWeight* lastPlaced() const { return m_lastPlaced; }
     void setLastPlaced(StrongholdPieceWeight* weight) { m_lastPlaced = weight; }
+    StrongholdPieceWeight*& lastPlacedRef() { return m_lastPlaced; }
 
     [[nodiscard]] StrongholdPiece* portalRoom() const { return m_portalRoom; }
     void setPortalRoom(StrongholdPiece* room) { m_portalRoom = room; }
@@ -463,10 +490,14 @@ public:
     [[nodiscard]] const std::vector<StructurePiece*>& pendingChildren() const { return m_pendingChildren; }
     void addPendingChild(StructurePiece* piece) { m_pendingChildren.push_back(piece); }
 
+    [[nodiscard]] std::vector<StrongholdPieceWeight>& weights() { return m_weights; }
+    [[nodiscard]] const std::vector<StrongholdPieceWeight>& weights() const { return m_weights; }
+
 private:
-    StrongholdPieceWeight* m_lastPlaced = nullptr;
-    StrongholdPiece* m_portalRoom = nullptr;
-    std::vector<StructurePiece*> m_pendingChildren;
+    std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
+    StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
+    StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
+    std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
 };
 
 // ============================================================================
@@ -706,6 +737,11 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     i32 depth);
 
 /**
+ * @brief 检查是否可以添加更多片段
+ */
+[[nodiscard]] bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
+
+/**
  * @brief 从小门生成要塞片段
  */
 [[nodiscard]] StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
@@ -718,6 +754,18 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     i32 depth,
     std::vector<StrongholdPieceWeight>& weights,
     StrongholdPieceWeight*& lastPlaced);
+
+/**
+ * @brief 生成并添加片段
+ */
+[[nodiscard]] StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth);
 
 } // namespace structure
 } // namespace gen
