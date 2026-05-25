@@ -16,34 +16,75 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR THE DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #pragma once
 
+#include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
+#include "../../feature/template/TemplateManager.hpp"
 #include "../Structure.hpp"
+#include <memory>
 #include <vector>
 
-namespace mc {
-namespace world {
-namespace gen {
-namespace structure {
+namespace mc::world::gen::structure {
+
+/**
+ * @brief 下界化石结构片段
+ *
+ * 参考 MC 1.16.5 NetherFossilStructures.Piece
+ * 使用模板系统生成下界化石。
+ */
+class NetherFossilPiece : public StructurePiece {
+public:
+    /**
+     * @brief 构造函数
+     * @param templateName 模板名称（资源位置）
+     * @param position 放置位置
+     * @param rotation 旋转角度
+     */
+    NetherFossilPiece(const std::string& templateName, const BlockPos& position, Rotation rotation);
+
+    ~NetherFossilPiece() override = default;
+
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
+     * @brief 设置模板管理器
+     *
+     * 必须在 generate 之前调用
+     */
+    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+
+    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
+
+private:
+    void loadTemplate();
+
+    std::string m_templateName;
+    Rotation m_rotation;
+    feature::template_::TemplateManager* m_templateManager = nullptr;
+    const feature::template_::Template* m_template = nullptr;
+    BlockPos m_size;
+};
 
 /**
  * @brief 下界化石结构
  *
- * 在下界生成的巨大骨化石结构。
- * 由骨块构成的随机形状，增添下界的荒凉感。
- *
- * 参考: MC 1.16.5 NetherFossilStructure.java
+ * 参考 MC 1.16.5 NetherFossilStructure
+ * 在下界灵魂沙峡谷生物群系中生成的大型骨块结构。
+ * 使用模板系统从 nether_fossils/fossil_1~14.nbt 加载。
  */
 class NetherFossilStructure : public Structure {
 public:
     NetherFossilStructure();
-    ~NetherFossilStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
@@ -55,33 +96,19 @@ public:
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
+    /**
+     * @brief 设置模板管理器
+     */
+    void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
+
+    // 模板名称常量（MC 1.16.5 有 14 个化石模板）
+    static const std::vector<std::string> s_fossilTemplates;
+
 private:
     static const std::string s_name;
     static constexpr StructureSeparationSettings s_settings{2, 1, 14357921};
     static const std::vector<BiomeId> s_validBiomes;
+    feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 
-/**
- * @brief 下界化石结构片段
- */
-class NetherFossilPiece : public StructurePiece {
-public:
-    NetherFossilPiece(const BlockPos& pos, i32 fossilType, feature::template_::Rotation rotation);
-
-    void generate(IWorldWriter& world,
-        math::Random& rng,
-        i32 chunkX,
-        i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
-
-private:
-    void generateFossil(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-
-    i32 m_fossilType;
-    feature::template_::Rotation m_rotation;
-};
-
-} // namespace structure
-} // namespace gen
-} // namespace world
-} // namespace mc
+} // namespace mc::world::gen::structure

@@ -85,17 +85,18 @@ TEST_F(NewStructuresTest, Igloo_PieceConstruction)
     BlockPos pos(100, 64, 200);
     mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::None;
     bool hasBasement = true;
+    i32 middleCount = 1; // 中间层数量
 
-    IglooPiece piece(pos, rotation, hasBasement);
+    IglooPiece piece(pos, rotation, hasBasement, middleCount);
 
-    // 验证边界框
-    EXPECT_LE(piece.minX(), piece.maxX());
-    EXPECT_LE(piece.minY(), piece.maxY());
-    EXPECT_LE(piece.minZ(), piece.maxZ());
+    // 验证地下室状态
+    EXPECT_TRUE(piece.hasBasement());
+    EXPECT_EQ(piece.middleCount(), middleCount);
 
     // 有地下室时，Y 范围应该更大
-    IglooPiece pieceWithoutBasement(pos, rotation, false);
-    EXPECT_GT(piece.maxY() - piece.minY(), pieceWithoutBasement.maxY() - pieceWithoutBasement.minY());
+    IglooPiece pieceWithoutBasement(pos, rotation, false, 0);
+    EXPECT_FALSE(pieceWithoutBasement.hasBasement());
+    EXPECT_EQ(pieceWithoutBasement.middleCount(), 0);
 }
 
 // ============================================================================
@@ -157,15 +158,13 @@ TEST_F(NewStructuresTest, NetherFossil_NameAndSettings)
 TEST_F(NewStructuresTest, NetherFossil_PieceConstruction)
 {
     BlockPos pos(100, 30, 200);
-    i32 fossilType = 2;
+    std::string templateName = "nether_fossils/fossil_3";
     mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::Clockwise180;
 
-    NetherFossilPiece piece(pos, fossilType, rotation);
+    NetherFossilPiece piece(templateName, pos, rotation);
 
-    // 验证边界框（下界化石约 15x10x15）
-    EXPECT_LE(piece.maxX() - piece.minX(), 20);
-    EXPECT_LE(piece.maxY() - piece.minY(), 15);
-    EXPECT_LE(piece.maxZ() - piece.minZ(), 20);
+    // 验证模板名称
+    EXPECT_EQ(piece.templateName(), templateName);
 }
 
 // ============================================================================

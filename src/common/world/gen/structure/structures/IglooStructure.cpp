@@ -16,32 +16,222 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR THE DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "IglooStructure.hpp"
+
+#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../IWorld.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/IChunk.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../../feature/template/Template.hpp"
+#include "../../feature/template/TemplateLoader.hpp"
+#include "../../feature/template/TemplateManager.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <spdlog/spdlog.h>
 
-namespace mc {
-namespace world {
-namespace gen {
-namespace structure {
+namespace mc::world::gen::structure {
 
 using namespace mc::Biomes;
+
+// ============================================================================
+// 静态常量
+// ============================================================================
 
 const std::string IglooStructure::s_name = "Igloo";
 const std::vector<BiomeId> IglooStructure::s_validBiomes = {
     SnowyPlains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains};
+
+// MC 1.16.5: 雪屋模板名称
+const std::string IglooStructure::s_topTemplateName = "igloo/top";
+const std::string IglooStructure::s_middleTemplateName = "igloo/middle";
+const std::string IglooStructure::s_bottomTemplateName = "igloo/bottom";
+
+// ============================================================================
+// IglooPiece
+// ============================================================================
+
+IglooPiece::IglooPiece(const BlockPos& position, Rotation rotation, bool hasBasement, i32 middleCount)
+    : StructurePiece(StructurePieceTypes::IGLOO, position.x, position.y, position.z, position.x, position.y, position.z)
+    , m_rotation(rotation)
+    , m_hasBasement(hasBasement)
+    , m_middleCount(middleCount)
+{}
+
+void IglooPiece::loadTemplates()
+{
+    if (!m_templateManager) {
+        return;
+    }
+
+    // 加载地上部分模板
+    m_topTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_topTemplateName));
+    if (m_topTemplate) {
+        m_topSize = m_topTemplate->getSize();
+    }
+
+    if (m_hasBasement) {
+        // 加载中间层模板
+        m_middleTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_middleTemplateName));
+        if (m_middleTemplate) {
+            m_middleSize = m_middleTemplate->getSize();
+        }
+
+        // 加载底部模板
+        m_bottomTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_bottomTemplateName));
+        if (m_bottomTemplate) {
+            m_bottomSize = m_bottomTemplate->getSize();
+        }
+    }
+
+    // 更新边界框
+    updateBoundingBox();
+}
+
+void IglooPiece::updateBoundingBox()
+{
+    // 计算地上部分尺寸（考虑旋转）
+    i32 topSizeX = m_topSize.x;
+    i32 topSizeZ = m_topSize.z;
+    if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
+        std::swap(topSizeX, topSizeZ);
+    }
+
+    // 计算总高度
+    i32 totalHeight = m_topSize.y;
+    if (m_hasBasement) {
+        totalHeight += m_middleSize.y * m_middleCount + m_bottomSize.y;
+    }
+
+    // MC 1.16.5: 地上部分的中心偏移
+    // igloo/top 的中心偏移是 BlockPos(3, 5, 5)
+    // 这里简化处理，使用原始位置作为基准
+    m_minX = m_minX;
+    m_minY = m_minY;
+    m_minZ = m_minZ;
+    m_maxX = m_minX + topSizeX - 1;
+    m_maxY = m_minY + totalHeight - 1;
+    m_maxZ = m_minZ + topSizeZ - 1;
+
+    // 如果有地下室，向下扩展边界框
+    if (m_hasBasement && m_middleTemplate && m_bottomTemplate) {
+        i32 basementHeight = m_middleSize.y * m_middleCount + m_bottomSize.y;
+        m_minY = m_minY - basementHeight + m_topSize.y;
+    }
+}
+
+void IglooPiece::generate(
+    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+{
+    if (!m_templateManager) {
+        return;
+    }
+
+    // 延迟加载模板
+    if (!m_topTemplate) {
+        loadTemplates();
+    }
+
+    if (!m_topTemplate) {
+        spdlog::warn("IglooPiece: Failed to load top template");
+        return;
+    }
+
+    // 检查边界框是否与区块相交
+    StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
+    if (!pieceBounds.intersects(chunkBounds)) {
+        return;
+    }
+
+    // 生成地上部分
+    generateTop(world, rng, chunkBounds);
+
+    // 生成地下室（如果有）
+    if (m_hasBasement) {
+        for (i32 i = 0; i < m_middleCount; ++i) {
+            generateMiddle(world, rng, i, chunkBounds);
+        }
+        generateBottom(world, rng, chunkBounds);
+    }
+}
+
+void IglooPiece::generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+{
+    if (!m_topTemplate) {
+        return;
+    }
+
+    // 创建放置设置
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(m_rotation);
+    settings.setMirror(Mirror::None);
+    settings.setBoundingBox(&chunkBounds);
+
+    // MC 1.16.5: igloo/top 模板的中心偏移是 BlockPos(3, 5, 5)
+    // 需要调整放置位置使底部对齐到地面
+    BlockPos centerOffset(3, 0, 5);
+
+    // 计算调整后的放置位置
+    BlockPos adjustedPos(m_minX - centerOffset.x, m_minY, m_minZ - centerOffset.z);
+
+    // 放置模板
+    m_topTemplate->place(world, adjustedPos, settings, rng, 18);
+}
+
+void IglooPiece::generateMiddle(
+    IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& chunkBounds)
+{
+    if (!m_middleTemplate) {
+        return;
+    }
+
+    // 计算中间层位置（在地下部分）
+    // MC 1.16.5: 中间层偏移是 BlockPos(2, -3, 4)
+    // 每个中间层向下偏移 3 格
+    i32 y = m_minY + m_topSize.y - 3 + index * (-3);
+
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(m_rotation);
+    settings.setMirror(Mirror::None);
+    settings.setBoundingBox(&chunkBounds);
+
+    BlockPos centerOffset(2, 0, 4);
+    BlockPos adjustedPos(m_minX - centerOffset.x, y, m_minZ - centerOffset.z);
+
+    m_middleTemplate->place(world, adjustedPos, settings, rng, 18);
+}
+
+void IglooPiece::generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+{
+    if (!m_bottomTemplate) {
+        return;
+    }
+
+    // 计算底部位置
+    // MC 1.16.5: 底部偏移是 BlockPos(3, 6, 7)
+    i32 y = m_minY + m_topSize.y - 3 - m_middleSize.y * m_middleCount;
+
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(m_rotation);
+    settings.setMirror(Mirror::None);
+    settings.setBoundingBox(&chunkBounds);
+
+    BlockPos centerOffset(3, 0, 7);
+    BlockPos adjustedPos(m_minX - centerOffset.x, y, m_minZ - centerOffset.z);
+
+    m_bottomTemplate->place(world, adjustedPos, settings, rng, 18);
+}
+
+// ============================================================================
+// IglooStructure
+// ============================================================================
 
 IglooStructure::IglooStructure()
     : Structure(StructureType::Temple)
@@ -49,6 +239,9 @@ IglooStructure::IglooStructure()
 
 bool IglooStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
+    MC_UNUSED(world);
+    MC_UNUSED(rng);
+
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
     for (BiomeId valid : s_validBiomes) {
@@ -62,6 +255,8 @@ bool IglooStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math
 std::unique_ptr<StructureStart> IglooStructure::generate(
     IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(world);
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
@@ -72,289 +267,31 @@ std::unique_ptr<StructureStart> IglooStructure::generate(
     i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
 
     // 随机旋转
-    feature::template_::Rotation rotation;
-    i32 rotValue = rng.nextInt(4);
-    switch (rotValue) {
-        case 0:
-            rotation = feature::template_::Rotation::None;
-            break;
-        case 1:
-            rotation = feature::template_::Rotation::Clockwise90;
-            break;
-        case 2:
-            rotation = feature::template_::Rotation::Clockwise180;
-            break;
-        case 3:
-        default:
-            rotation = feature::template_::Rotation::CounterClockwise90;
-            break;
-    }
+    Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
 
     // MC 1.16.5: 雪屋有50%概率有地下室
     bool hasBasement = rng.nextFloat() < 0.5f;
 
-    auto piece = std::make_unique<IglooPiece>(BlockPos(x, y, z), rotation, hasBasement);
-    start->addPiece(std::move(piece));
+    // MC 1.16.5: 如果有地下室，随机 1-2 层中间层
+    i32 middleCount = 0;
+    if (hasBasement) {
+        middleCount = 1 + rng.nextInt(2); // 1 或 2
+    }
 
+    // 获取模板管理器
+    feature::template_::TemplateManager* templateManager = m_templateManager;
+    if (!templateManager) {
+        static feature::template_::TemplateManager defaultManager;
+        templateManager = &defaultManager;
+    }
+
+    // 创建片段
+    auto piece = std::make_unique<IglooPiece>(BlockPos(x, y, z), rotation, hasBasement, middleCount);
+    piece->setTemplateManager(templateManager);
+
+    start->addPiece(std::move(piece));
+    start->recalculateStructureSize();
     return start;
 }
 
-// ============================================================================
-// IglooPiece
-// ============================================================================
-
-IglooPiece::IglooPiece(const BlockPos& pos, feature::template_::Rotation rotation, bool hasBasement)
-    : StructurePiece(StructurePieceTypes::IGLOO, pos.x, pos.y, pos.z, pos.x + 9, pos.y + 8, pos.z + 9)
-    , m_rotation(rotation)
-    , m_hasBasement(hasBasement)
-{
-    // 边界框根据模板大小调整
-    // MC 1.16.5: 雪屋模板为 7x5x8
-    m_minX = pos.x;
-    m_minY = pos.y;
-    m_minZ = pos.z;
-    m_maxX = pos.x + 6;
-    m_maxY = pos.y + 4;
-    m_maxZ = pos.z + 7;
-
-    if (hasBasement) {
-        // 地下室向下延伸到 Y=-3
-        m_minY = pos.y - 6;
-        m_maxY = pos.y + 4;
-    }
-}
-
-void IglooPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
-{
-    MC_UNUSED(rng);
-    MC_UNUSED(chunkX);
-    MC_UNUSED(chunkZ);
-
-    // 检查边界框是否与区块相交
-    StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
-    if (!pieceBounds.intersects(chunkBounds)) {
-        return;
-    }
-
-    // 生成地上部分
-    generateTop(world, chunkBounds);
-
-    // 生成地下室（如果有）
-    if (m_hasBasement) {
-        generateBasement(world, rng, chunkBounds);
-    }
-}
-
-void IglooPiece::generateTop(IWorldWriter& world, const StructureBoundingBox& bounds)
-{
-    // MC 1.16.5: 雪屋由雪块构成，圆顶结构
-    // 简化实现：直接放置方块
-
-    BlockPos basePos(m_minX, m_minY, m_minZ);
-
-    // 底层 7x7 雪块平台
-    for (int x = 0; x < 7; ++x) {
-        for (int z = 0; z < 7; ++z) {
-            BlockPos placePos(m_minX + x, m_minY, m_minZ + z);
-            if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                if (VanillaBlocks::SNOW_BLOCK) {
-                    world.setBlockState(
-                        placePos.x, placePos.y, placePos.z, &VanillaBlocks::SNOW_BLOCK->defaultState(), 2);
-                }
-            }
-        }
-    }
-
-    // 第一层墙壁（带入口）
-    for (int x = 0; x < 7; ++x) {
-        for (int z = 0; z < 7; ++z) {
-            // 只在边缘放置
-            if (x == 0 || x == 6 || z == 0 || z == 6) {
-                // 入口位置（南面中间）
-                if (z == 6 && x >= 2 && x <= 4) {
-                    continue; // 跳过入口
-                }
-
-                BlockPos placePos(basePos.x + x, basePos.y + 1, basePos.z + z);
-                if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                    if (VanillaBlocks::SNOW_BLOCK) {
-                        world.setBlockState(
-                            placePos.x, placePos.y, placePos.z, &VanillaBlocks::SNOW_BLOCK->defaultState(), 2);
-                    }
-                }
-            }
-        }
-    }
-
-    // 第二层墙壁（收缩）
-    for (int x = 1; x < 6; ++x) {
-        for (int z = 1; z < 6; ++z) {
-            if (x == 1 || x == 5 || z == 1 || z == 5) {
-                BlockPos placePos(basePos.x + x, basePos.y + 2, basePos.z + z);
-                if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                    if (VanillaBlocks::SNOW_BLOCK) {
-                        world.setBlockState(
-                            placePos.x, placePos.y, placePos.z, &VanillaBlocks::SNOW_BLOCK->defaultState(), 2);
-                    }
-                }
-            }
-        }
-    }
-
-    // 第三层墙壁（再收缩）
-    for (int x = 2; x < 5; ++x) {
-        for (int z = 2; z < 5; ++z) {
-            if (x == 2 || x == 4 || z == 2 || z == 4) {
-                BlockPos placePos(basePos.x + x, basePos.y + 3, basePos.z + z);
-                if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                    if (VanillaBlocks::SNOW_BLOCK) {
-                        world.setBlockState(
-                            placePos.x, placePos.y, placePos.z, &VanillaBlocks::SNOW_BLOCK->defaultState(), 2);
-                    }
-                }
-            }
-        }
-    }
-
-    // 顶部
-    for (int x = 3; x <= 3; ++x) {
-        for (int z = 3; z <= 3; ++z) {
-            BlockPos placePos(basePos.x + x, basePos.y + 4, basePos.z + z);
-            if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                if (VanillaBlocks::SNOW_BLOCK) {
-                    world.setBlockState(
-                        placePos.x, placePos.y, placePos.z, &VanillaBlocks::SNOW_BLOCK->defaultState(), 2);
-                }
-            }
-        }
-    }
-
-    // 地毯地板
-    for (int x = 1; x < 6; ++x) {
-        for (int z = 1; z < 6; ++z) {
-            if (z == 6 && x >= 2 && x <= 4) {
-                continue; // 入口
-            }
-
-            BlockPos placePos(basePos.x + x, basePos.y + 1, basePos.z + z);
-            if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                if (VanillaBlocks::WHITE_CARPET) {
-                    world.setBlockState(
-                        placePos.x, placePos.y, placePos.z, &VanillaBlocks::WHITE_CARPET->defaultState(), 2);
-                }
-            }
-        }
-    }
-}
-
-void IglooPiece::generateBasement(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
-{
-    MC_UNUSED(rng);
-
-    // MC 1.16.5: 地下室位于雪屋下方，通过活板门进入
-    // 地下室为 9x6x7 的空间，包含熔炉、工作台、红石火把和酿造台
-
-    BlockPos basePos(m_minX - 1, m_minY - 6, m_minZ - 1);
-
-    // 挖空地下室空间
-    for (int x = 0; x < 9; ++x) {
-        for (int z = 0; z < 9; ++z) {
-            for (int y = 0; y < 6; ++y) {
-                BlockPos placePos(basePos.x + x, basePos.y + y, basePos.z + z);
-                if (bounds.contains(placePos.x, placePos.y, placePos.z)) {
-                    // 内部为空气
-                    if (x > 0 && x < 8 && z > 0 && z < 8 && y > 0 && y < 5) {
-                        world.setBlockState(placePos.x, placePos.y, placePos.z, nullptr, 2);
-                    }
-                }
-            }
-        }
-    }
-
-    // 石砖地板和天花板
-    for (int x = 0; x < 9; ++x) {
-        for (int z = 0; z < 9; ++z) {
-            // 地板
-            BlockPos floorPos(basePos.x + x, basePos.y, basePos.z + z);
-            if (bounds.contains(floorPos.x, floorPos.y, floorPos.z)) {
-                if (VanillaBlocks::STONE_BRICKS) {
-                    world.setBlockState(
-                        floorPos.x, floorPos.y, floorPos.z, &VanillaBlocks::STONE_BRICKS->defaultState(), 2);
-                }
-            }
-
-            // 天花板（上方是雪块）
-            BlockPos ceilingPos(basePos.x + x, basePos.y + 5, basePos.z + z);
-            if (bounds.contains(ceilingPos.x, ceilingPos.y, ceilingPos.z)) {
-                if (VanillaBlocks::STONE_BRICKS) {
-                    world.setBlockState(
-                        ceilingPos.x, ceilingPos.y, ceilingPos.z, &VanillaBlocks::STONE_BRICKS->defaultState(), 2);
-                }
-            }
-        }
-    }
-
-    // 石砖墙壁
-    for (int y = 1; y < 5; ++y) {
-        for (int x = 0; x < 9; ++x) {
-            for (int z = 0; z < 9; ++z) {
-                if (x == 0 || x == 8 || z == 0 || z == 8) {
-                    BlockPos wallPos(basePos.x + x, basePos.y + y, basePos.z + z);
-                    if (bounds.contains(wallPos.x, wallPos.y, wallPos.z)) {
-                        // 50% 概率苔藓石砖
-                        bool useMossy = (rng.nextInt(100) < 50);
-                        const BlockState* state = (useMossy && VanillaBlocks::MOSSY_STONE_BRICKS)
-                            ? &VanillaBlocks::MOSSY_STONE_BRICKS->defaultState()
-                            : (VanillaBlocks::STONE_BRICKS ? &VanillaBlocks::STONE_BRICKS->defaultState() : nullptr);
-                        if (state) {
-                            world.setBlockState(wallPos.x, wallPos.y, wallPos.z, state, 2);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 放置熔炉（东墙）- FURNACE 尚未注册，使用 COBBLESTONE 占位
-    BlockPos furnacePos(basePos.x + 8, basePos.y + 2, basePos.z + 4);
-    if (bounds.contains(furnacePos.x, furnacePos.y, furnacePos.z)) {
-        if (VanillaBlocks::COBBLESTONE) {
-            world.setBlockState(
-                furnacePos.x, furnacePos.y, furnacePos.z, &VanillaBlocks::COBBLESTONE->defaultState(), 2);
-        }
-    }
-
-    // 放置工作台（西墙）
-    BlockPos craftingPos(basePos.x, basePos.y + 2, basePos.z + 4);
-    if (bounds.contains(craftingPos.x, craftingPos.y, craftingPos.z)) {
-        if (VanillaBlocks::CRAFTING_TABLE) {
-            world.setBlockState(
-                craftingPos.x, craftingPos.y, craftingPos.z, &VanillaBlocks::CRAFTING_TABLE->defaultState(), 2);
-        }
-    }
-
-    // 红石火把（照明）
-    BlockPos torchPos(basePos.x + 4, basePos.y + 2, basePos.z);
-    if (bounds.contains(torchPos.x, torchPos.y, torchPos.z)) {
-        if (VanillaBlocks::REDSTONE_WALL_TORCH) {
-            world.setBlockState(
-                torchPos.x, torchPos.y, torchPos.z, &VanillaBlocks::REDSTONE_WALL_TORCH->defaultState(), 2);
-        }
-    }
-
-    // 入口活板门
-    BlockPos trapdoorPos(basePos.x + 4, basePos.y + 5, basePos.z + 4);
-    if (bounds.contains(trapdoorPos.x, trapdoorPos.y, trapdoorPos.z)) {
-        if (VanillaBlocks::OAK_TRAPDOOR) {
-            // 注: 活板门默认为关闭状态，实际应设置 half 和 facing 属性
-            auto state = &VanillaBlocks::OAK_TRAPDOOR->defaultState();
-            world.setBlockState(trapdoorPos.x, trapdoorPos.y, trapdoorPos.z, state, 2);
-        }
-    }
-}
-
-} // namespace structure
-} // namespace gen
-} // namespace world
-} // namespace mc
+} // namespace mc::world::gen::structure
