@@ -228,9 +228,26 @@ Block* VanillaBlocks::GLASS_PANE = nullptr;
 Block* VanillaBlocks::IRON_BARS = nullptr;
 
 // 门和栅栏门
+// 木门
 Block* VanillaBlocks::OAK_DOOR = nullptr;
+Block* VanillaBlocks::SPRUCE_DOOR = nullptr;
+Block* VanillaBlocks::BIRCH_DOOR = nullptr;
+Block* VanillaBlocks::JUNGLE_DOOR = nullptr;
+Block* VanillaBlocks::ACACIA_DOOR = nullptr;
+Block* VanillaBlocks::DARK_OAK_DOOR = nullptr;
+Block* VanillaBlocks::CRIMSON_DOOR = nullptr;
+Block* VanillaBlocks::WARPED_DOOR = nullptr;
+// 铁门
 Block* VanillaBlocks::IRON_DOOR = nullptr;
+// 栅栏门
 Block* VanillaBlocks::OAK_FENCE_GATE = nullptr;
+Block* VanillaBlocks::SPRUCE_FENCE_GATE = nullptr;
+Block* VanillaBlocks::BIRCH_FENCE_GATE = nullptr;
+Block* VanillaBlocks::JUNGLE_FENCE_GATE = nullptr;
+Block* VanillaBlocks::ACACIA_FENCE_GATE = nullptr;
+Block* VanillaBlocks::DARK_OAK_FENCE_GATE = nullptr;
+Block* VanillaBlocks::CRIMSON_FENCE_GATE = nullptr;
+Block* VanillaBlocks::WARPED_FENCE_GATE = nullptr;
 
 // 楼梯
 Block* VanillaBlocks::OAK_STAIRS = nullptr;
@@ -250,8 +267,35 @@ Block* VanillaBlocks::STONE_BRICK_WALL = nullptr;
 Block* VanillaBlocks::OAK_FENCE = nullptr;
 
 // 活板门
+// 木活板门
 Block* VanillaBlocks::OAK_TRAPDOOR = nullptr;
+Block* VanillaBlocks::SPRUCE_TRAPDOOR = nullptr;
+Block* VanillaBlocks::BIRCH_TRAPDOOR = nullptr;
+Block* VanillaBlocks::JUNGLE_TRAPDOOR = nullptr;
+Block* VanillaBlocks::ACACIA_TRAPDOOR = nullptr;
+Block* VanillaBlocks::DARK_OAK_TRAPDOOR = nullptr;
+Block* VanillaBlocks::CRIMSON_TRAPDOOR = nullptr;
+Block* VanillaBlocks::WARPED_TRAPDOOR = nullptr;
+// 铁活板门
 Block* VanillaBlocks::IRON_TRAPDOOR = nullptr;
+
+// 染色玻璃板 (16色)
+Block* VanillaBlocks::WHITE_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::ORANGE_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::MAGENTA_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::LIGHT_BLUE_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::YELLOW_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::LIME_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::PINK_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::GRAY_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::LIGHT_GRAY_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::CYAN_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::PURPLE_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::BLUE_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::BROWN_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::GREEN_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::RED_STAINED_GLASS_PANE = nullptr;
+Block* VanillaBlocks::BLACK_STAINED_GLASS_PANE = nullptr;
 
 // 羊毛
 Block* VanillaBlocks::WHITE_WOOL = nullptr;
@@ -805,6 +849,10 @@ void VanillaBlocks::initialize()
     {
         MC_TRACE_EVENT("client.initialization", "registerSpecialBlocks");
         registerSpecialBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerDoorsFencesAndPanes");
+        registerDoorsFencesAndPanes();
     }
 
     // 初始化方块标签（必须在所有方块注册后）
@@ -2882,18 +2930,130 @@ void VanillaBlocks::registerStairsSlabsWalls()
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable());
 
     // ========== 活板门 ==========
-    // 橡木活板门
-    // 参考: new TrapDoorBlock(Properties.create(Material.WOOD).hardnessAndResistance(3.0F).noCollission())
-    OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:oak_trapdoor"),
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable(),
-        false // not iron
-    );
+    // 木活板门（所有木材类型）
+    // 参考 MC 1.16.5: new TrapDoorBlock(Properties.create(Material.WOOD).hardnessAndResistance(3.0F).noCollission())
+    // 木活板门属性: 硬度3.0, 抗爆3.0, 可燃
+    BlockProperties woodTrapdoorProps = BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable();
+
+    OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:oak_trapdoor"), woodTrapdoorProps, false);
+    SPRUCE_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:spruce_trapdoor"), woodTrapdoorProps, false);
+    BIRCH_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:birch_trapdoor"), woodTrapdoorProps, false);
+    JUNGLE_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:jungle_trapdoor"), woodTrapdoorProps, false);
+    ACACIA_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:acacia_trapdoor"), woodTrapdoorProps, false);
+    DARK_OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:dark_oak_trapdoor"), woodTrapdoorProps, false);
+
+    // 下界木材活板门（不可燃）
+    BlockProperties netherWoodTrapdoorProps = BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f);
+    CRIMSON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:crimson_trapdoor"), netherWoodTrapdoorProps, false);
+    WARPED_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:warped_trapdoor"), netherWoodTrapdoorProps, false);
 
     // 铁活板门
     IRON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:iron_trapdoor"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
-        true // iron
-    );
+        true);
+}
+
+// ============================================================================
+// 门、栅栏门、染色玻璃板注册
+// ============================================================================
+void VanillaBlocks::registerDoorsFencesAndPanes()
+{
+    auto& registry = BlockRegistry::instance();
+
+    // ========== 木门（所有木材类型）==========
+    // 参考 MC 1.16.5: new DoorBlock(Material.WOOD,
+    // Properties.create(Material.WOOD).hardnessAndResistance(3.0F).notSolid())
+    BlockProperties woodDoorProps =
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable();
+
+    SPRUCE_DOOR =
+        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:spruce_door"), woodDoorProps, false);
+    BIRCH_DOOR =
+        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:birch_door"), woodDoorProps, false);
+    JUNGLE_DOOR =
+        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:jungle_door"), woodDoorProps, false);
+    ACACIA_DOOR =
+        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:acacia_door"), woodDoorProps, false);
+    DARK_OAK_DOOR =
+        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:dark_oak_door"), woodDoorProps, false);
+
+    // 下界木材门（不可燃）
+    BlockProperties netherWoodDoorProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid();
+    CRIMSON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
+        ResourceLocation("minecraft:crimson_door"), netherWoodDoorProps, false);
+    WARPED_DOOR = &registry.registerBlock<blocks::DoorBlock>(
+        ResourceLocation("minecraft:warped_door"), netherWoodDoorProps, false);
+
+    // ========== 栅栏门（所有木材类型）==========
+    // 参考 MC 1.16.5: new FenceGateBlock(Material.WOOD,
+    // Properties.create(Material.WOOD).hardnessAndResistance(2.0F).notSolid())
+    BlockProperties woodFenceGateProps =
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable();
+
+    SPRUCE_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:spruce_fence_gate"), woodFenceGateProps);
+    BIRCH_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:birch_fence_gate"), woodFenceGateProps);
+    JUNGLE_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:jungle_fence_gate"), woodFenceGateProps);
+    ACACIA_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:acacia_fence_gate"), woodFenceGateProps);
+    DARK_OAK_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:dark_oak_fence_gate"), woodFenceGateProps);
+
+    // 下界木材栅栏门（不可燃）
+    BlockProperties netherWoodFenceGateProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(2.0f).notSolid();
+    CRIMSON_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:crimson_fence_gate"), netherWoodFenceGateProps);
+    WARPED_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
+
+    // ========== 染色玻璃板（16色）==========
+    // 参考 MC 1.16.5: new PaneBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
+    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
+
+    WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
+    ORANGE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:orange_stained_glass_pane"), stainedGlassPaneProps);
+    MAGENTA_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:magenta_stained_glass_pane"), stainedGlassPaneProps);
+    LIGHT_BLUE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:light_blue_stained_glass_pane"), stainedGlassPaneProps);
+    YELLOW_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:yellow_stained_glass_pane"), stainedGlassPaneProps);
+    LIME_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:lime_stained_glass_pane"), stainedGlassPaneProps);
+    PINK_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:pink_stained_glass_pane"), stainedGlassPaneProps);
+    GRAY_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:gray_stained_glass_pane"), stainedGlassPaneProps);
+    LIGHT_GRAY_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:light_gray_stained_glass_pane"), stainedGlassPaneProps);
+    CYAN_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:cyan_stained_glass_pane"), stainedGlassPaneProps);
+    PURPLE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:purple_stained_glass_pane"), stainedGlassPaneProps);
+    BLUE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:blue_stained_glass_pane"), stainedGlassPaneProps);
+    BROWN_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:brown_stained_glass_pane"), stainedGlassPaneProps);
+    GREEN_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:green_stained_glass_pane"), stainedGlassPaneProps);
+    RED_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:red_stained_glass_pane"), stainedGlassPaneProps);
+    BLACK_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:black_stained_glass_pane"), stainedGlassPaneProps);
 }
 
 // ============================================================================

@@ -166,9 +166,26 @@ public:
     // ========================================================================
     // 门和栅栏门
     // ========================================================================
+    // 木门 (所有木材类型)
     static Block* OAK_DOOR;
+    static Block* SPRUCE_DOOR;
+    static Block* BIRCH_DOOR;
+    static Block* JUNGLE_DOOR;
+    static Block* ACACIA_DOOR;
+    static Block* DARK_OAK_DOOR;
+    static Block* CRIMSON_DOOR;
+    static Block* WARPED_DOOR;
+    // 铁门
     static Block* IRON_DOOR;
+    // 栅栏门 (所有木材类型)
     static Block* OAK_FENCE_GATE;
+    static Block* SPRUCE_FENCE_GATE;
+    static Block* BIRCH_FENCE_GATE;
+    static Block* JUNGLE_FENCE_GATE;
+    static Block* ACACIA_FENCE_GATE;
+    static Block* DARK_OAK_FENCE_GATE;
+    static Block* CRIMSON_FENCE_GATE;
+    static Block* WARPED_FENCE_GATE;
 
     // ========================================================================
     // 楼梯（示例）
@@ -196,10 +213,39 @@ public:
     static Block* OAK_FENCE;
 
     // ========================================================================
-    // 活板门（示例）
+    // 活板门
     // ========================================================================
+    // 木活板门 (所有木材类型)
     static Block* OAK_TRAPDOOR;
+    static Block* SPRUCE_TRAPDOOR;
+    static Block* BIRCH_TRAPDOOR;
+    static Block* JUNGLE_TRAPDOOR;
+    static Block* ACACIA_TRAPDOOR;
+    static Block* DARK_OAK_TRAPDOOR;
+    static Block* CRIMSON_TRAPDOOR;
+    static Block* WARPED_TRAPDOOR;
+    // 铁活板门
     static Block* IRON_TRAPDOOR;
+
+    // ========================================================================
+    // 染色玻璃板 (16色)
+    // ========================================================================
+    static Block* WHITE_STAINED_GLASS_PANE;
+    static Block* ORANGE_STAINED_GLASS_PANE;
+    static Block* MAGENTA_STAINED_GLASS_PANE;
+    static Block* LIGHT_BLUE_STAINED_GLASS_PANE;
+    static Block* YELLOW_STAINED_GLASS_PANE;
+    static Block* LIME_STAINED_GLASS_PANE;
+    static Block* PINK_STAINED_GLASS_PANE;
+    static Block* GRAY_STAINED_GLASS_PANE;
+    static Block* LIGHT_GRAY_STAINED_GLASS_PANE;
+    static Block* CYAN_STAINED_GLASS_PANE;
+    static Block* PURPLE_STAINED_GLASS_PANE;
+    static Block* BLUE_STAINED_GLASS_PANE;
+    static Block* BROWN_STAINED_GLASS_PANE;
+    static Block* GREEN_STAINED_GLASS_PANE;
+    static Block* RED_STAINED_GLASS_PANE;
+    static Block* BLACK_STAINED_GLASS_PANE;
 
     // ========================================================================
     // 羊毛 (16色)
@@ -729,6 +775,7 @@ private:
     static void registerRedstoneBlocks();        // 红石方块
     static void registerStairsSlabsWalls();      // 楼梯、台阶、墙、栅栏、活板门
     static void registerSpecialBlocks();         // 特殊方块（刷怪笼、结构方块、屏障等）
+    static void registerDoorsFencesAndPanes();   // 门、栅栏门、染色玻璃板变种
 };
 
 } // namespace mc
