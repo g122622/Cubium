@@ -34,6 +34,7 @@
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <spdlog/spdlog.h>
 
@@ -435,8 +436,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
-        static feature::template_::TemplateManager defaultManager;
-        templateManager = &defaultManager;
+        templateManager = &jigsaw::JigsawManager::getTemplateManager();
     }
 
     // 创建片段

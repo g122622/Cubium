@@ -34,6 +34,7 @@
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -246,9 +247,7 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
-        // 如果没有设置，使用默认的
-        static feature::template_::TemplateManager defaultManager;
-        templateManager = &defaultManager;
+        templateManager = &jigsaw::JigsawManager::getTemplateManager();
     }
 
     // 确定是否生成大型废墟
