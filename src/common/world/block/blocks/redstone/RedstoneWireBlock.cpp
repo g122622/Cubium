@@ -22,83 +22,85 @@
  */
 
 #include "RedstoneWireBlock.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "ObserverBlock.hpp"
 #include "RedstoneDiodeBlock.hpp"
 
 namespace mc {
-
-// EnumProperty Traits 实现 - 必须在 mc 命名空间
-std::string EnumProperty<blocks::RedstoneSide>::Traits::toString(const blocks::RedstoneSide& value)
-{
-    switch (value) {
-        case blocks::RedstoneSide::None:
-            return "none";
-        case blocks::RedstoneSide::Side:
-            return "side";
-        case blocks::RedstoneSide::Up:
-            return "up";
-        default:
-            return "none";
-    }
-}
-
-std::optional<blocks::RedstoneSide> EnumProperty<blocks::RedstoneSide>::Traits::fromName(std::string_view name)
-{
-    if (name == "none") return blocks::RedstoneSide::None;
-    if (name == "side") return blocks::RedstoneSide::Side;
-    if (name == "up") return blocks::RedstoneSide::Up;
-    return std::nullopt;
-}
-
 namespace blocks {
 
-// 静态属性获取
-const EnumProperty<RedstoneSide>& RedstoneWireBlock::NORTH_PROP()
-{
-    static auto prop =
-        EnumProperty<RedstoneSide>::create("north", {RedstoneSide::None, RedstoneSide::Side, RedstoneSide::Up});
-    return *prop;
-}
+// ========== 静态形状常量定义 ==========
 
-const EnumProperty<RedstoneSide>& RedstoneWireBlock::EAST_PROP()
-{
-    static auto prop =
-        EnumProperty<RedstoneSide>::create("east", {RedstoneSide::None, RedstoneSide::Side, RedstoneSide::Up});
-    return *prop;
-}
+// 参考 MC 1.16.5 RedstoneWireBlock.java:
+// field_235538_g_ = Block.makeCuboidShape(3.0, 0.0, 3.0, 13.0, 1.0, 13.0) - 中心点
+// SIDE_TO_SHAPE:
+//   NORTH = Block.makeCuboidShape(3.0, 0.0, 0.0, 13.0, 1.0, 13.0)
+//   SOUTH = Block.makeCuboidShape(3.0, 0.0, 3.0, 13.0, 1.0, 16.0)
+//   EAST = Block.makeCuboidShape(3.0, 0.0, 3.0, 16.0, 1.0, 13.0)
+//   WEST = Block.makeCuboidShape(0.0, 0.0, 3.0, 13.0, 1.0, 13.0)
+// SIDE_TO_ASCENDING_SHAPE = VoxelShapes.or(SIDE_TO_SHAPE, 向上部分):
+//   NORTH向上 = VoxelShapes.or(NORTH_SIDE, Block.makeCuboidShape(3.0, 0.0, 0.0, 13.0, 16.0, 1.0))
+//   SOUTH向上 = VoxelShapes.or(SOUTH_SIDE, Block.makeCuboidShape(3.0, 0.0, 15.0, 13.0, 16.0, 16.0))
+//   EAST向上 = VoxelShapes.or(EAST_SIDE, Block.makeCuboidShape(15.0, 0.0, 3.0, 16.0, 16.0, 13.0))
+//   WEST向上 = VoxelShapes.or(WEST_SIDE, Block.makeCuboidShape(0.0, 0.0, 3.0, 1.0, 16.0, 13.0))
 
-const EnumProperty<RedstoneSide>& RedstoneWireBlock::SOUTH_PROP()
-{
-    static auto prop =
-        EnumProperty<RedstoneSide>::create("south", {RedstoneSide::None, RedstoneSide::Side, RedstoneSide::Up});
-    return *prop;
-}
+// 像素单位转方块单位（MC使用16像素=1方块）
+constexpr f32 P = 1.0f / 16.0f;
 
-const EnumProperty<RedstoneSide>& RedstoneWireBlock::WEST_PROP()
-{
-    static auto prop =
-        EnumProperty<RedstoneSide>::create("west", {RedstoneSide::None, RedstoneSide::Side, RedstoneSide::Up});
-    return *prop;
-}
+// 中心点形状 (3, 0, 3) -> (13, 1, 13)
+const CollisionShape RedstoneWireBlock::s_centerShape =
+    CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 1.0f * P, 13.0f * P);
+
+// 各方向水平连接形状
+const CollisionShape RedstoneWireBlock::s_northSideShape =
+    CollisionShape::box(3.0f * P, 0.0f, 0.0f, 13.0f * P, 1.0f * P, 13.0f * P);
+const CollisionShape RedstoneWireBlock::s_southSideShape =
+    CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 1.0f * P, 1.0f);
+const CollisionShape RedstoneWireBlock::s_eastSideShape =
+    CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 1.0f, 1.0f * P, 13.0f * P);
+const CollisionShape RedstoneWireBlock::s_westSideShape =
+    CollisionShape::box(0.0f, 0.0f, 3.0f * P, 13.0f * P, 1.0f * P, 13.0f * P);
+
+// 各方向向上连接形状（水平部分 + 向上延伸部分）
+const CollisionShape RedstoneWireBlock::s_northAscendingShape =
+    CollisionShape::combine(CollisionShape::box(3.0f * P, 0.0f, 0.0f, 13.0f * P, 1.0f * P, 13.0f * P),
+        CollisionShape::box(3.0f * P, 0.0f, 0.0f, 13.0f * P, 1.0f, 1.0f * P),
+        CollisionShape::CombineOp::OR);
+const CollisionShape RedstoneWireBlock::s_southAscendingShape =
+    CollisionShape::combine(CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 1.0f * P, 1.0f),
+        CollisionShape::box(3.0f * P, 0.0f, 15.0f * P, 13.0f * P, 1.0f, 1.0f),
+        CollisionShape::CombineOp::OR);
+const CollisionShape RedstoneWireBlock::s_eastAscendingShape =
+    CollisionShape::combine(CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 1.0f, 1.0f * P, 13.0f * P),
+        CollisionShape::box(15.0f * P, 0.0f, 3.0f * P, 1.0f, 1.0f, 13.0f * P),
+        CollisionShape::CombineOp::OR);
+const CollisionShape RedstoneWireBlock::s_westAscendingShape =
+    CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 3.0f * P, 13.0f * P, 1.0f * P, 13.0f * P),
+        CollisionShape::box(0.0f, 0.0f, 3.0f * P, 1.0f * P, 1.0f, 13.0f * P),
+        CollisionShape::CombineOp::OR);
+
+// 使用 BlockStateProperties 中的红石线属性
+// 不再需要自定义的 NORTH_PROP 等
 
 RedstoneWireBlock::RedstoneWireBlock(const BlockProperties& properties)
     : Block(properties)
 {
 
-    // 创建状态容器
+    // 创建状态容器 - 使用 BlockStateProperties 中的 REDSTONE_NORTH 等属性
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::POWER_0_15())
-            .add(NORTH_PROP())
-            .add(EAST_PROP())
-            .add(SOUTH_PROP())
-            .add(WEST_PROP())
+            .add(BlockStateProperties::REDSTONE_NORTH())
+            .add(BlockStateProperties::REDSTONE_EAST())
+            .add(BlockStateProperties::REDSTONE_SOUTH())
+            .add(BlockStateProperties::REDSTONE_WEST())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -111,10 +113,10 @@ RedstoneWireBlock::RedstoneWireBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState()
             .with(BlockStateProperties::POWER_0_15(), 0)
-            .with(NORTH_PROP(), RedstoneSide::None)
-            .with(EAST_PROP(), RedstoneSide::None)
-            .with(SOUTH_PROP(), RedstoneSide::None)
-            .with(WEST_PROP(), RedstoneSide::None));
+            .with(BlockStateProperties::REDSTONE_NORTH(), BlockStateProperties::RedstoneSide::None)
+            .with(BlockStateProperties::REDSTONE_EAST(), BlockStateProperties::RedstoneSide::None)
+            .with(BlockStateProperties::REDSTONE_SOUTH(), BlockStateProperties::RedstoneSide::None)
+            .with(BlockStateProperties::REDSTONE_WEST(), BlockStateProperties::RedstoneSide::None));
 }
 
 i32 RedstoneWireBlock::getPower(const BlockState& state)
@@ -186,18 +188,18 @@ BlockState RedstoneWireBlock::updatePostPlacement(const BlockState& state,
     }
 
     // 计算新的连接状态
-    RedstoneSide connection = getConnection(world, currentPos, facing);
+    BlockStateProperties::RedstoneSide connection = getConnection(world, currentPos, facing);
 
     // 根据方向设置连接属性
     switch (facing) {
         case Direction::North:
-            return state.with(NORTH_PROP(), connection);
+            return state.with(BlockStateProperties::REDSTONE_NORTH(), connection);
         case Direction::East:
-            return state.with(EAST_PROP(), connection);
+            return state.with(BlockStateProperties::REDSTONE_EAST(), connection);
         case Direction::South:
-            return state.with(SOUTH_PROP(), connection);
+            return state.with(BlockStateProperties::REDSTONE_SOUTH(), connection);
         case Direction::West:
-            return state.with(WEST_PROP(), connection);
+            return state.with(BlockStateProperties::REDSTONE_WEST(), connection);
         default:
             return state;
     }
@@ -278,26 +280,26 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     }
 
     // 水平方向：需要检查连接
-    RedstoneSide connection = RedstoneSide::None;
+    BlockStateProperties::RedstoneSide connection = BlockStateProperties::RedstoneSide::None;
     switch (side) {
         case Direction::North:
-            connection = state.get(NORTH_PROP());
+            connection = state.get(BlockStateProperties::REDSTONE_NORTH());
             break;
         case Direction::East:
-            connection = state.get(EAST_PROP());
+            connection = state.get(BlockStateProperties::REDSTONE_EAST());
             break;
         case Direction::South:
-            connection = state.get(SOUTH_PROP());
+            connection = state.get(BlockStateProperties::REDSTONE_SOUTH());
             break;
         case Direction::West:
-            connection = state.get(WEST_PROP());
+            connection = state.get(BlockStateProperties::REDSTONE_WEST());
             break;
         default:
             return 0;
     }
 
     // 只有该方向有连接时才输出信号
-    if (connection == RedstoneSide::None) {
+    if (connection == BlockStateProperties::RedstoneSide::None) {
         return 0;
     }
 
@@ -339,27 +341,28 @@ BlockState RedstoneWireBlock::calculateConnections(IWorld& world, const BlockPos
     BlockState result = state;
 
     // 计算四个方向的连接状态
-    result = result.with(NORTH_PROP(), getConnection(world, pos, Direction::North));
-    result = result.with(EAST_PROP(), getConnection(world, pos, Direction::East));
-    result = result.with(SOUTH_PROP(), getConnection(world, pos, Direction::South));
-    result = result.with(WEST_PROP(), getConnection(world, pos, Direction::West));
+    result = result.with(BlockStateProperties::REDSTONE_NORTH(), getConnection(world, pos, Direction::North));
+    result = result.with(BlockStateProperties::REDSTONE_EAST(), getConnection(world, pos, Direction::East));
+    result = result.with(BlockStateProperties::REDSTONE_SOUTH(), getConnection(world, pos, Direction::South));
+    result = result.with(BlockStateProperties::REDSTONE_WEST(), getConnection(world, pos, Direction::West));
 
     return result;
 }
 
-RedstoneSide RedstoneWireBlock::getConnection(IWorld& world, const BlockPos& pos, Direction direction) const
+BlockStateProperties::RedstoneSide RedstoneWireBlock::getConnection(
+    IWorld& world, const BlockPos& pos, Direction direction) const
 {
     BlockPos neighborPos = pos.offset(direction);
     const BlockState* neighborState = world.getBlockState(neighborPos);
 
     if (!neighborState || neighborState->isAir()) {
-        return RedstoneSide::None;
+        return BlockStateProperties::RedstoneSide::None;
     }
 
     // MC Java: canConnectTo 检查相邻方块是否可以连接红石
     // 参数 side 是从红石线指向相邻方块的方向
     if (canConnectTo(*neighborState, direction)) {
-        return RedstoneSide::Side;
+        return BlockStateProperties::RedstoneSide::Side;
     }
 
     // MC Java: 检查向上连接
@@ -368,7 +371,7 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world, const BlockPos& pos
         BlockPos upPos = neighborPos.up();
         const BlockState* upState = world.getBlockState(upPos);
         if (upState && upState->is(this)) {
-            return RedstoneSide::Up;
+            return BlockStateProperties::RedstoneSide::Up;
         }
     } else {
         // MC Java: 相邻不是实体方块时，需要检查两种情况：
@@ -379,7 +382,7 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world, const BlockPos& pos
         BlockPos neighborDownPos = neighborPos.down();
         const BlockState* neighborDownState = world.getBlockState(neighborDownPos);
         if (neighborDownState && neighborDownState->is(this)) {
-            return RedstoneSide::Side;
+            return BlockStateProperties::RedstoneSide::Side;
         }
 
         // MC Java: 还需要检查当前红石线下方的方块位置
@@ -393,13 +396,13 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world, const BlockPos& pos
                 BlockPos downNeighborPos = downPos.offset(direction);
                 const BlockState* downNeighborState = world.getBlockState(downNeighborPos);
                 if (downNeighborState && downNeighborState->is(this)) {
-                    return RedstoneSide::Side;
+                    return BlockStateProperties::RedstoneSide::Side;
                 }
             }
         }
     }
 
-    return RedstoneSide::None;
+    return BlockStateProperties::RedstoneSide::None;
 }
 
 i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -543,33 +546,37 @@ ActionResultType RedstoneWireBlock::onBlockActivated(const BlockState& state,
 bool RedstoneWireBlock::isCrossConnection(const BlockState& state) const
 {
     // MC 1.16.5: func_235555_m_ - 检查四个方向是否都有连接
-    return state.get(NORTH_PROP()) != RedstoneSide::None && state.get(SOUTH_PROP()) != RedstoneSide::None &&
-        state.get(EAST_PROP()) != RedstoneSide::None && state.get(WEST_PROP()) != RedstoneSide::None;
+    return state.get(BlockStateProperties::REDSTONE_NORTH()) != BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_SOUTH()) != BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_EAST()) != BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_WEST()) != BlockStateProperties::RedstoneSide::None;
 }
 
 bool RedstoneWireBlock::isDotConnection(const BlockState& state) const
 {
     // MC 1.16.5: func_235556_n_ - 检查四个方向是否都没有连接
-    return state.get(NORTH_PROP()) == RedstoneSide::None && state.get(SOUTH_PROP()) == RedstoneSide::None &&
-        state.get(EAST_PROP()) == RedstoneSide::None && state.get(WEST_PROP()) == RedstoneSide::None;
+    return state.get(BlockStateProperties::REDSTONE_NORTH()) == BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_SOUTH()) == BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_EAST()) == BlockStateProperties::RedstoneSide::None &&
+        state.get(BlockStateProperties::REDSTONE_WEST()) == BlockStateProperties::RedstoneSide::None;
 }
 
 BlockState RedstoneWireBlock::createDotState(const BlockState& state) const
 {
     // 创建点状连接状态（所有方向都无连接）
-    return state.with(NORTH_PROP(), RedstoneSide::None)
-        .with(SOUTH_PROP(), RedstoneSide::None)
-        .with(EAST_PROP(), RedstoneSide::None)
-        .with(WEST_PROP(), RedstoneSide::None);
+    return state.with(BlockStateProperties::REDSTONE_NORTH(), BlockStateProperties::RedstoneSide::None)
+        .with(BlockStateProperties::REDSTONE_SOUTH(), BlockStateProperties::RedstoneSide::None)
+        .with(BlockStateProperties::REDSTONE_EAST(), BlockStateProperties::RedstoneSide::None)
+        .with(BlockStateProperties::REDSTONE_WEST(), BlockStateProperties::RedstoneSide::None);
 }
 
 BlockState RedstoneWireBlock::createCrossState(const BlockState& state) const
 {
     // 创建十字连接状态（所有方向都有 Side 连接）
-    return state.with(NORTH_PROP(), RedstoneSide::Side)
-        .with(SOUTH_PROP(), RedstoneSide::Side)
-        .with(EAST_PROP(), RedstoneSide::Side)
-        .with(WEST_PROP(), RedstoneSide::Side);
+    return state.with(BlockStateProperties::REDSTONE_NORTH(), BlockStateProperties::RedstoneSide::Side)
+        .with(BlockStateProperties::REDSTONE_SOUTH(), BlockStateProperties::RedstoneSide::Side)
+        .with(BlockStateProperties::REDSTONE_EAST(), BlockStateProperties::RedstoneSide::Side)
+        .with(BlockStateProperties::REDSTONE_WEST(), BlockStateProperties::RedstoneSide::Side);
 }
 
 void RedstoneWireBlock::notifyDiagonalNeighbors(
@@ -578,33 +585,33 @@ void RedstoneWireBlock::notifyDiagonalNeighbors(
     // MC 1.16.5: updateDiagonalNeighbors
     // 当连接状态改变时，通知对角方向的方块更新
     for (Direction dir : Directions::horizontal()) {
-        RedstoneSide oldConnection = RedstoneSide::None;
-        RedstoneSide newConnection = RedstoneSide::None;
+        BlockStateProperties::RedstoneSide oldConnection = BlockStateProperties::RedstoneSide::None;
+        BlockStateProperties::RedstoneSide newConnection = BlockStateProperties::RedstoneSide::None;
 
         switch (dir) {
             case Direction::North:
-                oldConnection = oldState.get(NORTH_PROP());
-                newConnection = newState.get(NORTH_PROP());
+                oldConnection = oldState.get(BlockStateProperties::REDSTONE_NORTH());
+                newConnection = newState.get(BlockStateProperties::REDSTONE_NORTH());
                 break;
             case Direction::South:
-                oldConnection = oldState.get(SOUTH_PROP());
-                newConnection = newState.get(SOUTH_PROP());
+                oldConnection = oldState.get(BlockStateProperties::REDSTONE_SOUTH());
+                newConnection = newState.get(BlockStateProperties::REDSTONE_SOUTH());
                 break;
             case Direction::East:
-                oldConnection = oldState.get(EAST_PROP());
-                newConnection = newState.get(EAST_PROP());
+                oldConnection = oldState.get(BlockStateProperties::REDSTONE_EAST());
+                newConnection = newState.get(BlockStateProperties::REDSTONE_EAST());
                 break;
             case Direction::West:
-                oldConnection = oldState.get(WEST_PROP());
-                newConnection = newState.get(WEST_PROP());
+                oldConnection = oldState.get(BlockStateProperties::REDSTONE_WEST());
+                newConnection = newState.get(BlockStateProperties::REDSTONE_WEST());
                 break;
             default:
                 break;
         }
 
         // 如果连接状态发生变化，通知对角邻居
-        bool oldIsConnected = (oldConnection != RedstoneSide::None);
-        bool newIsConnected = (newConnection != RedstoneSide::None);
+        bool oldIsConnected = (oldConnection != BlockStateProperties::RedstoneSide::None);
+        bool newIsConnected = (newConnection != BlockStateProperties::RedstoneSide::None);
 
         if (oldIsConnected != newIsConnected) {
             BlockPos neighborPos = pos.offset(dir);
@@ -625,6 +632,68 @@ void RedstoneWireBlock::notifyDiagonalNeighbors(
             }
         }
     }
+}
+
+const CollisionShape& RedstoneWireBlock::getShape(const BlockState& state) const
+{
+    // 使用POWER=0的状态作为形状缓存的键（形状不依赖于POWER）
+    u32 cacheKey = 0;
+    cacheKey |= (static_cast<u32>(state.get(BlockStateProperties::REDSTONE_NORTH())) << 0);
+    cacheKey |= (static_cast<u32>(state.get(BlockStateProperties::REDSTONE_EAST())) << 2);
+    cacheKey |= (static_cast<u32>(state.get(BlockStateProperties::REDSTONE_SOUTH())) << 4);
+    cacheKey |= (static_cast<u32>(state.get(BlockStateProperties::REDSTONE_WEST())) << 6);
+
+    auto it = m_shapeCache.find(cacheKey);
+    if (it != m_shapeCache.end()) {
+        return it->second;
+    }
+
+    // 计算并缓存形状
+    CollisionShape shape = computeShapeForState(state);
+    m_shapeCache[cacheKey] = shape;
+    return m_shapeCache[cacheKey];
+}
+
+CollisionShape RedstoneWireBlock::computeShapeForState(const BlockState& state) const
+{
+    // 参考 MC 1.16.5 RedstoneWireBlock.getShapeForState()
+    // 从中心点开始，根据各方向的连接状态添加形状
+
+    CollisionShape shape = s_centerShape;
+
+    // 北面连接
+    BlockStateProperties::RedstoneSide north = state.get(BlockStateProperties::REDSTONE_NORTH());
+    if (north == BlockStateProperties::RedstoneSide::Side) {
+        shape = CollisionShape::combine(shape, s_northSideShape, CollisionShape::CombineOp::OR);
+    } else if (north == BlockStateProperties::RedstoneSide::Up) {
+        shape = CollisionShape::combine(shape, s_northAscendingShape, CollisionShape::CombineOp::OR);
+    }
+
+    // 南面连接
+    BlockStateProperties::RedstoneSide south = state.get(BlockStateProperties::REDSTONE_SOUTH());
+    if (south == BlockStateProperties::RedstoneSide::Side) {
+        shape = CollisionShape::combine(shape, s_southSideShape, CollisionShape::CombineOp::OR);
+    } else if (south == BlockStateProperties::RedstoneSide::Up) {
+        shape = CollisionShape::combine(shape, s_southAscendingShape, CollisionShape::CombineOp::OR);
+    }
+
+    // 东面连接
+    BlockStateProperties::RedstoneSide east = state.get(BlockStateProperties::REDSTONE_EAST());
+    if (east == BlockStateProperties::RedstoneSide::Side) {
+        shape = CollisionShape::combine(shape, s_eastSideShape, CollisionShape::CombineOp::OR);
+    } else if (east == BlockStateProperties::RedstoneSide::Up) {
+        shape = CollisionShape::combine(shape, s_eastAscendingShape, CollisionShape::CombineOp::OR);
+    }
+
+    // 西面连接
+    BlockStateProperties::RedstoneSide west = state.get(BlockStateProperties::REDSTONE_WEST());
+    if (west == BlockStateProperties::RedstoneSide::Side) {
+        shape = CollisionShape::combine(shape, s_westSideShape, CollisionShape::CombineOp::OR);
+    } else if (west == BlockStateProperties::RedstoneSide::Up) {
+        shape = CollisionShape::combine(shape, s_westAscendingShape, CollisionShape::CombineOp::OR);
+    }
+
+    return shape;
 }
 
 } // namespace blocks

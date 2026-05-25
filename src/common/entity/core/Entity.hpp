@@ -1760,6 +1760,20 @@ public:
     [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
 
     /**
+     * @brief 检查实体是否不触发压力板/绊线
+     *
+     * 某些实体（如盔甲架、蝙蝠、投射物等）不会触发压力板和绊线。
+     * 参考: MC 1.16.5 Entity.doesEntityNotTriggerPressurePlate()
+     *
+     * 默认返回 true（不触发）。
+     * 玩家、生物等应该重写返回 false（会触发）。
+     * 蝙蝠特殊处理返回 false（蝙蝠也不触发）。
+     *
+     * @return 如果实体不触发压力板返回true
+     */
+    [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const { return true; }
+
+    /**
      * @brief 播放脚步声
      *
      * 当实体在方块上行走时调用。子类可重写以自定义脚步声。

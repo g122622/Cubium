@@ -42,7 +42,7 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
             .add(BlockStateProperties::OPEN())
-            .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+            .add(BlockStateProperties::HALF())
             .add(BlockStateProperties::POWERED())
             .add(BlockStateProperties::WATERLOGGED())
             .create([](const Block& block,
@@ -57,41 +57,50 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     setDefaultState(defaultState()
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::OPEN(), false)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
+    // 参考 MC 1.16.5 TrapDoorBlock.java:
+    // EAST_OPEN_AABB  = makeCuboidShape(0.0, 0.0, 0.0, 3.0, 16.0, 16.0)  // 朝东打开，贴东墙
+    // WEST_OPEN_AABB  = makeCuboidShape(13.0, 0.0, 0.0, 16.0, 16.0, 16.0) // 朝西打开，贴西墙
+    // SOUTH_OPEN_AABB = makeCuboidShape(0.0, 0.0, 0.0, 16.0, 16.0, 3.0)   // 朝南打开，贴南墙
+    // NORTH_OPEN_AABB = makeCuboidShape(0.0, 0.0, 13.0, 16.0, 16.0, 16.0) // 朝北打开，贴北墙
+    // BOTTOM_AABB     = makeCuboidShape(0.0, 0.0, 0.0, 16.0, 3.0, 16.0)
+    // TOP_AABB        = makeCuboidShape(0.0, 13.0, 0.0, 16.0, 16.0, 16.0)
     constexpr f32 P = 1.0f / 16.0f;
 
-    CollisionShape closedBottom = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 3.0f * P, 16.0f);
-    CollisionShape closedTop = CollisionShape::box(0.0f, 13.0f * P, 0.0f, 16.0f, 16.0f, 16.0f);
+    CollisionShape closedBottom = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 3.0f * P, 1.0f);
+    CollisionShape closedTop = CollisionShape::box(0.0f, 13.0f * P, 0.0f, 1.0f, 1.0f, 1.0f);
 
-    CollisionShape openBottomNorth = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f * P);
-    CollisionShape openTopNorth = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f * P);
-    CollisionShape openBottomSouth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 16.0f, 16.0f, 16.0f);
-    CollisionShape openTopSouth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 16.0f, 16.0f, 16.0f);
-    CollisionShape openBottomEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    CollisionShape openTopEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    CollisionShape openBottomWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 16.0f, 16.0f);
-    CollisionShape openTopWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 16.0f, 16.0f);
+    // 朝北打开: 贴北墙 (z: 13/16 -> 16/16)
+    CollisionShape openNorth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 1.0f, 1.0f, 1.0f);
+    // 朝南打开: 贴南墙 (z: 0 -> 3/16)
+    CollisionShape openSouth = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f * P);
+    // 朝东打开: 贴东墙 (x: 13/16 -> 16/16)
+    CollisionShape openEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    // 朝西打开: 贴西墙 (x: 0 -> 3/16)
+    CollisionShape openWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
 
-    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
-    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
-    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
-    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
+    // 关闭状态的形状（上半和下半不同）
+    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::Half::Top)] = closedTop;
 
-    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomNorth;
-    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopNorth;
-    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomSouth;
-    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopSouth;
-    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomEast;
-    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopEast;
-    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomWest;
-    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopWest;
+    // 打开状态的形状（根据朝向决定，上半和下半打开后形状相同）
+    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::Half::Bottom)] = openNorth;
+    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::Half::Top)] = openNorth;
+    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::Half::Bottom)] = openSouth;
+    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::Half::Top)] = openSouth;
+    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::Half::Bottom)] = openEast;
+    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::Half::Top)] = openEast;
+    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::Half::Bottom)] = openWest;
+    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::Half::Top)] = openWest;
 }
 
 BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -101,15 +110,13 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
     Direction facing;
-    BlockStateProperties::DoubleBlockHalf half;
+    BlockStateProperties::Half half;
     if (!context.replacingClickedBlock() && Directions::isHorizontal(clickedFace)) {
         facing = clickedFace;
-        half = context.getHitY() > 0.5f ? BlockStateProperties::DoubleBlockHalf::Upper
-                                        : BlockStateProperties::DoubleBlockHalf::Lower;
+        half = context.getHitY() > 0.5f ? BlockStateProperties::Half::Top : BlockStateProperties::Half::Bottom;
     } else {
         facing = Directions::opposite(context.horizontalDirection());
-        half = clickedFace == Direction::Up ? BlockStateProperties::DoubleBlockHalf::Lower
-                                            : BlockStateProperties::DoubleBlockHalf::Upper;
+        half = clickedFace == Direction::Up ? BlockStateProperties::Half::Bottom : BlockStateProperties::Half::Top;
     }
 
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
@@ -118,7 +125,7 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
         .with(BlockStateProperties::OPEN(), powered)
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half)
+        .with(BlockStateProperties::HALF(), half)
         .with(BlockStateProperties::POWERED(), powered)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -211,7 +218,7 @@ const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
-    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::Half half = state.get(BlockStateProperties::HALF());
 
     size_t index = getShapeIndex(facing, open, half);
     MC_ASSERT(index < 16);
@@ -283,7 +290,7 @@ void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening
     world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
-size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::DoubleBlockHalf half)
+size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half)
 {
     size_t facingIdx = 0;
     switch (facing) {
@@ -304,7 +311,7 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
             break;
     }
 
-    size_t halfIdx = (half == BlockStateProperties::DoubleBlockHalf::Upper) ? 1 : 0;
+    size_t halfIdx = (half == BlockStateProperties::Half::Top) ? 1 : 0;
     size_t openIdx = open ? 2 : 0;
     return facingIdx * 4 + openIdx + halfIdx;
 }

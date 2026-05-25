@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "world/block/Block.hpp"
 
 namespace mc {
@@ -79,6 +80,14 @@ public:
 
     [[nodiscard]] i32 getStrongPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+
+    /**
+     * @brief 获取绊线钩形状
+     *
+     * 参考 MC 1.16.5: TripWireHookBlock.getShape()
+     * 根据FACING方向返回不同的形状
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
     {

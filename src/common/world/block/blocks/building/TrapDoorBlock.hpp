@@ -48,7 +48,7 @@ namespace blocks {
  * 状态属性：
  * - HORIZONTAL_FACING: 水平朝向 (NORTH, SOUTH, EAST, WEST)
  * - OPEN: 是否打开
- * - HALF: 上半/下半 (TOP, BOTTOM)
+ * - HALF: 上半/下半 (TOP, BOTTOM) - 对应MC的Half枚举
  * - POWERED: 是否被充能
  * - WATERLOGGED: 是否含水
  *
@@ -196,7 +196,7 @@ private:
      * @param half 上半/下半
      * @return 形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(Direction facing, bool open, BlockStateProperties::DoubleBlockHalf half);
+    [[nodiscard]] static size_t getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half);
 
     /// 是否为铁活板门
     bool m_isIron;

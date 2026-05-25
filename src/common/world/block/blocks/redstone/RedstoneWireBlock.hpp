@@ -26,35 +26,15 @@
 #include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/core/ActionResult.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../Block.hpp"
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
-namespace blocks {
-
-/**
- * @brief 红石线连接类型
- *
- * 描述红石线在某个方向的连接状态。
- */
-enum class RedstoneSide : u8 {
-    None = 0, ///< 无连接
-    Side = 1, ///< 水平连接
-    Up = 2    ///< 向上连接（连接到高一格的方块侧面）
-};
-
-} // namespace blocks
-
-// 特化 EnumProperty::Traits for RedstoneSide
-template <>
-struct EnumProperty<blocks::RedstoneSide>::Traits {
-    static std::string toString(const blocks::RedstoneSide& value);
-    static std::optional<blocks::RedstoneSide> fromName(std::string_view name);
-};
-
 namespace blocks {
 
 /**
@@ -140,7 +120,8 @@ public:
     /**
      * @brief 检查指定方向的连接类型
      */
-    [[nodiscard]] RedstoneSide getConnection(IWorld& world, const BlockPos& pos, Direction direction) const;
+    [[nodiscard]] BlockStateProperties::RedstoneSide getConnection(
+        IWorld& world, const BlockPos& pos, Direction direction) const;
 
     /**
      * @brief 判断方块是否可以连接红石
@@ -179,13 +160,38 @@ public:
 
     /**
      * @brief 获取红石线连接属性
+     * 使用 BlockStateProperties::REDSTONE_NORTH() 等方法
      */
-    [[nodiscard]] static const EnumProperty<RedstoneSide>& NORTH_PROP();
-    [[nodiscard]] static const EnumProperty<RedstoneSide>& EAST_PROP();
-    [[nodiscard]] static const EnumProperty<RedstoneSide>& SOUTH_PROP();
-    [[nodiscard]] static const EnumProperty<RedstoneSide>& WEST_PROP();
 
     // ========== Block 接口实现 ==========
+
+    /**
+     * @brief 获取方块形状
+     *
+     * 红石线形状由中心点和四个方向的连接组成：
+     * - 中心点: (3, 0, 3) -> (13, 1, 13)
+     * - 水平连接: 向各方向延伸到边缘
+     * - 向上连接: 包含向上爬升的部分
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取碰撞形状（红石线无碰撞）
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return VoxelShapes::empty();
+    }
+
+    /**
+     * @brief 检查是否可以使用形状进行光照遮挡
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return false;
+    }
 
     /**
      * @brief 右键交互 - 切换十字/点状连接
@@ -251,6 +257,29 @@ private:
 
     /// 临时变量：防止递归调用时检测自己的信号输出
     mutable bool m_canProvidePower = true;
+
+    // ========== 形状缓存 ==========
+
+    /**
+     * @brief 计算给定状态的形状
+     *
+     * 参考 MC 1.16.5 RedstoneWireBlock.getShapeForState()
+     */
+    [[nodiscard]] CollisionShape computeShapeForState(const BlockState& state) const;
+
+    /// 形状缓存：以连接状态为键（忽略POWER）
+    mutable std::unordered_map<u32, CollisionShape> m_shapeCache;
+
+    /// 基础形状常量
+    static const CollisionShape s_centerShape;         // 中心点 (3, 0, 3) -> (13, 1, 13)
+    static const CollisionShape s_northSideShape;      // 北面水平连接
+    static const CollisionShape s_southSideShape;      // 南面水平连接
+    static const CollisionShape s_eastSideShape;       // 东面水平连接
+    static const CollisionShape s_westSideShape;       // 西面水平连接
+    static const CollisionShape s_northAscendingShape; // 北面向上连接
+    static const CollisionShape s_southAscendingShape; // 南面向上连接
+    static const CollisionShape s_eastAscendingShape;  // 东面向上连接
+    static const CollisionShape s_westAscendingShape;  // 西面向上连接
 };
 
 } // namespace blocks

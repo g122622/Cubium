@@ -23,7 +23,6 @@
 
 #include "AbstractPressurePlateBlock.hpp"
 #include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
@@ -138,8 +137,9 @@ i32 AbstractPressurePlateBlock::getWeakPower(
 i32 AbstractPressurePlateBlock::getStrongPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // 压力板向下方输出强信号
-    if (side == Direction::Down) {
+    // 参考 MC 1.16.5: 压力板向上方输出强信号
+    // getStrongPower: side == Direction.UP ? this.getRedstoneStrength(blockState) : 0
+    if (side == Direction::Up) {
         return getPower(state);
     }
     return 0;
@@ -166,19 +166,30 @@ bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos&
     // 查询碰撞箱内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 过滤：只检测可以触发压力板的实体（玩家、生物、物品等）
+    // 过滤：只检测可以触发压力板的实体
+    // 参考 MC 1.16.5 PressurePlateBlock.computeRedstoneStrength()
     for (Entity* entity : entities) {
-        if (entity != nullptr) {
-            // 检查实体类型：玩家、生物、物品实体都可以触发压力板
-            entity::EntityTypeId type = entity->typeId();
-            if (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::ITEM) {
-                return true;
-            }
-            // 后续可以添加更多类型：Mob, Animal 等
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
+            return true;
         }
     }
 
     return false;
+}
+
+void AbstractPressurePlateBlock::onEntityCollision(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    // 参考 MC 1.16.5: AbstractPressurePlateBlock.onEntityCollision
+    // 当实体踩上压力板时，如果当前未被触发，则更新状态
+    MC_UNUSED(entity);
+    i32 currentPower = getPower(state);
+    if (currentPower == 0) {
+        // 调度tick来更新状态
+        // 需要const_cast因为scheduleBlockTick需要非const的Block引用
+        world.tickManager().scheduleBlockTick(
+            pos, const_cast<AbstractPressurePlateBlock&>(*this), 0, world::tick::TickPriority::High);
+    }
 }
 
 void AbstractPressurePlateBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)

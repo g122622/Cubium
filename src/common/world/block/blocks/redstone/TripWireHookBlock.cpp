@@ -21,7 +21,7 @@
  *
  */
 
-#include "TripWireHookBlock.hpp"
+#include "TripwireHookBlock.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
@@ -38,6 +38,20 @@ namespace mc {
 namespace blocks {
 
 using namespace mc; // Bring BlockStateProperties into scope
+
+// 参考 MC 1.16.5 TripWireHookBlock.java:
+// HOOK_NORTH_AABB = Block.makeCuboidShape(5.0D, 0.0D, 10.0D, 11.0D, 10.0D, 16.0D)
+// HOOK_SOUTH_AABB = Block.makeCuboidShape(5.0D, 0.0D, 0.0D, 11.0D, 10.0D, 6.0D)
+// HOOK_WEST_AABB  = Block.makeCuboidShape(10.0D, 0.0D, 5.0D, 16.0D, 10.0D, 11.0D)
+// HOOK_EAST_AABB  = Block.makeCuboidShape(0.0D, 0.0D, 5.0D, 6.0D, 10.0D, 11.0D)
+namespace {
+constexpr f32 P = 1.0f / 16.0f;
+
+const CollisionShape s_hookNorth = CollisionShape::box(5.0f * P, 0.0f, 10.0f * P, 11.0f * P, 10.0f * P, 1.0f);
+const CollisionShape s_hookSouth = CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, 10.0f * P, 6.0f * P);
+const CollisionShape s_hookWest = CollisionShape::box(10.0f * P, 0.0f, 5.0f * P, 1.0f, 10.0f * P, 11.0f * P);
+const CollisionShape s_hookEast = CollisionShape::box(0.0f, 0.0f, 5.0f * P, 6.0f * P, 10.0f * P, 11.0f * P);
+} // namespace
 
 TripWireHookBlock::TripWireHookBlock(const BlockProperties& properties)
     : Block(properties)
@@ -223,6 +237,23 @@ i32 TripWireHookBlock::getStrongPower(const BlockState& state, IWorld& world, co
         return isPowered(state) ? 15 : 0;
     }
     return 0;
+}
+
+const CollisionShape& TripWireHookBlock::getShape(const BlockState& state) const
+{
+    // 参考 MC 1.16.5 TripWireHookBlock.getShape()
+    Direction facing = getFacing(state);
+    switch (facing) {
+        case Direction::North:
+            return s_hookNorth;
+        case Direction::South:
+            return s_hookSouth;
+        case Direction::West:
+            return s_hookWest;
+        case Direction::East:
+        default:
+            return s_hookEast;
+    }
 }
 
 bool TripWireHookBlock::calculateState(

@@ -29,6 +29,10 @@
 #include "../../Block.hpp"
 
 namespace mc {
+
+// 前向声明
+class Entity;
+
 namespace blocks {
 
 /**
@@ -64,6 +68,15 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 实体碰撞回调
+     *
+     * 当实体踩上压力板时触发状态更新。
+     *
+     * 参考 MC 1.16.5: AbstractPressurePlateBlock.onEntityCollision
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const override
     {

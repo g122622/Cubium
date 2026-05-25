@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "world/block/Block.hpp"
 #include <vector>
 
@@ -80,6 +81,24 @@ public:
 
     [[nodiscard]] i32 getStrongPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+
+    /**
+     * @brief 获取绊线形状
+     *
+     * 参考 MC 1.16.5: TripWireBlock.getShape()
+     * - ATTACHED=true: 绷紧状态，形状为 (0, 1, 0) -> (16, 2.5, 16)
+     * - ATTACHED=false: 松弛状态，形状为 (0, 0, 0) -> (16, 8, 16)
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取碰撞形状（绊线无碰撞）
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return VoxelShapes::empty();
+    }
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
     {

@@ -33,7 +33,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../VanillaBlocks.hpp"
-#include "TripWireHookBlock.hpp"
+#include "TripwireHookBlock.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -228,11 +228,25 @@ i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
 
 i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
+    // 参考 MC 1.16.5: TripWireBlock 不重写 getStrongPower
+    // 继承自 Block，默认返回 0
+    // 绊线只输出弱信号，不输出强信号
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
+    MC_UNUSED(state);
+    return 0;
+}
 
-    return isPowered(state) ? 15 : 0;
+const CollisionShape& TripWireBlock::getShape(const BlockState& state) const
+{
+    // 参考 MC 1.16.5 TripWireBlock.getShape():
+    // ATTACHED=true: AABB = (0, 1, 0) -> (16, 2.5, 16) - 绷紧的绊线
+    // ATTACHED=false: TRIP_WRITE_ATTACHED_AABB = (0, 0, 0) -> (16, 8, 16) - 松弛的绊线（注：MC源码中变量名有拼写错误）
+    static const CollisionShape attachedShape = CollisionShape::box(0.0f, 1.0f / 16.0f, 0.0f, 1.0f, 2.5f / 16.0f, 1.0f);
+    static const CollisionShape detachedShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f / 16.0f, 1.0f);
+
+    return state.get(BlockStateProperties::ATTACHED()) ? attachedShape : detachedShape;
 }
 
 void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
@@ -259,25 +273,42 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
 bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const
 {
     // 创建绊线的碰撞箱
-    // 绊线是一个细线，检测范围为方块内的一小片区域
-    AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.0f,
-        static_cast<f32>(pos.y) + 0.0f,
-        static_cast<f32>(pos.z) + 0.0f,
-        static_cast<f32>(pos.x) + 1.0f,
-        static_cast<f32>(pos.y) + 0.5f, // 检测向上0.5格
-        static_cast<f32>(pos.z) + 1.0f);
+    // 参考 MC 1.16.5: TripWireBlock.updateState()
+    // 使用方块的 shape 来获取碰撞箱
+    const BlockState* state = world.getBlockState(pos);
+    if (!state) {
+        return false;
+    }
+
+    // 根据ATTACHED状态获取对应的碰撞箱
+    // ATTACHED=true: (0, 1, 0) -> (16, 2.5, 16)
+    // ATTACHED=false: (0, 0, 0) -> (16, 8, 16)
+    AxisAlignedBB detectionBox;
+    if (state->get(BlockStateProperties::ATTACHED())) {
+        // 绷紧状态: Y范围 1/16 到 2.5/16
+        detectionBox = AxisAlignedBB(static_cast<f32>(pos.x),
+            static_cast<f32>(pos.y) + 1.0f / 16.0f,
+            static_cast<f32>(pos.z),
+            static_cast<f32>(pos.x) + 1.0f,
+            static_cast<f32>(pos.y) + 2.5f / 16.0f,
+            static_cast<f32>(pos.z) + 1.0f);
+    } else {
+        // 松弛状态: Y范围 0 到 8/16
+        detectionBox = AxisAlignedBB(static_cast<f32>(pos.x),
+            static_cast<f32>(pos.y),
+            static_cast<f32>(pos.z),
+            static_cast<f32>(pos.x) + 1.0f,
+            static_cast<f32>(pos.y) + 8.0f / 16.0f,
+            static_cast<f32>(pos.z) + 1.0f);
+    }
 
     // 查询碰撞箱内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 绊线被任何实体触发（玩家、生物、物品等）
-    // 参考 MC 1.16.5: 潜行的玩家不会触发绊线
+    // 参考 MC 1.16.5: TripWireBlock.updateState()
+    // 检查实体是否触发绊线
     for (Entity* entity : entities) {
-        if (entity != nullptr) {
-            // 潜行的玩家不会触发绊线
-            if (entity->isSneaking()) {
-                continue;
-            }
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
             return true;
         }
     }
