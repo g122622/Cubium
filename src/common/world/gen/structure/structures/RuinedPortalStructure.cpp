@@ -65,21 +65,54 @@ const std::vector<std::string> RuinedPortalStructure::s_giantTemplates = {"ruine
     "ruined_portal/giant_portal_2",
     "ruined_portal/giant_portal_3"};
 
-// MC 1.16.5: 主世界生物群系列表
+// MC 1.16.5: 主世界生物群系列表（包含所有变体）
 const std::vector<BiomeId> RuinedPortalStructure::s_validBiomes = {Plains,
     Desert,
+    DesertHills,
+    DesertLakes,
     Forest,
     Taiga,
     Mountains,
+    WoodedMountains,
+    GravellyMountains,
+    MountainEdge,
+    SnowyMountains,
     SnowyPlains,
     Swamp,
+    SwampHills,
     Badlands,
+    WoodedBadlandsPlateau,
+    BadlandsPlateau,
+    ErodedBadlands,
+    ModifiedWoodedBadlandsPlateau,
+    ModifiedBadlandsPlateau,
     Jungle,
+    JungleHills,
+    JungleEdge,
+    ModifiedJungle,
+    ModifiedJungleEdge,
+    BambooJungle,
+    BambooJungleHills,
     Savanna,
+    SavannaPlateau,
+    ShatteredSavanna,
+    ShatteredSavannaPlateau,
     BirchForest,
+    BirchForestHills,
+    TallBirchForest,
+    TallBirchHills,
     DarkForest,
+    DarkForestHills,
     WoodedHills,
-    SnowyPlains, // snowy_tundra
+    TaigaHills,
+    TaigaMountains,
+    SnowyTaiga,
+    SnowyTaigaHills,
+    SnowyTaigaMountains,
+    GiantTreeTaiga,
+    GiantTreeTaigaHills,
+    GiantSpruceTaiga,
+    GiantSpruceTaigaHills,
     River,
     Beach,
     SnowyBeach,
@@ -91,7 +124,14 @@ const std::vector<BiomeId> RuinedPortalStructure::s_validBiomes = {Plains,
     ColdOcean,
     DeepColdOcean,
     FrozenOcean,
-    DeepFrozenOcean};
+    DeepFrozenOcean,
+    Ocean,
+    DeepOcean,
+    MushroomFields,
+    MushroomFieldShore,
+    SunflowerPlains,
+    FlowerForest,
+    IceSpikes};
 
 // ============================================================================
 // RuinedPortalPiece
@@ -186,22 +226,28 @@ void RuinedPortalPiece::generate(
     // 如果有空气口袋，只忽略结构方块；否则忽略空气和结构方块
     std::vector<u32> blocksToIgnore;
     if (m_properties.airPocket) {
-        // 忽略结构方块
-        // TODO: 添加 STRUCTURE_BLOCK 的 block ID
+        // 忽略结构方块（有空气口袋时不覆盖空气）
+        if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+            blocksToIgnore.push_back(structureState->blockId());
+        }
     } else {
         // 忽略空气和结构方块
         if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
             blocksToIgnore.push_back(airState->blockId());
+        }
+        if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+            blocksToIgnore.push_back(structureState->blockId());
         }
     }
     if (!blocksToIgnore.empty()) {
         processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     }
 
-    // TODO: 添加 RuleStructureProcessor 处理金块随机替换为空气
-    // TODO: 添加 BlockMosinessProcessor 处理苔藓化
-    // TODO: 添加 LavaSubmergingProcessor 处理岩浆淹没
-    // TODO: 下界传送门需要 BlackStoneReplacementProcessor
+    // MC 1.16.5: 以下处理器待完整实现
+    // - RuleStructureProcessor: 金块随机替换为空气（0.2概率）
+    // - BlockMossinessProcessor: 石砖随机苔藓化
+    // - LavaSubmergingProcessor: 岩浆淹没处理
+    // - BlackStoneReplacementProcessor: 下界传送门的黑石替换
 
     settings.setProcessors(&processors);
 

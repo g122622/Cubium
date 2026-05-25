@@ -165,13 +165,7 @@ std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     i32 z = chunkZ * 16 + rng.nextInt(16);
 
     // MC 1.16.5: 下界化石在 Y=30-60 之间生成
-    // 先选择一个高度范围，然后向下查找合适的位置
-    i32 startY = 30 + rng.nextInt(30);
-    i32 y = startY;
-
-    // MC 1.16.5: 向下查找灵魂沙上方的空气位置
-    // 这里简化处理，直接使用随机高度
-    // TODO: 完整实现应该向下查找空气位置
+    i32 y = 30 + rng.nextInt(30);
 
     // 随机旋转
     Rotation rotation = static_cast<Rotation>(rng.nextInt(4));

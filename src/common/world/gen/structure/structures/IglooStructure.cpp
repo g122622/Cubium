@@ -98,6 +98,12 @@ void IglooPiece::loadTemplates()
 
 void IglooPiece::updateBoundingBox()
 {
+    // MC 1.16.5: igloo/top 的中心偏移是 BlockPos(3, 0, 5)
+    // 使用 transformBlockPos 正确处理旋转变换
+    BlockPos centerOffset(3, 0, 5);
+    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
+        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+
     // 计算地上部分尺寸（考虑旋转）
     i32 topSizeX = m_topSize.x;
     i32 topSizeZ = m_topSize.z;
@@ -111,9 +117,9 @@ void IglooPiece::updateBoundingBox()
         totalHeight += m_middleSize.y * m_middleCount + m_bottomSize.y;
     }
 
-    // MC 1.16.5: 地上部分的中心偏移
-    // igloo/top 的中心偏移是 BlockPos(3, 5, 5)
-    // 这里简化处理，使用原始位置作为基准
+    // 边界框从调整后的位置开始计算
+    m_minX = m_minX - transformedOffset.x;
+    m_minZ = m_minZ - transformedOffset.z;
     m_maxX = m_minX + topSizeX - 1;
     m_maxY = m_minY + totalHeight - 1;
     m_maxZ = m_minZ + topSizeZ - 1;
@@ -172,12 +178,14 @@ void IglooPiece::generateTop(IWorldWriter& world, math::Random& rng, const Struc
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
-    // MC 1.16.5: igloo/top 模板的中心偏移是 BlockPos(3, 5, 5)
-    // 需要调整放置位置使底部对齐到地面
+    // MC 1.16.5: igloo/top 模板的中心偏移是 BlockPos(3, 0, 5)
+    // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(3, 0, 5);
+    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
+        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
 
     // 计算调整后的放置位置
-    BlockPos adjustedPos(m_minX - centerOffset.x, m_minY, m_minZ - centerOffset.z);
+    BlockPos adjustedPos(m_minX - transformedOffset.x, m_minY, m_minZ - transformedOffset.z);
 
     // 放置模板
     m_topTemplate->place(world, adjustedPos, settings, rng, 18);
@@ -191,7 +199,7 @@ void IglooPiece::generateMiddle(
     }
 
     // 计算中间层位置（在地下部分）
-    // MC 1.16.5: 中间层偏移是 BlockPos(2, -3, 4)
+    // MC 1.16.5: 中间层偏移是 BlockPos(2, 0, 4)
     // 每个中间层向下偏移 3 格
     i32 y = m_minY + m_topSize.y - 3 + index * (-3);
 
@@ -200,8 +208,12 @@ void IglooPiece::generateMiddle(
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
+    // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(2, 0, 4);
-    BlockPos adjustedPos(m_minX - centerOffset.x, y, m_minZ - centerOffset.z);
+    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
+        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+
+    BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
     m_middleTemplate->place(world, adjustedPos, settings, rng, 18);
 }
@@ -213,7 +225,7 @@ void IglooPiece::generateBottom(IWorldWriter& world, math::Random& rng, const St
     }
 
     // 计算底部位置
-    // MC 1.16.5: 底部偏移是 BlockPos(3, 6, 7)
+    // MC 1.16.5: 底部偏移是 BlockPos(3, 0, 7)
     i32 y = m_minY + m_topSize.y - 3 - m_middleSize.y * m_middleCount;
 
     feature::template_::PlacementSettings settings;
@@ -221,8 +233,12 @@ void IglooPiece::generateBottom(IWorldWriter& world, math::Random& rng, const St
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
+    // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(3, 0, 7);
-    BlockPos adjustedPos(m_minX - centerOffset.x, y, m_minZ - centerOffset.z);
+    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
+        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+
+    BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
     m_bottomTemplate->place(world, adjustedPos, settings, rng, 18);
 }
