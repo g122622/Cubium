@@ -23,7 +23,8 @@
 
 #pragma once
 
-#include "../JigsawStructure.hpp"
+#include "../Structure.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -40,7 +41,7 @@ namespace structure {
  *
  * 参考: MC 1.16.5 BastionRemnantsStructure.java
  */
-class BastionRemnantStructure : public JigsawStructure {
+class BastionRemnantStructure : public Structure {
 public:
     BastionRemnantStructure();
     ~BastionRemnantStructure() override = default;
@@ -52,8 +53,12 @@ public:
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
+    [[nodiscard]] std::unique_ptr<StructureStart> generate(
+        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+
 private:
     static const std::string s_name;
+    // MC 1.16.5: spacing=27, separation=4, salt=30084232
     static constexpr StructureSeparationSettings s_settings{27, 4, 30084232};
     static const std::vector<BiomeId> s_validBiomes;
 };

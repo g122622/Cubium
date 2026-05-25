@@ -258,15 +258,19 @@ public:
         i32 maxDepth,
         math::Random& rng);
 
-private:
     /**
      * @brief 递归放置拼图块
+     *
+     * 将已组装的 PlacedPiece 放置到世界中。
+     * 此方法公开以便结构生成器可以手动控制放置过程。
+     *
      * @param world 世界写入器
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
      */
     static void placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
 
+private:
     /**
      * @brief 放置回退方块（当模板未找到时）
      * @param world 世界写入器

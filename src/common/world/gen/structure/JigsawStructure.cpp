@@ -30,6 +30,12 @@
 
 namespace {
 
+/**
+ * @brief Jigsaw 结构片段适配器
+ *
+ * 将 PlacedPiece 适配为 StructurePiece，用于存储到 StructureStart。
+ * 存储 JigsawJunction 用于地形平滑计算。
+ */
 class JigsawPlacedPieceAdapter final : public mc::world::gen::structure::StructurePiece {
 public:
     explicit JigsawPlacedPieceAdapter(const mc::world::gen::jigsaw::PlacedPiece& placed)
@@ -40,6 +46,8 @@ public:
               placed.boundingBox.maxX(),
               placed.boundingBox.maxY(),
               placed.boundingBox.maxZ())
+        , m_groundLevelDelta(placed.groundLevelDelta)
+        , m_junctions(placed.junctions)
     {}
 
     void generate(mc::IWorldWriter&,
@@ -50,6 +58,19 @@ public:
     {
         // 实际方块放置已在 JigsawManager::assembleAndPlace 中完成
     }
+
+    [[nodiscard]] mc::i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
+
+    [[nodiscard]] const std::vector<mc::world::gen::jigsaw::JigsawJunction>& getJunctions() const override
+    {
+        return m_junctions;
+    }
+
+    [[nodiscard]] bool isJigsawPiece() const override { return true; }
+
+private:
+    mc::i32 m_groundLevelDelta;
+    std::vector<mc::world::gen::jigsaw::JigsawJunction> m_junctions;
 };
 
 } // anonymous namespace
@@ -107,13 +128,34 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     }
 
     // 计算起始位置
-    BlockPos startPos(chunkX * 16 + 8, m_startY, chunkZ * 16 + 8);
+    i32 startY = m_startY;
+    if (m_nearTerrain) {
+        // 如果需要贴合地形，查询地面高度
+        const i32 centerX = chunkX * 16 + 8;
+        const i32 centerZ = chunkZ * 16 + 8;
+        startY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
+        if (startY < 20) startY = m_startY > 0 ? m_startY : 64;
+    }
 
-    // 组装结构
+    BlockPos startPos(chunkX * 16 + 8, startY, chunkZ * 16 + 8);
+
+    // MC 1.16.5: 使用 JigsawManager 组装结构
+    // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
     auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
 
+    // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
+    // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息
     for (const auto& placed : placedPieces) {
-        start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(placed));
+        if (placed.piece && !placed.piece->isEmpty()) {
+            start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(placed));
+        }
+    }
+
+    // 放置方块到世界
+    for (const auto& placed : placedPieces) {
+        if (placed.piece && !placed.piece->isEmpty()) {
+            jigsaw::JigsawManager::placePieceRecursive(world, placed, rng);
+        }
     }
 
     return start;

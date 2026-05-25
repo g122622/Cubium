@@ -37,6 +37,53 @@ namespace world {
 namespace gen {
 namespace structure {
 
+namespace {
+
+/**
+ * @brief Jigsaw 结构片段适配器
+ *
+ * 将 PlacedPiece 适配为 StructurePiece，用于存储到 StructureStart。
+ * 存储 JigsawJunction 用于地形平滑计算。
+ */
+class VillagePlacedPieceAdapter final : public StructurePiece {
+public:
+    explicit VillagePlacedPieceAdapter(const jigsaw::PlacedPiece& placed)
+        : StructurePiece(90,
+              placed.boundingBox.minX(),
+              placed.boundingBox.minY(),
+              placed.boundingBox.minZ(),
+              placed.boundingBox.maxX(),
+              placed.boundingBox.maxY(),
+              placed.boundingBox.maxZ())
+        , m_groundLevelDelta(placed.groundLevelDelta)
+        , m_junctions(placed.junctions)
+    {}
+
+    void generate(IWorldWriter&,
+        math::Random&,
+        i32,
+        i32,
+        const StructureBoundingBox&) override
+    {
+        // 实际方块放置已在 JigsawManager::placePieceRecursive 中完成
+    }
+
+    [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
+
+    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override
+    {
+        return m_junctions;
+    }
+
+    [[nodiscard]] bool isJigsawPiece() const override { return true; }
+
+private:
+    i32 m_groundLevelDelta;
+    std::vector<jigsaw::JigsawJunction> m_junctions;
+};
+
+} // anonymous namespace
+
 using namespace mc::Biomes;
 
 const std::string VillageStructure::m_name = "village";
@@ -157,8 +204,24 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
 
     BlockPos startPos(startX, startY, startZ);
 
-    // 使用 JigsawManager 组装并放置村庄
-    jigsaw::JigsawManager::assembleAndPlace(world, patternRegistry, *startPool, m_config.size, startPos, rng);
+    // MC 1.16.5: 使用 JigsawManager 组装村庄结构
+    // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
+    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
+
+    // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
+    // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息
+    for (const auto& placed : placedPieces) {
+        if (placed.piece && !placed.piece->isEmpty()) {
+            start->addPiece(std::make_unique<VillagePlacedPieceAdapter>(placed));
+        }
+    }
+
+    // 放置方块到世界
+    for (const auto& placed : placedPieces) {
+        if (placed.piece && !placed.piece->isEmpty()) {
+            jigsaw::JigsawManager::placePieceRecursive(world, placed, rng);
+        }
+    }
 
     return start;
 }

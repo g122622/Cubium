@@ -74,26 +74,6 @@ private:
     static std::unordered_map<std::string, std::unique_ptr<Structure>>& getStructures();
     static std::vector<const Structure*>& getStructureList();
     static bool s_initialized;
-
-    /**
-     * @brief 初始化默认的 Jigsaw 模板池
-     */
-    static void initializeDefaultJigsawPatterns();
-
-    /**
-     * @brief 注册村庄模板池
-     */
-    static void registerVillagePatterns(jigsaw::JigsawPatternRegistry& registry);
-
-    /**
-     * @brief 注册要塞模板池
-     */
-    static void registerStrongholdPatterns(jigsaw::JigsawPatternRegistry& registry);
-
-    /**
-     * @brief 注册下界要塞模板池
-     */
-    static void registerFortressPatterns(jigsaw::JigsawPatternRegistry& registry);
 };
 
 /**
