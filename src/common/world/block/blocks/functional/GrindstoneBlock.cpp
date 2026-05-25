@@ -35,6 +35,9 @@
 namespace mc {
 namespace blocks {
 
+// 使用 BlockStateProperties 中的 AttachFace
+using AttachFace = BlockStateProperties::AttachFace;
+
 // ========== GrindstoneBlock 实现 ==========
 
 GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
@@ -45,6 +48,7 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
+            .add(BlockStateProperties::ATTACH_FACE())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -55,65 +59,246 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
 
     // 创建砂轮形状
-    // 底座 + 侧柱 + 砂轮
+    // 参考 MC 1.16.5: GrindstoneBlock.VoxelShapes
+    // 砂轮由底座/支架 + 两根立柱 + 砂轮组成
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 简化形状：侧柱 + 砂轮
-    CollisionShape postLeft = CollisionShape::box(0.0f, 0.0f, 0.0f, 2.0f * P, 14.0f * P, 2.0f * P);
-    CollisionShape postRight = CollisionShape::box(14.0f * P, 0.0f, 0.0f, 16.0f * P, 14.0f * P, 2.0f * P);
-    CollisionShape wheel = CollisionShape::box(2.0f * P, 4.0f * P, 0.0f, 14.0f * P, 12.0f * P, 2.0f * P);
+    // ========== 地面附着形状 ==========
+    // 地面附着时，支架立于地面，砂轮在支架之间
+    // 北朝向 (facing=North): 支架在南北方向，砂轮从两侧夹住
+    // 底座: (2, 0, 6) -> (14, 2, 10) - 踏板形状
+    CollisionShape floorBase = CollisionShape::box(2.0f * P, 0.0f, 6.0f * P, 14.0f * P, 2.0f * P, 10.0f * P);
+    // 左立柱 (沿Z轴方向): (4, 2, 7) -> (6, 13, 9)
+    CollisionShape floorPostLeft = CollisionShape::box(4.0f * P, 2.0f * P, 7.0f * P, 6.0f * P, 13.0f * P, 9.0f * P);
+    // 右立柱: (10, 2, 7) -> (12, 13, 9)
+    CollisionShape floorPostRight = CollisionShape::box(10.0f * P, 2.0f * P, 7.0f * P, 12.0f * P, 13.0f * P, 9.0f * P);
+    // 砂轮: (6, 4, 7.5) -> (10, 12, 8.5) - 简化为方块
+    CollisionShape floorWheel = CollisionShape::box(6.0f * P, 4.0f * P, 7.0f * P, 10.0f * P, 12.0f * P, 9.0f * P);
 
-    CollisionShape baseShape = CollisionShape::combine(CollisionShape::combine(postLeft, postRight), wheel);
+    m_floorNorthShape = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::combine(floorBase, floorPostLeft), floorPostRight), floorWheel);
 
-    // 各朝向旋转
-    // 北朝向
-    m_shapesByFacing[static_cast<size_t>(Direction::North)] = baseShape;
+    // ========== 墙面附着形状 ==========
+    // 墙面附着时，支架平行于墙面，砂轮挂在支架上
+    // 北朝向 (facing=North): 砂轮挂在北墙上，朝向北
+    // 左立柱 (沿X轴方向): (0, 0, 0) -> (2, 14, 2)
+    CollisionShape wallPostLeft = CollisionShape::box(0.0f, 0.0f, 0.0f, 2.0f * P, 14.0f * P, 2.0f * P);
+    // 右立柱: (14, 0, 0) -> (16, 14, 2)
+    CollisionShape wallPostRight = CollisionShape::box(14.0f * P, 0.0f, 0.0f, 16.0f * P, 14.0f * P, 2.0f * P);
+    // 砂轮: (2, 4, 0) -> (14, 12, 2)
+    CollisionShape wallWheel = CollisionShape::box(2.0f * P, 4.0f * P, 0.0f, 14.0f * P, 12.0f * P, 2.0f * P);
 
-    // 南朝向
-    m_shapesByFacing[static_cast<size_t>(Direction::South)] = baseShape;
+    m_wallNorthShape = CollisionShape::combine(CollisionShape::combine(wallPostLeft, wallPostRight), wallWheel);
 
-    // 西朝向 - 旋转90度
-    CollisionShape postLeftW = CollisionShape::box(0.0f, 0.0f, 0.0f, 2.0f * P, 14.0f * P, 2.0f * P);
-    CollisionShape postRightW = CollisionShape::box(0.0f, 0.0f, 14.0f * P, 2.0f * P, 14.0f * P, 16.0f * P);
-    CollisionShape wheelW = CollisionShape::box(0.0f, 4.0f * P, 2.0f * P, 2.0f * P, 12.0f * P, 14.0f * P);
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] =
-        CollisionShape::combine(CollisionShape::combine(postLeftW, postRightW), wheelW);
+    // ========== 天花板附着形状 ==========
+    // 天花板附着时，支架从天花板垂下
+    // 北朝向: 支架沿南北方向延伸
+    // 顶座: (2, 14, 6) -> (14, 16, 10)
+    CollisionShape ceilingBase = CollisionShape::box(2.0f * P, 14.0f * P, 6.0f * P, 14.0f * P, 16.0f * P, 10.0f * P);
+    // 左立柱: (4, 3, 7) -> (6, 14, 9)
+    CollisionShape ceilingPostLeft = CollisionShape::box(4.0f * P, 3.0f * P, 7.0f * P, 6.0f * P, 14.0f * P, 9.0f * P);
+    // 右立柱: (10, 3, 7) -> (12, 14, 9)
+    CollisionShape ceilingPostRight =
+        CollisionShape::box(10.0f * P, 3.0f * P, 7.0f * P, 12.0f * P, 14.0f * P, 9.0f * P);
+    // 砂轮: (6, 4, 7) -> (10, 12, 9)
+    CollisionShape ceilingWheel = CollisionShape::box(6.0f * P, 4.0f * P, 7.0f * P, 10.0f * P, 12.0f * P, 9.0f * P);
+
+    m_ceilingNorthShape = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::combine(ceilingBase, ceilingPostLeft), ceilingPostRight), ceilingWheel);
+
+    // ========== 生成所有朝向的形状 ==========
+    // 索引计算: getShapeIndex(attachFace, facing)
+    // FLOOR: 0-3 (North=0, South=1, West=2, East=3)
+    // WALL: 4-7
+    // CEILING: 8-11
+
+    // 地面附着形状
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::North)] = m_floorNorthShape;
+    // 南朝向: 绕Y轴旋转180度 (X/Z交换)
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)] =
+        CollisionShape::box(2.0f * P, 0.0f, 6.0f * P, 14.0f * P, 2.0f * P, 10.0f * P); // 底座对称
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)], floorPostLeft);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)], floorPostRight);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)], floorWheel);
+
+    // 西朝向: 旋转90度 (X<->Z交换)
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::West)] =
+        CollisionShape::box(6.0f * P, 0.0f, 2.0f * P, 10.0f * P, 2.0f * P, 14.0f * P);
+    CollisionShape floorPostLeftW = CollisionShape::box(7.0f * P, 2.0f * P, 4.0f * P, 9.0f * P, 13.0f * P, 6.0f * P);
+    CollisionShape floorPostRightW = CollisionShape::box(7.0f * P, 2.0f * P, 10.0f * P, 9.0f * P, 13.0f * P, 12.0f * P);
+    CollisionShape floorWheelW = CollisionShape::box(7.0f * P, 4.0f * P, 6.0f * P, 9.0f * P, 12.0f * P, 10.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::West)] = CollisionShape::combine(
+        CollisionShape::combine(
+            CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::West)], floorPostLeftW),
+            floorPostRightW),
+        floorWheelW);
 
     // 东朝向
-    CollisionShape postLeftE = CollisionShape::box(14.0f * P, 0.0f, 0.0f, 16.0f * P, 14.0f * P, 2.0f * P);
-    CollisionShape postRightE = CollisionShape::box(14.0f * P, 0.0f, 14.0f * P, 16.0f * P, 14.0f * P, 16.0f * P);
-    CollisionShape wheelE = CollisionShape::box(14.0f * P, 4.0f * P, 2.0f * P, 16.0f * P, 12.0f * P, 14.0f * P);
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] =
-        CollisionShape::combine(CollisionShape::combine(postLeftE, postRightE), wheelE);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)] =
+        CollisionShape::box(6.0f * P, 0.0f, 2.0f * P, 10.0f * P, 2.0f * P, 14.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)], floorPostLeftW);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)], floorPostRightW);
+    m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)] =
+        CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)], floorWheelW);
 
-    m_collisionShape = baseShape;
+    // 墙面附着形状
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::North)] = m_wallNorthShape;
+
+    // 南朝向: 砂轮朝南，挂在南墙上
+    CollisionShape wallPostLeftS = CollisionShape::box(0.0f, 0.0f, 14.0f * P, 2.0f * P, 14.0f * P, 16.0f * P);
+    CollisionShape wallPostRightS = CollisionShape::box(14.0f * P, 0.0f, 14.0f * P, 16.0f * P, 14.0f * P, 16.0f * P);
+    CollisionShape wallWheelS = CollisionShape::box(2.0f * P, 4.0f * P, 14.0f * P, 14.0f * P, 12.0f * P, 16.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::South)] =
+        CollisionShape::combine(CollisionShape::combine(wallPostLeftS, wallPostRightS), wallWheelS);
+
+    // 西朝向: 砂轮朝西，挂在西墙上
+    CollisionShape wallPostLeftW2 = CollisionShape::box(0.0f, 0.0f, 0.0f, 2.0f * P, 14.0f * P, 2.0f * P);
+    CollisionShape wallPostRightW2 = CollisionShape::box(0.0f, 0.0f, 14.0f * P, 2.0f * P, 14.0f * P, 16.0f * P);
+    CollisionShape wallWheelW = CollisionShape::box(0.0f, 4.0f * P, 2.0f * P, 2.0f * P, 12.0f * P, 14.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::West)] =
+        CollisionShape::combine(CollisionShape::combine(wallPostLeftW2, wallPostRightW2), wallWheelW);
+
+    // 东朝向: 砂轮朝东，挂在东墙上
+    CollisionShape wallPostLeftE = CollisionShape::box(14.0f * P, 0.0f, 0.0f, 16.0f * P, 14.0f * P, 2.0f * P);
+    CollisionShape wallPostRightE = CollisionShape::box(14.0f * P, 0.0f, 14.0f * P, 16.0f * P, 14.0f * P, 16.0f * P);
+    CollisionShape wallWheelE = CollisionShape::box(14.0f * P, 4.0f * P, 2.0f * P, 16.0f * P, 12.0f * P, 14.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::East)] =
+        CollisionShape::combine(CollisionShape::combine(wallPostLeftE, wallPostRightE), wallWheelE);
+
+    // 天花板附着形状
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::North)] = m_ceilingNorthShape;
+
+    // 南朝向
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::South)] =
+        CollisionShape::box(2.0f * P, 14.0f * P, 6.0f * P, 14.0f * P, 16.0f * P, 10.0f * P);
+    CollisionShape ceilingPostLeftS = CollisionShape::box(4.0f * P, 3.0f * P, 7.0f * P, 6.0f * P, 14.0f * P, 9.0f * P);
+    CollisionShape ceilingPostRightS =
+        CollisionShape::box(10.0f * P, 3.0f * P, 7.0f * P, 12.0f * P, 14.0f * P, 9.0f * P);
+    CollisionShape ceilingWheelS = CollisionShape::box(6.0f * P, 4.0f * P, 7.0f * P, 10.0f * P, 12.0f * P, 9.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::South)] = CollisionShape::combine(
+        CollisionShape::combine(
+            CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::South)], ceilingPostLeftS),
+            ceilingPostRightS),
+        ceilingWheelS);
+
+    // 西朝向
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::West)] =
+        CollisionShape::box(6.0f * P, 14.0f * P, 2.0f * P, 10.0f * P, 16.0f * P, 14.0f * P);
+    CollisionShape ceilingPostLeftW = CollisionShape::box(7.0f * P, 3.0f * P, 4.0f * P, 9.0f * P, 14.0f * P, 6.0f * P);
+    CollisionShape ceilingPostRightW =
+        CollisionShape::box(7.0f * P, 3.0f * P, 10.0f * P, 9.0f * P, 14.0f * P, 12.0f * P);
+    CollisionShape ceilingWheelW = CollisionShape::box(7.0f * P, 4.0f * P, 6.0f * P, 9.0f * P, 12.0f * P, 10.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::West)] = CollisionShape::combine(
+        CollisionShape::combine(
+            CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::West)], ceilingPostLeftW),
+            ceilingPostRightW),
+        ceilingWheelW);
+
+    // 东朝向
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::East)] =
+        CollisionShape::box(6.0f * P, 14.0f * P, 2.0f * P, 10.0f * P, 16.0f * P, 14.0f * P);
+    CollisionShape ceilingPostLeftE = CollisionShape::box(7.0f * P, 3.0f * P, 4.0f * P, 9.0f * P, 14.0f * P, 6.0f * P);
+    CollisionShape ceilingPostRightE =
+        CollisionShape::box(7.0f * P, 3.0f * P, 10.0f * P, 9.0f * P, 14.0f * P, 12.0f * P);
+    CollisionShape ceilingWheelE = CollisionShape::box(7.0f * P, 4.0f * P, 6.0f * P, 9.0f * P, 12.0f * P, 10.0f * P);
+    m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::East)] = CollisionShape::combine(
+        CollisionShape::combine(
+            CollisionShape::combine(m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::East)], ceilingPostLeftE),
+            ceilingPostRightE),
+        ceilingWheelE);
+}
+
+size_t GrindstoneBlock::getShapeIndex(AttachFace attachFace, Direction facing)
+{
+    size_t faceIndex = static_cast<size_t>(attachFace);
+    size_t facingIndex = 0;
+    switch (facing) {
+        case Direction::North:
+            facingIndex = 0;
+            break;
+        case Direction::South:
+            facingIndex = 1;
+            break;
+        case Direction::West:
+            facingIndex = 2;
+            break;
+        case Direction::East:
+            facingIndex = 3;
+            break;
+        default:
+            facingIndex = 0;
+            break;
+    }
+    return faceIndex * 4 + facingIndex;
 }
 
 BlockState GrindstoneBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Direction facing = context.horizontalDirection();
-    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
+    Direction clickedFace = context.getClickedFace();
+    Direction horizontalFacing = context.horizontalDirection();
+
+    AttachFace attachFace;
+    Direction finalFacing = horizontalFacing;
+
+    // 参考 MC 1.16.5: GrindstoneBlock.getStateForPlacement
+    if (clickedFace == Direction::Up) {
+        // 点击地面 -> 地面附着
+        attachFace = AttachFace::Floor;
+    } else if (clickedFace == Direction::Down) {
+        // 点击天花板 -> 天花板附着
+        attachFace = AttachFace::Ceiling;
+    } else {
+        // 点击墙面 -> 墙面附着
+        attachFace = AttachFace::Wall;
+        finalFacing = clickedFace;
+    }
+
+    return defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), finalFacing)
+        .with(BlockStateProperties::ATTACH_FACE(), attachFace);
 }
 
 bool GrindstoneBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
 
-    MC_UNUSED(state);
-
-    // 砂轮需要附着在墙上
-    // 检查后方是否有支撑
+    // 参考 MC 1.16.5: GrindstoneBlock.isValidPosition
+    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    BlockPos behindPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
-    const BlockState* behindState = world.getBlockState(behindPos);
 
-    if (behindState == nullptr) {
+    BlockPos supportPos;
+    switch (attachFace) {
+        case AttachFace::Floor:
+            // 地面附着 -> 需要下方有固体方块
+            supportPos = pos.down();
+            break;
+        case AttachFace::Ceiling:
+            // 天花板附着 -> 需要上方有固体方块
+            supportPos = pos.up();
+            break;
+        case AttachFace::Wall:
+            // 墙面附着 -> 需要背面有固体方块
+            supportPos = pos.offset(Directions::opposite(facing));
+            break;
+        default:
+            return false;
+    }
+
+    const BlockState* supportState = world.getBlockState(supportPos);
+    if (supportState == nullptr) {
         return false;
     }
 
-    return behindState->isSolid();
+    return supportState->isSolid();
 }
 
 BlockState GrindstoneBlock::updatePostPlacement(const BlockState& state,
@@ -124,13 +309,28 @@ BlockState GrindstoneBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& facingPos)
 {
 
+    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     Direction grindstoneFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
-    // 检查附着的墙是否还存在
+    // 计算支撑方块位置
+    BlockPos supportPos;
+    switch (attachFace) {
+        case AttachFace::Floor:
+            supportPos = currentPos.down();
+            break;
+        case AttachFace::Ceiling:
+            supportPos = currentPos.up();
+            break;
+        case AttachFace::Wall:
+            supportPos = currentPos.offset(Directions::opposite(grindstoneFacing));
+            break;
+    }
+
+    // 检查附着的支撑是否还存在
     // 参考 MC 1.16.5: GrindstoneBlock.updatePostPlacement
-    if (facing == grindstoneFacing) {
+    if (facingPos == supportPos) {
         if (!facingState.isSolid()) {
-            // 墙被移除，掉落砂轮物品
+            // 支撑被移除，掉落砂轮物品
             const Block* block = &state.getBlock();
             if (block != nullptr) {
                 const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
@@ -172,16 +372,17 @@ const BlockState& GrindstoneBlock::mirror(const BlockState& state, Mirror mirror
 
 const CollisionShape& GrindstoneBlock::getShape(const BlockState& state) const
 {
+    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    size_t index = static_cast<size_t>(facing);
-    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
-    return m_shapesByFacing[index];
+    size_t index = getShapeIndex(attachFace, facing);
+    MC_ASSERT(index < 12);
+    return m_shapes[index];
 }
 
 const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    return m_collisionShape;
+    // 碰撞形状与渲染形状相同
+    return getShape(state);
 }
 
 } // namespace blocks

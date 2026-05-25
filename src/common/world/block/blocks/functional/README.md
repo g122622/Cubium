@@ -181,7 +181,7 @@ Block (基类)
 - [x] JukeboxBlock: onBlockActivated唱片取出、onBlockRemoved唱片掉落（2026-05-25 完成）
 - [x] RespawnAnchorBlock: 维度检测、爆炸逻辑、设置重生点（2026-05-12 完成）
 - [ ] LodestoneBlock: CompassItem实现、指南针绑定系统
-- [ ] GrindstoneBlock: AttachFace属性支持、完整VoxelShape、GUI打开
+- [x] GrindstoneBlock: AttachFace属性支持、12种VoxelShape、放置逻辑（2026-05-25 完成）
 - [ ] StonecutterBlock: isTransparent/allowsMovement方法
 - [ ] LoomBlock: 正确VoxelShape、GUI打开
 - [x] CakeBlock: 形状计算修复（2026-05-25 完成，对齐MC 1.16.5）

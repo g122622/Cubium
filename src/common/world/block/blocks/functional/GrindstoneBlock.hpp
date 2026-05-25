@@ -41,12 +41,13 @@ namespace blocks {
  * @brief 砂轮方块
  *
  * 用于修复物品和移除附魔的功能方块。
- * 双方块结构，可以朝向四个方向。
+ * 可以附着在地面、墙面或天花板上。
  *
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
+ * - ATTACH_FACE: 附着面 (FLOOR, WALL, CEILING)
  *
- * 参考: net.minecraft.block.GrindstoneBlock
+ * 参考: net.minecraft.block.GrindstoneBlock (MC 1.16.5)
  */
 class GrindstoneBlock : public Block {
 public:
@@ -92,11 +93,28 @@ public:
     }
 
 protected:
-    /// 各朝向的形状缓存
-    std::array<CollisionShape, 6> m_shapesByFacing;
+    /// 附着面类型别名
+    using AttachFace = BlockStateProperties::AttachFace;
 
-    /// 碰撞形状（北朝向）
-    CollisionShape m_collisionShape;
+    /**
+     * @brief 计算形状索引
+     * @param attachFace 附着面
+     * @param facing 水平朝向
+     * @return 形状数组索引
+     */
+    [[nodiscard]] static size_t getShapeIndex(AttachFace attachFace, Direction facing);
+
+    /// 各状态的形状缓存 (3 attach faces × 4 horizontal directions = 12)
+    std::array<CollisionShape, 12> m_shapes;
+
+    /// 地面附着北向形状（用于碰撞检测）
+    CollisionShape m_floorNorthShape;
+
+    /// 墙面附着北向形状（用于碰撞检测）
+    CollisionShape m_wallNorthShape;
+
+    /// 天花板附着北向形状（用于碰撞检测）
+    CollisionShape m_ceilingNorthShape;
 };
 
 } // namespace blocks
