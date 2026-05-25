@@ -93,3 +93,5 @@ Block (基类)
 - `Properties.hpp` - 状态属性
 - `Direction.hpp` - 方向定义
 - `CollisionShape.hpp` - 碰撞形状
+- `WaterLoggableHelpers.hpp` - 含水方块工具函数
+- `FenceGateHelpers.hpp` - 栅栏门连接检测工具函数（FenceBlock、WallBlock 共享）

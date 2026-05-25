@@ -18,6 +18,7 @@ block/
 ├── Material.hpp/cpp        # 材质系统
 ├── VanillaBlocks.hpp/cpp   # 原版方块静态引用
 ├── WaterLoggableHelpers.hpp # 含水方块工具函数
+├── FenceGateHelpers.hpp    # 栅栏门连接检测工具函数
 └── blocks/                 # 具体方块实现
     ├── AirBlock.hpp/cpp    # 空气方块
     ├── LiquidBlock.hpp/cpp # 液体方块
@@ -387,6 +388,53 @@ if (state.get(BlockStateProperties::WATERLOGGED())) {
 }
 
 // 实现 getFluidState
+const fluid::FluidState* getFluidState(const BlockState& state) const {
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+```
+
+### FenceGateHelpers.hpp
+
+**职责**：提供栅栏门连接检测的通用工具函数，供 FenceBlock 和 WallBlock 共享使用。
+
+**工具函数**：
+```cpp
+namespace mc::fencehelpers {
+
+// 检查方块是否为栅栏门
+[[nodiscard]] inline bool isFenceGate(const BlockState& state);
+
+// 检查栅栏门是否与给定方向平行（可连接）
+[[nodiscard]] inline bool isFenceGateParallel(const BlockState& state, Direction connectionSide);
+
+} // namespace mc::fencehelpers
+```
+
+**栅栏门平行检测逻辑**：
+- 参考 MC 1.16.5 `FenceGateBlock.isParallel()`
+- 栅栏门朝向轴与连接方向轴垂直时，可以连接
+- 例如：栅栏门朝南（Z轴方向），可以连接东西方向的栅栏（X轴方向）
+
+**使用示例**：
+```cpp
+#include "world/block/FenceGateHelpers.hpp"
+
+// 在 FenceBlock::canConnect 中
+if (fencehelpers::isFenceGate(state)) {
+    if (fencehelpers::isFenceGateParallel(state, direction)) {
+        return true;  // 栅栏门平行，可以连接
+    }
+}
+
+// 在 WallBlock::getWallHeight 中
+if (fencehelpers::isFenceGate(state)) {
+    if (fencehelpers::isFenceGateParallel(state, neighborSide)) {
+        return BlockStateProperties::WallHeight::Low;
+    }
+    return BlockStateProperties::WallHeight::None;
+}
+```
 const fluid::FluidState* getFluidState(const BlockState& state) const {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
