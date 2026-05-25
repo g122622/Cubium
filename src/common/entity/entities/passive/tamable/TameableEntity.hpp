@@ -64,8 +64,8 @@ public:
     TameableEntity& operator=(const TameableEntity&) = delete;
 
     // 允许移动
-    TameableEntity(TameableEntity&&) = default;
-    TameableEntity& operator=(TameableEntity&&) = default;
+    TameableEntity(TameableEntity&&) = delete;
+    TameableEntity& operator=(TameableEntity&&) = delete;
 
     // ========== 驯服系统 ==========
 

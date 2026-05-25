@@ -50,8 +50,8 @@ public:
 
     AbstractGroupFishEntity(const AbstractGroupFishEntity&) = delete;
     AbstractGroupFishEntity& operator=(const AbstractGroupFishEntity&) = delete;
-    AbstractGroupFishEntity(AbstractGroupFishEntity&&) = default;
-    AbstractGroupFishEntity& operator=(AbstractGroupFishEntity&&) = default;
+    AbstractGroupFishEntity(AbstractGroupFishEntity&&) = delete;
+    AbstractGroupFishEntity& operator=(AbstractGroupFishEntity&&) = delete;
 
     [[nodiscard]] bool canSchool() const override { return true; }
 

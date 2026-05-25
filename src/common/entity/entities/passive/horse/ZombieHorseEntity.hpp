@@ -57,8 +57,8 @@ public:
     ZombieHorseEntity& operator=(const ZombieHorseEntity&) = delete;
 
     // 允许移动
-    ZombieHorseEntity(ZombieHorseEntity&&) = default;
-    ZombieHorseEntity& operator=(ZombieHorseEntity&&) = default;
+    ZombieHorseEntity(ZombieHorseEntity&&) = delete;
+    ZombieHorseEntity& operator=(ZombieHorseEntity&&) = delete;
 
     /**
      * @brief 创建僵尸马实体

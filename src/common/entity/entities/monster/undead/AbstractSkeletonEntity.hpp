@@ -59,8 +59,8 @@ public:
 
     AbstractSkeletonEntity(const AbstractSkeletonEntity&) = delete;
     AbstractSkeletonEntity& operator=(const AbstractSkeletonEntity&) = delete;
-    AbstractSkeletonEntity(AbstractSkeletonEntity&&) = default;
-    AbstractSkeletonEntity& operator=(AbstractSkeletonEntity&&) = default;
+    AbstractSkeletonEntity(AbstractSkeletonEntity&&) = delete;
+    AbstractSkeletonEntity& operator=(AbstractSkeletonEntity&&) = delete;
 
     // ========== 常量 ==========
     /// 这些常量在测试中需要访问

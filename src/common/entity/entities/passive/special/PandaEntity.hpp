@@ -83,8 +83,8 @@ public:
     PandaEntity& operator=(const PandaEntity&) = delete;
 
     // 允许移动
-    PandaEntity(PandaEntity&&) = default;
-    PandaEntity& operator=(PandaEntity&&) = default;
+    PandaEntity(PandaEntity&&) = delete;
+    PandaEntity& operator=(PandaEntity&&) = delete;
 
     /**
      * @brief 创建熊猫实体

@@ -63,9 +63,9 @@ public:
     ClientEntity(const ClientEntity&) = delete;
     ClientEntity& operator=(const ClientEntity&) = delete;
 
-    // 允许移动
-    ClientEntity(ClientEntity&&) = default;
-    ClientEntity& operator=(ClientEntity&&) = default;
+    // 禁止移动（包含 EntityDataManager）
+    ClientEntity(ClientEntity&&) = delete;
+    ClientEntity& operator=(ClientEntity&&) = delete;
 
     // ========== 基本信息 ==========
 

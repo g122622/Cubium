@@ -61,8 +61,8 @@ public:
     GuardianEntity& operator=(const GuardianEntity&) = delete;
 
     // 允许移动
-    GuardianEntity(GuardianEntity&&) = default;
-    GuardianEntity& operator=(GuardianEntity&&) = default;
+    GuardianEntity(GuardianEntity&&) = delete;
+    GuardianEntity& operator=(GuardianEntity&&) = delete;
 
     /**
      * @brief 创建守卫者实体

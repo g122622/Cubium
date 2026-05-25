@@ -23,6 +23,7 @@
 
 #include "PillagerOutpostStructure.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
@@ -84,16 +85,49 @@ bool PillagerOutpostStructure::canGenerate(
 bool PillagerOutpostStructure::isNearVillage(
     IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
-    MC_UNUSED(seed);
     MC_UNUSED(rng);
-    MC_UNUSED(chunkX);
-    MC_UNUSED(chunkZ);
+    MC_UNUSED(generator);
 
-    // MC 1.16.5: 检查 21x21 区块范围内是否有村庄起始位置
+    // MC 1.16.5: PillagerOutpostStructure.isVillageNearby
+    // 检查 21x21 区块范围内是否有村庄起始位置
     // 如果在范围内有村庄，则不生成前哨站
-    // 简化实现: 暂不实现村庄检测，允许前哨站在任何位置生成
-    // 完整实现需要查询 VillageStructure 的起始位置
+
+    // 村庄的间距设置: spacing=32, separation=8, salt=10387312
+    constexpr i32 villageSpacing = 32;
+    constexpr i32 villageSeparation = 8;
+    constexpr i32 villageSalt = 10387312;
+
+    // 检查范围内的区块网格
+    i32 searchRadius = 10; // 10 区块半径
+
+    for (i32 dx = -searchRadius; dx <= searchRadius; ++dx) {
+        for (i32 dz = -searchRadius; dz <= searchRadius; ++dz) {
+            i32 testChunkX = chunkX + dx;
+            i32 testChunkZ = chunkZ + dz;
+
+            // 计算此区块是否是村庄起始位置
+            i32 gridX = math::floorDiv(testChunkX, villageSpacing);
+            i32 gridZ = math::floorDiv(testChunkZ, villageSpacing);
+
+            // 使用相同种子计算偏移
+            u64 combinedSeed = static_cast<u64>(gridX) * 341873128712ULL + static_cast<u64>(gridZ) * 132897987541ULL +
+                static_cast<u64>(seed) + static_cast<u64>(villageSalt);
+            math::Random villageRng(static_cast<i64>(combinedSeed));
+
+            i32 offsetRange = villageSpacing - villageSeparation;
+            i32 offsetX = villageRng.nextInt(offsetRange);
+            i32 offsetZ = villageRng.nextInt(offsetRange);
+
+            i32 villageStartX = gridX * villageSpacing + offsetX;
+            i32 villageStartZ = gridZ * villageSpacing + offsetZ;
+
+            // 如果此区块是村庄起始位置，则村庄在前哨站附近
+            if (villageStartX == testChunkX && villageStartZ == testChunkZ) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 

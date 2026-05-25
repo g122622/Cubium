@@ -68,8 +68,8 @@ public:
     PillagerEntity& operator=(const PillagerEntity&) = delete;
 
     // 允许移动
-    PillagerEntity(PillagerEntity&&) = default;
-    PillagerEntity& operator=(PillagerEntity&&) = default;
+    PillagerEntity(PillagerEntity&&) = delete;
+    PillagerEntity& operator=(PillagerEntity&&) = delete;
 
     // ========== IRangedAttackMob 接口 ==========
 
@@ -155,8 +155,8 @@ public:
     VindicatorEntity& operator=(const VindicatorEntity&) = delete;
 
     // 允许移动
-    VindicatorEntity(VindicatorEntity&&) = default;
-    VindicatorEntity& operator=(VindicatorEntity&&) = default;
+    VindicatorEntity(VindicatorEntity&&) = delete;
+    VindicatorEntity& operator=(VindicatorEntity&&) = delete;
 
     // ========== 行为状态 ==========
 

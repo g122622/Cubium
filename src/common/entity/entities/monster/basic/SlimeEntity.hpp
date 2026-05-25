@@ -67,8 +67,8 @@ public:
     SlimeEntity& operator=(const SlimeEntity&) = delete;
 
     // 允许移动
-    SlimeEntity(SlimeEntity&&) = default;
-    SlimeEntity& operator=(SlimeEntity&&) = default;
+    SlimeEntity(SlimeEntity&&) = delete;
+    SlimeEntity& operator=(SlimeEntity&&) = delete;
 
     /**
      * @brief 创建史莱姆实体

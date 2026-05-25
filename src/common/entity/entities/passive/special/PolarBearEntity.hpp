@@ -75,8 +75,8 @@ public:
     PolarBearEntity& operator=(const PolarBearEntity&) = delete;
 
     // 允许移动
-    PolarBearEntity(PolarBearEntity&&) = default;
-    PolarBearEntity& operator=(PolarBearEntity&&) = default;
+    PolarBearEntity(PolarBearEntity&&) = delete;
+    PolarBearEntity& operator=(PolarBearEntity&&) = delete;
 
     /**
      * @brief 创建北极熊实体

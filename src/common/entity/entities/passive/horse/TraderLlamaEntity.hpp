@@ -50,8 +50,8 @@ public:
 
     TraderLlamaEntity(const TraderLlamaEntity&) = delete;
     TraderLlamaEntity& operator=(const TraderLlamaEntity&) = delete;
-    TraderLlamaEntity(TraderLlamaEntity&&) = default;
-    TraderLlamaEntity& operator=(TraderLlamaEntity&&) = default;
+    TraderLlamaEntity(TraderLlamaEntity&&) = delete;
+    TraderLlamaEntity& operator=(TraderLlamaEntity&&) = delete;
 
     /**
      * @brief 创建商队羊驼

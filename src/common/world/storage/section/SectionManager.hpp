@@ -110,9 +110,9 @@ public:
     SectionManager(const SectionManager&) = delete;
     SectionManager& operator=(const SectionManager&) = delete;
 
-    // 允许移动
-    SectionManager(SectionManager&&) noexcept = default;
-    SectionManager& operator=(SectionManager&&) noexcept = default;
+    // 禁止移动（有引用成员和不可移动成员）
+    SectionManager(SectionManager&&) noexcept = delete;
+    SectionManager& operator=(SectionManager&&) noexcept = delete;
 
     // ========================================================================
     // Section加载

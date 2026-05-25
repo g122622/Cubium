@@ -43,8 +43,8 @@ public:
 
     EvokerEntity(const EvokerEntity&) = delete;
     EvokerEntity& operator=(const EvokerEntity&) = delete;
-    EvokerEntity(EvokerEntity&&) = default;
-    EvokerEntity& operator=(EvokerEntity&&) = default;
+    EvokerEntity(EvokerEntity&&) = delete;
+    EvokerEntity& operator=(EvokerEntity&&) = delete;
 
     static std::unique_ptr<Entity> create(IWorld* world);
 

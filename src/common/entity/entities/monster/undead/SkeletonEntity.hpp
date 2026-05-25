@@ -44,8 +44,8 @@ public:
 
     SkeletonEntity(const SkeletonEntity&) = delete;
     SkeletonEntity& operator=(const SkeletonEntity&) = delete;
-    SkeletonEntity(SkeletonEntity&&) = default;
-    SkeletonEntity& operator=(SkeletonEntity&&) = default;
+    SkeletonEntity(SkeletonEntity&&) = delete;
+    SkeletonEntity& operator=(SkeletonEntity&&) = delete;
 
     static std::unique_ptr<Entity> create(IWorld* world);
 

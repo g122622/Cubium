@@ -64,8 +64,8 @@ public:
     BlazeEntity& operator=(const BlazeEntity&) = delete;
 
     // 允许移动
-    BlazeEntity(BlazeEntity&&) = default;
-    BlazeEntity& operator=(BlazeEntity&&) = default;
+    BlazeEntity(BlazeEntity&&) = delete;
+    BlazeEntity& operator=(BlazeEntity&&) = delete;
 
     /**
      * @brief 创建烈焰人实体

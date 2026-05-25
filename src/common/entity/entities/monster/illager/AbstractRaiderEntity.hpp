@@ -64,8 +64,8 @@ public:
     ~AbstractRaiderEntity() override = default;
     AbstractRaiderEntity(const AbstractRaiderEntity&) = delete;
     AbstractRaiderEntity& operator=(const AbstractRaiderEntity&) = delete;
-    AbstractRaiderEntity(AbstractRaiderEntity&&) = default;
-    AbstractRaiderEntity& operator=(AbstractRaiderEntity&&) = default;
+    AbstractRaiderEntity(AbstractRaiderEntity&&) = delete;
+    AbstractRaiderEntity& operator=(AbstractRaiderEntity&&) = delete;
 
     // ========== 状态系统 ==========
 

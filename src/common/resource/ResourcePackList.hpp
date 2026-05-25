@@ -99,9 +99,9 @@ public:
     ResourcePackList(const ResourcePackList&) = delete;
     ResourcePackList& operator=(const ResourcePackList&) = delete;
 
-    // 允许移动
-    ResourcePackList(ResourcePackList&&) = default;
-    ResourcePackList& operator=(ResourcePackList&&) = default;
+    // 禁止移动（包含 std::shared_mutex）
+    ResourcePackList(ResourcePackList&&) = delete;
+    ResourcePackList& operator=(ResourcePackList&&) = delete;
 
     // ========================================================================
     // 资源包管理

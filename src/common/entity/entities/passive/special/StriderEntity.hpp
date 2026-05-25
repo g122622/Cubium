@@ -69,8 +69,8 @@ public:
     StriderEntity& operator=(const StriderEntity&) = delete;
 
     // 允许移动
-    StriderEntity(StriderEntity&&) = default;
-    StriderEntity& operator=(StriderEntity&&) = default;
+    StriderEntity(StriderEntity&&) = delete;
+    StriderEntity& operator=(StriderEntity&&) = delete;
 
     /**
      * @brief 创建炽足兽实体

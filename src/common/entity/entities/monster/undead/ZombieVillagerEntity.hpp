@@ -70,8 +70,8 @@ public:
     ZombieVillagerEntity& operator=(const ZombieVillagerEntity&) = delete;
 
     // 允许移动
-    ZombieVillagerEntity(ZombieVillagerEntity&&) = default;
-    ZombieVillagerEntity& operator=(ZombieVillagerEntity&&) = default;
+    ZombieVillagerEntity(ZombieVillagerEntity&&) = delete;
+    ZombieVillagerEntity& operator=(ZombieVillagerEntity&&) = delete;
 
     /**
      * @brief 创建僵尸村民实体

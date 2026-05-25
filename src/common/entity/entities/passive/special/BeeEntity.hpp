@@ -70,8 +70,8 @@ public:
     BeeEntity& operator=(const BeeEntity&) = delete;
 
     // 允许移动
-    BeeEntity(BeeEntity&&) = default;
-    BeeEntity& operator=(BeeEntity&&) = default;
+    BeeEntity(BeeEntity&&) = delete;
+    BeeEntity& operator=(BeeEntity&&) = delete;
 
     /**
      * @brief 创建蜜蜂实体

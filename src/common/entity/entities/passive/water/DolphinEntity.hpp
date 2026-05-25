@@ -88,8 +88,8 @@ public:
     DolphinEntity& operator=(const DolphinEntity&) = delete;
 
     // 允许移动
-    DolphinEntity(DolphinEntity&&) = default;
-    DolphinEntity& operator=(DolphinEntity&&) = default;
+    DolphinEntity(DolphinEntity&&) = delete;
+    DolphinEntity& operator=(DolphinEntity&&) = delete;
 
     /**
      * @brief 创建海豚实体

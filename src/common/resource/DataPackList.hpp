@@ -100,9 +100,9 @@ public:
     DataPackList(const DataPackList&) = delete;
     DataPackList& operator=(const DataPackList&) = delete;
 
-    // 允许移动
-    DataPackList(DataPackList&&) = default;
-    DataPackList& operator=(DataPackList&&) = default;
+    // 禁止移动（包含 std::shared_mutex）
+    DataPackList(DataPackList&&) = delete;
+    DataPackList& operator=(DataPackList&&) = delete;
 
     // ========================================================================
     // 数据包管理

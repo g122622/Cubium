@@ -93,11 +93,11 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_GetTotalCharge)
     tracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
 
     // 在原点应该得到完全的密度值
-    f64 chargeAtOrigin = tracker.getTotalCharge(Vector3(0.0f, 0.0f, 0.0f));
+    f64 chargeAtOrigin = tracker.getTotalCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
     EXPECT_GT(chargeAtOrigin, 0.0);
 
     // 在远处应该得到较低的密度值
-    f64 chargeAtFar = tracker.getTotalCharge(Vector3(100.0f, 0.0f, 0.0f));
+    f64 chargeAtFar = tracker.getTotalCharge(Vector3(100.0f, 0.0f, 0.0f), 1.0);
     EXPECT_LT(chargeAtFar, chargeAtOrigin);
 }
 
@@ -113,7 +113,7 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_MultipleCharges)
     EXPECT_EQ(tracker.size(), 3);
 
     // 中间位置应该得到累计密度
-    f64 charge = tracker.getTotalCharge(Vector3(10.0f, 0.0f, 0.0f));
+    f64 charge = tracker.getTotalCharge(Vector3(10.0f, 0.0f, 0.0f), 1.0);
     EXPECT_GT(charge, 1.0);
 }
 
@@ -135,16 +135,16 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_DistanceFalloff)
     tracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
 
     // 在同一位置应该得到完整的密度（无衰减）
-    f64 chargeAtOrigin = tracker.getTotalCharge(Vector3(0.0f, 0.0f, 0.0f));
+    f64 chargeAtOrigin = tracker.getTotalCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
     EXPECT_NEAR(chargeAtOrigin, 1.0, 0.01);
 
     // 在距离 32 格处应该有衰减
-    f64 chargeAt32 = tracker.getTotalCharge(Vector3(32.0f, 0.0f, 0.0f));
+    f64 chargeAt32 = tracker.getTotalCharge(Vector3(32.0f, 0.0f, 0.0f), 1.0);
     EXPECT_GT(chargeAt32, 0.0);
     EXPECT_LT(chargeAt32, chargeAtOrigin);
 
     // 在距离 64 格处应该完全衰减
-    f64 chargeAt64 = tracker.getTotalCharge(Vector3(64.0f, 0.0f, 0.0f));
+    f64 chargeAt64 = tracker.getTotalCharge(Vector3(64.0f, 0.0f, 0.0f), 1.0);
     EXPECT_NEAR(chargeAt64, 0.0, 0.01);
 }
 
@@ -256,7 +256,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn)
 
     // 生成实体后更新密度
     world::spawn::SpawnCosts costs(1.0, 0.5);
-    manager.onSpawn("minecraft:zombie", Vector3(0, 0, 0), costs);
+    manager.onSpawn("minecraft:zombie", entity::EntityClassification::Monster, Vector3(0, 0, 0), costs);
 
     // 密度追踪器应该记录了这个点
     EXPECT_EQ(densityTracker.size(), 1);
@@ -271,7 +271,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawnWithoutCosts)
 
     // 生成没有成本的实体不应该添加密度
     world::spawn::SpawnCosts noCosts;
-    manager.onSpawn("minecraft:zombie", Vector3(0, 0, 0), noCosts);
+    manager.onSpawn("minecraft:zombie", entity::EntityClassification::Monster, Vector3(0, 0, 0), noCosts);
 
     // 密度追踪器不应该记录
     EXPECT_EQ(densityTracker.size(), 0);

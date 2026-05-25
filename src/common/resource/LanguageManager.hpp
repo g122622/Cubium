@@ -117,9 +117,9 @@ public:
     LanguageManager(const LanguageManager&) = delete;
     LanguageManager& operator=(const LanguageManager&) = delete;
 
-    // 允许移动
-    LanguageManager(LanguageManager&&) = default;
-    LanguageManager& operator=(LanguageManager&&) = default;
+    // 禁止移动（包含 std::mutex）
+    LanguageManager(LanguageManager&&) = delete;
+    LanguageManager& operator=(LanguageManager&&) = delete;
 
     // ========================================================================
     // 语言加载

@@ -63,8 +63,8 @@ public:
     IronGolemEntity& operator=(const IronGolemEntity&) = delete;
 
     // 允许移动
-    IronGolemEntity(IronGolemEntity&&) = default;
-    IronGolemEntity& operator=(IronGolemEntity&&) = default;
+    IronGolemEntity(IronGolemEntity&&) = delete;
+    IronGolemEntity& operator=(IronGolemEntity&&) = delete;
 
     /**
      * @brief 创建铁傀儡实体

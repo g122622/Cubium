@@ -51,8 +51,8 @@ public:
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;
     AbstractFishEntity& operator=(const AbstractFishEntity&) = delete;
-    AbstractFishEntity(AbstractFishEntity&&) = default;
-    AbstractFishEntity& operator=(AbstractFishEntity&&) = default;
+    AbstractFishEntity(AbstractFishEntity&&) = delete;
+    AbstractFishEntity& operator=(AbstractFishEntity&&) = delete;
 
     /**
      * @brief 鱼默认只能在水中生成

@@ -158,9 +158,9 @@ public:
     Player(const Player&) = delete;
     Player& operator=(const Player&) = delete;
 
-    // 允许移动
-    Player(Player&&) = default;
-    Player& operator=(Player&&) = default;
+    // 禁止移动（基类 Entity 不可移动）
+    Player(Player&&) = delete;
+    Player& operator=(Player&&) = delete;
 
     // ========== 玩家特有属性 ==========
 

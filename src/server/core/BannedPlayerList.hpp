@@ -152,9 +152,9 @@ public:
     BannedPlayerList(const BannedPlayerList&) = delete;
     BannedPlayerList& operator=(const BannedPlayerList&) = delete;
 
-    // 允许移动
-    BannedPlayerList(BannedPlayerList&&) = default;
-    BannedPlayerList& operator=(BannedPlayerList&&) = default;
+    // 禁止移动（包含 std::mutex）
+    BannedPlayerList(BannedPlayerList&&) = delete;
+    BannedPlayerList& operator=(BannedPlayerList&&) = delete;
 
     // ========== 条目管理 ==========
 

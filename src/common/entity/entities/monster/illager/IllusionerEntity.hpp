@@ -74,8 +74,8 @@ public:
     IllusionerEntity& operator=(const IllusionerEntity&) = delete;
 
     // 允许移动
-    IllusionerEntity(IllusionerEntity&&) = default;
-    IllusionerEntity& operator=(IllusionerEntity&&) = default;
+    IllusionerEntity(IllusionerEntity&&) = delete;
+    IllusionerEntity& operator=(IllusionerEntity&&) = delete;
 
     /**
      * @brief 创建幻术师实体

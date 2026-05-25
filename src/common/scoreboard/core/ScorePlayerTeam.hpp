@@ -58,9 +58,9 @@ public:
     ScorePlayerTeam(const ScorePlayerTeam&) = delete;
     ScorePlayerTeam& operator=(const ScorePlayerTeam&) = delete;
 
-    // 允许移动
+    // 允许移动构造，禁止移动赋值（有引用成员）
     ScorePlayerTeam(ScorePlayerTeam&&) noexcept = default;
-    ScorePlayerTeam& operator=(ScorePlayerTeam&&) noexcept = default;
+    ScorePlayerTeam& operator=(ScorePlayerTeam&&) noexcept = delete;
 
     // ========== Team 接口实现 ==========
 

@@ -406,6 +406,7 @@ public:
 
     void addPiece(std::unique_ptr<StructurePiece> piece);
     [[nodiscard]] const std::vector<std::unique_ptr<StructurePiece>>& pieces() const { return m_pieces; }
+    [[nodiscard]] std::vector<std::unique_ptr<StructurePiece>>& pieces() { return m_pieces; }
     [[nodiscard]] size_t pieceCount() const { return m_pieces.size(); }
     [[nodiscard]] bool isValid() const { return !m_pieces.empty(); }
 

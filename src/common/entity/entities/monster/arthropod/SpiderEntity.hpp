@@ -76,8 +76,8 @@ public:
     SpiderEntity& operator=(const SpiderEntity&) = delete;
 
     // 允许移动
-    SpiderEntity(SpiderEntity&&) = default;
-    SpiderEntity& operator=(SpiderEntity&&) = default;
+    SpiderEntity(SpiderEntity&&) = delete;
+    SpiderEntity& operator=(SpiderEntity&&) = delete;
 
     /**
      * @brief 创建蜘蛛实体

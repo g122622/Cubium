@@ -145,9 +145,9 @@ public:
     BannedIpList(const BannedIpList&) = delete;
     BannedIpList& operator=(const BannedIpList&) = delete;
 
-    // 允许移动
-    BannedIpList(BannedIpList&&) = default;
-    BannedIpList& operator=(BannedIpList&&) = default;
+    // 禁止移动（包含 std::mutex）
+    BannedIpList(BannedIpList&&) = delete;
+    BannedIpList& operator=(BannedIpList&&) = delete;
 
     // ========== 条目管理 ==========
 

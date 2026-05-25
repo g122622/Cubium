@@ -70,9 +70,9 @@ public:
     MobEntity(const MobEntity&) = delete;
     MobEntity& operator=(const MobEntity&) = delete;
 
-    // 允许移动
-    MobEntity(MobEntity&&) = default;
-    MobEntity& operator=(MobEntity&&) = default;
+    // 禁止移动（基类 LivingEntity 不可移动）
+    MobEntity(MobEntity&&) = delete;
+    MobEntity& operator=(MobEntity&&) = delete;
 
     // ========== AI 目标系统 ==========
 

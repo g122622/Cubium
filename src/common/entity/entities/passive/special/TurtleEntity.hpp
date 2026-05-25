@@ -67,8 +67,8 @@ public:
     TurtleEntity& operator=(const TurtleEntity&) = delete;
 
     // 允许移动
-    TurtleEntity(TurtleEntity&&) = default;
-    TurtleEntity& operator=(TurtleEntity&&) = default;
+    TurtleEntity(TurtleEntity&&) = delete;
+    TurtleEntity& operator=(TurtleEntity&&) = delete;
 
     /**
      * @brief 创建海龟实体

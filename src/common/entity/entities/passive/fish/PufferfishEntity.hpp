@@ -80,8 +80,8 @@ public:
     PufferfishEntity& operator=(const PufferfishEntity&) = delete;
 
     // 允许移动
-    PufferfishEntity(PufferfishEntity&&) = default;
-    PufferfishEntity& operator=(PufferfishEntity&&) = default;
+    PufferfishEntity(PufferfishEntity&&) = delete;
+    PufferfishEntity& operator=(PufferfishEntity&&) = delete;
 
     /**
      * @brief 创建河豚实体

@@ -91,8 +91,8 @@ public:
     OcelotEntity& operator=(const OcelotEntity&) = delete;
 
     // 允许移动
-    OcelotEntity(OcelotEntity&&) = default;
-    OcelotEntity& operator=(OcelotEntity&&) = default;
+    OcelotEntity(OcelotEntity&&) = delete;
+    OcelotEntity& operator=(OcelotEntity&&) = delete;
 
     /**
      * @brief 创建豹猫实体

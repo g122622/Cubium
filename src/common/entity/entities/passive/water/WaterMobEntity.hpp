@@ -56,8 +56,8 @@ public:
     WaterMobEntity& operator=(const WaterMobEntity&) = delete;
 
     // 允许移动
-    WaterMobEntity(WaterMobEntity&&) = default;
-    WaterMobEntity& operator=(WaterMobEntity&&) = default;
+    WaterMobEntity(WaterMobEntity&&) = delete;
+    WaterMobEntity& operator=(WaterMobEntity&&) = delete;
 
     // ========== 水下状态 ==========
 

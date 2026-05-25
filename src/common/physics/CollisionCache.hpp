@@ -67,9 +67,9 @@ public:
     CollisionCache(const CollisionCache&) = delete;
     CollisionCache& operator=(const CollisionCache&) = delete;
 
-    // 允许移动
-    CollisionCache(CollisionCache&&) = default;
-    CollisionCache& operator=(CollisionCache&&) = default;
+    // 禁止移动（包含 std::shared_mutex）
+    CollisionCache(CollisionCache&&) = delete;
+    CollisionCache& operator=(CollisionCache&&) = delete;
 
     // ========== 缓存操作 ==========
 

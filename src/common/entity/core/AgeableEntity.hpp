@@ -50,8 +50,8 @@ public:
     AgeableEntity& operator=(const AgeableEntity&) = delete;
 
     // 允许移动
-    AgeableEntity(AgeableEntity&&) = default;
-    AgeableEntity& operator=(AgeableEntity&&) = default;
+    AgeableEntity(AgeableEntity&&) = delete;
+    AgeableEntity& operator=(AgeableEntity&&) = delete;
 
     // ========== 年龄系统 ==========
 

@@ -59,8 +59,8 @@ public:
 
     WitherSkeletonEntity(const WitherSkeletonEntity&) = delete;
     WitherSkeletonEntity& operator=(const WitherSkeletonEntity&) = delete;
-    WitherSkeletonEntity(WitherSkeletonEntity&&) = default;
-    WitherSkeletonEntity& operator=(WitherSkeletonEntity&&) = default;
+    WitherSkeletonEntity(WitherSkeletonEntity&&) = delete;
+    WitherSkeletonEntity& operator=(WitherSkeletonEntity&&) = delete;
 
     static std::unique_ptr<Entity> create(IWorld* world);
 

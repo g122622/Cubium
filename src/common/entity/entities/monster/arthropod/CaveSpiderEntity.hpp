@@ -60,8 +60,8 @@ public:
     CaveSpiderEntity& operator=(const CaveSpiderEntity&) = delete;
 
     // 允许移动
-    CaveSpiderEntity(CaveSpiderEntity&&) = default;
-    CaveSpiderEntity& operator=(CaveSpiderEntity&&) = default;
+    CaveSpiderEntity(CaveSpiderEntity&&) = delete;
+    CaveSpiderEntity& operator=(CaveSpiderEntity&&) = delete;
 
     /**
      * @brief 创建洞穴蜘蛛实体

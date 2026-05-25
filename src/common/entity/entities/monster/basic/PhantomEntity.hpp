@@ -72,8 +72,8 @@ public:
     PhantomEntity& operator=(const PhantomEntity&) = delete;
 
     // 允许移动
-    PhantomEntity(PhantomEntity&&) = default;
-    PhantomEntity& operator=(PhantomEntity&&) = default;
+    PhantomEntity(PhantomEntity&&) = delete;
+    PhantomEntity& operator=(PhantomEntity&&) = delete;
 
     // ========== 声音 ==========
 

@@ -180,22 +180,29 @@ void DesertPyramidStructure::generatePyramid(IWorldWriter& world, math::Random& 
     }
 
     // TNT 陷阱（四个角落）
-    const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-    for (i32 trap = 0; trap < 4; ++trap) {
-        i32 trapX = (trap % 2 == 0) ? chamberX + 1 : chamberX + 5;
-        i32 trapZ = (trap < 2) ? chamberZ + 1 : chamberZ + 5;
+    const BlockState* stonePressurePlate = VanillaBlocks::getState(VanillaBlocks::STONE_PRESSURE_PLATE);
 
-        // TNT（使用 TNT 方块）
+    // 四个陷阱位置
+    constexpr i32 trapPositions[4][2] = {{1, 1}, {5, 1}, {1, 5}, {5, 5}};
+
+    for (i32 trap = 0; trap < 4; ++trap) {
+        i32 trapX = chamberX + trapPositions[trap][0];
+        i32 trapZ = chamberZ + trapPositions[trap][1];
+
+        // TNT 在地板下
         if (tnt) {
-            world.setBlockState(trapX, chamberY + 1, trapZ, tnt, 18);
+            world.setBlockState(trapX, chamberY - 1, trapZ, tnt, 18);
+            world.setBlockState(trapX, chamberY - 2, trapZ, tnt, 18);
         }
-        // 压力板（使用金块作为占位符，压力板方块尚未实现）
-        if (goldBlock) {
-            world.setBlockState(trapX, chamberY + 2, trapZ, goldBlock, 18);
+
+        // 压力板在地板上
+        if (stonePressurePlate) {
+            world.setBlockState(trapX, chamberY + 1, trapZ, stonePressurePlate, 18);
         }
     }
 
     // 宝藏室中央（使用金块作为宝箱占位符，宝箱方块尚未实现）
+    const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
     if (rng.nextInt(100) < 80) { // 80% 概率生成宝藏
         i32 chestX = chamberX + 3;
         i32 chestZ = chamberZ + 3;

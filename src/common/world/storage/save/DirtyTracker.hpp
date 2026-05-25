@@ -52,9 +52,9 @@ public:
     DirtyTracker(const DirtyTracker&) = delete;
     DirtyTracker& operator=(const DirtyTracker&) = delete;
 
-    // 允许移动
-    DirtyTracker(DirtyTracker&&) noexcept = default;
-    DirtyTracker& operator=(DirtyTracker&&) noexcept = default;
+    // 禁止移动（包含 std::mutex）
+    DirtyTracker(DirtyTracker&&) noexcept = delete;
+    DirtyTracker& operator=(DirtyTracker&&) noexcept = delete;
 
     // ========== 脏标记操作 ==========
 

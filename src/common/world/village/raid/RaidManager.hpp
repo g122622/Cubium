@@ -114,7 +114,7 @@ public:
     RaidManager(const RaidManager&) = delete;
     RaidManager& operator=(const RaidManager&) = delete;
     RaidManager(RaidManager&&) = default;
-    RaidManager& operator=(RaidManager&&) = default;
+    RaidManager& operator=(RaidManager&&) = delete;
 
     /**
      * @brief 查询指定位置上的袭击。

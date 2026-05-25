@@ -54,8 +54,8 @@ public:
     AnimalEntity& operator=(const AnimalEntity&) = delete;
 
     // 允许移动
-    AnimalEntity(AnimalEntity&&) = default;
-    AnimalEntity& operator=(AnimalEntity&&) = default;
+    AnimalEntity(AnimalEntity&&) = delete;
+    AnimalEntity& operator=(AnimalEntity&&) = delete;
 
     // ========== 繁殖系统 ==========
 

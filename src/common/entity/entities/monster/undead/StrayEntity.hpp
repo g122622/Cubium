@@ -43,8 +43,8 @@ public:
 
     StrayEntity(const StrayEntity&) = delete;
     StrayEntity& operator=(const StrayEntity&) = delete;
-    StrayEntity(StrayEntity&&) = default;
-    StrayEntity& operator=(StrayEntity&&) = default;
+    StrayEntity(StrayEntity&&) = delete;
+    StrayEntity& operator=(StrayEntity&&) = delete;
 
     static std::unique_ptr<Entity> create(IWorld* world);
 

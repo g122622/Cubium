@@ -54,8 +54,8 @@ public:
 
     ParrotEntity(const ParrotEntity&) = delete;
     ParrotEntity& operator=(const ParrotEntity&) = delete;
-    ParrotEntity(ParrotEntity&&) = default;
-    ParrotEntity& operator=(ParrotEntity&&) = default;
+    ParrotEntity(ParrotEntity&&) = delete;
+    ParrotEntity& operator=(ParrotEntity&&) = delete;
 
     /**
      * @brief 创建鹦鹉实体

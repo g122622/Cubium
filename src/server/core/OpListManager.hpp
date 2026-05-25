@@ -156,9 +156,9 @@ public:
     OpListManager(const OpListManager&) = delete;
     OpListManager& operator=(const OpListManager&) = delete;
 
-    // 允许移动
-    OpListManager(OpListManager&&) = default;
-    OpListManager& operator=(OpListManager&&) = default;
+    // 禁止移动（包含 std::mutex）
+    OpListManager(OpListManager&&) = delete;
+    OpListManager& operator=(OpListManager&&) = delete;
 
     // ========== 条目管理 ==========
 

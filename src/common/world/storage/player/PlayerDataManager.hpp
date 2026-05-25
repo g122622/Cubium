@@ -98,9 +98,9 @@ public:
     PlayerDataManager(const PlayerDataManager&) = delete;
     PlayerDataManager& operator=(const PlayerDataManager&) = delete;
 
-    // 允许移动
-    PlayerDataManager(PlayerDataManager&&) noexcept = default;
-    PlayerDataManager& operator=(PlayerDataManager&&) noexcept = default;
+    // 禁止移动（有引用成员和 mutex）
+    PlayerDataManager(PlayerDataManager&&) noexcept = delete;
+    PlayerDataManager& operator=(PlayerDataManager&&) noexcept = delete;
 
     // ========== 玩家数据操作 ==========
 

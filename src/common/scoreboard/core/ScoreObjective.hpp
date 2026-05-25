@@ -68,9 +68,9 @@ public:
     ScoreObjective(const ScoreObjective&) = delete;
     ScoreObjective& operator=(const ScoreObjective&) = delete;
 
-    // 允许移动
+    // 允许移动构造，禁止移动赋值（有引用成员）
     ScoreObjective(ScoreObjective&&) noexcept = default;
-    ScoreObjective& operator=(ScoreObjective&&) noexcept = default;
+    ScoreObjective& operator=(ScoreObjective&&) noexcept = delete;
 
     // ========== 基本信息 ==========
 

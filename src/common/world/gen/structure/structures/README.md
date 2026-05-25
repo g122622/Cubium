@@ -6,17 +6,25 @@
 
 ```text
 structures/
-├── BuriedTreasureStructure.hpp/.cpp
-├── DesertPyramidStructure.hpp/.cpp
-├── FortressStructure.hpp/.cpp
-├── JungleTempleStructure.hpp/.cpp
-├── MineshaftStructure.hpp/.cpp
-├── OceanMonumentStructure.hpp/.cpp
-├── OceanRuinStructure.hpp/.cpp
-├── RuinedPortalStructure.hpp/.cpp
-├── ShipwreckStructure.hpp/.cpp
-├── StrongholdStructure.hpp/.cpp
-└── VillageStructure.hpp/.cpp
+├── BastionRemnantStructure.hpp/.cpp  # 堡垒遗迹 (Jigsaw)
+├── BuriedTreasureStructure.hpp/.cpp  # 埋藏宝藏
+├── DesertPyramidStructure.hpp/.cpp   # 沙漠神殿
+├── EndCityStructure.hpp/.cpp         # 末地城 (递归生成)
+├── FortressStructure.hpp/.cpp        # 下界要塞
+├── IglooStructure.hpp/.cpp           # 雪屋
+├── JungleTempleStructure.hpp/.cpp    # 丛林神庙
+├── MineshaftStructure.hpp/.cpp       # 废弃矿井
+├── NetherFossilStructure.hpp/.cpp    # 下界化石
+├── OceanMonumentStructure.hpp/.cpp   # 海洋纪念碑
+├── OceanRuinStructure.hpp/.cpp       # 海底废墟
+├── PillagerOutpostStructure.hpp/.cpp # 掠夺者前哨站 (Jigsaw)
+├── RuinedPortalStructure.hpp/.cpp    # 废弃传送门
+├── ShipwreckStructure.hpp/.cpp       # 沉船
+├── StrongholdStructure.hpp/.cpp      # 要塞 (递归生成)
+├── StrongholdPieces.hpp/.cpp         # 要塞片段
+├── SwampHutStructure.hpp/.cpp        # 沼泽小屋
+├── VillageStructure.hpp/.cpp         # 村庄 (Jigsaw)
+└── WoodlandMansionStructure.hpp/.cpp # 林地府邸 (程序化)
 ```
 
 ## 2. 文件介绍

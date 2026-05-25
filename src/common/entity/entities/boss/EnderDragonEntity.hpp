@@ -217,8 +217,8 @@ public:
     EnderDragonEntity& operator=(const EnderDragonEntity&) = delete;
 
     // 允许移动
-    EnderDragonEntity(EnderDragonEntity&&) = default;
-    EnderDragonEntity& operator=(EnderDragonEntity&&) = default;
+    EnderDragonEntity(EnderDragonEntity&&) = delete;
+    EnderDragonEntity& operator=(EnderDragonEntity&&) = delete;
 
     // ========== 声音 ==========
 

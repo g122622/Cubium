@@ -95,8 +95,8 @@ public:
     ShulkerEntity& operator=(const ShulkerEntity&) = delete;
 
     // 允许移动
-    ShulkerEntity(ShulkerEntity&&) = default;
-    ShulkerEntity& operator=(ShulkerEntity&&) = default;
+    ShulkerEntity(ShulkerEntity&&) = delete;
+    ShulkerEntity& operator=(ShulkerEntity&&) = delete;
 
     /**
      * @brief 创建潜影贝实体

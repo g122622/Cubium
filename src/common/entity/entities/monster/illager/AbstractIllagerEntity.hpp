@@ -75,8 +75,8 @@ public:
     AbstractIllagerEntity& operator=(const AbstractIllagerEntity&) = delete;
 
     // 允许移动
-    AbstractIllagerEntity(AbstractIllagerEntity&&) = default;
-    AbstractIllagerEntity& operator=(AbstractIllagerEntity&&) = default;
+    AbstractIllagerEntity(AbstractIllagerEntity&&) = delete;
+    AbstractIllagerEntity& operator=(AbstractIllagerEntity&&) = delete;
 
     // ========== 手臂姿势 ==========
 

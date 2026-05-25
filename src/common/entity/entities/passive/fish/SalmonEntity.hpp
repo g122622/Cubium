@@ -51,8 +51,8 @@ public:
 
     SalmonEntity(const SalmonEntity&) = delete;
     SalmonEntity& operator=(const SalmonEntity&) = delete;
-    SalmonEntity(SalmonEntity&&) = default;
-    SalmonEntity& operator=(SalmonEntity&&) = default;
+    SalmonEntity(SalmonEntity&&) = delete;
+    SalmonEntity& operator=(SalmonEntity&&) = delete;
 
     /**
      * @brief 创建鲑鱼实体

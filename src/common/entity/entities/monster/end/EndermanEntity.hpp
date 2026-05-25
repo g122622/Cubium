@@ -64,8 +64,8 @@ public:
     EndermanEntity& operator=(const EndermanEntity&) = delete;
 
     // 允许移动
-    EndermanEntity(EndermanEntity&&) = default;
-    EndermanEntity& operator=(EndermanEntity&&) = default;
+    EndermanEntity(EndermanEntity&&) = delete;
+    EndermanEntity& operator=(EndermanEntity&&) = delete;
 
     /**
      * @brief 创建末影人实体

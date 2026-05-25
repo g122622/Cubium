@@ -109,8 +109,8 @@ public:
     ExperienceOrbEntity& operator=(const ExperienceOrbEntity&) = delete;
 
     // 允许移动
-    ExperienceOrbEntity(ExperienceOrbEntity&&) = default;
-    ExperienceOrbEntity& operator=(ExperienceOrbEntity&&) = default;
+    ExperienceOrbEntity(ExperienceOrbEntity&&) = delete;
+    ExperienceOrbEntity& operator=(ExperienceOrbEntity&&) = delete;
 
     // ========== Entity 接口 ==========
 

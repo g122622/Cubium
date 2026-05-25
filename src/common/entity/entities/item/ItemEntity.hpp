@@ -108,9 +108,9 @@ public:
     ItemEntity(const ItemEntity&) = delete;
     ItemEntity& operator=(const ItemEntity&) = delete;
 
-    // 允许移动
-    ItemEntity(ItemEntity&&) = default;
-    ItemEntity& operator=(ItemEntity&&) = default;
+    // 禁止移动（基类 Entity 不可移动）
+    ItemEntity(ItemEntity&&) = delete;
+    ItemEntity& operator=(ItemEntity&&) = delete;
 
     // ========== Entity 接口重写 ==========
 

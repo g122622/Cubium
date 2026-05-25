@@ -90,9 +90,9 @@ public:
     SkinManager(const SkinManager&) = delete;
     SkinManager& operator=(const SkinManager&) = delete;
 
-    // 允许移动
-    SkinManager(SkinManager&&) noexcept = default;
-    SkinManager& operator=(SkinManager&&) noexcept = default;
+    // 禁止移动（包含 std::mutex）
+    SkinManager(SkinManager&&) noexcept = delete;
+    SkinManager& operator=(SkinManager&&) noexcept = delete;
 
     // ========== 初始化 ==========
 

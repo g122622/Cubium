@@ -58,8 +58,8 @@ public:
     RavagerEntity& operator=(const RavagerEntity&) = delete;
 
     // 允许移动
-    RavagerEntity(RavagerEntity&&) = default;
-    RavagerEntity& operator=(RavagerEntity&&) = default;
+    RavagerEntity(RavagerEntity&&) = delete;
+    RavagerEntity& operator=(RavagerEntity&&) = delete;
 
     /**
      * @brief 创建劫掠兽实体

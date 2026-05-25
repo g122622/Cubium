@@ -107,9 +107,9 @@ public:
     SectionCache(const SectionCache&) = delete;
     SectionCache& operator=(const SectionCache&) = delete;
 
-    // 允许移动
-    SectionCache(SectionCache&&) noexcept = default;
-    SectionCache& operator=(SectionCache&&) noexcept = default;
+    // 禁止移动（包含 std::mutex）
+    SectionCache(SectionCache&&) noexcept = delete;
+    SectionCache& operator=(SectionCache&&) noexcept = delete;
 
     // ========================================================================
     // 缓存操作

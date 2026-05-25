@@ -63,8 +63,8 @@ public:
     CreeperEntity& operator=(const CreeperEntity&) = delete;
 
     // 允许移动
-    CreeperEntity(CreeperEntity&&) = default;
-    CreeperEntity& operator=(CreeperEntity&&) = default;
+    CreeperEntity(CreeperEntity&&) = delete;
+    CreeperEntity& operator=(CreeperEntity&&) = delete;
 
     /**
      * @brief 创建苦力怕实体

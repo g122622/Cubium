@@ -56,8 +56,8 @@ public:
     SquidEntity& operator=(const SquidEntity&) = delete;
 
     // 允许移动
-    SquidEntity(SquidEntity&&) = default;
-    SquidEntity& operator=(SquidEntity&&) = default;
+    SquidEntity(SquidEntity&&) = delete;
+    SquidEntity& operator=(SquidEntity&&) = delete;
 
     /**
      * @brief 创建鱿鱼实体

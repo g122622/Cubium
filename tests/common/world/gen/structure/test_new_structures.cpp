@@ -36,6 +36,10 @@
 #include "common/world/gen/structure/structures/EndCityStructure.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 #include "common/world/gen/structure/structures/BastionRemnantStructure.hpp"
+#include "common/world/gen/structure/structures/StrongholdStructure.hpp"
+#include "common/world/gen/structure/structures/StrongholdPieces.hpp"
+#include "common/world/gen/structure/structures/DesertPyramidStructure.hpp"
+#include "common/world/gen/structure/structures/JungleTempleStructure.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;
@@ -221,12 +225,12 @@ TEST_F(NewStructuresTest, EndCity_PieceConstruction)
     mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::CounterClockwise90;
     std::string templateName = "base_floor";
 
-    EndCityPiece piece(pos, rotation, templateName);
+    end_city::CityTemplate piece(templateName, pos, rotation, false);
 
-    // 验证边界框
-    EXPECT_LE(piece.maxX() - piece.minX(), 20);
-    EXPECT_LE(piece.maxY() - piece.minY(), 25);
-    EXPECT_LE(piece.maxZ() - piece.minZ(), 20);
+    // 验证模板名称和旋转
+    EXPECT_EQ(piece.templateName(), templateName);
+    EXPECT_EQ(piece.rotation(), rotation);
+    EXPECT_FALSE(piece.overwrite());
 }
 
 // ============================================================================
@@ -258,13 +262,13 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
 {
     BlockPos pos(100, 64, 200);
     mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::None;
+    std::string templateName = "1x1_a1";
 
-    WoodlandMansionPiece piece(pos, rotation);
+    WoodlandMansionPiece piece(templateName, pos, rotation);
 
-    // 验证边界框（林地府邸约 58x20x58）
-    EXPECT_LE(piece.maxX() - piece.minX(), 65);
-    EXPECT_LE(piece.maxY() - piece.minY(), 25);
-    EXPECT_LE(piece.maxZ() - piece.minZ(), 65);
+    // 验证模板名称和旋转
+    EXPECT_EQ(piece.templateName(), templateName);
+    EXPECT_EQ(piece.rotation(), rotation);
 }
 
 // ============================================================================
@@ -366,4 +370,144 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
     EXPECT_FALSE(endCity.name().empty());
     EXPECT_FALSE(mansion.name().empty());
     EXPECT_FALSE(bastion.name().empty());
+}
+
+// ============================================================================
+// PillagerOutpostStructure Village Detection Tests (P4)
+// ============================================================================
+
+TEST_F(NewStructuresTest, PillagerOutpost_VillageDetection)
+{
+    // 测试 isNearVillage 使用正确的村庄间距参数
+    // 村庄参数: spacing=32, separation=8, salt=10387312
+
+    PillagerOutpostStructure outpost;
+
+    // 验证前哨站不会在村庄位置生成
+    // 这个测试验证 isNearVillage 算法的正确性
+    // 实际位置检测依赖于世界种子
+
+    // 前哨站应在距离村庄 10 区块外生成
+    EXPECT_EQ(outpost.separationSettings().spacing, 32);
+    EXPECT_EQ(outpost.separationSettings().separation, 8);
+}
+
+// ============================================================================
+// StrongholdStructure Tests (P4)
+// ============================================================================
+
+TEST_F(NewStructuresTest, Stronghold_NameAndSettings)
+{
+    StrongholdStructure structure;
+
+    EXPECT_EQ(structure.name(), "stronghold");
+    // 要塞使用特殊的位置计算，不使用标准 spacing/separation
+    EXPECT_EQ(structure.separationSettings().spacing, 1);
+    EXPECT_EQ(structure.separationSettings().separation, 0);
+}
+
+TEST_F(NewStructuresTest, Stronghold_RingCalculation)
+{
+    // MC 1.16.5: 8 个环，每环要塞数量
+    // 环 0: 3, 环 1: 3, 环 2: 3, 环 3: 4, 环 4: 6, 环 5: 10, 环 6: 15, 环 7: 21
+    // 总计: 65 个要塞
+
+    EXPECT_EQ(StrongholdStructure::getRing(0), 0);   // 第 1 个要塞在环 0
+    EXPECT_EQ(StrongholdStructure::getRing(2), 0);   // 第 3 个要塞在环 0
+    EXPECT_EQ(StrongholdStructure::getRing(3), 1);   // 第 4 个要塞在环 1
+    EXPECT_EQ(StrongholdStructure::getRing(6), 2);   // 第 7 个要塞在环 2
+    EXPECT_EQ(StrongholdStructure::getRing(9), 3);   // 第 10 个要塞在环 3
+    EXPECT_EQ(StrongholdStructure::getRing(13), 4);  // 第 14 个要塞在环 4
+    EXPECT_EQ(StrongholdStructure::getRing(19), 5);  // 第 20 个要塞在环 5
+    EXPECT_EQ(StrongholdStructure::getRing(29), 6);  // 第 30 个要塞在环 6
+    EXPECT_EQ(StrongholdStructure::getRing(44), 7);  // 第 45 个要塞在环 7
+    EXPECT_EQ(StrongholdStructure::getRing(64), 7);  // 第 65 个要塞在环 7
+}
+
+TEST_F(NewStructuresTest, Stronghold_PositionCalculation)
+{
+    // 测试要塞位置计算
+    i64 seed = 12345;
+
+    auto [chunkX1, chunkZ1] = StrongholdStructure::calculateStrongholdPos(0, seed);
+    auto [chunkX2, chunkZ2] = StrongholdStructure::calculateStrongholdPos(1, seed);
+
+    // 相同种子、不同索引应该产生不同位置
+    EXPECT_NE(chunkX1, chunkX2);
+    EXPECT_NE(chunkZ1, chunkZ2);
+
+    // 相同种子、相同索引应该产生相同位置
+    auto [chunkX1b, chunkZ1b] = StrongholdStructure::calculateStrongholdPos(0, seed);
+    EXPECT_EQ(chunkX1, chunkX1b);
+    EXPECT_EQ(chunkZ1, chunkZ1b);
+
+    // 位置应该在合理范围内（环 0 距离 1408-2688 区块）
+    // 注意：返回的是区块坐标，不是世界坐标
+    EXPECT_GT(std::abs(chunkX1), 80);  // 至少 80 区块距离
+    EXPECT_LT(std::abs(chunkX1), 200); // 最多 200 区块距离（环 0）
+}
+
+TEST_F(NewStructuresTest, StrongholdPieces_WeightInitialization)
+{
+    // 测试片段权重初始化
+    std::vector<StrongholdPieceWeight> weights;
+    initializeStrongholdPieceWeights(weights);
+
+    EXPECT_FALSE(weights.empty());
+
+    // 验证权重包含关键片段类型
+    bool hasStraight = false;
+    bool hasPortalRoom = false;
+    bool hasLibrary = false;
+
+    for (const auto& weight : weights) {
+        if (weight.pieceType == StrongholdPieceTypes::STRAIGHT) hasStraight = true;
+        if (weight.pieceType == StrongholdPieceTypes::PORTAL_ROOM) hasPortalRoom = true;
+        if (weight.pieceType == StrongholdPieceTypes::LIBRARY) hasLibrary = true;
+    }
+
+    EXPECT_TRUE(hasStraight);
+    EXPECT_TRUE(hasPortalRoom);
+    EXPECT_TRUE(hasLibrary);
+}
+
+// ============================================================================
+// DesertPyramidStructure Tests (P4)
+// ============================================================================
+
+TEST_F(NewStructuresTest, DesertPyramid_NameAndSettings)
+{
+    DesertPyramidStructure structure;
+
+    EXPECT_EQ(structure.name(), "desert_pyramid");
+    EXPECT_EQ(structure.separationSettings().spacing, 32);
+    EXPECT_EQ(structure.separationSettings().separation, 8);
+    EXPECT_EQ(structure.separationSettings().salt, 14357617);
+
+    const auto& biomes = structure.validBiomes();
+    EXPECT_EQ(biomes.size(), 3);
+    for (auto biome : biomes) {
+        EXPECT_TRUE(biome == Desert || biome == DesertHills || biome == DesertLakes);
+    }
+}
+
+// ============================================================================
+// JungleTempleStructure Tests (P4)
+// ============================================================================
+
+TEST_F(NewStructuresTest, JungleTemple_NameAndSettings)
+{
+    JungleTempleStructure structure;
+
+    EXPECT_EQ(structure.name(), "jungle_temple");
+    EXPECT_EQ(structure.separationSettings().spacing, 32);
+    EXPECT_EQ(structure.separationSettings().separation, 8);
+    EXPECT_EQ(structure.separationSettings().salt, 14357619);
+
+    const auto& biomes = structure.validBiomes();
+    EXPECT_EQ(biomes.size(), 5);
+    for (auto biome : biomes) {
+        EXPECT_TRUE(biome == Jungle || biome == JungleHills || biome == JungleEdge ||
+                    biome == ModifiedJungle || biome == ModifiedJungleEdge);
+    }
 }

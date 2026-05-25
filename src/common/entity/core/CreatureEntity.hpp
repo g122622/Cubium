@@ -49,9 +49,9 @@ public:
     CreatureEntity(const CreatureEntity&) = delete;
     CreatureEntity& operator=(const CreatureEntity&) = delete;
 
-    // 允许移动
-    CreatureEntity(CreatureEntity&&) = default;
-    CreatureEntity& operator=(CreatureEntity&&) = default;
+    // 禁止移动（基类 MobEntity 不可移动）
+    CreatureEntity(CreatureEntity&&) = delete;
+    CreatureEntity& operator=(CreatureEntity&&) = delete;
 
     // ========== 移动 ==========
 

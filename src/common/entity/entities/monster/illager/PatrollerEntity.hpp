@@ -52,8 +52,8 @@ public:
 
     PatrollerEntity(const PatrollerEntity&) = delete;
     PatrollerEntity& operator=(const PatrollerEntity&) = delete;
-    PatrollerEntity(PatrollerEntity&&) = default;
-    PatrollerEntity& operator=(PatrollerEntity&&) = default;
+    PatrollerEntity(PatrollerEntity&&) = delete;
+    PatrollerEntity& operator=(PatrollerEntity&&) = delete;
 
     [[nodiscard]] virtual bool canBeLeader() const { return true; }
     [[nodiscard]] virtual bool canJoinPatrol() const { return true; }

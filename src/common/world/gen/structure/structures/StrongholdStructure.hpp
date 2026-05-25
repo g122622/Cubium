@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -25,6 +25,7 @@
 
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../Structure.hpp"
+#include "StrongholdPieces.hpp"
 #include <memory>
 #include <vector>
 
@@ -43,7 +44,7 @@ namespace structure {
  * - 生成于地下，Y 坐标通常在 20-40
  * - 包含多个房间：图书馆、监狱、传送门房间等
  * - 有复杂的走廊连接系统
- * - 每个世界最多 128 个要塞
+ * - 每个世界最多 65 个要塞 (MC 1.16.5)
  */
 class StrongholdStructure : public Structure {
 public:
@@ -53,7 +54,7 @@ public:
     struct Config {
         i32 distance = 32; ///< 距离（环之间的距离）
         i32 spread = 3;    ///< 扩散角度
-        i32 count = 128;   ///< 最大要塞数量
+        i32 count = 65;    ///< 最大要塞数量 (MC 1.16.5: 65)
         i32 minY = 20;     ///< 最低 Y 坐标
         i32 maxY = 40;     ///< 最高 Y 坐标
     };
@@ -79,7 +80,7 @@ public:
 
     /**
      * @brief 计算要塞位置
-     * @param index 要塞索引 (0-127)
+     * @param index 要塞索引 (0-64)
      * @param worldSeed 世界种子
      * @return 要塞起始区块坐标
      */
@@ -94,7 +95,22 @@ public:
 
 private:
     void initializeBiomes();
-    void generateFallbackEntrance(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
+
+    /**
+     * @brief 使用 StrongholdPieces 生成要塞
+     */
+    void generateStrongholdPieces(IWorldWriter& world,
+        math::Random& rng,
+        const BlockPos& startPos,
+        std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
+
+    /**
+     * @brief 递归生成走廊
+     */
+    void generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng,
+        i32 depth,
+        StrongholdStartStairs* start) const;
 
     Config m_config;
     // MC 1.16.5: 要塞使用特殊的位置计算算法，不使用标准 spacing/separation

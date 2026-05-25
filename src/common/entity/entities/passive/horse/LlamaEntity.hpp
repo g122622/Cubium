@@ -66,8 +66,8 @@ public:
 
     LlamaEntity(const LlamaEntity&) = delete;
     LlamaEntity& operator=(const LlamaEntity&) = delete;
-    LlamaEntity(LlamaEntity&&) = default;
-    LlamaEntity& operator=(LlamaEntity&&) = default;
+    LlamaEntity(LlamaEntity&&) = delete;
+    LlamaEntity& operator=(LlamaEntity&&) = delete;
 
     /**
      * @brief 创建羊驼实体

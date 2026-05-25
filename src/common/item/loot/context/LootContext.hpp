@@ -26,8 +26,8 @@
 // Convenience header - includes all individual context headers
 #include "LootParameter.hpp"
 #include "LootParameterSet.hpp"
-#include "LootParams.hpp"
 #include "LootParameterSets.hpp"
+#include "LootParams.hpp"
 
 // LootContext class definition (also requires these directly)
 #include "common/core/Types.hpp"
@@ -64,9 +64,9 @@ public:
     LootContext(const LootContext&) = delete;
     LootContext& operator=(const LootContext&) = delete;
 
-    // 允许移动
+    // 允许移动构造，禁止移动赋值（有引用成员）
     LootContext(LootContext&&) = default;
-    LootContext& operator=(LootContext&&) = default;
+    LootContext& operator=(LootContext&&) = delete;
 
     // ========== 参数访问 ==========
 

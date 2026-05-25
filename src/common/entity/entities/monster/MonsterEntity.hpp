@@ -74,9 +74,9 @@ public:
     MonsterEntity(const MonsterEntity&) = delete;
     MonsterEntity& operator=(const MonsterEntity&) = delete;
 
-    // 允许移动
-    MonsterEntity(MonsterEntity&&) = default;
-    MonsterEntity& operator=(MonsterEntity&&) = default;
+    // 禁止移动（基类 CreatureEntity 不可移动）
+    MonsterEntity(MonsterEntity&&) = delete;
+    MonsterEntity& operator=(MonsterEntity&&) = delete;
 
     // ========== 声音重写 ==========
 

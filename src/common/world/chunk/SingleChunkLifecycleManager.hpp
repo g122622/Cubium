@@ -134,8 +134,8 @@ public:
 
     SingleChunkLifecycleManager(const SingleChunkLifecycleManager&) = delete;
     SingleChunkLifecycleManager& operator=(const SingleChunkLifecycleManager&) = delete;
-    SingleChunkLifecycleManager(SingleChunkLifecycleManager&&) noexcept = default;
-    SingleChunkLifecycleManager& operator=(SingleChunkLifecycleManager&&) noexcept = default;
+    SingleChunkLifecycleManager(SingleChunkLifecycleManager&&) noexcept = delete;
+    SingleChunkLifecycleManager& operator=(SingleChunkLifecycleManager&&) noexcept = delete;
 
     /**
      * @brief 获取区块 X 坐标

@@ -92,9 +92,9 @@ public:
     LivingEntity(const LivingEntity&) = delete;
     LivingEntity& operator=(const LivingEntity&) = delete;
 
-    // 允许移动
-    LivingEntity(LivingEntity&&) = default;
-    LivingEntity& operator=(LivingEntity&&) = default;
+    // 禁止移动（基类 Entity 不可移动）
+    LivingEntity(LivingEntity&&) = delete;
+    LivingEntity& operator=(LivingEntity&&) = delete;
 
     // ========== 初始化 ==========
 

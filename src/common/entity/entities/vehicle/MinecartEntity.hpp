@@ -89,8 +89,8 @@ public:
     AbstractMinecartEntity& operator=(const AbstractMinecartEntity&) = delete;
 
     // 允许移动
-    AbstractMinecartEntity(AbstractMinecartEntity&&) = default;
-    AbstractMinecartEntity& operator=(AbstractMinecartEntity&&) = default;
+    AbstractMinecartEntity(AbstractMinecartEntity&&) = delete;
+    AbstractMinecartEntity& operator=(AbstractMinecartEntity&&) = delete;
 
     // ========== Entity 接口重写 ==========
 

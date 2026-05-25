@@ -51,8 +51,8 @@ public:
 
     CodEntity(const CodEntity&) = delete;
     CodEntity& operator=(const CodEntity&) = delete;
-    CodEntity(CodEntity&&) = default;
-    CodEntity& operator=(CodEntity&&) = default;
+    CodEntity(CodEntity&&) = delete;
+    CodEntity& operator=(CodEntity&&) = delete;
 
     /**
      * @brief 创建鳕鱼实体

@@ -98,9 +98,9 @@ public:
     AutoSave(const AutoSave&) = delete;
     AutoSave& operator=(const AutoSave&) = delete;
 
-    // 允许移动
-    AutoSave(AutoSave&&) noexcept = default;
-    AutoSave& operator=(AutoSave&&) noexcept = default;
+    // 禁止移动（有引用成员和 atomic）
+    AutoSave(AutoSave&&) noexcept = delete;
+    AutoSave& operator=(AutoSave&&) noexcept = delete;
 
     // ========== 生命周期 ==========
 

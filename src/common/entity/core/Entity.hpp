@@ -151,9 +151,9 @@ public:
     Entity(const Entity&) = delete;
     Entity& operator=(const Entity&) = delete;
 
-    // 允许移动
-    Entity(Entity&&) = default;
-    Entity& operator=(Entity&&) = default;
+    // 禁止移动（因为 EntityDataManager 包含 std::mutex）
+    Entity(Entity&&) = delete;
+    Entity& operator=(Entity&&) = delete;
 
     // ========== 初始化 ==========
 

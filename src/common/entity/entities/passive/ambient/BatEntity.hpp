@@ -61,8 +61,8 @@ public:
     BatEntity& operator=(const BatEntity&) = delete;
 
     // 允许移动
-    BatEntity(BatEntity&&) = default;
-    BatEntity& operator=(BatEntity&&) = default;
+    BatEntity(BatEntity&&) = delete;
+    BatEntity& operator=(BatEntity&&) = delete;
 
     /**
      * @brief 创建蝙蝠实体

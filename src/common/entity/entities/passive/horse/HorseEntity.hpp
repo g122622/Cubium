@@ -54,8 +54,8 @@ public:
 
     HorseEntity(const HorseEntity&) = delete;
     HorseEntity& operator=(const HorseEntity&) = delete;
-    HorseEntity(HorseEntity&&) = default;
-    HorseEntity& operator=(HorseEntity&&) = default;
+    HorseEntity(HorseEntity&&) = delete;
+    HorseEntity& operator=(HorseEntity&&) = delete;
 
     /**
      * @brief 创建马实体

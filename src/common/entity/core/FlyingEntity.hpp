@@ -55,8 +55,8 @@ public:
     FlyingEntity& operator=(const FlyingEntity&) = delete;
 
     // 允许移动
-    FlyingEntity(FlyingEntity&&) = default;
-    FlyingEntity& operator=(FlyingEntity&&) = default;
+    FlyingEntity(FlyingEntity&&) = delete;
+    FlyingEntity& operator=(FlyingEntity&&) = delete;
 
     // ========== 飞行属性 ==========
 

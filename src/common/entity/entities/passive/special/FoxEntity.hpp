@@ -87,8 +87,8 @@ public:
     FoxEntity& operator=(const FoxEntity&) = delete;
 
     // 允许移动
-    FoxEntity(FoxEntity&&) = default;
-    FoxEntity& operator=(FoxEntity&&) = default;
+    FoxEntity(FoxEntity&&) = delete;
+    FoxEntity& operator=(FoxEntity&&) = delete;
 
     /**
      * @brief 创建狐狸实体

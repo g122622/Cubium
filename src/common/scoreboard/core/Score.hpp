@@ -64,9 +64,9 @@ public:
     Score(const Score&) = delete;
     Score& operator=(const Score&) = delete;
 
-    // 允许移动
+    // 允许移动构造，禁止移动赋值（有引用成员）
     Score(Score&&) noexcept = default;
-    Score& operator=(Score&&) noexcept = default;
+    Score& operator=(Score&&) noexcept = delete;
 
     // ========== 分数操作 ==========
 

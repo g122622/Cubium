@@ -71,8 +71,8 @@ public:
     MooshroomEntity& operator=(const MooshroomEntity&) = delete;
 
     // 允许移动
-    MooshroomEntity(MooshroomEntity&&) = default;
-    MooshroomEntity& operator=(MooshroomEntity&&) = default;
+    MooshroomEntity(MooshroomEntity&&) = delete;
+    MooshroomEntity& operator=(MooshroomEntity&&) = delete;
 
     /**
      * @brief 创建哞菇实体

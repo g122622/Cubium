@@ -56,8 +56,8 @@ public:
     VexEntity& operator=(const VexEntity&) = delete;
 
     // 允许移动
-    VexEntity(VexEntity&&) = default;
-    VexEntity& operator=(VexEntity&&) = default;
+    VexEntity(VexEntity&&) = delete;
+    VexEntity& operator=(VexEntity&&) = delete;
 
     /**
      * @brief 创建恼鬼实体

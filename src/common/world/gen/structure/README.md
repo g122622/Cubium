@@ -275,12 +275,33 @@ sequenceDiagram
 
 #### StrongholdStructure（要塞）
 
-**职责**: 生成末地传送门要塞，使用 Jigsaw 系统组装复杂走廊和房间。
+**职责**: 生成末地传送门要塞，使用递归片段系统组装复杂走廊和房间。
 
 **特点**:
-- 使用 Jigsaw 模板池系统
-- 包含传送门房间、图书馆、监狱等房间
-- 生成深度约 Y=30-60
+- 使用 StrongholdPieces 系统递归生成
+- 包含多种房间类型：直走廊、监狱、十字路口、图书馆、传送门房间等
+- 生成深度约 Y=20-40
+- 65 个要塞分布在 8 个环上（MC 1.16.5 标准）
+- 随机选择门类型（开口、木门、铁栏杆、铁门）
+- 石砖随机变体（普通、苔藓、裂纹）
+
+**片段类型**:
+
+| 类型 | ID | 说明 |
+|------|-----|------|
+| STRAIGHT | 100 | 直走廊 |
+| PRISON | 101 | 监狱 |
+| LEFT_TURN | 102 | 左转 |
+| RIGHT_TURN | 103 | 右转 |
+| ROOM_CROSSING | 104 | 房间交叉点 |
+| STAIRS_STRAIGHT | 105 | 直楼梯 |
+| STAIRS | 106 | 螺旋楼梯 |
+| START_STAIRS | 107 | 起始楼梯 |
+| CROSSING | 108 | 十字路口 |
+| CHEST_CORRIDOR | 109 | 宝箱走廊 |
+| LIBRARY | 110 | 图书馆（单层/双层） |
+| PORTAL_ROOM | 111 | 末地传送门房间 |
+| CORRIDOR | 112 | 填充走廊 |
 
 **配置参数**:
 
@@ -324,7 +345,9 @@ sequenceDiagram
 **特点**:
 - 21x21 地面尺寸
 - 包含隐藏地下室
-- TNT 陷阱和 4 个宝箱
+- TNT 陷阱（四个角落各 2 个 TNT 在地板下）
+- 石头压力板触发陷阱
+- 80% 概率生成中央宝藏
 - 橙色陶瓦装饰
 
 **配置参数**:
@@ -343,9 +366,11 @@ sequenceDiagram
 
 **特点**:
 - 12x15 地面尺寸
-- 包含拉杆谜题和箭矢陷阱
+- 拉杆谜题房间
+- 绊线陷阱和发射器箭矢陷阱
 - 隐藏宝箱房间
 - 苔石和錾制石砖装饰
+- 藤蔓外墙装饰
 
 **配置参数**:
 
@@ -458,6 +483,26 @@ sequenceDiagram
 | probability | 0.4 | 生成概率 |
 
 **有效生物群系**: Ocean, WarmOcean, LukewarmOcean, ColdOcean, FrozenOcean, Deep*Ocean
+
+#### PillagerOutpostStructure（掠夺者前哨站）
+
+**职责**: 生成掠夺者前哨站塔楼结构。
+
+**特点**:
+- 使用 Jigsaw 系统动态组装
+- 掠夺者塔楼和周围辅助设施
+- 村庄检测：不会在村庄附近（10 区块半径内）生成
+- 使用与村庄相同的种子算法检测冲突位置
+
+**配置参数**:
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| spacing | 32 | 前哨站间距 |
+| separation | 8 | 最小分离距离 |
+| salt | 165745296 | 随机种子盐 |
+
+**有效生物群系**: Plains, Desert, Savanna, Taiga, SnowyPlains, SnowyTaiga, SavannaPlateau, WoodedHills, BirchForest, DarkForest, TaigaHills, GiantTreeTaiga, GiantTreeTaigaHills
 
 ## 模块架构
 

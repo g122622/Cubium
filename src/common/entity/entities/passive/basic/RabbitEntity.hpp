@@ -77,8 +77,8 @@ public:
     RabbitEntity& operator=(const RabbitEntity&) = delete;
 
     // 允许移动
-    RabbitEntity(RabbitEntity&&) = default;
-    RabbitEntity& operator=(RabbitEntity&&) = default;
+    RabbitEntity(RabbitEntity&&) = delete;
+    RabbitEntity& operator=(RabbitEntity&&) = delete;
 
     /**
      * @brief 创建兔子实体

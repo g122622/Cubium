@@ -56,8 +56,8 @@ public:
     HuskEntity& operator=(const HuskEntity&) = delete;
 
     // 允许移动
-    HuskEntity(HuskEntity&&) = default;
-    HuskEntity& operator=(HuskEntity&&) = default;
+    HuskEntity(HuskEntity&&) = delete;
+    HuskEntity& operator=(HuskEntity&&) = delete;
 
     /**
      * @brief 创建尸壳实体

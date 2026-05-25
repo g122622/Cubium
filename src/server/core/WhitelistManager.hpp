@@ -116,9 +116,9 @@ public:
     WhitelistManager(const WhitelistManager&) = delete;
     WhitelistManager& operator=(const WhitelistManager&) = delete;
 
-    // 允许移动
-    WhitelistManager(WhitelistManager&&) = default;
-    WhitelistManager& operator=(WhitelistManager&&) = default;
+    // 禁止移动（包含 std::mutex）
+    WhitelistManager(WhitelistManager&&) = delete;
+    WhitelistManager& operator=(WhitelistManager&&) = delete;
 
     // ========== 白名单开关 ==========
 

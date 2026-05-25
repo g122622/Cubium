@@ -86,9 +86,9 @@ public:
     SkinCache(const SkinCache&) = delete;
     SkinCache& operator=(const SkinCache&) = delete;
 
-    // 允许移动
-    SkinCache(SkinCache&&) noexcept = default;
-    SkinCache& operator=(SkinCache&&) noexcept = default;
+    // 禁止移动（包含 std::mutex）
+    SkinCache(SkinCache&&) noexcept = delete;
+    SkinCache& operator=(SkinCache&&) noexcept = delete;
 
     /**
      * @brief 初始化缓存

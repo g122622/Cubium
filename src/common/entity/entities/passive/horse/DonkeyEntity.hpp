@@ -50,8 +50,8 @@ public:
 
     DonkeyEntity(const DonkeyEntity&) = delete;
     DonkeyEntity& operator=(const DonkeyEntity&) = delete;
-    DonkeyEntity(DonkeyEntity&&) = default;
-    DonkeyEntity& operator=(DonkeyEntity&&) = default;
+    DonkeyEntity(DonkeyEntity&&) = delete;
+    DonkeyEntity& operator=(DonkeyEntity&&) = delete;
 
     /**
      * @brief 创建驴实体

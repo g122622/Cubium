@@ -66,8 +66,8 @@ public:
     WitchEntity& operator=(const WitchEntity&) = delete;
 
     // 允许移动
-    WitchEntity(WitchEntity&&) = default;
-    WitchEntity& operator=(WitchEntity&&) = default;
+    WitchEntity(WitchEntity&&) = delete;
+    WitchEntity& operator=(WitchEntity&&) = delete;
 
     /**
      * @brief 创建女巫实体

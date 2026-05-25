@@ -53,8 +53,8 @@ public:
     AmbientEntity& operator=(const AmbientEntity&) = delete;
 
     // 允许移动
-    AmbientEntity(AmbientEntity&&) = default;
-    AmbientEntity& operator=(AmbientEntity&&) = default;
+    AmbientEntity(AmbientEntity&&) = delete;
+    AmbientEntity& operator=(AmbientEntity&&) = delete;
 
 protected:
     void registerAttributes() override;

@@ -87,6 +87,9 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
     const BlockState* chiseledStoneBricks = VanillaBlocks::getState(VanillaBlocks::CHISELED_STONE_BRICKS);
     const BlockState* vine = VanillaBlocks::getState(VanillaBlocks::VINE);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* tripwire = VanillaBlocks::getState(VanillaBlocks::TRIPWIRE);
+    const BlockState* tripwireHook = VanillaBlocks::getState(VanillaBlocks::TRIPWIRE_HOOK);
+    const BlockState* dispenser = VanillaBlocks::getState(VanillaBlocks::DISPENSER);
 
     // 基础参数
     i32 baseX = startPos.x;
@@ -172,12 +175,35 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
         world.setBlockState(baseX + puzzleX + 1, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
     }
 
-    // 箭矢陷阱走廊（东侧）
-    // 陷阱房间
+    // 箭矢陷阱走廊（东侧） - MC 1.16.5 风格
+    // 参考: JungleTemplePiece.addArrows
     i32 trapX = width - 3;
     for (i32 z = 2; z < 6; ++z) {
         world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, air, 18);
         world.setBlockState(baseX + trapX + 1, baseY + 3, baseZ + z, air, 18);
+    }
+
+    // 绊线陷阱
+    if (tripwire && tripwireHook) {
+        // 绊线钩在墙上
+        world.setBlockState(baseX + trapX + 2, baseY + 3, baseZ + 3, tripwireHook, 18);
+        world.setBlockState(baseX + trapX + 2, baseY + 3, baseZ + 4, tripwireHook, 18);
+
+        // 绊线连接
+        for (i32 z = 3; z <= 4; ++z) {
+            world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, tripwire, 18);
+            world.setBlockState(baseX + trapX + 1, baseY + 3, baseZ + z, tripwire, 18);
+        }
+    }
+
+    // 发射器陷阱（天花板）
+    if (dispenser) {
+        // 在天花板上放置发射器，朝下
+        world.setBlockState(baseX + trapX, baseY + 5, baseZ + 3, dispenser, 18);
+        world.setBlockState(baseX + trapX, baseY + 5, baseZ + 4, dispenser, 18);
+
+        // 发射器内放置箭（使用金块占位符，实际需要物品容器）
+        // MC 1.16.5: 发射器内放置 2-14 支箭
     }
 
     // 宝箱房间（北侧，隐藏）

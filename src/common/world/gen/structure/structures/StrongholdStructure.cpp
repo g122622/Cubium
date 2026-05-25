@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -22,14 +22,13 @@
  */
 
 #include "StrongholdStructure.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <cmath>
 
@@ -98,7 +97,6 @@ void StrongholdStructure::initializeBiomes()
         SnowyTaiga,
         SnowyTaigaHills,
         SnowyTaigaMountains,
-        SnowyPlains,
         SnowyBeach};
 }
 
@@ -107,6 +105,12 @@ bool StrongholdStructure::canGenerate(
 {
     // 要塞位置由种子决定，不能随机生成
     // 需要检查当前位置是否是预计算的要塞位置
+    // 简化实现：允许在任何位置生成
+    MC_UNUSED(world);
+    MC_UNUSED(generator);
+    MC_UNUSED(rng);
+    MC_UNUSED(chunkX);
+    MC_UNUSED(chunkZ);
     return true;
 }
 
@@ -119,113 +123,162 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     i32 startX = chunkX * 16 + 8;
     i32 startZ = chunkZ * 16 + 8;
 
-    // 要塞生成在地下
+    // 要塞生成在地下 (MC 1.16.5: Y 20-40)
     i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
 
     BlockPos startPos(startX, startY, startZ);
 
-    // 使用预定义的模板池
-    ResourceLocation startPoolLocation("minecraft", "stronghold/start");
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
+    // 使用 StrongholdPieces 系统生成要塞
+    generateStrongholdPieces(world, rng, startPos, start->pieces());
 
-    if (startPool && !startPool->isEmpty()) {
-        // 使用 Jigsaw 系统生成要塞
-        jigsaw::JigsawManager::assembleAndPlace(world,
-            patternRegistry,
-            *startPool,
-            8, // 要塞深度较大
-            startPos,
-            rng);
-    } else {
-        // 回退：生成简单的要塞入口
-        generateFallbackEntrance(world, rng, startPos);
-    }
+    start->recalculateStructureSize();
 
     return start;
 }
 
-void StrongholdStructure::generateFallbackEntrance(
-    IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
+void StrongholdStructure::generateStrongholdPieces(IWorldWriter& world,
+    math::Random& rng,
+    const BlockPos& startPos,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
-    const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* mossyStoneBricks = VanillaBlocks::getState(VanillaBlocks::MOSSY_STONE_BRICKS);
-    const BlockState* crackedStoneBricks = VanillaBlocks::getState(VanillaBlocks::CRACKED_STONE_BRICKS);
-    const BlockState* chiseledStoneBricks = VanillaBlocks::getState(VanillaBlocks::CHISELED_STONE_BRICKS);
-    const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    // MC 1.16.5: StrongholdStructure.start
+    // 生成起始楼梯
+    auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
+    StrongholdStartStairs* startStairsPtr = startStairs.get();
+    pieces.push_back(std::move(startStairs));
 
-    // 辅助lambda: 随机选择石砖类型
-    auto randomBrick = [&]() -> const BlockState* {
-        i32 r = rng.nextInt(100);
-        if (r < 50) return stoneBricks;
-        if (r < 75) return mossyStoneBricks;
-        if (r < 95) return crackedStoneBricks;
-        return chiseledStoneBricks;
-    };
+    // 初始化片段权重列表
+    std::vector<StrongholdPieceWeight> weights;
+    initializeStrongholdPieceWeights(weights);
 
-    i32 baseX = startPos.x;
-    i32 baseY = startPos.y;
-    i32 baseZ = startPos.z;
+    StrongholdPieceWeight* lastPlaced = nullptr;
 
-    // 生成入口楼梯井（5x5）
-    for (i32 y = 0; y < 10; ++y) {
-        for (i32 x = -2; x <= 2; ++x) {
-            for (i32 z = -2; z <= 2; ++z) {
-                // 边缘是石砖墙，中间是空气
-                bool isEdge = std::abs(x) == 2 || std::abs(z) == 2;
-                if (isEdge) {
-                    world.setBlockState(baseX + x, baseY + y, baseZ + z, randomBrick(), 18);
-                } else if (y == 0) {
-                    // 底部
-                    world.setBlockState(baseX + x, baseY + y, baseZ + z, stoneBricks, 18);
-                }
-                // 中间是空气（已挖空）
+    // MC 1.16.5: 递归生成走廊和房间
+    // 参考: StrongholdPieces.registerStrongholdPieces -> MapGenStructureIO.registerStructure
+    generateCorridor(pieces, rng, 0, startStairsPtr);
+}
+
+void StrongholdStructure::generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 depth,
+    StrongholdStartStairs* start) const
+{
+    // MC 1.16.5: StrongholdPieces.Stronghold.Door.findAndCreatePieceFactory
+    // 递归生成走廊和房间，直到达到最大深度或无法生成更多片段
+
+    if (depth > 50 || pieces.size() > 100) {
+        // 防止无限递归
+        return;
+    }
+
+    // 获取最后添加的片段
+    if (pieces.empty()) {
+        return;
+    }
+
+    StructurePiece* lastPiece = pieces.back().get();
+    if (lastPiece == nullptr) {
+        return;
+    }
+
+    // 初始化片段权重
+    std::vector<StrongholdPieceWeight> weights;
+    initializeStrongholdPieceWeights(weights);
+
+    // 随机打乱权重顺序
+    for (size_t i = 0; i < weights.size(); ++i) {
+        size_t j = rng.nextInt(static_cast<i32>(weights.size()));
+        std::swap(weights[i], weights[j]);
+    }
+
+    Direction direction = lastPiece->getCoordBaseMode();
+    i32 x, y, z;
+
+    // 根据方向计算下一个片段的位置
+    switch (direction) {
+        case Direction::North:
+            x = lastPiece->minX() + (lastPiece->maxX() - lastPiece->minX()) / 2;
+            y = lastPiece->minY();
+            z = lastPiece->minZ() - 1;
+            break;
+        case Direction::South:
+            x = lastPiece->minX() + (lastPiece->maxX() - lastPiece->minX()) / 2;
+            y = lastPiece->minY();
+            z = lastPiece->maxZ() + 1;
+            break;
+        case Direction::West:
+            x = lastPiece->minX() - 1;
+            y = lastPiece->minY();
+            z = lastPiece->minZ() + (lastPiece->maxZ() - lastPiece->minZ()) / 2;
+            break;
+        case Direction::East:
+            x = lastPiece->maxX() + 1;
+            y = lastPiece->minY();
+            z = lastPiece->minZ() + (lastPiece->maxZ() - lastPiece->minZ()) / 2;
+            break;
+        default:
+            return;
+    }
+
+    // 尝试生成一个片段
+    // 简化实现：随机选择一个片段类型
+    i32 totalWeight = 0;
+    for (const auto& weight : weights) {
+        if (weight.canSpawnMoreStructuresOfType(depth)) {
+            totalWeight += weight.weight;
+        }
+    }
+
+    if (totalWeight == 0) {
+        // 所有片段都达到限制，生成传送门房间
+        StrongholdPortalRoom* portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+        if (portalRoom != nullptr) {
+            pieces.emplace_back(portalRoom);
+        }
+        return;
+    }
+
+    // 随机选择片段类型
+    i32 randomValue = rng.nextInt(totalWeight);
+    i32 cumulativeWeight = 0;
+    i32 selectedType = StrongholdPieceTypes::STRAIGHT;
+
+    for (auto& weight : weights) {
+        if (weight.canSpawnMoreStructuresOfType(depth)) {
+            cumulativeWeight += weight.weight;
+            if (randomValue < cumulativeWeight) {
+                selectedType = weight.pieceType;
+                weight.instancesSpawned++;
+                break;
             }
         }
     }
 
-    // 生成传送门房间（10x10）
-    i32 portalRoomY = baseY + 10;
-    i32 roomSize = 10;
+    // 创建选中的片段
+    StrongholdPiece* newPiece = createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
 
-    // 地板
-    for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
-        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
-            world.setBlockState(baseX + x, portalRoomY, baseZ + z, stoneBricks, 18);
-        }
-    }
+    if (newPiece != nullptr) {
+        pieces.emplace_back(newPiece);
 
-    // 墙壁
-    i32 roomHeight = 6;
-    for (i32 y = 1; y <= roomHeight; ++y) {
-        for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
-            world.setBlockState(baseX + x, portalRoomY + y, baseZ - roomSize / 2, randomBrick(), 18);
-            world.setBlockState(baseX + x, portalRoomY + y, baseZ + roomSize / 2, randomBrick(), 18);
+        // 递归生成更多片段
+        // MC 1.16.5: 10% 概率生成图书馆，传送门房间必须生成
+        if (rng.nextInt(10) == 0 && depth < 30) {
+            // 可能生成图书馆
+            StrongholdLibrary* library = StrongholdLibrary::createPiece(
+                pieces, rng, x + rng.nextInt(8), y - rng.nextInt(5), z + rng.nextInt(8), direction, depth + 1);
+            if (library != nullptr) {
+                pieces.emplace_back(library);
+            }
         }
-        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
-            world.setBlockState(baseX - roomSize / 2, portalRoomY + y, baseZ + z, randomBrick(), 18);
-            world.setBlockState(baseX + roomSize / 2, portalRoomY + y, baseZ + z, randomBrick(), 18);
-        }
-    }
 
-    // 天花板
-    for (i32 x = -roomSize / 2; x <= roomSize / 2; ++x) {
-        for (i32 z = -roomSize / 2; z <= roomSize / 2; ++z) {
-            world.setBlockState(baseX + x, portalRoomY + roomHeight + 1, baseZ + z, stoneBricks, 18);
-        }
-    }
-
-    // 末地传送门框架（中央）
-    // 传送门是 3x3，四边有框架
-    i32 portalY = portalRoomY + 1;
-    for (i32 x = -1; x <= 1; ++x) {
-        for (i32 z = -1; z <= 1; ++z) {
-            // 框架位置（四边）
-            bool isFrame = (std::abs(x) == 1 && z == 0) || (std::abs(z) == 1 && x == 0) || (x == 0 && z == 0);
-            if (isFrame) {
-                // 使用金块作为传送门框架占位符（末地传送门框架方块尚未实现）
-                world.setBlockState(baseX + x, portalY, baseZ + z, goldBlock ? goldBlock : chiseledStoneBricks, 18);
+        // 继续生成走廊
+        generateCorridor(pieces, rng, depth + 1, start);
+    } else {
+        // 无法生成更多片段，强制生成传送门房间
+        if (depth > 5) {
+            StrongholdPortalRoom* portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+            if (portalRoom != nullptr) {
+                pieces.emplace_back(portalRoom);
             }
         }
     }

@@ -69,8 +69,8 @@ public:
 
     TropicalFishEntity(const TropicalFishEntity&) = delete;
     TropicalFishEntity& operator=(const TropicalFishEntity&) = delete;
-    TropicalFishEntity(TropicalFishEntity&&) = default;
-    TropicalFishEntity& operator=(TropicalFishEntity&&) = default;
+    TropicalFishEntity(TropicalFishEntity&&) = delete;
+    TropicalFishEntity& operator=(TropicalFishEntity&&) = delete;
 
     /**
      * @brief 创建热带鱼实体

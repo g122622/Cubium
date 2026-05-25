@@ -47,8 +47,8 @@ public:
 
     ShoulderRidingEntity(const ShoulderRidingEntity&) = delete;
     ShoulderRidingEntity& operator=(const ShoulderRidingEntity&) = delete;
-    ShoulderRidingEntity(ShoulderRidingEntity&&) = default;
-    ShoulderRidingEntity& operator=(ShoulderRidingEntity&&) = default;
+    ShoulderRidingEntity(ShoulderRidingEntity&&) = delete;
+    ShoulderRidingEntity& operator=(ShoulderRidingEntity&&) = delete;
 
     /**
      * @brief 当前是否挂在玩家肩膀上

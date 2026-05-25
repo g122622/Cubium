@@ -46,8 +46,8 @@ public:
 
     MuleEntity(const MuleEntity&) = delete;
     MuleEntity& operator=(const MuleEntity&) = delete;
-    MuleEntity(MuleEntity&&) = default;
-    MuleEntity& operator=(MuleEntity&&) = default;
+    MuleEntity(MuleEntity&&) = delete;
+    MuleEntity& operator=(MuleEntity&&) = delete;
 
     /**
      * @brief 创建骡实体

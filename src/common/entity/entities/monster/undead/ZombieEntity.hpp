@@ -61,8 +61,8 @@ public:
     ZombieEntity& operator=(const ZombieEntity&) = delete;
 
     // 允许移动
-    ZombieEntity(ZombieEntity&&) = default;
-    ZombieEntity& operator=(ZombieEntity&&) = default;
+    ZombieEntity(ZombieEntity&&) = delete;
+    ZombieEntity& operator=(ZombieEntity&&) = delete;
 
     /**
      * @brief 创建僵尸实体

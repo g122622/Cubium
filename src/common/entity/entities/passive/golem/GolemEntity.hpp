@@ -58,8 +58,8 @@ public:
     GolemEntity& operator=(const GolemEntity&) = delete;
 
     // 允许移动
-    GolemEntity(GolemEntity&&) = default;
-    GolemEntity& operator=(GolemEntity&&) = default;
+    GolemEntity(GolemEntity&&) = delete;
+    GolemEntity& operator=(GolemEntity&&) = delete;
 
     // ========== IAngerable 接口实现 ==========
 

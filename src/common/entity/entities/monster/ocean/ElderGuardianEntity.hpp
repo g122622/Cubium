@@ -57,8 +57,8 @@ public:
     ElderGuardianEntity& operator=(const ElderGuardianEntity&) = delete;
 
     // 允许移动
-    ElderGuardianEntity(ElderGuardianEntity&&) = default;
-    ElderGuardianEntity& operator=(ElderGuardianEntity&&) = default;
+    ElderGuardianEntity(ElderGuardianEntity&&) = delete;
+    ElderGuardianEntity& operator=(ElderGuardianEntity&&) = delete;
 
     /**
      * @brief 创建远古守卫者实体

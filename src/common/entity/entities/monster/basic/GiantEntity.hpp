@@ -57,8 +57,8 @@ public:
     GiantEntity& operator=(const GiantEntity&) = delete;
 
     // 允许移动
-    GiantEntity(GiantEntity&&) = default;
-    GiantEntity& operator=(GiantEntity&&) = default;
+    GiantEntity(GiantEntity&&) = delete;
+    GiantEntity& operator=(GiantEntity&&) = delete;
 
     /**
      * @brief 创建巨人实体

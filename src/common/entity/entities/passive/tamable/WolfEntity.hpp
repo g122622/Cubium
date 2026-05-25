@@ -63,8 +63,8 @@ public:
     WolfEntity& operator=(const WolfEntity&) = delete;
 
     // 允许移动
-    WolfEntity(WolfEntity&&) = default;
-    WolfEntity& operator=(WolfEntity&&) = default;
+    WolfEntity(WolfEntity&&) = delete;
+    WolfEntity& operator=(WolfEntity&&) = delete;
 
     /**
      * @brief 创建狼实体

@@ -58,8 +58,8 @@ public:
     DrownedEntity& operator=(const DrownedEntity&) = delete;
 
     // 允许移动
-    DrownedEntity(DrownedEntity&&) = default;
-    DrownedEntity& operator=(DrownedEntity&&) = default;
+    DrownedEntity(DrownedEntity&&) = delete;
+    DrownedEntity& operator=(DrownedEntity&&) = delete;
 
     /**
      * @brief 创建溺尸实体

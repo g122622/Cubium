@@ -65,8 +65,8 @@ public:
     AbstractHorseEntity& operator=(const AbstractHorseEntity&) = delete;
 
     // 允许移动
-    AbstractHorseEntity(AbstractHorseEntity&&) = default;
-    AbstractHorseEntity& operator=(AbstractHorseEntity&&) = default;
+    AbstractHorseEntity(AbstractHorseEntity&&) = delete;
+    AbstractHorseEntity& operator=(AbstractHorseEntity&&) = delete;
 
     // ========== IJumpingMount 接口实现 ==========
 

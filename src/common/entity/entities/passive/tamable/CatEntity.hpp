@@ -97,8 +97,8 @@ public:
     CatEntity& operator=(const CatEntity&) = delete;
 
     // 允许移动
-    CatEntity(CatEntity&&) = default;
-    CatEntity& operator=(CatEntity&&) = default;
+    CatEntity(CatEntity&&) = delete;
+    CatEntity& operator=(CatEntity&&) = delete;
 
     /**
      * @brief 创建猫实体

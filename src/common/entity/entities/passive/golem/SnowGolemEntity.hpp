@@ -62,8 +62,8 @@ public:
     SnowGolemEntity& operator=(const SnowGolemEntity&) = delete;
 
     // 允许移动
-    SnowGolemEntity(SnowGolemEntity&&) = default;
-    SnowGolemEntity& operator=(SnowGolemEntity&&) = default;
+    SnowGolemEntity(SnowGolemEntity&&) = delete;
+    SnowGolemEntity& operator=(SnowGolemEntity&&) = delete;
 
     /**
      * @brief 创建雪傀儡实体

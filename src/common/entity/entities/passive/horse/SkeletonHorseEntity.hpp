@@ -63,8 +63,8 @@ public:
     SkeletonHorseEntity& operator=(const SkeletonHorseEntity&) = delete;
 
     // 允许移动
-    SkeletonHorseEntity(SkeletonHorseEntity&&) = default;
-    SkeletonHorseEntity& operator=(SkeletonHorseEntity&&) = default;
+    SkeletonHorseEntity(SkeletonHorseEntity&&) = delete;
+    SkeletonHorseEntity& operator=(SkeletonHorseEntity&&) = delete;
 
     /**
      * @brief 创建骷髅马实体

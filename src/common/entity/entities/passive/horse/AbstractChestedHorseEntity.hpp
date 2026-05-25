@@ -47,8 +47,8 @@ public:
 
     AbstractChestedHorseEntity(const AbstractChestedHorseEntity&) = delete;
     AbstractChestedHorseEntity& operator=(const AbstractChestedHorseEntity&) = delete;
-    AbstractChestedHorseEntity(AbstractChestedHorseEntity&&) = default;
-    AbstractChestedHorseEntity& operator=(AbstractChestedHorseEntity&&) = default;
+    AbstractChestedHorseEntity(AbstractChestedHorseEntity&&) = delete;
+    AbstractChestedHorseEntity& operator=(AbstractChestedHorseEntity&&) = delete;
 
     /**
      * @brief 当前是否装备了箱子
