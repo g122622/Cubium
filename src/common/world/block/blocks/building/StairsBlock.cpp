@@ -291,65 +291,35 @@ const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) co
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::StairsShape shape = state.get(BlockStateProperties::STAIRS_SHAPE());
 
-    // MC中镜像逻辑较为复杂，这里实现完整逻辑
-    switch (mirror) {
-        case Mirror::LeftRight:
-            // 左右镜像 (关于X轴对称)
-            if (facing == Direction::South || facing == Direction::North) {
-                // Z轴方向: 旋转180度并交换形状的左右
-                Direction rotated = Directions::rotateDirection(facing, Rotation::Clockwise180);
-                BlockStateProperties::StairsShape mirroredShape = shape;
-                switch (shape) {
-                    case BlockStateProperties::StairsShape::InnerLeft:
-                        mirroredShape = BlockStateProperties::StairsShape::InnerRight;
-                        break;
-                    case BlockStateProperties::StairsShape::InnerRight:
-                        mirroredShape = BlockStateProperties::StairsShape::InnerLeft;
-                        break;
-                    case BlockStateProperties::StairsShape::OuterLeft:
-                        mirroredShape = BlockStateProperties::StairsShape::OuterRight;
-                        break;
-                    case BlockStateProperties::StairsShape::OuterRight:
-                        mirroredShape = BlockStateProperties::StairsShape::OuterLeft;
-                        break;
-                    default:
-                        break;
-                }
-                const BlockState& result = state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
-                return result.with(BlockStateProperties::STAIRS_SHAPE(), mirroredShape);
-            }
-            break;
+    // MC中镜像逻辑：仅在特定朝向上生效
+    bool shouldMirror = false;
+    if (mirror == Mirror::LeftRight && (facing == Direction::South || facing == Direction::North)) {
+        shouldMirror = true;
+    } else if (mirror == Mirror::FrontBack && (facing == Direction::East || facing == Direction::West)) {
+        shouldMirror = true;
+    }
 
-        case Mirror::FrontBack:
-            // 前后镜像 (关于Z轴对称)
-            if (facing == Direction::East || facing == Direction::West) {
-                // X轴方向: 旋转180度并交换形状的左右
-                Direction rotated = Directions::rotateDirection(facing, Rotation::Clockwise180);
-                BlockStateProperties::StairsShape mirroredShape = shape;
-                switch (shape) {
-                    case BlockStateProperties::StairsShape::InnerLeft:
-                        mirroredShape = BlockStateProperties::StairsShape::InnerRight;
-                        break;
-                    case BlockStateProperties::StairsShape::InnerRight:
-                        mirroredShape = BlockStateProperties::StairsShape::InnerLeft;
-                        break;
-                    case BlockStateProperties::StairsShape::OuterLeft:
-                        mirroredShape = BlockStateProperties::StairsShape::OuterRight;
-                        break;
-                    case BlockStateProperties::StairsShape::OuterRight:
-                        mirroredShape = BlockStateProperties::StairsShape::OuterLeft;
-                        break;
-                    default:
-                        break;
-                }
-                const BlockState& result = state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
-                return result.with(BlockStateProperties::STAIRS_SHAPE(), mirroredShape);
-            }
-            break;
-
-        case Mirror::None:
-        default:
-            break;
+    if (shouldMirror) {
+        Direction rotated = Directions::rotateDirection(facing, Rotation::Clockwise180);
+        BlockStateProperties::StairsShape mirroredShape = shape;
+        switch (shape) {
+            case BlockStateProperties::StairsShape::InnerLeft:
+                mirroredShape = BlockStateProperties::StairsShape::InnerRight;
+                break;
+            case BlockStateProperties::StairsShape::InnerRight:
+                mirroredShape = BlockStateProperties::StairsShape::InnerLeft;
+                break;
+            case BlockStateProperties::StairsShape::OuterLeft:
+                mirroredShape = BlockStateProperties::StairsShape::OuterRight;
+                break;
+            case BlockStateProperties::StairsShape::OuterRight:
+                mirroredShape = BlockStateProperties::StairsShape::OuterLeft;
+                break;
+            default:
+                break;
+        }
+        const BlockState& result = state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
+        return result.with(BlockStateProperties::STAIRS_SHAPE(), mirroredShape);
     }
 
     return state;

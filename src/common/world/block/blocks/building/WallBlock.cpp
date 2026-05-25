@@ -26,6 +26,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../FenceGateHelpers.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
@@ -279,15 +280,8 @@ BlockStateProperties::WallHeight WallBlock::getWallHeight(const BlockState& stat
     }
 
     // 检查是否为栅栏门
-    if (isFenceGate(state)) {
-        // FenceGateBlock.isParallel: state.get(HORIZONTAL_FACING).getAxis() == direction.rotateY().getAxis()
-        // 即栅栏门朝向轴与连接方向轴垂直时，可以连接
-        Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-        Axis gateAxis = Directions::getAxis(gateFacing);
-        // 旋转Y轴90度得到垂直轴
-        Axis perpendicularAxis = (gateAxis == Axis::X) ? Axis::Z : Axis::X;
-        if (Directions::getAxis(neighborSide) == perpendicularAxis) {
-            // 栅栏门平行于墙的方向，可以连接
+    if (fencehelpers::isFenceGate(state)) {
+        if (fencehelpers::isFenceGateParallel(state, neighborSide)) {
             return BlockStateProperties::WallHeight::Low;
         }
         return BlockStateProperties::WallHeight::None;
@@ -316,11 +310,6 @@ BlockStateProperties::WallHeight WallBlock::getWallHeight(const BlockState& stat
 bool WallBlock::isWall(const BlockState& state)
 {
     return state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH());
-}
-
-bool WallBlock::isFenceGate(const BlockState& state)
-{
-    return state.hasProperty(BlockStateProperties::OPEN()) && state.hasProperty(BlockStateProperties::IN_WALL());
 }
 
 size_t WallBlock::getShapeIndex(bool up,

@@ -30,6 +30,7 @@
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "../../FenceGateHelpers.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
@@ -265,21 +266,9 @@ bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direc
     // boolean flag1 = block instanceof FenceGateBlock && FenceGateBlock.isParallel(state, direction);
     // return !cannotAttach(block) && isSideSolid || flag || flag1;
 
-    const Block& block = state.getBlock();
-
     // 检查是否为栅栏门且平行
-    // FenceGateBlock.isParallel: state.get(HORIZONTAL_FACING).getAxis() == direction.rotateY().getAxis()
-    // 即栅栏门的朝向轴与连接方向垂直（栅栏门在南北方向时，东西方向的栅栏可以连接）
-    bool isFenceGate =
-        state.hasProperty(BlockStateProperties::OPEN()) && state.hasProperty(BlockStateProperties::IN_WALL());
-    if (isFenceGate) {
-        // 检查栅栏门是否平行
-        Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-        Axis gateAxis = Directions::getAxis(gateFacing);
-        // 旋转Y轴90度得到垂直轴
-        Axis perpendicularAxis = (gateAxis == Axis::X) ? Axis::Z : Axis::X;
-        // 栅栏门平行：栅栏门朝向轴与连接方向轴垂直
-        if (Directions::getAxis(direction) == perpendicularAxis) {
+    if (fencehelpers::isFenceGate(state)) {
+        if (fencehelpers::isFenceGateParallel(state, direction)) {
             return true;
         }
     }

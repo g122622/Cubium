@@ -132,13 +132,6 @@ private:
     [[nodiscard]] BlockStateProperties::WallHeight getWallHeight(const BlockState& state, Direction neighborSide) const;
 
     /**
-     * @brief 判断方块是否为栅栏门
-     * @param state 方块状态
-     * @return 如果是栅栏门返回 true
-     */
-    [[nodiscard]] static bool isFenceGate(const BlockState& state);
-
-    /**
      * @brief 获取形状索引
      * @param up 是否有顶部
      * @param north 北面高度
