@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
@@ -34,6 +35,7 @@ class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
 class BlockEntity;
+class BlockRaycastResult;
 
 namespace blocks {
 
@@ -80,6 +82,31 @@ public:
 
     [[nodiscard]] int getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 有唱片时取出唱片，无唱片时放入唱片。
+     *
+     * 参考: net.minecraft.block.JukeboxBlock#onBlockActivated
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    /**
+     * @brief 方块移除时回调
+     *
+     * 掉落唱片机内的唱片。
+     *
+     * 参考: net.minecraft.block.JukeboxBlock#onReplaced
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 工具方法 ==========
 

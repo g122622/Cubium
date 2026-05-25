@@ -23,11 +23,14 @@
 
 #include "LecternBlock.hpp"
 
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/Item.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntityType.hpp"
 #include "../../../blockentity/interactive/LecternEntity.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 
@@ -178,6 +181,69 @@ int LecternBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
     }
 
     return 1;
+}
+
+std::unique_ptr<BlockEntity> LecternBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::LecternEntity>(pos);
+}
+
+ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (state.get(BlockStateProperties::HAS_BOOK())) {
+        if (!world.isClientSide()) {
+            // 打开讲台GUI
+            // TODO: 实现容器打开
+            // player.openContainer(lecternEntity);
+            // player.addStat(Stats::INTERACT_WITH_LECTERN);
+        }
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
+void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 如果有书，掉落书本
+    if (state.get(BlockStateProperties::HAS_BOOK())) {
+        dropBook(world, pos, state);
+    }
+
+    // 如果处于激活状态，通知下方方块更新红石
+    if (state.get(BlockStateProperties::POWERED())) {
+        // TODO: 实现红石更新
+        // world.notifyNeighborsOfStateChange(pos.down(), this);
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+void LecternBlock::dropBook(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Lectern) {
+        auto* lectern = static_cast<blockentity::LecternEntity*>(entity);
+        ItemStack book = lectern->removeBook();
+
+        if (!book.isEmpty()) {
+            // 根据朝向计算掉落位置
+            Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+            f32 offsetX = 0.5f + 0.25f * static_cast<f32>(Directions::xOffset(facing));
+            f32 offsetZ = 0.5f + 0.25f * static_cast<f32>(Directions::zOffset(facing));
+
+            math::Random rng;
+            ItemDropHelper::spawnItemEntity(&world, book, pos.x + offsetX, pos.y + 1.0, pos.z + offsetZ, rng);
+        }
+    }
 }
 
 bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId)

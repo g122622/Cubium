@@ -171,14 +171,14 @@ Block (基类)
 - [x] BrewingStandBlock: 红石比较器信号（2026-05-15 完成）
 - [x] BrewingStandBlock: 方块实体注册、onBlockActivated、onBlockRemoved（2026-05-25 完成）
 - [ ] BrewingStandBlock: 酿造配方系统、GUI容器打开
-- [x] ComposterBlock: 完整堆肥概率表、骨粉产出、玩家交互
+- [x] ComposterBlock: 完整堆肥概率表（~60种物品，2026-05-25 完成）、骨粉产出、玩家交互
 - [x] CauldronBlock: 水桶/玻璃瓶/水瓶交互、皮革盔甲清洗
 - [ ] CakeBlock: 食物恢复逻辑
 - [x] BeaconBlock: 方块实体、效果范围计算、红石比较器信号（2026-05-15 完成）
-- [ ] BarrelBlock: onBlockActivated GUI打开、onBlockRemoved物品掉落
-- [ ] LecternBlock: onBlockActivated书籍交互、onBlockRemoved书籍掉落
+- [x] BarrelBlock: onBlockActivated GUI打开、onBlockRemoved物品掉落（2026-05-25 完成）
+- [x] LecternBlock: onBlockActivated书籍交互、onBlockRemoved书籍掉落（2026-05-25 完成）
 - [ ] BellBlock: 方块实体、onBlockActivated、动画系统、声音播放
-- [ ] JukeboxBlock: onBlockActivated唱片取出、onBlockRemoved唱片掉落
+- [x] JukeboxBlock: onBlockActivated唱片取出、onBlockRemoved唱片掉落（2026-05-25 完成）
 - [x] RespawnAnchorBlock: 维度检测、爆炸逻辑、设置重生点（2026-05-12 完成）
 - [ ] LodestoneBlock: CompassItem实现、指南针绑定系统
 - [ ] GrindstoneBlock: AttachFace属性支持、完整VoxelShape、GUI打开
@@ -232,14 +232,18 @@ Block (基类)
 - 玩家右键交互：添加可堆肥物品
 - 比较器输出：等级值
 
-**CompostableItems 注册表**:
+**CompostableItems 注册表** (2026-05-25 完成):
 ```cpp
-// 堆肥概率表
-30%: 种子类、干海带、甜浆果
-50%: 西瓜片
-65%: 苹果、农作物、地狱疣
-85%: 面包、曲奇、烤马铃薯
+// 堆肥概率表 (共 ~60 种物品)
+30%: 树叶(6种)、树苗(6种)、种子(4种)、海草类(3种)、草、甜浆果
+50%: 干海带块、高草、仙人掌、甘蔗、藤蔓、西瓜片、下界藤蔓(2种)
+65%: 海泡菜、睡莲、南瓜类(2种)、西瓜块、食物(6种)、蘑菇类(3种)，
+     下界菌类(2种)、下界疣、发酵蜘蛛眼、荧光菇、花朵(14种)、蕨、大型花朵(4种)
+85%: 干草块、蘑菇方块(2种)、下界疣块(2种)、面包、烤马铃薯、曲奇
 100%: 南瓜派
+
+// 待注册 (物品未在 Items 类定义)
+// CAKE, NETHER_SPROUTS, LARGE_FERN, CRIMSON_ROOTS, WARPED_ROOTS
 ```
 
 **交互流程**:

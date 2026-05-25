@@ -22,10 +22,13 @@
  */
 
 #include "BarrelBlock.hpp"
+#include "../../../../entity/inventory/IInventory.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntityType.hpp"
 #include "../../../blockentity/storage/BarrelEntity.hpp"
 
 namespace mc {
@@ -109,6 +112,58 @@ int BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     }
 
     return 0;
+}
+
+ActionResultType BarrelBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Barrel) {
+        auto* barrel = static_cast<blockentity::BarrelEntity*>(entity);
+        // 打开木桶GUI
+        // TODO: 实现容器打开
+        // player.openContainer(barrel);
+        // player.addStat(Stats::OPEN_BARREL);
+        MC_UNUSED(barrel);
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
+}
+
+void BarrelBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    // 方块移除时掉落木桶内的物品
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Barrel) {
+        auto* barrel = static_cast<blockentity::BarrelEntity*>(entity);
+        IInventory* inventory = barrel->getInventory();
+
+        // 掉落所有物品
+        math::Random rng;
+        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+            ItemStack stack = inventory->removeItemNoUpdate(i);
+            if (!stack.isEmpty()) {
+                ItemDropHelper::spawnItemEntity(&world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+            }
+        }
+    }
+
+    Block::onBlockRemoved(world, pos, state);
 }
 
 } // namespace blocks
