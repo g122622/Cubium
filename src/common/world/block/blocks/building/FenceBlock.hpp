@@ -108,9 +108,10 @@ private:
      * @brief 检查是否可以连接到邻居
      * @param state 邻居状态
      * @param isNeighborSolid 邻居是否为固体
+     * @param direction 从栅栏指向邻居的方向
      * @return 如果可以连接返回true
      */
-    [[nodiscard]] bool canConnect(const BlockState& state, bool isNeighborSolid) const;
+    [[nodiscard]] bool canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const;
 
     /**
      * @brief 获取形状索引

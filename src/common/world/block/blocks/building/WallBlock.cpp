@@ -266,25 +266,46 @@ BlockState WallBlock::calculateState(const IWorld& world, const BlockPos& pos, c
 
 BlockStateProperties::WallHeight WallBlock::getWallHeight(const BlockState& state, Direction neighborSide) const
 {
+    // 参考: MC 1.16.5 WallBlock.func_220113_a 和 func_235633_a_
+    // 连接逻辑:
+    // 1. 墙总是连接到其他墙 (返回 Tall)
+    // 2. 栅栏门平行时连接 (返回 Low)
+    // 3. 玻璃板总是连接 (返回 Low)
+    // 4. 固体方块连接 (根据碰撞形状决定 Tall 或 Low)
 
+    // 检查是否为墙
     if (isWall(state)) {
         return BlockStateProperties::WallHeight::Tall;
     }
 
+    // 检查是否为栅栏门
     if (isFenceGate(state)) {
-        if (state.hasProperty(BlockStateProperties::OPEN()) && !state.get(BlockStateProperties::OPEN())) {
-            Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-            if (Directions::getAxis(facing) != Directions::getAxis(neighborSide)) {
-                return BlockStateProperties::WallHeight::Low;
-            }
+        // FenceGateBlock.isParallel: state.get(HORIZONTAL_FACING).getAxis() == direction.rotateY().getAxis()
+        // 即栅栏门朝向轴与连接方向轴垂直时，可以连接
+        Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+        Axis gateAxis = Directions::getAxis(gateFacing);
+        // 旋转Y轴90度得到垂直轴
+        Axis perpendicularAxis = (gateAxis == Axis::X) ? Axis::Z : Axis::X;
+        if (Directions::getAxis(neighborSide) == perpendicularAxis) {
+            // 栅栏门平行于墙的方向，可以连接
+            return BlockStateProperties::WallHeight::Low;
         }
         return BlockStateProperties::WallHeight::None;
     }
 
+    // 检查是否为玻璃板类方块 (PaneBlock)
+    // 简化实现：检查是否有NORTH/EAST/SOUTH/WEST布尔属性但没有WALL_HEIGHT属性
+    if (state.hasProperty(BlockStateProperties::NORTH()) &&
+        !state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
+        return BlockStateProperties::WallHeight::Low;
+    }
+
+    // 检查是否有不透明碰撞形状（固体方块）
     if (state.hasOpaqueCollisionShape()) {
         return BlockStateProperties::WallHeight::Tall;
     }
 
+    // 检查是否为普通固体方块
     if (state.isSolid()) {
         return BlockStateProperties::WallHeight::Low;
     }

@@ -67,50 +67,22 @@ SlabBlock::SlabBlock(const BlockProperties& properties)
 
 BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context)
 {
+    // 参考: MC 1.16.5 SlabBlock.getStateForPlacement()
     BlockPos pos = context.placementPos();
     const BlockState* existingState = context.getWorld().getBlockState(pos);
+
+    // 如果点击位置已有同类型台阶，变成双层
+    if (existingState != nullptr && &existingState->getBlock() == this) {
+        return existingState->with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+            .with(BlockStateProperties::WATERLOGGED(), false);
+    }
 
     // 检查是否含水
     bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), pos);
 
     // 根据点击位置决定上半/下半
-    // 点击上半部分 -> 上半台阶
-    // 点击下半部分 -> 下半台阶
-    // 但如果点击的是同一类型的台阶，则变成双层
-    if (existingState != nullptr && &existingState->getBlock() == this) {
-        // 点击同一类型台阶，变成双层
-        return existingState->with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-            .with(BlockStateProperties::WATERLOGGED(), false);
-    }
-
-    // 检查相邻位置是否有同类型台阶
     Direction clickedFace = context.getClickedFace();
-    BlockPos neighborPos(pos.x + Directions::xOffset(clickedFace),
-        pos.y + Directions::yOffset(clickedFace),
-        pos.z + Directions::zOffset(clickedFace));
-    const BlockState* neighborState = context.getWorld().getBlockState(neighborPos);
-
-    if (neighborState != nullptr && &neighborState->getBlock() == this) {
-        BlockStateProperties::SlabType neighborType = neighborState->get(BlockStateProperties::SLAB_TYPE());
-
-        // 如果相邻是单层台阶，且点击方向正确，变成双层
-        if (neighborType != BlockStateProperties::SlabType::Double) {
-            // 检查是否匹配
-            bool neighborIsTop = (neighborType == BlockStateProperties::SlabType::Top);
-            bool clickedTop = (clickedFace == Direction::Down);
-
-            if (neighborIsTop == clickedTop) {
-                // 变成双层
-                return defaultState()
-                    .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-                    .with(BlockStateProperties::WATERLOGGED(), waterlogged);
-            }
-        }
-    }
-
-    // 根据点击位置决定上半/下半
-    f32 hitY = context.getHitY();
-    bool isTop = (clickedFace == Direction::Down) || (clickedFace != Direction::Up && hitY > 0.5f);
+    bool isTop = clickedFace == Direction::Down || (clickedFace != Direction::Up && context.getHitY() > 0.5f);
 
     return defaultState()
         .with(BlockStateProperties::SLAB_TYPE(),

@@ -116,15 +116,21 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.placementPos();
 
     // 计算初始连接状态
-    const BlockState* northState = world.getBlockState(pos.north());
-    const BlockState* eastState = world.getBlockState(pos.east());
-    const BlockState* southState = world.getBlockState(pos.south());
-    const BlockState* westState = world.getBlockState(pos.west());
+    // 参考: MC 1.16.5 FenceBlock.getStateForPlacement()
+    BlockPos northPos = pos.north();
+    BlockPos eastPos = pos.east();
+    BlockPos southPos = pos.south();
+    BlockPos westPos = pos.west();
 
-    bool connectNorth = northState && canConnect(*northState, northState->isSolid());
-    bool connectEast = eastState && canConnect(*eastState, eastState->isSolid());
-    bool connectSouth = southState && canConnect(*southState, southState->isSolid());
-    bool connectWest = westState && canConnect(*westState, westState->isSolid());
+    const BlockState* northState = world.getBlockState(northPos);
+    const BlockState* eastState = world.getBlockState(eastPos);
+    const BlockState* southState = world.getBlockState(southPos);
+    const BlockState* westState = world.getBlockState(westPos);
+
+    bool connectNorth = northState && canConnect(*northState, northState->isSolid(), Direction::North);
+    bool connectEast = eastState && canConnect(*eastState, eastState->isSolid(), Direction::East);
+    bool connectSouth = southState && canConnect(*southState, southState->isSolid(), Direction::South);
+    bool connectWest = westState && canConnect(*westState, westState->isSolid(), Direction::West);
 
     // 检查是否含水
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
@@ -152,7 +158,10 @@ BlockState FenceBlock::updatePostPlacement(const BlockState& state,
 
     // 只处理水平方向的更新
     if (Directions::getAxis(facing) != Axis::Y) {
-        bool shouldConnect = canConnect(facingState, facingState.isSolid());
+        // 参考: MC 1.16.5 FenceBlock.updatePostPlacement()
+        // 检查对面方向是否为固体
+        bool isSideSolid = facingState.isSolid();
+        bool shouldConnect = canConnect(facingState, isSideSolid, facing);
 
         switch (facing) {
             case Direction::North:
@@ -249,29 +258,49 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
 
 // ========== 私有方法 ==========
 
-bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid) const
+bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const
 {
-    // 连接到固体方块
-    if (isNeighborSolid) {
-        return true;
+    // 参考: MC 1.16.5 FenceBlock.canConnect()
+    // boolean flag = this.func_235493_c_(block);
+    // boolean flag1 = block instanceof FenceGateBlock && FenceGateBlock.isParallel(state, direction);
+    // return !cannotAttach(block) && isSideSolid || flag || flag1;
+
+    const Block& block = state.getBlock();
+
+    // 检查是否为栅栏门且平行
+    // FenceGateBlock.isParallel: state.get(HORIZONTAL_FACING).getAxis() == direction.rotateY().getAxis()
+    // 即栅栏门的朝向轴与连接方向垂直（栅栏门在南北方向时，东西方向的栅栏可以连接）
+    bool isFenceGate =
+        state.hasProperty(BlockStateProperties::OPEN()) && state.hasProperty(BlockStateProperties::IN_WALL());
+    if (isFenceGate) {
+        // 检查栅栏门是否平行
+        Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+        Axis gateAxis = Directions::getAxis(gateFacing);
+        // 旋转Y轴90度得到垂直轴
+        Axis perpendicularAxis = (gateAxis == Axis::X) ? Axis::Z : Axis::X;
+        // 栅栏门平行：栅栏门朝向轴与连接方向轴垂直
+        if (Directions::getAxis(direction) == perpendicularAxis) {
+            return true;
+        }
     }
 
-    // 连接到其他栅栏
+    // 检查是否为同类栅栏
+    // MC 1.16.5: block.isIn(FENCES) && block.isIn(WOODEN_FENCES) == this.isIn(WOODEN_FENCES)
+    // 简化实现：检查是否有相同的NORTH属性（表示是栅栏类方块）
     if (state.hasProperty(BlockStateProperties::NORTH())) {
+        // 如果是栅栏或墙，可以连接
+        // 对于墙，需要额外检查
+        if (state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
+            // 墙总是连接
+            return true;
+        }
         return true;
     }
 
-    // 连接到栅栏门
-    if (state.hasProperty(BlockStateProperties::OPEN()) && state.hasProperty(BlockStateProperties::IN_WALL())) {
-        // 栅栏门：检查朝向
-        Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-        // 栅栏门在南北方向连接东西方向的栅栏，在东西方向连接南北方向的栅栏
-        // 简化处理：总是连接
-        return true;
-    }
-
-    // 连接到墙
-    if (state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
+    // 连接到固体方块（排除某些不可连接的方块）
+    // MC 1.16.5: !cannotAttach(block) && isSideSolid
+    // 简化实现：固体方块可以连接
+    if (isNeighborSolid) {
         return true;
     }
 

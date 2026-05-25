@@ -149,20 +149,32 @@ private:
         IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
-     * @brief 获取形状索引
-     * @param facing 朝向
-     * @param half 上下半
-     * @param shape 形状
-     * @return 形状索引 (0-39)
+     * @brief 检查指定方向是否有不同的楼梯
+     * @param state 当前方块状态
+     * @param world 世界
+     * @param pos 当前位置
+     * @param face 检查方向
+     * @return 如果该方向是不同的楼梯（或不是楼梯）返回true
      */
-    [[nodiscard]] static size_t getShapeIndex(
-        Direction facing, BlockStateProperties::DoubleBlockHalf half, BlockStateProperties::StairsShape shape);
+    [[nodiscard]] bool isDifferentStairs(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const;
+
+    /**
+     * @brief 获取状态索引
+     * @param state 方块状态
+     * @return 状态索引 (0-19)
+     */
+    [[nodiscard]] static size_t getStateIndex(const BlockState& state);
+
+    /**
+     * @brief 根据状态获取形状
+     * @param state 方块状态
+     * @return 形状的常量引用
+     */
+    [[nodiscard]] const CollisionShape& getShapeForState(const BlockState& state) const;
 
     /// 源方块状态（用于继承属性如硬度、抗性等）
     const BlockState* m_baseState;
-
-    /// 预计算的形状缓存 (4 facing * 2 half * 5 shape = 40种)
-    std::array<CollisionShape, 40> m_shapes;
 
     /// 完整方块形状（用于双层台阶）
     CollisionShape m_fullCubeShape;
