@@ -40,6 +40,7 @@
 #include "animal/HorseModel.hpp"
 #include "animal/LlamaModel.hpp"
 #include "animal/OcelotModel.hpp"
+#include "animal/PolarBearModel.hpp"
 #include "animal/RabbitModel.hpp"
 #include "animal/SquidModel.hpp"
 #include "animal/VillagerModel.hpp"
@@ -116,6 +117,7 @@ void initializeModelRegistration()
     // ==================== 特殊动物 (MoreMonsterModels) ====================
     factory.registerModel(ET::FOX, []() { return std::make_unique<monster::FoxModel>(); });
     factory.registerModel(ET::PANDA, []() { return std::make_unique<monster::PandaModel>(); });
+    factory.registerModel(ET::POLAR_BEAR, []() { return std::make_unique<animal::PolarBearModel>(); });
     factory.registerModel(ET::BEE, []() { return std::make_unique<monster::BeeModel>(); });
     factory.registerModel(ET::PARROT, []() { return std::make_unique<monster::ParrotModel>(); });
     factory.registerModel(ET::IRON_GOLEM, []() { return std::make_unique<monster::IronGolemModel>(); });
@@ -182,7 +184,6 @@ void initializeModelRegistration()
     factory.registerModel(ET::PLAYER, []() { return std::make_unique<player::PlayerModel>(0.0f, false); });
 
     // ==================== TODO: 以下模型需要后续实现 ====================
-    // ET::POLAR_BEAR - PolarBearModel
     // ET::PUFFERFISH - PufferfishModel (三种大小)
     // ET::WITCH - WitchModel
 

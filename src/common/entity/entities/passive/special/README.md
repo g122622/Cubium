@@ -347,12 +347,47 @@ void PandaEntity::registerGoals() {
 ### 特性
 - **IAngerable 接口**: 实现愤怒管理系统，被攻击后会记住攻击者
 - **站立警告**: 近距离威胁时会后腿站立并发出警告声
+- **站立动画同步**: 通过 DataParameter 网络同步站立状态，客户端平滑动画插值
 - **幼崽保护**: 成年熊会攻击靠近幼熊的玩家
 - **游泳行为**: 擅长游泳
 - **攻击反击**: 被攻击后会反击
 
 ### 接口
 - 实现 `IAngerable` 接口
+
+### 网络同步参数
+| 参数ID | 类型 | 说明 |
+|--------|------|------|
+| DATA_STANDING_PARAM | bool | 站立状态（服务端 -> 客户端） |
+
+### 站立动画系统 (MC 1.16.5)
+北极熊站立动画使用客户端插值实现平滑过渡：
+
+**服务端**:
+- `DATA_STANDING_PARAM`: 同步站立状态到客户端
+- `setStanding(bool)`: 设置站立状态并同步
+- 站立持续 100-400 ticks（随机）
+
+**客户端**:
+- `clientSideStandAnimation`: 当前动画值 [0, 6]
+- `clientSideStandAnimation0`: 上一帧动画值（用于插值）
+- `getStandingAnimationScale(partialTick)`: 返回插值后的动画进度 [0, 1]
+
+**动画更新** (每 tick):
+```cpp
+// 参考 MC 1.16.5 PolarBearEntity.tick()
+clientSideStandAnimation0 = clientSideStandAnimation;
+if (isStanding()) {
+    clientSideStandAnimation = clamp(clientSideStandAnimation + 1.0f, 0.0f, 6.0f);
+} else {
+    clientSideStandAnimation = clamp(clientSideStandAnimation - 1.0f, 0.0f, 6.0f);
+}
+```
+
+**模型渲染**:
+- `AnimationContext.standingProgress`: 传递给 PolarBearModel
+- `PolarBearModel::setStandingProgress()`: 设置站立进度
+- 动画影响身体旋转、前腿位置、头部位置
 
 ### 愤怒系统 (IAngerable)
 ```cpp

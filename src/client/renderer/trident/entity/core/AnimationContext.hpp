@@ -141,6 +141,16 @@ struct AnimationContext {
      */
     f32 swingProgress = 0.0f;
 
+    // ========== 实体特定动画参数 ==========
+
+    /**
+     * @brief 北极熊站立动画进度
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
+     * 范围 [0, 1]，0 表示四足站立，1 表示后腿站立
+     */
+    f32 standingProgress = 0.0f;
+
     // ========== 方法 ==========
 
     /**

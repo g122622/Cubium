@@ -7,7 +7,16 @@
 | 文件 | 描述 |
 |------|------|
 | `AnimalModels.hpp/cpp` | 猪、牛、羊、鸡模型 |
+| `BatModel.hpp/cpp` | 蝙蝠模型 |
+| `CatModel.hpp/cpp` | 猫模型 |
+| `HorseModel.hpp/cpp` | 马模型（含驴、骡、骷髅马、僵尸马） |
 | `LlamaModel.hpp/cpp` | 羊驼模型 |
+| `OcelotModel.hpp/cpp` | 豹猫模型 |
+| `PolarBearModel.hpp/cpp` | 北极熊模型 |
+| `RabbitModel.hpp/cpp` | 兔子模型 |
+| `SquidModel.hpp/cpp` | 鱿鱼模型 |
+| `VillagerModel.hpp/cpp` | 村民模型 |
+| `WolfModel.hpp/cpp` | 狼模型 |
 
 ## 模型类
 
@@ -143,6 +152,54 @@ private:
 - 继承 AgeableModel，支持成年体和幼体渲染
 - 支持箱子装饰显示（成年且有箱子时）
 - 箱子部件使用身体作为父部件
+
+### PolarBearModel（北极熊模型）
+
+```cpp
+class PolarBearModel : public QuadrupedModel {
+public:
+    PolarBearModel();
+    
+    void render(f64 scale = 1.0f / 16.0f) override;
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
+    
+    void setStandingProgress(f32 standingProgress);
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount,
+                             f64 partialTick) override;
+    
+protected:
+    void setupParts() override;
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
+    
+private:
+    f32 m_standingProgress = 0.0f;
+};
+```
+
+**纹理布局**（128x64）：
+- 头部主体：0,0（7x7x7）
+- 鼻子：0,44（5x3x3）
+- 耳朵：26,0（2x2x1）x2
+- 身体上部：0,19（14x14x11）
+- 身体下部：39,0（12x12x10）
+- 后腿：50,22（4x10x8）x2
+- 前腿：50,40（4x10x6）x2
+
+**站立动画**：
+- 参考 MC 1.16.5 PolarBearModel.setRotationAngles
+- 站立进度范围 [0, 1]，0 为四足站立，1 为后腿站立
+- 身体旋转：PI/2 - progress * PI * 0.35
+- 前腿移动：Y 和 Z 偏移，X 旋转增加
+- 头部移动：成年/幼体有不同的 Y 和 Z 偏移
+
+**特性**：
+- 继承 QuadrupedModel，支持四足动物基础动画
+- 支持成年体和幼体渲染（AgeableModel）
+- 支持后腿站立动画
+- 纹理与 MC 1.16.5 完全一致
 
 ## 动画特性
 

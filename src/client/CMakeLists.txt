@@ -148,6 +148,7 @@ add_executable(minecraft-client
     renderer/trident/entity/model/animal/RabbitModel.cpp
     renderer/trident/entity/model/animal/BatModel.cpp
     renderer/trident/entity/model/animal/SquidModel.cpp
+    renderer/trident/entity/model/animal/PolarBearModel.cpp
     renderer/trident/entity/model/monster/ZombieModel.cpp
     renderer/trident/entity/model/monster/SkeletonModel.cpp
     renderer/trident/entity/model/monster/CreeperModel.cpp

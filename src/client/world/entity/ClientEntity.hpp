@@ -481,6 +481,52 @@ public:
         return m_prevSwingProgress + (m_swingProgress - m_prevSwingProgress) * partialTick;
     }
 
+    // ========== 北极熊站立动画 ==========
+
+    /**
+     * @brief 是否正在站立（北极熊特有）
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.isStanding()
+     */
+    [[nodiscard]] bool isStanding() const { return m_isStanding; }
+    void setStanding(bool standing) { m_isStanding = standing; }
+
+    /**
+     * @brief 获取站立动画进度
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation
+     * 范围 [0, 6]，0 表示四足站立，6 表示完全站立
+     */
+    [[nodiscard]] f32 clientSideStandAnimation() const { return m_clientSideStandAnimation; }
+    void setClientSideStandAnimation(f32 value) { m_clientSideStandAnimation = value; }
+
+    /**
+     * @brief 获取上一帧站立动画进度
+     */
+    [[nodiscard]] f32 clientSideStandAnimation0() const { return m_clientSideStandAnimation0; }
+    void setClientSideStandAnimation0(f32 value) { m_clientSideStandAnimation0 = value; }
+
+    /**
+     * @brief 获取站立动画缩放值
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
+     * @param partialTick 部分 tick 值
+     * @return 动画缩放值 [0, 1]
+     */
+    [[nodiscard]] f32 getStandingAnimationScale(f32 partialTick) const
+    {
+        return (m_clientSideStandAnimation0 +
+                   (m_clientSideStandAnimation - m_clientSideStandAnimation0) * partialTick) /
+            6.0f;
+    }
+
+    /**
+     * @brief 更新站立动画状态（每 tick 调用）
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.tick() 客户端逻辑
+     */
+    void updateStandingAnimation();
+
     // ========== 装备（用于层渲染） ==========
 
     /**
@@ -688,6 +734,12 @@ private:
     // 攻击动画
     f32 m_swingProgress = 0.0f;
     f32 m_prevSwingProgress = 0.0f;
+
+    // 北极熊站立动画
+    // 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation0/clientSideStandAnimation
+    f32 m_clientSideStandAnimation0 = 0.0f;
+    f32 m_clientSideStandAnimation = 0.0f;
+    bool m_isStanding = false;
 
     // 装备（用于层渲染）
     std::unique_ptr<ItemStack> m_mainHandItem;

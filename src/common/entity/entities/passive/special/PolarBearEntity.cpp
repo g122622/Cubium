@@ -25,6 +25,7 @@
 
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
@@ -36,6 +37,7 @@
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityDataManager.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../core/LivingEntity.hpp"
@@ -46,6 +48,9 @@
 #include "../../../entities/player/Player.hpp"
 
 namespace mc {
+
+// ==================== 静态成员初始化 ====================
+entity::DataParameter<bool> PolarBearEntity::DATA_STANDING_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ==================== Forward declarations for standalone AI goal classes ====================
 
@@ -124,6 +129,7 @@ std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/)
 void PolarBearEntity::setStanding(bool standing)
 {
     m_standing = standing;
+    m_dataManager.set(DATA_STANDING_PARAM, standing);
     if (standing) {
         math::Random rng = getRandom();
         m_standTimer = rng.nextInt(STAND_DURATION_MIN, STAND_DURATION_MAX);
@@ -240,10 +246,35 @@ void PolarBearEntity::tick()
 {
     AnimalEntity::tick();
 
-    if (m_standing && m_standTimer > 0) {
-        m_standTimer--;
-        if (m_standTimer <= 0) {
-            m_standing = false;
+    // 参考 MC 1.16.5 PolarBearEntity.tick() 第174-196行
+    // 客户端动画更新
+    if (world() != nullptr && world()->isClientSide()) {
+        // 检查动画值是否变化（需要重新计算碰撞箱）
+        if (m_clientSideStandAnimation != m_clientSideStandAnimation0) {
+            // MC 1.16.5: this.recalculateSize();
+            // TODO: 当实现 EntitySize 动态计算时添加
+        }
+
+        // 保存上一帧动画值
+        m_clientSideStandAnimation0 = m_clientSideStandAnimation;
+
+        // 根据站立状态更新动画
+        if (isStanding()) {
+            // 站立时动画增加（最大 6.0）
+            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation + 1.0f, 0.0f, 6.0f);
+        } else {
+            // 非站立时动画减少（最小 0.0）
+            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation - 1.0f, 0.0f, 6.0f);
+        }
+    }
+
+    // 服务端逻辑
+    if (world() != nullptr && !world()->isClientSide()) {
+        if (m_standing && m_standTimer > 0) {
+            m_standTimer--;
+            if (m_standTimer <= 0) {
+                setStanding(false);
+            }
         }
     }
 
@@ -252,6 +283,20 @@ void PolarBearEntity::tick()
     }
 
     updateAnger();
+}
+
+f32 PolarBearEntity::getStandingAnimationScale(f32 partialTick) const
+{
+    // 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
+    // return MathHelper.lerp(partialTick, clientSideStandAnimation0, clientSideStandAnimation) / 6.0F;
+    // 注意：MC 的 lerp 签名是 lerp(t, a, b)，我们的签名是 lerp(a, b, t)
+    return math::lerp(m_clientSideStandAnimation0, m_clientSideStandAnimation, partialTick) / 6.0f;
+}
+
+void PolarBearEntity::registerData()
+{
+    AnimalEntity::registerData();
+    m_dataManager.registerParam(DATA_STANDING_PARAM, false);
 }
 
 void PolarBearEntity::registerGoals()

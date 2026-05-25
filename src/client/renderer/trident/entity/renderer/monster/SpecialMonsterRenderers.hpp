@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/LivingRenderer.hpp"
+#include "../../model/animal/PolarBearModel.hpp"
 #include "../../model/monster/MoreMonsterModels.hpp"
 #include "../../model/monster/SpecialMonsterModels.hpp"
 #include <memory>
@@ -517,10 +518,13 @@ public:
 /**
  * @brief 北极熊渲染器
  *
- * TODO: 创建 PolarBearModel 专用模型
- * 临时使用 PandaModel 作为占位符
+ * 使用 PolarBearModel 渲染北极熊实体。
+ * 支持:
+ * - 成年/幼体渲染
+ * - 站立动画（后腿站立）
+ * - 四足行走动画
  */
-class PolarBearRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::PandaModel> {
+class PolarBearRenderer : public core::LivingRenderer<::mc::LivingEntity, model::animal::PolarBearModel> {
 public:
     PolarBearRenderer() { m_shadowSize = 0.7f; }
     ~PolarBearRenderer() override = default;

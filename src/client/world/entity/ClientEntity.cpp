@@ -25,6 +25,7 @@
 #include "common/entity/core/Entity.hpp" // for EntityFlags
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -222,22 +223,36 @@ void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 
 void ClientEntity::syncMetadataFromDataManager()
 {
-    if (m_typeId != entity::EntityTypes::ITEM && m_typeId != "minecraft:item") {
+    // 物品实体特殊处理
+    if (m_typeId == entity::EntityTypes::ITEM || m_typeId == "minecraft:item") {
+        if (m_dataManager.hasParam(ItemEntity::ITEM_COUNT_PARAM_ID)) {
+            if (const auto* value = m_dataManager.getRaw(ItemEntity::ITEM_COUNT_PARAM_ID); value != nullptr) {
+                const i32 count = value->get<i32>();
+                if (m_itemStack != nullptr && m_itemStack->getCount() != count) {
+                    ItemStack updated = *m_itemStack;
+                    updated.setCount(count);
+                    setItemStack(updated);
+                }
+            }
+        }
+
+        syncItemEntityMetadataFromRawBytes();
         return;
     }
 
-    if (m_dataManager.hasParam(ItemEntity::ITEM_COUNT_PARAM_ID)) {
-        if (const auto* value = m_dataManager.getRaw(ItemEntity::ITEM_COUNT_PARAM_ID); value != nullptr) {
-            const i32 count = value->get<i32>();
-            if (m_itemStack != nullptr && m_itemStack->getCount() != count) {
-                ItemStack updated = *m_itemStack;
-                updated.setCount(count);
-                setItemStack(updated);
+    // 北极熊站立状态同步
+    // 参考 MC 1.16.5 PolarBearEntity.IS_STANDING DataParameter
+    if (m_typeId == "minecraft:polar_bear" || m_typeId == "polar_bear") {
+        // 尝试读取站立状态 (参数ID 通常是动态分配的，这里假设使用 EntityFlags 的 bit)
+        // 在实际实现中，DATA_STANDING_PARAM 的 ID 由 EntityDataManager::createKey 分配
+        // 我们需要通过 PolarBearEntity::getStandingParamId() 获取
+        if (m_dataManager.hasParam(PolarBearEntity::getStandingParamId())) {
+            if (const auto* value = m_dataManager.getRaw(PolarBearEntity::getStandingParamId()); value != nullptr) {
+                const bool standing = value->get<bool>();
+                setStanding(standing);
             }
         }
     }
-
-    syncItemEntityMetadataFromRawBytes();
 }
 
 void ClientEntity::setItemStack(const ItemStack& stack)
@@ -328,6 +343,27 @@ void ClientEntity::tick()
     // 用于披风摆动强度计算
     m_prevCameraYaw = m_cameraYaw;
     // cameraYaw 基于移动距离，在 updateAnimation 中更新
+
+    // 更新北极熊站立动画（参考 MC 1.16.5 PolarBearEntity.tick()）
+    // 仅对北极熊实体有效
+    updateStandingAnimation();
+}
+
+void ClientEntity::updateStandingAnimation()
+{
+    // 参考 MC 1.16.5 PolarBearEntity.tick() 第176-186行
+    // 客户端动画更新逻辑
+    // 保存上一帧动画值
+    m_clientSideStandAnimation0 = m_clientSideStandAnimation;
+
+    // 根据站立状态更新动画
+    if (m_isStanding) {
+        // 站立时动画增加（最大 6.0）
+        m_clientSideStandAnimation = std::clamp(m_clientSideStandAnimation + 1.0f, 0.0f, 6.0f);
+    } else {
+        // 非站立时动画减少（最小 0.0）
+        m_clientSideStandAnimation = std::clamp(m_clientSideStandAnimation - 1.0f, 0.0f, 6.0f);
+    }
 }
 
 bool ClientEntity::isFallFlying() const

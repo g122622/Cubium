@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../core/DataParameter.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "../basic/AnimalEntity.hpp"
 #include <memory>
@@ -90,7 +91,7 @@ public:
     /**
      * @brief 是否正在站立
      */
-    [[nodiscard]] bool isStanding() const { return m_standing; }
+    [[nodiscard]] bool isStanding() const { return m_dataManager.get<bool>(DATA_STANDING_PARAM); }
 
     /**
      * @brief 设置站立状态
@@ -127,6 +128,24 @@ public:
         (void)partner;
         return nullptr;
     }
+
+    /**
+     * @brief 获取站立动画缩放值
+     *
+     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
+     * 用于模型渲染时计算站立姿态的插值。
+     *
+     * @param partialTick 部分 Tick 值
+     * @return 动画进度 [0.0, 1.0]，0 表示四足站立，1 表示后腿站立
+     */
+    [[nodiscard]] f32 getStandingAnimationScale(f32 partialTick) const;
+
+    /**
+     * @brief 获取站立状态数据参数ID
+     *
+     * 用于客户端从元数据中读取站立状态。
+     */
+    [[nodiscard]] static u16 getStandingParamId() { return DATA_STANDING_PARAM.id(); }
 
     // ========== 属性 ==========
 
@@ -231,15 +250,27 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 数据同步 ==========
+    void registerData() override;
+
     // ========== 刻更新 ==========
     void tick() override;
 
 private:
+    // ========== 数据同步 ==========
+    static entity::DataParameter<bool> DATA_STANDING_PARAM;
+
     // ========== 站立状态 ==========
     bool m_standing = false;
     bool m_warning = false;
     i32 m_standTimer = 0;
     i32 m_warningSoundTicks = 0;
+
+    // ========== 客户端站立动画 ==========
+    // 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation0/clientSideStandAnimation
+    // 这些字段仅在客户端使用，用于平滑站立动画
+    mutable f32 m_clientSideStandAnimation0 = 0.0f;
+    mutable f32 m_clientSideStandAnimation = 0.0f;
 
     // ========== 愤怒系统 ==========
     LivingEntity* m_attackTarget = nullptr;

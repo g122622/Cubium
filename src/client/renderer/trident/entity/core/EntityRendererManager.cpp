@@ -23,11 +23,12 @@
 
 #include "EntityRendererManager.hpp"
 #include "../effect/fire/FireEffect.hpp"
-#include "../model/core/ModelFactory.hpp"
 #include "../model/ModelRegistration.hpp"
+#include "../model/animal/PolarBearModel.hpp"
+#include "../model/core/ModelFactory.hpp"
+#include "../pipeline/EntityTextureAtlas.hpp"
 #include "../renderer/RendererRegistration.hpp"
 #include "../renderer/projectile/ItemEntityRenderer.hpp"
-#include "../pipeline/EntityTextureAtlas.hpp"
 #include "../util/NameTagRenderer.hpp"
 #include "../util/ShadowRenderer.hpp"
 #include "AnimatedMeshCache.hpp"
@@ -536,7 +537,6 @@ void EntityRendererManager::initializeDefaults()
             itemEntityRenderer->setItemTextureAtlas(m_itemTextureAtlas);
         }
     }
-
 }
 
 EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& typeId)
@@ -783,6 +783,15 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     context.isRiding = entity.isRiding();
     context.swingProgress = entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks));
 
+    // 北极熊站立动画
+    // 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
+    const std::string& typeId = entity.typeId();
+    if (typeId == "minecraft:polar_bear" || typeId == "polar_bear") {
+        context.standingProgress = entity.getStandingAnimationScale(static_cast<f32>(context.partialTicks));
+    } else {
+        context.standingProgress = 0.0f;
+    }
+
     // 计算哈希
     context.computeHash();
 
@@ -795,6 +804,15 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
             context.netHeadYaw,
             context.headPitch,
             context.scale * 16.0);
+
+        // 北极熊站立动画
+        if (normalizedId == "polar_bear" || normalizedId == "minecraft:polar_bear") {
+            auto* polarBearModel = dynamic_cast<model::animal::PolarBearModel*>(model.get());
+            if (polarBearModel != nullptr) {
+                polarBearModel->setStandingProgress(context.standingProgress);
+            }
+        }
+
         return model;
     }
 
