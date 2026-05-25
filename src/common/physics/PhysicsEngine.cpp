@@ -292,7 +292,7 @@ Vector3 PhysicsEngine::applyHorizontalCollision(
  * MC使用三种策略竞争最优结果：
  * 1. 策略A：整体抬起stepHeight后水平移动
  * 2. 策略B：先抬起，然后水平移动
- * 3. 策略C：在抬起高度水平移动（当抬起不足时）
+ * 3. 策略C：在抬起高度不足时，在部分抬起高度水平移动
  *
  * 最后选择水平移动距离最远的策略。
  *
@@ -308,9 +308,6 @@ Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
     f32 stepHeight,
     const Vector3& fallbackResult)
 {
-    f32 dx = movement.x;
-    f32 dz = movement.z;
-
     // =====================================================
     // 策略A：整体抬起 + 水平移动（MC: collideBoundingBoxHeuristically 整体）
     // =====================================================
@@ -321,25 +318,47 @@ Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
     // 策略B：先抬起后水平移动
     // =====================================================
     AxisAlignedBB strategyBBox = originalBox;
-    Vector3 strategyB = tryStepStrategyB(strategyBBox, movement, stepHeight);
+    f32 actualStepUp = 0.0f; // 记录实际抬起高度
+    Vector3 strategyB = tryStepStrategyBWithHeight(strategyBBox, movement, stepHeight, actualStepUp);
 
     // 选择水平移动距离最远的策略
     Vector3 bestResult = strategyA;
     AxisAlignedBB bestBox = strategyABox;
     f32 bestDistSq = horizontalMagSq(strategyA);
+    f32 bestStepY = strategyA.y; // 策略A的Y位移
 
     f32 bDistSq = horizontalMagSq(strategyB);
     if (bDistSq > bestDistSq) {
         bestResult = strategyB;
         bestBox = strategyBBox;
         bestDistSq = bDistSq;
+        bestStepY = actualStepUp;
+    }
+
+    // =====================================================
+    // 策略C：当策略B抬起高度不足stepHeight时，在部分抬起高度水平移动
+    // 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779
+    // =====================================================
+    if (actualStepUp < stepHeight && actualStepUp > 0.0f) {
+        AxisAlignedBB strategyCBox = originalBox;
+        Vector3 strategyC = tryStepStrategyC(strategyCBox, movement, actualStepUp);
+
+        f32 cDistSq = horizontalMagSq(strategyC);
+        if (cDistSq > bestDistSq) {
+            bestResult = strategyC;
+            bestBox = strategyCBox;
+            bestDistSq = cDistSq;
+            bestStepY = strategyC.y;
+        }
     }
 
     // 与直接碰撞结果比较
     f32 fallbackDistSq = horizontalMagSq(fallbackResult);
     if (bestDistSq > fallbackDistSq) {
         // 最后下落回地面
-        Vector3 fallDown = applyFallDown(bestBox, movement.y);
+        // MC使用 -stepY + movementY，即从步进后位置下落到目标Y位置
+        f32 fallDistance = -bestStepY + movement.y;
+        Vector3 fallDown = applyFallDown(bestBox, fallDistance);
         entityBox = bestBox;
         // 计算最终移动向量（X和Z已经移动过了，Y是下落距离）
         return Vector3(bestBox.minX - originalBox.minX, fallDown.y, bestBox.minZ - originalBox.minZ);
@@ -386,6 +405,20 @@ Vector3 PhysicsEngine::tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3&
  */
 Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight)
 {
+    f32 unused = 0.0f;
+    return tryStepStrategyBWithHeight(entityBox, movement, stepHeight, unused);
+}
+
+/**
+ * @brief 策略B：先抬起 -> 水平移动（带高度输出）
+ *
+ * MC 的标准步进逻辑。
+ * 返回从原始位置到最终位置的完整移动向量。
+ * @param actualStepUp 输出实际抬起高度
+ */
+Vector3 PhysicsEngine::tryStepStrategyBWithHeight(
+    AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, f32& actualStepUp)
+{
     // 保存原始位置
     f32 origMinX = entityBox.minX;
     f32 origMinY = entityBox.minY;
@@ -406,8 +439,53 @@ Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3&
 
     // 向上移动
     raisedBox.offset(0.0f, upDist, 0.0f);
+    actualStepUp = upDist; // 记录实际抬起高度
 
     // Step 2: 在抬起状态下水平移动
+    AxisAlignedBB horizontalSearchBox = raisedBox.expand(
+        std::abs(movement.x) + EPSILON_COLLISION, EPSILON_COLLISION, std::abs(movement.z) + EPSILON_COLLISION);
+    std::vector<AxisAlignedBB> horizontalBoxes;
+    collectCollisionBoxes(horizontalSearchBox, horizontalBoxes);
+
+    applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
+
+    entityBox = raisedBox;
+    // 返回从原始位置的移动距离
+    return Vector3(raisedBox.minX - origMinX, raisedBox.minY - origMinY, raisedBox.minZ - origMinZ);
+}
+
+/**
+ * @brief 策略C：在部分抬起高度水平移动
+ *
+ * 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779：
+ * 当策略B抬起高度不足stepHeight时，在部分抬起高度尝试水平移动。
+ * 这是MC的第三种步进策略，用于处理台阶等特殊情况。
+ */
+Vector3 PhysicsEngine::tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight)
+{
+    // 保存原始位置
+    f32 origMinX = entityBox.minX;
+    f32 origMinY = entityBox.minY;
+    f32 origMinZ = entityBox.minZ;
+
+    // Step 1: 先抬起到partialStepHeight高度
+    AxisAlignedBB raisedBox = entityBox;
+    f32 upDist = partialStepHeight;
+
+    // 收集碰撞箱用于向上抬起检测
+    AxisAlignedBB upSearchBox =
+        entityBox.expand(EPSILON_COLLISION, partialStepHeight + EPSILON_COLLISION, EPSILON_COLLISION);
+    std::vector<AxisAlignedBB> upBoxes;
+    collectCollisionBoxes(upSearchBox, upBoxes);
+
+    for (const auto& box : upBoxes) {
+        upDist = raisedBox.calculateYOffset(box, upDist);
+    }
+
+    // 向上移动
+    raisedBox.offset(0.0f, upDist, 0.0f);
+
+    // Step 2: 在部分抬起高度水平移动（不使用完整stepHeight）
     AxisAlignedBB horizontalSearchBox = raisedBox.expand(
         std::abs(movement.x) + EPSILON_COLLISION, EPSILON_COLLISION, std::abs(movement.z) + EPSILON_COLLISION);
     std::vector<AxisAlignedBB> horizontalBoxes;

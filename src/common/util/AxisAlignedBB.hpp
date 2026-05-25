@@ -117,10 +117,16 @@ public:
             maxZ > other.minZ;
     }
 
+    /**
+     * @brief 检查点是否在AABB内部
+     * @param point 要检查的点
+     * @return 点是否在AABB内部
+     * @note 使用半开区间 [min, max)，与MC 1.16.5对齐
+     */
     [[nodiscard]] bool contains(const Vector3& point) const noexcept
     {
-        return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY && point.z >= minZ &&
-            point.z <= maxZ;
+        return point.x >= minX && point.x < maxX && point.y >= minY && point.y < maxY && point.z >= minZ &&
+            point.z < maxZ;
     }
 
     [[nodiscard]] bool contains(const AxisAlignedBB& other) const noexcept

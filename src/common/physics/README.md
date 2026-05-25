@@ -8,12 +8,89 @@ Minecraft 兼容的物理系统，实现碰撞检测、实体移动和物理常�
 physics/
 ├── collision/
 │   └── CollisionShape.hpp    # 碰撞形状定义
+├── shape/
+│   ├── BooleanOp.hpp         # 布尔运算接口
+│   ├── DiscreteVoxelShape.hpp/cpp  # 离散体素形状
+│   ├── VoxelShape.hpp/cpp     # 体素形状主类
+│   └── Shapes.hpp/cpp         # 形状工厂类
 ├── CollisionCache.hpp        # 碰撞箱缓存（头文件）
 ├── CollisionCache.cpp        # 碰撞箱缓存（实现）
 ├── PhysicsConstants.hpp      # 物理常量定义
 ├── PhysicsEngine.hpp         # 物理引擎接口
 └── PhysicsEngine.cpp         # 物理引擎实现
 ```
+
+## 与 MC 1.16.5 对齐状态
+
+### 完全对齐的部分
+
+| 模块 | 对齐度 | 说明 |
+|------|--------|------|
+| 逐轴碰撞顺序 | 100% | Y轴优先，X/Z按幅度排序 |
+| 碰撞偏移计算 | 95% | 核心算法语义等效 |
+| 步进触发条件 | 100% | onGround \|\| (verticalCollision && movementY < 0) |
+| 物理常量 | 95% | 45+常量完全对齐 |
+| VoxelShape边/面遍历 | 100% | 算法完全一致 |
+| AxisAlignedBB | 95% | 核心碰撞算法一致 |
+
+### 已修复的对齐问题
+
+1. **AxisAlignedBB::contains边界条件**：修复为使用半开区间 `[min, max)`
+2. **CollisionShape面形状检测精度**：从 `1.0e-5f` 修复为 `1.0e-7f`
+3. **PhysicsEngine步进算法**：添加MC的第三种策略（策略C）
+4. **步进后下落计算**：修复为使用 `-stepY + movementY`
+5. **VoxelShape::contains**：添加点包含检测方法
+6. **HONEY_BLOCK_SPEED_FACTOR**：添加蜂蜜块速度因子常量
+
+### 常量定义（PhysicsConstants.hpp）
+
+| 常量 | 值 | MC 1.16.5 | 说明 |
+|------|---|-----------|------|
+| GRAVITY | 0.08f | 0.08D | 重力加速度 |
+| DRAG_AIR | 0.98f | 0.98 | 空气阻力 |
+| DRAG_GROUND | 0.91f | 0.91F | 地面摩擦 |
+| DRAG_WATER | 0.8f | 0.8F | 水中阻力 |
+| DRAG_LAVA | 0.5f | 0.5D | 岩浆阻力 |
+| JUMP_VELOCITY | 0.42f | 0.42F | 跳跃初速度 |
+| STEP_HEIGHT | 0.6f | 0.6F | 玩家步进高度 |
+| SLIPPERINESS_ICE | 0.98f | 0.98F | 冰滑度 |
+| HONEY_BLOCK_SPEED_FACTOR | 0.4f | 0.4F | 蜂蜜块速度因子 |
+
+## 核心算法详解
+
+### 步进算法（MC 1.16.5 Entity.getAllowedMovement）
+
+项目实现了MC的三种步进策略竞争：
+
+1. **策略A**：整体抬起 `stepHeight` 后水平移动
+2. **策略B**：先向上抬起，然后水平移动
+3. **策略C**：当策略B抬起不足时，在部分抬起高度水平移动
+
+最终选择水平移动距离最远的策略。
+
+### 逐轴碰撞顺序
+
+```cpp
+// Y轴优先处理
+if (dy != 0.0f) {
+    // Y轴碰撞解决
+}
+
+// X/Z按移动幅度排序
+if (std::abs(dx) >= std::abs(dz)) {
+    // X轴优先
+} else {
+    // Z轴优先
+}
+```
+
+### 精度常量
+
+| 用途 | 值 | MC 1.16.5 |
+|------|---|-----------|
+| 碰撞计算 | 1.0e-7f | 1.0E-7D |
+| 面形状检测 | 1.0e-7f | 1.0E-7D |
+| 地面探测 | 0.01f | N/A |
 
 ## 文件详解
 

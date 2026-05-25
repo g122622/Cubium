@@ -252,9 +252,9 @@ public:
         result.m_type = Type::Empty;
         result.m_boxes.reserve(m_boxes.size());
 
-        // 精度常量，适应 f32 精度（MC 1.16.5 使用 1.0E-7D 双精度）
-        // f32 有约 7 位有效数字，所以使用稍大的容差
-        constexpr f32 EPSILON = 1.0e-5f;
+        // 精度常量，与MC 1.16.5对齐（MC使用1.0E-7D双精度）
+        // f32有约7位有效数字，使用1.0e-7f可以匹配MC的精度要求
+        constexpr f32 EPSILON = 1.0e-7f;
 
         for (const auto& box : m_boxes) {
             // 检查碰撞箱是否延伸到指定面

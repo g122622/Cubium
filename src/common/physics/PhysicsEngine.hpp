@@ -210,11 +210,33 @@ private:
     Vector3 tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
 
     /**
+     * @brief 策略B：先抬起后水平移动（带高度输出）
+     *
+     * MC的标准步进逻辑。
+     * @param actualStepUp 输出参数，实际抬起的高度
+     */
+    Vector3 tryStepStrategyBWithHeight(
+        AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, f32& actualStepUp);
+
+    /**
      * @brief 策略B：先抬起后水平移动
      *
      * MC的标准步进逻辑。
      */
     Vector3 tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
+
+    /**
+     * @brief 策略C：在部分抬起高度水平移动
+     *
+     * 当策略B抬起不足stepHeight时，在部分抬起高度尝试水平移动。
+     * 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779
+     *
+     * @param entityBox 实体碰撞箱（会被修改）
+     * @param movement 期望移动向量
+     * @param partialStepHeight 实际抬起高度（小于stepHeight）
+     * @return 从原始位置的移动距离
+     */
+    Vector3 tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight);
 
     /**
      * @brief 应用下落直到碰到地面

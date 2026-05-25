@@ -317,6 +317,9 @@ constexpr f32 HONEY_BLOCK_SLIDE_THRESHOLD = 0.08f;
 /// 蜂蜜块跳跃因子 (MC: jumpFactor = 0.5F)
 constexpr f32 HONEY_BLOCK_JUMP_FACTOR = 0.5f;
 
+/// 蜂蜜块速度因子 (MC 1.16.5 Blocks.java:826: speedFactor = 0.4F)
+constexpr f32 HONEY_BLOCK_SPEED_FACTOR = 0.4f;
+
 /// 灵魂沙/灵魂土速度因子 (MC: speedFactor = 0.4F)
 constexpr f32 SOUL_BLOCK_SPEED_FACTOR = 0.4f;
 

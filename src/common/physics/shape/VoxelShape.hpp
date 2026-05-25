@@ -247,6 +247,16 @@ public:
      */
     [[nodiscard]] std::optional<Vector3> closestPointTo(const Vector3& point) const;
 
+    // === 点包含检测 ===
+
+    /**
+     * @brief 检查点是否在形状内部
+     * @param x, y, z 点坐标（方块本地坐标，0-1范围）
+     * @return 点是否在形状内部
+     * @note 使用半开区间 [min, max)，与MC 1.16.5对齐
+     */
+    [[nodiscard]] bool contains(f64 x, f64 y, f64 z) const;
+
     // === 形状运算（通过Shapes类） ===
 
     friend class Shapes;

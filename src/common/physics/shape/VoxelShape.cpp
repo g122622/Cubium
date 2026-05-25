@@ -658,6 +658,28 @@ std::optional<Vector3> VoxelShape::closestPointTo(const Vector3& point) const
 }
 
 // ============================================================================
+// 点包含检测
+// ============================================================================
+
+bool VoxelShape::contains(f64 x, f64 y, f64 z) const
+{
+    if (isEmpty()) {
+        return false;
+    }
+
+    // 参考MC 1.16.5 VoxelShape.contains():
+    // return this.part.contains(this.getClosestIndex(Direction.Axis.X, x),
+    //                             this.getClosestIndex(Direction.Axis.Y, y),
+    //                             this.getClosestIndex(Direction.Axis.Z, z));
+
+    const i32 xi = findIndex(Axis::X, x);
+    const i32 yi = findIndex(Axis::Y, y);
+    const i32 zi = findIndex(Axis::Z, z);
+
+    return m_shape->isFullWide(xi, yi, zi);
+}
+
+// ============================================================================
 // 内部方法
 // ============================================================================
 
