@@ -880,6 +880,13 @@ add_library(mc_common STATIC
     world/gen/jigsaw/JigsawManager.cpp
     world/gen/jigsaw/TemplatePoolLoader.cpp
 
+    # World - Generation - Structure - Pools
+    world/gen/structure/pools/Pools.cpp
+    world/gen/structure/pools/ProcessorLists.cpp
+    world/gen/structure/pools/village/VillagePools.cpp
+    world/gen/structure/pools/bastion/BastionPools.cpp
+    world/gen/structure/pools/pillager_outpost/PillagerOutpostPools.cpp
+
     # World - Generation - Template
     world/gen/feature/template/Template.cpp
     world/gen/feature/template/TemplateManager.cpp

@@ -1,0 +1,309 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "ProcessorLists.hpp"
+#include "../../../block/BlockRegistry.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../feature/template/Template.hpp"
+#include "resource/ResourceLocation.hpp"
+#include <unordered_map>
+
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
+namespace pools {
+
+using feature::template_::BlockAgeProcessor;
+using feature::template_::BlockIgnoreStructureProcessor;
+using feature::template_::BlackstoneReplacementProcessor;
+using feature::template_::GravityStructureProcessor;
+using feature::template_::IntegrityProcessor;
+using feature::template_::LavaSubmergingProcessor;
+using feature::template_::RuleEntry;
+using feature::template_::RuleStructureProcessor;
+using feature::template_::StructureProcessorList;
+
+// ============================================================================
+// 静态存储
+// ============================================================================
+
+// 空处理器
+StructureProcessorList ProcessorLists::EMPTY;
+
+// 僵尸村庄处理器
+StructureProcessorList ProcessorLists::ZOMBIE_PLAINS;
+StructureProcessorList ProcessorLists::ZOMBIE_DESERT;
+StructureProcessorList ProcessorLists::ZOMBIE_SAVANNA;
+StructureProcessorList ProcessorLists::ZOMBIE_SNOWY;
+StructureProcessorList ProcessorLists::ZOMBIE_TAIGA;
+
+// 苔藓化处理器
+StructureProcessorList ProcessorLists::MOSSIFY_10_PERCENT;
+StructureProcessorList ProcessorLists::MOSSIFY_20_PERCENT;
+StructureProcessorList ProcessorLists::MOSSIFY_70_PERCENT;
+
+// 道路处理器
+StructureProcessorList ProcessorLists::STREET_PLAINS;
+StructureProcessorList ProcessorLists::STREET_SAVANNA;
+StructureProcessorList ProcessorLists::STREET_SNOWY_TAIGA;
+
+// 农场处理器
+StructureProcessorList ProcessorLists::FARM_PLAINS;
+StructureProcessorList ProcessorLists::FARM_SAVANNA;
+StructureProcessorList ProcessorLists::FARM_SNOWY;
+StructureProcessorList ProcessorLists::FARM_TAIGA;
+StructureProcessorList ProcessorLists::FARM_DESERT;
+
+// 掠夺者前哨站处理器
+StructureProcessorList ProcessorLists::OUTPOST_ROT;
+
+// 堡垒遗迹处理器
+StructureProcessorList ProcessorLists::BASTION_BOTTOM_RAMPART;
+StructureProcessorList ProcessorLists::BASTION_TREASURE_ROOMS;
+StructureProcessorList ProcessorLists::BASTION_HOUSING;
+StructureProcessorList ProcessorLists::BASTION_SIDE_WALL_DEGRADATION;
+StructureProcessorList ProcessorLists::BASTION_STABLE_DEGRADATION;
+StructureProcessorList ProcessorLists::BASTION_GENERIC_DEGRADATION;
+StructureProcessorList ProcessorLists::BASTION_RAMPART_DEGRADATION;
+StructureProcessorList ProcessorLists::BASTION_ENTRANCE_REPLACEMENT;
+StructureProcessorList ProcessorLists::BASTION_BRIDGE;
+StructureProcessorList ProcessorLists::BASTION_ROOF;
+StructureProcessorList ProcessorLists::BASTION_HIGH_WALL;
+StructureProcessorList ProcessorLists::BASTION_HIGH_RAMPART;
+
+// 初始化标志
+static bool s_initialized = false;
+
+// ============================================================================
+// 辅助函数：创建僵尸村庄规则
+// ============================================================================
+
+/**
+ * @brief 创建僵尸村庄的方块替换规则
+ *
+ * MC 1.16.5 参考:
+ * - ProcessorLists.field_244102_b (zombie_plains)
+ * - ProcessorLists.field_244103_c (zombie_savanna)
+ * - ProcessorLists.field_244104_d (zombie_snowy)
+ * - ProcessorLists.field_244105_e (zombie_taiga)
+ * - ProcessorLists.field_244106_f (zombie_desert)
+ *
+ * 僵尸村庄的方块替换规则包括：
+ * 1. 苔藓化效果
+ * 2. 特定方块替换（如玻璃 -> 空气，门 -> 空气等）
+ */
+static StructureProcessorList createZombieVillageProcessor(f32 mossiness)
+{
+    StructureProcessorList list;
+
+    // 1. 添加苔藓化处理器
+    list.addProcessor(std::make_unique<BlockAgeProcessor>(mossiness));
+
+    // 2. 添加方块替换规则
+    // MC 1.16.5: 僵尸村庄会将部分方块替换为其他方块
+    // 例如：玻璃 -> 空气，门 -> 空气等
+    // 这里使用 BlockIgnoreStructureProcessor 来移除某些方块
+    std::vector<u32> blocksToIgnore;
+
+    // 获取方块注册表
+    auto& blockRegistry = BlockRegistry::instance();
+
+    // 添加要忽略的方块（如果已注册）
+    // 玻璃类方块
+    if (auto* glass = blockRegistry.getBlock(ResourceLocation("minecraft", "glass"))) {
+        blocksToIgnore.push_back(glass->defaultState().blockId());
+    }
+    if (auto* glassPane = blockRegistry.getBlock(ResourceLocation("minecraft", "glass_pane"))) {
+        blocksToIgnore.push_back(glassPane->defaultState().blockId());
+    }
+    if (auto* whiteGlass = blockRegistry.getBlock(ResourceLocation("minecraft", "white_stained_glass"))) {
+        blocksToIgnore.push_back(whiteGlass->defaultState().blockId());
+    }
+
+    // 门类方块（僵尸村庄中门被破坏）
+    if (auto* oakDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "oak_door"))) {
+        blocksToIgnore.push_back(oakDoor->defaultState().blockId());
+    }
+    if (auto* spruceDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "spruce_door"))) {
+        blocksToIgnore.push_back(spruceDoor->defaultState().blockId());
+    }
+    if (auto* birchDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "birch_door"))) {
+        blocksToIgnore.push_back(birchDoor->defaultState().blockId());
+    }
+    if (auto* jungleDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "jungle_door"))) {
+        blocksToIgnore.push_back(jungleDoor->defaultState().blockId());
+    }
+    if (auto* acaciaDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "acacia_door"))) {
+        blocksToIgnore.push_back(acaciaDoor->defaultState().blockId());
+    }
+    if (auto* darkOakDoor = blockRegistry.getBlock(ResourceLocation("minecraft", "dark_oak_door"))) {
+        blocksToIgnore.push_back(darkOakDoor->defaultState().blockId());
+    }
+
+    // 如果有要忽略的方块，添加处理器
+    if (!blocksToIgnore.empty()) {
+        list.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(blocksToIgnore));
+    }
+
+    return list;
+}
+
+// ============================================================================
+// 辅助函数：创建堡垒遗迹处理器
+// ============================================================================
+
+/**
+ * @brief 创建堡垒遗迹的退化处理器
+ *
+ * @param integrity 完整度 (0.0 - 1.0)
+ * @param includeBlackstoneReplacement 是否包含黑石替换
+ */
+static StructureProcessorList createBastionProcessor(f32 integrity, bool includeBlackstoneReplacement = true)
+{
+    StructureProcessorList list;
+
+    // 1. 完整度处理器（随机移除方块）
+    list.addProcessor(std::make_unique<IntegrityProcessor>(integrity));
+
+    // 2. 黑石替换处理器
+    if (includeBlackstoneReplacement) {
+        list.addProcessor(std::make_unique<BlackstoneReplacementProcessor>());
+    }
+
+    return list;
+}
+
+// ============================================================================
+// 初始化函数
+// ============================================================================
+
+void ProcessorLists::initialize()
+{
+    if (s_initialized) {
+        return;
+    }
+    s_initialized = true;
+
+    // ========================================================================
+    // 苔藓化处理器
+    // ========================================================================
+
+    MOSSIFY_10_PERCENT.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
+    MOSSIFY_20_PERCENT.addProcessor(std::make_unique<BlockAgeProcessor>(0.2f));
+    MOSSIFY_70_PERCENT.addProcessor(std::make_unique<BlockAgeProcessor>(0.7f));
+
+    // ========================================================================
+    // 僵尸村庄处理器
+    // ========================================================================
+
+    // MC 1.16.5: 每种僵尸村庄有不同的苔藓化概率
+    // plains: 0.5, desert: 0.5, savanna: 0.5, snowy: 0.5, taiga: 0.5
+    ZOMBIE_PLAINS = createZombieVillageProcessor(0.5f);
+    ZOMBIE_DESERT = createZombieVillageProcessor(0.5f);
+    ZOMBIE_SAVANNA = createZombieVillageProcessor(0.5f);
+    ZOMBIE_SNOWY = createZombieVillageProcessor(0.5f);
+    ZOMBIE_TAIGA = createZombieVillageProcessor(0.5f);
+
+    // ========================================================================
+    // 道路处理器
+    // ========================================================================
+
+    // MC 1.16.5: 道路使用苔藓化处理器
+    // 平原和热带草原使用相同的处理器
+    STREET_PLAINS.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
+    STREET_SAVANNA.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
+    STREET_SNOWY_TAIGA.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
+
+    // ========================================================================
+    // 农场处理器
+    // ========================================================================
+
+    // MC 1.16.5: 农场使用较低的苔藓化概率
+    FARM_PLAINS.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
+    FARM_SAVANNA.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
+    FARM_SNOWY.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
+    FARM_TAIGA.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
+    FARM_DESERT.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
+
+    // ========================================================================
+    // 掠夺者前哨站处理器
+    // ========================================================================
+
+    // MC 1.16.5: outpost_rot - 5% 完整度，大部分方块会被移除
+    OUTPOST_ROT.addProcessor(std::make_unique<IntegrityProcessor>(0.05f));
+
+    // ========================================================================
+    // 堡垒遗迹处理器
+    // ========================================================================
+
+    // MC 1.16.5 参考: ProcessorLists.java
+
+    // 底层城墙 (bottom_rampart)
+    BASTION_BOTTOM_RAMPART = createBastionProcessor(0.9f, true);
+
+    // 宝藏房间 (treasure_rooms)
+    BASTION_TREASURE_ROOMS = createBastionProcessor(0.95f, true);
+
+    // 住宅区域 (housing)
+    BASTION_HOUSING = createBastionProcessor(0.85f, true);
+
+    // 侧墙退化 (side_wall_degradation)
+    BASTION_SIDE_WALL_DEGRADATION = createBastionProcessor(0.8f, true);
+
+    // 马厩退化 (stable_degradation)
+    BASTION_STABLE_DEGRADATION = createBastionProcessor(0.85f, true);
+
+    // 通用退化 (bastion_generic_degradation)
+    // MC 1.16.5: field_244124_x - 最常用的堡垒处理器
+    BASTION_GENERIC_DEGRADATION = createBastionProcessor(0.9f, true);
+
+    // 城墙退化 (rampart_degradation)
+    BASTION_RAMPART_DEGRADATION = createBastionProcessor(0.85f, true);
+
+    // 入口替换 (entrance_replacement)
+    BASTION_ENTRANCE_REPLACEMENT = createBastionProcessor(0.95f, true);
+
+    // 桥梁 (bridge)
+    BASTION_BRIDGE = createBastionProcessor(0.9f, true);
+
+    // 屋顶 (roof)
+    BASTION_ROOF = createBastionProcessor(0.95f, true);
+
+    // 高墙 (high_wall)
+    BASTION_HIGH_WALL = createBastionProcessor(0.9f, true);
+
+    // 高城墙 (high_rampart)
+    BASTION_HIGH_RAMPART = createBastionProcessor(0.85f, true);
+}
+
+bool ProcessorLists::isInitialized()
+{
+    return s_initialized;
+}
+
+} // namespace pools
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc
