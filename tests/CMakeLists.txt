@@ -528,6 +528,7 @@ add_executable(mc_tests
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
+    common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
     common/world/gen/jigsaw/test_template_pool_loader.cpp

@@ -24,7 +24,7 @@ structures/
 ├── StrongholdPieces.hpp/.cpp         # 要塞片段
 ├── SwampHutStructure.hpp/.cpp        # 沼泽小屋
 ├── VillageStructure.hpp/.cpp         # 村庄 (Jigsaw)
-└── WoodlandMansionStructure.hpp/.cpp # 林地府邸 (程序化)
+├── WoodlandMansionStructure.hpp/.cpp # 林地府邸 (模板+程序化)
 ```
 
 ## 2. 文件介绍
