@@ -256,7 +256,7 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     const f32 integrity = isLarge ? 0.9f : 0.8f;
 
     // 随机旋转
-    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
     // 创建片段列表
     std::vector<std::unique_ptr<StructurePiece>> pieces;
@@ -363,7 +363,7 @@ void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManag
         candidatePositions.erase(candidatePositions.begin() + static_cast<ptrdiff_t>(index));
 
         // 随机旋转
-        const Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+        const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
         // 生成小废墟（完整度 0.8）
         generatePiece(templateManager, pos, rotation, pieces, rng, config, false, 0.8f);

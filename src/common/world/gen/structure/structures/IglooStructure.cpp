@@ -113,9 +113,6 @@ void IglooPiece::updateBoundingBox()
     // MC 1.16.5: 地上部分的中心偏移
     // igloo/top 的中心偏移是 BlockPos(3, 5, 5)
     // 这里简化处理，使用原始位置作为基准
-    m_minX = m_minX;
-    m_minY = m_minY;
-    m_minZ = m_minZ;
     m_maxX = m_minX + topSizeX - 1;
     m_maxY = m_minY + totalHeight - 1;
     m_maxZ = m_minZ + topSizeZ - 1;
@@ -267,7 +264,7 @@ std::unique_ptr<StructureStart> IglooStructure::generate(
     i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
 
     // 随机旋转
-    Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+    Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
     // MC 1.16.5: 雪屋有50%概率有地下室
     bool hasBasement = rng.nextFloat() < 0.5f;

@@ -173,7 +173,7 @@ std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     // TODO: 完整实现应该向下查找空气位置
 
     // 随机旋转
-    Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+    Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
     // MC 1.16.5: 随机选择一个化石模板（共14个）
     const size_t templateIndex = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_fossilTemplates.size())));

@@ -383,7 +383,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     }
 
     // 随机旋转和镜像
-    Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+    Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
     Mirror mirror = rng.nextFloat() < 0.5f ? Mirror::None : Mirror::FrontBack;
 
     // 确定高度

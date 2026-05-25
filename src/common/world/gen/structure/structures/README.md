@@ -44,6 +44,32 @@ structures/
   - 支持 20 种模板变体（正常/翻转/侧翻，完整/半截，正常/破损）
   - 模板路径：`shipwreck/with_mast.nbt`, `shipwreck/rightsideup_full.nbt` 等
 
+- **NetherFossilStructure**: 下界化石，使用 Template 系统
+  - 支持 14 种化石模板变体
+  - 在灵魂沙峡谷生物群系生成
+  - 模板路径：`nether_fossils/fossil_1.nbt` ~ `fossil_14.nbt`
+
+- **IglooStructure**: 雪屋，使用 Template 系统堆叠
+  - 支持地上部分（top）和地下室（middle + bottom）
+  - 50% 概率生成地下室，地下室有 1-2 层中间层
+  - 模板路径：`igloo/top.nbt`, `igloo/middle.nbt`, `igloo/bottom.nbt`
+
+- **RuinedPortalStructure**: 废弃传送门，使用 Template 系统
+  - 支持 10 种普通传送门和 3 种巨型传送门模板
+  - 根据生物群系自动配置属性（寒冷、苔藓、空气口袋、藤蔓等）
+  - 支持下界变体（黑石替换）
+  - 模板路径：`ruined_portal/portal_1.nbt` ~ `portal_10.nbt`, `ruined_portal/giant_portal_1.nbt` ~ `giant_portal_3.nbt`
+
+- **EndCityStructure**: 末地城，使用递归模板生成
+  - 基础塔楼 + 房屋 + 桥 + 末地船
+  - 支持多层塔楼和胖塔变体
+  - 模板路径：`end_city/base_floor.nbt`, `end_city/tower_piece.nbt` 等
+
+- **WoodlandMansionStructure**: 林地府邸，使用递归模板生成
+  - 程序化房间布局 + 模板放置
+  - 支持 1x1、1x2、2x2 房间类型
+  - 模板路径：`woodland_mansion/entrance.nbt`, `woodland_mansion/1x1_a1.nbt` 等
+
 ### 程序化生成的结构
 
 以下结构使用程序化生成，不依赖 NBT 模板：
@@ -54,11 +80,47 @@ structures/
 - **JungleTempleStructure**: 丛林神庙外壳与陷阱布局
 - **MineshaftStructure**: 废弃矿井片段化生成
 - **OceanMonumentStructure**: 深海纪念碑大型体块布局
-- **RuinedPortalStructure**: 废弃传送门与周边破损装饰
 - **StrongholdStructure**: 要塞骨架与关键房间入口
 - **VillageStructure**: 村庄起始点与拼图池衔接
 
 ## 3. 模板系统使用
+
+### IglooStructure 示例
+
+```cpp
+#include "world/gen/structure/structures/IglooStructure.hpp"
+#include "world/gen/feature/template/TemplateManager.hpp"
+
+// 创建模板管理器
+feature::template_::TemplateManager templateManager;
+templateManager.setResourcePack(&resourcePack);
+
+// 创建结构并设置模板管理器
+IglooStructure structure;
+structure.setTemplateManager(&templateManager);
+
+// 生成时会自动加载 igloo/top, igloo/middle, igloo/bottom 模板
+// 并根据概率决定是否有地下室
+```
+
+### RuinedPortalStructure 示例
+
+```cpp
+#include "world/gen/structure/structures/RuinedPortalStructure.hpp"
+#include "world/gen/feature/template/TemplateManager.hpp"
+
+feature::template_::TemplateManager templateManager;
+templateManager.setResourcePack(&resourcePack);
+
+RuinedPortalStructure structure;
+structure.setTemplateManager(&templateManager);
+
+// 生成时会根据生物群系自动选择变体和配置属性
+// - 沙漠: 部分掩埋，无苔藓
+// - 丛林: 高苔藓，藤蔓，过度生长
+// - 沼泽: 海底位置，中等苔藓，藤蔓
+// - 下界: 黑石替换，无苔藓
+```
 
 ### OceanRuinStructure 示例
 
@@ -190,4 +252,4 @@ graph LR
     TL --> TP
 ```
 
-*最后更新: 2026-05-03*
+*最后更新: 2026-05-25*

@@ -239,7 +239,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     }
 
     // 随机旋转
-    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4) * 90);
+    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
