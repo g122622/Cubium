@@ -22,7 +22,11 @@
  */
 
 #include "BrewingStandBlock.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/inventory/IInventory.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntityType.hpp"
@@ -96,6 +100,76 @@ int BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorl
     }
 
     return 0;
+}
+
+std::unique_ptr<BlockEntity> BrewingStandBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::BrewingStandEntity>(pos);
+}
+
+ActionResultType BrewingStandBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
+        auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
+        // 打开酿造台GUI
+        // TODO: 实现容器打开
+        // player.openContainer(brewingStand);
+        // player.addStat(Stats::INTERACT_WITH_BREWINGSTAND);
+        MC_UNUSED(brewingStand);
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
+}
+
+void BrewingStandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    // 方块实体在createBlockEntity中创建
+    // 注意：自定义名称需要在放置时从物品获取，但当前项目架构不支持在onBlockPlacedBy中访问放置物品
+    // TODO: 当架构支持后，实现从放置物品获取自定义名称
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+}
+
+void BrewingStandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    // 方块移除时掉落酿造台内的物品
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
+        auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
+        IInventory* inventory = brewingStand->getInventory();
+
+        // 掉落所有物品
+        math::Random rng;
+        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+            ItemStack stack = inventory->removeItemNoUpdate(i);
+            if (!stack.isEmpty()) {
+                ItemDropHelper::spawnItemEntity(
+                    &world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+            }
+        }
+    }
+
+    Block::onBlockRemoved(world, pos, state);
 }
 
 } // namespace blocks

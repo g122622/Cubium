@@ -108,6 +108,70 @@ public:
     [[nodiscard]] int getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 检查是否有方块实体
+     * @return true（酿造台有方块实体）
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    /**
+     * @brief 创建酿造台方块实体
+     * @param pos 方块位置
+     * @return 新创建的BrewingStandEntity
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 打开酿造台GUI。
+     *
+     * 参考: net.minecraft.block.BrewingStandBlock#onBlockActivated
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    /**
+     * @brief 方块放置后回调
+     *
+     * 设置方块实体（酿造台方块实体在createBlockEntity中创建）。
+     *
+     * 参考: net.minecraft.block.BrewingStandBlock#onBlockPlacedBy
+     */
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 方块移除时回调
+     *
+     * 掉落酿造台内的物品。
+     *
+     * 参考: net.minecraft.block.BrewingStandBlock#onReplaced
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== 寻路 ==========
+
+    /**
+     * @brief 检查是否允许路径寻找
+     * @return false（酿造台阻挡寻路）
+     */
+    [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return false;
+    }
+
 protected:
     /// 酿造台形状
     CollisionShape m_shape;

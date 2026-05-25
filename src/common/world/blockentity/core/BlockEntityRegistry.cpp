@@ -24,14 +24,18 @@
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/CraftingTableEntity.hpp"
+#include "world/blockentity/interactive/BannerEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "world/blockentity/interactive/EndGatewayEntity.hpp"
+#include "world/blockentity/interactive/JukeboxEntity.hpp"
+#include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
+#include "world/blockentity/processing/BrewingStandEntity.hpp"
 #include "world/blockentity/processing/CampfireBlockEntity.hpp"
 #include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/blockentity/processing/FurnaceEntity.hpp"
@@ -39,7 +43,10 @@
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "world/blockentity/redstone/ComparatorEntity.hpp"
 #include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
+#include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "world/blockentity/storage/EnderChestEntity.hpp"
+#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
 
@@ -127,6 +134,30 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册命令方块实体
     registerType(BlockEntityType::CommandBlock,
         [](const BlockPos& pos) { return std::make_unique<blockentity::CommandBlockEntity>(pos); });
+
+    // 注册酿造台方块实体
+    registerType(BlockEntityType::BrewingStand,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::BrewingStandEntity>(pos); });
+
+    // 注册木桶方块实体
+    registerType(BlockEntityType::Barrel, [](const BlockPos& pos) { return std::make_unique<BarrelEntity>(pos); });
+
+    // 注册末影箱方块实体
+    registerType(
+        BlockEntityType::EnderChest, [](const BlockPos& pos) { return std::make_unique<EnderChestEntity>(pos); });
+
+    // 注册潜影盒方块实体
+    registerType(
+        BlockEntityType::ShulkerBox, [](const BlockPos& pos) { return std::make_unique<ShulkerBoxEntity>(pos); });
+
+    // 注册讲台方块实体
+    registerType(BlockEntityType::Lectern, [](const BlockPos& pos) { return std::make_unique<LecternEntity>(pos); });
+
+    // 注册唱片机方块实体
+    registerType(BlockEntityType::Jukebox, [](const BlockPos& pos) { return std::make_unique<JukeboxEntity>(pos); });
+
+    // 注册旗帜方块实体
+    registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

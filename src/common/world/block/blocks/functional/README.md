@@ -169,17 +169,21 @@ Block (基类)
 
 - [x] BedBlock: 爆炸逻辑（下界/末地）、睡眠交互、睡眠失败消息发送
 - [x] BrewingStandBlock: 红石比较器信号（2026-05-15 完成）
-- [ ] BrewingStandBlock: 酿造配方系统
+- [x] BrewingStandBlock: 方块实体注册、onBlockActivated、onBlockRemoved（2026-05-25 完成）
+- [ ] BrewingStandBlock: 酿造配方系统、GUI容器打开
 - [x] ComposterBlock: 完整堆肥概率表、骨粉产出、玩家交互
 - [x] CauldronBlock: 水桶/玻璃瓶/水瓶交互、皮革盔甲清洗
 - [ ] CakeBlock: 食物恢复逻辑
 - [x] BeaconBlock: 方块实体、效果范围计算、红石比较器信号（2026-05-15 完成）
-- [ ] BarrelBlock: 方块实体、容器GUI
-- [ ] LecternBlock: 方块实体、书籍交互
-- [ ] BellBlock: 动画系统、声音播放
-- [ ] JukeboxBlock: 方块实体、音乐唱片系统
+- [ ] BarrelBlock: onBlockActivated GUI打开、onBlockRemoved物品掉落
+- [ ] LecternBlock: onBlockActivated书籍交互、onBlockRemoved书籍掉落
+- [ ] BellBlock: 方块实体、onBlockActivated、动画系统、声音播放
+- [ ] JukeboxBlock: onBlockActivated唱片取出、onBlockRemoved唱片掉落
 - [x] RespawnAnchorBlock: 维度检测、爆炸逻辑、设置重生点（2026-05-12 完成）
-- [ ] LodestoneBlock: 指南针绑定系统
+- [ ] LodestoneBlock: CompassItem实现、指南针绑定系统
+- [ ] GrindstoneBlock: AttachFace属性支持、完整VoxelShape、GUI打开
+- [ ] StonecutterBlock: isTransparent/allowsMovement方法
+- [ ] LoomBlock: 正确VoxelShape、GUI打开
 
 ## 已实现功能详解
 
