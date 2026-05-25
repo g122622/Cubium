@@ -252,4 +252,49 @@ graph LR
     TL --> TP
 ```
 
+## 12. 实现状态
+
+### 已完成对齐的结构
+
+| 结构 | 类型 | 完成度 | 说明 |
+|------|------|--------|------|
+| **StrongholdStructure** | 递归生成 | 95% | ✅ buildComponent 全部实现，PieceWeight 权重系统，末影传送门框架眼睛随机化，蠹虫刷怪笼，CAVE_AIR 和 INFESTED_STONE_BRICKS |
+| VillageStructure | Jigsaw | 90% | 正确使用 JigsawManager |
+| BastionRemnantStructure | Jigsaw | 90% | 正确使用 Jigsaw 系统 |
+| IglooStructure | Template | 90% | 正确使用 TemplateManager |
+| ShipwreckStructure | Template | 90% | 使用模板系统 |
+| EndCityStructure | 递归模板 | 85% | 使用递归生成器 |
+| OceanRuinStructure | Template | 85% | 使用 IntegrityProcessor |
+| MineshaftStructure | 程序化 | 80% | 基本完整 |
+
+### 需要继续完善的结构
+
+| 结构 | 类型 | 完成度 | 主要问题 |
+|------|------|--------|----------|
+| **OceanMonumentStructure** | 房间图系统 | 75% | ✅ 已切换到 `OceanMonumentPieces` 入口，已落地 `RoomDefinition`、基础房间图、房间匹配 helper 和 Elder Guardian 生成；仍需继续对齐 Java 版各房间细节与随机裁边逻辑 |
+| FortressStructure | Jigsaw+硬编码 | 40% | 存在硬编码回退逻辑 |
+| WoodlandMansionStructure | 程序化 | 70% | 房间布局简化 |
+| DesertPyramidStructure | 硬编码 | 60% | 细节简化 |
+| SwampHutStructure | 硬编码 | 50% | 简化实现 |
+
+### 海洋纪念碑当前状态
+
+MC 1.16.5 的 OceanMonument 使用复杂的房间图系统。当前仓库已完成以下基础对齐：
+
+1. **RoomDefinition 类**: 已落地 75 个房间的 5x5x3 网格连接关系
+2. **房间类型**:
+   - DoubleXRoom, DoubleXYRoom, DoubleYRoom, DoubleYZRoom, DoubleZRoom
+   - SimpleRoom, SimpleTopRoom
+   - EntryRoom, MonumentCoreRoom
+   - Penthouse, WingRoom
+3. **IMonumentRoomFitHelper 接口**: 已落地基础匹配逻辑
+4. **generateRoomGraph() 算法**: 已建立基础网格，但尚未完全复刻 Java 版连接裁剪/寻路细节
+5. **实体生成**: 已支持在 Penthouse 和 WingRoom 路径上生成 Elder Guardian
+
+仍需继续完善：
+
+1. 各房间 `generate()` 的精细体块细节
+2. Java 版 `generateRoomGraph()` 的随机断连和 source-path 约束
+3. 更精确的外墙/屋顶/翼楼局部样式
+
 *最后更新: 2026-05-25*

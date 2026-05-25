@@ -25,6 +25,7 @@
 
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../Structure.hpp"
+#include "OceanMonumentPieces.hpp"
 #include <memory>
 
 namespace mc {
@@ -74,27 +75,6 @@ public:
 
 private:
     void initializeBiomes();
-    void generateMonument(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
-    void generateWing(IWorldWriter& world,
-        const BlockState* prismarine,
-        const BlockState* darkPrismarine,
-        const BlockState* seaLantern,
-        i32 baseX,
-        i32 baseY,
-        i32 baseZ,
-        i32 width,
-        i32 height,
-        i32 depth,
-        bool isLeft) const;
-    void generateRoom(IWorldWriter& world,
-        const BlockState* prismarine,
-        const BlockState* seaLantern,
-        i32 baseX,
-        i32 baseY,
-        i32 baseZ,
-        i32 width,
-        i32 height,
-        i32 depth) const;
 
     /**
      * @brief 检查生物群系是否属于海洋或河流类别

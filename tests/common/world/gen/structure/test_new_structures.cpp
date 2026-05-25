@@ -23,23 +23,28 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/structures/IglooStructure.hpp"
-#include "common/world/gen/structure/structures/SwampHutStructure.hpp"
-#include "common/world/gen/structure/structures/NetherFossilStructure.hpp"
-#include "common/world/gen/structure/structures/PillagerOutpostStructure.hpp"
-#include "common/world/gen/structure/structures/EndCityStructure.hpp"
-#include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 #include "common/world/gen/structure/structures/BastionRemnantStructure.hpp"
-#include "common/world/gen/structure/structures/StrongholdStructure.hpp"
-#include "common/world/gen/structure/structures/StrongholdPieces.hpp"
 #include "common/world/gen/structure/structures/DesertPyramidStructure.hpp"
+#include "common/world/gen/structure/structures/EndCityStructure.hpp"
+#include "common/world/gen/structure/structures/IglooStructure.hpp"
 #include "common/world/gen/structure/structures/JungleTempleStructure.hpp"
+#include "common/world/gen/structure/structures/NetherFossilStructure.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentStructure.hpp"
+#include "common/world/gen/structure/structures/PillagerOutpostStructure.hpp"
+#include "common/world/gen/structure/structures/StrongholdPieces.hpp"
+#include "common/world/gen/structure/structures/StrongholdStructure.hpp"
+#include "common/world/gen/structure/structures/SwampHutStructure.hpp"
+#include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
+
+#include <unordered_map>
 
 using namespace mc;
 using namespace mc::world::gen::structure;
@@ -53,6 +58,67 @@ class NewStructuresTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 };
+
+namespace {
+
+class StructureTestWorld : public mc::test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(pack(x, y, z));
+        return it != m_blocks.end() ? it->second : &VanillaBlocks::WATER->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blocks[pack(x, y, z)] = state;
+        return true;
+    }
+
+    void fill(const StructureBoundingBox& bounds, const BlockState* state)
+    {
+        for (i32 x = bounds.minX(); x <= bounds.maxX(); ++x) {
+            for (i32 y = bounds.minY(); y <= bounds.maxY(); ++y) {
+                for (i32 z = bounds.minZ(); z <= bounds.maxZ(); ++z) {
+                    setBlockState(x, y, z, state);
+                }
+            }
+        }
+    }
+
+    [[nodiscard]] const BlockState* getRawBlockState(i32 x, i32 y, i32 z) const
+    {
+        const auto it = m_blocks.find(pack(x, y, z));
+        return it != m_blocks.end() ? it->second : nullptr;
+    }
+
+private:
+    [[nodiscard]] static i64 pack(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<i64>(x) << 40) ^ (static_cast<i64>(y) << 20) ^ static_cast<i64>(z & 0xFFFFF);
+    }
+
+    std::unordered_map<i64, const BlockState*> m_blocks;
+};
+
+} // namespace
+
+namespace {
+
+/**
+ * @brief 基于 OceanMonumentPiece 边界框构造用于局部房间测试的世界。
+ *
+ * 先用水填满片段边界，避免 `generateBoxOnFillOnly()` 与 `makeOpening()` 因读路径缺失而偏离 Java。
+ */
+template <typename PieceT>
+StructureTestWorld buildMonumentPieceWorld(PieceT& piece)
+{
+    StructureTestWorld world;
+    world.fill(piece.boundingBox(), &VanillaBlocks::WATER->defaultState());
+    return world;
+}
+
+} // namespace
 
 // ============================================================================
 // IglooStructure 测试
@@ -221,7 +287,8 @@ TEST_F(NewStructuresTest, EndCity_NameAndSettings)
 TEST_F(NewStructuresTest, EndCity_PieceConstruction)
 {
     BlockPos pos(100, 64, 200);
-    mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::CounterClockwise90;
+    mc::world::gen::feature::template_::Rotation rotation =
+        mc::world::gen::feature::template_::Rotation::CounterClockwise90;
     std::string templateName = "base_floor";
 
     end_city::CityTemplate piece(templateName, pos, rotation, false);
@@ -411,16 +478,16 @@ TEST_F(NewStructuresTest, Stronghold_RingCalculation)
     // 环 0: 3, 环 1: 3, 环 2: 3, 环 3: 4, 环 4: 6, 环 5: 10, 环 6: 15, 环 7: 21
     // 总计: 65 个要塞
 
-    EXPECT_EQ(StrongholdStructure::getRing(0), 0);   // 第 1 个要塞在环 0
-    EXPECT_EQ(StrongholdStructure::getRing(2), 0);   // 第 3 个要塞在环 0
-    EXPECT_EQ(StrongholdStructure::getRing(3), 1);   // 第 4 个要塞在环 1
-    EXPECT_EQ(StrongholdStructure::getRing(6), 2);   // 第 7 个要塞在环 2
-    EXPECT_EQ(StrongholdStructure::getRing(9), 3);   // 第 10 个要塞在环 3
-    EXPECT_EQ(StrongholdStructure::getRing(13), 4);  // 第 14 个要塞在环 4
-    EXPECT_EQ(StrongholdStructure::getRing(19), 5);  // 第 20 个要塞在环 5
-    EXPECT_EQ(StrongholdStructure::getRing(29), 6);  // 第 30 个要塞在环 6
-    EXPECT_EQ(StrongholdStructure::getRing(44), 7);  // 第 45 个要塞在环 7
-    EXPECT_EQ(StrongholdStructure::getRing(64), 7);  // 第 65 个要塞在环 7
+    EXPECT_EQ(StrongholdStructure::getRing(0), 0);  // 第 1 个要塞在环 0
+    EXPECT_EQ(StrongholdStructure::getRing(2), 0);  // 第 3 个要塞在环 0
+    EXPECT_EQ(StrongholdStructure::getRing(3), 1);  // 第 4 个要塞在环 1
+    EXPECT_EQ(StrongholdStructure::getRing(6), 2);  // 第 7 个要塞在环 2
+    EXPECT_EQ(StrongholdStructure::getRing(9), 3);  // 第 10 个要塞在环 3
+    EXPECT_EQ(StrongholdStructure::getRing(13), 4); // 第 14 个要塞在环 4
+    EXPECT_EQ(StrongholdStructure::getRing(19), 5); // 第 20 个要塞在环 5
+    EXPECT_EQ(StrongholdStructure::getRing(29), 6); // 第 30 个要塞在环 6
+    EXPECT_EQ(StrongholdStructure::getRing(44), 7); // 第 45 个要塞在环 7
+    EXPECT_EQ(StrongholdStructure::getRing(64), 7); // 第 65 个要塞在环 7
 }
 
 TEST_F(NewStructuresTest, Stronghold_PositionCalculation)
@@ -506,7 +573,73 @@ TEST_F(NewStructuresTest, JungleTemple_NameAndSettings)
     const auto& biomes = structure.validBiomes();
     EXPECT_EQ(biomes.size(), 5);
     for (auto biome : biomes) {
-        EXPECT_TRUE(biome == Jungle || biome == JungleHills || biome == JungleEdge ||
-                    biome == ModifiedJungle || biome == ModifiedJungleEdge);
+        EXPECT_TRUE(biome == Jungle || biome == JungleHills || biome == JungleEdge || biome == ModifiedJungle ||
+            biome == ModifiedJungleEdge);
     }
+}
+
+TEST_F(NewStructuresTest, OceanMonument_NameAndSettings)
+{
+    OceanMonumentStructure structure;
+
+    EXPECT_EQ(structure.name(), "ocean_monument");
+    EXPECT_EQ(structure.separationSettings().spacing, 32);
+    EXPECT_EQ(structure.separationSettings().separation, 5);
+    EXPECT_EQ(structure.separationSettings().salt, 10387313);
+    EXPECT_FALSE(structure.useUniformSpacing());
+
+    const auto& biomes = structure.validBiomes();
+    EXPECT_EQ(biomes.size(), 5);
+    EXPECT_EQ(biomes[0], DeepOcean);
+}
+
+TEST_F(NewStructuresTest, OceanMonument_RoomDefinitionConnections)
+{
+    OceanMonumentRoomDefinition source(0);
+    OceanMonumentRoomDefinition east(1);
+
+    source.setConnection(5, &east);
+    east.setConnection(4, &source);
+    source.updateOpenings();
+    east.updateOpenings();
+
+    EXPECT_TRUE(source.hasOpening(5));
+    EXPECT_TRUE(east.hasOpening(4));
+    EXPECT_EQ(source.countOpenings(), 1);
+    EXPECT_EQ(east.countOpenings(), 1);
+    EXPECT_EQ(source.getConnection(5), &east);
+    EXPECT_EQ(east.getConnection(4), &source);
+}
+
+TEST_F(NewStructuresTest, OceanMonument_BuildingConstruction)
+{
+    math::Random rng(12345);
+    OceanMonumentBuilding building(rng, 0, 0, Direction::North);
+
+    const StructureBoundingBox bounds = building.boundingBox();
+    EXPECT_EQ(bounds.minX(), 0);
+    EXPECT_EQ(bounds.minZ(), 0);
+    EXPECT_EQ(bounds.maxX(), 57);
+    EXPECT_EQ(bounds.maxZ(), 57);
+    EXPECT_GE(bounds.maxY() - bounds.minY(), 22);
+}
+
+TEST_F(NewStructuresTest, OceanMonument_RoomDefinitionFindsSource)
+{
+    OceanMonumentRoomDefinition source(0);
+    OceanMonumentRoomDefinition middle(1);
+    OceanMonumentRoomDefinition leaf(2);
+
+    source.setSource(true);
+    source.setConnection(5, &middle);
+    middle.setConnection(4, &source);
+    middle.setConnection(5, &leaf);
+    leaf.setConnection(4, &middle);
+
+    source.updateOpenings();
+    middle.updateOpenings();
+    leaf.updateOpenings();
+
+    EXPECT_TRUE(leaf.findSource(1));
+    EXPECT_TRUE(middle.findSource(2));
 }
