@@ -195,11 +195,15 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world)
                     m_spawnCenter.z,
                     m_siegeCount);
 
+                // MC 1.16.5: 找到有效位置后返回 true
                 return true;
             }
         }
 
-        // 找到玩家但未找到有效位置，仍返回 true（已设置）
+        // MC 1.16.5: 找到符合条件的玩家（在村庄内且不在蘑菇岛），即使未找到生成位置也返回 true
+        // 这样围攻状态会被设置为 hasSetupSiege = true，但 siegeCount = 0（因为未找到位置）
+        // 实际效果是围攻立即结束（因为 siegeCount <= 0）
+        spdlog::debug("VillageSiege: Found valid player but no spawn position");
         return true;
     }
 
@@ -238,6 +242,37 @@ bool VillageSiege::spawnZombie(server::ServerWorld& world)
     entity->setPosition(posX, posY, posZ);
     entity->setRotation(yaw, 0.0f);
 
+    // MC 1.16.5 VillageSiege.spawnZombie() 调用 onInitialSpawn 进行初始化
+    // 由于项目目前没有实现 onInitialSpawn 方法，这里手动初始化僵尸
+    // 参考 MC 1.16.5 ZombieEntity.onInitialSpawn()
+    auto* zombie = dynamic_cast<ZombieEntity*>(entity.get());
+    if (zombie != nullptr) {
+        // 获取区域难度
+        // MC 1.16.5: DifficultyInstance difficulty = world.getDifficultyForLocation(pos)
+        const f32 regionalDifficulty =
+            entity::combat::DifficultyHelper::getRegionalDifficultyBase(world.difficulty());
+
+        // MC 1.16.5: 设置是否可以拾取战利品
+        // 概率 = 0.55 * regionalDifficulty
+        // zombie.setCanPickUpLoot(random.nextFloat() < 0.55F * regionalDifficulty);
+        // TODO: 需要实现 setCanPickUpLoot 方法
+
+        // MC 1.16.5: 僵尸围攻有概率生成小僵尸（在 GroupData 中设置）
+        // 这里不做婴儿设置，因为围攻僵尸默认是成年僵尸
+        // GroupData 中 isChild = false
+
+        // MC 1.16.5: 设置破门能力
+        // 概率 = regionalDifficulty * 0.1
+        if (m_random.nextFloat() < regionalDifficulty * 0.1f) {
+            zombie->setBreakDoorsAbility(true);
+        }
+
+        // MC 1.16.5: 设置基于难度的装备
+        // setEquipmentBasedOnDifficulty(difficulty)
+        // setEnchantmentBasedOnDifficulty(difficulty)
+        // TODO: 需要实现装备设置方法
+    }
+
     // 生成实体到世界
     const EntityId entityId = world.spawnEntity(std::move(entity));
 
@@ -264,10 +299,19 @@ std::optional<BlockPos> VillageSiege::findRandomSpawnPos(IWorld& world, const Bl
         const i32 y = world.getHeight(x, z);
         const BlockPos pos(x, y, z);
 
-        // 条件1: 生成位置必须在村庄内
-        // 由于玩家已在村庄内，且围攻中心围绕玩家设置，因此生成位置通常也在村庄范围内
+        // MC 1.16.5 VillageSiege.findRandomSpawnPos() 要求：
+        // 1. 生成位置必须在村庄内 (world.isVillage(blockpos))
+        // 2. 满足怪物生成光照条件 (MonsterEntity.canMonsterSpawnInLight)
+        //
+        // 项目的 VillageManager::getVillageAt() 等价于 isVillage 检查
 
-        // 条件2: 必须满足怪物生成光照条件
+        // 检查是否在村庄内
+        auto* villageManager = world.villageManager();
+        if (villageManager == nullptr || villageManager->getVillageAt(pos) == nullptr) {
+            continue; // 不在村庄内，跳过此位置
+        }
+
+        // 检查生成位置是否满足怪物生成条件
         if (canMonsterSpawnAt(world, pos)) {
             return pos;
         }

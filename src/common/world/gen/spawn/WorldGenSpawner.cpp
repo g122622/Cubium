@@ -26,6 +26,7 @@
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../entity/core/MobEntity.hpp"
+#include "../../../util/AxisAlignedBB.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
@@ -230,9 +231,20 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
 {
     i32 spawned = 0;
 
+    // MC 1.16.5 performWorldGenSpawning 第 350 行：
+    // 检查 isSummonable() - 实体类型是否可以被生成
+    if (!entityType.canSummon()) {
+        return 0;
+    }
+
     // 获取实体尺寸
     const entity::EntitySize size = entityType.size();
     const f32 width = size.width();
+    const f32 height = size.height();
+
+    // 区块起点
+    const i32 chunkStartX = static_cast<i32>(x) & ~0xF;
+    const i32 chunkStartZ = static_cast<i32>(z) & ~0xF;
 
     for (i32 i = 0; i < count; ++i) {
         // 添加随机偏移使群体分散
@@ -240,11 +252,15 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
         f32 spawnX = x + (random.nextFloat() - 0.5f) * width * 2.0f;
         f32 spawnZ = z + (random.nextFloat() - 0.5f) * width * 2.0f;
 
-        // 确保 X 和 Z 在区块内（限制扩散范围）
-        spawnX =
-            std::clamp(spawnX, x - static_cast<f32>(SPAWN_SPREAD_RADIUS), x + static_cast<f32>(SPAWN_SPREAD_RADIUS));
-        spawnZ =
-            std::clamp(spawnZ, z - static_cast<f32>(SPAWN_SPREAD_RADIUS), z + static_cast<f32>(SPAWN_SPREAD_RADIUS));
+        // MC 1.16.5 performWorldGenSpawning 第 352-353 行：
+        // clamp 确保实体在区块边界内，考虑实体宽度
+        // MathHelper.clamp(l, i + f, i + 16.0 - f)
+        spawnX = std::clamp(spawnX,
+            static_cast<f32>(chunkStartX) + width,
+            static_cast<f32>(chunkStartX + 16) - width);
+        spawnZ = std::clamp(spawnZ,
+            static_cast<f32>(chunkStartZ) + width,
+            static_cast<f32>(chunkStartZ + 16) - width);
 
         // 检查碰撞空间
         i32 spawnY = getSpawnHeight(region, entityType, static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
@@ -252,7 +268,31 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
             continue;
         }
 
-        if (!canSpawnAt(region, entityType, static_cast<i32>(spawnX), spawnY, static_cast<i32>(spawnZ))) {
+        const i32 spawnXi = static_cast<i32>(spawnX);
+        const i32 spawnZi = static_cast<i32>(spawnZ);
+
+        if (!canSpawnAt(region, entityType, spawnXi, spawnY, spawnZi)) {
+            continue;
+        }
+
+        // MC 1.16.5 performWorldGenSpawning 第 354 行：
+        // 检查碰撞 - !worldIn.hasNoCollisions(entityType.getBoundingBoxWithSizeApplied(d0, y, d1))
+        // 创建实体的碰撞箱
+        const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(
+            Vector3(spawnX, static_cast<f32>(spawnY), spawnZ), width, height);
+
+        if (region.hasBlockCollision(entityBox)) {
+            continue; // 有碰撞，跳过此位置
+        }
+
+        // MC 1.16.5 performWorldGenSpawning 第 354 行：
+        // EntitySpawnPlacementRegistry.canSpawnEntity(entityType, world, SpawnReason.CHUNK_GENERATION, pos, random)
+        // 检查实体特定的生成规则（如蝙蝠需要光照<4等）
+        // 注意：canSpawnEntity 的参数顺序是，这里需要适配器
+        WorldGenRegionAdapter adapter(region);
+        const Vector3i checkPos(spawnXi, spawnY, spawnZi);
+        if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(
+                entityType.name(), adapter, world::spawn::SpawnReason::ChunkGeneration, checkPos, random)) {
             continue;
         }
 

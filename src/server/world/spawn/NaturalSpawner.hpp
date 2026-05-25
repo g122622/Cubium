@@ -66,10 +66,15 @@ public:
 
     /**
      * @brief 获取指定位置的总密度
+     *
+     * 参考 MC 1.16.5 MobDensityTracker.func_234999_b_
+     * 计算公式：sum(charge / sqrt(distance))
+     *
      * @param pos 目标位置
+     * @param multiplier 密度乘数（实体的 charge 值）
      * @return 总密度值
      */
-    [[nodiscard]] f64 getTotalCharge(const Vector3& pos) const;
+    [[nodiscard]] f64 getTotalCharge(const Vector3& pos, f64 multiplier) const;
 
     /**
      * @brief 清除所有密度数据
@@ -127,11 +132,16 @@ public:
 
     /**
      * @brief 记录实体生成后的密度变化
+     *
+     * 参考 MC 1.16.5 WorldEntitySpawner.func_234990_a_
+     *
      * @param entityTypeId 实体类型ID
+     * @param classification 实体分类
      * @param pos 生成位置
      * @param spawnCosts 生成成本
      */
-    void onSpawn(const std::string& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts);
+    void onSpawn(const std::string& entityTypeId, entity::EntityClassification classification,
+        const Vector3& pos, const SpawnCosts& spawnCosts);
 
     /**
      * @brief 获取指定分类的当前实体数量

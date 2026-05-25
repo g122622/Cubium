@@ -73,10 +73,14 @@ void MobDensityTracker::addCharge(const Vector3& pos, f64 charge)
     m_charges.push_back({pos, charge});
 }
 
-f64 MobDensityTracker::getTotalCharge(const Vector3& pos) const
+f64 MobDensityTracker::getTotalCharge(const Vector3& pos, f64 multiplier) const
 {
-    // 计算 SpawnCosts 影响的总密度
-    // 参考 MC 1.16.5 MobDensityTracker
+    // 参考 MC 1.16.5 MobDensityTracker.func_234999_b_
+    // 计算公式：sum(charge * multiplier / sqrt(distance))
+    if (multiplier == 0.0) {
+        return 0.0;
+    }
+
     f64 totalCharge = 0.0;
 
     for (const auto& entry : m_charges) {
@@ -85,20 +89,14 @@ f64 MobDensityTracker::getTotalCharge(const Vector3& pos) const
         f64 dz = entry.position.z - pos.z;
         f64 distSq = dx * dx + dy * dy + dz * dz;
 
-        // 距离为 0 时认为没有衰减，直接累加完整成本
         if (distSq < 0.0001) {
-            totalCharge += entry.charge;
-            continue;
+            // MC 原版：距离为 0 时直接累加 multiplier
+            totalCharge += multiplier;
+        } else {
+            // MC 原版：charge * multiplier / sqrt(distance)
+            f64 distance = std::sqrt(distSq);
+            totalCharge += entry.charge * multiplier / distance;
         }
-
-        f64 distance = std::sqrt(distSq);
-        // 64 格内按线性方式衰减，超出范围后不再贡献密度
-        f64 falloff = 1.0 - (distance / 64.0);
-        if (falloff <= 0.0) {
-            continue;
-        }
-
-        totalCharge += entry.charge * falloff;
     }
 
     return totalCharge;
@@ -148,15 +146,26 @@ bool EntityDensityManager::canSpawnWithDensity(
         return true; // 无成本限制
     }
 
-    // 检查当前密度是否超过能量预算
-    f64 currentDensity = m_densityTracker.getTotalCharge(pos);
-    return currentDensity < spawnCosts.energyBudget;
+    // MC 1.16.5: 检查当前密度是否超过能量预算
+    // 原版逻辑：getTotalCharge(pos, charge) <= energyBudget
+    f64 currentDensity = m_densityTracker.getTotalCharge(pos, spawnCosts.charge);
+    return currentDensity <= spawnCosts.energyBudget;
 }
 
-void EntityDensityManager::onSpawn(const std::string& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts)
+void EntityDensityManager::onSpawn(const std::string& entityTypeId, entity::EntityClassification classification,
+    const Vector3& pos, const SpawnCosts& spawnCosts)
 {
+    // MC 1.16.5: 更新密度追踪器
     if (spawnCosts.isValid()) {
         m_densityTracker.addCharge(pos, spawnCosts.charge);
+    }
+
+    // MC 1.16.5: 更新实体分类计数
+    auto it = m_entityCounts.find(classification);
+    if (it != m_entityCounts.end()) {
+        ++it->second;
+    } else {
+        m_entityCounts[classification] = 1;
     }
 }
 
@@ -467,12 +476,11 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
         if (result > 0) {
             spawned += result;
 
-            // 更新密度
-            if (spawnCosts && spawnCosts->isValid()) {
-                densityManager.onSpawn(entry->entityTypeId,
-                    Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)),
-                    *spawnCosts);
-            }
+            // 更新密度和分类计数
+            // MC 1.16.5: onSpawn 时同时更新密度追踪器和分类计数
+            densityManager.onSpawn(entry->entityTypeId, classification,
+                Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)),
+                spawnCosts ? *spawnCosts : SpawnCosts());
 
             // 检查是否达到群体大小限制
             if (spawned >= MAX_GROUP_SIZE) {
