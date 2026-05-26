@@ -492,8 +492,7 @@ void emitLiquidFace(MeshData& mesh,
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor =
-            ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor = resolveTintColor(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
         const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
@@ -757,6 +756,8 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     // 台阶、楼梯、栅栏等非完整方块返回 true（需要精确形状检测）
     const bool useShapeOcclusion = block->useShapeForLightOcclusion() || neighbor->useShapeForLightOcclusion();
 
+    return true; // TODO 下面的形状遮挡检测逻辑有很深的bug，很难解决，暂时先放行所有面，后续重构时再完善
+
     if (!useShapeOcclusion) {
         // 两个都是实心方块，不渲染
         // 参考 MC 1.16.5: 如果邻居是实心方块且不需要形状检测，则遮挡
@@ -768,6 +769,9 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     const Direction dir = faceToDirection(face);
     const Direction oppositeDir = Directions::opposite(dir);
 
+    spdlog::info("shouldRenderFace: block={}, neighbor={}, face={}, useShapeOcclusion={}", block->toString(),
+        neighbor->toString(), static_cast<u8>(face), useShapeOcclusion);
+
     // 获取当前方块在指定方向的面遮挡形状
     const CollisionShape blockFaceShape = block->getFaceOcclusionShape(dir);
 
@@ -776,14 +780,17 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
 
     // 如果任一面形状是完整方块，完全遮挡
     if (blockFaceShape.isFullBlock() && neighborFaceShape.isFullBlock()) {
+        spdlog::info("Both block and neighbor have full block face shapes, face is occluded");
         return false;
     }
 
     // 如果任一面形状为空，不遮挡
     if (blockFaceShape.isEmpty()) {
+        spdlog::info("Block face shape is empty, face is not occluded");
         return true;
     }
     if (neighborFaceShape.isEmpty()) {
+        spdlog::info("Neighbor face shape is empty, face is not occluded");
         return true;
     }
 
@@ -1131,7 +1138,7 @@ void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
                                     i32 worldZ,
                                     const BlockState* blockState,
                                     i32 tintIndex) {
-            return ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
+            return resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
         emitLiquidFace(mesh,
             face,
@@ -1279,7 +1286,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
                                     i32 worldZ,
                                     const BlockState* blockState,
                                     i32 tintIndex) {
-            return ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
+            return resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
         emitLiquidFace(mesh,
             face,
