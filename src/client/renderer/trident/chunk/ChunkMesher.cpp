@@ -492,7 +492,8 @@ void emitLiquidFace(MeshData& mesh,
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColor(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor =
+            ChunkMesher::resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
         const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
@@ -639,81 +640,6 @@ bool ChunkMesher::shouldRenderBlock(const BlockState* state)
         default:
             return true;
     }
-}
-
-bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor)
-{
-    if (!block) {
-        return false;
-    }
-
-    // 邻居是空气（或越界）时渲染外露面
-    if (!neighbor || neighbor->isAir()) {
-        return true;
-    }
-
-    // 相同状态对象之间不渲染内部面（State 通常为注册表共享单例）
-    if (block == neighbor) {
-        return false;
-    }
-
-    // 液体渲染规则：
-    // - 邻居不存在或空气 → 渲染（外露面）
-    // - 邻居是液体 → 剔除（液体之间不渲染内部面，包括同类型和不同类型）
-    // - 邻居没有实体体积 → 剔除（如海草、海带茎等水下植物）
-    // - 邻居是透明方块（非液体） → 渲染（如水贴玻璃）
-    // - 邻居是不透明方块 → 剔除（被遮挡）
-    if (block->isLiquid()) {
-        if (neighbor->isLiquid()) {
-            return false; // 液体之间不渲染面
-        }
-
-        if (neighbor->getCollisionShape().isEmpty()) {
-            return false; // 水下植物等无实体体积的块不应切出独立水面
-        }
-
-        if (neighbor->isTransparent()) {
-            return true; // 液体贴透明方块时渲染面
-        }
-        return false; // 液体贴不透明方块时剔除
-    }
-
-    // 非液体方块与液体相邻，需要渲染交界面
-    if (neighbor->isLiquid()) {
-        return true;
-    }
-
-    // 树叶渲染规则：
-    // - 树叶与树叶相邻（无论类型） → 剔除
-    // - 树叶与不透明方块相邻 → 剔除
-    // - 树叶与透明方块（非树叶）相邻 → 渲染
-    if (BlockTags::LEAVES().contains(*block)) {
-        const bool neighborIsLeaves = BlockTags::LEAVES().contains(*neighbor);
-        if (neighborIsLeaves) {
-            return false; // 树叶与树叶相邻，剔除
-        }
-        if (!neighbor->isTransparent()) {
-            return false; // 树叶与不透明方块相邻，剔除
-        }
-        return true; // 树叶与透明方块（非树叶）相邻，渲染
-    }
-
-    // 透明方块规则：同类型透明方块之间剔除内部面
-    if (neighbor->isTransparent()) {
-        if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
-            return false;
-        }
-        return true;
-    }
-
-    // 透明方块贴着不透明方块时必须保留面。
-    // 否则会出现玻璃/水体与石头相接处”整面消失”的问题。
-    if (block->isTransparent()) {
-        return true;
-    }
-
-    // 与不透明实心邻居相接，不渲染
-    return false;
 }
 
 /**
@@ -964,114 +890,6 @@ u8 ChunkMesher::sampleBlockLight(const ChunkData& chunk, i32 x, i32 y, i32 z, co
     return sampleChunk->getBlockLight(localX, y, localZ);
 }
 
-u32 ChunkMesher::resolveTintColor(
-    const ChunkData& chunk, i32 blockX, i32 blockY, i32 blockZ, const BlockState* block, i32 tintIndex)
-{
-    if (!block) {
-        return packVertexColor(255, 255, 255, 255);
-    }
-
-    const auto clampToColorIndex = [](f64 value) -> i32 {
-        return static_cast<i32>((1.0 - std::clamp(value, 0.0, 1.0)) * 255.0);
-    };
-
-    const BiomeId biomeId = chunk.getBiomeAtBlock(blockX, blockY, blockZ);
-    const Biome& biome = BiomeRegistry::instance().get(biomeId);
-
-    // 水体颜色处理 - 水方块使用生物群系的水体颜色
-    // 注意：MC 中水的 tintIndex 通常为 -1，但我们通过 isLiquid() 检测
-    if (block->isLiquid()) {
-        if (block->is(VanillaBlocks::WATER)) {
-            const u32 waterColor = biome.waterColor();
-            // 水体颜色是 RGB 格式，需要打包
-            return packRgb(waterColor);
-        }
-        // 岩浆不使用着色，保持纹理原色
-        return packVertexColor(255, 255, 255, 255);
-    }
-
-    // 非 tint 着色的情况（tintIndex < 0）
-    if (tintIndex < 0) {
-        return packVertexColor(255, 255, 255, 255);
-    }
-
-    const f64 temperature = std::clamp(static_cast<f64>(biome.temperature()), 0.0, 1.0);
-    const f64 humidity = std::clamp(static_cast<f64>(biome.humidity()), 0.0, 1.0) * temperature;
-    const i32 tempIndex = clampToColorIndex(temperature);
-    const i32 humidityIndex = clampToColorIndex(humidity);
-    const i32 colorIndex = (humidityIndex << 8) | tempIndex;
-
-    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES) || block->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        block->is(VanillaBlocks::ACACIA_LEAVES) || block->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        block->is(VanillaBlocks::SPRUCE_LEAVES) || block->is(VanillaBlocks::BIRCH_LEAVES);
-
-    if (isLeaves) {
-        // 检查是否有树叶颜色覆盖（如沼泽）
-        auto foliageOverride = biome.effects().foliageColor();
-        if (foliageOverride.has_value()) {
-            return packRgb(foliageOverride.value());
-        }
-
-        // 检查沼泽特殊处理
-        if (biome.effects().grassColorModifier() == world::biome::GrassColorModifier::Swamp) {
-            // 沼泽树叶使用双色混合
-            return client::BiomeColors::calculateSwampColor(static_cast<f64>(blockX),
-                static_cast<f64>(blockZ),
-                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR,
-                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK);
-        }
-
-        if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
-            return packRgb(client::BiomeColors::SPRUCE_LEAVES_COLOR);
-        }
-        if (block->is(VanillaBlocks::BIRCH_LEAVES)) {
-            return packRgb(client::BiomeColors::BIRCH_LEAVES_COLOR);
-        }
-
-        if (s_foliageColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_foliageColorMap.size())) {
-            return packRgb(s_foliageColorMap[static_cast<size_t>(colorIndex)]);
-        }
-
-        return packRgb(0x48B518); // FoliageColors.getDefault()
-    }
-
-    // 草色系：检查草颜色覆盖和修改器
-    auto grassOverride = biome.effects().grassColor();
-    if (grassOverride.has_value()) {
-        return packRgb(grassOverride.value());
-    }
-
-    // 检查草颜色修改器
-    switch (biome.effects().grassColorModifier()) {
-        case world::biome::GrassColorModifier::Swamp: {
-            // 沼泽草使用双色混合
-            return client::BiomeColors::calculateSwampColor(static_cast<f64>(blockX),
-                static_cast<f64>(blockZ),
-                world::biome::BiomeEffects::SWAMP_GRASS_COLOR,
-                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK);
-        }
-        case world::biome::GrassColorModifier::DarkForest: {
-            // 黑森林草变暗
-            return packRgb(world::biome::BiomeEffects::DARK_FOREST_GRASS_COLOR);
-        }
-        case world::biome::GrassColorModifier::Badlands: {
-            // 恶地草颜色
-            return packRgb(world::biome::BiomeEffects::BADLANDS_GRASS_COLOR);
-        }
-        case world::biome::GrassColorModifier::None:
-        default:
-            break;
-    }
-
-    // 从 grass colormap 获取颜色
-    if (s_grassColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_grassColorMap.size())) {
-        return packRgb(s_grassColorMap[static_cast<size_t>(colorIndex)]);
-    }
-
-    // Java 在缺失色图时会返回品红
-    return packRgb(0xff757f); // GrassColors.getDefault()
-}
-
 u32 ChunkMesher::resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
     i32 worldX,
     i32 worldY,
@@ -1196,11 +1014,6 @@ i32 ChunkMesher::biomeBlendRadius()
 void ChunkMesher::invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     s_biomeColorBlender.invalidateChunk(chunkX, chunkZ);
-}
-
-void ChunkMesher::clearBiomeColorCache()
-{
-    s_biomeColorBlender.clearCache();
 }
 
 u32 ChunkMesher::getDefaultBlockTintColor(const BlockState* block)

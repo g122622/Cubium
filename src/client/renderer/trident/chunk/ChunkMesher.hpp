@@ -121,7 +121,10 @@ public:
         const std::atomic<bool>* cancelSignal);
 
     /**
-     * @brief 生成单个区块段的网格 (用于渐进加载)
+     * @brief 生成单个区块段的网格
+     *
+     * 该接口目前由 `generateMesh()` 内部逐段调用，
+     * 统一复用 simple/greedy 两条 section 级构建路径。
      *
      * @param chunk 区块数据
      * @param sectionIndex 区段索引 (0-15)
@@ -222,11 +225,6 @@ public:
     static void invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     /**
-     * @brief 清空所有生物群系颜色缓存
-     */
-    static void clearBiomeColorCache();
-
-    /**
      * @brief 获取方块的默认着色颜色
      *
      * 用于没有世界/位置信息时的颜色解析，例如末影人持有方块的渲染。
@@ -260,18 +258,6 @@ public:
 private:
     // 检查方块是否应该渲染
     static bool shouldRenderBlock(const BlockState* state);
-
-    /**
-     * @brief 检查面是否应该渲染（简化版，无形状检测）
-     *
-     * 仅用于贪婪网格合并路径，不执行形状遮挡检测。
-     * 在调用处应使用带方向参数的版本。
-     *
-     * @param block 当前方块状态
-     * @param neighbor 邻居方块状态（可为空）
-     * @return 是否应该渲染该面
-     */
-    static bool shouldRenderFace(const BlockState* block, const BlockState* neighbor);
 
     /**
      * @brief 检查面是否应该渲染（完整版，带形状遮挡检测）
@@ -354,9 +340,6 @@ private:
         const CollisionShape& shape,
         const std::array<const BlockState*, 6>& neighborStates,
         const ChunkData* neighborChunks[6]);
-
-    [[nodiscard]] static u32 resolveTintColor(
-        const ChunkData& chunk, i32 blockX, i32 blockY, i32 blockZ, const BlockState* block, i32 tintIndex);
 
     /**
      * @brief 解析方块着色颜色（带生物群系混合）

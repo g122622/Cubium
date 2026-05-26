@@ -25,7 +25,9 @@ src/client/renderer/trident/chunk/
 职责：
 - 把 `ChunkData` 转换为 `MeshData`。
 - 支持 `generateMesh` 与 `generateSplitMesh`。
+- `generateMesh` 内部按 section 复用 `generateSectionMesh`。
 - 在简单网格与贪婪网格路径中处理透明层、液体面、AO、光照采样。
+- 统一通过生物群系混色路径解析方块着色，避免液体与普通方块维护两套 tint 逻辑。
 - 新增协作取消信号参数：
   - `generateMesh(..., neighbors, cancelSignal)`
   - `generateSplitMesh(..., neighbors, cancelSignal)`

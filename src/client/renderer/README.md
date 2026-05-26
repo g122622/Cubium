@@ -445,7 +445,7 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 
 **主要内容**：
 - `generateMesh()`：生成完整区块网格
-- `generateSectionMesh()`：生成单个区块段网格
+- `generateSectionMesh()`：供 `generateMesh()` 内部复用的单区段网格构建入口
 - 支持两种光照模式：
   - `Flat`：平面光照（每面统一光照）
   - `Smooth`：平滑光照（逐顶点 AO）
