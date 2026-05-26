@@ -261,8 +261,36 @@ private:
     // 检查方块是否应该渲染
     static bool shouldRenderBlock(const BlockState* state);
 
-    // 检查面是否应该渲染
+    /**
+     * @brief 检查面是否应该渲染（简化版，无形状检测）
+     *
+     * 仅用于贪婪网格合并路径，不执行形状遮挡检测。
+     * 在调用处应使用带方向参数的版本。
+     *
+     * @param block 当前方块状态
+     * @param neighbor 邻居方块状态（可为空）
+     * @return 是否应该渲染该面
+     */
     static bool shouldRenderFace(const BlockState* block, const BlockState* neighbor);
+
+    /**
+     * @brief 检查面是否应该渲染（完整版，带形状遮挡检测）
+     *
+     * 参考 MC 1.16.5 Block.shouldSideBeRendered：
+     * 1. 如果邻居是空气，渲染
+     * 2. 如果邻居不是实心方块（!isSolid()），渲染
+     * 3. 如果当前方块和邻居是同一个状态对象，剔除
+     * 4. 否则使用形状遮挡检测：
+     *    - 获取当前方块在指定方向的面遮挡形状
+     *    - 获取邻居方块在相反方向的面遮挡形状
+     *    - 使用 ONLY_FIRST 检测是否有独占区域
+     *
+     * @param block 当前方块状态
+     * @param neighbor 邻居方块状态（可为空）
+     * @param face 当前方块的面方向（指向邻居）
+     * @return 是否应该渲染该面
+     */
+    static bool shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face);
 
     // 添加单个面的顶点（使用 BlockAppearance）- 平面光照版本
     static void addFaceFromAppearance(MeshData& mesh,

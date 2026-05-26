@@ -28,6 +28,8 @@
 #include "../../../world/color/blend/ChunkBiomeAccessor.hpp"
 #include "AmbientOcclusionCalculator.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/shape/Shapes.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -712,6 +714,163 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
 
     // 与不透明实心邻居相接，不渲染
     return false;
+}
+
+/**
+ * @brief 将 CollisionShape 转换为 VoxelShape
+ *
+ * 用于面遮挡检测。对于完整方块和空形状有优化路径。
+ * 参考 BaseLightEngine 中的同名函数
+ */
+[[nodiscard]] static VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
+{
+    if (shape.isEmpty()) {
+        return Shapes::empty();
+    }
+    if (shape.isFullBlock()) {
+        return Shapes::block();
+    }
+    // 对于简单盒，创建对应的 VoxelShape
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return Shapes::empty();
+    }
+    // 使用第一个碰撞盒创建 VoxelShape
+    // 注意：对于复杂形状（多个盒），这只是一个近似
+    const auto& box = boxes[0];
+    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+}
+
+// 将 Face 转换为 Direction（枚举值一一对应）
+[[nodiscard]] static Direction faceToDirection(Face face)
+{
+    return static_cast<Direction>(static_cast<u8>(face));
+}
+
+bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face)
+{
+    if (!block) {
+        return false;
+    }
+
+    // 邻居是空气（或越界）时渲染外露面
+    if (!neighbor || neighbor->isAir()) {
+        return true;
+    }
+
+    // 相同状态对象之间不渲染内部面
+    if (block == neighbor) {
+        return false;
+    }
+
+    // 液体渲染规则
+    if (block->isLiquid()) {
+        if (neighbor->isLiquid()) {
+            return false;
+        }
+        if (neighbor->getCollisionShape().isEmpty()) {
+            return false;
+        }
+        if (neighbor->isTransparent()) {
+            return true;
+        }
+        return false;
+    }
+
+    // 非液体方块与液体相邻，需要渲染交界面
+    if (neighbor->isLiquid()) {
+        return true;
+    }
+
+    // 树叶渲染规则
+    if (BlockTags::LEAVES().contains(*block)) {
+        const bool neighborIsLeaves = BlockTags::LEAVES().contains(*neighbor);
+        if (neighborIsLeaves) {
+            return false;
+        }
+        if (!neighbor->isTransparent()) {
+            return false;
+        }
+        return true;
+    }
+
+    // 透明方块规则
+    if (neighbor->isTransparent()) {
+        if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
+            return false;
+        }
+        return true;
+    }
+
+    // 透明方块贴着不透明方块时必须保留面
+    if (block->isTransparent()) {
+        return true;
+    }
+
+    // ========== 形状遮挡检测（参考 MC 1.16.5 Block.shouldSideBeRendered）==========
+    //
+    // MC 面剔除逻辑：
+    // 1. 如果邻居不是实心方块（!isSolid()），渲染该面
+    // 2. 否则使用 VoxelShape 面遮挡检测：
+    //    - 获取当前方块在指定方向的面遮挡形状
+    //    - 获取邻居方块在相反方向的面遮挡形状
+    //    - 使用 ONLY_FIRST 检测是否有独占区域
+    //
+    // 注意：MC 中 isSolid() 对应 BlockState.isSolid()，检查方块是否为实心方块。
+    // 这与 isOpaque() 不同，isOpaque() 检查是否完全不透明。
+
+    // 如果邻居不是实心方块，渲染该面
+    // 参考 MC 1.16.5 Block.shouldSideBeRendered 第 211 行
+    if (!neighbor->isSolid()) {
+        return true;
+    }
+
+    // 当前方块是否使用形状进行遮挡检测
+    // 参考 MC 1.16.5 BlockState.useShapeForLightOcclusion()
+    // 大多数实心方块返回 false（使用简单的 isSolid 检测）
+    // 台阶、楼梯、栅栏等非完整方块返回 true（需要精确形状检测）
+    const bool useShapeOcclusion = block->useShapeForLightOcclusion() || neighbor->useShapeForLightOcclusion();
+
+    if (!useShapeOcclusion) {
+        // 两个都是实心方块，不渲染
+        // 参考 MC 1.16.5: 如果邻居是实心方块且不需要形状检测，则遮挡
+        return false;
+    }
+
+    // 使用形状遮挡检测
+    // 参考 MC 1.16.5 Block.shouldSideBeRendered 第 200-202 行
+    const Direction dir = faceToDirection(face);
+    const Direction oppositeDir = Directions::opposite(dir);
+
+    // 获取当前方块在指定方向的面遮挡形状
+    const CollisionShape blockFaceShape = block->getFaceOcclusionShape(dir);
+
+    // 获取邻居方块在相反方向的面遮挡形状
+    const CollisionShape neighborFaceShape = neighbor->getFaceOcclusionShape(oppositeDir);
+
+    // 如果任一面形状是完整方块，完全遮挡
+    if (blockFaceShape.isFullBlock() && neighborFaceShape.isFullBlock()) {
+        return false;
+    }
+
+    // 如果任一面形状为空，不遮挡
+    if (blockFaceShape.isEmpty()) {
+        return true;
+    }
+    if (neighborFaceShape.isEmpty()) {
+        return true;
+    }
+
+    // 使用形状遮挡检测
+    // 参考 MC 1.16.5 VoxelShapes.compare(shape1, shape2, IBooleanFunction.ONLY_FIRST)
+    // 如果 blockFaceShape 有区域不在 neighborFaceShape 中，则需要渲染
+    // 转换为 VoxelShape 进行精确比较
+    const VoxelShape blockVoxel = collisionShapeToVoxelShape(blockFaceShape);
+    const VoxelShape neighborVoxel = collisionShapeToVoxelShape(neighborFaceShape);
+
+    // 使用 ONLY_FIRST 检测：如果 blockVoxel 有独占区域，则需要渲染
+    // faceShapeOccludes 返回 true 表示完全遮挡，返回 false 表示有独占区域需要渲染
+    return !Shapes::faceShapeOccludes(blockVoxel, neighborVoxel);
 }
 
 u8 ChunkMesher::sampleCombinedLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
@@ -1573,7 +1732,7 @@ void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
     for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
         const Face face = static_cast<Face>(faceIdx);
         const BlockState* neighbor = neighborStates[faceIdx];
-        if (!shouldRenderFace(block, neighbor)) {
+        if (!shouldRenderFace(block, neighbor, face)) {
             continue;
         }
 
@@ -1876,7 +2035,9 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                     const BlockState* neighbor = getNeighborBlock(x, y, z, face);
 
                     // 决定是否渲染该面
-                    if (shouldRenderFace(block, neighbor)) {
+                    if (!shouldRenderFace(block, neighbor, face)) {
+                        continue;
+                    } else {
                         const f64 fx = static_cast<f64>(x);
                         const f64 fy = static_cast<f64>(baseY + y);
                         const f64 fz = static_cast<f64>(z);
@@ -2105,7 +2266,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
         }
 
         const BlockState* neighbor = getNeighborBlock(x, y, z, face);
-        if (!shouldRenderFace(block, neighbor)) {
+        if (!shouldRenderFace(block, neighbor, face)) {
             return cell;
         }
 

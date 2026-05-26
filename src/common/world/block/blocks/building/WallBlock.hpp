@@ -82,6 +82,18 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 墙有复杂的形状，需要精确的形状遮挡检测。
+     * 参考: MC 1.16.5 WallBlock.propagatesSkylightDown()
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
      * @brief 判断方块是否为墙
      * @param state 方块状态
      * @return 如果是墙返回 true

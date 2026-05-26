@@ -88,6 +88,17 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 按钮是小型薄型方块，需要精确的形状遮挡检测。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== 按钮特有方法 ==========
 
     /**

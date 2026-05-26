@@ -94,6 +94,18 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 单层台阶需要精确的形状遮挡检测，双层台阶不需要。
+     * 参考: MC 1.16.5 SlabBlock.isTransparent() 相关逻辑
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        // 单层台阶需要形状遮挡检测
+        return state.get(BlockStateProperties::SLAB_TYPE()) != BlockStateProperties::SlabType::Double;
+    }
+
     // ========== 其他 ==========
 
     /**

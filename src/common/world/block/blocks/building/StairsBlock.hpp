@@ -89,6 +89,18 @@ public:
 
     [[nodiscard]] const CollisionShape& getOcclusionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 楼梯有复杂的形状，需要精确的形状遮挡检测。
+     * 参考: MC 1.16.5 StairsBlock.isTransparent() 相关逻辑
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== 旋转和镜像 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;

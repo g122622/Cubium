@@ -61,6 +61,7 @@ void BlockState::cacheProperties()
     // 与 Java 版对齐：通过虚函数计算缓存值，确保子类重写生效。
     m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
     m_propagatesSkylightDown = m_owner->propagatesSkylightDown(*this, nullptr, nullptr);
+    m_useShapeForLightOcclusion = m_owner->useShapeForLightOcclusion(*this);
     m_hardness = m_owner->hardness();
     m_resistance = m_owner->resistance();
     m_blockId = m_owner->blockId();

@@ -100,6 +100,17 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 活板门有复杂的形状（关闭时只有部分面），需要精确的形状遮挡检测。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== 红石 ==========
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const override
