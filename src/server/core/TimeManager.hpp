@@ -86,18 +86,25 @@ public:
     // ========== 日光周期 ==========
 
     /**
-     * @brief 获取日光时间（0-23999，对应 0:00-23:59）
+     * @brief 获取累积的日光时间（可能超过 24000）
+     *
+     * 注意：此值可能超过 24000。如需一天内的时间 (0-23999)，请使用 dayTimeOfDay()。
+     */
+    [[nodiscard]] i64 dayTime() const;
+
+    /**
+     * @brief 获取当前一天内的时间 (0-23999，对应 0:00-23:59)
      *
      * 0 = 6:00 AM（日出）
      * 6000 = 正午
      * 12000 = 6:00 PM（日落）
      * 18000 = 午夜
      */
-    [[nodiscard]] i64 dayTime() const;
+    [[nodiscard]] i64 dayTimeOfDay() const;
 
     /**
      * @brief 设置日光时间
-     * @param time 新的日光时间（会自动取模）
+     * @param time 新的日光时间（直接存储，不取模）
      */
     void setDayTime(i64 time);
 

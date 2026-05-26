@@ -236,7 +236,7 @@ bool BatRestGoal::shouldExecute()
     }
 
     // 检查是否是白天
-    i64 timeOfDay = m_bat->world()->dayTime() % 24000;
+    i64 timeOfDay = m_bat->world()->dayTimeOfDay();
     bool isDay = timeOfDay < 12000;
 
     // 白天且在飞行中且可以休息（上方有固体方块）时尝试休息
@@ -341,7 +341,7 @@ bool BatRestGoal::shouldStopResting() const
 
     // 条件1：夜间唤醒
     // MC 1.16.5: BatEntity 第129行
-    i64 timeOfDay = m_bat->world()->dayTime() % 24000;
+    i64 timeOfDay = m_bat->world()->dayTimeOfDay();
     bool isDay = timeOfDay < 12000;
     if (!isDay) {
         return true; // 夜间唤醒

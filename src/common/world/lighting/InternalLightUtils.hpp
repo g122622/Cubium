@@ -47,7 +47,7 @@ namespace InternalLightUtils {
  * 根据时间和天气计算天空减暗。
  * 天空减暗影响天空光照的有效值。
  *
- * @param dayTime 世界时间 (0-23999)
+ * @param dayTime 世界时间（可以是任意值，内部会取模）
  * @param isRaining 是否下雨
  * @param isThundering 是否雷暴
  * @return 天空减暗因子 (0-11)
@@ -61,7 +61,7 @@ namespace InternalLightUtils {
  *
  * 不考虑天气，仅根据时间计算。
  *
- * @param dayTime 世界时间 (0-23999)
+ * @param dayTime 世界时间（可以是任意值，内部会取模）
  * @return 天空减暗因子 (0-11)
  */
 [[nodiscard]] i32 calculateDefaultSkyDarkening(i64 dayTime);
@@ -132,7 +132,7 @@ namespace InternalLightUtils {
  * 将世界时间转换为天体角度。
  * 这是简化的线性映射版本，用于光照计算。
  *
- * @param dayTime 世界时间 (0-23999)
+ * @param dayTime 世界时间（可以是任意值，内部会取模）
  * @return 天体角度 (0.0-1.0)
  *         0.0 = 日出, 0.25 = 正午, 0.5 = 日落, 0.75 = 午夜
  */
@@ -149,7 +149,7 @@ namespace InternalLightUtils {
  *   d1 = 0.5 - cos(d0 * π) / 2.0
  *   result = (d0 * 2.0 + d1) / 3.0
  *
- * @param dayTime 世界时间 (0-23999)
+ * @param dayTime 世界时间（可以是任意值，内部会取模）
  * @return 天体角度 (0.0-1.0)
  *         0.0 = 正午, 0.25 = 日落, 0.5 = 午夜, 0.75 = 日出
  *

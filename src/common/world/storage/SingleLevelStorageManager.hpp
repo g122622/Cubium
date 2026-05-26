@@ -181,6 +181,36 @@ public:
     [[nodiscard]] Result<LevelRuntimeData> loadLevelData();
 
     /**
+     * @brief 保存世界运行时元数据
+     *
+     * 将时间、天气、出生点等运行时数据写入 level.dat。
+     *
+     * @param gameTime 游戏时间（刻）
+     * @param dayTime 日光时间（刻）
+     * @param spawnX 出生点 X
+     * @param spawnY 出生点 Y
+     * @param spawnZ 出生点 Z
+     * @param spawnAngle 出生点朝向（角度）
+     * @param clearWeatherTime 清晰天气剩余时间（刻）
+     * @param rainTime 下雨剩余时间（刻）
+     * @param raining 是否正在下雨
+     * @param thunderTime 雷暴剩余时间（刻）
+     * @param thundering 是否正在雷暴
+     * @return 成功或错误
+     */
+    Result<void> saveLevelData(i64 gameTime,
+        i64 dayTime,
+        i32 spawnX,
+        i32 spawnY,
+        i32 spawnZ,
+        f32 spawnAngle,
+        i32 clearWeatherTime,
+        i32 rainTime,
+        bool raining,
+        i32 thunderTime,
+        bool thundering);
+
+    /**
      * @brief 注入存储 IO 线程池
      *
      * 注入后会同步创建/更新 `StorageTaskManager`，并传播到所有已创建的 `SectionManager`。

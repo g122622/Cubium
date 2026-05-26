@@ -26,3 +26,5 @@ cmake .. -DVCPKG_MANIFEST_INSTALL=OFF -G "Ninja Multi-Config"
 ```powershell
 cmake --build --preset windows-clang-relwithdebinfo
 ```
+
+【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！

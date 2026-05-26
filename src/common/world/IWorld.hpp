@@ -483,7 +483,8 @@ public:
     {
         // 使用 InternalLightUtils 计算天空减暗因子
         // 根据当前时间和天气状态
-        return InternalLightUtils::calculateSkyDarkening(dayTime(), isRaining(), isThundering());
+        // 注意：InternalLightUtils 函数内部会取模，但传入 dayTimeOfDay() 更清晰
+        return InternalLightUtils::calculateSkyDarkening(dayTimeOfDay(), isRaining(), isThundering());
     }
 
     /**
@@ -755,17 +756,28 @@ public:
     [[nodiscard]] virtual u64 currentTick() const = 0;
 
     /**
-     * @brief 获取一天内的时间 (0-23999)
+     * @brief 获取累积的日光时间（可能超过 24000）
+     *
+     * 注意：此值可能超过 24000。如需一天内的时间 (0-23999)，请使用 dayTimeOfDay()。
+     * 用于存储、保存到存档等场景。
      */
     [[nodiscard]] virtual i64 dayTime() const = 0;
+
+    /**
+     * @brief 获取当前一天内的时间 (0-23999)
+     *
+     * 用于天体角度计算、时间显示、睡眠检测等场景。
+     * MC 1.16.5: dayTime % 24000
+     */
+    [[nodiscard]] virtual i64 dayTimeOfDay() const { return dayTime() % 24000; }
 
     /**
      * @brief 检查是否为白天
      *
      * MC 1.16.5: world.isDaytime()
-     * dayTime < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
+     * dayTimeOfDay() < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
      */
-    [[nodiscard]] virtual bool isDaytime() const { return dayTime() < 12000; }
+    [[nodiscard]] virtual bool isDaytime() const { return dayTimeOfDay() < 12000; }
 
     /**
      * @brief 获取游戏时间 (总tick数)

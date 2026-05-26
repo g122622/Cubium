@@ -36,7 +36,9 @@ TimeCheckCondition::TimeCheckCondition(i64 period, RandomValueRange value)
 bool TimeCheckCondition::test(LootContext& context) const
 {
     IWorld& world = context.getWorld();
-    i64 dayTime = world.dayTime();
+    // 使用 dayTimeOfDay() 获取一天内的时间 (0-23999)
+    // 如果有周期(period)，则对周期取模
+    i64 dayTime = world.dayTimeOfDay();
 
     if (m_hasPeriod && m_period > 0) {
         dayTime = dayTime % m_period;

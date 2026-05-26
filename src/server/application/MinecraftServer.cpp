@@ -62,6 +62,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
@@ -193,9 +194,21 @@ void MinecraftServer::tick()
         return;
     }
 
-    // 更新时间
+    // 更新时间 - 根据 doDaylightCycle 游戏规则决定是否推进日光周期
     {
         MC_TRACE_EVENT("server.tick", "TickTime");
+
+        // 从主世界获取 doDaylightCycle 游戏规则
+        // MC 1.16.5: 只有主世界的时间会受 doDaylightCycle 影响
+        bool daylightCycleEnabled = true; // 默认启用
+        auto* overworld = m_dimensionManager ? m_dimensionManager->getOverworld() : nullptr;
+        if (overworld && overworld->world()) {
+            daylightCycleEnabled =
+                overworld->world()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_DAYLIGHT_CYCLE);
+        }
+
+        // 更新 TimeManager 的日光周期状态
+        m_timeManager->setDaylightCycleEnabled(daylightCycleEnabled);
         m_timeManager->tick();
     }
 
@@ -297,8 +310,8 @@ void MinecraftServer::initializeCoreManagers()
     // 创建核心管理器
     m_playerManager = std::make_unique<core::PlayerManager>(m_settings.maxPlayers.get());
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
-    // 与 Java 版一致：世界初始白天时间从 1000 开始（清晨后）
-    m_timeManager = std::make_unique<core::TimeManager>(0, 1000);
+    // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
+    m_timeManager = std::make_unique<core::TimeManager>(0, 0);
     m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
     m_keepAliveManager = std::make_unique<core::KeepAliveManager>(
         *m_playerManager, m_settings.keepAliveInterval.get(), m_settings.keepAliveTimeout.get());
@@ -325,7 +338,7 @@ void MinecraftServer::initializeCoreManagers()
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     m_dimensionManager->setDimensionChangeCallback(
-        [this](PlayerId playerId, DimensionId, DimensionId, const Vector3d& position) {
+        [this](PlayerId playerId, DimensionId fromDim, DimensionId toDim, const Vector3d& position) {
             auto* player = m_playerManager->getPlayer(playerId);
             if (!player) {
                 return;
@@ -334,6 +347,21 @@ void MinecraftServer::initializeCoreManagers()
             m_positionTracker->updatePosition(
                 playerId, position.x, position.y, position.z, player->yaw, player->pitch, player->onGround);
             updateEntityTrackingForPlayer(playerId, position.x, position.y, position.z);
+
+            // 发送维度特定时间更新
+            // 当玩家切换到下界或末地时，需要发送固定时间
+            auto* targetDim = m_dimensionManager->getDimension(toDim);
+            if (targetDim && targetDim->world()) {
+                const auto& time = timeManager().gameTimeObj();
+                i64 dayTime = targetDim->world()->dayTime();
+
+                network::TimeUpdatePacket timePacket(time.gameTime(), dayTime, time.daylightCycleEnabled());
+                network::PacketSerializer timeSer;
+                timePacket.serialize(timeSer);
+                auto fullTimePacket =
+                    core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());
+                sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
+            }
         });
 
     // Worker 池由服务器统一管理，初始化阶段在这里启动。
@@ -412,9 +440,61 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         return Error(ErrorCode::InvalidState, "Shared storage not open");
     }
 
+    // 保存区块和玩家数据
     auto result = m_storage->saveAll();
     if (result.failed()) {
         return result.error();
+    }
+
+    // 保存运行时数据到 level.dat（时间、天气、出生点等）
+    // 仅保存主世界数据
+    auto* overworld = m_dimensionManager->getOverworld();
+    if (overworld && overworld->world()) {
+        ServerWorld* world = overworld->world();
+
+        // 获取时间和天气数据
+        i64 gameTime = m_timeManager->gameTime();
+        i64 dayTime = m_timeManager->dayTime();
+
+        // 获取出生点
+        Vector3d spawnPoint = world->worldSpawnPoint();
+        i32 spawnX = static_cast<i32>(std::floor(spawnPoint.x));
+        i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y));
+        i32 spawnZ = static_cast<i32>(std::floor(spawnPoint.z));
+        f32 spawnAngle = 0.0f; // 出生点朝向暂时固定为 0
+
+        // 获取天气数据
+        i32 clearWeatherTime = 0;
+        i32 rainTime = 0;
+        bool raining = false;
+        i32 thunderTime = 0;
+        bool thundering = false;
+
+        if (world->weatherManager()) {
+            const auto& weatherState = world->weatherManager()->state();
+            clearWeatherTime = weatherState.clearWeatherTime;
+            rainTime = weatherState.rainTime;
+            raining = weatherState.raining;
+            thunderTime = weatherState.thunderTime;
+            thundering = weatherState.thundering;
+        }
+
+        // 保存到 level.dat
+        auto levelResult = m_storage->saveLevelData(gameTime,
+            dayTime,
+            spawnX,
+            spawnY,
+            spawnZ,
+            spawnAngle,
+            clearWeatherTime,
+            rainTime,
+            raining,
+            thunderTime,
+            thundering);
+
+        if (levelResult.failed()) {
+            spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
+        }
     }
 
     spdlog::info("Saved {} cached sections and player data during shutdown", result.value());
@@ -1043,14 +1123,45 @@ void MinecraftServer::tickKeepAlive()
 
 void MinecraftServer::sendTimeUpdate()
 {
+    // MC 1.16.5: 按维度发送时间更新
+    // - 主世界: 使用实际时间
+    // - 下界: 固定为 18000 (午夜)
+    // - 末地: 固定为 6000 (正午)
+
     const auto& time = timeManager().gameTimeObj();
-    network::TimeUpdatePacket packet(time.gameTime(), time.dayTime(), time.daylightCycleEnabled());
+    const i64 gameTime = time.gameTime();
+    const bool daylightCycleEnabled = time.daylightCycleEnabled();
 
-    network::PacketSerializer ser;
-    packet.serialize(ser);
+    // 按维度发送时间更新
+    // 使用维度管理器获取每个维度的玩家列表
+    constexpr DimensionId dimensions[] = {
+        DimensionManager::OVERWORLD, DimensionManager::NETHER, DimensionManager::THE_END};
+    for (DimensionId dimId : dimensions) {
+        auto* dim = m_dimensionManager->getDimension(dimId);
+        if (!dim || !dim->world()) {
+            continue;
+        }
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, ser.buffer());
-    broadcastPacket(fullPacket.data(), fullPacket.size());
+        const auto& playerIds = dim->players();
+        if (playerIds.empty()) {
+            continue;
+        }
+
+        // 获取该维度的一天内时间 (0-23999)
+        // dayTimeOfDay() 对于下界/末地会返回固定时间
+        i64 tod = dim->world()->dayTimeOfDay();
+
+        network::TimeUpdatePacket packet(gameTime, tod, daylightCycleEnabled);
+        network::PacketSerializer ser;
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, ser.buffer());
+
+        // 发送给该维度的所有玩家
+        for (PlayerId playerId : playerIds) {
+            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        }
+    }
 }
 
 void MinecraftServer::sendWeatherUpdate()
@@ -1652,12 +1763,21 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
     // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
     // 紧接着回两次 TeleportConfirm，第二次会因为服务端已清除 waitingTeleportConfirm
-    // 而被当作无效确认，进而打乱首次区块加载时序。
+    // 而被当作无效确认，进而打断首次区块加载时序。
     m_teleportManager->requestTeleport(playerId, x, y, z, yaw, pitch);
 
     // 立即发送时间，避免客户端在首次周期同步前短暂显示默认时间(0)
+    // 使用玩家当前维度的时间（下界=18000，末地=6000，主世界=实际时间）
     const auto& time = timeManager().gameTimeObj();
-    network::TimeUpdatePacket timePacket(time.gameTime(), time.dayTime(), time.daylightCycleEnabled());
+    i64 dayTime = time.dayTimeOfDay(); // 默认使用主世界时间
+
+    // 获取玩家当前维度并使用维度特定时间
+    auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+    if (playerDim && playerDim->world()) {
+        dayTime = playerDim->world()->dayTime();
+    }
+
+    network::TimeUpdatePacket timePacket(time.gameTime(), dayTime, time.daylightCycleEnabled());
     network::PacketSerializer timeSer;
     timePacket.serialize(timeSer);
     auto fullTimePacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());

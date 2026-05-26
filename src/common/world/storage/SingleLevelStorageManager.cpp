@@ -517,6 +517,46 @@ Result<LevelRuntimeData> SingleLevelStorageManager::loadLevelData()
     return LevelDatCodec::readRuntimeData(m_worldPath);
 }
 
+Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
+    i64 dayTime,
+    i32 spawnX,
+    i32 spawnY,
+    i32 spawnZ,
+    f32 spawnAngle,
+    i32 clearWeatherTime,
+    i32 rainTime,
+    bool raining,
+    i32 thunderTime,
+    bool thundering)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_config.readonly) {
+        return Result<void>::ok();
+    }
+
+    // Native 格式：直接写入 level.dat
+    if (!m_backend) {
+        return LevelDatCodec::updateRuntimeData(m_worldPath,
+            gameTime,
+            dayTime,
+            spawnX,
+            spawnY,
+            spawnZ,
+            spawnAngle,
+            clearWeatherTime,
+            rainTime,
+            raining,
+            thunderTime,
+            thundering);
+    }
+
+    // 外来格式：只读，不保存
+    return Result<void>::ok();
+}
+
 SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
 {
     if (!isOpen()) {

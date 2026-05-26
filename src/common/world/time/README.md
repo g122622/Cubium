@@ -36,8 +36,13 @@ Minecraft 1.16.5 时间系统常量：
 
 管理游戏世界的 dayTime 和 gameTime：
 
+**【重要】MC 1.16.5 行为变更**：
+- `dayTime` 是**无边界计数器**，不会自动取模
+- `/time add 100000` 后 dayTime 可以是 125000（即 5 天 + 1000）
+- 使用 `dayTimeOfDay()` 获取归一化的一天内时间 (0-23999)
+
 **成员变量**：
-- `m_dayTime` (i64)：一天内的时间 (0-23999)，控制太阳/月亮位置
+- `m_dayTime` (i64)：累积的日光时间（无边界），可用于计算天数、月相等
 - `m_gameTime` (i64)：游戏启动以来的总 tick 数，用于统计和月相计算
 - `m_daylightCycleEnabled` (bool)：日光周期是否启用
 
@@ -45,11 +50,12 @@ Minecraft 1.16.5 时间系统常量：
 | 方法 | 说明 |
 |------|------|
 | `tick()` | 更新时间（每 tick 调用一次） |
-| `setDayTime(i64)` | 设置 dayTime（自动取模处理） |
+| `setDayTime(i64)` | 设置 dayTime（直接存储，不取模） |
 | `addDayTime(i64)` | 增加 dayTime |
 | `setGameTime(i64)` | 设置 gameTime |
 | `setDaylightCycleEnabled(bool)` | 启用/禁用日光周期 |
-| `dayTime()` | 获取当前一天内的时间 |
+| `dayTime()` | 获取累积的日光时间（可能超过 24000） |
+| `dayTimeOfDay()` | 获取当前一天内的时间 (0-23999) |
 | `gameTime()` | 获取总 tick 数 |
 | `dayCount()` | 获取已过去的天数 |
 | `isDay()` | 判断是否是白天 |
@@ -69,39 +75,55 @@ Minecraft 1.16.5 时间系统常量：
 void GameTime::tick() {
     m_gameTime++;
     if (m_daylightCycleEnabled) {
-        m_dayTime = (m_dayTime + 1) % TimeConstants::TICKS_PER_DAY;
+        // MC 1.16.5 行为：dayTime 递增但不取模
+        // 只有在读取一天内时间时才取模
+        m_dayTime++;
     }
 }
 ```
 - 总是递增 gameTime
 - 仅在日光周期启用时递增 dayTime
-- dayTime 自动循环到 0
+- **dayTime 不自动循环**，可以超过 24000
 
 #### setDayTime() 方法
 ```cpp
 void GameTime::setDayTime(i64 time) {
-    m_dayTime = ((time % TimeConstants::TICKS_PER_DAY) + TimeConstants::TICKS_PER_DAY)
-                % TimeConstants::TICKS_PER_DAY;
+    // MC 1.16.5 行为：直接存储，不取模
+    // dayTime 可以是任意值，包括负数
+    m_dayTime = time;
 }
 ```
-- 正确处理负数输入（例如 -100 → 23900）
-- 确保结果始终在 [0, 23999] 范围内
+- **不自动取模**，直接存储原始值
+- 支持负数（例如 `/time set -100`）
+
+#### dayTimeOfDay() 方法
+```cpp
+i64 GameTime::dayTimeOfDay() const {
+    // 使用数学公式确保负数也能正确取模
+    return ((m_dayTime % TICKS_PER_DAY) + TICKS_PER_DAY) % TICKS_PER_DAY;
+}
+```
+- 返回归一化的一天内时间 (0-23999)
+- 正确处理负数
 
 #### isDay() 方法
 ```cpp
 bool GameTime::isDay() const {
-    return m_dayTime >= TimeConstants::SUNRISE && m_dayTime < TimeConstants::SUNSET;
+    i64 tod = dayTimeOfDay();
+    return tod >= SUNRISE && tod < SUNSET;
 }
 ```
-- 白天定义：dayTime 在 [0, 12000) 范围内
+- 白天定义：dayTimeOfDay() 在 [0, 12000) 范围内
 
 #### dayTimeForNetwork() 方法
 ```cpp
 i64 GameTime::dayTimeForNetwork() const {
-    return m_daylightCycleEnabled ? m_dayTime : -m_dayTime;
+    i64 tod = dayTimeOfDay();
+    return m_daylightCycleEnabled ? tod : -tod;
 }
 ```
 - MC 协议规定：负数表示日光周期禁用
+- 返回的是 dayTimeOfDay (0-23999) 而非原始 dayTime
 
 ---
 
@@ -139,7 +161,8 @@ GameTime.cpp（实现）
 - `setDaylightCycleEnabled(enabled)` 日光周期控制
 
 ### 输出
-- `dayTime()`：当前一天内时间 (0-23999)
+- `dayTime()`：累积的日光时间（可能超过 24000）
+- `dayTimeOfDay()`：归一化的一天内时间 (0-23999)
 - `gameTime()`：游戏总 tick 数
 - `dayCount()`：已过去的天数
 - `isDay()` / `isNight()`：昼夜状态
@@ -168,12 +191,14 @@ mc::time::GameTime gameTime;
 gameTime.tick();
 
 // 查询时间
-i64 dayTime = gameTime.dayTime();      // 一天内时间
-i64 totalTicks = gameTime.gameTime();  // 总 tick 数
-i64 days = gameTime.dayCount();        // 天数
+i64 rawDayTime = gameTime.dayTime();        // 累积时间（可能超过 24000）
+i64 tod = gameTime.dayTimeOfDay();          // 归一化的一天内时间 (0-23999)
+i64 totalTicks = gameTime.gameTime();       // 总 tick 数
+i64 days = gameTime.dayCount();             // 天数
 
 // 设置时间 (用于 /time set 命令)
-gameTime.setDayTime(6000);  // 设置为正午
+gameTime.setDayTime(6000);   // 设置为正午
+gameTime.setDayTime(100000); // 可以超过 24000
 
 // 增加时间 (用于 /time add 命令)
 gameTime.addDayTime(1000);
@@ -199,6 +224,10 @@ mc::server::core::TimeManager timeManager(0, 0);
 // 每 tick 更新
 timeManager.tick();
 
+// 获取时间
+i64 rawDayTime = timeManager.dayTime();       // 累积时间
+i64 tod = timeManager.dayTimeOfDay();         // 归一化时间
+
 // 获取内部 GameTime
 const auto& gt = timeManager.gameTimeObj();
 ```
@@ -207,37 +236,57 @@ const auto& gt = timeManager.gameTimeObj();
 
 ## 容易踩的坑
 
-### 1. dayTime 范围是 [0, 23999]
+### 1. dayTime 可以超过 24000
 
 ```cpp
-// 错误理解：一天是 1-24000
-// 正确理解：一天是 0-23999
-EXPECT_EQ(gameTime.dayTime(), 0);  // 日出时刻
-EXPECT_EQ(gameTime.dayTime(), 23999);  // 日出前一 tick
+// MC 1.16.5 新行为：dayTime 是无边界计数器
+gameTime.setDayTime(100000);
+EXPECT_EQ(gameTime.dayTime(), 100000);     // 不取模，直接存储
+EXPECT_EQ(gameTime.dayTimeOfDay(), 100000 % 24000);  // 归一化方法返回 0-23999
 ```
 
-### 2. setDayTime 自动处理负数
+### 2. 使用正确的方法
 
 ```cpp
+// 根据场景选择正确的方法：
+
+// 场景 1：天体角度计算、时间显示、睡眠检测 → 使用 dayTimeOfDay()
+i64 tod = gameTime.dayTimeOfDay();
+f32 angle = getCelestialAngle(tod);
+
+// 场景 2：保存到存档、统计总天数 → 使用 dayTime()
+i64 rawTime = gameTime.dayTime();
+saveToNBT(rawTime);
+
+// 场景 3：网络同步 → 使用 dayTimeForNetwork()
+i64 networkTime = gameTime.dayTimeForNetwork();
+```
+
+### 3. setDayTime 不再自动取模
+
+```cpp
+// 旧行为（错误）：
+// gameTime.setDayTime(-100);
+// EXPECT_EQ(gameTime.dayTime(), 23900);  // 自动取模
+
+// 新行为（正确）：
 gameTime.setDayTime(-100);
-EXPECT_EQ(gameTime.dayTime(), 23900);  // 自动取模，不是错误
-
-gameTime.setDayTime(25000);
-EXPECT_EQ(gameTime.dayTime(), 1000);  // 超出范围也自动取模
+EXPECT_EQ(gameTime.dayTime(), -100);        // 直接存储
+EXPECT_EQ(gameTime.dayTimeOfDay(), 23900);  // 归一化方法处理负数
 ```
 
-### 3. dayTimeForNetwork 返回负值表示日光周期禁用
+### 4. dayTimeForNetwork 返回归一化值
 
 ```cpp
-gameTime.setDayTime(1000);
+gameTime.setDayTime(25000);
 gameTime.setDaylightCycleEnabled(true);
-EXPECT_EQ(gameTime.dayTimeForNetwork(), 1000);  // 正值
+EXPECT_EQ(gameTime.dayTimeForNetwork(), 1000);  // 返回 25000 % 24000 = 1000
 
 gameTime.setDaylightCycleEnabled(false);
-EXPECT_EQ(gameTime.dayTimeForNetwork(), -1000);  // 负值！
+EXPECT_EQ(gameTime.dayTimeForNetwork(), -1000);  // 负值表示禁用
 ```
 
-### 4. 日光周期禁用时 dayTime 不递增
+### 5. 日光周期禁用时 dayTime 不递增
 
 ```cpp
 gameTime.setDaylightCycleEnabled(false);
@@ -246,7 +295,7 @@ EXPECT_EQ(gameTime.dayTime(), 0);  // dayTime 不变
 EXPECT_EQ(gameTime.gameTime(), 1); // gameTime 仍然递增
 ```
 
-### 5. isDay() 的边界条件
+### 6. isDay() 的边界条件
 
 ```cpp
 // isDay() 返回 true 的范围是 [0, 12000)
@@ -258,6 +307,10 @@ EXPECT_TRUE(gameTime.isDay());      // 日落前一 tick
 
 gameTime.setDayTime(12000);
 EXPECT_FALSE(gameTime.isDay());     // 日落时刻是夜晚
+
+// 超过 24000 的情况
+gameTime.setDayTime(25000);         // 25000 % 24000 = 1000
+EXPECT_TRUE(gameTime.isDay());      // 1000 是白天
 ```
 
 ---
@@ -272,13 +325,14 @@ EXPECT_FALSE(gameTime.isDay());     // 日落时刻是夜晚
 |---------|---------|
 | `InitialState` | 初始状态：dayTime=0, gameTime=0, daylightCycleEnabled=true |
 | `TickIncrement` | tick() 正确递增 dayTime 和 gameTime |
-| `DayTimeCycle` | dayTime 到 23999 后循环回 0 |
-| `SetDayTimeNormalizesNegative` | setDayTime 正确处理负数和超范围值 |
-| `AddDayTime` | addDayTime 正确处理循环 |
+| `DayTimeUnbounded` | dayTime 可以超过 24000，不自动取模 |
+| `SetDayTimeUnbounded` | setDayTime 直接存储，不取模 |
+| `AddDayTime` | addDayTime 正确处理超 24000 的情况 |
 | `DaylightCycleDisabled` | 日光周期禁用时 dayTime 不递增 |
-| `IsDayAndIsNight` | isDay() 和 isNight() 判断正确 |
+| `IsDayAndIsNight` | isDay() 和 isNight() 判断正确（包括超过 24000 的情况） |
 | `DayCount` | dayCount() 正确计算天数 |
-| `DayTimeForNetwork` | dayTimeForNetwork() 正确返回正/负值 |
+| `DayTimeForNetwork` | dayTimeForNetwork() 正确返回归一化值 |
+| `DayTimeOfDayNegativeTime` | dayTimeOfDay() 正确处理负数 |
 
 ### CelestialCalculations 测试
 
@@ -304,3 +358,4 @@ EXPECT_FALSE(gameTime.isDay());     // 日落时刻是夜晚
 | `client/renderer/trident/sky/CelestialCalculations` | 天体计算（太阳位置、月相、天空颜色等） |
 | `server/command/commands/TimeCommand` | /time 命令实现 |
 | `common/network/packet/ProtocolPackets` | TimeUpdatePacket 网络同步 |
+| `common/world/lighting/InternalLightUtils` | 内部光照计算（天空减暗等） |

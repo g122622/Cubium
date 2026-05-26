@@ -31,19 +31,22 @@ void GameTime::tick()
     m_gameTime++;
 
     if (m_daylightCycleEnabled) {
-        m_dayTime = (m_dayTime + 1) % TimeConstants::TICKS_PER_DAY;
+        // MC 1.16.5 行为：dayTime 递增但不取模
+        // 只有在读取一天内时间时才取模
+        m_dayTime++;
     }
 }
 
 void GameTime::setDayTime(i64 time)
 {
-    // 处理负数和时间循环
-    m_dayTime = ((time % TimeConstants::TICKS_PER_DAY) + TimeConstants::TICKS_PER_DAY) % TimeConstants::TICKS_PER_DAY;
+    // MC 1.16.5 行为：直接存储，不取模
+    // dayTime 可以是任意值，包括负数
+    m_dayTime = time;
 }
 
 void GameTime::addDayTime(i64 ticks)
 {
-    setDayTime(m_dayTime + ticks);
+    m_dayTime += ticks;
 }
 
 void GameTime::setGameTime(i64 time)
@@ -56,9 +59,17 @@ void GameTime::setDaylightCycleEnabled(bool enabled)
     m_daylightCycleEnabled = enabled;
 }
 
+i64 GameTime::dayTimeOfDay() const
+{
+    // 使用数学公式确保负数也能正确取模
+    // 例如：-100 -> ((-100 % 24000) + 24000) % 24000 = 23900
+    return ((m_dayTime % TimeConstants::TICKS_PER_DAY) + TimeConstants::TICKS_PER_DAY) % TimeConstants::TICKS_PER_DAY;
+}
+
 bool GameTime::isDay() const
 {
-    return m_dayTime >= TimeConstants::SUNRISE && m_dayTime < TimeConstants::SUNSET;
+    i64 tod = dayTimeOfDay();
+    return tod >= TimeConstants::SUNRISE && tod < TimeConstants::SUNSET;
 }
 
 bool GameTime::isNight() const
@@ -69,7 +80,15 @@ bool GameTime::isNight() const
 i64 GameTime::dayTimeForNetwork() const
 {
     // MC 协议: 负数表示日光周期禁用
-    return m_daylightCycleEnabled ? m_dayTime : -m_dayTime;
+    // 返回的是一天内的时间 (0-23999)
+    i64 tod = dayTimeOfDay();
+    return m_daylightCycleEnabled ? tod : -tod;
+}
+
+i64 GameTime::dayCount() const
+{
+    // 天数 = gameTime / 24000
+    return m_gameTime / TimeConstants::TICKS_PER_DAY;
 }
 
 } // namespace mc::time

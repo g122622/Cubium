@@ -44,6 +44,7 @@ TEST(GameTimeTest, InitialState)
 {
     GameTime time;
     EXPECT_EQ(time.dayTime(), 0);
+    EXPECT_EQ(time.dayTimeOfDay(), 0);
     EXPECT_EQ(time.gameTime(), 0);
     EXPECT_TRUE(time.daylightCycleEnabled());
 }
@@ -54,32 +55,47 @@ TEST(GameTimeTest, TickIncrement)
 
     time.tick();
     EXPECT_EQ(time.dayTime(), 1);
+    EXPECT_EQ(time.dayTimeOfDay(), 1);
     EXPECT_EQ(time.gameTime(), 1);
 
     time.tick();
     EXPECT_EQ(time.dayTime(), 2);
+    EXPECT_EQ(time.dayTimeOfDay(), 2);
     EXPECT_EQ(time.gameTime(), 2);
 }
 
-TEST(GameTimeTest, DayTimeCycle)
+TEST(GameTimeTest, DayTimeUnbounded)
 {
+    // MC 1.16.5 行为：dayTime 是无边界计数器
     GameTime time;
     time.setDayTime(23999);
     time.tick();
 
-    EXPECT_EQ(time.dayTime(), 0);
+    // dayTime 超过 23999，不取模
+    EXPECT_EQ(time.dayTime(), 24000);
+    // dayTimeOfDay 返回归一化值 (0-23999)
+    EXPECT_EQ(time.dayTimeOfDay(), 0);
     EXPECT_EQ(time.gameTime(), 1);
 }
 
-TEST(GameTimeTest, SetDayTimeNormalizesNegative)
+TEST(GameTimeTest, SetDayTimeUnbounded)
 {
+    // MC 1.16.5 行为：setDayTime 直接存储，不取模
     GameTime time;
 
-    time.setDayTime(-100);
-    EXPECT_EQ(time.dayTime(), 23900);
-
     time.setDayTime(25000);
-    EXPECT_EQ(time.dayTime(), 1000);
+    EXPECT_EQ(time.dayTime(), 25000);
+    EXPECT_EQ(time.dayTimeOfDay(), 1000);
+
+    time.setDayTime(100000);
+    EXPECT_EQ(time.dayTime(), 100000);
+    EXPECT_EQ(time.dayTimeOfDay(), 100000 % 24000);
+
+    // 负数也被存储
+    time.setDayTime(-100);
+    EXPECT_EQ(time.dayTime(), -100);
+    // dayTimeOfDay 使用数学公式处理负数
+    EXPECT_EQ(time.dayTimeOfDay(), ((-100 % 24000) + 24000) % 24000); // = 23900
 }
 
 TEST(GameTimeTest, AddDayTime)
@@ -88,11 +104,13 @@ TEST(GameTimeTest, AddDayTime)
 
     time.addDayTime(1000);
     EXPECT_EQ(time.dayTime(), 1000);
+    EXPECT_EQ(time.dayTimeOfDay(), 1000);
 
     time.setDayTime(1000);
     time.addDayTime(23000);
-    // (1000 + 23000) = 24000 -> 0 (循环)
-    EXPECT_EQ(time.dayTime(), 0);
+    // (1000 + 23000) = 24000 - 无边界存储
+    EXPECT_EQ(time.dayTime(), 24000);
+    EXPECT_EQ(time.dayTimeOfDay(), 0);
 }
 
 TEST(GameTimeTest, DaylightCycleDisabled)
@@ -122,6 +140,15 @@ TEST(GameTimeTest, IsDayAndIsNight)
 
     time.setDayTime(18000); // 午夜
     EXPECT_TRUE(time.isNight());
+
+    // 测试超过 24000 的情况
+    time.setDayTime(25000); // 25000 % 24000 = 1000，应该是白天
+    EXPECT_TRUE(time.isDay());
+    EXPECT_FALSE(time.isNight());
+
+    time.setDayTime(36000); // 36000 % 24000 = 12000，应该是夜晚
+    EXPECT_TRUE(time.isNight());
+    EXPECT_FALSE(time.isDay());
 }
 
 TEST(GameTimeTest, DayCount)
@@ -147,6 +174,12 @@ TEST(GameTimeTest, DayTimeForNetwork)
 
     time.setDaylightCycleEnabled(false);
     EXPECT_EQ(time.dayTimeForNetwork(), -1000); // 负数表示日光周期禁用
+
+    // 测试超过 24000 的情况
+    time.setDaylightCycleEnabled(true);
+    time.setDayTime(25000);
+    // dayTimeForNetwork 返回 dayTimeOfDay (0-23999)
+    EXPECT_EQ(time.dayTimeForNetwork(), 1000);
 }
 
 // ============================================================================

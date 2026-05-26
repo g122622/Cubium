@@ -984,7 +984,23 @@ u64 ServerWorld::currentTick() const
 
 i64 ServerWorld::dayTime() const
 {
+    // 返回累积的日光时间（无边界）
+    // 主世界使用 TimeManager 的时间
     return m_timeManager ? m_timeManager->dayTime() : 0;
+}
+
+i64 ServerWorld::dayTimeOfDay() const
+{
+    // 检查维度是否有固定时间（下界=18000午夜，末地=6000正午）
+    DimensionType dimType = getDimensionType();
+    if (dimType.hasFixedTime()) {
+        auto fixedTime = dimType.fixedTimeValue();
+        if (fixedTime.has_value()) {
+            return fixedTime.value();
+        }
+    }
+    // 主世界使用 TimeManager 的 dayTimeOfDay
+    return m_timeManager ? m_timeManager->dayTimeOfDay() : 0;
 }
 
 // ============================================================================

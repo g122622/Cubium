@@ -52,6 +52,11 @@ i64 TimeManager::dayTime() const
     return m_gameTime.dayTime();
 }
 
+i64 TimeManager::dayTimeOfDay() const
+{
+    return m_gameTime.dayTimeOfDay();
+}
+
 void TimeManager::setDayTime(i64 time)
 {
     m_gameTime.setDayTime(time);

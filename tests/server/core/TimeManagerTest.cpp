@@ -39,6 +39,7 @@ TEST_F(TimeManagerTest, DefaultConstruction)
     EXPECT_EQ(manager.currentTick(), 0u);
     EXPECT_EQ(manager.gameTime(), 0);
     EXPECT_EQ(manager.dayTime(), 0);
+    EXPECT_EQ(manager.dayTimeOfDay(), 0);
     EXPECT_TRUE(manager.daylightCycleEnabled());
 }
 
@@ -48,6 +49,7 @@ TEST_F(TimeManagerTest, ConstructionWithInitialTime)
     EXPECT_EQ(m.gameTime(), 1000);
     EXPECT_EQ(m.currentTick(), 1000u);
     EXPECT_EQ(m.dayTime(), 6000);
+    EXPECT_EQ(m.dayTimeOfDay(), 6000);
 }
 
 TEST_F(TimeManagerTest, TickIncreasesTime)
@@ -56,6 +58,7 @@ TEST_F(TimeManagerTest, TickIncreasesTime)
     EXPECT_EQ(manager.currentTick(), 1u);
     EXPECT_EQ(manager.gameTime(), 1);
     EXPECT_EQ(manager.dayTime(), 1);
+    EXPECT_EQ(manager.dayTimeOfDay(), 1);
 
     manager.tick();
     manager.tick();
@@ -74,14 +77,23 @@ TEST_F(TimeManagerTest, SetDayTime)
 {
     manager.setDayTime(12000);
     EXPECT_EQ(manager.dayTime(), 12000);
+    EXPECT_EQ(manager.dayTimeOfDay(), 12000);
 }
 
-TEST_F(TimeManagerTest, DayTimeWrapsAround)
+TEST_F(TimeManagerTest, DayTimeUnbounded)
 {
+    // MC 1.16.5: dayTime is unbounded, does NOT wrap at 24000
     manager.setDayTime(23999);
     manager.tick();
-    // DayTime wraps at 24000
-    EXPECT_EQ(manager.dayTime(), 0);
+    // dayTime should exceed 24000, not wrap to 0
+    EXPECT_EQ(manager.dayTime(), 24000);
+    // dayTimeOfDay returns the normalized value (0-23999)
+    EXPECT_EQ(manager.dayTimeOfDay(), 0);
+
+    // Test with larger values
+    manager.setDayTime(100000);
+    EXPECT_EQ(manager.dayTime(), 100000);
+    EXPECT_EQ(manager.dayTimeOfDay(), 100000 % 24000);
 }
 
 TEST_F(TimeManagerTest, AddDayTime)
@@ -89,6 +101,13 @@ TEST_F(TimeManagerTest, AddDayTime)
     manager.setDayTime(10000);
     manager.addDayTime(5000);
     EXPECT_EQ(manager.dayTime(), 15000);
+    EXPECT_EQ(manager.dayTimeOfDay(), 15000);
+
+    // Test addition that exceeds 24000
+    manager.setDayTime(20000);
+    manager.addDayTime(10000);
+    EXPECT_EQ(manager.dayTime(), 30000);
+    EXPECT_EQ(manager.dayTimeOfDay(), 6000);
 }
 
 TEST_F(TimeManagerTest, DaylightCycleDisable)
@@ -100,6 +119,7 @@ TEST_F(TimeManagerTest, DaylightCycleDisable)
     manager.tick();
     // dayTime should not change when daylight cycle is disabled
     EXPECT_EQ(manager.dayTime(), 10000);
+    EXPECT_EQ(manager.dayTimeOfDay(), 10000);
 }
 
 TEST_F(TimeManagerTest, DayCount)
@@ -121,4 +141,14 @@ TEST_F(TimeManagerTest, GameTimeObj)
     // dayTime is independent of gameTime, starts at 0
     manager.setDayTime(2000);
     EXPECT_EQ(manager.gameTimeObj().dayTime(), 2000);
+}
+
+TEST_F(TimeManagerTest, DayTimeOfDayNegativeTime)
+{
+    // Test negative time handling
+    manager.setDayTime(-100);
+    // dayTime stores negative value
+    EXPECT_EQ(manager.dayTime(), -100);
+    // dayTimeOfDay normalizes to positive value in 0-23999 range
+    EXPECT_EQ(manager.dayTimeOfDay(), 23900);
 }

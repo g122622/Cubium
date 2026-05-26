@@ -55,7 +55,7 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
 
     // 当有服务端同步时，逐渐纠正到服务端时间（避免跳变）
     if (m_hasServerTimeSync) {
-        const i64 serverDayTime = m_world.dayTime();
+        const i64 serverDayTime = m_world.dayTimeOfDay();
         const i64 serverGameTime = m_world.gameTime();
 
         // 计算时间差（处理 dayTime 循环）

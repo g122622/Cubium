@@ -161,8 +161,9 @@ void AdvancementEventHandler::onCuredZombieVillager(const CuredZombieVillagerEve
 | `gameTime()` | 获取游戏时间 |
 | `currentTick()` | 获取当前 tick |
 | `setGameTime(time)` | 设置游戏时间 |
-| `dayTime()` | 获取日光时间（0-23999） |
-| `setDayTime(time)` | 设置日光时间 |
+| `dayTime()` | 获取累积的日光时间（可能超过 24000） |
+| `dayTimeOfDay()` | 获取归一化的一天内时间 (0-23999) |
+| `setDayTime(time)` | 设置日光时间（直接存储，不取模） |
 | `addDayTime(ticks)` | 增加日光时间 |
 | `dayCount()` | 获取天数 |
 | `daylightCycleEnabled()` | 检查日光周期是否启用 |
@@ -173,6 +174,11 @@ void AdvancementEventHandler::onCuredZombieVillager(const CuredZombieVillagerEve
 - 6000 = 正午
 - 12000 = 6:00 PM（日落）
 - 18000 = 午夜
+
+**【重要】MC 1.16.5 行为变更：**
+- `dayTime()` 返回无边界累积值，可能超过 24000
+- 使用 `dayTimeOfDay()` 获取归一化的一天内时间 (0-23999)
+- 天体计算、时间显示、睡眠检测等场景应使用 `dayTimeOfDay()`
 
 ---
 

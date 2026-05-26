@@ -73,8 +73,8 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
 
     // 条件3: 检查是否为夜晚（不是白天）
     // MC 1.16.5: !world.isDaytime()
-    const i64 worldDayTime = world.dayTime();
-    const bool isDaytime = (worldDayTime % game::DAY_LENGTH_TICKS) < 12000; // 0-12000 是白天
+    const i64 worldDayTime = world.dayTimeOfDay();
+    const bool isDaytime = worldDayTime < 12000; // 0-12000 是白天
 
     if (isDaytime) {
         // 白天重置状态
@@ -140,7 +140,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
 
 bool VillageSiege::trySetupSiege(server::ServerWorld& world)
 {
-    // 更新随机种子
+    // 更新随机种子 - 使用累积的 dayTime 作为种子
     m_random.setSeed(world.dayTime());
 
     // 获取所有玩家
@@ -249,8 +249,7 @@ bool VillageSiege::spawnZombie(server::ServerWorld& world)
     if (zombie != nullptr) {
         // 获取区域难度
         // MC 1.16.5: DifficultyInstance difficulty = world.getDifficultyForLocation(pos)
-        const f32 regionalDifficulty =
-            entity::combat::DifficultyHelper::getRegionalDifficultyBase(world.difficulty());
+        const f32 regionalDifficulty = entity::combat::DifficultyHelper::getRegionalDifficultyBase(world.difficulty());
 
         // MC 1.16.5: 设置是否可以拾取战利品
         // 概率 = 0.55 * regionalDifficulty
@@ -361,7 +360,7 @@ bool VillageSiege::isMidnight(server::ServerWorld& world) const
     //
     // 由于浮点精度问题，直接比较 celestialAngle == 0.5 可能不够稳定，
     // 而 dayTime 是整数，精确检查 dayTime == 18000 更可靠。
-    const i64 worldDayTime = world.dayTime() % game::DAY_LENGTH_TICKS;
+    const i64 worldDayTime = world.dayTimeOfDay();
     return worldDayTime == 18000;
 }
 

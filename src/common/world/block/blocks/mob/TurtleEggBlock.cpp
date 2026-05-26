@@ -142,7 +142,7 @@ bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const
     //
     // 天体角度 0.65-0.69 对应黎明时分（约 dayTime 22000-22600）
     // 这是海龟蛋孵化的最佳时间
-    f32 celestialAngle = InternalLightUtils::getCelestialAngleMC(world.dayTime());
+    f32 celestialAngle = InternalLightUtils::getCelestialAngleMC(world.dayTimeOfDay());
 
     if (celestialAngle < 0.69 && celestialAngle > 0.65) {
         // 黎明时分，100% 孵化

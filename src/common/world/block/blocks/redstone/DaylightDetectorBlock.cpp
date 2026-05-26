@@ -148,8 +148,9 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
     u8 skyLight = world.getSkyLight(pos);
 
     // 使用 InternalLightUtils 计算天空减暗因子
-    i64 dayTime = world.dayTime();
-    i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(dayTime, world.isRaining(), world.isThundering());
+    // dayTimeOfDay() 返回 0-23999 范围的时间
+    i64 tod = world.dayTimeOfDay();
+    i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(tod, world.isRaining(), world.isThundering());
 
     i32 i = static_cast<i32>(skyLight) - skyDarkening;
 
@@ -162,7 +163,7 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
     // 获取天体角度进行余弦调整
     // MC Java: float f = world.getCelestialAngleRadians(1.0F);
     if (i > 0) {
-        f32 celestialAngle = InternalLightUtils::getCelestialAngle(dayTime);
+        f32 celestialAngle = InternalLightUtils::getCelestialAngle(tod);
         // 转换为弧度（getCelestialAngle 返回 0.0-1.0）
         constexpr f32 TWO_PI = 6.28318530718f;
         f32 f = celestialAngle * TWO_PI;

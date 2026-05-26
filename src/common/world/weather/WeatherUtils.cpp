@@ -118,6 +118,7 @@ f32 WeatherUtils::calculateStarBrightness(f32 rainStrength, i64 dayTime)
 {
     // 星星只在夜晚可见
     // 夜晚时间: 约 12542 - 23459 (日落到日出)
+    // 注意：dayTime 参数应该是 dayTimeOfDay() 的结果 (0-23999)
     if (dayTime < 12542 || dayTime > 23459) {
         return 0.0f;
     }

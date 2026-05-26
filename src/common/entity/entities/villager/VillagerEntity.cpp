@@ -77,7 +77,7 @@ void VillagerEntity::tick()
     if (m_brain && m_world) {
         // 获取游戏时间和白天时间
         i64 gameTime = m_world->currentTick();
-        i32 dayTime = static_cast<i32>(m_world->dayTime());
+        i32 dayTime = static_cast<i32>(m_world->dayTimeOfDay());
 
         // Brain tick使用 IWorld 和 Random
         math::Random random(ticksExisted());
@@ -459,9 +459,9 @@ bool VillagerEntity::isNightTime() const
         return false;
     }
 
-    i64 dayTime = m_world->dayTime();
+    i64 tod = m_world->dayTimeOfDay();
     // 夜间时间：12542 - 23459
-    return dayTime >= 12542 && dayTime <= 23459;
+    return tod >= 12542 && tod <= 23459;
 }
 
 void VillagerEntity::updateOffers()

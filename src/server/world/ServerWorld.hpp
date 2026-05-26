@@ -271,6 +271,7 @@ public:
     // IWorld 接口实现 - 从 TimeManager 获取时间
     [[nodiscard]] u64 currentTick() const override;
     [[nodiscard]] i64 dayTime() const override;
+    [[nodiscard]] i64 dayTimeOfDay() const override;
 
     // ========== IWorld 接口 ==========
 

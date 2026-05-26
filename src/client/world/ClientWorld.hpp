@@ -187,6 +187,7 @@ public:
     [[nodiscard]] f32 getInterpolatedCelestialAngle(f32 partialTick) const;
 
     [[nodiscard]] i64 dayTime() const { return m_dayTime; }
+    [[nodiscard]] i64 dayTimeOfDay() const { return m_dayTime % 24000; }
     [[nodiscard]] i64 gameTime() const { return m_gameTime; }
     [[nodiscard]] bool daylightCycleEnabled() const { return m_daylightCycleEnabled; }
 

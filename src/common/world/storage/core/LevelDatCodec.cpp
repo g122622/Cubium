@@ -602,30 +602,200 @@ Result<void> LevelDatCodec::updateLastPlayed(const std::filesystem::path& worldD
 
 Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::path& worldDir)
 {
-    // 第一版只读取摘要数据，后续扩展完整运行时数据
-    auto summaryResult = readSummary(worldDir);
+    // 读取 level.dat 文件
+    auto rootResult = readGzipNbt(worldDir / "level.dat");
+    if (rootResult.failed()) {
+        // 尝试读取备份文件
+        rootResult = readGzipNbt(worldDir / "level.dat_old");
+        if (rootResult.failed()) {
+            return rootResult.error();
+        }
+    }
+
+    // 保存 unique_ptr 防止悬空引用
+    auto rootPtr = rootResult.value();
+    const auto& root = *rootPtr;
+
+    // 获取 Data 复合标签
+    auto dataIt = root.value.find("Data");
+    if (dataIt == root.value.end() || dataIt->second->id() != nbt::TagId::Compound) {
+        return Error(ErrorCode::FileCorrupted, "Missing Data compound in level.dat");
+    }
+
+    const auto& data = dynamic_cast<const nbt::tags::compound_tag&>(*dataIt->second);
+
+    // 先解析摘要数据
+    auto summaryResult = parseSummary(root);
     if (summaryResult.failed()) {
         return summaryResult.error();
     }
 
-    // 第一版只读取摘要数据，运行时字段使用默认值
-    // 出生点、时间、天气等字段需要在后续版本实现完整读取
+    // 解析出生点
+    i32 spawnX = 0, spawnY = 64, spawnZ = 0;
+    if (data.value.count("SpawnX") != 0) {
+        auto it = data.value.find("SpawnX");
+        if (it->second->id() == nbt::TagId::Int) {
+            spawnX = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+    if (data.value.count("SpawnY") != 0) {
+        auto it = data.value.find("SpawnY");
+        if (it->second->id() == nbt::TagId::Int) {
+            spawnY = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+    if (data.value.count("SpawnZ") != 0) {
+        auto it = data.value.find("SpawnZ");
+        if (it->second->id() == nbt::TagId::Int) {
+            spawnZ = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    // 解析出生点朝向
+    f32 spawnAngle = 0.0f;
+    if (data.value.count("SpawnAngle") != 0) {
+        auto it = data.value.find("SpawnAngle");
+        if (it->second->id() == nbt::TagId::Float) {
+            spawnAngle = dynamic_cast<const nbt::tags::float_tag&>(*it->second).value;
+        }
+    }
+
+    // 解析游戏时间
+    i64 gameTime = 0;
+    if (data.value.count("Time") != 0) {
+        auto it = data.value.find("Time");
+        if (it->second->id() == nbt::TagId::Long) {
+            gameTime = dynamic_cast<const nbt::tags::long_tag&>(*it->second).value;
+        }
+    }
+
+    // 解析日光时间
+    i64 dayTime = 0;
+    if (data.value.count("DayTime") != 0) {
+        auto it = data.value.find("DayTime");
+        if (it->second->id() == nbt::TagId::Long) {
+            dayTime = dynamic_cast<const nbt::tags::long_tag&>(*it->second).value;
+        }
+    }
+
+    // 解析天气状态
+    i32 clearWeatherTime = 0;
+    if (data.value.count("clearWeatherTime") != 0) {
+        auto it = data.value.find("clearWeatherTime");
+        if (it->second->id() == nbt::TagId::Int) {
+            clearWeatherTime = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    i32 rainTime = 0;
+    if (data.value.count("rainTime") != 0) {
+        auto it = data.value.find("rainTime");
+        if (it->second->id() == nbt::TagId::Int) {
+            rainTime = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    bool raining = false;
+    if (data.value.count("raining") != 0) {
+        auto it = data.value.find("raining");
+        if (it->second->id() == nbt::TagId::Byte) {
+            raining = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        }
+    }
+
+    i32 thunderTime = 0;
+    if (data.value.count("thunderTime") != 0) {
+        auto it = data.value.find("thunderTime");
+        if (it->second->id() == nbt::TagId::Int) {
+            thunderTime = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    bool thundering = false;
+    if (data.value.count("thundering") != 0) {
+        auto it = data.value.find("thundering");
+        if (it->second->id() == nbt::TagId::Byte) {
+            thundering = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        }
+    }
+
+    bool initialized = false;
+    if (data.value.count("initialized") != 0) {
+        auto it = data.value.find("initialized");
+        if (it->second->id() == nbt::TagId::Byte) {
+            initialized = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        }
+    }
+
+    bool difficultyLocked = false;
+    if (data.value.count("DifficultyLocked") != 0) {
+        auto it = data.value.find("DifficultyLocked");
+        if (it->second->id() == nbt::TagId::Byte) {
+            difficultyLocked = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+        }
+    }
 
     return LevelRuntimeData(std::move(summaryResult.value()),
-        0,     // spawnX
-        0,     // spawnY
-        0,     // spawnZ
-        0.0f,  // spawnAngle
-        0,     // gameTime
-        0,     // dayTime
-        0,     // clearWeatherTime
-        0,     // rainTime
-        false, // raining
-        0,     // thunderTime
-        false, // thundering
-        false, // initialized
-        false  // difficultyLocked
-    );
+        spawnX,
+        spawnY,
+        spawnZ,
+        spawnAngle,
+        gameTime,
+        dayTime,
+        clearWeatherTime,
+        rainTime,
+        raining,
+        thunderTime,
+        thundering,
+        initialized,
+        difficultyLocked);
+}
+
+Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& worldDir,
+    i64 gameTime,
+    i64 dayTime,
+    i32 spawnX,
+    i32 spawnY,
+    i32 spawnZ,
+    f32 spawnAngle,
+    i32 clearWeatherTime,
+    i32 rainTime,
+    bool raining,
+    i32 thunderTime,
+    bool thundering)
+{
+    std::unique_ptr<nbt::tags::compound_tag> root;
+    nbt::tags::compound_tag* data = nullptr;
+
+    auto result = readDataCompound(worldDir, root, data);
+    if (result.failed()) {
+        return result.error();
+    }
+
+    // 更新时间字段
+    data->put("Time", gameTime);
+    data->put("DayTime", dayTime);
+
+    // 更新出生点
+    data->put("SpawnX", spawnX);
+    data->put("SpawnY", spawnY);
+    data->put("SpawnZ", spawnZ);
+    data->put("SpawnAngle", spawnAngle);
+
+    // 更新天气状态
+    data->put("clearWeatherTime", clearWeatherTime);
+    data->put("rainTime", rainTime);
+    data->put("raining", static_cast<i8>(raining ? 1 : 0));
+    data->put("thunderTime", thunderTime);
+    data->put("thundering", static_cast<i8>(thundering ? 1 : 0));
+
+    // 更新最后游玩时间
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    i64 lastPlayedMs = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    data->put("LastPlayed", lastPlayedMs);
+
+    return atomicWrite(worldDir, *root);
 }
 
 } // namespace mc::world::storage

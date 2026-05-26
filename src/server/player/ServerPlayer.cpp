@@ -136,8 +136,7 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
         const auto fullPacket =
             server::core::ConnectionManager::encapsulatePacket(network::PacketType::Title, payloadResult.value());
 
-        if (!sendFullPacket(fullPacket)) {
-        }
+        if (!sendFullPacket(fullPacket)) {}
     } else {
         // 发送到聊天区域
         sendSystemMessage(message);
@@ -319,7 +318,7 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
     // 6. 检查时间是否允许睡眠
     bool isThundering = world->isThundering();
     bool isRaining = world->isRaining();
-    i64 currentTime = world->dayTime();
+    i64 currentTime = world->dayTimeOfDay();
 
     if (!entity::SleepManager::canSleepAtTime(currentTime, isThundering, isRaining)) {
         return entity::SleepResult::NOT_POSSIBLE_NOW;

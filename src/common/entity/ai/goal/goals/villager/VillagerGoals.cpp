@@ -207,7 +207,7 @@ void SleepAtNightGoal::tick()
 bool SleepAtNightGoal::isNightTime() const
 {
     if (!m_villager || !m_villager->world()) return false;
-    return villager::isNightTime(m_villager->world()->dayTime());
+    return villager::isNightTime(m_villager->world()->dayTimeOfDay());
 }
 
 std::optional<BlockPos> SleepAtNightGoal::findNearestBed() const
@@ -396,7 +396,7 @@ void WorkAtJobSiteGoal::tick()
 bool WorkAtJobSiteGoal::isWorkTime() const
 {
     if (!m_villager || !m_villager->world()) return false;
-    return villager::isWorkTime(m_villager->world()->dayTime());
+    return villager::isWorkTime(m_villager->world()->dayTimeOfDay());
 }
 
 bool WorkAtJobSiteGoal::hasJobSite() const
@@ -943,7 +943,7 @@ bool GoToBedGoal::shouldExecute()
 
     // 检查是否是夜间
     if (!m_villager->world()) return false;
-    if (!villager::isNightTime(m_villager->world()->dayTime())) return false;
+    if (!villager::isNightTime(m_villager->world()->dayTimeOfDay())) return false;
 
     // 已经在睡眠中则不重新开始
     if (m_villager->isSleeping()) return false;

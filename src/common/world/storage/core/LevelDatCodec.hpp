@@ -264,12 +264,43 @@ public:
      * @brief 读取完整运行时数据
      *
      * 用于启动世界时读取所有必要字段。
-     * 第一版可能只返回摘要数据。
      *
      * @param worldDir 世界目录路径
      * @return 成功返回运行时数据，失败返回错误
      */
     static Result<LevelRuntimeData> readRuntimeData(const std::filesystem::path& worldDir);
+
+    /**
+     * @brief 更新 level.dat 中的运行时数据
+     *
+     * 用于保存世界时写入时间、天气、出生点等运行时字段。
+     *
+     * @param worldDir 世界目录路径
+     * @param gameTime 游戏时间（刻）
+     * @param dayTime 日光时间（刻）
+     * @param spawnX 出生点 X
+     * @param spawnY 出生点 Y
+     * @param spawnZ 出生点 Z
+     * @param spawnAngle 出生点朝向（角度）
+     * @param clearWeatherTime 清晰天气剩余时间（刻）
+     * @param rainTime 下雨剩余时间（刻）
+     * @param raining 是否正在下雨
+     * @param thunderTime 雷暴剩余时间（刻）
+     * @param thundering 是否正在雷暴
+     * @return 成功返回空，失败返回错误
+     */
+    static Result<void> updateRuntimeData(const std::filesystem::path& worldDir,
+        i64 gameTime,
+        i64 dayTime,
+        i32 spawnX,
+        i32 spawnY,
+        i32 spawnZ,
+        f32 spawnAngle,
+        i32 clearWeatherTime,
+        i32 rainTime,
+        bool raining,
+        i32 thunderTime,
+        bool thundering);
 
 private:
     /**

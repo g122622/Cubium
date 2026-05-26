@@ -50,7 +50,7 @@ inline constexpr i64 DAY_LENGTH = 24000;
  */
 [[nodiscard]] i32 normalizedDayTime(const server::core::TimeManager& timeManager)
 {
-    return static_cast<i32>(timeManager.dayTime() % DAY_LENGTH);
+    return static_cast<i32>(timeManager.dayTimeOfDay());
 }
 
 /**
