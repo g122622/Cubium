@@ -9,6 +9,7 @@
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
 5. **保存协调**：`flushAllDirty()` 用于增量落盘，`saveAll()` 用于全量落盘
+6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，并通过统一门面暴露区块、玩家与 `level.dat` 读取能力
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
 
@@ -78,6 +79,10 @@ auto storage = std::move(storageResult.value());
 // 直接通过门面读写完整区块
 auto loadResult = storage->loadChunk(chunkX, chunkZ, dimension);
 auto saveResult = storage->saveChunk(chunk, dimension);
+
+// 对外来存档同样可通过统一门面读取玩家与 level.dat
+auto playerResult = storage->loadPlayer("~local_player");
+auto levelDataResult = storage->loadLevelData();
 
 // 全量保存（/save-all 或服务器关闭时使用）
 auto fullSaveResult = m_storage.saveAll();
@@ -546,6 +551,17 @@ if (saveResult.failed()) {
     spdlog::error("Failed to save chunk: {}", saveResult.error().message());
 }
 ```
+
+对于 Java / Bedrock 外来存档，上层仍走同一个 `loadChunk()` 调用点；`SingleLevelStorageManager` 会在 `open()` 时自动检测格式并切换到只读 backend。
+
+## 外来存档读取
+
+- `SaveFormatDetector`：识别 `Native`、`JavaAnvil`、`BedrockLDB`
+- `SingleLevelStorageManager::formatInfo()`：暴露检测结果
+- `SingleLevelStorageManager::listChunks()`：列举外来存档已存在区块
+- `SingleLevelStorageManager::loadPlayer()` / `listPlayerUuids()`：统一读取玩家数据
+- `SingleLevelStorageManager::loadLevelData()`：统一读取 `level.dat`
+- 外来存档强制只读：`saveChunk()`、`flushAllDirty()`、`saveAll()` 静默成功但不落盘
 
 ## 容易踩的坑
 

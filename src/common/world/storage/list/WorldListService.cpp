@@ -22,6 +22,9 @@
  */
 
 #include "WorldListService.hpp"
+#include "../core/SaveFormat.hpp"
+#include "../reader/bedrock/BedrockLevelDatReader.hpp"
+#include "../reader/java/JavaLevelDatReader.hpp"
 #include "WorldNameSanitizer.hpp"
 #include <algorithm>
 #include <chrono>
@@ -377,8 +380,21 @@ WorldListEntry WorldListService::tryReadWorldSummary(const std::string& levelId,
     // 检测图标
     entry.iconPath = detectIconPath(worldDir);
 
-    // 尝试读取 level.dat
-    auto summaryResult = LevelDatCodec::readSummary(worldDir);
+    Result<LevelSummaryData> summaryResult = LevelDatCodec::readSummary(worldDir);
+    auto formatResult = SaveFormatDetector::detect(worldDir);
+    if (formatResult.success()) {
+        switch (formatResult.value().format) {
+            case SaveFormat::JavaAnvil:
+                summaryResult = reader::java::JavaLevelDatReader::readSummary(worldDir);
+                break;
+            case SaveFormat::BedrockLDB:
+                summaryResult = reader::bedrock::BedrockLevelDatReader::readSummary(worldDir);
+                break;
+            case SaveFormat::Native:
+                break;
+        }
+    }
+
     if (summaryResult.success()) {
         const auto& summary = summaryResult.value();
         entry.displayName = summary.displayName;
@@ -397,7 +413,7 @@ WorldListEntry WorldListService::tryReadWorldSummary(const std::string& levelId,
     }
 
     entry.compatibility = WorldCompatibility::Corrupted;
-    entry.errorMessage = "Failed to parse level.dat";
+    entry.errorMessage = summaryResult.failed() ? summaryResult.error().message() : "Failed to parse level.dat";
     return entry;
 }
 

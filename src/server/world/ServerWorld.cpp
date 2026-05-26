@@ -299,6 +299,31 @@ void ServerWorld::initializeWorldSpawn()
     }
 }
 
+void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& runtimeData)
+{
+    if (m_timeManager != nullptr) {
+        m_timeManager->setGameTime(runtimeData.gameTime);
+        m_timeManager->setDayTime(runtimeData.dayTime);
+    }
+
+    m_worldSpawnPoint = Vector3d(static_cast<f64>(runtimeData.spawnX) + 0.5,
+        static_cast<f64>(runtimeData.spawnY),
+        static_cast<f64>(runtimeData.spawnZ) + 0.5);
+
+    if (m_weatherManager == nullptr) {
+        return;
+    }
+
+    m_weatherManager->setWeatherCycleEnabled(true);
+    if (runtimeData.thundering) {
+        m_weatherManager->setThunder(std::max(runtimeData.thunderTime, 1));
+    } else if (runtimeData.raining) {
+        m_weatherManager->setRain(std::max(runtimeData.rainTime, 1));
+    } else {
+        m_weatherManager->setClear(std::max(runtimeData.clearWeatherTime, 1));
+    }
+}
+
 // ============================================================================
 // 区块管理
 // ============================================================================

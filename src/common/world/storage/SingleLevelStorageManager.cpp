@@ -24,6 +24,8 @@
 #include "SingleLevelStorageManager.hpp"
 #include "perfetto/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
+#include "world/storage/backend/BedrockLDBBackend.hpp"
+#include "world/storage/backend/JavaAnvilBackend.hpp"
 #include "world/storage/db/SectionCodec.hpp"
 #include "world/storage/save/AutoSave.hpp"
 #include <stdexcept>
@@ -115,13 +117,31 @@ Result<void> SingleLevelStorageManager::open(
     m_config = config;
     m_worldPath = worldPath;
 
+    // 检测存档格式
+    auto formatResult = SaveFormatDetector::detect(worldPath);
+    if (formatResult.failed()) {
+        return formatResult.error();
+    }
+    m_config.formatInfo = formatResult.value();
+
+    // 外来格式：使用后端读取，强制只读
+    if (m_config.formatInfo.format != SaveFormat::Native) {
+        m_config.readonly = true;
+        return openForeignFormat(worldPath);
+    }
+
+    return openNativeFormat(worldPath);
+}
+
+Result<void> SingleLevelStorageManager::openNativeFormat(const std::filesystem::path& worldPath)
+{
     std::filesystem::path dbPath = worldPath / "db";
     std::filesystem::path backupPath = worldPath / "backups";
 
     try {
         std::filesystem::create_directories(worldPath);
         std::filesystem::create_directories(dbPath);
-        if (config.enableBackup) {
+        if (m_config.enableBackup) {
             std::filesystem::create_directories(backupPath);
         }
     }
@@ -129,23 +149,24 @@ Result<void> SingleLevelStorageManager::open(
         return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create directories: {}", e.what()));
     }
 
-    auto lockResult = WorldSessionLock::acquire(worldPath);
+    auto lockResult =
+        m_config.readonly ? WorldSessionLock::acquireReadOnly(worldPath) : WorldSessionLock::acquire(worldPath);
     if (!lockResult.success()) {
         return lockResult.error();
     }
     m_sessionLock.emplace(std::move(lockResult.value()));
 
-    RocksDBConfig dbConfig = config.rocksdbConfig.value_or(RocksDBConfig{});
-    dbConfig.consistencyMode = config.consistencyMode;
+    RocksDBConfig dbConfig = m_config.rocksdbConfig.value_or(RocksDBConfig{});
+    dbConfig.consistencyMode = m_config.consistencyMode;
 
-    auto dbResult = RocksDBDatabase::open(dbPath, dbConfig);
+    auto dbResult = m_config.readonly ? RocksDBDatabase::openReadOnly(dbPath) : RocksDBDatabase::open(dbPath, dbConfig);
     if (!dbResult.success()) {
         m_sessionLock.reset();
         return dbResult.error();
     }
     m_db = dbResult.value();
 
-    if (config.enableBackup) {
+    if (m_config.enableBackup && !m_config.readonly) {
         auto backupResult = BackupManager::open(backupPath);
         if (backupResult.success()) {
             m_backupManager = backupResult.value();
@@ -165,9 +186,44 @@ Result<void> SingleLevelStorageManager::open(
 
     m_sectionManagers.clear();
 
-    spdlog::info("SingleLevelStorageManager opened at {} (consistency: {})",
+    spdlog::info("SingleLevelStorageManager opened at {} (format: Native, consistency: {})",
         worldPath.string(),
-        static_cast<i32>(config.consistencyMode));
+        static_cast<i32>(m_config.consistencyMode));
+
+    return {};
+}
+
+Result<void> SingleLevelStorageManager::openForeignFormat(const std::filesystem::path& worldPath)
+{
+    auto lockResult = WorldSessionLock::acquireReadOnly(worldPath);
+    if (!lockResult.success()) {
+        return lockResult.error();
+    }
+    m_sessionLock.emplace(std::move(lockResult.value()));
+
+    // 根据检测到的格式创建对应后端
+    switch (m_config.formatInfo.format) {
+        case SaveFormat::JavaAnvil:
+            m_backend = std::make_unique<JavaAnvilBackend>();
+            break;
+        case SaveFormat::BedrockLDB:
+            m_backend = std::make_unique<BedrockLDBBackend>();
+            break;
+        default:
+            return Error(ErrorCode::InvalidState,
+                fmt::format("Unsupported foreign save format: {}", m_config.formatInfo.formatName));
+    }
+
+    auto openResult = m_backend->open(worldPath);
+    if (openResult.failed()) {
+        m_backend.reset();
+        m_sessionLock.reset();
+        return openResult.error();
+    }
+
+    spdlog::info("SingleLevelStorageManager opened at {} (format: {}, readonly: true)",
+        worldPath.string(),
+        m_config.formatInfo.formatName);
 
     return {};
 }
@@ -196,6 +252,7 @@ void SingleLevelStorageManager::close()
     m_autoSave.reset();
     m_autoSaveInitialized = false;
     m_db.reset();
+    m_backend.reset();
     m_taskManager.reset();
     m_ioWorkerPool = nullptr;
     m_sessionLock.reset();
@@ -211,6 +268,10 @@ Result<size_t> SingleLevelStorageManager::flushAllDirty()
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_config.readonly) {
+        return Result<size_t>(0);
     }
 
     size_t totalFlushed = 0;
@@ -246,6 +307,10 @@ Result<size_t> SingleLevelStorageManager::saveAll()
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
+    if (m_config.readonly) {
+        return Result<size_t>(0);
+    }
+
     size_t totalSaved = 0;
 
     {
@@ -279,6 +344,10 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_config.readonly) {
+        return Result<void>::ok();
     }
 
     auto& manager = sectionManager(dimension);
@@ -319,6 +388,12 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
+    // 外来格式：委托给后端读取
+    if (m_backend) {
+        return m_backend->loadChunk(x, z, dimension);
+    }
+
+    // Native 格式：通过 RocksDB SectionManager 读取
     auto& manager = sectionManager(dimension);
     ChunkData chunk(x, z);
     bool hasAnySection = false;
@@ -384,6 +459,64 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     return std::optional<ChunkData>(std::move(chunk));
 }
 
+Result<std::optional<PlayerSaveData>> SingleLevelStorageManager::loadPlayer(const std::string& uuid)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_backend) {
+        return m_backend->loadPlayer(uuid);
+    }
+
+    if (!m_playerDataManager) {
+        return Error(ErrorCode::InvalidState, "Player data manager not initialized");
+    }
+
+    auto loadResult = m_playerDataManager->loadPlayer(uuid);
+    if (loadResult.failed()) {
+        return loadResult.error();
+    }
+
+    PlayerSaveData* playerData = loadResult.value();
+    if (!playerData) {
+        return std::optional<PlayerSaveData>{};
+    }
+
+    return std::optional<PlayerSaveData>(*playerData);
+}
+
+Result<std::vector<std::string>> SingleLevelStorageManager::listPlayerUuids()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_backend) {
+        return m_backend->listPlayerUuids();
+    }
+
+    if (!m_playerDataManager) {
+        return Error(ErrorCode::InvalidState, "Player data manager not initialized");
+    }
+
+    // Native 路径当前仅暴露已缓存/已标脏的玩家集合，不扫描整个 RocksDB players 列族。
+    return m_playerDataManager->getDirtyUuids();
+}
+
+Result<LevelRuntimeData> SingleLevelStorageManager::loadLevelData()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_backend) {
+        return m_backend->loadLevelData();
+    }
+
+    return LevelDatCodec::readRuntimeData(m_worldPath);
+}
+
 SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
 {
     if (!isOpen()) {
@@ -447,6 +580,19 @@ SectionManager* SingleLevelStorageManager::createSectionManager(DimensionId dime
     return it->second.get();
 }
 
+Result<std::vector<ChunkPos>> SingleLevelStorageManager::listChunks(DimensionId dimension)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_backend) {
+        return m_backend->listChunks(dimension);
+    }
+
+    return std::vector<ChunkPos>{};
+}
+
 void SingleLevelStorageManager::setConsistencyMode(ConsistencyMode mode)
 {
     m_config.consistencyMode = mode;
@@ -508,6 +654,10 @@ void SingleLevelStorageManager::clearAllCaches()
 
 Result<BackupID> SingleLevelStorageManager::createBackup(const std::string& name, const std::string& description)
 {
+    if (m_config.readonly) {
+        return Error(ErrorCode::PermissionDenied, "Cannot create backup in readonly mode");
+    }
+
     if (!m_backupManager) {
         return Error(ErrorCode::InvalidState, "Backup manager not enabled");
     }

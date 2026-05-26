@@ -22,6 +22,8 @@
  */
 
 #include "GlobalStorageManager.hpp"
+#include <filesystem>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -45,7 +47,23 @@ Result<std::unique_ptr<SingleLevelStorageManager>> GlobalStorageManager::openLev
     const std::string& levelId, const SingleLevelStorageConfig& config)
 {
     auto storage = std::make_unique<SingleLevelStorageManager>();
-    auto openResult = storage->open(m_paths.worldDir(levelId), config);
+
+    // 先尝试标准路径（saves/levelId）
+    std::filesystem::path worldDir = m_paths.worldDir(levelId);
+    if (!std::filesystem::exists(worldDir)) {
+        // 将 levelId 视为绝对路径尝试
+        std::filesystem::path absolutePath(levelId);
+        std::error_code ec;
+        if (std::filesystem::exists(absolutePath, ec)) {
+            spdlog::info("GlobalStorageManager: Using absolute path for level: {}", levelId);
+            worldDir = absolutePath;
+        } else {
+            return Error(ErrorCode::WorldNotFound,
+                fmt::format("World not found: '{}' (tried as both level ID and absolute path)", levelId));
+        }
+    }
+
+    auto openResult = storage->open(worldDir, config);
     if (openResult.failed()) {
         return openResult.error();
     }

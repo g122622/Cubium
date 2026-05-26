@@ -666,6 +666,13 @@ public:
      */
     void setWorldSpawnPoint(const Vector3d& pos) { m_worldSpawnPoint = pos; }
 
+    /**
+     * @brief 应用 level.dat 读取到的运行时世界状态
+     *
+     * 仅在世界初始化完成且共享存储已就绪后调用。
+     */
+    void applyLevelRuntimeData(const world::storage::LevelRuntimeData& runtimeData);
+
     // ========== 调试模式 ==========
 
     /**

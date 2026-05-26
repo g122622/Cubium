@@ -1,0 +1,423 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software are
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies of substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "BedrockLDBBackend.hpp"
+#include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <spdlog/spdlog.h>
+#include <sstream>
+
+namespace mc::world::storage {
+
+using namespace reader::bedrock;
+using namespace mc::nbt;
+using namespace mc::nbt::tags;
+
+namespace {
+
+const compound_tag* tryGetCompound(const compound_tag& tag, const std::string& key)
+{
+    auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return nullptr;
+    }
+    return dynamic_cast<const compound_tag*>(it->second.get());
+}
+
+const list_tag* tryGetList(const compound_tag& tag, const std::string& key)
+{
+    auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return nullptr;
+    }
+    return dynamic_cast<const list_tag*>(it->second.get());
+}
+
+std::optional<std::string> tryGetString(const compound_tag& tag, const std::string& key)
+{
+    auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    auto* value = dynamic_cast<const string_tag*>(it->second.get());
+    if (!value) {
+        return std::nullopt;
+    }
+    return value->value;
+}
+
+std::optional<i32> tryGetInt(const compound_tag& tag, const std::string& key)
+{
+    auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    if (auto* value = dynamic_cast<const int_tag*>(it->second.get())) {
+        return value->value;
+    }
+    if (auto* value = dynamic_cast<const short_tag*>(it->second.get())) {
+        return static_cast<i32>(value->value);
+    }
+    if (auto* value = dynamic_cast<const byte_tag*>(it->second.get())) {
+        return static_cast<i32>(value->value);
+    }
+    return std::nullopt;
+}
+
+std::optional<f32> tryGetFloat(const compound_tag& tag, const std::string& key)
+{
+    auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    if (auto* value = dynamic_cast<const float_tag*>(it->second.get())) {
+        return value->value;
+    }
+    if (auto* value = dynamic_cast<const double_tag*>(it->second.get())) {
+        return static_cast<f32>(value->value);
+    }
+    return std::nullopt;
+}
+
+std::optional<bool> tryGetBool(const compound_tag& tag, const std::string& key)
+{
+    auto value = tryGetInt(tag, key);
+    if (!value.has_value()) {
+        return std::nullopt;
+    }
+    return *value != 0;
+}
+
+Result<PlayerSaveData> parseBedrockPlayerData(const compound_tag& root, const std::string& playerId)
+{
+    PlayerSaveData data;
+    data.uuid = playerId;
+    data.username = tryGetString(root, "NameTag").value_or(playerId);
+
+    if (const auto* posList = tryGetList(root, "Pos")) {
+        if (posList->element_id() == TagId::Float) {
+            const auto& values = dynamic_cast<const float_list_tag&>(*posList).value;
+            if (values.size() >= 3) {
+                data.posX = values[0];
+                data.posY = values[1];
+                data.posZ = values[2];
+            }
+        } else if (posList->element_id() == TagId::Double) {
+            const auto& values = dynamic_cast<const double_list_tag&>(*posList).value;
+            if (values.size() >= 3) {
+                data.posX = values[0];
+                data.posY = values[1];
+                data.posZ = values[2];
+            }
+        }
+    }
+
+    if (const auto* rotationList = tryGetList(root, "Rotation")) {
+        if (rotationList->element_id() == TagId::Float) {
+            const auto& values = dynamic_cast<const float_list_tag&>(*rotationList).value;
+            if (values.size() >= 2) {
+                data.yaw = values[0];
+                data.pitch = values[1];
+            }
+        }
+    }
+
+    data.dimension = tryGetInt(root, "DimensionId").value_or(0);
+    data.gameMode = static_cast<GameMode>(tryGetInt(root, "PlayerGameMode").value_or(0));
+    data.health = tryGetFloat(root, "Health").value_or(data.health);
+    data.foodLevel = tryGetInt(root, "foodLevel").value_or(data.foodLevel);
+    data.experienceLevel = tryGetInt(root, "XpLevel").value_or(data.experienceLevel);
+    data.totalExperience = tryGetInt(root, "XpTotal").value_or(data.totalExperience);
+    data.experienceProgress = tryGetFloat(root, "XpP").value_or(data.experienceProgress);
+    data.onGround = tryGetBool(root, "OnGround").value_or(data.onGround);
+
+    if (const auto* abilities = tryGetCompound(root, "abilities")) {
+        data.invulnerable = tryGetBool(*abilities, "invulnerable").value_or(data.invulnerable);
+        data.canFly = tryGetBool(*abilities, "mayfly").value_or(data.canFly);
+        data.flying = tryGetBool(*abilities, "flying").value_or(data.flying);
+        data.flySpeed = tryGetFloat(*abilities, "flySpeed").value_or(data.flySpeed);
+        data.walkSpeed = tryGetFloat(*abilities, "walkSpeed").value_or(data.walkSpeed);
+    }
+
+    if (const auto* invList = tryGetList(root, "Inventory")) {
+        if (invList->element_id() == TagId::Compound) {
+            const auto& values = dynamic_cast<const compound_list_tag&>(*invList).value;
+            data.inventoryItems.resize(41);
+            for (const auto& itemTag : values) {
+                const auto slotOpt = tryGetInt(itemTag, "Slot");
+                if (!slotOpt.has_value()) {
+                    continue;
+                }
+                const i32 slot = *slotOpt;
+                if (slot < 0 || slot >= 41) {
+                    continue;
+                }
+
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    data.inventoryItems[slot] = std::move(stackResult.value());
+                }
+            }
+        }
+    }
+
+    if (const auto* armorList = tryGetList(root, "Armor")) {
+        if (armorList->element_id() == TagId::Compound) {
+            const auto& values = dynamic_cast<const compound_list_tag&>(*armorList).value;
+            if (data.inventoryItems.size() < 41) {
+                data.inventoryItems.resize(41);
+            }
+            for (const auto& itemTag : values) {
+                const i32 rawSlot = tryGetInt(itemTag, "Slot").value_or(0);
+                const i32 slot = 36 + (3 - rawSlot);
+                if (slot < 36 || slot >= 40) {
+                    continue;
+                }
+
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    data.inventoryItems[slot] = std::move(stackResult.value());
+                }
+            }
+        }
+    }
+
+    if (const auto* offhandList = tryGetList(root, "Offhand")) {
+        if (offhandList->element_id() == TagId::Compound) {
+            const auto& values = dynamic_cast<const compound_list_tag&>(*offhandList).value;
+            if (data.inventoryItems.size() < 41) {
+                data.inventoryItems.resize(41);
+            }
+            for (const auto& itemTag : values) {
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    data.inventoryItems[40] = std::move(stackResult.value());
+                    break;
+                }
+            }
+        }
+    }
+
+    if (const auto spawnX = tryGetInt(root, "SpawnX");
+        spawnX.has_value() && tryGetInt(root, "SpawnY").has_value() && tryGetInt(root, "SpawnZ").has_value()) {
+        data.spawnPoint = GlobalPos(data.dimension,
+            BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")));
+    }
+
+    return data;
+}
+
+} // namespace
+
+BedrockLDBBackend::BedrockLDBBackend()
+    : m_db(std::make_unique<BedrockLevelDb>())
+    , m_biomeMapper(std::make_unique<BedrockBiomeMapper>())
+    , m_chunkReader(std::make_unique<BedrockChunkReader>(*m_biomeMapper))
+{}
+
+BedrockLDBBackend::~BedrockLDBBackend()
+{
+    close();
+}
+
+Result<void> BedrockLDBBackend::open(const std::filesystem::path& worldPath)
+{
+    m_worldPath = worldPath;
+
+    // 检测格式信息
+    auto formatResult = SaveFormatDetector::detect(worldPath);
+    if (formatResult.failed()) {
+        return formatResult.error();
+    }
+    m_formatInfo = formatResult.value();
+
+    if (m_formatInfo.format != SaveFormat::BedrockLDB) {
+        return Error(ErrorCode::InvalidState, "BedrockLDBBackend can only open Bedrock LevelDB format worlds");
+    }
+
+    // 打开 LevelDB 数据库
+    std::filesystem::path dbPath = worldPath / "db";
+    auto dbResult = m_db->open(dbPath);
+    if (dbResult.failed()) {
+        return dbResult.error();
+    }
+
+    spdlog::info("BedrockLDBBackend: Opened Bedrock world at {} ({})", worldPath.string(), m_formatInfo.formatName);
+    m_isOpen = true;
+    return {};
+}
+
+void BedrockLDBBackend::close()
+{
+    if (m_db) {
+        m_db->close();
+    }
+    m_isOpen = false;
+    spdlog::info("BedrockLDBBackend: Closed");
+}
+
+bool BedrockLDBBackend::isOpen() const
+{
+    return m_isOpen;
+}
+
+Result<std::optional<ChunkData>> BedrockLDBBackend::loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    if (!m_isOpen) {
+        return Error(ErrorCode::InvalidState, "Backend not open");
+    }
+
+    auto chunkResult = m_chunkReader->readChunk(x, z, dimension, *m_db);
+    if (chunkResult.failed()) {
+        return chunkResult.error();
+    }
+    auto chunkPtr = chunkResult.value();
+    if (!chunkPtr) {
+        return std::optional<ChunkData>{};
+    }
+    return std::optional<ChunkData>(std::move(*chunkPtr));
+}
+
+Result<std::vector<ChunkPos>> BedrockLDBBackend::listChunks(DimensionId dimension)
+{
+    if (!m_isOpen) {
+        return Error(ErrorCode::InvalidState, "Backend not open");
+    }
+
+    std::vector<ChunkPos> chunks;
+    // 遍历 Version 键来发现所有区块
+    // 主世界键较短（9字节），其他维度键较长（13字节）
+    // 先扫描主世界，再根据维度过滤
+    // 简化实现：只列出主世界区块
+    if (dimension == 0) {
+        // 扫描所有键，只取主世界（键长度为9的 Version 键）
+        auto prefix = std::vector<u8>{}; // 空前缀 = 扫描所有
+        m_db->iteratePrefix(prefix, [&chunks](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+            // 主世界 Version 键：9 字节 (4+4+1)
+            if (key.size() == 9 && key[8] == static_cast<u8>(BedrockLevelDb::ChunkType::Version)) {
+                i32 chunkX = static_cast<i32>(key[0]) | (static_cast<i32>(key[1]) << 8) |
+                    (static_cast<i32>(key[2]) << 16) | (static_cast<i32>(key[3]) << 24);
+                i32 chunkZ = static_cast<i32>(key[4]) | (static_cast<i32>(key[5]) << 8) |
+                    (static_cast<i32>(key[6]) << 16) | (static_cast<i32>(key[7]) << 24);
+                chunks.emplace_back(chunkX, chunkZ);
+            }
+            return true;
+        });
+    } else {
+        // 其他维度：13 字节键 (4+4+4+1)，dimension 部分匹配
+        // 简化实现：遍历所有键匹配维度
+        m_db->iteratePrefix(
+            std::vector<u8>{}, [dimension, &chunks](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+                // 其他维度 Version 键：13 字节 (4+4+4+1)
+                if (key.size() == 13 && key[12] == static_cast<u8>(BedrockLevelDb::ChunkType::Version)) {
+                    i32 dimId = static_cast<i32>(key[8]) | (static_cast<i32>(key[9]) << 8) |
+                        (static_cast<i32>(key[10]) << 16) | (static_cast<i32>(key[11]) << 24);
+                    if (dimId == dimension) {
+                        i32 chunkX = static_cast<i32>(key[0]) | (static_cast<i32>(key[1]) << 8) |
+                            (static_cast<i32>(key[2]) << 16) | (static_cast<i32>(key[3]) << 24);
+                        i32 chunkZ = static_cast<i32>(key[4]) | (static_cast<i32>(key[5]) << 8) |
+                            (static_cast<i32>(key[6]) << 16) | (static_cast<i32>(key[7]) << 24);
+                        chunks.emplace_back(chunkX, chunkZ);
+                    }
+                }
+                return true;
+            });
+    }
+
+    return chunks;
+}
+
+Result<std::optional<PlayerSaveData>> BedrockLDBBackend::loadPlayer(const std::string& uuid)
+{
+    if (!m_isOpen) {
+        return Error(ErrorCode::InvalidState, "Backend not open");
+    }
+
+    std::vector<u8> key;
+    if (uuid == "~local_player" || uuid.empty()) {
+        key = BedrockLevelDb::buildLocalPlayerKey();
+    } else if (uuid.starts_with("actorprefix")) {
+        key.assign(uuid.begin(), uuid.end());
+    } else {
+        key = BedrockLevelDb::buildActorPrefix();
+        key.insert(key.end(), uuid.begin(), uuid.end());
+    }
+
+    const auto playerResult = m_db->get(key);
+    if (playerResult.failed()) {
+        return playerResult.error();
+    }
+    if (!playerResult.value().has_value()) {
+        return std::optional<PlayerSaveData>{};
+    }
+
+    const auto& bytes = playerResult.value().value();
+    std::istringstream stream(std::string(bytes.begin(), bytes.end()));
+    stream >> contexts::bedrock_disk;
+    auto root = compound_tag::read(stream);
+    if (!root) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse Bedrock player NBT");
+    }
+
+    auto parseResult = parseBedrockPlayerData(*root, key.empty() ? uuid : std::string(key.begin(), key.end()));
+    if (parseResult.failed()) {
+        return parseResult.error();
+    }
+
+    return std::optional<PlayerSaveData>(std::move(parseResult.value()));
+}
+
+Result<std::vector<std::string>> BedrockLDBBackend::listPlayerUuids()
+{
+    if (!m_isOpen) {
+        return Error(ErrorCode::InvalidState, "Backend not open");
+    }
+
+    std::vector<std::string> ids;
+    ids.emplace_back("~local_player");
+
+    auto iterateResult = m_db->iteratePrefix(BedrockLevelDb::buildActorPrefix(),
+        [&ids](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+            MC_UNUSED(value);
+            const auto prefix = BedrockLevelDb::buildActorPrefix();
+            if (key.size() >= prefix.size()) {
+                ids.emplace_back(key.begin() + static_cast<std::ptrdiff_t>(prefix.size()), key.end());
+            }
+            return true;
+        });
+    if (iterateResult.failed()) {
+        return iterateResult.error();
+    }
+
+    return ids;
+}
+
+Result<LevelRuntimeData> BedrockLDBBackend::loadLevelData()
+{
+    if (!m_isOpen) {
+        return Error(ErrorCode::InvalidState, "Backend not open");
+    }
+    return BedrockLevelDatReader::readRuntimeData(m_worldPath);
+}
+
+} // namespace mc::world::storage

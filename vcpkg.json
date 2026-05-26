@@ -23,7 +23,8 @@
     },
     "entt",
     "perfetto",
-    "abseil"
+    "abseil",
+    "leveldb"
   ],
   "features": {
     "vulkan": {

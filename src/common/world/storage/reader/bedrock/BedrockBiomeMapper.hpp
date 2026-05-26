@@ -24,40 +24,33 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <vector>
+#include <unordered_map>
 
-namespace mc::util {
-
-/**
- * @brief 解压 gzip 压缩数据
- *
- * @param compressed 压缩后的数据
- * @return 解压后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> decompressGzip(const std::vector<u8>& compressed);
+namespace mc::world::storage::reader::bedrock {
 
 /**
- * @brief 使用 gzip 压缩数据
+ * @brief 基岩版生物群系 ID 映射器
  *
- * @param data 原始数据
- * @return 压缩后的数据，失败时返回空向量
+ * 基岩版和 Java 版的生物群系 ID 编号不完全一致。
+ * 此类将基岩版生物群系 ID 映射到项目内部 BiomeId（与 Java 版一致）。
  */
-[[nodiscard]] std::vector<u8> compressGzip(const std::vector<u8>& data);
+class BedrockBiomeMapper {
+public:
+    BedrockBiomeMapper();
 
-/**
- * @brief 解压 zlib 压缩数据
- *
- * @param compressed 压缩后的数据（raw deflate 或 zlib 格式）
- * @return 解压后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> decompressZlib(const std::vector<u8>& compressed);
+    /**
+     * @brief 将基岩版生物群系 ID 映射到内部 BiomeId
+     * @param bedrockBiomeId 基岩版生物群系 ID
+     * @param dimension 维度 ID（当前用于保留接口一致性）
+     * @return 内部 BiomeId
+     */
+    BiomeId mapBiome(i32 bedrockBiomeId, DimensionId dimension = 0);
 
-/**
- * @brief 使用 zlib 压缩数据
- *
- * @param data 原始数据
- * @return 压缩后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> compressZlib(const std::vector<u8>& data);
+private:
+    void initializeMappings();
 
-} // namespace mc::util
+    /// 基岩版 ID → Java 版 ID 映射表
+    std::unordered_map<i32, BiomeId> m_bedrockToJava;
+};
+
+} // namespace mc::world::storage::reader::bedrock

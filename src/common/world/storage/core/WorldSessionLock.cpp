@@ -35,16 +35,17 @@
 
 namespace mc::world::storage {
 
-WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir)
-    : m_worldDir(std::move(worldDir))
-    , m_valid(false)
-{
+WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir, bool readonly)
+    : m_readonly(readonly)
 #ifdef _WIN32
-    m_fileHandle = INVALID_HANDLE_VALUE;
+    , m_fileHandle(INVALID_HANDLE_VALUE)
 #else
-    m_fd = -1;
+    , m_fd(-1)
 #endif
-}
+    , m_worldDir(std::move(worldDir))
+    , m_lockPath()
+    , m_valid(false)
+{}
 
 Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& worldDir)
 {
@@ -137,6 +138,27 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
     return lock;
 }
 
+Result<WorldSessionLock> WorldSessionLock::acquireReadOnly(const std::filesystem::path& worldDir)
+{
+    std::error_code ec;
+
+    if (!std::filesystem::exists(worldDir, ec)) {
+        return Error(ErrorCode::WorldNotFound, fmt::format("World directory does not exist: {}", worldDir.string()));
+    }
+
+    // 检查是否有其他进程持有独占锁
+    if (isLocked(worldDir)) {
+        spdlog::warn("WorldSessionLock: {} is locked by another process, cannot open readonly", worldDir.string());
+        return Error(ErrorCode::WorldLocked, "World is locked by another process");
+    }
+
+    WorldSessionLock lock(worldDir, true);
+    lock.m_valid = true;
+
+    spdlog::info("WorldSessionLock: Opened {} in readonly mode (no exclusive lock)", worldDir.string());
+    return lock;
+}
+
 bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
 {
     std::error_code ec;
@@ -188,15 +210,19 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
 }
 
 WorldSessionLock::WorldSessionLock(WorldSessionLock&& other) noexcept
-    : m_worldDir(std::move(other.m_worldDir))
+    : m_readonly(other.m_readonly)
+#ifdef _WIN32
+    , m_fileHandle(other.m_fileHandle)
+#else
+    , m_fd(other.m_fd)
+#endif
+    , m_worldDir(std::move(other.m_worldDir))
     , m_lockPath(std::move(other.m_lockPath))
     , m_valid(other.m_valid)
 {
 #ifdef _WIN32
-    m_fileHandle = other.m_fileHandle;
     other.m_fileHandle = INVALID_HANDLE_VALUE;
 #else
-    m_fd = other.m_fd;
     other.m_fd = -1;
 #endif
     other.m_valid = false;
@@ -207,10 +233,7 @@ WorldSessionLock& WorldSessionLock::operator=(WorldSessionLock&& other) noexcept
     if (this != &other) {
         release();
 
-        m_worldDir = std::move(other.m_worldDir);
-        m_lockPath = std::move(other.m_lockPath);
-        m_valid = other.m_valid;
-
+        m_readonly = other.m_readonly;
 #ifdef _WIN32
         m_fileHandle = other.m_fileHandle;
         other.m_fileHandle = INVALID_HANDLE_VALUE;
@@ -218,6 +241,9 @@ WorldSessionLock& WorldSessionLock::operator=(WorldSessionLock&& other) noexcept
         m_fd = other.m_fd;
         other.m_fd = -1;
 #endif
+        m_worldDir = std::move(other.m_worldDir);
+        m_lockPath = std::move(other.m_lockPath);
+        m_valid = other.m_valid;
 
         other.m_valid = false;
     }
@@ -242,6 +268,12 @@ const std::filesystem::path& WorldSessionLock::worldDir() const noexcept
 void WorldSessionLock::release()
 {
     if (!m_valid) {
+        return;
+    }
+
+    if (m_readonly) {
+        spdlog::info("WorldSessionLock: Released readonly access for {}", m_worldDir.string());
+        m_valid = false;
         return;
     }
 

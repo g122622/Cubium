@@ -436,6 +436,38 @@ Result<void> MinecraftServer::initializeWorld()
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
 
+    if (m_storage && m_storage->isOpen()) {
+        auto runtimeDataResult = m_storage->loadLevelData();
+        if (runtimeDataResult.success()) {
+            const auto& runtimeData = runtimeDataResult.value();
+            m_timeManager->setGameTime(runtimeData.gameTime);
+            m_timeManager->setDayTime(runtimeData.dayTime);
+
+            m_dimensionManager->forEachDimension([&runtimeData](Dimension& dim) {
+                auto* serverDim = static_cast<ServerDimension*>(&dim);
+                auto* world = serverDim->world();
+                if (world == nullptr) {
+                    return;
+                }
+
+                if (serverDim->id() == 0) {
+                    world->applyLevelRuntimeData(runtimeData);
+                } else {
+                    world->initializeWorldSpawn();
+                }
+            });
+        } else {
+            spdlog::warn("Failed to load level runtime data: {}", runtimeDataResult.error().message());
+            m_dimensionManager->forEachDimension([](Dimension& dim) {
+                auto* serverDim = static_cast<ServerDimension*>(&dim);
+                auto* world = serverDim->world();
+                if (world != nullptr) {
+                    world->initializeWorldSpawn();
+                }
+            });
+        }
+    }
+
     return Result<void>::ok();
 }
 

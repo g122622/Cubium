@@ -933,6 +933,19 @@ add_library(mc_common STATIC
     world/storage/task/StorageTaskManager.cpp
     world/storage/player/PlayerSaveData.cpp
     world/storage/player/PlayerDataManager.cpp
+    world/storage/backend/IStorageBackend.hpp
+    world/storage/backend/JavaAnvilBackend.cpp
+    world/storage/backend/BedrockLDBBackend.cpp
+    world/storage/core/SaveFormat.cpp
+    world/storage/reader/java/RegionFile.cpp
+    world/storage/reader/java/JavaChunkReader.cpp
+    world/storage/reader/java/JavaBlockStateMapper.cpp
+    world/storage/reader/java/JavaBiomeMapper.cpp
+    world/storage/reader/java/JavaLevelDatReader.cpp
+    world/storage/reader/bedrock/BedrockLevelDb.cpp
+    world/storage/reader/bedrock/BedrockChunkReader.cpp
+    world/storage/reader/bedrock/BedrockBiomeMapper.cpp
+    world/storage/reader/bedrock/BedrockLevelDatReader.cpp
 
     # World - Tick System
     world/tick/manager/TickManager.cpp
@@ -1144,6 +1157,7 @@ target_link_libraries(mc_common
         ZLIB::ZLIB
         RocksDB::rocksdb
         zstd::libzstd
+        leveldb::leveldb
 )
 
 mc_set_compiler_warnings(mc_common)

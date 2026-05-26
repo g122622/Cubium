@@ -25,6 +25,8 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "world/storage/backend/IStorageBackend.hpp"
+#include "world/storage/core/SaveFormat.hpp"
 #include "world/storage/core/WorldSessionLock.hpp"
 #include "world/storage/db/ConsistencyMode.hpp"
 #include "world/storage/db/RocksDBConfig.hpp"
@@ -59,6 +61,8 @@ struct SingleLevelStorageConfig {
     bool enableBackup = true;
     std::optional<RocksDBConfig> rocksdbConfig;
     bool computeHash = false;
+    bool readonly = false;
+    SaveFormatInfo formatInfo;
 };
 
 /**
@@ -120,7 +124,7 @@ public:
      * @brief 检查当前是否已打开存档
      * @return 已打开返回 true
      */
-    [[nodiscard]] bool isOpen() const { return m_db != nullptr; }
+    [[nodiscard]] bool isOpen() const { return m_db != nullptr || m_backend != nullptr; }
 
     /**
      * @brief 刷新所有脏数据
@@ -156,6 +160,25 @@ public:
      * @return 若区块存在则返回区块数据，否则返回空 optional
      */
     [[nodiscard]] Result<std::optional<ChunkData>> loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+
+    /**
+     * @brief 读取玩家存档数据
+     * @param uuid 玩家 UUID；基岩本地玩家可传 `~local_player`
+     * @return 玩家数据，不存在返回空 optional
+     */
+    [[nodiscard]] Result<std::optional<PlayerSaveData>> loadPlayer(const std::string& uuid);
+
+    /**
+     * @brief 列举所有可读取的玩家标识
+     * @return 玩家 UUID/标识列表
+     */
+    [[nodiscard]] Result<std::vector<std::string>> listPlayerUuids();
+
+    /**
+     * @brief 读取世界运行时元数据
+     * @return level.dat 对应的运行时数据
+     */
+    [[nodiscard]] Result<LevelRuntimeData> loadLevelData();
 
     /**
      * @brief 注入存储 IO 线程池
@@ -301,11 +324,36 @@ public:
      */
     void clearAllCaches();
 
+    /**
+     * @brief 获取存档格式信息
+     * @return 格式信息
+     */
+    [[nodiscard]] const SaveFormatInfo& formatInfo() const { return m_config.formatInfo; }
+
+    /**
+     * @brief 检查是否使用外来格式后端
+     * @return 使用外来格式返回 true
+     */
+    [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
+
+    /**
+     * @brief 列举指定维度中所有存在的区块坐标
+     *
+     * 仅对外来格式（Java/Bedrock）有效，Native 格式返回空列表。
+     *
+     * @param dimension 维度 ID
+     * @return 区块坐标列表
+     */
+    [[nodiscard]] Result<std::vector<ChunkPos>> listChunks(DimensionId dimension);
+
 private:
     SectionManager& sectionManager(DimensionId dimension);
     const SectionManager& sectionManager(DimensionId dimension) const;
     [[nodiscard]] bool hasSectionManager(DimensionId dimension) const;
     SectionManager* createSectionManager(DimensionId dimension);
+
+    Result<void> openNativeFormat(const std::filesystem::path& worldPath);
+    Result<void> openForeignFormat(const std::filesystem::path& worldPath);
 
 private:
     std::unique_ptr<RocksDBDatabase> m_db;
@@ -320,6 +368,8 @@ private:
 
     mutable std::mutex m_sectionManagersMutex;
     std::unordered_map<DimensionId, std::unique_ptr<SectionManager>> m_sectionManagers;
+
+    std::unique_ptr<IStorageBackend> m_backend;
 
     SingleLevelStorageConfig m_config;
     std::filesystem::path m_worldPath;

@@ -24,40 +24,45 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <vector>
+#include <string>
+#include <unordered_map>
 
-namespace mc::util {
+namespace mc::world::storage::reader::java {
 
-/**
- * @brief 解压 gzip 压缩数据
- *
- * @param compressed 压缩后的数据
- * @return 解压后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> decompressGzip(const std::vector<u8>& compressed);
+/// 默认生物群系 ID（未知时回退）
+constexpr BiomeId UnknownBiome = 0;
 
 /**
- * @brief 使用 gzip 压缩数据
+ * @brief Java 版生物群系名称→内部 BiomeId 映射器
  *
- * @param data 原始数据
- * @return 压缩后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> compressGzip(const std::vector<u8>& data);
-
-/**
- * @brief 解压 zlib 压缩数据
+ * 将 Java 版的生物群系名称（如 "minecraft:plains"）
+ * 映射到项目内部的 BiomeId。
  *
- * @param compressed 压缩后的数据（raw deflate 或 zlib 格式）
- * @return 解压后的数据，失败时返回空向量
+ * Java 1.16.5 的生物群系数值 ID 与项目内部 ID 一致，
+ * 因此名称映射主要作为备用和未来兼容。
  */
-[[nodiscard]] std::vector<u8> decompressZlib(const std::vector<u8>& compressed);
+class JavaBiomeMapper {
+public:
+    JavaBiomeMapper();
 
-/**
- * @brief 使用 zlib 压缩数据
- *
- * @param data 原始数据
- * @return 压缩后的数据，失败时返回空向量
- */
-[[nodiscard]] std::vector<u8> compressZlib(const std::vector<u8>& data);
+    /**
+     * @brief 从 Java 版生物群系名称映射到内部 BiomeId
+     * @param biomeName Java 版生物群系名称（如 "minecraft:plains"）
+     * @return 内部 BiomeId，未识别返回 0（海洋）
+     */
+    BiomeId mapBiome(const std::string& biomeName);
 
-} // namespace mc::util
+    /**
+     * @brief 从 Java 版数值 ID 映射到内部 BiomeId
+     * @param numericId Java 版生物群系数值 ID
+     * @return 内部 BiomeId
+     */
+    BiomeId mapBiome(i32 numericId);
+
+private:
+    void initializeMappings();
+
+    std::unordered_map<std::string, BiomeId> m_nameToId;
+};
+
+} // namespace mc::world::storage::reader::java

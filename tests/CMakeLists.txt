@@ -703,6 +703,10 @@ add_executable(mc_tests
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
+    common/world/storage/SaveFormatDetectorTest.cpp
+    common/world/storage/RegionFileTest.cpp
+    common/world/storage/JavaChunkReaderTest.cpp
+    common/world/storage/BedrockChunkReaderTest.cpp
     # 村庄系统测试
     common/world/village/VillageTest.cpp
     # 村庄交易系统测试
@@ -912,6 +916,19 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/snapshot/BackupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/DirtyTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/AutoSave.cpp
+        # 存储后端与读取器
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/SaveFormat.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/backend/JavaAnvilBackend.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/backend/BedrockLDBBackend.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/RegionFile.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaChunkReader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBlockStateMapper.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBiomeMapper.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaLevelDatReader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockLevelDb.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockChunkReader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockBiomeMapper.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockLevelDatReader.cpp
         # 村庄系统
         ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp

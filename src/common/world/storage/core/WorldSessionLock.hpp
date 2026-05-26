@@ -53,6 +53,17 @@ public:
     static Result<WorldSessionLock> acquire(const std::filesystem::path& worldDir);
 
     /**
+     * @brief 以只读模式获取世界目录的锁
+     *
+     * 只读模式下不获取独占锁，仅检查存档是否被其他进程锁定。
+     * 如果其他进程已持有独占锁，则返回错误。
+     *
+     * @param worldDir 世界目录路径
+     * @return 成功返回锁对象，失败返回错误
+     */
+    static Result<WorldSessionLock> acquireReadOnly(const std::filesystem::path& worldDir);
+
+    /**
      * @brief 检查世界目录是否被锁定
      *
      * 此检查仅用于 UI 显示，不能替代实际获取锁。
@@ -92,7 +103,9 @@ public:
     void release();
 
 private:
-    WorldSessionLock(std::filesystem::path worldDir);
+    WorldSessionLock(std::filesystem::path worldDir, bool readonly = false);
+
+    bool m_readonly;
 
     // 平台特定的文件句柄
 #ifdef _WIN32
