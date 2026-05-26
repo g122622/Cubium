@@ -108,6 +108,14 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.1f; }
 
+    /**
+     * @brief 蝙蝠不触发压力板和绊线
+     *
+     * 参考 MC 1.16.5: BatEntity 是唯一重写此方法返回 true 的实体。
+     * @return true 蝙蝠不触发压力板
+     */
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
+
     // ========== 生命周期 ==========
 
     void tick() override;

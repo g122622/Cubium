@@ -200,3 +200,136 @@ TEST_F(TrapDoorBlockLadderTest, FacingProperty_Exists)
     // 默认朝向北
     EXPECT_EQ(facing, Direction::North);
 }
+
+// ============================================================================
+// 形状测试 - 不同方向和状态
+// ============================================================================
+
+class TrapDoorBlockShapeTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        woodenTrapdoor_ =
+            std::make_unique<TrapDoorBlock>(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f), false);
+        ironTrapdoor_ =
+            std::make_unique<TrapDoorBlock>(BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f), true);
+    }
+
+    std::unique_ptr<TrapDoorBlock> woodenTrapdoor_;
+    std::unique_ptr<TrapDoorBlock> ironTrapdoor_;
+};
+
+TEST_F(TrapDoorBlockShapeTest, ClosedBottomTrapdoor_HasCollisionShape)
+{
+    // 关闭的下半活板门有碰撞形状
+    BlockState state = woodenTrapdoor_->defaultState()
+                           .with(BlockStateProperties::OPEN(), false)
+                           .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
+
+    const CollisionShape& shape = woodenTrapdoor_->getCollisionShape(state);
+    EXPECT_FALSE(shape.isEmpty());
+}
+
+TEST_F(TrapDoorBlockShapeTest, ClosedTopTrapdoor_HasCollisionShape)
+{
+    // 关闭的上半活板门有碰撞形状
+    BlockState state = woodenTrapdoor_->defaultState()
+                           .with(BlockStateProperties::OPEN(), false)
+                           .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Top);
+
+    const CollisionShape& shape = woodenTrapdoor_->getCollisionShape(state);
+    EXPECT_FALSE(shape.isEmpty());
+}
+
+TEST_F(TrapDoorBlockShapeTest, OpenTrapdoor_NoCollisionShape)
+{
+    // 打开的活板门没有碰撞形状
+    BlockState state = woodenTrapdoor_->defaultState().with(BlockStateProperties::OPEN(), true);
+
+    const CollisionShape& shape = woodenTrapdoor_->getCollisionShape(state);
+    EXPECT_TRUE(shape.isEmpty());
+}
+
+TEST_F(TrapDoorBlockShapeTest, AllFacingDirections_HaveShapes)
+{
+    // 所有方向都应该有形状
+    for (Direction facing : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+        BlockState state = woodenTrapdoor_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+
+        const CollisionShape& shape = woodenTrapdoor_->getShape(state);
+        EXPECT_FALSE(shape.isEmpty()) << "Shape should not be empty for facing " << static_cast<int>(facing);
+    }
+}
+
+TEST_F(TrapDoorBlockShapeTest, AllFacingDirectionsOpen_HaveShapes)
+{
+    // 打开状态下所有方向都应该有形状
+    for (Direction facing : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+        BlockState state = woodenTrapdoor_->defaultState()
+                               .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                               .with(BlockStateProperties::OPEN(), true);
+
+        const CollisionShape& shape = woodenTrapdoor_->getShape(state);
+        EXPECT_FALSE(shape.isEmpty()) << "Open shape should not be empty for facing " << static_cast<int>(facing);
+    }
+}
+
+TEST_F(TrapDoorBlockShapeTest, BottomHalfShape_DifferentFromTopHalf)
+{
+    // 下半活板门形状与上半不同
+    BlockState bottomState =
+        woodenTrapdoor_->defaultState().with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
+    BlockState topState =
+        woodenTrapdoor_->defaultState().with(BlockStateProperties::HALF(), BlockStateProperties::Half::Top);
+
+    const CollisionShape& bottomShape = woodenTrapdoor_->getShape(bottomState);
+    const CollisionShape& topShape = woodenTrapdoor_->getShape(topState);
+
+    // 两者都应该有形状
+    EXPECT_FALSE(bottomShape.isEmpty());
+    EXPECT_FALSE(topShape.isEmpty());
+
+    // 形状应该不同（位于不同Y轴位置）
+    EXPECT_NE(&bottomShape, &topShape);
+}
+
+TEST_F(TrapDoorBlockShapeTest, PoweredDoesNotAffectShape)
+{
+    // POWERED 属性不影响形状
+    BlockState unpowered = woodenTrapdoor_->defaultState().with(BlockStateProperties::POWERED(), false);
+    BlockState powered = woodenTrapdoor_->defaultState().with(BlockStateProperties::POWERED(), true);
+
+    const CollisionShape& unpoweredShape = woodenTrapdoor_->getShape(unpowered);
+    const CollisionShape& poweredShape = woodenTrapdoor_->getShape(powered);
+
+    EXPECT_EQ(&unpoweredShape, &poweredShape);
+}
+
+TEST_F(TrapDoorBlockShapeTest, IronTrapdoor_SameShapeBehavior)
+{
+    // 铁活板门与木活板门形状行为相同
+    BlockState closedState = ironTrapdoor_->defaultState().with(BlockStateProperties::OPEN(), false);
+    BlockState openState = ironTrapdoor_->defaultState().with(BlockStateProperties::OPEN(), true);
+
+    // 关闭的有碰撞
+    EXPECT_FALSE(ironTrapdoor_->getCollisionShape(closedState).isEmpty());
+    // 打开的无碰撞
+    EXPECT_TRUE(ironTrapdoor_->getCollisionShape(openState).isEmpty());
+}
+
+TEST_F(TrapDoorBlockShapeTest, ShapeCaching_SameStateReturnsSameShape)
+{
+    // 相同状态应返回相同形状引用（缓存）
+    BlockState state1 = woodenTrapdoor_->defaultState()
+                            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                            .with(BlockStateProperties::OPEN(), true);
+
+    BlockState state2 = woodenTrapdoor_->defaultState()
+                            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                            .with(BlockStateProperties::OPEN(), true);
+
+    const CollisionShape& shape1 = woodenTrapdoor_->getShape(state1);
+    const CollisionShape& shape2 = woodenTrapdoor_->getShape(state2);
+
+    EXPECT_EQ(&shape1, &shape2);
+}

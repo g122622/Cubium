@@ -104,7 +104,7 @@ redstone/
 | `StoneButtonBlock.hpp/cpp` | 石头按钮，10 tick 脉冲 |
 | `WoodButtonBlock.hpp/cpp` | 木按钮，15 tick 脉冲（所有木质变体共用此类） |
 | `LeverBlock.hpp/cpp` | 拉杆，持久信号源，手动切换 |
-| `AbstractPressurePlateBlock.hpp/cpp` | 压力板基类，实体检测信号源 |
+| `AbstractPressurePlateBlock.hpp/cpp` | 压力板基类，实体检测信号源，支持pressed/unpressed形状 |
 | `StonePressurePlateBlock.hpp/cpp` | 石头压力板，仅生物触发，输出15 |
 | `WoodPressurePlateBlock.hpp/cpp` | 木压力板，所有实体触发，输出15 |
 | `WeightedPressurePlateBlock.hpp/cpp` | 测重压力板，根据实体数量输出强度 |
@@ -125,8 +125,8 @@ redstone/
 
 | 文件 | 职责 |
 |------|------|
-| `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越，潜行玩家不触发 |
-| `TripWireHookBlock.hpp/cpp` | 绊线钩，绊线连接点 |
+| `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越，潜行玩家不触发，支持attached/detached形状 |
+| `TripWireHookBlock.hpp/cpp` | 绊线钩，绊线连接点，方向性形状 |
 | `NoteBlock.hpp/cpp` | 音符盒，播放音符（16种乐器，25个音高） |
 | `TNTBlock.hpp/cpp` | TNT，红石触发爆炸 |
 | `TargetBlock.hpp/cpp` | 标靶，箭矢命中输出信号 |
@@ -811,6 +811,102 @@ bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
 
 **参考**：MC 1.16.5 `net.minecraft.block.TNTBlock`
 
+### 形状系统 (Shape System)
+
+红石相关方块实现了精确的碰撞形状 (CollisionShape)，参考 MC 1.16.5 源码：
+
+#### 红石线 (RedstoneWireBlock)
+
+红石线根据连接状态动态计算形状：
+
+```cpp
+// 中心点形状（无连接）
+static const CollisionShape s_center = CollisionShape::box(
+    3.0f/16.0f, 0.0f, 3.0f/16.0f, 13.0f/16.0f, 1.0f/16.0f, 13.0f/16.0f);
+
+// 侧面连接形状
+static const CollisionShape s_north = CollisionShape::box(
+    3.0f/16.0f, 0.0f, 0.0f, 13.0f/16.0f, 1.0f/16.0f, 3.0f/16.0f);
+// ... 其他方向
+
+// 向上攀爬形状
+static const CollisionShape s_northUp = CollisionShape::box(
+    3.0f/16.0f, 0.0f, 0.0f, 13.0f/16.0f, 16.0f/16.0f, 1.0f/16.0f);
+```
+
+**形状缓存**：使用 `std::unordered_map<u32, const CollisionShape*>` 缓存组合形状，避免重复计算。
+
+#### 压力板 (AbstractPressurePlateBlock)
+
+压力板有两种形状：
+- **未按下** (power=0): `(1, 0, 1) -> (15, 1, 16像素坐标)`
+- **按下** (power>0): `(1, 0, 1) -> (15, 0.5, 16像素坐标)` - 更低
+
+```cpp
+const CollisionShape& getShape(const BlockState& state) const {
+    static const CollisionShape unpressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 1.0f, 15.0f);
+    static const CollisionShape pressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 0.5f, 15.0f);
+    return getPower(state) > 0 ? pressedShape : unpressedShape;
+}
+```
+
+#### 绊线 (TripWireBlock)
+
+绊线根据 ATTACHED 属性有不同形状：
+- **绷紧** (ATTACHED=true): `(0, 1, 0) -> (16, 2.5, 16像素坐标)` - 悬浮在空中
+- **松弛** (ATTACHED=false): `(0, 0, 0) -> (16, 8, 16像素坐标)` - 下垂
+
+```cpp
+const CollisionShape& getShape(const BlockState& state) const {
+    static const CollisionShape attachedShape = CollisionShape::box(0.0f, 1.0f/16.0f, 0.0f, 1.0f, 2.5f/16.0f, 1.0f);
+    static const CollisionShape detachedShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f/16.0f, 1.0f);
+    return state.get(BlockStateProperties::ATTACHED()) ? attachedShape : detachedShape;
+}
+```
+
+绊线无碰撞箱 (`getCollisionShape` 返回空)。
+
+#### 绊线钩 (TripwireHookBlock)
+
+绊线钩根据 FACING 属性有四个方向的形状：
+
+```cpp
+// 参考 MC 1.16.5 TripWireHookBlock.java
+// HOOK_NORTH_AABB = Block.makeCuboidShape(5.0D, 0.0D, 10.0D, 11.0D, 10.0D, 16.0D)
+const CollisionShape s_hookNorth = CollisionShape::box(5.0f/16.0f, 0.0f, 10.0f/16.0f, 11.0f/16.0f, 10.0f/16.0f, 1.0f);
+// ... 其他方向
+```
+
+### 实体碰撞检测 (Entity Collision Detection)
+
+压力板和绊线需要检测实体碰撞：
+
+```cpp
+bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos& pos) const {
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x) + 0.125f,
+        static_cast<f32>(pos.y) + 0.0f,
+        static_cast<f32>(pos.z) + 0.125f,
+        static_cast<f32>(pos.x) + 0.875f,
+        static_cast<f32>(pos.y) + 0.25f,
+        static_cast<f32>(pos.z) + 0.875f
+    );
+
+    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
+    for (Entity* entity : entities) {
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
+            return true;
+        }
+    }
+    return false;
+}
+```
+
+**关键方法**：
+- `Entity::doesEntityNotTriggerPressurePlate()` - 判断实体是否不触发压力板
+  - 玩家、生物：返回 `false`（会触发）
+  - 物品实体、箭矢等：返回 `true`（不触发）
+
 ## 容易踩的坑
 
 ### 1. 红石火把无限递归
@@ -1004,6 +1100,10 @@ i32 getStrongPower(..., Direction side) {
 - `NoteBlockTest.cpp` - 音符盒测试（乐器类型检测、音高计算、状态属性）
 - `PistonBlockTest.cpp` - 活塞测试（世界边界检查、构造函数、伸出状态）
 - `TripWireTest.cpp` - 绊线测试（状态属性、红石信号输出、绊线链检测、DISARMED属性、shouldConnectTo连接检测、updatePostPlacement连接状态更新）
+- `TripWireBlockTest.cpp` - 绊线形状测试（attached/detached形状、连接属性、碰撞箱）
+- `TripwireHookBlockTest.cpp` - 绊线钩形状测试（四方向形状、状态属性、POWERED/ATTACHED不影响形状）
+- `AbstractPressurePlateBlockTest.cpp` - 压力板基类测试（pressed/unpressed形状、POWER属性、canProvidePower）
+- `RedstoneWireBlockTest.cpp` - 红石线形状测试（中心点形状、侧面连接、向上攀爬、形状缓存）
 
 ## 参考文档
 

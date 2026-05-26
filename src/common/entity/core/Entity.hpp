@@ -1765,13 +1765,13 @@ public:
      * 某些实体（如盔甲架、蝙蝠、投射物等）不会触发压力板和绊线。
      * 参考: MC 1.16.5 Entity.doesEntityNotTriggerPressurePlate()
      *
-     * 默认返回 true（不触发）。
-     * 玩家、生物等应该重写返回 false（会触发）。
-     * 蝙蝠特殊处理返回 false（蝙蝠也不触发）。
+     * 默认返回 false（会触发）。
+     * 蝙蝠重写返回 true（蝙蝠不触发）。
+     * 盔甲架、物品实体、投射物等也应该重写返回 true。
      *
      * @return 如果实体不触发压力板返回true
      */
-    [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const { return true; }
+    [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const { return false; }
 
     /**
      * @brief 播放脚步声
