@@ -189,6 +189,9 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
 
     BOOL locked =
         LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD, &overlapped);
+    if (locked) {
+        UnlockFileEx(hFile, 0, MAXDWORD, MAXDWORD, &overlapped);
+    }
     CloseHandle(hFile);
 
     return !locked; // 如果无法获取锁，则已锁定

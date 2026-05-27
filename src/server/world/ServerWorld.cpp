@@ -819,10 +819,6 @@ void ServerWorld::tick()
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
 
-    if (m_storage) {
-        m_storage->tickAutoSave(currentTick);
-    }
-
     // 调试世界不执行计划刻
     if (!isDebugWorld() && m_tickManager) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::TickManager");

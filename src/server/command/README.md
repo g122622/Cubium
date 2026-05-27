@@ -315,6 +315,7 @@ public:
 
 - 已接入 `IServer::sharedStorage()` 返回的共享 `SingleLevelStorageManager`
 - 命令层不再通过主世界 `ServerWorld` 绕行存储入口
+- 如果当前共享存储是外来只读世界，这两个命令会明确提示自动保存不可用，而不是假装切换成功
 
 #### HelpCommand - /help 命令
 

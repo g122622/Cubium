@@ -938,6 +938,8 @@ add_library(mc_common STATIC
     world/storage/backend/BedrockLDBBackend.cpp
     world/storage/core/SaveFormat.cpp
     world/storage/reader/java/RegionFile.cpp
+    world/storage/reader/java/JavaWorldReader.cpp
+    world/storage/reader/java/JavaColumnReader.cpp
     world/storage/reader/java/JavaChunkReader.cpp
     world/storage/reader/java/JavaBlockStateMapper.cpp
     world/storage/reader/java/JavaBiomeMapper.cpp

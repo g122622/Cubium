@@ -214,7 +214,7 @@ Result<void> SingleLevelStorageManager::openForeignFormat(const std::filesystem:
                 fmt::format("Unsupported foreign save format: {}", m_config.formatInfo.formatName));
     }
 
-    auto openResult = m_backend->open(worldPath);
+    auto openResult = m_backend->open(worldPath, m_config.formatInfo);
     if (openResult.failed()) {
         m_backend.reset();
         m_sessionLock.reset();
@@ -236,16 +236,14 @@ void SingleLevelStorageManager::close()
 
     MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::close");
 
-    auto flushResult = flushAllDirty();
-    if (!flushResult.success()) {
-        spdlog::error("Failed to flush dirty sections: {}", flushResult.error().message());
-    }
-
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
         m_sectionManagers.clear();
     }
 
+    if (m_autoSave) {
+        m_autoSave->stop();
+    }
     m_backupManager.reset();
     m_scoreboardDataManager.reset();
     m_playerDataManager.reset();
@@ -486,24 +484,6 @@ Result<std::optional<PlayerSaveData>> SingleLevelStorageManager::loadPlayer(cons
     return std::optional<PlayerSaveData>(*playerData);
 }
 
-Result<std::vector<std::string>> SingleLevelStorageManager::listPlayerUuids()
-{
-    if (!isOpen()) {
-        return Error(ErrorCode::InvalidState, "Storage not open");
-    }
-
-    if (m_backend) {
-        return m_backend->listPlayerUuids();
-    }
-
-    if (!m_playerDataManager) {
-        return Error(ErrorCode::InvalidState, "Player data manager not initialized");
-    }
-
-    // Native 路径当前仅暴露已缓存/已标脏的玩家集合，不扫描整个 RocksDB players 列族。
-    return m_playerDataManager->getDirtyUuids();
-}
-
 Result<LevelRuntimeData> SingleLevelStorageManager::loadLevelData()
 {
     if (!isOpen()) {
@@ -618,19 +598,6 @@ SectionManager* SingleLevelStorageManager::createSectionManager(DimensionId dime
         return nullptr;
     }
     return it->second.get();
-}
-
-Result<std::vector<ChunkPos>> SingleLevelStorageManager::listChunks(DimensionId dimension)
-{
-    if (!isOpen()) {
-        return Error(ErrorCode::InvalidState, "Storage not open");
-    }
-
-    if (m_backend) {
-        return m_backend->listChunks(dimension);
-    }
-
-    return std::vector<ChunkPos>{};
 }
 
 void SingleLevelStorageManager::setConsistencyMode(ConsistencyMode mode)

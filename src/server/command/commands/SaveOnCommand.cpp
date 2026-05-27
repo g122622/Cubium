@@ -55,6 +55,11 @@ i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    if (server->isSharedStorageReadonlyForeignWorld()) {
+        source.sendMessage("Automatic saving remains disabled: current world is a readonly foreign save");
+        return 0;
+    }
+
     storage->startAutoSave();
     source.sendMessage("Automatic saving is now enabled");
     return 1;

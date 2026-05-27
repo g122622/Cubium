@@ -9,7 +9,7 @@
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
 5. **保存协调**：`flushAllDirty()` 用于增量落盘，`saveAll()` 用于全量落盘
-6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，并通过统一门面暴露区块、玩家与 `level.dat` 读取能力
+6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，并通过统一门面暴露已完整接入主流程的区块、玩家与 `level.dat` 读取能力
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
 
@@ -80,7 +80,7 @@ auto storage = std::move(storageResult.value());
 auto loadResult = storage->loadChunk(chunkX, chunkZ, dimension);
 auto saveResult = storage->saveChunk(chunk, dimension);
 
-// 对外来存档同样可通过统一门面读取玩家与 level.dat
+// 对外来存档同样可通过统一门面读取单个玩家与 level.dat
 auto playerResult = storage->loadPlayer("~local_player");
 auto levelDataResult = storage->loadLevelData();
 
@@ -90,8 +90,9 @@ if (!fullSaveResult.success()) {
     // 处理错误
 }
 
-// 关闭时自动保存脏数据
-storage->close();  // 自动调用 flushAllDirty()
+// 关闭前由上层显式决定是否保存，close() 只负责释放资源
+storage->flushAllDirty();
+storage->close();
 ```
 
 ## 存储架构
@@ -427,7 +428,7 @@ saves/
 
 ### 保存协调层
 
-- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和关闭流程使用。
+- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和显式关闭前收尾使用。
 - `SingleLevelStorageManager::saveAll()`：保存所有已缓存 Section，供 `/save-all` 和全量落盘使用。
 - `AutoSave`：定时触发脏数据保存，并可选创建快照。
 
@@ -558,10 +559,12 @@ if (saveResult.failed()) {
 
 - `SaveFormatDetector`：识别 `Native`、`JavaAnvil`、`BedrockLDB`
 - `SingleLevelStorageManager::formatInfo()`：暴露检测结果
-- `SingleLevelStorageManager::listChunks()`：列举外来存档已存在区块
-- `SingleLevelStorageManager::loadPlayer()` / `listPlayerUuids()`：统一读取玩家数据
+- `SingleLevelStorageManager::loadChunk()`：统一读取完整区块
+- `SingleLevelStorageManager::loadPlayer()`：统一读取单个玩家数据
 - `SingleLevelStorageManager::loadLevelData()`：统一读取 `level.dat`
-- 外来存档强制只读：`saveChunk()`、`flushAllDirty()`、`saveAll()` 静默成功但不落盘
+- 外来格式检测职责只在 `SingleLevelStorageManager::open()` 执行一次，backend 只消费已确定的 `SaveFormatInfo`
+- 外来存档强制只读：`saveChunk()`、`flushAllDirty()`、`saveAll()`、`saveLevelData()` 静默成功但不落盘
+- `listChunks()`、`listPlayerUuids()` 这类枚举能力暂未在 Native 与外来格式之间形成一致契约，因此不再暴露在统一门面，避免上层误把半成品能力当稳定 API
 
 ## 容易踩的坑
 
@@ -571,6 +574,8 @@ if (saveResult.failed()) {
 4. **列族必须预先创建**: 打开数据库时会自动创建缺失的列族
 5. **RocksDB 快照**: 内存中的 sequence number，不持久化
 6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，`saveAll()` 才会完整落盘
+7. **`close()` 不负责保存**: 关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
+8. **外来格式 detect 不要下沉到 backend**: backend 只负责按门面层已确认的格式打开和读取，避免 detector 规则在两层分叉
 
 ## 玩家数据存储
 
@@ -611,7 +616,7 @@ if (dataResult.success() && dataResult.value()) {
 - 生物群系 4x4x4 采样 round-trip
 - 快照创建与清理
 - 一致性模式对写入路径的影响
-- `AutoSave` 的触发路径（已接入 `ServerWorld`）
+- `AutoSave` 的服务器级单点触发路径
 
 ## 架构图
 

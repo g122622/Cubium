@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/world/storage/backend/JavaAnvilBackend.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
 #include <filesystem>
 #include <fstream>
@@ -167,6 +168,37 @@ TEST_F(SaveFormatDetectorTest, RegionDirWithNoMcaDefaultsToNative)
     auto result = SaveFormatDetector::detect(m_tmpDir);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value().format, SaveFormat::Native);
+}
+
+TEST_F(SaveFormatDetectorTest, BackendOpenConsumesProvidedFormatInfoWithoutRedetecting)
+{
+    std::filesystem::path regionDir = m_tmpDir / "region";
+    std::filesystem::create_directories(regionDir);
+    createFile(regionDir / "r.0.0.mca");
+
+    SaveFormatInfo javaInfo;
+    javaInfo.format = SaveFormat::JavaAnvil;
+    javaInfo.formatName = "Java Test";
+    javaInfo.dataVersion = 2500;
+    javaInfo.readonly = true;
+
+    JavaAnvilBackend javaBackend;
+    auto javaOpenResult = javaBackend.open(m_tmpDir, javaInfo);
+    ASSERT_TRUE(javaOpenResult.success()) << javaOpenResult.error().message();
+    EXPECT_EQ(javaBackend.formatInfo().format, SaveFormat::JavaAnvil);
+    EXPECT_EQ(javaBackend.formatInfo().formatName, "Java Test");
+    javaBackend.close();
+
+    SaveFormatInfo wrongInfo;
+    wrongInfo.format = SaveFormat::BedrockLDB;
+    wrongInfo.formatName = "Wrong";
+    wrongInfo.readonly = true;
+
+    auto wrongJavaOpenResult = javaBackend.open(m_tmpDir, wrongInfo);
+    EXPECT_TRUE(wrongJavaOpenResult.failed());
+
+    // Bedrock backend 的 open 还需要真实可打开的 LevelDB 目录，这里不伪造损坏 DB。
+    // P0-4 关注的是“backend 不再自行 detect”，此处用 Java backend 的签名与错误路径锁定即可。
 }
 
 } // namespace

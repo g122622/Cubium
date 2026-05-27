@@ -61,7 +61,7 @@ public:
      * @param worldPath 存档目录路径
      * @return 成功或错误
      */
-    virtual Result<void> open(const std::filesystem::path& worldPath) = 0;
+    virtual Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo) = 0;
 
     /**
      * @brief 关闭存档并释放资源

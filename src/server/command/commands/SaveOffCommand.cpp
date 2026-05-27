@@ -55,6 +55,11 @@ i32 SaveOffCommand::disableAutoSave(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
+    if (server->isSharedStorageReadonlyForeignWorld()) {
+        source.sendMessage("Automatic saving is already unavailable: current world is a readonly foreign save");
+        return 0;
+    }
+
     storage->stopAutoSave();
     source.sendMessage("Automatic saving is now disabled");
     return 1;

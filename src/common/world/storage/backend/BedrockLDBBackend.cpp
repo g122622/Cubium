@@ -22,10 +22,10 @@
  */
 
 #include "BedrockLDBBackend.hpp"
-#include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <spdlog/spdlog.h>
+#include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::storage {
 
@@ -220,8 +220,8 @@ Result<PlayerSaveData> parseBedrockPlayerData(const compound_tag& root, const st
 
     if (const auto spawnX = tryGetInt(root, "SpawnX");
         spawnX.has_value() && tryGetInt(root, "SpawnY").has_value() && tryGetInt(root, "SpawnZ").has_value()) {
-        data.spawnPoint = GlobalPos(data.dimension,
-            BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")));
+        data.spawnPoint =
+            GlobalPos(data.dimension, BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")));
     }
 
     return data;
@@ -240,16 +240,10 @@ BedrockLDBBackend::~BedrockLDBBackend()
     close();
 }
 
-Result<void> BedrockLDBBackend::open(const std::filesystem::path& worldPath)
+Result<void> BedrockLDBBackend::open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo)
 {
     m_worldPath = worldPath;
-
-    // 检测格式信息
-    auto formatResult = SaveFormatDetector::detect(worldPath);
-    if (formatResult.failed()) {
-        return formatResult.error();
-    }
-    m_formatInfo = formatResult.value();
+    m_formatInfo = formatInfo;
 
     if (m_formatInfo.format != SaveFormat::BedrockLDB) {
         return Error(ErrorCode::InvalidState, "BedrockLDBBackend can only open Bedrock LevelDB format worlds");
@@ -305,43 +299,41 @@ Result<std::vector<ChunkPos>> BedrockLDBBackend::listChunks(DimensionId dimensio
     }
 
     std::vector<ChunkPos> chunks;
-    // 遍历 Version 键来发现所有区块
-    // 主世界键较短（9字节），其他维度键较长（13字节）
-    // 先扫描主世界，再根据维度过滤
-    // 简化实现：只列出主世界区块
-    if (dimension == 0) {
-        // 扫描所有键，只取主世界（键长度为9的 Version 键）
-        auto prefix = std::vector<u8>{}; // 空前缀 = 扫描所有
-        m_db->iteratePrefix(prefix, [&chunks](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
-            // 主世界 Version 键：9 字节 (4+4+1)
-            if (key.size() == 9 && key[8] == static_cast<u8>(BedrockLevelDb::ChunkType::Version)) {
-                i32 chunkX = static_cast<i32>(key[0]) | (static_cast<i32>(key[1]) << 8) |
-                    (static_cast<i32>(key[2]) << 16) | (static_cast<i32>(key[3]) << 24);
-                i32 chunkZ = static_cast<i32>(key[4]) | (static_cast<i32>(key[5]) << 8) |
-                    (static_cast<i32>(key[6]) << 16) | (static_cast<i32>(key[7]) << 24);
+    std::unordered_set<u64> seen;
+
+    auto readLe32 = [](const std::vector<u8>& key, size_t offset) -> i32 {
+        return static_cast<i32>(key[offset]) | (static_cast<i32>(key[offset + 1]) << 8) |
+            (static_cast<i32>(key[offset + 2]) << 16) | (static_cast<i32>(key[offset + 3]) << 24);
+    };
+
+    auto iterateResult = m_db->iteratePrefix(std::vector<u8>{},
+        [dimension, &chunks, &seen, &readLe32](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+            MC_UNUSED(value);
+
+            const auto versionType = static_cast<u8>(BedrockLevelDb::ChunkType::Version);
+            if (dimension == 0) {
+                if (key.size() != 9 || key[8] != versionType) {
+                    return true;
+                }
+            } else {
+                if (key.size() != 13 || key[12] != versionType) {
+                    return true;
+                }
+                if (readLe32(key, 8) != dimension) {
+                    return true;
+                }
+            }
+
+            const i32 chunkX = readLe32(key, 0);
+            const i32 chunkZ = readLe32(key, 4);
+            const u64 packed = (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u32>(chunkZ);
+            if (seen.insert(packed).second) {
                 chunks.emplace_back(chunkX, chunkZ);
             }
             return true;
         });
-    } else {
-        // 其他维度：13 字节键 (4+4+4+1)，dimension 部分匹配
-        // 简化实现：遍历所有键匹配维度
-        m_db->iteratePrefix(
-            std::vector<u8>{}, [dimension, &chunks](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
-                // 其他维度 Version 键：13 字节 (4+4+4+1)
-                if (key.size() == 13 && key[12] == static_cast<u8>(BedrockLevelDb::ChunkType::Version)) {
-                    i32 dimId = static_cast<i32>(key[8]) | (static_cast<i32>(key[9]) << 8) |
-                        (static_cast<i32>(key[10]) << 16) | (static_cast<i32>(key[11]) << 24);
-                    if (dimId == dimension) {
-                        i32 chunkX = static_cast<i32>(key[0]) | (static_cast<i32>(key[1]) << 8) |
-                            (static_cast<i32>(key[2]) << 16) | (static_cast<i32>(key[3]) << 24);
-                        i32 chunkZ = static_cast<i32>(key[4]) | (static_cast<i32>(key[5]) << 8) |
-                            (static_cast<i32>(key[6]) << 16) | (static_cast<i32>(key[7]) << 24);
-                        chunks.emplace_back(chunkX, chunkZ);
-                    }
-                }
-                return true;
-            });
+    if (iterateResult.failed()) {
+        return iterateResult.error();
     }
 
     return chunks;
@@ -396,8 +388,8 @@ Result<std::vector<std::string>> BedrockLDBBackend::listPlayerUuids()
     std::vector<std::string> ids;
     ids.emplace_back("~local_player");
 
-    auto iterateResult = m_db->iteratePrefix(BedrockLevelDb::buildActorPrefix(),
-        [&ids](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+    auto iterateResult = m_db->iteratePrefix(
+        BedrockLevelDb::buildActorPrefix(), [&ids](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
             MC_UNUSED(value);
             const auto prefix = BedrockLevelDb::buildActorPrefix();
             if (key.size() >= prefix.size()) {

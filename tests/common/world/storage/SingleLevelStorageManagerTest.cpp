@@ -3,6 +3,7 @@
 #include "world/storage/db/SectionKey.hpp"
 #include <ctime>
 #include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
@@ -407,6 +408,159 @@ TEST_F(SingleLevelStorageManagerTest, InvalidSectionKey)
     EXPECT_FALSE(loadResult.value().has_value());
 
     storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPersist)
+{
+    {
+        SingleLevelStorageManager bootstrap;
+        SingleLevelStorageConfig bootstrapConfig;
+        auto bootstrapResult = bootstrap.open(testDir, bootstrapConfig);
+        ASSERT_TRUE(bootstrapResult.success());
+        bootstrap.close();
+    }
+
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    config.readonly = true;
+
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    ChunkData chunk(1, 2);
+    ChunkSection* section = chunk.createSection(0);
+    ASSERT_NE(section, nullptr);
+    section->setBlockStateId(0, 0, 0, 55);
+    chunk.setLoaded(true);
+    chunk.setFullyGenerated(true);
+
+    auto saveResult = storage.saveChunk(chunk, 0);
+    ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+
+    auto flushResult = storage.flushAllDirty();
+    ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
+    EXPECT_EQ(flushResult.value(), 0u);
+
+    auto saveAllResult = storage.saveAll();
+    ASSERT_TRUE(saveAllResult.success()) << saveAllResult.error().message();
+    EXPECT_EQ(saveAllResult.value(), 0u);
+
+    storage.close();
+
+    SingleLevelStorageManager reopened;
+    SingleLevelStorageConfig reopenConfig;
+    auto reopenResult = reopened.open(testDir, reopenConfig);
+    ASSERT_TRUE(reopenResult.success());
+    auto loadResult = reopened.loadChunk(1, 2, 0);
+    ASSERT_TRUE(loadResult.success());
+    EXPECT_FALSE(loadResult.value().has_value());
+    reopened.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, CloseDoesNotPersistLevelDataWithoutExplicitSave)
+{
+    {
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
+
+        auto result = storage.open(testDir, config);
+        ASSERT_TRUE(result.success()) << result.error().message();
+
+        CreateWorldRequest request("test-world",
+            "test-world",
+            12345,
+            WorldType::Default,
+            GameMode::Survival,
+            Difficulty::Normal,
+            false,
+            false,
+            10);
+        auto writeInitialResult = LevelDatCodec::writeInitial(testDir, request);
+        ASSERT_TRUE(writeInitialResult.success()) << writeInitialResult.error().message();
+
+        storage.close();
+    }
+
+    {
+        SingleLevelStorageManager reopened;
+        SingleLevelStorageConfig config;
+
+        auto reopenResult = reopened.open(testDir, config);
+        ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
+
+        auto levelDataResult = reopened.loadLevelData();
+        ASSERT_TRUE(levelDataResult.success()) << levelDataResult.error().message();
+        const auto& levelData = levelDataResult.value();
+        EXPECT_EQ(levelData.gameTime, 0);
+        EXPECT_EQ(levelData.dayTime, 0);
+        EXPECT_EQ(levelData.spawnX, 0);
+        EXPECT_EQ(levelData.spawnY, 0);
+        EXPECT_EQ(levelData.spawnZ, 0);
+
+        reopened.close();
+    }
+}
+
+TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
+{
+    {
+        SingleLevelStorageManager bootstrap;
+        SingleLevelStorageConfig config;
+        auto openResult = bootstrap.open(testDir, config);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
+        CreateWorldRequest request("test-world",
+            "test-world",
+            12345,
+            WorldType::Default,
+            GameMode::Survival,
+            Difficulty::Normal,
+            false,
+            false,
+            10);
+        auto writeInitialResult = LevelDatCodec::writeInitial(testDir, request);
+        ASSERT_TRUE(writeInitialResult.success()) << writeInitialResult.error().message();
+
+        auto saveResult = bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false);
+        ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+        bootstrap.close();
+    }
+
+    {
+        SingleLevelStorageManager readonlyStorage;
+        SingleLevelStorageConfig readonlyConfig;
+        readonlyConfig.readonly = true;
+
+        auto openResult = readonlyStorage.open(testDir, readonlyConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
+        auto saveResult = readonlyStorage.saveLevelData(999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true);
+        ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+        readonlyStorage.close();
+    }
+
+    {
+        SingleLevelStorageManager reopened;
+        SingleLevelStorageConfig config;
+
+        auto openResult = reopened.open(testDir, config);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
+        auto levelDataResult = reopened.loadLevelData();
+        ASSERT_TRUE(levelDataResult.success()) << levelDataResult.error().message();
+        const auto& levelData = levelDataResult.value();
+        EXPECT_EQ(levelData.gameTime, 10);
+        EXPECT_EQ(levelData.dayTime, 20);
+        EXPECT_EQ(levelData.spawnX, 1);
+        EXPECT_EQ(levelData.spawnY, 64);
+        EXPECT_EQ(levelData.spawnZ, 2);
+        EXPECT_EQ(levelData.rainTime, 50);
+        EXPECT_TRUE(levelData.raining);
+        EXPECT_EQ(levelData.thunderTime, 60);
+        EXPECT_FALSE(levelData.thundering);
+
+        reopened.close();
+    }
 }
 
 } // namespace

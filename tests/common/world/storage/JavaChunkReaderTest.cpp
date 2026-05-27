@@ -22,7 +22,6 @@
  */
 
 #include "common/world/storage/reader/java/JavaChunkReader.hpp"
-
 #include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
 #include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
 #include <gtest/gtest.h>
@@ -30,61 +29,59 @@
 namespace mc::world::storage::reader::java {
 namespace {
 
-class JavaChunkReaderTest : public ::testing::Test {
-protected:
-    JavaBiomeMapper biomeMapper;
-    JavaBlockStateMapper blockMapper;
-    JavaChunkReader reader{blockMapper, biomeMapper};
-};
-
-TEST_F(JavaChunkReaderTest, UnpackLongArrayReadsMultipleLongs)
+std::vector<i64> packPadded(const std::vector<u32>& values, i32 bitsPerEntry)
 {
-    constexpr i32 bitsPerEntry = 4;
-    constexpr i32 entryCount = 32;
-    constexpr i32 valuesPerLong = 64 / bitsPerEntry;
-    std::vector<i64> packed(2, 0);
-
-    for (i32 i = 0; i < entryCount; ++i) {
-        const i32 longIndex = i / valuesPerLong;
-        const i32 bitOffset = (i % valuesPerLong) * bitsPerEntry;
-        packed[static_cast<size_t>(longIndex)] |= static_cast<i64>((i % 16) << bitOffset);
+    const i32 valuesPerLong = 64 / bitsPerEntry;
+    std::vector<i64> packed(static_cast<size_t>((values.size() + valuesPerLong - 1) / valuesPerLong), 0);
+    for (size_t i = 0; i < values.size(); ++i) {
+        const i32 longIndex = static_cast<i32>(i) / valuesPerLong;
+        const i32 bitOffset = (static_cast<i32>(i) % valuesPerLong) * bitsPerEntry;
+        packed[static_cast<size_t>(longIndex)] |= static_cast<i64>(values[i]) << bitOffset;
     }
-
-    auto unpacked = JavaChunkReader::unpackLongArray(packed, bitsPerEntry, entryCount);
-    ASSERT_EQ(unpacked.size(), static_cast<size_t>(entryCount));
-    for (i32 i = 0; i < entryCount; ++i) {
-        EXPECT_EQ(unpacked[static_cast<size_t>(i)], static_cast<u32>(i % 16));
-    }
+    return packed;
 }
 
-TEST_F(JavaChunkReaderTest, ReadBiomesSamplesBottomSectionAgainstCurrentContainerShape)
+std::vector<i64> packCompact(const std::vector<u32>& values, i32 bitsPerEntry)
 {
-    mc::nbt::tags::compound_tag level;
-    std::vector<i32> biomes(1024, 0);
-
-    for (i32 sy = 0; sy < BiomeContainer::BIOME_HEIGHT; ++sy) {
-        for (i32 sz = 0; sz < BiomeContainer::BIOME_DEPTH; ++sz) {
-            for (i32 sx = 0; sx < BiomeContainer::BIOME_WIDTH; ++sx) {
-                const i32 globalY = sy * 4;
-                const i32 srcIdx = (globalY / 4) * 16 + sz * 4 + sx;
-                biomes[static_cast<size_t>(srcIdx)] = 1 + sy * 16 + sz * 4 + sx;
-            }
+    const size_t packedSize = static_cast<size_t>((static_cast<i64>(values.size()) * bitsPerEntry + 63) / 64);
+    std::vector<i64> packed(packedSize, 0);
+    const u64 mask = (1ULL << bitsPerEntry) - 1ULL;
+    for (size_t i = 0; i < values.size(); ++i) {
+        const i32 bitIndex = static_cast<i32>(i) * bitsPerEntry;
+        const i32 startLong = bitIndex / 64;
+        const i32 endLong = (bitIndex + bitsPerEntry - 1) / 64;
+        const i32 startOffset = bitIndex % 64;
+        packed[static_cast<size_t>(startLong)] |= static_cast<i64>((static_cast<u64>(values[i]) & mask) << startOffset);
+        if (startLong != endLong) {
+            const i32 spillBits = 64 - startOffset;
+            packed[static_cast<size_t>(endLong)] |= static_cast<i64>((static_cast<u64>(values[i]) & mask) >> spillBits);
         }
     }
-    level.put("Biomes", biomes);
+    return packed;
+}
 
-    ChunkData chunk(0, 0);
-    auto result = reader.readBiomes(level, chunk);
-    ASSERT_TRUE(result.success());
-
-    for (i32 sy = 0; sy < BiomeContainer::BIOME_HEIGHT; ++sy) {
-        for (i32 sz = 0; sz < BiomeContainer::BIOME_DEPTH; ++sz) {
-            for (i32 sx = 0; sx < BiomeContainer::BIOME_WIDTH; ++sx) {
-                const BiomeId expected = static_cast<BiomeId>(1 + sy * 16 + sz * 4 + sx);
-                EXPECT_EQ(chunk.getBiomes().getBiome(sx, sy, sz), expected);
-            }
-        }
+TEST(JavaChunkReaderTest, UnpackPaddedLongArrayMatchesJava116Layout)
+{
+    std::vector<u32> values(4096);
+    for (size_t i = 0; i < values.size(); ++i) {
+        values[i] = static_cast<u32>(i % 17);
     }
+
+    const auto packed = packPadded(values, 5);
+    const auto unpacked = JavaChunkReader::unpackLongArray(packed, 5, 4096, true);
+    EXPECT_EQ(unpacked, values);
+}
+
+TEST(JavaChunkReaderTest, UnpackCompactLongArrayMatchesCrossLongLayout)
+{
+    std::vector<u32> values(64);
+    for (size_t i = 0; i < values.size(); ++i) {
+        values[i] = static_cast<u32>(i % 9);
+    }
+
+    const auto packed = packCompact(values, 4);
+    const auto unpacked = JavaChunkReader::unpackLongArray(packed, 4, static_cast<i32>(values.size()), false);
+    EXPECT_EQ(unpacked, values);
 }
 
 } // namespace

@@ -97,6 +97,11 @@ namespace {
     return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
 }
 
+[[nodiscard]] bool isReadonlyForeignStorage(const world::storage::SingleLevelStorageManager* storage)
+{
+    return storage != nullptr && storage->isOpen() && storage->config().readonly && storage->isForeignFormat();
+}
+
 } // namespace
 
 MinecraftServer::MinecraftServer(ServerSettings& settings)
@@ -180,6 +185,11 @@ MinecraftServer::~MinecraftServer()
     }
 }
 
+bool MinecraftServer::isSharedStorageReadonlyForeignWorld() const
+{
+    return isReadonlyForeignStorage(m_storage.get());
+}
+
 void MinecraftServer::shutdown()
 {
     m_running = false;
@@ -241,6 +251,11 @@ void MinecraftServer::tick()
     if (m_dimensionManager) {
         MC_TRACE_EVENT("server.tick", "TickAllDimensions");
         m_dimensionManager->tick();
+    }
+
+    if (m_storage) {
+        MC_TRACE_EVENT("server.tick", "TickSharedStorageAutoSave");
+        m_storage->tickAutoSave(currentTick());
     }
 
     // 执行实体 tick
@@ -423,7 +438,12 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
 
     world::storage::AutoSaveConfig saveConfig;
     m_storage->initializeAutoSave(saveConfig);
-    m_storage->startAutoSave();
+    if (isSharedStorageReadonlyForeignWorld()) {
+        spdlog::info("World storage is a readonly foreign world (format: {}); autosave remains disabled",
+            m_storage->formatInfo().formatName);
+    } else {
+        m_storage->startAutoSave();
+    }
     m_scoreboard->setDataManager(m_storage->scoreboardDataManager());
     m_scoreboard->load();
     return Result<void>::ok();
@@ -431,6 +451,9 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
 
 void MinecraftServer::shutdownSharedStorage()
 {
+    if (m_storage && m_storage->isOpen()) {
+        m_storage->close();
+    }
     m_storage.reset();
 }
 
@@ -438,6 +461,12 @@ Result<size_t> MinecraftServer::saveAllWorldData()
 {
     if (!m_storage || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Shared storage not open");
+    }
+
+    if (isSharedStorageReadonlyForeignWorld()) {
+        spdlog::info("Skipping saveAllWorldData persistence for readonly foreign world (format: {})",
+            m_storage->formatInfo().formatName);
+        return 0;
     }
 
     // 保存区块和玩家数据
@@ -1058,9 +1087,16 @@ bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& p
 void MinecraftServer::shutdownManagers()
 {
     if (m_storage && m_storage->isOpen()) {
-        auto saveResult = saveAllWorldData();
-        if (saveResult.failed()) {
-            spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
+        if (isSharedStorageReadonlyForeignWorld()) {
+            m_storage->stopAutoSave();
+            spdlog::info("Shutdown skipped persistence for readonly foreign world (format: {})",
+                m_storage->formatInfo().formatName);
+        } else {
+            m_storage->shutdownAutoSave();
+            auto saveResult = saveAllWorldData();
+            if (saveResult.failed()) {
+                spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
+            }
         }
     }
 

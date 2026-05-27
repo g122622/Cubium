@@ -27,33 +27,11 @@
 #include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
 #include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
 #include "common/world/storage/reader/java/JavaChunkReader.hpp"
-#include "common/world/storage/reader/java/RegionFile.hpp"
+#include "common/world/storage/reader/java/JavaColumnReader.hpp"
+#include "common/world/storage/reader/java/JavaWorldReader.hpp"
 #include <memory>
-#include <unordered_map>
 
 namespace mc::world::storage {
-
-/// 区域坐标哈希（用于 unordered_map 缓存）
-struct RegionPosKey {
-    DimensionId dimension = 0;
-    i32 regionX = 0;
-    i32 regionZ = 0;
-
-    [[nodiscard]] bool operator==(const RegionPosKey& other) const noexcept
-    {
-        return dimension == other.dimension && regionX == other.regionX && regionZ == other.regionZ;
-    }
-};
-
-struct RegionPosHash {
-    size_t operator()(const RegionPosKey& pos) const noexcept
-    {
-        auto h1 = std::hash<i32>{}(pos.dimension);
-        auto h2 = std::hash<i32>{}(pos.regionX);
-        auto h3 = std::hash<i32>{}(pos.regionZ);
-        return h1 ^ (h2 << 1) ^ (h3 << 2);
-    }
-};
 
 /**
  * @brief Java Anvil 格式只读存储后端
@@ -69,7 +47,7 @@ public:
     JavaAnvilBackend(const JavaAnvilBackend&) = delete;
     JavaAnvilBackend& operator=(const JavaAnvilBackend&) = delete;
 
-    Result<void> open(const std::filesystem::path& worldPath) override;
+    Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo) override;
     void close() override;
     [[nodiscard]] bool isOpen() const override;
 
@@ -89,22 +67,15 @@ public:
     [[nodiscard]] const std::filesystem::path& worldPath() const override { return m_worldPath; }
 
 private:
-    /// 获取指定维度的 region 目录路径
-    [[nodiscard]] std::filesystem::path getRegionDir(DimensionId dimension) const;
-
-    /// 获取或打开区域文件（使用缓存）
-    [[nodiscard]] reader::java::RegionFile* getOrOpenRegion(i32 regionX, i32 regionZ, DimensionId dimension);
-
     std::filesystem::path m_worldPath;
     SaveFormatInfo m_formatInfo;
     bool m_isOpen = false;
 
-    /// 区域文件缓存：(dimension, regionX, regionZ) → RegionFile
-    std::unordered_map<RegionPosKey, std::unique_ptr<reader::java::RegionFile>, RegionPosHash> m_regionCache;
-
     std::unique_ptr<reader::java::JavaBlockStateMapper> m_blockMapper;
     std::unique_ptr<reader::java::JavaBiomeMapper> m_biomeMapper;
     std::unique_ptr<reader::java::JavaChunkReader> m_chunkReader;
+    std::unique_ptr<reader::java::JavaColumnReader> m_columnReader;
+    std::unique_ptr<reader::java::JavaWorldReader> m_worldReader;
 };
 
 } // namespace mc::world::storage

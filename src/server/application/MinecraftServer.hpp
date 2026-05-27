@@ -277,6 +277,7 @@ public:
     {
         return m_storage.get();
     }
+    [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override;
     [[nodiscard]] ResourcePackList& resourcePackList() { return m_resourcePackList; }
     [[nodiscard]] const ResourcePackList& resourcePackList() const { return m_resourcePackList; }
     [[nodiscard]] mc::resource::DataPackList& dataPackList() override { return m_dataPackList; }

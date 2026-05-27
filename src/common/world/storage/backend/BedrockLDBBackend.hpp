@@ -44,7 +44,7 @@ public:
     BedrockLDBBackend(const BedrockLDBBackend&) = delete;
     BedrockLDBBackend& operator=(const BedrockLDBBackend&) = delete;
 
-    Result<void> open(const std::filesystem::path& worldPath) override;
+    Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo) override;
     void close() override;
     [[nodiscard]] bool isOpen() const override;
 

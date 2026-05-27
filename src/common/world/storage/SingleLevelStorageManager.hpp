@@ -92,7 +92,9 @@ public:
     /**
      * @brief 析构并关闭存档
      *
-     * 如果当前仍处于打开状态，会自动执行 `close()`。
+     * 如果当前仍处于打开状态，会自动执行 `close()` 释放资源。
+     *
+     * 析构函数不负责隐式保存；保存职责必须由上层显式编排。
      */
     ~SingleLevelStorageManager();
 
@@ -116,7 +118,10 @@ public:
     /**
      * @brief 关闭当前存档
      *
-     * 会刷新脏数据、关闭数据库、停止自动保存并释放会话锁。
+     * 只负责关闭数据库/后端、停止自动保存并释放会话锁等资源。
+     *
+     * 该方法不负责隐式 `flushAllDirty()` 或 `saveAll()`；
+     * 调用方必须在关闭前自行决定是否执行保存。
      */
     void close();
 
@@ -167,12 +172,6 @@ public:
      * @return 玩家数据，不存在返回空 optional
      */
     [[nodiscard]] Result<std::optional<PlayerSaveData>> loadPlayer(const std::string& uuid);
-
-    /**
-     * @brief 列举所有可读取的玩家标识
-     * @return 玩家 UUID/标识列表
-     */
-    [[nodiscard]] Result<std::vector<std::string>> listPlayerUuids();
 
     /**
      * @brief 读取世界运行时元数据
@@ -365,16 +364,6 @@ public:
      * @return 使用外来格式返回 true
      */
     [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
-
-    /**
-     * @brief 列举指定维度中所有存在的区块坐标
-     *
-     * 仅对外来格式（Java/Bedrock）有效，Native 格式返回空列表。
-     *
-     * @param dimension 维度 ID
-     * @return 区块坐标列表
-     */
-    [[nodiscard]] Result<std::vector<ChunkPos>> listChunks(DimensionId dimension);
 
 private:
     SectionManager& sectionManager(DimensionId dimension);

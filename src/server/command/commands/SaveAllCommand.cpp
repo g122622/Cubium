@@ -90,6 +90,12 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    if (server->isSharedStorageReadonlyForeignWorld()) {
+        source.sendMessage(fmt::format("Current world is a readonly foreign save (format: {}); no data will be written",
+            storage->formatInfo().formatName));
+        return 0;
+    }
+
     size_t totalSections = 0;
     auto result = storage->saveAll();
     if (result.success()) {
@@ -123,6 +129,12 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context)
     auto* storage = getSharedStorage(*server);
     if (storage == nullptr) {
         source.sendMessage("Failed to save world: shared storage not available");
+        return 0;
+    }
+
+    if (server->isSharedStorageReadonlyForeignWorld()) {
+        source.sendMessage(fmt::format("Current world is a readonly foreign save (format: {}); flush was skipped",
+            storage->formatInfo().formatName));
         return 0;
     }
 

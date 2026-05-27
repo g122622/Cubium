@@ -256,6 +256,7 @@ public:
      */
     [[nodiscard]] virtual world::storage::SingleLevelStorageManager* sharedStorage() = 0;
     [[nodiscard]] virtual const world::storage::SingleLevelStorageManager* sharedStorage() const = 0;
+    [[nodiscard]] virtual bool isSharedStorageReadonlyForeignWorld() const = 0;
 
     // ========== 记分板系统 ==========
 

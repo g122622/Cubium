@@ -108,6 +108,7 @@ src/server/command/commands/
 - `support/` 目录提供共享的元数据、参数解析、玩家解析等辅助逻辑。
 - `/clear` 通过 `IServer` 的抽象库存接口工作，不再直接绑定具体服务器实现。
 - `save-all` / `save-on` / `save-off` 通过 `IServer::sharedStorage()` 获取共享存储，不再绕主世界。
+- 当共享存储是外来只读世界时，`save-all` / `save-on` / `save-off` 必须显式提示“不会写入”，不能继续伪装成普通可写世界。
 
 ## 整体职责
 

@@ -269,6 +269,7 @@ add_executable(mc_tests
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp
     common/world/storage/WorldNameSanitizerTest.cpp
+    common/world/storage/JavaChunkReaderTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
     common/world/block/blocks/decorative/PaneBlockTest.cpp

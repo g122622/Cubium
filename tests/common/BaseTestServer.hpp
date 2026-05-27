@@ -117,6 +117,7 @@ public:
     [[nodiscard]] const loot::LootTableManager& lootTableManager() const override;
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return nullptr; }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override { return nullptr; }
+    [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override { return false; }
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
     [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override;

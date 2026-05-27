@@ -93,10 +93,11 @@ src/server/application/
    - `blockUpdateSyncManager()->flushPendingUpdates()` - 发送该维度待处理方块更新
    - `naturalSpawner()->tick()` - 该维度自然刷怪（仅主世界和下界有 hostile 刷怪，仅主世界有 passive 刷怪）
    - `despawnManager()->tick()` - 该维度生物消失检查
-4. `tickEntities()` - 主世界实体 tick、物品拾取、实体追踪
-5. `miningManager().tick()` - 更新挖掘进度（遍历所有维度）
-6. `pollNetwork()` - 处理网络事件（子类实现）
-7. `tickKeepAlive()` - 发送心跳并配合超时检查
+4. `sharedStorage()->tickAutoSave(currentTick())` - 在服务器级单点驱动共享存储 autosave，避免 3 个维度重复驱动同一份 `SingleLevelStorageManager`
+5. `tickEntities()` - 主世界实体 tick、物品拾取、实体追踪
+6. `miningManager().tick()` - 更新挖掘进度（遍历所有维度）
+7. `pollNetwork()` - 处理网络事件（子类实现）
+8. `tickKeepAlive()` - 发送心跳并配合超时检查
 
 **注意**: `m_world` 成员已移除。原由 `m_world` 提供的快捷访问（刷怪、同步等）已下沉到 `ServerDimension`。原 `MinecraftServer::tick()` 中的 `m_naturalSpawner->tick()`、`m_despawnManager->tick()`、`entitySyncManager().tick()`、`chunkSendManager().processPendingSends()`、`blockUpdateSyncManager().flushPendingUpdates()` 调用均已移入 `ServerDimension::tick()`，由维度各自执行。
 
@@ -290,7 +291,7 @@ server/application/
 - `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `SingleLevelStorageManager`
 - `MinecraftServer` 不再直接使用 `WorldStoragePaths` 解析存档目录
 - 世界目录选择与打开改由 `GlobalStorageManager::openLevel()` 承担
-- 共享 `SingleLevelStorageManager` 的全量保存职责固定在 `MinecraftServer::shutdownManagers()`，关服时只执行一次 `saveAll()`，避免 3 个维度 world 各自重复落盘
+- 共享 `SingleLevelStorageManager` 的保存与关闭职责固定在 `MinecraftServer::shutdownManagers()`：先显式停止 autosave，再按世界模式决定是否执行一次全量保存，最后调用 `close()` 释放资源，避免 3 个维度 world 各自重复落盘或由析构隐式保存
 - `MinecraftServer` 不再持有 `m_world` 成员。原 `m_world` 提供的主世界快捷引用和同步管理器访问已移至 `ServerDimension`。世界 tick 调度由 `m_dimensionManager->tick()` 统一驱动，同步管理器和刷怪管理器在各维度的 `ServerDimension::tick()` 中独立执行。
 - `MinecraftServer` 不再持有同步管理器（`m_entitySyncManager`、`m_chunkSendManager`、`m_blockUpdateSyncManager`、`m_lightSyncManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。
 - `MinecraftServer` 不再持有刷怪管理器（`m_naturalSpawner`、`m_despawnManager`），这些管理器现在由各 `ServerDimension` 实例各自持有。

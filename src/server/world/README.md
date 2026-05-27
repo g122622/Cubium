@@ -315,7 +315,7 @@ Player* target = world->getClosestPlayer(attacker.position(), 64.0f, &attacker);
 **存储相关补充**：
 - `ServerWorld::saveAll()` 现在会走 `SingleLevelStorageManager::saveAll()`，一次性覆盖所有维度与玩家数据，适用于 `/save-all` 这类显式全量保存入口。
 - 关服前的全量落盘职责已经收敛到 `MinecraftServer` 层统一执行一次，`ServerWorld::shutdown()` 不再对共享存储重复触发全量保存。
-- `ServerWorld::tick()` 会驱动 `SingleLevelStorageManager::tickAutoSave()`，使自动保存可以按 tick 运行。
+- 共享 `SingleLevelStorageManager` 的 autosave 现在由 `MinecraftServer::tick()` 单点驱动，`ServerWorld::tick()` 不再直接触发，避免 3 个维度对同一份共享存储重复驱动。
 - `/save-on` 和 `/save-off` 已接入 `SingleLevelStorageManager` 的自动保存启动/停止接口。
 
 ---
