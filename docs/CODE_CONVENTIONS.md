@@ -123,7 +123,7 @@ auto ptr = std::make_unique<int>(5);
 // ✅ 推荐：constexpr常量
 inline constexpr int MAX_PLAYERS = 100;
 
-// ❌ 禁止：异常用于流程控制
+// ❌ 禁止：异常会导致性能问题，建议使用Result/Expected类型处理错误
 try {
     // 正常逻辑
 } catch (...) {
