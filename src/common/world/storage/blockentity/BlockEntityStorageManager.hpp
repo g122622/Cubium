@@ -96,7 +96,7 @@ public:
      * @param dimension 维度ID
      * @return 成功或错误
      */
-    Result<void> saveBlockEntitiesInChunk(const std::vector<std::reference_wrapper<BlockEntity>>& blockEntities,
+    Result<void> saveBlockEntitiesInChunk(const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         DimensionId dimension);

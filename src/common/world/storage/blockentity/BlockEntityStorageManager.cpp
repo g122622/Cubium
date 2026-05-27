@@ -1,5 +1,5 @@
 #include "BlockEntityStorageManager.hpp"
-#include "common/world/blockentity/core/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/BlockEntityDeserializer.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
@@ -117,7 +117,7 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityStorageManager::loa
 }
 
 Result<void> BlockEntityStorageManager::saveBlockEntitiesInChunk(
-    const std::vector<std::reference_wrapper<BlockEntity>>& blockEntities,
+    const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     DimensionId dimension)

@@ -74,7 +74,7 @@ public:
      * @return 压缩的 NBT 二进制数据或错误
      */
     static Result<std::vector<u8>> serializeListToBinary(
-        const std::vector<std::reference_wrapper<BlockEntity>>& blockEntities);
+        const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities);
 };
 
 } // namespace blockentity

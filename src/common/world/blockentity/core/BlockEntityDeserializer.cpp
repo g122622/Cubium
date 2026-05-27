@@ -246,7 +246,7 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityDeserializer::deser
 }
 
 Result<std::vector<u8>> BlockEntityDeserializer::serializeListToBinary(
-    const std::vector<std::reference_wrapper<BlockEntity>>& blockEntities)
+    const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities)
 {
     if (blockEntities.empty()) {
         return std::vector<u8>();
