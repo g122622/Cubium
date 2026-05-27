@@ -30,9 +30,10 @@ JavaAnvilBackend
 
 ## 当前阶段边界
 
-- 本阶段只完成结构拆分和职责收窄，对齐 `P1-1`
-- entity / block entity / heightmap 的真实恢复仍在后续 `P1-5`
-- 因此这里的目标是先消除 `JavaChunkReader.cpp` 与 `JavaAnvilBackend.cpp` 的职责堆叠，而不是提前伪装成功能已完整补齐
+- 已完成 world / column / chunk 分层，以及 1.17+ `entities/` world 级合并
+- 已补 Java biome 主路径，并把 heightmap / block entity 恢复接到现有 `ChunkData` / `BlockEntityRegistry`
+- 运行时 `Entity` 导入链当前仍未接上：`entities/` 现在只保证列输入 NBT 被正确合并，不代表项目已经能把 Java 实体 NBT 还原为运行时实体实例
+- 因此这里的边界必须说清楚，不能把“world 层合并成功”误写成“实体系统已完整恢复”
 
 ## 1.17+ entities 区域合并
 

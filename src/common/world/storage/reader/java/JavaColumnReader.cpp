@@ -25,6 +25,8 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {
@@ -67,6 +69,47 @@ const intarray_tag* getIntArray(const compound_tag& parent, const std::string& n
         return nullptr;
     }
     return dynamic_cast<const intarray_tag*>(it->second.get());
+}
+
+std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
+{
+    auto xIt = tag.value.find("x");
+    auto yIt = tag.value.find("y");
+    auto zIt = tag.value.find("z");
+    if (xIt == tag.value.end() || yIt == tag.value.end() || zIt == tag.value.end()) {
+        return std::nullopt;
+    }
+    if (xIt->second->id() != TagId::Int || yIt->second->id() != TagId::Int || zIt->second->id() != TagId::Int) {
+        return std::nullopt;
+    }
+
+    return BlockPos(
+        static_cast<i32>(tag.get<int_tag>("x")), static_cast<i32>(tag.get<int_tag>("y")), static_cast<i32>(tag.get<int_tag>("z")));
+}
+
+void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights)
+{
+    constexpr i32 BITS_PER_ENTRY = 9;
+    constexpr i32 ENTRY_COUNT = 16 * 16;
+    constexpr i32 HEIGHT_OFFSET = world::MIN_BUILD_HEIGHT;
+
+    auto unpacked = JavaChunkReader::unpackLongArray(packedHeights, BITS_PER_ENTRY, ENTRY_COUNT, true);
+    std::array<BlockCoord, Heightmap::SIZE> heights{};
+    for (i32 z = 0; z < 16; ++z) {
+        for (i32 x = 0; x < 16; ++x) {
+            const i32 index = z * 16 + x;
+            const i32 encoded = (index < static_cast<i32>(unpacked.size())) ? static_cast<i32>(unpacked[static_cast<size_t>(index)]) : 0;
+            heights[static_cast<size_t>(index)] = static_cast<BlockCoord>(encoded + HEIGHT_OFFSET);
+        }
+    }
+
+    Heightmap heightmap(type);
+    heightmap.setData(heights);
+    for (i32 z = 0; z < 16; ++z) {
+        for (i32 x = 0; x < 16; ++x) {
+            chunk.updateHeightmap(type, x, heights[static_cast<size_t>(z * 16 + x)] - 1, z, nullptr);
+        }
+    }
 }
 
 const compound_tag& unwrapColumnRoot(const compound_tag& root)
@@ -308,7 +351,46 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
 
 void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& chunk)
 {
-    m_chunkReader.readHeightmaps(columnNbt, chunk);
+    const compound_tag* heightmaps = getCompound(columnNbt, "Heightmaps");
+    if (heightmaps != nullptr) {
+        for (const auto& [name, value] : heightmaps->value) {
+            if (value->id() != TagId::LongArray) {
+                continue;
+            }
+
+            HeightmapType type;
+            if (name == "WORLD_SURFACE" || name == "WORLD_SURFACE_WG") {
+                type = (name == "WORLD_SURFACE") ? HeightmapType::WorldSurface : HeightmapType::WorldSurfaceWG;
+            } else if (name == "OCEAN_FLOOR" || name == "OCEAN_FLOOR_WG") {
+                type = (name == "OCEAN_FLOOR") ? HeightmapType::OceanFloor : HeightmapType::OceanFloorWG;
+            } else if (name == "MOTION_BLOCKING") {
+                type = HeightmapType::MotionBlocking;
+            } else if (name == "MOTION_BLOCKING_NO_LEAVES") {
+                type = HeightmapType::MotionBlockingNoLeaves;
+            } else if (name == "LIGHT_BLOCKING") {
+                type = HeightmapType::LightBlocking;
+            } else {
+                continue;
+            }
+
+            applyHeightmapArray(chunk, type, dynamic_cast<const longarray_tag&>(*value));
+        }
+        return;
+    }
+
+    auto legacyHeightmap = getIntArray(columnNbt, "HeightMap");
+    if (legacyHeightmap == nullptr || legacyHeightmap->size() != 256) {
+        return;
+    }
+
+    for (i32 z = 0; z < 16; ++z) {
+        for (i32 x = 0; x < 16; ++x) {
+            const i32 index = z * 16 + x;
+            const i32 height = (*legacyHeightmap)[static_cast<size_t>(index)];
+            chunk.updateHeightmap(HeightmapType::WorldSurface, x, height, z, nullptr);
+            chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, x, height, z, nullptr);
+        }
+    }
 }
 
 void JavaColumnReader::readEntities(const compound_tag& columnNbt, ChunkData& chunk)
@@ -319,8 +401,55 @@ void JavaColumnReader::readEntities(const compound_tag& columnNbt, ChunkData& ch
 
 void JavaColumnReader::readBlockEntities(const compound_tag& columnNbt, ChunkData& chunk)
 {
-    MC_UNUSED(columnNbt);
-    MC_UNUSED(chunk);
+    const list_tag* blockEntities = getList(columnNbt, "block_entities");
+    if (blockEntities == nullptr) {
+        blockEntities = getList(columnNbt, "TileEntities");
+    }
+    if (blockEntities == nullptr) {
+        return;
+    }
+
+    auto& registry = blockentity::BlockEntityRegistry::instance();
+    registry.registerBuiltinTypes();
+
+    for (size_t i = 0; i < blockEntities->size(); ++i) {
+        const auto* tag = dynamic_cast<const compound_tag*>((*blockEntities)[i].get());
+        if (tag == nullptr) {
+            continue;
+        }
+
+        auto idIt = tag->value.find("id");
+        if (idIt == tag->value.end() || idIt->second->id() != TagId::String) {
+            spdlog::warn("JavaColumnReader: Block entity entry missing string id");
+            continue;
+        }
+
+        auto pos = readBlockEntityPos(*tag);
+        if (!pos.has_value()) {
+            spdlog::warn("JavaColumnReader: Block entity {} missing valid position", tag->get<string_tag>("id"));
+            continue;
+        }
+
+        const ResourceLocation blockEntityId(tag->get<string_tag>("id"));
+        const BlockEntityType type = blockEntityTypeFromId(blockEntityId);
+        if (type == BlockEntityType::Unknown) {
+            spdlog::warn("JavaColumnReader: Unsupported block entity type {}", blockEntityId.toString());
+            continue;
+        }
+
+        auto entity = registry.create(type, *pos);
+        if (entity == nullptr) {
+            spdlog::warn("JavaColumnReader: Failed to create block entity {}", blockEntityId.toString());
+            continue;
+        }
+
+        if (!entity->loadFromNBT(*tag)) {
+            spdlog::warn("JavaColumnReader: Failed to load NBT for block entity {}", blockEntityId.toString());
+            continue;
+        }
+
+        chunk.setBlockEntity(*pos, std::move(entity));
+    }
 }
 
 } // namespace mc::world::storage::reader::java
