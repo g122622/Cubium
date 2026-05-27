@@ -748,6 +748,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
@@ -1559,6 +1560,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp

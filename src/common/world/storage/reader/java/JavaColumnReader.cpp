@@ -83,8 +83,9 @@ std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
         return std::nullopt;
     }
 
-    return BlockPos(
-        static_cast<i32>(tag.get<int_tag>("x")), static_cast<i32>(tag.get<int_tag>("y")), static_cast<i32>(tag.get<int_tag>("z")));
+    return BlockPos(static_cast<i32>(tag.get<int_tag>("x")),
+        static_cast<i32>(tag.get<int_tag>("y")),
+        static_cast<i32>(tag.get<int_tag>("z")));
 }
 
 void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights)
@@ -93,12 +94,14 @@ void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_t
     constexpr i32 ENTRY_COUNT = 16 * 16;
     constexpr i32 HEIGHT_OFFSET = world::MIN_BUILD_HEIGHT;
 
-    auto unpacked = JavaChunkReader::unpackLongArray(packedHeights, BITS_PER_ENTRY, ENTRY_COUNT, true);
+    auto unpacked = JavaChunkReader::unpackLongArray(packedHeights.value, BITS_PER_ENTRY, ENTRY_COUNT, true);
     std::array<BlockCoord, Heightmap::SIZE> heights{};
     for (i32 z = 0; z < 16; ++z) {
         for (i32 x = 0; x < 16; ++x) {
             const i32 index = z * 16 + x;
-            const i32 encoded = (index < static_cast<i32>(unpacked.size())) ? static_cast<i32>(unpacked[static_cast<size_t>(index)]) : 0;
+            const i32 encoded = (index < static_cast<i32>(unpacked.size()))
+                ? static_cast<i32>(unpacked[static_cast<size_t>(index)])
+                : 0;
             heights[static_cast<size_t>(index)] = static_cast<BlockCoord>(encoded + HEIGHT_OFFSET);
         }
     }
@@ -239,7 +242,8 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
         const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
 
         for (size_t i = 0; i < sections->size(); ++i) {
-            const auto* sectionNbt = dynamic_cast<const compound_tag*>((*sections)[i].get());
+            auto entry = (*sections)[i];
+            const auto* sectionNbt = dynamic_cast<const compound_tag*>(entry.get());
             if (sectionNbt == nullptr) {
                 continue;
             }
@@ -309,14 +313,15 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
 
     const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
     BiomeContainer biomeContainer;
-    if (biomeInts->size() == 1024) {
+    if (biomeInts->value.size() == 1024) {
         for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
             const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) + by * 4;
             for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
                 for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
                     const i32 srcIdx = (globalY / 4) * 16 + bz * 4 + bx;
-                    const i32 javaBiomeId =
-                        (srcIdx < static_cast<i32>(biomeInts->size())) ? (*biomeInts)[static_cast<size_t>(srcIdx)] : -1;
+                    const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
+                        ? biomeInts->value[static_cast<size_t>(srcIdx)]
+                        : -1;
                     const BiomeId biome = (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
                     biomeContainer.setBiome(bx, by, bz, biome);
                 }
@@ -326,14 +331,15 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
         return {};
     }
 
-    if (biomeInts->size() == 256) {
+    if (biomeInts->value.size() == 256) {
         for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
             for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
                 const i32 srcZ = bz * 4 + 2;
                 const i32 srcX = bx * 4 + 2;
                 const i32 srcIdx = srcZ * 16 + srcX;
-                const i32 javaBiomeId =
-                    (srcIdx < static_cast<i32>(biomeInts->size())) ? (*biomeInts)[static_cast<size_t>(srcIdx)] : -1;
+                const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
+                    ? biomeInts->value[static_cast<size_t>(srcIdx)]
+                    : -1;
                 const BiomeId biome = (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
                 for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
                     biomeContainer.setBiome(bx, by, bz, biome);
@@ -344,7 +350,7 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
         return {};
     }
 
-    spdlog::warn("JavaColumnReader: Unsupported Biomes array size {}", biomeInts->size());
+    spdlog::warn("JavaColumnReader: Unsupported Biomes array size {}", biomeInts->value.size());
     chunk.setBiomes(std::move(biomeContainer));
     return {};
 }
@@ -379,14 +385,14 @@ void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& 
     }
 
     auto legacyHeightmap = getIntArray(columnNbt, "HeightMap");
-    if (legacyHeightmap == nullptr || legacyHeightmap->size() != 256) {
+    if (legacyHeightmap == nullptr || legacyHeightmap->value.size() != 256) {
         return;
     }
 
     for (i32 z = 0; z < 16; ++z) {
         for (i32 x = 0; x < 16; ++x) {
             const i32 index = z * 16 + x;
-            const i32 height = (*legacyHeightmap)[static_cast<size_t>(index)];
+            const i32 height = legacyHeightmap->value[static_cast<size_t>(index)];
             chunk.updateHeightmap(HeightmapType::WorldSurface, x, height, z, nullptr);
             chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, x, height, z, nullptr);
         }
@@ -413,7 +419,8 @@ void JavaColumnReader::readBlockEntities(const compound_tag& columnNbt, ChunkDat
     registry.registerBuiltinTypes();
 
     for (size_t i = 0; i < blockEntities->size(); ++i) {
-        const auto* tag = dynamic_cast<const compound_tag*>((*blockEntities)[i].get());
+        auto entry = (*blockEntities)[i];
+        const auto* tag = dynamic_cast<const compound_tag*>(entry.get());
         if (tag == nullptr) {
             continue;
         }

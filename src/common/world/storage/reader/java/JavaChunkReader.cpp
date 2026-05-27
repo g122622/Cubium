@@ -294,7 +294,7 @@ Result<std::optional<JavaChunkReader::SectionBiomePalette>> JavaChunkReader::rea
     }
 
     const list_tag* paletteTag = getList(*biomesNbt, "palette");
-    if (paletteTag == nullptr || paletteTag->empty()) {
+    if (paletteTag == nullptr || paletteTag->size() == 0) {
         return std::optional<SectionBiomePalette>{};
     }
 

@@ -227,8 +227,10 @@ Result<std::vector<u8>> JavaWorldReader::mergeEntitiesIntoMain(
         return entityRootResult.error();
     }
 
-    auto& mainRoot = *mainRootResult.value();
-    auto& entityRoot = *entityRootResult.value();
+    auto mainRootPtr = mainRootResult.value();
+    auto& mainRoot = *mainRootPtr;
+    auto entityRootPtr = entityRootResult.value();
+    auto& entityRoot = *entityRootPtr;
     const compound_tag* entitySource = getCompound(entityRoot, "Level");
     if (entitySource == nullptr) {
         entitySource = &entityRoot;
@@ -240,7 +242,7 @@ Result<std::vector<u8>> JavaWorldReader::mergeEntitiesIntoMain(
         if (target == nullptr) {
             target = &mainRoot;
         }
-        target->value["Entities"] = entityIt->second->clone();
+        target->value["Entities"] = entityIt->second->copy();
     }
 
     return writeJavaRoot(mainRoot);
@@ -253,7 +255,8 @@ Result<std::vector<u8>> JavaWorldReader::createEntityOnlyColumn(const std::vecto
         return entityRootResult.error();
     }
 
-    auto& entityRoot = *entityRootResult.value();
+    auto entityRootPtr = entityRootResult.value();
+    auto& entityRoot = *entityRootPtr;
     const compound_tag* entitySource = getCompound(entityRoot, "Level");
     if (entitySource == nullptr) {
         entitySource = &entityRoot;
@@ -275,7 +278,7 @@ Result<std::vector<u8>> JavaWorldReader::createEntityOnlyColumn(const std::vecto
 
     auto entityIt = entitySource->value.find("Entities");
     if (entityIt != entitySource->value.end()) {
-        root.value["Entities"] = entityIt->second->clone();
+        root.value["Entities"] = entityIt->second->copy();
     }
 
     return writeJavaRoot(root);
