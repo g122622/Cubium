@@ -920,6 +920,7 @@ add_library(mc_common STATIC
     world/storage/GlobalStorageManager.cpp
     world/storage/SingleLevelStorageManager.cpp
     world/storage/entity/EntityStorageManager.cpp
+    world/storage/blockentity/BlockEntityStorageManager.cpp
     world/storage/core/WorldStoragePaths.cpp
     world/storage/core/WorldSessionLock.cpp
     world/storage/core/LevelDatCodec.cpp

@@ -1421,7 +1421,7 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // if (!effects.empty()) { ... }
 
     // Attributes - 属性列表
-    // TODO: 实现 AttributeMap 序列化后添加
+    nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
 
     // HandItems - 手持物品
     // ArmorItems - 装备物品
@@ -1476,7 +1476,7 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // TODO: 实现 EffectInstance::fromNbt() 后添加
 
     // Attributes - 属性列表
-    // TODO: 实现 AttributeMap 反序列化后添加
+    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
 
     // HandItems / ArmorItems
     // TODO: 实现 ItemStack::fromNbt() 后添加

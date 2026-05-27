@@ -46,6 +46,7 @@ SingleLevelStorageManager::SingleLevelStorageManager(SingleLevelStorageManager&&
     , m_backupManager(std::move(other.m_backupManager))
     , m_playerDataManager(std::move(other.m_playerDataManager))
     , m_entityStorage(std::move(other.m_entityStorage))
+    , m_blockEntityStorage(std::move(other.m_blockEntityStorage))
     , m_scoreboardDataManager(std::move(other.m_scoreboardDataManager))
     , m_taskManager(std::move(other.m_taskManager))
     , m_sectionManagers(std::move(other.m_sectionManagers))
@@ -179,6 +180,7 @@ Result<void> SingleLevelStorageManager::openNativeFormat(const std::filesystem::
 
     m_playerDataManager = std::make_unique<PlayerDataManager>(*m_db);
     m_entityStorage = std::make_unique<EntityStorageManager>(*m_db);
+    m_blockEntityStorage = std::make_unique<BlockEntityStorageManager>(*m_db);
     m_scoreboardDataManager = std::make_unique<mc::scoreboard::ScoreboardDataManager>(*this);
 
     if (!m_ioWorkerPool) {
@@ -250,6 +252,7 @@ void SingleLevelStorageManager::close()
     m_backupManager.reset();
     m_scoreboardDataManager.reset();
     m_entityStorage.reset();
+    m_blockEntityStorage.reset();
     m_playerDataManager.reset();
     m_autoSave.reset();
     m_autoSaveInitialized = false;
@@ -381,6 +384,19 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
         }
     }
 
+    // 保存方块实体
+    if (m_blockEntityStorage) {
+        auto blockEntities = chunk.getAllBlockEntities();
+        if (!blockEntities.empty()) {
+            for (const auto* blockEntity : blockEntities) {
+                auto beResult = m_blockEntityStorage->saveBlockEntity(*blockEntity, dimension);
+                if (beResult.failed()) {
+                    return beResult.error();
+                }
+            }
+        }
+    }
+
     return Result<void>::ok();
 }
 
@@ -453,6 +469,19 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
 
     if (hasBiomes) {
         chunk.setBiomes(std::move(biomeContainer));
+    }
+
+    // 加载方块实体
+    if (m_blockEntityStorage) {
+        auto beResult = m_blockEntityStorage->loadBlockEntitiesInChunk(x, z, dimension);
+        if (beResult.success()) {
+            for (auto& blockEntity : beResult.value()) {
+                if (blockEntity != nullptr) {
+                    chunk.setBlockEntity(blockEntity->getPos(), std::move(blockEntity));
+                }
+            }
+        }
+        // 方块实体加载失败不影响区块加载
     }
 
     chunk.setLoaded(true);

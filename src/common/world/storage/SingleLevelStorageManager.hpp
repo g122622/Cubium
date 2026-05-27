@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "world/storage/backend/IStorageBackend.hpp"
+#include "world/storage/blockentity/BlockEntityStorageManager.hpp"
 #include "world/storage/core/SaveFormat.hpp"
 #include "world/storage/core/WorldSessionLock.hpp"
 #include "world/storage/db/ConsistencyMode.hpp"
@@ -234,6 +235,13 @@ public:
     [[nodiscard]] const EntityStorageManager* entityStorage() const { return m_entityStorage.get(); }
 
     /**
+     * @brief 获取方块实体存储管理器
+     * @return 方块实体存储管理器指针；未打开时返回 nullptr
+     */
+    [[nodiscard]] BlockEntityStorageManager* blockEntityStorage() { return m_blockEntityStorage.get(); }
+    [[nodiscard]] const BlockEntityStorageManager* blockEntityStorage() const { return m_blockEntityStorage.get(); }
+
+    /**
      * @brief 获取记分板数据管理器
      * @return 记分板数据管理器指针；未打开时返回 nullptr
      */
@@ -388,6 +396,7 @@ private:
     std::unique_ptr<BackupManager> m_backupManager;
     std::unique_ptr<PlayerDataManager> m_playerDataManager;
     std::unique_ptr<EntityStorageManager> m_entityStorage;
+    std::unique_ptr<BlockEntityStorageManager> m_blockEntityStorage;
     std::unique_ptr<mc::scoreboard::ScoreboardDataManager> m_scoreboardDataManager;
     std::unique_ptr<AutoSave> m_autoSave;
     bool m_autoSaveInitialized = false;

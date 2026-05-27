@@ -118,6 +118,10 @@ constexpr const char* FUSE = "Fuse";
 constexpr const char* IGNITED = "ignited";
 constexpr const char* POWERED = "powered";
 
+// ========== SkeletonEntity 键 ==========
+
+constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
+
 // ========== ItemStack 子键 ==========
 
 constexpr const char* ITEM_ID = "id";

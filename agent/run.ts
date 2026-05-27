@@ -22,6 +22,7 @@
 */
 
 import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
+import { forEachFile } from "./utils/forEachFile";
 import fs from 'fs/promises';
 
 (async () => {
@@ -308,6 +309,10 @@ ${STOP_HOOK_PROMPT}
 推荐使用标准构建命令（及其变种）: ${allowedCommand}。提示：编译时间可能非常长（甚至20min+），必须停下来耐心等待，不要重复启动编译，不要重复启动编译！不要在后台运行编译。如果出现的错误不是编译错误，而是工具链错误，如cmake、ninja、vcpkg等，则你无需修复，直接停下来等我处理就行了`,
     };
   };
+
+  await forEachFile("../src/", async (filePath) => {
+    console.log(`${filePath}`);
+  });
 
   const tasklist = [
     "/fix-todo",

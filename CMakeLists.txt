@@ -180,27 +180,16 @@ find_package(leveldb CONFIG REQUIRED)
 find_package(unofficial-perfetto CONFIG REQUIRED)
 
 # 全局编译选项
-if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-O3)
-    add_compile_options(-fcolor-diagnostics)
-    add_compile_options(-march=native -mtune=native)
-    add_compile_options(-ffast-math)
-    add_compile_options(-fno-trapping-math)
-    add_compile_options(-mavx2)
-    add_link_options(-fuse-ld=lld)
-else()
-    # O3
-    add_compile_options(-O3)
-    add_compile_options(-fcolor-diagnostics)
-    # 架构专用优化：针对本地 CPU 生成优化指令
-    add_compile_options(-march=native -mtune=native)
-    # 启用快速浮点数
-    add_compile_options(-ffast-math)
-    # 禁用浮点异常
-    add_compile_options(-fno-trapping-math)
-    # 链接器选项，移除所有未引用的函数和数据
-    add_link_options(-Wl,--gc-sections)
-endif()
+add_compile_options(-O3)
+add_compile_options(-fcolor-diagnostics)
+add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
+add_compile_options(-ffast-math) # 启用快速浮点数
+add_compile_options(-fno-trapping-math) # 禁用浮点异常
+add_compile_options(-mavx2) # 启用 AVX2 指令集（需要 CPU 支持）
+add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
+add_link_options(-Wl,--gc-sections) # 链接器选项，移除所有未引用的函数和数据
+add_link_options(-flto=thin -fuse-ld=lld)
+add_compile_options(-fno-stack-protector -fno-stack-check) # 关闭栈保护，减少性能开销（注意安全风险）
 
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Configuring Windows build with Clang: ${CMAKE_CXX_COMPILER}")

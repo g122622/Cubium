@@ -7,6 +7,14 @@
 #include <string>
 #include <vector>
 
+namespace mc {
+namespace entity {
+namespace attribute {
+class AttributeMap;
+}
+} // namespace entity
+} // namespace mc
+
 namespace mc::entity::serialization {
 
 /**
@@ -104,6 +112,39 @@ void putUuid(nbt::tags::compound_tag& tag, const std::string& uuid);
  * @return UUID 字符串，不存在返回空字符串
  */
 [[nodiscard]] std::string getUuid(const nbt::tags::compound_tag& tag);
+
+// ========== AttributeMap 序列化 ==========
+
+/**
+ * @brief 将 AttributeMap 序列化为 NBT compound_tag 列表
+ *
+ * MC 1.16.5 格式:
+ * [
+ *   {
+ *     "Name": "generic.max_health",
+ *     "Base": 20.0,
+ *     "Modifiers": [
+ *       { "UUIDMost": ..., "UUIDLeast": ..., "Name": "...", "Operation": 0, "Amount": 1.0 }
+ *     ]
+ *   }
+ * ]
+ *
+ * @param tag 目标 compound_tag
+ * @param key 键名（通常为 "Attributes"）
+ * @param attrMap 属性映射表
+ */
+void writeAttributeMap(
+    nbt::tags::compound_tag& tag, const std::string& key, const entity::attribute::AttributeMap& attrMap);
+
+/**
+ * @brief 从 NBT compound_tag 列表反序列化 AttributeMap
+ *
+ * @param tag 源 compound_tag
+ * @param key 键名（通常为 "Attributes"）
+ * @param attrMap 目标属性映射表
+ */
+void readAttributeMap(
+    const nbt::tags::compound_tag& tag, const std::string& key, entity::attribute::AttributeMap& attrMap);
 
 } // namespace nbt_helper
 

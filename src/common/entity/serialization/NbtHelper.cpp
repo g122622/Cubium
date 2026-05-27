@@ -1,4 +1,6 @@
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/attribute/AttributeMap.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/util/UuidUtils.hpp"
 
 namespace mc::entity::serialization {
@@ -197,6 +199,131 @@ std::string getUuid(const nbt::tags::compound_tag& tag)
     }
 
     return util::uuidToString(uuidBytes);
+}
+
+// ========== AttributeMap 序列化 ==========
+
+void writeAttributeMap(
+    nbt::tags::compound_tag& tag, const std::string& key, const entity::attribute::AttributeMap& attrMap)
+{
+    auto list = std::make_unique<nbt::tags::compound_list_tag>();
+
+    for (const auto& [name, instance] : attrMap.allInstances()) {
+        nbt::tags::compound_tag attrTag;
+        attrTag.put(nbt_keys::ATTR_NAME, name);
+        attrTag.put(nbt_keys::ATTR_BASE, instance->baseValue());
+
+        // 写入修改器列表（如果有）
+        const auto& modifiers = instance->modifiers();
+        if (!modifiers.empty()) {
+            auto modList = std::make_unique<nbt::tags::compound_list_tag>();
+            for (const auto& mod : modifiers) {
+                nbt::tags::compound_tag modTag;
+
+                // UUID 拆分为 UUIDMost + UUIDLeast
+                // 修改器 ID 是字符串格式，需要转换为两个 i64
+                auto uuidBytes = util::uuidFromString(mod.id());
+                if (uuidBytes.size() == 16) {
+                    i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
+                        (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
+                        (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
+                        (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
+
+                    i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
+                        (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
+                        (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
+                        (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
+
+                    modTag.put(nbt_keys::ATTR_MOD_UUID_MOST, most);
+                    modTag.put(nbt_keys::ATTR_MOD_UUID_LEAST, least);
+                }
+
+                modTag.put(nbt_keys::ATTR_MOD_NAME, mod.name());
+                modTag.put(nbt_keys::ATTR_MOD_OPERATION, static_cast<i8>(mod.operation()));
+                modTag.put(nbt_keys::ATTR_MOD_AMOUNT, mod.amount());
+
+                modList->value.push_back(std::move(modTag));
+            }
+            attrTag.value.emplace(nbt_keys::ATTR_MODIFIERS, std::move(modList));
+        }
+
+        list->value.push_back(std::move(attrTag));
+    }
+
+    if (!list->value.empty()) {
+        tag.value.emplace(key, std::move(list));
+    }
+}
+
+void readAttributeMap(
+    const nbt::tags::compound_tag& tag, const std::string& key, entity::attribute::AttributeMap& attrMap)
+{
+    const auto* listTag = tryGetList(tag, key);
+    if (!listTag || listTag->element_id() != nbt::TagId::Compound) {
+        return;
+    }
+
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+    for (const auto& attrTag : compoundList.value) {
+        auto nameOpt = tryGetString(attrTag, nbt_keys::ATTR_NAME);
+        if (!nameOpt.has_value()) {
+            continue;
+        }
+
+        const std::string& attrName = nameOpt.value();
+
+        // 只处理已注册的属性
+        auto* instance = attrMap.getInstance(attrName);
+        if (instance == nullptr) {
+            continue;
+        }
+
+        // 读取基础值
+        if (auto baseOpt = tryGetDouble(attrTag, nbt_keys::ATTR_BASE)) {
+            instance->setBaseValue(*baseOpt);
+        }
+
+        // 读取修改器
+        const auto* modListTag = tryGetList(attrTag, nbt_keys::ATTR_MODIFIERS);
+        if (modListTag && modListTag->element_id() == nbt::TagId::Compound) {
+            const auto& modCompoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*modListTag);
+            for (const auto& modTag : modCompoundList.value) {
+                auto modNameOpt = tryGetString(modTag, nbt_keys::ATTR_MOD_NAME);
+                auto amountOpt = tryGetDouble(modTag, nbt_keys::ATTR_MOD_AMOUNT);
+                auto opOpt = tryGetByte(modTag, nbt_keys::ATTR_MOD_OPERATION);
+
+                if (!modNameOpt.has_value() || !amountOpt.has_value() || !opOpt.has_value()) {
+                    continue;
+                }
+
+                // 从 UUIDMost/UUIDLeast 构建修改器 ID
+                std::string modId;
+                auto mostOpt = tryGetLong(modTag, nbt_keys::ATTR_MOD_UUID_MOST);
+                auto leastOpt = tryGetLong(modTag, nbt_keys::ATTR_MOD_UUID_LEAST);
+                if (mostOpt.has_value() && leastOpt.has_value()) {
+                    std::array<u8, 16> uuidBytes{};
+                    i64 m = mostOpt.value();
+                    i64 l = leastOpt.value();
+                    for (int i = 7; i >= 0; --i) {
+                        uuidBytes[i] = static_cast<u8>(m & 0xFF);
+                        m >>= 8;
+                    }
+                    for (int i = 15; i >= 8; --i) {
+                        uuidBytes[i] = static_cast<u8>(l & 0xFF);
+                        l >>= 8;
+                    }
+                    modId = util::uuidToString(uuidBytes);
+                } else {
+                    // 如果没有 UUID，使用名称作为 ID
+                    modId = modNameOpt.value();
+                }
+
+                auto operation = static_cast<entity::attribute::Operation>(*opOpt);
+                entity::attribute::AttributeModifier modifier(modId, modNameOpt.value(), *amountOpt, operation);
+                instance->addModifier(modifier);
+            }
+        }
+    }
 }
 
 } // namespace nbt_helper

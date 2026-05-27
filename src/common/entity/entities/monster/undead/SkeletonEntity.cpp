@@ -22,8 +22,13 @@
  */
 
 #include "SkeletonEntity.hpp"
+#include "../../../serialization/EntityNbtKeys.hpp"
+#include "../../../serialization/NbtHelper.hpp"
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 SkeletonEntity::SkeletonEntity(EntityId id)
     : AbstractSkeletonEntity(id)
@@ -47,6 +52,34 @@ void SkeletonEntity::registerGoals()
 void SkeletonEntity::registerAttributes()
 {
     AbstractSkeletonEntity::registerAttributes();
+}
+
+// ========== NBT 序列化 ==========
+
+void SkeletonEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    AbstractSkeletonEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: SkeletonEntity.writeAdditional()
+    // StrayConversionTime — 流浪者转化倒计时
+    if (m_strayConversionTime > 0) {
+        tag.put(nbt_keys::STRAY_CONVERSION_TIME, m_strayConversionTime);
+    }
+}
+
+Result<void> SkeletonEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现
+    MC_TRY(AbstractSkeletonEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: SkeletonEntity.readAdditional()
+    // StrayConversionTime
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::STRAY_CONVERSION_TIME)) {
+        m_strayConversionTime = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

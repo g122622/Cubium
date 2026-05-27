@@ -54,6 +54,15 @@ constexpr const char* ENTITIES_NETHER = "entities_nether";
 /// 末地实体数据
 constexpr const char* ENTITIES_THE_END = "entities_the_end";
 
+/// 主世界方块实体数据
+constexpr const char* BLOCK_ENTITIES_OVERWORLD = "block_entities_overworld";
+
+/// 下界方块实体数据
+constexpr const char* BLOCK_ENTITIES_NETHER = "block_entities_nether";
+
+/// 末地方块实体数据
+constexpr const char* BLOCK_ENTITIES_THE_END = "block_entities_the_end";
+
 /// 主世界POI（兴趣点）数据
 constexpr const char* POI_OVERWORLD = "poi_overworld";
 
@@ -84,6 +93,9 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {META,
     ENTITIES_OVERWORLD,
     ENTITIES_NETHER,
     ENTITIES_THE_END,
+    BLOCK_ENTITIES_OVERWORLD,
+    BLOCK_ENTITIES_NETHER,
+    BLOCK_ENTITIES_THE_END,
     POI_OVERWORLD,
     POI_NETHER,
     POI_THE_END,
@@ -152,6 +164,25 @@ inline const char* getPoiCF(DimensionId dim)
             return POI_THE_END;
         default:
             return POI_OVERWORLD;
+    }
+}
+
+/**
+ * @brief 根据维度ID获取方块实体列族名
+ * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
+ * @return 列族名
+ */
+inline const char* getBlockEntityCF(DimensionId dim)
+{
+    switch (dim) {
+        case 0:
+            return BLOCK_ENTITIES_OVERWORLD;
+        case -1:
+            return BLOCK_ENTITIES_NETHER;
+        case 1:
+            return BLOCK_ENTITIES_THE_END;
+        default:
+            return BLOCK_ENTITIES_OVERWORLD;
     }
 }
 

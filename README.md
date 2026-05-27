@@ -12,6 +12,11 @@
 .
 ├── README.md
 ├── CMakeLists.txt
+├── scripts/                # 构建 & 工具脚本
+│   ├── configure.bat       # Windows 构建环境配置 (CMD)
+│   ├── configure.sh        # Windows 构建环境配置 (Git Bash)
+│   ├── configure.ps1       # Windows 构建环境配置 (PowerShell)
+│   └── vsenv.bat           # VS 开发环境注入
 ├── shaders/                # Vulkan 着色器
 ├── resources/              # 原版资源与数据文件
 ├── src/
@@ -25,28 +30,74 @@
 
 ### 环境配置
 
-```powershell
-# 设置 vcpkg 环境变量
-$env:VCPKG_ROOT = "D:\tools\vcpkg" #  改成你自己的 vcpkg 路径
+项目提供了自动注入 Visual Studio 开发环境的构建脚本（位于 `scripts/` 目录），无需手动打开 Developer Command Prompt：
 
-# 配置项目
-# Windows
-cmake --preset windows-clang-relwithdebinfo
-# MacOS / Linux
-cmake -S . -B build
+| 脚本 | 适用环境 |
+|------|---------|
+| `scripts/configure.bat` | CMD / CI 管道 |
+| `scripts/configure.sh` | Git Bash |
+| `scripts/configure.ps1` | PowerShell |
 
-# 编译
+#### 首次 Configure
+
+```bash
+# Git Bash / Claude Code
+./scripts/configure.sh
+
+# CMD / CI
+scripts\configure.bat
+
+# PowerShell
+.\scripts\configure.ps1
+```
+
+#### Configure + Build 一步完成
+
+```bash
+# Git Bash
+./scripts/configure.sh build
+
+# CMD
+scripts\configure.bat build
+
+# PowerShell
+.\scripts\configure.ps1 -Build
+```
+
+#### 增量构建（无需重新 configure）
+
+```bash
 cmake --build --preset windows-clang-relwithdebinfo
+```
 
-# 注：即使在开发过程中，也要尽量使用relwithdebinfo构建，因为Debug运行非常慢，除非必要否则不要用。
-# 这行命令除了编译cpp代码之外，还会编译着色器
-# 对于macos这类系统，默认只会启动一个核心构建，导致很慢，建议加上 -j6，并耐心等待10分钟左右以完成构建
-# 对于Windows，不用加 -j6 这类后缀，系统会自动吃满全部核心
-# 构建过程可能出现“cl : 命令行  error D8040: 创建子进程或与子进程通讯时出错”这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
+#### 注意事项
 
+- 即使在开发过程中，也要尽量使用 relwithdebinfo 构建，因为 Debug 运行非常慢，除非必要否则不要用。
+- 构建命令除了编译 C++ 代码之外，还会编译着色器。
+- 对于 macOS 等系统，默认只会启动一个核心构建，建议加上 `-j6`，并耐心等待 10 分钟左右以完成构建。
+- Windows 不需要加 `-j` 后缀，系统会自动吃满全部核心。
+- 构建可能出现 “cl: 命令行 error D8040: 创建子进程或与子进程通讯时出错” 这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
+
+#### vcpkg 构建失败恢复
+
+如果遇到 vcpkg 构建失败，手动执行 CMake configure，**关闭 vcpkg manifest install**：
+
+```powershell
+cmake .. -DVCPKG_MANIFEST_INSTALL=OFF -G “Ninja Multi-Config”
+```
+
+这跳过了 vcpkg install 步骤，CMake 成功完成配置并重新生成了 ninja 构建文件。之后正常构建即可：
+
+```powershell
+cmake --build --preset windows-clang-relwithdebinfo
+```
+
+### 运行
+
+```bash
 # 运行测试
-# 强烈建议只运行特定测试并设置brief，运行全部测试会更慢（测试用例有几千个），且很快就会耗尽上下文，导致你无法有效地分析测试结果。
-# 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用brief。
+# 强烈建议只运行特定测试并设置 brief，运行全部测试会更慢（测试用例有几千个）
+# 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用 brief
 ./build/bin/RelWithDebInfo/mc_tests --gtest_filter=ServerWorkerPoolTest.* --gtest_brief=1
 
 # 运行服务端
@@ -59,33 +110,17 @@ cmake --build --preset windows-clang-relwithdebinfo
 ./build/bin/RelWithDebInfo/mc_benchmarks
 ```
 
-增加新的着色器之后要在shaders\CMakeLists.txt中新增文件
+增加新的着色器之后要在 `shaders/CMakeLists.txt` 中新增文件
 
 ## 着色器编译
 
-项目使用 Vulkan SPIR-V 着色器。如果系统未找到着色器编译器，需要手动编译：
+项目使用 Vulkan SPIR-V 着色器。CMake 构建会自动编译着色器，无需手动操作。
 
-### 方法1: 使用 Vulkan SDK 中的 glslc
-
-确保已安装 [Vulkan SDK](https://vulkan.lunarg.com/)，然后：
+如果需要手动编译着色器，确保已安装 [Vulkan SDK](https://vulkan.lunarg.com/) 并使用 `glslc`：
 
 ```powershell
-cd D:\MiscProjects\minecraft-reborn
-# 编译所有着色器
 glslc shaders/block.vert -o build/shaders/block.vert.spv
 glslc shaders/block.frag -o build/shaders/block.frag.spv
-glslc shaders/debug.vert -o build/shaders/debug.vert.spv
-glslc shaders/debug.frag -o build/shaders/debug.frag.spv
-```
-
-### 方法2: 使用 CMake 自动编译
-
-如果 Vulkan SDK 已安装并在 PATH 中，CMake 会自动检测 `glslc` 或 `glslangValidator` 并编译着色器：
-
-```powershell
-# 重新配置并编译
-cmake -B build -G "Visual Studio 18" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build --preset windows-clang-relwithdebinfo
 ```
 
 ## 依赖

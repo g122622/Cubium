@@ -53,9 +53,39 @@ public:
     [[nodiscard]] f32 width() const override { return 0.6f; }
     [[nodiscard]] f32 height() const override { return 1.99f; }
 
+    // ========== 流浪者转化 ==========
+
+    /**
+     * @brief 是否正在转化为流浪者
+     * MC 1.16.5: 骷髅被雷击中时开始转化为流浪者
+     */
+    [[nodiscard]] bool isConvertingToStray() const { return m_strayConversionTime > 0; }
+
+    /**
+     * @brief 获取转化倒计时（ticks）
+     */
+    [[nodiscard]] i32 getStrayConversionTime() const { return m_strayConversionTime; }
+
+    /**
+     * @brief 开始流浪者转化
+     * MC 1.16.5: SkeletonEntity.startStrayConversion()
+     * @param conversionTime 转化时间（ticks）
+     */
+    void startStrayConversion(i32 conversionTime) { m_strayConversionTime = conversionTime; }
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
+private:
+    /// 流浪者转化倒计时（ticks），0 表示未在转化
+    /// MC 1.16.5: SkeletonEntity.strayConversionTime
+    i32 m_strayConversionTime = 0;
 };
 
 } // namespace mc
