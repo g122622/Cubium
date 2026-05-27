@@ -808,7 +808,7 @@ void MinecraftServer::setupWorldCallbacks()
         }
 
         // 设置区块加载回调 - 当区块加载/生成完成时触发
-        world->chunkManager()->setChunkLoadedCallback([this, serverDim](ChunkCoord x, ChunkCoord z) {
+        world->chunkManager()->setChunkLoadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
             // 初始化区块光照
             if (auto* ls = serverDim->lightSyncManager()) {
                 ls->initializeChunkLighting(x, z);
@@ -817,10 +817,14 @@ void MinecraftServer::setupWorldCallbacks()
             if (auto* cs = serverDim->chunkSendManager()) {
                 cs->sendChunkToTrackingPlayers(x, z);
             }
+            // 从存储恢复区块内实体
+            world->onChunkLoaded(x, z);
         });
 
         // 设置区块卸载回调 - 当区块即将卸载时触发
-        world->chunkManager()->setChunkUnloadedCallback([this, serverDim](ChunkCoord x, ChunkCoord z) {
+        world->chunkManager()->setChunkUnloadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
+            // 保存并移除区块内实体
+            world->onChunkUnloading(x, z);
             if (auto* cs = serverDim->chunkSendManager()) {
                 cs->onChunkPreUnload(x, z);
             }

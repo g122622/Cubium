@@ -979,6 +979,24 @@ public:
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
 
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 序列化 LivingEntity 特有数据
+     *
+     * 参考 MC 1.16.5 LivingEntity.writeAdditional()
+     * 写入 Health, AbsorptionAmount, HurtTime, DeathTime, HurtByTimestamp,
+     * FallFlying, ActiveEffects, Attributes, HandItems, ArmorItems 等。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 反序列化 LivingEntity 特有数据
+     *
+     * 参考 MC 1.16.5 LivingEntity.readAdditional()
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     /**
      * @brief 更新动画参数

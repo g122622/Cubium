@@ -188,6 +188,11 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     /**
      * @brief 注册 AI 目标

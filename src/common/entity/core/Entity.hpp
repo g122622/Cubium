@@ -30,6 +30,7 @@
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include "../../util/text/ITextComponent.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "EntityDataManager.hpp"
@@ -1727,6 +1728,29 @@ public:
      */
     virtual void syncMetadataFromDataManager();
 
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 将实体完整序列化到 NBT
+     *
+     * 参考 MC 1.16.5 Entity.writeWithoutTypeId()。
+     * 写入位置、运动、旋转、UUID 等基类数据，然后调用 addAdditionalSaveData()。
+     *
+     * @param tag NBT 复合标签（输出参数）
+     */
+    void writeToNBT(nbt::tags::compound_tag& tag) const;
+
+    /**
+     * @brief 从 NBT 反序列化实体
+     *
+     * 参考 MC 1.16.5 Entity.read()。
+     * 读取位置、运动、旋转、UUID 等基类数据，然后调用 readAdditionalSaveData()。
+     *
+     * @param tag NBT 复合标签
+     * @return 成功或错误
+     */
+    Result<void> readFromNBT(const nbt::tags::compound_tag& tag);
+
     // ========== 方块交互 ==========
 
     /**
@@ -1945,6 +1969,27 @@ protected:
      * @brief 设置车辆（内部方法）
      */
     void setVehicle(EntityId vehicle) { m_vehicle = vehicle; }
+
+    /**
+     * @brief 序列化子类特有数据
+     *
+     * 参考 MC 1.16.5 Entity.writeAdditional()。
+     * 子类重写此方法添加自己的持久化数据，必须调用基类实现。
+     *
+     * @param tag NBT 复合标签（输出参数）
+     */
+    virtual void addAdditionalSaveData(nbt::tags::compound_tag& tag) const;
+
+    /**
+     * @brief 反序列化子类特有数据
+     *
+     * 参考 MC 1.16.5 Entity.readAdditional()。
+     * 子类重写此方法读取自己的持久化数据，必须调用基类实现。
+     *
+     * @param tag NBT 复合标签
+     * @return 成功或错误
+     */
+    virtual Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag);
 
     /**
      * @brief 重新应用当前位置到碰撞箱

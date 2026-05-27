@@ -75,6 +75,9 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    # Entity - Serialization
+    entity/serialization/EntityDeserializer.cpp
+    entity/serialization/NbtHelper.cpp
     # Entity - Effect
     entity/effect/EffectType.cpp
     entity/effect/EffectInstance.cpp
@@ -710,6 +713,7 @@ add_library(mc_common STATIC
     world/blockentity/core/LockableBlockEntity.cpp
     world/blockentity/core/LootableContainerBlockEntity.cpp
     world/blockentity/core/BlockEntityRegistry.cpp
+    world/blockentity/core/BlockEntityDeserializer.cpp
     world/blockentity/interactive/EnchantingTableEntity.cpp
     world/blockentity/interactive/EndGatewayEntity.cpp
     world/blockentity/interactive/DispenserBlockEntity.cpp
@@ -915,6 +919,7 @@ add_library(mc_common STATIC
     # World - Storage
     world/storage/GlobalStorageManager.cpp
     world/storage/SingleLevelStorageManager.cpp
+    world/storage/entity/EntityStorageManager.cpp
     world/storage/core/WorldStoragePaths.cpp
     world/storage/core/WorldSessionLock.cpp
     world/storage/core/LevelDatCodec.cpp

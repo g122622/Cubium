@@ -148,6 +148,11 @@ public:
 
     void tick() override;
 
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     /**
      * @brief 年龄更新（每tick调用）

@@ -38,9 +38,14 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityType.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../serialization/EntityNbtKeys.hpp"
+#include "../../../serialization/NbtHelper.hpp"
 #include "DrownedEntity.hpp"
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 ZombieEntity::ZombieEntity(EntityId id)
     : MonsterEntity(id)
@@ -394,6 +399,61 @@ void ZombieEntity::updateDrowning()
             convertToDrowned();
         }
     }
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void ZombieEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    MonsterEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: ZombieEntity.writeAdditional()
+
+    // IsBaby (byte/bool) - 是否是婴儿僵尸
+    tag.put(nbt_keys::IS_BABY, static_cast<i8>(m_isBaby ? 1 : 0));
+
+    // DrownedConversionTime (i32) - 溺水转化时间
+    // 只有正在转化时才保存（>= 0 表示正在转化）
+    if (m_converting && m_conversionTime >= 0) {
+        tag.put(nbt_keys::DROWNED_CONVERSION_TIME, m_conversionTime);
+    }
+
+    // InWaterTime (i32) - 在水中的时间
+    // MC 1.16.5: 只有当与溺水转化相关时才保存
+    if (m_inWaterTime > 0) {
+        tag.put(nbt_keys::IN_WATER_TIME, m_inWaterTime);
+    }
+}
+
+Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现
+    MC_TRY(MonsterEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: ZombieEntity.readAdditional()
+
+    // IsBaby (byte/bool) - 是否是婴儿僵尸
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::IS_BABY)) {
+        setBaby(*val);
+    }
+
+    // DrownedConversionTime (i32) - 溺水转化时间
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::DROWNED_CONVERSION_TIME)) {
+        if (*val >= 0) {
+            m_conversionTime = *val;
+            m_converting = true;
+        }
+    }
+
+    // InWaterTime (i32) - 在水中的时间
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::IN_WATER_TIME)) {
+        m_inWaterTime = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

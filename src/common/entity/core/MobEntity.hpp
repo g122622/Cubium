@@ -512,6 +512,23 @@ public:
      */
     [[nodiscard]] virtual ActionResultType interactMob(Player& player, Hand hand);
 
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 序列化 MobEntity 特有数据
+     *
+     * 参考 MC 1.16.5 MobEntity.writeAdditional()
+     * 写入 CanPickUpLoot, PersistenceRequired, LeftHanded, NoAI 等。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 反序列化 MobEntity 特有数据
+     *
+     * 参考 MC 1.16.5 MobEntity.readAdditional()
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     /**
      * @brief 获取环境声音

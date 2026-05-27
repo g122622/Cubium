@@ -36,6 +36,8 @@
 #include "../../world/block/BlockSoundType.hpp"
 #include "../combat/CombatRules.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -1380,6 +1382,106 @@ bool LivingEntity::onLivingFall(f32 distance, f32 damageMultiplier)
     MC_UNUSED(distance);
     MC_UNUSED(damageMultiplier);
     return true;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    Entity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: LivingEntity.writeAdditional()
+
+    // Health (f32)
+    tag.put(nbt_keys::HEALTH, m_health);
+
+    // AbsorptionAmount (f32)
+    tag.put(nbt_keys::ABSORPTION_AMOUNT, m_absorption);
+
+    // HurtTime (i16)
+    tag.put(nbt_keys::HURT_TIME, static_cast<i16>(m_hurtTime));
+
+    // DeathTime (i16)
+    tag.put(nbt_keys::DEATH_TIME, static_cast<i16>(m_deathTime));
+
+    // HurtByTimestamp (i32)
+    tag.put(nbt_keys::HURT_BY_TIMESTAMP, m_lastDamageTimestamp);
+
+    // FallFlying (byte) - 鞘翅飞行状态
+    tag.put(nbt_keys::FALL_FLYING, static_cast<i8>(isElytraFlying() ? 1 : 0));
+
+    // ActiveEffects - 药水效果列表
+    // TODO: 实现 EffectInstance::toNbt() 后添加
+    // auto& effects = m_effectManager.getActiveEffects();
+    // if (!effects.empty()) { ... }
+
+    // Attributes - 属性列表
+    // TODO: 实现 AttributeMap 序列化后添加
+
+    // HandItems - 手持物品
+    // ArmorItems - 装备物品
+    // TODO: 实现 ItemStack::toNbt() 后添加
+}
+
+Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: LivingEntity.readAdditional()
+
+    // Health (f32)
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {
+        m_health = *val;
+        m_lastHealth = m_health;
+    }
+
+    // AbsorptionAmount (f32)
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::ABSORPTION_AMOUNT)) {
+        m_absorption = *val;
+    }
+
+    // HurtTime (i16)
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HURT_TIME)) {
+        m_hurtTime = *val;
+    }
+
+    // DeathTime (i16)
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::DEATH_TIME)) {
+        m_deathTime = *val;
+    }
+
+    // HurtByTimestamp (i32)
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::HURT_BY_TIMESTAMP)) {
+        m_lastDamageTimestamp = *val;
+    }
+
+    // FallFlying (byte)
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::FALL_FLYING)) {
+        if (*val) {
+            addFlag(EntityFlags::FallFlying);
+        } else {
+            removeFlag(EntityFlags::FallFlying);
+        }
+    }
+
+    // ActiveEffects - 药水效果列表
+    // TODO: 实现 EffectInstance::fromNbt() 后添加
+
+    // Attributes - 属性列表
+    // TODO: 实现 AttributeMap 反序列化后添加
+
+    // HandItems / ArmorItems
+    // TODO: 实现 ItemStack::fromNbt() 后添加
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

@@ -38,9 +38,14 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityDataManager.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../serialization/EntityNbtKeys.hpp"
+#include "../../../serialization/NbtHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 AnimalEntity::AnimalEntity(EntityId id)
     : AgeableEntity(id)
@@ -226,6 +231,44 @@ f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const
     BlockPos abovePos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
     f32 brightness = worldPtr->getBrightness(abovePos);
     return brightness - 0.5f;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void AnimalEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    AgeableEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: AnimalEntity.writeAdditional()
+
+    // LoveCause (i64) - 爱心来源玩家的 UUID（存储为单个 i64）
+    // MC 1.16.5 实际存储为 UUIDMost/UUIDLeast，但我们的 m_loveCause 是 u64
+    // 这里使用 "LoveCause" 键直接存储 i64 值
+    if (isInLove() && m_loveCause != 0) {
+        tag.put(nbt_keys::LOVE_CAUSE, static_cast<i64>(m_loveCause));
+    }
+}
+
+Result<void> AnimalEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    MC_TRY(AgeableEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: AnimalEntity.readAdditional()
+
+    // LoveCause (i64) - 读取爱心来源玩家的 UUID
+    if (auto val = nbt_helper::tryGetLong(tag, nbt_keys::LOVE_CAUSE)) {
+        m_loveCause = static_cast<u64>(*val);
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

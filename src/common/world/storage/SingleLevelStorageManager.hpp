@@ -31,6 +31,7 @@
 #include "world/storage/db/ConsistencyMode.hpp"
 #include "world/storage/db/RocksDBConfig.hpp"
 #include "world/storage/db/SectionKey.hpp"
+#include "world/storage/entity/EntityStorageManager.hpp"
 #include "world/storage/player/PlayerDataManager.hpp"
 #include "world/storage/section/SectionManager.hpp"
 #include "world/storage/snapshot/BackupManager.hpp"
@@ -226,6 +227,13 @@ public:
     [[nodiscard]] const PlayerDataManager* playerDataManager() const { return m_playerDataManager.get(); }
 
     /**
+     * @brief 获取实体存储管理器
+     * @return 实体存储管理器指针；未打开时返回 nullptr
+     */
+    [[nodiscard]] EntityStorageManager* entityStorage() { return m_entityStorage.get(); }
+    [[nodiscard]] const EntityStorageManager* entityStorage() const { return m_entityStorage.get(); }
+
+    /**
      * @brief 获取记分板数据管理器
      * @return 记分板数据管理器指针；未打开时返回 nullptr
      */
@@ -379,6 +387,7 @@ private:
     std::optional<WorldSessionLock> m_sessionLock;
     std::unique_ptr<BackupManager> m_backupManager;
     std::unique_ptr<PlayerDataManager> m_playerDataManager;
+    std::unique_ptr<EntityStorageManager> m_entityStorage;
     std::unique_ptr<mc::scoreboard::ScoreboardDataManager> m_scoreboardDataManager;
     std::unique_ptr<AutoSave> m_autoSave;
     bool m_autoSaveInitialized = false;

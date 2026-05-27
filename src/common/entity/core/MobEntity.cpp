@@ -41,6 +41,8 @@
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 
 namespace mc {
 
@@ -440,6 +442,71 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
     // MC 1.16.5: MobEntity.func_230254_b_()
     // 基类默认返回 Pass，子类可重写以处理特定交互
     return ActionResultType::Pass;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    LivingEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: MobEntity.writeAdditional()
+
+    // PersistenceRequired (byte) - 是否需要持久化
+    tag.put(nbt_keys::PERSISTENCE_REQUIRED, static_cast<i8>(m_persistenceRequired ? 1 : 0));
+
+    // LeftHanded (byte) - 左撇子
+    tag.put(nbt_keys::LEFT_HANDED, static_cast<i8>(m_primaryHand == HandSide::Left ? 1 : 0));
+
+    // NoAI (byte) - 无 AI
+    tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
+
+    // HandDropChances / ArmorDropChances (float list)
+    // TODO: 实现掉落概率序列化
+
+    // Leash (compound) - 拴绳数据
+    // TODO: 实现拴绳序列化
+
+    // DeathLootTable / DeathLootTableSeed
+    // TODO: 实现掉落表序列化
+}
+
+Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    MC_TRY(LivingEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: MobEntity.readAdditional()
+
+    // CanPickUpLoot (byte)
+    // TODO: 实现 canPickUpLoot setter
+
+    // PersistenceRequired (byte)
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::PERSISTENCE_REQUIRED)) {
+        m_persistenceRequired = *val;
+    }
+
+    // LeftHanded (byte)
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::LEFT_HANDED)) {
+        m_primaryHand = *val ? HandSide::Left : HandSide::Right;
+    }
+
+    // NoAI (byte)
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::NO_AI)) {
+        m_aiEnabled = !(*val);
+    }
+
+    // Leash (compound)
+    // TODO: 实现拴绳反序列化
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

@@ -29,6 +29,8 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/entity/EntityManager.hpp"
 #include "../../core/EntityTypeIdNumber.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include "../player/Player.hpp"
 #include <algorithm>
 #include <atomic>
@@ -36,6 +38,9 @@
 #include <cmath>
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 // ============================================================================
 // 静态工厂方法
@@ -547,6 +552,80 @@ Result<std::unique_ptr<ItemEntity>> ItemEntity::deserialize(network::PacketDeser
     entity->m_unpickable = unpickableResult.value();
 
     return entity;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void ItemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    Entity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: ItemEntity.writeAdditional()
+
+    // Item (compound) - 物品堆 NBT
+    nbt::tags::compound_tag itemTag;
+    m_itemStack.toNbt(itemTag);
+    tag.value.emplace(nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+
+    // Age (i32) - 实体年龄
+    tag.put(nbt_keys::AGE, m_age);
+
+    // PickupDelay (i32) - 拾取延迟
+    tag.put(nbt_keys::PICKUP_DELAY, m_pickupDelay);
+
+    // Owner (string, optional) - 所有者 UUID
+    if (!m_ownerUuid.empty()) {
+        tag.put(nbt_keys::OWNER, m_ownerUuid);
+    }
+
+    // Thrower (string, optional) - 投掷者 UUID
+    if (!m_throwerUuid.empty()) {
+        tag.put(nbt_keys::THROWER, m_throwerUuid);
+    }
+}
+
+Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: ItemEntity.readAdditional()
+
+    // Item (compound) - 物品堆 NBT
+    const nbt::tags::compound_tag* itemTag = nbt_helper::tryGetCompound(tag, nbt_keys::ITEM);
+    if (itemTag != nullptr) {
+        auto stackResult = ItemStack::fromNbt(*itemTag);
+        if (stackResult.success()) {
+            m_itemStack = stackResult.value();
+            // 同步数量到数据管理器
+            m_dataManager.set(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), m_itemStack.getCount());
+        }
+    }
+
+    // Age (i32) - 实体年龄
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {
+        m_age = *val;
+    }
+
+    // PickupDelay (i32) - 拾取延迟
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::PICKUP_DELAY)) {
+        m_pickupDelay = *val;
+    }
+
+    // Owner (string, optional) - 所有者 UUID
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::OWNER)) {
+        m_ownerUuid = *val;
+    }
+
+    // Thrower (string, optional) - 投掷者 UUID
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::THROWER)) {
+        m_throwerUuid = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

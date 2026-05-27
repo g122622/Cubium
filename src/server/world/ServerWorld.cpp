@@ -35,6 +35,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
+#include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -52,6 +53,7 @@
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/storage/entity/EntityStorageManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
@@ -122,6 +124,9 @@ Result<void> ServerWorld::initialize()
         return result;
     }
 
+    // 注意：区块加载/卸载回调由 MinecraftServer::setupWorldCallbacks() 设置，
+    // 其中会调用 onChunkLoaded/onChunkUnloading 来处理实体持久化。
+
     m_collisionCache = std::make_unique<physics::CollisionCache>();
     m_physicsEngine = std::make_unique<PhysicsEngine>(*this);
     m_tickManager = std::make_unique<world::tick::TickManager>(*this);
@@ -158,6 +163,38 @@ void ServerWorld::shutdown()
     spdlog::info("Shutting down server world...");
     m_initialized = false;
 
+    // 先保存所有已加载区块内的实体
+    if (m_storage && m_storage->isOpen() && m_chunkManager) {
+        m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
+            auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
+            if (!entityIds.empty()) {
+                auto* entityStorage = m_storage->entityStorage();
+                if (entityStorage) {
+                    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
+                    entitiesToSave.reserve(entityIds.size());
+                    for (EntityId id : entityIds) {
+                        Entity* entity = m_entityManager.getEntity(id);
+                        if (entity) {
+                            entitiesToSave.emplace_back(*entity);
+                        }
+                    }
+                    if (!entitiesToSave.empty()) {
+                        auto saveResult = entityStorage->saveEntitiesInChunk(
+                            entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
+                        if (saveResult.failed()) {
+                            spdlog::error("Failed to save entities for chunk ({}, {}) during shutdown: {}",
+                                chunk.x(),
+                                chunk.z(),
+                                saveResult.error().message());
+                        }
+                    }
+                }
+            }
+            return true;
+        });
+        m_entityChunkTracker.clear();
+    }
+
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
     // 再清理村庄管理器
@@ -185,6 +222,37 @@ Result<size_t> ServerWorld::saveAll()
 
     if (m_storage == nullptr || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    // 先保存所有已加载区块内的实体
+    if (m_chunkManager) {
+        auto* entityStorage = m_storage->entityStorage();
+        if (entityStorage) {
+            m_chunkManager->forEachLoadedChunk([this, entityStorage](ChunkData& chunk) {
+                auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
+                if (!entityIds.empty()) {
+                    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
+                    entitiesToSave.reserve(entityIds.size());
+                    for (EntityId id : entityIds) {
+                        Entity* entity = m_entityManager.getEntity(id);
+                        if (entity) {
+                            entitiesToSave.emplace_back(*entity);
+                        }
+                    }
+                    if (!entitiesToSave.empty()) {
+                        auto saveResult = entityStorage->saveEntitiesInChunk(
+                            entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
+                        if (saveResult.failed()) {
+                            spdlog::error("Failed to save entities for chunk ({}, {}) during saveAll: {}",
+                                chunk.x(),
+                                chunk.z(),
+                                saveResult.error().message());
+                        }
+                    }
+                }
+                return true;
+            });
+        }
     }
 
     auto result = m_storage->saveAll();
@@ -1323,6 +1391,10 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     Entity* addedEntity = m_entityManager.getEntity(id);
     if (addedEntity) {
         m_entityTracker.trackEntity(addedEntity);
+        // 注册到区块跟踪器
+        ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
+        ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
+        m_entityChunkTracker.onEntityAdded(id, cx, cz);
     } else {
         // 理论上不应该发生，addEntity 成功后应该能通过 getEntity 获取到实体。这里做个断言以便排查潜在问题。
         MC_ASSERT_RELEASE(false);
@@ -1331,15 +1403,17 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-// 注意：此方法不仅移除实体，还负责取消追踪。
+// 注意：此方法不仅移除实体，还负责取消追踪和区块归属注销。
 // 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
-// 以确保实体追踪器状态正确更新。
+// 以确保实体追踪器和区块跟踪器状态正确更新。
 std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
 {
     auto entity = m_entityManager.removeEntity(id);
     if (entity) {
         // 从追踪器中移除
         m_entityTracker.untrackEntity(id);
+        // 从区块跟踪器中移除
+        m_entityChunkTracker.onEntityRemoved(id);
     } else {
         spdlog::error("Attempted to remove non-existent entity with ID {}", id);
     }
@@ -1389,12 +1463,114 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
             Entity* addedEntity = m_entityManager.getEntity(entityId);
             if (addedEntity) {
                 m_entityTracker.trackEntity(addedEntity);
+                // 注册到区块跟踪器
+                ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
+                ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
+                m_entityChunkTracker.onEntityAdded(entityId, cx, cz);
             }
             ++spawnedCount;
         }
     }
 
     return spawnedCount;
+}
+
+// ============================================================================
+// 实体区块持久化
+// ============================================================================
+
+void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
+{
+    // 从 EntityStorageManager 加载区块内所有实体并注入世界
+    if (!m_storage || !m_storage->isOpen()) {
+        return;
+    }
+
+    auto* entityStorage = m_storage->entityStorage();
+    if (!entityStorage) {
+        return;
+    }
+
+    auto result = entityStorage->loadEntitiesInChunk(x, z, m_config.dimension, this);
+    if (result.failed()) {
+        spdlog::error("Failed to load entities for chunk ({}, {}): {}", x, z, result.error().message());
+        return;
+    }
+
+    auto& entities = result.value();
+    for (auto& entityPtr : entities) {
+        if (!entityPtr) {
+            continue;
+        }
+
+        // 计算实体所在区块坐标，确保与加载的区块一致
+        ChunkCoord entityCx = CoordConverter::blockToChunk(entityPtr->x());
+        ChunkCoord entityCz = CoordConverter::blockToChunk(entityPtr->z());
+
+        EntityId id = m_entityManager.addEntity(std::move(entityPtr));
+        if (id != 0) {
+            Entity* addedEntity = m_entityManager.getEntity(id);
+            if (addedEntity) {
+                m_entityTracker.trackEntity(addedEntity);
+                m_entityChunkTracker.onEntityAdded(id, entityCx, entityCz);
+            }
+        }
+    }
+}
+
+void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
+{
+    // 保存区块内所有实体到 EntityStorageManager，然后从 EntityManager 移除
+    if (!m_storage || !m_storage->isOpen()) {
+        // 存储不可用时，仅移除实体（不保存）
+        auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
+        for (EntityId id : entityIds) {
+            removeEntity(id);
+        }
+        return;
+    }
+
+    auto* entityStorage = m_storage->entityStorage();
+    if (!entityStorage) {
+        auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
+        for (EntityId id : entityIds) {
+            removeEntity(id);
+        }
+        return;
+    }
+
+    auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
+    if (entityIds.empty()) {
+        return;
+    }
+
+    // 收集实体引用用于批量保存
+    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
+    entitiesToSave.reserve(entityIds.size());
+
+    for (EntityId id : entityIds) {
+        Entity* entity = m_entityManager.getEntity(id);
+        if (entity) {
+            entitiesToSave.emplace_back(*entity);
+        }
+    }
+
+    // 批量保存
+    if (!entitiesToSave.empty()) {
+        auto saveResult = entityStorage->saveEntitiesInChunk(entitiesToSave, x, z, m_config.dimension);
+        if (saveResult.failed()) {
+            spdlog::error("Failed to save entities for chunk ({}, {}): {}", x, z, saveResult.error().message());
+        }
+    }
+
+    // 从世界移除实体（同时取消追踪和区块归属）
+    for (EntityId id : entityIds) {
+        m_entityChunkTracker.onEntityRemoved(id);
+        auto entity = m_entityManager.removeEntity(id);
+        if (entity) {
+            m_entityTracker.untrackEntity(id);
+        }
+    }
 }
 
 // ============================================================================

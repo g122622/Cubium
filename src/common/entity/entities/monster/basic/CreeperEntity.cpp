@@ -36,10 +36,15 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../serialization/EntityNbtKeys.hpp"
+#include "../../../serialization/NbtHelper.hpp"
 #include "../../effect/EffectEntities.hpp"
 #include <memory>
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 CreeperEntity::CreeperEntity(EntityId id)
     : MonsterEntity(id)
@@ -297,6 +302,66 @@ void CreeperEntity::registerAttributes()
     // MC 1.16.5 CreeperEntity 属性
     // 继承自 MonsterEntity: MAX_HEALTH = 20.0
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void CreeperEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    MonsterEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: CreeperEntity.writeAdditional()
+
+    // ExplosionRadius (i32) - 爆炸半径，默认为 3
+    // 只有非默认值时才保存
+    if (m_explosionRadius != DEFAULT_EXPLOSION_RADIUS) {
+        tag.put(nbt_keys::EXPLOSION_RADIUS, m_explosionRadius);
+    }
+
+    // Fuse (i16) - 点燃时间，默认为 30
+    // 只有非默认值时才保存
+    if (m_fuseTime != DEFAULT_FUSE_TIME) {
+        tag.put(nbt_keys::FUSE, static_cast<i16>(m_fuseTime));
+    }
+
+    // ignited (byte/bool) - 是否被打火石点燃
+    tag.put(nbt_keys::IGNITED, static_cast<i8>(m_ignited ? 1 : 0));
+
+    // powered (byte/bool) - 是否是高压苦力怕
+    tag.put(nbt_keys::POWERED, static_cast<i8>(m_powered ? 1 : 0));
+}
+
+Result<void> CreeperEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现
+    MC_TRY(MonsterEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: CreeperEntity.readAdditional()
+
+    // ExplosionRadius (i32) - 爆炸半径
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::EXPLOSION_RADIUS)) {
+        m_explosionRadius = *val;
+    }
+
+    // Fuse (i16) - 点燃时间
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::FUSE)) {
+        m_fuseTime = static_cast<i32>(*val);
+    }
+
+    // ignited (byte/bool) - 是否被打火石点燃
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::IGNITED)) {
+        m_ignited = *val;
+    }
+
+    // powered (byte/bool) - 是否是高压苦力怕
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::POWERED)) {
+        m_powered = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

@@ -42,6 +42,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/spawn/VillageSiege.hpp"
@@ -595,6 +596,36 @@ public:
 
     i32 spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntityData>& entities);
 
+    // ========== 实体区块持久化 ==========
+
+    /**
+     * @brief 区块加载时恢复存储中的实体
+     *
+     * 从 EntityStorageManager 加载区块内所有实体并通过 spawnEntity() 注入世界。
+     * 同时在 EntityChunkTracker 中注册实体归属。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     */
+    void onChunkLoaded(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 区块卸载前保存并移除区块内实体
+     *
+     * 将区块内所有实体保存到 EntityStorageManager，然后从 EntityManager 移除。
+     * 同时在 EntityChunkTracker 中注销实体归属。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     */
+    void onChunkUnloading(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 获取实体区块跟踪器
+     */
+    [[nodiscard]] EntityChunkTracker& entityChunkTracker() { return m_entityChunkTracker; }
+    [[nodiscard]] const EntityChunkTracker& entityChunkTracker() const { return m_entityChunkTracker; }
+
     // ========== Tick管理 ==========
 
     [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
@@ -957,6 +988,7 @@ private:
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;
+    EntityChunkTracker m_entityChunkTracker;
     std::unique_ptr<PhysicsEngine> m_physicsEngine;
     std::unique_ptr<physics::CollisionCache> m_collisionCache;
     std::unique_ptr<world::tick::TickManager> m_tickManager;

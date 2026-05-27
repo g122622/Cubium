@@ -22,8 +22,13 @@
  */
 
 #include "AgeableEntity.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 
 namespace mc {
+
+// 使用序列化命名空间
+using namespace entity::serialization;
 
 AgeableEntity::AgeableEntity(EntityId id)
     : CreatureEntity(id)
@@ -144,6 +149,54 @@ f32 AgeableEntity::getChildScale() const
         return BABY_SCALE;
     }
     return 1.0f;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void AgeableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    MobEntity::addAdditionalSaveData(tag);
+
+    // MC 1.16.5: AgeableEntity.writeAdditional()
+
+    // Age (i32) - 年龄（负数=幼体，0或正数=成体）
+    tag.put(nbt_keys::AGE, m_growingAge);
+
+    // ForcedAge (i32) - 强制成长值
+    tag.put(nbt_keys::FORCED_AGE, m_forcedAge);
+
+    // InLove (i32) - 爱心计时器
+    tag.put(nbt_keys::IN_LOVE, m_loveTimer);
+}
+
+Result<void> AgeableEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现
+    MC_TRY(MobEntity::readAdditionalSaveData(tag));
+
+    // MC 1.16.5: AgeableEntity.readAdditional()
+
+    // Age (i32) - 年龄
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {
+        m_growingAge = *val;
+        // 年龄变化可能影响尺寸
+        refreshDimensions();
+    }
+
+    // ForcedAge (i32) - 强制成长值
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::FORCED_AGE)) {
+        m_forcedAge = *val;
+    }
+
+    // InLove (i32) - 爱心计时器
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::IN_LOVE)) {
+        m_loveTimer = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

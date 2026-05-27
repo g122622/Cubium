@@ -38,6 +38,8 @@
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 #include "EntityRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -2006,6 +2008,198 @@ ActionResultType Entity::applyPlayerInteraction(Player& player, const Vector3& h
 
     (void)hitPosition; // 基类不使用点击位置
     return processInitialInteract(player, hand);
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 位置 (Pos - double list)
+    nbt_helper::putDoubleList(tag,
+        nbt_keys::POS,
+        {static_cast<f64>(m_position.x), static_cast<f64>(m_position.y), static_cast<f64>(m_position.z)});
+
+    // 运动 (Motion - double list)
+    nbt_helper::putDoubleList(tag,
+        nbt_keys::MOTION,
+        {static_cast<f64>(m_velocity.x), static_cast<f64>(m_velocity.y), static_cast<f64>(m_velocity.z)});
+
+    // 旋转 (Rotation - float list: yaw, pitch)
+    nbt_helper::putFloatList(tag, nbt_keys::ROTATION, {m_yaw, m_pitch});
+
+    // 坠落距离
+    tag.put(nbt_keys::FALL_DISTANCE, m_fallDistance);
+
+    // 火焰剩余 tick
+    tag.put(nbt_keys::FIRE, static_cast<i16>(m_fire));
+
+    // 空气剩余 tick
+    tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
+
+    // 地面标记 (MC 1.16.5: byte 0/1)
+    tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_onGround ? 1 : 0));
+
+    // 无敌标记
+    tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
+
+    // 传送门冷却
+    tag.put(nbt_keys::PORTAL_COOLDOWN, m_portalCooldown);
+
+    // UUID (UUIDMost/UUIDLeast)
+    nbt_helper::putUuid(tag, m_uuid);
+
+    // 自定义名称
+    if (m_customName) {
+        tag.put(nbt_keys::CUSTOM_NAME, m_customName->getUnformattedText());
+    }
+
+    // 自定义名称可见 (byte 0/1)
+    tag.put(nbt_keys::CUSTOM_NAME_VISIBLE, static_cast<i8>(m_customNameVisible ? 1 : 0));
+
+    // 静默 (byte 0/1)
+    tag.put(nbt_keys::SILENT, static_cast<i8>(m_silent ? 1 : 0));
+
+    // 无重力 (byte 0/1)
+    tag.put(nbt_keys::NO_GRAVITY, static_cast<i8>(m_noGravity ? 1 : 0));
+
+    // 发光 (byte 0/1)
+    tag.put(nbt_keys::GLOWING, static_cast<i8>(m_glowing ? 1 : 0));
+
+    // Tags (字符串列表)
+    if (!m_tags.empty()) {
+        auto tagsList = std::make_unique<nbt::tags::string_list_tag>();
+        for (const auto& tagStr : m_tags) {
+            tagsList->value.push_back(tagStr);
+        }
+        tag.value.emplace(nbt_keys::TAGS, std::move(tagsList));
+    }
+
+    // 调用子类特有数据序列化
+    addAdditionalSaveData(tag);
+}
+
+Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 位置 (Pos)
+    auto pos = nbt_helper::getDoubleList(tag, nbt_keys::POS);
+    if (pos.size() >= 3) {
+        m_position.x = static_cast<f32>(pos[0]);
+        m_position.y = static_cast<f32>(pos[1]);
+        m_position.z = static_cast<f32>(pos[2]);
+    }
+
+    // 运动 (Motion)
+    auto motion = nbt_helper::getDoubleList(tag, nbt_keys::MOTION);
+    if (motion.size() >= 3) {
+        // MC 1.16.5: 运动分量限制在 ±10.0
+        m_velocity.x = static_cast<f32>(std::clamp(motion[0], -10.0, 10.0));
+        m_velocity.y = static_cast<f32>(std::clamp(motion[1], -10.0, 10.0));
+        m_velocity.z = static_cast<f32>(std::clamp(motion[2], -10.0, 10.0));
+    }
+
+    // 旋转 (Rotation)
+    auto rotation = nbt_helper::getFloatList(tag, nbt_keys::ROTATION);
+    if (rotation.size() >= 2) {
+        m_yaw = rotation[0];
+        m_pitch = rotation[1];
+    }
+
+    // 坠落距离
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::FALL_DISTANCE)) {
+        m_fallDistance = *val;
+    }
+
+    // 火焰
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::FIRE)) {
+        m_fire = *val;
+    }
+
+    // 空气
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AIR)) {
+        m_air = *val;
+    }
+
+    // 地面标记
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::ON_GROUND)) {
+        m_onGround = *val;
+    }
+
+    // 无敌
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::INVULNERABLE)) {
+        m_invulnerable = *val;
+    }
+
+    // 传送门冷却
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::PORTAL_COOLDOWN)) {
+        m_portalCooldown = *val;
+    }
+
+    // UUID
+    std::string uuid = nbt_helper::getUuid(tag);
+    if (!uuid.empty()) {
+        m_uuid = uuid;
+    }
+
+    // 自定义名称
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::CUSTOM_NAME)) {
+        setCustomName(*val);
+    }
+
+    // 自定义名称可见
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CUSTOM_NAME_VISIBLE)) {
+        m_customNameVisible = *val;
+    }
+
+    // 静默
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::SILENT)) {
+        m_silent = *val;
+    }
+
+    // 无重力
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::NO_GRAVITY)) {
+        m_noGravity = *val;
+    }
+
+    // 发光
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::GLOWING)) {
+        m_glowing = *val;
+    }
+
+    // Tags
+    if (auto* tagsList = nbt_helper::tryGetList(tag, nbt_keys::TAGS)) {
+        if (tagsList->element_id() == nbt::TagId::String) {
+            auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(*tagsList);
+            m_tags.clear();
+            for (const auto& tagStr : stringList.value) {
+                m_tags.insert(tagStr);
+            }
+        }
+    }
+
+    // 更新碰撞箱
+    reapplyPosition();
+
+    // 调用子类特有数据反序列化
+    return readAdditionalSaveData(tag);
+}
+
+void Entity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 默认空实现，子类按需重写
+    (void)tag;
+}
+
+Result<void> Entity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 默认空实现，子类按需重写
+    (void)tag;
+    return Result<void>::ok();
 }
 
 } // namespace mc

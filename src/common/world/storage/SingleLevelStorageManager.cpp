@@ -45,6 +45,7 @@ SingleLevelStorageManager::SingleLevelStorageManager(SingleLevelStorageManager&&
     , m_sessionLock(std::move(other.m_sessionLock))
     , m_backupManager(std::move(other.m_backupManager))
     , m_playerDataManager(std::move(other.m_playerDataManager))
+    , m_entityStorage(std::move(other.m_entityStorage))
     , m_scoreboardDataManager(std::move(other.m_scoreboardDataManager))
     , m_taskManager(std::move(other.m_taskManager))
     , m_sectionManagers(std::move(other.m_sectionManagers))
@@ -69,6 +70,7 @@ SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStora
         m_sessionLock = std::move(other.m_sessionLock);
         m_backupManager = std::move(other.m_backupManager);
         m_playerDataManager = std::move(other.m_playerDataManager);
+        m_entityStorage = std::move(other.m_entityStorage);
         m_scoreboardDataManager = std::move(other.m_scoreboardDataManager);
         m_taskManager = std::move(other.m_taskManager);
         m_sectionManagers = std::move(other.m_sectionManagers);
@@ -176,6 +178,7 @@ Result<void> SingleLevelStorageManager::openNativeFormat(const std::filesystem::
     }
 
     m_playerDataManager = std::make_unique<PlayerDataManager>(*m_db);
+    m_entityStorage = std::make_unique<EntityStorageManager>(*m_db);
     m_scoreboardDataManager = std::make_unique<mc::scoreboard::ScoreboardDataManager>(*this);
 
     if (!m_ioWorkerPool) {
@@ -246,6 +249,7 @@ void SingleLevelStorageManager::close()
     }
     m_backupManager.reset();
     m_scoreboardDataManager.reset();
+    m_entityStorage.reset();
     m_playerDataManager.reset();
     m_autoSave.reset();
     m_autoSaveInitialized = false;

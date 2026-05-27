@@ -221,6 +221,11 @@ public:
     [[nodiscard]] static Result<std::unique_ptr<ItemEntity>> deserialize(
         network::PacketDeserializer& deser, EntityId id);
 
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     /**
      * @brief 更新物理状态
