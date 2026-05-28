@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/world/storage/player/PlayerSaveData.hpp"
 #include <filesystem>
 #include <memory>
 
@@ -60,11 +61,19 @@ public:
      */
     static Result<LevelSummaryData> readSummary(const std::filesystem::path& worldDir);
 
+    /**
+     * @brief 从 Java 版世界目录读取 level.dat 中的本地玩家
+     * @param worldDir 世界目录路径
+     * @return 本地玩家数据；不存在时返回空 optional
+     */
+    static Result<std::optional<PlayerSaveData>> readLocalPlayer(const std::filesystem::path& worldDir);
+
 private:
     static Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readGzipNbt(const std::filesystem::path& filePath);
 
     static Result<LevelSummaryData> parseSummary(const mc::nbt::tags::compound_tag& data);
     static Result<LevelRuntimeData> parseRuntimeData(const mc::nbt::tags::compound_tag& data);
+    static Result<std::optional<PlayerSaveData>> parseLocalPlayer(const mc::nbt::tags::compound_tag& data);
 
     static WorldType parseWorldType(const mc::nbt::tags::compound_tag& data);
     static GameMode parseGameMode(const mc::nbt::tags::compound_tag& data);

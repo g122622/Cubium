@@ -16,7 +16,8 @@ SingleLevelStorageManager (门面)
 
 - **IStorageBackend.hpp** - 存储后端接口，定义 open/close/loadChunk/loadPlayer/loadLevelData 等读取方法
 - **JavaAnvilBackend** (.hpp/.cpp) - Java Anvil 格式后端，委托 `JavaWorldReader -> JavaColumnReader -> JavaChunkReader`
-- **BedrockLDBBackend** (.hpp/.cpp) - 基岩版 LevelDB 格式后端，委托 BedrockLevelDb + BedrockChunkReader
+- **BedrockLDBBackend** (.hpp/.cpp) - 基岩版 LevelDB 格式后端，委托 `BedrockWorldReader -> BedrockColumnReader -> BedrockChunkReader`
+- 两个 backend 都已对齐统一本地玩家约定：`loadPlayer("~local_player")`
 
 ## 设计原则
 

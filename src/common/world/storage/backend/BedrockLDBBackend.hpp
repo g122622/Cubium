@@ -26,7 +26,9 @@
 #include "common/world/storage/backend/IStorageBackend.hpp"
 #include "common/world/storage/reader/bedrock/BedrockBiomeMapper.hpp"
 #include "common/world/storage/reader/bedrock/BedrockChunkReader.hpp"
+#include "common/world/storage/reader/bedrock/BedrockColumnReader.hpp"
 #include "common/world/storage/reader/bedrock/BedrockLevelDb.hpp"
+#include "common/world/storage/reader/bedrock/BedrockWorldReader.hpp"
 #include <memory>
 
 namespace mc::world::storage {
@@ -71,6 +73,8 @@ private:
     std::unique_ptr<reader::bedrock::BedrockLevelDb> m_db;
     std::unique_ptr<reader::bedrock::BedrockBiomeMapper> m_biomeMapper;
     std::unique_ptr<reader::bedrock::BedrockChunkReader> m_chunkReader;
+    std::unique_ptr<reader::bedrock::BedrockColumnReader> m_columnReader;
+    std::unique_ptr<reader::bedrock::BedrockWorldReader> m_worldReader;
 };
 
 } // namespace mc::world::storage

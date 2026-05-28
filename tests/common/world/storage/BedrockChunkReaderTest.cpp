@@ -24,7 +24,8 @@
 #include "common/world/storage/reader/bedrock/BedrockChunkReader.hpp"
 
 #include "common/world/storage/reader/bedrock/BedrockBiomeMapper.hpp"
-#include "common/world/storage/reader/bedrock/BedrockLevelDb.hpp"
+#include "common/world/storage/reader/bedrock/LevelDBKey.hpp"
+#include "common/world/storage/reader/bedrock/PaletteUtil.hpp"
 #include <gtest/gtest.h>
 
 namespace mc::world::storage::reader::bedrock {
@@ -36,17 +37,17 @@ protected:
     BedrockChunkReader reader{biomeMapper};
 };
 
-TEST_F(BedrockChunkReaderTest, ReadVarUintDecodesMultiByteValue)
+TEST(BedrockPaletteUtilTest, ReadVarUintDecodesMultiByteValue)
 {
     const std::vector<u8> bytes{0xAC, 0x02};
     size_t pos = 0;
-    auto result = reader.readVarUint(bytes, pos);
+    auto result = palette::readVarUint(bytes, pos);
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), 300u);
     EXPECT_EQ(pos, 2u);
 }
 
-TEST_F(BedrockChunkReaderTest, ReadPackedIndicesDecodesBedrockWordOrder)
+TEST(BedrockPaletteUtilTest, ReadPackedIndicesDecodesBedrockWordOrder)
 {
     std::vector<u8> bytes;
     bytes.resize(4);
@@ -57,7 +58,7 @@ TEST_F(BedrockChunkReaderTest, ReadPackedIndicesDecodesBedrockWordOrder)
     bytes[3] = static_cast<u8>((packedWord >> 24) & 0xFF);
 
     size_t pos = 0;
-    auto result = reader.readPackedIndices(bytes, pos, 4, 8, 32);
+    auto result = palette::readPackedIndices(bytes, pos, 4, 8, 32);
     ASSERT_TRUE(result.success());
     const auto& indices = result.value();
     ASSERT_EQ(indices.size(), 8u);
@@ -68,10 +69,10 @@ TEST_F(BedrockChunkReaderTest, ReadPackedIndicesDecodesBedrockWordOrder)
 
 TEST(BedrockLevelDbKeyTest, ActorAndLocalPlayerKeysRemainStable)
 {
-    const auto actorPrefix = BedrockLevelDb::buildActorPrefix();
+    const auto& actorPrefix = LevelDBKey::actorPrefix();
     EXPECT_EQ(std::string(actorPrefix.begin(), actorPrefix.end()), "actorprefix");
 
-    const auto localPlayer = BedrockLevelDb::buildLocalPlayerKey();
+    const auto& localPlayer = LevelDBKey::localPlayer();
     EXPECT_EQ(std::string(localPlayer.begin(), localPlayer.end()), "~local_player");
 }
 

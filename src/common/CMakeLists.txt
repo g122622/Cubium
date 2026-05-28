@@ -951,6 +951,10 @@ add_library(mc_common STATIC
     world/storage/reader/java/JavaBiomeMapper.cpp
     world/storage/reader/java/JavaLevelDatReader.cpp
     world/storage/reader/bedrock/BedrockLevelDb.cpp
+    world/storage/reader/bedrock/LevelDBKey.cpp
+    world/storage/reader/bedrock/PaletteUtil.cpp
+    world/storage/reader/bedrock/BedrockWorldReader.cpp
+    world/storage/reader/bedrock/BedrockColumnReader.cpp
     world/storage/reader/bedrock/BedrockChunkReader.cpp
     world/storage/reader/bedrock/BedrockBiomeMapper.cpp
     world/storage/reader/bedrock/BedrockLevelDatReader.cpp

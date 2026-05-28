@@ -187,7 +187,7 @@ add_compile_options(-ffast-math) # 启用快速浮点数
 add_compile_options(-fno-trapping-math) # 禁用浮点异常
 add_compile_options(-mavx2) # 启用 AVX2 指令集（需要 CPU 支持）
 add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
-add_link_options(-Wl,--gc-sections) # 链接器选项，移除所有未引用的函数和数据
+add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据
 add_link_options(-flto=thin -fuse-ld=lld)
 add_compile_options(-fno-stack-protector -fno-stack-check) # 关闭栈保护，减少性能开销（注意安全风险）
 

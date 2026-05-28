@@ -24,6 +24,7 @@
 #include "BedrockLDBBackend.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
+#include "common/world/storage/reader/bedrock/LevelDBKey.hpp"
 #include <sstream>
 #include <spdlog/spdlog.h>
 
@@ -233,6 +234,8 @@ BedrockLDBBackend::BedrockLDBBackend()
     : m_db(std::make_unique<BedrockLevelDb>())
     , m_biomeMapper(std::make_unique<BedrockBiomeMapper>())
     , m_chunkReader(std::make_unique<BedrockChunkReader>(*m_biomeMapper))
+    , m_columnReader(std::make_unique<BedrockColumnReader>(*m_chunkReader))
+    , m_worldReader(std::make_unique<BedrockWorldReader>(*m_columnReader))
 {}
 
 BedrockLDBBackend::~BedrockLDBBackend()
@@ -281,15 +284,7 @@ Result<std::optional<ChunkData>> BedrockLDBBackend::loadChunk(ChunkCoord x, Chun
         return Error(ErrorCode::InvalidState, "Backend not open");
     }
 
-    auto chunkResult = m_chunkReader->readChunk(x, z, dimension, *m_db);
-    if (chunkResult.failed()) {
-        return chunkResult.error();
-    }
-    auto chunkPtr = chunkResult.value();
-    if (!chunkPtr) {
-        return std::optional<ChunkData>{};
-    }
-    return std::optional<ChunkData>(std::move(*chunkPtr));
+    return m_worldReader->readChunk(x, z, dimension, *m_db);
 }
 
 Result<std::vector<ChunkPos>> BedrockLDBBackend::listChunks(DimensionId dimension)
@@ -298,45 +293,7 @@ Result<std::vector<ChunkPos>> BedrockLDBBackend::listChunks(DimensionId dimensio
         return Error(ErrorCode::InvalidState, "Backend not open");
     }
 
-    std::vector<ChunkPos> chunks;
-    std::unordered_set<u64> seen;
-
-    auto readLe32 = [](const std::vector<u8>& key, size_t offset) -> i32 {
-        return static_cast<i32>(key[offset]) | (static_cast<i32>(key[offset + 1]) << 8) |
-            (static_cast<i32>(key[offset + 2]) << 16) | (static_cast<i32>(key[offset + 3]) << 24);
-    };
-
-    auto iterateResult = m_db->iteratePrefix(std::vector<u8>{},
-        [dimension, &chunks, &seen, &readLe32](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
-            MC_UNUSED(value);
-
-            const auto versionType = static_cast<u8>(BedrockLevelDb::ChunkType::Version);
-            if (dimension == 0) {
-                if (key.size() != 9 || key[8] != versionType) {
-                    return true;
-                }
-            } else {
-                if (key.size() != 13 || key[12] != versionType) {
-                    return true;
-                }
-                if (readLe32(key, 8) != dimension) {
-                    return true;
-                }
-            }
-
-            const i32 chunkX = readLe32(key, 0);
-            const i32 chunkZ = readLe32(key, 4);
-            const u64 packed = (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u32>(chunkZ);
-            if (seen.insert(packed).second) {
-                chunks.emplace_back(chunkX, chunkZ);
-            }
-            return true;
-        });
-    if (iterateResult.failed()) {
-        return iterateResult.error();
-    }
-
-    return chunks;
+    return m_worldReader->listChunks(dimension, *m_db);
 }
 
 Result<std::optional<PlayerSaveData>> BedrockLDBBackend::loadPlayer(const std::string& uuid)
@@ -347,11 +304,11 @@ Result<std::optional<PlayerSaveData>> BedrockLDBBackend::loadPlayer(const std::s
 
     std::vector<u8> key;
     if (uuid == "~local_player" || uuid.empty()) {
-        key = BedrockLevelDb::buildLocalPlayerKey();
+        key = LevelDBKey::localPlayer();
     } else if (uuid.starts_with("actorprefix")) {
         key.assign(uuid.begin(), uuid.end());
     } else {
-        key = BedrockLevelDb::buildActorPrefix();
+        key = LevelDBKey::actorPrefix();
         key.insert(key.end(), uuid.begin(), uuid.end());
     }
 
@@ -389,9 +346,9 @@ Result<std::vector<std::string>> BedrockLDBBackend::listPlayerUuids()
     ids.emplace_back("~local_player");
 
     auto iterateResult = m_db->iteratePrefix(
-        BedrockLevelDb::buildActorPrefix(), [&ids](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
+        LevelDBKey::actorPrefix(), [&ids](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
             MC_UNUSED(value);
-            const auto prefix = BedrockLevelDb::buildActorPrefix();
+            const auto& prefix = LevelDBKey::actorPrefix();
             if (key.size() >= prefix.size()) {
                 ids.emplace_back(key.begin() + static_cast<std::ptrdiff_t>(prefix.size()), key.end());
             }

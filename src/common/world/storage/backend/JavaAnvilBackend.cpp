@@ -99,6 +99,10 @@ Result<std::optional<PlayerSaveData>> JavaAnvilBackend::loadPlayer(const std::st
         return Error(ErrorCode::InvalidState, "Backend not open");
     }
 
+    if (uuid == "~local_player" || uuid.empty()) {
+        return JavaLevelDatReader::readLocalPlayer(m_worldPath);
+    }
+
     const std::filesystem::path playerPath = m_worldPath / "playerdata" / fmt::format("{}.dat", uuid);
     std::error_code ec;
     if (!std::filesystem::exists(playerPath, ec)) {
@@ -147,6 +151,14 @@ Result<std::vector<std::string>> JavaAnvilBackend::listPlayerUuids()
     }
 
     std::vector<std::string> uuids;
+    auto localPlayerResult = JavaLevelDatReader::readLocalPlayer(m_worldPath);
+    if (localPlayerResult.failed()) {
+        return localPlayerResult.error();
+    }
+    if (localPlayerResult.value().has_value()) {
+        uuids.emplace_back("~local_player");
+    }
+
     const std::filesystem::path playerDir = m_worldPath / "playerdata";
     std::error_code ec;
     if (!std::filesystem::exists(playerDir, ec)) {

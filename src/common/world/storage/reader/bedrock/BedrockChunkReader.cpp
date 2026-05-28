@@ -22,6 +22,7 @@
  */
 
 #include "BedrockChunkReader.hpp"
+#include "PaletteUtil.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
@@ -70,85 +71,6 @@ BedrockChunkReader::BedrockChunkReader(BedrockBiomeMapper& biomeMapper)
     : m_biomeMapper(biomeMapper)
 {}
 
-Result<std::unique_ptr<ChunkData>> BedrockChunkReader::readChunk(
-    i32 chunkX, i32 chunkZ, DimensionId dimension, BedrockLevelDb& db)
-{
-    auto chunk = std::make_unique<ChunkData>(chunkX, chunkZ);
-    bool hasAnySection = false;
-
-    // 读取区块版本
-    auto versionKey = (dimension == 0)
-        ? BedrockLevelDb::buildKey(chunkX, chunkZ, BedrockLevelDb::ChunkType::Version)
-        : BedrockLevelDb::buildKey(chunkX, chunkZ, dimension, BedrockLevelDb::ChunkType::Version);
-    auto versionResult = db.get(versionKey);
-    // 版本号用于确定数据格式，暂时不需要特殊处理
-
-    // 读取子区块数据（SubChunkPrefix，类型 47）
-    // 基岩版子区块 Y 从 -4 到 19（1.18+），或 0 到 15（旧版）
-    for (i8 subY = -64; subY < 64; ++subY) {
-        auto subKey = (dimension == 0)
-            ? BedrockLevelDb::buildSubChunkKey(chunkX, chunkZ, BedrockLevelDb::ChunkType::SubChunkPrefix, subY)
-            : BedrockLevelDb::buildSubChunkKey(
-                  chunkX, chunkZ, dimension, BedrockLevelDb::ChunkType::SubChunkPrefix, subY);
-
-        auto subResult = db.get(subKey);
-        if (subResult.failed()) {
-            continue;
-        }
-
-        auto& subData = subResult.value();
-        if (!subData.has_value()) {
-            continue;
-        }
-
-        auto sectionResult = readSubChunk(subData.value(), subY, *chunk);
-        if (sectionResult.failed()) {
-            spdlog::debug("BedrockChunkReader: Failed to read sub-chunk {} for ({}, {}): {}",
-                subY,
-                chunkX,
-                chunkZ,
-                sectionResult.error().message());
-            continue;
-        }
-
-        hasAnySection = true;
-    }
-
-    if (!hasAnySection) {
-        return std::unique_ptr<ChunkData>{};
-    }
-
-    // 读取生物群系数据
-    // 优先尝试新版 BiomeState（类型 53），其次旧版 Data2D（类型 45/46）
-    auto biomeStateKey = (dimension == 0)
-        ? BedrockLevelDb::buildKey(chunkX, chunkZ, BedrockLevelDb::ChunkType::BiomeState)
-        : BedrockLevelDb::buildKey(chunkX, chunkZ, dimension, BedrockLevelDb::ChunkType::BiomeState);
-    auto biomeStateResult = db.get(biomeStateKey);
-    if (biomeStateResult.success() && biomeStateResult.value().has_value()) {
-        auto biomeResult = readBiomeState(biomeStateResult.value().value(), *chunk);
-        if (biomeResult.failed()) {
-            spdlog::debug("BedrockChunkReader: Failed to read biome state for ({}, {})", chunkX, chunkZ);
-        }
-    } else {
-        // 尝试旧版 Data2D
-        auto data2DKey = (dimension == 0)
-            ? BedrockLevelDb::buildKey(chunkX, chunkZ, BedrockLevelDb::ChunkType::Data2D)
-            : BedrockLevelDb::buildKey(chunkX, chunkZ, dimension, BedrockLevelDb::ChunkType::Data2D);
-        auto data2DResult = db.get(data2DKey);
-        if (data2DResult.success() && data2DResult.value().has_value()) {
-            auto biomeResult = readData2D(data2DResult.value().value(), *chunk);
-            if (biomeResult.failed()) {
-                spdlog::debug("BedrockChunkReader: Failed to read Data2D for ({}, {})", chunkX, chunkZ);
-            }
-        }
-    }
-
-    chunk->setLoaded(true);
-    chunk->setFullyGenerated(true);
-    chunk->setDirty(false);
-    return chunk;
-}
-
 Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 subChunkY, ChunkData& chunk)
 {
     if (data.size() < 2) {
@@ -160,6 +82,15 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
     // 版本字节
     u8 version = data[pos++];
 
+    const i32 sectionIndex = resolveSectionIndex(version, subChunkY, data, pos);
+    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+        return Error(ErrorCode::Unsupported,
+            fmt::format("Sub-chunk Y {} (version {}) maps outside supported section range [0, {})",
+                subChunkY,
+                version,
+                world::CHUNK_SECTIONS));
+    }
+
     // 对于版本 9+，有额外的存储层数
     u8 storageCount = 1;
     if (version >= 9) {
@@ -167,14 +98,6 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
             return Error(ErrorCode::ChunkCorrupted, "Sub-chunk data truncated at storage count");
         }
         storageCount = data[pos++];
-    }
-
-    // 映射到 ChunkSection
-    const i32 sectionIndex = static_cast<i32>(subChunkY) - (world::MIN_BUILD_HEIGHT >> 4);
-    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
-        return Error(ErrorCode::Unsupported,
-            fmt::format(
-                "Sub-chunk Y {} maps outside supported section range [0, {})", subChunkY, world::CHUNK_SECTIONS));
     }
 
     ChunkSection* section = chunk.createSection(sectionIndex);
@@ -199,14 +122,14 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
         }
 
         // 计算 word 数量（基岩版使用 32 位 word）
-        auto indicesResult = readPackedIndices(data, pos, bitsPerEntry, 4096, 32);
+        auto indicesResult = palette::readPackedIndices(data, pos, bitsPerEntry, 4096, 32);
         if (indicesResult.failed()) {
             return indicesResult.error();
         }
         const auto indices = std::move(indicesResult.value());
 
         // 读取调色板
-        auto paletteSizeResult = readVarUint(data, pos);
+        auto paletteSizeResult = palette::readVarUint(data, pos);
         if (paletteSizeResult.failed()) {
             return paletteSizeResult.error();
         }
@@ -227,7 +150,7 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
 
             u32 blockId;
             if (isRuntimeEncoding) {
-                auto runtimeIdResult = readVarUint(data, pos);
+                auto runtimeIdResult = palette::readVarUint(data, pos);
                 if (runtimeIdResult.failed()) {
                     return runtimeIdResult.error();
                 }
@@ -253,6 +176,26 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
     }
 
     return {};
+}
+
+i32 BedrockChunkReader::resolveSectionIndex(u8 version, i8 keySubChunkY, const std::vector<u8>& data, size_t& pos) const
+{
+    // 对齐 Chunker：
+    // - version 8：继续使用 key 上的 Y
+    // - version 9：真实 Y 在 header 中，读取后直接使用，不再依赖 key
+    // 当前项目没有把外来存档的 generator / experiments 配置继续下传到 chunk reader，
+    // 因此这里先只补齐 Chunker 的“v9 读 header Y”这一硬行为；旧 caves&cliffs 的
+    // version 8 key-Y 偏移问题留待后续更完整的版本/level 配置接线再收口。
+    i32 sectionY = keySubChunkY;
+    if (version >= 9) {
+        if (pos >= data.size()) {
+            return world::CHUNK_SECTIONS;
+        }
+        sectionY = static_cast<i8>(data[pos]);
+        ++pos;
+    }
+
+    return sectionY - (world::MIN_BUILD_HEIGHT >> 4);
 }
 
 Result<void> BedrockChunkReader::readData2D(const std::vector<u8>& data, ChunkData& chunk)
@@ -314,54 +257,6 @@ Result<void> BedrockChunkReader::readBiomeState(const std::vector<u8>& data, Chu
     return {};
 }
 
-Result<std::vector<u32>> BedrockChunkReader::readPackedIndices(
-    const std::vector<u8>& data, size_t& pos, i32 bitsPerEntry, i32 entryCount, i32 wordBits) const
-{
-    if (bitsPerEntry <= 0 || bitsPerEntry > wordBits) {
-        return Error(ErrorCode::ChunkCorrupted, fmt::format("Invalid bits per entry: {}", bitsPerEntry));
-    }
-
-    const i32 valuesPerWord = wordBits / bitsPerEntry;
-    if (valuesPerWord <= 0) {
-        return Error(ErrorCode::ChunkCorrupted, "Invalid palette packing parameters");
-    }
-    const i32 wordCount = (entryCount + valuesPerWord - 1) / valuesPerWord;
-    const size_t bytesNeeded = static_cast<size_t>(wordCount) * static_cast<size_t>(wordBits / 8);
-    if (pos + bytesNeeded > data.size()) {
-        return Error(ErrorCode::ChunkCorrupted, "Packed palette indices truncated");
-    }
-
-    std::vector<u32> indices(static_cast<size_t>(entryCount), 0);
-    const u32 mask = (bitsPerEntry == 32) ? 0xFFFFFFFFu : ((1u << bitsPerEntry) - 1u);
-    i32 index = 0;
-    for (i32 word = 0; word < wordCount && index < entryCount; ++word) {
-        u32 value = static_cast<u32>(data[pos]) | (static_cast<u32>(data[pos + 1]) << 8) |
-            (static_cast<u32>(data[pos + 2]) << 16) | (static_cast<u32>(data[pos + 3]) << 24);
-        pos += 4;
-
-        for (i32 bit = 0; bit < valuesPerWord && index < entryCount; ++bit) {
-            indices[static_cast<size_t>(index++)] = (value >> (bit * bitsPerEntry)) & mask;
-        }
-    }
-
-    return indices;
-}
-
-Result<u32> BedrockChunkReader::readVarUint(const std::vector<u8>& data, size_t& pos) const
-{
-    u32 value = 0;
-    i32 shift = 0;
-    while (pos < data.size() && shift < 35) {
-        const u8 byte = data[pos++];
-        value |= static_cast<u32>(byte & 0x7F) << shift;
-        if ((byte & 0x80) == 0) {
-            return value;
-        }
-        shift += 7;
-    }
-    return Error(ErrorCode::ChunkCorrupted, "Invalid Bedrock varuint");
-}
-
 Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::readBiomeSectionPalette(
     const std::vector<u8>& data, size_t& pos, i32 sectionY, DimensionId dimension) const
 {
@@ -374,12 +269,12 @@ Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::readBiomeSectio
     const bool runtimeEncoding = (paletteHeader & 0x1) != 0;
     MC_UNUSED(runtimeEncoding);
 
-    auto indicesResult = readPackedIndices(data, pos, bitsPerEntry, BiomeContainer::BIOME_SIZE, 32);
+    auto indicesResult = palette::readPackedIndices(data, pos, bitsPerEntry, BiomeContainer::BIOME_SIZE, 32);
     if (indicesResult.failed()) {
         return indicesResult.error();
     }
 
-    auto paletteSizeResult = readVarUint(data, pos);
+    auto paletteSizeResult = palette::readVarUint(data, pos);
     if (paletteSizeResult.failed()) {
         return paletteSizeResult.error();
     }
@@ -391,7 +286,7 @@ Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::readBiomeSectio
     std::vector<BiomeId> palette;
     palette.reserve(static_cast<size_t>(paletteSize));
     for (i32 i = 0; i < paletteSize; ++i) {
-        auto biomeIdResult = readVarUint(data, pos);
+        auto biomeIdResult = palette::readVarUint(data, pos);
         if (biomeIdResult.failed()) {
             return biomeIdResult.error();
         }

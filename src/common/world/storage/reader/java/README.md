@@ -11,6 +11,7 @@ Java 版 Minecraft 存档读取器，支持 Java 1.16.5+ 的 Anvil 区域文件�
 - **JavaBlockStateMapper** (.hpp/.cpp) - 方块状态映射器，将 Java 版方块状态字符串映射到内部 `stateId`
 - **JavaBiomeMapper** (.hpp/.cpp) - 生物群系映射器，将 Java 版生物群系名称/ID 映射到内部 `BiomeId`
 - **JavaLevelDatReader** (.hpp/.cpp) - `level.dat` 读取器，解析 Java 版世界元数据（gzip + 大端序 NBT）
+- `JavaLevelDatReader` 现在还负责按 `Chunker` 语义从 `Data.Player` 读取本地玩家，并供统一门面 `loadPlayer("~local_player")` 复用
 
 ## 分层关系
 
@@ -33,6 +34,7 @@ JavaAnvilBackend
 - 已完成 world / column / chunk 分层，以及 1.17+ `entities/` world 级合并
 - 已补 Java biome 主路径，并把 heightmap / block entity 恢复接到现有 `ChunkData` / `BlockEntityRegistry`
 - `Entities` 现在也会复用统一 `EntityDeserializer` 反序列化为运行时实体实例，但当前阶段先无副作用地挂在 `ChunkData` 上，尚未在 reader/backend 层直接注入 `EntityManager`
+- `level.dat` 的本地玩家路径也已补齐：Java 外来存档通过 `loadPlayer("~local_player")` 读取 `Data.Player`
 - 因此这里的边界是：Java 实体 NBT 已不再停留在原始字节层，但“何时进入世界运行时”仍属于服务器集成职责
 
 ## 1.17+ entities 区域合并

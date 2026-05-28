@@ -22,6 +22,7 @@
  */
 
 #include "BedrockLevelDb.hpp"
+#include "LevelDBKey.hpp"
 #include <string_view>
 #include <leveldb/db.h>
 #include <leveldb/options.h>
@@ -147,90 +148,38 @@ Result<void> BedrockLevelDb::iterateChunk(i32 chunkX, i32 chunkZ, DimensionId di
 
 std::vector<u8> BedrockLevelDb::buildKey(i32 chunkX, i32 chunkZ, ChunkType type)
 {
-    std::vector<u8> key;
-    key.reserve(9);
-    // 小端序写入 chunkX 和 chunkZ
-    key.push_back(static_cast<u8>(chunkX & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 8) & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 16) & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 24) & 0xFF));
-    key.push_back(static_cast<u8>(chunkZ & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 8) & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 16) & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 24) & 0xFF));
-    key.push_back(static_cast<u8>(type));
-    return key;
+    return LevelDBKey::key(0, ChunkPos(chunkX, chunkZ), static_cast<LevelDBKey::ChunkType>(type));
 }
 
 std::vector<u8> BedrockLevelDb::buildKey(i32 chunkX, i32 chunkZ, DimensionId dimension, ChunkType type)
 {
-    std::vector<u8> key;
-    key.reserve(13);
-    // 小端序写入 chunkX、chunkZ、dimensionId、type
-    key.push_back(static_cast<u8>(chunkX & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 8) & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 16) & 0xFF));
-    key.push_back(static_cast<u8>((chunkX >> 24) & 0xFF));
-    key.push_back(static_cast<u8>(chunkZ & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 8) & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 16) & 0xFF));
-    key.push_back(static_cast<u8>((chunkZ >> 24) & 0xFF));
-    key.push_back(static_cast<u8>(dimension & 0xFF));
-    key.push_back(static_cast<u8>((dimension >> 8) & 0xFF));
-    key.push_back(static_cast<u8>((dimension >> 16) & 0xFF));
-    key.push_back(static_cast<u8>((dimension >> 24) & 0xFF));
-    key.push_back(static_cast<u8>(type));
-    return key;
+    return LevelDBKey::key(dimension, ChunkPos(chunkX, chunkZ), static_cast<LevelDBKey::ChunkType>(type));
 }
 
 std::vector<u8> BedrockLevelDb::buildSubChunkKey(i32 chunkX, i32 chunkZ, ChunkType type, i8 subChunkY)
 {
-    auto key = buildKey(chunkX, chunkZ, type);
-    key.push_back(static_cast<u8>(subChunkY));
-    return key;
+    return LevelDBKey::key(0, ChunkPos(chunkX, chunkZ), subChunkY, static_cast<LevelDBKey::ChunkType>(type));
 }
 
 std::vector<u8> BedrockLevelDb::buildSubChunkKey(
     i32 chunkX, i32 chunkZ, DimensionId dimension, ChunkType type, i8 subChunkY)
 {
-    auto key = buildKey(chunkX, chunkZ, dimension, type);
-    key.push_back(static_cast<u8>(subChunkY));
-    return key;
+    return LevelDBKey::key(dimension, ChunkPos(chunkX, chunkZ), subChunkY, static_cast<LevelDBKey::ChunkType>(type));
 }
 
 std::vector<u8> BedrockLevelDb::buildChunkPrefix(i32 chunkX, i32 chunkZ, DimensionId dimension)
 {
-    std::vector<u8> prefix;
-    prefix.reserve(12);
-    // 小端序写入 chunkX 和 chunkZ
-    prefix.push_back(static_cast<u8>(chunkX & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkX >> 8) & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkX >> 16) & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkX >> 24) & 0xFF));
-    prefix.push_back(static_cast<u8>(chunkZ & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkZ >> 8) & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkZ >> 16) & 0xFF));
-    prefix.push_back(static_cast<u8>((chunkZ >> 24) & 0xFF));
-    // 主世界不包含 dimensionId，其他维度包含
-    if (dimension != 0) {
-        prefix.push_back(static_cast<u8>(dimension & 0xFF));
-        prefix.push_back(static_cast<u8>((dimension >> 8) & 0xFF));
-        prefix.push_back(static_cast<u8>((dimension >> 16) & 0xFF));
-        prefix.push_back(static_cast<u8>((dimension >> 24) & 0xFF));
-    }
-    return prefix;
+    return LevelDBKey::chunkPrefix(dimension, ChunkPos(chunkX, chunkZ));
 }
 
 std::vector<u8> BedrockLevelDb::buildLocalPlayerKey()
 {
-    static constexpr std::string_view kLocalPlayer = "~local_player";
-    return std::vector<u8>(kLocalPlayer.begin(), kLocalPlayer.end());
+    return LevelDBKey::localPlayer();
 }
 
 std::vector<u8> BedrockLevelDb::buildActorPrefix()
 {
-    static constexpr std::string_view kActorPrefix = "actorprefix";
-    return std::vector<u8>(kActorPrefix.begin(), kActorPrefix.end());
+    return LevelDBKey::actorPrefix();
 }
 
 } // namespace mc::world::storage::reader::bedrock

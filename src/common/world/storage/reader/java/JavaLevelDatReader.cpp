@@ -112,6 +112,26 @@ Result<LevelRuntimeData> JavaLevelDatReader::readRuntimeData(const std::filesyst
     return parseRuntimeData(*data);
 }
 
+Result<std::optional<PlayerSaveData>> JavaLevelDatReader::readLocalPlayer(const std::filesystem::path& worldDir)
+{
+    std::filesystem::path levelDatPath = worldDir / "level.dat";
+    auto rootResult = readGzipNbt(levelDatPath);
+    if (rootResult.failed()) {
+        return rootResult.error();
+    }
+
+    auto root = rootResult.value();
+    if (root->value.count("Data") == 0) {
+        return Error(ErrorCode::FileCorrupted, "level.dat missing Data tag");
+    }
+
+    const auto* data = getCompound(*root, "Data");
+    if (!data) {
+        return Error(ErrorCode::FileCorrupted, "level.dat Data tag is not a compound");
+    }
+    return parseLocalPlayer(*data);
+}
+
 Result<LevelSummaryData> JavaLevelDatReader::parseSummary(const compound_tag& data)
 {
     // 读取版本信息
@@ -274,6 +294,29 @@ Result<LevelRuntimeData> JavaLevelDatReader::parseRuntimeData(const compound_tag
         thundering,
         initialized,
         difficultyLocked);
+}
+
+Result<std::optional<PlayerSaveData>> JavaLevelDatReader::parseLocalPlayer(const compound_tag& data)
+{
+    const auto* player = getCompound(data, "Player");
+    if (!player) {
+        return std::optional<PlayerSaveData>{};
+    }
+
+    auto playerResult = PlayerSaveData::fromNbt(*player);
+    if (playerResult.failed()) {
+        return playerResult.error();
+    }
+
+    auto playerData = playerResult.value();
+    if (playerData.uuid.empty()) {
+        playerData.uuid = "~local_player";
+    }
+    if (playerData.username.empty()) {
+        playerData.username = "~local_player";
+    }
+
+    return std::optional<PlayerSaveData>(std::move(playerData));
 }
 
 WorldType JavaLevelDatReader::parseWorldType(const compound_tag& data)
