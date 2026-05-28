@@ -306,6 +306,9 @@ public:
     static Item* SNOWBALL; // 雪球
     static Item* COMPASS;
     static Item* CLOCK;
+    static Item* MAP;        // 空地图
+    static Item* FILLED_MAP; // 已填充地图
+    static Item* PAPER;      // 纸
     static Item* FERMENTED_SPIDER_EYE;
     static Item* BLAZE_ROD;
     static Item* BLAZE_POWDER;
@@ -818,23 +821,23 @@ public:
     // 红石方块
     // ========================================================================
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
-    static Item* REDSTONE_TORCH;                // 红石火把
-    static Item* REDSTONE_LAMP;                 // 红石灯
-    static Item* REDSTONE_REPEATER;             // 红石中继器
-    static Item* REDSTONE_COMPARATOR;           // 红石比较器
-    static Item* OBSERVER;                      // 观察者
-    static Item* LEVER;                         // 拉杆
-    static Item* STONE_BUTTON;                  // 石头按钮
-    static Item* OAK_BUTTON;                    // 橡木按钮
-    static Item* SPRUCE_BUTTON;                 // 云杉木按钮
-    static Item* BIRCH_BUTTON;                  // 白桦木按钮
-    static Item* JUNGLE_BUTTON;                 // 丛林木按钮
-    static Item* ACACIA_BUTTON;                 // 金合欢木按钮
-    static Item* DARK_OAK_BUTTON;               // 深色橡木按钮
-    static Item* CRIMSON_BUTTON;                // 绯红木按钮
-    static Item* WARPED_BUTTON;                 // 诡异木按钮
-    static Item* STONE_PRESSURE_PLATE;          // 石头压力板
-    static Item* OAK_PRESSURE_PLATE;            // 橡木压力板
+    static Item* REDSTONE_TORCH;       // 红石火把
+    static Item* REDSTONE_LAMP;        // 红石灯
+    static Item* REDSTONE_REPEATER;    // 红石中继器
+    static Item* REDSTONE_COMPARATOR;  // 红石比较器
+    static Item* OBSERVER;             // 观察者
+    static Item* LEVER;                // 拉杆
+    static Item* STONE_BUTTON;         // 石头按钮
+    static Item* OAK_BUTTON;           // 橡木按钮
+    static Item* SPRUCE_BUTTON;        // 云杉木按钮
+    static Item* BIRCH_BUTTON;         // 白桦木按钮
+    static Item* JUNGLE_BUTTON;        // 丛林木按钮
+    static Item* ACACIA_BUTTON;        // 金合欢木按钮
+    static Item* DARK_OAK_BUTTON;      // 深色橡木按钮
+    static Item* CRIMSON_BUTTON;       // 绯红木按钮
+    static Item* WARPED_BUTTON;        // 诡异木按钮
+    static Item* STONE_PRESSURE_PLATE; // 石头压力板
+    static Item* OAK_PRESSURE_PLATE;   // 橡木压力板
     // TODO 以后补充这些物品
     // static Item* SPRUCE_PRESSURE_PLATE;         // 云杉木压力板
     // static Item* BIRCH_PRESSURE_PLATE;          // 白桦木压力板

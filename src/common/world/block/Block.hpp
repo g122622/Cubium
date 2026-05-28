@@ -32,6 +32,7 @@
 #include "BlockState.hpp"
 #include "HarvestTool.hpp"
 #include "Material.hpp"
+#include "world/map/MaterialColor.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -313,6 +314,20 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 设置地图颜色
+     *
+     * 用于在地图上渲染此方块的颜色。如果不设置，默认使用材质的颜色。
+     *
+     * @param color 地图颜色ID
+     */
+    BlockProperties& mapColor(world::map::MaterialColorId color)
+    {
+        m_mapColor = color;
+        m_hasMapColor = true;
+        return *this;
+    }
+
     // Getters
     [[nodiscard]] const Material& material() const { return *m_material; }
     [[nodiscard]] f32 hardness() const { return m_hardness; }
@@ -333,6 +348,8 @@ public:
     [[nodiscard]] f32 speedFactor() const { return m_speedFactor; }
     [[nodiscard]] f32 jumpFactor() const { return m_jumpFactor; }
     [[nodiscard]] bool ticksRandomly() const { return m_ticksRandomly; }
+    [[nodiscard]] world::map::MaterialColorId mapColor() const { return m_mapColor; }
+    [[nodiscard]] bool hasMapColor() const { return m_hasMapColor; }
 
 private:
     friend class Block;
@@ -352,12 +369,14 @@ private:
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
     std::string m_lootTableId;
-    bool m_noLootTable = false; // 显式禁止自动推导掉落表ID（如空气方块）
-    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE; // 默认使用石头声音
-    f32 m_slipperiness = 0.6f;                                   // MC默认滑度
-    f32 m_speedFactor = 1.0f;                                    // MC默认速度因子
-    f32 m_jumpFactor = 1.0f;                                     // MC默认跳跃因子
-    bool m_ticksRandomly = false;                                // 是否响应随机刻
+    bool m_noLootTable = false;                                                // 显式禁止自动推导掉落表ID（如空气方块）
+    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;               // 默认使用石头声音
+    f32 m_slipperiness = 0.6f;                                                 // MC默认滑度
+    f32 m_speedFactor = 1.0f;                                                  // MC默认速度因子
+    f32 m_jumpFactor = 1.0f;                                                   // MC默认跳跃因子
+    bool m_ticksRandomly = false;                                              // 是否响应随机刻
+    world::map::MaterialColorId m_mapColor = world::map::MaterialColorId::AIR; // 地图颜色
+    bool m_hasMapColor = false;                                                // 是否显式设置了地图颜色
 };
 
 /**
@@ -485,6 +504,29 @@ public:
      * @brief 获取光照透明度 (0-15)
      */
     [[nodiscard]] i32 opacity() const { return m_opacity; }
+
+    /**
+     * @brief 获取地图颜色
+     *
+     * 返回此方块在地图上渲染时使用的颜色。
+     * 默认使用 BlockProperties 中设置的颜色，若未设置则回退到材质颜色。
+     * 子类可重写以实现状态相关或生物群系相关的颜色（如草方块）。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选，用于生物群系感知）
+     * @param pos 位置（可选）
+     * @return 地图颜色ID
+     *
+     * 参考: net.minecraft.block.Block#getDefaultMaterialColor
+     */
+    [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        return m_mapColor;
+    }
 
     /**
      * @brief 检查是否传播天空光向下
@@ -1754,6 +1796,10 @@ protected:
     bool m_ticksRandomly = false; // 是否响应随机刻
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
+
+    // 地图颜色（用于在地图上渲染方块颜色）
+    world::map::MaterialColorId m_mapColor = world::map::MaterialColorId::AIR;
+    bool m_hasMapColor = false; // 是否显式设置了地图颜色（否则使用材质颜色）
 
     // 掉落表ID（注册时若为空且未禁止，将自动推导为 "<namespace>:blocks/<path>"）
     std::string m_lootTableId;

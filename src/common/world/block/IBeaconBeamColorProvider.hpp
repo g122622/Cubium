@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../entity/entities/passive/basic/SheepEntity.hpp"
+#include "util/color/DyeColor.hpp"
 #include <array>
 
 namespace mc {

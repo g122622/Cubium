@@ -16,6 +16,8 @@ src/common/item/crafting/special/
 ├── BookCloningRecipe.cpp    # 书复制配方实现
 ├── MapCloningRecipe.hpp     # 地图复制配方
 ├── MapCloningRecipe.cpp     # 地图复制配方实现
+├── MapExtendingRecipe.hpp   # 地图扩展配方
+├── MapExtendingRecipe.cpp   # 地图扩展配方实现
 ├── TippedArrowRecipe.hpp    # 药水箭配方
 ├── TippedArrowRecipe.cpp    # 药水箭配方实现
 └── README.md                # 本文档
@@ -88,12 +90,25 @@ src/common/item/crafting/special/
 
 **功能**：复制已填充的地图。
 
-**状态**：TODO - 地图物品尚未完全实现
-
-**计划功能**：
+**合成逻辑**：
 - 1 张已填充地图 + 任意数量空地图
 - 结果物品数量 = 空地图数量 + 1（原地图保留）
 - 复制的地图与原地图共享数据
+
+### MapExtendingRecipe（地图扩展）
+
+**功能**：扩展地图（缩小比例，增大覆盖范围）。
+
+**合成逻辑**：
+- 1 张已填充地图（缩放级别 < 4）+ 纸
+- 合成台：1 张地图 + 8 张纸（3x3 环绕）
+- 制图台：1 张地图 + 1 张纸
+- 结果为缩放级别 +1 的新地图
+- 探险地图不可扩展
+
+**限制**：
+- 地图缩放级别最大为 4
+- `map_scale_direction` NBT 标签标记缩放方向
 
 ### TippedArrowRecipe（药水箭）
 

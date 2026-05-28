@@ -24,12 +24,12 @@
 #include "Block.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/entities/player/Player.hpp"
-#include "../../item/loot/conditions/LootConditions.hpp"
-#include "../../item/loot/LootTable.hpp"
-#include "../../item/loot/LootTableManager.hpp"
 #include "../../item/context/BlockItemUseContext.hpp"
 #include "../../item/context/ItemUseContext.hpp"
 #include "../../item/core/ItemStack.hpp"
+#include "../../item/loot/LootTable.hpp"
+#include "../../item/loot/LootTableManager.hpp"
+#include "../../item/loot/conditions/LootConditions.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/Direction.hpp"
 #include "../../util/math/Vector3.hpp"
@@ -278,6 +278,10 @@ Block::Block(BlockProperties properties)
     , m_ticksRandomly(properties.m_ticksRandomly)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
+    , m_mapColor(properties.m_hasMapColor
+              ? properties.m_mapColor
+              : static_cast<world::map::MaterialColorId>(properties.m_material->materialColor()))
+    , m_hasMapColor(properties.m_hasMapColor)
     , m_lootTableId(properties.m_lootTableId)
     , m_noLootTable(properties.m_noLootTable)
     , m_soundType(properties.m_soundType)

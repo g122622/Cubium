@@ -460,6 +460,11 @@ add_library(mc_common STATIC
     item/items/special/OnAStickItem.cpp
     item/items/special/StickItems.cpp
 
+    # Item - Map Items
+    item/items/map/AbstractMapItem.cpp
+    item/items/map/EmptyMapItem.cpp
+    item/items/map/FilledMapItem.cpp
+
     # Item - Vehicle Items
     item/items/vehicle/MinecartItem.cpp
     item/items/vehicle/BoatItem.cpp
@@ -481,6 +486,7 @@ add_library(mc_common STATIC
     item/crafting/special/ArmorDyeRecipe.cpp
     item/crafting/special/BookCloningRecipe.cpp
     item/crafting/special/MapCloningRecipe.cpp
+    item/crafting/special/MapExtendingRecipe.cpp
     item/crafting/special/TippedArrowRecipe.cpp
 
     # Item - Enchantment System
@@ -773,6 +779,15 @@ add_library(mc_common STATIC
     world/dimension/DimensionManager.cpp
     world/dimension/teleport/PortalSize.cpp
     world/dimension/teleport/Teleporter.cpp
+
+    # World - Map
+    world/map/MaterialColor.cpp
+    world/map/MapDecoration.cpp
+    world/map/MapBanner.cpp
+    world/map/MapFrame.cpp
+    world/map/MapData.cpp
+    world/map/MapIdTracker.cpp
+    world/map/MapDataManager.cpp
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp

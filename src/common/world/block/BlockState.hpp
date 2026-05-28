@@ -27,6 +27,7 @@
 #include "../../physics/collision/CollisionShape.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/property/StateHolder.hpp"
+#include "world/map/MaterialColor.hpp"
 #include <memory>
 #include <unordered_map>
 
@@ -317,6 +318,18 @@ public:
     [[nodiscard]] i32 getHarvestLevel() const;
 
     /**
+     * @brief 获取地图颜色
+     *
+     * 委托到方块的 getMapColor 方法。
+     * 用于在地图上渲染此方块的颜色。
+     *
+     * @param world 世界（可选，用于生物群系感知）
+     * @param pos 位置（可选）
+     * @return 地图颜色ID
+     */
+    [[nodiscard]] world::map::MaterialColorId getMapColor(IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
+
+    /**
      * @brief 检查工具是否有效
      *
      * 检查指定工具类型和等级是否能采集此方块。
@@ -455,6 +468,7 @@ private:
     f32 m_hardness = 0.0f;
     f32 m_resistance = 0.0f;
     u32 m_blockId = 0;
+    world::map::MaterialColorId m_mapColor = world::map::MaterialColorId::AIR;
 };
 
 } // namespace mc

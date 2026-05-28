@@ -21,21 +21,21 @@
  *
  */
 
-#include "item/crafting/special/MapCloningRecipe.hpp"
+#include "MapExtendingRecipe.hpp"
 #include "item/Items.hpp"
 #include "item/items/map/FilledMapItem.hpp"
 
 namespace mc {
 namespace crafting {
 
-MapCloningRecipe::MapCloningRecipe(const ResourceLocation& id)
+MapExtendingRecipe::MapExtendingRecipe(const ResourceLocation& id)
     : SpecialRecipe(id)
 {}
 
-bool MapCloningRecipe::matches(const CraftingInventory& inventory) const
+bool MapExtendingRecipe::matches(const CraftingInventory& inventory) const
 {
     bool hasFilledMap = false;
-    bool hasEmptyMap = false;
+    bool hasPaper = false;
 
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
@@ -43,81 +43,84 @@ bool MapCloningRecipe::matches(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isFilledMap(stack)) {
+        if (isExtendableMap(stack)) {
             if (hasFilledMap) {
                 return false;
             }
             hasFilledMap = true;
-        } else if (isEmptyMap(stack)) {
-            hasEmptyMap = true;
+        } else if (isPaper(stack)) {
+            hasPaper = true;
         } else {
             return false;
         }
     }
 
-    return hasFilledMap && hasEmptyMap;
+    return hasFilledMap && hasPaper;
 }
 
-ItemStack MapCloningRecipe::assemble(const CraftingInventory& inventory) const
+ItemStack MapExtendingRecipe::assemble(const CraftingInventory& inventory) const
 {
     ItemStack filledMap;
-    i32 emptyMapCount = 0;
 
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
-        if (stack.isEmpty()) {
-            continue;
-        }
-
-        if (isFilledMap(stack)) {
+        if (isExtendableMap(stack)) {
             filledMap = stack;
-        } else if (isEmptyMap(stack)) {
-            emptyMapCount += stack.getCount();
-        }
-    }
-
-    if (filledMap.isEmpty() || emptyMapCount == 0) {
-        return ItemStack::EMPTY;
-    }
-
-    // 创建复制的地图（数量 = 空地图数量 + 1）
-    // 注意：原地图不会被消耗，所以结果包含原地图
-    ItemStack result = filledMap.copy();
-    result.setCount(emptyMapCount + 1);
-
-    return result;
-}
-
-std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInventory& inventory) const
-{
-    std::vector<ItemStack> remaining(inventory.getContainerSize());
-
-    // 保留原地图
-    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
-        ItemStack stack = inventory.getItem(i);
-        if (isFilledMap(stack)) {
-            remaining[i] = stack.copy();
             break;
         }
     }
 
-    return remaining;
+    if (filledMap.isEmpty()) {
+        return ItemStack::EMPTY;
+    }
+
+    // 创建缩放级别+1的新地图
+    // 设置 map_scale_direction NBT 标签，在合成结果取出时处理缩放
+    ItemStack result = filledMap.copy();
+    result.setCount(1);
+    auto& tag = result.getOrCreateTag();
+    tag["map_scale_direction"] = 1;
+
+    return result;
 }
 
-bool MapCloningRecipe::isFilledMap(const ItemStack& stack)
+std::vector<ItemStack> MapExtendingRecipe::getRemainingItems(const CraftingInventory& inventory) const
+{
+    // 原地图被消耗，无剩余
+    return std::vector<ItemStack>(inventory.getContainerSize());
+}
+
+bool MapExtendingRecipe::isExtendableMap(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
     }
-    return item::items::FilledMapItem::isFilledMap(stack);
-}
 
-bool MapCloningRecipe::isEmptyMap(const ItemStack& stack)
-{
-    if (stack.isEmpty()) {
+    if (!item::items::FilledMapItem::isFilledMap(stack)) {
         return false;
     }
-    return stack.getItem() != nullptr && stack.getItem() == Items::MAP;
+
+    // 探险地图不可扩展
+    if (item::items::FilledMapItem::isExplorationMap(stack)) {
+        return false;
+    }
+
+    // 检查缩放级别是否已达到上限
+    const auto* tag = stack.getTag();
+    if (tag != nullptr && tag->contains("map_scale_direction")) {
+        // 已经在缩放过程中的地图不能再扩展
+        return false;
+    }
+
+    return true;
+}
+
+bool MapExtendingRecipe::isPaper(const ItemStack& stack)
+{
+    if (stack.isEmpty() || stack.getItem() == nullptr) {
+        return false;
+    }
+    return stack.getItem() == Items::PAPER;
 }
 
 } // namespace crafting

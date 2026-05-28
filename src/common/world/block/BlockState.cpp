@@ -67,6 +67,7 @@ void BlockState::cacheProperties()
     m_blockId = m_owner->blockId();
     m_harvestTool = m_owner->harvestTool();
     m_harvestLevel = m_owner->harvestLevel();
+    m_mapColor = m_owner->getMapColor(*this, nullptr, nullptr);
 }
 
 bool BlockState::isAir() const
@@ -188,6 +189,11 @@ u8 BlockState::getHarvestTool() const
 i32 BlockState::getHarvestLevel() const
 {
     return m_harvestLevel;
+}
+
+world::map::MaterialColorId BlockState::getMapColor(IWorld* world, const BlockPos* pos) const
+{
+    return m_owner->getMapColor(*this, world, pos);
 }
 
 bool BlockState::isToolEffective(u8 toolType, i32 harvestLevel) const

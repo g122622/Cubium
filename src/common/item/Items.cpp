@@ -37,6 +37,8 @@
 #include "items/food/FoodItem.hpp"
 #include "items/food/GoldenAppleItem.hpp"
 #include "items/food/HoneyBottleItem.hpp"
+#include "items/map/EmptyMapItem.hpp"
+#include "items/map/FilledMapItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
@@ -300,6 +302,9 @@ Item* Items::EGG = nullptr;
 Item* Items::SNOWBALL = nullptr;
 Item* Items::COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
+Item* Items::MAP = nullptr;
+Item* Items::FILLED_MAP = nullptr;
+Item* Items::PAPER = nullptr;
 // SPIDER_EYE 已在食物部分声明
 Item* Items::FERMENTED_SPIDER_EYE = nullptr;
 Item* Items::BLAZE_ROD = nullptr;
@@ -1640,6 +1645,13 @@ void Items::registerMisc()
     COMPASS = &registry.registerItem(ResourceLocation("minecraft:compass"), ItemProperties().maxStackSize(64));
 
     CLOCK = &registry.registerItem(ResourceLocation("minecraft:clock"), ItemProperties().maxStackSize(64));
+
+    // 地图物品
+    MAP = &registry.registerItem<item::items::EmptyMapItem>(
+        ResourceLocation("minecraft:map"), ItemProperties().maxStackSize(64));
+    FILLED_MAP = &registry.registerItem<item::items::FilledMapItem>(
+        ResourceLocation("minecraft:filled_map"), ItemProperties().maxStackSize(1));
+    PAPER = &registry.registerItem(ResourceLocation("minecraft:paper"), ItemProperties().maxStackSize(64));
 
     // SPIDER_EYE 已在 registerFood() 中注册
 

@@ -34,6 +34,7 @@
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
 #include "common/item/crafting/special/BookCloningRecipe.hpp"
 #include "common/item/crafting/special/MapCloningRecipe.hpp"
+#include "common/item/crafting/special/MapExtendingRecipe.hpp"
 #include "common/item/crafting/special/RepairItemRecipe.hpp"
 #include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
@@ -670,11 +671,15 @@ void MinecraftServer::registerSpecialRecipes()
     RecipeManager::instance().registerRecipe(
         std::make_unique<MapCloningRecipe>(ResourceLocation("minecraft", "map_cloning")));
 
+    // 注册地图扩展配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<MapExtendingRecipe>(ResourceLocation("minecraft", "map_extending")));
+
     // 注册药水箭配方
     RecipeManager::instance().registerRecipe(
         std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
 
-    spdlog::info("Special recipes registered (5 recipes)");
+    spdlog::info("Special recipes registered (6 recipes)");
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)

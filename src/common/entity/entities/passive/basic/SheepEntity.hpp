@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/color/DyeColor.hpp"
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include <optional>
@@ -37,31 +38,6 @@ class ItemStack;
 class Player;
 class DamageSource;
 class Block;
-
-/**
- * @brief 羊毛颜色枚举
- *
- * 对应 MC 1.16.5 DyeColor
- */
-enum class DyeColor : u8 {
-    White = 0,
-    Orange = 1,
-    Magenta = 2,
-    LightBlue = 3,
-    Yellow = 4,
-    Lime = 5,
-    Pink = 6,
-    Gray = 7,
-    LightGray = 8,
-    Cyan = 9,
-    Purple = 10,
-    Blue = 11,
-    Brown = 12,
-    Green = 13,
-    Red = 14,
-    Black = 15,
-    Count = 16
-};
 
 /**
  * @brief 羊实体
