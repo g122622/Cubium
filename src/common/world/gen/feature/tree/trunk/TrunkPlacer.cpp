@@ -38,10 +38,8 @@ TrunkPlacer::TrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
 
 i32 TrunkPlacer::getHeight(math::Random& random) const
 {
-    // MC 1.16.5: AbstractTrunkPlacer.func_236917_a_
-    // height = baseHeight + nextInt(heightRandA + 1) + nextInt(heightRandB + 1)
-    // 注意: 即使 heightRandA/B 为 0，nextInt(1) 也会返回 0，所以不需要条件判断
-    return m_baseHeight + random.nextInt(0, m_heightRandA + 1) + random.nextInt(0, m_heightRandB + 1);
+    // MC 1.16.5: baseHeight + nextInt(heightRandA + 1) + nextInt(heightRandB + 1)
+    return m_baseHeight + random.nextInt(m_heightRandA + 1) + random.nextInt(m_heightRandB + 1);
 }
 
 void TrunkPlacer::placeBlock(

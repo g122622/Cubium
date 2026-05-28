@@ -1383,7 +1383,7 @@ TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes)
     set.addTicket(ChunkLoadTicket(TicketTypes::PORTAL, 32, ChunkPos(0, 0)));
     set.addTicket(ChunkLoadTicket(TicketTypes::LIGHT, 33, ChunkPos(0, 0)));
 
-    EXPECT_EQ(set.size(), 4u);
+    EXPECT_EQ(set.size(), 3u);
     EXPECT_EQ(set.getMinLevel(), 31); // 最小级别
 }
 

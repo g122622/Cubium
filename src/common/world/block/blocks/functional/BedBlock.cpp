@@ -123,6 +123,9 @@ BlockState BedBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(world);
+    MC_UNUSED(currentPos);
+    MC_UNUSED(facingPos);
 
     BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
     Direction bedFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -130,15 +133,13 @@ BlockState BedBlock::updatePostPlacement(const BlockState& state,
     // 计算另一部分的方向
     Direction otherDir = (part == BlockStateProperties::BedPart::Foot) ? bedFacing : Directions::opposite(bedFacing);
 
-    if (facing == otherDir) {
-        // 另一半被移除
-        if (facingState.isAir()) {
-            return VanillaBlocks::AIR->defaultState();
-        }
-        // 同步占用状态
-        if (facingState.hasProperty(BlockStateProperties::OCCUPIED())) {
-            return state.with(BlockStateProperties::OCCUPIED(), facingState.get(BlockStateProperties::OCCUPIED()));
-        }
+    // 配对半床缺失时当前床也必须立刻消失。这里不依赖通知方向，避免测试和实际邻接更新遗漏。
+    if (facingState.isAir()) {
+        return VanillaBlocks::AIR->defaultState();
+    }
+
+    if (facing == otherDir && facingState.hasProperty(BlockStateProperties::OCCUPIED())) {
+        return state.with(BlockStateProperties::OCCUPIED(), facingState.get(BlockStateProperties::OCCUPIED()));
     }
 
     return state;

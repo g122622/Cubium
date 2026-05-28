@@ -80,12 +80,13 @@ void initializeTicketTypes()
 
 void ChunkTicketSet::addTicket(ChunkLoadTicket ticket)
 {
-    // 检查是否已存在相同的票据
-    for (const auto& t : m_tickets) {
-        if (t == ticket) {
-            return; // 已存在，不重复添加
+    // 去重
+    for (const auto& existingTicket : m_tickets) {
+        if (existingTicket == ticket) {
+            return;
         }
     }
+
     m_tickets.push_back(std::move(ticket));
 }
 

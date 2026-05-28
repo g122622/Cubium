@@ -239,15 +239,14 @@ i32 BigRedMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 cap
 {
     (void)baseRadius;
 
-    // 红色蘑菇：多层蘑菇盖
-    // 参考 MC 1.16.5 BigRedMushroomFeature.func_225563_a_
-    i32 radius = 0;
-    if (currentHeight < totalHeight && currentHeight >= totalHeight - 3) {
-        radius = capRadius;
-    } else if (currentHeight == totalHeight) {
-        radius = capRadius;
+    // 红色蘑菇顶部是 capRadius，下方三层是 capRadius - 1，更早的层没有盖。
+    if (currentHeight == totalHeight) {
+        return capRadius;
     }
-    return radius;
+    if (currentHeight >= totalHeight - 3 && currentHeight < totalHeight) {
+        return capRadius - 1;
+    }
+    return 0;
 }
 
 void BigRedMushroomFeature::generateCap(WorldGenRegion& world,

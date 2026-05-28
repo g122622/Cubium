@@ -27,9 +27,8 @@ namespace mc {
 
 i32 FeatureSpread::get(math::Random& random) const
 {
-    // MC 1.16.5: nextInt(spread + 1) 返回 [0, spread] 范围（包含边界）
-    // 参考: net.minecraft.world.gen.feature.FeatureSpread.func_242259_a_
-    return m_base + random.nextInt(0, m_spread + 1);
+    // Random::nextInt(max) 的上界是开区间，这里显式传入 spread + 1 来得到 [0, spread]。
+    return m_base + random.nextInt(m_spread + 1);
 }
 
 } // namespace mc
