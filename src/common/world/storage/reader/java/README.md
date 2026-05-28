@@ -32,8 +32,8 @@ JavaAnvilBackend
 
 - 已完成 world / column / chunk 分层，以及 1.17+ `entities/` world 级合并
 - 已补 Java biome 主路径，并把 heightmap / block entity 恢复接到现有 `ChunkData` / `BlockEntityRegistry`
-- 运行时 `Entity` 导入链当前仍未接上：`entities/` 现在只保证列输入 NBT 被正确合并，不代表项目已经能把 Java 实体 NBT 还原为运行时实体实例
-- 因此这里的边界必须说清楚，不能把“world 层合并成功”误写成“实体系统已完整恢复”
+- `Entities` 现在也会复用统一 `EntityDeserializer` 反序列化为运行时实体实例，但当前阶段先无副作用地挂在 `ChunkData` 上，尚未在 reader/backend 层直接注入 `EntityManager`
+- 因此这里的边界是：Java 实体 NBT 已不再停留在原始字节层，但“何时进入世界运行时”仍属于服务器集成职责
 
 ## 1.17+ entities 区域合并
 

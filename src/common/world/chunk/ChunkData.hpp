@@ -25,6 +25,7 @@
 
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
+#include "../../entity/core/Entity.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
 #include "../blockentity/BlockEntity.hpp"
@@ -380,6 +381,17 @@ public:
      */
     [[nodiscard]] size_t blockEntityCount() const;
 
+    // ========================================================================
+    // 已加载实体承载
+    // ========================================================================
+
+    void addLoadedEntity(std::unique_ptr<Entity> entity);
+    [[nodiscard]] std::vector<std::unique_ptr<Entity>>& loadedEntities() { return m_loadedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& loadedEntities() const { return m_loadedEntities; }
+    [[nodiscard]] bool hasLoadedEntities() const { return !m_loadedEntities.empty(); }
+    [[nodiscard]] size_t loadedEntityCount() const { return m_loadedEntities.size(); }
+    std::vector<std::unique_ptr<Entity>> takeLoadedEntities();
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
@@ -435,6 +447,9 @@ private:
 
     // 使用位置哈希存储方块实体
     std::unordered_map<i64, std::unique_ptr<BlockEntity>> m_blockEntities;
+
+    // 从存储加载出的运行时实体，先挂在 chunk 上，后续由世界层统一注入 EntityManager
+    std::vector<std::unique_ptr<Entity>> m_loadedEntities;
 
     /**
      * @brief 初始化 Nibble 指针数组

@@ -1089,4 +1089,17 @@ size_t ChunkData::blockEntityCount() const
     return m_blockEntities.size();
 }
 
+void ChunkData::addLoadedEntity(std::unique_ptr<Entity> entity)
+{
+    if (entity == nullptr) {
+        return;
+    }
+    m_loadedEntities.push_back(std::move(entity));
+}
+
+std::vector<std::unique_ptr<Entity>> ChunkData::takeLoadedEntities()
+{
+    return std::move(m_loadedEntities);
+}
+
 } // namespace mc

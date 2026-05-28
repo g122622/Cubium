@@ -1487,7 +1487,22 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 
 void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
 {
-    // 从 EntityStorageManager 加载区块内所有实体并注入世界
+    ChunkData* chunk = m_chunkManager ? m_chunkManager->tryToGetChunkInMem(x, z) : nullptr;
+    if (chunk != nullptr && chunk->hasLoadedEntities()) {
+        auto loadedEntities = chunk->takeLoadedEntities();
+        for (auto& entityPtr : loadedEntities) {
+            if (!entityPtr) {
+                continue;
+            }
+
+            EntityId id = spawnEntity(std::move(entityPtr));
+            if (id == 0) {
+                spdlog::warn("Failed to spawn chunk-loaded entity for chunk ({}, {})", x, z);
+            }
+        }
+    }
+
+    // Native 路径：从 EntityStorageManager 加载区块内所有实体并注入世界
     if (!m_storage || !m_storage->isOpen()) {
         return;
     }

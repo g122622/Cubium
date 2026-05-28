@@ -685,6 +685,10 @@ ChunkData* ServerChunkManager::storeChunkInMemorySync(ChunkCoord x, ChunkCoord z
         lifecycleManager->setStatus(ChunkStatuses::FULL);
     }
 
+    if (stored && m_world) {
+        m_world->onChunkLoaded(x, z);
+    }
+
     if (m_chunkLoadedCallback && stored) {
         m_chunkLoadedCallback(x, z);
     }
@@ -773,6 +777,10 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
             saveChunkSectionsSync(*chunkToSave);
             chunkToSave->setDirty(false);
         }
+    }
+
+    if (m_world) {
+        m_world->onChunkUnloading(x, z);
     }
 
     if (m_chunkSendManager) {

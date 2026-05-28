@@ -22,6 +22,7 @@
  */
 
 #include "JavaColumnReader.hpp"
+#include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -401,8 +402,29 @@ void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& 
 
 void JavaColumnReader::readEntities(const compound_tag& columnNbt, ChunkData& chunk)
 {
-    MC_UNUSED(columnNbt);
-    MC_UNUSED(chunk);
+    const list_tag* entities = getList(columnNbt, "Entities");
+    if (entities == nullptr) {
+        return;
+    }
+
+    for (size_t i = 0; i < entities->size(); ++i) {
+        const auto& entityPtr = (*entities)[i];
+        const auto* entityTag = dynamic_cast<const compound_tag*>(entityPtr.get());
+        if (entityTag == nullptr) {
+            continue;
+        }
+
+        auto entityResult = entity::serialization::EntityDeserializer::deserialize(*entityTag, nullptr);
+        if (entityResult.failed()) {
+            spdlog::warn("JavaColumnReader: Failed to deserialize entity: {}", entityResult.error().message());
+            continue;
+        }
+        if (entityResult.value() == nullptr) {
+            continue;
+        }
+
+        chunk.addLoadedEntity(entityResult.value());
+    }
 }
 
 void JavaColumnReader::readBlockEntities(const compound_tag& columnNbt, ChunkData& chunk)
