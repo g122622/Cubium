@@ -171,7 +171,7 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
         // TODO: 需要属性系统获取召唤概率
         // f32 spawnChance = m_attributes.getValue(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
         // if (worldPtr->random().nextFloat() < spawnChance) {
-        //     // 在附近生成僵尸
+        //     // TODO 在附近生成僵尸
         // }
     }
 
