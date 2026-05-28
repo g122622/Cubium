@@ -981,6 +981,8 @@ public:
 
 private:
     void syncLightDataToChunk(LightType type, const SectionPos& pos);
+    [[nodiscard]] std::vector<std::reference_wrapper<Entity>> collectLoadedEntitiesForSave();
+    [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> collectLoadedBlockEntitiesForSave() const;
 
 private:
     ServerWorldConfig m_config;

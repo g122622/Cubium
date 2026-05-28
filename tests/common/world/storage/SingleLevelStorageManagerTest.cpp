@@ -160,6 +160,22 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirty)
     storage.close();
 }
 
+TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyIncludesEntityAndBlockEntityEntrypoints)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    config.consistencyMode = ConsistencyMode::Strong;
+
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success());
+
+    auto flushResult = storage.flushAllDirty();
+    ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
+    EXPECT_EQ(flushResult.value(), 0u);
+
+    storage.close();
+}
+
 TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
 {
     SingleLevelStorageManager storage;

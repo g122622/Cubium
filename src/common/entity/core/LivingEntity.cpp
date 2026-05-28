@@ -1416,16 +1416,42 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::FALL_FLYING, static_cast<i8>(isElytraFlying() ? 1 : 0));
 
     // ActiveEffects - 药水效果列表
-    // TODO: 实现 EffectInstance::toNbt() 后添加
-    // auto& effects = m_effectManager.getActiveEffects();
-    // if (!effects.empty()) { ... }
+    const auto& effects = m_effectManager.getAllEffects();
+    if (!effects.empty()) {
+        auto effectsList = std::make_unique<nbt::tags::compound_list_tag>();
+        for (const auto& effect : effects) {
+            nbt::tags::compound_tag effectTag;
+            effect.toNbt(effectTag);
+            effectsList->value.push_back(std::move(effectTag));
+        }
+        tag.value.emplace(nbt_keys::ACTIVE_EFFECTS, std::move(effectsList));
+    }
 
     // Attributes - 属性列表
     nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
 
     // HandItems - 手持物品
     // ArmorItems - 装备物品
-    // TODO: 实现 ItemStack::toNbt() 后添加
+    auto handItems = std::make_unique<nbt::tags::compound_list_tag>();
+    {
+        nbt::tags::compound_tag mainHandTag;
+        getMainHandItem().toNbt(mainHandTag);
+        handItems->value.push_back(std::move(mainHandTag));
+    }
+    {
+        nbt::tags::compound_tag offHandTag;
+        getOffHandItem().toNbt(offHandTag);
+        handItems->value.push_back(std::move(offHandTag));
+    }
+    tag.value.emplace(nbt_keys::HAND_ITEMS, std::move(handItems));
+
+    auto armorItems = std::make_unique<nbt::tags::compound_list_tag>();
+    for (EquipmentSlot slot : {EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head}) {
+        nbt::tags::compound_tag armorTag;
+        getEquipment(slot).toNbt(armorTag);
+        armorItems->value.push_back(std::move(armorTag));
+    }
+    tag.value.emplace(nbt_keys::ARMOR_ITEMS, std::move(armorItems));
 }
 
 Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -1473,13 +1499,51 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     }
 
     // ActiveEffects - 药水效果列表
-    // TODO: 实现 EffectInstance::fromNbt() 后添加
+    if (auto* effectsList = nbt_helper::tryGetList(tag, nbt_keys::ACTIVE_EFFECTS)) {
+        if (effectsList->element_id() == nbt::TagId::Compound) {
+            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsList);
+            m_effectManager.getAllEffects().clear();
+            for (const auto& effectTag : compoundList.value) {
+                m_effectManager.getAllEffects().push_back(entity::effect::EffectInstance::fromNbt(effectTag));
+            }
+        }
+    }
 
     // Attributes - 属性列表
     nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
 
     // HandItems / ArmorItems
-    // TODO: 实现 ItemStack::fromNbt() 后添加
+    if (auto* handItems = nbt_helper::tryGetList(tag, nbt_keys::HAND_ITEMS)) {
+        if (handItems->element_id() == nbt::TagId::Compound) {
+            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*handItems);
+            if (!compoundList.value.empty()) {
+                auto mainHandResult = ItemStack::fromNbt(compoundList.value[0]);
+                if (mainHandResult.success()) {
+                    setMainHandItem(mainHandResult.value());
+                }
+            }
+            if (compoundList.value.size() > 1) {
+                auto offHandResult = ItemStack::fromNbt(compoundList.value[1]);
+                if (offHandResult.success()) {
+                    setOffHandItem(offHandResult.value());
+                }
+            }
+        }
+    }
+
+    if (auto* armorItems = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_ITEMS)) {
+        if (armorItems->element_id() == nbt::TagId::Compound) {
+            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*armorItems);
+            constexpr std::array<EquipmentSlot, 4> armorOrder = {
+                EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
+            for (size_t i = 0; i < armorOrder.size() && i < compoundList.value.size(); ++i) {
+                auto armorResult = ItemStack::fromNbt(compoundList.value[i]);
+                if (armorResult.success()) {
+                    setEquipment(armorOrder[i], armorResult.value());
+                }
+            }
+        }
+    }
 
     return Result<void>::ok();
 }

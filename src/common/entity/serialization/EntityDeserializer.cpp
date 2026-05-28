@@ -26,6 +26,7 @@
 #include "NbtHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/world/IWorld.hpp"
 #include <sstream>
 #include <spdlog/spdlog.h>
 #include <zlib.h>
@@ -65,23 +66,48 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
 
     // 5. 处理 Passengers 递归加载
     // 参考 MC 1.16.5 EntityType.loadEntityAndExecute()
+    //
+    // 当前运行时的实体管理器以 EntityId 互相关联，Passenger 列表只保存 EntityId。
+    // 因此这里不能像原版那样只在内存里临时拼出骑乘树，否则 passenger unique_ptr 会在
+    // 当前作用域结束后释放，留下无效的乘客关系。
+    //
+    // 这里的策略是：
+    // - 如果没有 world，则拒绝加载带乘客的实体，避免构造悬空关系。
+    // - 如果有 world，则把乘客递归反序列化并真正 spawn 进世界，再调用 startRiding() 建立关系。
     if (const auto* passengersList = nbt_helper::tryGetList(tag, nbt_keys::PASSENGERS)) {
+        if (world == nullptr) {
+            return Error(ErrorCode::InvalidState, "Cannot deserialize entity passengers without world context");
+        }
+
         if (passengersList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*passengersList);
             for (const auto& passengerTag : compoundList.value) {
-                // 递归反序列化乘客
                 auto passengerResult = deserialize(passengerTag, world);
-                if (passengerResult.success()) {
-                    auto passenger = passengerResult.value();
-                    // 添加为乘客
-                    entity->addPassenger(*passenger);
-                    // 注意：乘客实体需要由调用方添加到世界中
-                    // 这里仅建立骑乘关系
-                    spdlog::debug("Loaded passenger entity: {}", passenger->getTypeId());
-                    // passenger 是临时加载的骑乘关系实体，需要转移所有权
-                    // TODO: 将乘客实体添加到世界中（由调用方处理）
-                } else {
-                    spdlog::warn("Failed to load passenger entity: {}", passengerResult.error().message());
+                if (passengerResult.failed()) {
+                    return passengerResult.error();
+                }
+
+                auto passenger = passengerResult.value();
+                if (passenger == nullptr) {
+                    return Error(ErrorCode::InvalidData, "Passenger deserialized to null entity");
+                }
+
+                EntityId passengerId = world->spawnEntity(std::move(passenger));
+                if (passengerId == 0) {
+                    return Error(ErrorCode::InvalidState, "Failed to spawn deserialized passenger entity");
+                }
+
+                Entity* spawnedPassenger = world->getEntity(passengerId);
+                if (spawnedPassenger == nullptr) {
+                    return Error(ErrorCode::InvalidState, "Spawned passenger entity not found in world");
+                }
+
+                if (!spawnedPassenger->startRiding(*entity)) {
+                    spawnedPassenger->remove();
+                    return Error(ErrorCode::InvalidState,
+                        fmt::format("Failed to attach passenger '{}' to vehicle '{}'",
+                            spawnedPassenger->getTypeId(),
+                            entity->getTypeId()));
                 }
             }
         }

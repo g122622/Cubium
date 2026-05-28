@@ -1,4 +1,5 @@
 #include "BlockEntityStorageManager.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/BlockEntityDeserializer.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
@@ -122,6 +123,9 @@ Result<void> BlockEntityStorageManager::saveBlockEntitiesInChunk(
     ChunkCoord chunkZ,
     DimensionId dimension)
 {
+    MC_UNUSED(chunkX);
+    MC_UNUSED(chunkZ);
+
     for (const auto& entityRef : blockEntities) {
         const BlockEntity& entity = entityRef.get();
         auto result = saveBlockEntity(entity, dimension);
@@ -133,32 +137,28 @@ Result<void> BlockEntityStorageManager::saveBlockEntitiesInChunk(
     return Result<void>::ok();
 }
 
+Result<size_t> BlockEntityStorageManager::saveAllBlockEntities(
+    const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities, DimensionId dimension)
+{
+    size_t savedCount = 0;
+    for (const auto& entityRef : blockEntities) {
+        const BlockEntity& entity = entityRef.get();
+        auto result = saveBlockEntity(entity, dimension);
+        if (result.failed()) {
+            return result.error();
+        }
+        ++savedCount;
+    }
+
+    return savedCount;
+}
+
 Result<void> BlockEntityStorageManager::deleteBlockEntitiesInChunk(
     ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     auto startKey = makeChunkPrefixKey(chunkX, chunkZ);
     auto endKey = makeChunkEndKey(chunkX, chunkZ);
     return m_db.deleteRange(columnFamilyName(dimension), startKey, endKey);
-}
-
-// ========== 脏数据追踪 ==========
-
-void BlockEntityStorageManager::markDirty(const std::string& blockEntityKey, DimensionId dimension)
-{
-    std::lock_guard<std::mutex> lock(m_dirtyMutex);
-    std::string key = std::to_string(static_cast<i32>(dimension)) + ":" + blockEntityKey;
-    m_dirtyBlockEntities.insert(std::move(key));
-}
-
-Result<size_t> BlockEntityStorageManager::flushDirty()
-{
-    return static_cast<size_t>(0);
-}
-
-size_t BlockEntityStorageManager::dirtyCount() const
-{
-    std::lock_guard<std::mutex> lock(m_dirtyMutex);
-    return m_dirtyBlockEntities.size();
 }
 
 // ========== 私有方法 ==========

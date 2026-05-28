@@ -41,8 +41,6 @@ src/common/world/storage/entity/
 | `loadEntitiesInChunk()` | 加载区块内所有实体 |
 | `saveEntitiesInChunk()` | 批量保存区块内实体 |
 | `deleteEntitiesInChunk()` | 删除区块内所有实体 |
-| `markDirty()` | 标记实体为脏 |
-| `flushDirty()` | 刷盘脏实体 |
 
 **序列化格式**：
 - 键：字符串格式 `{chunkX}:{chunkZ}:{uuid}`
@@ -93,4 +91,4 @@ Entity (序列化)
 2. **范围扫描边界**：区块前缀扫描时，结束键需要加 `0xFF` 确保覆盖所有 UUID
 3. **维度隔离**：不同维度使用不同列族，避免数据混淆
 4. **乘客递归**：实体序列化时乘客嵌套在车辆 NBT 中，加载时需递归处理
-5. **脏数据追踪**：当前 flushDirty() 尚未完全实现，通过区块卸载保存替代
+5. **保存语义**：当前实体持久化只支持“区块卸载保存”和“显式全量保存”，不要误以为存在独立 dirty 刷盘通道

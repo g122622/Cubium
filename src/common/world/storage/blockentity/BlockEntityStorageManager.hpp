@@ -3,9 +3,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include <mutex>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -102,6 +100,18 @@ public:
         DimensionId dimension);
 
     /**
+     * @brief 保存当前已加载的全部方块实体
+     *
+     * 用于统一全量保存入口。
+     *
+     * @param blockEntities 全部方块实体引用
+     * @param dimension 维度ID
+     * @return 成功保存数量或错误
+     */
+    Result<size_t> saveAllBlockEntities(
+        const std::vector<std::reference_wrapper<const BlockEntity>>& blockEntities, DimensionId dimension);
+
+    /**
      * @brief 删除区块内所有方块实体
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
@@ -109,12 +119,6 @@ public:
      * @return 成功或错误
      */
     Result<void> deleteBlockEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
-
-    // ========== 脏数据追踪 ==========
-
-    void markDirty(const std::string& blockEntityKey, DimensionId dimension);
-    Result<size_t> flushDirty();
-    [[nodiscard]] size_t dirtyCount() const;
 
 private:
     [[nodiscard]] static const char* columnFamilyName(DimensionId dimension);
@@ -130,9 +134,6 @@ private:
     [[nodiscard]] static std::vector<u8> makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     RocksDBDatabase& m_db;
-
-    mutable std::mutex m_dirtyMutex;
-    std::unordered_set<std::string> m_dirtyBlockEntities;
 };
 
 } // namespace mc::world::storage

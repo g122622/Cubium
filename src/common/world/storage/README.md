@@ -8,7 +8,7 @@
 2. **RocksDB 存储层**：高性能 Section 级区块存储
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
-5. **保存协调**：`flushAllDirty()` 用于增量落盘，`saveAll()` 用于全量落盘
+5. **保存协调**：`flushAllDirty()` 仅用于 Section/玩家增量落盘，`saveAll()` 用于全量落盘；运行时实体与方块实体通过世界层的区块卸载保存和显式 `saveAll()` 接入
 6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，并通过统一门面暴露已完整接入主流程的区块、玩家与 `level.dat` 读取能力
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
@@ -428,8 +428,8 @@ saves/
 
 ### 保存协调层
 
-- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和显式关闭前收尾使用。
-- `SingleLevelStorageManager::saveAll()`：保存所有已缓存 Section，供 `/save-all` 和全量落盘使用。
+- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section 与玩家数据，供自动保存和显式关闭前收尾使用。
+- `SingleLevelStorageManager::saveAll()`：保存所有已缓存 Section；运行时实体和方块实体由 `ServerWorld::saveAll()` 在调用前先显式写入。
 - `AutoSave`：定时触发脏数据保存，并可选创建快照。
 
 ## 数据流向
@@ -534,7 +534,7 @@ sequenceDiagram
 ### 保存行为说明
 
 - `flushDirtySections()` 只处理脏 Section，适合常规 tick 保存。
-- `saveAll()` 会遍历所有缓存的 Section，适合 `/save-all`、崩溃前落盘和关闭流程。
+- `saveAll()` 会遍历所有缓存的 Section，适合 `/save-all`、崩溃前落盘和关闭流程；实体/方块实体需由世界层先显式保存。
 - `ServerChunkManager` 在保存区块时会保留生物群系 4x4x4 采样；读取时会恢复到 `BiomeContainer`。
 
 ## 与区块系统集成
@@ -573,7 +573,7 @@ if (saveResult.failed()) {
 3. **光照数据**: NibbleArray，每方块 4 位
 4. **列族必须预先创建**: 打开数据库时会自动创建缺失的列族
 5. **RocksDB 快照**: 内存中的 sequence number，不持久化
-6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，`saveAll()` 才会完整落盘
+6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，且当前不覆盖运行时实体/方块实体；`saveAll()` 才会在世界层配合下完整落盘
 7. **`close()` 不负责保存**: 关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
 8. **外来格式 detect 不要下沉到 backend**: backend 只负责按门面层已确认的格式打开和读取，避免 detector 规则在两层分叉
 

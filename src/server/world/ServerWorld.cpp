@@ -224,34 +224,23 @@ Result<size_t> ServerWorld::saveAll()
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
-    // 先保存所有已加载区块内的实体
-    if (m_chunkManager) {
-        auto* entityStorage = m_storage->entityStorage();
-        if (entityStorage) {
-            m_chunkManager->forEachLoadedChunk([this, entityStorage](ChunkData& chunk) {
-                auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
-                if (!entityIds.empty()) {
-                    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
-                    entitiesToSave.reserve(entityIds.size());
-                    for (EntityId id : entityIds) {
-                        Entity* entity = m_entityManager.getEntity(id);
-                        if (entity) {
-                            entitiesToSave.emplace_back(*entity);
-                        }
-                    }
-                    if (!entitiesToSave.empty()) {
-                        auto saveResult = entityStorage->saveEntitiesInChunk(
-                            entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
-                        if (saveResult.failed()) {
-                            spdlog::error("Failed to save entities for chunk ({}, {}) during saveAll: {}",
-                                chunk.x(),
-                                chunk.z(),
-                                saveResult.error().message());
-                        }
-                    }
-                }
-                return true;
-            });
+    // 先保存所有已加载运行时实体，避免只在区块卸载时才落盘。
+    auto* entityStorage = m_storage->entityStorage();
+    if (entityStorage) {
+        auto entitiesToSave = collectLoadedEntitiesForSave();
+        auto saveResult = entityStorage->saveAllEntities(entitiesToSave, m_config.dimension);
+        if (saveResult.failed()) {
+            return saveResult.error();
+        }
+    }
+
+    // 再保存所有已加载方块实体，保证 /save-all 与关服路径覆盖运行时修改。
+    auto* blockEntityStorage = m_storage->blockEntityStorage();
+    if (blockEntityStorage) {
+        auto blockEntitiesToSave = collectLoadedBlockEntitiesForSave();
+        auto saveResult = blockEntityStorage->saveAllBlockEntities(blockEntitiesToSave, m_config.dimension);
+        if (saveResult.failed()) {
+            return saveResult.error();
         }
     }
 
@@ -944,6 +933,23 @@ void ServerWorld::tick()
 
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
+    m_entityManager.forEachEntity([this](Entity* entity) {
+        if (entity == nullptr || entity->isRemoved()) {
+            return true;
+        }
+
+        const ChunkCoord currentCx = CoordConverter::blockToChunk(entity->x());
+        const ChunkCoord currentCz = CoordConverter::blockToChunk(entity->z());
+        const auto trackedChunk = m_entityChunkTracker.getEntityChunk(entity->id());
+        if (!trackedChunk.has_value()) {
+            m_entityChunkTracker.onEntityAdded(entity->id(), currentCx, currentCz);
+            return true;
+        }
+
+        const auto [oldCx, oldCz] = *trackedChunk;
+        m_entityChunkTracker.onEntityMoved(entity->id(), oldCx, oldCz, currentCx, currentCz);
+        return true;
+    });
 }
 
 // ============================================================================
@@ -1507,13 +1513,10 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         ChunkCoord entityCx = CoordConverter::blockToChunk(entityPtr->x());
         ChunkCoord entityCz = CoordConverter::blockToChunk(entityPtr->z());
 
-        EntityId id = m_entityManager.addEntity(std::move(entityPtr));
-        if (id != 0) {
-            Entity* addedEntity = m_entityManager.getEntity(id);
-            if (addedEntity) {
-                m_entityTracker.trackEntity(addedEntity);
-                m_entityChunkTracker.onEntityAdded(id, entityCx, entityCz);
-            }
+        EntityId id = spawnEntity(std::move(entityPtr));
+        if (id != 0 && (entityCx != x || entityCz != z)) {
+            m_entityChunkTracker.onEntityRemoved(id);
+            m_entityChunkTracker.onEntityAdded(id, entityCx, entityCz);
         }
     }
 }
@@ -1542,6 +1545,12 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
     if (entityIds.empty()) {
         return;
+    }
+
+    auto deleteResult = entityStorage->deleteEntitiesInChunk(x, z, m_config.dimension);
+    if (deleteResult.failed()) {
+        spdlog::error(
+            "Failed to clear old entity records for chunk ({}, {}): {}", x, z, deleteResult.error().message());
     }
 
     // 收集实体引用用于批量保存
@@ -1703,6 +1712,39 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
 
     NibbleArray& targetArray = (type == LightType::SKY) ? section->skyLightNibble() : section->blockLightNibble();
     targetArray.data() = std::move(data);
+}
+
+std::vector<std::reference_wrapper<Entity>> ServerWorld::collectLoadedEntitiesForSave()
+{
+    std::vector<std::reference_wrapper<Entity>> entities;
+    m_entityManager.forEachEntity([&entities](Entity* entity) {
+        MC_ASSERT_RELEASE(entity != nullptr);
+        entities.emplace_back(*entity);
+        return true;
+    });
+
+    return entities;
+}
+
+std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::collectLoadedBlockEntitiesForSave() const
+{
+    std::vector<std::reference_wrapper<const BlockEntity>> blockEntities;
+    if (!m_chunkManager) {
+        return blockEntities;
+    }
+
+    m_chunkManager->forEachLoadedChunk([&blockEntities](ChunkData& chunk) {
+        auto chunkBlockEntities = chunk.getAllBlockEntities();
+        blockEntities.reserve(blockEntities.size() + chunkBlockEntities.size());
+        for (const BlockEntity* blockEntity : chunkBlockEntities) {
+            if (blockEntity != nullptr) {
+                blockEntities.emplace_back(*blockEntity);
+            }
+        }
+        return true;
+    });
+
+    return blockEntities;
 }
 
 // ============================================================================

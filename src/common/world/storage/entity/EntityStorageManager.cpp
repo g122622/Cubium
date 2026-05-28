@@ -1,6 +1,7 @@
 #include "EntityStorageManager.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
@@ -168,7 +169,8 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
     ChunkCoord chunkZ,
     DimensionId dimension)
 {
-    const char* cf = columnFamilyName(dimension);
+    MC_UNUSED(chunkX);
+    MC_UNUSED(chunkZ);
 
     for (const auto& entityRef : entities) {
         const Entity& entity = entityRef.get();
@@ -181,33 +183,27 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
     return Result<void>::ok();
 }
 
+Result<size_t> EntityStorageManager::saveAllEntities(
+    const std::vector<std::reference_wrapper<Entity>>& entities, DimensionId dimension)
+{
+    size_t savedCount = 0;
+    for (const auto& entityRef : entities) {
+        const Entity& entity = entityRef.get();
+        auto result = saveEntity(entity, dimension);
+        if (result.failed()) {
+            return result.error();
+        }
+        ++savedCount;
+    }
+
+    return savedCount;
+}
+
 Result<void> EntityStorageManager::deleteEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     auto startKey = makeChunkPrefixKey(chunkX, chunkZ);
     auto endKey = makeChunkEndKey(chunkX, chunkZ);
     return m_db.deleteRange(columnFamilyName(dimension), startKey, endKey);
-}
-
-// ========== 脏数据追踪 ==========
-
-void EntityStorageManager::markDirty(const std::string& entityKey, DimensionId dimension)
-{
-    std::lock_guard<std::mutex> lock(m_dirtyMutex);
-    std::string key = std::to_string(static_cast<i32>(dimension)) + ":" + entityKey;
-    m_dirtyEntities.insert(std::move(key));
-}
-
-Result<size_t> EntityStorageManager::flushDirty()
-{
-    // 当前实现不支持脏数据追踪刷新（需要持有实体引用）
-    // 将在 ServerWorld 集成时通过区块卸载实现
-    return static_cast<size_t>(0);
-}
-
-size_t EntityStorageManager::dirtyCount() const
-{
-    std::lock_guard<std::mutex> lock(m_dirtyMutex);
-    return m_dirtyEntities.size();
 }
 
 // ========== 私有方法 ==========

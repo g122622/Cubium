@@ -32,6 +32,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -209,6 +210,36 @@ TEST(LivingEntityTest, HurtPlaysSound)
     EXPECT_FLOAT_EQ(world.lastSound().volume, 1.0f);
     EXPECT_GE(world.lastSound().pitch, 0.8f);
     EXPECT_LE(world.lastSound().pitch, 1.2f);
+}
+
+TEST(LivingEntityTest, NbtRoundTripPreservesEffectsAndEquipment)
+{
+    Items::initialize();
+    TestLivingEntity entity;
+    entity.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Speed, 200, 1, false, true, true));
+    entity.setMainHandItem(ItemStack(Items::DIAMOND_SWORD, 1));
+    entity.setOffHandItem(ItemStack(Items::SHIELD, 1));
+    entity.setEquipment(EquipmentSlot::Head, ItemStack(Items::IRON_HELMET, 1));
+    entity.setEquipment(EquipmentSlot::Chest, ItemStack(Items::IRON_CHESTPLATE, 1));
+    entity.setEquipment(EquipmentSlot::Legs, ItemStack(Items::IRON_LEGGINGS, 1));
+    entity.setEquipment(EquipmentSlot::Feet, ItemStack(Items::IRON_BOOTS, 1));
+
+    nbt::tags::compound_tag tag;
+    entity.writeToNBT(tag);
+
+    TestLivingEntity loaded;
+    auto readResult = loaded.readFromNBT(tag);
+    ASSERT_TRUE(readResult.success()) << readResult.error().message();
+
+    ASSERT_EQ(loaded.effectManager().getAllEffects().size(), 1u);
+    EXPECT_EQ(loaded.effectManager().getAllEffects()[0].type(), entity::effect::EffectType::Speed);
+    EXPECT_EQ(loaded.effectManager().getAllEffects()[0].amplifier(), 1);
+    EXPECT_EQ(loaded.getMainHandItem().getItem(), Items::DIAMOND_SWORD);
+    EXPECT_EQ(loaded.getOffHandItem().getItem(), Items::SHIELD);
+    EXPECT_EQ(loaded.getEquipment(EquipmentSlot::Head).getItem(), Items::IRON_HELMET);
+    EXPECT_EQ(loaded.getEquipment(EquipmentSlot::Chest).getItem(), Items::IRON_CHESTPLATE);
+    EXPECT_EQ(loaded.getEquipment(EquipmentSlot::Legs).getItem(), Items::IRON_LEGGINGS);
+    EXPECT_EQ(loaded.getEquipment(EquipmentSlot::Feet).getItem(), Items::IRON_BOOTS);
 }
 
 TEST(LivingEntityTest, HurtInvulnerability)

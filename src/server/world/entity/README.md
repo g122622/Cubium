@@ -6,6 +6,8 @@
 
 ```
 src/server/world/entity/
+├── EntityChunkTracker.hpp  # 实体所属区块跟踪器
+├── EntityChunkTracker.cpp  # 实体所属区块跟踪器实现
 ├── EntityTracker.hpp       # 实体追踪器头文件
 ├── EntityTracker.cpp       # 实体追踪器实现
 ├── ItemPickupManager.hpp   # 物品拾取管理器头文件
@@ -490,3 +492,26 @@ if (item2 <= item1) {
 
 - MC 1.16.5 `EntityTracker` - 实体追踪系统
 - MC 1.16.5 `EntityItem.onCollideWithPlayer` - 物品拾取逻辑
+### EntityChunkTracker.hpp / EntityChunkTracker.cpp
+
+**职责**: 跟踪实体当前所属区块，为区块卸载保存和跨区块移动修正提供稳定映射。
+
+#### 核心类
+
+##### `EntityChunkTracker` 类
+
+| 方法 | 说明 |
+|------|------|
+| `onEntityAdded()` | 实体加入世界时登记当前区块 |
+| `onEntityMoved()` | 实体跨区块移动时迁移登记 |
+| `onEntityRemoved()` | 实体离开世界时注销登记 |
+| `getEntitiesInChunk()` | 查询区块当前登记的实体ID |
+| `getEntityChunk()` | 查询单个实体当前登记区块 |
+
+#### 持久化流程位置
+
+- `ServerWorld::spawnEntity()` 负责初次登记
+- `ServerWorld::tick()` 每帧根据实体当前位置校正所属区块
+- `ServerWorld::onChunkUnloading()` 依赖该映射收集并移除区块内实体
+
+---

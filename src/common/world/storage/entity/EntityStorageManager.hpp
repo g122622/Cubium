@@ -4,9 +4,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
-#include <mutex>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -117,6 +115,17 @@ public:
         DimensionId dimension);
 
     /**
+     * @brief 保存当前已加载的全部实体
+     *
+     * 用于统一全量保存入口，避免实体数据只依赖区块卸载时落盘。
+     *
+     * @param entities 全部实体引用
+     * @param dimension 维度ID
+     * @return 成功或错误
+     */
+    Result<size_t> saveAllEntities(const std::vector<std::reference_wrapper<Entity>>& entities, DimensionId dimension);
+
+    /**
      * @brief 删除区块内所有实体
      *
      * 使用 RocksDB 范围删除清除指定区块的所有实体。
@@ -127,26 +136,6 @@ public:
      * @return 成功或错误
      */
     Result<void> deleteEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
-
-    // ========== 脏数据追踪 ==========
-
-    /**
-     * @brief 标记实体为脏（需要保存）
-     * @param entityKey 实体键字符串
-     * @param dimension 维度ID
-     */
-    void markDirty(const std::string& entityKey, DimensionId dimension);
-
-    /**
-     * @brief 刷新所有脏实体到存储
-     * @return 成功保存的实体数量
-     */
-    Result<size_t> flushDirty();
-
-    /**
-     * @brief 获取脏实体数量
-     */
-    [[nodiscard]] size_t dirtyCount() const;
 
 private:
     /**
@@ -172,9 +161,6 @@ private:
     [[nodiscard]] static std::vector<u8> makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     RocksDBDatabase& m_db;
-
-    mutable std::mutex m_dirtyMutex;
-    std::unordered_set<std::string> m_dirtyEntities; // "dimension:key" 格式
 };
 
 } // namespace world::storage

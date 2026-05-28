@@ -172,6 +172,7 @@ add_executable(mc_tests
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
+    common/entity/EntitySerializationTest.cpp
     # Entity::isOnSameTeam() 队伍系统测试
     entity/EntityTeamTest.cpp
     # Player::attack() 横扫攻击过滤、荆棘附魔反伤、武器损耗测试
@@ -268,6 +269,7 @@ add_executable(mc_tests
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp
+    server/world/ServerWorldPersistenceTest.cpp
     common/world/storage/WorldNameSanitizerTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
