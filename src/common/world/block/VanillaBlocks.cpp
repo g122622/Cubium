@@ -66,6 +66,7 @@
 #include "blocks/functional/BrewingStandBlock.hpp"
 #include "blocks/functional/CartographyTableBlock.hpp"
 #include "blocks/functional/ComposterBlock.hpp"
+#include "blocks/functional/CakeBlock.hpp"
 #include "blocks/functional/FletchingTableBlock.hpp"
 #include "blocks/functional/JukeboxBlock.hpp"
 #include "blocks/functional/LecternBlock.hpp"
@@ -83,6 +84,8 @@
 #include "blocks/nether/MagmaBlock.hpp"
 #include "blocks/nether/NetherPortalBlock.hpp"
 #include "blocks/nether/NetherWartBlock.hpp"
+#include "blocks/nether/NetherRootsBlock.hpp"
+#include "blocks/nether/NetherSproutsBlock.hpp"
 #include "blocks/nether/NyliumBlock.hpp"
 #include "blocks/nether/SoulFireBlock.hpp"
 #include "blocks/ocean/BubbleColumnBlock.hpp"
@@ -217,6 +220,7 @@ Block* VanillaBlocks::CARTOGRAPHY_TABLE = nullptr;
 Block* VanillaBlocks::FLETCHING_TABLE = nullptr;
 Block* VanillaBlocks::SMITHING_TABLE = nullptr;
 Block* VanillaBlocks::COMPOSTER = nullptr;
+Block* VanillaBlocks::CAKE = nullptr;
 Block* VanillaBlocks::LECTERN = nullptr;
 Block* VanillaBlocks::JUKEBOX = nullptr;
 
@@ -391,6 +395,7 @@ Block* VanillaBlocks::SUNFLOWER = nullptr;
 Block* VanillaBlocks::LILAC = nullptr;
 Block* VanillaBlocks::ROSE_BUSH = nullptr;
 Block* VanillaBlocks::PEONY = nullptr;
+Block* VanillaBlocks::LARGE_FERN = nullptr;
 Block* VanillaBlocks::CORNFLOWER = nullptr;
 Block* VanillaBlocks::WITHER_ROSE = nullptr;
 Block* VanillaBlocks::BROWN_MUSHROOM = nullptr;
@@ -594,6 +599,9 @@ Block* VanillaBlocks::CRIMSON_FUNGUS = nullptr;
 Block* VanillaBlocks::WARPED_FUNGUS = nullptr;
 Block* VanillaBlocks::WEEPING_VINES = nullptr;
 Block* VanillaBlocks::TWISTING_VINES = nullptr;
+Block* VanillaBlocks::CRIMSON_ROOTS = nullptr;
+Block* VanillaBlocks::WARPED_ROOTS = nullptr;
+Block* VanillaBlocks::NETHER_SPROUTS = nullptr;
 
 // 石砖系列
 Block* VanillaBlocks::STONE_BRICKS = nullptr;
@@ -1385,6 +1393,11 @@ void VanillaBlocks::registerFunctionalBlocks()
     COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(
         ResourceLocation("minecraft:composter"), BlockProperties(Material::WOOD).hardness(0.6f).flammable());
 
+    // 蛋糕
+    // 参考 MC 1.16.5: CakeBlock(Properties.create(Material.CAKE).hardnessAndResistance(0.5F).notSolid()))
+    CAKE = &registry.registerBlock<blocks::CakeBlock>(
+        ResourceLocation("minecraft:cake"), BlockProperties(Material::CAKE).hardness(0.5f).notSolid());
+
     // 讲台
     // 参考: new LecternBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
@@ -1703,6 +1716,9 @@ void VanillaBlocks::registerVegetationBlocks()
 
     // 牡丹
     PEONY = &registry.registerBlock<blocks::PeonyBlock>(ResourceLocation("minecraft:peony"), tallFlowerProps);
+
+    // 大型蕨 - 双格高的蕨类植物
+    LARGE_FERN = &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
 
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
@@ -2399,6 +2415,22 @@ void VanillaBlocks::registerNetherExtensionBlocks()
     // 扭曲藤
     TWISTING_VINES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:twisting_vines"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 绯红菌索 - 下界装饰植物
+    // 参考 MC 1.16.5: NetherRootsBlock(Properties.create(Material.field_242934_h, MaterialColor.NETHERRACK).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.ROOT))
+    CRIMSON_ROOTS = &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOT));
+
+    // 诡异菌索 - 下界装饰植物
+    // 参考 MC 1.16.5: NetherRootsBlock(Properties.create(Material.field_242934_h, MaterialColor.CYAN).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.ROOT))
+    WARPED_ROOTS = &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:warped_roots"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOT));
+
+    // 下界苗 - 下界矮小装饰植物
+    // 参考 MC 1.16.5: NetherSproutsBlock(Properties.create(Material.field_242934_h, MaterialColor.CYAN).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.NETHER_SPROUT))
+    NETHER_SPROUTS = &registry.registerBlock<blocks::NetherSproutsBlock>(
+        ResourceLocation("minecraft:nether_sprouts"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::NETHER_SPROUT));
 }
 
 // ============================================================================

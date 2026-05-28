@@ -204,6 +204,9 @@ public:
     /** 有机材质 - 用于草方块、干草块、疣块等 */
     static const Material& ORGANIC;
 
+    /** 蛋糕材质 - 不可燃、非固体、不可推动 */
+    static const Material& CAKE;
+
     /** 屏障材质 - 用于屏障方块，不可见且不可破坏 */
     static const Material& BARRIER;
 

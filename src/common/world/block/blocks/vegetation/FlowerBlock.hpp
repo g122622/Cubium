@@ -124,6 +124,21 @@ public:
 };
 
 /**
+ * @brief 大型蕨方块
+ *
+ * 两格高的蕨类植物，与蕨使用相同材质但为双格版本。
+ * 可放置在草方块、泥土等上。
+ *
+ * MC ID: minecraft:large_fern
+ *
+ * 参考: net.minecraft.block.DoublePlantBlock (LARGE_FERN 注册为 DoublePlantBlock)
+ */
+class LargeFernBlock : public DoublePlantBlock {
+public:
+    explicit LargeFernBlock(const BlockProperties& properties);
+};
+
+/**
  * @brief 向日葵方块
  *
  * 两格高的花朵，朝向太阳。

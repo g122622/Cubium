@@ -479,6 +479,15 @@ const Material& Material::ORGANIC = []() -> const Material& {
     return material;
 }();
 
+// 参考 MC 1.16.5: Material.CAKE - 非固体、不可燃、不可推动
+const Material& Material::CAKE = []() -> const Material& {
+    static const Material material = MaterialBuilder()
+                                         .solid(false)
+                                         .pushReaction(Material::PushReaction::Destroy)
+                                         .build();
+    return material;
+}();
+
 const Material& Material::BARRIER = []() -> const Material& {
     static const Material material = MaterialBuilder()
                                           .solid()

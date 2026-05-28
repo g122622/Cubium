@@ -146,6 +146,7 @@ public:
     static Block* FLETCHING_TABLE;   // 制箭台
     static Block* SMITHING_TABLE;    // 锻造台
     static Block* COMPOSTER;         // 堆肥桶
+    static Block* CAKE;              // 蛋糕
     static Block* LECTERN;           // 讲台
     static Block* JUKEBOX;           // 唱片机
     static Block* SPAWNER;           // 刷怪笼
@@ -351,6 +352,7 @@ public:
     static Block* LILAC;              // 丁香
     static Block* ROSE_BUSH;          // 玫瑰丛
     static Block* PEONY;              // 牡丹
+    static Block* LARGE_FERN;         // 大型蕨
     static Block* CORNFLOWER;         // 矢车菊
     static Block* WITHER_ROSE;        // 凋零玫瑰
     static Block* BROWN_MUSHROOM;
@@ -726,6 +728,9 @@ public:
     static Block* WARPED_FUNGUS;           // 诡异菌
     static Block* WEEPING_VINES;           // 垂泪藤
     static Block* TWISTING_VINES;          // 扭曲藤
+    static Block* CRIMSON_ROOTS;           // 绯红菌索
+    static Block* WARPED_ROOTS;            // 诡异菌索
+    static Block* NETHER_SPROUTS;          // 下界苗
 
     // ========================================================================
     // 辅助函数

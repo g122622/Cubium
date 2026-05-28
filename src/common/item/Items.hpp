@@ -249,6 +249,7 @@ public:
     static Item* POTATO;
     static Item* PUFFERFISH;
     static Item* PUMPKIN_PIE;
+    static Item* CAKE;
     static Item* RABBIT_STEW;
     static Item* ROTTEN_FLESH;
     static Item* SPIDER_EYE;
@@ -573,6 +574,9 @@ public:
     static Item* SHROOMLIGHT;             // 荧光菇
     static Item* WEEPING_VINES;           // 垂泪藤
     static Item* TWISTING_VINES;          // 缠怨藤
+    static Item* CRIMSON_ROOTS;           // 绯红菌索
+    static Item* WARPED_ROOTS;            // 诡异菌索
+    static Item* NETHER_SPROUTS;          // 下界苗
     static Item* DEAD_BUSH;               // 枯萎的灌木
 
     // ========================================================================
@@ -623,6 +627,7 @@ public:
     static Item* SHORT_GRASS;          // 矮草
     static Item* TALL_GRASS;           // 高草
     static Item* FERN;                 // 蕨
+    static Item* LARGE_FERN;           // 大型蕨
     static Item* DANDELION;            // 蒲公英
     static Item* POPPY;                // 虞美人
     static Item* BLUE_ORCHID;          // 蓝花美耳草

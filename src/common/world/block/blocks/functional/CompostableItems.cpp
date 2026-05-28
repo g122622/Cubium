@@ -119,8 +119,6 @@ void CompostableItems::registerChance30()
 
     // 甜浆果
     registerCompostable(Items::SWEET_BERRIES, 0.3f);
-
-    // TODO: 下界苗 NETHER_SPROUTS (物品暂未注册)
 }
 
 // ============================================================================
@@ -151,7 +149,8 @@ void CompostableItems::registerChance50()
     registerCompostable(Items::WEEPING_VINES, 0.5f);  // 垂泪藤
     registerCompostable(Items::TWISTING_VINES, 0.5f); // 缠怨藤
 
-    // TODO: NETHER_SPROUTS 下界苗 (物品暂未注册)
+    // 下界苗
+    registerCompostable(Items::NETHER_SPROUTS, 0.5f);
 }
 
 // ============================================================================
@@ -223,9 +222,12 @@ void CompostableItems::registerChance65()
     registerCompostable(Items::ROSE_BUSH, 0.65f); // 玫瑰丛
     registerCompostable(Items::PEONY, 0.65f);     // 牡丹
 
-    // TODO: LARGE_FERN 大型蕨 (物品暂未注册)
-    // TODO: CRIMSON_ROOTS 绯红菌索 (物品暂未注册)
-    // TODO: WARPED_ROOTS 诡异菌索 (物品暂未注册)
+    // 大型蕨
+    registerCompostable(Items::LARGE_FERN, 0.65f);
+
+    // 下界菌索
+    registerCompostable(Items::CRIMSON_ROOTS, 0.65f); // 绯红菌索
+    registerCompostable(Items::WARPED_ROOTS, 0.65f);  // 诡异菌索
 }
 
 // ============================================================================
@@ -260,7 +262,8 @@ void CompostableItems::registerChance100()
     // 南瓜派
     registerCompostable(Items::PUMPKIN_PIE, 1.0f);
 
-    // TODO: CAKE 蛋糕 (物品暂未注册)
+    // 蛋糕
+    registerCompostable(Items::CAKE, 1.0f);
 }
 
 } // namespace blocks

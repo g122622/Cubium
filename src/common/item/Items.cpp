@@ -271,6 +271,7 @@ Item* Items::POISONOUS_POTATO = nullptr;
 Item* Items::POTATO = nullptr;
 Item* Items::PUFFERFISH = nullptr;
 Item* Items::PUMPKIN_PIE = nullptr;
+Item* Items::CAKE = nullptr;
 Item* Items::RABBIT_STEW = nullptr;
 Item* Items::ROTTEN_FLESH = nullptr;
 Item* Items::SPIDER_EYE = nullptr;
@@ -548,6 +549,9 @@ Item* Items::STRIPPED_WARPED_HYPHAE = nullptr;
 Item* Items::SHROOMLIGHT = nullptr;
 Item* Items::WEEPING_VINES = nullptr;
 Item* Items::TWISTING_VINES = nullptr;
+Item* Items::CRIMSON_ROOTS = nullptr;
+Item* Items::WARPED_ROOTS = nullptr;
+Item* Items::NETHER_SPROUTS = nullptr;
 Item* Items::DEAD_BUSH = nullptr;
 
 // 木材和去皮原木
@@ -590,6 +594,7 @@ Item* Items::DARK_OAK_SAPLING = nullptr;
 Item* Items::SHORT_GRASS = nullptr;
 Item* Items::TALL_GRASS = nullptr;
 Item* Items::FERN = nullptr;
+Item* Items::LARGE_FERN = nullptr;
 Item* Items::DANDELION = nullptr;
 Item* Items::POPPY = nullptr;
 Item* Items::BLUE_ORCHID = nullptr;
@@ -1531,6 +1536,10 @@ void Items::registerFood()
     PUMPKIN_PIE = &registry.registerItem(
         ResourceLocation("minecraft:pumpkin_pie"), ItemProperties().maxStackSize(64).food(&Foods::PUMPKIN_PIE));
 
+    // 蛋糕 - BlockItem，最大堆叠数为1
+    // 参考 MC 1.16.5: Items.CAKE = new BlockItem(Blocks.CAKE, maxStackSize(1))
+    CAKE = &registerBlockBackedItem(registry, VanillaBlocks::CAKE, "cake", ItemProperties().maxStackSize(1));
+
     RABBIT_STEW = &registry.registerItem<item::items::FoodItem>(ResourceLocation("minecraft:rabbit_stew"),
         &Foods::RABBIT_STEW,
         ItemProperties().maxStackSize(1).containerItem(BOWL));
@@ -2318,6 +2327,12 @@ void Items::registerBuildingBlocks()
         registry, VanillaBlocks::WEEPING_VINES, "weeping_vines", ItemProperties().maxStackSize(64));
     TWISTING_VINES = &registerBlockBackedItem(
         registry, VanillaBlocks::TWISTING_VINES, "twisting_vines", ItemProperties().maxStackSize(64));
+    CRIMSON_ROOTS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_ROOTS, "crimson_roots", ItemProperties().maxStackSize(64));
+    WARPED_ROOTS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_ROOTS, "warped_roots", ItemProperties().maxStackSize(64));
+    NETHER_SPROUTS = &registerBlockBackedItem(
+        registry, VanillaBlocks::NETHER_SPROUTS, "nether_sprouts", ItemProperties().maxStackSize(64));
     DEAD_BUSH =
         &registerBlockBackedItem(registry, VanillaBlocks::DEAD_BUSH, "dead_bush", ItemProperties().maxStackSize(64));
 
@@ -2762,6 +2777,8 @@ void Items::registerVegetation()
     TALL_GRASS =
         &registerBlockBackedItem(registry, VanillaBlocks::TALL_GRASS, "tall_grass", ItemProperties().maxStackSize(64));
     FERN = &registerBlockBackedItem(registry, VanillaBlocks::FERN, "fern", ItemProperties().maxStackSize(64));
+    LARGE_FERN =
+        &registerBlockBackedItem(registry, VanillaBlocks::LARGE_FERN, "large_fern", ItemProperties().maxStackSize(64));
     DANDELION =
         &registerBlockBackedItem(registry, VanillaBlocks::DANDELION, "dandelion", ItemProperties().maxStackSize(64));
     POPPY = &registerBlockBackedItem(registry, VanillaBlocks::POPPY, "poppy", ItemProperties().maxStackSize(64));

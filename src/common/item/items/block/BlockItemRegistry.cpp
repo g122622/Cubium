@@ -268,6 +268,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE, "fletching_table");
     registerSimpleBlock(VanillaBlocks::SMITHING_TABLE, "smithing_table");
     registerSimpleBlock(VanillaBlocks::COMPOSTER, "composter");
+    registerSimpleBlock(VanillaBlocks::CAKE, "cake");
     registerSimpleBlock(VanillaBlocks::LECTERN, "lectern");
     registerSimpleBlock(VanillaBlocks::LOOM, "loom");
     registerSimpleBlock(VanillaBlocks::JUKEBOX, "jukebox");
@@ -501,6 +502,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SHORT_GRASS, "short_grass");
     registerSimpleBlock(VanillaBlocks::TALL_GRASS, "tall_grass");
     registerSimpleBlock(VanillaBlocks::FERN, "fern");
+    registerSimpleBlock(VanillaBlocks::LARGE_FERN, "large_fern");
     registerSimpleBlock(VanillaBlocks::DANDELION, "dandelion");
     registerSimpleBlock(VanillaBlocks::POPPY, "poppy");
     registerSimpleBlock(VanillaBlocks::BLUE_ORCHID, "blue_orchid");
@@ -634,6 +636,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WARPED_WART_BLOCK, "warped_wart_block");
     registerSimpleBlock(VanillaBlocks::WEEPING_VINES, "weeping_vines");
     registerSimpleBlock(VanillaBlocks::TWISTING_VINES, "twisting_vines");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_ROOTS, "crimson_roots");
+    registerSimpleBlock(VanillaBlocks::WARPED_ROOTS, "warped_roots");
+    registerSimpleBlock(VanillaBlocks::NETHER_SPROUTS, "nether_sprouts");
     registerSimpleBlock(VanillaBlocks::END_PORTAL_FRAME, "end_portal_frame");
     registerSimpleBlock(VanillaBlocks::CHORUS_FLOWER, "chorus_flower");
 

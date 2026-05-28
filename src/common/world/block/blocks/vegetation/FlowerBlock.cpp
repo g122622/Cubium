@@ -75,6 +75,12 @@ PeonyBlock::PeonyBlock(const BlockProperties& properties)
     : DoublePlantBlock(properties)
 {}
 
+// ========== LargeFernBlock ==========
+
+LargeFernBlock::LargeFernBlock(const BlockProperties& properties)
+    : DoublePlantBlock(properties)
+{}
+
 // ========== SunflowerBlock ==========
 
 SunflowerBlock::SunflowerBlock(const BlockProperties& properties)
