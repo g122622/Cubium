@@ -29,6 +29,8 @@ src/server/command/
     ├── GameModeCommand.cpp
     ├── GiveCommand.hpp        # /give 命令
     ├── GiveCommand.cpp
+    ├── LootCommand.hpp        # /loot 命令
+    ├── LootCommand.cpp
     ├── ExperienceCommand.hpp  # /experience / /xp 命令
     ├── ExperienceCommand.cpp
     ├── HelpCommand.hpp        # /help 命令
@@ -827,12 +829,50 @@ public:
 
 **用法：**
 
-- `/loot give <targets> <loot_table>` - 给予玩家战利品
-- `/loot spawn <pos> <loot_table>` - 在位置生成战利品
-- `/loot insert <pos> <loot_table>` - 插入战利品到容器
-- `/loot replace <entity|block> <target> <slot> <loot_table>` - 替换物品
+```
+# 源（从哪里获取战利品）
+/loot loot <loot_table>                           - 直接从战利品表获取
+/loot fish <loot_table> <pos> [tool|mainhand|offhand] - 钓鱼
+/loot kill <target>                               - 实体死亡掉落
+/loot mine <pos> [tool|mainhand|offhand]          - 挖掘方块掉落
 
-**权限等级：** 2
+# 目标（战利品放到哪里）
+give <players>                                    - 给予玩家
+spawn <targetPos>                                 - 生成物品实体
+insert <targetPos>                                - 插入容器
+replace entity <entities> <slot> [count]          - 替换实体槽位
+replace block <targetPos> <slot> [count]          - 替换容器槽位
+```
+
+**完整语法示例：**
+
+- `/loot loot minecraft:chests/simple_dungeon give @p` - 给予玩家地牢箱子战利品
+- `/loot loot minecraft:chests/abandoned_mineshaft spawn 100 64 100` - 在指定位置生成废弃矿井战利品
+- `/loot fish minecraft:gameplay/fishing 0 64 0 give @p` - 钓鱼并给予玩家
+- `/loot mine 100 64 100 minecraft:diamond_pickaxe give @p` - 用钻石镐挖掘并给予玩家
+- `/loot mine 100 64 100 mainhand insert 200 64 200` - 用手持工具挖掘并插入容器
+
+**实现状态：** ✅ 部分实现
+
+**实现细节：**
+
+- 使用 `LootTableManager::getTable()` 获取战利品表
+- 使用 `LootContextBuilder` 构建上下文，配合对应参数集：
+  - `loot` 源使用 `LootParameterSets::chest()`
+  - `fish` 源使用 `LootParameterSets::fishing()`
+  - `mine` 源使用 `LootParameterSets::block()`（设置 BLOCK_STATE、BLOCK_POS、TOOL 参数）
+  - `kill` 源使用 `LootParameterSets::entity()`（暂未完全集成）
+- `give` 目标使用 `PlayerInventory::add()` 添加物品，溢出时通过 `ItemDropHelper` 掉落
+- `spawn` 目标使用 `ItemDropHelper::spawnItemEntity()` 在指定位置生成物品实体
+- `insert` 目标通过 `ContainerBlockEntity::getInventory()` 访问容器并合并堆叠
+- `replace` 目标直接替换指定槽位的物品
+- 物品给予时播放拾取音效并同步背包数据到客户端
+- 命令权限等级为 2（游戏管理员）
+
+**待实现：**
+
+- `kill` 源需要实体战利品表集成（`Entity::getLootTableId()` 尚未实现）
+- `mainhand`/`offhand` 字面节点暂未区分（默认使用主手物品）
 
 #### PublishCommand - /publish 命令
 
@@ -1261,6 +1301,7 @@ MyCommand::registerTo(m_dispatcher);
 - `SetBlockCommandTest.cpp` - /setblock 命令测试
 - `CloneCommandTest.cpp` - /clone 命令测试（命令注册、权限检查、过滤模式、执行模式）
 - `GiveCommandTest.cpp` - /give 命令测试
+- `LootCommandTest.cpp` - /loot 命令测试（命令注册、权限检查、命令树结构、解析验证）
 - `MessageCommandTest.cpp` - /msg 命令测试（命令注册、权限检查、别名）
 - `TellRawCommandTest.cpp` - /tellraw 命令测试（命令注册、JSON 解析、消息发送）
 - `ExperienceCommandTest.cpp` - /experience 命令测试（add/set/query 语法、xp 别名）

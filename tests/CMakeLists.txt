@@ -449,6 +449,7 @@ add_executable(mc_tests
     server/command/SetBlockCommandTest.cpp
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
+    server/command/LootCommandTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/MessageCommandTest.cpp
     server/command/TellRawCommandTest.cpp
@@ -810,6 +811,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SeedCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeleportCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
@@ -1592,6 +1594,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SeedCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeleportCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
