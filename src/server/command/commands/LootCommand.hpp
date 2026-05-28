@@ -24,27 +24,69 @@
 #pragma once
 
 #include "common/command/CommandDispatcher.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <vector>
 
 namespace mc {
 namespace command {
 
 /**
- * @brief LootCommand - 战利品管理
+ * @brief /loot 命令 - 从战利品表生成物品
  *
- * 用法: /loot <give|insert|replace|spawn> <target> <loot_table>
- * 权限: 2 (游戏管理员)
+ * 完整语法参考 MC 1.16.5 LootCommand：
+ *
+ * 源（从哪里获取战利品）：
+ *   loot <loot_table>           - 直接从战利品表获取
+ *   fish <loot_table> <pos> [tool|mainhand|offhand] - 钓鱼
+ *   kill <target>               - 实体死亡掉落
+ *   mine <pos> [tool|mainhand|offhand] - 挖掘方块掉落
+ *
+ * 目标（战利品放到哪里）：
+ *   give <players>              - 给予玩家
+ *   spawn <targetPos>           - 生成物品实体
+ *   insert <targetPos>          - 插入容器
+ *   replace entity <entities> <slot> [count] - 替换实体槽位
+ *   replace block <targetPos> <slot> [count]  - 替换容器槽位
+ *
+ * 权限等级：2（游戏管理员）
  */
 class LootCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 giveLoot(CommandContext<ServerCommandSource>& context);
-    static i32 insertLoot(CommandContext<ServerCommandSource>& context);
-    static i32 replaceLoot(CommandContext<ServerCommandSource>& context);
-    static i32 spawnLoot(CommandContext<ServerCommandSource>& context);
+    // ========== /loot loot <loot_table> → 目标 ==========
+
+    static i32 lootGive(CommandContext<ServerCommandSource>& context);
+    static i32 lootSpawn(CommandContext<ServerCommandSource>& context);
+    static i32 lootInsert(CommandContext<ServerCommandSource>& context);
+    static i32 lootReplaceEntity(CommandContext<ServerCommandSource>& context);
+    static i32 lootReplaceBlock(CommandContext<ServerCommandSource>& context);
+
+    // ========== /loot fish <loot_table> <pos> [tool] → 目标 ==========
+
+    static i32 fishGive(CommandContext<ServerCommandSource>& context);
+    static i32 fishSpawn(CommandContext<ServerCommandSource>& context);
+    static i32 fishInsert(CommandContext<ServerCommandSource>& context);
+    static i32 fishReplaceEntity(CommandContext<ServerCommandSource>& context);
+    static i32 fishReplaceBlock(CommandContext<ServerCommandSource>& context);
+
+    // ========== /loot kill <target> → 目标 ==========
+
+    static i32 killGive(CommandContext<ServerCommandSource>& context);
+    static i32 killSpawn(CommandContext<ServerCommandSource>& context);
+    static i32 killInsert(CommandContext<ServerCommandSource>& context);
+    static i32 killReplaceEntity(CommandContext<ServerCommandSource>& context);
+
+    // ========== /loot mine <pos> [tool] → 目标 ==========
+
+    static i32 mineGive(CommandContext<ServerCommandSource>& context);
+    static i32 mineSpawn(CommandContext<ServerCommandSource>& context);
+    static i32 mineInsert(CommandContext<ServerCommandSource>& context);
+    static i32 mineReplaceBlock(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command
