@@ -871,6 +871,11 @@ void NetworkClient::processPacket(const u8* data, size_t size)
             break;
         }
 
+        case network::PacketType::MapData: {
+            handleMapData(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::error("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
@@ -1947,6 +1952,23 @@ void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser)
 
     if (m_callbacks.onSpawnPosition) {
         m_callbacks.onSpawnPosition(pos.x, pos.y, pos.z, packet.angle());
+    }
+}
+
+void NetworkClient::handleMapData(network::PacketDeserializer& deser)
+{
+    network::MapDataPacket packet;
+    auto result = packet.deserialize(deser.data(), deser.size());
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize MapData packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::trace("[NetworkClient] Received MapData: mapId={}, scale={}, columns={}",
+        packet.mapId(), packet.scale(), packet.columns());
+
+    if (m_callbacks.onMapData) {
+        m_callbacks.onMapData(packet);
     }
 }
 

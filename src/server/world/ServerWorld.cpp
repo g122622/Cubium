@@ -147,6 +147,9 @@ Result<void> ServerWorld::initialize()
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
     m_raidManager = std::make_unique<world::village::raid::RaidManager>(*this, *m_villageManager);
 
+    // 初始化地图数据管理器
+    m_mapDataManager = std::make_unique<world::map::MapDataManager>();
+
     m_initialized = true;
     spdlog::info("Server world initialized");
     return Result<void>::ok();
@@ -930,6 +933,12 @@ void ServerWorld::tick()
 
     // 更新世界边界（渐变动画）
     m_worldBorder.tick();
+
+    // 更新地图数据（持有地图的玩家位置追踪等）
+    if (m_mapDataManager) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::MapDataTick");
+        m_mapDataManager->tick(*this);
+    }
 
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动

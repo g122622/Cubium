@@ -33,6 +33,9 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
+class BlockState;
+class BlockPos;
 
 namespace blocks {
 
@@ -40,6 +43,7 @@ namespace blocks {
  * @brief 制图台方块
  *
  * 用于复制、扩展和锁定地图的功能方块。
+ * 右键点击打开制图台容器界面。
  *
  * 参考: net.minecraft.block.CartographyTableBlock
  */
@@ -59,6 +63,20 @@ public:
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键点击方块时调用
+     *
+     * 打开制图台容器界面。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 制图台形状

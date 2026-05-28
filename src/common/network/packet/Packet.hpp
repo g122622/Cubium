@@ -138,6 +138,9 @@ enum class PacketType : u16 {
     // Boss 栏包 (S->C)
     BossInfo = 535, // Boss 栏同步 - 参考 MC 1.16.5 SUpdateBossInfoPacket
 
+    // 地图包 (S->C)
+    MapData = 550, // 地图数据更新 - 参考 MC 1.16.5 SMapPacket
+
     // 成就包 (S->C)
     AdvancementInfo = 540,      // 成就信息同步
     SelectAdvancementTab = 541, // 成就标签页选择

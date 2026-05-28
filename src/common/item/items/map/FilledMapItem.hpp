@@ -133,6 +133,34 @@ public:
      */
     void addInformation(
         const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
+
+private:
+    /**
+     * @brief 更新地图地形数据
+     *
+     * 扫描玩家可见区域的方块颜色，填充MapData的颜色数组。
+     * 参考: net.minecraft.item.FilledMapItem.updateMapData()
+     *
+     * @param world 世界
+     * @param viewer 查看者实体
+     * @param data 地图数据
+     */
+    static void updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data);
+
+    /**
+     * @brief 获取指定位置最高方块的地图颜色
+     *
+     * @param world 世界
+     * @param x 世界X坐标
+     * @param z 世界Z坐标
+     * @param scale 缩放级别
+     * @param centerX 地图中心X
+     * @param centerZ 地图中心Z
+     * @param outHeight 输出高度（用于阴影计算）
+     * @return 地图颜色索引字节
+     */
+    [[nodiscard]] static u8 getTopBlockColor(
+        IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight);
 };
 
 } // namespace item::items

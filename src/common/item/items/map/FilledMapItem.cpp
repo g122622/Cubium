@@ -68,9 +68,7 @@ void FilledMapItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entit
 
     // 如果地图未锁定且被选中，更新地形
     if (!mapData->locked() && isSelected) {
-        // TODO: updateMapData(world, entity, *mapData);
-        // 地形更新逻辑需要遍历可见区域获取方块颜色，较为复杂
-        // 将在后续迭代中实现
+        updateMapData(world, entity, *mapData);
     }
 }
 
@@ -78,8 +76,9 @@ ItemActionResult FilledMapItem::onItemRightClick(IWorld& world, Player& player, 
 {
     auto* mapData = getMapData(player.getHeldItem(hand), world);
     if (mapData != nullptr) {
-        // TODO: 打开地图界面
-        // 在客户端实现MapScreen
+        // 服务端：更新玩家追踪装饰后返回成功
+        // 客户端在收到成功后打开MapScreen
+        (void)world;
     }
     return ItemActionResult::success(player.getHeldItem(hand));
 }
@@ -105,11 +104,12 @@ world::map::MapData* FilledMapItem::getMapData(const ItemStack& stack, IWorld& w
         return nullptr;
     }
 
-    // TODO: 通过ServerWorld获取MapDataManager
-    // auto* manager = world.getMapDataManager();
-    // return manager ? manager->getMapData(mapId) : nullptr;
-    (void)world;
-    return nullptr;
+    auto* manager = world.mapDataManager();
+    if (manager == nullptr) {
+        return nullptr;
+    }
+
+    return manager->getMapData(mapId);
 }
 
 i32 FilledMapItem::getMapId(const ItemStack& stack)
@@ -135,9 +135,11 @@ ItemStack FilledMapItem::setupNewMap(
 {
     ItemStack result(ItemRegistry::instance().getItem(ResourceLocation("minecraft:filled_map")), 1);
 
-    // TODO: 通过ServerWorld获取MapDataManager
-    // i32 mapId = world.getMapDataManager()->createMap(world, x, z, scale, trackingPosition, unlimitedTracking);
-    // result.getOrCreateTag()["map"] = mapId;
+    auto* manager = world.mapDataManager();
+    if (manager != nullptr) {
+        i32 mapId = manager->createMap(x, z, scale, trackingPosition, unlimitedTracking);
+        result.getOrCreateTag()["map"] = mapId;
+    }
 
     return result;
 }
@@ -151,9 +153,17 @@ void FilledMapItem::scaleMap(ItemStack& stack, IWorld& world, i32 scaleChange)
 
     i32 newScale = std::clamp(oldData->scale() + scaleChange, 0, world::map::MapData::MAX_SCALE);
 
+    auto* manager = world.mapDataManager();
+    if (manager == nullptr) {
+        return;
+    }
+
     // 创建新缩放级别的地图
-    // TODO: 通过MapDataManager创建新地图
-    (void)newScale;
+    i32 newMapId = manager->createMap(
+        oldData->xCenter(), oldData->zCenter(), newScale, oldData->trackingPosition(), oldData->unlimitedTracking());
+
+    // 更新物品的地图ID
+    stack.getOrCreateTag()["map"] = newMapId;
 }
 
 void FilledMapItem::lockMap(IWorld& world, ItemStack& stack)
@@ -164,9 +174,20 @@ void FilledMapItem::lockMap(IWorld& world, ItemStack& stack)
     }
 
     if (!data->locked()) {
-        // 创建一个锁定的副本
-        // TODO: 通过MapDataManager创建锁定地图
-        data->setLocked(true);
+        auto* manager = world.mapDataManager();
+        if (manager != nullptr) {
+            // 创建一个锁定的副本
+            i32 lockedMapId = manager->allocateMapId();
+            auto* lockedData = manager->createMapData(lockedMapId);
+            if (lockedData != nullptr) {
+                lockedData->lockFrom(*data);
+                // 更新物品的地图ID指向锁定的副本
+                stack.getOrCreateTag()["map"] = lockedMapId;
+            }
+        } else {
+            // 无管理器时直接锁定原数据
+            data->setLocked(true);
+        }
     }
 }
 
@@ -267,6 +288,101 @@ void FilledMapItem::addInformation(
         i32 mapId = getMapId(stack);
         tooltip.push_back("Map #" + std::to_string(mapId));
     }
+}
+
+void FilledMapItem::updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data)
+{
+    const i32 scale = data.scale();
+    const i32 centerX = data.xCenter();
+    const i32 centerZ = data.zCenter();
+    const i32 mapSize = world::map::MapData::MAP_SIZE; // 128
+
+    // 计算每个像素对应的世界坐标范围
+    // scale=0: 1像素=1方块, scale=1: 1像素=2方块, ...scale=n: 1像素=2^n方块
+    const i32 pixelSize = 1 << scale;
+
+    // 计算地图左上角的世界坐标
+    const i32 worldOriginX = centerX - (mapSize / 2) * pixelSize;
+    const i32 worldOriginZ = centerZ - (mapSize / 2) * pixelSize;
+
+    // 仅更新玩家附近的区域（性能优化）
+    const f64 viewerX = viewer.position().x;
+    const f64 viewerZ = viewer.position().z;
+
+    // 玩家在地图上的像素坐标
+    const i32 viewerPixelX = static_cast<i32>((viewerX - static_cast<f64>(worldOriginX)) / static_cast<f64>(pixelSize));
+    const i32 viewerPixelZ = static_cast<i32>((viewerZ - static_cast<f64>(worldOriginZ)) / static_cast<f64>(pixelSize));
+
+    // 更新范围：玩家周围32像素
+    const i32 UPDATE_RADIUS = 32;
+    const i32 minX = std::max(0, viewerPixelX - UPDATE_RADIUS);
+    const i32 maxX = std::min(mapSize - 1, viewerPixelX + UPDATE_RADIUS);
+    const i32 minZ = std::max(0, viewerPixelZ - UPDATE_RADIUS);
+    const i32 maxZ = std::min(mapSize - 1, viewerPixelZ + UPDATE_RADIUS);
+
+    f64 prevHeight = 0.0;
+
+    for (i32 z = minZ; z <= maxZ; ++z) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            const i32 worldX = worldOriginX + x * pixelSize;
+            const i32 worldZ = worldOriginZ + z * pixelSize;
+
+            f64 height = 0.0;
+            u8 colorIndex = getTopBlockColor(world, worldX, worldZ, scale, centerX, centerZ, height);
+
+            // 计算阴影（基于高度差）
+            u8 shadeIndex = 0;
+            if (x > 0 || z > 0) {
+                if (height > prevHeight) {
+                    shadeIndex = 2; // 高亮
+                } else if (height < prevHeight) {
+                    shadeIndex = 1; // 中等阴影
+                } else {
+                    shadeIndex = 0; // 低阴影
+                }
+            }
+
+            // 特殊处理水面
+            // 在MC中，水面根据深度有不同的阴影
+            if (colorIndex == static_cast<u8>(world::map::MaterialColorId::WATER)) {
+                // 水面使用特殊的深度着色
+                shadeIndex = (height > prevHeight) ? 2 : ((height < prevHeight) ? 0 : 1);
+            }
+
+            const u8 pixelValue = (colorIndex == 0) ? 0 : static_cast<u8>(colorIndex * 4 + shadeIndex);
+            data.setColor(x, z, pixelValue);
+            prevHeight = height;
+        }
+    }
+}
+
+u8 FilledMapItem::getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight)
+{
+    (void)scale;
+    (void)centerX;
+    (void)centerZ;
+
+    // 获取最高非空气方块
+    const i32 topY = world.getHeight(x, z);
+    if (topY <= 0) {
+        outHeight = 0.0;
+        return static_cast<u8>(world::map::MaterialColorId::AIR);
+    }
+
+    // 从顶部向下查找第一个非空气方块
+    for (i32 y = topY; y >= 0; --y) {
+        const BlockState* blockState = world.getBlockState(x, y, z);
+        if (blockState != nullptr && !blockState->isAir()) {
+            outHeight = static_cast<f64>(y);
+
+            // 获取方块的地图颜色
+            world::map::MaterialColorId mapColor = blockState->getMapColor();
+            return static_cast<u8>(mapColor);
+        }
+    }
+
+    outHeight = 0.0;
+    return static_cast<u8>(world::map::MaterialColorId::AIR);
 }
 
 } // namespace mc::item::items

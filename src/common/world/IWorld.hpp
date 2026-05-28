@@ -68,6 +68,10 @@ namespace world::village {
 class VillageManager; // 前向声明
 }
 
+namespace world::map {
+class MapDataManager; // 前向声明
+}
+
 namespace world::gamerule {
 class GameRules; // 前向声明
 }
@@ -1047,6 +1051,19 @@ public:
      * @return LootTableManager指针，如果不存在返回nullptr
      */
     [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const { return nullptr; }
+
+    // ========== 地图数据管理 ==========
+
+    /**
+     * @brief 获取地图数据管理器
+     *
+     * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
+     * 用于地图物品获取和更新地图数据。
+     *
+     * @return MapDataManager指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual world::map::MapDataManager* mapDataManager() { return nullptr; }
+    [[nodiscard]] virtual const world::map::MapDataManager* mapDataManager() const { return nullptr; }
 
     // ========== 世界边界 ==========
 

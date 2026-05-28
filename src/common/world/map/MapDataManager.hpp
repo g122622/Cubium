@@ -29,6 +29,10 @@
 #include <memory>
 #include <unordered_map>
 
+namespace mc {
+class IWorld;
+}
+
 namespace mc::world::map {
 
 /**
@@ -71,6 +75,16 @@ public:
      * @return 新创建的地图ID
      */
     i32 createMap(i32 x, i32 z, i32 scale, bool trackingPosition, bool unlimitedTracking);
+
+    /**
+     * @brief 每tick更新
+     *
+     * 遍历所有地图数据，更新脏区域标记。
+     * 实际的网络包发送由ServerWorld在调用tick后负责。
+     *
+     * @param world 世界引用（用于获取地形数据等）
+     */
+    void tick(IWorld& world);
 
     /**
      * @brief 获取地图总数

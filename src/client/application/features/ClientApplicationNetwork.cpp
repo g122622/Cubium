@@ -35,6 +35,7 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/AbstractContainerScreen.hpp"
+#include "client/ui/screen/CartographyScreen.hpp"
 #include "client/ui/screen/ChestScreen.hpp"
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
@@ -447,6 +448,13 @@ void ClientApplication::setupNetworkCallbacks()
                     makeContainerCloseSender(m_networkClient.get()));
                 break;
 
+            case ContainerType::Cartography:
+                screen = std::make_unique<CartographyScreen>(packet.containerId(),
+                    &m_player->inventory(),
+                    makeContainerClickSender(m_networkClient.get()),
+                    makeContainerCloseSender(m_networkClient.get()));
+                break;
+
             default:
                 spdlog::error("Ignored unsupported container type {}", static_cast<i32>(type));
                 break;
@@ -481,6 +489,12 @@ void ClientApplication::setupNetworkCallbacks()
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
                 furnaceContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+            } else if (auto* cartographyContainerScreen =
+                           dynamic_cast<AbstractContainerScreen<mc::CartographyContainer>*>(screen.get())) {
+                cartographyContainerScreen->setRenderers(&m_renderer->guiRenderer(),
+                    m_guiTextureManager.get(),
+                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+                cartographyContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
             }
         }
 
@@ -510,6 +524,11 @@ void ClientApplication::setupNetworkCallbacks()
 
         if (auto* furnaceScreen = asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen)) {
             applyContainerContent(furnaceScreen, packet.containerId(), packet.items());
+            return;
+        }
+
+        if (auto* cartographyScreen = asContainerScreen<mc::CartographyContainer>(currentScreen)) {
+            applyContainerContent(cartographyScreen, packet.containerId(), packet.items());
         }
     };
 

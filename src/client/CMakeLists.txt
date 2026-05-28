@@ -247,6 +247,9 @@ add_executable(minecraft-client
     sound/handler/WeatherSoundHandler.cpp
     # 世界
     world/ClientWorld.cpp
+    world/ClientMapDataCache.cpp
+    # 地图渲染
+    renderer/map/MapRenderer.cpp
     world/player/LocalPlayerIdentity.cpp
     world/color/BiomeColors.cpp
     world/color/blend/BiomeColorCache.cpp
@@ -271,6 +274,8 @@ add_executable(minecraft-client
     ui/screen/CreativeScreen.cpp
     ui/screen/ChestScreen.cpp
     ui/screen/FurnaceScreen.cpp
+    ui/screen/CartographyScreen.cpp
+    ui/screen/MapScreen.cpp
     # UI Kagero模板系统
     ui/kagero/template/parser/Ast.cpp
     ui/kagero/template/parser/AstVisitor.cpp

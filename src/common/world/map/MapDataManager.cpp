@@ -24,6 +24,7 @@
 #include "MapDataManager.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc::world::map {
 
@@ -72,6 +73,21 @@ i32 MapDataManager::createMap(i32 x, i32 z, i32 scale, bool trackingPosition, bo
     data->initialize(centerX, centerZ, scale, trackingPosition, unlimitedTracking, MapDimensionId::Overworld);
 
     return mapId;
+}
+
+void MapDataManager::tick(IWorld& world)
+{
+    (void)world;
+    // 遍历所有地图，重置脏标记
+    // 实际的地形更新和玩家追踪由FilledMapItem::inventoryTick()负责
+    // 网络包发送由ServerWorld在tick后处理
+    for (auto& [mapId, mapData] : m_mapData) {
+        if (mapData && mapData->isDirty()) {
+            // 脏标记由地形更新和装饰物更新设置
+            // tick时重置脏标记，网络包发送在ServerWorld中处理
+            mapData->clearDirty();
+        }
+    }
 }
 
 } // namespace mc::world::map

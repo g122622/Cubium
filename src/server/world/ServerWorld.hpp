@@ -37,6 +37,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/map/MapDataManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -741,6 +742,11 @@ public:
         return m_villageManager.get();
     }
 
+    // ========== 地图数据管理 ==========
+
+    [[nodiscard]] world::map::MapDataManager* mapDataManager() override { return m_mapDataManager.get(); }
+    [[nodiscard]] const world::map::MapDataManager* mapDataManager() const override { return m_mapDataManager.get(); }
+
     // ========== 袭击管理 ==========
 
     [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
@@ -996,6 +1002,7 @@ private:
     std::unique_ptr<world::tick::TickManager> m_tickManager;
     std::unique_ptr<WorldLightManager> m_lightManager;
     std::unique_ptr<WeatherManager> m_weatherManager;
+    std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）

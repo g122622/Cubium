@@ -12,16 +12,18 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "CartographyTableBlock.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/inventory/ContainerTypes.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
@@ -34,7 +36,6 @@ namespace blocks {
 CartographyTableBlock::CartographyTableBlock(const BlockProperties& properties)
     : Block(properties)
 {
-
     // 制图台没有特殊状态属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
@@ -57,6 +58,30 @@ const CollisionShape& CartographyTableBlock::getShape(const BlockState& state) c
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+ActionResultType CartographyTableBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // 客户端只返回Success
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 打开制图台容器
+    if (world.openContainer(ContainerType::Cartography, pos, player)) {
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

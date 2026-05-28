@@ -66,14 +66,13 @@ ItemActionResult EmptyMapItem::onItemRightClick(IWorld& world, Player& player, H
 ItemStack EmptyMapItem::createFilledMap(
     IWorld& world, i32 x, i32 z, i32 scale, bool trackingPosition, bool unlimitedTracking)
 {
-    // TODO: 通过ServerWorld获取MapDataManager来创建地图
-    // 暂时创建带有地图ID的物品
     ItemStack result(ItemRegistry::instance().getItem(ResourceLocation("minecraft:filled_map")), 1);
 
-    // 设置地图ID到NBT
-    auto& tag = result.getOrCreateTag();
-    // i32 mapId = world.getMapDataManager().createMap(world, x, z, scale, trackingPosition, unlimitedTracking);
-    // tag["map"] = mapId;
+    auto* manager = world.mapDataManager();
+    if (manager != nullptr) {
+        i32 mapId = manager->createMap(x, z, scale, trackingPosition, unlimitedTracking);
+        result.getOrCreateTag()["map"] = mapId;
+    }
 
     return result;
 }

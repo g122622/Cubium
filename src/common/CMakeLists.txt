@@ -54,6 +54,7 @@ add_library(mc_common STATIC
     network/packet/ExplosionPacket.cpp
     network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
+    network/packet/MapDataPacket.cpp
     network/packet/SetPassengersPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp
@@ -367,6 +368,7 @@ add_library(mc_common STATIC
     entity/inventory/container/HopperContainer.cpp
     entity/inventory/container/FurnaceContainer.cpp
     entity/inventory/container/EnchantmentContainer.cpp
+    entity/inventory/container/CartographyContainer.cpp
     entity/inventory/container/BrewingStandContainer.cpp
     entity/inventory/container/AnvilContainer.cpp
 

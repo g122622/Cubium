@@ -28,6 +28,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
@@ -272,6 +273,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                     // MC 1.16.5: 附魔台容器创建
                     // 参考: net.minecraft.inventory.container.EnchantmentContainer
                     result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
+                    return result;
+                }
+                case mc::ContainerType::Cartography: {
+                    result.menu = std::make_unique<mc::CartographyContainer>(containerId, playerInventory, pos, world);
                     return result;
                 }
                 case mc::ContainerType::Player:

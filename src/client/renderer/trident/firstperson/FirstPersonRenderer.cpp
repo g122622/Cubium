@@ -26,7 +26,9 @@
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/items/map/FilledMapItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
@@ -398,6 +400,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
 
     const auto renderHand = [&](Hand hand, const ItemStack& heldItem, f32 equipProgress, f32 swingProgress) {
         const HandSide handSide = resolveHandSide(hand, primaryHand);
+        const ArmPose armPose = (hand == Hand::MainHand) ? mainArmPose : offArmPose;
 
         MatrixStack baseStack;
         applyCameraAlignedBasis(baseStack, *player);
@@ -414,6 +417,24 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
 
             if (armMeshValid && armMesh.indexCount > 0) {
                 const auto armModelMatrix = toModelMatrix(armStack.last());
+                m_armPipeline->drawMesh(cmd, armMesh, armModelMatrix, cameraPos, 1.0);
+            }
+            return;
+        }
+
+        // 地图物品：渲染双手举起姿态，地图内容在GUI层渲染
+        if (armPose == ArmPose::Map) {
+            MatrixStack mapStack = baseStack;
+            renderMapFirstPerson(
+                mapStack, heldItem, static_cast<f32>(context.partialTick), equipProgress, swingProgress);
+
+            ensureArmMesh(hand, primaryHand);
+            const bool isMainHand = hand == Hand::MainHand;
+            const EntityMesh& armMesh = isMainHand ? m_mainHandArmMesh : m_offHandArmMesh;
+            const bool armMeshValid = isMainHand ? m_mainHandArmMeshValid : m_offHandArmMeshValid;
+
+            if (armMeshValid && armMesh.indexCount > 0) {
+                const auto armModelMatrix = toModelMatrix(mapStack.last());
                 m_armPipeline->drawMesh(cmd, armMesh, armModelMatrix, cameraPos, 1.0);
             }
             return;
@@ -583,12 +604,27 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
 void FirstPersonRenderer::renderMapFirstPerson(
     MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress)
 {
-    // TODO: 实现地图渲染
+    // MC 1.16.5: 地图以双手持握方式渲染在玩家前方
+    // 两只手都举起，地图板显示在中间
     (void)stack;
     (void)mapStack;
     (void)pitch;
-    (void)equipProgress;
-    (void)swingProgress;
+
+    // 地图持握变换：双手举起
+    // 这里只是变换，实际地图纹理渲染在2D GUI层完成
+    // 第一人称下地图物品使用 ArmPose::Map 让手臂保持举起的姿态
+    // 地图内容通过 GuiRenderer 在屏幕上渲染
+
+    // 装备动画插值
+    const f32 equip = 1.0f - equipProgress;
+    stack.translate(0.0f, equip * -0.5f, 0.0f);
+
+    // 轻微挥动
+    const f32 sqrtSwing = std::sqrt(swingProgress);
+    const f32 swingX = -0.4f * std::sin(sqrtSwing * static_cast<f32>(PI));
+    const f32 swingY = 0.2f * std::sin(sqrtSwing * static_cast<f32>(PI) * 2.0f);
+    const f32 swingZ = -0.2f * std::sin(swingProgress * static_cast<f32>(PI));
+    stack.translate(swingX, swingY, swingZ);
 }
 
 // ============================================================================
@@ -1076,7 +1112,9 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
     }
 
     // 检查是否为地图
-    // TODO: 实现地图检测
+    if (item == Items::FILLED_MAP) {
+        return ArmPose::Map;
+    }
 
     // 默认持有物品姿态
     return ArmPose::Item;

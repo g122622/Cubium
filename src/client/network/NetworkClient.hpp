@@ -32,6 +32,7 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/MapDataPacket.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
@@ -222,6 +223,9 @@ struct NetworkClientCallbacks {
     // 世界出生点事件（包含偏航角，用于指南针指向）
     std::function<void(i32 x, i32 y, i32 z, f32 angle)> onSpawnPosition;
 
+    // 地图数据更新事件
+    std::function<void(const network::MapDataPacket& packet)> onMapData;
+
     // 载具移动同步事件
     std::function<void(f64 x, f64 y, f64 z, f32 yaw, f32 pitch)> onVehicleMove;
 
@@ -409,6 +413,9 @@ private:
 
     // 世界出生点包处理
     void handleSpawnPosition(network::PacketDeserializer& deser);
+
+    // 地图数据包处理
+    void handleMapData(network::PacketDeserializer& deser);
 
     // 载具移动同步包处理
     void handleVehicleMove(network::PacketDeserializer& deser);
