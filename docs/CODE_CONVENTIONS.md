@@ -90,7 +90,6 @@
 | `std::any` | ⚠️ 谨慎 | 避免过度使用 |
 | `if constexpr` | ✅ 推荐 | 模板元编程 |
 | `std::string_view` | ✅ 推荐 | 只读字符串参数 |
-| 内联变量 | ✅ 推荐 | `inline constexpr int MAX = 100;` |
 | 折叠表达式 | ✅ 推荐 | 模板编程 |
 | `std::filesystem` | ✅ 推荐 | 文件操作 |
 
@@ -124,6 +123,7 @@ auto ptr = std::make_unique<int>(5);
 inline constexpr int MAX_PLAYERS = 100;
 
 // ❌ 禁止：异常会导致性能问题，建议使用Result/Expected类型处理错误
+// 对于现有存量代码中的异常处理，考虑到兼容性，暂时不强制重构，但新代码中强烈建议不要使用异常。
 try {
     // 正常逻辑
 } catch (...) {
@@ -157,9 +157,11 @@ private:
     // 数据成员
     std::vector<Block> m_blocks;
     ChunkPos m_position;
+    // 私有方法（私有方法必须加前缀_以示区分）
+    void _loadFromDisk();
 };
 
-// ✅ 推荐：明确指定访问控制
+// ✅ 必须：明确指定访问控制
 class Entity {
 public:
     // 公共接口
@@ -171,7 +173,7 @@ protected:
     
 private:
     // 私有实现
-    void internalUpdate();
+    void _internalUpdate();
     EntityID m_id;
 };
 
@@ -204,22 +206,7 @@ void setTexture(std::unique_ptr<Texture> texture);
 // ✅ 推荐：[[nodiscard]]标记可能产生新资源的函数
 [[nodiscard]] std::unique_ptr<Entity> createEntity();
 
-// ✅ 推荐：使用BlockPos、ChunkPos等已有工具类表示方块/区块坐标，降低参数复杂度
-
-// ✅ 推荐：使用配置结构体
-struct WindowConfig {
-    int width = 1920;
-    int height = 1080;
-    int x = 0;
-    int y = 0;
-    std::string title = "Minecraft Reborn";
-    bool fullscreen = false;
-    int monitor = 0;
-    bool vsync = true;
-    int samples = 4;
-};
-
-void createWindow(const WindowConfig& config);
+// ✅ 推荐：复用BlockPos、ChunkPos等已有工具类表示方块/区块坐标，降低参数复杂度
 ```
 
 ---
@@ -297,27 +284,7 @@ enum class BlockType {
 
 ### 3.4 函数命名
 
-```cpp
-// ✅ 函数：camelCase
-void updatePlayer();
-
-// ✅ 访问器：get/set前缀
-int getHealth() const;
-void setHealth(int health);
-
-// ✅ 布尔查询：is/has/can前缀
-bool isAlive() const;
-bool hasItem() const;
-bool canJump() const;
-
-// ✅ 工厂函数：create/make前缀
-std::unique_ptr<Entity> createEntity();
-std::shared_ptr<Texture> makeTexture();
-
-// ✅ 事件处理：on前缀
-void onChunkLoaded();
-void onPlayerJoin();
-```
+私有方法用_前缀以示区分。
 
 ### 3.5 命名空间规范
 
@@ -341,6 +308,8 @@ using namespace std;  // ❌
 
 ### 5.1 Doxygen文档注释
 
+只在头文件中使用Doxygen风格的文档注释即可。
+
 ```cpp
 /**
  * @brief 加载区块
@@ -352,22 +321,9 @@ using namespace std;  // ❌
  * @param priority 加载优先级（0-10，10最高）
  * @return Result<std::shared_ptr<Chunk>> 加载结果
  * 
- * @throws ChunkLoadException 当区块加载失败时
- * 
  * @note 此方法是异步的，返回后区块可能尚未完全加载
  * @warning 不要在主线程中调用高优先级加载
  * 
- * @see unloadChunk()
- * @see isChunkLoaded()
- * 
- * @example
- * ```cpp
- * auto result = chunkManager.loadChunk({0, 0, 0}, 5);
- * if (result.success()) {
- *     auto chunk = result.value();
- *     // 使用区块
- * }
- * ```
  */
 Result<std::shared_ptr<Chunk>> loadChunk(ChunkPos pos, int priority);
 ```
@@ -391,13 +347,6 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 ### 5.3 代码区域标记
 
 ```cpp
-#pragma region 区块加载
-
-// 相关代码...
-
-#pragma endregion 区块加载
-
-// 或使用注释
 // ============================================================================
 // 区块加载系统
 // ============================================================================
@@ -570,3 +519,5 @@ void processMessage(const std::string& message) {
     // ...
 }
 ```
+
+### 其他可能导致安全问题的情况
