@@ -126,3 +126,52 @@ glslc shaders/block.frag -o build/shaders/block.frag.spv
 ## 依赖
 
 见vcpkg.json
+
+## CI / GitHub Actions
+
+项目配置了 GitHub Actions 持续集成，位于 `.github/workflows/ci.yml`，包含以下 Job：
+
+| Job | 平台 | 说明 |
+|-----|------|------|
+| **build-windows** | Windows / Clang | 客户端+服务端 RelWithDebInfo 构建（快速反馈） |
+| **build-linux** | Linux / Clang | 服务端 RelWithDebInfo 构建并运行测试 |
+| **asan-ubsan** | Linux / Clang | AddressSanitizer + UndefinedBehaviorSanitizer 测试 |
+| **tsan** | Linux / Clang | ThreadSanitizer 测试 |
+| **stack-protect** | Linux / Clang | 栈保护 + 硬化构建（`-fstack-protector-strong`、`-D_FORTIFY_SOURCE=2`、PIE、RELRO、不可执行栈），并验证二进制安全属性 |
+| **format-check** | Linux | clang-format 格式检查（仅检查变更文件） |
+
+### 关键设计
+
+- **ASan+UBSan 与 TSan 分离**：两种 sanitizer 互斥，必须独立运行
+- **Sanitizer 构建使用 Debug 模式**：`MC_ENABLE_SANITIZERS=ON` 时自动切换到 `-O1` 并禁用 `-march=native`、LTO、`-fno-stack-protector` 等优化选项
+- **Linux Job 关闭客户端**：CI 无 GPU/Vulkan，所有 Linux Job 使用 `MC_BUILD_CLIENT=OFF`
+- **vcpkg 缓存**：使用 `lukka/run-vcpkg@v11` 并锁定 baseline commit
+- **并发控制**：同一分支/PR 的重复运行会自动取消
+
+### 本地 Sanitizer 构建
+
+```bash
+# ASan + UBSan
+cmake -B build-sanitize -G Ninja \
+  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
+  -DMC_ENABLE_SANITIZERS=ON \
+  -DVCPKG_TARGET_TRIPLET=x64-linux \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+  -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+
+# TSan
+cmake -B build-tsan -G Ninja \
+  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
+  -DMC_ENABLE_SANITIZERS=ON \
+  -DVCPKG_TARGET_TRIPLET=x64-linux \
+  -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
+  -DCMAKE_C_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=thread"
+```

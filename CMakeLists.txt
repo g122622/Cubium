@@ -180,16 +180,25 @@ find_package(leveldb CONFIG REQUIRED)
 find_package(unofficial-perfetto CONFIG REQUIRED)
 
 # 全局编译选项
-add_compile_options(-O3)
 add_compile_options(-fcolor-diagnostics)
-add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
-add_compile_options(-ffast-math) # 启用快速浮点数
-add_compile_options(-fno-trapping-math) # 禁用浮点异常
-add_compile_options(-mavx2) # 启用 AVX2 指令集（需要 CPU 支持）
-add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
-add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据
-add_link_options(-flto=thin -fuse-ld=lld)
-add_compile_options(-fno-stack-protector -fno-stack-check) # 关闭栈保护，减少性能开销（注意安全风险）
+
+if(MC_ENABLE_SANITIZERS)
+    # Sanitizer 构建：禁用优化和可能干扰 sanitizer 的选项
+    # CMAKE_CXX_FLAGS 中由调用者注入具体的 -fsanitize= 选项
+    add_compile_options(-O1 -fno-omit-frame-pointer -fno-common)
+    add_compile_options(-fno-fast-math) # sanitizer 需要精确浮点语义
+    message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
+else()
+    add_compile_options(-O3)
+    add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
+    add_compile_options(-ffast-math) # 启用快速浮点数
+    add_compile_options(-fno-trapping-math) # 禁用浮点异常
+    add_compile_options(-mavx2) # 启用 AVX2 指令集（需要 CPU 支持）
+    add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
+    add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据
+    add_link_options(-flto=thin -fuse-ld=lld)
+    add_compile_options(-fno-stack-protector -fno-stack-check) # 关闭栈保护，减少性能开销（注意安全风险）
+endif()
 
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Configuring Windows build with Clang: ${CMAKE_CXX_COMPILER}")

@@ -1,0 +1,338 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel redundant runs on the same branch/PR
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
+
+jobs:
+  # ============================================================
+  # Build only – Windows / Clang / RelWithDebInfo (fast feedback)
+  # ============================================================
+  build-windows:
+    name: Build (Windows / Clang / RelWithDebInfo)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      # GitHub Actions windows-latest includes Visual Studio with Clang.
+      # We use VS Clang (not the preset, which has hardcoded local paths).
+      - name: Configure
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64 -no_logo
+          cmake -B build -G Ninja Multi-Config ^
+            -DCMAKE_C_COMPILER=clang ^
+            -DCMAKE_CXX_COMPILER=clang++ ^
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+            -DMC_BUILD_CLIENT=ON ^
+            -DMC_BUILD_SERVER=ON ^
+            -DMC_BUILD_TESTS=OFF ^
+            -DMC_ENABLE_SANITIZERS=OFF ^
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64 -no_logo
+          cmake --build build --config RelWithDebInfo
+
+  # ============================================================
+  # Linux build + test – server-only (headless, no Vulkan/GUI)
+  # ============================================================
+  build-linux:
+    name: Build & Test (Linux / Clang / RelWithDebInfo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang lld llvm
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      - name: Configure (server-only, no Vulkan)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DMC_BUILD_CLIENT=OFF \
+            -DMC_BUILD_SERVER=ON \
+            -DMC_BUILD_TESTS=ON \
+            -DMC_ENABLE_SANITIZERS=OFF \
+            -DVCPKG_TARGET_TRIPLET=x64-linux
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure --timeout 300 -j$(nproc)
+
+  # ============================================================
+  # AddressSanitizer + UndefinedBehaviorSanitizer (Linux / Clang)
+  # ============================================================
+  asan-ubsan:
+    name: ASan + UBSan (Linux / Clang)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang lld llvm
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      - name: Configure (ASan + UBSan)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DMC_BUILD_CLIENT=OFF \
+            -DMC_BUILD_SERVER=ON \
+            -DMC_BUILD_TESTS=ON \
+            -DMC_ENABLE_SANITIZERS=ON \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests with ASan + UBSan
+        working-directory: build
+        env:
+          ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:detect_invalid_pointer_pairs=2:strict_string_checks=1:allocator_may_return_null=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          LSAN_OPTIONS: exitcode=1
+        run: ctest --output-on-failure --timeout 600 -j$(nproc)
+
+  # ============================================================
+  # ThreadSanitizer (Linux / Clang)
+  # ============================================================
+  tsan:
+    name: TSan (Linux / Clang)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang lld llvm
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      - name: Configure (TSan)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DMC_BUILD_CLIENT=OFF \
+            -DMC_BUILD_SERVER=ON \
+            -DMC_BUILD_TESTS=ON \
+            -DMC_ENABLE_SANITIZERS=ON \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
+            -DCMAKE_C_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=thread"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests with TSan
+        working-directory: build
+        env:
+          TSAN_OPTIONS: halt_on_error=1:history_size=7:die_on_fatal=1
+        run: ctest --output-on-failure --timeout 600 -j$(nproc)
+
+  # ============================================================
+  # Stack Protection + Hardened build (Linux / Clang)
+  # ============================================================
+  stack-protect:
+    name: Stack Protection + Hardening (Linux / Clang)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang lld llvm
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      - name: Configure (stack protection + hardening)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DMC_BUILD_CLIENT=OFF \
+            -DMC_BUILD_SERVER=ON \
+            -DMC_BUILD_TESTS=ON \
+            -DMC_ENABLE_SANITIZERS=OFF \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_CXX_FLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE" \
+            -DCMAKE_C_FLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,-z,relro,-z,now -pie -Wl,-z,noexecstack" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,relro,-z,now -pie -Wl,-z,noexecstack"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure --timeout 300 -j$(nproc)
+
+      - name: Verify stack protection and hardening
+        run: |
+          echo "=== Checking for __stack_chk_fail in test binary ==="
+          binary=$(find build/bin -type f -executable \( -name 'mc_tests' -o -name 'minecraft-server' \) | head -1)
+          if [ -z "$binary" ]; then
+            echo "No binary found to check"
+            exit 0
+          fi
+          echo "Binary: $binary"
+
+          if nm "$binary" 2>/dev/null | grep -q __stack_chk_fail; then
+            echo "PASS: Stack protection symbols found (__stack_chk_fail)"
+          else
+            echo "WARN: No stack protection symbols found (binary may be stripped)"
+          fi
+
+          if command -v readelf &>/dev/null; then
+            echo ""
+            echo "=== Checking for RELRO ==="
+            if readelf -l "$binary" 2>/dev/null | grep -q GNU_RELRO; then
+              echo "PASS: GNU_RELRO found (partial RELRO)"
+            else
+              echo "WARN: No GNU_RELRO"
+            fi
+
+            echo ""
+            echo "=== Checking for full RELRO (BIND_NOW) ==="
+            if readelf -d "$binary" 2>/dev/null | grep -q BIND_NOW; then
+              echo "PASS: BIND_NOW found (full RELRO)"
+            else
+              echo "INFO: No BIND_NOW (partial RELRO only)"
+            fi
+
+            echo ""
+            echo "=== Checking for non-executable stack ==="
+            if readelf -l "$binary" 2>/dev/null | grep -q 'GNU_STACK'; then
+              if readelf -l "$binary" 2>/dev/null | grep 'GNU_STACK' | grep -q 'RWE'; then
+                echo "FAIL: Stack is executable (RWE)"
+              else
+                echo "PASS: Stack is non-executable"
+              fi
+            else
+              echo "INFO: No GNU_STACK segment found"
+            fi
+
+            echo ""
+            echo "=== Checking for PIE ==="
+            if readelf -h "$binary" 2>/dev/null | grep -q 'Type:.*DYN'; then
+              echo "PASS: PIE executable (shared object)"
+            else
+              echo "INFO: Not a PIE executable"
+            fi
+          fi
+
+  # ============================================================
+  # clang-format check (fast, no build needed)
+  # ============================================================
+  format-check:
+    name: clang-format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check formatting on changed files
+        run: |
+          # For PRs: check files changed vs base branch
+          # For pushes: check files changed in the last commit
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+            git fetch origin "${{ github.base_ref }}" --depth=1 2>/dev/null || true
+            CHANGED_FILES=$(git diff --name-only --diff-filter=ACM "$BASE" -- '*.cpp' '*.hpp' 2>/dev/null | head -100)
+          else
+            CHANGED_FILES=$(git diff --name-only --diff-filter=ACM HEAD~1 -- '*.cpp' '*.hpp' 2>/dev/null | head -100)
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No C++ files changed, skipping clang-format check"
+            exit 0
+          fi
+
+          echo "Checking formatting on changed files:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          UNFORMATTED=0
+          for file in $CHANGED_FILES; do
+            if [ -f "$file" ]; then
+              if ! clang-format --style=file "$file" | diff -q "$file" - > /dev/null 2>&1; then
+                echo "NOT FORMATTED: $file"
+                UNFORMATTED=1
+              fi
+            fi
+          done
+
+          if [ "$UNFORMATTED" -ne 0 ]; then
+            echo ""
+            echo "Some files are not properly formatted. Fix with:"
+            echo "  clang-format -i <file>"
+            exit 1
+          fi
+          echo "All changed files are properly formatted"
