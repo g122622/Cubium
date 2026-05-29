@@ -25,6 +25,7 @@
 
 #include "../../core/Types.hpp"
 #include <cstddef>
+#include <functional>
 
 namespace mc {
 namespace potion {

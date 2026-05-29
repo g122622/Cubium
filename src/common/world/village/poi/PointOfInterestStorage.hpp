@@ -28,6 +28,7 @@
 #include "../../../world/chunk/ChunkPos.hpp"
 #include "PointOfInterest.hpp"
 #include <functional>
+#include <list>
 #include <mutex>
 #include <optional>
 #include <unordered_map>

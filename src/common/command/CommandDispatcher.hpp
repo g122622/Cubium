@@ -30,6 +30,7 @@
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
 #include <cctype>
+#include <exception>
 #include <functional>
 #include <future>
 #include <memory>

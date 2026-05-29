@@ -23,8 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "Property.hpp"
+#include <functional>
+#include <memory>
 #include <unordered_set>
 
 namespace mc {

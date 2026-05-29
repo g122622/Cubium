@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <deque>
+#include <utility>
 
 namespace mc::client {
 

@@ -29,6 +29,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 
 namespace mc::client::skin {
 

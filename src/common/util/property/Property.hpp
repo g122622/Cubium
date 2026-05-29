@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 
 namespace mc {

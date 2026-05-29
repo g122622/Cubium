@@ -31,6 +31,7 @@
 #pragma once
 
 #include "Nbt.hpp"
+#include <stdexcept>
 
 namespace mc {
 namespace nbt {

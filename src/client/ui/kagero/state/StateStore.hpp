@@ -29,6 +29,7 @@
 #include <functional>
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::state {

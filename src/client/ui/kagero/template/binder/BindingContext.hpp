@@ -32,6 +32,7 @@
 #include <type_traits>
 #include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::binder {

@@ -27,6 +27,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.h>
 

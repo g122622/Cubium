@@ -59,6 +59,7 @@
 #include <map>
 #include <memory>
 #include <ostream>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 

@@ -58,6 +58,7 @@
 #include "PerfettoConfig.hpp"
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

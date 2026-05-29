@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
 
 namespace mc::util {
 

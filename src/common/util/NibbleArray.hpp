@@ -25,6 +25,7 @@
 
 #include "../core/Types.hpp"
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace mc {

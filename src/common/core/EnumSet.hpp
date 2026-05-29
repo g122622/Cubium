@@ -24,6 +24,7 @@
 #pragma once
 
 #include <bitset>
+#include <functional>
 #include <initializer_list>
 
 namespace mc {

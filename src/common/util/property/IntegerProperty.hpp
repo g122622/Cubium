@@ -23,9 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "Property.hpp"
+#include <exception>
+#include <functional>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
 
 namespace mc {
 
