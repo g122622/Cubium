@@ -27,6 +27,7 @@
 #include "../../Glyph.hpp"
 #include "../paint/PaintContext.hpp"
 #include "Widget.hpp"
+#include <cmath>
 #include <functional>
 #include <string>
 
