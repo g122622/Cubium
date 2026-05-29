@@ -229,7 +229,6 @@ add_library(mc_common STATIC
     item/loot/conditions/SurvivesExplosionCondition.cpp
     item/loot/conditions/KilledByPlayerCondition.cpp
     item/loot/conditions/EntityPropertiesCondition.cpp
-    item/loot/conditions/EntityScoresCondition.cpp
     item/loot/conditions/LocationCheckCondition.cpp
     item/loot/conditions/WeatherCheckCondition.cpp
     item/loot/conditions/TimeCheckCondition.cpp
