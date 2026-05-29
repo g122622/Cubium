@@ -25,7 +25,17 @@
 
 #include "common/perfetto/TraceEvents.hpp"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
+#else
+#include <cstdlib>
+#include <csignal>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <cerrno>
+#endif
 
 #include <filesystem>
 #include <string>
@@ -73,6 +83,7 @@ public:
     {
         MC_TRACE_EVENT("benchmark.case", "ClientInitializeBenchmark::runOnce");
 
+#ifdef _WIN32
         std::wstring commandLine = L"\"" + m_clientExecutable.wstring() + L"\" --benchmark-exit-after-initialize";
         std::vector<wchar_t> commandBuffer(commandLine.begin(), commandLine.end());
         commandBuffer.push_back(L'\0');
@@ -131,6 +142,18 @@ public:
             return Error(
                 ErrorCode::OperationFailed, "client_initialize process exited with code " + std::to_string(exitCode));
         }
+#else
+        std::string command = "\"" + m_clientExecutable.string() + "\" --benchmark-exit-after-initialize";
+        int status = std::system(command.c_str());
+        if (status == -1) {
+            return Error(ErrorCode::OperationFailed, "client_initialize failed to start process");
+        }
+        int exitCode = WEXITSTATUS(status);
+        if (exitCode != 0) {
+            return Error(
+                ErrorCode::OperationFailed, "client_initialize process exited with code " + std::to_string(exitCode));
+        }
+#endif
 
         return Result<void>::ok();
     }
