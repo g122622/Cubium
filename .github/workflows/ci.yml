@@ -16,6 +16,8 @@ permissions:
 
 env:
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
+  # Use vcpkg binary cache to avoid rebuilding dependencies on every run
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 
 jobs:
   # ============================================================
@@ -27,6 +29,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-win-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-win-${{ env.VCPKG_COMMIT }}-
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -72,6 +82,14 @@ jobs:
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -112,6 +130,14 @@ jobs:
           sudo apt-get install -y ninja-build clang lld llvm \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -162,6 +188,14 @@ jobs:
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -208,6 +242,14 @@ jobs:
           sudo apt-get install -y ninja-build clang lld llvm \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
