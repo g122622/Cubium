@@ -41,8 +41,6 @@ add_executable(minecraft-server
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
     player/ServerPlayer.cpp
-    # 战利品条件 (依赖 ServerPlayer/ServerScoreboard/ServerWorld)
-    ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityScoresCondition.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
     # 事件系统

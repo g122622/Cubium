@@ -1158,6 +1158,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/SurvivesExplosionCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/KilledByPlayerCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityPropertiesCondition.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityScoresCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LocationCheckCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/WeatherCheckCondition.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/TimeCheckCondition.cpp
