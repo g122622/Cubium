@@ -262,7 +262,7 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     if (m_critical) {
         mc::math::Random rng = createRandomFromEntity(*this);
         i32 bonus = rng.nextInt(damage / 2 + 2);
-        damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, 2147483647LL));
+        damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, static_cast<i64>(2147483647)));
     }
 
     // 穿透检查 - 参考 MC 1.16.5 第305-320行
