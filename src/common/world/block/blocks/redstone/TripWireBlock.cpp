@@ -33,7 +33,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../VanillaBlocks.hpp"
-#include "TripwireHookBlock.hpp"
+#include "TripWireHookBlock.hpp"
 #include <unordered_map>
 
 namespace mc {

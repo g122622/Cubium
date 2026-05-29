@@ -21,7 +21,7 @@
  *
  */
 
-#include "TripwireHookBlock.hpp"
+#include "TripWireHookBlock.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"

@@ -120,7 +120,7 @@
 #include "blocks/redstone/TNTBlock.hpp"
 #include "blocks/redstone/TargetBlock.hpp"
 #include "blocks/redstone/TripWireBlock.hpp"
-#include "blocks/redstone/TripwireHookBlock.hpp"
+#include "blocks/redstone/TripWireHookBlock.hpp"
 #include "blocks/redstone/WeightedPressurePlateBlock.hpp"
 #include "blocks/redstone/WoodButtonBlock.hpp"
 #include "blocks/redstone/WoodPressurePlateBlock.hpp"
