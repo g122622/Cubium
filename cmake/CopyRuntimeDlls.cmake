@@ -17,33 +17,42 @@ if(NOT EXISTS "${installedDir}")
     message(FATAL_ERROR "Installed dir not found: ${installedDir}")
 endif()
 
-set(dumpbinPath "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/dumpbin.exe")
-set(llvmObjdumpPath "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/llvm-objdump.exe")
+# 动态查找 dumpbin 或 llvm-objdump
+set(toolFound FALSE)
 
-if(EXISTS "${dumpbinPath}")
+find_program(DUMPBIN_EXE dumpbin)
+if(DUMPBIN_EXE)
     execute_process(
-        COMMAND "${dumpbinPath}" /DEPENDENTS "${targetBinary}"
+        COMMAND "${DUMPBIN_EXE}" /DEPENDENTS "${targetBinary}"
         OUTPUT_VARIABLE dumpbinOutput
         ERROR_VARIABLE dumpbinError
         RESULT_VARIABLE dumpbinResult
     )
-    if(NOT dumpbinResult EQUAL 0)
-        message(FATAL_ERROR "dumpbin failed: ${dumpbinError}")
+    if(dumpbinResult EQUAL 0)
+        set(toolOutput "${dumpbinOutput}")
+        set(toolFound TRUE)
     endif()
-    set(toolOutput "${dumpbinOutput}")
-elseif(EXISTS "${llvmObjdumpPath}")
-    execute_process(
-        COMMAND "${llvmObjdumpPath}" --private-headers "${targetBinary}"
-        OUTPUT_VARIABLE objdumpOutput
-        ERROR_VARIABLE objdumpError
-        RESULT_VARIABLE objdumpResult
-    )
-    if(NOT objdumpResult EQUAL 0)
-        message(FATAL_ERROR "llvm-objdump failed: ${objdumpError}")
+endif()
+
+if(NOT toolFound)
+    find_program(LLVM_OBJDUMP_EXE llvm-objdump)
+    if(LLVM_OBJDUMP_EXE)
+        execute_process(
+            COMMAND "${LLVM_OBJDUMP_EXE}" --private-headers "${targetBinary}"
+            OUTPUT_VARIABLE objdumpOutput
+            ERROR_VARIABLE objdumpError
+            RESULT_VARIABLE objdumpResult
+        )
+        if(objdumpResult EQUAL 0)
+            set(toolOutput "${objdumpOutput}")
+            set(toolFound TRUE)
+        endif()
     endif()
-    set(toolOutput "${objdumpOutput}")
-else()
-    message(FATAL_ERROR "Neither dumpbin nor llvm-objdump is available")
+endif()
+
+if(NOT toolFound)
+    message(WARNING "Neither dumpbin nor llvm-objdump is available; skipping runtime DLL copy for ${targetBinary}")
+    return()
 endif()
 
 file(GLOB candidateDlls "${installedDir}/*.dll")
