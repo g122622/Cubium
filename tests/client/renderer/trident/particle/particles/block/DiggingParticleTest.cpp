@@ -31,6 +31,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
+#include <cmath>
 #include <memory>
 #include <glm/glm.hpp>
 

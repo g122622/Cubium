@@ -128,7 +128,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
 
     // 写入标识
     const char* snowman = "☃";
-    write(fd, snowman, 3);
+    (void)write(fd, snowman, 3);
 
     lock.m_fd = fd;
     lock.m_valid = true;

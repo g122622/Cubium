@@ -33,6 +33,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include <cmath>
 
 using namespace mc;
 using namespace mc::entity::attribute;

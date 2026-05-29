@@ -26,6 +26,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include <cmath>
 #include <gtest/gtest.h>
 
 namespace mc {

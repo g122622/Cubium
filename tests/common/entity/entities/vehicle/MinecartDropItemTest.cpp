@@ -20,6 +20,7 @@
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/vehicle/MinecartEntity.hpp"
 #include "item/core/ItemStack.hpp"
+#include <cmath>
 #include <gtest/gtest.h>
 
 using namespace mc;

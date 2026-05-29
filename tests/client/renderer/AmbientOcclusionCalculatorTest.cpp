@@ -39,6 +39,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <memory>
 #include <gtest/gtest.h>
 

@@ -18,6 +18,8 @@ env:
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
   # Use vcpkg binary cache to avoid rebuilding dependencies on every run
   VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 2G
 
 jobs:
   # ============================================================
@@ -88,9 +90,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm \
+          sudo apt-get install -y ninja-build clang lld llvm ccache \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-relwithdebinfo-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-relwithdebinfo-
 
       - name: Restore vcpkg binary cache
         id: cache-restore
@@ -116,6 +126,7 @@ jobs:
             -DMC_BUILD_SERVER=ON \
             -DMC_BUILD_TESTS=ON \
             -DMC_ENABLE_SANITIZERS=OFF \
+            -DMC_ENABLE_CCACHE=ON \
             -DVCPKG_TARGET_TRIPLET=x64-linux
 
       - name: Save vcpkg binary cache
@@ -127,6 +138,12 @@ jobs:
 
       - name: Build
         run: cmake --build build -j$(nproc)
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-relwithdebinfo-${{ github.run_id }}
 
       - name: Run tests
         working-directory: build
@@ -145,9 +162,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm \
+          sudo apt-get install -y ninja-build clang lld llvm ccache \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-asan-ubsan-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-asan-ubsan-
 
       - name: Restore vcpkg binary cache
         id: cache-restore
@@ -173,6 +198,7 @@ jobs:
             -DMC_BUILD_SERVER=ON \
             -DMC_BUILD_TESTS=ON \
             -DMC_ENABLE_SANITIZERS=ON \
+            -DMC_ENABLE_CCACHE=ON \
             -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
             -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
@@ -188,6 +214,12 @@ jobs:
 
       - name: Build
         run: cmake --build build -j$(nproc)
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-asan-ubsan-${{ github.run_id }}
 
       - name: Run tests with ASan + UBSan
         working-directory: build
@@ -210,9 +242,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm \
+          sudo apt-get install -y ninja-build clang lld llvm ccache \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-tsan-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-tsan-
 
       - name: Restore vcpkg binary cache
         id: cache-restore
@@ -238,6 +278,7 @@ jobs:
             -DMC_BUILD_SERVER=ON \
             -DMC_BUILD_TESTS=ON \
             -DMC_ENABLE_SANITIZERS=ON \
+            -DMC_ENABLE_CCACHE=ON \
             -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
             -DCMAKE_C_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
@@ -253,6 +294,12 @@ jobs:
 
       - name: Build
         run: cmake --build build -j$(nproc)
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-tsan-${{ github.run_id }}
 
       - name: Run tests with TSan
         working-directory: build
@@ -273,9 +320,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm \
+          sudo apt-get install -y ninja-build clang lld llvm ccache \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-stack-protect-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-stack-protect-
 
       - name: Restore vcpkg binary cache
         id: cache-restore
@@ -301,6 +356,7 @@ jobs:
             -DMC_BUILD_SERVER=ON \
             -DMC_BUILD_TESTS=ON \
             -DMC_ENABLE_SANITIZERS=OFF \
+            -DMC_ENABLE_CCACHE=ON \
             -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_CXX_FLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE" \
             -DCMAKE_C_FLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE" \
@@ -316,6 +372,12 @@ jobs:
 
       - name: Build
         run: cmake --build build -j$(nproc)
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-stack-protect-${{ github.run_id }}
 
       - name: Run tests
         working-directory: build

@@ -53,6 +53,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 

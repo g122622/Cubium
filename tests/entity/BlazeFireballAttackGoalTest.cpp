@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/BlazeFireballAttackGoal.hpp"

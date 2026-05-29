@@ -37,6 +37,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 

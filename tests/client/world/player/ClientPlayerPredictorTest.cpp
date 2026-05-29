@@ -26,6 +26,7 @@
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <cmath>
 
 using namespace mc;
 using namespace mc::client;

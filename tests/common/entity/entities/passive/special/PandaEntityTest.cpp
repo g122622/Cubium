@@ -38,6 +38,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 

@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <future>
 #include <thread>
 #include <gtest/gtest.h>

@@ -46,6 +46,7 @@
 #include "common/world/gen/structure/structures/SwampHutStructure.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
+#include <cmath>
 #include <unordered_map>
 
 using namespace mc;

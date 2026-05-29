@@ -32,6 +32,7 @@
 #include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <gtest/gtest.h>
 
