@@ -17,6 +17,14 @@ permissions:
 env:
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
 
+# System dependencies needed by vcpkg ports (glfw3, vulkan, etc.) on Linux
+# Even with MC_BUILD_CLIENT=OFF, vcpkg manifest mode installs all vcpkg.json deps
+_apt-deps: &apt-deps |
+  sudo apt-get update
+  sudo apt-get install -y ninja-build clang lld llvm \
+    libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
+    libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
 jobs:
   # ============================================================
   # Build only – Windows / Clang / RelWithDebInfo (fast feedback)
@@ -68,7 +76,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm
+          sudo apt-get install -y ninja-build clang lld llvm \
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -107,7 +117,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm
+          sudo apt-get install -y ninja-build clang lld llvm \
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -154,7 +166,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm
+          sudo apt-get install -y ninja-build clang lld llvm \
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -199,7 +213,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm
+          sudo apt-get install -y ninja-build clang lld llvm \
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
