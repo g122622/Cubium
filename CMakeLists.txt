@@ -191,7 +191,7 @@ if(MC_ENABLE_SANITIZERS)
 else()
     add_compile_options(-O3)
     add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
-    add_compile_options(-ffast-math) # 启用快速浮点数
+    add_compile_options(-ffast-math -fno-finite-math-only) # 启用快速浮点数，但保留 NaN/Inf 语义以允许 isfinite 检查
     add_compile_options(-fno-trapping-math) # 禁用浮点异常
     add_compile_options(-mavx2) # 启用 AVX2 指令集（需要 CPU 支持）
     add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间

@@ -144,7 +144,7 @@ f64 CelestialCalculations::calculateSunIntensity(f64 celestialAngle)
 
 glm::vec4 CelestialCalculations::calculateSkyColor(f64 celestialAngle, f64 rainStrength, f64 thunderStrength)
 {
-    MC_ASSERT_RELEASE_MSG(__builtin_isfinite(celestialAngle), "celestialAngle must be finite");
+    MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
     const f64 angleRad = celestialAngle * mc::math::TAU_F;
     const f64 sunHeight = std::cos(angleRad);
@@ -176,7 +176,7 @@ glm::vec4 CelestialCalculations::calculateSkyColor(f64 celestialAngle, f64 rainS
 
 glm::vec4 CelestialCalculations::calculateSunriseSunsetColor(f64 celestialAngle, f64 rainStrength, f64 thunderStrength)
 {
-    MC_ASSERT_RELEASE_MSG(__builtin_isfinite(celestialAngle), "celestialAngle must be finite");
+    MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
     // 对齐 MC 1.16.5 DimensionType#calcSunriseSunsetColors。
     const f64 cosine = std::cos(celestialAngle * mc::math::TAU_F);

@@ -399,9 +399,8 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     }
 
     // MC 1.16.5: 验证数据包有效性（坐标是否为有限数值）
-    // Use __builtin_isfinite to work correctly under -ffast-math
-    if (!__builtin_isfinite(packet.x()) || !__builtin_isfinite(packet.y()) || !__builtin_isfinite(packet.z()) ||
-        !__builtin_isfinite(packet.yaw()) || !__builtin_isfinite(packet.pitch())) {
+    if (!std::isfinite(packet.x()) || !std::isfinite(packet.y()) || !std::isfinite(packet.z()) ||
+        !std::isfinite(packet.yaw()) || !std::isfinite(packet.pitch())) {
         spdlog::warn("PacketHandler: Player {} sent invalid vehicle position (NaN or Inf)", playerId);
         // 断开连接
         return PacketHandleResult::Disconnect;
