@@ -26,7 +26,7 @@
 #include "physics/collision/CollisionShape.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/blocks/redstone/TripwireHookBlock.hpp"
+#include "world/block/blocks/redstone/TripWireHookBlock.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
