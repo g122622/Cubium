@@ -55,6 +55,10 @@ class AbstractContainerMenu;
 class ItemEntity;
 class DamageSource;
 
+namespace scoreboard {
+class Scoreboard;
+}
+
 // ============================================================================
 // 玩家能力标志
 // ============================================================================
@@ -448,6 +452,17 @@ public:
      */
     [[nodiscard]] virtual class ServerPlayer* asServerPlayer() { return nullptr; }
     [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
+
+    /**
+     * @brief 获取玩家所在的记分板
+     *
+     * 只有 ServerPlayer 会返回有效的指针，客户端实现返回 nullptr。
+     * 用于战利品条件等需要访问记分板的场景。
+     *
+     * @return 记分板指针，如果不可用返回 nullptr
+     */
+    [[nodiscard]] virtual scoreboard::Scoreboard* getScoreboard() { return nullptr; }
+    [[nodiscard]] virtual const scoreboard::Scoreboard* getScoreboard() const { return nullptr; }
 
     /**
      * @brief 掉落经验（死亡时调用）

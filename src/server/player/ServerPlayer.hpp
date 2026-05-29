@@ -202,6 +202,9 @@ public:
     [[nodiscard]] ServerPlayer* asServerPlayer() override { return this; }
     [[nodiscard]] const ServerPlayer* asServerPlayer() const override { return this; }
 
+    [[nodiscard]] scoreboard::Scoreboard* getScoreboard() override;
+    [[nodiscard]] const scoreboard::Scoreboard* getScoreboard() const override;
+
     // ========== 成就系统 ==========
 
     /**

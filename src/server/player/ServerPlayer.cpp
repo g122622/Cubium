@@ -735,4 +735,20 @@ const scoreboard::Team* ServerPlayer::getTeam() const
     return serverScoreboard.getPlayersTeam(username());
 }
 
+scoreboard::Scoreboard* ServerPlayer::getScoreboard()
+{
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+    return &m_server->scoreboard();
+}
+
+const scoreboard::Scoreboard* ServerPlayer::getScoreboard() const
+{
+    if (m_server == nullptr) {
+        return nullptr;
+    }
+    return &m_server->scoreboard();
+}
+
 } // namespace mc

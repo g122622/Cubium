@@ -24,17 +24,13 @@
 #include "common/item/loot/conditions/EntityScoresCondition.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
-#include "server/application/IServer.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "server/scoreboard/ServerScoreboard.hpp"
-#include "server/world/ServerWorld.hpp"
 
 namespace mc {
 namespace loot {
 
 namespace {
 
-const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCondition::EntityTarget target)
+Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCondition::EntityTarget target)
 {
     switch (target) {
         case EntityPropertiesCondition::EntityTarget::This:
@@ -45,7 +41,7 @@ const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCon
             return context.get<Entity>(LootParams::DIRECT_KILLER);
         case EntityPropertiesCondition::EntityTarget::KillerPlayer: {
             auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
-            return static_cast<const Entity*>(player);
+            return static_cast<Entity*>(player);
         }
     }
     return nullptr;
@@ -69,36 +65,30 @@ EntityScoresCondition::EntityScoresCondition(
 
 bool EntityScoresCondition::test(LootContext& context) const
 {
-    const Entity* entity = getConditionTargetEntity(context, m_target);
+    Entity* entity = getConditionTargetEntity(context, m_target);
     if (!entity) {
         return false;
     }
 
-    const auto* serverWorld = context.getWorld().asServerWorld();
-    if (serverWorld == nullptr) {
+    auto* player = dynamic_cast<Player*>(entity);
+    if (player == nullptr) {
         return false;
     }
 
-    const auto* playerEntity = dynamic_cast<const Player*>(entity);
-    if (playerEntity == nullptr) {
+    auto* scoreboard = player->getScoreboard();
+    if (scoreboard == nullptr) {
         return false;
     }
 
-    const auto* serverPlayer = dynamic_cast<const ServerPlayer*>(playerEntity);
-    if (serverPlayer == nullptr || serverPlayer->getServer() == nullptr) {
-        return false;
-    }
-
-    auto& scoreboard = serverPlayer->getServer()->scoreboard();
     const std::string entryName = getScoreboardEntryName(*entity);
 
     for (const auto& [objectiveName, range] : m_scores) {
-        auto* objective = scoreboard.getObjective(objectiveName);
+        auto* objective = scoreboard->getObjective(objectiveName);
         if (objective == nullptr) {
             return false;
         }
 
-        const auto* score = scoreboard.getScore(entryName, *objective);
+        const auto* score = scoreboard->getScore(entryName, *objective);
         if (score == nullptr) {
             return false;
         }
