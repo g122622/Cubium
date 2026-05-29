@@ -32,7 +32,13 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <cstdlib>
+#endif
+
 #include <fmt/format.h>
 
 namespace {
@@ -63,6 +69,7 @@ namespace {
     const std::filesystem::path& resultDirectory,
     const std::filesystem::path& csvPath)
 {
+#ifdef _WIN32
     std::string commandLine = fmt::format("\"{}\" \"{}\" \"{}\" \"{}\"",
         pythonExecutable.string(),
         scriptPath.string(),
@@ -86,6 +93,14 @@ namespace {
     CloseHandle(processInformation.hThread);
     CloseHandle(processInformation.hProcess);
     return static_cast<int>(exitCode);
+#else
+    std::string command = fmt::format("\"{}\" \"{}\" \"{}\" \"{}\"",
+        pythonExecutable.string(),
+        scriptPath.string(),
+        resultDirectory.string(),
+        csvPath.string());
+    return std::system(command.c_str());
+#endif
 }
 
 } // namespace
@@ -144,7 +159,7 @@ int main()
 
     auto writeCsvResult = mc::benchmark::writeBenchmarkResultCsv(resultCsvPath, results);
     if (!writeCsvResult.success()) {
-        std::cerr << writeCsvResult.error().message() << std::endl;
+        std::cerr << writeResult.error().message() << std::endl;
         return 1;
     }
 
