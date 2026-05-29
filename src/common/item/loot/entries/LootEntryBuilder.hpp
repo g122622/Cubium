@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "LootEntry.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"

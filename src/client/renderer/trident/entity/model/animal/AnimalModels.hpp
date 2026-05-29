@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../base/QuadrupedModel.hpp"
 #include "../core/AgeableModel.hpp"
 #include "../core/EntityModel.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/ui/screen/AbstractContainerScreen.hpp"
 #include "core/Types.hpp"
 #include "server/menu/CraftingMenu.hpp"

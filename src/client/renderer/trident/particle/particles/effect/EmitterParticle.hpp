@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../Particle.hpp"
 #include "../../ParticleTypes.hpp"
 

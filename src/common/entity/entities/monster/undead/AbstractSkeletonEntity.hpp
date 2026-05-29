@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
 

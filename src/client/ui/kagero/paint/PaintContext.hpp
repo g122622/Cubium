@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "./Color.hpp"
 #include "./contracts/ICanvas.hpp"
 #include "./contracts/IImage.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "AbstractIllagerEntity.hpp"

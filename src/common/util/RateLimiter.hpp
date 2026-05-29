@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include <chrono>
 #include <functional>
 #include <mutex>

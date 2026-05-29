@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "DispenserBlockEntity.hpp"
 
 namespace mc {

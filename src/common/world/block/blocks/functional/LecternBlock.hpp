@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"

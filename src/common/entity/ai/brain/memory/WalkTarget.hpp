@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../util/assert/AssertAll.hpp"
 #include "BlockPosTarget.hpp"
 

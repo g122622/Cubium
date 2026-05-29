@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ParticleData.hpp"
 #include <glm/glm.hpp>
 

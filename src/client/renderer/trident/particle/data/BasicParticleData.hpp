@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ParticleData.hpp"
 
 namespace mc::client::renderer::trident::particle::data {

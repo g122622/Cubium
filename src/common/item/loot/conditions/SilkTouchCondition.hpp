@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
 
 namespace mc {

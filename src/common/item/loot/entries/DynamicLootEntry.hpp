@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "LootEntry.hpp"
 
 namespace mc {

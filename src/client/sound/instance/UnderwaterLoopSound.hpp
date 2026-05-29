@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/sound/instance/SoundInstance.hpp"
 
 namespace mc::client::sound {

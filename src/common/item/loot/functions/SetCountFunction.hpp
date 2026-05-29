@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "LootFunction.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"

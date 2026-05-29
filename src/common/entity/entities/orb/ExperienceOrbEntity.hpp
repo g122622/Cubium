@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../core/Entity.hpp"
 #include "../../experience/ExperienceConstants.hpp"
 

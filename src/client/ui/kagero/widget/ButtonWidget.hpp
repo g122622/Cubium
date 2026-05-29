@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../Glyph.hpp"
 #include "../paint/PaintContext.hpp"
 #include "Widget.hpp"

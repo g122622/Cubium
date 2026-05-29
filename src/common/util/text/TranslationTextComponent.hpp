@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ITextComponent.hpp"
 #include <vector>
 #include <nlohmann/json.hpp>

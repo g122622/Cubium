@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include <array>

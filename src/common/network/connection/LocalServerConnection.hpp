@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "IServerConnection.hpp"
 #include "LocalConnection.hpp"
 

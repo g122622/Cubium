@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"

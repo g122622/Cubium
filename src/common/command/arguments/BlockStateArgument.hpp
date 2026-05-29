@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ArgumentType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/Properties.hpp"

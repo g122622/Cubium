@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../LayerContext.hpp"
 
 namespace mc {

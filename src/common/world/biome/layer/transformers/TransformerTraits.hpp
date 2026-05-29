@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../Layer.hpp"
 
 // 前向声明

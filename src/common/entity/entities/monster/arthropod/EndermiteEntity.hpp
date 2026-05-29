@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../MonsterEntity.hpp"
 

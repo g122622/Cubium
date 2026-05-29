@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include <vector>

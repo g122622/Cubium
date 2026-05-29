@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../feature/template/Template.hpp"
 #include "../Structure.hpp"
 #include <vector>

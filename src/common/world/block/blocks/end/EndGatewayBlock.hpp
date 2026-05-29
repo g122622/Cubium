@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"

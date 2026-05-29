@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../core/AgeableModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {

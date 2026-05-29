@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ServerDimension.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConfig.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../chat/ChatHistory.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
 #include "../../kagero/widget/ContainerWidget.hpp"

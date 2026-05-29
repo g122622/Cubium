@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../BiomeValues.hpp"
 #include "../LayerContext.hpp"
 #include "TransformerTraits.hpp"

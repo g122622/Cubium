@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/sound/SoundEvents.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "util/math/random/Random.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"

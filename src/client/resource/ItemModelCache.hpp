@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ItemModelLoader.hpp"
 #include "common/item/core/Item.hpp"
 #include <mutex>

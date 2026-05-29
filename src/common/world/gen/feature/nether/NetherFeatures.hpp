@@ -36,6 +36,7 @@
  * - 巨型真菌 (HugeFungusFeature)
  */
 
+#include <memory>
 #include "../fungus/HugeFungusFeature.hpp"
 #include "BasaltFeature.hpp"
 #include "GlowstoneFeature.hpp"

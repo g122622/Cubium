@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../Font.hpp"
 #include "../../Glyph.hpp"
 #include "../paint/Geometry.hpp"

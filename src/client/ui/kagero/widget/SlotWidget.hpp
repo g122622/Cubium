@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../paint/PaintContext.hpp"
 #include "Widget.hpp"
 #include "common/item/core/ItemStack.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <functional>

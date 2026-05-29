@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "world/storage/SingleLevelStorageManager.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "MinecraftServer.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "server/network/TcpServer.hpp"

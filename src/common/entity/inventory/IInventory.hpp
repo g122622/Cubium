@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../core/Types.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include <functional>

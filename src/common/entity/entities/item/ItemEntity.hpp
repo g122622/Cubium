@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../item/core/ItemStack.hpp"
 #include "../../core/Entity.hpp"
 #include <random>

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "world/blockentity/BlockEntity.hpp"
 
 namespace mc {

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ArgumentType.hpp"
 #include "NbtPath.hpp"
 #include <sstream>

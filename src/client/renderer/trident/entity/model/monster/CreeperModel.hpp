@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../base/QuadrupedModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {

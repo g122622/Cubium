@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../core/BlockRaycastResult.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../item/core/ActionResult.hpp"

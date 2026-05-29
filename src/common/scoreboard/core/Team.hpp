@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../util/text/ITextComponent.hpp"
 #include "TeamEnums.hpp"
 #include <set>

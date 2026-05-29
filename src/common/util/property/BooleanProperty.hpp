@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "Property.hpp"
 #include <unordered_set>
 

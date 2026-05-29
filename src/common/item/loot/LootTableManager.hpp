@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "LootTable.hpp"
 #include <unordered_map>
 

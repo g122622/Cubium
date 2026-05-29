@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/property/Properties.hpp"

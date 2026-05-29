@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "DripParticle.hpp"
 
 namespace mc::client {

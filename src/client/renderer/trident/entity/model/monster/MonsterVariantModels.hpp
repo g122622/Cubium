@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../base/BipedModel.hpp"
 #include "SpiderModel.hpp"
 

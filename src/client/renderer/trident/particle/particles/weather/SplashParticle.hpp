@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 

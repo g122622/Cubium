@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "EntityKey.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"

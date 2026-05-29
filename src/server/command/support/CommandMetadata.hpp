@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/command/CommandNode.hpp"
 #include "server/command/ServerCommandSource.hpp"
 

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <string>

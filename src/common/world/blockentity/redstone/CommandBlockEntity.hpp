@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../BlockEntity.hpp"
 #include "command/ICommandSource.hpp"
 #include "util/math/Vector3.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "Enchantment.hpp"
 #include "common/core/Result.hpp"
 #include "common/network/packet/PacketSerializer.hpp"

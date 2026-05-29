@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../../../block/blocks/coral/CoralBlock.hpp"
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "TrunkPlacer.hpp"
 
 namespace mc {

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "Placement.hpp"
 #include <vector>
 

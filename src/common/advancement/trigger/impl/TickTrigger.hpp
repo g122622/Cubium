@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../CriterionTrigger.hpp"
 
 namespace mc::advancement {

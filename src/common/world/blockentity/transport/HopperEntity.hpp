@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "entity/inventory/IInventory.hpp"
 #include "util/Direction.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"

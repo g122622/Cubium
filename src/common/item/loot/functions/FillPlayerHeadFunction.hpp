@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "CopyNameFunction.hpp"
 
 namespace mc {

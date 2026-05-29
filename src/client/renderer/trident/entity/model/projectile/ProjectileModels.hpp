@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::projectile {

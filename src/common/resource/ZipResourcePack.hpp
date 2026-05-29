@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/resource/IResourcePack.hpp"
 #include <filesystem>
 #include <shared_mutex>

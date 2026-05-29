@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "LootFunction.hpp"
 #include <string>
 #include <vector>

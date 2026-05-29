@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <memory>
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/entity/EntityManager.hpp"
