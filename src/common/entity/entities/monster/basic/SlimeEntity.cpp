@@ -36,6 +36,7 @@
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
 

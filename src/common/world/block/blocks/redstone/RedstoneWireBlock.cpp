@@ -32,6 +32,7 @@
 #include "../../VanillaBlocks.hpp"
 #include "ObserverBlock.hpp"
 #include "RedstoneDiodeBlock.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

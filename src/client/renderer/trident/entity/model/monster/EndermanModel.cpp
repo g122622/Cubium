@@ -22,6 +22,7 @@
  */
 
 #include "EndermanModel.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {

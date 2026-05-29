@@ -27,6 +27,7 @@
 #include "client/sound/instance/MinecartSound.hpp"
 #include "client/sound/instance/MovingTickableSound.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::sound {

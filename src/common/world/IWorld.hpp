@@ -35,6 +35,7 @@
 #include "explosion/ExplosionMode.hpp"
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
+#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>

@@ -24,6 +24,7 @@
 #include "server/stats/StatisticsManager.hpp"
 #include "server/stats/StatRegistry.hpp"
 #include <algorithm>
+#include <limits>
 
 namespace mc {
 namespace server {

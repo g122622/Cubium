@@ -42,6 +42,7 @@
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc {
 namespace entity::ai::goal {

@@ -27,6 +27,7 @@
 #include "../../../util/math/Vector3.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "PathPoint.hpp"
+#include <algorithm>
 #include <optional>
 #include <vector>
 

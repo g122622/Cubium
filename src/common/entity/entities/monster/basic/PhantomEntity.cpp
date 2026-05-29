@@ -29,6 +29,7 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

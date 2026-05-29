@@ -33,6 +33,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include <limits>
 
 namespace mc {
 

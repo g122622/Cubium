@@ -26,6 +26,7 @@
 #include "PacketSerializer.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "world/map/MapData.hpp"
+#include <algorithm>
 
 namespace mc::network {
 

@@ -25,6 +25,7 @@
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
 

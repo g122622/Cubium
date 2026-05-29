@@ -26,6 +26,7 @@
 #include "../paint/PaintContext.hpp"
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <vector>

@@ -29,6 +29,7 @@
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
 

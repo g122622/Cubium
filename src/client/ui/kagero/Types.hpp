@@ -25,6 +25,7 @@
 
 #include "../Glyph.hpp"
 #include "common/core/Types.hpp"
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>

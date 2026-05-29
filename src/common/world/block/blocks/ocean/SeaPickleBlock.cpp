@@ -33,6 +33,7 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

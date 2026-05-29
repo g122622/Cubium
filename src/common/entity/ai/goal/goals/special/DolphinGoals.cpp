@@ -42,6 +42,7 @@
 #include "../../../../../world/fluid/FluidTags.hpp"
 #include "../../../../../world/gen/structure/Structure.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

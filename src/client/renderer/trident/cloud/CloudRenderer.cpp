@@ -28,6 +28,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <filesystem>

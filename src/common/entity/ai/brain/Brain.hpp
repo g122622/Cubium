@@ -33,6 +33,7 @@
 #include "task/Task.hpp"
 #include <any>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>

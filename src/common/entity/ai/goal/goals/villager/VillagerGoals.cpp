@@ -44,6 +44,7 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../GoalConstants.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc {
 namespace entity {

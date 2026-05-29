@@ -25,6 +25,7 @@
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../IWorld.hpp"
+#include <algorithm>
 #include <unordered_map>
 
 namespace mc {

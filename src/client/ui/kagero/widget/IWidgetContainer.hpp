@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Widget.hpp"
+#include <algorithm>
 #include <memory>
 #include <vector>
 

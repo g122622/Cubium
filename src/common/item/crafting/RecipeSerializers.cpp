@@ -25,6 +25,7 @@
 #include "item/core/ItemRegistry.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <limits>
 #include <sstream>
 #include <unordered_set>
 
@@ -189,13 +190,12 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
             "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
     }
     // 熔炼类配方 - 返回错误提示使用专门的方法
-    else if (type == "minecraft:smelting" || type == "minecraft:blasting" ||
-             type == "minecraft:smoking" || type == "minecraft:campfire_cooking") {
+    else if (type == "minecraft:smelting" || type == "minecraft:blasting" || type == "minecraft:smoking" ||
+        type == "minecraft:campfire_cooking") {
         return Error(ErrorCode::ResourceParseError,
             "Smelting recipes should be loaded via fromSmeltingJson. "
             "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
-    }
-    else {
+    } else {
         return Error(ErrorCode::ResourceParseError, "Unsupported recipe type: " + type);
     }
 }

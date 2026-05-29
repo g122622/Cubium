@@ -47,6 +47,7 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

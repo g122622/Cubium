@@ -34,6 +34,7 @@
 #include "ActionResult.hpp"
 #include "ItemRegistry.hpp"
 #include "ItemStack.hpp"
+#include <algorithm>
 #include <sstream>
 
 namespace mc {

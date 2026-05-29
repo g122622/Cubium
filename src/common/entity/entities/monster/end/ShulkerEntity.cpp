@@ -38,6 +38,7 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

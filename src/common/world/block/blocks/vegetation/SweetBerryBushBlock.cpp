@@ -36,6 +36,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockTags.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

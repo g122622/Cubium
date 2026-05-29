@@ -26,6 +26,7 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

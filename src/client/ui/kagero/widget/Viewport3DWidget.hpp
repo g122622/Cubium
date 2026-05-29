@@ -25,6 +25,7 @@
 
 #include "../paint/PaintContext.hpp"
 #include "Widget.hpp"
+#include <algorithm>
 #include <functional>
 #include <memory>
 

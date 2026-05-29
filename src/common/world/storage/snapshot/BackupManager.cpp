@@ -24,6 +24,7 @@
 #include "BackupManager.hpp"
 #include "../db/RocksDBDatabase.hpp"
 #include "perfetto/TraceEvents.hpp"
+#include <algorithm>
 #include <rocksdb/utilities/backup_engine.h>
 #include <spdlog/spdlog.h>
 

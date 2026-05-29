@@ -32,6 +32,7 @@
 #include "common/util/nbt/Nbt.hpp"
 
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>

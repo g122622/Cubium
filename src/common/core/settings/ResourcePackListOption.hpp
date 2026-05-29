@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <vector>
 #include <nlohmann/json.hpp>

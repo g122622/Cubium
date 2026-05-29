@@ -46,6 +46,7 @@
 #include "../../../util/RandomPositionGenerator.hpp"
 #include "../../GoalFlag.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc::entity::ai::goal {
 

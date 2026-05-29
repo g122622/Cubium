@@ -23,6 +23,7 @@
 
 #include "PathFinder.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc::entity::ai::pathfinding {
 

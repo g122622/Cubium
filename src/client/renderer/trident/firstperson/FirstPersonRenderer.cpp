@@ -32,6 +32,7 @@
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
+#include <limits>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::firstperson {

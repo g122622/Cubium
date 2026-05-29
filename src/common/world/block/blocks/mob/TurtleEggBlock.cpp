@@ -34,6 +34,7 @@
 #include "../../../gamerule/GameRules.hpp"
 #include "../../../lighting/InternalLightUtils.hpp"
 #include "../../BlockRegistry.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

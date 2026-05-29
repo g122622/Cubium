@@ -31,6 +31,7 @@
 #include <atomic>
 #include <functional>
 #include <future>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <unordered_set>

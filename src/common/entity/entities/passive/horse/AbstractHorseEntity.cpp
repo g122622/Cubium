@@ -48,6 +48,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

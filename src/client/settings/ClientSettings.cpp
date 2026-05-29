@@ -25,6 +25,7 @@
 
 #include "common/core/DefaultValues.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <spdlog/spdlog.h>
 

@@ -34,6 +34,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "spdlog/spdlog.h"
+#include <algorithm>
 
 namespace mc::command {
 

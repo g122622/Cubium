@@ -22,6 +22,7 @@
  */
 
 #include "NibbleArray.hpp"
+#include <algorithm>
 #include <stdexcept>
 
 namespace mc {

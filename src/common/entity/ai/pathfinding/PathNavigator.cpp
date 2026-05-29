@@ -32,6 +32,7 @@
 #include "../../core/MobEntity.hpp"
 #include "../controller/MovementController.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc::entity::ai::pathfinding {
 

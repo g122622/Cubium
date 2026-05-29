@@ -24,6 +24,7 @@
 #include "IRandom.hpp"
 #include "../../assert/AssertAll.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc::math {
 

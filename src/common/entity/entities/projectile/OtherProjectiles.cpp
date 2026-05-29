@@ -38,14 +38,15 @@
 #include "../../entities/orb/ExperienceOrbEntity.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../inventory/PlayerInventory.hpp"
-#include "common/item/loot/context/LootContext.hpp"
-#include "common/item/loot/LootTable.hpp"
-#include "common/item/loot/LootTableManager.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

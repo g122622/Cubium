@@ -27,11 +27,12 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include <cmath>
+#include <limits>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::spawn {

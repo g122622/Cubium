@@ -184,7 +184,8 @@ std::string PlatformInfo::getPlatformNameWindows()
     typedef LONG(WINAPI * RtlGetVersionFunc)(PRTL_OSVERSIONINFOW);
     HMODULE hNtDll = GetModuleHandleA("ntdll.dll");
     if (hNtDll) {
-        auto pRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(GetProcAddress(hNtDll, "RtlGetVersion"));
+        auto pRtlGetVersion =
+            reinterpret_cast<RtlGetVersionFunc>(reinterpret_cast<void*>(GetProcAddress(hNtDll, "RtlGetVersion")));
         if (pRtlGetVersion) {
             pRtlGetVersion(reinterpret_cast<PRTL_OSVERSIONINFOW>(&osvi));
         }

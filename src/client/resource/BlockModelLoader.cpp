@@ -24,6 +24,7 @@
 #include "BlockModelLoader.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <algorithm>
 #include <cctype>
 #include <nlohmann/json.hpp>
 

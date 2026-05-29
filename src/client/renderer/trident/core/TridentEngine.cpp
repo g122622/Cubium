@@ -54,6 +54,7 @@
 #include "render/RenderPassManager.hpp"
 #include "render/UniformManager.hpp"
 #include "texture/TridentTexture.hpp"
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstring>

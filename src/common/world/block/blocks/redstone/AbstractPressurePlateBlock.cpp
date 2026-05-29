@@ -28,6 +28,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include <algorithm>
 #include <unordered_map>
 
 namespace mc {

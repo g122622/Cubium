@@ -62,6 +62,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <spdlog/spdlog.h>
 
 #pragma pop_macro("BYTE_SIZE")

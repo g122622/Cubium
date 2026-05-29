@@ -36,6 +36,7 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc::entity::ai::goal {
 

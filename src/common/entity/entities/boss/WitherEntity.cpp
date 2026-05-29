@@ -49,6 +49,7 @@
 #include "../../utils/ItemDropHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc {
 namespace entity {

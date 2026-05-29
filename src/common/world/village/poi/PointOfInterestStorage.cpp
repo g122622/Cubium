@@ -25,6 +25,7 @@
 #include "../../../util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <list>
 
 namespace mc {

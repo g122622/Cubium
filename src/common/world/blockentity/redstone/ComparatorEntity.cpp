@@ -24,6 +24,7 @@
 #include "ComparatorEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blockentity {

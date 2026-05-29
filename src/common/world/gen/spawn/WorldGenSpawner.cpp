@@ -31,6 +31,7 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../chunk/IChunkGenerator.hpp"
+#include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -255,12 +256,8 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
         // MC 1.16.5 performWorldGenSpawning 第 352-353 行：
         // clamp 确保实体在区块边界内，考虑实体宽度
         // MathHelper.clamp(l, i + f, i + 16.0 - f)
-        spawnX = std::clamp(spawnX,
-            static_cast<f32>(chunkStartX) + width,
-            static_cast<f32>(chunkStartX + 16) - width);
-        spawnZ = std::clamp(spawnZ,
-            static_cast<f32>(chunkStartZ) + width,
-            static_cast<f32>(chunkStartZ + 16) - width);
+        spawnX = std::clamp(spawnX, static_cast<f32>(chunkStartX) + width, static_cast<f32>(chunkStartX + 16) - width);
+        spawnZ = std::clamp(spawnZ, static_cast<f32>(chunkStartZ) + width, static_cast<f32>(chunkStartZ + 16) - width);
 
         // 检查碰撞空间
         i32 spawnY = getSpawnHeight(region, entityType, static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
@@ -278,8 +275,8 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
         // MC 1.16.5 performWorldGenSpawning 第 354 行：
         // 检查碰撞 - !worldIn.hasNoCollisions(entityType.getBoundingBoxWithSizeApplied(d0, y, d1))
         // 创建实体的碰撞箱
-        const AxisAlignedBB entityBox = AxisAlignedBB::fromPosition(
-            Vector3(spawnX, static_cast<f32>(spawnY), spawnZ), width, height);
+        const AxisAlignedBB entityBox =
+            AxisAlignedBB::fromPosition(Vector3(spawnX, static_cast<f32>(spawnY), spawnZ), width, height);
 
         if (region.hasBlockCollision(entityBox)) {
             continue; // 有碰撞，跳过此位置

@@ -43,6 +43,7 @@
 #include "../item/ItemEntity.hpp"
 #include "../player/Player.hpp"
 #include "../projectile/AbstractArrowEntity.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {

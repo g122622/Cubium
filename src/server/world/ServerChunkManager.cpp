@@ -28,6 +28,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <spdlog/spdlog.h>

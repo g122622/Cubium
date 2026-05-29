@@ -31,6 +31,7 @@
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
+#include <limits>
 
 namespace mc::entity::ai::goal {
 

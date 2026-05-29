@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../Types.hpp"
+#include <algorithm>
 #include <any>
 #include <atomic>
 #include <functional>

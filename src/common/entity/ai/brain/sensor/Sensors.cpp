@@ -29,6 +29,7 @@
 #include "../../../../world/village/poi/PointOfInterestStorage.hpp"
 #include "../../../../world/village/poi/PointOfInterestType.hpp"
 #include "../../../entities/villager/VillagerEntity.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace entity {

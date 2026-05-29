@@ -23,6 +23,7 @@
 
 #include "AdvancementLoader.hpp"
 #include "AdvancementManager.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <spdlog/spdlog.h>

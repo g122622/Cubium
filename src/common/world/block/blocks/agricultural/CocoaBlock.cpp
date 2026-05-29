@@ -28,6 +28,7 @@
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

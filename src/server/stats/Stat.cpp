@@ -22,6 +22,7 @@
  */
 
 #include "server/stats/Stat.hpp"
+#include <limits>
 
 namespace mc {
 namespace server {
