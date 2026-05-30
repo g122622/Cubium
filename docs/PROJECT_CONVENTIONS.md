@@ -118,8 +118,8 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 - `MAX_PACKETS_PER_SECOND`, `MAX_LOGIN_ATTEMPTS` - 速率限制
 
 `mc::world` 命名空间：
-- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制
-- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS`, `CHUNK_VOLUME` - 区块尺寸
+- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁这些高度限制。
+- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS`, `CHUNK_VOLUME` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
 【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT目前虽然值一样，但是语义存在巨大区别。
 constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 未来可能MIN_BUILD_HEIGHT会向下拓展成-64，这时候CHUNK_HEIGHT就不等于MAX_BUILD_HEIGHT了！使用的时候务必小心这个坑！
@@ -127,6 +127,95 @@ constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 - `CHUNK_LOAD_RADIUS`, `CHUNK_UNLOAD_RADIUS`, `MAX_CHUNKS_LOADED` - 区块加载
 - `WORLD_SEED_DEFAULT`, `SPAWN_CHUNK_RADIUS` - 世界生成
 - `BLOCK_UPDATE_RADIUS` - 方块更新范围
+
+另外，`src\common\world\WorldConstants.hpp` 这个文件也提供了巨量的世界相关常量和工具方法，必须尽可能复用而不是自己硬编码：
+
+```cpp
+enum class ChunkLoadPriority : i32 {
+    Critical = 0,  // 玩家所在区块
+    High = 1,      // 玩家周围区块
+    Normal = 2,    // 正常加载
+    Low = 3,       // 远处区块
+    Background = 4 // 后台生成
+};
+constexpr u32 CHUNK_UNLOAD_DELAY_MS = 30000; // 30秒
+
+// 区块保存间隔 (毫秒)
+constexpr u32 CHUNK_SAVE_INTERVAL_MS = 60000; // 1分钟
+
+constexpr f32 TERRAIN_HEIGHT_VARIATION = 16.0f;
+constexpr f32 TERRAIN_BASE_HEIGHT = 64.0f;
+constexpr f32 CAVE_FREQUENCY = 0.02f;
+constexpr f32 ORE_FREQUENCY = 0.01f;
+
+constexpr i32 LIGHT_UPDATE_DISTANCE = 15;
+
+constexpr i32 BLOCK_UPDATE_DISTANCE = 64;
+
+// 红石更新延迟 (ticks)
+constexpr i32 REDSTONE_DELAY = 2;
+
+constexpr i32 ENTITY_ACTIVATION_RANGE_PLAYER = 128;
+constexpr i32 ENTITY_ACTIVATION_RANGE_MONSTER = 32;
+constexpr i32 ENTITY_ACTIVATION_RANGE_ANIMAL = 32;
+constexpr i32 ENTITY_ACTIVATION_RANGE_MISC = 16;
+
+// 实体追踪范围
+constexpr i32 ENTITY_TRACKING_RANGE_PLAYER = 64;
+constexpr i32 ENTITY_TRACKING_RANGE_MONSTER = 64;
+constexpr i32 ENTITY_TRACKING_RANGE_ANIMAL = 48;
+constexpr i32 ENTITY_TRACKING_RANGE_MISC = 32;
+
+// 实体消失范围
+constexpr i32 ENTITY_DESPAWN_RANGE = 128;
+
+// 检查Y坐标是否在有效范围内
+inline bool isValidY(i32 y)
+{
+    return y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT;
+}
+
+// 将世界坐标转换为区块坐标
+inline i32 toChunkCoord(i32 worldCoord)
+{
+    return worldCoord >= 0 ? worldCoord / CHUNK_WIDTH : (worldCoord + 1) / CHUNK_WIDTH - 1;
+}
+
+// 将世界坐标转换为区块内本地坐标
+inline i32 toLocalCoord(i32 worldCoord)
+{
+    i32 local = worldCoord % CHUNK_WIDTH;
+    return local >= 0 ? local : local + CHUNK_WIDTH;
+}
+
+// 将区块坐标转换为世界坐标
+inline i32 toWorldCoord(i32 chunkCoord)
+{
+    return chunkCoord * CHUNK_WIDTH;
+}
+
+// 将Y坐标转换为区块段索引
+inline i32 toSectionIndex(i32 y)
+{
+    return (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT;
+}
+
+// 将区块段索引转换为Y坐标
+inline i32 sectionToY(i32 sectionIndex)
+{
+    return MIN_BUILD_HEIGHT + sectionIndex * CHUNK_SECTION_HEIGHT;
+}
+
+// 检查区块坐标是否有效
+inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
+{
+    constexpr i32 WORLD_BORDER = 30000000;
+    constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;
+    constexpr i32 MAX_CHUNK = WORLD_BORDER / CHUNK_WIDTH;
+    return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
+}
+
+```
 
 `mc::entity` 命名空间：
 - `MAX_ENTITIES_PER_CHUNK`, `MAX_PLAYERS`, `MAX_ENTITIES` - 实体数量限制
@@ -393,15 +482,6 @@ namespace attribute {
 enum class Operation : u8 { ... };
 }}}
 ```
-
-## 自维护规则
-
-**每次重大更改后**（新模型、新页面、新控制器、路由更改、迁移更改、新测试文件、架构变更），更新此 CLAUDE.md 文件以反映当前状态。具体来说：
-
-- 将新模型/控制器/页面/路由添加到下面的相关表格中
-- 如果添加了新测试，更新测试计数
-- 将任何新的易错点或模式添加到"易错点和陷阱"部分
-- 保持此文件作为在此项目上工作的 AI 会话的唯一事实来源
 
 ## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
 

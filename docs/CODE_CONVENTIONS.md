@@ -354,6 +354,34 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 
 ### 5.4 注释必须全部使用简体中文
 
+### 5.5 禁止出现“对齐MC”之类的注释
+
+下面这些“对齐MC”之类的注释不能出现；如果你发现代码中有这些注释，顺手将它们删除：
+
+```cpp
+    // 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理 ❌这行注释要删了
+    m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
+
+    // 对齐 MC 1.16.5 FirstPersonRenderer::renderArmFirstPerson。 ❌这行注释要删了
+    const f32 sqrtSwing = std::sqrt(swingProgress);
+
+/**
+ * @brief 基于方块坐标的位置目标
+ *
+ * 对齐 MC 1.16.5 BlockPosWrapper，始终使用方块中心点作为导航/注视位置。 ❌这行注释要删了
+ */
+class BlockPosTarget final : public IPositionTarget {}
+
+    // 水生生物 - MC 1.16.5 权重 ❌这行注释要删了
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6)); // MC 1.16.5: 15 ❌这行注释要删了
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // MC 1.16.5: 15 ❌这行注释要删了
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4)); // MC 1.16.5: 3 ❌这行注释要删了
+
+        // 触发通用的 EffectsChangedTrigger
+        // 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger(ServerPlayer) ❌这行注释要删了
+```
+
 ---
 
 ## 6. 内存管理规范
@@ -452,6 +480,22 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
     }
     // ...
 }
+```
+
+---
+
+## 8. include路径规范
+
+```cpp
+// ✅ 推荐：使用./或不使用./
+#include "Vector3.hpp"// ✅
+#include "./Vector3.hpp"// ✅
+#include "./math/Vector3.hpp"// ✅
+
+// ❌ 禁止：使用../，这会导致路径混乱，增加维护难度
+#include "../../common/util/math/Vector3.hpp"// ❌
+// 这种情况下建议换成绝对路径：
+#include "common/util/math/Vector3.hpp"// ✅
 ```
 
 ---
