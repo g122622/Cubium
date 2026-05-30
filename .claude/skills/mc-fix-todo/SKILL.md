@@ -1,5 +1,5 @@
 ---
-name: fix-todo
+name: mc-fix-todo
 description: 认领并收敛项目代码中的一个TODO
 ---
 

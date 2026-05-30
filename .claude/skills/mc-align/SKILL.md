@@ -1,5 +1,5 @@
 ---
-name: align
+name: mc-align
 description: 将当前项目的代码与 Minecraft 原版代码对齐，确保功能和逻辑都能准确复刻 Minecraft。
 ---
 

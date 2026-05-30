@@ -1,5 +1,5 @@
 ---
-name: add-trace
+name: mc-add-trace
 description: 为用户指定的代码范围增加perfetto追踪宏
 ---
 
