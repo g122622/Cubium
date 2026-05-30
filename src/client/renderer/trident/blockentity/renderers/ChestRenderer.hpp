@@ -43,8 +43,6 @@ namespace model = mc::client::renderer::blockentity::model;
  * @brief 箱子方块实体渲染器
  *
  * 渲染箱子和盖子的开合动画。
- * 参考 MC 1.16.5 ChestTileEntityRenderer
- *
  * 箱子动画特点：
  * - 盖子角度从0.0到1.0
  * - 使用非线性缓动：angle = 1.0 - (1.0 - angle)^3
@@ -97,7 +95,7 @@ private:
      * @param entity 箱子实体
      * @return 箱子类型
      */
-    [[nodiscard]] mc::client::renderer::blockentity::model::ChestModel::ChestType determineChestType(
+    [[nodiscard]] mc::client::renderer::blockentity::model::ChestModel::ChestType _determineChestType(
         const mc::blockentity::ChestEntity& entity) const;
 };
 

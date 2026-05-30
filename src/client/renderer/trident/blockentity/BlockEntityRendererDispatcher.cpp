@@ -53,7 +53,6 @@ void BlockEntityRendererDispatcher::registerRenderer(BlockEntityType type, Rende
     }
 
     m_renderers[type] = factory();
-    spdlog::debug("BlockEntityRendererDispatcher: Registered renderer for type {}", static_cast<u16>(type));
 }
 
 bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick, u32 light)
@@ -71,12 +70,7 @@ bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick,
 
 void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32 partialTick)
 {
-    // MC 1.16.5: 遍历所有全局方块实体并渲染
-    // 全局方块实体包括：
-    // - 信标光束（isGlobalRenderer = true，渲染距离 256 格）
-    // - 末地传送门（渲染距离 256 格）
-    //
-    // 这些方块实体可以在远距离看到，需要特殊处理
+    // 全局方块实体（如信标光束）可以在远距离看到，需要特殊处理
     //
     // 完整实现需要：
     // 1. 在世界加载时收集所有全局方块实体
@@ -96,25 +90,6 @@ void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32
 void BlockEntityRendererDispatcher::initializeDefaults()
 {
     spdlog::info("BlockEntityRendererDispatcher: Initializing default renderers");
-
-    // MC 1.16.5 TileEntityRendererDispatcher 构造函数中注册的渲染器：
-    // - SIGN -> SignTileEntityRenderer
-    // - MOB_SPAWNER -> MobSpawnerTileEntityRenderer
-    // - PISTON -> PistonTileEntityRenderer
-    // - CHEST, ENDER_CHEST, TRAPPED_CHEST -> ChestTileEntityRenderer
-    // - ENCHANTING_TABLE -> EnchantmentTableTileEntityRenderer
-    // - LECTERN -> LecternTileEntityRenderer
-    // - END_PORTAL -> EndPortalTileEntityRenderer
-    // - END_GATEWAY -> EndGatewayTileEntityRenderer
-    // - BEACON -> BeaconTileEntityRenderer
-    // - SKULL -> SkullTileEntityRenderer
-    // - BANNER -> BannerTileEntityRenderer
-    // - STRUCTURE_BLOCK -> StructureTileEntityRenderer
-    // - SHULKER_BOX -> ShulkerBoxTileEntityRenderer
-    // - BED -> BedTileEntityRenderer
-    // - CONDUIT -> ConduitTileEntityRenderer
-    // - BELL -> BellTileEntityRenderer
-    // - CAMPFIRE -> CampfireTileEntityRenderer
 
     // 注册已实现的渲染器
     registerRenderer(BlockEntityType::Beacon,

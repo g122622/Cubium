@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
@@ -51,6 +51,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 
@@ -402,7 +403,7 @@ void ClientApplication::setupNetworkCallbacks()
             case ContainerType::Generic9x5:
             case ContainerType::Generic9x6:
             case ContainerType::ShulkerBox: {
-                // 根据容器类型计算行数（MC 1.16.5 对齐：不再传输 slotCount）
+                // 根据容器类型计算行数
                 const ContainerType containerType = static_cast<ContainerType>(packet.type());
                 i32 rows = 3; // 默认3行
                 switch (containerType) {
@@ -614,7 +615,7 @@ void ClientApplication::setupNetworkCallbacks()
 
             if (entity->hoverStart() == 0.0f) {
                 mc::math::Random rng(static_cast<u64>(entityId) * 341873128712ULL + 132897987541ULL);
-                entity->setHoverStart(rng.nextFloat() * 6.28318530718f);
+                entity->setHoverStart(rng.nextFloat() * mc::math::TWO_PI);
             }
         }
     };
@@ -746,7 +747,6 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         // 通知音频系统蜜蜂愤怒状态变化
-        // MC 1.16.5: 蜜蜂愤怒时切换到 ENTITY_BEE_LOOP_AGGRESSIVE 声音
         if (m_audioService && wasAngry != isAngry) {
             m_audioService->onEntityAngerStateChanged(entityId, isAngry);
         }
@@ -775,7 +775,6 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onEntityStatus = [this](u32 entityId, u8 status) {
         // 处理实体状态事件
-        // 参考 MC 1.16.5 ClientPlayNetHandler.handleEntityStatus()
         using namespace network;
 
         // 获取实体位置用于粒子效果
@@ -788,7 +787,6 @@ void ClientApplication::setupNetworkCallbacks()
         switch (status) {
             case static_cast<u8>(EntityStatusPacket::Status::GuardianAttack): {
                 // 状态 21: 守卫者开始攻击
-                // MC 1.16.5: this.client.getSoundHandler().play(new GuardianSound((GuardianEntity)entity));
                 if (m_audioService) {
                     m_audioService->onGuardianAttack(entityId);
                 }
@@ -796,8 +794,6 @@ void ClientApplication::setupNetworkCallbacks()
             }
             case static_cast<u8>(EntityStatusPacket::Status::TamingSucceeded): {
                 // 状态 7: 驯服成功 - 显示爱心粒子
-                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0,
-                // 0.0);
                 if (m_world.particleManager() != nullptr) {
                     // 在实体头顶位置生成爱心粒子
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
@@ -811,8 +807,6 @@ void ClientApplication::setupNetworkCallbacks()
             }
             case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
                 // 状态 6: 驯服失败 - 显示烟雾粒子
-                // MC 1.16.5: TameableEntity.playTameEffect(false) - 生成7个烟雾粒子
-                // 参考: net.minecraft.entity.passable.TameableEntity.playTameEffect
                 if (m_world.particleManager() != nullptr) {
                     // 生成7个烟雾粒子，随机分布在实体周围
                     for (i32 i = 0; i < 7; ++i) {
@@ -838,8 +832,6 @@ void ClientApplication::setupNetworkCallbacks()
             }
             case static_cast<u8>(EntityStatusPacket::Status::LoveHeart): {
                 // 状态 18: 繁殖爱心效果
-                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0,
-                // 0.0);
                 if (m_world.particleManager() != nullptr) {
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
@@ -1078,7 +1070,6 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onSetPassengers = [this](u32 entityId, const std::vector<u32>& passengerIds) {
         // 处理乘客变化：更新实体的骑乘状态
-        // MC 1.16.5: 当乘客列表变化时，需要更新骑乘状态声音
 
         const EntityId localPlayerEntityId = m_localIdentity.entityId();
         const EntityId vehicleEntityId = static_cast<EntityId>(entityId);
@@ -1172,16 +1163,12 @@ void ClientApplication::setupNetworkCallbacks()
             m_world.setDimensionId(dimension);
 
             // 3. 清空世界区块
-            // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
-            // 当维度改变时创建新的 ClientWorld，这会清空所有区块
             m_world.clearChunks();
 
             // 4. 清空实体管理器（保留本地玩家）
-            // 参考 MC 1.16.5: this.world.removeAllEntities()
             m_world.entityManager().clear();
 
             // 5. 重置天气状态
-            // 参考 MC 1.16.5: 新 ClientWorld 天气状态为初始值
             // 下界和末地不应有降雨/雷暴
             m_world.resetWeather();
 
@@ -1207,17 +1194,12 @@ void ClientApplication::setupNetworkCallbacks()
             m_player->setDimension(dimension);
 
             // 11. 如果 keepData 为 false（死亡重生），重置玩家状态
-            // 参考 MC 1.16.5 PlayerList.func_232644_a_():
-            // keepData=false 时调用 copyFrom(oldPlayer, false)，不保留背包和经验
-            // 然后设置生命值、饥饿值等
             if (!keepData) {
                 m_player->respawn();
             }
         }
 
         // 12. 重置预测器
-        // 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn():
-        // 创建新的 ClientPlayerEntity 并重置位置预测
         if (m_predictor && m_player) {
             m_predictor->reset(Vector3(m_player->position().x, m_player->position().y, m_player->position().z),
                 m_player->yaw(),

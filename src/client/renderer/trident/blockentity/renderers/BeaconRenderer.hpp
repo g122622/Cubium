@@ -42,7 +42,6 @@ namespace client::renderer::trident::blockentity {
  * @brief 信标方块实体渲染器
  *
  * 渲染信标光束效果。
- * 参考 MC 1.16.5 BeaconTileEntityRenderer
  *
  * 信标光束特点：
  * - 全局渲染器（可见距离256格）
@@ -97,7 +96,7 @@ private:
      * @param pos 方块位置
      * @param light 组合光照
      */
-    void renderBeaconBase(const BlockPos& pos, u32 light);
+    void _renderBeaconBase(const BlockPos& pos, u32 light);
 
     /**
      * @brief 渲染光束
@@ -108,7 +107,7 @@ private:
      * @param partialTick 部分tick
      * @param light 组合光照
      */
-    void renderBeam(const BlockPos& pos,
+    void _renderBeam(const BlockPos& pos,
         const std::vector<mc::blockentity::BeaconBeamSegment>& segments,
         i64 gameTime,
         f32 partialTick,

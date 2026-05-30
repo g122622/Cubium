@@ -97,12 +97,8 @@ public:
      * @param showDecorations 是否显示装饰
      * @param mapData 地图数据（用于获取装饰信息），可为nullptr
      */
-    void renderMap(i32 mapId,
-        f64 screenX,
-        f64 screenY,
-        f64 size,
-        bool showDecorations = true,
-        const world::map::MapData* mapData = nullptr);
+    void renderMap(
+        i32 mapId, f64 screenX, f64 screenY, f64 size, bool showDecorations, const world::map::MapData* mapData);
 
     /**
      * @brief 在地图上绘制装饰图标
@@ -145,18 +141,18 @@ private:
     /**
      * @brief 获取或创建纹理缓存条目
      */
-    MapTextureEntry& getOrCreateEntry(i32 mapId);
+    MapTextureEntry& _getOrCreateEntry(i32 mapId);
 
     /**
      * @brief 将MapData像素转换为RGBA纹理数据
      */
-    static void convertMapToTexture(
+    static void _convertMapToTexture(
         const std::array<u8, MAP_SIZE * MAP_SIZE>& colors, std::array<u8, TEXTURE_SIZE>& outTexture);
 
     /**
      * @brief 获取装饰类型的颜色（用于简单图标绘制）
      */
-    [[nodiscard]] static u32 getDecorationColor(world::map::DecorationType type);
+    [[nodiscard]] static u32 _getDecorationColor(world::map::DecorationType type);
 
     /** 纹理缓存 */
     std::unordered_map<i32, MapTextureEntry> m_textures;

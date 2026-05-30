@@ -23,8 +23,9 @@
 
 #pragma once
 
-#include "../../MeshTypes.hpp"
-#include "ChunkMesher.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
@@ -281,33 +282,33 @@ private:
     u64 m_destroyFrameCounter = 0; // 每次调用 processPendingDestroys 递增
 
     // 单次命令缓冲区
-    [[nodiscard]] Result<VkCommandBuffer> beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    [[nodiscard]] Result<VkCommandBuffer> _beginSingleTimeCommands();
+    void _endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     // 创建缓冲区
-    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
+    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
         VkDeviceMemory& memory);
 
     // 创建/更新缓冲区
-    [[nodiscard]] Result<void> createChunkBuffer(ChunkGpuBuffer& buffer, const MeshData& meshData);
+    [[nodiscard]] Result<void> _createChunkBuffer(ChunkGpuBuffer& buffer, const MeshData& meshData);
 
-    [[nodiscard]] Result<void> updateChunkLayer(
+    [[nodiscard]] Result<void> _updateChunkLayer(
         const ChunkId& chunkId, const MeshData& meshData, ChunkRenderLayer layer);
 
     // 上传缓冲区数据
-    [[nodiscard]] Result<void> uploadBufferData(VkBuffer dstBuffer, const void* data, VkDeviceSize size);
+    [[nodiscard]] Result<void> _uploadBufferData(VkBuffer dstBuffer, const void* data, VkDeviceSize size);
 
     // 查找内存类型
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     // 创建纹理图集
-    [[nodiscard]] Result<void> createTextureAtlas(u32 width, u32 height);
+    [[nodiscard]] Result<void> _createTextureAtlas(u32 width, u32 height);
 
     // 上传纹理数据
-    [[nodiscard]] Result<void> uploadTextureData(const u8* pixelData, u32 width, u32 height);
+    [[nodiscard]] Result<void> _uploadTextureData(const u8* pixelData, u32 width, u32 height);
 };
 
 } // namespace mc::client

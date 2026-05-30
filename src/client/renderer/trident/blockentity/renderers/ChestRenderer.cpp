@@ -36,7 +36,6 @@ ChestRenderer::ChestRenderer()
 
 bool ChestRenderer::isChristmas()
 {
-    // MC 1.16.5: 12月24-26日使用圣诞节纹理
     const std::time_t now = std::time(nullptr);
     std::tm localTime{};
 #ifdef _WIN32
@@ -45,16 +44,15 @@ bool ChestRenderer::isChristmas()
     localtime_r(&now, &localTime);
 #endif
 
-    const int month = localTime.tm_mon + 1; // tm_mon 是 0-11
-    const int day = localTime.tm_mday;
+    const i32 month = localTime.tm_mon + 1; // tm_mon 是 0-11
+    const i32 day = localTime.tm_mday;
 
     return month == 12 && day >= 24 && day <= 26;
 }
 
-mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::determineChestType(
+mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::_determineChestType(
     const mc::blockentity::ChestEntity& entity) const
 {
-    // MC 1.16.5: 从方块状态获取 ChestType
     // 需要 entity.getBlockState() 获取 TYPE 属性
     // ChestType: SINGLE, LEFT, RIGHT
     // 当前默认返回单箱，完整实现需要 BlockState 访问
@@ -72,12 +70,12 @@ void ChestRenderer::render(const mc::blockentity::ChestEntity& entity, f32 parti
         // 仍然需要渲染箱体
         m_model.setLidAngle(0.0f);
     } else {
-        // 应用 MC 风格的缓动函数
+        // 应用缓动函数
         m_model.setLidAngle(lidAngle);
     }
 
     // 设置箱子类型（单箱/双箱左/右）
-    const auto chestType = determineChestType(entity);
+    const auto chestType = _determineChestType(entity);
     m_model.setChestType(chestType);
 
     // 生成网格数据
@@ -91,7 +89,7 @@ void ChestRenderer::render(const mc::blockentity::ChestEntity& entity, f32 parti
     // 1. 从方块状态获取 FACING 属性确定朝向
     // 2. 根据 isChristmas() 选择纹理变体
     // 3. 计算双箱时的光照合并
-    // 这些功能依赖外部系统（方块状态、纹理系统）的实现完善后集成。
+    // TODO 这些功能依赖外部系统（方块状态、纹理系统）的实现完善后集成。
     (void)light;
     (void)vertices;
     (void)indices;

@@ -22,7 +22,7 @@
  */
 
 #include "TridentBuffer.hpp"
-#include "../TridentContext.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 

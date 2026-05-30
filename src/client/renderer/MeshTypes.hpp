@@ -40,14 +40,14 @@ using VertexScalar = f64;
 // ============================================================================
 
 struct Vertex {
-    VertexScalar x = 0.0f, y = 0.0f, z = 0.0f;    // 位置
-    VertexScalar nx = 0.0f, ny = 0.0f, nz = 0.0f; // 法线
-    VertexScalar u = 0.0f, v = 0.0f;              // 纹理坐标
-    u32 color = 0xFFFFFFFF;                       // 顶点颜色 (RGBA)
-    u8 light = 255;                               // 光照 (R8_UNORM 编码，0-255)
+    VertexScalar x = 0.0, y = 0.0, z = 0.0;    // 位置
+    VertexScalar nx = 0.0, ny = 0.0, nz = 0.0; // 法线
+    VertexScalar u = 0.0, v = 0.0;             // 纹理坐标
+    u32 color = 0xFFFFFFFF;                    // 顶点颜色 (RGBA)
+    u8 light = 255;                            // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
-    Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
+    Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col, u8 l)
         : x(px)
         , y(py)
         , z(pz)

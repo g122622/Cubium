@@ -39,7 +39,6 @@ namespace mc::client::renderer::trident::cloud {
 /**
  * @brief 云渲染模式
  *
- * 参考 MC 1.16.5 CloudOption
  * - Off: 关闭云渲染
  * - Fast: 快速模式，只渲染底面（单层平面）
  * - Fancy: 精致模式，渲染完整 3D 立方体
@@ -69,7 +68,6 @@ struct CloudUBO {
  * @brief 云渲染器
  *
  * 负责渲染天空中的云层。
- * 参考 MC 1.16.5 WorldRenderer.renderClouds() 实现。
  *
  * 渲染模式：
  * - Fast: 只渲染云底面，性能优化
@@ -77,7 +75,7 @@ struct CloudUBO {
  *
  * 云特性：
  * - 云高度：主世界 192 格，下界和末地无云
- * - 云随时间缓慢移动（速度 0.03F/tick）
+ * - 云随时间缓慢移动
  * - 云颜色随时间和天气变化
  */
 class CloudRenderer {
@@ -210,7 +208,7 @@ private:
      * 生成 Fast 和 Fancy 两种模式的顶点数据。
      * 云网格覆盖 -3 到 +4 区块范围（每个区块 8 格）。
      */
-    [[nodiscard]] Result<void> createCloudVBO();
+    [[nodiscard]] Result<void> _createCloudVBO();
 
     /**
      * @brief 创建云纹理
@@ -218,49 +216,49 @@ private:
      * 使用程序化生成或加载纹理文件。
      * 云纹理为 256x256 灰度透明度图。
      */
-    [[nodiscard]] Result<void> createTexture(const ResourceManager* resourceManager);
+    [[nodiscard]] Result<void> _createTexture(const ResourceManager* resourceManager);
 
     /**
      * @brief 更新已分配描述符集中的云纹理绑定
      *
      * 在纹理重建后必须调用，否则描述符仍会指向旧图像。
      */
-    void updateTextureDescriptors();
+    void _updateTextureDescriptors();
 
     /**
      * @brief 创建 Uniform 缓冲区
      *
      * 为每帧创建一个 Uniform 缓冲区。
      */
-    [[nodiscard]] Result<void> createUniformBuffers();
+    [[nodiscard]] Result<void> _createUniformBuffers();
 
     /**
      * @brief 创建描述符集布局
      */
-    [[nodiscard]] Result<void> createDescriptorSetLayout();
+    [[nodiscard]] Result<void> _createDescriptorSetLayout();
 
     /**
      * @brief 创建描述符池和描述符集
      */
-    [[nodiscard]] Result<void> createDescriptorSets();
+    [[nodiscard]] Result<void> _createDescriptorSets();
 
     /**
      * @brief 创建管线布局
      */
-    [[nodiscard]] Result<void> createPipelineLayout();
+    [[nodiscard]] Result<void> _createPipelineLayout();
 
     /**
      * @brief 创建图形管线
      *
      * 创建 Fast 和 Fancy 两种模式的管线。
      */
-    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> _createPipelines(VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 更新 Uniform 缓冲区
      * @param frameIndex 当前帧索引
      */
-    void updateUniformBuffer(u32 frameIndex);
+    void _updateUniformBuffer(u32 frameIndex);
 
     /**
      * @brief 更新云网格
@@ -269,7 +267,7 @@ private:
      *
      * @param mode 云渲染模式
      */
-    void updateCloudMesh(CloudMode mode);
+    void _updateCloudMesh(CloudMode mode);
 
     // ========================================================================
     // Vulkan 辅助函数
@@ -278,12 +276,12 @@ private:
     /**
      * @brief 查找合适的内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 创建缓冲区
      */
-    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
+    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
@@ -292,12 +290,12 @@ private:
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void _endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 生成程序化云纹理数据
@@ -308,7 +306,7 @@ private:
      * @param height 纹理高度
      * @return 纹理像素数据（RGBA）
      */
-    [[nodiscard]] std::vector<u8> generateCloudTexture(u32 width, u32 height);
+    [[nodiscard]] std::vector<u8> _generateCloudTexture(u32 width, u32 height);
 
     /**
      * @brief 从 RGBA 云纹理提取二值云掩码
@@ -319,7 +317,7 @@ private:
      * @param width 纹理宽度
      * @param height 纹理高度
      */
-    void buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height);
+    void _buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height);
 
     /**
      * @brief 查询指定云网格单元是否为“有云”
@@ -330,7 +328,7 @@ private:
      * @param gridZ 云网格 Z
      * @return true 表示该单元存在云体
      */
-    [[nodiscard]] bool isCloudCellOpaque(i32 gridX, i32 gridZ) const;
+    [[nodiscard]] bool _isCloudCellOpaque(i32 gridX, i32 gridZ) const;
 
     // ========================================================================
     // 渲染方法
@@ -339,12 +337,12 @@ private:
     /**
      * @brief 渲染 Fast 模式云
      */
-    void renderFast(VkCommandBuffer cmd);
+    void _renderFast(VkCommandBuffer cmd);
 
     /**
      * @brief 渲染 Fancy 模式云
      */
-    void renderFancy(VkCommandBuffer cmd);
+    void _renderFancy(VkCommandBuffer cmd);
 
 private:
     // Vulkan 设备
@@ -398,7 +396,6 @@ private:
     f64 m_cloudOffsetX = 0.0f; // 云 X 偏移（用于动画）
 
     // 云网格更新检测
-    // 参考 MC 1.16.5: 当整数网格坐标变化时重建 VBO
     i32 m_cloudsCheckX = 0;       // 上一次检查时的 X 网格坐标
     i32 m_cloudsCheckY = 0;       // 上一次检查时的 Y 网格坐标
     i32 m_cloudsCheckZ = 0;       // 上一次检查时的 Z 网格坐标

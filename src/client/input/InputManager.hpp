@@ -167,17 +167,17 @@ public:
     void bindActionCallback(const std::string& action, ActionCallback callback);
 
 private:
-    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    static void charCallback(GLFWwindow* window, unsigned int codepoint);
+    static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void _mouseCallback(GLFWwindow* window, double xpos, double ypos);
+    static void _mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    static void _scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    static void _charCallback(GLFWwindow* window, unsigned int codepoint);
 
-    void handleKey(i32 key, i32 action);
-    void handleMouseButton(i32 button, i32 action);
-    void handleMouseMove(f64 x, f64 y);
-    void handleScroll(f64 x, f64 y);
-    void handleCharInput(u32 codepoint);
+    void _handleKey(i32 key, i32 action);
+    void _handleMouseButton(i32 button, i32 action);
+    void _handleMouseMove(f64 x, f64 y);
+    void _handleScroll(f64 x, f64 y);
+    void _handleCharInput(u32 codepoint);
 
     GLFWwindow* m_window = nullptr;
 
@@ -206,7 +206,6 @@ private:
 
     // 鼠标锁定
     bool m_mouseLocked = false;
-    bool m_initialized = false;
 
     // 按键绑定
     std::unordered_map<i32, std::string> m_keyBindings;

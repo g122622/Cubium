@@ -37,7 +37,6 @@ namespace client::renderer::trident::blockentity {
  * @brief 活塞方块实体渲染器
  *
  * 渲染活塞移动过程中的动画效果。
- * 参考 MC 1.16.5 PistonTileEntityRenderer
  *
  * 活塞动画特点：
  * - 动画持续2个游戏tick（约0.1秒）
@@ -94,7 +93,7 @@ private:
      * @param progress 插值后的进度
      * @param light 组合光照
      */
-    void renderPistonHead(const mc::blockentity::PistonBlockEntity& entity, f32 progress, u32 light);
+    void _renderPistonHead(const mc::blockentity::PistonBlockEntity& entity, f32 progress, u32 light);
 
     /**
      * @brief 渲染被移动的方块
@@ -105,7 +104,7 @@ private:
      * @param offsetZ Z方向偏移
      * @param light 组合光照
      */
-    void renderMovingBlock(
+    void _renderMovingBlock(
         const mc::blockentity::PistonBlockEntity& entity, f32 offsetX, f32 offsetY, f32 offsetZ, u32 light);
 };
 

@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/ray/Raycast.hpp"
@@ -64,9 +64,9 @@ public:
     }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override { return m_world.getHeight(x, z); }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return m_world.getBlockLight(x, y, z); }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return m_world.getSkyLight(x, y, z); }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
@@ -84,8 +84,8 @@ public:
     {
         return {};
     }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] DimensionId dimension() const override { return m_world.dimensionId(); }
+    [[nodiscard]] u64 seed() const override { return m_world.seed(); }
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }

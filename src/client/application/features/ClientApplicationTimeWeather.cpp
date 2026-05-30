@@ -21,24 +21,24 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
+#include "common/core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"
-#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
 
 namespace mc::client {
 
 void ClientApplication::updateTimeAndWeather(f32 deltaTime)
 {
-    if (!m_renderer) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_renderer);
 
     MC_TRACE_EVENT("rendering.frame", "UpdateTime");
 
-    constexpr i64 DAY_LENGTH_TICKS = 24000;
+    constexpr i64 DAY_LENGTH_TICKS = game::DAY_LENGTH_TICKS;
 
     // 每帧推进时间（无论是否有服务端同步）
     // 这确保天空、太阳、月亮在每帧平滑变化
@@ -48,8 +48,6 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
         ++m_renderGameTime;
         m_renderDayTime = (m_renderDayTime + 1) % DAY_LENGTH_TICKS;
 
-        // MC 1.16.5: 在游戏 tick 中递减闪电闪烁时间
-        // 参考 Minecraft.runTick(): world.setTimeLightningFlash(time - 1)
         m_world.weather().tickLightningFlash();
     }
 
@@ -87,19 +85,15 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
         m_world.weather().thunderStrength(m_renderTickAccumulator));
 
     // 更新闪电闪烁亮度到渲染器
-    // 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理
     m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
 
     // 更新云高度（根据当前维度）
-    // 参考 MC 1.16.5: WorldRenderer.renderClouds() 从 DimensionRenderInfo 获取云高度
     updateCloudHeight();
 }
 
 void ClientApplication::updateCloudHeight()
 {
-    if (!m_renderer) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_renderer);
 
     // 获取当前维度的渲染设置
     const DimensionId currentDim = m_dimensionManager.currentDimension();
@@ -113,14 +107,12 @@ void ClientApplication::updateCloudHeight()
 
 world::DimensionRenderSettings ClientApplication::getDimensionRenderSettings(DimensionId dimensionId) const
 {
-    // 参考 MC 1.16.5 DimensionRenderInfo
     // 根据 DimensionId 返回对应的渲染设置
-    // 0 = 主世界, -1 = 下界, 1 = 末地
-    if (dimensionId == 0) {
+    if (dimensionId == static_cast<DimensionId>(MapDimensionId::Overworld)) {
         return world::DimensionRenderSettings::overworld();
-    } else if (dimensionId == -1) {
+    } else if (dimensionId == static_cast<DimensionId>(MapDimensionId::Nether)) {
         return world::DimensionRenderSettings::nether();
-    } else if (dimensionId == 1) {
+    } else if (dimensionId == static_cast<DimensionId>(MapDimensionId::End)) {
         return world::DimensionRenderSettings::end();
     }
 

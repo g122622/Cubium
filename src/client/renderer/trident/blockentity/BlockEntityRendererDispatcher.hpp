@@ -51,7 +51,6 @@ namespace blockentity {
  * @brief 方块实体渲染器调度器
  *
  * 管理所有方块实体渲染器，根据方块实体类型分派渲染。
- * 参考 MC 1.16.5 TileEntityRendererDispatcher
  *
  * 使用方式：
  * 1. 在客户端初始化时注册渲染器

@@ -9,7 +9,7 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 ### 基本类型
 - `i8`, `i16`, `i32`, `i64` - 有符号整数
 - `u8`, `u16`, `u32`, `u64` - 无符号整数
-- `f32`, `f64` - 浮点数（性能优先使用 f32）
+- `f32`, `f64` - 浮点数
 
 ### 游戏类型
 - `ChunkCoord`, `BlockCoord`, `WorldHeight` - 坐标类型
@@ -432,7 +432,7 @@ MC_UNUSED(unusedParam);
 
 通过 vcpkg 管理：
 - **glm** - 数学库
-- **spdlog** - 日志
+- **spdlog** - 日志。注意：spdlog::debug和spdlog::trace的日志级别不允许使用，它们会降低性能。只允许用info以及以上级别的日志。
 - **nlohmann-json** - JSON 解析
 - **glfw3** - 窗口/输入
 - **Vulkan** - 图形 API

@@ -96,12 +96,12 @@ private:
     /**
      * @brief 获取指定节点
      */
-    [[nodiscard]] const mc::command::CommandTreeNodeSnapshot* getNode(u32 nodeId) const;
+    [[nodiscard]] const mc::command::CommandTreeNodeSnapshot* _getNode(u32 nodeId) const;
 
     /**
      * @brief 收集某个节点的候选建议
      */
-    [[nodiscard]] mc::command::Suggestions collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
+    [[nodiscard]] mc::command::Suggestions _collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
         std::string_view fullInput,
         i32 start,
         i32 end,
@@ -110,28 +110,28 @@ private:
     /**
      * @brief 获取节点候选项
      */
-    [[nodiscard]] std::vector<std::string> getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const;
+    [[nodiscard]] std::vector<std::string> _getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const;
 
     /**
      * @brief 判断是否应当将 token 视为固定候选
      */
-    [[nodiscard]] bool matchesFixedCandidate(
+    [[nodiscard]] bool _matchesFixedCandidate(
         const mc::command::CommandTreeNodeSnapshot& node, std::string_view token) const;
 
     /**
      * @brief 判断是否为命令输入
      */
-    [[nodiscard]] static bool isCommandInput(std::string_view input);
+    [[nodiscard]] static bool _isCommandInput(std::string_view input);
 
     /**
      * @brief 转小写
      */
-    [[nodiscard]] static std::string toLower(std::string_view input);
+    [[nodiscard]] static std::string _toLower(std::string_view input);
 
     /**
      * @brief 不区分大小写的前缀匹配
      */
-    [[nodiscard]] static bool startsWithIgnoreCase(std::string_view value, std::string_view prefix);
+    [[nodiscard]] static bool _startsWithIgnoreCase(std::string_view value, std::string_view prefix);
 
     mc::command::CommandTreeSnapshot m_snapshot;
     CandidateProvider m_playerNameProvider;

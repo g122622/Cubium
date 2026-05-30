@@ -79,7 +79,7 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
             count++;
         } else if (includeFading) {
             // 计算消息年龄
-            auto age = std::chrono::duration<float>(now - msg.timestamp).count();
+            auto age = std::chrono::duration<f32>(now - msg.timestamp).count();
             if (age < MESSAGE_FADE_TIME + 1.0f) { // 额外1秒淡出时间
                 ChatMessage msgCopy;
                 msgCopy.content =

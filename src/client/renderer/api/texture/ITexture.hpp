@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/renderer/api/Types.hpp"
 #include "common/core/Result.hpp"
 
 namespace mc::client::renderer::api {
@@ -162,7 +162,6 @@ public:
      * @return 成功或错误
      *
      * 此方法用于更新纹理的子区域，适用于动画纹理等场景。
-     * 参考 MC 1.16.5 NativeImage.uploadTextureSub()
      */
     [[nodiscard]] virtual Result<void> uploadRegion(const void* data,
         u64 size,

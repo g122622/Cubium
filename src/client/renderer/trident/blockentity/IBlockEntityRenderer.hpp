@@ -37,7 +37,6 @@ namespace client::renderer::trident::blockentity {
  * @brief 方块实体渲染器基类（类型擦除）
  *
  * 用于存储不同类型的方块实体渲染器。
- * 参考 MC 1.16.5 TileEntityRenderer
  */
 class BlockEntityRendererBase {
 public:
@@ -72,7 +71,6 @@ public:
  * @brief 方块实体渲染器模板
  *
  * 提供类型安全的渲染接口。
- * 参考 MC 1.16.5 TileEntityRenderer
  *
  * @tparam TEntity 方块实体类型
  */

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../api/buffer/IBuffer.hpp"
+#include "client/renderer/api/buffer/IBuffer.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
 
@@ -249,13 +249,13 @@ public:
     TridentUniformBuffer& operator=(TridentUniformBuffer&& other) noexcept;
 
     /**
-     * @brief创建 Uniform 缓冲区
+     * @brief 创建 Uniform 缓冲区
      * @param context Trident 上下文
      * @param size 单个缓冲区大小
      * @param frameCount 帧数（用于多帧轮换）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(TridentContext* context, u64 size, u32 frameCount = 2);
+    [[nodiscard]] Result<void> create(TridentContext* context, u64 size, u32 frameCount);
 
     // IBuffer 接口实现
     void destroy() override;

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../MeshTypes.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <array>
@@ -99,11 +99,11 @@ private:
         MeshWorkerTask task;
     };
 
-    void workerLoop(i32 workerId);
-    void executeTask(const MeshWorkerTask& task);
+    void _workerLoop(i32 workerId);
+    void _executeTask(const MeshWorkerTask& task);
 
-    [[nodiscard]] static bool isCancelled(const MeshWorkerTask& task);
-    [[nodiscard]] static i32 getOptimalThreadCount();
+    [[nodiscard]] static bool _isCancelled(const MeshWorkerTask& task);
+    [[nodiscard]] static i32 _getOptimalThreadCount();
 
     std::vector<std::thread> m_workers;
     i32 m_threadCount = 0;

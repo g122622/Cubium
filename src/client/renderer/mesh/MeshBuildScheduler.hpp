@@ -117,21 +117,21 @@ private:
         u64 submitOrder = 0;
     };
 
-    [[nodiscard]] bool shouldReprioritize() const;
-    void reprioritizePendingTasks();
-    void dispatchPendingTasks();
+    [[nodiscard]] bool _shouldReprioritize() const;
+    void _reprioritizePendingTasks();
+    void _dispatchPendingTasks();
 
-    void cancelOutOfDateTasks();
-    void removeTaskImmediately(u64 taskId);
-    void requestCancellation(ScheduledTask& task);
+    void _cancelOutOfDateTasks();
+    void _removeTaskImmediately(u64 taskId);
+    void _requestCancellation(ScheduledTask& task);
 
-    [[nodiscard]] bool isOutOfRenderDistance(const ScheduledTask& task) const;
-    [[nodiscard]] bool shouldCancelBehindTask(const ScheduledTask& task) const;
+    [[nodiscard]] bool _isOutOfRenderDistance(const ScheduledTask& task) const;
+    [[nodiscard]] bool _shouldCancelBehindTask(const ScheduledTask& task) const;
 
-    void updateTaskScore(ScheduledTask& task);
+    void _updateTaskScore(ScheduledTask& task);
 
-    [[nodiscard]] static f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
-    [[nodiscard]] static f32 chunkForwardDot(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
+    [[nodiscard]] static f32 _chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
+    [[nodiscard]] static f32 _chunkForwardDot(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
 
     MeshWorkerPool& m_workerPool;
     MeshSchedulerConfig m_config;

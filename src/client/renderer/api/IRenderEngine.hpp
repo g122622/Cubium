@@ -65,8 +65,8 @@ struct RenderEngineConfig {
 struct FrameContext {
     u32 frameIndex = 0;              // 当前帧索引 (用于多帧资源轮换)
     u32 imageIndex = 0;              // 当前交换链图像索引
-    f64 deltaTime = 0.0f;            // 帧时间（秒）
-    f64 totalTime = 0.0f;            // 总运行时间（秒）
+    f64 deltaTime = 0.0;             // 帧时间（秒）
+    f64 totalTime = 0.0;             // 总运行时间（秒）
     const ICamera* camera = nullptr; // 当前相机
 
     // 矩阵缓存

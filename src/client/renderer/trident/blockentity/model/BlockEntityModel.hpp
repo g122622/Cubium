@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "client/renderer/api/mesh/MeshData.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
@@ -35,8 +34,6 @@ namespace mc::client::renderer::blockentity::model {
  * @brief 方块实体模型基类
  *
  * 提供方块实体模型的通用功能，如部件管理、动画和网格生成。
- * 参考 MC 1.16.5 TileEntityModel 设计模式。
- *
  * 与 EntityModel 不同，方块实体模型更注重：
  * - 部件旋转动画（如箱子盖子开合）
  * - 方块坐标系的变换
@@ -65,7 +62,7 @@ public:
      * @return 创建的部件
      */
     std::shared_ptr<entity::model::ModelRenderer> createPart(
-        const std::string& name, i32 textureWidth = 64, i32 textureHeight = 64);
+        const std::string& name, i32 textureWidth, i32 textureHeight);
 
     /**
      * @brief 添加已有部件

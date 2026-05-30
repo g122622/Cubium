@@ -28,7 +28,6 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include <chrono>
 #include <deque>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,7 +63,7 @@ struct ChatMessage {
      * @param msgType 消息类型
      * @param perm 是否永久显示
      */
-    explicit ChatMessage(const std::string& text, ChatMessageType msgType = ChatMessageType::Chat, bool perm = false)
+    explicit ChatMessage(const std::string& text, ChatMessageType msgType, bool perm)
         : content(std::make_unique<text::StringTextComponent>(text))
         , type(msgType)
         , timestamp(std::chrono::steady_clock::now())
@@ -77,9 +76,7 @@ struct ChatMessage {
      * @param msgType 消息类型
      * @param perm 是否永久显示
      */
-    explicit ChatMessage(std::unique_ptr<text::ITextComponent> textComponent,
-        ChatMessageType msgType = ChatMessageType::Chat,
-        bool perm = false)
+    explicit ChatMessage(std::unique_ptr<text::ITextComponent> textComponent, ChatMessageType msgType, bool perm)
         : content(std::move(textComponent))
         , type(msgType)
         , timestamp(std::chrono::steady_clock::now())
@@ -109,10 +106,10 @@ struct ChatMessage {
  */
 class ChatHistory {
 public:
-    static constexpr size_t MAX_MESSAGES = 100;      ///< 最大消息数
-    static constexpr size_t MAX_VISIBLE = 10;        ///< 最大可见消息数
-    static constexpr size_t MAX_INPUT_HISTORY = 50;  ///< 最大输入历史
-    static constexpr float MESSAGE_FADE_TIME = 5.0f; ///< 消息淡出时间（秒）
+    static constexpr size_t MAX_MESSAGES = 100;     ///< 最大消息数
+    static constexpr size_t MAX_VISIBLE = 10;       ///< 最大可见消息数
+    static constexpr size_t MAX_INPUT_HISTORY = 50; ///< 最大输入历史
+    static constexpr f32 MESSAGE_FADE_TIME = 5.0f;  ///< 消息淡出时间（秒）
 
     ChatHistory() = default;
 
@@ -151,7 +148,7 @@ public:
      * @brief 获取可见消息
      * @param includeFading 是否包含正在淡出的消息
      */
-    [[nodiscard]] std::vector<ChatMessage> getVisibleMessages(bool includeFading = true) const;
+    [[nodiscard]] std::vector<ChatMessage> getVisibleMessages(bool includeFading) const;
 
     /**
      * @brief 获取所有消息

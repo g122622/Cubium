@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/command/ClientCommandManager.hpp"
@@ -632,8 +632,6 @@ void ClientApplication::showCreateWorld()
         // 关闭创建界面
         screenStack->pop();
 
-        // 使用 WorldNameSanitizer 生成可用的世界目录名
-        // 参考 MC 1.16.5 CreateWorldScreen.calcSaveDirName() 和 FileUtil.findAvailableName()
         world::storage::GlobalStorageManager storageManager;
         auto levelIdResult = world::storage::WorldNameSanitizer::findAvailableLevelId(
             storageManager.savesDirectory(), request.displayName);

@@ -22,15 +22,16 @@
  */
 
 #include "ChunkMesher.hpp"
-#include "../../../resource/BlockModelCache.hpp"
-#include "../../../resource/ResourceManager.hpp"
-#include "../../../world/color/BiomeColors.hpp"
-#include "../../../world/color/blend/ChunkBiomeAccessor.hpp"
 #include "AmbientOcclusionCalculator.hpp"
+#include "client/resource/BlockModelCache.hpp"
+#include "client/resource/ResourceManager.hpp"
+#include "client/world/color/BiomeColors.hpp"
+#include "client/world/color/blend/ChunkBiomeAccessor.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -92,12 +93,11 @@ private:
 }
 
 /**
- * @brief 返回与 MC 1.16.5 对齐的面向明暗系数
+ * @brief 返回面向明暗系数
  *
- * 参考: IBlockDisplayReader#func_230487_a_ 的默认面向亮度
  * DOWN=0.5, UP=1.0, NORTH/SOUTH=0.8, WEST/EAST=0.6
  */
-[[nodiscard]] constexpr float getFaceShade(Face face)
+[[nodiscard]] constexpr f32 getFaceShade(Face face)
 {
     switch (face) {
         case Face::Bottom:
@@ -143,12 +143,12 @@ private:
     }
 }
 
-[[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, float factor)
+[[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, f32 factor)
 {
-    const float clamped = std::clamp(factor, 0.0f, 1.0f);
-    const float r = static_cast<float>(packedColor & 0xFFu) / 255.0f;
-    const float g = static_cast<float>((packedColor >> 8) & 0xFFu) / 255.0f;
-    const float b = static_cast<float>((packedColor >> 16) & 0xFFu) / 255.0f;
+    const f32 clamped = std::clamp(factor, 0.0f, 1.0f);
+    const f32 r = static_cast<f32>(packedColor & 0xFFu) / 255.0f;
+    const f32 g = static_cast<f32>((packedColor >> 8) & 0xFFu) / 255.0f;
+    const f32 b = static_cast<f32>((packedColor >> 16) & 0xFFu) / 255.0f;
 
     return packVertexColor(static_cast<u8>(std::round(std::clamp(r * clamped, 0.0f, 1.0f) * 255.0f)),
         static_cast<u8>(std::round(std::clamp(g * clamped, 0.0f, 1.0f) * 255.0f)),
@@ -159,7 +159,7 @@ private:
 [[nodiscard]] u32 applyBlockAlpha(u32 packedColor, const BlockState* block)
 {
     if (block != nullptr && block->isLiquid()) {
-        // 对齐原版观感：水体处于半透明层时仍保留一定透视能力。
+        // 水体处于半透明层时仍保留一定透视能力。
         // 纹理 alpha 在不同资源包下差异较大，这里提供稳定 alpha 兜底。
         constexpr u8 LIQUID_ALPHA = 180;
         return (packedColor & 0x00FFFFFFu) | (static_cast<u32>(LIQUID_ALPHA) << 24);
@@ -536,7 +536,7 @@ void emitLiquidFace(MeshData& mesh,
 void ChunkMesher::setModelCache(BlockModelCache* cache)
 {
     s_modelCache = cache;
-    refreshBiomeColorMaps();
+    _refreshBiomeColorMaps();
     if (cache) {
         spdlog::info("ChunkMesher: Using BlockModelCache for block appearances");
     } else {
@@ -616,13 +616,13 @@ void ChunkMesher::generateSectionMesh(const ChunkData& chunk,
     }
 
     if (s_useGreedyMeshing) {
-        greedyMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
+        _greedyMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
     } else {
-        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
+        _simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
     }
 }
 
-bool ChunkMesher::shouldRenderBlock(const BlockState* state)
+bool ChunkMesher::_shouldRenderBlock(const BlockState* state)
 {
     if (!state || state->isAir()) {
         return false;
@@ -672,7 +672,7 @@ bool ChunkMesher::shouldRenderBlock(const BlockState* state)
     return static_cast<Direction>(static_cast<u8>(face));
 }
 
-bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face)
+bool ChunkMesher::_shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face)
 {
     if (!block) {
         return false;
@@ -732,26 +732,23 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
         return true;
     }
 
-    // ========== 形状遮挡检测（参考 MC 1.16.5 Block.shouldSideBeRendered）==========
+    // ========== 形状遮挡检测 ==========
     //
-    // MC 面剔除逻辑：
+    // 面剔除逻辑：
     // 1. 如果邻居不是实心方块（!isSolid()），渲染该面
     // 2. 否则使用 VoxelShape 面遮挡检测：
     //    - 获取当前方块在指定方向的面遮挡形状
     //    - 获取邻居方块在相反方向的面遮挡形状
     //    - 使用 ONLY_FIRST 检测是否有独占区域
     //
-    // 注意：MC 中 isSolid() 对应 BlockState.isSolid()，检查方块是否为实心方块。
-    // 这与 isOpaque() 不同，isOpaque() 检查是否完全不透明。
+    // 注意：isSolid() 对应方块是否为实心方块，与 isOpaque() 不同。
 
     // 如果邻居不是实心方块，渲染该面
-    // 参考 MC 1.16.5 Block.shouldSideBeRendered 第 211 行
     if (!neighbor->isSolid()) {
         return true;
     }
 
     // 当前方块是否使用形状进行遮挡检测
-    // 参考 MC 1.16.5 BlockState.useShapeForLightOcclusion()
     // 大多数实心方块返回 false（使用简单的 isSolid 检测）
     // 台阶、楼梯、栅栏等非完整方块返回 true（需要精确形状检测）
     const bool useShapeOcclusion = block->useShapeForLightOcclusion() || neighbor->useShapeForLightOcclusion();
@@ -759,18 +756,13 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     return true; // TODO 下面的形状遮挡检测逻辑有很深的bug，很难解决，暂时先放行所有面，后续重构时再完善
 
     if (!useShapeOcclusion) {
-        // 两个都是实心方块，不渲染
-        // 参考 MC 1.16.5: 如果邻居是实心方块且不需要形状检测，则遮挡
+        // 两个都是实心方块，不需要形状检测，遮挡
         return false;
     }
 
     // 使用形状遮挡检测
-    // 参考 MC 1.16.5 Block.shouldSideBeRendered 第 200-202 行
     const Direction dir = faceToDirection(face);
     const Direction oppositeDir = Directions::opposite(dir);
-
-    spdlog::info("shouldRenderFace: block={}, neighbor={}, face={}, useShapeOcclusion={}", block->toString(),
-        neighbor->toString(), static_cast<u8>(face), useShapeOcclusion);
 
     // 获取当前方块在指定方向的面遮挡形状
     const CollisionShape blockFaceShape = block->getFaceOcclusionShape(dir);
@@ -780,22 +772,18 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
 
     // 如果任一面形状是完整方块，完全遮挡
     if (blockFaceShape.isFullBlock() && neighborFaceShape.isFullBlock()) {
-        spdlog::info("Both block and neighbor have full block face shapes, face is occluded");
         return false;
     }
 
     // 如果任一面形状为空，不遮挡
     if (blockFaceShape.isEmpty()) {
-        spdlog::info("Block face shape is empty, face is not occluded");
         return true;
     }
     if (neighborFaceShape.isEmpty()) {
-        spdlog::info("Neighbor face shape is empty, face is not occluded");
         return true;
     }
 
     // 使用形状遮挡检测
-    // 参考 MC 1.16.5 VoxelShapes.compare(shape1, shape2, IBooleanFunction.ONLY_FIRST)
     // 如果 blockFaceShape 有区域不在 neighborFaceShape 中，则需要渲染
     // 转换为 VoxelShape 进行精确比较
     const VoxelShape blockVoxel = collisionShapeToVoxelShape(blockFaceShape);
@@ -808,12 +796,12 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
 
 u8 ChunkMesher::sampleCombinedLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
 {
-    return std::max(sampleSkyLight(chunk, x, y, z, neighborChunks), sampleBlockLight(chunk, x, y, z, neighborChunks));
+    return std::max(_sampleSkyLight(chunk, x, y, z, neighborChunks), _sampleBlockLight(chunk, x, y, z, neighborChunks));
 }
 
-u8 ChunkMesher::sampleSkyLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+u8 ChunkMesher::_sampleSkyLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
 {
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
 
     // 垂直越界：上方视为天空，下方视为无光
     if (y >= world::MAX_BUILD_HEIGHT) {
@@ -857,9 +845,9 @@ u8 ChunkMesher::sampleSkyLight(const ChunkData& chunk, i32 x, i32 y, i32 z, cons
     return sampleChunk->getSkyLight(localX, y, localZ);
 }
 
-u8 ChunkMesher::sampleBlockLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
+u8 ChunkMesher::_sampleBlockLight(const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
 {
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
 
     // 垂直越界：上下都视为无方块光照
     if (y >= world::MAX_BUILD_HEIGHT || y < world::MIN_BUILD_HEIGHT) {
@@ -897,7 +885,7 @@ u8 ChunkMesher::sampleBlockLight(const ChunkData& chunk, i32 x, i32 y, i32 z, co
     return sampleChunk->getBlockLight(localX, y, localZ);
 }
 
-u32 ChunkMesher::resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
+u32 ChunkMesher::_resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
     i32 worldX,
     i32 worldY,
     i32 worldZ,
@@ -964,7 +952,7 @@ u32 ChunkMesher::resolveTintColorBlended(const client::ChunkBiomeAccessor& acces
     return packRgb(grassColor);
 }
 
-bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap)
+bool ChunkMesher::_tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap)
 {
     if (!s_modelCache || !s_modelCache->resourceManager()) {
         return false;
@@ -992,10 +980,10 @@ bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>&
     return true;
 }
 
-void ChunkMesher::refreshBiomeColorMaps()
+void ChunkMesher::_refreshBiomeColorMaps()
 {
-    s_grassColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
-    s_foliageColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
+    s_grassColorMapLoaded = _tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
+    s_foliageColorMapLoaded = _tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
 
     // 设置 BiomeColorBlender 的 colormap 指针
     s_biomeColorBlender.setGrassColorMap(s_grassColorMapLoaded ? &s_grassColorMap : nullptr);
@@ -1064,7 +1052,6 @@ u32 ChunkMesher::getDefaultBlockTintColor(const BlockState* block)
     }
 
     // 草方块和其他需要草颜色的方块
-    // 参考 MC 1.16.5 BlockTags.ENDERMAN_HOLDABLE 中需要着色的方块
     if (block->is(VanillaBlocks::GRASS_BLOCK) || block->is(VanillaBlocks::SHORT_GRASS) ||
         block->is(VanillaBlocks::TALL_GRASS)) {
         // 草颜色使用 grass colormap 中心点颜色
@@ -1081,7 +1068,7 @@ u32 ChunkMesher::getDefaultBlockTintColor(const BlockState* block)
     return packVertexColor(255, 255, 255, 255);
 }
 
-void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
+void ChunkMesher::_addFaceFromAppearance(MeshData& mesh,
     Face face,
     f64 x,
     f64 y,
@@ -1138,7 +1125,7 @@ void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
                                     i32 worldZ,
                                     const BlockState* blockState,
                                     i32 tintIndex) {
-            return resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
+            return _resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
         emitLiquidFace(mesh,
             face,
@@ -1180,7 +1167,7 @@ void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor = _resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
         // UV坐标根据顶点位置设置
@@ -1222,7 +1209,7 @@ void ChunkMesher::addFaceFromAppearance(MeshData& mesh,
     }
 }
 
-void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
+void ChunkMesher::_addFaceFromAppearanceSmooth(MeshData& mesh,
     Face face,
     f64 x,
     f64 y,
@@ -1278,15 +1265,15 @@ void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
     auto aoResult = aoCalc.calculate(chunk, blockX, blockY, blockZ, face, neighborChunks);
 
     if (block != nullptr && block->isLiquid()) {
-        const u8 skyLight = sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
-        const u8 blockLight = sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
+        const u8 skyLight = _sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
+        const u8 blockLight = _sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
         auto resolveTintColor = [](const client::ChunkBiomeAccessor& biomeAccessor,
                                     i32 worldX,
                                     i32 worldY,
                                     i32 worldZ,
                                     const BlockState* blockState,
                                     i32 tintIndex) {
-            return resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
+            return _resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex);
         };
         emitLiquidFace(mesh,
             face,
@@ -1320,10 +1307,10 @@ void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
     const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
     const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
 
-    const float faceShade = getFaceShade(face);
+    const f32 faceShade = getFaceShade(face);
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor = _resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
@@ -1346,8 +1333,8 @@ void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
 
             // AO 乘数与面向明暗共同作用于顶点颜色。
             // 注意：颜色打包必须遵循 RGBA 字节顺序，避免出现偏色（例如偏红）问题。
-            const float ao = aoResult.vertexColorMultiplier[i];
-            const float finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
+            const f32 ao = aoResult.vertexColorMultiplier[i];
+            const f32 finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
             const u32 color = applyBlockAlpha(applyShadeToPackedColor(tintColor, finalShade), block);
 
             faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
@@ -1375,7 +1362,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(MeshData& mesh,
     }
 }
 
-bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance)
+bool ChunkMesher::_isCrossLikeAppearance(const BlockAppearance* appearance)
 {
     if (appearance == nullptr || appearance->elements.size() != 2) {
         return false;
@@ -1399,7 +1386,7 @@ bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance)
     return hasHorizontalFace;
 }
 
-void ChunkMesher::addCrossedPlantGeometry(MeshData& mesh,
+void ChunkMesher::_addCrossedPlantGeometry(MeshData& mesh,
     f64 x,
     f64 y,
     f64 z,
@@ -1450,7 +1437,7 @@ void ChunkMesher::addCrossedPlantGeometry(MeshData& mesh,
     const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
     const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
 
-    constexpr f64 INV_SQRT2 = 0.7071067811865476;
+    constexpr f64 INV_SQRT2 = static_cast<f64>(mc::math::INV_SQRT2);
     auto emitDoubleSidedQuad = [&](const std::array<std::array<f64, 3>, 4>& positions,
                                    const std::array<f64, 3>& frontNormal,
                                    const FaceLayerRenderData& layer,
@@ -1503,7 +1490,7 @@ void ChunkMesher::addCrossedPlantGeometry(MeshData& mesh,
 
     for (size_t i = 0; i < layerA.size(); ++i) {
         const auto& layer = layerA[i];
-        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor = _resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 color = applyBlockAlpha(tintColor, block);
         const f64 layerOffset = static_cast<f64>(i) * 0.001f;
         emitDoubleSidedQuad(diagA, {INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
@@ -1511,14 +1498,14 @@ void ChunkMesher::addCrossedPlantGeometry(MeshData& mesh,
 
     for (size_t i = 0; i < layerB.size(); ++i) {
         const auto& layer = layerB[i];
-        const u32 tintColor = resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+        const u32 tintColor = _resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
         const u32 color = applyBlockAlpha(tintColor, block);
         const f64 layerOffset = static_cast<f64>(i) * 0.001f;
         emitDoubleSidedQuad(diagB, {-INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
     }
 }
 
-void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
+void ChunkMesher::_addShapeGeometryFromAppearance(MeshData& mesh,
     f64 x,
     f64 y,
     f64 z,
@@ -1552,7 +1539,7 @@ void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
     for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
         const Face face = static_cast<Face>(faceIdx);
         const BlockState* neighbor = neighborStates[faceIdx];
-        if (!shouldRenderFace(block, neighbor, face)) {
+        if (!_shouldRenderFace(block, neighbor, face)) {
             continue;
         }
 
@@ -1608,11 +1595,11 @@ void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
             const i32 sampleZ = blockZ + dir[2];
 
             if (block->isTransparent() && neighbor != nullptr && !neighbor->isAir() && !neighbor->isTransparent()) {
-                skyLight = sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
-                blockLight = sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
+                skyLight = _sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
+                blockLight = _sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
             } else {
-                skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
-                blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                skyLight = _sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                blockLight = _sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
             }
         }
 
@@ -1653,7 +1640,7 @@ void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
         for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
             const auto& layer = faceLayers[layerIndex];
             const u32 tintColor =
-                resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
+                _resolveTintColorBlended(biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex);
             const u32 shadedColor = applyBlockAlpha(applyShadeToPackedColor(tintColor, getFaceShade(face)), block);
 
             const f64 uvs[4][2] = {{layer.texture.u0, layer.texture.v1},
@@ -1690,7 +1677,7 @@ void ChunkMesher::addShapeGeometryFromAppearance(MeshData& mesh,
     }
 }
 
-void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
+void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
     const ChunkData* neighborChunks[6],
@@ -1703,7 +1690,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
         return;
     }
 
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
     const i32 baseY = sectionIndex * SIZE;
 
     // 获取当前段
@@ -1778,7 +1765,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                 }
 
                 const BlockState* block = section->getBlockState(x, y, z);
-                if (!shouldRenderBlock(block)) {
+                if (!_shouldRenderBlock(block)) {
                     continue;
                 }
 
@@ -1797,15 +1784,15 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                     continue;
                 }
 
-                if (isCrossLikeAppearance(appearance)) {
+                if (_isCrossLikeAppearance(appearance)) {
                     u8 skyLight = 15;
                     u8 blockLight = 0;
                     if (s_lightingEnabled) {
-                        skyLight = sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
-                        blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
+                        skyLight = _sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
+                        blockLight = _sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
                     }
 
-                    addCrossedPlantGeometry(outMesh,
+                    _addCrossedPlantGeometry(outMesh,
                         static_cast<f64>(x),
                         static_cast<f64>(baseY + y),
                         static_cast<f64>(z),
@@ -1832,7 +1819,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                         neighborStates[faceIdx] = getNeighborBlock(x, y, z, face);
                     }
 
-                    addShapeGeometryFromAppearance(outMesh,
+                    _addShapeGeometryFromAppearance(outMesh,
                         static_cast<f64>(x),
                         static_cast<f64>(baseY + y),
                         static_cast<f64>(z),
@@ -1855,7 +1842,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                     const BlockState* neighbor = getNeighborBlock(x, y, z, face);
 
                     // 决定是否渲染该面
-                    if (!shouldRenderFace(block, neighbor, face)) {
+                    if (!_shouldRenderFace(block, neighbor, face)) {
                         continue;
                     } else {
                         const f64 fx = static_cast<f64>(x);
@@ -1864,7 +1851,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
 
                         if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
                             // 平滑光照模式：使用AO计算
-                            addFaceFromAppearanceSmooth(
+                            _addFaceFromAppearanceSmooth(
                                 outMesh, face, fx, fy, fz, chunk, x, baseY + y, z, block, appearance, neighborChunks);
                         } else {
                             // 平面光照模式
@@ -1881,16 +1868,16 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
                                 if (block->isTransparent() && neighbor && !neighbor->isAir() &&
                                     !neighbor->isTransparent()) {
                                     // 采样方块自身位置的光照
-                                    skyLight = sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
-                                    blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
+                                    skyLight = _sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
+                                    blockLight = _sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
                                 } else {
                                     // 正常情况：采样邻居位置的光照
-                                    skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
-                                    blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                                    skyLight = _sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                                    blockLight = _sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
                                 }
                             }
 
-                            addFaceFromAppearance(outMesh,
+                            _addFaceFromAppearance(outMesh,
                                 face,
                                 fx,
                                 fy,
@@ -1912,7 +1899,7 @@ void ChunkMesher::simpleMeshSection(const ChunkData& chunk,
     }
 }
 
-void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
+void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
     const ChunkData* neighborChunks[6],
@@ -1926,7 +1913,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
         return;
     }
 
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
     const i32 baseY = sectionIndex * SIZE;
 
     const ChunkSection* section = chunk.getSection(sectionIndex);
@@ -1936,7 +1923,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
 
     // 平滑 AO 依赖逐顶点采样，无法在不引入插值误差的前提下做大面合并，直接回退到逐面路径。
     if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
-        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
+        _simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
         return;
     }
 
@@ -1955,7 +1942,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
                 }
 
                 const BlockState* block = section->getBlockState(x, y, z);
-                if (!shouldRenderBlock(block)) {
+                if (!_shouldRenderBlock(block)) {
                     continue;
                 }
 
@@ -1964,14 +1951,14 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
                     appearance = s_modelCache->getMissingAppearance();
                 }
 
-                if (appearance != nullptr && isCrossLikeAppearance(appearance)) {
-                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
+                if (appearance != nullptr && _isCrossLikeAppearance(appearance)) {
+                    _simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
                     return;
                 }
 
                 const CollisionShape& shape = block->getShape();
                 if (!block->isLiquid() && !shape.isEmpty() && !shape.isFullBlock()) {
-                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
+                    _simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
                     return;
                 }
             }
@@ -1999,7 +1986,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
     };
 
     const auto sameTextureRegion = [](const TextureRegion& a, const TextureRegion& b) {
-        constexpr float EPSILON = 1e-6f;
+        constexpr f32 EPSILON = 1e-6f;
         return std::abs(a.u0 - b.u0) <= EPSILON && std::abs(a.v0 - b.v0) <= EPSILON &&
             std::abs(a.u1 - b.u1) <= EPSILON && std::abs(a.v1 - b.v1) <= EPSILON;
     };
@@ -2081,12 +2068,12 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
         FaceCellData cell;
 
         const BlockState* block = section->getBlockState(x, y, z);
-        if (!shouldRenderBlock(block)) {
+        if (!_shouldRenderBlock(block)) {
             return cell;
         }
 
         const BlockState* neighbor = getNeighborBlock(x, y, z, face);
-        if (!shouldRenderFace(block, neighbor, face)) {
+        if (!_shouldRenderFace(block, neighbor, face)) {
             return cell;
         }
 
@@ -2102,7 +2089,7 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
             return cell;
         }
 
-        if (isCrossLikeAppearance(appearance)) {
+        if (_isCrossLikeAppearance(appearance)) {
             return cell;
         }
 
@@ -2149,11 +2136,11 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
 
             // 对透明方块接触不透明邻居时，采样自身光照，避免采样到邻居内部导致黑边
             if (block->isTransparent() && neighbor && !neighbor->isAir() && !neighbor->isTransparent()) {
-                skyLight = sampleSkyLight(chunk, x, worldY, z, neighborChunks);
-                blockLight = sampleBlockLight(chunk, x, worldY, z, neighborChunks);
+                skyLight = _sampleSkyLight(chunk, x, worldY, z, neighborChunks);
+                blockLight = _sampleBlockLight(chunk, x, worldY, z, neighborChunks);
             } else {
-                skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
-                blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                skyLight = _sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                blockLight = _sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
             }
         }
 
@@ -2164,10 +2151,10 @@ void ChunkMesher::greedyMeshSection(const ChunkData& chunk,
 
         std::vector<u32> shadedLayerColors;
         shadedLayerColors.reserve(faceLayers.size());
-        const float faceShade = getFaceShade(face);
+        const f32 faceShade = getFaceShade(face);
         for (const auto& layer : faceLayers) {
             const u32 tintColor =
-                resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, block, layer.tintIndex);
+                _resolveTintColorBlended(biomeAccessor, worldX, worldY, worldZ, block, layer.tintIndex);
             shadedLayerColors.push_back(applyBlockAlpha(applyShadeToPackedColor(tintColor, faceShade), block));
         }
 

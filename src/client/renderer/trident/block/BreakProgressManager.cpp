@@ -22,6 +22,7 @@
  */
 
 #include "BreakProgressManager.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <unordered_map>
@@ -47,7 +48,7 @@ void BreakProgressManager::initialize()
 void BreakProgressManager::cleanup()
 {
     m_localBreaking = false;
-    m_localProgress = 0.0f;
+    m_localProgress = 0.0;
     m_localDamageStage = 0;
     m_remoteProgressByEntity.clear();
     m_remoteProgressByPos.clear();
@@ -57,17 +58,15 @@ void BreakProgressManager::cleanup()
 void BreakProgressManager::tick(f64 deltaTime, u64 currentTick)
 {
     m_currentTick = currentTick;
-    cleanupStaleProgress(currentTick);
+    _cleanupStaleProgress(currentTick);
 }
 
 void BreakProgressManager::startBreaking(const BlockPos& pos)
 {
     m_localBreaking = true;
     m_localBreakPos = pos;
-    m_localProgress = 0.0f;
+    m_localProgress = 0.0;
     m_localDamageStage = 0;
-
-    spdlog::debug("BreakProgressManager: Started breaking at ({}, {}, {})", pos.x, pos.y, pos.z);
 }
 
 u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress)
@@ -78,12 +77,10 @@ u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress)
 
     m_localProgress = std::clamp(progress, 0.0, 1.0);
 
-    u8 newStage = static_cast<u8>(std::min<f64>(9.0, progress * 10.0));
+    u8 newStage = static_cast<u8>(std::min<f64>(static_cast<f64>(MAX_DAMAGE_STAGE), progress * 10.0));
 
     // 阶段变化时播放击打音效
     if (newStage != m_localDamageStage && newStage > 0) {
-        // spdlog::trace("BreakProgressManager: Damage stage updated to {}", newStage);
-
         // 播放击打音效
         if (m_hitSoundCallback) {
             m_hitSoundCallback(m_localBreakPos, newStage);
@@ -96,14 +93,8 @@ u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress)
 
 void BreakProgressManager::stopBreaking()
 {
-    if (m_localBreaking) {
-        spdlog::debug("BreakProgressManager: Stopped breaking at ({}, {}, {})",
-            m_localBreakPos.x,
-            m_localBreakPos.y,
-            m_localBreakPos.z);
-    }
     m_localBreaking = false;
-    m_localProgress = 0.0f;
+    m_localProgress = 0.0;
     m_localDamageStage = 0;
 }
 
@@ -124,27 +115,18 @@ void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockP
         progress.lastUpdateTick = currentTick;
 
         m_remoteProgressByEntity[breakerId] = progress;
-        updatePositionIndex(progress);
-
-        spdlog::debug("BreakProgressManager: Created remote progress for entity {} at ({}, {}, {}), stage {}",
-            breakerId,
-            pos.x,
-            pos.y,
-            pos.z,
-            stage);
+        _updatePositionIndex(progress);
     } else {
         BlockPos oldPos = it->second.position;
 
         if (oldPos != pos) {
-            removeFromPositionIndex(oldPos, breakerId);
+            _removeFromPositionIndex(oldPos, breakerId);
             it->second.position = pos;
-            updatePositionIndex(it->second);
+            _updatePositionIndex(it->second);
         }
 
         it->second.damageStage = static_cast<u8>(stage);
         it->second.lastUpdateTick = currentTick;
-
-        // spdlog::trace("BreakProgressManager: Updated remote progress for entity {}, stage {}", breakerId, stage);
     }
 }
 
@@ -153,10 +135,8 @@ void BreakProgressManager::removeRemoteProgress(EntityId breakerId)
     auto it = m_remoteProgressByEntity.find(breakerId);
     if (it != m_remoteProgressByEntity.end()) {
         BlockPos pos = it->second.position;
-        removeFromPositionIndex(pos, breakerId);
+        _removeFromPositionIndex(pos, breakerId);
         m_remoteProgressByEntity.erase(it);
-
-        // spdlog::debug("BreakProgressManager: Removed remote progress for entity {}", breakerId);
     }
 }
 
@@ -189,7 +169,7 @@ u8 BreakProgressManager::getDamageStage(const BlockPos& pos) const
         }
     }
 
-    return hasProgress ? maxStage : 255;
+    return hasProgress ? maxStage : NO_DAMAGE;
 }
 
 std::vector<const BlockBreakProgress*> BreakProgressManager::getProgressAtPos(const BlockPos& pos) const
@@ -230,6 +210,7 @@ std::vector<std::pair<BlockPos, u8>> BreakProgressManager::getVisibleProgress(co
 
     // 添加远程进度
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
+        MC_UNUSED(breakerId);
         const f64 dx = static_cast<f64>(progress.position.x) - cameraPos.x;
         const f64 dy = static_cast<f64>(progress.position.y) - cameraPos.y;
         const f64 dz = static_cast<f64>(progress.position.z) - cameraPos.z;
@@ -282,6 +263,7 @@ void BreakProgressManager::getVisibleProgress(
 
     // 添加远程进度，去重处理
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
+        MC_UNUSED(breakerId);
         const f64 dx = static_cast<f64>(progress.position.x) - cameraPos.x;
         const f64 dy = static_cast<f64>(progress.position.y) - cameraPos.y;
         const f64 dz = static_cast<f64>(progress.position.z) - cameraPos.z;
@@ -313,7 +295,7 @@ bool BreakProgressManager::hasProgressAt(const BlockPos& pos) const
     return m_remoteProgressByPos.find(pos) != m_remoteProgressByPos.end();
 }
 
-void BreakProgressManager::cleanupStaleProgress(u64 currentTick)
+void BreakProgressManager::_cleanupStaleProgress(u64 currentTick)
 {
     std::vector<EntityId> toRemove;
 
@@ -328,7 +310,7 @@ void BreakProgressManager::cleanupStaleProgress(u64 currentTick)
     }
 }
 
-void BreakProgressManager::updatePositionIndex(const BlockBreakProgress& progress)
+void BreakProgressManager::_updatePositionIndex(const BlockBreakProgress& progress)
 {
     auto& entityList = m_remoteProgressByPos[progress.position];
 
@@ -341,7 +323,7 @@ void BreakProgressManager::updatePositionIndex(const BlockBreakProgress& progres
     entityList.push_back(progress.breakerId);
 }
 
-void BreakProgressManager::removeFromPositionIndex(const BlockPos& pos, EntityId breakerId)
+void BreakProgressManager::_removeFromPositionIndex(const BlockPos& pos, EntityId breakerId)
 {
     auto posIt = m_remoteProgressByPos.find(pos);
     if (posIt != m_remoteProgressByPos.end()) {

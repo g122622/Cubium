@@ -23,9 +23,10 @@
 
 #pragma once
 
-#include "../../../settings/ClientSettings.hpp"
-#include "../../../world/color/blend/blend.hpp"
-#include "../../MeshTypes.hpp"
+#include "AmbientOcclusionCalculator.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/settings/ClientSettings.hpp"
+#include "client/world/color/blend/blend.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/ChunkData.hpp"
@@ -45,8 +46,6 @@ struct BlockAppearance;
 
 /**
  * @brief 光照模式枚举
- *
- * 参考: net.minecraft.client.settings.AmbientOcclusionStatus
  */
 enum class LightingMode : u8 {
     Flat = 0,   ///< 平面光照（每个面使用统一光照）
@@ -228,7 +227,6 @@ public:
      * @brief 获取方块的默认着色颜色
      *
      * 用于没有世界/位置信息时的颜色解析，例如末影人持有方块的渲染。
-     * 参考 MC 1.16.5 BlockColors.getColor(state, null, null, 0)：
      * - 草方块：返回 grass colormap 中心点颜色
      * - 树叶（云杉/桦树）：返回固定颜色
      * - 其他树叶：返回 foliage colormap 中心点颜色
@@ -253,16 +251,15 @@ public:
      * @param neighborChunks 周围区块，顺序: -X, +X, -Z, +Z, -Y, +Y
      */
     [[nodiscard]] static u8 sampleCombinedLight(
-        const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6] = nullptr);
+        const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]);
 
 private:
     // 检查方块是否应该渲染
-    static bool shouldRenderBlock(const BlockState* state);
+    static bool _shouldRenderBlock(const BlockState* state);
 
     /**
      * @brief 检查面是否应该渲染（完整版，带形状遮挡检测）
      *
-     * 参考 MC 1.16.5 Block.shouldSideBeRendered：
      * 1. 如果邻居是空气，渲染
      * 2. 如果邻居不是实心方块（!isSolid()），渲染
      * 3. 如果当前方块和邻居是同一个状态对象，剔除
@@ -276,10 +273,10 @@ private:
      * @param face 当前方块的面方向（指向邻居）
      * @return 是否应该渲染该面
      */
-    static bool shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face);
+    static bool _shouldRenderFace(const BlockState* block, const BlockState* neighbor, Face face);
 
     // 添加单个面的顶点（使用 BlockAppearance）- 平面光照版本
-    static void addFaceFromAppearance(MeshData& mesh,
+    static void _addFaceFromAppearance(MeshData& mesh,
         Face face,
         f64 x,
         f64 y,
@@ -295,7 +292,7 @@ private:
         const ChunkData* neighborChunks[6]);
 
     // 添加单个面的顶点（使用 BlockAppearance）- 平滑光照版本
-    static void addFaceFromAppearanceSmooth(MeshData& mesh,
+    static void _addFaceFromAppearanceSmooth(MeshData& mesh,
         Face face,
         f64 x,
         f64 y,
@@ -309,10 +306,10 @@ private:
         const ChunkData* neighborChunks[6]);
 
     // 检查外观是否为交叉平面模型（草/花/甘蔗等）
-    [[nodiscard]] static bool isCrossLikeAppearance(const BlockAppearance* appearance);
+    [[nodiscard]] static bool _isCrossLikeAppearance(const BlockAppearance* appearance);
 
     // 生成交叉平面模型网格（双面）
-    static void addCrossedPlantGeometry(MeshData& mesh,
+    static void _addCrossedPlantGeometry(MeshData& mesh,
         f64 x,
         f64 y,
         f64 z,
@@ -327,7 +324,7 @@ private:
         const ChunkData* neighborChunks[6]);
 
     // 对于非完整方块，按方块 shape 生成几何，避免退化为整立方体。
-    static void addShapeGeometryFromAppearance(MeshData& mesh,
+    static void _addShapeGeometryFromAppearance(MeshData& mesh,
         f64 x,
         f64 y,
         f64 z,
@@ -352,34 +349,34 @@ private:
      * @param tintIndex 着色索引
      * @return 打包的 RGBA 颜色值
      */
-    [[nodiscard]] static u32 resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
+    [[nodiscard]] static u32 _resolveTintColorBlended(const client::ChunkBiomeAccessor& accessor,
         i32 worldX,
         i32 worldY,
         i32 worldZ,
         const BlockState* block,
         i32 tintIndex);
 
-    [[nodiscard]] static bool tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap);
+    [[nodiscard]] static bool _tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap);
 
-    static void refreshBiomeColorMaps();
+    static void _refreshBiomeColorMaps();
 
     // 获取天空光照
-    [[nodiscard]] static u8 sampleSkyLight(
+    [[nodiscard]] static u8 _sampleSkyLight(
         const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]);
 
     // 获取方块光照
-    [[nodiscard]] static u8 sampleBlockLight(
+    [[nodiscard]] static u8 _sampleBlockLight(
         const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]);
 
     // 贪婪网格合并
-    static void greedyMeshSection(const ChunkData& chunk,
+    static void _greedyMeshSection(const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
         const ChunkData* neighborChunks[6],
         const std::atomic<bool>* cancelSignal);
 
     // 简单网格生成 (逐面生成)
-    static void simpleMeshSection(const ChunkData& chunk,
+    static void _simpleMeshSection(const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
         const ChunkData* neighborChunks[6],

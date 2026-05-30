@@ -40,7 +40,7 @@ void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 par
     const BlockPos& pos = entity.getPos();
 
     // 渲染信标基座（普通方块渲染）
-    renderBeaconBase(pos, light);
+    _renderBeaconBase(pos, light);
 
     // 如果未激活，不渲染光束
     if (!entity.isActive()) {
@@ -54,16 +54,14 @@ void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 par
     }
 
     // 获取游戏时间
-    // MC 1.16.5: long i = tileEntityIn.getWorld().getGameTime();
-    // 注意: 需要 BlockEntity 持有世界引用或通过 render() 参数传入
-    // 当前使用默认值，完整集成需要在渲染调度器中传入
+    // TODO: 需要 BlockEntity 持有世界引用或通过 render() 参数传入
     i64 gameTime = 0;
 
     // 渲染光束
-    renderBeam(pos, segments, gameTime, partialTick, light);
+    _renderBeam(pos, segments, gameTime, partialTick, light);
 }
 
-void BeaconRenderer::renderBeaconBase(const BlockPos& pos, u32 light)
+void BeaconRenderer::_renderBeaconBase(const BlockPos& pos, u32 light)
 {
     // 信标基座使用普通方块模型渲染
     // 由 BlockModelCache 和区块渲染器处理
@@ -72,13 +70,12 @@ void BeaconRenderer::renderBeaconBase(const BlockPos& pos, u32 light)
     (void)light;
 }
 
-void BeaconRenderer::renderBeam(const BlockPos& pos,
+void BeaconRenderer::_renderBeam(const BlockPos& pos,
     const std::vector<mc::blockentity::BeaconBeamSegment>& segments,
     i64 gameTime,
     f32 partialTick,
     u32 light)
 {
-    // 参考 MC 1.16.5 BeaconTileEntityRenderer.render()
     // 1. 设置模型变换（平移到方块中心）
     // 2. 计算旋转角度
     // 3. 渲染每个光束段
@@ -94,7 +91,7 @@ void BeaconRenderer::renderBeam(const BlockPos& pos,
     std::vector<u32> indices;
     m_beamModel.generateMesh(vertices, indices, gameTime, partialTick);
 
-    // 网格数据已生成，后续集成步骤：
+    // TODO 网格数据已生成，后续集成步骤：
     // 1. 获取 RenderType.beaconBeam(texture, true/false)
     // 2. 创建变换矩阵（平移到 pos + 0.5, 0.0, 0.5）
     // 3. 应用旋转（绕 Y 轴）

@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoResolver.hpp"

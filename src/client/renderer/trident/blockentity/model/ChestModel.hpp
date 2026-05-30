@@ -35,11 +35,6 @@ namespace mc::client::renderer::blockentity::model {
  * 渲染箱子的三个部件：箱体、盖子、锁扣。
  * 支持单箱和双箱模式。
  *
- * 参考 MC 1.16.5 ChestTileEntityRenderer 中的 ModelRenderer 定义：
- * - singleBottom: (1,0,1) 到 (15,10,15)
- * - singleLid: (1,0,0) 到 (15,5,14)，旋转点 (0,9,1)
- * - singleLatch: (7,-1,15) 到 (9,3,16)，旋转点 (0,8,0)
- *
  * 纹理尺寸：64x64
  */
 class ChestModel : public BlockEntityModel {
@@ -87,10 +82,7 @@ public:
      * @brief 设置盖子角度
      * @param angle 角度 (0.0 = 关闭, 1.0 = 完全打开)
      *
-     * 应用 MC 风格的缓动函数：
-     * angle = 1.0f - angle;
-     * angle = 1.0f - angle * angle * angle;
-     * 最终角度范围：0 到 PI/2 弧度
+     * 应用缓动函数后转换为弧度，范围 0 到 PI/2
      */
     void setLidAngle(f32 angle);
 
@@ -120,17 +112,17 @@ private:
     /**
      * @brief 初始化单箱模型部件
      */
-    void initSingleChest();
+    void _initSingleChest();
 
     /**
      * @brief 初始化双箱左半部件
      */
-    void initLeftChest();
+    void _initLeftChest();
 
     /**
      * @brief 初始化双箱右半部件
      */
-    void initRightChest();
+    void _initRightChest();
 
     // 单箱部件
     std::shared_ptr<entity::model::ModelRenderer> m_singleBottom;

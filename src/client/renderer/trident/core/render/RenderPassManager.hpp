@@ -25,7 +25,6 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -88,16 +87,16 @@ public:
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createRenderPass();
-    [[nodiscard]] Result<void> createColorResources();
-    [[nodiscard]] Result<void> createDepthResources();
-    [[nodiscard]] Result<void> createFramebuffers();
+    [[nodiscard]] Result<void> _createRenderPass();
+    [[nodiscard]] Result<void> _createColorResources();
+    [[nodiscard]] Result<void> _createDepthResources();
+    [[nodiscard]] Result<void> _createFramebuffers();
 
     // 销毁方法
-    void destroyRenderPass();
-    void destroyColorResources();
-    void destroyDepthResources();
-    void destroyFramebuffers();
+    void _destroyRenderPass();
+    void _destroyColorResources();
+    void _destroyDepthResources();
+    void _destroyFramebuffers();
 
     // 外部依赖
     TridentContext* m_context = nullptr;

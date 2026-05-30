@@ -245,7 +245,7 @@ public:
         if (m_state != ClientAppState::Initializing) {
             return false;
         }
-        transitionTo(ClientAppState::MainMenu);
+        _transitionTo(ClientAppState::MainMenu);
         return true;
     }
 
@@ -263,7 +263,7 @@ public:
             return false;
         }
         m_worldConfig = config;
-        transitionTo(ClientAppState::LoadingWorld);
+        _transitionTo(ClientAppState::LoadingWorld);
         return true;
     }
 
@@ -279,7 +279,7 @@ public:
         if (m_state != ClientAppState::LoadingWorld) {
             return false;
         }
-        transitionTo(ClientAppState::InGame);
+        _transitionTo(ClientAppState::InGame);
         return true;
     }
 
@@ -295,7 +295,7 @@ public:
         if (m_state != ClientAppState::InGame) {
             return false;
         }
-        transitionTo(ClientAppState::Paused);
+        _transitionTo(ClientAppState::Paused);
         return true;
     }
 
@@ -311,7 +311,7 @@ public:
         if (m_state != ClientAppState::Paused) {
             return false;
         }
-        transitionTo(ClientAppState::InGame);
+        _transitionTo(ClientAppState::InGame);
         return true;
     }
 
@@ -327,7 +327,7 @@ public:
         if (m_state != ClientAppState::InGame && m_state != ClientAppState::Paused) {
             return false;
         }
-        transitionTo(ClientAppState::LeavingWorld);
+        _transitionTo(ClientAppState::LeavingWorld);
         return true;
     }
 
@@ -344,7 +344,7 @@ public:
             return false;
         }
         m_worldConfig.reset();
-        transitionTo(ClientAppState::MainMenu);
+        _transitionTo(ClientAppState::MainMenu);
         return true;
     }
 
@@ -360,7 +360,7 @@ public:
         if (!canShutdown()) {
             return false;
         }
-        transitionTo(ClientAppState::ShuttingDown);
+        _transitionTo(ClientAppState::ShuttingDown);
         return true;
     }
 
@@ -377,7 +377,7 @@ public:
         if (m_state != newState) {
             ClientAppState oldState = m_state;
             m_state = newState;
-            notifyStateChange(oldState, newState);
+            _notifyStateChange(oldState, newState);
         }
     }
 
@@ -449,14 +449,14 @@ private:
     StateChangeCallback m_onStateChanged;
     LoadingProgressCallback m_onLoadingProgress;
 
-    void transitionTo(ClientAppState newState)
+    void _transitionTo(ClientAppState newState)
     {
         ClientAppState oldState = m_state;
         m_state = newState;
-        notifyStateChange(oldState, newState);
+        _notifyStateChange(oldState, newState);
     }
 
-    void notifyStateChange(ClientAppState from, ClientAppState to)
+    void _notifyStateChange(ClientAppState from, ClientAppState to)
     {
         if (m_onStateChanged) {
             m_onStateChanged(from, to);

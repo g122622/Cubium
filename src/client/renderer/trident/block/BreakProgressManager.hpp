@@ -40,7 +40,6 @@ namespace block {
 
 /**
  * @brief 单个方块的破坏进度状态
- * 参考 MC 1.16.5 DestroyBlockProgress
  */
 struct BlockBreakProgress {
     EntityId breakerId;
@@ -61,14 +60,13 @@ using HitSoundCallback = std::function<void(const BlockPos& pos, u8 damageStage)
  * @brief 客户端挖掘进度管理器
  *
  * 管理所有可见的方块破坏进度状态。
- * 参考 MC 1.16.5 WorldRenderer.damagedBlocks
  */
 class BreakProgressManager {
 public:
     static constexpr size_t MAX_DAMAGE_STAGE = 9;
-    static constexpr u64 PROGRESS_TIMEOUT_TICKS = 400;     // 20秒
-    static constexpr f64 MAX_RENDER_DISTANCE_SQ = 1024.0f; // 32格
-    static constexpr size_t INITIAL_BUFFER_CAPACITY = 16;  // 预分配缓冲区初始容量
+    static constexpr u8 NO_DAMAGE = 255;                  // 无破坏进度时的返回值
+    static constexpr u64 PROGRESS_TIMEOUT_TICKS = 400;    // 20秒
+    static constexpr f64 MAX_RENDER_DISTANCE_SQ = 1024.0; // 32格
 
     static BreakProgressManager& instance();
 
@@ -117,14 +115,14 @@ private:
     BreakProgressManager(const BreakProgressManager&) = delete;
     BreakProgressManager& operator=(const BreakProgressManager&) = delete;
 
-    void cleanupStaleProgress(u64 currentTick);
-    void updatePositionIndex(const BlockBreakProgress& progress);
-    void removeFromPositionIndex(const BlockPos& pos, EntityId breakerId);
+    void _cleanupStaleProgress(u64 currentTick);
+    void _updatePositionIndex(const BlockBreakProgress& progress);
+    void _removeFromPositionIndex(const BlockPos& pos, EntityId breakerId);
 
     // 本地玩家状态
     bool m_localBreaking = false;
     BlockPos m_localBreakPos;
-    f64 m_localProgress = 0.0f;
+    f64 m_localProgress = 0.0;
     u8 m_localDamageStage = 0;
 
     // 远程玩家状态（多人游戏）

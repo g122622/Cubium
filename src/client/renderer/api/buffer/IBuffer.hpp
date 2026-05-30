@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/renderer/api/Types.hpp"
 #include "common/core/Result.hpp"
 
 namespace mc::client::renderer::api {

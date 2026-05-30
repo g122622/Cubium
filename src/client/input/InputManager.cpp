@@ -24,7 +24,6 @@
 #include "InputManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
-#include <unordered_map>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
@@ -58,18 +57,17 @@ void InputManager::initialize(GLFWwindow* window)
     g_inputManagers[window] = this;
 
     // 设置回调
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetScrollCallback(window, scrollCallback);
-    glfwSetCharCallback(window, charCallback);
+    glfwSetKeyCallback(window, _keyCallback);
+    glfwSetCursorPosCallback(window, _mouseCallback);
+    glfwSetMouseButtonCallback(window, _mouseButtonCallback);
+    glfwSetScrollCallback(window, _scrollCallback);
+    glfwSetCharCallback(window, _charCallback);
 
     // 初始化鼠标位置
     glfwGetCursorPos(window, &m_mouseX, &m_mouseY);
     m_lastMouseX = m_mouseX;
     m_lastMouseY = m_mouseY;
 
-    m_initialized = true;
     spdlog::info("InputManager initialized");
 }
 
@@ -174,39 +172,39 @@ void InputManager::bindActionCallback(const std::string& action, ActionCallback 
     m_actionCallbacks[action] = std::move(callback);
 }
 
-void InputManager::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
+void InputManager::_keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
 {
     auto* input = getInputManager(window);
     if (input && key >= 0) {
-        input->handleKey(key, action);
+        input->_handleKey(key, action);
     }
 }
 
-void InputManager::mouseCallback(GLFWwindow* window, double xpos, double ypos)
+void InputManager::_mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     auto* input = getInputManager(window);
     if (input) {
-        input->handleMouseMove(xpos, ypos);
+        input->_handleMouseMove(xpos, ypos);
     }
 }
 
-void InputManager::mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/)
+void InputManager::_mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/)
 {
     auto* input = getInputManager(window);
     if (input && button >= 0) {
-        input->handleMouseButton(button, action);
+        input->_handleMouseButton(button, action);
     }
 }
 
-void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void InputManager::_scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     auto* input = getInputManager(window);
     if (input) {
-        input->handleScroll(xoffset, yoffset);
+        input->_handleScroll(xoffset, yoffset);
     }
 }
 
-void InputManager::handleKey(i32 key, i32 action)
+void InputManager::_handleKey(i32 key, i32 action)
 {
     // 先触发键盘事件回调（用于UI输入处理）
     if (m_keyEventCallback) {
@@ -233,7 +231,7 @@ void InputManager::handleKey(i32 key, i32 action)
     }
 }
 
-void InputManager::handleMouseButton(i32 button, i32 action)
+void InputManager::_handleMouseButton(i32 button, i32 action)
 {
     if (action == GLFW_PRESS) {
         m_mouseButtonsPressed.insert(button);
@@ -246,27 +244,27 @@ void InputManager::handleMouseButton(i32 button, i32 action)
     }
 }
 
-void InputManager::handleMouseMove(f64 x, f64 y)
+void InputManager::_handleMouseMove(f64 x, f64 y)
 {
     m_mouseX = x;
     m_mouseY = y;
 }
 
-void InputManager::handleScroll(f64 x, f64 y)
+void InputManager::_handleScroll(f64 x, f64 y)
 {
     m_scrollDeltaX = x;
     m_scrollDeltaY = y;
 }
 
-void InputManager::charCallback(GLFWwindow* window, unsigned int codepoint)
+void InputManager::_charCallback(GLFWwindow* window, unsigned int codepoint)
 {
     auto* input = getInputManager(window);
     if (input) {
-        input->handleCharInput(codepoint);
+        input->_handleCharInput(codepoint);
     }
 }
 
-void InputManager::handleCharInput(u32 codepoint)
+void InputManager::_handleCharInput(u32 codepoint)
 {
     if (m_charCallback) {
         m_charCallback(codepoint);

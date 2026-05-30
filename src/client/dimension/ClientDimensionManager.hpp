@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include <memory>
 #include <string>
@@ -43,11 +44,11 @@ class ClientWorld;
  * 存储从服务器接收的维度信息，包含维度属性。
  */
 struct ClientDimensionInfo {
-    DimensionId id = 0;      ///< 维度ID (0=主世界, -1=下界, 1=末地)
-    std::string name;        ///< 维度名称 (如 "minecraft:overworld")
-    bool hasSkyLight = true; ///< 是否有天空光照
-    bool hasCeiling = false; ///< 是否有天花板
-    f32 ambientLight = 0.0f; ///< 环境光照强度
+    DimensionId id = DimensionManager::OVERWORLD; ///< 维度ID
+    std::string name;                             ///< 维度名称 (如 "minecraft:overworld")
+    bool hasSkyLight = true;                      ///< 是否有天空光照
+    bool hasCeiling = false;                      ///< 是否有天花板
+    f32 ambientLight = 0.0f;                      ///< 环境光照强度
 };
 
 /**
@@ -206,8 +207,8 @@ public:
     void markRenderReset() { m_needsRenderReset = false; }
 
 private:
-    DimensionId m_currentDimension = 0;
-    DimensionId m_targetDimension = 0;
+    DimensionId m_currentDimension = DimensionManager::OVERWORLD;
+    DimensionId m_targetDimension = DimensionManager::OVERWORLD;
     Vector3d m_targetPosition;
     TransitionState m_transitionState = TransitionState::None;
 

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/renderer/api/Types.hpp"
 #include <vector>
 
 namespace mc::client::renderer::api {
@@ -79,15 +79,15 @@ struct MeshData {
     {
         // 添加顶点
         for (const auto& v : faceVertices) {
-            vertices.push_back(v);
+            vertices.emplace_back(v);
         }
         // 添加索引 (两个三角形)
-        indices.push_back(baseIndex + 0);
-        indices.push_back(baseIndex + 1);
-        indices.push_back(baseIndex + 2);
-        indices.push_back(baseIndex + 0);
-        indices.push_back(baseIndex + 2);
-        indices.push_back(baseIndex + 3);
+        indices.emplace_back(baseIndex + 0);
+        indices.emplace_back(baseIndex + 1);
+        indices.emplace_back(baseIndex + 2);
+        indices.emplace_back(baseIndex + 0);
+        indices.emplace_back(baseIndex + 2);
+        indices.emplace_back(baseIndex + 3);
     }
 
     /**

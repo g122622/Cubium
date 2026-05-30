@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/sound/AudioService.hpp"

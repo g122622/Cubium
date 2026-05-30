@@ -23,27 +23,23 @@
 
 #pragma once
 
-#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/resource/ResourcePackList.hpp"
 #include "common/screen/IScreen.hpp"
-#include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/fluid/Fluid.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include "client/input/InputManager.hpp"
 
 #include <algorithm>
 #include <vector>
 
-namespace mc::client::application::features {
+namespace mc {
+
+class Player;
+
+namespace client::application::features {
 
 /**
  * @brief 容器内容应用到菜单
@@ -109,4 +105,5 @@ void captureMouseAfterScreens(InputManager& input, bool& mouseCaptured);
  */
 [[nodiscard]] f32 calculateBlockBreakingDelta(const Player& player, const BlockState& state);
 
-} // namespace mc::client::application::features
+} // namespace client::application::features
+} // namespace mc

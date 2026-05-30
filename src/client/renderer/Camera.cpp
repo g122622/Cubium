@@ -34,8 +34,8 @@ namespace mc::client {
 Camera::Camera(const CameraConfig& config)
     : m_config(config)
 {
-    updateVectors();
-    updateProjectionMatrix();
+    _updateVectors();
+    _updateProjectionMatrix();
 }
 
 void Camera::update(f64 deltaTime)
@@ -43,13 +43,13 @@ void Camera::update(f64 deltaTime)
     (void)deltaTime; // 暂时不使用
 
     if (m_viewDirty) {
-        updateViewMatrix();
+        _updateViewMatrix();
     }
     if (m_projectionDirty) {
-        updateProjectionMatrix();
+        _updateProjectionMatrix();
     }
     if (m_viewDirty || m_projectionDirty) {
-        updateViewProjectionMatrix();
+        _updateViewProjectionMatrix();
         m_dirty = true;
         m_viewDirty = false;
         m_projectionDirty = false;
@@ -73,7 +73,7 @@ void Camera::setRotation(const glm::dvec3& rotation)
     m_rotation = rotation;
     // 限制俯仰角
     m_rotation.x = math::clamp<f64>(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
@@ -81,28 +81,28 @@ void Camera::setRotation(f64 pitch, f64 yaw, f64 roll)
 {
     m_rotation = glm::dvec3(pitch, yaw, roll);
     m_rotation.x = math::clamp<f64>(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
 void Camera::setPitch(f64 pitch)
 {
     m_rotation.x = math::clamp<f64>(pitch, -m_config.pitchLimit, m_config.pitchLimit);
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
 void Camera::setYaw(f64 yaw)
 {
     m_rotation.y = yaw;
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
 void Camera::setRoll(f64 roll)
 {
     m_rotation.z = roll;
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
@@ -145,7 +145,7 @@ void Camera::rotate(f64 pitchDelta, f64 yawDelta)
 {
     m_rotation.x = math::clamp<f64>(m_rotation.x + pitchDelta, -m_config.pitchLimit, m_config.pitchLimit);
     m_rotation.y += yawDelta;
-    updateVectors();
+    _updateVectors();
     m_viewDirty = true;
 }
 
@@ -217,21 +217,14 @@ void Camera::setConfig(const CameraConfig& config)
  * - yaw=90: 看向 -X 方向
  * - yaw=180: 看向 -Z 方向
  * - yaw=270: 看向 +X 方向
- *
- * 这与Entity.getVectorForRotation()一致：
- *   forward.x = -sin(yaw) * cos(pitch)
- *   forward.z = cos(yaw) * cos(pitch)
- *
- * 参考MC源码: Entity.java:1387-1394
  */
-void Camera::updateVectors()
+void Camera::_updateVectors()
 {
     // 从欧拉角计算方向向量
-    const f64 pitchRad = m_rotation.x * 0.017453292519943295;
-    const f64 yawRad = m_rotation.y * 0.017453292519943295;
+    const f64 pitchRad = m_rotation.x * math::PI_DOUBLE / 180.0;
+    const f64 yawRad = m_rotation.y * math::PI_DOUBLE / 180.0;
 
     // 前向向量 - MC坐标系
-    // MC: yaw=0 看向 +Z, yaw=90 看向 -X
     m_forward.x = -std::sin(yawRad) * std::cos(pitchRad);
     m_forward.y = std::sin(pitchRad);
     m_forward.z = std::cos(yawRad) * std::cos(pitchRad);
@@ -244,17 +237,17 @@ void Camera::updateVectors()
     m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
 
-void Camera::updateViewMatrix()
+void Camera::_updateViewMatrix()
 {
     // 视图矩阵：将世界坐标转换到相机空间
     m_baseViewMatrix = glm::mat4(glm::lookAt(m_position, m_position + m_forward, m_up));
     m_viewMatrix = m_viewTransform * m_baseViewMatrix;
 }
 
-void Camera::updateProjectionMatrix()
+void Camera::_updateProjectionMatrix()
 {
     if (m_config.projectionMode == ProjectionMode::Perspective) {
-        m_projectionMatrix = glm::perspective(static_cast<f32>(m_config.fov * 0.017453292519943295),
+        m_projectionMatrix = glm::perspective(static_cast<f32>(m_config.fov * math::PI_DOUBLE / 180.0),
             static_cast<f32>(m_config.aspectRatio),
             static_cast<f32>(m_config.nearPlane),
             static_cast<f32>(m_config.farPlane));
@@ -274,7 +267,7 @@ void Camera::updateProjectionMatrix()
     m_projectionMatrix[1][1] *= -1.0f;
 }
 
-void Camera::updateViewProjectionMatrix()
+void Camera::_updateViewProjectionMatrix()
 {
     m_viewProjectionMatrix = m_projectionMatrix * m_viewMatrix;
 }

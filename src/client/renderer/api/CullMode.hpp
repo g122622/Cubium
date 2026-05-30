@@ -67,7 +67,6 @@ enum class PolygonMode : u8 {
  * @brief 光栅化状态
  *
  * 定义面剔除和填充模式的配置。
- * 参考 MC 1.16.5 RenderState。
  */
 struct RasterizerState {
     CullMode cullMode = CullMode::Back;

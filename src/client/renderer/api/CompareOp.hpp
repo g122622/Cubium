@@ -48,7 +48,6 @@ enum class CompareOp : u8 {
  * @brief 深度状态
  *
  * 定义深度测试和深度写入的配置。
- * 参考 MC 1.16.5 RenderStateDepthTest。
  */
 struct DepthState {
     bool testEnabled = true;               // 是否启用深度测试

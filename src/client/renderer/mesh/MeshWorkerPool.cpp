@@ -22,7 +22,7 @@
  */
 
 #include "MeshWorkerPool.hpp"
-#include "../trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
@@ -32,7 +32,7 @@
 namespace mc::client {
 
 MeshWorkerPool::MeshWorkerPool(i32 threadCount)
-    : m_threadCount(threadCount > 0 ? threadCount : getOptimalThreadCount())
+    : m_threadCount(threadCount > 0 ? threadCount : _getOptimalThreadCount())
 {}
 
 MeshWorkerPool::~MeshWorkerPool()
@@ -40,7 +40,7 @@ MeshWorkerPool::~MeshWorkerPool()
     shutdown();
 }
 
-i32 MeshWorkerPool::getOptimalThreadCount()
+i32 MeshWorkerPool::_getOptimalThreadCount()
 {
     const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
     const i32 count = static_cast<i32>(hardwareConcurrency) - 1;
@@ -58,7 +58,7 @@ void MeshWorkerPool::start()
 
     m_workers.reserve(m_threadCount);
     for (i32 i = 0; i < m_threadCount; ++i) {
-        m_workers.emplace_back(&MeshWorkerPool::workerLoop, this, i);
+        m_workers.emplace_back(&MeshWorkerPool::_workerLoop, this, i);
     }
 
     spdlog::info("MeshWorkerPool started with {} threads", m_threadCount);
@@ -169,12 +169,12 @@ size_t MeshWorkerPool::completedTaskCount() const
     return m_completedQueue.size();
 }
 
-bool MeshWorkerPool::isCancelled(const MeshWorkerTask& task)
+bool MeshWorkerPool::_isCancelled(const MeshWorkerTask& task)
 {
     return task.cancelSignal && task.cancelSignal->load(std::memory_order_acquire);
 }
 
-void MeshWorkerPool::workerLoop(i32 workerId)
+void MeshWorkerPool::_workerLoop(i32 workerId)
 {
     const std::string threadName = "ChunkMeshWorker-" + std::to_string(workerId);
     mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
@@ -201,12 +201,12 @@ void MeshWorkerPool::workerLoop(i32 workerId)
         }
 
         m_runningTaskCount.fetch_add(1, std::memory_order_acq_rel);
-        executeTask(task);
+        _executeTask(task);
         m_runningTaskCount.fetch_sub(1, std::memory_order_acq_rel);
     }
 }
 
-void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
+void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
 {
     ChunkPos chunkPos(task.chunkId.x, task.chunkId.z);
     MC_TRACE_CHUNK_MESH_EVENT("BuildMesh",
@@ -220,7 +220,7 @@ void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
     result.success = false;
     result.cancelled = false;
 
-    if (isCancelled(task)) {
+    if (_isCancelled(task)) {
         result.cancelled = true;
         std::lock_guard<std::mutex> lock(m_completedMutex);
         m_completedQueue.push(std::move(result));
@@ -237,7 +237,7 @@ void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
         ChunkMesher::generateSplitMesh(
             *task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs, task.cancelSignal.get());
 
-        if (isCancelled(task)) {
+        if (_isCancelled(task)) {
             result.cancelled = true;
             result.success = false;
         } else {

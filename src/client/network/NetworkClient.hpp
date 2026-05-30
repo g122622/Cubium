@@ -331,103 +331,103 @@ public:
 
 private:
     // 内部方法
-    void receiveLoop();
-    void processIncomingData();
-    void processPacket(const u8* data, size_t size);
-    void sendRawData(const u8* data, size_t size);
-    void sendPacket(const std::vector<u8>& packetData);
-    void setState(ClientState state);
-    void handleKeepAlive(u64 id);
-    void handleLoginResponse(network::PacketDeserializer& deser);
-    void handleCommandTree(const u8* data, size_t size);
-    void handleTeleport(network::PacketDeserializer& deser);
-    void handleChunkData(network::PacketDeserializer& deser);
-    void handleUnloadChunk(network::PacketDeserializer& deser);
-    void handlePlayerSpawn(network::PacketDeserializer& deser);
-    void handlePlayerDespawn(network::PacketDeserializer& deser);
-    void handleBlockUpdate(network::PacketDeserializer& deser);
-    void handleChatMessage(network::PacketDeserializer& deser);
-    void handleTimeUpdate(network::PacketDeserializer& deser);
-    void handlePlayerInventory(network::PacketDeserializer& deser);
-    void handleOpenContainer(network::PacketDeserializer& deser);
-    void handleContainerContent(network::PacketDeserializer& deser);
-    void handleContainerSlot(network::PacketDeserializer& deser);
-    void handleCloseContainer(network::PacketDeserializer& deser);
-    void handleDisconnect(network::PacketDeserializer& deser);
+    void _receiveLoop();
+    void _processIncomingData();
+    void _processPacket(const u8* data, size_t size);
+    void _sendRawData(const u8* data, size_t size);
+    void _sendPacket(const std::vector<u8>& packetData);
+    void _setState(ClientState state);
+    void _handleKeepAlive(u64 id);
+    void _handleLoginResponse(network::PacketDeserializer& deser);
+    void _handleCommandTree(const u8* data, size_t size);
+    void _handleTeleport(network::PacketDeserializer& deser);
+    void _handleChunkData(network::PacketDeserializer& deser);
+    void _handleUnloadChunk(network::PacketDeserializer& deser);
+    void _handlePlayerSpawn(network::PacketDeserializer& deser);
+    void _handlePlayerDespawn(network::PacketDeserializer& deser);
+    void _handleBlockUpdate(network::PacketDeserializer& deser);
+    void _handleChatMessage(network::PacketDeserializer& deser);
+    void _handleTimeUpdate(network::PacketDeserializer& deser);
+    void _handlePlayerInventory(network::PacketDeserializer& deser);
+    void _handleOpenContainer(network::PacketDeserializer& deser);
+    void _handleContainerContent(network::PacketDeserializer& deser);
+    void _handleContainerSlot(network::PacketDeserializer& deser);
+    void _handleCloseContainer(network::PacketDeserializer& deser);
+    void _handleDisconnect(network::PacketDeserializer& deser);
 
     // 实体包处理
-    void handleSpawnEntity(network::PacketDeserializer& deser);
-    void handleSpawnMob(network::PacketDeserializer& deser);
-    void handleEntityDestroy(network::PacketDeserializer& deser);
-    void handleEntityMove(network::PacketDeserializer& deser);
-    void handleEntityTeleport(network::PacketDeserializer& deser);
-    void handleEntityVelocity(network::PacketDeserializer& deser);
-    void handleEntityMetadata(network::PacketDeserializer& deser);
-    void handleEntityAnimation(network::PacketDeserializer& deser);
-    void handleEntityHeadLook(network::PacketDeserializer& deser);
-    void handleEntityStatus(network::PacketDeserializer& deser);
-    void handleCollectItem(network::PacketDeserializer& deser);
+    void _handleSpawnEntity(network::PacketDeserializer& deser);
+    void _handleSpawnMob(network::PacketDeserializer& deser);
+    void _handleEntityDestroy(network::PacketDeserializer& deser);
+    void _handleEntityMove(network::PacketDeserializer& deser);
+    void _handleEntityTeleport(network::PacketDeserializer& deser);
+    void _handleEntityVelocity(network::PacketDeserializer& deser);
+    void _handleEntityMetadata(network::PacketDeserializer& deser);
+    void _handleEntityAnimation(network::PacketDeserializer& deser);
+    void _handleEntityHeadLook(network::PacketDeserializer& deser);
+    void _handleEntityStatus(network::PacketDeserializer& deser);
+    void _handleCollectItem(network::PacketDeserializer& deser);
 
     // 天气包处理
-    void handleGameStateChange(network::PacketDeserializer& deser);
+    void _handleGameStateChange(network::PacketDeserializer& deser);
 
     // 玩家能力包处理
-    void handlePlayerAbilities(network::PacketDeserializer& deser);
+    void _handlePlayerAbilities(network::PacketDeserializer& deser);
 
     // 难度同步包处理
-    void handleServerDifficulty(network::PacketDeserializer& deser);
+    void _handleServerDifficulty(network::PacketDeserializer& deser);
 
     // 光照更新包处理
-    void handleLightUpdate(network::PacketDeserializer& deser);
+    void _handleLightUpdate(network::PacketDeserializer& deser);
 
     // 方块破坏动画包处理
-    void handleBlockBreakAnim(network::PacketDeserializer& deser);
+    void _handleBlockBreakAnim(network::PacketDeserializer& deser);
 
     // 声音包处理
-    void handlePlaySound(network::PacketDeserializer& deser);
-    void handleStopSound(network::PacketDeserializer& deser);
-    void handlePlaySoundEffect(network::PacketDeserializer& deser);
-    void handleMovingSound(network::PacketDeserializer& deser);
+    void _handlePlaySound(network::PacketDeserializer& deser);
+    void _handleStopSound(network::PacketDeserializer& deser);
+    void _handlePlaySoundEffect(network::PacketDeserializer& deser);
+    void _handleMovingSound(network::PacketDeserializer& deser);
 
     // 世界事件处理
-    void handleWorldEvent(network::PacketDeserializer& deser);
+    void _handleWorldEvent(network::PacketDeserializer& deser);
 
     // 经验包处理
-    void handleSetExperience(network::PacketDeserializer& deser);
-    void handleSpawnExperienceOrb(network::PacketDeserializer& deser);
+    void _handleSetExperience(network::PacketDeserializer& deser);
+    void _handleSpawnExperienceOrb(network::PacketDeserializer& deser);
 
     // 玩家列表包处理
-    void handlePlayerListItem(network::PacketDeserializer& deser);
+    void _handlePlayerListItem(network::PacketDeserializer& deser);
 
     // 粒子包处理
-    void handleParticle(network::PacketDeserializer& deser);
+    void _handleParticle(network::PacketDeserializer& deser);
 
     // 乘客包处理
-    void handleSetPassengers(network::PacketDeserializer& deser);
+    void _handleSetPassengers(network::PacketDeserializer& deser);
 
     // 重生/维度切换包处理
-    void handleRespawn(network::PacketDeserializer& deser);
+    void _handleRespawn(network::PacketDeserializer& deser);
 
     // 维度信息包处理
-    void handleDimensionInfo(network::PacketDeserializer& deser);
+    void _handleDimensionInfo(network::PacketDeserializer& deser);
 
     // 世界出生点包处理
-    void handleSpawnPosition(network::PacketDeserializer& deser);
+    void _handleSpawnPosition(network::PacketDeserializer& deser);
 
     // 地图数据包处理
-    void handleMapData(network::PacketDeserializer& deser);
+    void _handleMapData(network::PacketDeserializer& deser);
 
     // 载具移动同步包处理
-    void handleVehicleMove(network::PacketDeserializer& deser);
+    void _handleVehicleMove(network::PacketDeserializer& deser);
 
     // 睡眠状态包处理
-    void handleSleep(network::PacketDeserializer& deser);
+    void _handleSleep(network::PacketDeserializer& deser);
 
     // 快捷栏设置包处理
-    void handleHotbarSet(network::PacketDeserializer& deser);
+    void _handleHotbarSet(network::PacketDeserializer& deser);
 
     // 标题显示包处理
-    void handleTitle(network::PacketDeserializer& deser);
+    void _handleTitle(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;

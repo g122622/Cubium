@@ -2,6 +2,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.126",
     "dotenv": "^17.4.2",
+    "level": "^10.0.0",
     "qq-bot-sdk": "^1.10.1"
   },
   "devDependencies": {

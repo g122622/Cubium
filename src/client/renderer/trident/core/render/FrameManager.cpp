@@ -22,8 +22,9 @@
  */
 
 #include "FrameManager.hpp"
-#include "../TridentContext.hpp"
-#include "../TridentSwapchain.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/core/TridentSwapchain.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -101,15 +102,15 @@ Result<void> FrameManager::initialize(TridentContext* context, u32 maxFramesInFl
     m_maxFramesInFlight = maxFramesInFlight;
 
     // 创建命令池
-    auto poolResult = createCommandPool();
+    auto poolResult = _createCommandPool();
     if (poolResult.failed()) {
         return poolResult.error();
     }
 
     // 创建同步对象
-    auto syncResult = createSyncObjects();
+    auto syncResult = _createSyncObjects();
     if (syncResult.failed()) {
-        destroyCommandPool();
+        _destroyCommandPool();
         return syncResult.error();
     }
 
@@ -124,9 +125,9 @@ void FrameManager::destroy()
 
     m_context->waitIdle();
 
-    destroySyncObjects();
-    destroyCommandBuffers();
-    destroyCommandPool();
+    _destroySyncObjects();
+    _destroyCommandBuffers();
+    _destroyCommandPool();
 
     m_context = nullptr;
     m_initialized = false;
@@ -147,7 +148,7 @@ Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain)
         return Error(ErrorCode::NullPointer, "Swapchain is null");
     }
 
-    auto ensureResult = ensureSwapchainResources(swapchain);
+    auto ensureResult = _ensureSwapchainResources(swapchain);
     if (ensureResult.failed()) {
         return ensureResult.error();
     }
@@ -189,9 +190,8 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain)
         return Error(ErrorCode::NullPointer, "Swapchain is null");
     }
 
-    if (m_imageIndex >= m_commandBuffers.size() || m_imageIndex >= m_renderFinishedSemaphores.size()) {
-        return Error(ErrorCode::InvalidState, "Frame resources not initialized for current image index");
-    }
+    MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
+    MC_ASSERT_RELEASE(m_imageIndex < m_renderFinishedSemaphores.size());
 
     // 提交命令缓冲区
     VkSubmitInfo submitInfo{};
@@ -251,9 +251,7 @@ void FrameManager::beginFrame()
 {
     if (m_frameStarted) return;
 
-    if (m_imageIndex >= m_commandBuffers.size()) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
 
     // 重置命令缓冲区
     vkResetCommandBuffer(m_commandBuffers[m_imageIndex], 0);
@@ -271,10 +269,7 @@ void FrameManager::endFrame()
 {
     if (!m_frameStarted) return;
 
-    if (m_imageIndex >= m_commandBuffers.size()) {
-        m_frameStarted = false;
-        return;
-    }
+    MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
 
     vkEndCommandBuffer(m_commandBuffers[m_imageIndex]);
     // 注意：不在这里设置 m_frameStarted = false，因为 submitAndPresent 会处理
@@ -282,40 +277,34 @@ void FrameManager::endFrame()
 
 void FrameManager::waitForFrame(u32 frameIndex)
 {
-    if (frameIndex >= m_maxFramesInFlight) return;
+    MC_ASSERT_RELEASE(frameIndex < m_maxFramesInFlight);
 
     vkWaitForFences(m_context->device(), 1, &m_inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
 }
 
 VkCommandBuffer FrameManager::currentCommandBuffer() const
 {
-    if (m_imageIndex < m_commandBuffers.size()) {
-        return m_commandBuffers[m_imageIndex];
-    }
-    return VK_NULL_HANDLE;
+    MC_ASSERT_RELEASE(m_imageIndex < m_commandBuffers.size());
+    return m_commandBuffers[m_imageIndex];
 }
 
 VkSemaphore FrameManager::imageAvailableSemaphore(u32 frameIndex) const
 {
-    if (frameIndex < m_imageAvailableSemaphores.size()) {
-        return m_imageAvailableSemaphores[frameIndex];
-    }
-    return VK_NULL_HANDLE;
+    MC_ASSERT_RELEASE(frameIndex < m_imageAvailableSemaphores.size());
+    return m_imageAvailableSemaphores[frameIndex];
 }
 
 VkSemaphore FrameManager::renderFinishedSemaphore(u32 imageIndex) const
 {
-    if (imageIndex < m_renderFinishedSemaphores.size()) {
-        return m_renderFinishedSemaphores[imageIndex];
-    }
-    return VK_NULL_HANDLE;
+    MC_ASSERT_RELEASE(imageIndex < m_renderFinishedSemaphores.size());
+    return m_renderFinishedSemaphores[imageIndex];
 }
 
 // ============================================================================
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> FrameManager::createCommandPool()
+Result<void> FrameManager::_createCommandPool()
 {
     const auto& queueFamilies = m_context->queueFamilies();
 
@@ -332,14 +321,14 @@ Result<void> FrameManager::createCommandPool()
     return {};
 }
 
-Result<void> FrameManager::createCommandBuffers()
+Result<void> FrameManager::_createCommandBuffers()
 {
     // 需要在交换链创建后调用，这里预留接口
     // 实际命令缓冲区数量取决于交换链图像数量
     return {};
 }
 
-Result<void> FrameManager::createSyncObjects()
+Result<void> FrameManager::_createSyncObjects()
 {
     m_imageAvailableSemaphores.resize(m_maxFramesInFlight);
     m_inFlightFences.resize(m_maxFramesInFlight);
@@ -356,13 +345,13 @@ Result<void> FrameManager::createSyncObjects()
     for (u32 i = 0; i < m_maxFramesInFlight; i++) {
         VkResult result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
         if (result != VK_SUCCESS) {
-            destroySyncObjects();
+            _destroySyncObjects();
             return Error(ErrorCode::OperationFailed, "Failed to create semaphore: " + std::to_string(result));
         }
 
         result = vkCreateFence(device, &fenceInfo, nullptr, &m_inFlightFences[i]);
         if (result != VK_SUCCESS) {
-            destroySyncObjects();
+            _destroySyncObjects();
             return Error(ErrorCode::OperationFailed, "Failed to create fence: " + std::to_string(result));
         }
     }
@@ -371,7 +360,7 @@ Result<void> FrameManager::createSyncObjects()
     return {};
 }
 
-Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
+Result<void> FrameManager::_ensureSwapchainResources(TridentSwapchain* swapchain)
 {
     if (!swapchain) {
         return Error(ErrorCode::NullPointer, "Swapchain is null");
@@ -453,7 +442,7 @@ Result<void> FrameManager::ensureSwapchainResources(TridentSwapchain* swapchain)
 // 私有方法 - 销毁
 // ============================================================================
 
-void FrameManager::destroyCommandPool()
+void FrameManager::_destroyCommandPool()
 {
     if (m_commandPool != VK_NULL_HANDLE && m_context) {
         vkDestroyCommandPool(m_context->device(), m_commandPool, nullptr);
@@ -461,13 +450,13 @@ void FrameManager::destroyCommandPool()
     }
 }
 
-void FrameManager::destroyCommandBuffers()
+void FrameManager::_destroyCommandBuffers()
 {
     // 命令缓冲区随命令池销毁而销毁
     m_commandBuffers.clear();
 }
 
-void FrameManager::destroySyncObjects()
+void FrameManager::_destroySyncObjects()
 {
     if (!m_context) return;
 

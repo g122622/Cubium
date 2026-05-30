@@ -57,8 +57,6 @@ class BreakProgressManager;
  * 2. 为每个方块生成一个覆盖层立方体网格
  * 3. 使用破坏纹理图集采样对应阶段的纹理
  * 4. 通过叠加混合渲染到场景中
- *
- * 参考 MC 1.16.5 WorldRenderer.renderBlockBreakProgress()
  */
 class BreakProgressRenderer {
 public:
@@ -160,22 +158,22 @@ private:
     /**
      * @brief 创建管线
      */
-    [[nodiscard]] bool createPipeline(VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] bool _createPipeline(VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建顶点/索引缓冲区
      */
-    [[nodiscard]] bool createBuffers();
+    [[nodiscard]] bool _createBuffers();
 
     /**
      * @brief 创建描述符集
      */
-    [[nodiscard]] bool createDescriptorSets();
+    [[nodiscard]] bool _createDescriptorSets();
 
     /**
      * @brief 上传破坏纹理图集到GPU
      */
-    [[nodiscard]] bool uploadTextureAtlas();
+    [[nodiscard]] bool _uploadTextureAtlas();
 
     /**
      * @brief 生成立方体顶点数据
@@ -187,7 +185,7 @@ private:
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
      */
-    void generateCubeMesh(size_t cubeIndex, std::vector<Vertex>& vertices, std::vector<u32>& indices);
+    void _generateCubeMesh(size_t cubeIndex, std::vector<Vertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 确保缓冲区容量足够
@@ -198,7 +196,7 @@ private:
      * @param requiredIndices 所需索引容量
      * @return 成功返回 true
      */
-    [[nodiscard]] bool ensureBufferCapacity(size_t requiredVertices, size_t requiredIndices);
+    [[nodiscard]] bool _ensureBufferCapacity(size_t requiredVertices, size_t requiredIndices);
 
     /**
      * @brief 重新创建缓冲区
@@ -207,17 +205,17 @@ private:
      * @param indexCount 新的索引容量
      * @return 成功返回 true
      */
-    [[nodiscard]] bool recreateBuffers(size_t vertexCount, size_t indexCount);
+    [[nodiscard]] bool _recreateBuffers(size_t vertexCount, size_t indexCount);
 
     /**
      * @brief 更新顶点缓冲区
      */
-    void updateVertexBuffer(const std::vector<Vertex>& vertices);
+    void _updateVertexBuffer(const std::vector<Vertex>& vertices);
 
     /**
      * @brief 更新索引缓冲区
      */
-    void updateIndexBuffer(const std::vector<u32>& indices);
+    void _updateIndexBuffer(const std::vector<u32>& indices);
 
     // ========================================================================
     // 配置参数

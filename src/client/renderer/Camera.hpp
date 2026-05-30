@@ -130,10 +130,10 @@ public:
     void markClean() override { m_dirty = false; }
 
 private:
-    void updateVectors();
-    void updateViewMatrix();
-    void updateProjectionMatrix();
-    void updateViewProjectionMatrix();
+    void _updateVectors();
+    void _updateViewMatrix();
+    void _updateProjectionMatrix();
+    void _updateViewProjectionMatrix();
 
     CameraConfig m_config;
 

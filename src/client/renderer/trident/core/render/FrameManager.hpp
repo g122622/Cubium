@@ -59,7 +59,7 @@ public:
      * @param maxFramesInFlight 最大同时在飞帧数
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(TridentContext* context, u32 maxFramesInFlight = 2);
+    [[nodiscard]] Result<void> initialize(TridentContext* context, u32 maxFramesInFlight);
 
     /**
      * @brief 销毁所有资源
@@ -112,15 +112,15 @@ public:
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createCommandPool();
-    [[nodiscard]] Result<void> createCommandBuffers();
-    [[nodiscard]] Result<void> createSyncObjects();
-    [[nodiscard]] Result<void> ensureSwapchainResources(TridentSwapchain* swapchain);
+    [[nodiscard]] Result<void> _createCommandPool();
+    [[nodiscard]] Result<void> _createCommandBuffers();
+    [[nodiscard]] Result<void> _createSyncObjects();
+    [[nodiscard]] Result<void> _ensureSwapchainResources(TridentSwapchain* swapchain);
 
     // 销毁方法
-    void destroyCommandPool();
-    void destroyCommandBuffers();
-    void destroySyncObjects();
+    void _destroyCommandPool();
+    void _destroyCommandBuffers();
+    void _destroySyncObjects();
 
     // 外部依赖
     TridentContext* m_context = nullptr;

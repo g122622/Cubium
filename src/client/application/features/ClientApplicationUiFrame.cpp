@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 

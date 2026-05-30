@@ -38,27 +38,21 @@ std::shared_ptr<entity::model::ModelRenderer> BlockEntityModel::createPart(
 
 void BlockEntityModel::addPart(std::shared_ptr<entity::model::ModelRenderer> part)
 {
-    if (part) {
-        m_parts.push_back(part);
-    }
+    m_parts.push_back(part);
 }
 
 void BlockEntityModel::generateMesh(
     std::vector<entity::model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale) const
 {
     for (const auto& part : m_parts) {
-        if (part) {
-            part->generateMesh(vertices, indices, scale);
-        }
+        part->generateMesh(vertices, indices, scale);
     }
 }
 
 void BlockEntityModel::setAllVisible(bool visible)
 {
     for (auto& part : m_parts) {
-        if (part) {
-            part->setVisible(visible);
-        }
+        part->setVisible(visible);
     }
 }
 

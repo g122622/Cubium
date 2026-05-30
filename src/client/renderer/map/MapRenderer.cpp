@@ -39,7 +39,7 @@ MapRenderer::MapRenderer() = default;
 
 bool MapRenderer::updateMapTexture(i32 mapId, const world::map::MapData& mapData)
 {
-    MapTextureEntry& entry = getOrCreateEntry(mapId);
+    MapTextureEntry& entry = _getOrCreateEntry(mapId);
 
     const auto& colors = mapData.colors();
     bool changed = false;
@@ -56,7 +56,7 @@ bool MapRenderer::updateMapTexture(i32 mapId, const world::map::MapData& mapData
         // 更新缓存的颜色数据
         entry.cachedColors = colors;
         // 转换为RGBA纹理
-        convertMapToTexture(colors, entry.textureData);
+        _convertMapToTexture(colors, entry.textureData);
         entry.dirty = true;
     }
 
@@ -138,7 +138,7 @@ void MapRenderer::renderDecorations(f64 screenX, f64 screenY, f64 size, const wo
     constexpr f64 ICON_SIZE = 8.0; // 图标基础像素大小
 
     for (const auto& [name, decoration] : mapData.decorations()) {
-        const u32 iconColor = getDecorationColor(decoration.type());
+        const u32 iconColor = _getDecorationColor(decoration.type());
         if (iconColor == 0) {
             continue;
         }
@@ -178,16 +178,16 @@ void MapRenderer::clear()
 // 内部方法
 // ============================================================================
 
-MapRenderer::MapTextureEntry& MapRenderer::getOrCreateEntry(i32 mapId)
+MapRenderer::MapTextureEntry& MapRenderer::_getOrCreateEntry(i32 mapId)
 {
     auto it = m_textures.find(mapId);
     if (it == m_textures.end()) {
-        it = m_textures.emplace(mapId, MapTextureEntry()).first;
+        it = m_textures.try_emplace(mapId).first;
     }
     return it->second;
 }
 
-void MapRenderer::convertMapToTexture(
+void MapRenderer::_convertMapToTexture(
     const std::array<u8, MAP_SIZE * MAP_SIZE>& colors, std::array<u8, TEXTURE_SIZE>& outTexture)
 {
     for (i32 i = 0; i < MAP_SIZE * MAP_SIZE; ++i) {
@@ -202,7 +202,7 @@ void MapRenderer::convertMapToTexture(
     }
 }
 
-u32 MapRenderer::getDecorationColor(world::map::DecorationType type)
+u32 MapRenderer::_getDecorationColor(world::map::DecorationType type)
 {
     // 根据装饰类型返回ARGB颜色
     switch (type) {

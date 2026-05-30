@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../api/pipeline/IPipeline.hpp"
+#include "client/renderer/api/pipeline/IPipeline.hpp"
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -163,7 +163,7 @@ private:
     /**
      * @brief 加载着色器模块
      */
-    [[nodiscard]] Result<TridentShaderModule> loadShader(const std::string& path, api::ShaderStage stage);
+    [[nodiscard]] Result<TridentShaderModule> _loadShader(const std::string& path, api::ShaderStage stage);
 };
 
 /**
@@ -190,7 +190,7 @@ public:
      * @param cachePath 缓存文件路径（可选）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(TridentContext* context, const std::string& cachePath = "");
+    [[nodiscard]] Result<void> create(TridentContext* context, const std::string& cachePath);
 
     void destroy();
 

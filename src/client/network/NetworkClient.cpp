@@ -85,7 +85,7 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config)
     m_username = config.username;
     m_socket = std::make_unique<asio::ip::tcp::socket>(m_ioContext);
 
-    setState(ClientState::Connecting);
+    _setState(ClientState::Connecting);
 
     try {
         // 解析服务器地址
@@ -99,11 +99,11 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config)
         m_socket->set_option(asio::ip::tcp::no_delay(true));
         m_socket->set_option(asio::socket_base::keep_alive(true));
 
-        setState(ClientState::LoggingIn);
+        _setState(ClientState::LoggingIn);
 
         // 启动接收线程
         m_running = true;
-        m_ioThread = std::make_unique<std::thread>([this]() { receiveLoop(); });
+        m_ioThread = std::make_unique<std::thread>([this]() { _receiveLoop(); });
 
         // 发送登录请求
         sendLoginRequest();
@@ -112,7 +112,7 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config)
         return Result<void>::ok();
     }
     catch (const std::exception& e) {
-        setState(ClientState::Disconnected);
+        _setState(ClientState::Disconnected);
         spdlog::error("Failed to connect: {}", e.what());
         return Error(ErrorCode::ConnectionFailed, e.what());
     }
@@ -135,7 +135,7 @@ Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint, const
     m_username = m_config.username;
     m_running = true;
 
-    setState(ClientState::LoggingIn);
+    _setState(ClientState::LoggingIn);
 
     // 本地连接模式：无需 IO 线程，直接发送登录请求
     sendLoginRequest();
@@ -152,7 +152,7 @@ void NetworkClient::disconnect(const std::string& reason)
         return;
     }
 
-    setState(ClientState::Disconnecting);
+    _setState(ClientState::Disconnecting);
     m_running = false;
 
     if (m_localEndpoint) {
@@ -172,7 +172,7 @@ void NetworkClient::disconnect(const std::string& reason)
     m_ioThread.reset();
     m_socket.reset();
 
-    setState(ClientState::Disconnected);
+    _setState(ClientState::Disconnected);
 
     if (m_callbacks.onDisconnected) {
         m_callbacks.onDisconnected(reason);
@@ -217,7 +217,7 @@ void NetworkClient::sendLoginRequest()
     fullPacket.writeU16(0); // padding
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::PlayerMovePacket::MoveType type)
@@ -237,7 +237,7 @@ void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action, i32 x, i32 y, i32 z, Direction face)
@@ -265,7 +265,7 @@ void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action,
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand)
@@ -299,7 +299,7 @@ void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendHotbarSelect(i32 slot)
@@ -317,7 +317,7 @@ void NetworkClient::sendHotbarSelect(i32 slot)
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendTeleportConfirm(u32 teleportId)
@@ -337,7 +337,7 @@ void NetworkClient::sendTeleportConfirm(u32 teleportId)
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendConfirmDimensionChange(DimensionId dimension)
@@ -351,7 +351,7 @@ void NetworkClient::sendConfirmDimensionChange(DimensionId dimension)
         return;
     }
 
-    sendRawData(result.value().data(), result.value().size());
+    _sendRawData(result.value().data(), result.value().size());
 }
 
 void NetworkClient::sendKeepAlive(u64 id)
@@ -363,7 +363,7 @@ void NetworkClient::sendKeepAlive(u64 id)
 
     auto result = packet.serialize();
     if (result.success()) {
-        sendRawData(result.value().data(), result.value().size());
+        _sendRawData(result.value().data(), result.value().size());
     }
 
     m_lastKeepAliveSent =
@@ -386,7 +386,7 @@ void NetworkClient::sendChatMessage(const std::string& message)
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet)
@@ -402,7 +402,7 @@ void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPac
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendContainerClick(const ContainerClickPacket& packet)
@@ -418,7 +418,7 @@ void NetworkClient::sendContainerClick(const ContainerClickPacket& packet)
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendCloseContainer(ContainerId containerId)
@@ -436,7 +436,7 @@ void NetworkClient::sendCloseContainer(ContainerId containerId)
     fullPacket.writeU16(0);
     fullPacket.writeBytes(ser.buffer());
 
-    sendRawData(fullPacket.data(), fullPacket.size());
+    _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
 void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking)
@@ -449,7 +449,7 @@ void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jump
 
     auto result = packet.serialize();
     if (result.success()) {
-        sendRawData(result.value().data(), result.value().size());
+        _sendRawData(result.value().data(), result.value().size());
     }
 }
 
@@ -461,7 +461,7 @@ void NetworkClient::sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch)
 
     auto result = packet.serialize();
     if (result.success()) {
-        sendRawData(result.value().data(), result.value().size());
+        _sendRawData(result.value().data(), result.value().size());
     }
 }
 
@@ -474,19 +474,18 @@ void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxDa
 
     auto result = packet.serialize();
     if (result.success()) {
-        sendRawData(result.value().data(), result.value().size());
+        _sendRawData(result.value().data(), result.value().size());
     }
 }
 
 void NetworkClient::sendSteerBoat(bool leftPaddle, bool rightPaddle)
 {
-    // MC 1.16.5: CSteerBoatPacket 发送船的划桨状态
     network::SteerBoatPacket packet;
     packet.setPaddleState(leftPaddle, rightPaddle);
 
     auto result = packet.serialize();
     if (result.success()) {
-        sendRawData(result.value().data(), result.value().size());
+        _sendRawData(result.value().data(), result.value().size());
     }
 }
 
@@ -500,7 +499,7 @@ void NetworkClient::poll()
         // 本地连接模式：直接从队列读取
         std::vector<u8> data;
         while (m_localEndpoint->receive(data)) {
-            processPacket(data.data(), data.size());
+            _processPacket(data.data(), data.size());
             m_packetsReceived++;
         }
 
@@ -514,12 +513,12 @@ void NetworkClient::poll()
 
     // TCP 模式原有逻辑
     // 处理接收到的数据包
-    processIncomingData();
+    _processIncomingData();
 }
 
-void NetworkClient::receiveLoop()
+void NetworkClient::_receiveLoop()
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::receiveLoop");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_receiveLoop");
 
     while (m_running) {
         try {
@@ -544,9 +543,9 @@ void NetworkClient::receiveLoop()
     }
 }
 
-void NetworkClient::processIncomingData()
+void NetworkClient::_processIncomingData()
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::processIncomingData");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_processIncomingData");
 
     std::vector<u8> dataToProcess;
     {
@@ -574,7 +573,7 @@ void NetworkClient::processIncomingData()
         }
 
         // 处理完整数据包
-        processPacket(dataToProcess.data() + offset, packetSize);
+        _processPacket(dataToProcess.data() + offset, packetSize);
         m_packetsReceived++;
 
         offset += packetSize;
@@ -587,9 +586,9 @@ void NetworkClient::processIncomingData()
     }
 }
 
-void NetworkClient::processPacket(const u8* data, size_t size)
+void NetworkClient::_processPacket(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::processPacket", "size", size);
+    MC_TRACE_EVENT("client.network", "NetworkClient::_processPacket", "size", size);
 
     MC_ASSERT_RELEASE(size >= network::PACKET_HEADER_SIZE);
 
@@ -615,7 +614,7 @@ void NetworkClient::processPacket(const u8* data, size_t size)
             network::KeepAlivePacket packet;
             auto result = packet.deserialize(data, size);
             if (result.success()) {
-                handleKeepAlive(packet.timestamp());
+                _handleKeepAlive(packet.timestamp());
             }
             break;
         }
@@ -630,261 +629,261 @@ void NetworkClient::processPacket(const u8* data, size_t size)
         }
 
         case network::PacketType::LoginResponse: {
-            handleLoginResponse(bodyDeser);
+            _handleLoginResponse(bodyDeser);
             break;
         }
 
         case network::PacketType::CommandTree: {
-            handleCommandTree(bodyDeser.data(), bodyDeser.size());
+            _handleCommandTree(bodyDeser.data(), bodyDeser.size());
             break;
         }
 
         case network::PacketType::Teleport: {
-            handleTeleport(bodyDeser);
+            _handleTeleport(bodyDeser);
             break;
         }
 
         case network::PacketType::ChunkData: {
-            handleChunkData(bodyDeser);
+            _handleChunkData(bodyDeser);
             break;
         }
 
         case network::PacketType::UnloadChunk: {
-            handleUnloadChunk(bodyDeser);
+            _handleUnloadChunk(bodyDeser);
             break;
         }
 
         case network::PacketType::PlayerSpawn: {
-            handlePlayerSpawn(bodyDeser);
+            _handlePlayerSpawn(bodyDeser);
             break;
         }
 
         case network::PacketType::PlayerDespawn: {
-            handlePlayerDespawn(bodyDeser);
+            _handlePlayerDespawn(bodyDeser);
             break;
         }
 
         case network::PacketType::BlockUpdate: {
-            handleBlockUpdate(bodyDeser);
+            _handleBlockUpdate(bodyDeser);
             break;
         }
 
         case network::PacketType::ChatBroadcast: {
-            handleChatMessage(bodyDeser);
+            _handleChatMessage(bodyDeser);
             break;
         }
 
         case network::PacketType::TimeUpdate: {
-            handleTimeUpdate(bodyDeser);
+            _handleTimeUpdate(bodyDeser);
             break;
         }
 
         case network::PacketType::PlayerInventory: {
-            handlePlayerInventory(bodyDeser);
+            _handlePlayerInventory(bodyDeser);
             break;
         }
 
         case network::PacketType::OpenContainer: {
-            handleOpenContainer(bodyDeser);
+            _handleOpenContainer(bodyDeser);
             break;
         }
 
         case network::PacketType::ContainerContent: {
-            handleContainerContent(bodyDeser);
+            _handleContainerContent(bodyDeser);
             break;
         }
 
         case network::PacketType::ContainerSlot: {
-            handleContainerSlot(bodyDeser);
+            _handleContainerSlot(bodyDeser);
             break;
         }
 
         case network::PacketType::CloseContainer: {
-            handleCloseContainer(bodyDeser);
+            _handleCloseContainer(bodyDeser);
             break;
         }
 
             // ========== 实体包 ==========
 
         case network::PacketType::SpawnEntity: {
-            handleSpawnEntity(bodyDeser);
+            _handleSpawnEntity(bodyDeser);
             break;
         }
 
         case network::PacketType::SpawnMob: {
-            handleSpawnMob(bodyDeser);
+            _handleSpawnMob(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityDestroy: {
-            handleEntityDestroy(bodyDeser);
+            _handleEntityDestroy(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityMove: {
-            handleEntityMove(bodyDeser);
+            _handleEntityMove(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityTeleport: {
-            handleEntityTeleport(bodyDeser);
+            _handleEntityTeleport(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityVelocity: {
-            handleEntityVelocity(bodyDeser);
+            _handleEntityVelocity(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityMetadata: {
-            handleEntityMetadata(bodyDeser);
+            _handleEntityMetadata(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityAnimation: {
-            handleEntityAnimation(bodyDeser);
+            _handleEntityAnimation(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityHeadLook: {
-            handleEntityHeadLook(bodyDeser);
+            _handleEntityHeadLook(bodyDeser);
             break;
         }
 
         case network::PacketType::EntityStatus: {
-            handleEntityStatus(bodyDeser);
+            _handleEntityStatus(bodyDeser);
             break;
         }
 
         case network::PacketType::CollectItem: {
-            handleCollectItem(bodyDeser);
+            _handleCollectItem(bodyDeser);
             break;
         }
 
         case network::PacketType::GameStateChange: {
-            handleGameStateChange(bodyDeser);
+            _handleGameStateChange(bodyDeser);
             break;
         }
 
         case network::PacketType::PlayerAbilities: {
-            handlePlayerAbilities(bodyDeser);
+            _handlePlayerAbilities(bodyDeser);
             break;
         }
 
         case network::PacketType::ServerDifficulty: {
-            handleServerDifficulty(bodyDeser);
+            _handleServerDifficulty(bodyDeser);
             break;
         }
 
         case network::PacketType::LightUpdate: {
-            handleLightUpdate(bodyDeser);
+            _handleLightUpdate(bodyDeser);
             break;
         }
 
         case network::PacketType::BlockBreakAnim: {
-            handleBlockBreakAnim(bodyDeser);
+            _handleBlockBreakAnim(bodyDeser);
             break;
         }
 
         case network::PacketType::PlaySound: {
-            handlePlaySound(bodyDeser);
+            _handlePlaySound(bodyDeser);
             break;
         }
 
         case network::PacketType::StopSound: {
-            handleStopSound(bodyDeser);
+            _handleStopSound(bodyDeser);
             break;
         }
 
         case network::PacketType::PlaySoundEffect: {
-            handlePlaySoundEffect(bodyDeser);
+            _handlePlaySoundEffect(bodyDeser);
             break;
         }
 
         case network::PacketType::SetExperience: {
-            handleSetExperience(bodyDeser);
+            _handleSetExperience(bodyDeser);
             break;
         }
 
         case network::PacketType::SpawnExperienceOrb: {
-            handleSpawnExperienceOrb(bodyDeser);
+            _handleSpawnExperienceOrb(bodyDeser);
             break;
         }
 
         case network::PacketType::PlayerListItem: {
-            handlePlayerListItem(bodyDeser);
+            _handlePlayerListItem(bodyDeser);
             break;
         }
 
         case network::PacketType::Particle: {
-            handleParticle(bodyDeser);
+            _handleParticle(bodyDeser);
             break;
         }
 
         case network::PacketType::MovingSound: {
-            handleMovingSound(bodyDeser);
+            _handleMovingSound(bodyDeser);
             break;
         }
 
         case network::PacketType::WorldEvent: {
-            handleWorldEvent(bodyDeser);
+            _handleWorldEvent(bodyDeser);
             break;
         }
 
         case network::PacketType::SetPassengers: {
-            handleSetPassengers(bodyDeser);
+            _handleSetPassengers(bodyDeser);
             break;
         }
 
         case network::PacketType::Respawn: {
-            handleRespawn(bodyDeser);
+            _handleRespawn(bodyDeser);
             break;
         }
 
         case network::PacketType::DimensionInfo: {
-            handleDimensionInfo(bodyDeser);
+            _handleDimensionInfo(bodyDeser);
             break;
         }
 
         case network::PacketType::SpawnPosition: {
-            handleSpawnPosition(bodyDeser);
+            _handleSpawnPosition(bodyDeser);
             break;
         }
 
         case network::PacketType::VehicleMove: {
-            handleVehicleMove(bodyDeser);
+            _handleVehicleMove(bodyDeser);
             break;
         }
 
         case network::PacketType::Sleep: {
-            handleSleep(bodyDeser);
+            _handleSleep(bodyDeser);
             break;
         }
 
         case network::PacketType::HotbarSet: {
-            handleHotbarSet(bodyDeser);
+            _handleHotbarSet(bodyDeser);
             break;
         }
 
         case network::PacketType::Title: {
-            handleTitle(bodyDeser);
+            _handleTitle(bodyDeser);
             break;
         }
 
         case network::PacketType::MapData: {
-            handleMapData(bodyDeser);
+            _handleMapData(bodyDeser);
             break;
         }
 
         default:
-            spdlog::error("Unhandled packet type: {}", static_cast<int>(packetType));
+            spdlog::error("Unhandled packet type: {}", static_cast<i32>(packetType));
             break;
     }
 }
 
-void NetworkClient::sendRawData(const u8* data, size_t size)
+void NetworkClient::_sendRawData(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::sendRawData", "size", size);
+    MC_TRACE_EVENT("client.network", "NetworkClient::_sendRawData", "size", size);
 
     if (m_localEndpoint) {
         // 本地连接模式
@@ -911,14 +910,14 @@ void NetworkClient::sendRawData(const u8* data, size_t size)
     }
 }
 
-void NetworkClient::setState(ClientState state)
+void NetworkClient::_setState(ClientState state)
 {
     m_state = state;
 }
 
-void NetworkClient::handleKeepAlive(u64 id)
+void NetworkClient::_handleKeepAlive(u64 id)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleKeepAlive", "id", id);
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleKeepAlive", "id", id);
 
     m_lastKeepAliveReceived =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
@@ -931,9 +930,9 @@ void NetworkClient::handleKeepAlive(u64 id)
     sendKeepAlive(id);
 }
 
-void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser)
+void NetworkClient::_handleLoginResponse(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleLoginResponse");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleLoginResponse");
 
     auto result = network::LoginResponsePacket::deserialize(deser);
     if (result.failed()) {
@@ -948,10 +947,10 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser)
     if (response.success()) {
         m_playerId = response.playerId();
         EntityId entityId = response.entityId();
-        setState(ClientState::Playing);
+        _setState(ClientState::Playing);
 
         spdlog::info(
-            "[NetworkClient::handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
+            "[NetworkClient::_handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
 
         if (m_callbacks.onLoginSuccess) {
             m_callbacks.onLoginSuccess(m_playerId, entityId, response.username());
@@ -967,12 +966,12 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleCommandTree(const u8* data, size_t size)
+void NetworkClient::_handleCommandTree(const u8* data, size_t size)
 {
     network::CommandTreePacket packet;
     auto result = packet.deserialize(data, size);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleCommandTree] Failed to deserialize command tree packet: {}",
+        spdlog::error("[NetworkClient::_handleCommandTree] Failed to deserialize command tree packet: {}",
             result.error().message());
         return;
     }
@@ -982,13 +981,13 @@ void NetworkClient::handleCommandTree(const u8* data, size_t size)
     }
 }
 
-void NetworkClient::handleTeleport(network::PacketDeserializer& deser)
+void NetworkClient::_handleTeleport(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleTeleport");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleTeleport");
 
     auto result = network::TeleportPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleTeleport] Failed to deserialize teleport packet");
+        spdlog::error("[NetworkClient::_handleTeleport] Failed to deserialize teleport packet");
         return;
     }
 
@@ -1003,31 +1002,34 @@ void NetworkClient::handleTeleport(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleChunkData(network::PacketDeserializer& deser)
+void NetworkClient::_handleChunkData(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleChunkData");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleChunkData");
 
     auto result = network::ChunkDataPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error(
-            "[NetworkClient::handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
+            "[NetworkClient::_handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
         return;
     }
 
     auto& packet = result.value();
 
     if (m_callbacks.onChunkData) {
-        MC_TRACE_EVENT("client.network", "NetworkClient::handleChunkDataCallback", "pos", fmt::format("({}, {})", packet.x(), packet.z()));
+        MC_TRACE_EVENT("client.network",
+            "NetworkClient::_handleChunkDataCallback",
+            "pos",
+            fmt::format("({}, {})", packet.x(), packet.z()));
         m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
     }
 }
 
-void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser)
+void NetworkClient::_handleTimeUpdate(network::PacketDeserializer& deser)
 {
     auto result = network::TimeUpdatePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error(
-            "[NetworkClient::handleTimeUpdate] Failed to deserialize time update packet: {}", result.error().message());
+        spdlog::error("[NetworkClient::_handleTimeUpdate] Failed to deserialize time update packet: {}",
+            result.error().message());
         return;
     }
 
@@ -1038,18 +1040,18 @@ void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser)
+void NetworkClient::_handleUnloadChunk(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleUnloadChunk");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleUnloadChunk");
 
     auto result = network::UnloadChunkPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleUnloadChunk] Failed to deserialize unload chunk packet");
+        spdlog::error("[NetworkClient::_handleUnloadChunk] Failed to deserialize unload chunk packet");
         return;
     }
 
     auto& packet = result.value();
-    spdlog::debug("[NetworkClient::handleUnloadChunk] Received unload chunk: ({}, {}) dim={}",
+    spdlog::debug("[NetworkClient::_handleUnloadChunk] Received unload chunk: ({}, {}) dim={}",
         packet.x(),
         packet.z(),
         packet.dimension());
@@ -1059,11 +1061,11 @@ void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlayerSpawn(network::PacketDeserializer& deser)
 {
     auto result = network::PlayerSpawnPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handlePlayerSpawn] Failed to deserialize player spawn packet");
+        spdlog::error("[NetworkClient::_handlePlayerSpawn] Failed to deserialize player spawn packet");
         return;
     }
 
@@ -1075,11 +1077,11 @@ void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlayerDespawn(network::PacketDeserializer& deser)
 {
     auto result = network::PlayerDespawnPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handlePlayerDespawn] Failed to deserialize player despawn packet");
+        spdlog::error("[NetworkClient::_handlePlayerDespawn] Failed to deserialize player despawn packet");
         return;
     }
 
@@ -1090,11 +1092,11 @@ void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser)
+void NetworkClient::_handleBlockUpdate(network::PacketDeserializer& deser)
 {
     auto result = network::BlockUpdatePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleBlockUpdate] Failed to deserialize block update packet");
+        spdlog::error("[NetworkClient::_handleBlockUpdate] Failed to deserialize block update packet");
         return;
     }
 
@@ -1117,11 +1119,11 @@ void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleChatMessage(network::PacketDeserializer& deser)
+void NetworkClient::_handleChatMessage(network::PacketDeserializer& deser)
 {
     auto result = network::ChatMessagePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("[NetworkClient::handleChatMessage] Failed to deserialize chat message packet");
+        spdlog::error("[NetworkClient::_handleChatMessage] Failed to deserialize chat message packet");
         return;
     }
 
@@ -1132,9 +1134,9 @@ void NetworkClient::handleChatMessage(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlayerInventory(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlayerInventory(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handlePlayerInventory");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handlePlayerInventory");
 
     auto result = PlayerInventoryPacket::deserialize(deser);
     if (result.failed()) {
@@ -1148,7 +1150,7 @@ void NetworkClient::handlePlayerInventory(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleOpenContainer(network::PacketDeserializer& deser)
+void NetworkClient::_handleOpenContainer(network::PacketDeserializer& deser)
 {
     auto result = OpenContainerPacket::deserialize(deser);
     if (result.failed()) {
@@ -1161,7 +1163,7 @@ void NetworkClient::handleOpenContainer(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleContainerContent(network::PacketDeserializer& deser)
+void NetworkClient::_handleContainerContent(network::PacketDeserializer& deser)
 {
     auto result = ContainerContentPacket::deserialize(deser);
     if (result.failed()) {
@@ -1174,7 +1176,7 @@ void NetworkClient::handleContainerContent(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleContainerSlot(network::PacketDeserializer& deser)
+void NetworkClient::_handleContainerSlot(network::PacketDeserializer& deser)
 {
     auto result = ContainerSlotPacket::deserialize(deser);
     if (result.failed()) {
@@ -1187,7 +1189,7 @@ void NetworkClient::handleContainerSlot(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleCloseContainer(network::PacketDeserializer& deser)
+void NetworkClient::_handleCloseContainer(network::PacketDeserializer& deser)
 {
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
@@ -1204,9 +1206,9 @@ void NetworkClient::handleCloseContainer(network::PacketDeserializer& deser)
 // 实体包处理
 // ============================================================================
 
-void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser)
+void NetworkClient::_handleSpawnEntity(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleSpawnEntity");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleSpawnEntity");
 
     // 获取原始数据指针
     const u8* data = deser.data();
@@ -1242,9 +1244,9 @@ void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser)
+void NetworkClient::_handleSpawnMob(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleSpawnMob");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleSpawnMob");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1276,9 +1278,9 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityDestroy(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityDestroy");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityDestroy");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1297,9 +1299,9 @@ void NetworkClient::handleEntityDestroy(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityMove(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityMove(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityMove");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityMove");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1321,9 +1323,9 @@ void NetworkClient::handleEntityMove(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityTeleport(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityTeleport(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityTeleport");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityTeleport");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1341,9 +1343,9 @@ void NetworkClient::handleEntityTeleport(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityVelocity(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityVelocity(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityVelocity");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityVelocity");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1360,9 +1362,9 @@ void NetworkClient::handleEntityVelocity(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityMetadata(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityMetadata");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityMetadata");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1382,9 +1384,9 @@ void NetworkClient::handleEntityMetadata(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityAnimation(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityAnimation(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::handleEntityAnimation");
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityAnimation");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1401,7 +1403,7 @@ void NetworkClient::handleEntityAnimation(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityHeadLook(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityHeadLook(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1418,7 +1420,7 @@ void NetworkClient::handleEntityHeadLook(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser)
+void NetworkClient::_handleEntityStatus(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1435,7 +1437,7 @@ void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleCollectItem(network::PacketDeserializer& deser)
+void NetworkClient::_handleCollectItem(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1452,9 +1454,9 @@ void NetworkClient::handleCollectItem(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser)
+void NetworkClient::_handleGameStateChange(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleGameStateChange");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleGameStateChange");
 
     // GameStateChangePacket 使用原始数据 deserialize，需要获取底层数据
     const u8* data = deser.data();
@@ -1496,9 +1498,9 @@ void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser)
             break;
 
         case network::GameStateChangeReason::ChangeGameMode:
-            spdlog::info("Game mode changed to {}", static_cast<int>(value));
+            spdlog::info("Game mode changed to {}", static_cast<i32>(value));
             if (m_callbacks.onGameModeChange) {
-                m_callbacks.onGameModeChange(static_cast<GameMode>(static_cast<int>(value)));
+                m_callbacks.onGameModeChange(static_cast<GameMode>(static_cast<i32>(value)));
             }
             break;
 
@@ -1508,9 +1510,9 @@ void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlayerAbilities(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handlePlayerAbilities");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handlePlayerAbilities");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1522,7 +1524,7 @@ void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::info("[NetworkClient::handlePlayerAbilities] PlayerAbilities: invulnerable={}, flying={}, canFly={}, "
+    spdlog::info("[NetworkClient::_handlePlayerAbilities] PlayerAbilities: invulnerable={}, flying={}, canFly={}, "
                  "creativeMode={}, flySpeed={}, walkSpeed={}",
         packet.invulnerable(),
         packet.flying(),
@@ -1541,7 +1543,7 @@ void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser)
+void NetworkClient::_handleServerDifficulty(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1553,7 +1555,7 @@ void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::info("[NetworkClient::handleServerDifficulty] Difficulty: {}, locked: {}",
+    spdlog::info("[NetworkClient::_handleServerDifficulty] Difficulty: {}, locked: {}",
         static_cast<i32>(packet.difficulty()),
         packet.locked());
 
@@ -1562,7 +1564,7 @@ void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser)
+void NetworkClient::_handleLightUpdate(network::PacketDeserializer& deser)
 {
     auto result = network::LightUpdatePacket::deserialize(deser);
     if (result.failed()) {
@@ -1572,7 +1574,7 @@ void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser)
 
     const auto& packet = result.value();
     MC_TRACE_EVENT("client.lighting",
-        "NetworkClient::handleLightUpdate",
+        "NetworkClient::_handleLightUpdate",
         "Section",
         fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
         "SkyLightSize",
@@ -1593,7 +1595,7 @@ void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser)
+void NetworkClient::_handleBlockBreakAnim(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1611,9 +1613,9 @@ void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlaySound(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlaySound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::handlePlaySound");
+    MC_TRACE_EVENT("client.sound", "NetworkClient::_handlePlaySound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1640,9 +1642,9 @@ void NetworkClient::handlePlaySound(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleStopSound(network::PacketDeserializer& deser)
+void NetworkClient::_handleStopSound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::handleStopSound");
+    MC_TRACE_EVENT("client.sound", "NetworkClient::_handleStopSound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1659,9 +1661,9 @@ void NetworkClient::handleStopSound(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlaySoundEffect(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::handlePlaySoundEffect");
+    MC_TRACE_EVENT("client.sound", "NetworkClient::_handlePlaySoundEffect");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1681,7 +1683,7 @@ void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSetExperience(network::PacketDeserializer& deser)
+void NetworkClient::_handleSetExperience(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1698,7 +1700,7 @@ void NetworkClient::handleSetExperience(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser)
+void NetworkClient::_handleSpawnExperienceOrb(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1716,7 +1718,7 @@ void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser)
+void NetworkClient::_handlePlayerListItem(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1777,7 +1779,7 @@ void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleParticle(network::PacketDeserializer& deser)
+void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1804,9 +1806,9 @@ void NetworkClient::handleParticle(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleMovingSound(network::PacketDeserializer& deser)
+void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::handleMovingSound");
+    MC_TRACE_EVENT("client.sound", "NetworkClient::_handleMovingSound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1833,7 +1835,7 @@ void NetworkClient::handleMovingSound(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser)
+void NetworkClient::_handleWorldEvent(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1857,7 +1859,7 @@ void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser)
+void NetworkClient::_handleSetPassengers(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1878,9 +1880,9 @@ void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleRespawn(network::PacketDeserializer& deser)
+void NetworkClient::_handleRespawn(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleRespawn");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleRespawn");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1910,9 +1912,9 @@ void NetworkClient::handleRespawn(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser)
+void NetworkClient::_handleDimensionInfo(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::handleDimensionInfo");
+    MC_TRACE_EVENT("client.network", "NetworkClient::_handleDimensionInfo");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1937,7 +1939,7 @@ void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser)
+void NetworkClient::_handleSpawnPosition(network::PacketDeserializer& deser)
 {
     network::SpawnPositionPacket packet;
     auto result = packet.deserialize(deser.data(), deser.size());
@@ -1955,7 +1957,7 @@ void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleMapData(network::PacketDeserializer& deser)
+void NetworkClient::_handleMapData(network::PacketDeserializer& deser)
 {
     network::MapDataPacket packet;
     auto result = packet.deserialize(deser.data(), deser.size());
@@ -1965,14 +1967,16 @@ void NetworkClient::handleMapData(network::PacketDeserializer& deser)
     }
 
     spdlog::trace("[NetworkClient] Received MapData: mapId={}, scale={}, columns={}",
-        packet.mapId(), packet.scale(), packet.columns());
+        packet.mapId(),
+        packet.scale(),
+        packet.columns());
 
     if (m_callbacks.onMapData) {
         m_callbacks.onMapData(packet);
     }
 }
 
-void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser)
+void NetworkClient::_handleVehicleMove(network::PacketDeserializer& deser)
 {
     network::VehicleMovePacket packet;
     auto result = packet.deserialize(deser.data(), deser.size());
@@ -1993,7 +1997,7 @@ void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleSleep(network::PacketDeserializer& deser)
+void NetworkClient::_handleSleep(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -2026,7 +2030,7 @@ void NetworkClient::handleSleep(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser)
+void NetworkClient::_handleHotbarSet(network::PacketDeserializer& deser)
 {
     auto result = HotbarSetPacket::deserialize(deser);
     if (result.failed()) {
@@ -2042,7 +2046,7 @@ void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::handleTitle(network::PacketDeserializer& deser)
+void NetworkClient::_handleTitle(network::PacketDeserializer& deser)
 {
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -2054,7 +2058,7 @@ void NetworkClient::handleTitle(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::debug("[NetworkClient] Received Title: action={}", static_cast<int>(packet.action()));
+    spdlog::debug("[NetworkClient] Received Title: action={}", static_cast<i32>(packet.action()));
 
     if (m_callbacks.onTitle) {
         m_callbacks.onTitle(packet.action(), packet.text(), packet.fadeIn(), packet.stay(), packet.fadeOut());

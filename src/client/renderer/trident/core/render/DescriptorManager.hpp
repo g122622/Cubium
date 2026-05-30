@@ -25,7 +25,6 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include <vector>
 #include <vulkan/vulkan.h>
 
 namespace mc::client::renderer::trident {
@@ -94,14 +93,17 @@ public:
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createDescriptorSetLayouts();
-    [[nodiscard]] Result<void> createPipelineLayout();
-    [[nodiscard]] Result<void> createDescriptorPool();
+    [[nodiscard]] Result<void> _createDescriptorSetLayouts();
+    [[nodiscard]] Result<void> _createPipelineLayout();
+    [[nodiscard]] Result<void> _createDescriptorPool();
 
     // 销毁方法
-    void destroyDescriptorSetLayouts();
-    void destroyPipelineLayout();
-    void destroyDescriptorPool();
+    void _destroyDescriptorSetLayouts();
+    void _destroyPipelineLayout();
+    void _destroyDescriptorPool();
+
+    // 分配辅助方法
+    [[nodiscard]] Result<VkDescriptorSet> _allocateSet(VkDescriptorSetLayout layout, const char* errorMsg);
 
     // 外部依赖
     TridentContext* m_context = nullptr;

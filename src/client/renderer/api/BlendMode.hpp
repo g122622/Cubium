@@ -31,7 +31,6 @@ namespace mc::client::renderer::api {
  * @brief 混合因子
  *
  * 定义源和目标颜色的混合因子，与 Vulkan 和 OpenGL 兼容。
- * 参考 MC 1.16.5 GlStateManagerBlendState。
  */
 enum class BlendFactor : u8 {
     Zero,             // 0
@@ -68,7 +67,6 @@ enum class BlendOp : u8 {
  * @brief 混合状态
  *
  * 定义颜色混合的完整配置。
- * 参考 MC 1.16.5 RenderState混合系统。
  */
 struct BlendState {
     bool enabled = false;

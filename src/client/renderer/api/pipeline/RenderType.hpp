@@ -35,7 +35,6 @@ namespace mc::client::renderer::api {
  * @brief 渲染类型
  *
  * 命名渲染类型，用于分类和排序渲染调用。
- * 参考 MC 1.16.5 RenderType 系统。
  *
  * 渲染类型决定了：
  * 1. 渲染状态 (混合、深度、剔除)
@@ -242,7 +241,7 @@ private:
  * @brief 渲染类型哈希
  */
 struct RenderTypeHash {
-    size_t operator()(const RenderType& rt) const { return std::hash<std::string>{}(rt.name()); }
+    Size operator()(const RenderType& rt) const { return std::hash<std::string>{}(rt.name()); }
 };
 
 } // namespace mc::client::renderer::api

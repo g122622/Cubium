@@ -22,9 +22,9 @@
  */
 
 #include "CloudRenderer.hpp"
-#include "../../../resource/ResourceManager.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../util/VulkanUtils.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -44,7 +44,7 @@ namespace {
 // 云纹理尺寸
 constexpr u32 CLOUD_TEXTURE_SIZE = 256;
 
-// 云动画速度 (MC 1.16.5: 0.03F per tick)
+// 云动画速度
 constexpr f64 CLOUD_SPEED = 0.03f;
 
 // 云纹理缩放
@@ -56,7 +56,7 @@ constexpr f64 CLOUD_THICKNESS = 4.0f;
 // 云透明度
 constexpr f64 CLOUD_ALPHA = 0.8f;
 
-// 云掩码阈值（与 MC 硬边效果一致，避免半透明糊边）
+// 云掩码阈值
 constexpr u8 CLOUD_MASK_ALPHA_THRESHOLD = 8;
 
 // 云顶偏移量（避免 z-fighting）
@@ -272,41 +272,41 @@ Result<void> CloudRenderer::initialize(VkDevice device,
     m_extent = extent;
 
     // 先创建纹理（云网格构建需要云掩码）
-    auto result1 = createTexture(resourceManager);
+    auto result1 = _createTexture(resourceManager);
     if (result1.failed()) {
         return result1;
     }
 
     // 创建顶点缓冲区
-    auto result2 = createCloudVBO();
+    auto result2 = _createCloudVBO();
     if (result2.failed()) {
         return result2;
     }
 
     // 创建 Uniform 缓冲区
-    auto result3 = createUniformBuffers();
+    auto result3 = _createUniformBuffers();
     if (result3.failed()) {
         return result3;
     }
 
     // 创建描述符
-    auto result4 = createDescriptorSetLayout();
+    auto result4 = _createDescriptorSetLayout();
     if (result4.failed()) {
         return result4;
     }
 
-    auto result5 = createDescriptorSets();
+    auto result5 = _createDescriptorSets();
     if (result5.failed()) {
         return result5;
     }
 
     // 创建管线
-    auto result6 = createPipelineLayout();
+    auto result6 = _createPipelineLayout();
     if (result6.failed()) {
         return result6;
     }
 
-    auto result7 = createPipelines(sampleCount);
+    auto result7 = _createPipelines(sampleCount);
     if (result7.failed()) {
         return result7;
     }
@@ -402,7 +402,6 @@ void CloudRenderer::destroy()
     }
 
     m_initialized = false;
-    spdlog::debug("CloudRenderer destroyed");
 }
 
 Result<void> CloudRenderer::onResize(VkExtent2D extent)
@@ -419,17 +418,17 @@ Result<void> CloudRenderer::reloadTexture(const ResourceManager* resourceManager
 
     vkDeviceWaitIdle(m_device);
 
-    auto textureResult = createTexture(resourceManager);
+    auto textureResult = _createTexture(resourceManager);
     if (textureResult.failed()) {
         return textureResult;
     }
 
-    auto meshResult = createCloudVBO();
+    auto meshResult = _createCloudVBO();
     if (meshResult.failed()) {
         return meshResult;
     }
 
-    updateTextureDescriptors();
+    _updateTextureDescriptors();
     return Result<void>::ok();
 }
 
@@ -446,14 +445,9 @@ void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 cloud
     m_cloudColor = cloudColor;
 
     // 计算云偏移（云随时间移动）
-    // 参考 MC 1.16.5: d1 = (ticks + partialTick) * 0.03
     f64 totalTicks = static_cast<f64>(gameTime) + partialTick;
     m_cloudOffsetX = totalTicks * CLOUD_SPEED;
 
-    // 参考 MC 1.16.5 WorldRenderer.renderClouds():
-    // d2 = (viewEntityX + d1) / 12.0D
-    // d3 = (cloudHeight - viewEntityY + 0.33F)
-    // d4 = viewEntityZ / 12.0D + 0.33D
     // 网格坐标用于判断是否需要重建 VBO
     // 当玩家移动超过一个云网格单元（12世界单位）时，重建云网格
     f64 cloudX = (m_cameraPos.x + m_cloudOffsetX) / 12.0f;
@@ -469,7 +463,7 @@ void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 cloud
     i32 gridY = static_cast<i32>(std::floor(cloudY));
     i32 gridZ = static_cast<i32>(std::floor(cloudZ));
 
-    // 参考 MC 1.16.5: 当网格坐标变化时重建 VBO
+    // 当网格坐标变化时重建 VBO
     if (gridX != m_cloudsCheckX || gridY != m_cloudsCheckY || gridZ != m_cloudsCheckZ) {
         m_cloudsCheckX = gridX;
         m_cloudsCheckY = gridY;
@@ -495,11 +489,6 @@ void CloudRenderer::render(VkCommandBuffer cmd,
 
     m_cameraPos = cameraPos;
 
-    // 参考 MC 1.16.5 WorldRenderer.renderClouds():
-    // d1 = (ticks + partialTicks) * 0.03F (动画偏移)
-    // d2 = (viewEntityX + d1) / 12.0D (X 坐标，包含动画)
-    // d3 = (cloudHeight - viewEntityY + 0.33F) (Y 坐标，相对相机)
-    // d4 = viewEntityZ / 12.0D + 0.33D (Z 坐标)
     f64 animOffset = (static_cast<f64>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
     f64 cloudsX = (cameraPos.x + animOffset) / 12.0f;
     f64 cloudsY = (m_cloudHeight - cameraPos.y + 0.33f) / 4.0f;
@@ -528,7 +517,7 @@ void CloudRenderer::render(VkCommandBuffer cmd,
         m_cloudGridX = gridX;
         m_cloudGridY = gridY;
         m_cloudGridZ = gridZ;
-        auto result = createCloudVBO();
+        auto result = _createCloudVBO();
         if (result.failed()) {
             spdlog::error("Failed to rebuild cloud mesh: {}", result.error().toString());
         } else {
@@ -537,7 +526,7 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     }
 
     // 更新 Uniform 缓冲区（纹理偏移）
-    updateUniformBuffer(frameIndex);
+    _updateUniformBuffer(frameIndex);
 
     // 选择管线
     VkPipeline pipeline = (mode == CloudMode::Fast) ? m_fastPipeline : m_fancyPipeline;
@@ -580,14 +569,11 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     glm::mat4 viewProjection = projection * viewNoTranslation;
 
     // 分数部分（用于平滑过渡）
-    // 参考 MC: f3 = d2 - floor(d2), f4 = (d3/4 - floor(d3/4)) * 4, f5 = d4 - floor(d4)
     f64 fracX = cloudsX - std::floor(cloudsX);
     f64 fracZ = cloudsZ - std::floor(cloudsZ);
     f64 f4 = (cloudsY - std::floor(cloudsY)) * 4.0f;
 
     // 变换矩阵：scale(12, 1, 12) * translate(-fracX, f4, -fracZ)
-    // 参考 MC: matrixStackIn.scale(12.0F, 1.0F, 12.0F);
-    //          matrixStackIn.translate(-f3, f4, -f5);
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(12.0f, 1.0f, 12.0f));
     model = glm::translate(model, glm::vec3(-fracX, f4, -fracZ));
@@ -603,7 +589,7 @@ void CloudRenderer::render(VkCommandBuffer cmd,
 // 资源创建
 // ============================================================================
 
-Result<void> CloudRenderer::createCloudVBO()
+Result<void> CloudRenderer::_createCloudVBO()
 {
     if (m_fastVBO != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_fastVBO, nullptr);
@@ -622,9 +608,7 @@ Result<void> CloudRenderer::createCloudVBO()
         m_fancyVBOMemory = VK_NULL_HANDLE;
     }
 
-    // 参考 MC 1.16.5 WorldRenderer.drawClouds():
     // 云网格范围：k, l 从 -3 到 4，每个单元格 8 格
-    // Y 坐标：f17 = floor(cloudsY / 4) * 4
     // 顶点坐标使用网格偏移，变换矩阵处理分数偏移
 
     // 网格偏移（整数部分）
@@ -632,11 +616,10 @@ Result<void> CloudRenderer::createCloudVBO()
     const i32 gridOffsetY = m_cloudGridY;
     const i32 gridOffsetZ = m_cloudGridZ;
 
-    // Y 基础坐标（参考 MC: f17 = floor(cloudsY / 4) * 4）
+    // Y 基础坐标
     const f64 baseY = static_cast<f64>(gridOffsetY) * 4.0f;
 
     // UV 计算函数：基于世界网格坐标计算纹理坐标
-    // 参考 MC 1.16.5: tex = pos * 0.00390625F + floor(cloudsX/Z) * 0.00390625F
     // 纹理偏移通过 UBO 动态应用，这里只计算基础 UV
     const auto getUV = [](f64 x, f64 z) -> glm::vec2 {
         constexpr f64 UV_SCALE = 0.00390625f; // 1/256
@@ -672,11 +655,10 @@ Result<void> CloudRenderer::createCloudVBO()
         // 将局部网格坐标转换为世界纹理坐标
         const i32 worldX = localX + gridOffsetX;
         const i32 worldZ = localZ + gridOffsetZ;
-        return isCloudCellOpaque(worldX, worldZ);
+        return _isCloudCellOpaque(worldX, worldZ);
     };
 
-    // 参考 MC 1.16.5: k, l 从 -3 到 4，每个单元格 8 格
-    // 我们使用 CLOUD_GRID_MIN/MAX 范围
+    // 云网格范围使用 CLOUD_GRID_MIN/MAX
     // 顶点坐标 = 局部坐标 + 网格偏移
     constexpr i32 GRID_SIZE = CLOUD_GRID_MAX - CLOUD_GRID_MIN;
 
@@ -714,7 +696,7 @@ Result<void> CloudRenderer::createCloudVBO()
 
         // 创建缓冲区
         VkDeviceSize bufferSize = sizeof(CloudVertex) * vertices.size();
-        auto result = createBuffer(bufferSize,
+        auto result = _createBuffer(bufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_fastVBO,
@@ -885,7 +867,7 @@ Result<void> CloudRenderer::createCloudVBO()
 
         // 创建缓冲区
         VkDeviceSize bufferSize = sizeof(CloudVertex) * vertices.size();
-        auto result = createBuffer(bufferSize,
+        auto result = _createBuffer(bufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_fancyVBO,
@@ -904,21 +886,14 @@ Result<void> CloudRenderer::createCloudVBO()
         vkUnmapMemory(m_device, m_fancyVBOMemory);
     }
 
-    spdlog::debug("Cloud VBO created: Fast={} vertices, Fancy={} vertices (grid: {}, {}, {})",
-        m_fastVertexCount,
-        m_fancyVertexCount,
-        gridOffsetX,
-        gridOffsetY,
-        gridOffsetZ);
     return Result<void>::ok();
 }
 
-std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height)
+std::vector<u8> CloudRenderer::_generateCloudTexture(u32 width, u32 height)
 {
     std::vector<u8> data(width * height * 4); // RGBA
 
     // 使用 Perlin 噪声生成云图案
-    // 参考 MC 1.16.5 的云纹理特征
     math::Random rng(12345L); // 固定种子保证一致性
 
     // 简化的云纹理生成
@@ -970,7 +945,7 @@ std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height)
     return data;
 }
 
-void CloudRenderer::buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height)
+void CloudRenderer::_buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height)
 {
     m_cloudMaskWidth = width;
     m_cloudMaskHeight = height;
@@ -1022,7 +997,7 @@ void CloudRenderer::buildCloudMaskFromTexture(const std::vector<u8>& textureData
     m_cloudMask.swap(smoothedMask);
 }
 
-bool CloudRenderer::isCloudCellOpaque(i32 gridX, i32 gridZ) const
+bool CloudRenderer::_isCloudCellOpaque(i32 gridX, i32 gridZ) const
 {
     if (m_cloudMask.empty() || m_cloudMaskWidth == 0 || m_cloudMaskHeight == 0) {
         return true;
@@ -1034,7 +1009,7 @@ bool CloudRenderer::isCloudCellOpaque(i32 gridX, i32 gridZ) const
     return m_cloudMask[idx] != 0;
 }
 
-Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager)
+Result<void> CloudRenderer::_createTexture(const ResourceManager* resourceManager)
 {
     // 若已有纹理资源，先释放，避免重建时泄漏。
     if (m_textureSampler != VK_NULL_HANDLE) {
@@ -1078,12 +1053,12 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     // 找不到资源时生成默认纹理
     if (textureData.empty()) {
         spdlog::warn("No cloud texture found in resource packs. Generating procedural cloud texture.");
-        textureData = generateCloudTexture(CLOUD_TEXTURE_SIZE, CLOUD_TEXTURE_SIZE);
+        textureData = _generateCloudTexture(CLOUD_TEXTURE_SIZE, CLOUD_TEXTURE_SIZE);
         textureWidth = CLOUD_TEXTURE_SIZE;
         textureHeight = CLOUD_TEXTURE_SIZE;
     }
 
-    buildCloudMaskFromTexture(textureData, textureWidth, textureHeight);
+    _buildCloudMaskFromTexture(textureData, textureWidth, textureHeight);
 
     // 创建暂存缓冲区
     VkDeviceSize imageSize = textureData.size();
@@ -1091,7 +1066,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
 
-    auto result = createBuffer(imageSize,
+    auto result = _createBuffer(imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         stagingBuffer,
@@ -1138,7 +1113,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(m_device, m_textureImage, &memReqs);
 
-    auto memTypeResult = findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         vkFreeMemory(m_device, stagingMemory, nullptr);
@@ -1160,7 +1135,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     vkBindImageMemory(m_device, m_textureImage, m_textureImageMemory, 0);
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     // 转换为传输目标
     VkImageMemoryBarrier barrier{};
@@ -1212,7 +1187,7 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
         1,
         &barrier);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 销毁暂存缓冲区
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -1259,11 +1234,10 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
         return Error(ErrorCode::InitializationFailed, "Failed to create cloud texture sampler");
     }
 
-    spdlog::debug("Cloud texture created: {}x{}", textureWidth, textureHeight);
     return Result<void>::ok();
 }
 
-void CloudRenderer::updateTextureDescriptors()
+void CloudRenderer::_updateTextureDescriptors()
 {
     if (m_descriptorPool == VK_NULL_HANDLE) {
         return;
@@ -1288,12 +1262,12 @@ void CloudRenderer::updateTextureDescriptors()
     }
 }
 
-Result<void> CloudRenderer::createUniformBuffers()
+Result<void> CloudRenderer::_createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(CloudUBO);
 
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        auto result = createBuffer(bufferSize,
+        auto result = _createBuffer(bufferSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_uniformBuffers[i],
@@ -1313,7 +1287,7 @@ Result<void> CloudRenderer::createUniformBuffers()
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createDescriptorSetLayout()
+Result<void> CloudRenderer::_createDescriptorSetLayout()
 {
     // 绑定 0: 纹理采样器
     // 绑定 1: Uniform 缓冲区
@@ -1346,7 +1320,7 @@ Result<void> CloudRenderer::createDescriptorSetLayout()
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createDescriptorSets()
+Result<void> CloudRenderer::_createDescriptorSets()
 {
     // 创建描述符池
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
@@ -1419,7 +1393,7 @@ Result<void> CloudRenderer::createDescriptorSets()
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createPipelineLayout()
+Result<void> CloudRenderer::_createPipelineLayout()
 {
     // 推送常量：视图-投影矩阵
     VkPushConstantRange pushConstantRange{};
@@ -1442,7 +1416,7 @@ Result<void> CloudRenderer::createPipelineLayout()
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
+Result<void> CloudRenderer::_createPipelines(VkSampleCountFlagBits sampleCount)
 {
     // 加载着色器
     const auto vertPath = resolveShaderPath("cloud.vert.spv");
@@ -1638,15 +1612,12 @@ Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
     vkDestroyShaderModule(m_device, vertShader, nullptr);
     vkDestroyShaderModule(m_device, fragShader, nullptr);
 
-    spdlog::debug("Cloud pipelines created");
     return Result<void>::ok();
 }
 
-void CloudRenderer::updateUniformBuffer(u32 frameIndex)
+void CloudRenderer::_updateUniformBuffer(u32 frameIndex)
 {
     // 计算纹理偏移（基于相机整数网格坐标）
-    // 参考 MC 1.16.5: f3 = floor(cloudsX) * 0.00390625F
-    // 其中 cloudsX = (viewEntityX + animOffset) / 12.0
     f64 animOffset = (static_cast<f64>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
     f64 cloudsX = (m_cameraPos.x + animOffset) / 12.0f;
     f64 cloudsZ = m_cameraPos.z / 12.0f + 0.33f;
@@ -1673,7 +1644,7 @@ void CloudRenderer::updateUniformBuffer(u32 frameIndex)
     }
 }
 
-void CloudRenderer::updateCloudMesh(CloudMode mode)
+void CloudRenderer::_updateCloudMesh(CloudMode mode)
 {
     // 云网格在初始化时已创建，这里可以用于动态更新
     // 目前不需要，因为云网格是静态的
@@ -1684,7 +1655,7 @@ void CloudRenderer::updateCloudMesh(CloudMode mode)
 // Vulkan 辅助函数
 // ============================================================================
 
-Result<u32> CloudRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> CloudRenderer::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
@@ -1698,7 +1669,7 @@ Result<u32> CloudRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags 
     return Error(ErrorCode::OutOfMemory, "Failed to find suitable memory type");
 }
 
-Result<void> CloudRenderer::createBuffer(VkDeviceSize size,
+Result<void> CloudRenderer::_createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,
@@ -1718,7 +1689,7 @@ Result<void> CloudRenderer::createBuffer(VkDeviceSize size,
     VkMemoryRequirements memReqs;
     vkGetBufferMemoryRequirements(m_device, buffer, &memReqs);
 
-    auto memTypeResult = findMemoryType(memReqs.memoryTypeBits, properties);
+    auto memTypeResult = _findMemoryType(memReqs.memoryTypeBits, properties);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, buffer, nullptr);
         return memTypeResult.error();
@@ -1739,7 +1710,7 @@ Result<void> CloudRenderer::createBuffer(VkDeviceSize size,
     return Result<void>::ok();
 }
 
-VkCommandBuffer CloudRenderer::beginSingleTimeCommands()
+VkCommandBuffer CloudRenderer::_beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1758,7 +1729,7 @@ VkCommandBuffer CloudRenderer::beginSingleTimeCommands()
     return commandBuffer;
 }
 
-void CloudRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void CloudRenderer::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
 

@@ -23,6 +23,7 @@
 
 import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 import { forEachFile } from "./utils/forEachFile";
+import { Level } from "level";
 import fs from 'fs/promises';
 
 (async () => {
@@ -310,21 +311,20 @@ ${STOP_HOOK_PROMPT}
     };
   };
 
+  const fileSet = new Set<string>();
   await forEachFile("../src/", async (filePath) => {
-    console.log(`${filePath}`);
+      if (filePath.endsWith(".cpp") || filePath.endsWith(".hpp")) {
+          if (filePath.includes("util\\") || filePath.includes("main.") || filePath.includes("common\\core")) {
+            return;
+          }
+          // 去掉扩展名
+          const pathWithoutExt = filePath.split(".").slice(0, -1).join(".");
+          fileSet.add(pathWithoutExt);
+      }
   });
+  console.log("fileSet.size=", fileSet.size);
 
-  const tasklist = [
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-    "/fix-todo",
-  ];
+  const tasklist = [...fileSet].map(file => `/mc-improve-code-style ${file}.hpp/cpp 注意：你被要求审查的文件可能没有上述这些问题，这种情况下你直接放行即可，你不一定必须修改代码。`);
 
   async function runTask(task: string, iteration: number, taskIndex: number, shouldEvaluate: boolean) {
     console.log(
@@ -389,39 +389,71 @@ ${STOP_HOOK_PROMPT}
     }
   }
 
+  const DB_PATH = "./agent-taskdb";
+  const db = new Level(DB_PATH, { valueEncoding: "utf8" });
+  await db.open();
+  console.log(`✅ LevelDB 已打开: ${DB_PATH}`);
+
+  /**
+   * 检查任务是否已完成
+   * @returns true 表示该任务已经执行过，应跳过
+   */
+  async function isTaskDone(task: string): Promise<boolean> {
+    try {
+      const val = await db.get(task);
+      return val === "1";
+    } catch {
+      // key 不存在时 level 抛出 KeyError，表示未执行过
+      return false;
+    }
+  }
+
+  /**
+   * 标记任务为已完成
+   */
+  async function markTaskDone(task: string): Promise<void> {
+    await db.put(task, "1");
+  }
+
   async function main() {
-    const outerLoops = 300;
-    const innerLoops = 300;
+    const outerLoops = 1;
+    const innerLoops = 1;
 
     for (let i = 0; i < outerLoops; i++) {
       console.log(
         `\n========== 外层循环第 ${i + 1} / ${outerLoops} 次 ==========\n`,
       );
       for (let j = 0; j < tasklist.length; j++) {
+        // 检查 LevelDB：如果该任务已完成则跳过
+        if (await isTaskDone(tasklist[j])) {
+          console.log(`⏭️ [循环 ${i + 1} | 任务 ${j + 1}] 已完成，跳过: ${tasklist[j]}`);
+          continue;
+        }
+
         for (let k = 0; k < innerLoops; k++) {
-          await runTask(tasklist[j], i, j, true);
-          await runTask(
-            `请你检查当前代码能否编译通过（cmake --build --preset windows-clang-relwithdebinfo），
-编译时间可能会非常长（若当前为macos系统，则该命令带上-j6后缀；若为Windows系统，则不带上任何表示构建并行度的后缀）
-等待时间必须20分钟以上，若编译失败则必须修复直到能通过。注意build目录存在于项目根目录，你需要先切换到项目根目录执行构建.编译时间可能非常长，不要重复启动编译。如果出现的错误不是编译错误，而是工具链错误，如cmake、ninja、vcpkg等，则你无需修复，直接停下来等我处理就行了`,
-            i, j, false);
-          await runTask(
-            `
-请你检查当前是否有未提交的更改，若有则生成提交信息并提交，最后推送到远程仓库，并处理可能的冲突。 如果拉取/推送代码的时候因为网络问题没有成功，那么你无需重试，将该提交留在本地后即可停下来了，以后我会帮你去做。另外，/include/minecraft-reborn/version.h这个文件如果git显示未提交，你不用理会，将其留在工作区即可，重点是处理其他文件。
-提交代码之前，必须使用clang-format对工作区中已修改的文件进行格式化：
-clang - format - i src/common/xxx/Foo.cpp
-clang - format - i src/common/xxx/Foo.hpp      
-            `
-            
-            , i, j, false);
+          await runTask(tasklist[j], i, j, false);
+        }
+
+        // 任务执行完毕，标记为已完成
+        await markTaskDone(tasklist[j]);
+        console.log(`✅ [循环 ${i + 1} | 任务 ${j + 1}] 已标记完成: ${tasklist[j]}`);
+
+        if ((j % 10 === 0 && j !== 0) || j === tasklist.length - 1) {
+          // 每运行十次，进行一次编译，确保没有引入编译错误
+          console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
+          await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, j, false);
         }
       }
       console.log(`\n========== 第 ${i + 1} 次循环结束 ==========\n`);
     }
 
     console.log("所有任务执行完毕。");
+    await db.close();
   }
 
-  main().catch(console.error);
+  main().catch(async (err) => {
+    console.error(err);
+    await db.close();
+  });
 
 })();

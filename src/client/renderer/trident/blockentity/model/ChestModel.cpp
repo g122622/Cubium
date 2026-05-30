@@ -32,9 +32,9 @@ ChestModel::ChestModel()
     setTextureSize(TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
     // 初始化所有部件
-    initSingleChest();
-    initLeftChest();
-    initRightChest();
+    _initSingleChest();
+    _initLeftChest();
+    _initRightChest();
 
     // 默认使用单箱
     m_bottom = m_singleBottom;
@@ -47,7 +47,7 @@ ChestModel::ChestModel()
     addPart(m_singleLatch);
 }
 
-void ChestModel::initSingleChest()
+void ChestModel::_initSingleChest()
 {
     // 单箱箱体: (1,0,1) 到 (15,10,15)，纹理偏移 (0,19)
     // 尺寸：宽14，高10，深14
@@ -75,7 +75,7 @@ void ChestModel::initSingleChest()
     m_singleLatch->setRotationPoint(0.0, 8.0, 0.0);
 }
 
-void ChestModel::initLeftChest()
+void ChestModel::_initLeftChest()
 {
     // 双箱左半箱体: (0,0,1) 到 (15,10,15)
     // 宽15（靠左）
@@ -100,7 +100,7 @@ void ChestModel::initLeftChest()
     m_leftLatch->setRotationPoint(0.0, 8.0, 0.0);
 }
 
-void ChestModel::initRightChest()
+void ChestModel::_initRightChest()
 {
     // 双箱右半箱体: (1,0,1) 到 (16,10,15)
     // 宽15（靠右）
@@ -127,7 +127,7 @@ void ChestModel::initRightChest()
 
 void ChestModel::setLidAngle(f32 angle)
 {
-    // 应用 MC 风格的缓动函数
+    // 应用缓动函数
     const f32 easedAngle = applyEasing(angle);
 
     // 转换为弧度，范围 0 到 PI/2
@@ -142,9 +142,7 @@ void ChestModel::setLidAngle(f32 angle)
 
 f32 ChestModel::applyEasing(f32 angle)
 {
-    // MC 风格的三次缓动
-    // angle = 1.0f - angle;
-    // angle = 1.0f - angle * angle * angle;
+    // 三次缓动
     f32 eased = 1.0f - angle;
     eased = 1.0f - eased * eased * eased;
     return eased;

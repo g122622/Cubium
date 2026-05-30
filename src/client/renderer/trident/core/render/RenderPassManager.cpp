@@ -22,12 +22,10 @@
  */
 
 #include "RenderPassManager.hpp"
-#include "../TridentContext.hpp"
-#include "../TridentSwapchain.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/core/TridentSwapchain.hpp"
 #include <array>
 #include <spdlog/spdlog.h>
-
-using namespace mc;
 
 namespace {
 
@@ -42,7 +40,7 @@ namespace {
     }
 }
 
-[[nodiscard]] Result<void> createAttachmentImage(mc::client::renderer::trident::TridentContext* context,
+[[nodiscard]] mc::Result<void> createAttachmentImage(mc::client::renderer::trident::TridentContext* context,
     VkExtent2D extent,
     VkFormat format,
     VkImageUsageFlags usage,
@@ -71,7 +69,8 @@ namespace {
 
     VkResult result = vkCreateImage(device, &imageInfo, nullptr, &outImage);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OperationFailed, "Failed to create attachment image: " + std::to_string(result));
+        return mc::Error(
+            mc::ErrorCode::OperationFailed, "Failed to create attachment image: " + std::to_string(result));
     }
 
     VkMemoryRequirements memRequirements{};
@@ -94,7 +93,8 @@ namespace {
     if (result != VK_SUCCESS) {
         vkDestroyImage(device, outImage, nullptr);
         outImage = VK_NULL_HANDLE;
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate attachment image memory: " + std::to_string(result));
+        return mc::Error(
+            mc::ErrorCode::OutOfMemory, "Failed to allocate attachment image memory: " + std::to_string(result));
     }
 
     result = vkBindImageMemory(device, outImage, outMemory, 0);
@@ -103,7 +103,8 @@ namespace {
         outMemory = VK_NULL_HANDLE;
         vkDestroyImage(device, outImage, nullptr);
         outImage = VK_NULL_HANDLE;
-        return Error(ErrorCode::OperationFailed, "Failed to bind attachment image memory: " + std::to_string(result));
+        return mc::Error(
+            mc::ErrorCode::OperationFailed, "Failed to bind attachment image memory: " + std::to_string(result));
     }
 
     VkImageViewCreateInfo viewInfo{};
@@ -123,10 +124,11 @@ namespace {
         outMemory = VK_NULL_HANDLE;
         vkDestroyImage(device, outImage, nullptr);
         outImage = VK_NULL_HANDLE;
-        return Error(ErrorCode::OperationFailed, "Failed to create attachment image view: " + std::to_string(result));
+        return mc::Error(
+            mc::ErrorCode::OperationFailed, "Failed to create attachment image view: " + std::to_string(result));
     }
 
-    return Result<void>::ok();
+    return mc::Result<void>::ok();
 }
 
 } // namespace
@@ -225,31 +227,31 @@ Result<void> RenderPassManager::initialize(
     m_sampleCount = sampleCount;
 
     // 创建渲染通道
-    auto renderPassResult = createRenderPass();
+    auto renderPassResult = _createRenderPass();
     if (renderPassResult.failed()) {
         return renderPassResult.error();
     }
 
     // 创建深度缓冲区
-    auto depthResult = createDepthResources();
+    auto depthResult = _createDepthResources();
     if (depthResult.failed()) {
-        destroyRenderPass();
+        _destroyRenderPass();
         return depthResult.error();
     }
 
-    auto colorResult = createColorResources();
+    auto colorResult = _createColorResources();
     if (colorResult.failed()) {
-        destroyDepthResources();
-        destroyRenderPass();
+        _destroyDepthResources();
+        _destroyRenderPass();
         return colorResult.error();
     }
 
     // 创建帧缓冲区
-    auto framebufferResult = createFramebuffers();
+    auto framebufferResult = _createFramebuffers();
     if (framebufferResult.failed()) {
-        destroyColorResources();
-        destroyDepthResources();
-        destroyRenderPass();
+        _destroyColorResources();
+        _destroyDepthResources();
+        _destroyRenderPass();
         return framebufferResult.error();
     }
 
@@ -262,10 +264,10 @@ void RenderPassManager::destroy()
 {
     if (!m_initialized) return;
 
-    destroyFramebuffers();
-    destroyColorResources();
-    destroyDepthResources();
-    destroyRenderPass();
+    _destroyFramebuffers();
+    _destroyColorResources();
+    _destroyDepthResources();
+    _destroyRenderPass();
 
     m_context = nullptr;
     m_swapchain = nullptr;
@@ -283,24 +285,24 @@ Result<void> RenderPassManager::recreate(u32 width, u32 height)
 
     m_context->waitIdle();
 
-    destroyFramebuffers();
-    destroyColorResources();
-    destroyDepthResources();
+    _destroyFramebuffers();
+    _destroyColorResources();
+    _destroyDepthResources();
 
-    auto depthResult = createDepthResources();
+    auto depthResult = _createDepthResources();
     if (depthResult.failed()) {
         return depthResult.error();
     }
 
-    auto colorResult = createColorResources();
+    auto colorResult = _createColorResources();
     if (colorResult.failed()) {
-        destroyDepthResources();
+        _destroyDepthResources();
         return colorResult.error();
     }
 
-    auto framebufferResult = createFramebuffers();
+    auto framebufferResult = _createFramebuffers();
     if (framebufferResult.failed()) {
-        destroyColorResources();
+        _destroyColorResources();
         return framebufferResult.error();
     }
 
@@ -319,7 +321,7 @@ VkFramebuffer RenderPassManager::framebuffer(u32 index) const
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> RenderPassManager::createRenderPass()
+Result<void> RenderPassManager::_createRenderPass()
 {
     // 查找深度格式
     auto depthFormatResult = m_context->findDepthFormat();
@@ -459,10 +461,10 @@ Result<void> RenderPassManager::createRenderPass()
     return {};
 }
 
-Result<void> RenderPassManager::createColorResources()
+Result<void> RenderPassManager::_createColorResources()
 {
     if (m_sampleCount == VK_SAMPLE_COUNT_1_BIT) {
-        return Result<void>::ok();
+        return mc::Result<void>::ok();
     }
 
     return createAttachmentImage(m_context,
@@ -476,7 +478,7 @@ Result<void> RenderPassManager::createColorResources()
         m_colorImageView);
 }
 
-Result<void> RenderPassManager::createDepthResources()
+Result<void> RenderPassManager::_createDepthResources()
 {
     return createAttachmentImage(m_context,
         m_swapchain->extent(),
@@ -489,7 +491,7 @@ Result<void> RenderPassManager::createDepthResources()
         m_depthImageView);
 }
 
-Result<void> RenderPassManager::createFramebuffers()
+Result<void> RenderPassManager::_createFramebuffers()
 {
     VkExtent2D extent = m_swapchain->extent();
     const auto& imageViews = m_swapchain->imageViews();
@@ -557,7 +559,7 @@ Result<void> RenderPassManager::createFramebuffers()
 // 私有方法 - 销毁
 // ============================================================================
 
-void RenderPassManager::destroyRenderPass()
+void RenderPassManager::_destroyRenderPass()
 {
     if (m_renderPass != VK_NULL_HANDLE && m_context) {
         vkDestroyRenderPass(m_context->device(), m_renderPass, nullptr);
@@ -565,7 +567,7 @@ void RenderPassManager::destroyRenderPass()
     }
 }
 
-void RenderPassManager::destroyColorResources()
+void RenderPassManager::_destroyColorResources()
 {
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
@@ -585,7 +587,7 @@ void RenderPassManager::destroyColorResources()
     }
 }
 
-void RenderPassManager::destroyDepthResources()
+void RenderPassManager::_destroyDepthResources()
 {
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
@@ -605,7 +607,7 @@ void RenderPassManager::destroyDepthResources()
     }
 }
 
-void RenderPassManager::destroyFramebuffers()
+void RenderPassManager::_destroyFramebuffers()
 {
     if (!m_context) return;
 

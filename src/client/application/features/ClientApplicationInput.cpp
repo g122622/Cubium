@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 #include "client/application/features/ClientApplicationHelpers.hpp"
 
 #include "common/perfetto/TraceEvents.hpp"

@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
 
@@ -333,7 +333,6 @@ Result<void> ClientApplication::initializeRenderer()
                 spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
             } else {
                 // 设置图形模式（Fancy/Fast）
-                // 参考 MC 1.16.5: Fast 模式渲染半径 5，Fancy 模式渲染半径 10
                 const bool isFancy = m_settings.graphics.get() == static_cast<u8>(GraphicsMode::Fancy);
                 m_renderer->weatherRenderer().setFancyGraphics(isFancy);
             }

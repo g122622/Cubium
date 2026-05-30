@@ -39,8 +39,6 @@ using BeamSegment = mc::blockentity::BeaconBeamSegment;
  * @brief 信标光束模型
  *
  * 渲染信标的垂直光束效果。
- * 参考 MC 1.16.5 BeaconTileEntityRenderer
- *
  * 光束特点：
  * - 使用 gameTime 驱动旋转动画
  * - 双层渲染：内层光束 + 外层光晕
@@ -136,7 +134,7 @@ private:
      * @param vOffset V纹理偏移
      * @param isGlow 是否为光晕层
      */
-    void renderSegment(std::vector<entity::model::ModelVertex>& vertices,
+    void _renderSegment(std::vector<entity::model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         i32 yOffset,
         i32 height,
@@ -163,7 +161,7 @@ private:
      * @param b 蓝色
      * @param alpha 透明度
      */
-    void addQuad(std::vector<entity::model::ModelVertex>& vertices,
+    void _addQuad(std::vector<entity::model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         f32 yMin,
         f32 yMax,

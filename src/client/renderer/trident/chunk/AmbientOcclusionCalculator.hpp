@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../MeshTypes.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Types.hpp"
 #include <array>
 
@@ -40,14 +40,11 @@ namespace renderer {
  * @brief 环境光遮蔽(AO)计算器
  *
  * 为方块面的每个顶点计算平滑光照值。
- * 算法基于MC 1.16.5的BlockModelRenderer.AmbientOcclusionFace实现。
  *
  * 核心概念:
  * 1. 对于每个面，采样4个角落位置的光照和AO亮度
  * 2. 检查角落外侧方块的透明度，决定是否需要采样对角线位置
  * 3. 根据透明度条件，计算每个顶点的最终亮度和颜色乘数
- *
- * 参考: net.minecraft.client.renderer.BlockModelRenderer.AmbientOcclusionFace
  */
 class AmbientOcclusionCalculator {
 public:
@@ -139,8 +136,6 @@ private:
     /**
      * @brief 计算AO亮度（四个值的平均值，特殊处理0值）
      *
-     * 参考: net.minecraft.client.renderer.BlockModelRenderer.AmbientOcclusionFace#getAoBrightness
-     *
      * @param br1 角落1亮度 (packed: skyLight << 20 | blockLight << 4)
      * @param br2 角落2亮度
      * @param br3 角落3亮度
@@ -153,7 +148,6 @@ private:
      * @brief 将天空光和方块光打包为单一值
      *
      * 格式: skyLight << 20 | blockLight << 4
-     * 与MC原版打包格式一致 (0xF000F0 掩码)
      *
      * @param skyLight 天空光 (0-15)
      * @param blockLight 方块光 (0-15)
@@ -183,8 +177,6 @@ private:
 
     /**
      * @brief 获取指定位置的光照值（天空光和方块光的打包值）
-     *
-     * 参考: net.minecraft.world.WorldRenderer#getPackedLightmapCoords
      *
      * @param chunk 区块数据
      * @param x X坐标

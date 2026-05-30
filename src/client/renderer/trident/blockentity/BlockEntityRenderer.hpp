@@ -47,7 +47,6 @@ namespace blockentity {
  *
  * 提供方块实体渲染的通用功能，如方块模型渲染、光照获取等。
  * 具体渲染器应继承 BlockEntityRenderer<TEntity> 并使用此类的辅助方法。
- * 参考 MC 1.16.5 TileEntityRenderer
  */
 class BlockEntityRendererHelper {
 public:
@@ -93,7 +92,7 @@ public:
      *
      * @param world 世界引用
      * @param pos 方块位置
-     * @return 组合光照值（天空光 << 4 | 方块光 << 20）
+     * @return 组合光照值（天空光 << 20 | 方块光 << 4）
      */
     [[nodiscard]] static u32 getLightAt(IWorld& world, const BlockPos& pos);
 

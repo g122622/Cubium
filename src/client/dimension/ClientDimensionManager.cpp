@@ -70,19 +70,19 @@ void ClientDimensionManager::initialize(const std::vector<ClientDimensionInfo>& 
     // 确保至少有主世界
     if (m_availableDimensions.empty()) {
         ClientDimensionInfo overworld;
-        overworld.id = 0;
+        overworld.id = DimensionManager::OVERWORLD;
         overworld.name = "minecraft:overworld";
         overworld.hasSkyLight = true;
         overworld.hasCeiling = false;
         overworld.ambientLight = 0.0f;
 
         m_availableDimensions.push_back(overworld);
-        m_availableDimensionIds.push_back(0);
-        m_dimensionIndexMap[0] = 0;
+        m_availableDimensionIds.push_back(DimensionManager::OVERWORLD);
+        m_dimensionIndexMap[DimensionManager::OVERWORLD] = 0;
     }
 
     // 默认在主世界
-    m_currentDimension = 0;
+    m_currentDimension = DimensionManager::OVERWORLD;
     m_transitionState = TransitionState::None;
 
     spdlog::info("[ClientDimensionManager] Initialized with {} dimensions", m_availableDimensions.size());
@@ -98,8 +98,8 @@ void ClientDimensionManager::initialize(const std::vector<ClientDimensionInfo>& 
 
 void ClientDimensionManager::reset()
 {
-    m_currentDimension = 0;
-    m_targetDimension = 0;
+    m_currentDimension = DimensionManager::OVERWORLD;
+    m_targetDimension = DimensionManager::OVERWORLD;
     m_targetPosition = Vector3d();
     m_transitionState = TransitionState::None;
     m_availableDimensions.clear();
@@ -147,14 +147,14 @@ void ClientDimensionManager::completeDimensionChange()
 
     m_currentDimension = m_targetDimension;
     m_transitionState = TransitionState::None;
-    m_targetDimension = 0;
+    m_targetDimension = DimensionManager::OVERWORLD;
 }
 
 void ClientDimensionManager::cancelDimensionChange()
 {
     spdlog::info("[ClientDimensionManager] Dimension change cancelled");
     m_transitionState = TransitionState::None;
-    m_targetDimension = 0;
+    m_targetDimension = DimensionManager::OVERWORLD;
     m_targetPosition = Vector3d();
 }
 
@@ -180,13 +180,12 @@ const DimensionType* ClientDimensionManager::getDimensionType(DimensionId dimens
     static const DimensionType s_netherType = DimensionType::nether();
     static const DimensionType s_endType = DimensionType::theEnd();
 
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dimension) {
-        case 0: // Overworld
+        case DimensionManager::OVERWORLD:
             return &s_overworldType;
-        case -1: // Nether
+        case DimensionManager::NETHER:
             return &s_netherType;
-        case 1: // The End
+        case DimensionManager::THE_END:
             return &s_endType;
         default:
             return nullptr;

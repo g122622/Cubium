@@ -23,6 +23,8 @@
 
 #include "ClientApplicationHelpers.hpp"
 
+#include "common/entity/entities/player/Player.hpp"
+
 #include <algorithm>
 
 namespace mc::client::application::features {

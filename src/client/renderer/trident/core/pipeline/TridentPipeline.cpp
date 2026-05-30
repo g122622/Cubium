@@ -22,12 +22,14 @@
  */
 
 #include "TridentPipeline.hpp"
-#include "../TridentContext.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
 #include <fstream>
 #include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
+
+namespace {
 
 // ============================================================================
 // 辅助转换函数
@@ -36,7 +38,7 @@ namespace mc::client::renderer::trident {
 /**
  * @brief 将 API BlendFactor 转换为 Vulkan VkBlendFactor
  */
-static VkBlendFactor toVulkanBlendFactor(api::BlendFactor factor)
+VkBlendFactor toVulkanBlendFactor(api::BlendFactor factor)
 {
     switch (factor) {
         case api::BlendFactor::Zero:
@@ -77,7 +79,7 @@ static VkBlendFactor toVulkanBlendFactor(api::BlendFactor factor)
 /**
  * @brief 将 API BlendOp 转换为 Vulkan VkBlendOp
  */
-static VkBlendOp toVulkanBlendOp(api::BlendOp op)
+VkBlendOp toVulkanBlendOp(api::BlendOp op)
 {
     switch (op) {
         case api::BlendOp::Add:
@@ -98,7 +100,7 @@ static VkBlendOp toVulkanBlendOp(api::BlendOp op)
 /**
  * @brief 将 API CompareOp 转换为 Vulkan VkCompareOp
  */
-static VkCompareOp toVulkanCompareOp(api::CompareOp op)
+VkCompareOp toVulkanCompareOp(api::CompareOp op)
 {
     switch (op) {
         case api::CompareOp::Never:
@@ -125,7 +127,7 @@ static VkCompareOp toVulkanCompareOp(api::CompareOp op)
 /**
  * @brief 将 API CullMode 转换为 Vulkan VkCullModeFlags
  */
-static VkCullModeFlags toVulkanCullMode(api::CullMode mode)
+VkCullModeFlags toVulkanCullMode(api::CullMode mode)
 {
     switch (mode) {
         case api::CullMode::None:
@@ -144,7 +146,7 @@ static VkCullModeFlags toVulkanCullMode(api::CullMode mode)
 /**
  * @brief 将 API FrontFace 转换为 Vulkan VkFrontFace
  */
-static VkFrontFace toVulkanFrontFace(api::FrontFace face)
+VkFrontFace toVulkanFrontFace(api::FrontFace face)
 {
     switch (face) {
         case api::FrontFace::CounterClockwise:
@@ -159,7 +161,7 @@ static VkFrontFace toVulkanFrontFace(api::FrontFace face)
 /**
  * @brief 将 API PolygonMode 转换为 Vulkan VkPolygonMode
  */
-static VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode)
+VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode)
 {
     switch (mode) {
         case api::PolygonMode::Fill:
@@ -172,6 +174,38 @@ static VkPolygonMode toVulkanPolygonMode(api::PolygonMode mode)
             return VK_POLYGON_MODE_FILL;
     }
 }
+
+/**
+ * @brief 从文件加载着色器
+ */
+Result<TridentShaderModule> loadShaderFromFile(TridentContext* context, const std::string& path, api::ShaderStage stage)
+{
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileNotFound, "Failed to open shader file: " + path);
+    }
+
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    std::vector<u8> code(fileSize);
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(code.data()), static_cast<std::streamsize>(fileSize));
+    file.close();
+
+    auto moduleResult = TridentPipeline::createShaderModule(context, code);
+    if (moduleResult.failed()) {
+        return moduleResult.error();
+    }
+
+    TridentShaderModule shader;
+    shader.module = moduleResult.value();
+    shader.stage = stage == api::ShaderStage::Vertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+    shader.entryPoint = "main";
+
+    spdlog::info("Loaded shader: {} ({} bytes)", path, fileSize);
+    return shader;
+}
+
+} // namespace
 
 // ============================================================================
 // TridentPipeline 实现
@@ -248,7 +282,7 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
     // 仅当 m_shaders 为空时才从文件加载
     if (m_shaders.empty()) {
         if (!config.vertexShaderPath.empty()) {
-            auto shaderResult = loadShader(config.vertexShaderPath, api::ShaderStage::Vertex);
+            auto shaderResult = _loadShader(config.vertexShaderPath, api::ShaderStage::Vertex);
             if (shaderResult.failed()) {
                 destroy();
                 return shaderResult.error();
@@ -257,7 +291,7 @@ Result<void> TridentPipeline::create(TridentContext* context, const TridentPipel
         }
 
         if (!config.fragmentShaderPath.empty()) {
-            auto shaderResult = loadShader(config.fragmentShaderPath, api::ShaderStage::Fragment);
+            auto shaderResult = _loadShader(config.fragmentShaderPath, api::ShaderStage::Fragment);
             if (shaderResult.failed()) {
                 destroy();
                 return shaderResult.error();
@@ -528,36 +562,7 @@ Result<VkShaderModule> TridentPipeline::createShaderModule(TridentContext* conte
     return shaderModule;
 }
 
-// 辅助函数：加载着色器
-static Result<TridentShaderModule> loadShaderFromFile(
-    TridentContext* context, const std::string& path, api::ShaderStage stage)
-{
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        return Error(ErrorCode::FileNotFound, "Failed to open shader file: " + path);
-    }
-
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<u8> code(fileSize);
-    file.seekg(0);
-    file.read(reinterpret_cast<char*>(code.data()), fileSize);
-    file.close();
-
-    auto moduleResult = TridentPipeline::createShaderModule(context, code);
-    if (moduleResult.failed()) {
-        return moduleResult.error();
-    }
-
-    TridentShaderModule shader;
-    shader.module = moduleResult.value();
-    shader.stage = stage == api::ShaderStage::Vertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
-    shader.entryPoint = "main";
-
-    spdlog::info("Loaded shader: {} ({} bytes)", path, fileSize);
-    return shader;
-}
-
-Result<TridentShaderModule> TridentPipeline::loadShader(const std::string& path, api::ShaderStage stage)
+Result<TridentShaderModule> TridentPipeline::_loadShader(const std::string& path, api::ShaderStage stage)
 {
     return loadShaderFromFile(m_context, path, stage);
 }
@@ -617,7 +622,7 @@ Result<void> TridentPipelineCache::create(TridentContext* context, const std::st
             size_t fileSize = static_cast<size_t>(file.tellg());
             cacheData.resize(fileSize);
             file.seekg(0);
-            file.read(reinterpret_cast<char*>(cacheData.data()), fileSize);
+            file.read(reinterpret_cast<char*>(cacheData.data()), static_cast<std::streamsize>(fileSize));
             spdlog::info("Loaded pipeline cache from: {} ({} bytes)", cachePath, fileSize);
         }
     }

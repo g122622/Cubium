@@ -23,13 +23,11 @@
 
 #pragma once
 
-#include "../buffer/IBuffer.hpp"
-#include "../texture/ITexture.hpp"
-#include "../texture/ITextureAtlas.hpp"
-#include "RenderState.hpp"
-#include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include <memory>
+#include "client/renderer/api/Types.hpp"
+#include "client/renderer/api/buffer/IBuffer.hpp"
+#include "client/renderer/api/pipeline/RenderState.hpp"
+#include "client/renderer/api/texture/ITexture.hpp"
+#include "client/renderer/api/texture/ITextureAtlas.hpp"
 #include <vector>
 
 namespace mc::client::renderer::api {

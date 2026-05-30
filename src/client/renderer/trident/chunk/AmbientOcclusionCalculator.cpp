@@ -22,27 +22,19 @@
  */
 
 #include "AmbientOcclusionCalculator.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <algorithm>
-#include <cmath>
 
 namespace mc {
 namespace client {
 namespace renderer {
 
 // ============================================================================
-// 方向定义 - 与MC 1.16.5 Direction一致
+// 方向定义
 // ============================================================================
-//
-// MC原版方向向量:
-// DOWN  = (0, -1, 0)
-// UP    = (0, +1, 0)
-// NORTH = (0, 0, -1)
-// SOUTH = (0, 0, +1)
-// WEST  = (-1, 0, 0)
-// EAST  = (+1, 0, 0)
 
 namespace {
 
@@ -50,7 +42,6 @@ namespace {
  * @brief 方向向量定义
  *
  * 索引: 0=DOWN, 1=UP, 2=NORTH, 3=SOUTH, 4=WEST, 5=EAST
- * 与MC Direction.getIndex()一致
  */
 constexpr std::array<i32, 6 * 3> DIRECTION_VECTORS = {
     0,
@@ -76,7 +67,7 @@ constexpr std::array<i32, 6 * 3> DIRECTION_VECTORS = {
 /**
  * @brief 获取方向向量
  */
-inline constexpr std::tuple<i32, i32, i32> getDirection(int dirIdx)
+inline constexpr std::tuple<i32, i32, i32> getDirection(i32 dirIdx)
 {
     return {DIRECTION_VECTORS[dirIdx * 3 + 0], DIRECTION_VECTORS[dirIdx * 3 + 1], DIRECTION_VECTORS[dirIdx * 3 + 2]};
 }
@@ -84,13 +75,10 @@ inline constexpr std::tuple<i32, i32, i32> getDirection(int dirIdx)
 /**
  * @brief 每个面的角落方向定义
  *
- * 参考: net.minecraft.client.renderer.BlockModelRenderer.NeighborInfo
- *
  * 每个面定义4个方向，用于采样边缘中点位置。
  * 这些方向相对于基础位置（方块自身或面外侧）偏移。
  *
- * 这里的顺序不是直接照搬 Java 的 NeighborInfo，而是与本项目
- * BlockGeometry::getFaceVertices() 的顶点顺序（0,1,2,3）严格对齐：
+ * 顺序与本项目 BlockGeometry::getFaceVertices() 的顶点顺序（0,1,2,3）严格对齐：
  *
  * 顶点关系固定为：
  * - v0 使用 (corner0, corner3)
@@ -118,12 +106,8 @@ constexpr std::array<std::array<i32, 4>, 6> FACE_CORNER_DIRECTIONS = {{
 /**
  * @brief 顶点索引映射
  *
- * 注意：当前 C++ 网格器在六个面上都使用统一的顶点语义顺序
+ * 当前网格器在六个面上都使用统一的顶点语义顺序
  * （左下/右下/右上/左上），因此这里保持恒等映射。
- *
- * Java 版 `VertexTranslations` 依赖其 BakedQuad 顶点布局，
- * 与本项目的 `BlockGeometry::getFaceVertices()` 顺序不同。
- * 若继续沿用 Java 的重排表，会造成 AO 方向镜像/翻转。
  */
 constexpr std::array<std::array<u32, 4>, 6> VERTEX_TRANSLATIONS = {{
     // DOWN
@@ -162,16 +146,14 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     const auto& vertexTrans = VERTEX_TRANSLATIONS[faceIdx];
 
     // 面法线方向索引
-    const int faceNormalIdx = static_cast<int>(faceIdx);
+    const i32 faceNormalIdx = static_cast<i32>(faceIdx);
     auto [fnX, fnY, fnZ] = getDirection(faceNormalIdx);
 
     // ================================================================
     // 步骤1: 确定基础采样位置
     // ================================================================
-    // MC原版逻辑:
     // 如果面外侧的方块是实心的（isOpaqueCube），则采样位置在面外侧
     // 否则采样位置在方块自身位置
-    // 这对应于fillQuadBounds中的BitSet.get(0)标志
 
     // 检查面外侧是否是实心方块
     i32 faceOuterX = blockX + fnX;
@@ -180,8 +162,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
 
     bool faceOuterOpaque = !isTransparent(chunk, faceOuterX, faceOuterY, faceOuterZ, neighborChunks);
 
-    // Java 版在整方块面（bitSet[0] = true）时总是使用面外侧作为基础采样位置。
-    // 当前网格构建路径仅输出轴对齐整方块面，因此这里默认对齐该行为。
+    // 当前网格构建路径仅输出轴对齐整方块面，因此这里默认对面外侧采样
     const bool useOuterFaceSamples = true;
 
     // 基础采样位置
@@ -227,7 +208,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     std::array<u32, 4> diagonalPackedLight{};
     std::array<float, 4> diagonalAoBrightness{};
 
-    // MC原版对角线采样逻辑:
+    // 对角线采样逻辑:
     // i1: 如果 !flag2 && !flag，使用 corner[0]；否则采样 corner[0] + corner[2]
     // j1: 如果 !flag3 && !flag，使用 corner[0]；否则采样 corner[0] + corner[3]
     // k1: 如果 !flag2 && !flag1，使用 corner[0]；否则采样 corner[1] + corner[2]
@@ -300,9 +281,6 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     // ================================================================
     // 步骤5: 计算中心位置的光照
     // ================================================================
-    // MC原版:
-    // i3 = 方块自身的光照（如果面外侧不透明）
-    // 如果面外侧透明，使用面外侧位置的光照
 
     // 获取方块自身的光照
     auto selfSample = samplePosition(chunk, blockX, blockY, blockZ, neighborChunks);
@@ -312,9 +290,9 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     auto faceOuterSample = samplePosition(chunk, faceOuterX, faceOuterY, faceOuterZ, neighborChunks);
     u32 faceOuterPackedLight = packLight(faceOuterSample.skyLight, faceOuterSample.blockLight);
 
-    // 中心光照：对齐 MC 1.16.5
-    // i3 初始为自身亮度；当 bitSet[0] = true 或 面外侧不是不透明方块 时使用面外侧亮度。
-    // 当前路径下 bitSet[0] 等价 useOuterFaceSamples = true，因此此处会稳定使用面外侧亮度。
+    // 中心光照：
+    // i3 初始为自身亮度；当面外侧不是不透明方块时使用面外侧亮度。
+    // 当前路径下 useOuterFaceSamples = true，因此此处会稳定使用面外侧亮度。
     u32 centerPackedLight = (!useOuterFaceSamples && faceOuterOpaque) ? selfPackedLight : faceOuterPackedLight;
 
     // 中心AO亮度（与中心光照位置保持一致）
@@ -323,15 +301,6 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     // ================================================================
     // 步骤6: 计算每个顶点的AO颜色乘数
     // ================================================================
-    // MC原版变量命名:
-    // f = cornerSamples[0].aoBrightness
-    // f1 = cornerSamples[1].aoBrightness
-    // f2 = cornerSamples[2].aoBrightness
-    // f3 = cornerSamples[3].aoBrightness
-    // f4 = diagonalAoBrightness[0]
-    // f5 = diagonalAoBrightness[1]
-    // f6 = diagonalAoBrightness[2]
-    // f7 = diagonalAoBrightness[3]
 
     float f0 = cornerSamples[0].aoBrightness;
     float f1 = cornerSamples[1].aoBrightness;
@@ -342,11 +311,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     float f6 = diagonalAoBrightness[2];
     float f7 = diagonalAoBrightness[3];
 
-    // MC原版计算:
-    // f9  = (f3 + f + f5 + f8) * 0.25  -> 顶点0
-    // f10 = (f2 + f + f4 + f8) * 0.25  -> 顶点1
-    // f11 = (f2 + f1 + f6 + f8) * 0.25 -> 顶点2
-    // f12 = (f3 + f1 + f7 + f8) * 0.25 -> 顶点3
+    // 顶点AO颜色乘数计算
 
     std::array<float, 4> vertexAoColorMultiplier = {{
         (f3 + f0 + f5 + f8) * 0.25f, // 顶点0
@@ -362,22 +327,6 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     // ================================================================
     // 步骤7: 计算每个顶点的亮度值
     // ================================================================
-    // MC原版:
-    // vertexBrightness[vert0] = getAoBrightness(l, i, j1, i3)
-    // vertexBrightness[vert1] = getAoBrightness(k, i, i1, i3)
-    // vertexBrightness[vert2] = getAoBrightness(k, j, k1, i3)
-    // vertexBrightness[vert3] = getAoBrightness(l, j, l1, i3)
-
-    // 其中:
-    // l = cornerPackedLight[3]
-    // i = cornerPackedLight[0]
-    // k = cornerPackedLight[2]
-    // j = cornerPackedLight[1]
-    // i1 = diagonalPackedLight[0]
-    // j1 = diagonalPackedLight[1]
-    // k1 = diagonalPackedLight[2]
-    // l1 = diagonalPackedLight[3]
-    // i3 = centerPackedLight
 
     std::array<u32, 4> vertexBrightness;
     vertexBrightness[0] =
@@ -408,7 +357,7 @@ AmbientOcclusionCalculator::CornerSample AmbientOcclusionCalculator::samplePosit
     CornerSample sample{};
 
     // 边界检查
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_WIDTH;
 
     // Y边界
     if (y >= world::MAX_BUILD_HEIGHT) {
@@ -476,7 +425,7 @@ bool AmbientOcclusionCalculator::isTransparent(
     const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6]) const
 {
     // 边界检查
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_WIDTH;
 
     // Y边界
     if (y >= world::MAX_BUILD_HEIGHT || y < world::MIN_BUILD_HEIGHT) {
@@ -521,7 +470,6 @@ bool AmbientOcclusionCalculator::isTransparent(
         return true; // 空气是透明的
     }
 
-    // 参考 MC: state.getOpacity(world, pos) == 0
     // 如果不透光度为0，则为透明
     return state->getOpacity() == 0;
 }
@@ -532,7 +480,6 @@ float AmbientOcclusionCalculator::getAoBrightness(const BlockState* state)
         // 空气或null，不产生阴影
         return 1.0f;
     }
-    // 参考 MC: state.getAmbientOcclusionLightValue(world, pos)
     return state->getAmbientOcclusionLightValue();
 }
 
@@ -546,14 +493,12 @@ bool AmbientOcclusionCalculator::hasOpaqueCollisionShape(const BlockState* state
 
 u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 br4)
 {
-    // 参考 MC: AmbientOcclusionFace#getAoBrightness
     // 如果值为0，使用中心亮度(br4)
     if (br1 == 0) br1 = br4;
     if (br2 == 0) br2 = br4;
     if (br3 == 0) br3 = br4;
 
-    // MC原版: return br1 + br2 + br3 + br4 >> 2 & 16711935;
-    // 我们的打包格式: skyLight << 20 | blockLight << 4
+    // 打包格式: skyLight << 20 | blockLight << 4
     u32 skyBr = (((br1 >> 20) & 0xF) + ((br2 >> 20) & 0xF) + ((br3 >> 20) & 0xF) + ((br4 >> 20) & 0xF)) >> 2;
     u32 blockBr = (((br1 >> 4) & 0xF) + ((br2 >> 4) & 0xF) + ((br3 >> 4) & 0xF) + ((br4 >> 4) & 0xF)) >> 2;
 
@@ -562,8 +507,6 @@ u32 AmbientOcclusionCalculator::getAoBrightness(u32 br1, u32 br2, u32 br3, u32 b
 
 u32 AmbientOcclusionCalculator::packLight(u8 skyLight, u8 blockLight)
 {
-    // 使用MC原版的打包格式: skyLight << 20 | blockLight << 4
-    // 这样可以正确应用掩码操作
     return (static_cast<u32>(skyLight & 0xF) << 20) | (static_cast<u32>(blockLight & 0xF) << 4);
 }
 
@@ -595,7 +538,7 @@ u32 AmbientOcclusionCalculator::getVertexBrightness(
 u32 AmbientOcclusionCalculator::getPackedLight(
     const ChunkData& chunk, i32 x, i32 y, i32 z, const ChunkData* neighborChunks[6])
 {
-    constexpr i32 SIZE = ChunkSection::SIZE;
+    constexpr i32 SIZE = world::CHUNK_WIDTH;
 
     if (y >= world::MAX_BUILD_HEIGHT) {
         return packLight(15, 0);

@@ -35,19 +35,19 @@ std::array<f64, 3> getFaceNormal(Face face)
 {
     switch (face) {
         case Face::Bottom:
-            return {0.0f, -1.0f, 0.0f};
+            return {0.0, -1.0, 0.0};
         case Face::Top:
-            return {0.0f, 1.0f, 0.0f};
+            return {0.0, 1.0, 0.0};
         case Face::North:
-            return {0.0f, 0.0f, -1.0f};
+            return {0.0, 0.0, -1.0};
         case Face::South:
-            return {0.0f, 0.0f, 1.0f};
+            return {0.0, 0.0, 1.0};
         case Face::West:
-            return {-1.0f, 0.0f, 0.0f};
+            return {-1.0, 0.0, 0.0};
         case Face::East:
-            return {1.0f, 0.0f, 0.0f};
+            return {1.0, 0.0, 0.0};
         default:
-            return {0.0f, 0.0f, 0.0f};
+            return {0.0, 0.0, 0.0};
     }
 }
 
@@ -57,17 +57,17 @@ std::array<f64, 12> getFaceVertices(Face face)
     // 方块范围为 [0,0,0] 到 [1,1,1]
     switch (face) {
         case Face::Bottom: // Y- (下)
-            return {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
+            return {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
         case Face::Top: // Y+ (上)
-            return {0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+            return {0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0};
         case Face::North: // Z- (北)
-            return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f};
+            return {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0};
         case Face::South: // Z+ (南)
-            return {0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+            return {0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0};
         case Face::West: // X- (西)
-            return {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f};
+            return {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0};
         case Face::East: // X+ (东)
-            return {1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f};
+            return {1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0};
         default:
             return {};
     }
@@ -136,8 +136,8 @@ TextureAtlas::TextureAtlas(u32 textureWidth, u32 textureHeight, u32 tileSize)
     , m_textureHeight(textureHeight)
     , m_tileSize(tileSize)
     , m_tilesPerRow(textureWidth / tileSize)
-    , m_tileU(1.0f / static_cast<f64>(textureWidth / tileSize))
-    , m_tileV(1.0f / static_cast<f64>(textureHeight / tileSize))
+    , m_tileU(1.0 / static_cast<f64>(textureWidth / tileSize))
+    , m_tileV(1.0 / static_cast<f64>(textureHeight / tileSize))
 {}
 
 TextureRegion TextureAtlas::getRegion(u32 tileX, u32 tileY) const

@@ -68,7 +68,7 @@ std::vector<std::string> ClientCommandManager::getCommandNames() const
     const auto& root = m_snapshot.nodes.front();
     names.reserve(root.children.size());
     for (u32 childId : root.children) {
-        const auto* child = getNode(childId);
+        const auto* child = _getNode(childId);
         if (child != nullptr && child->type == mc::command::NodeType::Literal) {
             names.push_back(child->name);
         }
@@ -88,14 +88,14 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view i
     const i32 clampedCursor = std::clamp(cursor, 0, static_cast<i32>(input.size()));
     std::string_view prefixInput = input.substr(0, static_cast<size_t>(clampedCursor));
 
-    if (!isCommandInput(prefixInput)) {
+    if (!_isCommandInput(prefixInput)) {
         return mc::command::Suggestions::empty();
     }
 
     mc::command::StringReader reader(prefixInput);
     reader.skip();
 
-    const auto* currentNode = getNode(0);
+    const auto* currentNode = _getNode(0);
     if (currentNode == nullptr) {
         return mc::command::Suggestions::empty();
     }
@@ -103,7 +103,7 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view i
     while (true) {
         reader.skipWhitespace();
         if (!reader.canRead()) {
-            return collectSuggestions(*currentNode, input, clampedCursor, clampedCursor, "");
+            return _collectSuggestions(*currentNode, input, clampedCursor, clampedCursor, "");
         }
 
         const i32 tokenStart = reader.getCursor();
@@ -113,27 +113,27 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view i
         const bool tokenCompleted = tokenEnd < static_cast<i32>(prefixInput.size());
 
         if (!tokenCompleted) {
-            return collectSuggestions(*currentNode, input, tokenStart, tokenEnd, token);
+            return _collectSuggestions(*currentNode, input, tokenStart, tokenEnd, token);
         }
 
         const auto* exactLiteral = static_cast<const mc::command::CommandTreeNodeSnapshot*>(nullptr);
         const auto* argumentMatch = static_cast<const mc::command::CommandTreeNodeSnapshot*>(nullptr);
 
         for (u32 childId : currentNode->children) {
-            const auto* child = getNode(childId);
+            const auto* child = _getNode(childId);
             if (child == nullptr) {
                 continue;
             }
 
             if (child->type == mc::command::NodeType::Literal) {
-                if (toLower(child->name) == toLower(token)) {
+                if (_toLower(child->name) == _toLower(token)) {
                     exactLiteral = child;
                     break;
                 }
                 continue;
             }
 
-            if (argumentMatch == nullptr && matchesFixedCandidate(*child, token)) {
+            if (argumentMatch == nullptr && _matchesFixedCandidate(*child, token)) {
                 argumentMatch = child;
             }
         }
@@ -145,7 +145,7 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view i
         }
 
         if (argumentMatch == nullptr) {
-            return collectSuggestions(*currentNode, input, tokenStart, tokenEnd, token);
+            return _collectSuggestions(*currentNode, input, tokenStart, tokenEnd, token);
         }
 
         currentNode = argumentMatch;
@@ -168,7 +168,7 @@ void ClientCommandManager::setItemNameProvider(CandidateProvider provider)
     m_itemNameProvider = std::move(provider);
 }
 
-const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::getNode(u32 nodeId) const
+const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::_getNode(u32 nodeId) const
 {
     if (nodeId >= m_snapshot.nodes.size()) {
         return nullptr;
@@ -176,7 +176,7 @@ const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::getNode(u32 no
     return &m_snapshot.nodes[nodeId];
 }
 
-mc::command::Suggestions ClientCommandManager::collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
+mc::command::Suggestions ClientCommandManager::_collectSuggestions(const mc::command::CommandTreeNodeSnapshot& node,
     std::string_view fullInput,
     i32 start,
     i32 end,
@@ -185,25 +185,25 @@ mc::command::Suggestions ClientCommandManager::collectSuggestions(const mc::comm
     mc::command::SuggestionsBuilder builder(fullInput, start, end);
 
     for (u32 childId : node.children) {
-        const auto* child = getNode(childId);
+        const auto* child = _getNode(childId);
         if (child == nullptr || child->type != mc::command::NodeType::Literal) {
             continue;
         }
 
-        if (tokenPrefix.empty() || startsWithIgnoreCase(child->name, tokenPrefix)) {
+        if (tokenPrefix.empty() || _startsWithIgnoreCase(child->name, tokenPrefix)) {
             builder.suggest(child->name);
         }
     }
 
     for (u32 childId : node.children) {
-        const auto* child = getNode(childId);
+        const auto* child = _getNode(childId);
         if (child == nullptr || child->type != mc::command::NodeType::Argument) {
             continue;
         }
 
-        const auto candidates = getCandidates(*child);
+        const auto candidates = _getCandidates(*child);
         for (const auto& candidate : candidates) {
-            if (tokenPrefix.empty() || startsWithIgnoreCase(candidate, tokenPrefix)) {
+            if (tokenPrefix.empty() || _startsWithIgnoreCase(candidate, tokenPrefix)) {
                 builder.suggest(candidate);
             }
         }
@@ -212,7 +212,7 @@ mc::command::Suggestions ClientCommandManager::collectSuggestions(const mc::comm
     return builder.build();
 }
 
-std::vector<std::string> ClientCommandManager::getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const
+std::vector<std::string> ClientCommandManager::_getCandidates(const mc::command::CommandTreeNodeSnapshot& node) const
 {
     std::vector<std::string> candidates;
 
@@ -262,14 +262,14 @@ std::vector<std::string> ClientCommandManager::getCandidates(const mc::command::
     return candidates;
 }
 
-bool ClientCommandManager::matchesFixedCandidate(
+bool ClientCommandManager::_matchesFixedCandidate(
     const mc::command::CommandTreeNodeSnapshot& node, std::string_view token) const
 {
     switch (node.suggestionKind) {
         case mc::command::CommandTreeSuggestionKind::Fixed:
         case mc::command::CommandTreeSuggestionKind::CommandNames:
-            for (const auto& candidate : getCandidates(node)) {
-                if (toLower(candidate) == toLower(token)) {
+            for (const auto& candidate : _getCandidates(node)) {
+                if (_toLower(candidate) == _toLower(token)) {
                     return true;
                 }
             }
@@ -283,12 +283,12 @@ bool ClientCommandManager::matchesFixedCandidate(
     return !token.empty();
 }
 
-bool ClientCommandManager::isCommandInput(std::string_view input)
+bool ClientCommandManager::_isCommandInput(std::string_view input)
 {
     return !input.empty() && input.front() == '/';
 }
 
-std::string ClientCommandManager::toLower(std::string_view input)
+std::string ClientCommandManager::_toLower(std::string_view input)
 {
     std::string result(input.begin(), input.end());
     for (char& character : result) {
@@ -297,7 +297,7 @@ std::string ClientCommandManager::toLower(std::string_view input)
     return result;
 }
 
-bool ClientCommandManager::startsWithIgnoreCase(std::string_view value, std::string_view prefix)
+bool ClientCommandManager::_startsWithIgnoreCase(std::string_view value, std::string_view prefix)
 {
     if (prefix.size() > value.size()) {
         return false;

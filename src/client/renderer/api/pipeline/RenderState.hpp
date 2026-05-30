@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../BlendMode.hpp"
-#include "../CompareOp.hpp"
-#include "../CullMode.hpp"
+#include "client/renderer/api/BlendMode.hpp"
+#include "client/renderer/api/CompareOp.hpp"
+#include "client/renderer/api/CullMode.hpp"
 
 namespace mc::client::renderer::api {
 
@@ -33,7 +33,6 @@ namespace mc::client::renderer::api {
  * @brief 渲染状态
  *
  * 定义渲染管线的完整状态配置。
- * 参考 MC 1.16.5 RenderState 系统。
  */
 struct RenderState {
     BlendState blend;

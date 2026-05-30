@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/ui/screen/CraftingScreen.hpp"
@@ -296,7 +296,6 @@ void ClientApplication::handleMouseAndMovementInput()
     if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) sneaking = true;
 
     // 检查玩家是否正在骑乘
-    // MC 1.16.5: 当玩家骑乘载具时，输入需要发送到服务器以控制载具
     if (m_player->isRiding() && m_networkClient && m_networkClient->isLoggedIn()) {
         // 骑乘状态：发送 PlayerInputPacket 到服务器
         m_networkClient->sendPlayerInput(strafe, forward, jumping, sneaking);
@@ -305,9 +304,8 @@ void ClientApplication::handleMouseAndMovementInput()
         const auto& pos = m_player->position();
         m_networkClient->sendMoveVehicle(pos.x, pos.y, pos.z, m_player->yaw(), m_player->pitch());
 
-        // MC 1.16.5: 如果骑乘的是船，发送划桨状态
+        // 如果骑乘的是船，发送划桨状态
         // 划桨状态：左桨 = 左移或前进，右桨 = 右移或前进
-        // 参考: BoatEntity.controlBoat() 中 setPaddleState(leftInput || forwardInput, rightInput || forwardInput)
         EntityId vehicleId = m_player->getVehicle();
         if (vehicleId != INVALID_ENTITY_ID) {
             ClientEntity* vehicle = m_world.entityManager().getEntity(vehicleId);

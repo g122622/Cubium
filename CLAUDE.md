@@ -6,7 +6,7 @@
 
 【重要】构建命令只能使用 `cmake --build --preset windows-clang-relwithdebinfo`。由于本项目代码量已达百万级，构建时间很长，任务的超时等待时间必须30分钟以上！
 
-如果构建过程中遇到工具链问题，按照下面指引尝试先进行CMake configure，然后再重新构建：
+如果构建过程中遇到工具链问题、头文件找不到等问题，按照下面指引尝试先进行CMake configure，然后再重新构建：
 
 在windows平台上，CMake configure 必须使用 `configure.bat`（或 `configure.sh` / `configure.ps1`），这些脚本会自动注入 Visual Studio 开发环境变量，解决 vcpkg 找不到 VS 的问题。
 

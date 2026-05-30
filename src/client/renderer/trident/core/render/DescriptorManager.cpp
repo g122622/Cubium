@@ -22,7 +22,8 @@
  */
 
 #include "DescriptorManager.hpp"
-#include "../TridentContext.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include <array>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident {
@@ -99,23 +100,23 @@ Result<void> DescriptorManager::initialize(TridentContext* context, u32 maxFrame
     m_maxFramesInFlight = maxFramesInFlight;
 
     // 创建描述符集布局
-    auto layoutResult = createDescriptorSetLayouts();
+    auto layoutResult = _createDescriptorSetLayouts();
     if (layoutResult.failed()) {
         return layoutResult.error();
     }
 
     // 创建管线布局
-    auto pipelineResult = createPipelineLayout();
+    auto pipelineResult = _createPipelineLayout();
     if (pipelineResult.failed()) {
-        destroyDescriptorSetLayouts();
+        _destroyDescriptorSetLayouts();
         return pipelineResult.error();
     }
 
     // 创建描述符池
-    auto poolResult = createDescriptorPool();
+    auto poolResult = _createDescriptorPool();
     if (poolResult.failed()) {
-        destroyPipelineLayout();
-        destroyDescriptorSetLayouts();
+        _destroyPipelineLayout();
+        _destroyDescriptorSetLayouts();
         return poolResult.error();
     }
 
@@ -128,9 +129,9 @@ void DescriptorManager::destroy()
 {
     if (!m_initialized) return;
 
-    destroyDescriptorPool();
-    destroyPipelineLayout();
-    destroyDescriptorSetLayouts();
+    _destroyDescriptorPool();
+    _destroyPipelineLayout();
+    _destroyDescriptorSetLayouts();
 
     m_context = nullptr;
     m_initialized = false;
@@ -139,51 +140,27 @@ void DescriptorManager::destroy()
 
 Result<VkDescriptorSet> DescriptorManager::allocateCameraSet(u32 frameIndex)
 {
-    if (!m_initialized || m_pool == VK_NULL_HANDLE || m_cameraLayout == VK_NULL_HANDLE) {
-        return Error(ErrorCode::NotInitialized, "DescriptorManager not initialized");
-    }
-
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_pool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_cameraLayout;
-
-    VkDescriptorSet descriptorSet;
-    VkResult result = vkAllocateDescriptorSets(m_context->device(), &allocInfo, &descriptorSet);
-
-    if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate camera descriptor set: " + std::to_string(result));
-    }
-
-    return descriptorSet;
+    (void)frameIndex; // TODO: 利用帧索引优化描述符集分配
+    return _allocateSet(m_cameraLayout, "Failed to allocate camera descriptor set");
 }
 
 Result<VkDescriptorSet> DescriptorManager::allocateTextureSet()
 {
-    if (!m_initialized || m_pool == VK_NULL_HANDLE || m_textureLayout == VK_NULL_HANDLE) {
-        return Error(ErrorCode::NotInitialized, "DescriptorManager not initialized");
-    }
-
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_pool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_textureLayout;
-
-    VkDescriptorSet descriptorSet;
-    VkResult result = vkAllocateDescriptorSets(m_context->device(), &allocInfo, &descriptorSet);
-
-    if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate texture descriptor set: " + std::to_string(result));
-    }
-
-    return descriptorSet;
+    return _allocateSet(m_textureLayout, "Failed to allocate texture descriptor set");
 }
 
 Result<VkDescriptorSet> DescriptorManager::allocateFogSet()
 {
-    if (!m_initialized || m_pool == VK_NULL_HANDLE || m_fogLayout == VK_NULL_HANDLE) {
+    return _allocateSet(m_fogLayout, "Failed to allocate fog descriptor set");
+}
+
+// ============================================================================
+// 私有方法 - 分配辅助
+// ============================================================================
+
+Result<VkDescriptorSet> DescriptorManager::_allocateSet(VkDescriptorSetLayout layout, const char* errorMsg)
+{
+    if (!m_initialized || m_pool == VK_NULL_HANDLE || layout == VK_NULL_HANDLE) {
         return Error(ErrorCode::NotInitialized, "DescriptorManager not initialized");
     }
 
@@ -191,13 +168,13 @@ Result<VkDescriptorSet> DescriptorManager::allocateFogSet()
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_pool;
     allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_fogLayout;
+    allocInfo.pSetLayouts = &layout;
 
     VkDescriptorSet descriptorSet;
     VkResult result = vkAllocateDescriptorSets(m_context->device(), &allocInfo, &descriptorSet);
 
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate fog descriptor set: " + std::to_string(result));
+        return Error(ErrorCode::OutOfMemory, std::string(errorMsg) + ": " + std::to_string(result));
     }
 
     return descriptorSet;
@@ -207,7 +184,7 @@ Result<VkDescriptorSet> DescriptorManager::allocateFogSet()
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> DescriptorManager::createDescriptorSetLayouts()
+Result<void> DescriptorManager::_createDescriptorSetLayouts()
 {
     VkDevice device = m_context->device();
 
@@ -219,17 +196,6 @@ Result<void> DescriptorManager::createDescriptorSetLayouts()
     cameraLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     cameraLayoutBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutCreateInfo cameraLayoutInfo{};
-    cameraLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    cameraLayoutInfo.bindingCount = 1;
-    cameraLayoutInfo.pBindings = &cameraLayoutBinding;
-
-    VkResult result = vkCreateDescriptorSetLayout(device, &cameraLayoutInfo, nullptr, &m_cameraLayout);
-    if (result != VK_SUCCESS) {
-        return Error(
-            ErrorCode::OperationFailed, "Failed to create camera descriptor set layout: " + std::to_string(result));
-    }
-
     // Lighting UBO 布局 (set = 0, binding = 1)
     VkDescriptorSetLayoutBinding lightingLayoutBinding{};
     lightingLayoutBinding.binding = 1;
@@ -238,14 +204,15 @@ Result<void> DescriptorManager::createDescriptorSetLayouts()
     lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     lightingLayoutBinding.pImmutableSamplers = nullptr;
 
+    // 创建包含两个绑定的相机布局
     std::array<VkDescriptorSetLayoutBinding, 2> cameraBindings = {cameraLayoutBinding, lightingLayoutBinding};
 
-    // 重新创建包含两个绑定的相机布局
-    vkDestroyDescriptorSetLayout(device, m_cameraLayout, nullptr);
+    VkDescriptorSetLayoutCreateInfo cameraLayoutInfo{};
+    cameraLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     cameraLayoutInfo.bindingCount = static_cast<u32>(cameraBindings.size());
     cameraLayoutInfo.pBindings = cameraBindings.data();
 
-    result = vkCreateDescriptorSetLayout(device, &cameraLayoutInfo, nullptr, &m_cameraLayout);
+    VkResult result = vkCreateDescriptorSetLayout(device, &cameraLayoutInfo, nullptr, &m_cameraLayout);
     if (result != VK_SUCCESS) {
         return Error(
             ErrorCode::OperationFailed, "Failed to create camera descriptor set layout: " + std::to_string(result));
@@ -298,7 +265,7 @@ Result<void> DescriptorManager::createDescriptorSetLayouts()
     return {};
 }
 
-Result<void> DescriptorManager::createPipelineLayout()
+Result<void> DescriptorManager::_createPipelineLayout()
 {
     VkDevice device = m_context->device();
 
@@ -319,7 +286,7 @@ Result<void> DescriptorManager::createPipelineLayout()
     return {};
 }
 
-Result<void> DescriptorManager::createDescriptorPool()
+Result<void> DescriptorManager::_createDescriptorPool()
 {
     VkDevice device = m_context->device();
 
@@ -349,7 +316,7 @@ Result<void> DescriptorManager::createDescriptorPool()
 // 私有方法 - 销毁
 // ============================================================================
 
-void DescriptorManager::destroyDescriptorSetLayouts()
+void DescriptorManager::_destroyDescriptorSetLayouts()
 {
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
 
@@ -369,7 +336,7 @@ void DescriptorManager::destroyDescriptorSetLayouts()
     }
 }
 
-void DescriptorManager::destroyPipelineLayout()
+void DescriptorManager::_destroyPipelineLayout()
 {
     if (m_pipelineLayout != VK_NULL_HANDLE && m_context) {
         vkDestroyPipelineLayout(m_context->device(), m_pipelineLayout, nullptr);
@@ -377,7 +344,7 @@ void DescriptorManager::destroyPipelineLayout()
     }
 }
 
-void DescriptorManager::destroyDescriptorPool()
+void DescriptorManager::_destroyDescriptorPool()
 {
     if (m_pool != VK_NULL_HANDLE && m_context) {
         vkDestroyDescriptorPool(m_context->device(), m_pool, nullptr);

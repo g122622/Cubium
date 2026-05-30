@@ -21,7 +21,7 @@
  *
  */
 
-#include "../ClientApplication.hpp"
+#include "client/application/ClientApplication.hpp"
 
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
@@ -35,7 +35,6 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 
-#include <algorithm>
 #include <cmath>
 
 namespace mc::client {
@@ -58,13 +57,12 @@ Result<void> ClientApplication::initializeAudio()
         spdlog::info("Sound system initialized successfully");
 
         // 设置 UI 音效回调，供 Widget::playUiSound() 使用
-        // 参考 MC 1.16.5 Widget.playDownSound(): 音量 0.25F，无衰减
         ui::kagero::widget::Widget::setUiSoundCallback([this](const std::string& soundEventId) {
             if (m_audioService) {
                 auto sound = std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createGlobal(ResourceLocation(soundEventId),
                         sound::SoundCategory::Master,
-                        0.25f, // MC 1.16.5 UI 按钮默认音量
+                        0.25f, // UI 按钮默认音量
                         1.0f   // 默认音调
                         ));
                 m_audioService->play(std::move(sound));
@@ -93,7 +91,7 @@ void ClientApplication::updatePlayerAudio()
                     m_player->x(),
                     m_player->y(),
                     m_player->z(),
-                    m_player->swimSoundVolume() * 0.15f,                        // MC 音量系数
+                    m_player->swimSoundVolume() * 0.15f,                        // 音量系数
                     1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f // 随机音调变化
                     ));
             m_audioService->play(std::move(swimSound));
@@ -113,7 +111,7 @@ void ClientApplication::updatePlayerAudio()
                     m_player->x(),
                     m_player->y(),
                     m_player->z(),
-                    soundType.getVolume() * 0.15f,                              // MC 音量系数
+                    soundType.getVolume() * 0.15f,                              // 音量系数
                     soundType.getPitch() * (0.8f + m_random.nextFloat() * 0.4f) // 随机音调变化
                     ));
                 m_audioService->play(std::move(stepSound));
@@ -148,11 +146,14 @@ void ClientApplication::updateWorldAudio()
     bool inLava = m_player->isInLava();
     u32 waterFogColor = world::biome::BiomeEffects::DEFAULT_WATER_FOG_COLOR;
 
+    // 玩家眼睛位置的方块坐标（多个音效查询共用）
+    const i32 eyeBlockX = static_cast<i32>(std::floor(m_player->x()));
+    const i32 eyeBlockY = static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight()));
+    const i32 eyeBlockZ = static_cast<i32>(std::floor(m_player->z()));
+
     // 获取当前生物群系的水下雾颜色
     if (inWater) {
-        const auto* biome = m_world.getBiomeAtBlock(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
-            static_cast<i32>(std::floor(m_player->z())));
+        const auto* biome = m_world.getBiomeAtBlock(eyeBlockX, eyeBlockY, eyeBlockZ);
         if (biome) {
             waterFogColor = biome->waterFogColor();
         }
@@ -184,20 +185,14 @@ void ClientApplication::updateWorldAudio()
 
     // 更新水下环境音效处理器
     if (m_audioService) {
-        const auto* biome = m_world.getBiomeAtBlock(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
-            static_cast<i32>(std::floor(m_player->z())));
+        const auto* biome = m_world.getBiomeAtBlock(eyeBlockX, eyeBlockY, eyeBlockZ);
         m_audioService->setBiomeId(biome ? static_cast<u32>(biome->id()) : 0u);
         m_audioService->setUnderwater(inWater);
 
         // 更新群系环境音效处理器的光照等级和玩家位置
         // 用于心境音效的触发计算
-        const u8 skyLight = m_world.getSkyLight(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
-            static_cast<i32>(std::floor(m_player->z())));
-        const u8 blockLight = m_world.getBlockLight(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
-            static_cast<i32>(std::floor(m_player->z())));
+        const u8 skyLight = m_world.getSkyLight(eyeBlockX, eyeBlockY, eyeBlockZ);
+        const u8 blockLight = m_world.getBlockLight(eyeBlockX, eyeBlockY, eyeBlockZ);
         m_audioService->setAmbientLightLevel(skyLight, blockLight);
         m_audioService->setAmbientPlayerPosition(m_player->x(), m_player->y() + m_player->eyeHeight(), m_player->z());
 
@@ -209,7 +204,7 @@ void ClientApplication::updateWorldAudio()
         // Boss战检查（当前未实现Boss战检测系统）
         const bool inBossFight = false;
 
-        // 获取生物群系音乐（MC 1.16.5: 下界各生物群系有专属音乐）
+        // 获取生物群系音乐
         std::optional<world::biome::BiomeMusic> biomeMusic;
         if (biome) {
             biomeMusic = biome->getMusic();
@@ -221,26 +216,21 @@ void ClientApplication::updateWorldAudio()
         // 检测玩家碰撞箱范围内是否有气泡柱
         bool inBubbleColumn = false;
         bool bubbleColumnDrag = false;
-        const auto* blockState = m_world.getBlockState(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y())),
-            static_cast<i32>(std::floor(m_player->z())));
-        if (blockState != nullptr && VanillaBlocks::BUBBLE_COLUMN != nullptr &&
-            blockState->is(VanillaBlocks::BUBBLE_COLUMN)) {
+        // 玩家脚底位置的方块坐标
+        const i32 footBlockY = static_cast<i32>(std::floor(m_player->y()));
+        const auto* blockState = m_world.getBlockState(eyeBlockX, footBlockY, eyeBlockZ);
+        if (blockState != nullptr && blockState->is(VanillaBlocks::BUBBLE_COLUMN)) {
             inBubbleColumn = true;
             // 获取气泡柱的 drag 属性
-            const auto* bubbleColumn = dynamic_cast<const mc::blocks::BubbleColumnBlock*>(&blockState->owner());
-            if (bubbleColumn != nullptr) {
-                bubbleColumnDrag = bubbleColumn->isDrag(*blockState);
-            }
+            const auto& bubbleColumn = static_cast<const mc::blocks::BubbleColumnBlock&>(blockState->owner());
+            bubbleColumnDrag = bubbleColumn.isDrag(*blockState);
         }
         m_audioService->setBubbleColumnState(inBubbleColumn, bubbleColumnDrag);
 
         // 更新天气音效状态（雨声/雷声）
         const f32 rainStrength = m_world.weather().rainStrength();
         const f32 thunderStrength = m_world.weather().thunderStrength();
-        const bool canSeeSky = m_world.canSeeSky(BlockPos(static_cast<i32>(std::floor(m_player->x())),
-            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
-            static_cast<i32>(std::floor(m_player->z()))));
+        const bool canSeeSky = m_world.canSeeSky(BlockPos(eyeBlockX, eyeBlockY, eyeBlockZ));
         m_audioService->updateWeatherState(rainStrength, thunderStrength, m_player->y(), canSeeSky);
     }
 
