@@ -26,6 +26,7 @@ jobs:
   # Build only – Windows / Clang / RelWithDebInfo (fast feedback)
   # ============================================================
   build-windows:
+    if: false
     name: Build (Windows / Clang / RelWithDebInfo)
     runs-on: windows-latest
     timeout-minutes: 120

@@ -24,7 +24,7 @@
 #include "ChunkPrimer.hpp"
 #include "../WorldConstants.hpp"
 #include "../block/BlockRegistry.hpp"
-#include <spdlog/spdlog.h>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -61,21 +61,18 @@ ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
     , m_status(ChunkLoadStatus::Empty)
 {
     initializeAllHeightmaps(m_heightmaps);
-    initializeCarvingMasks();
 }
 
 ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
-    : m_x(data ? data->x() : 0)
-    , m_z(data ? data->z() : 0)
+    : m_x(data->x())
+    , m_z(data->z())
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
 {
+    MC_ASSERT_RELEASE(m_data != nullptr);
     initializeAllHeightmaps(m_heightmaps);
-    if (m_data) {
-        initializeCarvingMasks();
-        updateAllHeightmaps();
-    }
+    updateAllHeightmaps();
 }
 
 // ============================================================================
@@ -84,40 +81,36 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
 
 const BlockState* ChunkPrimer::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (!isValidBlockCoord(x, y, z)) {
+    if (!_isValidBlockCoord(x, y, z)) {
         return BlockRegistry::instance().airState();
     }
-    return m_data ? m_data->getBlockState(x, y, z) : BlockRegistry::instance().airState();
+    return m_data->getBlockState(x, y, z);
 }
 
 void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (!isValidBlockCoord(x, y, z)) {
+    if (!_isValidBlockCoord(x, y, z)) {
         return;
     }
-    if (m_data) {
-        m_data->setBlockState(x, y, z, state);
-        m_modified = true;
-    }
+    m_data->setBlockState(x, y, z, state);
+    m_modified = true;
 }
 
 u32 ChunkPrimer::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (!isValidBlockCoord(x, y, z)) {
+    if (!_isValidBlockCoord(x, y, z)) {
         return 0; // Air
     }
-    return m_data ? m_data->getBlockStateId(x, y, z) : 0;
+    return m_data->getBlockStateId(x, y, z);
 }
 
 void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
 {
-    if (!isValidBlockCoord(x, y, z)) {
+    if (!_isValidBlockCoord(x, y, z)) {
         return;
     }
-    if (m_data) {
-        m_data->setBlockStateId(x, y, z, stateId);
-        m_modified = true;
-    }
+    m_data->setBlockStateId(x, y, z, stateId);
+    m_modified = true;
 }
 
 // ============================================================================
@@ -126,28 +119,28 @@ void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 
 
 ChunkSection* ChunkPrimer::getSection(i32 index)
 {
-    return m_data ? m_data->getSection(index) : nullptr;
+    return m_data->getSection(index);
 }
 
 const ChunkSection* ChunkPrimer::getSection(i32 index) const
 {
-    return m_data ? m_data->getSection(index) : nullptr;
+    return m_data->getSection(index);
 }
 
 bool ChunkPrimer::hasSection(i32 index) const
 {
-    return m_data ? m_data->hasSection(index) : false;
+    return m_data->hasSection(index);
 }
 
 ChunkSection* ChunkPrimer::createSection(i32 index)
 {
     m_modified = true;
-    return m_data ? m_data->createSection(index) : nullptr;
+    return m_data->createSection(index);
 }
 
 const ChunkSection* const* ChunkPrimer::getSections() const
 {
-    return m_data ? m_data->getSections() : nullptr;
+    return m_data->getSections();
 }
 
 // ============================================================================
@@ -223,10 +216,6 @@ const Heightmap& ChunkPrimer::getHeightmap(HeightmapType type) const
 
 void ChunkPrimer::updateAllHeightmaps()
 {
-    if (!m_data) {
-        return;
-    }
-
     // 每次重建前先重置所有高度图，避免雕刻/替换方块后残留旧高度。
     initializeAllHeightmaps(m_heightmaps);
 
@@ -271,11 +260,9 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     updateAllHeightmaps();
 
     // 标记为完全生成
-    if (m_data) {
-        m_data->setBiomes(m_biomes);
-        m_data->setFullyGenerated(true);
-        m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
-    }
+    m_data->setBiomes(m_biomes);
+    m_data->setFullyGenerated(true);
+    m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
 
     // 设置状态
     m_status = ChunkLoadStatus::Generated;
@@ -293,33 +280,26 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
 
 u16 ChunkPrimer::packToLocal(BlockCoord x, BlockCoord y, BlockCoord z)
 {
-    return static_cast<u16>((x & 0xF) | ((y & 0xF) << 4) | ((z & 0xF) << 8));
+    return static_cast<u16>((x & world::CHUNK_MASK) | ((y & world::CHUNK_MASK) << world::SECTION_SHIFT) |
+        ((z & world::CHUNK_MASK) << (world::SECTION_SHIFT * 2)));
 }
 
 void ChunkPrimer::unpackFromLocal(
     u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z)
 {
-    x = (packed & 0xF) + (chunkX << 4);
-    y = ((packed >> 4) & 0xF) + (yOffset << 4);
-    z = ((packed >> 8) & 0xF) + (chunkZ << 4);
+    x = (packed & world::CHUNK_MASK) + (chunkX << world::CHUNK_SHIFT);
+    y = ((packed >> world::SECTION_SHIFT) & world::CHUNK_MASK) + (yOffset << world::SECTION_SHIFT);
+    z = ((packed >> (world::SECTION_SHIFT * 2)) & world::CHUNK_MASK) + (chunkZ << world::CHUNK_SHIFT);
 }
 
 // ============================================================================
 // 辅助方法
 // ============================================================================
 
-bool ChunkPrimer::isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z)
+bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z)
 {
     return x >= 0 && x < world::CHUNK_WIDTH && y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && z >= 0 &&
         z < world::CHUNK_WIDTH;
-}
-
-void ChunkPrimer::initializeCarvingMasks()
-{
-    // 雕刻掩码大小为 16x16x256 = 65536
-    constexpr size_t carvingMaskSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH * world::CHUNK_HEIGHT;
-    // m_carvingMaskAir.resize(carvingMaskSize, false);
-    // m_carvingMaskLiquid.resize(carvingMaskSize, false);
 }
 
 } // namespace mc

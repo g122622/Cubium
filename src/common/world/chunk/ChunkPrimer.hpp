@@ -29,7 +29,6 @@
 #include "ChunkData.hpp"
 #include "ChunkStatus.hpp"
 #include "IChunk.hpp"
-#include <array>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -43,7 +42,7 @@ namespace mc {
 /**
  * @brief 区块生成器 (ChunkPrimer)
  *
- * 参考 MC ChunkPrimer，这是区块生成过程中的中间状态类。
+ * 区块生成过程中的中间状态类。
  * 在区块完全生成之前，使用此类存储临时数据。
  * 生成完成后转换为 ChunkData。
  *
@@ -168,22 +167,6 @@ public:
      * @brief 获取所有光源位置
      */
     [[nodiscard]] const std::vector<BlockCoord>& getLightPositions() const { return m_lightPositions; }
-
-    // ============================================================================
-    // 雕刻掩码 (Carving Mask)
-    // ============================================================================
-
-    /**
-     * @brief 获取雕刻掩码（空气雕刻）
-     */
-    // [[nodiscard]] std::vector<bool>& getCarvingMaskAir() { return m_carvingMaskAir; }
-    // [[nodiscard]] const std::vector<bool>& getCarvingMaskAir() const { return m_carvingMaskAir; }
-
-    /**
-     * @brief 获取雕刻掩码（液体雕刻）
-     */
-    // [[nodiscard]] std::vector<bool>& getCarvingMaskLiquid() { return m_carvingMaskLiquid; }
-    // [[nodiscard]] const std::vector<bool>& getCarvingMaskLiquid() const { return m_carvingMaskLiquid; }
 
     // ============================================================================
     // 高度图管理
@@ -320,10 +303,6 @@ private:
     // 光源位置
     std::vector<BlockCoord> m_lightPositions;
 
-    // 雕刻掩码（用于追踪哪些位置被雕刻过）
-    // std::vector<bool> m_carvingMaskAir;
-    // std::vector<bool> m_carvingMaskLiquid;
-
     // 区块生成时生成的实体
     std::vector<SpawnedEntityData> m_spawnedEntities;
 
@@ -331,8 +310,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
 
     // 辅助方法
-    [[nodiscard]] static bool isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z);
-    void initializeCarvingMasks();
+    [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z);
 };
 
 } // namespace mc
