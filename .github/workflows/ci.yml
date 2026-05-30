@@ -77,6 +77,20 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64 -no_logo
           cmake --build build --config RelWithDebInfo
 
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=build-windows"
+          echo "runner_os=${{ runner.os }}"
+          echo "build_type=RelWithDebInfo"
+          echo "compiler=clang"
+          echo "build_client=ON"
+          echo "build_server=ON"
+          echo "build_tests=OFF"
+          echo "::endgroup::"
+
   # ============================================================
   # Linux build + test – server-only (headless, no Vulkan/GUI)
   # ============================================================
@@ -149,6 +163,21 @@ jobs:
       - name: Run tests
         working-directory: build
         run: ctest --output-on-failure --timeout 300 -j$(nproc)
+
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=build-linux"
+          echo "runner_os=${{ runner.os }}"
+          echo "build_type=RelWithDebInfo"
+          echo "compiler=clang"
+          echo "build_client=OFF"
+          echo "build_server=ON"
+          echo "build_tests=ON"
+          echo "sanitizers=none"
+          echo "::endgroup::"
 
   # ============================================================
   # AddressSanitizer + UndefinedBehaviorSanitizer (Linux / Clang)
@@ -231,6 +260,18 @@ jobs:
           LSAN_OPTIONS: exitcode=1
         run: ctest --output-on-failure --timeout 600 -j$(nproc)
 
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=asan-ubsan"
+          echo "runner_os=${{ runner.os }}"
+          echo "build_type=Debug"
+          echo "compiler=clang"
+          echo "sanitizers=address,undefined"
+          echo "::endgroup::"
+
   # ============================================================
   # ThreadSanitizer (Linux / Clang)
   # ============================================================
@@ -310,6 +351,18 @@ jobs:
           TSAN_OPTIONS: halt_on_error=1:history_size=7:die_on_fatal=1
         run: ctest --output-on-failure --timeout 600 -j$(nproc)
 
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=tsan"
+          echo "runner_os=${{ runner.os }}"
+          echo "build_type=Debug"
+          echo "compiler=clang"
+          echo "sanitizers=thread"
+          echo "::endgroup::"
+
   # ============================================================
   # Stack Protection + Hardened build (Linux / Clang)
   # ============================================================
@@ -387,6 +440,18 @@ jobs:
         working-directory: build
         run: ctest --output-on-failure --timeout 300 -j$(nproc)
 
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=stack-protect"
+          echo "runner_os=${{ runner.os }}"
+          echo "build_type=RelWithDebInfo"
+          echo "compiler=clang"
+          echo "hardening=stack-protector-strong,fortify-source-2,pie,relro,noexecstack"
+          echo "::endgroup::"
+
       - name: Verify stack protection and hardening
         run: |
           echo "=== Checking for __stack_chk_fail in test binary ==="
@@ -448,6 +513,8 @@ jobs:
     name: clang-format Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      unformatted_files: ${{ steps.format-check.outputs.unformatted_files }}
     steps:
       - uses: actions/checkout@v4
 
@@ -457,6 +524,7 @@ jobs:
           sudo apt-get install -y clang-format
 
       - name: Check formatting on changed files
+        id: format-check
         run: |
           # For PRs: check files changed vs base branch
           # For pushes: check files changed in the last commit
@@ -470,6 +538,7 @@ jobs:
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "No C++ files changed, skipping clang-format check"
+            echo "unformatted_files=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -478,14 +547,22 @@ jobs:
           echo ""
 
           UNFORMATTED=0
+          UNFORMATTED_FILES=""
           for file in $CHANGED_FILES; do
             if [ -f "$file" ]; then
               if ! clang-format --style=file "$file" | diff -q "$file" - > /dev/null 2>&1; then
                 echo "NOT FORMATTED: $file"
                 UNFORMATTED=1
+                if [ -n "$UNFORMATTED_FILES" ]; then
+                  UNFORMATTED_FILES="${UNFORMATTED_FILES} ${file}"
+                else
+                  UNFORMATTED_FILES="${file}"
+                fi
               fi
             fi
           done
+
+          echo "unformatted_files=${UNFORMATTED_FILES}" >> "$GITHUB_OUTPUT"
 
           if [ "$UNFORMATTED" -ne 0 ]; then
             echo ""
@@ -494,3 +571,14 @@ jobs:
             exit 1
           fi
           echo "All changed files are properly formatted"
+
+      - name: Output failure summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "::group::CI Failure Summary"
+          echo "job_name=format-check"
+          echo "runner_os=${{ runner.os }}"
+          echo "failure_type=clang-format"
+          echo "unformatted_files=${{ steps.format-check.outputs.unformatted_files }}"
+          echo "::endgroup::"

@@ -1,0 +1,313 @@
+name: Self-Heal CI
+
+# ---------------------------------------------------------------------------
+# 当CI工作流失败时自动分析、分类并采取修复行动：
+#   1. 瞬时故障 → 自动重跑失败的jobs
+#   2. 格式/构建/测试/sanitizer故障 → 创建Issue分配给@copilot修复
+#   3. 基础设施故障 → 创建Issue标记需人工干预
+# ---------------------------------------------------------------------------
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  models: read
+
+concurrency:
+  group: self-heal-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+env:
+  # 防循环：同一分支上最近20次提交中bot提交数达到此阈值则停止创建新Issue
+  BOT_COMMIT_LIMIT: "5"
+  # 自动修复Issue的标签
+  AUTO_LABEL: "auto-remediation"
+
+jobs:
+  # ===========================================================================
+  # Step 1: 分析CI失败原因
+  # ===========================================================================
+  analyze-failure:
+    name: Analyze CI Failure
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.name != 'Self-Heal CI'
+    outputs:
+      category: ${{ steps.parse.outputs.category }}
+      summary: ${{ steps.parse.outputs.summary }}
+      plan: ${{ steps.parse.outputs.plan }}
+      transient: ${{ steps.parse.outputs.transient }}
+      failed_job: ${{ steps.parse.outputs.failed_job }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 使用 GitHub Models API 进行根因分析
+      - name: Classify failure with GitHub Models
+        id: classify
+        uses: actions/ai-inference@v1
+        with:
+          prompt-file: .github/models/analyze-ci-failure.prompt.yml
+          enable-github-mcp: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          github-mcp-token: ${{ secrets.AUTO_REMEDIATION_PAT }}
+          max-tokens: "4096"
+          input: |
+            repo: ${{ github.event.repository.name }}
+            owner: ${{ github.event.repository.owner.login }}
+            workflow_run_id: ${{ github.event.workflow_run.id }}
+
+      # 解析AI返回的JSON分类结果
+      - name: Parse classification result
+        id: parse
+        shell: bash
+        run: |
+          # 将原始响应写入文件用于调试
+          echo "${{ steps.classify.outputs.text }}" > /tmp/classification.json
+
+          # 安全解析每个字段，提供默认值
+          CATEGORY=$(python3 -c "import sys,json; d=json.load(open('/tmp/classification.json')); print(d.get('category','infrastructure'))" 2>/dev/null || echo "infrastructure")
+          SUMMARY=$(python3 -c "import sys,json; d=json.load(open('/tmp/classification.json')); print(d.get('summary','Unable to classify failure'))" 2>/dev/null || echo "Unable to classify failure")
+          PLAN=$(python3 -c "import sys,json; d=json.load(open('/tmp/classification.json')); print(d.get('plan','Manual investigation required'))" 2>/dev/null || echo "Manual investigation required")
+          TRANSIENT=$(python3 -c "import sys,json; d=json.load(open('/tmp/classification.json')); print(str(d.get('transient',False)).lower())" 2>/dev/null || echo "false")
+          FAILED_JOB=$(python3 -c "import sys,json; d=json.load(open('/tmp/classification.json')); print(d.get('failed_job','unknown'))" 2>/dev/null || echo "unknown")
+
+          echo "category=${CATEGORY}"    >> "$GITHUB_OUTPUT"
+          echo "summary=${SUMMARY}"      >> "$GITHUB_OUTPUT"
+          echo "plan=${PLAN}"            >> "$GITHUB_OUTPUT"
+          echo "transient=${TRANSIENT}"  >> "$GITHUB_OUTPUT"
+          echo "failed_job=${FAILED_JOB}" >> "$GITHUB_OUTPUT"
+
+          echo "::group::Classification Result"
+          echo "  Category:    ${CATEGORY}"
+          echo "  Summary:     ${SUMMARY}"
+          echo "  Plan:        ${PLAN}"
+          echo "  Transient:   ${TRANSIENT}"
+          echo "  Failed Job:  ${FAILED_JOB}"
+          echo "::endgroup::"
+
+  # ===========================================================================
+  # Step 2: 重试瞬时故障
+  # ===========================================================================
+  retry-transient:
+    name: Retry Transient Failure
+    runs-on: ubuntu-latest
+    needs: analyze-failure
+    if: needs.analyze-failure.outputs.transient == 'true'
+    steps:
+      - name: Log transient failure and schedule retry
+        shell: bash
+        run: |
+          echo "::warning::Transient failure detected in CI run"
+          echo "Category:   ${{ needs.analyze-failure.outputs.category }}"
+          echo "Summary:    ${{ needs.analyze-failure.outputs.summary }}"
+          echo "Failed Job: ${{ needs.analyze-failure.outputs.failed_job }}"
+          echo ""
+          echo "This appears to be a transient issue (network, vcpkg cache, runner)."
+          echo "Re-running failed jobs from the original workflow run."
+
+      # 通过GitHub API只重跑失败的jobs，保留成功jobs的缓存
+      - name: Re-run failed jobs
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_REMEDIATION_PAT }}
+        shell: bash
+        run: |
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          echo "Re-running failed jobs from workflow run ${RUN_ID}..."
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
+            --silent || {
+              echo "::error::Failed to re-run failed jobs. Manual intervention may be needed."
+              exit 1
+            }
+          echo "Re-run requested successfully."
+
+  # ===========================================================================
+  # Step 3: 为非瞬时故障创建修复Issue
+  # ===========================================================================
+  create-remediation-issue:
+    name: Create Remediation Issue
+    runs-on: ubuntu-latest
+    needs: analyze-failure
+    if: needs.analyze-failure.outputs.transient == 'false'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 防循环：检查最近提交中bot提交的数量
+      - name: Check bot-commit anti-loop guard
+        id: loop-guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          BASE_REF="${{ github.event.workflow_run.head_branch }}"
+          BOT_COMMITS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/commits?sha=${BASE_REF}&per_page=20" \
+            --jq '[.[] | select(.commit.author.name | test("copilot|github-actions\\[bot\\]"; "i"))] | length' \
+            2>/dev/null || echo "0")
+
+          echo "bot_commits=${BOT_COMMITS}" >> "$GITHUB_OUTPUT"
+          echo "Bot commits on ${BASE_REF} in last 20: ${BOT_COMMITS}"
+
+          if [ "${BOT_COMMITS}" -ge "${{ env.BOT_COMMIT_LIMIT }}" ]; then
+            echo "::warning::Anti-loop limit reached (${BOT_COMMITS} >= ${{ env.BOT_COMMIT_LIMIT }}). Skipping issue creation."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 去重：检查是否已存在同一run ID的auto-remediation Issue
+      - name: Check for existing remediation issue
+        id: check-existing
+        if: steps.loop-guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          RUN_ID="${{ github.event.workflow_run.id }}"
+
+          EXISTING=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --label "${{ env.AUTO_LABEL }}" \
+            --state open \
+            --search "run ${RUN_ID}" \
+            --json number \
+            --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "${EXISTING}" ]; then
+            echo "Found existing issue #${EXISTING} for run ${RUN_ID}. Skipping."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "issue_number=${EXISTING}" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 创建必要的标签
+      - name: Ensure labels exist
+        if: >-
+          steps.loop-guard.outputs.skip != 'true' &&
+          steps.check-existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          # auto-remediation 标签
+          gh label create "${{ env.AUTO_LABEL }}" \
+            --repo "${{ github.repository }}" \
+            --color "0075ca" \
+            --description "Automatically created by self-heal CI" \
+            --force 2>/dev/null || true
+
+          # 分类标签
+          for cat in transient formatting build-error test-failure sanitizer infrastructure; do
+            gh label create "category:${cat}" \
+              --repo "${{ github.repository }}" \
+              --color "ededed" \
+              --description "Self-heal category: ${cat}" \
+              --force 2>/dev/null || true
+          done
+
+      # 创建Issue并分配给@copilot
+      - name: Create remediation issue
+        if: >-
+          steps.loop-guard.outputs.skip != 'true' &&
+          steps.check-existing.outputs.exists != 'true'
+        id: create-issue
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_REMEDIATION_PAT }}
+        shell: bash
+        run: |
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          CATEGORY="${{ needs.analyze-failure.outputs.category }}"
+          SUMMARY="${{ needs.analyze-failure.outputs.summary }}"
+          PLAN="${{ needs.analyze-failure.outputs.plan }}"
+          FAILED_JOB="${{ needs.analyze-failure.outputs.failed_job }}"
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          COMMIT="${{ github.event.workflow_run.head_sha }}"
+          RUN_URL="${{ github.event.workflow_run.html_url }}"
+
+          # 使用heredoc构建Issue正文，避免shell注入风险
+          cat > /tmp/issue_body.md <<'ISSUE_EOF'
+          ## CI Failure Auto-Analysis
+
+          **Workflow Run:** [View Run]({RUN_URL})
+          **Branch:** `{BRANCH}`
+          **Commit:** `{COMMIT}`
+          **Failed Job:** `{FAILED_JOB}`
+          **Category:** `{CATEGORY}`
+
+          ### Summary
+
+          {SUMMARY}
+
+          ### Remediation Plan
+
+          {PLAN}
+
+          ### Context
+
+          This issue was automatically created by the **Self-Heal CI** workflow after analyzing a failed CI run.
+
+          - The failure was classified as **non-transient** and requires code or configuration changes.
+          - The Copilot Coding Agent should follow the remediation plan above.
+          - After fixing, create a draft PR targeting `{BRANCH}` (or `main` if `{BRANCH}` is `main`).
+          - **Do NOT auto-merge.** All PRs require human review.
+
+          ### Failure Category Reference
+
+          | Category | Typical Cause | Auto-Fixable? |
+          |----------|---------------|---------------|
+          | `formatting` | clang-format violations | Yes - run `clang-format -i` on affected files |
+          | `build-error` | Compilation failure | Often - fix missing includes, type errors, etc. |
+          | `test-failure` | Unit test assertion failure | Often - fix logic or update test expectations |
+          | `sanitizer` | ASan/UBSan/TSan violation | Sometimes - fix memory/threading issues |
+          | `infrastructure` | Runner, disk space, toolchain | Rarely - usually needs manual intervention |
+          ISSUE_EOF
+
+          # 安全替换模板变量
+          sed -i "s|{RUN_URL}|${RUN_URL}|g" /tmp/issue_body.md
+          sed -i "s|{BRANCH}|${BRANCH}|g" /tmp/issue_body.md
+          sed -i "s|{COMMIT}|${COMMIT}|g" /tmp/issue_body.md
+          sed -i "s|{FAILED_JOB}|${FAILED_JOB}|g" /tmp/issue_body.md
+          sed -i "s|{CATEGORY}|${CATEGORY}|g" /tmp/issue_body.md
+
+          # SUMMARY和PLAN可能包含特殊字符，使用python安全替换
+          python3 -c "
+          import sys
+          with open('/tmp/issue_body.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+          content = content.replace('{SUMMARY}', sys.argv[1])
+          content = content.replace('{PLAN}', sys.argv[2])
+          with open('/tmp/issue_body.md', 'w', encoding='utf-8') as f:
+              f.write(content)
+          " "${SUMMARY}" "${PLAN}"
+
+          # 创建Issue
+          ISSUE_URL=$(gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "CI Failure [${CATEGORY}]: ${FAILED_JOB} failed on ${BRANCH} (run ${RUN_ID})" \
+            --body-file /tmp/issue_body.md \
+            --label "${{ env.AUTO_LABEL }}" \
+            --label "category:${CATEGORY}" \
+            --assignee copilot \
+            --json url \
+            --jq '.url' 2>/dev/null)
+
+          if [ -n "${ISSUE_URL}" ]; then
+            echo "Created issue: ${ISSUE_URL}"
+            echo "issue_url=${ISSUE_URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Failed to create remediation issue."
+            exit 1
+          fi
