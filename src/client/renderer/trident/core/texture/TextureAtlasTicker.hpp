@@ -34,7 +34,6 @@ namespace mc::client::renderer::trident {
  * @brief 纹理图集动画管理器
  *
  * 管理所有动画精灵，每游戏tick调用tick()更新动画状态。
- * 参考 MC 1.16.5 AtlasTexture 的动画更新机制。
  *
  * 使用方式：
  * 1. 在资源加载时，通过registerAnimatedSprite()注册动画精灵

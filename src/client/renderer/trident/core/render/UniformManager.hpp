@@ -59,8 +59,6 @@ struct LightingUBO {
 
 /**
  * @brief 雾模式枚举
- *
- * 参考 MC 1.16.5 FogRenderer.java
  */
 enum class FogMode : i32 {
     None = 0,   // 禁用雾效果
@@ -71,7 +69,6 @@ enum class FogMode : i32 {
 /**
  * @brief 雾效果 Uniform 缓冲区数据
  *
- * 参考 MC 1.16.5 FogRenderer.java 实现。
  * 线性雾用于陆地场景，指数雾用于水下和岩浆环境。
  */
 struct FogUBO {
@@ -109,7 +106,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> initialize(
-        TridentContext* context, DescriptorManager* descriptor, u32 maxFramesInFlight = 2);
+        TridentContext* context, DescriptorManager* descriptor, u32 maxFramesInFlight);
 
     /**
      * @brief 销毁所有资源
@@ -136,17 +133,13 @@ public:
     [[nodiscard]] VkBuffer cameraBuffer(u32 frameIndex) const;
     [[nodiscard]] VkBuffer lightingBuffer() const { return m_lightingBuffer; }
     [[nodiscard]] VkDescriptorSet cameraDescriptorSet(u32 frameIndex) const;
-    [[nodiscard]] bool isValid() const { return m_cameraBuffers[0] != VK_NULL_HANDLE; }
+    [[nodiscard]] bool isValid() const { return !m_cameraBuffers.empty() && m_cameraBuffers[0] != VK_NULL_HANDLE; }
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createUniformBuffers();
-    [[nodiscard]] Result<void> createCameraDescriptorSets();
-    void destroyUniformBuffers();
-
-    // 辅助方法
-    void* mapBuffer(VkBuffer buffer, VkDeviceSize size);
-    void unmapBuffer(VkBuffer buffer);
+    [[nodiscard]] Result<void> _createUniformBuffers();
+    [[nodiscard]] Result<void> _createCameraDescriptorSets();
+    void _destroyUniformBuffers();
 
     // 外部依赖
     TridentContext* m_context = nullptr;
@@ -165,7 +158,7 @@ private:
     std::vector<VkDescriptorSet> m_cameraDescriptorSets;
 
     // 配置
-    u32 m_maxFramesInFlight = 2;
+    u32 m_maxFramesInFlight = 0;
     bool m_initialized = false;
 };
 

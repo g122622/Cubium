@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
@@ -35,19 +36,6 @@ class ResourceManager;
 }
 
 namespace mc::client::renderer::trident::cloud {
-
-/**
- * @brief 云渲染模式
- *
- * - Off: 关闭云渲染
- * - Fast: 快速模式，只渲染底面（单层平面）
- * - Fancy: 精致模式，渲染完整 3D 立方体
- */
-enum class CloudMode : u8 {
-    Off = 0,  ///< 关闭云渲染
-    Fast = 1, ///< 快速模式（单层平面）
-    Fancy = 2 ///< 精致模式（3D 立方体）
-};
 
 /**
  * @brief 云 Uniform 缓冲区数据结构

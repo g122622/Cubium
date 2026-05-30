@@ -21,39 +21,39 @@
  *
  */
 
-#include "TridentEngine.hpp"
-#include "../../../resource/EntityTextureLoader.hpp"
-#include "../../../resource/ItemTextureAtlas.hpp"
-#include "../../../ui/DefaultAsciiFont.hpp"
-#include "../../../ui/Font.hpp"
-#include "../../MeshTypes.hpp"
-#include "../../api/IRenderEngine.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../block/BreakProgressRenderer.hpp"
-#include "../chunk/ChunkRenderer.hpp"
-#include "../cloud/CloudRenderer.hpp"
-#include "../entity/core/EntityRendererManager.hpp"
-#include "../entity/effect/fire/FireEffect.hpp"
-#include "../entity/pipeline/EntityPipeline.hpp"
-#include "../entity/pipeline/EntityTextureAtlas.hpp"
-#include "../entity/util/WorldTextRenderer.hpp"
-#include "../firstperson/FirstPersonRenderer.hpp"
-#include "../fog/FogManager.hpp"
-#include "../gui/GuiRenderer.hpp"
-#include "../item/ItemRenderer.hpp"
-#include "../particle/ParticleManager.hpp"
-#include "../sky/SkyRenderer.hpp"
-#include "../weather/WeatherRenderer.hpp"
-#include "TridentContext.hpp"
-#include "TridentSwapchain.hpp"
-#include "buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/TridentEngine.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/api/IRenderEngine.hpp"
+#include "client/renderer/trident/block/BreakProgressRenderer.hpp"
+#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/cloud/CloudRenderer.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/core/TridentSwapchain.hpp"
+#include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/pipeline/TridentPipeline.hpp"
+#include "client/renderer/trident/core/render/DescriptorManager.hpp"
+#include "client/renderer/trident/core/render/FrameManager.hpp"
+#include "client/renderer/trident/core/render/RenderPassManager.hpp"
+#include "client/renderer/trident/core/render/UniformManager.hpp"
+#include "client/renderer/trident/core/texture/TridentTexture.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "client/renderer/trident/entity/util/WorldTextRenderer.hpp"
+#include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
+#include "client/renderer/trident/fog/FogManager.hpp"
+#include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "client/renderer/trident/particle/ParticleManager.hpp"
+#include "client/renderer/trident/sky/SkyRenderer.hpp"
+#include "client/renderer/trident/weather/WeatherRenderer.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
+#include "client/resource/EntityTextureLoader.hpp"
+#include "client/resource/ItemTextureAtlas.hpp"
+#include "client/ui/DefaultAsciiFont.hpp"
+#include "client/ui/Font.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "pipeline/TridentPipeline.hpp"
-#include "render/DescriptorManager.hpp"
-#include "render/FrameManager.hpp"
-#include "render/RenderPassManager.hpp"
-#include "render/UniformManager.hpp"
-#include "texture/TridentTexture.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -429,7 +429,7 @@ Result<void> TridentEngine::beginFrame()
     if (imageResult.failed()) {
         // 需要重建交换链
         if (imageResult.error().code() == ErrorCode::InvalidState) {
-            return recreateSwapchain();
+            return _recreateSwapchain();
         }
         return imageResult.error();
     }
@@ -507,7 +507,7 @@ Result<void> TridentEngine::present()
     if (result.failed()) {
         // 需要重建交换链
         if (result.error().code() == ErrorCode::InvalidState) {
-            return recreateSwapchain();
+            return _recreateSwapchain();
         }
         return result.error();
     }
@@ -596,7 +596,6 @@ Result<void> TridentEngine::render()
     }
 
     // 4.5 渲染云（在天空之后，区块之前）
-    // 参考 MC 1.16.5: WorldRenderer.renderClouds()
     // 云渲染需要满足两个条件：
     // 1. 云模式不为 Off（通过 m_cloudMode 控制，在 CloudRenderer::render 中检查）
     // 2. 当前维度有云（m_hasClouds 为 true）
@@ -848,7 +847,7 @@ Result<void> TridentEngine::onResize(u32 width, u32 height)
     m_windowWidth = width;
     m_windowHeight = height;
 
-    return recreateSwapchain();
+    return _recreateSwapchain();
 }
 
 void TridentEngine::setGuiScaleFactor(f64 scaleFactor)
@@ -1184,7 +1183,7 @@ Result<void> TridentEngine::setVSyncEnabled(bool enabled)
 
     if (m_initialized && !m_minimized) {
         spdlog::info("Applying VSync change: {}", enabled);
-        return recreateSwapchain();
+        return _recreateSwapchain();
     }
 
     return Result<void>::ok();
@@ -1311,7 +1310,7 @@ void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callb
 // 私有方法
 // ============================================================================
 
-Result<void> TridentEngine::recreateSwapchain()
+Result<void> TridentEngine::_recreateSwapchain()
 {
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
@@ -2196,7 +2195,7 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
     auto loadResult = m_chunkRenderer->loadTextureAtlas(atlasResult.pixels.data(),
         atlasResult.width,
         atlasResult.height,
-        16 // tileSize
+        static_cast<u32>(::mc::world::CHUNK_WIDTH) // tileSize
     );
     if (loadResult.failed()) {
         spdlog::error("Failed to load texture atlas to chunk renderer: {}", loadResult.error().toString());

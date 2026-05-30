@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../api/TridentApi.hpp"
+#include "client/renderer/api/TridentApi.hpp"
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -108,15 +108,15 @@ public:
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createSwapchain();
-    [[nodiscard]] Result<void> createImageViews();
-    void destroySwapchain();
-    void destroyImageViews();
+    [[nodiscard]] Result<void> _createSwapchain();
+    [[nodiscard]] Result<void> _createImageViews();
+    void _destroySwapchain();
+    void _destroyImageViews();
 
     // 辅助方法
-    VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availableModes);
-    VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    VkSurfaceFormatKHR _chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR _choosePresentMode(const std::vector<VkPresentModeKHR>& availableModes);
+    VkExtent2D _chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     // 外部依赖
     TridentContext* m_context = nullptr;

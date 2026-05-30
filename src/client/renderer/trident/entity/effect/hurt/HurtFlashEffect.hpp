@@ -35,10 +35,9 @@ namespace mc::client::renderer::entity::effect::hurt {
 /**
  * @brief 受伤闪烁效果
  *
- * 参考 MC 1.16.5 LivingRenderer.getPackedOverlay() 和 OverlayTexture.java
  * 用于渲染实体受伤时的红色闪烁效果。
  *
- * MC 1.16.5 OverlayTexture 格式:
+ * OverlayTexture 格式:
  * - U = getU(uIn) = (int)(uIn * 15.0F) - hurtTime/10.0 决定 U 值
  * - V = getV(hurtIn) = hurtIn ? 3 : 10 - 受伤时 V=3，正常时 V=10
  * - packedUV = u | (v << 16) - U 在低 16 位，V 在高 16 位
@@ -58,17 +57,14 @@ public:
     /**
      * @brief 计算覆盖层UV
      *
-     * 参考 MC 1.16.5 OverlayTexture.getPackedUV()
-     *
      * @param entity 生物实体
      * @param whiteFlash 是否为白色闪烁（道德影响）
      * @return 打包的UV值
      *
-     * MC 1.16.5:
-     * - U = (int)(uIn * 15.0F) 范围 0-15
-     * - V = hurtTime > 0 || deathTime > 0 ? 3 : 10
+     * U = (int)(uIn * 15.0F) 范围 0-15
+     * V = hurtTime > 0 || deathTime > 0 ? 3 : 10
      */
-    [[nodiscard]] static i32 getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash = false);
+    [[nodiscard]] static i32 getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash);
 
     /**
      * @brief 获取受伤时间进度
@@ -96,11 +92,11 @@ private:
     HurtFlashEffect() = delete;
     ~HurtFlashEffect() = delete;
 
-    // MC 1.16.5 OverlayTexture 使用 15 作为打包因子，不是 16
-    // 参考 OverlayTexture.java: getU(uIn) = (int)(uIn * 15.0F)
+    // OverlayTexture 使用 15 作为打包因子
+    // getU(uIn) = (int)(uIn * 15.0F)
     static constexpr i32 OVERLAY_PACKING = 15;
 
-    // V 值常量 - 参考 OverlayTexture.java
+    // V 值常量
     static constexpr i32 OVERLAY_V_HURT = 3;    // 受伤时 V=3
     static constexpr i32 OVERLAY_V_NORMAL = 10; // 正常时 V=10
 

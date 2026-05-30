@@ -22,13 +22,14 @@
  */
 
 #include "CapeLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -52,10 +53,10 @@ void CapeLayer::renderPipeline(::mc::Player& entity,
     }
 
     // 计算斗篷摆动角度
-    f32 swingAngle = calculateCapeSwing(entity, context, static_cast<f32>(context.partialTicks));
+    f32 swingAngle = _calculateCapeSwing(entity, context, static_cast<f32>(context.partialTicks));
 
     // 获取或创建斗篷网格
-    pipeline::EntityMesh* mesh = getOrCreateCapeMesh(swingAngle, pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateCapeMesh(swingAngle, pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -78,8 +79,6 @@ void CapeLayer::renderPipeline(::mc::Player& entity,
     f32 deathTime = static_cast<f32>(entity.deathTime());
 
     pipeline.drawMesh(cmd, *mesh, capeTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-
-    // spdlog::trace("CapeLayer: Rendered cape with swing angle {:.1f}", swingAngle);
 }
 
 void CapeLayer::render(::mc::Player& entity,
@@ -104,7 +103,6 @@ void CapeLayer::render(::mc::Player& entity,
 
 bool CapeLayer::shouldRender(const ::mc::Player& entity) const
 {
-    // 参考 MC 1.16.5 CapeLayer.shouldRender()
     // 检查条件：
     // 1. 玩家开启了披风显示（PlayerModelPart::Cape）
     // 2. 玩家有披风纹理
@@ -129,18 +127,16 @@ bool CapeLayer::shouldRender(const ::mc::Player& entity) const
     return true;
 }
 
-f32 CapeLayer::calculateCapeSwing(
+f32 CapeLayer::_calculateCapeSwing(
     ::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const
 {
-    // 参考 MC 1.16.5 CapeLayer.render() 中的摆动计算
     // 核心逻辑：
     // 1. 使用 chasingPos 系统计算平滑移动向量
     // 2. 使用 renderYawOffset 计算身体朝向
     // 3. 使用 cameraYaw 计算行走摆动
     // 4. 蹲伏时额外增加角度
 
-    // 获取追踪位置（MC 1.16.5: MathHelper.lerp(partialTicks, prevChasingPosX, chasingPosX)）
-    // 注意：Player 需要有这些字段，这里使用简化实现
+    // 获取追踪位置
     f64 prevChasingX = static_cast<f64>(entity.prevX());
     f64 prevChasingY = static_cast<f64>(entity.prevY());
     f64 prevChasingZ = static_cast<f64>(entity.prevZ());
@@ -161,7 +157,7 @@ f32 CapeLayer::calculateCapeSwing(
     f64 interpZ = static_cast<f64>(entity.prevZ()) +
         (static_cast<f64>(entity.z()) - static_cast<f64>(entity.prevZ())) * partialTicks;
 
-    // 计算移动向量 (MC 1.16.5: d0, d1, d2)
+    // 计算移动向量
     f64 d0 = interpChasingX - interpX;
     f64 d1 = interpChasingY - interpY;
     f64 d2 = interpChasingZ - interpZ;
@@ -171,58 +167,45 @@ f32 CapeLayer::calculateCapeSwing(
     f64 prevRenderYawOffset = static_cast<f64>(entity.prevYaw());
     f64 interpRenderYawOffset = prevRenderYawOffset + (renderYawOffset - prevRenderYawOffset) * partialTicks;
 
-    // 计算方向向量 (MC 1.16.5: d3, d4)
-    // d3 = MathHelper.sin(f * PI/180)
-    // d4 = -MathHelper.cos(f * PI/180)
+    // 计算方向向量
     f64 f = interpRenderYawOffset + (interpRenderYawOffset - prevRenderYawOffset); // body rotation
-    f64 d3 = std::sin(f * mc::math::PI_DOUBLE / 180.0);
-    f64 d4 = -std::cos(f * mc::math::PI_DOUBLE / 180.0);
+    f64 d3 = std::sin(mc::math::toRadians(static_cast<f32>(f)));
+    f64 d4 = -std::cos(mc::math::toRadians(static_cast<f32>(f)));
 
-    // 计算 Y 轴摆动角度 (MC 1.16.5: f1)
-    // f1 = (float)d1 * 10.0F;
-    // f1 = MathHelper.clamp(f1, -6.0F, 32.0F);
+    // 计算 Y 轴摆动角度
     f32 f1 = static_cast<f32>(d1 * 10.0);
-    f1 = std::max(-6.0f, std::min(32.0f, f1));
+    f1 = mc::math::clamp(f1, -6.0f, 32.0f);
 
-    // 计算 X 轴摆动角度 (MC 1.16.5: f2)
-    // f2 = (float)(d0 * d3 + d2 * d4) * 100.0F;
-    // f2 = MathHelper.clamp(f2, 0.0F, 150.0F);
+    // 计算 X 轴摆动角度
     f32 f2 = static_cast<f32>((d0 * d3 + d2 * d4) * 100.0);
-    f2 = std::max(0.0f, std::min(150.0f, f2));
+    f2 = mc::math::clamp(f2, 0.0f, 150.0f);
 
-    // 计算 Z 轴摆动角度 (MC 1.16.5: f3)
-    // f3 = (float)(d0 * d4 - d2 * d3) * 100.0F;
-    // f3 = MathHelper.clamp(f3, -20.0F, 20.0F);
+    // 计算 Z 轴摆动角度
     f32 f3 = static_cast<f32>((d0 * d4 - d2 * d3) * 100.0);
-    f3 = std::max(-20.0f, std::min(20.0f, f3));
+    f3 = mc::math::clamp(f3, -20.0f, 20.0f);
 
-    // 获取相机偏航角 (MC 1.16.5: f4)
-    // f4 = MathHelper.lerp(partialTicks, prevCameraYaw, cameraYaw);
-    // 使用 context 中的 limbSwingAmount 作为行走强度
+    // 获取相机偏航角
     f32 f4 = static_cast<f32>(context.limbSwingAmount);
 
-    // 行走时增加摆动 (MC 1.16.5: f1 += MathHelper.sin(limbSwing * 6.0F) * 32.0F * f4)
+    // 行走时增加摆动
     f32 limbSwing = static_cast<f32>(context.limbSwing);
     f1 += std::sin(limbSwing * 6.0f) * 32.0f * f4;
 
-    // 蹲伏时增加角度 (MC 1.16.5: if (entity.isCrouching()) { f1 += 25.0F; })
+    // 蹲伏时增加角度
     if (entity.isSneaking()) {
         f1 += 25.0f;
     }
 
     // 返回综合摆动角度
-    // MC 1.16.5 中使用三轴旋转，这里返回 X 轴角度作为简化
-    // 实际上需要返回三个角度，但当前架构只支持一个
-    // 我们使用 f1 作为主要摆动角度
+    // 当前架构只支持一个角度，使用 f1 作为主要摆动角度
     return f1;
 }
 
-void CapeLayer::buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void CapeLayer::_buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
     indices.clear();
 
-    // 参考 MC 1.16.5 CapeModel
     // 斗篷是一个简单的矩形，带有摆动动画
     // 摆动使斗篷底部向后倾斜
 
@@ -230,7 +213,7 @@ void CapeLayer::buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& v
     f32 halfHeight = CAPE_HEIGHT / 2.0f;
 
     // 将摆动角度转换为弧度
-    f32 swingRad = swingAngle * static_cast<f32>(mc::math::PI_DOUBLE) / 180.0f;
+    f32 swingRad = mc::math::toRadians(swingAngle);
     f32 cosSwing = std::cos(swingRad);
     f32 sinSwing = std::sin(swingRad);
 
@@ -287,11 +270,11 @@ void CapeLayer::buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& v
     indices.push_back(6);
 }
 
-pipeline::EntityMesh* CapeLayer::getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* CapeLayer::_getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline)
 {
     // 将摆动角度离散化到桶中
     i32 bucket = static_cast<i32>(swingAngle / 10.0f * SWING_ANGLE_BUCKETS);
-    bucket = std::max(0, std::min(SWING_ANGLE_BUCKETS - 1, bucket));
+    bucket = mc::math::clamp(bucket, 0, SWING_ANGLE_BUCKETS - 1);
 
     auto it = m_capeMeshCache.find(bucket);
     if (it != m_capeMeshCache.end()) {
@@ -301,7 +284,7 @@ pipeline::EntityMesh* CapeLayer::getOrCreateCapeMesh(f32 swingAngle, pipeline::E
     // 构建新的斗篷网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildCapeMesh(swingAngle, vertices, indices);
+    _buildCapeMesh(swingAngle, vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;

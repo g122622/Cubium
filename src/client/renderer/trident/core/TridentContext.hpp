@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../api/TridentApi.hpp"
+#include "client/renderer/api/TridentApi.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -240,19 +240,19 @@ public:
 
 private:
     // 创建方法
-    [[nodiscard]] Result<void> createInstance();
-    [[nodiscard]] Result<void> setupDebugMessenger();
-    [[nodiscard]] Result<void> pickPhysicalDevice();
-    [[nodiscard]] Result<void> createLogicalDevice();
+    [[nodiscard]] Result<void> _createInstance();
+    [[nodiscard]] Result<void> _setupDebugMessenger();
+    [[nodiscard]] Result<void> _pickPhysicalDevice();
+    [[nodiscard]] Result<void> _createLogicalDevice();
 
     // 辅助方法
-    bool checkValidationLayerSupport();
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
-    std::vector<const char*> getRequiredInstanceExtensions();
-    std::vector<const char*> getRequiredDeviceExtensions();
+    bool _checkValidationLayerSupport();
+    bool _checkDeviceExtensionSupport(VkPhysicalDevice device);
+    bool _isDeviceSuitable(VkPhysicalDevice device);
+    QueueFamilyIndices _findQueueFamilies(VkPhysicalDevice device);
+    SwapChainSupportDetails _querySwapChainSupport(VkPhysicalDevice device) const;
+    std::vector<const char*> _getRequiredInstanceExtensions();
+    std::vector<const char*> _getRequiredDeviceExtensions();
 
     // Vulkan 对象
     VkInstance m_instance = VK_NULL_HANDLE;

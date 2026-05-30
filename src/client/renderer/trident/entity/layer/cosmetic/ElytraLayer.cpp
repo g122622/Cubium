@@ -22,13 +22,14 @@
  */
 
 #include "ElytraLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -40,7 +41,7 @@ constexpr f32 ELYTRA_WIDTH = 10.0f / 16.0f;  // 单边鞘翅宽度
 constexpr f32 ELYTRA_HEIGHT = 20.0f / 16.0f; // 鞘翅高度
 constexpr i32 SPREAD_ANGLE_BUCKETS = 18;     // 展开角度分桶数
 
-// MC 1.16.5 ElytraModel 默认角度
+// 鞘翅默认角度
 constexpr f32 DEFAULT_X_ANGLE = 0.2617994f;    // ~15度
 constexpr f32 DEFAULT_Z_ANGLE = -0.2617994f;   // ~-15度
 constexpr f32 GLIDING_X_ANGLE = 0.34906584f;   // ~20度
@@ -61,10 +62,10 @@ void ElytraLayer<TEntity>::renderPipeline(TEntity& entity,
     }
 
     // 计算鞘翅展开角度
-    f32 spreadAngle = calculateElytraAngle(entity, context, static_cast<f32>(context.partialTicks));
+    f32 spreadAngle = _calculateElytraAngle(entity, context, static_cast<f32>(context.partialTicks));
 
     // 获取或创建鞘翅网格
-    pipeline::EntityMesh* mesh = getOrCreateElytraMesh(spreadAngle, pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateElytraMesh(spreadAngle, pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -74,10 +75,9 @@ void ElytraLayer<TEntity>::renderPipeline(TEntity& entity,
     elytraTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 鞘翅附着在背部
-    // MC 1.16.5: matrixStack.translate(0.0D, 0.0D, 0.125D);
     elytraTransform[3] = 0.0;                       // X
     elytraTransform[7] = 1.0 - ELYTRA_HEIGHT * 0.3; // Y - 上部附着点
-    elytraTransform[11] = 0.125;                    // Z - MC 1.16.5: 0.125D
+    elytraTransform[11] = 0.125;                    // Z - 向后偏移
 
     // 获取实体的世界位置
     Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
@@ -92,8 +92,6 @@ void ElytraLayer<TEntity>::renderPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, *mesh, elytraTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-
-    // spdlog::trace("ElytraLayer: Rendered elytra with spread angle {:.1f}", spreadAngle);
 }
 
 template <typename TEntity>
@@ -120,7 +118,6 @@ void ElytraLayer<TEntity>::render(TEntity& entity,
 template <typename TEntity>
 bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const
 {
-    // 参考 MC 1.16.5 ElytraLayer.shouldRender()
     // 检查：
     // 1. 胸甲槽装备了鞘翅物品（Items.ELYTRA）
     // 2. 有鞘翅或披风纹理
@@ -132,7 +129,7 @@ bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const
             return false;
         }
 
-        // MC 1.16.5: 检查物品是否为鞘翅
+        // 检查物品是否为鞘翅
         if (chest.getItem() != ::mc::Items::ELYTRA) {
             return false;
         }
@@ -145,10 +142,9 @@ bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const
 }
 
 template <typename TEntity>
-f32 ElytraLayer<TEntity>::calculateElytraAngle(
+f32 ElytraLayer<TEntity>::_calculateElytraAngle(
     TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const
 {
-    // 参考 MC 1.16.5 ElytraModel.setRotationAngles()
     // 鞘翅角度取决于：
     // 1. isElytraFlying() - 是否在滑翔
     // 2. isCrouching() - 是否蹲伏
@@ -161,30 +157,16 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(
     bool isCrouching = false;
 
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // MC 1.16.5: 检查是否正在鞘翅飞行（getFlag(7)）
-        // 使用 Entity::isElytraFlying() 检测滑翔状态
+        // 检查是否正在鞘翅飞行
         isGliding = entity.isElytraFlying();
 
-        // 检查是否蹲伏（使用 context 中的状态）
+        // 检查是否蹲伏
         isCrouching = context.isSneaking;
 
-        // MC 1.16.5: 滑翔时基于速度向量计算角度
         if (isGliding) {
             // 获取速度向量
             auto velocity = entity.velocity();
             f64 motionY = static_cast<f64>(velocity.y);
-
-            // MC 1.16.5 ElytraModel.setRotationAngles():
-            // if (entityIn.isElytraFlying()) {
-            //     float f4 = 1.0F;
-            //     Vector3d vector3d = entityIn.getMotion();
-            //     if (vector3d.y < 0.0D) {
-            //         Vector3d vector3d1 = vector3d.normalize();
-            //         f4 = 1.0F - (float)Math.pow(-vector3d1.y, 1.5D);
-            //     }
-            //     f = f4 * 0.34906584F + (1.0F - f4) * f;  // X角度
-            //     f1 = f4 * (-(float)Math.PI / 2F) + (1.0F - f4) * f1;  // Z角度
-            // }
 
             f32 f4 = 1.0f;
             if (motionY < 0.0) {
@@ -201,14 +183,13 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(
             // 插值角度
             angleZ = f4 * GLIDING_Z_ANGLE + (1.0f - f4) * DEFAULT_Z_ANGLE;
         } else if (isCrouching) {
-            // MC 1.16.5: 蹲伏时的角度
+            // 蹲伏时的角度
             angleZ = CROUCHING_Z_ANGLE;
         }
 
         // 注意：X 轴前倾角尚未接入当前网格生成流程，后续若补齐姿态细节需要一并接入。
         // 注意：平滑角度插值需要架构调整
-        // MC 1.16.5 中 AbstractClientPlayerEntity 有 rotateElytraX/Y/Z 字段
-        // 当前项目的 ClientEntity 已有这些字段和 updateElytraAngles() 方法
+        // 当前项目的 ClientEntity 已有 rotateElytraX/Y/Z 字段和 updateElytraAngles() 方法
         // 但渲染层使用的是 Player/LivingEntity 实体，不是 ClientEntity
         // 完整实现需要：在渲染流程中关联 ClientEntity 或在 Player 中添加这些字段
     }
@@ -216,23 +197,22 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(
     // 将角度转换为展开度数（用于网格生成）
     // X 角度控制前后倾斜，Z 角度控制左右展开
     // 这里返回 Z 角度的绝对值作为展开角度
-    return std::abs(angleZ) * 180.0f / static_cast<f32>(mc::math::PI_DOUBLE);
+    return std::abs(angleZ) * mc::math::RAD_TO_DEG;
 }
 
 template <typename TEntity>
-void ElytraLayer<TEntity>::buildElytraMesh(
+void ElytraLayer<TEntity>::_buildElytraMesh(
     f32 spreadAngle, bool isLeftWing, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
     indices.clear();
 
-    // 参考 MC 1.16.5 ElytraModel
     // 鞘翅由两个翼组成，每个翼是一个梯形形状
 
     f32 halfHeight = ELYTRA_HEIGHT / 2.0f;
 
     // 将展开角度转换为弧度
-    f32 spreadRad = spreadAngle * static_cast<f32>(mc::math::PI_DOUBLE) / 180.0f;
+    f32 spreadRad = mc::math::toRadians(spreadAngle);
     f32 cosSpread = std::cos(spreadRad);
     f32 sinSpread = std::sin(spreadRad);
 
@@ -271,11 +251,11 @@ void ElytraLayer<TEntity>::buildElytraMesh(
 }
 
 template <typename TEntity>
-pipeline::EntityMesh* ElytraLayer<TEntity>::getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* ElytraLayer<TEntity>::_getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline)
 {
     // 将展开角度离散化到桶中
     i32 bucket = static_cast<i32>(spreadAngle / 5.0f * SPREAD_ANGLE_BUCKETS);
-    bucket = std::max(0, std::min(SPREAD_ANGLE_BUCKETS - 1, bucket));
+    bucket = mc::math::clamp(bucket, 0, SPREAD_ANGLE_BUCKETS - 1);
 
     auto it = m_elytraMeshCache.find(bucket);
     if (it != m_elytraMeshCache.end()) {
@@ -287,11 +267,11 @@ pipeline::EntityMesh* ElytraLayer<TEntity>::getOrCreateElytraMesh(f32 spreadAngl
     std::vector<u32> indices;
 
     // 左翼
-    buildElytraMesh(spreadAngle, true, vertices, indices);
+    _buildElytraMesh(spreadAngle, true, vertices, indices);
 
     // 右翼
     u32 leftVertexCount = static_cast<u32>(vertices.size());
-    buildElytraMesh(spreadAngle, false, vertices, indices);
+    _buildElytraMesh(spreadAngle, false, vertices, indices);
 
     // 调整右翼的索引
     for (size_t i = leftVertexCount; i < indices.size(); ++i) {

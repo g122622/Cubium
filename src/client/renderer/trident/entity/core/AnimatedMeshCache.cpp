@@ -21,8 +21,8 @@
  *
  */
 
-#include "AnimatedMeshCache.hpp"
-#include "../model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 

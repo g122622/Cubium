@@ -25,9 +25,7 @@
 
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <memory>
 
 namespace mc {
 class Entity;
@@ -38,15 +36,12 @@ namespace mc::client::renderer::entity::effect::glow {
 /**
  * @brief 发光效果管理器
  *
- * 参考 MC 1.16.5 发光轮廓效果
  * 用于渲染实体的发光轮廓（如发光药水效果、团队成员发光）。
  *
  * 发光效果来源：
  * 1. 发光药水效果 (EffectType::Glowing)
  * 2. Entity::isGlowing() 标志位
  * 3. 团队规则（通过 Entity::getTeam() 获取团队颜色）
- *
- * 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体，MC 1.16.5 中不存在。
  */
 class GlowEffect {
 public:
@@ -73,9 +68,7 @@ public:
      * @return 发光颜色 (RGBA)
      *
      * 默认颜色为白色 (1, 1, 1, 1)。
-     * 特殊实体可能有不同颜色：
-     * - 发光鱿鱼：青色
-     * - 团队颜色：团队颜色
+     * 如果实体在团队中且有团队颜色，则返回团队颜色。
      */
     [[nodiscard]] static math::Vector4f getGlowColor(Entity& entity);
 
@@ -102,7 +95,7 @@ private:
     /**
      * @brief 生成发光轮廓网格
      */
-    static void generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale);
+    static void _generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale);
 
     static bool s_initialized;
 };

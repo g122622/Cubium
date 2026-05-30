@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <memory>
@@ -47,8 +47,6 @@ namespace mc::client::renderer::entity::layer::cosmetic {
  * @brief 斗篷层渲染器
  *
  * 渲染玩家的斗篷。支持动态摆动动画。
- *
- * 参考 MC 1.16.5 CapeLayer
  */
 class CapeLayer : public core::LayerRenderer<::mc::Player> {
 public:
@@ -99,19 +97,19 @@ private:
      * @param partialTicks 部分 tick
      * @return 斗篷旋转角度（度）
      */
-    [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity,
+    [[nodiscard]] f32 _calculateCapeSwing(::mc::Player& entity,
         const mc::client::renderer::entity::core::AnimationContext& context,
         f32 partialTicks) const;
 
     /**
      * @brief 构建斗篷网格
      */
-    void buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildCapeMesh(f32 swingAngle, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建斗篷网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateCapeMesh(f32 swingAngle, pipeline::EntityPipeline& pipeline);
 
     const TextureRegion* m_customCapeRegion = nullptr;
 

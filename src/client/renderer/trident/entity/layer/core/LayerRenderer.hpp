@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/EntityModel.hpp"
-#include "../../model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
@@ -41,7 +41,6 @@ namespace mc::client::renderer::entity::layer::core {
  * @brief 层渲染器基类
  *
  * 用于在基础实体模型上添加额外渲染层（盔甲、鞍、发光效果等）。
- * 参考 MC 1.16.5 LayerRenderer
  *
  * @tparam TEntity 实体类型
  */

@@ -23,12 +23,13 @@
 
 #pragma once
 
-#include "../../../resource/ItemTextureAtlas.hpp"
-#include "../../../resource/ResourceManager.hpp"
-#include "../../../resource/TextureAtlasBuilder.hpp"
-#include "../../api/IRenderEngine.hpp"
-#include "../entity/pipeline/EntityTextureAtlas.hpp"
-#include "TridentContext.hpp"
+#include "client/renderer/api/IRenderEngine.hpp"
+#include "client/renderer/trident/cloud/CloudMode.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "client/resource/ItemTextureAtlas.hpp"
+#include "client/resource/ResourceManager.hpp"
+#include "client/resource/TextureAtlasBuilder.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <functional>
@@ -85,7 +86,6 @@ class FogManager;
 }
 
 namespace cloud {
-enum class CloudMode : u8;
 class CloudRenderer;
 } // namespace cloud
 
@@ -294,7 +294,6 @@ public:
      * @brief 设置闪电闪烁亮度
      *
      * 当闪电击中时，天空会短暂变亮。
-     * 参考 MC 1.16.5 WorldRenderer.renderSky() 中的闪电闪烁效果。
      *
      * @param brightness 闪电闪烁亮度 (0.0-1.0)，0表示无效果
      */
@@ -327,8 +326,7 @@ public:
     /**
      * @brief 更新云高度（维度相关）
      *
-     * 参考 MC 1.16.5 DimensionRenderInfo.func_239213_a_():
-     * - 主世界: 192.0 (项目定义，MC原版为128.0)
+     * - 主世界: 192.0 (项目定义)
      * - 下界: 无云
      * - 末地: 无云
      *
@@ -346,7 +344,7 @@ public:
      * @param inLava 是否在岩浆中
      * @param waterFogColor 水下雾颜色（RGB格式）
      */
-    void updateLiquidState(bool inWater, bool inLava, u32 waterFogColor = 0x050533);
+    void updateLiquidState(bool inWater, bool inLava, u32 waterFogColor);
 
     /**
      * @brief 执行一帧渲染
@@ -601,7 +599,7 @@ public:
     /**
      * @brief 初始化云渲染器
      */
-    [[nodiscard]] Result<void> initializeCloudRenderer(ResourceManager* resourceManager = nullptr);
+    [[nodiscard]] Result<void> initializeCloudRenderer(ResourceManager* resourceManager);
 
     /**
      * @brief 初始化粒子管理器
@@ -619,7 +617,7 @@ public:
      * @param resourceManager 资源管理器（允许为空；为空时使用程序生成的默认纹理）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initializeBreakProgressRenderer(ResourceManager* resourceManager = nullptr);
+    [[nodiscard]] Result<void> initializeBreakProgressRenderer(ResourceManager* resourceManager);
 
     /**
      * @brief 初始化第一人称手部渲染器
@@ -632,7 +630,7 @@ public:
      * @param resourceManager 资源管理器（允许为空；为空时回退程序化纹理）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> reloadCloudTexture(ResourceManager* resourceManager = nullptr);
+    [[nodiscard]] Result<void> reloadCloudTexture(ResourceManager* resourceManager);
 
     /**
      * @brief 更新纹理图集
@@ -696,7 +694,7 @@ private:
     // 可配置渲染参数（由 options.json 驱动）
     i32 m_renderDistanceChunks = 12;
     f64 m_landFogDensity = 1.0f;
-    cloud::CloudMode m_cloudMode = static_cast<cloud::CloudMode>(2);
+    cloud::CloudMode m_cloudMode = cloud::CloudMode::Fancy;
 
     // 维度相关渲染参数
     f64 m_cloudHeight = 192.0; ///< 云高度（默认主世界值）
@@ -766,7 +764,7 @@ private:
     mc::math::frustum::Frustum m_frustum;
 
     // 内部方法
-    [[nodiscard]] Result<void> recreateSwapchain();
+    [[nodiscard]] Result<void> _recreateSwapchain();
 };
 
 } // namespace mc::client::renderer::trident

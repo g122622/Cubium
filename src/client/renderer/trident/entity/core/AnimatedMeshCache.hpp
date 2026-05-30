@@ -43,7 +43,6 @@ namespace mc::client::renderer::entity::core {
  * 2. 如果状态变化超过阈值，重新调用 model.generateMesh() + pipeline.updateMesh()
  * 3. 如果状态未变化，返回缓存的网格
  *
- * 参考 MC 1.16.5 LivingRenderer.render() 中每帧设置模型角度并重新渲染的模式。
  * 在 Vulkan 中，我们不能每帧即时渲染，而是通过重新生成网格数据来实现动画。
  */
 class AnimatedMeshCache {
@@ -86,7 +85,7 @@ public:
     /**
      * @brief 获取缓存的实体数量
      */
-    [[nodiscard]] size_t size() const { return m_cache.size(); }
+    [[nodiscard]] Size size() const { return m_cache.size(); }
 
     /**
      * @brief 设置 UV 重映射回调
@@ -130,7 +129,7 @@ private:
     static constexpr f64 STATE_CHANGE_THRESHOLD = 0.08; ///< 动画参数变化阈值
 
     /// 缓存大小限制
-    static constexpr size_t MAX_CACHE_SIZE = 1024;
+    static constexpr Size MAX_CACHE_SIZE = 1024;
 };
 
 } // namespace mc::client::renderer::entity::core

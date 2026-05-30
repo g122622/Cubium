@@ -42,7 +42,7 @@
 #include "render/UniformManager.hpp"
 
 // API 接口
-#include "../../api/TridentApi.hpp"
+#include "client/renderer/api/TridentApi.hpp"
 
 namespace mc::client::renderer::trident {
 

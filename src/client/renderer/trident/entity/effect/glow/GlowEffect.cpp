@@ -38,7 +38,6 @@ void GlowEffect::initialize()
         return;
     }
 
-    // 参考 MC 1.16.5 发光效果系统初始化
     // 需要：
     // 1. 创建发光帧缓冲区（用于渲染发光实体）
     // 2. 创建模糊帧缓冲区（用于模糊和膨胀）
@@ -66,12 +65,6 @@ void GlowEffect::cleanup()
 
 bool GlowEffect::hasGlowEffect(Entity& entity)
 {
-    // 参考 MC 1.16.5 Entity.isGlowing() 发光效果判定
-    // 检查实体是否有以下状态：
-    // 1. 发光药水效果 (EffectType::Glowing) - LivingEntity 专用
-    // 2. Entity 的发光标志（可能由其他来源设置，如团队规则）
-    // 3. 团队发光规则检查
-
     // 1. 检查 Entity 的发光标志（适用于所有实体）
     if (entity.isGlowing()) {
         return true;
@@ -85,7 +78,6 @@ bool GlowEffect::hasGlowEffect(Entity& entity)
     }
 
     // 3. 团队发光规则检查
-    // 参考 MC 1.16.5: 实体的发光状态可以由团队规则控制
     // 如果实体在团队中，团队可以设置成员的发光效果
     // 当前实现：getTeam() 在 Entity 基类返回 nullptr，
     // ServerPlayer 子类重写该方法通过记分板获取团队
@@ -95,19 +87,14 @@ bool GlowEffect::hasGlowEffect(Entity& entity)
     //     // 检查团队是否配置了发光效果
     // }
 
-    // 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体
-    // MC 1.16.5 中不存在发光鱿鱼实体，因此不需要检查
-
     return false;
 }
 
 math::Vector4f GlowEffect::getGlowColor(Entity& entity)
 {
-    // 参考 MC 1.16.5 Entity.getTeamColor() 发光颜色
     // 默认颜色为白色 (1, 1, 1, 1)
     // 特殊情况：
     // - 团队成员：团队颜色
-    // - 发光鱿鱼（MC 1.17+）：青色 (0.3, 0.9, 0.9)
 
     // 检查实体是否在团队中，使用团队颜色
     scoreboard::Team* team = entity.getTeam();
@@ -129,17 +116,12 @@ math::Vector4f GlowEffect::getGlowColor(Entity& entity)
         }
     }
 
-    // 注意：发光鱿鱼(GlowSquid)是 MC 1.17+ 添加的实体
-    // MC 1.16.5 中不存在发光鱿鱼实体，因此不需要检查
-    // 发光鱿鱼的颜色为青色 (0.3, 0.9, 0.9, 1.0)
-
     // 默认白色
     return math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void GlowEffect::renderGlow(Entity& entity, f64 partialTicks, const math::Vector4f& color)
 {
-    // 参考 MC 1.16.5 发光轮廓渲染
     // 步骤：
     // 1. 渲染实体到发光缓冲区（使用轮廓着色器）
     // 2. 应用高斯模糊（水平和垂直）
@@ -159,7 +141,6 @@ void GlowEffect::renderGlow(Entity& entity, f64 partialTicks, const math::Vector
 
 void GlowEffect::renderAllGlowing(f64 partialTicks)
 {
-    // 参考 MC 1.16.5 发光效果渲染流程
     // 1. 从世界获取所有发光实体
     // 2. 渲染到发光缓冲区
     // 3. 应用模糊和膨胀
@@ -172,11 +153,10 @@ void GlowEffect::renderAllGlowing(f64 partialTicks)
     (void)partialTicks;
 }
 
-void GlowEffect::generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale)
+void GlowEffect::_generateGlowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 scale)
 {
     // 发光轮廓网格生成
     // 轮廓网格比原模型稍大（通过顶点法线外推实现膨胀效果）
-    // 参考 MC 1.16.5: 使用顶点着色器沿法线方向外推
 
     (void)vertices;
     (void)indices;

@@ -22,11 +22,10 @@
  */
 
 #include "AnimatedSprite.hpp"
-#include "../TridentContext.hpp"
 #include "TridentTexture.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <algorithm>
 
 namespace mc::client::renderer::trident {
 
@@ -61,7 +60,6 @@ void AnimatedSprite::tick()
 
     // 检查是否需要切换帧
     if (m_tickCounter >= m_currentFrameTime) {
-        // MC 1.16.5: 保存旧帧索引，用于检查是否需要上传
         const i32 oldFrameIndex = currentFrameIndex();
 
         m_tickCounter = 0;
@@ -76,13 +74,13 @@ void AnimatedSprite::tick()
             m_currentFrameTime = m_metadata.getFrameTime(m_frameCounter);
         }
 
-        // MC 1.16.5: 只有帧索引变化时才标记需要上传
+        // 只有帧索引变化时才标记需要上传
         const i32 newFrameIndex = currentFrameIndex();
         if (oldFrameIndex != newFrameIndex) {
             m_needsUpload = true;
         }
     } else if (m_metadata.interpolate) {
-        // MC 1.16.5: 插值期间需要持续上传
+        // 插值期间需要持续上传
         m_needsUpload = true;
     }
 }
@@ -103,7 +101,7 @@ mc::Result<void> AnimatedSprite::uploadCurrentFrame(TridentContext* context, Tri
     if (m_metadata.interpolate && isAnimated()) {
         // 生成插值帧
         const f32 progress = frameProgress();
-        frameToUpload = generateInterpolatedFrame(progress);
+        frameToUpload = _generateInterpolatedFrame(progress);
     } else {
         // 使用当前帧
         const i32 frameIdx = currentFrameIndex();
@@ -113,7 +111,7 @@ mc::Result<void> AnimatedSprite::uploadCurrentFrame(TridentContext* context, Tri
         frameToUpload = m_frames[frameIdx];
     }
 
-    auto result = uploadFrame(context, atlas, frameToUpload);
+    auto result = _uploadFrame(context, atlas, frameToUpload);
     if (result.success()) {
         m_needsUpload = false;
     }
@@ -145,7 +143,7 @@ i32 AnimatedSprite::nextFrameIndex() const noexcept
     return m_metadata.frames[nextPos].index;
 }
 
-AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress) const
+AnimatedSprite::FrameData AnimatedSprite::_generateInterpolatedFrame(f32 progress) const
 {
     if (m_frames.empty() || m_frameWidth == 0 || m_frameHeight == 0) {
         return {};
@@ -198,7 +196,7 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     return result;
 }
 
-mc::Result<void> AnimatedSprite::uploadFrame(
+mc::Result<void> AnimatedSprite::_uploadFrame(
     TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame)
 {
     // context 参数保留用于将来可能的扩展（如需要直接访问 Vulkan 命令缓冲区）
@@ -228,8 +226,6 @@ mc::Result<void> AnimatedSprite::uploadFrame(
     }
 
     // 使用 uploadRegion 上传帧数据到图集的指定位置
-    // 参考 MC 1.16.5 TextureAtlasSprite.uploadFrames()
-    // 使用 glTexSubImage2D 更新纹理的子区域
     // rowLength = 0 表示紧密排列（每行像素 = width）
     return atlas.uploadRegion(
         frame.pixels.data(), frame.pixels.size(), m_atlasX, m_atlasY, m_frameWidth, m_frameHeight, 0);

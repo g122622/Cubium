@@ -23,11 +23,9 @@
 
 #pragma once
 
-#include "client/renderer/api/texture/TextureRegion.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
-#include <memory>
 #include <vector>
 
 namespace mc::client::renderer::trident {
@@ -39,7 +37,6 @@ class TridentTextureAtlas;
  * @brief 动画精灵
  *
  * 管理动画纹理的帧数据和播放状态。
- * 参考 MC 1.16.5 TextureAtlasSprite
  *
  * 动画精灵存储多帧纹理数据，并根据mcmeta配置进行帧切换。
  * 每个游戏tick调用tick()方法更新动画状态。
@@ -186,7 +183,7 @@ private:
      * @param progress 进度（0.0-1.0）
      * @return 插值后的帧数据
      */
-    [[nodiscard]] FrameData generateInterpolatedFrame(f32 progress) const;
+    [[nodiscard]] FrameData _generateInterpolatedFrame(f32 progress) const;
 
     /**
      * @brief 上传帧数据到图集
@@ -195,7 +192,7 @@ private:
      * @param frame 帧数据
      * @return 成功或错误
      */
-    [[nodiscard]] mc::Result<void> uploadFrame(
+    [[nodiscard]] mc::Result<void> _uploadFrame(
         TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame);
 
     // ========== 成员变量 ==========

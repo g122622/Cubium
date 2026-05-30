@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -54,8 +54,6 @@ namespace mc::client::renderer::entity::layer::effect {
  * @brief 附魔光效层渲染器
  *
  * 渲染附魔物品的紫色光效。使用滚动的光效纹理。
- *
- * 参考 MC 1.16.5 EnergyLayer
  *
  * @tparam TEntity 实体类型
  */
@@ -155,11 +153,9 @@ void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
     Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
 
     // 使用紫色发光颜色
-    // 参考 MC 1.16.5: 附魔光效使用紫色/蓝色光效 (0.5F, 0.0F, 1.0F, 0.5F)
     Vector4f overlayColor(0.5f, 0.0f, 1.0f, 0.5f);
 
     // 切换到叠加混合模式（用于附魔光效）
-    // 参考 MC 1.16.5 EnergyLayer: 使用 RenderType.getEnergySwirl()
     // 混合公式: src * srcAlpha + dst * 1 (加法混合)
     pipeline.bind(cmd, pipeline::BlendMode::Additive);
 
@@ -167,10 +163,6 @@ void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
 
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
-
-    // spdlog::trace("EnergyGlintLayer: Rendered glint effect on entity");
-
-    (void)cmd;
 }
 
 template <typename TEntity>
@@ -198,7 +190,6 @@ template <typename TEntity>
 bool EnergyGlintLayer<TEntity>::shouldRender(const TEntity& entity) const
 {
     // 检查实体是否有附魔物品
-    // 参考 MC 1.16.5: ItemStack.hasEffect() -> ItemStack.isEnchanted()
     // 检查所有装备槽位是否有附魔物品
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         using ::mc::EquipmentSlot;
@@ -247,7 +238,6 @@ template <typename TEntity>
 f32 EnergyGlintLayer<TEntity>::calculateGlintOffset(f32 ageInTicks) const
 {
     // 光效滚动速度
-    // 参考 MC 1.16.5 的光效动画
     // 使用 std::fmod 计算偏移，并确保结果在 [0, 1) 范围内
     f32 offset = std::fmod(ageInTicks * 0.01f, 1.0f);
     // 处理负数情况（虽然 ageInTicks 不应该为负，但为了健壮性）

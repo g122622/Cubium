@@ -58,8 +58,6 @@ struct AnimationContext;
  * @brief 实体渲染器基类
  *
  * 所有实体渲染器的基类，定义渲染接口。
- *
- * 参考 MC 1.16.5 EntityRenderer
  */
 class EntityRenderer {
 public:
@@ -201,11 +199,11 @@ public:
     void setShadowAlpha(f64 alpha) { m_shadowAlpha = alpha; }
 
 protected:
-    f64 m_shadowSize = 0.5f;  // 阴影半径
-    f64 m_shadowAlpha = 0.8f; // 阴影透明度
+    f64 m_shadowSize = 0.5;  // 阴影半径
+    f64 m_shadowAlpha = 0.8; // 阴影透明度
 
     /**
-     * @brief 讨论是否应该渲染阴影
+     * @brief 判断是否应该渲染阴影
      */
     [[nodiscard]] bool shouldRenderShadow(Entity& entity) const;
 

@@ -22,8 +22,8 @@
  */
 
 #include "EntityRenderer.hpp"
-#include "../util/NameTagRenderer.hpp"
-#include "../util/ShadowRenderer.hpp"
+#include "client/renderer/trident/entity/util/NameTagRenderer.hpp"
+#include "client/renderer/trident/entity/util/ShadowRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/ray/Raycast.hpp"
@@ -91,13 +91,12 @@ void EntityRenderer::renderShadowClient(
 bool EntityRenderer::shouldRenderShadow(Entity& entity) const
 {
     // 检查实体是否可见（非隐身）
-    // 参考 MC 1.16.5 EntityRenderer.shouldRenderShadow()
     if (entity.hasFlag(EntityFlags::Invisible)) {
         return false;
     }
 
     // 只有阴影大小大于0时才渲染
-    if (m_shadowSize <= 0.0f || m_shadowAlpha <= 0.0f) {
+    if (m_shadowSize <= 0.0 || m_shadowAlpha <= 0.0) {
         return false;
     }
 
@@ -106,21 +105,24 @@ bool EntityRenderer::shouldRenderShadow(Entity& entity) const
 
 f64 EntityRenderer::getShadowScale(Entity& entity, f64 partialTicks) const
 {
+    // 阴影在实体距离地面超过此高度时完全消失
+    static constexpr f64 SHADOW_MAX_HEIGHT = 16.0;
+    // 射线检测距离，略大于 SHADOW_MAX_HEIGHT 以确保检测到地面
+    static constexpr f32 SHADOW_RAYCAST_DISTANCE = 17.0f;
+
     // 基础阴影大小
     f64 baseScale = static_cast<f64>(m_shadowSize);
 
     // 根据实体高度衰减阴影
-    // 参考 MC 1.16.5: 阴影大小受实体到地面距离影响
     f64 entityHeight = static_cast<f64>(entity.height());
 
     // 如果实体太高，阴影消失
-    if (entityHeight > 16.0) {
+    if (entityHeight > SHADOW_MAX_HEIGHT) {
         return 0.0;
     }
 
     // 计算距离地面的高度
     // 使用射线检测从实体位置向下发射射线，获取实际地面高度
-    // 参考 MC 1.16.5 EntityRenderer.getShadowScale()
     f64 distanceToGround = 0.0;
 
     IWorld* world = entity.world();
@@ -130,8 +132,7 @@ f64 EntityRenderer::getShadowScale(Entity& entity, f64 partialTicks) const
         Vector3f direction(0.0f, -1.0f, 0.0f); // 向下
 
         Ray ray(origin, direction);
-        // 最大检测距离：实体高度超过16格时阴影消失，所以检测距离略大于16即可
-        RaycastContext context(ray, 17.0f);
+        RaycastContext context(ray, SHADOW_RAYCAST_DISTANCE);
 
         BlockRaycastResult result = raycastBlocks(context, *world);
         if (result.isHit()) {
@@ -139,12 +140,12 @@ f64 EntityRenderer::getShadowScale(Entity& entity, f64 partialTicks) const
             distanceToGround = static_cast<f64>(result.distance());
         } else {
             // 未击中地面，假设距离超过阈值
-            distanceToGround = 17.0;
+            distanceToGround = static_cast<f64>(SHADOW_RAYCAST_DISTANCE);
         }
     }
 
     // 阴影透明度随高度衰减
-    f64 heightFactor = 1.0 - (distanceToGround / 16.0);
+    f64 heightFactor = 1.0 - (distanceToGround / SHADOW_MAX_HEIGHT);
     if (heightFactor < 0.0) {
         heightFactor = 0.0;
     }

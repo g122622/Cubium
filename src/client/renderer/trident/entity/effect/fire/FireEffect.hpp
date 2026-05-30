@@ -48,7 +48,6 @@ namespace client::renderer::entity::effect::fire {
 /**
  * @brief 着火效果渲染器
  *
- * 参考 MC 1.16.5 EntityRenderer.renderFire()
  * 用于渲染实体身上的火焰效果。
  *
  * 火焰纹理使用方块纹理 fire_0.png 和 fire_1.png（动画）。
@@ -122,7 +121,7 @@ public:
     [[nodiscard]] static VkSampler fireSampler() { return s_fireSampler; }
 
     /**
-     * @brief 获取固定光照值（MC 1.16.5 使用 0xF00000 = 15728640）
+     * @brief 获取固定光照值（15728640 = 0xF00000）
      */
     [[nodiscard]] static constexpr i32 getFullLight() { return FULL_LIGHT; }
 
@@ -133,7 +132,6 @@ private:
     /**
      * @brief 渲染多层火焰
      *
-     * 参考 MC 1.16.5 EntityRendererManager.renderFire()
      * 使用循环绘制多层火焰，每层递减尺寸
      *
      * @param cmd 命令缓冲区
@@ -142,7 +140,7 @@ private:
      * @param pipeline 渲染管线
      * @param cameraYaw 相机偏航角（用于 billboard 朝向）
      */
-    static void renderFireLayers(VkCommandBuffer cmd,
+    static void _renderFireLayers(VkCommandBuffer cmd,
         ::mc::client::ClientEntity& entity,
         f64 partialTicks,
         pipeline::EntityPipeline& pipeline,
@@ -153,7 +151,7 @@ private:
      * @param resourcePacks 资源包列表
      * @return 成功或错误
      */
-    static bool loadFireTexture(const std::vector<IResourcePack*>& resourcePacks);
+    static bool _loadFireTexture(const std::vector<IResourcePack*>& resourcePacks);
 
     /**
      * @brief 创建火焰纹理资源
@@ -162,7 +160,7 @@ private:
      * @param height 高度
      * @return 成功或错误
      */
-    static bool createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height);
+    static bool _createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height);
 
     /**
      * @brief 生成火焰四边形网格
@@ -179,7 +177,7 @@ private:
      * @param indices 索引输出缓冲区
      * @param transformIndex 变换索引（用于 billboard）
      */
-    static void generateFireQuad(f64 x,
+    static void _generateFireQuad(f64 x,
         f64 y,
         f64 z,
         f64 width,
@@ -195,12 +193,12 @@ private:
     /**
      * @brief 计算火焰偏移（用于动画）
      */
-    [[nodiscard]] static f64 computeFireOffset(f64 time, f64 seed);
+    [[nodiscard]] static f64 _computeFireOffset(f64 time, f64 seed);
 
     /**
      * @brief 计算 billboard 变换矩阵
      */
-    static void computeBillboardMatrices(const Vector3f& position, std::array<std::array<f64, 16>, 2>& outMatrices);
+    static void _computeBillboardMatrices(const Vector3f& position, std::array<std::array<f64, 16>, 2>& outMatrices);
 
     static bool s_initialized;
     static VkDevice s_device;
@@ -216,11 +214,10 @@ private:
     static u32 s_fireTextureWidth;
     static u32 s_fireTextureHeight;
 
-    // 火焰动画帧数（MC 1.16.5 有 2 帧）
+    // 火焰动画帧数
     static constexpr u32 FIRE_FRAME_COUNT = 2;
 
-    // 固定全亮光照值（MC 1.16.5 EntityRendererManager.renderFire）
-    // lightmap(240) = 0xF00000 = 15728640
+    // 固定全亮光照值 (0xF00000 = 15728640)
     static constexpr i32 FULL_LIGHT = 15728640;
 };
 

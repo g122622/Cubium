@@ -22,8 +22,8 @@
  */
 
 #include "TridentTexture.hpp"
-#include "../TridentContext.hpp"
-#include "../buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -362,9 +362,7 @@ Result<void> TridentTexture::uploadRegion(
     }
 
     // 设置缓冲区到图像的复制区域
-    // 参考 MC 1.16.5 NativeImage.uploadTextureSub()
-    // 使用 GL_UNPACK_ROW_LENGTH 和 GL_UNPACK_SKIP_PIXELS/SKIP_ROWS 来指定源数据布局
-    // 在 Vulkan 中，bufferRowLength 和 bufferImageHeight 实现相同功能
+    // bufferRowLength 和 bufferImageHeight 实现源数据布局指定功能
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
     region.bufferRowLength = rowLength; // 0 表示使用 width（紧密排列）
@@ -664,7 +662,7 @@ Result<void> TridentTexture::createSampler(VkFilter magFilter, VkFilter minFilte
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = static_cast<f64>(m_mipLevels);
+    samplerInfo.maxLod = static_cast<f32>(m_mipLevels);
 
     VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &m_sampler);
     if (result != VK_SUCCESS) {
@@ -788,8 +786,8 @@ TridentTextureAtlas::TridentTextureAtlas(TridentTextureAtlas&& other) noexcept
     other.m_height = 0;
     other.m_tileSize = 0;
     other.m_tilesPerRow = 0;
-    other.m_tileU = 0.0f;
-    other.m_tileV = 0.0f;
+    other.m_tileU = 0.0;
+    other.m_tileV = 0.0;
 }
 
 TridentTextureAtlas& TridentTextureAtlas::operator=(TridentTextureAtlas&& other) noexcept
@@ -810,8 +808,8 @@ TridentTextureAtlas& TridentTextureAtlas::operator=(TridentTextureAtlas&& other)
         other.m_height = 0;
         other.m_tileSize = 0;
         other.m_tilesPerRow = 0;
-        other.m_tileU = 0.0f;
-        other.m_tileV = 0.0f;
+        other.m_tileU = 0.0;
+        other.m_tileV = 0.0;
     }
     return *this;
 }
@@ -827,7 +825,7 @@ Result<void> TridentTextureAtlas::create(TridentContext* context, u32 width, u32
     m_height = height;
     m_tileSize = tileSize;
     m_tilesPerRow = width / tileSize;
-    m_tileU = 1.0f / static_cast<f64>(m_tilesPerRow);
+    m_tileU = 1.0 / static_cast<f64>(m_tilesPerRow);
     m_tileV = static_cast<f64>(tileSize) / static_cast<f64>(height);
 
     // 创建纹理
@@ -885,8 +883,8 @@ void TridentTextureAtlas::destroy()
     m_height = 0;
     m_tileSize = 0;
     m_tilesPerRow = 0;
-    m_tileU = 0.0f;
-    m_tileV = 0.0f;
+    m_tileU = 0.0;
+    m_tileV = 0.0;
 }
 
 api::TextureRegion TridentTextureAtlas::getRegion(u32 tileX, u32 tileY) const

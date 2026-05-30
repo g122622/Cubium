@@ -31,7 +31,6 @@ namespace mc::client::renderer::entity::core {
  * @brief 动画上下文
  *
  * 存储实体的动画状态，用于传递给渲染器和网格更新器。
- * 参考 MC 1.16.5 LivingRenderer.render() 中的动画参数计算
  */
 struct AnimationContext {
     // ========== 部分 Tick ==========
@@ -48,52 +47,42 @@ struct AnimationContext {
     /**
      * @brief 步态动画周期
      *
-     * 实体移动时的腿部摆动周期。
-     * 在 MC 1.16.5 中计算为：
-     * limbSwing = entity.limbSwing - entity.limbSwingAmount * (1 - partialTicks)
+     * 实体移动时的腿部摆动周期
      */
     f64 limbSwing = 0.0;
 
     /**
      * @brief 步态动画强度
      *
-     * 实体移动速度的表示，范围 [0, 1]。
-     * 在 MC 1.16.5 中计算为：
-     * limbSwingAmount = lerp(prevLimbSwingAmount, limbSwingAmount, partialTicks)
+     * 实体移动速度的表示，范围 [0, 1]
      */
     f64 limbSwingAmount = 0.0;
 
     /**
      * @brief 年龄（Tick）
      *
-     * 实体存活时间，用于空闲动画（如呼吸、摆动）。
-     * 在 MC 1.16.5 中计算为：ticksExisted + partialTicks
+     * 实体存活时间，用于空闲动画（如呼吸、摆动）
      */
     f64 ageInTicks = 0.0;
 
     /**
      * @brief 头部偏航角（相对于身体）
      *
-     * 头部相对于身体的旋转角度，范围 [-180, 180] 度。
-     * 在 MC 1.16.5 中计算为：
-     * netHeadYaw = interpolateAngle(prevRotationYawHead, rotationYawHead, partialTicks) - bodyYaw
+     * 范围 [-180, 180] 度
      */
     f64 netHeadYaw = 0.0;
 
     /**
      * @brief 头部俯仰角
      *
-     * 头部上下旋转角度，范围 [-90, 90] 度。
-     * 在 MC 1.16.5 中计算为：
-     * headPitch = lerp(prevRotationPitch, rotationPitch, partialTicks)
+     * 范围 [-90, 90] 度
      */
     f64 headPitch = 0.0;
 
     /**
      * @brief 缩放因子
      *
-     * 实体模型的缩放比例，通常为 1.0/16.0。
-     * 幼体实体使用更小的缩放（0.5）。
+     * 实体模型的缩放比例，幼体实体使用更小的缩放
      */
     f64 scale = 1.0 / 16.0;
 
@@ -146,7 +135,6 @@ struct AnimationContext {
     /**
      * @brief 北极熊站立动画进度
      *
-     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
      * 范围 [0, 1]，0 表示四足站立，1 表示后腿站立
      */
     f32 standingProgress = 0.0f;
@@ -176,10 +164,10 @@ struct AnimationContext {
      * @brief 检查动画状态是否有显著变化
      *
      * @param other 要比较的上下文
-     * @param threshold 角度变化阈值（默认 0.01 弧度）
+     * @param threshold 角度变化阈值
      * @return 是否有显著变化
      */
-    [[nodiscard]] bool hasSignificantChange(const AnimationContext& other, f64 threshold = 0.01) const;
+    [[nodiscard]] bool hasSignificantChange(const AnimationContext& other, f64 threshold) const;
 };
 
 } // namespace mc::client::renderer::entity::core

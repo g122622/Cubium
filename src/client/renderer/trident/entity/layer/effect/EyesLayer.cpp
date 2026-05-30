@@ -22,12 +22,12 @@
  */
 
 #include "EyesLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../model/monster/EndermanModel.hpp"
-#include "../../model/monster/SpiderModel.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -55,7 +55,6 @@ void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     Vector3f color = getEyesColor(entity);
 
     // 获取头部部件变换
-    // 参考 MC 1.16.5 AbstractEyesLayer: this.getEntityModel().getModelHead().translateRotate(matrixStack)
     std::shared_ptr<model::ModelRenderer> headPart = parentModel->getModelHead();
     if (!headPart) {
         return;
@@ -88,15 +87,12 @@ void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     Vector4f overlayColor(color.x, color.y, color.z, 1.0f);
 
     // 切换到叠加混合模式（用于眼睛发光效果）
-    // 参考 MC 1.16.5 EyesLayer: GlintResourceManager.RenderTypes.entityGlintDirect()
     pipeline.bind(cmd, pipeline::BlendMode::Additive);
 
     pipeline.drawMesh(cmd, result.value(), headTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
-
-    // spdlog::trace("EyesLayer: Rendered eyes for entity");
 
     (void)texture;
     (void)cmd;
@@ -138,7 +134,6 @@ void EyesLayer<TEntity, TModel>::buildEyesMesh(
     const std::array<f64, 16>& headTransform, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 眼睛是一个简单的四边形，位于头部前方
-    // 参考 MC 1.16.5 的眼睛模型
     // 眼睛位置相对于头部中心
 
     constexpr f32 EYE_WIDTH = 0.25f;

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -50,8 +50,6 @@ namespace mc::client::renderer::entity::layer::effect {
  *
  * 渲染实体的发光眼睛（如末影人、蜘蛛、幻翼等）。
  * 使用叠加混合模式实现发光效果。
- *
- * 参考 MC 1.16.5 AbstractEyesLayer
  *
  * 关键点:
  * 1. 使用固定光照值 15728640 (0xF00000) = 全亮
@@ -126,12 +124,11 @@ protected:
 
     /**
      * @brief 获取发光颜色
-     * 参考 MC 1.16.5 AbstractEyesLayer: 颜色为 (1.0F, 1.0F, 1.0F, 1.0F)
+     * 眼睛使用纯白色，通过叠加混合实现发光效果
      */
     [[nodiscard]] virtual Vector3f getEyesColor(const TEntity& entity) const
     {
         (void)entity;
-        // MC 1.16.5: 眼睛使用纯白色，通过叠加混合实现发光效果
         return Vector3f(1.0f, 1.0f, 1.0f);
     }
 
@@ -144,7 +141,7 @@ protected:
     void buildEyesMesh(
         const std::array<f64, 16>& headTransform, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
-    // MC 1.16.5 固定光照值: 15728640 = 0xF00000 = 全亮
+    // 固定光照值: 15728640 = 0xF00000 = 全亮
     // 用于眼睛层始终显示为发光状态
     static constexpr i32 FULL_LIGHT = 15728640;
 

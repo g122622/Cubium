@@ -98,7 +98,7 @@ Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapCha
 
     {
         MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::initialize::CreateSwapchain");
-        auto result = createSwapchain();
+        auto result = _createSwapchain();
         if (result.failed()) {
             return result.error();
         }
@@ -118,8 +118,8 @@ void TridentSwapchain::destroy()
 {
     if (!m_initialized) return;
 
-    destroyImageViews();
-    destroySwapchain();
+    _destroyImageViews();
+    _destroySwapchain();
 
     m_context = nullptr;
     m_initialized = false;
@@ -136,10 +136,10 @@ Result<void> TridentSwapchain::recreate(u32 width, u32 height)
     m_config.height = height;
 
     m_context->waitIdle();
-    destroyImageViews();
-    destroySwapchain();
+    _destroyImageViews();
+    _destroySwapchain();
 
-    auto result = createSwapchain();
+    auto result = _createSwapchain();
     if (result.failed()) {
         return result.error();
     }
@@ -192,15 +192,15 @@ Result<void> TridentSwapchain::present(u32 imageIndex, VkSemaphore waitSemaphore
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> TridentSwapchain::createSwapchain()
+Result<void> TridentSwapchain::_createSwapchain()
 {
     MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain");
 
     SwapChainSupportDetails swapChainSupport = m_context->querySwapChainSupport();
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = choosePresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseExtent(swapChainSupport.capabilities);
+    VkSurfaceFormatKHR surfaceFormat = _chooseSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = _choosePresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = _chooseExtent(swapChainSupport.capabilities);
 
     // 图像数量
     u32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -264,9 +264,9 @@ Result<void> TridentSwapchain::createSwapchain()
     // 创建图像视图
     {
         MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain::CreateImageViews");
-        auto viewResult = createImageViews();
+        auto viewResult = _createImageViews();
         if (viewResult.failed()) {
-            destroySwapchain();
+            _destroySwapchain();
             return viewResult.error();
         }
     }
@@ -274,7 +274,7 @@ Result<void> TridentSwapchain::createSwapchain()
     return {};
 }
 
-Result<void> TridentSwapchain::createImageViews()
+Result<void> TridentSwapchain::_createImageViews()
 {
     m_imageViews.resize(m_images.size());
 
@@ -308,7 +308,7 @@ Result<void> TridentSwapchain::createImageViews()
     return {};
 }
 
-void TridentSwapchain::destroySwapchain()
+void TridentSwapchain::_destroySwapchain()
 {
     if (m_swapchain != VK_NULL_HANDLE && m_context) {
         vkDestroySwapchainKHR(m_context->device(), m_swapchain, nullptr);
@@ -317,7 +317,7 @@ void TridentSwapchain::destroySwapchain()
     m_images.clear();
 }
 
-void TridentSwapchain::destroyImageViews()
+void TridentSwapchain::_destroyImageViews()
 {
     if (!m_context) return;
 
@@ -333,7 +333,7 @@ void TridentSwapchain::destroyImageViews()
 // 私有方法 - 辅助
 // ============================================================================
 
-VkSurfaceFormatKHR TridentSwapchain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR TridentSwapchain::_chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
     // 首选格式
     for (const auto& format : availableFormats) {
@@ -353,7 +353,7 @@ VkSurfaceFormatKHR TridentSwapchain::chooseSurfaceFormat(const std::vector<VkSur
     return availableFormats[0];
 }
 
-VkPresentModeKHR TridentSwapchain::choosePresentMode(const std::vector<VkPresentModeKHR>& availableModes)
+VkPresentModeKHR TridentSwapchain::_choosePresentMode(const std::vector<VkPresentModeKHR>& availableModes)
 {
     // 首选模式
     VkPresentModeKHR preferredMode = m_config.vsync ? VK_PRESENT_MODE_FIFO_KHR : m_config.preferredPresentMode;
@@ -383,7 +383,7 @@ VkPresentModeKHR TridentSwapchain::choosePresentMode(const std::vector<VkPresent
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D TridentSwapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+VkExtent2D TridentSwapchain::_chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;

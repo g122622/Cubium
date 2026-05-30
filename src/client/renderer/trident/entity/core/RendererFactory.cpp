@@ -34,17 +34,21 @@ RendererFactory& RendererFactory::instance()
     return factory;
 }
 
+std::string RendererFactory::_normalizeEntityTypeId(const std::string& entityTypeId)
+{
+    if (entityTypeId.find(':') == std::string::npos) {
+        return "minecraft:" + entityTypeId;
+    }
+    return entityTypeId;
+}
+
 void RendererFactory::registerRenderer(const std::string& entityTypeId, RendererCreator creator)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 规范化实体类型ID（确保有命名空间前缀）
-    std::string normalizedId = entityTypeId;
-    if (normalizedId.find(':') == std::string::npos) {
-        normalizedId = "minecraft:" + normalizedId;
-    }
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
-    if (m_creators.find(normalizedId) != m_creators.end()) {
+    if (m_creators.contains(normalizedId)) {
         spdlog::warn("RendererFactory: Renderer already registered for '{}', overwriting", normalizedId);
     }
 
@@ -55,11 +59,7 @@ std::unique_ptr<EntityRenderer> RendererFactory::createRenderer(const std::strin
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 规范化实体类型ID
-    std::string normalizedId = entityTypeId;
-    if (normalizedId.find(':') == std::string::npos) {
-        normalizedId = "minecraft:" + normalizedId;
-    }
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
     auto it = m_creators.find(normalizedId);
     if (it == m_creators.end()) {
@@ -73,12 +73,9 @@ bool RendererFactory::hasRenderer(const std::string& entityTypeId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string normalizedId = entityTypeId;
-    if (normalizedId.find(':') == std::string::npos) {
-        normalizedId = "minecraft:" + normalizedId;
-    }
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
-    return m_creators.find(normalizedId) != m_creators.end();
+    return m_creators.contains(normalizedId);
 }
 
 size_t RendererFactory::size() const

@@ -24,7 +24,7 @@ cmd //c scripts\configure.bat
 scripts\configure.bat
 ```
 
-configure + build 一步完成：
+如果上述方法不行，可以试试 configure + build 一步完成：
 ```bash
 ./scripts/configure.sh build
 # 或

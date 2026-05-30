@@ -35,7 +35,6 @@ namespace client::renderer::entity::core {
  * @brief 实体渲染器接口
  *
  * 定义实体渲染器的基本契约，将渲染器与模型类型解耦。
- * 参考 MC 1.16.5 IEntityRenderer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型

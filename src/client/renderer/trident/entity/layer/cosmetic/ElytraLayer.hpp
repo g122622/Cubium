@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <memory>
@@ -47,8 +47,6 @@ namespace mc::client::renderer::entity::layer::cosmetic {
  * @brief 鞘翅层渲染器
  *
  * 渲染玩家装备的鞘翅。支持滑翔时的展开动画。
- *
- * 参考 MC 1.16.5 ElytraLayer
  *
  * @tparam TEntity 实体类型
  */
@@ -109,19 +107,19 @@ private:
     /**
      * @brief 计算鞘翅展开角度
      */
-    [[nodiscard]] f32 calculateElytraAngle(
+    [[nodiscard]] f32 _calculateElytraAngle(
         TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
 
     /**
      * @brief 构建鞘翅网格
      */
-    void buildElytraMesh(
+    void _buildElytraMesh(
         f32 spreadAngle, bool isLeftWing, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建鞘翅网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateElytraMesh(f32 spreadAngle, pipeline::EntityPipeline& pipeline);
 
     const TextureRegion* m_customElytraRegion = nullptr;
     const TextureRegion* m_capeRegion = nullptr;

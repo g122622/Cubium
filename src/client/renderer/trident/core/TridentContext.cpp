@@ -43,7 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
     switch (messageSeverity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            spdlog::debug("[Vulkan] {}", pCallbackData->pMessage);
+            // 详细和信息级别的验证层消息过于冗长，不输出
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             spdlog::warn("[Vulkan] {}", pCallbackData->pMessage);
@@ -57,10 +57,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
     }
     return VK_FALSE;
 }
-
-// ============================================================================
-// 构造/析构
-// ============================================================================
 
 // ============================================================================
 // 构造/析构
@@ -186,10 +182,10 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config)
     m_config = config;
 
     // 检查验证层支持
-    m_validationEnabled = config.enableValidation && checkValidationLayerSupport();
+    m_validationEnabled = config.enableValidation && _checkValidationLayerSupport();
 
     // 获取所需扩展
-    auto extensions = getRequiredInstanceExtensions();
+    auto extensions = _getRequiredInstanceExtensions();
 
     // 应用信息
     VkApplicationInfo appInfo{};
@@ -240,7 +236,7 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config)
 
     // 设置调试消息处理器
     if (m_validationEnabled) {
-        auto messengerResult = setupDebugMessenger();
+        auto messengerResult = _setupDebugMessenger();
         if (messengerResult.failed()) {
             spdlog::warn("Failed to set up debug messenger: {}", messengerResult.error().message());
         }
@@ -267,7 +263,7 @@ Result<void> TridentContext::createDevice()
     // 选择物理设备
     {
         MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::PickPhysicalDevice");
-        auto physicalResult = pickPhysicalDevice();
+        auto physicalResult = _pickPhysicalDevice();
         if (physicalResult.failed()) {
             return physicalResult.error();
         }
@@ -276,7 +272,7 @@ Result<void> TridentContext::createDevice()
     // 创建逻辑设备
     {
         MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::CreateLogicalDevice");
-        auto deviceResult = createLogicalDevice();
+        auto deviceResult = _createLogicalDevice();
         if (deviceResult.failed()) {
             return deviceResult.error();
         }
@@ -366,7 +362,7 @@ void TridentContext::destroy()
 
 SwapChainSupportDetails TridentContext::querySwapChainSupport() const
 {
-    return querySwapChainSupport(m_physicalDevice);
+    return _querySwapChainSupport(m_physicalDevice);
 }
 
 Result<u32> TridentContext::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties) const
@@ -481,13 +477,13 @@ void TridentContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
 // 私有方法 - 创建
 // ============================================================================
 
-Result<void> TridentContext::createInstance()
+Result<void> TridentContext::_createInstance()
 {
     // 由 createInstanceOnly 处理
     return createInstanceOnly(m_config);
 }
 
-Result<void> TridentContext::setupDebugMessenger()
+Result<void> TridentContext::_setupDebugMessenger()
 {
     if (!m_validationEnabled) return {};
 
@@ -513,7 +509,7 @@ Result<void> TridentContext::setupDebugMessenger()
     return {};
 }
 
-Result<void> TridentContext::pickPhysicalDevice()
+Result<void> TridentContext::_pickPhysicalDevice()
 {
     u32 deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
@@ -526,12 +522,12 @@ Result<void> TridentContext::pickPhysicalDevice()
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
-        if (isDeviceSuitable(device)) {
+        if (_isDeviceSuitable(device)) {
             m_physicalDevice = device;
             vkGetPhysicalDeviceProperties(m_physicalDevice, &m_deviceProperties);
             vkGetPhysicalDeviceFeatures(m_physicalDevice, &m_deviceFeatures);
             vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_memoryProperties);
-            m_queueFamilies = findQueueFamilies(device);
+            m_queueFamilies = _findQueueFamilies(device);
             break;
         }
     }
@@ -543,9 +539,9 @@ Result<void> TridentContext::pickPhysicalDevice()
     return {};
 }
 
-Result<void> TridentContext::createLogicalDevice()
+Result<void> TridentContext::_createLogicalDevice()
 {
-    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
+    QueueFamilyIndices indices = _findQueueFamilies(m_physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<u32> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -561,7 +557,7 @@ Result<void> TridentContext::createLogicalDevice()
     }
 
     // 获取设备扩展
-    auto extensions = getRequiredDeviceExtensions();
+    auto extensions = _getRequiredDeviceExtensions();
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
@@ -591,7 +587,7 @@ Result<void> TridentContext::createLogicalDevice()
 // 私有方法 - 辅助
 // ============================================================================
 
-bool TridentContext::checkValidationLayerSupport()
+bool TridentContext::_checkValidationLayerSupport()
 {
     u32 layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -613,7 +609,7 @@ bool TridentContext::checkValidationLayerSupport()
     return true;
 }
 
-bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool TridentContext::_checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
     u32 extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -631,15 +627,15 @@ bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-bool TridentContext::isDeviceSuitable(VkPhysicalDevice device)
+bool TridentContext::_isDeviceSuitable(VkPhysicalDevice device)
 {
-    QueueFamilyIndices indices = findQueueFamilies(device);
+    QueueFamilyIndices indices = _findQueueFamilies(device);
 
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
+    bool extensionsSupported = _checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+        SwapChainSupportDetails swapChainSupport = _querySwapChainSupport(device);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
@@ -659,7 +655,7 @@ bool TridentContext::isDeviceSuitable(VkPhysicalDevice device)
     return suitable;
 }
 
-QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices TridentContext::_findQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -698,7 +694,7 @@ QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device)
     return indices;
 }
 
-SwapChainSupportDetails TridentContext::querySwapChainSupport(VkPhysicalDevice device) const
+SwapChainSupportDetails TridentContext::_querySwapChainSupport(VkPhysicalDevice device) const
 {
     SwapChainSupportDetails details;
 
@@ -721,7 +717,7 @@ SwapChainSupportDetails TridentContext::querySwapChainSupport(VkPhysicalDevice d
     return details;
 }
 
-std::vector<const char*> TridentContext::getRequiredInstanceExtensions()
+std::vector<const char*> TridentContext::_getRequiredInstanceExtensions()
 {
     u32 glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -740,7 +736,7 @@ std::vector<const char*> TridentContext::getRequiredInstanceExtensions()
     return extensions;
 }
 
-std::vector<const char*> TridentContext::getRequiredDeviceExtensions()
+std::vector<const char*> TridentContext::_getRequiredDeviceExtensions()
 {
     std::vector<const char*> extensions;
     extensions.reserve(m_config.requiredDeviceExtensions.size() + m_config.optionalDeviceExtensions.size());

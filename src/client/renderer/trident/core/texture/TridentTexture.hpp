@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../api/texture/ITexture.hpp"
-#include "../../../api/texture/ITextureAtlas.hpp"
+#include "client/renderer/api/texture/ITexture.hpp"
+#include "client/renderer/api/texture/ITextureAtlas.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
 
@@ -81,10 +81,9 @@ public:
     [[nodiscard]] u32 mipLevels() const override { return m_mipLevels; }
     [[nodiscard]] api::TextureFormat format() const override { return m_format; }
     [[nodiscard]] bool isValid() const override { return m_image != VK_NULL_HANDLE; }
-    [[nodiscard]] Result<void> upload(const void* data, u64 size, u32 level = 0) override;
+    [[nodiscard]] Result<void> upload(const void* data, u64 size, u32 level) override;
     [[nodiscard]] Result<void> uploadRegion(
-        const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 level = 0, u32 rowLength = 0)
-        override;
+        const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 level, u32 rowLength) override;
     void bind(u32 binding) override;
 
     // Vulkan 特有方法
@@ -187,7 +186,7 @@ public:
      * @param tileSize 瓦片大小
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(TridentContext* context, u32 width, u32 height, u32 tileSize = 16);
+    [[nodiscard]] Result<void> create(TridentContext* context, u32 width, u32 height, u32 tileSize);
 
     /**
      * @brief 从构建结果上传图集数据
@@ -208,10 +207,9 @@ public:
      * @return 成功或错误
      *
      * 此方法用于更新纹理图集的子区域，适用于动画纹理帧更新。
-     * 参考 MC 1.16.5 TextureAtlasSprite.uploadFrames()
      */
     [[nodiscard]] Result<void> uploadRegion(
-        const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength = 0);
+        const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength);
 
     void destroy();
 
@@ -246,8 +244,8 @@ private:
     u32 m_height = 0;
     u32 m_tileSize = 16;
     u32 m_tilesPerRow = 0;
-    f64 m_tileU = 0.0f; // 单个瓦片在U方向的宽度
-    f64 m_tileV = 0.0f; // 单个瓦片在V方向的高度
+    f64 m_tileU = 0.0; // 单个瓦片在U方向的宽度
+    f64 m_tileV = 0.0; // 单个瓦片在V方向的高度
 };
 
 } // namespace mc::client::renderer::trident

@@ -117,6 +117,13 @@ public:
 private:
     RendererFactory() = default;
 
+    /**
+     * @brief 规范化实体类型ID
+     *
+     * 确保ID带有命名空间前缀（如 "minecraft:"），缺失时自动补全
+     */
+    static std::string _normalizeEntityTypeId(const std::string& entityTypeId);
+
     std::unordered_map<std::string, RendererCreator> m_creators;
     mutable std::mutex m_mutex;
     static bool s_initialized;
@@ -130,10 +137,9 @@ private:
  * REGISTER_ENTITY_RENDERER("minecraft:pig", PigRenderer);
  * @endcode
  */
-#define REGISTER_ENTITY_RENDERER(typeId, RendererClass) \
-    ::mc::client::renderer::entity::core::RendererFactory::instance().registerRenderer(typeId, []() { \
-        return std::make_unique<::mc::client::renderer::entity::renderer::RendererClass>(); \
-    })
+#define REGISTER_ENTITY_RENDERER(typeId, RendererClass)                                 \
+    ::mc::client::renderer::entity::core::RendererFactory::instance().registerRenderer( \
+        typeId, []() { return std::make_unique<::mc::client::renderer::entity::renderer::RendererClass>(); })
 
 } // namespace core
 } // namespace mc::client::renderer::entity

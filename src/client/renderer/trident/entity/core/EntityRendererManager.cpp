@@ -22,16 +22,16 @@
  */
 
 #include "EntityRendererManager.hpp"
-#include "../effect/fire/FireEffect.hpp"
-#include "../model/ModelRegistration.hpp"
-#include "../model/animal/PolarBearModel.hpp"
-#include "../model/core/ModelFactory.hpp"
-#include "../pipeline/EntityTextureAtlas.hpp"
-#include "../renderer/RendererRegistration.hpp"
-#include "../renderer/projectile/ItemEntityRenderer.hpp"
-#include "../util/NameTagRenderer.hpp"
-#include "../util/ShadowRenderer.hpp"
 #include "AnimatedMeshCache.hpp"
+#include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
+#include "client/renderer/trident/entity/model/ModelRegistration.hpp"
+#include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "client/renderer/trident/entity/renderer/RendererRegistration.hpp"
+#include "client/renderer/trident/entity/renderer/projectile/ItemEntityRenderer.hpp"
+#include "client/renderer/trident/entity/util/NameTagRenderer.hpp"
+#include "client/renderer/trident/entity/util/ShadowRenderer.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/world/entity/ClientEntity.hpp"
@@ -56,18 +56,14 @@ using model::ModelVertex;
 using pipeline::EntityMesh;
 using pipeline::EntityTextureAtlas;
 
-// 导入 EntityTypes 常量命名空间
-namespace EntityTypes = ::mc::entity::EntityTypes;
-
 namespace {
 
-// MC 1.16.5 标准常量
-// 参考 LivingRenderer.java:95 - translate(0.0D, -1.501D, 0.0D)
+// 标准常量
 inline constexpr f64 MODEL_Y_OFFSET = 1.501;
 inline constexpr f64 MODEL_SCALE = 1.0 / 16.0;
 inline constexpr f64 MODEL_MESH_SCALE = 1.0;
 
-// 阴影最大距离 - 参考 EntityRendererManager.java:260
+// 阴影最大距离
 inline constexpr f64 SHADOW_MAX_DISTANCE = 256.0;
 
 /**
@@ -128,8 +124,8 @@ void EntityRendererManager::setCameraInfo(
 
     // 转换视图矩阵为 double 数组
     std::array<f64, 16> viewMatrixArray;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
+    for (i32 i = 0; i < 4; ++i) {
+        for (i32 j = 0; j < 4; ++j) {
             viewMatrixArray[i * 4 + j] = static_cast<f64>(viewMatrix[j][i]);
         }
     }
@@ -149,8 +145,8 @@ EntityRenderer* EntityRendererManager::getRenderer(const std::string& typeId)
 
 void EntityRendererManager::render(Entity& entity, f64 partialTicks)
 {
-    // 获取实体类型ID并查找渲染器（已在 getOrCreateRenderer 中规范化）
-    EntityRenderer* renderer = getOrCreateRenderer(entity.getTypeId());
+    // 获取实体类型ID并查找渲染器（已在 _getOrCreateRenderer 中规范化）
+    EntityRenderer* renderer = _getOrCreateRenderer(entity.getTypeId());
     if (renderer) {
         renderer->render(entity, partialTicks);
         if (m_renderShadows) {
@@ -170,9 +166,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     // 检查是否为 ItemEntity 或 ExperienceOrb
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    bool isItemEntity = (normalizedType == EntityTypes::ITEM);
-    bool isExperienceOrb = (normalizedType == EntityTypes::EXPERIENCE_ORB);
-    bool useAnimatedMesh = usesAnimatedMesh(normalizedType);
+    bool isItemEntity = (normalizedType == ::mc::entity::EntityTypes::ITEM);
+    bool isExperienceOrb = (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB);
+    bool useAnimatedMesh = _usesAnimatedMesh(normalizedType);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
     if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isBuilt()) {
@@ -181,7 +177,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 
     // 获取渲染器
-    EntityRenderer* renderer = getOrCreateRenderer(entity.typeId());
+    EntityRenderer* renderer = _getOrCreateRenderer(entity.typeId());
 
     // 获取或创建网格
     EntityMesh* mesh = nullptr;
@@ -193,7 +189,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         context.partialTicks = partialTicks;
 
         // 创建带动画的模型
-        auto animModel = createModelForEntity(entity, context);
+        auto animModel = _createModelForEntity(entity, context);
         if (animModel) {
             mesh = getOrCreateAnimatedMesh(entity, *animModel, context);
         }
@@ -236,8 +232,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     if (isItemEntity) {
         // ItemEntity 特殊渲染：应用浮动和旋转动画
-        f64 bobOffset = calculateItemBobOffset(entity, partialTicks);
-        f64 rotation = calculateItemRotation(entity, partialTicks);
+        f64 bobOffset = _calculateItemBobOffset(entity, partialTicks);
+        f64 rotation = _calculateItemRotation(entity, partialTicks);
         i32 itemLayerCount = 1;
         if (const ItemStack* itemStack = entity.itemStack(); itemStack != nullptr && !itemStack->isEmpty()) {
             itemLayerCount = renderer::projectile::ItemEntityRenderer::getItemCountForRender(itemStack->getCount());
@@ -273,7 +269,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         }
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
-        f64 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
+        f64 bobOffset = _calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
 
         // Y 翻转
         modelMatrix[5] = -1.0f;
@@ -295,10 +291,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else {
         // 普通实体渲染
-        // MC 1.16.5 变换顺序 (LivingRenderer.java:93-95):
-        // 1. scale(-1.0F, -1.0F, 1.0F) - X和Y都取反
-        // 2. preRenderCallback()
-        // 3. translate(0.0D, -1.501D, 0.0D) - 向下偏移
+        // 变换顺序：scale(-1, -1, 1) → preRenderCallback → translate(0, -1.501, 0)
 
         // 应用 Y 轴旋转（yaw）- 在翻转之前应用
         f64 yaw = static_cast<f64>(entity.getInterpolatedYaw(partialTickF32));
@@ -312,9 +305,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[8] = -sinYaw;
         modelMatrix[10] = cosYaw;
 
-        // MC 1.16.5: scale(-1, -1, 1) - X和Y都取反
+        // scale(-1, -1, 1) - X和Y都取反
         // 在旋转后应用翻转
-        for (int i = 0; i < 4; ++i) {
+        for (i32 i = 0; i < 4; ++i) {
             const auto rowOffset = static_cast<std::size_t>(i * 4);
             modelMatrix[rowOffset] *= -1.0;     // X列取反
             modelMatrix[rowOffset + 1] *= -1.0; // Y列取反
@@ -351,9 +344,6 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         }
 
         // 渲染阴影
-        // 参考 MC 1.16.5 EntityRendererManager.java:258-264
-        // if (this.options.entityShadows && this.renderShadow && entityrenderer.shadowSize > 0.0F &&
-        // !entityIn.isInvisible())
         if (m_renderShadows && !isItemEntity && !isExperienceOrb) {
             // 使用渲染器的 shadowSize 而非 width * 0.5
             f64 shadowRadius = renderer ? renderer->shadowSize() : static_cast<f64>(entity.width()) * 0.5;
@@ -362,9 +352,6 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
             // 检查阴影大小和透明度
             if (shadowRadius > 0.0 && shadowOpaque > 0.0 && !entity.isInvisible()) {
                 // 计算到相机的距离衰减
-                // 参考 MC 1.16.5 EntityRendererManager.java:260
-                // float f = (float)((1.0D - d1 / 256.0D) * (double)entityrenderer.shadowOpaque);
-                // 注意：这里需要相机位置，暂时使用简化版本
                 util::ShadowRenderer::renderShadow(cmd, entity, partialTicks, shadowRadius, shadowOpaque, *m_pipeline);
             }
         }
@@ -395,21 +382,20 @@ bool EntityRendererManager::renderWithPipeline(
     return true;
 }
 
-f64 EntityRendererManager::calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const
+f64 EntityRendererManager::_calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const
 {
     return renderer::projectile::ItemEntityRenderer::calculateBobOffset(
         entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
-f64 EntityRendererManager::calculateItemRotation(const ClientEntity& entity, f64 partialTick) const
+f64 EntityRendererManager::_calculateItemRotation(const ClientEntity& entity, f64 partialTick) const
 {
     return renderer::projectile::ItemEntityRenderer::calculateRotation(
         entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
-f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const
+f64 EntityRendererManager::_calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const
 {
-    // 参考 MC 1.16.5 ExperienceOrbRenderer
     // 经验球浮动动画：sin(ticks * 0.05) * 0.1 + 0.2
     f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::sin(ticks * 0.05f) * 0.1f + 0.3f; // 0.3 是基础高度偏移（略高于物品）
@@ -430,7 +416,7 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     auto it = m_meshes.find(id);
 
     if (it != m_meshes.end()) {
-        if (normalizeEntityTypeId(entity.typeId()) == entity::EntityTypes::ITEM &&
+        if (normalizeEntityTypeId(entity.typeId()) == ::mc::entity::EntityTypes::ITEM &&
             it->second.itemRenderStateVersion != entity.itemRenderStateVersion()) {
             updateMesh(entity);
             it = m_meshes.find(id);
@@ -445,17 +431,17 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
 
-    if (!generateModelMesh(entity.typeId(), vertices, indices)) {
+    if (!_generateModelMesh(entity.typeId(), vertices, indices)) {
         return nullptr;
     }
 
     // 对于 ItemEntity，使用 ItemTextureAtlas 进行 UV 重映射
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    if (normalizedType == entity::EntityTypes::ITEM) {
-        remapItemEntityUv(entity, vertices);
+    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
+        _remapItemEntityUv(entity, vertices);
     } else {
         // 普通实体使用实体纹理图集
-        remapUvToAtlasRegion(normalizedType, vertices);
+        _remapUvToAtlasRegion(normalizedType, vertices);
     }
 
     // 创建GPU网格
@@ -475,7 +461,7 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     meshEntry.mesh.posY = entity.y();
     meshEntry.mesh.posZ = entity.z();
     meshEntry.itemRenderStateVersion =
-        normalizedType == entity::EntityTypes::ITEM ? entity.itemRenderStateVersion() : 0;
+        normalizedType == ::mc::entity::EntityTypes::ITEM ? entity.itemRenderStateVersion() : 0;
 
     m_meshes[id] = std::move(meshEntry);
     return &m_meshes[id].mesh;
@@ -494,19 +480,19 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
 
-    if (!generateModelMesh(entity.typeId(), vertices, indices)) {
+    if (!_generateModelMesh(entity.typeId(), vertices, indices)) {
         return;
     }
 
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    if (normalizedType == entity::EntityTypes::ITEM) {
-        remapItemEntityUv(entity, vertices);
+    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
+        _remapItemEntityUv(entity, vertices);
     } else {
-        remapUvToAtlasRegion(normalizedType, vertices);
+        _remapUvToAtlasRegion(normalizedType, vertices);
     }
 
     (void)m_pipeline->updateMesh(it->second.mesh, vertices, indices);
-    if (normalizedType == entity::EntityTypes::ITEM) {
+    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
         it->second.itemRenderStateVersion = entity.itemRenderStateVersion();
     }
 }
@@ -531,7 +517,7 @@ void EntityRendererManager::initializeDefaults()
     renderer::initializeRendererRegistration();
 
     // ItemEntity 渲染器需要设置 itemTextureAtlas
-    auto* itemRenderer = getOrCreateRenderer(entity::EntityTypes::ITEM);
+    auto* itemRenderer = _getOrCreateRenderer(::mc::entity::EntityTypes::ITEM);
     if (auto* itemEntityRenderer = dynamic_cast<renderer::projectile::ItemEntityRenderer*>(itemRenderer)) {
         if (m_itemTextureAtlas) {
             itemEntityRenderer->setItemTextureAtlas(m_itemTextureAtlas);
@@ -539,7 +525,7 @@ void EntityRendererManager::initializeDefaults()
     }
 }
 
-EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& typeId)
+EntityRenderer* EntityRendererManager::_getOrCreateRenderer(const std::string& typeId)
 {
     // 规范化实体类型ID
     std::string normalizedId = normalizeEntityTypeId(typeId);
@@ -561,27 +547,26 @@ EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& ty
     return ptr;
 }
 
-bool EntityRendererManager::generateModelMesh(
+bool EntityRendererManager::_generateModelMesh(
     const std::string& typeId, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 规范化实体类型ID，统一使用命名空间格式进行比较
     std::string normalizedId = normalizeEntityTypeId(typeId);
 
     // 使用 EntityTypes 常量进行比较
-    namespace ET = entity::EntityTypes;
 
     // 只有 ItemEntity 和 ExperienceOrb 使用静态网格
-    // 所有生物实体都使用动画网格路径（通过 createModelForEntity）
-    if (normalizedId == ET::ITEM) {
+    // 所有生物实体都使用动画网格路径（通过 _createModelForEntity）
+    if (normalizedId == ::mc::entity::EntityTypes::ITEM) {
         // ItemEntity 使用简单的四边形网格
         // 物品图标会在渲染时根据 ItemStack 动态获取纹理
-        generateBillboardMesh(vertices, indices, 0.25, 0.25);
+        _generateBillboardMesh(vertices, indices, 0.25, 0.25);
         return true;
     }
-    if (normalizedId == ET::EXPERIENCE_ORB) {
+    if (normalizedId == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
         // ExperienceOrb 使用简单的四边形网格（billboard）
         // 颜色会根据经验和时间动态变化
-        generateBillboardMesh(vertices, indices, 0.25, 0.25);
+        _generateBillboardMesh(vertices, indices, 0.25, 0.25);
         return true;
     }
 
@@ -589,12 +574,11 @@ bool EntityRendererManager::generateModelMesh(
     return false;
 }
 
-void EntityRendererManager::generateBillboardMesh(
+void EntityRendererManager::_generateBillboardMesh(
     std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 width, f64 height)
 {
     // 生成一个双面 billboard 四边形网格
     // 用于 ItemEntity 和 ExperienceOrb 等静态网格实体
-    // 参考 MC 1.16.5 ItemRenderer 和 ExperienceOrbRenderer
 
     const f64 halfWidth = width * 0.5;
     const f64 yOffset = 0.25; // 地面偏移
@@ -633,7 +617,7 @@ void EntityRendererManager::generateBillboardMesh(
     };
 }
 
-void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<ModelVertex>& vertices)
+void EntityRendererManager::_remapItemEntityUv(ClientEntity& entity, std::vector<ModelVertex>& vertices)
 {
     if (!m_itemTextureAtlas || vertices.empty()) {
         return;
@@ -666,7 +650,6 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     }
 
     if (!region) {
-        spdlog::debug("No item texture found for ItemEntity with item: {}", itemId.toString());
         return;
     }
 
@@ -682,30 +665,24 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     }
 }
 
-void EntityRendererManager::remapUvToAtlasRegion(
+void EntityRendererManager::_remapUvToAtlasRegion(
     const std::string& normalizedTypeId, std::vector<ModelVertex>& vertices) const
 {
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
-        // spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
-        //              normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(),
-        //              vertices.empty());
         return;
     }
 
     const TextureRegion* region = nullptr;
     const auto texturePaths = EntityTextureLoader::getTexturePaths(normalizedTypeId);
-    // spdlog::info("remapUvToAtlasRegion: trying {} paths for '{}'", texturePaths.size(), normalizedTypeId);
     for (const auto& path : texturePaths) {
-        // spdlog::info("remapUvToAtlasRegion: checking path '{}'", path.toString());
         region = m_textureAtlas->getRegion(path);
         if (region) {
-            // spdlog::info("remapUvToAtlasRegion: found region for '{}'", path.toString());
             break;
         }
     }
 
     if (!region) {
-        spdlog::warn("remapUvToAtlasRegion: No atlas region found for entity type: {}", normalizedTypeId);
+        spdlog::warn("_remapUvToAtlasRegion: No atlas region found for entity type: {}", normalizedTypeId);
         return;
     }
 
@@ -727,34 +704,34 @@ void EntityRendererManager::clearAnimatedMeshes()
     }
 }
 
-bool EntityRendererManager::usesAnimatedMesh(const std::string& normalizedTypeId) const
+bool EntityRendererManager::_usesAnimatedMesh(const std::string& normalizedTypeId) const
 {
     // ItemEntity 和 ExperienceOrb 使用静态网格
     // 所有生物实体使用动画网格
-    return normalizedTypeId != entity::EntityTypes::ITEM && normalizedTypeId != entity::EntityTypes::EXPERIENCE_ORB;
+    return normalizedTypeId != ::mc::entity::EntityTypes::ITEM &&
+        normalizedTypeId != ::mc::entity::EntityTypes::EXPERIENCE_ORB;
 }
 
-std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
+std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity(
     ClientEntity& entity, core::AnimationContext& context)
 {
     std::string normalizedId = normalizeEntityTypeId(entity.typeId());
 
     // 从 ClientEntity 读取动画状态
-    // MC 1.16.5 公式 (LivingRenderer.java:100):
-    // limbSwing = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks)
+    // limbSwing = entity.limbSwing - entity.limbSwingAmount * (1.0 - partialTicks)
     f64 limbSwingAmount = static_cast<f64>(entity.limbSwingAmount());
     context.limbSwing = static_cast<f64>(entity.limbSwing()) - limbSwingAmount * (1.0 - context.partialTicks);
 
-    // 幼体动画速度加倍 (LivingRenderer.java:101-103)
+    // 幼体动画速度加倍
     if (entity.isChild()) {
         context.limbSwing *= 3.0;
     }
 
-    // limbSwingAmount 使用插值 (LivingRenderer.java:99)
+    // limbSwingAmount 使用插值
     context.limbSwingAmount = static_cast<f64>(entity.prevLimbSwingAmount()) +
         static_cast<f64>(entity.limbSwingAmount() - entity.prevLimbSwingAmount()) * context.partialTicks;
 
-    // 限制最大值 (LivingRenderer.java:105-107)
+    // 限制最大值
     if (context.limbSwingAmount > 1.0) {
         context.limbSwingAmount = 1.0;
     }
@@ -784,7 +761,6 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     context.swingProgress = entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks));
 
     // 北极熊站立动画
-    // 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
     const std::string& typeId = entity.typeId();
     if (typeId == "minecraft:polar_bear" || typeId == "polar_bear") {
         context.standingProgress = entity.getStandingAnimationScale(static_cast<f32>(context.partialTicks));
@@ -816,7 +792,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
         return model;
     }
 
-    spdlog::warn("createModelForEntity: No model found for entity type: {}", normalizedId);
+    spdlog::warn("_createModelForEntity: No model found for entity type: {}", normalizedId);
     return nullptr;
 }
 
@@ -831,8 +807,9 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
 
     // 设置 UV 重映射回调
     m_animatedMeshCache->setUvRemapFunc(
-        [this, normalizedId](
-            const std::string& typeId, std::vector<ModelVertex>& vertices) { remapUvToAtlasRegion(typeId, vertices); });
+        [this, normalizedId](const std::string& typeId, std::vector<ModelVertex>& vertices) {
+            _remapUvToAtlasRegion(typeId, vertices);
+        });
 
     return m_animatedMeshCache->getOrUpdateMesh(entity.id(), model, normalizedId, context, *m_pipeline);
 }

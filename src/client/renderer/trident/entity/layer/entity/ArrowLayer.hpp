@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -47,8 +47,6 @@ namespace mc::client::renderer::entity::layer::entity {
  * @brief 箭矢附着层渲染器
  *
  * 渲染生物身上插着的箭矢。
- *
- * 参考 MC 1.16.5 ArrowLayer
  *
  * @tparam TEntity 实体类型
  */
@@ -87,12 +85,12 @@ private:
     /**
      * @brief 构建单个箭矢网格
      */
-    void buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 渲染单个箭矢（GPU管线路径）
      */
-    void renderArrowPipeline(TEntity& entity,
+    void _renderArrowPipeline(TEntity& entity,
         f32 x,
         f32 y,
         f32 z,
@@ -105,7 +103,7 @@ private:
     /**
      * @brief 获取或创建箭矢网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline);
 
     ResourceLocation m_arrowTexture{"minecraft", "textures/entity/arrow.png"};
 

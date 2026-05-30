@@ -492,7 +492,7 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
 #include "./Vector3.hpp"// ✅
 #include "./math/Vector3.hpp"// ✅
 
-// ❌ 禁止：使用../，这会导致路径混乱，增加维护难度
+// ❌ 禁止：使用`../`跳转到上级目录，这会导致路径混乱，增加维护难度
 #include "../../common/util/math/Vector3.hpp"// ❌
 // 这种情况下建议换成绝对路径：
 #include "common/util/math/Vector3.hpp"// ✅

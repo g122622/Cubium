@@ -55,8 +55,6 @@ namespace mc::client::renderer::entity {
  *
  * 管理所有实体渲染器，根据实体类型分派渲染。
  * 集成EntityPipeline进行Vulkan渲染。
- *
- * 参考 MC 1.16.5 EntityRendererManager
  */
 class EntityRendererManager {
 public:
@@ -271,7 +269,7 @@ private:
     /**
      * @brief 创建或获取渲染器
      */
-    [[nodiscard]] core::EntityRenderer* getOrCreateRenderer(const std::string& typeId);
+    [[nodiscard]] core::EntityRenderer* _getOrCreateRenderer(const std::string& typeId);
 
     /**
      * @brief 生成实体模型网格
@@ -280,7 +278,7 @@ private:
      * @param indices 输出索引
      * @return 是否成功生成
      */
-    bool generateModelMesh(
+    bool _generateModelMesh(
         const std::string& typeId, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
@@ -294,7 +292,7 @@ private:
      * @param width billboard 宽度
      * @param height billboard 高度
      */
-    void generateBillboardMesh(
+    void _generateBillboardMesh(
         std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, f64 width, f64 height);
 
     /**
@@ -305,12 +303,12 @@ private:
      * @param entity 客户端实体
      * @param vertices 顶点数据（会被修改）
      */
-    void remapItemEntityUv(ClientEntity& entity, std::vector<model::ModelVertex>& vertices);
+    void _remapItemEntityUv(ClientEntity& entity, std::vector<model::ModelVertex>& vertices);
 
     /**
      * @brief 将模型局部UV映射到图集区域
      */
-    void remapUvToAtlasRegion(const std::string& normalizedTypeId, std::vector<model::ModelVertex>& vertices) const;
+    void _remapUvToAtlasRegion(const std::string& normalizedTypeId, std::vector<model::ModelVertex>& vertices) const;
 
     /**
      * @brief 计算 ItemEntity 浮动偏移
@@ -318,7 +316,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f64 calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const;
+    [[nodiscard]] f64 _calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const;
 
     /**
      * @brief 计算 ItemEntity 旋转角度
@@ -326,7 +324,7 @@ private:
      * @param partialTick 部分 tick
      * @return 旋转角度（度）
      */
-    [[nodiscard]] f64 calculateItemRotation(const ClientEntity& entity, f64 partialTick) const;
+    [[nodiscard]] f64 _calculateItemRotation(const ClientEntity& entity, f64 partialTick) const;
 
     /**
      * @brief 计算 ExperienceOrb 浮动偏移
@@ -334,7 +332,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f64 calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const;
+    [[nodiscard]] f64 _calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 判断实体是否使用动画网格
@@ -342,7 +340,7 @@ private:
      * ItemEntity 和 ExperienceOrb 使用静态网格，
      * 其他实体使用动画网格。
      */
-    [[nodiscard]] bool usesAnimatedMesh(const std::string& normalizedTypeId) const;
+    [[nodiscard]] bool _usesAnimatedMesh(const std::string& normalizedTypeId) const;
 
     /**
      * @brief 为实体创建模型并设置动画
@@ -354,7 +352,7 @@ private:
      * @param context 动画上下文（输出）
      * @return 模型指针，如果实体类型无模型返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<model::EntityModel> createModelForEntity(
+    [[nodiscard]] std::unique_ptr<model::EntityModel> _createModelForEntity(
         ClientEntity& entity, core::AnimationContext& context);
 };
 

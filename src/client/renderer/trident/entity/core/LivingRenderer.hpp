@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../layer/core/LayerRenderer.hpp"
-#include "../model/core/EntityModel.hpp"
 #include "AnimationContext.hpp"
 #include "EntityRenderer.hpp"
 #include "IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include <memory>
@@ -45,8 +45,6 @@ namespace mc::client::renderer::entity::core {
  *
  * 用于渲染 LivingEntity 的渲染器基类。
  * 提供动画参数计算、模型渲染、层渲染器管理等功能。
- *
- * 参考 MC 1.16.5 LivingRenderer
  *
  * @tparam TEntity 实体类型（必须继承自 LivingEntity）
  * @tparam TModel 模型类型（必须继承自 EntityModel）
@@ -286,7 +284,7 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks)
     setModelAngles(living, partialTicks);
 
     // 获取缩放因子
-    f64 scale = getScale(living) * (1.0f / 16.0f);
+    f64 scale = getScale(living) * (1.0 / 16.0);
 
     // 计算动画参数
     f64 limbSwing = getLimbSwing(living, partialTicks);
@@ -309,7 +307,7 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks)
         static_cast<f32>(scale));
 
     // 渲染阴影
-    if (m_shadowSize > 0.0f) {
+    if (m_shadowSize > 0.0) {
         renderShadow(entity, partialTicks);
     }
 }
@@ -347,13 +345,10 @@ void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partia
 template <typename TEntity, typename TModel>
 f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTicks) const
 {
-    // MC 1.16.5 公式 (LivingRenderer.java:100):
-    // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
     f64 limbSwingAmount = entity.limbSwingAmount();
     f64 result = entity.limbSwing() - limbSwingAmount * (1.0 - partialTicks);
 
-    // 幼体动画速度加倍 (LivingRenderer.java:101-103)
-    // if (entityIn.isChild()) { f5 *= 3.0F; }
+    // 幼体动画速度加倍
     if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
         if (entity.isChild()) {
             result *= 3.0;
@@ -366,14 +361,11 @@ f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTi
 template <typename TEntity, typename TModel>
 f64 LivingRenderer<TEntity, TModel>::getLimbSwingAmount(TEntity& entity, f64 partialTicks) const
 {
-    // MC 1.16.5 公式 (LivingRenderer.java:99):
-    // f8 = MathHelper.lerp(partialTicks, entity.prevLimbSwingAmount, entity.limbSwingAmount);
     f64 prevAmount = entity.prevLimbSwingAmount();
     f64 amount = entity.limbSwingAmount();
     f64 result = prevAmount + (amount - prevAmount) * partialTicks;
 
-    // 限制最大值 (LivingRenderer.java:105-107)
-    // if (f8 > 1.0F) { f8 = 1.0F; }
+    // 限制最大值
     if (result > 1.0) {
         result = 1.0;
     }
@@ -392,10 +384,10 @@ f64 LivingRenderer<TEntity, TModel>::getHeadYaw(TEntity& entity, f64 partialTick
     f64 diff = headYaw - bodyYaw;
 
     // 归一化到 -180 到 180
-    while (diff < -180.0f)
-        diff += 360.0f;
-    while (diff > 180.0f)
-        diff -= 360.0f;
+    while (diff < -180.0)
+        diff += 360.0;
+    while (diff > 180.0)
+        diff -= 360.0;
 
     return diff;
 }
@@ -419,19 +411,14 @@ f64 LivingRenderer<TEntity, TModel>::getAgeInTicks(TEntity& entity) const
 template <typename TEntity, typename TModel>
 f64 LivingRenderer<TEntity, TModel>::getScale(TEntity& entity) const
 {
-    // 幼体缩放 - 检查是否为 AgeableEntity
-    // AgeableEntity 实现了 isChild() 方法
-    // 使用动态转换来检查，避免模板约束问题
-
-    // 尝试转换为 AgeableEntity 指针
-    // 如果转换成功且为幼体，返回幼体缩放因子
+    // 幼体缩放为成体的一半
     if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
         if (entity.isChild()) {
-            return 0.5f; // 幼体缩放为成体的一半
+            return 0.5;
         }
     }
 
-    return 1.0f;
+    return 1.0;
 }
 
 template <typename TEntity, typename TModel>
@@ -473,13 +460,8 @@ void LivingRenderer<TEntity, TModel>::computeAnimationContext(
         context.headPitch,
         context.scale);
 
-    // 将模型指针传递出去（用于网格生成）
-    // 注意：这里我们使用裸指针转换，因为 m_model 是成员变量
-    // 调用者不应该持有这个 unique_ptr，只是用于类型擦除
-    model.reset(); // 清空输入的 unique_ptr
-    // 调用者需要知道 m_model 的生命周期由 LivingRenderer 管理
-    // 这里我们不创建新的 unique_ptr，因为 m_model 是成员变量
-    // 调用者应该使用返回的 AnimationContext 和直接访问 getModel()
+    // m_model 的生命周期由 LivingRenderer 管理，不通过 unique_ptr 传递
+    model.reset();
 }
 
 } // namespace mc::client::renderer::entity::core

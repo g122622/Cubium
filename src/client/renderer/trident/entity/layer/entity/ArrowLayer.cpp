@@ -22,11 +22,11 @@
  */
 
 #include "ArrowLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -43,7 +43,6 @@ void ArrowLayer<TEntity>::renderPipeline(TEntity& entity,
     pipeline::EntityPipeline& pipeline)
 {
     // 获取箭矢数量
-    // 参考 MC 1.16.5 ArrowLayer.func_225631_a_()
     i32 arrowCount = 0;
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         arrowCount = entity.getArrowCount();
@@ -53,11 +52,10 @@ void ArrowLayer<TEntity>::renderPipeline(TEntity& entity,
         return;
     }
 
-    // 参考 MC 1.16.5 ArrowLayer:
     // 使用 ArrowEntity 实际渲染，而不是手动构建网格
     // 这里简化为获取或创建箭矢网格
 
-    pipeline::EntityMesh* mesh = getOrCreateArrowMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateArrowMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -72,10 +70,8 @@ void ArrowLayer<TEntity>::renderPipeline(TEntity& entity,
         f32 randYaw = static_cast<f32>(((seed * 16807) + 11111) % 1000) / 1000.0f * 360.0f;
         f32 randPitch = static_cast<f32>(((seed * 16807) + 22222) % 1000) / 1000.0f * 180.0f - 90.0f;
 
-        renderArrowPipeline(entity, randX, randY, randZ, randYaw, randPitch, cmd, context, pipeline);
+        _renderArrowPipeline(entity, randX, randY, randZ, randYaw, randPitch, cmd, context, pipeline);
     }
-
-    // spdlog::trace("ArrowLayer: Rendered {} arrows on entity", arrowCount);
 }
 
 template <typename TEntity>
@@ -103,7 +99,6 @@ template <typename TEntity>
 bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const
 {
     // 检查实体是否被箭射中
-    // 参考 MC 1.16.5 StuckArrowsLayer.shouldRender()
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         return entity.getArrowCount() > 0;
     }
@@ -111,9 +106,8 @@ bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const
 }
 
 template <typename TEntity>
-void ArrowLayer<TEntity>::buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void ArrowLayer<TEntity>::_buildArrowMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 箭矢模型
     // 简化的箭矢网格
 
     constexpr f32 ARROW_LENGTH = 0.5f;
@@ -151,7 +145,7 @@ void ArrowLayer<TEntity>::buildArrowMesh(std::vector<model::ModelVertex>& vertic
 }
 
 template <typename TEntity>
-void ArrowLayer<TEntity>::renderArrowPipeline(TEntity& entity,
+void ArrowLayer<TEntity>::_renderArrowPipeline(TEntity& entity,
     f32 x,
     f32 y,
     f32 z,
@@ -161,7 +155,7 @@ void ArrowLayer<TEntity>::renderArrowPipeline(TEntity& entity,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
 {
-    pipeline::EntityMesh* mesh = getOrCreateArrowMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateArrowMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -212,7 +206,7 @@ void ArrowLayer<TEntity>::renderArrowPipeline(TEntity& entity,
 }
 
 template <typename TEntity>
-pipeline::EntityMesh* ArrowLayer<TEntity>::getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* ArrowLayer<TEntity>::_getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline)
 {
     if (s_arrowMesh && s_arrowMesh->indexCount > 0) {
         return s_arrowMesh.get();
@@ -220,7 +214,7 @@ pipeline::EntityMesh* ArrowLayer<TEntity>::getOrCreateArrowMesh(pipeline::Entity
 
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildArrowMesh(vertices, indices);
+    _buildArrowMesh(vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;
