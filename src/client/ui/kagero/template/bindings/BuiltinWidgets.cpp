@@ -22,6 +22,7 @@
  */
 
 #include "BuiltinWidgets.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
@@ -46,19 +47,19 @@ void BuiltinWidgets::initialize()
 {
     if (m_initialized) return;
 
-    registerScreenWidget();
-    registerContainerWidget();
-    registerButtonWidget();
-    registerTextWidget();
-    registerTextFieldWidget();
-    registerSliderWidget();
-    registerCheckboxWidget();
-    registerImageWidget();
-    registerGridWidget();
-    registerSlotWidget();
-    registerScrollableWidget();
-    registerListWidget();
-    registerViewport3DWidget();
+    _registerScreenWidget();
+    _registerContainerWidget();
+    _registerButtonWidget();
+    _registerTextWidget();
+    _registerTextFieldWidget();
+    _registerSliderWidget();
+    _registerCheckboxWidget();
+    _registerImageWidget();
+    _registerGridWidget();
+    _registerSlotWidget();
+    _registerScrollableWidget();
+    _registerListWidget();
+    _registerViewport3DWidget();
 
     m_initialized = true;
 }
@@ -157,17 +158,18 @@ std::map<std::string, std::string> BuiltinWidgets::getDefaultAttributes(const st
     return it != m_defaultAttributes.end() ? it->second : std::map<std::string, std::string>();
 }
 
-void BuiltinWidgets::registerScreenWidget()
+void BuiltinWidgets::_registerScreenWidget()
 {
     m_creators["screen"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "screen" : id);
+        // TODO: 实现title和modal属性的处理
         auto titleIt = attrs.find("title");
         if (titleIt != attrs.end()) {
-            (void)titleIt;
+            MC_UNUSED(titleIt);
         }
         auto modalIt = attrs.find("modal");
         if (modalIt != attrs.end()) {
-            (void)modalIt;
+            MC_UNUSED(modalIt);
         }
         return widget;
     };
@@ -175,11 +177,12 @@ void BuiltinWidgets::registerScreenWidget()
     m_defaultAttributes["screen"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerContainerWidget()
+void BuiltinWidgets::_registerContainerWidget()
 {
     m_creators["container"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "container" : id);
 
+        // TODO: layout属性的解析与BuiltinWidgets::create()中的通用属性处理重复，应去除此处重复逻辑
         auto layoutIt = attrs.find("layout");
         if (layoutIt != attrs.end()) {
             std::string layout = layoutIt->second;
@@ -201,7 +204,7 @@ void BuiltinWidgets::registerContainerWidget()
     m_defaultAttributes["container"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerButtonWidget()
+void BuiltinWidgets::_registerButtonWidget()
 {
     m_creators["button"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto button = std::make_unique<widget::ButtonWidget>();
@@ -221,7 +224,7 @@ void BuiltinWidgets::registerButtonWidget()
     m_defaultAttributes["button"] = {{"size", "200,20"}};
 }
 
-void BuiltinWidgets::registerTextWidget()
+void BuiltinWidgets::_registerTextWidget()
 {
     m_creators["text"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto text = std::make_unique<widget::TextWidget>();
@@ -271,7 +274,7 @@ void BuiltinWidgets::registerTextWidget()
     m_defaultAttributes["text"] = {{"color", "#FFFFFF"}, {"shadow", "true"}};
 }
 
-void BuiltinWidgets::registerTextFieldWidget()
+void BuiltinWidgets::_registerTextFieldWidget()
 {
     m_creators["textfield"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto textField = std::make_unique<widget::TextFieldWidget>();
@@ -299,7 +302,7 @@ void BuiltinWidgets::registerTextFieldWidget()
     m_defaultAttributes["textfield"] = {{"size", "200,20"}};
 }
 
-void BuiltinWidgets::registerSliderWidget()
+void BuiltinWidgets::_registerSliderWidget()
 {
     m_creators["slider"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto slider = std::make_unique<widget::SliderWidget>();
@@ -325,7 +328,7 @@ void BuiltinWidgets::registerSliderWidget()
     m_defaultAttributes["slider"] = {{"size", "200,20"}, {"range", "0,100"}};
 }
 
-void BuiltinWidgets::registerCheckboxWidget()
+void BuiltinWidgets::_registerCheckboxWidget()
 {
     m_creators["checkbox"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto checkbox = std::make_unique<widget::CheckboxWidget>();
@@ -345,14 +348,15 @@ void BuiltinWidgets::registerCheckboxWidget()
     m_defaultAttributes["checkbox"] = {{"size", "20,20"}};
 }
 
-void BuiltinWidgets::registerImageWidget()
+void BuiltinWidgets::_registerImageWidget()
 {
     m_creators["image"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "image" : id);
 
+        // TODO: 实现图片资源加载，当前ContainerWidget不支持图片渲染
         auto srcIt = attrs.find("src");
         if (srcIt != attrs.end()) {
-            (void)srcIt;
+            MC_UNUSED(srcIt);
         }
 
         return widget;
@@ -361,19 +365,20 @@ void BuiltinWidgets::registerImageWidget()
     m_defaultAttributes["image"] = {{"size", "auto,auto"}};
 }
 
-void BuiltinWidgets::registerGridWidget()
+void BuiltinWidgets::_registerGridWidget()
 {
     m_creators["grid"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "grid" : id);
         widget->setLayoutType(widget::ContainerLayoutType::Grid);
 
+        // TODO: 实现cols和rows属性的解析和应用
         auto colsIt = attrs.find("cols");
         if (colsIt != attrs.end()) {
-            (void)colsIt;
+            MC_UNUSED(colsIt);
         }
         auto rowsIt = attrs.find("rows");
         if (rowsIt != attrs.end()) {
-            (void)rowsIt;
+            MC_UNUSED(rowsIt);
         }
 
         return widget;
@@ -382,7 +387,7 @@ void BuiltinWidgets::registerGridWidget()
     m_defaultAttributes["grid"] = {{"cols", "1"}, {"rows", "1"}};
 }
 
-void BuiltinWidgets::registerSlotWidget()
+void BuiltinWidgets::_registerSlotWidget()
 {
     m_creators["slot"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto slot = std::make_unique<widget::SlotWidget>();
@@ -391,9 +396,10 @@ void BuiltinWidgets::registerSlotWidget()
             slot->setId(id);
         }
 
+        // TODO: 实现slot index属性的解析和应用
         auto indexIt = attrs.find("index");
         if (indexIt != attrs.end()) {
-            (void)indexIt;
+            MC_UNUSED(indexIt);
         }
 
         return slot;
@@ -402,7 +408,7 @@ void BuiltinWidgets::registerSlotWidget()
     m_defaultAttributes["slot"] = {{"size", "18,18"}};
 }
 
-void BuiltinWidgets::registerScrollableWidget()
+void BuiltinWidgets::_registerScrollableWidget()
 {
     m_creators["scrollable"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto scrollable = std::make_unique<widget::ScrollableWidget>();
@@ -414,25 +420,13 @@ void BuiltinWidgets::registerScrollableWidget()
         // 解析属性
         for (const auto& [key, value] : attrs) {
             if (key == "content-height") {
-                try {
-                    scrollable->setContentHeight(std::stoi(value));
-                }
-                catch (...) {
-                }
+                scrollable->setContentHeight(widget_attrs::parseInt(value));
             } else if (key == "content-width") {
-                try {
-                    scrollable->setContentWidth(std::stoi(value));
-                }
-                catch (...) {
-                }
+                scrollable->setContentWidth(widget_attrs::parseInt(value));
             } else if (key == "scroll-speed") {
-                try {
-                    scrollable->setScrollSpeed(std::stod(value));
-                }
-                catch (...) {
-                }
+                scrollable->setScrollSpeed(static_cast<f64>(widget_attrs::parseFloat(value)));
             } else if (key == "show-scrollbar") {
-                scrollable->setShowScrollbar(value == "true");
+                scrollable->setShowScrollbar(widget_attrs::parseBool(value));
             }
         }
 
@@ -440,7 +434,7 @@ void BuiltinWidgets::registerScrollableWidget()
     };
 }
 
-void BuiltinWidgets::registerListWidget()
+void BuiltinWidgets::_registerListWidget()
 {
     m_creators["list"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto list = std::make_unique<widget::ListWidget>();
@@ -453,7 +447,7 @@ void BuiltinWidgets::registerListWidget()
     };
 }
 
-void BuiltinWidgets::registerViewport3DWidget()
+void BuiltinWidgets::_registerViewport3DWidget()
 {
     m_creators["viewport3d"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto viewport = std::make_unique<widget::Viewport3DWidget>();
@@ -496,14 +490,14 @@ std::pair<i32, i32> parseSize(const std::string& value)
 
 void applyPosition(widget::Widget* widget, const std::string& value)
 {
-    if (!widget) return;
+    MC_ASSERT_RELEASE(widget != nullptr);
     auto [x, y] = parsePosition(value);
     widget->setPosition(x, y);
 }
 
 void applySize(widget::Widget* widget, const std::string& value)
 {
-    if (!widget) return;
+    MC_ASSERT_RELEASE(widget != nullptr);
     auto [width, height] = parseSize(value);
     widget->setSize(width, height);
 }
@@ -535,7 +529,7 @@ u32 parseColor(const std::string& value)
         }
     }
 
-    if (value.substr(0, 4) == "rgb(") {
+    if (value.starts_with("rgb(")) {
         size_t start = 4;
         size_t end = value.find(')');
         if (end != std::string::npos) {
@@ -561,7 +555,7 @@ u32 parseColor(const std::string& value)
         }
     }
 
-    if (value.substr(0, 5) == "rgba(") {
+    if (value.starts_with("rgba(")) {
         size_t start = 5;
         size_t end = value.find(')');
         if (end != std::string::npos) {

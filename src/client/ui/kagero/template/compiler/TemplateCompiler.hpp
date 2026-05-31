@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../binder/BindingContext.hpp"
-#include "../core/TemplateConfig.hpp"
-#include "../core/TemplateError.hpp"
-#include "../parser/Ast.hpp"
-#include "../parser/Lexer.hpp"
-#include "../parser/Parser.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/core/TemplateConfig.hpp"
+#include "client/ui/kagero/template/core/TemplateError.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "client/ui/kagero/template/parser/Lexer.hpp"
+#include "client/ui/kagero/template/parser/Parser.hpp"
 #include <functional>
 #include <memory>
 #include <set>
@@ -381,93 +381,97 @@ private:
     /**
      * @brief 词法分析
      */
-    bool tokenize(const std::string& source, const std::string& sourcePath);
+    bool _tokenize(const std::string& source, const std::string& sourcePath);
 
     /**
      * @brief 语法分析
+     * TODO: 当前为空实现，仅返回true，实际的解析逻辑在compile()中完成
      */
-    bool parse(const std::string& sourcePath);
+    bool _parse(const std::string& sourcePath);
 
     /**
      * @brief 语义分析和验证
      */
-    bool validate(ast::DocumentNode* document);
+    bool _validate(ast::DocumentNode* document);
 
     /**
      * @brief 生成绑定计划
      */
-    void generateBindingPlans(ast::DocumentNode* document, CompiledTemplate* result);
+    void _generateBindingPlans(ast::DocumentNode* document, CompiledTemplate* result);
 
     /**
      * @brief 递归生成绑定计划
      */
-    void generateBindingPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
+    void _generateBindingPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
 
     /**
      * @brief 生成事件计划
      */
-    void generateEventPlans(ast::DocumentNode* document, CompiledTemplate* result);
+    void _generateEventPlans(ast::DocumentNode* document, CompiledTemplate* result);
 
     /**
      * @brief 递归生成事件计划
      */
-    void generateEventPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
+    void _generateEventPlansRecursive(const ast::Node* node, const std::string& parentPath, CompiledTemplate* result);
 
     /**
      * @brief 收集状态路径
      */
-    void collectWatchedPaths(ast::DocumentNode* document, CompiledTemplate* result);
+    void _collectWatchedPaths(ast::DocumentNode* document, CompiledTemplate* result);
 
     /**
      * @brief 收集回调名称
      */
-    void collectCallbacks(ast::DocumentNode* document, CompiledTemplate* result);
+    void _collectCallbacks(ast::DocumentNode* document, CompiledTemplate* result);
 
     // ========== 验证方法 ==========
 
     /**
      * @brief 验证AST节点
      */
-    bool validateNode(const ast::Node* node, TemplateErrorCollector& collector);
+    bool _validateNode(const ast::Node* node, TemplateErrorCollector& collector);
 
     /**
      * @brief 验证元素节点
      */
-    bool validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector);
+    bool _validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector);
 
     /**
      * @brief 验证属性
+     * TODO: element参数暂未使用，后续属性验证可能需要元素上下文
      */
-    bool validateAttribute(
+    bool _validateAttribute(
         const ast::Attribute& attr, const ast::ElementNode* element, TemplateErrorCollector& collector);
 
     /**
      * @brief 检查是否包含内联脚本/表达式
      */
-    bool containsInlineScript(const std::string& value) const;
+    bool _containsInlineScript(const std::string& value) const;
 
     /**
      * @brief 检查是否包含禁止的模式
      */
-    bool containsForbiddenPattern(const std::string& value) const;
+    bool _containsForbiddenPattern(const std::string& value) const;
 
     // ========== 工具方法 ==========
 
     /**
      * @brief 生成Widget路径
      */
-    static std::string generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath = "");
+    static std::string _generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath);
 
     /**
      * @brief 从AST节点提取绑定信息
+     * TODO: 此方法当前未被调用，待循环绑定功能完善后启用
      */
-    static void extractBindings(const ast::ElementNode* element,
+    static void _extractBindings(const ast::ElementNode* element,
         const std::string& widgetPath,
         std::vector<BindingPlan>& plans,
         std::vector<LoopPlan>& loopPlans);
 
 private:
     TemplateConfig m_config;
+    // TODO: m_tokens 当前未被使用，词法分析结果直接从Lexer获取，后续缓存优化时可启用
     std::vector<Token> m_tokens;
     std::vector<TemplateErrorInfo> m_lastErrors;
 };

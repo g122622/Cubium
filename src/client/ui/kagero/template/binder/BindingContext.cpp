@@ -23,7 +23,6 @@
 
 #include "BindingContext.hpp"
 #include <algorithm>
-#include <cctype>
 #include <sstream>
 
 namespace mc::client::ui::kagero::tpl::binder {
@@ -45,15 +44,18 @@ Value Value::fromAny(const std::any& any)
         return Value(std::any_cast<i32>(any));
     }
     if (type == typeid(i64)) {
+        // TODO: i64转i32可能丢失精度，考虑Value支持i64类型
         return Value(static_cast<i32>(std::any_cast<i64>(any)));
     }
     if (type == typeid(u32)) {
+        // TODO: u32转i32可能丢失精度，考虑Value支持u32类型
         return Value(static_cast<i32>(std::any_cast<u32>(any)));
     }
     if (type == typeid(f32)) {
         return Value(std::any_cast<f32>(any));
     }
     if (type == typeid(f64)) {
+        // TODO: f64转f32可能丢失精度，考虑Value支持f64类型
         return Value(static_cast<f32>(std::any_cast<f64>(any)));
     }
     if (type == typeid(std::string)) {
@@ -382,13 +384,12 @@ Value BindingContext::resolveBinding(const std::string& path, const std::string&
 
     // 尝试从StateStore获取
     if (m_store.has(path)) {
-        // 由于StateStore使用std::any，我们需要尝试几种常见类型
-        // 这里简化处理，实际使用时需要更完善的类型支持
-        return Value(); // 暂时返回空值，后续扩展StateStore的类型支持
+        // TODO: StateStore使用std::any，需要更完善的类型转换支持，目前暂返回空值
+        return Value();
     }
 
     // 尝试路径解析（嵌套属性）
-    return resolvePath(path);
+    return _resolvePath(path);
 }
 
 bool BindingContext::setBinding(const std::string& path, const Value& value)
@@ -534,7 +535,7 @@ std::vector<Value> BindingContext::resolveCollection(const std::string& path) co
     }
 
     // 尝试路径解析
-    Value resolved = resolvePath(path);
+    Value resolved = _resolvePath(path);
     if (resolved.isArray()) {
         return resolved.asArray();
     }
@@ -559,10 +560,10 @@ void BindingContext::clear()
     m_loopVariables.clear();
 }
 
-Value BindingContext::resolvePath(const std::string& path) const
+Value BindingContext::_resolvePath(const std::string& path) const
 {
     // 分割路径并逐层解析
-    std::vector<std::string> parts = splitPath(path);
+    std::vector<std::string> parts = _splitPath(path);
 
     if (parts.empty()) {
         return Value();
@@ -583,7 +584,7 @@ Value BindingContext::resolvePath(const std::string& path) const
     if (it != m_exposedVars.end()) {
         current = it->second.readFunc();
     } else if (m_store.has(rootKey)) {
-        // 从StateStore获取（简化处理）
+        // TODO: StateStore类型转换支持，目前暂返回空值
         current = Value();
     } else {
         return Value();
@@ -615,7 +616,7 @@ Value BindingContext::resolvePath(const std::string& path) const
     return current;
 }
 
-std::vector<std::string> BindingContext::splitPath(const std::string& path) const
+std::vector<std::string> BindingContext::_splitPath(const std::string& path) const
 {
     std::vector<std::string> parts;
     std::string current;

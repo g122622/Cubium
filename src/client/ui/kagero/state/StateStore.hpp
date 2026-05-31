@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <algorithm>
 #include <any>
 #include <atomic>
@@ -131,7 +131,6 @@ public:
     void set(const std::string& key, T value)
     {
         std::vector<Subscriber> subscribersToNotify;
-        std::vector<std::string> pendingKeysCopy;
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -415,6 +414,7 @@ public:
     u64 subscribe(std::function<void(const T&)> subscriber)
     {
         if (m_key.empty()) {
+            // TODO: 应使用断言或错误处理替代静默返回0
             return 0; // 无效订阅
         }
         return StateStore::instance().subscribe(m_key, [this, subscriber]() {

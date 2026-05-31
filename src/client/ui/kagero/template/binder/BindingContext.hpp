@@ -23,14 +23,13 @@
 
 #pragma once
 
-#include "../../event/EventBus.hpp"
-#include "../../state/ReactiveState.hpp"
-#include "../../state/StateStore.hpp"
-#include "../../widget/Widget.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/ReactiveState.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include <any>
 #include <functional>
 #include <type_traits>
-#include <typeindex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -508,12 +507,12 @@ private:
      * - "path.to.value" 格式
      * - "array[index]" 格式
      */
-    [[nodiscard]] Value resolvePath(const std::string& path) const;
+    [[nodiscard]] Value _resolvePath(const std::string& path) const;
 
     /**
      * @brief 分割路径
      */
-    [[nodiscard]] std::vector<std::string> splitPath(const std::string& path) const;
+    [[nodiscard]] std::vector<std::string> _splitPath(const std::string& path) const;
 
     state::StateStore& m_store;
     event::EventBus& m_eventBus;

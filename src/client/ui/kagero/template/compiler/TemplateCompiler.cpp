@@ -22,6 +22,9 @@
  */
 
 #include "TemplateCompiler.hpp"
+
+#include "common/util/assert/AssertAll.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -170,7 +173,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
     result->setSourcePath(sourcePath);
 
     // 1. 词法分析
-    if (!tokenize(source, sourcePath)) {
+    if (!_tokenize(source, sourcePath)) {
         result->setCompileTime(static_cast<u64>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
                 .count()));
@@ -181,7 +184,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
     }
 
     // 2. 语法分析
-    if (!parse(sourcePath)) {
+    if (!_parse(sourcePath)) {
         result->setCompileTime(static_cast<u64>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
                 .count()));
@@ -211,7 +214,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
     }
 
     // 3. 语义验证
-    if (!validate(ast.get())) {
+    if (!_validate(ast.get())) {
         for (const auto& error : m_lastErrors) {
             result->addError(error);
         }
@@ -223,10 +226,10 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
 
     // 4. 生成编译计划
     result->setAstRoot(std::move(ast));
-    generateBindingPlans(result->astRoot(), result.get());
-    generateEventPlans(result->astRoot(), result.get());
-    collectWatchedPaths(result->astRoot(), result.get());
-    collectCallbacks(result->astRoot(), result.get());
+    _generateBindingPlans(result->astRoot(), result.get());
+    _generateEventPlans(result->astRoot(), result.get());
+    _collectWatchedPaths(result->astRoot(), result.get());
+    _collectCallbacks(result->astRoot(), result.get());
 
     u64 compileTime = static_cast<u64>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
@@ -234,7 +237,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
     result->setCompileTime(compileTime);
 
     if (m_config.debugOutput) {
-        // 输出调试信息
+        // TODO: 调试输出功能待实现
     }
 
     return result;
@@ -276,7 +279,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
 
     // 验证
     m_lastErrors.clear();
-    if (!validate(document.get())) {
+    if (!_validate(document.get())) {
         for (const auto& error : m_lastErrors) {
             result->addError(error);
         }
@@ -288,10 +291,10 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
 
     // 生成编译计划
     result->setAstRoot(std::move(document));
-    generateBindingPlans(result->astRoot(), result.get());
-    generateEventPlans(result->astRoot(), result.get());
-    collectWatchedPaths(result->astRoot(), result.get());
-    collectCallbacks(result->astRoot(), result.get());
+    _generateBindingPlans(result->astRoot(), result.get());
+    _generateEventPlans(result->astRoot(), result.get());
+    _collectWatchedPaths(result->astRoot(), result.get());
+    _collectCallbacks(result->astRoot(), result.get());
 
     result->setCompileTime(static_cast<u64>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
@@ -300,7 +303,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
     return result;
 }
 
-bool TemplateCompiler::tokenize(const std::string& source, const std::string& sourcePath)
+bool TemplateCompiler::_tokenize(const std::string& source, const std::string& sourcePath)
 {
     Lexer lexer(source, sourcePath);
 
@@ -313,15 +316,15 @@ bool TemplateCompiler::tokenize(const std::string& source, const std::string& so
     return true;
 }
 
-bool TemplateCompiler::parse(const std::string& sourcePath)
+bool TemplateCompiler::_parse(const std::string& sourcePath)
 {
-    // 注意：parse方法会创建新的AST，这里只是为了检查错误
-    // 实际的AST在compile()中重新创建
+    // TODO: 当前parse为空实现，实际的词法+语法分析在compile()中通过Lexer/Parser直接完成
+    // 后续应将compile()中的重复逻辑重构到此处，使编译管线各阶段真正独立
     (void)sourcePath;
     return true;
 }
 
-bool TemplateCompiler::validate(ast::DocumentNode* document)
+bool TemplateCompiler::_validate(ast::DocumentNode* document)
 {
     if (!document) {
         m_lastErrors.push_back(
@@ -332,7 +335,7 @@ bool TemplateCompiler::validate(ast::DocumentNode* document)
     TemplateErrorCollector collector;
 
     // 验证文档根
-    if (!validateNode(document, collector)) {
+    if (!_validateNode(document, collector)) {
         m_lastErrors = collector.errors();
         return false;
     }
@@ -346,7 +349,7 @@ bool TemplateCompiler::validate(ast::DocumentNode* document)
     return true;
 }
 
-bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollector& collector)
+bool TemplateCompiler::_validateNode(const ast::Node* node, TemplateErrorCollector& collector)
 {
     if (!node) return true;
 
@@ -355,7 +358,7 @@ bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollecto
         case ast::NodeType::Document:
             // 验证文档的子节点
             for (const auto& child : node->children) {
-                if (!validateNode(child.get(), collector)) {
+                if (!_validateNode(child.get(), collector)) {
                     return false;
                 }
             }
@@ -369,12 +372,12 @@ bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollecto
         default:
             // 元素节点
             if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
-                if (!validateElement(element, collector)) {
+                if (!_validateElement(element, collector)) {
                     return false;
                 }
                 // 验证子节点
                 for (const auto& child : element->children) {
-                    if (!validateNode(child.get(), collector)) {
+                    if (!_validateNode(child.get(), collector)) {
                         return false;
                     }
                 }
@@ -385,7 +388,7 @@ bool TemplateCompiler::validateNode(const ast::Node* node, TemplateErrorCollecto
     return true;
 }
 
-bool TemplateCompiler::validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector)
+bool TemplateCompiler::_validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector)
 {
     if (!element) return true;
 
@@ -401,7 +404,7 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element, Template
 
     // 2. 验证属性
     for (const auto& [name, attr] : element->attributes) {
-        if (!validateAttribute(attr, element, collector)) {
+        if (!_validateAttribute(attr, element, collector)) {
             if (m_config.strictMode) {
                 return false;
             }
@@ -411,7 +414,7 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element, Template
     // 3. 检查内联脚本/表达式（严格模式）
     if (m_config.strictMode) {
         for (const auto& [name, attr] : element->attributes) {
-            if (containsInlineScript(attr.rawValue) || containsForbiddenPattern(attr.rawValue)) {
+            if (_containsInlineScript(attr.rawValue) || _containsForbiddenPattern(attr.rawValue)) {
                 collector.addError(TemplateErrorType::InlineScriptNotAllowed,
                     "Inline scripts/expressions are not allowed in strict mode. " +
                         std::string("Found in attribute '") + name + "'",
@@ -424,10 +427,10 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element, Template
     return true;
 }
 
-bool TemplateCompiler::validateAttribute(
+bool TemplateCompiler::_validateAttribute(
     const ast::Attribute& attr, const ast::ElementNode* element, TemplateErrorCollector& collector)
 {
-    (void)element; // 暂时未使用
+    // TODO: element参数暂未使用，后续属性验证可能需要元素上下文（如检查标签与属性的兼容性）
 
     // 验证属性名格式
     if (!ast::isValidAttributeName(attr.name)) {
@@ -461,7 +464,7 @@ bool TemplateCompiler::validateAttribute(
     return true;
 }
 
-bool TemplateCompiler::containsInlineScript(const std::string& value) const
+bool TemplateCompiler::_containsInlineScript(const std::string& value) const
 {
     // 检查常见的脚本标记
     static const std::string scriptPatterns[] = {"<script", "</script>", "{{", "}}", "{%", "%}", "${", "<?php", "?>"};
@@ -475,7 +478,7 @@ bool TemplateCompiler::containsInlineScript(const std::string& value) const
     return false;
 }
 
-bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const
+bool TemplateCompiler::_containsForbiddenPattern(const std::string& value) const
 {
     // 检查禁止的表达式模式
     static const std::string forbiddenPatterns[] = {
@@ -490,18 +493,16 @@ bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const
     return false;
 }
 
-void TemplateCompiler::generateBindingPlans(ast::DocumentNode* document, CompiledTemplate* result)
+void TemplateCompiler::_generateBindingPlans(ast::DocumentNode* document, CompiledTemplate* result)
 {
-    if (!document || !result) return;
-
     // 遍历AST，为每个绑定属性生成计划
     for (const auto& child : document->children) {
         std::string currentPath;
-        generateBindingPlansRecursive(child.get(), currentPath, result);
+        _generateBindingPlansRecursive(child.get(), currentPath, result);
     }
 }
 
-void TemplateCompiler::generateBindingPlansRecursive(
+void TemplateCompiler::_generateBindingPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
     if (!node || !result) return;
@@ -511,7 +512,7 @@ void TemplateCompiler::generateBindingPlansRecursive(
     // 处理元素节点
     if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
         // 生成当前路径
-        currentPath = TemplateCompiler::generateWidgetPath(element, parentPath);
+        currentPath = _generateWidgetPath(element, parentPath);
 
         // DEBUG: 输出元素信息
         if (m_config.debugOutput) {
@@ -519,10 +520,10 @@ void TemplateCompiler::generateBindingPlansRecursive(
         }
 
         // 处理绑定属性
-        // TODO：需要确保 categorizeAttributes() 已被调用
+        // TODO: 需要确保 categorizeAttributes() 已被调用
+        // 当 bindingAttrs 为空但 attributes 不为空时，说明分类未执行，需要触发
+        // const_cast 是因为遍历逻辑只需读语义信息，不修改逻辑结构
         if (element->bindingAttrs.empty() && !element->attributes.empty()) {
-            // 如果 bindingAttrs 为空但 attributes 不为空，可能需要重新分类
-            // 这不应该发生，但作为防御性编程
             const_cast<ast::ElementNode*>(element)->categorizeAttributes();
         }
 
@@ -542,23 +543,21 @@ void TemplateCompiler::generateBindingPlansRecursive(
 
         // 递归处理子节点
         for (const auto& child : element->children) {
-            generateBindingPlansRecursive(child.get(), currentPath, result);
+            _generateBindingPlansRecursive(child.get(), currentPath, result);
         }
     }
 }
 
-void TemplateCompiler::generateEventPlans(ast::DocumentNode* document, CompiledTemplate* result)
+void TemplateCompiler::_generateEventPlans(ast::DocumentNode* document, CompiledTemplate* result)
 {
-    if (!document || !result) return;
-
     // 遍历AST，为每个事件属性生成计划
     for (const auto& child : document->children) {
         std::string currentPath;
-        generateEventPlansRecursive(child.get(), currentPath, result);
+        _generateEventPlansRecursive(child.get(), currentPath, result);
     }
 }
 
-void TemplateCompiler::generateEventPlansRecursive(
+void TemplateCompiler::_generateEventPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
     if (!node || !result) return;
@@ -567,11 +566,12 @@ void TemplateCompiler::generateEventPlansRecursive(
 
     // 处理元素节点
     if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
-        currentPath = generateWidgetPath(element, parentPath);
+        currentPath = _generateWidgetPath(element, parentPath);
 
-        // TODO：需要确保 categorizeAttributes() 已被调用
+        // TODO: 需要确保 categorizeAttributes() 已被调用
+        // 当 eventAttrs 为空但 attributes 不为空时，说明分类未执行，需要触发
+        // const_cast 是因为遍历逻辑只需读语义信息，不修改逻辑结构
         if (element->eventAttrs.empty() && !element->attributes.empty()) {
-            // 如果 eventAttrs 为空但 attributes 不为空，可能需要重新分类
             const_cast<ast::ElementNode*>(element)->categorizeAttributes();
         }
 
@@ -587,14 +587,15 @@ void TemplateCompiler::generateEventPlansRecursive(
 
         // 递归处理子节点
         for (const auto& child : element->children) {
-            generateEventPlansRecursive(child.get(), currentPath, result);
+            _generateEventPlansRecursive(child.get(), currentPath, result);
         }
     }
 }
 
-void TemplateCompiler::collectWatchedPaths(ast::DocumentNode* document, CompiledTemplate* result)
+void TemplateCompiler::_collectWatchedPaths(ast::DocumentNode* document, CompiledTemplate* result)
 {
-    if (!document || !result) return;
+    // TODO: document参数暂未使用，后续可直接从AST收集路径而不仅依赖BindingPlan
+    (void)document;
 
     // 从绑定计划中收集状态路径
     for (const auto& plan : result->bindingPlans()) {
@@ -611,9 +612,10 @@ void TemplateCompiler::collectWatchedPaths(ast::DocumentNode* document, Compiled
     }
 }
 
-void TemplateCompiler::collectCallbacks(ast::DocumentNode* document, CompiledTemplate* result)
+void TemplateCompiler::_collectCallbacks(ast::DocumentNode* document, CompiledTemplate* result)
 {
-    if (!document || !result) return;
+    // TODO: document参数暂未使用，后续可直接从AST收集回调而不仅依赖EventPlan
+    (void)document;
 
     // 从事件计划中收集回调名称
     for (const auto& plan : result->eventPlans()) {
@@ -623,9 +625,9 @@ void TemplateCompiler::collectCallbacks(ast::DocumentNode* document, CompiledTem
     }
 }
 
-std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath)
+std::string TemplateCompiler::_generateWidgetPath(const ast::ElementNode* element, const std::string& parentPath)
 {
-    if (!element) return parentPath;
+    MC_ASSERT_RELEASE(element != nullptr);
 
     std::string path = parentPath;
 
@@ -633,14 +635,14 @@ std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element
     if (!element->id.empty()) {
         path = path.empty() ? element->id : path + "." + element->id;
     } else {
-        // 使用标签名加索引（简化处理）
+        // TODO: 当前使用标签名作为路径片段，多个同名标签可能产生歧义，后续应加上索引区分
         path = path.empty() ? element->tagName : path + "." + element->tagName;
     }
 
     return path;
 }
 
-void TemplateCompiler::extractBindings(const ast::ElementNode* element,
+void TemplateCompiler::_extractBindings(const ast::ElementNode* element,
     const std::string& widgetPath,
     std::vector<BindingPlan>& plans,
     std::vector<LoopPlan>& loopPlans)

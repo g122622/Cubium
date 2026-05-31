@@ -23,20 +23,20 @@
 
 #pragma once
 
-#include "../../event/EventBus.hpp"
-#include "../../event/InputEvents.hpp"
-#include "../../event/UIEvents.hpp"
-#include "../../widget/ButtonWidget.hpp"
-#include "../../widget/CheckboxWidget.hpp"
-#include "../../widget/ContainerWidget.hpp"
-#include "../../widget/ListWidget.hpp"
-#include "../../widget/ScrollableWidget.hpp"
-#include "../../widget/SliderWidget.hpp"
-#include "../../widget/SlotWidget.hpp"
-#include "../../widget/TextFieldWidget.hpp"
-#include "../../widget/TextWidget.hpp"
-#include "../../widget/Viewport3DWidget.hpp"
-#include "../../widget/Widget.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/event/InputEvents.hpp"
+#include "client/ui/kagero/event/UIEvents.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/CheckboxWidget.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/ListWidget.hpp"
+#include "client/ui/kagero/widget/ScrollableWidget.hpp"
+#include "client/ui/kagero/widget/SliderWidget.hpp"
+#include "client/ui/kagero/widget/SlotWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/ui/kagero/widget/TextWidget.hpp"
+#include "client/ui/kagero/widget/Viewport3DWidget.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include <functional>
 #include <map>
 #include <memory>
@@ -110,19 +110,19 @@ private:
     BuiltinWidgets(const BuiltinWidgets&) = delete;
     BuiltinWidgets& operator=(const BuiltinWidgets&) = delete;
 
-    void registerScreenWidget();
-    void registerContainerWidget();
-    void registerButtonWidget();
-    void registerTextWidget();
-    void registerTextFieldWidget();
-    void registerSliderWidget();
-    void registerCheckboxWidget();
-    void registerImageWidget();
-    void registerGridWidget();
-    void registerSlotWidget();
-    void registerScrollableWidget();
-    void registerListWidget();
-    void registerViewport3DWidget();
+    void _registerScreenWidget();
+    void _registerContainerWidget();
+    void _registerButtonWidget();
+    void _registerTextWidget();
+    void _registerTextFieldWidget();
+    void _registerSliderWidget();
+    void _registerCheckboxWidget();
+    void _registerImageWidget();
+    void _registerGridWidget();
+    void _registerSlotWidget();
+    void _registerScrollableWidget();
+    void _registerListWidget();
+    void _registerViewport3DWidget();
 
     std::unordered_map<std::string, WidgetCreator> m_creators;
     std::unordered_map<std::string, std::map<std::string, std::string>> m_defaultAttributes;
@@ -201,7 +201,7 @@ void applySize(widget::Widget* widget, const std::string& value);
 /**
  * @brief 解析布尔值
  *
- * 支持值: "true", "false", "1", "0", "yes", "no"
+ * 支持值: "true", "false", "1", "0", "yes", "no", "on", "off"
  */
 [[nodiscard]] bool parseBool(const std::string& value);
 

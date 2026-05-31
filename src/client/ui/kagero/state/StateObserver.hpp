@@ -24,7 +24,6 @@
 #pragma once
 
 #include "ReactiveState.hpp"
-#include <algorithm>
 #include <chrono>
 #include <unordered_set>
 
@@ -33,7 +32,8 @@ namespace mc::client::ui::kagero::state {
 /**
  * @brief 状态观察者接口
  *
- * 定义状态变化观察者的通用接口
+ * 定义状态变化观察者的通用接口。
+ * 观察者的生命周期由外部管理，注册时传入裸指针，调用方需确保指针有效性。
  */
 class IStateObserver {
 public:
@@ -48,7 +48,8 @@ public:
 /**
  * @brief 状态观察者管理器
  *
- * 管理多个状态观察者，支持批量通知
+ * 管理多个状态观察者，支持批量通知。
+ * 使用 unordered_set 存储，自动去重，添加/移除为 O(1)。
  */
 class StateObserverManager {
 public:
@@ -80,7 +81,7 @@ public:
     /**
      * @brief 获取观察者数量
      */
-    [[nodiscard]] size_t count() const { return m_observers.size(); }
+    [[nodiscard]] Size count() const { return m_observers.size(); }
 
 private:
     std::unordered_set<IStateObserver*> m_observers;
@@ -89,7 +90,8 @@ private:
 /**
  * @brief 自动状态观察者
  *
- * 自动管理响应式状态的观察
+ * 自动管理响应式状态的观察，构造时注册观察者，析构时自动移除。
+ * 注意：观察者生命周期不能超过被观察的 Reactive 对象。
  *
  * @tparam T 状态类型
  */
@@ -107,7 +109,7 @@ public:
         : m_reactive(reactive)
         , m_callback(std::move(callback))
     {
-        m_observerId = m_reactive.observe([this](const T& oldValue, const T& newValue) {
+        m_observerId = m_reactive.observe([this](const T& /*oldValue*/, const T& newValue) {
             if (m_callback) {
                 m_callback(newValue);
             }
@@ -139,7 +141,7 @@ public:
         , m_observerId(0)
     {
         // 重新注册观察者，因为回调 lambda 捕获的是 this 指针
-        m_observerId = m_reactive.observe([this](const T& oldValue, const T& newValue) {
+        m_observerId = m_reactive.observe([this](const T& /*oldValue*/, const T& newValue) {
             if (m_callback) {
                 m_callback(newValue);
             }
@@ -149,6 +151,8 @@ public:
         other.m_observerId = 0;
     }
 
+    // TODO: 移动赋值运算符存在语义问题——m_reactive 是引用无法重新绑定，
+    // 赋值后 this 仍然观察旧的 reactive 而非 other.m_reactive，应考虑删除此运算符
     AutoObserver& operator=(AutoObserver&& other) noexcept
     {
         if (this != &other) {
@@ -159,8 +163,8 @@ public:
 
             m_callback = std::move(other.m_callback);
 
-            // 重新注册观察者
-            m_observerId = m_reactive.observe([this](const T& oldValue, const T& newValue) {
+            // 重新注册观察者（仍在 this->m_reactive 上注册，而非 other.m_reactive）
+            m_observerId = m_reactive.observe([this](const T& /*oldValue*/, const T& newValue) {
                 if (m_callback) {
                     m_callback(newValue);
                 }
@@ -192,7 +196,10 @@ private:
 /**
  * @brief 多状态观察者
  *
- * 观察多个响应式状态，当任一状态变化时触发回调
+ * 观察多个响应式状态，当任一状态变化时触发回调。
+ * 适合需要同时监听多个状态并统一响应的场景。
+ *
+ * @warning 观察者生命周期不能超过任何被观察的 Reactive 对象
  */
 class MultiStateObserver {
 public:
@@ -207,6 +214,9 @@ public:
 
     /**
      * @brief 观察响应式状态
+     *
+     * @warning 观察者的生命周期不能超过被观察的 Reactive 对象，
+     *          否则清除时会通过悬垂引用访问已销毁的 Reactive
      */
     template <typename T>
     void observe(Reactive<T>& reactive)
@@ -216,6 +226,7 @@ public:
                 m_callback();
             }
         });
+        // 捕获 reactive 引用用于析构时移除观察者
         m_observerIds.push_back([id, &reactive]() { reactive.removeObserver(id); });
     }
 
@@ -237,13 +248,17 @@ public:
 
 private:
     Callback m_callback;
+    // 存储每个观察者的移除函数，clear() 时逐一调用以反注册
     std::vector<std::function<void()>> m_observerIds;
 };
 
 /**
  * @brief 延迟状态观察者
  *
- * 延迟触发状态变化通知，避免频繁更新
+ * 延迟触发状态变化通知，避免频繁更新。
+ * 需要定期调用 update() 检查延迟是否已过，适合在游戏主循环中使用。
+ *
+ * @tparam T 状态类型，必须可默认构造
  */
 template <typename T>
 class DebouncedObserver {

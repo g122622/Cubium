@@ -39,13 +39,13 @@ void BuiltinEvents::initialize()
 {
     if (m_initialized) return;
 
-    registerClickEvents();
-    registerHoverEvents();
-    registerFocusEvents();
-    registerKeyEvents();
-    registerValueEvents();
-    registerDragEvents();
-    registerScrollEvents();
+    _registerClickEvents();
+    _registerHoverEvents();
+    _registerFocusEvents();
+    _registerKeyEvents();
+    _registerValueEvents();
+    _registerDragEvents();
+    _registerScrollEvents();
 
     m_initialized = true;
 }
@@ -87,7 +87,7 @@ event::EventType BuiltinEvents::getEventType(const std::string& eventName) const
     return it != m_eventTypes.end() ? it->second : event::EventType::Custom;
 }
 
-void BuiltinEvents::registerClickEvents()
+void BuiltinEvents::_registerClickEvents()
 {
     // click事件
     m_handlers[event_names::CLICK] = [](widget::Widget* widget, const event::Event& event) {
@@ -100,6 +100,7 @@ void BuiltinEvents::registerClickEvents()
     m_eventTypes[event_names::CLICK] = event::EventType::MouseClick;
 
     // doubleClick事件
+    // TODO: Widget缺少onDoubleClick方法，目前复用onClick，需要添加专门的双击处理
     m_handlers[event_names::DOUBLE_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
@@ -110,16 +111,18 @@ void BuiltinEvents::registerClickEvents()
     m_eventTypes[event_names::DOUBLE_CLICK] = event::EventType::MouseClick;
 
     // rightClick事件
+    // TODO: Widget缺少onRightClick方法，目前硬编码button=1，需要添加专门的右键处理
     m_handlers[event_names::RIGHT_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), 1); // 右键
+                widget->onClick(clickEvent->x(), clickEvent->y(), 1);
             }
         }
     };
     m_eventTypes[event_names::RIGHT_CLICK] = event::EventType::MouseClick;
 
     // mouseDown事件
+    // TODO: Widget缺少onMouseDown方法，目前复用onClick，需要添加专门的鼠标按下处理
     m_handlers[event_names::MOUSE_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
@@ -140,7 +143,7 @@ void BuiltinEvents::registerClickEvents()
     m_eventTypes[event_names::MOUSE_UP] = event::EventType::MouseRelease;
 }
 
-void BuiltinEvents::registerHoverEvents()
+void BuiltinEvents::_registerHoverEvents()
 {
     // mouseEnter事件
     m_handlers[event_names::MOUSE_ENTER] = [](widget::Widget* widget, const event::Event&) {
@@ -171,7 +174,7 @@ void BuiltinEvents::registerHoverEvents()
     m_eventTypes[event_names::MOUSE_MOVE] = event::EventType::MouseMove;
 }
 
-void BuiltinEvents::registerFocusEvents()
+void BuiltinEvents::_registerFocusEvents()
 {
     // focus事件
     m_handlers[event_names::FOCUS] = [](widget::Widget* widget, const event::Event&) {
@@ -192,7 +195,7 @@ void BuiltinEvents::registerFocusEvents()
     m_eventTypes[event_names::BLUR] = event::EventType::FocusLost;
 }
 
-void BuiltinEvents::registerKeyEvents()
+void BuiltinEvents::_registerKeyEvents()
 {
     // keyDown事件
     m_handlers[event_names::KEY_DOWN] = [](widget::Widget* widget, const event::Event& event) {
@@ -239,24 +242,20 @@ void BuiltinEvents::registerKeyEvents()
     m_eventTypes[event_names::CHAR_INPUT] = event::EventType::CharInput;
 }
 
-void BuiltinEvents::registerValueEvents()
+void BuiltinEvents::_registerValueEvents()
 {
     // change事件
-    m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event&) {
-        // 值变化处理，由具体Widget实现
-        (void)widget;
-    };
+    // TODO: 值变化处理尚未实现，需要由具体Widget实现onValueChange接口
+    m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event&) { (void)widget; };
     m_eventTypes[event_names::CHANGE] = event::EventType::ValueChange;
 
     // input事件
-    m_handlers[event_names::INPUT] = [](widget::Widget* widget, const event::Event&) {
-        // 输入处理，由具体Widget实现
-        (void)widget;
-    };
+    // TODO: 输入处理尚未实现，需要由具体Widget实现onTextInput接口
+    m_handlers[event_names::INPUT] = [](widget::Widget* widget, const event::Event&) { (void)widget; };
     m_eventTypes[event_names::INPUT] = event::EventType::TextChange;
 }
 
-void BuiltinEvents::registerDragEvents()
+void BuiltinEvents::_registerDragEvents()
 {
     // drag事件
     m_handlers[event_names::DRAG] = [](widget::Widget* widget, const event::Event& event) {
@@ -269,29 +268,29 @@ void BuiltinEvents::registerDragEvents()
     m_eventTypes[event_names::DRAG] = event::EventType::MouseDrag;
 
     // dragStart事件
+    // TODO: 拖拽开始处理尚未实现，需要Widget添加onDragStart方法
     m_handlers[event_names::DRAG_START] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragStartEvent*>(&event)) {
                 (void)dragEvent;
-                // 开始拖拽处理
             }
         }
     };
     m_eventTypes[event_names::DRAG_START] = event::EventType::Custom;
 
     // dragEnd事件
+    // TODO: 拖拽结束处理尚未实现，需要Widget添加onDragEnd方法
     m_handlers[event_names::DRAG_END] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragEndEvent*>(&event)) {
                 (void)dragEvent;
-                // 结束拖拽处理
             }
         }
     };
     m_eventTypes[event_names::DRAG_END] = event::EventType::Custom;
 }
 
-void BuiltinEvents::registerScrollEvents()
+void BuiltinEvents::_registerScrollEvents()
 {
     // scroll事件
     m_handlers[event_names::SCROLL] = [](widget::Widget* widget, const event::Event& event) {
@@ -386,7 +385,7 @@ template event::ValueChangeEvent<std::string> createValueChangeEvent(const std::
 
 i32 parseKeyCode(const std::string& keyName)
 {
-    // 简化版本，只支持常用键
+    // TODO: 简化版本，只支持常用键，需要补充完整的键盘映射
     static const std::unordered_map<std::string, i32> keyMap = {{"unknown", 0},
         {"space", 32},
         {"enter", 257},
@@ -492,12 +491,15 @@ i32 parseKeyMods(const std::string& mods)
     std::transform(
         lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    if (lower.find("shift") != std::string::npos) result |= 0x01;
-    if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos) result |= 0x02;
-    if (lower.find("alt") != std::string::npos) result |= 0x04;
-    if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos) result |= 0x08;
-    if (lower.find("caps") != std::string::npos) result |= 0x10;
-    if (lower.find("num") != std::string::npos) result |= 0x20;
+    // 修饰键位掩码（与GLFW修饰键定义一致）
+    if (lower.find("shift") != std::string::npos) result |= 0x01; // Shift
+    if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos)
+        result |= 0x02;                                         // Control
+    if (lower.find("alt") != std::string::npos) result |= 0x04; // Alt
+    if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos)
+        result |= 0x08;                                          // Super/Meta
+    if (lower.find("caps") != std::string::npos) result |= 0x10; // Caps Lock
+    if (lower.find("num") != std::string::npos) result |= 0x20;  // Num Lock
 
     return result;
 }

@@ -23,15 +23,16 @@
 
 #pragma once
 
-#include "../../event/Event.hpp"
-#include "../../event/EventBus.hpp"
-#include "../../event/InputEvents.hpp"
-#include "../../event/UIEvents.hpp"
-#include "../../event/WidgetEvents.hpp"
-#include "../../widget/Widget.hpp"
+#include "client/ui/kagero/event/Event.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/event/InputEvents.hpp"
+#include "client/ui/kagero/event/UIEvents.hpp"
+#include "client/ui/kagero/event/WidgetEvents.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 
@@ -101,13 +102,13 @@ private:
     BuiltinEvents(const BuiltinEvents&) = delete;
     BuiltinEvents& operator=(const BuiltinEvents&) = delete;
 
-    void registerClickEvents();
-    void registerHoverEvents();
-    void registerFocusEvents();
-    void registerKeyEvents();
-    void registerValueEvents();
-    void registerDragEvents();
-    void registerScrollEvents();
+    void _registerClickEvents();
+    void _registerHoverEvents();
+    void _registerFocusEvents();
+    void _registerKeyEvents();
+    void _registerValueEvents();
+    void _registerDragEvents();
+    void _registerScrollEvents();
 
     std::unordered_map<std::string, EventHandler> m_handlers;
     std::unordered_map<std::string, event::EventType> m_eventTypes;
@@ -171,7 +172,7 @@ namespace event_utils {
 /**
  * @brief 创建鼠标点击事件
  */
-[[nodiscard]] event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks = 1);
+[[nodiscard]] event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks);
 
 /**
  * @brief 创建鼠标释放事件
