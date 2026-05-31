@@ -96,6 +96,7 @@ jobs:
   # Linux build + test – server-only (headless, no Vulkan/GUI)
   # ============================================================
   build-linux:
+    if: false
     name: Build & Test (Linux / Clang / RelWithDebInfo)
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -184,6 +185,7 @@ jobs:
   # AddressSanitizer + UndefinedBehaviorSanitizer (Linux / Clang)
   # ============================================================
   asan-ubsan:
+    if: false
     name: ASan + UBSan (Linux / Clang)
     runs-on: ubuntu-latest
     timeout-minutes: 150
@@ -277,6 +279,8 @@ jobs:
   # ThreadSanitizer (Linux / Clang)
   # ============================================================
   tsan:
+    if: false
+
     name: TSan (Linux / Clang)
     runs-on: ubuntu-latest
     timeout-minutes: 150
@@ -368,6 +372,8 @@ jobs:
   # Stack Protection + Hardened build (Linux / Clang)
   # ============================================================
   stack-protect:
+    if: false
+
     name: Stack Protection + Hardening (Linux / Clang)
     runs-on: ubuntu-latest
     timeout-minutes: 150

@@ -700,7 +700,7 @@ void EntityRendererManager::_remapUvToAtlasRegion(
 void EntityRendererManager::clearAnimatedMeshes()
 {
     if (m_animatedMeshCache) {
-        m_animatedMeshCache->clear();
+        m_animatedMeshCache->clear(m_pipeline);
     }
 }
 
