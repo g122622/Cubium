@@ -24,7 +24,6 @@
 #include "ItemModelLoader.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace mc::client::resource {
@@ -89,7 +88,7 @@ ItemTransform ItemTransform::fromJson(const nlohmann::json& json)
     }
 
     if (json.contains("translation") && json["translation"].is_array() && json["translation"].size() >= 3) {
-        // MC 使用像素单位，转换为方块单位（除以 16）
+        // 物品模型 JSON 使用像素单位，转换为方块单位（除以 16）
         t.translation = glm::vec3(json["translation"][0].get<f32>() / 16.0f,
             json["translation"][1].get<f32>() / 16.0f,
             json["translation"][2].get<f32>() / 16.0f);
@@ -109,7 +108,7 @@ glm::mat4 ItemTransform::toMatrix() const
     // 顺序：平移 -> 旋转 -> 缩放（应用顺序相反）
     mat = glm::translate(mat, translation);
 
-    // 旋转顺序：Z -> Y -> X（MC 风格）
+    // 旋转顺序：Z -> Y -> X
     mat = glm::rotate(mat, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
     mat = glm::rotate(mat, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
     mat = glm::rotate(mat, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -185,10 +184,10 @@ ResourceLocation BakedItemModel::resolveTexture(std::string_view textureRef) con
 ItemModelLoader::ItemModelLoader(const std::vector<ResourcePackPtr>& resourcePacks)
     : m_resourcePacks(resourcePacks)
 {
-    loadDefaultTransforms();
+    _loadDefaultTransforms();
 }
 
-void ItemModelLoader::loadDefaultTransforms()
+void ItemModelLoader::_loadDefaultTransforms()
 {
     // item/generated 默认变换
     m_generatedDefaults[ItemDisplayContext::ThirdPersonRightHand] =
@@ -225,20 +224,11 @@ void ItemModelLoader::loadDefaultTransforms()
 
 Result<void> ItemModelLoader::loadAllModels()
 {
-    // 加载所有物品模型
-    // 首先需要从资源包中列出所有 models/item/*.json 文件
-
-    // 由于当前 IResourcePack 接口可能不直接支持列出文件，
-    // 我们采用延迟加载策略：在需要时加载模型
-
-    // 但我们可以预加载一些常用模型
-    // 例如从 ItemRegistry 获取所有物品 ID
-
-    // 目前采用延迟加载策略
+    // TODO: 实现全量物品模型加载，当前采用延迟加载策略
     return Result<void>::ok();
 }
 
-Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath)
+Result<std::string> ItemModelLoader::_readModelFromResourcePacks(const std::string& filePath)
 {
     // filePath 已是相对于 PackType 根目录的路径（如 "minecraft/models/item/stone.json"）
     // 无需再剥离 "assets/" 前缀
@@ -268,13 +258,13 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
     std::string filePath = location.namespace_() + "/models/" + location.path() + ".json";
 
     // 从资源包读取
-    auto readResult = readModelFromResourcePacks(filePath);
+    auto readResult = _readModelFromResourcePacks(filePath);
     if (!readResult.success()) {
         return readResult.error();
     }
 
     // 解析 JSON
-    auto parseResult = parseModel(location, readResult.value());
+    auto parseResult = _parseModel(location, readResult.value());
     if (!parseResult.success()) {
         return parseResult;
     }
@@ -285,7 +275,7 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
     return model;
 }
 
-Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& location, std::string_view jsonContent)
+Result<UnbakedItemModel> ItemModelLoader::_parseModel(const ResourceLocation& location, std::string_view jsonContent)
 {
     UnbakedItemModel model;
     model.location = location;
@@ -302,17 +292,17 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
 
         // 解析纹理
         if (json.contains("textures") && json["textures"].is_object()) {
-            parseTextures(model, json["textures"]);
+            _parseTextures(model, json["textures"]);
         }
 
         // 解析显示变换
         if (json.contains("display") && json["display"].is_object()) {
-            parseDisplay(model, json["display"]);
+            _parseDisplay(model, json["display"]);
         }
 
         // 解析元素（可选，用于 3D 物品）
         if (json.contains("elements") && json["elements"].is_array()) {
-            auto elemResult = parseElements(model, json["elements"]);
+            auto elemResult = _parseElements(model, json["elements"]);
             if (!elemResult.success()) {
                 return elemResult.error();
             }
@@ -320,7 +310,7 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
 
         // 解析覆盖条件
         if (json.contains("overrides") && json["overrides"].is_array()) {
-            parseOverrides(model, json["overrides"]);
+            _parseOverrides(model, json["overrides"]);
         }
 
         // 解析环境光遮蔽
@@ -329,7 +319,7 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
         }
 
         // 确定模型类型
-        model.type = determineModelType(model.parentLocation, !model.elements.empty());
+        model.type = _determineModelType(model.parentLocation, !model.elements.empty());
     }
     catch (const nlohmann::json::exception& e) {
         return Error(
@@ -339,7 +329,7 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
     return model;
 }
 
-void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::json& textures)
+void ItemModelLoader::_parseTextures(UnbakedItemModel& model, const nlohmann::json& textures)
 {
     for (auto& [key, value] : textures.items()) {
         if (value.is_string()) {
@@ -348,7 +338,7 @@ void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::jso
     }
 }
 
-void ItemModelLoader::parseDisplay(UnbakedItemModel& model, const nlohmann::json& display)
+void ItemModelLoader::_parseDisplay(UnbakedItemModel& model, const nlohmann::json& display)
 {
     for (auto& [key, value] : display.items()) {
         if (!value.is_object()) continue;
@@ -360,7 +350,7 @@ void ItemModelLoader::parseDisplay(UnbakedItemModel& model, const nlohmann::json
     }
 }
 
-void ItemModelLoader::parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides)
+void ItemModelLoader::_parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides)
 {
     for (const auto& override : overrides) {
         if (!override.is_object()) continue;
@@ -368,10 +358,9 @@ void ItemModelLoader::parseOverrides(UnbakedItemModel& model, const nlohmann::js
     }
 }
 
-Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohmann::json& elements)
+Result<void> ItemModelLoader::_parseElements(UnbakedItemModel& model, const nlohmann::json& elements)
 {
-    // 复用 BlockModelLoader 的解析逻辑
-    // 这里简化实现，后续可以提取公共方法
+    // TODO: 提取公共解析方法，与 BlockModelLoader 复用元素解析逻辑
 
     for (const auto& elemJson : elements) {
         if (!elemJson.is_object()) continue;
@@ -457,7 +446,7 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
     return Result<void>::ok();
 }
 
-ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent, bool hasElements) const
+ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& parent, bool hasElements) const
 {
     std::string parentPath = parent.path();
 
@@ -472,7 +461,7 @@ ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent
     }
 
     // 方块物品
-    if (parentPath.find("block/") == 0 || parentPath.find("block/") != std::string::npos) {
+    if (parentPath.find("block/") != std::string::npos) {
         return ItemModelType::Block;
     }
 
@@ -485,8 +474,9 @@ ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent
     return ItemModelType::Generated;
 }
 
-void ItemModelLoader::mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent)
+void ItemModelLoader::_mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent)
 {
+    // TODO: bakeModel 中存在重复的合并逻辑，应重构为调用此方法
     // 合并纹理（子模型覆盖父模型）
     for (const auto& [key, value] : parent.textures) {
         if (child.textures.find(key) == child.textures.end()) {
@@ -594,7 +584,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     }
 
     // 解析纹理引用链
-    resolveTextureReferences(baked);
+    _resolveTextureReferences(baked);
 
     // 提取纹理层（layer0, layer1, ...）
     for (u32 i = 0;; ++i) {
@@ -617,7 +607,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     return baked;
 }
 
-void ItemModelLoader::resolveTextureReferences(BakedItemModel& baked)
+void ItemModelLoader::_resolveTextureReferences(BakedItemModel& baked)
 {
     // 递归解析 #variable 形式的纹理引用
     bool changed = true;

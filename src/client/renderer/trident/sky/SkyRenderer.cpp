@@ -22,9 +22,9 @@
  */
 
 #include "SkyRenderer.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "CelestialCalculations.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
 #include "common/core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -98,7 +98,7 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path)
 // ============================================================================
 
 struct SkyVertex {
-    float x, y, z;
+    f32 x, y, z;
 };
 
 struct SkyPushConstants {
@@ -140,45 +140,45 @@ Result<void> SkyRenderer::initialize(VkDevice device,
     m_extent = extent;
 
     // 创建顶点缓冲区
-    auto result1 = createSkyDomeVBO();
+    auto result1 = _createSkyDomeVBO();
     if (result1.failed()) {
         return result1;
     }
 
-    auto result2 = createStarVBO();
+    auto result2 = _createStarVBO();
     if (result2.failed()) {
         return result2;
     }
 
-    auto result3 = createSunMoonVBO();
+    auto result3 = _createSunMoonVBO();
     if (result3.failed()) {
         return result3;
     }
 
     // 创建 Uniform 缓冲区
-    auto result4 = createUniformBuffers();
+    auto result4 = _createUniformBuffers();
     if (result4.failed()) {
         return result4;
     }
 
     // 创建描述符
-    auto result5 = createDescriptorSetLayout();
+    auto result5 = _createDescriptorSetLayout();
     if (result5.failed()) {
         return result5;
     }
 
-    auto result6 = createDescriptorSets();
+    auto result6 = _createDescriptorSets();
     if (result6.failed()) {
         return result6;
     }
 
     // 创建管线
-    auto result7 = createPipelineLayout();
+    auto result7 = _createPipelineLayout();
     if (result7.failed()) {
         return result7;
     }
 
-    auto result8 = createPipelines(sampleCount);
+    auto result8 = _createPipelines(sampleCount);
     if (result8.failed()) {
         return result8;
     }
@@ -298,7 +298,7 @@ Result<void> SkyRenderer::onResize(VkExtent2D extent)
 
 void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStrength, f64 thunderStrength)
 {
-    MC_ASSERT_RELEASE_MSG(partialTick >= 0.0f && partialTick <= 1.0f, "partialTick must be in range [0, 1]");
+    MC_ASSERT_RELEASE_MSG(partialTick >= 0.0 && partialTick <= 1.0, "partialTick must be in range [0, 1]");
 
     m_dayTime = dayTime;
     m_gameTime = gameTime;
@@ -324,7 +324,7 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStr
     // 日出日落中心方向（始终在水平面）
     glm::dvec2 sunriseXZ(static_cast<f64>(m_sunDirection.x), static_cast<f64>(m_sunDirection.z));
     const f64 sunriseLen2 = glm::dot(sunriseXZ, sunriseXZ);
-    if (sunriseLen2 > 1e-6f) {
+    if (sunriseLen2 > 1e-6) {
         sunriseXZ = sunriseXZ / std::sqrt(sunriseLen2);
         m_sunriseDirection = glm::vec3(static_cast<f32>(sunriseXZ.x), 0.0f, static_cast<f32>(sunriseXZ.y));
     }
@@ -356,7 +356,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
 
     {
         MC_TRACE_SKY("UpdateUBO");
-        updateUniformBuffer(m_currentFrame);
+        _updateUniformBuffer(m_currentFrame);
     }
 
     if (m_descriptorSets[m_currentFrame] == VK_NULL_HANDLE) {
@@ -376,9 +376,8 @@ void SkyRenderer::render(VkCommandBuffer cmd,
             nullptr);
     }
 
-    // MC 1.16.5 的天空渲染关键：移除视图矩阵的平移分量，只保留旋转。
+    // 天空渲染关键：移除视图矩阵的平移分量，只保留旋转。
     // 这使得天体（太阳/月亮/星星）始终位于"无限远"处，不会随相机移动而改变位置。
-    // 参考 WorldRenderer.renderSky()：matrixStack 在渲染天体前只做了旋转操作。
     {
         MC_TRACE_PUSH_CONSTANTS("SkyViewProjection");
         SkyPushConstants pushConstants{};
@@ -398,29 +397,29 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     // 渲染天空穹顶 (最优先，写入深度为远平面)
     {
         MC_TRACE_SKY("SkyDome");
-        renderSkyDome(cmd);
+        _renderSkyDome(cmd);
     }
 
     // 渲染太阳
     {
         MC_TRACE_SKY("Sun");
-        renderSun(cmd);
+        _renderSun(cmd);
     }
 
     // 渲染月亮
     {
         MC_TRACE_SKY("Moon");
-        renderMoon(cmd);
+        _renderMoon(cmd);
     }
 
     // 渲染星星 (夜晚可见)
     if (m_starBrightness > 0.005) {
         MC_TRACE_SKY("Stars");
-        renderStars(cmd);
+        _renderStars(cmd);
     }
 }
 
-void SkyRenderer::renderSkyDome(VkCommandBuffer cmd)
+void SkyRenderer::_renderSkyDome(VkCommandBuffer cmd)
 {
     if (m_skyPipeline == VK_NULL_HANDLE || m_skyDomeVBO == VK_NULL_HANDLE || m_skyDomeIBO == VK_NULL_HANDLE ||
         m_skyDomeIndexCount == 0) {
@@ -436,7 +435,7 @@ void SkyRenderer::renderSkyDome(VkCommandBuffer cmd)
     vkCmdDrawIndexed(cmd, m_skyDomeIndexCount, 1, 0, 0, 0);
 }
 
-void SkyRenderer::renderSun(VkCommandBuffer cmd)
+void SkyRenderer::_renderSun(VkCommandBuffer cmd)
 {
     // 太阳强度太低时不渲染
     if (m_sunIntensity < 0.03f || m_sunPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) {
@@ -452,7 +451,7 @@ void SkyRenderer::renderSun(VkCommandBuffer cmd)
     vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
-void SkyRenderer::renderMoon(VkCommandBuffer cmd)
+void SkyRenderer::_renderMoon(VkCommandBuffer cmd)
 {
     // 白天不渲染月亮（晨昏允许短暂过渡）
     if (m_sunIntensity > 0.18f || m_moonPipeline == VK_NULL_HANDLE || m_sunMoonVBO == VK_NULL_HANDLE) return;
@@ -466,7 +465,7 @@ void SkyRenderer::renderMoon(VkCommandBuffer cmd)
     vkCmdDraw(cmd, 6, 1, 6, 0);
 }
 
-void SkyRenderer::renderStars(VkCommandBuffer cmd)
+void SkyRenderer::_renderStars(VkCommandBuffer cmd)
 {
     if (m_starVertexCount == 0 || m_starPipeline == VK_NULL_HANDLE || m_starVBO == VK_NULL_HANDLE) return;
 
@@ -483,11 +482,11 @@ void SkyRenderer::renderStars(VkCommandBuffer cmd)
 // 资源创建
 // ============================================================================
 
-Result<void> SkyRenderer::createSkyDomeVBO()
+Result<void> SkyRenderer::_createSkyDomeVBO()
 {
     // 创建天空球网格。
     // 说明：
-    // - 原先的平面天空无法区分”上半天空/下半天空”，无法实现 MC 晨昏时下半天空填充。
+    // - 原先的平面天空无法区分”上半天空/下半天空”，无法实现晨昏时下半天空填充。
     // - 使用球面后，可基于方向向量按半球分别着色并叠加日出日落扇形效果。
     constexpr f64 SKY_RADIUS = 384.0;
     constexpr i32 STACK_COUNT = 32;
@@ -502,14 +501,14 @@ Result<void> SkyRenderer::createSkyDomeVBO()
     // 生成球面顶点（纬度-经度）
     for (i32 stack = 0; stack <= STACK_COUNT; ++stack) {
         const f64 v = static_cast<f64>(stack) / static_cast<f64>(STACK_COUNT);
-        const f64 phi = v * mc::math::PI; // [0, PI]
+        const f64 phi = v * mc::math::PI_DOUBLE; // [0, PI]
 
         const f64 y = std::cos(phi) * SKY_RADIUS;
         const f64 ringRadius = std::sin(phi) * SKY_RADIUS;
 
         for (i32 slice = 0; slice <= SLICE_COUNT; ++slice) {
             const f64 u = static_cast<f64>(slice) / static_cast<f64>(SLICE_COUNT);
-            const f64 theta = u * mc::math::TAU_F; // [0, 2PI]
+            const f64 theta = u * 2.0 * mc::math::PI_DOUBLE; // [0, 2PI]
 
             const f64 x = std::cos(theta) * ringRadius;
             const f64 z = std::sin(theta) * ringRadius;
@@ -543,7 +542,7 @@ Result<void> SkyRenderer::createSkyDomeVBO()
 
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
-    auto result = createBuffer(vertexSize,
+    auto result = _createBuffer(vertexSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_skyDomeVBO,
@@ -563,7 +562,7 @@ Result<void> SkyRenderer::createSkyDomeVBO()
 
     // 创建 IBO
     VkDeviceSize indexSize = indices.size() * sizeof(u16);
-    result = createBuffer(indexSize,
+    result = _createBuffer(indexSize,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_skyDomeIBO,
@@ -584,9 +583,9 @@ Result<void> SkyRenderer::createSkyDomeVBO()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createStarVBO()
+Result<void> SkyRenderer::_createStarVBO()
 {
-    // 使用固定种子生成星星位置 (MC 使用 10842L)
+    // 使用固定种子生成星星位置
     math::Random rng(client::CelestialCalculations::getStarSeed());
 
     std::vector<SkyVertex> vertices;
@@ -613,7 +612,7 @@ Result<void> SkyRenderer::createStarVBO()
 
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
-    auto result = createBuffer(vertexSize,
+    auto result = _createBuffer(vertexSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_starVBO,
@@ -634,7 +633,7 @@ Result<void> SkyRenderer::createStarVBO()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createSunMoonVBO()
+Result<void> SkyRenderer::_createSunMoonVBO()
 {
     // 太阳和月亮都使用单位四边形 [-1, 1]，并展开为 TriangleList（6 顶点）。
     // 使用 TriangleList 可避免 TriangleStrip 在某些姿态下出现的裂缝/缺口伪影。
@@ -658,7 +657,7 @@ Result<void> SkyRenderer::createSunMoonVBO()
 
     // 创建 VBO
     VkDeviceSize vertexSize = vertices.size() * sizeof(SkyVertex);
-    auto result = createBuffer(vertexSize,
+    auto result = _createBuffer(vertexSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_sunMoonVBO,
@@ -679,10 +678,10 @@ Result<void> SkyRenderer::createSunMoonVBO()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createUniformBuffers()
+Result<void> SkyRenderer::_createUniformBuffers()
 {
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        auto result = createBuffer(sizeof(SkyUBO),
+        auto result = _createBuffer(sizeof(SkyUBO),
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_uniformBuffers[i],
@@ -702,7 +701,7 @@ Result<void> SkyRenderer::createUniformBuffers()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createDescriptorSetLayout()
+Result<void> SkyRenderer::_createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboBinding = {};
     uboBinding.binding = 0;
@@ -725,7 +724,7 @@ Result<void> SkyRenderer::createDescriptorSetLayout()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createDescriptorSets()
+Result<void> SkyRenderer::_createDescriptorSets()
 {
     // 创建描述符池
     VkDescriptorPoolSize poolSize = {};
@@ -781,7 +780,7 @@ Result<void> SkyRenderer::createDescriptorSets()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createPipelineLayout()
+Result<void> SkyRenderer::_createPipelineLayout()
 {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -804,7 +803,7 @@ Result<void> SkyRenderer::createPipelineLayout()
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
+Result<void> SkyRenderer::_createPipelines(VkSampleCountFlagBits sampleCount)
 {
     const VkDevice device = m_device;
 
@@ -991,25 +990,22 @@ Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
         return starResult.error();
     }
 
-    // 兼容保留字段：当前未使用独立夜晚天空管线
+    // TODO: 当前未使用独立夜晚天空管线，后续如需实现夜晚天空渐变效果可启用
     m_skyStarPipeline = VK_NULL_HANDLE;
 
     spdlog::info("SkyRenderer pipelines created");
     return Result<void>::ok();
 }
 
-void SkyRenderer::updateUniformBuffer(u32 frameIndex)
+void SkyRenderer::_updateUniformBuffer(u32 frameIndex)
 {
     SkyUBO ubo = {};
 
-    // MC 1.16.5: 闪电闪烁时天空变亮
+    // 闪电闪烁时天空变亮
     // 当 lightningFlashBrightness > 0 时，天空颜色向白色混合
     glm::vec4 finalSkyColor = m_skyColor;
     if (m_lightningFlashBrightness > 0.0) {
         // 闪电闪烁时，天空颜色向白色混合
-        // 参考 MC 1.16.5 WorldRenderer.renderSky():
-        // float flash = world.getTimeLightningFlash() / 2.0F;
-        // skyColor = skyColor * (1.0F - flash) + vec3(1.0F) * flash;
         f64 flashFactor = glm::clamp(m_lightningFlashBrightness, 0.0, 1.0);
         finalSkyColor = glm::mix(finalSkyColor, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), static_cast<f32>(flashFactor));
     }
@@ -1041,7 +1037,7 @@ void SkyRenderer::updateUniformBuffer(u32 frameIndex)
     // sun.vert 在太阳接近天顶/天底时会出现 right=normalize(cross(up, sunDir)) 退化。
     // 这里做极小偏移，避免精确零向量导致太阳四边形退化不可见。
     f64 adjustedAngle = m_celestialAngle;
-    const f64 angleRad = adjustedAngle * mc::math::TAU_F;
+    const f64 angleRad = adjustedAngle * 2.0 * mc::math::PI_DOUBLE;
     if (std::abs(std::sin(angleRad)) < 1e-4) {
         adjustedAngle += 1e-4;
         if (adjustedAngle >= 1.0) {
@@ -1064,12 +1060,12 @@ void SkyRenderer::updateUniformBuffer(u32 frameIndex)
 // Vulkan 辅助函数
 // ============================================================================
 
-Result<u32> SkyRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> SkyRenderer::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-Result<void> SkyRenderer::createBuffer(VkDeviceSize size,
+Result<void> SkyRenderer::_createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,
@@ -1078,12 +1074,12 @@ Result<void> SkyRenderer::createBuffer(VkDeviceSize size,
     return renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
 }
 
-VkCommandBuffer SkyRenderer::beginSingleTimeCommands()
+VkCommandBuffer SkyRenderer::_beginSingleTimeCommands()
 {
     return renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void SkyRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void SkyRenderer::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);

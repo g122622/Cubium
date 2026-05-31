@@ -301,7 +301,7 @@ TEST(CelestialCalculationsTest, SunIntensityInRange)
 TEST(CelestialCalculationsTest, SkyColorNoonBlue)
 {
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
-    glm::vec4 color = CelestialCalculations::calculateSkyColor(angle);
+    glm::vec4 color = CelestialCalculations::calculateSkyColor(angle, 0.0f, 0.0f);
 
     // 正午天太阳角度≈0, 颜色索引0应该是蓝色
     // 蓝色: B > R 且 B > G
@@ -324,7 +324,7 @@ TEST(CelestialCalculationsTest, SkyColorNoonMatchesOverworldDefault78A7FF)
 TEST(CelestialCalculationsTest, SkyColorMidnightDark)
 {
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
-    glm::vec4 color = CelestialCalculations::calculateSkyColor(angle);
+    glm::vec4 color = CelestialCalculations::calculateSkyColor(angle, 0.0f, 0.0f);
 
     // 午夜天太阳角度≈0.5, 颜色索引2应该是深蓝色
     // 深色: RGB 分量都很低 (< 0.15)

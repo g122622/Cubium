@@ -25,7 +25,6 @@
 
 #include "common/core/Types.hpp"
 #include <array>
-#include <memory>
 #include <vector>
 
 namespace mc {
@@ -45,16 +44,19 @@ namespace renderer {
  *
  * 纹理采用叠加混合模式（DST_COLOR * SRC_COLOR），
  * 与原方块颜色相乘形成破坏效果。
- *
- * 参考 MC 1.16.5 ModelBakery.DESTROY_STAGES
  */
 class DestroyStageTextures {
 public:
     /// 破坏阶段数量（0-9，共10个阶段）
     static constexpr size_t STAGE_COUNT = 10;
 
-    /// 纹理尺寸（假设为正方形）
+    /// 纹理尺寸（正方形，16x16像素）
     static constexpr u32 TEXTURE_SIZE = 16;
+
+    /// 图集列数
+    static constexpr u32 ATLAS_COLS = 5;
+    /// 图集行数
+    static constexpr u32 ATLAS_ROWS = 2;
 
     /**
      * @brief 获取单例实例
@@ -127,12 +129,12 @@ public:
     /**
      * @brief 获取图集宽度
      */
-    [[nodiscard]] u32 atlasWidth() const { return TEXTURE_SIZE * 5; }
+    [[nodiscard]] u32 atlasWidth() const { return TEXTURE_SIZE * ATLAS_COLS; }
 
     /**
      * @brief 获取图集高度
      */
-    [[nodiscard]] u32 atlasHeight() const { return TEXTURE_SIZE * 2; }
+    [[nodiscard]] u32 atlasHeight() const { return TEXTURE_SIZE * ATLAS_ROWS; }
 
 private:
     DestroyStageTextures() = default;
@@ -151,7 +153,7 @@ private:
      * @param stage 破坏阶段 (0-9)
      * @param data 输出纹理数据（RGBA，16x16）
      */
-    void generateDefaultTexture(size_t stage, std::vector<u8>& data);
+    void _generateDefaultTexture(size_t stage, std::vector<u8>& data);
 
     /**
      * @brief 从资源包加载纹理
@@ -161,13 +163,13 @@ private:
      * @param data 输出纹理数据
      * @return 成功返回 true
      */
-    [[nodiscard]] bool loadTextureFromResourcePack(
+    [[nodiscard]] bool _loadTextureFromResourcePack(
         ResourceManager* resourceManager, size_t stage, std::vector<u8>& data);
 
     /**
      * @brief 构建纹理图集
      */
-    void buildAtlas();
+    void _buildAtlas();
 
     /// 各阶段纹理数据（RGBA格式）
     std::array<std::vector<u8>, STAGE_COUNT> m_textures;

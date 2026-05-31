@@ -43,10 +43,10 @@ namespace mc::client::renderer::trident::particle {
  * 存储粒子纹理在图集中的位置和动画信息。
  */
 struct SpriteInfo {
-    glm::vec2 uvMin;      ///< UV 左上角坐标
-    glm::vec2 uvMax;      ///< UV 右下角坐标
-    u32 frameCount = 1;   ///< 动画帧数（1 表示静态纹理）
-    f64 frameTime = 0.0f; ///< 每帧时间（秒）
+    glm::vec2 uvMin;     ///< UV 左上角坐标
+    glm::vec2 uvMax;     ///< UV 右下角坐标
+    u32 frameCount = 1;  ///< 动画帧数（1 表示静态纹理）
+    f64 frameTime = 0.0; ///< 每帧时间（秒）
 
     /**
      * @brief 检查是否为动画精灵
@@ -69,7 +69,6 @@ struct SpriteInfo {
  * @brief 粒子纹理图集
  *
  * 管理粒子纹理的加载、打包和查询。
- * 参考 MC 1.16.5 的粒子纹理图集系统。
  *
  * 功能：
  * - 从资源包加载粒子纹理（textures/particle 目录下的 PNG 文件）
@@ -80,7 +79,7 @@ struct SpriteInfo {
  * 用法示例：
  * @code
  * ParticleTextureAtlas atlas;
- * atlas.create(device, physicalDevice, commandPool, graphicsQueue, 256, 256);
+ * atlas.create(device, physicalDevice, commandPool, graphicsQueue, atlasWidth, atlasHeight);
  * atlas.loadFromResourcePacks(resourcePacks);
  * atlas.upload();
  *
@@ -115,16 +114,16 @@ public:
      * @param physicalDevice Vulkan 物理设备
      * @param commandPool 命令池（用于纹理上传）
      * @param graphicsQueue 图形队列（用于纹理上传）
-     * @param width 图集宽度（默认 256）
-     * @param height 图集高度（默认 256）
+     * @param width 图集宽度
+     * @param height 图集高度
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> create(VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
-        u32 width = 256,
-        u32 height = 256);
+        u32 width,
+        u32 height);
 
     /**
      * @brief 销毁资源
@@ -259,37 +258,37 @@ private:
     /**
      * @brief 创建 Vulkan 图像
      */
-    [[nodiscard]] Result<void> createImage();
+    [[nodiscard]] Result<void> _createImage();
 
     /**
      * @brief 创建采样器
      */
-    [[nodiscard]] Result<void> createSampler();
+    [[nodiscard]] Result<void> _createSampler();
 
     /**
      * @brief 创建图像视图
      */
-    [[nodiscard]] Result<void> createImageView();
+    [[nodiscard]] Result<void> _createImageView();
 
     /**
      * @brief 查找合适的内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void _endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 转换图像布局
      */
-    void transitionImageLayout(VkCommandBuffer cmd,
+    void _transitionImageLayout(VkCommandBuffer cmd,
         VkImageLayout oldLayout,
         VkImageLayout newLayout,
         VkPipelineStageFlags srcStage,

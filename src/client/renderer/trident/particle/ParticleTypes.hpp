@@ -31,7 +31,6 @@ namespace mc::client::renderer::trident::particle {
  * @brief 粒子类型 ID 枚举
  *
  * 定义所有粒子类型的唯一标识符。
- * 参考 MC 1.16.5 ParticleTypes
  *
  * 分类：
  * - 0-9: 环境类粒子

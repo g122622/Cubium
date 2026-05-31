@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 钓鱼粒子（水面涟漪效果）
- *
- * 参考 MC 1.16.5 FishingParticle
  *
  * 特性：
  * - 水面涟漪效果，向下移动

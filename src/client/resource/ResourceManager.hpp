@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../renderer/MeshTypes.hpp"
 #include "BlockModelLoader.hpp"
 #include "BlockStateLoader.hpp"
 #include "TextureAtlasBuilder.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/IResourcePack.hpp"
@@ -142,7 +142,7 @@ public:
      * @return 方块外观指针，找不到返回 nullptr
      */
     [[nodiscard]] const BlockAppearance* getBlockAppearance(
-        const ResourceLocation& blockId, const std::map<std::string, std::string>& properties = {}) const;
+        const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const;
 
     /**
      * @brief 获取纹理区域
@@ -252,19 +252,20 @@ private:
     bool m_atlasBuilt = false;
 
     // 烘焙所有模型
-    [[nodiscard]] Result<void> bakeAllModels();
+    [[nodiscard]] Result<void> _bakeAllModels();
 
     // 计算方块外观
-    void computeBlockAppearances();
+    void _computeBlockAppearances();
 
     // 收集所有需要的纹理
-    [[nodiscard]] std::set<ResourceLocation> collectRequiredTextures() const;
+    [[nodiscard]] std::set<ResourceLocation> _collectRequiredTextures() const;
 
     // 将纹理路径转换为资源位置
-    [[nodiscard]] static ResourceLocation texturePathToLocation(std::string_view path);
+    [[nodiscard]] static ResourceLocation _texturePathToLocation(std::string_view path);
 
     // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
-    [[nodiscard]] const TextureRegion* findTextureRegion(const ResourceLocation& texLoc) const;
+    // TODO: 当前仅尝试原始路径，尚未实现 MC 1.12/1.13+ 路径变体兼容查找
+    [[nodiscard]] const TextureRegion* _findTextureRegion(const ResourceLocation& texLoc) const;
 };
 
 } // namespace mc

@@ -29,7 +29,6 @@
 #include "common/input/KeyBinding.hpp"
 #include "common/sound/SoundCategory.hpp"
 
-#include <fstream>
 #include <memory>
 #include <vector>
 
@@ -54,6 +53,8 @@ enum class CloudMode : u8 {
 
 /**
  * @brief 粒子效果模式
+ *
+ * TODO: 暂未使用，待实现粒子效果质量设置选项
  */
 enum class ParticleMode : u8 {
     Minimal = 0,   // 最小
@@ -63,8 +64,6 @@ enum class ParticleMode : u8 {
 
 /**
  * @brief 环境光遮蔽（AO）模式
- *
- * 参考: net.minecraft.client.settings.AmbientOcclusionStatus
  */
 enum class AmbientOcclusionMode : u8 {
     Off = 0, // 关闭 - 使用平面光照

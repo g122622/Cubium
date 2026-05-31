@@ -168,7 +168,7 @@ public:
 
 private:
     // 规范化状态键，保证属性顺序一致（例如 a=1,b=2 与 b=2,a=1 等价）
-    [[nodiscard]] static std::string normalizeStateKey(std::string_view stateKey);
+    [[nodiscard]] static std::string _normalizeStateKey(std::string_view stateKey);
 
     std::map<std::string, VariantList> m_variants;
     bool m_hasMultipart = false;
@@ -207,25 +207,25 @@ private:
     std::vector<ResourcePackPtr> m_resourcePacks;
 
     // 从所有资源包中读取模型文件
-    [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);
+    [[nodiscard]] Result<std::string> _readModelFromResourcePacks(const std::string& filePath);
 
     // 解析模型JSON
-    [[nodiscard]] Result<UnbakedBlockModel> parseModel(std::string_view jsonContent);
+    [[nodiscard]] Result<UnbakedBlockModel> _parseModel(std::string_view jsonContent);
 
     // 解析元素
-    [[nodiscard]] Result<ModelElement> parseElement(const nlohmann::json& json);
+    [[nodiscard]] Result<ModelElement> _parseElement(const nlohmann::json& json);
 
     // 解析面
-    [[nodiscard]] Result<ModelFace> parseFace(const nlohmann::json& json, Direction dir);
+    [[nodiscard]] Result<ModelFace> _parseFace(const nlohmann::json& json, Direction dir);
 
     // 解析UV
-    [[nodiscard]] ModelFaceUV parseUV(const nlohmann::json& json);
+    [[nodiscard]] ModelFaceUV _parseUV(const nlohmann::json& json);
 
     // 解析旋转
-    [[nodiscard]] ModelRotation parseRotation(const nlohmann::json& json);
+    [[nodiscard]] ModelRotation _parseRotation(const nlohmann::json& json);
 
-    // 合并父子模型
-    void mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent);
+    // TODO: 合并父子模型（当前在bakeModel中内联实现）
+    void _mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent);
 };
 
 } // namespace mc

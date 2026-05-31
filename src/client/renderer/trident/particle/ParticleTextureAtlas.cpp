@@ -22,8 +22,8 @@
  */
 
 #include "ParticleTextureAtlas.hpp"
-#include "../../../resource/TextureAtlasBuilder.hpp"
-#include "../util/VulkanUtils.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/resource/TextureAtlasBuilder.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
@@ -116,7 +116,7 @@ namespace {
 
     outFrameWidth = static_cast<u32>(frameWidth);
     outFrameHeight = static_cast<u32>(frameHeight);
-    outFrameTime = frameTime > 0 ? static_cast<f64>(frameTime) / 20.0f : 0.1f; // 默认 0.1 秒
+    outFrameTime = frameTime > 0 ? static_cast<f64>(frameTime) / 20.0 : 0.1; // 默认 0.1 秒
     return true;
 }
 
@@ -262,7 +262,7 @@ Result<void> ParticleTextureAtlas::create(VkDevice device,
     m_pixels.resize(static_cast<size_t>(width) * height * 4, 0);
 
     // 创建采样器
-    auto samplerResult = createSampler();
+    auto samplerResult = _createSampler();
     if (samplerResult.failed()) {
         return samplerResult.error();
     }
@@ -329,7 +329,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
         }
 
         // 遍历粒子纹理目录
-        // MC 1.16.5 粒子纹理路径: textures/particle/*.png
+        // 粒子纹理路径: textures/particle/*.png
         const std::string particleDir = "textures/particle";
 
         // 常见的粒子纹理名称
@@ -416,7 +416,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
             // 检查动画元数据
             u32 frameWidth = width;
             u32 frameHeight = width; // 默认为正方形帧
-            f64 frameTime = 0.1f;    // 默认帧时间
+            f64 frameTime = 0.1;     // 默认帧时间
 
             const std::string mcmetaPath = path + ".mcmeta";
             if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
@@ -433,13 +433,6 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
             // 存储动画信息
             textureData.emplace_back(
                 location, std::make_tuple(pixelResult.value(), width, height, frameWidth, frameHeight, frameTime));
-
-            spdlog::debug("[ParticleTextureAtlas] Loaded particle texture: {} ({}x{}, frame: {}x{})",
-                location.toString(),
-                width,
-                height,
-                frameWidth,
-                frameHeight);
         }
     }
 
@@ -516,12 +509,12 @@ Result<void> ParticleTextureAtlas::upload()
         m_imageView = VK_NULL_HANDLE;
     }
 
-    auto imageResult = createImage();
+    auto imageResult = _createImage();
     if (imageResult.failed()) {
         return imageResult.error();
     }
 
-    auto viewResult = createImageView();
+    auto viewResult = _createImageView();
     if (viewResult.failed()) {
         return viewResult.error();
     }
@@ -545,7 +538,7 @@ Result<void> ParticleTextureAtlas::upload()
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(m_device, stagingBuffer, &memRequirements);
 
-    auto memTypeResult = findMemoryType(
+    auto memTypeResult = _findMemoryType(
         memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     if (memTypeResult.failed()) {
@@ -576,9 +569,9 @@ Result<void> ParticleTextureAtlas::upload()
     vkUnmapMemory(m_device, stagingMemory);
 
     // 复制到图像
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
-    transitionImageLayout(cmd,
+    _transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -597,13 +590,13 @@ Result<void> ParticleTextureAtlas::upload()
 
     vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    transitionImageLayout(cmd,
+    _transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 清理暂存缓冲区
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -677,7 +670,7 @@ glm::vec4 ParticleTextureAtlas::getRandomFrameUV(const ResourceLocation& locatio
     return glm::vec4(sprite->uvMin.x, frameVOffset, sprite->uvMax.x, frameVOffset + frameVHeight);
 }
 
-Result<void> ParticleTextureAtlas::createImage()
+Result<void> ParticleTextureAtlas::_createImage()
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -701,7 +694,7 @@ Result<void> ParticleTextureAtlas::createImage()
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(m_device, m_image, &memRequirements);
 
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
@@ -724,7 +717,7 @@ Result<void> ParticleTextureAtlas::createImage()
     return {};
 }
 
-Result<void> ParticleTextureAtlas::createSampler()
+Result<void> ParticleTextureAtlas::_createSampler()
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -751,7 +744,7 @@ Result<void> ParticleTextureAtlas::createSampler()
     return {};
 }
 
-Result<void> ParticleTextureAtlas::createImageView()
+Result<void> ParticleTextureAtlas::_createImageView()
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -771,7 +764,7 @@ Result<void> ParticleTextureAtlas::createImageView()
     return {};
 }
 
-Result<u32> ParticleTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> ParticleTextureAtlas::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
@@ -785,7 +778,7 @@ Result<u32> ParticleTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropert
     return Error(ErrorCode::OutOfMemory, "Failed to find suitable memory type");
 }
 
-VkCommandBuffer ParticleTextureAtlas::beginSingleTimeCommands()
+VkCommandBuffer ParticleTextureAtlas::_beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -804,7 +797,7 @@ VkCommandBuffer ParticleTextureAtlas::beginSingleTimeCommands()
     return commandBuffer;
 }
 
-void ParticleTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void ParticleTextureAtlas::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -819,7 +812,7 @@ void ParticleTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
-void ParticleTextureAtlas::transitionImageLayout(VkCommandBuffer cmd,
+void ParticleTextureAtlas::_transitionImageLayout(VkCommandBuffer cmd,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkPipelineStageFlags srcStage,

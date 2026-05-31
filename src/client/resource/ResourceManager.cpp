@@ -189,9 +189,8 @@ bool matchConditions(const std::vector<std::pair<std::string, std::string>>& con
         const i32 configuredWidth = animation.value("width", 0);
         const i32 configuredHeight = animation.value("height", 0);
 
-        // 对齐 MC 行为：
-        // - 未配置时默认使用方形帧（frame = imageWidth）
-        // - 仅配置单边时，另一边沿用同值
+        // 未配置时默认使用方形帧（frame = imageWidth）
+        // 仅配置单边时，另一边沿用同值
         i32 frameWidth = configuredWidth;
         i32 frameHeight = configuredHeight;
 
@@ -264,7 +263,7 @@ Result<void> ResourceManager::loadAllResources()
     }
 
     // 烘焙模型
-    static_cast<void>(bakeAllModels());
+    static_cast<void>(_bakeAllModels());
 
     // 注意：computeBlockAppearances 在 buildTextureAtlas 后调用
     // 因为需要纹理区域数据
@@ -284,7 +283,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     MC_TRACE_EVENT("client.resource", "ResourceManager::buildTextureAtlas");
 
     // 收集所需纹理
-    auto textures = collectRequiredTextures();
+    auto textures = _collectRequiredTextures();
 
     spdlog::info("Collecting {} textures for atlas", textures.size());
 
@@ -376,7 +375,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     m_atlasBuilt = true;
 
     // 构建纹理图集后计算方块外观（这样纹理区域可用）
-    computeBlockAppearances();
+    _computeBlockAppearances();
 
     spdlog::info("ResourceManager: {} appearances computed", m_blockAppearances.size());
 
@@ -600,7 +599,7 @@ Result<void> ResourceManager::reload()
     return loadAllResources();
 }
 
-Result<void> ResourceManager::bakeAllModels()
+Result<void> ResourceManager::_bakeAllModels()
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::bakeAllModels");
 
@@ -647,7 +646,7 @@ Result<void> ResourceManager::bakeAllModels()
     return Result<void>::ok();
 }
 
-void ResourceManager::computeBlockAppearances()
+void ResourceManager::_computeBlockAppearances()
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::computeBlockAppearances");
 
@@ -701,10 +700,10 @@ void ResourceManager::computeBlockAppearances()
                     ResourceLocation texLoc = bakedModel.resolveTexture(face.texture);
 
                     // 转换纹理路径为完整的 textures/ 路径
-                    ResourceLocation fullTexLoc = texturePathToLocation(texLoc.path());
+                    ResourceLocation fullTexLoc = _texturePathToLocation(texLoc.path());
 
                     // 使用 compat 层查找纹理区域
-                    const TextureRegion* region = findTextureRegion(fullTexLoc);
+                    const TextureRegion* region = _findTextureRegion(fullTexLoc);
 
                     if (region) {
                         // 保留首层纹理用于兼容旧逻辑
@@ -731,7 +730,7 @@ void ResourceManager::computeBlockAppearances()
     spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
 }
 
-const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& texLoc) const
+const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation& texLoc) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::findTextureRegion");
 
@@ -744,7 +743,7 @@ const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& 
     return nullptr;
 }
 
-std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const
+std::set<ResourceLocation> ResourceManager::_collectRequiredTextures() const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::collectRequiredTextures");
 
@@ -763,7 +762,7 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const
             }
 
             // 转换为纹理路径
-            ResourceLocation textureLoc = texturePathToLocation(texPath);
+            ResourceLocation textureLoc = _texturePathToLocation(texPath);
             textures.insert(textureLoc);
         }
     }
@@ -771,7 +770,7 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const
     return textures;
 }
 
-ResourceLocation ResourceManager::texturePathToLocation(std::string_view path)
+ResourceLocation ResourceManager::_texturePathToLocation(std::string_view path)
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::texturePathToLocation");
 

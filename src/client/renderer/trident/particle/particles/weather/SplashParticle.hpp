@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -36,12 +36,7 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 溅射粒子
  *
- * 参考 MC 1.16.5 SplashParticle
- *
- * 特性：
- * - 雨滴落地或实体落水时产生
- * - 向上喷射后下落
- * - 半透明白色
+ * 雨滴落地或实体落水时产生，向上喷射后下落，半透明白色。
  */
 class SplashParticle : public Particle {
 public:
@@ -63,9 +58,9 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.04f;
-    static constexpr f64 DEFAULT_SIZE = 0.05f;
-    static constexpr f64 DEFAULT_LIFETIME = 15.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.04;
+    static constexpr f64 DEFAULT_SIZE = 0.05;
+    static constexpr f64 DEFAULT_LIFETIME = 15.0;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

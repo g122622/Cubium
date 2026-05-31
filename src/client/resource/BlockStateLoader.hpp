@@ -65,10 +65,11 @@ public:
 
 private:
     std::map<ResourceLocation, BlockStateDefinition> m_blockStates;
+    // TODO: m_resourcePack 当前未被使用，后续可能需要用于热重载等场景
     IResourcePack* m_resourcePack = nullptr;
 
     // 将属性映射转换为状态字符串
-    [[nodiscard]] static std::string propertiesToStateStr(const std::map<std::string, std::string>& properties);
+    [[nodiscard]] static std::string _propertiesToStateStr(const std::map<std::string, std::string>& properties);
 };
 
 } // namespace mc

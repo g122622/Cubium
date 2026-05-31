@@ -68,10 +68,7 @@ bool DestroyStageTextures::initialize(ResourceManager* resourceManager)
 
         // 尝试从 ResourceManager 加载
         if (resourceManager) {
-            loaded = loadTextureFromResourcePack(resourceManager, i, m_textures[i]);
-            if (loaded) {
-                // spdlog::info("DestroyStageTextures: Loaded texture for stage {} from resource pack", i);
-            }
+            loaded = _loadTextureFromResourcePack(resourceManager, i, m_textures[i]);
         } else {
             spdlog::warn(
                 "DestroyStageTextures: No ResourceManager provided, skipping resource pack loading for stage {}", i);
@@ -80,12 +77,12 @@ bool DestroyStageTextures::initialize(ResourceManager* resourceManager)
         // 如果加载失败，使用程序生成
         if (!loaded) {
             spdlog::warn("DestroyStageTextures: Using generated texture for stage {}", i);
-            generateDefaultTexture(i, m_textures[i]);
+            _generateDefaultTexture(i, m_textures[i]);
         }
     }
 
     // 构建纹理图集
-    buildAtlas();
+    _buildAtlas();
 
     m_initialized = true;
     spdlog::info("DestroyStageTextures: Initialized successfully");
@@ -123,11 +120,11 @@ bool DestroyStageTextures::getTextureUV(size_t stage, f32& u0, f32& v0, f32& u1,
 
     // 图集布局：2行5列
     // 阶段0-4在第一行，阶段5-9在第二行
-    u32 col = static_cast<u32>(stage % 5);
-    u32 row = static_cast<u32>(stage / 5);
+    u32 col = static_cast<u32>(stage % ATLAS_COLS);
+    u32 row = static_cast<u32>(stage / ATLAS_COLS);
 
-    f32 cellWidth = 1.0f / 5.0f;
-    f32 cellHeight = 1.0f / 2.0f;
+    f32 cellWidth = 1.0f / static_cast<f32>(ATLAS_COLS);
+    f32 cellHeight = 1.0f / static_cast<f32>(ATLAS_ROWS);
 
     u0 = static_cast<f32>(col) * cellWidth;
     v0 = static_cast<f32>(row) * cellHeight;
@@ -141,7 +138,7 @@ bool DestroyStageTextures::getTextureUV(size_t stage, f32& u0, f32& v0, f32& u1,
 // 私有方法
 // ============================================================================
 
-void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>& data)
+void DestroyStageTextures::_generateDefaultTexture(size_t stage, std::vector<u8>& data)
 {
     // 16x16 RGBA 纹理
     constexpr size_t pixelCount = TEXTURE_SIZE * TEXTURE_SIZE;
@@ -186,7 +183,8 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
             if (std::abs(static_cast<i32>(x) - static_cast<i32>(y)) <= 1 && stage >= 6) {
                 crack += 0.25f;
             }
-            if (std::abs(static_cast<i32>(x) + static_cast<i32>(y) - 15) <= 1 && stage >= 7) {
+            if (std::abs(static_cast<i32>(x) + static_cast<i32>(y) - static_cast<i32>(TEXTURE_SIZE - 1)) <= 1 &&
+                stage >= 7) {
                 crack += 0.25f;
             }
 
@@ -214,14 +212,9 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
     }
 }
 
-bool DestroyStageTextures::loadTextureFromResourcePack(
+bool DestroyStageTextures::_loadTextureFromResourcePack(
     ResourceManager* resourceManager, size_t stage, std::vector<u8>& data)
 {
-    if (!resourceManager) {
-        spdlog::warn("DestroyStageTextures: No ResourceManager provided, cannot load texture for stage {}", stage);
-        return false;
-    }
-
     // 构建资源位置
     // 现代 MC 1.13+ 路径: textures/block/destroy_stage_X
     // 旧版 MC 1.12 路径: textures/blocks/destroy_stage_X
@@ -244,9 +237,6 @@ bool DestroyStageTextures::loadTextureFromResourcePack(
     }
 
     if (rawData.empty()) {
-        // spdlog::debug("DestroyStageTextures: Failed to load texture for stage {} from modern path, trying legacy
-        // path", stage);
-
         // 尝试旧版路径
         ResourceLocation legacyLoc("minecraft", fmt::format("textures/blocks/destroy_stage_{}", stage));
         result = resourceManager->loadTextureRGBA(legacyLoc);
@@ -265,39 +255,15 @@ bool DestroyStageTextures::loadTextureFromResourcePack(
         return false;
     }
 
-    // MC 原版破坏纹理格式分析：
-    // - 灰度图，白色像素 = 裂纹可见，黑色像素 = 无裂纹
-    // - Alpha = 255（完全不透明）
-    //
-    // 着色器期望的格式：RGB=(0,0,0), Alpha=裂纹强度
-    // - 高 alpha = 强裂纹 = 变暗效果明显
-    // - 低 alpha = 弱裂纹 = 变暗效果弱
-    //
-    // 转换策略：
-    // - 白色像素（亮度高）→ 裂纹可见 → 应该变暗 → 高 alpha
-    // - 黑色像素（亮度低）→ 无裂纹 → 不变暗 → 低 alpha
-    // - 因此：crackIntensity = luminance（亮度直接映射到裂纹强度）
-    // - 但实际上，stage 0 亮度高（~125），stage 9 亮度低（~97）
-    // - 这说明亮度表示的是"裂纹可见度"，需要反转：crackIntensity = 255 - luminance
-    //   - 高亮度（白色裂纹）→ 低 crackIntensity → 变暗少？
-    //   - 不对，让我重新理解...
-    //
-    // 正确理解：
-    // - 混合公式：dst.rgb = dst.rgb * (1 - crackIntensity/255)
-    // - crackIntensity 越高，乘数越小，越暗
-    // - 白色裂纹（高亮度）→ 应该变暗 → crackIntensity 应该高
-    // - 因此：crackIntensity = luminance
+    // MC 原版破坏纹理为灰度图，高亮度=无裂纹区域，低亮度=裂纹区域。
+    // 着色器期望格式：RGB=(0,0,0), Alpha=裂纹强度（高alpha=强裂纹=变暗明显）。
+    // 转换：crackIntensity = 255 - luminance（反转亮度映射到裂纹强度）
 
     // 处理纹理：缩放并转换格式
     data.resize(TEXTURE_SIZE * TEXTURE_SIZE * 4);
 
-    float xRatio = static_cast<float>(srcWidth) / TEXTURE_SIZE;
-    float yRatio = static_cast<float>(srcHeight) / TEXTURE_SIZE;
-
-    // 统计用于调试
-    u32 totalCrackIntensity = 0;
-    u32 maxCrackIntensity = 0;
-    u32 minCrackIntensity = 255;
+    f32 xRatio = static_cast<f32>(srcWidth) / TEXTURE_SIZE;
+    f32 yRatio = static_cast<f32>(srcHeight) / TEXTURE_SIZE;
 
     for (u32 y = 0; y < TEXTURE_SIZE; ++y) {
         for (u32 x = 0; x < TEXTURE_SIZE; ++x) {
@@ -312,25 +278,12 @@ bool DestroyStageTextures::loadTextureFromResourcePack(
             u8 srcR = rawData[srcIdx + 0];
             u8 srcG = rawData[srcIdx + 1];
             u8 srcB = rawData[srcIdx + 2];
-            u8 srcA = rawData[srcIdx + 3];
 
-            // 计算亮度
+            // 计算亮度，反转映射到裂纹强度
             u8 luminance = static_cast<u8>((static_cast<u32>(srcR) + srcG + srcB) / 3);
-
-            // 从日志观察：stage 0 亮度高(125)，stage 9 亮度低(97)
-            // 这说明：高亮度 = 无裂纹区域，低亮度 = 裂纹区域
-            // 因此需要反转：crackIntensity = 255 - luminance
-            // 低亮度（黑色裂纹）→ 高 crackIntensity → 变暗明显
-            // 高亮度（白色背景）→ 低 crackIntensity → 不变暗
             u8 crackIntensity = static_cast<u8>(255 - luminance);
 
-            totalCrackIntensity += crackIntensity;
-            maxCrackIntensity = std::max(maxCrackIntensity, static_cast<u32>(crackIntensity));
-            minCrackIntensity = std::min(minCrackIntensity, static_cast<u32>(crackIntensity));
-
-            // 转换为我们需要的格式：
-            // RGB = (0, 0, 0) 黑色
-            // Alpha = 裂纹强度
+            // 转换为着色器期望格式：RGB=(0,0,0), Alpha=裂纹强度
             data[dstIdx + 0] = 0;              // R
             data[dstIdx + 1] = 0;              // G
             data[dstIdx + 2] = 0;              // B
@@ -338,29 +291,20 @@ bool DestroyStageTextures::loadTextureFromResourcePack(
         }
     }
 
-    // 计算平均值
-    u32 pixelCount = TEXTURE_SIZE * TEXTURE_SIZE;
-    u32 avgCrackIntensity = totalCrackIntensity / pixelCount;
-    // spdlog::info("DestroyStageTextures: Stage {} loaded ({}x{}) - "
-    //              "crackIntensity: avg={}, min={}, max={}",
-    //              stage, srcWidth, srcHeight, avgCrackIntensity, minCrackIntensity, maxCrackIntensity);
-
-    // spdlog::info("DestroyStageTextures: Loaded and converted texture for stage {} ({}x{} -> 16x16)",
-    //  stage, srcWidth, srcHeight);
     return true;
 }
 
-void DestroyStageTextures::buildAtlas()
+void DestroyStageTextures::_buildAtlas()
 {
     // 图集尺寸：5列2行，每格16x16
-    constexpr u32 atlasWidth = TEXTURE_SIZE * 5;
-    constexpr u32 atlasHeight = TEXTURE_SIZE * 2;
+    constexpr u32 atlasWidth = TEXTURE_SIZE * ATLAS_COLS;
+    constexpr u32 atlasHeight = TEXTURE_SIZE * ATLAS_ROWS;
 
     m_atlasData.resize(atlasWidth * atlasHeight * 4, 0);
 
     for (size_t stage = 0; stage < STAGE_COUNT; ++stage) {
-        u32 col = static_cast<u32>(stage % 5);
-        u32 row = static_cast<u32>(stage / 5);
+        u32 col = static_cast<u32>(stage % ATLAS_COLS);
+        u32 row = static_cast<u32>(stage / ATLAS_COLS);
 
         u32 destX = col * TEXTURE_SIZE;
         u32 destY = row * TEXTURE_SIZE;

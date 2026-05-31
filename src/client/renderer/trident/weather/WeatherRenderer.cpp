@@ -22,9 +22,10 @@
  */
 
 #include "WeatherRenderer.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../util/VulkanUtils.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -52,31 +53,27 @@ struct WeatherUBO {
     alignas(4) f32 thunderStrength;
 };
 
-// 初始化随机偏移数组（参考 MC 1.16.5 WorldRenderer 构造函数）
-// MC原版算法：计算从中心向外的归一化方向向量
-// rainSizeX[i << 5 | j] = -f1 / f2;  rainSizeZ[i << 5 | j] = f / f2;
-// 其中 f = j - 16, f1 = i - 16, f2 = sqrt(f*f + f1*f1)
+// 初始化随机偏移数组
+// 计算从中心向外的归一化方向向量
+// rainSizeX[i * RAIN_SIZE + j] = -f1 / f2;  rainSizeZ[i * RAIN_SIZE + j] = f / f2;
+// 其中 f = j - RAIN_SIZE/2, f1 = i - RAIN_SIZE/2, f2 = sqrt(f*f + f1*f1)
 void initRainOffsets(f64* offsetX, f64* offsetZ, i32 size)
 {
-    // MC原版使用32x32网格，size应该为32
-    MC_ASSERT_RELEASE(size == 32);
+    MC_ASSERT_RELEASE(size == RAIN_SIZE);
 
-    for (i32 i = 0; i < 32; ++i) {
-        for (i32 j = 0; j < 32; ++j) {
-            // MC原版：f = j - 16, f1 = i - 16
-            f32 f = static_cast<f32>(j - 16);    // X方向分量
-            f32 f1 = static_cast<f32>(i - 16);   // Z方向分量
-            f32 f2 = std::sqrt(f * f + f1 * f1); // 向量长度
+    for (i32 i = 0; i < RAIN_SIZE; ++i) {
+        for (i32 j = 0; j < RAIN_SIZE; ++j) {
+            f32 f = static_cast<f32>(j - RAIN_SIZE / 2);  // X方向分量
+            f32 f1 = static_cast<f32>(i - RAIN_SIZE / 2); // Z方向分量
+            f32 f2 = std::sqrt(f * f + f1 * f1);          // 向量长度
 
             // 避免除以零（中心点）
             if (f2 < 0.0001f) {
                 f2 = 1.0f;
             }
 
-            // MC原版索引：i << 5 | j
-            i32 idx = (i << 5) | j;
-            // MC原版：rainSizeX = -f1 / f2, rainSizeZ = f / f2
-            // 这产生从中心向外的归一化方向向量
+            i32 idx = (i * RAIN_SIZE) + j;
+            // 归一化方向向量
             offsetX[idx] = -f1 / f2;
             offsetZ[idx] = f / f2;
         }
@@ -159,42 +156,42 @@ Result<void> WeatherRenderer::initialize(VkDevice device,
     m_extent = extent;
 
     // 创建资源
-    auto result = createVertexBuffer();
+    auto result = _createVertexBuffer();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createUniformBuffers();
+    result = _createUniformBuffers();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createDescriptorSetLayout();
+    result = _createDescriptorSetLayout();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createDescriptorPool();
+    result = _createDescriptorPool();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createDescriptorSets();
+    result = _createDescriptorSets();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createTextures();
+    result = _createTextures();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createPipelineLayout();
+    result = _createPipelineLayout();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createPipelines(sampleCount);
+    result = _createPipelines(sampleCount);
     if (!result.success()) {
         return result.error();
     }
@@ -320,8 +317,6 @@ Result<void> WeatherRenderer::onResize(VkExtent2D extent)
 
 void WeatherRenderer::setFancyGraphics(bool isFancy)
 {
-    // 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
-    // int l = 5; if (Minecraft.isFancyGraphicsEnabled()) { l = 10; }
     m_renderRadius = isFancy ? 10 : 5;
 }
 
@@ -338,7 +333,7 @@ void WeatherRenderer::render(
 {
     // 无 World 的简化渲染
     mc::client::ClientWorld* nullWorld = nullptr;
-    render(cmd, projection, view, cameraPos, frameIndex, nullWorld);
+    _render(cmd, projection, view, cameraPos, frameIndex, nullWorld);
 }
 
 void WeatherRenderer::render(VkCommandBuffer cmd,
@@ -348,7 +343,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     u32 frameIndex,
     mc::client::ClientWorld& world)
 {
-    render(cmd, projection, view, cameraPos, frameIndex, &world);
+    _render(cmd, projection, view, cameraPos, frameIndex, &world);
 }
 
 void WeatherRenderer::render(VkCommandBuffer cmd,
@@ -359,7 +354,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     const mc::math::frustum::Frustum& frustum)
 {
     m_frustum = &frustum;
-    render(cmd, projection, view, cameraPos, frameIndex, static_cast<mc::client::ClientWorld*>(nullptr));
+    _render(cmd, projection, view, cameraPos, frameIndex, static_cast<mc::client::ClientWorld*>(nullptr));
     m_frustum = nullptr;
 }
 
@@ -372,11 +367,11 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     const mc::math::frustum::Frustum& frustum)
 {
     m_frustum = &frustum;
-    render(cmd, projection, view, cameraPos, frameIndex, &world);
+    _render(cmd, projection, view, cameraPos, frameIndex, &world);
     m_frustum = nullptr;
 }
 
-void WeatherRenderer::render(VkCommandBuffer cmd,
+void WeatherRenderer::_render(VkCommandBuffer cmd,
     const glm::mat4& projection,
     const glm::mat4& view,
     const glm::vec3& cameraPos,
@@ -398,10 +393,10 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     m_currentView = view;
 
     // 更新 Uniform 缓冲区
-    updateUniformBuffer(frameIndex);
+    _updateUniformBuffer(frameIndex);
 
     // 生成天气几何
-    generateWeatherGeometry(world);
+    _generateWeatherGeometry(world);
 
     if (m_rainVertexCount == 0 && m_snowVertexCount == 0) {
         MC_TRACE_EVENT_END("rendering.weather");
@@ -477,7 +472,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     MC_TRACE_EVENT_END("rendering.weather");
 }
 
-void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
+void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 {
     m_rainVertices.clear();
     m_snowVertices.clear();
@@ -488,7 +483,6 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
         return;
     }
 
-    // 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
     // 遍历玩家周围的区块
 
     i32 camX = static_cast<i32>(std::floor(m_cameraPos.x));
@@ -503,11 +497,10 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
     for (i32 z = camZ - radius; z <= camZ + radius; ++z) {
         for (i32 x = camX - radius; x <= camX + radius; ++x) {
             // 计算偏移索引
-            i32 idx = ((z - camZ + 16) * RAIN_SIZE + (x - camX + 16)) % (RAIN_SIZE * RAIN_SIZE);
+            i32 idx = ((z - camZ + RAIN_SIZE / 2) * RAIN_SIZE + (x - camX + RAIN_SIZE / 2)) % (RAIN_SIZE * RAIN_SIZE);
             if (idx < 0) idx += RAIN_SIZE * RAIN_SIZE;
 
-            // MC原版: double d0 = (double)this.rainSizeX[l1] * 0.5D;
-            // 偏移值需要乘以0.5进行缩放
+            // 偏移值乘以0.5进行缩放
             f64 offsetX = m_rainOffsetX[idx] * 0.5;
             f64 offsetZ = m_rainOffsetZ[idx] * 0.5;
 
@@ -523,8 +516,8 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
             }
 
             // 获取生物群系温度决定雨/雪
-            f32 temperature = 0.5f; // 默认温度
-            i32 groundY = 64;       // 默认地面高度
+            f32 temperature = 0.5f;                 // 默认温度
+            i32 groundY = mc::world::SEA_LEVEL + 1; // 默认地面高度
 
             if (world) {
                 // 查询生物群系
@@ -540,13 +533,10 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
                 groundY = world->getHeight(x, z);
             }
 
-            // MC原版高度计算:
-            // int i2 = world.getHeight(Heightmap.Type.MOTION_BLOCKING, pos).getY();
-            // int j2 = j - l; (相机Y - 半径)
-            // int k2 = j + l; (相机Y + 半径)
-            // if (j2 < i2) j2 = i2; (下边界不低于地形)
-            // if (k2 < i2) k2 = i2; (上边界不低于地形)
-            // int l2 = i2; if (i2 < j) l2 = j; (光照采样高度 = max(地形高度, 相机Y))
+            // 高度计算：
+            // j2 = 下边界 (cameraY - radius), 不低于地形
+            // k2 = 上边界 (cameraY + radius), 不低于地形
+            // l2 = 光照采样高度 = max(地形高度, 相机Y)
             i32 j2 = camY - radius; // 下边界初始值
             i32 k2 = camY + radius; // 上边界初始值
 
@@ -571,37 +561,29 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
             }
 
             // 计算到相机的距离，用于淡出
-            // MC原版: float f4 = MathHelper.sqrt(d2*d2 + d4*d4) / (float)l;
-            // d2 = k1 - d0, d4 = j1 - d2 (相对于相机的距离)
             f64 dx = static_cast<f64>(x) + 0.5 - m_cameraPos.x;
             f64 dz = static_cast<f64>(z) + 0.5 - m_cameraPos.z;
             f64 dist = std::sqrt(dx * dx + dz * dz);
             f64 f4 = dist / static_cast<f64>(radius); // 归一化距离比 (0~1)
 
-            // MC原版 alpha 计算:
-            // 雨: float f5 = ((1.0F - f4*f4) * 0.5F + 0.5F) * f;
-            // 雪: float f10 = ((1.0F - f9*f9) * 0.3F + 0.5F) * f;
+            // alpha 计算：基于归一化距离比的淡出效果
             f64 rainFade = (1.0 - f4 * f4) * 0.5 + 0.5;
             f64 alpha = rainFade * m_rainStrength;
 
-            // MC原版位置种子计算（雨和雪共用）
+            // 位置种子计算（雨和雪共用）
             i64 positionSeed = static_cast<i64>(x) * static_cast<i64>(x) * 3121 + static_cast<i64>(x) * 45238971 +
                 static_cast<i64>(z) * static_cast<i64>(z) * 418711 + static_cast<i64>(z) * 13761;
 
             // 温度阈值判断：低于 SNOW_TEMPERATURE_THRESHOLD 为雪，高于等于为雨
-            // 参考 MC 1.16.5 Biome.getPrecipitation()
             if (temperature >= SNOW_TEMPERATURE_THRESHOLD) {
-                // 雨
-                // MC原版 UV动画计算:
-                // int i3 = this.ticks + k1*k1*3121 + k1*45238971 + j1*j1*418711 + j1*13761 & 31;
-                // float f3 = -((float)i3 + partialTicks) / 32.0F * (3.0F + random.nextFloat());
+                // 雨 - UV动画计算
                 mc::math::Random rng(static_cast<u64>(positionSeed));
                 i32 i3 = (static_cast<i32>(m_ticks) + static_cast<i32>(positionSeed & 0x7FFFFFFF)) & 31;
                 f32 texOffset =
                     -((static_cast<f32>(i3) + static_cast<f32>(m_partialTick)) / 32.0f) * (3.0f + rng.nextFloat());
 
-                // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
-                // MC使用 l2 = max(groundY, cameraY) 作为采样高度
+                // 光照采样
+                // 使用 l2 = max(groundY, cameraY) 作为采样高度
                 u16 lightU = 240;
                 u16 lightV = 240;
 
@@ -609,13 +591,12 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
                     u8 skyLight = world->getSkyLight(x, l2, z);
                     u8 blockLight = world->getBlockLight(x, l2, z);
 
-                    // MC原版: lightmap U = blockLight, V = skyLight
-                    // 我们存储 0-15 范围的光照值，需要乘以 16 得到 0-240 范围
+                    // 0-15 范围的光照值，乘以 16 得到 0-240 范围
                     lightU = static_cast<u16>(blockLight) << 4; // U = blockLight
                     lightV = static_cast<u16>(skyLight) << 4;   // V = skyLight
                 }
 
-                // 使用MC原版的高度计算 (j2 = 下边界, k2 = 上边界)
+                // 高度范围 (j2 = 下边界, k2 = 上边界)
                 f64 topY = static_cast<f64>(k2);
                 f64 bottomY = static_cast<f64>(j2);
 
@@ -676,12 +657,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
                 m_rainVertices.push_back(v2);
                 m_rainVertices.push_back(v3);
             } else {
-                // 雪
-                // MC原版 UV动画计算:
-                // float f6 = -((float)(this.ticks & 511) + partialTicks) / 512.0F;
-                // float f7 = (float)(random.nextDouble() + (double)f1 * 0.01D *
-                // (double)((float)random.nextGaussian())); float f8 = (float)(random.nextDouble() + (double)(f1 *
-                // (float)random.nextGaussian()) * 0.001D);
+                // 雪 - UV动画计算
                 f32 texOffsetY = -((static_cast<f32>(m_ticks & 511) + static_cast<f32>(m_partialTick)) / 512.0f);
 
                 // 重用已计算的位置种子
@@ -691,19 +667,12 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
                 f32 texOffsetYExtra = static_cast<f32>(
                     rng.nextDouble() + static_cast<f64>(f1 * static_cast<f32>(rng.nextGaussian())) * 0.001);
 
-                // MC原版 alpha 计算:
-                // float f9 = MathHelper.sqrt(d3*d3 + d5*d5) / (float)l;
-                // float f10 = ((1.0F - f9*f9) * 0.3F + 0.5F) * f;
+                // 雪花 alpha 计算
                 f64 snowFade = (1.0 - f4 * f4) * 0.3 + 0.5;
                 f64 snowAlpha = snowFade * m_rainStrength;
 
-                // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
-                // 雪花需要更亮的光照效果
-                // MC原版: int k3 = getCombinedLight(world, blockpos$mutable);
-                // int l3 = k3 >> 16 & '￿';  (skyLight 0-240)
-                // int i4 = (k3 & '￿') * 3;  (blockLight * 3)
-                // int j4 = (l3 * 3 + 240) / 4;  (增强 skyLight)
-                // int k4 = (i4 * 3 + 240) / 4;  (blockLight * 3 * 3 + 240) / 4
+                // 雪花光照采样（需要更亮的光照效果）
+                // 增强公式: skyLight = (rawSky * 3 + 240) / 4, blockLight = (rawBlock * 9 + 240) / 4
                 u16 lightU = 240;
                 u16 lightV = 240;
 
@@ -714,15 +683,12 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
                     u16 rawSkyLight = static_cast<u16>(skyLight) << 4;     // 0-240
                     u16 rawBlockLight = static_cast<u16>(blockLight) << 4; // 0-240
 
-                    // MC原版公式:
-                    // j4 = (l3 * 3 + 240) / 4  用于 V (skyLight)
-                    // k4 = (i4 * 3 + 240) / 4  用于 U (blockLight * 9 + 240) / 4
-                    // 其中 i4 = blockLight * 3, 所以 k4 = (blockLight * 9 + 240) / 4
+                    // 增强公式: V = (skyLight*3+240)/4, U = (blockLight*9+240)/4
                     lightV = static_cast<u16>((rawSkyLight * 3 + 240) / 4);
                     lightU = static_cast<u16>((rawBlockLight * 9 + 240) / 4);
                 }
 
-                // 使用MC原版的高度计算 (j2 = 下边界, k2 = 上边界)
+                // 高度范围 (j2 = 下边界, k2 = 上边界)
                 f64 topY = static_cast<f64>(k2);
                 f64 bottomY = static_cast<f64>(j2);
 
@@ -790,7 +756,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world)
     m_snowVertexCount = static_cast<u32>(m_snowVertices.size());
 }
 
-Result<void> WeatherRenderer::createVertexBuffer()
+Result<void> WeatherRenderer::_createVertexBuffer()
 {
     // 创建动态顶点缓冲区（足够大以容纳最大顶点数）
     m_vertexBufferSize = sizeof(WeatherVertex) * MAX_RAIN_VERTICES;
@@ -822,7 +788,7 @@ Result<void> WeatherRenderer::createVertexBuffer()
     return {};
 }
 
-Result<void> WeatherRenderer::createUniformBuffers()
+Result<void> WeatherRenderer::_createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(WeatherUBO);
 
@@ -874,7 +840,7 @@ Result<void> WeatherRenderer::createUniformBuffers()
     return {};
 }
 
-Result<void> WeatherRenderer::createDescriptorSetLayout()
+Result<void> WeatherRenderer::_createDescriptorSetLayout()
 {
     // Binding 0: Uniform Buffer
     VkDescriptorSetLayoutBinding uboBinding = {};
@@ -906,7 +872,7 @@ Result<void> WeatherRenderer::createDescriptorSetLayout()
     return {};
 }
 
-Result<void> WeatherRenderer::createDescriptorPool()
+Result<void> WeatherRenderer::_createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -927,7 +893,7 @@ Result<void> WeatherRenderer::createDescriptorPool()
     return {};
 }
 
-Result<void> WeatherRenderer::createDescriptorSets()
+Result<void> WeatherRenderer::_createDescriptorSets()
 {
     // 创建雨和雪两套描述符集
     std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT * 2> layouts = {
@@ -965,7 +931,7 @@ Result<void> WeatherRenderer::createDescriptorSets()
     return {};
 }
 
-Result<void> WeatherRenderer::createPipelineLayout()
+Result<void> WeatherRenderer::_createPipelineLayout()
 {
     VkPipelineLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -980,7 +946,7 @@ Result<void> WeatherRenderer::createPipelineLayout()
     return {};
 }
 
-Result<void> WeatherRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
+Result<void> WeatherRenderer::_createPipelines(VkSampleCountFlagBits sampleCount)
 {
     // 加载 shader
     auto vertPath = resolveShaderPath("weather.vert.spv");
@@ -1171,19 +1137,19 @@ Result<void> WeatherRenderer::createPipelines(VkSampleCountFlagBits sampleCount)
     return {};
 }
 
-Result<void> WeatherRenderer::createTextures()
+Result<void> WeatherRenderer::_createTextures()
 {
     // 生成雨纹理
-    auto rainData = generateRainTexture(TEXTURE_SIZE, TEXTURE_SIZE);
-    auto result = createTextureFromData(
+    auto rainData = _generateRainTexture(TEXTURE_SIZE, TEXTURE_SIZE);
+    auto result = _createTextureFromData(
         rainData, TEXTURE_SIZE, TEXTURE_SIZE, m_rainTexture, m_rainTextureMemory, m_rainTextureView);
     if (!result.success()) {
         return result.error();
     }
 
     // 生成雪纹理
-    auto snowData = generateSnowTexture(TEXTURE_SIZE, TEXTURE_SIZE);
-    result = createTextureFromData(
+    auto snowData = _generateSnowTexture(TEXTURE_SIZE, TEXTURE_SIZE);
+    result = _createTextureFromData(
         snowData, TEXTURE_SIZE, TEXTURE_SIZE, m_snowTexture, m_snowTextureMemory, m_snowTextureView);
     if (!result.success()) {
         return result.error();
@@ -1234,7 +1200,7 @@ Result<void> WeatherRenderer::createTextures()
     return {};
 }
 
-void WeatherRenderer::updateUniformBuffer(u32 frameIndex)
+void WeatherRenderer::_updateUniformBuffer(u32 frameIndex)
 {
     WeatherUBO ubo = {};
     ubo.projection = m_currentProjection;
@@ -1247,7 +1213,7 @@ void WeatherRenderer::updateUniformBuffer(u32 frameIndex)
     std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }
 
-std::vector<u8> WeatherRenderer::generateRainTexture(u32 width, u32 height)
+std::vector<u8> WeatherRenderer::_generateRainTexture(u32 width, u32 height)
 {
     std::vector<u8> data(width * height * 4, 0);
 
@@ -1264,7 +1230,7 @@ std::vector<u8> WeatherRenderer::generateRainTexture(u32 width, u32 height)
 
             // 创建多个垂直条纹
             f64 stripe = 0.0f;
-            for (int i = 0; i < 4; ++i) {
+            for (i32 i = 0; i < 4; ++i) {
                 f64 stripeX = 0.2f + i * 0.2f + rng.nextFloat() * 0.05f;
                 f64 distance = std::abs(xNorm - stripeX);
                 if (distance < 0.02f) {
@@ -1288,7 +1254,7 @@ std::vector<u8> WeatherRenderer::generateRainTexture(u32 width, u32 height)
     return data;
 }
 
-std::vector<u8> WeatherRenderer::generateSnowTexture(u32 width, u32 height)
+std::vector<u8> WeatherRenderer::_generateSnowTexture(u32 width, u32 height)
 {
     std::vector<u8> data(width * height * 4, 0);
 
@@ -1304,7 +1270,7 @@ std::vector<u8> WeatherRenderer::generateSnowTexture(u32 width, u32 height)
 
             // 创建多个圆形雪花
             f64 snow = 0.0f;
-            for (int i = 0; i < 5; ++i) {
+            for (i32 i = 0; i < 5; ++i) {
                 f64 cx = rng.nextFloat();
                 f64 cy = rng.nextFloat();
                 f64 radius = 0.05f + rng.nextFloat() * 0.1f;
@@ -1330,7 +1296,7 @@ std::vector<u8> WeatherRenderer::generateSnowTexture(u32 width, u32 height)
     return data;
 }
 
-Result<void> WeatherRenderer::createTextureFromData(
+Result<void> WeatherRenderer::_createTextureFromData(
     const std::vector<u8>& data, u32 width, u32 height, VkImage& image, VkDeviceMemory& memory, VkImageView& imageView)
 {
     // 创建 staging buffer

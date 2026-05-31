@@ -84,7 +84,7 @@ const BakedItemModel* ItemModelCache::getItemModel(u32 itemId) const
 
 const BakedItemModel* ItemModelCache::getItemModel(const ResourceLocation& location) const
 {
-    if (!m_initialized || !m_loader) {
+    if (!m_initialized) {
         return nullptr;
     }
 
@@ -124,7 +124,7 @@ glm::mat4 ItemModelCache::getTransform(const BakedItemModel& model, ItemDisplayC
 
 void ItemModelCache::preloadModels()
 {
-    if (!m_initialized || !m_loader) {
+    if (!m_initialized) {
         return;
     }
 

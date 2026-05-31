@@ -31,7 +31,7 @@ FishingParticle::FishingParticle(const glm::vec3& pos, const glm::vec3& velocity
 {
     mc::math::Random rng;
 
-    // MC 1.16.5: 钓鱼粒子向下移动
+    // 钓鱼粒子向下移动
     setGravity(0.0); // 无重力
     setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
     setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.6f)); // 淡蓝色半透明

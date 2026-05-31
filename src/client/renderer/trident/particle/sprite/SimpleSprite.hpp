@@ -52,7 +52,7 @@ public:
     [[nodiscard]] glm::vec4 getRandomFrameUV(u32 seed) const override;
     [[nodiscard]] bool isAnimated() const override { return false; }
     [[nodiscard]] u32 frameCount() const override { return 1; }
-    [[nodiscard]] f64 frameTime() const override { return 0.0f; }
+    [[nodiscard]] f64 frameTime() const override { return 0.0; }
 
     // ========================================================================
     // 属性访问器

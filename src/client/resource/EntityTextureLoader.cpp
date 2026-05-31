@@ -147,7 +147,7 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
     // 羊的毛皮层
     {"sheep", {"entity/sheep/sheep_fur"}},
 
-    // 村民多层纹理（MC 1.16.5 VillagerLevelPendantLayer）
+    // 村民多层纹理
     // 类型层 - 根据生物群系
     {"villager",
         {"entity/villager/type/desert",
@@ -276,7 +276,7 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
     }
 
     // 加载附加纹理（如羊的毛皮层）
-    loadedCount += loadAdditionalTextures(packs, atlas);
+    loadedCount += _loadAdditionalTextures(packs, atlas);
 
     return loadedCount;
 }
@@ -304,7 +304,7 @@ Result<void> EntityTextureLoader::loadEntityTexture(
     return Result<void>::ok();
 }
 
-u32 EntityTextureLoader::loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
+u32 EntityTextureLoader::_loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
 {
 
     u32 loadedCount = 0;
@@ -321,8 +321,6 @@ u32 EntityTextureLoader::loadAdditionalTextures(const std::vector<IResourcePack*
                 auto result = atlas.addTexture(*pack, loc);
                 if (result.success()) {
                     loadedCount++;
-                    spdlog::debug(
-                        "EntityTextureLoader: Loaded additional texture {} for entity {}", loc.toString(), entityName);
                     break;
                 } else if (!shouldSuppressMissingTextureWarning(loc)) {
                     spdlog::warn("Failed to load entity texture: {} - {}", loc.toString(), result.error().toString());
@@ -337,7 +335,7 @@ u32 EntityTextureLoader::loadAdditionalTextures(const std::vector<IResourcePack*
 std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::string& entityTypeId)
 {
     std::vector<ResourceLocation> paths;
-    std::string name = parseEntityName(entityTypeId);
+    std::string name = _parseEntityName(entityTypeId);
 
     // 检查特殊路径映射
     auto it = SPECIAL_TEXTURE_PATHS.find(name);
@@ -357,7 +355,7 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
     return paths;
 }
 
-std::string EntityTextureLoader::parseEntityName(const std::string& entityTypeId)
+std::string EntityTextureLoader::_parseEntityName(const std::string& entityTypeId)
 {
     // 解析 "minecraft:pig" -> "pig"
     size_t colonPos = entityTypeId.find(':');

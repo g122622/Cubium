@@ -32,8 +32,8 @@
 #include <stb_image.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
+#include <limits>
 
 namespace mc {
 
@@ -63,12 +63,6 @@ namespace {
 }
 
 } // namespace
-
-TextureAtlasBuilder::TextureAtlasBuilder()
-    : m_maxWidth(4096)
-    , m_maxHeight(4096)
-    , m_padding(0)
-{}
 
 void TextureAtlasBuilder::setMaxSize(u32 width, u32 height)
 {
@@ -239,9 +233,9 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
 
             u32 x, y;
             size_t nodeIndex;
-            if (canPlace(skyline, texW, texH, actualWidth, actualHeight, x, y, nodeIndex)) {
+            if (_canPlace(skyline, texW, texH, actualWidth, actualHeight, x, y, nodeIndex)) {
                 placed.push_back({idx, x + m_padding, y + m_padding});
-                placeTexture(skyline, x, y, texW, texH, nodeIndex);
+                _placeTexture(skyline, x, y, texW, texH, nodeIndex);
 
                 // 更新图集高度
                 atlasHeight = std::max(atlasHeight, y + texH);
@@ -328,7 +322,7 @@ std::vector<ResourceLocation> TextureAtlasBuilder::getTextureLocations() const
     return locations;
 }
 
-bool TextureAtlasBuilder::canPlace(const std::vector<SkylineNode>& skyline,
+bool TextureAtlasBuilder::_canPlace(const std::vector<SkylineNode>& skyline,
     u32 width,
     u32 height,
     u32 maxWidth,
@@ -337,7 +331,7 @@ bool TextureAtlasBuilder::canPlace(const std::vector<SkylineNode>& skyline,
     u32& outY,
     size_t& outIndex) const
 {
-    u32 bestY = UINT32_MAX;
+    u32 bestY = std::numeric_limits<u32>::max();
     u32 bestX = 0;
     size_t bestIndex = 0;
 
@@ -387,7 +381,7 @@ bool TextureAtlasBuilder::canPlace(const std::vector<SkylineNode>& skyline,
         }
     }
 
-    if (bestY == UINT32_MAX) {
+    if (bestY == std::numeric_limits<u32>::max()) {
         return false;
     }
 
@@ -397,7 +391,7 @@ bool TextureAtlasBuilder::canPlace(const std::vector<SkylineNode>& skyline,
     return true;
 }
 
-void TextureAtlasBuilder::placeTexture(
+void TextureAtlasBuilder::_placeTexture(
     std::vector<SkylineNode>& skyline, u32 x, u32 y, u32 width, u32 height, size_t index)
 {
     // 创建新节点

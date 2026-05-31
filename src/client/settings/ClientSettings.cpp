@@ -91,6 +91,7 @@ ClientSettings::ClientSettings()
     // 网络设置
     , serverAddress("serverAddress", defaults::client::serverAddress)
     , serverPort("serverPort", 1, 65535, defaults::server::serverPort)
+    // TODO: 将 "Player" 默认值移至 defaults::client 命名空间统一管理
     , username("username", "Player")
 
     // 日志设置
@@ -221,23 +222,20 @@ Result<void> ClientSettings::loadSettings(const std::filesystem::path& path)
     }
 
     // 加载按键绑定
-    // 尝试读取按键绑定部分
-    if (std::filesystem::exists(path)) {
+    try {
         std::ifstream file(path, std::ios::binary);
         if (file.is_open()) {
-            try {
-                nlohmann::json j;
-                file >> j;
-                file.close();
+            nlohmann::json j;
+            file >> j;
+            file.close();
 
-                if (j.contains("keyBindings") && j["keyBindings"].is_object()) {
-                    KeyBinding::deserializeAll(j["keyBindings"]);
-                }
-            }
-            catch (const std::exception& e) {
-                spdlog::warn("Failed to load key bindings: {}", e.what());
+            if (j.contains("keyBindings") && j["keyBindings"].is_object()) {
+                KeyBinding::deserializeAll(j["keyBindings"]);
             }
         }
+    }
+    catch (const std::exception& e) {
+        spdlog::warn("Failed to load key bindings: {}", e.what());
     }
 
     spdlog::info("Client settings loaded from: {}", path.string());

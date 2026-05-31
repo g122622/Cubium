@@ -256,7 +256,7 @@ TEST(ResourceManagerTextureDecodeTest, WaterModelWithParticleTextureKeepsParticl
     ASSERT_TRUE(manager.loadAllResources().success());
     ASSERT_TRUE(manager.buildTextureAtlas().success());
 
-    const auto* appearance = manager.getBlockAppearance(ResourceLocation("minecraft:water"));
+    const auto* appearance = manager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
     ASSERT_NE(appearance, nullptr);
     EXPECT_TRUE(appearance->faceTextures.empty());
     EXPECT_TRUE(appearance->faceTextureLayers.empty());

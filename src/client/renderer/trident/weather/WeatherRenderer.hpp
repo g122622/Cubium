@@ -42,18 +42,19 @@ namespace WeatherRenderConstants {
 constexpr f64 MIN_RENDER_STRENGTH = 0.001;
 
 /// 雨顶点最大数量（每个渲染位置 6 个顶点）
-/// 参考 MC 1.16.5: 渲染半径 10 格，约 21x21 个位置
 constexpr size_t MAX_RAIN_VERTICES = 21 * 21 * 6;
 
 /// 天气纹理尺寸
 constexpr u32 TEXTURE_SIZE = 64;
 
 /// 温度阈值：低于此值为雪，高于此值为雨
-/// 参考 MC 1.16.5 Biome.getTemperature()
 constexpr f32 SNOW_TEMPERATURE_THRESHOLD = 0.15f;
 
 /// 云层高度（雨雪渲染顶部）
 constexpr f64 CLOUD_HEIGHT = 192.0;
+
+/// 雨偏移数组尺寸
+constexpr i32 RAIN_SIZE = 32;
 
 /// 雨柱高度
 constexpr f64 RAIN_PILLAR_HEIGHT = 20.0;
@@ -63,7 +64,6 @@ constexpr f64 RAIN_PILLAR_HEIGHT = 20.0;
  * @brief 天气渲染器
  *
  * 负责渲染雨滴和雪花效果。
- * 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
  *
  * 渲染方式：
  * - 直接渲染雨/雪纹理层（高效，不需要单独粒子）
@@ -125,9 +125,7 @@ public:
     /**
      * @brief 设置图形模式
      *
-     * 参考 MC 1.16.5 WorldRenderer.renderRainSnow():
-     * - Fast 模式: 渲染半径 5
-     * - Fancy 模式: 渲染半径 10
+     * Fast 模式: 渲染半径 5; Fancy 模式: 渲染半径 10
      *
      * @param isFancy 是否为 Fancy 模式
      */
@@ -161,7 +159,6 @@ public:
     /**
      * @brief 渲染天气效果（带世界信息）
      *
-     * 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
      * 根据生物群系温度决定降水类型，根据地形高度决定渲染范围。
      *
      * @param cmd 命令缓冲区
@@ -243,7 +240,7 @@ private:
     /**
      * @brief 内部渲染方法（带世界指针）
      */
-    void render(VkCommandBuffer cmd,
+    void _render(VkCommandBuffer cmd,
         const glm::mat4& projection,
         const glm::mat4& view,
         const glm::vec3& cameraPos,
@@ -258,12 +255,11 @@ private:
      * @brief 天气层顶点数据
      *
      * 每个顶点包含位置、纹理坐标、颜色和光照信息。
-     * 参考 MC 1.16.5 DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP
      */
     struct WeatherVertex {
-        float x, y, z;      ///< 位置（相对于相机）
-        float u, v;         ///< 纹理坐标
-        float r, g, b, a;   ///< RGBA 颜色
+        f32 x, y, z;        ///< 位置（相对于相机）
+        f32 u, v;           ///< 纹理坐标
+        f32 r, g, b, a;     ///< RGBA 颜色
         u16 lightU, lightV; ///< 光照贴图坐标
     };
 
@@ -271,31 +267,30 @@ private:
     // 资源创建
     // ========================================================================
 
-    [[nodiscard]] Result<void> createVertexBuffer();
-    [[nodiscard]] Result<void> createUniformBuffers();
-    [[nodiscard]] Result<void> createDescriptorSetLayout();
-    [[nodiscard]] Result<void> createDescriptorPool();
-    [[nodiscard]] Result<void> createDescriptorSets();
-    [[nodiscard]] Result<void> createPipelineLayout();
-    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
-    [[nodiscard]] Result<void> createTextures();
+    [[nodiscard]] Result<void> _createVertexBuffer();
+    [[nodiscard]] Result<void> _createUniformBuffers();
+    [[nodiscard]] Result<void> _createDescriptorSetLayout();
+    [[nodiscard]] Result<void> _createDescriptorPool();
+    [[nodiscard]] Result<void> _createDescriptorSets();
+    [[nodiscard]] Result<void> _createPipelineLayout();
+    [[nodiscard]] Result<void> _createPipelines(VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> _createTextures();
 
-    void updateUniformBuffer(u32 frameIndex);
+    void _updateUniformBuffer(u32 frameIndex);
 
     /**
      * @brief 生成雨/雪层顶点数据
      *
-     * 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
      * 根据相机位置和生物群系生成雨/雪层。
      *
      * @param world 客户端世界（可为 nullptr，此时使用默认值）
      */
-    void generateWeatherGeometry(mc::client::ClientWorld* world);
+    void _generateWeatherGeometry(mc::client::ClientWorld* world);
 
     /**
      * @brief 从数据创建纹理
      */
-    [[nodiscard]] Result<void> createTextureFromData(const std::vector<u8>& data,
+    [[nodiscard]] Result<void> _createTextureFromData(const std::vector<u8>& data,
         u32 width,
         u32 height,
         VkImage& image,
@@ -305,12 +300,12 @@ private:
     /**
      * @brief 生成程序化雨纹理
      */
-    [[nodiscard]] std::vector<u8> generateRainTexture(u32 width, u32 height);
+    [[nodiscard]] std::vector<u8> _generateRainTexture(u32 width, u32 height);
 
     /**
      * @brief 生成程序化雪纹理
      */
-    [[nodiscard]] std::vector<u8> generateSnowTexture(u32 width, u32 height);
+    [[nodiscard]] std::vector<u8> _generateSnowTexture(u32 width, u32 height);
 
 private:
     // Vulkan 设备
@@ -372,13 +367,12 @@ private:
     u32 m_rainVertexCount = 0;
     u32 m_snowVertexCount = 0;
 
-    // 渲染范围（参考 MC 的 l 变量）
+    // 渲染范围
     i32 m_renderRadius = 5; // Fast 模式: 5, Fancy 模式: 10
 
-    // 随机偏移数组（参考 MC 的 rainSizeX/rainSizeZ）
-    static constexpr i32 RAIN_SIZE = 32;
-    f64 m_rainOffsetX[RAIN_SIZE * RAIN_SIZE] = {};
-    f64 m_rainOffsetZ[RAIN_SIZE * RAIN_SIZE] = {};
+    // 随机偏移数组
+    f64 m_rainOffsetX[WeatherRenderConstants::RAIN_SIZE * WeatherRenderConstants::RAIN_SIZE] = {};
+    f64 m_rainOffsetZ[WeatherRenderConstants::RAIN_SIZE * WeatherRenderConstants::RAIN_SIZE] = {};
 
     // 视锥体（用于剔除）
     const mc::math::frustum::Frustum* m_frustum = nullptr;

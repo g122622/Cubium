@@ -25,7 +25,6 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <cmath>
 #include <glm/glm.hpp>
 
 namespace mc::client {
@@ -44,11 +43,6 @@ namespace mc::client {
  */
 class CelestialCalculations {
 public:
-    /// 主世界默认天空色 (#78A7FF)
-    static constexpr f64 OVERWORLD_BASE_SKY_R = 120.0f / 255.0f;
-    static constexpr f64 OVERWORLD_BASE_SKY_G = 167.0f / 255.0f;
-    static constexpr f64 OVERWORLD_BASE_SKY_B = 1.0f;
-
     // ========== 天体角度计算 ==========
 
     /**
@@ -61,11 +55,6 @@ public:
      * - 0.25 = 日落
      * - 0.5 = 午夜 (月亮最高)
      * - 0.75 = 日出
-     *
-     * 算法来自 MC 1.16.5 DimensionType.calculateCelestialAngle():
-     * d0 = frac(dayTime / 24000 - 0.25)
-     * d1 = 0.5 - cos(d0 * PI) / 2.0
-     * return (d0 * 2.0 + d1) / 3.0
      */
     [[nodiscard]] static f64 calculateCelestialAngle(i64 dayTime);
 
@@ -142,8 +131,7 @@ public:
      * - 夜晚: 深蓝色/黑色
      * - 雨天: 灰色
      */
-    [[nodiscard]] static glm::vec4 calculateSkyColor(
-        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
+    [[nodiscard]] static glm::vec4 calculateSkyColor(f64 celestialAngle, f64 rainStrength, f64 thunderStrength);
 
     /**
      * @brief 计算主世界日出/日落颜色（含强度）
@@ -152,13 +140,12 @@ public:
      * @param thunderStrength 雷暴强度
      * @return RGBA，A 通道为效果强度。若当前时刻无效果则返回全 0。
      *
-     * 该算法对齐 MC 1.16.5 `DimensionType#calcSunriseSunsetColors`：
-     * - 只在太阳接近地平线时生效
-     * - 生效曲线为“渐入 -> 峰值 -> 渐出”
-     * - 受天气影响衰减
+     * 只在太阳接近地平线时生效。
+     * 生效曲线为”渐入 -> 峰值 -> 渐出”。
+     * 受天气影响衰减。
      */
     [[nodiscard]] static glm::vec4 calculateSunriseSunsetColor(
-        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
+        f64 celestialAngle, f64 rainStrength, f64 thunderStrength);
 
     /**
      * @brief 计算摄像机朝向与日出日落中心方向的对齐因子
@@ -189,8 +176,7 @@ public:
      * @param thunderStrength 雷暴强度
      * @return RGBA 雾颜色
      */
-    [[nodiscard]] static glm::vec4 calculateFogColor(
-        f64 celestialAngle, f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
+    [[nodiscard]] static glm::vec4 calculateFogColor(f64 celestialAngle, f64 rainStrength, f64 thunderStrength);
 
     // ========== 星星计算 ==========
 
@@ -205,9 +191,9 @@ public:
 
     /**
      * @brief 获取星星生成种子
-     * @return 星星位置随机种子 (MC 使用 10842L)
+     * @return 星星位置随机种子
      */
-    [[nodiscard]] static constexpr i64 getStarSeed() { return 10842L; }
+    [[nodiscard]] static constexpr i64 getStarSeed() { return 10842LL; }
 
     /**
      * @brief 获取星星数量
@@ -216,24 +202,21 @@ public:
     [[nodiscard]] static constexpr i32 getStarCount() { return 1500; }
 
 private:
+    /// 主世界默认天空色 (#78A7FF)
+    static constexpr f64 OVERWORLD_BASE_SKY_R = 120.0 / 255.0;
+    static constexpr f64 OVERWORLD_BASE_SKY_G = 167.0 / 255.0;
+    static constexpr f64 OVERWORLD_BASE_SKY_B = 1.0;
+
     /// 月相亮度因子 (满月=1.0, 新月=0.0)
     static constexpr f64 MOON_PHASE_FACTORS[8] = {
-        1.0f,  // 满月
-        0.75f, // 盈凸月
-        0.5f,  // 上弦月
-        0.25f, // 盈月
-        0.0f,  // 新月
-        0.25f, // 亏月
-        0.5f,  // 下弦月
-        0.75f  // 亏凸月
-    };
-
-    /// 天空颜色查找表 (日出/白天/日落/夜晚)
-    static constexpr f64 SKY_COLORS[4][3] = {
-        {0.94f, 0.44f, 0.0f},  // 日出 (橙红色)
-        {0.53f, 0.81f, 0.92f}, // 正午 (亮蓝色)
-        {0.94f, 0.44f, 0.0f},  // 日落 (橙红色)
-        {0.02f, 0.02f, 0.1f}   // 夜晚 (深蓝色)
+        1.0,  // 满月
+        0.75, // 盈凸月
+        0.5,  // 上弦月
+        0.25, // 盈月
+        0.0,  // 新月
+        0.25, // 亏月
+        0.5,  // 下弦月
+        0.75  // 亏凸月
     };
 };
 

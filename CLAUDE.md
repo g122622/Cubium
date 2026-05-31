@@ -24,7 +24,7 @@ cmd //c scripts\configure.bat
 scripts\configure.bat
 ```
 
-如果上述方法不行，可以试试 configure + build 一步完成：
+其实上述方法可能也不行，此时可以试试 configure + build 一步完成，大概率能成功：
 ```bash
 ./scripts/configure.sh build
 # 或
@@ -37,5 +37,7 @@ cmd //c scripts\configure.bat build
 clang-format -i src\common\xxx\Foo.cpp
 clang-format -i src\common\xxx\Foo.hpp
 ```
+
+可能出现找不到clang-format的情况，此时需要手动指定路径。（我的vs安装在D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\）
 
 【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！

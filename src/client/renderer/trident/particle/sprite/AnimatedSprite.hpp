@@ -24,7 +24,6 @@
 #pragma once
 
 #include "ISprite.hpp"
-#include <vector>
 
 namespace mc::client::renderer::trident::particle {
 

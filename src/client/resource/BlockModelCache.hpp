@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../renderer/MeshTypes.hpp"
-#include "ResourceManager.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
 #include <memory>
@@ -32,14 +32,10 @@
 
 namespace mc {
 
-// 前向声明
-class ResourceManager;
-
 /**
  * @brief 方块模型缓存
  *
  * 连接 BlockRegistry 和 ResourceManager，缓存 BlockState -> BlockAppearance 映射。
- * 参考 MC 1.16.5 的 BlockModelShapes 类。
  *
  * 使用示例:
  * @code
@@ -184,12 +180,12 @@ private:
      *
      * 遍历 BlockRegistry 中所有方块状态，从 ResourceManager 获取外观并缓存。
      */
-    void buildStateCache();
+    void _buildStateCache();
 
     /**
      * @brief 创建缺失模型外观
      */
-    void createMissingAppearance();
+    void _createMissingAppearance();
 };
 
 } // namespace mc

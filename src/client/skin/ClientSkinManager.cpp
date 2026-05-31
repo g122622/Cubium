@@ -75,7 +75,7 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
     }
 
     // 加载默认皮肤
-    auto defaultResult = loadDefaultSkins();
+    auto defaultResult = _loadDefaultSkins();
     if (!defaultResult.success()) {
         spdlog::warn("ClientSkinManager: Failed to load default skins: {}", defaultResult.error().toString());
         // 默认皮肤加载失败不是致命错误
@@ -138,7 +138,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         return Error(ErrorCode::InvalidArgument, "Failed to create player info");
     }
 
-    std::string key = uuidToKey(profile.uuid());
+    std::string key = _uuidToKey(profile.uuid());
 
     // 检查是否已有纹理区域
     {
@@ -182,7 +182,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
                     file.close();
 
                     // 上传到图集
-                    auto uploadResult = uploadSkinToAtlas(pngData, location);
+                    auto uploadResult = _uploadSkinToAtlas(pngData, location);
                     if (uploadResult.success()) {
                         // 标记需要重建图集
                         // 注意：调用者应在合适时机调用 rebuildAtlas()
@@ -205,15 +205,13 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         }
     }
 
-    // 如果无法从缓存加载，返回默认皮肤
-    spdlog::debug("ClientSkinManager: Skin not in cache for {}, using default", profile.name());
-    return m_steveRegion ? ResourceLocation("minecraft:textures/entity/steve.png")
-                         : ResourceLocation("minecraft:textures/entity/steve.png");
+    // TODO: 三元表达式两个分支返回相同值，疑似逻辑错误，需要检查是否应根据 m_steveRegion 是否为空返回不同的默认皮肤
+    return ResourceLocation("minecraft:textures/entity/steve.png");
 }
 
 const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const
 {
-    std::string key = uuidToKey(uuid);
+    std::string key = _uuidToKey(uuid);
 
     {
         std::lock_guard<std::mutex> lock(m_regionMutex);
@@ -233,7 +231,7 @@ const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& 
 
 const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& uuid) const
 {
-    std::string key = uuidToKey(uuid);
+    std::string key = _uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
     auto it = m_capeRegions.find(key);
@@ -242,7 +240,7 @@ const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& 
 
 const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>& uuid) const
 {
-    std::string key = uuidToKey(uuid);
+    std::string key = _uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
     auto it = m_elytraRegions.find(key);
@@ -271,7 +269,6 @@ Result<void> ClientSkinManager::rebuildAtlas()
 
     // 检查是否需要重建
     if (!m_textureAtlas->needsRebuild()) {
-        spdlog::debug("ClientSkinManager: Atlas does not need rebuild");
         return {};
     }
 
@@ -334,7 +331,7 @@ Result<void> ClientSkinManager::rebuildAtlas()
     return {};
 }
 
-Result<void> ClientSkinManager::loadDefaultSkins()
+Result<void> ClientSkinManager::_loadDefaultSkins()
 {
     // 使用默认皮肤提供者的内置数据
     const auto& steveData = m_skinManager->defaultSkinProvider().getSteveSkinData();
@@ -347,9 +344,7 @@ Result<void> ClientSkinManager::loadDefaultSkins()
             64, // Steve 皮肤是 64x64
             64,
             steveLocation);
-        if (result.success()) {
-            spdlog::debug("ClientSkinManager: Added Steve skin to atlas");
-        } else {
+        if (!result.success()) {
             spdlog::warn("ClientSkinManager: Failed to add Steve skin: {}", result.error().toString());
         }
     } else {
@@ -363,9 +358,7 @@ Result<void> ClientSkinManager::loadDefaultSkins()
             64, // Alex 皮肤是 64x64
             64,
             alexLocation);
-        if (result.success()) {
-            spdlog::debug("ClientSkinManager: Added Alex skin to atlas");
-        } else {
+        if (!result.success()) {
             spdlog::warn("ClientSkinManager: Failed to add Alex skin: {}", result.error().toString());
         }
     } else {
@@ -375,7 +368,7 @@ Result<void> ClientSkinManager::loadDefaultSkins()
     return {};
 }
 
-Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
+Result<ResourceLocation> ClientSkinManager::_uploadSkinToAtlas(
     const std::vector<u8>& pngData, const ResourceLocation& preferredLocation)
 {
 
@@ -387,7 +380,7 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
         return Error(ErrorCode::InvalidData, "Empty PNG data");
     }
 
-    // 解析 PNG 数据获取尺寸和像素
+    // stb_image 使用 int 参数，保持 int 类型以匹配其 API
     int width = 0;
     int height = 0;
     int channels = 0;
@@ -426,8 +419,6 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
             const size_t dstOffset = static_cast<size_t>((y + 32) * 64 * 4);
             std::memcpy(processedPixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
         }
-
-        spdlog::debug("ClientSkinManager: Expanded legacy 64x32 skin to 64x64");
     } else if (width == 64 && height == 64) {
         // 标准皮肤格式
         finalWidth = 64;
@@ -455,7 +446,7 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
     return preferredLocation;
 }
 
-std::string ClientSkinManager::uuidToKey(const std::array<u8, 16>& uuid)
+std::string ClientSkinManager::_uuidToKey(const std::array<u8, 16>& uuid)
 {
     return ::mc::skin::GameProfile(uuid, "").uuidToStringNoDashes();
 }

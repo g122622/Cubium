@@ -187,18 +187,18 @@ private:
     /**
      * @brief 加载默认皮肤到图集
      */
-    Result<void> loadDefaultSkins();
+    Result<void> _loadDefaultSkins();
 
     /**
      * @brief 上传皮肤 PNG 数据到图集
      */
-    Result<ResourceLocation> uploadSkinToAtlas(
+    Result<ResourceLocation> _uploadSkinToAtlas(
         const std::vector<u8>& pngData, const ResourceLocation& preferredLocation);
 
     /**
      * @brief UUID 转字符串键
      */
-    [[nodiscard]] static std::string uuidToKey(const std::array<u8, 16>& uuid);
+    [[nodiscard]] static std::string _uuidToKey(const std::array<u8, 16>& uuid);
 
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
@@ -213,10 +213,11 @@ private:
     std::unordered_map<std::string, const TextureRegion*> m_capeRegions;
     std::unordered_map<std::string, const TextureRegion*> m_elytraRegions;
 
-    // 待重建的皮肤数据
+    // TODO: m_pendingSkins 仅被 clear()，从未实际使用，待实现皮肤异步上传队列
     std::vector<std::pair<ResourceLocation, std::vector<u8>>> m_pendingSkins;
     mutable std::mutex m_pendingMutex;
 
+    // TODO: m_device 仅被赋值和重置，从未实际使用，待实现基于 VkDevice 的纹理管理
     VkDevice m_device = VK_NULL_HANDLE;
     bool m_initialized = false;
 };

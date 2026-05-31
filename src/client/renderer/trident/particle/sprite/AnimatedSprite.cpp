@@ -43,7 +43,7 @@ f64 AnimatedSprite::frameHeight() const
 
 glm::vec4 AnimatedSprite::getFrameUV(f64 age, f64 maxAge) const
 {
-    if (m_frameCount <= 1 || maxAge <= 0.0f) {
+    if (m_frameCount <= 1 || maxAge <= 0.0) {
         return glm::vec4(m_uvMin.x, m_uvMin.y, m_uvMax.x, m_uvMax.y);
     }
 

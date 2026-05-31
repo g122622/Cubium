@@ -153,7 +153,7 @@ const BlockStateVariant* BlockStateLoader::getVariant(const ResourceLocation& bl
 const BlockStateVariant* BlockStateLoader::getVariant(
     const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const
 {
-    std::string stateStr = propertiesToStateStr(properties);
+    std::string stateStr = _propertiesToStateStr(properties);
 
     // 先尝试精确匹配
     if (const auto* variant = getVariant(blockId, stateStr)) {
@@ -208,7 +208,7 @@ std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const
     return result;
 }
 
-std::string BlockStateLoader::propertiesToStateStr(const std::map<std::string, std::string>& properties)
+std::string BlockStateLoader::_propertiesToStateStr(const std::map<std::string, std::string>& properties)
 {
     if (properties.empty()) {
         return "normal";

@@ -1026,7 +1026,7 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     ASSERT_TRUE(resourceManager.loadAllResources().success());
     ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
 
-    const BlockAppearance* waterAppearance = resourceManager.getBlockAppearance(ResourceLocation("minecraft:water"));
+    const BlockAppearance* waterAppearance = resourceManager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
     ASSERT_NE(waterAppearance, nullptr);
     EXPECT_TRUE(waterAppearance->faceTextures.empty());
 

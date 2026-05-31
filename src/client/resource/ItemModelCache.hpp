@@ -24,9 +24,10 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
+
 #include "ItemModelLoader.hpp"
 #include "common/item/core/Item.hpp"
-#include <mutex>
 
 namespace mc::client::resource {
 
@@ -116,10 +117,9 @@ private:
 
     bool m_initialized = false;
     std::unique_ptr<ItemModelLoader> m_loader;
-    mutable std::mutex m_mutex;
 
     // 物品ID到模型的快速查找缓存
-    mutable std::map<u32, const BakedItemModel*> m_itemIdCache;
+    mutable std::unordered_map<u32, const BakedItemModel*> m_itemIdCache;
 };
 
 } // namespace mc::client::resource

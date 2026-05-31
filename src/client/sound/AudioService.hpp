@@ -338,9 +338,9 @@ private:
         bool canSeeSky = true;
     };
 
-    void enqueue(Command command);
-    void runWorker();
-    void processCommand(Command& command);
+    void _enqueue(Command command);
+    void _runWorker();
+    void _processCommand(Command& command);
 
     ResourcePackList& m_resourcePacks;
     ClientSettings& m_settings;

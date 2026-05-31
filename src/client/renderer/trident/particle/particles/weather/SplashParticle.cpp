@@ -32,12 +32,12 @@ SplashParticle::SplashParticle(const glm::vec3& pos, const glm::vec3& velocity)
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
+    setSize(DEFAULT_SIZE * (0.5 + static_cast<f64>(rng.nextFloat()) * 0.5));
     setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.7f)); // 淡蓝色半透明
 
-    setFriction(0.95f);
+    setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7f + rng.nextFloat() * 0.6f));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(rng.nextFloat()) * 0.6));
 }
 
 std::unique_ptr<Particle> SplashParticle::create(
@@ -53,18 +53,18 @@ void SplashParticle::tick(mc::client::ClientWorld* world)
 
     m_prevPosition = m_position;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
     }
 
     // 应用重力
-    m_velocity.y -= m_gravity * 0.04f;
+    m_velocity.y -= m_gravity * 0.04;
 
     // 限制速度
-    if (m_velocity.y < -0.3f) {
-        m_velocity.y = -0.3f;
+    if (m_velocity.y < -0.3) {
+        m_velocity.y = -0.3;
     }
 
     m_position += m_velocity;
@@ -73,8 +73,8 @@ void SplashParticle::tick(mc::client::ClientWorld* world)
 
     // 淡出
     f64 lifeRatio = m_age / m_maxAge;
-    if (lifeRatio > 0.5f) {
-        m_color.a = 0.7f * (1.0f - (lifeRatio - 0.5f) / 0.5f);
+    if (lifeRatio > 0.5) {
+        m_color.a = static_cast<f32>(0.7 * (1.0 - (lifeRatio - 0.5) / 0.5));
     }
 }
 

@@ -222,57 +222,52 @@ private:
     /**
      * @brief 从资源包读取模型文件
      */
-    [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);
+    [[nodiscard]] Result<std::string> _readModelFromResourcePacks(const std::string& filePath);
 
     /**
      * @brief 解析模型 JSON
      */
-    [[nodiscard]] Result<UnbakedItemModel> parseModel(const ResourceLocation& location, std::string_view jsonContent);
+    [[nodiscard]] Result<UnbakedItemModel> _parseModel(const ResourceLocation& location, std::string_view jsonContent);
 
     /**
      * @brief 解析 display 节点
      */
-    void parseDisplay(UnbakedItemModel& model, const nlohmann::json& display);
+    void _parseDisplay(UnbakedItemModel& model, const nlohmann::json& display);
 
     /**
      * @brief 解析 overrides 节点
      */
-    void parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides);
-
-    /**
-     * @brief 解析单个 override 条件
-     */
-    void parseOverride(UnbakedItemModel& model, const nlohmann::json& override);
+    void _parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides);
 
     /**
      * @brief 解析 elements 节点（复用 BlockModelLoader 的解析方法）
      */
-    [[nodiscard]] Result<void> parseElements(UnbakedItemModel& model, const nlohmann::json& elements);
+    [[nodiscard]] Result<void> _parseElements(UnbakedItemModel& model, const nlohmann::json& elements);
 
     /**
      * @brief 解析纹理变量
      */
-    void parseTextures(UnbakedItemModel& model, const nlohmann::json& textures);
+    void _parseTextures(UnbakedItemModel& model, const nlohmann::json& textures);
 
     /**
      * @brief 确定模型类型
      */
-    [[nodiscard]] ItemModelType determineModelType(const ResourceLocation& parent, bool hasElements) const;
+    [[nodiscard]] ItemModelType _determineModelType(const ResourceLocation& parent, bool hasElements) const;
 
     /**
      * @brief 合并父模型属性
      */
-    void mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent);
+    void _mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent);
 
     /**
      * @brief 解析纹理引用链
      */
-    void resolveTextureReferences(BakedItemModel& baked);
+    void _resolveTextureReferences(BakedItemModel& baked);
 
     /**
      * @brief 加载内置默认变换
      */
-    void loadDefaultTransforms();
+    void _loadDefaultTransforms();
 
     // 内置默认变换
     std::map<ItemDisplayContext, ItemTransform> m_generatedDefaults;

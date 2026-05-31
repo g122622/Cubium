@@ -79,8 +79,6 @@ Result<std::shared_ptr<IAudioBuffer>> AudioBufferCache::getOrCreate(
     entry.isPreloaded = false;
     m_cache[location] = entry;
 
-    spdlog::trace("[AudioBufferCache] Created buffer for: {}", location.toString());
-
     return buffer;
 }
 
@@ -105,10 +103,6 @@ size_t AudioBufferCache::preload(
             // 保存强引用
             m_preloadedBuffers.push_back(buffer);
             ++successCount;
-
-            spdlog::trace("[AudioBufferCache] Preloaded: {}", location.toString());
-        } else {
-            spdlog::debug("[AudioBufferCache] Failed to preload {}: {}", location.toString(), result.error().message());
         }
     }
 
@@ -143,7 +137,7 @@ void AudioBufferCache::cleanupUnused()
     }
 
     if (removedCount > 0) {
-        spdlog::trace("[AudioBufferCache] Cleaned up {} unused buffers", removedCount);
+        spdlog::info("[AudioBufferCache] Cleaned up {} unused buffers", removedCount);
     }
 }
 
@@ -153,8 +147,6 @@ void AudioBufferCache::clear()
 
     m_cache.clear();
     m_preloadedBuffers.clear();
-
-    spdlog::trace("[AudioBufferCache] Cleared all buffers");
 }
 
 size_t AudioBufferCache::getCacheSize() const

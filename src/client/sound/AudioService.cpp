@@ -71,7 +71,7 @@ Result<void> AudioService::initialize()
     m_initComplete = false;
     m_initResult = Result<void>::ok();
 
-    m_workerThread = std::thread(&AudioService::runWorker, this);
+    m_workerThread = std::thread(&AudioService::_runWorker, this);
 
     std::unique_lock lock(m_initMutex);
     m_initConditionVariable.wait(lock, [this]() { return m_initComplete; });
@@ -117,7 +117,7 @@ void AudioService::play(std::unique_ptr<ISoundInstance> sound)
     Command command;
     command.type = CommandType::Play;
     command.sound = std::move(sound);
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks)
@@ -132,7 +132,7 @@ void AudioService::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayT
     command.type = CommandType::PlayDelayed;
     command.sound = std::move(sound);
     command.delayTicks = delayTicks;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::stop(SoundInstanceId id)
@@ -146,7 +146,7 @@ void AudioService::stop(SoundInstanceId id)
     Command command;
     command.type = CommandType::StopId;
     command.soundId = id;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::stop(const ResourceLocation& soundEventId)
@@ -160,7 +160,7 @@ void AudioService::stop(const ResourceLocation& soundEventId)
     Command command;
     command.type = CommandType::StopEvent;
     command.soundEventId = soundEventId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::stop(SoundCategory category)
@@ -174,7 +174,7 @@ void AudioService::stop(SoundCategory category)
     Command command;
     command.type = CommandType::StopCategory;
     command.category = category;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::stopAll()
@@ -187,7 +187,7 @@ void AudioService::stopAll()
 
     Command command;
     command.type = CommandType::StopAll;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::pause()
@@ -209,7 +209,7 @@ void AudioService::setPaused(bool paused)
     Command command;
     command.type = CommandType::SetPaused;
     command.paused = paused;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
@@ -223,7 +223,7 @@ void AudioService::updateListener(const glm::vec3& position, const glm::vec3& fo
     command.position = position;
     command.forward = forward;
     command.up = up;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setListenerVelocity(const glm::vec3& velocity)
@@ -235,7 +235,7 @@ void AudioService::setListenerVelocity(const glm::vec3& velocity)
     Command command;
     command.type = CommandType::SetListenerVelocity;
     command.velocity = velocity;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setVolume(SoundCategory category, f32 volume)
@@ -248,7 +248,7 @@ void AudioService::setVolume(SoundCategory category, f32 volume)
     command.type = CommandType::SetVolume;
     command.category = category;
     command.volume = volume;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::reloadSoundDefinitions()
@@ -259,7 +259,7 @@ void AudioService::reloadSoundDefinitions()
 
     Command command;
     command.type = CommandType::ReloadSounds;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setBiomeId(u32 biomeId)
@@ -271,7 +271,7 @@ void AudioService::setBiomeId(u32 biomeId)
     Command command;
     command.type = CommandType::SetBiomeId;
     command.biomeId = biomeId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setUnderwater(bool underwater)
@@ -283,7 +283,7 @@ void AudioService::setUnderwater(bool underwater)
     Command command;
     command.type = CommandType::SetUnderwater;
     command.underwater = underwater;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
@@ -296,7 +296,7 @@ void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
     command.type = CommandType::SetBubbleColumnState;
     command.bubbleColumn.inBubbleColumn = inBubbleColumn;
     command.bubbleColumn.isDrag = isDrag;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::updateMusicState(
@@ -312,7 +312,7 @@ void AudioService::updateMusicState(
     command.inCreative = inCreative;
     command.inBossFight = inBossFight;
     command.biomeMusic = biomeMusic;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight)
@@ -325,7 +325,7 @@ void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight)
     command.type = CommandType::SetAmbientLightLevel;
     command.skyLight = skyLight;
     command.blockLight = blockLight;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z)
@@ -339,7 +339,7 @@ void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z)
     command.playerX = x;
     command.playerY = y;
     command.playerZ = z;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::setInMenu(bool inMenu)
@@ -351,7 +351,7 @@ void AudioService::setInMenu(bool inMenu)
     Command command;
     command.type = CommandType::SetInMenu;
     command.inMenu = inMenu;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky)
@@ -366,7 +366,7 @@ void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32
     command.thunderStrength = thunderStrength;
     command.weatherPlayerY = playerY;
     command.canSeeSky = canSeeSky;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::onEntitySpawn(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z)
@@ -385,7 +385,7 @@ void AudioService::onEntitySpawn(u32 entityId, const std::string& typeId, f32 x,
     command.type = CommandType::EntitySpawn;
     command.entityId = entityId;
     command.entityTypeId = typeId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::onEntityRemove(u32 entityId)
@@ -398,7 +398,7 @@ void AudioService::onEntityRemove(u32 entityId)
     Command command;
     command.type = CommandType::EntityRemove;
     command.entityId = entityId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 
     // 清理状态快照
     m_entitySoundHandler->removeEntityState(static_cast<EntityId>(entityId));
@@ -420,7 +420,7 @@ void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
     command.type = CommandType::ElytraFlyingChanged;
     command.entityId = entityId;
     command.isFlying = isFlying;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::onEntityAngerStateChanged(u32 entityId, bool isAngry)
@@ -458,7 +458,7 @@ void AudioService::onGuardianAttack(u32 entityId)
     Command command;
     command.type = CommandType::GuardianAttack;
     command.entityId = entityId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
@@ -477,7 +477,7 @@ void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
     command.type = CommandType::GuardianTargetUpdate;
     command.entityId = entityId;
     command.targetEntityId = targetEntityId;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::playMovingSound(
@@ -494,7 +494,7 @@ void AudioService::playMovingSound(
     command.entityId = entityId;
     command.volume = volume;
     command.pitch = pitch;
-    enqueue(std::move(command));
+    _enqueue(std::move(command));
 }
 
 void AudioService::updateEntityRidingState(u32 entityId, bool isRiding, u32 vehicleId)
@@ -510,7 +510,7 @@ void AudioService::updateEntityRidingState(u32 entityId, bool isRiding, u32 vehi
     }
 }
 
-void AudioService::enqueue(Command command)
+void AudioService::_enqueue(Command command)
 {
     {
         std::lock_guard lock(m_mutex);
@@ -520,7 +520,7 @@ void AudioService::enqueue(Command command)
     m_conditionVariable.notify_one();
 }
 
-void AudioService::runWorker()
+void AudioService::_runWorker()
 {
     const std::string threadName = "AudioEngineWorker";
     mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
@@ -595,7 +595,7 @@ void AudioService::runWorker()
             }
 
             for (auto& command : localCommands) {
-                processCommand(command);
+                _processCommand(command);
             }
 
             if (m_stopRequested.load()) {
@@ -656,7 +656,7 @@ void AudioService::runWorker()
     }
 }
 
-void AudioService::processCommand(Command& command)
+void AudioService::_processCommand(Command& command)
 {
     if (!m_soundEngine) {
         return;

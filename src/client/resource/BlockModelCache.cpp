@@ -26,7 +26,46 @@
 
 #include <spdlog/spdlog.h>
 
+#include "common/util/assert/AssertAll.hpp"
+
 namespace mc {
+namespace {
+
+/**
+ * @brief 解析 "key=value,key2=value2" 格式的属性字符串
+ *
+ * @param properties 属性字符串
+ * @return 属性键值对映射
+ */
+std::map<std::string, std::string> parsePropertiesString(std::string_view properties)
+{
+    std::map<std::string, std::string> props;
+    if (properties.empty()) {
+        return props;
+    }
+
+    size_t start = 0;
+    while (start < properties.size()) {
+        size_t end = properties.find(',', start);
+        if (end == std::string_view::npos) {
+            end = properties.size();
+        }
+
+        std::string_view pair(properties.data() + start, end - start);
+        size_t eq = pair.find('=');
+        if (eq != std::string_view::npos) {
+            std::string key(pair.substr(0, eq));
+            std::string value(pair.substr(eq + 1));
+            props[key] = value;
+        }
+
+        start = end + 1;
+    }
+
+    return props;
+}
+
+} // namespace
 
 // ============================================================================
 // 初始化和重建
@@ -39,10 +78,10 @@ bool BlockModelCache::initialize(ResourceManager& resourceManager)
     m_resourceManager = &resourceManager;
 
     // 创建缺失模型外观
-    createMissingAppearance();
+    _createMissingAppearance();
 
     // 构建状态缓存
-    buildStateCache();
+    _buildStateCache();
 
     m_initialized = true;
     spdlog::info("BlockModelCache initialized: {} appearances cached", m_stateCache.size());
@@ -110,32 +149,8 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(u32 blockId, const st
     }
 
     // 从 ResourceManager 获取外观
-    // 构建 properties map
-    std::map<std::string, std::string> props;
-    if (!properties.empty()) {
-        // 解析 "key=value,key2=value2" 格式
-        size_t start = 0;
-        size_t end = 0;
-
-        while (start < properties.size()) {
-            end = properties.find(',', start);
-            if (end == std::string::npos) {
-                end = properties.size();
-            }
-
-            std::string_view pair(properties.data() + start, end - start);
-            size_t eq = pair.find('=');
-            if (eq != std::string_view::npos) {
-                std::string key(pair.substr(0, eq));
-                std::string value(pair.substr(eq + 1));
-                props[key] = value;
-            }
-
-            start = end + 1;
-        }
-    }
-
-    const BlockAppearance* appearance = m_resourceManager->getBlockAppearance(block->blockLocation(), props);
+    const BlockAppearance* appearance =
+        m_resourceManager->getBlockAppearance(block->blockLocation(), parsePropertiesString(properties));
 
     return appearance ? appearance : getMissingAppearance();
 }
@@ -149,12 +164,9 @@ const BlockAppearance* BlockModelCache::getMissingAppearance() const
 // 私有方法
 // ============================================================================
 
-void BlockModelCache::buildStateCache()
+void BlockModelCache::_buildStateCache()
 {
-    if (!m_resourceManager) {
-        spdlog::warn("BlockModelCache: Cannot build cache without ResourceManager");
-        return;
-    }
+    MC_ASSERT_RELEASE(m_resourceManager != nullptr);
 
     m_stateCache.clear();
 
@@ -168,33 +180,8 @@ void BlockModelCache::buildStateCache()
         // 获取方块资源位置
         const ResourceLocation& blockLoc = state.blockLocation();
 
-        // 获取模型键（属性字符串）
-        std::string modelKey = state.toModelKey();
-
-        // 构建 properties map
-        std::map<std::string, std::string> props;
-        if (!modelKey.empty()) {
-            // 解析 "key=value,key2=value2" 格式
-            size_t start = 0;
-            size_t end = 0;
-
-            while (start < modelKey.size()) {
-                end = modelKey.find(',', start);
-                if (end == std::string::npos) {
-                    end = modelKey.size();
-                }
-
-                std::string_view pair(modelKey.data() + start, end - start);
-                size_t eq = pair.find('=');
-                if (eq != std::string_view::npos) {
-                    std::string key(pair.substr(0, eq));
-                    std::string value(pair.substr(eq + 1));
-                    props[key] = value;
-                }
-
-                start = end + 1;
-            }
-        }
+        // 获取模型键（属性字符串）并解析为属性映射
+        std::map<std::string, std::string> props = parsePropertiesString(state.toModelKey());
 
         // 从 ResourceManager 获取外观
         const BlockAppearance* appearance = m_resourceManager->getBlockAppearance(blockLoc, props);
@@ -212,7 +199,7 @@ void BlockModelCache::buildStateCache()
     spdlog::info("BlockModelCache built: {} successes, {} failures", successCount, failCount);
 }
 
-void BlockModelCache::createMissingAppearance()
+void BlockModelCache::_createMissingAppearance()
 {
     m_missingAppearance = std::make_unique<BlockAppearance>();
 
@@ -238,7 +225,7 @@ void BlockModelCache::createMissingAppearance()
     // 使用 DefaultTextureAtlas 中第一个位置的 UV 坐标
     // DefaultTextureAtlas: ATLAS_SIZE=256, TILE_SIZE=16, tilesPerRow=16
     // 第一个位置 (0,0) 是缺失纹理，UV 坐标是 (0, 0, 1/16, 1/16)
-    constexpr f32 tileUV = 1.0f / 16.0f; // 0.0625
+    constexpr f32 tileUV = 1.0f / 16.0f;
     TextureRegion missingRegion(0.0f, 0.0f, tileUV, tileUV);
     m_missingAppearance->faceTextures["down"] = missingRegion;
     m_missingAppearance->faceTextures["up"] = missingRegion;
@@ -246,14 +233,6 @@ void BlockModelCache::createMissingAppearance()
     m_missingAppearance->faceTextures["south"] = missingRegion;
     m_missingAppearance->faceTextures["west"] = missingRegion;
     m_missingAppearance->faceTextures["east"] = missingRegion;
-
-    spdlog::debug("BlockModelCache: Created missing appearance with {} elements, {} faceTextures, UV=({},{},{},{})",
-        m_missingAppearance->elements.size(),
-        m_missingAppearance->faceTextures.size(),
-        missingRegion.u0,
-        missingRegion.v0,
-        missingRegion.u1,
-        missingRegion.v1);
 }
 
 } // namespace mc

@@ -30,7 +30,6 @@ namespace mc::client {
 
 // 静态成员定义
 constexpr f64 CelestialCalculations::MOON_PHASE_FACTORS[8];
-constexpr f64 CelestialCalculations::SKY_COLORS[4][3];
 
 f64 CelestialCalculations::calculateCelestialAngle(i64 dayTime)
 {
@@ -40,14 +39,15 @@ f64 CelestialCalculations::calculateCelestialAngle(i64 dayTime)
     // - 18000 ticks = 午夜 -> 0.5
     // - 0 ticks = 日出 -> 0.75
 
-    constexpr f64 TICKS_PER_DAY = 24000.0;
+    constexpr f64 TICKS_PER_DAY = static_cast<f64>(mc::game::DAY_LENGTH_TICKS);
+    constexpr f64 NOON_TICKS = 6000.0;
 
     f64 normalizedDayTime = std::fmod(static_cast<f64>(dayTime), TICKS_PER_DAY);
     if (normalizedDayTime < 0.0) {
         normalizedDayTime += TICKS_PER_DAY;
     }
 
-    f64 celestialAngle = (normalizedDayTime - 6000.0) / TICKS_PER_DAY;
+    f64 celestialAngle = (normalizedDayTime - NOON_TICKS) / TICKS_PER_DAY;
     if (celestialAngle < 0.0) {
         celestialAngle += 1.0;
     }
@@ -83,7 +83,6 @@ f64 CelestialCalculations::calculateCelestialAngleInterpolated(i64 dayTime, f64 
 
 i32 CelestialCalculations::calculateMoonPhase(i64 gameTime)
 {
-    // MC 1.16.5: 月相 = (gameTime / 24000) % 8
     return static_cast<i32>((gameTime / mc::game::DAY_LENGTH_TICKS) % 8);
 }
 
@@ -178,14 +177,13 @@ glm::vec4 CelestialCalculations::calculateSunriseSunsetColor(f64 celestialAngle,
 {
     MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
-    // 对齐 MC 1.16.5 DimensionType#calcSunriseSunsetColors。
     const f64 cosine = std::cos(celestialAngle * mc::math::TAU_F);
     if (cosine < -0.4 || cosine > 0.4) {
         return glm::vec4(0.0f);
     }
 
     const f64 t = cosine / 0.4 * 0.5 + 0.5;
-    f64 alpha = 1.0 - (1.0 - std::sin(t * mc::math::PI)) * 0.99;
+    f64 alpha = 1.0 - (1.0 - std::sin(t * mc::math::PI_DOUBLE)) * 0.99;
     alpha *= alpha;
 
     glm::vec3 color;
@@ -234,7 +232,7 @@ f64 CelestialCalculations::calculateStarBrightness(f64 celestialAngle)
     // f = 1 - (cos(angle * TAU) * 2 + 0.25)
     // clamp 到 [0,1] 后平方再缩放。
     const f64 angleRad = celestialAngle * mc::math::TAU_F;
-    f64 brightness = 1.0f - (std::cos(angleRad) * 2.0f + 0.25f);
+    f64 brightness = 1.0 - (std::cos(angleRad) * 2.0 + 0.25);
     brightness = glm::clamp(brightness, 0.0, 1.0);
     return brightness * brightness * 0.5;
 }

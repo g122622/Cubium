@@ -50,8 +50,6 @@ using renderer::entity::pipeline::EntityTextureAtlas;
  * 从资源包加载实体纹理并构建纹理图集。
  * 支持 MC 1.12 和 MC 1.13+ 的纹理路径格式。
  * 自动从 EntityRegistry 获取需要纹理的实体列表。
- *
- * 参考 MC 1.16.5 实体纹理加载
  */
 class EntityTextureLoader {
 public:
@@ -114,7 +112,7 @@ private:
      * @param entityTypeId 实体类型ID（如 "minecraft:pig"）
      * @return 实体名称（如 "pig"）
      */
-    [[nodiscard]] static std::string parseEntityName(const std::string& entityTypeId);
+    [[nodiscard]] static std::string _parseEntityName(const std::string& entityTypeId);
 
     /**
      * @brief 加载附加纹理（如羊的毛皮层）
@@ -122,7 +120,7 @@ private:
      * @param atlas 纹理图集
      * @return 加载的纹理数量
      */
-    [[nodiscard]] u32 loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
+    [[nodiscard]] u32 _loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
 };
 
 } // namespace mc::client

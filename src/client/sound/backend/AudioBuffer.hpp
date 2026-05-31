@@ -23,11 +23,9 @@
 
 #pragma once
 
-#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/sound/SoundTypes.hpp"
 
-#include <memory>
 #include <vector>
 
 namespace mc::client::sound {

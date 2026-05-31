@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../renderer/MeshTypes.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -62,7 +62,7 @@ struct TextureInfo {
  */
 class TextureAtlasBuilder {
 public:
-    TextureAtlasBuilder();
+    TextureAtlasBuilder() = default;
 
     // 设置图集尺寸
     void setMaxSize(u32 width, u32 height);
@@ -108,7 +108,7 @@ private:
         u32 x, y, width;
     };
 
-    [[nodiscard]] bool canPlace(const std::vector<SkylineNode>& skyline,
+    [[nodiscard]] bool _canPlace(const std::vector<SkylineNode>& skyline,
         u32 width,
         u32 height,
         u32 maxWidth,
@@ -117,7 +117,7 @@ private:
         u32& outY,
         size_t& outIndex) const;
 
-    void placeTexture(std::vector<SkylineNode>& skyline, u32 x, u32 y, u32 width, u32 height, size_t index);
+    void _placeTexture(std::vector<SkylineNode>& skyline, u32 x, u32 y, u32 width, u32 height, size_t index);
 };
 
 } // namespace mc

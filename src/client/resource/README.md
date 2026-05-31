@@ -509,7 +509,7 @@ DestroyStageTextures::instance().getTextureUV(stage, u0, v0, u1, v1);
 
 **问题**：属性字符串必须按字母顺序排列，否则无法匹配。
 
-**解决**：BlockStateLoader 使用 `propertiesToStateStr()` 自动排序。
+**解决**：BlockStateLoader 使用 `_propertiesToStateStr()` 自动排序。
 
 ### 5. 纹理图集尺寸限制
 

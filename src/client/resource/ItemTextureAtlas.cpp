@@ -22,8 +22,8 @@
  */
 
 #include "ItemTextureAtlas.hpp"
-#include "../renderer/trident/util/VulkanUtils.hpp"
 #include "TextureAtlasBuilder.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -263,13 +263,13 @@ Result<void> ItemTextureAtlas::create(VkDevice device,
     m_height = height;
 
     // Create image
-    auto imageResult = createImage();
+    auto imageResult = _createImage();
     if (!imageResult.success()) {
         return imageResult.error();
     }
 
     // Create image view
-    auto viewResult = createImageView();
+    auto viewResult = _createImageView();
     if (!viewResult.success()) {
         vkDestroyImage(m_device, m_image, nullptr);
         vkFreeMemory(m_device, m_imageMemory, nullptr);
@@ -279,7 +279,7 @@ Result<void> ItemTextureAtlas::create(VkDevice device,
     }
 
     // Create sampler
-    auto samplerResult = createSampler();
+    auto samplerResult = _createSampler();
     if (!samplerResult.success()) {
         vkDestroyImageView(m_device, m_imageView, nullptr);
         vkDestroyImage(m_device, m_image, nullptr);
@@ -403,7 +403,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
         }
 
         if (tryLoadToBuilder(atlasKey, sourceCandidates)) {
-            spdlog::debug("ItemTextureAtlas: Loaded texture for item {}", itemId.toString());
+            // 纹理加载成功
         }
     });
 
@@ -488,12 +488,12 @@ Result<void> ItemTextureAtlas::upload()
             m_imageMemory = VK_NULL_HANDLE;
         }
 
-        auto imageResult = createImage();
+        auto imageResult = _createImage();
         if (!imageResult.success()) {
             return imageResult.error();
         }
 
-        auto viewResult = createImageView();
+        auto viewResult = _createImageView();
         if (!viewResult.success()) {
             vkDestroyImage(m_device, m_image, nullptr);
             vkFreeMemory(m_device, m_imageMemory, nullptr);
@@ -525,7 +525,7 @@ Result<void> ItemTextureAtlas::upload()
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(
+    auto memTypeResult = _findMemoryType(
         memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (!memTypeResult.success()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -556,10 +556,10 @@ Result<void> ItemTextureAtlas::upload()
         (needRecreateImage || !m_uploaded) ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
     // Use single-time command to upload texture
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     // Transition image layout to transfer destination
-    transitionImageLayout(
+    _transitionImageLayout(
         cmd, uploadOldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, uploadSrcStage, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     // Copy buffer to image
@@ -577,13 +577,13 @@ Result<void> ItemTextureAtlas::upload()
     vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // Transition to shader read-only layout
-    transitionImageLayout(cmd,
+    _transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // Cleanup staging buffer
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -641,7 +641,7 @@ void ItemTextureAtlas::addTextureRegion(const ResourceLocation& location, const 
     m_regionsByLocation[location] = region;
 }
 
-Result<void> ItemTextureAtlas::createImage()
+Result<void> ItemTextureAtlas::_createImage()
 {
     // Create image
     VkImageCreateInfo imageInfo = {};
@@ -670,7 +670,7 @@ Result<void> ItemTextureAtlas::createImage()
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -691,7 +691,7 @@ Result<void> ItemTextureAtlas::createImage()
     return {};
 }
 
-Result<void> ItemTextureAtlas::createSampler()
+Result<void> ItemTextureAtlas::_createSampler()
 {
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -718,7 +718,7 @@ Result<void> ItemTextureAtlas::createSampler()
     return {};
 }
 
-Result<void> ItemTextureAtlas::createImageView()
+Result<void> ItemTextureAtlas::_createImageView()
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -738,23 +738,23 @@ Result<void> ItemTextureAtlas::createImageView()
     return {};
 }
 
-Result<u32> ItemTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> ItemTextureAtlas::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer ItemTextureAtlas::beginSingleTimeCommands()
+VkCommandBuffer ItemTextureAtlas::_beginSingleTimeCommands()
 {
     return renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void ItemTextureAtlas::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void ItemTextureAtlas::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }
 
-void ItemTextureAtlas::transitionImageLayout(VkCommandBuffer cmd,
+void ItemTextureAtlas::_transitionImageLayout(VkCommandBuffer cmd,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkPipelineStageFlags srcStage,

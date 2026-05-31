@@ -23,10 +23,7 @@
 
 #include "client/sound/backend/AudioBuffer.hpp"
 
-#include "common/resource/ResourcePackList.hpp"
-
-#include <algorithm>
-#include <fmt/format.h>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::sound {
 
@@ -43,26 +40,21 @@ AudioData::AudioData(AudioFormat format, std::vector<u8> data)
 
 size_t AudioData::sampleCount() const noexcept
 {
-    if (format.channels == 0 || format.bitsPerSample == 0) {
-        return 0;
-    }
+    MC_ASSERT_RELEASE(format.channels > 0);
+    MC_ASSERT_RELEASE(format.bitsPerSample > 0);
 
-    size_t bytesPerSample = format.bitsPerSample / 8;
-    return samples.size() / (format.channels * bytesPerSample);
+    const size_t bytesPerSample = static_cast<size_t>(format.bitsPerSample) / 8;
+    return samples.size() / (static_cast<size_t>(format.channels) * bytesPerSample);
 }
 
 f32 AudioData::calculateDuration() const noexcept
 {
-    if (format.sampleRate == 0 || format.channels == 0) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(format.sampleRate > 0);
+    MC_ASSERT_RELEASE(format.channels > 0);
+    MC_ASSERT_RELEASE(format.bitsPerSample > 0);
 
-    size_t bytesPerSample = format.bitsPerSample / 8;
-    if (bytesPerSample == 0) {
-        return 0.0f;
-    }
-
-    size_t totalSamples = samples.size() / (format.channels * bytesPerSample);
+    const size_t bytesPerSample = static_cast<size_t>(format.bitsPerSample) / 8;
+    const size_t totalSamples = samples.size() / (static_cast<size_t>(format.channels) * bytesPerSample);
     return static_cast<f32>(totalSamples) / static_cast<f32>(format.sampleRate);
 }
 

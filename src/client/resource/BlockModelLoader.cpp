@@ -135,7 +135,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(std::string_view jsonCo
             const auto& variants = json["variants"];
 
             for (auto it = variants.begin(); it != variants.end(); ++it) {
-                std::string stateKey = normalizeStateKey(it.key());
+                std::string stateKey = _normalizeStateKey(it.key());
                 VariantList list;
 
                 if (it.value().is_array()) {
@@ -278,7 +278,7 @@ const VariantList* BlockStateDefinition::getVariants(std::string_view stateStr) 
         return &it->second;
     }
 
-    std::string normalizedKey = normalizeStateKey(stateStr);
+    std::string normalizedKey = _normalizeStateKey(stateStr);
     if (normalizedKey != key) {
         it = m_variants.find(normalizedKey);
         if (it != m_variants.end()) {
@@ -297,7 +297,7 @@ const VariantList* BlockStateDefinition::getVariants(std::string_view stateStr) 
     return nullptr;
 }
 
-std::string BlockStateDefinition::normalizeStateKey(std::string_view stateKey)
+std::string BlockStateDefinition::_normalizeStateKey(std::string_view stateKey)
 {
     std::string trimmed = trimWhitespace(stateKey);
     if (trimmed.empty() || trimmed == "normal") {
@@ -386,13 +386,13 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
     }
 
     // 从资源包列表中读取模型文件
-    auto readResult = readModelFromResourcePacks(filePath);
+    auto readResult = _readModelFromResourcePacks(filePath);
     if (readResult.failed()) {
         return readResult.error();
     }
 
     // 解析JSON
-    auto parseResult = parseModel(readResult.value());
+    auto parseResult = _parseModel(readResult.value());
     if (parseResult.failed()) {
         return parseResult.error();
     }
@@ -405,7 +405,7 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
     return model;
 }
 
-Result<std::string> BlockModelLoader::readModelFromResourcePacks(const std::string& filePath)
+Result<std::string> BlockModelLoader::_readModelFromResourcePacks(const std::string& filePath)
 {
     // filePath 已是相对于 PackType 根目录的路径（如 "minecraft/models/block/stone.json"）
     // 无需再剥离 "assets/" 前缀
@@ -485,7 +485,7 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
     // 解析纹理变量引用 (递归解析 #variable)
     // 例如: down=#all, all=block/stone -> down=block/stone
     bool changed = true;
-    int maxIterations = 10; // 防止无限循环
+    i32 maxIterations = 10; // 防止无限循环
     while (changed && maxIterations-- > 0) {
         changed = false;
         for (auto& [name, texLoc] : baked.textures) {
@@ -528,7 +528,7 @@ void BlockModelLoader::clearCache()
     m_unbakedModels.clear();
 }
 
-Result<UnbakedBlockModel> BlockModelLoader::parseModel(std::string_view jsonContent)
+Result<UnbakedBlockModel> BlockModelLoader::_parseModel(std::string_view jsonContent)
 {
     try {
         auto json = nlohmann::json::parse(jsonContent);
@@ -564,7 +564,7 @@ Result<UnbakedBlockModel> BlockModelLoader::parseModel(std::string_view jsonCont
         // 解析元素
         if (json.contains("elements")) {
             for (const auto& elemJson : json["elements"]) {
-                auto result = parseElement(elemJson);
+                auto result = _parseElement(elemJson);
                 if (result.success()) {
                     model.elements.push_back(result.value());
                 }
@@ -578,7 +578,7 @@ Result<UnbakedBlockModel> BlockModelLoader::parseModel(std::string_view jsonCont
     }
 }
 
-Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
+Result<ModelElement> BlockModelLoader::_parseElement(const nlohmann::json& json)
 {
     ModelElement elem;
 
@@ -603,7 +603,7 @@ Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
 
     // 解析旋转
     if (json.contains("rotation")) {
-        elem.rotation = parseRotation(json["rotation"]);
+        elem.rotation = _parseRotation(json["rotation"]);
     }
 
     // 解析阴影
@@ -617,7 +617,7 @@ Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
         for (auto it = faces.begin(); it != faces.end(); ++it) {
             Direction dir = parseDirection(it.key());
             if (dir != Direction::None) {
-                auto result = parseFace(it.value(), dir);
+                auto result = _parseFace(it.value(), dir);
                 if (result.success()) {
                     elem.faces[dir] = result.value();
                 }
@@ -629,7 +629,6 @@ Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
     for (auto& [dir, face] : elem.faces) {
         if (face.uv.isDefault()) {
             // 根据面的方向计算默认UV
-            // 参考 BlockPart.getFaceUvs
             switch (dir) {
                 case Direction::Down:
                     face.uv.u0 = elem.from.x;
@@ -676,7 +675,7 @@ Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
     return elem;
 }
 
-Result<ModelFace> BlockModelLoader::parseFace(const nlohmann::json& json, Direction /* dir */)
+Result<ModelFace> BlockModelLoader::_parseFace(const nlohmann::json& json, Direction /* dir */)
 {
     ModelFace face;
 
@@ -697,7 +696,7 @@ Result<ModelFace> BlockModelLoader::parseFace(const nlohmann::json& json, Direct
 
     // 解析UV
     if (json.contains("uv")) {
-        face.uv = parseUV(json["uv"]);
+        face.uv = _parseUV(json["uv"]);
     }
 
     // 解析旋转
@@ -708,7 +707,7 @@ Result<ModelFace> BlockModelLoader::parseFace(const nlohmann::json& json, Direct
     return face;
 }
 
-ModelFaceUV BlockModelLoader::parseUV(const nlohmann::json& json)
+ModelFaceUV BlockModelLoader::_parseUV(const nlohmann::json& json)
 {
     ModelFaceUV uv;
 
@@ -722,7 +721,7 @@ ModelFaceUV BlockModelLoader::parseUV(const nlohmann::json& json)
     return uv;
 }
 
-ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
+ModelRotation BlockModelLoader::_parseRotation(const nlohmann::json& json)
 {
     ModelRotation rot;
 

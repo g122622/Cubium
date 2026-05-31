@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../renderer/MeshTypes.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -77,8 +77,8 @@ public:
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
-        u32 width = 256,
-        u32 height = 256);
+        u32 width,
+        u32 height);
 
     /**
      * @brief 销毁资源
@@ -223,37 +223,37 @@ private:
     /**
      * @brief 创建图像
      */
-    [[nodiscard]] Result<void> createImage();
+    [[nodiscard]] Result<void> _createImage();
 
     /**
      * @brief 创建采样器
      */
-    [[nodiscard]] Result<void> createSampler();
+    [[nodiscard]] Result<void> _createSampler();
 
     /**
      * @brief 创建图像视图
      */
-    [[nodiscard]] Result<void> createImageView();
+    [[nodiscard]] Result<void> _createImageView();
 
     /**
      * @brief 查找内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void _endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 转换图像布局
      */
-    void transitionImageLayout(VkCommandBuffer cmd,
+    void _transitionImageLayout(VkCommandBuffer cmd,
         VkImageLayout oldLayout,
         VkImageLayout newLayout,
         VkPipelineStageFlags srcStage,
