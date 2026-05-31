@@ -49,8 +49,6 @@ class SoundHandler;
  * 定义正在播放或待播放的声音的所有属性。
  * 每个声音实例代表一个独立的可播放声音。
  *
- * 参考: net.minecraft.client.audio.ISound
- *
  * 使用示例:
  * @code
  * // 创建全局声音
@@ -216,7 +214,6 @@ public:
      *
      * 用于 TickableSound 的声音切换检查。
      * 如果返回 true，声音可以在音量为 0 时播放。
-     * 参考: net.minecraft.client.audio.ISound.canBeSilent()
      */
     [[nodiscard]] virtual bool canBeSilent() const { return false; }
 
@@ -231,11 +228,7 @@ public:
      */
     virtual void tick() {}
 
-    /**
-     * @brief 创建声音访问器
-     *
-     * 用于延迟解析声音事件到具体的声音文件。
-     */
+    // TODO: 实现声音访问器，用于延迟解析声音事件到具体的声音文件
     // [[nodiscard]] virtual Result<SoundAccessor> createAccessor(SoundHandler& handler) = 0;
 };
 

@@ -84,7 +84,7 @@ void FontTextureAtlas::destroy()
     m_textureSize = 0;
 }
 
-FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 height)
+FontTextureAtlas::Node* FontTextureAtlas::_findNode(Node* node, u32 width, u32 height)
 {
     if (node == nullptr) {
         return nullptr;
@@ -92,11 +92,11 @@ FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 he
 
     // 如果节点已被使用，递归查找子节点
     if (node->used) {
-        Node* found = findNode(node->left, width, height);
+        Node* found = _findNode(node->left, width, height);
         if (found != nullptr) {
             return found;
         }
-        return findNode(node->right, width, height);
+        return _findNode(node->right, width, height);
     }
 
     // 检查节点大小是否合适
@@ -107,7 +107,7 @@ FontTextureAtlas::Node* FontTextureAtlas::findNode(Node* node, u32 width, u32 he
     return nullptr;
 }
 
-FontTextureAtlas::Node* FontTextureAtlas::splitNode(Node* node, u32 width, u32 height)
+FontTextureAtlas::Node* FontTextureAtlas::_splitNode(Node* node, u32 width, u32 height)
 {
     // 标记节点为已使用
     node->used = true;
@@ -132,7 +132,7 @@ FontTextureAtlas::Node* FontTextureAtlas::splitNode(Node* node, u32 width, u32 h
     return node;
 }
 
-void FontTextureAtlas::copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels)
+void FontTextureAtlas::_copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels)
 {
     for (u32 row = 0; row < height; ++row) {
         u32 dstOffset = (y + row) * m_textureSize + x;
@@ -161,20 +161,20 @@ Result<Glyph> FontTextureAtlas::addGlyph(
     u32 paddedWidth = width + m_padding;
     u32 paddedHeight = height + m_padding;
 
-    Node* node = findNode(m_root, paddedWidth, paddedHeight);
+    Node* node = _findNode(m_root, paddedWidth, paddedHeight);
     if (node == nullptr) {
         return Error(ErrorCode::CapacityExceeded, "Font texture atlas is full");
     }
 
     // 分割节点（使用带padding的大小）
-    node = splitNode(node, paddedWidth, paddedHeight);
+    node = _splitNode(node, paddedWidth, paddedHeight);
 
     // 绘制位置就是节点位置（不需要额外偏移padding）
     u32 drawX = node->x;
     u32 drawY = node->y;
 
     // 复制像素数据到纹理
-    copyPixels(drawX, drawY, width, height, pixels);
+    _copyPixels(drawX, drawY, width, height, pixels);
 
     // 计算UV坐标
     f32 texSize = static_cast<f32>(m_textureSize);

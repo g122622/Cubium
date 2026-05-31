@@ -28,7 +28,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace mc::client::sound {
@@ -126,7 +125,7 @@ public:
      * @param id 声音实例ID
      * @return 是否存在
      */
-    [[nodiscard]] bool has(SoundInstanceId id) const;
+    [[nodiscard]] bool has(SoundInstanceId id) const { return m_sounds.contains(id); }
 
     /**
      * @brief 获取声音数量

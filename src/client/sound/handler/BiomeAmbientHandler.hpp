@@ -23,11 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/sound/SoundCategory.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 
@@ -36,9 +34,6 @@
 
 namespace mc::client::sound {
 
-// 前向声明
-class BiomeLoopSound;
-
 /**
  * @brief 生物群系环境音效处理器
  *
@@ -46,8 +41,6 @@ class BiomeLoopSound;
  * 1. 循环音效 (Loop Sound) - 持续播放的背景音效，群系切换时淡入淡出
  * 2. 心境音效 (Mood Sound) - 在黑暗环境中根据光照等级触发
  * 3. 附加音效 (Additions Sound) - 按概率随机播放的补充音效
- *
- * 参考: net.minecraft.client.audio.BiomeSoundHandler
  *
  * 使用示例:
  * @code
@@ -107,8 +100,8 @@ public:
     /**
      * @brief 设置光照等级（用于心境音效触发）
      *
-     * @param skyLight 天空光照等级 (0-15)
-     * @param blockLight 方块光照等级 (0-15)
+     * @param skyLight 天空光照等级 (0 ~ MAX_LIGHT_LEVEL)
+     * @param blockLight 方块光照等级 (0 ~ MAX_LIGHT_LEVEL)
      */
     void setLightLevel(u8 skyLight, u8 blockLight)
     {
@@ -129,8 +122,8 @@ private:
     f64 m_playerZ = 0.0;
 
     /// 光照等级
-    u8 m_skyLight = 15;
-    u8 m_blockLight = 15;
+    u8 m_skyLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
+    u8 m_blockLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
 
     /// 心境音效计时器 (0.0 - 1.0)
     f32 m_moodTimer = 0.0f;

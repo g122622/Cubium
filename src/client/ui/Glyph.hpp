@@ -38,7 +38,6 @@ using GuiVertexScalar = f64;
  * @brief 字形数据结构
  *
  * 存储单个字符的渲染信息，包括纹理坐标和度量数据。
- * 参考Minecraft的IGlyphInfo接口设计。
  */
 struct Glyph {
     u32 codepoint = 0;        // Unicode码点
@@ -80,13 +79,11 @@ struct Glyph {
 
     /**
      * @brief 获取粗体偏移量
-     * MC中粗体通过额外绘制一次偏移后的字形实现
      */
     [[nodiscard]] static constexpr f32 getBoldOffset() { return 1.0f; }
 
     /**
      * @brief 获取阴影偏移量
-     * MC中阴影通过偏移绘制实现
      */
     [[nodiscard]] static constexpr f32 getShadowOffset() { return 1.0f; }
 };
@@ -164,7 +161,7 @@ struct GuiVertex {
 struct GuiRect {
     f32 x, y; // 左上角
     f32 width, height;
-    u32 color; // RGBA颜色
+    u32 color; // ARGB颜色
 
     GuiRect() = default;
     GuiRect(f32 px, f32 py, f32 w, f32 h, u32 col = 0xFFFFFFFF)
@@ -195,7 +192,7 @@ struct TextStyle {
 };
 
 /**
- * @brief 颜色常量 (参考MC的颜色系统)
+ * @brief 颜色常量
  */
 namespace Colors {
 constexpr u32 WHITE = 0xFFFFFFFF;
@@ -211,7 +208,7 @@ constexpr u32 DARK_GRAY = 0xFF404040;
 constexpr u32 LIGHT_GRAY = 0xFFC0C0C0;
 constexpr u32 ORANGE = 0xFFFFA500;
 
-// MC聊天颜色
+// 聊天颜色
 constexpr u32 MC_BLACK = 0xFF000000;
 constexpr u32 MC_DARK_BLUE = 0xFF0000AA;
 constexpr u32 MC_DARK_GREEN = 0xFF00AA00;

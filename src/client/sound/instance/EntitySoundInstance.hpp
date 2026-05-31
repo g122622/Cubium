@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/instance/SoundInstance.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -38,8 +38,6 @@ namespace client::sound {
  *
  * 声音位置自动跟随实体移动。
  * 当实体被移除或变为静音时自动停止。
- *
- * 参考: net.minecraft.client.audio.EntityTickableSound
  *
  * 使用示例:
  * @code
@@ -58,7 +56,9 @@ namespace client::sound {
  * auto sound = std::make_unique<EntitySoundInstance>(
  *     ResourceLocation("minecraft:entity.cow.hurt"),
  *     SoundCategory::Neutral,
- *     cowEntity
+ *     cowEntity,
+ *     1.0f,  // volume
+ *     1.0f   // pitch
  * );
  * engine.play(std::move(sound));
  * @endcode
@@ -71,14 +71,11 @@ public:
      * @param soundEventId 声音事件ID
      * @param category 声音类别
      * @param entity 实体引用（必须是有效引用）
-     * @param volume 音量（默认1.0）
-     * @param pitch 音调（默认1.0）
+     * @param volume 音量
+     * @param pitch 音调
      */
-    EntitySoundInstance(const ResourceLocation& soundEventId,
-        SoundCategory category,
-        Entity& entity,
-        f32 volume = 1.0f,
-        f32 pitch = 1.0f);
+    EntitySoundInstance(
+        const ResourceLocation& soundEventId, SoundCategory category, Entity& entity, f32 volume, f32 pitch);
 
     /**
      * @brief 析构函数

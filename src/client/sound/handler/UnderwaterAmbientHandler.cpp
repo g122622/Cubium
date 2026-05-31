@@ -24,8 +24,8 @@
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/instance/UnderwaterLoopSound.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundTypes.hpp"
 
 #include <chrono>
 
@@ -53,7 +53,6 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine)
     // 检测进入水状态变化
     if (m_isUnderwater && !m_wasUnderwater) {
         // 玩家刚进入水 - 播放入水音效
-        // 参考: ClientPlayerEntity.updateEyesInWaterPlayer()
         auto enterSound = std::make_unique<SoundInstance>(
             SoundInstance::createGlobal(SoundEvents::AMBIENT_UNDERWATER_ENTER, SoundCategory::Ambient, 1.0f, 1.0f));
         engine.play(std::move(enterSound));
@@ -72,7 +71,7 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine)
 
         // 水下循环音效会自动淡出（通过 setCanSwim(false)）
         // 但我们需要通知它
-        if (m_underwaterLoopSoundId != 0) {
+        if (m_underwaterLoopSoundId != ::mc::sound::INVALID_SOUND_INSTANCE_ID) {
             ISoundInstance* sound = engine.getSoundInstance(m_underwaterLoopSoundId);
             if (sound) {
                 auto* loopSound = dynamic_cast<UnderwaterLoopSound*>(sound);
@@ -81,14 +80,14 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine)
                 }
             }
         }
-        m_underwaterLoopSoundId = 0;
+        m_underwaterLoopSoundId = ::mc::sound::INVALID_SOUND_INSTANCE_ID;
     }
 
     // 更新上一帧状态
     m_wasUnderwater = m_isUnderwater;
 
     // 更新水下循环音效状态
-    if (m_isUnderwater && m_underwaterLoopSoundId != 0) {
+    if (m_isUnderwater && m_underwaterLoopSoundId != ::mc::sound::INVALID_SOUND_INSTANCE_ID) {
         ISoundInstance* sound = engine.getSoundInstance(m_underwaterLoopSoundId);
         if (sound) {
             auto* loopSound = dynamic_cast<UnderwaterLoopSound*>(sound);
@@ -99,19 +98,19 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine)
     }
 
     // 检查循环音效是否已结束
-    if (m_underwaterLoopSoundId != 0 && !engine.isPlaying(m_underwaterLoopSoundId)) {
-        m_underwaterLoopSoundId = 0;
+    if (m_underwaterLoopSoundId != ::mc::sound::INVALID_SOUND_INSTANCE_ID &&
+        !engine.isPlaying(m_underwaterLoopSoundId)) {
+        m_underwaterLoopSoundId = ::mc::sound::INVALID_SOUND_INSTANCE_ID;
     }
 
     // 如果在水下但没有循环音效，创建一个新的
-    if (m_isUnderwater && m_underwaterLoopSoundId == 0) {
+    if (m_isUnderwater && m_underwaterLoopSoundId == ::mc::sound::INVALID_SOUND_INSTANCE_ID) {
         auto loopSound = std::make_unique<UnderwaterLoopSound>();
         loopSound->setCanSwim(true);
         m_underwaterLoopSoundId = engine.play(std::move(loopSound));
     }
 
     // 播放附加音效（只在水下播放）
-    // 参考: UnderwaterAmbientSoundHandler.tick() lines 19-33
     // 概率检查每tick都进行，无冷却延迟
     if (!m_isUnderwater) {
         return;

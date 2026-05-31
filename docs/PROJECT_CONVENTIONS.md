@@ -106,7 +106,7 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 `mc::game` 命名空间：
 - `PLAYER_HEIGHT`, `PLAYER_EYE_HEIGHT`, `PLAYER_WIDTH`, `PLAYER_SNEAK_HEIGHT` - 玩家尺寸
 - `PLAYER_MAX_HEALTH`, `PLAYER_MAX_AIR` - 玩家生命值/氧气
-- `MAX_LIGHT_LEVEL`, `MIN_LIGHT_LEVEL` - 光照等级范围
+- `MAX_LIGHT_LEVEL`（一般为15）, `MIN_LIGHT_LEVEL`（一般为0） - 光照等级范围
 - `DAY_LENGTH_TICKS`, `DAY_LENGTH_SECONDS` - 游戏日长度
 
 `mc::network` 命名空间：

@@ -68,15 +68,15 @@ Result<void> SoundHandler::reload()
         const auto& pack = *it;
         progress.currentPack++;
         progress.currentPackName = pack->name();
-        notifyProgress(progress);
+        _notifyProgress(progress);
 
         // 快速路径：直接尝试加载已知命名空间的 sounds.json
         for (const auto& namespace_ : knownNamespaces) {
             // 加载 sounds.json
-            auto result = loadSoundsJson(*pack, namespace_);
+            auto result = _loadSoundsJson(*pack, namespace_);
             if (result.success()) {
                 progress.loadedEvents += result.value();
-                notifyProgress(progress);
+                _notifyProgress(progress);
                 processedNamespaces.insert(namespace_);
             }
         }
@@ -110,10 +110,10 @@ Result<void> SoundHandler::reload()
             for (const auto& namespace_ : foundNamespaces) {
                 {
                     MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_LoadSoundsJson", "phase", "load_sounds_json");
-                    auto result = loadSoundsJson(*pack, namespace_);
+                    auto result = _loadSoundsJson(*pack, namespace_);
                     if (result.success()) {
                         progress.loadedEvents += result.value();
-                        notifyProgress(progress);
+                        _notifyProgress(progress);
                         processedNamespaces.insert(namespace_);
                     }
                 }
@@ -122,7 +122,7 @@ Result<void> SoundHandler::reload()
     }
 
     progress.totalEvents = m_registry.getSoundEventCount();
-    notifyProgress(progress);
+    _notifyProgress(progress);
 
     spdlog::info("SoundHandler: Loaded {} sound events ({} errors, {} warnings)",
         m_registry.getSoundEventCount(),
@@ -173,7 +173,7 @@ std::vector<ResourceLocation> SoundHandler::getPreloadSounds() const
     return m_registry.getPreloadSounds();
 }
 
-Result<size_t> SoundHandler::loadSoundsJson(const IResourcePack& pack, std::string_view namespace_)
+Result<size_t> SoundHandler::_loadSoundsJson(const IResourcePack& pack, std::string_view namespace_)
 {
     // 构建 sounds.json 路径
     std::string jsonPath = std::string(namespace_) + "/sounds.json";
@@ -193,10 +193,10 @@ Result<size_t> SoundHandler::loadSoundsJson(const IResourcePack& pack, std::stri
     }
 
     // 解析 JSON
-    return parseSoundsJson(contentResult.value(), namespace_);
+    return _parseSoundsJson(contentResult.value(), namespace_);
 }
 
-Result<size_t> SoundHandler::parseSoundsJson(std::string_view content, std::string_view namespace_)
+Result<size_t> SoundHandler::_parseSoundsJson(std::string_view content, std::string_view namespace_)
 {
     // 解析 JSON
     nlohmann::json json;
@@ -247,7 +247,7 @@ Result<size_t> SoundHandler::parseSoundsJson(std::string_view content, std::stri
     return count;
 }
 
-void SoundHandler::notifyProgress(const SoundLoadProgress& progress)
+void SoundHandler::_notifyProgress(const SoundLoadProgress& progress)
 {
     if (m_progressCallback) {
         m_progressCallback(progress);

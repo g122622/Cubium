@@ -158,7 +158,7 @@ private:
     /// 声音事件映射表
     std::unordered_map<ResourceLocation, SoundEventDefinition> m_soundEvents;
 
-    /// 读写锁（用于线程安全）
+    /// 互斥锁（用于线程安全）
     mutable std::mutex m_mutex;
 };
 

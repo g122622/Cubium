@@ -157,7 +157,7 @@ private:
      * @param operation 操作名称（用于日志）
      * @return 是否有错误
      */
-    bool checkError(const char* operation) const;
+    bool _checkError(const char* operation) const;
 
     AudioSourceId m_id;
     ALuint m_source;
@@ -324,7 +324,7 @@ private:
      * @param operation 操作名称
      * @return 错误信息，无错误返回空
      */
-    [[nodiscard]] std::string checkALError(const char* operation) const;
+    [[nodiscard]] std::string _checkALError(const char* operation) const;
 
     /**
      * @brief 获取 OpenAL 格式
@@ -332,7 +332,8 @@ private:
      * @param format 音频格式
      * @return OpenAL 格式枚举值
      */
-    [[nodiscard]] static ALenum getALFormat(const AudioFormat& format);
+    // TODO: _getALFormat 已声明但未实现
+    [[nodiscard]] static ALenum _getALFormat(const AudioFormat& format);
 
     /// 最大音频源数量
     static constexpr u32 MAX_SOURCES = 256;

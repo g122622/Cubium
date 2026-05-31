@@ -42,10 +42,7 @@ MovingTickableSound::MovingTickableSound(const ResourceLocation& soundEventId,
           DEFAULT_ATTENUATION_DISTANCE)
     , m_handler(handler)
     , m_entityId(entityId)
-{
-    // 设置初始衰减距离为16格
-    m_attenuationDistance = 16.0f;
-}
+{}
 
 void MovingTickableSound::tick()
 {

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc::client {
 
@@ -41,8 +41,6 @@ namespace mc::client::sound {
  *
  * 蜜蜂飞行和愤怒声音的基类，根据蜜蜂的速度动态调整音量和音调。
  * 支持在飞行声音和愤怒声音之间切换。
- *
- * 参考: net.minecraft.client.audio.BeeSound
  */
 class BeeSound : public TickableSound {
 public:
@@ -107,14 +105,14 @@ private:
      *
      * 幼年蜜蜂音调更高。
      */
-    [[nodiscard]] f32 getMinPitch() const;
+    [[nodiscard]] f32 _getMinPitch() const;
 
     /**
      * @brief 获取最大音调
      *
      * 幼年蜜蜂音调更高。
      */
-    [[nodiscard]] f32 getMaxPitch() const;
+    [[nodiscard]] f32 _getMaxPitch() const;
 
     const ClientEntity& m_bee;
     bool m_hasSwitchedSound = false;
@@ -125,8 +123,6 @@ private:
  *
  * 蜜蜂正常飞行时播放的循环声音。
  * 当蜜蜂变得愤怒时切换到愤怒声音。
- *
- * 参考: net.minecraft.client.audio.BeeFlightSound
  */
 class BeeFlightSound : public BeeSound {
 public:
@@ -149,8 +145,6 @@ protected:
  *
  * 蜜蜂愤怒（攻击目标）时播放的循环声音。
  * 当蜜蜂不再愤怒时切换回飞行声音。
- *
- * 参考: net.minecraft.client.audio.BeeAngrySound
  */
 class BeeAngrySound : public BeeSound {
 public:

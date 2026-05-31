@@ -24,6 +24,7 @@
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/SoundPool.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Constants.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -33,14 +34,14 @@
 
 namespace mc::client::sound {
 
+namespace {
+
 // ============================================================================
 // BiomeLoopSound - 群系循环音效
 // ============================================================================
 
 /**
  * @brief 群系循环音效
- *
- * 参考: net.minecraft.client.audio.BiomeSoundHandler.Sound
  *
  * 循环音效会持续播放，带有淡入淡出效果。
  * 当群系切换时，旧群系的循环音效淡出，新群系的循环音效淡入。
@@ -59,7 +60,6 @@ public:
     void tick() override
     {
         // 淡入淡出逻辑
-        // 参考: net.minecraft.client.audio.BiomeSoundHandler.Sound.tick()
         if (m_fadeDirection < 0) {
             // 淡出
             m_fadeTicks += m_fadeDirection;
@@ -101,6 +101,8 @@ private:
     i32 m_fadeDirection; // 1 = 淡入, -1 = 淡出
     i32 m_fadeTicks;     // 淡入淡出计数器
 };
+
+} // anonymous namespace
 
 // ============================================================================
 // BiomeAmbientHandler 实现
@@ -182,7 +184,6 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
     }
 
     // === 2. 处理附加音效 (Additions Sound) ===
-    // 参考: BiomeSoundHandler.tick() lines 64-69
     // 每tick检查概率
     if (m_currentAdditionsSound.has_value()) {
         const world::biome::SoundAdditionsAmbience& additions = m_currentAdditionsSound.value();
@@ -194,12 +195,10 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
     }
 
     // === 3. 处理心境音效 (Mood Sound) ===
-    // 参考: BiomeSoundHandler.tick() lines 70-97
     if (m_currentMoodSound.has_value()) {
         const world::biome::MoodSoundAmbience& mood = m_currentMoodSound.value();
 
         // 随机选择一个采样位置
-        // 参考: lines 72-73
         // blockpos = playerPos + random(blockSearchExtent*2+1) - blockSearchExtent
         i32 extent = mood.blockSearchExtent();
         i32 bx = static_cast<i32>(m_playerX) + m_rng.nextInt(extent * 2 + 1) - extent;
@@ -207,11 +206,10 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
         i32 bz = static_cast<i32>(m_playerZ) + m_rng.nextInt(extent * 2 + 1) - extent;
 
         // 心境计时器逻辑
-        // 参考: lines 74-79
-        // MC 使用采样位置的光照，我们使用玩家位置的光照作为近似
+        // TODO: MC使用采样位置的光照，当前简化为使用玩家位置的光照作为近似
         if (m_skyLight > 0) {
             // 在有天空光的地方，计时器减少
-            m_moodTimer -= static_cast<f32>(m_skyLight) / 15.0f * 0.001f;
+            m_moodTimer -= static_cast<f32>(m_skyLight) / static_cast<f32>(game::MAX_LIGHT_LEVEL) * 0.001f;
         } else {
             // 在完全黑暗的地方，根据方块光调整
             if (m_blockLight > 0) {
@@ -226,7 +224,6 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
         // 计时器达到阈值时播放心境音效
         if (m_moodTimer >= 1.0f) {
             // 计算播放位置
-            // 参考: lines 82-90
             f64 dx = static_cast<f64>(bx) + 0.5 - m_playerX;
             f64 dy = static_cast<f64>(by) + 0.5 - m_playerY;
             f64 dz = static_cast<f64>(bz) + 0.5 - m_playerZ;

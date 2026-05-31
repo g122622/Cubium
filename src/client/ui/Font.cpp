@@ -73,14 +73,12 @@ void Font::destroy()
 
 void Font::addProvider(std::unique_ptr<IGlyphProvider> provider)
 {
-    if (provider) {
-        // 更新字体高度
-        u32 providerHeight = provider->getFontHeight();
-        if (providerHeight > m_fontHeight) {
-            m_fontHeight = providerHeight;
-        }
-        m_providers.push_back(std::move(provider));
+    // 更新字体高度
+    u32 providerHeight = provider->getFontHeight();
+    if (providerHeight > m_fontHeight) {
+        m_fontHeight = providerHeight;
     }
+    m_providers.push_back(std::move(provider));
 }
 
 const Glyph* Font::getGlyph(u32 codepoint)
@@ -252,7 +250,7 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     return {};
 }
 
-u32 BitmapGlyphProvider::calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const
+u32 BitmapGlyphProvider::_calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const
 {
     // 从右向左扫描，找到最右边的非透明像素
     for (i32 x = static_cast<i32>(charWidth) - 1; x >= 0; --x) {
@@ -292,7 +290,7 @@ bool BitmapGlyphProvider::getGlyphData(u32 codepoint,
     u32 charY = row * m_height;
 
     // 计算实际字符宽度
-    u32 actualWidth = calculateCharWidth(charX, charY, m_charWidth, m_height);
+    u32 actualWidth = _calculateCharWidth(charX, charY, m_charWidth, m_height);
     if (actualWidth == 0) {
         actualWidth = 1; // 至少1像素宽
     }

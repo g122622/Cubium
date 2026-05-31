@@ -22,6 +22,9 @@
  */
 
 #include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
+
+#include <memory>
+
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -36,7 +39,6 @@ BubbleColumnAmbientHandler::BubbleColumnAmbientHandler()
 
 void BubbleColumnAmbientHandler::tick(SoundEngine& engine)
 {
-    // 参考 MC 1.16.5: BubbleColumnAmbientSoundHandler.tick()
     // 检测玩家是否刚刚进入气泡柱
     if (m_isInBubbleColumn && !m_wasInBubbleColumn && !m_firstTick) {
         // 刚进入气泡柱，播放音效

@@ -41,7 +41,6 @@ UnderwaterLoopSound::UnderwaterLoopSound()
 
 void UnderwaterLoopSound::tick()
 {
-    // 参考: UnderwaterAmbientSounds.UnderWaterSound.tick()
     // 在水中时增加计数，不在水中时更快减少
 
     if (m_canSwim) {
@@ -50,7 +49,7 @@ void UnderwaterLoopSound::tick()
         m_ticksInWater -= 2;
     }
 
-    // MC 1.16.5: 先检查是否应该停止，再 clamp
+    // 先检查是否应该停止，再 clamp
     // 当计数器变为负数时停止声音
     if (m_ticksInWater < 0) {
         markDone();

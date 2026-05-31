@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/instance/SoundInstance.hpp"
+#include <memory>
 
 namespace mc::client::sound {
 
@@ -33,8 +33,6 @@ namespace mc::client::sound {
  *
  * 播放水下环境循环音效，具有音量渐入渐出效果。
  * 音量根据玩家在水中的时间渐变（40 ticks = 2秒）。
- *
- * 参考: net.minecraft.client.audio.UnderwaterAmbientSounds.UnderWaterSound
  *
  * 特点:
  * - 全局声音（无衰减）

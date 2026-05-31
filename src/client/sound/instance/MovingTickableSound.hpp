@@ -35,8 +35,6 @@ namespace mc::client::sound {
  *
  * 用于播放附加到实体上的移动声音，如闪电雷声、末影龙死亡声音等。
  * 声音会跟随实体位置更新，当实体被移除时自动停止。
- *
- * 参考: net.minecraft.client.audio.EntityTickableSound
  */
 class MovingTickableSound : public TickableSound {
 public:

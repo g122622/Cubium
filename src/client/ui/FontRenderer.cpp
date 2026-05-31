@@ -22,14 +22,23 @@
  */
 
 #include "FontRenderer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TranslationTextComponent.hpp"
 #include <algorithm>
 
 namespace mc::client {
 
 using text::ITextComponent;
 using text::StringTextComponent;
+
+// 阴影颜色（ARGB格式）
+constexpr u32 SHADOW_COLOR = 0xFF3F3F3F;
+
+// 未知字形时的默认前进宽度
+constexpr f32 DEFAULT_GLYPH_ADVANCE = 4.0f;
+
+// 斜体倾斜系数
+constexpr f32 ITALIC_SHEAR = 0.25f;
 
 FontRenderer::FontRenderer() = default;
 
@@ -69,22 +78,20 @@ void FontRenderer::beginBatch()
 
 f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle& style)
 {
-    if (!m_inBatch || m_font == nullptr) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(m_inBatch);
+    MC_ASSERT_RELEASE(m_font != nullptr);
 
     f32 startX = x;
     f32 shadowOffset = Glyph::getShadowOffset() * m_scale;
 
     // 如果需要阴影，先绘制阴影
     if (style.shadow) {
-        u32 shadowColor = 0xFF3F3F3F; // MC阴影颜色
         f32 shadowX = x + shadowOffset;
         f32 shadowY = y + shadowOffset;
 
         size_t pos = 0;
         while (pos < text.size()) {
-            u32 codepoint = decodeCodepoint(text, pos);
+            u32 codepoint = _decodeCodepoint(text, pos);
 
             if (codepoint == '\n') {
                 shadowX = startX + shadowOffset;
@@ -94,13 +101,13 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
 
             const Glyph* glyph = m_font->getGlyph(codepoint);
             if (glyph != nullptr) {
-                addGlyphVertices(*glyph, shadowX, shadowY, shadowColor, false);
+                _addGlyphVertices(*glyph, shadowX, shadowY, SHADOW_COLOR, false);
                 shadowX += glyph->advance * m_scale;
                 if (style.bold) {
                     shadowX += Glyph::getBoldOffset() * m_scale;
                 }
             } else {
-                shadowX += 4.0f * m_scale; // 默认宽度
+                shadowX += DEFAULT_GLYPH_ADVANCE * m_scale;
             }
         }
     }
@@ -108,7 +115,7 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
     // 绘制主文本
     size_t pos = 0;
     while (pos < text.size()) {
-        u32 codepoint = decodeCodepoint(text, pos);
+        u32 codepoint = _decodeCodepoint(text, pos);
 
         if (codepoint == '\n') {
             x = startX;
@@ -118,17 +125,17 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
 
         const Glyph* glyph = m_font->getGlyph(codepoint);
         if (glyph != nullptr) {
-            addGlyphVertices(*glyph, x, y, style.color, style.italic);
+            _addGlyphVertices(*glyph, x, y, style.color, style.italic);
 
             // 粗体：额外绘制一次偏移后的字形
             if (style.bold) {
                 f32 boldOffset = Glyph::getBoldOffset() * m_scale;
-                addGlyphVertices(*glyph, x + boldOffset, y, style.color, style.italic);
+                _addGlyphVertices(*glyph, x + boldOffset, y, style.color, style.italic);
             }
 
             // 添加装饰效果
             if (style.strikethrough || style.underline) {
-                addDecoration(x, y, glyph->advance * m_scale, style.color, style.strikethrough, style.underline);
+                _addDecoration(x, y, glyph->advance * m_scale, style.color, style.strikethrough, style.underline);
             }
 
             x += glyph->advance * m_scale;
@@ -136,7 +143,7 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
                 x += Glyph::getBoldOffset() * m_scale;
             }
         } else {
-            x += 4.0f * m_scale; // 默认宽度
+            x += DEFAULT_GLYPH_ADVANCE * m_scale;
         }
     }
 
@@ -148,17 +155,16 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
 
 f32 FontRenderer::addText(const ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle)
 {
-    if (!m_inBatch || m_font == nullptr) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(m_inBatch);
+    MC_ASSERT_RELEASE(m_font != nullptr);
 
-    return addTextComponent(component, x, y, baseStyle);
+    return _addTextComponent(component, x, y, baseStyle);
 }
 
-f32 FontRenderer::addTextComponent(const ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle)
+f32 FontRenderer::_addTextComponent(const ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle)
 {
     // 合并样式
-    TextStyle renderStyle = mergeStyles(component.getStyle(), baseStyle);
+    TextStyle renderStyle = _mergeStyles(component.getStyle(), baseStyle);
 
     f32 startX = x;
     const StringTextComponent* stringComp = dynamic_cast<const StringTextComponent*>(&component);
@@ -177,14 +183,15 @@ f32 FontRenderer::addTextComponent(const ITextComponent& component, f32 x, f32 y
     const auto& siblings = component.getSiblings();
     for (const auto& sibling : siblings) {
         // 子组件继承父组件的样式作为基础
-        x += addTextComponent(*sibling, x, y, renderStyle) - startX;
+        x += _addTextComponent(*sibling, x, y, renderStyle) - startX;
         startX = x; // 更新起始位置
     }
 
+    // TODO: 返回值计算可能有误，当前表达式始终返回0，需要确认语义
     return x - startX + (startX - x); // 返回总宽度
 }
 
-TextStyle FontRenderer::mergeStyles(const text::Style& style, const TextStyle& baseStyle) const
+TextStyle FontRenderer::_mergeStyles(const text::Style& style, const TextStyle& baseStyle) const
 {
     TextStyle result = baseStyle;
 
@@ -207,16 +214,14 @@ TextStyle FontRenderer::mergeStyles(const text::Style& style, const TextStyle& b
         result.strikethrough = true;
     }
 
-    // 混淆效果暂不支持（需要动画）
+    // TODO: 混淆效果暂不支持（需要动画）
 
     return result;
 }
 
 f32 FontRenderer::getTextWidth(const ITextComponent& component)
 {
-    if (m_font == nullptr) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(m_font != nullptr);
 
     // 使用未格式化文本计算宽度
     return getTextWidth(component.getUnformattedText());
@@ -237,16 +242,14 @@ void FontRenderer::endBatch()
 
 f32 FontRenderer::getTextWidth(const std::string& text)
 {
-    if (m_font == nullptr) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(m_font != nullptr);
 
     f32 width = 0.0f;
     f32 maxWidth = 0.0f;
     size_t pos = 0;
 
     while (pos < text.size()) {
-        u32 codepoint = decodeCodepoint(text, pos);
+        u32 codepoint = _decodeCodepoint(text, pos);
 
         if (codepoint == '\n') {
             maxWidth = std::max(maxWidth, width);
@@ -258,7 +261,7 @@ f32 FontRenderer::getTextWidth(const std::string& text)
         if (glyph != nullptr) {
             width += glyph->advance * m_scale;
         } else {
-            width += 4.0f * m_scale;
+            width += DEFAULT_GLYPH_ADVANCE * m_scale;
         }
     }
 
@@ -267,9 +270,7 @@ f32 FontRenderer::getTextWidth(const std::string& text)
 
 u32 FontRenderer::getFontHeight() const
 {
-    if (m_font == nullptr) {
-        return static_cast<u32>(9 * m_scale); // 默认高度
-    }
+    MC_ASSERT_RELEASE(m_font != nullptr);
     return static_cast<u32>(m_font->getFontHeight() * m_scale);
 }
 
@@ -296,7 +297,7 @@ size_t FontRenderer::estimateVertexCount(const std::string& text) const
     return charCount * 6 * 4; // 阴影和粗体各翻倍
 }
 
-void FontRenderer::addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color, bool italic)
+void FontRenderer::_addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color, bool italic)
 {
     // 计算字形边界
     // 注意：bearingY是从基线到字形顶部的距离
@@ -314,7 +315,7 @@ void FontRenderer::addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color,
     f32 glyphRight = glyphLeft + scaledWidth;
 
     // 斜体偏移（顶部向右倾斜）
-    f32 italicOffset = italic ? (scaledHeight * 0.25f) : 0.0f;
+    f32 italicOffset = italic ? (scaledHeight * ITALIC_SHEAR) : 0.0f;
 
     // 添加4个顶点
     // 注意：现在不翻转纹理坐标V轴，屏幕Y轴向下与纹理V轴向下一致
@@ -365,7 +366,7 @@ void FontRenderer::addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color,
     m_indices.push_back(baseIndex + 3);
 }
 
-void FontRenderer::addDecoration(f32 x, f32 y, f32 width, u32 color, bool strikethrough, bool underline)
+void FontRenderer::_addDecoration(f32 x, f32 y, f32 width, u32 color, bool strikethrough, bool underline)
 {
     u32 baseIndex = static_cast<u32>(m_vertices.size());
     f32 fontHeight = static_cast<f32>(m_font->getFontHeight()) * m_scale;
@@ -422,7 +423,7 @@ void FontRenderer::addDecoration(f32 x, f32 y, f32 width, u32 color, bool strike
     }
 }
 
-u32 FontRenderer::decodeCodepoint(const std::string& text, size_t& pos) const
+u32 FontRenderer::_decodeCodepoint(const std::string& text, size_t& pos) const
 {
     if (pos >= text.size()) {
         return 0;

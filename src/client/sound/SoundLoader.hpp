@@ -27,9 +27,6 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
-#include <memory>
-#include <vector>
-
 namespace mc {
 
 // 前向声明
@@ -42,8 +39,6 @@ namespace client::sound {
  *
  * 从资源包加载 OGG Vorbis 音频文件并解码为 PCM 数据。
  * 使用 stb_vorbis 库进行解码。
- *
- * 参考: net.minecraft.client.audio.SoundLoader
  *
  * 使用示例:
  * @code
@@ -60,7 +55,7 @@ namespace client::sound {
  * 支持的格式:
  * - OGG Vorbis (.ogg)
  * - 单声道和立体声
- * - 8-bit 和 16-bit 采样
+ * - 16-bit PCM 采样
  *
  * @see AudioData
  * @see AudioBufferCache

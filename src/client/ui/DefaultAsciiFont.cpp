@@ -29,7 +29,7 @@ namespace mc::client {
 // 5x7点阵字体数据，每个字符占7字节
 // 每字节代表一行，最低5位有效
 // 来源：公共域字体数据
-static const u8 FONT_5x7[] = {
+static constexpr u8 FONT_5x7[] = {
     // 0x20 空格
     0x00,
     0x00,
@@ -901,7 +901,7 @@ Result<void> DefaultAsciiFont::create(Font& font)
     return {};
 }
 
-const u8* DefaultAsciiFont::getFontData(char c)
+const u8* DefaultAsciiFont::_getFontData(char c)
 {
     if (c < 32 || c > 126) {
         return nullptr;
@@ -909,11 +909,11 @@ const u8* DefaultAsciiFont::getFontData(char c)
     return &FONT_5x7[(static_cast<size_t>(c) - 32) * BYTES_PER_CHAR];
 }
 
-u32 DefaultAsciiFont::generateCharBitmap(char c, std::array<u8, 64>& outPixels)
+u32 DefaultAsciiFont::_generateCharBitmap(char c, std::array<u8, 64>& outPixels)
 {
     outPixels.fill(0);
 
-    const u8* charData = getFontData(c);
+    const u8* charData = _getFontData(c);
     if (charData == nullptr) {
         return 0;
     }

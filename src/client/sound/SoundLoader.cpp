@@ -26,25 +26,29 @@
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourcePackList.hpp"
 
-#include <spdlog/spdlog.h>
-
 #include <limits>
 
+namespace {
+
+using mc::i32;
+
 // stb_vorbis 错误码（避免直接包含 stb_vorbis.h 导致与 fmt 库冲突）
-#define VORBIS__no_error 0
-#define VORBIS_invalid_api_mixing 1
-#define VORBIS_outofmem 2
-#define VORBIS_too_many_channels 3
-#define VORBIS_file_open_failure 4
-#define VORBIS_seek_without_length 5
-#define VORBIS_unexpected_eof 6
-#define VORBIS_seek_invalid 7
-#define VORBIS_invalid_setup 8
-#define VORBIS_invalid_stream 9
-#define VORBIS_missing_capture_pattern 10
-#define VORBIS_continued_packet_flag_invalid 11
-#define VORBIS_incorrect_stream_serial_number 12
-#define VORBIS_need_more_data 13
+constexpr i32 kVorbisNoError = 0;
+constexpr i32 kVorbisInvalidApiMixing = 1;
+constexpr i32 kVorbisOutofmem = 2;
+constexpr i32 kVorbisTooManyChannels = 3;
+constexpr i32 kVorbisFileOpenFailure = 4;
+constexpr i32 kVorbisSeekWithoutLength = 5;
+constexpr i32 kVorbisUnexpectedEof = 6;
+constexpr i32 kVorbisSeekInvalid = 7;
+constexpr i32 kVorbisInvalidSetup = 8;
+constexpr i32 kVorbisInvalidStream = 9;
+constexpr i32 kVorbisMissingCapturePattern = 10;
+constexpr i32 kVorbisContinuedPacketFlagInvalid = 11;
+constexpr i32 kVorbisIncorrectStreamSerialNumber = 12;
+constexpr i32 kVorbisNeedMoreData = 13;
+
+} // namespace
 
 // stb_vorbis 稳定包装函数声明（实现在 StbVorbisImpl.cpp）
 extern "C" {
@@ -91,15 +95,15 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
         return Error(ErrorCode::InvalidData, fmt::format("Audio data too large for stb_vorbis: {} bytes", size));
     }
 
-    // 使用 stb_vorbis 解码
-    int error = VORBIS__no_error;
+    // 使用 stb_vorbis 解码（变量类型需匹配 C ABI）
+    int error = kVorbisNoError;
     stb_vorbis* vorbis = mc_stb_vorbis_open_memory(data, static_cast<int>(size), &error);
 
     if (!vorbis) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to decode OGG Vorbis, error code: {}", error));
     }
 
-    // 获取音频信息
+    // 获取音频信息（变量类型需匹配 C ABI）
     unsigned int sampleRateRaw = 0;
     int channelsRaw = 0;
     if (mc_stb_vorbis_get_info(vorbis, &sampleRateRaw, &channelsRaw) == 0) {
@@ -151,12 +155,6 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
     format.bitsPerSample = 16;
 
     AudioData audioData(format, std::move(samples));
-
-    spdlog::debug("[SoundLoader] Decoded audio: {} Hz, {} channels, {:.2f}s, {} bytes",
-        sampleRate,
-        channels,
-        audioData.duration,
-        actualSize);
 
     return audioData;
 }

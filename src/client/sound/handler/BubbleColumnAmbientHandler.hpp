@@ -23,11 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
 
 namespace mc::client::sound {
 
@@ -38,8 +36,6 @@ namespace mc::client::sound {
  * 气泡柱有两种类型：
  * - 向上气泡柱（drag=false）：播放 BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE
  * - 向下气泡柱（drag=true）：播放 BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE
- *
- * 参考: net.minecraft.client.audio.BubbleColumnAmbientSoundHandler
  *
  * 使用示例:
  * @code

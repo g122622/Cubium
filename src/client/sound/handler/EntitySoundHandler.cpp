@@ -28,7 +28,7 @@
 #include "client/sound/instance/MovingTickableSound.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
+#include <cmath>
 
 namespace mc::client::sound {
 
@@ -177,20 +177,12 @@ private:
 /**
  * @brief 守卫者攻击声音（使用状态快照）
  *
- * 参考 MC 1.16.5 GuardianSound.tick():
- * - 当守卫者未被移除且有攻击目标时播放
- * - 音量根据攻击动画进度 (attackAnimScale) 变化
- * - 当 targetEntityId 为 0 时停止
- * - 音量 = f * f, 音调 = 0.7 + 0.5 * f
+ * 当守卫者未被移除且有攻击目标时播放。
+ * 音量根据攻击动画进度 (attackAnimScale) 变化。
+ * 当 targetEntityId 为 0 时停止。
+ * 音量 = f * f, 音调 = 0.7 + 0.5 * f
  *
- * MC 1.16.5 源码：
- * - tick() 中检查 !removed && getAttackTarget() == null 则停止
- * - getAttackTarget() 在客户端返回 getTargetedEntity()
- * - hasTargetedEntity() 检查 TARGET_ENTITY 数据参数
- * - clientSideAttackTime 在 livingTick() 中递增（当 hasTargetedEntity 时）
- * - getAttackAnimationScale(0) = clientSideAttackTime / attackDuration (attackDuration=80)
- *
- * 注意：我们在这里自己管理 attackAnimScale，模拟 MC 客户端的 clientSideAttackTime
+ * 注意：我们在这里自己管理 attackAnimScale，模拟客户端的 clientSideAttackTime
  */
 class GuardianSoundStateful : public TickableSound {
 public:
@@ -209,7 +201,6 @@ public:
 
     void tick() override
     {
-        ++m_tickCount;
         if (m_handler) {
             const EntitySoundState* state = m_handler->getEntityState(m_entityId);
             if (state) {
@@ -227,7 +218,7 @@ public:
             return;
         }
 
-        // MC 1.16.5: 当无攻击目标时停止
+        // 当无攻击目标时停止
         if (state.targetEntityId == 0) {
             markDone();
             return;
@@ -236,7 +227,7 @@ public:
         setPosition(state.position);
 
         // 计算攻击动画进度
-        // MC 1.16.5: attackAnimScale = clientSideAttackTime / attackDuration (80 ticks)
+        // attackAnimScale = clientSideAttackTime / attackDuration (80 ticks)
         // 当目标改变时，onGuardianTargetChanged 会重置 attackAnimScale 为 0
         f32 f = state.attackAnimScale;
         if (f <= 0.0f) {
@@ -244,8 +235,7 @@ public:
             m_clientSideAttackTime = 0;
         }
 
-        // 模拟 MC 客户端的 clientSideAttackTime 递增
-        // 参考 GuardianEntity.livingTick(): if (this.hasTargetedEntity()) { ++this.clientSideAttackTime; }
+        // 模拟客户端的 clientSideAttackTime 递增
         ++m_clientSideAttackTime;
         if (m_clientSideAttackTime > ATTACK_DURATION) {
             m_clientSideAttackTime = ATTACK_DURATION;
@@ -253,7 +243,7 @@ public:
 
         f = static_cast<f32>(m_clientSideAttackTime) / static_cast<f32>(ATTACK_DURATION);
 
-        // MC 1.16.5: volume = 0.0F + 1.0F * f * f, pitch = 0.7F + 0.5F * f
+        // volume = f * f, pitch = 0.7 + 0.5 * f
         f32 volume = f * f;
         f32 pitch = 0.7f + 0.5f * f;
 
@@ -264,10 +254,9 @@ public:
 private:
     EntitySoundHandler* m_handler = nullptr;
     EntityId m_entityId;
-    i32 m_tickCount = 0;
-    i32 m_clientSideAttackTime = 0; // 模拟 MC 客户端的攻击计时器
+    i32 m_clientSideAttackTime = 0;
 
-    static constexpr i32 ATTACK_DURATION = 80; // MC 1.16.5: GuardianEntity.getAttackDuration() = 80
+    static constexpr i32 ATTACK_DURATION = 80;
 };
 
 /**
@@ -378,7 +367,7 @@ void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, c
     auto stateIt = m_entityStates.find(entityId);
     if (stateIt != m_entityStates.end()) {
         lock.unlock();
-        checkAndCreateSound(engine, entityId, typeId);
+        _checkAndCreateSound(engine, entityId, typeId);
     }
 }
 
@@ -438,7 +427,7 @@ void EntitySoundHandler::tick(SoundEngine& engine)
             auto stateIt = m_entityStates.find(entityId);
             if (stateIt != m_entityStates.end() && !stateIt->second.isRemoved) {
                 lock.unlock();
-                checkAndCreateSound(engine, entityId, typeId);
+                _checkAndCreateSound(engine, entityId, typeId);
             }
         }
     }
@@ -468,7 +457,7 @@ void EntitySoundHandler::tick(SoundEngine& engine)
                     // 重新创建声音（根据当前愤怒状态）
                     it = m_activeSounds.erase(it);
                     lock.unlock();
-                    checkAndCreateSound(engine, entityId, typeId);
+                    _checkAndCreateSound(engine, entityId, typeId);
                     continue;
                 }
             }
@@ -502,7 +491,7 @@ EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityId entityId)
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId)
+void EntitySoundHandler::_checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId)
 {
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(entityId);
@@ -613,7 +602,7 @@ void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId tar
         }
     }
 
-    // 重置攻击动画（MC 1.16.5: notifyDataManagerChange 中 clientSideAttackTime = 0）
+    // 重置攻击动画
     std::unique_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(entityId);
     if (stateIt != m_entityStates.end()) {

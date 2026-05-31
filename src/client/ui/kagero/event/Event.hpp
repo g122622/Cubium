@@ -23,15 +23,8 @@
 
 #pragma once
 
-#include "../Types.hpp"
-#include <any>
-#include <cstdint>
+#include "client/ui/kagero/Types.hpp"
 #include <functional>
-#include <memory>
-#include <type_traits>
-#include <typeindex>
-#include <unordered_map>
-#include <vector>
 
 namespace mc::client::ui::kagero::event {
 
@@ -88,7 +81,7 @@ enum class EventType : u32 {
  *     EventType getType() const override { return EventType::Custom; }
  *     const char* getName() const override { return "MyEvent"; }
  *
- *     int myData;
+ *     i32 myData;
  * };
  * @endcode
  */
@@ -161,7 +154,7 @@ public:
     void setCurrentTarget(void* target) { m_currentTarget = target; }
 
 protected:
-    mutable bool m_cancelled = false; // mutable to allow cancellation in const context
+    mutable bool m_cancelled = false; // mutable 以允许在 const 上下文中取消
     u64 m_timestamp = 0;
     void* m_target = nullptr;
     void* m_currentTarget = nullptr;
@@ -234,13 +227,13 @@ struct EventResult {
     bool handled = false;   ///< 是否被处理
     bool cancelled = false; ///< 是否被取消
 
-    EventResult& setHandled(bool value = true)
+    EventResult& setHandled(bool value)
     {
         handled = value;
         return *this;
     }
 
-    EventResult& setCancelled(bool value = true)
+    EventResult& setCancelled(bool value)
     {
         cancelled = value;
         return *this;

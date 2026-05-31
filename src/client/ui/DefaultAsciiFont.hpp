@@ -64,13 +64,17 @@ private:
      * @param c 字符
      * @param outPixels 输出像素数据（8x8）
      * @return 字符宽度
+     *
+     * TODO: 目前未被调用，待UI系统完善后启用
      */
-    [[nodiscard]] static u32 generateCharBitmap(char c, std::array<u8, 64>& outPixels);
+    [[nodiscard]] static u32 _generateCharBitmap(char c, std::array<u8, 64>& outPixels);
 
     /**
      * @brief 获取5x7点阵字体数据
+     *
+     * TODO: 目前仅被_generateCharBitmap调用，待UI系统完善后启用
      */
-    [[nodiscard]] static const u8* getFontData(char c);
+    [[nodiscard]] static const u8* _getFontData(char c);
 };
 
 } // namespace mc::client

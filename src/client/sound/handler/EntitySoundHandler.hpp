@@ -67,8 +67,6 @@ struct EntitySoundState {
  * 当实体被创建或状态变化时启动相应的声音，实体移除时停止声音。
  *
  * 线程安全：从主线程接收实体状态更新，在音频线程中处理声音。
- *
- * 参考: net.minecraft.client.audio.SoundHandler 中的实体声音管理
  */
 class EntitySoundHandler : public IAmbientSoundHandler {
 public:
@@ -207,7 +205,7 @@ private:
     /**
      * @brief 检查并创建声音
      */
-    void checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId);
+    void _checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId);
 
     // 实体状态快照（从主线程更新，在音频线程读取）
     // 使用读写锁保护跨线程访问

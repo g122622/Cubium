@@ -26,9 +26,9 @@
 #include "client/sound/instance/ISoundInstance.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 
 #include <memory>
 #include <optional>
@@ -57,8 +57,6 @@ namespace client::sound {
  * - 播放间隔控制
  * - 根据游戏状态选择音乐（主菜单、游戏、创造模式等）
  * - 根据生物群系选择音乐（下界各生物群系有专属音乐）
- *
- * 参考: net.minecraft.client.audio.MusicTicker
  */
 class MusicPlayer {
 public:
@@ -134,7 +132,7 @@ public:
      *
      * @param isPaused 游戏是否暂停
      * @param inMenu 是否在主菜单
-     * @param dimension 当前维度ID (0=主世界, -1=下界, 1=末地)
+     * @param dimension 当前维度ID
      * @param inWater 是否在水中
      * @param inCreative 是否在创造模式
      * @param inBossFight 是否在Boss战斗中
@@ -142,18 +140,18 @@ public:
      */
     void tick(bool isPaused,
         bool inMenu,
-        i32 dimension = 0,
-        bool inWater = false,
-        bool inCreative = false,
-        bool inBossFight = false,
-        const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
+        DimensionId dimension,
+        bool inWater,
+        bool inCreative,
+        bool inBossFight,
+        const std::optional<world::biome::BiomeMusic>& biomeMusic);
 
     /**
      * @brief 停止当前音乐
      *
      * @param fadeOut 是否淡出
      */
-    void stop(bool fadeOut = true);
+    void stop(bool fadeOut);
 
     // ========================================================================
     // 音乐控制
@@ -200,7 +198,7 @@ private:
      * @param type 音乐类型
      * @return 音乐选择器
      */
-    [[nodiscard]] const MusicSelector& getSelector(MusicType type) const;
+    [[nodiscard]] const MusicSelector& _getSelector(MusicType type) const;
 
     /**
      * @brief 选择下一个延迟时间
@@ -208,19 +206,19 @@ private:
      * @param selector 音乐选择器
      * @return 延迟ticks
      */
-    [[nodiscard]] u32 selectDelay(const MusicSelector& selector);
+    [[nodiscard]] u32 _selectDelay(const MusicSelector& selector);
 
     /**
      * @brief 开始播放音乐
      *
      * @param selector 音乐选择器
      */
-    void startPlaying(const MusicSelector& selector);
+    void _startPlaying(const MusicSelector& selector);
 
     /**
      * @brief 更新淡入淡出
      */
-    void updateFade();
+    void _updateFade();
 
 private:
     SoundEngine& m_engine;

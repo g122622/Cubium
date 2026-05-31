@@ -115,13 +115,13 @@ void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer)
         auto* alBuffer = dynamic_cast<OpenALBuffer*>(m_buffer.get());
         if (alBuffer) {
             alSourcei(m_source, AL_BUFFER, static_cast<ALint>(alBuffer->getALBuffer()));
-            checkError("setBuffer");
+            _checkError("setBuffer");
         } else {
             spdlog::error("[OpenALSource] Buffer is not an OpenALBuffer");
         }
     } else {
         alSourcei(m_source, AL_BUFFER, 0);
-        checkError("setBuffer(null)");
+        _checkError("setBuffer(null)");
     }
 }
 
@@ -134,7 +134,7 @@ void OpenALSource::play()
 
     spdlog::info("[OpenALSource] Playing source (id={}), source handle: {}", m_id, m_source);
     alSourcePlay(m_source);
-    checkError("play");
+    _checkError("play");
 }
 
 void OpenALSource::pause()
@@ -145,7 +145,7 @@ void OpenALSource::pause()
     }
 
     alSourcePause(m_source);
-    checkError("pause");
+    _checkError("pause");
 }
 
 void OpenALSource::stop()
@@ -156,7 +156,7 @@ void OpenALSource::stop()
     }
 
     alSourceStop(m_source);
-    checkError("stop");
+    _checkError("stop");
 }
 
 void OpenALSource::rewind()
@@ -167,7 +167,7 @@ void OpenALSource::rewind()
     }
 
     alSourceRewind(m_source);
-    checkError("rewind");
+    _checkError("rewind");
 }
 
 void OpenALSource::setGain(f32 gain)
@@ -177,7 +177,7 @@ void OpenALSource::setGain(f32 gain)
     }
 
     alSourcef(m_source, AL_GAIN, std::max(0.0f, gain));
-    checkError("setGain");
+    _checkError("setGain");
 }
 
 f32 OpenALSource::getGain() const noexcept
@@ -199,7 +199,7 @@ void OpenALSource::setPitch(f32 pitch)
 
     // OpenAL 要求 pitch > 0
     alSourcef(m_source, AL_PITCH, std::max(0.001f, pitch));
-    checkError("setPitch");
+    _checkError("setPitch");
 }
 
 f32 OpenALSource::getPitch() const noexcept
@@ -220,7 +220,7 @@ void OpenALSource::setPosition(const glm::vec3& position)
     }
 
     alSource3f(m_source, AL_POSITION, position.x, position.y, position.z);
-    checkError("setPosition");
+    _checkError("setPosition");
 }
 
 glm::vec3 OpenALSource::getPosition() const noexcept
@@ -241,7 +241,7 @@ void OpenALSource::setVelocity(const glm::vec3& velocity)
     }
 
     alSource3f(m_source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
-    checkError("setVelocity");
+    _checkError("setVelocity");
 }
 
 glm::vec3 OpenALSource::getVelocity() const noexcept
@@ -262,7 +262,7 @@ void OpenALSource::setDirection(const glm::vec3& direction)
     }
 
     alSource3f(m_source, AL_DIRECTION, direction.x, direction.y, direction.z);
-    checkError("setDirection");
+    _checkError("setDirection");
 }
 
 glm::vec3 OpenALSource::getDirection() const noexcept
@@ -283,7 +283,7 @@ void OpenALSource::setRelative(bool relative)
     }
 
     alSourcei(m_source, AL_SOURCE_RELATIVE, relative ? AL_TRUE : AL_FALSE);
-    checkError("setRelative");
+    _checkError("setRelative");
 }
 
 bool OpenALSource::isRelative() const noexcept
@@ -304,7 +304,7 @@ void OpenALSource::setReferenceDistance(f32 distance)
     }
 
     alSourcef(m_source, AL_REFERENCE_DISTANCE, std::max(0.0f, distance));
-    checkError("setReferenceDistance");
+    _checkError("setReferenceDistance");
 }
 
 f32 OpenALSource::getReferenceDistance() const noexcept
@@ -325,7 +325,7 @@ void OpenALSource::setMaxDistance(f32 distance)
     }
 
     alSourcef(m_source, AL_MAX_DISTANCE, std::max(0.0f, distance));
-    checkError("setMaxDistance");
+    _checkError("setMaxDistance");
 }
 
 f32 OpenALSource::getMaxDistance() const noexcept
@@ -346,7 +346,7 @@ void OpenALSource::setLooping(bool looping)
     }
 
     alSourcei(m_source, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
-    checkError("setLooping");
+    _checkError("setLooping");
 }
 
 bool OpenALSource::isLooping() const noexcept
@@ -370,14 +370,13 @@ void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count)
     std::vector<ALuint> alBuffers;
     alBuffers.reserve(count);
 
-    // 注意：这里需要从 AudioBufferCache 获取实际的 OpenALBuffer
-    // 这是一个简化实现，实际使用时需要传入缓存映射表
-    // 暂时跳过，流式播放将在 SoundEngine 层实现
+    // TODO: queueBuffers 需要从 AudioBufferCache 获取实际的 OpenALBuffer，当前为简化实现，流式播放将在 SoundEngine
+    // 层完成
     spdlog::warn("[OpenALSource] queueBuffers: streaming not fully implemented");
 
     if (!alBuffers.empty()) {
         alSourceQueueBuffers(m_source, static_cast<ALsizei>(alBuffers.size()), alBuffers.data());
-        checkError("queueBuffers");
+        _checkError("queueBuffers");
     }
 }
 
@@ -398,8 +397,7 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count)
         return 0;
     }
 
-    // 将 ALuint 转换回 AudioBufferId
-    // 这是一个简化实现，需要实际的映射
+    // TODO: 将 ALuint 转换回 AudioBufferId 需要实际的映射，当前为简化实现
     for (size_t i = 0; i < processed; ++i) {
         buffers[i] = static_cast<AudioBufferId>(alBuffers[i]);
     }
@@ -429,7 +427,7 @@ u32 OpenALSource::getQueuedBuffers() const noexcept
     return static_cast<u32>(queued);
 }
 
-bool OpenALSource::checkError(const char* operation) const
+bool OpenALSource::_checkError(const char* operation) const
 {
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
@@ -623,7 +621,7 @@ Result<void> OpenALBackend::initialize()
 
     // 设置默认距离模型
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-    static_cast<void>(checkALError("alDistanceModel"));
+    static_cast<void>(_checkALError("alDistanceModel"));
 
     // 设置默认听者属性
     setListenerPosition(glm::vec3(0.0f));
@@ -675,7 +673,7 @@ void OpenALBackend::setListenerPosition(const glm::vec3& position)
     }
 
     alListener3f(AL_POSITION, position.x, position.y, position.z);
-    static_cast<void>(checkALError("setListenerPosition"));
+    static_cast<void>(_checkALError("setListenerPosition"));
     m_listenerPosition = position;
 }
 
@@ -692,7 +690,7 @@ void OpenALBackend::setListenerOrientation(const glm::vec3& forward, const glm::
 
     ALfloat orientation[] = {forward.x, forward.y, forward.z, up.x, up.y, up.z};
     alListenerfv(AL_ORIENTATION, orientation);
-    static_cast<void>(checkALError("setListenerOrientation"));
+    static_cast<void>(_checkALError("setListenerOrientation"));
     m_listenerForward = forward;
     m_listenerUp = up;
 }
@@ -714,7 +712,7 @@ void OpenALBackend::setListenerVelocity(const glm::vec3& velocity)
     }
 
     alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
-    static_cast<void>(checkALError("setListenerVelocity"));
+    static_cast<void>(_checkALError("setListenerVelocity"));
     m_listenerVelocity = velocity;
 }
 
@@ -730,7 +728,7 @@ void OpenALBackend::setListenerGain(f32 gain)
     }
 
     alListenerf(AL_GAIN, std::max(0.0f, gain));
-    static_cast<void>(checkALError("setListenerGain"));
+    static_cast<void>(_checkALError("setListenerGain"));
     m_listenerGain = gain;
 }
 
@@ -829,16 +827,13 @@ u32 OpenALBackend::getAvailableSources() const noexcept
         return 0;
     }
 
-    // OpenAL 不直接提供查询已创建源数量的方法
-    // 我们使用固定的最大源数量
-    // 实际可用数量取决于 alGenSources 是否成功
-    return MAX_SOURCES; // 简化实现
+    // TODO: OpenAL 不直接提供查询已创建源数量的方法，当前使用固定最大源数量，实际可用数量应动态跟踪
+    return MAX_SOURCES;
 }
 
 void OpenALBackend::process()
 {
-    // 当前实现没有需要每帧处理的逻辑
-    // 流式播放的处理将在 SoundEngine 层实现
+    // TODO: 当前实现没有需要每帧处理的逻辑，流式播放的处理将在 SoundEngine 层实现
 }
 
 std::string OpenALBackend::getDeviceName() const
@@ -875,7 +870,7 @@ std::string OpenALBackend::getDebugString() const
     return result;
 }
 
-std::string OpenALBackend::checkALError(const char* operation) const
+std::string OpenALBackend::_checkALError(const char* operation) const
 {
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {

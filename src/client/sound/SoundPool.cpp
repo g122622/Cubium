@@ -22,16 +22,13 @@
  */
 
 #include "client/sound/SoundPool.hpp"
-#include "client/sound/instance/ISoundInstance.hpp"
-
-#include <algorithm>
 
 namespace mc::client::sound {
 
 SoundInstanceId SoundPool::add(std::unique_ptr<ISoundInstance> sound)
 {
     if (!sound) {
-        return 0;
+        return mc::sound::INVALID_SOUND_INSTANCE_ID;
     }
 
     SoundInstanceId id = m_nextId++;
@@ -99,11 +96,6 @@ void SoundPool::clear()
     m_sounds.clear();
     m_soundEventMap.clear();
     m_categoryMap.clear();
-}
-
-bool SoundPool::has(SoundInstanceId id) const
-{
-    return m_sounds.find(id) != m_sounds.end();
 }
 
 std::vector<SoundInstanceId> SoundPool::getByCategory(SoundCategory category) const

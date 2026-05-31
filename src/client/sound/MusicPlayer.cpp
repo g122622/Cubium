@@ -22,7 +22,6 @@
  */
 
 #include "MusicPlayer.hpp"
-#include "client/settings/ClientSettings.hpp"
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include <spdlog/spdlog.h>
@@ -36,7 +35,6 @@ namespace mc::client::sound {
 namespace {
 
 // 主菜单音乐
-// MC 1.16.5: minDelay=20, maxDelay=600, replaceCurrent=true
 const MusicPlayer::MusicSelector MENU_MUSIC = {
     ResourceLocation("minecraft:music.menu"),
     20,  // minDelay: 20 ticks
@@ -45,27 +43,21 @@ const MusicPlayer::MusicSelector MENU_MUSIC = {
 };
 
 // 游戏音乐列表（仅主世界生存模式）
-// MC 1.16.5: 仅包含 music.game，创造模式和制作人员名单有独立选择器
 const std::vector<MusicPlayer::MusicSelector> GAME_MUSIC = {
     {ResourceLocation("minecraft:music.game"), 12000, 24000, false}};
 
 // 创造模式音乐
-// MC 1.16.5: 仅包含 music.creative
 const std::vector<MusicPlayer::MusicSelector> CREATIVE_MUSIC = {
     {ResourceLocation("minecraft:music.creative"), 12000, 24000, false}};
 
 // 下界音乐（按生物群系选择）
-// MC 1.16.5: 每个下界群系有专属音乐
 const std::vector<MusicPlayer::MusicSelector> NETHER_MUSIC = {
     {ResourceLocation("minecraft:music.nether.basalt_deltas"), 12000, 24000, false},
     {ResourceLocation("minecraft:music.nether.crimson_forest"), 12000, 24000, false},
     {ResourceLocation("minecraft:music.nether.nether_wastes"), 12000, 24000, false},
-    {ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false}
-    // 注意：warped_forest 没有音乐（sounds.json 中为空数组）
-};
+    {ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false}};
 
 // 末地音乐
-// MC 1.16.5: minDelay=6000, maxDelay=24000, replaceCurrent=true
 const std::vector<MusicPlayer::MusicSelector> END_MUSIC = {
     {ResourceLocation("minecraft:music.end"), 6000, 24000, true}};
 
@@ -121,7 +113,7 @@ MusicPlayer::~MusicPlayer()
 
 void MusicPlayer::tick(bool isPaused,
     bool inMenu,
-    i32 dimension,
+    DimensionId dimension,
     bool inWater,
     bool inCreative,
     bool inBossFight,
@@ -131,7 +123,7 @@ void MusicPlayer::tick(bool isPaused,
         return;
     }
 
-    // 根据 MC 1.16.5 MusicTicker.func_238178_U_() 选择音乐类型
+    // 根据当前状态选择音乐类型
     MusicType desiredType = MusicType::None;
     std::optional<MusicSelector> biomeSelector;
 
@@ -140,24 +132,21 @@ void MusicPlayer::tick(bool isPaused,
         desiredType = MusicType::Menu;
     } else {
         // 游戏中
-        if (dimension == 1) {
+        if (dimension == DimensionManager::THE_END) {
             // 末地维度
             desiredType = inBossFight ? MusicType::Dragon : MusicType::End;
-        } else if (dimension == -1) {
+        } else if (dimension == DimensionManager::NETHER) {
             // 下界维度 - 使用生物群系音乐
             if (biomeMusic.has_value() && biomeMusic->isValid()) {
                 // 生物群系有专属音乐（如玄武岩三角洲、绯红森林等）
                 biomeSelector = MusicSelector::fromBiomeMusic(*biomeMusic);
                 desiredType = MusicType::Biome;
             } else {
-                // 诡异森林没有音乐（sounds.json 中为空数组）
-                // MC 1.16.5: 返回空选择器，不播放音乐
+                // 诡异森林没有专属音乐，返回空选择器
                 desiredType = MusicType::None;
             }
         } else if (inWater) {
-            // 水下 - 检查是否在海洋或河流群系中
-            // 注意：水下音乐需要在海洋或河流群系中才能播放
-            // 当前简化实现：水下就播放水下音乐
+            // 水下 - TODO: 需要检查是否在海洋或河流群系中才能播放水下音乐
             desiredType = MusicType::Underwater;
         } else if (inCreative) {
             // 创造模式
@@ -176,17 +165,16 @@ void MusicPlayer::tick(bool isPaused,
     }
 
     // 获取目标选择器
-    const MusicSelector& desiredSelector = biomeSelector.has_value() ? biomeSelector.value() : getSelector(desiredType);
+    const MusicSelector& desiredSelector =
+        biomeSelector.has_value() ? biomeSelector.value() : _getSelector(desiredType);
 
-    // MC 1.16.5: 检查是否需要替换当前音乐
+    // 检查是否需要替换当前音乐
     // 如果当前音乐正在播放，但新选择器要求替换且与当前不同
     if (m_currentSoundId != 0) {
         bool isPlaying = m_engine.isPlaying(m_currentSoundId);
 
         if (isPlaying) {
             // 检查是否需要因 replaceCurrent 而停止
-            // MC 1.16.5 line 25-28:
-            // if (!newSelector.sound.getName().equals(current.getSoundLocation()) && newSelector.replaceCurrent)
             if (m_currentType != desiredType && desiredSelector.replaceCurrent) {
                 // 停止当前音乐，设置短延迟
                 m_engine.stop(m_currentSoundId);
@@ -199,19 +187,17 @@ void MusicPlayer::tick(bool isPaused,
             }
         } else {
             // 音乐已播放完毕
-            // MC 1.16.5 line 30-33:
-            // currentMusic = null; timeUntilNextMusic = min(nextDelay, random(minDelay, maxDelay))
             m_currentSoundId = 0;
             m_currentType = MusicType::None;
             m_fadingOut = false;
             // 设置下次播放延迟
-            m_delayCounter = std::min(m_delayCounter, selectDelay(desiredSelector));
+            m_delayCounter = std::min(m_delayCounter, _selectDelay(desiredSelector));
         }
     }
 
     // 如果正在淡出，更新淡出并跳过播放新音乐
     if (m_fadingOut) {
-        updateFade();
+        _updateFade();
         return;
     }
 
@@ -220,19 +206,19 @@ void MusicPlayer::tick(bool isPaused,
         return;
     }
 
-    // MC 1.16.5 line 36: timeUntilNextMusic = min(timeUntilNextMusic, maxDelay)
+    // 限制延迟不超过最大值
     m_delayCounter = std::min(m_delayCounter, desiredSelector.maxDelayTicks);
 
-    // MC 1.16.5 line 37-39: 如果没有当前音乐且延迟到了，播放新音乐
+    // 如果没有当前音乐且延迟到了，播放新音乐
     if (m_currentSoundId == 0 && m_delayCounter > 0) {
         --m_delayCounter;
     }
 
     if (m_currentSoundId == 0 && m_delayCounter == 0) {
         // 获取选择器（可能随机选择）
-        const MusicSelector& selector = getSelector(desiredType);
+        const MusicSelector& selector = _getSelector(desiredType);
         if (!selector.soundEventId.toString().empty()) {
-            startPlaying(selector);
+            _startPlaying(selector);
         }
     }
 }
@@ -273,8 +259,8 @@ void MusicPlayer::setMusicType(MusicType type)
     m_currentType = type;
 
     // 重置延迟
-    const MusicSelector& selector = getSelector(type);
-    m_delayCounter = selectDelay(selector);
+    const MusicSelector& selector = _getSelector(type);
+    m_delayCounter = _selectDelay(selector);
 }
 
 bool MusicPlayer::isPlaying() const noexcept
@@ -286,7 +272,7 @@ bool MusicPlayer::isPlaying() const noexcept
 // 私有方法
 // ============================================================================
 
-const MusicPlayer::MusicSelector& MusicPlayer::getSelector(MusicType type) const
+const MusicPlayer::MusicSelector& MusicPlayer::_getSelector(MusicType type) const
 {
     switch (type) {
         case MusicType::Menu:
@@ -339,7 +325,7 @@ const MusicPlayer::MusicSelector& MusicPlayer::getSelector(MusicType type) const
     }
 }
 
-u32 MusicPlayer::selectDelay(const MusicSelector& selector)
+u32 MusicPlayer::_selectDelay(const MusicSelector& selector)
 {
     if (selector.minDelayTicks >= selector.maxDelayTicks) {
         return selector.minDelayTicks;
@@ -349,7 +335,7 @@ u32 MusicPlayer::selectDelay(const MusicSelector& selector)
         m_rng.nextInt(static_cast<i32>(selector.minDelayTicks), static_cast<i32>(selector.maxDelayTicks)));
 }
 
-void MusicPlayer::startPlaying(const MusicSelector& selector)
+void MusicPlayer::_startPlaying(const MusicSelector& selector)
 {
     // 如果有当前音乐且不允许替换
     if (m_currentSoundId != 0 && !selector.replaceCurrent) {
@@ -376,14 +362,12 @@ void MusicPlayer::startPlaying(const MusicSelector& selector)
         return;
     }
 
-    spdlog::debug("MusicPlayer: Started playing: {}", selector.soundEventId.toString());
-
     // 设置下次延迟
-    m_delayCounter = selectDelay(selector);
+    m_delayCounter = _selectDelay(selector);
     m_fadingOut = false;
 }
 
-void MusicPlayer::updateFade()
+void MusicPlayer::_updateFade()
 {
     if (!m_fadingOut || m_currentSoundId == 0) {
         return;

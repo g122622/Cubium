@@ -33,8 +33,6 @@ namespace mc::client::sound {
  *
  * 当矿车移动时播放行驶音效，音量根据矿车速度动态变化。
  *
- * 参考: net.minecraft.client.audio.MinecartTickableSound
- *
  * 特点:
  * - 循环播放
  * - 音量根据水平速度变化（0 ~ 0.7）
@@ -73,8 +71,6 @@ private:
  * @brief 玩家骑乘矿车时的内部音效（使用状态快照）
  *
  * 当玩家骑乘矿车时播放内部音效，使用无衰减模式。
- *
- * 参考: net.minecraft.client.audio.RidingMinecartTickableSound
  *
  * 特点:
  * - 循环播放

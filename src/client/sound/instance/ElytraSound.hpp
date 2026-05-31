@@ -39,8 +39,6 @@ namespace mc::client::sound {
  *
  * 当玩家使用鞘翅滑翔时播放的循环声音。
  * 音量根据玩家速度变化。
- *
- * 参考: net.minecraft.client.audio.ElytraSound
  */
 class ElytraSound : public TickableSound {
 public:

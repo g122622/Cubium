@@ -24,8 +24,8 @@
 #include "WeatherSoundHandler.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Constants.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundTypes.hpp"
-#include <cmath>
 
 namespace mc::client::sound {
 
@@ -37,16 +37,16 @@ using ::mc::sound::DEFAULT_ATTENUATION_DISTANCE;
 // ============================================================================
 
 namespace {
-/// 雨声最小延迟（ticks），防止开始下雨时立即播放
-constexpr i32 RAIN_SOUND_MIN_DELAY = 0;
-
 /// 雷声最小间隔（ticks）
 constexpr i32 THUNDER_MIN_DELAY = 100; // 5秒
 
 /// 雷声最大间隔（ticks）
 constexpr i32 THUNDER_MAX_DELAY = 600; // 30秒
 
-/// 高度阈值：超过此高度使用雨声_above版本
+// TODO: 当前雨声"above"版本的判断逻辑是简化的高度阈值实现。
+// MC 1.16.5 的实际逻辑是：通过粒子采样找到雨滴落点位置，判断该位置是否
+// 在玩家上方且有运动阻挡方块（MOTION_BLOCKING高度图），而非简单的Y坐标阈值。
+// 当高度图系统完善后，应重构为基于高度图的判断。
 constexpr f32 RAIN_ABOVE_HEIGHT = static_cast<f32>(world::SEA_LEVEL) + 63.0f;
 } // namespace
 
@@ -65,8 +65,8 @@ WeatherSoundHandler::~WeatherSoundHandler()
 
 void WeatherSoundHandler::tick(SoundEngine& engine)
 {
-    updateRainSound(engine);
-    tryPlayThunder(engine);
+    _updateRainSound(engine);
+    _tryPlayThunder(engine);
 }
 
 void WeatherSoundHandler::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky)
@@ -77,7 +77,7 @@ void WeatherSoundHandler::updateWeatherState(f32 rainStrength, f32 thunderStreng
     m_canSeeSky = canSeeSky;
 }
 
-void WeatherSoundHandler::updateRainSound(SoundEngine& engine)
+void WeatherSoundHandler::_updateRainSound(SoundEngine& engine)
 {
     // 检查是否应该播放雨声
     bool shouldPlayRain = isRaining() && m_canSeeSky;
@@ -125,7 +125,7 @@ void WeatherSoundHandler::updateRainSound(SoundEngine& engine)
     }
 }
 
-void WeatherSoundHandler::tryPlayThunder(SoundEngine& engine)
+void WeatherSoundHandler::_tryPlayThunder(SoundEngine& engine)
 {
     // 只在雷暴时播放雷声
     if (!isThundering() || !m_canSeeSky) {

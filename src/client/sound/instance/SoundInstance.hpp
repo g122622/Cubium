@@ -37,8 +37,6 @@ using ::mc::sound::DEFAULT_ATTENUATION_DISTANCE;
  *
  * 支持全局声音、位置声音、音乐和唱片机声音的创建。
  *
- * 参考: net.minecraft.client.audio.SimpleSound
- *
  * 使用示例:
  * @code
  * // 创建全局声音（如音乐）
@@ -232,8 +230,6 @@ protected:
  *
  * 可以每帧更新位置、音量等属性的声音。
  * 适用于移动的实体发出的声音（如矿车、射出的箭）。
- *
- * 参考: net.minecraft.client.audio.TickableSound
  *
  * 使用示例:
  * @code

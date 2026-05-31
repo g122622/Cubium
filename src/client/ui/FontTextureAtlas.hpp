@@ -34,8 +34,7 @@ namespace mc::client {
 /**
  * @brief 字形纹理图集
  *
- * 将字形动态打包到纹理中，参考Minecraft的FontTexture实现。
- * 使用简化的矩形打包算法（二叉树分割）。
+ * 将字形动态打包到纹理中，使用简化的矩形打包算法（二叉树分割）。
  */
 class FontTextureAtlas {
 public:
@@ -52,10 +51,10 @@ public:
 
     /**
      * @brief 创建字形纹理图集
-     * @param textureSize 纹理尺寸（默认256x256，与MC相同）
+     * @param textureSize 纹理尺寸
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(u32 textureSize = 256);
+    [[nodiscard]] Result<void> create(u32 textureSize);
 
     /**
      * @brief 销毁资源
@@ -74,7 +73,7 @@ public:
      * @return 字形信息，如果图集已满则返回错误
      */
     [[nodiscard]] Result<Glyph> addGlyph(
-        u32 codepoint, const u8* pixels, u32 width, u32 height, f32 advance, f32 bearingX = 0.0f, f32 bearingY = 0.0f);
+        u32 codepoint, const u8* pixels, u32 width, u32 height, f32 advance, f32 bearingX, f32 bearingY);
 
     /**
      * @brief 获取字形
@@ -146,7 +145,7 @@ private:
      * @param height 需要的高度
      * @return 找到的节点，如果找不到返回nullptr
      */
-    [[nodiscard]] Node* findNode(Node* node, u32 width, u32 height);
+    [[nodiscard]] Node* _findNode(Node* node, u32 width, u32 height);
 
     /**
      * @brief 分割节点
@@ -155,7 +154,7 @@ private:
      * @param height 使用的高度
      * @return 使用后的节点
      */
-    [[nodiscard]] Node* splitNode(Node* node, u32 width, u32 height);
+    [[nodiscard]] Node* _splitNode(Node* node, u32 width, u32 height);
 
     /**
      * @brief 将像素数据复制到纹理
@@ -165,7 +164,7 @@ private:
      * @param height 源高度
      * @param pixels 源像素数据
      */
-    void copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels);
+    void _copyPixels(u32 x, u32 y, u32 width, u32 height, const u8* pixels);
 
     u32 m_textureSize = 0;
     std::vector<u8> m_pixels;                // 灰度纹理数据

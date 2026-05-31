@@ -23,12 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
+#include "common/sound/SoundTypes.hpp"
 #include "common/util/math/random/Random.hpp"
-
-#include <optional>
+#include <memory>
 
 namespace mc::client::sound {
 
@@ -40,9 +39,6 @@ class UnderwaterLoopSound;
  *
  * 当玩家在水下时播放水下环境音效。
  * 包括水下循环音效和三个稀有度级别的附加音效。
- *
- * 参考: net.minecraft.client.audio.UnderwaterAmbientSoundHandler
- * 参考: net.minecraft.client.entity.player.ClientPlayerEntity.updateEyesInWaterPlayer()
  *
  * 水下循环音效 (UnderwaterLoopSound):
  * - 玩家进入水时启动
@@ -99,7 +95,7 @@ private:
     bool m_wasUnderwater = false;
 
     /// 水下循环音效ID
-    SoundInstanceId m_underwaterLoopSoundId = 0;
+    SoundInstanceId m_underwaterLoopSoundId = ::mc::sound::INVALID_SOUND_INSTANCE_ID;
 
     /// 随机数生成器
     math::Random m_rng{0};

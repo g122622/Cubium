@@ -140,7 +140,7 @@ private:
      * @param charHeight 字符单元格高度
      * @return 实际宽度
      */
-    [[nodiscard]] u32 calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const;
+    [[nodiscard]] u32 _calculateCharWidth(u32 charX, u32 charY, u32 charWidth, u32 charHeight) const;
 
     std::vector<u8> m_pixels;                        // 纹理像素数据 (RGBA)
     u32 m_textureWidth = 0;                          // 纹理宽度
@@ -155,7 +155,7 @@ private:
 /**
  * @brief 字体类
  *
- * 管理字形纹理图集和字形缓存，参考Minecraft的Font类实现。
+ * 管理字形纹理图集和字形缓存。
  */
 class Font {
 public:
@@ -175,7 +175,7 @@ public:
      * @param textureSize 字形纹理图集大小
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(u32 textureSize = 256);
+    [[nodiscard]] Result<void> initialize(u32 textureSize);
 
     /**
      * @brief 销毁字体
@@ -235,7 +235,7 @@ public:
 private:
     FontTextureAtlas m_atlas;                                 // 字形纹理图集
     std::vector<std::unique_ptr<IGlyphProvider>> m_providers; // 字形提供者列表
-    u32 m_fontHeight = 9;                                     // 默认字体高度 (MC默认为9)
+    u32 m_fontHeight = 9;                                     // 默认字体高度
     EmptyGlyph m_emptyGlyph;                                  // 空字形缓存
 };
 

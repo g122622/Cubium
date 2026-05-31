@@ -28,7 +28,6 @@
 #include "common/resource/ResourcePackList.hpp"
 
 #include <functional>
-#include <memory>
 
 namespace mc::client::sound {
 
@@ -59,8 +58,6 @@ struct SoundLoadProgress {
  * 2. 查找每个命名空间下的 sounds.json
  * 3. 解析 JSON 并注册声音事件
  * 4. 合并/覆盖同名声音事件
- *
- * 参考: net.minecraft.client.audio.SoundHandler
  *
  * 使用示例:
  * @code
@@ -245,7 +242,7 @@ private:
      * @param namespace 命名空间
      * @return 加载的声音事件数量，或错误
      */
-    [[nodiscard]] Result<size_t> loadSoundsJson(const IResourcePack& pack, std::string_view namespace_);
+    [[nodiscard]] Result<size_t> _loadSoundsJson(const IResourcePack& pack, std::string_view namespace_);
 
     /**
      * @brief 解析 sounds.json 内容
@@ -254,12 +251,12 @@ private:
      * @param namespace 命名空间
      * @return 解析的声音事件数量，或错误
      */
-    [[nodiscard]] Result<size_t> parseSoundsJson(std::string_view content, std::string_view namespace_);
+    [[nodiscard]] Result<size_t> _parseSoundsJson(std::string_view content, std::string_view namespace_);
 
     /**
      * @brief 通知进度
      */
-    void notifyProgress(const SoundLoadProgress& progress);
+    void _notifyProgress(const SoundLoadProgress& progress);
 
     ResourcePackList& m_resourcePacks;
     SoundRegistry m_registry;

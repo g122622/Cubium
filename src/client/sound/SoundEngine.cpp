@@ -34,8 +34,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
-#include <random>
 
 namespace mc::client::sound {
 
@@ -134,10 +132,8 @@ void SoundEngine::shutdown()
     m_loader.reset();
 
     // 关闭音频后端
-    if (m_backend) {
-        m_backend->shutdown();
-        m_backend.reset();
-    }
+    m_backend->shutdown();
+    m_backend.reset();
 
     m_loaded = false;
     spdlog::info("[SoundEngine] Sound engine shutdown complete");
@@ -161,7 +157,6 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
     // 选择随机声音（使用成员变量 m_rng 确保每次选择不同）
     const SoundDefinition* soundDef = eventDef->selectSound(m_rng);
     if (!soundDef) {
-        // spdlog::warn("[SoundEngine] No sounds available for: {}", sound->getSoundEventId().toString());
         return 0;
     }
 
@@ -171,34 +166,31 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
     // 解析事件引用（如果有）
     f32 eventVolume = 1.0f;
     f32 eventPitch = 1.0f;
-    if (!resolveSoundDefinition(resolvedDef, 0, eventVolume, eventPitch)) {
+    if (!_resolveSoundDefinition(resolvedDef, 0, eventVolume, eventPitch)) {
         spdlog::warn("[SoundEngine] Failed to resolve sound definition: {}", soundDef->location.toString());
         return 0;
     }
 
     // 计算音量
-    f32 volume = calculateVolume(*sound);
+    f32 volume = _calculateVolume(*sound);
     if (volume <= 0.0f) {
         // 静音
         return 0;
     }
 
     // 计算音调
-    f32 pitch = calculatePitch(*sound);
+    f32 pitch = _calculatePitch(*sound);
 
     // 计算衰减距离（考虑音量）
     f32 attenuationDistance = resolvedDef.attenuationDistance * std::max(volume, 1.0f);
 
     // 检查是否在听者范围内（对于位置声音）
-    if (!sound->isGlobal() && !isInRange(*sound, attenuationDistance)) {
+    if (!sound->isGlobal() && !_isInRange(*sound, attenuationDistance)) {
         // 超出可听范围，不播放
-        // spdlog::info("[SoundEngine] Sound out of range: {} (distance: {})",
-        //               sound->getSoundEventId().toString(), attenuationDistance);
         return 0;
     }
 
     // 加载音频数据
-    // spdlog::debug("[SoundEngine] Loading audio: {}", resolvedDef.location.toString());
     auto loadResult = m_loader->load(resolvedDef.location);
     if (!loadResult.success()) {
         spdlog::warn("[SoundEngine] Failed to load sound: {} - {}",
@@ -206,10 +198,6 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
             loadResult.error().message());
         return 0;
     }
-
-    AudioData& audioData = loadResult.value();
-    // spdlog::debug("[SoundEngine] Audio loaded: {} Hz, {} ch, {:.2f}s",
-    //               audioData.format.sampleRate, audioData.format.channels, audioData.duration);
 
     // 使用缓冲区缓存获取或创建缓冲区
     auto bufferResult = m_bufferCache.getOrCreate(resolvedDef.location, *m_backend, *m_loader);
@@ -355,10 +343,7 @@ void SoundEngine::stopAll()
 
     // 停止所有通道
     for (auto& [id, channel] : m_channels) {
-        if (channel.source) {
-            channel.source->stop();
-        }
-        // 注意：缓冲区由缓存管理，不需要手动销毁
+        channel.source->stop();
     }
 
     m_channels.clear();
@@ -374,7 +359,7 @@ void SoundEngine::pause()
     m_paused = true;
 
     for (auto& [id, channel] : m_channels) {
-        if (channel.source && !channel.isPaused) {
+        if (!channel.isPaused) {
             channel.source->pause();
             channel.isPaused = true;
         }
@@ -390,7 +375,7 @@ void SoundEngine::resume()
     m_paused = false;
 
     for (auto& [id, channel] : m_channels) {
-        if (channel.source && channel.isPaused) {
+        if (channel.isPaused) {
             channel.source->play();
             channel.isPaused = false;
         }
@@ -413,7 +398,7 @@ bool SoundEngine::isPlaying(SoundInstanceId id) const
 
 void SoundEngine::updateListener(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
 {
-    if (!m_loaded || !m_backend) {
+    if (!m_loaded) {
         return;
     }
 
@@ -426,7 +411,7 @@ void SoundEngine::updateListener(const glm::vec3& position, const glm::vec3& for
 
 void SoundEngine::setListenerVelocity(const glm::vec3& velocity)
 {
-    if (!m_loaded || !m_backend) {
+    if (!m_loaded) {
         return;
     }
 
@@ -439,7 +424,7 @@ void SoundEngine::setVolume(SoundCategory category, f32 volume)
     m_settings.setVolumeForCategory(category, volume);
 
     // 如果是主音量，更新听者增益
-    if (category == SoundCategory::Master && m_backend) {
+    if (category == SoundCategory::Master) {
         m_backend->setListenerGain(volume);
     }
 
@@ -449,8 +434,9 @@ void SoundEngine::setVolume(SoundCategory category, f32 volume)
         auto it = m_channels.find(id);
         if (it != m_channels.end()) {
             const ISoundInstance* sound = m_pool.get(id);
-            if (sound && it->second.source) {
-                it->second.source->setGain(calculateVolume(*sound));
+            // TODO: m_pool.get() 对活动通道理论上不应返回空，但暂时保留空指针检查以确保安全
+            if (sound) {
+                it->second.source->setGain(_calculateVolume(*sound));
             }
         }
     }
@@ -481,7 +467,6 @@ void SoundEngine::tick(bool isPaused)
     }
 
     // 处理 playOnNextTick 队列（用于 TickableSound 的声音切换）
-    // 参考: net.minecraft.client.audio.SoundEngine.tickNonPaused()
     for (auto& sound : m_playOnNextTickQueue) {
         if (sound && sound->canBeSilent()) {
             play(std::move(sound));
@@ -490,7 +475,7 @@ void SoundEngine::tick(bool isPaused)
     m_playOnNextTickQueue.clear();
 
     // 更新延迟声音
-    updateDelayedSounds();
+    _updateDelayedSounds();
 
     // 更新活动声音
     std::vector<SoundInstanceId> finishedSounds;
@@ -507,27 +492,22 @@ void SoundEngine::tick(bool isPaused)
                 continue;
             }
 
-            // 更新位置、音量、音调（参考 MC SoundEngine.tickNonPaused）
-            if (channel.source) {
-                // 动态更新音量和音调
-                f32 volume = calculateVolume(*sound);
-                f32 pitch = calculatePitch(*sound);
-                channel.source->setGain(volume);
-                channel.source->setPitch(pitch);
+            // 动态更新音量和音调
+            f32 volume = _calculateVolume(*sound);
+            f32 pitch = _calculatePitch(*sound);
+            channel.source->setGain(volume);
+            channel.source->setPitch(pitch);
 
-                // 更新位置
-                if (!sound->isGlobal()) {
-                    channel.source->setPosition(sound->getPosition());
-                }
+            // 更新位置
+            if (!sound->isGlobal()) {
+                channel.source->setPosition(sound->getPosition());
             }
         }
 
         // 检查播放状态
-        if (channel.source) {
-            AudioSourceState state = channel.source->getState();
-            if (state == AudioSourceState::Stopped) {
-                finishedSounds.push_back(id);
-            }
+        AudioSourceState state = channel.source->getState();
+        if (state == AudioSourceState::Stopped) {
+            finishedSounds.push_back(id);
         }
     }
 
@@ -572,7 +552,7 @@ const ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) const
     return m_pool.get(id);
 }
 
-f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const
+f32 SoundEngine::_calculateVolume(const ISoundInstance& sound) const
 {
     f32 volume = sound.getVolume();
 
@@ -587,7 +567,7 @@ f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const
     return std::max(0.0f, volume);
 }
 
-f32 SoundEngine::calculatePitch(const ISoundInstance& sound) const
+f32 SoundEngine::_calculatePitch(const ISoundInstance& sound) const
 {
     f32 pitch = sound.getPitch();
 
@@ -595,16 +575,16 @@ f32 SoundEngine::calculatePitch(const ISoundInstance& sound) const
     return std::clamp(pitch, 0.5f, 2.0f);
 }
 
-void SoundEngine::updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound)
+void SoundEngine::_updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound)
 {
-    if (!channel.source || sound.isGlobal()) {
+    if (sound.isGlobal()) {
         return;
     }
 
     channel.source->setPosition(sound.getPosition());
 }
 
-void SoundEngine::updateDelayedSounds()
+void SoundEngine::_updateDelayedSounds()
 {
     std::vector<std::pair<std::unique_ptr<ISoundInstance>, u32>> remaining;
 
@@ -622,7 +602,7 @@ void SoundEngine::updateDelayedSounds()
     m_delayedSounds = std::move(remaining);
 }
 
-bool SoundEngine::resolveSoundDefinition(SoundDefinition& soundDef, u32 depth, f32& outVolume, f32& outPitch) const
+bool SoundEngine::_resolveSoundDefinition(SoundDefinition& soundDef, u32 depth, f32& outVolume, f32& outPitch) const
 {
     // 防止无限递归（最大深度 16）
     constexpr u32 MAX_RESOLVE_DEPTH = 16;
@@ -659,10 +639,10 @@ bool SoundEngine::resolveSoundDefinition(SoundDefinition& soundDef, u32 depth, f
     soundDef = *selectedSound;
 
     // 递归解析（如果是嵌套的事件引用）
-    return resolveSoundDefinition(soundDef, depth + 1, outVolume, outPitch);
+    return _resolveSoundDefinition(soundDef, depth + 1, outVolume, outPitch);
 }
 
-bool SoundEngine::isInRange(const ISoundInstance& sound, f32 attenuationDistance) const
+bool SoundEngine::_isInRange(const ISoundInstance& sound, f32 attenuationDistance) const
 {
     // 全局声音始终在范围内
     if (sound.isGlobal()) {

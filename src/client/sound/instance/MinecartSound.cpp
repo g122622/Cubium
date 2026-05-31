@@ -23,8 +23,8 @@
 
 #include "client/sound/instance/MinecartSound.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <algorithm>
 #include <cmath>
 
 namespace mc::client::sound {
@@ -49,47 +49,37 @@ MinecartSoundStateful::MinecartSoundStateful(const EntitySoundState& state, Enti
 
 void MinecartSoundStateful::tick()
 {
-    // 从 handler 获取最新状态
-    if (m_handler) {
-        const EntitySoundState* state = m_handler->getEntityState(m_entityId);
-        if (state) {
-            // 检查实体是否已移除
-            if (state->isRemoved) {
-                markDone();
-                return;
-            }
-
-            // 更新位置
-            setPosition(state->position);
-
-            // 计算水平速度平方 (MC: Entity.horizontalMag)
-            f32 horizontalSpeedSq = state->velocity.x * state->velocity.x + state->velocity.z * state->velocity.z;
-            f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
-
-            // 音量计算
-            // 参考: MC 源码
-            // if ((double)f >= 0.01D) {
-            //     this.distance = MathHelper.clamp(this.distance + 0.0025F, 0.0F, 1.0F);
-            //     this.volume = MathHelper.lerp(MathHelper.clamp(f, 0.0F, 0.5F), 0.0F, 0.7F);
-            // } else {
-            //     this.distance = 0.0F;
-            //     this.volume = 0.0F;
-            // }
-            if (horizontalSpeed >= 0.01f) {
-                // distance 用于平滑音量变化
-                m_distance = std::clamp(m_distance + 0.0025f, 0.0f, 1.0f);
-                // 音量基于水平速度线性插值，范围 [0.0, 0.7]
-                f32 t = std::clamp(horizontalSpeed, 0.0f, 0.5f) / 0.5f;
-                f32 volume = mc::math::lerp(0.0f, 0.7f, t);
-                setVolume(volume);
-            } else {
-                m_distance = 0.0f;
-                setVolume(0.0f);
-            }
-        } else {
-            // 状态不存在，停止声音
+    MC_ASSERT_RELEASE(m_handler);
+    const EntitySoundState* state = m_handler->getEntityState(m_entityId);
+    if (state) {
+        // 检查实体是否已移除
+        if (state->isRemoved) {
             markDone();
+            return;
         }
+
+        // 更新位置
+        setPosition(state->position);
+
+        // 计算水平速度平方
+        f32 horizontalSpeedSq = state->velocity.x * state->velocity.x + state->velocity.z * state->velocity.z;
+        f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
+
+        // 音量计算
+        if (horizontalSpeed >= 0.01f) {
+            // distance 用于平滑音量变化
+            m_distance = mc::math::clamp(m_distance + 0.0025f, 0.0f, 1.0f);
+            // 音量基于水平速度线性插值，范围 [0.0, 0.7]
+            f32 t = mc::math::clamp(horizontalSpeed, 0.0f, 0.5f) / 0.5f;
+            f32 volume = mc::math::lerp(0.0f, 0.7f, t);
+            setVolume(volume);
+        } else {
+            m_distance = 0.0f;
+            setVolume(0.0f);
+        }
+    } else {
+        // 状态不存在，停止声音
+        markDone();
     }
 }
 
@@ -115,47 +105,36 @@ RidingMinecartSoundStateful::RidingMinecartSoundStateful(
 
 void RidingMinecartSoundStateful::tick()
 {
-    // 从 handler 获取最新状态
-    if (m_handler) {
-        const EntitySoundState* playerState = m_handler->getEntityState(m_playerId);
-        const EntitySoundState* minecartState = m_handler->getEntityState(m_minecartId);
+    MC_ASSERT_RELEASE(m_handler);
+    const EntitySoundState* playerState = m_handler->getEntityState(m_playerId);
+    const EntitySoundState* minecartState = m_handler->getEntityState(m_minecartId);
 
-        // 检查矿车是否被移除
-        if (!minecartState || minecartState->isRemoved) {
-            markDone();
-            return;
-        }
+    // 检查矿车是否被移除
+    if (!minecartState || minecartState->isRemoved) {
+        markDone();
+        return;
+    }
 
-        // 检查玩家是否仍在骑乘同一辆矿车
-        // 注意：当前简化实现，完整实现需要检查玩家是否仍骑乘该矿车
-        // MC: this.player.isPassenger() && this.player.getRidingEntity() == this.minecart
+    // TODO: 需要检查玩家是否仍骑乘该矿车，当前仅检查玩家是否存在
+    if (!playerState || playerState->isRemoved) {
+        markDone();
+        return;
+    }
 
-        if (!playerState || playerState->isRemoved) {
-            markDone();
-            return;
-        }
+    // 更新位置（跟随玩家）
+    setPosition(playerState->position);
 
-        // 更新位置（跟随玩家）
-        setPosition(playerState->position);
+    // 计算水平速度
+    f32 horizontalSpeedSq =
+        minecartState->velocity.x * minecartState->velocity.x + minecartState->velocity.z * minecartState->velocity.z;
+    f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
 
-        // 计算水平速度
-        f32 horizontalSpeedSq = minecartState->velocity.x * minecartState->velocity.x +
-            minecartState->velocity.z * minecartState->velocity.z;
-        f32 horizontalSpeed = std::sqrt(horizontalSpeedSq);
-
-        // 音量计算
-        // 参考: MC 源码
-        // if ((double)f >= 0.01D) {
-        //     this.volume = 0.0F + MathHelper.clamp(f, 0.0F, 1.0F) * 0.75F;
-        // } else {
-        //     this.volume = 0.0F;
-        // }
-        if (horizontalSpeed >= 0.01f) {
-            f32 volume = std::clamp(horizontalSpeed, 0.0f, 1.0f) * 0.75f;
-            setVolume(volume);
-        } else {
-            setVolume(0.0f);
-        }
+    // 音量计算
+    if (horizontalSpeed >= 0.01f) {
+        f32 volume = mc::math::clamp(horizontalSpeed, 0.0f, 1.0f) * 0.75f;
+        setVolume(volume);
+    } else {
+        setVolume(0.0f);
     }
 }
 

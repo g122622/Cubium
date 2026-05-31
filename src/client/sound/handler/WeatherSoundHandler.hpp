@@ -23,26 +23,17 @@
 
 #pragma once
 
-#include <memory>
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
-#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
-
-#include <optional>
+#include <memory>
 
 namespace mc::client::sound {
-
-// 前向声明
-class TickableSound;
 
 /**
  * @brief 天气音效处理器
  *
  * 处理雨天和雷暴时的环境音效。
- *
- * 参考: net.minecraft.client.audio.BackgroundMusicSelector (播放逻辑)
- * 参考: net.minecraft.world.server.ServerWorld.playWeatherSounds()
  *
  * 音效行为:
  * - 雨天时播放循环雨声 (WEATHER_RAIN / WEATHER_RAIN_ABOVE)
@@ -100,7 +91,7 @@ private:
      * 根据天气强度和玩家位置播放雨声。
      * 玩家在高处或看不到天空时使用 WEATHER_RAIN_ABOVE。
      */
-    void updateRainSound(SoundEngine& engine);
+    void _updateRainSound(SoundEngine& engine);
 
     /**
      * @brief 尝试播放雷声
@@ -108,7 +99,7 @@ private:
      * 雷暴时有概率播放雷声音效。
      * 雷声音量和音调随机变化。
      */
-    void tryPlayThunder(SoundEngine& engine);
+    void _tryPlayThunder(SoundEngine& engine);
 
     /// 降雨强度
     f32 m_rainStrength = 0.0f;

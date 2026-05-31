@@ -46,7 +46,6 @@ BeeSound::BeeSound(const ClientEntity& bee, const ResourceLocation& soundEventId
           16.0f)
     , m_bee(bee)
 {
-    // 设置初始位置
     setPosition(glm::vec3(bee.x(), bee.y(), bee.z()));
     setLooping(true);
     setVolume(0.0f);
@@ -58,10 +57,7 @@ void BeeSound::tick()
     bool shouldSwitch = shouldSwitchSound();
 
     if (shouldSwitch && !isDone()) {
-        // 使用 SoundEngine 播放下一个声音
-        // 注意：这里需要通过 SoundEngine 的 playOnNextTick 方法
-        // 由于 TickableSound 可能没有直接访问 SoundEngine 的权限，
-        // 我们将切换逻辑放到外部处理
+        // TODO: 目前仅标记完成，需要通过 SoundEngine::playOnNextTick 播放下一个声音
         m_hasSwitchedSound = true;
         markDone();
     }
@@ -82,23 +78,18 @@ void BeeSound::tick()
     setPosition(glm::vec3(m_bee.x(), m_bee.y(), m_bee.z()));
 
     // 根据水平速度计算音量和音调
-    // MC 1.16.5: 使用 horizontalMag (水平速度平方)
     auto vel = m_bee.velocity();
     f32 horizontalSpeed = std::sqrt(vel.x * vel.x + vel.z * vel.z);
 
     if (horizontalSpeed >= 0.01f) {
         // 根据速度插值音调
-        // MC 1.16.5: pitch = lerp(clampedSpeed, minPitch, maxPitch)
-        // 其中 lerp(pct, start, end) = start + pct * (end - start)
-        // 我们的 lerp(a, b, t) = a + (b - a) * t，所以参数顺序是 (start, end, factor)
-        f32 minPitch = getMinPitch();
-        f32 maxPitch = getMaxPitch();
+        f32 minPitch = _getMinPitch();
+        f32 maxPitch = _getMaxPitch();
         f32 clampedSpeed = std::clamp(horizontalSpeed, minPitch, maxPitch);
         f32 pitch = math::lerp(minPitch, maxPitch, clampedSpeed);
         setPitch(pitch);
 
         // 根据速度插值音量
-        // MC 1.16.5: volume = lerp(clampedVol, 0.0F, 1.2F)
         f32 clampedVol = std::clamp(horizontalSpeed, 0.0f, 0.5f);
         f32 volume = math::lerp(0.0f, 1.2f, clampedVol);
         setVolume(volume);
@@ -109,15 +100,15 @@ void BeeSound::tick()
     }
 }
 
-f32 BeeSound::getMinPitch() const
+f32 BeeSound::_getMinPitch() const
 {
-    // MC 1.16.5: 幼年蜜蜂音调更高
+    // 幼年蜜蜂音调更高
     return m_bee.isChild() ? 1.1f : 0.7f;
 }
 
-f32 BeeSound::getMaxPitch() const
+f32 BeeSound::_getMaxPitch() const
 {
-    // MC 1.16.5: 幼年蜜蜂音调更高
+    // 幼年蜜蜂音调更高
     return m_bee.isChild() ? 1.5f : 1.1f;
 }
 
@@ -132,13 +123,12 @@ BeeFlightSound::BeeFlightSound(const ClientEntity& bee)
 std::unique_ptr<TickableSound> BeeFlightSound::getNextSound()
 {
     // 切换到愤怒声音
-    return std::unique_ptr<TickableSound>(new BeeAngrySound(bee()));
+    return std::make_unique<BeeAngrySound>(bee());
 }
 
 bool BeeFlightSound::shouldSwitchSound()
 {
-    // MC 1.16.5: 当蜜蜂愤怒时切换到愤怒声音
-    // 愤怒状态从 ClientEntity 的元数据参数读取（ANGER_TIME > 0）
+    // 当蜜蜂愤怒时切换到愤怒声音
     return bee().isAngry();
 }
 
@@ -153,13 +143,12 @@ BeeAngrySound::BeeAngrySound(const ClientEntity& bee)
 std::unique_ptr<TickableSound> BeeAngrySound::getNextSound()
 {
     // 切换回飞行声音
-    return std::unique_ptr<TickableSound>(new BeeFlightSound(bee()));
+    return std::make_unique<BeeFlightSound>(bee());
 }
 
 bool BeeAngrySound::shouldSwitchSound()
 {
-    // MC 1.16.5: 当蜜蜂不再愤怒时切换回飞行声音
-    // 愤怒状态从 ClientEntity 的元数据参数读取（ANGER_TIME > 0）
+    // 当蜜蜂不再愤怒时切换回飞行声音
     return !bee().isAngry();
 }
 

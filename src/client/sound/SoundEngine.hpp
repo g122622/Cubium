@@ -36,7 +36,6 @@
 
 #include <glm/glm.hpp>
 
-#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -66,8 +65,6 @@ class SoundHandler;
  *
  * 管理声音播放、通道分配、听者更新等核心功能。
  * 使用 OpenAL 作为音频后端。
- *
- * 参考: net.minecraft.client.audio.SoundEngine
  *
  * 使用示例:
  * @code
@@ -168,8 +165,6 @@ public:
      *
      * 用于 TickableSound 的声音切换（如蜜蜂从飞行声切换到愤怒声）。
      * 声音会在下一个 tick 周期开始时播放。
-     *
-     * 参考: net.minecraft.client.audio.SoundEngine.playOnNextTick
      *
      * @param sound 声音实例
      */
@@ -343,7 +338,7 @@ private:
      * @param sound 声音实例
      * @return 实际音量
      */
-    [[nodiscard]] f32 calculateVolume(const ISoundInstance& sound) const;
+    [[nodiscard]] f32 _calculateVolume(const ISoundInstance& sound) const;
 
     /**
      * @brief 计算实际音调
@@ -351,7 +346,7 @@ private:
      * @param sound 声音实例
      * @return 实际音调（限制在0.5-2.0）
      */
-    [[nodiscard]] f32 calculatePitch(const ISoundInstance& sound) const;
+    [[nodiscard]] f32 _calculatePitch(const ISoundInstance& sound) const;
 
     /**
      * @brief 解析声音定义（处理事件引用）
@@ -365,7 +360,7 @@ private:
      * @param outPitch 累积的音调修正（输出）
      * @return 是否成功解析
      */
-    [[nodiscard]] bool resolveSoundDefinition(
+    [[nodiscard]] bool _resolveSoundDefinition(
         SoundDefinition& soundDef, u32 depth, f32& outVolume, f32& outPitch) const;
 
     /**
@@ -375,7 +370,7 @@ private:
      * @param attenuationDistance 衰减距离
      * @return true 如果声音在可听范围内
      */
-    [[nodiscard]] bool isInRange(const ISoundInstance& sound, f32 attenuationDistance) const;
+    [[nodiscard]] bool _isInRange(const ISoundInstance& sound, f32 attenuationDistance) const;
 
     /**
      * @brief 更新声音位置
@@ -383,12 +378,13 @@ private:
      * @param channel 活动通道
      * @param sound 声音实例
      */
-    void updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound);
+    // TODO: _updateSoundPosition 当前未被调用，tick() 中直接内联了位置更新逻辑，后续需决定是否启用此方法
+    void _updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound);
 
     /**
      * @brief 更新所有延迟声音
      */
-    void updateDelayedSounds();
+    void _updateDelayedSounds();
 
     /// 声音处理器
     SoundHandler& m_handler;
@@ -427,6 +423,7 @@ private:
     bool m_paused = false;
 
     /// 下一个声音ID
+    // TODO: m_nextSoundId 当前未使用，SoundPool 内部自行管理 ID 分配，后续需决定是否移除
     SoundInstanceId m_nextSoundId = 1;
 
     /// 听者位置（用于距离剔除）

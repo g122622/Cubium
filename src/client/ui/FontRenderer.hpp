@@ -42,8 +42,6 @@ namespace mc::client {
  * - 颜色
  * - UTF-8文本
  * - ITextComponent富文本
- *
- * 参考Minecraft的FontRenderer实现。
  */
 class FontRenderer {
 public:
@@ -166,12 +164,12 @@ private:
     /**
      * @brief 添加单个字形顶点
      */
-    void addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color, bool italic);
+    void _addGlyphVertices(const Glyph& glyph, f32 x, f32 y, u32 color, bool italic);
 
     /**
      * @brief 添加装饰效果（删除线、下划线）
      */
-    void addDecoration(f32 x, f32 y, f32 width, u32 color, bool strikethrough, bool underline);
+    void _addDecoration(f32 x, f32 y, f32 width, u32 color, bool strikethrough, bool underline);
 
     /**
      * @brief 从UTF-8字符串解码码点
@@ -179,7 +177,7 @@ private:
      * @param pos 当前位置（会被更新）
      * @return 解码的码点
      */
-    [[nodiscard]] u32 decodeCodepoint(const std::string& text, size_t& pos) const;
+    [[nodiscard]] u32 _decodeCodepoint(const std::string& text, size_t& pos) const;
 
     /**
      * @brief 将 TextFormatting::Style 转换为 TextStyle
@@ -187,12 +185,12 @@ private:
      * @param baseStyle 基础渲染样式
      * @return 合并后的渲染样式
      */
-    [[nodiscard]] TextStyle mergeStyles(const text::Style& style, const TextStyle& baseStyle) const;
+    [[nodiscard]] TextStyle _mergeStyles(const text::Style& style, const TextStyle& baseStyle) const;
 
     /**
      * @brief 递归渲染 ITextComponent
      */
-    f32 addTextComponent(const text::ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle);
+    f32 _addTextComponent(const text::ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle);
 
     Font* m_font = nullptr;
     std::vector<GuiVertex> m_vertices; // 顶点缓冲
