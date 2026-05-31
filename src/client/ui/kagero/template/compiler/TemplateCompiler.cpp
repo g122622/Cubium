@@ -25,7 +25,6 @@
 
 #include "common/util/assert/AssertAll.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <sstream>
@@ -390,7 +389,7 @@ bool TemplateCompiler::_validateNode(const ast::Node* node, TemplateErrorCollect
 
 bool TemplateCompiler::_validateElement(const ast::ElementNode* element, TemplateErrorCollector& collector)
 {
-    if (!element) return true;
+    MC_ASSERT_RELEASE(element != nullptr);
 
     // 1. 检查标签名白名单
     if (m_config.strictMode && !ast::isValidWidgetTag(element->tagName)) {
@@ -505,7 +504,8 @@ void TemplateCompiler::_generateBindingPlans(ast::DocumentNode* document, Compil
 void TemplateCompiler::_generateBindingPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
-    if (!node || !result) return;
+    if (!node) return;
+    MC_ASSERT_RELEASE(result != nullptr);
 
     std::string currentPath = parentPath;
 
@@ -514,9 +514,8 @@ void TemplateCompiler::_generateBindingPlansRecursive(
         // 生成当前路径
         currentPath = _generateWidgetPath(element, parentPath);
 
-        // DEBUG: 输出元素信息
         if (m_config.debugOutput) {
-            // Debug output
+            // TODO: 调试输出功能待实现
         }
 
         // 处理绑定属性
@@ -560,7 +559,8 @@ void TemplateCompiler::_generateEventPlans(ast::DocumentNode* document, Compiled
 void TemplateCompiler::_generateEventPlansRecursive(
     const ast::Node* node, const std::string& parentPath, CompiledTemplate* result)
 {
-    if (!node || !result) return;
+    if (!node) return;
+    MC_ASSERT_RELEASE(result != nullptr);
 
     std::string currentPath = parentPath;
 
@@ -647,7 +647,7 @@ void TemplateCompiler::_extractBindings(const ast::ElementNode* element,
     std::vector<BindingPlan>& plans,
     std::vector<LoopPlan>& loopPlans)
 {
-    if (!element) return;
+    MC_ASSERT_RELEASE(element != nullptr);
 
     // 检查是否有循环指令 (bind:items)
     auto itemsIt = element->attributes.find("bind:items");

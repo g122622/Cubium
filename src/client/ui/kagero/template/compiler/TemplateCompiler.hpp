@@ -29,10 +29,8 @@
 #include "client/ui/kagero/template/parser/Ast.hpp"
 #include "client/ui/kagero/template/parser/Lexer.hpp"
 #include "client/ui/kagero/template/parser/Parser.hpp"
-#include <functional>
 #include <memory>
 #include <set>
-#include <unordered_map>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::compiler {
@@ -48,7 +46,6 @@ using core::TemplateErrorType;
 using parser::Lexer;
 using parser::Parser;
 using parser::Token;
-using parser::TokenType;
 
 // 引入ast命名空间类型
 using ast::DocumentNode;
