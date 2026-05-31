@@ -32,7 +32,7 @@ AnimatedMeshCache::AnimatedMeshCache() = default;
 
 AnimatedMeshCache::~AnimatedMeshCache()
 {
-    clear();
+    clear(nullptr);
 }
 
 pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
@@ -50,6 +50,9 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
             // 缓存已满，移除最旧的条目（简单的 FIFO 策略）
             // 在实际应用中可以使用 LRU 策略
             spdlog::warn("AnimatedMeshCache: Cache full, removing oldest entry");
+            if (m_cache.begin()->second.created) {
+                pipeline.destroyMesh(m_cache.begin()->second.mesh);
+            }
             m_cache.erase(m_cache.begin());
         }
 
@@ -70,9 +73,10 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
     bool needsUpdate = false;
     const bool postureChanged = state.isSitting != entry.lastState.isSitting ||
         state.isChild != entry.lastState.isChild || state.isSneaking != entry.lastState.isSneaking ||
-        state.isSwimming != entry.lastState.isSwimming || state.isRiding != entry.lastState.isRiding;
+        state.isSwimming != entry.lastState.isSwimming || state.isRiding != entry.lastState.isRiding ||
+        std::abs(state.standingProgress - entry.lastState.standingProgress) > static_cast<f32>(STATE_CHANGE_THRESHOLD);
     const bool hasActiveAnimation = state.limbSwingAmount > 0.01 || std::abs(state.netHeadYaw) > 1.0 ||
-        std::abs(state.headPitch) > 1.0 || state.swingProgress > 0.001f;
+        std::abs(state.headPitch) > 1.0 || state.swingProgress > 0.001f || state.standingProgress > 0.001f;
     const u32 updateInterval = hasActiveAnimation ? ACTIVE_UPDATE_INTERVAL : IDLE_UPDATE_INTERVAL;
 
     if (!entry.created) {
@@ -145,18 +149,26 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
     return entry.created ? &entry.mesh : nullptr;
 }
 
-void AnimatedMeshCache::removeEntity(EntityId entityId)
+void AnimatedMeshCache::removeEntity(EntityId entityId, pipeline::EntityPipeline* pipeline)
 {
     auto it = m_cache.find(entityId);
     if (it != m_cache.end()) {
-        // 销毁网格资源（如果需要）
-        // 注意：EntityMesh 的析构函数应该处理 Vulkan 资源释放
+        if (pipeline != nullptr && it->second.created) {
+            pipeline->destroyMesh(it->second.mesh);
+        }
         m_cache.erase(it);
     }
 }
 
-void AnimatedMeshCache::clear()
+void AnimatedMeshCache::clear(pipeline::EntityPipeline* pipeline)
 {
+    if (pipeline != nullptr) {
+        for (auto& [entityId, entry] : m_cache) {
+            if (entry.created) {
+                pipeline->destroyMesh(entry.mesh);
+            }
+        }
+    }
     m_cache.clear();
 }
 

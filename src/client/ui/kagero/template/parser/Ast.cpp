@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
-#include <regex>
 #include <set>
 
 namespace mc::client::ui::kagero::tpl::ast {

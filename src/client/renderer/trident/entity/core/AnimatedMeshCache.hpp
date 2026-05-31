@@ -75,12 +75,12 @@ public:
     /**
      * @brief 移除实体的缓存网格
      */
-    void removeEntity(EntityId entityId);
+    void removeEntity(EntityId entityId, pipeline::EntityPipeline* pipeline);
 
     /**
      * @brief 清除所有缓存
      */
-    void clear();
+    void clear(pipeline::EntityPipeline* pipeline);
 
     /**
      * @brief 获取缓存的实体数量

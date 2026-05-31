@@ -26,7 +26,6 @@
 
 namespace mc::client::renderer::entity::core {
 
-// TODO computeHash`：它哈希了 `limbSwing`、`limbSwingAmount`、`ageInTicks`、`netHeadYaw`、`headPitch`、`scale`、`swingProgress`、布尔值 - 但没有 `standingProgress`。而 `hasSignificantChange` 也没有检查 `standingProgress`。这似乎是一个错误！
 void AnimationContext::computeHash()
 {
     // 使用简单但有效的哈希组合方法
@@ -46,6 +45,7 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, headPitch);
     hash = hashCombine(hash, scale);
     hash = hashCombine(hash, static_cast<f64>(swingProgress));
+    hash = hashCombine(hash, static_cast<f64>(standingProgress));
 
     // 组合布尔状态（转换为 0.0 或 1.0）
     hash = hashCombine(hash, isSitting ? 1.0 : 0.0);
@@ -78,6 +78,9 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
 
     // 挥手进度
     if (checkDiff(static_cast<f64>(swingProgress), static_cast<f64>(other.swingProgress))) {
+        return true;
+    }
+    if (checkDiff(static_cast<f64>(standingProgress), static_cast<f64>(other.standingProgress))) {
         return true;
     }
 

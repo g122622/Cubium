@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/TemplateConfig.hpp"
-#include "../core/TemplateError.hpp"
+#include "client/ui/kagero/template/core/TemplateConfig.hpp"
+#include "client/ui/kagero/template/core/TemplateError.hpp"
 #include <map>
 #include <memory>
 #include <optional>

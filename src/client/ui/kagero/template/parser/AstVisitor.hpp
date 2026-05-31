@@ -110,6 +110,7 @@ public:
     {
         for (auto& child : node.children) {
             visit(*child);
+            if (m_shouldStop) break;
         }
     }
 

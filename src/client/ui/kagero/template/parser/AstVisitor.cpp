@@ -23,7 +23,6 @@
 
 #include "AstVisitor.hpp"
 #include <queue>
-#include <stack>
 
 namespace mc::client::ui::kagero::tpl::ast::traversal {
 

@@ -306,7 +306,7 @@ public:
     /**
      * @brief 获取错误数量
      */
-    [[nodiscard]] size_t errorCount() const { return m_errors.size(); }
+    [[nodiscard]] Size errorCount() const { return m_errors.size(); }
 
     /**
      * @brief 获取所有错误
