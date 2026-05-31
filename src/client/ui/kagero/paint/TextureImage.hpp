@@ -147,8 +147,8 @@ private:
     f32 m_v0 = 0.0f;
     f32 m_u1 = 1.0f;
     f32 m_v1 = 1.0f;
-    u8 m_atlasSlot = 1; ///< 默认使用物品图集槽位
-    ImageFormat m_format = ImageFormat::RGBA8;
+    u8 m_atlasSlot = 1;                        ///< 默认使用物品图集槽位
+    ImageFormat m_format = ImageFormat::RGBA8; ///< TODO: 当前固定为 RGBA8，未来应支持从构造函数传入实际纹理格式
     std::string m_debugName;
 };
 

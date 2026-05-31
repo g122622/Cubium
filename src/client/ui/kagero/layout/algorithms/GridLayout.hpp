@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/LayoutResult.hpp"
-#include "../integration/WidgetLayoutAdaptor.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include <vector>
 
 namespace mc::client::ui::kagero::layout {
@@ -33,15 +33,18 @@ namespace mc::client::ui::kagero::layout {
  * @brief 网格布局配置
  */
 struct GridConfig {
-    i32 columns = 1;
-    i32 rows = 0;
-    i32 columnGap = 0;
-    i32 rowGap = 0;
-    bool autoPlacement = true;
+    i32 columns = 1;           ///< 列数，最小为1
+    i32 rows = 0;              ///< 行数，0表示自动根据子项数量推算
+    i32 columnGap = 0;         ///< 列间距（像素）
+    i32 rowGap = 0;            ///< 行间距（像素）
+    bool autoPlacement = true; ///< 是否自动放置未指定位置的子项
 };
 
 /**
  * @brief Grid布局算法
+ *
+ * 将子项按照行列网格排列，支持自动放置和手动指定位置、
+ * 跨行跨列、行列间距等特性。
  */
 class GridLayout {
 public:
@@ -60,11 +63,19 @@ public:
     void setConfig(const GridConfig& config);
     [[nodiscard]] const GridConfig& config() const;
 
+    /**
+     * @brief 计算所有子项在网格中的布局结果
+     *
+     * @param containerBounds 容器边界矩形
+     * @param children 子项适配器列表
+     * @return 每个子项对应的布局结果，与children一一对应
+     */
     [[nodiscard]] std::vector<LayoutResult> compute(
         const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children);
 
 private:
-    [[nodiscard]] i32 resolveRows(i32 childCount) const;
+    /** 根据子项数量和列数推算行数 */
+    [[nodiscard]] i32 _resolveRows(i32 childCount) const;
 
     GridConfig m_config;
 };

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../widget/IWidgetContainer.hpp"
-#include "../../widget/Widget.hpp"
-#include "../constraints/LayoutConstraints.hpp"
-#include "../core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -274,17 +274,17 @@ private:
     /**
      * @brief 默认测量实现
      */
-    [[nodiscard]] Size measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec);
+    [[nodiscard]] Size _measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec);
 
     /**
      * @brief 测量容器子元素
      */
-    [[nodiscard]] Size measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec);
+    [[nodiscard]] Size _measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec);
 
     /**
      * @brief 向上传播布局请求
      */
-    void propagateLayoutRequest();
+    void _propagateLayoutRequest();
 
     widget::Widget* m_widget = nullptr;
     LayoutConstraints m_constraints;

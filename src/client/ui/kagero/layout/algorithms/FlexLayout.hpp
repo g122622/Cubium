@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../constraints/LayoutConstraints.hpp"
-#include "../core/LayoutResult.hpp"
-#include "../integration/WidgetLayoutAdaptor.hpp"
-#include <memory>
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include <vector>
 
 namespace mc::client::ui::kagero::layout {
@@ -218,52 +217,61 @@ private:
     /**
      * @brief 测量所有子元素
      */
-    void measureChildren(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
+    void _measureChildren(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 收集行（换行模式下）
      */
-    void collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
+    void _collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 计算单行布局
+     *
+     * TODO: 当前布局逻辑已整合到compute()中，此方法暂未使用，待重构时启用
      */
-    void layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal);
+    void _layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal);
 
     /**
      * @brief 应用主轴对齐
      */
-    void applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal);
+    void _applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal);
 
     /**
      * @brief 应用交叉轴对齐
      */
-    void applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal);
+    void _applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal);
 
     /**
      * @brief 分配剩余空间（grow）
      */
-    void distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal);
+    void _distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal);
 
     /**
      * @brief 缩小空间（shrink）
      */
-    void shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal);
+    void _shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal);
 
     /**
      * @brief 设置子元素位置
+     *
+     * TODO: 当前布局逻辑已整合到compute()中，此方法暂未使用，待重构时启用
      */
-    void positionChildren(const Rect& containerBounds, bool isHorizontal);
+    void _positionChildren(const Rect& containerBounds, bool isHorizontal);
 
     /**
      * @brief 计算子元素的主轴尺寸
+     *
+     * TODO: 此方法暂未被调用，待后续完善布局算法时启用
      */
-    [[nodiscard]] i32 calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal);
+    [[nodiscard]] i32 _calculateMainAxisSize(
+        WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal);
 
     /**
      * @brief 计算子元素的交叉轴尺寸
+     *
+     * TODO: 此方法暂未被调用，待后续完善布局算法时启用
      */
-    [[nodiscard]] i32 calculateCrossAxisSize(
+    [[nodiscard]] i32 _calculateCrossAxisSize(
         WidgetLayoutAdaptor* child, const MeasureSpec& crossSpec, bool isHorizontal, i32 baseline = 0);
 
     // ================= 成员变量 =================

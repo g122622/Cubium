@@ -23,7 +23,6 @@
 
 #include "FlexLayout.hpp"
 #include <algorithm>
-#include <cmath>
 
 namespace mc::client::ui::kagero::layout {
 
@@ -62,10 +61,10 @@ std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
     MeasureSpec crossSpec = MeasureSpec::MakeAtMost(availableCrossSize);
 
     // 步骤1：测量所有子元素
-    measureChildren(children, availableMainSize, isHorizontal);
+    _measureChildren(children, availableMainSize, isHorizontal);
 
     // 步骤2：收集行（考虑换行）
-    collectLines(children, availableMainSize, isHorizontal);
+    _collectLines(children, availableMainSize, isHorizontal);
 
     // 步骤3：计算每行的布局
     i32 totalCrossSize = 0;
@@ -112,14 +111,14 @@ std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
 
         if (freeSpace > 0 && line.totalGrow > 0.0f) {
             // 有剩余空间，分配给可增长的元素
-            distributeFreeSpace(line, freeSpace, isHorizontal);
+            _distributeFreeSpace(line, freeSpace, isHorizontal);
         } else if (freeSpace < 0 && line.totalShrink > 0.0f) {
             // 空间不足，缩小可缩小的元素
-            shrinkSpace(line, -freeSpace, isHorizontal);
+            _shrinkSpace(line, -freeSpace, isHorizontal);
         }
 
         // 应用主轴对齐
-        applyJustifyContent(line, availableMainSize, isHorizontal);
+        _applyJustifyContent(line, availableMainSize, isHorizontal);
     }
 
     // 步骤5：应用交叉轴对齐并定位子元素
@@ -151,7 +150,7 @@ std::vector<LayoutResult> FlexLayout::compute(const Rect& containerBounds,
         auto& line = m_lines[lineIdx];
 
         // 应用交叉轴对齐
-        applyAlignItems(line, line.crossSize, isHorizontal);
+        _applyAlignItems(line, line.crossSize, isHorizontal);
 
         // 设置子元素位置
         for (size_t i = 0; i < line.items.size(); ++i) {
@@ -204,10 +203,10 @@ Size FlexLayout::measure(
     const i32 mainSizeLimit = isHorizontal ? widthSpec.size : heightSpec.size;
 
     // 测量所有子元素
-    measureChildren(children, mainSizeLimit, isHorizontal);
+    _measureChildren(children, mainSizeLimit, isHorizontal);
 
     // 收集行
-    collectLines(children, mainSizeLimit, isHorizontal);
+    _collectLines(children, mainSizeLimit, isHorizontal);
 
     // 计算总尺寸
     i32 totalMainSize = 0;
@@ -259,7 +258,8 @@ Size FlexLayout::measure(
     return result;
 }
 
-void FlexLayout::measureChildren(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
+void FlexLayout::_measureChildren(
+    const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
 {
     MeasureSpec mainSpec = MeasureSpec::MakeAtMost(mainAxisSize);
     MeasureSpec crossSpec = MeasureSpec::MakeUnspecified();
@@ -313,7 +313,7 @@ void FlexLayout::measureChildren(const std::vector<WidgetLayoutAdaptor*>& childr
     }
 }
 
-void FlexLayout::collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
+void FlexLayout::_collectLines(const std::vector<WidgetLayoutAdaptor*>& children, i32 mainAxisSize, bool isHorizontal)
 {
     m_lines.clear();
 
@@ -368,7 +368,7 @@ void FlexLayout::collectLines(const std::vector<WidgetLayoutAdaptor*>& children,
     }
 }
 
-void FlexLayout::distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal)
+void FlexLayout::_distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHorizontal)
 {
     if (freeSpace <= 0 || line.totalGrow <= 0.0f) return;
 
@@ -390,7 +390,7 @@ void FlexLayout::distributeFreeSpace(FlexLine& line, i32 freeSpace, bool isHoriz
     }
 }
 
-void FlexLayout::shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
+void FlexLayout::_shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
 {
     if (overflow <= 0 || line.totalShrink <= 0.0f) return;
 
@@ -414,7 +414,7 @@ void FlexLayout::shrinkSpace(FlexLine& line, i32 overflow, bool isHorizontal)
     }
 }
 
-void FlexLayout::applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal)
+void FlexLayout::_applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHorizontal)
 {
     if (line.items.empty()) return;
 
@@ -491,7 +491,7 @@ void FlexLayout::applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isHo
     }
 }
 
-void FlexLayout::applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal)
+void FlexLayout::_applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal)
 {
     for (size_t i = 0; i < line.items.size(); ++i) {
         auto* child = line.items[i];
@@ -558,8 +558,7 @@ void FlexLayout::applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHoriz
                 break;
 
             case Align::Baseline:
-                // 基线对齐（主要用于文本）
-                // 简化实现：等同于Start
+                // TODO: 基线对齐目前简化为等同于Start，待实现真正的基线对齐
                 crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
                 break;
         }
@@ -572,9 +571,9 @@ void FlexLayout::applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHoriz
     }
 }
 
-void FlexLayout::layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal)
+void FlexLayout::_layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize, i32 lineOffset, bool isHorizontal)
 {
-    // 此方法暂时不使用，布局逻辑已整合到compute()中
+    // TODO: 当前布局逻辑已整合到compute()中，此方法暂未使用，待重构时启用
     (void)line;
     (void)mainAxisSize;
     (void)crossAxisSize;
@@ -582,14 +581,14 @@ void FlexLayout::layoutLine(FlexLine& line, i32 mainAxisSize, i32 crossAxisSize,
     (void)isHorizontal;
 }
 
-void FlexLayout::positionChildren(const Rect& containerBounds, bool isHorizontal)
+void FlexLayout::_positionChildren(const Rect& containerBounds, bool isHorizontal)
 {
-    // 此方法暂时不使用，布局逻辑已整合到compute()中
+    // TODO: 当前布局逻辑已整合到compute()中，此方法暂未使用，待重构时启用
     (void)containerBounds;
     (void)isHorizontal;
 }
 
-i32 FlexLayout::calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal)
+i32 FlexLayout::_calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureSpec& mainSpec, bool isHorizontal)
 {
     const auto& constraints = child->constraints();
 
@@ -606,7 +605,7 @@ i32 FlexLayout::calculateMainAxisSize(WidgetLayoutAdaptor* child, const MeasureS
     }
 }
 
-i32 FlexLayout::calculateCrossAxisSize(
+i32 FlexLayout::_calculateCrossAxisSize(
     WidgetLayoutAdaptor* child, const MeasureSpec& crossSpec, bool isHorizontal, i32 baseline)
 {
     const auto& constraints = child->constraints();

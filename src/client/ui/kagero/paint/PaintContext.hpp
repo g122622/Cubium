@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "./Color.hpp"
 #include "./contracts/ICanvas.hpp"
 #include "./contracts/IImage.hpp"
 #include "./contracts/IPaint.hpp"
+#include <memory>
 
 namespace mc::client::ui::kagero::widget {
 
@@ -76,7 +76,7 @@ public:
      * @param dst 目标区域
      * @param tint 色调（ARGB）
      */
-    void drawNinePatch(const paint::IImage& image, const Rect& center, const Rect& dst, u32 tint = 0xFFFFFFFF);
+    void drawNinePatch(const paint::IImage& image, const Rect& center, const Rect& dst, u32 tint);
 
     /**
      * @brief 绘制文本
@@ -117,7 +117,7 @@ public:
      * @param endColor 结束颜色（ARGB）
      * @param vertical 是否垂直渐变（true=垂直，false=水平）
      */
-    void drawGradientRect(const Rect& bounds, u32 startColor, u32 endColor, bool vertical = true);
+    void drawGradientRect(const Rect& bounds, u32 startColor, u32 endColor, bool vertical);
 
     // ==================== 文本测量 ====================
 

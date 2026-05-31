@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../algorithms/AnchorLayout.hpp"
-#include "../algorithms/FlexLayout.hpp"
-#include "../algorithms/GridLayout.hpp"
 #include "LayoutEngine.hpp"
+#include "client/ui/kagero/layout/algorithms/AnchorLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
 #include <algorithm>
 
 namespace mc::client::ui::kagero::layout::detail {

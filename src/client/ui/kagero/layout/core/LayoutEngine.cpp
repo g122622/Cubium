@@ -55,7 +55,7 @@ void applyLayoutResults(const std::vector<WidgetLayoutAdaptor*>& children, const
 LayoutEngine::LayoutEngine()
     : m_flexLayout(std::make_unique<FlexLayout>())
 {
-    registerAlgorithm("flex", std::make_unique<FlexLayoutAlgorithm>());
+    registerAlgorithm("flex", std::make_unique<FlexLayoutAlgorithm>(FlexConfig{}));
     registerAlgorithm("flex-row", std::make_unique<FlexLayoutAlgorithm>([]() {
         FlexConfig config;
         config.direction = Direction::Row;
@@ -109,7 +109,7 @@ void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace)
 
     const MeasureSpec widthSpec = MeasureSpec::MakeExactly(rootBounds.width);
     const MeasureSpec heightSpec = MeasureSpec::MakeExactly(rootBounds.height);
-    layoutNode(root, widthSpec, heightSpec, 0);
+    _layoutNode(root, widthSpec, heightSpec, 0);
 
     const auto endTime = std::chrono::high_resolution_clock::now();
     m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
@@ -126,7 +126,7 @@ void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root)
     const auto startTime = std::chrono::high_resolution_clock::now();
 
     std::vector<WidgetLayoutAdaptor*> dirtyNodes;
-    collectDirtyNodes(root, dirtyNodes);
+    _collectDirtyNodes(root, dirtyNodes);
     if (dirtyNodes.empty()) {
         return;
     }
@@ -145,7 +145,7 @@ void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root)
         const Rect bounds = node->currentBounds();
         const MeasureSpec widthSpec = MeasureSpec::MakeExactly(std::max(0, bounds.width));
         const MeasureSpec heightSpec = MeasureSpec::MakeExactly(std::max(0, bounds.height));
-        layoutNode(node, widthSpec, heightSpec, node->depth());
+        _layoutNode(node, widthSpec, heightSpec, node->depth());
     }
 
     const auto endTime = std::chrono::high_resolution_clock::now();
@@ -160,7 +160,7 @@ void LayoutEngine::layoutWith(
         return;
     }
 
-    ILayoutAlgorithm* algorithm = selectAlgorithm(LayoutType::Flex, algorithmName);
+    ILayoutAlgorithm* algorithm = _selectAlgorithm(LayoutType::Flex, algorithmName);
     if (algorithm == nullptr) {
         return;
     }
@@ -199,7 +199,7 @@ void LayoutEngine::layoutFlex(WidgetLayoutAdaptor* container, const Rect& availa
     m_stats.layoutCount = 1;
 }
 
-LayoutResult LayoutEngine::layoutNode(
+LayoutResult LayoutEngine::_layoutNode(
     WidgetLayoutAdaptor* node, const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, i32 depth)
 {
     if (node == nullptr || !node->isValid()) {
@@ -241,7 +241,7 @@ LayoutResult LayoutEngine::layoutNode(
                 const MeasureSpec childHeightSpec =
                     MeasureSpec::MakeExactly(std::max(0, childResults[i].bounds.height));
 
-                layoutNode(children[i], childWidthSpec, childHeightSpec, depth + 1);
+                _layoutNode(children[i], childWidthSpec, childHeightSpec, depth + 1);
 
                 LayoutResult appliedResult = childResults[i];
                 appliedResult.bounds.x += result.bounds.x;
@@ -255,7 +255,7 @@ LayoutResult LayoutEngine::layoutNode(
     return result;
 }
 
-void LayoutEngine::collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out)
+void LayoutEngine::_collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out)
 {
     if (node == nullptr) {
         return;
@@ -268,11 +268,11 @@ void LayoutEngine::collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<Widg
 
     auto children = node->getChildren();
     for (auto* child : children) {
-        collectDirtyNodes(child, out);
+        _collectDirtyNodes(child, out);
     }
 }
 
-ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const std::string& name)
+ILayoutAlgorithm* LayoutEngine::_selectAlgorithm(LayoutType type, const std::string& name)
 {
     if (!name.empty()) {
         if (auto* algorithm = getAlgorithm(name); algorithm != nullptr) {

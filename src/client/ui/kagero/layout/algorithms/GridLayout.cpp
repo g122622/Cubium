@@ -68,6 +68,7 @@ i32 GridLayout::rowGap() const
 void GridLayout::setConfig(const GridConfig& config)
 {
     m_config = config;
+    // 确保配置值在有效范围内
     m_config.columns = std::max(1, m_config.columns);
     m_config.rows = std::max(0, m_config.rows);
     m_config.columnGap = std::max(0, m_config.columnGap);
@@ -89,10 +90,13 @@ std::vector<LayoutResult> GridLayout::compute(
     }
 
     const i32 colCount = std::max(1, m_config.columns);
-    const i32 rowCount = std::max(1, resolveRows(static_cast<i32>(children.size())));
+    const i32 rowCount = std::max(1, _resolveRows(static_cast<i32>(children.size())));
 
+    // 间距总量
     const i32 totalGapX = (colCount - 1) * m_config.columnGap;
     const i32 totalGapY = (rowCount - 1) * m_config.rowGap;
+
+    // 单元格尺寸（保证至少为1像素）
     const i32 cellWidth = std::max(1, (containerBounds.width - totalGapX) / colCount);
     const i32 cellHeight = std::max(1, (containerBounds.height - totalGapY) / rowCount);
 
@@ -108,7 +112,7 @@ std::vector<LayoutResult> GridLayout::compute(
         i32 col = grid.column;
         i32 row = grid.row;
 
-        // 自动放置：如果 column 或 row 为负数，自动计算位置
+        // 自动放置：如果 column 或 row 为负数，按行优先顺序自动计算位置
         if (m_config.autoPlacement && (col < 0 || row < 0)) {
             col = autoIndex % colCount;
             row = autoIndex / colCount;
@@ -119,15 +123,16 @@ std::vector<LayoutResult> GridLayout::compute(
             row = std::max(0, row);
         }
 
-        // 限制在网格范围内
+        // 限制列在网格范围内
         col = std::min(col, colCount - 1);
 
+        // 计算跨列/跨行，确保不超出右边界
         const i32 spanCols = std::max(1, std::min(grid.columnSpan, colCount - col));
         const i32 spanRows = std::max(1, grid.rowSpan);
 
+        // 计算子项的最终位置和尺寸
         const i32 x = containerBounds.x + col * (cellWidth + m_config.columnGap);
         const i32 y = containerBounds.y + row * (cellHeight + m_config.rowGap);
-
         const i32 width = spanCols * cellWidth + (spanCols - 1) * m_config.columnGap;
         const i32 height = spanRows * cellHeight + (spanRows - 1) * m_config.rowGap;
 
@@ -137,8 +142,9 @@ std::vector<LayoutResult> GridLayout::compute(
     return results;
 }
 
-i32 GridLayout::resolveRows(i32 childCount) const
+i32 GridLayout::_resolveRows(i32 childCount) const
 {
+    // 如果显式指定了行数，直接使用；否则根据子项数量和列数向上取整
     if (m_config.rows > 0) {
         return m_config.rows;
     }

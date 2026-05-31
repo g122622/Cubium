@@ -22,18 +22,10 @@
  */
 
 #include "Geometry.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::ui::kagero::paint {
-
-namespace {
-
-f32 radians(f32 degrees)
-{
-    return degrees * mc::math::PI / 180.0f;
-}
-} // namespace
 
 Matrix Matrix::makeTranslate(f32 dx, f32 dy)
 {
@@ -54,7 +46,7 @@ Matrix Matrix::makeScale(f32 sx, f32 sy)
 Matrix Matrix::makeRotate(f32 degrees)
 {
     Matrix result;
-    const f32 angle = radians(degrees);
+    const f32 angle = mc::math::toRadians(degrees);
     const f32 c = std::cos(angle);
     const f32 s = std::sin(angle);
     result.m[0] = c;
@@ -72,8 +64,8 @@ Matrix Matrix::makeSkew(f32 angleX, f32 angleY)
     // | 1    tan(angleX)  0 |
     // | tan(angleY)  1    0 |
     // | 0    0           1 |
-    result.m[1] = std::tan(radians(angleX));
-    result.m[3] = std::tan(radians(angleY));
+    result.m[1] = std::tan(mc::math::toRadians(angleX));
+    result.m[3] = std::tan(mc::math::toRadians(angleY));
     return result;
 }
 
@@ -82,10 +74,10 @@ Matrix Matrix::operator*(const Matrix& other) const
     Matrix result;
     // 3x3 矩阵乘法
     // result[i][j] = sum(this[i][k] * other[k][j])
-    for (int row = 0; row < 3; ++row) {
-        for (int col = 0; col < 3; ++col) {
+    for (i32 row = 0; row < 3; ++row) {
+        for (i32 col = 0; col < 3; ++col) {
             f32 sum = 0.0f;
-            for (int k = 0; k < 3; ++k) {
+            for (i32 k = 0; k < 3; ++k) {
                 sum += m[row * 3 + k] * other.m[k * 3 + col];
             }
             result.m[row * 3 + col] = sum;
@@ -133,7 +125,7 @@ Matrix Matrix::inverse() const
 {
     const f32 det = determinant();
     if (std::abs(det) < 1e-6f) {
-        // 不可逆，返回单位矩阵
+        // 行列式过小，矩阵接近奇异，不可逆，返回单位矩阵
         return identity();
     }
 

@@ -23,13 +23,14 @@
 
 #pragma once
 
-#include "../Types.hpp"
 #include "Event.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <algorithm>
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -91,14 +92,14 @@ public:
 
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        HandlerId id = nextId();
-        TypeInfo typeInfo = getTypeInfo<EventT>();
+        HandlerId id = _nextId();
+        TypeInfo typeInfo = _getTypeInfo<EventT>();
 
         HandlerEntry entry(
             id, priority, [handler](const Event& e) { handler(static_cast<const EventT&>(e)); }, typeInfo);
 
         m_handlers[typeInfo].push_back(std::move(entry));
-        sortHandlers(typeInfo);
+        _sortHandlers(typeInfo);
 
         m_handlerToType.emplace(id, typeInfo);
 
@@ -148,7 +149,7 @@ public:
 
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        TypeInfo typeInfo = getTypeInfo<EventT>();
+        TypeInfo typeInfo = _getTypeInfo<EventT>();
 
         auto it = m_handlers.find(typeInfo);
         if (it == m_handlers.end()) {
@@ -187,7 +188,7 @@ public:
     HandlerId addFilter(EventFilter filter)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        HandlerId id = nextId();
+        HandlerId id = _nextId();
         m_filters[id] = std::move(filter);
         return id;
     }
@@ -234,7 +235,7 @@ public:
     template <typename EventT>
     size_t handlerCount() const
     {
-        TypeInfo typeInfo = getTypeInfo<EventT>();
+        TypeInfo typeInfo = _getTypeInfo<EventT>();
         auto it = m_handlers.find(typeInfo);
         return it != m_handlers.end() ? it->second.size() : 0;
     }
@@ -251,7 +252,7 @@ private:
      * @brief 获取类型信息
      */
     template <typename EventT>
-    TypeInfo getTypeInfo() const
+    TypeInfo _getTypeInfo() const
     {
         return std::type_index(typeid(EventT));
     }
@@ -279,12 +280,12 @@ private:
     /**
      * @brief 生成下一个ID
      */
-    HandlerId nextId() { return m_nextId++; }
+    HandlerId _nextId() { return m_nextId++; }
 
     /**
      * @brief 按优先级排序处理器
      */
-    void sortHandlers(TypeInfo typeInfo)
+    void _sortHandlers(TypeInfo typeInfo)
     {
         auto& handlers = m_handlers[typeInfo];
         std::stable_sort(handlers.begin(), handlers.end(), [](const HandlerEntry& a, const HandlerEntry& b) {

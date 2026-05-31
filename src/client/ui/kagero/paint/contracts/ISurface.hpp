@@ -29,18 +29,28 @@ namespace mc::client::ui::kagero::paint {
 
 /**
  * @brief 绘制表面接口
+ *
+ * 表示一个可绘制区域，持有画布对象并提供尺寸查询和刷新能力。
+ * 典型实现包括窗口表面、离屏渲染目标等。
  */
 class ISurface {
 public:
     virtual ~ISurface() = default;
 
+    /** @brief 获取用于绘制的画布 */
     [[nodiscard]] virtual ICanvas& canvas() = 0;
+    /** @brief 获取用于绘制的画布（只读） */
     [[nodiscard]] virtual const ICanvas& canvas() const = 0;
 
+    /** @brief 将画布内容提交到表面 */
     virtual void flush() = 0;
+
+    /** @brief 调整表面尺寸 */
     virtual void resize(i32 width, i32 height) = 0;
 
+    /** @brief 获取表面宽度 */
     [[nodiscard]] virtual i32 width() const = 0;
+    /** @brief 获取表面高度 */
     [[nodiscard]] virtual i32 height() const = 0;
 };
 

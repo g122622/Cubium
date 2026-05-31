@@ -29,7 +29,6 @@
 #include "paint/contracts/ICanvas.hpp"
 #include "widget/ContainerWidget.hpp"
 #include "widget/Widget.hpp"
-#include <functional>
 #include <memory>
 #include <vector>
 
@@ -122,7 +121,7 @@ public:
      * @param zIndex Z索引（越大越靠上）
      * @return 层ID（用于后续管理）
      */
-    size_t addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex = 0);
+    size_t addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex);
 
     /**
      * @brief 移除层
@@ -233,14 +232,14 @@ private:
     /**
      * @brief 对层按Z索引排序
      */
-    void sortLayers();
+    void _sortLayers();
 
     /**
      * @brief 查找层索引
      * @param layerId 层ID
      * @return 层索引，如果未找到返回 SIZE_MAX
      */
-    [[nodiscard]] size_t findLayerIndex(size_t layerId) const;
+    [[nodiscard]] size_t _findLayerIndex(size_t layerId) const;
 
     paint::ICanvas* m_canvas = nullptr;
     std::unique_ptr<widget::PaintContext> m_context;
@@ -257,6 +256,7 @@ private:
 
     // 当前拖动的Widget
     widget::Widget* m_draggingWidget = nullptr;
+    // TODO: m_dragButton 当前仅设置/重置，未被用于判断逻辑，待完善拖动按钮校验
     i32 m_dragButton = 0;
 };
 

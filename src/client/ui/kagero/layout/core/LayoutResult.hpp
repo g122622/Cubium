@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../Types.hpp"
 #include "MeasureSpec.hpp"
+#include "client/ui/kagero/Types.hpp"
 #ifdef KAGERO_LAYOUT_DEBUG
 #include <string>
 #endif

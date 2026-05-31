@@ -47,13 +47,13 @@ Result<void> KageroEngine::initialize(paint::ICanvas& canvas, const KageroConfig
 
 void KageroEngine::render()
 {
-    if (m_layers.empty() || m_context == nullptr) {
+    if (m_layers.empty()) {
         return;
     }
 
     // 按Z索引从低到高渲染
     for (const auto& layer : m_layers) {
-        if (layer.visible && layer.widget != nullptr) {
+        if (layer.visible) {
             layer.widget->paint(*m_context);
         }
     }
@@ -67,7 +67,7 @@ void KageroEngine::update(f32 dt)
 
     // 更新所有可见且激活的层
     for (const auto& layer : m_layers) {
-        if (layer.visible && layer.widget != nullptr && layer.widget->isActive()) {
+        if (layer.visible && layer.widget->isActive()) {
             layer.widget->tick(dt);
         }
     }
@@ -80,9 +80,7 @@ void KageroEngine::resize(i32 width, i32 height)
 
     // 通知所有层尺寸变化
     for (const auto& layer : m_layers) {
-        if (layer.widget != nullptr) {
-            layer.widget->onResize(width, height);
-        }
+        layer.widget->onResize(width, height);
     }
 }
 
@@ -106,39 +104,34 @@ size_t KageroEngine::addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex
     m_layers.push_back(std::move(layer));
 
     // 保持排序
-    sortLayers();
-
-    spdlog::debug("KageroEngine::addLayer: added layer {} with zIndex {}", m_layers.back().id, zIndex);
+    _sortLayers();
 
     return m_layers.back().id;
 }
 
 bool KageroEngine::removeLayer(size_t layerId)
 {
-    size_t index = findLayerIndex(layerId);
+    size_t index = _findLayerIndex(layerId);
     if (index == SIZE_MAX) {
         return false;
     }
 
     m_layers.erase(m_layers.begin() + static_cast<ptrdiff_t>(index));
-    spdlog::debug("KageroEngine::removeLayer: removed layer {}", layerId);
     return true;
 }
 
 void KageroEngine::setLayerVisible(size_t layerId, bool visible)
 {
-    size_t index = findLayerIndex(layerId);
+    size_t index = _findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         m_layers[index].visible = visible;
-        if (m_layers[index].widget != nullptr) {
-            m_layers[index].widget->setVisible(visible);
-        }
+        m_layers[index].widget->setVisible(visible);
     }
 }
 
 widget::Widget* KageroEngine::getLayer(size_t layerId)
 {
-    size_t index = findLayerIndex(layerId);
+    size_t index = _findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         return m_layers[index].widget.get();
     }
@@ -147,7 +140,7 @@ widget::Widget* KageroEngine::getLayer(size_t layerId)
 
 const widget::Widget* KageroEngine::getLayer(size_t layerId) const
 {
-    size_t index = findLayerIndex(layerId);
+    size_t index = _findLayerIndex(layerId);
     if (index != SIZE_MAX) {
         return m_layers[index].widget.get();
     }
@@ -158,7 +151,7 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
 {
     // 从顶层开始处理（Z索引高的先处理）
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
+        if (!it->visible || !it->widget->isActive()) {
             continue;
         }
 
@@ -189,7 +182,7 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
 
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
+        if (!it->visible || !it->widget->isActive()) {
             continue;
         }
 
@@ -221,7 +214,7 @@ bool KageroEngine::handleMouseMove(i32 x, i32 y)
 
     // 更新悬停状态
     for (auto& layer : m_layers) {
-        if (layer.visible && layer.widget != nullptr) {
+        if (layer.visible) {
             layer.widget->updateHover(x, y);
         }
     }
@@ -238,7 +231,7 @@ bool KageroEngine::handleScroll(i32 x, i32 y, f64 delta)
 {
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
+        if (!it->visible || !it->widget->isActive()) {
             continue;
         }
 
@@ -259,7 +252,7 @@ bool KageroEngine::handleKey(i32 key, i32 scanCode, i32 action, i32 mods)
 {
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
+        if (!it->visible || !it->widget->isActive()) {
             continue;
         }
 
@@ -280,7 +273,7 @@ bool KageroEngine::handleChar(u32 codePoint)
 {
     // 从顶层开始处理
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        if (!it->visible || it->widget == nullptr || !it->widget->isActive()) {
+        if (!it->visible || !it->widget->isActive()) {
             continue;
         }
 
@@ -297,13 +290,13 @@ bool KageroEngine::handleChar(u32 codePoint)
     return false;
 }
 
-void KageroEngine::sortLayers()
+void KageroEngine::_sortLayers()
 {
     std::stable_sort(
         m_layers.begin(), m_layers.end(), [](const LayerInfo& a, const LayerInfo& b) { return a.zIndex < b.zIndex; });
 }
 
-size_t KageroEngine::findLayerIndex(size_t layerId) const
+size_t KageroEngine::_findLayerIndex(size_t layerId) const
 {
     for (size_t i = 0; i < m_layers.size(); ++i) {
         if (m_layers[i].id == layerId) {

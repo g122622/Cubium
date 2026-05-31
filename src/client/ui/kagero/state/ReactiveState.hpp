@@ -23,13 +23,9 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <algorithm>
-#include <any>
 #include <functional>
-#include <memory>
-#include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -91,7 +87,7 @@ public:
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = newValue;
-            notify(oldValue, newValue);
+            _notify(oldValue, newValue);
         }
     }
 
@@ -103,7 +99,7 @@ public:
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = std::move(newValue);
-            notify(oldValue, m_value);
+            _notify(oldValue, m_value);
         }
     }
 
@@ -165,12 +161,12 @@ public:
     /**
      * @brief 获取观察者数量
      */
-    [[nodiscard]] size_t observerCount() const { return m_observers.size(); }
+    [[nodiscard]] Size observerCount() const { return m_observers.size(); }
 
     /**
      * @brief 修改值并通知观察者（即使值相同）
      */
-    void forceNotify() { notify(m_value, m_value); }
+    void forceNotify() { _notify(m_value, m_value); }
 
     /**
      * @brief 使用函数修改值
@@ -183,7 +179,7 @@ public:
         T oldValue = m_value;
         modifier(m_value);
         if (oldValue != m_value) {
-            notify(oldValue, m_value);
+            _notify(oldValue, m_value);
         }
     }
 
@@ -191,7 +187,7 @@ private:
     /**
      * @brief 通知所有观察者
      */
-    void notify(const T& oldValue, const T& newValue)
+    void _notify(const T& oldValue, const T& newValue)
     {
         // 复制观察者列表以避免迭代时修改
         auto observers = m_observers;
@@ -230,7 +226,7 @@ public:
     /**
      * @brief 获取计算值
      */
-    [[nodiscard]] const T& get()
+    [[nodiscard]] const T& get() const
     {
         if (m_dirty) {
             m_cachedValue = m_compute();
@@ -247,12 +243,12 @@ public:
     /**
      * @brief 隐式转换
      */
-    operator const T&() { return get(); }
+    operator const T&() const { return get(); }
 
 private:
     ComputeFunc m_compute;
-    T m_cachedValue;
-    bool m_dirty = false;
+    mutable T m_cachedValue;
+    mutable bool m_dirty = false;
 };
 
 /**

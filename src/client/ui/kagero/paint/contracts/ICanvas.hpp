@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../Geometry.hpp"
 #include "IImage.hpp"
 #include "IPaint.hpp"
 #include "IPath.hpp"
 #include "ITextBlob.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
 
 namespace mc::client::ui::kagero::paint {
 

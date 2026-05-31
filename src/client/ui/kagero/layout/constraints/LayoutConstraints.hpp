@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../Types.hpp"
-#include "../core/MeasureSpec.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
 #include <limits>
 
 namespace mc::client::ui::kagero::layout {

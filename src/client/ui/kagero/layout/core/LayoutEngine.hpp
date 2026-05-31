@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../algorithms/FlexLayout.hpp"
-#include "../constraints/LayoutConstraints.hpp"
-#include "../integration/WidgetLayoutAdaptor.hpp"
 #include "LayoutResult.hpp"
 #include "MeasureSpec.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include <functional>
 #include <map>
 #include <memory>
@@ -180,8 +180,7 @@ public:
      * @param availableSpace 可用空间
      * @param config Flex配置
      */
-    void layoutFlex(
-        WidgetLayoutAdaptor* container, const Rect& availableSpace, const FlexConfig& config = FlexConfig{});
+    void layoutFlex(WidgetLayoutAdaptor* container, const Rect& availableSpace, const FlexConfig& config);
 
     // ==================== 统计信息 ====================
 
@@ -216,18 +215,18 @@ private:
     /**
      * @brief 递归布局单个节点
      */
-    LayoutResult layoutNode(
+    LayoutResult _layoutNode(
         WidgetLayoutAdaptor* node, const MeasureSpec& widthSpec, const MeasureSpec& heightSpec, i32 depth);
 
     /**
      * @brief 收集dirty节点
      */
-    void collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out);
+    void _collectDirtyNodes(WidgetLayoutAdaptor* node, std::vector<WidgetLayoutAdaptor*>& out);
 
     /**
      * @brief 选择布局算法
      */
-    [[nodiscard]] ILayoutAlgorithm* selectAlgorithm(LayoutType type, const std::string& name);
+    [[nodiscard]] ILayoutAlgorithm* _selectAlgorithm(LayoutType type, const std::string& name);
 
     std::map<std::string, std::unique_ptr<ILayoutAlgorithm>> m_algorithms;
     LayoutStats m_stats;
@@ -245,7 +244,7 @@ private:
  */
 class FlexLayoutAlgorithm : public ILayoutAlgorithm {
 public:
-    explicit FlexLayoutAlgorithm(const FlexConfig& config = FlexConfig{})
+    explicit FlexLayoutAlgorithm(const FlexConfig& config)
         : m_config(config)
     {}
 

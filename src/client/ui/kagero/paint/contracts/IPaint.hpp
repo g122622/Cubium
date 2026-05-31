@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Color.hpp"
+#include "client/ui/kagero/paint/Color.hpp"
 
 namespace mc::client::ui::kagero::paint {
 

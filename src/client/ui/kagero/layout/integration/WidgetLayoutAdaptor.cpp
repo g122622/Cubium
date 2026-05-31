@@ -103,7 +103,7 @@ Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpe
         return m_lastMeasuredSize;
     }
 
-    Size measured = m_measureFunc ? m_measureFunc(this, widthSpec, heightSpec) : measureDefault(widthSpec, heightSpec);
+    Size measured = m_measureFunc ? m_measureFunc(this, widthSpec, heightSpec) : _measureDefault(widthSpec, heightSpec);
 
     measured.width = m_constraints.clampWidth(measured.width);
     measured.height = m_constraints.clampHeight(measured.height);
@@ -115,7 +115,7 @@ Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpe
     return measured;
 }
 
-Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
+Size WidgetLayoutAdaptor::_measureDefault(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
 {
     if (m_widget == nullptr) {
         return Size();
@@ -129,7 +129,7 @@ Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const Mea
 
     Size containerSize;
     if (needContainerMeasure) {
-        containerSize = measureContainer(widthSpec, heightSpec);
+        containerSize = _measureContainer(widthSpec, heightSpec);
     }
 
     Size result;
@@ -166,7 +166,7 @@ Size WidgetLayoutAdaptor::measureDefault(const MeasureSpec& widthSpec, const Mea
     return result;
 }
 
-Size WidgetLayoutAdaptor::measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
+Size WidgetLayoutAdaptor::_measureContainer(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
 {
     const auto children = getChildren();
     if (children.empty()) {
@@ -221,10 +221,10 @@ void WidgetLayoutAdaptor::requestLayout()
 
     m_layoutDirty = true;
     m_cacheValid = false;
-    propagateLayoutRequest();
+    _propagateLayoutRequest();
 }
 
-void WidgetLayoutAdaptor::propagateLayoutRequest()
+void WidgetLayoutAdaptor::_propagateLayoutRequest()
 {
     if (m_widget == nullptr) {
         return;
@@ -235,7 +235,8 @@ void WidgetLayoutAdaptor::propagateLayoutRequest()
         return;
     }
 
-    // 当前架构没有显式的父级布局失效接口，只能触发现有的边界更新回调。
+    // TODO: 当前架构没有显式的父级布局失效接口，只能触发现有的边界更新回调。
+    //       未来需要添加 ILayoutParent::requestChildLayout() 之类的接口来正确传播。
     auto* parentWidget = dynamic_cast<widget::Widget*>(parent);
     if (parentWidget == nullptr) {
         return;

@@ -69,23 +69,21 @@ StateBindingPoint bindReactive(Reactive<T>& reactive, const std::string& key)
     // 创建双向同步
     StateStore::instance().set(key, reactive.get());
 
-    // 使用 shared_ptr 来共享旧值，避免捕获局部引用
+    // 使用 shared_ptr 共享旧值，用于双向同步时避免循环更新
     auto lastStoreValue = std::make_shared<T>(reactive.get());
 
-    // 从 Reactive 到 Store（复制 key 到 lambda 中）
-    std::string keyCopy = key;
-    reactive.observe([keyCopy, lastStoreValue](const T& /*oldValue*/, const T& newValue) {
+    // 从 Reactive 到 Store（按值捕获 key，确保 lambda 持有独立的 key 副本）
+    reactive.observe([key, lastStoreValue](const T& /*oldValue*/, const T& newValue) {
         // 避免循环：如果新值与上次存储的值相同，跳过更新
         if (newValue != *lastStoreValue) {
             *lastStoreValue = newValue;
-            StateStore::instance().set(keyCopy, newValue);
+            StateStore::instance().set(key, newValue);
         }
     });
 
-    // 从 Store 到 Reactive
-    std::string keyCopy2 = key;
-    StateStore::instance().subscribe(key, [&reactive, lastStoreValue, keyCopy2]() {
-        T value = StateStore::instance().get<T>(keyCopy2);
+    // 从 Store 到 Reactive（按值捕获 key，确保 lambda 持有独立的 key 副本）
+    StateStore::instance().subscribe(key, [&reactive, lastStoreValue, key]() {
+        T value = StateStore::instance().get<T>(key);
         // 避免循环：如果新值与 Reactive 当前值相同，跳过更新
         if (value != reactive.get() && value != *lastStoreValue) {
             *lastStoreValue = value;
@@ -234,7 +232,7 @@ public:
     /**
      * @brief 获取订阅数量
      */
-    [[nodiscard]] size_t size() const { return m_subscriptions.size(); }
+    [[nodiscard]] Size size() const { return m_subscriptions.size(); }
 
 private:
     std::vector<u64> m_subscriptions;
@@ -299,7 +297,7 @@ public:
      * @note 生命周期由 StateContext 管理
      */
     template <typename T>
-    Reactive<T>& reactive(const std::string& key, T initialValue = T{})
+    Reactive<T>& reactive(const std::string& key, T initialValue)
     {
         auto it = m_reactives.find(key);
         if (it != m_reactives.end()) {

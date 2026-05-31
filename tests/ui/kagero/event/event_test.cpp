@@ -103,7 +103,7 @@ TEST_F(EventTest, EventTimestamp)
 
 TEST_F(EventTest, EventBubbles)
 {
-    MouseClickEvent clickEvent(100, 200, 0);
+    MouseClickEvent clickEvent(100, 200, 0, 1);
     FocusGainedEvent focusGained;
     FocusLostEvent focusLost;
 
@@ -117,7 +117,7 @@ TEST_F(EventTest, EventBubbles)
 
 TEST_F(EventTest, EventCancellable)
 {
-    MouseClickEvent event(100, 200, 0);
+    MouseClickEvent event(100, 200, 0, 1);
 
     // 默认事件应该可取消
     EXPECT_TRUE(event.isCancellable());
@@ -131,7 +131,7 @@ TEST_F(EventTest, EventResultUsage)
     EXPECT_FALSE(result.cancelled);
 
     // 链式调用
-    result.setHandled().setCancelled();
+    result.setHandled(true).setCancelled(true);
     EXPECT_TRUE(result.handled);
     EXPECT_TRUE(result.cancelled);
 
@@ -154,7 +154,7 @@ TEST_F(EventTest, EventFilterUsage)
         return e.getType() != EventType::MouseClick;
     };
 
-    MouseClickEvent clickEvent(100, 200, 0);
+    MouseClickEvent clickEvent(100, 200, 0, 1);
     MouseMoveEvent moveEvent(100, 200, 0, 0);
 
     EXPECT_FALSE(filter(clickEvent)); // MouseClick 被过滤
@@ -164,7 +164,7 @@ TEST_F(EventTest, EventFilterUsage)
 
 TEST_F(EventTest, EventTarget)
 {
-    MouseClickEvent event(100, 200, 0);
+    MouseClickEvent event(100, 200, 0, 1);
 
     // 默认目标为空
     EXPECT_EQ(event.target(), nullptr);
@@ -666,7 +666,7 @@ TEST_F(EventBusTest, SubscribeAndPublish)
 
     EXPECT_NE(id, 0u);
 
-    MouseClickEvent event(100, 200, 0);
+    MouseClickEvent event(100, 200, 0, 1);
     EventBus::instance().publish(event);
 
     EXPECT_EQ(clickCount, 1);
@@ -679,7 +679,7 @@ TEST_F(EventBusTest, Unsubscribe)
     auto id =
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent& e) { clickCount++; });
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 
     // 取消订阅
@@ -687,7 +687,7 @@ TEST_F(EventBusTest, Unsubscribe)
     EXPECT_TRUE(result);
 
     // 再次发布，处理器不应被调用
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1); // 还是 1
 }
 
@@ -705,7 +705,7 @@ TEST_F(EventBusTest, MultipleSubscribers)
     auto id2 = EventBus::instance().subscribe<MouseClickEvent>([&count2](const MouseClickEvent&) { count2++; });
     auto id3 = EventBus::instance().subscribe<MouseClickEvent>([&count3](const MouseClickEvent&) { count3++; });
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
 
     EXPECT_EQ(count1, 1);
     EXPECT_EQ(count2, 1);
@@ -730,7 +730,7 @@ TEST_F(EventBusTest, Priority)
         -100 // 低优先级
     );
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
 
     // 应该按优先级顺序执行：2 -> 1 -> 3
     ASSERT_EQ(order.size(), 3u);
@@ -772,7 +772,7 @@ TEST_F(EventBusTest, EventCancellation)
         0 // 低优先级
     );
 
-    MouseClickEvent event(100, 200, 0);
+    MouseClickEvent event(100, 200, 0, 1);
     EventBus::instance().publish(event);
 
     // 只有第一个处理器应该执行，因为事件被取消
@@ -801,11 +801,11 @@ TEST_F(EventBusTest, EventFilter)
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
 
     // x = 10，应该被过滤
-    EventBus::instance().publish(MouseClickEvent(10, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(10, 200, 0, 1));
     EXPECT_EQ(clickCount, 0);
 
     // x = 100，应该通过
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 
     EventBus::instance().removeFilter(filterId);
@@ -822,14 +822,14 @@ TEST_F(EventBusTest, RemoveFilter)
     auto subId =
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 0);
 
     // 移除过滤器
     bool result = EventBus::instance().removeFilter(filterId);
     EXPECT_TRUE(result);
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 
     EventBus::instance().unsubscribe(subId);
@@ -851,14 +851,14 @@ TEST_F(EventBusTest, AddFilterWithId)
     auto subId =
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 0); // 过滤器阻止了事件
 
     // 移除过滤器
     bool result = EventBus::instance().removeFilter(42);
     EXPECT_TRUE(result);
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 
     EventBus::instance().unsubscribe(subId);
@@ -888,15 +888,15 @@ TEST_F(EventBusTest, MultipleFilters)
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
 
     // x=0, y=100 - 被第一个过滤器阻止
-    EventBus::instance().publish(MouseClickEvent(0, 100, 0));
+    EventBus::instance().publish(MouseClickEvent(0, 100, 0, 1));
     EXPECT_EQ(clickCount, 0);
 
     // x=100, y=0 - 被第二个过滤器阻止
-    EventBus::instance().publish(MouseClickEvent(100, 0, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 0, 0, 1));
     EXPECT_EQ(clickCount, 0);
 
     // x=100, y=100 - 通过两个过滤器
-    EventBus::instance().publish(MouseClickEvent(100, 100, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 100, 0, 1));
     EXPECT_EQ(clickCount, 1);
 
     EventBus::instance().removeFilter(filterId1);
@@ -941,7 +941,7 @@ TEST_F(EventBusTest, DifferentEventTypes)
         EventBus::instance().subscribe<MouseClickEvent>([&clickCount](const MouseClickEvent&) { clickCount++; });
     auto keyId = EventBus::instance().subscribe<KeyEvent>([&keyCount](const KeyEvent&) { keyCount++; });
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EventBus::instance().publish(KeyEvent(65, 0, 1, 0));
 
     EXPECT_EQ(clickCount, 1);
@@ -970,11 +970,11 @@ TEST_F(EventSubscriptionTest, AutoUnsubscribe)
         EXPECT_TRUE(subscription.valid());
         EXPECT_NE(subscription.id(), 0u);
 
-        EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+        EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
         EXPECT_EQ(clickCount, 1);
     } // 离开作用域，自动取消订阅
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1); // 还是 1，说明处理器已被移除
 }
 
@@ -989,7 +989,7 @@ TEST_F(EventSubscriptionTest, ManualUnsubscribe)
     subscription.unsubscribe();
     EXPECT_FALSE(subscription.valid());
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 0);
 }
 
@@ -1009,7 +1009,7 @@ TEST_F(EventSubscriptionTest, MoveSemantics)
     EXPECT_TRUE(subscription2.valid());
     EXPECT_EQ(subscription2.id(), id); // ID 保持不变
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 }
 
@@ -1032,7 +1032,7 @@ TEST_F(EventSubscriptionTest, MoveAssignment)
     EXPECT_TRUE(subscription2.valid());
     EXPECT_EQ(subscription2.id(), id1); // 使用 id1
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
     EXPECT_EQ(clickCount, 1);
 }
 
@@ -1043,7 +1043,7 @@ TEST_F(EventSubscriptionTest, Priority)
     EventSubscription<MouseClickEvent> sub1([&order](const MouseClickEvent&) { order.push_back(1); }, 0);
     EventSubscription<MouseClickEvent> sub2([&order](const MouseClickEvent&) { order.push_back(2); }, 100);
 
-    EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+    EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
 
     ASSERT_EQ(order.size(), 2u);
     EXPECT_EQ(order[0], 2); // 高优先级先执行
@@ -1072,7 +1072,7 @@ TEST_F(EventBusThreadSafetyTest, ConcurrentPublish)
     for (int i = 0; i < numThreads; ++i) {
         threads.emplace_back([&eventsPerThread]() {
             for (int j = 0; j < eventsPerThread; ++j) {
-                EventBus::instance().publish(MouseClickEvent(100, 200, 0));
+                EventBus::instance().publish(MouseClickEvent(100, 200, 0, 1));
             }
         });
     }

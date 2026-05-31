@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../Types.hpp"
 #include "Event.hpp"
+#include "client/ui/kagero/Types.hpp"
 
 namespace mc::client::ui::kagero::event {
 

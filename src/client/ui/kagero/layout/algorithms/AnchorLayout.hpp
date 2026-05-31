@@ -31,14 +31,31 @@ namespace mc::client::ui::kagero::layout {
 
 /**
  * @brief Anchor布局算法
+ *
+ * 基于锚点约束的布局算法，支持子元素相对于容器边缘的定位。
+ * 支持的定位方式包括：边缘锚定、拉伸填充、居中对齐、百分比定位。
  */
 class AnchorLayout {
 public:
+    /**
+     * @brief 计算所有子元素的布局结果
+     *
+     * @param containerBounds 容器边界
+     * @param children 子元素适配器列表
+     * @return 每个子元素的布局结果
+     */
     [[nodiscard]] std::vector<LayoutResult> compute(
         const Rect& containerBounds, const std::vector<WidgetLayoutAdaptor*>& children) const;
 
 private:
-    [[nodiscard]] Rect computeChildBounds(const Rect& containerBounds, const WidgetLayoutAdaptor& child) const;
+    /**
+     * @brief 计算单个子元素的边界矩形
+     *
+     * @param containerBounds 容器边界
+     * @param child 子元素适配器
+     * @return 子元素的边界矩形
+     */
+    [[nodiscard]] Rect _computeChildBounds(const Rect& containerBounds, const WidgetLayoutAdaptor& child) const;
 };
 
 } // namespace mc::client::ui::kagero::layout

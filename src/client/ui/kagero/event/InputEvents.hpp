@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../Types.hpp"
 #include "Event.hpp"
+#include "client/ui/kagero/Types.hpp"
 
 namespace mc::client::ui::kagero::event {
 
@@ -33,7 +33,7 @@ namespace mc::client::ui::kagero::event {
  */
 class MouseClickEvent : public Event {
 public:
-    MouseClickEvent(i32 x, i32 y, i32 button, i32 clicks = 1)
+    MouseClickEvent(i32 x, i32 y, i32 button, i32 clicks)
         : m_x(x)
         , m_y(y)
         , m_button(button)
@@ -244,12 +244,12 @@ public:
 
     [[nodiscard]] EventType getType() const override
     {
-        switch (m_action) {
-            case 0:
+        switch (static_cast<KeyAction>(m_action)) {
+            case KeyAction::Release:
                 return EventType::KeyRelease;
-            case 1:
+            case KeyAction::Press:
                 return EventType::KeyPress;
-            case 2:
+            case KeyAction::Repeat:
                 return EventType::KeyRepeat;
             default:
                 return EventType::KeyPress;
@@ -258,12 +258,12 @@ public:
 
     [[nodiscard]] const char* getName() const override
     {
-        switch (m_action) {
-            case 0:
+        switch (static_cast<KeyAction>(m_action)) {
+            case KeyAction::Release:
                 return "KeyRelease";
-            case 1:
+            case KeyAction::Press:
                 return "KeyPress";
-            case 2:
+            case KeyAction::Repeat:
                 return "KeyRepeat";
             default:
                 return "Key";
@@ -278,25 +278,25 @@ public:
     /**
      * @brief 检查是否按下
      */
-    [[nodiscard]] bool isPressed() const { return m_action == 1; }
+    [[nodiscard]] bool isPressed() const { return static_cast<KeyAction>(m_action) == KeyAction::Press; }
 
     /**
      * @brief 检查是否释放
      */
-    [[nodiscard]] bool isReleased() const { return m_action == 0; }
+    [[nodiscard]] bool isReleased() const { return static_cast<KeyAction>(m_action) == KeyAction::Release; }
 
     /**
      * @brief 检查是否重复
      */
-    [[nodiscard]] bool isRepeat() const { return m_action == 2; }
+    [[nodiscard]] bool isRepeat() const { return static_cast<KeyAction>(m_action) == KeyAction::Repeat; }
 
     /**
      * @brief 检查修饰键
      */
-    [[nodiscard]] bool hasShift() const { return (m_mods & 0x01) != 0; }
-    [[nodiscard]] bool hasControl() const { return (m_mods & 0x02) != 0; }
-    [[nodiscard]] bool hasAlt() const { return (m_mods & 0x04) != 0; }
-    [[nodiscard]] bool hasSuper() const { return (m_mods & 0x08) != 0; }
+    [[nodiscard]] bool hasShift() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Shift); }
+    [[nodiscard]] bool hasControl() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Control); }
+    [[nodiscard]] bool hasAlt() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Alt); }
+    [[nodiscard]] bool hasSuper() const { return hasMod(static_cast<KeyMods>(m_mods), KeyMods::Super); }
 
 private:
     i32 m_key;

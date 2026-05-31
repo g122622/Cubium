@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <array>
 
 namespace mc::client::ui::kagero::paint {

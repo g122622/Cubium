@@ -276,7 +276,7 @@ TEST_F(LayoutEngineTest, Instance)
 
 TEST_F(LayoutEngineTest, RegisterAlgorithm)
 {
-    auto algorithm = std::make_unique<FlexLayoutAlgorithm>();
+    auto algorithm = std::make_unique<FlexLayoutAlgorithm>(FlexConfig{});
     engine->registerAlgorithm("test_algo", std::move(algorithm));
 
     EXPECT_TRUE(engine->hasAlgorithm("test_algo"));
@@ -326,7 +326,7 @@ TEST_F(LayoutEngineTest, Profiling)
 
 class FlexLayoutAlgorithmTest : public ::testing::Test {
 protected:
-    void SetUp() override { algorithm = std::make_unique<FlexLayoutAlgorithm>(); }
+    void SetUp() override { algorithm = std::make_unique<FlexLayoutAlgorithm>(FlexConfig{}); }
 
     void TearDown() override { algorithm.reset(); }
 
