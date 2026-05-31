@@ -27,7 +27,9 @@
 
 namespace mc::client::renderer::trident::gui {
 
+namespace {
 using json = nlohmann::json;
+} // namespace
 
 Result<GuiSpriteDefinition> GuiSpriteParser::parse(const std::string& jsonContent, i32 atlasWidth, i32 atlasHeight)
 {
@@ -45,7 +47,7 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(const std::string& jsonConten
         // 解析精灵
         if (root.contains("sprites") && root["sprites"].is_object()) {
             for (const auto& [id, spriteObj] : root["sprites"].items()) {
-                auto spriteResult = parseSprite(id, &spriteObj, atlasWidth, atlasHeight);
+                auto spriteResult = _parseSprite(id, &spriteObj, atlasWidth, atlasHeight);
                 if (spriteResult.success()) {
                     result.sprites[id] = spriteResult.value();
                 }
@@ -55,7 +57,7 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(const std::string& jsonConten
         // 解析九宫格
         if (root.contains("nine_patch") && root["nine_patch"].is_object()) {
             for (const auto& [id, ninePatchObj] : root["nine_patch"].items()) {
-                auto ninePatchResult = parseNinePatch(&ninePatchObj);
+                auto ninePatchResult = _parseNinePatch(&ninePatchObj);
                 if (ninePatchResult.success()) {
                     result.ninePatches[id] = ninePatchResult.value();
 
@@ -124,7 +126,7 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parseFromResourcePack(
     return parse(readResult.value(), atlasWidth, atlasHeight);
 }
 
-Result<GuiSprite> GuiSpriteParser::parseSprite(
+Result<GuiSprite> GuiSpriteParser::_parseSprite(
     const std::string& id, const void* jsonObj, i32 atlasWidth, i32 atlasHeight)
 {
 
@@ -159,7 +161,7 @@ Result<GuiSprite> GuiSpriteParser::parseSprite(
     return sprite;
 }
 
-Result<GuiNinePatch> GuiSpriteParser::parseNinePatch(const void* jsonObj)
+Result<GuiNinePatch> GuiSpriteParser::_parseNinePatch(const void* jsonObj)
 {
     const json& obj = *static_cast<const json*>(jsonObj);
 

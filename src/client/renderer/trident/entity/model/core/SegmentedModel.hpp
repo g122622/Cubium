@@ -35,8 +35,6 @@ namespace mc::client::renderer::entity::model {
  *
  * 用于复杂实体（如末影龙）的分段渲染。
  * 分段渲染允许模型的各个部分独立动画和渲染。
- *
- * 参考 MC 1.16.5 SegmentedModel
  */
 class SegmentedModel : public EntityModel {
 public:

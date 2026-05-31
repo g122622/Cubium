@@ -33,7 +33,7 @@
 namespace mc::client::renderer::entity::model {
 
 /**
- * @brief 模型顶点（参考MC PositionTextureVertex）
+ * @brief 模型顶点
  *
  * 包含位置、纹理坐标和法线信息
  */
@@ -57,7 +57,7 @@ struct ModelVertex {
 };
 
 /**
- * @brief 纹理四边形（参考MC TexturedQuad）
+ * @brief 纹理四边形
  *
  * 代表一个四边形面，包含4个顶点和法线
  */
@@ -88,7 +88,7 @@ struct TexturedQuad {
 };
 
 /**
- * @brief 模型盒子（参考MC ModelBox）
+ * @brief 模型盒子
  *
  * 每个盒子有6个面，每面是一个TexturedQuad。
  * UV坐标根据纹理偏移自动计算。
@@ -123,11 +123,11 @@ struct ModelBox {
         f64 width,
         f64 height,
         f64 depth,
-        f64 deltaX = 0.0f,
-        f64 deltaY = 0.0f,
-        f64 deltaZ = 0.0f,
-        f64 texWidth = 64.0f,
-        f64 texHeight = 32.0f,
+        f64 deltaX = 0.0,
+        f64 deltaY = 0.0,
+        f64 deltaZ = 0.0,
+        f64 texWidth = 64.0,
+        f64 texHeight = 32.0,
         bool mirror = false);
 };
 
@@ -136,8 +136,6 @@ struct ModelBox {
  *
  * 代表模型的一个部分（如头部、身体、腿等）。
  * 包含位置、旋转、缩放以及子部件。
- *
- * 参考 MC 1.16.5 ModelRenderer
  */
 class ModelRenderer {
 public:
@@ -215,7 +213,7 @@ public:
      * @param delta 膨胀值（用于防止Z-fighting）
      * @return 本部件引用
      */
-    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, f64 delta = 0.0f);
+    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, f64 delta = 0.0);
 
     /**
      * @brief 添加一个盒子（带纹理偏移）
@@ -230,20 +228,13 @@ public:
      * @param delta 膨胀值
      * @return 本部件引用
      */
-    ModelRenderer& addBox(i32 textureOffsetX,
-        i32 textureOffsetY,
-        f64 x,
-        f64 y,
-        f64 z,
-        f64 width,
-        f64 height,
-        f64 depth,
-        f64 delta = 0.0f);
+    ModelRenderer& addBox(
+        i32 textureOffsetX, i32 textureOffsetY, f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, f64 delta = 0.0);
 
     /**
      * @brief 添加一个盒子（带镜像选项）
      */
-    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, bool mirror, f64 delta = 0.0f);
+    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, bool mirror, f64 delta = 0.0);
 
     /**
      * @brief 清除所有盒子
@@ -281,7 +272,7 @@ public:
      * @param indices 索引输出缓冲区
      * @param scale 缩放因子（默认 1/16）
      */
-    void generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale = 1.0f / 16.0f) const;
+    void generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale = 1.0 / 16.0) const;
 
     /**
      * @brief 生成渲染网格（带变换矩阵）
@@ -293,7 +284,7 @@ public:
     void generateMesh(std::vector<ModelVertex>& vertices,
         std::vector<u32>& indices,
         const std::array<f64, 16>& parentMatrix,
-        f64 scale = 1.0f / 16.0f) const;
+        f64 scale = 1.0 / 16.0) const;
 
     // ========== 渲染（遗留接口，已废弃 - 使用 generateMesh 代替） ==========
 
@@ -306,7 +297,7 @@ public:
      * @param scale 缩放因子
      * @deprecated 使用 generateMesh() 代替
      */
-    void render(f64 scale = 1.0f / 16.0f);
+    void render(f64 scale = 1.0 / 16.0);
 
     /**
      * @brief 渲染时不进行旋转（已废弃）
@@ -316,7 +307,7 @@ public:
      * @param scale 缩放因子
      * @deprecated 使用 generateMesh() 代替
      */
-    void renderNoRotate(f64 scale = 1.0f / 16.0f);
+    void renderNoRotate(f64 scale = 1.0 / 16.0);
 
     // ========== 动画 ==========
 
@@ -392,22 +383,22 @@ private:
     std::string m_name;
 
     // 变换
-    f64 m_offsetX = 0.0f;
-    f64 m_offsetY = 0.0f;
-    f64 m_offsetZ = 0.0f;
-    f64 m_rotationPointX = 0.0f;
-    f64 m_rotationPointY = 0.0f;
-    f64 m_rotationPointZ = 0.0f;
-    f64 m_rotateAngleX = 0.0f;
-    f64 m_rotateAngleY = 0.0f;
-    f64 m_rotateAngleZ = 0.0f;
-    f64 m_scaleX = 1.0f;
-    f64 m_scaleY = 1.0f;
-    f64 m_scaleZ = 1.0f;
+    f64 m_offsetX = 0.0;
+    f64 m_offsetY = 0.0;
+    f64 m_offsetZ = 0.0;
+    f64 m_rotationPointX = 0.0;
+    f64 m_rotationPointY = 0.0;
+    f64 m_rotationPointZ = 0.0;
+    f64 m_rotateAngleX = 0.0;
+    f64 m_rotateAngleY = 0.0;
+    f64 m_rotateAngleZ = 0.0;
+    f64 m_scaleX = 1.0;
+    f64 m_scaleY = 1.0;
+    f64 m_scaleZ = 1.0;
 
     // 纹理
-    f64 m_textureWidth = 64.0f;
-    f64 m_textureHeight = 32.0f;
+    f64 m_textureWidth = 64.0;
+    f64 m_textureHeight = 32.0;
     i32 m_textureOffsetX = 0;
     i32 m_textureOffsetY = 0;
 
@@ -428,42 +419,42 @@ private:
     /**
      * @brief 创建单位矩阵
      */
-    static std::array<f64, 16> identityMatrix();
+    static std::array<f64, 16> _identityMatrix();
 
     /**
      * @brief 矩阵乘法
      */
-    static std::array<f64, 16> multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b);
+    static std::array<f64, 16> _multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b);
 
     /**
      * @brief 创建平移矩阵
      */
-    static std::array<f64, 16> translationMatrix(f64 x, f64 y, f64 z);
+    static std::array<f64, 16> _translationMatrix(f64 x, f64 y, f64 z);
 
     /**
      * @brief 创建绕X轴旋转矩阵
      */
-    static std::array<f64, 16> rotationXMatrix(f64 angle);
+    static std::array<f64, 16> _rotationXMatrix(f64 angle);
 
     /**
      * @brief 创建绕Y轴旋转矩阵
      */
-    static std::array<f64, 16> rotationYMatrix(f64 angle);
+    static std::array<f64, 16> _rotationYMatrix(f64 angle);
 
     /**
      * @brief 创建绕Z轴旋转矩阵
      */
-    static std::array<f64, 16> rotationZMatrix(f64 angle);
+    static std::array<f64, 16> _rotationZMatrix(f64 angle);
 
     /**
      * @brief 创建缩放矩阵
      */
-    static std::array<f64, 16> scaleMatrix(f64 x, f64 y, f64 z);
+    static std::array<f64, 16> _scaleMatrix(f64 x, f64 y, f64 z);
 
     /**
      * @brief 应用矩阵变换到顶点
      */
-    static ModelVertex transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix);
+    static ModelVertex _transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix);
 };
 
 } // namespace mc::client::renderer::entity::model

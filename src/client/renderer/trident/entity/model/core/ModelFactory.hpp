@@ -43,6 +43,7 @@ using ModelCreator = std::function<std::unique_ptr<EntityModel>()>;
  * @brief 带动画上下文的模型创建函数类型
  *
  * 某些模型需要额外的动画状态设置，使用此类型
+ * TODO: 尚未实现带上下文的模型注册与创建接口
  */
 using ModelCreatorWithContext = std::function<std::unique_ptr<EntityModel>(const std::string& entityTypeId)>;
 
@@ -50,22 +51,6 @@ using ModelCreatorWithContext = std::function<std::unique_ptr<EntityModel>(const
  * @brief 实体模型工厂
  *
  * 统一管理所有实体模型的创建。使用注册表模式替代巨型 if-else 链。
- *
- * 使用方式：
- * @code
- * // 注册模型（通常在初始化时调用）
- * ModelFactory::instance().registerModel("minecraft:pig", []() {
- *     return std::make_unique<PigModel>();
- * });
- *
- * // 创建模型
- * auto model = ModelFactory::instance().createModel("minecraft:pig");
- * if (model) {
- *     model->setAngles(limbSwing, limbSwingAmount, ...);
- * }
- * @endcode
- *
- * 参考 MC 1.16.5 的模型注册机制
  */
 class ModelFactory {
 public:
@@ -121,6 +106,13 @@ public:
 private:
     ModelFactory() = default;
 
+    /**
+     * @brief 规范化实体类型ID（确保有命名空间前缀）
+     * @param entityTypeId 原始实体类型ID
+     * @return 规范化后的实体类型ID
+     */
+    [[nodiscard]] static std::string _normalizeEntityTypeId(const std::string& entityTypeId);
+
     std::unordered_map<std::string, ModelCreator> m_creators;
     mutable std::mutex m_mutex;
     static bool s_initialized;
@@ -134,10 +126,9 @@ private:
  * REGISTER_ENTITY_MODEL("minecraft:pig", PigModel);
  * @endcode
  */
-#define REGISTER_ENTITY_MODEL(typeId, ModelClass) \
-    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel(typeId, []() { \
-        return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(); \
-    })
+#define REGISTER_ENTITY_MODEL(typeId, ModelClass)                                  \
+    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel( \
+        typeId, []() { return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(); })
 
 /**
  * @brief 便捷宏：注册带缩放参数的实体模型
@@ -147,9 +138,8 @@ private:
  * REGISTER_ENTITY_MODEL_WITH_SCALE("minecraft:cat", CatModel, 0.0f);
  * @endcode
  */
-#define REGISTER_ENTITY_MODEL_WITH_SCALE(typeId, ModelClass, scale) \
-    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel(typeId, []() { \
-        return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(scale); \
-    })
+#define REGISTER_ENTITY_MODEL_WITH_SCALE(typeId, ModelClass, scale)                \
+    ::mc::client::renderer::entity::model::ModelFactory::instance().registerModel( \
+        typeId, []() { return std::make_unique<::mc::client::renderer::entity::model::ModelClass>(scale); })
 
 } // namespace mc::client::renderer::entity::model

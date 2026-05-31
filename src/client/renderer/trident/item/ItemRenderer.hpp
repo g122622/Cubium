@@ -27,7 +27,6 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include <memory>
 
 namespace mc {
 
@@ -58,7 +57,7 @@ namespace client::renderer::trident::item {
  * 用法：
  * @code
  * ItemRenderer itemRenderer;
- * itemRenderer.initialize(context, resourceManager, itemTextureAtlas);
+ * itemRenderer.initialize(resourceManager, itemTextureAtlas);
  *
  * // 在GUI渲染中
  * itemRenderer.renderItem(gui, itemStack, x, y);
@@ -76,7 +75,6 @@ public:
     /**
      * @brief 初始化物品渲染器
      *
-     * @param context Vulkan上下文
      * @param resourceManager 资源管理器（用于获取方块纹理）
      * @param itemTextureAtlas 物品纹理图集（用于非方块物品）
      * @return 成功或错误
@@ -92,7 +90,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size = 16.0);
 
     /**
      * @brief 渲染物品图标（无数量显示）
@@ -103,7 +101,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size = 16.0);
 
     /**
      * @brief 渲染物品图标（使用纹理区域）
@@ -116,7 +114,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size = 16.0);
 
     /**
      * @brief 检查物品是否为方块物品
@@ -142,7 +140,7 @@ public:
     [[nodiscard]] bool isInitialized() const { return m_initialized; }
 
 private:
-    ResourceManager* m_resourceManager = nullptr;
+    ResourceManager* m_resourceManager = nullptr; // TODO: 当前未使用，待后续方块模型渲染等功能需要时启用
     ItemTextureAtlas* m_itemTextureAtlas = nullptr;
     bool m_initialized = false;
 };

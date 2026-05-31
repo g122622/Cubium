@@ -33,7 +33,7 @@ namespace mc::client::renderer::trident::particle::particles {
 
 ExplosionParticle::ExplosionParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(1.0f)
+    , m_initialSize(1.0)
 {
     mc::math::Random rng;
 
@@ -62,7 +62,7 @@ void ExplosionParticle::tick(mc::client::ClientWorld* world)
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
@@ -73,17 +73,17 @@ void ExplosionParticle::tick(mc::client::ClientWorld* world)
 
     // 随年龄快速扩大
     f64 lifeRatio = m_age / m_maxAge;
-    f64 expansion = 1.0f + lifeRatio * 3.0f;
+    f64 expansion = 1.0 + lifeRatio * 3.0;
     setSize(m_initialSize * expansion);
 
     // 快速淡出
-    m_color.a = static_cast<f32>(1.0f - lifeRatio * lifeRatio);
+    m_color.a = static_cast<f32>(1.0 - lifeRatio * lifeRatio);
 }
 
 f64 ExplosionParticle::getScale(f64 partialTick) const
 {
     MC_UNUSED(partialTick);
-    return 1.0f;
+    return 1.0;
 }
 
 // ============================================================================
@@ -92,18 +92,16 @@ f64 ExplosionParticle::getScale(f64 partialTick) const
 
 LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(2.0f)
+    , m_initialSize(2.0)
 {
     mc::math::Random rng;
 
-    // MC 1.16.5: maxAge = 6 + rand(4)
     setMaxAge(6.0 + rng.nextInt(4));
 
-    // MC 1.16.5: 颜色为随机灰白色
     f32 gray = rng.nextFloat() * 0.6f + 0.4f;
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
-    // MC 1.16.5: scale = 2.0 * (1.0 - xSpeed * 0.5)
+    // 缩放随 xSpeed 参数变化
     m_initialSize = 2.0 * (1.0 - velocity.x * 0.5);
 
     setGravity(0.0f);
@@ -111,7 +109,7 @@ LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::
     setFriction(1.0f);
     setHasPhysics(false);
 
-    // MC 1.16.5: 无运动
+    // 无运动
     m_velocity = glm::vec3(0.0f);
 }
 
@@ -129,18 +127,17 @@ void LargeExplosionParticle::tick(mc::client::ClientWorld* world)
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
     }
 
-    // MC 1.16.5: 无运动，仅更新纹理帧
+    // 仅更新纹理帧，无运动
 }
 
 ResourceLocation LargeExplosionParticle::getTextureLocation() const
 {
-    // MC 1.16.5: 根据年龄选择纹理帧
     i32 frame = static_cast<i32>((m_age / m_maxAge) * 4.0);
     frame = std::min(frame, 3);
     return ResourceLocation("minecraft:particle/explosion_" + std::to_string(frame));
@@ -149,7 +146,6 @@ ResourceLocation LargeExplosionParticle::getTextureLocation() const
 f64 LargeExplosionParticle::getScale(f64 partialTick) const
 {
     MC_UNUSED(partialTick);
-    // MC 1.16.5: scale = 2.0 * (1.0 - xSpeed * 0.5)
     return m_initialSize;
 }
 

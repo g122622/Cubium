@@ -27,7 +27,8 @@
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <cmath>
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::entity {

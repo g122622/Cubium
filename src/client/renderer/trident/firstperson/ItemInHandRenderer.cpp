@@ -22,12 +22,11 @@
  */
 
 #include "ItemInHandRenderer.hpp"
-#include "../../../resource/ItemModelCache.hpp"
-#include "../../../resource/ItemModelLoader.hpp"
+#include "client/resource/ItemModelCache.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::firstperson {
@@ -192,7 +191,6 @@ void ItemInHandRenderer::renderItem(
 void ItemInHandRenderer::renderBlockItem(
     MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
 {
-    // 参考 MC 1.16.5 ItemRenderer.renderItem()
     // 方块物品使用 ItemMeshBuilder::buildBlockItemMesh() 构建3D网格
     //
     // 渲染流程：
@@ -211,22 +209,16 @@ void ItemInHandRenderer::renderBlockItem(
     // 获取物品模型用于验证
     const resource::BakedItemModel* model = getItemModel(itemStack);
     if (model == nullptr) {
-        // spdlog::trace("ItemInHandRenderer: No model for block item {}",
-        //     itemStack.isEmpty() ? "empty" : itemStack.getItem()->itemLocation().toString());
         return;
     }
 
-    // 网格构建和渲染由调用者完成
-    // 此处仅记录日志用于调试
-    // spdlog::trace("ItemInHandRenderer: Rendering block item {} with {} elements",
-    //     itemStack.getItem()->itemLocation().toString(),
-    //     model->elements.size());
+    // TODO: 实现方块物品的网格渲染，当前仅负责变换部分
+    // 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成
 }
 
 void ItemInHandRenderer::renderRegularItem(
     MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
 {
-    // 参考 MC 1.16.5 ItemRenderer.renderItem()
     // 普通物品使用 ItemMeshBuilder::buildGeneratedMesh() 或 buildHeldItemMesh() 构建网格
     //
     // 渲染流程：
@@ -246,17 +238,11 @@ void ItemInHandRenderer::renderRegularItem(
     // 获取物品模型用于验证
     const resource::BakedItemModel* model = getItemModel(itemStack);
     if (model == nullptr) {
-        spdlog::trace("ItemInHandRenderer: No model for item {}",
-            itemStack.isEmpty() ? "empty" : itemStack.getItem()->itemLocation().toString());
         return;
     }
 
-    // 网格构建和渲染由调用者完成
-    // 此处仅记录日志用于调试
-    spdlog::trace("ItemInHandRenderer: Rendering item {} with type {} and {} texture layers",
-        itemStack.getItem()->itemLocation().toString(),
-        static_cast<int>(model->type),
-        model->textureLayers.size());
+    // TODO: 实现普通物品的网格渲染，当前仅负责变换部分
+    // 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成
 }
 
 // ============================================================================
@@ -266,7 +252,6 @@ void ItemInHandRenderer::renderRegularItem(
 bool ItemInHandRenderer::applyTransform(
     MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
 {
-    // 参考 MC 1.16.5 ItemRenderer.renderItem()
     // 1. 首先尝试从物品模型获取自定义变换
     // 2. 如果模型没有定义该变换类型，使用默认变换
 
@@ -312,13 +297,12 @@ bool ItemInHandRenderer::applyTransform(
         glm::mat4 mat = modelTransform.toMatrix();
 
         // 检查矩阵是否为单位矩阵（近似）
-        constexpr f32 epsilon = 0.0001f;
         bool isIdentity = true;
-        for (int i = 0; i < 4 && isIdentity; ++i) {
-            for (int j = 0; j < 4 && isIdentity; ++j) {
+        for (i32 i = 0; i < 4 && isIdentity; ++i) {
+            for (i32 j = 0; j < 4 && isIdentity; ++j) {
                 f32 expected = (i == j) ? 1.0f : 0.0f;
                 f32 actual = mat[i][j];
-                if (std::abs(actual - expected) > epsilon) {
+                if (!approxEqual(actual, expected, LARGE_EPSILON)) {
                     isIdentity = false;
                 }
             }
@@ -367,7 +351,6 @@ void ItemInHandRenderer::applyDefaultTransform(MatrixStack& stack, TransformType
 
     if (transform.isDefault()) {
         // 没有自定义变换，使用硬编码的默认值
-        // 参考 MC 1.16.5 ItemCameraTransforms 默认变换
         switch (transformType) {
             case TransformType::ThirdPersonRightHand:
                 // 第三人称右手：物品在手侧下方
@@ -383,7 +366,6 @@ void ItemInHandRenderer::applyDefaultTransform(MatrixStack& stack, TransformType
 
             case TransformType::FirstPersonRightHand: {
                 // 第一人称右手：物品稍微倾斜
-                // 参考 MC 1.16.5 FirstPersonRenderer.transformSideFirstPerson
                 stack.translate(1.13f, 3.2f, 1.13f);
                 stack.rotateY(45.0f);
                 stack.rotateX(0.0f);

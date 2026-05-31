@@ -23,16 +23,14 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <memory>
-#include "../base/BipedModel.hpp"
-#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 灾厄村民手臂姿态
- *
- * 参考 MC 1.16.5 AbstractIllagerEntity.ArmPose
  */
 enum class IllagerArmPose {
     Crossed,        // 交叉手臂
@@ -46,8 +44,6 @@ enum class IllagerArmPose {
 
 /**
  * @brief 灾厄村民模型
- *
- * 参考 MC 1.16.5 IllagerModel
  */
 class IllagerModel : public EntityModel {
 public:
@@ -91,8 +87,6 @@ protected:
 
 /**
  * @brief 恼鬼模型
- *
- * 参考 MC 1.16.5 VexModel (extends BipedModel)
  */
 class VexModel : public BipedModel {
 public:
@@ -125,8 +119,6 @@ private:
 
 /**
  * @brief 铁傀儡模型
- *
- * 参考 MC 1.16.5 IronGolemModel
  */
 class IronGolemModel : public EntityModel {
 public:
@@ -140,7 +132,7 @@ public:
     [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const { return m_rightArm; }
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_head;
     std::shared_ptr<ModelRenderer> m_body;
@@ -152,8 +144,6 @@ private:
 
 /**
  * @brief 雪傀儡模型
- *
- * 参考 MC 1.16.5 SnowManModel
  */
 class SnowGolemModel : public EntityModel {
 public:
@@ -167,7 +157,7 @@ public:
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_bottomBody;
@@ -178,8 +168,6 @@ private:
 
 /**
  * @brief 蜜蜂模型
- *
- * 参考 MC 1.16.5 BeeModel
  */
 class BeeModel : public EntityModel {
 public:
@@ -191,7 +179,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_torso;
@@ -207,8 +195,6 @@ private:
 
 /**
  * @brief 狐狸模型
- *
- * 参考 MC 1.16.5 FoxModel
  */
 class FoxModel : public EntityModel {
 public:
@@ -220,7 +206,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_head;
     std::shared_ptr<ModelRenderer> m_rightEar;
@@ -236,8 +222,6 @@ private:
 
 /**
  * @brief 熊猫模型
- *
- * 参考 MC 1.16.5 PandaModel (extends QuadrupedModel)
  */
 class PandaModel : public EntityModel {
 public:
@@ -250,7 +234,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts(i32 textureOffset, f32 scale);
+    void _setupParts(i32 textureOffset, f32 scale);
 
     std::shared_ptr<ModelRenderer> m_head;
     std::shared_ptr<ModelRenderer> m_body;
@@ -262,8 +246,6 @@ private:
 
 /**
  * @brief 鹦鹉模型
- *
- * 参考 MC 1.16.5 ParrotModel
  */
 class ParrotModel : public EntityModel {
 public:
@@ -275,7 +257,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_tail;
@@ -292,8 +274,6 @@ private:
 
 /**
  * @brief 幻翼模型
- *
- * 参考 MC 1.16.5 PhantomModel
  */
 class PhantomModel : public EntityModel {
 public:
@@ -305,7 +285,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_leftWingBody;
@@ -318,8 +298,6 @@ private:
 
 /**
  * @brief 劫掠兽模型
- *
- * 参考 MC 1.16.5 RavagerModel
  */
 class RavagerModel : public EntityModel {
 public:
@@ -331,7 +309,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_head;
     std::shared_ptr<ModelRenderer> m_jaw;

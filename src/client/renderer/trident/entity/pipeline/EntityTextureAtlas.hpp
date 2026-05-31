@@ -57,8 +57,6 @@ struct EntityAtlasBuildResult {
  *
  * 管理所有实体纹理的图集，类似方块纹理图集。
  * 支持 MC 1.12 和 MC 1.13+ 的纹理路径格式。
- *
- * 参考 MC 1.16.5 EntityTextureManager
  */
 class EntityTextureAtlas {
 public:
@@ -233,7 +231,7 @@ private:
      * @param outHeight 输出高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadTextureWithFallback(mc::IResourcePack& pack,
+    [[nodiscard]] Result<void> _loadTextureWithFallback(mc::IResourcePack& pack,
         const ResourceLocation& location,
         std::vector<u8>& outData,
         u32& outWidth,
@@ -242,32 +240,32 @@ private:
     /**
      * @brief 创建纹理采样器
      */
-    [[nodiscard]] Result<void> createSampler();
+    [[nodiscard]] Result<void> _createSampler();
 
     /**
      * @brief 创建图像
      */
-    [[nodiscard]] Result<void> createImage(u32 width, u32 height);
+    [[nodiscard]] Result<void> _createImage(u32 width, u32 height);
 
     /**
      * @brief 上传纹理数据到图像
      */
-    [[nodiscard]] Result<void> uploadTextureData(const std::vector<u8>& data);
+    [[nodiscard]] Result<void> _uploadTextureData(const std::vector<u8>& data);
 
     /**
      * @brief 查找内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer cmd);
+    void _endSingleTimeCommands(VkCommandBuffer cmd);
 };
 
 } // namespace mc::client::renderer::entity::pipeline

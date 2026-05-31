@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 传送门粒子
- *
- * 参考 MC 1.16.5 PortalParticle
  *
  * 特性：
  * - 紫色半透明
@@ -63,9 +61,9 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;
-    static constexpr f64 DEFAULT_SIZE = 0.04f;
-    static constexpr f64 DEFAULT_LIFETIME = 50.0f; // 约 2.5 秒
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_SIZE = 0.04;
+    static constexpr f64 DEFAULT_LIFETIME = 50.0; // 约 2.5 秒
 
     f64 m_startX; ///< 初始 X 位置（用于水平摆动）
     f64 m_startZ; ///< 初始 Z 位置

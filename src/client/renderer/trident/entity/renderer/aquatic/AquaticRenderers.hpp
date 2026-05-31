@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/LivingRenderer.hpp"
-#include "../../model/aquatic/AquaticModels.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/model/aquatic/AquaticModels.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {
@@ -156,8 +156,7 @@ public:
 /**
  * @brief 河豚渲染器
  *
- * 参考 MC 1.16.5 PufferfishRenderer
- * 河豚有膨胀状态，使用不同大小的模型
+ * TODO: 河豚有膨胀状态，应使用不同大小的模型，当前暂用 CodModel
  */
 class PufferfishRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::CodModel> {
 public:

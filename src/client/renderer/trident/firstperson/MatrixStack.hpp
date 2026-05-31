@@ -122,8 +122,6 @@ struct Matrix4f {
  *     // 使用 stack.last() 渲染
  * stack.pop();
  * ```
- *
- * 参考 MC 1.16.5 MatrixStack
  */
 class MatrixStack {
 public:
@@ -141,7 +139,7 @@ public:
      * @brief 从栈弹出矩阵
      *
      * 恢复到上一个矩阵状态。
-     * 警告：栈为空时行为未定义。
+     * 前置条件：栈深度必须大于1（不能弹出栈底单位矩阵）。
      */
     void pop();
 

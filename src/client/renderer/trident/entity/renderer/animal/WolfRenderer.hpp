@@ -37,8 +37,6 @@ namespace mc::client::renderer::entity::renderer::animal {
 
 /**
  * @brief 狼渲染器
- *
- * 参考 MC 1.16.5 WolfRenderer
  */
 class WolfRenderer : public core::EntityRenderer {
 public:
@@ -54,7 +52,7 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::WolfEntity& entity) const;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 
     model::animal::WolfModel m_model;
     model::animal::WolfModel m_modelBaby;

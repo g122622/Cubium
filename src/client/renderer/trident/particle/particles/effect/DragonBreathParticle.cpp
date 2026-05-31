@@ -174,14 +174,13 @@ SweepAttackParticle::SweepAttackParticle(const glm::vec3& pos, const glm::vec3& 
 {
     mc::math::Random rng;
 
-    // MC 1.16.5: 固定生命周期 4 tick
+    // 固定生命周期 4 tick
     setMaxAge(4.0);
 
-    // MC 1.16.5: 颜色为随机灰白色
+    // 随机灰白色
     f32 gray = rng.nextFloat() * 0.6f + 0.4f;
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
-    // MC 1.16.5: scale = 1.0 - xSpeed * 0.5
     m_scaleMultiplier = 1.0 - velocity.x * 0.5;
 
     // 无重力、无摩擦、无碰撞
@@ -189,7 +188,7 @@ SweepAttackParticle::SweepAttackParticle(const glm::vec3& pos, const glm::vec3& 
     setFriction(1.0f);
     setHasPhysics(false);
 
-    // MC 1.16.5: 无运动
+    // 无运动
     m_velocity = glm::vec3(0.0f);
 }
 
@@ -213,12 +212,12 @@ void SweepAttackParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 1.16.5: 无运动，仅更新纹理帧
+    // 无运动，仅更新纹理帧
 }
 
 ResourceLocation SweepAttackParticle::getTextureLocation() const
 {
-    // MC 1.16.5: 根据年龄选择纹理帧（4帧）
+    // 根据年龄选择纹理帧（4帧）
     i32 frame = static_cast<i32>(m_age);
     frame = std::min(frame, 3);
     return ResourceLocation("minecraft:particle/sweep_" + std::to_string(frame));
@@ -227,7 +226,6 @@ ResourceLocation SweepAttackParticle::getTextureLocation() const
 f64 SweepAttackParticle::getScale(f64 partialTick) const
 {
     MC_UNUSED(partialTick);
-    // MC 1.16.5: scale = 1.0 - xSpeed * 0.5
     return m_scaleMultiplier;
 }
 

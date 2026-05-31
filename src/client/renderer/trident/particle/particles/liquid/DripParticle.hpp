@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 液体滴落粒子基类
- *
- * 参考 MC 1.16.5 DripParticle
  *
  * 用于实现水滴、熔岩滴、蜂蜜滴等液体滴落效果。
  *
@@ -126,28 +124,28 @@ protected:
     /**
      * @brief 悬挂更新逻辑
      *
-     * MC 1.16.5: 缓慢积累，积累满后转 Falling
+     * 缓慢积累，积累满后转 Falling
      */
     virtual void tickHanging(mc::client::ClientWorld* world);
 
     /**
      * @brief 下落更新逻辑
      *
-     * MC 1.16.5: 应用重力，检测与方块碰撞
+     * 应用重力，检测与方块碰撞
      */
     virtual void tickFalling(mc::client::ClientWorld* world);
 
     /**
      * @brief 落地处理
      *
-     * MC 1.16.5: 根据类型生成不同效果
+     * 根据类型生成不同效果
      */
     virtual void onLand(mc::client::ClientWorld* world);
 
     DripState m_dripState = DripState::Hanging;
     DripType m_type;
-    f64 m_dripProgress = 0.0f; ///< 悬挂积累进度 (0-1)
-    glm::vec3 m_hangPosition;  ///< 悬挂位置
+    f64 m_dripProgress = 0.0; ///< 悬挂积累进度 (0-1)
+    glm::vec3 m_hangPosition; ///< 悬挂位置
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

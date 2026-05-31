@@ -23,41 +23,41 @@
 
 #include "BlazeModel.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
+// TODO: ROD_ANGLE_OFFSET 和 ROD_FLOAT_SPEED 目前未使用，待动画系统完善后接入
 // 烟雾棒的旋转偏移（每根棒间隔30度）
 constexpr f64 ROD_ANGLE_OFFSET = mc::math::PI_DOUBLE / 6.0;
 // 棒的浮动偏移角度增量
 constexpr f64 ROD_FLOAT_SPEED = 0.5;
+// 第三层棒的初始旋转偏移（约27度）
+constexpr f64 ROD_LAYER3_INITIAL_OFFSET = 0.47123894;
 } // namespace
 
 BlazeModel::BlazeModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void BlazeModel::setupParts()
+void BlazeModel::_setupParts()
 {
-    // 参考 MC 1.16.5 BlazeModel
-    // 头部（主体）- Java原版没有调用setRotationPoint，默认是(0,0,0)
+    // 头部（主体）
     m_head = std::make_shared<model::ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-4.0f, -4.0f, -4.0f, 8.0f, 8.0f, 8.0f, 0.0);
-    // Java原版不设置rotationPoint，默认为(0,0,0)
     m_parts.push_back(m_head);
 
-    // 烟雾棒（12根）
-    // 参考 MC 1.16.5：棒围绕头部排列，随机浮动
-    // 棒尺寸：2x8x2（MC 1.16.5 使用 addBox(0.0F, 0.0F, 0.0F, 2.0F, 8.0F, 2.0F)）
+    // 烟雾棒（12根），围绕头部排列并随机浮动
     for (i32 i = 0; i < SMOKE_ROD_COUNT; ++i) {
         auto& rod = m_smokeRods[i];
         rod = std::make_shared<model::ModelRenderer>("smokeRod" + std::to_string(i));
 
-        // 棒尺寸：2x8x2 (MC 1.16.5)
+        // 棒尺寸：2x8x2
         rod->setTextureOffset(0, 16);
         rod->addBox(0.0f, 0.0f, 0.0f, 2.0f, 8.0f, 2.0f, 0.0);
 
@@ -69,16 +69,10 @@ void BlazeModel::setupParts()
 
 void BlazeModel::render(f64 scale)
 {
-    // 渲染头部
-    if (m_head) {
-        m_head->render(scale);
-    }
+    m_head->render(scale);
 
-    // 渲染烟雾棒
     for (auto& rod : m_smokeRods) {
-        if (rod) {
-            rod->render(scale);
-        }
+        rod->render(scale);
     }
 }
 
@@ -89,28 +83,23 @@ void BlazeModel::setAngles(
     (void)limbSwing;
     (void)limbSwingAmount;
 
-    // 参考 MC 1.16.5 BlazeModel.setRotationAngles
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleY(mc::math::toRadians(static_cast<f32>(netHeadYaw)));
+    m_head->setRotateAngleX(mc::math::toRadians(static_cast<f32>(headPitch)));
 
     // 烟雾棒动画 - 分三层，每层有不同的半径和Y偏移
-    // 参考 MC 1.16.5:
-    // 第1层 (0-3): 半径9，Y=-2 + cos((i*2 + ageInTicks) * 0.25)
-    // 第2层 (4-7): 半径7，Y=2 + cos((i*2 + ageInTicks) * 0.25)
-    // 第3层 (8-11): 半径5，Y=11 + cos((i*1.5 + ageInTicks) * 0.5)
+    // 第一层 (0-3): 半径9，Y=-2 + cos((i*2 + ageInTicks) * 0.25)
+    // 第二层 (4-7): 半径7，Y=2 + cos((i*2 + ageInTicks) * 0.25)
+    // 第三层 (8-11): 半径5，Y=11 + cos((i*1.5 + ageInTicks) * 0.5)
 
     // 第一层：棒 0-3
     f64 f = ageInTicks * mc::math::PI_DOUBLE * -0.1;
     for (i32 i = 0; i < 4; ++i) {
         auto& rod = m_smokeRods[i];
-        if (!rod) continue;
 
-        // Y坐标：-2 + cos((i*2 + ageInTicks) * 0.25)
         f32 y = -2.0f + static_cast<f32>(std::cos((i * 2.0 + ageInTicks) * 0.25));
         rod->setRotationPointY(y);
 
-        // X/Z 坐标围绕头部旋转
         f32 x = static_cast<f32>(std::cos(f) * 9.0);
         f32 z = static_cast<f32>(std::sin(f) * 9.0);
         rod->setRotationPointX(x);
@@ -123,13 +112,10 @@ void BlazeModel::setAngles(
     f = mc::math::PI_DOUBLE / 4.0 + ageInTicks * mc::math::PI_DOUBLE * 0.03;
     for (i32 i = 4; i < 8; ++i) {
         auto& rod = m_smokeRods[i];
-        if (!rod) continue;
 
-        // Y坐标：2 + cos((i*2 + ageInTicks) * 0.25)
         f32 y = 2.0f + static_cast<f32>(std::cos((i * 2.0 + ageInTicks) * 0.25));
         rod->setRotationPointY(y);
 
-        // X/Z 坐标围绕头部旋转
         f32 x = static_cast<f32>(std::cos(f) * 7.0);
         f32 z = static_cast<f32>(std::sin(f) * 7.0);
         rod->setRotationPointX(x);
@@ -139,16 +125,13 @@ void BlazeModel::setAngles(
     }
 
     // 第三层：棒 8-11
-    f = 0.47123894 + ageInTicks * mc::math::PI_DOUBLE * -0.05;
+    f = ROD_LAYER3_INITIAL_OFFSET + ageInTicks * mc::math::PI_DOUBLE * -0.05;
     for (i32 i = 8; i < 12; ++i) {
         auto& rod = m_smokeRods[i];
-        if (!rod) continue;
 
-        // Y坐标：11 + cos((i*1.5 + ageInTicks) * 0.5)
         f32 y = 11.0f + static_cast<f32>(std::cos((i * 1.5 + ageInTicks) * 0.5));
         rod->setRotationPointY(y);
 
-        // X/Z 坐标围绕头部旋转
         f32 x = static_cast<f32>(std::cos(f) * 5.0);
         f32 z = static_cast<f32>(std::sin(f) * 5.0);
         rod->setRotationPointX(x);

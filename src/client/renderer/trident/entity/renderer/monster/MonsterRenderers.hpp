@@ -43,8 +43,6 @@ using mc::LivingEntity;
 
 /**
  * @brief 僵尸渲染器
- *
- * 参考 MC 1.16.5 ZombieRenderer
  */
 class ZombieRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ZombieModel> {
 public:
@@ -55,13 +53,11 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 };
 
 /**
  * @brief 骷髅渲染器
- *
- * 参考 MC 1.16.5 SkeletonRenderer
  */
 class SkeletonRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SkeletonModel> {
 public:
@@ -72,13 +68,11 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 };
 
 /**
  * @brief 苦力怕渲染器
- *
- * 参考 MC 1.16.5 CreeperRenderer
  */
 class CreeperRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::CreeperModel> {
 public:
@@ -89,13 +83,11 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 };
 
 /**
  * @brief 蜘蛛渲染器
- *
- * 参考 MC 1.16.5 SpiderRenderer
  */
 class SpiderRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SpiderModel> {
 public:
@@ -106,13 +98,11 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 };
 
 /**
  * @brief 末影人渲染器
- *
- * 参考 MC 1.16.5 EndermanRenderer
  */
 class EndermanRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::EndermanModel> {
 public:
@@ -125,16 +115,12 @@ public:
     void render(Entity& entity, f64 partialTicks) override;
 
 private:
-    void setupLayers();
-
-    // 末影人特有状态
-    void updateEndermanState(::mc::LivingEntity& entity);
+    void _setupLayers();
+    void _updateEndermanState(::mc::LivingEntity& entity);
 };
 
 /**
  * @brief 烈焰人渲染器
- *
- * 参考 MC 1.16.5 BlazeRenderer
  */
 class BlazeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::BlazeModel> {
 public:
@@ -145,7 +131,7 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 };
 
 } // namespace mc::client::renderer::entity::renderer::monster

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -49,8 +49,6 @@ namespace mc::client::renderer::entity::layer::entity {
  * @brief 羊毛层渲染器
  *
  * 渲染羊身上的羊毛。支持染色羊毛的颜色和 jeb_ 彩虹羊。
- *
- * 参考 MC 1.16.5 SheepWoolLayer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
@@ -141,12 +139,12 @@ private:
     /**
      * @brief 构建羊毛网格
      */
-    void buildWoolMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildWoolMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建羊毛网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline);
 
     mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
     std::shared_ptr<TModel> m_woolModel;

@@ -22,12 +22,13 @@
  */
 
 #include "ItemRenderer.hpp"
-#include "../../../resource/ItemTextureAtlas.hpp"
-#include "../../../resource/ResourceManager.hpp"
-#include "../gui/GuiRenderer.hpp"
+#include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "client/resource/ItemTextureAtlas.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
 #include <spdlog/spdlog.h>
 
@@ -41,9 +42,8 @@ ItemRenderer::ItemRenderer()
 
 Result<void> ItemRenderer::initialize(ResourceManager* resourceManager, ItemTextureAtlas* itemTextureAtlas)
 {
-    if (resourceManager == nullptr) {
-        return Error(ErrorCode::NullPointer, "ResourceManager is null");
-    }
+    MC_ASSERT_RELEASE(resourceManager != nullptr);
+    MC_ASSERT_RELEASE(itemTextureAtlas != nullptr);
 
     m_resourceManager = resourceManager;
     m_itemTextureAtlas = itemTextureAtlas;
@@ -60,18 +60,15 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64
     }
 
     const Item* item = stack.getItem();
-    if (item == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(item != nullptr);
 
     renderItem(gui, item, x, y, size);
 }
 
 void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size)
 {
-    if (item == nullptr || !m_initialized) {
-        return;
-    }
+    MC_ASSERT_RELEASE(item != nullptr);
+    MC_ASSERT_RELEASE(m_initialized);
 
     const TextureRegion* region = getItemTextureRegion(item);
     if (region == nullptr) {
@@ -94,58 +91,48 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const TextureRegion& region
 
 bool ItemRenderer::isBlockItem(const Item* item) const
 {
-    if (item == nullptr) {
-        return false;
-    }
-
-    // 检查是否为BlockItem类型
-    const BlockItem* blockItem = dynamic_cast<const BlockItem*>(item);
-    return blockItem != nullptr;
+    // dynamic_cast 对 nullptr 输入返回 nullptr，无需额外判空
+    return dynamic_cast<const BlockItem*>(item) != nullptr;
 }
 
 const TextureRegion* ItemRenderer::getItemTextureRegion(const Item* item) const
 {
-    if (item == nullptr || !m_initialized) {
-        return nullptr;
-    }
+    MC_ASSERT_RELEASE(item != nullptr);
+    MC_ASSERT_RELEASE(m_initialized);
 
     // 统一优先使用物品图集，避免将方块图集UV错误用于GUI物品图集采样。
-    if (m_itemTextureAtlas != nullptr) {
-        if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(item->itemId())) {
-            return region;
-        }
-
-        const ResourceLocation& itemId = item->itemLocation();
-        const ResourceLocation itemPath(itemId.namespace_(), "item/" + itemId.path());
-        if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(itemPath)) {
-            return region;
-        }
-
-        const ResourceLocation itemTexturePath(itemId.namespace_(), "textures/item/" + itemId.path());
-        if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(itemTexturePath)) {
-            return region;
-        }
+    if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(item->itemId())) {
+        return region;
     }
 
-    // 首先检查是否为方块物品
+    const ResourceLocation& itemId = item->itemLocation();
+    const ResourceLocation itemPath(itemId.namespace_(), "item/" + itemId.path());
+    if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(itemPath)) {
+        return region;
+    }
+
+    const ResourceLocation itemTexturePath(itemId.namespace_(), "textures/item/" + itemId.path());
+    if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(itemTexturePath)) {
+        return region;
+    }
+
+    // 检查是否为方块物品
     const BlockItem* blockItem = dynamic_cast<const BlockItem*>(item);
     if (blockItem != nullptr) {
         // 方块物品：尝试方块纹理路径别名（ItemTextureAtlas 在加载时会建立别名）
         const ResourceLocation& blockId = blockItem->block().blockLocation();
-        if (m_itemTextureAtlas != nullptr) {
-            const ResourceLocation blockPath(blockId.namespace_(), "block/" + blockId.path());
-            if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(blockPath)) {
-                return region;
-            }
+        const ResourceLocation blockPath(blockId.namespace_(), "block/" + blockId.path());
+        if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(blockPath)) {
+            return region;
+        }
 
-            const ResourceLocation blockTexturePath(blockId.namespace_(), "textures/block/" + blockId.path());
-            if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(blockTexturePath)) {
-                return region;
-            }
+        const ResourceLocation blockTexturePath(blockId.namespace_(), "textures/block/" + blockId.path());
+        if (const TextureRegion* region = m_itemTextureAtlas->getItemTexture(blockTexturePath)) {
+            return region;
         }
 
         // 注意：不要回退到方块图集UV。
-        // GUI物品绘制固定采样“物品图集”，若返回方块图集的UV会导致采样错位。
+        // GUI物品绘制固定采样"物品图集"，若返回方块图集的UV会导致采样错位。
     }
 
     return nullptr;

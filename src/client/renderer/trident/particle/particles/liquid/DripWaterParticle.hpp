@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "DripParticle.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -34,8 +34,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 水滴粒子
- *
- * 参考 MC 1.16.5 DripParticle.DrippingWater / FallingWater / LandingWater
  *
  * 特性：
  * - 从含水方块下方滴落

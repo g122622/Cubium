@@ -22,6 +22,7 @@
  */
 
 #include "PlayerModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
@@ -224,28 +225,28 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount)
 
         case ArmPose::Item:
             // 持有物品：前伸
-            m_rightArm->setRotateAngleX(-0.7854f); // -45度
+            m_rightArm->setRotateAngleX(math::toRadians(-45.0f));
             m_rightArm->setRotateAngleY(0.0f);
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::Block:
             // 格挡（盾牌）
-            m_rightArm->setRotateAngleX(-0.9425f); // -54度
-            m_rightArm->setRotateAngleY(-0.5236f); // -30度
+            m_rightArm->setRotateAngleX(math::toRadians(-54.0f));
+            m_rightArm->setRotateAngleY(math::toRadians(-30.0f));
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::BowAndArrow:
             // 拉弓
-            m_rightArm->setRotateAngleX(-0.7854f); // -45度
-            m_rightArm->setRotateAngleY(-0.7854f); // -45度
+            m_rightArm->setRotateAngleX(math::toRadians(-45.0f));
+            m_rightArm->setRotateAngleY(math::toRadians(-45.0f));
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::ThrowSpear:
             // 投掷三叉戟
-            m_rightArm->setRotateAngleX(-2.3562f); // -135度
+            m_rightArm->setRotateAngleX(math::toRadians(-135.0f));
             m_rightArm->setRotateAngleY(0.0f);
             m_rightArm->setRotateAngleZ(0.0f);
             break;
@@ -253,15 +254,15 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount)
         case ArmPose::CrossbowCharge:
         case ArmPose::CrossbowHold:
             // 装填弩 / 持有弩
-            m_rightArm->setRotateAngleX(-0.7854f);
-            m_rightArm->setRotateAngleY(-0.3491f); // -20度
+            m_rightArm->setRotateAngleX(math::toRadians(-45.0f));
+            m_rightArm->setRotateAngleY(math::toRadians(-20.0f));
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::EatOrDrink:
             // 吃食物/喝药水
-            m_rightArm->setRotateAngleX(-0.8727f); // -50度
-            m_rightArm->setRotateAngleY(0.1745f);  // 10度
+            m_rightArm->setRotateAngleX(math::toRadians(-50.0f));
+            m_rightArm->setRotateAngleY(math::toRadians(10.0f));
             m_rightArm->setRotateAngleZ(0.0f);
             break;
 
@@ -279,27 +280,27 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount)
             break;
 
         case ArmPose::Item:
-            m_leftArm->setRotateAngleX(-0.7854f);
+            m_leftArm->setRotateAngleX(math::toRadians(-45.0f));
             m_leftArm->setRotateAngleY(0.0f);
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::Block:
-            m_leftArm->setRotateAngleX(-0.9425f);
-            m_leftArm->setRotateAngleY(0.5236f); // 30度
+            m_leftArm->setRotateAngleX(math::toRadians(-54.0f));
+            m_leftArm->setRotateAngleY(math::toRadians(30.0f));
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::BowAndArrow:
             // 拉弓时左臂也参与
-            m_leftArm->setRotateAngleX(-0.7854f);
-            m_leftArm->setRotateAngleY(0.7854f); // 45度
+            m_leftArm->setRotateAngleX(math::toRadians(-45.0f));
+            m_leftArm->setRotateAngleY(math::toRadians(45.0f));
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
         case ArmPose::EatOrDrink:
-            m_leftArm->setRotateAngleX(-0.8727f);
-            m_leftArm->setRotateAngleY(-0.1745f);
+            m_leftArm->setRotateAngleX(math::toRadians(-50.0f));
+            m_leftArm->setRotateAngleY(math::toRadians(-10.0f));
             m_leftArm->setRotateAngleZ(0.0f);
             break;
 
@@ -320,16 +321,16 @@ void PlayerModel::setupArmAngles(f64 limbSwing, f64 limbSwingAmount)
     // 潜行时调整手臂
     if (m_sneaking) {
         // 潜行时手臂略微前伸
-        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - 0.2618f); // -15度
-        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - 0.2618f);
+        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - math::toRadians(15.0f));
+        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - math::toRadians(15.0f));
     }
 }
 
 void PlayerModel::setupSneakingAngles()
 {
     // 潜行时身体前倾
-    m_body->setRotateAngleX(0.5f); // 约29度
-    m_bodyWear->setRotateAngleX(0.5f);
+    m_body->setRotateAngleX(math::toRadians(29.0f));
+    m_bodyWear->setRotateAngleX(math::toRadians(29.0f));
 
     // 腿部向后
     m_rightLeg->setRotationPoint(-2.0f, 14.0f, 2.0f);
@@ -341,18 +342,18 @@ void PlayerModel::setupSneakingAngles()
 void PlayerModel::setupSwimmingAngles()
 {
     // 游泳时身体水平
-    m_body->setRotateAngleX(math::PI * 0.5f); // 90度
-    m_bodyWear->setRotateAngleX(math::PI * 0.5f);
+    m_body->setRotateAngleX(math::HALF_PI);
+    m_bodyWear->setRotateAngleX(math::HALF_PI);
 
     // 头部抬起
-    m_head->setRotateAngleX(m_head->rotateAngleX() + 0.7854f); // +45度
+    m_head->setRotateAngleX(m_head->rotateAngleX() + math::toRadians(45.0f));
 }
 
 void PlayerModel::setupFallFlyingAngles()
 {
     // 鞘翅飞行时身体水平，手臂向后
-    m_body->setRotateAngleX(math::PI * 0.25f); // 45度
-    m_bodyWear->setRotateAngleX(math::PI * 0.25f);
+    m_body->setRotateAngleX(math::QUARTER_PI);
+    m_bodyWear->setRotateAngleX(math::QUARTER_PI);
 
     // 手臂向后伸
     m_rightArm->setRotateAngleX(math::PI);

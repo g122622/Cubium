@@ -105,7 +105,6 @@ ModelBox::ModelBox(i32 texOffX,
     }
 
     // 创建8个顶点
-    // 参考 MC 1.16.5 ModelBox 构造函数
     Vector3f v0(static_cast<f32>(x1), static_cast<f32>(y1), static_cast<f32>(z1)); // 左下后
     Vector3f v1(static_cast<f32>(x2), static_cast<f32>(y1), static_cast<f32>(z1)); // 右下后
     Vector3f v2(static_cast<f32>(x2), static_cast<f32>(y2), static_cast<f32>(z1)); // 右上后
@@ -116,7 +115,6 @@ ModelBox::ModelBox(i32 texOffX,
     Vector3f v7(static_cast<f32>(x1), static_cast<f32>(y2), static_cast<f32>(z2)); // 左上前
 
     // 计算UV坐标
-    // 参考 MC 1.16.5 纹理布局
     // 布局说明：
     // - 西面(X-): depth x height
     // - 东面(X+): depth x height
@@ -146,12 +144,9 @@ ModelBox::ModelBox(i32 texOffX,
 
     // 创建6个面
     // 注意：面的顶点顺序需要符合逆时针约定（从外部看）
-    // 面索引必须与 Java 原版 ModelRenderer.ModelBox 一致：
-    // quads[0] = EAST, quads[1] = WEST, quads[2] = DOWN, quads[3] = UP, quads[4] = NORTH, quads[5] = SOUTH
+    // 面索引：quads[0] = EAST, quads[1] = WEST, quads[2] = DOWN, quads[3] = UP, quads[4] = NORTH, quads[5] = SOUTH
 
     // 东面 (X+) - quads[0]
-    // Java: quads[0] = TexturedQuad({v4, v0, v1, v5}, f6, f11, f8, f12, ...)
-    // v4=左下前, v0=左下后, v1=右下后, v5=右下前 -> 顶点顺序需要调整
     quads[0] = TexturedQuad({v5, v1, v2, v6}, // 右下前, 右下后, 右上后, 右上前
         f6,
         f11,
@@ -163,9 +158,6 @@ ModelBox::ModelBox(i32 texOffX,
         mirror);
 
     // 西面 (X-) - quads[1]
-    // Java: quads[1] = TexturedQuad({vertex7, vertex3, vertex6, vertex2}, ...)
-    // vertex7=v0(左下后), vertex3=v4(左下前), vertex6=v7(左上前), vertex2=v3(左上后)
-    // 正确顺序: 左下后 -> 左下前 -> 左上前 -> 左上后
     quads[1] = TexturedQuad({v0, v4, v7, v3}, // 左下后, 左下前, 左上前, 左上后
         f4,
         f11,
@@ -177,7 +169,6 @@ ModelBox::ModelBox(i32 texOffX,
         mirror);
 
     // 下底面 (Y-) - quads[2]
-    // Java: quads[2] = TexturedQuad({v5, v4, v0, v1}, f5, f10, f6, f11, Direction.DOWN)
     quads[2] = TexturedQuad({v5, v4, v0, v1}, // 右下前, 左下前, 左下后, 右下后
         f5,
         f10,
@@ -189,7 +180,6 @@ ModelBox::ModelBox(i32 texOffX,
         mirror);
 
     // 上顶面 (Y+) - quads[3]
-    // Java: quads[3] = TexturedQuad({v2, v3, v7, v6}, f6, f11, f7, f10, Direction.UP)
     quads[3] = TexturedQuad({v2, v3, v7, v6}, // 右上后, 左上后, 左上前, 右上前
         f6,
         f11,
@@ -201,7 +191,6 @@ ModelBox::ModelBox(i32 texOffX,
         mirror);
 
     // 北面 (Z-) - quads[4]
-    // Java: quads[4] = TexturedQuad({v1, v0, v3, v2}, f5, f11, f6, f12, Direction.NORTH)
     quads[4] = TexturedQuad({v1, v0, v3, v2}, // 右下后, 左下后, 左上后, 右上后
         f5,
         f11,
@@ -213,7 +202,6 @@ ModelBox::ModelBox(i32 texOffX,
         mirror);
 
     // 南面 (Z+) - quads[5]
-    // Java: quads[5] = TexturedQuad({v4, v5, v6, v7}, f8, f11, f9, f12, Direction.SOUTH)
     quads[5] = TexturedQuad({v4, v5, v6, v7}, // 左下前, 右下前, 右上前, 左上前
         f8,
         f11,
@@ -329,19 +317,19 @@ void ModelRenderer::copyModelAngles(const ModelRenderer& other)
 // 矩阵工具
 // ============================================================================
 
-std::array<f64, 16> ModelRenderer::identityMatrix()
+std::array<f64, 16> ModelRenderer::_identityMatrix()
 {
-    return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    return {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<f64, 16> ModelRenderer::multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b)
+std::array<f64, 16> ModelRenderer::_multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b)
 {
     std::array<f64, 16> result;
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
+    for (i32 row = 0; row < 4; ++row) {
+        for (i32 col = 0; col < 4; ++col) {
             const auto resultIndex = static_cast<std::size_t>(row * 4 + col);
-            result[resultIndex] = 0.0f;
-            for (int k = 0; k < 4; ++k) {
+            result[resultIndex] = 0.0;
+            for (i32 k = 0; k < 4; ++k) {
                 result[resultIndex] +=
                     a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
             }
@@ -350,38 +338,38 @@ std::array<f64, 16> ModelRenderer::multiplyMatrices(const std::array<f64, 16>& a
     return result;
 }
 
-std::array<f64, 16> ModelRenderer::translationMatrix(f64 x, f64 y, f64 z)
+std::array<f64, 16> ModelRenderer::_translationMatrix(f64 x, f64 y, f64 z)
 {
-    return {1.0f, 0.0f, 0.0f, x, 0.0f, 1.0f, 0.0f, y, 0.0f, 0.0f, 1.0f, z, 0.0f, 0.0f, 0.0f, 1.0f};
+    return {1.0, 0.0, 0.0, x, 0.0, 1.0, 0.0, y, 0.0, 0.0, 1.0, z, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<f64, 16> ModelRenderer::rotationXMatrix(f64 angle)
-{
-    f64 c = std::cos(angle);
-    f64 s = std::sin(angle);
-    return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-}
-
-std::array<f64, 16> ModelRenderer::rotationYMatrix(f64 angle)
+std::array<f64, 16> ModelRenderer::_rotationXMatrix(f64 angle)
 {
     f64 c = std::cos(angle);
     f64 s = std::sin(angle);
-    return {c, 0.0f, s, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -s, 0.0f, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    return {1.0, 0.0, 0.0, 0.0, 0.0, c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<f64, 16> ModelRenderer::rotationZMatrix(f64 angle)
+std::array<f64, 16> ModelRenderer::_rotationYMatrix(f64 angle)
 {
     f64 c = std::cos(angle);
     f64 s = std::sin(angle);
-    return {c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    return {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
-std::array<f64, 16> ModelRenderer::scaleMatrix(f64 x, f64 y, f64 z)
+std::array<f64, 16> ModelRenderer::_rotationZMatrix(f64 angle)
 {
-    return {x, 0.0f, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 0.0f, z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    f64 c = std::cos(angle);
+    f64 s = std::sin(angle);
+    return {c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 }
 
-ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix)
+std::array<f64, 16> ModelRenderer::_scaleMatrix(f64 x, f64 y, f64 z)
+{
+    return {x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 0.0, 0.0, 0.0, 0.0, 1.0};
+}
+
+ModelVertex ModelRenderer::_transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix)
 {
     const f64* m = matrix.data();
     ModelVertex result;
@@ -395,7 +383,7 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
         static_cast<f32>(m[8] * vertex.position.x + m[9] * vertex.position.y + m[10] * vertex.position.z + m[11]);
 
     // 变换法线 (只使用旋转部分，假设矩阵是正交的)
-    // 对于包含缩放的矩阵，需要使用逆转置矩阵，但这里简化处理
+    // TODO: 对于包含缩放的矩阵，需要使用逆转置矩阵来正确变换法线
     result.normal.x = static_cast<f32>(m[0] * vertex.normal.x + m[1] * vertex.normal.y + m[2] * vertex.normal.z);
     result.normal.y = static_cast<f32>(m[4] * vertex.normal.x + m[5] * vertex.normal.y + m[6] * vertex.normal.z);
     result.normal.z = static_cast<f32>(m[8] * vertex.normal.x + m[9] * vertex.normal.y + m[10] * vertex.normal.z);
@@ -403,7 +391,7 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
     // 归一化法线
     f64 len = std::sqrt(
         result.normal.x * result.normal.x + result.normal.y * result.normal.y + result.normal.z * result.normal.z);
-    if (len > 0.0f) {
+    if (len > 0.0) {
         result.normal.x = static_cast<f32>(static_cast<f64>(result.normal.x) / len);
         result.normal.y = static_cast<f32>(static_cast<f64>(result.normal.y) / len);
         result.normal.z = static_cast<f32>(static_cast<f64>(result.normal.z) / len);
@@ -417,7 +405,7 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
 
 void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices, f64 scale) const
 {
-    auto matrix = identityMatrix();
+    auto matrix = _identityMatrix();
     generateMesh(vertices, indices, matrix, scale);
 }
 
@@ -431,25 +419,24 @@ void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
     }
 
     // 构建当前部件的变换矩阵
-    // 参考 MC 1.16.5 ModelRenderer.translateRotate()
 
-    // 1. 平移到旋转点 (rotationPoint / 16.0f)
-    auto translation = translationMatrix(m_rotationPointX * scale, m_rotationPointY * scale, m_rotationPointZ * scale);
+    // 1. 平移到旋转点 (rotationPoint / 16.0)
+    auto translation = _translationMatrix(m_rotationPointX * scale, m_rotationPointY * scale, m_rotationPointZ * scale);
 
-    // 2. 应用旋转 (顺序: Z -> Y -> X，与MC一致)
-    auto rotZ = rotationZMatrix(m_rotateAngleZ);
-    auto rotY = rotationYMatrix(m_rotateAngleY);
-    auto rotX = rotationXMatrix(m_rotateAngleX);
+    // 2. 应用旋转 (顺序: Z -> Y -> X)
+    auto rotZ = _rotationZMatrix(m_rotateAngleZ);
+    auto rotY = _rotationYMatrix(m_rotateAngleY);
+    auto rotX = _rotationXMatrix(m_rotateAngleX);
 
     // 3. 应用缩放
-    auto scaleMat = scaleMatrix(m_scaleX, m_scaleY, m_scaleZ);
+    auto scaleMat = _scaleMatrix(m_scaleX, m_scaleY, m_scaleZ);
 
     // 组合变换: parentMatrix * translation * rotZ * rotY * rotX * scale
-    auto matrix = multiplyMatrices(parentMatrix, translation);
-    matrix = multiplyMatrices(matrix, rotZ);
-    matrix = multiplyMatrices(matrix, rotY);
-    matrix = multiplyMatrices(matrix, rotX);
-    matrix = multiplyMatrices(matrix, scaleMat);
+    auto matrix = _multiplyMatrices(parentMatrix, translation);
+    matrix = _multiplyMatrices(matrix, rotZ);
+    matrix = _multiplyMatrices(matrix, rotY);
+    matrix = _multiplyMatrices(matrix, rotX);
+    matrix = _multiplyMatrices(matrix, scaleMat);
 
     // 渲染盒子
     for (const auto& box : m_boxes) {
@@ -463,7 +450,7 @@ void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
                 scaledVertex.position.x = static_cast<f32>(static_cast<f64>(scaledVertex.position.x) * scale);
                 scaledVertex.position.y = static_cast<f32>(static_cast<f64>(scaledVertex.position.y) * scale);
                 scaledVertex.position.z = static_cast<f32>(static_cast<f64>(scaledVertex.position.z) * scale);
-                ModelVertex transformed = transformVertex(scaledVertex, matrix);
+                ModelVertex transformed = _transformVertex(scaledVertex, matrix);
                 vertices.push_back(transformed);
             }
 
@@ -493,11 +480,7 @@ void ModelRenderer::render(f64 scale)
         return;
     }
 
-    // [NOT_NEEDED] 2026-05-15 - CPU 立即模式渲染已废弃
-    // 项目使用 GPU 管线路径（generateMesh -> EntityPipeline），不需要实现 CPU 渲染路径
-    // 此方法仅为遗留接口，所有运行时渲染都通过 renderWithPipeline() 完成
-    // 参见 EntityRendererManager::renderWithPipeline()
-
+    // TODO: 此废弃方法仅保留为遗留接口兼容，待所有调用方迁移到 generateMesh() 后移除
     (void)scale;
 
     // 渲染子部件
@@ -514,9 +497,7 @@ void ModelRenderer::renderNoRotate(f64 scale)
         return;
     }
 
-    // [NOT_NEEDED] 2026-05-15 - CPU 立即模式渲染已废弃
-    // 原因同 render()，项目使用 GPU 管线路径
-
+    // TODO: 此废弃方法仅保留为遗留接口兼容，待所有调用方迁移到 generateMesh() 后移除
     (void)scale;
 
     // 渲染子部件
@@ -536,21 +517,21 @@ void ModelRenderer::interpolateRotation(const Vector3f& target, f64 speed)
 
 void ModelRenderer::getTransformMatrix(std::array<f64, 16>& outMatrix) const
 {
-    // 构建变换矩阵，参考 MC 1.16.5 ModelRenderer.translateRotate()
-    // 使用 1/16 作为默认缩放（MC 单位到世界单位）
+    // 构建变换矩阵
+    // 使用 1/16 作为默认缩放（模型单位到世界单位）
 
     // 1. 平移到旋转点
-    auto translation = translationMatrix(m_rotationPointX, m_rotationPointY, m_rotationPointZ);
+    auto translation = _translationMatrix(m_rotationPointX, m_rotationPointY, m_rotationPointZ);
 
     // 2. 应用旋转 (顺序: Z -> Y -> X)
-    auto rotZ = rotationZMatrix(m_rotateAngleZ);
-    auto rotY = rotationYMatrix(m_rotateAngleY);
-    auto rotX = rotationXMatrix(m_rotateAngleX);
+    auto rotZ = _rotationZMatrix(m_rotateAngleZ);
+    auto rotY = _rotationYMatrix(m_rotateAngleY);
+    auto rotX = _rotationXMatrix(m_rotateAngleX);
 
     // 组合变换: translation * rotZ * rotY * rotX
-    outMatrix = multiplyMatrices(translation, rotZ);
-    outMatrix = multiplyMatrices(outMatrix, rotY);
-    outMatrix = multiplyMatrices(outMatrix, rotX);
+    outMatrix = _multiplyMatrices(translation, rotZ);
+    outMatrix = _multiplyMatrices(outMatrix, rotY);
+    outMatrix = _multiplyMatrices(outMatrix, rotX);
 }
 
 } // namespace mc::client::renderer::entity::model

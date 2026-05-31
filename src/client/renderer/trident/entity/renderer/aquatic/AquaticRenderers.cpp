@@ -26,4 +26,5 @@
 // 水生生物渲染器类定义在头文件中内联实现
 // 注册函数已移至 RendererRegistration.cpp 统一管理
 
-namespace mc::client::renderer::entity::renderer::aquatic {} // namespace mc::client::renderer::entity::renderer::aquatic
+namespace mc::client::renderer::entity::renderer::aquatic {
+} // namespace mc::client::renderer::entity::renderer::aquatic

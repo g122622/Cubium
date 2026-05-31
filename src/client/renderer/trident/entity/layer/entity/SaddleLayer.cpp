@@ -22,10 +22,10 @@
  */
 
 #include "SaddleLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include <cmath>
@@ -51,13 +51,13 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     TModel* parentModel = getParentModel();
     TModel* saddleModel = getSaddleModel();
 
-    // 如果有鞍模型和父模型，复制动画状态
-    if (saddleModel && parentModel) {
+    // 如果提供了鞍模型，复制父模型的动画状态
+    if (saddleModel) {
         saddleModel->copyAnglesFrom(*parentModel);
     }
 
     // 获取或创建鞍网格
-    pipeline::EntityMesh* mesh = getOrCreateSaddleMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateSaddleMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -68,7 +68,6 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     saddleTransform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 鞍的位置在背部中心
-    // 参考 MC 1.16.5 的鞍模型位置
     saddleTransform[3] = 0.0;  // X - 居中
     saddleTransform[7] = 1.0;  // Y - 背部高度
     saddleTransform[11] = 0.0; // Z - 略微向前
@@ -96,10 +95,6 @@ void SaddleLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, *mesh, saddleTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-
-    // spdlog::trace("SaddleLayer: Rendered saddle on entity");
-
-    (void)context;
 }
 
 template <typename TEntity, typename TModel>
@@ -112,7 +107,7 @@ void SaddleLayer<TEntity, TModel>::render(TEntity& entity,
     f32 headPitch,
     f32 scale)
 {
-    // CPU 路径已废弃
+    // TODO: CPU路径已废弃，待确认是否需要实现或完全移除
     (void)entity;
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -127,7 +122,6 @@ template <typename TEntity, typename TModel>
 bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 {
     // 检查实体是否装备了鞍
-    // MC 1.16.5: AbstractHorseEntity.isSaddled()
     // 或者检查胸部槽位是否有鞍物品
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         // 检查胸部槽位是否有鞍物品
@@ -140,9 +134,9 @@ bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 }
 
 template <typename TEntity, typename TModel>
-void SaddleLayer<TEntity, TModel>::buildSaddleMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void SaddleLayer<TEntity, TModel>::_buildSaddleMesh(
+    std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 的鞍模型
     // 鞍是一个简单的扁平形状，位于实体背部
 
     // 鞍的尺寸（世界单位）
@@ -210,7 +204,7 @@ void SaddleLayer<TEntity, TModel>::buildSaddleMesh(std::vector<model::ModelVerte
 }
 
 template <typename TEntity, typename TModel>
-pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::_getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline)
 {
     if (s_saddleMesh && s_saddleMesh->indexCount > 0) {
         return s_saddleMesh.get();
@@ -219,7 +213,7 @@ pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeli
     // 构建鞍网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildSaddleMesh(vertices, indices);
+    _buildSaddleMesh(vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;

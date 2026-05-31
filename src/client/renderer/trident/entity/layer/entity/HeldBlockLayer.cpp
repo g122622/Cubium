@@ -22,14 +22,14 @@
  */
 
 #include "HeldBlockLayer.hpp"
-#include "../../../chunk/ChunkMesher.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/world/block/Block.hpp"
-#include <cmath>
+#include <memory>
 #include <type_traits>
 #include <spdlog/spdlog.h>
 
@@ -42,16 +42,13 @@ void HeldBlockLayer<TEntity>::renderPipeline(TEntity& entity,
     pipeline::EntityPipeline& pipeline)
 {
     // 获取持有的方块
-    const ::mc::BlockState* blockState = getHeldBlock(entity);
+    const ::mc::BlockState* blockState = _getHeldBlock(entity);
     if (!blockState) {
         return;
     }
 
     // 末影人持有方块的位置
-    // 参考 MC 1.16.5: 方块在头部附近
-    renderBlockPipeline(*blockState, 0.0f, 0.6875f, 0.0f, cmd, context, pipeline);
-
-    (void)cmd;
+    _renderBlockPipeline(*blockState, 0.0f, 0.6875f, 0.0f, cmd, context, pipeline);
 }
 
 template <typename TEntity>
@@ -86,10 +83,9 @@ bool HeldBlockLayer<TEntity>::shouldRender(const TEntity& entity) const
 }
 
 template <typename TEntity>
-const ::mc::BlockState* HeldBlockLayer<TEntity>::getHeldBlock(const TEntity& entity) const
+const ::mc::BlockState* HeldBlockLayer<TEntity>::_getHeldBlock(const TEntity& entity) const
 {
     // 使用编译时类型检查：只有 EndermanEntity 有手持方块功能
-    // 参考 MC 1.16.5: EndermanEntity.getHeldBlockState()
     if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
         return entity.getHeldBlockState();
     }
@@ -97,7 +93,7 @@ const ::mc::BlockState* HeldBlockLayer<TEntity>::getHeldBlock(const TEntity& ent
 }
 
 template <typename TEntity>
-void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockState,
+void HeldBlockLayer<TEntity>::_renderBlockPipeline(const ::mc::BlockState& blockState,
     f32 x,
     f32 y,
     f32 z,
@@ -106,7 +102,7 @@ void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockS
     pipeline::EntityPipeline& pipeline)
 {
     // 获取或创建方块网格
-    pipeline::EntityMesh* mesh = getOrCreateBlockMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateBlockMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -121,19 +117,15 @@ void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockS
     blockTransform[11] = static_cast<f64>(z);
 
     // 方块略微缩放
-    const f32 blockScale = 0.5f; // 方块大小
+    const f32 blockScale = 0.5f;
     blockTransform[0] = blockScale;
     blockTransform[5] = blockScale;
     blockTransform[10] = blockScale;
 
-    // 获取实体位置（假设是末影人）
-    // 在完整实现中，应该从参数获取实体位置
+    // TODO: 从参数获取实体位置，而非硬编码
     Vector3f entityPos(0.0f, 0.0f, 0.0f);
 
     // 获取方块默认着色颜色
-    // 参考 MC 1.16.5 HeldBlockLayer: 当末影人持有方块时，
-    // 由于没有世界/位置信息，使用 BlockColors.getColor(state, null, null, 0)
-    // 这会返回默认颜色（grass colormap 中心点、固定树叶颜色等）
     const u32 tintColor = ChunkMesher::getDefaultBlockTintColor(&blockState);
 
     // 从打包颜色提取 RGBA 分量
@@ -145,17 +137,13 @@ void HeldBlockLayer<TEntity>::renderBlockPipeline(const ::mc::BlockState& blockS
 
     pipeline.drawMesh(cmd, *mesh, blockTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
 
-    // spdlog::trace(
-    //     "HeldBlockLayer: Rendered held block at ({}, {}, {}) with color ({}, {}, {}, {})", x, y, z, r, g, b, a);
-
     (void)context;
 }
 
 template <typename TEntity>
-void HeldBlockLayer<TEntity>::buildBlockMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void HeldBlockLayer<TEntity>::_buildBlockMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 构建简单的立方体方块网格
-    // 实际实现应该从方块模型获取网格数据
+    // TODO: 当前构建的是简单立方体网格，应改为从方块模型获取网格数据
 
     constexpr f32 HALF = 0.5f;
 
@@ -217,7 +205,7 @@ void HeldBlockLayer<TEntity>::buildBlockMesh(std::vector<model::ModelVertex>& ve
 }
 
 template <typename TEntity>
-pipeline::EntityMesh* HeldBlockLayer<TEntity>::getOrCreateBlockMesh(pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* HeldBlockLayer<TEntity>::_getOrCreateBlockMesh(pipeline::EntityPipeline& pipeline)
 {
     // 使用静态缓存
     static std::unique_ptr<pipeline::EntityMesh> s_blockMesh;
@@ -229,7 +217,7 @@ pipeline::EntityMesh* HeldBlockLayer<TEntity>::getOrCreateBlockMesh(pipeline::En
     // 构建方块网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildBlockMesh(vertices, indices);
+    _buildBlockMesh(vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;

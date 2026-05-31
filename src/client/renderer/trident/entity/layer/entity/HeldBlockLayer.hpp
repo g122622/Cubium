@@ -23,12 +23,10 @@
 
 #pragma once
 
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -54,8 +52,6 @@ namespace mc::client::renderer::entity::layer::entity {
  * - 只有 `EndermanEntity` 有手持方块功能
  * - 从 `EndermanEntity::getHeldBlockState()` 获取方块状态
  * - 从 `EndermanEntity::isHoldingBlock()` 判断是否渲染
- *
- * 参考 MC 1.16.5 HeldBlockLayer (for Enderman)
  *
  * @tparam TEntity 实体类型
  */
@@ -94,12 +90,12 @@ private:
     /**
      * @brief 获取实体持有的方块状态
      */
-    [[nodiscard]] const ::mc::BlockState* getHeldBlock(const TEntity& entity) const;
+    [[nodiscard]] const ::mc::BlockState* _getHeldBlock(const TEntity& entity) const;
 
     /**
      * @brief 渲染持有的方块（GPU管线路径）
      */
-    void renderBlockPipeline(const ::mc::BlockState& blockState,
+    void _renderBlockPipeline(const ::mc::BlockState& blockState,
         f32 x,
         f32 y,
         f32 z,
@@ -110,12 +106,12 @@ private:
     /**
      * @brief 构建简单方块网格
      */
-    void buildBlockMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildBlockMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建方块网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateBlockMesh(pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(pipeline::EntityPipeline& pipeline);
 };
 
 } // namespace mc::client::renderer::entity::layer::entity

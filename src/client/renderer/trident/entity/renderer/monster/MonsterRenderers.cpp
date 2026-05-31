@@ -22,10 +22,10 @@
  */
 
 #include "MonsterRenderers.hpp"
-#include "../../layer/effect/EnergyGlintLayer.hpp"
-#include "../../layer/effect/EyesLayer.hpp"
-#include "../../layer/entity/HeldBlockLayer.hpp"
-#include "../../layer/equipment/HeldItemLayer.hpp"
+#include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
+#include "client/renderer/trident/entity/layer/effect/EyesLayer.hpp"
+#include "client/renderer/trident/entity/layer/entity/HeldBlockLayer.hpp"
+#include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
@@ -40,7 +40,7 @@ ZombieRenderer::ZombieRenderer()
 {
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation ZombieRenderer::getEntityTexture(LivingEntity& entity)
@@ -55,15 +55,10 @@ ResourceLocation ZombieRenderer::getEntityTexture(const LivingEntity& entity) co
     return ResourceLocation("minecraft", "textures/entity/zombie/zombie.png");
 }
 
-void ZombieRenderer::setupLayers()
+void ZombieRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 ZombieRenderer 构造函数
-    // 僵尸有以下层渲染器：
-    // - BipedArmorLayer（盔甲）
-    // - HeldItemLayer（手持物品）
-    // - HeadLayer（头部物品 - 仅僵尸村民）
-    // 注意：ArmorLayer 需要渲染器引用，暂时注释
-    // addLayer<layer_equipment::ArmorLayer<LivingEntity, model::monster::ZombieModel>>(*this);
+    // 僵尸层渲染器：HeldItemLayer（手持物品）
+    // TODO: ArmorLayer 需要渲染器引用，待实现后添加
     addLayer<layer_equipment::HeldItemLayer<LivingEntity>>();
 }
 
@@ -73,7 +68,7 @@ SkeletonRenderer::SkeletonRenderer()
 {
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation SkeletonRenderer::getEntityTexture(LivingEntity& entity)
@@ -88,13 +83,10 @@ ResourceLocation SkeletonRenderer::getEntityTexture(const LivingEntity& entity) 
     return ResourceLocation("minecraft", "textures/entity/skeleton/skeleton.png");
 }
 
-void SkeletonRenderer::setupLayers()
+void SkeletonRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 SkeletonRenderer 构造函数
-    // 骷髅有以下层渲染器：
-    // - BipedArmorLayer（盔甲）
-    // - HeldItemLayer（手持物品）
-    // addLayer<layer_equipment::ArmorLayer<LivingEntity, model::monster::SkeletonModel>>(*this);
+    // 骷髅层渲染器：HeldItemLayer（手持物品）
+    // TODO: ArmorLayer 需要渲染器引用，待实现后添加
     addLayer<layer_equipment::HeldItemLayer<LivingEntity>>();
 }
 
@@ -104,7 +96,7 @@ CreeperRenderer::CreeperRenderer()
 {
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation CreeperRenderer::getEntityTexture(LivingEntity& entity)
@@ -119,11 +111,9 @@ ResourceLocation CreeperRenderer::getEntityTexture(const LivingEntity& entity) c
     return ResourceLocation("minecraft", "textures/entity/creeper/creeper.png");
 }
 
-void CreeperRenderer::setupLayers()
+void CreeperRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 CreeperRenderer 构造函数
-    // 苦力怕有以下层渲染器：
-    // - EnergySwirlLayer（充能光效，当闪电苦力怕时）
+    // 苦力怕层渲染器：EnergySwirlLayer（充能光效，当闪电苦力怕时）
     addLayer<layer_effect::EnergyGlintLayer<LivingEntity>>();
 }
 
@@ -133,7 +123,7 @@ SpiderRenderer::SpiderRenderer()
 {
     setShadowSize(0.7f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation SpiderRenderer::getEntityTexture(LivingEntity& entity)
@@ -148,12 +138,10 @@ ResourceLocation SpiderRenderer::getEntityTexture(const LivingEntity& entity) co
     return ResourceLocation("minecraft", "textures/entity/spider/spider.png");
 }
 
-void SpiderRenderer::setupLayers()
+void SpiderRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 SpiderRenderer 构造函数
-    // 蜘蛛有以下层渲染器：
-    // - EyesLayer（发光眼睛）
-    // - SaddleLayer（鞍，如果是洞穴蜘蛛骑乘时）
+    // 蜘蛛层渲染器：EyesLayer（发光眼睛）
+    // TODO: SaddleLayer（鞍，洞穴蜘蛛骑乘时），待实现后添加
     addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::SpiderModel>>(*this);
 }
 
@@ -163,7 +151,7 @@ EndermanRenderer::EndermanRenderer()
 {
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation EndermanRenderer::getEntityTexture(LivingEntity& entity)
@@ -181,34 +169,20 @@ ResourceLocation EndermanRenderer::getEntityTexture(const LivingEntity& entity) 
 void EndermanRenderer::render(Entity& entity, f64 partialTicks)
 {
     auto& living = static_cast<LivingEntity&>(entity);
-    updateEndermanState(living);
+    _updateEndermanState(living);
     LivingRenderer::render(entity, partialTicks);
 }
 
-void EndermanRenderer::updateEndermanState(LivingEntity& entity)
+void EndermanRenderer::_updateEndermanState(LivingEntity& entity)
 {
-    // 参考 MC 1.16.5 EndermanRenderer.render()
-    // model.isCarrying = blockstate != null;
-    // model.isAttacking = entityIn.isScreaming();
-
-    // 使用 dynamic_cast 安全地转换为 EndermanEntity
-    auto* enderman = dynamic_cast<::mc::EndermanEntity*>(&entity);
-    if (enderman != nullptr) {
-        m_model.setCarrying(enderman->isHoldingBlock());
-        m_model.setAttacking(enderman->isScreaming());
-    } else {
-        m_model.setCarrying(false);
-        m_model.setAttacking(false);
-    }
+    auto& enderman = static_cast<::mc::EndermanEntity&>(entity);
+    m_model.setCarrying(enderman.isHoldingBlock());
+    m_model.setAttacking(enderman.isScreaming());
 }
 
-void EndermanRenderer::setupLayers()
+void EndermanRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 EndermanRenderer 构造函数
-    // 末影人有以下层渲染器：
-    // - HeldBlockLayer（手持方块）
-    // - EyesLayer（发光眼睛）
-    // 注意：HeldBlockLayer<LivingEntity> 使用 if constexpr 在运行时检查 EndermanEntity
+    // 末影人层渲染器：HeldBlockLayer（手持方块）、EyesLayer（发光眼睛）
     addLayer<layer::entity::HeldBlockLayer<LivingEntity>>();
     addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::EndermanModel>>(*this);
 }
@@ -219,7 +193,7 @@ BlazeRenderer::BlazeRenderer()
 {
     setShadowSize(0.5f);
     setShadowAlpha(0.8f);
-    setupLayers();
+    _setupLayers();
 }
 
 ResourceLocation BlazeRenderer::getEntityTexture(LivingEntity& entity)
@@ -234,9 +208,8 @@ ResourceLocation BlazeRenderer::getEntityTexture(const LivingEntity& entity) con
     return ResourceLocation("minecraft", "textures/entity/blaze.png");
 }
 
-void BlazeRenderer::setupLayers()
+void BlazeRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 BlazeRenderer 构造函数
     // 烈焰人没有特殊的层渲染器
 }
 

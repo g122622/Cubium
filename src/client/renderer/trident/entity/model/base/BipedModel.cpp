@@ -29,7 +29,7 @@
 namespace mc::client::renderer::entity::model {
 
 BipedModel::BipedModel()
-    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f) // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
+    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f)
 {
     setTextureSize(64, 32);
     m_modelScale = 0.0f;
@@ -57,7 +57,7 @@ BipedModel::BipedModel()
 }
 
 BipedModel::BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
-    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f) // 参考 Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F)
+    : AgeableModel(true, 16.0f, 0.0f, 2.0f, 2.0f, 24.0f)
 {
     setTextureSize(textureWidth, textureHeight);
     m_modelScale = scale;
@@ -86,43 +86,38 @@ BipedModel::BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeig
 
 void BipedModel::setupParts()
 {
-    // 参考 MC 1.16.5 BipedModel 构造函数
-    // Java: super(true, 16.0F, 0.0F, 2.0F, 2.0F, 24.0F) - AgeableModel 参数
-
-    // 头部 - Java: tex (0, 0)
+    // 头部
     m_bipedHead->setTextureOffset(0, 0);
     m_bipedHead->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, m_modelScale);
     m_bipedHead->setRotationPoint(0.0f, 0.0f + m_yOffset, 0.0f);
 
-    // 帽子层 - Java: tex (32, 0), scale + 0.5F
+    // 帽子层（膨胀 +0.5）
     m_bipedHeadwear->setTextureOffset(32, 0);
     m_bipedHeadwear->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, m_modelScale + 0.5f);
     m_bipedHeadwear->setRotationPoint(0.0f, 0.0f + m_yOffset, 0.0f);
 
-    // 身体 - Java: tex (16, 16)
+    // 身体
     m_bipedBody->setTextureOffset(16, 16);
     m_bipedBody->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, m_modelScale);
     m_bipedBody->setRotationPoint(0.0f, 0.0f + m_yOffset, 0.0f);
 
-    // 右臂 - Java: tex (40, 16)
+    // 右臂
     m_bipedRightArm->setTextureOffset(40, 16);
     m_bipedRightArm->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, m_modelScale);
     m_bipedRightArm->setRotationPoint(-5.0f, 2.0f + m_yOffset, 0.0f);
 
-    // 左臂 - Java: tex (40, 16), mirror=true
+    // 左臂（镜像）
     m_bipedLeftArm->setTextureOffset(40, 16);
     m_bipedLeftArm->setMirror(true);
     m_bipedLeftArm->addBox(-1.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, m_modelScale);
     m_bipedLeftArm->setRotationPoint(5.0f, 2.0f + m_yOffset, 0.0f);
 
-    // 右腿 - Java: tex (0, 16)
-    // 注意: X 偏移是 -1.9F，不是 -2.0F
+    // 右腿（注意 X 偏移是 -1.9 而非 -2.0）
     m_bipedRightLeg->setTextureOffset(0, 16);
     m_bipedRightLeg->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, m_modelScale);
     m_bipedRightLeg->setRotationPoint(-1.9f, 12.0f + m_yOffset, 0.0f);
 
-    // 左腿 - Java: tex (0, 16), mirror=true
-    // 注意: X 偏移是 1.9F，不是 2.0F
+    // 左腿（镜像，注意 X 偏移是 1.9 而非 2.0）
     m_bipedLeftLeg->setTextureOffset(0, 16);
     m_bipedLeftLeg->setMirror(true);
     m_bipedLeftLeg->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, m_modelScale);
@@ -147,14 +142,11 @@ void BipedModel::render(f64 scale)
 void BipedModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
 {
     // 子类可重写此方法设置游泳动画等状态
-    // Java: this.swimAnimation = entityIn.getSwimAnimation(partialTick);
 }
 
 void BipedModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
 {
-    // 参考 MC 1.16.5 BipedModel.setRotationAngles
-
     bool isElytraFlying = m_elytraFlyingTicks > 4;
     bool isActuallySwimming = m_isActuallySwimming;
 
@@ -189,9 +181,7 @@ void BipedModel::setAngles(
     // 速度因子
     f32 f = 1.0f;
     if (isElytraFlying) {
-        // Java: f = (float)entityIn.getMotion().lengthSquared();
-        // f = f / 0.2F; f = f * f * f;
-        // 简化处理，保持 f = 1.0f
+        // TODO: 计算鞘翅飞行速度因子，需要从实体获取运动向量
     }
     if (f < 1.0f) {
         f = 1.0f;
@@ -201,7 +191,7 @@ void BipedModel::setAngles(
     f32 limbSwingFloat = static_cast<f32>(limbSwing);
     f32 limbSwingAmountFloat = static_cast<f32>(limbSwingAmount);
 
-    // 手臂摆动 - Java: MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 2.0F * limbSwingAmount * 0.5F / f
+    // 手臂摆动
     m_bipedRightArm->setRotateAngleX(static_cast<f32>(
         std::cos(limbSwingFloat * 0.6662f + mc::math::PI_DOUBLE) * 2.0 * limbSwingAmountFloat * 0.5 / f));
     m_bipedLeftArm->setRotateAngleX(
@@ -210,7 +200,7 @@ void BipedModel::setAngles(
     m_bipedRightArm->setRotateAngleZ(0.0f);
     m_bipedLeftArm->setRotateAngleZ(0.0f);
 
-    // 腿部动画 - Java: cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount / f
+    // 腿部动画
     m_bipedRightLeg->setRotateAngleX(
         static_cast<f32>(std::cos(limbSwingFloat * 0.6662f) * 1.4 * limbSwingAmountFloat / f));
     m_bipedLeftLeg->setRotateAngleX(
@@ -234,13 +224,11 @@ void BipedModel::setAngles(
         m_bipedLeftLeg->setRotateAngleZ(-0.07853982f);
     }
 
-    // 手臂姿态处理 - 参考 Java: 根据主手和姿态类型决定处理顺序
+    // 手臂姿态处理 - 根据主手和姿态类型决定处理顺序
     m_bipedRightArm->setRotateAngleY(0.0f);
     m_bipedLeftArm->setRotateAngleY(0.0f);
 
-    // Java: boolean flag2 = entityIn.getPrimaryHand() == HandSide.RIGHT;
-    // boolean flag3 = flag2 ? this.leftArmPose.func_241657_a_() : this.rightArmPose.func_241657_a_();
-    // func_241657_a_() 返回是否需要双臂协调（弓箭、弩等）
+    // 判断是否需要双臂协调（弓箭、弩等姿态会影响另一只手臂的处理顺序）
     bool isRightHanded = (m_mainHand == HandSide::Right);
     bool needsCrossArmCoord = isRightHanded
         ? (m_leftArmPose == ArmPose::BowAndArrow || m_leftArmPose == ArmPose::CrossbowCharge ||
@@ -297,7 +285,6 @@ void BipedModel::setAngles(
 
 void BipedModel::handleSwimAnimation(f64 limbSwing)
 {
-    // 参考 MC 1.16.5 BipedModel.setRotationAngles 中的游泳动画部分
     f32 f1 = static_cast<f32>(std::fmod(limbSwing, 26.0));
     HandSide mainHand = getMainHand();
     f32 f2 = (mainHand == HandSide::Right && m_swingProgress > 0.0f) ? 0.0f : m_swimAnimation;
@@ -356,30 +343,25 @@ void BipedModel::handleSwimAnimation(f64 limbSwing)
 
 void BipedModel::handleRightArmPose()
 {
-    // 参考 MC 1.16.5 BipedModel.func_241654_b_
     switch (m_rightArmPose) {
         case ArmPose::Empty:
             m_bipedRightArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::Block:
-            // Java: rotateAngleX * 0.5F - 0.9424779F
             m_bipedRightArm->setRotateAngleX(m_bipedRightArm->rotateAngleX() * 0.5f - 0.9424779f);
             m_bipedRightArm->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0));
             break;
         case ArmPose::Item:
-            // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE / 10F
             m_bipedRightArm->setRotateAngleX(
                 m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
             m_bipedRightArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::ThrowSpear:
-            // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE
             m_bipedRightArm->setRotateAngleX(
                 m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
             m_bipedRightArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::BowAndArrow:
-            // Java: 头部关联
             m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY());
             m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY() + 0.4f);
             m_bipedRightArm->setRotateAngleX(
@@ -387,14 +369,12 @@ void BipedModel::handleRightArmPose()
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
-            // Java: ModelHelper.func_239102_a_(this.bipedRightArm, this.bipedLeftArm, entityIn, true)
-            // 简化实现
+            // TODO: 实现完整的弩装填动画（需要动画进度参数）
             m_bipedRightArm->setRotateAngleY(m_bipedHead->rotateAngleY());
             m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             break;
         case ArmPose::CrossbowHold:
-            // Java: ModelHelper.func_239104_a_(this.bipedRightArm, this.bipedLeftArm, this.bipedHead, true)
-            // 简化实现
+            // TODO: 实现完整的弩持握动画（需要动画进度参数）
             m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY());
             m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             break;
@@ -403,30 +383,26 @@ void BipedModel::handleRightArmPose()
 
 void BipedModel::handleLeftArmPose()
 {
-    // 参考 MC 1.16.5 BipedModel.func_241655_c_
     switch (m_leftArmPose) {
         case ArmPose::Empty:
             m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::Block:
-            // Java: rotateAngleX * 0.5F - 0.9424779F
             m_bipedLeftArm->setRotateAngleX(m_bipedLeftArm->rotateAngleX() * 0.5f - 0.9424779f);
             m_bipedLeftArm->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 6.0));
             break;
         case ArmPose::Item:
-            // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE / 10F
             m_bipedLeftArm->setRotateAngleX(
                 m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 10.0));
             m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::ThrowSpear:
-            // Java: rotateAngleX * 0.5F - mc::math::PI_DOUBLE
             m_bipedLeftArm->setRotateAngleX(
                 m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
             m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
         case ArmPose::BowAndArrow:
-            // Java: 头部关联（已在右手处理中设置）
+            // 弓箭姿态：左手跟随头部方向（右手的关联已在 handleRightArmPose 中设置）
             m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY() - 0.4f);
             m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY());
             m_bipedRightArm->setRotateAngleX(
@@ -434,14 +410,12 @@ void BipedModel::handleLeftArmPose()
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
-            // Java: ModelHelper.func_239102_a_(this.bipedRightArm, this.bipedLeftArm, entityIn, false)
-            // 简化实现
+            // TODO: 实现完整的弩装填动画（需要动画进度参数）
             m_bipedLeftArm->setRotateAngleY(m_bipedHead->rotateAngleY());
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             break;
         case ArmPose::CrossbowHold:
-            // Java: ModelHelper.func_239104_a_(this.bipedRightArm, this.bipedLeftArm, this.bipedHead, false)
-            // 简化实现
+            // TODO: 实现完整的弩持握动画（需要动画进度参数）
             m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY());
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             break;
@@ -450,7 +424,6 @@ void BipedModel::handleLeftArmPose()
 
 void BipedModel::handleSwingAnimation(f64 /*ageInTicks*/)
 {
-    // 参考 MC 1.16.5 BipedModel.func_230486_a_
     if (m_swingProgress <= 0.0f) {
         return;
     }
@@ -505,8 +478,7 @@ void BipedModel::setVisible(bool visible)
 
 void BipedModel::copyModelAttributesTo(BipedModel& target) const
 {
-    // 参考 MC 1.16.5 BipedModel.setModelAttributes()
-    // super.copyModelAttributesTo(modelIn) - 复制 EntityModel 的属性
+    // 复制 EntityModel 的属性
     target.setSwingProgress(m_swingProgress);
     target.setSitting(m_isSitting);
     target.setChild(m_isChild);
@@ -518,7 +490,7 @@ void BipedModel::copyModelAttributesTo(BipedModel& target) const
     target.m_swimAnimation = m_swimAnimation;
     target.m_mainHand = m_mainHand;
 
-    // 复制部件角度 - Java: modelIn.bipedHead.copyModelAngles(this.bipedHead) 等
+    // 复制部件角度
     target.m_bipedHead->copyModelAngles(*m_bipedHead);
     target.m_bipedHeadwear->copyModelAngles(*m_bipedHeadwear);
     target.m_bipedBody->copyModelAngles(*m_bipedBody);
@@ -561,10 +533,7 @@ f32 BipedModel::getArmAngleSq(f32 limbSwing)
 
 void BipedModel::translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const
 {
-    // 参考 MC 1.16.5 BipedModel.translateHand
-    // 调用手臂的 translateRotate 方法来构建变换矩阵
-    // Java: this.getArmForSide(sideIn).translateRotate(matrixStackIn);
-
+    // 获取指定手侧的手臂，并构建其变换矩阵
     const auto& arm = (handSide == HandSide::Left) ? m_bipedLeftArm : m_bipedRightArm;
 
     if (!arm) {
@@ -574,7 +543,6 @@ void BipedModel::translateHand(HandSide handSide, std::array<f64, 16>& outMatrix
     }
 
     // 获取手臂的变换矩阵
-    // 参考 ModelRenderer::getTransformMatrix 的实现
     arm->getTransformMatrix(outMatrix);
 }
 

@@ -28,18 +28,17 @@ namespace mc::client::renderer::trident::particle::particles {
 
 UnderwaterParticle::UnderwaterParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialAlpha(0.4f)
 {
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
-    m_initialAlpha = 0.2f + rng.nextFloat() * 0.3f;
-    setColor(glm::vec4(0.6f, 0.8f, 1.0f, m_initialAlpha));
+    setSize(DEFAULT_SIZE * (0.8 + rng.nextFloat() * 0.4));
+    m_initialAlpha = 0.2 + rng.nextFloat() * 0.3;
+    setColor(glm::vec4(0.6f, 0.8f, 1.0f, static_cast<f32>(m_initialAlpha)));
 
-    setFriction(0.95f);
+    setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7f + rng.nextFloat() * 0.6f));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
 }
 
 std::unique_ptr<Particle> UnderwaterParticle::create(
@@ -55,7 +54,7 @@ void UnderwaterParticle::tick(mc::client::ClientWorld* world)
 
     m_prevPosition = m_position;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
@@ -63,17 +62,17 @@ void UnderwaterParticle::tick(mc::client::ClientWorld* world)
 
     // 缓慢随机漂移
     mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.y += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.y += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.z += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
 
     m_position += m_velocity;
-    m_velocity *= m_friction;
+    m_velocity *= static_cast<f32>(m_friction);
 
     // 淡出
     f64 lifeRatio = m_age / m_maxAge;
-    if (lifeRatio > 0.6f) {
-        m_color.a = m_initialAlpha * (1.0f - (lifeRatio - 0.6f) / 0.4f);
+    if (lifeRatio > FADE_START_RATIO) {
+        m_color.a = static_cast<f32>(m_initialAlpha * (1.0 - (lifeRatio - FADE_START_RATIO) / FADE_RANGE));
     }
 }
 

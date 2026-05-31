@@ -23,17 +23,16 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
+#include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <memory>
-#include "../base/QuadrupedModel.hpp"
-#include "../core/AgeableModel.hpp"
-#include "../core/EntityModel.hpp"
 
+// TODO 把这个文件拆成多个文件，每个模型一个文件，放在 model/animal 目录下
 namespace mc::client::renderer::entity::model::animal {
 
 /**
  * @brief 猪模型
- *
- * 参考 MC 1.16.5 PigModel
  */
 class PigModel : public QuadrupedModel {
 public:
@@ -46,8 +45,6 @@ public:
 
 /**
  * @brief 牛模型
- *
- * 参考 MC 1.16.5 CowModel
  */
 class CowModel : public QuadrupedModel {
 public:
@@ -56,14 +53,10 @@ public:
 
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
-
-private:
 };
 
 /**
  * @brief 羊模型
- *
- * 参考 MC 1.16.5 SheepModel
  */
 class SheepModel : public QuadrupedModel {
 public:
@@ -75,8 +68,6 @@ public:
 
     /**
      * @brief 设置生物动画状态（每帧调用）
-     *
-     * 参考 MC 1.16.5 SheepModel.setLivingAnimations
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 
@@ -119,7 +110,6 @@ private:
 /**
  * @brief 鸡模型
  *
- * 参考 MC 1.16.5 ChickenModel
  * 继承 AgeableModel 以支持幼体渲染
  */
 class ChickenModel : public AgeableModel {

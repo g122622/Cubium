@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../item/ItemMeshBuilder.hpp"
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../model/core/EntityModel.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/Item.hpp"
@@ -58,8 +58,6 @@ namespace mc::client::renderer::entity::layer::equipment {
  * - 靴子
  *
  * 支持皮革染色的盔甲。
- *
- * 参考 MC 1.16.5 BipedArmorLayer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
@@ -95,7 +93,7 @@ public:
     /**
      * @brief 渲染盔甲层（GPU管线路径）
      *
-     * 参考 MC 1.16.5 BipedArmorLayer 渲染顺序:
+     * 渲染顺序:
      * 1. Chest (胸甲) - layer_1
      * 2. Legs (护腿) - layer_2
      * 3. Feet (靴子) - layer_1
@@ -106,7 +104,6 @@ public:
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override
     {
-        // MC 1.16.5 渲染顺序: Chest -> Legs -> Feet -> Head
         renderArmorPartPipeline(entity, ArmorSlot::Chest, cmd, context, pipeline);
         renderArmorPartPipeline(entity, ArmorSlot::Legs, cmd, context, pipeline);
         renderArmorPartPipeline(entity, ArmorSlot::Feet, cmd, context, pipeline);
@@ -115,6 +112,7 @@ public:
 
     /**
      * @brief 渲染盔甲层（CPU路径 - 已废弃）
+     * TODO: 待确认是否完全移除CPU渲染路径
      */
     void render(TEntity& entity,
         f32 limbSwing,
@@ -168,7 +166,7 @@ protected:
         const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
         if (!armorItem || armorItem->isEmpty()) {
             // 物品为空，清除缓存
-            clearSlotCache(slot);
+            _clearSlotCache(slot);
             return;
         }
 
@@ -176,11 +174,9 @@ protected:
         TModel* parentModel = getParentModel();
         TModel& armorModel = getArmorModel(slot);
         if (parentModel) {
-            // MC 1.16.5: copyModelProperties
             armorModel.copyAnglesTo(parentModel);
         }
 
-        // 设置模型可见性（MC 1.16.5 BipedArmorLayer.setModelSlotVisible）
         setModelSlotVisible(armorModel, slot);
 
         // 获取身体部件变换矩阵
@@ -188,7 +184,7 @@ protected:
         getBodyPartTransform(slot, context, bodyPartTransform);
 
         // 获取或创建网格缓存
-        auto& meshCache = getMeshCache(slot);
+        auto& meshCache = _getMeshCache(slot);
         u32 itemId = armorItem->getItem() ? armorItem->getItem()->itemId() : 0;
 
         // 检查是否需要更新网格（物品变化或首次渲染）
@@ -201,7 +197,7 @@ protected:
                 item::ItemMeshBuilder::buildArmorMesh(*armorItem, static_cast<u32>(slot), bodyPartTransform);
 
             if (vertices.empty() || indices.empty()) {
-                clearSlotCache(slot);
+                _clearSlotCache(slot);
                 return;
             }
 
@@ -244,12 +240,11 @@ protected:
 
         pipeline.drawMesh(
             cmd, meshCache.mesh.value(), bodyPartTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
-
-        // spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
     }
 
     /**
      * @brief 渲染特定部位的盔甲（CPU路径 - 已废弃）
+     * TODO: 待确认是否完全移除CPU渲染路径
      */
     virtual void renderArmorPart(TEntity& entity,
         ArmorSlot slot,
@@ -295,6 +290,9 @@ protected:
 
     /**
      * @brief 获取身体部件变换矩阵
+     *
+     * TODO: 当前仅设置简单的Y偏移，未利用AnimationContext中的骨骼动画数据，
+     * 需要实现完整的骨骼动画变换
      */
     virtual void getBodyPartTransform(ArmorSlot slot,
         const mc::client::renderer::entity::core::AnimationContext& context,
@@ -304,7 +302,6 @@ protected:
         outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
         // 根据部位应用不同的变换
-        // 参考 MC 1.16.5 ArmorLayer
         switch (slot) {
             case ArmorSlot::Head:
                 // 头盔位置
@@ -330,7 +327,6 @@ protected:
     /**
      * @brief 设置模型部件可见性
      *
-     * 参考 MC 1.16.5 BipedArmorLayer.setModelSlotVisible
      * 根据盔甲槽位设置哪些模型部件应该可见
      */
     virtual void setModelSlotVisible(TModel& model, ArmorSlot slot)
@@ -339,7 +335,6 @@ protected:
         model.setAllVisible(false);
 
         // 根据槽位显示对应部件
-        // 参考 MC 1.16.5 BipedArmorLayer:67-88
         switch (slot) {
             case ArmorSlot::Head:
                 // 头盔：显示头部和帽子层
@@ -447,6 +442,7 @@ protected:
 
     /**
      * @brief 获取盔甲纹理
+     * TODO: 当前返回硬编码的默认纹理，需要根据盔甲材质动态选择纹理
      */
     [[nodiscard]] virtual ResourceLocation getArmorTexture(const TEntity& entity, ArmorSlot slot)
     {
@@ -496,7 +492,7 @@ private:
     /**
      * @brief 获取指定槽位的网格缓存
      */
-    ArmorMeshCache& getMeshCache(ArmorSlot slot)
+    ArmorMeshCache& _getMeshCache(ArmorSlot slot)
     {
         switch (slot) {
             case ArmorSlot::Head:
@@ -514,9 +510,9 @@ private:
     /**
      * @brief 清除指定槽位的网格缓存
      */
-    void clearSlotCache(ArmorSlot slot)
+    void _clearSlotCache(ArmorSlot slot)
     {
-        auto& cache = getMeshCache(slot);
+        auto& cache = _getMeshCache(slot);
         cache.mesh.reset();
         cache.lastItemId = 0;
         cache.lastSlot = 0;

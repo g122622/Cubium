@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/AnimationContext.hpp"
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/animal/VillagerModel.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "../../pipeline/EntityTextureAtlas.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/animal/VillagerModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -51,7 +51,7 @@ struct EntityMesh;
 namespace mc::client::renderer::entity::layer::entity {
 
 // ============================================================================
-// 村民纹理名称映射 (MC 1.16.5)
+// 村民纹理名称映射
 // ============================================================================
 namespace VillagerLayerDetail {
 /// 村民类型名称（生物群系），对应 VillagerType 枚举
@@ -103,15 +103,13 @@ constexpr i32 VILLAGER_MAX_LEVEL = 5;
 /**
  * @brief 村民多层纹理渲染器
  *
- * 参考 MC 1.16.5 VillagerLevelPendantLayer
- *
  * 村民纹理由多层叠加组成：
  * 1. 基础纹理 (villager.png) - 由主渲染器渲染，包含身体和头部基础
  * 2. 类型层 (type/{type}.png) - 根据生物群系叠加不同外观
  * 3. 职业层 (profession/{profession}.png) - 根据职业叠加装备和服饰
  * 4. 等级徽章层 (profession_level/{badge}.png) - 显示交易等级徽章
  *
- * 渲染规则（MC 1.16.5）：
+ * 渲染规则：
  * - 类型层：始终渲染（非隐身时）
  * - 职业层：职业 != NONE 且 非儿童 时渲染
  * - 等级徽章层：职业 != NONE 且 职业 != NITWIT 且 非儿童 时渲染
@@ -181,7 +179,7 @@ public:
             std::clamp(data.level(), VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
 
         // 判断渲染条件
-        const bool isChild = isChildEntity(entity);
+        const bool isChild = _isChildEntity(entity);
         const bool shouldRenderProfession = (profession != ::mc::entity::VillagerProfession::None) && !isChild;
         const bool shouldRenderLevel =
             shouldRenderProfession && (profession != ::mc::entity::VillagerProfession::Nitwit);
@@ -193,7 +191,7 @@ public:
         }
 
         // 计算模型矩阵
-        std::array<f64, 16> modelMatrix = computeModelMatrix(entity);
+        std::array<f64, 16> modelMatrix = _computeModelMatrix(entity);
 
         // 获取实体位置
         Vector3f entityPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
@@ -207,18 +205,19 @@ public:
         }
 
         Vector4f overlayColor(1.0f, 1.0f, 1.0f, 1.0f);
-        const f64 scale = 1.0f / 16.0f;
+        const f64 scale = 1.0 / 16.0;
 
         // 渲染类型层（始终渲染）
         ResourceLocation typeTexture = getTypeTexture(type);
-        if (pipeline::EntityMesh* typeMesh = getOrCreateMeshForTexture(pipeline, *model, typeTexture)) {
+        if (pipeline::EntityMesh* typeMesh = _getOrCreateMeshForTexture(pipeline, *model, typeTexture)) {
             pipeline.drawMesh(cmd, *typeMesh, modelMatrix, entityPos, scale, overlayColor, hurtTime, deathTime);
         }
 
         // 渲染职业层
         if (shouldRenderProfession) {
             ResourceLocation professionTexture = getProfessionTexture(profession);
-            if (pipeline::EntityMesh* professionMesh = getOrCreateMeshForTexture(pipeline, *model, professionTexture)) {
+            if (pipeline::EntityMesh* professionMesh =
+                    _getOrCreateMeshForTexture(pipeline, *model, professionTexture)) {
                 pipeline.drawMesh(
                     cmd, *professionMesh, modelMatrix, entityPos, scale, overlayColor, hurtTime, deathTime);
             }
@@ -227,7 +226,7 @@ public:
         // 渲染等级徽章层
         if (shouldRenderLevel) {
             ResourceLocation levelTexture = getLevelTexture(level);
-            if (pipeline::EntityMesh* levelMesh = getOrCreateMeshForTexture(pipeline, *model, levelTexture)) {
+            if (pipeline::EntityMesh* levelMesh = _getOrCreateMeshForTexture(pipeline, *model, levelTexture)) {
                 pipeline.drawMesh(cmd, *levelMesh, modelMatrix, entityPos, scale, overlayColor, hurtTime, deathTime);
             }
         }
@@ -257,9 +256,6 @@ public:
 
     /**
      * @brief 检查是否应该渲染村民层
-     *
-     * MC 1.16.5 VillagerLevelPendantLayer.shouldRender():
-     * return !entity.isInvisible();
      */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override
     {
@@ -282,9 +278,9 @@ public:
     {
         const i32 index = static_cast<i32>(type);
         if (index >= 0 && index < VillagerLayerDetail::VILLAGER_TYPE_COUNT) {
-            return buildTexturePath(std::string("type/") + VillagerLayerDetail::VILLAGER_TYPE_NAMES[index]);
+            return _buildTexturePath(std::string("type/") + VillagerLayerDetail::VILLAGER_TYPE_NAMES[index]);
         }
-        return buildTexturePath("type/plains");
+        return _buildTexturePath("type/plains");
     }
 
     /**
@@ -296,9 +292,10 @@ public:
     {
         const i32 index = static_cast<i32>(profession);
         if (index >= 0 && index < VillagerLayerDetail::VILLAGER_PROFESSION_COUNT) {
-            return buildTexturePath(std::string("profession/") + VillagerLayerDetail::VILLAGER_PROFESSION_NAMES[index]);
+            return _buildTexturePath(
+                std::string("profession/") + VillagerLayerDetail::VILLAGER_PROFESSION_NAMES[index]);
         }
-        return buildTexturePath("profession/none");
+        return _buildTexturePath("profession/none");
     }
 
     /**
@@ -311,7 +308,7 @@ public:
         const i32 clampedLevel =
             std::clamp(level, VillagerLayerDetail::VILLAGER_MIN_LEVEL, VillagerLayerDetail::VILLAGER_MAX_LEVEL);
         const i32 index = clampedLevel - VillagerLayerDetail::VILLAGER_MIN_LEVEL;
-        return buildTexturePath(std::string("profession_level/") + VillagerLayerDetail::VILLAGER_LEVEL_NAMES[index]);
+        return _buildTexturePath(std::string("profession_level/") + VillagerLayerDetail::VILLAGER_LEVEL_NAMES[index]);
     }
 
     /**
@@ -369,16 +366,15 @@ private:
      * @param subpath 子路径 (如 "type/desert")
      * @return 完整纹理位置
      */
-    [[nodiscard]] ResourceLocation buildTexturePath(const std::string& subpath) const
+    [[nodiscard]] ResourceLocation _buildTexturePath(const std::string& subpath) const
     {
-        // MC 1.16.5 纹理路径格式: textures/entity/{villager/zombie_villager}/{subpath}.png
         return ResourceLocation("minecraft", "textures/entity/" + m_texturePrefix + "/" + subpath + ".png");
     }
 
     /**
      * @brief 检查实体是否为儿童
      */
-    [[nodiscard]] bool isChildEntity(const TEntity& entity) const
+    [[nodiscard]] bool _isChildEntity(const TEntity& entity) const
     {
         if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
             return entity.isChild();
@@ -389,7 +385,7 @@ private:
     /**
      * @brief 计算模型矩阵
      */
-    [[nodiscard]] std::array<f64, 16> computeModelMatrix(const TEntity& entity) const
+    [[nodiscard]] std::array<f64, 16> _computeModelMatrix(const TEntity& entity) const
     {
         std::array<f64, 16> modelMatrix = {
             1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
@@ -405,8 +401,8 @@ private:
         modelMatrix[8] = -sinYaw;
         modelMatrix[10] = cosYaw;
 
-        // MC 1.16.5: scale(-1, -1, 1) - X和Y都取反
-        for (int i = 0; i < 4; ++i) {
+        // scale(-1, -1, 1) - X和Y都取反
+        for (i32 i = 0; i < 4; ++i) {
             const auto rowOffset = static_cast<std::size_t>(i * 4);
             modelMatrix[rowOffset] *= -1.0;
             modelMatrix[rowOffset + 1] *= -1.0;
@@ -424,7 +420,7 @@ private:
      * 从静态缓存获取网格，如果不存在则创建。
      * 网格按纹理路径缓存，支持多个实体共享同一纹理的网格。
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateMeshForTexture(
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateMeshForTexture(
         pipeline::EntityPipeline& pipeline, TModel& model, const ResourceLocation& textureLoc)
     {
         const std::string textureKey = textureLoc.toString();
@@ -461,9 +457,7 @@ private:
         if (m_textureAtlas && m_textureAtlas->isBuilt()) {
             const TextureRegion* region = m_textureAtlas->getRegion(textureLoc);
             if (region) {
-                remapUVs(vertices, *region);
-            } else {
-                spdlog::debug("VillagerLayer: Texture region not found for {}, using default UVs", textureKey);
+                _remapUVs(vertices, *region);
             }
         }
 
@@ -483,7 +477,7 @@ private:
      *
      * 将模型局部UV坐标（0-1范围）映射到纹理图集中的目标区域。
      */
-    static void remapUVs(std::vector<model::ModelVertex>& vertices, const TextureRegion& region)
+    static void _remapUVs(std::vector<model::ModelVertex>& vertices, const TextureRegion& region)
     {
         const f64 du = region.u1 - region.u0;
         const f64 dv = region.v1 - region.v0;

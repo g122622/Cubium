@@ -23,15 +23,14 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <memory>
-#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 
 /**
  * @brief 蝙蝠模型
  *
- * 参考 MC 1.16.5 BatModel
  * 纹理尺寸: 64x64
  */
 class BatModel : public EntityModel {

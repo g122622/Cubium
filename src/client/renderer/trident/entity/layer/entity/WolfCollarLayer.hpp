@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../model/animal/WolfModel.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -48,8 +48,6 @@ namespace mc::client::renderer::entity::layer::entity {
  * @brief 狼项圈层渲染器
  *
  * 渲染驯服狼的项圈。支持不同颜色的项圈。
- *
- * 参考 MC 1.16.5 WolfCollarLayer
  */
 class WolfCollarLayer : public core::LayerRenderer<::mc::WolfEntity> {
 public:
@@ -87,17 +85,17 @@ private:
      * @param entity 狼实体
      * @return RGB颜色值
      */
-    [[nodiscard]] static Vector3f getCollarColor(const ::mc::WolfEntity& entity);
+    [[nodiscard]] static Vector3f _getCollarColor(const ::mc::WolfEntity& entity);
 
     /**
      * @brief 构建项圈网格
      */
-    void buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建项圈网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline);
 
     // 项圈网格缓存
     static std::unique_ptr<pipeline::EntityMesh> s_collarMesh;

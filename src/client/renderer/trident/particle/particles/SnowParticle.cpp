@@ -25,6 +25,7 @@
 #include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
@@ -40,8 +41,6 @@ constexpr f32 TERMINAL_VELOCITY = -0.5f; // 雪花终端速度（比雨慢）
 
 /**
  * @brief 检查雪花包围盒是否与地面方块相交
- *
- * 参考 MC 1.16.5 RainParticle.tick() 中的流体和方块碰撞检测
  *
  * @param world 客户端世界
  * @param box 用于检测的粒子包围盒
@@ -88,7 +87,7 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     mc::math::Random rng;
 
     // 随机初始相位和振幅
-    m_swingPhase = rng.nextFloat() * 6.28318f; // 0 - 2π
+    m_swingPhase = rng.nextFloat() * mc::math::TWO_PI;
     m_swingAmplitude = SWING_AMPLITUDE * (0.5f + rng.nextFloat());
 
     // 雪花参数
@@ -100,7 +99,6 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setHasPhysics(false); // 雪花使用自定义碰撞检测
 
     // 雪花生命周期较长
-    // 参考 MC: 雪花生命周期约 200 ticks
     f64 lifeMultiplier = 0.8f + rng.nextFloat() * 0.2f;
     setMaxAge(200.0f / lifeMultiplier);
 }
@@ -124,7 +122,7 @@ void SnowParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 应用重力（MC 粒子重力系数 0.04）
+    // 应用重力
     m_velocity.y -= static_cast<f32>(m_gravity * physics::PARTICLE_GRAVITY_MULTIPLIER);
 
     // 限制下落速度（终端速度）
@@ -145,8 +143,8 @@ void SnowParticle::tick(mc::client::ClientWorld* world)
         AxisAlignedBB bbox = getBoundingBox();
 
         // 稍微向下探测，避免刚好贴着方块表面时漏检
-        constexpr f32 GROUND_PROBE_EPSILON = 0.01f;
-        AxisAlignedBB probeBox(bbox.minX, bbox.minY - GROUND_PROBE_EPSILON, bbox.minZ, bbox.maxX, bbox.minY, bbox.maxZ);
+        AxisAlignedBB probeBox(
+            bbox.minX, bbox.minY - mc::math::EPSILON_GROUND_PROBE, bbox.minZ, bbox.maxX, bbox.minY, bbox.maxZ);
 
         if (hasGroundCollision(world, probeBox)) {
             m_collisionContext.onGround = true;

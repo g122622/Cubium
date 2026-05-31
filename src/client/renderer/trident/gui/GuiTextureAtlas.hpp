@@ -254,52 +254,52 @@ private:
     /**
      * @brief 创建默认纹理（用于无纹理资源包时）
      */
-    [[nodiscard]] Result<void> createDefaultTextures();
+    [[nodiscard]] Result<void> _createDefaultTextures();
 
     /**
      * @brief 创建槽位背景纹理
      */
-    void createSlotBackground(u8* data, i32 width, i32 height);
+    void _createSlotBackground(u8* data, i32 width, i32 height);
 
     /**
      * @brief 创建容器背景纹理
      */
-    void createContainerBackground(u8* data, i32 width, i32 height);
+    void _createContainerBackground(u8* data, i32 width, i32 height);
 
     /**
      * @brief 创建图像
      */
-    [[nodiscard]] Result<void> createImage(u32 width, u32 height);
+    [[nodiscard]] Result<void> _createImage(u32 width, u32 height);
 
     /**
      * @brief 创建图像视图
      */
-    [[nodiscard]] Result<void> createImageView();
+    [[nodiscard]] Result<void> _createImageView();
 
     /**
      * @brief 创建采样器
      */
-    [[nodiscard]] Result<void> createSampler();
+    [[nodiscard]] Result<void> _createSampler();
 
     /**
      * @brief 上传纹理数据
      */
-    [[nodiscard]] Result<void> uploadTextureData(const std::vector<u8>& data);
+    [[nodiscard]] Result<void> _uploadTextureData(const std::vector<u8>& data);
 
     /**
      * @brief 查找内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer cmd);
+    void _endSingleTimeCommands(VkCommandBuffer cmd);
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;
@@ -316,8 +316,8 @@ private:
     // 图集尺寸
     u32 m_width = 0;
     u32 m_height = 0;
-    i32 m_atlasWidth = 256;  ///< 用于精灵UV计算的图集宽度
-    i32 m_atlasHeight = 256; ///< 用于精灵UV计算的图集高度
+    i32 m_atlasWidth = DEFAULT_ATLAS_WIDTH;   ///< 用于精灵UV计算的图集宽度
+    i32 m_atlasHeight = DEFAULT_ATLAS_HEIGHT; ///< 用于精灵UV计算的图集高度
 
     // 纹理区域映射（向后兼容）
     std::unordered_map<std::string, GuiTextureRegion> m_regions;
@@ -329,6 +329,10 @@ private:
     static constexpr i32 DEFAULT_SLOT_SIZE = 18;
     static constexpr i32 DEFAULT_CONTAINER_WIDTH = 176;
     static constexpr i32 DEFAULT_CONTAINER_HEIGHT = 166;
+
+    // 默认图集尺寸
+    static constexpr i32 DEFAULT_ATLAS_WIDTH = 256;
+    static constexpr i32 DEFAULT_ATLAS_HEIGHT = 256;
 
     bool m_initialized = false;
 };

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "ParticleData.hpp"
 #include "common/world/block/Block.hpp"
+#include <memory>
 
 namespace mc::client::renderer::trident::particle::data {
 
@@ -33,7 +33,6 @@ namespace mc::client::renderer::trident::particle::data {
  * @brief 方块粒子数据
  *
  * 用于需要方块状态信息的粒子类型，如方块破坏、下落灰尘等。
- * 参考 MC 1.16.5 BlockParticleData
  *
  * 用法示例：
  * @code

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 末影龙息粒子
- *
- * 参考 MC 1.16.5 DragonBreathParticle
  *
  * 特性：
  * - 紫色粒子
@@ -72,8 +70,6 @@ private:
 
 /**
  * @brief 末地烛粒子
- *
- * 参考 MC 1.16.5 EndRodParticle
  *
  * 特性：
  * - 白色发光粒子
@@ -116,11 +112,9 @@ private:
 /**
  * @brief 扫荡攻击粒子
  *
- * 参考 MC 1.16.5 SweepAttackParticle
- *
  * 特性：
  * - 固定生命周期 4 tick
- * - 发光粒子（最大亮度 15728880）
+ * - 发光粒子（最大亮度）
  * - 根据年龄选择纹理帧（4帧动画）
  * - 无运动
  * - 缩放随 xSpeed 参数变化
@@ -141,8 +135,7 @@ public:
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
     {
         MC_UNUSED(world);
-        // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
-        return 15728880;
+        return 0xF000F0;
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;

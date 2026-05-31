@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/LivingRenderer.hpp"
-#include "../../model/animal/AnimalModels.hpp"
-#include "../../model/animal/BatModel.hpp"
-#include "../../model/animal/RabbitModel.hpp"
-#include "../../model/animal/SquidModel.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
+#include "client/renderer/trident/entity/model/animal/BatModel.hpp"
+#include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
+#include "client/renderer/trident/entity/model/animal/SquidModel.hpp"
 #include <memory>
 
 namespace mc {
@@ -42,8 +42,6 @@ using mc::SheepEntity;
 
 /**
  * @brief 猪渲染器
- *
- * 参考 MC 1.16.5 PigRenderer
  */
 class PigRenderer : public core::LivingRenderer<LivingEntity, model::animal::PigModel> {
 public:
@@ -65,8 +63,6 @@ public:
 
 /**
  * @brief 牛渲染器
- *
- * 参考 MC 1.16.5 CowRenderer
  */
 class CowRenderer : public core::LivingRenderer<LivingEntity, model::animal::CowModel> {
 public:
@@ -89,7 +85,6 @@ public:
 /**
  * @brief 羊渲染器
  *
- * 参考 MC 1.16.5 SheepRenderer
  * 包含羊毛层渲染器。
  */
 class SheepRenderer : public core::LivingRenderer<LivingEntity, model::animal::SheepModel> {
@@ -113,7 +108,6 @@ public:
 /**
  * @brief 哞菇渲染器
  *
- * 参考 MC 1.16.5 MooshroomRenderer
  * 复用牛模型
  */
 class MooshroomRenderer : public core::LivingRenderer<LivingEntity, model::animal::CowModel> {
@@ -136,8 +130,6 @@ public:
 
 /**
  * @brief 鸡渲染器
- *
- * 参考 MC 1.16.5 ChickenRenderer
  */
 class ChickenRenderer : public core::LivingRenderer<LivingEntity, model::animal::ChickenModel> {
 public:
@@ -159,8 +151,6 @@ public:
 
 /**
  * @brief 兔子渲染器
- *
- * 参考 MC 1.16.5 RabbitRenderer
  */
 class RabbitRenderer : public core::LivingRenderer<LivingEntity, model::animal::RabbitModel> {
 public:
@@ -182,8 +172,6 @@ public:
 
 /**
  * @brief 蝙蝠渲染器
- *
- * 参考 MC 1.16.5 BatRenderer
  */
 class BatRenderer : public core::LivingRenderer<LivingEntity, model::animal::BatModel> {
 public:
@@ -205,8 +193,6 @@ public:
 
 /**
  * @brief 鱿鱼渲染器
- *
- * 参考 MC 1.16.5 SquidRenderer
  */
 class SquidRenderer : public core::LivingRenderer<LivingEntity, model::animal::SquidModel> {
 public:

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
@@ -49,8 +49,6 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * 渲染可骑乘实体上的鞍（如马、猪等）。
  * 使用父模型的动画状态来驱动鞍模型。
- *
- * 参考 MC 1.16.5 SaddleLayer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
@@ -113,7 +111,7 @@ protected:
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel() { return &m_renderer->getModel(); }
 
     /**
      * @brief 获取鞍模型
@@ -124,17 +122,17 @@ private:
     /**
      * @brief 构建鞍网格
      */
-    void buildSaddleMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _buildSaddleMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 获取或创建鞍网格
      */
-    [[nodiscard]] pipeline::EntityMesh* getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline);
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline);
 
-    mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
+    mc::client::renderer::entity::core::IEntityRenderer<TEntity, TModel>* m_renderer;
     std::shared_ptr<TModel> m_saddleModel;
 
-    ResourceLocation m_saddleTexture{"minecraft", "textures/entity/saddle.png"};
+    ResourceLocation m_saddleTexture{"minecraft", "textures/entity/saddle.png"}; // TODO: 鞍纹理尚未在渲染中使用
 
     // 鞍网格缓存
     static std::unique_ptr<pipeline::EntityMesh> s_saddleMesh;

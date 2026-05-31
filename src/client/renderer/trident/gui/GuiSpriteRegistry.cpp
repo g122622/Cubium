@@ -189,10 +189,10 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas, i32 atlas
     atlas.registerSprite("hotbar_offhand_left", 24, 22, 29, 24, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
 
-    // 滑动条背景（待补充具体坐标）
-    // 滑动条手柄（待补充具体坐标）
+    // TODO: 滑动条背景精灵（具体坐标待确认）
+    // TODO: 滑动条手柄精灵（具体坐标待确认）
 
-    // 攻击指示器 (待补充)
+    // TODO: 攻击指示器精灵（具体坐标待确认）
 }
 
 void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
@@ -266,9 +266,7 @@ void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWi
     // 位于(0, 0)
     atlas.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
 
-    // ========== 经验等级数字 ==========
-    // 位于icons.png中，但通常使用字体渲染
-    // 如果需要纹理数字，可以后续添加
+    // TODO: 经验等级数字精灵，位于icons.png中，目前使用字体渲染替代
 }
 
 void GuiSpriteRegistry::registerContainerSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)

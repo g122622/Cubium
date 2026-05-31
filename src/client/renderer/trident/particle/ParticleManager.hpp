@@ -29,7 +29,6 @@
 #include "common/util/math/frustum/Frustum.hpp"
 #include <array>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -54,7 +53,6 @@ struct ParticleUBO {
  * @brief 待处理粒子数据
  *
  * 用于延迟生成粒子，避免在 tick 中途修改粒子列表。
- * 参考 MC 1.16.5 ParticleManager.pendingEffects
  */
 struct PendingParticle {
     ParticleTypeId type; ///< 粒子类型
@@ -67,7 +65,6 @@ struct PendingParticle {
  * @brief 粒子管理器
  *
  * 管理所有粒子的生命周期、更新和渲染。
- * 参考 MC 1.16.5 ParticleManager
  *
  * 功能：
  * - 粒子的创建和销毁
@@ -133,7 +130,6 @@ public:
      * @brief 添加粒子到待处理队列
      *
      * 粒子将在下一帧开始时处理，避免在 tick 中途修改粒子列表。
-     * 参考 MC 1.16.5 ParticleManager.addParticle()
      *
      * @param type 粒子类型
      * @param pos 位置
@@ -153,7 +149,7 @@ public:
     /**
      * @brief 设置最大粒子距离
      *
-     * @param distance 最大距离（MC 1.16.5 默认 256 格）
+     * @param distance 最大距离
      */
     void setMaxParticleDistance(f32 distance) { m_maxParticleDistance = distance; }
 
@@ -203,7 +199,6 @@ public:
      * @brief 处理待处理粒子队列
      *
      * 将 pending 队列中的粒子创建并添加到主粒子列表。
-     * 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
      */
     void processPendingParticles();
 
@@ -271,30 +266,30 @@ private:
     // 资源创建
     // ========================================================================
 
-    [[nodiscard]] Result<void> createVertexBuffer();
-    [[nodiscard]] Result<void> createUniformBuffers();
-    [[nodiscard]] Result<void> createDescriptorSetLayout();
-    [[nodiscard]] Result<void> createDescriptorPool();
-    [[nodiscard]] Result<void> createDescriptorSets();
-    [[nodiscard]] Result<void> createPipelineLayout();
-    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
-    [[nodiscard]] Result<void> createTexture();
+    [[nodiscard]] Result<void> _createVertexBuffer();
+    [[nodiscard]] Result<void> _createUniformBuffers();
+    [[nodiscard]] Result<void> _createDescriptorSetLayout();
+    [[nodiscard]] Result<void> _createDescriptorPool();
+    [[nodiscard]] Result<void> _createDescriptorSets();
+    [[nodiscard]] Result<void> _createPipelineLayout();
+    [[nodiscard]] Result<void> _createPipelines(VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> _createTexture();
 
-    void updateUniformBuffer(u32 frameIndex);
-    void updateVertexBuffer();
+    void _updateUniformBuffer(u32 frameIndex);
+    void _updateVertexBuffer();
 
     // ========================================================================
     // Vulkan 辅助函数
     // ========================================================================
 
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
-    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
         VkDeviceMemory& memory);
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer cmd);
+    VkCommandBuffer _beginSingleTimeCommands();
+    void _endSingleTimeCommands(VkCommandBuffer cmd);
 
 private:
     // Vulkan 设备
@@ -314,7 +309,7 @@ private:
 
     // 距离裁剪
     glm::vec3 m_cameraPosition = glm::vec3(0.0f); ///< 相机位置（用于距离裁剪）
-    f32 m_maxParticleDistance = 256.0f;           ///< 最大粒子距离（MC 1.16.5 默认 256 格）
+    f32 m_maxParticleDistance = 256.0f;           ///< 最大粒子距离
 
     // 纹理图集
     ParticleTextureAtlas m_textureAtlas;
@@ -353,7 +348,7 @@ private:
     glm::mat4 m_projection;
     glm::mat4 m_view;
     glm::vec3 m_cameraPos;
-    f64 m_partialTick = 0.0f;
+    f64 m_partialTick = 0.0;
 };
 
 } // namespace mc::client::renderer::trident::particle

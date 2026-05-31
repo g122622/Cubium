@@ -36,8 +36,10 @@ namespace mc::client::renderer::entity::pipeline {
 // 导入 ModelVertex 类型
 using model::ModelVertex;
 
-// 辅助函数：从文件读取着色器
-static std::vector<u8> readShaderFile(const std::filesystem::path& path)
+namespace {
+
+// 从文件读取着色器
+std::vector<u8> readShaderFile(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -50,8 +52,8 @@ static std::vector<u8> readShaderFile(const std::filesystem::path& path)
     return data;
 }
 
-// 辅助函数：创建着色器模块
-static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vector<u8>& code)
+// 创建着色器模块
+Result<VkShaderModule> createShaderModule(VkDevice device, const std::vector<u8>& code)
 {
     if (code.empty() || code.size() % 4 != 0) {
         return Error(ErrorCode::InvalidData, "Invalid shader code");
@@ -71,7 +73,7 @@ static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vec
     return shaderModule;
 }
 
-static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity)
+u32 growCapacity(u32 currentCapacity, u32 requiredCapacity)
 {
     if (currentCapacity >= requiredCapacity) {
         return currentCapacity;
@@ -84,6 +86,8 @@ static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity)
     const u32 grownCapacity = currentCapacity + currentCapacity / 2;
     return std::max(grownCapacity, requiredCapacity);
 }
+
+} // namespace
 
 // ============================================================================
 // EntityPipeline
@@ -152,28 +156,28 @@ Result<void> EntityPipeline::initialize(VkDevice device,
     m_commandPool = commandPool;
 
     // 创建描述符布局
-    auto result = createDescriptorLayouts();
+    auto result = _createDescriptorLayouts();
     if (!result.success()) {
         destroy();
         return result.error();
     }
 
     // 创建纹理采样器
-    result = createTextureSampler();
+    result = _createTextureSampler();
     if (!result.success()) {
         destroy();
         return result.error();
     }
 
     // 创建描述符集
-    result = createDescriptorSets();
+    result = _createDescriptorSets();
     if (!result.success()) {
         destroy();
         return result.error();
     }
 
     // 创建图形管线
-    result = createGraphicsPipeline(renderPass, cameraDescriptorLayout, sampleCount);
+    result = _createGraphicsPipeline(renderPass, cameraDescriptorLayout, sampleCount);
     if (!result.success()) {
         destroy();
         return result.error();
@@ -221,7 +225,7 @@ void EntityPipeline::destroy()
         m_textureDescriptorLayout = VK_NULL_HANDLE;
     }
 
-    destroyReusableStagingBuffers();
+    _destroyReusableStagingBuffers();
 
     m_initialized = false;
 
@@ -242,6 +246,7 @@ void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode)
         case BlendMode::None:
         case BlendMode::Multiply:
         default:
+            // TODO: BlendMode::Multiply 和 BlendMode::None 尚未实现专用管线，当前回退到Alpha混合
             pipelineToBind = m_pipeline;
             break;
     }
@@ -270,7 +275,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
 
     // 创建设备本地顶点缓冲区
     const VkDeviceSize vertexBufferSize = sizeof(ModelVertex) * vertices.size();
-    auto result = createBuffer(vertexBufferSize,
+    auto result = _createBuffer(vertexBufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         mesh.vertexBuffer,
@@ -279,7 +284,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         return result.error();
     }
 
-    result = uploadToDeviceBuffer(vertices.data(), vertexBufferSize, mesh.vertexBuffer, true);
+    result = _uploadToDeviceBuffer(vertices.data(), vertexBufferSize, mesh.vertexBuffer, true);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
@@ -287,7 +292,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
 
     // 创建设备本地索引缓冲区
     const VkDeviceSize indexBufferSize = sizeof(u32) * indices.size();
-    result = createBuffer(indexBufferSize,
+    result = _createBuffer(indexBufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         mesh.indexBuffer,
@@ -297,7 +302,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         return result.error();
     }
 
-    result = uploadToDeviceBuffer(indices.data(), indexBufferSize, mesh.indexBuffer, false);
+    result = _uploadToDeviceBuffer(indices.data(), indexBufferSize, mesh.indexBuffer, false);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
@@ -342,7 +347,7 @@ Result<void> EntityPipeline::updateMesh(
         replacementVertexCapacity = growCapacity(mesh.vertexCapacity, requiredVertexCount);
         const VkDeviceSize replacementVertexSize =
             sizeof(ModelVertex) * static_cast<VkDeviceSize>(replacementVertexCapacity);
-        auto result = createBuffer(replacementVertexSize,
+        auto result = _createBuffer(replacementVertexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             replacementVertexBuffer,
@@ -355,7 +360,7 @@ Result<void> EntityPipeline::updateMesh(
     if (needsIndexRecreate) {
         replacementIndexCapacity = growCapacity(mesh.indexCapacity, requiredIndexCount);
         const VkDeviceSize replacementIndexSize = sizeof(u32) * static_cast<VkDeviceSize>(replacementIndexCapacity);
-        auto result = createBuffer(replacementIndexSize,
+        auto result = _createBuffer(replacementIndexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             replacementIndexBuffer,
@@ -396,14 +401,14 @@ Result<void> EntityPipeline::updateMesh(
     }
 
     const VkDeviceSize vertexUploadSize = sizeof(ModelVertex) * vertices.size();
-    auto result = uploadToDeviceBuffer(vertices.data(), vertexUploadSize, mesh.vertexBuffer, true);
+    auto result = _uploadToDeviceBuffer(vertices.data(), vertexUploadSize, mesh.vertexBuffer, true);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
     }
 
     const VkDeviceSize indexUploadSize = sizeof(u32) * indices.size();
-    result = uploadToDeviceBuffer(indices.data(), indexUploadSize, mesh.indexBuffer, false);
+    result = _uploadToDeviceBuffer(indices.data(), indexUploadSize, mesh.indexBuffer, false);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
@@ -565,7 +570,7 @@ VkPipelineLayout EntityPipeline::pipelineLayout() const
     return m_pipelineLayout;
 }
 
-Result<void> EntityPipeline::createDescriptorLayouts()
+Result<void> EntityPipeline::_createDescriptorLayouts()
 {
     VkDevice device = m_device;
 
@@ -590,7 +595,7 @@ Result<void> EntityPipeline::createDescriptorLayouts()
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createTextureSampler()
+Result<void> EntityPipeline::_createTextureSampler()
 {
     VkDevice device = m_device;
 
@@ -620,7 +625,7 @@ Result<void> EntityPipeline::createTextureSampler()
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createDescriptorSets()
+Result<void> EntityPipeline::_createDescriptorSets()
 {
     VkDevice device = m_device;
 
@@ -638,7 +643,7 @@ Result<void> EntityPipeline::createDescriptorSets()
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createGraphicsPipeline(
+Result<void> EntityPipeline::_createGraphicsPipeline(
     VkRenderPass renderPass, VkDescriptorSetLayout cameraDescriptorLayout, VkSampleCountFlagBits sampleCount)
 {
     // 着色器路径
@@ -808,7 +813,6 @@ Result<void> EntityPipeline::createGraphicsPipeline(
     }
 
     // 创建叠加混合管线（用于眼睛发光等效果）
-    // 参考 MC 1.16.5 EyesLayer: GlintResourceManager.RenderTypes.entityGlintDirect()
     VkPipelineColorBlendAttachmentState additiveBlendAttachment{};
     additiveBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -838,7 +842,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::createBuffer(VkDeviceSize size,
+Result<void> EntityPipeline::_createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,
@@ -848,7 +852,7 @@ Result<void> EntityPipeline::createBuffer(VkDeviceSize size,
         m_device, m_physicalDevice, size, usage, properties, buffer, memory);
 }
 
-Result<void> EntityPipeline::ensureReusableStagingBuffer(
+Result<void> EntityPipeline::_ensureReusableStagingBuffer(
     VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity)
 {
     if (requiredSize == 0) {
@@ -869,7 +873,7 @@ Result<void> EntityPipeline::ensureReusableStagingBuffer(
     }
     capacity = 0;
 
-    auto result = createBuffer(requiredSize,
+    auto result = _createBuffer(requiredSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         buffer,
@@ -882,18 +886,18 @@ Result<void> EntityPipeline::ensureReusableStagingBuffer(
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::uploadToDeviceBuffer(
+Result<void> EntityPipeline::_uploadToDeviceBuffer(
     const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer)
 {
     if (sourceData == nullptr || destinationBuffer == VK_NULL_HANDLE || size == 0) {
-        return Error(ErrorCode::InvalidArgument, "Invalid upload arguments for EntityPipeline::uploadToDeviceBuffer");
+        return Error(ErrorCode::InvalidArgument, "Invalid upload arguments for EntityPipeline::_uploadToDeviceBuffer");
     }
 
     VkBuffer& stagingBuffer = useVertexStagingBuffer ? m_vertexStagingBuffer : m_indexStagingBuffer;
     VkDeviceMemory& stagingMemory = useVertexStagingBuffer ? m_vertexStagingMemory : m_indexStagingMemory;
     VkDeviceSize& stagingCapacity = useVertexStagingBuffer ? m_vertexStagingCapacity : m_indexStagingCapacity;
 
-    auto result = ensureReusableStagingBuffer(size, stagingBuffer, stagingMemory, stagingCapacity);
+    auto result = _ensureReusableStagingBuffer(size, stagingBuffer, stagingMemory, stagingCapacity);
     if (!result.success()) {
         return result.error();
     }
@@ -907,11 +911,11 @@ Result<void> EntityPipeline::uploadToDeviceBuffer(
     std::memcpy(mappedData, sourceData, static_cast<size_t>(size));
     vkUnmapMemory(m_device, stagingMemory);
 
-    copyBuffer(stagingBuffer, destinationBuffer, size);
+    _copyBuffer(stagingBuffer, destinationBuffer, size);
     return Result<void>::ok();
 }
 
-void EntityPipeline::destroyReusableStagingBuffers()
+void EntityPipeline::_destroyReusableStagingBuffers()
 {
     if (m_vertexStagingBuffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_vertexStagingBuffer, nullptr);
@@ -934,9 +938,9 @@ void EntityPipeline::destroyReusableStagingBuffers()
     m_indexStagingCapacity = 0;
 }
 
-void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void EntityPipeline::_copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     VkBufferCopy copyRegion{};
     copyRegion.srcOffset = 0;
@@ -944,15 +948,15 @@ void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
     copyRegion.size = size;
     vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 }
 
-VkCommandBuffer EntityPipeline::beginSingleTimeCommands()
+VkCommandBuffer EntityPipeline::_beginSingleTimeCommands()
 {
     return ::mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void EntityPipeline::endSingleTimeCommands(VkCommandBuffer cmd)
+void EntityPipeline::_endSingleTimeCommands(VkCommandBuffer cmd)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     ::mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);

@@ -29,14 +29,15 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle {
 
+namespace {
 // 默认纹理位置
-static const ResourceLocation DEFAULT_TEXTURE("minecraft:particle/generic");
+const ResourceLocation DEFAULT_TEXTURE("minecraft:particle/generic");
+} // namespace
 
 Particle::Particle(const glm::vec3& pos, const glm::vec3& velocity)
     : m_position(pos)
@@ -62,7 +63,7 @@ void Particle::tick(mc::client::ClientWorld* world)
     // 重置碰撞状态
     m_collisionContext.reset();
 
-    // 应用重力（MC 的重力系数约为 0.04 blocks/tick²）
+    // 应用重力
     m_velocity.y -= static_cast<f32>(m_gravity * physics::PARTICLE_GRAVITY_MULTIPLIER);
 
     // 移动并碰撞检测
@@ -81,9 +82,9 @@ void Particle::tick(mc::client::ClientWorld* world)
         m_velocity.z *= physics::PARTICLE_GROUND_FRICTION;
     }
 
-    // 根据年龄淡出（MC 在生命后半段淡出）
-    if (m_age > m_maxAge * 0.5f) {
-        f64 fadeProgress = (m_age - m_maxAge * 0.5f) / (m_maxAge * 0.5f);
+    // 根据年龄淡出（生命后半段淡出）
+    if (m_age > m_maxAge * 0.5) {
+        f64 fadeProgress = (m_age - m_maxAge * 0.5) / (m_maxAge * 0.5);
         m_color.a = static_cast<f32>(1.0 - fadeProgress);
     }
 }
@@ -184,7 +185,6 @@ ResourceLocation Particle::getTextureLocation() const
 u32 Particle::getLightColor(mc::client::ClientWorld* world) const
 {
     // 默认实现：从世界采样光照
-    // 参考 MC 1.16.5 Particle.getBrightnessForRender()
     if (world == nullptr) {
         return physics::PARTICLE_MAX_PACKED_LIGHT; // 最大亮度
     }
@@ -199,7 +199,6 @@ u32 Particle::getLightColor(mc::client::ClientWorld* world) const
     u8 skyLight = world->getSkyLight(blockX, blockY, blockZ);
 
     // 组合成 combined light: (skyLight << 4) | blockLight
-    // 参考 WorldRenderer.getCombinedLight()
     return (static_cast<u32>(skyLight) << 4) | static_cast<u32>(blockLight);
 }
 
@@ -207,12 +206,11 @@ f64 Particle::getScale(f64 /*partialTick*/) const
 {
     // 默认实现：返回 1.0（无缩放）
     // 子类可以重写以实现缩放动画
-    return 1.0f;
+    return 1.0;
 }
 
 void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta)
 {
-    // 参考 MC 1.16.5 Particle.move() 和 Entity.move()
     // 完整的 AABB 碰撞检测实现
 
     if (world == nullptr) {

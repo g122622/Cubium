@@ -22,8 +22,10 @@
  */
 
 #include "SpiderModel.hpp"
-#include "common/util/math/MathConstants.hpp"
+
 #include <cmath>
+
+#include "common/util/math/MathConstants.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
@@ -31,12 +33,11 @@ SpiderModel::SpiderModel()
     : EntityModel()
 {
     setTextureSize(64, 32);
-    setupParts();
+    _setupParts();
 }
 
-void SpiderModel::setupParts()
+void SpiderModel::_setupParts()
 {
-    // 参考 MC 1.16.5 SpiderModel
     // 纹理尺寸：64x32
 
     // 头部：8x8x8，纹理位置 (32, 4)，位置 (0, 15, -3)
@@ -139,8 +140,6 @@ void SpiderModel::render(f64 scale)
 void SpiderModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 参考 MC 1.16.5 SpiderModel.setRotationAngles
-
     // 头部旋转
     m_head->setRotateAngleY(netHeadYaw * mc::math::PI_DOUBLE / 180.0);
     m_head->setRotateAngleX(headPitch * mc::math::PI_DOUBLE / 180.0);
@@ -167,7 +166,6 @@ void SpiderModel::setAngles(
     m_legs[7]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));  // 腿8
 
     // 腿部摆动动画
-    // 参考 MC 1.16.5: 使用 cos 函数计算摆动
     f32 f1 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + 0.0) * 0.4) * static_cast<f32>(limbSwingAmount);
     f32 f2 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + mc::math::PI_DOUBLE) * 0.4) *
         static_cast<f32>(limbSwingAmount);

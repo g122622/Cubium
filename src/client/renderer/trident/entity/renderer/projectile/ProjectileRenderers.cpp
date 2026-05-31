@@ -22,47 +22,24 @@
  */
 
 #include "ProjectileRenderers.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/util/math/MathConstants.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::entity::renderer::projectile {
-
-namespace {
-using mc::math::PI_DOUBLE;
-}
 
 // ==================== 箭矢渲染器 ====================
 
 ArrowRenderer::ArrowRenderer()
 {
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
-    generateArrowMesh();
+    m_shadowSize = 0.0;
+    m_shadowAlpha = 0.0;
+    _generateArrowMesh();
 }
 
 void ArrowRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 ArrowRenderer.render()
-    // 1. 计算箭矢朝向（插值）
-    // 2. 处理箭矢抖动动画
-    // 3. 渲染箭矢网格
-
-    // 计算插值朝向
-    f64 yaw = static_cast<f64>(entity.prevYaw()) +
-        (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
-    f64 pitch = static_cast<f64>(entity.prevPitch()) +
-        (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
-
-    // 箭矢抖动 - ArrowEntity 有 inGround 和 arrowShake 时间
-    // 抖动动画需要在箭矢刚着地时应用
-
-    // 渲染箭矢 - 需要渲染管线支持
+    // TODO: 实现箭矢渲染 - 计算插值朝向、箭矢抖动动画、渲染箭矢网格
     (void)entity;
     (void)partialTicks;
-    (void)yaw;
-    (void)pitch;
 }
 
 ResourceLocation ArrowRenderer::getArrowTexture()
@@ -70,16 +47,9 @@ ResourceLocation ArrowRenderer::getArrowTexture()
     return ResourceLocation("minecraft", "textures/entity/projectiles/arrow.png");
 }
 
-void ArrowRenderer::generateArrowMesh()
+void ArrowRenderer::_generateArrowMesh()
 {
-    // 参考 MC 1.16.5 ArrowRenderer
-    // 箭矢顶点：
-    // - 箭杆：-7 到 8，宽度 2x2
-    // - 箭头：四个面
-    // 纹理坐标：
-    // - 箭杆侧面: (0, 0) - (0.5, 0.15625)
-    // - 箭头: (0.5, 0) - (0.5, 0.15625)
-
+    // TODO: 实现箭矢网格生成 - 箭杆(-7到8, 宽2x2)和箭头四个面
     m_meshGenerated = true;
 }
 
@@ -87,26 +57,15 @@ void ArrowRenderer::generateArrowMesh()
 
 SpectralArrowRenderer::SpectralArrowRenderer()
 {
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
+    m_shadowSize = 0.0;
+    m_shadowAlpha = 0.0;
 }
 
 void SpectralArrowRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 SpectralArrowRenderer
-    // 与普通箭矢类似，但带有发光效果
-    // 发光效果通过 RenderType.getOutline() 实现
-    // 需要后处理管线支持
-
-    f64 yaw = static_cast<f64>(entity.prevYaw()) +
-        (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
-    f64 pitch = static_cast<f64>(entity.prevPitch()) +
-        (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
-
+    // TODO: 实现光灵箭渲染 - 与普通箭矢类似但带发光效果，需要后处理管线支持
     (void)entity;
     (void)partialTicks;
-    (void)yaw;
-    (void)pitch;
 }
 
 ResourceLocation SpectralArrowRenderer::getSpectralArrowTexture()
@@ -118,27 +77,16 @@ ResourceLocation SpectralArrowRenderer::getSpectralArrowTexture()
 
 TridentRenderer::TridentRenderer()
 {
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
-    generateTridentMesh();
+    m_shadowSize = 0.0;
+    m_shadowAlpha = 0.0;
+    _generateTridentMesh();
 }
 
 void TridentRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 TridentRenderer.render()
-    // 1. 计算三叉戟朝向
-    // 2. 渲染三叉戟模型
-    // 3. 投掷时有旋转动画
-
-    f64 yaw = static_cast<f64>(entity.prevYaw()) +
-        (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
-    f64 pitch = static_cast<f64>(entity.prevPitch()) +
-        (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
-
+    // TODO: 实现三叉戟渲染 - 计算朝向、渲染模型、投掷旋转动画
     (void)entity;
     (void)partialTicks;
-    (void)yaw;
-    (void)pitch;
 }
 
 ResourceLocation TridentRenderer::getTridentTexture()
@@ -146,12 +94,9 @@ ResourceLocation TridentRenderer::getTridentTexture()
     return ResourceLocation("minecraft", "textures/entity/trident.png");
 }
 
-void TridentRenderer::generateTridentMesh()
+void TridentRenderer::_generateTridentMesh()
 {
-    // 参考 MC 1.16.5 TridentModel
-    // 三叉戟模型：
-    // - 长杆
-    // - 三个叉尖
+    // TODO: 实现三叉戟网格生成 - 长杆和三个叉尖
     m_meshGenerated = true;
 }
 

@@ -22,7 +22,7 @@
  */
 
 #include "CreeperModel.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
@@ -31,19 +31,18 @@ CreeperModel::CreeperModel()
     : EntityModel()
 {
     setTextureSize(64, 32);
-    setupParts(0.0f);
+    _setupParts(0.0f);
 }
 
 CreeperModel::CreeperModel(f32 scale)
     : EntityModel()
 {
     setTextureSize(64, 32);
-    setupParts(scale);
+    _setupParts(scale);
 }
 
-void CreeperModel::setupParts(f32 scale)
+void CreeperModel::_setupParts(f32 scale)
 {
-    // 参考 MC 1.16.5 CreeperModel
     // 纹理尺寸：64x32
 
     // 头部：8x8x8，纹理位置 (0, 0)
@@ -55,7 +54,6 @@ void CreeperModel::setupParts(f32 scale)
     m_parts.push_back(m_head);
 
     // 盔甲头部层（用于闪电苦力怕）：纹理位置 (32, 0)
-    // 参考 MC 1.16.5: creeperArmor.addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, scale + 0.5F);
     m_armorHead = std::make_shared<ModelRenderer>("creeperArmor");
     m_armorHead->setTextureSize(64, 32);
     m_armorHead->setTextureOffset(32, 0);
@@ -120,11 +118,9 @@ void CreeperModel::renderArmor(f64 scale)
 void CreeperModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 参考 MC 1.16.5 CreeperModel.setRotationAngles
-
     // 头部旋转
-    m_head->setRotateAngleY(netHeadYaw * mc::math::PI_DOUBLE / 180.0);
-    m_head->setRotateAngleX(headPitch * mc::math::PI_DOUBLE / 180.0);
+    m_head->setRotateAngleY(static_cast<f64>(mc::math::toRadians(static_cast<f32>(netHeadYaw))));
+    m_head->setRotateAngleX(static_cast<f64>(mc::math::toRadians(static_cast<f32>(headPitch))));
 
     // 同步盔甲层旋转
     if (m_armorHead) {
@@ -133,11 +129,6 @@ void CreeperModel::setAngles(
     }
 
     // 腿部动画
-    // MC 1.16.5:
-    // leg1.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
-    // leg2.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 1.4F * limbSwingAmount;
-    // leg3.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 1.4F * limbSwingAmount;
-    // leg4.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
     f32 legSwing1 = static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount);
     f32 legSwing2 = static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount);
 

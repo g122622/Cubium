@@ -32,12 +32,11 @@ namespace mc::client::renderer::entity::model::animal {
 /**
  * @brief 猫模型
  *
- * 参考 MC 1.16.5 CatModel
  * 继承自 OcelotModel，添加猫特有的动画（睡觉、伸懒腰等）。
  */
 class CatModel : public OcelotModel {
 public:
-    explicit CatModel(f32 scale = 0.0f);
+    explicit CatModel(f32 scale);
     ~CatModel() override = default;
 
     void setAngles(
@@ -45,8 +44,6 @@ public:
 
     /**
      * @brief 设置生物动画状态（每帧调用）
-     *
-     * 参考 MC 1.16.5 CatModel.setLivingAnimations
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 

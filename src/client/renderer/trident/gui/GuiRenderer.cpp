@@ -22,8 +22,8 @@
  */
 
 #include "GuiRenderer.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../util/VulkanUtils.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -32,8 +32,10 @@
 
 namespace mc::client::renderer::trident::gui {
 
+namespace {
+
 // 从文件加载SPIR-V着色器
-static std::vector<u8> loadShaderFile(const std::filesystem::path& path)
+std::vector<u8> loadShaderFile(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -41,8 +43,8 @@ static std::vector<u8> loadShaderFile(const std::filesystem::path& path)
         return {};
     }
 
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<u8> code(fileSize);
+    u64 fileSize = static_cast<u64>(file.tellg());
+    std::vector<u8> code(static_cast<size_t>(fileSize));
     file.seekg(0);
     file.read(reinterpret_cast<char*>(code.data()), static_cast<std::streamsize>(fileSize));
     file.close();
@@ -51,7 +53,7 @@ static std::vector<u8> loadShaderFile(const std::filesystem::path& path)
     return code;
 }
 
-static VkShaderModule createShaderModuleHelper(VkDevice device, const std::vector<u8>& code)
+VkShaderModule createShaderModuleHelper(VkDevice device, const std::vector<u8>& code)
 {
     if (code.empty()) {
         return VK_NULL_HANDLE;
@@ -70,6 +72,8 @@ static VkShaderModule createShaderModuleHelper(VkDevice device, const std::vecto
 
     return shaderModule;
 }
+
+} // namespace
 
 GuiRenderer::GuiRenderer() = default;
 
@@ -93,30 +97,30 @@ Result<void> GuiRenderer::initialize(VkDevice device,
     m_commandPool = commandPool;
 
     // 创建描述符布局
-    auto result = createDescriptors();
+    auto result = _createDescriptors();
     if (!result.success()) {
         return result.error();
     }
 
     // 创建管线布局和图形管线
-    result = createPipelineLayout();
+    result = _createPipelineLayout();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createPipeline(renderPass, sampleCount);
+    result = _createPipeline(renderPass, sampleCount);
     if (!result.success()) {
         return result.error();
     }
 
     // 创建缓冲区
-    result = createBuffers();
+    result = _createBuffers();
     if (!result.success()) {
         return result.error();
     }
 
     // 创建字体纹理
-    result = createFontTexture();
+    result = _createFontTexture();
     if (!result.success()) {
         return result.error();
     }
@@ -256,13 +260,13 @@ void GuiRenderer::prepareFrame(VkCommandBuffer commandBuffer)
 {
     // 首次使用时初始化纹理布局
     if (!m_textureLayoutsInitialized) {
-        initializeTextureLayouts(commandBuffer);
+        _initializeTextureLayouts(commandBuffer);
         m_textureLayoutsInitialized = true;
     }
 
     // 在渲染通道外更新字体纹理
     if (m_needsTextureUpdate && m_font != nullptr) {
-        updateFontTexture(commandBuffer);
+        _updateFontTexture(commandBuffer);
         m_needsTextureUpdate = false;
     }
 }
@@ -272,7 +276,7 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer)
     if (m_vertices.empty() || m_indices.empty()) return;
 
     // 上传顶点和索引数据（使用HOST_VISIBLE内存，可以在任何地方调用）
-    uploadBufferData(commandBuffer);
+    _uploadBufferData(commandBuffer);
 
     // 绑定管线
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
@@ -310,7 +314,7 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer)
 
 f64 GuiRenderer::drawText(const std::string& text, f64 x, f64 y, u32 color, bool shadow)
 {
-    if (m_font == nullptr) return 0.0f;
+    if (m_font == nullptr) return 0.0;
 
     m_fontRenderer.beginBatch();
     f64 width;
@@ -341,12 +345,12 @@ f64 GuiRenderer::drawText(const std::string& text, f64 x, f64 y, u32 color, bool
 f64 GuiRenderer::drawTextCentered(const std::string& text, f64 x, f64 y, u32 color)
 {
     f64 width = getTextWidth(text);
-    return drawText(text, x - width * 0.5f, y, color, true);
+    return drawText(text, x - width * 0.5, y, color, true);
 }
 
 f64 GuiRenderer::getTextWidth(const std::string& text)
 {
-    if (m_font == nullptr) return 0.0f;
+    if (m_font == nullptr) return 0.0;
     return m_fontRenderer.getTextWidth(text);
 }
 
@@ -373,7 +377,7 @@ void GuiRenderer::fillRect(f64 x, f64 y, f64 width, f64 height, u32 color)
     // 注意：使用负UV作为”纯色矩形”标记，片段着色器将跳过纹理采样。
     // 否则会错误地使用字体纹理alpha，导致准星/背景矩形不可见。
     // 纯色矩形使用槽位0（字体槽位），但不会采样纹理
-    constexpr f64 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT);                  // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT);          // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT); // 右下
@@ -421,7 +425,7 @@ void GuiRenderer::fillGradientRect(f64 x, f64 y, f64 width, f64 height, u32 colo
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点，顶部和底部不同颜色
-    constexpr f64 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, colorTop, FONT_ATLAS_SLOT);                     // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, colorTop, FONT_ATLAS_SLOT);             // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, colorBottom, FONT_ATLAS_SLOT); // 右下
@@ -441,7 +445,7 @@ void GuiRenderer::fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点，左侧和右侧不同颜色
-    constexpr f64 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, colorLeft, FONT_ATLAS_SLOT);                   // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, colorRight, FONT_ATLAS_SLOT);          // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, colorRight, FONT_ATLAS_SLOT); // 右下
@@ -459,16 +463,16 @@ void GuiRenderer::fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height
 void GuiRenderer::drawRect(f64 x, f64 y, f64 width, f64 height, u32 color)
 {
     // 上边
-    fillRect(x, y, width, 1.0f, color);
+    fillRect(x, y, width, 1.0, color);
     // 下边
-    fillRect(x, y + height - 1.0f, width, 1.0f, color);
+    fillRect(x, y + height - 1.0, width, 1.0, color);
     // 左边
-    fillRect(x, y, 1.0f, height, color);
+    fillRect(x, y, 1.0, height, color);
     // 右边
-    fillRect(x + width - 1.0f, y, 1.0f, height, color);
+    fillRect(x + width - 1.0, y, 1.0, height, color);
 }
 
-Result<void> GuiRenderer::createPipelineLayout()
+Result<void> GuiRenderer::_createPipelineLayout()
 {
     VkDevice device = m_device;
 
@@ -498,7 +502,7 @@ Result<void> GuiRenderer::createPipelineLayout()
     return {};
 }
 
-Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount)
+Result<void> GuiRenderer::_createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount)
 {
     VkDevice device = m_device;
 
@@ -689,7 +693,7 @@ Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass, VkSampleCountF
 
     return {};
 }
-Result<void> GuiRenderer::createDescriptors()
+Result<void> GuiRenderer::_createDescriptors()
 {
     VkDevice device = m_device;
 
@@ -745,10 +749,10 @@ Result<void> GuiRenderer::createDescriptors()
     return {};
 }
 
-Result<void> GuiRenderer::createBuffers()
+Result<void> GuiRenderer::_createBuffers()
 {
     // 创建顶点缓冲（使用HOST_VISIBLE内存，以便在render pass内直接更新数据）
-    auto result = createBuffer(64 * 1024,
+    auto result = _createBuffer(64 * 1024,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_vertexBuffer,
@@ -758,7 +762,7 @@ Result<void> GuiRenderer::createBuffers()
     }
 
     // 创建索引缓冲（使用HOST_VISIBLE内存）
-    result = createBuffer(128 * 1024,
+    result = _createBuffer(128 * 1024,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_indexBuffer,
@@ -768,7 +772,7 @@ Result<void> GuiRenderer::createBuffers()
     }
 
     // 创建字体纹理暂存缓冲
-    result = createBuffer(256 * 256,
+    result = _createBuffer(256 * 256,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_fontStagingBuffer,
@@ -788,7 +792,7 @@ Result<void> GuiRenderer::createBuffers()
     return {};
 }
 
-Result<void> GuiRenderer::createFontTexture()
+Result<void> GuiRenderer::_createFontTexture()
 {
     VkDevice device = m_device;
 
@@ -820,7 +824,7 @@ Result<void> GuiRenderer::createFontTexture()
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(device, m_fontTexture, &memRequirements);
 
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         return memTypeResult.error();
     }
@@ -900,7 +904,7 @@ Result<void> GuiRenderer::createFontTexture()
 
     vkGetImageMemoryRequirements(device, m_itemPlaceholderTexture, &memRequirements);
 
-    memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         return memTypeResult.error();
     }
@@ -965,7 +969,7 @@ Result<void> GuiRenderer::createFontTexture()
     return {};
 }
 
-void GuiRenderer::updateFontTexture(VkCommandBuffer commandBuffer)
+void GuiRenderer::_updateFontTexture(VkCommandBuffer commandBuffer)
 {
     if (m_font == nullptr || !m_font->isValid()) return;
 
@@ -978,7 +982,7 @@ void GuiRenderer::updateFontTexture(VkCommandBuffer commandBuffer)
     void* mapped = nullptr;
     VkResult mapResult = vkMapMemory(m_device, m_fontStagingMemory, 0, size * size, 0, &mapped);
     if (mapResult != VK_SUCCESS || mapped == nullptr) {
-        spdlog::error("GuiRenderer: failed to map font staging memory: {}", static_cast<int>(mapResult));
+        spdlog::error("GuiRenderer: failed to map font staging memory: {}", static_cast<i32>(mapResult));
         return;
     }
     std::memcpy(mapped, pixels, size * size);
@@ -1047,7 +1051,7 @@ void GuiRenderer::updateFontTexture(VkCommandBuffer commandBuffer)
     m_fontTextureInShaderReadLayout = true;
 }
 
-void GuiRenderer::initializeTextureLayouts(VkCommandBuffer commandBuffer)
+void GuiRenderer::_initializeTextureLayouts(VkCommandBuffer commandBuffer)
 {
     // 初始化字体纹理布局
     if (m_fontTexture != VK_NULL_HANDLE) {
@@ -1110,7 +1114,7 @@ void GuiRenderer::initializeTextureLayouts(VkCommandBuffer commandBuffer)
     }
 }
 
-void GuiRenderer::uploadBufferData(VkCommandBuffer commandBuffer)
+void GuiRenderer::_uploadBufferData(VkCommandBuffer commandBuffer)
 {
     (void)commandBuffer; // 不需要 command buffer，使用 HOST_VISIBLE 内存
 
@@ -1130,7 +1134,7 @@ void GuiRenderer::uploadBufferData(VkCommandBuffer commandBuffer)
             m_vertexBufferMemory = VK_NULL_HANDLE;
         }
 
-        auto result = createBuffer(vertexSize * 2,
+        auto result = _createBuffer(vertexSize * 2,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_vertexBuffer,
@@ -1153,7 +1157,7 @@ void GuiRenderer::uploadBufferData(VkCommandBuffer commandBuffer)
             m_indexBufferMemory = VK_NULL_HANDLE;
         }
 
-        auto result = createBuffer(indexSize * 2,
+        auto result = _createBuffer(indexSize * 2,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_indexBuffer,
@@ -1250,7 +1254,7 @@ Result<u32> GuiRenderer::registerAtlas(const std::string& name, VkImageView view
     if (it != m_atlasSlots.end()) {
         // 更新现有图集
         u32 slot = it->second;
-        updateAtlasDescriptor(slot, view, sampler);
+        _updateAtlasDescriptor(slot, view, sampler);
         return slot;
     }
 
@@ -1263,7 +1267,7 @@ Result<u32> GuiRenderer::registerAtlas(const std::string& name, VkImageView view
     m_atlasSlots[name] = slot;
 
     // 更新描述符
-    updateAtlasDescriptor(slot, view, sampler);
+    _updateAtlasDescriptor(slot, view, sampler);
 
     spdlog::info("[GuiRenderer] Registered atlas '{}' at slot {}", name, slot);
     return slot;
@@ -1278,7 +1282,7 @@ std::optional<u32> GuiRenderer::getAtlasSlot(const std::string& name) const
     return std::nullopt;
 }
 
-void GuiRenderer::updateAtlasDescriptor(u32 binding, VkImageView view, VkSampler sampler)
+void GuiRenderer::_updateAtlasDescriptor(u32 binding, VkImageView view, VkSampler sampler)
 {
     if (m_descriptorSet == VK_NULL_HANDLE) {
         return;
@@ -1305,12 +1309,12 @@ void GuiRenderer::updateAtlasDescriptor(u32 binding, VkImageView view, VkSampler
 // Vulkan 辅助函数
 // ============================================================================
 
-Result<u32> GuiRenderer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> GuiRenderer::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return mc::client::renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-Result<void> GuiRenderer::createBuffer(VkDeviceSize size,
+Result<void> GuiRenderer::_createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,

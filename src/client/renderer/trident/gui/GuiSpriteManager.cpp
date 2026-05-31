@@ -58,7 +58,7 @@ const GuiSprite* GuiSpriteManager::getSprite(const std::string& id) const
 
 bool GuiSpriteManager::hasSprite(const std::string& id) const
 {
-    return m_sprites.find(id) != m_sprites.end();
+    return m_sprites.contains(id);
 }
 
 void GuiSpriteManager::clearSprites()

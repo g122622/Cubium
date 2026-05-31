@@ -23,8 +23,8 @@
 
 #pragma once
 
+#include "client/renderer/trident/particle/Particle.hpp"
 #include <memory>
-#include "../Particle.hpp"
 
 namespace mc::client {
 class ClientWorld;
@@ -34,8 +34,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 雪花粒子
- *
- * 参考 MC 1.16.5 SnowflakeParticle
  *
  * 特性：
  * - 缓慢飘落

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 灵魂火焰粒子
- *
- * 参考 MC 1.16.5 SoulFireFlameParticle
  *
  * 特性：
  * - 蓝色发光粒子
@@ -74,8 +72,6 @@ private:
 
 /**
  * @brief 灵魂粒子
- *
- * 参考 MC 1.16.5 SoulParticle
  *
  * 特性：
  * - 蓝色半透明

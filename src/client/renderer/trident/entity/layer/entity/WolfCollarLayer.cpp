@@ -22,9 +22,9 @@
  */
 
 #include "WolfCollarLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
@@ -33,7 +33,7 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 namespace {
-// 项圈颜色 RGB 值（MC 1.16.5 DyeColor）
+// 项圈颜色 RGB 值
 const Vector3f COLLAR_COLORS[16] = {
     Vector3f(1.0f, 1.0f, 1.0f),  // 白色 (0)
     Vector3f(0.85f, 0.5f, 0.2f), // 橙色 (1)
@@ -67,10 +67,10 @@ void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
     }
 
     // 获取项圈颜色
-    Vector3f color = getCollarColor(entity);
+    Vector3f color = _getCollarColor(entity);
 
     // 获取或创建项圈网格
-    pipeline::EntityMesh* mesh = getOrCreateCollarMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateCollarMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -109,8 +109,6 @@ void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
 
     pipeline.drawMesh(cmd, *mesh, collarTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    // spdlog::trace("WolfCollarLayer: Rendered collar with color ({}, {}, {})", color.x, color.y, color.z);
-
     (void)context;
 }
 
@@ -137,14 +135,11 @@ void WolfCollarLayer::render(::mc::WolfEntity& entity,
 bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const
 {
     // 只有驯服的狼才显示项圈
-    // 参考 MC 1.16.5 WolfCollarLayer.shouldRender()
     return entity.isTamed();
 }
 
-Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity)
+Vector3f WolfCollarLayer::_getCollarColor(const ::mc::WolfEntity& entity)
 {
-    // 获取狼的项圈颜色
-    // 参考 MC 1.16.5 WolfCollarLayer.getColor()
     u8 colorIndex = entity.getCollarColor();
     if (colorIndex < 16) {
         return COLLAR_COLORS[colorIndex];
@@ -152,9 +147,8 @@ Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity)
     return COLLAR_COLORS[14]; // 默认红色
 }
 
-void WolfCollarLayer::buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void WolfCollarLayer::_buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 的狼项圈模型
     // 项圈是一个简单的环形，围绕颈部
 
     vertices.clear();
@@ -196,7 +190,7 @@ void WolfCollarLayer::buildCollarMesh(std::vector<model::ModelVertex>& vertices,
     }
 }
 
-pipeline::EntityMesh* WolfCollarLayer::getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* WolfCollarLayer::_getOrCreateCollarMesh(pipeline::EntityPipeline& pipeline)
 {
     if (s_collarMesh && s_collarMesh->indexCount > 0) {
         return s_collarMesh.get();
@@ -205,7 +199,7 @@ pipeline::EntityMesh* WolfCollarLayer::getOrCreateCollarMesh(pipeline::EntityPip
     // 构建项圈网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildCollarMesh(vertices, indices);
+    _buildCollarMesh(vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;

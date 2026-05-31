@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "ParticleData.hpp"
+#include <memory>
 
 namespace mc::client::renderer::trident::particle::data {
 
@@ -32,7 +32,6 @@ namespace mc::client::renderer::trident::particle::data {
  * @brief 基础粒子数据（无参数粒子）
  *
  * 用于不需要额外参数的粒子类型，如火焰、烟雾、爱心等。
- * 参考 MC 1.16.5 BasicParticleType
  *
  * 用法示例：
  * @code

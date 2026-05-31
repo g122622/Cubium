@@ -34,8 +34,6 @@ namespace mc::client::renderer::entity::model {
  * @brief 实体模型基类
  *
  * 所有实体模型的基类，定义动画和渲染接口。
- *
- * 参考 MC 1.16.5 EntityModel
  */
 class EntityModel {
 public:
@@ -74,7 +72,6 @@ public:
     /**
      * @brief 设置生物动画状态（每帧调用）
      *
-     * 参考 MC 1.16.5 EntityModel.setLivingAnimations
      * 用于在每帧设置模型状态（位置、状态变量）
      * @param limbSwing 步态动画周期
      * @param limbSwingAmount 步态动画强度
@@ -128,7 +125,7 @@ public:
         }
     }
 
-    // ========== 状态字段（参考 MC 1.16.5 EntityModel）==========
+    // ========== 状态字段 ==========
 
     /**
      * @brief 获取挥动进度
@@ -165,7 +162,7 @@ protected:
     i32 m_textureHeight = 32;
     std::vector<std::shared_ptr<ModelRenderer>> m_parts;
 
-    // 状态字段（参考 MC 1.16.5 EntityModel）
+    // 状态字段
     f32 m_swingProgress = 0.0f; // 挥动进度
     bool m_isSitting = false;   // 是否坐下
     bool m_isChild = true;      // 是否为幼体（默认为 true）

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "ParticleData.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <memory>
 
 namespace mc::client::renderer::trident::particle::data {
 
@@ -33,7 +33,6 @@ namespace mc::client::renderer::trident::particle::data {
  * @brief 物品粒子数据
  *
  * 用于需要物品信息的粒子类型，如物品破坏、物品使用等。
- * 参考 MC 1.16.5 ItemParticleData
  *
  * 用法示例：
  * @code

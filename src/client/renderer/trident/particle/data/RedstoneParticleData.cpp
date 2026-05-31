@@ -22,7 +22,7 @@
  */
 
 #include "RedstoneParticleData.hpp"
-#include "../ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include <iomanip>
 #include <sstream>
 

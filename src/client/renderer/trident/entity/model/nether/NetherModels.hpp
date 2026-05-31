@@ -23,16 +23,14 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
 #include <memory>
-#include "../base/BipedModel.hpp"
-#include "../core/AgeableModel.hpp"
 
 namespace mc::client::renderer::entity::model::nether {
 
 /**
  * @brief 恶魂模型
- *
- * 参考 MC 1.16.5 GhastModel
  */
 class GhastModel : public EntityModel {
 public:
@@ -44,7 +42,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
     std::shared_ptr<ModelRenderer> m_body;
     std::array<std::shared_ptr<ModelRenderer>, 9> m_tentacles;
 };
@@ -52,7 +50,6 @@ private:
 /**
  * @brief 岩浆怪模型
  *
- * 参考 MC 1.16.5 MagmaCubeModel
  * 由 8 个薄片状的 segments 和一个 core 组成
  */
 class MagmaCubeModel : public EntityModel {
@@ -73,7 +70,7 @@ public:
     void setSquishFactor(f32 squishFactor, f32 prevSquishFactor);
 
 private:
-    void setupParts();
+    void _setupParts();
     std::shared_ptr<ModelRenderer> m_core;
     std::array<std::shared_ptr<ModelRenderer>, 8> m_segments;
     i32 m_size = 1;
@@ -84,7 +81,6 @@ private:
 /**
  * @brief 猪灵模型
  *
- * 参考 MC 1.16.5 PiglinModel
  * 继承自 BipedModel，添加耳朵等部件
  * 猪灵使用标准手臂（宽度4），不是纤细手臂
  * 支持跳舞、弩持有、欣赏物品等动画
@@ -129,7 +125,8 @@ protected:
     void handleLeftArmPose() override;
 
 private:
-    void setupPiglinParts(f32 scale);
+    // TODO: setupPiglinParts 尚未使用，猪灵部件设置目前内联在构造函数中，需要重构提取到此方法
+    void _setupPiglinParts(f32 scale);
 
     // 猪灵特有部件（耳朵）
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_leftEar;  // 左耳
@@ -150,7 +147,6 @@ private:
 /**
  * @brief 疣猪模型
  *
- * 参考 MC 1.16.5 BoarModel (用于 Hoglin 和 Zoglin)
  * 继承自 AgeableModel，支持幼体/成年体
  */
 class BoarModel : public ::mc::client::renderer::entity::model::AgeableModel {
@@ -167,7 +163,7 @@ protected:
     std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     // 头部部件
     std::shared_ptr<ModelRenderer> m_head;      // 头部
@@ -188,7 +184,6 @@ private:
 /**
  * @brief 炽足兽模型
  *
- * 参考 MC 1.16.5 StriderModel
  * 包含身体、腿和多个毛发/皮瓣部件
  */
 class StriderModel : public EntityModel {
@@ -202,12 +197,11 @@ public:
 
     /**
      * @brief 设置是否有乘客
-     * Java 原版：有乘客时身体不旋转
      */
     void setHasPassengers(bool hasPassengers) { m_hasPassengers = hasPassengers; }
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;     // 身体
     std::shared_ptr<ModelRenderer> m_rightLeg; // 右腿

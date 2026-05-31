@@ -110,7 +110,7 @@ protected:
     /**
      * @brief 获取父模型
      */
-    [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
+    [[nodiscard]] TModel* getParentModel() { return &m_renderer->getModel(); }
 
     /**
      * @brief 获取眼睛发光纹理

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../core/render/UniformManager.hpp"
+#include "client/renderer/trident/core/render/UniformManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <vector>
@@ -35,7 +35,7 @@ namespace mc::client::renderer::trident::fog {
 /**
  * @brief 雾效果管理器
  *
- * 负责计算和管理雾效果参数，参考 MC 1.16.5 FogRenderer.java 实现。
+ * 负责计算和管理雾效果参数。
  *
  * 雾效果参数：
  * - 线性雾（陆地）：fogStart 和 fogEnd 控制雾的范围
@@ -153,34 +153,34 @@ private:
      *
      * @param renderDistance 渲染距离（方块数）
      */
-    void calculateLinearFog(f64 renderDistance);
+    void _calculateLinearFog(f64 renderDistance);
 
     /**
      * @brief 更新 Uniform 缓冲区
      *
      * @param frameIndex 帧索引
      */
-    void updateUniformBuffer(u32 frameIndex);
+    void _updateUniformBuffer(u32 frameIndex);
 
     /**
      * @brief 创建 Uniform 缓冲区
      */
-    [[nodiscard]] Result<void> createUniformBuffers();
+    [[nodiscard]] Result<void> _createUniformBuffers();
 
     /**
      * @brief 创建描述符集
      */
-    [[nodiscard]] Result<void> createDescriptorSets();
+    [[nodiscard]] Result<void> _createDescriptorSets();
 
     /**
      * @brief 销毁 Uniform 缓冲区
      */
-    void destroyUniformBuffers();
+    void _destroyUniformBuffers();
 
     /**
      * @brief 查找合适的内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;

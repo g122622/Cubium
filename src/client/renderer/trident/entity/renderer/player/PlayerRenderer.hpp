@@ -46,7 +46,6 @@ namespace mc::client::renderer::entity::renderer::player {
 /**
  * @brief 玩家渲染器
  *
- * 参考 MC 1.16.5 PlayerRenderer
  * 支持标准手臂和纤细手臂两种模式。
  *
  * 注意：Player 类不继承 LivingEntity，因此这里直接继承 EntityRenderer，
@@ -206,7 +205,7 @@ protected:
     [[nodiscard]] f64 getAgeInTicks(::mc::Player& player) const;
 
 private:
-    void setupLayers();
+    void _setupLayers();
 
     model::player::PlayerModel m_model;
     bool m_slimArms; // 是否使用纤细手臂

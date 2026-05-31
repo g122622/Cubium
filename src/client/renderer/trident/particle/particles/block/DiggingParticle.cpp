@@ -100,19 +100,18 @@ DiggingParticle::DiggingParticle(const glm::vec3& pos, const glm::vec3& velocity
     setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
 
     // 随机 UV 偏移：将 16x16 纹理划分为 4x4 区域，随机选取一个
-    // 参考 MC 1.16.5 DiggingParticle 的 field_217587_G 和 field_217588_H
     m_uvOffsetU = static_cast<f32>(rng.nextInt(4)); // 0, 1, 2, 或 3
     m_uvOffsetV = static_cast<f32>(rng.nextInt(4));
 
     // 初始化方块纹理
-    initializeBlockTexture();
+    _initializeBlockTexture();
 }
 
 std::unique_ptr<Particle> DiggingParticle::create(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
-    // 默认使用石头方块状态
+    // TODO: 默认石头方块状态的获取方式不够健壮，应考虑统一初始化或移除此默认工厂方法
     // 实际使用时应通过 createWithBlock 创建
     static const BlockState* defaultStoneState = nullptr;
     if (!defaultStoneState) {
@@ -174,8 +173,7 @@ void DiggingParticle::tick(mc::client::ClientWorld* world)
 
 ResourceLocation DiggingParticle::getTextureLocation() const
 {
-    // 对于 TERRAIN_SHEET 类型粒子，返回方块纹理路径
-    // 实际渲染使用 buildVertices 中预计算的 m_textureRegion
+    // TODO: 应根据 m_blockState 动态返回对应的方块纹理路径，而非硬编码石头纹理
     return ResourceLocation("minecraft:block/stone");
 }
 
@@ -229,7 +227,7 @@ void DiggingParticle::buildVertices(const glm::vec3& cameraPos,
     const f32 halfSizeF = static_cast<f32>(halfSize);
 
     // 计算 UV 坐标
-    // MC 1.16.5 DiggingParticle 从 16x16 纹理中选取 4x4 区域
+    // 从 16x16 纹理中选取 4x4 区域
     // m_uvOffsetU/V 在 0-3 范围内，每个偏移代表 4 像素
     // UV 坐标归一化到 0-1 范围
     f64 u0, v0, u1, v1;
@@ -287,7 +285,7 @@ void DiggingParticle::buildVertices(const glm::vec3& cameraPos,
         m_color.a});
 }
 
-void DiggingParticle::initializeBlockTexture()
+void DiggingParticle::_initializeBlockTexture()
 {
     // 获取 BlockModelCache
     BlockModelCache* modelCache = ChunkMesher::modelCache();
@@ -303,7 +301,6 @@ void DiggingParticle::initializeBlockTexture()
         // 尝试使用缺失模型外观
         appearance = modelCache->getMissingAppearance();
         if (!appearance) {
-            spdlog::debug("DiggingParticle: No appearance found for block state, using default texture");
             m_hasValidTexture = false;
             return;
         }

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
 #include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
+#include <memory>
 
 namespace mc {
 class ClientWorld;
@@ -38,11 +38,9 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 挖掘粒子（破坏方块时产生）
  *
- * 参考 MC 1.16.5 DiggingParticle / TerrainParticle
- *
  * 特性：
  * - 使用方块纹理（从 BlockModelCache 获取）
- * - 从 16x16 纹理中随机选取 4x4 区域（模拟 MC 的 field_217587_G/field_217588_H）
+ * - 从 16x16 纹理中随机选取 4x4 区域
  * - 受重力影响
  * - 使用 TERRAIN_SHEET 渲染类型
  */
@@ -123,7 +121,7 @@ private:
      * 从 BlockModelCache 获取方块的纹理 UV 坐标。
      * 如果获取失败，使用默认纹理。
      */
-    void initializeBlockTexture();
+    void _initializeBlockTexture();
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

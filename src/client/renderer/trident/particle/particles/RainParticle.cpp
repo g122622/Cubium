@@ -22,14 +22,11 @@
  */
 
 #include "RainParticle.hpp"
+#include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
-#include "weather/SplashParticle.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -50,8 +47,6 @@ constexpr f32 GROUND_PROBE_EPSILON = 0.01f;
  */
 [[nodiscard]] bool hasGroundCollision(mc::client::ClientWorld* world, const AxisAlignedBB& box)
 {
-    MC_ASSERT_RELEASE(world != nullptr);
-
     const i32 minX = mc::math::floorTo<i32>(box.minX);
     const i32 maxX = mc::math::floorTo<i32>(box.maxX);
     const i32 minY = mc::math::floorTo<i32>(box.minY);
@@ -92,7 +87,6 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setHasPhysics(false); // 雨滴使用自定义碰撞检测
 
     // 雨滴生命周期较短
-    // 参考 MC: maxAge = (int)(8.0D / (Math.random() * 0.8D + 0.2D))
     mc::math::Random rng;
     f64 lifeMultiplier = 0.2 + rng.nextFloat() * 0.8;
     setMaxAge(8.0 / lifeMultiplier);
@@ -118,7 +112,7 @@ void RainParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 应用重力（MC 粒子重力系数 0.04）
+    // 应用重力
     m_velocity.y -= static_cast<f32>(m_gravity * physics::PARTICLE_GRAVITY_MULTIPLIER);
 
     // 限制下落速度（终端速度）
@@ -151,11 +145,10 @@ void RainParticle::tick(mc::client::ClientWorld* world)
     }
 
     if (m_collisionContext.onGround) {
-        // 参考 MC 1.16.5: 雨滴落地时生成溅射粒子
         if (m_emitCallback) {
             // 生成溅射粒子
             mc::math::Random rng;
-            for (int i = 0; i < 2; ++i) {
+            for (i32 i = 0; i < 2; ++i) {
                 glm::vec3 splashVelocity(
                     (rng.nextFloat() - 0.5f) * 0.1f, rng.nextFloat() * 0.1f + 0.02f, (rng.nextFloat() - 0.5f) * 0.1f);
                 m_emitCallback(ParticleTypeId::Splash, m_position, splashVelocity);

@@ -22,25 +22,25 @@
  */
 
 #include "HeldItemLayer.hpp"
-#include "../../../item/ItemMeshBuilder.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
-#include "client/resource/ItemTextureAtlas.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <cmath>
 #include <unordered_map>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::equipment {
 
-// 静态网格缓存（用于手持物品）
-static std::unordered_map<u32, pipeline::EntityMesh> s_heldItemMeshCache;
-static bool s_cacheInitialized = false;
+namespace {
+
+// 手持物品网格缓存
+std::unordered_map<u32, pipeline::EntityMesh> s_heldItemMeshCache;
+
+} // anonymous namespace
 
 template <typename TEntity, typename TModel>
 void HeldItemLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
@@ -48,20 +48,15 @@ void HeldItemLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
 {
-    // MC 1.16.5 HeldItemLayer:24-26
-    // 首先根据主手判断哪只手渲染哪个物品
-    // boolean flag = entity.getPrimaryHand() == HandSide.RIGHT;
-    // ItemStack offhand = flag ? entity.getHeldItemOffhand() : entity.getHeldItemMainhand();
-    // ItemStack mainhand = flag ? entity.getHeldItemMainhand() : entity.getHeldItemOffhand();
+    // 根据主手判断哪只手渲染哪个物品
+    // 右手为主手时：右手渲染主手物品，左手渲染副手物品
+    // 左手为主手时：右手渲染副手物品，左手渲染主手物品
 
     bool isRightHanded = true; // 默认右手为主手
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         isRightHanded = entity.isRightHanded();
     }
 
-    // MC 1.16.5 逻辑：
-    // 如果右手为主手：右手渲染主手物品，左手渲染副手物品
-    // 如果左手为主手：右手渲染副手物品，左手渲染主手物品
     mc::Hand rightHandSlot = isRightHanded ? mc::Hand::MainHand : mc::Hand::OffHand;
     mc::Hand leftHandSlot = isRightHanded ? mc::Hand::OffHand : mc::Hand::MainHand;
 
@@ -83,7 +78,7 @@ void HeldItemLayer<TEntity, TModel>::render(TEntity& entity,
     f32 scale)
 {
     // CPU 路径 - 已废弃，仅调用 GPU 路径的空实现
-    // 这个方法保留用于向后兼容
+    // TODO: 删除此废弃的 CPU 渲染路径及其声明
     (void)entity;
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -173,11 +168,6 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-
-    // spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
-    //     item->getItem()->itemLocation().toString(),
-    //     handSide == mc::HandSide::Right ? "right" : "left",
-    //     hand == mc::Hand::MainHand ? "main" : "off");
 }
 
 template <typename TEntity, typename TModel>
@@ -189,7 +179,7 @@ void HeldItemLayer<TEntity, TModel>::renderHandItem(TEntity& entity,
     f32 partialTicks,
     f32 scale)
 {
-    // CPU 路径 - 已废弃
+    // TODO: 删除此废弃的 CPU 渲染路径及其声明
     const ItemStack* item = getHeldItem(entity, hand);
     if (!item || item->isEmpty()) {
         return;
@@ -223,13 +213,11 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
     // 初始化为单位矩阵
     outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    // 参考 MC 1.16.5 HeldItemLayer.func_229135_a_ (第 41-49 行)
+    // 物品变换步骤：
     // 1. 首先调用 model.translateHand(side, matrixStack)
     //    这会将矩阵变换到手臂的局部坐标系（包含手臂的旋转点和旋转角度）
     // 2. 然后应用固定的物品变换：
-    //    matrixStack.rotate(Vector3f.XP.rotationDegrees(-90.0F));
-    //    matrixStack.rotate(Vector3f.YP.rotationDegrees(180.0F));
-    //    matrixStack.translate((flag ? -1 : 1) / 16.0F, 0.125D, -0.625D);
+    //    X 轴 -90° 旋转 + Y 轴 180° 旋转 + 手部偏移
 
     // 步骤 1：从模型获取手臂变换矩阵
     std::array<f64, 16> armMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
@@ -262,9 +250,7 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
         -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 步骤 3：应用手部偏移
-    // MC 1.16.5: translate((flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
-    // flag = (handSide == HandSide.LEFT)
-    // 所以 Right 时 x = +1/16, Left 时 x = -1/16
+    // 右手时 x = +1/16, 左手时 x = -1/16
     bool isLeftHand = (handSide == mc::HandSide::Left);
     f64 xOffset = isLeftHand ? -1.0 / 16.0 : 1.0 / 16.0;
     f64 yOffset = 0.125;
@@ -279,10 +265,10 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
 
     // 首先计算 temp = itemRotation * translation
     std::array<f64, 16> temp = {0};
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
+    for (i32 row = 0; row < 4; ++row) {
+        for (i32 col = 0; col < 4; ++col) {
             f64 sum = 0.0;
-            for (int k = 0; k < 4; ++k) {
+            for (i32 k = 0; k < 4; ++k) {
                 sum += itemRotation[row * 4 + k] * translation[k * 4 + col];
             }
             temp[row * 4 + col] = sum;
@@ -290,21 +276,20 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
     }
 
     // 然后计算 outMatrix = armMatrix * temp
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
+    for (i32 row = 0; row < 4; ++row) {
+        for (i32 col = 0; col < 4; ++col) {
             f64 sum = 0.0;
-            for (int k = 0; k < 4; ++k) {
+            for (i32 k = 0; k < 4; ++k) {
                 sum += armMatrix[row * 4 + k] * temp[k * 4 + col];
             }
             outMatrix[row * 4 + col] = sum;
         }
     }
 
-    // [COMPLETED] 2026-05-15 - HeldItemLayer 手臂摆动动画已实现
-    // - 添加模型引用和 translateHand 调用，物品现在会跟随手臂动画
-    // - 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
+    // 手持物品变换已完成：
+    // - 添加了模型引用和 translateHand 调用，物品跟随手臂动画
     // - BipedModel::translateHand 方法获取手臂的实际旋转角度
-    // - 物品变换现在正确包含手臂的旋转点和旋转角度
+    // - 物品变换正确包含手臂的旋转点和旋转角度
 }
 
 template <typename TEntity, typename TModel>

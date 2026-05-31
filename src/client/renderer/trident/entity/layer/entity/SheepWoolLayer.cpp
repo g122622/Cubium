@@ -22,10 +22,10 @@
  */
 
 #include "SheepWoolLayer.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../model/core/ModelRenderer.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
@@ -36,7 +36,7 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 namespace {
-// 羊毛颜色 RGB 值（MC 1.16.5 DyeColor）
+// 羊毛颜色 RGB 值
 const Vector3f WOOL_COLORS[16] = {
     Vector3f(1.0f, 1.0f, 1.0f),    // 白色 (0)
     Vector3f(0.85f, 0.85f, 0.85f), // 橙色 (1)
@@ -88,7 +88,7 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     Vector3f color = getWoolColor(entity, ticksExisted);
 
     // 获取或创建羊毛网格
-    pipeline::EntityMesh* mesh = getOrCreateWoolMesh(pipeline);
+    pipeline::EntityMesh* mesh = _getOrCreateWoolMesh(pipeline);
     if (!mesh || mesh->indexCount == 0) {
         return;
     }
@@ -133,8 +133,6 @@ void SheepWoolLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 
     pipeline.drawMesh(cmd, *mesh, woolTransform, entityPos, 1.0, overlayColor, hurtTime, deathTime);
 
-    // spdlog::trace("SheepWoolLayer: Rendered wool with color ({}, {}, {})", color.x, color.y, color.z);
-
     (void)context;
 }
 
@@ -162,9 +160,6 @@ void SheepWoolLayer<TEntity, TModel>::render(TEntity& entity,
 template <typename TEntity, typename TModel>
 bool SheepWoolLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 {
-    // MC 1.16.5 SheepWoolLayer.shouldRender():
-    // return !sheep.isSheared() && !sheep.isInvisible();
-
     // 检查是否被剪切
     if constexpr (std::is_base_of_v<::mc::SheepEntity, TEntity>) {
         if (entity.isSheared()) {
@@ -204,7 +199,6 @@ Vector3f SheepWoolLayer<TEntity, TModel>::getWoolColor(const TEntity& entity, u3
 template <typename TEntity, typename TModel>
 Vector3f SheepWoolLayer<TEntity, TModel>::computeRainbowColor(u32 ticksExisted)
 {
-    // MC 1.16.5 SheepWoolLayer: jeb_ 彩虹羊颜色循环
     // 颜色每 2 tick 变化一次，循环 16 种颜色
     u32 colorIndex = (ticksExisted / 2) % 16;
     return WOOL_COLORS[colorIndex];
@@ -213,7 +207,6 @@ Vector3f SheepWoolLayer<TEntity, TModel>::computeRainbowColor(u32 ticksExisted)
 template <typename TEntity, typename TModel>
 bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity)
 {
-    // MC 1.16.5 SheepWoolLayer: 检查是否为 jeb_ 彩虹羊
     // 检查实体是否有自定义名称 "jeb_"
     if constexpr (std::is_base_of_v<::mc::Entity, TEntity>) {
         if (entity.hasCustomName()) {
@@ -225,16 +218,15 @@ bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity)
 }
 
 template <typename TEntity, typename TModel>
-void SheepWoolLayer<TEntity, TModel>::buildWoolMesh(
+void SheepWoolLayer<TEntity, TModel>::_buildWoolMesh(
     std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 的羊模型
     // 羊毛覆盖羊的身体，是一个类似椭球的形状
 
     vertices.clear();
     indices.clear();
 
-    // 简化实现：创建一个椭球体
+    // TODO: 羊毛网格当前使用简化椭球体，需替换为精确的羊身体模型形状
     constexpr i32 SEGMENTS = 16;
     constexpr i32 RINGS = 12;
 
@@ -292,7 +284,7 @@ void SheepWoolLayer<TEntity, TModel>::buildWoolMesh(
 }
 
 template <typename TEntity, typename TModel>
-pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline)
+pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::_getOrCreateWoolMesh(pipeline::EntityPipeline& pipeline)
 {
     if (s_woolMesh && s_woolMesh->indexCount > 0) {
         return s_woolMesh.get();
@@ -301,7 +293,7 @@ pipeline::EntityMesh* SheepWoolLayer<TEntity, TModel>::getOrCreateWoolMesh(pipel
     // 构建羊毛网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    buildWoolMesh(vertices, indices);
+    _buildWoolMesh(vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return nullptr;

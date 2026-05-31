@@ -32,14 +32,14 @@ HeartParticle::HeartParticle(const glm::vec3& pos, const glm::vec3& velocity)
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
+    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
 
     // 爱心颜色：红色
     setColor(glm::vec4(1.0f, 0.2f, 0.2f, 1.0f));
 
-    setFriction(0.95f);
+    setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
+    setMaxAge(DEFAULT_LIFETIME * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
 
     // 爱心向上飘动
     m_velocity.y = 0.02f + rng.nextFloat() * 0.01f;
@@ -58,7 +58,7 @@ void HeartParticle::tick(mc::client::ClientWorld* world)
 
     m_prevPosition = m_position;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
@@ -70,8 +70,8 @@ void HeartParticle::tick(mc::client::ClientWorld* world)
 
     // 随年龄淡出
     f64 lifeRatio = m_age / m_maxAge;
-    if (lifeRatio > 0.5f) {
-        m_color.a = 1.0f - (lifeRatio - 0.5f) * 2.0f;
+    if (lifeRatio > 0.5) {
+        m_color.a = static_cast<f32>(1.0 - (lifeRatio - 0.5) * 2.0);
     }
 }
 

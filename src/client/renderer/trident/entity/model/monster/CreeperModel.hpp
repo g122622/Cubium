@@ -23,15 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include <memory>
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 苦力怕模型
  *
- * 参考 MC 1.16.5 CreeperModel
  * 苦力怕有独特的四足身体和头部结构。
  * 包含 creeperArmor 部件用于闪电苦力怕的充能效果。
  */
@@ -54,7 +53,7 @@ public:
     [[nodiscard]] std::shared_ptr<model::ModelRenderer> getArmorHead() const { return m_armorHead; }
 
 private:
-    void setupParts(f32 scale);
+    void _setupParts(f32 scale);
 
     std::shared_ptr<model::ModelRenderer> m_head;
     std::shared_ptr<model::ModelRenderer> m_body;

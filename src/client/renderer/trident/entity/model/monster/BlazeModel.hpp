@@ -23,16 +23,16 @@
 
 #pragma once
 
-#include <memory>
-#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <array>
+#include <memory>
+
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 烈焰人模型
  *
- * 参考 MC 1.16.5 BlazeModel
  * 烈焰人由漂浮的头部和环绕的烟雾棒组成。
  */
 class BlazeModel : public model::EntityModel {
@@ -40,7 +40,7 @@ public:
     BlazeModel();
     ~BlazeModel() override = default;
 
-    void render(f64 scale = 1.0f / 16.0f) override;
+    void render(f64 scale) override;
 
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
@@ -51,7 +51,7 @@ public:
     static constexpr i32 SMOKE_ROD_COUNT = 12;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     // 头部
     std::shared_ptr<model::ModelRenderer> m_head;

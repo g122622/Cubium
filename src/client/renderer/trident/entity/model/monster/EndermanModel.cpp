@@ -23,7 +23,6 @@
 
 #include "EndermanModel.hpp"
 #include <algorithm>
-#include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
@@ -37,105 +36,65 @@ constexpr f32 ARM_LEG_ANGLE_LIMIT = 0.4f;
 EndermanModel::EndermanModel()
     : BipedModel()
 {
-    // 参考 MC 1.16.5 EndermanModel
-    // 纹理尺寸：64x32
     setTextureSize(64, 32);
     setupParts();
 }
 
 void EndermanModel::setupParts()
 {
-    // 参考 MC 1.16.5 EndermanModel 构造函数
-    // super(0.0F, -14.0F, 64, 32)
     // 末影人有独特的身体比例：手臂和腿非常长
-
     // 清除基类添加的盒子，重新设置末影人特有的尺寸
-    // 注意：Java 代码是创建新的 ModelRenderer，这里清除现有部件的盒子
 
-    // 头部内层 - 末影人使用标准头部
-    if (m_head) {
-        m_head->clearBoxes();
-        m_head->setTextureSize(64, 32);
-        m_head->setTextureOffset(0, 0);
-        m_head->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, 0.0f);
-        m_head->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
-    }
+    // 头部内层
+    m_head->clearBoxes();
+    m_head->setTextureSize(64, 32);
+    m_head->setTextureOffset(0, 0);
+    m_head->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, 0.0f);
+    m_head->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
 
-    // 头部外层（头套）：8x8x8，纹理位置 (0, 16)
-    // MC: this.bipedHeadwear = new ModelRenderer(this, 0, 16);
-    //     this.bipedHeadwear.addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, scale - 0.5F);
-    //     this.bipedHeadwear.setRotationPoint(0.0F, -14.0F, 0.0F);
-    if (m_headwear) {
-        m_headwear->clearBoxes();
-        m_headwear->setTextureSize(64, 32);
-        m_headwear->setTextureOffset(0, 16);
-        m_headwear->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, -0.5f);
-        m_headwear->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
-    }
+    // 头部外层（头套）
+    m_headwear->clearBoxes();
+    m_headwear->setTextureSize(64, 32);
+    m_headwear->setTextureOffset(0, 16);
+    m_headwear->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, -0.5f);
+    m_headwear->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
 
-    // 身体：8x12x4，纹理位置 (32, 16)
-    // MC: this.bipedBody = new ModelRenderer(this, 32, 16);
-    //     this.bipedBody.addBox(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F, scale);
-    //     this.bipedBody.setRotationPoint(0.0F, -14.0F, 0.0F);
-    if (m_body) {
-        m_body->clearBoxes();
-        m_body->setTextureSize(64, 32);
-        m_body->setTextureOffset(32, 16);
-        m_body->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, 0.0f);
-        m_body->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
-    }
+    // 身体
+    m_body->clearBoxes();
+    m_body->setTextureSize(64, 32);
+    m_body->setTextureOffset(32, 16);
+    m_body->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, 0.0f);
+    m_body->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
 
-    // 右臂：2x30x2，纹理位置 (56, 0)
-    // MC: this.bipedRightArm = new ModelRenderer(this, 56, 0);
-    //     this.bipedRightArm.addBox(-1.0F, -2.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
-    //     this.bipedRightArm.setRotationPoint(-3.0F, -12.0F, 0.0F);  // 注意：Java 是 -3.0F
-    if (m_rightArm) {
-        m_rightArm->clearBoxes();
-        m_rightArm->setTextureSize(64, 32);
-        m_rightArm->setTextureOffset(56, 0);
-        m_rightArm->addBox(-1.0f, -2.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
-        m_rightArm->setRotationPoint(-3.0f, -12.0f, 0.0f);
-    }
+    // 右臂
+    m_rightArm->clearBoxes();
+    m_rightArm->setTextureSize(64, 32);
+    m_rightArm->setTextureOffset(56, 0);
+    m_rightArm->addBox(-1.0f, -2.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
+    m_rightArm->setRotationPoint(-3.0f, -12.0f, 0.0f);
 
-    // 左臂：2x30x2，纹理位置 (56, 0)，镜像
-    // MC: this.bipedLeftArm = new ModelRenderer(this, 56, 0);
-    //     this.bipedLeftArm.mirror = true;
-    //     this.bipedLeftArm.addBox(-1.0F, -2.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
-    //     this.bipedLeftArm.setRotationPoint(5.0F, -12.0F, 0.0F);
-    if (m_leftArm) {
-        m_leftArm->clearBoxes();
-        m_leftArm->setTextureSize(64, 32);
-        m_leftArm->setTextureOffset(56, 0);
-        m_leftArm->setMirror(true);
-        m_leftArm->addBox(-1.0f, -2.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
-        m_leftArm->setRotationPoint(5.0f, -12.0f, 0.0f);
-    }
+    // 左臂（镜像）
+    m_leftArm->clearBoxes();
+    m_leftArm->setTextureSize(64, 32);
+    m_leftArm->setTextureOffset(56, 0);
+    m_leftArm->setMirror(true);
+    m_leftArm->addBox(-1.0f, -2.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
+    m_leftArm->setRotationPoint(5.0f, -12.0f, 0.0f);
 
-    // 右腿：2x30x2，纹理位置 (56, 0)
-    // MC: this.bipedRightLeg = new ModelRenderer(this, 56, 0);
-    //     this.bipedRightLeg.addBox(-1.0F, 0.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
-    //     this.bipedRightLeg.setRotationPoint(-2.0F, -2.0F, 0.0F);
-    if (m_rightLeg) {
-        m_rightLeg->clearBoxes();
-        m_rightLeg->setTextureSize(64, 32);
-        m_rightLeg->setTextureOffset(56, 0);
-        m_rightLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
-        m_rightLeg->setRotationPoint(-2.0f, -2.0f, 0.0f);
-    }
+    // 右腿
+    m_rightLeg->clearBoxes();
+    m_rightLeg->setTextureSize(64, 32);
+    m_rightLeg->setTextureOffset(56, 0);
+    m_rightLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
+    m_rightLeg->setRotationPoint(-2.0f, -2.0f, 0.0f);
 
-    // 左腿：2x30x2，纹理位置 (56, 0)，镜像
-    // MC: this.bipedLeftLeg = new ModelRenderer(this, 56, 0);
-    //     this.bipedLeftLeg.mirror = true;
-    //     this.bipedLeftLeg.addBox(-1.0F, 0.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
-    //     this.bipedLeftLeg.setRotationPoint(2.0F, -2.0F, 0.0F);
-    if (m_leftLeg) {
-        m_leftLeg->clearBoxes();
-        m_leftLeg->setTextureSize(64, 32);
-        m_leftLeg->setTextureOffset(56, 0);
-        m_leftLeg->setMirror(true);
-        m_leftLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
-        m_leftLeg->setRotationPoint(2.0f, -2.0f, 0.0f);
-    }
+    // 左腿（镜像）
+    m_leftLeg->clearBoxes();
+    m_leftLeg->setTextureSize(64, 32);
+    m_leftLeg->setTextureOffset(56, 0);
+    m_leftLeg->setMirror(true);
+    m_leftLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
+    m_leftLeg->setRotationPoint(2.0f, -2.0f, 0.0f);
 }
 
 void EndermanModel::setAngles(
@@ -144,126 +103,65 @@ void EndermanModel::setAngles(
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 参考 MC 1.16.5 EndermanModel.setRotationAngles
-
     // 头部始终显示
-    if (m_head) {
-        m_head->setVisible(true);
-    }
+    m_head->setVisible(true);
 
     // 身体旋转
-    if (m_body) {
-        m_body->setRotateAngleX(0.0f);
-        m_body->setRotationPointY(ENDERMAN_Y_OFFSET);
-        m_body->setRotationPointZ(0.0f);
-    }
+    m_body->setRotateAngleX(0.0f);
+    m_body->setRotationPointY(ENDERMAN_Y_OFFSET);
+    m_body->setRotationPointZ(0.0f);
 
-    // 手臂和腿的角度限制：±0.4 弧度
-    // MC: this.bipedRightArm.rotateAngleX = (float)((double)this.bipedRightArm.rotateAngleX * 0.5D);
-    //     if (this.bipedRightArm.rotateAngleX > 0.4F) this.bipedRightArm.rotateAngleX = 0.4F;
-    //     if (this.bipedRightArm.rotateAngleX < -0.4F) this.bipedRightArm.rotateAngleX = -0.4F;
-    if (m_rightArm) {
-        f32 armX = m_rightArm->rotateAngleX() * 0.5f;
-        armX = std::clamp(armX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
-        m_rightArm->setRotateAngleX(armX);
-    }
+    // 手臂和腿的角度限制：±0.4 弧度，并缩小到一半
+    f32 rightArmX = m_rightArm->rotateAngleX() * 0.5f;
+    rightArmX = std::clamp(rightArmX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
+    m_rightArm->setRotateAngleX(rightArmX);
 
-    if (m_leftArm) {
-        f32 armX = m_leftArm->rotateAngleX() * 0.5f;
-        armX = std::clamp(armX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
-        m_leftArm->setRotateAngleX(armX);
-    }
+    f32 leftArmX = m_leftArm->rotateAngleX() * 0.5f;
+    leftArmX = std::clamp(leftArmX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
+    m_leftArm->setRotateAngleX(leftArmX);
 
-    if (m_rightLeg) {
-        f32 legX = m_rightLeg->rotateAngleX() * 0.5f;
-        legX = std::clamp(legX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
-        m_rightLeg->setRotateAngleX(legX);
-    }
+    f32 rightLegX = m_rightLeg->rotateAngleX() * 0.5f;
+    rightLegX = std::clamp(rightLegX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
+    m_rightLeg->setRotateAngleX(rightLegX);
 
-    if (m_leftLeg) {
-        f32 legX = m_leftLeg->rotateAngleX() * 0.5f;
-        legX = std::clamp(legX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
-        m_leftLeg->setRotateAngleX(legX);
-    }
+    f32 leftLegX = m_leftLeg->rotateAngleX() * 0.5f;
+    leftLegX = std::clamp(leftLegX, -ARM_LEG_ANGLE_LIMIT, ARM_LEG_ANGLE_LIMIT);
+    m_leftLeg->setRotateAngleX(leftLegX);
 
-    // 携带方块状态
-    // MC: if (this.isCarrying) {
-    //         this.bipedRightArm.rotateAngleX = -0.5F;
-    //         this.bipedLeftArm.rotateAngleX = -0.5F;
-    //         this.bipedRightArm.rotateAngleZ = 0.05F;
-    //         this.bipedLeftArm.rotateAngleZ = -0.05F;
-    //     }
+    // 携带方块时手臂前伸
     if (m_carrying) {
-        if (m_rightArm) {
-            m_rightArm->setRotateAngleX(-0.5f);
-            m_rightArm->setRotateAngleZ(0.05f);
-        }
-        if (m_leftArm) {
-            m_leftArm->setRotateAngleX(-0.5f);
-            m_leftArm->setRotateAngleZ(-0.05f);
-        }
+        m_rightArm->setRotateAngleX(-0.5f);
+        m_rightArm->setRotateAngleZ(0.05f);
+        m_leftArm->setRotateAngleX(-0.5f);
+        m_leftArm->setRotateAngleZ(-0.05f);
     }
 
     // 位置重置
-    // MC: this.bipedRightArm.rotationPointZ = 0.0F;
-    //     this.bipedLeftLeg.rotationPointZ = 0.0F;
-    //     this.bipedRightLeg.rotationPointY = -5.0F;
-    //     this.bipedLeftLeg.rotationPointY = -5.0F;
-    if (m_rightArm) {
-        m_rightArm->setRotationPointZ(0.0f);
-    }
-    if (m_leftArm) {
-        m_leftArm->setRotationPointZ(0.0f);
-    }
-    if (m_rightLeg) {
-        m_rightLeg->setRotationPointZ(0.0f);
-        m_rightLeg->setRotationPointY(-5.0f);
-    }
-    if (m_leftLeg) {
-        m_leftLeg->setRotationPointZ(0.0f);
-        m_leftLeg->setRotationPointY(-5.0f);
-    }
+    m_rightArm->setRotationPointZ(0.0f);
+    m_leftArm->setRotationPointZ(0.0f);
+    m_rightLeg->setRotationPointZ(0.0f);
+    m_rightLeg->setRotationPointY(-5.0f);
+    m_leftLeg->setRotationPointZ(0.0f);
+    m_leftLeg->setRotationPointY(-5.0f);
 
     // 头部位置
-    // MC: this.bipedHead.rotationPointZ = -0.0F;
-    //     this.bipedHead.rotationPointY = -13.0F;
-    if (m_head) {
-        m_head->setRotationPointZ(0.0f);
-        m_head->setRotationPointY(-13.0f);
-    }
+    m_head->setRotationPointZ(0.0f);
+    m_head->setRotationPointY(-13.0f);
 
     // 攻击/尖叫状态：头部下移
-    // MC: if (this.isAttacking) {
-    //         this.bipedHead.rotationPointY -= 5.0F;
-    //     }
-    if (m_attacking && m_head) {
+    if (m_attacking) {
         m_head->setRotationPointY(m_head->rotationPointY() - 5.0f);
     }
 
     // 同步头部外层位置和角度
-    // MC: this.bipedHeadwear.rotationPointX = this.bipedHead.rotationPointX;
-    //     this.bipedHeadwear.rotationPointY = this.bipedHead.rotationPointY;
-    //     this.bipedHeadwear.rotationPointZ = this.bipedHead.rotationPointZ;
-    //     this.bipedHeadwear.rotateAngleX = this.bipedHead.rotateAngleX;
-    //     this.bipedHeadwear.rotateAngleY = this.bipedHead.rotateAngleY;
-    //     this.bipedHeadwear.rotateAngleZ = this.bipedHead.rotateAngleZ;
-    if (m_head && m_headwear) {
-        m_headwear->setRotationPoint(m_head->rotationPointX(), m_head->rotationPointY(), m_head->rotationPointZ());
-        m_headwear->setRotateAngleX(m_head->rotateAngleX());
-        m_headwear->setRotateAngleY(m_head->rotateAngleY());
-        m_headwear->setRotateAngleZ(m_head->rotateAngleZ());
-    }
+    m_headwear->setRotationPoint(m_head->rotationPointX(), m_head->rotationPointY(), m_head->rotationPointZ());
+    m_headwear->setRotateAngleX(m_head->rotateAngleX());
+    m_headwear->setRotateAngleY(m_head->rotateAngleY());
+    m_headwear->setRotateAngleZ(m_head->rotateAngleZ());
 
     // 最终手臂位置
-    // MC: this.bipedRightArm.setRotationPoint(-5.0F, -12.0F, 0.0F);
-    //     this.bipedLeftArm.setRotationPoint(5.0F, -12.0F, 0.0F);
-    // 注意：Java代码在setRotationAngles末尾设置的是-5.0F
-    if (m_rightArm) {
-        m_rightArm->setRotationPoint(-5.0f, -12.0f, 0.0f);
-    }
-    if (m_leftArm) {
-        m_leftArm->setRotationPoint(5.0f, -12.0f, 0.0f);
-    }
+    m_rightArm->setRotationPoint(-5.0f, -12.0f, 0.0f);
+    m_leftArm->setRotationPoint(5.0f, -12.0f, 0.0f);
 
     (void)ageInTicks; // 末影人不使用 ageInTicks
     (void)scale;      // 已在 render() 中使用

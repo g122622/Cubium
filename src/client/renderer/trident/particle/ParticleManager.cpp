@@ -22,10 +22,8 @@
  */
 
 #include "ParticleManager.hpp"
-#include "../../util/ShaderPath.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "ParticleRegistry.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/renderer/util/ShaderPath.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <spdlog/spdlog.h>
 
@@ -56,9 +54,9 @@ constexpr u32 INDICES_PER_PARTICLE = 6;
 std::vector<u8> generateDefaultParticleTexture(u32 width, u32 height)
 {
     std::vector<u8> data(width * height * 4, 0);
-    f64 centerX = width / 2.0f;
-    f64 centerY = height / 2.0f;
-    f64 radius = std::min(centerX, centerY) * 0.8f;
+    f64 centerX = width / 2.0;
+    f64 centerY = height / 2.0;
+    f64 radius = std::min(centerX, centerY) * 0.8;
 
     for (u32 y = 0; y < height; ++y) {
         for (u32 x = 0; x < width; ++x) {
@@ -166,44 +164,44 @@ Result<void> ParticleManager::initialize(VkDevice device,
     m_vertexData.reserve(MAX_PARTICLES * VERTICES_PER_PARTICLE);
 
     // 创建资源（注意：纹理需要在描述符集之前创建）
-    auto result = createVertexBuffer();
+    auto result = _createVertexBuffer();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createUniformBuffers();
+    result = _createUniformBuffers();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createDescriptorSetLayout();
+    result = _createDescriptorSetLayout();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createDescriptorPool();
+    result = _createDescriptorPool();
     if (!result.success()) {
         return result.error();
     }
 
     // 先创建纹理，因为描述符集需要纹理视图和采样器
-    result = createTexture();
+    result = _createTexture();
     if (!result.success()) {
         return result.error();
     }
 
     // 然后创建描述符集（需要纹理视图和采样器）
-    result = createDescriptorSets();
+    result = _createDescriptorSets();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createPipelineLayout();
+    result = _createPipelineLayout();
     if (!result.success()) {
         return result.error();
     }
 
-    result = createPipelines(sampleCount);
+    result = _createPipelines(sampleCount);
     if (!result.success()) {
         return result.error();
     }
@@ -328,7 +326,6 @@ void ParticleManager::addParticle(std::unique_ptr<Particle> particle)
 void ParticleManager::addPendingParticle(
     ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity, ClientWorld* world)
 {
-    // 参考 MC 1.16.5 ParticleManager.addParticle()
     // 粒子将在下一帧 tick 时处理，避免在 tick 中途修改粒子列表
     if (m_pendingParticles.size() < MAX_PARTICLES) {
         m_pendingParticles.push_back({type, pos, velocity, world});
@@ -354,7 +351,6 @@ size_t ParticleManager::aliveParticleCount() const
 void ParticleManager::tick(mc::client::ClientWorld* world)
 {
     // 首先处理待处理粒子队列
-    // 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
     processPendingParticles();
 
     // 创建发射回调，允许发射器粒子发射新粒子
@@ -383,7 +379,6 @@ void ParticleManager::tick(mc::client::ClientWorld* world)
 
 void ParticleManager::processPendingParticles()
 {
-    // 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
     // 清空 pending 队列，创建粒子并添加到主列表
 
     // 交换到临时队列避免迭代时修改
@@ -392,7 +387,6 @@ void ParticleManager::processPendingParticles()
 
     for (const auto& pendingParticle : pending) {
         // 距离裁剪检查
-        // 参考 MC 1.16.5 ParticleManager.addParticle() 中的距离检查
         if (m_maxParticleDistance > 0.0f) {
             f32 distSq = glm::distance2(pendingParticle.position, m_cameraPosition);
             f32 maxDistSq = m_maxParticleDistance * m_maxParticleDistance;
@@ -423,7 +417,7 @@ void ParticleManager::render(
     m_cameraPos = cameraPos;
 
     // 更新 Uniform 缓冲区
-    updateUniformBuffer(frameIndex);
+    _updateUniformBuffer(frameIndex);
 
     // 收集粒子顶点数据（带距离裁剪）
     m_vertexData.clear();
@@ -450,7 +444,7 @@ void ParticleManager::render(
     }
 
     // 更新顶点缓冲区
-    updateVertexBuffer();
+    _updateVertexBuffer();
 
     // 绑定管线
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
@@ -484,7 +478,7 @@ void ParticleManager::render(VkCommandBuffer cmd,
     m_cameraPos = cameraPos;
 
     // 更新 Uniform 缓冲区
-    updateUniformBuffer(frameIndex);
+    _updateUniformBuffer(frameIndex);
 
     // 收集粒子顶点数据（带视锥剔除和距离裁剪）
     m_vertexData.clear();
@@ -521,7 +515,7 @@ void ParticleManager::render(VkCommandBuffer cmd,
     }
 
     // 更新顶点缓冲区
-    updateVertexBuffer();
+    _updateVertexBuffer();
 
     // 绑定管线
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
@@ -539,12 +533,12 @@ void ParticleManager::render(VkCommandBuffer cmd,
     vkCmdDraw(cmd, static_cast<u32>(m_vertexData.size()), 1, 0, 0);
 }
 
-Result<void> ParticleManager::createVertexBuffer()
+Result<void> ParticleManager::_createVertexBuffer()
 {
     // 创建动态顶点缓冲区
     m_vertexBufferSize = sizeof(ParticleVertex) * MAX_PARTICLES * VERTICES_PER_PARTICLE;
 
-    auto result = createBuffer(m_vertexBufferSize,
+    auto result = _createBuffer(m_vertexBufferSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_vertexBuffer,
@@ -573,7 +567,7 @@ Result<void> ParticleManager::createVertexBuffer()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    result = createBuffer(indexBufferSize,
+    result = _createBuffer(indexBufferSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         stagingBuffer,
@@ -593,7 +587,7 @@ Result<void> ParticleManager::createVertexBuffer()
     std::memcpy(data, indices.data(), indexBufferSize);
     vkUnmapMemory(m_device, stagingBufferMemory);
 
-    result = createBuffer(indexBufferSize,
+    result = _createBuffer(indexBufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_indexBuffer,
@@ -606,11 +600,11 @@ Result<void> ParticleManager::createVertexBuffer()
     }
 
     // 复制到设备本地内存
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
     VkBufferCopy copyRegion = {};
     copyRegion.size = indexBufferSize;
     vkCmdCopyBuffer(cmd, stagingBuffer, m_indexBuffer, 1, &copyRegion);
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
     vkFreeMemory(m_device, stagingBufferMemory, nullptr);
@@ -618,12 +612,12 @@ Result<void> ParticleManager::createVertexBuffer()
     return {};
 }
 
-Result<void> ParticleManager::createUniformBuffers()
+Result<void> ParticleManager::_createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(ParticleUBO);
 
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        auto result = createBuffer(bufferSize,
+        auto result = _createBuffer(bufferSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_uniformBuffers[i],
@@ -644,7 +638,7 @@ Result<void> ParticleManager::createUniformBuffers()
     return {};
 }
 
-Result<void> ParticleManager::createDescriptorSetLayout()
+Result<void> ParticleManager::_createDescriptorSetLayout()
 {
     // Binding 0: Uniform Buffer
     VkDescriptorSetLayoutBinding uboBinding = {};
@@ -676,7 +670,7 @@ Result<void> ParticleManager::createDescriptorSetLayout()
     return {};
 }
 
-Result<void> ParticleManager::createDescriptorPool()
+Result<void> ParticleManager::_createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -697,7 +691,7 @@ Result<void> ParticleManager::createDescriptorPool()
     return {};
 }
 
-Result<void> ParticleManager::createDescriptorSets()
+Result<void> ParticleManager::_createDescriptorSets()
 {
     std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts = {m_descriptorSetLayout, m_descriptorSetLayout};
 
@@ -748,7 +742,7 @@ Result<void> ParticleManager::createDescriptorSets()
     return {};
 }
 
-Result<void> ParticleManager::createTexture()
+Result<void> ParticleManager::_createTexture()
 {
     // 生成默认粒子纹理
     auto textureData = generateDefaultParticleTexture(PARTICLE_TEXTURE_SIZE, PARTICLE_TEXTURE_SIZE);
@@ -758,7 +752,7 @@ Result<void> ParticleManager::createTexture()
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    auto result = createBuffer(imageSize,
+    auto result = _createBuffer(imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         stagingBuffer,
@@ -804,7 +798,7 @@ Result<void> ParticleManager::createTexture()
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(m_device, m_textureImage, &memRequirements);
 
-    auto memoryTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memoryTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memoryTypeResult.success()) {
         vkDestroyImage(m_device, m_textureImage, nullptr);
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -827,7 +821,7 @@ Result<void> ParticleManager::createTexture()
     vkBindImageMemory(m_device, m_textureImage, m_textureImageMemory, 0);
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -876,7 +870,7 @@ Result<void> ParticleManager::createTexture()
         1,
         &barrier);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 清理 staging buffer
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -924,7 +918,7 @@ Result<void> ParticleManager::createTexture()
     return {};
 }
 
-Result<void> ParticleManager::createPipelineLayout()
+Result<void> ParticleManager::_createPipelineLayout()
 {
     VkPipelineLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -939,7 +933,7 @@ Result<void> ParticleManager::createPipelineLayout()
     return {};
 }
 
-Result<void> ParticleManager::createPipelines(VkSampleCountFlagBits sampleCount)
+Result<void> ParticleManager::_createPipelines(VkSampleCountFlagBits sampleCount)
 {
     // 加载 shader
     auto vertPath = resolveShaderPath("particle.vert.spv");
@@ -1136,7 +1130,7 @@ Result<void> ParticleManager::createPipelines(VkSampleCountFlagBits sampleCount)
     return {};
 }
 
-void ParticleManager::updateUniformBuffer(u32 frameIndex)
+void ParticleManager::_updateUniformBuffer(u32 frameIndex)
 {
     ParticleUBO ubo = {};
     ubo.projection = m_projection;
@@ -1149,7 +1143,7 @@ void ParticleManager::updateUniformBuffer(u32 frameIndex)
     }
 }
 
-void ParticleManager::updateVertexBuffer()
+void ParticleManager::_updateVertexBuffer()
 {
     if (m_vertexData.empty()) {
         return;
@@ -1165,7 +1159,7 @@ void ParticleManager::updateVertexBuffer()
     vkUnmapMemory(m_device, m_vertexBufferMemory);
 }
 
-Result<u32> ParticleManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> ParticleManager::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
@@ -1179,7 +1173,7 @@ Result<u32> ParticleManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlag
     return Error(ErrorCode::OutOfMemory, "Failed to find suitable memory type");
 }
 
-Result<void> ParticleManager::createBuffer(VkDeviceSize size,
+Result<void> ParticleManager::_createBuffer(VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer& buffer,
@@ -1198,7 +1192,7 @@ Result<void> ParticleManager::createBuffer(VkDeviceSize size,
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(m_device, buffer, &memRequirements);
 
-    auto memoryTypeResult = findMemoryType(memRequirements.memoryTypeBits, properties);
+    auto memoryTypeResult = _findMemoryType(memRequirements.memoryTypeBits, properties);
     if (!memoryTypeResult.success()) {
         vkDestroyBuffer(m_device, buffer, nullptr);
         return memoryTypeResult.error();
@@ -1219,7 +1213,7 @@ Result<void> ParticleManager::createBuffer(VkDeviceSize size,
     return {};
 }
 
-VkCommandBuffer ParticleManager::beginSingleTimeCommands()
+VkCommandBuffer ParticleManager::_beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1239,7 +1233,7 @@ VkCommandBuffer ParticleManager::beginSingleTimeCommands()
     return commandBuffer;
 }
 
-void ParticleManager::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void ParticleManager::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
 

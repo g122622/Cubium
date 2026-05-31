@@ -23,15 +23,13 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
 #include <memory>
-#include "../base/QuadrupedModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 
 /**
  * @brief 北极熊模型
- *
- * 参考 MC 1.16.5 PolarBearModel
  *
  * 特性：
  * - 继承 QuadrupedModel 四足动物基类
@@ -51,7 +49,7 @@ public:
     /**
      * @brief 构造函数
      *
-     * 参考 MC 1.16.5 PolarBearModel 构造参数：
+     * 构造参数：
      * - legHeight = 12
      * - scale = 0.0F
      * - isChildHeadScaled = true
@@ -72,9 +70,6 @@ public:
     /**
      * @brief 设置站立动画进度
      * @param standingProgress 站立进度 (0.0 = 四足站立, 1.0 = 后腿站立)
-     *
-     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
-     * 动画从 0 渐变到 6，返回值范围 [0, 1]
      */
     void setStandingProgress(f32 standingProgress);
 

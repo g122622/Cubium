@@ -22,8 +22,7 @@
  */
 
 #include "EntityModel.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include <cassert>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::entity::model {
 
@@ -56,7 +55,7 @@ void EntityModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/
 
 void EntityModel::copyAnglesTo(EntityModel& target) const
 {
-    assert(m_parts.size() == target.m_parts.size());
+    MC_ASSERT_RELEASE(m_parts.size() == target.m_parts.size());
 
     for (std::size_t index = 0; index < m_parts.size(); ++index) {
         target.m_parts[index]->copyModelAngles(*m_parts[index]);
@@ -65,7 +64,7 @@ void EntityModel::copyAnglesTo(EntityModel& target) const
 
 void EntityModel::copyAnglesFrom(const EntityModel& source)
 {
-    assert(source.m_parts.size() == m_parts.size());
+    MC_ASSERT_RELEASE(source.m_parts.size() == m_parts.size());
 
     for (std::size_t index = 0; index < source.m_parts.size(); ++index) {
         m_parts[index]->copyModelAngles(*source.m_parts[index]);

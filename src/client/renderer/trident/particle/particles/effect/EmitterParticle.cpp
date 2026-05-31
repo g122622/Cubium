@@ -22,10 +22,9 @@
  */
 
 #include "EmitterParticle.hpp"
-#include "../../ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <glm/gtc/random.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -67,8 +66,7 @@ void EmitterParticle::emit(
     }
 
     // 回调未设置时通过 ParticleRegistry 创建粒子
-    // 注意：这种方式创建的粒子无法自动添加到 ParticleManager
-    // 实际使用时应该由 ParticleManager 设置回调
+    // TODO: 创建的粒子目前未添加到 ParticleManager，需要完善此逻辑
     auto particle = ParticleRegistry::instance().createParticle(type, pos, velocity, world);
     MC_UNUSED(particle);
 }

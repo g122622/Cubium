@@ -32,8 +32,6 @@ namespace mc::client::renderer {
  *
  * 定义手臂在不同使用状态下的姿态。
  * 用于动画系统决定手臂如何摆放。
- *
- * 参考 MC 1.16.5 BipedModel.ArmPose
  */
 enum class ArmPose : u8 {
     /// 空手（无物品）

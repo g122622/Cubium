@@ -34,8 +34,6 @@ namespace mc::client::renderer::entity::model {
  *
  * 支持幼体和成年两种状态的模型。
  * 幼体通常有更大的头部比例和更小的身体。
- *
- * 参考 MC 1.16.5 AgeableModel
  */
 class AgeableModel : public EntityModel {
 public:
@@ -86,7 +84,6 @@ public:
     /**
      * @brief 设置生物动画状态（每帧调用）
      *
-     * 参考 MC 1.16.5 EntityModel.setLivingAnimations
      * 用于在每帧设置模型状态（位置、状态变量）
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
@@ -119,8 +116,8 @@ protected:
 
     // ========== 幼体参数 ==========
     bool m_isChildHeadScaled = false;
-    f32 m_childHeadOffsetY = 5.0f;  // 默认值来自 Java
-    f32 m_childHeadOffsetZ = 2.0f;  // 默认值来自 Java
+    f32 m_childHeadOffsetY = 5.0f;
+    f32 m_childHeadOffsetZ = 2.0f;
     f32 m_childHeadScale = 2.0f;    // 头部缩放
     f32 m_childBodyScale = 2.0f;    // 身体缩放
     f32 m_childBodyOffsetY = 24.0f; // 身体 Y 偏移

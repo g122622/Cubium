@@ -23,15 +23,13 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <memory>
-#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 凋灵模型
- *
- * 参考 MC 1.16.5 WitherModel
  */
 class WitherModel : public EntityModel {
 public:
@@ -44,7 +42,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::array<std::shared_ptr<ModelRenderer>, 3> m_upperBodyParts;
     std::array<std::shared_ptr<ModelRenderer>, 3> m_heads;
@@ -52,8 +50,6 @@ private:
 
 /**
  * @brief 史莱姆模型
- *
- * 参考 MC 1.16.5 SlimeModel
  */
 class SlimeModel : public EntityModel {
 public:
@@ -66,7 +62,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_rightEye;
@@ -77,8 +73,6 @@ private:
 
 /**
  * @brief 守卫者模型
- *
- * 参考 MC 1.16.5 GuardianModel
  */
 class GuardianModel : public EntityModel {
 public:
@@ -113,8 +107,8 @@ public:
     }
 
 private:
-    void setupParts();
-    void updateSpines(f64 ageInTicks, f64 spikeAnimation);
+    void _setupParts();
+    void _updateSpines(f64 ageInTicks, f64 spikeAnimation);
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_eye;
@@ -131,7 +125,7 @@ private:
 /**
  * @brief 远古守卫者模型
  *
- * 参考 MC 1.16.5 GuardianModel（相同结构，不同纹理）
+ * 与守卫者结构相同，使用不同纹理
  */
 class ElderGuardianModel : public GuardianModel {
 public:
@@ -141,8 +135,6 @@ public:
 
 /**
  * @brief 潜影贝模型
- *
- * 参考 MC 1.16.5 ShulkerModel
  */
 class ShulkerModel : public EntityModel {
 public:
@@ -164,7 +156,7 @@ public:
     [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_base;
     std::shared_ptr<ModelRenderer> m_lid;
@@ -176,8 +168,6 @@ private:
 
 /**
  * @brief 蠹虫模型
- *
- * 参考 MC 1.16.5 SilverfishModel
  */
 class SilverfishModel : public EntityModel {
 public:
@@ -189,7 +179,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::array<std::shared_ptr<ModelRenderer>, 7> m_bodyParts;
     std::array<std::shared_ptr<ModelRenderer>, 3> m_wings;
@@ -198,8 +188,6 @@ private:
 
 /**
  * @brief 末影螨模型
- *
- * 参考 MC 1.16.5 EndermiteModel
  */
 class EndermiteModel : public EntityModel {
 public:
@@ -211,7 +199,7 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::array<std::shared_ptr<ModelRenderer>, 4> m_bodyParts;
 };

@@ -25,7 +25,6 @@
 
 #include "ParticleRenderType.hpp"
 #include "ParticleTypes.hpp"
-#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -33,7 +32,6 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace mc {
 class IWorld;
@@ -54,7 +52,6 @@ struct SpriteInfo;
  * @brief 粒子发射回调类型
  *
  * 用于发射器粒子发射新粒子时调用。
- * 参考 MC 1.16.5 EmitterParticle
  */
 using ParticleEmitCallback = std::function<void(ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity)>;
 
@@ -75,7 +72,6 @@ struct ParticleVertex {
  * @brief 粒子碰撞上下文
  *
  * 用于缓存碰撞检测结果，避免重复计算。
- * 参考 MC 1.16.5 Entity.move() 中的碰撞处理逻辑。
  */
 struct ParticleCollisionContext {
     bool collidedX = false; ///< X 轴是否发生碰撞
@@ -96,7 +92,6 @@ struct ParticleCollisionContext {
  * @brief 粒子基类
  *
  * 所有粒子的基类，定义粒子的基本属性和行为。
- * 参考 MC 1.16.5 Particle 类
  *
  * 生命周期：
  * 1. 构造：设置初始位置、速度、颜色等属性
@@ -247,7 +242,6 @@ public:
     /**
      * @brief 移动并碰撞检测
      *
-     * 参考 MC 1.16.5 Particle.move()
      * 如果 world 为 nullptr，则只移动不检测碰撞。
      *
      * @param world 客户端世界
@@ -329,32 +323,32 @@ protected:
     // ========================================================================
 
     glm::vec4 m_color = glm::vec4(1.0f); ///< RGBA 颜色
-    f64 m_size = 0.1f;                   ///< 粒子大小
-    f64 m_roll = 0.0f;                   ///< 旋转角度（弧度）
-    f64 m_prevRoll = 0.0f;               ///< 上一帧旋转角度
+    f64 m_size = 0.1;                    ///< 粒子大小
+    f64 m_roll = 0.0;                    ///< 旋转角度（弧度）
+    f64 m_prevRoll = 0.0;                ///< 上一帧旋转角度
 
     // ========================================================================
     // 生命周期
     // ========================================================================
 
-    f64 m_age = 0.0f;       ///< 已存活时间（ticks）
-    f64 m_maxAge = 1.0f;    ///< 最大存活时间（ticks）
+    f64 m_age = 0.0;        ///< 已存活时间（ticks）
+    f64 m_maxAge = 1.0;     ///< 最大存活时间（ticks）
     bool m_expired = false; ///< 是否已过期
 
     // ========================================================================
     // 物理
     // ========================================================================
 
-    f64 m_gravity = 0.0f;     ///< 重力加速度（方块/tick²）
-    f64 m_friction = 0.98f;   ///< 空气阻力系数
+    f64 m_gravity = 0.0;      ///< 重力加速度（方块/tick²）
+    f64 m_friction = 0.98;    ///< 空气阻力系数
     bool m_hasPhysics = true; ///< 是否进行碰撞检测
 
     // ========================================================================
     // 碰撞盒和碰撞状态
     // ========================================================================
 
-    f64 m_bboxWidth = 0.0f;                      ///< 碰撞盒宽度
-    f64 m_bboxHeight = 0.0f;                     ///< 碰撞盒高度
+    f64 m_bboxWidth = 0.0;                       ///< 碰撞盒宽度
+    f64 m_bboxHeight = 0.0;                      ///< 碰撞盒高度
     ParticleCollisionContext m_collisionContext; ///< 碰撞上下文
 
     // ========================================================================

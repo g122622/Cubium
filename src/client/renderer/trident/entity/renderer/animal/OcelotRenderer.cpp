@@ -48,6 +48,7 @@ void OcelotRenderer::render(Entity& entity, f64 partialTicks)
     model.setSprinting(ocelot.isFleeing());
 
     // 计算动画参数
+    // TODO: 实现豹猫的动画参数计算（肢体摆动、头部朝向等），当前均为默认值
     f64 limbSwing = 0.0;
     f64 limbSwingAmount = 0.0;
     f64 ageInTicks = static_cast<f64>(ocelot.ticksExisted());
@@ -66,12 +67,14 @@ void OcelotRenderer::render(Entity& entity, f64 partialTicks)
 
 ResourceLocation OcelotRenderer::getEntityTexture(OcelotEntity& entity)
 {
+    // TODO: 根据豹猫变种返回不同纹理，当前忽略变种信息
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/cat/ocelot.png");
 }
 
 ResourceLocation OcelotRenderer::getEntityTexture(const OcelotEntity& entity) const
 {
+    // TODO: 根据豹猫变种返回不同纹理，当前忽略变种信息
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/cat/ocelot.png");
 }

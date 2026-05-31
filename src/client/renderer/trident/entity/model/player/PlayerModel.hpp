@@ -23,26 +23,19 @@
 
 #pragma once
 
-#include <memory>
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
-#include <array>
+#include <memory>
 
 namespace mc::client::renderer::entity::model::player {
 
 /**
  * @brief 手部侧边
- * 参考 MC 1.16.5 HandSide
  */
-enum class HandSide {
-    Right = 0, // 右手
-    Left = 1   // 左手
-};
+enum class HandSide { Right = 0, Left = 1 };
 
 /**
  * @brief 手臂姿态
- *
- * 参考 MC 1.16.5 BipedModel.ArmPose
  */
 enum class ArmPose {
     Empty,          // 空手
@@ -57,7 +50,6 @@ enum class ArmPose {
 /**
  * @brief 玩家模型
  *
- * 参考 MC 1.16.5 PlayerModel
  * 支持标准手臂和纤细手臂两种模式。
  */
 class PlayerModel : public model::BipedModel {
@@ -105,7 +97,7 @@ public:
     void setSwimming(bool swimming) { m_swimming = swimming; }
 
     /**
-     * @brief 设置爬行状态
+     * @brief 设置疾跑状态
      */
     void setSprinting(bool sprinting) { m_sprinting = sprinting; }
 
@@ -128,7 +120,6 @@ public:
 
     /**
      * @brief 设置所有部件可见性
-     *  参考 MC 1.16.5 PlayerModel.setVisible
      */
     void setVisible(bool visible);
 
@@ -137,7 +128,6 @@ public:
     /**
      * @brief 设置指定皮肤部件的可见性
      *
-     * 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
      * 根据 PlayerModelPart 设置对应模型部件的可见性：
      * - Cape: 斗篷 (m_cape)
      * - Jacket: 外套外层 (m_bodywear)
@@ -163,7 +153,6 @@ public:
     /**
      * @brief 根据玩家设置批量设置所有部件可见性
      *
-     * 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
      * 根据 playerModelParts 位掩码设置所有外层皮肤部件的可见性。
      * 注意：此方法不会改变基础部件（内层皮肤）的可见性。
      *
@@ -182,7 +171,6 @@ public:
      * @brief 渲染右手臂（仅手臂和袖子）
      *
      * 仅渲染右手臂和右袖外层，用于第三人称视角手臂渲染。
-     * 参考 MC 1.16.5 PlayerRenderer.renderRightArm
      *
      * 此方法会：
      * 1. 隐藏所有其他部件
@@ -198,7 +186,6 @@ public:
      * @brief 渲染左手臂（仅手臂和袖子）
      *
      * 仅渲染左手臂和左袖外层，用于第三人称视角手臂渲染。
-     * 参考 MC 1.16.5 PlayerRenderer.renderLeftArm
      *
      * 此方法会：
      * 1. 隐藏所有其他部件
@@ -212,24 +199,29 @@ public:
 
     /**
      * @brief 平移手部用于第一人称渲染
-     * 参考 MC 1.16.5 PlayerModel.translateHand
+     *
      * 纤细手臂模式下需要偏移手臂位置
      * @param side 手部侧边（0=右，1=左）
-     * @param matrixStack 矩阵栈（用于变换）
      */
+    // TODO: translateHand 签名与基类 BipedModel::translateHand(HandSide, array<f64,16>&) 不一致，
+    // 应改为使用 HandSide 枚举参数，与基类统一
     void translateHand(i32 side);
 
 private:
-    void setupSlimArms();
-    void setupStandardArms();
-    void setupWearParts();
-    void setupCape();
-    void setupEars();
-    void animateArms(f64 limbSwing, f64 limbSwingAmount);
-    void animateBow(f64 limbSwing);
-    void animateCrossbowCharge();
-    void animateCrossbowHold();
-    void updateCapePosition(bool wearingChestplate, bool crouching);
+    void _setupSlimArms();
+    void _setupStandardArms();
+    void _setupWearParts();
+    void _setupCape();
+    void _setupEars();
+    void _animateArms(f64 limbSwing, f64 limbSwingAmount);
+    // TODO: animateBow 尚未被调用，等待手臂姿态动画系统集成
+    void _animateBow(f64 limbSwing);
+    // TODO: animateCrossbowCharge 尚未被调用，等待弩装填动画集成
+    void _animateCrossbowCharge();
+    // TODO: animateCrossbowHold 尚未被调用，等待弩持有动画集成
+    void _animateCrossbowHold();
+    // TODO: updateCapePosition 尚未被调用，等待斗篷动画系统集成
+    void _updateCapePosition(bool wearingChestplate, bool crouching);
 
     // 外观层部件
     std::shared_ptr<model::ModelRenderer> m_leftArmwear;  // 左袖外层

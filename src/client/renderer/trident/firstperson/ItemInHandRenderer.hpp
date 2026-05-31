@@ -50,8 +50,6 @@ namespace mc::client::renderer::trident::firstperson {
  * 2. 根据模型类型选择渲染方式 (Generated/Handheld/Block/Custom)
  * 3. 应用物品变换 (从模型 JSON 或默认)
  * 4. 构建网格并渲染
- *
- * 参考 MC 1.16.5 ItemRenderer
  */
 class ItemInHandRenderer {
 public:
@@ -98,8 +96,8 @@ public:
     /**
      * @brief 渲染方块物品
      *
-     * 方块物品需要特殊的变换和渲染逻辑。
-     * 使用 ItemMeshBuilder::buildBlockItemMesh() 构建网格。
+     * TODO: 当前仅验证模型是否存在，尚未实现实际网格渲染。
+     * 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆（必须是方块物品）
@@ -112,8 +110,8 @@ public:
     /**
      * @brief 渲染普通物品
      *
-     * 非方块物品的渲染逻辑。
-     * 使用 ItemMeshBuilder::buildHeldItemMesh() 构建网格。
+     * TODO: 当前仅验证模型是否存在，尚未实现实际网格渲染。
+     * 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成。
      *
      * @param stack 矩阵栈
      * @param itemStack 物品堆

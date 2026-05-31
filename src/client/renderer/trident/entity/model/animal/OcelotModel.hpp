@@ -31,9 +31,8 @@
 namespace mc::client::renderer::entity::model::animal {
 
 /**
- * @brief 猫豹/豹猫模型
+ * @brief 豹猫模型
  *
- * 参考 MC 1.16.5 OcelotModel
  * 猫模型继承自此类。
  */
 class OcelotModel : public AgeableModel {
@@ -49,7 +48,6 @@ public:
     /**
      * @brief 设置生物动画状态（每帧调用）
      *
-     * 参考 MC 1.16.5 OcelotModel.setLivingAnimations
      * 用于处理蹲伏和奔跑状态
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
@@ -67,7 +65,7 @@ public:
     /**
      * @brief 获取当前状态
      */
-    [[nodiscard]] int getState() const { return m_state; }
+    [[nodiscard]] i32 getState() const { return m_state; }
 
 protected:
     // 模型部件
@@ -80,7 +78,7 @@ protected:
     std::shared_ptr<ModelRenderer> m_frontLeftLeg;  // 前左腿
     std::shared_ptr<ModelRenderer> m_frontRightLeg; // 前右腿
 
-    int m_state = 1; // 0=蹲伏, 1=站立, 2=奔跑, 3=坐下
+    i32 m_state = 1; // 0=蹲伏, 1=站立, 2=奔跑, 3=坐下
     bool m_isCrouching = false;
     bool m_isSprinting = false;
 };

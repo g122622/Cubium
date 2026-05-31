@@ -23,6 +23,8 @@
 
 #include "LlamaRenderer.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 
@@ -32,7 +34,6 @@ LlamaRenderer::LlamaRenderer()
     : m_model(0.0f)
     , m_modelBaby(0.0f)
 {
-    // MC 1.16.5: LlamaRenderer 阴影大小 0.7F
     setShadowSize(0.7f);
 }
 
@@ -63,11 +64,7 @@ void LlamaRenderer::render(Entity& entity, f64 partialTicks)
     f64 headYaw = static_cast<f64>(llama.prevRotationYawHead()) +
         (static_cast<f64>(llama.rotationYawHead()) - static_cast<f64>(llama.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYaw - bodyYaw;
-    // 归一化到 -180 到 180
-    while (netHeadYaw < -180.0)
-        netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0)
-        netHeadYaw -= 360.0;
+    netHeadYaw = static_cast<f64>(mc::math::wrapDegrees(static_cast<f32>(netHeadYaw)));
 
     f64 headPitch = static_cast<f64>(llama.prevPitch()) +
         (static_cast<f64>(llama.pitch()) - static_cast<f64>(llama.prevPitch())) * partialTicks;
@@ -84,21 +81,7 @@ void LlamaRenderer::render(Entity& entity, f64 partialTicks)
 
 ResourceLocation LlamaRenderer::getEntityTexture(::mc::LlamaEntity& entity)
 {
-    // MC 1.16.5 LlamaRenderer.getEntityTexture
-    // 根据羊驼颜色变体选择纹理
-    // 4 种颜色：Creamy, White, Brown, Gray
-    static const char* colorNames[] = {"creamy", "white", "brown", "gray"};
-
-    i32 variant = static_cast<i32>(entity.getColor());
-    if (variant < 0 || variant > 3) {
-        variant = 0; // 默认奶油色
-    }
-
-    std::string textureName = "textures/entity/llama/";
-    textureName += colorNames[variant];
-    textureName += ".png";
-
-    return ResourceLocation("minecraft", textureName);
+    return static_cast<const LlamaRenderer*>(this)->getEntityTexture(static_cast<const ::mc::LlamaEntity&>(entity));
 }
 
 ResourceLocation LlamaRenderer::getEntityTexture(const ::mc::LlamaEntity& entity) const
@@ -106,9 +89,7 @@ ResourceLocation LlamaRenderer::getEntityTexture(const ::mc::LlamaEntity& entity
     static const char* colorNames[] = {"creamy", "white", "brown", "gray"};
 
     i32 variant = static_cast<i32>(entity.getColor());
-    if (variant < 0 || variant > 3) {
-        variant = 0;
-    }
+    MC_ASSERT_RELEASE_MSG(variant >= 0 && variant <= 3, "Invalid llama color variant");
 
     std::string textureName = "textures/entity/llama/";
     textureName += colorNames[variant];

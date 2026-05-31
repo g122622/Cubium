@@ -33,7 +33,6 @@ namespace mc::client::renderer::entity::model::animal {
 /**
  * @brief 村民模型
  *
- * 参考 MC 1.16.5 VillagerModel
  * 村民具有特殊的头部模型（大鼻子）、帽子和衣服。
  */
 class VillagerModel : public EntityModel {
@@ -62,17 +61,11 @@ public:
      *
      * 用于多层纹理渲染时控制基础帽子是否显示。
      * 当职业帽子为 FULL 或 PARTIAL 时，可能需要隐藏基础帽子。
-     *
-     * 参考 MC 1.16.5 VillagerModel.setHatVisible
      */
     void setHatVisible(bool visible)
     {
-        if (m_hat) {
-            m_hat->setVisible(visible);
-        }
-        if (m_hatBrim) {
-            m_hatBrim->setVisible(visible);
-        }
+        m_hat->setVisible(visible);
+        m_hatBrim->setVisible(visible);
     }
 
     /**

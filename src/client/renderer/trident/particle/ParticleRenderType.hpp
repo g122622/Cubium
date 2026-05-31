@@ -31,7 +31,6 @@ namespace mc::client::renderer::trident::particle {
  * @brief 粒子渲染类型
  *
  * 决定粒子的渲染方式（混合模式、纹理来源、光照处理）。
- * 参考 MC 1.16.5 IParticleRenderType
  *
  * 渲染顺序：
  * 1. TERRAIN_SHEET - 使用方块纹理图集

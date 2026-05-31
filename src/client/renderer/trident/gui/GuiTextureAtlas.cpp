@@ -22,8 +22,8 @@
  */
 
 #include "GuiTextureAtlas.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "GuiRenderer.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/core/Result.hpp"
 #include <cstring>
 #include <vector>
@@ -86,7 +86,7 @@ Result<void> GuiTextureAtlas::initialize(
     m_graphicsQueue = graphicsQueue;
 
     // 创建默认纹理
-    auto result = createDefaultTextures();
+    auto result = _createDefaultTextures();
     if (result.failed()) {
         return result;
     }
@@ -133,15 +133,15 @@ void GuiTextureAtlas::destroy()
 // 默认纹理创建
 // ============================================================================
 
-Result<void> GuiTextureAtlas::createDefaultTextures()
+Result<void> GuiTextureAtlas::_createDefaultTextures()
 {
     // 创建一个包含默认GUI纹理的小图集
     // 图集布局：
     // - (0,0) 到 (18,18): 槽位背景
     // - (20,0) 到 (196,166): 容器背景
 
-    constexpr i32 ATLAS_WIDTH = 256;
-    constexpr i32 ATLAS_HEIGHT = 256;
+    constexpr i32 ATLAS_WIDTH = DEFAULT_ATLAS_WIDTH;
+    constexpr i32 ATLAS_HEIGHT = DEFAULT_ATLAS_HEIGHT;
 
     m_width = ATLAS_WIDTH;
     m_height = ATLAS_HEIGHT;
@@ -149,10 +149,10 @@ Result<void> GuiTextureAtlas::createDefaultTextures()
     std::vector<u8> atlasData(ATLAS_WIDTH * ATLAS_HEIGHT * 4, 0);
 
     // 创建槽位背景纹理
-    createSlotBackground(atlasData.data(), ATLAS_WIDTH, ATLAS_HEIGHT);
+    _createSlotBackground(atlasData.data(), ATLAS_WIDTH, ATLAS_HEIGHT);
 
     // 创建容器背景纹理
-    createContainerBackground(atlasData.data(), ATLAS_WIDTH, ATLAS_HEIGHT);
+    _createContainerBackground(atlasData.data(), ATLAS_WIDTH, ATLAS_HEIGHT);
 
     // 注册纹理区域
     // 槽位背景
@@ -182,28 +182,28 @@ Result<void> GuiTextureAtlas::createDefaultTextures()
     m_regions["minecraft:gui/container/inventory"] = containerRegion;
 
     // 创建图像
-    auto imageResult = createImage(ATLAS_WIDTH, ATLAS_HEIGHT);
+    auto imageResult = _createImage(ATLAS_WIDTH, ATLAS_HEIGHT);
     if (imageResult.failed()) {
         return imageResult;
     }
 
     // 创建图像视图
-    auto viewResult = createImageView();
+    auto viewResult = _createImageView();
     if (viewResult.failed()) {
         return viewResult;
     }
 
     // 创建采样器
-    auto samplerResult = createSampler();
+    auto samplerResult = _createSampler();
     if (samplerResult.failed()) {
         return samplerResult;
     }
 
     // 上传纹理数据
-    return uploadTextureData(atlasData);
+    return _uploadTextureData(atlasData);
 }
 
-void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height)
+void GuiTextureAtlas::_createSlotBackground(u8* data, i32 width, i32 height)
 {
     // 槽位背景尺寸：18x18像素
     // 边框：1像素深灰，内部：浅灰
@@ -231,7 +231,7 @@ void GuiTextureAtlas::createSlotBackground(u8* data, i32 width, i32 height)
     }
 }
 
-void GuiTextureAtlas::createContainerBackground(u8* data, i32 width, i32 height)
+void GuiTextureAtlas::_createContainerBackground(u8* data, i32 width, i32 height)
 {
     // 容器背景尺寸：176x166像素
     // 起始位置：(20, 0)
@@ -310,6 +310,7 @@ void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui,
     f64 width,
     f64 height)
 {
+    // TODO: 实现纹理区域渲染，当前忽略region参数
     (void)regionX;
     (void)regionY;
     (void)regionWidth;
@@ -398,7 +399,7 @@ void GuiTextureAtlas::setAtlasSize(i32 width, i32 height)
 // Vulkan 辅助方法
 // ============================================================================
 
-Result<void> GuiTextureAtlas::createImage(u32 width, u32 height)
+Result<void> GuiTextureAtlas::_createImage(u32 width, u32 height)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -426,7 +427,7 @@ Result<void> GuiTextureAtlas::createImage(u32 width, u32 height)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -444,7 +445,7 @@ Result<void> GuiTextureAtlas::createImage(u32 width, u32 height)
     return {};
 }
 
-Result<void> GuiTextureAtlas::createImageView()
+Result<void> GuiTextureAtlas::_createImageView()
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -464,7 +465,7 @@ Result<void> GuiTextureAtlas::createImageView()
     return {};
 }
 
-Result<void> GuiTextureAtlas::createSampler()
+Result<void> GuiTextureAtlas::_createSampler()
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -491,7 +492,7 @@ Result<void> GuiTextureAtlas::createSampler()
     return {};
 }
 
-Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
+Result<void> GuiTextureAtlas::_uploadTextureData(const std::vector<u8>& data)
 {
     VkDeviceSize imageSize = data.size();
 
@@ -515,7 +516,7 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(
+    auto memTypeResult = _findMemoryType(
         memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -541,7 +542,7 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     vkUnmapMemory(m_device, stagingMemory);
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     // 转换到传输目标布局
     VkImageMemoryBarrier barrier{};
@@ -593,7 +594,7 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
         1,
         &barrier);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 清理暂存缓冲区
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -602,17 +603,17 @@ Result<void> GuiTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     return {};
 }
 
-Result<u32> GuiTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> GuiTextureAtlas::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return mc::client::renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer GuiTextureAtlas::beginSingleTimeCommands()
+VkCommandBuffer GuiTextureAtlas::_beginSingleTimeCommands()
 {
     return mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void GuiTextureAtlas::endSingleTimeCommands(VkCommandBuffer cmd)
+void GuiTextureAtlas::_endSingleTimeCommands(VkCommandBuffer cmd)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);

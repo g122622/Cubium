@@ -63,7 +63,7 @@ bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const {
 ### 项圈颜色
 
 ```cpp
-Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
+Vector3f WolfCollarLayer::_getCollarColor(const ::mc::WolfEntity& entity) {
     u8 colorIndex = entity.getCollarColor();
     if (colorIndex < 16) {
         return COLLAR_COLORS[colorIndex];

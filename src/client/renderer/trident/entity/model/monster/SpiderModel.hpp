@@ -23,16 +23,16 @@
 
 #pragma once
 
-#include <memory>
-#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <array>
+#include <memory>
+
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 蜘蛛模型
  *
- * 参考 MC 1.16.5 SpiderModel
  * 蜘蛛有 8 条腿，分为 4 对。
  */
 class SpiderModel : public model::EntityModel {
@@ -51,7 +51,7 @@ public:
     std::shared_ptr<model::ModelRenderer> getModelHead() { return m_head; }
 
 private:
-    void setupParts();
+    void _setupParts();
 
     std::shared_ptr<model::ModelRenderer> m_head;
     std::shared_ptr<model::ModelRenderer> m_neck;

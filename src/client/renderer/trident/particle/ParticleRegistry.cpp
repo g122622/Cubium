@@ -36,7 +36,7 @@ ParticleRegistry& ParticleRegistry::instance()
 
 ParticleRegistry::ParticleRegistry()
 {
-    registerBuiltinTypes();
+    _registerBuiltinTypes();
 }
 
 void ParticleRegistry::registerType(ParticleTypeId id,
@@ -69,7 +69,7 @@ void ParticleRegistry::registerSimpleType(
     ParticleTypeId id, const std::string& name, ParticleFactory factory, ParticleRenderType defaultRenderType)
 {
 
-    registerType(id, name, std::move(factory), defaultRenderType, 1.0f, true, false);
+    registerType(id, name, std::move(factory), defaultRenderType, 1.0, true, false);
 }
 
 std::unique_ptr<Particle> ParticleRegistry::createParticle(
@@ -148,7 +148,7 @@ std::vector<ParticleTypeId> ParticleRegistry::getAllTypeIds() const
     return ids;
 }
 
-void ParticleRegistry::registerBuiltinTypes()
+void ParticleRegistry::_registerBuiltinTypes()
 {
     // 注意：这里只注册类型元数据，不注册工厂函数
     // 工厂函数在具体粒子类型实现后注册
@@ -247,10 +247,6 @@ void ParticleRegistry::registerBuiltinTypes()
         ParticleTypeId::Redstone, "minecraft:redstone", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::Enchant,
         "minecraft:enchant",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::SweepAttack,
-        "minecraft:sweep_attack",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(

@@ -22,6 +22,7 @@
  */
 
 #include "RedstoneParticle.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 
@@ -178,7 +179,7 @@ FallingDustParticle::FallingDustParticle(const glm::vec3& pos, const glm::vec3& 
     setColor(color);
 
     // 设置旋转
-    setRoll(rng.nextFloat() * 3.14159 * 2.0);
+    setRoll(rng.nextFloat() * mc::math::PI_DOUBLE * 2.0);
 }
 
 std::unique_ptr<Particle> FallingDustParticle::create(

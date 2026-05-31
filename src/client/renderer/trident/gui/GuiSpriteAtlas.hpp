@@ -123,8 +123,7 @@ public:
      * @param atlasHeight 图集高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadTextureAtlas(
-        const std::string& filePath, i32 atlasWidth = 256, i32 atlasHeight = 256);
+    [[nodiscard]] Result<void> loadTextureAtlas(const std::string& filePath, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 从内存数据加载纹理

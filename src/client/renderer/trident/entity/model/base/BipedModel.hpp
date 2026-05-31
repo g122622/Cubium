@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <functional>
+#include <memory>
 
 namespace mc::client::renderer::entity::model {
 
@@ -37,23 +37,18 @@ class LivingEntity;
 
 /**
  * @brief 手的边（左/右）
- *
- * 参考 MC 1.16.5 HandSide
  */
 enum class HandSide { Left, Right };
 
 /**
  * @brief 手臂姿态枚举
- *
- * 参考 MC 1.16.5 BipedModel.ArmPose
  */
 enum class ArmPose { Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold };
 
 /**
  * @brief 双足动物模型基类
  *
- * 用于玩家、僵尸、骷髅等双足生物的模型基类。
- * 参考 MC 1.16.5 BipedModel - 继承自 AgeableModel
+ * 用于玩家、僵尸、骷髅等双足生物的模型基类，继承自 AgeableModel。
  */
 class BipedModel : public AgeableModel {
 public:
@@ -76,7 +71,6 @@ public:
     /**
      * @brief 设置生物动画状态（每帧调用）
      *
-     * 参考 MC 1.16.5 BipedModel.setLivingAnimations
      * 用于设置游泳动画等状态
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
@@ -184,7 +178,6 @@ public:
     /**
      * @brief 平移手部用于手持物品渲染
      *
-     * 参考 MC 1.16.5 BipedModel.translateHand
      * 将矩阵变换到手臂的局部坐标系，使手持物品跟随手臂动画。
      *
      * @param handSide 手侧（左手或右手）
@@ -253,7 +246,7 @@ protected:
     std::shared_ptr<ModelRenderer> m_bipedRightLeg;
     std::shared_ptr<ModelRenderer> m_bipedLeftLeg;
 
-    // 兼容性别名
+    // 子类使用的别名引用
     std::shared_ptr<ModelRenderer>& m_head = m_bipedHead;
     std::shared_ptr<ModelRenderer>& m_headwear = m_bipedHeadwear;
     std::shared_ptr<ModelRenderer>& m_body = m_bipedBody;

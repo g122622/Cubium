@@ -22,7 +22,7 @@
  */
 
 #include "ItemParticleData.hpp"
-#include "../ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
@@ -43,17 +43,11 @@ std::string ItemParticleData::getTypeName() const
 std::string ItemParticleData::getParameters() const
 {
     // 物品粒子参数格式: item_id
-    // 例如: minecraft:diamond
     if (m_itemStack.isEmpty()) {
         return "minecraft:air";
     }
 
-    const Item* item = m_itemStack.getItem();
-    if (item == nullptr) {
-        return "minecraft:air";
-    }
-
-    return item->itemLocation().toString();
+    return m_itemStack.getItem()->itemLocation().toString();
 }
 
 std::unique_ptr<ParticleData> ItemParticleData::clone() const

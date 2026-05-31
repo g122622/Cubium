@@ -23,15 +23,13 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include <memory>
-#include "../core/EntityModel.hpp"
 
 namespace mc::client::renderer::entity::model::aquatic {
 
 /**
  * @brief 鳕鱼模型
- *
- * 参考 MC 1.16.5 CodModel
  */
 class CodModel : public EntityModel {
 public:
@@ -48,7 +46,7 @@ public:
     void setInWater(bool inWater) { m_isInWater = inWater; }
 
 private:
-    void setupParts();
+    void _setupParts();
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_finTop; // 背鳍
     std::shared_ptr<ModelRenderer> m_head;
@@ -62,8 +60,6 @@ private:
 
 /**
  * @brief 鲑鱼模型
- *
- * 参考 MC 1.16.5 SalmonModel
  */
 class SalmonModel : public EntityModel {
 public:
@@ -80,7 +76,7 @@ public:
     void setInWater(bool inWater) { m_isInWater = inWater; }
 
 private:
-    void setupParts();
+    void _setupParts();
     std::shared_ptr<ModelRenderer> m_bodyFront; // 身体前部
     std::shared_ptr<ModelRenderer> m_bodyRear;  // 身体后部
     std::shared_ptr<ModelRenderer> m_head;
@@ -96,7 +92,6 @@ private:
 /**
  * @brief 海豚模型
  *
- * 参考 MC 1.16.5 DolphinModel
  * textureWidth = 64, textureHeight = 64
  */
 class DolphinModel : public EntityModel {
@@ -111,34 +106,33 @@ public:
     /**
      * @brief 设置是否在水中（已废弃，使用setMotionMagnitude）
      * @deprecated 使用 setMotionMagnitude 替代
+     * TODO: 移除此方法，所有调用方应改用 setMotionMagnitude
      */
     void setInWater(bool inWater) { m_isInWater = inWater; }
 
     /**
      * @brief 设置运动向量模长的平方
-     * Java 原版使用 Entity.horizontalMag(getMotion()) > 1.0E-7D 判断是否在移动
      */
     void setMotionMagnitude(f64 magnitude) { m_motionMagnitude = magnitude; }
 
 private:
-    void setupParts();
+    void _setupParts();
     std::shared_ptr<ModelRenderer> m_body;      // 身体
     std::shared_ptr<ModelRenderer> m_tail;      // 尾巴
     std::shared_ptr<ModelRenderer> m_tailFin;   // 尾鳍
-    std::shared_ptr<ModelRenderer> m_dorsalFin; // 背鳍（新增）
+    std::shared_ptr<ModelRenderer> m_dorsalFin; // 背鳍
     std::shared_ptr<ModelRenderer> m_finRight;  // 右鳍
     std::shared_ptr<ModelRenderer> m_finLeft;   // 左鳍
     std::shared_ptr<ModelRenderer> m_head;      // 头部（子部件）
     std::shared_ptr<ModelRenderer> m_nose;      // 鼻子（子部件）
 
     bool m_isInWater = true;
-    f64 m_motionMagnitude = 0.0; // horizontalMag(motion)
+    f64 m_motionMagnitude = 0.0;
 };
 
 /**
  * @brief 海龟模型
  *
- * 参考 MC 1.16.5 TurtleModel
  * 继承自 QuadrupedModel，有特殊的怀孕状态
  */
 class TurtleModel : public EntityModel {
@@ -177,7 +171,7 @@ public:
     void setChild(bool isChild) { m_isChild = isChild; }
 
 private:
-    void setupParts(f32 scale);
+    void _setupParts(f32 scale);
 
     std::shared_ptr<ModelRenderer> m_head;          // 头部
     std::shared_ptr<ModelRenderer> m_body;          // 身体
@@ -197,7 +191,6 @@ private:
 /**
  * @brief 热带鱼模型抽象基类
  *
- * 参考 MC 1.16.5 AbstractTropicalFishModel
  * 提供颜色乘数设置功能
  */
 class AbstractTropicalFishModel : public EntityModel {
@@ -229,7 +222,6 @@ protected:
 /**
  * @brief 热带鱼A型模型（小体型）
  *
- * 参考 MC 1.16.5 TropicalFishAModel
  * 纹理尺寸: 32x32
  * 结构: 身体 + 尾巴 + 右鳍 + 左鳍 + 背鳍
  */
@@ -247,7 +239,7 @@ public:
     void setInWater(bool inWater) { m_isInWater = inWater; }
 
 private:
-    void setupParts(f32 scale);
+    void _setupParts(f32 scale);
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_tail;
@@ -261,7 +253,6 @@ private:
 /**
  * @brief 热带鱼B型模型（大体型）
  *
- * 参考 MC 1.16.5 TropicalFishBModel
  * 纹理尺寸: 32x32
  * 结构: 身体 + 尾巴 + 右鳍 + 左鳍 + 背鳍 + 腹鳍
  */
@@ -279,7 +270,7 @@ public:
     void setInWater(bool inWater) { m_isInWater = inWater; }
 
 private:
-    void setupParts(f32 scale);
+    void _setupParts(f32 scale);
 
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_tail;

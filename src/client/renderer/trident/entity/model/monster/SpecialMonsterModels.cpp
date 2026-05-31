@@ -28,7 +28,7 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-// Guard spine positions from MC 1.16.5
+// 守卫者尖刺位置常量
 constexpr f32 SPINE_ROT_X[] = {1.75f, 0.25f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 1.25f, 0.75f, 0.0f, 0.0f};
 constexpr f32 SPINE_ROT_Y[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 1.75f, 1.25f, 0.75f, 0.0f, 0.0f, 0.0f, 0.0f};
 constexpr f32 SPINE_ROT_Z[] = {0.0f, 0.0f, 0.25f, 1.75f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.75f, 1.25f};
@@ -36,12 +36,12 @@ constexpr f32 SPINE_POS_X[] = {0.0f, 0.0f, 8.0f, -8.0f, -8.0f, 8.0f, 8.0f, -8.0f
 constexpr f32 SPINE_POS_Y[] = {-8.0f, -8.0f, -8.0f, -8.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 8.0f, 8.0f, 8.0f};
 constexpr f32 SPINE_POS_Z[] = {8.0f, -8.0f, 0.0f, 0.0f, -8.0f, -8.0f, 8.0f, 8.0f, 8.0f, -8.0f, 0.0f, 0.0f};
 
-// Silverfish body sizes from MC 1.16.5
+// 蠹虫身体尺寸常量
 constexpr i32 SILVERFISH_BOX_LENGTH[][3] = {
     {3, 2, 2}, {4, 3, 2}, {6, 4, 3}, {3, 3, 3}, {2, 2, 3}, {2, 1, 2}, {1, 1, 2}};
 constexpr i32 SILVERFISH_TEX_POS[][2] = {{0, 0}, {0, 4}, {0, 9}, {0, 16}, {0, 22}, {11, 0}, {13, 4}};
 
-// Endermite body sizes from MC 1.16.5
+// 末影螨身体尺寸常量
 constexpr i32 ENDERMITE_BODY_SIZES[][3] = {{4, 3, 2}, {6, 4, 5}, {3, 3, 1}, {1, 2, 1}};
 constexpr i32 ENDERMITE_TEX_POS[][2] = {{0, 0}, {0, 5}, {0, 14}, {0, 18}};
 } // namespace
@@ -52,22 +52,20 @@ WitherModel::WitherModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
 WitherModel::WitherModel(f32 scale)
     : EntityModel()
 {
     setTextureSize(64, 64);
-    // Note: scale parameter used for armor layer in MC 1.16.5
+    // TODO: scale 参数用于盔甲层渲染，暂未实现
     (void)scale;
-    setupParts();
+    _setupParts();
 }
 
-void WitherModel::setupParts()
+void WitherModel::_setupParts()
 {
-    // 参考 MC 1.16.5 WitherModel
-
     // 三个上半身部件
     m_upperBodyParts[0] = std::make_shared<ModelRenderer>("upperBody0");
     m_upperBodyParts[0]->setTextureOffset(0, 16);
@@ -129,8 +127,7 @@ void WitherModel::setAngles(
     m_heads[0]->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_heads[0]->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
-    // Side heads would need entity data for head rotation
-    // For now, just copy main head rotation
+    // TODO: 侧头旋转需要从实体获取独立头朝向数据，当前暂时复制主头旋转
     m_heads[1]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
     m_heads[1]->setRotateAngleX(static_cast<f32>(m_heads[0]->rotateAngleX()));
     m_heads[2]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
@@ -148,7 +145,7 @@ SlimeModel::SlimeModel()
     , m_size(0)
 {
     setTextureSize(64, 32);
-    setupParts();
+    _setupParts();
 }
 
 SlimeModel::SlimeModel(i32 size)
@@ -156,12 +153,11 @@ SlimeModel::SlimeModel(i32 size)
     , m_size(size)
 {
     setTextureSize(64, 32);
-    setupParts();
+    _setupParts();
 }
 
-void SlimeModel::setupParts()
+void SlimeModel::_setupParts()
 {
-    // 参考 MC 1.16.5 SlimeModel
     // size > 0 表示小史莱姆，size == 0 表示大史莱姆
 
     m_body = std::make_shared<ModelRenderer>("body");
@@ -216,13 +212,11 @@ GuardianModel::GuardianModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void GuardianModel::setupParts()
+void GuardianModel::_setupParts()
 {
-    // 参考 MC 1.16.5 GuardianModel
-
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 0);
     m_body->addBox(-6.0f, 10.0f, -8.0f, 12.0f, 12.0f, 16.0f);
@@ -269,10 +263,10 @@ void GuardianModel::setupParts()
     m_tail[2]->addBox(1.0f, 10.5f, 3.0f, 1.0f, 9.0f, 9.0f);
     m_parts.push_back(m_tail[2]);
 
-    updateSpines(0.0f, 0.0f);
+    _updateSpines(0.0f, 0.0f);
 }
 
-void GuardianModel::updateSpines(f64 ageInTicks, f64 spikeAnimation)
+void GuardianModel::_updateSpines(f64 ageInTicks, f64 spikeAnimation)
 {
     for (i32 i = 0; i < 12; ++i) {
         m_spines[i]->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_X[i]));
@@ -291,19 +285,17 @@ void GuardianModel::render(f64 scale)
 void GuardianModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 参考 MC 1.16.5 GuardianModel.setRotationAngles
     m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // 使用成员变量中的动画值
     f32 spikeAnim = 1.0f - m_spikeAnimation;
     f32 spineScale = spikeAnim * 0.55f;
-    updateSpines(ageInTicks, spineScale);
+    _updateSpines(ageInTicks, spineScale);
 
     m_eye->setRotationPointZ(-8.25f);
 
     // 眼睛追踪目标实体
-    // 参考 Java 代码第 79-94 行
     if (m_targetEyeY > 0.0f) {
         m_eye->setRotationPointY(0.0f);
     } else {
@@ -338,13 +330,11 @@ ShulkerModel::ShulkerModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void ShulkerModel::setupParts()
+void ShulkerModel::_setupParts()
 {
-    // 参考 MC 1.16.5 ShulkerModel
-
     m_base = std::make_shared<ModelRenderer>("base");
     m_base->setTextureOffset(0, 28);
     m_base->addBox(-8.0f, -8.0f, -8.0f, 16.0f, 8.0f, 16.0f);
@@ -372,8 +362,6 @@ void ShulkerModel::render(f64 scale)
 void ShulkerModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 参考 MC 1.16.5 ShulkerModel.setRotationAngles 第 34 行
-    // float f1 = (0.5F + entityIn.getClientPeekAmount(f)) * (float)Math.PI;
     f32 peekAmount = m_peekAmount; // 从成员变量获取
     f32 peekAngle = static_cast<f32>((0.5 + peekAmount) * mc::math::PI_DOUBLE);
     f32 f2 = -1.0f + static_cast<f32>(std::sin(peekAngle));
@@ -405,12 +393,11 @@ SilverfishModel::SilverfishModel()
     : EntityModel()
 {
     setTextureSize(32, 32);
-    setupParts();
+    _setupParts();
 }
 
-void SilverfishModel::setupParts()
+void SilverfishModel::_setupParts()
 {
-    // 参考 MC 1.16.5 SilverfishModel
     f32 zPos = -3.5f;
 
     for (i32 i = 0; i < 7; ++i) {
@@ -500,12 +487,11 @@ EndermiteModel::EndermiteModel()
     : EntityModel()
 {
     setTextureSize(32, 32);
-    setupParts();
+    _setupParts();
 }
 
-void EndermiteModel::setupParts()
+void EndermiteModel::_setupParts()
 {
-    // 参考 MC 1.16.5 EndermiteModel
     f32 zPos = -3.5f;
 
     for (i32 i = 0; i < 4; ++i) {

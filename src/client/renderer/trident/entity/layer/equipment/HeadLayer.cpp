@@ -22,11 +22,11 @@
  */
 
 #include "HeadLayer.hpp"
-#include "../../../item/ItemMeshBuilder.hpp"
-#include "../../core/AnimationContext.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../../model/player/PlayerModel.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
@@ -63,6 +63,7 @@ void HeadLayer<TEntity, TModel>::render(TEntity& entity,
     f32 scale)
 {
     // CPU 路径已废弃
+    // TODO: 确认CPU渲染路径完全移除后删除此方法
     (void)entity;
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -92,8 +93,6 @@ void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(TEntity& entity,
     }
 
     // 获取父模型并使用头部部件定位
-    // 参考 MC 1.16.5 HeadLayer:63
-    // this.getEntityModel().getModelHead().translateRotate(matrixStack);
     std::array<f64, 16> headTransform;
 
     TModel* parentModel = getParentModel();
@@ -154,8 +153,6 @@ void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, it->second, headTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-
-    // spdlog::trace("HeadLayer: Rendered head item '{}'", item->getItem()->itemLocation().toString());
 }
 
 template <typename TEntity, typename TModel>
@@ -163,11 +160,7 @@ void HeadLayer<TEntity, TModel>::renderHeadItem(
     TEntity& entity, const ItemStack& itemStack, f32 headYaw, f32 headPitch, f32 scale)
 {
     // CPU 路径已废弃
-    (void)entity;
-    (void)itemStack;
-    (void)headYaw;
-    (void)headPitch;
-    (void)scale;
+    // TODO: 确认CPU渲染路径完全移除后删除此方法
 }
 
 template <typename TEntity, typename TModel>
@@ -186,7 +179,6 @@ void HeadLayer<TEntity, TModel>::computeHeadTransform(f32 headYaw, f32 headPitch
     // 初始化为单位矩阵
     outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    // 参考 MC 1.16.5 HeadLayer
     // 头部物品跟随头部旋转
     f64 yawRad = static_cast<f64>(headYaw) * mc::math::PI_DOUBLE / 180.0;
     f64 pitchRad = static_cast<f64>(headPitch) * mc::math::PI_DOUBLE / 180.0;

@@ -30,7 +30,6 @@ namespace mc::client::renderer::entity::model::monster {
 /**
  * @brief 末影人模型
  *
- * 参考 MC 1.16.5 EndermanModel
  * 末影人身材高大，手臂和腿很长。
  */
 class EndermanModel : public model::BipedModel {

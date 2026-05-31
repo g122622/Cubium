@@ -23,7 +23,6 @@
 
 #include "LavaParticle.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -36,7 +35,7 @@ LavaParticle::LavaParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
 
     // 熔岩颜色：橙红色
-    f64 colorVar = rng.nextFloat() * 0.2f;
+    f32 colorVar = rng.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.3f + colorVar, 0.0f, 1.0f));
 
     setFriction(0.98f);
@@ -57,14 +56,14 @@ void LavaParticle::tick(mc::client::ClientWorld* world)
 
     m_prevPosition = m_position;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
     }
 
     // 应用重力
-    m_velocity.y -= m_gravity * 0.04f;
+    m_velocity.y -= m_gravity * 0.04;
 
     // 随机水平漂移
     mc::math::Random rng;
@@ -77,8 +76,8 @@ void LavaParticle::tick(mc::client::ClientWorld* world)
 
     // 随年龄淡出
     f64 lifeRatio = m_age / m_maxAge;
-    if (lifeRatio > 0.6f) {
-        m_color.a = 1.0f - (lifeRatio - 0.6f) / 0.4f;
+    if (lifeRatio > 0.6) {
+        m_color.a = 1.0f - static_cast<f32>((lifeRatio - 0.6) / 0.4);
     }
 }
 

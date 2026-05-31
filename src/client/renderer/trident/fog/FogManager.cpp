@@ -22,18 +22,19 @@
  */
 
 #include "FogManager.hpp"
+#include "common/core/Constants.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::fog {
 
-// 雾效果常量（参考 MC 1.16.5）
-static constexpr f64 WATER_FOG_DENSITY = 0.05; // 水中雾密度
-static constexpr f64 LAVA_FOG_DENSITY = 0.25;  // 岩浆雾密度
-static constexpr f64 FOG_START_RATIO = 0.75;   // 雾起始距离比例（相对于远平面）
-static constexpr f64 FOG_END_RATIO = 1.0;      // 雾结束距离比例
-static constexpr f64 CHUNK_SIZE = 16.0;        // 区块大小（方块）
+// 雾效果常量
+static constexpr f64 WATER_FOG_DENSITY = 0.05;                              // 水中雾密度
+static constexpr f64 LAVA_FOG_DENSITY = 0.25;                               // 岩浆雾密度
+static constexpr f64 FOG_START_RATIO = 0.75;                                // 雾起始距离比例（相对于远平面）
+static constexpr f64 FOG_END_RATIO = 1.0;                                   // 雾结束距离比例
+static constexpr f64 CHUNK_SIZE = static_cast<f64>(mc::world::CHUNK_WIDTH); // 区块大小（方块）
 
 FogManager::FogManager() = default;
 
@@ -108,15 +109,15 @@ Result<void> FogManager::initialize(VkDevice device,
     m_maxFramesInFlight = maxFramesInFlight;
 
     // 创建 Uniform 缓冲区
-    auto bufferResult = createUniformBuffers();
+    auto bufferResult = _createUniformBuffers();
     if (bufferResult.failed()) {
         return bufferResult;
     }
 
     // 创建描述符集
-    auto descriptorResult = createDescriptorSets();
+    auto descriptorResult = _createDescriptorSets();
     if (descriptorResult.failed()) {
-        destroyUniformBuffers();
+        _destroyUniformBuffers();
         return descriptorResult;
     }
 
@@ -138,13 +139,12 @@ void FogManager::destroy()
         return;
     }
 
-    destroyUniformBuffers();
+    _destroyUniformBuffers();
 
     // 描述符集会随描述符池一起销毁
     m_descriptorSets.clear();
 
     m_initialized = false;
-    spdlog::debug("FogManager destroyed");
 }
 
 void FogManager::update(i32 renderDistanceChunks,
@@ -163,7 +163,7 @@ void FogManager::update(i32 renderDistanceChunks,
 
     // 根据雾模式计算参数
     if (m_currentFogMode == FogMode::Linear) {
-        calculateLinearFog(renderDistance);
+        _calculateLinearFog(renderDistance);
 
         // 天气影响：雨和雷暴会减少可视距离
         const f64 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
@@ -184,7 +184,7 @@ void FogManager::update(i32 renderDistanceChunks,
 
     // 更新所有帧的 Uniform 缓冲区
     for (u32 i = 0; i < m_maxFramesInFlight; ++i) {
-        updateUniformBuffer(i);
+        _updateUniformBuffer(i);
     }
 }
 
@@ -227,15 +227,14 @@ VkDescriptorSet FogManager::descriptorSet(u32 frameIndex) const
     return m_descriptorSets[frameIndex];
 }
 
-void FogManager::calculateLinearFog(f64 renderDistance)
+void FogManager::_calculateLinearFog(f64 renderDistance)
 {
-    // 参考 MC 1.16.5 FogRenderer.setupFog()
     // 线性雾：fogStart 和 fogEnd 控制雾的范围
     m_fogUBO.fogStart = static_cast<f32>(renderDistance * FOG_START_RATIO);
     m_fogUBO.fogEnd = static_cast<f32>(renderDistance * FOG_END_RATIO);
 }
 
-void FogManager::updateUniformBuffer(u32 frameIndex)
+void FogManager::_updateUniformBuffer(u32 frameIndex)
 {
     if (frameIndex >= m_uniformBuffers.size() || !m_mappedMemory[frameIndex]) {
         return;
@@ -244,7 +243,7 @@ void FogManager::updateUniformBuffer(u32 frameIndex)
     std::memcpy(m_mappedMemory[frameIndex], &m_fogUBO, sizeof(FogUBO));
 }
 
-Result<void> FogManager::createUniformBuffers()
+Result<void> FogManager::_createUniformBuffers()
 {
     m_uniformBuffers.resize(m_maxFramesInFlight);
     m_uniformMemory.resize(m_maxFramesInFlight);
@@ -267,7 +266,7 @@ Result<void> FogManager::createUniformBuffers()
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements(m_device, m_uniformBuffers[i], &memRequirements);
 
-        auto memoryTypeResult = findMemoryType(
+        auto memoryTypeResult = _findMemoryType(
             memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         if (memoryTypeResult.failed()) {
@@ -296,7 +295,7 @@ Result<void> FogManager::createUniformBuffers()
     return Result<void>::ok();
 }
 
-Result<void> FogManager::createDescriptorSets()
+Result<void> FogManager::_createDescriptorSets()
 {
     m_descriptorSets.resize(m_maxFramesInFlight);
 
@@ -335,7 +334,7 @@ Result<void> FogManager::createDescriptorSets()
     return Result<void>::ok();
 }
 
-void FogManager::destroyUniformBuffers()
+void FogManager::_destroyUniformBuffers()
 {
     for (u32 i = 0; i < m_maxFramesInFlight; ++i) {
         if (m_mappedMemory[i]) {
@@ -357,7 +356,7 @@ void FogManager::destroyUniformBuffers()
     m_mappedMemory.clear();
 }
 
-Result<u32> FogManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> FogManager::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);

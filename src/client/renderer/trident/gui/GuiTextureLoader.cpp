@@ -27,8 +27,6 @@
 #include "GuiSpriteRegistry.hpp"
 #include "GuiTextureAtlas.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 
@@ -58,7 +56,7 @@ Result<void> GuiTextureLoader::loadGuiTexture(GuiSpriteAtlas& atlas, const std::
         "[GuiTextureLoader] loadGuiTexture: location='{}', resourcePacks={}", location, m_resourcePacks.size());
 
     std::vector<u8> textureData;
-    auto result = findTexture(location, textureData);
+    auto result = _findTexture(location, textureData);
     if (result.failed()) {
         spdlog::warn("[GuiTextureLoader] findTexture failed for '{}': {}", location, result.error().toString());
         return result;
@@ -95,7 +93,7 @@ Result<void> GuiTextureLoader::loadGuiTexture(
 {
 
     std::vector<u8> textureData;
-    auto result = findTexture(location, textureData);
+    auto result = _findTexture(location, textureData);
     if (result.failed()) {
         return result;
     }
@@ -135,7 +133,7 @@ Result<void> GuiTextureLoader::loadGuiTexture(GuiTextureAtlas& atlas, const std:
 {
 
     std::vector<u8> textureData;
-    auto result = findTexture(location, textureData);
+    auto result = _findTexture(location, textureData);
     if (result.failed()) {
         return result;
     }
@@ -165,7 +163,7 @@ Result<void> GuiTextureLoader::loadSpritesFromJson(GuiTextureAtlas& atlas, const
     }
 
     // 构建资源路径
-    std::string resourcePath = buildResourcePath(jsonPath);
+    std::string resourcePath = _buildResourcePath(jsonPath);
 
     // 按优先级搜索资源包
     for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend(); ++it) {
@@ -210,11 +208,12 @@ Result<void> GuiTextureLoader::loadAll(GuiTextureAtlas& atlas)
     // 尝试加载widgets.png
     bool hasWidgets = false;
     std::vector<u8> widgetsData;
-    auto widgetsResult = findTexture("minecraft:textures/gui/widgets.png", widgetsData);
+    auto widgetsResult = _findTexture("minecraft:textures/gui/widgets.png", widgetsData);
     if (widgetsResult.success()) {
         i32 width, height;
         std::vector<u8> pixels;
         if (decodePng(widgetsData, width, height, pixels).success()) {
+            // TODO: 将解码后的像素数据上传到GuiTextureAtlas，当前仅设置了图集尺寸
             atlas.setAtlasSize(width, height);
             hasWidgets = true;
         }
@@ -222,11 +221,12 @@ Result<void> GuiTextureLoader::loadAll(GuiTextureAtlas& atlas)
 
     // 尝试加载icons.png
     std::vector<u8> iconsData;
-    auto iconsResult = findTexture("minecraft:textures/gui/icons.png", iconsData);
+    auto iconsResult = _findTexture("minecraft:textures/gui/icons.png", iconsData);
     if (iconsResult.success()) {
         i32 width, height;
         std::vector<u8> pixels;
         if (decodePng(iconsData, width, height, pixels).success()) {
+            // TODO: 将解码后的像素数据上传到GuiTextureAtlas，当前仅设置了图集尺寸
             // 如果widgets.png还没设置尺寸，使用icons.png的尺寸
             if (!hasWidgets) {
                 atlas.setAtlasSize(width, height);
@@ -261,9 +261,9 @@ Result<void> GuiTextureLoader::decodePng(
     const std::vector<u8>& data, i32& outWidth, i32& outHeight, std::vector<u8>& outPixels)
 {
 
-    int width, height, channels;
+    i32 width, height, channels;
     u8* pixels = stbi_load_from_memory(data.data(),
-        static_cast<int>(data.size()),
+        static_cast<i32>(data.size()),
         &width,
         &height,
         &channels,
@@ -286,7 +286,7 @@ Result<void> GuiTextureLoader::loadPngFromFile(
     const std::string& filePath, i32& outWidth, i32& outHeight, std::vector<u8>& outPixels)
 {
 
-    int width, height, channels;
+    i32 width, height, channels;
     u8* pixels = stbi_load(filePath.c_str(), &width, &height, &channels, 4);
 
     if (!pixels) {
@@ -302,7 +302,7 @@ Result<void> GuiTextureLoader::loadPngFromFile(
     return {};
 }
 
-Result<void> GuiTextureLoader::findTexture(const std::string& location, std::vector<u8>& outData)
+Result<void> GuiTextureLoader::_findTexture(const std::string& location, std::vector<u8>& outData)
 {
 
     if (m_resourcePacks.empty()) {
@@ -310,7 +310,7 @@ Result<void> GuiTextureLoader::findTexture(const std::string& location, std::vec
         return Error(ErrorCode::NotFound, "No resource packs available");
     }
 
-    std::string resourcePath = buildResourcePath(location);
+    std::string resourcePath = _buildResourcePath(location);
     spdlog::info("[GuiTextureLoader] Looking for texture: location='{}', resourcePath='{}'", location, resourcePath);
 
     // 按优先级搜索资源包（后添加的优先）
@@ -342,7 +342,7 @@ Result<void> GuiTextureLoader::findTexture(const std::string& location, std::vec
     return Error(ErrorCode::NotFound, std::string("Texture not found: ") + location);
 }
 
-std::string GuiTextureLoader::buildResourcePath(const std::string& location)
+std::string GuiTextureLoader::_buildResourcePath(const std::string& location)
 {
     // 转换 minecraft:textures/gui/widgets.png -> assets/minecraft/textures/gui/widgets.png
     auto colonPos = location.find(':');

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 熔岩滴粒子
- *
- * 参考 MC 1.16.5 LavaParticle
  *
  * 特性：
  * - 发光粒子（不受世界光照影响）
@@ -69,9 +67,9 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.025f;
-    static constexpr f64 DEFAULT_SIZE = 0.05f;
-    static constexpr f64 DEFAULT_LIFETIME = 30.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.025;
+    static constexpr f64 DEFAULT_SIZE = 0.05;
+    static constexpr f64 DEFAULT_LIFETIME = 30.0;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

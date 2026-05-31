@@ -23,8 +23,8 @@
 
 #pragma once
 
+#include "client/renderer/trident/particle/Particle.hpp"
 #include <memory>
-#include "../Particle.hpp"
 
 namespace mc::client {
 class ClientWorld;
@@ -34,8 +34,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 雨滴粒子
- *
- * 参考 MC 1.16.5 RainParticle
  *
  * 特性：
  * - 快速下落
@@ -85,8 +83,8 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_SIZE = 0.01f;      ///< 雨滴大小
-    static constexpr f64 TERMINAL_VELOCITY = -3.0f; ///< 终端速度
+    static constexpr f64 DEFAULT_SIZE = 0.01;      ///< 雨滴大小
+    static constexpr f64 TERMINAL_VELOCITY = -3.0; ///< 终端速度
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

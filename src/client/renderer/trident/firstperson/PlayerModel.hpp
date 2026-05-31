@@ -54,8 +54,6 @@ using entity::model::ModelRenderer;
  * - CrossbowCharge: 装填弩
  * - CrossbowHold: 持有已装填的弩
  * - EatOrDrink: 吃食物/喝药水
- *
- * 参考 MC 1.16.5 PlayerModel
  */
 class PlayerModel : public BipedModel {
 public:

@@ -67,7 +67,7 @@ Result<void> GuiAtlasRegistry::initialize(VkDescriptorSetLayout descriptorSetLay
     m_ownsPool = false;
 
     // 分配描述符集
-    auto result = allocateDescriptorSet();
+    auto result = _allocateDescriptorSet();
     if (result.failed()) {
         return result.error();
     }
@@ -120,7 +120,7 @@ Result<u32> GuiAtlasRegistry::registerAtlas(const std::string& name, VkImageView
     m_atlasCount++;
 
     // 更新描述符
-    writeDescriptor(slotId, imageView, sampler);
+    _writeDescriptor(slotId, imageView, sampler);
 
     spdlog::info("[GuiAtlasRegistry] Registered atlas '{}' at slot {}", name, slotId);
     return slotId;
@@ -179,7 +179,7 @@ Result<void> GuiAtlasRegistry::updateAtlas(u32 slotId, VkImageView imageView, Vk
     m_slots[slotId].sampler = sampler;
 
     // 更新描述符
-    writeDescriptor(slotId, imageView, sampler);
+    _writeDescriptor(slotId, imageView, sampler);
 
     return {};
 }
@@ -191,7 +191,7 @@ void GuiAtlasRegistry::updateFontTexture(VkImageView imageView, VkSampler sample
     m_slots[FONT_SLOT].sampler = sampler;
     m_slots[FONT_SLOT].name = "font";
 
-    writeDescriptor(FONT_SLOT, imageView, sampler);
+    _writeDescriptor(FONT_SLOT, imageView, sampler);
 }
 
 void GuiAtlasRegistry::updateItemAtlas(VkImageView imageView, VkSampler sampler)
@@ -201,17 +201,16 @@ void GuiAtlasRegistry::updateItemAtlas(VkImageView imageView, VkSampler sampler)
     m_slots[ITEM_SLOT].sampler = sampler;
     m_slots[ITEM_SLOT].name = "item";
 
-    writeDescriptor(ITEM_SLOT, imageView, sampler);
+    _writeDescriptor(ITEM_SLOT, imageView, sampler);
 }
 
-Result<void> GuiAtlasRegistry::createDescriptorSetLayout()
+Result<void> GuiAtlasRegistry::_createDescriptorSetLayout()
 {
-    // 注意：这个方法现在不使用，因为我们接受外部提供的布局
-    // 但保留它以便将来可能需要创建自己的布局
+    // TODO: 当前仅接受外部提供的布局，此方法暂未实现
     return Error(ErrorCode::Unsupported, "Use external descriptor set layout");
 }
 
-Result<void> GuiAtlasRegistry::allocateDescriptorSet()
+Result<void> GuiAtlasRegistry::_allocateDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -227,7 +226,7 @@ Result<void> GuiAtlasRegistry::allocateDescriptorSet()
     return {};
 }
 
-void GuiAtlasRegistry::writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler)
+void GuiAtlasRegistry::_writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler)
 {
     if (m_descriptorSet == VK_NULL_HANDLE) {
         return;

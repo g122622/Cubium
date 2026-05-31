@@ -33,7 +33,6 @@ namespace mc::client::renderer::entity::model::animal {
 /**
  * @brief 狼模型
  *
- * 参考 MC 1.16.5 WolfModel（继承自 TintedAgeableModel）
  * 狼有特殊的姿态：站立、坐下、睡觉、摇尾巴等。
  */
 class WolfModel : public AgeableModel {
@@ -48,15 +47,13 @@ public:
 
     /**
      * @brief 设置生物动画状态（每帧调用）
-     *
-     * 参考 MC 1.16.5 WolfModel.setLivingAnimations
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 
     /**
      * @brief 设置动画状态
      * @param isSitting 是否坐下
-     * @param isAngry 是否愤怒（func_233678_J__）
+     * @param isAngry 是否愤怒
      * @param isWet 是否湿润（用于动画，非着色）
      * @param tailRotation 尾巴旋转角度（对应 ageInTicks）
      * @param shakeAngle 摇晃角度
@@ -107,12 +104,13 @@ private:
     // 动画状态
     bool m_isSitting = false;
     bool m_isAngry = false;
-    bool m_isWet = false;
-    f32 m_tailRotation = 0.0f;
+    bool m_isWet = false;      // TODO: 湿润状态暂未用于动画逻辑，待实现抖水动画细节
+    f32 m_tailRotation = 0.0f; // TODO: 尾巴旋转角度暂未用于动画逻辑，待接入
     f32 m_shakeAngle = 0.0f;
     f32 m_interestedAngle = 0.0f;
 
     // 着色
+    // TODO: 着色值暂未用于渲染逻辑，待接入 TintedAgeableModel 着色管线
     f32 m_tintR = 1.0f;
     f32 m_tintG = 1.0f;
     f32 m_tintB = 1.0f;

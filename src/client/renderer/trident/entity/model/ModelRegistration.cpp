@@ -26,7 +26,6 @@
  * @brief 统一注册所有实体模型到 ModelFactory
  *
  * 此文件集中注册所有实体模型，使用工厂注册表模式替代巨型 if-else 链。
- * 参考 MC 1.16.5 的模型注册机制。
  */
 
 #include "ModelRegistration.hpp"
@@ -60,8 +59,8 @@
 #include "monster/MonsterVariantModels.hpp"
 #include "monster/MoreMonsterModels.hpp"
 #include "monster/SkeletonModel.hpp"
-#include "monster/SpiderModel.hpp"
 #include "monster/SpecialMonsterModels.hpp"
+#include "monster/SpiderModel.hpp"
 #include "monster/ZombieModel.hpp"
 
 // 下界生物模型

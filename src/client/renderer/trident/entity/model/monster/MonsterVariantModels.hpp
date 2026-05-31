@@ -23,21 +23,17 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
 #include <memory>
-#include "../base/BipedModel.hpp"
-#include "SpiderModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 僵尸村民模型
- *
- * 参考 MC 1.16.5 ZombieVillagerModel
  */
 class ZombieVillagerModel : public BipedModel {
 public:
-    using BipedModel::setupParts;
-
     ZombieVillagerModel();
     explicit ZombieVillagerModel(f32 scale, bool slim);
     ~ZombieVillagerModel() override = default;
@@ -48,20 +44,16 @@ public:
     void setHeadVisible(bool visible);
 
 private:
-    void setupParts(f32 scale, bool slim);
+    void _setupParts(f32 scale, bool slim);
 
     std::shared_ptr<ModelRenderer> m_villagerNose;
 };
 
 /**
  * @brief 溺尸模型
- *
- * 参考 MC 1.16.5 DrownedModel (extends ZombieModel)
  */
 class DrownedModel : public BipedModel {
 public:
-    using BipedModel::setupParts;
-
     DrownedModel();
     explicit DrownedModel(f32 scale, bool slim);
     ~DrownedModel() override = default;
@@ -70,13 +62,13 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
 private:
-    void setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight);
+    void _setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight);
 };
 
 /**
  * @brief 流浪者模型
  *
- * 参考 MC 1.16.5 SkeletonModel (same structure, different texture)
+ * 与骷髅结构相同，只是纹理不同
  */
 class StrayModel : public BipedModel {
 public:
@@ -87,7 +79,7 @@ public:
 /**
  * @brief 尸壳模型
  *
- * 参考 MC 1.16.5 ZombieModel (same structure, different texture)
+ * 与僵尸结构相同，只是纹理不同
  */
 class HuskModel : public BipedModel {
 public:
@@ -98,8 +90,7 @@ public:
 /**
  * @brief 洞穴蜘蛛模型
  *
- * 参考 MC 1.16.5 - CaveSpiderRenderer 直接使用 SpiderModel 并缩放 0.7 倍
- * Java 中没有独立的 CaveSpiderModel 类，而是复用 SpiderModel
+ * 复用蜘蛛模型，渲染时缩放 0.7 倍
  */
 class CaveSpiderModel : public SpiderModel {
 public:
@@ -118,7 +109,7 @@ public:
 /**
  * @brief 巨人模型
  *
- * 参考 MC 1.16.5 GiantModel (same as ZombieModel but larger)
+ * 与僵尸模型相同，渲染时缩放更大
  */
 class GiantModel : public BipedModel {
 public:

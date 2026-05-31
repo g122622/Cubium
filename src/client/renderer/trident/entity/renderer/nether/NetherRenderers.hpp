@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/LivingRenderer.hpp"
-#include "../../model/nether/NetherModels.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {

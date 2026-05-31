@@ -36,15 +36,15 @@ PortalParticle::PortalParticle(const glm::vec3& pos, const glm::vec3& velocity)
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
+    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
 
     // 传送门颜色：紫色
-    f64 purple = 0.6f + rng.nextFloat() * 0.4f;
-    setColor(glm::vec4(0.4f, 0.1f, purple, 0.8f));
+    f64 purple = 0.6 + static_cast<f64>(rng.nextFloat()) * 0.4;
+    setColor(glm::vec4(0.4f, 0.1f, static_cast<f32>(purple), 0.8f));
 
-    setFriction(0.95f);
+    setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7f + rng.nextFloat() * 0.6f));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(rng.nextFloat()) * 0.6));
 }
 
 std::unique_ptr<Particle> PortalParticle::create(
@@ -61,7 +61,7 @@ void PortalParticle::tick(mc::client::ClientWorld* world)
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
@@ -71,19 +71,19 @@ void PortalParticle::tick(mc::client::ClientWorld* world)
     f64 ageRatio = m_age / m_maxAge;
 
     // 水平摆动
-    f64 swing = std::sin(ageRatio * mc::math::PI * 4.0f) * 0.05f;
-    m_position.x = m_startX + swing;
-    m_position.z = m_startZ + std::cos(ageRatio * mc::math::PI * 4.0f) * 0.05f;
+    f64 swing = std::sin(ageRatio * mc::math::PI * 4.0) * 0.05;
+    m_position.x = static_cast<f32>(m_startX + swing);
+    m_position.z = static_cast<f32>(m_startZ + std::cos(ageRatio * mc::math::PI * 4.0) * 0.05);
 
     // 向下移动
     m_position.y += m_velocity.y;
 
     // 旋转
-    m_roll += 0.1f;
+    m_roll += 0.1;
 
     // 淡出
-    if (ageRatio > 0.5f) {
-        m_color.a = 0.8f * (1.0f - (ageRatio - 0.5f) * 2.0f);
+    if (ageRatio > 0.5) {
+        m_color.a = static_cast<f32>(0.8 * (1.0 - (ageRatio - 0.5) * 2.0));
     }
 }
 

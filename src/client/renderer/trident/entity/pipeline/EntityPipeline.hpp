@@ -35,13 +35,6 @@
 
 namespace mc::client::renderer::entity::pipeline {
 
-// 前向声明
-class UniformBuffer;
-
-// 物理设备内存属性回调
-using FindMemoryTypeCallback = Result<u32> (*)(
-    VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
-
 /**
  * @brief 混合模式枚举
  *
@@ -51,7 +44,7 @@ enum class BlendMode : u8 {
     None,     // 无混合
     Alpha,    // Alpha 混合（默认）
     Additive, // 叠加混合（用于眼睛发光、能量光效等）
-    Multiply  // 乘法混合
+    Multiply  // 乘法混合 // TODO: 尚未实现乘法混合管线，当前回退到Alpha混合
 };
 
 /**
@@ -83,8 +76,6 @@ struct EntityMesh {
  * - 顶点/索引缓冲区
  * - 描述符集
  * - 纹理图集
- *
- * 参考 MC 1.16.5 实体渲染系统
  */
 class EntityPipeline {
 public:
@@ -221,28 +212,28 @@ private:
     /**
      * @brief 创建描述符布局
      */
-    [[nodiscard]] Result<void> createDescriptorLayouts();
+    [[nodiscard]] Result<void> _createDescriptorLayouts();
 
     /**
      * @brief 创建纹理采样器
      */
-    [[nodiscard]] Result<void> createTextureSampler();
+    [[nodiscard]] Result<void> _createTextureSampler();
 
     /**
      * @brief 创建描述符集
      */
-    [[nodiscard]] Result<void> createDescriptorSets();
+    [[nodiscard]] Result<void> _createDescriptorSets();
 
     /**
      * @brief 创建图形管线
      */
-    [[nodiscard]] Result<void> createGraphicsPipeline(
+    [[nodiscard]] Result<void> _createGraphicsPipeline(
         VkRenderPass renderPass, VkDescriptorSetLayout cameraDescriptorLayout, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建缓冲区
      */
-    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
+    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
@@ -251,34 +242,34 @@ private:
     /**
      * @brief 确保复用暂存缓冲区容量满足需求
      */
-    [[nodiscard]] Result<void> ensureReusableStagingBuffer(
+    [[nodiscard]] Result<void> _ensureReusableStagingBuffer(
         VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity);
 
     /**
      * @brief 通过复用暂存缓冲区上传数据到设备本地缓冲区
      */
-    [[nodiscard]] Result<void> uploadToDeviceBuffer(
+    [[nodiscard]] Result<void> _uploadToDeviceBuffer(
         const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer);
 
     /**
      * @brief 销毁复用暂存缓冲区
      */
-    void destroyReusableStagingBuffers();
+    void _destroyReusableStagingBuffers();
 
     /**
      * @brief 复制缓冲区
      */
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void _copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     /**
      * @brief 开始单次命令
      */
-    VkCommandBuffer beginSingleTimeCommands();
+    VkCommandBuffer _beginSingleTimeCommands();
 
     /**
      * @brief 结束单次命令
      */
-    void endSingleTimeCommands(VkCommandBuffer cmd);
+    void _endSingleTimeCommands(VkCommandBuffer cmd);
 
     // 单次命令所需的资源
     VkCommandPool m_commandPool = VK_NULL_HANDLE;

@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {
@@ -35,8 +34,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 药水效果粒子基类
- *
- * 参考 MC 1.16.5 SpellParticle
  *
  * 特性：
  * - 向上漂浮
@@ -71,15 +68,15 @@ public:
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
-protected:
+private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
     f64 m_initialSize;
 };
 
 /**
  * @brief 瞬间药水效果粒子
  *
- * 参考 MC 1.16.5 InstantSpellParticle
  * 与 SpellParticle 类似但颜色更亮。
  */
 class InstantSpellParticle : public Particle {
@@ -111,13 +108,13 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
     f64 m_initialSize;
 };
 
 /**
  * @brief 实体效果粒子
  *
- * 参考 MC 1.16.5 EntityEffectParticle
  * 用于实体上的药水效果。
  */
 class EntityEffectParticle : public Particle {
@@ -143,13 +140,13 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
     f64 m_initialSize;
 };
 
 /**
  * @brief 环境实体效果粒子
  *
- * 参考 MC 1.16.5 AmbientEntityEffectParticle
  * 信标效果粒子，更透明、更慢。
  */
 class AmbientEntityEffectParticle : public Particle {
@@ -175,13 +172,13 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 12.0;
+    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
     f64 m_initialSize;
 };
 
 /**
  * @brief 巫师粒子
  *
- * 参考 MC 1.16.5 WitchParticle
  * 紫色的药水效果粒子。
  */
 class WitchParticle : public Particle {
@@ -205,6 +202,7 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
     f64 m_initialSize;
 };
 

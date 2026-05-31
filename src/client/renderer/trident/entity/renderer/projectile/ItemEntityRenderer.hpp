@@ -26,7 +26,6 @@
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
-#include <memory>
 
 namespace mc {
 
@@ -41,11 +40,9 @@ namespace client::renderer::entity::renderer::projectile {
  * 渲染掉落在世界中的物品实体。
  * 物品以 3D 方式浮动渲染，具有上下浮动和旋转动画。
  *
- * 参考 MC 1.16.5 ItemEntityRenderer / ItemRenderer
- *
  * 关键实现细节：
- * - 浮动偏移: sin((age + partialTick) / 10.0 + hoverStart) * 0.1 + 0.1
- * - 旋转: ((age + partialTick) / 20.0 + hoverStart) 弧度
+ * - 浮动偏移: sin((age + partialTick) / BOB_PERIOD + hoverStart) * BOB_AMPLITUDE + BOB_BASE + GROUND_OFFSET
+ * - 旋转: ((age + partialTick) / ROTATION_PERIOD + hoverStart) * RAD_TO_DEG
  * - 多物品堆叠: 根据数量 1-5 个物品
  */
 class ItemEntityRenderer : public core::EntityRenderer {
@@ -81,9 +78,6 @@ public:
 
     /**
      * @brief 计算旋转角度
-     *
-     * MC 1.16.5 ItemEntity.getItemHover(partialTicks): (age + partialTick) / 20.0F + hoverStart
-     *
      * @param ticksExisted 实体存活时间
      * @param partialTick 部分 tick
      * @param hoverStart 悬浮起始偏移
@@ -91,18 +85,9 @@ public:
      */
     [[nodiscard]] static f64 calculateRotation(u32 ticksExisted, f64 partialTick, f32 hoverStart);
 
-private:
-    /**
-     * @brief 获取物品纹理区域
-     * @param stack 物品堆
-     * @return 纹理区域指针，如果不存在返回 nullptr
-     */
-    [[nodiscard]] const TextureRegion* getItemTextureRegion(const ItemStack& stack) const;
-
     /**
      * @brief 计算物品堆叠数量对应的渲染数量
      *
-     * MC 1.16.5 ItemRenderer:
      * - 1 个物品: 1 个模型
      * - 2-16: 2 个模型
      * - 17-32: 3 个模型
@@ -112,15 +97,27 @@ private:
      * @param count 物品数量
      * @return 渲染的模型数量 (1-5)
      */
-public:
     [[nodiscard]] static i32 getItemCountForRender(i32 count);
 
 private:
+    /**
+     * @brief 获取物品纹理区域
+     * @param stack 物品堆
+     * @return 纹理区域指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const TextureRegion* _getItemTextureRegion(const ItemStack& stack) const;
 
     pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr;
 
+    /// 浮动动画周期除数
+    static constexpr f64 BOB_PERIOD = 10.0;
+    /// 浮动振幅
     static constexpr f64 BOB_AMPLITUDE = 0.1;
+    /// 浮动基础偏移
     static constexpr f64 BOB_BASE = 0.1;
+    /// 旋转动画周期除数
+    static constexpr f64 ROTATION_PERIOD = 20.0;
+    /// 地面变换Y偏移
     static constexpr f64 GROUND_TRANSFORM_Y_OFFSET = 0.25;
 };
 

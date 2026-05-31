@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <memory>
-#include "../../Particle.hpp"
-#include "../../ParticleTypes.hpp"
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 发射器粒子基类
- *
- * 参考 MC 1.16.5 EmitterParticle
  *
  * 发射器粒子是不渲染的元粒子，在生命周期内生成其他粒子。
  * 用途：
@@ -145,8 +143,6 @@ protected:
 /**
  * @brief 巨型爆炸发射器粒子
  *
- * 参考 MC 1.16.5 HugeExplosionEmitterParticle
- *
  * 在短暂延迟后生成大型爆炸粒子，创造震撼的爆炸效果。
  */
 class HugeExplosionEmitterParticle : public EmitterParticle {
@@ -176,7 +172,6 @@ private:
  * @brief 火焰发射器粒子
  *
  * 持续发射火焰粒子的发射器。
- * 参考 MC 1.16.5 中的火焰发射效果。
  */
 class FlameEmitterParticle : public EmitterParticle {
 public:

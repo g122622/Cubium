@@ -23,15 +23,14 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
 #include <memory>
-#include "../core/AgeableModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 
 /**
  * @brief 兔子模型
  *
- * 参考 MC 1.16.5 RabbitModel
  * 纹理尺寸: 64x32
  *
  * 部件：
@@ -44,7 +43,7 @@ namespace mc::client::renderer::entity::model::animal {
  * - rabbitTail: 尾巴
  * - rabbitNose: 鼻子
  *
- * 幼体参数（参考 Java）:
+ * 幼体参数:
  * - 头部缩放: 0.56666666 (17/30)
  * - 身体缩放: 0.4 (2/5)
  * - 头部偏移: Y + 5, Z + 2
@@ -62,8 +61,6 @@ public:
 
     /**
      * @brief 设置生物动画状态（每帧调用）
-     *
-     * 参考 MC 1.16.5 RabbitModel.setLivingAnimations
      */
     void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 
@@ -85,7 +82,7 @@ protected:
     std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
-    void setupParts();
+    void _setupParts();
 
     // 后脚
     std::shared_ptr<ModelRenderer> m_leftFoot;

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 爆炸粒子
- *
- * 参考 MC 1.16.5 ExplosionParticle
  *
  * 特性：
  * - 发光粒子（最大亮度）
@@ -86,16 +84,13 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_LIFETIME = 6.0;       // 约 0.3 秒
-    static constexpr f64 EXPLOSION_LIGHT = 15728880.0; // MC 爆炸亮度
+    static constexpr f64 DEFAULT_LIFETIME = 6.0; // 约 0.3 秒
 
     f64 m_initialSize;
 };
 
 /**
  * @brief 大型爆炸粒子
- *
- * 参考 MC 1.16.5 LargeExplosionParticle
  *
  * 特性：
  * - 生命周期 6-9 tick
@@ -120,7 +115,6 @@ public:
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override
     {
         MC_UNUSED(world);
-        // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
         return 15728880;
     }
 

@@ -33,7 +33,7 @@ WolfRenderer::WolfRenderer()
     , m_modelBaby()
 {
     setShadowSize(0.5f);
-    setupLayers();
+    _setupLayers();
 }
 
 void WolfRenderer::render(Entity& entity, f64 partialTicks)
@@ -45,7 +45,7 @@ void WolfRenderer::render(Entity& entity, f64 partialTicks)
     bool isAngry = wolf.isAngry();
     bool isWet = wolf.isInWater();
     f32 tailRotation = wolf.getTailAngle();
-    f32 shakeAngle = 0.0f; // 甩水动画角度 - 需要实体状态追踪
+    f32 shakeAngle = 0.0f; // TODO: 甩水动画角度 - 需要实体状态追踪
     f32 interestedAngle = wolf.isInterested() ? 0.5f : 0.0f;
 
     // 选择模型（幼体或成体）
@@ -86,11 +86,7 @@ void WolfRenderer::render(Entity& entity, f64 partialTicks)
 
 ResourceLocation WolfRenderer::getEntityTexture(WolfEntity& entity)
 {
-    // 参考 MC 1.16.5 WolfRenderer.getEntityTexture
-    // 根据狼的状态选择纹理：
-    // - 驯服：wolf_tame.png
-    // - 愤怒：wolf_angry.png
-    // - 普通：wolf.png
+    // 根据狼的状态选择纹理：驯服、愤怒、普通
     if (entity.isTamed()) {
         return ResourceLocation("minecraft", "textures/entity/wolf/wolf_tame.png");
     }
@@ -111,10 +107,9 @@ ResourceLocation WolfRenderer::getEntityTexture(const WolfEntity& entity) const
     return ResourceLocation("minecraft", "textures/entity/wolf/wolf.png");
 }
 
-void WolfRenderer::setupLayers()
+void WolfRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 WolfRenderer 构造函数
-    // 添加狼项圈层 - 待层渲染器系统完善后实现
+    // TODO: 添加狼项圈层 - 待层渲染器系统完善后实现
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

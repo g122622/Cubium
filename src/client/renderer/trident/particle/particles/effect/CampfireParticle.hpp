@@ -24,7 +24,8 @@
 #pragma once
 
 #include <memory>
-#include "../../Particle.hpp"
+
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {
@@ -35,8 +36,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 营火烟雾粒子
- *
- * 参考 MC 1.16.5 CampfireParticle
  *
  * 特性：
  * - 两种变体：普通烟雾（约80tick）和信号烟雾（约280tick）

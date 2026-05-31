@@ -22,8 +22,8 @@
  */
 
 #include "GuiTextureManager.hpp"
-#include "../util/VulkanUtils.hpp"
 #include "GuiRenderer.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -156,28 +156,28 @@ Result<void> GuiTextureManager::loadInventoryTexture()
             m_height = texture.height;
 
             // 创建图像和上传数据
-            auto imageResult = createImage(m_width, m_height);
+            auto imageResult = _createImage(m_width, m_height);
             if (imageResult.failed()) {
                 spdlog::warn("Failed to create image for inventory texture, using default");
-                return createDefaultTextures();
+                return _createDefaultTextures();
             }
 
-            auto viewResult = createImageView();
+            auto viewResult = _createImageView();
             if (viewResult.failed()) {
                 spdlog::warn("Failed to create image view for inventory texture, using default");
-                return createDefaultTextures();
+                return _createDefaultTextures();
             }
 
-            auto samplerResult = createSampler();
+            auto samplerResult = _createSampler();
             if (samplerResult.failed()) {
                 spdlog::warn("Failed to create sampler for inventory texture, using default");
-                return createDefaultTextures();
+                return _createDefaultTextures();
             }
 
-            auto uploadResult = uploadTextureData(texture.pixels);
+            auto uploadResult = _uploadTextureData(texture.pixels);
             if (uploadResult.failed()) {
                 spdlog::warn("Failed to upload inventory texture, using default");
-                return createDefaultTextures();
+                return _createDefaultTextures();
             }
 
             m_inventoryLoaded = true;
@@ -188,13 +188,12 @@ Result<void> GuiTextureManager::loadInventoryTexture()
 
     // 使用默认纹理
     spdlog::info("Inventory texture not found, using default generated texture");
-    return createDefaultTextures();
+    return _createDefaultTextures();
 }
 
 Result<void> GuiTextureManager::loadCraftingTableTexture()
 {
-    // 暂时使用与背包相同的纹理
-    // TODO: 后续加载 crafting_table.png
+    // TODO: 加载 crafting_table.png 纹理，当前暂用背包纹理
     m_craftingTableLoaded = m_inventoryLoaded;
     return {};
 }
@@ -255,7 +254,7 @@ void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f64 x, f64 y)
 
 void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64 y)
 {
-    // 暂时使用背包纹理（纹理坐标相同）
+    // TODO: 工作台背景使用独立纹理，当前暂用背包纹理
     drawInventoryBackground(gui, x, y);
 }
 
@@ -263,7 +262,7 @@ void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64
 // 默认纹理创建
 // ============================================================================
 
-Result<void> GuiTextureManager::createDefaultTextures()
+Result<void> GuiTextureManager::_createDefaultTextures()
 {
     // 创建一个简单的默认容器背景纹理
     constexpr i32 DEFAULT_WIDTH = 256;
@@ -297,22 +296,22 @@ Result<void> GuiTextureManager::createDefaultTextures()
     }
 
     // 创建图像
-    auto imageResult = createImage(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    auto imageResult = _createImage(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     if (imageResult.failed()) {
         return imageResult;
     }
 
-    auto viewResult = createImageView();
+    auto viewResult = _createImageView();
     if (viewResult.failed()) {
         return viewResult;
     }
 
-    auto samplerResult = createSampler();
+    auto samplerResult = _createSampler();
     if (samplerResult.failed()) {
         return samplerResult;
     }
 
-    auto uploadResult = uploadTextureData(data);
+    auto uploadResult = _uploadTextureData(data);
     if (uploadResult.failed()) {
         return uploadResult;
     }
@@ -326,7 +325,7 @@ Result<void> GuiTextureManager::createDefaultTextures()
 // Vulkan 辅助方法
 // ============================================================================
 
-Result<void> GuiTextureManager::createImage(u32 width, u32 height)
+Result<void> GuiTextureManager::_createImage(u32 width, u32 height)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -354,7 +353,7 @@ Result<void> GuiTextureManager::createImage(u32 width, u32 height)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (memTypeResult.failed()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -372,7 +371,7 @@ Result<void> GuiTextureManager::createImage(u32 width, u32 height)
     return {};
 }
 
-Result<void> GuiTextureManager::createImageView()
+Result<void> GuiTextureManager::_createImageView()
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -392,7 +391,7 @@ Result<void> GuiTextureManager::createImageView()
     return {};
 }
 
-Result<void> GuiTextureManager::createSampler()
+Result<void> GuiTextureManager::_createSampler()
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -419,7 +418,7 @@ Result<void> GuiTextureManager::createSampler()
     return {};
 }
 
-Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
+Result<void> GuiTextureManager::_uploadTextureData(const std::vector<u8>& data)
 {
     const VkDeviceSize imageSize = data.size();
 
@@ -443,7 +442,7 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(
+    auto memTypeResult = _findMemoryType(
         memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (memTypeResult.failed()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -469,7 +468,7 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
     vkUnmapMemory(m_device, stagingMemory);
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     // 转换到传输目标布局
     VkImageMemoryBarrier barrier{};
@@ -521,7 +520,7 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
         1,
         &barrier);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 清理暂存缓冲区
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -530,17 +529,17 @@ Result<void> GuiTextureManager::uploadTextureData(const std::vector<u8>& data)
     return {};
 }
 
-Result<u32> GuiTextureManager::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> GuiTextureManager::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer GuiTextureManager::beginSingleTimeCommands()
+VkCommandBuffer GuiTextureManager::_beginSingleTimeCommands()
 {
     return VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void GuiTextureManager::endSingleTimeCommands(VkCommandBuffer cmd)
+void GuiTextureManager::_endSingleTimeCommands(VkCommandBuffer cmd)
 {
     VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
 }

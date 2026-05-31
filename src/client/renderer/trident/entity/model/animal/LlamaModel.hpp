@@ -34,7 +34,6 @@ namespace mc::client::renderer::entity::model::animal {
 /**
  * @brief 羊驼模型
  *
- * 参考 MC 1.16.5 LlamaModel
  * 支持普通羊驼和流浪商人羊驼。
  *
  * 纹理尺寸：128x64 像素

@@ -35,9 +35,9 @@ std::array<mc::f64, 16> identityMatrix()
 std::array<mc::f64, 16> multiplyMatrices(const std::array<mc::f64, 16>& a, const std::array<mc::f64, 16>& b)
 {
     std::array<mc::f64, 16> result{};
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
-            for (int k = 0; k < 4; ++k) {
+    for (mc::i32 row = 0; row < 4; ++row) {
+        for (mc::i32 col = 0; col < 4; ++col) {
+            for (mc::i32 k = 0; k < 4; ++k) {
                 result[static_cast<std::size_t>(row * 4 + col)] +=
                     a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
             }
@@ -97,10 +97,8 @@ AgeableModel::AgeableModel(bool isChildHeadScaled,
 
 void AgeableModel::render(f64 scale)
 {
-    // 参考 MC 1.16.5 AgeableModel.render()
     // 幼体渲染需要分别处理头部和身体
-    // Java: 头部缩放 1.5F / childHeadScale，身体缩放 1.0F / childBodyScale
-    // Java 使用 matrixStack.translate(0, childHeadOffsetY/16.0, childHeadOffsetZ/16.0)
+    // 头部缩放 1.5F / childHeadScale，身体缩放 1.0F / childBodyScale
 
     if (m_isChild) {
         // 幼体渲染
@@ -109,8 +107,6 @@ void AgeableModel::render(f64 scale)
         if (!headParts.empty()) {
             // 头部缩放：只有当 isChildHeadScaled 为 true 时才缩放
             f32 headScale = m_isChildHeadScaled ? (1.5f / m_childHeadScale) : 1.0f;
-            // Java: matrixStack.translate(0.0D, (double)(this.childHeadOffsetY / 16.0F), (double)(this.childHeadOffsetZ
-            // / 16.0F));
             f64 headOffsetY = static_cast<f64>(m_childHeadOffsetY) / 16.0;
             f64 headOffsetZ = static_cast<f64>(m_childHeadOffsetZ) / 16.0;
 
@@ -122,8 +118,7 @@ void AgeableModel::render(f64 scale)
                     f64 origRotY = part->rotationPointY();
                     f64 origRotZ = part->rotationPointZ();
 
-                    // 应用偏移（注意：不再乘以16，直接添加偏移值）
-                    // Java 使用 translate，这里是调整旋转点
+                    // 应用偏移
                     part->setRotationPoint(origRotX, origRotY + headOffsetY, origRotZ + headOffsetZ);
 
                     // 渲染
@@ -140,7 +135,6 @@ void AgeableModel::render(f64 scale)
         if (!bodyParts.empty()) {
             // 身体缩放
             f32 bodyScale = 1.0f / m_childBodyScale;
-            // Java: matrixStack.translate(0.0D, (double)(this.childBodyOffsetY / 16.0F), 0.0D);
             f64 bodyOffsetY = static_cast<f64>(m_childBodyOffsetY) / 16.0;
 
             // 对每个身体部件应用缩放和偏移
@@ -149,7 +143,7 @@ void AgeableModel::render(f64 scale)
                     // 保存原始状态
                     f64 origRotY = part->rotationPointY();
 
-                    // 应用偏移（不再乘以16）
+                    // 应用偏移
                     part->setRotationPoint(part->rotationPointX(), origRotY + bodyOffsetY, part->rotationPointZ());
 
                     // 渲染
@@ -162,7 +156,6 @@ void AgeableModel::render(f64 scale)
         }
     } else {
         // 成年体渲染：分别渲染头部和身体部件
-        // Java 原版也是分别调用 getHeadParts() 和 getBodyParts() 的 render
         auto headParts = getHeadParts();
         for (auto& part : headParts) {
             if (part) {
@@ -226,7 +219,6 @@ void AgeableModel::setAngles(
 void AgeableModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
 {
     // 默认实现为空，子类可以重写
-    // 参考 MC 1.16.5 EntityModel.setLivingAnimations
 }
 
 } // namespace mc::client::renderer::entity::model

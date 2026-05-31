@@ -29,10 +29,10 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
-#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::item {
 
@@ -90,11 +90,11 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     std::array<f64, 16> transform = getItemTransform(transformType, 0.0f, 0.0f, true);
 
     // 构建 3D 物品网格
-    build3DItemMesh(*item, transformType, vertices, indices);
+    _build3DItemMesh(*item, transformType, vertices, indices);
 
     // 应用变换
     if (!vertices.empty()) {
-        transformVertices(vertices, transform);
+        _transformVertices(vertices, transform);
     }
 
     return {vertices, indices};
@@ -116,14 +116,14 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建盔甲网格
-    build3DItemMesh(*item, ItemTransformType::ThirdPersonRightHand, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::ThirdPersonRightHand, vertices, indices);
 
     // 应用身体部件变换
     if (!vertices.empty()) {
-        transformVertices(vertices, bodyPartTransform);
+        _transformVertices(vertices, bodyPartTransform);
     }
 
-    (void)slot;
+    MC_UNUSED(slot);
 
     return {vertices, indices};
 }
@@ -144,7 +144,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建头部物品网格
-    build3DItemMesh(*item, ItemTransformType::Head, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::Head, vertices, indices);
 
     return {vertices, indices};
 }
@@ -165,7 +165,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建地面物品网格
-    build3DItemMesh(*item, ItemTransformType::Ground, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::Ground, vertices, indices);
 
     // 应用旋转
     if (!vertices.empty() && rotation != 0.0) {
@@ -190,7 +190,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
 
-    buildItemQuad(region, size, vertices, indices);
+    _buildItemQuad(region, size, vertices, indices);
 
     return {vertices, indices};
 }
@@ -201,7 +201,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
     // 初始化为单位矩阵
     std::array<f64, 16> transform = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    // 参考 MC 1.16.5 ItemCameraTransforms
+    // 物品相机变换
     switch (transformType) {
         case ItemTransformType::FirstPersonRightHand: {
             transform[0] = 0.4;
@@ -307,13 +307,13 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
             break;
     }
 
-    (void)limbSwing;
-    (void)isRightHand;
+    MC_UNUSED(limbSwing);
+    MC_UNUSED(isRightHand);
 
     return transform;
 }
 
-void ItemMeshBuilder::buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
+void ItemMeshBuilder::_buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
     f64 size,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
@@ -338,7 +338,7 @@ void ItemMeshBuilder::buildItemQuad(const ::mc::client::renderer::api::TextureRe
     indices.push_back(3);
 }
 
-void ItemMeshBuilder::build3DItemMesh(const ::mc::Item& item,
+void ItemMeshBuilder::_build3DItemMesh(const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
@@ -349,7 +349,7 @@ void ItemMeshBuilder::build3DItemMesh(const ::mc::Item& item,
 
     if (model == nullptr) {
         // 回退：使用简单四边形
-        buildFallbackMesh(item, vertices, indices);
+        _buildFallbackMesh(item, vertices, indices);
         return;
     }
 
@@ -357,24 +357,24 @@ void ItemMeshBuilder::build3DItemMesh(const ::mc::Item& item,
     switch (model->type) {
         case resource::ItemModelType::Generated:
         case resource::ItemModelType::Handheld:
-            buildGeneratedMesh(*model, item, transformType, vertices, indices);
+            _buildGeneratedMesh(*model, item, transformType, vertices, indices);
             break;
 
         case resource::ItemModelType::Block:
-            buildBlockItemMesh(*model, item, transformType, vertices, indices);
+            _buildBlockItemMesh(*model, item, transformType, vertices, indices);
             break;
 
         case resource::ItemModelType::Custom:
-            buildCustomMesh(*model, item, transformType, vertices, indices);
+            _buildCustomMesh(*model, item, transformType, vertices, indices);
             break;
 
         default:
-            buildFallbackMesh(item, vertices, indices);
+            _buildFallbackMesh(item, vertices, indices);
             break;
     }
 }
 
-void ItemMeshBuilder::buildGeneratedMesh(const resource::BakedItemModel& model,
+void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
@@ -383,13 +383,12 @@ void ItemMeshBuilder::buildGeneratedMesh(const resource::BakedItemModel& model,
     // 获取纹理层
     auto layers = model.textureLayers;
     if (layers.empty()) {
-        buildFallbackMesh(item, vertices, indices);
+        _buildFallbackMesh(item, vertices, indices);
         return;
     }
 
     // 获取 ItemTextureAtlas
-    // 注意：这里假设 ItemTextureAtlas 已初始化，实际使用时需要传入
-    // 暂时使用简单纹理坐标
+    // TODO: 从 ItemTextureAtlas 获取实际纹理坐标，当前使用占位符 UV
 
     f64 size = ITEM_SCALE * 16.0;
     f64 halfSize = size * 0.5;
@@ -398,7 +397,7 @@ void ItemMeshBuilder::buildGeneratedMesh(const resource::BakedItemModel& model,
     for (size_t layer = 0; layer < layers.size(); ++layer) {
         f32 zOffset = static_cast<f32>(layer * 0.001); // 防止 z-fighting
 
-        // 占位符 UV（实际应从 ItemTextureAtlas 获取）
+        // TODO: 从 ItemTextureAtlas 获取实际纹理坐标，当前使用占位符 UV
         f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
         // 前面
@@ -436,13 +435,13 @@ void ItemMeshBuilder::buildGeneratedMesh(const resource::BakedItemModel& model,
         auto displayContext = toDisplayContext(transformType);
         const auto& transform = model.getTransform(displayContext);
         glm::mat4 mat = transform.toMatrix();
-        applyMatrixToVertices(vertices, mat);
+        _applyMatrixToVertices(vertices, mat);
     }
 
-    (void)item;
+    MC_UNUSED(item);
 }
 
-void ItemMeshBuilder::buildBlockItemMesh(const resource::BakedItemModel& model,
+void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
@@ -450,7 +449,7 @@ void ItemMeshBuilder::buildBlockItemMesh(const resource::BakedItemModel& model,
 {
     // 方块物品：从 elements 构建 3D 网格
     if (model.elements.empty()) {
-        buildFallbackMesh(item, vertices, indices);
+        _buildFallbackMesh(item, vertices, indices);
         return;
     }
 
@@ -537,24 +536,24 @@ void ItemMeshBuilder::buildBlockItemMesh(const resource::BakedItemModel& model,
         auto displayContext = toDisplayContext(transformType);
         const auto& transform = model.getTransform(displayContext);
         glm::mat4 mat = transform.toMatrix();
-        applyMatrixToVertices(vertices, mat);
+        _applyMatrixToVertices(vertices, mat);
     }
 }
 
-void ItemMeshBuilder::buildCustomMesh(const resource::BakedItemModel& model,
+void ItemMeshBuilder::_buildCustomMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
 {
-    // 自定义模型：与方块物品类似
-    buildBlockItemMesh(model, item, transformType, vertices, indices);
+    // TODO: 实现自定义模型的专用网格构建逻辑，当前复用方块物品网格构建
+    _buildBlockItemMesh(model, item, transformType, vertices, indices);
 }
 
-void ItemMeshBuilder::buildFallbackMesh(
+void ItemMeshBuilder::_buildFallbackMesh(
     const ::mc::Item& item, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 简单的立方体作为回退
+    // TODO: 回退网格当前只有前后两面，应补全其余四个面以形成完整立方体
     f64 size = ITEM_SCALE * 16.0;
     f64 halfSize = size * 0.5;
 
@@ -588,10 +587,10 @@ void ItemMeshBuilder::buildFallbackMesh(
     indices.push_back(6);
     indices.push_back(7);
 
-    (void)item;
+    MC_UNUSED(item);
 }
 
-void ItemMeshBuilder::applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix)
+void ItemMeshBuilder::_applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix)
 {
     for (auto& vertex : vertices) {
         glm::vec4 pos(vertex.position.x, vertex.position.y, vertex.position.z, 1.0f);
@@ -600,7 +599,7 @@ void ItemMeshBuilder::applyMatrixToVertices(std::vector<model::ModelVertex>& ver
         vertex.position.y = pos.y;
         vertex.position.z = pos.z;
 
-        // 法线也需要变换（使用逆转置矩阵，但这里简化处理）
+        // TODO: 使用逆转置矩阵进行法线变换，当前简化处理可能导致光照异常
         glm::vec4 normal(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0.0f);
         normal = matrix * normal;
         if (glm::length(glm::vec3(normal)) > 0.0001f) {
@@ -612,17 +611,17 @@ void ItemMeshBuilder::applyMatrixToVertices(std::vector<model::ModelVertex>& ver
     }
 }
 
-void ItemMeshBuilder::applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
+void ItemMeshBuilder::_applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
     ItemTransformType transformType,
     f32 limbSwing,
     f32 swingProgress,
     bool isRightHand)
 {
     std::array<f64, 16> transform = getItemTransform(transformType, limbSwing, swingProgress, isRightHand);
-    transformVertices(vertices, transform);
+    _transformVertices(vertices, transform);
 }
 
-void ItemMeshBuilder::transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix)
+void ItemMeshBuilder::_transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix)
 {
     for (auto& vertex : vertices) {
         f64 x = static_cast<f64>(vertex.position.x);

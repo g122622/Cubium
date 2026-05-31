@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 水下悬浮粒子
- *
- * 参考 MC 1.16.5 UnderwaterParticle
  *
  * 特性：
  * - 水下环境效果
@@ -63,9 +61,16 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;
-    static constexpr f64 DEFAULT_SIZE = 0.03f;
-    static constexpr f64 DEFAULT_LIFETIME = 60.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_SIZE = 0.03;
+    static constexpr f64 DEFAULT_LIFETIME = 60.0;
+
+    // 漂移速度
+    static constexpr f64 DRIFT_STRENGTH = 0.002;
+    // 淡出参数：生命比例超过此阈值开始淡出
+    static constexpr f64 FADE_START_RATIO = 0.6;
+    // 淡出范围：从 FADE_START_RATIO 到 1.0 的区间长度
+    static constexpr f64 FADE_RANGE = 0.4;
 
     f64 m_initialAlpha;
 };

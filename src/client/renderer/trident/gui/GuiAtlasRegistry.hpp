@@ -174,7 +174,7 @@ public:
     /**
      * @brief 获取已注册图集数量
      */
-    [[nodiscard]] u32 atlasCount() const { return static_cast<u32>(m_atlasCount); }
+    [[nodiscard]] u32 atlasCount() const { return m_atlasCount; }
 
     /**
      * @brief 更新描述符集中的图集
@@ -212,17 +212,18 @@ private:
     /**
      * @brief 创建描述符集布局
      */
-    [[nodiscard]] Result<void> createDescriptorSetLayout();
+    // TODO: 当前仅接受外部提供的布局，此方法暂未实现
+    [[nodiscard]] Result<void> _createDescriptorSetLayout();
 
     /**
      * @brief 分配描述符集
      */
-    [[nodiscard]] Result<void> allocateDescriptorSet();
+    [[nodiscard]] Result<void> _allocateDescriptorSet();
 
     /**
      * @brief 更新单个描述符
      */
-    void writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler);
+    void _writeDescriptor(u32 binding, VkImageView imageView, VkSampler sampler);
 
     VkDevice m_device = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;

@@ -22,9 +22,7 @@
  */
 
 #include "NautilusParticle.hpp"
-#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -33,17 +31,16 @@ NautilusParticle::NautilusParticle(const glm::vec3& pos, const glm::vec3& veloci
 {
     mc::math::Random rng;
 
-    setGravity(0.0f); // 无重力
+    setGravity(0.0f);
     setSize(0.04 * (0.8 + rng.nextFloat() * 0.4));
     m_initialSize = size();
 
     // 鹦鹉螺粒子颜色：白色/淡蓝色
-    // 参考 MC 1.16.5 NautilusParticle
     f32 brightness = 0.8f + rng.nextFloat() * 0.2f;
     setColor(glm::vec4(brightness, brightness, 1.0f, 1.0f));
 
     setFriction(0.95f);
-    setHasPhysics(false); // 无碰撞检测
+    setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
 }
 
@@ -67,9 +64,7 @@ void NautilusParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 参考 MC 1.16.5 NautilusParticle：
-    // 粒子按照速度向量移动，速度会逐渐衰减
-    // 速度向量在这里表示目标方向
+    // 粒子按照速度向量移动，速度逐渐衰减
 
     // 移动粒子
     m_position.x += m_velocity.x * 0.1f;

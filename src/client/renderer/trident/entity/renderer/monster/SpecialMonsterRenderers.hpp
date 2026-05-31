@@ -23,15 +23,10 @@
 
 #pragma once
 
-#include "../../core/LivingRenderer.hpp"
-#include "../../model/animal/PolarBearModel.hpp"
-#include "../../model/monster/MoreMonsterModels.hpp"
-#include "../../model/monster/SpecialMonsterModels.hpp"
-#include <memory>
-
-namespace mc::client::renderer::entity {
-class EntityRendererManager;
-}
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/monster/MoreMonsterModels.hpp"
+#include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
 

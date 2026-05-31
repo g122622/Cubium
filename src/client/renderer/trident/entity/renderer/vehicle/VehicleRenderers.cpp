@@ -24,13 +24,13 @@
 #include "VehicleRenderers.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::entity::renderer::vehicle {
 
 namespace {
+using mc::math::PI;
 using mc::math::PI_DOUBLE;
-}
+} // namespace
 
 // ==================== 船模型 ====================
 
@@ -38,18 +38,14 @@ BoatModel::BoatModel()
     : m_textureWidth(128)
     , m_textureHeight(64)
 {
-    setupParts();
+    _setupParts();
 }
 
-void BoatModel::setupParts()
+void BoatModel::_setupParts()
 {
-    // 参考 MC 1.16.5 BoatModel
     // 纹理尺寸：128x64
 
     // 创建5个船体面（底部、右、左、前、后）
-    // MC: amodelrenderer[0].addBox(-14.0F, -9.0F, -3.0F, 28.0F, 16.0F, 3.0F, 0.0F);
-    //     amodelrenderer[0].setRotationPoint(0.0F, 3.0F, 1.0F);
-    //     amodelrenderer[0].rotateAngleX = PI_DOUBLE/2
 
     // 底部面 (amodelrenderer[0])
     m_bottom = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatBottom");
@@ -90,14 +86,14 @@ void BoatModel::setupParts()
     m_back->addBox(-14.0f, -7.0f, -1.0f, 28.0f, 6.0f, 2.0f, 0.0f);
     m_back->setRotationPoint(0.0f, 4.0f, 9.0f);
 
-    // 桨 - 参考 MC makePaddle()
+    // 桨
     m_paddleLeft = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("paddleLeft");
     m_paddleLeft->setTextureSize(128, 64);
     m_paddleLeft->setTextureOffset(62, 0);
     m_paddleLeft->addBox(-1.0f, 0.0f, -5.0f, 2.0f, 2.0f, 18.0f, 0.0f);
     m_paddleLeft->addBox(-1.001f, -3.0f, 8.0f, 1.0f, 6.0f, 7.0f, 0.0f);
     m_paddleLeft->setRotationPoint(3.0f, -5.0f, 9.0f);
-    m_paddleLeft->setRotateAngleZ(0.19634955f);
+    m_paddleLeft->setRotateAngleZ(PI / 16.0f);
 
     m_paddleRight = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("paddleRight");
     m_paddleRight->setTextureSize(128, 64);
@@ -106,7 +102,7 @@ void BoatModel::setupParts()
     m_paddleRight->addBox(0.001f, -3.0f, 8.0f, 1.0f, 6.0f, 7.0f, 0.0f);
     m_paddleRight->setRotationPoint(3.0f, -5.0f, -9.0f);
     m_paddleRight->setRotateAngleY(static_cast<f32>(PI_DOUBLE));
-    m_paddleRight->setRotateAngleZ(0.19634955f);
+    m_paddleRight->setRotateAngleZ(PI / 16.0f);
 
     // 水面以下不可见的底部
     m_noWater = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatNoWater");
@@ -119,25 +115,25 @@ void BoatModel::setupParts()
 
 void BoatModel::render(f64 scale)
 {
-    if (m_bottom) m_bottom->render(scale);
-    if (m_right) m_right->render(scale);
-    if (m_left) m_left->render(scale);
-    if (m_front) m_front->render(scale);
-    if (m_back) m_back->render(scale);
-    if (m_paddleLeft) m_paddleLeft->render(scale);
-    if (m_paddleRight) m_paddleRight->render(scale);
+    m_bottom->render(scale);
+    m_right->render(scale);
+    m_left->render(scale);
+    m_front->render(scale);
+    m_back->render(scale);
+    m_paddleLeft->render(scale);
+    m_paddleRight->render(scale);
 }
 
 void BoatModel::renderNoWater(f64 scale)
 {
-    if (m_noWater) m_noWater->render(scale);
+    m_noWater->render(scale);
 }
 
 void BoatModel::setPaddleAngle(i32 paddleIndex, f32 angle)
 {
-    if (paddleIndex == 0 && m_paddleLeft) {
+    if (paddleIndex == 0) {
         m_paddleLeft->setRotateAngleX(angle);
-    } else if (paddleIndex == 1 && m_paddleRight) {
+    } else if (paddleIndex == 1) {
         m_paddleRight->setRotateAngleX(angle);
     }
 }
@@ -148,21 +144,13 @@ BoatRenderer::BoatRenderer(BoatType type)
     : m_type(type)
     , m_model(std::make_unique<BoatModel>())
 {
-    // MC 1.16.5: 船的阴影大小为 0.8
     m_shadowSize = 0.8f;
     m_shadowAlpha = 0.8f;
 }
 
 void BoatRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 BoatRenderer.render()
-    // 1. 计算船的朝向和倾斜
-    // 2. 处理受损抖动
-    // 3. 渲染船模型
-    // 4. 如果不在水中，渲染水花
-    // 5. 划桨动画
-
-    // 渲染船模型
+    // TODO: 完整实现船渲染：计算朝向和倾斜、受损抖动、水面花效果、划桨动画
     m_model->render(1.0 / 16.0);
 
     (void)entity;
@@ -180,11 +168,9 @@ ResourceLocation BoatRenderer::getTexture() const
     return textures[static_cast<size_t>(m_type)];
 }
 
-f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const
+f64 BoatRenderer::_calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const
 {
-    // 参考 MC 1.16.5 BoatRenderer
-    // 计算船的摇晃角度
-    // 基于船在水面上的起伏和速度
+    // TODO: 实现船的摇晃角度计算
     (void)boat;
     (void)partialTicks;
     return 0.0;
@@ -194,12 +180,11 @@ f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks
 
 MinecartModel::MinecartModel()
 {
-    setupParts();
+    _setupParts();
 }
 
-void MinecartModel::setupParts()
+void MinecartModel::_setupParts()
 {
-    // 参考 MC 1.16.5 MinecartModel
     // 纹理尺寸：64x32
     // 6个面：底部、左侧、右侧、前面、后面、内部底
 
@@ -254,17 +239,13 @@ void MinecartModel::setupParts()
 void MinecartModel::render(f64 scale)
 {
     for (auto& side : m_sides) {
-        if (side) {
-            side->render(scale);
-        }
+        side->render(scale);
     }
 }
 
 void MinecartModel::setInsideOffset(f32 yOffset)
 {
-    if (m_sides[5]) {
-        m_sides[5]->setRotationPointY(4.0f - yOffset);
-    }
+    m_sides[5]->setRotationPointY(4.0f - yOffset);
 }
 
 // ==================== 矿车渲染器 ====================
@@ -272,22 +253,14 @@ void MinecartModel::setInsideOffset(f32 yOffset)
 MinecartRenderer::MinecartRenderer()
     : m_model(std::make_unique<MinecartModel>())
 {
-    // MC 1.16.5: 矿车阴影大小为 0.5
     m_shadowSize = 0.5f;
     m_shadowAlpha = 0.8f;
 }
 
 void MinecartRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 MinecartRenderer.render()
-    // 1. 计算矿车方向和位置
-    // 2. 处理受损抖动
-    // 3. 渲染矿车模型
-    // 4. 如果有内容物，渲染内容物（乘客、箱子、TNT等）
-
-    // 矿车内部底板偏移动画（基于实体tick）
+    // TODO: 完整实现矿车渲染：方向计算、受损抖动、内容物（乘客/箱子/TNT等）渲染
     m_model->setInsideOffset(0.0f);
-
     m_model->render(1.0 / 16.0);
     (void)entity;
     (void)partialTicks;
@@ -298,8 +271,9 @@ ResourceLocation MinecartRenderer::getMinecartTexture()
     return ResourceLocation("minecraft", "textures/entity/minecart.png");
 }
 
-void MinecartRenderer::calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks)
+void MinecartRenderer::_calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks)
 {
+    // TODO: 实现矿车方向计算
     (void)minecart;
     (void)partialTicks;
 }

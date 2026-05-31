@@ -41,8 +41,6 @@ namespace mc::client::renderer::entity::renderer::animal {
 
 /**
  * @brief 豹猫渲染器
- *
- * 参考 MC 1.16.5 OcelotRenderer
  */
 class OcelotRenderer : public core::EntityRenderer {
 public:

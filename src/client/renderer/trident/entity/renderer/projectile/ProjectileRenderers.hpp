@@ -39,8 +39,6 @@ namespace mc::client::renderer::entity::renderer::projectile {
  * @brief 箭矢渲染器
  *
  * 渲染箭矢实体的专用渲染器。
- *
- * 参考 MC 1.16.5 ArrowRenderer
  */
 class ArrowRenderer : public core::EntityRenderer {
 public:
@@ -55,7 +53,7 @@ public:
     [[nodiscard]] static ResourceLocation getArrowTexture();
 
 private:
-    void generateArrowMesh();
+    void _generateArrowMesh();
 
     // 箭矢网格缓存
     bool m_meshGenerated = false;
@@ -63,8 +61,6 @@ private:
 
 /**
  * @brief 光灵箭渲染器
- *
- * 参考 MC 1.16.5 SpectralArrowRenderer
  */
 class SpectralArrowRenderer : public core::EntityRenderer {
 public:
@@ -78,8 +74,6 @@ public:
 
 /**
  * @brief 三叉戟渲染器
- *
- * 参考 MC 1.16.5 TridentRenderer
  */
 class TridentRenderer : public core::EntityRenderer {
 public:
@@ -91,7 +85,7 @@ public:
     [[nodiscard]] static ResourceLocation getTridentTexture();
 
 private:
-    void generateTridentMesh();
+    void _generateTridentMesh();
 
     bool m_meshGenerated = false;
 };

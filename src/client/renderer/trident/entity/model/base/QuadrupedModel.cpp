@@ -85,30 +85,19 @@ QuadrupedModel::QuadrupedModel(i32 legHeight,
 
 void QuadrupedModel::setupParts()
 {
-    // 参考 MC 1.16.5 QuadrupedModel 构造函数
-    // Java 参数:
-    // p_i225948_1_ = legHeight (腿高)
-    // p_i225948_2_ = scale (膨胀值)
-    // p_i225948_3_ = isChildHeadScaled
-    // p_i225948_4_ = childHeadOffsetY
-    // p_i225948_5_ = childHeadOffsetZ
-    // p_i225948_6_ = childHeadScale
-    // p_i225948_7_ = childBodyScale
-    // p_i225948_8_ = childBodyOffsetY
-
-    // 头部 - Java: this.headModel.addBox(-4.0F, -4.0F, -8.0F, 8.0F, 8.0F, 8.0F, scale);
+    // 头部
     // 旋转点 Y = 18 - legHeight
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-4.0f, -4.0f, -8.0f, 8.0f, 8.0f, 8.0f, m_scale);
     m_head->setRotationPoint(0.0f, static_cast<f32>(18 - m_legHeight), -6.0f);
 
-    // 身体 - Java: this.body.addBox(-5.0F, -10.0F, -7.0F, 10.0F, 16.0F, 8.0F, scale);
+    // 身体
     // 旋转点 Y = 17 - legHeight
     m_body->setTextureOffset(28, 8);
     m_body->addBox(-5.0f, -10.0f, -7.0f, 10.0f, 16.0f, 8.0f, m_scale);
     m_body->setRotationPoint(0.0f, static_cast<f32>(17 - m_legHeight), 2.0f);
 
-    // 后右腿 - Java: this.legBackRight.addBox(-2.0F, 0.0F, -2.0F, 4.0F, legHeight, 4.0F, scale);
+    // 后右腿
     // 旋转点 Y = 24 - legHeight
     m_legBackRight->setTextureOffset(0, 16);
     m_legBackRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
@@ -119,7 +108,7 @@ void QuadrupedModel::setupParts()
     m_legBackLeft->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
     m_legBackLeft->setRotationPoint(3.0f, static_cast<f32>(24 - m_legHeight), 7.0f);
 
-    // 前右腿 - Java: rotationPointZ = -5.0F
+    // 前右腿
     m_legFrontRight->setTextureOffset(0, 16);
     m_legFrontRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
     m_legFrontRight->setRotationPoint(-3.0f, static_cast<f32>(24 - m_legHeight), -5.0f);
@@ -148,26 +137,20 @@ void QuadrupedModel::render(f64 scale)
 void QuadrupedModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 /*ageInTicks*/, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
 {
-    // 参考 MC 1.16.5 QuadrupedModel.setRotationAngles
-
-    // 头部旋转 - Java: headPitch * ((float)Math.PI / 180F)
+    // 头部旋转
     m_head->setRotateAngleX(static_cast<f32>(math::toRadians(static_cast<f32>(headPitch))));
     m_head->setRotateAngleY(static_cast<f32>(math::toRadians(static_cast<f32>(netHeadYaw))));
 
-    // 身体默认姿态 - Java: ((float)Math.PI / 2F)
-    m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
+    // 身体默认姿态
+    m_body->setRotateAngleX(math::HALF_PI);
 
-    // 步态动画 - Java 完全一致
+    // 步态动画
     const f64 walkAngle = limbSwing * 0.6662;
     const f64 walkAmount = limbSwingAmount * 1.4;
 
-    // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
     m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(walkAngle) * walkAmount));
-    // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
     m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(walkAngle + math::PI) * walkAmount));
-    // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
     m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(walkAngle + math::PI) * walkAmount));
-    // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
     m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(walkAngle) * walkAmount));
 }
 

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 红石粉尘粒子
- *
- * 参考 MC 1.16.5 RedstoneParticle
  *
  * 特性：
  * - 可自定义颜色
@@ -79,13 +77,12 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
     f64 m_initialSize;
 };
 
 /**
  * @brief 附魔台符文粒子
- *
- * 参考 MC 1.16.5 EnchantmentTableParticle
  *
  * 特性：
  * - 发光粒子
@@ -121,13 +118,12 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 30.0;
+    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
     f64 m_initialSize;
 };
 
 /**
  * @brief 下落灰尘粒子
- *
- * 参考 MC 1.16.5 FallingDustParticle
  *
  * 特性：
  * - 从方块颜色获取颜色
@@ -158,6 +154,7 @@ public:
 private:
     static constexpr f64 DEFAULT_GRAVITY = 0.003f;
     static constexpr f64 DEFAULT_LIFETIME = 29.0;
+    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
     f64 m_initialSize;
 };
 

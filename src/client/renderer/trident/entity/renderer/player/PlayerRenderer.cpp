@@ -22,10 +22,10 @@
  */
 
 #include "PlayerRenderer.hpp"
-#include "../../layer/cosmetic/CapeLayer.hpp"
-#include "../../layer/cosmetic/ElytraLayer.hpp"
-#include "../../layer/equipment/HeadLayer.hpp"
-#include "../../layer/equipment/HeldItemLayer.hpp"
+#include "client/renderer/trident/entity/layer/cosmetic/CapeLayer.hpp"
+#include "client/renderer/trident/entity/layer/cosmetic/ElytraLayer.hpp"
+#include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
+#include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <spdlog/spdlog.h>
@@ -44,7 +44,7 @@ PlayerRenderer::PlayerRenderer(bool slimArms)
     setShadowAlpha(0.8);
 
     // 设置层渲染器
-    setupLayers();
+    _setupLayers();
 }
 
 void PlayerRenderer::render(Entity& entity, f64 partialTicks)
@@ -115,11 +115,6 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
     setModelVisibilities(player);
 
     // 重置动画状态
-    // 参考 MC 1.16.5 PlayerRenderer.renderItem:
-    // playermodel.swingProgress = 0.0F;
-    // playermodel.isSneak = false;
-    // playermodel.swimAnimation = 0.0F;
-    // playermodel.setRotationAngles(player, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
     m_model.setSwingProgress(0.0f);
     m_model.setCrouching(false);
@@ -128,7 +123,6 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
     m_model.setSwimAnimation(0.0f);
 
     // 仅渲染右臂和右袖
-    // 参考 MC 1.16.5 PlayerRenderer.renderRightArm
     m_model.renderRightArm(1.0 / 16.0);
 
     (void)player;
@@ -141,11 +135,6 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
     setModelVisibilities(player);
 
     // 重置动画状态
-    // 参考 MC 1.16.5 PlayerRenderer.renderItem:
-    // playermodel.swingProgress = 0.0F;
-    // playermodel.isSneak = false;
-    // playermodel.swimAnimation = 0.0F;
-    // playermodel.setRotationAngles(player, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
     m_model.setSwingProgress(0.0f);
     m_model.setCrouching(false);
@@ -154,7 +143,6 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
     m_model.setSwimAnimation(0.0f);
 
     // 仅渲染左臂和左袖
-    // 参考 MC 1.16.5 PlayerRenderer.renderLeftArm
     m_model.renderLeftArm(1.0 / 16.0);
 
     (void)player;
@@ -175,7 +163,6 @@ void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTi
 
 void PlayerRenderer::setModelVisibilities(::mc::Player& player)
 {
-    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities
     // 默认显示所有部件
     m_model.setAllVisible(true);
 
@@ -185,13 +172,6 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
     m_model.setArmPose(leftArmPose, rightArmPose);
 
     // 根据 PlayerModelPart 设置外层皮肤部件可见性
-    // 参考 MC 1.16.5 PlayerRenderer.setModelVisibilities:
-    // playermodel.bipedHeadwear.showModel = clientPlayer.isWearing(PlayerModelPart.HAT);
-    // playermodel.bipedBodyWear.showModel = clientPlayer.isWearing(PlayerModelPart.JACKET);
-    // playermodel.bipedLeftLegwear.showModel = clientPlayer.isWearing(PlayerModelPart.LEFT_PANTS_LEG);
-    // playermodel.bipedRightLegwear.showModel = clientPlayer.isWearing(PlayerModelPart.RIGHT_PANTS_LEG);
-    // playermodel.bipedLeftArmwear.showModel = clientPlayer.isWearing(PlayerModelPart.LEFT_SLEEVE);
-    // playermodel.bipedRightArmwear.showModel = clientPlayer.isWearing(PlayerModelPart.RIGHT_SLEEVE);
     // 注意：Cape 由 CapeLayer 单独处理
 
     // 使用 PlayerModel::setModelVisibilitiesFromFlags 设置所有外层皮肤部件
@@ -206,9 +186,7 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
 
 model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bool mainHand)
 {
-    // 参考 MC 1.16.5 PlayerRenderer.func_241741_a_
-    // 从玩家获取手持物品和使用状态
-    // 目前返回默认值，等待物品系统完善后实现
+    // TODO: 从玩家获取手持物品和使用状态，目前返回默认值，等待物品系统完善后实现
     (void)player;
     (void)mainHand;
 
@@ -218,10 +196,8 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const
 {
-    // MC 1.16.5 LivingRenderer.java:100
-    // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
-    // 注意：Player 继承自 Entity，没有 limbSwing 字段
-    // 需要从移动距离计算
+    // 计算水平移动距离
+    // 注意：Player 继承自 Entity，没有 limbSwing 字段，需要从移动距离计算
     f64 dx = static_cast<f64>(player.x() - player.prevX());
     f64 dz = static_cast<f64>(player.z() - player.prevZ());
     f64 distance = std::sqrt(dx * dx + dz * dz);
@@ -230,25 +206,23 @@ f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const
     f64 limbSwing = static_cast<f64>(player.ticksExisted()) * distance;
     f64 limbSwingAmount = std::min(distance * 4.0, 1.0);
 
-    // MC 1.16.5 公式
     return limbSwing - limbSwingAmount * (1.0 - partialTicks);
 }
 
 f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const
 {
-    // MC 1.16.5 LivingRenderer.java:99
-    // f8 = MathHelper.lerp(partialTicks, prevLimbSwingAmount, limbSwingAmount);
+    // 计算步态动画强度
     // 限制最大值为 1.0
     f64 dx = static_cast<f64>(player.x() - player.prevX());
     f64 dz = static_cast<f64>(player.z() - player.prevZ());
     f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0;
 
-    // 插值计算
-    f64 prevAmount = speed * 0.7; // 近似前一帧的值
+    // TODO: prevAmount 使用 speed * 0.7 近似，应从 Entity 的 prevLimbSwingAmount 字段获取
+    f64 prevAmount = speed * 0.7;
     f64 amount = speed;
     f64 result = prevAmount + (amount - prevAmount) * partialTicks;
 
-    // MC 1.16.5 LivingRenderer.java:105-107
+    // 限制最大值为 1.0
     if (result > 1.0) {
         result = 1.0;
     }
@@ -309,28 +283,23 @@ ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) co
     return ResourceLocation("minecraft:textures/entity/steve.png");
 }
 
-void PlayerRenderer::setupLayers()
+void PlayerRenderer::_setupLayers()
 {
-    // 参考 MC 1.16.5 PlayerRenderer 构造函数
     // 添加层渲染器
 
     // 创建手持物品层渲染器（主手和副手）
     m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player>>());
 
     // 头部物品层（头盔等）
-    // 参考 MC 1.16.5: this.addLayer(new HeadLayer<>(this));
-    // HeadLayer 需要匹配 IEntityRenderer<Player, PlayerModel> 接口
     m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player, model::player::PlayerModel>>(*this));
 
     // 披风层
-    // 参考 MC 1.16.5: this.addLayer(new CapeLayer(this));
     m_layers.push_back(std::make_unique<cosmetic::CapeLayer>());
 
     // 鞘翅层
-    // 参考 MC 1.16.5: this.addLayer(new ElytraLayer<>(this));
     m_layers.push_back(std::make_unique<cosmetic::ElytraLayer<::mc::Player>>());
 
-    spdlog::debug("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
+    spdlog::info("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
 }
 
 } // namespace mc::client::renderer::entity::renderer::player

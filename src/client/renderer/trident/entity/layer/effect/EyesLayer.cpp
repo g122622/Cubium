@@ -29,7 +29,6 @@
 #include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::effect {
@@ -44,18 +43,12 @@ void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
         return;
     }
 
-    // 获取父模型
-    TModel* parentModel = getParentModel();
-    if (!parentModel) {
-        return;
-    }
-
     // 获取眼睛纹理和颜色
     ResourceLocation texture = getEyesTexture(entity);
     Vector3f color = getEyesColor(entity);
 
     // 获取头部部件变换
-    std::shared_ptr<model::ModelRenderer> headPart = parentModel->getModelHead();
+    std::shared_ptr<model::ModelRenderer> headPart = getParentModel()->getModelHead();
     if (!headPart) {
         return;
     }
@@ -94,8 +87,8 @@ void EyesLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
 
+    // TODO: 将眼睛纹理绑定到管线（当前使用叠加混合，纹理尚未应用）
     (void)texture;
-    (void)cmd;
 }
 
 template <typename TEntity, typename TModel>
@@ -139,6 +132,7 @@ void EyesLayer<TEntity, TModel>::buildEyesMesh(
     constexpr f32 EYE_WIDTH = 0.25f;
     constexpr f32 EYE_HEIGHT = 0.15f;
     constexpr f32 EYE_DEPTH = 0.05f;
+    constexpr f32 EYE_SPACING = 0.15f; // 左右眼相对于头部中心的水平偏移
 
     f32 hw = EYE_WIDTH / 2.0f;
     f32 hh = EYE_HEIGHT / 2.0f;
@@ -151,13 +145,9 @@ void EyesLayer<TEntity, TModel>::buildEyesMesh(
     f64 headY = headTransform[7];  // Y 平移
     f64 headZ = headTransform[11]; // Z 平移
 
-    // 提取旋转信息（简化：使用矩阵中的旋转分量）
-    // 对于简单的眼睛层，我们使用固定的偏移位置
-    // 实际上眼睛应该跟随头部旋转
-
     // 左眼位置（相对于头部中心）
-    f32 leftEyeX = static_cast<f32>(headX) - 0.15f;
-    f32 rightEyeX = static_cast<f32>(headX) + 0.15f;
+    f32 leftEyeX = static_cast<f32>(headX) - EYE_SPACING;
+    f32 rightEyeX = static_cast<f32>(headX) + EYE_SPACING;
     f32 eyeY = static_cast<f32>(headY);
     f32 eyeZ = static_cast<f32>(headZ) + static_cast<f32>(EYE_DEPTH);
 

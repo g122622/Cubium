@@ -34,15 +34,20 @@ ModelFactory& ModelFactory::instance()
     return factory;
 }
 
-void ModelFactory::registerModel(const std::string& entityTypeId, ModelCreator creator)
+std::string ModelFactory::_normalizeEntityTypeId(const std::string& entityTypeId)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    // 规范化实体类型ID（确保有命名空间前缀）
     std::string normalizedId = entityTypeId;
     if (normalizedId.find(':') == std::string::npos) {
         normalizedId = "minecraft:" + normalizedId;
     }
+    return normalizedId;
+}
+
+void ModelFactory::registerModel(const std::string& entityTypeId, ModelCreator creator)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
     if (m_creators.find(normalizedId) != m_creators.end()) {
         spdlog::warn("ModelFactory: Model already registered for '{}', overwriting", normalizedId);
@@ -55,11 +60,7 @@ std::unique_ptr<EntityModel> ModelFactory::createModel(const std::string& entity
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 规范化实体类型ID
-    std::string normalizedId = entityTypeId;
-    if (normalizedId.find(':') == std::string::npos) {
-        normalizedId = "minecraft:" + normalizedId;
-    }
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
     auto it = m_creators.find(normalizedId);
     if (it == m_creators.end()) {
@@ -73,10 +74,7 @@ bool ModelFactory::hasModel(const std::string& entityTypeId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string normalizedId = entityTypeId;
-    if (normalizedId.find(':') == std::string::npos) {
-        normalizedId = "minecraft:" + normalizedId;
-    }
+    std::string normalizedId = _normalizeEntityTypeId(entityTypeId);
 
     return m_creators.find(normalizedId) != m_creators.end();
 }

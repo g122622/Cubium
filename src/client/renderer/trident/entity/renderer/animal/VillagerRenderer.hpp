@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/LivingRenderer.hpp"
-#include "../../layer/entity/VillagerLayer.hpp"
-#include "../../model/animal/VillagerModel.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/layer/entity/VillagerLayer.hpp"
+#include "client/renderer/trident/entity/model/animal/VillagerModel.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
@@ -42,7 +42,6 @@ namespace mc::client::renderer::entity::renderer::animal {
 /**
  * @brief 村民渲染器
  *
- * 参考 MC 1.16.5 VillagerRenderer
  * 支持不同职业和生物群系类型的村民纹理。
  *
  * 村民外观由多层纹理叠加实现：
@@ -78,7 +77,7 @@ private:
     /**
      * @brief 初始化层渲染器
      */
-    void initLayers();
+    void _initLayers();
 
     /// 村民层渲染器（用于设置纹理图集）
     layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>* m_villagerLayer = nullptr;

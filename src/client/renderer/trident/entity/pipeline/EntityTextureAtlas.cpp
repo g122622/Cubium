@@ -70,7 +70,7 @@ Result<void> EntityTextureAtlas::initialize(VkDevice device,
     m_textures.reserve(maxTextures);
 
     // 创建采样器
-    auto result = createSampler();
+    auto result = _createSampler();
     if (!result.success()) {
         return result;
     }
@@ -141,7 +141,7 @@ Result<void> EntityTextureAtlas::addTexture(mc::IResourcePack& pack, const Resou
     TextureData texData;
     texData.location = location;
 
-    auto result = loadTextureWithFallback(pack, location, texData.pixels, texData.width, texData.height);
+    auto result = _loadTextureWithFallback(pack, location, texData.pixels, texData.width, texData.height);
     if (!result.success()) {
         spdlog::warn("Failed to load entity texture: {} - {}", location.toString(), result.error().toString());
         return result.error();
@@ -318,7 +318,7 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     spdlog::info("Building entity texture atlas: {}x{} ({} textures)", m_width, m_height, m_textures.size());
 
     // 创建图像
-    auto result = createImage(m_width, m_height);
+    auto result = _createImage(m_width, m_height);
     if (!result.success()) {
         return result.error();
     }
@@ -362,7 +362,7 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     }
 
     // 上传到GPU
-    auto uploadResult = uploadTextureData(atlasData);
+    auto uploadResult = _uploadTextureData(atlasData);
     if (!uploadResult.success()) {
         return uploadResult.error();
     }
@@ -484,7 +484,7 @@ const TextureRegion* EntityTextureAtlas::getRegion(const std::string& location) 
     return getRegion(loc);
 }
 
-Result<void> EntityTextureAtlas::loadTextureWithFallback(
+Result<void> EntityTextureAtlas::_loadTextureWithFallback(
     mc::IResourcePack& pack, const ResourceLocation& location, std::vector<u8>& outData, u32& outWidth, u32& outHeight)
 {
     // 尝试直接加载（使用文件路径格式）
@@ -502,7 +502,6 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
             outData.resize(width * height * 4);
             std::memcpy(outData.data(), pixels, outData.size());
             stbi_image_free(pixels);
-            spdlog::debug("EntityTextureAtlas: Loaded {} ({}x{})", filePath, width, height);
             return {};
         }
     }
@@ -532,7 +531,6 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
                     outData.resize(width * height * 4);
                     std::memcpy(outData.data(), pixels, outData.size());
                     stbi_image_free(pixels);
-                    spdlog::debug("EntityTextureAtlas: Loaded fallback {} ({}x{})", altPath, width, height);
                     return {};
                 }
             }
@@ -555,7 +553,6 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
                 outData.resize(width * height * 4);
                 std::memcpy(outData.data(), pixels, outData.size());
                 stbi_image_free(pixels);
-                spdlog::debug("EntityTextureAtlas: Loaded from direct path {} ({}x{})", directPath, width, height);
                 return {};
             }
         }
@@ -564,7 +561,7 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(
     return Error(ErrorCode::ResourceNotFound, "Failed to load texture: " + location.toString());
 }
 
-Result<void> EntityTextureAtlas::createSampler()
+Result<void> EntityTextureAtlas::_createSampler()
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -591,7 +588,7 @@ Result<void> EntityTextureAtlas::createSampler()
     return {};
 }
 
-Result<void> EntityTextureAtlas::createImage(u32 width, u32 height)
+Result<void> EntityTextureAtlas::_createImage(u32 width, u32 height)
 {
     // 创建图像
     VkImageCreateInfo imageInfo{};
@@ -620,7 +617,7 @@ Result<void> EntityTextureAtlas::createImage(u32 width, u32 height)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto memTypeResult = _findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!memTypeResult.success()) {
         vkDestroyImage(m_device, m_image, nullptr);
         m_image = VK_NULL_HANDLE;
@@ -639,7 +636,7 @@ Result<void> EntityTextureAtlas::createImage(u32 width, u32 height)
     return {};
 }
 
-Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data)
+Result<void> EntityTextureAtlas::_uploadTextureData(const std::vector<u8>& data)
 {
     VkDeviceSize imageSize = data.size();
 
@@ -663,7 +660,7 @@ Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    auto memTypeResult = findMemoryType(
+    auto memTypeResult = _findMemoryType(
         memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (!memTypeResult.success()) {
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -690,7 +687,7 @@ Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     vkUnmapMemory(m_device, stagingMemory);
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = beginSingleTimeCommands();
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
 
     // 转换到传输目标布局
     VkImageMemoryBarrier barrier{};
@@ -742,7 +739,7 @@ Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data)
         1,
         &barrier);
 
-    endSingleTimeCommands(cmd);
+    _endSingleTimeCommands(cmd);
 
     // 清理暂存缓冲区
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -751,17 +748,17 @@ Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data)
     return {};
 }
 
-Result<u32> EntityTextureAtlas::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
+Result<u32> EntityTextureAtlas::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
     return ::mc::client::renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
-VkCommandBuffer EntityTextureAtlas::beginSingleTimeCommands()
+VkCommandBuffer EntityTextureAtlas::_beginSingleTimeCommands()
 {
     return ::mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 }
 
-void EntityTextureAtlas::endSingleTimeCommands(VkCommandBuffer cmd)
+void EntityTextureAtlas::_endSingleTimeCommands(VkCommandBuffer cmd)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     ::mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);

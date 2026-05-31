@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -36,10 +36,10 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 气泡粒子
  *
- * 参考 MC 1.16.5 BubbleParticle
+ * 在水中生成，向上升起，到达水面后消失。
  *
  * 特性：
- * - 在水中生成，向上升起（浮力 0.005/tick）
+ * - 浮力 0.005/tick
  * - 到达水面后消失（应生成 BubblePop 粒子）
  * - 摩擦系数 0.85
  * - 生命周期约 8-40 tick

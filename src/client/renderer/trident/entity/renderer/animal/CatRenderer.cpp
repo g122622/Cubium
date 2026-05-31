@@ -29,10 +29,10 @@ namespace mc::client::renderer::entity::renderer::animal {
 using mc::CatEntity;
 
 namespace {
-// MC 1.16.5 猫类型纹理
+// 猫类型纹理
 // 0: Tabby, 1: Black, 2: Red, 3: Siamese, 4: British Shorthair
-// 5: Calico, 6: Persian, 7: Ragdoll, 8: White, 9: Jellie, 10: Black (All Black)
-const char* CAT_TEXTURES[11] = {"textures/entity/cat/tabby.png",
+// 5: Calico, 6: Persian, 7: Ragdoll, 8: White, 9: Jellie, 10: All Black
+constexpr std::array CAT_TEXTURES = {"textures/entity/cat/tabby.png",
     "textures/entity/cat/black.png",
     "textures/entity/cat/red.png",
     "textures/entity/cat/siamese.png",
@@ -61,8 +61,7 @@ void CatRenderer::render(Entity& entity, f64 partialTicks)
     auto& model = isChild ? m_modelBaby : m_model;
 
     // 设置状态
-    // 动画状态：躺下、放松、睡眠等
-    // CatEntity 继承自 TameableEntity，有 isSitting()
+    // TODO: 从 CatEntity 读取猫动画状态（躺下、放松、睡眠等），目前暂未实现
     model.setCatAnimState(0.0f, 0.0f, 0.0f);
     model.setSitting(cat.isSitting());
 
@@ -100,18 +99,18 @@ void CatRenderer::render(Entity& entity, f64 partialTicks)
 ResourceLocation CatRenderer::getEntityTexture(CatEntity& entity)
 {
     u32 catType = static_cast<u32>(entity.getCatType());
-    return getCatTexture(catType);
+    return _getCatTexture(catType);
 }
 
 ResourceLocation CatRenderer::getEntityTexture(const CatEntity& entity) const
 {
     u32 catType = static_cast<u32>(entity.getCatType());
-    return getCatTexture(catType);
+    return _getCatTexture(catType);
 }
 
-ResourceLocation CatRenderer::getCatTexture(u32 catType)
+ResourceLocation CatRenderer::_getCatTexture(u32 catType)
 {
-    if (catType >= 11) {
+    if (catType >= CAT_TEXTURES.size()) {
         catType = 0;
     }
     return ResourceLocation("minecraft", CAT_TEXTURES[catType]);

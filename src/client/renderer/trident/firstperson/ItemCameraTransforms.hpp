@@ -33,8 +33,6 @@ namespace mc::client::renderer {
  * @brief 物品变换类型
  *
  * 定义物品在不同上下文中的渲染变换方式。
- *
- * 参考 MC 1.16.5 ItemCameraTransforms.TransformType
  */
 enum class TransformType : u8 {
     /// 无变换
@@ -94,8 +92,6 @@ enum class TransformType : u8 {
  *
  * 定义物品在特定 TransformType 下的变换参数。
  * 包括旋转、平移、缩放。
- *
- * 参考 MC 1.16.5 ItemTransformVec3f
  */
 struct ItemTransform {
     /// 旋转角度（度），绕 X/Y/Z 轴
@@ -167,8 +163,6 @@ struct ItemTransform {
  *
  * 存储物品在各种渲染场景下的变换参数。
  * 这些变换来自物品模型的 JSON 文件定义。
- *
- * 参考 MC 1.16.5 ItemCameraTransforms
  */
 class ItemCameraTransforms {
 public:
@@ -218,8 +212,6 @@ public:
 
     /**
      * @brief 获取第三人称右手的默认变换
-     *
-     * 默认值来自 MC 1.16.5 方块/物品模型的默认变换。
      */
     static ItemTransform getDefaultThirdPersonRight()
     {

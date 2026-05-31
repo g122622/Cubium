@@ -31,7 +31,6 @@ ZombieModel::ZombieModel(bool slim)
     : BipedModel()
     , m_slim(slim)
 {
-    // 参考 MC 1.16.5 ZombieModel 构造函数
     // 普通僵尸使用 64x64 纹理，尸壳/溺尸使用 64x32
     setTextureSize(64, 64);
     setupParts();
@@ -49,9 +48,7 @@ void ZombieModel::setAngles(
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 参考 MC 1.16.5 AbstractZombieModel.setRotationAngles
-    // 调用 ModelHelper.func_239105_a_() 处理攻击动画
-    // 参数: leftArm, rightArm, isAggressive, swingProgress, ageInTicks
+    // 攻击动画处理
 
     // 使用基类的 swingProgress 字段
     f32 swingProgress = m_swingProgress;
@@ -69,8 +66,7 @@ void ZombieModel::setAngles(
         m_leftArm->setRotateAngleY(-(0.1f - f * 0.6f));
         m_rightArm->setRotateAngleY(0.1f - f * 0.6f);
 
-        // X 轴旋转基值 - 参考 MC 1.16.5 AbstractZombieModel
-        // 基础角度始终为 -PI/2，然后根据攻击动画调整
+        // X 轴旋转基值，手臂前伸的基础角度
         m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
 
@@ -78,7 +74,7 @@ void ZombieModel::setAngles(
         m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
         m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
-        // 手臂抖动效果 (ModelHelper.func_239101_a_)
+        // 手臂抖动效果
         m_leftArm->setRotateAngleZ(
             m_leftArm->rotateAngleZ() + static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
         m_rightArm->setRotateAngleZ(

@@ -22,14 +22,10 @@
  */
 
 #include "SkeletonModel.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
-}
 
 SkeletonModel::SkeletonModel()
     : BipedModel()
@@ -41,7 +37,6 @@ SkeletonModel::SkeletonModel()
 
 void SkeletonModel::setupParts()
 {
-    // 参考 MC 1.16.5 SkeletonModel
     // 骷髅的手臂和腿比玩家更细
 
     // 重置手臂部件为更细的尺寸
@@ -80,7 +75,6 @@ void SkeletonModel::setAngles(
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 参考 MC 1.16.5 SkeletonModel.setRotationAngles 第 64-76 行
     // 空手攻击动画 - 当攻击中且主手不是弓时
     // 注意：isAggressive 和 swingProgress 需要从实体获取
     // 这里使用 m_isAggressive 和 m_swingProgress 成员变量
@@ -116,13 +110,15 @@ void SkeletonModel::setAngles(
     // 弓箭姿态处理
     switch (m_rightArmPose) {
         case ArmPose::BowAndArrow:
-            // 拉弓姿态 - 参考 MC 1.16.5 BipedModel 弓箭姿态
+            // 拉弓姿态
             // 使用头部的Y旋转角度
             if (m_rightArm && m_leftArm && m_head) {
                 m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
                 m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
-                m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * DEG_TO_RAD));
-                m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * DEG_TO_RAD));
+                m_rightArm->setRotateAngleX(
+                    static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * mc::math::DEG_TO_RAD));
+                m_leftArm->setRotateAngleX(
+                    static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * mc::math::DEG_TO_RAD));
             }
             break;
         case ArmPose::ThrowSpear:
@@ -133,7 +129,7 @@ void SkeletonModel::setAngles(
             break;
         case ArmPose::CrossbowCharge:
         case ArmPose::CrossbowHold:
-            // 弩姿态需要额外实现
+            // TODO: 弩姿态需要额外实现
             break;
         default:
             break;

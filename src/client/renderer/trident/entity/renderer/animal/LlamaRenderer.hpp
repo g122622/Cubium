@@ -42,7 +42,6 @@ namespace mc::client::renderer::entity::renderer::animal {
 /**
  * @brief 羊驼渲染器
  *
- * 参考 MC 1.16.5 LlamaRenderer
  * 支持 4 种颜色变体：Creamy, White, Brown, Gray
  *
  * 纹理路径：

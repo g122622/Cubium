@@ -23,7 +23,6 @@
 
 #include "PoofParticle.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -64,7 +63,7 @@ void PoofParticle::tick(mc::client::ClientWorld* world)
     m_prevPosition = m_position;
     m_prevRoll = m_roll;
 
-    m_age += 1.0f;
+    m_age += 1.0;
     if (m_age >= m_maxAge) {
         setExpired();
         return;
@@ -90,7 +89,7 @@ void PoofParticle::tick(mc::client::ClientWorld* world)
 f64 PoofParticle::getScale(f64 partialTick) const
 {
     MC_UNUSED(partialTick);
-    return 1.0f;
+    return 1.0;
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

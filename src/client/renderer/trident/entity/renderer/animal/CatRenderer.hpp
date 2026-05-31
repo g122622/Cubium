@@ -43,7 +43,6 @@ namespace mc::client::renderer::entity::renderer::animal {
 /**
  * @brief 猫渲染器
  *
- * 参考 MC 1.16.5 CatRenderer
  * 支持 11 种猫皮肤（类型）。
  */
 class CatRenderer : public core::EntityRenderer {
@@ -68,7 +67,7 @@ private:
      * @param catType 猫类型 (0-10)
      * @return 纹理位置
      */
-    [[nodiscard]] static ResourceLocation getCatTexture(u32 catType);
+    [[nodiscard]] static ResourceLocation _getCatTexture(u32 catType);
 };
 
 /**

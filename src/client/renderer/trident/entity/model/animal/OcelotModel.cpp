@@ -27,12 +27,27 @@
 
 namespace mc::client::renderer::entity::model::animal {
 
+namespace {
+
+/// 肢体摆动频率系数
+constexpr f64 LIMB_SWING_FREQ = 0.6662;
+
+/// 肢体摆动相位偏移
+constexpr f64 LIMB_PHASE_OFFSET = 0.3;
+
+/// 尾巴基础旋转角度（弧度）
+constexpr f64 TAIL_BASE_ANGLE = 1.7278761;
+
+/// 非站立状态下尾巴摆动振幅（弧度）
+constexpr f64 TAIL_CROUCH_AMPLITUDE = 0.47123894;
+
+} // namespace
+
 OcelotModel::OcelotModel(f32 scale)
     : AgeableModel()
 {
     setTextureSize(64, 32);
 
-    // 参考 MC 1.16.5 OcelotModel
     // 头部
     m_head = std::make_shared<ModelRenderer>("head");
     // 主头部盒子 (textureOffset 0, 0)
@@ -110,7 +125,6 @@ void OcelotModel::render(f64 scale)
 
 void OcelotModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
 {
-    // 参考 MC 1.16.5 OcelotModel.setLivingAnimations
     // 重置所有部件到默认位置
     m_body->setRotationPointY(12.0f);
     m_body->setRotationPointZ(-10.0f);
@@ -166,31 +180,31 @@ void OcelotModel::setAngles(
 
         if (m_state == 2) {
             // 奔跑动画
-            m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
-            m_backRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + 0.3) * limbSwingAmount));
-            m_frontLeftLeg->setRotateAngleX(
-                static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE + 0.3) * limbSwingAmount));
+            m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ) * limbSwingAmount));
+            m_backRightLeg->setRotateAngleX(
+                static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ + LIMB_PHASE_OFFSET) * limbSwingAmount));
+            m_frontLeftLeg->setRotateAngleX(static_cast<f32>(
+                std::cos(limbSwing * LIMB_SWING_FREQ + mc::math::PI_DOUBLE + LIMB_PHASE_OFFSET) * limbSwingAmount));
             m_frontRightLeg->setRotateAngleX(
-                static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
-            m_tail2->setRotateAngleX(
-                static_cast<f32>(1.7278761 + (mc::math::PI_DOUBLE / 10.0) * std::cos(limbSwing) * limbSwingAmount));
+                static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ + mc::math::PI_DOUBLE) * limbSwingAmount));
+            m_tail2->setRotateAngleX(static_cast<f32>(
+                TAIL_BASE_ANGLE + (mc::math::PI_DOUBLE / 10.0) * std::cos(limbSwing) * limbSwingAmount));
         } else {
             // 行走动画
-            m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
+            m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ) * limbSwingAmount));
             m_backRightLeg->setRotateAngleX(
-                static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
+                static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ + mc::math::PI_DOUBLE) * limbSwingAmount));
             m_frontLeftLeg->setRotateAngleX(
-                static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
-            m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
+                static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ + mc::math::PI_DOUBLE) * limbSwingAmount));
+            m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * LIMB_SWING_FREQ) * limbSwingAmount));
 
-            // 参考 MC 1.16.5 OcelotModel.setRotationAngles
-            // state==1 时尾巴角度使用 mc::math::PI_DOUBLE/4，其他情况（state==0 或默认）使用 0.47123894
+            // state==1 时尾巴角度使用 π/4，其他情况使用 TAIL_CROUCH_AMPLITUDE
             if (m_state == 1) {
-                m_tail2->setRotateAngleX(
-                    static_cast<f32>(1.7278761 + (mc::math::PI_DOUBLE / 4.0) * std::cos(limbSwing) * limbSwingAmount));
+                m_tail2->setRotateAngleX(static_cast<f32>(
+                    TAIL_BASE_ANGLE + (mc::math::PI_DOUBLE / 4.0) * std::cos(limbSwing) * limbSwingAmount));
             } else {
                 m_tail2->setRotateAngleX(
-                    static_cast<f32>(1.7278761 + 0.47123894 * std::cos(limbSwing) * limbSwingAmount));
+                    static_cast<f32>(TAIL_BASE_ANGLE + TAIL_CROUCH_AMPLITUDE * std::cos(limbSwing) * limbSwingAmount));
             }
         }
     }

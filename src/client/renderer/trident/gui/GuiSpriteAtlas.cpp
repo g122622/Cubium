@@ -24,8 +24,6 @@
 #include "GuiSpriteAtlas.hpp"
 #include "GuiSpriteManager.hpp"
 #include "GuiTextureAtlas.hpp"
-#include <unordered_map>
-#include <spdlog/spdlog.h>
 #include <stb_image.h>
 
 namespace mc::client::renderer::trident::gui {

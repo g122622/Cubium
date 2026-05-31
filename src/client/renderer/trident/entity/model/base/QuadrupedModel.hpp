@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include <memory>
 
 namespace mc::client::renderer::entity::model {
 
@@ -32,7 +32,6 @@ namespace mc::client::renderer::entity::model {
  * @brief 四足动物模型基类
  *
  * 用于猪、牛、羊等四足动物的模型基类。
- * 参考 MC 1.16.5 QuadrupedModel - 继承自 AgeableModel
  */
 class QuadrupedModel : public AgeableModel {
 public:
@@ -51,8 +50,6 @@ public:
      * @param childHeadScale 幼体头部缩放
      * @param childBodyScale 幼体身体缩放
      * @param childBodyOffsetY 幼体身体 Y 偏移
-     *
-     * 参考 MC 1.16.5 QuadrupedModel(int, float, boolean, float, float, float, float, int)
      */
     QuadrupedModel(i32 legHeight,
         f32 scale,

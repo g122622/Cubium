@@ -22,7 +22,10 @@
  */
 
 #include "HorseRenderer.hpp"
+#include "common/entity/entities/passive/horse/CoatColors.hpp"
+#include "common/entity/entities/passive/horse/CoatTypes.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 
@@ -33,7 +36,7 @@ HorseRenderer::HorseRenderer()
     , m_modelBaby(0.0f)
 {
     setShadowSize(0.85f);
-    setupLayers();
+    _setupLayers();
 }
 
 void HorseRenderer::render(Entity& entity, f64 partialTicks)
@@ -61,11 +64,7 @@ void HorseRenderer::render(Entity& entity, f64 partialTicks)
     f64 headYaw = static_cast<f64>(horse.prevRotationYawHead()) +
         (static_cast<f64>(horse.rotationYawHead()) - static_cast<f64>(horse.prevRotationYawHead())) * partialTicks;
     f64 netHeadYaw = headYaw - bodyYaw;
-    // 归一化到 -180 到 180
-    while (netHeadYaw < -180.0)
-        netHeadYaw += 360.0;
-    while (netHeadYaw > 180.0)
-        netHeadYaw -= 360.0;
+    netHeadYaw = static_cast<f64>(mc::math::wrapDegrees(static_cast<f32>(netHeadYaw)));
 
     f64 headPitch = static_cast<f64>(horse.prevPitch()) +
         (static_cast<f64>(horse.pitch()) - static_cast<f64>(horse.prevPitch())) * partialTicks;
@@ -82,24 +81,7 @@ void HorseRenderer::render(Entity& entity, f64 partialTicks)
 
 ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity)
 {
-    // 根据马颜色和花纹选择纹理
-    // MC 1.16.5 有 7 种基础颜色和 5 种花纹
-    CoatColors color = entity.getColor();
-    CoatTypes marking = entity.getMarking();
-
-    // 纹理命名规则: horse_<color><marking>.png
-    // 例如: horse_white.png, horse_whitefield.png
-    static const char* colorNames[] = {"white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"};
-    static const char* markingNames[] = {"", "white", "whitefield", "whitedots", "blackdots"};
-
-    std::string textureName = "textures/entity/horse/horse_";
-    textureName += colorNames[static_cast<i32>(color)];
-    if (marking != CoatTypes::None) {
-        textureName += markingNames[static_cast<i32>(marking)];
-    }
-    textureName += ".png";
-
-    return ResourceLocation("minecraft", textureName);
+    return static_cast<const HorseRenderer*>(this)->getEntityTexture(static_cast<const ::mc::HorseEntity&>(entity));
 }
 
 ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity) const
@@ -107,24 +89,19 @@ ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity
     CoatColors color = entity.getColor();
     CoatTypes marking = entity.getMarking();
 
-    static const char* colorNames[] = {"white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown"};
-    static const char* markingNames[] = {"", "white", "whitefield", "whitedots", "blackdots"};
-
     std::string textureName = "textures/entity/horse/horse_";
-    textureName += colorNames[static_cast<i32>(color)];
+    textureName += getCoatColorName(color);
     if (marking != CoatTypes::None) {
-        textureName += markingNames[static_cast<i32>(marking)];
+        textureName += getCoatTypeName(marking);
     }
     textureName += ".png";
 
     return ResourceLocation("minecraft", textureName);
 }
 
-void HorseRenderer::setupLayers()
+void HorseRenderer::_setupLayers()
 {
-    // 层渲染器将在层系统完善后添加
-    // - SaddleLayer: 鞍
-    // - HorseArmorLayer: 马铠
+    // TODO: 层渲染器（鞍、马铠）将在层系统完善后添加
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 暴击粒子
- *
- * 参考 MC 1.16.5 CritParticle
  *
  * 特性：
  * - 攻击实体时产生
@@ -63,9 +61,9 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;
-    static constexpr f64 DEFAULT_SIZE = 0.04f;
-    static constexpr f64 DEFAULT_LIFETIME = 20.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_SIZE = 0.04;
+    static constexpr f64 DEFAULT_LIFETIME = 20.0;
 
     f64 m_initialSize;
 };

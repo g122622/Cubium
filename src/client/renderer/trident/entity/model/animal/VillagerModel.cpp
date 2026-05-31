@@ -23,6 +23,7 @@
 
 #include "VillagerModel.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
@@ -35,7 +36,6 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
 {
     setTextureSize(textureWidth, textureHeight);
 
-    // 参考 MC 1.16.5 VillagerModel
     // 头部
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
@@ -54,7 +54,7 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_hatBrim->setTextureOffset(30, 47);
     m_hatBrim->addBox(-8.0f, -8.0f, -6.0f, 16.0f, 16.0f, 1.0f, static_cast<f64>(scale));
     m_hatBrim->setRotationPoint(0.0f, 0.0f, 0.0f);
-    m_hatBrim->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+    m_hatBrim->setRotateAngleX(-mc::math::HALF_PI);
     m_hat->addChild(m_hatBrim);
 
     // 鼻子
@@ -81,7 +81,7 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_arms = std::make_shared<ModelRenderer>("arms");
     m_arms->setTextureOffset(44, 22);
     m_arms->addBox(-8.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, static_cast<f64>(scale)); // 左臂
-    // 右臂需要mirror=true - 参考 MC 1.16.5 VillagerModel 第55行
+    // 右臂需要 mirror=true
     m_arms->setTextureOffset(44, 22);
     m_arms->addBox(4.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, true, static_cast<f64>(scale)); // 右臂，mirror=true
     m_arms->setTextureOffset(40, 38);
@@ -94,7 +94,7 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_rightLeg->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale));
     m_rightLeg->setRotationPoint(-2.0f, 12.0f, 0.0f);
 
-    // 左腿 - 需要 mirror=true，参考 MC 1.16.5 VillagerModel 第61行
+    // 左腿 - 需要 mirror=true
     m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
     m_leftLeg->setTextureOffset(0, 22);
     m_leftLeg->setMirror(true);
@@ -112,9 +112,7 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
 void VillagerModel::render(f64 scale)
 {
     for (auto& part : m_parts) {
-        if (part) {
-            part->render(scale);
-        }
+        part->render(scale);
     }
 }
 
@@ -122,8 +120,8 @@ void VillagerModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
 {
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleY(mc::math::toRadians(static_cast<f32>(netHeadYaw)));
+    m_head->setRotateAngleX(mc::math::toRadians(static_cast<f32>(headPitch)));
 
     // 摇头动画（交易不满意时）
     if (m_shakingHead) {

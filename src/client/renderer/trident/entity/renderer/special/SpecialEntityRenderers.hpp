@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/EntityRenderer.hpp"
-#include "../../model/projectile/ProjectileModels.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/model/projectile/ProjectileModels.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {
@@ -134,7 +134,6 @@ private:
 /**
  * @brief 闪电渲染器
  *
- * 参考 MC 1.16.5 LightningBoltRenderer
  * 闪电使用程序化生成，渲染为多段四边形条带
  */
 class LightningBoltRenderer : public core::EntityRenderer {
@@ -158,8 +157,6 @@ private:
     /**
      * @brief 渲染一个闪电四边形条带段
      *
-     * 参考 MC 1.16.5 LightningBoltRenderer.func_229116_a_
-     *
      * @param vertices 顶点输出数组
      * @param indices 索引输出数组
      * @param x1 当前X偏移
@@ -177,7 +174,7 @@ private:
      * @param flipX2 是否翻转X2
      * @param flipZ2 是否翻转Z2
      */
-    static void renderQuadSegment(std::vector<model::ModelVertex>& vertices,
+    static void _renderQuadSegment(std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices,
         f32 x1,
         f32 z1,
@@ -201,7 +198,7 @@ private:
      * @param vertices 顶点输出数组
      * @param indices 索引输出数组
      */
-    static void generateLightningMesh(
+    static void _generateLightningMesh(
         u64 boltVertex, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 };
 

@@ -30,7 +30,6 @@
 
 namespace mc {
 class IResourcePack;
-class ResourceLocation;
 } // namespace mc
 
 namespace mc::client::renderer::trident::gui {
@@ -209,14 +208,14 @@ private:
      * @param outData 输出纹理数据
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> findTexture(const std::string& location, std::vector<u8>& outData);
+    [[nodiscard]] Result<void> _findTexture(const std::string& location, std::vector<u8>& outData);
 
     /**
      * @brief 构建资源路径
      * @param location 资源位置
      * @return 文件路径
      */
-    [[nodiscard]] static std::string buildResourcePath(const std::string& location);
+    [[nodiscard]] static std::string _buildResourcePath(const std::string& location);
 
     std::vector<std::shared_ptr<IResourcePack>> m_resourcePacks;
 };

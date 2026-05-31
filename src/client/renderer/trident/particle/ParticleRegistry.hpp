@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <memory>
 #include "Particle.hpp"
 #include "ParticleRenderType.hpp"
 #include "ParticleTypes.hpp"
@@ -31,6 +30,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "data/ParticleData.hpp"
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -59,7 +59,6 @@ struct ParticleTypeInfo {
  * @brief 粒子类型注册表
  *
  * 单例模式，管理所有粒子类型的注册和创建。
- * 参考 MC 1.16.5 ParticleTypes 和 ParticleManager 注册机制
  *
  * 用法示例：
  * @code
@@ -112,10 +111,10 @@ public:
     void registerType(ParticleTypeId id,
         const std::string& name,
         ParticleFactory factory,
-        ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        f64 defaultLifetime = 1.0f,
-        bool hasPhysics = true,
-        bool ignoreDistance = false);
+        ParticleRenderType defaultRenderType,
+        f64 defaultLifetime,
+        bool hasPhysics,
+        bool ignoreDistance);
 
     /**
      * @brief 注册简单粒子类型（无参数粒子）
@@ -127,10 +126,8 @@ public:
      * @param factory 工厂函数（可以为 nullptr，用于仅注册元数据）
      * @param defaultRenderType 默认渲染类型
      */
-    void registerSimpleType(ParticleTypeId id,
-        const std::string& name,
-        ParticleFactory factory,
-        ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    void registerSimpleType(
+        ParticleTypeId id, const std::string& name, ParticleFactory factory, ParticleRenderType defaultRenderType);
 
     // ========================================================================
     // 创建粒子
@@ -228,7 +225,7 @@ public:
      *
      * @return 类型数量
      */
-    [[nodiscard]] size_t typeCount() const { return m_types.size(); }
+    [[nodiscard]] Size typeCount() const { return m_types.size(); }
 
 private:
     ParticleRegistry();
@@ -237,7 +234,7 @@ private:
     /**
      * @brief 注册内置粒子类型
      */
-    void registerBuiltinTypes();
+    void _registerBuiltinTypes();
 
     // 类型存储
     std::unordered_map<ParticleTypeId, ParticleTypeInfo> m_types;

@@ -49,16 +49,14 @@ enum class BoatType : u8 { Oak = 0, Spruce = 1, Birch = 2, Jungle = 3, Acacia = 
 
 /**
  * @brief 船模型
- *
- * 参考 MC 1.16.5 BoatModel
  */
 class BoatModel {
 public:
     BoatModel();
     ~BoatModel() = default;
 
-    void render(f64 scale = 1.0f / 16.0f);
-    void renderNoWater(f64 scale = 1.0f / 16.0f);
+    void render(f64 scale);
+    void renderNoWater(f64 scale);
 
     /**
      * @brief 设置桨的角度
@@ -68,7 +66,7 @@ public:
     void setPaddleAngle(i32 paddleIndex, f32 angle);
 
 private:
-    void setupParts();
+    void _setupParts();
 
     i32 m_textureWidth = 128;
     i32 m_textureHeight = 64;
@@ -86,12 +84,10 @@ private:
 
 /**
  * @brief 船渲染器
- *
- * 参考 MC 1.16.5 BoatRenderer
  */
 class BoatRenderer : public core::EntityRenderer {
 public:
-    explicit BoatRenderer(BoatType type = BoatType::Oak);
+    explicit BoatRenderer(BoatType type);
     ~BoatRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
@@ -104,21 +100,20 @@ private:
 
     /**
      * @brief 计算船的摇晃角度
+     * TODO: 尚未实现完整的摇晃角度计算逻辑
      */
-    [[nodiscard]] f64 calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const;
+    [[nodiscard]] f64 _calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const;
 };
 
 /**
  * @brief 矿车模型
- *
- * 参考 MC 1.16.5 MinecartModel
  */
 class MinecartModel {
 public:
     MinecartModel();
     ~MinecartModel() = default;
 
-    void render(f64 scale = 1.0f / 16.0f);
+    void render(f64 scale);
 
     /**
      * @brief 设置内部底板Y偏移
@@ -127,7 +122,7 @@ public:
     void setInsideOffset(f32 yOffset);
 
 private:
-    void setupParts();
+    void _setupParts();
 
     // 6个面：底部、左、右、后、前、内部底
     std::array<std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer>, 6> m_sides;
@@ -135,8 +130,6 @@ private:
 
 /**
  * @brief 矿车渲染器
- *
- * 参考 MC 1.16.5 MinecartRenderer
  */
 class MinecartRenderer : public core::EntityRenderer {
 public:
@@ -152,8 +145,9 @@ private:
 
     /**
      * @brief 计算矿车方向
+     * TODO: 尚未实现完整的矿车方向计算逻辑
      */
-    void calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks);
+    void _calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks);
 };
 
 } // namespace mc::client::renderer::entity::renderer::vehicle

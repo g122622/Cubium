@@ -29,7 +29,6 @@ namespace mc::client::renderer::entity::model {
  * @brief 初始化并注册所有实体模型
  *
  * 此函数在程序启动时调用一次，将所有实体模型注册到 ModelFactory。
- * 参考 MC 1.16.5 的模型注册机制。
  */
 void initializeModelRegistration();
 

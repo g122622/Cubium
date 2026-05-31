@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/base/BipedModel.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
@@ -49,10 +49,7 @@ namespace client::renderer::entity::layer::equipment {
  *
  * 渲染实体手中持有的物品。
  * 支持主手和副手的物品渲染。
- *
- * 物品会跟随手臂动画正确变换，参考 MC 1.16.5 HeldItemLayer。
- *
- * 参考 MC 1.16.5 HeldItemLayer
+ * 物品会跟随手臂动画正确变换。
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型（需要支持 translateHand 方法），默认为 BipedModel
@@ -139,7 +136,6 @@ protected:
     /**
      * @brief 计算手持物品变换矩阵
      *
-     * 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
      * 物品变换由以下步骤组成：
      * 1. 调用 model.translateHand() 获取手臂的变换矩阵
      * 2. 应用 X 轴 -90° 旋转
@@ -155,7 +151,6 @@ protected:
     /**
      * @brief 静态方法：计算手持物品变换矩阵（供测试使用）
      *
-     * 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
      * 物品变换由以下步骤组成：
      * 1. 调用 model.translateHand() 获取手臂的变换矩阵
      * 2. 应用 X 轴 -90° 旋转

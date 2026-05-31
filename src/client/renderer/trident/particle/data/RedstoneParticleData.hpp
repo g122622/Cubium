@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "ParticleData.hpp"
+#include <memory>
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::trident::particle::data {
@@ -33,7 +33,6 @@ namespace mc::client::renderer::trident::particle::data {
  * @brief 红石粒子数据
  *
  * 用于红石粉尘粒子，携带颜色信息。
- * 参考 MC 1.16.5 RedstoneParticleData
  *
  * 用法示例：
  * @code

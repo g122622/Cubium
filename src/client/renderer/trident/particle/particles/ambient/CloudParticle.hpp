@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -35,8 +35,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 /**
  * @brief 云朵粒子
- *
- * 参考 MC 1.16.5 CloudParticle
  *
  * 特性：
  * - 无物理碰撞
@@ -73,8 +71,6 @@ private:
 /**
  * @brief 屏障粒子
  *
- * 参考 MC 1.16.5 BarrierParticle
- *
  * 特性：
  * - 显示屏障方块
  * - 使用方块纹理
@@ -105,8 +101,6 @@ private:
 
 /**
  * @brief 水花粒子
- *
- * 参考 MC 1.16.5 WaterWakeParticle
  *
  * 特性：
  * - 水面涟漪效果
@@ -141,8 +135,6 @@ private:
 
 /**
  * @brief 海豚粒子
- *
- * 参考 MC 1.16.5 DolphinParticle
  *
  * 特性：
  * - 海豚游泳时产生

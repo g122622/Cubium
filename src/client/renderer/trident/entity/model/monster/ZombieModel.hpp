@@ -30,7 +30,6 @@ namespace mc::client::renderer::entity::model::monster {
 /**
  * @brief 僵尸模型
  *
- * 参考 MC 1.16.5 ZombieModel / AbstractZombieModel
  * 僵尸是双足生物，手臂向前伸，攻击时有特殊动画。
  */
 class ZombieModel : public model::BipedModel {
@@ -66,7 +65,7 @@ private:
     void setupParts() override;
 
     bool m_slim = false;         // 是否使用细长纹理
-    bool m_isAggressive = false; // 是否处于攻击状态（影响手臂动画）
+    bool m_isAggressive = false; // TODO: 目前未在动画计算中使用，需接入攻击状态影响手臂动画
 };
 
 } // namespace mc::client::renderer::entity::model::monster

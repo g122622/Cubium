@@ -245,7 +245,8 @@ TEST(ParticleRegistryTest, CreateParticle)
 
     // 使用一个未使用的 ID
     ParticleTypeId testId = static_cast<ParticleTypeId>(101);
-    registry.registerSimpleType(testId, "test:create_test", testFactory);
+    registry.registerSimpleType(
+        testId, "test:create_test", testFactory, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
     glm::vec3 pos(1.0f, 2.0f, 3.0f);
     glm::vec3 vel(0.1f, 0.2f, 0.3f);
@@ -276,7 +277,8 @@ TEST(ParticleRegistryTest, CreateParticleByName)
     };
 
     ParticleTypeId testId = static_cast<ParticleTypeId>(102);
-    registry.registerSimpleType(testId, "test:name_create_test", testFactory);
+    registry.registerSimpleType(
+        testId, "test:name_create_test", testFactory, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
     glm::vec3 pos(0.0f, 0.0f, 0.0f);
     glm::vec3 vel(0.0f, 0.0f, 0.0f);

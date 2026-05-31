@@ -45,7 +45,6 @@ IllagerModel::IllagerModel(f32 scale, f32 yOffset, i32 textureWidth, i32 texture
 
 void IllagerModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
 {
-    // 参考 MC 1.16.5 IllagerModel
     (void)textureWidth;
     (void)textureHeight;
 
@@ -115,7 +114,6 @@ void IllagerModel::render(f64 scale)
 void IllagerModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 参考 MC 1.16.5 IllagerModel.setRotationAngles
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
@@ -162,7 +160,7 @@ void IllagerModel::setAngles(
     switch (m_armPose) {
         case IllagerArmPose::Attacking:
             if (m_mainHandEmpty) {
-                // ModelHelper.func_239105_a_ - 空手攻击动画
+                // 空手攻击动画
                 f32 swingProgress = m_swingProgress;
                 f32 f = static_cast<f32>(std::sin(swingProgress * math::PI));
                 f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * math::PI));
@@ -206,7 +204,7 @@ void IllagerModel::setAngles(
             break;
 
         case IllagerArmPose::CrossbowHold:
-            // 持有弩姿态 - ModelHelper.func_239104_a_
+            // 持有弩姿态
             m_rightArm->setRotateAngleY(-0.3f);
             m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             m_leftArm->setRotateAngleY(0.6f);
@@ -214,7 +212,7 @@ void IllagerModel::setAngles(
             break;
 
         case IllagerArmPose::CrossbowCharge:
-            // 装填弩姿态 - ModelHelper.func_239102_a_
+            // 装填弩姿态
             m_rightArm->setRotateAngleY(-0.8f);
             m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             m_leftArm->setRotateAngleY(0.8f);
@@ -283,7 +281,6 @@ void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64
 {
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 参考 MC 1.16.5 VexModel.setRotationAngles 第 40-48 行
     // 只有在充电状态下才调整手臂角度
     if (m_charging) {
         if (m_mainHandEmpty) {
@@ -292,8 +289,7 @@ void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64
             m_leftArm->setRotateAngleX(static_cast<f32>(math::PI * 1.5));
         } else {
             // 持有物品时，根据主手设置手臂角度
-            // 3.7699115F = math::PI * 1.2
-            m_rightArm->setRotateAngleX(3.7699115f);
+            m_rightArm->setRotateAngleX(static_cast<f32>(math::PI * 1.2));
         }
     }
 
@@ -317,13 +313,11 @@ IronGolemModel::IronGolemModel()
     : EntityModel()
 {
     setTextureSize(128, 128);
-    setupParts();
+    _setupParts();
 }
 
-void IronGolemModel::setupParts()
+void IronGolemModel::_setupParts()
 {
-    // 参考 MC 1.16.5 IronGolemModel
-
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setRotationPoint(0.0f, -7.0f, -2.0f);
     m_head->setTextureOffset(0, 0);
@@ -377,10 +371,8 @@ void IronGolemModel::setAngles(
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
-    // 参考 MC 1.16.5 IronGolemModel.setRotationAngles
-    // MathHelper.func_233021_e_ 是三角波函数，返回 [-1, 1] 范围的值
+    // 三角波函数，返回 [-1, 1] 范围的值
     // 公式: triangleWave(x, period) = (abs(x % period - period/2) - period/4) / (period/4)
-    // 简化: triangleWave(x, period) 返回 -1 到 1 之间的值，周期为 period
     auto triangleWave = [](f64 x, f64 period) -> f64 {
         f64 halfPeriod = period / 2.0;
         f64 quarterPeriod = period / 4.0;
@@ -406,13 +398,11 @@ SnowGolemModel::SnowGolemModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void SnowGolemModel::setupParts()
+void SnowGolemModel::_setupParts()
 {
-    // 参考 MC 1.16.5 SnowManModel
-
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, -0.5f);
@@ -481,13 +471,11 @@ BeeModel::BeeModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void BeeModel::setupParts()
+void BeeModel::_setupParts()
 {
-    // 参考 MC 1.16.5 BeeModel
-
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setRotationPoint(0.0f, 19.0f, 0.0f);
     m_parts.push_back(m_body);
@@ -576,13 +564,11 @@ FoxModel::FoxModel()
     : EntityModel()
 {
     setTextureSize(48, 32);
-    setupParts();
+    _setupParts();
 }
 
-void FoxModel::setupParts()
+void FoxModel::_setupParts()
 {
-    // 参考 MC 1.16.5 FoxModel
-
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(1, 5);
     m_head->addBox(-3.0f, -2.0f, -5.0f, 8.0f, 6.0f, 6.0f);
@@ -668,19 +654,18 @@ PandaModel::PandaModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts(0, 0.0f);
+    _setupParts(0, 0.0f);
 }
 
 PandaModel::PandaModel(i32 textureOffset, f32 scale)
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts(textureOffset, scale);
+    _setupParts(textureOffset, scale);
 }
 
-void PandaModel::setupParts(i32 textureOffset, f32 scale)
+void PandaModel::_setupParts(i32 textureOffset, f32 scale)
 {
-    // 参考 MC 1.16.5 PandaModel (extends QuadrupedModel)
     (void)scale;
     (void)textureOffset;
 
@@ -752,13 +737,11 @@ ParrotModel::ParrotModel()
     : EntityModel()
 {
     setTextureSize(32, 32);
-    setupParts();
+    _setupParts();
 }
 
-void ParrotModel::setupParts()
+void ParrotModel::_setupParts()
 {
-    // 参考 MC 1.16.5 ParrotModel
-
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(2, 8);
     m_body->addBox(-1.5f, 0.0f, -1.5f, 3.0f, 6.0f, 3.0f);
@@ -857,13 +840,11 @@ PhantomModel::PhantomModel()
     : EntityModel()
 {
     setTextureSize(64, 64);
-    setupParts();
+    _setupParts();
 }
 
-void PhantomModel::setupParts()
+void PhantomModel::_setupParts()
 {
-    // 参考 MC 1.16.5 PhantomModel
-
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 8);
     m_body->addBox(-3.0f, -2.0f, -8.0f, 5.0f, 3.0f, 9.0f);
@@ -953,13 +934,11 @@ RavagerModel::RavagerModel()
     : EntityModel()
 {
     setTextureSize(128, 128);
-    setupParts();
+    _setupParts();
 }
 
-void RavagerModel::setupParts()
+void RavagerModel::_setupParts()
 {
-    // 参考 MC 1.16.5 RavagerModel
-
     m_neck = std::make_shared<ModelRenderer>("neck");
     m_neck->setRotationPoint(0.0f, -7.0f, -1.5f);
     m_neck->setTextureOffset(68, 73);

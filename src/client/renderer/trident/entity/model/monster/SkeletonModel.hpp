@@ -30,7 +30,6 @@ namespace mc::client::renderer::entity::model::monster {
 /**
  * @brief 骷髅模型
  *
- * 参考 MC 1.16.5 SkeletonModel
  * 骷髅是双足生物，手臂向前伸，手臂和腿更细。
  */
 class SkeletonModel : public model::BipedModel {

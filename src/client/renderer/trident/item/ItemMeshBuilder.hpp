@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/resource/BlockModelLoader.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -51,7 +51,6 @@ namespace mc::client::renderer::entity::item {
  * @brief 物品变换类型
  *
  * 定义物品在不同渲染场景下的变换方式。
- * 参考 MC 1.16.5 ItemCameraTransforms
  */
 enum class ItemTransformType : u8 {
     None,                 // 无变换
@@ -74,8 +73,6 @@ enum class ItemTransformType : u8 {
  * - 头部物品渲染（头盔、南瓜等）
  * - 盔甲渲染
  * - 掉落物渲染
- *
- * 参考 MC 1.16.5 ItemRenderer
  */
 class ItemMeshBuilder {
 public:
@@ -152,7 +149,7 @@ private:
     /**
      * @brief 构建简单的物品图标四边形
      */
-    static void buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
+    static void _buildItemQuad(const ::mc::client::renderer::api::TextureRegion& region,
         f64 size,
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices);
@@ -160,7 +157,7 @@ private:
     /**
      * @brief 构建 3D 物品模型网格
      */
-    static void build3DItemMesh(const ::mc::Item& item,
+    static void _build3DItemMesh(const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices);
@@ -168,7 +165,7 @@ private:
     /**
      * @brief 构建平面图标网格（Generated/Handheld 类型）
      */
-    static void buildGeneratedMesh(const ::mc::client::resource::BakedItemModel& model,
+    static void _buildGeneratedMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
@@ -177,7 +174,7 @@ private:
     /**
      * @brief 构建方块物品网格
      */
-    static void buildBlockItemMesh(const ::mc::client::resource::BakedItemModel& model,
+    static void _buildBlockItemMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
@@ -186,7 +183,7 @@ private:
     /**
      * @brief 构建自定义 3D 模型网格
      */
-    static void buildCustomMesh(const ::mc::client::resource::BakedItemModel& model,
+    static void _buildCustomMesh(const ::mc::client::resource::BakedItemModel& model,
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
@@ -195,18 +192,18 @@ private:
     /**
      * @brief 构建回退网格（简单立方体）
      */
-    static void buildFallbackMesh(
+    static void _buildFallbackMesh(
         const ::mc::Item& item, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 应用矩阵到顶点
      */
-    static void applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix);
+    static void _applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix);
 
     /**
      * @brief 应用手持物品变换
      */
-    static void applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
+    static void _applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
         ItemTransformType transformType,
         f32 limbSwing,
         f32 swingProgress,
@@ -215,9 +212,9 @@ private:
     /**
      * @brief 变换顶点
      */
-    static void transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix);
+    static void _transformVertices(std::vector<model::ModelVertex>& vertices, const std::array<f64, 16>& matrix);
 
-    // 物品渲染常量（参考 MC 1.16.5）
+    // 物品渲染常量
     static constexpr f64 ITEM_SCALE = 1.0 / 16.0;     // 物品缩放因子
     static constexpr f64 ITEM_GUI_SCALE = 1.0 / 32.0; // GUI 物品缩放
     static constexpr f64 ARM_SWING_ANGLE = 45.0;      // 手臂挥动角度

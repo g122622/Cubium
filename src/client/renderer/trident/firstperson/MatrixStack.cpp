@@ -33,8 +33,7 @@ namespace {
 /**
  * @brief 以后乘方式应用变换矩阵
  *
- * 对齐 MC 1.16.5 MatrixStack 语义：
- * current = current * transform。
+ * current = current * transform
  */
 void applyPostMultiply(Matrix4f& current, const Matrix4f& transform)
 {
@@ -71,11 +70,8 @@ void MatrixStack::push()
 
 void MatrixStack::pop()
 {
-    MC_ASSERT(m_stack.size() > 1 && "MatrixStack underflow - cannot pop last matrix");
-
-    if (m_stack.size() > 1) {
-        m_stack.pop();
-    }
+    MC_ASSERT_RELEASE(m_stack.size() > 1);
+    m_stack.pop();
 }
 
 void MatrixStack::translate(f32 x, f32 y, f32 z)

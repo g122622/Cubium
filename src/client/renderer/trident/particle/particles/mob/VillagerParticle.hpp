@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Particle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
 
 namespace mc::client {
 class ClientWorld;
@@ -36,12 +36,7 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 愤怒村民粒子
  *
- * 参考 MC 1.16.5 AngryVillagerParticle
- *
- * 特性：
- * - 灰色/深灰色烟雾
- * - 向上漂浮
- * - 快速淡出
+ * 灰色/深灰色烟雾，向上漂浮，快速淡出。
  */
 class AngryVillagerParticle : public Particle {
 public:
@@ -66,18 +61,14 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
+    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
     f64 m_initialSize;
 };
 
 /**
  * @brief 开心村民粒子
  *
- * 参考 MC 1.16.5 HappyVillagerParticle
- *
- * 特性：
- * - 绿色星星/心形
- * - 向上漂浮
- * - 快速淡出
+ * 绿色星星/心形，向上漂浮，快速淡出。
  */
 class HappyVillagerParticle : public Particle {
 public:
@@ -102,18 +93,14 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 10.0;
+    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
     f64 m_initialSize;
 };
 
 /**
  * @brief 喷嚏粒子（熊猫）
  *
- * 参考 MC 1.16.5 SneezeParticle
- *
- * 特性：
- * - 淡绿色水滴
- * - 向前喷射
- * - 重力影响
+ * 淡绿色水滴，向前喷射，受重力影响。
  */
 class SneezeParticle : public Particle {
 public:
@@ -137,8 +124,9 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.02f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.02;
     static constexpr f64 DEFAULT_LIFETIME = 10.0;
+    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
     f64 m_initialSize;
 };
 

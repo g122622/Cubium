@@ -28,12 +28,11 @@ namespace mc::client::renderer::entity::renderer::animal {
 VillagerRenderer::VillagerRenderer()
 {
     m_shadowSize = 0.5f;
-    initLayers();
+    _initLayers();
 }
 
-void VillagerRenderer::initLayers()
+void VillagerRenderer::_initLayers()
 {
-    // MC 1.16.5 VillagerRenderer 添加 VillagerLevelPendantLayer
     // 该层负责渲染类型层、职业层和等级徽章层
     m_villagerLayer =
         addLayer<layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>>(
@@ -42,14 +41,11 @@ void VillagerRenderer::initLayers()
 
 void VillagerRenderer::setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
 {
-    if (m_villagerLayer) {
-        m_villagerLayer->setTextureAtlas(atlas);
-    }
+    m_villagerLayer->setTextureAtlas(atlas);
 }
 
 ResourceLocation VillagerRenderer::getEntityTexture(::mc::entity::VillagerEntity& entity)
 {
-    // MC 1.16.5 VillagerRenderer.getEntityTexture():
     // 只返回基础纹理，类型层和职业层由 VillagerLayer 渲染
     (void)entity;
     return ResourceLocation("minecraft", "textures/entity/villager/villager.png");

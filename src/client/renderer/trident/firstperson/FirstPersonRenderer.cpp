@@ -22,7 +22,6 @@
  */
 
 #include "FirstPersonRenderer.hpp"
-#include "ItemInHandRenderer.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -46,19 +45,17 @@ namespace {
     return hand == Hand::MainHand ? 0u : 1u;
 }
 
-} // namespace
-
-// ============================================================================
-// 常量定义
-// ============================================================================
-
 /// 手臂在屏幕侧边的偏移
 static constexpr f32 SIDE_OFFSET_X = 0.56f;
 static constexpr f32 SIDE_OFFSET_Y = -0.52f;
 static constexpr f32 SIDE_OFFSET_Z = -0.72f;
 
-/// 装备动画速度
-static constexpr f32 EQUIP_SPEED = 0.4f;
+/// 弓的默认使用时间（ticks）
+static constexpr i32 BOW_USE_DURATION = 72000;
+
+/// 弩的基础装填时间（ticks）
+// TODO: 弩装填时间应从 CrossbowItem 动态获取，当前硬编码为 25 ticks
+static constexpr i32 CROSSBOW_BASE_CHARGE_TICKS = 25;
 
 // 将向量长度归一化，长度过小时回退为零向量，避免数值抖动。
 [[nodiscard]] Vector3f normalizeSafe(const Vector3f& value)
@@ -80,7 +77,7 @@ static constexpr f32 EQUIP_SPEED = 0.4f;
 /**
  * @brief 将第一人称模型根矩阵对齐到相机朝向
  *
- * 严格按 MC 1.16.5 的相机前向定义构造基向量：
+ * 按相机前向定义构造基向量：
  * forward = (-sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))。
  *
  * 由于 OpenGL/Vulkan 视空间前向为 -Z，模型矩阵的第 3 列使用 -forward，
@@ -114,6 +111,8 @@ void applyCameraAlignedBasis(MatrixStack& stack, const Player& player)
     matrix(1, 2) = -forward.y;
     matrix(2, 2) = -forward.z;
 }
+
+} // namespace
 
 // ============================================================================
 // 构造函数和析构函数
@@ -218,8 +217,8 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
 
 void FirstPersonRenderer::destroy()
 {
-    destroyItemMeshes();
-    invalidateArmMeshes();
+    _destroyItemMeshes();
+    _invalidateArmMeshes();
 
     // 销毁手持物品渲染器
     m_itemInHandRenderer.destroy();
@@ -244,7 +243,7 @@ void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas
     m_itemTextureAtlas = itemTextureAtlas;
 
     // 图集切换后强制重建手持物品网格，避免旧 UV 映射失效。
-    invalidateItemMeshes();
+    _invalidateItemMeshes();
 
     if (m_itemPipeline && m_itemTextureAtlas && m_itemTextureAtlas->isValid()) {
         m_itemPipeline->setTextureAtlas(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
@@ -256,7 +255,7 @@ void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSk
     m_playerSkinLocation = playerSkinLocation;
 
     // 皮肤切换后强制重建手臂网格，确保 UV 立即生效。
-    invalidateArmMeshes();
+    _invalidateArmMeshes();
 
     if (m_armPipeline && m_entityTextureAtlas && m_entityTextureAtlas->isBuilt()) {
         m_armPipeline->setTextureAtlas(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
@@ -274,8 +273,8 @@ void FirstPersonRenderer::tick(Player* player)
     m_prevOffHandEquipProgress = m_offHandEquipProgress;
 
     // 获取当前手持物品
-    ItemStack mainHandItem = player != nullptr ? getHeldItem(player, Hand::MainHand) : ItemStack();
-    ItemStack offHandItem = player != nullptr ? getHeldItem(player, Hand::OffHand) : ItemStack();
+    ItemStack mainHandItem = player != nullptr ? _getHeldItem(player, Hand::MainHand) : ItemStack();
+    ItemStack offHandItem = player != nullptr ? _getHeldItem(player, Hand::OffHand) : ItemStack();
 
     // 检测物品切换
     const bool mainHandChanged = !(m_prevMainHandItem == mainHandItem);
@@ -298,7 +297,6 @@ void FirstPersonRenderer::tick(Player* player)
     }
 
     // 装备进度向 1.0 靠拢（使用攻击冷却影响速度）
-    // MC 1.16.5: equippedProgress += clamp((!requip ? f^3 : 0) - equippedProgress, -0.4, 0.4)
     const f32 mainTarget = cooldownStrength * cooldownStrength * cooldownStrength; // f^3
     const f32 offTarget = 1.0f;
 
@@ -323,7 +321,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
         return;
     }
 
-    cleanupRetiredItemMeshes();
+    _cleanupRetiredItemMeshes();
 
     if (context.player == nullptr || m_armPipeline == nullptr) {
         return;
@@ -332,7 +330,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
     Player* player = context.player;
 
     // 获取玩家主手设置
-    HandSide primaryHand = getPrimaryHand(player);
+    HandSide primaryHand = _getPrimaryHand(player);
 
     // 计算插值后的装备进度
     f32 mainEquipProgress =
@@ -359,12 +357,12 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
     }
 
     // 获取手持物品
-    ItemStack mainHandItem = getHeldItem(player, Hand::MainHand);
-    ItemStack offHandItem = getHeldItem(player, Hand::OffHand);
+    ItemStack mainHandItem = _getHeldItem(player, Hand::MainHand);
+    ItemStack offHandItem = _getHeldItem(player, Hand::OffHand);
 
     // 确定手臂姿态
-    ArmPose mainArmPose = determineArmPose(player, Hand::MainHand);
-    ArmPose offArmPose = determineArmPose(player, Hand::OffHand);
+    ArmPose mainArmPose = _determineArmPose(player, Hand::MainHand);
+    ArmPose offArmPose = _determineArmPose(player, Hand::OffHand);
 
     // 更新模型手臂姿态
     m_model.setRightArmPose(primaryHand == HandSide::Right ? mainArmPose : offArmPose);
@@ -400,18 +398,18 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
     };
 
     const auto renderHand = [&](Hand hand, const ItemStack& heldItem, f32 equipProgress, f32 swingProgress) {
-        const HandSide handSide = resolveHandSide(hand, primaryHand);
+        const HandSide handSide = _resolveHandSide(hand, primaryHand);
         const ArmPose armPose = (hand == Hand::MainHand) ? mainArmPose : offArmPose;
 
         MatrixStack baseStack;
         applyCameraAlignedBasis(baseStack, *player);
 
-        // 对齐 MC 1.16.5：手里为空时渲染手臂，非空时走物品分支（不额外绘制手臂网格）。
+        // 手里为空时渲染手臂，非空时走物品分支（不额外绘制手臂网格）。
         if (heldItem.isEmpty()) {
             MatrixStack armStack = baseStack;
-            renderArmFirstPerson(armStack, handSide, equipProgress, swingProgress);
+            _renderArmFirstPerson(armStack, handSide, equipProgress, swingProgress);
 
-            ensureArmMesh(hand, primaryHand);
+            _ensureArmMesh(hand, primaryHand);
             const bool isMainHand = hand == Hand::MainHand;
             const EntityMesh& armMesh = isMainHand ? m_mainHandArmMesh : m_offHandArmMesh;
             const bool armMeshValid = isMainHand ? m_mainHandArmMeshValid : m_offHandArmMeshValid;
@@ -426,10 +424,10 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
         // 地图物品：渲染双手举起姿态，地图内容在GUI层渲染
         if (armPose == ArmPose::Map) {
             MatrixStack mapStack = baseStack;
-            renderMapFirstPerson(
+            _renderMapFirstPerson(
                 mapStack, heldItem, static_cast<f32>(context.partialTick), equipProgress, swingProgress);
 
-            ensureArmMesh(hand, primaryHand);
+            _ensureArmMesh(hand, primaryHand);
             const bool isMainHand = hand == Hand::MainHand;
             const EntityMesh& armMesh = isMainHand ? m_mainHandArmMesh : m_offHandArmMesh;
             const bool armMeshValid = isMainHand ? m_mainHandArmMeshValid : m_offHandArmMeshValid;
@@ -445,14 +443,14 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
             return;
         }
 
-        ensureItemMesh(hand, heldItem);
+        _ensureItemMesh(hand, heldItem);
         const ItemMeshState& itemMeshState = m_itemMeshes[handIndex(hand)];
         if (!itemMeshState.valid || itemMeshState.mesh.indexCount == 0) {
             return;
         }
 
         MatrixStack itemStack = baseStack;
-        renderItemInHand(itemStack, player, heldItem, handSide, equipProgress, swingProgress);
+        _renderItemInHand(itemStack, player, heldItem, handSide, equipProgress, swingProgress);
 
         m_itemPipeline->bind(cmd);
         vkCmdBindDescriptorSets(cmd,
@@ -500,12 +498,11 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
     }
 }
 
-void FirstPersonRenderer::renderArmFirstPerson(
+void FirstPersonRenderer::_renderArmFirstPerson(
     MatrixStack& matrixStack, HandSide side, f32 equipProgress, f32 swingProgress)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    // 对齐 MC 1.16.5 FirstPersonRenderer::renderArmFirstPerson。
     const f32 sqrtSwing = std::sqrt(swingProgress);
     const f32 swingSin = std::sin(sqrtSwing * static_cast<f32>(PI));
 
@@ -527,13 +524,13 @@ void FirstPersonRenderer::renderArmFirstPerson(
     matrixStack.translate(sideSign * 5.6f, 0.0f, 0.0f);
 }
 
-void FirstPersonRenderer::renderItemInHand(
+void FirstPersonRenderer::_renderItemInHand(
     MatrixStack& stack, Player* player, const ItemStack& itemStack, HandSide side, f32 equipProgress, f32 swingProgress)
 {
-    renderItemInHand(stack, player, itemStack, side, equipProgress, swingProgress, false, 0, static_cast<f32>(PI));
+    _renderItemInHand(stack, player, itemStack, side, equipProgress, swingProgress, false, 0, static_cast<f32>(PI));
 }
 
-void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
+void FirstPersonRenderer::_renderItemInHand(MatrixStack& stack,
     Player* player,
     const ItemStack& itemStack,
     HandSide side,
@@ -550,15 +547,15 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
     const bool leftHanded = side == HandSide::Left;
 
-    // 对齐 MC 1.16.5 常规物品分支（非蓄力、非特殊动作）。
+    // 常规物品分支（非蓄力、非特殊动作）。
     const f32 sqrtSwing = std::sqrt(swingProgress);
     const f32 offsetX = -0.4f * std::sin(sqrtSwing * static_cast<f32>(PI));
     const f32 offsetY = 0.2f * std::sin(sqrtSwing * static_cast<f32>(PI) * 2.0f);
     const f32 offsetZ = -0.2f * std::sin(swingProgress * static_cast<f32>(PI));
     stack.translate(sideSign * offsetX, offsetY, offsetZ);
 
-    transformSideFirstPerson(stack, side, equipProgress);
-    transformFirstPerson(stack, side, swingProgress);
+    _transformSideFirstPerson(stack, side, equipProgress);
+    _transformFirstPerson(stack, side, swingProgress);
 
     // 应用物品模型变换（从物品 JSON 模型获取自定义变换）
     m_itemInHandRenderer.applyTransform(stack,
@@ -574,26 +571,26 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
             case UseAction::Eat:
             case UseAction::Drink:
                 // 食物/药水：进食动画
-                transformEatOrDrink(stack, partialTicks, side, itemStack, useCount);
+                _transformEatOrDrink(stack, partialTicks, side, itemStack, useCount);
                 break;
 
             case UseAction::Block:
-                // 盾牌：格挡动画（已由 transformSideFirstPerson 处理）
+                // 盾牌：格挡动画（已由 _transformSideFirstPerson 处理）
                 break;
 
             case UseAction::Bow:
                 // 弓：拉弓动画
-                transformBow(stack, partialTicks, side, useCount);
+                _transformBow(stack, partialTicks, side, useCount);
                 break;
 
             case UseAction::Spear:
                 // 三叉戟：投掷动画（Trident 是 Spear 的别名）
-                transformSpear(stack, partialTicks, side, useCount);
+                _transformSpear(stack, partialTicks, side, useCount);
                 break;
 
             case UseAction::Crossbow:
                 // 弩：装填动画
-                transformCrossbow(stack, partialTicks, side, useCount, false);
+                _transformCrossbow(stack, partialTicks, side, useCount, false);
                 break;
 
             default:
@@ -602,17 +599,16 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack,
     }
 }
 
-void FirstPersonRenderer::renderMapFirstPerson(
+void FirstPersonRenderer::_renderMapFirstPerson(
     MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress)
 {
-    // MC 1.16.5: 地图以双手持握方式渲染在玩家前方
+    // 地图以双手持握方式渲染在玩家前方
     // 两只手都举起，地图板显示在中间
     (void)stack;
     (void)mapStack;
     (void)pitch;
 
-    // 地图持握变换：双手举起
-    // 这里只是变换，实际地图纹理渲染在2D GUI层完成
+    // TODO: 地图持握动画尚未完整实现，当前仅有基础装备动画和挥动
     // 第一人称下地图物品使用 ArmPose::Map 让手臂保持举起的姿态
     // 地图内容通过 GuiRenderer 在屏幕上渲染
 
@@ -632,14 +628,14 @@ void FirstPersonRenderer::renderMapFirstPerson(
 // 变换方法
 // ============================================================================
 
-void FirstPersonRenderer::transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress)
+void FirstPersonRenderer::_transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
     stack.translate(sideSign * SIDE_OFFSET_X, SIDE_OFFSET_Y + equipProgress * -0.6f, SIDE_OFFSET_Z);
 }
 
-void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress)
+void FirstPersonRenderer::_transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
@@ -652,7 +648,7 @@ void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side
     stack.rotateY(sideSign * -45.0f);
 }
 
-void FirstPersonRenderer::transformEatOrDrink(
+void FirstPersonRenderer::_transformEatOrDrink(
     MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item, i32 useCount)
 {
     const Item* itemPtr = item.getItem();
@@ -665,7 +661,6 @@ void FirstPersonRenderer::transformEatOrDrink(
         return;
     }
 
-    // MC 1.16.5: f = useDuration - useCount + partialTicks + 1
     // useCount 是剩余使用时间
     const f32 f = static_cast<f32>(useDuration - useCount) + partialTicks + 1.0f;
     const f32 f1 = f / static_cast<f32>(useDuration);
@@ -689,14 +684,12 @@ void FirstPersonRenderer::transformEatOrDrink(
     matrixStack.rotateZ(sideSign * f3 * 30.0f);
 }
 
-void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+void FirstPersonRenderer::_transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
 {
-    // MC 1.16.5: FirstPersonRenderer BOW 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    // 弓的默认使用时间是 72000 ticks
-    // f8 = useDuration - useCount + partialTicks + 1
-    const f32 f8 = static_cast<f32>(72000 - useCount) + partialTicks + 1.0f;
+    // TODO: 弓的使用时间应从 BowItem 获取 useDuration，当前使用 BOW_USE_DURATION 作为占位
+    const f32 f8 = static_cast<f32>(BOW_USE_DURATION - useCount) + partialTicks + 1.0f;
 
     // f12 = f8 / 20, 然后用公式 (f12^2 + f12*2) / 3
     f32 f12 = f8 / 20.0f;
@@ -719,13 +712,12 @@ void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks, Han
     stack.rotateY(-sideSign * 45.0f);
 }
 
-void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+void FirstPersonRenderer::_transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
 {
-    // MC 1.16.5: FirstPersonRenderer SPEAR 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    // 三叉戟蓄力需要 10 ticks
-    const f32 f7 = static_cast<f32>(72000 - useCount) + partialTicks + 1.0f;
+    // TODO: 三叉戟蓄力应从 TridentItem 获取 useDuration，当前使用 BOW_USE_DURATION 作为占位
+    const f32 f7 = static_cast<f32>(BOW_USE_DURATION - useCount) + partialTicks + 1.0f;
     f32 f11 = f7 / 10.0f;
     if (f11 > 1.0f) {
         f11 = 1.0f;
@@ -745,10 +737,9 @@ void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks, H
     stack.rotateY(-sideSign * 45.0f);
 }
 
-void FirstPersonRenderer::transformCrossbow(
+void FirstPersonRenderer::_transformCrossbow(
     MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged)
 {
-    // MC 1.16.5: FirstPersonRenderer CROSSBOW 分支
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
     if (isCharged) {
@@ -757,10 +748,8 @@ void FirstPersonRenderer::transformCrossbow(
         stack.rotateY(sideSign * 10.0f);
     } else {
         // 装填中
-        // 获取装填时间（考虑快速装填附魔）
-        // 简化：假设基础 25 ticks
-        const f32 f9 = static_cast<f32>(25 - useCount) + partialTicks + 1.0f;
-        f32 f13 = f9 / 25.0f;
+        const f32 f9 = static_cast<f32>(CROSSBOW_BASE_CHARGE_TICKS - useCount) + partialTicks + 1.0f;
+        f32 f13 = f9 / static_cast<f32>(CROSSBOW_BASE_CHARGE_TICKS);
         if (f13 > 1.0f) {
             f13 = 1.0f;
         }
@@ -797,7 +786,7 @@ void FirstPersonRenderer::resetEquippedProgress(Hand hand)
 // GPU 资源管理
 // ============================================================================
 
-void FirstPersonRenderer::invalidateArmMeshes()
+void FirstPersonRenderer::_invalidateArmMeshes()
 {
     if (!m_armPipeline) {
         m_mainHandArmMeshValid = false;
@@ -816,18 +805,18 @@ void FirstPersonRenderer::invalidateArmMeshes()
     }
 }
 
-void FirstPersonRenderer::invalidateItemMeshes()
+void FirstPersonRenderer::_invalidateItemMeshes()
 {
     for (auto& itemMeshState : m_itemMeshes) {
         if (itemMeshState.valid) {
-            retireItemMesh(itemMeshState.mesh);
+            _retireItemMesh(itemMeshState.mesh);
             itemMeshState.valid = false;
         }
         itemMeshState.itemId = std::numeric_limits<ItemId>::max();
     }
 }
 
-void FirstPersonRenderer::cleanupRetiredItemMeshes()
+void FirstPersonRenderer::_cleanupRetiredItemMeshes()
 {
     if (!m_itemPipeline) {
         m_retiredItemMeshes.clear();
@@ -849,7 +838,7 @@ void FirstPersonRenderer::cleanupRetiredItemMeshes()
     }
 }
 
-void FirstPersonRenderer::retireItemMesh(EntityMesh& mesh)
+void FirstPersonRenderer::_retireItemMesh(EntityMesh& mesh)
 {
     if (mesh.vertexBuffer == VK_NULL_HANDLE && mesh.vertexMemory == VK_NULL_HANDLE &&
         mesh.indexBuffer == VK_NULL_HANDLE && mesh.indexMemory == VK_NULL_HANDLE) {
@@ -861,7 +850,7 @@ void FirstPersonRenderer::retireItemMesh(EntityMesh& mesh)
     mesh = {};
 }
 
-void FirstPersonRenderer::destroyItemMeshes()
+void FirstPersonRenderer::_destroyItemMeshes()
 {
     if (m_itemPipeline) {
         for (auto& itemMeshState : m_itemMeshes) {
@@ -884,7 +873,7 @@ void FirstPersonRenderer::destroyItemMeshes()
     m_retiredItemMeshes.clear();
 }
 
-void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand)
+void FirstPersonRenderer::_ensureArmMesh(Hand hand, HandSide primaryHand)
 {
     if (!m_armPipeline) {
         return;
@@ -900,12 +889,12 @@ void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand)
     m_cachedVertices.clear();
     m_cachedIndices.clear();
 
-    const auto arm = selectArmModel(hand, primaryHand);
+    const auto arm = _selectArmModel(hand, primaryHand);
     if (arm) {
         arm->generateMesh(m_cachedVertices, m_cachedIndices, 1.0 / 16.0);
     }
 
-    remapToPlayerSkinRegion(m_cachedVertices);
+    _remapToPlayerSkinRegion(m_cachedVertices);
 
     if (m_cachedVertices.empty() || m_cachedIndices.empty()) {
         return;
@@ -922,7 +911,7 @@ void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand)
     }
 }
 
-void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack)
+void FirstPersonRenderer::_ensureItemMesh(Hand hand, const ItemStack& itemStack)
 {
     if (!m_itemPipeline || !m_itemTextureAtlas || itemStack.isEmpty()) {
         return;
@@ -958,7 +947,7 @@ void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack)
 
     if (itemMeshState.valid) {
         // 物品切换时将旧网格延后回收，避免上一帧仍在引用旧缓冲区。
-        retireItemMesh(itemMeshState.mesh);
+        _retireItemMesh(itemMeshState.mesh);
         itemMeshState.valid = false;
         itemMeshState.itemId = std::numeric_limits<ItemId>::max();
     }
@@ -993,7 +982,7 @@ void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack)
     itemMeshState.itemId = itemId;
 }
 
-void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const
+void FirstPersonRenderer::_remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const
 {
     if (vertices.empty() || m_entityTextureAtlas == nullptr || !m_entityTextureAtlas->isBuilt()) {
         return;
@@ -1032,7 +1021,7 @@ void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vert
 // 工具方法
 // ============================================================================
 
-f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand hand) const
+f32 FirstPersonRenderer::_getSwingProgress(f32 partialTicks, Player* player, Hand hand) const
 {
     if (player == nullptr) {
         return 0.0f;
@@ -1048,14 +1037,14 @@ f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand
     return 0.0f;
 }
 
-ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
+ArmPose FirstPersonRenderer::_determineArmPose(Player* player, Hand hand) const
 {
     if (player == nullptr) {
         return ArmPose::Empty;
     }
 
     // 获取手持物品
-    ItemStack heldItem = getHeldItem(player, hand);
+    ItemStack heldItem = _getHeldItem(player, hand);
 
     if (heldItem.isEmpty()) {
         return ArmPose::Empty;
@@ -1096,7 +1085,7 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
                 return ArmPose::CrossbowCharge;
 
             case UseAction::Spyglass:
-                // 望远镜暂不实现特殊姿态
+                // TODO: 望远镜暂未实现特殊姿态，后续应添加望远镜第一人称动画
                 return ArmPose::Item;
 
             default:
@@ -1105,7 +1094,6 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
     }
 
     // 检查弩是否已装填
-    // MC 1.16.5: 如果物品是弩且已装填，显示 CrossbowHold 姿态
     if (dynamic_cast<const item::CrossbowItem*>(item) != nullptr) {
         if (item::CrossbowItem::isCharged(heldItem)) {
             return ArmPose::CrossbowHold;
@@ -1121,7 +1109,7 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const
     return ArmPose::Item;
 }
 
-HandSide FirstPersonRenderer::getPrimaryHand(Player* player)
+HandSide FirstPersonRenderer::_getPrimaryHand(Player* player)
 {
     if (player == nullptr) {
         return HandSide::Right;
@@ -1131,7 +1119,7 @@ HandSide FirstPersonRenderer::getPrimaryHand(Player* player)
     return player->getPrimaryHand();
 }
 
-ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand)
+ItemStack FirstPersonRenderer::_getHeldItem(Player* player, Hand hand)
 {
     if (player == nullptr) {
         return ItemStack();
@@ -1146,7 +1134,7 @@ ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand)
     }
 }
 
-HandSide FirstPersonRenderer::resolveHandSide(Hand hand, HandSide primaryHand)
+HandSide FirstPersonRenderer::_resolveHandSide(Hand hand, HandSide primaryHand)
 {
     if (hand == Hand::MainHand) {
         return primaryHand;
@@ -1154,9 +1142,9 @@ HandSide FirstPersonRenderer::resolveHandSide(Hand hand, HandSide primaryHand)
     return primaryHand == HandSide::Right ? HandSide::Left : HandSide::Right;
 }
 
-std::shared_ptr<ModelRenderer> FirstPersonRenderer::selectArmModel(Hand hand, HandSide primaryHand) const
+std::shared_ptr<ModelRenderer> FirstPersonRenderer::_selectArmModel(Hand hand, HandSide primaryHand) const
 {
-    const HandSide handSide = resolveHandSide(hand, primaryHand);
+    const HandSide handSide = _resolveHandSide(hand, primaryHand);
     return handSide == HandSide::Right ? m_model.rightArm() : m_model.leftArm();
 }
 

@@ -22,8 +22,8 @@
  */
 
 #include "MonsterVariantModels.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
@@ -32,18 +32,17 @@ namespace mc::client::renderer::entity::model::monster {
 ZombieVillagerModel::ZombieVillagerModel()
     : BipedModel()
 {
-    setupParts(0.0f, false);
+    _setupParts(0.0f, false);
 }
 
 ZombieVillagerModel::ZombieVillagerModel(f32 scale, bool slim)
     : BipedModel()
 {
-    setupParts(scale, slim);
+    _setupParts(scale, slim);
 }
 
-void ZombieVillagerModel::setupParts(f32 scale, bool slim)
+void ZombieVillagerModel::_setupParts(f32 scale, bool slim)
 {
-    // 参考 MC 1.16.5 ZombieVillagerModel
     if (slim) {
         m_head->setTextureOffset(0, 0);
         m_head->addBox(-4.0f, -10.0f, -4.0f, 8.0f, 8.0f, 8.0f, scale);
@@ -87,21 +86,20 @@ void ZombieVillagerModel::setHeadVisible(bool visible)
 DrownedModel::DrownedModel()
     : BipedModel()
 {
-    setupParts(0.0f, 0.0f, 64, 64);
+    _setupParts(0.0f, 0.0f, 64, 64);
 }
 
 DrownedModel::DrownedModel(f32 scale, bool slim)
     : BipedModel()
 {
-    (void)slim;
-    setupParts(scale, 0.0f, 64, 64);
+    MC_UNUSED(slim);
+    _setupParts(scale, 0.0f, 64, 64);
 }
 
-void DrownedModel::setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
+void DrownedModel::_setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight)
 {
-    // 参考 MC 1.16.5 DrownedModel
-    (void)textureWidth;
-    (void)textureHeight;
+    MC_UNUSED(textureWidth);
+    MC_UNUSED(textureHeight);
 
     // 溺尸有特殊的手臂和腿
     m_rightArm->setTextureOffset(32, 48);
@@ -118,8 +116,7 @@ void DrownedModel::setAngles(
 {
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 溺尸游泳动画
-    // 如果需要游泳动画，在这里添加
+    // TODO: 溺尸游泳动画未实现
 }
 
 // ==================== StrayModel ====================
@@ -149,9 +146,7 @@ CaveSpiderModel::CaveSpiderModel()
 
 void CaveSpiderModel::render(f64 scale)
 {
-    // 参考 MC 1.16.5 CaveSpiderRenderer.preRenderCallback()
-    // matrixStack.scale(0.7F, 0.7F, 0.7F);
-    SpiderModel::render(scale * 0.7);
+    SpiderModel::render(scale * getScaleFactor());
 }
 
 // ==================== GiantModel ====================

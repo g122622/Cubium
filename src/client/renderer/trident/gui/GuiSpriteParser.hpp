@@ -74,7 +74,7 @@ public:
      * @return 解析结果
      */
     [[nodiscard]] static Result<GuiSpriteDefinition> parse(
-        const std::string& jsonContent, i32 atlasWidth = 256, i32 atlasHeight = 256);
+        const std::string& jsonContent, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 从资源包解析精灵定义
@@ -85,19 +85,19 @@ public:
      * @return 解析结果
      */
     [[nodiscard]] static Result<GuiSpriteDefinition> parseFromResourcePack(
-        IResourcePack& resourcePack, const std::string& spriteDefPath, i32 atlasWidth = 256, i32 atlasHeight = 256);
+        IResourcePack& resourcePack, const std::string& spriteDefPath, i32 atlasWidth, i32 atlasHeight);
 
 private:
     /**
      * @brief 解析精灵对象
      */
-    [[nodiscard]] static Result<GuiSprite> parseSprite(
+    [[nodiscard]] static Result<GuiSprite> _parseSprite(
         const std::string& id, const void* jsonObj, i32 atlasWidth, i32 atlasHeight);
 
     /**
      * @brief 解析九宫格对象
      */
-    [[nodiscard]] static Result<GuiNinePatch> parseNinePatch(const void* jsonObj);
+    [[nodiscard]] static Result<GuiNinePatch> _parseNinePatch(const void* jsonObj);
 };
 
 } // namespace mc::client::renderer::trident::gui

@@ -42,7 +42,6 @@
 // 前向声明
 namespace mc {
 class Player;
-class LivingEntity;
 } // namespace mc
 
 namespace mc::client {
@@ -68,8 +67,6 @@ using entity::pipeline::EntityTextureAtlas;
  * - 处理手臂挥动动画
  * - 处理使用物品动画（吃食物、拉弓等）
  * - 处理地图等特殊物品渲染
- *
- * 参考 MC 1.16.5 FirstPersonRenderer
  */
 class FirstPersonRenderer {
 public:
@@ -237,7 +234,7 @@ private:
      * @param equipProgress 装备进度
      * @param swingProgress 挥动进度
      */
-    void renderArmFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress, f32 swingProgress);
+    void _renderArmFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress, f32 swingProgress);
 
     /**
      * @brief 渲染手持物品（基础版本）
@@ -249,7 +246,7 @@ private:
      * @param equipProgress 装备进度
      * @param swingProgress 挥动进度
      */
-    void renderItemInHand(MatrixStack& stack,
+    void _renderItemInHand(MatrixStack& stack,
         mc::Player* player,
         const ItemStack& itemStack,
         HandSide side,
@@ -269,7 +266,7 @@ private:
      * @param useCount 使用计数
      * @param partialTicks 部分 tick
      */
-    void renderItemInHand(MatrixStack& stack,
+    void _renderItemInHand(MatrixStack& stack,
         mc::Player* player,
         const ItemStack& itemStack,
         HandSide side,
@@ -282,7 +279,7 @@ private:
     /**
      * @brief 渲染地图（特殊物品）
      */
-    void renderMapFirstPerson(
+    void _renderMapFirstPerson(
         MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress);
 
     // ========== 变换方法 ==========
@@ -292,17 +289,15 @@ private:
      *
      * 将手部放置在屏幕侧边的正确位置。
      */
-    void transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress);
+    void _transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress);
 
     /**
      * @brief 应用第一人称挥动变换
      */
-    void transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress);
+    void _transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress);
 
     /**
      * @brief 应用进食/饮用变换
-     *
-     * MC 1.16.5: FirstPersonRenderer.transformEatFirstPerson()
      *
      * @param matrixStack 矩阵栈
      * @param partialTicks 部分 tick
@@ -310,27 +305,21 @@ private:
      * @param item 物品堆
      * @param useCount 剩余使用时间
      */
-    void transformEatOrDrink(
+    void _transformEatOrDrink(
         MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item, i32 useCount);
 
     /**
      * @brief 应用拉弓变换
-     *
-     * MC 1.16.5: FirstPersonRenderer 中 BOW 分支
      */
-    void transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+    void _transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
 
     /**
      * @brief 应用三叉戟投掷变换
-     *
-     * MC 1.16.5: FirstPersonRenderer 中 SPEAR 分支
      */
-    void transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+    void _transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
 
     /**
      * @brief 应用弩装填变换
-     *
-     * MC 1.16.5: FirstPersonRenderer 中 CROSSBOW 分支
      *
      * @param stack 矩阵栈
      * @param partialTicks 部分 tick
@@ -338,87 +327,92 @@ private:
      * @param useCount 使用计数
      * @param isCharged 是否已装填
      */
-    void transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged);
+    void _transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged);
 
     /**
      * @brief 计算挥动动画参数
+     *
+     * TODO: 该方法已声明但未在当前代码路径中调用，待完整客户端动画系统接入后启用。
      */
-    [[nodiscard]] f32 getSwingProgress(f32 partialTicks, mc::Player* player, Hand hand) const;
+    [[nodiscard]] f32 _getSwingProgress(f32 partialTicks, mc::Player* player, Hand hand) const;
 
     /**
      * @brief 确定手臂姿态
      */
-    [[nodiscard]] ArmPose determineArmPose(mc::Player* player, Hand hand) const;
+    [[nodiscard]] ArmPose _determineArmPose(mc::Player* player, Hand hand) const;
 
     // ========== GPU 资源管理 ==========
 
     /**
      * @brief 确保手臂网格已创建
      */
-    void ensureArmMesh(Hand hand, HandSide primaryHand);
+    void _ensureArmMesh(Hand hand, HandSide primaryHand);
 
     /**
      * @brief 使手臂网格缓存失效
      */
-    void invalidateArmMeshes();
+    void _invalidateArmMeshes();
 
     /**
      * @brief 使手持物品网格缓存失效
      */
-    void invalidateItemMeshes();
+    void _invalidateItemMeshes();
 
     /**
      * @brief 确保手持物品网格已创建
      */
-    void ensureItemMesh(Hand hand, const ItemStack& itemStack);
+    void _ensureItemMesh(Hand hand, const ItemStack& itemStack);
 
     /**
      * @brief 清理已退休的手持物品网格
      */
-    void cleanupRetiredItemMeshes();
+    void _cleanupRetiredItemMeshes();
 
     /**
      * @brief 退休当前手持物品网格
      */
-    void retireItemMesh(EntityMesh& mesh);
+    void _retireItemMesh(EntityMesh& mesh);
 
     /**
      * @brief 销毁当前和已退休的手持物品网格
      */
-    void destroyItemMeshes();
+    void _destroyItemMeshes();
 
     /**
      * @brief 创建或更新 GPU 缓冲区
+     *
+     * TODO: 该方法已声明但未实现，当前 GPU 缓冲区通过 EntityPipeline::createMesh 管理，
+     * 后续如果需要增量更新顶点/索引数据，应实现此方法。
      */
-    [[nodiscard]] Result<void> createOrUpdateBuffers(
+    [[nodiscard]] Result<void> _createOrUpdateBuffers(
         const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices);
 
     /**
      * @brief 将模型 UV 重映射到玩家皮肤图集区域
      */
-    void remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const;
+    void _remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const;
 
     // ========== 工具方法 ==========
 
     /**
      * @brief 获取玩家的主手
      */
-    [[nodiscard]] static HandSide getPrimaryHand(mc::Player* player);
+    [[nodiscard]] static HandSide _getPrimaryHand(mc::Player* player);
 
     /**
      * @brief 获取手持物品
      */
-    [[nodiscard]] static ItemStack getHeldItem(mc::Player* player, Hand hand);
+    [[nodiscard]] static ItemStack _getHeldItem(mc::Player* player, Hand hand);
 
     /**
      * @brief 根据手槽位和主手设置解析实际左右手
      */
-    [[nodiscard]] static HandSide resolveHandSide(Hand hand, HandSide primaryHand);
+    [[nodiscard]] static HandSide _resolveHandSide(Hand hand, HandSide primaryHand);
 
     /**
      * @brief 根据手槽位选择对应的手臂模型部件
      */
-    [[nodiscard]] std::shared_ptr<ModelRenderer> selectArmModel(Hand hand, HandSide primaryHand) const;
+    [[nodiscard]] std::shared_ptr<ModelRenderer> _selectArmModel(Hand hand, HandSide primaryHand) const;
 
 private:
     // Vulkan 资源

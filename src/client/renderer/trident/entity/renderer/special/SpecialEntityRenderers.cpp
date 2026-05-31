@@ -22,12 +22,12 @@
  */
 
 #include "SpecialEntityRenderers.hpp"
-#include "../../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/math/Vector4.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::entity::renderer::special {
 
@@ -41,12 +41,12 @@ EnderCrystalRenderer::EnderCrystalRenderer()
 
 void EnderCrystalRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 EnderCrystalRenderer.render()
     // 末影水晶渲染：
     // 1. 计算水晶旋转动画（innerRotation）
     // 2. 计算水晶浮动偏移（上下浮动）
     // 3. 渲染水晶核心和玻璃外壳
     // 4. 如果有束目标，渲染指向末影龙的光束
+    // TODO: 实现末影水晶浮动偏移和光束渲染
 
     // 设置模型角度（旋转动画）
     f64 ageInTicks = static_cast<f64>(entity.ticksExisted()) + partialTicks;
@@ -66,7 +66,6 @@ ShulkerBulletRenderer::ShulkerBulletRenderer()
 
 void ShulkerBulletRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 ShulkerBulletRenderer.render()
     // 潜影贝子弹渲染：
     // 1. 计算子弹飞行方向
     // 2. 渲染子弹模型（旋转）
@@ -86,7 +85,6 @@ LlamaSpitRenderer::LlamaSpitRenderer()
 
 void LlamaSpitRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 LlamaSpitRenderer.render()
     // 羊驼唾沫渲染：简单的投射物
 
     m_model->setAngles(0.0, 0.0, 0.0, static_cast<f64>(entity.yaw()), static_cast<f64>(entity.pitch()), 1.0);
@@ -104,7 +102,6 @@ SpectralArrowRenderer::SpectralArrowRenderer()
 
 void SpectralArrowRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 SpectralArrowRenderer.render()
     // 光灵箭渲染：与普通箭类似，但有发光效果
 
     m_model->setAngles(0.0, 0.0, 0.0, static_cast<f64>(entity.yaw()), static_cast<f64>(entity.pitch()), 1.0);
@@ -122,7 +119,6 @@ WitherSkullRenderer::WitherSkullRenderer()
 
 void WitherSkullRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 WitherSkullRenderer.render()
     // 凋灵之首渲染
 
     m_model->setAngles(0.0, 0.0, 0.0, static_cast<f64>(entity.yaw()), static_cast<f64>(entity.pitch()), 1.0);
@@ -140,7 +136,6 @@ DragonFireballRenderer::DragonFireballRenderer()
 
 void DragonFireballRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 DragonFireballRenderer.render()
     // 龙火球渲染
 
     m_model->setAngles(0.0, 0.0, 0.0, static_cast<f64>(entity.yaw()), static_cast<f64>(entity.pitch()), 1.0);
@@ -158,7 +153,6 @@ EvokerFangsRenderer::EvokerFangsRenderer()
 
 void EvokerFangsRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 EvokerFangsRenderer.render()
     // 唤魔者尖牙渲染
 
     m_model->setAngles(0.0, 0.0, 0.0, static_cast<f64>(entity.yaw()), 0.0, 1.0);
@@ -185,7 +179,6 @@ void LightningBoltRenderer::renderLayersPipelineClient(::mc::client::ClientEntit
     const core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
 {
-    // 参考 MC 1.16.5 LightningBoltRenderer.render()
     // 闪电渲染：
     // 1. 使用 boltVertex 作为随机种子，创建确定性随机数生成器
     // 2. 生成 8 个点的偏移数组
@@ -208,7 +201,7 @@ void LightningBoltRenderer::renderLayersPipelineClient(::mc::client::ClientEntit
     // 生成闪电网格
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
-    generateLightningMesh(boltVertex, vertices, indices);
+    _generateLightningMesh(boltVertex, vertices, indices);
 
     if (vertices.empty() || indices.empty()) {
         return;
@@ -227,7 +220,6 @@ void LightningBoltRenderer::renderLayersPipelineClient(::mc::client::ClientEntit
     std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     // 使用加法混合模式渲染闪电
-    // 参考 MC 1.16.5 RenderType.getLightning()
     pipeline.bind(cmd, pipeline::BlendMode::Additive);
 
     // 闪电颜色为亮蓝白色，alpha 0.3
@@ -243,7 +235,7 @@ void LightningBoltRenderer::renderLayersPipelineClient(::mc::client::ClientEntit
     pipeline.destroyMesh(result.value());
 }
 
-void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& vertices,
+void LightningBoltRenderer::_renderQuadSegment(std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices,
     f32 x1,
     f32 z1,
@@ -260,13 +252,17 @@ void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& v
     bool flipX2,
     bool flipZ2)
 {
-    // 参考 MC 1.16.5 LightningBoltRenderer.func_229116_a_
     // 渲染一个四边形条带段
     // 顶点位置计算：
     // - 第一个顶点：(x1 ± bottomWidth, segmentY * 16, z1 ± bottomWidth)
     // - 第二个顶点：(prevX ± topWidth, (segmentY + 1) * 16, prevZ ± topWidth)
     // - 第三个顶点：(prevX ± topWidth, (segmentY + 1) * 16, prevZ ± topWidth)
     // - 第四个顶点：(x1 ± bottomWidth, segmentY * 16, z1 ± bottomWidth)
+
+    // TODO: r, g, b 参数当前未使用，待支持逐顶点颜色后启用
+    (void)r;
+    (void)g;
+    (void)b;
 
     f32 y1 = static_cast<f32>(segmentY * 16);
     f32 y2 = static_cast<f32>((segmentY + 1) * 16);
@@ -281,9 +277,6 @@ void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& v
     f32 v3x = x1 + (flipX2 ? bottomWidth : -bottomWidth);
     f32 v3z = z1 + (flipZ2 ? bottomWidth : -bottomWidth);
 
-    // 顶点颜色 (alpha 固定为 0.3)
-    constexpr f32 alpha = 0.3f;
-
     u32 baseIndex = static_cast<u32>(vertices.size());
 
     // 添加四个顶点
@@ -293,10 +286,7 @@ void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& v
     vertices.push_back(model::ModelVertex(v2x, y2, v2z, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
     vertices.push_back(model::ModelVertex(v3x, y1, v3z, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
 
-    // 设置顶点颜色（存储在顶点中）
-    // ModelVertex 没有颜色字段，颜色通过 overlayColor 传递
-    // 这里我们需要使用一种方式传递颜色
-    // 暂时使用固定颜色
+    // TODO: 顶点颜色目前通过 overlayColor 统一传递，未来应支持逐顶点颜色
 
     // 添加两个三角形
     indices.push_back(baseIndex);
@@ -308,24 +298,22 @@ void LightningBoltRenderer::renderQuadSegment(std::vector<model::ModelVertex>& v
     indices.push_back(baseIndex + 3);
 }
 
-void LightningBoltRenderer::generateLightningMesh(
+void LightningBoltRenderer::_generateLightningMesh(
     u64 boltVertex, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 LightningBoltRenderer.render()
     // 使用确定性随机数生成器
 
     // 创建随机数生成器
     mc::math::Random rng(static_cast<u64>(boltVertex));
 
     // 生成 8 个点的偏移数组
-    // MC 1.16.5: float[] afloat = new float[8]; float[] afloat1 = new float[8];
     std::array<f32, 8> offsetX;
     std::array<f32, 8> offsetZ;
     f32 f = 0.0f;
     f32 f1 = 0.0f;
 
     for (i32 i = 7; i >= 0; --i) {
-        // MC 1.16.5: f += (float)(random.nextInt(11) - 5);
+        // MC 原始偏移逻辑：f += nextInt(11) - 5
         offsetX[i] = f;
         offsetZ[i] = f1;
         f += static_cast<f32>(rng.nextInt(11) - 5);
@@ -375,31 +363,24 @@ void LightningBoltRenderer::generateLightningMesh(
                 }
 
                 // 计算宽度
-                // MC 1.16.5:
-                // float f10 = 0.1F + (float)j * 0.2F;
-                // if (k == 0) { f10 *= (float)(j1 * 0.1D + 1.0D); }
                 f32 topWidth = 0.1f + static_cast<f32>(j) * 0.2f;
                 if (k == 0) {
                     topWidth *= static_cast<f32>(static_cast<f64>(j1) * 0.1 + 1.0);
                 }
 
-                // float f11 = 0.1F + (float)j * 0.2F;
-                // if (k == 0) { f11 *= (float)((j1 - 1) * 0.1D + 1.0D); }
                 f32 bottomWidth = 0.1f + static_cast<f32>(j) * 0.2f;
                 if (k == 0) {
                     bottomWidth *= static_cast<f32>((j1 - 1) * 0.1 + 1.0);
                 }
 
                 // 渲染 4 个四边形（围绕闪电）
-                // MC 1.16.5 使用 Matrix4f 和 IVertexBuilder 渲染
-                // 我们直接生成顶点
-                renderQuadSegment(
+                _renderQuadSegment(
                     vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, false, false, true, false);
-                renderQuadSegment(
+                _renderQuadSegment(
                     vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, true, false, true, true);
-                renderQuadSegment(
+                _renderQuadSegment(
                     vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, true, true, false, true);
-                renderQuadSegment(
+                _renderQuadSegment(
                     vertices, indices, f2, f3, j1, f4, f5, r, g, b, topWidth, bottomWidth, false, true, false, false);
             }
         }
@@ -415,8 +396,7 @@ AreaEffectCloudRenderer::AreaEffectCloudRenderer()
 
 void AreaEffectCloudRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 AreaEffectCloudRenderer.render()
-    // 区域效果云渲染：
+    // TODO: 实现区域效果云渲染
     // 1. 根据半径缩放
     // 2. 根据效果类型选择颜色
     // 3. 半透明渲染
@@ -434,8 +414,7 @@ FallingBlockRenderer::FallingBlockRenderer()
 
 void FallingBlockRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 FallingBlockRenderer.render()
-    // 下落方块渲染：
+    // TODO: 实现下落方块渲染
     // 1. 获取方块状态
     // 2. 渲染方块模型
     // 3. 位置插值
@@ -453,8 +432,7 @@ ItemFrameRenderer::ItemFrameRenderer()
 
 void ItemFrameRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 ItemFrameRenderer.render()
-    // 物品展示框渲染：
+    // TODO: 实现物品展示框渲染
     // 1. 渲染边框
     // 2. 渲染物品（如果有的话）
     // 3. 渲染地图（如果是地图）
@@ -472,8 +450,7 @@ PaintingRenderer::PaintingRenderer()
 
 void PaintingRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 PaintingRenderer.render()
-    // 画渲染：
+    // TODO: 实现画渲染
     // 1. 根据画类型选择纹理
     // 2. 渲染画布
 
@@ -490,8 +467,7 @@ LeashKnotRenderer::LeashKnotRenderer()
 
 void LeashKnotRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 LeashKnotRenderer.render()
-    // 拴绳结渲染：简单的模型
+    // TODO: 实现拴绳结渲染
 
     (void)entity;
     (void)partialTicks;
@@ -506,8 +482,7 @@ ArmorStandRenderer::ArmorStandRenderer()
 
 void ArmorStandRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 ArmorStandRenderer.render()
-    // 盔甲架渲染：
+    // TODO: 实现盔甲架渲染
     // 1. 渲染盔甲架基座
     // 2. 渲染装备的盔甲
     // 3. 渲染手持物品
@@ -526,8 +501,7 @@ TNTRenderer::TNTRenderer()
 
 void TNTRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 TNTRenderer.render()
-    // TNT渲染：
+    // TODO: 实现 TNT 渲染
     // 1. 渲染TNT方块
     // 2. 处理点燃闪烁
 
@@ -544,8 +518,7 @@ FireworkRocketRenderer::FireworkRocketRenderer()
 
 void FireworkRocketRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // 参考 MC 1.16.5 FireworkRocketRenderer.render()
-    // 烟花火箭渲染：
+    // TODO: 实现烟花火箭渲染
     // 1. 渲染火箭模型
     // 2. 处理粒子尾迹
 

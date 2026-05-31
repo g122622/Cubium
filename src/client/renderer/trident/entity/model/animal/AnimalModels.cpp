@@ -32,8 +32,7 @@ namespace mc::client::renderer::entity::model::animal {
 PigModel::PigModel()
     : QuadrupedModel(6, 0.0f, false, 4.0f, 4.0f, 2.0f, 2.0f, 24.0f)
 {
-    // 参考 MC 1.16.5 PigModel：在基础四足模型上追加猪鼻子
-    // Java: this.headModel.setTextureOffset(16, 16).addBox(-2.0F, 0.0F, -9.0F, 4.0F, 3.0F, 1.0F, scale);
+    // 在基础四足模型上追加猪鼻子
     m_head->setTextureOffset(16, 16).addBox(-2.0f, 0.0f, -9.0f, 4.0f, 3.0f, 1.0f);
 
     m_textureWidth = 64;
@@ -54,37 +53,20 @@ void PigModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64
 CowModel::CowModel()
     : QuadrupedModel(12, 0.0f, false, 10.0f, 4.0f, 2.0f, 2.0f, 24.0f)
 {
-    // 参考 MC 1.16.5 CowModel：重建头、身（腿在 QuadrupedModel 中已创建，需调整位置）
-    // Java: this.headModel = new ModelRenderer(this, 0, 0);
-    //       this.headModel.addBox(-4.0F, -4.0F, -6.0F, 8.0F, 8.0F, 6.0F, 0.0F);
-    //       this.headModel.setRotationPoint(0.0F, 4.0F, -8.0F);
+    // 重建头、身（腿在 QuadrupedModel 中已创建，需调整位置）
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->addBox(-4.0f, -4.0f, -6.0f, 8.0f, 8.0f, 6.0f);
     m_head->setRotationPoint(0.0f, 4.0f, -8.0f);
     // 牛角
-    // Java: this.headModel.setTextureOffset(22, 0).addBox(-5.0F, -5.0F, -4.0F, 1.0F, 3.0F, 1.0F, 0.0F);
-    //       this.headModel.setTextureOffset(22, 0).addBox(4.0F, -5.0F, -4.0F, 1.0F, 3.0F, 1.0F, 0.0F);
     m_head->setTextureOffset(22, 0).addBox(-5.0f, -5.0f, -4.0f, 1.0f, 3.0f, 1.0f);
     m_head->setTextureOffset(22, 0).addBox(4.0f, -5.0f, -4.0f, 1.0f, 3.0f, 1.0f);
 
-    // Java: this.body = new ModelRenderer(this, 18, 4);
-    //       this.body.addBox(-6.0F, -10.0F, -7.0F, 12.0F, 18.0F, 10.0F, 0.0F);
-    //       this.body.setRotationPoint(0.0F, 5.0F, 2.0F);
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(18, 4).addBox(-6.0f, -10.0f, -7.0f, 12.0f, 18.0f, 10.0f);
     m_body->setRotationPoint(0.0f, 5.0f, 2.0f);
-    // Java: this.body.setTextureOffset(52, 0).addBox(-2.0F, 2.0F, -8.0F, 4.0F, 6.0F, 1.0F);
     m_body->setTextureOffset(52, 0).addBox(-2.0f, 2.0f, -8.0f, 4.0f, 6.0f, 1.0f);
 
-    // 腿部：QuadrupedModel 已创建，但需要调整位置
-    // Java CowModel 构造函数末尾调整:
-    //   --this.legBackRight.rotationPointX;   // -3 → -4
-    //   ++this.legBackLeft.rotationPointX;    //  3 →  4
-    //   --this.legFrontRight.rotationPointX;  // -3 → -4
-    //   ++this.legFrontLeft.rotationPointX;   //  3 →  4
-    //   --this.legFrontRight.rotationPointZ;  // -5 → -6
-    //   --this.legFrontLeft.rotationPointZ;   // -5 → -6
-    // 牛腿高度 12，所以 Y = 24 - 12 = 12
+    // 腿部：QuadrupedModel 已创建，但需要调整位置；牛腿高度 12，所以 Y = 24 - 12 = 12
     m_legBackRight->setRotationPoint(-4.0f, 12.0f, 7.0f);
     m_legBackLeft->setRotationPoint(4.0f, 12.0f, 7.0f);
     m_legFrontRight->setRotationPoint(-4.0f, 12.0f, -6.0f);
@@ -116,18 +98,12 @@ void CowModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64
 SheepModel::SheepModel()
     : QuadrupedModel(12, 0.0f, false, 8.0f, 4.0f, 2.0f, 2.0f, 24.0f)
 {
-    // 参考 MC 1.16.5 SheepModel：重建头、身
-    // Java: this.headModel = new ModelRenderer(this, 0, 0);
-    //       this.headModel.addBox(-3.0F, -4.0F, -6.0F, 6.0F, 6.0F, 8.0F, 0.0F);
-    //       this.headModel.setRotationPoint(0.0F, 6.0F, -8.0F);
+    // 重建头、身
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-3.0f, -4.0f, -6.0f, 6.0f, 6.0f, 8.0f);
     m_head->setRotationPoint(0.0f, 6.0f, -8.0f);
 
-    // Java: this.body = new ModelRenderer(this, 28, 8);
-    //       this.body.addBox(-4.0F, -10.0F, -7.0F, 8.0F, 16.0F, 6.0F, 0.0F);
-    //       this.body.setRotationPoint(0.0F, 5.0F, 2.0F);
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(28, 8).addBox(-4.0f, -10.0f, -7.0f, 8.0f, 16.0f, 6.0f);
     m_body->setRotationPoint(0.0f, 5.0f, 2.0f);
@@ -152,8 +128,6 @@ void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f
 {
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 参考 MC 1.16.5 SheepModel.setRotationAngles
-    // Java: this.headModel.rotateAngleX = this.headRotationAngleX;
     // 用实体的头部旋转角度覆盖默认的 headPitch 旋转
     m_head->setRotateAngleX(static_cast<f32>(m_headRotationAngleX));
 
@@ -163,11 +137,6 @@ void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f
 
 void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
 {
-    // 参考 MC 1.16.5 SheepModel.setLivingAnimations
-    // Java:
-    //   this.headModel.rotationPointY = 6.0F + entityIn.getHeadRotationPointY(partialTick) * 9.0F;
-    //   this.headRotationAngleX = entityIn.getHeadRotationAngleX(partialTick);
-    //
     // 头部 Y 位置由 setHeadRotation() 设置的 m_headRotationPointY 控制
     // 这里应用偏移：默认 6.0 + rotationPointY * 9.0
     m_head->setRotationPointY(6.0f + m_headRotationPointY * 9.0f);
@@ -178,7 +147,6 @@ void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
 ChickenModel::ChickenModel()
     : AgeableModel() // 使用 AgeableModel 默认构造函数
 {
-    // 参考 MC 1.16.5 ChickenModel
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-2.0f, -6.0f, -2.0f, 4.0f, 6.0f, 3.0f);
@@ -196,6 +164,7 @@ ChickenModel::ChickenModel()
     m_wattle->addBox(-1.0f, -2.0f, -3.0f, 2.0f, 2.0f, 2.0f);
     m_wattle->setRotationPoint(0.0f, 15.0f, -4.0f);
 
+    // TODO: 鸡冠（comb）模型暂未实现，需要添加纹理偏移和形状定义
     m_comb.reset();
 
     // 身体

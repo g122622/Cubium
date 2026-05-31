@@ -23,10 +23,7 @@
 
 #pragma once
 
-#include "../ParticleTypes.hpp"
-#include "common/core/Result.hpp"
-#include "common/core/Types.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <memory>
 #include <string>
 
@@ -36,7 +33,6 @@ namespace mc::client::renderer::trident::particle::data {
  * @brief 粒子数据基类
  *
  * 用于粒子参数的网络序列化和命令行解析。
- * 参考 MC 1.16.5 IParticleData
  *
  * 子类：
  * - BasicParticleData: 无参数粒子（如火焰、烟雾）
@@ -84,8 +80,6 @@ public:
 
 /**
  * @brief 粒子数据反序列化器接口
- *
- * 参考 MC 1.16.5 IParticleData.IDeserializer
  *
  * @tparam T 粒子数据类型
  */

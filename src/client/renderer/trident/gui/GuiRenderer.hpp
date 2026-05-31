@@ -317,44 +317,44 @@ private:
     /**
      * @brief 创建管线布局
      */
-    [[nodiscard]] Result<void> createPipelineLayout();
+    [[nodiscard]] Result<void> _createPipelineLayout();
 
     /**
      * @brief 创建图形管线
      */
-    [[nodiscard]] Result<void> createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount);
+    [[nodiscard]] Result<void> _createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建描述符
      */
-    [[nodiscard]] Result<void> createDescriptors();
+    [[nodiscard]] Result<void> _createDescriptors();
 
     /**
      * @brief 创建顶点缓冲和索引缓冲
      */
-    [[nodiscard]] Result<void> createBuffers();
+    [[nodiscard]] Result<void> _createBuffers();
 
     /**
      * @brief 创建字体纹理
      */
-    [[nodiscard]] Result<void> createFontTexture();
+    [[nodiscard]] Result<void> _createFontTexture();
 
     /**
      * @brief 更新字体纹理
      */
-    void updateFontTexture(VkCommandBuffer commandBuffer);
+    void _updateFontTexture(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 初始化纹理布局（在首次使用前调用）
      *
      * 由于纹理创建时布局为 UNDEFINED，需要在首次渲染前转换到 SHADER_READ_ONLY_OPTIMAL
      */
-    void initializeTextureLayouts(VkCommandBuffer commandBuffer);
+    void _initializeTextureLayouts(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 上传顶点和索引数据到GPU
      */
-    void uploadBufferData(VkCommandBuffer commandBuffer);
+    void _uploadBufferData(VkCommandBuffer commandBuffer);
 
     /**
      * @brief 更新图集描述符
@@ -362,19 +362,19 @@ private:
      * @param view Vulkan 图像视图
      * @param sampler Vulkan 采样器
      */
-    void updateAtlasDescriptor(u32 binding, VkImageView view, VkSampler sampler);
+    void _updateAtlasDescriptor(u32 binding, VkImageView view, VkSampler sampler);
 
     // ========== Vulkan 辅助函数 ==========
 
     /**
      * @brief 查找内存类型
      */
-    [[nodiscard]] Result<u32> findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
+    [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 
     /**
      * @brief 创建缓冲区
      */
-    [[nodiscard]] Result<void> createBuffer(VkDeviceSize size,
+    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
@@ -425,8 +425,8 @@ private:
     mc::client::FontRenderer m_fontRenderer;
 
     // 屏幕尺寸
-    f64 m_screenWidth = 0.0f;
-    f64 m_screenHeight = 0.0f;
+    f64 m_screenWidth = 0.0;
+    f64 m_screenHeight = 0.0;
 
     // 顶点/索引数据
     std::vector<mc::client::GuiVertex> m_vertices;

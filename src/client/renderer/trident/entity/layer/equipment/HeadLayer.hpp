@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/IEntityRenderer.hpp"
-#include "../../model/core/EntityModel.hpp"
-#include "../core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <memory>
@@ -48,8 +48,6 @@ namespace mc::client::renderer::entity::layer::equipment {
  * @brief 头部物品层渲染器
  *
  * 渲染实体头部装备的物品（如南瓜、玩家头颅、头盔等）。
- *
- * 参考 MC 1.16.5 HeadLayer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
@@ -82,6 +80,7 @@ public:
 
     /**
      * @brief 渲染头部物品层（CPU路径 - 已废弃）
+     * TODO: 确认CPU渲染路径完全移除后删除此方法
      */
     void render(TEntity& entity,
         f32 limbSwing,
@@ -108,6 +107,7 @@ protected:
 
     /**
      * @brief 渲染头部物品（CPU路径 - 已废弃）
+     * TODO: 确认CPU渲染路径完全移除后删除此方法
      */
     virtual void renderHeadItem(TEntity& entity, const ItemStack& itemStack, f32 headYaw, f32 headPitch, f32 scale);
 
