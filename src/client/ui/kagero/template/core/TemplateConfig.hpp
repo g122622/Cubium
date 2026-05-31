@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 
 namespace mc::client::ui::kagero::tpl::core {
 
@@ -56,7 +56,7 @@ struct TemplateConfig {
     bool enableCache = true;
 
     /// 模板缓存最大条目数
-    size_t maxCacheSize = 100;
+    Size maxCacheSize = 100;
 
     /// 是否在编译时验证绑定路径
     bool validateBindingPaths = true;
@@ -106,12 +106,12 @@ enum class TemplateVersion : u8 {
  * @brief 模板源码位置信息
  */
 struct SourceLocation {
-    size_t line = 1;   ///< 行号（从1开始）
-    size_t column = 1; ///< 列号（从1开始）
-    size_t offset = 0; ///< 文件偏移量
+    Size line = 1;   ///< 行号（从1开始）
+    Size column = 1; ///< 列号（从1开始）
+    Size offset = 0; ///< 文件偏移量
 
     SourceLocation() = default;
-    SourceLocation(size_t line_, size_t column_, size_t offset_ = 0)
+    SourceLocation(Size line_, Size column_, Size offset_ = 0)
         : line(line_)
         , column(column_)
         , offset(offset_)
