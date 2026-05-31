@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../core/TemplateConfig.hpp"
-#include "../core/TemplateError.hpp"
+#include "client/ui/kagero/template/core/TemplateConfig.hpp"
+#include "client/ui/kagero/template/core/TemplateError.hpp"
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::parser {
@@ -249,7 +248,7 @@ public:
     void skipWhitespace();
 
     /**
-     * * @brief 跳过空白和换行Token
+     * @brief 跳过空白和换行Token
      */
     void skipWhitespaceAndNewlines();
 
@@ -327,94 +326,94 @@ private:
      * @brief 扫描下一个Token
      * @return 扫描到的Token，如果是EOF返回EndOfFile
      */
-    Token scanToken();
+    Token _scanToken();
 
     /**
      * @brief 扫描标签开始（<）
      */
-    Token scanTagStart();
+    Token _scanTagStart();
 
     /**
      * @brief 扫描标签结束（> 或 />）
      */
-    Token scanTagEnd();
+    Token _scanTagEnd();
 
     /**
      * @brief 扫描注释（<!-- ... -->）
      */
-    Token scanComment();
+    Token _scanComment();
 
     /**
      * @brief 扫描标识符
      */
-    Token scanIdentifier();
+    Token _scanIdentifier();
 
     /**
      * @brief 扫描字符串字面量
      */
-    Token scanStringLiteral();
+    Token _scanStringLiteral();
 
     /**
      * @brief 扫描数字字面量
      */
-    Token scanNumberLiteral();
+    Token _scanNumberLiteral();
 
     /**
      * @brief 扫描文本内容（标签之间的文本）
      */
-    Token scanText();
+    Token _scanText();
 
     /**
      * @brief 跳过空白字符
      */
-    void skipWhitespaceChars();
+    void _skipWhitespaceChars();
 
     // ========== 辅助方法 ==========
 
     /**
      * @brief 获取当前字符
      */
-    [[nodiscard]] char currentChar() const;
+    [[nodiscard]] char _currentChar() const;
 
     /**
      * @brief 获取下一个字符（不前进）
      */
-    [[nodiscard]] char peekChar() const;
+    [[nodiscard]] char _peekChar() const;
 
     /**
-     * * @brief 获取下N个字符（不前进）
+     * @brief 获取下N个字符（不前进）
      */
-    [[nodiscard]] char peekChar(size_t offset) const;
+    [[nodiscard]] char _peekChar(size_t offset) const;
 
     /**
      * @brief 前进一个字符
      */
-    void advance();
+    void _advance();
 
     /**
      * @brief 前进N个字符
      */
-    void advance(size_t n);
+    void _advance(size_t n);
 
     /**
      * @brief 检查是否到达文件末尾
      */
-    [[nodiscard]] bool isAtEnd() const;
+    [[nodiscard]] bool _isAtEnd() const;
 
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorType type, const std::string& message);
+    void _addError(TemplateErrorType type, const std::string& message);
 
     /**
      * @brief 更新位置
      */
-    void updatePosition(char c);
+    void _updatePosition(char c);
 
     /**
      * @brief 创建Token
      */
-    [[nodiscard]] Token makeToken(TokenType type, const std::string& value) const;
+    [[nodiscard]] Token _makeToken(TokenType type, const std::string& value) const;
 
 private:
     std::string m_source;     ///< 源码
@@ -430,7 +429,7 @@ private:
 
     // 特殊状态
     bool m_inTag = false;       ///< 是否在标签内部
-    bool m_inAttribute = false; ///< 是否在属性值内部
+    bool m_inAttribute = false; ///< TODO: 尚未使用，待实现属性值解析逻辑时启用
 };
 
 } // namespace mc::client::ui::kagero::tpl::parser

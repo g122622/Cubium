@@ -101,8 +101,8 @@ bool Lexer::tokenize()
     m_inTag = false;
     m_inAttribute = false;
 
-    while (!isAtEnd()) {
-        Token token = scanToken();
+    while (!_isAtEnd()) {
+        Token token = _scanToken();
         if (token.type != TokenType::Error) {
             m_tokens.push_back(token);
         }
@@ -114,7 +114,7 @@ bool Lexer::tokenize()
 
     // 添加EOF Token
     if (m_tokens.empty() || m_tokens.back().type != TokenType::EndOfFile) {
-        m_tokens.push_back(makeToken(TokenType::EndOfFile, ""));
+        m_tokens.push_back(_makeToken(TokenType::EndOfFile, ""));
     }
 
     return !hasErrors();
@@ -171,13 +171,13 @@ void Lexer::skipWhitespaceAndNewlines()
 bool Lexer::expect(TokenType type)
 {
     if (!hasNext()) {
-        addError(TemplateErrorType::UnexpectedEndOfInput,
+        _addError(TemplateErrorType::UnexpectedEndOfInput,
             "Expected " + std::string(tokenTypeName(type)) + " but reached end of file");
         return false;
     }
 
     if (current().type != type) {
-        addError(TemplateErrorType::UnexpectedToken,
+        _addError(TemplateErrorType::UnexpectedToken,
             "Expected " + std::string(tokenTypeName(type)) + " but got " + std::string(tokenTypeName(current().type)));
         return false;
     }
@@ -189,12 +189,12 @@ bool Lexer::expect(TokenType type)
 bool Lexer::expect(TokenType type, const std::string& value)
 {
     if (!hasNext()) {
-        addError(TemplateErrorType::UnexpectedEndOfInput, "Expected " + value + " but reached end of file");
+        _addError(TemplateErrorType::UnexpectedEndOfInput, "Expected " + value + " but reached end of file");
         return false;
     }
 
     if (!current().is(type, value)) {
-        addError(TemplateErrorType::UnexpectedToken, "Expected '" + value + "' but got '" + current().value + "'");
+        _addError(TemplateErrorType::UnexpectedToken, "Expected '" + value + "' but got '" + current().value + "'");
         return false;
     }
 
@@ -247,144 +247,144 @@ std::string Lexer::getContext(const SourceLocation& loc, size_t contextLines) co
     return oss.str();
 }
 
-Token Lexer::scanToken()
+Token Lexer::_scanToken()
 {
-    skipWhitespaceChars();
+    _skipWhitespaceChars();
 
-    if (isAtEnd()) {
-        return makeToken(TokenType::EndOfFile, "");
+    if (_isAtEnd()) {
+        return _makeToken(TokenType::EndOfFile, "");
     }
 
-    char c = currentChar();
+    char c = _currentChar();
 
     // 标签相关
     if (c == '<') {
-        return scanTagStart();
+        return _scanTagStart();
     }
 
     if (c == '>') {
-        advance();
+        _advance();
         m_inTag = false;
-        return makeToken(TokenType::CloseTag, ">");
+        return _makeToken(TokenType::CloseTag, ">");
     }
 
     if (c == '/') {
-        if (peekChar() == '>') {
-            advance();
-            advance();
+        if (_peekChar() == '>') {
+            _advance();
+            _advance();
             m_inTag = false;
-            return makeToken(TokenType::SelfCloseTag, "/>");
+            return _makeToken(TokenType::SelfCloseTag, "/>");
         }
         // 否则是文本的一部分
-        return scanText();
+        return _scanText();
     }
 
     // 属性相关
     if (m_inTag) {
         if (c == '=') {
-            advance();
-            return makeToken(TokenType::Equals, "=");
+            _advance();
+            return _makeToken(TokenType::Equals, "=");
         }
 
         if (c == ':') {
-            advance();
-            return makeToken(TokenType::Colon, ":");
+            _advance();
+            return _makeToken(TokenType::Colon, ":");
         }
 
         if (c == '"' || c == '\'') {
-            return scanStringLiteral();
+            return _scanStringLiteral();
         }
 
-        if (isDigit(c) || (c == '-' && isDigit(peekChar()))) {
-            return scanNumberLiteral();
+        if (isDigit(c) || (c == '-' && isDigit(_peekChar()))) {
+            return _scanNumberLiteral();
         }
 
         if (isAlpha(c) || c == '_' || c == '$') {
-            return scanIdentifier();
+            return _scanIdentifier();
         }
 
         // 未知字符在标签内
-        addError(TemplateErrorType::UnexpectedCharacter, "Unexpected character '" + std::string(1, c) + "' in tag");
-        advance();
-        return makeToken(TokenType::Error, std::string(1, c));
+        _addError(TemplateErrorType::UnexpectedCharacter, "Unexpected character '" + std::string(1, c) + "' in tag");
+        _advance();
+        return _makeToken(TokenType::Error, std::string(1, c));
     }
 
     // 文本内容
-    return scanText();
+    return _scanText();
 }
 
-Token Lexer::scanTagStart()
+Token Lexer::_scanTagStart()
 {
-    advance(); // 跳过 '<'
+    _advance(); // 跳过 '<'
 
-    if (currentChar() == '!') {
-        advance();
-        if (currentChar() == '-' && peekChar() == '-') {
+    if (_currentChar() == '!') {
+        _advance();
+        if (_currentChar() == '-' && _peekChar() == '-') {
             // 注释 <!--
-            advance();
-            advance();
-            return scanComment();
+            _advance();
+            _advance();
+            return _scanComment();
         }
-        addError(TemplateErrorType::UnexpectedCharacter, "Expected '<!--' for comment");
-        return makeToken(TokenType::Error, "<!");
+        _addError(TemplateErrorType::UnexpectedCharacter, "Expected '<!--' for comment");
+        return _makeToken(TokenType::Error, "<!");
     }
 
-    if (currentChar() == '/') {
-        advance();
+    if (_currentChar() == '/') {
+        _advance();
         m_inTag = true;
-        return makeToken(TokenType::OpenCloseTag, "</");
+        return _makeToken(TokenType::OpenCloseTag, "</");
     }
 
     m_inTag = true;
-    return makeToken(TokenType::OpenTag, "<");
+    return _makeToken(TokenType::OpenTag, "<");
 }
 
-Token Lexer::scanTagEnd()
+Token Lexer::_scanTagEnd()
 {
-    // 这个方法现在已经不使用了，逻辑已移到scanTagStart和scanToken
-    advance();
+    // TODO: 此方法已不再使用，逻辑已移至_scanTagStart和_scanToken，考虑删除
+    _advance();
     m_inTag = false;
-    return makeToken(TokenType::CloseTag, ">");
+    return _makeToken(TokenType::CloseTag, ">");
 }
 
-Token Lexer::scanComment()
+Token Lexer::_scanComment()
 {
     // 已经扫描了 "<!--"
     size_t start = m_pos;
     size_t contentStart = m_pos;
 
-    while (!isAtEnd()) {
+    while (!_isAtEnd()) {
         // 检查注释结束
-        if (currentChar() == '-' && peekChar() == '-' && peekChar(2) == '>') {
+        if (_currentChar() == '-' && _peekChar() == '-' && _peekChar(2) == '>') {
             std::string content = m_source.substr(contentStart, m_pos - contentStart);
 
-            advance(); // '-'
-            advance(); // '-'
-            advance(); // '>'
+            _advance(); // '-'
+            _advance(); // '-'
+            _advance(); // '>'
 
             // 创建注释内容Token
             Token commentToken(TokenType::Comment, content);
             commentToken.location = m_location;
             m_tokens.push_back(commentToken);
 
-            return makeToken(TokenType::CloseComment, "-->");
+            return _makeToken(TokenType::CloseComment, "-->");
         }
-        advance();
+        _advance();
     }
 
-    addError(TemplateErrorType::UnterminatedString, "Unterminated comment");
-    return makeToken(TokenType::Error, m_source.substr(start));
+    _addError(TemplateErrorType::UnterminatedString, "Unterminated comment");
+    return _makeToken(TokenType::Error, m_source.substr(start));
 }
 
-Token Lexer::scanIdentifier()
+Token Lexer::_scanIdentifier()
 {
     size_t start = m_pos;
     SourceLocation startLoc = m_location;
 
     // 标识符可以包含: 字母、数字、下划线、连字符、冒号（用于bind:, on:）
     // 第一个字符必须是字母或下划线
-    while (!isAtEnd() && isIdentifierChar(currentChar())) {
-        advance();
+    while (!_isAtEnd() && isIdentifierChar(_currentChar())) {
+        _advance();
     }
 
     std::string value = m_source.substr(start, m_pos - start);
@@ -393,19 +393,19 @@ Token Lexer::scanIdentifier()
     return token;
 }
 
-Token Lexer::scanStringLiteral()
+Token Lexer::_scanStringLiteral()
 {
-    char quote = currentChar();
-    advance(); // 跳过开始引号
+    char quote = _currentChar();
+    _advance(); // 跳过开始引号
 
     size_t start = m_pos;
     std::string value;
 
-    while (!isAtEnd() && currentChar() != quote) {
-        if (currentChar() == '\\') {
-            advance(); // 跳过转义字符
-            if (!isAtEnd()) {
-                char escaped = currentChar();
+    while (!_isAtEnd() && _currentChar() != quote) {
+        if (_currentChar() == '\\') {
+            _advance(); // 跳过转义字符
+            if (!_isAtEnd()) {
+                char escaped = _currentChar();
                 switch (escaped) {
                     case 'n':
                         value += '\n';
@@ -429,48 +429,48 @@ Token Lexer::scanStringLiteral()
                         value += escaped;
                         break;
                 }
-                advance();
+                _advance();
             }
         } else {
-            value += currentChar();
-            advance();
+            value += _currentChar();
+            _advance();
         }
     }
 
-    if (isAtEnd()) {
-        addError(TemplateErrorType::UnterminatedString, "Unterminated string literal");
+    if (_isAtEnd()) {
+        _addError(TemplateErrorType::UnterminatedString, "Unterminated string literal");
         Token token(TokenType::Error, value);
         token.location = SourceLocation(m_location.line, m_location.column - value.size() - 1);
         return token;
     }
 
-    advance(); // 跳过结束引号
+    _advance(); // 跳过结束引号
 
     Token token(TokenType::StringLiteral, value);
     token.location = SourceLocation(m_location.line, m_location.column - value.size() - 2);
     return token;
 }
 
-Token Lexer::scanNumberLiteral()
+Token Lexer::_scanNumberLiteral()
 {
     size_t start = m_pos;
     SourceLocation startLoc = m_location;
 
     // 负号
-    if (currentChar() == '-') {
-        advance();
+    if (_currentChar() == '-') {
+        _advance();
     }
 
     // 整数部分
-    while (!isAtEnd() && isDigit(currentChar())) {
-        advance();
+    while (!_isAtEnd() && isDigit(_currentChar())) {
+        _advance();
     }
 
     // 小数部分
-    if (currentChar() == '.' && isDigit(peekChar())) {
-        advance(); // 跳过'.'
-        while (!isAtEnd() && isDigit(currentChar())) {
-            advance();
+    if (_currentChar() == '.' && isDigit(_peekChar())) {
+        _advance(); // 跳过'.'
+        while (!_isAtEnd() && isDigit(_currentChar())) {
+            _advance();
         }
     }
 
@@ -480,16 +480,16 @@ Token Lexer::scanNumberLiteral()
     return token;
 }
 
-Token Lexer::scanText()
+Token Lexer::_scanText()
 {
     size_t start = m_pos;
     SourceLocation startLoc = m_location;
     std::string value;
 
-    while (!isAtEnd() && currentChar() != '<') {
-        value += currentChar();
-        updatePosition(currentChar());
-        advance();
+    while (!_isAtEnd() && _currentChar() != '<') {
+        value += _currentChar();
+        _updatePosition(_currentChar());
+        _advance();
     }
 
     // 移除末尾空白（保留前面的空白用于格式化）
@@ -507,7 +507,7 @@ Token Lexer::scanText()
     }
 
     if (onlyWhitespace || value.empty()) {
-        return scanToken(); // 递归扫描下一个token
+        return _scanToken(); // 递归扫描下一个token
     }
 
     Token token(TokenType::Text, value);
@@ -515,44 +515,44 @@ Token Lexer::scanText()
     return token;
 }
 
-void Lexer::skipWhitespaceChars()
+void Lexer::_skipWhitespaceChars()
 {
-    while (!isAtEnd() && isWhitespace(currentChar())) {
-        updatePosition(currentChar());
-        advance();
+    while (!_isAtEnd() && isWhitespace(_currentChar())) {
+        _updatePosition(_currentChar());
+        _advance();
     }
 }
 
-char Lexer::currentChar() const
+char Lexer::_currentChar() const
 {
-    return isAtEnd() ? '\0' : m_source[m_pos];
+    return _isAtEnd() ? '\0' : m_source[m_pos];
 }
 
-char Lexer::peekChar() const
+char Lexer::_peekChar() const
 {
     return (m_pos + 1 < m_source.size()) ? m_source[m_pos + 1] : '\0';
 }
 
-char Lexer::peekChar(size_t offset) const
+char Lexer::_peekChar(size_t offset) const
 {
     return (m_pos + offset < m_source.size()) ? m_source[m_pos + offset] : '\0';
 }
 
-void Lexer::advance()
+void Lexer::_advance()
 {
-    if (!isAtEnd()) {
+    if (!_isAtEnd()) {
         ++m_pos;
     }
 }
 
-void Lexer::advance(size_t n)
+void Lexer::_advance(size_t n)
 {
-    for (size_t i = 0; i < n && !isAtEnd(); ++i) {
+    for (size_t i = 0; i < n && !_isAtEnd(); ++i) {
         ++m_pos;
     }
 }
 
-bool Lexer::isAtEnd() const
+bool Lexer::_isAtEnd() const
 {
     return m_pos >= m_source.size();
 }
@@ -587,12 +587,12 @@ bool Lexer::isIdentifierChar(char c)
     return isAlphaNumeric(c) || c == '_' || c == '-' || c == ':';
 }
 
-void Lexer::addError(TemplateErrorType type, const std::string& message)
+void Lexer::_addError(TemplateErrorType type, const std::string& message)
 {
     m_errors.emplace_back(type, message, m_location, m_sourcePath);
 }
 
-void Lexer::updatePosition(char c)
+void Lexer::_updatePosition(char c)
 {
     if (c == '\n') {
         ++m_location.line;
@@ -603,7 +603,7 @@ void Lexer::updatePosition(char c)
     ++m_location.offset;
 }
 
-Token Lexer::makeToken(TokenType type, const std::string& value) const
+Token Lexer::_makeToken(TokenType type, const std::string& value) const
 {
     return Token(type, value, m_location);
 }
