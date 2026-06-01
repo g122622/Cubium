@@ -26,6 +26,8 @@
 
 namespace mc::client::renderer::entity::renderer::projectile {
 
+using model::ModelVertex;
+
 // ============================================================================
 // SnowballRenderer
 // ============================================================================
