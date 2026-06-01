@@ -465,6 +465,7 @@ add_executable(mc_tests
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
     client/world/entity/ClientEntityTest.cpp
+    client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
     client/world/ClientWorldClearChunksTest.cpp
@@ -1429,6 +1430,9 @@ if(MC_BUILD_CLIENT)
     # 注意：这里只测试核心组件，不测试 TridentEngine 本体
     add_executable(mc_trident_tests
         client/renderer/test_trident_engine.cpp
+        client/renderer/PolarBearAnimationTest.cpp
+        client/renderer/EntityRendererCoverageTest.cpp
+        client/renderer/AnimatedMeshCacheTest.cpp
     )
 
     # 添加 Trident 渲染引擎核心组件源文件
@@ -1484,6 +1488,8 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
             # 璁剧疆
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
+            # AnimationContext
+            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/AnimationContext.cpp
     )
 
     target_link_libraries(mc_trident_tests

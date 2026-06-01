@@ -57,6 +57,8 @@ public:
 
     [[nodiscard]] VkPrimitiveTopology getTopology() const override { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
 
+    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
+
 private:
     /**
      * @brief 生成浮标十字线段顶点

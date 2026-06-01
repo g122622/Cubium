@@ -28,7 +28,7 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/IResourcePack.hpp"
-#include <nlohmann/json.hpp>
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include <spdlog/spdlog.h>
 
 // stb_image - only header, implementation in TextureAtlasBuilder.cpp
@@ -39,54 +39,6 @@
 namespace mc::client {
 
 namespace {
-
-[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
-    const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight, u32& outFrameWidth, u32& outFrameHeight)
-{
-    if (mcmetaData.empty() || imageWidth == 0 || imageHeight == 0) {
-        return false;
-    }
-
-    try {
-        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
-        const auto json = nlohmann::json::parse(jsonText);
-        if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
-            return false;
-        }
-
-        const auto& animation = json["animation"];
-        i32 frameWidth = animation.value("width", 0);
-        i32 frameHeight = animation.value("height", 0);
-
-        if (frameWidth <= 0 && frameHeight <= 0) {
-            frameWidth = static_cast<i32>(imageWidth);
-            frameHeight = static_cast<i32>(imageWidth);
-        } else if (frameWidth <= 0) {
-            frameWidth = frameHeight;
-        } else if (frameHeight <= 0) {
-            frameHeight = frameWidth;
-        }
-
-        if (frameWidth <= 0 || frameHeight <= 0) {
-            return false;
-        }
-
-        if (frameWidth > static_cast<i32>(imageWidth) || frameHeight > static_cast<i32>(imageHeight)) {
-            return false;
-        }
-
-        if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
-            return false;
-        }
-
-        outFrameWidth = static_cast<u32>(frameWidth);
-        outFrameHeight = static_cast<u32>(frameHeight);
-        return true;
-    }
-    catch (const nlohmann::json::exception&) {
-        return false;
-    }
-}
 
 Result<void> loadTexturePixels(IResourcePack& pack,
     const ResourceLocation& location,
@@ -125,8 +77,12 @@ Result<void> loadTexturePixels(IResourcePack& pack,
     if (pack.hasResource(resource::PackType::ClientResources, mcmetaPath)) {
         const auto mcmetaResult = pack.readResource(resource::PackType::ClientResources, mcmetaPath);
         if (mcmetaResult.success()) {
-            static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
-                mcmetaResult.value(), outWidth, outHeight, outFrameWidth, outFrameHeight));
+            const auto metadata =
+                resource::metadata::AnimationMetadata::fromMcmeta(mcmetaResult.value(), outWidth, outHeight);
+            if (metadata.width > 0 && metadata.height > 0) {
+                outFrameWidth = static_cast<u32>(metadata.width);
+                outFrameHeight = static_cast<u32>(metadata.height);
+            }
         }
     }
 

@@ -23,94 +23,34 @@
 
 #pragma once
 
-#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include "common/core/Types.hpp"
-#include <vector>
-
-namespace mc {
-class Entity;
-}
-
-namespace mc::client {
-class ClientEntity;
-}
+#include "BillboardRenderers.hpp"
 
 namespace mc::client::renderer::entity::renderer::projectile {
 
 /**
  * @brief 火球渲染器
  *
- * 渲染恶魂发射的火球实体。火球使用实体纹理渲染为 billboard 四边形，
- * 使用全亮光照（fullbright）使其在黑暗中清晰可见。
- * 缩放比例为 3.0。
+ * 渲染恶魂发射的火球实体。使用实体纹理渲染为 billboard 四边形，
+ * 全亮光照（fullbright），缩放比例 3.0。
  */
-class FireballRenderer : public core::EntityRenderer, public core::PipelineMeshProvider {
+class FireballRenderer : public ItemBillboardRenderer {
 public:
-    FireballRenderer();
-    ~FireballRenderer() override = default;
-
-    // 禁止拷贝
-    FireballRenderer(const FireballRenderer&) = delete;
-    FireballRenderer& operator=(const FireballRenderer&) = delete;
-
-    /**
-     * @brief 渲染火球（空实现，由 Vulkan 管线路径处理）
-     */
-    void render(Entity& entity, f64 partialTicks) override;
-
-    /**
-     * @brief 获取管线网格提供者
-     */
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
-
-    // ========== PipelineMeshProvider 接口 ==========
-
-    /**
-     * @brief 生成 billboard 网格
-     */
-    [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices) override;
-
-    /**
-     * @brief 网格不需要每帧更新
-     */
-    [[nodiscard]] bool needsMeshUpdate(::mc::client::ClientEntity& entity) const override;
-
-private:
-    /// 是否使用全亮光照
-    bool m_fullbright;
-    /// 缩放比例
-    f64 m_scale;
+    FireballRenderer()
+        : ItemBillboardRenderer(true, 3.0)
+    {}
 };
 
 /**
  * @brief 小火球渲染器
  *
- * 渲染烈焰人发射的小火球实体。小火球使用实体纹理渲染为 billboard 四边形，
- * 使用全亮光照（fullbright）使其在黑暗中清晰可见。
- * 缩放比例为 0.75。
+ * 渲染烈焰人发射的小火球实体。使用实体纹理渲染为 billboard 四边形，
+ * 全亮光照（fullbright），缩放比例 0.75。
  */
-class SmallFireballRenderer : public core::EntityRenderer, public core::PipelineMeshProvider {
+class SmallFireballRenderer : public ItemBillboardRenderer {
 public:
-    SmallFireballRenderer();
-    ~SmallFireballRenderer() override = default;
-
-    SmallFireballRenderer(const SmallFireballRenderer&) = delete;
-    SmallFireballRenderer& operator=(const SmallFireballRenderer&) = delete;
-
-    void render(Entity& entity, f64 partialTicks) override;
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
-
-    [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices) override;
-    [[nodiscard]] bool needsMeshUpdate(::mc::client::ClientEntity& entity) const override;
-
-private:
-    bool m_fullbright;
-    f64 m_scale;
+    SmallFireballRenderer()
+        : ItemBillboardRenderer(true, 0.75)
+    {}
 };
 
 } // namespace mc::client::renderer::entity::renderer::projectile

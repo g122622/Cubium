@@ -25,6 +25,7 @@
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
 #include "common/resource/IResourcePack.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>
@@ -36,9 +37,14 @@ namespace mc::client::renderer::trident::particle {
 namespace {
 
 /**
- * @brief 解析动画元数据
+ * @brief 使用统一 AnimationMetadata 解析动画帧信息
  *
- * 从 .mcmeta 文件解析动画帧信息
+ * @param mcmetaData .mcmeta 文件原始数据
+ * @param imageWidth 纹理宽度
+ * @param imageHeight 纹理高度
+ * @param outFrameWidth 输出帧宽度
+ * @param outFrameHeight 输出帧高度
+ * @param outFrameTime 输出帧时间（秒）
  */
 [[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(const std::vector<u8>& mcmetaData,
     u32 imageWidth,
@@ -51,72 +57,14 @@ namespace {
         return false;
     }
 
-    // 简单的 JSON 解析（避免依赖 nlohmann_json 头文件）
-    // MC 的动画 mcmeta 格式:
-    // {"animation": {"width": 8, "height": 8, "frametime": 2}}
-
-    std::string jsonStr(mcmetaData.begin(), mcmetaData.end());
-
-    // 查找 width
-    auto findNumber = [&jsonStr](const std::string& key) -> i32 {
-        const std::string searchKey = "\"" + key + "\"";
-        size_t pos = jsonStr.find(searchKey);
-        if (pos == std::string::npos) {
-            return -1;
-        }
-        pos = jsonStr.find(':', pos);
-        if (pos == std::string::npos) {
-            return -1;
-        }
-        // 跳过冒号和空白
-        ++pos;
-        while (pos < jsonStr.size() && (jsonStr[pos] == ' ' || jsonStr[pos] == '\t')) {
-            ++pos;
-        }
-        // 解析数字
-        i32 result = 0;
-        bool negative = false;
-        if (pos < jsonStr.size() && jsonStr[pos] == '-') {
-            negative = true;
-            ++pos;
-        }
-        while (pos < jsonStr.size() && jsonStr[pos] >= '0' && jsonStr[pos] <= '9') {
-            result = result * 10 + (jsonStr[pos] - '0');
-            ++pos;
-        }
-        return negative ? -result : result;
-    };
-
-    i32 frameWidth = findNumber("width");
-    i32 frameHeight = findNumber("height");
-    i32 frameTime = findNumber("frametime");
-
-    // 默认帧尺寸为纹理宽度（正方形帧）
-    if (frameWidth <= 0 && frameHeight <= 0) {
-        frameWidth = static_cast<i32>(imageWidth);
-        frameHeight = static_cast<i32>(imageWidth);
-    } else if (frameWidth <= 0) {
-        frameWidth = frameHeight;
-    } else if (frameHeight <= 0) {
-        frameHeight = frameWidth;
-    }
-
-    if (frameWidth <= 0 || frameHeight <= 0) {
+    const auto metadata = resource::metadata::AnimationMetadata::fromMcmeta(mcmetaData, imageWidth, imageHeight);
+    if (metadata.width <= 0 || metadata.height <= 0) {
         return false;
     }
 
-    // 检查帧尺寸是否能整除纹理尺寸
-    if (static_cast<u32>(frameWidth) > imageWidth || static_cast<u32>(frameHeight) > imageHeight) {
-        return false;
-    }
-
-    if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
-        return false;
-    }
-
-    outFrameWidth = static_cast<u32>(frameWidth);
-    outFrameHeight = static_cast<u32>(frameHeight);
-    outFrameTime = frameTime > 0 ? static_cast<f64>(frameTime) / 20.0 : 0.1; // 默认 0.1 秒
+    outFrameWidth = static_cast<u32>(metadata.width);
+    outFrameHeight = static_cast<u32>(metadata.height);
+    outFrameTime = metadata.frametime > 0 ? static_cast<f64>(metadata.frametime) / 20.0 : 0.1;
     return true;
 }
 
