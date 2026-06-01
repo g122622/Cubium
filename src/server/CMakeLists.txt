@@ -143,11 +143,14 @@ add_executable(minecraft-server
     bossbar/ServerBossInfo.cpp
     bossbar/CustomServerBossInfo.cpp
     bossbar/CustomServerBossInfoManager.cpp
+    # 脚本系统集成
+    mod/bedrock/addon/ServerScriptManager.cpp
 )
 
 target_link_libraries(minecraft-server
     PRIVATE
         mc_common
+        mc_bedrock_addon
         nlohmann_json::nlohmann_json
 )
 

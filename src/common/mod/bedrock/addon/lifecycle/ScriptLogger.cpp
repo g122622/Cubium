@@ -21,4 +21,52 @@
  *
  */
 
-// TODO: ScriptLogger implementation - placeholder for pack system compilation
+#include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
+
+#include <spdlog/spdlog.h>
+
+namespace mc::mod::bedrock::addon {
+
+void ScriptLogger::onInfo(const std::string& message)
+{
+    if (m_logLevel <= 2) {
+        spdlog::info("[Script] {}", message);
+    }
+}
+
+void ScriptLogger::onWarn(const std::string& message)
+{
+    if (m_logLevel <= 3) {
+        spdlog::warn("[Script] {}", message);
+    }
+}
+
+void ScriptLogger::onError(const std::string& message)
+{
+    if (m_logLevel <= 4) {
+        spdlog::error("[Script] {}", message);
+    }
+}
+
+void ScriptLogger::onException(const ScriptException& exception)
+{
+    if (m_logLevel <= 4) {
+        spdlog::error("[Script] {} at {}:{}: {}",
+            ScriptException::errorTypeName(exception.type()),
+            exception.filename(),
+            exception.line(),
+            exception.message());
+    }
+}
+
+void ScriptLogger::setLogLevel(int level)
+{
+    m_logLevel = level;
+}
+
+int ScriptLogger::logLevel() const
+{
+    return m_logLevel;
+}
+
+} // namespace mc::mod::bedrock::addon

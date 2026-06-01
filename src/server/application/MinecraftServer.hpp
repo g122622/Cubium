@@ -79,6 +79,7 @@ namespace mc::server {
 // 前向声明
 class ServerWorld;
 class ServerChunkManager;
+class ServerScriptManager;
 
 /**
  * @brief Minecraft 服务器抽象基类
@@ -219,6 +220,11 @@ public:
 
     [[nodiscard]] CustomServerBossInfoManager& bossBarManager() override { return *m_bossBarManager; }
     [[nodiscard]] const CustomServerBossInfoManager& bossBarManager() const override { return *m_bossBarManager; }
+
+    // ========== 脚本系统 ==========
+
+    [[nodiscard]] ServerScriptManager* scriptManager() { return m_scriptManager.get(); }
+    [[nodiscard]] const ServerScriptManager* scriptManager() const { return m_scriptManager.get(); }
 
     // ========== 配置 ==========
 
@@ -845,6 +851,9 @@ protected:
     mc::loot::LootTableManager m_lootTableManager;
     ResourcePackList m_resourcePackList;
     mc::resource::DataPackList m_dataPackList;
+
+    // 脚本系统
+    std::unique_ptr<ServerScriptManager> m_scriptManager;
 
     // 成就事件处理器
     advancement::AdvancementEventHandler m_advancementEventHandler;

@@ -349,6 +349,7 @@ add_executable(minecraft-client
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
@@ -498,6 +499,7 @@ add_executable(minecraft-client
 target_link_libraries(minecraft-client
     PRIVATE
         mc_common
+        mc_bedrock_addon
         nlohmann_json::nlohmann_json
         glfw
         Vulkan::Vulkan

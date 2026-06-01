@@ -16,6 +16,14 @@ add_library(mc_bedrock_addon STATIC
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
 
+    # Plugin - 插件管理
+    plugin/PluginExecutionGroup.cpp
+    plugin/ScriptPackPermissions.cpp
+    plugin/ScriptPackConfiguration.cpp
+    plugin/ScriptPluginSource.cpp
+    plugin/ScriptPlugin.cpp
+    plugin/ScriptPluginManager.cpp
+
     # Pack - 行为包系统
     pack/PackVersion.cpp
     pack/AddonModule.cpp

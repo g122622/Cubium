@@ -78,6 +78,7 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -317,6 +318,11 @@ void MinecraftServer::tick()
 
     // 同步天气变化
     sendWeatherUpdate();
+
+    // 驱动脚本系统tick
+    if (m_scriptManager && m_scriptManager->isInitialized()) {
+        m_scriptManager->tick();
+    }
 }
 
 void MinecraftServer::initializeCoreManagers()
@@ -350,6 +356,9 @@ void MinecraftServer::initializeCoreManagers()
 
     // 创建 Boss 栏管理器
     m_bossBarManager = std::make_unique<CustomServerBossInfoManager>(*this);
+
+    // 创建脚本系统管理器
+    m_scriptManager = std::make_unique<ServerScriptManager>();
 
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
@@ -575,6 +584,14 @@ Result<void> MinecraftServer::initializeWorld()
                     world->initializeWorldSpawn();
                 }
             });
+        }
+    }
+
+    // 初始化脚本系统
+    if (m_scriptManager) {
+        auto scriptResult = m_scriptManager->initialize();
+        if (scriptResult.failed()) {
+            spdlog::warn("[Server] Failed to initialize script system: {}", scriptResult.error().message());
         }
     }
 
@@ -1111,6 +1128,11 @@ void MinecraftServer::shutdownManagers()
 
     // 关闭成就事件处理器
     m_advancementEventHandler.shutdown();
+
+    // 关闭脚本系统
+    if (m_scriptManager) {
+        m_scriptManager->shutdown();
+    }
 
     m_inventoryManager.reset();
     m_containerManager.reset();

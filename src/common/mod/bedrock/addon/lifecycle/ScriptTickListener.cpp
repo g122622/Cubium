@@ -12,13 +12,49 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
-// TODO: ScriptTickListener implementation - placeholder for pack system compilation
+#include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+
+#include <spdlog/spdlog.h>
+
+namespace mc::mod::bedrock::addon {
+
+ScriptTickListener::ScriptTickListener(ScriptManager& manager)
+    : m_manager(manager)
+{}
+
+void ScriptTickListener::beginTick()
+{
+    // 记录tick开始时间（看门狗用）
+    m_manager.watchdog().beginTick();
+}
+
+void ScriptTickListener::tick()
+{
+    // 驱动插件tick（处理pending jobs、scheduled callbacks等）
+    m_manager.tickPlugins();
+
+    // 驱动JS引擎的pending jobs（Promise、setTimeout等）
+    m_manager.executePendingJobs();
+}
+
+void ScriptTickListener::endTick()
+{
+    // 刷新afterEvent队列
+    m_manager.eventBus().tick();
+
+    // 检查看门狗
+    m_manager.watchdog().endTick();
+    m_manager.watchdog().tick(m_manager);
+}
+
+} // namespace mc::mod::bedrock::addon

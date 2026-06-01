@@ -12,13 +12,256 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
-// TODO: ScriptManager implementation - placeholder for pack system compilation
+#include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
+#include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp"
+
+#include <spdlog/spdlog.h>
+
+namespace mc::mod::bedrock::addon {
+
+ScriptManager::ScriptManager()
+    : m_engine(std::make_unique<QuickJSEngine>())
+    , m_pluginManager(std::make_unique<ScriptPluginManager>())
+    , m_eventBus(std::make_unique<ScriptEventBus>())
+    , m_watchdog(std::make_unique<ScriptWatchdog>(ScriptWatchdog::Config{}))
+    , m_logger(std::make_unique<ScriptLogger>())
+    , m_packList(std::make_unique<BehaviorPackList>())
+{}
+
+ScriptManager::~ScriptManager()
+{
+    shutdown();
+}
+
+Result<void> ScriptManager::initialize()
+{
+    if (m_initialized) {
+        return Result<void>::ok();
+    }
+
+    spdlog::info("[BedrockAddon] Initializing script manager...");
+
+    // 注册内置模块工厂
+    registerBuiltinModules();
+
+    // 初始化引擎
+    if (!m_engine->initialize()) {
+        return Error(ErrorCode::InitializationFailed, "Failed to initialize script engine");
+    }
+
+    // 初始化事件总线
+    m_eventBus->initialize();
+
+    m_initialized = true;
+    spdlog::info("[BedrockAddon] Script manager initialized");
+    return Result<void>::ok();
+}
+
+void ScriptManager::shutdown()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    spdlog::info("[BedrockAddon] Shutting down script manager...");
+
+    // 停止所有插件
+    m_pluginManager->stopAllPlugins();
+    m_pluginManager->unloadAllPlugins();
+
+    // 关闭事件总线
+    m_eventBus->shutdown();
+
+    // 关闭引擎
+    m_engine->shutdown();
+
+    // 清空行为包列表
+    m_packList->clear();
+
+    m_initialized = false;
+    spdlog::info("[BedrockAddon] Script manager shut down");
+}
+
+Result<void> ScriptManager::loadPacks(const std::string& globalPackDir, const std::string& worldPackDir)
+{
+    if (!m_initialized) {
+        return Error(ErrorCode::NotInitialized, "Script manager not initialized");
+    }
+
+    spdlog::info("[BedrockAddon] Loading behavior packs...");
+
+    // 扫描全局行为包目录
+    if (!globalPackDir.empty()) {
+        auto result = m_packList->scanDirectory(globalPackDir);
+        if (result.failed()) {
+            spdlog::warn("[BedrockAddon] Failed to scan global pack directory '{}': {}",
+                globalPackDir,
+                result.error().message());
+        }
+    }
+
+    // 扫描世界级行为包目录
+    if (!worldPackDir.empty()) {
+        auto result = m_packList->scanDirectory(worldPackDir);
+        if (result.failed()) {
+            spdlog::warn(
+                "[BedrockAddon] Failed to scan world pack directory '{}': {}", worldPackDir, result.error().message());
+        }
+    }
+
+    if (m_packList->empty()) {
+        spdlog::info("[BedrockAddon] No behavior packs found");
+        return Result<void>::ok();
+    }
+
+    spdlog::info("[BedrockAddon] Found {} behavior pack(s)", m_packList->size());
+
+    // 加载插件
+    auto result = m_pluginManager->loadPlugins(*m_engine, *m_packList);
+    if (result.failed()) {
+        spdlog::error("[BedrockAddon] Failed to load plugins: {}", result.error().message());
+        return result;
+    }
+
+    return Result<void>::ok();
+}
+
+void ScriptManager::startPlugins()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    m_pluginManager->startAllPlugins();
+}
+
+void ScriptManager::stopPlugins()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    m_pluginManager->stopAllPlugins();
+}
+
+void ScriptManager::tickPlugins()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    m_pluginManager->tickPlugins();
+}
+
+void ScriptManager::executePendingJobs()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    m_engine->runtime().executePendingJobs();
+}
+
+void ScriptManager::reload()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    spdlog::info("[BedrockAddon] Reloading scripts...");
+
+    // 停止并卸载所有插件
+    m_pluginManager->stopAllPlugins();
+    m_pluginManager->unloadAllPlugins();
+
+    // 清空行为包列表
+    m_packList->clear();
+
+    // 重新加载（需要重新调用loadPacks）
+    spdlog::info("[BedrockAddon] Scripts reloaded (call loadPacks() to reload behavior packs)");
+}
+
+bool ScriptManager::isInitialized() const
+{
+    return m_initialized;
+}
+
+IScriptEngine& ScriptManager::engine()
+{
+    return *m_engine;
+}
+
+const IScriptEngine& ScriptManager::engine() const
+{
+    return *m_engine;
+}
+
+ScriptPluginManager& ScriptManager::pluginManager()
+{
+    return *m_pluginManager;
+}
+
+const ScriptPluginManager& ScriptManager::pluginManager() const
+{
+    return *m_pluginManager;
+}
+
+ScriptEventBus& ScriptManager::eventBus()
+{
+    return *m_eventBus;
+}
+
+const ScriptEventBus& ScriptManager::eventBus() const
+{
+    return *m_eventBus;
+}
+
+ScriptWatchdog& ScriptManager::watchdog()
+{
+    return *m_watchdog;
+}
+
+const ScriptWatchdog& ScriptManager::watchdog() const
+{
+    return *m_watchdog;
+}
+
+ScriptLogger& ScriptManager::logger()
+{
+    return *m_logger;
+}
+
+const ScriptLogger& ScriptManager::logger() const
+{
+    return *m_logger;
+}
+
+BehaviorPackList* ScriptManager::packList()
+{
+    return m_packList.get();
+}
+
+const BehaviorPackList* ScriptManager::packList() const
+{
+    return m_packList.get();
+}
+
+void ScriptManager::registerBuiltinModules()
+{
+    // 注册 @minecraft/server 模块
+    m_engine->addModuleFactory(std::make_unique<MinecraftModuleFactory>());
+    spdlog::info("[BedrockAddon] Registered @minecraft/server module factory");
+}
+
+} // namespace mc::mod::bedrock::addon

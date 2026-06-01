@@ -14,11 +14,93 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HAVING BEEN CLAIMED FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
-// TODO: ScriptWatchdog implementation - placeholder for pack system compilation
+#include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+
+#include <spdlog/spdlog.h>
+
+namespace mc::mod::bedrock::addon {
+
+ScriptWatchdog::ScriptWatchdog(Config config)
+    : m_config(std::move(config))
+{}
+void ScriptWatchdog::tick(ScriptManager& manager)
+{
+    if (!m_config.enabled) {
+        return;
+    }
+
+    ++m_totalTickCount;
+
+    // 检查执行时间
+    if (checkExecutionTime()) {
+        ++m_timeoutCount;
+        spdlog::warn("[BedrockAddon] Script watchdog: tick time exceeded limit ({}ms > {}ms)",
+            m_lastTickDurationMs,
+            m_config.tickTimeLimitMs);
+        // TODO: 在完整实现中，可以终止超时的脚本上下文
+    }
+
+    // 检查内存限制
+    if (checkMemoryLimit(manager)) {
+        ++m_oomCount;
+        spdlog::warn("[BedrockAddon] Script watchdog: memory limit exceeded");
+    }
+}
+
+bool ScriptWatchdog::checkMemoryLimit(ScriptManager& manager) const
+{
+    // ScriptManager提供运行时统计信息
+    // TODO: 完整实现需要从ScriptManager获取运行时统计
+    (void)manager;
+    return false;
+}
+
+bool ScriptWatchdog::checkExecutionTime() const
+{
+    return m_lastTickDurationMs > m_config.tickTimeLimitMs;
+}
+
+void ScriptWatchdog::beginTick()
+{
+    m_tickStartTime = std::chrono::steady_clock::now();
+}
+
+void ScriptWatchdog::endTick()
+{
+    auto endTime = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - m_tickStartTime);
+    m_lastTickDurationMs = static_cast<u64>(duration.count());
+}
+
+void ScriptWatchdog::reportStats() const
+{
+    spdlog::info("[BedrockAddon] Watchdog stats: {} ticks, {} timeouts, {} OOM events",
+        m_totalTickCount,
+        m_timeoutCount,
+        m_oomCount);
+}
+
+const ScriptWatchdog::Config& ScriptWatchdog::config() const
+{
+    return m_config;
+}
+
+void ScriptWatchdog::setConfig(const Config& config)
+{
+    m_config = config;
+}
+
+u64 ScriptWatchdog::lastTickDurationMs() const
+{
+    return m_lastTickDurationMs;
+}
+
+} // namespace mc::mod::bedrock::addon

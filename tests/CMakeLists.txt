@@ -721,6 +721,8 @@ add_executable(mc_tests
     common/world/village/trade/MerchantOfferTest.cpp
     # 袭击系统测试
     common/world/village/raid/RaidHeroTrackingTest.cpp
+    # 基岩版Addon模组系统测试
+    common/mod/bedrock/addon/test_lifecycle.cpp
     # 世界边界测试
     common/world/border/WorldBorderTest.cpp
     # 记分板系统测试
@@ -798,6 +800,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
         ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
@@ -1317,6 +1320,7 @@ target_sources(mc_tests
 target_link_libraries(mc_tests
     PRIVATE
         mc_common
+        mc_bedrock_addon
         GTest::gtest_main
         asio::asio
         nlohmann_json::nlohmann_json
