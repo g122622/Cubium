@@ -28,6 +28,8 @@
  * 测试 PufferfishEntity 的关键方法：
  * - PuffState 枚举值和状态转换
  * - getPuffSize() 根据状态返回正确值
+ * - DataParameter 同步机制
+ * - canPoison() 和 isFullyPuffed() 状态判断
  * - PuffGoal 敌人检测逻辑
  * - 膨胀/收缩计时器行为
  */
@@ -56,6 +58,17 @@ protected:
 
     std::unique_ptr<PufferfishEntity> pufferfish;
 };
+
+// ==================== PuffState Enum Value Tests ====================
+
+TEST_F(PufferfishEntityTest, PuffState_EnumValues_AreCorrect)
+{
+    // MC 1.16.5: PuffState 枚举值必须与原版一致
+    // 用于网络同步和数据存储，必须精确匹配
+    EXPECT_EQ(static_cast<i32>(PufferfishEntity::PuffState::Deflated), 0);
+    EXPECT_EQ(static_cast<i32>(PufferfishEntity::PuffState::SemiPuffed), 1);
+    EXPECT_EQ(static_cast<i32>(PufferfishEntity::PuffState::FullyPuffed), 2);
+}
 
 // ==================== PuffState Tests ====================
 
@@ -144,6 +157,93 @@ TEST_F(PufferfishEntityTest, IsFullyPuffed_FullyPuffed_ReturnsTrue)
 {
     pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
     EXPECT_TRUE(pufferfish->isFullyPuffed());
+}
+
+// ==================== DataParameter Synchronization Tests ====================
+
+TEST_F(PufferfishEntityTest, DataParameter_GetPuffStateParamId_ReturnsValidId)
+{
+    // getPuffStateParamId 应该返回有效的 DataParameter ID
+    u16 paramId = PufferfishEntity::getPuffStateParamId();
+    EXPECT_GT(paramId, 0u); // ID 应该大于 0
+}
+
+TEST_F(PufferfishEntityTest, DataParameter_SetPuffState_WritesToDataManager)
+{
+    // 设置膨胀状态应该写入 DataManager
+    auto& dataManager = pufferfish->dataManager();
+
+    // 设置为半膨胀
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+
+    // 验证 DataManager 中存储了正确的值
+    u16 paramId = PufferfishEntity::getPuffStateParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+
+    // 从 DataManager 读取值
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, static_cast<i32>(PufferfishEntity::PuffState::SemiPuffed));
+}
+
+TEST_F(PufferfishEntityTest, DataParameter_GetPuffState_ReadsFromDataManager)
+{
+    // getPuffState 应该优先从 DataManager 读取
+    auto& dataManager = pufferfish->dataManager();
+    u16 paramId = PufferfishEntity::getPuffStateParamId();
+
+    // 先设置一个状态
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+
+    // 验证 getPuffState 返回正确的值
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+
+    // 验证 DataManager 中的值
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, 2);
+}
+
+TEST_F(PufferfishEntityTest, DataParameter_SyncsStateChanges)
+{
+    // 测试多次状态变化的同步
+    auto& dataManager = pufferfish->dataManager();
+    u16 paramId = PufferfishEntity::getPuffStateParamId();
+
+    // Deflated -> SemiPuffed
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(dataManager.get<i32>(entity::DataParameter<i32>(paramId)), 1);
+
+    // SemiPuffed -> FullyPuffed
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_EQ(dataManager.get<i32>(entity::DataParameter<i32>(paramId)), 2);
+
+    // FullyPuffed -> Deflated
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+    EXPECT_EQ(dataManager.get<i32>(entity::DataParameter<i32>(paramId)), 0);
+}
+
+TEST_F(PufferfishEntityTest, DataParameter_DirtyFlag_OnStateChange)
+{
+    // 测试状态变化时 DataManager 的脏标记
+    auto& dataManager = pufferfish->dataManager();
+
+    // 设置状态应该触发脏标记
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置相同状态不应该触发脏标记
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同状态应该触发脏标记
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_TRUE(dataManager.hasDirtyData());
 }
 
 // ==================== Puff Timer Tests ====================
@@ -314,6 +414,78 @@ TEST_F(PufferfishEntityTest, StateTransition_SetPuffState_PlaysSound)
 
     pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
     EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+}
+
+// ==================== Sound Effects on State Change Tests ====================
+// 音效播放需要世界环境，这里测试状态转换逻辑
+
+TEST_F(PufferfishEntityTest, SoundEffect_PuffUp_TransitionsUpward)
+{
+    // MC 1.16.5: 膨胀时播放 BLOW_UP 音效
+    // 测试膨胀方向的状态转换（从小到大）
+    // Deflated -> SemiPuffed: 播放 BLOW_UP
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+
+    // SemiPuffed -> FullyPuffed: 播放 BLOW_UP
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+
+    // Deflated -> FullyPuffed (跳过 SemiPuffed): 播放 BLOW_UP
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+}
+
+TEST_F(PufferfishEntityTest, SoundEffect_PuffDown_TransitionsDownward)
+{
+    // MC 1.16.5: 收缩时播放 BLOW_OUT 音效
+    // 测试收缩方向的状态转换（从大到小）
+    // FullyPuffed -> SemiPuffed: 播放 BLOW_OUT
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+
+    // SemiPuffed -> Deflated: 播放 BLOW_OUT
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+
+    // FullyPuffed -> Deflated (跳过 SemiPuffed): 播放 BLOW_OUT
+    pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+    pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+}
+
+TEST_F(PufferfishEntityTest, SoundEffect_NoChange_NoSound)
+{
+    // MC 1.16.5: 设置相同状态时不播放音效
+    // 设置相同状态应该被忽略（早期返回）
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+
+    // 再次设置相同状态
+    pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+    EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+
+    // 验证 DataManager 中值仍然是 1
+    auto& dataManager = pufferfish->dataManager();
+    u16 paramId = PufferfishEntity::getPuffStateParamId();
+    EXPECT_EQ(dataManager.get<i32>(entity::DataParameter<i32>(paramId)), 1);
+}
+
+TEST_F(PufferfishEntityTest, SoundEffect_RapidStateChanges)
+{
+    // 测试快速状态变化
+    for (int i = 0; i < 10; ++i) {
+        pufferfish->setPuffState(PufferfishEntity::PuffState::SemiPuffed);
+        EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::SemiPuffed);
+
+        pufferfish->setPuffState(PufferfishEntity::PuffState::FullyPuffed);
+        EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::FullyPuffed);
+
+        pufferfish->setPuffState(PufferfishEntity::PuffState::Deflated);
+        EXPECT_EQ(pufferfish->getPuffState(), PufferfishEntity::PuffState::Deflated);
+    }
 }
 
 // ==================== PufferfishEntity 中毒伤害计算测试 ====================

@@ -763,4 +763,86 @@ void ItemTextureAtlas::_transitionImageLayout(VkCommandBuffer cmd,
     renderer::VulkanUtils::transitionImageLayout(cmd, m_image, oldLayout, newLayout, srcStage, dstStage);
 }
 
+Result<void> ItemTextureAtlas::uploadRegion(
+    const void* pixelData, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength)
+{
+    if (pixelData == nullptr) {
+        return Error(ErrorCode::NullPointer, "Item atlas region pixel data is null");
+    }
+
+    if (m_image == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidState, "Item atlas not initialized");
+    }
+
+    if (width == 0 || height == 0) {
+        return Error(ErrorCode::InvalidArgument, "Item atlas region dimensions must be non-zero");
+    }
+
+    // 创建暂存缓冲区
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+
+    auto result = renderer::VulkanUtils::createBuffer(m_device,
+        m_physicalDevice,
+        static_cast<VkDeviceSize>(size),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingMemory);
+
+    if (result.failed()) {
+        return result;
+    }
+
+    // 映射并复制数据
+    void* mapped = nullptr;
+    VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, static_cast<VkDeviceSize>(size), 0, &mapped);
+    if (mapResult != VK_SUCCESS || mapped == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer memory for item atlas region upload");
+    }
+    std::memcpy(mapped, pixelData, static_cast<size_t>(size));
+    vkUnmapMemory(m_device, stagingMemory);
+
+    // 开始命令缓冲区
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
+
+    // 转换到传输目标布局
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // 复制缓冲区到图像子区域
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = rowLength > 0 ? rowLength : width;
+    region.bufferImageHeight = height;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY), 0};
+    region.imageExtent = {width, height, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    // 转换回着色器只读布局
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    _endSingleTimeCommands(cmd);
+
+    // 清理暂存缓冲区
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingMemory, nullptr);
+
+    return {};
+}
+
 } // namespace mc::client

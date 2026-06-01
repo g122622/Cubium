@@ -109,6 +109,23 @@ public:
      */
     bool empty() const noexcept { return m_sprites.empty(); }
 
+    /**
+     * @brief 按索引获取动画精灵
+     * @param index 精灵索引
+     * @return 精灵指针，索引越界返回nullptr
+     */
+    AnimatedSprite* getSprite(mc::Size index) { return index < m_sprites.size() ? m_sprites[index].get() : nullptr; }
+
+    /**
+     * @brief 按索引获取动画精灵（const 版本）
+     * @param index 精灵索引
+     * @return 精灵指针，索引越界返回nullptr
+     */
+    const AnimatedSprite* getSprite(mc::Size index) const
+    {
+        return index < m_sprites.size() ? m_sprites[index].get() : nullptr;
+    }
+
 private:
     std::vector<std::shared_ptr<AnimatedSprite>> m_sprites;
 };

@@ -637,6 +637,94 @@ Result<void> ChunkRenderer::_uploadTextureData(const u8* pixelData, u32 width, u
     return {};
 }
 
+Result<void> ChunkRenderer::uploadTextureRegion(
+    const void* pixelData, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength)
+{
+    if (pixelData == nullptr) {
+        return Error(ErrorCode::NullPointer, "Texture region pixel data is null");
+    }
+
+    if (m_textureAtlas.image == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidState, "Texture atlas not initialized");
+    }
+
+    if (width == 0 || height == 0) {
+        return Error(ErrorCode::InvalidArgument, "Texture region dimensions must be non-zero");
+    }
+
+    // 创建暂存缓冲区
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory;
+
+    auto result = _createBuffer(static_cast<VkDeviceSize>(size),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingMemory);
+
+    if (result.failed()) {
+        return result;
+    }
+
+    // 映射并复制数据
+    void* mapped = nullptr;
+    VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, static_cast<VkDeviceSize>(size), 0, &mapped);
+    if (mapResult != VK_SUCCESS || mapped == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer memory for region upload");
+    }
+    std::memcpy(mapped, pixelData, static_cast<size_t>(size));
+    vkUnmapMemory(m_device, stagingMemory);
+
+    // 开始命令缓冲区
+    auto cmdResult = _beginSingleTimeCommands();
+    if (cmdResult.failed()) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return cmdResult.error();
+    }
+    VkCommandBuffer cmd = cmdResult.value();
+
+    // 转换到传输目标布局
+    renderer::VulkanUtils::transitionImageLayout(cmd,
+        m_textureAtlas.image,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // 复制缓冲区到图像子区域
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = rowLength > 0 ? rowLength : width;
+    region.bufferImageHeight = height;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY), 0};
+    region.imageExtent = {width, height, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_textureAtlas.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    // 转换回着色器只读布局
+    renderer::VulkanUtils::transitionImageLayout(cmd,
+        m_textureAtlas.image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    _endSingleTimeCommands(cmd);
+
+    // 清理暂存缓冲区
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingMemory, nullptr);
+
+    return {};
+}
+
 void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/)
 {
     // 绑定纹理（如果有效）

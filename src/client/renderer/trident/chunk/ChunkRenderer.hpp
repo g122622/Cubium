@@ -166,6 +166,23 @@ public:
     // 纹理图集
     [[nodiscard]] Result<void> loadTextureAtlas(const u8* pixelData, u32 width, u32 height, u32 tileSize);
 
+    /**
+     * @brief 上传纹理图集子区域数据
+     *
+     * 用于动画纹理帧更新，只更新图集中指定区域的像素。
+     *
+     * @param pixelData RGBA8 像素数据
+     * @param size 数据大小（字节）
+     * @param offsetX 目标区域在图集中的 X 偏移（像素）
+     * @param offsetY 目标区域在图集中的 Y 偏移（像素）
+     * @param width 区域宽度（像素）
+     * @param height 区域高度（像素）
+     * @param rowLength 源数据行长度（像素），0 表示使用 width
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> uploadTextureRegion(
+        const void* pixelData, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength);
+
     ChunkTextureAtlas& textureAtlas() { return m_textureAtlas; }
     const ChunkTextureAtlas& textureAtlas() const { return m_textureAtlas; }
 

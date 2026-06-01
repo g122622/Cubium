@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include <vector>
 
@@ -177,6 +178,46 @@ public:
      */
     [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept { return m_metadata; }
 
+    /**
+     * @brief 检查是否需要上传帧数据
+     */
+    [[nodiscard]] bool needsUpload() const noexcept { return m_needsUpload; }
+
+    /**
+     * @brief 标记当前帧已上传
+     */
+    void markUploaded() noexcept { m_needsUpload = false; }
+
+    /**
+     * @brief 获取当前帧的像素数据
+     *
+     * 返回当前帧索引对应的帧数据。
+     * 如果帧数据为空，返回空vector。
+     */
+    [[nodiscard]] const std::vector<u8>& currentFramePixels() const noexcept
+    {
+        auto idx = currentFrameIndex();
+        if (idx >= 0 && static_cast<mc::Size>(idx) < m_frames.size()) {
+            return m_frames[static_cast<mc::Size>(idx)].pixels;
+        }
+        static const std::vector<u8> empty;
+        return empty;
+    }
+
+    /**
+     * @brief 获取资源位置
+     *
+     * 返回动画纹理的资源位置标识。
+     * 需要在注册时设置。
+     */
+    [[nodiscard]] const mc::ResourceLocation& location() const noexcept { return m_location; }
+
+    /**
+     * @brief 设置资源位置
+     * @param loc 资源位置
+     */
+    void setLocation(const mc::ResourceLocation& loc) { m_location = loc; }
+
 private:
     /**
      * @brief 生成插值帧数据
@@ -199,6 +240,7 @@ private:
 
     mc::resource::metadata::AnimationMetadata m_metadata; ///< 动画元数据
     std::vector<FrameData> m_frames;                      ///< 帧数据数组
+    mc::ResourceLocation m_location;                      ///< 资源位置
 
     u32 m_atlasX = 0;      ///< 图集X位置
     u32 m_atlasY = 0;      ///< 图集Y位置

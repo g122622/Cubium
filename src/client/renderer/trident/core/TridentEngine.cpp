@@ -2247,6 +2247,7 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
             }
 
             auto sprite = std::make_shared<AnimatedSprite>(anim.metadata, std::move(frames), anim.atlasX, anim.atlasY);
+            sprite->setLocation(anim.location);
             m_blockAtlasTicker.registerAnimatedSprite(std::move(sprite));
         }
 
@@ -2284,15 +2285,56 @@ void TridentEngine::uploadAnimationFrames()
     }
 
     // 上传方块图集动画帧
-    // TODO: ChunkRenderer 使用原始 Vulkan handles，需要添加 uploadRegion 方法后接入
-    // 当前暂不处理方块图集动画帧上传，待 ChunkRenderer 集成后启用
-    // if (!m_blockAtlasTicker.empty() && m_chunkRendererInitialized && m_chunkRenderer) {
-    //     ...
-    // }
+    if (!m_blockAtlasTicker.empty() && m_chunkRendererInitialized && m_chunkRenderer) {
+        auto& ticker = m_blockAtlasTicker;
+        for (size_t i = 0; i < ticker.spriteCount(); ++i) {
+            auto* sprite = ticker.getSprite(i);
+            if (sprite && sprite->needsUpload()) {
+                const auto& frameData = sprite->currentFramePixels();
+                if (!frameData.empty()) {
+                    auto result = m_chunkRenderer->uploadTextureRegion(frameData.data(),
+                        frameData.size(),
+                        sprite->atlasX(),
+                        sprite->atlasY(),
+                        sprite->frameWidth(),
+                        sprite->frameHeight(),
+                        sprite->frameWidth());
+                    if (result.failed()) {
+                        spdlog::warn("Failed to upload block atlas animation frame for {}: {}",
+                            sprite->location().toString(),
+                            result.error().message());
+                    }
+                    sprite->markUploaded();
+                }
+            }
+        }
+    }
 
     // 上传物品图集动画帧
-    // TODO: ItemTextureAtlas 使用原始 Vulkan handles，需要添加 uploadRegion 方法后接入
-    // 当前暂不处理物品图集动画帧上传，待 ItemTextureAtlas 集成后启用
+    if (!m_itemAtlasTicker.empty() && m_itemTextureAtlasInitialized) {
+        auto& ticker = m_itemAtlasTicker;
+        for (size_t i = 0; i < ticker.spriteCount(); ++i) {
+            auto* sprite = ticker.getSprite(i);
+            if (sprite && sprite->needsUpload()) {
+                const auto& frameData = sprite->currentFramePixels();
+                if (!frameData.empty()) {
+                    auto result = m_itemTextureAtlas.uploadRegion(frameData.data(),
+                        frameData.size(),
+                        sprite->atlasX(),
+                        sprite->atlasY(),
+                        sprite->frameWidth(),
+                        sprite->frameHeight(),
+                        sprite->frameWidth());
+                    if (result.failed()) {
+                        spdlog::warn("Failed to upload item atlas animation frame for {}: {}",
+                            sprite->location().toString(),
+                            result.error().message());
+                    }
+                    sprite->markUploaded();
+                }
+            }
+        }
+    }
 }
 
 // ============================================================================
