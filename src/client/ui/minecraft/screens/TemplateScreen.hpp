@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../kagero/state/ReactiveState.hpp"
-#include "../../kagero/template/binder/BindingContext.hpp"
-#include "../../kagero/template/compiler/TemplateCompiler.hpp"
-#include "../../kagero/template/runtime/TemplateInstance.hpp"
 #include "Screen.hpp"
+#include "client/ui/kagero/state/ReactiveState.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
 #include <functional>
 #include <memory>
 #include <utility>
@@ -67,39 +67,29 @@ public:
     template <typename T>
     void expose(const std::string& path, const T* value)
     {
-        if (m_context) {
-            m_context->expose(path, value);
-        }
+        m_context->expose(path, value);
     }
 
     template <typename T>
     void exposeWritable(const std::string& path, T* value)
     {
-        if (m_context) {
-            m_context->exposeWritable(path, value);
-        }
+        m_context->exposeWritable(path, value);
     }
 
     template <typename T>
     void exposeReactive(const std::string& path, kagero::state::Reactive<T>& reactive)
     {
-        if (m_context) {
-            m_context->exposeReactive(path, reactive);
-        }
+        m_context->exposeReactive(path, reactive);
     }
 
     void exposeSimpleCallback(const std::string& name, std::function<void()> callback)
     {
-        if (m_context) {
-            m_context->exposeSimpleCallback(name, std::move(callback));
-        }
+        m_context->exposeSimpleCallback(name, std::move(callback));
     }
 
     void exposeCallback(const std::string& name, kagero::tpl::binder::BindingContext::Callback callback)
     {
-        if (m_context) {
-            m_context->exposeCallback(name, std::move(callback));
-        }
+        m_context->exposeCallback(name, std::move(callback));
     }
 
     void refresh();
@@ -120,7 +110,7 @@ protected:
     bool loadTemplateFile(const std::string& path);
 
 private:
-    void syncRootWidgetBounds();
+    void _syncRootWidgetBounds();
 
     std::unique_ptr<kagero::tpl::binder::BindingContext> m_ownedContext;
     kagero::tpl::binder::BindingContext* m_context = nullptr;

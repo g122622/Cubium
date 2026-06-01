@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../kagero/widget/ButtonWidget.hpp"
-#include "../../kagero/widget/TextFieldWidget.hpp"
-#include "../../kagero/widget/TextWidget.hpp"
 #include "TemplateScreen.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/ui/kagero/widget/TextWidget.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
 #include <functional>
@@ -34,6 +34,12 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 创建世界界面
+ *
+ * 提供世界名称、种子、游戏模式、世界类型等配置选项，
+ * 用于创建新的游戏世界。
+ */
 class CreateWorldScreen : public TemplateScreen {
 public:
     using Callback = std::function<void()>;
@@ -51,15 +57,16 @@ public:
     bool onChar(u32 codePoint) override;
 
 private:
-    void registerCallbacks();
-    void cacheWidgets();
-    void cycleGameMode();
-    void cycleWorldType();
-    void updateGameModeText();
-    void updateWorldTypeText();
-    bool validateInput();
-    void focusField(kagero::widget::TextFieldWidget* field);
+    void _registerCallbacks();
+    void _cacheWidgets();
+    void _cycleGameMode();
+    void _cycleWorldType();
+    void _updateGameModeText();
+    void _updateWorldTypeText();
+    bool _validateInput();
+    void _focusField(kagero::widget::TextFieldWidget* field);
 
+    // 界面控件
     kagero::widget::TextWidget* m_titleText = nullptr;
     kagero::widget::TextWidget* m_nameLabel = nullptr;
     kagero::widget::TextFieldWidget* m_nameField = nullptr;
@@ -72,10 +79,12 @@ private:
     kagero::widget::ButtonWidget* m_createButton = nullptr;
     kagero::widget::ButtonWidget* m_cancelButton = nullptr;
 
+    // 世界配置状态
     mc::GameMode m_gameMode = mc::GameMode::Survival;
     mc::WorldType m_worldType = mc::WorldType::Default;
     bool m_allowCommands = false;
 
+    // 回调
     CreateCallback m_onCreate;
     Callback m_onCancel;
 };

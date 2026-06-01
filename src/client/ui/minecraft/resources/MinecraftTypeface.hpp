@@ -23,15 +23,31 @@
 
 #pragma once
 
-#include "../../kagero/paint/ITypeface.hpp"
+#include "client/ui/kagero/paint/contracts/ITypeface.hpp"
 #include <memory>
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief Minecraft 风格字体封装
+ *
+ * 对 kagero 渲染引擎的 ITypeface 接口进行封装，
+ * 提供与 Minecraft 资源系统集成的字体对象。
+ */
 class MinecraftTypeface {
 public:
+    /**
+     * @brief 构造 MinecraftTypeface
+     *
+     * @param typeface kagero 字体接口实例
+     */
     explicit MinecraftTypeface(std::unique_ptr<kagero::paint::ITypeface> typeface);
 
+    /**
+     * @brief 获取底层 kagero 字体接口指针
+     *
+     * @return 字体接口的裸指针，不转移所有权
+     */
     [[nodiscard]] const kagero::paint::ITypeface* get() const;
 
 private:

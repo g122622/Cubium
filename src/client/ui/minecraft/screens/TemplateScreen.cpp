@@ -22,8 +22,8 @@
  */
 
 #include "TemplateScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -120,7 +120,7 @@ std::unique_ptr<TemplateScreen> TemplateScreen::fromFile(
 void TemplateScreen::onOpen()
 {
     Screen::onOpen();
-    syncRootWidgetBounds();
+    _syncRootWidgetBounds();
     if (m_instance) {
         m_instance->updateBindings();
     }
@@ -142,7 +142,7 @@ void TemplateScreen::tick(f32 dt)
 void TemplateScreen::onResize(i32 width, i32 height)
 {
     Screen::onResize(width, height);
-    syncRootWidgetBounds();
+    _syncRootWidgetBounds();
     if (m_instance) {
         m_instance->updateBindings();
     }
@@ -207,7 +207,7 @@ bool TemplateScreen::loadTemplate(const std::string& source)
     }
 
     m_templateLoaded = true;
-    syncRootWidgetBounds();
+    _syncRootWidgetBounds();
     return true;
 }
 
@@ -225,7 +225,7 @@ bool TemplateScreen::loadTemplateFile(const std::string& path)
     return loadTemplate(buffer.str());
 }
 
-void TemplateScreen::syncRootWidgetBounds()
+void TemplateScreen::_syncRootWidgetBounds()
 {
     if (!m_instance || m_children.empty()) {
         return;

@@ -40,7 +40,7 @@ public:
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 
 private:
-    void registerCallbacks();
+    void _registerCallbacks();
 
     Callback m_onResume;
     Callback m_onOptions;

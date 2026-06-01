@@ -23,25 +23,40 @@
 
 #pragma once
 
-#include "../../kagero/state/ReactiveState.hpp"
 #include "TemplateScreen.hpp"
+#include "client/ui/kagero/state/ReactiveState.hpp"
 #include <memory>
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 世界加载进度界面
+ *
+ * 显示世界加载过程中的标题、当前阶段描述和进度条，
+ * 通过响应式状态与模板系统绑定实现 UI 更新。
+ */
 class LoadingScreen : public TemplateScreen {
 public:
     LoadingScreen();
 
+    /** @brief 设置当前加载阶段描述文本 */
     void setStage(const std::string& stage);
+
+    /** @brief 设置进度条进度，范围 [0.0, 1.0] */
     void setProgress(f32 progress);
+
+    /** @brief 设置加载界面标题 */
     void setTitle(const std::string& title);
 
 private:
+    /** 加载界面标题的响应式值 */
     kagero::state::Reactive<std::string> m_titleValue;
+    /** 当前加载阶段的响应式值 */
     kagero::state::Reactive<std::string> m_stageValue;
+    /** 进度条宽度的响应式值（像素） */
     kagero::state::Reactive<i32> m_progressWidth;
 
+    /** 进度条最大宽度（像素） */
     static constexpr i32 PROGRESS_BAR_WIDTH = 300;
 };
 

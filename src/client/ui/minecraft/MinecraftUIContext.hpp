@@ -23,11 +23,12 @@
 
 #pragma once
 
-#include "../kagero/event/EventBus.hpp"
-#include "../kagero/state/StateStore.hpp"
-#include "../kagero/template/binder/BindingContext.hpp"
-#include "../kagero/template/compiler/TemplateCompiler.hpp"
-#include "../kagero/template/runtime/TemplateInstance.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
+#include "common/core/Constants.hpp"
 #include "resources/ResourceProvider.hpp"
 #include <memory>
 
@@ -88,8 +89,8 @@ public:
     [[nodiscard]] const renderer::trident::gui::GuiRenderer& renderer() const { return m_renderer; }
 
 private:
-    void setupStateBindings();
-    void setupDefaultResources();
+    void _setupStateBindings();
+    void _setupDefaultResources();
 
     Font& m_font;
     renderer::trident::gui::GuiRenderer& m_renderer;
@@ -98,8 +99,9 @@ private:
     kagero::tpl::binder::BindingContext m_bindingContext;
     ResourceProvider m_resources;
 
-    i32 m_playerHealth = 20;
-    i32 m_playerHunger = 20;
+    i32 m_playerHealth = static_cast<i32>(mc::game::PLAYER_MAX_HEALTH);
+    i32 m_playerHunger =
+        static_cast<i32>(mc::game::PLAYER_MAX_HEALTH); // TODO: 改用PLAYER_MAX_HUNGER常量（目前尚无此常量）
     i32 m_playerXP = 0;
     std::string m_playerName = "Steve";
 };

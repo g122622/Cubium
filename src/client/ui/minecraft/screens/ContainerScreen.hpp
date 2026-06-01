@@ -27,9 +27,13 @@
 
 namespace mc::client::ui::minecraft {
 
+// TODO: ContainerScreen 当前仅绘制半透明遮罩，尚未实现容器 GUI 的完整功能
+// （物品栏槽位渲染、物品拖拽交互、容器同步等）
 class ContainerScreen : public Screen {
 public:
     ContainerScreen();
+
+    /** 绘制容器界面的半透明背景遮罩 */
     void paint(kagero::widget::PaintContext& ctx) override;
 };
 

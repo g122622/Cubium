@@ -23,11 +23,10 @@
 
 #pragma once
 
-#include "../../../renderer/util/GpuInfo.hpp"
-#include "../../kagero/Types.hpp"
-#include "../../kagero/paint/PaintContext.hpp"
 #include "Screen.hpp"
-#include <chrono>
+#include "client/renderer/util/GpuInfo.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include <functional>
 #include <utility>
 #include <vector>
@@ -52,8 +51,6 @@ namespace mc::client::ui::minecraft {
  *
  * 使用 kagero UI 引擎渲染 Minecraft F3 调试屏幕。
  * 显示左侧和右侧两个面板，包含游戏状态、系统信息等调试数据。
- *
- * 参考 MC 1.16.5 DebugOverlayGui
  */
 class DebugScreenWidget : public Screen {
 public:
@@ -150,32 +147,32 @@ private:
     /**
      * @brief 更新FPS统计
      */
-    void updateFps(f32 dt);
+    void _updateFps(f32 dt);
 
     /**
      * @brief 更新系统信息（每秒更新一次）
      */
-    void updateSystemInfo();
+    void _updateSystemInfo();
 
     /**
      * @brief 构建左侧调试文本
      */
-    void buildLeftDebugText();
+    void _buildLeftDebugText();
 
     /**
      * @brief 构建右侧调试文本
      */
-    void buildRightDebugText();
+    void _buildRightDebugText();
 
     /**
      * @brief 获取方向名称
      */
-    std::pair<std::string, std::string> getFacingDirection(f32 yaw) const;
+    std::pair<std::string, std::string> _getFacingDirection(f32 yaw) const;
 
     /**
      * @brief 计算文本最大宽度
      */
-    void measureTexts();
+    void _measureTexts();
 
     // ========== 数据提供者 ==========
     const mc::client::Camera* m_camera = nullptr;
@@ -215,6 +212,7 @@ private:
 
     // 服务端信息
     f32 m_serverTickTimeMs = 0.0f;
+    // TODO: m_serverTps 尚未在调试屏幕中显示
     f32 m_serverTps = 20.0f;
 
     // 内存信息

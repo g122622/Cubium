@@ -23,17 +23,27 @@
 
 #pragma once
 
-#include "../../kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief Minecraft 游戏界面屏幕基类
+ *
+ * 所有 Minecraft 风格的屏幕（如主菜单、设置界面、背包界面等）都应继承此类。
+ * 提供屏幕生命周期回调（onOpen/onClose）、绘制和悬停更新等基础功能。
+ */
 class Screen : public kagero::widget::ContainerWidget {
 public:
     explicit Screen(std::string id);
 
+    /** @brief 屏幕被打开时调用，子类可重写以初始化界面状态 */
     virtual void onOpen();
+
+    /** @brief 屏幕被关闭时调用，子类可重写以清理资源 */
     virtual void onClose();
 
+    /** @brief 绘制屏幕内容，同时绘制所有子组件 */
     void paint(kagero::widget::PaintContext& ctx) override;
 
     /**
@@ -43,7 +53,10 @@ public:
      */
     void updateHover(i32 mouseX, i32 mouseY);
 
+    /** @brief 查询此屏幕是否为模态（模态屏幕会阻止下层屏幕接收输入） */
     [[nodiscard]] bool isModal() const;
+
+    /** @brief 设置屏幕的模态状态 */
     void setModal(bool modal);
 
 private:

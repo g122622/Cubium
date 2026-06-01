@@ -22,8 +22,8 @@
  */
 
 #include "MainMenuScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {
@@ -34,11 +34,12 @@ MainMenuScreen::MainMenuScreen()
           "mainMenu")
 {
     loadTemplateFile("src/client/ui/minecraft/templates/main_menu.tpl");
-    registerCallbacks();
+    _registerCallbacks();
 }
 
-void MainMenuScreen::registerCallbacks()
+void MainMenuScreen::_registerCallbacks()
 {
+    // 将模板中的按钮回调名绑定到对应的外部回调
     exposeSimpleCallback("onSinglePlayer", [this]() {
         if (m_onSinglePlayer) {
             m_onSinglePlayer();
@@ -69,6 +70,7 @@ bool MainMenuScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
     (void)scanCode;
     (void)mods;
 
+    // Escape键触发退出回调
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         if (m_onQuit) {
             m_onQuit();

@@ -27,6 +27,12 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 主菜单界面
+ *
+ * 显示游戏主菜单，提供单人游戏、多人游戏、选项和退出按钮。
+ * 按钮点击事件通过回调机制由外部设置，Escape键触发退出回调。
+ */
 class MainMenuScreen : public TemplateScreen {
 public:
     using Callback = std::function<void()>;
@@ -41,7 +47,8 @@ public:
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 
 private:
-    void registerCallbacks();
+    /** 注册模板回调，将UI按钮事件绑定到对应回调 */
+    void _registerCallbacks();
 
     Callback m_onSinglePlayer;
     Callback m_onMultiPlayer;

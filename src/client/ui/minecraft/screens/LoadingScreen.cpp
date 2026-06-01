@@ -22,8 +22,8 @@
  */
 
 #include "LoadingScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
 #include "common/util/math/MathUtils.hpp"
 
 namespace mc::client::ui::minecraft {
@@ -33,10 +33,12 @@ LoadingScreen::LoadingScreen()
                          kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
           "loading")
 {
+    // 将响应式属性绑定到模板变量，模板通过变量名引用这些值
     exposeReactive("loading.title", m_titleValue);
     exposeReactive("loading.stage", m_stageValue);
     exposeReactive("loading.progressWidth", m_progressWidth);
 
+    // 设置默认值
     m_titleValue.set("Loading World...");
     m_stageValue.set("Preparing world...");
     m_progressWidth.set(0);
@@ -51,6 +53,7 @@ void LoadingScreen::setStage(const std::string& stage)
 
 void LoadingScreen::setProgress(f32 progress)
 {
+    // 将 [0, 1] 的进度值映射为进度条像素宽度
     const f32 clamped = mc::math::clamp(progress, 0.0f, 1.0f);
     m_progressWidth.set(static_cast<i32>(PROGRESS_BAR_WIDTH * clamped));
 }

@@ -31,6 +31,8 @@ InventoryScreen::InventoryScreen()
 
 void InventoryScreen::paint(kagero::widget::PaintContext& ctx)
 {
+    // TODO: 实现完整的背包界面，包括物品槽位渲染、物品图标绘制、鼠标拖拽交互等
+    // 当前仅绘制半透明背景和边框作为占位
     ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 25, 25, 25));
     ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 130, 130, 130));
 }

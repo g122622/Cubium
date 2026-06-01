@@ -31,6 +31,7 @@ OptionsScreen::OptionsScreen()
 
 void OptionsScreen::paint(kagero::widget::PaintContext& ctx)
 {
+    // TODO: 绘制选项控件（按钮、滑块等）
     ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 18, 18, 26));
 }
 

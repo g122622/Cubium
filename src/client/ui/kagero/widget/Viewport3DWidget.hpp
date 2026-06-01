@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../paint/PaintContext.hpp"
 #include "Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -46,8 +46,6 @@ namespace mc::client::ui::kagero::widget {
  * - 玩家背包界面的玩家模型
  * - 物品展示
  * - 实体预览
- *
- * 参考MC 1.16.5 InventoryScreen.drawEntityOnScreen实现
  *
  * 使用示例：
  * @code

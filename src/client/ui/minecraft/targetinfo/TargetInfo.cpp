@@ -45,6 +45,7 @@ TargetInfoSnapshot TargetInfoSnapshot::none()
 
 namespace {
 
+/** @brief 判断字符是否为标识符中的分隔符（下划线、短横线、斜杠、冒号、点号） */
 [[nodiscard]] bool isSeparator(char ch)
 {
     switch (ch) {
@@ -66,10 +67,12 @@ std::string humanizeIdentifier(std::string_view identifier)
     std::string result;
     result.reserve(identifier.size());
 
+    // 标记下一个字母是否需要大写（句首或分隔符后）
     bool capitalizeNext = true;
     for (size_t index = 0; index < identifier.size(); ++index) {
         const char ch = identifier[index];
 
+        // 分隔符替换为空格，并标记下一个字母需要大写
         if (isSeparator(ch)) {
             if (!result.empty() && result.back() != ' ') {
                 result.push_back(' ');
@@ -78,6 +81,8 @@ std::string humanizeIdentifier(std::string_view identifier)
             continue;
         }
 
+        // 检测驼峰命名边界：当前大写、下一个小写，说明这是新单词的开始
+        // 例如 "ironIngot" 中的 'I' 需要在前面插入空格
         const bool shouldInsertSpace = !result.empty() && !capitalizeNext &&
             std::isupper(static_cast<unsigned char>(ch)) && index + 1 < identifier.size() &&
             std::islower(static_cast<unsigned char>(identifier[index + 1])) && result.back() != ' ';
@@ -95,6 +100,7 @@ std::string humanizeIdentifier(std::string_view identifier)
         capitalizeNext = false;
     }
 
+    // 移除末尾可能残留的空格
     while (!result.empty() && result.back() == ' ') {
         result.pop_back();
     }
@@ -104,6 +110,7 @@ std::string humanizeIdentifier(std::string_view identifier)
 
 std::string humanizeResourceLocation(const ResourceLocation& location)
 {
+    // 优先使用路径部分（冒号后面的内容），回退到命名空间
     if (!location.path().empty()) {
         return humanizeIdentifier(location.path());
     }

@@ -31,6 +31,7 @@ ContainerScreen::ContainerScreen()
 
 void ContainerScreen::paint(kagero::widget::PaintContext& ctx)
 {
+    // 绘制半透明深色遮罩，遮挡游戏画面以突出容器界面
     ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 30, 24, 20));
 }
 

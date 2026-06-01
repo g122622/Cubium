@@ -22,8 +22,8 @@
  */
 
 #include "WorldSelectionScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
 #include <algorithm>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
@@ -39,8 +39,8 @@ WorldSelectionScreen::WorldSelectionScreen()
     expose("worlds.selected", &m_hasSelection);
 
     loadTemplateFile("src/client/ui/minecraft/templates/world_selection.tpl");
-    cacheWidgets();
-    registerCallbacks();
+    _cacheWidgets();
+    _registerCallbacks();
     refreshWorldList();
 }
 
@@ -50,7 +50,7 @@ void WorldSelectionScreen::onOpen()
     refreshWorldList();
 }
 
-void WorldSelectionScreen::registerCallbacks()
+void WorldSelectionScreen::_registerCallbacks()
 {
     exposeSimpleCallback("onPlay", [this]() {
         if (m_selectedWorld != nullptr && m_onSelectWorld) {
@@ -64,6 +64,7 @@ void WorldSelectionScreen::registerCallbacks()
         }
     });
 
+    // TODO: 实现删除世界的功能
     exposeSimpleCallback("onDelete", [this]() {});
 
     exposeSimpleCallback("onBack", [this]() {
@@ -73,7 +74,7 @@ void WorldSelectionScreen::registerCallbacks()
     });
 }
 
-void WorldSelectionScreen::cacheWidgets()
+void WorldSelectionScreen::_cacheWidgets()
 {
     if (auto* widget = findWidget("worldList")) {
         m_worldListWidget = dynamic_cast<kagero::widget::ListWidget*>(widget);
@@ -82,9 +83,9 @@ void WorldSelectionScreen::cacheWidgets()
     if (m_worldListWidget) {
         m_worldListWidget->setSelectionMode(kagero::widget::ListWidget::SelectionMode::Single);
         m_worldListWidget->setOnSelect(
-            [this](size_t index, kagero::widget::IListItem*) { updateSelection(static_cast<i32>(index)); });
+            [this](size_t index, kagero::widget::IListItem*) { _updateSelection(static_cast<i32>(index)); });
         m_worldListWidget->setOnDoubleClick([this](size_t index, kagero::widget::IListItem*) {
-            updateSelection(static_cast<i32>(index));
+            _updateSelection(static_cast<i32>(index));
             if (m_selectedWorld != nullptr && m_onSelectWorld) {
                 m_onSelectWorld(*m_selectedWorld);
             }
@@ -92,23 +93,23 @@ void WorldSelectionScreen::cacheWidgets()
     }
 }
 
-void WorldSelectionScreen::updateSelection(i32 index)
+void WorldSelectionScreen::_updateSelection(i32 index)
 {
     if (index < 0 || static_cast<size_t>(index) >= m_worlds.size()) {
         m_selectedIndex = -1;
         m_selectedWorld = nullptr;
         m_hasSelection = false;
-        updateBindingValues();
+        _updateBindingValues();
         return;
     }
 
     m_selectedIndex = index;
     m_selectedWorld = &m_worlds[static_cast<size_t>(index)];
     m_hasSelection = true;
-    updateBindingValues();
+    _updateBindingValues();
 }
 
-void WorldSelectionScreen::publishWorldCollection()
+void WorldSelectionScreen::_publishWorldCollection()
 {
     if (auto* ctx = bindingContext()) {
         std::vector<kagero::tpl::binder::Value> values;
@@ -120,7 +121,7 @@ void WorldSelectionScreen::publishWorldCollection()
     }
 }
 
-void WorldSelectionScreen::updateBindingValues()
+void WorldSelectionScreen::_updateBindingValues()
 {
     expose("worlds.empty", &m_worldsEmpty);
     expose("worlds.selected", &m_hasSelection);
@@ -141,8 +142,8 @@ void WorldSelectionScreen::refreshWorldList()
         m_selectedIndex = -1;
         m_selectedWorld = nullptr;
         m_hasSelection = false;
-        publishWorldCollection();
-        updateBindingValues();
+        _publishWorldCollection();
+        _updateBindingValues();
 
         if (m_worldListWidget != nullptr) {
             std::vector<kagero::tpl::binder::Value> values;
@@ -160,8 +161,8 @@ void WorldSelectionScreen::refreshWorldList()
         m_selectedIndex = -1;
         m_selectedWorld = nullptr;
         m_hasSelection = false;
-        publishWorldCollection();
-        updateBindingValues();
+        _publishWorldCollection();
+        _updateBindingValues();
 
         if (m_worldListWidget != nullptr) {
             m_worldListWidget->clearItems();

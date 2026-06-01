@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
 #include <functional>
 #include <memory>
@@ -54,7 +54,6 @@ using UiSoundCallback = std::function<void(const std::string& soundEventId)>;
  * - 状态管理（visible, active, hovered, focused）
  * - UI音效支持（静态回调注入）
  *
- * 参考MC 1.16.5 Widget.java实现
  *
  * 使用示例：
  * @code
@@ -567,7 +566,7 @@ public:
      *             sound::SoundInstance::createGlobal(
      *                 ResourceLocation(soundEventId),
      *                 sound::SoundCategory::Master,
-     *                 0.25f,  // MC 1.16.5 默认音量
+     *                 0.25f,
      *                 1.0f
      *             )
      *         );

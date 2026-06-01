@@ -23,20 +23,47 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
 #include "Screen.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include <memory>
 #include <vector>
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 屏幕栈管理器
+ *
+ * 管理屏幕的生命周期与渲染顺序。屏幕以栈结构组织，
+ * 模态屏幕（isModal）会阻止其下方屏幕的绘制和交互。
+ */
 class ScreenManager {
 public:
+    /**
+     * @brief 将屏幕压入栈顶
+     * @param screen 要压入的屏幕，若为空则忽略
+     */
     void push(std::unique_ptr<Screen> screen);
+
+    /**
+     * @brief 弹出栈顶屏幕，若栈为空则忽略
+     */
     void pop();
+
+    /**
+     * @brief 依次弹出所有屏幕，清空屏幕栈
+     */
     void clear();
 
+    /**
+     * @brief 获取栈顶屏幕
+     * @return 栈顶屏幕指针，若栈为空则返回 nullptr
+     */
     [[nodiscard]] Screen* top();
+
+    /**
+     * @brief 获取栈顶屏幕（const 版本）
+     * @return 栈顶屏幕的 const 指针，若栈为空则返回 nullptr
+     */
     [[nodiscard]] const Screen* top() const;
 
     /**
@@ -53,6 +80,7 @@ public:
     void updateHover(i32 mouseX, i32 mouseY);
 
 private:
+    /// 屏幕栈，后入的屏幕在栈顶
     std::vector<std::unique_ptr<Screen>> m_stack;
 };
 

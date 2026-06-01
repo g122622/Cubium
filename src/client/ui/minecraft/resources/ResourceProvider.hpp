@@ -24,8 +24,6 @@
 #pragma once
 
 #include "client/renderer/trident/gui/GuiTextureAtlas.hpp"
-#include <memory>
-#include <optional>
 
 namespace mc::client {
 class Font;

@@ -22,8 +22,8 @@
  */
 
 #include "PauseScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {
@@ -34,10 +34,10 @@ PauseScreen::PauseScreen()
           "pause")
 {
     loadTemplateFile("src/client/ui/minecraft/templates/pause_menu.tpl");
-    registerCallbacks();
+    _registerCallbacks();
 }
 
-void PauseScreen::registerCallbacks()
+void PauseScreen::_registerCallbacks()
 {
     exposeSimpleCallback("onResume", [this]() {
         if (m_onResume) {

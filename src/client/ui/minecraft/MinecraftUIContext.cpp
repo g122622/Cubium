@@ -36,8 +36,8 @@ MinecraftUIContext::MinecraftUIContext(Font& font,
     , m_bindingContext(stateStore, eventBus)
     , m_resources(font, renderer)
 {
-    setupStateBindings();
-    setupDefaultResources();
+    _setupStateBindings();
+    _setupDefaultResources();
 }
 
 std::unique_ptr<kagero::tpl::runtime::TemplateInstance> MinecraftUIContext::createScreen(
@@ -66,21 +66,21 @@ const kagero::tpl::binder::BindingContext& MinecraftUIContext::bindingContext() 
     return m_bindingContext;
 }
 
-void MinecraftUIContext::setupStateBindings()
+void MinecraftUIContext::_setupStateBindings()
 {
     m_bindingContext.exposeWritable("player.health", &m_playerHealth);
     m_bindingContext.exposeWritable("player.hunger", &m_playerHunger);
     m_bindingContext.exposeWritable("player.xp", &m_playerXP);
     m_bindingContext.expose("player.name", &m_playerName);
 
-    m_bindingContext.exposeSimpleCallback("onClose", []() {});
-    m_bindingContext.exposeSimpleCallback("onSlotClick", []() {});
-    m_bindingContext.exposeSimpleCallback("onHotbarClick", []() {});
+    m_bindingContext.exposeSimpleCallback("onClose", []() {});       // TODO: 实现关闭屏幕回调
+    m_bindingContext.exposeSimpleCallback("onSlotClick", []() {});   // TODO: 实现物品栏槽位点击回调
+    m_bindingContext.exposeSimpleCallback("onHotbarClick", []() {}); // TODO: 实现快捷栏点击回调
 }
 
-void MinecraftUIContext::setupDefaultResources()
+void MinecraftUIContext::_setupDefaultResources()
 {
-    // 默认资源加载已移至 ResourceProvider
+    // TODO: 默认资源加载已移至 ResourceProvider，后续需要在此注册更多默认资源
 }
 
 } // namespace mc::client::ui::minecraft

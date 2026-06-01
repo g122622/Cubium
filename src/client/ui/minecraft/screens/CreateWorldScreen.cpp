@@ -22,21 +22,32 @@
  */
 
 #include "CreateWorldScreen.hpp"
-#include "../../kagero/event/EventBus.hpp"
-#include "../../kagero/state/StateStore.hpp"
-#include "common/command/StringReader.hpp"
-#include "common/core/Types.hpp"
+
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "common/core/DefaultValues.hpp"
 #include "common/util/StringUtils.hpp"
 #include "common/world/WorldConfig.hpp"
-#include <algorithm>
+
 #include <GLFW/glfw3.h>
-#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {
 
-static const char* GAME_MODE_NAMES[] = {"Survival", "Creative", "Adventure", "Spectator"};
+namespace {
 
-static const char* WORLD_TYPE_NAMES[] = {"Default", "Flat", "Large Biomes", "Amplified", "Debug"};
+// 可选的游戏模式名称（不含 NotSet）
+const char* GAME_MODE_NAMES[] = {"Survival", "Creative", "Adventure", "Spectator"};
+
+// 世界类型名称
+const char* WORLD_TYPE_NAMES[] = {"Default", "Flat", "Large Biomes", "Amplified", "Debug"};
+
+// 游戏模式循环数量，排除 NotSet
+constexpr i32 GAME_MODE_COUNT = 4;
+
+// 世界类型循环数量
+constexpr i32 WORLD_TYPE_COUNT = 5;
+
+} // namespace
 
 CreateWorldScreen::CreateWorldScreen()
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
@@ -44,28 +55,28 @@ CreateWorldScreen::CreateWorldScreen()
           "createWorld")
 {
     loadTemplateFile("src/client/ui/minecraft/templates/create_world.tpl");
-    cacheWidgets();
-    registerCallbacks();
-    updateGameModeText();
-    updateWorldTypeText();
+    _cacheWidgets();
+    _registerCallbacks();
+    _updateGameModeText();
+    _updateWorldTypeText();
 }
 
 void CreateWorldScreen::onOpen()
 {
     TemplateScreen::onOpen();
     if (m_nameField) {
-        focusField(m_nameField);
+        _focusField(m_nameField);
     }
 }
 
-void CreateWorldScreen::registerCallbacks()
+void CreateWorldScreen::_registerCallbacks()
 {
-    exposeSimpleCallback("onCycleGameMode", [this]() { cycleGameMode(); });
+    exposeSimpleCallback("onCycleGameMode", [this]() { _cycleGameMode(); });
 
-    exposeSimpleCallback("onCycleWorldType", [this]() { cycleWorldType(); });
+    exposeSimpleCallback("onCycleWorldType", [this]() { _cycleWorldType(); });
 
     exposeSimpleCallback("onCreate", [this]() {
-        if (validateInput() && m_onCreate) {
+        if (_validateInput() && m_onCreate) {
             m_onCreate(buildRequest());
         }
     });
@@ -77,7 +88,7 @@ void CreateWorldScreen::registerCallbacks()
     });
 }
 
-void CreateWorldScreen::cacheWidgets()
+void CreateWorldScreen::_cacheWidgets()
 {
     m_titleText = dynamic_cast<kagero::widget::TextWidget*>(findWidget("title"));
     m_nameLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("nameLabel"));
@@ -92,12 +103,13 @@ void CreateWorldScreen::cacheWidgets()
     m_cancelButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("btn_cancel"));
 }
 
-void CreateWorldScreen::focusField(kagero::widget::TextFieldWidget* field)
+void CreateWorldScreen::_focusField(kagero::widget::TextFieldWidget* field)
 {
     if (!field) {
         return;
     }
 
+    // 取消其他输入框的聚焦状态，确保同一时间只有一个输入框获得焦点
     if (m_nameField && m_nameField != field) {
         m_nameField->setFocused(false);
     }
@@ -107,37 +119,37 @@ void CreateWorldScreen::focusField(kagero::widget::TextFieldWidget* field)
     field->setFocused(true);
 }
 
-void CreateWorldScreen::cycleGameMode()
+void CreateWorldScreen::_cycleGameMode()
 {
     i32 mode = static_cast<i32>(m_gameMode);
-    mode = (mode + 1) % 4;
+    mode = (mode + 1) % GAME_MODE_COUNT;
     m_gameMode = static_cast<mc::GameMode>(mode);
-    updateGameModeText();
+    _updateGameModeText();
 }
 
-void CreateWorldScreen::cycleWorldType()
+void CreateWorldScreen::_cycleWorldType()
 {
     i32 type = static_cast<i32>(m_worldType);
-    type = (type + 1) % 5;
+    type = (type + 1) % WORLD_TYPE_COUNT;
     m_worldType = static_cast<mc::WorldType>(type);
-    updateWorldTypeText();
+    _updateWorldTypeText();
 }
 
-void CreateWorldScreen::updateGameModeText()
+void CreateWorldScreen::_updateGameModeText()
 {
     if (m_gameModeButton) {
         m_gameModeButton->setText(GAME_MODE_NAMES[static_cast<i32>(m_gameMode)]);
     }
 }
 
-void CreateWorldScreen::updateWorldTypeText()
+void CreateWorldScreen::_updateWorldTypeText()
 {
     if (m_worldTypeButton) {
         m_worldTypeButton->setText(WORLD_TYPE_NAMES[static_cast<i32>(m_worldType)]);
     }
 }
 
-bool CreateWorldScreen::validateInput()
+bool CreateWorldScreen::_validateInput()
 {
     return m_nameField != nullptr && !m_nameField->text().empty();
 }
@@ -155,10 +167,12 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
                 seed = 0;
             }
         } else {
+            // 非数字种子：使用哈希值作为种子
             seed = std::hash<std::string>{}(seedText);
         }
     }
 
+    // TODO: 视距、难度、是否允许作弊等选项目前使用硬编码默认值，后续应提供界面让用户配置
     return world::storage::CreateWorldRequest(m_nameField ? m_nameField->text() : "New World",
         "",
         seed,
@@ -167,7 +181,7 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
         mc::Difficulty::Normal,
         false,
         m_allowCommands,
-        12);
+        defaults::client::renderDistance);
 }
 
 bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
@@ -175,6 +189,7 @@ bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
     (void)scanCode;
     (void)mods;
 
+    // ESC 键取消创建
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         if (m_onCancel) {
             m_onCancel();
@@ -182,15 +197,17 @@ bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
         return true;
     }
 
+    // Tab 键在输入框之间切换焦点
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
         if (m_nameField && m_nameField->isFocused()) {
-            focusField(m_seedField);
+            _focusField(m_seedField);
         } else if (m_seedField && m_seedField->isFocused()) {
-            focusField(m_nameField);
+            _focusField(m_nameField);
         }
         return true;
     }
 
+    // 将键盘事件转发给当前聚焦的输入框
     if (m_nameField && m_nameField->isFocused()) {
         return m_nameField->onKey(key, scanCode, action, mods);
     }
@@ -203,6 +220,7 @@ bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
 
 bool CreateWorldScreen::onChar(u32 codePoint)
 {
+    // 将字符输入事件转发给当前聚焦的输入框
     if (m_nameField && m_nameField->isFocused()) {
         return m_nameField->onChar(codePoint);
     }

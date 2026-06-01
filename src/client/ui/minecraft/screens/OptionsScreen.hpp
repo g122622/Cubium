@@ -27,6 +27,11 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 游戏选项设置界面
+ *
+ * TODO: 当前仅为骨架实现，仅绘制背景，尚未实现选项控件和交互逻辑
+ */
 class OptionsScreen : public Screen {
 public:
     OptionsScreen();

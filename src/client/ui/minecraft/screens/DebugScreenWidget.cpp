@@ -35,12 +35,12 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/time/GameTime.hpp"
 #include <iomanip>
 #include <sstream>
-#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {
 
@@ -67,14 +67,14 @@ void DebugScreenWidget::tick(f32 dt)
 {
     if (!isVisible()) return;
 
-    updateFps(dt);
-    updateSystemInfo();
-    buildLeftDebugText();
-    buildRightDebugText();
-    measureTexts();
+    _updateFps(dt);
+    _updateSystemInfo();
+    _buildLeftDebugText();
+    _buildRightDebugText();
+    _measureTexts();
 }
 
-void DebugScreenWidget::updateFps(f32 dt)
+void DebugScreenWidget::_updateFps(f32 dt)
 {
     m_frameTime = dt;
     m_fpsAccumulator += dt;
@@ -89,7 +89,7 @@ void DebugScreenWidget::updateFps(f32 dt)
     }
 }
 
-void DebugScreenWidget::updateSystemInfo()
+void DebugScreenWidget::_updateSystemInfo()
 {
     m_systemInfoTimer += m_frameTime;
     if (m_systemInfoTimer >= SYSTEM_INFO_UPDATE_INTERVAL) {
@@ -102,7 +102,7 @@ void DebugScreenWidget::updateSystemInfo()
     }
 }
 
-void DebugScreenWidget::buildLeftDebugText()
+void DebugScreenWidget::_buildLeftDebugText()
 {
     m_leftLines.clear();
 
@@ -136,6 +136,7 @@ void DebugScreenWidget::buildLeftDebugText()
     // 渲染统计
     if (m_world != nullptr) {
         oss.str("");
+        // TODO: LightUpdates 数值待实现
         oss << "ChunkCount: 0/" << m_world->chunkCount() << ", RenderDistance: " << m_renderDistance
             << ", LightUpdates: 0"
             << ", EntityCount: " << (m_entityManager ? m_entityManager->entityCount() : 0);
@@ -144,6 +145,7 @@ void DebugScreenWidget::buildLeftDebugText()
 
     // 粒子统计
     oss.str("");
+    // TODO: 粒子计数待实现
     oss << "Particles: 0, Entities: " << (m_entityManager ? m_entityManager->entityCount() : 0);
     m_leftLines.push_back(oss.str());
 
@@ -155,10 +157,12 @@ void DebugScreenWidget::buildLeftDebugText()
         oss << "Dimension: " << dimName;
         m_leftLines.push_back(oss.str());
         oss.str("");
+        // TODO: ForcedChunks 计数待实现
         oss << dimName << " ForcedChunks: 0";
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Dimension: minecraft:overworld");
+        // TODO: ForcedChunks 计数待实现
         m_leftLines.push_back("minecraft:overworld ForcedChunks: 0");
     }
     m_leftLines.push_back("");
@@ -200,17 +204,17 @@ void DebugScreenWidget::buildLeftDebugText()
         oss << "Block: " << blockX << " " << blockY << " " << blockZ;
         m_leftLines.push_back(oss.str());
 
-        i32 chunkX = blockX >> 4;
-        i32 chunkY = blockY >> 4;
-        i32 chunkZ = blockZ >> 4;
-        i32 relX = blockX & 15;
-        i32 relY = blockY & 15;
-        i32 relZ = blockZ & 15;
+        i32 chunkX = world::toChunkCoord(blockX);
+        i32 chunkZ = world::toChunkCoord(blockZ);
+        i32 chunkY = world::toSectionIndex(blockY);
+        i32 relX = world::toLocalCoord(blockX);
+        i32 relY = world::toLocalCoord(blockY);
+        i32 relZ = world::toLocalCoord(blockZ);
         oss.str("");
         oss << "Chunk: " << relX << " " << relY << " " << relZ << " in " << chunkX << " " << chunkY << " " << chunkZ;
         m_leftLines.push_back(oss.str());
 
-        auto [dirName, dirDesc] = getFacingDirection(yaw);
+        auto [dirName, dirDesc] = _getFacingDirection(yaw);
         oss.str("");
         oss << "Facing: " << dirName << " (" << dirDesc << ")"
             << " (" << std::fixed << std::setprecision(1) << yaw << " / " << pitch << ")";
@@ -228,6 +232,7 @@ void DebugScreenWidget::buildLeftDebugText()
                 oss << "Client Light: " << static_cast<i32>(totalLight) << " (" << static_cast<i32>(skyLight)
                     << " sky, " << static_cast<i32>(blockLight) << " block)";
                 m_leftLines.push_back(oss.str());
+                // TODO: 服务端光照数据待实现
                 m_leftLines.push_back("Server Light: (?? sky, ?? block)");
             } else {
                 m_leftLines.push_back("BlockLoaded is false, outside of world...");
@@ -248,9 +253,10 @@ void DebugScreenWidget::buildLeftDebugText()
 
                 // 时间信息
                 i64 gameTime = m_world->gameTime();
-                i64 dayCount = gameTime / 24000;
+                i64 dayCount = gameTime / game::DAY_LENGTH_TICKS;
                 i32 moonPhase = CelestialCalculations::calculateMoonPhase(gameTime);
                 oss.str("");
+                // TODO: 本地难度和区域难度计算待实现
                 oss << "Local Difficulty: 0.00 // 0.00 (Day " << dayCount << ", Moon " << moonPhase << ")";
                 m_leftLines.push_back(oss.str());
             }
@@ -273,7 +279,7 @@ void DebugScreenWidget::buildLeftDebugText()
     }
 }
 
-void DebugScreenWidget::buildRightDebugText()
+void DebugScreenWidget::_buildRightDebugText()
 {
     m_rightLines.clear();
 
@@ -366,7 +372,7 @@ void DebugScreenWidget::buildRightDebugText()
     }
 }
 
-std::pair<std::string, std::string> DebugScreenWidget::getFacingDirection(f32 yaw) const
+std::pair<std::string, std::string> DebugScreenWidget::_getFacingDirection(f32 yaw) const
 {
     yaw = math::wrapDegrees(yaw);
 
@@ -381,7 +387,7 @@ std::pair<std::string, std::string> DebugScreenWidget::getFacingDirection(f32 ya
     }
 }
 
-void DebugScreenWidget::measureTexts()
+void DebugScreenWidget::_measureTexts()
 {
     m_leftMaxWidth = 0.0f;
     m_rightMaxWidth = 0.0f;
@@ -407,7 +413,6 @@ void DebugScreenWidget::paint(kagero::widget::PaintContext& ctx)
     if (m_leftLines.empty() && m_rightLines.empty()) return;
 
     const f32 screenWidth = static_cast<f32>(width());
-    const f32 screenHeight = static_cast<f32>(height());
 
     // 绘制左侧面板
     if (!m_leftLines.empty()) {

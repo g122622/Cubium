@@ -27,6 +27,12 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 玩家背包界面
+ *
+ * 显示玩家背包中的物品槽位，支持物品拖拽和交互。
+ * 当前仅为占位实现，仅绘制背景。
+ */
 class InventoryScreen : public Screen {
 public:
     InventoryScreen();
