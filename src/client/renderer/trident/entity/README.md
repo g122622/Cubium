@@ -138,6 +138,104 @@ namespace mc::client::renderer::entity {
 }
 ```
 
+## 实体渲染决策流程
+
+实体渲染器根据实体类型和可用数据选择渲染方式，决策顺序如下：
+
+```
+1. ItemEntity Billboard 渲染
+   ↓ (非 ItemEntity)
+2. ModelFactory 动画模型渲染
+   ↓ (无模型)
+3. PipelineMeshProvider 自定义网格渲染
+   ↓ (无 Provider)
+4. 默认渲染（空/错误标记）
+```
+
+### 渲染决策详解
+
+| 优先级 | 渲染方式 | 适用实体 | 描述 |
+|--------|----------|----------|------|
+| 1 | ItemEntity Billboard | 物品实体 | 使用物品纹理的 Billboard 渲染 |
+| 2 | ModelFactory 动画模型 | 大多数生物 | 通过 ModelFactory 创建的动画模型 |
+| 3 | PipelineMeshProvider | 投掷物等 | 自定义网格渲染器 |
+
+### PipelineMeshProvider 接口
+
+用于提供自定义渲染网格的接口，适用于投掷物、特殊效果等不需要完整模型的实体。
+
+```cpp
+class PipelineMeshProvider {
+public:
+    virtual ~PipelineMeshProvider() = default;
+    
+    // 获取渲染网格
+    virtual MeshData getMesh(const Entity& entity, f32 partialTicks) = 0;
+    
+    // 获取纹理区域
+    virtual TextureRegion getTexture() const = 0;
+    
+    // 是否应该渲染
+    virtual bool shouldRender(const Entity& entity) const { return true; }
+};
+```
+
+### 新增渲染器
+
+| 渲染器 | 实体类型 | 渲染方式 | 描述 |
+|--------|----------|----------|------|
+| SnowballRenderer | 雪球 | Billboard | 投掷物 Billboard 渲染 |
+| EggRenderer | 鸡蛋 | Billboard | 投掷物 Billboard 渲染 |
+| EnderPearlRenderer | 末影珍珠 | Billboard | 投掷物 Billboard 渲染 |
+| PotionRenderer | 药水 | Billboard | 投掷物 Billboard 渲染 |
+| ExperienceBottleRenderer | 附魔之瓶 | Billboard | 投掷物 Billboard 渲染 |
+| EyeOfEnderRenderer | 末影之眼 | Billboard + Particle | 带粒子效果的投掷物 |
+| FireballRenderer | 火球 | Billboard | 大火球渲染 |
+| SmallFireballRenderer | 小火球 | Billboard | 小火球渲染（烈焰人火球等） |
+| FishingBobberRenderer | 钓鱼浮漂 | Billboard + Line | 带线渲染的浮漂 |
+
+### PufferfishRenderer 河豚状态切换
+
+河豚渲染器根据河豚的膨胀状态动态切换模型：
+
+```cpp
+class PufferfishRenderer : public LivingRenderer<Pufferfish, PufferfishModel> {
+public:
+    PufferfishRenderer() {
+        // 根据膨胀状态选择模型
+        // puffState: 0 = 未膨胀, 1 = 中等膨胀, 2 = 完全膨胀
+    }
+    
+    PufferfishModel& getModel(Pufferfish& entity) override {
+        i32 puffState = entity.getPuffState();
+        switch (puffState) {
+            case 0: return m_smallModel;    // 未膨胀
+            case 1: return m_mediumModel;   // 中等膨胀
+            case 2: return m_largeModel;    // 完全膨胀
+        }
+    }
+};
+```
+
+### BlendMode::Lines 线条渲染
+
+用于 `LINE_LIST` 拓扑的特殊混合模式：
+
+```cpp
+enum class BlendMode {
+    None,       // 无混合
+    Alpha,      // Alpha 混合
+    Additive,   // 加法混合
+    Lines,      // 线条渲染（LINE_LIST 拓扑）
+};
+```
+
+`BlendMode::Lines` 特性：
+- 使用 `LINE_LIST` 图元拓扑
+- 适用于 FishingBobberRenderer 的钓鱼线
+- 不写入深度缓冲区
+- 支持颜色混合
+
 ## 使用方法
 
 ### 创建自定义渲染器

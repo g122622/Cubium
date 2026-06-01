@@ -66,6 +66,81 @@ f32 renderYaw = entity->getInterpolatedYaw(partialTick);
 
 客户端实体管理器。管理所有客户端实体的创建、更新、销毁。
 
+#### 固定 Tick 系统（20 TPS）
+
+客户端实体管理器实现了固定 tick 累加器，确保实体逻辑以 20 TPS（每秒 20 次）的固定频率运行，与服务器保持同步：
+
+```cpp
+class ClientEntityManager {
+public:
+    // 主循环调用，传入帧时间
+    void update(f32 deltaTime);
+    
+private:
+    f32 m_tickAccumulator = 0.0f;
+    static constexpr f32 TICK_INTERVAL = 1.0f / 20.0f;  // 0.05秒
+    
+    void tick();  // 固定频率 tick
+};
+```
+
+**固定 Tick 流程**：
+
+```
+update(deltaTime)
+    └─ m_tickAccumulator += deltaTime
+    └─ while (m_tickAccumulator >= TICK_INTERVAL)
+        └─ tick()
+        └─ m_tickAccumulator -= TICK_INTERVAL
+```
+
+**好处**：
+- 客户端实体逻辑与服务器同步
+- 物理计算稳定
+- 动画 tick 更新一致
+
+#### 动画包处理
+
+客户端实体管理器处理来自服务器的动画触发包：
+
+| 方法 | 触发源 | 描述 |
+|------|--------|------|
+| `triggerSwingAnimation(entityId)` | SwingPacket | 触发实体挥手动画 |
+| `triggerHurtAnimation(entityId)` | EntityHurtPacket | 触发实体受伤动画 |
+
+```cpp
+// 网络包处理
+void ClientEntityManager::handleSwingPacket(i32 entityId) {
+    ClientEntity* entity = getEntity(entityId);
+    if (entity) {
+        triggerSwingAnimation(*entity);
+    }
+}
+
+void ClientEntityManager::triggerSwingAnimation(ClientEntity& entity) {
+    // 重置挥手动计时器
+    entity.m_swingProgress = 0.0f;
+    entity.m_isSwinging = true;
+}
+```
+
+#### 河豚膨胀状态同步
+
+河豚的膨胀状态通过实体元数据同步：
+
+```cpp
+// 在 ClientEntityManager::tick() 中
+void ClientEntityManager::syncEntityMetadata(ClientEntity& entity) {
+    if (entity.getType() == EntityType::Pufferfish) {
+        i32 puffState = entity.getMetadata(DataParameters::PUFF_STATE);
+        entity.setPuffState(puffState);
+    }
+}
+```
+
+**元数据参数**：
+- `PUFF_STATE` (int): 0 = 未膨胀, 1 = 中等膨胀, 2 = 完全膨胀
+
 #### 本地玩家支持
 
 本地玩家实体也被纳入此管理器，通过 `isLocalPlayer()` 判断：

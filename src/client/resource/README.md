@@ -221,12 +221,20 @@ const BlockAppearance* appearance = cache.getBlockAppearance(state);
 **主要类型**：
 
 ```cpp
+// 动画描述符（帧动画信息）
+struct AnimationDescriptor {
+    f32 frameTime = 1.0f;                       // 每帧时间（秒）
+    bool interpolate = false;                   // 是否插值
+    std::vector<u32> frames;                    // 帧索引列表
+};
+
 // 纹理图集构建结果
 struct AtlasBuildResult {
     std::vector<u8> pixels;                           // RGBA8像素数据
     u32 width = 0;                                    // 图集宽度
     u32 height = 0;                                   // 图集高度
     std::map<ResourceLocation, TextureRegion> regions; // 纹理位置映射
+    std::map<ResourceLocation, AnimationDescriptor> animations; // 动画信息映射
 };
 
 // 纹理图集构建器
@@ -238,6 +246,29 @@ class TextureAtlasBuilder {
     Result<AtlasBuildResult> build();                 // 构建图集
 };
 ```
+
+**动画帧提取**：
+
+TextureAtlasBuilder 会自动检测和处理动画纹理（.mcmeta 文件）：
+
+```cpp
+// 动画纹理元数据格式 (textures/block/water_flow.png.mcmeta)
+{
+    "animation": {
+        "frametime": 4,        // 每帧持续 4 游戏刻 (0.2秒)
+        "interpolate": true,   // 帧间插值
+        "frames": [0, 1, 2, 3] // 帧序列
+    }
+}
+```
+
+**动画处理流程**：
+
+1. 加载纹理 PNG 文件
+2. 查找同名 `.mcmeta` 文件
+3. 解析动画元数据
+4. 提取帧信息存入 `AnimationDescriptor`
+5. 将动画描述符存入 `AtlasBuildResult::animations`
 
 **打包算法**：
 
@@ -253,6 +284,126 @@ class TextureAtlasBuilder {
 - 自动计算最小可行尺寸（从64x64开始，按2的幂次扩展）
 - 支持 PNG 解码（使用 stb_image）
 - 避免重复添加相同纹理
+- 动画纹理垂直排列帧，高度 = 帧数 × 帧高度
+
+---
+
+### 动画纹理管线
+
+动画纹理管线负责处理和更新图集中的动画纹理（如岩浆、水、火焰等）。
+
+#### 相关组件
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| AnimatedSprite | AnimatedSprite.hpp/cpp | 单个动画精灵，管理帧状态和插值 |
+| TextureAtlasTicker | TextureAtlasTicker.hpp/cpp | 管理所有动画精灵的 tick 更新 |
+
+#### AnimatedSprite
+
+动画精灵类，封装单个动画纹理的状态：
+
+```cpp
+class AnimatedSprite {
+public:
+    AnimatedSprite(const AnimationDescriptor& desc, const TextureRegion& baseRegion, u32 frameHeight);
+    
+    // 更新动画状态
+    void tick(f32 deltaTime);
+    
+    // 获取当前帧的 UV 坐标
+    TextureRegion getCurrentFrame() const;
+    
+    // 是否需要上传到 GPU
+    bool needsUpload() const;
+    void markUploaded();
+    
+private:
+    f32 m_frameTime;           // 每帧持续时间
+    f32 m_elapsedTime;         // 当前帧已过时间
+    u32 m_currentFrame;        // 当前帧索引
+    u32 m_frameCount;          // 总帧数
+    bool m_interpolate;        // 是否插值
+    TextureRegion m_baseRegion; // 基础纹理区域
+    u32 m_frameHeight;         // 单帧高度（像素）
+};
+```
+
+#### TextureAtlasTicker
+
+管理所有动画精灵的统一更新：
+
+```cpp
+class TextureAtlasTicker {
+public:
+    // 添加动画精灵
+    void addSprite(const ResourceLocation& location, AnimatedSprite sprite);
+    
+    // 更新所有动画
+    void tick(f32 deltaTime);
+    
+    // 获取需要更新的动画区域
+    std::vector<AnimationUpdate> getPendingUpdates() const;
+    
+    // 清除已上传的更新
+    void clearPendingUpdates();
+    
+private:
+    std::map<ResourceLocation, AnimatedSprite> m_sprites;
+    std::vector<AnimationUpdate> m_pendingUpdates;
+};
+```
+
+#### 动画更新流程
+
+```
+资源加载阶段：
+┌─────────────────────────────────────────────────────────────────┐
+│ TextureAtlasBuilder.build()                                     │
+│ ├─ 加载纹理 PNG + .mcmeta                                       │
+│ ├─ 解析 AnimationDescriptor                                     │
+│ └─ 存入 AtlasBuildResult::animations                            │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ TextureAtlasTicker 初始化                                        │
+│ ├─ 遍历 animations                                              │
+│ ├─ 创建 AnimatedSprite 实例                                     │
+│ └─ 建立位置 → 动画映射                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+运行时更新阶段：
+┌─────────────────────────────────────────────────────────────────┐
+│ 主循环 tick (每帧)                                               │
+│ ├─ TextureAtlasTicker.tick(deltaTime)                          │
+│ │   ├─ 遍历所有 AnimatedSprite                                  │
+│ │   ├─ 更新帧计时器                                             │
+│ │   └─ 检测帧切换                                               │
+│ └─ 收集需要更新的区域                                           │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ GPU 上传（在渲染帧）                                             │
+│ ├─ uploadAnimationFrames()                                     │
+│ ├─ 遍历 pendingUpdates                                         │
+│ └─ 更新纹理图集对应区域                                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 帧插值
+
+当 `interpolate = true` 时，动画在帧之间进行线性插值：
+
+```cpp
+TextureRegion AnimatedSprite::getCurrentFrame() const {
+    if (m_interpolate && m_frameCount > 1) {
+        f32 progress = m_elapsedTime / m_frameTime;
+        // 计算插值后的 UV
+        // ...
+    }
+    return getFrameRegion(m_currentFrame);
+}
+```
 
 ---
 
