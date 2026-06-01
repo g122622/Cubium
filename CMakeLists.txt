@@ -179,6 +179,37 @@ find_package(absl CONFIG REQUIRED)
 find_package(leveldb CONFIG REQUIRED)
 find_package(unofficial-perfetto CONFIG REQUIRED)
 
+# ============================================================
+# QuickJS-NG - JavaScript 引擎，用于基岩版Addon脚本系统
+# ============================================================
+# 使用quickjs-ng（支持Windows），而非原始quickjs
+include(FetchContent)
+FetchContent_Declare(
+    quickjs-ng
+    GIT_REPOSITORY https://github.com/quickjs-ng/quickjs.git
+    GIT_TAG        v0.15.0
+)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(QJS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+set(QJS_BUILD_CLI_STATIC OFF CACHE BOOL "" FORCE)
+set(QJS_BUILD_WERROR OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(quickjs-ng)
+
+# 修复quickjs-ng C库在Clang+MSVC环境下找不到vcruntime.h的问题
+# 原因：configure.sh设置了clang++的MSVC include路径，但C编译器clang.exe缺少这些路径
+if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+    # 获取MSVC include目录
+    if(DEFINED ENV{VCToolsInstallDir})
+        set(_MSVC_INC_DIR "$ENV{VCToolsInstallDir}/include")
+        if(TARGET qjs)
+            target_include_directories(qjs PRIVATE ${_MSVC_INC_DIR})
+        endif()
+        if(TARGET qjs-libc)
+            target_include_directories(qjs-libc PRIVATE ${_MSVC_INC_DIR})
+        endif()
+    endif()
+endif()
+
 # 全局编译选项
 add_compile_options(-fcolor-diagnostics)
 

@@ -1200,3 +1200,6 @@ target_include_directories(mc_common
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
+
+# 基岩版Addon兼容模组系统
+add_subdirectory(mod/bedrock/addon)

@@ -42,7 +42,8 @@ namespace mc::server::event {
  * 事件是值类型，应该轻量且易于复制。
  */
 struct ServerEvent {
-    u64 timestamp; ///< 游戏tick
+    u64 timestamp;              ///< 游戏tick
+    mutable bool m_cancelled = false; ///< 取消标志（脚本可取消beforeEvent）
 
     ServerEvent()
         : timestamp(0)
@@ -51,6 +52,21 @@ struct ServerEvent {
         : timestamp(tick)
     {}
     virtual ~ServerEvent() = default;
+
+    /**
+     * @brief 检查事件是否已被取消
+     *
+     * 仅对beforeEvent有意义。取消后游戏逻辑将跳过原始操作。
+     */
+    [[nodiscard]] bool isCancelled() const { return m_cancelled; }
+
+    /**
+     * @brief 取消事件
+     *
+     * 在beforeEvent处理器中调用可阻止游戏执行原始操作。
+     * 取消后，后续的beforeEvent处理器仍然会被调用（与基岩版行为一致）。
+     */
+    void cancel() const { m_cancelled = true; }
 };
 
 /**

@@ -816,4 +816,151 @@ struct ChanneledLightningEvent : ServerEvent {
     {}
 };
 
+// ============================================================================
+// 世界事件
+// ============================================================================
+
+/**
+ * @brief 世界初始化事件
+ *
+ * 在世界首次加载完成后触发（afterEvent only，不可取消）。
+ * 脚本系统可在此事件中执行初始化逻辑。
+ */
+struct WorldInitializeEvent : ServerEvent {
+    std::string levelName;     ///< 世界名称
+    DimensionId overworldId;   ///< 主世界维度ID
+
+    WorldInitializeEvent(u64 tick, const std::string& name, DimensionId dim)
+        : ServerEvent(tick)
+        , levelName(name)
+        , overworldId(dim)
+    {}
+};
+
+/**
+ * @brief 服务端Tick事件
+ *
+ * 每个游戏tick触发两次：tick开始时（beforeEvent，可取消后续处理）
+ * 和tick结束时（afterEvent）。
+ */
+struct ServerTickEvent : ServerEvent {
+    u64 currentTick; ///< 当前tick序号
+
+    explicit ServerTickEvent(u64 tick)
+        : ServerEvent(tick)
+        , currentTick(tick)
+    {}
+};
+
+/**
+ * @brief 天气变化事件
+ *
+ * 当天气状态发生变化时触发（可取消，beforeEvent可阻止天气变化）。
+ * 参考 MC 1.16.5: WeatherChangeEvent
+ */
+struct WeatherChangeEvent : ServerEvent {
+    DimensionId dimension; ///< 维度
+    bool raining;          ///< 是否开始下雨（false=停雨）
+    i32 rainTime;          ///< 雨持续时间（tick）
+
+    WeatherChangeEvent(u64 tick, DimensionId dim, bool isRaining, i32 time)
+        : ServerEvent(tick)
+        , dimension(dim)
+        , raining(isRaining)
+        , rainTime(time)
+    {}
+};
+
+// ============================================================================
+// 聊天事件
+// ============================================================================
+
+/**
+ * @brief 聊天消息事件
+ *
+ * 当玩家发送聊天消息时触发。可取消（beforeEvent可阻止消息发送）。
+ * 参考 MC 1.16.5: ServerChatEvent
+ */
+struct ChatEvent : ServerEvent {
+    PlayerId playerId;    ///< 发送者ID
+    std::string message;  ///< 聊天消息内容
+    std::string username; ///< 发送者用户名
+
+    ChatEvent(u64 tick, PlayerId pid, const std::string& msg, const std::string& name)
+        : ServerEvent(tick)
+        , playerId(pid)
+        , message(msg)
+        , username(name)
+    {}
+};
+
+// ============================================================================
+// 爆炸事件
+// ============================================================================
+
+/**
+ * @brief 爆炸事件
+ *
+ * 当爆炸发生时触发。可取消（beforeEvent可阻止爆炸）。
+ * 参考 MC 1.16.5: ExplosionEvent
+ */
+struct ExplosionEvent : ServerEvent {
+    DimensionId dimension;    ///< 维度
+    Vector3d position;        ///< 爆炸位置
+    f32 power;                ///< 爆炸威力
+    Entity* source;           ///< 爆炸源实体（可能为null，如床爆炸）
+    bool flaming;             ///< 是否产生火焰（如火球爆炸）
+    std::vector<BlockPos> affectedBlocks; ///< 受影响的方块位置
+
+    ExplosionEvent(u64 tick,
+        DimensionId dim,
+        const Vector3d& pos,
+        f32 pow,
+        Entity* src,
+        bool flame,
+        std::vector<BlockPos> blocks)
+        : ServerEvent(tick)
+        , dimension(dim)
+        , position(pos)
+        , power(pow)
+        , source(src)
+        , flaming(flame)
+        , affectedBlocks(std::move(blocks))
+    {}
+};
+
+// ============================================================================
+// 实体生成事件
+// ============================================================================
+
+/**
+ * @brief 实体生成事件
+ *
+ * 当实体在世界中生成时触发（自然生成、刷怪笼等，不含玩家登录）。
+ * 与SummonedEntityEvent不同，后者仅限玩家主动召唤。
+ * 参考 MC 1.16.5: EntityJoinWorldEvent
+ */
+struct EntitySpawnEvent : ServerEvent {
+    Entity* entity;           ///< 生成的实体
+    DimensionId dimension;    ///< 生成维度
+    Vector3d position;        ///< 生成位置
+    enum class SpawnReason : u8 {
+        Natural,              ///< 自然生成
+        Spawner,              ///< 刷怪笼
+        SpawnEgg,             ///< 刷怪蛋
+        Command,              ///< 命令生成
+        Dispenser,            ///< 发射器
+        Other                 ///< 其他原因
+    };
+    SpawnReason reason;       ///< 生成原因
+
+    EntitySpawnEvent(u64 tick, Entity* e, DimensionId dim, const Vector3d& pos, SpawnReason r)
+        : ServerEvent(tick)
+        , entity(e)
+        , dimension(dim)
+        , position(pos)
+        , reason(r)
+    {}
+};
+
 } // namespace mc::server::event
