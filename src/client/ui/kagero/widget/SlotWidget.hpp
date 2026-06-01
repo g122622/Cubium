@@ -23,24 +23,19 @@
 
 #pragma once
 
-#include <memory>
-#include "../paint/PaintContext.hpp"
-#include "Widget.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include <functional>
 #include <string>
 
-namespace mc::client::ui::kagero::widget {
+#include "Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/item/core/ItemStack.hpp"
 
-// 前向声明
-class ItemRenderer2D;
+namespace mc::client::ui::kagero::widget {
 
 /**
  * @brief 物品槽组件
  *
  * 显示物品槽的组件，支持物品显示、交互和背景。
- *
- * 参考MC 1.16.5 Slot类实现
  *
  * 使用示例：
  * @code
@@ -67,6 +62,9 @@ public:
      */
     using OnSlotReleaseCallback = std::function<void(SlotWidget&, i32)>;
 
+    /// 默认槽位尺寸（像素）
+    static constexpr i32 DEFAULT_SLOT_SIZE = 16;
+
     /**
      * @brief 默认构造函数
      */
@@ -81,7 +79,7 @@ public:
     SlotWidget(std::string id, i32 x, i32 y)
         : Widget(std::move(id))
     {
-        setBounds(Rect(x, y, 16, 16)); // 默认槽位大小16x16
+        setBounds(Rect(x, y, DEFAULT_SLOT_SIZE, DEFAULT_SLOT_SIZE));
     }
 
     /**
@@ -102,10 +100,16 @@ public:
     void paint(PaintContext& ctx) override
     {
         if (!isVisible()) return;
+
         if (m_showBackground) {
             ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 40, 40, 40));
+            // TODO: 使用m_backgroundTexture绘制背景纹理，当前仅绘制纯色背景
             ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 100, 100, 100));
         }
+
+        // TODO: 绘制槽位中的物品（ItemStack渲染），需要ItemRenderer2D支持
+        // TODO: 当m_showCount为true时，绘制物品数量
+
         if (isHovered()) {
             ctx.drawBorder(bounds(), 1.0f, m_highlightColor);
         }
@@ -143,11 +147,12 @@ public:
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
+        (void)key;
         (void)scanCode;
 
-        if (action == 1 || action == 2) {
-            // 检测Shift键状态
-            m_shiftHeld = (mods & static_cast<i32>(KeyMods::Shift)) != 0;
+        const auto keyAction = static_cast<KeyAction>(action);
+        if (keyAction == KeyAction::Press || keyAction == KeyAction::Repeat) {
+            m_shiftHeld = hasMod(static_cast<KeyMods>(mods), KeyMods::Shift);
         }
         return false;
     }
@@ -259,10 +264,12 @@ protected:
     i32 m_slotIndex = -1; ///< 槽位索引
 
     // 显示属性
-    std::string m_backgroundTexture;                             ///< 背景纹理路径
-    bool m_showBackground = true;                                ///< 是否显示背景
-    bool m_interactive = true;                                   ///< 是否可交互
-    bool m_showCount = true;                                     ///< 是否显示数量
+    std::string m_backgroundTexture; ///< 背景纹理路径
+    bool m_showBackground = true;    ///< 是否显示背景
+    bool m_interactive = true;       ///< 是否可交互
+    bool m_showCount = true;         ///< 是否显示数量
+    // TODO: m_shiftHeld通过键盘事件追踪Shift状态，但当Shift在组件外按下时可能不同步，
+    //       后续应考虑从输入系统直接查询修饰键状态
     bool m_shiftHeld = false;                                    ///< Shift键是否按下
     u32 m_highlightColor = Colors::fromARGB(128, 255, 255, 255); ///< 高亮颜色
 

@@ -23,23 +23,10 @@
 
 #pragma once
 
-#include "../Glyph.hpp"
 #include "common/core/Types.hpp"
 #include <algorithm>
-#include <functional>
-#include <memory>
-#include <string>
-#include <vector>
 
 namespace mc::client::ui::kagero {
-
-// 引入Colors命名空间中的颜色常量
-using mc::client::Colors::BLACK;
-using mc::client::Colors::BLUE;
-using mc::client::Colors::fromARGB;
-using mc::client::Colors::GREEN;
-using mc::client::Colors::RED;
-using mc::client::Colors::WHITE;
 
 /**
  * @brief 矩形区域

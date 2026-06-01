@@ -120,7 +120,7 @@ struct TemplateVersion {
     static constexpr u32 Major = 1;
     static constexpr u32 Minor = 0;
     static constexpr u32 Patch = 0;
-    static constexpr const char* std::string = "1.0.0";
+    static constexpr const char* VersionString = "1.0.0";
 };
 
 } // namespace mc::client::ui::kagero::tpl

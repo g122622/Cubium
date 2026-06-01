@@ -24,11 +24,12 @@
 #include "TemplateSystem.hpp"
 #include "bindings/BuiltinEvents.hpp"
 #include "bindings/BuiltinWidgets.hpp"
-#include "runtime/TemplateInstance.hpp"
 
 namespace mc::client::ui::kagero::tpl {
 
-static bool s_initialized = false;
+namespace {
+bool s_initialized = false;
+} // namespace
 
 void initializeTemplateSystem()
 {

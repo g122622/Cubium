@@ -88,8 +88,6 @@ public:
  *
  * 显示可滚动列表的组件，支持单选和多选。
  *
- * 参考MC 1.16.5 AbstractList.java实现
- *
  * 使用示例：
  * @code
  * auto list = std::make_unique<ListWidget>("list", 10, 10, 200, 300);
@@ -157,7 +155,7 @@ public:
     {
         ScrollableWidget::tick(dt);
 
-        // 更新悬停项
+        // TODO: 启用悬停项更新（当前悬停检测尚未完成）
         // m_hoveredIndex = getIndexAt(m_lastMouseX, m_lastMouseY);
     }
 

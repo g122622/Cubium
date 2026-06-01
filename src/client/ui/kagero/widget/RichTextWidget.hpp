@@ -23,19 +23,23 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Font.hpp"
-#include "../../Glyph.hpp"
-#include "../paint/Geometry.hpp"
-#include "../paint/PaintContext.hpp"
 #include "TextWidget.hpp"
 #include "Widget.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextParser.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include <algorithm>
 #include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 
@@ -47,8 +51,6 @@ namespace mc::client::ui::kagero::widget {
  * - 点击事件（打开URL、执行命令、建议命令、复制到剪贴板）
  * - 悬停事件（显示文本提示）
  * - 自动换行
- *
- * 参考: net.minecraft.client.gui.widget.TextWidget
  */
 class RichTextWidget : public Widget {
 public:
@@ -104,13 +106,13 @@ public:
     void init() override
     {
         Widget::init();
-        relayout();
+        _relayout();
     }
 
     void tick(f32 dt) override
     {
         Widget::tick(dt);
-        // 混淆效果动画可以在这里实现
+        // TODO: 实现混淆效果动画
     }
 
     // ==================== 绘制 ====================
@@ -123,7 +125,7 @@ public:
 
         // 重新布局（如果需要）
         if (m_linesDirty) {
-            relayout();
+            _relayout();
         }
 
         // 绘制每一行
@@ -153,9 +155,9 @@ public:
                     // 保存当前状态
                     ctx.save();
                     // 斜体效果：X方向倾斜约12度，以文本基线为中心
-                    ctx.translate(static_cast<f32>(textX), static_cast<f32>(textY) + m_fontHeight * 0.5f);
+                    ctx.translate(static_cast<f32>(textX), static_cast<f32>(textY) + s_fontHeight * 0.5f);
                     ctx.concat(paint::Matrix::makeSkew(-12.0f, 0.0f));
-                    ctx.translate(static_cast<f32>(-textX), static_cast<f32>(-textY) - m_fontHeight * 0.5f);
+                    ctx.translate(static_cast<f32>(-textX), static_cast<f32>(-textY) - s_fontHeight * 0.5f);
                 }
 
                 // 绘制阴影
@@ -177,14 +179,14 @@ public:
 
                 // 删除线：在文本中间绘制水平线
                 if (run.style.isStrikethrough()) {
-                    f32 strikethroughY = textY + m_fontHeight * 0.5f;
+                    f32 strikethroughY = textY + s_fontHeight * 0.5f;
                     ctx.drawFilledRect(
                         Rect(textX, static_cast<i32>(strikethroughY), static_cast<i32>(runWidth), 1), color);
                 }
 
                 // 下划线：在文本底部绘制水平线
                 if (run.style.isUnderlined()) {
-                    f32 underlineY = textY + m_fontHeight - 1.0f;
+                    f32 underlineY = textY + s_fontHeight - 1.0f;
                     ctx.drawFilledRect(Rect(textX, static_cast<i32>(underlineY), static_cast<i32>(runWidth), 1), color);
                 }
 
@@ -211,7 +213,7 @@ public:
         i32 localY = mouseY - bounds().y;
 
         // 查找点击的运行
-        const TextRun* run = findRunAt(localX, localY);
+        const TextRun* run = _findRunAt(localX, localY);
         if (run == nullptr) {
             return false;
         }
@@ -220,7 +222,7 @@ public:
 
         // 处理点击事件
         if (run->style.getClickEvent() != nullptr) {
-            handleClickEvent(*run->style.getClickEvent());
+            _handleClickEvent(*run->style.getClickEvent());
             return true;
         }
 
@@ -252,7 +254,7 @@ public:
         i32 localY = mouseY - bounds().y;
 
         // 查找悬停的运行
-        const TextRun* run = findRunAt(localX, localY);
+        const TextRun* run = _findRunAt(localX, localY);
 
         // 检查悬停状态变化
         if (run != m_hoveredRun) {
@@ -260,7 +262,7 @@ public:
 
             // 处理悬停事件
             if (run != nullptr && run->style.getHoverEvent() != nullptr) {
-                handleHoverEvent(*run->style.getHoverEvent(), mouseX, mouseY);
+                _handleHoverEvent(*run->style.getHoverEvent(), mouseX, mouseY);
             }
         }
 
@@ -340,7 +342,7 @@ public:
     [[nodiscard]] f32 getTextWidth() const
     {
         if (m_linesDirty) {
-            const_cast<RichTextWidget*>(this)->relayout();
+            _relayout();
         }
         f32 maxWidth = 0.0f;
         for (const auto& line : m_lines) {
@@ -352,18 +354,18 @@ public:
     [[nodiscard]] f32 getTextHeight() const
     {
         if (m_linesDirty) {
-            const_cast<RichTextWidget*>(this)->relayout();
+            _relayout();
         }
         if (m_lines.empty()) {
             return 0.0f;
         }
-        return m_lines.back().y + m_fontHeight - bounds().y;
+        return m_lines.back().y + s_fontHeight - bounds().y;
     }
 
     [[nodiscard]] i32 getLineCount() const
     {
         if (m_linesDirty) {
-            const_cast<RichTextWidget*>(this)->relayout();
+            _relayout();
         }
         return static_cast<i32>(m_lines.size());
     }
@@ -393,9 +395,9 @@ private:
     };
 
     /**
-     * @brief 重新计算布局
+     * @brief 重新计算布局（延迟布局，可在const方法中调用）
      */
-    void relayout()
+    void _relayout() const
     {
         m_lines.clear();
         m_linesDirty = false;
@@ -406,17 +408,17 @@ private:
 
         // 分解组件为 TextRun 列表
         std::vector<TextRun> runs;
-        flattenComponent(*m_text, text::Style(), runs);
+        _flattenComponent(*m_text, text::Style(), runs);
 
         // 布局运行
-        layoutRuns(runs);
+        _layoutRuns(runs);
     }
 
     /**
      * @brief 将 ITextComponent 分解为 TextRun 列表
      */
-    void flattenComponent(
-        const text::ITextComponent& component, const text::Style& parentStyle, std::vector<TextRun>& runs)
+    void _flattenComponent(
+        const text::ITextComponent& component, const text::Style& parentStyle, std::vector<TextRun>& runs) const
     {
         // 合并样式
         text::Style style = component.getStyle().mergeWithParent(parentStyle);
@@ -448,14 +450,14 @@ private:
         // 递归处理子组件
         const auto& siblings = component.getSiblings();
         for (const auto& sibling : siblings) {
-            flattenComponent(*sibling, style, runs);
+            _flattenComponent(*sibling, style, runs);
         }
     }
 
     /**
      * @brief 将 TextRun 列表布局为行
      */
-    void layoutRuns(std::vector<TextRun>& runs)
+    void _layoutRuns(std::vector<TextRun>& runs) const
     {
         if (runs.empty()) {
             return;
@@ -468,11 +470,11 @@ private:
 
         TextLine currentLine;
         currentLine.y = y;
-        currentLine.height = m_fontHeight * m_lineSpacing;
+        currentLine.height = s_fontHeight * m_lineSpacing;
 
         for (auto& run : runs) {
             // 计算运行宽度
-            run.advanceWidth = measureTextWidth(run.text);
+            run.advanceWidth = _measureTextWidth(run.text);
 
             // 检查是否需要换行
             if (m_wordWrap && x + run.advanceWidth > bounds().x + maxWidth && !currentLine.runs.empty()) {
@@ -483,9 +485,9 @@ private:
 
                 // 开始新行
                 x = static_cast<f32>(bounds().x);
-                y += m_fontHeight * m_lineSpacing;
+                y += s_fontHeight * m_lineSpacing;
                 currentLine.y = y;
-                currentLine.height = m_fontHeight * m_lineSpacing;
+                currentLine.height = s_fontHeight * m_lineSpacing;
 
                 // 检查最大行数
                 if (m_maxLines > 0 && lineCount >= m_maxLines) {
@@ -497,7 +499,7 @@ private:
             run.bounds = Rect(static_cast<i32>(x),
                 static_cast<i32>(y),
                 static_cast<i32>(run.advanceWidth),
-                static_cast<i32>(m_fontHeight));
+                static_cast<i32>(s_fontHeight));
 
             // 添加到当前行
             currentLine.runs.push_back(run);
@@ -514,31 +516,35 @@ private:
     /**
      * @brief 测量文本宽度
      */
-    [[nodiscard]] f32 measureTextWidth(const std::string& text) const
+    [[nodiscard]] f32 _measureTextWidth(const std::string& text) const
     {
-        if (auto* font = resolvedFont()) {
+        if (auto* font = _resolvedFont()) {
             f32 width = 0.0f;
             for (char32_t codePoint : text) {
                 if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                     width += glyph->advance;
                 } else {
-                    width += 4.0f; // 默认宽度
+                    // 缺失字形的回退宽度
+                    constexpr f32 MISSING_GLYPH_WIDTH = 4.0f;
+                    width += MISSING_GLYPH_WIDTH;
                 }
             }
             return width;
         }
-        return static_cast<f32>(text.length()) * 8.0f; // 默认每字符8像素
+        // 无字体时的回退宽度：每字符8像素
+        constexpr f32 FALLBACK_CHAR_WIDTH = 8.0f;
+        return static_cast<f32>(text.length()) * FALLBACK_CHAR_WIDTH;
     }
 
     /**
      * @brief 获取字体对象
      */
-    [[nodiscard]] ::mc::client::Font* resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
+    [[nodiscard]] ::mc::client::Font* _resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
 
     /**
      * @brief 查找指定位置的文本运行
      */
-    [[nodiscard]] const TextRun* findRunAt(i32 x, i32 y) const
+    [[nodiscard]] const TextRun* _findRunAt(i32 x, i32 y) const
     {
         for (const auto& line : m_lines) {
             for (const auto& run : line.runs) {
@@ -560,7 +566,7 @@ private:
      * - SuggestCommand: 在聊天框填入命令
      * - CopyToClipboard: 调用平台 API 复制文本
      */
-    bool handleClickEvent(const text::ClickEvent& event)
+    bool _handleClickEvent(const text::ClickEvent& event)
     {
         // 调用回调
         if (m_onClick) {
@@ -581,7 +587,7 @@ private:
      * - ShowItem: 显示物品提示
      * - ShowEntity: 显示实体提示
      */
-    void handleHoverEvent(const text::HoverEvent& event, i32 x, i32 y)
+    void _handleHoverEvent(const text::HoverEvent& event, i32 x, i32 y)
     {
         // 调用回调
         if (m_onHover) {
@@ -592,9 +598,9 @@ private:
     // 文本内容
     std::unique_ptr<text::ITextComponent> m_text;
 
-    // 布局数据
-    std::vector<TextLine> m_lines;
-    bool m_linesDirty = true;
+    // 布局数据（mutable 允许在const方法中延迟更新布局缓存）
+    mutable std::vector<TextLine> m_lines;
+    mutable bool m_linesDirty = true;
 
     // 样式属性
     u32 m_baseColor = Colors::WHITE;
@@ -603,9 +609,9 @@ private:
     bool m_wordWrap = true;
     TextAlignment m_alignment = TextAlignment::Left;
     f32 m_lineSpacing = 1.0f;
-    i32 m_maxLines = 0; // 0 = 无限制
-    void* m_font = nullptr;
-    constexpr static f32 m_fontHeight = 9.0f;
+    i32 m_maxLines = 0;     // 0 = 无限制
+    void* m_font = nullptr; // TODO: 改为 Font* 类型，避免类型不安全
+    constexpr static f32 s_fontHeight = 9.0f;
 
     // 事件处理
     bool m_eventsEnabled = true;

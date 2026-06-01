@@ -53,8 +53,7 @@ void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
 
 void ListWidget::refreshItems()
 {
-    // 刷新当前项目（如果数据源仍然可用）
-    // 这需要外部重新调用 setItemsFromValue
+    // TODO: 实现基于数据源的自动刷新，当前需要外部重新调用 setItemsFromValue
     updateContentHeight();
 }
 

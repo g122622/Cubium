@@ -270,64 +270,64 @@ private:
     /**
      * @brief 实例化节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateNode(
+    [[nodiscard]] std::unique_ptr<widget::Widget> _instantiateNode(
         const ast::Node* node, widget::Widget* parent = nullptr);
 
     /**
      * @brief 实例化元素节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateElement(
+    [[nodiscard]] std::unique_ptr<widget::Widget> _instantiateElement(
         const ast::ElementNode* element, widget::Widget* parent = nullptr);
 
     /**
      * @brief 实例化文本节点
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiateText(
+    [[nodiscard]] std::unique_ptr<widget::Widget> _instantiateText(
         const ast::TextNode* textNode, widget::Widget* parent = nullptr);
 
     /**
      * @brief 创建Widget
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> createWidget(
+    [[nodiscard]] std::unique_ptr<widget::Widget> _createWidget(
         const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs);
 
     /**
      * @brief 应用静态属性
      */
-    void applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs);
+    void _applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs);
 
     /**
      * @brief 应用绑定属性
      */
-    void applyBindingAttributes(
+    void _applyBindingAttributes(
         widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath);
 
     /**
      * @brief 应用事件绑定
      */
-    void applyEventBindings(
+    void _applyEventBindings(
         widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath);
 
     /**
      * @brief 解析静态属性值
      */
-    [[nodiscard]] binder::Value parseStaticValue(const ast::Attribute& attr) const;
+    [[nodiscard]] binder::Value _parseStaticValue(const ast::Attribute& attr) const;
 
     /**
      * @brief 从属性创建Widget路径
      */
-    [[nodiscard]] std::string buildWidgetPath(
+    [[nodiscard]] std::string _buildWidgetPath(
         const ast::ElementNode* element, const std::string& parentPath = "") const;
 
     /**
      * @brief 注册Widget到路径映射
      */
-    void registerWidgetPath(const std::string& path, widget::Widget* widget);
+    void _registerWidgetPath(const std::string& path, widget::Widget* widget);
 
     /**
-     * * @brief 注册Widget ID映射
+     * @brief 注册Widget ID映射
      */
-    void registerWidgetId(const std::string& id, widget::Widget* widget);
+    void _registerWidgetId(const std::string& id, widget::Widget* widget);
 
     // ========== 循环渲染辅助方法 ==========
 
@@ -342,7 +342,7 @@ private:
      * @param itemVarName 循环变量名
      * @param indexVarName 索引变量名（可选）
      */
-    void instantiateLoopChildren(const ast::ElementNode* element,
+    void _instantiateLoopChildren(const ast::ElementNode* element,
         widget::Widget* parent,
         const std::string& collectionPath,
         const std::string& itemVarName,
@@ -354,7 +354,7 @@ private:
      * @param path 集合路径
      * @return 值数组
      */
-    [[nodiscard]] std::vector<binder::Value> resolveCollection(const std::string& path) const;
+    [[nodiscard]] std::vector<binder::Value> _resolveCollection(const std::string& path) const;
 
     /**
      * @brief 检查条件是否满足
@@ -362,7 +362,7 @@ private:
      * @param condition 条件信息
      * @return 条件是否满足
      */
-    [[nodiscard]] bool evaluateCondition(const ast::ConditionInfo& condition) const;
+    [[nodiscard]] bool _evaluateCondition(const ast::ConditionInfo& condition) const;
 
 private:
     // Owned compiled template

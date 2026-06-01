@@ -23,9 +23,6 @@
 
 #pragma once
 
-#include "../../Font.hpp"
-#include "../../Glyph.hpp"
-#include "../paint/PaintContext.hpp"
 #include "Widget.hpp"
 #include <algorithm>
 #include <cmath>
@@ -33,10 +30,19 @@
 #include <string>
 #include <utility>
 
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+
 namespace mc::client::ui::kagero::widget {
 
 /**
  * @brief 文本输入框组件
+ *
+ * 支持文本输入、光标定位、文本选区、滚动、验证等功能。
+ * TODO: 选区高亮渲染尚未实现（m_selectionColor 已预留但未使用）
+ * TODO: UTF-8 多字节字符的迭代处理尚未完善，当前按字节遍历而非按码点遍历
+ * TODO: 光标闪烁视觉反馈尚未实现（m_cursorBlinkCounter 已预留但未使用）
  */
 class TextFieldWidget : public Widget {
 public:
@@ -47,6 +53,12 @@ public:
 
     /**
      * @brief 构造函数
+     *
+     * @param id 组件标识符
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param width 宽度
+     * @param height 高度
      */
     TextFieldWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id))
@@ -54,12 +66,18 @@ public:
         setBounds(Rect(x, y, width, height));
     }
 
+    /**
+     * @brief 每帧更新，用于光标闪烁计时等
+     */
     void tick(f32 dt) override
     {
         (void)dt;
         ++m_cursorBlinkCounter;
     }
 
+    /**
+     * @brief 绘制文本输入框
+     */
     void paint(PaintContext& ctx) override
     {
         if (!isVisible()) return;
@@ -89,7 +107,7 @@ public:
     }
 
     /**
-     * @brief 鼠标点击处理
+     * @brief 鼠标点击处理，点击后聚焦并定位光标
      */
     bool onClick(i32 mouseX, i32 mouseY, i32 button) override
     {
@@ -103,10 +121,14 @@ public:
         return true;
     }
 
+    /**
+     * @brief 键盘事件处理，支持退格、删除、方向键、Home/End 等操作
+     */
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
         (void)scanCode;
         if (!canWrite()) return false;
+        // 只处理按下和重复事件
         if (action != 1 && action != 2) return false;
 
         const bool previousShiftHeld = m_shiftHeld;
@@ -115,30 +137,36 @@ public:
         const auto restoreShift = [&]() { m_shiftHeld = previousShiftHeld; };
 
         switch (key) {
+            // GLFW_KEY_BACKSPACE
             case 259:
                 if (m_active) {
                     deleteFromCursor(-1);
                 }
                 restoreShift();
                 return true;
+            // GLFW_KEY_DELETE
             case 261:
                 if (m_active) {
                     deleteFromCursor(1);
                 }
                 restoreShift();
                 return true;
+            // GLFW_KEY_RIGHT
             case 262:
                 moveCursorBy(1);
                 restoreShift();
                 return true;
+            // GLFW_KEY_LEFT
             case 263:
                 moveCursorBy(-1);
                 restoreShift();
                 return true;
+            // GLFW_KEY_HOME
             case 268:
                 setCursorPosition(0);
                 restoreShift();
                 return true;
+            // GLFW_KEY_END
             case 269:
                 setCursorPosition(static_cast<i32>(m_text.size()));
                 restoreShift();
@@ -149,6 +177,9 @@ public:
         }
     }
 
+    /**
+     * @brief 字符输入事件处理
+     */
     bool onChar(u32 codePoint) override
     {
         if (!canWrite()) return false;
@@ -422,7 +453,7 @@ protected:
     }
 
     /**
-     * @brief 文本变化后回调
+     * @brief 文本变化后回调，通知外部监听者
      */
     virtual void onTextChanged()
     {
@@ -433,6 +464,8 @@ protected:
 
     /**
      * @brief 从光标处删除字符
+     *
+     * @param delta 删除方向和数量，负数向左删除，正数向右删除
      */
     void deleteFromCursor(i32 delta)
     {
@@ -465,12 +498,14 @@ protected:
     }
 
     /**
-     * @brief 获取外部字体对象
+     * @brief 获取外部字体对象（将 void* 转型为 Font*）
+     *
+     * TODO: m_font 应改为类型安全的指针，避免 void* 强转
      */
     [[nodiscard]] ::mc::client::Font* resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
 
     /**
-     * @brief 计算单个码点的宽度
+     * @brief 计算单个码点的水平推进宽度
      */
     [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const
     {
@@ -478,13 +513,17 @@ protected:
             if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                 return glyph->advance;
             }
+            // 字体中未找到字形时的回退宽度
             return 4.0f;
         }
+        // 无字体时的回退宽度
         return 8.0f;
     }
 
     /**
      * @brief 计算文本宽度
+     *
+     * TODO: 当前按字节遍历 std::string，对 UTF-8 多字节字符的处理不正确，需要按码点迭代
      */
     [[nodiscard]] f32 measureTextWidth(const std::string& text) const
     {
@@ -496,7 +535,7 @@ protected:
     }
 
     /**
-     * @brief 计算指定位置之前的文本宽度
+     * @brief 计算从文本开头到指定位置之间的宽度
      */
     [[nodiscard]] f32 measurePrefixWidth(i32 position) const
     {
@@ -509,7 +548,7 @@ protected:
     }
 
     /**
-     * @brief 根据像素偏移量计算光标位置
+     * @brief 根据像素偏移量计算对应的光标位置
      */
     [[nodiscard]] i32 positionFromTextOffset(f32 offset) const
     {
@@ -531,7 +570,7 @@ protected:
     }
 
     /**
-     * @brief 根据鼠标位置计算光标位置
+     * @brief 根据鼠标 X 坐标计算光标位置
      */
     [[nodiscard]] i32 positionFromMouseX(i32 mouseX) const
     {
@@ -541,12 +580,12 @@ protected:
     }
 
     /**
-     * @brief 获取文本起始 X 坐标
+     * @brief 获取文本起始 X 坐标（含边框和内边距偏移）
      */
     [[nodiscard]] i32 textStartX() const { return bounds().x + 1 + padding().left; }
 
     /**
-     * @brief 获取文本基线 Y 坐标
+     * @brief 获取文本基线 Y 坐标（垂直居中）
      */
     [[nodiscard]] i32 getTextBaselineY(PaintContext& ctx) const
     {
@@ -555,7 +594,7 @@ protected:
     }
 
     /**
-     * @brief 获取内容区域剪裁范围
+     * @brief 获取内容区域剪裁范围（扣除边框和内边距）
      */
     [[nodiscard]] Rect getTextClipBounds() const
     {
@@ -567,12 +606,12 @@ protected:
     }
 
     /**
-     * @brief 获取可显示的文本宽度
+     * @brief 获取可显示的文本宽度（扣除边框和内边距）
      */
     [[nodiscard]] i32 innerTextWidth() const { return std::max(0, bounds().width - 2 - padding().horizontal()); }
 
     /**
-     * @brief 更新滚动偏移，确保光标始终可见
+     * @brief 更新滚动偏移，确保光标始终在可见区域内
      */
     void updateScrollOffset()
     {
@@ -595,7 +634,7 @@ protected:
     }
 
     /**
-     * @brief 限制光标位置在有效范围内
+     * @brief 将光标位置限制在 [0, text.size()] 范围内
      */
     [[nodiscard]] i32 clampPosition(i32 pos) const
     {
@@ -603,7 +642,7 @@ protected:
     }
 
     /**
-     * @brief 检查字符是否允许输入
+     * @brief 检查字符码点是否允许输入（过滤控制字符）
      */
     static bool isAllowedCharacter(u32 codePoint)
     {
@@ -613,7 +652,9 @@ protected:
     }
 
     /**
-     * @brief 过滤允许输入的字符
+     * @brief 过滤字符串中不允许输入的字符
+     *
+     * TODO: 当前按字节遍历，对 UTF-8 多字节字符的过滤不正确
      */
     static std::string filterAllowedCharacters(const std::string& text)
     {
@@ -628,7 +669,9 @@ protected:
     }
 
     /**
-     * @brief 将码点转为字符串
+     * @brief 将 Unicode 码点转换为 UTF-8 字符串
+     *
+     * TODO: 当前仅使用 push_back 单字节，对非 ASCII 码点会丢失数据，需实现正确的 UTF-8 编码
      */
     static std::string codePointToString(u32 codePoint)
     {
@@ -637,23 +680,25 @@ protected:
         return result;
     }
 
-    std::string m_text;
-    std::string m_placeholder;
-    i32 m_maxLength = 32;
-    i32 m_cursorPosition = 0;
-    i32 m_selectionEnd = 0;
-    i32 m_scrollOffset = 0;
-    i32 m_cursorBlinkCounter = 0;
-    bool m_enabled = true;
-    bool m_canLoseFocus = true;
-    bool m_drawBackground = true;
-    bool m_shiftHeld = false;
-    u32 m_textColor = 0xE0E0E0;
-    u32 m_disabledTextColor = 0x707070;
-    u32 m_selectionColor = 0xFF0000FF;
-    void* m_font = nullptr;
-    TextChangedCallback m_onTextChanged;
-    TextValidator m_validator;
+    // ---- 成员变量 ----
+
+    std::string m_text;                  ///< 当前文本内容
+    std::string m_placeholder;           ///< 占位符文本（文本为空时显示）
+    i32 m_maxLength = 32;                ///< 最大文本长度
+    i32 m_cursorPosition = 0;            ///< 光标位置（字符索引）
+    i32 m_selectionEnd = 0;              ///< 选区结束位置
+    i32 m_scrollOffset = 0;              ///< 水平滚动偏移（像素）
+    i32 m_cursorBlinkCounter = 0;        ///< 光标闪烁计数器（TODO: 用于光标闪烁视觉反馈，尚未实现）
+    bool m_enabled = true;               ///< 是否启用输入
+    bool m_canLoseFocus = true;          ///< 失去焦点时是否清除选区
+    bool m_drawBackground = true;        ///< 是否绘制背景
+    bool m_shiftHeld = false;            ///< Shift 键是否按下（用于选区扩展）
+    u32 m_textColor = 0xE0E0E0;          ///< 正常状态文本颜色
+    u32 m_disabledTextColor = 0x707070;  ///< 禁用状态文本颜色
+    u32 m_selectionColor = 0xFF0000FF;   ///< 选区高亮颜色（TODO: 选区高亮渲染尚未实现）
+    void* m_font = nullptr;              ///< 字体指针（外部管理生命周期）
+    TextChangedCallback m_onTextChanged; ///< 文本变化回调
+    TextValidator m_validator;           ///< 文本验证器
 };
 
 } // namespace mc::client::ui::kagero::widget

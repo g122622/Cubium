@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../Types.hpp"
+#include "client/ui/Glyph.hpp"
 #include <functional>
 #include <memory>
 #include <string>

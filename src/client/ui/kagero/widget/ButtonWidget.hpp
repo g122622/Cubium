@@ -23,12 +23,13 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Glyph.hpp"
-#include "../paint/PaintContext.hpp"
-#include "Widget.hpp"
 #include <functional>
+#include <memory>
 #include <string>
+
+#include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 
 namespace mc::client::ui::kagero::widget {
 
@@ -41,8 +42,6 @@ namespace mc::client::ui::kagero::widget {
  * - 悬停提示
  * - 禁用状态
  * - 三态渲染（正常、悬停、禁用）
- *
- * 参考MC 1.16.5 Button.java实现
  *
  * 使用示例：
  * @code
@@ -123,11 +122,6 @@ public:
     }
 
     // ==================== 生命周期 ====================
-
-    void init() override
-    {
-        // 初始化按钮状态
-    }
 
     void paint(PaintContext& ctx) override
     {
@@ -241,13 +235,13 @@ protected:
      * @brief 播放点击音效
      *
      * 子类可重写以自定义音效。
-     * 默认播放 minecraft:ui.button.click，音量 0.25（MC 1.16.5 标准）。
+     * 默认播放 minecraft:ui.button.click，音量 0.25。
      */
     virtual void playClickSound() { Widget::playUiSound("minecraft:ui.button.click"); }
 
     std::string m_text;            ///< 按钮文本
     OnPressCallback m_onPress;     ///< 点击回调
-    OnTooltipCallback m_onTooltip; ///< 提示回调
+    OnTooltipCallback m_onTooltip; ///< 提示回调（TODO: 尚未在paint或事件中调用，需要集成到悬停渲染逻辑中）
     Style m_style;                 ///< 按钮样式
 };
 

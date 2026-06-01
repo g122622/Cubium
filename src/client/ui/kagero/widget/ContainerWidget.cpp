@@ -22,8 +22,8 @@
  */
 
 #include "ContainerWidget.hpp"
-#include "../layout/core/LayoutEngine.hpp"
-#include "../layout/integration/WidgetLayoutAdaptor.hpp"
+#include "client/ui/kagero/layout/core/LayoutEngine.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 
 namespace mc::client::ui::kagero::widget {
 
@@ -33,6 +33,7 @@ void ContainerWidget::paint(PaintContext& ctx)
         return;
     }
 
+    // 绘制背景和边框（透明色则跳过绘制）
     if (backgroundColor() != 0x00000000) {
         ctx.drawFilledRect(bounds(), backgroundColor());
     }
@@ -47,6 +48,7 @@ void ContainerWidget::tick(f32 dt)
 {
     tickChildren(dt);
 
+    // 延迟布局：在 tick 中检查脏标记并执行布局，避免同一帧内重复布局
     if (m_layoutDirty) {
         relayout();
     }
@@ -99,6 +101,7 @@ void ContainerWidget::setLayoutType(ContainerLayoutType type)
 void ContainerWidget::setFlexConfig(const layout::FlexConfig& config)
 {
     m_flexConfig = config;
+    // 仅在当前为 Flex 布局时才需要请求重新布局
     if (m_layoutType == ContainerLayoutType::Flex) {
         requestLayout();
     }
@@ -107,6 +110,7 @@ void ContainerWidget::setFlexConfig(const layout::FlexConfig& config)
 void ContainerWidget::setGridConfig(const layout::GridConfig& config)
 {
     m_gridConfig = config;
+    // 仅在当前为 Grid 布局时才需要请求重新布局
     if (m_layoutType == ContainerLayoutType::Grid) {
         requestLayout();
     }
@@ -115,6 +119,7 @@ void ContainerWidget::setGridConfig(const layout::GridConfig& config)
 void ContainerWidget::requestLayout()
 {
     m_layoutDirty = true;
+    // 向上传播布局请求，确保父容器也能重新布局
     if (parent() != nullptr) {
         if (auto* container = dynamic_cast<ContainerWidget*>(parent())) {
             container->requestLayout();
@@ -136,6 +141,7 @@ void ContainerWidget::relayout()
             engine.layoutFlex(&adaptor, bounds(), m_flexConfig);
             break;
         case ContainerLayoutType::Grid:
+            // TODO: Grid 布局尚未传递 GridConfig，需要 LayoutEngine 提供 layoutGrid 便捷方法
             engine.layoutWith("grid", &adaptor, bounds());
             break;
         case ContainerLayoutType::Anchor:
@@ -147,6 +153,7 @@ void ContainerWidget::relayout()
 
     m_layoutDirty = false;
 
+    // 递归布局子容器
     for (auto& child : m_children) {
         if (auto* container = dynamic_cast<ContainerWidget*>(child.get())) {
             if (container->layoutType() != ContainerLayoutType::None) {

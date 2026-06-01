@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -163,6 +164,8 @@ public:
  * @endcode
  */
 template <typename Derived>
+// TODO: Derived 模板参数目前未被使用（伪 CRTP），未来如果需要静态多态或访问派生类类型信息时再启用，
+//       否则应移除该模板参数以减少编译膨胀
 class WidgetContainerMixin : public IWidgetContainer {
 public:
     WidgetContainerMixin() = default;
@@ -178,11 +181,10 @@ public:
 
     void addWidget(Widget::Ptr widget) override
     {
-        if (widget) {
-            widget->setParent(this);
-            widget->init();
-            m_children.push_back(std::move(widget));
-        }
+        MC_ASSERT_RELEASE(widget != nullptr);
+        widget->setParent(this);
+        widget->init();
+        m_children.push_back(std::move(widget));
     }
 
     /**
@@ -193,7 +195,7 @@ public:
 
     void removeWidget(Widget* widget) override
     {
-        if (widget == nullptr) return;
+        MC_ASSERT_RELEASE(widget != nullptr);
 
         auto it = std::find_if(
             m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
@@ -294,7 +296,7 @@ public:
 
     void bringToFront(Widget* widget) override
     {
-        if (widget == nullptr) return;
+        MC_ASSERT_RELEASE(widget != nullptr);
 
         auto it = std::find_if(
             m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
@@ -309,7 +311,7 @@ public:
 
     void sendToBack(Widget* widget) override
     {
-        if (widget == nullptr) return;
+        MC_ASSERT_RELEASE(widget != nullptr);
 
         auto it = std::find_if(
             m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });

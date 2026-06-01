@@ -23,16 +23,11 @@
 
 #include "UpdateScheduler.hpp"
 #include <algorithm>
+#include <set>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 
 // ========== UpdateScheduler实现 ==========
-
-UpdateScheduler::UpdateScheduler()
-    : m_batchDelayMs(16)
-    , m_maxBatchSize(100)
-    , m_deferredUpdate(true)
-{}
 
 UpdateScheduler::~UpdateScheduler()
 {
@@ -88,7 +83,7 @@ void UpdateScheduler::cancelAll()
 
 u32 UpdateScheduler::executePending()
 {
-    deduplicatePaths();
+    _deduplicatePaths();
 
     u32 count = 0;
     count += executeHighPriority();
@@ -106,24 +101,24 @@ u32 UpdateScheduler::executePending()
 
 u32 UpdateScheduler::executeHighPriority()
 {
-    return executePriority(Priority::High);
+    return _executePriority(Priority::High);
 }
 
 u32 UpdateScheduler::executeNormalPriority()
 {
-    return executePriority(Priority::Normal);
+    return _executePriority(Priority::Normal);
 }
 
 u32 UpdateScheduler::executeLowPriority()
 {
-    return executePriority(Priority::Low);
+    return _executePriority(Priority::Low);
 }
 
 u32 UpdateScheduler::executeBatch()
 {
     if (!m_updateCallback) return 0;
 
-    deduplicatePaths();
+    _deduplicatePaths();
 
     u32 count = 0;
     std::set<std::string> processedPaths;
@@ -166,7 +161,7 @@ u64 UpdateScheduler::currentTimestamp() const
     return m_nextTimestamp;
 }
 
-u32 UpdateScheduler::executePriority(Priority priority)
+u32 UpdateScheduler::_executePriority(Priority priority)
 {
     if (!m_updateCallback) return 0;
 
@@ -206,7 +201,7 @@ u32 UpdateScheduler::executePriority(Priority priority)
     return count;
 }
 
-void UpdateScheduler::deduplicatePaths()
+void UpdateScheduler::_deduplicatePaths()
 {
     // 对每个路径只保留最新任务
     for (auto& [path, taskIds] : m_pathToTasks) {

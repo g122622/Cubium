@@ -23,13 +23,16 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Glyph.hpp"
-#include "../paint/PaintContext.hpp"
-#include "Widget.hpp"
+#include <array>
 #include <cmath>
+#include <cstdio>
 #include <functional>
+#include <memory>
 #include <string>
+
+#include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 
 namespace mc::client::ui::kagero::widget {
 
@@ -37,8 +40,6 @@ namespace mc::client::ui::kagero::widget {
  * @brief 滑块组件
  *
  * 支持拖动调整值的滑块组件。
- *
- * 参考MC 1.16.5 AbstractSlider.java实现
  *
  * 使用示例：
  * @code
@@ -95,14 +96,19 @@ public:
     void paint(PaintContext& ctx) override
     {
         if (!isVisible()) return;
+
+        // 绘制滑块轨道背景
         ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 45, 45, 45));
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 90, 90, 90));
 
+        // 计算滑块手柄位置和大小
         const i32 knobSize = std::max(8, height() - 4);
         const i32 range = std::max(1, width() - knobSize - 4);
         const i32 knobX = x() + 2 + static_cast<i32>(getRatio() * range);
         const Rect knob{knobX, y() + 2, knobSize, std::max(4, height() - 4)};
         ctx.drawFilledRect(knob, Colors::fromARGB(255, 200, 200, 200));
+
+        // TODO: 根据 m_showValue 绘制显示文本（displayText()）
     }
 
     // ==================== 事件处理 ====================
@@ -176,12 +182,13 @@ public:
 
         f64 step = (m_stepSize > 0) ? m_stepSize : (m_maxValue - m_minValue) / 20.0;
 
+        // TODO: 使用平台无关的键码常量替代硬编码值，避免依赖 GLFW
         switch (key) {
-            case 262: // GLFW_KEY_RIGHT
+            case 262: // Right
                 setValue(m_value + step);
                 return true;
 
-            case 263: // GLFW_KEY_LEFT
+            case 263: // Left
                 setValue(m_value - step);
                 return true;
 
@@ -374,9 +381,9 @@ protected:
         if (m_stepSize >= 1.0) {
             return std::to_string(static_cast<i32>(val));
         } else {
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.2f", val);
-            return std::string(buf);
+            std::array<char, 32> buf{};
+            std::snprintf(buf.data(), buf.size(), "%.2f", val);
+            return std::string(buf.data());
         }
     }
 

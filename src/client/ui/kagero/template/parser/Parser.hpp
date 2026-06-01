@@ -23,12 +23,11 @@
 
 #pragma once
 
-#include "../core/TemplateConfig.hpp"
-#include "../core/TemplateError.hpp"
 #include "Ast.hpp"
 #include "Lexer.hpp"
+#include "client/ui/kagero/template/core/TemplateConfig.hpp"
+#include "client/ui/kagero/template/core/TemplateError.hpp"
 #include <algorithm>
-#include <functional>
 #include <memory>
 #include <unordered_set>
 
@@ -71,7 +70,7 @@ using ast::TextNode;
  * Lexer lexer(source);
  * lexer.tokenize();
  *
- * Parser parser(lexer.tokens());
+ * Parser parser(lexer.tokens(), TemplateConfig::defaults());
  * auto ast = parser.parse();
  *
  * if (parser.hasErrors()) {
@@ -86,14 +85,14 @@ public:
      * @param tokens Token列表
      * @param config 解析配置
      */
-    explicit Parser(const std::vector<Token>& tokens, const TemplateConfig& config = TemplateConfig::defaults());
+    explicit Parser(const std::vector<Token>& tokens, const TemplateConfig& config);
 
     /**
      * @brief 从Lexer构造
      * @param lexer 词法分析器
      * @param config 解析配置
      */
-    explicit Parser(const Lexer& lexer, const TemplateConfig& config = TemplateConfig::defaults());
+    explicit Parser(const Lexer& lexer, const TemplateConfig& config);
 
     /**
      * @brief 解析模板
@@ -119,209 +118,211 @@ public:
      */
     [[nodiscard]] const TemplateErrorInfo* firstError() const { return m_errors.empty() ? nullptr : &m_errors.front(); }
 
-    /**
-     * @brief 获取当前Token
-     */
-    [[nodiscard]] const Token& current() const;
-
-    /**
-     * @brief 获取下一个Token（不前进）
-     */
-    [[nodiscard]] const Token& peek() const;
-
-    /**
-     * @brief 消费当前Token并前进
-     */
-    Token consume();
-
-    /**
-     * @brief 检查当前Token类型
-     */
-    [[nodiscard]] bool check(TokenType type) const;
-
-    /**
-     * @brief 检查当前Token类型和值
-     */
-    [[nodiscard]] bool check(TokenType type, const std::string& value) const;
-
-    /**
-     * @brief 匹配并消费Token
-     *
-     * 如果当前Token匹配，消费它并返回true
-     */
-    bool match(TokenType type);
-
-    /**
-     * @brief 匹配并消费Token（带值）
-     */
-    bool match(TokenType type, const std::string& value);
-
-    /**
-     * @brief 期望特定Token
-     *
-     * 如果当前Token不匹配，添加错误
-     */
-    bool expect(TokenType type);
-
-    /**
-     * @brief 期望特定Token（带值）
-     */
-    bool expect(TokenType type, const std::string& value);
-
-    /**
-     * @brief 期望标识符
-     */
-    [[nodiscard]] Token expectIdentifier(const std::string& context = "");
-
-    /**
-     * @brief 期望字符串字面量
-     */
-    [[nodiscard]] Token expectStringLiteral(const std::string& context = "");
-
-    /**
-     * @brief 跳过空白和换行Token
-     */
-    void skipWhitespaceAndNewlines();
-
-    /**
-     * @brief 同步到下一个有效位置（错误恢复）
-     */
-    void synchronize();
-
 private:
     // ========== 解析方法 ==========
 
     /**
      * @brief 解析文档
      */
-    [[nodiscard]] std::unique_ptr<DocumentNode> parseDocument();
+    [[nodiscard]] std::unique_ptr<DocumentNode> _parseDocument();
 
     /**
      * @brief 解析元素
      */
-    [[nodiscard]] std::unique_ptr<ElementNode> parseElement();
+    [[nodiscard]] std::unique_ptr<ElementNode> _parseElement();
 
     /**
      * @brief 解析开始标签
      * @param isOpenTag 是否是开放标签 (<...>)
      * @return 标签名，如果解析失败返回空字符串
      */
-    [[nodiscard]] std::string parseStartTag(bool isOpenTag);
+    [[nodiscard]] std::string _parseStartTag(bool isOpenTag);
 
     /**
      * @brief 解析属性列表
      * @param element 目标元素节点
      */
-    void parseAttributes(ElementNode& element);
+    void _parseAttributes(ElementNode& element);
 
     /**
      * @brief 解析单个属性
      * @return 属性对象
      */
-    [[nodiscard]] Attribute parseAttribute();
+    [[nodiscard]] Attribute _parseAttribute();
 
     /**
      * @brief 解析属性名（可能包含 bind: 或 on: 前缀）
      * @return 属性名Token
      */
-    [[nodiscard]] Token parseAttributeName();
+    [[nodiscard]] Token _parseAttributeName();
 
     /**
      * @brief 解析属性值
      * @return 属性值Token
      */
-    [[nodiscard]] Token parseAttributeValue();
+    [[nodiscard]] Token _parseAttributeValue();
 
     /**
      * @brief 解析元素内容（子节点）
      * @param parent 父元素
      */
-    void parseContent(ElementNode& parent);
+    void _parseContent(ElementNode& parent);
 
     /**
      * @brief 解析文本内容
      */
-    [[nodiscard]] std::unique_ptr<TextNode> parseText();
+    [[nodiscard]] std::unique_ptr<TextNode> _parseText();
 
     /**
      * @brief 解析注释
      */
-    [[nodiscard]] std::unique_ptr<CommentNode> parseComment();
+    [[nodiscard]] std::unique_ptr<CommentNode> _parseComment();
 
     /**
      * @brief 解析结束标签
      * @param expectedTagName 期望的标签名
      * @return 是否匹配
      */
-    bool parseEndTag(const std::string& expectedTagName);
+    bool _parseEndTag(const std::string& expectedTagName);
 
     // ========== 语义验证 ==========
 
     /**
      * @brief 验证元素
      */
-    void validateElement(ElementNode& element);
+    void _validateElement(ElementNode& element);
 
     /**
      * @brief 验证属性
      */
-    void validateAttribute(const Attribute& attr, const ElementNode& element);
+    void _validateAttribute(const Attribute& attr, const ElementNode& element);
 
     /**
      * @brief 验证绑定路径
      */
-    void validateBindingPath(const std::string& path, const SourceLocation& loc);
+    void _validateBindingPath(const std::string& path, const SourceLocation& loc);
 
     /**
      * @brief 验证回调名称
      */
-    void validateCallbackName(const std::string& name, const SourceLocation& loc);
+    void _validateCallbackName(const std::string& name, const SourceLocation& loc);
 
     /**
      * @brief 检查是否允许的内联表达式
      */
-    [[nodiscard]] bool isInlineExpressionAllowed() const;
+    [[nodiscard]] bool _isInlineExpressionAllowed() const;
 
     /**
      * @brief 提取循环指令信息
      *
-     * 从bind:items属性中提取循环信息
+     * 从for:xxx属性中提取循环信息
      */
-    [[nodiscard]] std::optional<LoopInfo> extractLoopInfo(const ElementNode& element);
+    [[nodiscard]] std::optional<LoopInfo> _extractLoopInfo(const ElementNode& element);
 
     /**
-     * * @brief 提取条件指令信息
+     * @brief 提取条件指令信息
      *
-     * 从bind:visible属性中提取条件信息
+     * 从if:xxx属性中提取条件信息
      */
-    [[nodiscard]] std::optional<ConditionInfo> extractConditionInfo(const ElementNode& element);
+    [[nodiscard]] std::optional<ConditionInfo> _extractConditionInfo(const ElementNode& element);
 
     // ========== 辅助方法 ==========
 
     /**
-     * @brief 添加错误
+     * @brief 获取当前Token
      */
-    void addError(TemplateErrorType type, const std::string& message, const SourceLocation& loc = SourceLocation());
+    [[nodiscard]] const Token& _current() const;
 
     /**
-     * @brief 添加错误（带上下文）
+     * @brief 获取下一个Token（不前进）
      */
-    void addError(TemplateErrorType type, const std::string& message, const Token& token);
+    [[nodiscard]] const Token& _peek() const;
+
+    /**
+     * @brief 消费当前Token并前进
+     */
+    Token _consume();
+
+    /**
+     * @brief 检查当前Token类型
+     */
+    [[nodiscard]] bool _check(TokenType type) const;
+
+    /**
+     * @brief 检查当前Token类型和值
+     */
+    [[nodiscard]] bool _check(TokenType type, const std::string& value) const;
+
+    /**
+     * @brief 匹配并消费Token
+     *
+     * 如果当前Token匹配，消费它并返回true
+     */
+    bool _match(TokenType type);
+
+    /**
+     * @brief 匹配并消费Token（带值）
+     */
+    bool _match(TokenType type, const std::string& value);
+
+    /**
+     * @brief 期望特定Token
+     *
+     * 如果当前Token不匹配，添加错误
+     */
+    bool _expect(TokenType type);
+
+    /**
+     * @brief 期望特定Token（带值）
+     */
+    bool _expect(TokenType type, const std::string& value);
+
+    /**
+     * @brief 期望标识符
+     * @param context 上下文描述（用于错误信息）
+     */
+    [[nodiscard]] Token _expectIdentifier(const std::string& context);
+
+    /**
+     * @brief 期望字符串字面量
+     * @param context 上下文描述（用于错误信息）
+     */
+    [[nodiscard]] Token _expectStringLiteral(const std::string& context);
+
+    /**
+     * @brief 添加错误
+     */
+    void _addError(TemplateErrorType type, const std::string& message, const SourceLocation& loc);
+
+    /**
+     * @brief 添加错误（带上下文Token）
+     */
+    void _addError(TemplateErrorType type, const std::string& message, const Token& token);
 
     /**
      * @brief 检查是否到达文件末尾
      */
-    [[nodiscard]] bool isAtEnd() const;
+    [[nodiscard]] bool _isAtEnd() const;
 
     /**
      * @brief 获取当前位置
      */
-    [[nodiscard]] SourceLocation currentLocation() const;
+    [[nodiscard]] SourceLocation _currentLocation() const;
 
     /**
      * @brief 检查标签名是否有效
      */
-    [[nodiscard]] bool isValidTagName(const std::string& name) const;
+    [[nodiscard]] bool _isValidTagName(const std::string& name) const;
+
+    /**
+     * @brief 跳过空白和换行Token
+     */
+    void _skipWhitespaceAndNewlines();
+
+    /**
+     * @brief 同步到下一个有效位置（错误恢复）
+     */
+    void _synchronize();
 
 private:
     const std::vector<Token>& m_tokens;
@@ -332,7 +333,7 @@ private:
     /**
      * @brief 已收集的ID集合（用于检测重复ID）
      *
-     * 在parse()过程中收集所有元素的ID，用于validateElement()中的唯一性检查
+     * 在parse()过程中收集所有元素的ID，用于_validateElement()中的唯一性检查
      */
     std::unordered_set<std::string> m_seenIds;
 };

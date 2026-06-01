@@ -45,8 +45,6 @@ using ScrollCallback = std::function<void(i32, i32, f64, f64)>;
  *
  * 提供滚动功能的容器，可以包含其他组件。
  *
- * 参考MC 1.16.5 AbstractList.java实现
- *
  * 使用示例：
  * @code
  * auto scrollable = std::make_unique<ScrollableWidget>("scroll", 10, 10, 200, 300);
@@ -133,9 +131,6 @@ public:
 
     bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
     {
-        (void)mouseX;
-        (void)mouseY;
-
         if (button != 0) return false;
 
         if (m_draggingScrollbar) {
@@ -149,8 +144,6 @@ public:
 
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override
     {
-        (void)deltaX;
-
         if (m_draggingScrollbar) {
             // 滚动条拖动
             i32 visibleHeight = m_bounds.height - m_padding.vertical();
@@ -173,9 +166,6 @@ public:
 
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
     {
-        (void)mouseX;
-        (void)mouseY;
-
         if (!isActive() || !isVisible()) return false;
 
         // 滚动内容
@@ -197,19 +187,20 @@ public:
         // 处理上下键滚动
         if (action == 1 || action == 2) {
             switch (key) {
-                case 264: // GLFW_KEY_DOWN
+                // TODO: 使用 GLFW 常量替代硬编码键码，需要引入 GLFW 依赖或定义平台无关的键码常量
+                case 264: // Down
                     scrollBy(20);
                     return true;
 
-                case 265: // GLFW_KEY_UP
+                case 265: // Up
                     scrollBy(-20);
                     return true;
 
-                case 266: // GLFW_KEY_PAGE_DOWN
+                case 266: // Page Down
                     scrollBy(m_bounds.height - m_padding.vertical());
                     return true;
 
-                case 267: // GLFW_KEY_PAGE_UP
+                case 267: // Page Up
                     scrollBy(-(m_bounds.height - m_padding.vertical()));
                     return true;
 
@@ -333,6 +324,7 @@ public:
     /**
      * @brief 滚动到使指定位置可见
      */
+    // TODO: 默认参数值违反项目规范（函数参数不允许默认值），需移除并更新所有调用点
     void scrollIntoView(i32 y, i32 height = 0)
     {
         i32 visibleHeight = m_bounds.height - m_padding.vertical();
@@ -357,7 +349,6 @@ public:
 
         // 获取子组件在内容中的位置
         i32 childTop = child->y() - m_bounds.y;
-        i32 childBottom = childTop + child->height();
 
         scrollIntoView(childTop, child->height());
     }
@@ -483,7 +474,8 @@ protected:
         ctx.drawFilledRect(thumb, Colors::fromARGB(200, 120, 120, 120));
     }
 
-    // 处理子组件拖动
+    // TODO: 此方法未被调用且与基类 WidgetContainerMixin::handleDragInChildren 行为不同，
+    //       基类使用 isHovered 过滤而此处使用 getWidgetAt，需确认是否应统一或移除
     bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
     {
         Widget* widget = getWidgetAt(mouseX, mouseY);
@@ -502,14 +494,15 @@ protected:
     i32 m_scrollY = 0; ///< 垂直滚动位置
 
     // 滚动条
-    bool m_showScrollbar = true;           ///< 是否显示滚动条
-    bool m_showHorizontalScrollbar = true; ///< 是否显示水平滚动条
-    i32 m_scrollbarWidth = 6;              ///< 滚动条宽度
-    f64 m_scrollSpeed = 20.0;              ///< 滚动速度
+    bool m_showScrollbar = true; ///< 是否显示滚动条
+    bool m_showHorizontalScrollbar =
+        true;                 ///< 是否显示水平滚动条 // TODO: 水平滚动条功能尚未实现，待补充水平滚动渲染和交互逻辑
+    i32 m_scrollbarWidth = 6; ///< 滚动条宽度
+    f64 m_scrollSpeed = 20.0; ///< 滚动速度
 
     // 状态
     bool m_draggingScrollbar = false; ///< 是否正在拖动滚动条
-    i32 m_lastMouseX = 0;             ///< 上次鼠标X位置
+    i32 m_lastMouseX = 0;             ///< 上次鼠标X位置 // TODO: 未使用，水平滚动拖动功能待实现
     i32 m_lastMouseY = 0;             ///< 上次鼠标Y位置
 
     // 回调

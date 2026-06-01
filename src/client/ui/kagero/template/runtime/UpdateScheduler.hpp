@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../../Types.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <functional>
 #include <memory>
-#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -74,14 +73,7 @@ public:
         {}
     };
 
-    /**
-     * @brief 构造函数
-     */
-    UpdateScheduler();
-
-    /**
-     * @brief 析构函数
-     */
+    UpdateScheduler() = default;
     ~UpdateScheduler();
 
     // 禁止拷贝
@@ -106,7 +98,7 @@ public:
      * @param priority 优先级
      * @return 任务ID
      */
-    u64 schedule(const std::string& path, Priority priority = Priority::Normal);
+    u64 schedule(const std::string& path, Priority priority);
 
     /**
      * @brief 取消更新任务
@@ -195,21 +187,20 @@ private:
     /**
      * @brief 执行指定优先级的任务
      */
-    u32 executePriority(Priority priority);
+    u32 _executePriority(Priority priority);
 
     /**
      * @brief 去重路径
      */
-    void deduplicatePaths();
+    void _deduplicatePaths();
 
 private:
     UpdateCallback m_updateCallback;
     std::vector<std::unique_ptr<UpdateTask>> m_tasks;
     std::unordered_map<std::string, std::vector<u64>> m_pathToTasks;
-    u64 m_nextTaskId = 1;
     u64 m_nextTimestamp = 0;
 
-    // 配置
+    // TODO: 批量延迟和延迟更新功能尚未实现，当前配置项仅预留
     u32 m_batchDelayMs = 16;      ///< 批量更新延迟（默认16ms）
     u32 m_maxBatchSize = 100;     ///< 最大批量大小
     bool m_deferredUpdate = true; ///< 是否启用延迟更新

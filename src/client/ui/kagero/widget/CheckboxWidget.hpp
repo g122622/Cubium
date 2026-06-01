@@ -23,12 +23,13 @@
 
 #pragma once
 
-#include <memory>
-#include "../../Glyph.hpp"
-#include "../paint/PaintContext.hpp"
-#include "Widget.hpp"
 #include <functional>
+#include <memory>
 #include <string>
+
+#include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 
 namespace mc::client::ui::kagero::widget {
 
@@ -36,8 +37,6 @@ namespace mc::client::ui::kagero::widget {
  * @brief 复选框组件
  *
  * 可选中/取消选中的复选框组件。
- *
- * 参考MC 1.16.5 CheckboxButton.java实现
  *
  * 使用示例：
  * @code

@@ -32,7 +32,6 @@
 #include "../bindings/BuiltinWidgets.hpp"
 #include <algorithm>
 #include <cctype>
-#include <chrono>
 #include <sstream>
 
 namespace mc::client::ui::kagero::tpl::runtime {
@@ -512,30 +511,27 @@ void TemplateInstance::registerDefaultEventBinders()
     };
 
     // 键盘按下事件
+    // TODO: 实现键盘事件绑定，当前仅标记Widget有回调，实际分发由屏幕/输入系统处理
     m_eventBinders["keyDown"] = [](widget::Widget* widget,
                                     const std::string& eventName,
                                     const std::string& callbackName,
                                     binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget && widget->isFocused()) {
-            // 注意：键盘事件需要通过Widget的onKey方法处理
-            // 这里设置一个标志，指示此Widget有回调
-            // 实际的键盘事件分发由屏幕/输入系统处理
-            (void)ctx;
-            (void)callbackName;
-        }
+        (void)widget;
+        (void)ctx;
+        (void)callbackName;
     };
 
     // 键盘释放事件
+    // TODO: 实现键盘事件绑定，当前暂未实现
     m_eventBinders["keyUp"] = [](widget::Widget* widget,
                                   const std::string& eventName,
                                   const std::string& callbackName,
                                   binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget && widget->isFocused()) {
-            (void)ctx;
-            (void)callbackName;
-        }
+        (void)widget;
+        (void)ctx;
+        (void)callbackName;
     };
 
     // 焦点获得事件
@@ -645,7 +641,7 @@ bool TemplateInstance::instantiate()
     const ast::ElementNode* rootElement = doc->rootElement();
     if (!rootElement) return false;
 
-    m_rootWidget = instantiateElement(rootElement, nullptr);
+    m_rootWidget = _instantiateElement(rootElement, nullptr);
 
     if (!m_rootWidget) {
         return false;
@@ -667,7 +663,7 @@ bool TemplateInstance::instantiateInto(widget::IWidgetContainer* container)
         return false;
     }
 
-    if (container == nullptr) {
+    if (!container) {
         return false;
     }
 
@@ -757,13 +753,13 @@ std::string TemplateInstance::debugInfo() const
     return oss.str();
 }
 
-std::unique_ptr<widget::Widget> TemplateInstance::instantiateNode(const ast::Node* node, widget::Widget* parent)
+std::unique_ptr<widget::Widget> TemplateInstance::_instantiateNode(const ast::Node* node, widget::Widget* parent)
 {
     if (!node) return nullptr;
 
     switch (node->type) {
         case ast::NodeType::TextContent:
-            return instantiateText(static_cast<const ast::TextNode*>(node), parent);
+            return _instantiateText(static_cast<const ast::TextNode*>(node), parent);
 
         case ast::NodeType::Comment:
             // 跳过注释
@@ -771,7 +767,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateNode(const ast::Nod
 
         default:
             if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
-                return instantiateElement(element, parent);
+                return _instantiateElement(element, parent);
             }
             break;
     }
@@ -779,7 +775,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateNode(const ast::Nod
     return nullptr;
 }
 
-std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
+std::unique_ptr<widget::Widget> TemplateInstance::_instantiateElement(
     const ast::ElementNode* element, widget::Widget* parent)
 {
 
@@ -787,7 +783,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
 
     // 1. 条件渲染检查（优先）
     if (element->condition.has_value()) {
-        if (!evaluateCondition(element->condition.value())) {
+        if (!_evaluateCondition(element->condition.value())) {
             return nullptr; // 条件不满足，跳过创建
         }
     }
@@ -795,7 +791,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
     // 2. 循环渲染检查
     if (element->loop.has_value()) {
         // 循环元素：为集合中每个项创建子元素
-        instantiateLoopChildren(
+        _instantiateLoopChildren(
             element, parent, element->loop->collectionPath, element->loop->itemVarName, element->loop->indexVarName);
         return nullptr; // 循环容器本身不返回Widget
     }
@@ -808,7 +804,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
 
     // 4. 创建Widget
     std::string id = element->id.empty() ? "" : element->id;
-    auto widget = createWidget(element->tagName, id, staticAttrs);
+    auto widget = _createWidget(element->tagName, id, staticAttrs);
     if (!widget) return nullptr;
 
     // 5. 设置父Widget容器
@@ -817,24 +813,24 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
     }
 
     // 6. 注册Widget
-    std::string widgetPath = buildWidgetPath(element, parent ? parent->id() : "");
-    registerWidgetPath(widgetPath, widget.get());
+    std::string widgetPath = _buildWidgetPath(element, parent ? parent->id() : "");
+    _registerWidgetPath(widgetPath, widget.get());
     if (!id.empty()) {
-        registerWidgetId(id, widget.get());
+        _registerWidgetId(id, widget.get());
     }
 
     // 7. 应用静态属性
-    applyStaticAttributes(widget.get(), element->staticAttrs);
+    _applyStaticAttributes(widget.get(), element->staticAttrs);
 
     // 8. 应用绑定属性（初始值）
-    applyBindingAttributes(widget.get(), element->bindingAttrs, widgetPath);
+    _applyBindingAttributes(widget.get(), element->bindingAttrs, widgetPath);
 
     // 9. 应用事件绑定
-    applyEventBindings(widget.get(), element->eventAttrs, widgetPath);
+    _applyEventBindings(widget.get(), element->eventAttrs, widgetPath);
 
     // 10. 实例化子节点
     for (const auto& child : element->children) {
-        auto childWidget = instantiateNode(child.get(), widget.get());
+        auto childWidget = _instantiateNode(child.get(), widget.get());
         if (childWidget) {
             // 如果Widget是容器，添加子Widget
             if (auto* container = dynamic_cast<widget::IWidgetContainer*>(widget.get())) {
@@ -846,7 +842,8 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateElement(
     return widget;
 }
 
-std::unique_ptr<widget::Widget> TemplateInstance::instantiateText(const ast::TextNode* textNode, widget::Widget* parent)
+std::unique_ptr<widget::Widget> TemplateInstance::_instantiateText(
+    const ast::TextNode* textNode, widget::Widget* parent)
 {
 
     if (!textNode || textNode->isWhitespace) return nullptr;
@@ -860,7 +857,7 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiateText(const ast::Tex
     return widget;
 }
 
-std::unique_ptr<widget::Widget> TemplateInstance::createWidget(
+std::unique_ptr<widget::Widget> TemplateInstance::_createWidget(
     const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs)
 {
 
@@ -884,20 +881,20 @@ std::unique_ptr<widget::Widget> TemplateInstance::createWidget(
     return nullptr;
 }
 
-void TemplateInstance::applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs)
+void TemplateInstance::_applyStaticAttributes(widget::Widget* widget, const std::vector<ast::Attribute>& attrs)
 {
     if (!widget) return;
 
     for (const auto& attr : attrs) {
         auto setterIt = m_attributeSetters.find(attr.name);
         if (setterIt != m_attributeSetters.end()) {
-            binder::Value value = parseStaticValue(attr);
+            binder::Value value = _parseStaticValue(attr);
             setterIt->second(widget, attr.name, value);
         }
     }
 }
 
-void TemplateInstance::applyBindingAttributes(
+void TemplateInstance::_applyBindingAttributes(
     widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath)
 {
     if (!widget || !m_context) return;
@@ -944,7 +941,7 @@ void TemplateInstance::applyBindingAttributes(
     }
 }
 
-void TemplateInstance::applyEventBindings(
+void TemplateInstance::_applyEventBindings(
     widget::Widget* widget, const std::vector<ast::Attribute>& attrs, const std::string& widgetPath)
 {
     if (!widget || !m_context) return;
@@ -960,7 +957,7 @@ void TemplateInstance::applyEventBindings(
     }
 }
 
-binder::Value TemplateInstance::parseStaticValue(const ast::Attribute& attr) const
+binder::Value TemplateInstance::_parseStaticValue(const ast::Attribute& attr) const
 {
     // 根据属性值类型创建Value
     if (std::holds_alternative<std::string>(attr.value)) {
@@ -975,7 +972,7 @@ binder::Value TemplateInstance::parseStaticValue(const ast::Attribute& attr) con
     return binder::Value();
 }
 
-std::string TemplateInstance::buildWidgetPath(const ast::ElementNode* element, const std::string& parentPath) const
+std::string TemplateInstance::_buildWidgetPath(const ast::ElementNode* element, const std::string& parentPath) const
 {
     if (!element) return parentPath;
 
@@ -986,17 +983,17 @@ std::string TemplateInstance::buildWidgetPath(const ast::ElementNode* element, c
     return parentPath.empty() ? element->tagName : parentPath + "." + element->tagName;
 }
 
-void TemplateInstance::registerWidgetPath(const std::string& path, widget::Widget* widget)
+void TemplateInstance::_registerWidgetPath(const std::string& path, widget::Widget* widget)
 {
     m_widgetByPath[path] = widget;
 }
 
-void TemplateInstance::registerWidgetId(const std::string& id, widget::Widget* widget)
+void TemplateInstance::_registerWidgetId(const std::string& id, widget::Widget* widget)
 {
     m_widgetById[id] = widget;
 }
 
-void TemplateInstance::instantiateLoopChildren(const ast::ElementNode* element,
+void TemplateInstance::_instantiateLoopChildren(const ast::ElementNode* element,
     widget::Widget* parent,
     const std::string& collectionPath,
     const std::string& itemVarName,
@@ -1006,7 +1003,7 @@ void TemplateInstance::instantiateLoopChildren(const ast::ElementNode* element,
     if (!element || !m_context) return;
 
     // 解析集合
-    auto collection = resolveCollection(collectionPath);
+    auto collection = _resolveCollection(collectionPath);
 
     // 获取父容器
     auto* container = dynamic_cast<widget::IWidgetContainer*>(parent);
@@ -1022,7 +1019,7 @@ void TemplateInstance::instantiateLoopChildren(const ast::ElementNode* element,
 
         // 实例化子节点
         for (const auto& child : element->children) {
-            auto childWidget = instantiateNode(child.get(), parent);
+            auto childWidget = _instantiateNode(child.get(), parent);
             if (childWidget) {
                 container->addWidget(std::move(childWidget));
             }
@@ -1036,14 +1033,14 @@ void TemplateInstance::instantiateLoopChildren(const ast::ElementNode* element,
     }
 }
 
-std::vector<binder::Value> TemplateInstance::resolveCollection(const std::string& path) const
+std::vector<binder::Value> TemplateInstance::_resolveCollection(const std::string& path) const
 {
     if (!m_context) return {};
 
     return m_context->resolveCollection(path);
 }
 
-bool TemplateInstance::evaluateCondition(const ast::ConditionInfo& condition) const
+bool TemplateInstance::_evaluateCondition(const ast::ConditionInfo& condition) const
 {
     if (!m_context) return false;
 

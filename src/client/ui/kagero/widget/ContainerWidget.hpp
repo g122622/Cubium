@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../layout/algorithms/FlexLayout.hpp"
-#include "../layout/algorithms/GridLayout.hpp"
-#include "../paint/PaintContext.hpp"
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include <memory>
 
 namespace mc::client::ui::kagero::widget {
