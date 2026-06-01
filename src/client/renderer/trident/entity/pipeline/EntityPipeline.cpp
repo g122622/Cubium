@@ -191,7 +191,8 @@ Result<void> EntityPipeline::initialize(VkDevice device,
 void EntityPipeline::destroy()
 {
     const bool hadResources = m_initialized || m_pipeline != VK_NULL_HANDLE ||
-        m_additiveBlendPipeline != VK_NULL_HANDLE || m_pipelineLayout != VK_NULL_HANDLE ||
+        m_additiveBlendPipeline != VK_NULL_HANDLE || m_linePipeline != VK_NULL_HANDLE ||
+        m_pipelineLayout != VK_NULL_HANDLE ||
         m_textureSampler != VK_NULL_HANDLE || m_textureDescriptorLayout != VK_NULL_HANDLE ||
         m_vertexStagingBuffer != VK_NULL_HANDLE || m_indexStagingBuffer != VK_NULL_HANDLE;
 
@@ -205,6 +206,12 @@ void EntityPipeline::destroy()
     if (m_additiveBlendPipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_additiveBlendPipeline, nullptr);
         m_additiveBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // 销毁线段渲染管线
+    if (m_linePipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_device, m_linePipeline, nullptr);
+        m_linePipeline = VK_NULL_HANDLE;
     }
 
     // 销毁管线布局
@@ -241,6 +248,9 @@ void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode)
     switch (blendMode) {
         case BlendMode::Additive:
             pipelineToBind = m_additiveBlendPipeline;
+            break;
+        case BlendMode::Lines:
+            pipelineToBind = m_linePipeline;
             break;
         case BlendMode::Alpha:
         case BlendMode::None:
@@ -837,6 +847,23 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
     if (result != VK_SUCCESS) {
         spdlog::warn("EntityPipeline: Failed to create additive blend pipeline, falling back to alpha blend only");
         m_additiveBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // ==================== 线段渲染管线 ====================
+    // 使用 VK_PRIMITIVE_TOPOLOGY_LINE_LIST，Alpha 混合，用于钓鱼线等
+    VkPipelineInputAssemblyStateCreateInfo lineInputAssembly{};
+    lineInputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    lineInputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    lineInputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    // 使用 Alpha 混合（与主管线相同）
+    pipelineInfo.pInputAssemblyState = &lineInputAssembly;
+    pipelineInfo.pColorBlendState = &colorBlending;
+
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_linePipeline);
+    if (result != VK_SUCCESS) {
+        spdlog::warn("EntityPipeline: Failed to create line pipeline, falling back to alpha blend only");
+        m_linePipeline = VK_NULL_HANDLE;
     }
 
     return Result<void>::ok();

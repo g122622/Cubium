@@ -301,11 +301,28 @@ void ClientEntity::updateAnimation(f32 distanceMoved)
         m_limbSwing -= 6.283185307f * 100.0f;
     }
 
-    // 更新相机偏航角（参考 MC 1.16.5 PlayerEntity）
+    // 更新相机偏航角
     // cameraYaw 用于披风摆动强度计算
-    // MC 1.16.5: this.cameraYaw += (f - this.cameraYaw) * 0.4F;
-    // 其中 f 是移动强度
     m_cameraYaw += (distanceMoved - m_cameraYaw) * 0.4f;
+}
+
+void ClientEntity::triggerSwingAnimation(i32 hand)
+{
+    m_swingInProgress = true;
+    m_swingTickCounter = 0;
+    m_swingHand = hand;
+    m_prevSwingProgress = m_swingProgress;
+    m_swingProgress = 0.0f;
+}
+
+void ClientEntity::triggerHurtAnimation()
+{
+    m_hurtTime = 10;
+}
+
+void ClientEntity::triggerLeaveBedAnimation()
+{
+    m_sleeping = false;
 }
 
 void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ)
@@ -326,13 +343,31 @@ void ClientEntity::tick()
     tickPosition();
     tickRotation();
 
-    // 更新追踪位置系统（参考 MC 1.16.5 PlayerEntity.tick()）
+    // 更新挥动动画
+    if (m_swingInProgress) {
+        ++m_swingTickCounter;
+        m_prevSwingProgress = m_swingProgress;
+        m_swingProgress = static_cast<f32>(m_swingTickCounter) / static_cast<f32>(DEFAULT_SWING_DURATION);
+
+        if (m_swingTickCounter >= DEFAULT_SWING_DURATION) {
+            m_swingInProgress = false;
+            m_swingProgress = 0.0f;
+            m_prevSwingProgress = 0.0f;
+        }
+    }
+
+    // 更新受伤时间
+    if (m_hurtTime > 0) {
+        --m_hurtTime;
+    }
+
+    // 更新追踪位置系统
     // 用于披风摆动计算
     m_prevChasingPosX = m_chasingPosX;
     m_prevChasingPosY = m_chasingPosY;
     m_prevChasingPosZ = m_chasingPosZ;
 
-    // 平滑追踪实际位置（MC 1.16.5: this.chasingPosX += (this.getPosX() - this.chasingPosX) * 0.25D）
+    // 平滑追踪实际位置
     f64 dx = static_cast<f64>(m_position.x) - m_chasingPosX;
     f64 dy = static_cast<f64>(m_position.y) - m_chasingPosY;
     f64 dz = static_cast<f64>(m_position.z) - m_chasingPosZ;
@@ -340,12 +375,12 @@ void ClientEntity::tick()
     m_chasingPosY += dy * 0.25;
     m_chasingPosZ += dz * 0.25;
 
-    // 更新相机偏航角（参考 MC 1.16.5 PlayerEntity）
+    // 更新相机偏航角
     // 用于披风摆动强度计算
     m_prevCameraYaw = m_cameraYaw;
     // cameraYaw 基于移动距离，在 updateAnimation 中更新
 
-    // 更新北极熊站立动画（参考 MC 1.16.5 PolarBearEntity.tick()）
+    // 更新北极熊站立动画
     // 仅对北极熊实体有效
     updateStandingAnimation();
 }

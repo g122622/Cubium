@@ -30,6 +30,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
 
@@ -43,6 +44,7 @@ namespace mc::client::ui::minecraft::targetinfo {
 
 namespace {
 
+// 目标信息强调色（ARGB 格式）
 constexpr f32 ENTITY_SEARCH_MARGIN = 1.0f;
 constexpr u32 BLOCK_ACCENT_COLOR = 0xFFB88A4A;
 constexpr u32 ENTITY_ACCENT_COLOR = 0xFF58A7FF;
@@ -50,22 +52,23 @@ constexpr u32 ITEM_ACCENT_COLOR = 0xFFF0C96C;
 constexpr u32 PLAYER_ACCENT_COLOR = 0xFF72D5FF;
 constexpr u32 XP_ACCENT_COLOR = 0xFF9EF06C;
 
+/** 线段与 AABB 相交检测结果 */
 struct SegmentAabbHit {
     f32 distanceSq = 0.0f;
     Vector3 position;
 };
 
+/** 使用 Slab 法计算线段 [start, end] 与 AABB 的交点，返回最近交点信息 */
 [[nodiscard]] std::optional<SegmentAabbHit> intersectSegmentAabb(
     const Vector3& start, const Vector3& end, const AxisAlignedBB& box)
 {
-    constexpr f32 EPSILON = 1.0e-7f;
-
+    // 使用 Slab 法逐轴求解线段与 AABB 的交点参数 t
     const Vector3 delta = end - start;
     f32 tMin = 0.0f;
     f32 tMax = 1.0f;
 
     const auto updateAxis = [&](f32 origin, f32 axisDelta, f32 axisMin, f32 axisMax) -> bool {
-        if (std::abs(axisDelta) < EPSILON) {
+        if (std::abs(axisDelta) < mc::math::EPSILON_COLLISION) {
             return origin >= axisMin && origin <= axisMax;
         }
 
@@ -100,6 +103,7 @@ struct SegmentAabbHit {
     return SegmentAabbHit{hitPosition.distanceSquared(start), hitPosition};
 }
 
+/** 对实体包围盒做射线检测，先稍微扩展包围盒以增加命中容差 */
 [[nodiscard]] std::optional<SegmentAabbHit> rayTraceEntity(
     const Vector3& start, const Vector3& end, const ClientEntity& entity)
 {
@@ -113,6 +117,7 @@ struct SegmentAabbHit {
     return intersectSegmentAabb(start, end, entityBox);
 }
 
+/** 构造实体的显示标题，优先使用玩家名称或物品自定义名 */
 [[nodiscard]] std::string makeEntityTitle(
     const ClientEntity& entity, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
@@ -152,6 +157,7 @@ struct SegmentAabbHit {
     return humanizeResourceLocation(typeLocation);
 }
 
+/** 构造实体的详细信息列表（类型、ID、距离、物品/经验等） */
 [[nodiscard]] std::vector<std::string> makeEntityDetails(const ClientEntity& entity, f32 distance)
 {
     std::vector<std::string> details;
@@ -175,6 +181,7 @@ struct SegmentAabbHit {
     return details;
 }
 
+/** 根据方块射线检测结果构造方块目标信息快照 */
 [[nodiscard]] TargetInfoSnapshot makeBlockSnapshot(const BlockRaycastResult& blockRaycast, const ClientWorld& world)
 {
     const BlockState* state =
@@ -202,6 +209,7 @@ struct SegmentAabbHit {
         BLOCK_ACCENT_COLOR);
 }
 
+/** 根据实体信息构造实体目标信息快照，包含不同类型对应的强调色 */
 [[nodiscard]] TargetInfoSnapshot makeEntitySnapshot(
     const ClientEntity& entity, f32 distance, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
@@ -223,6 +231,7 @@ struct SegmentAabbHit {
     return TargetInfoSnapshot(TargetInfoKind::Entity, std::move(title), std::move(details), accentColor);
 }
 
+/** 在所有客户端实体中寻找与视线线段最近相交的实体 */
 [[nodiscard]] std::optional<SegmentAabbHit> rayTraceClientEntities(
     const Vector3& start, const Vector3& end, const ClientEntityManager& entityManager, const ClientEntity*& hitEntity)
 {

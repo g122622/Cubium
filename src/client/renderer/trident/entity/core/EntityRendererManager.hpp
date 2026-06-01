@@ -98,6 +98,19 @@ public:
         ClientEntity& entity, model::EntityModel& model, const core::AnimationContext& context);
 
     /**
+     * @brief 获取或创建管线网格提供者的网格
+     *
+     * 通过 PipelineMeshProvider 接口生成自定义网格（箭、船、矿车等）。
+     * 使用静态网格缓存，但对 needsMeshUpdate() 返回 true 的实体每帧更新。
+     *
+     * @param entity 客户端实体
+     * @param provider 管线网格提供者
+     * @return 网格指针，如果生成失败返回nullptr
+     */
+    [[nodiscard]] pipeline::EntityMesh* getOrCreateProviderMesh(
+        ClientEntity& entity, core::PipelineMeshProvider& provider);
+
+    /**
      * @brief 更新实体网格
      *
      * 当实体动画变化时调用，重新生成网格。
@@ -111,6 +124,14 @@ public:
      * @param entityId 实体ID
      */
     void removeMesh(EntityId entityId);
+
+    /**
+     * @brief 移除实体的所有网格（静态+动画）
+     *
+     * 在实体 despawn 时调用，同时清理静态和动画缓存。
+     * @param entityId 实体ID
+     */
+    void removeEntityMeshes(EntityId entityId);
 
     /**
      * @brief 清除所有实体网格

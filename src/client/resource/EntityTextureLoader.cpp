@@ -136,6 +136,17 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"vex", {"entity/illager/vex"}},
     {"ender_dragon", {"entity/enderdragon/dragon"}},
     {"wither", {"entity/wither/wither"}},
+
+    // 投掷物和特殊实体
+    {"snowball", {"entity/snowball"}},
+    {"egg", {"entity/egg"}},
+    {"ender_pearl", {"entity/ender_pearl"}},
+    {"potion", {"entity/potion"}},
+    {"experience_bottle", {"entity/experience_bottle"}},
+    {"fireball", {"entity/fireball"}},
+    {"small_fireball", {"entity/fireball"}},
+    {"fishing_bobber", {"entity/fishing_hook"}},
+    {"eye_of_ender", {"entity/eye_of_ender"}},
 };
 
 /**

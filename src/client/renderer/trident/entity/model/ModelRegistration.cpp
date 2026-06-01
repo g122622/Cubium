@@ -163,11 +163,12 @@ void initializeModelRegistration()
     factory.registerModel(ET::VINDICATOR, []() { return std::make_unique<monster::IllagerModel>(); });
     factory.registerModel(ET::EVOKER, []() { return std::make_unique<monster::IllagerModel>(); });
     factory.registerModel(ET::PILLAGER, []() { return std::make_unique<monster::IllagerModel>(); });
+    factory.registerModel(ET::ILLUSIONER, []() { return std::make_unique<monster::IllagerModel>(); });
     factory.registerModel(ET::RAVAGER, []() { return std::make_unique<monster::RavagerModel>(); });
 
-    // 女巫（使用 VillagerModel 的子类）
-    // TODO: 实现 WitchModel 继承自 VillagerModel
-    // factory.registerModel(ET::WITCH, []() { return std::make_unique<monster::WitchModel>(); });
+    // 女巫（暂时使用 IllagerModel 占位，WitchRenderer 已注册）
+    // TODO: 实现 WitchModel 继承自 VillagerModel，包含帽子、鼻子等独特部件
+    factory.registerModel(ET::WITCH, []() { return std::make_unique<monster::IllagerModel>(); });
 
     // ==================== 下界生物 ====================
     factory.registerModel(ET::GHAST, []() { return std::make_unique<nether::GhastModel>(); });
@@ -183,8 +184,7 @@ void initializeModelRegistration()
     factory.registerModel(ET::PLAYER, []() { return std::make_unique<player::PlayerModel>(0.0f, false); });
 
     // ==================== TODO: 以下模型需要后续实现 ====================
-    // ET::PUFFERFISH - PufferfishModel (三种大小)
-    // ET::WITCH - WitchModel
+    // ET::PUFFERFISH - PufferfishModel (三种膨胀状态，当前使用 CodModel 占位)
 
     ModelFactory::markInitialized();
     spdlog::info("ModelFactory: Registered {} model types", factory.size());

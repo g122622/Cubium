@@ -652,6 +652,12 @@ void ClientApplication::setupNetworkCallbacks()
             if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
                 continue;
             }
+
+            // 清理实体渲染网格（静态+动画），避免 Vulkan 资源泄漏
+            if (m_renderer) {
+                m_renderer->entityRendererManager().removeEntityMeshes(static_cast<EntityId>(entityId));
+            }
+
             entityManager.removeEntity(static_cast<EntityId>(entityId));
 
             // 通知音频系统实体移除
@@ -753,8 +759,31 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityAnimation = [this](u32 entityId, u8 animation) {
-        MC_UNUSED(entityId);
-        MC_UNUSED(animation);
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        if (!entity) {
+            return;
+        }
+        using Animation = network::EntityAnimationPacket::Animation;
+        switch (static_cast<Animation>(animation)) {
+            case Animation::SwingMainHand:
+                entity->triggerSwingAnimation(0);
+                break;
+            case Animation::SwingOffHand:
+                entity->triggerSwingAnimation(1);
+                break;
+            case Animation::TakeDamage:
+                entity->triggerHurtAnimation();
+                break;
+            case Animation::LeaveBed:
+                entity->triggerLeaveBedAnimation();
+                break;
+            case Animation::CriticalEffect:
+                // TODO: 暴击粒子效果
+                break;
+            case Animation::MagicCriticalEffect:
+                // TODO: 魔法暴击粒子效果
+                break;
+        }
     };
 
     callbacks.onEntityHeadLook = [this](u32 entityId, f32 headYaw) {

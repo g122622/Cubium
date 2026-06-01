@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include <memory>
-#include "../../../chat/ChatHistory.hpp"
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/ContainerWidget.hpp"
+#include "client/chat/ChatHistory.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include <memory>
 
 #include <chrono>
 #include <functional>
@@ -57,8 +57,6 @@ namespace text = mc::text;
  * - 文本输入
  * - 命令历史导航
  * - 光标和选区
- *
- * 参考 MC 的 ChatScreen 实现
  */
 class ChatWidget : public kagero::widget::ContainerWidget {
 public:
@@ -98,7 +96,7 @@ public:
     {
         MC_ASSERT_RELEASE(!m_commandManager);
         m_commandManager = commandManager;
-        updateCommandSuggestions();
+        _updateCommandSuggestions();
     }
 
     // ========== 状态 ==========
@@ -112,7 +110,7 @@ public:
      * @brief 打开聊天框
      * @param command 是否以命令模式打开（自动填入 /）
      */
-    void open(bool command = false);
+    void open(bool command);
 
     /**
      * @brief 关闭聊天框
@@ -156,13 +154,12 @@ public:
     /**
      * @brief 添加聊天消息
      */
-    void addMessage(const std::string& message, u32 color = 0xFFFFFFFF);
+    void addMessage(const std::string& message, u32 color);
 
     /**
      * @brief 添加富文本消息
      */
-    void addMessage(
-        std::unique_ptr<text::ITextComponent> message, chat::ChatMessageType type = chat::ChatMessageType::Chat);
+    void addMessage(std::unique_ptr<text::ITextComponent> message, chat::ChatMessageType type);
 
     /**
      * @brief 添加系统消息
@@ -198,82 +195,82 @@ private:
     /**
      * @brief 插入文本到光标位置
      */
-    void insertText(const std::string& text);
+    void _insertText(const std::string& text);
 
     /**
      * @brief 删除选中的文本
      */
-    void deleteSelection();
+    void _deleteSelection();
 
     /**
      * @brief 删除光标前的字符
      */
-    void deleteBeforeCursor();
+    void _deleteBeforeCursor();
 
     /**
      * @brief 删除光标后的字符
      */
-    void deleteAfterCursor();
+    void _deleteAfterCursor();
 
     /**
      * @brief 移动光标
      */
-    void moveCursor(i32 offset, bool selecting = false);
+    void _moveCursor(i32 offset, bool selecting);
 
     /**
      * @brief 移动光标到行首/行尾
      */
-    void moveCursorToEdge(bool start, bool selecting = false);
+    void _moveCursorToEdge(bool start, bool selecting);
 
     /**
      * @brief 获取光标位置对应的像素偏移
      */
-    [[nodiscard]] f32 getCursorPixelPosition() const;
+    [[nodiscard]] f32 _getCursorPixelPosition() const;
 
     /**
      * @brief 发送当前输入
      */
-    void sendInput();
+    void _sendInput();
 
     /**
      * @brief 更新光标闪烁
      */
-    void updateCursorBlink(f32 dt);
+    void _updateCursorBlink(f32 dt);
 
     /**
      * @brief 更新命令补全建议
      */
-    void updateCommandSuggestions();
+    void _updateCommandSuggestions();
 
     /**
      * @brief 清空命令补全建议
      */
-    void clearCommandSuggestions();
+    void _clearCommandSuggestions();
 
     /**
      * @brief 接受当前命令补全建议
      */
-    void acceptCommandSuggestion();
+    void _acceptCommandSuggestion();
 
     /**
      * @brief 渲染命令补全列表
      */
-    void renderCommandSuggestions(kagero::widget::PaintContext& ctx);
+    void _renderCommandSuggestions(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 判断当前输入是否为命令
      */
-    [[nodiscard]] bool isCommandInput() const;
+    [[nodiscard]] bool _isCommandInput() const;
 
     /**
      * @brief 渲染消息列表
      */
-    void renderMessages(kagero::widget::PaintContext& ctx);
+    void _renderMessages(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 渲染输入框
      */
-    void renderInputBox(kagero::widget::PaintContext& ctx);
+    void _renderInputBox(kagero::widget::PaintContext& ctx);
 
     // ========== 成员变量 ==========
 
@@ -298,11 +295,17 @@ private:
     bool m_cursorVisible = true;
     static constexpr f32 CURSOR_BLINK_RATE = 0.5f;
 
-    // 输入框尺寸
+    // 布局常量
     static constexpr f32 INPUT_BOX_HEIGHT = 20.0f;
     static constexpr f32 INPUT_BOX_PADDING = 4.0f;
     static constexpr f32 CHAT_WIDTH_RATIO = 0.4f;
     static constexpr f32 MESSAGE_FADE_START = 3.0f;
+    static constexpr f32 LINE_HEIGHT = 9.0f;              // 字体行高
+    static constexpr f32 INPUT_BOX_BOTTOM_MARGIN = 10.0f; // 输入框距底部的间距
+    static constexpr f32 MESSAGE_BOTTOM_MARGIN = 20.0f;   // 消息区域距底部的间距（含输入框空间）
+    static constexpr f32 TEXT_HORIZONTAL_PADDING = 4.0f;  // 文本水平内边距
+    static constexpr f32 MESSAGE_FADE_DURATION = 3.0f;    // 消息淡出持续时间（秒）
+    static constexpr u32 MAX_VISIBLE_SUGGESTIONS = 6;     // 最大可见命令补全建议数
 
     // 命令回调
     CommandCallback m_commandCallback;

@@ -44,7 +44,8 @@ enum class BlendMode : u8 {
     None,     // 无混合
     Alpha,    // Alpha 混合（默认）
     Additive, // 叠加混合（用于眼睛发光、能量光效等）
-    Multiply  // 乘法混合 // TODO: 尚未实现乘法混合管线，当前回退到Alpha混合
+    Multiply, // 乘法混合 // TODO: 尚未实现乘法混合管线，当前回退到Alpha混合
+    Lines     // 线段渲染（VK_PRIMITIVE_TOPOLOGY_LINE_LIST，用于钓鱼线等）
 };
 
 /**
@@ -191,6 +192,7 @@ private:
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;              // Alpha 混合管线
     VkPipeline m_additiveBlendPipeline = VK_NULL_HANDLE; // 叠加混合管线
+    VkPipeline m_linePipeline = VK_NULL_HANDLE;          // 线段渲染管线（LINE_LIST）
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_textureDescriptorLayout = VK_NULL_HANDLE;

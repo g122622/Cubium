@@ -472,6 +472,35 @@ public:
     [[nodiscard]] f32 prevSwingProgress() const { return m_prevSwingProgress; }
 
     /**
+     * @brief 获取正在挥动的手
+     * @return 0=主手, 1=副手
+     */
+    [[nodiscard]] i32 swingHand() const { return m_swingHand; }
+
+    /**
+     * @brief 检查是否正在进行挥动动画
+     */
+    [[nodiscard]] bool isSwingInProgress() const { return m_swingInProgress; }
+
+    /**
+     * @brief 触发挥动动画
+     * @param hand 0=主手, 1=副手
+     */
+    void triggerSwingAnimation(i32 hand);
+
+    /**
+     * @brief 触发受伤动画
+     * 设置受伤时间为10 tick
+     */
+    void triggerHurtAnimation();
+
+    /**
+     * @brief 触发起床动画
+     * 清除睡眠状态
+     */
+    void triggerLeaveBedAnimation();
+
+    /**
      * @brief 更新攻击进度
      * @param partialTick 部分 tick
      * @return 插值后的攻击进度
@@ -734,6 +763,10 @@ private:
     // 攻击动画
     f32 m_swingProgress = 0.0f;
     f32 m_prevSwingProgress = 0.0f;
+    i32 m_swingHand = 0;                             // 正在挥动的手 (0=主手, 1=副手)
+    i32 m_swingTickCounter = 0;                      // 挥动动画计数器
+    bool m_swingInProgress = false;                  // 是否正在挥动
+    static constexpr i32 DEFAULT_SWING_DURATION = 6; // 默认挥动持续时间 (tick)
 
     // 北极熊站立动画
     // 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation0/clientSideStandAnimation

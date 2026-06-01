@@ -28,6 +28,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include <vulkan/vulkan.h>
 
 namespace mc {
@@ -47,12 +48,54 @@ class EntityTextureAtlas; // 前向声明
 
 namespace client::renderer::entity::model {
 class EntityModel;
-}
+struct ModelVertex;
+} // namespace client::renderer::entity::model
 
 namespace client::renderer::entity::core {
 
 // 前向声明
 struct AnimationContext;
+
+/**
+ * @brief 管线网格提供者接口
+ *
+ * 为不支持 ModelFactory 的渲染器提供自定义网格生成能力。
+ * 例如：Arrow, Boat, Minecart, FishingBobber 等实体的自定义几何体。
+ *
+ * 使用方式：在 EntityRenderer 子类中同时实现此接口，
+ * 并重写 getPipelineMeshProvider() 返回 this。
+ */
+class PipelineMeshProvider {
+public:
+    virtual ~PipelineMeshProvider() = default;
+
+    /**
+     * @brief 生成网格顶点和索引
+     * @param entity 客户端实体
+     * @param vertices 输出顶点数组
+     * @param indices 输出索引数组
+     * @return 是否成功生成
+     */
+    [[nodiscard]] virtual bool generateMesh(
+        ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices) = 0;
+
+    /**
+     * @brief 是否需要每帧更新网格
+     * @param entity 客户端实体
+     * @return true 如果网格需要更新（如动画实体）
+     */
+    [[nodiscard]] virtual bool needsMeshUpdate(::mc::client::ClientEntity& entity) const
+    {
+        (void)entity;
+        return false;
+    }
+
+    /**
+     * @brief 获取拓扑类型
+     * @return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST 或 VK_PRIMITIVE_TOPOLOGY_LINE_LIST 等
+     */
+    [[nodiscard]] virtual VkPrimitiveTopology getTopology() const { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
+};
 
 /**
  * @brief 实体渲染器基类
@@ -165,6 +208,17 @@ public:
      * LivingEntity 渲染器返回 true。
      */
     [[nodiscard]] virtual bool supportsLayers() const { return false; }
+
+    /**
+     * @brief 获取管线网格提供者
+     *
+     * 如果渲染器支持自定义网格生成（如 Arrow、Boat、FishingBobber），
+     * 返回 PipelineMeshProvider 指针；否则返回 nullptr。
+     * 默认实现返回 nullptr。
+     *
+     * @return 管线网格提供者指针，或 nullptr
+     */
+    [[nodiscard]] virtual PipelineMeshProvider* getPipelineMeshProvider() { return nullptr; }
 
     /**
      * @brief 设置纹理图集

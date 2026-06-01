@@ -57,7 +57,10 @@
 #include "player/PlayerRenderer.hpp"
 
 // 投掷物渲染器
+#include "projectile/BillboardRenderers.hpp"
 #include "projectile/ExperienceOrbRenderer.hpp"
+#include "projectile/FireballRenderers.hpp"
+#include "projectile/FishingBobberRenderer.hpp"
 #include "projectile/ItemEntityRenderer.hpp"
 #include "projectile/ProjectileRenderers.hpp"
 
@@ -233,6 +236,10 @@ void initializeRendererRegistration()
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::RavagerRenderer>(); });
     f.registerRenderer(ET::WITCH,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::WitchRenderer>(); });
+    f.registerRenderer(ET::WITHER_SKELETON,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::WitherSkeletonRenderer>(); });
+    f.registerRenderer(ET::ILLUSIONER,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::IllusionerRenderer>(); });
 
     // ==================== 下界生物渲染器 ====================
     f.registerRenderer(
@@ -335,6 +342,29 @@ void initializeRendererRegistration()
     // ==================== ExperienceOrb 渲染器 ====================
     f.registerRenderer(ET::EXPERIENCE_ORB, []() -> std::unique_ptr<core::EntityRenderer> {
         return std::make_unique<projectile::ExperienceOrbRenderer>();
+    });
+
+    // ==================== 投掷物渲染器 ====================
+    f.registerRenderer(ET::SNOWBALL,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::SnowballRenderer>(); });
+    f.registerRenderer(
+        ET::EGG, []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::EggRenderer>(); });
+    f.registerRenderer(ET::ENDER_PEARL,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::EnderPearlRenderer>(); });
+    f.registerRenderer(ET::POTION,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::PotionRenderer>(); });
+    f.registerRenderer(ET::EXPERIENCE_BOTTLE, []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<projectile::ExperienceBottleRenderer>();
+    });
+    f.registerRenderer(ET::EYE_OF_ENDER,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::EyeOfEnderRenderer>(); });
+    f.registerRenderer(ET::FIREBALL,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<projectile::FireballRenderer>(); });
+    f.registerRenderer(ET::SMALL_FIREBALL, []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<projectile::SmallFireballRenderer>();
+    });
+    f.registerRenderer(ET::FISHING_BOBBER, []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<projectile::FishingBobberRenderer>();
     });
 
     factory::RendererFactory::markInitialized();

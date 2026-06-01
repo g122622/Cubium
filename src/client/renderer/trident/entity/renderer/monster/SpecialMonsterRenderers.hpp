@@ -25,7 +25,9 @@
 
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/monster/IllagerModel.hpp"
 #include "client/renderer/trident/entity/model/monster/MoreMonsterModels.hpp"
+#include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
@@ -533,6 +535,52 @@ public:
     {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
+    }
+};
+
+/**
+ * @brief 凋灵骷髅渲染器
+ *
+ * 复用 SkeletonModel，使用独立纹理和更大的阴影。
+ * 参考 MC 1.16.5 WitherSkeletonRenderer
+ */
+class WitherSkeletonRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SkeletonModel> {
+public:
+    WitherSkeletonRenderer() { m_shadowSize = 0.4f; }
+    ~WitherSkeletonRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/skeleton/wither_skeleton.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/skeleton/wither_skeleton.png");
+    }
+};
+
+/**
+ * @brief 幻术师渲染器
+ *
+ * 使用 IllagerModel，与卫道士/唤魔者相同的骨架但不同纹理。
+ * 参考 MC 1.16.5 IllusionerRenderer
+ */
+class IllusionerRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
+public:
+    IllusionerRenderer() { m_shadowSize = 0.5f; }
+    ~IllusionerRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/illager/illusioner.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/illager/illusioner.png");
     }
 };
 

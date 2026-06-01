@@ -251,6 +251,18 @@ void ClientEntityManager::tick()
     removeDeadEntities();
 }
 
+u32 ClientEntityManager::fixedTick(f32 deltaTime)
+{
+    m_tickAccumulator += std::min(deltaTime, TICK_INTERVAL * static_cast<f32>(MAX_TICKS_PER_FRAME));
+    u32 tickCount = 0;
+    while (m_tickAccumulator >= TICK_INTERVAL && tickCount < MAX_TICKS_PER_FRAME) {
+        m_tickAccumulator -= TICK_INTERVAL;
+        tick();
+        ++tickCount;
+    }
+    return tickCount;
+}
+
 void ClientEntityManager::updateInterpolation(f32 deltaTime)
 {
     // 每帧更新所有实体的平滑插值

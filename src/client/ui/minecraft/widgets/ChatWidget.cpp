@@ -47,6 +47,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
         return static_cast<f32>(gui->getTextWidth(text));
     }
 
+    // TODO: 当 font 和 gui 均不可用时，应提供更好的回退策略，而非简单估算
     return static_cast<f32>(text.size() * 6);
 }
 
@@ -136,7 +137,7 @@ void ChatWidget::open(bool command)
     }
     m_cursorVisible = true;
     m_cursorBlinkTimer = 0.0f;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
     setActive(true); // 打开时激活，接收事件
 }
 
@@ -145,7 +146,7 @@ void ChatWidget::close()
     m_open = false;
     m_commandMode = false;
     clearInput();
-    clearCommandSuggestions();
+    _clearCommandSuggestions();
     m_history.resetInputNavigation(); // 重置历史导航
     setActive(false);                 // 关闭时取消激活
 }
@@ -162,18 +163,18 @@ void ChatWidget::toggle()
 void ChatWidget::paint(kagero::widget::PaintContext& ctx)
 {
     // 渲染消息列表
-    renderMessages(ctx);
+    _renderMessages(ctx);
 
     // 如果打开，渲染输入框
     if (m_open) {
-        renderInputBox(ctx);
+        _renderInputBox(ctx);
     }
 }
 
 void ChatWidget::tick(f32 dt)
 {
     if (m_open) {
-        updateCursorBlink(dt);
+        _updateCursorBlink(dt);
     }
 }
 
@@ -190,51 +191,51 @@ bool ChatWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
 
         case GLFW_KEY_ENTER:
         case GLFW_KEY_KP_ENTER:
-            sendInput();
+            _sendInput();
             return true;
 
         case GLFW_KEY_TAB:
-            acceptCommandSuggestion();
+            _acceptCommandSuggestion();
             return true;
 
         case GLFW_KEY_BACKSPACE:
             if (m_hasSelection) {
-                deleteSelection();
+                _deleteSelection();
             } else {
-                deleteBeforeCursor();
+                _deleteBeforeCursor();
             }
             return true;
 
         case GLFW_KEY_DELETE:
             if (m_hasSelection) {
-                deleteSelection();
+                _deleteSelection();
             } else {
-                deleteAfterCursor();
+                _deleteAfterCursor();
             }
             return true;
 
         case GLFW_KEY_LEFT:
             if (mods & GLFW_MOD_CONTROL) {
-                moveCursorToEdge(true, mods & GLFW_MOD_SHIFT);
+                _moveCursorToEdge(true, mods & GLFW_MOD_SHIFT);
             } else {
-                moveCursor(-1, mods & GLFW_MOD_SHIFT);
+                _moveCursor(-1, mods & GLFW_MOD_SHIFT);
             }
             return true;
 
         case GLFW_KEY_RIGHT:
             if (mods & GLFW_MOD_CONTROL) {
-                moveCursorToEdge(false, mods & GLFW_MOD_SHIFT);
+                _moveCursorToEdge(false, mods & GLFW_MOD_SHIFT);
             } else {
-                moveCursor(1, mods & GLFW_MOD_SHIFT);
+                _moveCursor(1, mods & GLFW_MOD_SHIFT);
             }
             return true;
 
         case GLFW_KEY_HOME:
-            moveCursorToEdge(true, mods & GLFW_MOD_SHIFT);
+            _moveCursorToEdge(true, mods & GLFW_MOD_SHIFT);
             return true;
 
         case GLFW_KEY_END:
-            moveCursorToEdge(false, mods & GLFW_MOD_SHIFT);
+            _moveCursorToEdge(false, mods & GLFW_MOD_SHIFT);
             return true;
 
         case GLFW_KEY_UP:
@@ -279,9 +280,9 @@ bool ChatWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
                         std::string pastedText = sanitizeClipboardText(std::string(clipboardText));
                         if (!pastedText.empty()) {
                             if (m_hasSelection) {
-                                deleteSelection();
+                                _deleteSelection();
                             }
-                            insertText(pastedText);
+                            _insertText(pastedText);
                         }
                     }
                 }
@@ -309,7 +310,7 @@ bool ChatWidget::onChar(u32 codePoint)
 
     // 删除选中内容
     if (m_hasSelection) {
-        deleteSelection();
+        _deleteSelection();
     }
 
     // 插入字符
@@ -330,7 +331,7 @@ bool ChatWidget::onChar(u32 codePoint)
         utf8[3] = static_cast<char>(0x80 | (codePoint & 0x3F));
     }
 
-    insertText(utf8);
+    _insertText(utf8);
     return true;
 }
 
@@ -344,15 +345,15 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
         return true;
     }
 
-    const mc::f32 screenHeight = static_cast<mc::f32>(height());
-    const mc::f32 inputY = screenHeight - INPUT_BOX_HEIGHT - 10.0f;
-    const mc::f32 mouseYf = static_cast<mc::f32>(mouseY);
+    const f32 screenHeight = static_cast<f32>(height());
+    const f32 inputY = screenHeight - INPUT_BOX_HEIGHT - INPUT_BOX_BOTTOM_MARGIN;
+    const f32 mouseYf = static_cast<f32>(mouseY);
     if (mouseYf < inputY || mouseYf > inputY + INPUT_BOX_HEIGHT) {
         return true;
     }
 
-    const mc::f32 textX = INPUT_BOX_PADDING + 4.0f;
-    const mc::f32 clickX = static_cast<mc::f32>(mouseX) - textX;
+    const f32 textX = INPUT_BOX_PADDING + TEXT_HORIZONTAL_PADDING;
+    const f32 clickX = static_cast<f32>(mouseX) - textX;
 
     m_cursorPos = findCursorIndexFromClick(m_input, m_font, m_gui, clickX);
     m_selectionStart = m_cursorPos;
@@ -360,15 +361,15 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
     m_hasSelection = false;
     m_cursorVisible = true;
     m_cursorBlinkTimer = 0.0f;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
     return true;
 }
 
 void ChatWidget::addMessage(const std::string& message, u32 color)
 {
     // 将颜色转换为消息类型
+    // TODO: 当前仅通过一个硬编码的颜色值判断消息类型，后续应改为直接传入消息类型
     ChatMessageType type = ChatMessageType::Chat;
-    // 特殊颜色处理
     if (color == 0xFFFFFF00) { // 黄色 -> 系统消息
         type = ChatMessageType::System;
     }
@@ -390,7 +391,7 @@ void ChatWidget::setInput(const std::string& text)
     m_input = text;
     m_cursorPos = m_input.size();
     m_hasSelection = false;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
 void ChatWidget::clearInput()
@@ -400,20 +401,20 @@ void ChatWidget::clearInput()
     m_selectionStart = 0;
     m_selectionEnd = 0;
     m_hasSelection = false;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-void ChatWidget::insertText(const std::string& text)
+void ChatWidget::_insertText(const std::string& text)
 {
     m_input.insert(m_cursorPos, text);
     m_cursorPos += text.size();
     m_hasSelection = false;
     m_cursorVisible = true;
     m_cursorBlinkTimer = 0.0f;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-void ChatWidget::deleteSelection()
+void ChatWidget::_deleteSelection()
 {
     if (!m_hasSelection) {
         return;
@@ -425,27 +426,27 @@ void ChatWidget::deleteSelection()
     m_input.erase(start, end - start);
     m_cursorPos = start;
     m_hasSelection = false;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-void ChatWidget::deleteBeforeCursor()
+void ChatWidget::_deleteBeforeCursor()
 {
     if (m_cursorPos > 0) {
         m_input.erase(m_cursorPos - 1, 1);
         --m_cursorPos;
-        updateCommandSuggestions();
+        _updateCommandSuggestions();
     }
 }
 
-void ChatWidget::deleteAfterCursor()
+void ChatWidget::_deleteAfterCursor()
 {
     if (m_cursorPos < m_input.size()) {
         m_input.erase(m_cursorPos, 1);
-        updateCommandSuggestions();
+        _updateCommandSuggestions();
     }
 }
 
-void ChatWidget::moveCursor(i32 offset, bool selecting)
+void ChatWidget::_moveCursor(i32 offset, bool selecting)
 {
     if (selecting && !m_hasSelection) {
         m_selectionStart = m_cursorPos;
@@ -466,10 +467,10 @@ void ChatWidget::moveCursor(i32 offset, bool selecting)
 
     m_cursorVisible = true;
     m_cursorBlinkTimer = 0.0f;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-void ChatWidget::moveCursorToEdge(bool start, bool selecting)
+void ChatWidget::_moveCursorToEdge(bool start, bool selecting)
 {
     if (selecting && !m_hasSelection) {
         m_selectionStart = m_cursorPos;
@@ -486,15 +487,15 @@ void ChatWidget::moveCursorToEdge(bool start, bool selecting)
 
     m_cursorVisible = true;
     m_cursorBlinkTimer = 0.0f;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-mc::f32 ChatWidget::getCursorPixelPosition() const
+f32 ChatWidget::_getCursorPixelPosition() const
 {
     return measureTextWidth(m_font, m_gui, m_input.substr(0, m_cursorPos));
 }
 
-void ChatWidget::sendInput()
+void ChatWidget::_sendInput()
 {
     if (m_input.empty()) {
         close();
@@ -512,10 +513,10 @@ void ChatWidget::sendInput()
     close();
 }
 
-void ChatWidget::updateCommandSuggestions()
+void ChatWidget::_updateCommandSuggestions()
 {
-    if (!m_open || !isCommandInput() || m_commandManager == nullptr) {
-        clearCommandSuggestions();
+    if (!m_open || !_isCommandInput() || m_commandManager == nullptr) {
+        _clearCommandSuggestions();
         return;
     }
 
@@ -525,16 +526,16 @@ void ChatWidget::updateCommandSuggestions()
     m_selectedCommandSuggestion = 0;
 }
 
-void ChatWidget::clearCommandSuggestions()
+void ChatWidget::_clearCommandSuggestions()
 {
     m_commandSuggestions = mc::command::Suggestions();
     m_selectedCommandSuggestion = 0;
 }
 
-void ChatWidget::acceptCommandSuggestion()
+void ChatWidget::_acceptCommandSuggestion()
 {
     if (m_commandSuggestions.isEmpty()) {
-        updateCommandSuggestions();
+        _updateCommandSuggestions();
         if (m_commandSuggestions.isEmpty()) {
             return;
         }
@@ -562,10 +563,10 @@ void ChatWidget::acceptCommandSuggestion()
     m_hasSelection = false;
     m_selectionStart = m_cursorPos;
     m_selectionEnd = m_cursorPos;
-    updateCommandSuggestions();
+    _updateCommandSuggestions();
 }
 
-void ChatWidget::renderCommandSuggestions(kagero::widget::PaintContext& ctx)
+void ChatWidget::_renderCommandSuggestions(kagero::widget::PaintContext& ctx)
 {
     if (!m_open || m_commandSuggestions.isEmpty() || m_gui == nullptr) {
         return;
@@ -579,20 +580,19 @@ void ChatWidget::renderCommandSuggestions(kagero::widget::PaintContext& ctx)
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
     const f32 chatWidth = screenWidth * CHAT_WIDTH_RATIO;
-    constexpr f32 lineHeight = 9.0f;
-    constexpr f32 padding = 4.0f;
+    constexpr f32 padding = INPUT_BOX_PADDING;
 
-    size_t visibleCount = std::min<size_t>(suggestions.size(), 6);
+    size_t visibleCount = std::min<size_t>(suggestions.size(), MAX_VISIBLE_SUGGESTIONS);
     f32 maxTextWidth = 0.0f;
     for (size_t index = 0; index < visibleCount; ++index) {
         maxTextWidth = std::max(maxTextWidth, static_cast<f32>(m_gui->getTextWidth(suggestions[index].getText())));
     }
 
-    const f32 boxWidth = std::min(chatWidth, maxTextWidth + padding * 2.0f + 6.0f);
-    const f32 boxHeight = static_cast<f32>(visibleCount) * (lineHeight + 2.0f) + padding * 2.0f;
-    const f32 inputY = screenHeight - INPUT_BOX_HEIGHT - 10.0f;
+    const f32 boxWidth = std::min(chatWidth, maxTextWidth + padding * 2.0f + TEXT_HORIZONTAL_PADDING + 2.0f);
+    const f32 boxHeight = static_cast<f32>(visibleCount) * (LINE_HEIGHT + 2.0f) + padding * 2.0f;
+    const f32 inputY = screenHeight - INPUT_BOX_HEIGHT - INPUT_BOX_BOTTOM_MARGIN;
     const f32 boxX = INPUT_BOX_PADDING;
-    const f32 boxY = std::max(4.0f, inputY - boxHeight - 4.0f);
+    const f32 boxY = std::max(INPUT_BOX_PADDING, inputY - boxHeight - INPUT_BOX_PADDING);
 
     ctx.drawFilledRect(
         kagero::Rect(
@@ -600,12 +600,12 @@ void ChatWidget::renderCommandSuggestions(kagero::widget::PaintContext& ctx)
         0xB0202020);
 
     for (size_t index = 0; index < visibleCount; ++index) {
-        const f32 rowY = boxY + padding + static_cast<f32>(index) * (lineHeight + 2.0f);
+        const f32 rowY = boxY + padding + static_cast<f32>(index) * (LINE_HEIGHT + 2.0f);
         const bool selected = index == m_selectedCommandSuggestion;
         ctx.drawFilledRect(kagero::Rect(static_cast<i32>(boxX + 1.0f),
                                static_cast<i32>(rowY - 1.0f),
                                static_cast<i32>(boxWidth - 2.0f),
-                               static_cast<i32>(lineHeight + 2.0f)),
+                               static_cast<i32>(LINE_HEIGHT + 2.0f)),
             selected ? 0x60FFFFFF : 0x20000000);
 
         const u32 textColor = selected ? 0xFF111111 : 0xFFFFFFFF;
@@ -613,12 +613,12 @@ void ChatWidget::renderCommandSuggestions(kagero::widget::PaintContext& ctx)
     }
 }
 
-bool ChatWidget::isCommandInput() const
+bool ChatWidget::_isCommandInput() const
 {
     return m_commandMode || (!m_input.empty() && m_input.front() == '/');
 }
 
-void ChatWidget::updateCursorBlink(f32 dt)
+void ChatWidget::_updateCursorBlink(f32 dt)
 {
     m_cursorBlinkTimer += dt;
     if (m_cursorBlinkTimer >= CURSOR_BLINK_RATE) {
@@ -627,7 +627,7 @@ void ChatWidget::updateCursorBlink(f32 dt)
     }
 }
 
-void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx)
+void ChatWidget::_renderMessages(kagero::widget::PaintContext& ctx)
 {
     if (m_gui == nullptr) {
         return;
@@ -636,12 +636,11 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx)
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
     const f32 chatWidth = screenWidth * CHAT_WIDTH_RATIO;
-    constexpr f32 lineHeight = 9.0f; // 字体行高
-    constexpr f32 padding = 4.0f;
+    constexpr f32 padding = INPUT_BOX_PADDING;
 
     // 从底部向上渲染消息
     const auto& messages = m_history.allMessages();
-    f32 y = screenHeight - INPUT_BOX_HEIGHT - 20.0f; // 留出输入框空间
+    f32 y = screenHeight - MESSAGE_BOTTOM_MARGIN;
 
     auto now = std::chrono::steady_clock::now();
 
@@ -657,7 +656,7 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx)
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - it->timestamp).count();
             f32 age = static_cast<f32>(elapsed);
             if (age > MESSAGE_FADE_START) {
-                alpha = std::max(0.0f, 1.0f - (age - MESSAGE_FADE_START) / 3.0f);
+                alpha = std::max(0.0f, 1.0f - (age - MESSAGE_FADE_START) / MESSAGE_FADE_DURATION);
             }
         }
 
@@ -668,23 +667,23 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx)
             // 渲染消息背景
             f32 textWidth = static_cast<f32>(m_gui->getTextWidth(plainText));
             ctx.drawFilledRect(kagero::Rect(static_cast<i32>(padding),
-                                   static_cast<i32>(y - lineHeight),
+                                   static_cast<i32>(y - LINE_HEIGHT),
                                    static_cast<i32>(textWidth + padding * 2),
-                                   static_cast<i32>(lineHeight + 2)),
+                                   static_cast<i32>(LINE_HEIGHT + 2)),
                 static_cast<u32>(0x80000000 * alpha));
 
             // 渲染消息文本
             u32 baseColor = 0xFFFFFFFF; // 白色默认
             u8 a = static_cast<u8>(255 * alpha);
             u32 color = (baseColor & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
-            m_gui->drawText(plainText, padding + 2.0f, y - lineHeight, color, true);
+            m_gui->drawText(plainText, padding + 2.0f, y - LINE_HEIGHT, color, true);
         }
 
-        y -= lineHeight + 2.0f;
+        y -= LINE_HEIGHT + 2.0f;
     }
 }
 
-void ChatWidget::renderInputBox(kagero::widget::PaintContext& ctx)
+void ChatWidget::_renderInputBox(kagero::widget::PaintContext& ctx)
 {
     if (m_gui == nullptr) {
         return;
@@ -693,7 +692,7 @@ void ChatWidget::renderInputBox(kagero::widget::PaintContext& ctx)
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
     const f32 chatWidth = screenWidth * CHAT_WIDTH_RATIO;
-    const f32 inputY = screenHeight - INPUT_BOX_HEIGHT - 10.0f;
+    const f32 inputY = screenHeight - INPUT_BOX_HEIGHT - INPUT_BOX_BOTTOM_MARGIN;
 
     // 渲染输入框背景
     ctx.drawFilledRect(kagero::Rect(static_cast<i32>(INPUT_BOX_PADDING),
@@ -703,20 +702,19 @@ void ChatWidget::renderInputBox(kagero::widget::PaintContext& ctx)
         0x80000000);
 
     // 渲染输入文本
-    f32 textX = INPUT_BOX_PADDING + 4.0f;
-    f32 textY = inputY + (INPUT_BOX_HEIGHT - 9.0f) / 2.0f;
+    f32 textX = INPUT_BOX_PADDING + TEXT_HORIZONTAL_PADDING;
+    f32 textY = inputY + (INPUT_BOX_HEIGHT - LINE_HEIGHT) / 2.0f;
     m_gui->drawText(m_input, textX, textY, 0xFFFFFFFF, false);
 
     // 渲染命令补全列表
-    renderCommandSuggestions(ctx);
+    _renderCommandSuggestions(ctx);
 
     // 渲染光标
     if (m_cursorVisible) {
-        constexpr f32 lineHeight = 9.0f;
-        f32 cursorX = textX + getCursorPixelPosition();
+        f32 cursorX = textX + _getCursorPixelPosition();
         ctx.drawFilledRect(
             kagero::Rect(
-                static_cast<i32>(cursorX), static_cast<i32>(textY - 1.0f), 1, static_cast<i32>(lineHeight + 2.0f)),
+                static_cast<i32>(cursorX), static_cast<i32>(textY - 1.0f), 1, static_cast<i32>(LINE_HEIGHT + 2.0f)),
             0xFFFFFFFF);
     }
 }

@@ -107,8 +107,9 @@ void EntityRendererManager::clearMeshes()
 void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtlas)
 {
     m_textureAtlas = textureAtlas;
-    // 图集变化后，旧网格的UV映射可能失效，强制重建
+    // 图集变化后，旧网格的UV映射可能失效，强制重建静态和动画缓存
     clearMeshes();
+    clearAnimatedMeshes();
 }
 
 void EntityRendererManager::setCameraInfo(
@@ -168,7 +169,6 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
     bool isItemEntity = (normalizedType == ::mc::entity::EntityTypes::ITEM);
     bool isExperienceOrb = (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB);
-    bool useAnimatedMesh = _usesAnimatedMesh(normalizedType);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
     if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isBuilt()) {
@@ -183,19 +183,30 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     EntityMesh* mesh = nullptr;
     core::AnimationContext context;
 
-    if (useAnimatedMesh && renderer && renderer->supportsAnimation()) {
-        // 动画实体路径：使用动画网格缓存
-        // 设置 partialTicks（用于动画插值）
-        context.partialTicks = partialTicks;
-
-        // 创建带动画的模型
-        auto animModel = _createModelForEntity(entity, context);
-        if (animModel) {
-            mesh = getOrCreateAnimatedMesh(entity, *animModel, context);
-        }
-    } else {
-        // 静态实体路径：使用静态网格缓存
+    if (isItemEntity || isExperienceOrb) {
+        // 特殊路径：ItemEntity 和 ExperienceOrb 使用静态 billboard 网格
         mesh = getOrCreateMesh(entity);
+    } else if (renderer) {
+        // Path A: 渲染器有自定义管线网格提供者（Arrow, Boat, FishingBobber 等）
+        core::PipelineMeshProvider* meshProvider = renderer->getPipelineMeshProvider();
+        if (meshProvider) {
+            // 通过 PipelineMeshProvider 生成自定义网格
+            mesh = getOrCreateProviderMesh(entity, *meshProvider);
+        }
+
+        // Path B: 渲染器支持动画，使用 ModelFactory + AnimatedMeshCache
+        if (!mesh && renderer->supportsAnimation()) {
+            context.partialTicks = partialTicks;
+            auto animModel = _createModelForEntity(entity, context);
+            if (animModel) {
+                mesh = getOrCreateAnimatedMesh(entity, *animModel, context);
+            }
+        }
+
+        // Path C: 无可用网格路径 - 记录警告
+        if (!mesh) {
+            spdlog::debug("EntityRendererManager: No mesh path for entity type '{}'", normalizedType);
+        }
     }
 
     if (!mesh || mesh->indexCount == 0) {
@@ -508,6 +519,17 @@ void EntityRendererManager::removeMesh(EntityId entityId)
     }
 }
 
+void EntityRendererManager::removeEntityMeshes(EntityId entityId)
+{
+    // 清理静态网格
+    removeMesh(entityId);
+
+    // 清理动画网格
+    if (m_animatedMeshCache) {
+        m_animatedMeshCache->removeEntity(entityId, m_pipeline);
+    }
+}
+
 void EntityRendererManager::initializeDefaults()
 {
     // 首先注册所有模型
@@ -812,6 +834,64 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
         });
 
     return m_animatedMeshCache->getOrUpdateMesh(entity.id(), model, normalizedId, context, *m_pipeline);
+}
+
+pipeline::EntityMesh* EntityRendererManager::getOrCreateProviderMesh(
+    ClientEntity& entity, core::PipelineMeshProvider& provider)
+{
+    if (!m_pipeline) {
+        return nullptr;
+    }
+
+    EntityId entityId = entity.id();
+    auto it = m_meshes.find(entityId);
+
+    if (it != m_meshes.end()) {
+        // 已有缓存，检查是否需要更新
+        if (provider.needsMeshUpdate(entity)) {
+            std::vector<ModelVertex> vertices;
+            std::vector<u32> indices;
+            if (provider.generateMesh(entity, vertices, indices) && !vertices.empty() && !indices.empty()) {
+                auto result = m_pipeline->updateMesh(it->second.mesh, vertices, indices);
+                if (!result.success()) {
+                    // 更新失败，重建网格
+                    m_pipeline->destroyMesh(it->second.mesh);
+                    auto createResult = m_pipeline->createMesh(vertices, indices);
+                    if (createResult.success()) {
+                        it->second.mesh = std::move(createResult.value());
+                        it->second.itemRenderStateVersion = 0;
+                    } else {
+                        spdlog::error(
+                            "EntityRendererManager: Failed to recreate provider mesh for entity {}", entityId);
+                        m_meshes.erase(it);
+                        return nullptr;
+                    }
+                }
+            }
+        }
+        return &it->second.mesh;
+    }
+
+    // 首次创建
+    std::vector<ModelVertex> vertices;
+    std::vector<u32> indices;
+    if (!provider.generateMesh(entity, vertices, indices) || vertices.empty() || indices.empty()) {
+        return nullptr;
+    }
+
+    auto result = m_pipeline->createMesh(vertices, indices);
+    if (!result.success()) {
+        spdlog::error("EntityRendererManager: Failed to create provider mesh for entity {}: {}",
+            entityId,
+            result.error().message());
+        return nullptr;
+    }
+
+    StaticMeshEntry entry;
+    entry.mesh = std::move(result.value());
+    entry.itemRenderStateVersion = 0;
+    auto [newIt, inserted] = m_meshes.emplace(entityId, std::move(entry));
+    return &newIt->second.mesh;
 }
 
 } // namespace mc::client::renderer::entity

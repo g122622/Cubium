@@ -41,6 +41,21 @@ class TargetInfoResolver {
 public:
     using PlayerNameLookup = std::function<std::string(EntityId)>;
 
+    /**
+     * @brief 解析玩家当前注视目标的信息
+     *
+     * 综合方块射线检测结果和实体射线检测结果，选取距离更近的目标，
+     * 返回包含标题、详细信息和强调色的快照。
+     *
+     * @param eyePosition      玩家眼睛位置
+     * @param forward          视线方向（单位向量）
+     * @param world            客户端世界引用
+     * @param entityManager    客户端实体管理器引用
+     * @param blockRaycast     方块射线检测结果
+     * @param reachDistance    玩家触达距离
+     * @param playerNameLookup 玩家ID到名称的查找函数
+     * @return 目标信息快照
+     */
     [[nodiscard]] static TargetInfoSnapshot resolve(const Vector3& eyePosition,
         const Vector3& forward,
         const ClientWorld& world,

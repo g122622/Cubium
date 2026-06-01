@@ -25,8 +25,8 @@
 
 #include "TargetInfo.hpp"
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 
 namespace mc::client::ui::minecraft::targetinfo {
 

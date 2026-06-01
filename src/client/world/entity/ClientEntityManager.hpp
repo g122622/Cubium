@@ -197,6 +197,33 @@ public:
     void tick();
 
     /**
+     * @brief 固定频率更新所有实体
+     *
+     * 使用累积器实现固定频率的 tick 更新，确保实体逻辑以 20 TPS 运行。
+     * 每帧调用此方法，传入帧时间，它会自动调用 tick() 零次或多次。
+     *
+     * @param deltaTime 帧时间（秒）
+     * @return 本次调用执行的 tick 次数
+     */
+    u32 fixedTick(f32 deltaTime);
+
+    /**
+     * @brief 获取 tick 累积器当前值
+     *
+     * 用于计算 partialTick，表示当前帧在两个 tick 之间的位置。
+     *
+     * @return 累积器值（0.0 到 TICK_INTERVAL）
+     */
+    [[nodiscard]] f32 tickAccumulator() const { return m_tickAccumulator; }
+
+    /**
+     * @brief 获取 tick 间隔常量
+     *
+     * 用于外部代码计算 partialTick。
+     */
+    [[nodiscard]] static constexpr f32 tickInterval() { return TICK_INTERVAL; }
+
+    /**
      * @brief 更新所有实体的平滑插值（每帧调用）
      * @param deltaTime 帧时间（秒）
      */
@@ -219,6 +246,11 @@ private:
     // 本地玩家信息
     EntityId m_localPlayerEntityId = INVALID_ENTITY_ID;
     PlayerId m_localPlayerId = 0;
+
+    // 固定频率 tick 累积器
+    f32 m_tickAccumulator = 0.0f;
+    static constexpr f32 TICK_INTERVAL = 1.0f / 20.0f; // 20 TPS
+    static constexpr u32 MAX_TICKS_PER_FRAME = 5;      // 每帧最大 tick 数，防止螺旋死亡
 };
 
 } // namespace mc::client

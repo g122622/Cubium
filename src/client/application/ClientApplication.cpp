@@ -471,14 +471,16 @@ void ClientApplication::update(f32 deltaTime)
 
         m_world.update(meshViewState);
 
-        // 更新客户端实体（每tick调用）
-        m_world.entityManager().tick();
+        // 更新客户端实体（固定频率 tick，20 TPS）
+        m_world.entityManager().fixedTick(deltaTime);
 
         // 更新实体平滑插值（每帧调用）
         m_world.entityManager().updateInterpolation(deltaTime);
 
         // 更新实体动画状态（用于渲染插值）
-        m_world.entityManager().updateAnimations(partialTick);
+        // 使用实体 tick 累积器计算 partialTick
+        const f32 entityPartialTick = m_world.entityManager().tickAccumulator() / ClientEntityManager::tickInterval();
+        m_world.entityManager().updateAnimations(entityPartialTick);
 
         // 更新世界音频状态（入水/出水、环境音等）
         updateWorldAudio();

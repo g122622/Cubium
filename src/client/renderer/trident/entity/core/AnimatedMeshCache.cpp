@@ -133,10 +133,20 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
             if (!result.success()) {
                 spdlog::warn(
                     "AnimatedMeshCache: Failed to update mesh for entity {}: {}", entityId, result.error().message());
-                // 更新失败时重新创建
+
+                // 安全重建：先销毁旧 mesh，再创建新 mesh，避免资源泄漏
+                pipeline.destroyMesh(entry.mesh);
+                entry.created = false;
+
                 auto createResult = pipeline.createMesh(vertices, indices);
                 if (createResult.success()) {
                     entry.mesh = std::move(createResult.value());
+                    entry.created = true;
+                } else {
+                    spdlog::error("AnimatedMeshCache: Failed to recreate mesh for entity {}: {}",
+                        entityId,
+                        createResult.error().message());
+                    return nullptr;
                 }
             }
         }
