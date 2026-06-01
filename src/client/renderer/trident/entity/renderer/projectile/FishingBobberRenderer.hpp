@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, the subject to the conditions:
+ * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -37,8 +37,8 @@ namespace mc::client::renderer::entity::renderer::projectile {
 /**
  * @brief 钓鱼浮标渲染器
  *
- * 渲染钓鱼浮标和钓线。
- * 浮标使用 billboard 四边形渲染，钓线使用 LINE_LIST 拓扑渲染。
+ * 渲染钓鱼浮标和钓线，全部使用 LINE_LIST 拓扑。
+ * 浮标渲染为十字线段，钓线为 16 段抛物线。
  * 参考 MC 1.16.5 FishingBobberEntity / FishRenderer
  */
 class FishingBobberRenderer : public core::EntityRenderer, public core::PipelineMeshProvider {
@@ -49,23 +49,21 @@ public:
     void render(Entity& entity, f64 partialTicks) override;
 
     // PipelineMeshProvider 接口
-    [[nodiscard]] bool generateMesh(
-        ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices) override;
+    [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices) override;
 
     [[nodiscard]] bool needsMeshUpdate(::mc::client::ClientEntity& entity) const override;
 
-    [[nodiscard]] VkPrimitiveTopology getTopology() const override
-    {
-        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-    }
+    [[nodiscard]] VkPrimitiveTopology getTopology() const override { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
 
 private:
     /**
-     * @brief 生成浮标四边形顶点
+     * @brief 生成浮标十字线段顶点
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
      */
-    void _generateBobberQuad(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _generateBobberCross(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 
     /**
      * @brief 生成钓鱼线顶点
@@ -73,15 +71,12 @@ private:
      * 从浮标位置到玩家手持位置生成16段抛物线线段。
      * 参考 MC 1.16.5 FishRenderer 的线段算法。
      *
-     * @param bobberPos 浮标世界位置
-     * @param playerHandPos 玩家手持位置
+     * @param entity 客户端实体（用于获取浮标位置）
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
      */
-    void _generateFishingLine(const Vector3f& bobberPos,
-        const Vector3f& playerHandPos,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+    void _generateFishingLine(
+        ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
 };
 
 } // namespace mc::client::renderer::entity::renderer::projectile

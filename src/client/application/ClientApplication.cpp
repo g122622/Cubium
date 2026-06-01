@@ -474,6 +474,9 @@ void ClientApplication::update(f32 deltaTime)
         // 更新客户端实体（固定频率 tick，20 TPS）
         m_world.entityManager().fixedTick(deltaTime);
 
+        // 更新动画纹理帧计数器（与实体 tick 同步）
+        m_renderer->tickTextureAnimations();
+
         // 更新实体平滑插值（每帧调用）
         m_world.entityManager().updateInterpolation(deltaTime);
 

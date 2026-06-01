@@ -139,6 +139,14 @@ struct AnimationContext {
      */
     f32 standingProgress = 0.0f;
 
+    /**
+     * @brief 河豚膨胀状态
+     *
+     * 0 = 未膨胀, 1 = 半膨胀, 2 = 完全膨胀
+     * 参考 MC 1.16.5 PufferfishEntity.PUFF_STATE
+     */
+    i32 puffState = 0;
+
     // ========== 方法 ==========
 
     /**

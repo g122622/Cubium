@@ -160,6 +160,7 @@ add_executable(minecraft-client
     renderer/trident/entity/model/monster/MonsterVariantModels.cpp
     renderer/trident/entity/model/nether/NetherModels.cpp
     renderer/trident/entity/model/aquatic/AquaticModels.cpp
+    renderer/trident/entity/model/aquatic/PufferfishModel.cpp
     renderer/trident/entity/model/projectile/ProjectileModels.cpp
     renderer/trident/entity/model/player/PlayerModel.cpp
     # 实体渲染器注册
@@ -167,6 +168,9 @@ add_executable(minecraft-client
     renderer/trident/entity/renderer/projectile/ItemEntityRenderer.cpp
     renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp
     renderer/trident/entity/renderer/projectile/ProjectileRenderers.cpp
+    renderer/trident/entity/renderer/projectile/BillboardRenderers.cpp
+    renderer/trident/entity/renderer/projectile/FireballRenderers.cpp
+    renderer/trident/entity/renderer/projectile/FishingBobberRenderer.cpp
     renderer/trident/entity/renderer/monster/MonsterRenderers.cpp
     renderer/trident/entity/renderer/monster/SpecialMonsterRenderers.cpp
     # renderer/trident/entity/renderer/monster/MoreMonsterRenderers.cpp

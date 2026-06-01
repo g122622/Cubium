@@ -25,6 +25,8 @@
 
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/aquatic/AquaticModels.hpp"
+#include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {
@@ -156,23 +158,159 @@ public:
 /**
  * @brief 河豚渲染器
  *
- * TODO: 河豚有膨胀状态，应使用不同大小的模型，当前暂用 CodModel
+ * 根据膨胀状态切换三种模型：小型、中型、大型。
+ * 参考 MC 1.16.5 PufferfishRenderer。
+ * 管线路径中由 EntityRendererManager 根据 puffState 选择模型。
+ * 传统路径中由 render() 方法切换模型。
+ * shadowSize 随膨胀状态动态调整: 0.1 + 0.1 * puffState
  */
-class PufferfishRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::CodModel> {
+class PufferfishRenderer : public core::EntityRenderer {
 public:
-    PufferfishRenderer() { m_shadowSize = 0.15f; }
+    PufferfishRenderer()
+        : m_smallModel()
+        , m_mediumModel()
+        , m_bigModel()
+        , m_currentPuffState(-1)
+    {
+        m_shadowSize = 0.1f;
+    }
     ~PufferfishRenderer() override = default;
 
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
+    void render(Entity& entity, f64 partialTicks) override
     {
-        (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/fish/pufferfish.png");
+        // 传统渲染路径：根据膨胀状态切换模型
+        i32 puffState = _getPuffState(entity);
+
+        model::EntityModel* activeModel = nullptr;
+        switch (puffState) {
+            case 0:
+                activeModel = &m_smallModel;
+                break;
+            case 1:
+                activeModel = &m_mediumModel;
+                break;
+            case 2:
+            default:
+                activeModel = &m_bigModel;
+                break;
+        }
+
+        m_currentPuffState = puffState;
+        m_shadowSize = 0.1f + 0.1f * static_cast<f32>(puffState);
+
+        // 设置模型动画角度
+        auto& living = static_cast<::mc::LivingEntity&>(entity);
+        f64 limbSwing = _getLimbSwing(living, partialTicks);
+        f64 limbSwingAmount = _getLimbSwingAmount(living, partialTicks);
+        f64 ageInTicks = _getAgeInTicks(living) + partialTicks;
+        f64 headYaw = _getHeadYaw(living, partialTicks);
+        f64 headPitch = _getHeadPitch(living, partialTicks);
+
+        activeModel->setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, 1.0 / 16.0);
+        activeModel->render(1.0 / 16.0);
+
+        if (m_shadowSize > 0.0) {
+            renderShadow(entity, partialTicks);
+        }
     }
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+
+    void computeAnimationContext(Entity& entity,
+        f64 partialTicks,
+        core::AnimationContext& context,
+        std::unique_ptr<model::EntityModel>& model) override
     {
-        (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/fish/pufferfish.png");
+        auto& living = static_cast<::mc::LivingEntity&>(entity);
+
+        i32 puffState = _getPuffState(entity);
+        m_currentPuffState = puffState;
+        m_shadowSize = 0.1f + 0.1f * static_cast<f32>(puffState);
+
+        context.partialTicks = partialTicks;
+        context.limbSwing = _getLimbSwing(living, partialTicks);
+        context.limbSwingAmount = _getLimbSwingAmount(living, partialTicks);
+        context.ageInTicks = _getAgeInTicks(living);
+        context.netHeadYaw = _getHeadYaw(living, partialTicks);
+        context.headPitch = _getHeadPitch(living, partialTicks);
+        context.scale = 1.0 / 16.0;
+
+        context.isChild = false;
+        context.isSitting = false;
+        context.isSneaking = false;
+        context.isSwimming = false;
+        context.isRiding = false;
+        context.swingProgress = 0.0f;
+        context.puffState = puffState;
+
+        context.computeHash();
+
+        // 设置模型角度
+        m_smallModel.setAngles(context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale * 16.0);
+
+        model.reset();
     }
+
+private:
+    model::aquatic::PufferfishSmallModel m_smallModel;
+    model::aquatic::PufferfishMediumModel m_mediumModel;
+    model::aquatic::PufferfishBigModel m_bigModel;
+    i32 m_currentPuffState;
+
+    /**
+     * @brief 从实体读取膨胀状态
+     */
+    static i32 _getPuffState(Entity& entity)
+    {
+        auto* clientEntity = dynamic_cast<::mc::client::ClientEntity*>(&entity);
+        if (clientEntity != nullptr) {
+            return clientEntity->puffState();
+        }
+        return 0;
+    }
+
+    // 辅助方法（与 LivingRenderer 相同的计算逻辑）
+    static f64 _getLimbSwing(::mc::LivingEntity& entity, f64 partialTicks)
+    {
+        f64 limbSwingAmount = entity.limbSwingAmount();
+        f64 result = entity.limbSwing() - limbSwingAmount * (1.0 - partialTicks);
+        return result;
+    }
+
+    static f64 _getLimbSwingAmount(::mc::LivingEntity& entity, f64 partialTicks)
+    {
+        f64 prevAmount = entity.prevLimbSwingAmount();
+        f64 amount = entity.limbSwingAmount();
+        f64 result = prevAmount + (amount - prevAmount) * partialTicks;
+        if (result > 1.0) result = 1.0;
+        return result;
+    }
+
+    static f64 _getHeadYaw(::mc::LivingEntity& entity, f64 partialTicks)
+    {
+        f64 bodyYaw =
+            entity.prevRenderYawOffset() + (entity.renderYawOffset() - entity.prevRenderYawOffset()) * partialTicks;
+        f64 headYaw =
+            entity.prevRotationYawHead() + (entity.rotationYawHead() - entity.prevRotationYawHead()) * partialTicks;
+        f64 diff = headYaw - bodyYaw;
+        while (diff < -180.0)
+            diff += 360.0;
+        while (diff > 180.0)
+            diff -= 360.0;
+        return diff;
+    }
+
+    static f64 _getHeadPitch(::mc::LivingEntity& entity, f64 partialTicks)
+    {
+        return entity.prevPitch() + (entity.pitch() - entity.prevPitch()) * partialTicks;
+    }
+
+    static f64 _getAgeInTicks(::mc::LivingEntity& entity) { return static_cast<f64>(entity.ticksExisted()); }
 };
 
 } // namespace mc::client::renderer::entity::renderer::aquatic

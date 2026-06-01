@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, the subject to the conditions:
+ * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -45,65 +45,75 @@ void FishingBobberRenderer::render(Entity& entity, f64 partialTicks)
 bool FishingBobberRenderer::generateMesh(
     ClientEntity& entity, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 钓鱼浮标渲染：浮标四边形 + 钓线
-    // 目前仅生成浮标四边形；钓线需要从浮标到玩家手持位置计算，
-    // 但 generateMesh 无法访问其他实体，钓线在 renderWithPipeline 中单独处理
-    _generateBobberQuad(vertices, indices);
+    // 钓鱼浮标 + 钓线全部使用 LINE_LIST 拓扑
+    // 浮标渲染为十字线段，钓线为抛物线
+    // 参考 MC 1.16.5 FishingBobberEntity / FishRenderer
+
+    _generateBobberCross(vertices, indices);
+    _generateFishingLine(entity, vertices, indices);
+
     return !vertices.empty() && !indices.empty();
 }
 
 bool FishingBobberRenderer::needsMeshUpdate(ClientEntity& entity) const
 {
-    (void)entity;
-    return false;
+    // 钓线位置随实体移动而变化，每帧都需要更新
+    return true;
 }
 
-void FishingBobberRenderer::_generateBobberQuad(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+void FishingBobberRenderer::_generateBobberCross(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 浮标尺寸：0.25 x 0.25 的小四边形
-    // 参考 MC 1.16.5 FishingBobberEntity 的大小
-    const f32 halfWidth = 0.125f;
-    const f32 height = 0.25f;
-    const f32 yOffset = 0.25f; // 浮标浮在水面上的高度偏移
+    // 浮标渲染为十字线段（LINE_LIST）
+    // 参考 MC 1.16.5 FishRenderer：浮标渲染为线段
+    const f32 halfSize = 0.0625f; // 1/16 格，约 MC 原版浮标大小
+    const f32 yOffset = 0.25f;    // 浮标浮在水面上的高度偏移
 
-    // 前面 (Z+)
-    vertices.emplace_back(ModelVertex{Vector3f(-halfWidth, yOffset, 0.0f), Vector2f(0.0f, 1.0f), Vector3f(0.0f, 0.0f, 1.0f)});
-    vertices.emplace_back(ModelVertex{Vector3f(halfWidth, yOffset, 0.0f), Vector2f(1.0f, 1.0f), Vector3f(0.0f, 0.0f, 1.0f)});
-    vertices.emplace_back(ModelVertex{Vector3f(halfWidth, yOffset + height, 0.0f), Vector2f(1.0f, 0.0f), Vector3f(0.0f, 0.0f, 1.0f)});
-    vertices.emplace_back(ModelVertex{Vector3f(-halfWidth, yOffset + height, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 0.0f, 1.0f)});
+    const u32 baseIndex = static_cast<u32>(vertices.size());
 
-    // 背面 (Z-)
-    vertices.emplace_back(ModelVertex{Vector3f(halfWidth, yOffset, 0.0f), Vector2f(0.0f, 1.0f), Vector3f(0.0f, 0.0f, -1.0f)});
-    vertices.emplace_back(ModelVertex{Vector3f(-halfWidth, yOffset, 0.0f), Vector2f(1.0f, 1.0f), Vector3f(0.0f, 0.0f, -1.0f)});
+    // 水平线段 (X轴)
     vertices.emplace_back(
-        ModelVertex{Vector3f(-halfWidth, yOffset + height, 0.0f), Vector2f(1.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f)});
+        ModelVertex{Vector3f(-halfSize, yOffset, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
     vertices.emplace_back(
-        ModelVertex{Vector3f(halfWidth, yOffset + height, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f)});
+        ModelVertex{Vector3f(halfSize, yOffset, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
 
-    // 前面索引
-    indices.emplace_back(0);
-    indices.emplace_back(1);
-    indices.emplace_back(2);
-    indices.emplace_back(0);
-    indices.emplace_back(2);
-    indices.emplace_back(3);
+    // 纵向线段 (Z轴)
+    vertices.emplace_back(
+        ModelVertex{Vector3f(0.0f, yOffset, -halfSize), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
+    vertices.emplace_back(
+        ModelVertex{Vector3f(0.0f, yOffset, halfSize), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
 
-    // 背面索引
-    indices.emplace_back(4);
-    indices.emplace_back(5);
-    indices.emplace_back(6);
-    indices.emplace_back(4);
-    indices.emplace_back(6);
-    indices.emplace_back(7);
+    // 垂直线段 (Y轴 - 浮标尖端)
+    vertices.emplace_back(
+        ModelVertex{Vector3f(0.0f, yOffset - halfSize, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
+    vertices.emplace_back(
+        ModelVertex{Vector3f(0.0f, yOffset + halfSize * 2.0f, 0.0f), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
+
+    // X轴线索引
+    indices.emplace_back(baseIndex + 0);
+    indices.emplace_back(baseIndex + 1);
+
+    // Z轴线索引
+    indices.emplace_back(baseIndex + 2);
+    indices.emplace_back(baseIndex + 3);
+
+    // Y轴线索引
+    indices.emplace_back(baseIndex + 4);
+    indices.emplace_back(baseIndex + 5);
 }
 
-void FishingBobberRenderer::_generateFishingLine(const Vector3f& bobberPos,
-    const Vector3f& playerHandPos,
-    std::vector<ModelVertex>& vertices,
-    std::vector<u32>& indices)
+void FishingBobberRenderer::_generateFishingLine(
+    ClientEntity& entity, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 参考 MC 1.16.5 FishRenderer：16 段抛物线
     constexpr i32 SEGMENTS = 16;
+
+    // 浮标世界位置
+    Vector3f bobberPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y() + 0.25), static_cast<f32>(entity.z()));
+
+    // 玩家手持位置（简化为浮标上方偏移）
+    // TODO: 当能访问持有者实体时，计算实际的手持位置
+    // 目前使用固定偏移作为占位
+    Vector3f playerHandPos(bobberPos.x, bobberPos.y + 1.5f, bobberPos.z);
 
     Vector3f start = playerHandPos;
     Vector3f end = bobberPos;
@@ -117,6 +127,8 @@ void FishingBobberRenderer::_generateFishingLine(const Vector3f& bobberPos,
     // 下垂量取决于水平距离，最大约 0.25 格
     f32 sag = horizontalDist * 0.1f + 0.15f;
 
+    const u32 baseIndex = static_cast<u32>(vertices.size());
+
     for (i32 i = 0; i <= SEGMENTS; ++i) {
         f32 t = static_cast<f32>(i) / static_cast<f32>(SEGMENTS);
 
@@ -129,8 +141,8 @@ void FishingBobberRenderer::_generateFishingLine(const Vector3f& bobberPos,
         vertices.emplace_back(ModelVertex{Vector3f(x, y, z), Vector2f(0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f)});
 
         if (i > 0) {
-            indices.emplace_back(static_cast<u32>(vertices.size() - 2));
-            indices.emplace_back(static_cast<u32>(vertices.size() - 1));
+            indices.emplace_back(baseIndex + static_cast<u32>(i - 1));
+            indices.emplace_back(baseIndex + static_cast<u32>(i));
         }
     }
 }

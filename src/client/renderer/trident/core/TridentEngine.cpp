@@ -521,6 +521,9 @@ Result<void> TridentEngine::render()
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
 
+    // 上传动画纹理帧（在渲染通道之前执行）
+    uploadAnimationFrames();
+
     // GUI 纹理更新必须在渲染通道外执行
     if (m_guiRendererInitialized && m_guiRendererPtr) {
         VkCommandBuffer prepareCmd = m_context->beginSingleTimeCommands();
@@ -2226,6 +2229,30 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
         // 实体渲染器可以从 ChunkRenderer 的纹理图集获取纹理
     }
 
+    // 注册动画精灵
+    if (!atlasResult.animations.empty()) {
+        // 清除旧的动画 ticker
+        m_blockAtlasTicker.clear();
+
+        for (const auto& anim : atlasResult.animations) {
+            // 将 AnimationDescriptor 转换为 AnimatedSprite
+            std::vector<AnimatedSprite::FrameData> frames;
+            frames.reserve(anim.framePixels.size());
+            for (const auto& frameData : anim.framePixels) {
+                AnimatedSprite::FrameData frame;
+                frame.pixels = frameData;
+                frame.width = anim.frameWidth;
+                frame.height = anim.frameHeight;
+                frames.push_back(std::move(frame));
+            }
+
+            auto sprite = std::make_shared<AnimatedSprite>(anim.metadata, std::move(frames), anim.atlasX, anim.atlasY);
+            m_blockAtlasTicker.registerAnimatedSprite(std::move(sprite));
+        }
+
+        spdlog::info("Registered {} animated textures for block atlas", atlasResult.animations.size());
+    }
+
     spdlog::info("Texture atlas updated successfully");
     return {};
 }
@@ -2237,6 +2264,35 @@ const TextureRegion* TridentEngine::getTextureRegion(const ResourceLocation& loc
         return &it->second;
     }
     return nullptr;
+}
+
+void TridentEngine::tickTextureAnimations()
+{
+    m_blockAtlasTicker.tick();
+    m_itemAtlasTicker.tick();
+}
+
+void TridentEngine::uploadAnimationFrames()
+{
+    if (m_blockAtlasTicker.empty() && m_itemAtlasTicker.empty()) {
+        return;
+    }
+
+    auto* tridentContext = m_context.get();
+    if (!tridentContext) {
+        return;
+    }
+
+    // 上传方块图集动画帧
+    // TODO: ChunkRenderer 使用原始 Vulkan handles，需要添加 uploadRegion 方法后接入
+    // 当前暂不处理方块图集动画帧上传，待 ChunkRenderer 集成后启用
+    // if (!m_blockAtlasTicker.empty() && m_chunkRendererInitialized && m_chunkRenderer) {
+    //     ...
+    // }
+
+    // 上传物品图集动画帧
+    // TODO: ItemTextureAtlas 使用原始 Vulkan handles，需要添加 uploadRegion 方法后接入
+    // 当前暂不处理物品图集动画帧上传，待 ItemTextureAtlas 集成后启用
 }
 
 // ============================================================================

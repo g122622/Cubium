@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include <map>
 #include <set>
 #include <vector>
@@ -36,13 +37,30 @@ namespace mc {
 class IResourcePack;
 
 /**
+ * @brief 动画纹理描述符
+ *
+ * 存储动画纹理的完整帧数据和元数据，
+ * 用于构建后注册到 TextureAtlasTicker。
+ */
+struct AnimationDescriptor {
+    ResourceLocation location;                      ///< 纹理资源位置
+    u32 atlasX = 0;                                 ///< 在图集中的X位置（像素）
+    u32 atlasY = 0;                                 ///< 在图集中的Y位置（像素）
+    u32 frameWidth = 0;                             ///< 帧宽度
+    u32 frameHeight = 0;                            ///< 帧高度
+    std::vector<std::vector<u8>> framePixels;       ///< 所有帧的RGBA像素数据
+    resource::metadata::AnimationMetadata metadata; ///< 动画元数据
+};
+
+/**
  * @brief 纹理图集构建结果
  */
 struct AtlasBuildResult {
-    std::vector<u8> pixels;                            // RGBA8像素数据
-    u32 width = 0;                                     // 图集宽度
-    u32 height = 0;                                    // 图集高度
-    std::map<ResourceLocation, TextureRegion> regions; // 纹理位置映射
+    std::vector<u8> pixels;                            ///< RGBA8像素数据
+    u32 width = 0;                                     ///< 图集宽度
+    u32 height = 0;                                    ///< 图集高度
+    std::map<ResourceLocation, TextureRegion> regions; ///< 纹理位置映射
+    std::vector<AnimationDescriptor> animations;       ///< 动画纹理描述符列表
 };
 
 /**
@@ -84,6 +102,28 @@ public:
         u32 frameWidth,
         u32 frameHeight);
 
+    /**
+     * @brief 添加带动画元数据的纹理帧
+     *
+     * 当纹理有 .png.mcmeta 动画数据时使用此方法。
+     * 首帧裁剪后入图集，完整帧数据保存到待注册动画列表。
+     *
+     * @param location 纹理资源位置
+     * @param pixels 完整纹理像素数据（RGBA8，可能包含多帧竖排）
+     * @param width 纹理宽度
+     * @param height 纹理高度
+     * @param frameWidth 帧宽度
+     * @param frameHeight 帧高度
+     * @param metadata 动画元数据
+     */
+    void addTextureFrame(const ResourceLocation& location,
+        const std::vector<u8>& pixels,
+        u32 width,
+        u32 height,
+        u32 frameWidth,
+        u32 frameHeight,
+        const resource::metadata::AnimationMetadata& metadata);
+
     // 构建图集
     [[nodiscard]] Result<AtlasBuildResult> build();
 
@@ -102,6 +142,20 @@ private:
     u32 m_padding = 0;
     std::vector<TextureInfo> m_textures;
     std::set<ResourceLocation> m_addedLocations;
+
+    /**
+     * @brief 待注册的动画纹理数据
+     *
+     * addTextureFrame() 时保存完整帧数据，build() 后设置 atlasX/atlasY 位置。
+     */
+    struct PendingAnimation {
+        ResourceLocation location;
+        u32 frameWidth = 0;
+        u32 frameHeight = 0;
+        std::vector<std::vector<u8>> framePixels;
+        resource::metadata::AnimationMetadata metadata;
+    };
+    std::vector<PendingAnimation> m_pendingAnimations;
 
     // 矩形打包算法 (使用Skyline算法)
     struct SkylineNode {

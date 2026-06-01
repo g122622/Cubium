@@ -26,6 +26,8 @@
 #include "client/renderer/api/IRenderEngine.hpp"
 #include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
+#include "client/renderer/trident/core/texture/TextureAtlasTicker.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ResourceManager.hpp"
@@ -638,6 +640,22 @@ public:
     [[nodiscard]] Result<void> updateTextureAtlas(const AtlasBuildResult& atlasResult);
 
     /**
+     * @brief 每游戏tick更新动画纹理状态
+     *
+     * 遍历所有已注册的动画精灵，推进帧计数器。
+     * 应在客户端固定 tick 循环中调用。
+     */
+    void tickTextureAnimations();
+
+    /**
+     * @brief 上传所有待更新的动画帧到 GPU
+     *
+     * 将需要更新的帧上传到纹理图集。
+     * 应在渲染前（beginFrame 之前）调用。
+     */
+    void uploadAnimationFrames();
+
+    /**
      * @brief 设置 GUI 缩放倍率
      *
      * GUI 渲染会使用该倍率把窗口尺寸换算为逻辑 GUI 尺寸。
@@ -739,6 +757,10 @@ private:
     EntityTextureAtlas m_entityTextureAtlas;
     ResourceLocation m_localPlayerSkinLocation{"minecraft:textures/entity/steve.png"};
     std::map<ResourceLocation, TextureRegion> m_textureRegions;
+
+    // 动画纹理管理
+    TextureAtlasTicker m_blockAtlasTicker;
+    TextureAtlasTicker m_itemAtlasTicker;
 
     // 子渲染器初始化状态
     bool m_chunkRendererInitialized = false;

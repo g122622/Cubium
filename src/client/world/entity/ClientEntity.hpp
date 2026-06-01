@@ -29,6 +29,7 @@
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <algorithm>
 #include <memory>
 #include <optional>
 #include <string>
@@ -556,6 +557,17 @@ public:
      */
     void updateStandingAnimation();
 
+    // ========== 河豚膨胀状态 ==========
+
+    /**
+     * @brief 获取河豚膨胀状态
+     *
+     * 参考 MC 1.16.5 PufferfishEntity.PUFF_STATE DataParameter
+     * 0 = Deflated, 1 = SemiPuffed, 2 = FullyPuffed
+     */
+    [[nodiscard]] i32 puffState() const { return m_puffState; }
+    void setPuffState(i32 state) { m_puffState = std::clamp(state, 0, 2); }
+
     // ========== 装备（用于层渲染） ==========
 
     /**
@@ -773,6 +785,9 @@ private:
     f32 m_clientSideStandAnimation0 = 0.0f;
     f32 m_clientSideStandAnimation = 0.0f;
     bool m_isStanding = false;
+
+    // 河豚膨胀状态 (0=Deflated, 1=SemiPuffed, 2=FullyPuffed)
+    i32 m_puffState = 0;
 
     // 装备（用于层渲染）
     std::unique_ptr<ItemStack> m_mainHandItem;

@@ -26,6 +26,7 @@
 #include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
 #include "client/renderer/trident/entity/model/ModelRegistration.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/renderer/RendererRegistration.hpp"
@@ -218,8 +219,15 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         return;
     }
 
-    // 绑定管线
-    m_pipeline->bind(cmd);
+    // 绑定管线 - 根据网格拓扑选择混合模式
+    pipeline::BlendMode blendMode = pipeline::BlendMode::Alpha;
+    if (renderer) {
+        core::PipelineMeshProvider* meshProvider = renderer->getPipelineMeshProvider();
+        if (meshProvider && meshProvider->getTopology() == VK_PRIMITIVE_TOPOLOGY_LINE_LIST) {
+            blendMode = pipeline::BlendMode::Lines;
+        }
+    }
+    m_pipeline->bind(cmd, blendMode);
 
     // 绑定相机描述符集（set = 0）
     if (m_cameraDescriptorSet != VK_NULL_HANDLE) {
@@ -790,6 +798,13 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         context.standingProgress = 0.0f;
     }
 
+    // 河豚膨胀状态
+    if (typeId == "minecraft:pufferfish" || typeId == "pufferfish") {
+        context.puffState = entity.puffState();
+    } else {
+        context.puffState = 0;
+    }
+
     // 计算哈希
     context.computeHash();
 
@@ -809,6 +824,30 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             if (polarBearModel != nullptr) {
                 polarBearModel->setStandingProgress(context.standingProgress);
             }
+        }
+
+        // 河豚膨胀状态模型切换
+        if (normalizedId == "pufferfish" || normalizedId == "minecraft:pufferfish") {
+            // ModelFactory 默认创建 PufferfishSmallModel，
+            // 根据膨胀状态替换为正确的模型
+            if (context.puffState == 1) {
+                model = std::make_unique<model::aquatic::PufferfishMediumModel>();
+                model->setAngles(context.limbSwing,
+                    context.limbSwingAmount,
+                    context.ageInTicks,
+                    context.netHeadYaw,
+                    context.headPitch,
+                    context.scale * 16.0);
+            } else if (context.puffState >= 2) {
+                model = std::make_unique<model::aquatic::PufferfishBigModel>();
+                model->setAngles(context.limbSwing,
+                    context.limbSwingAmount,
+                    context.ageInTicks,
+                    context.netHeadYaw,
+                    context.headPitch,
+                    context.scale * 16.0);
+            }
+            // puffState == 0 使用 ModelFactory 创建的 PufferfishSmallModel
         }
 
         return model;

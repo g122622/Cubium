@@ -26,6 +26,7 @@
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"

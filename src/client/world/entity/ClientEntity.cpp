@@ -25,6 +25,7 @@
 #include "common/entity/core/Entity.hpp" // for EntityFlags
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
@@ -251,6 +252,18 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(PolarBearEntity::getStandingParamId()); value != nullptr) {
                 const bool standing = value->get<bool>();
                 setStanding(standing);
+            }
+        }
+    }
+
+    // 河豚膨胀状态同步
+    // 参考 MC 1.16.5 PufferfishEntity.PUFF_STATE DataParameter
+    if (m_typeId == "minecraft:pufferfish" || m_typeId == "pufferfish") {
+        if (m_dataManager.hasParam(::mc::PufferfishEntity::getPuffStateParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::PufferfishEntity::getPuffStateParamId());
+                value != nullptr) {
+                const i32 puffState = value->get<i32>();
+                setPuffState(puffState);
             }
         }
     }

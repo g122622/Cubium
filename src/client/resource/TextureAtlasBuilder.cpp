@@ -130,6 +130,18 @@ void TextureAtlasBuilder::addTextureFrame(const ResourceLocation& location,
     u32 frameWidth,
     u32 frameHeight)
 {
+    // 无动画元数据时使用默认构造的 AnimationMetadata
+    addTextureFrame(location, pixels, width, height, frameWidth, frameHeight, resource::metadata::AnimationMetadata{});
+}
+
+void TextureAtlasBuilder::addTextureFrame(const ResourceLocation& location,
+    const std::vector<u8>& pixels,
+    u32 width,
+    u32 height,
+    u32 frameWidth,
+    u32 frameHeight,
+    const resource::metadata::AnimationMetadata& metadata)
+{
     // 检查是否已添加
     if (m_addedLocations.count(location) > 0) {
         return;
@@ -157,6 +169,32 @@ void TextureAtlasBuilder::addTextureFrame(const ResourceLocation& location,
 
     m_textures.push_back(std::move(info));
     m_addedLocations.insert(location);
+
+    // 如果是动画纹理（帧数 > 1），保存完整帧数据
+    if (canUseFrameSize && height > storedHeight) {
+        u32 frameCount = height / storedHeight;
+        if (frameCount > 1) {
+            PendingAnimation anim;
+            anim.location = location;
+            anim.frameWidth = storedWidth;
+            anim.frameHeight = storedHeight;
+            anim.metadata = metadata;
+
+            // 提取所有帧
+            anim.framePixels.reserve(frameCount);
+            for (u32 i = 0; i < frameCount; ++i) {
+                std::vector<u8> frameData(static_cast<size_t>(storedWidth) * storedHeight * 4);
+                for (u32 row = 0; row < storedHeight; ++row) {
+                    const u8* src = pixels.data() + (static_cast<size_t>(i * storedHeight + row) * width * 4);
+                    u8* dst = frameData.data() + (static_cast<size_t>(row) * storedWidth * 4);
+                    std::memcpy(dst, src, static_cast<size_t>(storedWidth) * 4);
+                }
+                anim.framePixels.push_back(std::move(frameData));
+            }
+
+            m_pendingAnimations.push_back(std::move(anim));
+        }
+    }
 }
 
 Result<AtlasBuildResult> TextureAtlasBuilder::build()
@@ -303,6 +341,23 @@ Result<AtlasBuildResult> TextureAtlasBuilder::build()
         result.regions[tex.location] = region;
     }
 
+    // 填充动画描述符（设置 atlasX/atlasY 位置）
+    for (auto& anim : m_pendingAnimations) {
+        auto regionIt = result.regions.find(anim.location);
+        if (regionIt != result.regions.end()) {
+            const TextureRegion& region = regionIt->second;
+            AnimationDescriptor desc;
+            desc.location = anim.location;
+            desc.atlasX = static_cast<u32>(region.u0 * static_cast<f32>(result.width));
+            desc.atlasY = static_cast<u32>(region.v0 * static_cast<f32>(result.height));
+            desc.frameWidth = anim.frameWidth;
+            desc.frameHeight = anim.frameHeight;
+            desc.framePixels = std::move(anim.framePixels);
+            desc.metadata = std::move(anim.metadata);
+            result.animations.push_back(std::move(desc));
+        }
+    }
+
     return result;
 }
 
@@ -310,6 +365,7 @@ void TextureAtlasBuilder::clear()
 {
     m_textures.clear();
     m_addedLocations.clear();
+    m_pendingAnimations.clear();
 }
 
 std::vector<ResourceLocation> TextureAtlasBuilder::getTextureLocations() const

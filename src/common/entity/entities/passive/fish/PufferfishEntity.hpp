@@ -25,6 +25,8 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../core/DataParameter.hpp"
+#include "../../../core/EntityDataManager.hpp"
 #include "../../../core/EntitySize.hpp"
 #include "AbstractFishEntity.hpp"
 #include <memory>
@@ -94,15 +96,23 @@ public:
 
     /**
      * @brief 获取膨胀状态
+     *
+     * 优先从 DataParameter 读取以获取同步值。
      */
-    [[nodiscard]] PuffState getPuffState() const { return m_puffState; }
+    [[nodiscard]] PuffState getPuffState() const;
 
     /**
      * @brief 设置膨胀状态
      *
+     * 通过 DataParameter 同步到客户端。
      * 当状态变化时会自动播放膨胀/收缩音效并刷新碰撞箱。
      */
     void setPuffState(PuffState state);
+
+    /**
+     * @brief 获取膨胀状态 DataParameter ID（客户端同步用）
+     */
+    [[nodiscard]] static u16 getPuffStateParamId() { return DATA_PUFF_STATE_PARAM.id(); }
 
     /**
      * @brief 获取膨胀尺寸缩放因子
@@ -208,10 +218,20 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 数据参数注册 ==========
+    void registerData() override;
+
 private:
     PuffState m_puffState = PuffState::Deflated;
     i32 m_puffTimer = 0;
     i32 m_deflateTimer = 0;
+
+    /**
+     * @brief 膨胀状态 DataParameter（客户端同步）
+     *
+     * MC 1.16.5: PUFF_STATE = EntityDataManager.createKey(PufferfishEntity.class, DataSerializers.VARINT)
+     */
+    static entity::DataParameter<i32> DATA_PUFF_STATE_PARAM;
 
     // MC 1.16.5 常量
     static constexpr i32 PUFF_SEMI_THRESHOLD = 40;      // 膨胀到半膨胀的阈值 (ticks)

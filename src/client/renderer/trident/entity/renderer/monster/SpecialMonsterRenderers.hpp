@@ -25,7 +25,6 @@
 
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
-#include "client/renderer/trident/entity/model/monster/IllagerModel.hpp"
 #include "client/renderer/trident/entity/model/monster/MoreMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"

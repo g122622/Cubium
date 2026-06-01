@@ -35,8 +35,12 @@
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
+#include <algorithm>
 
 namespace mc {
+
+// DataParameter 定义
+entity::DataParameter<i32> PufferfishEntity::DATA_PUFF_STATE_PARAM = entity::EntityDataManager::createKey<i32>();
 
 PufferfishEntity::PufferfishEntity(EntityId id)
     : AbstractFishEntity(id)
@@ -125,28 +129,6 @@ void PufferfishEntity::tick()
     if (m_puffState != PuffState::Deflated) {
         attackNearbyEnemies();
     }
-}
-
-void PufferfishEntity::setPuffState(PuffState state)
-{
-    if (state == m_puffState) {
-        return;
-    }
-
-    PuffState oldState = m_puffState;
-    m_puffState = state;
-
-    // MC 1.16.5: 膨胀时播放 BLOW_UP 音效
-    if (static_cast<i32>(state) > static_cast<i32>(oldState)) {
-        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_UP, 1.0f, 1.0f);
-    }
-    // MC 1.16.5: 收缩时播放 BLOW_OUT 音效
-    else {
-        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_OUT, 1.0f, 1.0f);
-    }
-
-    // MC 1.16.5: 刷新碰撞箱尺寸
-    refreshDimensions();
 }
 
 void PufferfishEntity::startPuffTimer()
@@ -256,6 +238,50 @@ void PufferfishEntity::registerAttributes()
     // 参考 MC 1.16.5 河豚属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+}
+
+void PufferfishEntity::registerData()
+{
+    AbstractFishEntity::registerData();
+
+    // MC 1.16.5: this.dataManager.register(PUFF_STATE, 0)
+    m_dataManager.registerParam(DATA_PUFF_STATE_PARAM, 0);
+}
+
+PufferfishEntity::PuffState PufferfishEntity::getPuffState() const
+{
+    // 优先从 DataParameter 读取同步值
+    if (m_dataManager.hasParam(DATA_PUFF_STATE_PARAM.id())) {
+        const i32 value = m_dataManager.get<i32>(DATA_PUFF_STATE_PARAM);
+        const i32 clamped = std::clamp(value, 0, 2);
+        return static_cast<PuffState>(clamped);
+    }
+    return m_puffState;
+}
+
+void PufferfishEntity::setPuffState(PuffState state)
+{
+    if (state == m_puffState) {
+        return;
+    }
+
+    PuffState oldState = m_puffState;
+    m_puffState = state;
+
+    // MC 1.16.5: 通过 DataParameter 同步
+    m_dataManager.set(DATA_PUFF_STATE_PARAM, static_cast<i32>(state));
+
+    // MC 1.16.5: 膨胀时播放 BLOW_UP 音效
+    if (static_cast<i32>(state) > static_cast<i32>(oldState)) {
+        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_UP, 1.0f, 1.0f);
+    }
+    // MC 1.16.5: 收缩时播放 BLOW_OUT 音效
+    else {
+        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_OUT, 1.0f, 1.0f);
+    }
+
+    // MC 1.16.5: 刷新碰撞箱尺寸
+    refreshDimensions();
 }
 
 } // namespace mc

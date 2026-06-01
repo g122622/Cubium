@@ -47,6 +47,7 @@
 
 // 水生生物模型
 #include "aquatic/AquaticModels.hpp"
+#include "aquatic/PufferfishModel.hpp"
 
 // 基础模型
 #include "base/BipedModel.hpp"
@@ -129,6 +130,9 @@ void initializeModelRegistration()
     factory.registerModel(ET::TURTLE, []() { return std::make_unique<aquatic::TurtleModel>(); });
     factory.registerModel(ET::TROPICAL_FISH, []() { return std::make_unique<aquatic::TropicalFishAModel>(); });
 
+    // 河豚 - 默认使用小型模型，PufferfishRenderer 会根据膨胀状态切换
+    factory.registerModel(ET::PUFFERFISH, []() { return std::make_unique<aquatic::PufferfishSmallModel>(); });
+
     // ==================== 怪物 ====================
     factory.registerModel(ET::ZOMBIE, []() { return std::make_unique<monster::ZombieModel>(); });
     factory.registerModel(ET::SKELETON, []() { return std::make_unique<monster::SkeletonModel>(); });
@@ -182,9 +186,6 @@ void initializeModelRegistration()
 
     // ==================== 玩家 ====================
     factory.registerModel(ET::PLAYER, []() { return std::make_unique<player::PlayerModel>(0.0f, false); });
-
-    // ==================== TODO: 以下模型需要后续实现 ====================
-    // ET::PUFFERFISH - PufferfishModel (三种膨胀状态，当前使用 CodModel 占位)
 
     ModelFactory::markInitialized();
     spdlog::info("ModelFactory: Registered {} model types", factory.size());
