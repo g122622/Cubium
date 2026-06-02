@@ -723,6 +723,8 @@ add_executable(mc_tests
     common/world/village/raid/RaidHeroTrackingTest.cpp
     # 基岩版Addon模组系统测试
     common/mod/bedrock/addon/test_lifecycle.cpp
+    common/mod/bedrock/addon/test_block_component_registry.cpp
+    common/mod/bedrock/addon/test_item_component_registry.cpp
     # 世界边界测试
     common/world/border/WorldBorderTest.cpp
     # 记分板系统测试
