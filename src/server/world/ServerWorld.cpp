@@ -55,6 +55,8 @@
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/storage/entity/EntityStorageManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
@@ -996,6 +998,19 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                     if (blockState->getBlock().ticksRandomly()) {
                         Block& block = const_cast<Block&>(blockState->getBlock());
                         block.randomTick(*this, pos, const_cast<BlockState&>(*blockState), m_random);
+
+                        // 派发自定义方块组件回调 - onRandomTick
+                        auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+                        std::string typeId = blockState->getBlock().blockLocation().toString();
+                        if (blockCompReg.hasRandomTickCallback(typeId)) {
+                            mc::mod::bedrock::addon::BlockComponentRandomTickEvent event;
+                            event.blockTypeId = typeId;
+                            event.blockX = pos.x;
+                            event.blockY = pos.y;
+                            event.blockZ = pos.z;
+                            event.dimensionId = dimension();
+                            blockCompReg.dispatchRandomTick(typeId, event);
+                        }
                     }
 
                     // 执行流体随机刻

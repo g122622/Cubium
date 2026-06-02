@@ -28,6 +28,8 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/block/Material.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 
 namespace mc {
 
@@ -80,6 +82,25 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         return ActionResultType::Fail;
     }
 
+    // 派发自定义方块组件回调 - beforeOnPlayerPlace（可取消）
+    auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+    std::string blockTypeId = m_block->blockLocation().toString();
+    if (blockCompReg.hasPlayerPlaceBeforeCallback(blockTypeId)) {
+        mc::mod::bedrock::addon::BlockComponentPlayerPlaceBeforeEvent event;
+        event.blockTypeId = blockTypeId;
+        event.blockX = blockContext.placementPos().x;
+        event.blockY = blockContext.placementPos().y;
+        event.blockZ = blockContext.placementPos().z;
+        event.dimensionId = blockContext.getWorld().dimension();
+        event.playerId = blockContext.getPlayer() ? static_cast<PlayerId>(blockContext.getPlayer()->id()) : std::optional<PlayerId>();
+        event.permutationToPlaceTypeId = state->getBlock().blockLocation().toString();
+        event.face = static_cast<i32>(blockContext.getFace());
+        if (blockCompReg.dispatchPlayerPlaceBefore(blockTypeId, event)) {
+            // 脚本取消了放置
+            return ActionResultType::Fail;
+        }
+    }
+
     // 执行放置
     if (!placeBlock(blockContext, state)) {
         return ActionResultType::Fail;
@@ -108,6 +129,19 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         // 调用方块的 onBlockPlacedBy
         // 注意：需要使用 const_cast 因为 onBlockPlacedBy 是非 const 方法
         const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState);
+
+        // 派发自定义方块组件回调 - onPlace
+        if (blockCompReg.hasPlaceCallback(blockTypeId)) {
+            mc::mod::bedrock::addon::BlockComponentOnPlaceEvent placeEvent;
+            placeEvent.blockTypeId = blockTypeId;
+            placeEvent.blockX = pos.x;
+            placeEvent.blockY = pos.y;
+            placeEvent.blockZ = pos.z;
+            placeEvent.dimensionId = world.dimension();
+            // 获取被替换的方块类型ID（放置前的方块，通常是空气）
+            placeEvent.previousBlockTypeId = "minecraft:air"; // 放置前通常是空气
+            blockCompReg.dispatchPlace(blockTypeId, placeEvent);
+        }
 
         // 触发进度触发器
         // 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()

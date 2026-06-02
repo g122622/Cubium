@@ -49,6 +49,8 @@
 #include "../../inventory/Slot.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "GameModeUtils.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -2140,6 +2142,29 @@ void Player::attack(Entity& target)
                 // 剑 SwordItem::hitEntity() 消耗 1 点
                 // 工具 ToolItem::hitEntity() 消耗 2 点
                 item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+
+                // 派发自定义物品组件回调 - onHitEntity
+                auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+                std::string itemTypeId = item->itemLocation().toString();
+                if (itemCompReg.hasHitEntityCallback(itemTypeId)) {
+                    mc::mod::bedrock::addon::ItemComponentHitEntityEvent event;
+                    event.itemTypeId = itemTypeId;
+                    event.attackingEntityId = id();
+                    event.hitEntityId = livingTarget->id();
+                    event.itemStackAmount = mainHand.getCount();
+                    event.hadEffect = true;
+                    itemCompReg.dispatchHitEntity(itemTypeId, event);
+                }
+                if (itemCompReg.hasBeforeDurabilityDamageCallback(itemTypeId)) {
+                    mc::mod::bedrock::addon::ItemComponentBeforeDurabilityDamageEvent durEvent;
+                    durEvent.itemTypeId = itemTypeId;
+                    durEvent.attackingEntityId = id();
+                    durEvent.hitEntityId = livingTarget->id();
+                    durEvent.itemStackAmount = mainHand.getCount();
+                    durEvent.durabilityDamage = 1; // 默认耐久消耗
+                    itemCompReg.dispatchBeforeDurabilityDamage(itemTypeId, durEvent);
+                    // durEvent.durabilityDamage 可能被回调修改
+                }
 
                 // 检查物品是否损坏（变空）
                 if (mainHand.isEmpty()) {

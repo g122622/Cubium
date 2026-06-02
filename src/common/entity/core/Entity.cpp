@@ -43,6 +43,8 @@
 #include "EntityRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1107,6 +1109,20 @@ void Entity::doBlockCollisions()
                     const Block& block = blockState->getBlock();
                     block.onEntityCollision(*blockState, *m_world, pos, *this);
 
+                    // 派发自定义方块组件回调 - onEntity
+                    auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+                    std::string typeId = block.blockLocation().toString();
+                    if (blockReg.hasEntityCallback(typeId)) {
+                        mc::mod::bedrock::addon::BlockComponentEntityEvent event;
+                        event.blockTypeId = typeId;
+                        event.blockX = pos.x;
+                        event.blockY = pos.y;
+                        event.blockZ = pos.z;
+                        event.dimensionId = m_world->dimension();
+                        event.entitySourceId = id();
+                        blockReg.dispatchEntity(typeId, event);
+                    }
+
                     // 调用实体的"在方块内部"回调
                     onInsideBlock(*blockState);
                 }
@@ -1130,6 +1146,29 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
         static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)), // 稍微向下偏移
         static_cast<i32>(std::floor(m_position.z)));
 
+    // 派发自定义方块组件回调 - onStepOff
+    // 检测实体是否离开了之前所站的方块
+    BlockPos prevBlockPos(static_cast<i32>(std::floor(m_prevPosition.x)),
+        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f - (m_position.y - m_prevPosition.y))),
+        static_cast<i32>(std::floor(m_prevPosition.z)));
+    if (prevBlockPos != blockPos) {
+        const BlockState* prevBlockState = m_world->getBlockState(prevBlockPos);
+        if (prevBlockState != nullptr && !prevBlockState->isAir()) {
+            auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+            std::string prevTypeId = prevBlockState->getBlock().blockLocation().toString();
+            if (blockReg.hasStepOffCallback(prevTypeId)) {
+                mc::mod::bedrock::addon::BlockComponentStepOffEvent event;
+                event.blockTypeId = prevTypeId;
+                event.blockX = prevBlockPos.x;
+                event.blockY = prevBlockPos.y;
+                event.blockZ = prevBlockPos.z;
+                event.dimensionId = m_world->dimension();
+                event.entityId = id();
+                blockReg.dispatchStepOff(prevTypeId, event);
+            }
+        }
+    }
+
     // 获取方块状态
     const BlockState* blockState = m_world->getBlockState(blockPos);
     if (blockState == nullptr) {
@@ -1143,12 +1182,44 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     if (std::abs(desiredMovement.y - actualMovement.y) > 1.0e-7f) {
         // Y轴发生了碰撞，说明着陆了
         block.onLanded(*blockState, *m_world, blockPos, *this);
+
+        // 派发自定义方块组件回调 - onEntityFallOn
+        // 仅当实体有下落距离时才触发
+        if (m_fallDistance > 0.0f) {
+            auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+            std::string typeId = block.blockLocation().toString();
+            if (blockReg.hasEntityFallOnCallback(typeId)) {
+                mc::mod::bedrock::addon::BlockComponentEntityFallOnEvent event;
+                event.blockTypeId = typeId;
+                event.blockX = blockPos.x;
+                event.blockY = blockPos.y;
+                event.blockZ = blockPos.z;
+                event.dimensionId = m_world->dimension();
+                event.entityId = id();
+                event.fallDistance = m_fallDistance;
+                blockReg.dispatchEntityFallOn(typeId, event);
+            }
+        }
     }
 
     // 2. onEntityWalk 回调 - 当在地面行走时
     // MC: if (this.onGround && !this.isSteppingCarefully()) { block.onEntityWalk(this.world, blockpos, this); }
     if (m_onGround && !isSteppingCarefully()) {
         block.onEntityWalk(*blockState, *m_world, blockPos, *this);
+
+        // 派发自定义方块组件回调 - onStepOn
+        auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+        std::string typeId = block.blockLocation().toString();
+        if (blockReg.hasStepOnCallback(typeId)) {
+            mc::mod::bedrock::addon::BlockComponentStepOnEvent event;
+            event.blockTypeId = typeId;
+            event.blockX = blockPos.x;
+            event.blockY = blockPos.y;
+            event.blockZ = blockPos.z;
+            event.dimensionId = m_world->dimension();
+            event.entityId = id();
+            blockReg.dispatchStepOn(typeId, event);
+        }
     }
 
     // 3. onInsideBlock 回调 - 遍历碰撞箱内所有方块

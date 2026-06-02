@@ -38,6 +38,8 @@
 #include "../damage/DamageSource.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -1211,6 +1213,19 @@ void LivingEntity::updateActiveItem()
         if (!m_activeItem.isEmpty() && item != nullptr) {
             // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
             ItemStack result = const_cast<Item*>(item)->onItemUseFinish(m_activeItem, *m_world, *this);
+
+            // 派发自定义物品组件回调 - onCompleteUse
+            auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+            std::string itemTypeId = item->itemLocation().toString();
+            if (itemCompReg.hasCompleteUseCallback(itemTypeId)) {
+                mc::mod::bedrock::addon::ItemComponentCompleteUseEvent compEvent;
+                compEvent.itemTypeId = itemTypeId;
+                compEvent.sourceId = id();
+                compEvent.useDuration = item->getUseDuration(m_activeItem);
+                compEvent.itemStackAmount = m_activeItem.getCount();
+                itemCompReg.dispatchCompleteUse(itemTypeId, compEvent);
+            }
+
             // 更新装备槽
             setEquipment(m_activeHand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand, result);
         }

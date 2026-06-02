@@ -25,6 +25,8 @@
 #include "../../IWorld.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../fluid/FluidRegistry.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::world::tick {
@@ -56,6 +58,19 @@ TickManager::TickManager(IWorld& world)
                 // 当前位置的方块与调度时的目标方块匹配，执行tick
                 BlockState* mutableState = const_cast<BlockState*>(state);
                 block.tick(w, pos, *mutableState, w.getRandom());
+
+                // 派发自定义方块组件回调 - onTick
+                auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+                std::string typeId = block.blockLocation().toString();
+                if (blockCompReg.hasTickCallback(typeId)) {
+                    mc::mod::bedrock::addon::BlockComponentTickEvent event;
+                    event.blockTypeId = typeId;
+                    event.blockX = pos.x;
+                    event.blockY = pos.y;
+                    event.blockZ = pos.z;
+                    event.dimensionId = w.dimension();
+                    blockCompReg.dispatchTick(typeId, event);
+                }
             }
             // 如果方块不匹配，说明方块已改变，跳过此次tick
         });

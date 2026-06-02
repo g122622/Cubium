@@ -30,6 +30,8 @@
 #include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../core/ItemStack.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 
 namespace mc {
 namespace item::items {
@@ -171,6 +173,17 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
     // 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
     if (player != nullptr) {
         world.onConsumeItem(player->id(), consumedItem);
+    }
+
+    // 派发自定义物品组件回调 - onConsume
+    auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+    std::string itemTypeId = itemLocation().toString();
+    if (itemCompReg.hasConsumeCallback(itemTypeId)) {
+        mc::mod::bedrock::addon::ItemComponentConsumeEvent consumeEvent;
+        consumeEvent.itemTypeId = itemTypeId;
+        consumeEvent.sourceId = entity.id();
+        consumeEvent.itemStackAmount = consumedItem.getCount();
+        itemCompReg.dispatchConsume(itemTypeId, consumeEvent);
     }
 
     // 返回容器物品

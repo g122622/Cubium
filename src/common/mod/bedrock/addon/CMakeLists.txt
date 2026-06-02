@@ -15,6 +15,7 @@ add_library(mc_bedrock_addon STATIC
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
+    modules/ScriptCustomComponentBinding.cpp
 
     # Plugin - 插件管理
     plugin/PluginExecutionGroup.cpp
@@ -43,6 +44,10 @@ add_library(mc_bedrock_addon STATIC
     lifecycle/ScriptTickListener.cpp
     lifecycle/ScriptWatchdog.cpp
     lifecycle/ScriptLogger.cpp
+
+    # Component - 自定义组件
+    component/BlockComponentRegistry.cpp
+    component/ItemComponentRegistry.cpp
 
     # Diagnostics - 诊断
     diagnostics/ScriptDiagnostics.cpp

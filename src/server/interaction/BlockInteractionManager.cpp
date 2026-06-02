@@ -29,6 +29,10 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -376,6 +380,50 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
 
     ActionResultType result = block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
 
+    // 派发自定义方块组件回调 - onPlayerInteract
+    auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+    std::string blockTypeId = block->blockLocation().toString();
+    if (blockCompReg.hasPlayerInteractCallback(blockTypeId)) {
+        mc::mod::bedrock::addon::BlockComponentPlayerInteractEvent event;
+        event.blockTypeId = blockTypeId;
+        event.blockX = pos.x;
+        event.blockY = pos.y;
+        event.blockZ = pos.z;
+        event.dimensionId = world->dimension();
+        event.playerId = playerId;
+        event.face = static_cast<i32>(face);
+        event.faceX = hitPos.x - static_cast<f32>(pos.x);
+        event.faceY = hitPos.y - static_cast<f32>(pos.y);
+        event.faceZ = hitPos.z - static_cast<f32>(pos.z);
+        blockCompReg.dispatchPlayerInteract(blockTypeId, event);
+    }
+
+    // 派发自定义物品组件回调 - onUseOn
+    // 当玩家右键点击方块时，手持物品触发 onUseOn 回调
+    ItemStack heldItem = getHeldTool(playerId);
+    if (!heldItem.isEmpty()) {
+        const Item* heldItemPtr = heldItem.getItem();
+        if (heldItemPtr != nullptr) {
+            auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+            std::string itemTypeId = heldItemPtr->itemLocation().toString();
+            if (itemCompReg.hasUseOnCallback(itemTypeId)) {
+                mc::mod::bedrock::addon::ItemComponentUseOnEvent useOnEvent;
+                useOnEvent.itemTypeId = itemTypeId;
+                useOnEvent.sourceId = playerId;
+                useOnEvent.blockX = pos.x;
+                useOnEvent.blockY = pos.y;
+                useOnEvent.blockZ = pos.z;
+                useOnEvent.usedOnBlockTypeId = blockTypeId;
+                useOnEvent.usedOnBlockPermutationTypeId = blockTypeId;
+                useOnEvent.face = static_cast<i32>(face);
+                useOnEvent.faceX = hitPos.x - static_cast<f32>(pos.x);
+                useOnEvent.faceY = hitPos.y - static_cast<f32>(pos.y);
+                useOnEvent.faceZ = hitPos.z - static_cast<f32>(pos.z);
+                itemCompReg.dispatchUseOn(itemTypeId, useOnEvent);
+            }
+        }
+    }
+
     // MC 1.16.5: 如果方块交互成功，检查是否为告示牌并执行命令
     bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
     if (handled && m_server != nullptr) {
@@ -441,8 +489,63 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     // 获取手持物品作为工具
     ItemStack tool = getHeldTool(playerId);
 
+    // 派发自定义方块组件回调 - onPlayerBreak
+    auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+    std::string blockTypeId = oldState.getBlock().blockLocation().toString();
+    if (blockCompReg.hasPlayerBreakCallback(blockTypeId)) {
+        mc::mod::bedrock::addon::BlockComponentPlayerBreakEvent event;
+        event.blockTypeId = blockTypeId;
+        event.blockX = pos.x;
+        event.blockY = pos.y;
+        event.blockZ = pos.z;
+        event.dimensionId = world->dimension();
+        event.playerId = playerId;
+        event.brokenBlockPermutationTypeId = blockTypeId;
+        blockCompReg.dispatchPlayerBreak(blockTypeId, event);
+    }
+    if (blockCompReg.hasBreakCallback(blockTypeId)) {
+        mc::mod::bedrock::addon::BlockComponentBreakEvent breakEvent;
+        breakEvent.blockTypeId = blockTypeId;
+        breakEvent.blockX = pos.x;
+        breakEvent.blockY = pos.y;
+        breakEvent.blockZ = pos.z;
+        breakEvent.dimensionId = world->dimension();
+        breakEvent.brokenBlockPermutationTypeId = blockTypeId;
+        breakEvent.entitySourceId = playerId;
+        blockCompReg.dispatchBreak(blockTypeId, breakEvent);
+    }
+
     // 生成掉落物
     generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+
+    // 调用工具的 onBlockDestroyed 回调（用于耐久消耗等）
+    // 参考 MC 1.16.5: ItemStack.onBlockDestroyed
+    if (!tool.isEmpty()) {
+        const Item* toolItem = tool.getItem();
+        if (toolItem != nullptr) {
+            // 获取玩家实体用于 onBlockDestroyed 调用
+            Player* playerEntity = getPlayerEntity(playerId, *world);
+            if (playerEntity != nullptr) {
+                const_cast<Item*>(toolItem)->onBlockDestroyed(tool, *world, oldState, pos, *playerEntity);
+            }
+
+            // 派发自定义物品组件回调 - onMineBlock
+            auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+            std::string itemTypeId = toolItem->itemLocation().toString();
+            if (itemCompReg.hasMineBlockCallback(itemTypeId)) {
+                mc::mod::bedrock::addon::ItemComponentMineBlockEvent mineEvent;
+                mineEvent.itemTypeId = itemTypeId;
+                mineEvent.sourceId = playerId;
+                mineEvent.blockX = pos.x;
+                mineEvent.blockY = pos.y;
+                mineEvent.blockZ = pos.z;
+                mineEvent.blockTypeId = blockTypeId;
+                mineEvent.minedBlockPermutationTypeId = blockTypeId;
+                mineEvent.itemStackAmount = tool.getCount();
+                itemCompReg.dispatchMineBlock(itemTypeId, mineEvent);
+            }
+        }
+    }
 
     // 设置为空气
     u32 newBlockStateId = setBlockToAir(*world, pos, oldState, playerId);

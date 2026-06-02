@@ -34,6 +34,8 @@
 #include "ActionResult.hpp"
 #include "ItemRegistry.hpp"
 #include "ItemStack.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -192,6 +194,20 @@ ActionResultType Item::onItemUse(ItemUseContext& context)
 
 ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
+    // 派发自定义物品组件回调 - onUse（右键空中使用物品）
+    {
+        auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+        std::string itemTypeId = itemLocation().toString();
+        if (itemCompReg.hasUseCallback(itemTypeId)) {
+            mc::mod::bedrock::addon::ItemComponentUseEvent useEvent;
+            useEvent.itemTypeId = itemTypeId;
+            useEvent.sourceId = player.id();
+            ItemStack heldStack = player.getHeldItem(hand);
+            useEvent.itemStackAmount = heldStack.getCount();
+            itemCompReg.dispatchUse(itemTypeId, useEvent);
+        }
+    }
+
     // MC 1.16.5: 食物自动处理逻辑
     // 参考: Item.onItemRightClick
     if (isFood()) {

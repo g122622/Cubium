@@ -3,6 +3,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/TypeConverter.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 
 #include <quickjs.h>
 #include <spdlog/spdlog.h>
@@ -258,6 +259,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     auto* worldData = new ScriptObjectRegistry::ObjectData{nullptr, false, "World", nullptr};
     JS_SetOpaque(worldObj, worldData);
     builder.exportValue("world", worldObj);
+
+    // ====== 注册自定义组件绑定 ======
+    registerCustomComponentBindings(builder, ctx);
 
     // ====== 完成模块注册 ======
     if (!builder.finalize()) {
