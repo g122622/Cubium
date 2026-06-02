@@ -31,7 +31,8 @@ HealthBarWidget::HealthBarWidget()
 
 void HealthBarWidget::setHealth(i32 health)
 {
-    m_health = std::max(0, std::min(20, health));
+    constexpr i32 maxHealth = static_cast<i32>(mc::game::PLAYER_MAX_HEALTH);
+    m_health = std::max(0, std::min(maxHealth, health));
 }
 
 i32 HealthBarWidget::health() const
@@ -39,10 +40,15 @@ i32 HealthBarWidget::health() const
     return m_health;
 }
 
+// TODO: 当前使用简单的矩形填充表示生命值，需替换为与 MC 一致的心形图标渲染
 void HealthBarWidget::paint(kagero::widget::PaintContext& ctx)
 {
+    // 背景条（暗红色）
     ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 45, 0, 0));
-    const i32 fillWidth = static_cast<i32>(static_cast<f32>(width()) * (static_cast<f32>(m_health) / 20.0f));
+
+    // 生命值填充（红色），按生命值比例计算宽度
+    const f32 healthRatio = static_cast<f32>(m_health) / mc::game::PLAYER_MAX_HEALTH;
+    const i32 fillWidth = static_cast<i32>(static_cast<f32>(width()) * healthRatio);
     ctx.drawFilledRect(kagero::Rect{x(), y(), fillWidth, height()}, Colors::fromARGB(255, 220, 50, 50));
 }
 

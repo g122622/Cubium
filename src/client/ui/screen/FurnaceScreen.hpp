@@ -56,6 +56,10 @@ public:
      */
     [[nodiscard]] std::string getTitle() const override { return "Furnace"; }
 
+    // 允许移动
+    FurnaceScreen(FurnaceScreen&&) noexcept = default;
+    FurnaceScreen& operator=(FurnaceScreen&&) noexcept = default;
+
 protected:
     void onInit() override;
     void renderContainerBackground() override;

@@ -39,7 +39,6 @@ namespace mc::client::renderer::entity::renderer::projectile {
  *
  * 渲染钓鱼浮标和钓线，全部使用 LINE_LIST 拓扑。
  * 浮标渲染为十字线段，钓线为 16 段抛物线。
- * 参考 MC 1.16.5 FishingBobberEntity / FishRenderer
  */
 class FishingBobberRenderer : public core::EntityRenderer, public core::PipelineMeshProvider {
 public:
@@ -55,9 +54,9 @@ public:
 
     [[nodiscard]] bool needsMeshUpdate(::mc::client::ClientEntity& entity) const override;
 
-    [[nodiscard]] VkPrimitiveTopology getTopology() const override { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
+    [[nodiscard]] VkPrimitiveTopology getTopology() const noexcept override { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
 
-    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
+    [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() noexcept override { return this; }
 
 private:
     /**
@@ -71,7 +70,6 @@ private:
      * @brief 生成钓鱼线顶点
      *
      * 从浮标位置到玩家手持位置生成16段抛物线线段。
-     * 参考 MC 1.16.5 FishRenderer 的线段算法。
      *
      * @param entity 客户端实体（用于获取浮标位置）
      * @param vertices 输出顶点数组

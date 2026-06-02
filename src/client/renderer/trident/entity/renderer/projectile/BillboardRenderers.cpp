@@ -51,13 +51,15 @@ bool ItemBillboardRenderer::generateMesh(
 {
     (void)entity;
 
+    // TODO: m_fullbright 未使用 — fullbright 模式下应将顶点光照设为最大亮度，
+    // 使投掷物在黑暗中也清晰可见（例如末影之眼）
     const f64 baseSize = 0.25;
     const f64 halfWidth = baseSize * m_scale * 0.5;
     const f64 height = baseSize * m_scale;
     const f64 yOffset = 0.25;
 
     vertices = {
-        // 背面（法线 -Z）
+        // 背面（法线 -Z）：位置(x,y,z) + 纹理坐标(u,v) + 法线(nx,ny,nz)
         ModelVertex(-halfWidth, yOffset, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0),
         ModelVertex(-halfWidth, yOffset + height, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0),
         ModelVertex(halfWidth, yOffset + height, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0),

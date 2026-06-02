@@ -22,9 +22,6 @@
  */
 
 #include "TitleWidget.hpp"
-#include "client/ui/Font.hpp"
-#include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -138,7 +135,7 @@ void TitleWidget::reset()
     m_actionbar.active = false;
     m_actionbar.text = std::nullopt;
 
-    // 重置时间为 MC 1.16.5 默认值
+    // 重置时间为默认值
     m_defaultFadeIn = 0.5f;  // 10 ticks
     m_defaultStay = 3.5f;    // 70 ticks
     m_defaultFadeOut = 1.0f; // 20 ticks
@@ -232,17 +229,17 @@ void TitleWidget::tick(f32 dt)
 void TitleWidget::paint(kagero::widget::PaintContext& ctx)
 {
     // 渲染动作栏（在快捷栏上方）
-    renderActionbar(ctx);
+    _renderActionbar(ctx);
 
     // 渲染标题和副标题（屏幕中央）
-    renderTitle(ctx);
+    _renderTitle(ctx);
 }
 
 // ============================================================================
 // 渲染方法
 // ============================================================================
 
-void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx)
+void TitleWidget::_renderTitle(kagero::widget::PaintContext& ctx)
 {
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
@@ -252,7 +249,7 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx)
 
     // 渲染主标题
     if (m_title.active && m_title.text.has_value()) {
-        f32 alpha = calculateAlpha(m_title);
+        f32 alpha = _calculateAlpha(m_title);
         if (alpha > 0.0f) {
             const std::string& text = *m_title.text;
 
@@ -275,7 +272,7 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx)
 
     // 渲染副标题（主标题下方）
     if (m_subtitle.active && m_subtitle.text.has_value() && m_title.active) {
-        f32 alpha = calculateAlpha(m_subtitle);
+        f32 alpha = _calculateAlpha(m_subtitle);
         if (alpha > 0.0f) {
             const std::string& text = *m_subtitle.text;
 
@@ -300,13 +297,13 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx)
     }
 }
 
-void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx)
+void TitleWidget::_renderActionbar(kagero::widget::PaintContext& ctx)
 {
     if (!m_actionbar.active || !m_actionbar.text.has_value()) {
         return;
     }
 
-    f32 alpha = calculateAlpha(m_actionbar);
+    f32 alpha = _calculateAlpha(m_actionbar);
     if (alpha <= 0.0f) {
         return;
     }
@@ -335,7 +332,7 @@ void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx)
     ctx.drawText(text, static_cast<i32>(x), static_cast<i32>(actionbarY), textColor);
 }
 
-f32 TitleWidget::calculateAlpha(const TitleState& state) const
+f32 TitleWidget::_calculateAlpha(const TitleState& state) const
 {
     if (!state.active) {
         return 0.0f;

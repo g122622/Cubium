@@ -101,7 +101,7 @@ PufferfishMediumModel::PufferfishMediumModel()
 
 void PufferfishMediumModel::_setupParts()
 {
-    constexpr f32 PI_4 = static_cast<f32>(mc::math::PI_DOUBLE / 4.0);
+    constexpr f32 PI_4 = mc::math::QUARTER_PI;
 
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(12, 22);
@@ -203,7 +203,7 @@ PufferfishBigModel::PufferfishBigModel()
 
 void PufferfishBigModel::_setupParts()
 {
-    constexpr f32 PI_4 = static_cast<f32>(mc::math::PI_DOUBLE / 4.0);
+    constexpr f32 PI_4 = mc::math::QUARTER_PI;
 
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 0);

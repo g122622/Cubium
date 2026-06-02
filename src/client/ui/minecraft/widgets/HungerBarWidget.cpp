@@ -31,7 +31,7 @@ HungerBarWidget::HungerBarWidget()
 
 void HungerBarWidget::setHunger(i32 hunger)
 {
-    m_hunger = std::max(0, std::min(20, hunger));
+    m_hunger = std::max(0, std::min(mc::game::PLAYER_MAX_HUNGER, hunger));
 }
 
 i32 HungerBarWidget::hunger() const
@@ -39,10 +39,15 @@ i32 HungerBarWidget::hunger() const
     return m_hunger;
 }
 
+// TODO: 当前使用简单的矩形填充表示饥饿值，需替换为与 MC 一致的鸡腿图标渲染
 void HungerBarWidget::paint(kagero::widget::PaintContext& ctx)
 {
+    // 背景条（暗褐色）
     ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 52, 28, 0));
-    const i32 fillWidth = static_cast<i32>(static_cast<f32>(width()) * (static_cast<f32>(m_hunger) / 20.0f));
+
+    // 饥饿值填充（棕黄色），按饥饿值比例计算宽度
+    const f32 hungerRatio = static_cast<f32>(m_hunger) / static_cast<f32>(mc::game::PLAYER_MAX_HUNGER);
+    const i32 fillWidth = static_cast<i32>(static_cast<f32>(width()) * hungerRatio);
     ctx.drawFilledRect(kagero::Rect{x(), y(), fillWidth, height()}, Colors::fromARGB(255, 240, 140, 40));
 }
 

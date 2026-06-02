@@ -35,11 +35,15 @@
 
 namespace mc::client {
 
+// ============================================================================
+// 构造与初始化
+// ============================================================================
+
 CreativeScreen::CreativeScreen(PlayerInventory& inventory, CreativeActionSender actionSender)
     : m_inventory(&inventory)
     , m_actionSender(std::move(actionSender))
 {
-    updateLayout();
+    _updateLayout();
 }
 
 void CreativeScreen::setRenderers(renderer::trident::gui::GuiRenderer* gui,
@@ -55,7 +59,7 @@ void CreativeScreen::setScreenSize(i32 width, i32 height)
 {
     m_screenWidth = width;
     m_screenHeight = height;
-    updateLayout();
+    _updateLayout();
 }
 
 void CreativeScreen::init()
@@ -66,9 +70,13 @@ void CreativeScreen::init()
 
     m_initialized = true;
     m_paletteEntries = buildCreativePaletteEntries();
-    rebuildVisibleEntries();
-    updateLayout();
+    _rebuildVisibleEntries();
+    _updateLayout();
 }
+
+// ============================================================================
+// 渲染
+// ============================================================================
 
 void CreativeScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
 {
@@ -79,13 +87,17 @@ void CreativeScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
     }
 
     m_gui->beginFrame(static_cast<f64>(m_screenWidth), static_cast<f64>(m_screenHeight));
-    renderBackground();
-    renderPanelBackground();
-    renderSearchBox();
-    renderPaletteGrid(mouseX, mouseY);
-    renderPlayerInventory(mouseX, mouseY);
-    renderCarriedItem(mouseX, mouseY);
+    _renderBackground();
+    _renderPanelBackground();
+    _renderSearchBox();
+    _renderPaletteGrid(mouseX, mouseY);
+    _renderPlayerInventory(mouseX, mouseY);
+    _renderCarriedItem(mouseX, mouseY);
 }
+
+// ============================================================================
+// 事件处理
+// ============================================================================
 
 bool CreativeScreen::onClick(i32 mouseX, i32 mouseY, i32 button)
 {
@@ -93,20 +105,20 @@ bool CreativeScreen::onClick(i32 mouseX, i32 mouseY, i32 button)
         return false;
     }
 
-    const i32 paletteIndex = getPaletteIndexAt(mouseX, mouseY);
+    const i32 paletteIndex = _getPaletteIndexAt(mouseX, mouseY);
     if (paletteIndex >= 0) {
-        handlePaletteClick(paletteIndex, button);
+        _handlePaletteClick(paletteIndex, button);
         return true;
     }
 
-    if (isMouseOver(mouseX, mouseY, m_leftPos + TRASH_X, m_topPos + TRASH_Y, SLOT_SIZE, SLOT_SIZE)) {
+    if (_isMouseOver(mouseX, mouseY, m_leftPos + TRASH_X, m_topPos + TRASH_Y, SLOT_SIZE, SLOT_SIZE)) {
         m_carriedItem = ItemStack::EMPTY;
         return true;
     }
 
-    const i32 inventorySlot = getInventorySlotAt(mouseX, mouseY);
+    const i32 inventorySlot = _getInventorySlotAt(mouseX, mouseY);
     if (inventorySlot >= 0) {
-        handleInventoryClick(inventorySlot, button);
+        _handleInventoryClick(inventorySlot, button);
         return true;
     }
 
@@ -131,7 +143,7 @@ bool CreativeScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
         if (!m_searchText.empty()) {
             m_searchText.pop_back();
             m_scrollRows = 0;
-            rebuildVisibleEntries();
+            _rebuildVisibleEntries();
         }
         return true;
     }
@@ -145,6 +157,7 @@ bool CreativeScreen::onChar(u32 codePoint)
         return false;
     }
 
+    // 搜索文本最大长度限制
     if (m_searchText.size() >= 64) {
         return true;
     }
@@ -152,7 +165,7 @@ bool CreativeScreen::onChar(u32 codePoint)
     if (codePoint < 128U) {
         m_searchText.push_back(static_cast<char>(codePoint));
         m_scrollRows = 0;
-        rebuildVisibleEntries();
+        _rebuildVisibleEntries();
         return true;
     }
 
@@ -164,11 +177,12 @@ bool CreativeScreen::onScroll(i32 mouseX, i32 mouseY, f64 delta)
     (void)mouseX;
     (void)mouseY;
 
-    const i32 maxScrollRows = getMaxScrollRows();
+    const i32 maxScrollRows = _getMaxScrollRows();
     if (maxScrollRows <= 0) {
         return true;
     }
 
+    // 滚轮向上翻一页，向下翻一页
     const i32 step = delta > 0.0 ? -1 : 1;
     m_scrollRows = std::clamp(m_scrollRows + step, 0, maxScrollRows);
     return true;
@@ -194,7 +208,11 @@ void CreativeScreen::onResize(i32 width, i32 height)
     setScreenSize(width, height);
 }
 
-void CreativeScreen::updateLayout()
+// ============================================================================
+// 布局与搜索
+// ============================================================================
+
+void CreativeScreen::_updateLayout()
 {
     if (m_screenWidth > 0 && m_screenHeight > 0) {
         m_leftPos = (m_screenWidth - GUI_WIDTH) / 2;
@@ -205,36 +223,28 @@ void CreativeScreen::updateLayout()
     }
 }
 
-void CreativeScreen::rebuildVisibleEntries()
+void CreativeScreen::_rebuildVisibleEntries()
 {
     m_visibleEntries.clear();
 
-    const std::string filter = normalizeSearchText(m_searchText);
+    const std::string filter = _normalizeSearchText(m_searchText);
     for (i32 index = 0; index < static_cast<i32>(m_paletteEntries.size()); ++index) {
-        if (filter.empty() || matchesSearch(m_paletteEntries[static_cast<std::size_t>(index)])) {
+        if (filter.empty() || _matchesSearch(m_paletteEntries[static_cast<std::size_t>(index)])) {
             m_visibleEntries.push_back(index);
         }
     }
 
-    m_scrollRows = std::clamp(m_scrollRows, 0, getMaxScrollRows());
+    m_scrollRows = std::clamp(m_scrollRows, 0, _getMaxScrollRows());
 }
 
-void CreativeScreen::renderBackground()
+void CreativeScreen::_renderBackground()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     m_gui->fillGradientRect(
         0.0, 0.0, static_cast<f64>(m_screenWidth), static_cast<f64>(m_screenHeight), 0xD0141A1F, 0xE00C1016);
 }
 
-void CreativeScreen::renderPanelBackground()
+void CreativeScreen::_renderPanelBackground()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     const f64 palettePanelWidth = 172.0;
     const f64 inventoryPanelWidth = static_cast<f64>(176);
 
@@ -269,12 +279,8 @@ void CreativeScreen::renderPanelBackground()
     }
 }
 
-void CreativeScreen::renderSearchBox()
+void CreativeScreen::_renderSearchBox()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     const i32 searchX = m_leftPos + SEARCH_X;
     const i32 searchY = m_topPos + SEARCH_Y;
     m_gui->fillRect(static_cast<f64>(searchX),
@@ -296,50 +302,46 @@ void CreativeScreen::renderSearchBox()
 
     const i32 trashX = m_leftPos + TRASH_X;
     const i32 trashY = m_topPos + TRASH_Y;
-    renderSlotFrame(trashX, trashY, 0xFFB84D4D, 0xFF271717);
+    _renderSlotFrame(trashX, trashY, 0xFFB84D4D, 0xFF271717);
     if (m_gui->font() != nullptr) {
         m_gui->drawText("X", static_cast<f64>(trashX + 5), static_cast<f64>(trashY + 3), 0xFFF2D6D6, false);
     }
 }
 
-void CreativeScreen::renderPaletteGrid(i32 mouseX, i32 mouseY)
+void CreativeScreen::_renderPaletteGrid(i32 mouseX, i32 mouseY)
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     const i32 visibleCount = PALETTE_COLUMNS * PALETTE_VISIBLE_ROWS;
 
     for (i32 row = 0; row < PALETTE_VISIBLE_ROWS; ++row) {
         for (i32 column = 0; column < PALETTE_COLUMNS; ++column) {
             const i32 visibleIndex = m_scrollRows * PALETTE_COLUMNS + row * PALETTE_COLUMNS + column;
-            const i32 cellX = getPaletteCellX(column);
-            const i32 cellY = getPaletteCellY(row);
-            const bool hovered = isMouseOver(mouseX, mouseY, cellX, cellY, SLOT_SIZE, SLOT_SIZE);
+            const i32 cellX = _getPaletteCellX(column);
+            const i32 cellY = _getPaletteCellY(row);
+            const bool hovered = _isMouseOver(mouseX, mouseY, cellX, cellY, SLOT_SIZE, SLOT_SIZE);
 
             if (visibleIndex < static_cast<i32>(m_visibleEntries.size())) {
-                renderSlotFrame(m_leftPos + cellX, m_topPos + cellY, hovered ? 0xFF4DA3FF : 0xFF3C4654, 0xFF151A20);
+                _renderSlotFrame(m_leftPos + cellX, m_topPos + cellY, hovered ? 0xFF4DA3FF : 0xFF3C4654, 0xFF151A20);
 
                 const i32 paletteEntryIndex = m_visibleEntries[static_cast<std::size_t>(visibleIndex)];
                 const CreativeInventoryEntry& entry = m_paletteEntries[static_cast<std::size_t>(paletteEntryIndex)];
                 if (!entry.stack.isEmpty()) {
-                    renderItemIcon(entry.stack, m_leftPos + cellX, m_topPos + cellY);
+                    _renderItemIcon(entry.stack, m_leftPos + cellX, m_topPos + cellY);
                     if (entry.stack.getCount() > 1) {
-                        renderItemCount(entry.stack.getCount(),
+                        _renderItemCount(entry.stack.getCount(),
                             m_leftPos + cellX + SLOT_SIZE - 2,
                             m_topPos + cellY + SLOT_SIZE - 8);
                     }
                 }
             } else if (visibleIndex < visibleCount) {
-                renderSlotFrame(m_leftPos + cellX, m_topPos + cellY, hovered ? 0xFF4DA3FF : 0xFF2A2F37, 0xFF10141A);
+                _renderSlotFrame(m_leftPos + cellX, m_topPos + cellY, hovered ? 0xFF4DA3FF : 0xFF2A2F37, 0xFF10141A);
             }
         }
     }
 }
 
-void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
+void CreativeScreen::_renderPlayerInventory(i32 mouseX, i32 mouseY)
 {
-    if (m_inventory == nullptr || m_gui == nullptr) {
+    if (m_inventory == nullptr) {
         return;
     }
 
@@ -351,25 +353,25 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
                     : i == 1 ? ARMOR_Y_CHEST
                     : i == 2 ? ARMOR_Y_LEGS
                              : ARMOR_Y_FEET);
-        const bool hovered = isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
-        renderSlotFrame(x, y, hovered ? 0xFFFFB84D : 0xFF63502E, 0xFF1A1712);
+        const bool hovered = _isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
+        _renderSlotFrame(x, y, hovered ? 0xFFFFB84D : 0xFF63502E, 0xFF1A1712);
 
         const ItemStack stack = m_inventory->getItem(slotIndex);
         if (!stack.isEmpty()) {
-            renderItemIcon(stack, x, y);
+            _renderItemIcon(stack, x, y);
         }
     }
 
     const i32 offhandSlot = InventorySlots::OFFHAND;
     const i32 offhandX = m_leftPos + INVENTORY_X + OFFHAND_X;
     const i32 offhandY = m_topPos + INVENTORY_Y + OFFHAND_Y;
-    renderSlotFrame(offhandX,
+    _renderSlotFrame(offhandX,
         offhandY,
-        isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE) ? 0xFFFFB84D : 0xFF63502E,
+        _isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE) ? 0xFFFFB84D : 0xFF63502E,
         0xFF1A1712);
     const ItemStack offhandStack = m_inventory->getItem(offhandSlot);
     if (!offhandStack.isEmpty()) {
-        renderItemIcon(offhandStack, offhandX, offhandY);
+        _renderItemIcon(offhandStack, offhandX, offhandY);
     }
 
     for (i32 row = 0; row < 3; ++row) {
@@ -377,14 +379,14 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
             const i32 slotIndex = InventorySlots::MAIN_START + row * PlayerInventory::HOTBAR_SIZE + column;
             const i32 x = m_leftPos + INVENTORY_X + PLAYER_INV_X + column * SLOT_SPACING;
             const i32 y = m_topPos + INVENTORY_Y + PLAYER_INV_Y + row * SLOT_SPACING;
-            const bool hovered = isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
-            renderSlotFrame(x, y, hovered ? 0xFFFFB84D : 0xFF5A5F69, 0xFF1C2028);
+            const bool hovered = _isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
+            _renderSlotFrame(x, y, hovered ? 0xFFFFB84D : 0xFF5A5F69, 0xFF1C2028);
 
             const ItemStack stack = m_inventory->getItem(slotIndex);
             if (!stack.isEmpty()) {
-                renderItemIcon(stack, x, y);
+                _renderItemIcon(stack, x, y);
                 if (stack.getCount() > 1) {
-                    renderItemCount(stack.getCount(), x + SLOT_SIZE - 2, y + SLOT_SIZE - 8);
+                    _renderItemCount(stack.getCount(), x + SLOT_SIZE - 2, y + SLOT_SIZE - 8);
                 }
             }
         }
@@ -394,9 +396,9 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
         const i32 slotIndex = InventorySlots::HOTBAR_START + column;
         const i32 x = m_leftPos + INVENTORY_X + HOTBAR_X + column * SLOT_SPACING;
         const i32 y = m_topPos + INVENTORY_Y + HOTBAR_Y;
-        const bool hovered = isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
+        const bool hovered = _isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE);
         const bool selected = slotIndex == m_inventory->getSelectedSlot();
-        renderSlotFrame(x,
+        _renderSlotFrame(x,
             y,
             selected      ? 0xFFF7D26A
                 : hovered ? 0xFFFFB84D
@@ -405,17 +407,17 @@ void CreativeScreen::renderPlayerInventory(i32 mouseX, i32 mouseY)
 
         const ItemStack stack = m_inventory->getItem(slotIndex);
         if (!stack.isEmpty()) {
-            renderItemIcon(stack, x, y);
+            _renderItemIcon(stack, x, y);
             if (stack.getCount() > 1) {
-                renderItemCount(stack.getCount(), x + SLOT_SIZE - 2, y + SLOT_SIZE - 8);
+                _renderItemCount(stack.getCount(), x + SLOT_SIZE - 2, y + SLOT_SIZE - 8);
             }
         }
     }
 }
 
-void CreativeScreen::renderItemIcon(const ItemStack& stack, i32 screenX, i32 screenY)
+void CreativeScreen::_renderItemIcon(const ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
+    if (stack.isEmpty()) {
         return;
     }
 
@@ -425,6 +427,7 @@ void CreativeScreen::renderItemIcon(const ItemStack& stack, i32 screenX, i32 scr
         return;
     }
 
+    // 降级渲染：没有物品渲染器时用白色半透明方块占位
     m_gui->fillRect(static_cast<f64>(screenX),
         static_cast<f64>(screenY),
         static_cast<f64>(SLOT_SIZE),
@@ -432,21 +435,17 @@ void CreativeScreen::renderItemIcon(const ItemStack& stack, i32 screenX, i32 scr
         0x80FFFFFF);
 }
 
-void CreativeScreen::renderItemCount(i32 count, i32 screenX, i32 screenY)
+void CreativeScreen::_renderItemCount(i32 count, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || m_gui->font() == nullptr || count <= 1) {
+    if (m_gui->font() == nullptr || count <= 1) {
         return;
     }
 
     m_gui->drawText(std::to_string(count), static_cast<f64>(screenX), static_cast<f64>(screenY), 0xFFF5F7FA, true);
 }
 
-void CreativeScreen::renderSlotFrame(i32 screenX, i32 screenY, u32 borderColor, u32 fillColor)
+void CreativeScreen::_renderSlotFrame(i32 screenX, i32 screenY, u32 borderColor, u32 fillColor)
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     m_gui->fillRect(static_cast<f64>(screenX),
         static_cast<f64>(screenY),
         static_cast<f64>(SLOT_SIZE),
@@ -459,9 +458,9 @@ void CreativeScreen::renderSlotFrame(i32 screenX, i32 screenY, u32 borderColor, 
         borderColor);
 }
 
-void CreativeScreen::renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 mouseY)
+void CreativeScreen::_renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 mouseY)
 {
-    if (m_gui == nullptr || m_gui->font() == nullptr || stack.isEmpty()) {
+    if (m_gui->font() == nullptr || stack.isEmpty()) {
         return;
     }
 
@@ -516,19 +515,23 @@ void CreativeScreen::renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 m
     }
 }
 
-void CreativeScreen::renderCarriedItem(i32 mouseX, i32 mouseY)
+void CreativeScreen::_renderCarriedItem(i32 mouseX, i32 mouseY)
 {
     if (m_carriedItem.isEmpty()) {
         return;
     }
 
-    renderItemIcon(m_carriedItem, mouseX - SLOT_SIZE / 2, mouseY - SLOT_SIZE / 2);
+    _renderItemIcon(m_carriedItem, mouseX - SLOT_SIZE / 2, mouseY - SLOT_SIZE / 2);
     if (m_carriedItem.getCount() > 1) {
-        renderItemCount(m_carriedItem.getCount(), mouseX + SLOT_SIZE / 2 - 2, mouseY + SLOT_SIZE / 2 - 8);
+        _renderItemCount(m_carriedItem.getCount(), mouseX + SLOT_SIZE / 2 - 2, mouseY + SLOT_SIZE / 2 - 8);
     }
 }
 
-void CreativeScreen::handlePaletteClick(i32 paletteIndex, i32 button)
+// ============================================================================
+// 点击处理
+// ============================================================================
+
+void CreativeScreen::_handlePaletteClick(i32 paletteIndex, i32 button)
 {
     if (paletteIndex < 0 || paletteIndex >= static_cast<i32>(m_visibleEntries.size())) {
         return;
@@ -540,6 +543,7 @@ void CreativeScreen::handlePaletteClick(i32 paletteIndex, i32 button)
     }
 
     ItemStack stack = m_paletteEntries[static_cast<std::size_t>(entryIndex)].stack;
+    // 右键点击只拿取一个物品
     if (button == GLFW_MOUSE_BUTTON_RIGHT && stack.getCount() > 1) {
         stack.setCount(1);
     }
@@ -547,7 +551,7 @@ void CreativeScreen::handlePaletteClick(i32 paletteIndex, i32 button)
     m_carriedItem = stack;
 }
 
-void CreativeScreen::handleInventoryClick(i32 slotIndex, i32 button)
+void CreativeScreen::_handleInventoryClick(i32 slotIndex, i32 button)
 {
     if (m_inventory == nullptr || slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
         return;
@@ -555,7 +559,7 @@ void CreativeScreen::handleInventoryClick(i32 slotIndex, i32 button)
 
     if (!m_carriedItem.isEmpty()) {
         m_carriedItem = m_inventory->placeItem(slotIndex, m_carriedItem);
-        sendInventorySlotUpdate(slotIndex);
+        _sendInventorySlotUpdate(slotIndex);
         return;
     }
 
@@ -564,6 +568,7 @@ void CreativeScreen::handleInventoryClick(i32 slotIndex, i32 button)
         return;
     }
 
+    // 右键点击：拿取半组物品；左键点击：拿取整组物品
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         const i32 amount = std::max(1, (current.getCount() + 1) / 2);
         m_carriedItem = m_inventory->removeItem(slotIndex, amount);
@@ -571,17 +576,21 @@ void CreativeScreen::handleInventoryClick(i32 slotIndex, i32 button)
         m_carriedItem = m_inventory->removeItemNoUpdate(slotIndex);
     }
 
-    sendInventorySlotUpdate(slotIndex);
+    _sendInventorySlotUpdate(slotIndex);
 }
 
-void CreativeScreen::sendInventorySlotUpdate(i32 slotIndex)
+void CreativeScreen::_sendInventorySlotUpdate(i32 slotIndex)
 {
     if (m_actionSender) {
         m_actionSender(slotIndex, m_inventory->getItem(slotIndex));
     }
 }
 
-i32 CreativeScreen::getPaletteIndexAt(i32 mouseX, i32 mouseY) const
+// ============================================================================
+// 坐标计算与工具方法
+// ============================================================================
+
+i32 CreativeScreen::_getPaletteIndexAt(i32 mouseX, i32 mouseY) const noexcept
 {
     const i32 localX = mouseX - (m_leftPos + PALETTE_X);
     const i32 localY = mouseY - (m_topPos + PALETTE_Y);
@@ -595,6 +604,7 @@ i32 CreativeScreen::getPaletteIndexAt(i32 mouseX, i32 mouseY) const
         return -1;
     }
 
+    // 检查点击是否在槽位内部而非间距区域
     const i32 slotX = localX % SLOT_SPACING;
     const i32 slotY = localY % SLOT_SPACING;
     if (slotX >= SLOT_SIZE || slotY >= SLOT_SIZE) {
@@ -604,7 +614,7 @@ i32 CreativeScreen::getPaletteIndexAt(i32 mouseX, i32 mouseY) const
     return m_scrollRows * PALETTE_COLUMNS + row * PALETTE_COLUMNS + column;
 }
 
-i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
+i32 CreativeScreen::_getInventorySlotAt(i32 mouseX, i32 mouseY) const noexcept
 {
     for (i32 i = 0; i < PlayerInventory::ARMOR_SIZE; ++i) {
         const i32 x = m_leftPos + INVENTORY_X + ARMOR_X;
@@ -613,14 +623,14 @@ i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
                     : i == 1 ? ARMOR_Y_CHEST
                     : i == 2 ? ARMOR_Y_LEGS
                              : ARMOR_Y_FEET);
-        if (isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
+        if (_isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
             return InventorySlots::ARMOR_START + i;
         }
     }
 
     const i32 offhandX = m_leftPos + INVENTORY_X + OFFHAND_X;
     const i32 offhandY = m_topPos + INVENTORY_Y + OFFHAND_Y;
-    if (isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE)) {
+    if (_isMouseOver(mouseX, mouseY, offhandX, offhandY, SLOT_SIZE, SLOT_SIZE)) {
         return InventorySlots::OFFHAND;
     }
 
@@ -629,7 +639,7 @@ i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
             const i32 slotIndex = InventorySlots::MAIN_START + row * PlayerInventory::HOTBAR_SIZE + column;
             const i32 x = m_leftPos + INVENTORY_X + PLAYER_INV_X + column * SLOT_SPACING;
             const i32 y = m_topPos + INVENTORY_Y + PLAYER_INV_Y + row * SLOT_SPACING;
-            if (isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
+            if (_isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
                 return slotIndex;
             }
         }
@@ -639,7 +649,7 @@ i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
         const i32 slotIndex = InventorySlots::HOTBAR_START + column;
         const i32 x = m_leftPos + INVENTORY_X + HOTBAR_X + column * SLOT_SPACING;
         const i32 y = m_topPos + INVENTORY_Y + HOTBAR_Y;
-        if (isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
+        if (_isMouseOver(mouseX, mouseY, x, y, SLOT_SIZE, SLOT_SIZE)) {
             return slotIndex;
         }
     }
@@ -647,36 +657,36 @@ i32 CreativeScreen::getInventorySlotAt(i32 mouseX, i32 mouseY) const
     return -1;
 }
 
-i32 CreativeScreen::getPaletteCellX(i32 column) const
+i32 CreativeScreen::_getPaletteCellX(i32 column) const noexcept
 {
     return PALETTE_X + column * SLOT_SPACING;
 }
 
-i32 CreativeScreen::getPaletteCellY(i32 row) const
+i32 CreativeScreen::_getPaletteCellY(i32 row) const noexcept
 {
     return PALETTE_Y + row * SLOT_SPACING;
 }
 
-i32 CreativeScreen::getMaxScrollRows() const
+i32 CreativeScreen::_getMaxScrollRows() const noexcept
 {
     const i32 visibleCount = static_cast<i32>(m_visibleEntries.size());
     const i32 totalRows = (visibleCount + PALETTE_COLUMNS - 1) / PALETTE_COLUMNS;
     return std::max(0, totalRows - PALETTE_VISIBLE_ROWS);
 }
 
-bool CreativeScreen::isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width, i32 height) const
+bool CreativeScreen::_isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width, i32 height) const noexcept
 {
     return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
 }
 
-std::string CreativeScreen::normalizeSearchText(std::string_view text) const
+std::string CreativeScreen::_normalizeSearchText(std::string_view text) const
 {
     return util::toLowerAscii(text);
 }
 
-bool CreativeScreen::matchesSearch(const CreativeInventoryEntry& entry) const
+bool CreativeScreen::_matchesSearch(const CreativeInventoryEntry& entry) const
 {
-    const std::string filter = normalizeSearchText(m_searchText);
+    const std::string filter = _normalizeSearchText(m_searchText);
     if (filter.empty()) {
         return true;
     }

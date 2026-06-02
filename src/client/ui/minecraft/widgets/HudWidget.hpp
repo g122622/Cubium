@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
 
 namespace mc {
@@ -82,8 +82,6 @@ constexpr u32 TOOLTIP_TEXT = 0xFFFFFFFF;       // 文字
  * - 饥饿值
  * - 盔甲值
  * - 经验条
- *
- * 参考: net.minecraft.client.gui.IngameGui
  */
 class HudWidget : public kagero::widget::Widget {
 public:
@@ -143,22 +141,22 @@ private:
     /**
      * @brief 渲染快捷栏
      */
-    void renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui);
+    void _renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui);
 
     /**
      * @brief 渲染生命值和盔甲
      */
-    void renderHealth(kagero::widget::PaintContext& ctx);
+    void _renderHealth(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 渲染饥饿值
      */
-    void renderHunger(kagero::widget::PaintContext& ctx);
+    void _renderHunger(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 渲染经验条
      */
-    void renderExperience(kagero::widget::PaintContext& ctx);
+    void _renderExperience(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 绘制心形图标
@@ -169,7 +167,7 @@ private:
      * @param half 是否半心
      * @param absorbing 是否吸收心（黄色）
      */
-    void drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing);
+    void _drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing);
 
     /**
      * @brief 绘制饥饿图标
@@ -179,7 +177,7 @@ private:
      * @param full 是否满饥饿
      * @param half 是否半饥饿
      */
-    void drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half);
+    void _drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half);
 
     /**
      * @brief 绘制盔甲图标
@@ -188,7 +186,7 @@ private:
      * @param y Y坐标
      * @param full 是否满盔甲
      */
-    void drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full);
+    void _drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full);
 
     /**
      * @brief 绘制经验条
@@ -199,7 +197,7 @@ private:
      * @param width 宽度
      * @param height 高度
      */
-    void drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height);
+    void _drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height);
 
     renderer::trident::gui::GuiRenderer* m_gui = nullptr;
     renderer::trident::item::ItemRenderer* m_itemRenderer = nullptr;

@@ -23,12 +23,8 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
-
-namespace mc::client::renderer::trident::gui {
-class GuiRenderer;
-}
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -36,8 +32,6 @@ namespace mc::client::ui::minecraft::widgets {
  * @brief 准星Widget
  *
  * 在屏幕中心渲染十字准星，用于第一人称视角瞄准。
- *
- * 参考 MC 1.16.5 IngameGui.renderAttackIndicator()
  */
 class CrosshairWidget : public kagero::widget::Widget {
 public:
@@ -73,6 +67,11 @@ public:
      * @brief 获取准星大小
      */
     [[nodiscard]] f32 size() const { return m_size; }
+
+    /**
+     * @brief 获取准星线宽
+     */
+    [[nodiscard]] f32 thickness() const { return m_thickness; }
 
 private:
     u32 m_color = 0xFFFFFFFF; ///< 白色，完全不透明

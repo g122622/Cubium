@@ -23,12 +23,11 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/packet/TitlePacket.hpp"
 
-#include <chrono>
 #include <optional>
 
 namespace mc::client {
@@ -47,8 +46,6 @@ using namespace mc::network;
  * - 副标题（标题下方小字）
  * - 动作栏（快捷栏上方，类似成就通知）
  * - 淡入/停留/淡出动画
- *
- * 参考: net.minecraft.client.gui.IngameGui.renderTitle
  */
 class TitleWidget : public kagero::widget::Widget {
 public:
@@ -137,29 +134,29 @@ private:
     /**
      * @brief 渲染标题（主标题 + 副标题）
      */
-    void renderTitle(kagero::widget::PaintContext& ctx);
+    void _renderTitle(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 渲染动作栏
      */
-    void renderActionbar(kagero::widget::PaintContext& ctx);
+    void _renderActionbar(kagero::widget::PaintContext& ctx);
 
     /**
      * @brief 计算透明度
      * @param state 标题状态
      * @return 透明度 0.0-1.0
      */
-    [[nodiscard]] f32 calculateAlpha(const TitleState& state) const;
+    [[nodiscard]] f32 _calculateAlpha(const TitleState& state) const;
 
     // ========== 成员变量 ==========
 
-    Font* m_font = nullptr;
+    Font* m_font = nullptr; // TODO: 字体已设置但尚未在渲染中使用，需要接入字体渲染
 
     TitleState m_title;     // 主标题状态
     TitleState m_subtitle;  // 副标题状态
     TitleState m_actionbar; // 动作栏状态
 
-    // 默认时间（以秒为单位，MC 1.16.5 默认值：淡入10tick，停留70tick，淡出20tick）
+    // 默认时间（以秒为单位：淡入10tick，停留70tick，淡出20tick）
     f32 m_defaultFadeIn = 0.5f;  // 10 ticks = 0.5 秒
     f32 m_defaultStay = 3.5f;    // 70 ticks = 3.5 秒
     f32 m_defaultFadeOut = 1.0f; // 20 ticks = 1.0 秒

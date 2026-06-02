@@ -27,12 +27,18 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 背物品栏槽位控件
+ *
+ * 在 SlotWidget 基础上扩展了槽位分组（slotGroup）概念，
+ * 用于区分不同区域的物品栏槽位（如主物品栏、快捷栏、盔甲栏等）。
+ */
 class InventorySlot : public SlotWidget {
 public:
     using SlotWidget::SlotWidget;
 
-    void setSlotGroup(std::string group);
-    [[nodiscard]] const std::string& slotGroup() const;
+    void setSlotGroup(std::string group) noexcept;
+    [[nodiscard]] const std::string& slotGroup() const noexcept;
 
 private:
     std::string m_slotGroup = "inventory";

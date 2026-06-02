@@ -39,8 +39,6 @@ namespace mc::client {
  * - 结果槽位（右侧，带箭头）
  * - 地图预览区域（显示结果地图）
  * - 玩家背包和快捷栏
- *
- * 参考 MC 1.16.5 CartographyScreen
  */
 class CartographyScreen : public AbstractContainerScreen<mc::CartographyContainer> {
 public:
@@ -76,14 +74,6 @@ protected:
 private:
     static constexpr i32 GUI_WIDTH = 176;
     static constexpr i32 GUI_HEIGHT = 166;
-
-    // 制图台槽位布局常量（与CartographyContainer一致）
-    static constexpr i32 MAP_SLOT_SCREEN_X = 15;
-    static constexpr i32 MAP_SLOT_SCREEN_Y = 15;
-    static constexpr i32 MATERIAL_SLOT_SCREEN_X = 15;
-    static constexpr i32 MATERIAL_SLOT_SCREEN_Y = 40;
-    static constexpr i32 RESULT_SLOT_SCREEN_X = 145;
-    static constexpr i32 RESULT_SLOT_SCREEN_Y = 28;
 
     // 地图预览区域
     static constexpr f64 MAP_PREVIEW_SIZE = 64.0;

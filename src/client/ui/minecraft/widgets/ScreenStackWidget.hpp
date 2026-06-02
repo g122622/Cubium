@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/ContainerWidget.hpp"
-#include "../screens/Screen.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 #include "common/screen/IScreen.hpp"
 #include <functional>
 #include <memory>
@@ -115,7 +115,7 @@ public:
     /**
      * @brief 获取屏幕栈深度
      */
-    [[nodiscard]] size_t screenCount() const { return m_screens.size(); }
+    [[nodiscard]] Size screenCount() const { return m_screens.size(); }
 
     /**
      * @brief 设置屏幕变化回调
@@ -201,7 +201,7 @@ private:
      */
     struct ScreenWrapper {
         ScreenItem item;
-        bool modal = true; // 在 onOpenScreen 中从 Screen::isModal() 初始化
+        bool modal = true; // 在 _onOpenScreen 中从 Screen::isModal() 初始化
 
         // 公共状态
         bool visible = true;
@@ -215,7 +215,7 @@ private:
     };
 
     std::vector<ScreenWrapper> m_screens;
-    ScreenChangeCallback m_onScreenChange;
+    ScreenChangeCallback m_onScreenChange; // TODO: 尚未实现回调触发逻辑，需在 push/pop/clear 中调用
 
     // 拖动状态
     bool m_isDragging = false;
@@ -230,9 +230,9 @@ private:
     renderer::trident::gui::GuiRenderer* m_guiRenderer = nullptr;
 
     // 辅助方法
-    void onOpenScreen(ScreenWrapper& wrapper);
-    void onCloseScreen(ScreenWrapper& wrapper);
-    [[nodiscard]] bool isScreenModal(const ScreenWrapper& wrapper) const;
+    void _onOpenScreen(ScreenWrapper& wrapper);
+    void _onCloseScreen(ScreenWrapper& wrapper);
+    [[nodiscard]] bool _isScreenModal(const ScreenWrapper& wrapper) const;
 };
 
 } // namespace mc::client::ui::minecraft::widgets

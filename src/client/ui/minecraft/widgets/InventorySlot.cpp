@@ -25,12 +25,12 @@
 
 namespace mc::client::ui::minecraft {
 
-void InventorySlot::setSlotGroup(std::string group)
+void InventorySlot::setSlotGroup(std::string group) noexcept
 {
     m_slotGroup = std::move(group);
 }
 
-const std::string& InventorySlot::slotGroup() const
+const std::string& InventorySlot::slotGroup() const noexcept
 {
     return m_slotGroup;
 }

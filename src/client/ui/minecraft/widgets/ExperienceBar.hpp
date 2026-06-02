@@ -28,12 +28,27 @@
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 经验条组件
+ *
+ * 显示玩家经验进度的 HUD 组件，以水平进度条形式渲染。
+ * 进度值范围为 [0.0, 1.0]。
+ */
 class ExperienceBar : public kagero::widget::Widget {
 public:
     ExperienceBar();
 
-    void setProgress(f32 progress);
-    [[nodiscard]] f32 progress() const;
+    /**
+     * @brief 设置经验进度
+     * @param progress 进度值，会被自动钳位到 [0.0, 1.0] 范围
+     */
+    void setProgress(f32 progress) noexcept;
+
+    /**
+     * @brief 获取当前经验进度
+     * @return 当前进度值，范围 [0.0, 1.0]
+     */
+    [[nodiscard]] f32 progress() const noexcept;
 
     void paint(kagero::widget::PaintContext& ctx) override;
 

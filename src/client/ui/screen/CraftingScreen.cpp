@@ -25,6 +25,7 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/core/Item.hpp"
@@ -43,7 +44,6 @@ CraftingScreen::CraftingScreen(
 
 void CraftingScreen::onInit()
 {
-    // 计算居中位置
     updatePosition();
 }
 
@@ -53,13 +53,10 @@ void CraftingScreen::renderContainerBackground()
         return;
     }
 
-    // 渲染工作台GUI背景
     if (m_textureManager != nullptr && m_textureManager->hasCraftingTableTexture()) {
-        // 使用纹理渲染背景
         m_textureManager->drawCraftingTableBackground(*m_gui, static_cast<f32>(m_leftPos), static_cast<f32>(m_topPos));
     } else {
-        // 使用纯色背景（回退）
-        // 背景颜色 (MC GUI 浅灰色)
+        // 回退：使用纯色背景
         constexpr u32 BG_COLOR = 0xFFC6C6C6;
         m_gui->fillRect(static_cast<f32>(m_leftPos),
             static_cast<f32>(m_topPos),
@@ -67,7 +64,6 @@ void CraftingScreen::renderContainerBackground()
             static_cast<f32>(GUI_HEIGHT),
             BG_COLOR);
 
-        // 绘制边框
         constexpr u32 BORDER_COLOR = 0xFF555555;
         m_gui->drawRect(static_cast<f32>(m_leftPos),
             static_cast<f32>(m_topPos),
@@ -76,10 +72,9 @@ void CraftingScreen::renderContainerBackground()
             BORDER_COLOR);
     }
 
-    // 渲染合成网格和结果槽位的物品
-    renderCraftingGrid();
-    renderResultSlot();
-    renderPlayerInventory();
+    _renderCraftingGrid();
+    _renderResultSlot();
+    _renderPlayerInventory();
 }
 
 void CraftingScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
@@ -87,77 +82,69 @@ void CraftingScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
     (void)mouseX;
     (void)mouseY;
 
-    // 渲染标题 "Crafting"
     if (m_gui != nullptr && m_gui->font() != nullptr) {
         m_gui->drawText(
             "Crafting", static_cast<f32>(m_leftPos + TITLE_X), static_cast<f32>(m_topPos + TITLE_Y), 0xFF404040, false);
     }
 }
 
-void CraftingScreen::renderCraftingGrid()
+void CraftingScreen::_renderCraftingGrid()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
-    // 遍历合成网格槽位 (0-8)
     for (i32 i = 0; i < mc::CraftingMenu::GRID_SLOT_COUNT; ++i) {
         mc::Slot* slot = m_menu->getSlot(i);
         if (slot != nullptr) {
-            // 计算位置
-            i32 gridX = i % 3;
-            i32 gridY = i / 3;
-            i32 screenX = m_leftPos + GRID_X + gridX * SLOT_SPACING;
-            i32 screenY = m_topPos + GRID_Y + gridY * SLOT_SPACING;
+            const i32 gridX = i % mc::CraftingMenu::GRID_WIDTH;
+            const i32 gridY = i / mc::CraftingMenu::GRID_WIDTH;
+            const i32 screenX = m_leftPos + GRID_X + gridX * SLOT_SPACING;
+            const i32 screenY = m_topPos + GRID_Y + gridY * SLOT_SPACING;
 
             renderSlot(*slot, screenX, screenY);
         }
     }
 }
 
-void CraftingScreen::renderResultSlot()
+void CraftingScreen::_renderResultSlot()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
     mc::Slot* resultSlot = m_menu->getSlot(mc::CraftingMenu::RESULT_SLOT);
     if (resultSlot != nullptr) {
-        i32 screenX = m_leftPos + RESULT_X;
-        i32 screenY = m_topPos + RESULT_Y;
+        const i32 screenX = m_leftPos + RESULT_X;
+        const i32 screenY = m_topPos + RESULT_Y;
 
         renderSlot(*resultSlot, screenX, screenY);
     }
 }
 
-void CraftingScreen::renderPlayerInventory()
+void CraftingScreen::_renderPlayerInventory()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
-    // 主背包槽位 (10-36)
-    for (i32 i = mc::CraftingMenu::PLAYER_INV_START; i < mc::CraftingMenu::PLAYER_INV_START + 27; ++i) {
+    // 主背包槽位
+    constexpr i32 mainInvSlotCount = PLAYER_INV_ROW_COUNT * PLAYER_INV_COL_COUNT;
+    for (i32 i = mc::CraftingMenu::PLAYER_INV_START; i < mc::CraftingMenu::PLAYER_INV_START + mainInvSlotCount; ++i) {
         mc::Slot* slot = m_menu->getSlot(i);
         if (slot != nullptr) {
-            // 计算位置 (3行9列)
-            i32 invIndex = i - mc::CraftingMenu::PLAYER_INV_START;
-            i32 row = invIndex / 9;
-            i32 col = invIndex % 9;
-            i32 screenX = m_leftPos + PLAYER_INV_X + col * SLOT_SPACING;
-            i32 screenY = m_topPos + PLAYER_INV_Y + row * SLOT_SPACING;
+            const i32 invIndex = i - mc::CraftingMenu::PLAYER_INV_START;
+            const i32 row = invIndex / PLAYER_INV_COL_COUNT;
+            const i32 col = invIndex % PLAYER_INV_COL_COUNT;
+            const i32 screenX = m_leftPos + PLAYER_INV_X + col * SLOT_SPACING;
+            const i32 screenY = m_topPos + PLAYER_INV_Y + row * SLOT_SPACING;
 
             renderSlot(*slot, screenX, screenY);
         }
     }
 
-    // 快捷栏槽位 (37-45)
-    for (i32 i = mc::CraftingMenu::PLAYER_INV_START + 27; i < mc::CraftingMenu::PLAYER_INV_START + 27 + 9; ++i) {
+    // 快捷栏槽位
+    constexpr i32 hotbarStart = mc::CraftingMenu::PLAYER_INV_START + mainInvSlotCount;
+    for (i32 i = hotbarStart; i < hotbarStart + HOTBAR_COL_COUNT; ++i) {
         mc::Slot* slot = m_menu->getSlot(i);
         if (slot != nullptr) {
-            i32 col = i - (mc::CraftingMenu::PLAYER_INV_START + 27);
-            i32 screenX = m_leftPos + PLAYER_INV_X + col * SLOT_SPACING;
-            i32 screenY = m_topPos + PLAYER_INV_Y + 3 * SLOT_SPACING + 4; // 4像素间隔
+            const i32 col = i - hotbarStart;
+            const i32 screenX = m_leftPos + PLAYER_INV_X + col * SLOT_SPACING;
+            const i32 screenY = m_topPos + PLAYER_INV_Y + PLAYER_INV_ROW_COUNT * SLOT_SPACING + 4; // 4像素间隔
 
             renderSlot(*slot, screenX, screenY);
         }
@@ -166,16 +153,16 @@ void CraftingScreen::renderPlayerInventory()
 
 void CraftingScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
+    if (stack.isEmpty()) {
         return;
     }
 
-    // 使用 ItemRenderer 渲染物品
     if (m_itemRenderer != nullptr) {
         m_itemRenderer->renderItem(
             *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
     } else {
         // 回退：绘制占位符
+        MC_ASSERT_RELEASE(m_gui != nullptr);
         m_gui->fillRect(static_cast<f32>(screenX),
             static_cast<f32>(screenY),
             static_cast<f32>(SLOT_SIZE),
@@ -196,17 +183,11 @@ void CraftingScreen::renderTooltip(i32 mouseX, i32 mouseY)
 
 bool CraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
 {
-    // 特殊处理结果槽位
-    if (isResultSlot(slotIndex)) {
-        // 结果槽位点击逻辑
-        // 1. 检查是否有结果
-        // 2. 检查玩家是否持有物品
-        // 3. 如果持有物品且能合并，合并
-        // 4. 否则取出结果
-        // 5. 消耗原料（由菜单处理）
+    // TODO: 实现结果槽位的特殊点击处理（取出合成结果、消耗原料）
+    if (_isResultSlot(slotIndex)) {
+        // 结果槽位点击逻辑由基类和菜单处理
     }
 
-    // 普通槽位处理
     return AbstractContainerScreen::onSlotClick(slot, slotIndex, button);
 }
 
@@ -222,7 +203,6 @@ InventoryCraftingScreen::InventoryCraftingScreen(
 
 void InventoryCraftingScreen::onInit()
 {
-    // 计算居中位置
     updatePosition();
 }
 
@@ -232,13 +212,10 @@ void InventoryCraftingScreen::renderContainerBackground()
         return;
     }
 
-    // 渲染背包GUI背景
     if (m_textureManager != nullptr && m_textureManager->hasInventoryTexture()) {
-        // 使用纹理渲染背景
         m_textureManager->drawInventoryBackground(*m_gui, static_cast<f32>(m_leftPos), static_cast<f32>(m_topPos));
     } else {
-        // 使用纯色背景（回退）
-        // 背景颜色 (MC GUI 浅灰色)
+        // 回退：使用纯色背景
         constexpr u32 BG_COLOR = 0xFFC6C6C6;
         m_gui->fillRect(static_cast<f32>(m_leftPos),
             static_cast<f32>(m_topPos),
@@ -246,7 +223,6 @@ void InventoryCraftingScreen::renderContainerBackground()
             static_cast<f32>(GUI_HEIGHT),
             BG_COLOR);
 
-        // 绘制边框
         constexpr u32 BORDER_COLOR = 0xFF555555;
         m_gui->drawRect(static_cast<f32>(m_leftPos),
             static_cast<f32>(m_topPos),
@@ -255,12 +231,11 @@ void InventoryCraftingScreen::renderContainerBackground()
             BORDER_COLOR);
     }
 
-    // 渲染所有槽位的物品
-    renderCraftingGrid();
-    renderResultSlot();
-    renderArmorSlots();
-    renderOffhandSlot();
-    renderPlayerInventory();
+    _renderCraftingGrid();
+    _renderResultSlot();
+    _renderArmorSlots();
+    _renderOffhandSlot();
+    _renderPlayerInventory();
 }
 
 void InventoryCraftingScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
@@ -268,7 +243,6 @@ void InventoryCraftingScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
     (void)mouseX;
     (void)mouseY;
 
-    // 渲染标题 "Inventory"
     if (m_gui != nullptr && m_gui->font() != nullptr) {
         m_gui->drawText("Inventory",
             static_cast<f32>(m_leftPos + TITLE_X),
@@ -278,21 +252,17 @@ void InventoryCraftingScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
     }
 }
 
-void InventoryCraftingScreen::renderCraftingGrid()
+void InventoryCraftingScreen::_renderCraftingGrid()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
-    // 遍历合成网格槽位 (槽位 1-4)
     for (i32 i = 0; i < mc::InventoryCraftingMenu::GRID_SLOT_COUNT; ++i) {
         const i32 slotIndex = mc::InventoryCraftingMenu::GRID_SLOT_START + i;
         const mc::Slot* slot = m_menu->getSlot(slotIndex);
 
         if (slot != nullptr) {
-            // 计算位置 (2x2 网格)
-            const i32 gridX = i % 2;
-            const i32 gridY = i / 2;
+            const i32 gridX = i % GRID_COL_COUNT;
+            const i32 gridY = i / GRID_COL_COUNT;
             const i32 screenX = m_leftPos + GRID_X + gridX * SLOT_SPACING;
             const i32 screenY = m_topPos + GRID_Y + gridY * SLOT_SPACING;
 
@@ -301,11 +271,9 @@ void InventoryCraftingScreen::renderCraftingGrid()
     }
 }
 
-void InventoryCraftingScreen::renderResultSlot()
+void InventoryCraftingScreen::_renderResultSlot()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
     const mc::Slot* resultSlot = m_menu->getSlot(mc::InventoryCraftingMenu::RESULT_SLOT);
     if (resultSlot != nullptr) {
@@ -316,18 +284,15 @@ void InventoryCraftingScreen::renderResultSlot()
     }
 }
 
-void InventoryCraftingScreen::renderArmorSlots()
+void InventoryCraftingScreen::_renderArmorSlots()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
-    // 护甲槽位位置常量
     constexpr i32 ARMOR_Y_POSITIONS[] = {
-        ARMOR_Y_HEAD,  // 头盔
-        ARMOR_Y_CHEST, // 胸甲
-        ARMOR_Y_LEGS,  // 护腿
-        ARMOR_Y_FEET   // 靴子
+        ARMOR_Y_HEAD,
+        ARMOR_Y_CHEST,
+        ARMOR_Y_LEGS,
+        ARMOR_Y_FEET,
     };
 
     for (i32 i = 0; i < mc::InventoryCraftingMenu::ARMOR_SLOT_COUNT; ++i) {
@@ -343,11 +308,9 @@ void InventoryCraftingScreen::renderArmorSlots()
     }
 }
 
-void InventoryCraftingScreen::renderOffhandSlot()
+void InventoryCraftingScreen::_renderOffhandSlot()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
     const mc::Slot* offhandSlot = m_menu->getSlot(mc::InventoryCraftingMenu::OFFHAND_SLOT);
     if (offhandSlot != nullptr) {
@@ -358,21 +321,18 @@ void InventoryCraftingScreen::renderOffhandSlot()
     }
 }
 
-void InventoryCraftingScreen::renderPlayerInventory()
+void InventoryCraftingScreen::_renderPlayerInventory()
 {
-    if (m_menu == nullptr || m_gui == nullptr) {
-        return;
-    }
+    MC_ASSERT_RELEASE(m_menu != nullptr);
 
-    // 主背包槽位 (槽位 9-35)
+    // 主背包槽位
     for (i32 i = 0; i < mc::InventoryCraftingMenu::PLAYER_INV_COUNT; ++i) {
         const i32 slotIndex = mc::InventoryCraftingMenu::PLAYER_INV_START + i;
         const mc::Slot* slot = m_menu->getSlot(slotIndex);
 
         if (slot != nullptr) {
-            // 计算位置 (3行9列)
-            const i32 row = i / 9;
-            const i32 col = i % 9;
+            const i32 row = i / INVENTORY_COL_COUNT;
+            const i32 col = i % INVENTORY_COL_COUNT;
             const i32 screenX = m_leftPos + PLAYER_INV_X + col * SLOT_SPACING;
             const i32 screenY = m_topPos + PLAYER_INV_Y + row * SLOT_SPACING;
 
@@ -380,7 +340,7 @@ void InventoryCraftingScreen::renderPlayerInventory()
         }
     }
 
-    // 快捷栏槽位 (槽位 36-44)
+    // 快捷栏槽位
     for (i32 i = 0; i < mc::InventoryCraftingMenu::HOTBAR_COUNT; ++i) {
         const i32 slotIndex = mc::InventoryCraftingMenu::HOTBAR_START + i;
         const mc::Slot* slot = m_menu->getSlot(slotIndex);
@@ -396,16 +356,16 @@ void InventoryCraftingScreen::renderPlayerInventory()
 
 void InventoryCraftingScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
+    if (stack.isEmpty()) {
         return;
     }
 
-    // 使用 ItemRenderer 渲染物品
     if (m_itemRenderer != nullptr) {
         m_itemRenderer->renderItem(
             *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
     } else {
         // 回退：绘制占位符
+        MC_ASSERT_RELEASE(m_gui != nullptr);
         m_gui->fillRect(static_cast<f32>(screenX),
             static_cast<f32>(screenY),
             static_cast<f32>(SLOT_SIZE),
@@ -426,16 +386,13 @@ void InventoryCraftingScreen::renderTooltip(i32 mouseX, i32 mouseY)
 
 bool InventoryCraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
 {
-    // 特殊处理结果槽位
-    if (isResultSlot(slotIndex)) {
-        // 结果槽位点击逻辑
-        // 点击结果槽位时，合成结果物品会被取出
-        // 原料会被消耗
+    // TODO: 实现结果槽位的特殊点击处理（取出合成结果、消耗原料）
+    if (_isResultSlot(slotIndex)) {
+        // 结果槽位点击逻辑由基类和菜单处理
     }
 
-    // 护甲槽位特殊处理
-    if (isArmorSlot(slotIndex)) {
-        // 护甲槽位只能放置护甲
+    // TODO: 实现护甲槽位的特殊验证逻辑（仅允许放置对应护甲类型）
+    if (_isArmorSlot(slotIndex)) {
         // ArmorSlot 的 mayPlace 方法会进行验证
     }
 

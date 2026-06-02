@@ -25,14 +25,22 @@
 
 namespace mc::client::ui::minecraft {
 
+// 快捷栏颜色常量
+namespace {
+constexpr u32 HOTBAR_BG_COLOR = 0xDC000000;     // 半透明黑色背景（alpha=220）
+constexpr u32 HOTBAR_BORDER_COLOR = 0xFFA0A0A0; // 灰色边框
+} // namespace
+
 HotbarWidget::HotbarWidget()
     : kagero::widget::ContainerWidget("hotbar")
 {}
 
 void HotbarWidget::paint(kagero::widget::PaintContext& ctx)
 {
-    ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 0, 0, 0));
-    ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 160, 160, 160));
+    // 绘制半透明黑色背景
+    ctx.drawFilledRect(bounds(), HOTBAR_BG_COLOR);
+    // 绘制边框
+    ctx.drawBorder(bounds(), 1.0f, HOTBAR_BORDER_COLOR);
 }
 
 } // namespace mc::client::ui::minecraft

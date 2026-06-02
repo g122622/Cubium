@@ -39,8 +39,6 @@ class GuiRenderer;
  *
  * 当玩家使用已填充地图物品时打开，全屏显示地图内容。
  * 显示128x128像素的地图颜色数据和装饰图标。
- *
- * 参考 MC 1.16.5 MapScreen
  */
 class MapScreen : public IScreen {
 public:

@@ -48,10 +48,6 @@ void CartographyScreen::onInit()
 
 void CartographyScreen::renderContainerBackground()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     // 背景
     constexpr u32 BG_COLOR = 0xFFC6C6C6;
     constexpr u32 BORDER_COLOR = 0xFF555555;
@@ -81,17 +77,15 @@ void CartographyScreen::renderContainerBackground()
     m_gui->fillRect(arrowX + 26.0f, arrowY + 4.0f, 4.0f, 8.0f, ARROW_COLOR);
 
     // 渲染地图预览
-    if (m_mapRenderer != nullptr && m_menu != nullptr) {
-        const mc::Slot* resultSlot = m_menu->getSlot(mc::CartographyContainer::SLOT_RESULT);
-        if (resultSlot != nullptr) {
-            const mc::ItemStack& resultStack = resultSlot->getItem();
-            if (!resultStack.isEmpty() && resultStack.getItem() == mc::Items::FILLED_MAP) {
-                i32 mapId = mc::item::items::FilledMapItem::getMapId(resultStack);
-                if (mapId >= 0) {
-                    const f64 previewX = static_cast<f64>(m_leftPos) + MAP_PREVIEW_X;
-                    const f64 previewY = static_cast<f64>(m_topPos) + MAP_PREVIEW_Y;
-                    m_mapRenderer->renderMap(mapId, previewX, previewY, MAP_PREVIEW_SIZE, false, nullptr);
-                }
+    const mc::Slot* resultSlot = m_menu->getSlot(mc::CartographyContainer::SLOT_RESULT);
+    if (resultSlot != nullptr) {
+        const mc::ItemStack& resultStack = resultSlot->getItem();
+        if (!resultStack.isEmpty() && resultStack.getItem() == mc::Items::FILLED_MAP) {
+            i32 mapId = mc::item::items::FilledMapItem::getMapId(resultStack);
+            if (mapId >= 0) {
+                const f64 previewX = static_cast<f64>(m_leftPos) + MAP_PREVIEW_X;
+                const f64 previewY = static_cast<f64>(m_topPos) + MAP_PREVIEW_Y;
+                m_mapRenderer->renderMap(mapId, previewX, previewY, MAP_PREVIEW_SIZE, false, nullptr);
             }
         }
     }
@@ -102,22 +96,18 @@ void CartographyScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
     (void)mouseX;
     (void)mouseY;
 
-    if (m_gui != nullptr && m_gui->font() != nullptr) {
-        m_gui->drawText(
-            "Cartography Table", static_cast<f32>(m_leftPos + 8), static_cast<f32>(m_topPos + 6), 0xFF404040, false);
-    }
+    m_gui->drawText(
+        "Cartography Table", static_cast<f32>(m_leftPos + 8), static_cast<f32>(m_topPos + 6), 0xFF404040, false);
 }
 
 void CartographyScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
+    if (stack.isEmpty()) {
         return;
     }
 
-    if (m_itemRenderer != nullptr) {
-        m_itemRenderer->renderItem(
-            *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
-    }
+    m_itemRenderer->renderItem(
+        *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
 }
 
 void CartographyScreen::renderTooltip(i32 mouseX, i32 mouseY)

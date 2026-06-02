@@ -289,6 +289,46 @@ TEST(ScriptManagerTest, AccessorsWorkAfterInit)
     manager.shutdown();
 }
 
+TEST(ScriptManagerTest, ExecutePendingJobsWithoutQueuedWorkIsNoop)
+{
+    ScriptManager manager;
+    ASSERT_TRUE(manager.initialize().success());
+    EXPECT_FALSE(manager.engine().runtime().hasPendingJobs());
+
+    manager.executePendingJobs();
+
+    EXPECT_FALSE(manager.engine().runtime().hasPendingJobs());
+    manager.shutdown();
+}
+
+TEST(ScriptManagerTest, ExecutePendingJobsRunsQueuedPromiseCallbacks)
+{
+    ScriptManager manager;
+    ASSERT_TRUE(manager.initialize().success());
+
+    ContextConfig config;
+    auto context = manager.engine().runtime().createContext(config);
+    ASSERT_NE(context, nullptr);
+
+    auto result = context->evaluate("globalThis.__jobRan = 0;"
+                                    "Promise.resolve().then(() => { globalThis.__jobRan = 1; });",
+        "<pending-job>",
+        EvalFlags::Global);
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(manager.engine().runtime().hasPendingJobs());
+
+    manager.executePendingJobs();
+
+    EXPECT_FALSE(manager.engine().runtime().hasPendingJobs());
+    auto jobRan = context->getGlobalVariable("__jobRan");
+    ASSERT_TRUE(jobRan.has_value());
+    ASSERT_TRUE(jobRan->isNumber());
+    EXPECT_DOUBLE_EQ(jobRan->asNumber(), 1.0);
+
+    context.reset();
+    manager.shutdown();
+}
+
 // ===== BehaviorPackList =====
 
 TEST(BehaviorPackListTest, EmptyList)

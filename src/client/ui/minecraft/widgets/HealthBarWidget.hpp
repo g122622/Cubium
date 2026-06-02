@@ -23,11 +23,18 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Constants.hpp"
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 生命值条控件
+ *
+ * 显示玩家生命值的 HUD 控件。当前使用简单的矩形填充实现，
+ * 未来需替换为与 MC 一致的心形图标渲染。
+ */
 class HealthBarWidget : public kagero::widget::Widget {
 public:
     HealthBarWidget();
@@ -38,7 +45,7 @@ public:
     void paint(kagero::widget::PaintContext& ctx) override;
 
 private:
-    i32 m_health = 20;
+    i32 m_health = static_cast<i32>(mc::game::PLAYER_MAX_HEALTH);
 };
 
 } // namespace mc::client::ui::minecraft

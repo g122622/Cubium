@@ -24,6 +24,7 @@
 #include "client/ui/screen/ChestScreen.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 
 namespace mc::client {
@@ -53,10 +54,6 @@ void ChestScreen::onInit()
 
 void ChestScreen::renderContainerBackground()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
     constexpr u32 BG_COLOR = 0xFFC6C6C6;
     constexpr u32 BORDER_COLOR = 0xFF555555;
 
@@ -74,10 +71,10 @@ void ChestScreen::renderContainerBackground()
 
 void ChestScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
 {
-    (void)mouseX;
-    (void)mouseY;
+    MC_UNUSED(mouseX);
+    MC_UNUSED(mouseY);
 
-    if (m_gui != nullptr && m_gui->font() != nullptr) {
+    if (m_gui->font() != nullptr) {
         m_gui->drawText(
             "Chest", static_cast<f32>(m_leftPos + TITLE_X), static_cast<f32>(m_topPos + TITLE_Y), 0xFF404040, false);
     }
@@ -85,20 +82,16 @@ void ChestScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
 
 void ChestScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
-        return;
-    }
-
-    if (m_itemRenderer != nullptr) {
-        m_itemRenderer->renderItem(
-            *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
-    }
+    // 调用方（renderSlot/renderCarriedItem）已保证stack非空且m_gui有效
+    m_itemRenderer->renderItem(
+        *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
 }
 
 void ChestScreen::renderTooltip(i32 mouseX, i32 mouseY)
 {
-    (void)mouseX;
-    (void)mouseY;
+    // TODO: 实现箱子屏幕的物品悬停提示渲染
+    MC_UNUSED(mouseX);
+    MC_UNUSED(mouseY);
 }
 
 } // namespace mc::client

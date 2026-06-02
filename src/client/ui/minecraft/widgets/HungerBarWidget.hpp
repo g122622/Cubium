@@ -23,11 +23,18 @@
 
 #pragma once
 
-#include "../../kagero/paint/PaintContext.hpp"
-#include "../../kagero/widget/Widget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Constants.hpp"
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 饥饿值条控件
+ *
+ * 显示玩家饥饿值的 HUD 控件。当前使用简单的矩形填充实现，
+ * 未来需替换为与 MC 一致的鸡腿图标渲染。
+ */
 class HungerBarWidget : public kagero::widget::Widget {
 public:
     HungerBarWidget();
@@ -38,7 +45,7 @@ public:
     void paint(kagero::widget::PaintContext& ctx) override;
 
 private:
-    i32 m_hunger = 20;
+    i32 m_hunger = mc::game::PLAYER_MAX_HUNGER;
 };
 
 } // namespace mc::client::ui::minecraft

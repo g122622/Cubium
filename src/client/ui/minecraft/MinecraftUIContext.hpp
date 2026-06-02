@@ -100,8 +100,7 @@ private:
     ResourceProvider m_resources;
 
     i32 m_playerHealth = static_cast<i32>(mc::game::PLAYER_MAX_HEALTH);
-    i32 m_playerHunger =
-        static_cast<i32>(mc::game::PLAYER_MAX_HEALTH); // TODO: 改用PLAYER_MAX_HUNGER常量（目前尚无此常量）
+    i32 m_playerHunger = mc::game::PLAYER_MAX_HUNGER;
     i32 m_playerXP = 0;
     std::string m_playerName = "Steve";
 };

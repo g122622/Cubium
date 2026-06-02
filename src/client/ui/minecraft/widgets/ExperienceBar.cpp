@@ -29,19 +29,21 @@ ExperienceBar::ExperienceBar()
     : Widget("experienceBar")
 {}
 
-void ExperienceBar::setProgress(f32 progress)
+void ExperienceBar::setProgress(f32 progress) noexcept
 {
     m_progress = std::max(0.0f, std::min(1.0f, progress));
 }
 
-f32 ExperienceBar::progress() const
+f32 ExperienceBar::progress() const noexcept
 {
     return m_progress;
 }
 
 void ExperienceBar::paint(kagero::widget::PaintContext& ctx)
 {
+    // 背景：深色底色
     ctx.drawFilledRect(bounds(), Colors::fromARGB(255, 20, 40, 0));
+    // 填充：绿色经验条
     const i32 fillWidth = static_cast<i32>(static_cast<f32>(width()) * m_progress);
     ctx.drawFilledRect(kagero::Rect{x(), y(), fillWidth, height()}, Colors::fromARGB(255, 120, 255, 60));
 }

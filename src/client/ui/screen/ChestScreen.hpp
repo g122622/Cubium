@@ -55,7 +55,7 @@ public:
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] std::string getTitle() const override { return "Chest"; }
+    [[nodiscard]] std::string getTitle() const noexcept override { return "Chest"; }
 
 protected:
     void onInit() override;
@@ -65,13 +65,13 @@ protected:
     void renderTooltip(i32 mouseX, i32 mouseY) override;
 
 private:
-    static constexpr i32 GUI_WIDTH = 176;
-    static constexpr i32 BASE_GUI_HEIGHT = 114;
-    static constexpr i32 SLOT_SPACING = 18;
-    static constexpr i32 TITLE_X = 8;
-    static constexpr i32 TITLE_Y = 6;
+    static constexpr i32 GUI_WIDTH = 176;       ///< GUI背景宽度（像素）
+    static constexpr i32 BASE_GUI_HEIGHT = 114; ///< GUI基础高度（不含箱子槽位区域）
+    static constexpr i32 SLOT_SPACING = 18;     ///< 槽位间距（像素）
+    static constexpr i32 TITLE_X = 8;           ///< 标题X偏移
+    static constexpr i32 TITLE_Y = 6;           ///< 标题Y偏移
 
-    i32 m_rows;
+    i32 m_rows; ///< 箱子行数
 };
 
 } // namespace mc::client

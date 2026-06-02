@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../kagero/widget/SlotWidget.hpp"
+#include "client/ui/kagero/widget/SlotWidget.hpp"
 
 namespace mc::client::ui::minecraft {
 

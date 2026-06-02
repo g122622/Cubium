@@ -24,7 +24,6 @@
 #include "ScreenStackWidget.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "common/screen/IScreen.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -48,10 +47,8 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
     wrapper.active = true;
     wrapper.modal = true; // 默认模态
 
-    onOpenScreen(wrapper);
+    _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
-
-    spdlog::debug("ScreenStackWidget::push(Screen): screen count = {}", m_screens.size());
 }
 
 void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
@@ -66,10 +63,8 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
     wrapper.active = true;
     wrapper.modal = true; // IScreen 默认模态
 
-    onOpenScreen(wrapper);
+    _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
-
-    spdlog::debug("ScreenStackWidget::pushIScreen: screen count = {}", m_screens.size());
 }
 
 void ScreenStackWidget::pop()
@@ -78,20 +73,16 @@ void ScreenStackWidget::pop()
         return;
     }
 
-    onCloseScreen(m_screens.back());
+    _onCloseScreen(m_screens.back());
     m_screens.pop_back();
-
-    spdlog::debug("ScreenStackWidget::pop: screen count = {}", m_screens.size());
 }
 
 void ScreenStackWidget::clear()
 {
     while (!m_screens.empty()) {
-        onCloseScreen(m_screens.back());
+        _onCloseScreen(m_screens.back());
         m_screens.pop_back();
     }
-
-    spdlog::debug("ScreenStackWidget::clear: all screens closed");
 }
 
 Screen* ScreenStackWidget::top()
@@ -142,7 +133,7 @@ const IScreen* ScreenStackWidget::topIScreen() const
     return nullptr;
 }
 
-void ScreenStackWidget::onOpenScreen(ScreenWrapper& wrapper)
+void ScreenStackWidget::_onOpenScreen(ScreenWrapper& wrapper)
 {
     if (wrapper.isWidgetScreen()) {
         auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
@@ -158,7 +149,7 @@ void ScreenStackWidget::onOpenScreen(ScreenWrapper& wrapper)
     }
 }
 
-void ScreenStackWidget::onCloseScreen(ScreenWrapper& wrapper)
+void ScreenStackWidget::_onCloseScreen(ScreenWrapper& wrapper)
 {
     if (wrapper.isWidgetScreen()) {
         auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
@@ -173,9 +164,9 @@ void ScreenStackWidget::onCloseScreen(ScreenWrapper& wrapper)
     }
 }
 
-bool ScreenStackWidget::isScreenModal(const ScreenWrapper& wrapper) const
+bool ScreenStackWidget::_isScreenModal(const ScreenWrapper& wrapper) const
 {
-    // 直接使用缓存的 modal 值（在 onOpenScreen 中初始化）
+    // TODO: 当前未使用，后续可统一通过此方法查询屏幕模态状态
     return wrapper.modal;
 }
 

@@ -22,6 +22,7 @@
  */
 
 #include "CrosshairWidget.hpp"
+
 #include "client/ui/kagero/Types.hpp"
 
 namespace mc::client::ui::minecraft::widgets {

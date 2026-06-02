@@ -24,17 +24,18 @@
 #pragma once
 
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
 #include "common/screen/IScreen.hpp"
 #include "core/Types.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "network/packet/InventoryPackets.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <vector>
+#include <GLFW/glfw3.h>
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
@@ -79,19 +80,14 @@ public:
     /**
      * @brief 构造函数
      * @param menu 菜单实例
+     * @param clickSender 容器点击事件发送器
+     * @param closeSender 容器关闭事件发送器
      */
     explicit AbstractContainerScreen(
-        std::unique_ptr<Menu> menu, ContainerClickSender clickSender = {}, ContainerCloseSender closeSender = {})
+        std::unique_ptr<Menu> menu, ContainerClickSender clickSender, ContainerCloseSender closeSender)
         : m_menu(std::move(menu))
         , m_clickSender(std::move(clickSender))
         , m_closeSender(std::move(closeSender))
-        , m_leftPos(0)
-        , m_topPos(0)
-        , m_imageWidth(176)
-        , m_imageHeight(166)
-        , m_screenWidth(0)
-        , m_screenHeight(0)
-        , m_initialized(false)
     {}
 
     /**
@@ -110,12 +106,12 @@ public:
     /**
      * @brief 设置渲染器
      * @param gui GUI渲染器
-     * @param textureManager GUI纹理管理器（可选）
-     * @param itemRenderer 物品渲染器（可选）
+     * @param textureManager GUI纹理管理器
+     * @param itemRenderer 物品渲染器
      */
     void setRenderers(renderer::trident::gui::GuiRenderer* gui,
-        renderer::trident::gui::GuiTextureManager* textureManager = nullptr,
-        renderer::trident::item::ItemRenderer* itemRenderer = nullptr)
+        renderer::trident::gui::GuiTextureManager* textureManager,
+        renderer::trident::item::ItemRenderer* itemRenderer)
     {
         m_gui = gui;
         m_textureManager = textureManager;
@@ -181,6 +177,10 @@ public:
 
     /**
      * @brief 处理鼠标点击
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 鼠标按键
+     * @return 是否处理了点击事件
      */
     bool onClick(i32 mouseX, i32 mouseY, i32 button) override
     {
@@ -200,17 +200,25 @@ public:
 
     /**
      * @brief 处理键盘按键
+     * @param key 按键代码（GLFW键码）
+     * @param scanCode 扫描码
+     * @param action 动作（按下/释放/重复）
+     * @param mods 修饰键
+     * @return 是否处理了按键事件
      */
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
+        (void)scanCode;
+        (void)mods;
+
         // ESC关闭屏幕
-        if (key == 256 && action == 1) { // GLFW_KEY_ESCAPE
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
             onClose();
             return true;
         }
 
         // E键关闭容器屏幕
-        if (key == 69 && action == 1) { // GLFW_KEY_E
+        if (key == GLFW_KEY_E && action == GLFW_PRESS) {
             onClose();
             return true;
         }
@@ -242,10 +250,10 @@ public:
     /**
      * @brief 获取鼠标持有的物品
      */
-    [[nodiscard]] mc::ItemStack& getCarriedItem() { return m_menu ? m_menu->getCarriedItem() : m_emptyStack; }
+    [[nodiscard]] mc::ItemStack& getCarriedItem() { return m_menu ? m_menu->getCarriedItem() : s_emptyStack; }
     [[nodiscard]] const mc::ItemStack& getCarriedItem() const
     {
-        return m_menu ? m_menu->getCarriedItem() : m_emptyStack;
+        return m_menu ? m_menu->getCarriedItem() : s_emptyStack;
     }
 
     /**
@@ -317,13 +325,11 @@ protected:
     virtual void renderBackground()
     {
         // 半透明黑色背景 (ARGB)
-        if (m_gui != nullptr) {
-            m_gui->fillRect(0.0f, 0.0f, static_cast<f32>(m_screenWidth), static_cast<f32>(m_screenHeight), 0x80000000);
-        }
+        m_gui->fillRect(0.0f, 0.0f, static_cast<f32>(m_screenWidth), static_cast<f32>(m_screenHeight), 0x80000000);
     }
 
     /**
-     * @brief 渲染容器背景
+     * @brief 渲染容器背景（子类重写以渲染纹理背景）
      */
     virtual void renderContainerBackground()
     {
@@ -355,10 +361,6 @@ protected:
      */
     virtual void renderSlot(const mc::Slot& slot, i32 screenX, i32 screenY)
     {
-        if (m_gui == nullptr) {
-            return;
-        }
-
         // 渲染槽位背景（可选，纹理中已包含槽位背景）
         // 如果需要单独渲染槽位高亮，可以在这里添加
 
@@ -384,12 +386,7 @@ protected:
     {
         // 默认实现：绘制占位符矩形
         // 子类可以重写此方法，使用 ItemRenderer 渲染实际的物品图标
-        if (m_gui == nullptr) {
-            return;
-        }
-
         (void)stack;
-        // 使用半透明颜色表示物品存在
         m_gui->fillRect(static_cast<f32>(screenX),
             static_cast<f32>(screenY),
             static_cast<f32>(SLOT_SIZE),
@@ -398,14 +395,14 @@ protected:
     }
 
     /**
-     * @brief 渲染物品数量
+     * @brief 渲染物品数量文字
      * @param count 数量
      * @param screenX 屏幕X坐标
      * @param screenY 屏幕Y坐标
      */
     void renderItemCount(i32 count, i32 screenX, i32 screenY)
     {
-        if (m_gui == nullptr || m_gui->font() == nullptr || count <= 1) {
+        if (m_gui->font() == nullptr || count <= 1) {
             return;
         }
 
@@ -420,10 +417,6 @@ protected:
      */
     void renderSlotHighlight(i32 screenX, i32 screenY)
     {
-        if (m_gui == nullptr) {
-            return;
-        }
-
         // 槽位高亮颜色 (ARGB，半透明白色)
         m_gui->fillRect(static_cast<f32>(screenX),
             static_cast<f32>(screenY),
@@ -434,6 +427,8 @@ protected:
 
     /**
      * @brief 渲染容器前景（标题等）
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
      */
     virtual void renderContainerForeground(i32 mouseX, i32 mouseY)
     {
@@ -444,11 +439,13 @@ protected:
 
     /**
      * @brief 渲染鼠标持有的物品
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
      */
     virtual void renderCarriedItem(i32 mouseX, i32 mouseY)
     {
         const auto& carried = getCarriedItem();
-        if (carried.isEmpty() || m_gui == nullptr) {
+        if (carried.isEmpty()) {
             return;
         }
 
@@ -463,6 +460,8 @@ protected:
 
     /**
      * @brief 渲染悬停提示
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
      */
     virtual void renderTooltip(i32 mouseX, i32 mouseY)
     {
@@ -480,7 +479,7 @@ protected:
      */
     void renderItemTooltip(const mc::ItemStack& stack, i32 mouseX, i32 mouseY)
     {
-        if (m_gui == nullptr || m_gui->font() == nullptr || stack.isEmpty()) {
+        if (m_gui->font() == nullptr || stack.isEmpty()) {
             return;
         }
 
@@ -559,6 +558,10 @@ protected:
 
     /**
      * @brief 检查鼠标是否在槽位上
+     * @param slot 槽位
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @return 鼠标是否在槽位区域内
      */
     [[nodiscard]] virtual bool isMouseOverSlot(const mc::Slot& slot, i32 mouseX, i32 mouseY) const
     {
@@ -569,9 +572,15 @@ protected:
 
     /**
      * @brief 槽位点击处理
+     * @param slot 点击的槽位（供子类使用）
+     * @param slotIndex 槽位索引
+     * @param button 鼠标按键
+     * @return 是否处理了点击事件
      */
     virtual bool onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
     {
+        (void)slot;
+
         if (m_menu == nullptr) {
             return false;
         }
@@ -580,13 +589,11 @@ protected:
             const ClickAction action = ClickAction::Pickup;
             const i16 transactionId = m_menu->incrementTransactionId();
             m_clickSender(m_menu->getId(), slotIndex, button, transactionId, action, m_menu->getCarriedItem());
-            (void)slot;
             return true;
         }
 
         auto* playerInventory = m_menu->getPlayerInventory();
         if (playerInventory == nullptr || playerInventory->getPlayer() == nullptr) {
-            (void)slot;
             return false;
         }
 
@@ -597,6 +604,10 @@ protected:
 
     /**
      * @brief 点击空白区域处理
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 鼠标按键
+     * @return 是否处理了点击事件
      */
     virtual bool onClickOutside(i32 mouseX, i32 mouseY, i32 button)
     {
@@ -606,7 +617,7 @@ protected:
         return false;
     }
 
-    // 成员变量
+    // 菜单与事件发送器
     std::unique_ptr<Menu> m_menu;
     ContainerClickSender m_clickSender;
     ContainerCloseSender m_closeSender;
@@ -616,20 +627,20 @@ protected:
     renderer::trident::gui::GuiTextureManager* m_textureManager = nullptr;
     renderer::trident::item::ItemRenderer* m_itemRenderer = nullptr;
 
-    i32 m_leftPos;      ///< GUI左边界（居中后的位置）
-    i32 m_topPos;       ///< GUI上边界
-    i32 m_imageWidth;   ///< GUI纹理宽度
-    i32 m_imageHeight;  ///< GUI纹理高度
-    i32 m_screenWidth;  ///< 屏幕宽度
-    i32 m_screenHeight; ///< 屏幕高度
-    bool m_initialized; ///< 是否已初始化
+    i32 m_leftPos = 0;          ///< GUI左边界（居中后的位置）
+    i32 m_topPos = 0;           ///< GUI上边界
+    i32 m_imageWidth = 176;     ///< GUI纹理宽度
+    i32 m_imageHeight = 166;    ///< GUI纹理高度
+    i32 m_screenWidth = 0;      ///< 屏幕宽度
+    i32 m_screenHeight = 0;     ///< 屏幕高度
+    bool m_initialized = false; ///< 是否已初始化
 
     // 空物品堆（用于空菜单时返回）
-    static mc::ItemStack m_emptyStack;
+    static mc::ItemStack s_emptyStack;
 };
 
 // 静态成员定义
 template <typename Menu>
-mc::ItemStack AbstractContainerScreen<Menu>::m_emptyStack;
+mc::ItemStack AbstractContainerScreen<Menu>::s_emptyStack;
 
 } // namespace mc::client

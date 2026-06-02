@@ -23,13 +23,21 @@
 
 #pragma once
 
-#include "../../kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
 
 namespace mc::client::ui::minecraft {
 
+/**
+ * @brief 快捷栏控件
+ *
+ * 显示玩家快捷栏的容器控件，渲染半透明背景和边框。
+ * TODO: 当前仅绘制简单背景和边框，需实现完整的快捷栏渲染（物品图标、选中高亮等）。
+ */
 class HotbarWidget : public kagero::widget::ContainerWidget {
 public:
     HotbarWidget();
+
+    ~HotbarWidget() override = default;
 
     void paint(kagero::widget::PaintContext& ctx) override;
 };

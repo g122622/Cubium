@@ -47,7 +47,6 @@ bool FishingBobberRenderer::generateMesh(
 {
     // 钓鱼浮标 + 钓线全部使用 LINE_LIST 拓扑
     // 浮标渲染为十字线段，钓线为抛物线
-    // 参考 MC 1.16.5 FishingBobberEntity / FishRenderer
 
     _generateBobberCross(vertices, indices);
     _generateFishingLine(entity, vertices, indices);
@@ -64,7 +63,6 @@ bool FishingBobberRenderer::needsMeshUpdate(ClientEntity& entity) const
 void FishingBobberRenderer::_generateBobberCross(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 浮标渲染为十字线段（LINE_LIST）
-    // 参考 MC 1.16.5 FishRenderer：浮标渲染为线段
     const f32 halfSize = 0.0625f; // 1/16 格，约 MC 原版浮标大小
     const f32 yOffset = 0.25f;    // 浮标浮在水面上的高度偏移
 
@@ -104,7 +102,7 @@ void FishingBobberRenderer::_generateBobberCross(std::vector<ModelVertex>& verti
 void FishingBobberRenderer::_generateFishingLine(
     ClientEntity& entity, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // 参考 MC 1.16.5 FishRenderer：16 段抛物线
+    // 钓线渲染为16段抛物线
     constexpr i32 SEGMENTS = 16;
 
     // 浮标世界位置

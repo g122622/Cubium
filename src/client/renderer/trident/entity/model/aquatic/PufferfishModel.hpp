@@ -33,7 +33,6 @@ namespace mc::client::renderer::entity::model::aquatic {
  *
  * 纹理尺寸: 32x32
  * 结构: 身体 + 右眼 + 左眼 + 尾巴 + 右鳍 + 左鳍
- * 参考 MC 1.16.5 PufferFishSmallModel
  */
 class PufferfishSmallModel : public EntityModel {
 public:
@@ -44,7 +43,7 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
 
 private:
     void _setupParts();
@@ -63,7 +62,6 @@ private:
  *
  * 纹理尺寸: 32x32
  * 结构: 身体 + 右鳍 + 左鳍 + 前上刺 + 后上刺 + 前右刺 + 后右刺 + 后左刺 + 前左刺 + 后下刺 + 前下刺
- * 参考 MC 1.16.5 PufferFishMediumModel
  */
 class PufferfishMediumModel : public EntityModel {
 public:
@@ -74,7 +72,7 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
 
 private:
     void _setupParts();
@@ -99,7 +97,6 @@ private:
  * 纹理尺寸: 32x32
  * 结构: 身体 + 右鳍 + 左鳍 + 前上刺 + 中上刺 + 后上刺
  *       + 前右刺 + 前左刺 + 前下刺 + 中下刺 + 后下刺 + 后右刺 + 后左刺
- * 参考 MC 1.16.5 PufferFishBigModel
  */
 class PufferfishBigModel : public EntityModel {
 public:
@@ -110,7 +107,7 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
-    void setInWater(bool inWater) { m_isInWater = inWater; }
+    void setInWater(bool inWater) noexcept { m_isInWater = inWater; }
 
 private:
     void _setupParts();

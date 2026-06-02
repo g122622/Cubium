@@ -1,5 +1,6 @@
 #include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -10,7 +11,8 @@ namespace mc::mod::bedrock::addon {
 
 QuickJSRuntime::QuickJSRuntime() = default;
 
-QuickJSRuntime::~QuickJSRuntime() {
+QuickJSRuntime::~QuickJSRuntime()
+{
     if (m_runtime) {
         // QuickJS运行时会在JS_FreeRuntime时自动释放所有上下文
         JS_FreeRuntime(m_runtime);
@@ -19,7 +21,8 @@ QuickJSRuntime::~QuickJSRuntime() {
     }
 }
 
-bool QuickJSRuntime::initialize() {
+bool QuickJSRuntime::initialize()
+{
     spdlog::info("[BedrockAddon] Creating QuickJS runtime");
 
     m_runtime = JS_NewRuntime();
@@ -40,7 +43,8 @@ bool QuickJSRuntime::initialize() {
     return true;
 }
 
-std::unique_ptr<IScriptContext> QuickJSRuntime::createContext(const ContextConfig& config) {
+std::unique_ptr<IScriptContext> QuickJSRuntime::createContext(const ContextConfig& config)
+{
     if (!m_runtime) {
         spdlog::error("[BedrockAddon] Cannot create context: runtime not initialized");
         return nullptr;
@@ -58,7 +62,8 @@ std::unique_ptr<IScriptContext> QuickJSRuntime::createContext(const ContextConfi
     return context;
 }
 
-void QuickJSRuntime::destroyContext(IScriptContext* context) {
+void QuickJSRuntime::destroyContext(IScriptContext* context)
+{
     if (!context) {
         return;
     }
@@ -70,27 +75,38 @@ void QuickJSRuntime::destroyContext(IScriptContext* context) {
     }
 }
 
-void QuickJSRuntime::executePendingJobs() {
+void QuickJSRuntime::executePendingJobs()
+{
     if (!m_runtime) {
         return;
     }
 
     // 执行QuickJS事件循环中的待处理任务
     // JS_ExecutePendingJob 返回0表示没有待处理任务，1表示执行了任务，-1表示异常
+    JSContext* pendingJobContext = nullptr;
     int ret;
     do {
-        ret = JS_ExecutePendingJob(m_runtime, nullptr);
+        // QuickJS会无条件写入pctx，因此这里必须传入有效指针。
+        ret = JS_ExecutePendingJob(m_runtime, &pendingJobContext);
+        if (ret != 0) {
+            MC_ASSERT_RELEASE(pendingJobContext != nullptr);
+        }
+        if (ret < 0) {
+            spdlog::error("[BedrockAddon] QuickJS pending job execution failed");
+        }
     } while (ret == 1);
 }
 
-bool QuickJSRuntime::hasPendingJobs() const {
+bool QuickJSRuntime::hasPendingJobs() const
+{
     if (!m_runtime) {
         return false;
     }
     return JS_IsJobPending(m_runtime);
 }
 
-RuntimeStats QuickJSRuntime::computeStats() const {
+RuntimeStats QuickJSRuntime::computeStats() const
+{
     RuntimeStats stats;
     if (m_runtime) {
         JSMemoryUsage memUsage;
@@ -103,7 +119,8 @@ RuntimeStats QuickJSRuntime::computeStats() const {
     return stats;
 }
 
-void QuickJSRuntime::setMemoryLimit(u64 limitBytes) {
+void QuickJSRuntime::setMemoryLimit(u64 limitBytes)
+{
     m_memoryLimit = limitBytes;
     if (m_runtime) {
         JS_SetMemoryLimit(m_runtime, static_cast<size_t>(limitBytes));

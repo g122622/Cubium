@@ -49,6 +49,9 @@ constexpr f32 PLAYER_SLEEP_HEIGHT = 0.2f; // 玩家睡觉/死亡高度
 constexpr f32 PLAYER_MAX_HEALTH = 20.0f;
 constexpr f32 PLAYER_MAX_AIR = 300.0f;
 
+// 玩家饥饿值
+constexpr i32 PLAYER_MAX_HUNGER = 20;
+
 // 光照
 constexpr i32 MAX_LIGHT_LEVEL = 15;
 constexpr i32 MIN_LIGHT_LEVEL = 0;

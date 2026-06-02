@@ -90,21 +90,21 @@ void HudWidget::paint(kagero::widget::PaintContext& ctx)
     }
 
     // 渲染经验条（在快捷栏下方）
-    renderExperience(ctx);
+    _renderExperience(ctx);
 
     // 渲染快捷栏（需要 GuiRenderer 用于物品渲染）
     if (m_gui != nullptr) {
-        renderHotbar(ctx, *m_gui);
+        _renderHotbar(ctx, *m_gui);
     }
 
     // 渲染生命值和盔甲
-    renderHealth(ctx);
+    _renderHealth(ctx);
 
     // 渲染饥饿值
-    renderHunger(ctx);
+    _renderHunger(ctx);
 }
 
-void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui)
+void HudWidget::_renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui)
 {
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
@@ -120,7 +120,7 @@ void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx, renderer::triden
             ctx.drawImage(image, static_cast<i32>(hotbarX), static_cast<i32>(hotbarY));
         }
     } else {
-        // 后备：纯色绘制
+        // TODO: 实现快捷栏背景的纯色后备绘制（当纹理不可用时）
         // ctx.drawFilledRect(kagero::Rect{static_cast<i32>(hotbarX), static_cast<i32>(hotbarY),
         //                                  static_cast<i32>(HOTBAR_WIDTH), static_cast<i32>(HOTBAR_HEIGHT)},
         //                    HudColors::HOTBAR_BACKGROUND);
@@ -174,7 +174,7 @@ void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx, renderer::triden
     }
 }
 
-void HudWidget::renderHealth(kagero::widget::PaintContext& ctx)
+void HudWidget::_renderHealth(kagero::widget::PaintContext& ctx)
 {
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
@@ -194,7 +194,7 @@ void HudWidget::renderHealth(kagero::widget::PaintContext& ctx)
         f32 armorY = healthY - ARMOR_SIZE - 2.0f;
         for (i32 i = 0; i < 10; ++i) {
             bool full = i < armor / 2;
-            drawArmor(ctx, armorX + i * ARMOR_SPACING, armorY, full);
+            _drawArmor(ctx, armorX + i * ARMOR_SPACING, armorY, full);
         }
     }
 
@@ -209,14 +209,14 @@ void HudWidget::renderHealth(kagero::widget::PaintContext& ctx)
 
         // 吸收心显示为黄色
         if (absorption > 0 && i < absorption / 2) {
-            drawHeart(ctx, heartX, healthY, full, half, true);
+            _drawHeart(ctx, heartX, healthY, full, half, true);
         } else {
-            drawHeart(ctx, heartX, healthY, full, half, false);
+            _drawHeart(ctx, heartX, healthY, full, half, false);
         }
     }
 }
 
-void HudWidget::renderHunger(kagero::widget::PaintContext& ctx)
+void HudWidget::_renderHunger(kagero::widget::PaintContext& ctx)
 {
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
@@ -234,11 +234,11 @@ void HudWidget::renderHunger(kagero::widget::PaintContext& ctx)
         i32 foodPoints = food - i * 2;
         bool full = foodPoints >= 2;
         bool half = foodPoints == 1;
-        drawHunger(ctx, hungerIconX, hungerY, full, half);
+        _drawHunger(ctx, hungerIconX, hungerY, full, half);
     }
 }
 
-void HudWidget::renderExperience(kagero::widget::PaintContext& ctx)
+void HudWidget::_renderExperience(kagero::widget::PaintContext& ctx)
 {
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
@@ -252,7 +252,7 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx)
     f32 progress = m_player->experienceProgress();
 
     // 绘制经验条（使用纹理或纯色）
-    drawExperienceBar(ctx, xpX, xpY, progress, XP_BAR_WIDTH, XP_BAR_HEIGHT);
+    _drawExperienceBar(ctx, xpX, xpY, progress, XP_BAR_WIDTH, XP_BAR_HEIGHT);
 
     // 绘制等级文字（在经验条上方居中）
     if (level > 0) {
@@ -270,7 +270,7 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx)
 // 私有方法
 // ============================================================================
 
-void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing)
+void HudWidget::_drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing)
 {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
@@ -319,7 +319,7 @@ void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool 
     }
 }
 
-void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half)
+void HudWidget::_drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half)
 {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
@@ -349,7 +349,7 @@ void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool
         color);
 }
 
-void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full)
+void HudWidget::_drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full)
 {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
@@ -372,7 +372,7 @@ void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool 
         color);
 }
 
-void HudWidget::drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height)
+void HudWidget::_drawExperienceBar(kagero::widget::PaintContext& ctx, f32 x, f32 y, f32 progress, f32 width, f32 height)
 {
     // 尝试使用纹理绘制经验条背景（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr && m_iconsAtlas->hasSprite("xp_bar_empty")) {

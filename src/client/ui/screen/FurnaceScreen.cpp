@@ -50,10 +50,7 @@ void FurnaceScreen::onInit()
 
 void FurnaceScreen::renderContainerBackground()
 {
-    if (m_gui == nullptr) {
-        return;
-    }
-
+    // TODO: 使用熔炉GUI纹理替代纯色矩形背景
     constexpr u32 BG_COLOR = 0xFFC6C6C6;
     constexpr u32 BORDER_COLOR = 0xFF555555;
 
@@ -74,7 +71,7 @@ void FurnaceScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
     (void)mouseX;
     (void)mouseY;
 
-    if (m_gui != nullptr && m_gui->font() != nullptr) {
+    if (m_gui->font() != nullptr) {
         m_gui->drawText(
             "Furnace", static_cast<f32>(m_leftPos + TITLE_X), static_cast<f32>(m_topPos + TITLE_Y), 0xFF404040, false);
     }
@@ -82,10 +79,6 @@ void FurnaceScreen::renderContainerForeground(i32 mouseX, i32 mouseY)
 
 void FurnaceScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 screenY)
 {
-    if (m_gui == nullptr || stack.isEmpty()) {
-        return;
-    }
-
     if (m_itemRenderer != nullptr) {
         m_itemRenderer->renderItem(
             *m_gui, stack, static_cast<f32>(screenX), static_cast<f32>(screenY), static_cast<f32>(SLOT_SIZE));
@@ -94,6 +87,7 @@ void FurnaceScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 
 
 void FurnaceScreen::renderTooltip(i32 mouseX, i32 mouseY)
 {
+    // TODO: 实现熔炉物品提示框渲染
     (void)mouseX;
     (void)mouseY;
 }

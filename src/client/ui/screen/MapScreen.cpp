@@ -22,8 +22,12 @@
  */
 
 #include "MapScreen.hpp"
+
+#include <GLFW/glfw3.h>
+
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/world/ClientMapDataCache.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc::client {
 
@@ -38,9 +42,9 @@ void MapScreen::init()
 
 void MapScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
 {
-    (void)mouseX;
-    (void)mouseY;
-    (void)partialTick;
+    MC_UNUSED(mouseX);
+    MC_UNUSED(mouseY);
+    MC_UNUSED(partialTick);
 
     if (m_gui == nullptr) {
         return;
@@ -83,19 +87,19 @@ void MapScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
 
 bool MapScreen::onClick(i32 mouseX, i32 mouseY, i32 button)
 {
-    (void)mouseX;
-    (void)mouseY;
-    (void)button;
+    MC_UNUSED(mouseX);
+    MC_UNUSED(mouseY);
+    MC_UNUSED(button);
     return true;
 }
 
 bool MapScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
 {
-    (void)scanCode;
-    (void)mods;
+    MC_UNUSED(scanCode);
+    MC_UNUSED(mods);
 
     // ESC或E键关闭地图屏幕
-    if ((key == 256 || key == 69) && action == 1) {
+    if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_E) && action == GLFW_PRESS) {
         onClose();
         return true;
     }

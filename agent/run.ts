@@ -326,8 +326,8 @@ ${STOP_HOOK_PROMPT}
 
   const tasklist = [...fileSet]
   .map(file => `/mc-improve-code-style ${file}.hpp/cpp 注意：你被要求审查的文件可能没有上述这些问题，这种情况下你直接放行即可，你不一定必须修改代码。`)
-  .slice(84, 9999)
-  .slice(249, 9999);
+  // .slice(84, 9999)
+  // .slice(259, 9999);
 
   async function runTask(task: string, iteration: number, taskIndex: number, shouldEvaluate: boolean) {
     console.log(
@@ -402,7 +402,7 @@ ${STOP_HOOK_PROMPT}
    * @returns true 表示该任务已经执行过，应跳过
    */
   async function isTaskDone(task: string): Promise<boolean> {
-    return false;
+    // return false;
     try {
       const val = await db.get(task);
       return val === "1";
