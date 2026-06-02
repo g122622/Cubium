@@ -9,6 +9,7 @@ addon/
 ├── core/          # 脚本引擎核心抽象层（IScriptRuntime/Engine/Context）
 ├── engine/        # QuickJS引擎实现
 ├── binding/       # 模块绑定框架（C++→JS桥接）
+├── component/     # 自定义组件系统（BlockComponentRegistry/ItemComponentRegistry）
 ├── modules/       # @minecraft/server 模块绑定实现
 ├── plugin/        # 插件管理（发现、加载、生命周期）
 ├── pack/          # 行为包系统（manifest解析、包管理、依赖解析）
@@ -43,7 +44,7 @@ addon/
 未实现（后续迭代）：
 - [ ] @minecraft/server-ui
 - [ ] @minecraft/server-net
-- [ ] 自定义方块/物品组件
+- [x] 自定义方块/物品组件（BlockComponentRegistry/ItemComponentRegistry + JS绑定）
 - [ ] 调试器支持
 - [ ] V8引擎后端
 - [ ] 脚本热重载（/reload命令）
