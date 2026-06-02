@@ -60,7 +60,7 @@ bool NBTPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // MC 1.16.5: 将实体序列化为NBT后进行比较
+    // 将实体序列化为NBT后进行比较
     // 由于当前项目实体NBT序列化尚未完全实现，暂时返回 true
     // TODO: 实现实体NBT序列化后启用完整匹配
     // nbt::tags::compound_tag entityNbt;
@@ -77,7 +77,7 @@ bool NBTPredicate::test(const ItemStack& stack) const
         return true;
     }
 
-    // MC 1.16.5: 检查物品的NBT标签
+    // 检查物品的NBT标签
     // 由于当前项目物品NBT序列化尚未完全实现，暂时返回 true
     // TODO: 实现物品NBT序列化后启用完整匹配
     // const nbt::tags::compound_tag* itemNbt = stack.getTag();
@@ -97,7 +97,7 @@ bool NBTPredicate::test(const nbt::tags::compound_tag* tag) const
         return false;
     }
 
-    return matchNBT(*m_tag, *tag);
+    return _matchNBT(*m_tag, *tag);
 }
 
 Result<NBTPredicate> NBTPredicate::fromJson(const nlohmann::json& json)
@@ -107,11 +107,12 @@ Result<NBTPredicate> NBTPredicate::fromJson(const nlohmann::json& json)
     }
 
     // 解析 JSON 格式的 NBT 数据
-    // MC 1.16.5 使用字符串格式的 NBT（Mojangson 格式）
+    // 使用字符串格式的 NBT（Mojangson 格式）
     if (json.is_string()) {
         std::string nbtString = json.get<std::string>();
         // TODO: 实现 Mojangson 解析器
         // 暂时返回空的 NBTPredicate
+        MC_UNUSED(nbtString);
         return NBTPredicate{};
     }
 
@@ -136,9 +137,8 @@ nlohmann::json NBTPredicate::toJson() const
     return nullptr;
 }
 
-bool NBTPredicate::matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual)
+bool NBTPredicate::_matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept
 {
-    // MC 1.16.5: NBTUtil.areNBTEquals()
     // 遍历期望的所有字段，检查在实际NBT中是否存在且值相等
     for (const auto& [key, value] : expected.value) {
         auto it = actual.value.find(key);
@@ -148,7 +148,7 @@ bool NBTPredicate::matchNBT(const nbt::tags::compound_tag& expected, const nbt::
         }
 
         // 递归比较标签值
-        if (!matchTag(*value, *it->second)) {
+        if (!_matchTag(*value, *it->second)) {
             return false;
         }
     }
@@ -156,7 +156,7 @@ bool NBTPredicate::matchNBT(const nbt::tags::compound_tag& expected, const nbt::
     return true;
 }
 
-bool NBTPredicate::matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual)
+bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept
 {
     // 类型不同，不匹配
     if (expected.id() != actual.id()) {
@@ -234,7 +234,7 @@ bool NBTPredicate::matchTag(const nbt::tags::tag& expected, const nbt::tags::tag
             for (size_t i = 0; i < exp.size(); ++i) {
                 auto expElem = exp[i];
                 auto actElem = act[i];
-                if (!matchTag(*expElem, *actElem)) {
+                if (!_matchTag(*expElem, *actElem)) {
                     return false;
                 }
             }
@@ -244,7 +244,7 @@ bool NBTPredicate::matchTag(const nbt::tags::tag& expected, const nbt::tags::tag
         case nbt::TagId::Compound: {
             const auto& exp = static_cast<const nbt::tags::compound_tag&>(expected);
             const auto& act = static_cast<const nbt::tags::compound_tag&>(actual);
-            return matchNBT(exp, act);
+            return _matchNBT(exp, act);
         }
 
         case nbt::TagId::IntArray: {

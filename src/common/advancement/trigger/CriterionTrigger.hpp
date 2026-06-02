@@ -108,7 +108,7 @@ class CriterionListener {
 public:
     using InstanceType = T;
 
-    CriterionListener(const T& instance, AdvancementPtr advancement, std::string criterion)
+    CriterionListener(const T& instance, AdvancementPtr advancement, std::string criterion) noexcept
         : m_instance(instance)
         , m_advancement(std::move(advancement))
         , m_criterion(std::move(criterion))
@@ -137,7 +137,7 @@ public:
     /**
      * @brief 比较运算符（用于set）
      */
-    bool operator<(const CriterionListener& other) const
+    bool operator<(const CriterionListener& other) const noexcept
     {
         if (m_advancement != other.m_advancement) {
             return m_advancement < other.m_advancement;
@@ -145,7 +145,7 @@ public:
         return m_criterion < other.m_criterion;
     }
 
-    bool operator==(const CriterionListener& other) const
+    bool operator==(const CriterionListener& other) const noexcept
     {
         return m_advancement == other.m_advancement && m_criterion == other.m_criterion;
     }
@@ -226,7 +226,6 @@ public:
  * @brief 触发器抽象基类
  *
  * 提供监听器管理的通用实现。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.AbstractCriterionTrigger
  */
 template <typename T>
 class AbstractCriterionTrigger : public ICriterionTrigger<T> {
@@ -269,7 +268,7 @@ public:
     /**
      * @brief 获取玩家的所有监听器
      */
-    [[nodiscard]] const std::set<Listener>& getListeners(::mc::server::PlayerAdvancements& advancements) const
+    [[nodiscard]] const std::set<Listener>& getListeners(::mc::server::PlayerAdvancements& advancements) const noexcept
     {
         static const std::set<Listener> empty;
         auto it = m_listeners.find(&advancements);
@@ -279,7 +278,7 @@ public:
     /**
      * @brief 检查是否有玩家的监听器
      */
-    [[nodiscard]] bool hasListeners(::mc::server::PlayerAdvancements& advancements) const
+    [[nodiscard]] bool hasListeners(::mc::server::PlayerAdvancements& advancements) const noexcept
     {
         auto it = m_listeners.find(&advancements);
         return it != m_listeners.end() && !it->second.empty();

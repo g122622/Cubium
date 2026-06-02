@@ -120,21 +120,19 @@ private:
     /**
      * @brief 递归比较NBT标签是否匹配
      *
-     * 参考 MC 1.16.5: NBTUtil.areNBTEquals()
      * 如果期望标签中的字段在实际标签中存在且值相等，则匹配。
      * 实际标签可以包含期望标签中没有的额外字段。
      *
      * @param expected 期望的NBT数据
      * @param actual 实际的NBT数据
-     * @param compareListTag 是否比较列表标签（递归）
      * @return 是否匹配
      */
-    static bool matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual);
+    static bool _matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept;
 
     /**
      * @brief 比较两个NBT标签是否相等
      */
-    static bool matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual);
+    static bool _matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept;
 
     std::unique_ptr<nbt::tags::compound_tag> m_tag;
 };

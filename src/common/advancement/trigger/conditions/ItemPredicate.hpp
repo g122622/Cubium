@@ -66,6 +66,16 @@ public:
         const nbt::tags::compound_tag* nbt);
 
     /**
+     * @brief 复制构造函数
+     */
+    ItemPredicate(const ItemPredicate& other) = default;
+
+    /**
+     * @brief 复制赋值运算符
+     */
+    ItemPredicate& operator=(const ItemPredicate& other) = default;
+
+    /**
      * @brief 移动构造函数
      */
     ItemPredicate(ItemPredicate&& other) noexcept = default;
