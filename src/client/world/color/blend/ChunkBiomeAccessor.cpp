@@ -61,7 +61,7 @@ const Biome* ChunkBiomeAccessor::getBiome(i32 x, i32 y, i32 z) const
     }
 
     i32 localX, localZ;
-    const ChunkData* targetChunk = resolveChunk(x, z, localX, localZ);
+    const ChunkData* targetChunk = _resolveChunk(x, z, localX, localZ);
 
     if (!targetChunk) {
         return nullptr;
@@ -97,7 +97,7 @@ const Biome* ChunkBiomeAccessor::getBiomeLocal(i32 localX, i32 y, i32 localZ) co
     return &BiomeRegistry::instance().get(biomeId);
 }
 
-const ChunkData* ChunkBiomeAccessor::resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const
+const ChunkData* ChunkBiomeAccessor::_resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const
 {
     // 计算区块坐标
     const ChunkCoord targetChunkX = worldX >> 4;

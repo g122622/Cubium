@@ -49,7 +49,6 @@ bool BlockPredicate::test(const BlockState& state) const
 
     // 检查方块ID
     if (m_block.has_value()) {
-        // 参考 MC 1.16.5: if (this.block != null && block != this.block)
         const Block* expectedBlock = BlockRegistry::instance().getBlock(m_block.value());
         if (expectedBlock == nullptr) {
             // 未知的方块ID，不匹配
@@ -62,7 +61,6 @@ bool BlockPredicate::test(const BlockState& state) const
 
     // 检查标签
     if (m_tag.has_value()) {
-        // 参考 MC 1.16.5: if (this.tag != null && !this.tag.contains(block))
         BlockTag* tag = BlockTags::getTag(m_tag.value());
         if (tag == nullptr) {
             // 未知的标签，不匹配
@@ -92,7 +90,6 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json)
     StatePropertiesPredicate state;
 
     // 支持简写格式：直接传字符串表示方块ID
-    // 参考 MC 1.16.5: JSONUtils.getJsonObject(json, "block") 会将字符串转为 {"block": "xxx"}
     if (json.is_string()) {
         block = ResourceLocation(json.get<std::string>());
         return BlockPredicate(std::move(block), std::move(tag), std::move(state));
@@ -146,11 +143,6 @@ bool FluidPredicate::test(const BlockState& state) const
 
     // 检查流体ID
     if (m_fluid.has_value()) {
-        // 参考 MC 1.16.5 FluidPredicate.test():
-        // FluidState fluidstate = world.getFluidState(pos);
-        // Fluid fluid = fluidstate.getFluid();
-        // if (this.fluid != null && fluid != this.fluid) return false;
-
         // 获取流体状态
         const fluid::FluidState* fluidState = state.getFluidState();
         if (fluidState == nullptr) {

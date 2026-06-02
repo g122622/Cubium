@@ -73,8 +73,8 @@ public:
         std::optional<ResourceLocation> background = std::nullopt);
 
     // 移动构造和赋值
-    AdvancementDisplay(AdvancementDisplay&&) = default;
-    AdvancementDisplay& operator=(AdvancementDisplay&&) = default;
+    AdvancementDisplay(AdvancementDisplay&&) noexcept = default;
+    AdvancementDisplay& operator=(AdvancementDisplay&&) noexcept = default;
 
     // 禁止拷贝（因为包含 unique_ptr）
     AdvancementDisplay(const AdvancementDisplay&) = delete;

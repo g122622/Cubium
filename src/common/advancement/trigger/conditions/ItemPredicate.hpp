@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../MinMaxBounds.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -48,7 +48,6 @@ namespace mc::advancement {
  * @brief 物品谓词
  *
  * 用于匹配物品的条件谓词，检查物品类型、数量、NBT等。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.ItemPredicate
  */
 class ItemPredicate {
 public:
@@ -65,6 +64,16 @@ public:
         IntBounds durability,
         std::optional<ResourceLocation> potion,
         const nbt::tags::compound_tag* nbt);
+
+    /**
+     * @brief 移动构造函数
+     */
+    ItemPredicate(ItemPredicate&& other) noexcept = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    ItemPredicate& operator=(ItemPredicate&& other) noexcept = default;
 
     /**
      * @brief 检查物品是否匹配

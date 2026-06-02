@@ -47,7 +47,6 @@ namespace mc::advancement {
  * @brief 需求策略
  *
  * 定义条件之间的逻辑关系。
- * 参考 MC 1.16.5: net.minecraft.advancements.IRequirementsStrategy
  */
 enum class RequirementsStrategy : u8 {
     AND, ///< 所有条件都必须满足（默认）
@@ -59,8 +58,6 @@ enum class RequirementsStrategy : u8 {
  *
  * 成就是游戏中可解锁的里程碑，由条件、显示信息和奖励组成。
  * 成就可以形成树形结构，子成就需要父成就完成后才可见。
- *
- * 参考 MC 1.16.5: net.minecraft.advancements.Advancement
  *
  * JSON格式示例：
  * @code

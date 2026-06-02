@@ -40,12 +40,10 @@ namespace client {
  * 1. 如果生物群系有覆盖颜色，使用覆盖颜色
  * 2. 如果有草颜色修改器（沼泽/黑森林/恶地），应用修改器
  * 3. 否则使用 grass colormap（需要外部实现）
- *
- * 参考 MC 1.16.5 BiomeColors.GRASS_COLOR
  */
 class GrassColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const noexcept override;
 };
 
 /**
@@ -54,12 +52,10 @@ public:
  * 从生物群系获取树叶颜色：
  * 1. 如果生物群系有覆盖颜色，使用覆盖颜色
  * 2. 否则使用 foliage colormap（需要外部实现）
- *
- * 参考 MC 1.16.5 BiomeColors.FOLIAGE_COLOR
  */
 class FoliageColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const noexcept override;
 };
 
 /**
@@ -67,12 +63,10 @@ public:
  *
  * 从生物群系获取水体颜色。
  * 水颜色直接存储在 BiomeEffects 中，不需要 colormap。
- *
- * 参考 MC 1.16.5 BiomeColors.WATER_COLOR
  */
 class WaterColorResolver : public ColorResolver {
 public:
-    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const override;
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const noexcept override;
 };
 
 /**
@@ -82,8 +76,6 @@ public:
  *
  * 注意：草/树叶颜色常量定义在 BiomeEffects.hpp 中，避免重复。
  * 这里只定义云杉和桦树叶颜色（这些是固定值，不属于 BiomeEffects）。
- *
- * 参考 MC 1.16.5 BiomeColors 类
  */
 class BiomeColors {
 public:
@@ -125,7 +117,7 @@ public:
      * @param color2 第二种颜色
      * @return 混合后的颜色
      */
-    [[nodiscard]] static u32 calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2);
+    [[nodiscard]] static u32 calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2) noexcept;
 
 private:
     // 单例实例

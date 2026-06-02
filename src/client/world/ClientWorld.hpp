@@ -104,8 +104,6 @@ public:
     /**
      * @brief 获取指定位置的最高方块高度
      *
-     * 参考 MC 1.16.5 IWorldReader#getHeight
-     *
      * @param x 方块 X 坐标
      * @param z 方块 Z 坐标
      * @return 最高非空气方块的 Y 坐标，如果没有返回 MIN_BUILD_HEIGHT
@@ -114,8 +112,6 @@ public:
 
     /**
      * @brief 检查指定位置是否可以看到天空
-     *
-     * 参考 MC 1.16.5 IWorldReader#canSeeSky
      *
      * @param pos 方块位置
      * @return 如果该位置可以看到天空返回 true
@@ -163,7 +159,6 @@ public:
      * @brief 重置天气状态
      *
      * 维度切换时调用，清除降雨、雷暴和闪电状态。
-     * 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn() 中创建新 ClientWorld 时天气自然重置。
      */
     void resetWeather();
 
@@ -174,7 +169,6 @@ public:
      * @brief 清空所有区块数据
      *
      * 用于维度切换时清空旧维度的区块。
-     * 参考 MC 1.16.5 ClientWorld.removeAllEntities() 和区块清理逻辑。
      *
      * 此方法会：
      * 1. 取消所有待处理的网格构建任务
@@ -210,7 +204,6 @@ public:
      * @brief 设置闪电闪烁时间
      *
      * 当闪电击中时调用，产生天空闪烁效果。
-     * 参考 MC 1.16.5 World.setTimeLightningFlash()
      *
      * @param time 闪烁时间（ticks），通常为 2
      */
@@ -314,14 +307,14 @@ public:
     [[nodiscard]] f32 getSpawnAngle() const { return m_spawnAngle; }
 
 private:
-    void rebuildMesh(ClientChunk& chunk);
-    void scheduleChunkMeshRebuild(const ChunkId& id);
-    void requestChunkMeshRebuild(const ChunkId& id);
-    void scheduleNeighborMeshRebuild(const ChunkId& id);
-    void scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount);
+    void _rebuildMesh(ClientChunk& chunk);
+    void _scheduleChunkMeshRebuild(const ChunkId& id);
+    void _requestChunkMeshRebuild(const ChunkId& id);
+    void _scheduleNeighborMeshRebuild(const ChunkId& id);
+    void _scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount);
 
-    std::array<std::shared_ptr<const ChunkData>, 6> getNeighborChunkData(const ChunkId& id);
-    void getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);
+    std::array<std::shared_ptr<const ChunkData>, 6> _getNeighborChunkData(const ChunkId& id);
+    void _getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);
 
 private:
     std::unordered_map<ChunkId, std::unique_ptr<ClientChunk>> m_chunks;

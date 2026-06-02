@@ -110,7 +110,7 @@ private:
      * @param outLocalZ 输出区块内Z坐标
      * @return 指向对应区块的指针，如果超出范围返回 nullptr
      */
-    [[nodiscard]] const ChunkData* resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const;
+    [[nodiscard]] const ChunkData* _resolveChunk(i32 worldX, i32 worldZ, i32& outLocalX, i32& outLocalZ) const;
 
     const ChunkData& m_chunk;
     std::array<const ChunkData*, 4> m_neighbors; // -X, +X, -Z, +Z

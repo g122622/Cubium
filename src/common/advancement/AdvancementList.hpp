@@ -37,7 +37,6 @@ namespace mc::advancement {
  * @brief 成就列表管理器
  *
  * 管理所有成就，维护父子关系，提供根节点和非根节点集合。
- * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementList
  *
  * 职责：
  * - 管理成就注册表
@@ -73,6 +72,8 @@ public:
         virtual void onAdvancementUpdated(Advancement::Ptr advancement) = 0;
     };
 
+    // ========== 拷贝与移动 ==========
+
     /**
      * @brief 默认构造
      */
@@ -81,6 +82,10 @@ public:
     // 禁止拷贝
     AdvancementList(const AdvancementList&) = delete;
     AdvancementList& operator=(const AdvancementList&) = delete;
+
+    // 允许移动
+    AdvancementList(AdvancementList&&) noexcept = default;
+    AdvancementList& operator=(AdvancementList&&) noexcept = default;
 
     // ========== 成就管理 ==========
 
@@ -184,22 +189,22 @@ private:
      * @param advancement 成就
      * @return 是否成功建立
      */
-    bool trySetParent(Advancement::Ptr advancement);
+    bool _trySetParent(Advancement::Ptr advancement);
 
     /**
      * @brief 通知监听器成就添加
      */
-    void notifyAdvancementAdded(Advancement::Ptr advancement);
+    void _notifyAdvancementAdded(Advancement::Ptr advancement);
 
     /**
      * @brief 通知监听器成就移除
      */
-    void notifyAdvancementRemoved(Advancement::Ptr advancement);
+    void _notifyAdvancementRemoved(Advancement::Ptr advancement);
 
     /**
      * @brief 通知监听器成就更新
      */
-    void notifyAdvancementUpdated(Advancement::Ptr advancement);
+    void _notifyAdvancementUpdated(Advancement::Ptr advancement);
 
     std::unordered_map<ResourceLocation, Advancement::Ptr> m_advancements;
     std::vector<Advancement::Ptr> m_roots;

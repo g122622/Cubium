@@ -161,12 +161,12 @@ private:
     /**
      * @brief 应用当前变换到点
      */
-    void transformPoint(f32& x, f32& y) const;
+    void _transformPoint(f32& x, f32& y) const;
 
     /**
      * @brief 从 IPaint 提取颜色
      */
-    [[nodiscard]] u32 extractColor(const kagero::paint::IPaint& paint) const;
+    [[nodiscard]] u32 _extractColor(const kagero::paint::IPaint& paint) const;
 
     renderer::trident::gui::GuiRenderer& m_renderer;
     Font& m_font;

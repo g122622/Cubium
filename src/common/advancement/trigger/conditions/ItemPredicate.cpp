@@ -78,7 +78,6 @@ bool ItemPredicate::test(const ItemStack& stack) const
     }
 
     // 检查药水类型
-    // MC 1.16.5: ItemPredicate 检查药水类型
     if (m_potion.has_value()) {
         // 使用 PotionUtils 获取物品堆中的药水
         const potion::Potion* actualPotion = potion::PotionUtils::getPotion(stack);
@@ -88,7 +87,6 @@ bool ItemPredicate::test(const ItemStack& stack) const
         }
 
         // 比较药水的资源位置ID
-        // MC 1.16.5: 通过 Registry.POTION.getKey() 比较
         if (actualPotion->id() != m_potion.value()) {
             return false;
         }

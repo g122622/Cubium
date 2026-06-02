@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../MinMaxBounds.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -45,7 +45,6 @@ namespace mc::advancement {
  * @brief 位置谓词
  *
  * 用于匹配位置的条件谓词，检查坐标、生物群系、维度等。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.LocationPredicate
  */
 class LocationPredicate {
 public:
@@ -105,7 +104,6 @@ private:
  * @brief 距离谓词
  *
  * 用于匹配距离的条件谓词。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.DistancePredicate
  */
 class DistancePredicate {
 public:

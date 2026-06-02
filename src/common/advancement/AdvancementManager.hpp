@@ -36,7 +36,6 @@ namespace mc::advancement {
  * @brief 成就管理器
  *
  * 全局成就注册表，管理所有已加载的成就。
- * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementManager
  *
  * 职责：
  * - 管理成就列表

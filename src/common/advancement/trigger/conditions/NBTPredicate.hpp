@@ -41,7 +41,6 @@ namespace mc::advancement {
  * @brief NBT谓词
  *
  * 用于匹配NBT数据的条件谓词，检查实体或物品的NBT标签。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.NBTPredicate
  */
 class NBTPredicate {
 public:

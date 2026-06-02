@@ -37,7 +37,6 @@ namespace mc::advancement {
  * @brief 单个条件的进度
  *
  * 追踪单个条件的完成状态和完成时间。
- * 参考 MC 1.16.5: net.minecraft.advancements.CriterionProgress
  */
 class CriterionProgress {
 public:
@@ -86,7 +85,6 @@ private:
  * @brief 单个成就的进度
  *
  * 追踪玩家在特定成就上的进度，管理所有条件的完成状态。
- * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementProgress
  */
 class AdvancementProgress {
 public:
@@ -212,7 +210,7 @@ private:
     /**
      * @brief 计算是否完成
      */
-    [[nodiscard]] bool computeDone() const;
+    [[nodiscard]] bool _computeDone() const;
 };
 
 } // namespace mc::advancement

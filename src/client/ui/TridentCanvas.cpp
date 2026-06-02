@@ -56,7 +56,7 @@ void TridentCanvas::endFrame()
 
 void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPaint& paint)
 {
-    const u32 color = extractColor(paint);
+    const u32 color = _extractColor(paint);
     const kagero::paint::PaintStyle style = paint.style();
 
     f32 x1 = static_cast<f32>(rect.x);
@@ -65,8 +65,8 @@ void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPai
     f32 y2 = y1 + static_cast<f32>(rect.height);
 
     // 应用变换
-    transformPoint(x1, y1);
-    transformPoint(x2, y2);
+    _transformPoint(x1, y1);
+    _transformPoint(x2, y2);
 
     // 确保坐标顺序正确
     if (x1 > x2) std::swap(x1, x2);
@@ -91,8 +91,8 @@ void TridentCanvas::drawCircle(f32 cx, f32 cy, f32 radius, const kagero::paint::
 {
     // MC UI 是方正风格，不需要圆形
     // 退化为边界矩形
-    const u32 color = extractColor(paint);
-    transformPoint(cx, cy);
+    const u32 color = _extractColor(paint);
+    _transformPoint(cx, cy);
 
     if (paint.style() == kagero::paint::PaintStyle::Fill) {
         m_renderer.fillRect(cx - radius, cy - radius, radius * 2, radius * 2, color);
@@ -115,11 +115,11 @@ void TridentCanvas::drawPath(const kagero::paint::IPath& path, const kagero::pai
 
 void TridentCanvas::drawLine(f32 x0, f32 y0, f32 x1, f32 y1, const kagero::paint::IPaint& paint)
 {
-    const u32 color = extractColor(paint);
+    const u32 color = _extractColor(paint);
     const f32 strokeWidth = paint.strokeWidth();
 
-    transformPoint(x0, y0);
-    transformPoint(x1, y1);
+    _transformPoint(x0, y0);
+    _transformPoint(x1, y1);
 
     // 计算线条方向的垂直方向
     const f32 dx = x1 - x0;
@@ -155,7 +155,7 @@ void TridentCanvas::drawGradientRect(const kagero::Rect& rect, u32 color1, u32 c
     const f32 w = static_cast<f32>(rect.width);
     const f32 h = static_cast<f32>(rect.height);
 
-    transformPoint(x, y);
+    _transformPoint(x, y);
 
     if (vertical) {
         m_renderer.fillGradientRect(x, y, w, h, color1, color2);
@@ -177,7 +177,7 @@ void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y)
         return;
     }
 
-    transformPoint(x, y);
+    _transformPoint(x, y);
 
     const f32 w = static_cast<f32>(textureImage->width());
     const f32 h = static_cast<f32>(textureImage->height());
@@ -209,7 +209,7 @@ void TridentCanvas::drawImageRect(const kagero::paint::IImage& image, const kage
 
     f32 x = static_cast<f32>(dst.x);
     f32 y = static_cast<f32>(dst.y);
-    transformPoint(x, y);
+    _transformPoint(x, y);
 
     // 计算源区域对应的 UV 坐标
     const f32 imgW = static_cast<f32>(textureImage->width());
@@ -253,12 +253,12 @@ void TridentCanvas::drawImageNine(const kagero::paint::IImage& image,
     // 提取颜色（如果有）
     u32 tint = kagero::paint::TextureImage::DEFAULT_TINT;
     if (paint != nullptr) {
-        tint = extractColor(*paint);
+        tint = _extractColor(*paint);
     }
 
     f32 x = static_cast<f32>(dst.x);
     f32 y = static_cast<f32>(dst.y);
-    transformPoint(x, y);
+    _transformPoint(x, y);
 
     const f32 imgW = static_cast<f32>(textureImage->width());
     const f32 imgH = static_cast<f32>(textureImage->height());
@@ -342,8 +342,8 @@ void TridentCanvas::drawImageNine(const kagero::paint::IImage& image,
 
 void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint)
 {
-    const u32 color = extractColor(paint);
-    transformPoint(x, y);
+    const u32 color = _extractColor(paint);
+    _transformPoint(x, y);
 
     // 转换 std::string (std::u32string) 到 UTF-8
     std::string utf8Text;
@@ -371,8 +371,8 @@ void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero
 
 void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint)
 {
-    const u32 color = extractColor(paint);
-    transformPoint(x, y);
+    const u32 color = _extractColor(paint);
+    _transformPoint(x, y);
 
     // 将 TextBlob 的文本转换为 UTF-8 并绘制
     const std::string& text = blob.text();
@@ -544,12 +544,12 @@ void TridentCanvas::resize(i32 width, i32 height)
     m_clipBounds = kagero::Rect{0, 0, width, height};
 }
 
-void TridentCanvas::transformPoint(f32& x, f32& y) const
+void TridentCanvas::_transformPoint(f32& x, f32& y) const
 {
     m_matrix.transformPoint(x, y);
 }
 
-u32 TridentCanvas::extractColor(const kagero::paint::IPaint& paint) const
+u32 TridentCanvas::_extractColor(const kagero::paint::IPaint& paint) const
 {
     kagero::paint::Color color = paint.color();
 

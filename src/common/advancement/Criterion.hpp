@@ -37,8 +37,6 @@ namespace mc::advancement {
  * @brief 成就条件
  *
  * 每个成就可以有多个条件，条件的完成情况决定成就是否完成。
- * 参考 MC 1.16.5: net.minecraft.advancements.Criterion
- *
  * 条件由触发器实例组成，当触发器触发时检查条件是否满足。
  * 例如："diamond" 条件使用 inventory_changed 触发器检查玩家是否获得钻石。
  */

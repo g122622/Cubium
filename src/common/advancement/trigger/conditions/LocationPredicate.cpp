@@ -39,7 +39,7 @@ namespace {
  * @brief 检查维度名称是否匹配
  *
  * 将维度ID转换为ResourceLocation格式进行比较。
- * MC 1.16.5 标准维度名称：
+ * 标准维度名称：
  * - 0 -> minecraft:overworld
  * - -1 -> minecraft:the_nether
  * - 1 -> minecraft:the_end
@@ -50,7 +50,7 @@ namespace {
  */
 bool matchesDimension(DimensionId dimensionId, const ResourceLocation& expected)
 {
-    // MC 1.16.5 标准维度名称映射
+    // 标准维度名称映射
     std::string_view expectedPath = expected.path();
 
     if (expectedPath == "overworld") {
@@ -92,7 +92,6 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
     if (!m_z.test(z)) return false;
 
     // 检查维度
-    // MC 1.16.5: 通过 ResourceLocation 比较维度名称
     if (m_dimension.has_value()) {
         if (!matchesDimension(world.dimension(), m_dimension.value())) {
             return false;
@@ -100,15 +99,14 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
     }
 
     // 检查生物群系
-    // MC 1.16.5: 通过 BiomeRegistry 获取生物群系定义并比较名称
     if (m_biome.has_value()) {
         i32 blockX = math::floorTo<i32>(x);
         i32 blockY = math::floorTo<i32>(y);
         i32 blockZ = math::floorTo<i32>(z);
 
         // 获取区块坐标
-        ChunkCoord chunkX = blockX >> 4;
-        ChunkCoord chunkZ = blockZ >> 4;
+        ChunkCoord chunkX = math::toChunkCoord(blockX);
+        ChunkCoord chunkZ = math::toChunkCoord(blockZ);
 
         // 获取区块
         const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
@@ -118,8 +116,8 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
         }
 
         // 获取本地坐标
-        i32 localX = blockX & 15;
-        i32 localZ = blockZ & 15;
+        i32 localX = math::toLocalCoord(blockX);
+        i32 localZ = math::toLocalCoord(blockZ);
 
         // 获取生物群系ID
         BiomeId biomeId = chunk->getBiomeAtBlock(localX, blockY, localZ);

@@ -38,7 +38,6 @@ namespace mc::advancement {
  * @brief 成就加载器
  *
  * 从文件系统加载成就JSON文件，支持MC 1.16.5数据包格式。
- * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementManager
  *
  * 数据包目录结构：
  * @code
@@ -156,7 +155,7 @@ private:
     /**
      * @brief 递归遍历目录查找JSON文件
      */
-    std::vector<std::filesystem::path> findJsonFiles(const std::filesystem::path& directory) const;
+    std::vector<std::filesystem::path> _findJsonFiles(const std::filesystem::path& directory) const;
 };
 
 } // namespace mc::advancement

@@ -25,7 +25,7 @@
 
 namespace mc::client {
 
-ScreenManager& ScreenManager::instance()
+ScreenManager& ScreenManager::instance() noexcept
 {
     static ScreenManager instance;
     return instance;
@@ -138,7 +138,7 @@ void ScreenManager::onResize(i32 width, i32 height)
     }
 }
 
-bool ScreenManager::shouldPauseGame() const
+bool ScreenManager::shouldPauseGame() const noexcept
 {
     if (m_stackWidget) {
         return m_stackWidget->shouldPauseGame();

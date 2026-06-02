@@ -48,7 +48,6 @@ bool EntityEquipmentPredicate::test(const LivingEntity& entity) const
         return true;
     }
 
-    // MC 1.16.5 EntityEquipmentPredicate.test()
     // 检查每个装备槽位
 
     // 检查头盔
@@ -97,9 +96,6 @@ Result<EntityEquipmentPredicate> EntityEquipmentPredicate::fromJson(const nlohma
     }
 
     EntityEquipmentPredicate predicate;
-
-    // MC 1.16.5 JSON 字段名:
-    // head, chest, legs, feet, mainhand, offhand
 
     if (json.contains("head")) {
         auto result = ItemPredicate::fromJson(json["head"]);

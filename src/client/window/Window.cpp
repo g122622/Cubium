@@ -128,11 +128,11 @@ Result<void> Window::create(const WindowConfig& config)
     glfwSetWindowUserPointer(m_window, this);
 
     // 设置回调
-    glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
-    glfwSetKeyCallback(m_window, keyCallback);
-    glfwSetCursorPosCallback(m_window, cursorPosCallback);
-    glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
-    glfwSetScrollCallback(m_window, scrollCallback);
+    glfwSetFramebufferSizeCallback(m_window, _framebufferSizeCallback);
+    glfwSetKeyCallback(m_window, _keyCallback);
+    glfwSetCursorPosCallback(m_window, _cursorPosCallback);
+    glfwSetMouseButtonCallback(m_window, _mouseButtonCallback);
+    glfwSetScrollCallback(m_window, _scrollCallback);
 
     // 获取尺寸
     glfwGetWindowSize(m_window, &m_width, &m_height);
@@ -277,7 +277,7 @@ void Window::setScrollCallback(ScrollCallback callback, void* userData)
     m_scrollUserData = userData;
 }
 
-void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height)
+void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win) {
@@ -291,7 +291,7 @@ void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height)
     }
 }
 
-void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void Window::_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_keyCallback) {
@@ -299,7 +299,7 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
-void Window::cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+void Window::_cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_mouseCallback) {
@@ -307,7 +307,7 @@ void Window::cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+void Window::_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_mouseButtonCallback) {
@@ -315,7 +315,7 @@ void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int
     }
 }
 
-void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void Window::_scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_scrollCallback) {

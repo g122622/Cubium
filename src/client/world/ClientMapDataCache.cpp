@@ -63,7 +63,7 @@ world::map::MapData& ClientMapDataCache::getOrCreateMapData(i32 mapId)
     return ref;
 }
 
-void ClientMapDataCache::clear()
+void ClientMapDataCache::clear() noexcept
 {
     m_cache.clear();
 }

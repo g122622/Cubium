@@ -39,7 +39,7 @@ bool AdvancementList::add(Advancement::Ptr advancement)
     m_advancements[id] = advancement;
 
     // 尝试建立父子关系
-    bool parentSet = trySetParent(advancement);
+    bool parentSet = _trySetParent(advancement);
 
     if (!parentSet && advancement->getParent().has_value()) {
         // 父成就尚未加载，加入等待列表
@@ -60,7 +60,7 @@ bool AdvancementList::add(Advancement::Ptr advancement)
         m_waitingForParent.erase(waitingIt);
     }
 
-    notifyAdvancementAdded(advancement);
+    _notifyAdvancementAdded(advancement);
     return true;
 }
 
@@ -89,7 +89,7 @@ bool AdvancementList::remove(const ResourceLocation& id)
     // 从父成就的子列表移除（通过重建关系）
     // 注意：当前实现中，子成就需要单独移除
 
-    notifyAdvancementRemoved(advancement);
+    _notifyAdvancementRemoved(advancement);
     return true;
 }
 
@@ -168,7 +168,7 @@ void AdvancementList::rebuildRelations()
     }
 }
 
-bool AdvancementList::trySetParent(Advancement::Ptr advancement)
+bool AdvancementList::_trySetParent(Advancement::Ptr advancement)
 {
     if (!advancement->getParent().has_value()) {
         return true; // 根成就
@@ -182,21 +182,21 @@ bool AdvancementList::trySetParent(Advancement::Ptr advancement)
     return false;
 }
 
-void AdvancementList::notifyAdvancementAdded(Advancement::Ptr advancement)
+void AdvancementList::_notifyAdvancementAdded(Advancement::Ptr advancement)
 {
     for (auto* listener : m_listeners) {
         listener->onAdvancementAdded(advancement);
     }
 }
 
-void AdvancementList::notifyAdvancementRemoved(Advancement::Ptr advancement)
+void AdvancementList::_notifyAdvancementRemoved(Advancement::Ptr advancement)
 {
     for (auto* listener : m_listeners) {
         listener->onAdvancementRemoved(advancement);
     }
 }
 
-void AdvancementList::notifyAdvancementUpdated(Advancement::Ptr advancement)
+void AdvancementList::_notifyAdvancementUpdated(Advancement::Ptr advancement)
 {
     for (auto* listener : m_listeners) {
         listener->onAdvancementUpdated(advancement);

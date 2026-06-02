@@ -97,8 +97,8 @@ public:
     ClientPlayerPredictor& operator=(const ClientPlayerPredictor&) = delete;
 
     // 允许移动
-    ClientPlayerPredictor(ClientPlayerPredictor&&) = default;
-    ClientPlayerPredictor& operator=(ClientPlayerPredictor&&) = default;
+    ClientPlayerPredictor(ClientPlayerPredictor&&) noexcept = default;
+    ClientPlayerPredictor& operator=(ClientPlayerPredictor&&) noexcept = default;
 
     // ========== 输入处理 ==========
 
@@ -229,19 +229,19 @@ private:
      *
      * 当预测位置与服务端位置偏差过大时，进行平滑校正。
      */
-    void applyCorrection();
+    void _applyCorrection();
 
     /**
      * @brief 计算下一帧的预测位置
      * @param deltaTime 帧时间
      */
-    void updatePrediction(f32 deltaTime);
+    void _updatePrediction(f32 deltaTime);
 
     /**
      * @brief 清理已确认的待确认输入
      * @param lastAckSequence 最后确认的序列号
      */
-    void prunePendingInputs(u32 lastAckSequence);
+    void _prunePendingInputs(u32 lastAckSequence);
 
     // ========== 成员变量 ==========
 

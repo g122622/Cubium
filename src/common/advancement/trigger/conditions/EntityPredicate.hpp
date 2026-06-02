@@ -51,7 +51,6 @@ namespace mc::advancement {
  * @brief 实体谓词
  *
  * 用于匹配实体的条件谓词，检查实体类型、位置、效果、装备、NBT等。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EntityPredicate
  */
 class EntityPredicate {
 public:
@@ -70,7 +69,6 @@ public:
     /**
      * @brief 检查实体是否匹配（带世界和参考位置）
      *
-     * 参考 MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
      * 用于距离检查等需要参考位置的条件。
      *
      * @param world 世界
@@ -120,41 +118,41 @@ public:
     void setType(std::optional<ResourceLocation> type)
     {
         m_type = std::move(type);
-        updateIsAny();
+        _updateIsAny();
     }
     void setDistance(DistancePredicate distance)
     {
         m_distance = std::move(distance);
-        updateIsAny();
+        _updateIsAny();
     }
     void setLocation(LocationPredicate location)
     {
         m_location = std::move(location);
-        updateIsAny();
+        _updateIsAny();
     }
     void setEffects(MobEffectsPredicate effects)
     {
         m_effects = std::move(effects);
-        updateIsAny();
+        _updateIsAny();
     }
     void setNbt(NBTPredicate nbt)
     {
         m_nbt = std::move(nbt);
-        updateIsAny();
+        _updateIsAny();
     }
     void setFlags(EntityFlagsPredicate flags)
     {
         m_flags = std::move(flags);
-        updateIsAny();
+        _updateIsAny();
     }
     void setEquipment(EntityEquipmentPredicate equipment)
     {
         m_equipment = std::move(equipment);
-        updateIsAny();
+        _updateIsAny();
     }
 
 private:
-    void updateIsAny();
+    void _updateIsAny();
 
     std::optional<ResourceLocation> m_type; ///< 实体类型（如 "minecraft:zombie"）
     DistancePredicate m_distance;           ///< 距离谓词（与参考点的距离）
@@ -170,7 +168,6 @@ private:
  * @brief 伤害源谓词
  *
  * 用于匹配伤害源的条件谓词，检查伤害类型标志。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.DamageSourcePredicate
  */
 class DamageSourcePredicate {
 public:

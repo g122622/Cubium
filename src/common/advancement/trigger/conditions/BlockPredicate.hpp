@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../MinMaxBounds.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/loot/StatePropertiesPredicate.hpp"
@@ -43,7 +43,6 @@ namespace mc::advancement {
  * @brief 方块谓词
  *
  * 用于匹配方块的条件谓词，检查方块类型、标签、状态等。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.BlockPredicate
  */
 class BlockPredicate {
 public:
@@ -101,7 +100,6 @@ private:
  * @brief 流体谓词
  *
  * 用于匹配流体的条件谓词。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.FluidPredicate
  */
 class FluidPredicate {
 public:

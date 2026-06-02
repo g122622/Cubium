@@ -47,8 +47,6 @@ namespace mc::client {
  * - 位置和旋转的平滑插值
  * - 动画状态跟踪（limbSwing等）
  * - 元数据缓存
- *
- * 参考 MC 1.16.5 客户端实体渲染
  */
 class ClientEntity {
 public:
@@ -246,7 +244,7 @@ public:
      */
     [[nodiscard]] f32 prevRotationYawHead() const { return m_prevHeadYaw; }
 
-    // ========== 追踪位置系统（用于披风摆动，参考 MC 1.16.5 PlayerEntity） ==========
+    // ========== 追踪位置系统（用于披风摆动） ==========
 
     /**
      * @brief 获取追踪位置 X
@@ -279,7 +277,7 @@ public:
      */
     [[nodiscard]] f64 prevChasingPosZ() const { return m_prevChasingPosZ; }
 
-    // ========== 相机偏航角系统（用于披风摆动，参考 MC 1.16.5 PlayerEntity） ==========
+    // ========== 相机偏航角系统（用于披风摆动） ==========
 
     /**
      * @brief 获取相机偏航角
@@ -292,7 +290,7 @@ public:
      */
     [[nodiscard]] f32 prevCameraYaw() const { return m_prevCameraYaw; }
 
-    // ========== 鞘翅角度系统（用于鞘翅展开动画，参考 MC 1.16.5 AbstractClientPlayerEntity） ==========
+    // ========== 鞘翅角度系统（用于鞘翅展开动画） ==========
 
     /**
      * @brief 获取鞘翅 X 轴旋转角度
@@ -317,7 +315,7 @@ public:
      */
     void updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ);
 
-    // ========== 悬浮起始偏移（用于 ItemEntity，参考 MC 1.16.5 ItemEntity） ==========
+    // ========== 悬浮起始偏移（用于 ItemEntity） ==========
 
     /**
      * @brief 获取悬浮起始偏移
@@ -454,7 +452,6 @@ public:
      * @brief 是否正在鞘翅飞行
      *
      * 从实体元数据中读取 FallFlying 标志位。
-     * 参考 MC 1.16.5 EntityFlags::FallFlying
      */
     [[nodiscard]] bool isFallFlying() const;
 
@@ -515,16 +512,12 @@ public:
 
     /**
      * @brief 是否正在站立（北极熊特有）
-     *
-     * 参考 MC 1.16.5 PolarBearEntity.isStanding()
      */
     [[nodiscard]] bool isStanding() const { return m_isStanding; }
     void setStanding(bool standing) { m_isStanding = standing; }
 
     /**
      * @brief 获取站立动画进度
-     *
-     * 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation
      * 范围 [0, 6]，0 表示四足站立，6 表示完全站立
      */
     [[nodiscard]] f32 clientSideStandAnimation() const { return m_clientSideStandAnimation; }
@@ -538,8 +531,6 @@ public:
 
     /**
      * @brief 获取站立动画缩放值
-     *
-     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
      * @param partialTick 部分 tick 值
      * @return 动画缩放值 [0, 1]
      */
@@ -552,8 +543,6 @@ public:
 
     /**
      * @brief 更新站立动画状态（每 tick 调用）
-     *
-     * 参考 MC 1.16.5 PolarBearEntity.tick() 客户端逻辑
      */
     void updateStandingAnimation();
 
@@ -561,8 +550,6 @@ public:
 
     /**
      * @brief 获取河豚膨胀状态
-     *
-     * 参考 MC 1.16.5 PufferfishEntity.PUFF_STATE DataParameter
      * 0 = Deflated, 1 = SemiPuffed, 2 = FullyPuffed
      */
     [[nodiscard]] i32 puffState() const { return m_puffState; }
@@ -639,7 +626,7 @@ public:
      * @brief 检查实体是否处于愤怒状态
      *
      * 用于蜜蜂等实体的愤怒状态检测。
-     * MC 1.16.5: 蜜蜂的愤怒时间存储在元数据参数 ID 1（i32 类型）。
+     * 愤怒时间存储在元数据参数 ID 1（i32 类型）。
      *
      * @return 如果愤怒时间 > 0 返回 true
      */
@@ -781,7 +768,6 @@ private:
     static constexpr i32 DEFAULT_SWING_DURATION = 6; // 默认挥动持续时间 (tick)
 
     // 北极熊站立动画
-    // 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation0/clientSideStandAnimation
     f32 m_clientSideStandAnimation0 = 0.0f;
     f32 m_clientSideStandAnimation = 0.0f;
     bool m_isStanding = false;
@@ -814,7 +800,6 @@ private:
     u64 m_boltVertex = 0;
 
     // 追踪位置系统（用于披风摆动）
-    // 参考 MC 1.16.5 PlayerEntity: chasingPosX/Y/Z 和 prevChasingPosX/Y/Z
     f64 m_chasingPosX = 0.0;
     f64 m_chasingPosY = 0.0;
     f64 m_chasingPosZ = 0.0;
@@ -823,12 +808,10 @@ private:
     f64 m_prevChasingPosZ = 0.0;
 
     // 相机偏航角系统（用于披风摆动）
-    // 参考 MC 1.16.5 PlayerEntity: cameraYaw 和 prevCameraYaw
     f32 m_cameraYaw = 0.0f;
     f32 m_prevCameraYaw = 0.0f;
 
     // 鞘翅角度系统（用于鞘翅展开动画）
-    // 参考 MC 1.16.5 AbstractClientPlayerEntity: rotateElytraX/Y/Z
     f32 m_rotateElytraX = 0.0f;
     f32 m_rotateElytraY = 0.0f;
     f32 m_rotateElytraZ = 0.0f;
@@ -842,10 +825,10 @@ private:
     // 解析后的元数据
     entity::EntityDataManager m_dataManager;
 
-    void updateItemRenderStateVersion();
-    void syncItemEntityMetadataFromRawBytes();
-    bool tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset);
-    bool tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const;
+    void _updateItemRenderStateVersion();
+    void _syncItemEntityMetadataFromRawBytes();
+    bool _tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset);
+    bool _tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const;
 };
 
 } // namespace mc::client

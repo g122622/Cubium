@@ -39,7 +39,6 @@ namespace mc::advancement {
  * @brief 实体标志谓词
  *
  * 用于匹配实体状态标志的条件谓词。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EntityFlagsPredicate
  */
 class EntityFlagsPredicate {
 public:
@@ -83,31 +82,31 @@ public:
     void setOnFire(std::optional<bool> value)
     {
         m_isOnFire = value;
-        updateIsAny();
+        _updateIsAny();
     }
     void setSneaking(std::optional<bool> value)
     {
         m_isSneaking = value;
-        updateIsAny();
+        _updateIsAny();
     }
     void setSprinting(std::optional<bool> value)
     {
         m_isSprinting = value;
-        updateIsAny();
+        _updateIsAny();
     }
     void setSwimming(std::optional<bool> value)
     {
         m_isSwimming = value;
-        updateIsAny();
+        _updateIsAny();
     }
     void setBaby(std::optional<bool> value)
     {
         m_isBaby = value;
-        updateIsAny();
+        _updateIsAny();
     }
 
 private:
-    void updateIsAny();
+    void _updateIsAny();
 
     std::optional<bool> m_isOnFire;    ///< 是否燃烧
     std::optional<bool> m_isSneaking;  ///< 是否潜行

@@ -121,7 +121,7 @@ void ClientWorld::update(const MeshSchedulerViewState& viewState)
             }
         }
 
-        scheduleVisibleChunksWithoutMesh(viewState, 8);
+        _scheduleVisibleChunksWithoutMesh(viewState, 8);
     }
 }
 
@@ -273,19 +273,19 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     chunk->data->setDirty(true);
     chunk->hasMeshResult = false;
 
-    scheduleChunkMeshRebuild(id);
+    _scheduleChunkMeshRebuild(id);
 
     if (localX == 0) {
-        scheduleChunkMeshRebuild(ChunkId(chunkX - 1, chunkZ));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX - 1, chunkZ));
     }
     if (localX == CHUNK_WIDTH - 1) {
-        scheduleChunkMeshRebuild(ChunkId(chunkX + 1, chunkZ));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX + 1, chunkZ));
     }
     if (localZ == 0) {
-        scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ - 1));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ - 1));
     }
     if (localZ == CHUNK_WIDTH - 1) {
-        scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ + 1));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ + 1));
     }
 }
 
@@ -318,7 +318,6 @@ i32 ClientWorld::getHeight(i32 x, i32 z) const
 
 bool ClientWorld::canSeeSky(const BlockPos& pos) const
 {
-    // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
     // 基于天空光照判断，只有天空光照达到最大值 15 时才能看到天空
     return getSkyLight(pos.x, pos.y, pos.z) >= 15;
 }
@@ -341,7 +340,7 @@ void ClientWorld::forEachDirtyMesh(std::function<void(const ChunkId&, ClientChun
 
 void ClientWorld::rebuildChunkMesh(const ChunkId& id)
 {
-    scheduleChunkMeshRebuild(id);
+    _scheduleChunkMeshRebuild(id);
 }
 
 void ClientWorld::markChunkDirty(const ChunkId& id)
@@ -356,14 +355,14 @@ void ClientWorld::markChunkDirty(const ChunkId& id)
     chunk->meshRebuildPending = true;
 }
 
-void ClientWorld::rebuildMesh(ClientChunk& chunk)
+void ClientWorld::_rebuildMesh(ClientChunk& chunk)
 {
     if (!chunk.data) {
         return;
     }
 
     const ChunkData* neighbors[6] = {nullptr};
-    getNeighborChunks(chunk.chunkId, neighbors);
+    _getNeighborChunks(chunk.chunkId, neighbors);
 
     ChunkMesher::generateSplitMesh(*chunk.data, chunk.solidMesh, chunk.transparentMesh, neighbors, nullptr);
 
@@ -372,7 +371,7 @@ void ClientWorld::rebuildMesh(ClientChunk& chunk)
     chunk.needsMeshUpdate = true;
 }
 
-void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id)
+void ClientWorld::_scheduleChunkMeshRebuild(const ChunkId& id)
 {
     ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data || !chunk->isLoaded) {
@@ -387,7 +386,7 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id)
         MeshBuildRequest request;
         request.chunkId = id;
         request.chunkData = chunk->data;
-        request.neighbors = getNeighborChunkData(id);
+        request.neighbors = _getNeighborChunkData(id);
 
         const u64 taskId = m_meshBuildScheduler->submit(std::move(request));
         if (taskId != 0) {
@@ -396,11 +395,11 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id)
         }
     }
 
-    rebuildMesh(*chunk);
+    _rebuildMesh(*chunk);
     chunk->activeMeshTaskId = 0;
 }
 
-void ClientWorld::requestChunkMeshRebuild(const ChunkId& id)
+void ClientWorld::_requestChunkMeshRebuild(const ChunkId& id)
 {
     ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data || !chunk->isLoaded) {
@@ -415,10 +414,10 @@ void ClientWorld::requestChunkMeshRebuild(const ChunkId& id)
         return;
     }
 
-    scheduleChunkMeshRebuild(id);
+    _scheduleChunkMeshRebuild(id);
 }
 
-void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id)
+void ClientWorld::_scheduleNeighborMeshRebuild(const ChunkId& id)
 {
     const ChunkId neighborIds[4] = {
         ChunkId(id.x - 1, id.z), ChunkId(id.x + 1, id.z), ChunkId(id.x, id.z - 1), ChunkId(id.x, id.z + 1)};
@@ -429,11 +428,11 @@ void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id)
             continue;
         }
 
-        scheduleChunkMeshRebuild(neighborId);
+        _scheduleChunkMeshRebuild(neighborId);
     }
 }
 
-void ClientWorld::scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount)
+void ClientWorld::_scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount)
 {
     if (!m_meshBuildScheduler || !m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
         return;
@@ -469,12 +468,12 @@ void ClientWorld::scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState&
             continue;
         }
 
-        scheduleChunkMeshRebuild(chunkId);
+        _scheduleChunkMeshRebuild(chunkId);
         ++scheduledCount;
     }
 }
 
-std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::getNeighborChunkData(const ChunkId& id)
+std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::_getNeighborChunkData(const ChunkId& id)
 {
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors;
 
@@ -496,7 +495,7 @@ std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::getNeighborChunkDat
     return neighbors;
 }
 
-void ClientWorld::getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6])
+void ClientWorld::_getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6])
 {
     ClientChunk* neighbor = getChunk(ChunkId(id.x - 1, id.z));
     neighbors[0] = (neighbor && neighbor->data) ? neighbor->data.get() : nullptr;
@@ -516,7 +515,16 @@ void ClientWorld::getNeighborChunks(const ChunkId& id, const ChunkData* neighbor
 
 void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data)
 {
-    MC_TRACE_EVENT("client.network", "ClientWorld::onChunkData", "chunkX", x, "chunkZ", z, "dimension", static_cast<i32>(dimension), "dataSize", data.size());
+    MC_TRACE_EVENT("client.network",
+        "ClientWorld::onChunkData",
+        "chunkX",
+        x,
+        "chunkZ",
+        z,
+        "dimension",
+        static_cast<i32>(dimension),
+        "dataSize",
+        data.size());
 
     if (dimension != m_dimensionId) {
         spdlog::warn("Received chunk data for dimension {} but current dimension is {}, discarding chunk ({}, {})",
@@ -557,8 +565,8 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
         chunk->activeMeshTaskId = 0;
     }
 
-    scheduleChunkMeshRebuild(id);
-    scheduleNeighborMeshRebuild(id);
+    _scheduleChunkMeshRebuild(id);
+    _scheduleNeighborMeshRebuild(id);
 }
 
 void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension)
@@ -668,7 +676,7 @@ void ClientWorld::initializeMeshSystem(i32 threadCount, const MeshSchedulerConfi
         if (!chunk || !chunk->data || !chunk->isLoaded) {
             continue;
         }
-        scheduleChunkMeshRebuild(chunkId);
+        _scheduleChunkMeshRebuild(chunkId);
     }
 }
 
@@ -720,7 +728,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
                 chunk->meshRebuildPending = false;
                 chunk->activeMeshTaskId = 0;
                 if (shouldResubmit) {
-                    requestChunkMeshRebuild(result.chunkId);
+                    _requestChunkMeshRebuild(result.chunkId);
                 }
                 return;
             }
@@ -728,7 +736,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
             if (shouldResubmit) {
                 chunk->meshRebuildPending = false;
                 chunk->activeMeshTaskId = 0;
-                requestChunkMeshRebuild(result.chunkId);
+                _requestChunkMeshRebuild(result.chunkId);
                 return;
             }
 
@@ -805,7 +813,7 @@ void ClientWorld::onLightUpdate(i32 chunkX,
         section->blockLightNibble() = NibbleArray(blockLight);
     }
 
-    requestChunkMeshRebuild(id);
+    _requestChunkMeshRebuild(id);
 }
 
 // ========== 出生点 ==========

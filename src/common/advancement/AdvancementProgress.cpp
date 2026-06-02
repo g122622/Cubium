@@ -109,10 +109,10 @@ bool AdvancementProgress::revokeCriterion(const std::string& criterion)
 
 bool AdvancementProgress::isDone() const
 {
-    return computeDone();
+    return _computeDone();
 }
 
-bool AdvancementProgress::computeDone() const
+bool AdvancementProgress::_computeDone() const
 {
     if (m_requirements.empty()) {
         return false;

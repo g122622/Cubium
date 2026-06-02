@@ -22,7 +22,7 @@
  */
 
 #include "ClientEntity.hpp"
-#include "common/entity/core/Entity.hpp" // for EntityFlags
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
@@ -30,9 +30,9 @@
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <cmath>
-#include <spdlog/spdlog.h>
 
 namespace mc::client {
 
@@ -238,16 +238,12 @@ void ClientEntity::syncMetadataFromDataManager()
             }
         }
 
-        syncItemEntityMetadataFromRawBytes();
+        _syncItemEntityMetadataFromRawBytes();
         return;
     }
 
     // 北极熊站立状态同步
-    // 参考 MC 1.16.5 PolarBearEntity.IS_STANDING DataParameter
     if (m_typeId == "minecraft:polar_bear" || m_typeId == "polar_bear") {
-        // 尝试读取站立状态 (参数ID 通常是动态分配的，这里假设使用 EntityFlags 的 bit)
-        // 在实际实现中，DATA_STANDING_PARAM 的 ID 由 EntityDataManager::createKey 分配
-        // 我们需要通过 PolarBearEntity::getStandingParamId() 获取
         if (m_dataManager.hasParam(PolarBearEntity::getStandingParamId())) {
             if (const auto* value = m_dataManager.getRaw(PolarBearEntity::getStandingParamId()); value != nullptr) {
                 const bool standing = value->get<bool>();
@@ -257,7 +253,6 @@ void ClientEntity::syncMetadataFromDataManager()
     }
 
     // 河豚膨胀状态同步
-    // 参考 MC 1.16.5 PufferfishEntity.PUFF_STATE DataParameter
     if (m_typeId == "minecraft:pufferfish" || m_typeId == "pufferfish") {
         if (m_dataManager.hasParam(::mc::PufferfishEntity::getPuffStateParamId())) {
             if (const auto* value = m_dataManager.getRaw(::mc::PufferfishEntity::getPuffStateParamId());
@@ -283,7 +278,7 @@ void ClientEntity::setItemStack(const ItemStack& stack)
     const bool changed = m_itemStack == nullptr || *m_itemStack != stack;
     m_itemStack = std::make_unique<ItemStack>(stack);
     if (changed) {
-        updateItemRenderStateVersion();
+        _updateItemRenderStateVersion();
     }
 }
 
@@ -291,7 +286,7 @@ void ClientEntity::clearItemStack()
 {
     if (m_itemStack != nullptr) {
         m_itemStack.reset();
-        updateItemRenderStateVersion();
+        _updateItemRenderStateVersion();
     }
 }
 
@@ -310,8 +305,9 @@ void ClientEntity::updateAnimation(f32 distanceMoved)
 
     // 保持 limbSwing 在合理范围内
     // 但不需要严格的 2π 限制，因为 sin/cos 可以处理任意值
-    if (m_limbSwing > 6.283185307f * 100.0f) {
-        m_limbSwing -= 6.283185307f * 100.0f;
+    constexpr f32 LIMB_SWING_MAX = math::TWO_PI * 100.0f;
+    if (m_limbSwing > LIMB_SWING_MAX) {
+        m_limbSwing -= LIMB_SWING_MAX;
     }
 
     // 更新相机偏航角
@@ -340,7 +336,6 @@ void ClientEntity::triggerLeaveBedAnimation()
 
 void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ)
 {
-    // 参考 MC 1.16.5 AbstractClientPlayerEntity.rotateElytraX/Y/Z
     // 使用平滑插值更新鞘翅角度
     constexpr f32 ELYTRA_INTERPOLATION = 0.1f;
     m_rotateElytraX += (targetX - m_rotateElytraX) * ELYTRA_INTERPOLATION;
@@ -400,8 +395,6 @@ void ClientEntity::tick()
 
 void ClientEntity::updateStandingAnimation()
 {
-    // 参考 MC 1.16.5 PolarBearEntity.tick() 第176-186行
-    // 客户端动画更新逻辑
     // 保存上一帧动画值
     m_clientSideStandAnimation0 = m_clientSideStandAnimation;
 
@@ -418,7 +411,6 @@ void ClientEntity::updateStandingAnimation()
 bool ClientEntity::isFallFlying() const
 {
     // 从元数据管理器读取 FLAGS_PARAM (id 0)
-    // 参考 MC 1.16.5 Entity.getFlag()
     if (m_dataManager.hasParam(0)) {
         const auto* value = m_dataManager.getRaw(0);
         if (value != nullptr) {
@@ -433,7 +425,6 @@ bool ClientEntity::isFallFlying() const
 bool ClientEntity::isAngry() const
 {
     // 蜜蜂愤怒状态检测
-    // MC 1.16.5: BeeEntity.ANGER_TIME 参数 (id 1, i32 类型)
     // 当愤怒时间 > 0 时，蜜蜂处于愤怒状态
     if (m_dataManager.hasParam(1)) {
         const auto* value = m_dataManager.getRaw(1);
@@ -446,12 +437,12 @@ bool ClientEntity::isAngry() const
     return false;
 }
 
-void ClientEntity::updateItemRenderStateVersion()
+void ClientEntity::_updateItemRenderStateVersion()
 {
     ++m_itemRenderStateVersion;
 }
 
-void ClientEntity::syncItemEntityMetadataFromRawBytes()
+void ClientEntity::_syncItemEntityMetadataFromRawBytes()
 {
     if (m_metadata.empty()) {
         return;
@@ -485,7 +476,7 @@ void ClientEntity::syncItemEntityMetadataFromRawBytes()
 
         if (index == 3 && typeId == METADATA_TYPE_SLOT) {
             ItemStack stack;
-            if (tryReadMetadataSlot(m_metadata.data(), m_metadata.size(), offset, stack)) {
+            if (_tryReadMetadataSlot(m_metadata.data(), m_metadata.size(), offset, stack)) {
                 if (stack.isEmpty()) {
                     if (m_metadataItemStack.has_value()) {
                         m_metadataItemStack.reset();
@@ -499,7 +490,7 @@ void ClientEntity::syncItemEntityMetadataFromRawBytes()
             continue;
         }
 
-        if (!tryReadMetadataEntry(typeId, m_metadata.data(), m_metadata.size(), offset)) {
+        if (!_tryReadMetadataEntry(typeId, m_metadata.data(), m_metadata.size(), offset)) {
             break;
         }
     }
@@ -512,11 +503,11 @@ void ClientEntity::syncItemEntityMetadataFromRawBytes()
     }
 
     if (itemStackChanged) {
-        updateItemRenderStateVersion();
+        _updateItemRenderStateVersion();
     }
 }
 
-bool ClientEntity::tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset)
+bool ClientEntity::_tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset)
 {
     switch (typeId) {
         case 0: // Byte
@@ -550,7 +541,7 @@ bool ClientEntity::tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, 
         }
         case METADATA_TYPE_SLOT: {
             ItemStack ignored;
-            return tryReadMetadataSlot(data, size, offset, ignored);
+            return _tryReadMetadataSlot(data, size, offset, ignored);
         }
         case 8: // Rotation
             if (offset + sizeof(f32) * 3 > size) {
@@ -607,7 +598,7 @@ bool ClientEntity::tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, 
     }
 }
 
-bool ClientEntity::tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const
+bool ClientEntity::_tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const
 {
     if (offset >= size) {
         return false;

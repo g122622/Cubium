@@ -34,7 +34,6 @@ namespace mc::advancement {
  * @brief 范围谓词基类
  *
  * 用于表示数值范围条件，如 [min, max]。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.MinMaxBounds
  *
  * @tparam T 数值类型（i32, f32, i64等）
  */

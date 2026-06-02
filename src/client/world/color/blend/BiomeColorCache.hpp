@@ -25,6 +25,7 @@
 
 #include "../ColorResolver.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <array>
 #include <memory>
 #include <mutex>
@@ -44,7 +45,8 @@ namespace client {
  */
 class BiomeColorCacheEntry {
 public:
-    static constexpr i32 CACHE_SIZE = 16; // 每个区块16x16
+    static constexpr i32 CACHE_SIZE = world::CHUNK_WIDTH; // 每个区块宽度
+    static constexpr size_t COLOR_RESOLVER_COUNT = 3;     // 颜色解析器数量（草/树叶/水）
 
     BiomeColorCacheEntry() = default;
 
@@ -74,11 +76,12 @@ public:
 
 private:
     // 每个颜色解析器一个缓存层
-    // [resolverId][localZ * 16 + localX]
-    std::array<std::array<u32, CACHE_SIZE * CACHE_SIZE>, 3> m_caches{};
+    // [resolverId][localZ * CACHE_SIZE + localX]
+    std::array<std::array<u32, CACHE_SIZE * CACHE_SIZE>, COLOR_RESOLVER_COUNT> m_caches{};
 
     // 有效标志位（使用位图）
-    std::array<u32, CACHE_SIZE * CACHE_SIZE> m_validBits{}; // 每个位置3位，分别对应3个解析器
+    // 每个位置3位，分别对应3个解析器
+    std::array<u32, CACHE_SIZE * CACHE_SIZE> m_validBits{};
 
     bool m_fullyInvalid = true;
 };
@@ -90,8 +93,6 @@ private:
  * - 快速查询已计算的颜色
  * - 区块卸载时自动清理
  * - 线程安全访问
- *
- * 参考 MC 1.16.5 ColorCache
  */
 class BiomeColorCache {
 public:
@@ -154,10 +155,12 @@ private:
     /**
      * @brief 获取或创建缓存条目
      */
-    [[nodiscard]] BiomeColorCacheEntry& getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ);
+    [[nodiscard]] BiomeColorCacheEntry& _getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ);
 
-    // 区块键
-    [[nodiscard]] static u64 makeKey(ChunkCoord x, ChunkCoord z)
+    /**
+     * @brief 构建区块键
+     */
+    [[nodiscard]] static u64 makeKey(ChunkCoord x, ChunkCoord z) noexcept
     {
         return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
     }
@@ -198,7 +201,7 @@ u32 BiomeColorCache::getOrCompute(
     u32 color = compute();
 
     // 缓存结果
-    auto& entry = getOrCreateEntry(chunkX, chunkZ);
+    auto& entry = _getOrCreateEntry(chunkX, chunkZ);
     entry.setColor(localX, localZ, resolverId, color);
 
     return color;

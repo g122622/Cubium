@@ -30,7 +30,7 @@
 namespace mc::client {
 
 // 常量
-static constexpr f32 MAX_PENDING_INPUTS = 100;           // 最大待确认输入数量
+static constexpr Size MAX_PENDING_INPUTS = 100;          // 最大待确认输入数量
 static constexpr f32 ROTATION_INTERPOLATION_RATE = 0.3f; // 旋转插值速率
 
 ClientPlayerPredictor::ClientPlayerPredictor()
@@ -86,7 +86,7 @@ void ClientPlayerPredictor::handleMovementInput(f32 forward, f32 strafe, bool ju
     }
 
     // 立即更新预测位置
-    updatePrediction(0.05f); // 假设 50ms 延迟
+    _updatePrediction(0.05f); // 假设 50ms 延迟
 }
 
 void ClientPlayerPredictor::handleRotationInput(f32 deltaYaw, f32 deltaPitch)
@@ -135,7 +135,7 @@ void ClientPlayerPredictor::receiveServerPosition(const Vector3& position, f32 y
 
 void ClientPlayerPredictor::acknowledgeInput(u32 lastAckSequence)
 {
-    prunePendingInputs(lastAckSequence);
+    _prunePendingInputs(lastAckSequence);
 }
 
 void ClientPlayerPredictor::tick(f32 deltaTime)
@@ -157,7 +157,7 @@ void ClientPlayerPredictor::tick(f32 deltaTime)
     }
 
     // 应用当前输入预测
-    updatePrediction(deltaTime);
+    _updatePrediction(deltaTime);
 }
 
 Vector3 ClientPlayerPredictor::predictedPosition() const
@@ -222,7 +222,7 @@ void ClientPlayerPredictor::setCorrectionThreshold(f32 threshold)
     m_correctionThreshold = threshold;
 }
 
-void ClientPlayerPredictor::applyCorrection()
+void ClientPlayerPredictor::_applyCorrection()
 {
     if (!m_hasServerPosition) {
         return;
@@ -235,7 +235,7 @@ void ClientPlayerPredictor::applyCorrection()
     m_isCorrecting = false;
 }
 
-void ClientPlayerPredictor::updatePrediction(f32 deltaTime)
+void ClientPlayerPredictor::_updatePrediction(f32 deltaTime)
 {
     // 如果有移动输入，更新预测位置
     f32 length = std::sqrt(m_inputForward * m_inputForward + m_inputStrafe * m_inputStrafe);
@@ -277,7 +277,7 @@ void ClientPlayerPredictor::updatePrediction(f32 deltaTime)
     }
 }
 
-void ClientPlayerPredictor::prunePendingInputs(u32 lastAckSequence)
+void ClientPlayerPredictor::_prunePendingInputs(u32 lastAckSequence)
 {
     // 移除已确认的输入
     while (!m_pendingInputs.empty() && m_pendingInputs.front().sequence <= lastAckSequence) {

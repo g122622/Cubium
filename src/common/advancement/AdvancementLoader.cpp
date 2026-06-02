@@ -47,7 +47,7 @@ Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
     }
 
     // 查找所有JSON文件
-    auto jsonFiles = findJsonFiles(directoryPath);
+    auto jsonFiles = _findJsonFiles(directoryPath);
     result.errors.reserve(jsonFiles.size());
 
     spdlog::info("Loading advancements from: {} ({} files)", directoryPath, jsonFiles.size());
@@ -192,7 +192,7 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
     return ResourceLocation(namespaceName, advancementId);
 }
 
-std::vector<std::filesystem::path> AdvancementLoader::findJsonFiles(const std::filesystem::path& directory) const
+std::vector<std::filesystem::path> AdvancementLoader::_findJsonFiles(const std::filesystem::path& directory) const
 {
     std::vector<std::filesystem::path> files;
 

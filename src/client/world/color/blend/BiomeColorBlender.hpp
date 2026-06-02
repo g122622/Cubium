@@ -44,8 +44,6 @@ namespace client {
  * 当混合半径 > 0 时，在 (2r+1) x (2r+1) 区域内采样周围生物群系颜色，
  * 对 RGB 分量分别求平均，实现平滑过渡效果。
  *
- * 参考 MC 1.16.5 ClientWorld.getBlockColorRaw
- *
  * 使用示例：
  * @code
  * BiomeColorBlender blender;
@@ -120,7 +118,7 @@ public:
     /**
      * @brief 获取当前混合半径
      */
-    [[nodiscard]] i32 blendRadius() const { return m_blendRadius; }
+    [[nodiscard]] i32 blendRadius() const noexcept { return m_blendRadius; }
 
     /**
      * @brief 启用/禁用缓存
@@ -132,7 +130,7 @@ public:
     /**
      * @brief 缓存是否启用
      */
-    [[nodiscard]] bool isCacheEnabled() const { return m_cacheEnabled; }
+    [[nodiscard]] bool isCacheEnabled() const noexcept { return m_cacheEnabled; }
 
     // ========================================================================
     // Colormap 设置
@@ -215,7 +213,7 @@ public:
      * @param count 颜色数量
      * @return 平均颜色
      */
-    [[nodiscard]] static u32 averageColors(const u32* colors, size_t count);
+    [[nodiscard]] static u32 averageColors(const u32* colors, size_t count) noexcept;
 
     /**
      * @brief 获取 ResolverId
@@ -226,24 +224,24 @@ private:
     /**
      * @brief 无混合，直接获取颜色
      */
-    [[nodiscard]] u32 getColorDirect(
+    [[nodiscard]] u32 _getColorDirect(
         const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     /**
      * @brief 带混合的颜色获取
      */
-    [[nodiscard]] u32 getColorBlended(
+    [[nodiscard]] u32 _getColorBlended(
         const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId);
 
     /**
      * @brief 获取默认颜色
      */
-    [[nodiscard]] static u32 getDefaultColor(ResolverId resolverId);
+    [[nodiscard]] static u32 _getDefaultColor(ResolverId resolverId) noexcept;
 
     /**
      * @brief 获取 colormap
      */
-    [[nodiscard]] const std::array<u32, 65536>* getColorMap(ResolverId resolverId) const;
+    [[nodiscard]] const std::array<u32, 65536>* _getColorMap(ResolverId resolverId) const noexcept;
 
     i32 m_blendRadius = 2; // 默认 5x5 混合区域
     bool m_cacheEnabled = true;

@@ -37,7 +37,7 @@ std::unique_ptr<WaterColorResolver> BiomeColors::s_waterColorResolver;
 
 // === GrassColorResolver ===
 
-u32 GrassColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+u32 GrassColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcept
 {
     // 1. 检查是否有覆盖颜色
     auto overrideColor = biome.effects().grassColor();
@@ -72,7 +72,7 @@ u32 GrassColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
 
 // === FoliageColorResolver ===
 
-u32 FoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+u32 FoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcept
 {
     // 1. 检查是否有覆盖颜色
     auto overrideColor = biome.effects().foliageColor();
@@ -103,7 +103,7 @@ u32 FoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
 
 // === WaterColorResolver ===
 
-u32 WaterColorResolver::getColor(const Biome& biome, f64 x, f64 z) const
+u32 WaterColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcept
 {
     // 水颜色直接从 BiomeEffects 获取
     return biome.waterColor();
@@ -135,21 +135,10 @@ const ColorResolver& BiomeColors::waterColorResolver()
     return *s_waterColorResolver;
 }
 
-u32 BiomeColors::calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2)
+u32 BiomeColors::calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2) noexcept
 {
-    // MC 1.16.5 沼泽颜色算法
-    // 使用 2D Perlin 噪声变体进行双色混合
-    // 简化实现：使用正弦函数模拟噪声
-
-    // MC 使用改进的 Perlin 噪声
-    // 这里使用简化版本：基于坐标的确定性伪随机
-
-    // 参考：BiomeColors.getGrassColor(SwampBiome)
-    // 实际 MC 实现：
-    // double noise = PerlinNoiseGenerator.getValue(x * 0.0225, z * 0.0225);
-    // return noise < -0.1 ? 0x4C6139 : 0x6A7039;
-
-    // 简化实现：使用确定性哈希
+    // 沼泽颜色算法：使用 2D Perlin 噪声变体进行双色混合
+    // 使用确定性哈希简化实现
     const i64 seed = static_cast<i64>(std::floor(x * 0.0225)) * 31337 + static_cast<i64>(std::floor(z * 0.0225)) * 7919;
 
     // 简单的哈希函数

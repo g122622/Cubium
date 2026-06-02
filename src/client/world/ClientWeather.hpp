@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
-#include <cmath>
 
 namespace mc {
 namespace client {
@@ -36,8 +35,6 @@ namespace client {
  *
  * 存储和维护客户端的天气状态，用于渲染。
  * 通过网络包接收服务端天气同步，平滑过渡天气效果。
- *
- * 参考 MC 1.16.5 ClientWorld
  */
 class ClientWeather {
 public:
@@ -50,9 +47,8 @@ public:
      * @brief 重置天气状态
      *
      * 维度切换时调用，清除降雨、雷暴和闪电状态。
-     * 参考 MC 1.16.5 ClientPlayNetHandler.handleRespawn() 中创建新 ClientWorld 时天气自然重置。
      */
-    void reset()
+    void reset() noexcept
     {
         m_rainStrength = 0.0f;
         m_prevRainStrength = 0.0f;
@@ -65,15 +61,11 @@ public:
      * @brief 更新降雨强度
      *
      * 由 GameStateChangePacket (RainStrengthChange) 调用
-     *
-     * 参考 MC 1.16.5 World.setRainStrength():
-     * prevRainingStrength = strength;
-     * rainingStrength = strength;
      * 同时设置 prev 和 current 为相同值
      *
      * @param strength 目标降雨强度 (0.0 - 1.0)
      */
-    void setRainStrength(f32 strength)
+    void setRainStrength(f32 strength) noexcept
     {
         m_prevRainStrength = strength;
         m_rainStrength = strength;
@@ -83,15 +75,11 @@ public:
      * @brief 更新雷暴强度
      *
      * 由 GameStateChangePacket (ThunderStrengthChange) 调用
-     *
-     * 参考 MC 1.16.5 World.setThunderStrength():
-     * prevThunderingStrength = strength;
-     * thunderingStrength = strength;
      * 同时设置 prev 和 current 为相同值
      *
      * @param strength 目标雷暴强度 (0.0 - 1.0)
      */
-    void setThunderStrength(f32 strength)
+    void setThunderStrength(f32 strength) noexcept
     {
         m_prevThunderStrength = strength;
         m_thunderStrength = strength;
@@ -101,14 +89,11 @@ public:
      * @brief 开始下雨
      *
      * 由 GameStateChangePacket (BeginRaining) 调用
-     *
-     * 注意：MC 中 BeginRaining 只是通知下雨开始，实际强度由后续 RainStrengthChange 包同步
+     * 服务端会随后发送 RainStrengthChange 包来设置具体强度
      */
-    void beginRain()
+    void beginRain() noexcept
     {
-        // 开始下雨时，服务端会随后发送 RainStrengthChange 包来设置具体强度
-        // 这里可以预先设置一个初始强度，用于渲染平滑过渡
-        // 如果之前没有下雨，可以开始渐变
+        // 空实现：服务端会通过 RainStrengthChange 包同步具体强度
     }
 
     /**
@@ -116,7 +101,7 @@ public:
      *
      * 由 GameStateChangePacket (EndRaining) 调用
      */
-    void endRain()
+    void endRain() noexcept
     {
         // 雨停时，设置当前强度为 0，并保留 prev 用于插值
         m_prevRainStrength = m_rainStrength;
@@ -131,7 +116,7 @@ public:
      * 客户端本地调用，使 prev 值渐变到当前值
      * 实际上 MC 服务端每 tick 发送强度更新，客户端只需接收
      */
-    void tick()
+    void tick() noexcept
     {
         // 可选：如果需要客户端本地平滑过渡，可以在这里实现
         // 当前实现：prev 值在 setXXX 时设置，渲染时使用 partialTick 插值
@@ -142,16 +127,13 @@ public:
     /**
      * @brief 是否正在下雨（强度检查）
      */
-    [[nodiscard]] bool isRaining() const { return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD; }
+    [[nodiscard]] bool isRaining() const noexcept { return m_rainStrength > weather::WeatherConstants::RAIN_THRESHOLD; }
 
     /**
      * @brief 是否正在雷暴（强度检查）
-     *
-     * 参考 MC 1.16.5 World.isThundering():
-     * return (double)this.getThunderStrength(1.0F) > 0.9D;
      * 使用 thunderStrength() 方法（已乘以 rainStrength）
      */
-    [[nodiscard]] bool isThundering() const
+    [[nodiscard]] bool isThundering() const noexcept
     {
         return thunderStrength(1.0f) > weather::WeatherConstants::THUNDER_THRESHOLD;
     }
@@ -162,22 +144,19 @@ public:
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 rainStrength(f32 partialTick) const
+    [[nodiscard]] f32 rainStrength(f32 partialTick) const noexcept
     {
         return math::lerp(m_prevRainStrength, m_rainStrength, partialTick);
     }
 
     /**
      * @brief 获取插值后的雷暴强度
-     *
-     * 参考 MC 1.16.5 World.getThunderStrength(float delta):
-     * return MathHelper.lerp(delta, prevThunderingStrength, thunderingStrength) * getRainStrength(delta);
      * 雷暴强度始终乘以降雨强度
      *
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
-    [[nodiscard]] f32 thunderStrength(f32 partialTick) const
+    [[nodiscard]] f32 thunderStrength(f32 partialTick) const noexcept
     {
         return math::lerp(m_prevThunderStrength, m_thunderStrength, partialTick) * rainStrength(partialTick);
     }
@@ -185,29 +164,25 @@ public:
     /**
      * @brief 获取当前降雨强度（无插值）
      */
-    [[nodiscard]] f32 rainStrength() const { return m_rainStrength; }
+    [[nodiscard]] f32 rainStrength() const noexcept { return m_rainStrength; }
 
     /**
      * @brief 获取当前雷暴强度（无插值）
      */
-    [[nodiscard]] f32 thunderStrength() const { return m_thunderStrength; }
+    [[nodiscard]] f32 thunderStrength() const noexcept { return m_thunderStrength; }
 
     /**
      * @brief 计算天空颜色混合因子
-     *
-     * 参考 MC 1.16.5 ClientWorld.getSunBrightness():
-     * f1 = (1 - rain * 5/16) * (1 - thunder * 5/16)
-     * 暗化因子 = 1 - f1
+     * 暗化因子 = 1 - (1 - rain * 5/16) * (1 - thunder * 5/16)
      *
      * @param partialTick 部分 tick
      * @return 暗化因子 (0.0=正常亮度, 约0.527=最大暗化)
      */
-    [[nodiscard]] f32 skyDarkenFactor(f32 partialTick) const
+    [[nodiscard]] f32 skyDarkenFactor(f32 partialTick) const noexcept
     {
         f32 rain = rainStrength(partialTick);
         f32 thunder = thunderStrength(partialTick);
-        // MC原版使用乘法组合: (1 - rain * 5/16) * (1 - thunder * 5/16)
-        // 返回暗化因子: 1.0 - result
+        // 暗化因子计算：1 - (1 - rain * 5/16) * (1 - thunder * 5/16)
         f32 rainFactor = rain * (5.0f / 16.0f);
         f32 thunderFactor = thunder * (5.0f / 16.0f);
         return 1.0f - (1.0f - rainFactor) * (1.0f - thunderFactor);
@@ -219,14 +194,14 @@ public:
      * @param partialTick 部分 tick
      * @return 可见度 (0.0=不可见, 1.0=完全可见)
      */
-    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const { return 1.0f - rainStrength(partialTick); }
+    [[nodiscard]] f32 celestialVisibility(f32 partialTick) const noexcept { return 1.0f - rainStrength(partialTick); }
 
     /**
      * @brief 计算天空光照上限
      *
      * @return 天空光照上限 (0-15)，0表示无限制
      */
-    [[nodiscard]] u8 skyLightLimit() const
+    [[nodiscard]] u8 skyLightLimit() const noexcept
     {
         if (isThundering()) {
             return weather::WeatherConstants::THUNDER_SKY_LIGHT_LIMIT;
@@ -241,35 +216,31 @@ public:
 
     /**
      * @brief 设置闪电闪烁时间
-     *
-     * 当闪电击中时，客户端需要知道以便产生天空闪烁效果。
-     * MC 1.16.5: World.setTimeLightningFlash(int timeFlashIn)
+     * 当闪电击中时，客户端需要知道以便产生天空闪烁效果
      *
      * @param time 闪烁时间（ticks），通常为 2
      */
-    void setTimeLightningFlash(i32 time) { m_lightningFlashTime = time; }
+    void setTimeLightningFlash(i32 time) noexcept { m_lightningFlashTime = time; }
 
     /**
      * @brief 获取当前闪电闪烁时间
      *
      * @return 当前闪烁时间（ticks），0表示无闪烁
      */
-    [[nodiscard]] i32 lightningFlashTime() const { return m_lightningFlashTime; }
+    [[nodiscard]] i32 lightningFlashTime() const noexcept { return m_lightningFlashTime; }
 
     /**
      * @brief 检查是否有闪电闪烁效果
      *
      * @return 如果有闪烁效果返回 true
      */
-    [[nodiscard]] bool hasLightningFlash() const { return m_lightningFlashTime > 0; }
+    [[nodiscard]] bool hasLightningFlash() const noexcept { return m_lightningFlashTime > 0; }
 
     /**
      * @brief 每 tick 更新闪电闪烁时间
-     *
-     * 当闪电闪烁时间 > 0 时递减。
-     * MC 1.16.5: Minecraft.runTick() 中调用 world.setTimeLightningFlash(time - 1)
+     * 当闪电闪烁时间 > 0 时递减
      */
-    void tickLightningFlash()
+    void tickLightningFlash() noexcept
     {
         if (m_lightningFlashTime > 0) {
             --m_lightningFlashTime;
@@ -278,13 +249,11 @@ public:
 
     /**
      * @brief 计算闪电闪烁亮度因子
-     *
-     * 当闪电闪烁时，返回一个 0-1 的因子用于增强天空亮度。
-     * MC 1.16.5: 在 WorldRenderer.renderSky() 中使用
+     * 当闪电闪烁时，返回一个 0-1 的因子用于增强天空亮度
      *
      * @return 亮度增强因子 (0.0 = 无效果, 1.0 = 最大闪烁)
      */
-    [[nodiscard]] f32 lightningFlashBrightness() const
+    [[nodiscard]] f32 lightningFlashBrightness() const noexcept
     {
         // 闪电闪烁时，天空会短暂变亮
         // 简单实现：有闪烁时返回 1.0

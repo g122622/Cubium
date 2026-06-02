@@ -71,7 +71,7 @@ void BiomeColorCacheEntry::invalidatePosition(i32 localX, i32 localZ)
 // BiomeColorCache 实现
 // ============================================================================
 
-BiomeColorCacheEntry& BiomeColorCache::getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ)
+BiomeColorCacheEntry& BiomeColorCache::_getOrCreateEntry(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     const u64 key = makeKey(chunkX, chunkZ);
     auto it = m_entries.find(key);
@@ -110,25 +110,25 @@ void BiomeColorCache::invalidateChunk(ChunkCoord chunkX, ChunkCoord chunkZ)
                 auto& entry = neighborIt->second;
 
                 if (dx == -1) {
-                    // 邻居在西边，失效东边缘 (localX = 15)
-                    for (i32 z = 0; z < 16; ++z) {
-                        entry.invalidatePosition(15, z);
+                    // 邻居在西边，失效东边缘 (localX = CACHE_SIZE - 1)
+                    for (i32 z = 0; z < BiomeColorCacheEntry::CACHE_SIZE; ++z) {
+                        entry.invalidatePosition(BiomeColorCacheEntry::CACHE_SIZE - 1, z);
                     }
                 } else if (dx == 1) {
                     // 邻居在东边，失效西边缘 (localX = 0)
-                    for (i32 z = 0; z < 16; ++z) {
+                    for (i32 z = 0; z < BiomeColorCacheEntry::CACHE_SIZE; ++z) {
                         entry.invalidatePosition(0, z);
                     }
                 }
 
                 if (dz == -1) {
-                    // 邻居在北边，失效南边缘 (localZ = 15)
-                    for (i32 x = 0; x < 16; ++x) {
-                        entry.invalidatePosition(x, 15);
+                    // 邻居在北边，失效南边缘 (localZ = CACHE_SIZE - 1)
+                    for (i32 x = 0; x < BiomeColorCacheEntry::CACHE_SIZE; ++x) {
+                        entry.invalidatePosition(x, BiomeColorCacheEntry::CACHE_SIZE - 1);
                     }
                 } else if (dz == 1) {
                     // 邻居在南边，失效北边缘 (localZ = 0)
-                    for (i32 x = 0; x < 16; ++x) {
+                    for (i32 x = 0; x < BiomeColorCacheEntry::CACHE_SIZE; ++x) {
                         entry.invalidatePosition(x, 0);
                     }
                 }
@@ -141,10 +141,10 @@ void BiomeColorCache::invalidatePosition(i32 x, i32 z)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    const ChunkCoord chunkX = x >> 4;
-    const ChunkCoord chunkZ = z >> 4;
-    const i32 localX = x & 15;
-    const i32 localZ = z & 15;
+    const ChunkCoord chunkX = x >> world::CHUNK_SHIFT;
+    const ChunkCoord chunkZ = z >> world::CHUNK_SHIFT;
+    const i32 localX = x & world::CHUNK_MASK;
+    const i32 localZ = z & world::CHUNK_MASK;
 
     const u64 key = makeKey(chunkX, chunkZ);
     auto it = m_entries.find(key);

@@ -23,6 +23,7 @@
 
 #include "BiomeColorBlender.hpp"
 #include "../BiomeColors.hpp"
+#include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include <algorithm>
 #include <cmath>
@@ -65,29 +66,29 @@ u32 BiomeColorBlender::getBlendedColor(
     }
 
     if (m_blendRadius == 0) {
-        return getColorDirect(accessor, x, y, z, resolver, resolverId);
+        return _getColorDirect(accessor, x, y, z, resolver, resolverId);
     }
 
-    return getColorBlended(accessor, x, y, z, resolver, resolverId);
+    return _getColorBlended(accessor, x, y, z, resolver, resolverId);
 }
 
 u32 BiomeColorBlender::getBlendedColorCached(
     const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
 {
-    const ChunkCoord chunkX = x >> 4;
-    const ChunkCoord chunkZ = z >> 4;
-    const i32 localX = x & 15;
-    const i32 localZ = z & 15;
+    const ChunkCoord chunkX = x >> world::CHUNK_SHIFT;
+    const ChunkCoord chunkZ = z >> world::CHUNK_SHIFT;
+    const i32 localX = x & world::CHUNK_MASK;
+    const i32 localZ = z & world::CHUNK_MASK;
 
     return m_cache.getOrCompute(chunkX, chunkZ, localX, localZ, static_cast<size_t>(resolverId), [&]() {
         if (m_blendRadius == 0) {
-            return getColorDirect(accessor, x, y, z, resolver, resolverId);
+            return _getColorDirect(accessor, x, y, z, resolver, resolverId);
         }
-        return getColorBlended(accessor, x, y, z, resolver, resolverId);
+        return _getColorBlended(accessor, x, y, z, resolver, resolverId);
     });
 }
 
-u32 BiomeColorBlender::getColorDirect(
+u32 BiomeColorBlender::_getColorDirect(
     const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
 {
     const Biome* biome = accessor.getBiome(x, y, z);
@@ -103,7 +104,7 @@ u32 BiomeColorBlender::getColorDirect(
     }
 
     // 需要从 colormap 获取
-    const std::array<u32, 65536>* colorMap = getColorMap(resolverId);
+    const std::array<u32, 65536>* colorMap = _getColorMap(resolverId);
     if (colorMap) {
         const f32 temperature = std::clamp(biome->temperature(), 0.0f, 1.0f);
         const f32 humidity = std::clamp(biome->humidity(), 0.0f, 1.0f) * temperature;
@@ -114,10 +115,10 @@ u32 BiomeColorBlender::getColorDirect(
     }
 
     // 返回默认颜色
-    return getDefaultColor(resolverId);
+    return _getDefaultColor(resolverId);
 }
 
-u32 BiomeColorBlender::getColorBlended(
+u32 BiomeColorBlender::_getColorBlended(
     const IBiomeAccessor& accessor, i32 x, i32 y, i32 z, const ColorResolver& resolver, ResolverId resolverId)
 {
     const i32 radius = m_blendRadius;
@@ -130,8 +131,8 @@ u32 BiomeColorBlender::getColorBlended(
     m_colorBuffer.clear();
 
     // 获取 colormap 和默认颜色
-    const std::array<u32, 65536>* colorMap = getColorMap(resolverId);
-    const u32 defaultColor = getDefaultColor(resolverId);
+    const std::array<u32, 65536>* colorMap = _getColorMap(resolverId);
+    const u32 defaultColor = _getDefaultColor(resolverId);
 
     // 采样区域内的颜色
     for (i32 sampleX = startX; sampleX <= endX; ++sampleX) {
@@ -154,7 +155,7 @@ u32 BiomeColorBlender::getColorBlended(
     return averageColors(m_colorBuffer.data(), m_colorBuffer.size());
 }
 
-u32 BiomeColorBlender::averageColors(const u32* colors, size_t count)
+u32 BiomeColorBlender::averageColors(const u32* colors, size_t count) noexcept
 {
     if (count == 0) {
         return 0xFFFFFFFF;
@@ -183,7 +184,7 @@ u32 BiomeColorBlender::averageColors(const u32* colors, size_t count)
     return (r << 16) | (g << 8) | b;
 }
 
-u32 BiomeColorBlender::getDefaultColor(ResolverId resolverId)
+u32 BiomeColorBlender::_getDefaultColor(ResolverId resolverId) noexcept
 {
     switch (resolverId) {
         case ResolverId::Grass:
@@ -197,7 +198,7 @@ u32 BiomeColorBlender::getDefaultColor(ResolverId resolverId)
     }
 }
 
-const std::array<u32, 65536>* BiomeColorBlender::getColorMap(ResolverId resolverId) const
+const std::array<u32, 65536>* BiomeColorBlender::_getColorMap(ResolverId resolverId) const noexcept
 {
     switch (resolverId) {
         case ResolverId::Grass:

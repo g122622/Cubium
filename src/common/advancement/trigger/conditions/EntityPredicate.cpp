@@ -31,7 +31,7 @@ namespace mc::advancement {
 
 // ========== EntityPredicate ==========
 
-void EntityPredicate::updateIsAny()
+void EntityPredicate::_updateIsAny()
 {
     m_isAny = !m_type.has_value() && m_distance.isAny() && m_location.isAny() && m_effects.isAny() && m_nbt.isAny() &&
         m_flags.isAny() && m_equipment.isAny();
@@ -43,7 +43,6 @@ bool EntityPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
     // 不带世界和参考位置的简化版本
 
     // 1. 检查实体类型
@@ -84,8 +83,6 @@ bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entit
     if (m_isAny) {
         return true;
     }
-
-    // MC 1.16.5: EntityPredicate.test(ServerWorld, Vector3d, Entity)
 
     // 1. 检查实体类型
     if (m_type.has_value()) {
@@ -205,7 +202,7 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         predicate.m_equipment = result.value();
     }
 
-    predicate.updateIsAny();
+    predicate._updateIsAny();
     return predicate;
 }
 
@@ -250,7 +247,6 @@ bool DamageSourcePredicate::test(const DamageSource& source) const
         return true;
     }
 
-    // MC 1.16.5 DamageSourcePredicate.test()
     // 检查每个属性，如果设置了检查条件但实际值不匹配，则返回 false
 
     // 检查是否为投射物伤害
@@ -289,8 +285,6 @@ bool DamageSourcePredicate::test(const DamageSource& source) const
     }
 
     // 检查是否为闪电伤害
-    // MC 1.16.5: source == DamageSource.LIGHTNING_BOLT
-    // 项目中通过 DamageType::LightningBolt 判断
     if (m_isLightning.has_value()) {
         bool isLightning = (source.type() == DamageType::LightningBolt);
         if (isLightning != m_isLightning.value()) {
@@ -310,16 +304,6 @@ Result<DamageSourcePredicate> DamageSourcePredicate::fromJson(const nlohmann::js
     DamageSourcePredicate predicate;
 
     // 解析可选布尔值
-    // MC 1.16.5 JSON 字段名映射:
-    // is_projectile -> m_isProjectile
-    // is_explosion -> m_isExplosion
-    // bypasses_armor -> m_bypassesArmor
-    // bypasses_invulnerability -> m_bypassesInvulnerability
-    // bypasses_magic -> m_bypassesMagic
-    // is_fire -> m_isFire
-    // is_magic -> m_isMagic
-    // is_lightning -> m_isLightning
-
     if (json.contains("is_projectile")) {
         predicate.m_isProjectile = json["is_projectile"].get<bool>();
     }

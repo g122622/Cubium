@@ -41,7 +41,6 @@ namespace mc::advancement {
  * @brief 实体装备谓词
  *
  * 用于匹配实体装备的条件谓词。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EntityEquipmentPredicate
  */
 class EntityEquipmentPredicate {
 public:

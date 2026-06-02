@@ -66,10 +66,6 @@
  * );
  * @endcode
  *
- * ## 参考
- *
- * MC 1.16.5 ClientWorld.getBlockColorRaw
- * MC 1.16.5 ColorCache
  */
 
 #pragma once

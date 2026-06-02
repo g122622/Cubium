@@ -68,12 +68,12 @@ public:
     /**
      * @brief 清除所有缓存
      */
-    void clear();
+    void clear() noexcept;
 
     /**
      * @brief 获取缓存中的地图数量
      */
-    [[nodiscard]] size_t size() const { return m_cache.size(); }
+    [[nodiscard]] size_t size() const noexcept { return m_cache.size(); }
 
 private:
     std::unordered_map<i32, std::unique_ptr<world::map::MapData>> m_cache;

@@ -81,8 +81,8 @@ public:
     LocalPlayerIdentity& operator=(const LocalPlayerIdentity&) = delete;
 
     // 允许移动
-    LocalPlayerIdentity(LocalPlayerIdentity&&) = default;
-    LocalPlayerIdentity& operator=(LocalPlayerIdentity&&) = default;
+    LocalPlayerIdentity(LocalPlayerIdentity&&) noexcept = default;
+    LocalPlayerIdentity& operator=(LocalPlayerIdentity&&) noexcept = default;
 
     // ========== 身份管理 ==========
 

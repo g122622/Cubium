@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../MinMaxBounds.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include <optional>
@@ -46,7 +46,6 @@ namespace advancement {
  * @brief 效果实例谓词
  *
  * 用于匹配单个效果实例的条件，检查效果的等级、持续时间等属性。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.MobEffectsPredicate.InstancePredicate
  *
  * JSON 格式示例:
  * @code
@@ -115,7 +114,6 @@ private:
  * @brief 实体效果谓词
  *
  * 检查实体身上的效果状态，验证特定效果是否存在以及其属性是否符合条件。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.MobEffectsPredicate
  *
  * JSON 格式示例:
  * @code

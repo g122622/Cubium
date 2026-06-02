@@ -24,10 +24,9 @@
 #pragma once
 
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "screen/IScreen.hpp"
+#include "common/screen/IScreen.hpp"
 #include <functional>
 #include <memory>
-#include <vector>
 
 namespace mc::client {
 
@@ -57,7 +56,7 @@ public:
      * @brief 获取单例实例
      * @return 屏幕管理器实例引用
      */
-    static ScreenManager& instance();
+    static ScreenManager& instance() noexcept;
 
     /**
      * @brief 设置 ScreenStackWidget 后端
@@ -89,8 +88,8 @@ public:
      * @brief 获取当前屏幕
      * @return 栈顶屏幕，如果栈空返回nullptr
      */
-    [[nodiscard]] IScreen* getCurrentScreen() { return m_stackWidget ? m_stackWidget->topIScreen() : nullptr; }
-    [[nodiscard]] const IScreen* getCurrentScreen() const
+    [[nodiscard]] IScreen* getCurrentScreen() noexcept { return m_stackWidget ? m_stackWidget->topIScreen() : nullptr; }
+    [[nodiscard]] const IScreen* getCurrentScreen() const noexcept
     {
         return m_stackWidget ? m_stackWidget->topIScreen() : nullptr;
     }
@@ -99,13 +98,13 @@ public:
      * @brief 检查是否有打开的屏幕
      * @return 如果有屏幕返回true
      */
-    [[nodiscard]] bool hasScreen() const { return m_stackWidget ? m_stackWidget->hasScreen() : false; }
+    [[nodiscard]] bool hasScreen() const noexcept { return m_stackWidget ? m_stackWidget->hasScreen() : false; }
 
     /**
      * @brief 获取屏幕栈深度
      * @return 屏幕数量
      */
-    [[nodiscard]] size_t getScreenCount() const { return m_stackWidget ? m_stackWidget->screenCount() : 0; }
+    [[nodiscard]] size_t getScreenCount() const noexcept { return m_stackWidget ? m_stackWidget->screenCount() : 0; }
 
     /**
      * @brief 每帧更新
@@ -186,7 +185,7 @@ public:
      * @brief 检查游戏是否应该暂停
      * @return 如果有暂停屏幕返回true
      */
-    [[nodiscard]] bool shouldPauseGame() const;
+    [[nodiscard]] bool shouldPauseGame() const noexcept;
 
     /**
      * @brief 设置屏幕变化回调

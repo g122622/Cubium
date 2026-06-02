@@ -36,7 +36,6 @@ namespace mc::advancement {
  * @brief 成就奖励
  *
  * 当成就完成时发放的奖励，包括经验、战利品表、配方和函数。
- * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementRewards
  *
  * JSON格式示例：
  * @code

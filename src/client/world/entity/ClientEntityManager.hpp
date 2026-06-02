@@ -42,8 +42,6 @@ namespace mc::client {
  *
  * 本地玩家实体也被纳入此管理器，与其他远程实体统一管理。
  * 通过 isLocalPlayer() 可以判断某个实体是否是本地玩家。
- *
- * 参考 MC 1.16.5 World 客户端实体管理
  */
 class ClientEntityManager {
 public:
@@ -53,6 +51,10 @@ public:
     // 禁止拷贝
     ClientEntityManager(const ClientEntityManager&) = delete;
     ClientEntityManager& operator=(const ClientEntityManager&) = delete;
+
+    // 允许移动
+    ClientEntityManager(ClientEntityManager&&) noexcept = default;
+    ClientEntityManager& operator=(ClientEntityManager&&) noexcept = default;
 
     // ========== 实体管理 ==========
 
