@@ -393,26 +393,17 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
 // const版本是 IWorld 接口实现。
 ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
 {
-    if (m_chunkManager) {
-        return m_chunkManager->tryToGetChunkInMem(x, z);
-    }
-    return nullptr;
+    return m_chunkManager->tryToGetChunkInMem(x, z);
 }
 
 const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
 {
-    if (m_chunkManager) {
-        return m_chunkManager->tryToGetChunkInMem(x, z);
-    }
-    return nullptr;
+    return m_chunkManager->tryToGetChunkInMem(x, z);
 }
 
 bool ServerWorld::hasChunk(ChunkCoord x, ChunkCoord z) const
 {
-    if (m_chunkManager) {
-        return m_chunkManager->hasChunkInMem(x, z);
-    }
-    return false;
+    return m_chunkManager->hasChunkInMem(x, z);
 }
 
 // ============================================================================
