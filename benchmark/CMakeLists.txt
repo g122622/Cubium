@@ -21,6 +21,7 @@ target_include_directories(mc_benchmarks
 target_link_libraries(mc_benchmarks
     PRIVATE
         mc_common
+        mc_bedrock_addon
         mc::perfetto
         nlohmann_json::nlohmann_json
 )

@@ -31,12 +31,7 @@
 #include "../list/ServerTickList.hpp"
 #include <memory>
 
-namespace mc {
-
-// 前向声明
-class IWorld;
-
-namespace world::tick {
+namespace mc::world::tick {
 
 /**
  * @brief Tick管理器
@@ -251,5 +246,4 @@ private:
     std::unique_ptr<ServerTickList<fluid::Fluid>> m_fluidTicks;
 };
 
-} // namespace world::tick
-} // namespace mc
+} // namespace mc::world::tick

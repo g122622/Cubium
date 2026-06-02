@@ -1,6 +1,10 @@
 #include "ScriptCustomComponentBinding.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
 
 #include <spdlog/spdlog.h>
@@ -12,13 +16,15 @@ namespace mc::mod::bedrock::addon {
 // ============================================================================
 
 /**
- * @brief JS回调包装器基类
+ * @brief JS回调包装器
  *
  * 持有JS函数引用，在C++事件派发时调用JS回调。
  * 通过ScriptObjectRegistry管理生命周期。
  */
 class JSCallbackHolder {
 public:
+    JSCallbackHolder() = default;
+
     JSCallbackHolder(JSContext* ctx, JSValue func)
         : m_ctx(ctx)
     {
@@ -262,13 +268,14 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
         spdlog::warn("[BedrockAddon] registerBlockCustomComponent: no callbacks found for {}", typeId);
     }
 
-    // 创建CustomComponent并注册到BlockComponentRegistry
-    CustomBlockComponent component;
-    component.typeId = typeId;
+    // 创建BlockCustomComponent并注册到BlockComponentRegistry
+    BlockCustomComponent component;
+    component.name = typeId;
 
-    // 为每个回调设置C++ wrapper
+    // 为每个回调设置C++ wrapper（签名：void(EventType&, const CustomComponentParameters&)）
     if (!JS_IsUndefined(callbacks->onStepOn.func())) {
-        component.onStepOn = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentStepOnEvent& event) {
+        component.onStepOn = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                 BlockComponentStepOnEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onStepOn.context());
             JS_SetPropertyStr(cb->onStepOn.context(),
                 eventObj,
@@ -289,7 +296,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
     }
 
     if (!JS_IsUndefined(callbacks->onStepOff.func())) {
-        component.onStepOff = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentStepOffEvent& event) {
+        component.onStepOff = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                  BlockComponentStepOffEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onStepOff.context());
             JS_SetPropertyStr(cb->onStepOff.context(),
                 eventObj,
@@ -313,7 +321,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
     }
 
     if (!JS_IsUndefined(callbacks->onPlace.func())) {
-        component.onPlace = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentOnPlaceEvent& event) {
+        component.onPlace = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                BlockComponentOnPlaceEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onPlace.context());
             JS_SetPropertyStr(cb->onPlace.context(),
                 eventObj,
@@ -329,7 +338,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 
     if (!JS_IsUndefined(callbacks->onPlayerBreak.func())) {
         component.onPlayerBreak = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
-                                      BlockComponentPlayerBreakEvent& event) {
+                                      BlockComponentPlayerBreakEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onPlayerBreak.context());
             JS_SetPropertyStr(cb->onPlayerBreak.context(),
                 eventObj,
@@ -354,7 +363,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 
     if (!JS_IsUndefined(callbacks->onPlayerInteract.func())) {
         component.onPlayerInteract = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
-                                         BlockComponentPlayerInteractEvent& event) {
+                                         BlockComponentPlayerInteractEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onPlayerInteract.context());
             JS_SetPropertyStr(cb->onPlayerInteract.context(),
                 eventObj,
@@ -385,7 +394,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 
     if (!JS_IsUndefined(callbacks->onPlayerPlaceBefore.func())) {
         component.beforeOnPlayerPlace = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
-                                            BlockComponentPlayerPlaceBeforeEvent& event) {
+                                            BlockComponentPlayerPlaceBeforeEvent& event,
+                                            const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onPlayerPlaceBefore.context());
             JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
                 eventObj,
@@ -425,7 +435,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 
     if (!JS_IsUndefined(callbacks->onEntityFallOn.func())) {
         component.onEntityFallOn = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
-                                       BlockComponentEntityFallOnEvent& event) {
+                                       BlockComponentEntityFallOnEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onEntityFallOn.context());
             JS_SetPropertyStr(cb->onEntityFallOn.context(),
                 eventObj,
@@ -454,7 +464,7 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 
     if (!JS_IsUndefined(callbacks->onRandomTick.func())) {
         component.onRandomTick = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
-                                     BlockComponentRandomTickEvent& event) {
+                                     BlockComponentRandomTickEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onRandomTick.context());
             JS_SetPropertyStr(cb->onRandomTick.context(),
                 eventObj,
@@ -472,7 +482,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
     }
 
     if (!JS_IsUndefined(callbacks->onTick.func())) {
-        component.onTick = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentTickEvent& event) {
+        component.onTick = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                               BlockComponentTickEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onTick.context());
             JS_SetPropertyStr(cb->onTick.context(),
                 eventObj,
@@ -487,7 +498,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
     }
 
     if (!JS_IsUndefined(callbacks->onEntity.func())) {
-        component.onEntity = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentEntityEvent& event) {
+        component.onEntity = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                 BlockComponentEntityEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onEntity.context());
             JS_SetPropertyStr(cb->onEntity.context(),
                 eventObj,
@@ -506,7 +518,8 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
     }
 
     if (!JS_IsUndefined(callbacks->onBreak.func())) {
-        component.onBreak = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](BlockComponentBreakEvent& event) {
+        component.onBreak = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                BlockComponentBreakEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onBreak.context());
             JS_SetPropertyStr(cb->onBreak.context(),
                 eventObj,
@@ -526,12 +539,61 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
         };
     }
 
-    // 注册到全局BlockComponentRegistry
-    BlockComponentRegistry::instance().registerComponent(typeId, component);
+    if (!JS_IsUndefined(callbacks->onRedstoneUpdate.func())) {
+        component.onRedstoneUpdate = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                         BlockComponentRedstoneUpdateEvent& event, const CustomComponentParameters&) {
+            JSValue eventObj = JS_NewObject(cb->onRedstoneUpdate.context());
+            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
+                eventObj,
+                "blockTypeId",
+                JS_NewString(cb->onRedstoneUpdate.context(), event.blockTypeId.c_str()));
+            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
+                eventObj,
+                "x",
+                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockX));
+            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
+                eventObj,
+                "y",
+                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockY));
+            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
+                eventObj,
+                "z",
+                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockZ));
+            cb->onRedstoneUpdate.call(eventObj);
+            JS_FreeValue(cb->onRedstoneUpdate.context(), eventObj);
+        };
+    }
 
-    spdlog::info("[BedrockAddon] Registered block custom component for '{}' with {} callbacks",
-        typeId,
-        static_cast<i32>(component.callbackFlags().to_ulong()));
+    if (!JS_IsUndefined(callbacks->onBlockStateChange.func())) {
+        component.onBlockStateChange = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
+                                           BlockComponentBlockStateChangeEvent& event,
+                                           const CustomComponentParameters&) {
+            JSValue eventObj = JS_NewObject(cb->onBlockStateChange.context());
+            JS_SetPropertyStr(cb->onBlockStateChange.context(),
+                eventObj,
+                "blockTypeId",
+                JS_NewString(cb->onBlockStateChange.context(), event.blockTypeId.c_str()));
+            JS_SetPropertyStr(cb->onBlockStateChange.context(),
+                eventObj,
+                "x",
+                JS_NewInt32(cb->onBlockStateChange.context(), event.blockX));
+            JS_SetPropertyStr(cb->onBlockStateChange.context(),
+                eventObj,
+                "y",
+                JS_NewInt32(cb->onBlockStateChange.context(), event.blockY));
+            JS_SetPropertyStr(cb->onBlockStateChange.context(),
+                eventObj,
+                "z",
+                JS_NewInt32(cb->onBlockStateChange.context(), event.blockZ));
+            cb->onBlockStateChange.call(eventObj);
+            JS_FreeValue(cb->onBlockStateChange.context(), eventObj);
+        };
+    }
+
+    // 注册到全局BlockComponentRegistry
+    BlockComponentRegistry::instance().registerComponent(typeId, std::move(component));
+
+    spdlog::info("[BedrockAddon] Registered block custom component for '{}'", typeId);
 
     return true;
 }
@@ -595,12 +657,13 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
         spdlog::warn("[BedrockAddon] registerItemCustomComponent: no callbacks found for {}", typeId);
     }
 
-    // 创建CustomItemComponent并注册
-    CustomItemComponent component;
-    component.typeId = typeId;
+    // 创建ItemCustomComponent并注册
+    ItemCustomComponent component;
+    component.name = typeId;
 
     if (!JS_IsUndefined(callbacks->onUse.func())) {
-        component.onUse = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](ItemComponentUseEvent& event) {
+        component.onUse = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                              ItemComponentUseEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onUse.context());
             JS_SetPropertyStr(cb->onUse.context(),
                 eventObj,
@@ -614,7 +677,8 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     if (!JS_IsUndefined(callbacks->onUseOn.func())) {
-        component.onUseOn = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](ItemComponentUseOnEvent& event) {
+        component.onUseOn = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                                ItemComponentUseOnEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onUseOn.context());
             JS_SetPropertyStr(cb->onUseOn.context(),
                 eventObj,
@@ -632,7 +696,8 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     if (!JS_IsUndefined(callbacks->onHitEntity.func())) {
-        component.onHitEntity = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](ItemComponentHitEntityEvent& event) {
+        component.onHitEntity = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                                    ItemComponentHitEntityEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onHitEntity.context());
             JS_SetPropertyStr(cb->onHitEntity.context(),
                 eventObj,
@@ -652,7 +717,8 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     if (!JS_IsUndefined(callbacks->onMineBlock.func())) {
-        component.onMineBlock = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](ItemComponentMineBlockEvent& event) {
+        component.onMineBlock = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                                    ItemComponentMineBlockEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onMineBlock.context());
             JS_SetPropertyStr(cb->onMineBlock.context(),
                 eventObj,
@@ -674,8 +740,9 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     if (!JS_IsUndefined(callbacks->onBeforeDurabilityDamage.func())) {
-        component.beforeDurabilityDamage = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
-                                               ItemComponentBeforeDurabilityDamageEvent& event) {
+        component.onBeforeDurabilityDamage = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                                                 ItemComponentBeforeDurabilityDamageEvent& event,
+                                                 const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onBeforeDurabilityDamage.context());
             JS_SetPropertyStr(cb->onBeforeDurabilityDamage.context(),
                 eventObj,
@@ -707,7 +774,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
 
     if (!JS_IsUndefined(callbacks->onCompleteUse.func())) {
         component.onCompleteUse = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
-                                      ItemComponentCompleteUseEvent& event) {
+                                      ItemComponentCompleteUseEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onCompleteUse.context());
             JS_SetPropertyStr(cb->onCompleteUse.context(),
                 eventObj,
@@ -727,7 +794,8 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     if (!JS_IsUndefined(callbacks->onConsume.func())) {
-        component.onConsume = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](ItemComponentConsumeEvent& event) {
+        component.onConsume = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
+                                  ItemComponentConsumeEvent& event, const CustomComponentParameters&) {
             JSValue eventObj = JS_NewObject(cb->onConsume.context());
             JS_SetPropertyStr(cb->onConsume.context(),
                 eventObj,
@@ -743,11 +811,9 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
     }
 
     // 注册到全局ItemComponentRegistry
-    ItemComponentRegistry::instance().registerComponent(typeId, component);
+    ItemComponentRegistry::instance().registerComponent(typeId, std::move(component));
 
-    spdlog::info("[BedrockAddon] Registered item custom component for '{}' with {} callbacks",
-        typeId,
-        static_cast<i32>(component.callbackFlags().to_ulong()));
+    spdlog::info("[BedrockAddon] Registered item custom component for '{}'", typeId);
 
     return true;
 }
@@ -777,7 +843,7 @@ static JSValue blockComponentRegistryRegister(JSContext* ctx, JSValueConst this_
 
     bool success = registerBlockCustomComponentFromJS(typeId, JS_DupValue(ctx, argv[1]), ctx);
     if (!success) {
-        return JS_ThrowError(ctx, "Failed to register block custom component for '%s'", typeId.c_str());
+        return JS_ThrowTypeError(ctx, "Failed to register block custom component for '%s'", typeId.c_str());
     }
 
     return JS_UNDEFINED;
@@ -808,7 +874,7 @@ static JSValue itemComponentRegistryRegister(JSContext* ctx, JSValueConst this_v
 
     bool success = registerItemCustomComponentFromJS(typeId, JS_DupValue(ctx, argv[1]), ctx);
     if (!success) {
-        return JS_ThrowError(ctx, "Failed to register item custom component for '%s'", typeId.c_str());
+        return JS_ThrowTypeError(ctx, "Failed to register item custom component for '%s'", typeId.c_str());
     }
 
     return JS_UNDEFINED;

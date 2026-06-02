@@ -2,15 +2,15 @@
 
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/component/CustomComponentParameters.hpp"
-#include <string>
-#include <optional>
 #include <functional>
+#include <optional>
+#include <string>
 
 namespace mc::world::block {
 class BlockState;
 }
 
-namespace mc::world {
+namespace mc {
 class IWorld;
 }
 
@@ -166,16 +166,14 @@ struct BlockComponentEntityFallOnEvent : BlockComponentEvent {
  *
  * 当方块收到随机刻时触发。对应Bedrock API的onRandomTick。
  */
-struct BlockComponentRandomTickEvent : BlockComponentEvent {
-};
+struct BlockComponentRandomTickEvent : BlockComponentEvent {};
 
 /**
  * @brief 方块刻事件
  *
  * 当方块收到计划刻时触发。对应Bedrock API的onTick。
  */
-struct BlockComponentTickEvent : BlockComponentEvent {
-};
+struct BlockComponentTickEvent : BlockComponentEvent {};
 
 /**
  * @brief 红石更新事件

@@ -1357,6 +1357,7 @@ add_executable(mc_resource_tests
 target_link_libraries(mc_resource_tests
     PRIVATE
         mc_common
+        mc_bedrock_addon
         GTest::gtest_main
         nlohmann_json::nlohmann_json
         glm::glm
@@ -1499,6 +1500,7 @@ if(MC_BUILD_CLIENT)
     target_link_libraries(mc_trident_tests
         PRIVATE
             mc_common
+            mc_bedrock_addon
             GTest::gtest_main
             glfw
             Vulkan::Vulkan
@@ -1699,6 +1701,7 @@ target_sources(mc_command_tests
 target_link_libraries(mc_command_tests
     PRIVATE
         mc_common
+        mc_bedrock_addon
         GTest::gtest_main
         spdlog::spdlog
         nlohmann_json::nlohmann_json
@@ -1777,6 +1780,7 @@ target_sources(mc_village_tests
 target_link_libraries(mc_village_tests
     PRIVATE
         mc_common
+        mc_bedrock_addon
         GTest::gtest_main
         nlohmann_json::nlohmann_json
         glm::glm
