@@ -39,8 +39,6 @@ namespace entity {
  *
  * 实现此接口的实体可以使用剪刀进行剪毛操作。
  * 例如：羊、雪傀儡、哞菇等。
- *
- * 参考 MC 1.16.5 IShearable
  */
 class IShearable {
 public:

@@ -47,7 +47,7 @@ Item& ItemRegistry::registerItem(const ResourceLocation& id, ItemProperties prop
     return registerItem<Item>(id, std::move(properties));
 }
 
-ItemId ItemRegistry::allocateItemId()
+ItemId ItemRegistry::_allocateItemId()
 {
     // 寻找可用的ID槽位
     while (m_nextItemId < m_itemsById.size() && m_itemsById[m_nextItemId] != nullptr) {

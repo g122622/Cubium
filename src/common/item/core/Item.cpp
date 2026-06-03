@@ -22,20 +22,20 @@
  */
 
 #include "Item.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/core/LivingEntity.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../attribute/ItemAttributeModifiers.hpp"
-#include "../context/ItemUseContext.hpp"
-#include "../food/Food.hpp"
-#include "../tag/ItemTag.hpp"
 #include "ActionResult.hpp"
 #include "ItemRegistry.hpp"
 #include "ItemStack.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/food/Food.hpp"
+#include "common/item/tag/ItemTag.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -174,7 +174,7 @@ std::string Item::getName() const
 i32 Item::getUseDuration(const ItemStack& stack) const
 {
     (void)stack;
-    // MC 1.16.5: 如果物品是食物，返回 32（正常）或 16（快速食用）
+    // 如果物品是食物，返回正常食用时间（32 ticks）或快速食用时间（16 ticks）
     if (isFood() && m_food != nullptr) {
         return m_food->isFastEat() ? 16 : 32;
     }
@@ -208,8 +208,7 @@ ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand
         }
     }
 
-    // MC 1.16.5: 食物自动处理逻辑
-    // 参考: Item.onItemRightClick
+    // 食物自动处理逻辑
     if (isFood()) {
         ItemStack heldStack = player.getHeldItem(hand);
         // canEatWhenFull 参数从 Food.canAlwaysEat() 获取
@@ -301,8 +300,6 @@ bool Item::hasEffect(const ItemStack& stack) const
 
 bool Item::isIn(const item::tag::ItemTag& tag) const
 {
-    // MC 1.16.5: 检查物品是否在标签中
-    // 参考: net.minecraft.item.Item#isIn(Tag)
     return tag.contains(this);
 }
 
@@ -382,13 +379,12 @@ bool Item::isInGroup(const ItemGroup& group) const
 }
 
 // ============================================================================
-// 新增方法实现 (MC 1.16.5 对齐)
+// 新增方法实现
 // ============================================================================
 
 ItemRarity Item::getRarity(const ItemStack& stack) const
 {
-    // MC 1.16.5: 附魔物品稀有度提升
-    // 参考: net.minecraft.item.Item#getRarity(ItemStack)
+    // 附魔物品稀有度提升
     if (stack.hasEnchantments()) {
         switch (m_rarity) {
             case ItemRarity::Common:
@@ -406,8 +402,7 @@ ItemRarity Item::getRarity(const ItemStack& stack) const
 
 bool Item::isEnchantable(const ItemStack& stack) const
 {
-    // MC 1.16.5: 物品可附魔当且仅当堆叠数为1且可损坏
-    // 参考: net.minecraft.item.Item#isEnchantable(ItemStack)
+    // 物品可附魔当且仅当堆叠数为1且可损坏
     (void)stack;
     return m_maxStackSize == 1 && isDamageable();
 }
@@ -416,7 +411,6 @@ bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) c
 {
     // 默认实现：检查修复材料是否是容器物品
     // 子类（如ArmorItem、ToolItem）会重写此方法检查特定材料
-    // 参考: net.minecraft.item.Item#getIsRepairable(ItemStack, ItemStack)
     (void)toRepair;
     if (m_repairable && m_containerItem != nullptr) {
         return repair.getItem() == m_containerItem;
@@ -428,7 +422,6 @@ item::ItemAttributeModifiers Item::getAttributeModifiers(i32 equipmentSlot) cons
 {
     // 默认实现：返回空的属性修饰符
     // 子类（如SwordItem、ArmorItem）会重写此方法添加特定属性
-    // 参考: net.minecraft.item.Item#getAttributeModifiers(EquipmentSlot)
     (void)equipmentSlot;
     return item::ItemAttributeModifiers();
 }

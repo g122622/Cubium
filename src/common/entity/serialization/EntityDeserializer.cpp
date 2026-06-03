@@ -65,8 +65,6 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
     }
 
     // 5. 处理 Passengers 递归加载
-    // 参考 MC 1.16.5 EntityType.loadEntityAndExecute()
-    //
     // 当前运行时的实体管理器以 EntityId 互相关联，Passenger 列表只保存 EntityId。
     // 因此这里不能像原版那样只在内存里临时拼出骑乘树，否则 passenger unique_ptr 会在
     // 当前作用域结束后释放，留下无效的乘客关系。

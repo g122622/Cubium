@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <vector>
 
@@ -37,7 +37,6 @@ class ItemStack;
  * @brief 创造模式物品组（标签页）
  *
  * 定义创造模式物品栏的分类。
- * 参考: net.minecraft.item.ItemGroup
  *
  * 用法示例:
  * @code

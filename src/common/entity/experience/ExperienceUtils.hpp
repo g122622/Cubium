@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../util/math/MathConstants.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
 
@@ -134,8 +135,8 @@ inline u32 calculateOrbColor(i32 xpValue, f32 time)
     // 绿色分量：主要颜色，接近满值
     f32 green = 1.0f;
 
-    // 蓝色分量：轻微波动，有相位偏移
-    f32 blue = (std::sin(phase + 4.1887903f) + 1.0f) * 0.5f * 0.2f;
+    // 蓝色分量：轻微波动，有相位偏移 (4π/3 = 240度)
+    f32 blue = (std::sin(phase + math::PI * 4.0f / 3.0f) + 1.0f) * 0.5f * 0.2f;
 
     // 根据经验值调整亮度
     i32 size = getOrbSize(xpValue);

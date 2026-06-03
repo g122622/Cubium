@@ -41,10 +41,10 @@ void RecipeNetworkSerializer::serialize(const CraftingRecipe& recipe, network::P
     // 根据配方类型写入特定数据
     switch (recipe.getType()) {
         case RecipeType::ShapedCrafting:
-            serializeShaped(static_cast<const ShapedRecipe&>(recipe), ser);
+            _serializeShaped(static_cast<const ShapedRecipe&>(recipe), ser);
             break;
         case RecipeType::ShapelessCrafting:
-            serializeShapeless(static_cast<const ShapelessRecipe&>(recipe), ser);
+            _serializeShapeless(static_cast<const ShapelessRecipe&>(recipe), ser);
             break;
         case RecipeType::Special:
             // 特殊配方不需要额外数据
@@ -81,14 +81,14 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(net
     // 根据配方类型读取特定数据
     switch (type) {
         case RecipeType::ShapedCrafting: {
-            auto recipeResult = deserializeShaped(deser, id, group);
+            auto recipeResult = _deserializeShaped(deser, id, group);
             if (recipeResult.failed()) {
                 return recipeResult.error();
             }
             return std::unique_ptr<CraftingRecipe>(recipeResult.value());
         }
         case RecipeType::ShapelessCrafting: {
-            auto recipeResult = deserializeShapeless(deser, id, group);
+            auto recipeResult = _deserializeShapeless(deser, id, group);
             if (recipeResult.failed()) {
                 return recipeResult.error();
             }
@@ -163,7 +163,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeNetworkSerializer::deserializeSmel
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser)
+void RecipeNetworkSerializer::_serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser)
 {
     // 写入宽度和高度
     ser.writeVarInt(recipe.getRecipeWidth());
@@ -180,7 +180,7 @@ void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, networ
     recipe.getResultItem().serialize(ser);
 }
 
-Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped(
+Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::_deserializeShaped(
     network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group)
 {
 
@@ -233,7 +233,7 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped
     return recipe;
 }
 
-void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser)
+void RecipeNetworkSerializer::_serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser)
 {
     // 写入原料列表
     const auto& ingredients = recipe.getIngredients();
@@ -246,7 +246,7 @@ void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, 
     recipe.getResultItem().serialize(ser);
 }
 
-Result<std::unique_ptr<ShapelessRecipe>> RecipeNetworkSerializer::deserializeShapeless(
+Result<std::unique_ptr<ShapelessRecipe>> RecipeNetworkSerializer::_deserializeShapeless(
     network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group)
 {
 

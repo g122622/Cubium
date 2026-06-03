@@ -39,8 +39,6 @@ namespace entity {
  *
  * 实现此接口的实体可以使用弩进行攻击。
  * 例如：掠夺者、猪灵等。
- *
- * 参考 MC 1.16.5 ICrossbowUser
  */
 class ICrossbowUser : public IRangedAttackMob {
 public:

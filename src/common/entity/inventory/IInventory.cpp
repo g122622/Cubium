@@ -22,7 +22,8 @@
  */
 
 #include "IInventory.hpp"
-#include "../entities/player/Player.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
 #include <algorithm>
 
 namespace mc {

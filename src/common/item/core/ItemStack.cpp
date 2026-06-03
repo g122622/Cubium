@@ -22,18 +22,18 @@
  */
 
 #include "ItemStack.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/core/LivingEntity.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../util/text/StringTextComponent.hpp"
-#include "../../util/text/TextParser.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../enchantment/EnchantmentHelper.hpp"
 #include "Item.hpp"
 #include "ItemRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextParser.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <chrono>
 
@@ -218,8 +218,7 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         return false;
     }
 
-    // MC 1.16.5: 耐久保护附魔处理
-    // 参考: ItemStack.attemptDamageItem(int amount, Random rand, @Nullable ServerPlayerEntity player)
+    // 耐久保护附魔处理
     i32 unbreakingLevel = item::enchant::EnchantmentHelper::getUnbreakingLevel(*this);
 
     if (unbreakingLevel > 0) {
@@ -231,8 +230,8 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
             isArmor = (m_item->getFood() == nullptr && m_item->maxDamage() > 0 && m_item->maxStackSize() == 1);
         }
 
-        // 使用静态随机数生成器（每个物品实例应该有自己的随机状态）
-        // 为了简化，我们使用时间种子
+        // 使用静态随机数生成器
+        // TODO: 应该从外部传入随机数生成器，或者使用实体关联的随机源
         static thread_local math::Random s_random(
             static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
@@ -257,7 +256,6 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
     m_damage += amount;
 
     // 触发耐久变化事件（进度系统）
-    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
     if (entity != nullptr) {
         IWorld* world = entity->world();
         if (world != nullptr) {
@@ -293,9 +291,7 @@ bool ItemStack::isStackable() const
     if (maxStack <= 1) {
         return false;
     }
-    // MC 1.16.5: 已损坏的可堆叠物品不能堆叠
-    // 参考: ItemStack.isStackable() - "return this.getMaxStackSize() > 1 && (!this.isDamageable() ||
-    // !this.isDamaged());"
+    // 已损坏的可堆叠物品不能堆叠
     if (isDamageable() && isDamaged()) {
         return false;
     }
@@ -318,7 +314,7 @@ bool ItemStack::canMergeWith(const ItemStack& other) const
         return false;
     }
 
-    // MC 1.16.5: 比较修复成本（铁砧操作次数）
+    // 比较修复成本（铁砧操作次数）
     if (m_repairCost != other.m_repairCost) {
         return false;
     }
@@ -352,8 +348,7 @@ bool ItemStack::canMergeWith(const ItemStack& other) const
         return false;
     }
 
-    // MC 1.16.5: 比较附魔 - 相同附魔的物品可以堆叠！
-    // 参考: ItemStack.areItemStackTagsEqual() 使用 tag.equals() 比较
+    // 比较附魔 - 相同附魔的物品可以堆叠
     if (m_enchantments != other.m_enchantments) {
         return false;
     }

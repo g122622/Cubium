@@ -22,11 +22,11 @@
  */
 
 #include "FoodStats.hpp"
-#include "../../entity/effect/EffectType.hpp"
-#include "../../network/packet/PacketSerializer.hpp"
-#include "../combat/DifficultyHelper.hpp"
-#include "../damage/DamageSource.hpp"
-#include "../entities/player/Player.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -86,14 +86,14 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
 
     // 和平模式特殊处理
     if (difficulty == Difficulty::Peaceful) {
-        handlePeacefulMode(player);
+        _handlePeacefulMode(player);
         // 和平模式下仍然消耗饱和度，但不消耗饥饿值
-        consumeExhaustion(difficulty);
+        _consumeExhaustion(difficulty);
         return;
     }
 
     // 1. 处理消耗值积累
-    consumeExhaustion(difficulty);
+    _consumeExhaustion(difficulty);
 
     // 检查玩家是否应该恢复生命（不死亡、无饥饿效果）
     bool shouldHeal = player.health() > 0.0f && player.health() < player.maxHealth();
@@ -106,7 +106,7 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
         if (m_foodLevel >= MAX_FOOD_LEVEL && m_saturationLevel > 0.0f) {
             m_foodTimer++;
             if (m_foodTimer >= FAST_REGEN_INTERVAL) {
-                if (performFastRegeneration(player)) {
+                if (_performFastRegeneration(player)) {
                     m_foodTimer = 0;
                 }
             }
@@ -116,7 +116,7 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
         else if (m_foodLevel >= 18) {
             m_foodTimer++;
             if (m_foodTimer >= SLOW_REGEN_INTERVAL) {
-                if (performSlowRegeneration(player)) {
+                if (_performSlowRegeneration(player)) {
                     m_foodTimer = 0;
                 }
             }
@@ -134,7 +134,7 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
     if (m_foodLevel <= 0) {
         m_starveTimer++;
         if (m_starveTimer >= STARVATION_INTERVAL) {
-            performStarvationDamage(player, difficulty);
+            _performStarvationDamage(player, difficulty);
             m_starveTimer = 0;
         }
     } else {
@@ -160,7 +160,7 @@ void FoodStats::addExhaustion(f32 exhaustion)
     m_exhaustionLevel = std::min(m_exhaustionLevel + exhaustion, MAX_EXHAUSTION);
 }
 
-void FoodStats::consumeExhaustion(Difficulty difficulty)
+void FoodStats::_consumeExhaustion(Difficulty difficulty)
 {
     // 当消耗值 >= 4.0 时，消耗饱和度或饥饿值
     while (m_exhaustionLevel >= EXHAUSTION_THRESHOLD) {
@@ -176,7 +176,7 @@ void FoodStats::consumeExhaustion(Difficulty difficulty)
     }
 }
 
-bool FoodStats::performFastRegeneration(Player& player)
+bool FoodStats::_performFastRegeneration(Player& player)
 {
     // 快速恢复：消耗饱和度来恢复生命
     // 每次恢复 saturation/6 点生命，消耗等量饱和度
@@ -192,7 +192,7 @@ bool FoodStats::performFastRegeneration(Player& player)
     return false;
 }
 
-bool FoodStats::performSlowRegeneration(Player& player)
+bool FoodStats::_performSlowRegeneration(Player& player)
 {
     // 慢速恢复：消耗饥饿值来恢复生命
     // 每次恢复 1 点生命，消耗 6.0 饱和度
@@ -205,7 +205,7 @@ bool FoodStats::performSlowRegeneration(Player& player)
     return false;
 }
 
-void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty)
+void FoodStats::_performStarvationDamage(Player& player, Difficulty difficulty)
 {
     // 饥饿伤害，根据难度限制最小生命值
     f32 currentHealth = player.health();
@@ -224,7 +224,7 @@ void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty)
     }
 }
 
-void FoodStats::handlePeacefulMode(Player& player)
+void FoodStats::_handlePeacefulMode(Player& player)
 {
     // 和平模式：每 20 ticks 恢复 1 点生命
     m_foodTimer++;

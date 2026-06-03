@@ -38,7 +38,7 @@ namespace entity::serialization {
 /**
  * @brief 实体反序列化器
  *
- * 从 NBT 数据创建实体实例。参考 MC 1.16.5 EntityType.loadEntityAndExecute()。
+ * 从 NBT 数据创建实体实例。
  *
  * 流程：
  * 1. 读取 "id" 标签获取实体类型字符串

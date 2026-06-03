@@ -42,7 +42,7 @@ const Enchantment* EnchantmentInstance::getEnchantment() const
 // EnchantmentContainer 实现
 // ============================================================================
 
-i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const
+i32 EnchantmentContainer::getLevel(std::string_view enchantmentId) const
 {
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
@@ -52,7 +52,7 @@ i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const
     return 0;
 }
 
-bool EnchantmentContainer::has(const std::string& enchantmentId) const
+bool EnchantmentContainer::has(std::string_view enchantmentId) const
 {
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
@@ -73,7 +73,7 @@ bool EnchantmentContainer::hasType(EnchantmentType type) const
     return false;
 }
 
-void EnchantmentContainer::set(const std::string& enchantmentId, i32 level)
+void EnchantmentContainer::set(std::string_view enchantmentId, i32 level)
 {
     // 查找现有附魔
     for (auto& instance : m_enchantments) {
@@ -84,10 +84,10 @@ void EnchantmentContainer::set(const std::string& enchantmentId, i32 level)
     }
 
     // 添加新附魔
-    m_enchantments.emplace_back(enchantmentId, level);
+    m_enchantments.emplace_back(std::string(enchantmentId), level);
 }
 
-bool EnchantmentContainer::remove(const std::string& enchantmentId)
+bool EnchantmentContainer::remove(std::string_view enchantmentId)
 {
     for (auto it = m_enchantments.begin(); it != m_enchantments.end(); ++it) {
         if (it->enchantmentId == enchantmentId) {
@@ -98,9 +98,9 @@ bool EnchantmentContainer::remove(const std::string& enchantmentId)
     return false;
 }
 
-bool EnchantmentContainer::canAdd(const std::string& enchantmentId) const
+bool EnchantmentContainer::canAdd(std::string_view enchantmentId) const
 {
-    const Enchantment* newEnchantment = EnchantmentRegistry::get(enchantmentId);
+    const Enchantment* newEnchantment = EnchantmentRegistry::get(std::string(enchantmentId));
     if (!newEnchantment) {
         return false;
     }

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../core/Entity.hpp"
+#include "common/entity/core/Entity.hpp"
 
 namespace mc {
 

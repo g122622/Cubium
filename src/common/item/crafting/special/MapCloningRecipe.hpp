@@ -35,8 +35,6 @@ namespace crafting {
  * 允许玩家使用已填充地图和空地图复制地图。
  * 复制的地图与原地图共享相同的地图数据。
  *
- * 参考: net.minecraft.item.crafting.MapCloningRecipe
- *
  * 匹配条件：
  * - 必须有一张已填充地图（FilledMapItem）
  * - 必须有至少一张空地图（EmptyMapItem）
@@ -75,14 +73,14 @@ private:
      * @param stack 物品堆
      * @return 如果是已填充地图返回 true
      */
-    [[nodiscard]] static bool isFilledMap(const ItemStack& stack);
+    [[nodiscard]] static bool _isFilledMap(const ItemStack& stack);
 
     /**
      * @brief 检查物品是否为空地图
      * @param stack 物品堆
      * @return 如果是空地图返回 true
      */
-    [[nodiscard]] static bool isEmptyMap(const ItemStack& stack);
+    [[nodiscard]] static bool _isEmptyMap(const ItemStack& stack);
 };
 
 } // namespace crafting

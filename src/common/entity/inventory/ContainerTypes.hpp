@@ -50,52 +50,50 @@ using ContainerIdU8 = u8;
 /**
  * @brief 容器类型枚举
  *
- * 对应 MC 1.16.5 Registry.MENU 注册顺序
- * 参考: net.minecraft.inventory.container.ContainerType
+ * 定义游戏中所有容器窗口类型，用于网络同步和客户端渲染。
  */
 enum class ContainerType : u8 {
-    Generic9x1 = 0,    // generic_9x1 - 单行箱子
-    Generic9x2 = 1,    // generic_9x2 - 双行箱子
-    Generic9x3 = 2,    // generic_9x3 - 三行箱子（普通大箱子）
-    Generic9x4 = 3,    // generic_9x4 - 四行箱子
-    Generic9x5 = 4,    // generic_9x5 - 五行箱子
-    Generic9x6 = 5,    // generic_9x6 - 六行箱子（最大箱子）
-    Generic3x3 = 6,    // generic_3x3 - 发射器/投掷器
-    Anvil = 7,         // anvil - 铁砧
-    Beacon = 8,        // beacon - 信标
-    BlastFurnace = 9,  // blast_furnace - 高炉
-    BrewingStand = 10, // brewing_stand - 酿造台
-    Crafting = 11,     // crafting - 工作台
-    Enchantment = 12,  // enchantment - 附魔台
-    Furnace = 13,      // furnace - 熔炉
-    Grindstone = 14,   // grindstone - 砂轮
-    Hopper = 15,       // hopper - 漏斗
-    Lectern = 16,      // lectern - 讲台
-    Loom = 17,         // loom - 织布机
-    Merchant = 18,     // merchant - 村民交易
-    ShulkerBox = 19,   // shulker_box - 潜影盒
-    Smithing = 20,     // smithing - 锻造台
-    Smoker = 21,       // smoker - 烟熏炉
-    Cartography = 22,  // cartography_table - 制图台
-    Stonecutter = 23,  // stonecutter - 切石机
-    // 玩家背包没有注册在 Registry.MENU 中，使用特殊值
+    Generic9x1 = 0,    // 单行箱子
+    Generic9x2 = 1,    // 双行箱子
+    Generic9x3 = 2,    // 三行箱子（普通大箱子）
+    Generic9x4 = 3,    // 四行箱子
+    Generic9x5 = 4,    // 五行箱子
+    Generic9x6 = 5,    // 六行箱子（最大箱子）
+    Generic3x3 = 6,    // 发射器/投掷器
+    Anvil = 7,         // 铁砧
+    Beacon = 8,        // 信标
+    BlastFurnace = 9,  // 高炉
+    BrewingStand = 10, // 酿造台
+    Crafting = 11,     // 工作台
+    Enchantment = 12,  // 附魔台
+    Furnace = 13,      // 熔炉
+    Grindstone = 14,   // 砂轮
+    Hopper = 15,       // 漏斗
+    Lectern = 16,      // 讲台
+    Loom = 17,         // 织布机
+    Merchant = 18,     // 村民交易
+    ShulkerBox = 19,   // 潜影盒
+    Smithing = 20,     // 锻造台
+    Smoker = 21,       // 烟熏炉
+    Cartography = 22,  // 制图台
+    Stonecutter = 23,  // 切石机
+    // 玩家背包使用特殊值
     Player = 255 // 玩家背包（特殊类型）
 };
 
 /**
  * @brief 点击操作类型（网络包中使用）
  *
- * 对应 MC 1.16.5 协议中的 ClickType 枚举
- * 参考: net.minecraft.inventory.container.ClickType
+ * 定义容器交互时的点击操作类型，用于网络同步。
  */
 enum class ClickAction : u8 {
-    Pickup = 0,     // PICKUP - 拾取/放置（左键或右键）
-    QuickMove = 1,  // QUICK_MOVE - Shift+点击快速移动
-    Swap = 2,       // SWAP - 数字键交换（1-9交换快捷栏，40交换副手）
-    Clone = 3,      // CLONE - 创造模式中键复制
-    Throw = 4,      // THROW - Q键丢弃（Ctrl+Q丢弃整组）
-    QuickCraft = 5, // QUICK_CRAFT - 拖拽分发
-    PickupAll = 6   // PICKUP_ALL - 双击拾取全部相同物品
+    Pickup = 0,     // 拾取/放置（左键或右键）
+    QuickMove = 1,  // Shift+点击快速移动
+    Swap = 2,       // 数字键交换（1-9交换快捷栏，40交换副手）
+    Clone = 3,      // 创造模式中键复制
+    Throw = 4,      // Q键丢弃（Ctrl+Q丢弃整组）
+    QuickCraft = 5, // 拖拽分发
+    PickupAll = 6   // 双击拾取全部相同物品
 };
 
 /**

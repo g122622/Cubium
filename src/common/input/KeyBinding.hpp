@@ -402,9 +402,9 @@ private:
     static StateCallback s_stateCallback;
 
     // 注册到全局
-    void registerBinding();
+    void _registerBinding();
     // 从全局注销
-    void unregisterBinding();
+    void _unregisterBinding();
 };
 
 } // namespace mc

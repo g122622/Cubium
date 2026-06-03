@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -157,34 +157,34 @@ private:
      * @brief 处理消耗值积累
      * @param difficulty 当前难度
      */
-    void consumeExhaustion(Difficulty difficulty);
+    void _consumeExhaustion(Difficulty difficulty);
 
     /**
      * @brief 执行快速生命恢复（饱和度恢复）
      * @param player 玩家引用
      * @return 是否触发了恢复
      */
-    bool performFastRegeneration(Player& player);
+    bool _performFastRegeneration(Player& player);
 
     /**
      * @brief 执行慢速生命恢复（饥饿值恢复）
      * @param player 玩家引用
      * @return 是否触发了恢复
      */
-    bool performSlowRegeneration(Player& player);
+    bool _performSlowRegeneration(Player& player);
 
     /**
      * @brief 执行饥饿伤害
      * @param player 玩家引用
      * @param difficulty 当前难度
      */
-    void performStarvationDamage(Player& player, Difficulty difficulty);
+    void _performStarvationDamage(Player& player, Difficulty difficulty);
 
     /**
      * @brief 和平模式特殊处理
      * @param player 玩家引用
      */
-    void handlePeacefulMode(Player& player);
+    void _handlePeacefulMode(Player& player);
 
 private:
     i32 m_foodLevel = 20;         ///< 饥饿值 (0-20)

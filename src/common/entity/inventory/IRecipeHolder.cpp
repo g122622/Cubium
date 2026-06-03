@@ -33,7 +33,7 @@ namespace mc {
 
 void IRecipeHolder::onCrafting(Player& player)
 {
-    // MC 1.16.5: 如果配方不是动态的，解锁配方并清除
+    // 如果配方不是动态的，解锁配方并清除
     // 注意：由于模板类型不兼容，此默认实现不工作
     // CraftResultInventory 重写了此方法来使用正确的类型
     const crafting::IRecipe<IInventory>* recipe = getRecipeUsed();
@@ -51,8 +51,7 @@ void IRecipeHolder::onCrafting(Player& player)
 
 bool IRecipeHolder::canUseRecipe(IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe)
 {
-    // MC 1.16.5: 如果开启了有限合成且配方未解锁，返回false
-    // 参考: net.minecraft.inventory.IRecipeHolder.canUseRecipe()
+    // 如果开启了有限合成且配方未解锁，返回false
     if (recipe != nullptr && !recipe->isDynamic()) {
         // 检查有限合成规则和配方解锁状态
         // 如果开启了有限合成（doLimitedCrafting=true），玩家只能使用已解锁的配方

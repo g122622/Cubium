@@ -22,7 +22,7 @@
  */
 
 #include "AllEnchantments.hpp"
-#include "../EnchantmentRegistry.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 
 namespace mc {
 namespace item {

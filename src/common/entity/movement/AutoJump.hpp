@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector2.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "AutoJumpConstants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <vector>
 
 namespace mc {
@@ -55,7 +55,7 @@ struct AutoJumpResult {
 /**
  * @brief 自动跳跃系统
  *
- * 实现 MC 1.16.5 风格的自动跳跃功能。
+ * 实现自动跳跃功能。
  * 当玩家走近可跳上的障碍物时自动触发跳跃。
  *
  * ## 工作原理
@@ -87,12 +87,6 @@ struct AutoJumpResult {
  *     player.jump();
  * }
  * @endcode
- *
- * ## 参考
- *
- * MC 1.16.5 源码:
- * - ClientPlayerEntity.func_228356_eG_() - 条件检查
- * - ClientPlayerEntity.updateAutoJump() - 核心检测算法
  */
 class AutoJump {
 public:
@@ -102,8 +96,8 @@ public:
     // 禁止拷贝，允许移动
     AutoJump(const AutoJump&) = delete;
     AutoJump& operator=(const AutoJump&) = delete;
-    AutoJump(AutoJump&&) = default;
-    AutoJump& operator=(AutoJump&&) = default;
+    AutoJump(AutoJump&&) noexcept = default;
+    AutoJump& operator=(AutoJump&&) noexcept = default;
 
     // ========== 配置 ==========
 
@@ -235,7 +229,7 @@ private:
      * @param hasMovementInput 是否有移动输入
      * @return 是否应该检测
      */
-    [[nodiscard]] bool shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const;
+    [[nodiscard]] bool _shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const;
 
     /**
      * @brief 检查指定位置上方是否有头部空间
@@ -247,7 +241,7 @@ private:
      * @param testPos 测试位置（X, Y=玩家脚部Y, Z）
      * @return 是否有足够的头部空间
      */
-    [[nodiscard]] static bool hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos);
+    [[nodiscard]] static bool _hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos);
 
     /**
      * @brief 沿检测线查找障碍物高度
@@ -263,7 +257,7 @@ private:
      * @param collisionBoxes 碰撞箱列表（输出）
      * @return 障碍物顶部高度，如果没有找到返回 -1.0f
      */
-    [[nodiscard]] static f32 detectObstacleHeight(const Player& player,
+    [[nodiscard]] static f32 _detectObstacleHeight(const Player& player,
         PhysicsEngine& physicsEngine,
         const Vector3& origin,
         const Vector3& direction,

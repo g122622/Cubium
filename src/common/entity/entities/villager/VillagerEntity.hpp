@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../world/block/BlockPos.hpp"
-#include "../../ai/brain/Brain.hpp"
-#include "../../ai/brain/memory/MemoryModuleType.hpp"
-#include "../../ai/brain/schedule/Schedule.hpp"
-#include "AbstractVillagerEntity.hpp"
+#include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -39,8 +39,6 @@ namespace entity {
  *
  * 可交易的NPC村民，具有职业系统和繁殖能力。
  * 使用Brain系统进行高级AI控制。
- *
- * 参考 MC 1.16.5 VillagerEntity
  */
 class VillagerEntity : public AbstractVillagerEntity {
 public:
@@ -76,7 +74,7 @@ public:
      */
     VillagerEntity(EntityId id);
 
-    ~VillagerEntity() override = default;
+    ~VillagerEntity() noexcept override = default;
 
     // ========== Entity 接口重写 ==========
 
@@ -180,7 +178,6 @@ public:
      * @param itemStack 物品堆
      * @return 是否可以拾取该物品
      *
-     * 参考 MC 1.16.5 VillagerEntity.func_230293_i_()
      * 村民可拾取的物品：面包、土豆、胡萝卜、小麦、小麦种子、甜菜根、甜菜根种子
      * 农民职业额外可拾取：小麦、小麦种子、甜菜根种子、骨粉
      */
@@ -221,7 +218,6 @@ public:
      * @brief 传播流言给另一个村民
      * @param other 目标村民
      *
-     * 参考 MC 1.16.5 VillagerEntity.func_242368_a()
      * 村民在聚集时会互相传播流言，影响玩家声誉。
      */
     void spreadGossipTo(VillagerEntity* other);
@@ -255,15 +251,11 @@ public:
     /**
      * @brief 开始睡眠
      * @param pos 床位位置
-     *
-     * 参考 MC 1.16.5 LivingEntity.startSleeping()
      */
     void startSleeping(BlockPos pos);
 
     /**
      * @brief 停止睡眠
-     *
-     * 参考 MC 1.16.5 LivingEntity.wakeUp()
      */
     void stopSleeping();
 
@@ -308,8 +300,6 @@ private:
  * @brief 流浪商人实体
  *
  * 随机生成的商人，交易物品固定。
- *
- * 参考 MC 1.16.5 WanderingTraderEntity
  */
 class WanderingTraderEntity : public AbstractVillagerEntity {
 public:
@@ -325,7 +315,7 @@ public:
      */
     WanderingTraderEntity(EntityId id);
 
-    ~WanderingTraderEntity() override = default;
+    ~WanderingTraderEntity() noexcept override = default;
 
     // ========== Entity 接口重写 ==========
 

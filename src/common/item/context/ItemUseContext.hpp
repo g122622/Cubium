@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/math/ray/Raycast.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/ray/Raycast.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 

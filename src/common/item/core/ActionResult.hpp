@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -34,7 +34,6 @@ class ItemStack;
  * @brief 动作结果类型
  *
  * 定义动作执行后的结果类型。
- * 参考: net.minecraft.util.ActionResultType
  */
 enum class ActionResultType : u8 {
     Success = 0, ///< 成功执行，消耗物品
@@ -47,7 +46,6 @@ enum class ActionResultType : u8 {
  * @brief 动作结果
  *
  * 包含动作结果类型和结果物品堆。
- * 参考: net.minecraft.util.ActionResult
  *
  * @tparam T 结果值类型
  */
@@ -97,42 +95,42 @@ public:
     /**
      * @brief 获取结果类型
      */
-    [[nodiscard]] ActionResultType getType() const { return m_type; }
+    [[nodiscard]] ActionResultType getType() const noexcept { return m_type; }
 
     /**
      * @brief 获取结果值
      */
-    [[nodiscard]] const T& getResult() const { return m_result; }
+    [[nodiscard]] const T& getResult() const noexcept { return m_result; }
 
     /**
      * @brief 获取结果值（可修改）
      */
-    [[nodiscard]] T& getResult() { return m_result; }
+    [[nodiscard]] T& getResult() noexcept { return m_result; }
 
     /**
      * @brief 是否成功
      */
-    [[nodiscard]] bool isSuccess() const { return m_type == ActionResultType::Success; }
+    [[nodiscard]] bool isSuccess() const noexcept { return m_type == ActionResultType::Success; }
 
     /**
      * @brief 是否消耗
      */
-    [[nodiscard]] bool isConsume() const { return m_type == ActionResultType::Consume; }
+    [[nodiscard]] bool isConsume() const noexcept { return m_type == ActionResultType::Consume; }
 
     /**
      * @brief 是否失败
      */
-    [[nodiscard]] bool isFail() const { return m_type == ActionResultType::Fail; }
+    [[nodiscard]] bool isFail() const noexcept { return m_type == ActionResultType::Fail; }
 
     /**
      * @brief 是否传递
      */
-    [[nodiscard]] bool isPass() const { return m_type == ActionResultType::Pass; }
+    [[nodiscard]] bool isPass() const noexcept { return m_type == ActionResultType::Pass; }
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
      */
-    [[nodiscard]] bool isSuccessOrConsume() const
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept
     {
         return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
     }

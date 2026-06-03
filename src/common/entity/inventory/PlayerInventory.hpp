@@ -88,8 +88,8 @@ public:
     PlayerInventory& operator=(const PlayerInventory&) = delete;
 
     // 允许移动
-    PlayerInventory(PlayerInventory&&) = default;
-    PlayerInventory& operator=(PlayerInventory&&) = default;
+    PlayerInventory(PlayerInventory&&) noexcept = default;
+    PlayerInventory& operator=(PlayerInventory&&) noexcept = default;
 
     // ========== IInventory 接口实现 ==========
 
@@ -421,7 +421,7 @@ public:
      * @param blockState 方块状态
      * @return 挖掘速度
      */
-    [[nodiscard]] float getDestroySpeed(const class BlockState& blockState) const;
+    [[nodiscard]] f32 getDestroySpeed(const class BlockState& blockState) const;
 
     // ========== 鼠标物品 ==========
 
@@ -481,12 +481,12 @@ private:
     /**
      * @brief 检查两个物品堆是否可以合并
      */
-    [[nodiscard]] bool canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const;
+    [[nodiscard]] bool _canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const;
 
     /**
      * @brief 检查物品是否完全相同（包括NBT）
      */
-    [[nodiscard]] bool stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const;
+    [[nodiscard]] bool _stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const;
 
     std::array<ItemStack, TOTAL_SIZE> m_items;
     ItemStack m_carriedItem; ///< 鼠标持有的物品（容器交互时使用）

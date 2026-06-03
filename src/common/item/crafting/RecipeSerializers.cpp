@@ -40,14 +40,6 @@ namespace {
 
 /**
  * @brief 将 NBT 标签转换为 nlohmann::json
- *
- * 参考 MC 1.16.5 的 NBT 到 JSON 转换规则：
- * - 数值类型直接转换
- * - 字符串直接转换
- * - 数组转换为 JSON 数组
- * - 列表转换为 JSON 数组
- * - 复合标签转换为 JSON 对象
- *
  * @param tag NBT 标签
  * @return 转换后的 JSON 值
  */
@@ -245,13 +237,13 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
     }
 
     // 验证pattern
-    std::string validationError = validatePattern(pattern);
+    std::string validationError = _validatePattern(pattern);
     if (!validationError.empty()) {
         return Error(ErrorCode::ResourceParseError, validationError);
     }
 
     // 压缩pattern（移除空边）
-    std::vector<std::string> shrunkPattern = shrinkPattern(pattern);
+    std::vector<std::string> shrunkPattern = _shrinkPattern(pattern);
     if (shrunkPattern.empty()) {
         return Error(ErrorCode::ResourceParseError, "Pattern is all spaces");
     }
@@ -265,7 +257,7 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
         return Error(ErrorCode::ResourceParseError, "Shaped recipe missing 'key' object");
     }
 
-    auto ingredientsResult = parsePatternIngredients(shrunkPattern, json["key"]);
+    auto ingredientsResult = _parsePatternIngredients(shrunkPattern, json["key"]);
     if (!ingredientsResult.success()) {
         return ingredientsResult.error();
     }
@@ -305,18 +297,18 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
         if (!ingResult.success()) {
             return ingResult.error();
         }
-        // MC 原版：过滤空原料
+        // 过滤空原料
         if (!ingResult.value().hasNoMatchingItems()) {
             ingredients.push_back(ingResult.value());
         }
     }
 
-    // MC 原版校验：空原料数组
+    // 校验：空原料数组
     if (ingredients.empty()) {
         return Error(ErrorCode::ResourceParseError, "No ingredients for shapeless recipe");
     }
 
-    // MC 原版校验：原料数量上限
+    // 校验：原料数量上限
     if (ingredients.size() > static_cast<size_t>(MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT)) {
         std::ostringstream oss;
         oss << "Too many ingredients for shapeless recipe, max is " << (MAX_RECIPE_WIDTH * MAX_RECIPE_HEIGHT);
@@ -391,7 +383,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
     const ResourceLocation& id, const nlohmann::json& json)
 {
 
-    // MC 1.16.5: 高炉配方默认熔炼时间为 100 tick
+    // 高炉配方默认熔炼时间为 100 tick
     constexpr i32 BLASTING_COOK_TIME = 100;
 
     auto result = parseSmeltingRecipe(id, json, BLASTING_COOK_TIME);
@@ -413,7 +405,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmokingRecipe(
     const ResourceLocation& id, const nlohmann::json& json)
 {
 
-    // MC 1.16.5: 烟熏炉配方默认熔炼时间为 100 tick
+    // 烟熏炉配方默认熔炼时间为 100 tick
     constexpr i32 SMOKING_COOK_TIME = 100;
 
     auto result = parseSmeltingRecipe(id, json, SMOKING_COOK_TIME);
@@ -435,7 +427,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseCampfireCookingR
     const ResourceLocation& id, const nlohmann::json& json)
 {
 
-    // MC 1.16.5: 营火烹饪配方默认熔炼时间为 600 tick（30秒）
+    // 营火烹饪配方默认熔炼时间为 600 tick（30秒）
     constexpr i32 CAMPFIRE_COOK_TIME = 600;
 
     auto result = parseSmeltingRecipe(id, json, CAMPFIRE_COOK_TIME);
@@ -492,7 +484,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
 
         Item* item = ItemRegistry::instance().getItem(loc);
         if (!item) {
-            // MC 原版：物品未注册时返回空原料（hasNoMatchingItems == true）
+            // 物品未注册时返回空原料
             return Ingredient();
         }
 
@@ -544,7 +536,6 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
     ItemStack stack(*item, count);
 
     // 解析 NBT 数据
-    // 参考 MC 1.16.5 CraftingHelper.getItemStack()
     // NBT 字段可以是两种格式：
     // 1. 字符串形式（Mojangson 格式）："{display:{Name:\"Custom Name\"}}"
     // 2. JSON 对象形式：{"display":{"Name":"Custom Name"}}
@@ -581,7 +572,7 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
     return stack;
 }
 
-std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std::string>& pattern)
+std::vector<std::string> RecipeSerializers::_shrinkPattern(const std::vector<std::string>& pattern)
 {
     if (pattern.empty()) {
         return {};
@@ -631,7 +622,7 @@ std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std:
     return result;
 }
 
-std::string RecipeSerializers::validatePattern(const std::vector<std::string>& pattern)
+std::string RecipeSerializers::_validatePattern(const std::vector<std::string>& pattern)
 {
     if (pattern.size() > static_cast<size_t>(MAX_RECIPE_HEIGHT)) {
         std::ostringstream oss;
@@ -650,7 +641,7 @@ std::string RecipeSerializers::validatePattern(const std::vector<std::string>& p
             return oss.str();
         }
 
-        // MC 原版：每行长度必须相同
+        // 每行长度必须相同
         if (widthSet && row.size() != expectedWidth) {
             return "Pattern rows must have the same width";
         }
@@ -664,7 +655,7 @@ std::string RecipeSerializers::validatePattern(const std::vector<std::string>& p
     return ""; // 验证通过
 }
 
-Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
+Result<std::vector<Ingredient>> RecipeSerializers::_parsePatternIngredients(
     const std::vector<std::string>& pattern, const nlohmann::json& key)
 {
 
@@ -685,7 +676,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
 
     // 解析key对象
     for (auto it = key.begin(); it != key.end(); ++it) {
-        // MC 1.16.5验证：key必须是单字符
+        // key必须是单字符
         if (it.key().size() != 1) {
             return Error(ErrorCode::ResourceParseError,
                 "Invalid key entry: '" + it.key() + "' is an invalid symbol (must be 1 character only).");
@@ -693,7 +684,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
 
         char c = it.key()[0];
 
-        // MC 1.16.5验证：空格是保留符号
+        // 空格是保留符号
         if (c == ' ') {
             return Error(ErrorCode::ResourceParseError, "Invalid key entry: ' ' is a reserved symbol.");
         }
@@ -705,7 +696,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
         keyMap[c] = ingResult.value();
     }
 
-    // MC 1.16.5验证：检查key中定义但未在pattern中使用的符号
+    // 检查key中定义但未在pattern中使用的符号
     for (const auto& [keyChar, _] : keyMap) {
         if (usedKeys.find(keyChar) == usedKeys.end()) {
             return Error(ErrorCode::ResourceParseError,
@@ -717,7 +708,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
     for (const std::string& row : pattern) {
         for (char c : row) {
             if (c == ' ') {
-                // 空格表示空槽位（MC 原版使用 Ingredient.EMPTY）
+                // 空格表示空槽位
                 ingredients.push_back(Ingredient::EMPTY);
             } else {
                 auto it = keyMap.find(c);
@@ -755,7 +746,7 @@ Result<std::unique_ptr<StonecuttingRecipe>> RecipeSerializers::parseStonecutting
         return ingResult.error();
     }
 
-    // MC 1.16.5: 切石机配方的result是字符串形式，count是单独字段
+    // 切石机配方的result是字符串形式，count是单独字段
     // 格式1: "result": "minecraft:stone_bricks", "count": 1
     // 格式2: "result": { "item": "minecraft:stone_bricks", "count": 1 }
     if (!json.contains("result")) {

@@ -246,7 +246,7 @@ i32 PlayerInventory::add(ItemStack& stack)
     // 顺序: 当前选中槽位 → 副手槽 → 快捷栏 → 主背包
 
     // 1. 首先尝试合并到当前选中槽位
-    if (canMergeStacks(m_items[static_cast<size_t>(m_selectedSlot)], stack)) {
+    if (_canMergeStacks(m_items[static_cast<size_t>(m_selectedSlot)], stack)) {
         i32 maxStack = std::min(m_items[static_cast<size_t>(m_selectedSlot)].getMaxStackSize(), getMaxStackSize());
         i32 space = maxStack - m_items[static_cast<size_t>(m_selectedSlot)].getCount();
         i32 toAdd = std::min(space, stack.getCount());
@@ -258,7 +258,7 @@ i32 PlayerInventory::add(ItemStack& stack)
     }
 
     // 2. 尝试合并到副手槽
-    if (canMergeStacks(m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack)) {
+    if (_canMergeStacks(m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack)) {
         i32 maxStack =
             std::min(m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getMaxStackSize(), getMaxStackSize());
         i32 space = maxStack - m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getCount();
@@ -273,7 +273,7 @@ i32 PlayerInventory::add(ItemStack& stack)
     // 3. 尝试合并到快捷栏（排除当前选中槽位）
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
         if (i == m_selectedSlot) continue;
-        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+        if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
             i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
@@ -287,7 +287,7 @@ i32 PlayerInventory::add(ItemStack& stack)
 
     // 4. 尝试合并到主背包
     for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
-        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+        if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
             i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
@@ -352,7 +352,7 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
 
     // 先尝试合并
     for (i32 i = start; i <= end; ++i) {
-        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+        if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
             i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
@@ -428,7 +428,7 @@ i32 PlayerInventory::findSlotMatching(const ItemStack& stack) const
     }
 
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (!m_items[static_cast<size_t>(i)].isEmpty() && stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
+        if (!m_items[static_cast<size_t>(i)].isEmpty() && _stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
             return i;
         }
     }
@@ -443,7 +443,7 @@ i32 PlayerInventory::findSlotMatchingInRange(const ItemStack& stack, i32 start, 
 
     for (i32 i = start; i <= end; ++i) {
         if (i >= 0 && i < TOTAL_SIZE && !m_items[static_cast<size_t>(i)].isEmpty() &&
-            stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
+            _stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
             return i;
         }
     }
@@ -480,7 +480,7 @@ ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack)
         return ItemStack::EMPTY;
     }
 
-    if (stacksEqualExact(existing, stack)) {
+    if (_stacksEqualExact(existing, stack)) {
         // 相同物品，尝试合并
         i32 maxStack = std::min(existing.getMaxStackSize(), getMaxStackSize());
         i32 space = maxStack - existing.getCount();
@@ -534,7 +534,7 @@ bool PlayerInventory::hasItem(const Item& item) const
 // 私有方法
 // ============================================================================
 
-bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const
+bool PlayerInventory::_canMergeStacks(const ItemStack& stack1, const ItemStack& stack2) const
 {
     if (stack1.isEmpty() || stack2.isEmpty()) {
         return false;
@@ -546,7 +546,7 @@ bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& s
     }
 
     // 检查是否可以合并
-    if (!stacksEqualExact(stack1, stack2)) {
+    if (!_stacksEqualExact(stack1, stack2)) {
         return false;
     }
 
@@ -555,7 +555,7 @@ bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& s
     return stack1.getCount() < maxStack;
 }
 
-bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const
+bool PlayerInventory::_stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const
 {
     if (stack1.isEmpty() && stack2.isEmpty()) {
         return true;

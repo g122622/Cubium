@@ -79,14 +79,14 @@ private:
      * @param stack 物品堆
      * @return 如果是已填充地图且缩放级别 < 4 返回 true
      */
-    [[nodiscard]] static bool isExtendableMap(const ItemStack& stack);
+    [[nodiscard]] static bool _isExtendableMap(const ItemStack& stack);
 
     /**
      * @brief 检查物品是否为纸
      * @param stack 物品堆
      * @return 如果是纸返回 true
      */
-    [[nodiscard]] static bool isPaper(const ItemStack& stack);
+    [[nodiscard]] static bool _isPaper(const ItemStack& stack);
 };
 
 } // namespace crafting

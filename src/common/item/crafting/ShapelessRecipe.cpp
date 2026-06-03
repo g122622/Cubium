@@ -63,12 +63,10 @@ bool ShapelessRecipe::matches(const CraftingInventory& inventory) const
     std::vector<bool> used(inventory.getContainerSize(), false);
 
     // 使用回溯算法进行匹配
-    // MC 原版对于简单配方使用 RecipeItemHelper 优化，复杂配方使用回溯
-    // 这里统一使用回溯算法以确保正确性
-    return matchWithBacktracking(inventory, used, 0);
+    return _matchWithBacktracking(inventory, used, 0);
 }
 
-bool ShapelessRecipe::matchWithBacktracking(
+bool ShapelessRecipe::_matchWithBacktracking(
     const CraftingInventory& inventory, std::vector<bool>& used, i32 ingredientIndex) const
 {
     // 所有原料都已匹配
@@ -84,7 +82,7 @@ bool ShapelessRecipe::matchWithBacktracking(
             used[i] = true;
 
             // 递归匹配下一个原料
-            if (matchWithBacktracking(inventory, used, ingredientIndex + 1)) {
+            if (_matchWithBacktracking(inventory, used, ingredientIndex + 1)) {
                 return true;
             }
 

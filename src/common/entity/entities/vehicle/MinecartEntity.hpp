@@ -51,8 +51,6 @@ using blocks::RailShape;
  *
  * 可在铁轨上行驶的车辆。
  * 有多种变体：普通、箱、漏斗、熔炉、TNT、命令方块矿车。
- *
- * 参考 MC 1.16.5 AbstractMinecartEntity
  */
 class AbstractMinecartEntity : public Entity {
 public:
@@ -98,46 +96,39 @@ public:
 
     /**
      * @brief 处理伤害
-     * MC 1.16.5: AbstractMinecartEntity.attackEntityFrom()
      * @note 矿车不继承LivingEntity，所以不重写hurt方法
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 检查是否可以被碰撞
-     * MC 1.16.5: canBeCollidedWith()
      */
     [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
 
     /**
      * @brief 检查是否可以被推动
-     * MC 1.16.5: canBePushed()
      */
     [[nodiscard]] bool canBePushed() const { return m_canBePushed; }
 
 protected:
     /**
      * @brief 注册数据参数
-     * MC 1.16.5: registerData()
      */
     void registerData() override;
 
 public:
     /**
      * @brief 矿车宽度
-     * MC 1.16.5: 0.98F
      */
     [[nodiscard]] f32 width() const override { return 0.98f; }
 
     /**
      * @brief 矿车高度
-     * MC 1.16.5: 0.7F
      */
     [[nodiscard]] f32 height() const override { return 0.7f; }
 
     /**
-     * @brief 矿车眼睛高度
-     * MC 1.16.5: 0.0D (乘客坐在矿车水平面上)
+     * @brief 矿车眼睛高度（乘客坐在矿车水平面上）
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.0f; }
 
@@ -152,31 +143,26 @@ public:
 
     /**
      * @brief 获取最大速度
-     * MC 1.16.5: getMaximumSpeed() -> 0.4D
      */
     [[nodiscard]] virtual f32 getMaxSpeed() const { return DEFAULT_MAX_SPEED; }
 
     /**
      * @brief 获取铁轨上的最大速度（考虑铁轨速度限制）
-     * MC 1.16.5 Forge: getMaxSpeedWithRail()
      */
     [[nodiscard]] virtual f32 getMaxSpeedWithRail() const;
 
     /**
      * @brief 获取空中最大横向速度
-     * MC 1.16.5: getMaxSpeedAirLateral()
      */
     [[nodiscard]] virtual f32 getMaxSpeedAirLateral() const { return m_maxSpeedAirLateral; }
 
     /**
      * @brief 获取空中最大纵向速度
-     * MC 1.16.5: getMaxSpeedAirVertical()
      */
     [[nodiscard]] virtual f32 getMaxSpeedAirVertical() const { return m_maxSpeedAirVertical; }
 
     /**
      * @brief 获取空气阻力
-     * MC 1.16.5: getDragAir()
      */
     [[nodiscard]] virtual f32 getDragAir() const { return m_dragAir; }
 
@@ -212,7 +198,6 @@ public:
 
     /**
      * @brief 获取矿车的损坏值
-     * MC 1.16.5: getDamage()
      */
     [[nodiscard]] i32 getDamage() const { return m_damage; }
 
@@ -223,13 +208,11 @@ public:
 
     /**
      * @brief 获取摇晃幅度
-     * MC 1.16.5: getRollingAmplitude()
      */
     [[nodiscard]] i32 getRollingAmplitude() const { return m_rollingAmplitude; }
 
     /**
      * @brief 获取摇晃方向
-     * MC 1.16.5: getRollingDirection()
      */
     [[nodiscard]] i32 getRollingDirection() const { return m_rollingDirection; }
 
@@ -237,13 +220,11 @@ public:
 
     /**
      * @brief 乘客乘坐高度偏移
-     * MC 1.16.5: getMountedYOffset() -> 0.0D
      */
     [[nodiscard]] f64 getMountedYOffset() const override { return 0.0; }
 
     /**
      * @brief 应用力到矿车上（被推动时）
-     * MC 1.16.5: addVelocity()
      * @param x X方向力
      * @param z Z方向力
      */
@@ -253,14 +234,12 @@ public:
 
     /**
      * @brief 掉落矿车物品
-     * MC 1.16.5: killMinecart(DamageSource source)
      * @param source 造成矿车破坏的伤害来源，可能为 nullptr（如非伤害导致）
      */
     virtual void dropItem(DamageSource* source = nullptr);
 
     /**
      * @brief 激活矿车（如熔炉矿车）
-     * MC 1.16.5: activate()
      */
     virtual void activate();
 
@@ -271,7 +250,6 @@ public:
 
     /**
      * @brief 激活铁轨通过回调
-     * MC 1.16.5: onActivatorRailPass()
      * @param x 铁轨X坐标
      * @param y 铁轨Y坐标
      * @param z 铁轨Z坐标
@@ -281,7 +259,6 @@ public:
 
     /**
      * @brief 应用摩擦力
-     * MC 1.16.5: applyDrag()
      */
     virtual void applyDrag();
 
@@ -289,104 +266,97 @@ protected:
     /**
      * @brief 检查当前位置的铁轨并更新状态
      */
-    void checkRailState();
+    void _checkRailState();
 
     /**
      * @brief 沿铁轨移动
-     * MC 1.16.5: moveAlongTrack()
      * @param pos 铁轨位置
      */
-    void moveAlongTrack(const BlockPos& pos);
+    void _moveAlongTrack(const BlockPos& pos);
 
     /**
      * @brief 脱轨移动
-     * MC 1.16.5: moveDerailedMinecart()
      */
-    void moveDerailedMinecart();
+    void _moveDerailedMinecart();
 
     /**
      * @brief 计算铁轨方向向量
      * @param shape 铁轨形状
      * @return 方向向量对 (起点方向, 终点方向)
      */
-    [[nodiscard]] std::pair<Vector3, Vector3> getRailDirectionVectors(RailShape shape) const;
+    [[nodiscard]] std::pair<Vector3, Vector3> _getRailDirectionVectors(RailShape shape) const;
 
     /**
      * @brief 获取铁轨上的贴靠位置
-     * MC 1.16.5: getPos()
      * @param x 当前X
      * @param y 当前Y
      * @param z 当前Z
      * @return 贴靠后的位置
      */
-    [[nodiscard]] Vector3 getPosOnRail(f64 x, f64 y, f64 z) const;
+    [[nodiscard]] Vector3 _getPosOnRail(f64 x, f64 y, f64 z) const;
 
     /**
      * @brief 获取斜坡调整值
-     * MC 1.16.5: getSlopeAdjustment() -> 0.0078125D
      */
     [[nodiscard]] static constexpr f64 getSlopeAdjustment() { return SLOPE_ADJUSTMENT; }
 
     /**
      * @brief 处理实体碰撞
      */
-    void handleEntityCollisions();
+    void _handleEntityCollisions();
 
     /**
      * @brief 处理矿车间碰撞
      */
-    void handleMinecartCollisions();
+    void _handleMinecartCollisions();
 
     /**
      * @brief 更新摇晃动画
      */
-    void updateRollingAnimation();
+    void _updateRollingAnimation();
 
     /**
      * @brief 更新矿车朝向
      */
-    void updateRotation();
+    void _updateRotation();
 
     // ========== 铁轨类型检测 ==========
 
     /**
      * @brief 检查是否为动力铁轨
      */
-    [[nodiscard]] bool isPoweredRail(const BlockPos& pos) const;
+    [[nodiscard]] bool _isPoweredRail(const BlockPos& pos) const;
 
     /**
      * @brief 检查是否为探测铁轨
      */
-    [[nodiscard]] bool isDetectorRail(const BlockPos& pos) const;
+    [[nodiscard]] bool _isDetectorRail(const BlockPos& pos) const;
 
     /**
      * @brief 检查是否为激活铁轨
      */
-    [[nodiscard]] bool isActivatorRail(const BlockPos& pos) const;
+    [[nodiscard]] bool _isActivatorRail(const BlockPos& pos) const;
 
     /**
      * @brief 检查铁轨是否充能
      */
-    [[nodiscard]] bool isRailPowered(const BlockPos& pos);
+    [[nodiscard]] bool _isRailPowered(const BlockPos& pos);
 
     /**
      * @brief 是否应该执行铁轨特殊功能
-     * MC 1.16.5: shouldDoRailFunctions() - Forge扩展
      */
     [[nodiscard]] bool shouldDoRailFunctions() const { return true; }
 
     /**
      * @brief 在铁轨上移动矿车
-     * MC 1.16.5: moveMinecartOnRail()
      * @param pos 铁轨位置
      */
-    void moveMinecartOnRail(const BlockPos& pos);
+    void _moveMinecartOnRail(const BlockPos& pos);
 
     /**
      * @brief 检查位置是否为完整方块
-     * MC 1.16.5: func_213900_a()
      */
-    [[nodiscard]] bool isNormalBlockAt(const BlockPos& pos) const;
+    [[nodiscard]] bool _isNormalBlockAt(const BlockPos& pos) const;
 
 private:
     // 矿车类型
@@ -396,7 +366,7 @@ private:
     bool m_onRail = false;
     BlockPos m_railPos;
     RailShape m_railShape = RailShape::NorthSouth;
-    bool m_flipped = false; // MC 1.16.5: isInReverse
+    bool m_flipped = false; // 是否翻转
 
     // 速度
     f32 m_maxSpeed = DEFAULT_MAX_SPEED;
@@ -409,7 +379,7 @@ private:
     i32 m_rollingAmplitude = 0;
     i32 m_rollingDirection = 1;
 
-    // 显示方块 (MC 1.16.5 数据参数)
+    // 显示方块
     i32 m_displayTile = 0;       // 方块状态ID
     i32 m_displayTileOffset = 6; // 显示偏移
     bool m_showBlock = false;    // 是否显示方块
@@ -421,7 +391,7 @@ private:
     // 可推动状态
     bool m_canBePushed = true;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 DEFAULT_MAX_SPEED = 0.4f;               // 最大铁轨速度
     static constexpr f32 DEFAULT_MAX_SPEED_AIR_LATERAL = 0.4f;   // 空中最大横向速度
     static constexpr f32 DEFAULT_MAX_SPEED_AIR_VERTICAL = -1.0f; // 空中最大纵向速度（-1表示禁用）
@@ -436,7 +406,6 @@ private:
 
 /**
  * @brief 普通矿车
- * MC 1.16.5 MinecartEntity
  */
 class RideableMinecartEntity : public AbstractMinecartEntity {
 public:
@@ -453,14 +422,12 @@ public:
 
     /**
      * @brief 激活铁轨通过时弹出乘客
-     * MC 1.16.5: onActivatorRailPass()
      */
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 };
 
 /**
  * @brief 箱子矿车
- * MC 1.16.5 ChestMinecartEntity (ContainerMinecartEntity)
  */
 class ChestMinecartEntity : public AbstractMinecartEntity {
 public:
@@ -477,7 +444,6 @@ public:
 
     /**
      * @brief 箱子矿车有额外的摩擦力
-     * MC 1.16.5: applyDrag() with redstone signal calculation
      */
     void applyDrag() override;
 
@@ -531,7 +497,6 @@ private:
 
 /**
  * @brief 熔炉矿车
- * MC 1.16.5 FurnaceMinecartEntity
  *
  * 熔炉矿车可以：
  * - 燃烧燃料获得动力
@@ -540,7 +505,7 @@ private:
  */
 class FurnaceMinecartEntity : public AbstractMinecartEntity {
 public:
-    /// 燃料上限（MC 1.16.5: 32000 ticks）
+    /// 燃料上限（32000 ticks）
     static constexpr i32 MAX_FUEL = 32000;
 
     /**
@@ -560,13 +525,11 @@ public:
 
     /**
      * @brief 熔炉矿车速度较慢
-     * MC 1.16.5: getMaximumSpeed() -> 0.2D
      */
     [[nodiscard]] f32 getMaxSpeed() const override { return 0.2f; }
 
     /**
      * @brief 添加燃料
-     * MC 1.16.5: 燃料上限 32000 ticks
      * @param ticks 燃烧时间（tick）
      */
     void addFuel(i32 ticks);
@@ -589,13 +552,11 @@ public:
 
     /**
      * @brief 熔炉矿车摩擦力计算
-     * MC 1.16.5: applyDrag()
      */
     void applyDrag() override;
 
     /**
      * @brief 激活熔炉矿车（玩家右键交互时调用）
-     * MC 1.16.5: 玩家右键添加燃料并设置推动方向
      */
     void activate() override;
 
@@ -605,14 +566,12 @@ public:
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
     /**
-     * @brief 重写 tick 以更新推动方向
-     * MC 1.16.5: 根据当前速度更新 pushX/pushZ
+     * @brief 更新推动方向
      */
     void updatePushDirection();
 
     /**
      * @brief 掉落物品时掉落熔炉
-     * MC 1.16.5: 爆炸伤害不掉落熔炉
      * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
     void dropItem(DamageSource* source = nullptr) override;
@@ -625,7 +584,6 @@ private:
 
 /**
  * @brief TNT矿车
- * MC 1.16.5 TNTMinecartEntity
  *
  * TNT矿车可以：
  * - 被激活铁轨点燃
@@ -655,26 +613,22 @@ public:
 
     /**
      * @brief 点燃TNT
-     * MC 1.16.5: prime/fuse
      * @param fuseTicks 引信时间（tick），默认80
      */
     void prime(i32 fuseTicks = DEFAULT_FUSE) { m_fuse = fuseTicks; }
 
     /**
      * @brief 是否已点燃
-     * MC 1.16.5: isIgnited() -> fuse > -1
      */
     [[nodiscard]] bool isPrimed() const { return m_fuse > -1; }
 
     /**
      * @brief 激活铁轨点燃TNT
-     * MC 1.16.5: onActivatorRailPass()
      */
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
     /**
      * @brief 处理投射物命中
-     * MC 1.16.5: 燃烧箭矢命中时点燃
      * @param source 伤害来源
      * @param amount 伤害量
      * @return 是否处理了该伤害
@@ -683,13 +637,11 @@ public:
 
     /**
      * @brief 重写伤害处理
-     * MC 1.16.5: attackEntityFrom() 燃烧箭矢立即爆炸
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 重写掉落物品逻辑
-     * MC 1.16.5: killMinecart() 特殊逻辑
      * 火焰/爆炸伤害时点燃而非爆炸掉落
      * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
@@ -700,26 +652,23 @@ private:
      * @brief 爆炸
      * @param speedFactor 速度因子，影响爆炸威力
      */
-    void explode(f32 speedFactor = 1.0f);
+    void _explode(f32 speedFactor = 1.0f);
 
     /**
      * @brief 检查火焰接触并点燃
-     * MC 1.16.5: 检查方块和流体
      */
-    void checkFireIgnition();
+    void _checkFireIgnition();
 
     /**
      * @brief 点燃TNT（播放声音等）
-     * MC 1.16.5: ignite()
      */
-    void ignite();
+    void _ignite();
 
     i32 m_fuse = -1; ///< -1 表示未点燃
 };
 
 /**
  * @brief 漏斗矿车
- * MC 1.16.5 HopperMinecartEntity (ContainerMinecartEntity)
  *
  * 漏斗矿车可以：
  * - 从上方吸取物品实体
@@ -787,7 +736,7 @@ public:
 
     /**
      * @brief 激活铁轨通过回调
-     * MC 1.16.5: 激活铁轨充能时禁用漏斗
+     * 激活铁轨充能时禁用漏斗
      */
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
@@ -795,12 +744,12 @@ private:
     /**
      * @brief 从上方吸取物品
      */
-    void suckItems();
+    void _suckItems();
 
     /**
      * @brief 向下方容器传输物品
      */
-    void transferItemsOut();
+    void _transferItemsOut();
 
     std::unique_ptr<blockentity::SimpleInventory> m_inventory;
     i32 m_suckCooldown = 0;
@@ -809,7 +758,6 @@ private:
 
 /**
  * @brief 命令方块矿车
- * MC 1.16.5 MinecartCommandBlockEntity
  */
 class CommandBlockMinecartEntity : public AbstractMinecartEntity {
 public:
@@ -848,7 +796,7 @@ private:
     /**
      * @brief 执行命令
      */
-    void executeCommand();
+    void _executeCommand();
 
     std::string m_command;
     std::string m_lastOutput;

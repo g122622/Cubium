@@ -22,7 +22,8 @@
  */
 
 #include "ProfessionMapping.hpp"
-#include "AbstractVillagerEntity.hpp"
+
+#include <cstring>
 
 namespace mc {
 namespace entity {
@@ -33,13 +34,12 @@ bool ProfessionMapping::s_initialized = false;
 std::unordered_map<VillagerProfession, world::village::poi::PointOfInterestType> ProfessionMapping::s_professionToPOI;
 std::unordered_map<world::village::poi::PointOfInterestType, VillagerProfession> ProfessionMapping::s_poiToProfession;
 
-void ProfessionMapping::initializeMappings()
+void ProfessionMapping::_initializeMappings()
 {
     if (s_initialized) return;
     s_initialized = true;
 
     // 职业到POI工作站的映射
-    // 参考 MC 1.16.5 VillagerProfession
     s_professionToPOI[VillagerProfession::Armorer] = world::village::poi::PointOfInterestType::BlastFurnace;
     s_professionToPOI[VillagerProfession::Butcher] = world::village::poi::PointOfInterestType::Smoker;
     s_professionToPOI[VillagerProfession::Cartographer] = world::village::poi::PointOfInterestType::CartographyTable;
@@ -63,7 +63,7 @@ void ProfessionMapping::initializeMappings()
 
 world::village::poi::PointOfInterestType ProfessionMapping::getWorkstationPOI(VillagerProfession profession)
 {
-    initializeMappings();
+    _initializeMappings();
 
     auto it = s_professionToPOI.find(profession);
     if (it != s_professionToPOI.end()) {
@@ -74,7 +74,7 @@ world::village::poi::PointOfInterestType ProfessionMapping::getWorkstationPOI(Vi
 
 VillagerProfession ProfessionMapping::getProfessionFromPOI(world::village::poi::PointOfInterestType poiType)
 {
-    initializeMappings();
+    _initializeMappings();
 
     auto it = s_poiToProfession.find(poiType);
     if (it != s_poiToProfession.end()) {
@@ -83,12 +83,12 @@ VillagerProfession ProfessionMapping::getProfessionFromPOI(world::village::poi::
     return VillagerProfession::None;
 }
 
-bool ProfessionMapping::isValidProfession(VillagerProfession profession)
+bool ProfessionMapping::isValidProfession(VillagerProfession profession) noexcept
 {
     return profession != VillagerProfession::None;
 }
 
-bool ProfessionMapping::hasWorkstation(VillagerProfession profession)
+bool ProfessionMapping::hasWorkstation(VillagerProfession profession) noexcept
 {
     // None和Nitwit没有工作站
     if (profession == VillagerProfession::None || profession == VillagerProfession::Nitwit) {
@@ -97,7 +97,7 @@ bool ProfessionMapping::hasWorkstation(VillagerProfession profession)
     return isValidProfession(profession);
 }
 
-const char* ProfessionMapping::getProfessionName(VillagerProfession profession)
+const char* ProfessionMapping::getProfessionName(VillagerProfession profession) noexcept
 {
     switch (profession) {
         case VillagerProfession::None:
@@ -135,7 +135,7 @@ const char* ProfessionMapping::getProfessionName(VillagerProfession profession)
     }
 }
 
-VillagerProfession ProfessionMapping::getProfessionFromName(const char* name)
+VillagerProfession ProfessionMapping::getProfessionFromName(const char* name) noexcept
 {
     if (name == nullptr) return VillagerProfession::None;
 
@@ -158,16 +158,15 @@ VillagerProfession ProfessionMapping::getProfessionFromName(const char* name)
     return VillagerProfession::None;
 }
 
-i32 ProfessionMapping::getMaxLevel(VillagerProfession /*profession*/)
+i32 ProfessionMapping::getMaxLevel(VillagerProfession /*profession*/) noexcept
 {
     // 所有职业最大等级都是5
-    // 参考 MC 1.16.5 VillagerData
     return 5;
 }
 
-i32 ProfessionMapping::getExperienceForLevel(i32 level)
+i32 ProfessionMapping::getExperienceForLevel(i32 level) noexcept
 {
-    // 参考 MC 1.16.5 升级经验需求
+    // 升级经验需求
     // 等级 1->2: 10 经验
     // 等级 2->3: 70 经验
     // 等级 3->4: 150 经验

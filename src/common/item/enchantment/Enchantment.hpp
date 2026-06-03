@@ -44,7 +44,6 @@ namespace enchant {
  * @brief 附魔类型
  *
  * 定义附魔可以应用的物品类型。
- * 参考 MC 1.16.5 EnchantmentType
  */
 enum class EnchantmentType : u8 {
     Armor,      ///< 护甲（头盔、胸甲、护腿、靴子）
@@ -68,7 +67,6 @@ enum class EnchantmentType : u8 {
  * @brief 附魔稀有度
  *
  * 影响附魔在附魔台出现的概率和所需等级。
- * 参考 MC 1.16.5 Rarity
  */
 enum class EnchantmentRarity : u8 {
     Common,   ///< 普通（10权重）- 保护、锋利等
@@ -81,7 +79,6 @@ enum class EnchantmentRarity : u8 {
  * @brief 附魔基类
  *
  * 定义所有附魔的通用接口和属性。
- * 参考 MC 1.16.5 Enchantment
  *
  * 用法示例:
  * @code
@@ -115,13 +112,13 @@ public:
      * @brief 获取最小等级
      * @return 最小等级（通常为1）
      */
-    [[nodiscard]] virtual i32 minLevel() const { return 1; }
+    [[nodiscard]] virtual i32 minLevel() const noexcept { return 1; }
 
     /**
      * @brief 获取最大等级
      * @return 最大等级
      */
-    [[nodiscard]] virtual i32 maxLevel() const { return 1; }
+    [[nodiscard]] virtual i32 maxLevel() const noexcept { return 1; }
 
     // ========== 类型 ==========
 
@@ -135,7 +132,7 @@ public:
      * @brief 获取附魔稀有度
      * @return 稀有度
      */
-    [[nodiscard]] virtual EnchantmentRarity rarity() const { return EnchantmentRarity::Common; }
+    [[nodiscard]] virtual EnchantmentRarity rarity() const noexcept { return EnchantmentRarity::Common; }
 
     /**
      * @brief 获取稀有度对应的权重
@@ -145,19 +142,19 @@ public:
      *
      * @return 权重值
      */
-    [[nodiscard]] i32 rarityWeight() const { return getRarityWeight(rarity()); }
+    [[nodiscard]] i32 rarityWeight() const noexcept { return getRarityWeight(rarity()); }
 
     /**
      * @brief 是否为宝藏附魔
      * @return 如果只能从箱子或交易获得返回true
      */
-    [[nodiscard]] virtual bool isTreasure() const { return false; }
+    [[nodiscard]] virtual bool isTreasure() const noexcept { return false; }
 
     /**
      * @brief 是否为诅咒附魔
      * @return 如果是诅咒返回true
      */
-    [[nodiscard]] virtual bool isCurse() const { return false; }
+    [[nodiscard]] virtual bool isCurse() const noexcept { return false; }
 
     // ========== 适用性 ==========
 
@@ -173,7 +170,6 @@ public:
      *
      * 这是铁砧合并附魔时使用的方法。
      * 默认实现调用 canApplyAtEnchantingTable。
-     * 参考: net.minecraft.enchantment.Enchantment.canApply
      *
      * @param stack 物品堆
      * @return 如果可以应用返回true
@@ -191,19 +187,19 @@ public:
      * @brief 检查是否可以出现在村民交易中
      * @return 如果可以出现在村民交易返回true
      */
-    [[nodiscard]] virtual bool canVillagerTrade() const { return !isTreasure(); }
+    [[nodiscard]] virtual bool canVillagerTrade() const noexcept { return !isTreasure(); }
 
     /**
      * @brief 检查是否可以生成在战利品箱中
      * @return 如果可以生成在战利品箱返回true
      */
-    [[nodiscard]] virtual bool canGenerateInLoot() const { return true; }
+    [[nodiscard]] virtual bool canGenerateInLoot() const noexcept { return true; }
 
     /**
      * @brief 检查是否可以附在书上
      * @return 如果可以附在书上返回true
      */
-    [[nodiscard]] virtual bool isAllowedOnBooks() const { return true; }
+    [[nodiscard]] virtual bool isAllowedOnBooks() const noexcept { return true; }
 
     /**
      * @brief 检查与另一个附魔的兼容性
@@ -250,7 +246,7 @@ public:
      * @param entityType 目标实体类型（可选）
      * @return 额外伤害值
      */
-    [[nodiscard]] virtual f32 getDamageBonus(i32 level, u32 entityType = 0) const;
+    [[nodiscard]] virtual f32 getDamageBonus(i32 level, u32 entityType = 0) const noexcept;
 
     /**
      * @brief 计算保护加成
@@ -258,7 +254,7 @@ public:
      * @param damageType 伤害类型
      * @return 保护点数
      */
-    [[nodiscard]] virtual i32 getDamageProtection(i32 level, u32 damageType) const;
+    [[nodiscard]] virtual i32 getDamageProtection(i32 level, u32 damageType) const noexcept;
 
     // ========== 回调方法 ==========
 
@@ -266,7 +262,6 @@ public:
      * @brief 当持有者攻击目标实体时调用
      *
      * 用于实现节肢杀手的缓慢效果、火焰附加的点燃效果等。
-     * 参考 MC 1.16.5 Enchantment.onEntityDamaged
      *
      * @param user 攻击者（持有附魔物品的实体）
      * @param target 被攻击的目标实体
@@ -278,7 +273,6 @@ public:
      * @brief 当持有者受到伤害时调用
      *
      * 用于实现荆棘的反伤效果。
-     * 参考 MC 1.16.5 Enchantment.onUserHurt
      *
      * @param user 受伤者（持有附魔物品的实体）
      * @param attacker 攻击者
@@ -293,7 +287,7 @@ public:
      * @param rarity 稀有度
      * @return 权重值
      */
-    [[nodiscard]] static i32 getRarityWeight(EnchantmentRarity rarity);
+    [[nodiscard]] static i32 getRarityWeight(EnchantmentRarity rarity) noexcept;
 
 protected:
     /**

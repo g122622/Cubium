@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
 #include "ActionResult.hpp"
 #include "UseAction.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -44,7 +44,6 @@ class ItemUseContext;
 class IWorld;
 class Player;
 class LivingEntity;
-class Entity;
 class BlockRaycastResult;
 struct Vec3;
 class BlockPos;
@@ -83,8 +82,6 @@ class ItemAttributeModifiers;
 
 /**
  * @brief 物品稀有度枚举
- *
- * 参考: net.minecraft.item.Rarity
  */
 enum class ItemRarity : u8 {
     Common = 0,   // 普通 - 白色
@@ -100,7 +97,7 @@ enum class ItemRarity : u8 {
 /**
  * @brief 物品属性构建器
  *
- * 用于构建物品属性的流畅接口。参考MC的 Item.Properties。
+ * 用于构建物品属性的流畅接口。
  *
  * 用法示例:
  * @code
@@ -145,7 +142,7 @@ public:
     ItemProperties& burnable(bool value = true);
 
     /**
-     * * @brief 设置是否可修复
+     * @brief 设置是否可修复
      */
     ItemProperties& repairable(bool value = true);
 
@@ -194,8 +191,6 @@ private:
  *
  * 所有物品类型的基类。物品通过 ItemRegistry 注册，
  * 每个物品有一个唯一的物品ID。
- *
- * 参考: net.minecraft.item.Item
  *
  * 用法示例:
  * @code
@@ -291,8 +286,6 @@ public:
      * - 附魔物品至少为稀有（RARE）
      * - 已附魔的稀有物品变为史诗（EPIC）
      *
-     * 参考: net.minecraft.item.Item#getRarity(ItemStack)
-     *
      * @param stack 物品堆
      * @return 稀有度
      */
@@ -311,11 +304,9 @@ public:
     /**
      * @brief 检查物品是否可附魔
      *
-     * MC 1.16.5: 物品可附魔当且仅当：
+     * 物品可附魔当且仅当：
      * - 堆叠数为1
      * - 物品可损坏（有耐久度）
-     *
-     * 参考: net.minecraft.item.Item#isEnchantable(ItemStack)
      *
      * @param stack 物品堆
      * @return 是否可附魔
@@ -327,8 +318,6 @@ public:
      *
      * 子类（如ArmorItem、ToolItem）会重写此方法来检查材料类型。
      * 例如：钻石工具只能用钻石修复。
-     *
-     * 参考: net.minecraft.item.Item#getIsRepairable(ItemStack, ItemStack)
      *
      * @param toRepair 待修复的物品堆
      * @param repair 修复材料物品堆
@@ -398,7 +387,6 @@ public:
     /**
      * @brief 获取使用时间（如食物食用时间）
      *
-     * MC 1.16.5: 返回 32（正常）或 16（快速食用）
      * 如果物品是食物，返回食物的使用时间；
      * 否则返回 0。
      *
@@ -415,7 +403,6 @@ public:
      * @brief 在方块上使用物品
      *
      * 当玩家右键点击方块时调用。
-     * 参考: net.minecraft.item.Item#onItemUse
      *
      * @param context 物品使用上下文
      * @return 动作结果类型
@@ -426,7 +413,6 @@ public:
      * @brief 右键使用物品
      *
      * 当玩家右键点击（不针对方块）时调用。
-     * 参考: net.minecraft.item.Item#onItemRightClick
      *
      * @param world 世界引用
      * @param player 玩家引用
@@ -439,7 +425,6 @@ public:
      * @brief 与实体交互
      *
      * 当玩家右键点击实体时调用（如剪羊毛）。
-     * 参考: net.minecraft.item.Item#itemInteractionForEntity
      *
      * @param stack 物品堆
      * @param player 玩家
@@ -453,7 +438,6 @@ public:
      * @brief 物品使用完成
      *
      * 当物品使用时间结束时调用（如食物吃完）。
-     * 参考: net.minecraft.item.Item#onItemUseFinish
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -466,7 +450,6 @@ public:
      * @brief 玩家停止使用物品
      *
      * 当玩家在未完成使用时间就停止时调用（如弓箭蓄力释放）。
-     * 参考: net.minecraft.item.Item#onPlayerStoppedUsing
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -479,7 +462,6 @@ public:
      * @brief 获取使用动作类型
      *
      * 用于客户端播放正确的动画。
-     * 参考: net.minecraft.item.Item#getUseAction
      *
      * @param stack 物品堆
      * @return 使用动作类型
@@ -494,7 +476,6 @@ public:
      * @brief 物品在物品栏中每tick调用
      *
      * 用于更新地图、时钟等物品。
-     * 参考: net.minecraft.item.Item#inventoryTick
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -508,7 +489,6 @@ public:
      * @brief 护甲物品每tick调用
      *
      * 当物品在护甲栏时每tick调用。用于实现护甲特殊效果（如鞘翅飞行）。
-     * 参考: net.minecraft.item.Item#onArmorTick (Forge)
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -520,7 +500,6 @@ public:
      * @brief 添加物品提示信息
      *
      * 当鼠标悬停在物品上时调用，用于添加提示文本。
-     * 参考: net.minecraft.item.Item#addInformation
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -534,7 +513,6 @@ public:
      * @brief 是否有附魔光效
      *
      * 如果物品附魔了，返回true以显示附魔光效。
-     * 参考: net.minecraft.item.Item#hasEffect
      *
      * @param stack 物品堆
      * @return 是否显示附魔光效
@@ -549,7 +527,6 @@ public:
      * @brief 检查物品是否在指定标签中
      *
      * 用于配方和功能判断（如"minecraft:logs"标签）。
-     * 参考: net.minecraft.item.Item#isIn
      *
      * @param tag 物品标签
      * @return 是否在标签中
@@ -560,7 +537,6 @@ public:
      * @brief 获取创造模式物品组
      *
      * 用于创造模式物品栏分类显示。
-     * 参考: net.minecraft.item.Item#getGroup
      *
      * @return 物品组指针，nullptr表示不显示在创造模式中
      */
@@ -574,7 +550,6 @@ public:
      * @brief 获取食物属性
      *
      * 如果物品是食物，返回食物属性指针。
-     * 参考: net.minecraft.item.Item#getFood
      *
      * @return 食物属性指针，非食物返回nullptr
      */
@@ -584,7 +559,6 @@ public:
      * @brief 是否可以食用
      *
      * 检查玩家当前是否可以食用此物品。
-     * 参考: net.minecraft.item.Item#isFood
      *
      * @param stack 物品堆
      * @param player 玩家
@@ -596,7 +570,6 @@ public:
      * @brief 物品被破坏时调用
      *
      * 当物品耐久度耗尽时调用。
-     * 参考: net.minecraft.item.Item#onDestroyed
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -613,7 +586,6 @@ public:
      *
      * 当持有此物品的玩家攻击实体时调用。
      * 用于工具耐久度消耗（剑、斧等）。
-     * 参考: net.minecraft.item.Item#hitEntity
      *
      * @param stack 物品堆
      * @param target 被攻击的实体
@@ -627,7 +599,6 @@ public:
      *
      * 当持有此物品的玩家破坏方块时调用。
      * 用于工具耐久度消耗（镐、斧、铲、锄等）。
-     * 参考: net.minecraft.item.Item#onBlockDestroyed
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -643,7 +614,6 @@ public:
      * @brief 物品是否适合作为方块工具
      *
      * 检查物品是否可以用于采集指定方块。
-     * 参考: net.minecraft.item.Item#isSuitableFor
      *
      * @param state 方块状态
      * @return 是否适合
@@ -655,7 +625,6 @@ public:
      *
      * 返回物品对装备槽位的属性修饰符。
      * 例如：武器返回攻击伤害和攻击速度修饰符。
-     * 参考: net.minecraft.item.Item#getDefaultAttributeModifiers
      *
      * @param slot 装备槽位
      * @return 属性修饰符
@@ -667,7 +636,6 @@ public:
      *
      * 将物品添加到创造模式物品组列表中。
      * 子类可重写以添加多个变体（如药水、附魔书）。
-     * 参考: net.minecraft.item.Item#fillItemGroup
      *
      * @param group 物品组
      * @param items 物品列表
@@ -676,8 +644,6 @@ public:
 
     /**
      * @brief 检查物品是否在指定物品组中
-     *
-     * 参考: net.minecraft.item.Item#isInGroup
      *
      * @param group 物品组
      * @return 是否在组中

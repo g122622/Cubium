@@ -77,28 +77,28 @@ private:
      * @param stack 物品堆
      * @return 如果是成书返回 true
      */
-    [[nodiscard]] static bool isWrittenBook(const ItemStack& stack);
+    [[nodiscard]] static bool _isWrittenBook(const ItemStack& stack);
 
     /**
      * @brief 检查物品是否为书与笔
      * @param stack 物品堆
      * @return 如果是书与笔返回 true
      */
-    [[nodiscard]] static bool isWritableBook(const ItemStack& stack);
+    [[nodiscard]] static bool _isWritableBook(const ItemStack& stack);
 
     /**
      * @brief 获取书的代数
      * @param stack 物品堆
      * @return 代数（0=原版, 1=副本, 2=副本的副本）
      */
-    [[nodiscard]] static i32 getGeneration(const ItemStack& stack);
+    [[nodiscard]] static i32 _getGeneration(const ItemStack& stack);
 
     /**
      * @brief 设置书的代数
      * @param stack 物品堆
      * @param generation 代数
      */
-    static void setGeneration(ItemStack& stack, i32 generation);
+    static void _setGeneration(ItemStack& stack, i32 generation);
 };
 
 } // namespace crafting

@@ -44,8 +44,6 @@ class ChestEntity;
  * - 单箱：27格，3行9列
  * - 双箱：54格，6行9列
  * - 玩家背包：27格主背包 + 9格快捷栏
- *
- * 参考: net.minecraft.inventory.container.ChestContainer
  */
 class ChestContainer : public AbstractContainerMenu {
 public:
@@ -177,7 +175,7 @@ private:
      * @brief 初始化槽位布局
      * @param playerInventory 玩家背包
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
     IInventory* m_chestInventory;                      ///< 箱子背包
     std::shared_ptr<IInventory> m_chestInventoryOwner; ///< 箱子背包所有权（可选）

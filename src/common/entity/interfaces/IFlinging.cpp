@@ -23,9 +23,10 @@
 
 #include "IFlinging.hpp"
 
-#include "../attribute/Attributes.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../damage/DamageSource.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/MathConstants.hpp"
 
 namespace mc {
 namespace entity {
@@ -58,7 +59,7 @@ void IFlinging::flingTarget(LivingEntity& attacker, LivingEntity& target)
     }
 
     Vector3 direction(target.x() - attacker.x(), 0.0f, target.z() - attacker.z());
-    if (direction.lengthSquared() <= 1.0e-6f) {
+    if (direction.lengthSquared() <= math::EPSILON) {
         return;
     }
 

@@ -22,7 +22,7 @@
  */
 
 #include "CooldownTracker.hpp"
-#include "../../item/core/Item.hpp"
+#include "common/item/core/Item.hpp"
 #include "spdlog/spdlog.h"
 #include <algorithm>
 

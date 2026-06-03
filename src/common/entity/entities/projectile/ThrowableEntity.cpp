@@ -105,13 +105,13 @@ void ThrowableEntity::tick()
     // 更新旋转
     updateRotation();
 
-    // MC 1.16.5: 水中阻力 0.8F，空气中阻力 0.99F
+    // 水中阻力 0.8，空气中阻力 0.99
     f32 drag = isInWater() ? 0.8f : 0.99f;
 
     // 水中生成气泡粒子
     if (isInWater()) {
         math::Random rng = createRandomFromEntity(*this);
-        for (int i = 0; i < 4; ++i) {
+        for (i32 i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
             Vector3 pos(m_position.x - velocity.x * offset,
                 m_position.y - velocity.y * offset,

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
 #include "ExperienceUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <vector>
 
@@ -169,7 +169,7 @@ private:
      * @param vz Z方向速度
      * @return 创建的经验球实体指针
      */
-    static ExperienceOrbEntity* createExperienceOrb(
+    static ExperienceOrbEntity* _createExperienceOrb(
         IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, f32 vx, f32 vy, f32 vz);
 };
 

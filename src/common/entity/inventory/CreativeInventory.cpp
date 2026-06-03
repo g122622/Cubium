@@ -22,13 +22,13 @@
  */
 
 #include "CreativeInventory.hpp"
-#include "../../item/core/Item.hpp"
-#include "../../item/core/ItemRegistry.hpp"
-#include "../../item/items/block/BlockItem.hpp"
-#include "../../item/items/block/BlockItemRegistry.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../util/StringUtils.hpp"
 #include "PlayerInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/StringUtils.hpp"
 
 #include <algorithm>
 #include <string>

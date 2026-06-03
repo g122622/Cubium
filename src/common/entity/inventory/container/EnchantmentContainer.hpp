@@ -49,8 +49,6 @@ class IWorld;
  * 附魔选项：
  * - 3个附魔槽位，每个显示附魔等级和预览
  * - 需要消耗玩家经验和青金石
- *
- * 参考: net.minecraft.inventory.container.EnchantmentContainer
  */
 class EnchantmentContainer : public AbstractContainerMenu {
 public:
@@ -151,8 +149,6 @@ public:
     /**
      * @brief 检查玩家是否是创造模式
      * @return 如果关联的玩家是创造模式返回true
-     *
-     * 参考 MC 1.16.5 EnchantmentContainer.player.isCreative()
      */
     [[nodiscard]] bool isPlayerCreative() const;
 
@@ -185,38 +181,38 @@ private:
     /**
      * @brief 初始化槽位布局
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
     /**
      * @brief 重新计算附魔选项
      */
-    void updateEnchantmentOptions();
+    void _updateEnchantmentOptions();
 
     /**
      * @brief 计算书架力量
      * @return 书架力量（0-15）
      */
-    i32 calculateEnchantPower() const;
+    i32 _calculateEnchantPower() const;
 
     /**
      * @brief 检查方块是否为有效书架
      * @param pos 书架位置
      * @return 如果是有效书架返回true
      */
-    [[nodiscard]] bool isValidBookshelf(const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidBookshelf(const BlockPos& pos) const;
 
     /**
      * @brief 检查方块是否为空气
      * @param pos 方块位置
      * @return 如果是空气返回true
      */
-    [[nodiscard]] bool isAirBlock(const BlockPos& pos) const;
+    [[nodiscard]] bool _isAirBlock(const BlockPos& pos) const;
 
     /**
      * @brief 更新附魔种子
      * @param player 玩家
      */
-    void updateEnchantmentSeed(Player& player);
+    void _updateEnchantmentSeed(Player& player);
 
 private:
     std::unique_ptr<IInventory> m_enchantmentInventory; ///< 附魔台背包

@@ -22,14 +22,14 @@
  */
 
 #include "SleepManager.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/weather/WeatherConstants.hpp"
-#include "../entities/monster/MonsterEntity.hpp"
-#include "../entities/player/Player.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/weather/WeatherConstants.hpp"
 #include <cmath>
 
 namespace mc {
@@ -62,8 +62,6 @@ std::optional<Vector3> SleepManager::findWakeUpPosition(
 {
 
     // 尝试在床周围找到安全的站立位置
-    // 参考 MC 1.16.5 BedBlock.getBedSpawnPosition()
-    //
     // 优先级：
     // 1. 床头正前方
     // 2. 床尾正前方
@@ -81,12 +79,9 @@ std::optional<Vector3> SleepManager::findWakeUpPosition(
         Direction::North,
         Direction::South};
 
-    // 去重：移除床朝向和反方向（已经在列表开头）
-    std::vector<BlockPos> tryPositions;
-
     for (Direction dir : tryDirections) {
         BlockPos checkPos = bedPos.offset(dir).up(); // 床上方一格的位置
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             // 返回方块中心位置，Y 在地面以上一点
             return Vector3(static_cast<f32>(checkPos.x) + 0.5f,
                 static_cast<f32>(checkPos.y) - 0.9f, // 从床的高度下来
@@ -97,7 +92,7 @@ std::optional<Vector3> SleepManager::findWakeUpPosition(
     // 尝试床尾周围
     for (Direction dir : tryDirections) {
         BlockPos checkPos = footPos.offset(dir).up();
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return Vector3(static_cast<f32>(checkPos.x) + 0.5f,
                 static_cast<f32>(checkPos.y) - 0.9f,
                 static_cast<f32>(checkPos.z) + 0.5f);
@@ -130,11 +125,10 @@ bool SleepManager::isBedObstructed(const IWorld& world, const BlockPos& bedPos, 
 {
 
     // 检查床头和床尾上方是否有空间
-    // 参考 MC 1.16.5 ServerPlayerEntity.func_241156_b_()
 
     // 床头正上方
     BlockPos aboveHead = bedPos.up();
-    if (!hasStandingSpace(world, aboveHead)) {
+    if (!_hasStandingSpace(world, aboveHead)) {
         return true;
     }
 
@@ -142,13 +136,13 @@ bool SleepManager::isBedObstructed(const IWorld& world, const BlockPos& bedPos, 
     Direction footDir = Directions::opposite(bedFacing);
     BlockPos footPos = bedPos.offset(footDir);
     BlockPos aboveFoot = footPos.up();
-    if (!hasStandingSpace(world, aboveFoot)) {
+    if (!_hasStandingSpace(world, aboveFoot)) {
         return true;
     }
 
     // 检查床尾前方（玩家起床位置）
     BlockPos wakePos = footPos.offset(footDir).up();
-    if (!hasStandingSpace(world, wakePos)) {
+    if (!_hasStandingSpace(world, wakePos)) {
         return true;
     }
 
@@ -159,7 +153,6 @@ bool SleepManager::isBedSurroundedByMonsters(IWorld& world, const BlockPos& bedP
 {
 
     // 在床周围 8x5x8 范围内检测敌对生物
-    // 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
     // 范围：X ±4, Y ±2, Z ±4
 
     f32 bedCenterX = static_cast<f32>(bedPos.x) + 0.5f;
@@ -184,7 +177,6 @@ bool SleepManager::isBedSurroundedByMonsters(IWorld& world, const BlockPos& bedP
         }
 
         // 检查是否为敌对生物（MonsterEntity 或其子类）
-        // 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
         if (dynamic_cast<MonsterEntity*>(entity) != nullptr) {
             // 找到敌对生物
             return true;
@@ -196,7 +188,7 @@ bool SleepManager::isBedSurroundedByMonsters(IWorld& world, const BlockPos& bedP
 
 // ========== 私有静态方法 ==========
 
-bool SleepManager::hasStandingSpace(const IWorld& world, const BlockPos& pos)
+bool SleepManager::_hasStandingSpace(const IWorld& world, const BlockPos& pos)
 {
     // 检查 pos 和 pos.up() 是否都是非固体方块
     const BlockState* state1 = world.getBlockState(pos);

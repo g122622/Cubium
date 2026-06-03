@@ -37,8 +37,6 @@ class Player;
  * @brief 容器提供者接口
  *
  * 定义创建容器菜单的方法。
- * 参考 MC 1.16.5: net.minecraft.inventory.container.IContainerProvider
- *
  * 当实体或方块需要提供容器时，实现此接口。
  * 例如：箱子、村民、矿车等。
  */
@@ -62,8 +60,6 @@ public:
  * @brief 命名容器提供者接口
  *
  * 继承 IContainerProvider，增加获取显示名称的能力。
- * 参考 MC 1.16.5: net.minecraft.inventory.container.INamedContainerProvider
- *
  * 旁观者模式玩家只能与实现此接口的实体交互（打开容器）。
  * 用于箱子矿车、村民交易界面等场景。
  */

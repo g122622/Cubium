@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <functional>
 
 namespace mc {
@@ -40,14 +40,11 @@ namespace experience {
  * @brief 经验管理器
  *
  * 管理玩家的经验值、等级和升级逻辑。
- * 基于 Minecraft 1.16.5 的经验系统实现。
  *
  * 经验公式：
  * - 等级 0-14: 每级需要 7 + level * 2 点经验
  * - 等级 15-29: 每级需要 37 + (level - 15) * 5 点经验
  * - 等级 30+: 每级需要 112 + (level - 30) * 9 点经验
- *
- * 参考: net.minecraft.entity.player.PlayerEntity
  */
 class ExperienceManager {
 public:
@@ -63,7 +60,6 @@ public:
      * @brief 添加经验值
      *
      * 添加指定数量的经验点，自动处理升级。
-     * 参考: PlayerEntity.giveExperiencePoints()
      *
      * @param amount 经验值数量
      */
@@ -84,7 +80,6 @@ public:
      * @brief 消耗经验等级
      *
      * 消耗指定数量的等级，用于附魔。
-     * 参考: PlayerEntity.addExperienceLevel() 负数情况
      *
      * @param levels 要消耗的等级数
      * @return 是否成功消耗
@@ -133,38 +128,34 @@ public:
     /**
      * @brief 获取当前等级
      */
-    [[nodiscard]] i32 getLevel() const { return m_level; }
+    [[nodiscard]] i32 getLevel() const noexcept { return m_level; }
 
     /**
      * @brief 获取当前等级进度
      *
      * @return 0.0 - 1.0 之间的进度值
      */
-    [[nodiscard]] f32 getProgress() const { return m_progress; }
+    [[nodiscard]] f32 getProgress() const noexcept { return m_progress; }
 
     /**
      * @brief 获取累计总经验值
      */
-    [[nodiscard]] i32 getTotalExperience() const { return m_totalExperience; }
+    [[nodiscard]] i32 getTotalExperience() const noexcept { return m_totalExperience; }
 
     /**
      * @brief 获取当前等级填满进度条所需的经验值
      *
-     * 参考: PlayerEntity.xpBarCap()
-     *
      * @return 当前等级的进度条容量
      */
-    [[nodiscard]] i32 getExperienceForNextLevel() const;
+    [[nodiscard]] i32 getExperienceForNextLevel() const noexcept;
 
     /**
      * @brief 计算达到指定等级所需的总经验值
      *
-     * 参考: PlayerEntity 自定义公式推导
-     *
      * @param level 目标等级
      * @return 所需的总经验值
      */
-    [[nodiscard]] static i32 getExperienceForLevel(i32 level);
+    [[nodiscard]] static i32 getExperienceForLevel(i32 level) noexcept;
 
     /**
      * @brief 根据总经验值计算等级
@@ -172,7 +163,7 @@ public:
      * @param totalExperience 总经验值
      * @return 对应的等级
      */
-    [[nodiscard]] static i32 getLevelFromExperience(i32 totalExperience);
+    [[nodiscard]] static i32 getLevelFromExperience(i32 totalExperience) noexcept;
 
     /**
      * @brief 计算指定等级的进度条容量
@@ -183,12 +174,10 @@ public:
      * 等级 15-29: 37 + (level - 15) * 5 (范围: 37-107)
      * 等级 30+: 112 + (level - 30) * 9 (范围: 112-382)
      *
-     * 参考: PlayerEntity.xpBarCap()
-     *
      * @param level 等级
      * @return 进度条容量
      */
-    [[nodiscard]] static i32 calculateBarCapacity(i32 level);
+    [[nodiscard]] static i32 calculateBarCapacity(i32 level) noexcept;
 
     // ========== 附魔相关 ==========
 
@@ -199,7 +188,7 @@ public:
      *
      * @return 当前附魔种子
      */
-    [[nodiscard]] i32 getXpSeed() const { return m_xpSeed; }
+    [[nodiscard]] i32 getXpSeed() const noexcept { return m_xpSeed; }
 
     /**
      * @brief 重置附魔随机种子
@@ -228,28 +217,26 @@ public:
      *
      * 计算公式: min(level * 7, 100)
      *
-     * 参考: PlayerEntity.getExperiencePoints()
-     *
      * @return 掉落的经验值
      */
-    [[nodiscard]] i32 calculateDeathDropXp() const;
+    [[nodiscard]] i32 calculateDeathDropXp() const noexcept;
 
     // ========== 同步 ==========
 
     /**
      * @brief 标记为需要同步
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty() noexcept { m_dirty = true; }
 
     /**
      * @brief 检查是否需要同步
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
 
     /**
      * @brief 清除同步标记
      */
-    void clearDirty() { m_dirty = false; }
+    void clearDirty() noexcept { m_dirty = false; }
 
     // ========== 回调 ==========
 
@@ -295,28 +282,28 @@ private:
      *
      * 内部方法，在经验变化后调用以确保状态一致。
      */
-    void updateProgress();
+    void _updateProgress();
 
     /**
      * @brief 处理升级
      *
      * 当进度超过1.0时升级。
      */
-    void handleLevelUp();
+    void _handleLevelUp();
 
     /**
      * @brief 处理降级
      *
      * 当进度低于0时降级。
      */
-    void handleLevelDown();
+    void _handleLevelDown();
 
     /**
      * @brief 验证并修复状态
      *
      * 确保等级、进度和总经验的一致性。
      */
-    void validateState();
+    void _validateState();
 
     Player& m_player;
 

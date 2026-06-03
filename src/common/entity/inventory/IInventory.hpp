@@ -23,11 +23,12 @@
 
 #pragma once
 
-#include <memory>
-#include "../../core/Types.hpp"
-#include "../../item/core/ItemStack.hpp"
 #include <functional>
+#include <memory>
 #include <unordered_set>
+
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 

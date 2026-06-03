@@ -22,11 +22,13 @@
  */
 
 #include "AutoJump.hpp"
-#include "../../physics/PhysicsConstants.hpp"
-#include "../../physics/PhysicsEngine.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../entities/player/Player.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/physics/PhysicsConstants.hpp"
+#include "common/entity/physics/PhysicsEngine.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathUtils.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -59,7 +61,7 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
     bool hasMovementInput = inputLengthSq > MOVEMENT_THRESHOLD_SQ;
 
     // 2. 检查是否应该进行自动跳跃检测
-    if (!shouldCheckForAutoJump(player, hasMovementInput)) {
+    if (!_shouldCheckForAutoJump(player, hasMovementInput)) {
         return result;
     }
 
@@ -83,7 +85,7 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
 
     // 5. 检查头部空间（玩家当前位置上方）
     Vector3 playerPos = player.position();
-    if (!hasHeadSpace(player, physicsEngine, playerPos)) {
+    if (!_hasHeadSpace(player, physicsEngine, playerPos)) {
         return result; // 头部空间不足，不能跳
     }
 
@@ -91,8 +93,6 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
     f32 maxJumpHeight = calculateMaxJumpHeight();
 
     // 7. 计算检测距离
-    // MC 源码: f8 = Math.max(f * 7.0F, 1.0F / f12)
-    // f 是移动速度，f12 是移动向量长度
     f32 moveSpeed = player.abilities().walkSpeed;
     if (player.isSprinting()) {
         moveSpeed *= SPRINT_SPEED_MULTIPLIER;
@@ -103,13 +103,10 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
     detectionDistance = std::min(detectionDistance, 5.0f);
 
     // 8. 构建检测线起点
-    // MC 使用玩家脚部上方 0.51 格高度
     f32 detectionY = playerPos.y + DETECTION_HEIGHT_OFFSET;
     Vector3 playerFeet(playerPos.x, detectionY, playerPos.z);
 
     // 9. 计算检测线偏移（玩家左右边缘）
-    // MC 源码: vector3d5 = vector3d12.crossProduct(new Vector3d(0.0D, 1.0D, 0.0D))
-    // 这是移动方向的水平垂直向量
     Vector3 perpendicular(-movementDir.z, 0.0f, movementDir.x);
     f32 halfWidth = player.width() * LINE_OFFSET_RATIO;
     Vector3 leftOffset = perpendicular * halfWidth;
@@ -145,11 +142,11 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
     f32 obstacleHeight = -1.0f;
 
     // 检查左检测线
-    f32 leftHeight = detectObstacleHeight(
+    f32 leftHeight = _detectObstacleHeight(
         player, physicsEngine, leftStart, movementDir, detectionDistance, maxJumpHeight, collisionBoxes);
 
     // 检查右检测线
-    f32 rightHeight = detectObstacleHeight(
+    f32 rightHeight = _detectObstacleHeight(
         player, physicsEngine, rightStart, movementDir, detectionDistance, maxJumpHeight, collisionBoxes);
 
     // 取两条检测线中检测到的最高障碍物
@@ -170,7 +167,7 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
     return result;
 }
 
-bool AutoJump::shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const
+bool AutoJump::_shouldCheckForAutoJump(const Player& player, bool hasMovementInput) const
 {
 
     // 1. 检查是否启用
@@ -188,12 +185,12 @@ bool AutoJump::shouldCheckForAutoJump(const Player& player, bool hasMovementInpu
         return false;
     }
 
-    // 4. 检查是否在潜行（MC: isStayingOnGroundSurface）
+    // 4. 检查是否在潜行
     if (player.isSneaking()) {
         return false;
     }
 
-    // 5. 检查是否在骑乘（MC: isPassenger）
+    // 5. 检查是否在骑乘
     if (player.isRiding()) {
         return false;
     }
@@ -205,7 +202,6 @@ bool AutoJump::shouldCheckForAutoJump(const Player& player, bool hasMovementInpu
 
     // 7. 检查跳跃因子（蜂蜜块等会降低）
     // 蜂蜜块会让跳跃因子变为 0.5f，此时禁用自动跳跃
-    // 参考 MC 1.16.5: if ((double)this.getJumpFactor() < 1.0D) return;
     if (player.getJumpFactor() < static_cast<f32>(JUMP_FACTOR_THRESHOLD)) {
         return false;
     }
@@ -232,10 +228,6 @@ Vector3 AutoJump::calculateMovementDirection(const Player& player, const Vector2
     }
 
     // 使用移动输入 + yaw 计算方向
-    // MC 源码: f2 = f * vector2f.x; f3 = f * vector2f.y
-    // f4 = sin(yaw), f5 = cos(yaw)
-    // vector3d2 = (f2 * f5 - f3 * f4, y, f3 * f5 + f2 * f4)
-
     f32 inputLength = std::sqrt(movementInput.x * movementInput.x + movementInput.y * movementInput.y);
     if (inputLength < 0.0001f) {
         return Vector3(0.0f, 0.0f, 0.0f);
@@ -245,13 +237,11 @@ Vector3 AutoJump::calculateMovementDirection(const Player& player, const Vector2
     f32 strafe = movementInput.x / inputLength;  // 左右
     f32 forward = movementInput.y / inputLength; // 前后
 
-    // MC 坐标系: yaw=0 看向 -Z, yaw=90 看向 +X
+    // 坐标系: yaw=0 看向 -Z, yaw=90 看向 +X
     f32 yawRad = player.yaw() * math::DEG_TO_RAD;
     f32 sinYaw = std::sin(yawRad);
     f32 cosYaw = std::cos(yawRad);
 
-    // MC 公式: moveX = strafe * cosYaw - forward * sinYaw
-    //          moveZ = forward * cosYaw + strafe * sinYaw
     f32 moveX = strafe * cosYaw - forward * sinYaw;
     f32 moveZ = forward * cosYaw + strafe * sinYaw;
 
@@ -270,7 +260,6 @@ bool AutoJump::isMovingForward(const Vector3& movementDir, const Vector3& forwar
     // 计算点积（仅 XZ 平面）
     f32 dot = movementDir.x * forwardDir.x + movementDir.z * forwardDir.z;
 
-    // MC 源码: if (f13 < -0.15F) return;
     return dot > FORWARD_THRESHOLD;
 }
 
@@ -279,15 +268,9 @@ f32 AutoJump::calculateMaxJumpHeight() const
     return BASE_JUMP_HEIGHT + JUMP_BOOST_PER_LEVEL * static_cast<f32>(m_jumpBoostLevel);
 }
 
-bool AutoJump::hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos)
+bool AutoJump::_hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, const Vector3& testPos)
 {
-
-    // MC 检查玩家眼睛上方一格和两格位置是否有障碍物
-    // 源码:
-    // BlockPos blockpos = new BlockPos(this.getPosX(), this.getBoundingBox().maxY, this.getPosZ());
-    // BlockState blockstate = this.world.getBlockState(blockpos);
-    // if (!blockstate.getCollisionShape(...).isEmpty()) return false;
-
+    // 检查玩家眼睛上方一格和两格位置是否有障碍物
     f32 playerHeight = player.height();
     f32 eyeY = testPos.y + player.eyeHeight();
 
@@ -314,7 +297,7 @@ bool AutoJump::hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine, 
     return true;
 }
 
-f32 AutoJump::detectObstacleHeight(const Player& player,
+f32 AutoJump::_detectObstacleHeight(const Player& player,
     PhysicsEngine& physicsEngine,
     const Vector3& origin,
     const Vector3& direction,

@@ -35,7 +35,7 @@
 
 namespace mc {
 
-// 拖拽相关常量 (MC 1.16.5 对齐)
+// 拖拽相关常量
 namespace DragConstants {
 constexpr i32 EVENT_MASK = 0x3; // button 低2位是拖拽事件
 constexpr i32 MODE_SHIFT = 2;   // button 高位是拖拽模式的位移
@@ -69,11 +69,10 @@ using ItemDropCallback = std::function<void(const ItemStack& stack, Player& play
  * @brief 整型引用持有者
  *
  * 用于容器中整型数据的同步（如熔炉燃烧进度、酿造时间等）。
- * 参考: net.minecraft.inventory.container.IntReferenceHolder
  */
 class IntReferenceHolder {
 public:
-    virtual ~IntReferenceHolder() = default;
+    virtual ~IntReferenceHolder() noexcept = default;
 
     /**
      * @brief 获取当前值
@@ -371,8 +370,6 @@ public:
      * @param blockPos 方块位置
      * @param maxDistanceSq 最大距离平方（默认64*64=4096）
      * @return 如果玩家在指定距离内返回true
-     *
-     * MC 1.16.5: 用于stillValid检查
      */
     [[nodiscard]] static bool isWithinDistance(
         const Player& player, const BlockPos& blockPos, f32 maxDistanceSq = 4096.0f);
@@ -449,7 +446,6 @@ protected:
      * @return 如果可以合并返回true
      *
      * 子类可重写此方法以实现特殊合并逻辑。
-     * 参考: net.minecraft.inventory.container.Container.canMergeSlot
      */
     [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const
     {
@@ -493,7 +489,6 @@ protected:
      * @param inventory 要清理的背包
      *
      * 将容器内容返回给玩家或丢弃到世界。
-     * 参考: net.minecraft.inventory.container.Container.clearContainer
      */
     void clearContainer(Player& player, IInventory* inventory);
 
@@ -501,62 +496,62 @@ private:
     /**
      * @brief 处理拾取/放置点击
      */
-    ItemStack handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
 
     /**
      * @brief 处理Shift+点击快速移动
      */
-    ItemStack handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+    ItemStack _handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
 
     /**
      * @brief 处理数字键交换
      */
-    ItemStack handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
 
     /**
      * @brief 处理创造模式中键复制
      */
-    ItemStack handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
+    ItemStack _handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
 
     /**
      * @brief 处理丢弃
      */
-    ItemStack handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
 
     /**
      * @brief 处理拖拽分发
      */
-    ItemStack handleQuickCraft(Slot& slot, i32 slotIndex, i32 button);
+    ItemStack _handleQuickCraft(Slot& slot, i32 slotIndex, i32 button);
 
     /**
      * @brief 重置拖拽状态
      */
-    void resetDrag();
+    void _resetDrag();
 
     /**
      * @brief 从 button 参数中提取拖拽事件状态
      */
-    static i32 getDragEvent(i32 button);
+    static i32 _getDragEvent(i32 button);
 
     /**
      * @brief 从 button 参数中提取拖拽模式
      */
-    static i32 extractDragMode(i32 button);
+    static i32 _extractDragMode(i32 button);
 
     /**
      * @brief 检查拖拽模式是否有效
      */
-    [[nodiscard]] bool isValidDragMode(i32 dragMode) const;
+    [[nodiscard]] bool _isValidDragMode(i32 dragMode) const;
 
     /**
      * @brief 检查是否可以拖拽到指定槽位
      */
-    [[nodiscard]] bool canDragIntoSlot(Slot& slot, const ItemStack& stack) const;
+    [[nodiscard]] bool _canDragIntoSlot(Slot& slot, const ItemStack& stack) const;
 
     /**
      * @brief 处理双击拾取全部
      */
-    ItemStack handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+    ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
 
     /**
      * @brief 分发物品到单个拖拽槽位
@@ -565,7 +560,7 @@ private:
      * @param amount 要分发的数量
      * @return 实际分发的数量
      */
-    i32 distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount);
+    i32 _distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount);
 
 protected:
     ContainerId m_id;
@@ -591,7 +586,7 @@ protected:
     i32 m_hotbarStart = -1;    // 快捷栏起始索引
     i32 m_hotbarEnd = -1;      // 快捷栏结束索引
 
-    // 拖拽状态 (MC 1.16.5 对齐)
+    // 拖拽状态
     i32 m_dragEvent = 0;                            // 拖拽事件状态 (0=无, 1=添加槽位, 2=结束)
     i32 m_dragMode = DragConstants::DRAG_MODE_NONE; // 拖拽模式 (-1=无, 0=均匀分发, 1=逐个分发, 2=全部分发)
     std::vector<i32> m_dragSlots;                   // 拖拽目标槽位列表

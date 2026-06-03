@@ -37,8 +37,6 @@ namespace entity {
  *
  * 实现此接口的实体可以装备鞍、马铠等物品。
  * 例如：猪、马、驴等。
- *
- * 参考 MC 1.16.5 IEquipable
  */
 class IEquipable {
 public:

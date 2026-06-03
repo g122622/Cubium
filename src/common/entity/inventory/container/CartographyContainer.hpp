@@ -49,8 +49,6 @@ class IWorld;
  * - 纸 + 地图 → 扩展地图（缩放级别+1）
  * - 玻璃板 + 地图 → 锁定地图
  * - 空地图 + 地图 → 复制地图
- *
- * 参考: net.minecraft.inventory.container.CartographyContainer
  */
 class CartographyContainer : public AbstractContainerMenu {
 public:
@@ -63,7 +61,7 @@ public:
     /// 制图台槽位数量
     static constexpr i32 CARTOGRAPHY_SLOTS = 3;
 
-    /// 槽位位置 (MC 1.16.5 GUI坐标)
+    /// 槽位位置 (GUI坐标)
     static constexpr i32 MAP_SLOT_X = 15;
     static constexpr i32 MAP_SLOT_Y = 15;
     static constexpr i32 MATERIAL_SLOT_X = 15;
@@ -112,42 +110,42 @@ private:
     /**
      * @brief 初始化槽位布局
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
     /**
      * @brief 检查材料槽中是否为纸
      */
-    [[nodiscard]] bool hasPaper() const;
+    [[nodiscard]] bool _hasPaper() const;
 
     /**
      * @brief 检查材料槽中是否为玻璃板
      */
-    [[nodiscard]] bool hasGlassPane() const;
+    [[nodiscard]] bool _hasGlassPane() const;
 
     /**
      * @brief 检查材料槽中是否为空地图
      */
-    [[nodiscard]] bool hasEmptyMap() const;
+    [[nodiscard]] bool _hasEmptyMap() const;
 
     /**
      * @brief 检查地图槽中是否有已填充地图
      */
-    [[nodiscard]] bool hasFilledMap() const;
+    [[nodiscard]] bool _hasFilledMap() const;
 
     /**
      * @brief 检查地图是否可以扩展（缩放级别 < 4 且非探险地图）
      */
-    [[nodiscard]] bool canExtendMap() const;
+    [[nodiscard]] bool _canExtendMap() const;
 
     /**
      * @brief 检查地图是否可以锁定
      */
-    [[nodiscard]] bool canLockMap() const;
+    [[nodiscard]] bool _canLockMap() const;
 
     /**
      * @brief 检查地图是否可以复制
      */
-    [[nodiscard]] bool canCopyMap() const;
+    [[nodiscard]] bool _canCopyMap() const;
 
 private:
     std::unique_ptr<IInventory> m_cartographyInventory; ///< 制图台3格背包

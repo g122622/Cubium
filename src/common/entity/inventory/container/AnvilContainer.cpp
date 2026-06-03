@@ -62,8 +62,7 @@ public:
 
     [[nodiscard]] bool mayPickup(Player& player) const override
     {
-        // MC 1.16.5: 创造模式玩家可以无视经验等级要求取出物品
-        // 参考 RepairContainer.func_230303_b_
+        // 创造模式玩家可以无视经验等级要求取出物品
         if (player.isCreative()) {
             return m_container && !m_container->getOutputSlot().isEmpty();
         }
@@ -160,7 +159,7 @@ AnvilContainer::AnvilContainer(
 {
 
     MC_ASSERT(playerInventory != nullptr);
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 // ========== 重命名 ==========
@@ -168,7 +167,7 @@ AnvilContainer::AnvilContainer(
 void AnvilContainer::setItemName(const std::string& name)
 {
     m_itemName = name;
-    updateRepairOutput();
+    _updateRepairOutput();
 }
 
 bool AnvilContainer::isRenameOnly() const
@@ -215,14 +214,14 @@ ItemStack AnvilContainer::getOutputSlot() const
 
 bool AnvilContainer::stillValid(const Player& player) const
 {
-    // MC 1.16.5: 检查玩家是否在铁砧附近（64格范围内）
+    // 检查玩家是否在铁砧附近（64格范围内）
     return isWithinDistance(player, m_position);
 }
 
 void AnvilContainer::slotsChanged(IInventory* inventory)
 {
     if (inventory == m_anvilInventory.get()) {
-        updateRepairOutput();
+        _updateRepairOutput();
     }
     AbstractContainerMenu::slotsChanged(inventory);
 }
@@ -290,7 +289,7 @@ ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
 
 // ========== 私有方法 ==========
 
-void AnvilContainer::initSlots(PlayerInventory* playerInventory)
+void AnvilContainer::_initSlots(PlayerInventory* playerInventory)
 {
     // ========== 铁砧槽位 ==========
 
@@ -326,9 +325,8 @@ void AnvilContainer::initSlots(PlayerInventory* playerInventory)
     }
 }
 
-void AnvilContainer::updateRepairOutput()
+void AnvilContainer::_updateRepairOutput()
 {
-    // 参考: net.minecraft.inventory.container.RepairContainer.updateRepairOutput
     ItemStack input1 = getInputSlot1();
     m_repairCost = 1; // 基础成本
     i32 totalCost = 0;
@@ -359,7 +357,6 @@ void AnvilContainer::updateRepairOutput()
             input2.getItem() != nullptr && input2.getItem() == Items::ENCHANTED_BOOK && input2.hasEnchantments();
 
         // 检查是否可以用材料修复
-        // 参考: net.minecraft.item.ItemStack.isDamageable() && item.getIsRepairable(stack, material)
         bool canRepairWithMaterial = false;
         if (input1.isDamageable() && input1.getItem() != nullptr) {
             canRepairWithMaterial = input1.getItem()->getIsRepairable(input1, input2);
@@ -367,7 +364,6 @@ void AnvilContainer::updateRepairOutput()
 
         if (canRepairWithMaterial) {
             // 使用相同物品修复耐久度
-            // 参考 MC 1.16.5 RepairContainer line 109-125
             i32 repairAmount = std::min(input1.getDamage(), input1.getMaxDamage() / 4);
 
             if (repairAmount <= 0) {
@@ -395,7 +391,6 @@ void AnvilContainer::updateRepairOutput()
             }
 
             // 合并耐久度（如果不是附魔书）
-            // 参考 MC 1.16.5 RepairContainer line 133-147
             if (input1.isDamageable() && !isEnchantedBook) {
                 i32 durability1 = input1.getMaxDamage() - input1.getDamage();
                 i32 durability2 = input2.getMaxDamage() - input2.getDamage();
@@ -414,7 +409,6 @@ void AnvilContainer::updateRepairOutput()
             }
 
             // 合并附魔
-            // 参考 MC 1.16.5 RepairContainer line 149-210
             auto enchantments2 = item::enchant::EnchantmentHelper::getEnchantments(input2);
             bool hasValidEnchantment = false;
             bool hasIncompatibleEnchantment = false;
@@ -437,8 +431,7 @@ void AnvilContainer::updateRepairOutput()
 
                 // 检查附魔是否可以应用到结果物品
                 bool canApply = enchant2->canApply(result);
-                // MC 1.16.5: 创造模式或附魔书可以应用任何附魔
-                // 参考 RepairContainer line 158-161
+                // 创造模式或附魔书可以应用任何附魔
                 if (isPlayerCreative() || input2.getItem() == Items::ENCHANTED_BOOK) {
                     canApply = true;
                 }
@@ -471,7 +464,6 @@ void AnvilContainer::updateRepairOutput()
                     }
 
                     // 计算附魔成本（基于稀有度）
-                    // 参考 MC 1.16.5 RepairContainer line 179-192
                     i32 rarityCost = 0;
                     using namespace item::enchant;
                     switch (enchant2->rarity()) {
@@ -512,7 +504,6 @@ void AnvilContainer::updateRepairOutput()
     }
 
     // 处理重命名
-    // 参考 MC 1.16.5 RepairContainer line 214-224
     if (m_itemName.empty()) {
         // 清除自定义名称
         if (input1.hasCustomName()) {
@@ -528,7 +519,6 @@ void AnvilContainer::updateRepairOutput()
     }
 
     // 计算最终修复成本
-    // 参考 MC 1.16.5 RepairContainer line 227-238
     m_repairCost = baseRepairCost + totalCost;
 
     if (totalCost <= 0) {
@@ -541,8 +531,7 @@ void AnvilContainer::updateRepairOutput()
     }
 
     // 检查是否太贵
-    // MC 1.16.5: 创造模式可以绕过 40 级费用上限
-    // 参考 RepairContainer line 236-238
+    // 创造模式可以绕过 40 级费用上限
     if (m_repairCost >= MAX_REPAIR_COST && !isPlayerCreative()) {
         result = ItemStack();
         m_repairCost = 0;
@@ -550,7 +539,6 @@ void AnvilContainer::updateRepairOutput()
 
     if (!result.isEmpty()) {
         // 计算并设置结果物品的修复成本
-        // 参考 MC 1.16.5 RepairContainer line 240-250
         i32 newRepairCost = result.getRepairCost();
         if (!input2.isEmpty() && newRepairCost < input2.getRepairCost()) {
             newRepairCost = input2.getRepairCost();
@@ -558,7 +546,7 @@ void AnvilContainer::updateRepairOutput()
 
         // 如果不只是重命名，增加修复成本
         if (renameCost != totalCost || renameCost == 0) {
-            newRepairCost = getNewRepairCost(newRepairCost);
+            newRepairCost = _getNewRepairCost(newRepairCost);
         }
 
         result.setRepairCost(newRepairCost);
@@ -573,13 +561,12 @@ void AnvilContainer::updateRepairOutput()
     detectAndSendChanges();
 }
 
-i32 AnvilContainer::getNewRepairCost(i32 oldRepairCost)
+i32 AnvilContainer::_getNewRepairCost(i32 oldRepairCost)
 {
-    // 参考: net.minecraft.inventory.container.RepairContainer.getNewRepairCost
     return oldRepairCost * 2 + 1;
 }
 
-bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const
+bool AnvilContainer::_areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const
 {
     auto* enchantment1 = item::enchant::EnchantmentRegistry::get(ench1);
     auto* enchantment2 = item::enchant::EnchantmentRegistry::get(ench2);
@@ -593,8 +580,7 @@ bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const s
 
 bool AnvilContainer::isPlayerCreative() const
 {
-    // MC 1.16.5: 创造模式玩家在铁砧中有特殊权限
-    // 参考 RepairContainer.field_234645_f_.abilities.isCreativeMode
+    // 创造模式玩家在铁砧中有特殊权限
     if (m_playerInventory == nullptr) {
         return false;
     }

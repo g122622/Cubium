@@ -40,7 +40,6 @@ namespace crafting {
  * @brief 配方网络序列化器
  *
  * 提供配方与网络数据包之间的序列化/反序列化功能。
- * 参考 MC 1.16.5 的配方网络协议。
  *
  * 序列化格式：
  * - 配方类型（VarInt）
@@ -152,13 +151,13 @@ public:
 
 private:
     // 有序合成配方序列化
-    static void serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser);
-    [[nodiscard]] static Result<std::unique_ptr<ShapedRecipe>> deserializeShaped(
+    static void _serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser);
+    [[nodiscard]] static Result<std::unique_ptr<ShapedRecipe>> _deserializeShaped(
         network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group);
 
     // 无序合成配方序列化
-    static void serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser);
-    [[nodiscard]] static Result<std::unique_ptr<ShapelessRecipe>> deserializeShapeless(
+    static void _serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser);
+    [[nodiscard]] static Result<std::unique_ptr<ShapelessRecipe>> _deserializeShapeless(
         network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group);
 };
 

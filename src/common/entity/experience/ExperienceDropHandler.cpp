@@ -22,10 +22,10 @@
  */
 
 #include "ExperienceDropHandler.hpp"
-#include "../../world/IWorld.hpp"
-#include "../core/Entity.hpp"
-#include "../entities/orb/ExperienceOrbEntity.hpp"
-#include "../entities/player/Player.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -58,7 +58,7 @@ i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 
         f32 vz = static_cast<f32>((random->nextDouble() - 0.5) * 0.2);
 
         // 创建经验球实体
-        ExperienceOrbEntity* orb = createExperienceOrb(world, x, y, z, xpValue, vx, vy, vz);
+        ExperienceOrbEntity* orb = _createExperienceOrb(world, x, y, z, xpValue, vx, vy, vz);
         if (orb != nullptr) {
             spawnedCount++;
         }
@@ -162,7 +162,7 @@ i32 ExperienceDropHandler::spawnHostileMobExperience(IWorld* world, f64 x, f64 y
 // 私有方法
 // ============================================================================
 
-ExperienceOrbEntity* ExperienceDropHandler::createExperienceOrb(
+ExperienceOrbEntity* ExperienceDropHandler::_createExperienceOrb(
     IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, f32 vx, f32 vy, f32 vz)
 {
     if (world == nullptr) {

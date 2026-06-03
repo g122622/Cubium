@@ -200,21 +200,21 @@ void FishingBobberEntity::tick()
     }
 
     // 更新水面状态
-    updateWaterState();
+    _updateWaterState();
 
     switch (m_state) {
         case State::Flying: {
             // 浮标在飞行中，执行射线检测
             if (m_world != nullptr) {
-                RayTraceResult hitResult = performRayTrace();
+                RayTraceResult hitResult = _performRayTrace();
                 if (hitResult.type == RayTraceResultType::Entity) {
                     // 命中实体，钩住它
-                    onEntityHit(hitResult);
+                    _onEntityHit(hitResult);
                     return;
                 }
                 if (hitResult.type == RayTraceResultType::Block) {
                     // 命中方块，进入 Bobbing 状态
-                    onBlockHit(hitResult);
+                    _onBlockHit(hitResult);
                     return;
                 }
             }
@@ -223,9 +223,9 @@ void FishingBobberEntity::tick()
             if (isInWater()) {
                 m_state = State::Bobbing;
                 // 设置初始等待时间
-                setWaitTime();
+                _setWaitTime();
                 // 检测是否在开放水域
-                m_inOpenWater = checkOpenWater();
+                m_inOpenWater = _checkOpenWater();
             }
             break;
         }
@@ -236,13 +236,13 @@ void FishingBobberEntity::tick()
                 m_outOfWaterTime = std::max(0, m_outOfWaterTime - 1);
                 // 检查开放水域状态（进入水后延迟检查）
                 if (m_outOfWaterTime < 10) {
-                    m_inOpenWater = m_inOpenWater && checkOpenWater();
+                    m_inOpenWater = m_inOpenWater && _checkOpenWater();
                 }
-                catchingFish();
+                _catchingFish();
             } else {
                 m_outOfWaterTime = std::min(10, m_outOfWaterTime + 1);
             }
-            spawnFishingParticles();
+            _spawnFishingParticles();
             break;
 
         case State::Fishing:
@@ -253,7 +253,7 @@ void FishingBobberEntity::tick()
                 // 如果超时未收杆，重置状态
                 if (m_ticksCatchable <= 0) {
                     m_state = State::Bobbing;
-                    setWaitTime();
+                    _setWaitTime();
                 }
             } else {
                 m_state = State::Bobbing;
@@ -281,7 +281,7 @@ void FishingBobberEntity::tick()
     }
 }
 
-void FishingBobberEntity::updateWaterState()
+void FishingBobberEntity::_updateWaterState()
 {
     // 通过检查碰撞箱判断是否在水中
     // Entity::isInWater() 已在 tick() 中更新
@@ -292,7 +292,7 @@ bool FishingBobberEntity::isInWater() const
     return Entity::isInWater();
 }
 
-bool FishingBobberEntity::checkOpenWater()
+bool FishingBobberEntity::_checkOpenWater()
 {
     // 检查浮标位置周围是否满足开放水域条件
     // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
@@ -323,7 +323,7 @@ bool FishingBobberEntity::checkOpenWater()
     return waterCount >= 60; // 4层 * 25格 * 0.6 = 60
 }
 
-void FishingBobberEntity::catchingFish()
+void FishingBobberEntity::_catchingFish()
 {
     // 阶段1：等待咬钩
     if (m_ticksCaughtDelay > 0) {
@@ -395,11 +395,11 @@ void FishingBobberEntity::catchingFish()
     // 阶段0：初始化等待
     if (m_ticksCaughtDelay <= 0 && m_ticksCatchableDelay <= 0 && m_ticksCatchable <= 0) {
         // 设置下一轮等待时间
-        setWaitTime();
+        _setWaitTime();
     }
 }
 
-void FishingBobberEntity::spawnFishingParticles()
+void FishingBobberEntity::_spawnFishingParticles()
 {
     // 浮标在水面时的涟漪效果
     if (isInWater() && m_world) {
@@ -411,7 +411,7 @@ void FishingBobberEntity::spawnFishingParticles()
     }
 }
 
-void FishingBobberEntity::setWaitTime()
+void FishingBobberEntity::_setWaitTime()
 {
     // 设置咬钩等待时间
     // 基础时间: 100-600 ticks
@@ -426,7 +426,7 @@ void FishingBobberEntity::setWaitTime()
     m_ticksCatchable = 0;
 }
 
-i32 FishingBobberEntity::spawnCatchItems()
+i32 FishingBobberEntity::_spawnCatchItems()
 {
     // 使用钓鱼掉落表生成物品
     if (!m_world || !m_angler) {
@@ -501,13 +501,13 @@ i32 FishingBobberEntity::spawnCatchItems()
 
     // 生成经验球 (1-6 经验)
     i32 experience = random.nextInt(1, 6);
-    spawnExperienceOrbs(experience);
+    _spawnExperienceOrbs(experience);
 
     // 返回钓到物品数量（用于耐久消耗）
     return static_cast<i32>(drops.size());
 }
 
-void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
+void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
 {
     // 生成经验球
     if (totalXp <= 0 || !m_world) {
@@ -555,12 +555,12 @@ i32 FishingBobberEntity::reelIn()
 
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
         // 成功钓到鱼
-        damage = spawnCatchItems();
+        damage = _spawnCatchItems();
         remove();
     } else if (m_state == State::Hooked) {
         // 钩住实体，拉过来
         if (m_caughtEntity != nullptr && m_caughtEntity->isAlive()) {
-            bringInHookedEntity();
+            _bringInHookedEntity();
             // 耐久消耗取决于实体类型：物品实体 3，其他实体 5
             if (dynamic_cast<ItemEntity*>(m_caughtEntity) != nullptr) {
                 damage = 3;
@@ -581,7 +581,7 @@ i32 FishingBobberEntity::reelIn()
 // FishingBobberEntity - 钩住实体逻辑
 // ============================================================================
 
-RayTraceResult FishingBobberEntity::performRayTrace()
+RayTraceResult FishingBobberEntity::_performRayTrace()
 {
     // 使用 ProjectileHelper 进行射线检测
     if (m_world == nullptr) {
@@ -626,7 +626,7 @@ RayTraceResult FishingBobberEntity::performRayTrace()
     return RayTraceResult::miss();
 }
 
-bool FishingBobberEntity::canHitEntity(const Entity& target) const
+bool FishingBobberEntity::_canHitEntity(const Entity& target) const
 {
     // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
     // 不能命中已死亡或已移除的实体
@@ -653,7 +653,7 @@ bool FishingBobberEntity::canHitEntity(const Entity& target) const
     return target.canBeCollidedWith();
 }
 
-void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
+void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
 {
     if (result.type != RayTraceResultType::Entity || result.hitEntity == nullptr) {
         return;
@@ -672,7 +672,7 @@ void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
     m_state = State::Hooked;
 }
 
-void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
+void FishingBobberEntity::_onBlockHit(const RayTraceResult& result)
 {
     // 命中方块时停止移动，进入漂浮状态
     m_velocity = Vector3(0.0, 0.0, 0.0);
@@ -680,12 +680,12 @@ void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
     // 如果在水上方块，设置 BOBBING 状态
     if (isInWater()) {
         m_state = State::Bobbing;
-        setWaitTime();
-        m_inOpenWater = checkOpenWater();
+        _setWaitTime();
+        m_inOpenWater = _checkOpenWater();
     }
 }
 
-void FishingBobberEntity::bringInHookedEntity()
+void FishingBobberEntity::_bringInHookedEntity()
 {
     if (m_caughtEntity == nullptr || m_angler == nullptr) {
         return;
@@ -700,7 +700,7 @@ void FishingBobberEntity::bringInHookedEntity()
         static_cast<f32>(direction.x), static_cast<f32>(direction.y), static_cast<f32>(direction.z));
 }
 
-void FishingBobberEntity::syncCaughtEntityId()
+void FishingBobberEntity::_syncCaughtEntityId()
 {
     // 存储时 +1，因为 0 表示"无实体"
     if (m_caughtEntity != nullptr) {
@@ -744,7 +744,7 @@ ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, E
     }
 
     m_direction = Direction::Up;
-    selectNextMoveDirection(axis);
+    _selectNextMoveDirection(axis);
 }
 
 std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
@@ -760,7 +760,7 @@ void ShulkerBulletEntity::setTarget(Entity* target)
     }
 }
 
-void ShulkerBulletEntity::setDirection(Direction dir)
+void ShulkerBulletEntity::_setDirection(Direction dir)
 {
     m_direction = dir;
 }
@@ -813,7 +813,7 @@ void ShulkerBulletEntity::tick()
             // 步数用完时重新选择方向
             if (m_flightSteps == 0) {
                 Axis excludeAxis = (m_direction != Direction::None) ? Directions::getAxis(m_direction) : Axis::Y;
-                selectNextMoveDirection(excludeAxis);
+                _selectNextMoveDirection(excludeAxis);
             }
         }
 
@@ -832,7 +832,7 @@ void ShulkerBulletEntity::tick()
             const BlockState* nextState = m_world->getBlockState(nextPos);
             if (nextState != nullptr && nextState->blocksMovement()) {
                 // 前方有方块，选择新方向
-                selectNextMoveDirection(axis);
+                _selectNextMoveDirection(axis);
             } else {
                 // 检查是否与目标对齐
                 BlockPos targetPos(static_cast<i32>(std::floor(m_target->x())),
@@ -851,14 +851,14 @@ void ShulkerBulletEntity::tick()
                         break;
                 }
                 if (aligned) {
-                    selectNextMoveDirection(axis);
+                    _selectNextMoveDirection(axis);
                 }
             }
         }
     }
 }
 
-void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
+void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 {
     f64 targetOffsetY = 0.5;
     BlockPos targetPos;
@@ -962,7 +962,7 @@ void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
         }
     }
 
-    setDirection(newDirection);
+    _setDirection(newDirection);
 
     // 计算速度增量
     f64 dx = targetX - m_position.x;
@@ -1091,7 +1091,7 @@ void EvokerFangsEntity::tick()
         // warmupDelayTicks < 0 后开始攻击逻辑
         if (m_warmupDelay == -8) {
             // 在 -8 tick 时对范围内实体造成伤害
-            damageEntities();
+            _damageEntities();
         }
 
         if (!m_sentAttackEvent) {
@@ -1116,7 +1116,7 @@ f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
     }
 }
 
-void EvokerFangsEntity::damageEntities()
+void EvokerFangsEntity::_damageEntities()
 {
     // 对碰撞箱扩展范围内的 LivingEntity 造成伤害
     if (m_world == nullptr) {
@@ -1289,11 +1289,11 @@ void FireworkRocketEntity::tick()
 
     // 检查是否爆炸（lifetime = flightTime * 10 + random(6) + random(7)，简化为 flightTime * 10）
     if (m_lifetime >= m_flightTime * 10 + 6) {
-        explode();
+        _explode();
     }
 }
 
-void FireworkRocketEntity::explode()
+void FireworkRocketEntity::_explode()
 {
     // 如果从弩射出，对周围实体造成伤害
     if (m_shotFromCrossbow) {

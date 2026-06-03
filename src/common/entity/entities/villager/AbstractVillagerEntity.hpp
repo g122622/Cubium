@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../world/blockentity/core/SimpleInventory.hpp"
-#include "../../../world/village/trade/Merchant.hpp"
-#include "../../core/AgeableEntity.hpp"
-#include "../../inventory/INamedContainerProvider.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
+#include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/village/trade/Merchant.hpp"
 #include <memory>
 
 namespace mc {
@@ -43,8 +43,6 @@ namespace entity {
 
 /**
  * @brief 村民职业枚举
- *
- * 参考 MC 1.16.5 VillagerProfession
  */
 enum class VillagerProfession : u8 {
     None = 0,      // 无职业（傻子）
@@ -66,8 +64,6 @@ enum class VillagerProfession : u8 {
 
 /**
  * @brief 村民类型枚举（外观）
- *
- * 参考 MC 1.16.5 VillagerType
  */
 enum class VillagerType : u8 {
     Desert = 0, // 沙漠
@@ -83,8 +79,6 @@ enum class VillagerType : u8 {
  * @brief 村民数据
  *
  * 存储村民的职业、类型、等级等信息。
- *
- * 参考 MC 1.16.5 VillagerData
  */
 class VillagerData {
 public:
@@ -148,8 +142,6 @@ private:
  *
  * 所有可交易NPC的基类（村民、流浪商人）。
  * 实现 INamedContainerProvider 接口，支持旁观者模式玩家与村民交互。
- *
- * 参考 MC 1.16.5 AbstractVillagerEntity
  */
 class AbstractVillagerEntity : public AgeableEntity, public INamedContainerProvider {
 public:

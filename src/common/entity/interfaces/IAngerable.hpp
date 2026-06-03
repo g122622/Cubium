@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <optional>
 
 namespace mc {
@@ -39,8 +39,6 @@ namespace entity {
  *
  * 实现此接口的实体可以在被攻击后记住攻击者并进行反击。
  * 例如：狼、铁傀儡、末影人、僵尸猪灵等。
- *
- * 参考 MC 1.16.5 IAngerable
  */
 class IAngerable {
 public:

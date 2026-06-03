@@ -39,7 +39,6 @@
 namespace mc {
 namespace entity {
 
-// MC 1.16.5 常量
 namespace {
 constexpr f32 BUOYANCY = 0.06153846f; // 1/16.25 近似
 constexpr f32 GRAVITY = 0.04f;
@@ -56,7 +55,7 @@ constexpr i32 TIME_SINCE_HIT_DECAY = 10;
 constexpr i32 OUT_OF_CONTROL_THRESHOLD = 60;  // 水下60tick踢下船
 constexpr f32 PADDLE_SPEED = math::PI / 8.0f; // 每tick 22.5度
 
-// 乘客位置常量 (MC 1.16.5)
+// 乘客位置常量
 constexpr f32 PASSENGER_Y_OFFSET_MULT = 0.75f; // 乘客Y偏移乘数
 constexpr f32 PASSENGER1_X_OFFSET = 0.2f;      // 第一乘客X偏移
 constexpr f32 PASSENGER2_X_OFFSET = -0.6f;     // 第二乘客X偏移
@@ -66,7 +65,7 @@ constexpr f32 MAX_PASSENGER_ROTATION = 105.0f; // 乘客相对船的最大旋转
 constexpr f32 BUOYANCY_VELOCITY_MULT = 0.75f; // 浮力速度乘数
 constexpr f32 WATER_CHECK_OFFSET = 0.001f;    // 水面检测偏移
 
-// MC 1.16.5 BoatEntity 数据参数
+// 船实体数据参数
 DataParameter<i32> TIME_SINCE_HIT_PARAM{0};
 DataParameter<i32> FORWARD_DIRECTION_PARAM{1};
 DataParameter<f32> DAMAGE_TAKEN_PARAM{2};
@@ -84,7 +83,6 @@ BoatEntity::BoatEntity(Type type)
     : Entity(EntityId(0))
     , m_type(type)
 {
-    // MC 1.16.5: preventEntitySpawning = true
     // 设置尺寸通过 width()/height()
     registerData();
 }
@@ -93,7 +91,6 @@ void BoatEntity::registerData()
 {
     Entity::registerData();
 
-    // MC 1.16.5 BoatEntity.registerData()
     m_dataManager.registerParam(TIME_SINCE_HIT_PARAM, 0);
     m_dataManager.registerParam(FORWARD_DIRECTION_PARAM, 1);
     m_dataManager.registerParam(DAMAGE_TAKEN_PARAM, 0.0f);
@@ -104,8 +101,6 @@ void BoatEntity::registerData()
 
 void BoatEntity::tick()
 {
-    // MC 1.16.5 BoatEntity.tick()
-
     // 更新 previousStatus 和 status
     m_previousStatus = m_status;
     updateStatus();
@@ -113,7 +108,7 @@ void BoatEntity::tick()
     // 更新失控计时器
     if (m_status == BoatStatus::UnderWater || m_status == BoatStatus::UnderFlowingWater) {
         m_outOfControlTicks++;
-        // MC 1.16.5: 水下60tick踢下所有乘客
+        // 水下60tick踢下所有乘客
         if (m_outOfControlTicks >= OUT_OF_CONTROL_THRESHOLD && !m_passengers.empty()) {
             removePassengers();
         }
@@ -125,7 +120,7 @@ void BoatEntity::tick()
     if (m_timeSinceHit > 0) {
         m_timeSinceHit--;
     }
-    // MC 1.16.5: damageTaken 每tick减1.0（不是0.05）
+    // damageTaken 每tick减1.0
     if (m_damageTaken > 0.0f) {
         m_damageTaken -= 1.0f;
         if (m_damageTaken < 0.0f) {
@@ -139,13 +134,12 @@ void BoatEntity::tick()
         m_lastYd = currentYd;
     }
 
-    // 调用父类tick (MC 1.16.5: super.tick() 在这里调用)
+    // 调用父类tick
     Entity::tick();
 
     // 更新插值
     tickLerp();
 
-    // MC 1.16.5: 检查 canPassengerSteer()
     if (canPassengerSteer()) {
         // 没有乘客或非玩家控制者时，不划桨
         if (m_passengers.empty() || (m_world && !m_world->isClientSide())) {
@@ -155,17 +149,13 @@ void BoatEntity::tick()
         // 更新运动
         updateMotion();
 
-        // MC 1.16.5: 客户端调用 controlBoat 并发送包
-        // 注意：在 MC 1.16.5 中，客户端和服务端共用同一个 BoatEntity 类
-        // 在我们的架构中，客户端使用 ClientEntity 代理，服务端使用 BoatEntity
-        // 因此这里只在服务端执行 controlBoat（由 PlayerInputPacket 驱动）
+        // 服务端：由 PlayerInputPacket 触发 handleInput 后调用 controlBoat
         // 客户端通过 ClientApplication 直接发送 SteerBoatPacket
         if (m_world && !m_world->isClientSide()) {
-            // 服务端：由 PlayerInputPacket 触发 handleInput 后调用 controlBoat
             controlBoat();
         }
 
-        // 执行移动 (MC 1.16.5: this.move(MoverType.SELF, this.getMotion()))
+        // 执行移动
         move(MoverType::Self, velocity());
     } else {
         // 不可控制时，清零速度
@@ -178,7 +168,6 @@ void BoatEntity::tick()
     // 更新乘客位置
     updateAllPassengerPositions();
 
-    // MC 1.16.5: BoatEntity.tick() 第 319 行
     // 由于 canTriggerWalking() 返回 false，需要手动调用 doBlockCollisions()
     // 用于处理气泡柱、仙人掌、甜浆果丛等方块的碰撞效果
     doBlockCollisions();
@@ -195,7 +184,6 @@ void BoatEntity::tick()
 
 void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward)
 {
-    // MC 1.16.5: 设置输入状态
     m_leftInputDown = left;
     m_rightInputDown = right;
     m_forwardInputDown = forward;
@@ -204,7 +192,6 @@ void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward)
 
 void BoatEntity::updateMotion()
 {
-    // MC 1.16.5 BoatEntity.updateMotion()
     f64 gravity = -GRAVITY;
     f32 friction = 0.05f;
     f64 buoyancy = 0.0;
@@ -254,8 +241,7 @@ void BoatEntity::updateMotion()
 
 void BoatEntity::floatBoat()
 {
-    // MC 1.16.5: 计算浮力
-    // 需要世界引用来获取流体状态
+    // 计算浮力，需要世界引用来获取流体状态
     if (m_world == nullptr) {
         return;
     }
@@ -302,7 +288,6 @@ void BoatEntity::floatBoat()
 
 void BoatEntity::controlBoat()
 {
-    // MC 1.16.5 BoatEntity.controlBoat()
     if (m_passengers.empty()) {
         return;
     }
@@ -315,7 +300,7 @@ void BoatEntity::controlBoat()
         m_speed -= 0.005f;
     }
 
-    // 转向 (MC 1.16.5: 每tick加减1)
+    // 转向
     if (m_leftInputDown) {
         m_deltaRotation -= 1.0f;
     }
@@ -347,7 +332,7 @@ void BoatEntity::controlBoat()
 
 void BoatEntity::tickLerp()
 {
-    // MC 1.16.5: 插值更新
+    // 插值更新
     if (m_interpolationSteps > 0) {
         f64 lerpFactor = 1.0 / static_cast<f64>(m_interpolationSteps);
         f64 dx = m_interpolationX - static_cast<f64>(m_position.x);
@@ -369,7 +354,6 @@ void BoatEntity::tickLerp()
 
 void BoatEntity::updateStatus()
 {
-    // MC 1.16.5: 更新船的状态
     if (m_world == nullptr) {
         m_status = BoatStatus::InAir;
         return;
@@ -401,7 +385,7 @@ void BoatEntity::updateStatus()
 
 BoatStatus BoatEntity::getUnderwaterStatus()
 {
-    // MC 1.16.5: 检测船是否在水下
+    // 检测船是否在水下
     if (m_world == nullptr) {
         return BoatStatus::InWater;
     }
@@ -442,7 +426,7 @@ BoatStatus BoatEntity::getUnderwaterStatus()
 
 bool BoatEntity::checkInWater()
 {
-    // MC 1.16.5: 检测船是否在水中
+    // 检测船是否在水中
     if (m_world == nullptr) {
         return false;
     }
@@ -481,7 +465,7 @@ bool BoatEntity::checkInWater()
 
 f32 BoatEntity::getBoatGlide()
 {
-    // MC 1.16.5: 计算地面滑动系数
+    // 计算地面滑动系数
     if (m_world == nullptr) {
         return 0.0f;
     }
@@ -493,14 +477,12 @@ f32 BoatEntity::getBoatGlide()
 
 void BoatEntity::updatePassengerPosition(Entity& passenger)
 {
-    // MC 1.16.5: BoatEntity.updatePassenger() - 更新单个乘客位置
-    // 委托给内部辅助方法
+    // 更新单个乘客位置，委托给内部辅助方法
     updateAllPassengerPositions();
 }
 
 void BoatEntity::updateAllPassengerPositions()
 {
-    // MC 1.16.5: 更新乘客位置
     if (m_passengers.empty() || m_world == nullptr) {
         return;
     }
@@ -523,8 +505,7 @@ void BoatEntity::updateAllPassengerPositions()
             } else {
                 offsetX = PASSENGER2_X_OFFSET; // 第二个乘客靠后
             }
-            // MC 1.16.5: 动物额外偏移 +0.2D
-            // if (passenger instanceof AnimalEntity) { offsetX += 0.2D; }
+            // 动物额外偏移 +0.2D
             if (dynamic_cast<const AnimalEntity*>(passenger) != nullptr) {
                 offsetX += 0.2f;
             }
@@ -548,7 +529,7 @@ void BoatEntity::updateAllPassengerPositions()
 
 void BoatEntity::applyOrientationToEntity(Entity& passenger)
 {
-    // MC 1.16.5: 将船的朝向应用到乘客
+    // 将船的朝向应用到乘客
     passenger.setRotation(m_yaw, passenger.pitch());
 
     // 限制乘客相对船的旋转范围
@@ -559,7 +540,7 @@ void BoatEntity::applyOrientationToEntity(Entity& passenger)
 
 void BoatEntity::updateRocking()
 {
-    // MC 1.16.5: 更新气泡柱摇晃
+    // 更新气泡柱摇晃
     if (m_rockingTicks > 0) {
         m_rockingTicks--;
         m_prevRockingAngle = m_rockingAngle;
@@ -569,7 +550,7 @@ void BoatEntity::updateRocking()
 
 f32 BoatEntity::getWaterLevelAbove()
 {
-    // MC 1.16.5: 获取上方水面高度
+    // 获取上方水面高度
     if (m_world == nullptr) {
         return m_position.y + 1.0f;
     }
@@ -610,55 +591,43 @@ f32 BoatEntity::getWaterLevelAbove()
 
 f64 BoatEntity::getMountedYOffset() const
 {
-    // MC 1.16.5: BoatEntity.getMountedYOffset() -> -0.1D
     return -0.1;
 }
 
 bool BoatEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: BoatEntity.attackEntityFrom()
-
-    // 1. 检查是否对伤害类型免疫
+    // 检查是否对伤害类型免疫
     if (isInvulnerable()) {
         return false;
     }
 
-    // 2. 只在服务端处理
-    // if (this.world.isRemote || this.removed) return true;
+    // 只在服务端处理
     if (isRemoved()) {
         return true;
     }
 
-    // 3. 设置受击动画
-    // this.setForwardDirection(-this.getForwardDirection());
+    // 设置受击动画
     m_forwardDirection = -m_forwardDirection;
 
-    // 4. 设置受击时间
-    // this.setTimeSinceHit(10);
+    // 设置受击时间
     m_timeSinceHit = 10;
 
-    // 5. 累积伤害
-    // this.setDamageTaken(this.getDamageTaken() + amount * 10.0F);
+    // 累积伤害
     m_damageTaken += amount * 10.0f;
 
-    // 6. 检查是否应该摧毁船
-    // boolean flag = source.getTrueSource() instanceof PlayerEntity &&
-    // ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    // 检查是否应该摧毁船
     bool isCreative = false;
     Player* attacker = dynamic_cast<Player*>(source.source());
     if (attacker != nullptr) {
         isCreative = attacker->isCreative();
     }
 
-    // 7. 超过伤害阈值或创造模式时摧毁船
-    // if (flag || this.getDamageTaken() > 40.0F)
+    // 超过伤害阈值或创造模式时摧毁船
     if (isCreative || m_damageTaken > DAMAGE_THRESHOLD) {
         // 移除所有乘客
         removePassengers();
 
         // 掉落船物品
-        // if (!flag && this.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
-        //     this.entityDropItem(this.getItemBoat());
         if (!isCreative) {
             dropItem();
         }
@@ -672,13 +641,11 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount)
 
 void BoatEntity::updateFallState(f64 y, bool onGround)
 {
-    // MC 1.16.5: BoatEntity.updateFallState()
     // 船没有摔落伤害，但需要更新 lastYd 用于水面检测
     MC_UNUSED(onGround);
 
     // 注意：BoatEntity.canTriggerWalking() 返回 false
     // 因此 BoatEntity::tick() 中需要手动调用 doBlockCollisions()
-    // 参考 MC 1.16.5: BoatEntity.tick() 第 319 行调用 this.doBlockCollisions()
 
     // 如果在水中，重置摔落距离
     if (isInWater()) {
@@ -690,7 +657,6 @@ void BoatEntity::updateFallState(f64 y, bool onGround)
 
 const Item* BoatEntity::getBoatItem() const
 {
-    // MC 1.16.5: BoatEntity.getItemBoat()
     // 根据船类型返回对应的船物品
     switch (m_type) {
         case Type::OAK:
@@ -712,9 +678,6 @@ const Item* BoatEntity::getBoatItem() const
 
 void BoatEntity::dropItem()
 {
-    // MC 1.16.5: BoatEntity.attackEntityFrom() 中调用 entityDropItem(this.getItemBoat())
-    // 参考 AbstractMinecartEntity::dropItem() 的实现
-
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
         return;
@@ -735,7 +698,6 @@ void BoatEntity::dropItem()
     }
 
     // 使用 ItemDropHelper 在船的位置生成物品实体
-    // 参考 MC 1.16.5: entityDropItem(stack)
     math::Random& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }

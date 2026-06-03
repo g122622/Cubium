@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
-#include "../../network/packet/PacketSerializer.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../../util/text/ITextComponent.hpp"
-#include "../../util/text/StringTextComponent.hpp"
-#include "../enchantment/EnchantmentContainer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <memory>
 #include <optional>
 #include <nlohmann/json.hpp>
@@ -57,8 +57,6 @@ namespace mc {
  *
  * 表示游戏中的一个物品实例，包含物品类型、数量和额外数据（耐久、附魔等）。
  * ItemStack是不可变的值类型，修改操作返回新的ItemStack。
- *
- * 参考: net.minecraft.item.ItemStack
  *
  * 关键概念：
  * - 空堆（Empty）：item为nullptr或count为0，isEmpty()返回true
@@ -163,8 +161,8 @@ public:
     /**
      * @brief 是否可堆叠
      *
-     * MC 1.16.5: 物品可堆叠当且仅当最大堆叠数 > 1 且（不可损坏或未损坏）
-     * 注意：有耐久度的物品通常 maxStackSize=1，所以此方法会返回false
+     * 物品可堆叠当且仅当最大堆叠数 > 1 且（不可损坏或未损坏）。
+     * 注意：有耐久度的物品通常 maxStackSize=1，所以此方法会返回false。
      * @return 如果物品可以堆叠返回true
      */
     [[nodiscard]] bool isStackable() const;
@@ -257,9 +255,7 @@ public:
     /**
      * @brief 合并 JSON 标签到现有标签
      *
-     * 参考 MC 1.16.5 CompoundNBT.merge() 行为：
-     * - 如果两边都是对象，递归合并每个字段
-     * - 否则，源值覆盖目标值
+     * 如果两边都是对象，递归合并每个字段；否则，源值覆盖目标值。
      *
      * @param other 要合并的 JSON 对象
      */
@@ -274,7 +270,6 @@ public:
     /**
      * @brief 递归合并两个 JSON 对象
      *
-     * 参考 MC 1.16.5 CompoundNBT.merge() 实现。
      * 对于对象类型的字段，递归合并；其他类型直接覆盖。
      *
      * @param target 目标 JSON 对象（会被修改）
@@ -320,7 +315,7 @@ public:
     /**
      * @brief 尝试造成伤害（带实体参数）
      *
-     * MC 1.16.5: 考虑耐久保护（Unbreaking）附魔的效果。
+     * 考虑耐久保护（Unbreaking）附魔的效果。
      * 耐久附魔每级有 level/(level+1) 概率避免损耗。
      * 对于盔甲，概率减半。
      *
@@ -387,7 +382,6 @@ public:
      * @brief 物品在背包中每tick调用
      *
      * 委托给 Item::inventoryTick，用于更新地图、时钟等物品。
-     * 参考: net.minecraft.item.ItemStack#inventoryTick
      *
      * @param world 世界引用
      * @param entity 持有实体（通常是玩家）
@@ -400,7 +394,6 @@ public:
      * @brief 护甲物品每tick调用
      *
      * 委托给 Item::onArmorTick，用于实现护甲特殊效果。
-     * 参考: net.minecraft.item.ItemStack#onArmorTick (Forge)
      *
      * @param world 世界引用
      * @param player 穿戴护甲的玩家
@@ -528,16 +521,12 @@ public:
     /**
      * @brief 获取修复成本
      * @return 修复成本
-     *
-     * 参考: net.minecraft.item.ItemStack.getRepairCost()
      */
     [[nodiscard]] i32 getRepairCost() const { return m_repairCost; }
 
     /**
      * @brief 设置修复成本
      * @param cost 修复成本
-     *
-     * 参考: net.minecraft.item.ItemStack.setRepairCost()
      */
     void setRepairCost(i32 cost) { m_repairCost = cost; }
 
@@ -547,7 +536,6 @@ public:
      * @brief 获取容器物品堆
      * @return 容器物品堆，如果没有则返回空堆
      *
-     * 参考: net.minecraft.item.ItemStack.getContainerItem()
      * 例如：牛奶桶用完后返回空桶
      */
     [[nodiscard]] ItemStack getContainerItem() const;
@@ -588,7 +576,6 @@ public:
      * @param tag NBT 复合标签（输出参数）
      * @return NBT 复合标签引用
      *
-     * 参考 MC 1.16.5 ItemStack.write()
      * NBT 格式：
      * - id (string): 物品资源位置
      * - Count (byte): 数量

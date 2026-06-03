@@ -42,17 +42,17 @@ bool BookCloningRecipe::matches(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isWrittenBook(stack)) {
+        if (_isWrittenBook(stack)) {
             if (hasWrittenBook) {
                 // 只能有一本成书
                 return false;
             }
             hasWrittenBook = true;
             // 检查代数，最多复制到第二代
-            if (getGeneration(stack) >= 2) {
+            if (_getGeneration(stack) >= 2) {
                 return false;
             }
-        } else if (isWritableBook(stack)) {
+        } else if (_isWritableBook(stack)) {
             hasWritableBook = true;
         } else {
             // 有其他物品，不匹配
@@ -74,9 +74,9 @@ ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isWrittenBook(stack)) {
+        if (_isWrittenBook(stack)) {
             writtenBook = stack;
-        } else if (isWritableBook(stack)) {
+        } else if (_isWritableBook(stack)) {
             writableBookCount += stack.getCount();
         }
     }
@@ -86,7 +86,7 @@ ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const
     }
 
     // 检查代数
-    i32 generation = getGeneration(writtenBook);
+    i32 generation = _getGeneration(writtenBook);
     if (generation >= 2) {
         return ItemStack::EMPTY;
     }
@@ -94,7 +94,7 @@ ItemStack BookCloningRecipe::assemble(const CraftingInventory& inventory) const
     // 创建复制的书
     ItemStack result = writtenBook.copy();
     result.setCount(writableBookCount);
-    setGeneration(result, generation + 1);
+    _setGeneration(result, generation + 1);
 
     return result;
 }
@@ -106,7 +106,7 @@ std::vector<ItemStack> BookCloningRecipe::getRemainingItems(const CraftingInvent
     // 保留原书（只有一本）
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
-        if (isWrittenBook(stack)) {
+        if (_isWrittenBook(stack)) {
             ItemStack originalBook = stack.copy();
             originalBook.setCount(1);
             remaining[i] = originalBook;
@@ -117,27 +117,25 @@ std::vector<ItemStack> BookCloningRecipe::getRemainingItems(const CraftingInvent
     return remaining;
 }
 
-bool BookCloningRecipe::isWrittenBook(const ItemStack& stack)
+bool BookCloningRecipe::_isWrittenBook(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
     }
     const Item* item = stack.getItem();
-    // MC 1.16.5: 检查物品是否为 WrittenBookItem（成书）
     return item == Items::WRITTEN_BOOK;
 }
 
-bool BookCloningRecipe::isWritableBook(const ItemStack& stack)
+bool BookCloningRecipe::_isWritableBook(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
     }
     const Item* item = stack.getItem();
-    // MC 1.16.5: 检查物品是否为 WritableBookItem（书与笔）
     return item == Items::WRITABLE_BOOK;
 }
 
-i32 BookCloningRecipe::getGeneration(const ItemStack& stack)
+i32 BookCloningRecipe::_getGeneration(const ItemStack& stack)
 {
     // 从 NBT 标签获取代数
     const nlohmann::json* tag = stack.getTag();
@@ -153,7 +151,7 @@ i32 BookCloningRecipe::getGeneration(const ItemStack& stack)
     return it->get<i32>();
 }
 
-void BookCloningRecipe::setGeneration(ItemStack& stack, i32 generation)
+void BookCloningRecipe::_setGeneration(ItemStack& stack, i32 generation)
 {
     nlohmann::json& tag = stack.getOrCreateTag();
     tag["generation"] = generation;

@@ -41,8 +41,6 @@ namespace entity {
  *
  * 实现此接口的实体可以被玩家骑乘并控制方向。
  * 例如：猪（需要鞍和胡萝卜钓竿）、炽足兽（需要鞍和诡异菌钓竿）、马等。
- *
- * 参考 MC 1.16.5 IRideable
  */
 class IRideable {
 public:
@@ -100,7 +98,6 @@ public:
      * @brief 检查是否可以被控制方向
      * @return 如果可以被控制返回true
      *
-     * MC 1.16.5: canBeSteered()
      * 猪需要玩家手持胡萝卜钓竿，炽足兽需要玩家手持诡异菌钓竿
      */
     [[nodiscard]] virtual bool canBeSteered() const { return hasSaddle(); }
@@ -108,16 +105,12 @@ public:
     /**
      * @brief 控制骑乘实体向指定方向移动
      * @param travelVec 移动向量（通常来自玩家的输入）
-     *
-     * MC 1.16.5: travelTowards(Vector3d)
-     * 用于接收玩家的移动输入
      */
     virtual void travelTowards(const Vector3& travelVec) { MC_UNUSED(travelVec); }
 
     /**
      * @brief 执行骑乘移动逻辑
      *
-     * MC 1.16.5: ride(MobEntity, BoostHelper, Vector3d)
      * 处理骑乘实体的移动逻辑，包括：
      * - 同步骑乘者朝向
      * - 计算加速速度

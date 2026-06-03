@@ -22,8 +22,8 @@
  */
 
 #include "ItemAttributeModifiers.hpp"
-#include "../../entity/attribute/AttributeModifierUUIDs.hpp"
-#include "../../entity/attribute/Attributes.hpp"
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -52,7 +52,7 @@ std::vector<ItemAttributeModifiers::Entry> ItemAttributeModifiers::getModifiersF
     std::vector<Entry> result;
     for (const auto& entry : m_entries) {
         if (entry.equipmentSlot == equipmentSlot) {
-            result.push_back(entry);
+            result.emplace_back(entry.attribute, entry.modifier, entry.equipmentSlot);
         }
     }
     return result;
@@ -75,7 +75,6 @@ u64 ItemAttributeModifiers::generateModifierUUID(u32 itemId, const std::string& 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackDamage(f64 amount, i32 equipmentSlot)
 {
     // 创建攻击伤害修饰符（加法操作）
-    // 使用 MC 1.16.5 标准UUID (Item.java:45)
     auto attr = entity::attribute::Attributes::attackDamage();
     auto modifier = entity::attribute::AttributeModifier(
         entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID),
@@ -89,7 +88,6 @@ ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackDamage(f64 a
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackSpeed(f64 amount, i32 equipmentSlot)
 {
     // 创建攻击速度修饰符（加法操作）
-    // 使用 MC 1.16.5 标准UUID (Item.java:46)
     auto attr = entity::attribute::Attributes::attackSpeed();
     auto modifier = entity::attribute::AttributeModifier(
         entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),

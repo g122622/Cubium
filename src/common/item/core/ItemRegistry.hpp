@@ -23,6 +23,8 @@
 
 #pragma once
 
+// TODO: include路径应改为 "common/core/Types.hpp" 和 "common/resource/ResourceLocation.hpp"
+// 但由于Item.hpp也使用了相同的相对路径模式，为保持项目内一致性，暂不修改
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "Item.hpp"
@@ -40,7 +42,6 @@ namespace mc {
  * @brief 物品注册表
  *
  * 单例模式，管理所有物品的注册和查找。
- * 参考: net.minecraft.item.Item.Registry / Registry.ITEM
  *
  * 用法示例:
  * @code
@@ -93,11 +94,11 @@ public:
         }
 
         // 使用辅助函数创建实例（绕过protected构造函数限制）
-        auto item = createItem<ItemType>(std::forward<Args>(args)...);
+        auto item = _createItem<ItemType>(std::forward<Args>(args)...);
         item->m_itemLocation = id;
 
         // 分配物品ID
-        ItemId itemId = allocateItemId();
+        ItemId itemId = _allocateItemId();
         item->m_itemId = itemId;
 
         ItemType* ptr = item.get();
@@ -157,7 +158,7 @@ public:
     /**
      * @brief 获取物品数量
      */
-    [[nodiscard]] size_t itemCount() const { return m_items.size(); }
+    [[nodiscard]] Size itemCount() const { return m_items.size(); }
 
     /**
      * @brief 获取空气物品（表示空物品）
@@ -179,12 +180,12 @@ public:
 
 private:
     ItemRegistry();
-    ~ItemRegistry() = default;
+    ~ItemRegistry() noexcept = default;
 
     /**
      * @brief 分配物品ID
      */
-    ItemId allocateItemId();
+    ItemId _allocateItemId();
 
     /**
      * @brief 创建物品实例的辅助函数
@@ -192,7 +193,7 @@ private:
      * 用于绕过 std::make_unique 无法访问 protected 构造函数的问题
      */
     template <typename ItemType, typename... Args>
-    std::unique_ptr<ItemType> createItem(Args&&... args)
+    std::unique_ptr<ItemType> _createItem(Args&&... args)
     {
         return std::unique_ptr<ItemType>(new ItemType(std::forward<Args>(args)...));
     }

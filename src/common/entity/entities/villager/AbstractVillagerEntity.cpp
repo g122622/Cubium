@@ -22,8 +22,8 @@
  */
 
 #include "AbstractVillagerEntity.hpp"
-#include "../../entities/player/Player.hpp"
-#include "../../inventory/AbstractContainerMenu.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -65,7 +65,7 @@ void VillagerData::addExperience(i32 amount)
 
 i32 VillagerData::getExperienceForLevel(i32 level)
 {
-    // 参考 MC 1.16.5 升级经验表
+    // 升级经验表
     switch (level) {
         case 1:
             return 10;
@@ -128,7 +128,6 @@ std::unique_ptr<AbstractContainerMenu> AbstractVillagerEntity::createMenu(i32 co
 {
     // TODO: 创建村民交易菜单
     // 需要实现 MerchantContainer 类
-    // 参考 MC 1.16.5: AbstractVillagerEntity.createMenu()
     (void)containerId;
     (void)player;
     return nullptr;
@@ -137,7 +136,6 @@ std::unique_ptr<AbstractContainerMenu> AbstractVillagerEntity::createMenu(i32 co
 std::string AbstractVillagerEntity::getDisplayName() const
 {
     // 返回村民的自定义名称或默认名称
-    // 参考 MC 1.16.5: AbstractVillagerEntity.getDisplayName()
     if (hasCustomName()) {
         return customNameText();
     }

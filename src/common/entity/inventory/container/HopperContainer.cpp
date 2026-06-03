@@ -49,21 +49,19 @@ HopperContainer::HopperContainer(ContainerId id,
     hopperInventory->openInventory(*playerInventory->getPlayer());
 
     // 初始化槽位布局
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 // ========== 容器接口 ==========
 
 bool HopperContainer::stillValid(const Player& player) const
 {
-    // MC 1.16.5: 如果没有关联的方块实体，背包可访问
+    // 如果没有关联的方块实体，背包可访问
     if (m_hopperEntity == nullptr) {
         return m_hopperInventory->isUsableByPlayer(player);
     }
 
-    // MC 1.16.5: 检查玩家是否在漏斗附近（8格范围内）
-    // 参考 net.minecraft.inventory.container.HopperContainer.canInteractWith
-    // -> lowerChestInventory.isUsableByPlayer(playerIn)
+    // 检查玩家是否在漏斗附近（8格范围内）
     const BlockPos pos = m_hopperEntity->getPos();
     return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
@@ -87,7 +85,7 @@ ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player)
     ItemStack slotStack = slot->getItem();
     ItemStack result = slotStack.copy();
 
-    // MC 1.16.5: 漏斗槽位范围 0-4，玩家背包槽位范围 5-40
+    // 漏斗槽位范围 0-4，玩家背包槽位范围 5-40
     if (slotIndex < HOPPER_SIZE) {
         // 从漏斗移到玩家背包
         if (!moveItemToRange(slotStack, HOPPER_SIZE, getSlotCount(), true)) {
@@ -111,10 +109,9 @@ ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player)
 
 // ========== 私有方法 ==========
 
-void HopperContainer::initSlots(PlayerInventory* playerInventory)
+void HopperContainer::_initSlots(PlayerInventory* playerInventory)
 {
     // ========== 漏斗槽位（1行5列）==========
-    // MC 1.16.5: x从44开始，y=20
 
     for (i32 col = 0; col < HOPPER_SIZE; ++col) {
         i32 x = HOPPER_SLOT_START_X + col * SLOT_SIZE;
@@ -124,7 +121,6 @@ void HopperContainer::initSlots(PlayerInventory* playerInventory)
     }
 
     // ========== 玩家主背包（3行9列）==========
-    // MC 1.16.5: y从51开始
 
     for (i32 row = 0; row < 3; ++row) {
         for (i32 col = 0; col < 9; ++col) {
@@ -137,7 +133,6 @@ void HopperContainer::initSlots(PlayerInventory* playerInventory)
     }
 
     // ========== 玩家快捷栏（1行9列）==========
-    // MC 1.16.5: y=109
 
     for (i32 col = 0; col < 9; ++col) {
         i32 slotIndex = col; // 快捷栏从索引0开始

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/core/LivingEntity.hpp" // For EquipmentSlot enum
-#include "../../resource/ResourceLocation.hpp"
-#include "../../sound/SoundEvent.hpp"
-#include "../crafting/Ingredient.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp" // For EquipmentSlot enum
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvent.hpp"
 #include <string>
 
 namespace mc {

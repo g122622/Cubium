@@ -776,18 +776,16 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
     }
 
     // 应用水中阻力
-    // MC: this.setMotion(this.getMotion().mul((double)f5, (double)0.8F, (double)f5));
     // 垂直方向阻力固定为 0.8
     m_velocity.x *= waterDrag;
-    m_velocity.y *= 0.8f; // 水中垂直阻力固定为 0.8
+    m_velocity.y *= 0.8f;
     m_velocity.z *= waterDrag;
 
     // 应用水中的"浮力"效果
-    // MC 1.16.5: func_233626_a_() - 浮力计算
     // 重力减少到 1/16 (0.08 / 16 = 0.005)
     if (!m_abilities.flying && !m_noGravity) {
         f32 gravity = physics::GRAVITY;
-        f32 buoyancy = gravity / 16.0f; // MC 标准：重力 / 16
+        f32 buoyancy = gravity / 16.0f;
 
         // 下落时应用浮力
         if (m_velocity.y < 0.0f) {
@@ -796,7 +794,6 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
     }
 
     // 碰撞到墙后尝试上跳（爬出水面的行为）
-    // MC: if (this.collidedHorizontally && this.isOffsetPositionInLiquid(...))
     if (m_collidedHorizontally && !m_onGround && m_physicsEngine) {
         // 尝试向上跳
         m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
@@ -808,7 +805,6 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
 
 void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
 {
-    // 参考 MC 1.16.5 LivingEntity.travel() 岩浆分支
     // 岩浆中移动比水中更慢
 
     // 岩浆中基础移动速度
@@ -863,7 +859,6 @@ void Player::jump()
         m_jumpTicks = JUMP_COOLDOWN; // 设置跳跃冷却
 
         // 跳跃消耗饥饿值
-        // 参考 MC 1.16.5: PlayerEntity.jump() 调用 addExhaustion
         if (m_isSprinting) {
             addExhaustion(EXHAUSTION_SPRINT_JUMP);
         } else {
@@ -898,7 +893,6 @@ f32 Player::_groundSlipperiness() const
 /**
  * @brief 潜行时检查是否可以移动到边缘
  *
- * 参考MC: PlayerEntity.maybeBackOffFromEdge()
  * 当玩家潜行时，检查前方是否有方块支撑，防止掉落。
  *
  * @param movement 期望移动向量
@@ -984,19 +978,14 @@ void Player::updatePhysics()
 
     if (!(isInWater() || isInLava()) || m_abilities.flying) {
         // 2. 应用重力（飞行时不应用重力）
-        // MC 1.16.5: 重力始终应用，碰撞检测会处理停止
-        // 参考 Entity.move() 和 LivingEntity.travel()
         if (!m_abilities.flying && !hasNoGravity()) {
             m_velocity.y -= physics::GRAVITY;
         }
 
         // 3. 应用阻力
-        // 参考MC: LivingEntity.travel() 和 PlayerEntity.travel()
         // 飞行时阻力处理不同：Y方向用0.6，水平方向用0.91
         if (m_abilities.flying) {
-            // 飞行模式：参考 MC PlayerEntity.travel() line 1451
-            // this.setMotion(vector3d.x, d5 * 0.6D, vector3d.z);
-            // 其中 d5 是旅行前的Y速度
+            // 飞行模式
             m_velocity.x *= physics::FLY_HORIZONTAL_DRAG;
             m_velocity.y *= physics::FLY_VERTICAL_DRAG;
             m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
@@ -1027,7 +1016,7 @@ void Player::updatePhysics()
         if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
             Vector3 actualMovement = moveWithCollision(movement.x, movement.y, movement.z);
 
-            // 8. 碰撞后重置速度（参考MC: Entity.move）
+            // 8. 碰撞后重置速度
             // 飞行模式下碰撞时不重置水平速度（可以穿透方块边缘的感觉）
             if (!m_abilities.flying) {
                 if (m_collidedHorizontally) {
@@ -1043,7 +1032,6 @@ void Player::updatePhysics()
         }
 
         // 9. 自动跳跃检测（在移动后）
-        // MC 源码在 ClientPlayerEntity.move() 方法末尾调用 updateAutoJump
         if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
             // 计算实际移动距离
             Vector2 actualMovement(m_position.x - prevPos.x, m_position.z - prevPos.z);
@@ -1096,15 +1084,13 @@ network::PlayerPosition Player::playerPosition() const
 
 i32 Player::armorValue() const
 {
-    // MC 1.16.5: 计算总护甲值
-    // 参考: PlayerEntity.getTotalArmorValue() -> ArmorItem.getTotalArmorValue()
+    // 计算总护甲值
     return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 
 const ItemStack& Player::getEquipment(EquipmentSlot slot) const
 {
-    // MC 1.16.5: Player 重写 getEquipment 从 PlayerInventory 获取装备
-    // 参考: PlayerEntity.getItemStackFromSlot
+    // Player 重写 getEquipment 从 PlayerInventory 获取装备
     switch (slot) {
         case EquipmentSlot::MainHand:
             return m_inventory.getSelectedStackRef();
@@ -1126,8 +1112,7 @@ const ItemStack& Player::getEquipment(EquipmentSlot slot) const
 
 void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
-    // MC 1.16.5: Player 重写 setEquipment 设置装备到 PlayerInventory
-    // 参考: PlayerEntity.setItemStackToSlot
+    // Player 重写 setEquipment 设置装备到 PlayerInventory
     switch (slot) {
         case EquipmentSlot::MainHand:
             m_inventory.getSelectedStackRef() = stack;
@@ -1325,8 +1310,6 @@ ItemStack& Player::getHeldItem(Hand hand)
 
 f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
-
     // 1. 获取工具基础挖掘速度
     ItemStack heldItem = getHeldItem(Hand::MainHand);
     f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(state);
@@ -1342,7 +1325,6 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
     }
 
     // 3. 急迫效果和潮涌能量加成
-    // MC 1.16.5: EffectUtils.getMiningSpeedup(this)
     i32 hasteLevel = -1;
     i32 conduitLevel = -1;
 
@@ -1367,7 +1349,7 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
     const auto* fatigueEffect = getEffect(entity::effect::EffectType::MiningFatigue);
     if (fatigueEffect) {
         i32 amplifier = fatigueEffect->amplifier();
-        // MC 1.16.5 挖掘疲劳乘数表
+        // 挖掘疲劳乘数表
         static constexpr f32 FATIGUE_MULTIPLIERS[] = {0.3f, 0.09f, 0.0027f, 0.00081f};
         if (amplifier >= 0 && static_cast<size_t>(amplifier) < 4) {
             speed *= FATIGUE_MULTIPLIERS[amplifier];
@@ -1377,7 +1359,6 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
     }
 
     // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔时）
-    // MC 1.16.5: if (this.areEyesInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(this))
     if (areEyesInWater()) {
         // 检查头盔是否有水下速掘附魔
         const ItemStack& helmet = m_inventory.getHelmet();
@@ -1396,9 +1377,6 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
 
 bool Player::canHarvestBlock(const BlockState& state) const
 {
-    // 参考 MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
-    // 以及 ForgeHooks.canHarvestBlock()
-
     // 如果方块不需要工具，总是可以采集
     if (!state.requiresTool()) {
         return true;
@@ -1455,7 +1433,6 @@ void Player::handleFallDamage(f32 distance, f32 damageMultiplier)
 
 std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getHurtSound()
     // 根据伤害类型返回不同音效
     if (source.isFire()) {
         return SoundEvents::ENTITY_PLAYER_HURT_ON_FIRE;
@@ -1469,13 +1446,11 @@ std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const
 
 std::optional<ResourceLocation> Player::getDeathSound() const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getDeathSound()
     return SoundEvents::ENTITY_PLAYER_DEATH;
 }
 
 std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getFallSound()
     // 高空摔落 (>4格) 使用 big_fall，否则使用 small_fall
     if (fallHeight > 4) {
         return SoundEvents::ENTITY_PLAYER_BIG_FALL;
@@ -1485,19 +1460,16 @@ std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const
 
 ResourceLocation Player::getSplashSound() const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getSplashSound()
     return SoundEvents::ENTITY_PLAYER_SPLASH;
 }
 
 ResourceLocation Player::getHighspeedSplashSound() const
 {
-    // 参考 MC 1.16.5: PlayerEntity.getHighspeedSplashSound()
     return SoundEvents::ENTITY_PLAYER_SPLASH_HIGH_SPEED;
 }
 
 void Player::doWaterSplashEffect()
 {
-    // 参考 MC 1.16.5: PlayerEntity.doWaterSplashEffect()
     // 观察者模式不产生水花效果
     if (isSpectator()) {
         return;
@@ -1516,7 +1488,6 @@ void Player::registerAttributes()
     LivingEntity::registerAttributes();
 
     // 注册玩家特有属性
-    // MC 1.16.5: PlayerEntity.registerAttributes() 注册以下属性
     using namespace entity::attribute;
     m_attributes.registerAttribute(*Attributes::luck());
     m_attributes.registerAttribute(*Attributes::attackDamage());
@@ -1565,9 +1536,8 @@ void Player::aiStep()
 
 bool Player::isActualSwimming() const
 {
-    // 游泳条件（MC 1.16.5: LivingEntity.isActualySwimming()）
+    // 游泳条件：
     // 需要: 眼睛在水中 && 身体在水中 && 不在飞行模式
-    // MC: return this.eyesInWater && this.isInWater() && !this.abilities.isFlying;
     return areEyesInWater() && isInWater() && !m_abilities.flying;
 }
 
@@ -1579,7 +1549,6 @@ void Player::updateSwimming()
     bool isSwimmingNow = isActualSwimming();
 
     // 平滑过渡游泳动画
-    // MC 1.16.5: swimAnimation 增加/减少 0.09f
     if (isSwimmingNow) {
         m_swimAnimation = std::min(1.0f, m_swimAnimation + 0.09f);
     } else {
@@ -1592,7 +1561,6 @@ void Player::updateSwimming()
 
 void Player::updatePose()
 {
-    // MC 1.16.5: PlayerEntity.updatePose()
     // 每帧自动判断正确姿态
 
     // 检查是否有足够的游泳空间（用于姿态切换的后备检查）
@@ -1658,7 +1626,6 @@ void Player::updatePose()
 
 i32 Player::getDepthStriderLevel() const
 {
-    // MC 1.16.5: EnchantmentHelper.getDepthStriderModifier(this)
     // 检查靴子上的深度守卫附魔等级
     using namespace item::enchant;
     const ItemStack& boots = m_inventory.getBoots();
@@ -1691,7 +1658,6 @@ void Player::updateAirSupply()
     LivingEntity::updateAirSupply();
 
     // 入水溅水效果（玩家特有效果）
-    // MC 1.16.5: PlayerEntity.doWaterSplashEffect() 检查观察者模式后调用父类方法
     // 客户端本地玩家当前没有 IWorld 适配层，不能直接走实体世界特效出口。
     // 保留空气逻辑，等客户端世界统一接入 IWorld 或专门的客户端特效桥接后再补全本地入水特效。
     if (justEnteredWater && m_world != nullptr) {
@@ -1740,7 +1706,6 @@ void Player::updateMoveDistance()
     m_distanceWalkedOnStep += stepDistance;
 
     // 检查是否需要播放脚步声/游泳声
-    // 参考 MC: if (distanceWalkedOnStepModified > nextStepDistance && !blockState.isAir())
     if (m_distanceWalkedOnStep > m_nextStepDistance && m_onGround) {
         m_nextStepDistance = std::floor(m_distanceWalkedOnStep) + 1.0f;
 
@@ -1797,9 +1762,7 @@ void Player::_updateCameraYaw()
 
 void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
 {
-    // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
     // 由客户端在 updateMoveDistance() 检测到 m_shouldPlayStepSound 后调用
-
     if (m_world == nullptr) {
         return;
     }
@@ -1816,7 +1779,6 @@ void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockSta
 
 void Player::playSwimSound(f32 volume)
 {
-    // MC 1.16.5: Entity.playSwimSound(float volume)
     // 播放游泳声音
     if (m_world == nullptr || isSilent()) {
         return;
@@ -1840,7 +1802,6 @@ void Player::addExhaustion(f32 exhaustion)
 
 bool Player::canEat(bool ignoreHunger) const
 {
-    // MC 1.16.5: PlayerEntity.canEat(boolean ignoreHunger)
     // 创造模式或观察者模式不能进食
     if (isCreative() || isSpectator()) {
         return false;
@@ -1857,7 +1818,6 @@ bool Player::canEat(bool ignoreHunger) const
 
 f32 Player::getCooledAttackStrength(f32 adjustTicks) const
 {
-    // MC 1.16.5: getCooledAttackStrength()
     // 冷却进度 = min(ticksSinceLastAttack + adjustTicks, cooldownPeriod) / cooldownPeriod
     // 冷却周期 = 20 / attackSpeed (ticks)
     f32 attackSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_SPEED, 4.0));
@@ -1879,7 +1839,6 @@ void Player::resetCooldown()
 
 void Player::attack(Entity& target)
 {
-    // MC 1.16.5: PlayerEntity.attackTargetEntityWithCurrentItem()
     // 完整的玩家攻击逻辑
 
     // 1. 检查目标是否可被攻击（创造/观察模式不能攻击）
@@ -1906,12 +1865,11 @@ void Player::attack(Entity& target)
     }
 
     // 5. 计算攻击冷却进度
-    // MC 1.16.5: 使用 adjustTicks = 0.5F 获取冷却强度
+    // 使用 adjustTicks = 0.5F 获取冷却强度
     f32 cooldownProgress = getCooledAttackStrength(0.5f);
 
     // 6. 应用冷却伤害衰减
-    // MC 1.16.5: 基础伤害使用二次冷却系数，附魔伤害使用线性冷却系数
-    // 参考：PlayerEntity.attack() 中 f = f * (0.2 + f2*f2 * 0.8) 和 f1 = f1 * f2
+    // 基础伤害使用二次冷却系数，附魔伤害使用线性冷却系数
     f32 quadraticCooldown = 0.2f + cooldownProgress * cooldownProgress * 0.8f;
     f32 linearCooldown = cooldownProgress;
     f32 damage = baseDamage * quadraticCooldown;
@@ -1940,7 +1898,7 @@ void Player::attack(Entity& target)
     if (isSprinting() && isFullCooldown) {
         knockbackLevel++;
         isSprintKnockback = true;
-        // MC 1.16.5: 播放击退攻击音效
+        // 播放击退攻击音效
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0f, 1.0f);
     }
 
@@ -1954,8 +1912,7 @@ void Player::attack(Entity& target)
             mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);
     }
 
-    // 攻击前点燃（用于燃烧传递）
-    // MC 1.16.5: 如果目标未燃烧，先点燃 1 秒（用于燃烧效果传递判定）
+    // 攻击前点燃（用于燃烧传递判定）
     bool wasBurning = false;
     if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
         wasBurning = true;
@@ -1964,7 +1921,7 @@ void Player::attack(Entity& target)
 
     // 12. 应用暴击倍率
     if (isCritical) {
-        damage *= 1.5f; // MC 1.16.5: 暴击倍率 1.5
+        damage *= 1.5f; // 暴击倍率 1.5
     }
 
     // 13. 合并伤害
@@ -1983,7 +1940,6 @@ void Player::attack(Entity& target)
             entity::combat::PlayerAttackHelper::applyKnockback(*livingTarget, *this, static_cast<f32>(knockbackLevel));
 
             // 疾跑击退后停止疾跑并减少水平速度
-            // MC 1.16.5: this.setMotion(this.getMotion().mul(0.6D, 1.0D, 0.6D));
             if (isSprintKnockback) {
                 Vector3 vel = velocity();
                 setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
@@ -1991,8 +1947,7 @@ void Player::attack(Entity& target)
             }
         }
 
-        // 16. 横扫攻击（MC 1.16.5: 仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
-        // MC 1.16.5 条件: distanceWalkedModified - prevDistanceWalkedModified < getAIMoveSpeed()
+        // 16. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
         f64 distanceWalkedDelta = static_cast<f64>(m_moveDistanceWalked - m_prevMoveDistanceWalked);
         bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() &&
@@ -2003,7 +1958,7 @@ void Player::attack(Entity& target)
             if (sword != nullptr) {
                 f32 sweepRatio = item::enchant::EnchantmentHelper::getSweepingDamageRatio(mainHand);
                 if (sweepRatio > 0.0f) {
-                    // MC 1.16.5: sweepDamage = 1.0 + sweepRatio * baseDamage
+                    // sweepDamage = 1.0 + sweepRatio * baseDamage
                     // 其中 baseDamage 是冷却调整后的伤害（不含附魔伤害）
                     f32 sweepDamage = 1.0f + sweepRatio * damage;
 
@@ -2028,20 +1983,20 @@ void Player::attack(Entity& target)
                             continue;
                         }
 
-                        // MC 1.16.5: 排除标记模式的盔甲架
+                        // 排除标记模式的盔甲架
                         // 标记模式的盔甲架碰撞箱为 0，不应被横扫攻击影响
                         entity::ArmorStandEntity* armorStand = dynamic_cast<entity::ArmorStandEntity*>(entity);
                         if (armorStand != nullptr && armorStand->isMarker()) {
                             continue;
                         }
 
-                        // MC 1.16.5: 排除队友（友军伤害保护）
+                        // 排除队友（友军伤害保护）
                         if (isOnSameTeam(*entity)) {
                             continue;
                         }
 
                         // 应用击退并造成伤害
-                        // MC 1.16.5: 击退方向基于玩家朝向
+                        // 击退方向基于玩家朝向
                         f32 yawRad = math::toRadians(yaw());
                         f64 knockbackX = static_cast<f64>(std::sin(yawRad));
                         f64 knockbackZ = static_cast<f64>(-std::cos(yawRad));
@@ -2052,7 +2007,7 @@ void Player::attack(Entity& target)
                         nearbyLiving->hurt(sweepSource, sweepDamage);
                     }
 
-                    // MC 1.16.5: 播放横扫攻击音效
+                    // 播放横扫攻击音效
                     playSound(SoundEvents::ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
                 }
             }
@@ -2060,7 +2015,7 @@ void Player::attack(Entity& target)
 
         // 17. 应用火焰附加
         if (fireAspectLevel > 0) {
-            // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
+            // 火焰附加持续时间 = level * 4 秒
             livingTarget->setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
         }
 
@@ -2068,7 +2023,7 @@ void Player::attack(Entity& target)
         setLastHurtTarget(livingTarget);
 
         // 播放攻击音效
-        // MC 1.16.5: 根据攻击类型播放不同音效
+        // 根据攻击类型播放不同音效
         if (isCritical) {
             // 暴击音效
             playSound(SoundEvents::ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.0f);
@@ -2088,13 +2043,13 @@ void Player::attack(Entity& target)
         }
 
         // 荆棘附魔反伤处理
-        // MC 1.16.5: 攻击成功后，被攻击者的荆棘附魔有概率反伤攻击者
+        // 攻击成功后，被攻击者的荆棘附魔有概率反伤攻击者
         // 注意：荆棘伤害不会再次触发荆棘，防止无限循环
         std::array<const ItemStack*, 4> armorSlots = livingTarget->getArmorSlots();
         item::enchant::EnchantmentHelper::applyThornsEnchantments(*livingTarget, *this, armorSlots);
 
         // 19. 武器损耗
-        // MC 1.16.5: 攻击成功后消耗武器耐久度
+        // 攻击成功后消耗武器耐久度
         // 剑消耗 1 点耐久，其他工具消耗 2 点耐久
         if (!mainHand.isEmpty()) {
             Item* item = const_cast<Item*>(mainHand.getItem());
@@ -2132,13 +2087,12 @@ void Player::attack(Entity& target)
 
                 // 检查物品是否损坏（变空）
                 if (mainHand.isEmpty()) {
-                    // MC 1.16.5: 物品损坏后清空主手槽位
+                    // 物品损坏后清空主手槽位
                     // 创造模式下不需要清空（物品不会损坏）
                     if (!isCreative()) {
                         m_inventory.getSelectedStackRef() = ItemStack();
                     }
                     // 触发 PlayerDestroyItem 事件
-                    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
                     if (m_world) {
                         m_world->onPlayerDestroyItem(static_cast<PlayerId>(id()),
                             mainHandCopy,
@@ -2150,11 +2104,11 @@ void Player::attack(Entity& target)
         }
 
         // 20. 饱食度消耗
-        // MC 1.16.5: 攻击消耗 0.1 饱食度
+        // 攻击消耗 0.1 饱食度
         addExhaustion(EXHAUSTION_ATTACK);
     } else {
         // 攻击失败（被格挡等）
-        // MC 1.16.5: 播放无伤害攻击音效
+        // 播放无伤害攻击音效
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
 
         if (wasBurning) {
@@ -2165,8 +2119,6 @@ void Player::attack(Entity& target)
 
 ActionResultType Player::interactOn(Entity& target, Hand hand)
 {
-    // MC 1.16.5: PlayerEntity.interactOn()
-
     // 1. 旁观者模式：只能打开命名容器
     if (isSpectator()) {
         // 旁观者只能与实现 INamedContainerProvider 的实体交互
@@ -2213,7 +2165,6 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
                     // 物品被消耗处理
                     if (!isCreative() && itemstack.isEmpty()) {
                         // 触发 PlayerDestroyItem 事件
-                        // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
                         if (m_world) {
                             m_world->onPlayerDestroyItem(
                                 static_cast<PlayerId>(id()), itemstackCopy, hand == Hand::MainHand ? 0 : 40, hand);
@@ -2235,9 +2186,7 @@ ActionResultType Player::interactOn(Entity& target, Hand hand)
 
 bool Player::openContainer(INamedContainerProvider& provider)
 {
-    // MC 1.16.5: PlayerEntity.openContainer(INamedContainerProvider)
     // 通过世界打开实体容器
-
     if (m_world == nullptr) {
         return false;
     }
@@ -2251,7 +2200,6 @@ bool Player::openContainer(INamedContainerProvider& provider)
 
 Vector3 Player::getLookVector() const
 {
-    // MC 1.16.5: Entity.getLook()
     // 根据 yaw 和 pitch 计算视线方向向量
     // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
     // pitch 正值向下看，负值向上看
@@ -2265,7 +2213,6 @@ Vector3 Player::getLookVector() const
     f32 cosPitch = std::cos(pitchRad);
     f32 sinPitch = std::sin(pitchRad);
 
-    // MC 1.16.5 的视线方向计算
     // 注意：MC 的 pitch 是负的（向上看时 pitch 为负）
     return Vector3(-sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch).normalized();
 }
@@ -2278,7 +2225,6 @@ Vector3 Player::getEyePosition() const
 
 bool Player::isWearingPumpkin() const
 {
-    // MC 1.16.5: ItemStack.isEnderMask()
     // 检查玩家头盔是否为雕刻南瓜或南瓜灯
     // 这两种物品都可以防止末影人被激怒
 
@@ -2303,7 +2249,6 @@ bool Player::isWearingPumpkin() const
 
 bool Player::isLookingAt(const Entity& target) const
 {
-    // MC 1.16.5: EndermanEntity.shouldAttackPlayer() 中的注视检测逻辑
     // 计算玩家视线方向与玩家到目标向量的点积
 
     // 1. 获取玩家视线方向
@@ -2328,7 +2273,6 @@ bool Player::isLookingAt(const Entity& target) const
     f32 dotProduct = lookVec.dot(toTarget);
 
     // 6. 根据距离调整阈值
-    // MC 1.16.5: return d1 > 1.0D - 0.025D / d0
     // 距离越远，阈值越高（更难满足注视条件）
     f32 threshold = 1.0f - 0.025f / distance;
 
@@ -2337,7 +2281,6 @@ bool Player::isLookingAt(const Entity& target) const
 
 bool Player::isWearingGoldArmor() const
 {
-    // MC 1.16.5: PiglinTasks.func_234460_a_() (wearsGoldArmor)
     // 检查玩家的四个盔甲槽位是否有金制盔甲
     // 金制盔甲可以使猪灵对玩家保持中立
 

@@ -49,8 +49,6 @@ class BrewingStandEntity;
  * 酿造机制：
  * - 烈焰粉作为燃料（每次酿造消耗1点，每份燃料提供20点）
  * - 酿造时间：400 ticks（20秒）
- *
- * 参考: net.minecraft.inventory.container.BrewingStandContainer
  */
 class BrewingStandContainer : public AbstractContainerMenu {
 public:
@@ -65,7 +63,7 @@ public:
     /// 酿造台槽位总数
     static constexpr i32 BREWING_SLOTS = 5;
 
-    /// 药水槽位置 (MC 1.16.5: (56, 51), (79, 58), (102, 51))
+    /// 药水槽位置
     static constexpr i32 POTION_SLOT_X[] = {56, 79, 102};
     static constexpr i32 POTION_SLOT_Y[] = {51, 58, 51};
     /// 材料槽位置
@@ -148,7 +146,7 @@ private:
     /**
      * @brief 初始化槽位布局
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
 private:
     IInventory* m_brewingStandInventory;                   ///< 酿造台背包

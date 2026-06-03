@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/ItemStack.hpp"
 #include "IRecipe.hpp"
+#include "item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {
@@ -62,6 +62,13 @@ public:
         i32 cookTime);
 
     ~SmeltingRecipe() override = default;
+
+    // ========== 拷贝和移动操作 ==========
+
+    SmeltingRecipe(const SmeltingRecipe&) = default;
+    SmeltingRecipe& operator=(const SmeltingRecipe&) = default;
+    SmeltingRecipe(SmeltingRecipe&&) noexcept = default;
+    SmeltingRecipe& operator=(SmeltingRecipe&&) noexcept = default;
 
     // ========== IRecipe 接口实现 ==========
 

@@ -101,7 +101,10 @@ public:
     [[nodiscard]] static bool has(const std::string& id);
 
     /**
-     * @brief 获取所有已注册的附魔
+     * @brief 获取所有已注册的附魔（仅包含所有权型）
+     *
+     * 注意：此方法仅返回注册表拥有所有权的附魔（通过 unique_ptr 注册），
+     * 不包含通过引用注册的附魔。
      *
      * @return 附魔映射（ID -> 附魔）
      */

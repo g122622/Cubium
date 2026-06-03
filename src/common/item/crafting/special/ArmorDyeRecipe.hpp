@@ -36,8 +36,6 @@ namespace crafting {
  * 允许玩家在工作台中使用染料为可染色盔甲上色。
  * 支持混合多种染料，结果颜色通过颜色混合算法计算。
  *
- * 参考: net.minecraft.item.crafting.ArmorDyeRecipe
- *
  * 匹配条件：
  * - 必须有恰好一个可染色盔甲
  * - 必须至少有一个染料
@@ -79,14 +77,14 @@ private:
      * @param stack 物品堆
      * @return 如果是可染色盔甲返回 true
      */
-    [[nodiscard]] static bool isDyeableArmor(const ItemStack& stack);
+    [[nodiscard]] static bool _isDyeableArmor(const ItemStack& stack);
 
     /**
      * @brief 检查物品是否为染料
      * @param stack 物品堆
      * @return 如果是染料返回 true
      */
-    [[nodiscard]] static bool isDye(const ItemStack& stack);
+    [[nodiscard]] static bool _isDye(const ItemStack& stack);
 
     /**
      * @brief 混合两种颜色
@@ -94,7 +92,7 @@ private:
      * @param color2 第二种颜色（ARGB格式）
      * @return 混合后的颜色
      */
-    [[nodiscard]] static u32 mixColors(u32 color1, u32 color2);
+    [[nodiscard]] static u32 _mixColors(u32 color1, u32 color2);
 };
 
 } // namespace crafting

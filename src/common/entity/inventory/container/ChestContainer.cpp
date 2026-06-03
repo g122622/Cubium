@@ -62,7 +62,7 @@ ChestContainer::ChestContainer(ContainerId id, PlayerInventory* playerInventory,
     MC_ASSERT(chestInventory->getContainerSize() == rows * SLOTS_PER_ROW);
 
     m_chestSlotCount = rows * SLOTS_PER_ROW;
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 ChestContainer::ChestContainer(
@@ -78,7 +78,7 @@ ChestContainer::ChestContainer(
     MC_ASSERT(chestInventory->getContainerSize() == SINGLE_CHEST_ROWS * SLOTS_PER_ROW);
 
     m_chestSlotCount = SINGLE_CHEST_ROWS * SLOTS_PER_ROW;
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 ChestContainer::ChestContainer(ContainerId id,
@@ -98,7 +98,7 @@ ChestContainer::ChestContainer(ContainerId id,
     MC_ASSERT(chestInventory->getContainerSize() == DOUBLE_CHEST_ROWS * SLOTS_PER_ROW);
 
     m_chestSlotCount = DOUBLE_CHEST_ROWS * SLOTS_PER_ROW;
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 ChestContainer::ChestContainer(
@@ -114,7 +114,7 @@ ChestContainer::ChestContainer(
     MC_ASSERT(m_chestInventory->getContainerSize() == rows * SLOTS_PER_ROW);
 
     m_chestSlotCount = rows * SLOTS_PER_ROW;
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 // ========== 静态工厂方法 ==========
@@ -175,7 +175,7 @@ ItemStack ChestContainer::quickMoveStack(i32 slotIndex, Player& player)
 
 // ========== 私有方法 ==========
 
-void ChestContainer::initSlots(PlayerInventory* playerInventory)
+void ChestContainer::_initSlots(PlayerInventory* playerInventory)
 {
     for (i32 row = 0; row < m_rows; ++row) {
         for (i32 col = 0; col < SLOTS_PER_ROW; ++col) {
@@ -193,10 +193,6 @@ void ChestContainer::initSlots(PlayerInventory* playerInventory)
 
 bool ChestContainer::stillValid(const Player& player) const
 {
-    // MC 1.16.5: 检查玩家是否在箱子附近（8格范围内）
-    // 参考 net.minecraft.inventory.container.ChestContainer.canInteractWith
-    // -> lowerChestInventory.isUsableByPlayer(playerIn)
-
     // 如果没有关联的箱子实体，使用背包的 isUsableByPlayer 方法
     if (m_chestEntityA == nullptr && m_chestEntityB == nullptr) {
         return m_chestInventory->isUsableByPlayer(player);

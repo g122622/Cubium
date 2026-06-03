@@ -22,10 +22,10 @@
  */
 
 #include "ExperienceManager.hpp"
-#include "../../sound/SoundEvents.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../entities/player/Player.hpp"
 #include "ExperienceConstants.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -53,7 +53,7 @@ void ExperienceManager::addExperience(i32 amount)
                 i32 newCapacity = getExperienceForNextLevel();
                 f32 deficit = m_progress * static_cast<f32>(newCapacity);
                 m_progress = 1.0f + deficit / static_cast<f32>(newCapacity);
-                handleLevelDown();
+                _handleLevelDown();
             } else {
                 m_progress = 0.0f;
                 m_totalExperience = 0;
@@ -74,14 +74,14 @@ void ExperienceManager::addExperience(i32 amount)
             i32 oldCapacity = getExperienceForNextLevel();
 
             m_level++;
-            handleLevelUp();
+            _handleLevelUp();
 
             i32 newCapacity = getExperienceForNextLevel();
             m_progress = excessProgress * static_cast<f32>(oldCapacity) / static_cast<f32>(newCapacity);
         }
     }
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_experienceChangeCallback) {
@@ -109,7 +109,7 @@ bool ExperienceManager::consumeExperience(i32 amount)
     m_level = newLevel;
     m_progress = capacity > 0 ? static_cast<f32>(xpInCurrentLevel) / static_cast<f32>(capacity) : 0.0f;
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_experienceChangeCallback) {
@@ -136,7 +136,7 @@ bool ExperienceManager::consumeLevels(i32 levels)
     i32 xpInCurrentLevel = static_cast<i32>(m_progress * static_cast<f32>(capacity));
     m_totalExperience = getExperienceForLevel(m_level) + xpInCurrentLevel;
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_levelChangeCallback) {
@@ -152,7 +152,7 @@ void ExperienceManager::setExperience(i32 level, f32 progress, i32 totalExperien
     m_progress = std::clamp(progress, 0.0f, 1.0f);
     m_totalExperience = std::max(0, totalExperience);
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_experienceChangeCallback) {
@@ -169,7 +169,7 @@ void ExperienceManager::setLevel(i32 level)
     i32 xpInCurrentLevel = static_cast<i32>(m_progress * static_cast<f32>(getExperienceForNextLevel()));
     m_totalExperience = getExperienceForLevel(m_level) + xpInCurrentLevel;
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_levelChangeCallback && oldLevel != m_level) {
@@ -185,7 +185,6 @@ void ExperienceManager::addLevels(i32 levels)
 
     i32 oldLevel = m_level;
 
-    // 参考 MC 1.16.5 PlayerEntity.addExperienceLevel()
     m_level += levels;
 
     if (m_level < 0) {
@@ -195,8 +194,7 @@ void ExperienceManager::addLevels(i32 levels)
         m_totalExperience = 0;
     } else {
         // 正等级时不重新计算 totalExperience
-        // 原版只更新 experienceLevel，不改变 experience 和 experienceTotal
-        // totalExperience 只在需要时（如查询）才重新计算
+        // totalExperience 只在需要时才重新计算
     }
 
     // 更新 totalExperience 以保持一致性
@@ -205,7 +203,7 @@ void ExperienceManager::addLevels(i32 levels)
             static_cast<i32>(m_progress * static_cast<f32>(getExperienceForNextLevel()));
     }
 
-    validateState();
+    _validateState();
     markDirty();
 
     if (m_levelChangeCallback && oldLevel != m_level) {
@@ -231,12 +229,12 @@ void ExperienceManager::reset()
     }
 }
 
-i32 ExperienceManager::getExperienceForNextLevel() const
+i32 ExperienceManager::getExperienceForNextLevel() const noexcept
 {
     return calculateBarCapacity(m_level);
 }
 
-i32 ExperienceManager::getExperienceForLevel(i32 level)
+i32 ExperienceManager::getExperienceForLevel(i32 level) noexcept
 {
     if (level <= 0) {
         return 0;
@@ -271,7 +269,7 @@ i32 ExperienceManager::getExperienceForLevel(i32 level)
     }
 }
 
-i32 ExperienceManager::getLevelFromExperience(i32 totalExperience)
+i32 ExperienceManager::getLevelFromExperience(i32 totalExperience) noexcept
 {
     if (totalExperience <= 0) {
         return 0;
@@ -293,7 +291,7 @@ i32 ExperienceManager::getLevelFromExperience(i32 totalExperience)
     return low;
 }
 
-i32 ExperienceManager::calculateBarCapacity(i32 level)
+i32 ExperienceManager::calculateBarCapacity(i32 level) noexcept
 {
     if (level >= 30) {
         // 等级 30+: 112 + (level - 30) * 9
@@ -317,8 +315,7 @@ void ExperienceManager::resetXpSeed(math::Random& rng)
 
 bool ExperienceManager::onEnchant(i32 levels, math::Random& rng)
 {
-    // 参考 MC 1.16.5 PlayerEntity.onEnchant()
-    // 直接消耗等级，不检查是否足够（原版直接调用 addExperienceLevel(-cost)）
+    // 直接消耗等级，不检查是否足够
     m_level -= levels;
 
     if (m_level < 0) {
@@ -331,19 +328,19 @@ bool ExperienceManager::onEnchant(i32 levels, math::Random& rng)
     // 重置附魔种子
     resetXpSeed(rng);
 
-    validateState();
+    _validateState();
     markDirty();
 
     return true;
 }
 
-i32 ExperienceManager::calculateDeathDropXp() const
+i32 ExperienceManager::calculateDeathDropXp() const noexcept
 {
     // 死亡掉落经验 = min(level * 7, 100)
     return std::min(m_level * constants::DEATH_XP_PER_LEVEL, constants::MAX_DEATH_XP_DROP);
 }
 
-void ExperienceManager::updateProgress()
+void ExperienceManager::_updateProgress()
 {
     // 确保进度在有效范围内
     m_progress = std::clamp(m_progress, 0.0f, 1.0f);
@@ -355,13 +352,11 @@ void ExperienceManager::updateProgress()
     }
 }
 
-void ExperienceManager::handleLevelUp()
+void ExperienceManager::_handleLevelUp()
 {
     i32 oldLevel = m_level - 1;
 
-    // 播放升级音效
-    // 参考 MC 1.16.5 PlayerEntity.addExperienceLevel()
-    // 条件: 等级是5的倍数，且距离上次播放至少100 tick（5秒）
+    // 播放升级音效，等级是5的倍数且距离上次播放至少100 tick时播放
     if (m_level % 5 == 0) {
         u32 currentTick = m_player.ticksExisted();
         // 检查是否满足时间间隔要求（100 tick = 5秒）
@@ -383,7 +378,7 @@ void ExperienceManager::handleLevelUp()
     }
 }
 
-void ExperienceManager::handleLevelDown()
+void ExperienceManager::_handleLevelDown()
 {
     if (m_level <= 0) {
         m_level = 0;
@@ -407,7 +402,7 @@ void ExperienceManager::handleLevelDown()
     }
 }
 
-void ExperienceManager::validateState()
+void ExperienceManager::_validateState()
 {
     // 确保等级在有效范围
     if (m_level < 0) {
@@ -419,13 +414,13 @@ void ExperienceManager::validateState()
 
     // 确保进度在有效范围
     if (m_progress < 0.0f) {
-        handleLevelDown();
+        _handleLevelDown();
     }
     if (m_progress >= 1.0f) {
         while (m_progress >= 1.0f) {
             m_progress -= 1.0f;
             m_level++;
-            handleLevelUp();
+            _handleLevelUp();
         }
     }
 

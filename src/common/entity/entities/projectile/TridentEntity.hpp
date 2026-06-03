@@ -34,8 +34,6 @@ namespace entity {
  * @brief 三叉戟实体
  *
  * 三叉戟是一种特殊的投掷武器，可以被玩家拾取并具有特殊攻击模式。
- *
- * 参考 MC 1.16.5 TridentEntity
  */
 class TridentEntity : public AbstractArrowEntity {
 public:

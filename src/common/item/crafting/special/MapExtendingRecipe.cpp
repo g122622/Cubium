@@ -43,12 +43,12 @@ bool MapExtendingRecipe::matches(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isExtendableMap(stack)) {
+        if (_isExtendableMap(stack)) {
             if (hasFilledMap) {
                 return false;
             }
             hasFilledMap = true;
-        } else if (isPaper(stack)) {
+        } else if (_isPaper(stack)) {
             hasPaper = true;
         } else {
             return false;
@@ -64,7 +64,7 @@ ItemStack MapExtendingRecipe::assemble(const CraftingInventory& inventory) const
 
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
-        if (isExtendableMap(stack)) {
+        if (_isExtendableMap(stack)) {
             filledMap = stack;
             break;
         }
@@ -90,7 +90,7 @@ std::vector<ItemStack> MapExtendingRecipe::getRemainingItems(const CraftingInven
     return std::vector<ItemStack>(inventory.getContainerSize());
 }
 
-bool MapExtendingRecipe::isExtendableMap(const ItemStack& stack)
+bool MapExtendingRecipe::_isExtendableMap(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -115,9 +115,10 @@ bool MapExtendingRecipe::isExtendableMap(const ItemStack& stack)
     return true;
 }
 
-bool MapExtendingRecipe::isPaper(const ItemStack& stack)
+bool MapExtendingRecipe::_isPaper(const ItemStack& stack)
 {
-    if (stack.isEmpty() || stack.getItem() == nullptr) {
+    // isEmpty() 已经包含了 m_item == nullptr 的检查，无需重复检查
+    if (stack.isEmpty()) {
         return false;
     }
     return stack.getItem() == Items::PAPER;

@@ -126,21 +126,19 @@ BrewingStandContainer::BrewingStandContainer(ContainerId id,
     MC_ASSERT(brewingStandInventory != nullptr);
     MC_ASSERT(brewingStandInventory->getContainerSize() == BREWING_SLOTS);
 
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 // ========== 容器接口 ==========
 
 bool BrewingStandContainer::stillValid(const Player& player) const
 {
-    // MC 1.16.5: 如果没有关联的方块实体，玩家背包可访问
+    // 如果没有关联的方块实体，玩家背包可访问
     if (m_brewingStandEntity == nullptr) {
         return true;
     }
 
-    // MC 1.16.5: 检查玩家是否在酿造台附近（8格范围内）
-    // 参考 net.minecraft.inventory.container.BrewingStandContainer.canInteractWith()
-    // -> tileBrewingStand.isUsableByPlayer(playerIn)
+    // 检查玩家是否在酿造台附近（8格范围内）
     const BlockPos pos = m_brewingStandEntity->getPos();
     return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
@@ -209,12 +207,11 @@ ItemStack BrewingStandContainer::quickMoveStack(i32 slotIndex, Player& player)
 
 // ========== 私有方法 ==========
 
-void BrewingStandContainer::initSlots(PlayerInventory* playerInventory)
+void BrewingStandContainer::_initSlots(PlayerInventory* playerInventory)
 {
     // ========== 酿造台槽位 ==========
 
     // 药水槽（3个，中间的槽位更低）
-    // MC 1.16.5坐标: (56, 51), (79, 58), (102, 51)
     addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 0, POTION_SLOT_X[0], POTION_SLOT_Y[0]));
     addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 1, POTION_SLOT_X[1], POTION_SLOT_Y[1]));
     addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 2, POTION_SLOT_X[2], POTION_SLOT_Y[2]));

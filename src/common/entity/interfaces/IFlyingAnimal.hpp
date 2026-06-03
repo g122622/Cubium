@@ -33,12 +33,10 @@ namespace entity {
  *
  * 实现此接口的动物可以在空中飞行。
  * 例如：蜜蜂、鹦鹉等。
- *
- * 参考 MC 1.16.5 IFlyingAnimal
  */
 class IFlyingAnimal {
 public:
-    virtual ~IFlyingAnimal() = default;
+    virtual ~IFlyingAnimal() noexcept = default;
 
     /**
      * @brief 检查是否正在飞行

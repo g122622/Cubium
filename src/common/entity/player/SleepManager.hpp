@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "SleepResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <optional>
 
 namespace mc {
@@ -46,8 +46,6 @@ namespace entity {
  * - 计算玩家的起床位置
  * - 检查床周围是否有怪物
  * - 检查床是否被阻挡
- *
- * 参考 MC 1.16.5 ServerPlayerEntity 和 BedBlock
  */
 class SleepManager {
 public:
@@ -70,7 +68,6 @@ public:
      * @brief 计算玩家的起床位置
      *
      * 尝试在床周围找到安全的站立位置。
-     * 参考 MC 1.16.5 BedBlock.getBedSpawnPosition()
      *
      * @param world 世界引用
      * @param bedPos 床头位置
@@ -84,7 +81,6 @@ public:
      * @brief 检查玩家是否在床附近
      *
      * 床的有效范围：水平 3 格，垂直 2 格
-     * 参考 MC 1.16.5 ServerPlayerEntity.func_241158_g_()
      *
      * @param playerPos 玩家位置
      * @param bedPos 床位置（床的中心）
@@ -96,7 +92,6 @@ public:
      * @brief 检查床是否被阻挡（上方没有空间）
      *
      * 检查床头和床尾上方是否有足够的站立空间。
-     * 参考 MC 1.16.5 ServerPlayerEntity.func_241156_b_()
      *
      * @param world 世界引用
      * @param bedPos 床头位置
@@ -109,7 +104,6 @@ public:
      * @brief 检查床周围是否有怪物
      *
      * 在床周围 8x5x8 范围内检测敌对生物。
-     * 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
      *
      * @param world 世界引用
      * @param bedPos 床位置
@@ -128,7 +122,7 @@ private:
      * @param pos 方块位置
      * @return true 如果有足够空间
      */
-    [[nodiscard]] static bool hasStandingSpace(const IWorld& world, const BlockPos& pos);
+    [[nodiscard]] static bool _hasStandingSpace(const IWorld& world, const BlockPos& pos);
 };
 
 } // namespace entity

@@ -204,20 +204,16 @@ bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY, i32& outMax
 void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const
 {
     // 遍历所有物品，只计数"普通"物品（未损坏、未附魔、无自定义名称）
-    // 参考: net.minecraft.item.crafting.RecipeItemHelper.accountPlainStack
     for (const ItemStack& stack : m_items) {
         if (stack.isEmpty()) {
             continue;
         }
         // 检查是否为"普通"物品
-        // accountPlainStack: !stack.isDamaged() && !stack.isEnchanted() && !stack.hasDisplayName()
         if (!stack.isDamaged() && !stack.hasEnchantments() && !stack.hasDisplayName()) {
-            // 获取物品ID
             const Item* item = stack.getItem();
             if (item != nullptr) {
                 i32 itemId = static_cast<i32>(item->itemId());
                 i32 count = stack.getCount();
-                // 累加计数
                 itemCounts[itemId] += count;
             }
         }
@@ -228,16 +224,12 @@ void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCo
 
 ItemStack CraftResultInventory::getItem(i32 slot) const
 {
-    // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
-    // 参考: net.minecraft.inventory.CraftResultInventory.getStackInSlot
     (void)slot;
     return m_result;
 }
 
 void CraftResultInventory::setItem(i32 slot, const ItemStack& stack)
 {
-    // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
-    // 参考: net.minecraft.inventory.CraftResultInventory.setInventorySlotContents
     (void)slot;
     m_result = stack;
     setChanged();
@@ -245,14 +237,10 @@ void CraftResultInventory::setItem(i32 slot, const ItemStack& stack)
 
 ItemStack CraftResultInventory::removeItem(i32 slot, i32 count)
 {
-    // MC 1.16.5: CraftResultInventory 的 removeItem 应该移除整个槽位的物品
-    // 忽略 count 参数，直接返回整个结果物品
-    // 参考: net.minecraft.inventory.CraftResultInventory.decrStackSize
     if (slot != 0 || m_result.isEmpty()) {
         return ItemStack();
     }
 
-    // MC 1.16.5: 使用 getAndRemove 而不是 split
     ItemStack result = std::move(m_result);
     m_result = ItemStack();
     setChanged();
@@ -288,15 +276,9 @@ void CraftResultInventory::serialize(network::PacketSerializer& ser) const
 
 void CraftResultInventory::onCrafting(Player& player)
 {
-    // MC 1.16.5: 如果配方不是动态的，解锁配方并清除
-    // 参考: net.minecraft.inventory.CraftResultInventory.onCrafting
     if (m_craftingRecipeUsed != nullptr && !m_craftingRecipeUsed->isDynamic()) {
-        // 获取配方 ID
         ResourceLocation recipeId = m_craftingRecipeUsed->getId();
-
-        // 触发配方解锁成就（仅对 ServerPlayer 有效）
         player.unlockRecipe(recipeId);
-
         m_craftingRecipeUsed = nullptr;
     }
 }

@@ -59,7 +59,7 @@ Ingredient Ingredient::fromItems(std::vector<const Item*> items)
             ing.m_matchingStacks.emplace_back(*item, 1);
         }
     }
-    ing.updateSimple();
+    ing._updateSimple();
     return ing;
 }
 
@@ -68,14 +68,13 @@ Ingredient Ingredient::fromTag(const std::string& tag)
     Ingredient ing;
     ing.m_tag = tag;
     ing.m_hasTag = true;
-    // 标签原料的 isSimple 需要延迟解析后才能确定
-    // 暂时设为 false，解析后再更新
+    // TODO: 标签原料的 isSimple 需要延迟解析后才能确定，暂时设为 false，解析后再更新
 
     item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(tag);
     if (itemTag != nullptr) {
         ing.m_tagItems = itemTag->getItemsList();
         ing.m_tagResolved = true;
-        ing.updateSimple();
+        ing._updateSimple();
     }
 
     return ing;
@@ -85,7 +84,7 @@ Ingredient Ingredient::fromStacks(std::vector<ItemStack> stacks)
 {
     Ingredient ing;
     ing.m_matchingStacks = std::move(stacks);
-    ing.updateSimple();
+    ing._updateSimple();
     return ing;
 }
 
@@ -105,8 +104,7 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
 
         // 处理标签
         if (part.hasTag()) {
-            // 如果合并了标签，需要特殊处理
-            // 简化实现：直接添加标签中的物品
+            // TODO: 合并标签时的处理可以优化，目前简化实现为直接添加标签中的物品
             item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(part.getTag());
             if (itemTag != nullptr) {
                 for (const Item* item : itemTag->getItemsList()) {
@@ -119,13 +117,13 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
         }
     }
 
-    result.updateSimple();
+    result._updateSimple();
     return result;
 }
 
 bool Ingredient::test(const ItemStack& stack) const
 {
-    // 空 Ingredient 只匹配空物品堆（MC 原版行为）
+    // 空 Ingredient 只匹配空物品堆
     if (isEmpty()) {
         return stack.isEmpty();
     }
@@ -136,7 +134,7 @@ bool Ingredient::test(const ItemStack& stack) const
 
     // 标签匹配
     if (m_hasTag) {
-        resolveTagIfNeeded();
+        _resolveTagIfNeeded();
         const Item* stackItem = stack.getItem();
         for (const Item* taggedItem : m_tagItems) {
             if (taggedItem == stackItem) {
@@ -146,7 +144,7 @@ bool Ingredient::test(const ItemStack& stack) const
         return false;
     }
 
-    // 物品列表匹配（MC 原版：只比较物品类型，不检查 NBT 数据）
+    // 物品列表匹配（只比较物品类型，不检查 NBT 数据）
     for (const ItemStack& matchingStack : m_matchingStacks) {
         if (matchingStack.isSameItem(stack)) {
             return true;
@@ -173,7 +171,7 @@ bool Ingredient::test(const Item* item) const
 
     // 标签匹配
     if (m_hasTag) {
-        resolveTagIfNeeded();
+        _resolveTagIfNeeded();
         for (const Item* taggedItem : m_tagItems) {
             if (taggedItem == item) {
                 return true;
@@ -194,7 +192,7 @@ bool Ingredient::test(const Item* item) const
 
 bool Ingredient::isSimple() const
 {
-    // MC 原版行为：this == EMPTY 时返回 true
+    // 空 Ingredient 视为简单原料
     if (isEmpty()) {
         return true;
     }
@@ -204,13 +202,13 @@ bool Ingredient::isSimple() const
 bool Ingredient::hasNoMatchingItems() const
 {
     if (m_hasTag) {
-        resolveTagIfNeeded();
+        _resolveTagIfNeeded();
         return m_tagItems.empty();
     }
     return m_matchingStacks.empty();
 }
 
-void Ingredient::updateSimple()
+void Ingredient::_updateSimple()
 {
     m_isSimple = true;
 
@@ -227,7 +225,7 @@ void Ingredient::updateSimple()
     }
 }
 
-void Ingredient::resolveTagIfNeeded() const
+void Ingredient::_resolveTagIfNeeded() const
 {
     if (m_hasTag && !m_tagResolved) {
         item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(m_tag);

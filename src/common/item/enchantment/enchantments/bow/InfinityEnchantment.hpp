@@ -23,6 +23,8 @@
 
 #pragma once
 
+// TODO: include 路径应改为 "common/item/enchantment/Enchantment.hpp"，
+// 但项目所有附魔文件都使用 "../../Enchantment.hpp" 模式，需统一重构
 #include "../../Enchantment.hpp"
 
 namespace mc {
@@ -33,7 +35,6 @@ namespace enchant {
  * @brief 无限附魔
  *
  * 射箭不消耗普通箭矢。
- * 参考 MC 1.16.5 InfinityEnchantment
  *
  * 效果:
  * - 射箭时不消耗普通箭矢（需要至少一支箭）

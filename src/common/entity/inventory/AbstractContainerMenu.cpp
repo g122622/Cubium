@@ -47,8 +47,7 @@ AbstractContainerMenu::AbstractContainerMenu(ContainerId id, PlayerInventory* pl
 
 bool AbstractContainerMenu::isWithinDistance(const Player& player, const BlockPos& blockPos, f32 maxDistanceSq)
 {
-    // MC 1.16.5: 检查玩家是否在指定方块附近
-    // 使用 Vector3::distanceSquared 和 BlockPos::center 简化计算
+    // 检查玩家是否在指定方块附近
     return player.position().distanceSquared(blockPos.center()) <= maxDistanceSq;
 }
 
@@ -155,7 +154,7 @@ void AbstractContainerMenu::detectAndSendChanges()
 
         ItemStack currentStack = slot->getItem();
 
-        // 检查是否有变化（与 MC 1.16.5 ItemStack.areItemStacksEqual 对齐）
+        // 检查是否有变化
         bool changed = false;
         if (i >= static_cast<i32>(m_lastSlotStates.size())) {
             // 缓存不够大，扩展并填充空 ItemStack
@@ -168,7 +167,7 @@ void AbstractContainerMenu::detectAndSendChanges()
                 changed = true;
             } else if (!currentStack.isEmpty() && !lastStack.isEmpty()) {
                 if (currentStack.getItem() != lastStack.getItem() || currentStack.getCount() != lastStack.getCount() ||
-                    !currentStack.isSameItem(lastStack)) { // 使用 isSameItem 检查物品和 NBT 是否相同
+                    !currentStack.isSameItem(lastStack)) {
                     changed = true;
                 }
             }
@@ -284,10 +283,7 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
         return;
     }
 
-    // 参考 MC 1.16.5 Container.clearContainer
-    // 如果玩家死亡或断线，物品掉落到世界
-    // 否则尝试放回玩家背包
-
+    // 如果玩家死亡或断线，物品掉落到世界；否则尝试放回玩家背包
     // 检查玩家是否存活（死亡时物品直接掉落，不尝试放回背包）
     bool playerIsAlive = player.isAlive();
 
@@ -342,38 +338,38 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
         case ClickType::Pick:
         case ClickType::PickSome:
             // 左键/右键拾取或放置
-            return handleClickPick(*slot, slotIndex, slotStack, button);
+            return _handleClickPick(*slot, slotIndex, slotStack, button);
 
         case ClickType::QuickMove:
             // Shift+点击快速移动
-            return handleQuickMove(*slot, slotIndex, slotStack);
+            return _handleQuickMove(*slot, slotIndex, slotStack);
 
         case ClickType::Swap:
             // 数字键交换 (button = 0-8 对应快捷栏1-9, button = 40 对应副手)
-            return handleSwap(*slot, slotIndex, slotStack, button);
+            return _handleSwap(*slot, slotIndex, slotStack, button);
 
         case ClickType::Clone:
             // 创造模式中键复制
-            return handleClone(*slot, slotIndex, slotStack, player);
+            return _handleClone(*slot, slotIndex, slotStack, player);
 
         case ClickType::Throw:
             // Q键丢弃
-            return handleThrow(*slot, slotIndex, slotStack, button);
+            return _handleThrow(*slot, slotIndex, slotStack, button);
 
         case ClickType::QuickCraft:
             // 拖拽分发
-            return handleQuickCraft(*slot, slotIndex, button);
+            return _handleQuickCraft(*slot, slotIndex, button);
 
         case ClickType::PickAll:
             // 双击拾取全部
-            return handlePickupAll(*slot, slotIndex, slotStack);
+            return _handlePickupAll(*slot, slotIndex, slotStack);
 
         default:
             return m_carried;
     }
 }
 
-ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     Player* player = m_playerInventory->getPlayer();
 
@@ -383,7 +379,7 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             // 拾取整个槽位
             if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
                 m_carried = slot.remove(slotStack.getCount());
-                // MC 1.16.5: 取走物品时触发 onTake 回调
+                // 取走物品时触发 onTake 回调
                 m_carried = slot.onTake(*player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
@@ -412,7 +408,7 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             // 交换物品
             slot.set(m_carried);
             m_carried = slotStack;
-            // MC 1.16.5: 交换时触发 onTake（取走原槽位物品）
+            // 交换时触发 onTake（取走原槽位物品）
             m_carried = slot.onTake(*player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
@@ -425,7 +421,7 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
                 i32 toTake = (slotStack.getCount() + 1) / 2;
                 m_carried = slot.remove(toTake);
-                // MC 1.16.5: 取走物品时触发 onTake 回调
+                // 取走物品时触发 onTake 回调
                 m_carried = slot.onTake(*player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
@@ -453,7 +449,7 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             // 交换（右键只允许单个物品交换）
             slot.set(m_carried);
             m_carried = slotStack;
-            // MC 1.16.5: 交换时触发 onTake（取走原槽位物品）
+            // 交换时触发 onTake（取走原槽位物品）
             m_carried = slot.onTake(*player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
@@ -463,7 +459,7 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+ItemStack AbstractContainerMenu::_handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
 {
     if (slotStack.isEmpty()) {
         return m_carried;
@@ -471,7 +467,7 @@ ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, cons
 
     ItemStack result = quickMoveStack(slotIndex, *m_playerInventory->getPlayer());
     if (!result.isEmpty()) {
-        // MC 1.16.5: 快速移动后触发 onTake 回调
+        // 快速移动后触发 onTake 回调
         // 计算实际取出的数量
         ItemStack taken = result;
         slot.onTake(*m_playerInventory->getPlayer(), taken);
@@ -481,7 +477,7 @@ ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, cons
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     // button = 0-8 对应快捷栏槽位，button = 40 对应副手
     PlayerInventory* inv = m_playerInventory;
@@ -516,7 +512,7 @@ ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const Ite
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
+ItemStack AbstractContainerMenu::_handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
 {
     // 创造模式中键复制 - 只在创造模式下可用
     if (!entity::GameModeUtils::isCreative(player.gameMode())) {
@@ -533,7 +529,7 @@ ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const It
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     // Ctrl+点击丢弃全部 (button=1)，普通点击丢弃一个 (button=0)
     if (!slotStack.isEmpty()) {
@@ -548,33 +544,33 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button)
+ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i32 button)
 {
-    // MC 1.16.5 拖拽分发状态机
+    // 拖拽分发状态机
     // m_dragMode: 0=均匀分发(左键), 1=逐个分发(右键), 2=全部分发(中键)
 
     i32 prevDragEvent = m_dragEvent;
-    m_dragEvent = getDragEvent(button);
+    m_dragEvent = _getDragEvent(button);
 
     // 检查状态是否有效
     if ((prevDragEvent != DragConstants::EVENT_ADD_SLOT || m_dragEvent != DragConstants::EVENT_END) &&
         prevDragEvent != m_dragEvent) {
-        resetDrag();
+        _resetDrag();
     } else if (m_carried.isEmpty()) {
-        resetDrag();
+        _resetDrag();
     } else if (m_dragEvent == DragConstants::EVENT_START) {
         // 开始拖拽 - 确定拖拽模式
-        m_dragMode = extractDragMode(button);
-        if (isValidDragMode(m_dragMode)) {
+        m_dragMode = _extractDragMode(button);
+        if (_isValidDragMode(m_dragMode)) {
             m_dragEvent = DragConstants::EVENT_ADD_SLOT;
             m_dragSlots.clear();
         } else {
-            resetDrag();
+            _resetDrag();
         }
     } else if (m_dragEvent == DragConstants::EVENT_ADD_SLOT) {
         // 添加槽位到拖拽列表
         ItemStack carried = m_carried;
-        if (canDragIntoSlot(slot, carried) && slot.mayPlace(carried)) {
+        if (_canDragIntoSlot(slot, carried) && slot.mayPlace(carried)) {
             if (m_dragMode == DragConstants::MODE_FILL || carried.getCount() > static_cast<i32>(m_dragSlots.size())) {
                 m_dragSlots.push_back(slotIndex);
             }
@@ -609,53 +605,53 @@ ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32
                     i32 perSlot = toDistribute.getCount() / slotsRemaining;
                     if (perSlot == 0) perSlot = 1;
                     perSlot = std::min(perSlot, space);
-                    distributeToDragSlot(toDistribute, idx, perSlot);
+                    _distributeToDragSlot(toDistribute, idx, perSlot);
                     slotsRemaining--;
                 }
             } else if (m_dragMode == DragConstants::MODE_SINGLE) {
                 // 逐个分发 (右键拖拽)
                 for (auto& [idx, space] : slotAmounts) {
                     if (toDistribute.isEmpty()) break;
-                    distributeToDragSlot(toDistribute, idx, 1);
+                    _distributeToDragSlot(toDistribute, idx, 1);
                 }
             } else if (m_dragMode == DragConstants::MODE_FILL) {
                 // 全部分发 (中键拖拽) - 尝试填满每个槽位
                 for (auto& [idx, space] : slotAmounts) {
                     if (toDistribute.isEmpty()) break;
-                    distributeToDragSlot(toDistribute, idx, space);
+                    _distributeToDragSlot(toDistribute, idx, space);
                 }
             }
 
             // 更新鼠标物品
             m_carried = toDistribute.isEmpty() ? ItemStack() : toDistribute;
         }
-        resetDrag();
+        _resetDrag();
     } else {
-        resetDrag();
+        _resetDrag();
     }
 
     (void)slot;
     return m_carried;
 }
 
-void AbstractContainerMenu::resetDrag()
+void AbstractContainerMenu::_resetDrag()
 {
     m_dragEvent = 0;
-    m_dragMode = DragConstants::DRAG_MODE_NONE; // MC 1.16.5: 重置为 -1
+    m_dragMode = DragConstants::DRAG_MODE_NONE;
     m_dragSlots.clear();
 }
 
-i32 AbstractContainerMenu::getDragEvent(i32 button)
+i32 AbstractContainerMenu::_getDragEvent(i32 button)
 {
     return button & DragConstants::EVENT_MASK;
 }
 
-i32 AbstractContainerMenu::extractDragMode(i32 button)
+i32 AbstractContainerMenu::_extractDragMode(i32 button)
 {
     return (button >> DragConstants::MODE_SHIFT) & DragConstants::MODE_MASK;
 }
 
-bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const
+bool AbstractContainerMenu::_isValidDragMode(i32 dragMode) const
 {
     if (m_playerInventory == nullptr) return false;
 
@@ -670,7 +666,7 @@ bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const
     return true;
 }
 
-bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) const
+bool AbstractContainerMenu::_canDragIntoSlot(Slot& slot, const ItemStack& stack) const
 {
     // 检查是否可以拖拽物品到该槽位
     if (slot.isEmpty()) {
@@ -679,7 +675,7 @@ bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) 
     return slot.mayPlace(stack) && slot.getItem().canMergeWith(stack);
 }
 
-i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount)
+i32 AbstractContainerMenu::_distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount)
 {
     Slot* dragSlot = getSlot(slotIdx);
     if (dragSlot == nullptr) {
@@ -705,7 +701,7 @@ i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slo
     return amount;
 }
 
-ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
 {
     // 双击拾取全部相同物品
     if (m_carried.isEmpty() && !slotStack.isEmpty()) {
@@ -856,8 +852,7 @@ bool AbstractContainerMenu::moveItemToRange(ItemStack& stack, i32 startIndex, i3
 
 void AbstractContainerMenu::removed(Player& player)
 {
-    // MC 1.16.5 对齐: Container.onContainerClosed
-    // 如果玩家光标上有物品，丢弃到世界中
+    // 关闭容器时，如果玩家光标上有物品，丢弃到世界中
     if (!m_carried.isEmpty()) {
         // 尝试放回玩家背包
         if (m_playerInventory != nullptr) {

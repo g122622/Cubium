@@ -446,6 +446,7 @@ public:
      * @param allowTreasure 是否允许宝藏附魔
      * @return 可用附魔列表
      */
+    // TODO: 参数默认值违反项目规范，需要移除并修改所有调用处
     [[nodiscard]] static std::vector<EnchantmentData> getEnchantmentDatas(
         i32 level, const ItemStack& stack, bool allowTreasure = false);
 
@@ -461,6 +462,7 @@ public:
      * @param allowTreasure 是否允许宝藏附魔
      * @return 附魔列表
      */
+    // TODO: 参数默认值违反项目规范，需要移除并修改所有调用处
     [[nodiscard]] static std::vector<EnchantmentData> buildEnchantmentList(
         math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure = false);
 
@@ -500,6 +502,7 @@ public:
      * @param allowTreasure 是否允许宝藏附魔
      * @return 添加了附魔的物品（可能是新的附魔书物品）
      */
+    // TODO: 参数默认值违反项目规范，需要移除并修改所有调用处
     static ItemStack addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure = false);
 
 private:

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../entity/attribute/Attribute.hpp"
-#include "../../entity/attribute/AttributeModifier.hpp"
-#include "../../entity/core/LivingEntity.hpp"
+#include "common/entity/attribute/Attribute.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -64,7 +64,9 @@ public:
         entity::attribute::AttributeModifier modifier;
         i32 equipmentSlot; // 使用int代替EquipmentSlot避免循环依赖
 
-        Entry(const entity::attribute::Attribute* attr, const entity::attribute::AttributeModifier& mod, i32 slot)
+        Entry(const entity::attribute::Attribute* attr,
+            const entity::attribute::AttributeModifier& mod,
+            i32 slot) noexcept
             : attribute(attr)
             , modifier(mod)
             , equipmentSlot(slot)

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../entities/item/ItemEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <vector>
 
@@ -42,7 +42,6 @@ class BlockPos;
  * @brief 物品掉落工具类
  *
  * 提供统一的物品实体生成方法，封装随机速度计算逻辑。
- * 参考 MC 1.16.5 的 InventoryHelper.spawnItemStack() 和 Entity.entityDropItem()。
  *
  * 用法示例:
  * @code
@@ -72,7 +71,6 @@ public:
      * @brief 获取方块掉落式的随机速度
      *
      * 用于方块破坏后的物品掉落。
-     * 参考 MC 1.16.5 InventoryHelper.spawnItemStack()。
      *
      * 速度公式：
      * - X: (random - 0.5) * 0.1 + random * 0.2
@@ -88,7 +86,6 @@ public:
      * @brief 获取简单随机速度
      *
      * 用于实体丢弃物品等简单场景。
-     * 参考 MC 1.16.5 ItemEntity 构造函数。
      *
      * 速度公式：
      * - X: random * 0.2 - 0.1  => 范围 [-0.1, 0.1]
@@ -103,8 +100,6 @@ public:
     /**
      * @brief 获取玩家丢弃物品的速度
      *
-     * 参考 MC 1.16.5 PlayerEntity.dropItem()。
-     *
      * @param rng 随机数生成器
      * @param dropAround 是否向四周散射（Q键丢弃 vs Ctrl+Q丢弃）
      * @param yaw 玩家朝向（仅 dropAround=false 时使用）
@@ -118,7 +113,6 @@ public:
      * @brief 获取高斯分布的随机速度
      *
      * 用于发射器等需要更自然散射的场景。
-     * 参考 MC 1.16.5 DispenserBlock。
      *
      * @param rng 随机数生成器
      * @param baseVelocity 基础速度
@@ -196,7 +190,6 @@ public:
      * @brief 在方块位置生成多个物品实体
      *
      * 在方块中心位置生成物品，使用方块掉落式的随机速度。
-     * 参考 MC 1.16.5 Block.spawnAsEntity()。
      *
      * @param world 世界引用
      * @param pos 方块位置

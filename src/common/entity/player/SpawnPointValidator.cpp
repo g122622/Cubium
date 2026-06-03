@@ -36,6 +36,7 @@ namespace mc {
 SpawnPointValidationResult SpawnPointValidator::validate(
     IWorld& world, const GlobalPos& spawnPoint, bool spawnForced, bool consumeCharge)
 {
+    (void)consumeCharge; // 避免未使用警告，实际消耗能量需要在重生时执行
 
     // 1. 获取方块状态
     const BlockPos& pos = spawnPoint.getPos();
@@ -134,7 +135,7 @@ std::optional<Vector3> SpawnPointValidator::findSafeSpawnPosition(
     // 3. 强制重生点
     if (spawnForced) {
         // 对于强制重生点，直接在方块上方生成
-        if (hasStandingSpace(world, pos.up())) {
+        if (_hasStandingSpace(world, pos.up())) {
             return Vector3(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.1, static_cast<f64>(pos.z) + 0.5);
         }
         // 尝试方块内部
@@ -155,7 +156,7 @@ bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos
     }
 
     // 获取床的朝向
-    Direction facing = getBedFacing(*state);
+    Direction facing = _getBedFacing(*state);
     if (facing == Direction::None) {
         return false;
     }
@@ -170,23 +171,21 @@ bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos
     }
 
     // 检查床头是否有站立空间
-    if (!hasStandingSpace(world, headPos.up())) {
+    if (!_hasStandingSpace(world, headPos.up())) {
         return false;
     }
 
     // 检查起床位置（床尾前方）
     Direction footDir = Directions::opposite(facing);
     BlockPos footPos = headPos.offset(footDir);
-    BlockPos wakePos = footPos.offset(footDir).up();
 
     // 尝试多个方向找安全位置
-    // 参考 MC 1.16.5 BedBlock.getBedSpawnPosition()
     constexpr std::array<std::pair<i32, i32>, 8> offsets = {
         {{0, -1}, {-1, 0}, {0, 1}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
 
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(headPos.x + dx, headPos.y + 1, headPos.z + dz);
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return true;
         }
     }
@@ -194,13 +193,13 @@ bool SpawnPointValidator::validateBedSpawn(IWorld& world, const BlockPos& bedPos
     // 检查床尾周围
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(footPos.x + dx, footPos.y + 1, footPos.z + dz);
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return true;
         }
     }
 
     // 检查床头正上方作为最后的备选
-    return hasStandingSpace(world, headPos.up());
+    return _hasStandingSpace(world, headPos.up());
 }
 
 std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, const BlockPos& bedPos)
@@ -212,7 +211,7 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, 
     }
 
     // 获取床的朝向和部分
-    Direction facing = getBedFacing(*state);
+    Direction facing = _getBedFacing(*state);
     if (facing == Direction::None) {
         return std::nullopt;
     }
@@ -232,7 +231,7 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, 
     // 先检查床头周围
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(headPos.x + dx, headPos.y + 1, headPos.z + dz);
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return Vector3(
                 static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
@@ -243,7 +242,7 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, 
     BlockPos footPos = headPos.offset(footDir);
     for (const auto& [dx, dz] : offsets) {
         BlockPos checkPos(footPos.x + dx, footPos.y + 1, footPos.z + dz);
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return Vector3(
                 static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
@@ -251,7 +250,7 @@ std::optional<Vector3> SpawnPointValidator::findBedSpawnPosition(IWorld& world, 
 
     // 最后检查床头正上方
     BlockPos aboveHead = headPos.up();
-    if (hasStandingSpace(world, aboveHead)) {
+    if (_hasStandingSpace(world, aboveHead)) {
         return Vector3(static_cast<f64>(aboveHead.x) + 0.5,
             static_cast<f64>(aboveHead.y) + 0.1,
             static_cast<f64>(aboveHead.z) + 0.5);
@@ -291,7 +290,6 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
         return std::nullopt;
     }
 
-    // 参考 MC 1.16.5 RespawnAnchorBlock.func_242678_a_()
     // 预定义的位置偏移列表
     // 基础偏移：重生锚周围8个位置
     constexpr std::array<std::pair<i32, i32>, 8> baseOffsets = {
@@ -301,7 +299,7 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
     for (i32 dy = 0; dy <= 1; ++dy) {
         for (const auto& [dx, dz] : baseOffsets) {
             BlockPos checkPos(anchorPos.x + dx, anchorPos.y + dy, anchorPos.z + dz);
-            if (hasStandingSpace(world, checkPos)) {
+            if (_hasStandingSpace(world, checkPos)) {
                 // 如果需要消耗能量，在这里处理
                 // 注意：实际消耗需要在调用方执行
                 (void)consumeCharge; // 避免未使用警告
@@ -316,7 +314,7 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
     // 尝试下一层
     for (const auto& [dx, dz] : baseOffsets) {
         BlockPos checkPos(anchorPos.x + dx, anchorPos.y - 1, anchorPos.z + dz);
-        if (hasStandingSpace(world, checkPos)) {
+        if (_hasStandingSpace(world, checkPos)) {
             return Vector3(
                 static_cast<f64>(checkPos.x) + 0.5, static_cast<f64>(checkPos.y), static_cast<f64>(checkPos.z) + 0.5);
         }
@@ -324,7 +322,7 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
 
     // 尝试正上方
     BlockPos aboveAnchor = anchorPos.up();
-    if (hasStandingSpace(world, aboveAnchor)) {
+    if (_hasStandingSpace(world, aboveAnchor)) {
         return Vector3(static_cast<f64>(aboveAnchor.x) + 0.5,
             static_cast<f64>(aboveAnchor.y),
             static_cast<f64>(aboveAnchor.z) + 0.5);
@@ -335,7 +333,6 @@ std::optional<Vector3> SpawnPointValidator::findRespawnAnchorSpawnPosition(
 
 bool SpawnPointValidator::validateForcedSpawn(IWorld& world, const BlockPos& pos)
 {
-    // 参考 MC 1.16.5 Block.canSpawnInBlock()
     // 对于强制重生点，检查方块和上方方块是否允许在内部生成
 
     const BlockState* state = world.getBlockState(pos);
@@ -373,7 +370,7 @@ i32 SpawnPointValidator::getRespawnAnchorCharges(const BlockState& state)
 
 // ========== 私有方法实现 ==========
 
-bool SpawnPointValidator::hasStandingSpace(const IWorld& world, const BlockPos& pos)
+bool SpawnPointValidator::_hasStandingSpace(const IWorld& world, const BlockPos& pos)
 {
     // 检查 pos 和 pos.up() 是否都是非固体方块
     // 玩家需要两格高的空间
@@ -389,7 +386,7 @@ bool SpawnPointValidator::hasStandingSpace(const IWorld& world, const BlockPos& 
     return canStand1 && canStand2;
 }
 
-Direction SpawnPointValidator::getBedFacing(const BlockState& state)
+Direction SpawnPointValidator::_getBedFacing(const BlockState& state)
 {
     if (!isBed(state)) {
         return Direction::None;
@@ -402,10 +399,8 @@ Direction SpawnPointValidator::getBedFacing(const BlockState& state)
     return Direction::None;
 }
 
-bool SpawnPointValidator::isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe)
+bool SpawnPointValidator::_isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe)
 {
-
-    // 参考 MC 1.16.5 TransportationHelper.func_242379_a_()
 
     const BlockState* state = world.getBlockState(pos);
 
@@ -415,7 +410,7 @@ bool SpawnPointValidator::isSafeSpawnPosition(const IWorld& world, const BlockPo
     }
 
     // 检查是否有站立空间
-    return hasStandingSpace(world, pos);
+    return _hasStandingSpace(world, pos);
 }
 
 } // namespace mc

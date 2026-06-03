@@ -79,7 +79,6 @@ public:
      * @brief 空 Ingredient 常量
      *
      * 空 Ingredient 的行为：test() 只对空物品堆返回 true。
-     * 这与 MC 原版的 Ingredient.EMPTY 行为一致。
      */
     static const Ingredient EMPTY;
 
@@ -87,9 +86,33 @@ public:
      * @brief 默认构造函数，创建空 Ingredient
      *
      * 空 Ingredient 只匹配空物品堆（isEmpty() 返回 true）。
-     * 与 MC 原版行为一致：空原料用于配方中"该位置必须为空"的判断。
      */
     Ingredient() = default;
+
+    /**
+     * @brief 拷贝构造函数
+     */
+    Ingredient(const Ingredient&) = default;
+
+    /**
+     * @brief 移动构造函数
+     */
+    Ingredient(Ingredient&&) noexcept = default;
+
+    /**
+     * @brief 拷贝赋值运算符
+     */
+    Ingredient& operator=(const Ingredient&) = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    Ingredient& operator=(Ingredient&&) noexcept = default;
+
+    /**
+     * @brief 析构函数
+     */
+    ~Ingredient() = default;
 
     /**
      * @brief 从单个物品创建Ingredient
@@ -137,7 +160,7 @@ public:
      * @param stack 要检查的物品堆
      * @return 如果匹配返回true
      *
-     * 匹配规则（与 MC 原版一致）：
+     * 匹配规则：
      * - 空 Ingredient（isEmpty() == true）只匹配空物品堆
      * - 非空 Ingredient 不匹配空物品堆
      * - 检查物品类型是否在匹配列表中（不检查 NBT）
@@ -150,6 +173,12 @@ public:
      * @return 如果匹配返回true
      */
     [[nodiscard]] bool test(const Item& item) const;
+
+    /**
+     * @brief 检查物品指针是否匹配此Ingredient
+     * @param item 要检查的物品指针（可为nullptr）
+     * @return 如果匹配返回true
+     */
     [[nodiscard]] bool test(const Item* item) const;
 
     /**
@@ -216,7 +245,6 @@ public:
      * @brief 判断原料是否没有匹配物品
      * @return 如果没有匹配物品返回true
      *
-     * 此方法名与 MC 原版 hasNoMatchingItems() 对应。
      * 注意：空标签也视为没有匹配物品。
      */
     [[nodiscard]] bool hasNoMatchingItems() const;
@@ -254,13 +282,13 @@ private:
      * @brief 更新 isSimple 标志
      * 在构造后调用，检查是否包含可损坏物品
      */
-    void updateSimple();
+    void _updateSimple();
 
     /**
      * @brief 延迟解析标签
      * 在首次需要时解析标签中的物品列表
      */
-    void resolveTagIfNeeded() const;
+    void _resolveTagIfNeeded() const;
 };
 
 } // namespace crafting

@@ -64,7 +64,6 @@ std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/)
 
 void TridentEntity::tick()
 {
-    // 参考 MC 1.16.5 TridentEntity.tick() 第60-93行
     // 检查是否应该开始返回
     if (m_timeInGround > 4) {
         m_dealtDamage = true;
@@ -75,16 +74,17 @@ void TridentEntity::tick()
     if ((m_dealtDamage || isInGround()) && shooter != nullptr) {
         const i32 loyaltyLevel = m_loyaltyLevel;
 
-        if (loyaltyLevel > 0 && !shouldReturnToThrower()) {
+        if (loyaltyLevel > 0 && !_shouldReturnToThrower()) {
             // 忠诚附魔但无法返回（射手是观察者模式），掉落物品
             if (!m_world->isClientSide() && pickupStatus() == PickupStatus::Allowed) {
+                // TODO: 实现物品掉落逻辑
                 // entityDropItem(getArrowStack(), 0.1F);
             }
             remove();
         } else if (loyaltyLevel > 0) {
             // 开始返回
             setNoClip(true);
-            tickReturning();
+            _tickReturning();
             return;
         }
     }
@@ -93,12 +93,11 @@ void TridentEntity::tick()
     AbstractArrowEntity::tick();
 }
 
-bool TridentEntity::shouldReturnToThrower()
+bool TridentEntity::_shouldReturnToThrower()
 {
-    // 参考 MC 1.16.5 TridentEntity.shouldReturnToThrower() 第95-102行
     Entity* shooter = getShooter();
     if (shooter != nullptr && shooter->isAlive()) {
-        // 如果是玩家，检查是否在观察者模式
+        // TODO: 如果是玩家，检查是否在观察者模式
         // Player* player = dynamic_cast<Player*>(shooter);
         // if (player && player->isSpectator()) {
         //     return false;
@@ -108,9 +107,8 @@ bool TridentEntity::shouldReturnToThrower()
     return false;
 }
 
-void TridentEntity::tickReturning()
+void TridentEntity::_tickReturning()
 {
-    // 参考 MC 1.16.5 TridentEntity.tick() 第76-88行
     Entity* shooter = getShooter();
     if (!shooter || !shooter->isAlive()) {
         // 射手已死亡或不存在，移除三叉戟
@@ -126,14 +124,13 @@ void TridentEntity::tickReturning()
     // 更新旋转朝向运动方向
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
-    // 参考 MC 1.16.5 第77行：Y轴微小偏移
+    // Y轴微小偏移
     m_position.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
 
     // 计算距离
     f32 distance = direction.length();
 
-    // 参考 MC 1.16.5 第82-83行：返回速度
-    // double d0 = 0.05D * (double)i;
+    // 返回速度
     f32 speed = 0.05f * static_cast<f32>(m_loyaltyLevel);
 
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
@@ -167,7 +164,6 @@ void TridentEntity::tickReturning()
     ++m_returningTicks;
 
     // 检查是否在水中，生成气泡粒子
-    // MC 1.16.5 TridentEntity.tick() 第88-91行
     if (isInWater() && m_world) {
         for (int i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
@@ -185,14 +181,12 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
         return;
     }
 
-    // 参考 MC 1.16.5 TridentEntity.onEntityHit() 第124-167行
     Entity* target = result.hitEntity;
 
     // 计算基础伤害
     f32 damage = 8.0f;
 
-    // MC 1.16.5: 应用穿刺附魔伤害
-    // 穿刺附魔对水生生物造成额外伤害（每级 2.5 点）
+    // 应用穿刺附魔伤害（对水生生物造成额外伤害，每级 2.5 点）
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
     if (livingTarget != nullptr && !m_tridentStack.isEmpty()) {
         // 获取目标的生物属性类型
@@ -234,13 +228,10 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 引雷附魔
-    // 参考 MC 1.16.5 第154-164行
     if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
         // 检查是否有引雷附魔
         if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
-            // 检查是否在雷暴天气
-            // MC 1.16.5: world.isThundering() && world.canSeeSky(pos)
-            // 需要检查天气系统和天空可见性
+            // 检查是否在雷暴天气且能看到天空
             BlockPos targetPos(
                 static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
             bool isThundering = m_world->isThundering();
@@ -275,7 +266,6 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
 void TridentEntity::onBlockHit(const RayTraceResult& result)
 {
-    // 参考 MC 1.16.5 三叉戟命中方块的行为
     m_inGround = true;
     m_hitBlock = true;
     m_hitBlockPos = result.blockPos;
@@ -299,15 +289,12 @@ void TridentEntity::onBlockHit(const RayTraceResult& result)
 
 f32 TridentEntity::getWaterDrag() const
 {
-    // 参考 MC 1.16.5 TridentEntity.getWaterDrag() 第213-215行
     // 三叉戟在水中阻力很小
     return 0.99f;
 }
 
 void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
-    //
     // 注意：三叉戟不使用弓类附魔（力量、冲击、火焰），原因如下：
     // 1. 力量附魔只能应用于弓（EnchantmentType::Bow），不影响三叉戟伤害
     // 2. 冲击附魔只能应用于弓，不影响三叉戟击退
@@ -331,7 +318,6 @@ void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVel
 void TridentEntity::setItemStack(const ItemStack& stack)
 {
     m_tridentStack = stack;
-    // 参考 MC 1.16.5 TridentEntity 构造函数第42-43行
     // 从物品堆获取忠诚附魔等级
     m_loyaltyLevel =
         static_cast<u8>(mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
@@ -339,9 +325,8 @@ void TridentEntity::setItemStack(const ItemStack& stack)
 
 bool TridentEntity::onPlayerPickup(Player& player)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
     // 必须在服务端执行
-    if (m_world && m_world->isClientSide()) {
+    if (m_world->isClientSide()) {
         return false;
     }
 
@@ -385,8 +370,6 @@ bool TridentEntity::onPlayerPickup(Player& player)
 
 void TridentEntity::tickInGroundTrident()
 {
-    // 三叉戟特殊的地面tick逻辑
-    // 参考 MC 1.16.5 TridentEntity.func_225516_i_() 第205-209行
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑
     if (pickupStatus() != PickupStatus::Allowed || m_loyaltyLevel <= 0) {
         AbstractArrowEntity::tickInGround();

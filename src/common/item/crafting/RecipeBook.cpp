@@ -22,6 +22,7 @@
  */
 
 #include "RecipeBook.hpp"
+#include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <spdlog/spdlog.h>
 
@@ -76,44 +77,37 @@ RecipeBookStatus::RecipeBookStatus()
 bool RecipeBookStatus::isGuiOpen(RecipeBookCategory category) const noexcept
 {
     const size_t index = static_cast<size_t>(category);
-    if (index >= static_cast<size_t>(RecipeBookCategory::Count)) {
-        return false;
-    }
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
     return m_status[index].guiOpen;
 }
 
 void RecipeBookStatus::setGuiOpen(RecipeBookCategory category, bool open) noexcept
 {
     const size_t index = static_cast<size_t>(category);
-    if (index < static_cast<size_t>(RecipeBookCategory::Count)) {
-        m_status[index].guiOpen = open;
-    }
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
+    m_status[index].guiOpen = open;
 }
 
 bool RecipeBookStatus::isFilteringCraftable(RecipeBookCategory category) const noexcept
 {
     const size_t index = static_cast<size_t>(category);
-    if (index >= static_cast<size_t>(RecipeBookCategory::Count)) {
-        return false;
-    }
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
     return m_status[index].filteringCraftable;
 }
 
 void RecipeBookStatus::setFilteringCraftable(RecipeBookCategory category, bool filtering) noexcept
 {
     const size_t index = static_cast<size_t>(category);
-    if (index < static_cast<size_t>(RecipeBookCategory::Count)) {
-        m_status[index].filteringCraftable = filtering;
-    }
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
+    m_status[index].filteringCraftable = filtering;
 }
 
 void RecipeBookStatus::setCategoryStatus(RecipeBookCategory category, bool open, bool filtering) noexcept
 {
     const size_t index = static_cast<size_t>(category);
-    if (index < static_cast<size_t>(RecipeBookCategory::Count)) {
-        m_status[index].guiOpen = open;
-        m_status[index].filteringCraftable = filtering;
-    }
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
+    m_status[index].guiOpen = open;
+    m_status[index].filteringCraftable = filtering;
 }
 
 void RecipeBookStatus::copyFrom(const RecipeBookStatus& other) noexcept
@@ -193,31 +187,22 @@ nbt::tags::compound_tag ServerRecipeBook::write() const
     nbt::tags::compound_tag tag;
 
     // 写入 GUI 状态
-    // MC 1.16.5 使用的键名：
-    // Crafting: "isGuiOpen", "isFilteringCraftable"
-    // Furnace: "isFurnaceGuiOpen", "isFurnaceFilteringCraftable"
-    // Blast Furnace: "isBlastingFurnaceGuiOpen", "isBlastingFurnaceFilteringCraftable"
-    // Smoker: "isSmokerGuiOpen", "isSmokerFilteringCraftable"
-
     // Crafting
-    tag.put("isGuiOpen", static_cast<std::int8_t>(m_status.isGuiOpen(RecipeBookCategory::Crafting)));
-    tag.put(
-        "isFilteringCraftable", static_cast<std::int8_t>(m_status.isFilteringCraftable(RecipeBookCategory::Crafting)));
+    tag.put("isGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Crafting)));
+    tag.put("isFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Crafting)));
 
     // Furnace
-    tag.put("isFurnaceGuiOpen", static_cast<std::int8_t>(m_status.isGuiOpen(RecipeBookCategory::Furnace)));
-    tag.put("isFurnaceFilteringCraftable",
-        static_cast<std::int8_t>(m_status.isFilteringCraftable(RecipeBookCategory::Furnace)));
+    tag.put("isFurnaceGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Furnace)));
+    tag.put("isFurnaceFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Furnace)));
 
     // Blast Furnace
-    tag.put("isBlastingFurnaceGuiOpen", static_cast<std::int8_t>(m_status.isGuiOpen(RecipeBookCategory::BlastFurnace)));
+    tag.put("isBlastingFurnaceGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::BlastFurnace)));
     tag.put("isBlastingFurnaceFilteringCraftable",
-        static_cast<std::int8_t>(m_status.isFilteringCraftable(RecipeBookCategory::BlastFurnace)));
+        static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::BlastFurnace)));
 
     // Smoker
-    tag.put("isSmokerGuiOpen", static_cast<std::int8_t>(m_status.isGuiOpen(RecipeBookCategory::Smoker)));
-    tag.put("isSmokerFilteringCraftable",
-        static_cast<std::int8_t>(m_status.isFilteringCraftable(RecipeBookCategory::Smoker)));
+    tag.put("isSmokerGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Smoker)));
+    tag.put("isSmokerFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Smoker)));
 
     // 写入已解锁配方列表
     auto recipesList = std::make_unique<nbt::tags::string_list_tag>();

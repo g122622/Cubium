@@ -80,7 +80,7 @@ public:
      * @param inventory 合成网格
      * @return 如果匹配返回true
      */
-    [[nodiscard]] bool matches(const CraftingInventory& inventory) const override;
+    [[nodiscard]] bool matches(const CraftingInventory& inventory) const noexcept override;
 
     /**
      * @brief 生成结果物品堆
@@ -93,43 +93,43 @@ public:
      * @brief 获取结果物品
      * @return 结果物品堆（数量始终为配方定义的数量）
      */
-    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+    [[nodiscard]] ItemStack getResultItem() const noexcept override { return m_result; }
 
     /**
      * @brief 获取原料列表
      * @return 原料列表（按行优先顺序）
      */
-    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override { return m_ingredients; }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const noexcept override { return m_ingredients; }
 
     /**
      * @brief 获取配方分组
      * @return 分组名，如果无分组返回空字符串
      */
-    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const noexcept override { return m_group; }
 
     /**
      * @brief 获取配方宽度
      * @return 宽度
      */
-    [[nodiscard]] i32 getRecipeWidth() const override { return m_width; }
+    [[nodiscard]] i32 getRecipeWidth() const noexcept override { return m_width; }
 
     /**
      * @brief 获取配方高度
      * @return 高度
      */
-    [[nodiscard]] i32 getRecipeHeight() const override { return m_height; }
+    [[nodiscard]] i32 getRecipeHeight() const noexcept override { return m_height; }
 
     /**
      * @brief 获取配方ID
      * @return 配方ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] ResourceLocation getId() const noexcept override { return m_id; }
 
     /**
      * @brief 获取配方类型
      * @return RecipeType::ShapedCrafting
      */
-    [[nodiscard]] RecipeType getType() const override { return RecipeType::ShapedCrafting; }
+    [[nodiscard]] RecipeType getType() const noexcept override { return RecipeType::ShapedCrafting; }
 
     /**
      * @brief 检查配方是否适合给定尺寸的网格
@@ -137,7 +137,7 @@ public:
      * @param height 网格高度
      * @return 如果适合返回true
      */
-    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override;
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const noexcept override;
 
     /**
      * @brief 获取合成后剩余的物品堆
@@ -155,12 +155,12 @@ private:
      * @param mirrored 是否镜像（true=水平翻转）
      * @return 如果匹配返回true
      *
-     * MC 原版算法：
+     * 匹配算法：
      * - 遍历整个网格（而不是只遍历配方区域）
      * - 对于配方外的位置，使用 Ingredient.EMPTY 进行测试
      * - Ingredient.EMPTY.test(stack) 只对空物品堆返回 true
      */
-    bool checkMatch(const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const;
+    bool _checkMatch(const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const noexcept;
 
     ResourceLocation m_id;
     i32 m_width;

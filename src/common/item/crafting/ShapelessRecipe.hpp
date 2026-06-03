@@ -146,7 +146,7 @@ private:
      *
      * 回溯算法确保在贪心算法可能失败的情况下也能找到正确的匹配。
      */
-    bool matchWithBacktracking(const CraftingInventory& inventory, std::vector<bool>& used, i32 ingredientIndex) const;
+    bool _matchWithBacktracking(const CraftingInventory& inventory, std::vector<bool>& used, i32 ingredientIndex) const;
 
     ResourceLocation m_id;
     std::vector<Ingredient> m_ingredients;

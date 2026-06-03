@@ -35,8 +35,6 @@ namespace crafting {
 
 /**
  * @brief 配方类型枚举
- *
- * 对应MC 1.16.5的配方类型
  */
 enum class RecipeType : u8 {
     Crafting,          ///< 有序/无序合成（通用）
@@ -198,8 +196,6 @@ public:
      * - 水桶 -> 空桶（牛奶桶、水桶等）
      * - 玻璃瓶 -> 玻璃瓶（药水合成）
      * - 碗 -> 碗（蘑菇汤）
-     *
-     * 参考: net.minecraft.item.crafting.IRecipe.getRemainingItems()
      */
     [[nodiscard]] virtual std::vector<ItemStack> getRemainingItems(const C& inventory) const = 0;
 

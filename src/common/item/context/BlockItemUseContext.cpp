@@ -22,8 +22,8 @@
  */
 
 #include "BlockItemUseContext.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../world/block/Material.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -61,13 +61,13 @@ BlockItemUseContext::BlockItemUseContext(IWorld& world,
         m_horizontalDirection = Direction::East; // 面向东
     }
 
-    initialize();
+    _initialize();
 }
 
-void BlockItemUseContext::initialize()
+void BlockItemUseContext::_initialize()
 {
     // 检查点击的方块是否可替换
-    m_replacingClickedBlock = canReplace(m_blockPos);
+    m_replacingClickedBlock = _canReplace(m_blockPos);
 
     // 确定实际放置位置
     if (m_replacingClickedBlock) {
@@ -77,7 +77,7 @@ void BlockItemUseContext::initialize()
     }
 }
 
-bool BlockItemUseContext::canReplace(const BlockPos& pos) const
+bool BlockItemUseContext::_canReplace(const BlockPos& pos) const
 {
     // 检查位置是否在世界边界内
     if (!m_world.isWithinWorldBounds(pos)) {
@@ -114,7 +114,7 @@ bool BlockItemUseContext::canPlace() const
     }
 
     // 检查放置位置是否可替换
-    return canReplace(m_placementPos);
+    return _canReplace(m_placementPos);
 }
 
 Direction BlockItemUseContext::placementDirection() const
@@ -134,7 +134,6 @@ const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
 
 std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
 {
-    // 参考 MC 1.16.5: BlockItemUseContext#getNearestLookingDirections
     // 返回按玩家视线方向排序的方向列表
 
     // 首先添加玩家面向的方向（反方向）

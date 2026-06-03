@@ -22,8 +22,8 @@
  */
 
 #include "ItemUseContext.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../core/ItemStack.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 

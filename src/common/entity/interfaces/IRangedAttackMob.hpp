@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -37,8 +37,6 @@ namespace entity {
  *
  * 实现此接口的实体可以使用远程武器进行攻击。
  * 例如：骷髅（弓箭）、烈焰人（火球）、女巫（药水）等。
- *
- * 参考 MC 1.16.5 IRangedAttackMob
  */
 class IRangedAttackMob {
 public:

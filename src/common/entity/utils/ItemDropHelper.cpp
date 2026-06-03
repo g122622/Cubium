@@ -22,13 +22,13 @@
  */
 
 #include "ItemDropHelper.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../util/math/MathConstants.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../core/Entity.hpp"
-#include "../entities/item/ItemEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc {
@@ -39,7 +39,6 @@ namespace mc {
 
 Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng)
 {
-    // 参考 MC 1.16.5 InventoryHelper.spawnItemStack()
     // 速度范围：
     // X: (random - 0.5) * 0.1 + random * 0.2 => [-0.05, 0.25]
     // Y: random * 0.2 => [0, 0.2]
@@ -52,7 +51,6 @@ Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng)
 
 Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng)
 {
-    // 参考 MC 1.16.5 ItemEntity 构造函数
     // 速度范围：
     // X: random * 0.2 - 0.1 => [-0.1, 0.1]
     // Y: 0.2
@@ -66,7 +64,6 @@ Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng)
 Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround, f32 yaw, f32 pitch)
 {
     if (dropAround) {
-        // 参考 MC 1.16.5 PlayerEntity.dropItem(dropAround=true)
         // 向四周散射
         f32 f = rng.nextFloat() * 0.5f;
         f32 angle = rng.nextFloat() * math::TWO_PI;
@@ -75,7 +72,6 @@ Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround
         f32 vz = std::cos(angle) * f;
         return Vector3(vx, vy, vz);
     } else {
-        // 参考 MC 1.16.5 PlayerEntity.dropItem(dropAround=false)
         // 按玩家朝向投掷
         constexpr f32 BASE_SPEED = 0.3f;
         constexpr f32 RANDOM_OFFSET = 0.02f;
@@ -101,8 +97,7 @@ Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround
 
 Vector3 ItemDropHelper::getGaussianVelocity(math::Random& rng, f32 baseVelocity, f32 inaccuracy)
 {
-    // 参考 MC 1.16.5 DispenserBlock 和 ProjectileEntity.shoot()
-    constexpr f32 GAUSSIAN_FACTOR = 0.007499999832361937f; // MC 原版常量
+    constexpr f32 GAUSSIAN_FACTOR = 0.007499999832361937f;
 
     f32 gaussianX = static_cast<f32>(rng.nextGaussian(0.0, GAUSSIAN_FACTOR * inaccuracy));
     f32 gaussianY = static_cast<f32>(rng.nextGaussian(0.0, GAUSSIAN_FACTOR * inaccuracy));
@@ -211,8 +206,7 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
             continue;
         }
 
-        // 使用随机偏移，模拟 MC 的方块内随机位置
-        // 参考 MC 1.16.5 Block.spawnAsEntity()
+        // 使用随机偏移，模拟方块内的随机位置
         f64 offsetX = centerX + (rng.nextFloat() * 0.5 - 0.25);
         f64 offsetY = centerY + (rng.nextFloat() * 0.5);
         f64 offsetZ = centerZ + (rng.nextFloat() * 0.5 - 0.25);

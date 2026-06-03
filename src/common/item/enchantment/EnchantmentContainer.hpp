@@ -24,6 +24,8 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
+
 #include "Enchantment.hpp"
 #include "common/core/Result.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
@@ -56,7 +58,7 @@ struct EnchantmentInstance {
 
     EnchantmentInstance() = default;
 
-    EnchantmentInstance(const std::string& id, i32 lvl)
+    EnchantmentInstance(std::string_view id, i32 lvl)
         : enchantmentId(id)
         , level(lvl)
     {}
@@ -87,7 +89,7 @@ struct EnchantmentInstance {
  */
 class EnchantmentContainer {
 public:
-    EnchantmentContainer() = default;
+    EnchantmentContainer() noexcept = default;
 
     // ========== 查询 ==========
 
@@ -106,13 +108,13 @@ public:
      * @param enchantmentId 附魔ID
      * @return 附魔等级（0表示无此附魔）
      */
-    [[nodiscard]] i32 getLevel(const std::string& enchantmentId) const;
+    [[nodiscard]] i32 getLevel(std::string_view enchantmentId) const;
 
     /**
      * @brief 检查是否有指定附魔
      * @param enchantmentId 附魔ID
      */
-    [[nodiscard]] bool has(const std::string& enchantmentId) const;
+    [[nodiscard]] bool has(std::string_view enchantmentId) const;
 
     /**
      * @brief 检查是否有指定类型的附魔
@@ -132,14 +134,14 @@ public:
      * @param enchantmentId 附魔ID
      * @param level 附魔等级
      */
-    void set(const std::string& enchantmentId, i32 level);
+    void set(std::string_view enchantmentId, i32 level);
 
     /**
      * @brief 移除附魔
      * @param enchantmentId 附魔ID
      * @return 如果成功移除返回true
      */
-    bool remove(const std::string& enchantmentId);
+    bool remove(std::string_view enchantmentId);
 
     /**
      * @brief 清除所有附魔
@@ -153,7 +155,7 @@ public:
      * @param enchantmentId 附魔ID
      * @return 如果与现有附魔兼容返回true
      */
-    [[nodiscard]] bool canAdd(const std::string& enchantmentId) const;
+    [[nodiscard]] bool canAdd(std::string_view enchantmentId) const;
 
     // ========== 序列化 ==========
 

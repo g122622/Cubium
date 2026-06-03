@@ -86,8 +86,7 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
     ItemStack result(stack1.getItem(), 1);
 
     // 计算修复后的耐久度
-    // MC 1.16.5 工作台修复公式:
-    // 结果耐久度 = min(剩余耐久1 + 剩余耐久2 + 最大耐久 * 5%, 最大耐久)
+    // 工作台修复公式: 结果耐久度 = min(剩余耐久1 + 剩久2 + 最大耐久 * 5%, 最大耐久)
     // 注意：铁砧修复使用12%奖励，与工作台不同
     i32 maxDamage = stack1.getMaxDamage();
     i32 remaining1 = maxDamage - stack1.getDamage();
@@ -98,7 +97,7 @@ ItemStack RepairItemRecipe::assemble(const CraftingInventory& inventory) const
 
     result.setDamage(newDamage);
 
-    // MC 1.16.5 工作台修复：只保留诅咒附魔（绑定诅咒、消失诅咒）
+    // 工作台修复：只保留诅咒附魔（绑定诅咒、消失诅咒）
     // 普通附魔会丢失！这与铁砧修复不同
     using EnchantEntry = std::pair<const item::enchant::Enchantment*, i32>;
     std::vector<EnchantEntry> combinedCurses;

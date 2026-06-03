@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../../world/block/Block.hpp"
 #include "ItemUseContext.hpp"
 
 namespace mc {
@@ -33,8 +32,6 @@ namespace mc {
  *
  * 继承自 ItemUseContext，提供方块放置专用的上下文信息。
  * 包含放置位置计算、可替换方块检测等功能。
- *
- * 参考: net.minecraft.item.BlockItemUseContext
  */
 class BlockItemUseContext : public ItemUseContext {
 public:
@@ -153,8 +150,6 @@ public:
      * 第一个方向是玩家面向的方向，后面是其他方向。
      * 用于需要找到可附着面的方块（如可可豆）。
      *
-     * 参考: net.minecraft.item.BlockItemUseContext#getNearestLookingDirections
-     *
      * @return 方向列表（从最优先到最低优）
      */
     [[nodiscard]] std::vector<Direction> getNearestLookingDirections() const;
@@ -163,14 +158,14 @@ private:
     /**
      * @brief 初始化放置上下文
      */
-    void initialize();
+    void _initialize();
 
     /**
      * @brief 检查方块是否可替换
      * @param pos 方块位置
      * @return 是否可替换
      */
-    [[nodiscard]] bool canReplace(const BlockPos& pos) const;
+    [[nodiscard]] bool _canReplace(const BlockPos& pos) const;
 
     BlockPos m_adjacentPos;          // 相邻位置（击中面的另一侧）
     BlockPos m_placementPos;         // 实际放置位置

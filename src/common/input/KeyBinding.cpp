@@ -39,12 +39,12 @@ KeyBinding::KeyBinding(std::string id, i32 defaultKey, std::string category)
     , m_currentKey(defaultKey)
     , m_category(std::move(category))
 {
-    registerBinding();
+    _registerBinding();
 }
 
 KeyBinding::~KeyBinding()
 {
-    unregisterBinding();
+    _unregisterBinding();
 }
 
 KeyBinding::KeyBinding(KeyBinding&& other) noexcept
@@ -57,14 +57,14 @@ KeyBinding::KeyBinding(KeyBinding&& other) noexcept
     , m_justReleased(other.m_justReleased)
 {
     // 更新静态注册表中的指针
-    registerBinding();
-    other.unregisterBinding();
+    _registerBinding();
+    other._unregisterBinding();
 }
 
 KeyBinding& KeyBinding::operator=(KeyBinding&& other) noexcept
 {
     if (this != &other) {
-        unregisterBinding();
+        _unregisterBinding();
 
         m_id = std::move(other.m_id);
         m_defaultKey = other.m_defaultKey;
@@ -74,18 +74,15 @@ KeyBinding& KeyBinding::operator=(KeyBinding&& other) noexcept
         m_justPressed = other.m_justPressed;
         m_justReleased = other.m_justReleased;
 
-        registerBinding();
-        other.unregisterBinding();
+        _registerBinding();
+        other._unregisterBinding();
     }
     return *this;
 }
 
 void KeyBinding::setKey(i32 key)
 {
-    if (m_currentKey != key) {
-        m_currentKey = key;
-        spdlog::debug("Key binding '{}' changed to key {}", m_id, key);
-    }
+    m_currentKey = key;
 }
 
 void KeyBinding::resetToDefault()
@@ -202,7 +199,7 @@ void KeyBinding::deserializeAll(const nlohmann::json& j)
     }
 }
 
-void KeyBinding::registerBinding()
+void KeyBinding::_registerBinding()
 {
     if (m_id.empty()) return;
 
@@ -213,11 +210,9 @@ void KeyBinding::registerBinding()
 
     s_bindings[m_id] = this;
     s_categoryBindings[m_category].push_back(this);
-
-    spdlog::trace("Registered key binding '{}' (key: {}, category: {})", m_id, m_currentKey, m_category);
 }
 
-void KeyBinding::unregisterBinding()
+void KeyBinding::_unregisterBinding()
 {
     if (m_id.empty()) return;
 
@@ -233,8 +228,6 @@ void KeyBinding::unregisterBinding()
             s_categoryBindings.erase(it);
         }
     }
-
-    spdlog::trace("Unregistered key binding '{}'", m_id);
 }
 
 } // namespace mc

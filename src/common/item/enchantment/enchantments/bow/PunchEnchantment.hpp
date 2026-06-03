@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 冲击附魔
  *
  * 增加箭矢的击退距离。
- * 参考 MC 1.16.5 PunchEnchantment
  *
  * 效果:
  * - 每级增加 3 格击退距离

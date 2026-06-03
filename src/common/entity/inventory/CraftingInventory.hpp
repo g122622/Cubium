@@ -205,7 +205,6 @@ public:
      * @param itemCounts 物品ID到数量的映射（输出参数）
      *
      * 遍历所有物品，只计数未损坏、未附魔、无自定义名称的物品。
-     * 参考: net.minecraft.inventory.CraftingInventory.fillStackedContents
      */
     void fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const override;
 
@@ -312,7 +311,7 @@ public:
      * @brief 合成完成时调用（重写IRecipeHolder）
      * @param player 玩家
      *
-     * MC 1.16.5: 如果配方不是动态的，解锁配方并清除。
+     * 如果配方不是动态的，解锁配方并清除。
      */
     void onCrafting(Player& player) override;
 

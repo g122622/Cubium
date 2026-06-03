@@ -73,13 +73,13 @@ bool TippedArrowRecipe::matches(const CraftingInventory& inventory) const
 ItemStack TippedArrowRecipe::assemble(const CraftingInventory& inventory) const
 {
     // 找到滞留药水
-    i32 lingeringPotionSlot = findLingeringPotion(inventory);
+    i32 lingeringPotionSlot = _findLingeringPotion(inventory);
     if (lingeringPotionSlot == -1) {
         return ItemStack::EMPTY;
     }
 
     // 统计箭的数量
-    i32 arrowCount = countArrows(inventory, lingeringPotionSlot);
+    i32 arrowCount = _countArrows(inventory, lingeringPotionSlot);
     if (arrowCount <= 0) {
         return ItemStack::EMPTY;
     }
@@ -119,7 +119,7 @@ std::vector<ItemStack> TippedArrowRecipe::getRemainingItems(const CraftingInvent
     return std::vector<ItemStack>(inventory.getContainerSize());
 }
 
-i32 TippedArrowRecipe::findLingeringPotion(const CraftingInventory& inventory) const
+i32 TippedArrowRecipe::_findLingeringPotion(const CraftingInventory& inventory) const noexcept
 {
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
@@ -130,7 +130,7 @@ i32 TippedArrowRecipe::findLingeringPotion(const CraftingInventory& inventory) c
     return -1;
 }
 
-i32 TippedArrowRecipe::countArrows(const CraftingInventory& inventory, i32 excludeSlot) const
+i32 TippedArrowRecipe::_countArrows(const CraftingInventory& inventory, i32 excludeSlot) const noexcept
 {
     i32 count = 0;
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {

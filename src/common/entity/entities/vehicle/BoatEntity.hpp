@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "../../core/Entity.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -41,7 +41,7 @@ namespace entity {
 /**
  * @brief 船的状态
  *
- * MC 1.16.5: 用于确定船在不同介质中的行为
+ * 用于确定船在不同介质中的行为
  */
 enum class BoatStatus : u8 {
     InWater,           // 在水面上
@@ -62,14 +62,11 @@ enum class BoatStatus : u8 {
  * - 乘客：最多承载2名乘客
  * - 损坏：受到足够伤害会掉落物品
  * - 气泡柱：会被气泡柱影响
- *
- * 参考 MC 1.16.5 BoatEntity
  */
 class BoatEntity : public Entity {
 public:
     /**
      * @brief 船的类型（木材类型）
-     * MC 1.16.5: Type enum
      */
     enum class Type : u8 { OAK = 0, SPRUCE = 1, BIRCH = 2, JUNGLE = 3, ACACIA = 4, DARK_OAK = 5 };
 
@@ -89,27 +86,23 @@ public:
 
     /**
      * @brief 处理伤害
-     * MC 1.16.5: BoatEntity.attackEntityFrom()
      * @note 船不继承LivingEntity，所以不重写hurt方法
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 检查是否可以被碰撞
-     * MC 1.16.5: canBeCollidedWith()
      */
     [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
 
     /**
      * @brief 检查是否可以被推动
-     * MC 1.16.5: canBePushed()
      */
     [[nodiscard]] bool canBePushed() const { return true; }
 
 protected:
     /**
      * @brief 注册数据参数
-     * MC 1.16.5: registerData()
      */
     void registerData() override;
 
@@ -120,7 +113,6 @@ public:
 
     /**
      * @brief 乘客乘坐高度偏移
-     * MC 1.16.5: -0.1D
      */
     [[nodiscard]] f64 getMountedYOffset() const override;
 
@@ -138,19 +130,16 @@ public:
 
     /**
      * @brief 处理摔落伤害
-     * MC 1.16.5: updateFallState()
      */
     void updateFallState(f64 y, bool onGround);
 
     /**
      * @brief 掉落船物品
-     * MC 1.16.5: entityDropItem(this.getItemBoat())
      */
     void dropItem();
 
     /**
      * @brief 掉落船物品（带伤害倍率）
-     * MC 1.16.5: 当超过伤害阈值时调用
      */
     void dropItemWithDamage();
 
@@ -168,7 +157,6 @@ public:
 
     /**
      * @brief 获取船对应的物品
-     * MC 1.16.5: getItemBoat()
      * @return 对应木材类型的船物品指针
      */
     [[nodiscard]] const Item* getBoatItem() const;
@@ -182,7 +170,6 @@ public:
 
     /**
      * @brief 获取上次受击时间
-     * MC 1.16.5: getTimeSinceHit()
      */
     [[nodiscard]] i32 getTimeSinceHit() const { return m_timeSinceHit; }
 
@@ -193,7 +180,6 @@ public:
 
     /**
      * @brief 获取前进方向
-     * MC 1.16.5: getForwardDirection()
      */
     [[nodiscard]] i32 getForwardDirection() const { return m_forwardDirection; }
 
@@ -204,7 +190,6 @@ public:
 
     /**
      * @brief 获取累积伤害
-     * MC 1.16.5: getDamageTaken()
      */
     [[nodiscard]] f32 getDamageTaken() const { return m_damageTaken; }
 
@@ -215,7 +200,6 @@ public:
 
     /**
      * @brief 获取摇晃tick数
-     * MC 1.16.5: getRockingTicks()
      */
     [[nodiscard]] i32 getRockingTicks() const { return m_rockingTicks; }
 
@@ -273,7 +257,6 @@ public:
 
     /**
      * @brief 获取上方水面高度
-     * MC 1.16.5: getWaterLevelAbove()
      */
     [[nodiscard]] f32 getWaterLevelAbove();
 
@@ -305,19 +288,16 @@ protected:
 
     /**
      * @brief 获取水下状态
-     * MC 1.16.5: getUnderwaterStatus()
      */
     [[nodiscard]] BoatStatus getUnderwaterStatus();
 
     /**
      * @brief 检测是否在水中
-     * MC 1.16.5: checkInWater()
      */
     [[nodiscard]] bool checkInWater();
 
     /**
      * @brief 获取地面滑动系数
-     * MC 1.16.5: getBoatGlide()
      */
     [[nodiscard]] f32 getBoatGlide();
 
@@ -328,7 +308,6 @@ protected:
 
     /**
      * @brief 将船的朝向应用到乘客
-     * MC 1.16.5: applyYawToEntity()
      */
     void applyOrientationToEntity(Entity& passenger) override;
 
@@ -392,7 +371,7 @@ private:
     // 落下追踪
     f64 m_lastYd = 0.0;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 MAX_SPEED = 0.4f;
     static constexpr i32 MAX_PASSENGERS = 2;
 };

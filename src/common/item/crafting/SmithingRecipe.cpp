@@ -42,7 +42,7 @@ SmithingRecipe::SmithingRecipe(
 
 bool SmithingRecipe::matches(const IInventory& inventory) const
 {
-    // MC 原版：检查基础槽位和添加物槽位
+    // 检查基础槽位和添加物槽位
     if (inventory.getContainerSize() < 2) {
         return false;
     }
@@ -55,8 +55,7 @@ bool SmithingRecipe::matches(const IInventory& inventory) const
 
 ItemStack SmithingRecipe::assemble(const IInventory& inventory) const
 {
-    // MC 1.16.5: 锻造结果复制基础物品的 NBT 数据（附魔、耐久、自定义名称等）
-    // 参考: net.minecraft.item.crafting.SmithingRecipe.getCraftingResult()
+    // 锻造结果复制基础物品的 NBT 数据（附魔、耐久、自定义名称等）
     ItemStack resultStack = m_result.copy();
 
     // 获取基础物品（槽位0）

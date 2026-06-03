@@ -36,8 +36,6 @@ namespace crafting {
  * 修复后的物品耐久度 = (剩余耐久1 + 剩余耐久2) + 5%最大耐久度。
  * 诅咒附魔会被合并（取最高等级）。
  *
- * 参考: net.minecraft.item.crafting.RepairItemRecipe
- *
  * 使用示例：
  * @code
  * // 玩家在工作台中放入两把损坏的钻石剑

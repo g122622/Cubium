@@ -43,12 +43,12 @@ bool MapCloningRecipe::matches(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isFilledMap(stack)) {
+        if (_isFilledMap(stack)) {
             if (hasFilledMap) {
                 return false;
             }
             hasFilledMap = true;
-        } else if (isEmptyMap(stack)) {
+        } else if (_isEmptyMap(stack)) {
             hasEmptyMap = true;
         } else {
             return false;
@@ -69,9 +69,9 @@ ItemStack MapCloningRecipe::assemble(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isFilledMap(stack)) {
+        if (_isFilledMap(stack)) {
             filledMap = stack;
-        } else if (isEmptyMap(stack)) {
+        } else if (_isEmptyMap(stack)) {
             emptyMapCount += stack.getCount();
         }
     }
@@ -95,7 +95,7 @@ std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInvento
     // 保留原地图
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
-        if (isFilledMap(stack)) {
+        if (_isFilledMap(stack)) {
             remaining[i] = stack.copy();
             break;
         }
@@ -104,7 +104,7 @@ std::vector<ItemStack> MapCloningRecipe::getRemainingItems(const CraftingInvento
     return remaining;
 }
 
-bool MapCloningRecipe::isFilledMap(const ItemStack& stack)
+bool MapCloningRecipe::_isFilledMap(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -112,7 +112,7 @@ bool MapCloningRecipe::isFilledMap(const ItemStack& stack)
     return item::items::FilledMapItem::isFilledMap(stack);
 }
 
-bool MapCloningRecipe::isEmptyMap(const ItemStack& stack)
+bool MapCloningRecipe::_isEmptyMap(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;

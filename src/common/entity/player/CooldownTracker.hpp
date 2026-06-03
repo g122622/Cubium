@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <optional>
 #include <unordered_map>
 
@@ -38,8 +38,6 @@ namespace entity::player {
  *
  * 追踪物品的冷却时间，用于紫颂果、末影珍珠、盾牌等物品。
  * 冷却期间物品无法使用，客户端会显示冷却进度动画。
- *
- * 参考 MC 1.16.5 net.minecraft.util.CooldownTracker
  *
  * 冷却进度说明：
  * - 1.0 表示冷却刚开始
@@ -87,8 +85,8 @@ public:
     CooldownTracker& operator=(const CooldownTracker&) = delete;
 
     // 允许移动
-    CooldownTracker(CooldownTracker&&) = default;
-    CooldownTracker& operator=(CooldownTracker&&) = default;
+    CooldownTracker(CooldownTracker&&) noexcept = default;
+    CooldownTracker& operator=(CooldownTracker&&) noexcept = default;
 
     /**
      * @brief 每游戏 tick 调用，更新冷却状态

@@ -39,7 +39,7 @@ namespace crafting {
 /**
  * @brief 配方序列化器
  *
- * 提供从JSON解析配方的功能，兼容MC 1.16.5数据包格式。
+ * 提供从JSON解析配方的功能，支持标准数据包格式。
  *
  * 支持的配方类型：
  * - minecraft:crafting_shaped - 有序合成
@@ -82,10 +82,10 @@ namespace crafting {
  */
 class RecipeSerializers {
 public:
-    /// 有序/无序合成的最大宽度（MC 1.16.5 默认值）
+    /// 有序/无序合成的最大宽度
     static constexpr i32 MAX_RECIPE_WIDTH = 3;
 
-    /// 有序/无序合成的最大高度（MC 1.16.5 默认值）
+    /// 有序/无序合成的最大高度
     static constexpr i32 MAX_RECIPE_HEIGHT = 3;
 
     /// 默认熔炼时间（tick）
@@ -226,8 +226,6 @@ public:
      * NBT 字段支持两种格式：
      * 1. Mojangson 字符串格式："{display:{Name:\"{\\\"text\\\":\\\"Custom Name\\\"}\"}}"
      * 2. JSON 对象格式：{"display":{"Name":{"text":"Custom Name"}}}
-     *
-     * 参考 MC 1.16.5 CraftingHelper.getItemStack()
      */
     static Result<ItemStack> parseResult(const nlohmann::json& json);
 
@@ -236,26 +234,15 @@ private:
      * @brief 压缩pattern，移除空边
      * @param pattern 原始pattern数组
      * @return 压缩后的pattern数组
-     *
-     * MC 原版 shrink() 方法：
-     * - 移除顶部的空行
-     * - 移除底部的空行
-     * - 移除左边的空列
-     * - 移除右边的空列
      */
-    static std::vector<std::string> shrinkPattern(const std::vector<std::string>& pattern);
+    static std::vector<std::string> _shrinkPattern(const std::vector<std::string>& pattern);
 
     /**
      * @brief 验证pattern数组
      * @param pattern 字符串数组
      * @return 错误信息，如果验证通过则为空
-     *
-     * 验证规则：
-     * - 行数不超过 MAX_RECIPE_HEIGHT
-     * - 每行长度不超过 MAX_RECIPE_WIDTH
-     * - 所有行长度相同
      */
-    static std::string validatePattern(const std::vector<std::string>& pattern);
+    static std::string _validatePattern(const std::vector<std::string>& pattern);
 
     /**
      * @brief 从pattern和key解析原料列表
@@ -263,7 +250,7 @@ private:
      * @param key 键映射
      * @return 解析的原料列表，或错误
      */
-    static Result<std::vector<Ingredient>> parsePatternIngredients(
+    static Result<std::vector<Ingredient>> _parsePatternIngredients(
         const std::vector<std::string>& pattern, const nlohmann::json& key);
 };
 

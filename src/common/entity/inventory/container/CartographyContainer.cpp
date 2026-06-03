@@ -215,10 +215,10 @@ CartographyContainer::CartographyContainer(
     , m_position(position)
     , m_world(world)
 {
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
-void CartographyContainer::initSlots(PlayerInventory* playerInventory)
+void CartographyContainer::_initSlots(PlayerInventory* playerInventory)
 {
     auto* cartInv = m_cartographyInventory.get();
 
@@ -268,17 +268,17 @@ void CartographyContainer::updateResult()
     ItemStack result = ItemStack::EMPTY;
 
     if (!mapItem.isEmpty() && item::items::FilledMapItem::isFilledMap(mapItem)) {
-        if (hasPaper() && canExtendMap()) {
+        if (_hasPaper() && _canExtendMap()) {
             // 纸 + 地图 → 扩展地图
             result = mapItem.copy();
             result.setCount(1);
             auto& tag = result.getOrCreateTag();
             tag["map_scale_direction"] = 1;
-        } else if (hasGlassPane() && canLockMap()) {
+        } else if (_hasGlassPane() && _canLockMap()) {
             // 玻璃板 + 地图 → 锁定地图
             result = mapItem.copy();
             result.setCount(1);
-        } else if (hasEmptyMap() && canCopyMap()) {
+        } else if (_hasEmptyMap() && _canCopyMap()) {
             // 空地图 + 地图 → 复制地图
             result = mapItem.copy();
             result.setCount(2);
@@ -340,31 +340,31 @@ ItemStack CartographyContainer::quickMoveStack(i32 slotIndex, Player& player)
     return result;
 }
 
-bool CartographyContainer::hasPaper() const
+bool CartographyContainer::_hasPaper() const
 {
     ItemStack material = m_cartographyInventory->getItem(SLOT_MATERIAL);
     return !material.isEmpty() && material.getItem() == Items::PAPER;
 }
 
-bool CartographyContainer::hasGlassPane() const
+bool CartographyContainer::_hasGlassPane() const
 {
     ItemStack material = m_cartographyInventory->getItem(SLOT_MATERIAL);
     return !material.isEmpty() && material.getItem() == Items::GLASS_PANE;
 }
 
-bool CartographyContainer::hasEmptyMap() const
+bool CartographyContainer::_hasEmptyMap() const
 {
     ItemStack material = m_cartographyInventory->getItem(SLOT_MATERIAL);
     return !material.isEmpty() && material.getItem() == Items::MAP;
 }
 
-bool CartographyContainer::hasFilledMap() const
+bool CartographyContainer::_hasFilledMap() const
 {
     ItemStack mapItem = m_cartographyInventory->getItem(SLOT_MAP);
     return item::items::FilledMapItem::isFilledMap(mapItem);
 }
 
-bool CartographyContainer::canExtendMap() const
+bool CartographyContainer::_canExtendMap() const
 {
     ItemStack mapItem = m_cartographyInventory->getItem(SLOT_MAP);
     if (!item::items::FilledMapItem::isFilledMap(mapItem)) {
@@ -387,7 +387,7 @@ bool CartographyContainer::canExtendMap() const
     return true;
 }
 
-bool CartographyContainer::canLockMap() const
+bool CartographyContainer::_canLockMap() const
 {
     ItemStack mapItem = m_cartographyInventory->getItem(SLOT_MAP);
     if (!item::items::FilledMapItem::isFilledMap(mapItem)) {
@@ -405,9 +405,9 @@ bool CartographyContainer::canLockMap() const
     return true;
 }
 
-bool CartographyContainer::canCopyMap() const
+bool CartographyContainer::_canCopyMap() const
 {
-    return hasFilledMap();
+    return _hasFilledMap();
 }
 
 } // namespace mc

@@ -43,7 +43,7 @@ StonecuttingRecipe::StonecuttingRecipe(const ResourceLocation& id,
 
 bool StonecuttingRecipe::matches(const IInventory& inventory) const
 {
-    // MC 原版：检查输入槽（槽位0）是否匹配原料
+    // 检查输入槽（槽位0）是否匹配原料
     if (inventory.getContainerSize() == 0) {
         return false;
     }

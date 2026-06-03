@@ -50,8 +50,6 @@ class IWorld;
  * - 附魔书合并
  * - 物品重命名
  * - 物品合并
- *
- * 参考: net.minecraft.inventory.container.RepairContainer
  */
 class AnvilContainer : public AbstractContainerMenu {
 public:
@@ -137,8 +135,6 @@ public:
     /**
      * @brief 检查玩家是否是创造模式
      * @return 如果关联的玩家是创造模式返回true
-     *
-     * 参考 MC 1.16.5 RepairContainer.field_234645_f_.abilities.isCreativeMode
      */
     [[nodiscard]] bool isPlayerCreative() const;
 
@@ -183,31 +179,29 @@ private:
     /**
      * @brief 初始化槽位布局
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
     /**
      * @brief 更新输出结果
-     *
-     * 参考: net.minecraft.inventory.container.RepairContainer.updateRepairOutput
      */
-    void updateRepairOutput();
+    void _updateRepairOutput();
 
     /**
      * @brief 计算新的修复成本
      * @param oldRepairCost 旧修复成本
      * @return 新修复成本 = oldRepairCost * 2 + 1
-     *
-     * 参考: net.minecraft.inventory.container.RepairContainer.getNewRepairCost
      */
-    [[nodiscard]] static i32 getNewRepairCost(i32 oldRepairCost);
+    [[nodiscard]] static i32 _getNewRepairCost(i32 oldRepairCost);
 
     /**
      * @brief 检查两个附魔是否兼容
      * @param ench1 附魔ID1
      * @param ench2 附魔ID2
      * @return 如果兼容返回true
+     *
+     * TODO: 此方法目前未被调用，待后续使用
      */
-    [[nodiscard]] bool areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
+    [[nodiscard]] bool _areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
 
 private:
     std::unique_ptr<IInventory> m_anvilInventory; ///< 铁砧背包

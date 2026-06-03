@@ -171,7 +171,7 @@ private:
     /**
      * @brief 检测水面并更新状态
      */
-    void updateWaterState();
+    void _updateWaterState();
 
     /**
      * @brief 检测是否在水中
@@ -182,69 +182,69 @@ private:
      * @brief 检测开放水域
      * @return 是否满足开放水域条件
      */
-    [[nodiscard]] bool checkOpenWater();
+    [[nodiscard]] bool _checkOpenWater();
 
     /**
      * @brief 钓鱼逻辑tick
      */
-    void catchingFish();
+    void _catchingFish();
 
     /**
      * @brief 生成钓鱼粒子
      */
-    void spawnFishingParticles();
+    void _spawnFishingParticles();
 
     /**
      * @brief 生成收杆物品
      * @return 消耗的耐久度
      */
-    i32 spawnCatchItems();
+    i32 _spawnCatchItems();
 
     /**
      * @brief 生成经验球
      * @param totalXp 总经验值
      */
-    void spawnExperienceOrbs(i32 totalXp);
+    void _spawnExperienceOrbs(i32 totalXp);
 
     /**
      * @brief 设置咬钩等待时间
      */
-    void setWaitTime();
+    void _setWaitTime();
 
     /**
      * @brief 执行射线检测
      * @return 射线检测结果
      */
-    [[nodiscard]] RayTraceResult performRayTrace();
+    [[nodiscard]] RayTraceResult _performRayTrace();
 
     /**
      * @brief 检查是否可以命中指定实体
      * @param target 目标实体
      * @return 是否可以命中
      */
-    [[nodiscard]] bool canHitEntity(const Entity& target) const;
+    [[nodiscard]] bool _canHitEntity(const Entity& target) const;
 
     /**
      * @brief 命中实体时的回调
      * @param result 射线检测结果
      */
-    void onEntityHit(const RayTraceResult& result);
+    void _onEntityHit(const RayTraceResult& result);
 
     /**
      * @brief 命中方块时的回调
      * @param result 射线检测结果
      */
-    void onBlockHit(const RayTraceResult& result);
+    void _onBlockHit(const RayTraceResult& result);
 
     /**
      * @brief 拉动被钩住的实体
      */
-    void bringInHookedEntity();
+    void _bringInHookedEntity();
 
     /**
      * @brief 同步被钩住实体ID（用于客户端）
      */
-    void syncCaughtEntityId();
+    void _syncCaughtEntityId();
 
     Player* m_angler = nullptr;       // 钓鱼者
     Entity* m_caughtEntity = nullptr; // 被钩住的实体
@@ -337,17 +337,17 @@ private:
      * @brief 选择下一个移动方向
      * @param excludedAxis 排除的轴（避免反向移动）
      */
-    void selectNextMoveDirection(Axis excludedAxis);
+    void _selectNextMoveDirection(Axis excludedAxis);
 
     /**
      * @brief 设置移动方向
      */
-    void setDirection(Direction dir);
+    void _setDirection(Direction dir);
 
     /**
      * @brief 更新飞行逻辑
      */
-    void updateFlight();
+    void _updateFlight();
 
     Entity* m_target = nullptr;            ///< 目标实体
     std::string m_targetUuid;              ///< 目标UUID（用于重新查找）
@@ -430,7 +430,7 @@ private:
     /**
      * @brief 对范围内实体造成伤害
      */
-    void damageEntities();
+    void _damageEntities();
 
     LivingEntity* m_owner = nullptr;        ///< 所有者（唤魔者）
     i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
@@ -585,7 +585,7 @@ private:
     /**
      * @brief 爆炸
      */
-    void explode();
+    void _explode();
 
     ItemStack m_fireworkItem;        // 烟花火箭物品
     i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）

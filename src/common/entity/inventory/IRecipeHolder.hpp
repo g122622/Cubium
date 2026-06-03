@@ -69,7 +69,6 @@ public:
      * @param player 玩家
      *
      * 解锁配方成就并清除当前配方。
-     * MC 1.16.5: 如果配方不是动态的，解锁配方并清除。
      */
     virtual void onCrafting(Player& player);
 
@@ -79,9 +78,6 @@ public:
      * @param player 服务端玩家
      * @param recipe 要使用的配方
      * @return 如果可以使用返回true
-     *
-     * MC 1.16.5: 如果开启了有限合成且配方未解锁，返回false。
-     * 否则设置当前配方并返回true。
      */
     [[nodiscard]] virtual bool canUseRecipe(
         IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe);

@@ -71,7 +71,6 @@ enum class SpawnPointValidationResult : u8 {
  * @brief 重生点验证器
  *
  * 验证玩家的重生点（床/重生锚）是否仍然有效。
- * 参考 MC 1.16.5 PlayerEntity.func_242374_a_()
  */
 class SpawnPointValidator {
 public:
@@ -125,7 +124,6 @@ public:
      * @brief 获取床的安全生成位置
      *
      * 在床周围查找安全的生成位置。
-     * 参考 MC 1.16.5 BedBlock.func_242652_a_()
      *
      * @param world 世界引用
      * @param bedPos 床头位置
@@ -151,7 +149,6 @@ public:
      * @brief 获取重生锚的安全生成位置
      *
      * 在重生锚周围查找安全的生成位置。
-     * 参考 MC 1.16.5 RespawnAnchorBlock.func_235560_a_()
      *
      * @param world 世界引用
      * @param anchorPos 重生锚位置
@@ -165,7 +162,6 @@ public:
      * @brief 验证强制重生点
      *
      * 对于强制重生点，检查方块是否允许在内部生成。
-     * 参考 MC 1.16.5 Block.canSpawnInBlock()
      *
      * @param world 世界引用
      * @param pos 重生点位置
@@ -207,7 +203,7 @@ private:
      * @param pos 方块位置
      * @return 如果有足够空间返回 true
      */
-    [[nodiscard]] static bool hasStandingSpace(const IWorld& world, const BlockPos& pos);
+    [[nodiscard]] static bool _hasStandingSpace(const IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 获取床的朝向
@@ -215,19 +211,17 @@ private:
      * @param state 床方块状态
      * @return 床的朝向，如果不是床返回 Direction::None
      */
-    [[nodiscard]] static Direction getBedFacing(const BlockState& state);
+    [[nodiscard]] static Direction _getBedFacing(const BlockState& state);
 
     /**
      * @brief 检查位置是否安全可站立
-     *
-     * 参考 MC 1.16.5 TransportationHelper.func_242379_a_()
      *
      * @param world 世界引用
      * @param pos 方块位置
      * @param requireSafe 是否要求位置安全（不会窒息）
      * @return 如果位置安全可站立返回 true
      */
-    [[nodiscard]] static bool isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe);
+    [[nodiscard]] static bool _isSafeSpawnPosition(const IWorld& world, const BlockPos& pos, bool requireSafe);
 };
 
 } // namespace mc

@@ -215,6 +215,8 @@ private:
     ~RecipeManager() = default;
     RecipeManager(const RecipeManager&) = delete;
     RecipeManager& operator=(const RecipeManager&) = delete;
+    RecipeManager(RecipeManager&&) = delete;
+    RecipeManager& operator=(RecipeManager&&) = delete;
 
     mutable std::mutex m_mutex;
 

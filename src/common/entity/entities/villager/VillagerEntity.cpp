@@ -22,30 +22,30 @@
  */
 
 #include "VillagerEntity.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/village/VillageManager.hpp"
-#include "../../../world/village/poi/PointOfInterestStorage.hpp"
-#include "../../../world/village/trade/Merchant.hpp"
-#include "../../../world/village/trade/VillagerTrades.hpp"
-#include "../../../world/village/trade/WanderingTraderTrades.hpp"
-#include "../../ai/brain/memory/MemoryModuleType.hpp"
-#include "../../ai/brain/schedule/Activity.hpp"
-#include "../../ai/brain/schedule/Schedule.hpp"
-#include "../../ai/brain/sensor/Sensors.hpp"
-#include "../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../ai/goal/goals/special/WanderingTraderGoals.hpp"
-#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../core/EntityPose.hpp"
-#include "../../entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/entity/ai/brain/schedule/Activity.hpp"
+#include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/ai/brain/sensor/Sensors.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/WanderingTraderGoals.hpp"
+#include "common/entity/ai/goal/goals/villager/VillagerGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityPose.hpp"
+#include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/trade/Merchant.hpp"
+#include "common/world/village/trade/VillagerTrades.hpp"
+#include "common/world/village/trade/WanderingTraderTrades.hpp"
 #include <memory>
 
 namespace mc {
@@ -161,7 +161,6 @@ bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const
 
 bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 {
-    // 参考 MC 1.16.5 VillagerEntity.func_230293_i_()
     // 村民可以拾取的默认物品列表
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
@@ -183,10 +182,7 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
         }
     }
 
-    // 农民职业额外可拾取：小麦、小麦种子、甜菜根种子、骨粉
-    // 注意：小麦、小麦种子、甜菜根种子已在上面检查
-    // 农民特有物品已在 MC 1.16.5 中通过 VillagerProfession.getSpecificItems() 实现
-    // 但本项目中农民职业特有物品就是上面列出的物品，所以无需额外检查
+    // 农民职业特有物品已在默认列表中，无需额外检查
 
     return false;
 }
@@ -214,10 +210,9 @@ bool VillagerEntity::canWork() const
 void VillagerEntity::rest()
 {
     // 停止工作状态
-    // MC 1.16.5: 村民的睡眠由Brain系统自动管理，不需要在此主动触发
+    // 村民的睡眠由Brain系统自动管理：
     // - Schedule::VILLAGER_DEFAULT 在游戏时间12000 ticks时切换到 Activity::REST
     // - SleepAtNightGoal 在REST活动期间自动检查睡眠条件并执行睡眠
-    // - 参考: SleepAtNightGoal::trySleep() -> VillagerEntity::startSleeping()
     m_working = false;
     m_atWorkstation = false;
 }
@@ -236,7 +231,6 @@ void VillagerEntity::work()
 
 void VillagerEntity::play()
 {
-    // 参考 MC 1.16.5 VillagerEntity.play() 方法
     // 村民互动由 Brain 系统的任务自动执行：
     // - 成年村民在 MEET 活动期间聚集在会议点（钟）附近
     // - 幼年村民在 PLAY 活动期间一起玩耍
@@ -257,7 +251,6 @@ void VillagerEntity::spreadGossipTo(VillagerEntity* other)
 {
     if (!other || !m_world) return;
 
-    // 参考 MC 1.16.5 VillagerEntity.func_242368_a()
     // 每次传播最多传播 10 条流言
     // 冷却时间 1200 tick (60秒)
     i64 currentTime = m_world->currentTick();
@@ -281,12 +274,11 @@ void VillagerEntity::spreadGossipTo(VillagerEntity* other)
     m_lastGossipSpreadTime = currentTime;
     other->m_lastGossipSpreadTime = currentTime;
 
-    // 参考 MC 1.16.5: 流言传播时会减少衰减值
+    // 流言传播时会减少衰减值
     // transferFrom() 方法会在传播时减少流言值
     // 这里简化实现，实际需要 VillageGossipManager::transferFrom()
 
     // 尝试生成铁傀儡（如果村民足够多且声誉足够高）
-    // 参考 MC 1.16.5 VillagerEntity.func_242367_a()
     // 这里简化，实际需要检查村庄条件
 }
 
@@ -393,8 +385,6 @@ bool VillagerEntity::isSleeping() const
 
 void VillagerEntity::startSleeping(BlockPos pos)
 {
-    // 参考 MC 1.16.5 LivingEntity.startSleeping()
-
     // 如果正在骑乘，先停止骑乘
     if (getVehicle() != INVALID_ENTITY_ID) {
         stopRiding();
@@ -420,8 +410,6 @@ void VillagerEntity::startSleeping(BlockPos pos)
 
 void VillagerEntity::stopSleeping()
 {
-    // 参考 MC 1.16.5 LivingEntity.wakeUp()
-
     // 只有在睡眠时才需要唤醒
     if (!isSleeping()) {
         return;
@@ -432,7 +420,6 @@ void VillagerEntity::stopSleeping()
         BlockPos bedPos = m_sleepingPos.value();
 
         // 计算唤醒位置（床旁边）
-        // 参考 MC 1.16.5 BedBlock.getWakeUpPosition()
         // 简化实现：在床的朝向方向找一个空位
         // 这里暂时使用床上方位置
         Vector3d wakeUpPos(bedPos.x + 0.5, bedPos.y + 1.0, bedPos.z + 0.5);
@@ -518,7 +505,6 @@ void WanderingTraderEntity::tick()
 
 void WanderingTraderEntity::restockTrades()
 {
-    // MC 1.16.5 WanderingTraderEntity.restock()
     // 流浪商人会自动补充已用完的交易
 
     if (m_offers == nullptr) {
@@ -537,13 +523,12 @@ void WanderingTraderEntity::restockTrades()
 
 void WanderingTraderEntity::spawnLlamas()
 {
-    // MC 1.16.5 WanderingTraderEntity.spawnLlamas()
     if (m_hasLlamas || m_llamaCount <= 0 || m_world == nullptr) {
         return;
     }
 
     // 在流浪商人附近生成贸易羊驼
-    // MC 1.16.5: 最多2只羊驼，生成在商人后方
+    // 最多2只羊驼，生成在商人后方
     math::Random& rng = m_world->getRandom();
 
     for (i32 i = 0; i < m_llamaCount && i < 2; ++i) {

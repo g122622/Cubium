@@ -49,7 +49,7 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
     MC_ASSERT(furnaceInventory->getContainerSize() == FURNACE_SLOTS);
 
     // 初始化槽位布局
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 FurnaceContainer::FurnaceContainer(ContainerId id,
@@ -66,7 +66,7 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
     MC_ASSERT(m_furnaceInventory != nullptr);
     MC_ASSERT(m_furnaceInventory->getContainerSize() == FURNACE_SLOTS);
 
-    initSlots(playerInventory);
+    _initSlots(playerInventory);
 }
 
 // ========== 经验相关 ==========
@@ -87,7 +87,7 @@ f32 FurnaceContainer::extractStoredExperience()
     return 0.0f;
 }
 
-void FurnaceContainer::grantExperienceForOutput(i32 extractedCount)
+void FurnaceContainer::_grantExperienceForOutput(i32 extractedCount)
 {
     // 只有在有玩家且有累积经验时才发放
     if (!m_player || !m_furnaceEntity) {
@@ -99,29 +99,25 @@ void FurnaceContainer::grantExperienceForOutput(i32 extractedCount)
         return;
     }
 
-    // 计算要发放的经验（按取出数量比例发放，每次取出发放全部累积经验）
-    // 参考 MC 1.16.5: 玩家从输出槽取出物品时，发放所有累积经验
-    // 这里简化处理：每当玩家取出输出物品时，发放所有累积经验
-    // 更精确的做法是按配方数量记录，但 MC 实际上是一次性发放所有
-
+    // 每次取出发放全部累积经验
     f32 xpToGrant = m_furnaceEntity->extractStoredExperience();
     if (xpToGrant > 0.0f) {
         m_player->addExperience(static_cast<i32>(std::floor(xpToGrant)));
     }
+
+    MC_UNUSED(extractedCount);
 }
 
 // ========== 快速移动 ==========
 
 bool FurnaceContainer::stillValid(const Player& player) const
 {
-    // MC 1.16.5: 如果没有关联的方块实体，背包可访问
+    // 如果没有关联的方块实体，背包可访问
     if (m_furnaceEntity == nullptr) {
         return true;
     }
 
-    // MC 1.16.5: 检查玩家是否在熔炉附近（8格范围内）
-    // 参考 net.minecraft.inventory.container.AbstractFurnaceContainer.canInteractWith
-    // -> furnaceInventory.isUsableByPlayer(playerIn)
+    // 检查玩家是否在熔炉附近（8格范围内）
     const BlockPos pos = m_furnaceEntity->getPos();
     return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
@@ -167,7 +163,7 @@ ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player)
 
 // ========== 私有方法 ==========
 
-void FurnaceContainer::initSlots(PlayerInventory* playerInventory)
+void FurnaceContainer::_initSlots(PlayerInventory* playerInventory)
 {
     // ========== 熔炉槽位 ==========
 

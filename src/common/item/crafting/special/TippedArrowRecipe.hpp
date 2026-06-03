@@ -40,8 +40,6 @@ namespace crafting {
  * 结果：
  * - 每支箭变成一支药水箭，继承滞留药水的效果
  * - 最多8支药水箭
- *
- * 参考: net.minecraft.item.crafting.TippedArrowRecipe
  */
 class TippedArrowRecipe : public SpecialRecipe {
 public:
@@ -79,7 +77,7 @@ private:
      * @param inventory 合成网格
      * @return 滞留药水的槽位索引，如果没找到返回 -1
      */
-    [[nodiscard]] i32 findLingeringPotion(const CraftingInventory& inventory) const;
+    [[nodiscard]] i32 _findLingeringPotion(const CraftingInventory& inventory) const noexcept;
 
     /**
      * @brief 统计箭的数量
@@ -87,7 +85,7 @@ private:
      * @param excludeSlot 排除的槽位（滞留药水所在位置）
      * @return 箭的总数量
      */
-    [[nodiscard]] i32 countArrows(const CraftingInventory& inventory, i32 excludeSlot) const;
+    [[nodiscard]] i32 _countArrows(const CraftingInventory& inventory, i32 excludeSlot) const noexcept;
 };
 
 } // namespace crafting

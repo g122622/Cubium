@@ -41,17 +41,15 @@ ShapedRecipe::ShapedRecipe(const ResourceLocation& id,
     , m_group(group)
 {}
 
-bool ShapedRecipe::matches(const CraftingInventory& inventory) const
+bool ShapedRecipe::matches(const CraftingInventory& inventory) const noexcept
 {
-    // MC 原版算法：遍历所有可能的偏移位置
-    // 注意：原版先检查镜像，再检查正向
+    // 遍历所有可能的偏移位置，先检查镜像，再检查正向
     for (i32 offsetY = 0; offsetY <= inventory.getHeight() - m_height; ++offsetY) {
         for (i32 offsetX = 0; offsetX <= inventory.getWidth() - m_width; ++offsetX) {
-            // MC 原版：先检查镜像，再检查正向
-            if (checkMatch(inventory, offsetX, offsetY, true)) {
+            if (_checkMatch(inventory, offsetX, offsetY, true)) {
                 return true;
             }
-            if (checkMatch(inventory, offsetX, offsetY, false)) {
+            if (_checkMatch(inventory, offsetX, offsetY, false)) {
                 return true;
             }
         }
@@ -65,7 +63,7 @@ ItemStack ShapedRecipe::assemble(const CraftingInventory& inventory) const
     return m_result.copy();
 }
 
-bool ShapedRecipe::canFitIn(i32 width, i32 height) const
+bool ShapedRecipe::canFitIn(i32 width, i32 height) const noexcept
 {
     return width >= m_width && height >= m_height;
 }
@@ -75,10 +73,10 @@ std::vector<ItemStack> ShapedRecipe::getRemainingItems(const CraftingInventory& 
     return RecipeUtils::getDefaultRemainingItems(inventory);
 }
 
-bool ShapedRecipe::checkMatch(const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const
+bool ShapedRecipe::_checkMatch(
+    const CraftingInventory& inventory, i32 offsetX, i32 offsetY, bool mirrored) const noexcept
 {
-    // MC 原版算法：遍历整个网格，而不是只遍历配方区域
-    // 对于网格外的位置，使用 Ingredient.EMPTY 进行测试
+    // 遍历整个网格，对于网格外的位置，使用 Ingredient.EMPTY 进行测试
     for (i32 y = 0; y < inventory.getHeight(); ++y) {
         for (i32 x = 0; x < inventory.getWidth(); ++x) {
             // 计算相对于配方左上角的坐标

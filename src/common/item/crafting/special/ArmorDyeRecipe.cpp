@@ -33,7 +33,7 @@
 namespace mc {
 namespace crafting {
 
-// 染料物品集合（MC 1.16.5 共16种染料 + 墨囊 + 可可豆）
+// 染料物品集合（共16种染料 + 墨囊 + 可可豆）
 static const std::unordered_set<const Item*>& getDyeItems()
 {
     static std::unordered_set<const Item*> dyeItems = {
@@ -59,8 +59,6 @@ static const std::unordered_set<const Item*>& getDyeItems()
 
 /**
  * @brief 获取染料物品对应的颜色
- *
- * 参考 MC 1.16.5: net.minecraft.item.DyeItem
  *
  * @param item 染料物品
  * @return DyeColor 枚举值，如果不是染料返回 White
@@ -96,15 +94,12 @@ static DyeColor getDyeColorFromItem(const Item* item)
 /**
  * @brief 将 DyeColor 转换为 RGB 整数值
  *
- * 参考 MC 1.16.5: net.minecraft.item.DyeColor#getColorValue
- *
  * @param color 染料颜色
  * @return RGB 整数值（0xRRGGBB 格式）
  */
 static u32 dyeColorToRGB(DyeColor color)
 {
-    // MC 1.16.5 DyeColor 颜色值（整数格式）
-    // 参考 net.minecraft.item.DyeColor#textColor
+    // DyeColor 颜色值（整数格式）
     switch (color) {
         case DyeColor::White:
             return 0xF9FFFE; // #F9FFFE
@@ -158,9 +153,9 @@ bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isDyeableArmor(stack)) {
+        if (_isDyeableArmor(stack)) {
             ++armorCount;
-        } else if (isDye(stack)) {
+        } else if (_isDye(stack)) {
             ++dyeCount;
         } else {
             // 有其他物品，不匹配
@@ -184,9 +179,9 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
             continue;
         }
 
-        if (isDyeableArmor(stack)) {
+        if (_isDyeableArmor(stack)) {
             armorStack = stack.copy();
-        } else if (isDye(stack)) {
+        } else if (_isDye(stack)) {
             // 从染料物品获取颜色
             DyeColor dyeColor = getDyeColorFromItem(stack.getItem());
             colors.push_back(dyeColorToRGB(dyeColor));
@@ -213,7 +208,7 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
 
     // 混合颜色
     for (u32 dyeColor : colors) {
-        currentColor = mixColors(currentColor, dyeColor);
+        currentColor = _mixColors(currentColor, dyeColor);
     }
 
     // 设置颜色
@@ -230,7 +225,7 @@ std::vector<ItemStack> ArmorDyeRecipe::getRemainingItems(const CraftingInventory
     return remaining;
 }
 
-bool ArmorDyeRecipe::isDyeableArmor(const ItemStack& stack)
+bool ArmorDyeRecipe::_isDyeableArmor(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -242,7 +237,7 @@ bool ArmorDyeRecipe::isDyeableArmor(const ItemStack& stack)
     return dynamic_cast<const item::items::DyeableArmorItem*>(item) != nullptr;
 }
 
-bool ArmorDyeRecipe::isDye(const ItemStack& stack)
+bool ArmorDyeRecipe::_isDye(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -251,13 +246,12 @@ bool ArmorDyeRecipe::isDye(const ItemStack& stack)
     if (item == nullptr) {
         return false;
     }
-    // MC 1.16.5: 检查物品是否为染料
     return getDyeItems().count(item) > 0;
 }
 
-u32 ArmorDyeRecipe::mixColors(u32 color1, u32 color2)
+u32 ArmorDyeRecipe::_mixColors(u32 color1, u32 color2)
 {
-    // MC 原版的颜色混合算法：将 RGB 分量分别取平均
+    // 颜色混合算法：将 RGB 分量分别取平均
     i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
     i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);
     i32 b1 = static_cast<i32>(color1 & 0xFF);

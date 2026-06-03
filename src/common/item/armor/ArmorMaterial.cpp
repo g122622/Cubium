@@ -21,10 +21,10 @@
  *
  */
 
-#include "ArmorMaterial.hpp"
-#include "../../sound/SoundEvent.hpp"
-#include "../Items.hpp"
-#include "../crafting/Ingredient.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/sound/SoundEvent.hpp"
 
 namespace mc {
 namespace item::armor {
@@ -102,8 +102,6 @@ i32 ChainArmorMaterial::getDurability(ArmorSlot slot) const
 
 i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const
 {
-    // MC 1.16.5: new int[]{1, 4, 5, 2} 按 FEET, LEGS, CHEST, HEAD 顺序
-    // 即 Feet=1, Legs=4, Chest=5, Head=2
     switch (slot) {
         case ArmorSlot::Head:
             return 2;
@@ -176,8 +174,6 @@ i32 GoldArmorMaterial::getDurability(ArmorSlot slot) const
 
 i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const
 {
-    // MC 1.16.5: new int[]{1, 3, 5, 2} 按 FEET, LEGS, CHEST, HEAD 顺序
-    // 即 Feet=1, Legs=3, Chest=5, Head=2
     switch (slot) {
         case ArmorSlot::Head:
             return 2;

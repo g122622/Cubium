@@ -35,7 +35,6 @@ namespace crafting {
  *
  * 切石机配方将一个输入物品转换为输出物品。
  * 与熔炼配方类似，但不需要熔炼时间和经验值。
- * 参考: net.minecraft.item.crafting.StonecuttingRecipe
  *
  * JSON 格式示例：
  * @code

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace entity {
@@ -31,7 +31,6 @@ namespace entity {
 /**
  * @brief 睡眠尝试结果枚举
  *
- * 参考 MC 1.16.5 PlayerEntity.SleepResult
  * 定义玩家尝试睡眠时可能返回的各种结果。
  */
 enum class SleepResult : u8 {

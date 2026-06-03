@@ -46,8 +46,6 @@ class AbstractFurnaceEntity;
  * - 熔炉燃料槽：1格（中部）
  * - 熔炉输出槽：1格（底部）
  * - 玩家背包：27格主背包 + 9格快捷栏
- *
- * 参考: net.minecraft.inventory.container.FurnaceContainer
  */
 class FurnaceContainer : public AbstractContainerMenu {
 public:
@@ -142,13 +140,13 @@ private:
      * @brief 初始化槽位布局
      * @param playerInventory 玩家背包
      */
-    void initSlots(PlayerInventory* playerInventory);
+    void _initSlots(PlayerInventory* playerInventory);
 
     /**
      * @brief 从输出槽取出物品时发放经验
      * @param extractedCount 取出的物品数量
      */
-    void grantExperienceForOutput(i32 extractedCount);
+    void _grantExperienceForOutput(i32 extractedCount);
 
     IInventory* m_furnaceInventory;                      ///< 熔炉背包
     std::shared_ptr<IInventory> m_furnaceInventoryOwner; ///< 熔炉背包所有权（可选）

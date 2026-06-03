@@ -25,13 +25,18 @@
 #include "enchantments/AllEnchantments.hpp"
 #include <spdlog/spdlog.h>
 
+// 匿名 namespace：仅在当前编译单元可见
+namespace {
+// 引用型附魔存储（用于全局静态变量注册的附魔，注册表不拥有所有权）
+std::unordered_map<std::string, const Enchantment*> s_enchantmentRefs;
+} // namespace
+
 namespace mc {
 namespace item {
 namespace enchant {
 
 // 静态成员定义
 std::unordered_map<std::string, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
-std::unordered_map<std::string, const Enchantment*> s_enchantmentRefs;
 bool EnchantmentRegistry::s_initialized = false;
 std::recursive_mutex EnchantmentRegistry::s_mutex;
 
@@ -79,7 +84,6 @@ bool EnchantmentRegistry::registerEnchantment(const Enchantment& enchantment)
         return false;
     }
 
-    spdlog::debug("Registering enchantment (ref): {}", id);
     s_enchantmentRefs[id] = &enchantment;
     return true;
 }
@@ -98,7 +102,6 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
         return false;
     }
 
-    spdlog::debug("Registering enchantment: {}", id);
     s_enchantments[id] = std::move(enchantment);
     return true;
 }
