@@ -442,8 +442,7 @@ ${STOP_HOOK_PROMPT}
         await markTaskDone(tasklist[j]);
         console.log(`✅ [循环 ${i + 1} | 任务 ${j + 1}] 已标记完成: ${tasklist[j]}`);
 
-        if ((j % 10 === 0 && j !== 0) || j === tasklist.length - 1) {
-          // 每运行十次，进行一次编译，确保没有引入编译错误
+        if ((j % 30 === 0 && j !== 0) || j === tasklist.length - 1) {
           console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
           await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, j, false);
         }

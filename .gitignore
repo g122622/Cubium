@@ -121,4 +121,4 @@ benchmark_results.json
 benchmark_results/
 
 # Agent task persistence (LevelDB)
-/agent/agent-taskdb/
+# /agent/agent-taskdb/

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/MobEntity.hpp"
-#include "../../../world/ServerWorld.hpp"
-#include "../../memory/Brain.hpp"
-#include "../Task.hpp"
+#include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/ai/brain/task/Task.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "server/world/ServerWorld.hpp"
 
 namespace mc {
 namespace entity {
@@ -39,8 +39,6 @@ namespace movement {
  * @brief 移动到位置任务
  *
  * 控制实体移动到指定位置。
- *
- * 参考 MC 1.16.5 MoveToTargetTask
  */
 template <typename E>
 class MoveToTargetTask : public Task<E> {
@@ -58,7 +56,7 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
-        // 检查是否有移动目标
+        // TODO: 检查是否有移动目标
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::WALK_TARGET);
         // return target.has_value();
@@ -69,7 +67,7 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
-        // 检查是否到达目标
+        // TODO: 检查是否到达目标
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::WALK_TARGET);
         // if (!target.has_value()) return false;
@@ -80,7 +78,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 获取移动目标并开始导航
+        // TODO: 获取移动目标并开始导航
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::WALK_TARGET);
         // if (target.has_value()) {
@@ -90,12 +88,12 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 持续移动
+        // TODO: 持续移动
     }
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 停止移动
+        // TODO: 停止移动
         // owner->getNavigator()->clearPath();
     }
 
@@ -108,8 +106,6 @@ private:
  * @brief 随机游走任务
  *
  * 控制实体随机移动。
- *
- * 参考 MC 1.16.5 StrollTask
  */
 template <typename E>
 class StrollTask : public Task<E> {
@@ -125,14 +121,14 @@ protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
-        // 随机概率触发
+        // TODO: 随机概率触发
         // return owner->getRandom().nextFloat() < 0.02f;
         return false;
     }
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 随机选择目标位置
+        // TODO: 随机选择目标位置
         // f32 x = owner->x() + (owner->getRandom().nextFloat() - 0.5f) * 20.0f;
         // f32 z = owner->z() + (owner->getRandom().nextFloat() - 0.5f) * 20.0f;
         // owner->getNavigator()->moveTo(x, owner->y(), z, m_speed);
@@ -140,6 +136,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 清除路径
         // owner->getNavigator()->clearPath();
     }
 
@@ -151,8 +148,6 @@ private:
  * @brief 看向实体任务
  *
  * 控制实体看向目标实体。
- *
- * 参考 MC 1.16.5 LookAtEntityTask
  */
 template <typename E>
 class LookAtEntityTask : public Task<E> {
@@ -169,13 +164,14 @@ protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
+        // TODO: 概率触发
         // return owner->getRandom().nextFloat() < m_probability;
         return false;
     }
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 寻找附近的实体并看向它
+        // TODO: 寻找附近的实体并看向它
         // auto entities = world->getEntitiesInRange(owner->position(), m_range);
         // if (!entities.empty()) {
         //     auto target = entities[owner->getRandom().nextInt(entities.size())];
@@ -185,7 +181,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 重置看向
+        // TODO: 重置看向
     }
 
 private:
@@ -197,8 +193,6 @@ private:
  * @brief 寻找隐蔽点任务
  *
  * 控制实体寻找安全的位置。
- *
- * 参考 MC 1.16.5 FindHiddenBlockTask
  */
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
@@ -216,14 +210,14 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
-        // 检查是否需要隐蔽（例如白天对于僵尸）
+        // TODO: 检查是否需要隐蔽（例如白天对于僵尸）
         // return owner->shouldHide();
         return false;
     }
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 寻找安全的隐蔽点
+        // TODO: 寻找安全的隐蔽点
         // BlockPos hiddenPos = findHiddenBlock(world, owner);
         // if (hiddenPos.isValid()) {
         //     owner->getNavigator()->moveTo(hiddenPos, m_speed);
@@ -233,6 +227,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 清除隐蔽状态
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::HIDING_PLACE);
     }
@@ -246,8 +241,6 @@ private:
  * @brief 追逐目标任务
  *
  * 控制实体追逐攻击目标。
- *
- * 参考 MC 1.16.5 ChaseTask
  */
 template <typename E>
 class ChaseTask : public Task<E> {
@@ -265,6 +258,7 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
+        // TODO: 检查是否有攻击目标
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // return target.has_value() && (*target)->isAlive();
@@ -275,6 +269,7 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
+        // TODO: 检查是否需要继续追逐
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // if (!target.has_value() || !(*target)->isAlive()) return false;
@@ -285,6 +280,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 开始追逐
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // if (target.has_value()) {
@@ -294,7 +290,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
-        // 更新追逐路径
+        // TODO: 更新追逐路径
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
         // if (target.has_value()) {
@@ -305,6 +301,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 清除路径
         // owner->getNavigator()->clearPath();
     }
 
@@ -317,8 +314,6 @@ private:
  * @brief 避险任务
  *
  * 控制实体逃离危险。
- *
- * 参考 MC 1.16.5 FleeTask
  */
 template <typename E>
 class FleeTask : public Task<E> {
@@ -336,6 +331,7 @@ protected:
     {
         if (!owner || !owner->isAlive()) return false;
 
+        // TODO: 检查是否有逃避目标
         // auto brain = owner->getBrain();
         // auto avoidTarget = brain->getMemory(memory::MemoryModuleTypes::AVOID_TARGET);
         // return avoidTarget.has_value();
@@ -344,10 +340,10 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 计算逃跑方向并开始移动
         // auto brain = owner->getBrain();
         // auto avoidTarget = brain->getMemory(memory::MemoryModuleTypes::AVOID_TARGET);
         // if (avoidTarget.has_value()) {
-        //     // 计算逃跑方向
         //     auto target = *avoidTarget;
         //     f64 dx = owner->x() - target->x();
         //     f64 dz = owner->z() - target->z();
@@ -357,7 +353,6 @@ protected:
         //         dz /= dist;
         //     }
         //
-        //     // 设置逃跑目标
         //     f64 fleeX = owner->x() + dx * m_fleeDistance;
         //     f64 fleeZ = owner->z() + dz * m_fleeDistance;
         //     owner->getNavigator()->moveTo(fleeX, owner->y(), fleeZ, m_speed);
@@ -366,6 +361,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 清除逃避状态
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::AVOID_TARGET);
     }

@@ -40,7 +40,7 @@ namespace action {
  *
  * 控制实体攻击目标。
  *
- * 参考 MC 1.16.5 AttackTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class AttackTask : public Task<E> {
@@ -115,7 +115,7 @@ private:
  *
  * 控制动物繁殖行为。
  *
- * 参考 MC 1.16.5 BreedTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class BreedTask : public Task<E> {
@@ -183,7 +183,7 @@ private:
  *
  * 控制动物进食行为。
  *
- * 参考 MC 1.16.5 EatTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class EatTask : public Task<E> {
@@ -235,7 +235,7 @@ private:
  *
  * 控制实体装死行为（如负鼠）。
  *
- * 参考 MC 1.16.5 PlayDeadTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class PlayDeadTask : public Task<E> {
@@ -285,7 +285,7 @@ private:
  *
  * 控制实体跳跃行为。
  *
- * 参考 MC 1.16.5 JumpTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class JumpTask : public Task<E> {
@@ -333,7 +333,7 @@ private:
  *
  * 控制马踢攻击。
  *
- * 参考 MC 1.16.5 KickTask
+ * TODO: 功能尚未实现
  */
 template <typename E>
 class KickTask : public Task<E> {

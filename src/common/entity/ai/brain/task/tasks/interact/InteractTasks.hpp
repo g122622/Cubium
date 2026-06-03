@@ -23,10 +23,7 @@
 
 #pragma once
 
-#include "../../../core/MobEntity.hpp"
-#include "../../../world/ServerWorld.hpp"
-#include "../../memory/Brain.hpp"
-#include "../Task.hpp"
+#include "common/entity/ai/brain/task/Task.hpp"
 
 namespace mc {
 namespace entity {
@@ -39,22 +36,21 @@ namespace interact {
  * @brief 与村民互动任务
  *
  * 控制村民与玩家互动。
- *
- * 参考 MC 1.16.5 VillagerInteractTask
  */
 template <typename E>
 class VillagerInteractTask : public Task<E> {
 public:
-    VillagerInteractTask(f32 range = 3.0f)
+    VillagerInteractTask(f32 range = 3.0f) noexcept
         : Task<E>({}, 30, 60)
         , m_range(range)
     {}
 
-    std::string getName() const override { return "VillagerInteractTask"; }
+    std::string getName() const noexcept override { return "VillagerInteractTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现村民与玩家互动检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -65,6 +61,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始互动逻辑
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
         // if (target.has_value()) {
@@ -74,6 +71,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现互动更新逻辑
         // auto brain = owner->getBrain();
         // auto target = brain->getMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
         // if (!target.has_value()) return;
@@ -89,12 +87,14 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置互动状态逻辑
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::INTERACTION_TARGET);
     }
 
 private:
     f32 m_range;
 
+    // TODO: 实现互动逻辑
     // void interactWith(E* owner, LivingEntity* target) {
     //     // 根据职业类型执行不同的互动
     // }
@@ -104,21 +104,20 @@ private:
  * @brief 与门互动任务
  *
  * 控制村民开门/关门。
- *
- * 参考 MC 1.16.5 InteractWithDoorTask
  */
 template <typename E>
 class InteractWithDoorTask : public Task<E> {
 public:
-    InteractWithDoorTask()
+    InteractWithDoorTask() noexcept
         : Task<E>({}, 20, 40)
     {}
 
-    std::string getName() const override { return "InteractWithDoorTask"; }
+    std::string getName() const noexcept override { return "InteractWithDoorTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现开门需求检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否需要开门
@@ -130,6 +129,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现门状态切换逻辑
         // 检查路径上的门
         // auto doors = getDoorsInPath(owner);
         // for (auto& doorPos : doors) {
@@ -138,6 +138,7 @@ protected:
     }
 
 private:
+    // TODO: 实现门状态切换逻辑
     // void toggleDoor(ServerWorld* world, E* owner, const BlockPos& pos) {
     //     auto blockState = world->getBlockState(pos);
     //     if (blockState && blockState->isDoor()) {
@@ -151,24 +152,23 @@ private:
  * @brief 跟随玩家任务
  *
  * 控制驯服动物跟随玩家。
- *
- * 参考 MC 1.16.5 FollowOwnerTask
  */
 template <typename E>
 class FollowOwnerTask : public Task<E> {
 public:
-    FollowOwnerTask(f32 speed = 1.0f, f32 startDistance = 10.0f, f32 stopDistance = 2.0f)
+    FollowOwnerTask(f32 speed = 1.0f, f32 startDistance = 10.0f, f32 stopDistance = 2.0f) noexcept
         : Task<E>({}, 60, 200)
         , m_speed(speed)
         , m_startDistance(startDistance)
         , m_stopDistance(stopDistance)
     {}
 
-    std::string getName() const override { return "FollowOwnerTask"; }
+    std::string getName() const noexcept override { return "FollowOwnerTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现驯服动物跟随检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是驯服动物
@@ -184,6 +184,7 @@ protected:
 
     bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现持续跟随条件检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // Player* owner = tameable->getOwner();
@@ -194,6 +195,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始跟随逻辑
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // if (owner) {
@@ -203,6 +205,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现跟随更新逻辑
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // if (owner) {
@@ -215,6 +218,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置跟随状态逻辑
         // owner->getNavigator()->clearPath();
     }
 
@@ -228,23 +232,22 @@ private:
  * @brief 保护主人任务
  *
  * 控制驯服动物保护主人。
- *
- * 参考 MC 1.16.5 OwnerHurtByTargetTask / OwnerHurtTargetTask
  */
 template <typename E>
 class ProtectOwnerTask : public Task<E> {
 public:
-    ProtectOwnerTask(f32 speed = 1.5f, f32 protectRange = 16.0f)
+    ProtectOwnerTask(f32 speed = 1.5f, f32 protectRange = 16.0f) noexcept
         : Task<E>({}, 60, 600)
         , m_speed(speed)
         , m_protectRange(protectRange)
     {}
 
-    std::string getName() const override { return "ProtectOwnerTask"; }
+    std::string getName() const noexcept override { return "ProtectOwnerTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现保护主人检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是驯服动物
@@ -264,6 +267,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始保护逻辑
         // TameableEntity* tameable = dynamic_cast<TameableEntity*>(owner);
         // Player* owner = tameable->getOwner();
         // LivingEntity* attacker = owner->getLastHurtBy();
@@ -276,6 +280,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置保护状态逻辑
         // owner->setAttackTarget(nullptr);
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
     }
@@ -289,23 +294,22 @@ private:
  * @brief 拾取物品任务
  *
  * 控制实体拾取附近物品。
- *
- * 参考 MC 1.16.5 PickupItemTask
  */
 template <typename E>
 class PickupItemTask : public Task<E> {
 public:
-    PickupItemTask(f32 range = 8.0f, f32 speed = 1.0f)
+    PickupItemTask(f32 range = 8.0f, f32 speed = 1.0f) noexcept
         : Task<E>({}, 20, 60)
         , m_range(range)
         , m_speed(speed)
     {}
 
-    std::string getName() const override { return "PickupItemTask"; }
+    std::string getName() const noexcept override { return "PickupItemTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现物品拾取检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -316,6 +320,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始拾取逻辑
         // auto brain = owner->getBrain();
         // auto wantedItem = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
         // if (wantedItem.has_value()) {
@@ -325,6 +330,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现拾取更新逻辑
         // auto brain = owner->getBrain();
         // auto wantedItem = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
         // if (!wantedItem.has_value()) return;
@@ -341,6 +347,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置拾取状态逻辑
         // owner->getNavigator()->clearPath();
     }
 
@@ -353,23 +360,22 @@ private:
  * @brief 跟随父母任务
  *
  * 控制幼年动物跟随父母。
- *
- * 参考 MC 1.16.5 FollowParentTask
  */
 template <typename E>
 class FollowParentTask : public Task<E> {
 public:
-    FollowParentTask(f32 speed = 1.0f, f32 followDistance = 4.0f)
+    FollowParentTask(f32 speed = 1.0f, f32 followDistance = 4.0f) noexcept
         : Task<E>({}, 60, 200)
         , m_speed(speed)
         , m_followDistance(followDistance)
     {}
 
-    std::string getName() const override { return "FollowParentTask"; }
+    std::string getName() const noexcept override { return "FollowParentTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现幼年动物跟随父母检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // 检查是否是幼年动物
@@ -384,6 +390,7 @@ protected:
 
     bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现持续跟随条件检测逻辑
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // return parent.has_value() && (*parent)->isAlive() &&
@@ -393,6 +400,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始跟随逻辑
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // if (parent.has_value()) {
@@ -402,6 +410,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现跟随更新逻辑
         // auto brain = owner->getBrain();
         // auto parent = brain->getMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
         // if (parent.has_value()) {
@@ -414,6 +423,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置跟随状态逻辑
         // owner->getNavigator()->clearPath();
     }
 
@@ -426,23 +436,22 @@ private:
  * @brief 诱惑任务
  *
  * 控制动物被食物诱惑。
- *
- * 参考 MC 1.16.5 TemptTask
  */
 template <typename E>
 class TemptTask : public Task<E> {
 public:
-    TemptTask(f32 speed = 1.0f, f32 range = 10.0f)
+    TemptTask(f32 speed = 1.0f, f32 range = 10.0f) noexcept
         : Task<E>({}, 60, 200)
         , m_speed(speed)
         , m_range(range)
     {}
 
-    std::string getName() const override { return "TemptTask"; }
+    std::string getName() const noexcept override { return "TemptTask"; }
 
 protected:
     bool shouldExecute(ServerWorld* world, E* owner) override
     {
+        // TODO: 实现诱惑检测逻辑
         if (!owner || !owner->isAlive()) return false;
 
         // auto brain = owner->getBrain();
@@ -453,6 +462,7 @@ protected:
 
     void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现开始诱惑逻辑
         // auto brain = owner->getBrain();
         // auto temptingPlayer = brain->getMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
         // if (temptingPlayer.has_value()) {
@@ -462,6 +472,7 @@ protected:
 
     void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现诱惑更新逻辑
         // auto brain = owner->getBrain();
         // auto temptingPlayer = brain->getMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
         // if (temptingPlayer.has_value()) {
@@ -478,6 +489,7 @@ protected:
 
     void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
     {
+        // TODO: 实现重置诱惑状态逻辑
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
     }

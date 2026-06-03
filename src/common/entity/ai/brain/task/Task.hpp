@@ -23,11 +23,12 @@
 
 #pragma once
 
-#include "../../../../util/math/random/Random.hpp"
-#include "../Brain.hpp"
-#include "../memory/MemoryModuleStatus.hpp"
-#include "../memory/MemoryModuleType.hpp"
-#include "../schedule/Activity.hpp"
+#include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/entity/ai/brain/schedule/Activity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <string>
 #include <unordered_map>
 
@@ -51,7 +52,6 @@ enum class TaskStatus { STOPPED, RUNNING };
  * @brief Brain任务基类
  *
  * Brain系统中的任务与Goal系统类似，但使用记忆模块
- * 参考 MC 1.16.5 Task
  *
  * @tparam E 实体类型
  */
@@ -86,16 +86,15 @@ public:
      * @param world 世界
      * @param owner 实体
      * @param gameTime 游戏时间
-     * @param random 随机数生成器（MC 1.16.5使用world.getRandom()）
+     * @param random 随机数生成器
      * @return 是否成功启动
      */
     bool start(IWorld* world, E* owner, i64 gameTime, math::Random& random)
     {
-        if (hasRequiredMemories(owner) && shouldExecute(world, owner)) {
+        if (_hasRequiredMemories(owner) && shouldExecute(world, owner)) {
             m_status = TaskStatus::RUNNING;
 
-            // MC 1.16.5: 使用随机数生成持续时间
-            // int i = this.durationMin + worldIn.getRandom().nextInt(this.durationMax + 1 - this.durationMin);
+            // 计算持续时间
             i32 duration = m_durationMin;
             if (m_durationMax > m_durationMin) {
                 i32 range = m_durationMax - m_durationMin + 1;
@@ -177,16 +176,12 @@ protected:
 private:
     /**
      * @brief 检查实体是否有所需的记忆状态
-     * MC 1.16.5: Task.hasRequiredMemories()
      */
-    bool hasRequiredMemories(E* owner)
+    bool _hasRequiredMemories(E* owner)
     {
-        if (!owner) {
-            return false;
-        }
+        MC_ASSERT_RELEASE(owner != nullptr);
 
-        // MC 1.16.5: 遍历所有需要的记忆状态
-        // 注意：实体类需要提供 brain() 方法返回 Brain<E>&
+        // 遍历所有需要的记忆状态
         for (const auto& [memType, status] : m_requiredMemoryState) {
             if (!owner->brain().hasMemory(memType, status)) {
                 return false;

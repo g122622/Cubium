@@ -196,8 +196,9 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         if (params.quickPlayNew) {
             config.levelId = "quick_play_world";
             config.displayName = "Quick Play World";
-            config.seed = 0;
+            config.seed = 114514;
             config.isNewWorld = true;
+            config.defaultGameMode = GameMode::Creative;
         } else {
             config.levelId = *params.quickPlayLevelId;
             auto summaryResult = storageManager.listWorlds();

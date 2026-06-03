@@ -22,13 +22,13 @@
  */
 
 #include "Sensors.hpp"
-#include "../../../../entity/core/EntityUtils.hpp"
-#include "../../../../world/GlobalPos.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/village/VillageManager.hpp"
-#include "../../../../world/village/poi/PointOfInterestStorage.hpp"
-#include "../../../../world/village/poi/PointOfInterestType.hpp"
-#include "../../../entities/villager/VillagerEntity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/world/GlobalPos.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -223,7 +223,7 @@ void MobSensor<E>::update(IWorld* world, E* entity)
         // 检查是否是敌对生物（非玩家）
         Player* player = dynamic_cast<Player*>(living);
         if (!player && !living->isRemoved()) {
-            // 简化判断：如果是 MobEntity 且不是被动生物，视为敌对
+            // TODO: 当前简化判断将所有 MobEntity 视为敌对，应改为根据实体类型精确判断
             MobEntity* mob = dynamic_cast<MobEntity*>(living);
             if (mob) {
                 f32 dist = entity->distanceTo(*living);
@@ -264,14 +264,11 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity)
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos entityPos(static_cast<i32>(entity->x()), static_cast<i32>(entity->y()), static_cast<i32>(entity->z()));
 
-    // 查找工作站点（简化实现：查找最近的工作站类型 POI）
+    // TODO: 查找工作站点需要根据村民职业动态确定 POI 类型，当前硬编码为 Smoker
     constexpr f32 SEARCH_RANGE = 48.0f;
 
-    // 查找最近的工作站
-    auto jobSite = poiStorage.findNearestUnacquired(entityPos,
-        world::village::poi::PointOfInterestType::Smoker, // 默认类型，实际应根据村民职业
-        SEARCH_RANGE,
-        static_cast<u64>(entity->id()));
+    auto jobSite = poiStorage.findNearestUnacquired(
+        entityPos, world::village::poi::PointOfInterestType::Smoker, SEARCH_RANGE, static_cast<u64>(entity->id()));
 
     if (jobSite.has_value()) {
         GlobalPos globalPos(world->dimension(), jobSite.value());
@@ -456,9 +453,8 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
 template <typename E>
 bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
 {
-    // 默认实现：检查其他实体是否是敌对生物
-    // 羊躲避狼、村民躲避僵尸等
-    // 这里简化处理，实际应该根据实体类型判断
+    // TODO: 当前简化实现假设所有 MobEntity 都可能是危险源，实际应根据实体类型精确判断
+    // 例如：羊躲避狼、村民躲避僵尸等
 
     // 检查其他实体是否是 MobEntity（可能是敌对的）
     MobEntity* mob = dynamic_cast<MobEntity*>(other);
@@ -469,8 +465,6 @@ bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
         return false;
     }
 
-    // 简化：假设所有 MobEntity 都可能是危险源
-    // 实际应用中应该根据实体类型精确判断
     return mob != nullptr;
 }
 

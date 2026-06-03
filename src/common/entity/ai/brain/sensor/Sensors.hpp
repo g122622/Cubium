@@ -23,13 +23,12 @@
 
 #pragma once
 
-#include "../../../core/AgeableEntity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../Brain.hpp"
 #include "Sensor.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -58,7 +57,6 @@ namespace sensor {
  * @brief 最近玩家传感器
  *
  * 检测附近的玩家并存储到记忆模块。
- * 参考 MC 1.16.5 NearestPlayersSensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -84,7 +82,6 @@ protected:
  * @brief 最近可见生物传感器
  *
  * 检测附近可见的生物并存储到记忆模块。
- * 参考 MC 1.16.5 NearestVisibleLivingEntitySensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -112,7 +109,6 @@ private:
  * @brief 受伤传感器
  *
  * 检测实体受到的伤害并存储到记忆模块。
- * 参考 MC 1.16.5 HurtBySensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -136,7 +132,6 @@ protected:
  * @brief 附近实体传感器
  *
  * 检测附近的所有实体并分类存储。
- * 参考 MC 1.16.5 MobSensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -164,7 +159,6 @@ private:
  * @brief 工作站点传感器
  *
  * 检测村民的工作站点。
- * 参考 MC 1.16.5 SecondaryPointsSensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -188,7 +182,6 @@ protected:
  * @brief 居住点传感器
  *
  * 检测村民的家和集会点。
- * 参考 MC 1.16.5 VillagerPoiSensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -214,7 +207,6 @@ protected:
  * @brief 幼崽传感器
  *
  * 检测附近的幼年和成年实体。
- * 参考 MC 1.16.5 GolemSensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -238,7 +230,6 @@ protected:
  * @brief 避险传感器
  *
  * 检测需要避险的目标。
- * 参考 MC 1.16.5 AvoidEntitySensor
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
