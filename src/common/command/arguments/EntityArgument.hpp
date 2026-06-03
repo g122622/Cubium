@@ -26,16 +26,14 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
-#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
-#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc {
@@ -149,7 +147,7 @@ private:
 /**
  * @brief 实体选择器。
  *
- * 封装命令层需要的实体选择条件，参考 MC 1.16.5 EntitySelector。
+ * 封装命令层需要的实体选择条件。
  */
 class EntitySelector {
 public:
@@ -414,7 +412,7 @@ public:
 
 private:
     EntitySelectorType m_type = EntitySelectorType::SinglePlayer;
-    i32 m_limit = INT32_MAX;
+    i32 m_limit = std::numeric_limits<i32>::max();
     bool m_isSelf = false;
     bool m_includesNonPlayers = false;
     bool m_single = true;
@@ -449,7 +447,7 @@ private:
 /**
  * @brief 实体参数类型。
  *
- * 参考 MC 1.16.5 EntityArgumentType，支持完整的选择器语法。
+ * 支持完整的选择器语法。
  */
 class EntityArgumentType : public ArgumentType<EntitySelector> {
 public:
@@ -514,18 +512,19 @@ public:
     [[nodiscard]] Mode mode() const noexcept { return m_mode; }
 
 private:
-    [[nodiscard]] EntitySelector parseSelector(StringReader& reader, i32 start);
-    void parseSelectorArguments(StringReader& reader, EntitySelector& selector);
-    void applySelectorArgument(EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
-    void validateSelector(const EntitySelector& selector, i32 start);
+    [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);
+    void _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    void _applySelectorArgument(
+        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
+    void _validateSelector(const EntitySelector& selector, i32 start);
 
-    [[nodiscard]] static std::string readSelectorArgumentToken(StringReader& reader);
-    [[nodiscard]] static std::string readScoresKey(StringReader& reader);
-    [[nodiscard]] static std::string readAdvancementKey(StringReader& reader);
-    [[nodiscard]] static std::string readCriteriaKey(StringReader& reader);
-    [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
-    [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
-    [[nodiscard]] IntRange parseIntRange(StringReader& reader);
+    [[nodiscard]] static std::string _readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static std::string _readScoresKey(StringReader& reader);
+    [[nodiscard]] static std::string _readAdvancementKey(StringReader& reader);
+    [[nodiscard]] static std::string _readCriteriaKey(StringReader& reader);
+    [[nodiscard]] static bool _shouldInvertValue(StringReader& reader);
+    [[nodiscard]] FloatRange _parseFloatRange(StringReader& reader);
+    [[nodiscard]] IntRange _parseIntRange(StringReader& reader);
 
     Mode m_mode;
 };

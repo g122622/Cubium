@@ -34,7 +34,6 @@ namespace mc::advancement {
  * @brief 触发器注册表
  *
  * 管理所有触发器类型的实例，提供ID到触发器的映射。
- * 参考 MC 1.16.5: net.minecraft.advancements.CriteriaTriggers
  *
  * 使用示例：
  * @code
@@ -53,7 +52,7 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static CriterionTriggers& instance();
+    static CriterionTriggers& instance() noexcept;
 
     // 禁止拷贝
     CriterionTriggers(const CriterionTriggers&) = delete;
@@ -86,17 +85,17 @@ public:
     /**
      * @brief 检查触发器是否存在
      */
-    [[nodiscard]] bool hasTrigger(const ResourceLocation& id) const;
+    [[nodiscard]] bool hasTrigger(const ResourceLocation& id) const noexcept;
 
     /**
      * @brief 获取所有触发器ID
      */
-    [[nodiscard]] std::vector<ResourceLocation> getAllTriggerIds() const;
+    [[nodiscard]] std::vector<ResourceLocation> getAllTriggerIds() const noexcept;
 
     /**
      * @brief 清空所有触发器
      */
-    void clear();
+    void clear() noexcept;
 
     // ========== 内置触发器注册 ==========
 

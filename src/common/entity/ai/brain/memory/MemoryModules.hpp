@@ -39,8 +39,6 @@ namespace memory {
  *
  * 注意：使用前必须调用 MemoryModuleTypes::initialize()
  *
- * 参考 MC 1.16.5 MemoryModuleType
- *
  * 使用示例：
  * @code
  * // 注册记忆模块
@@ -56,7 +54,7 @@ namespace memory {
  */
 namespace MemoryModules {
 
-// ========== 位置相关 (MC 1.16.5) ==========
+// ========== 位置相关 ==========
 
 /// 家的位置（床位）- 使用 GlobalPos 支持跨维度
 constexpr auto& HOME = MemoryModuleTypes::HOME;
@@ -85,7 +83,7 @@ constexpr auto& HIDING_PLACE = MemoryModuleTypes::HIDING_PLACE;
 /// 次要工作站点
 constexpr auto& SECONDARY_JOB_SITE = MemoryModuleTypes::SECONDARY_JOB_SITE;
 
-// ========== 实体相关 (MC 1.16.5) ==========
+// ========== 实体相关 ==========
 
 /// 可见的生物列表
 constexpr auto& VISIBLE_MOBS = MemoryModuleTypes::VISIBLE_MOBS;
@@ -126,12 +124,12 @@ constexpr auto& NEAREST_VISIBLE_ADULT = MemoryModuleTypes::NEAREST_VISIBLE_ADULT
 /// 最近可见的物品
 constexpr auto& NEAREST_VISIBLE_WANTED_ITEM = MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM;
 
-// ========== 移动相关 (MC 1.16.5) ==========
+// ========== 移动相关 ==========
 
 /// 路径
 constexpr auto& PATH = MemoryModuleTypes::PATH;
 
-// ========== 门相关 (MC 1.16.5) ==========
+// ========== 门相关 ==========
 
 /// 可交互的门列表
 constexpr auto& INTERACTABLE_DOORS = MemoryModuleTypes::INTERACTABLE_DOORS;
@@ -139,7 +137,7 @@ constexpr auto& INTERACTABLE_DOORS = MemoryModuleTypes::INTERACTABLE_DOORS;
 /// 打开的门集合
 constexpr auto& OPENED_DOORS = MemoryModuleTypes::OPENED_DOORS;
 
-// ========== 战斗相关 (MC 1.16.5) ==========
+// ========== 战斗相关 ==========
 
 /// 攻击冷却中
 constexpr auto& ATTACK_COOLING_DOWN = MemoryModuleTypes::ATTACK_COOLING_DOWN;
@@ -147,7 +145,7 @@ constexpr auto& ATTACK_COOLING_DOWN = MemoryModuleTypes::ATTACK_COOLING_DOWN;
 /// 被攻击来源
 constexpr auto& HURT_BY = MemoryModuleTypes::HURT_BY;
 
-// ========== 时间相关 (MC 1.16.5) ==========
+// ========== 时间相关 ==========
 
 /// 听到铃声时间
 constexpr auto& HEARD_BELL_TIME = MemoryModuleTypes::HEARD_BELL_TIME;
@@ -164,7 +162,7 @@ constexpr auto& LAST_WOKEN = MemoryModuleTypes::LAST_WOKEN;
 /// 最后一次在工作站点工作的时间
 constexpr auto& LAST_WORKED = MemoryModuleTypes::LAST_WORKED_AT_POI;
 
-// ========== 状态相关 (MC 1.16.5) ==========
+// ========== 状态相关 ==========
 
 /// 正在欣赏物品
 constexpr auto& ADMIRING_ITEM = MemoryModuleTypes::ADMIRING_ITEM;
@@ -184,13 +182,13 @@ constexpr auto& ATE_RECENTLY = MemoryModuleTypes::ATE_RECENTLY;
 /// 被安抚
 constexpr auto& PACIFIED = MemoryModuleTypes::PACIFIED;
 
-/// 最近检测到铁傀儡 (MC: field_242309_E)
+/// 最近检测到铁傀儡
 constexpr auto& GOLEM_DETECTED_RECENTLY = MemoryModuleTypes::GOLEM_DETECTED_RECENTLY;
 
 /// 通用愤怒
 constexpr auto& UNIVERSAL_ANGER = MemoryModuleTypes::UNIVERSAL_ANGER;
 
-// ========== 玩家相关 (MC 1.16.5) ==========
+// ========== 玩家相关 ==========
 
 /// 诱惑玩家
 constexpr auto& TEMPTING_PLAYER = MemoryModuleTypes::TEMPTING_PLAYER;
@@ -198,7 +196,7 @@ constexpr auto& TEMPTING_PLAYER = MemoryModuleTypes::TEMPTING_PLAYER;
 /// 持有想要物品的最近玩家
 constexpr auto& NEAREST_PLAYER_HOLDING_WANTED_ITEM = MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTED_ITEM;
 
-// ========== 猪灵相关 (MC 1.16.5) ==========
+// ========== 猪灵相关 ==========
 
 /// 最近可见的可狩猎猪灵兽
 constexpr auto& NEAREST_VISIBLE_HUNTABLE_HOGLIN = MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN;
@@ -228,16 +226,33 @@ constexpr auto& VISIBLE_ADULT_PIGLIN_COUNT = MemoryModuleTypes::VISIBLE_ADULT_PI
 /// 可见成年猪灵兽数量
 constexpr auto& VISIBLE_ADULT_HOGLIN_COUNT = MemoryModuleTypes::VISIBLE_ADULT_HOGLIN_COUNT;
 
-// ========== 扩展类型 (非 MC 1.16.5) ==========
+// ========== 扩展类型 ==========
 
+/// 是否在水中
 constexpr auto& IS_IN_WATER = MemoryModuleTypes::IS_IN_WATER;
+
+/// 是否怀孕
 constexpr auto& IS_PREGNANT = MemoryModuleTypes::IS_PREGNANT;
+
+/// 装死状态
 constexpr auto& PLAY_DEAD = MemoryModuleTypes::PLAY_DEAD;
+
+/// 是否具有攻击性
 constexpr auto& AGGRESSIVE = MemoryModuleTypes::AGGRESSIVE;
+
+/// 诱惑冷却时间（ticks）
 constexpr auto& TEMPTATION_COOLDOWN_TICKS = MemoryModuleTypes::TEMPTATION_COOLDOWN_TICKS;
+
+/// 物品拾取冷却
 constexpr auto& ITEM_PICKUP_COOLDOWN = MemoryModuleTypes::ITEM_PICKUP_COOLDOWN;
+
+/// 跳跃冷却
 constexpr auto& JUMP_COOLDOWN = MemoryModuleTypes::JUMP_COOLDOWN;
+
+/// 繁殖爱心冷却
 constexpr auto& LOVING_COOLDOWN = MemoryModuleTypes::LOVING_COOLDOWN;
+
+/// 需要关闭的门列表
 constexpr auto& DOORS_TO_CLOSE = MemoryModuleTypes::DOORS_TO_CLOSE;
 
 /**

@@ -74,7 +74,6 @@ bool InventoryChangedTriggerInstance::testWithInventory(
     }
 
     // 检查物品谓词
-    // 参考 MC 1.16.5: InventoryChangeTrigger.Instance.test()
     // 如果只有一个物品谓词，则检查变更的物品堆
     // 如果有多个物品谓词，则遍历整个物品栏，所有谓词都必须匹配
     if (!m_items.empty()) {

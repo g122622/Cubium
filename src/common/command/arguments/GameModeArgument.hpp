@@ -57,7 +57,7 @@ public:
         std::string name = reader.readUnquotedString();
 
         // 转换为小写进行比较
-        std::string lower = toLower(name);
+        std::string lower = _toLower(name);
 
         if (lower == "survival" || lower == "s" || lower == "0") {
             return GameMode::Survival;
@@ -110,7 +110,7 @@ public:
     }
 
 private:
-    static std::string toLower(const std::string& str)
+    static std::string _toLower(const std::string& str)
     {
         std::string result = str;
         for (char& c : result) {
@@ -175,18 +175,16 @@ public:
  * - 绝对坐标：100 64 -200
  * - 相对坐标：~ ~ ~（~表示当前位置）
  * - 局部坐标：^ ^ ^（^表示相对于视线方向）
- *
- * 参考 MC 的 BlockPosArgument
  */
 class BlockPosArgumentType : public ArgumentType<Vector3i> {
 public:
     [[nodiscard]] Vector3i parse(StringReader& reader) override
     {
-        i32 x = parseCoordinate(reader, 'x');
+        i32 x = _parseCoordinate(reader, 'x');
         reader.skipWhitespace();
-        i32 y = parseCoordinate(reader, 'y');
+        i32 y = _parseCoordinate(reader, 'y');
         reader.skipWhitespace();
-        i32 z = parseCoordinate(reader, 'z');
+        i32 z = _parseCoordinate(reader, 'z');
         return Vector3i(x, y, z);
     }
 
@@ -211,7 +209,7 @@ private:
     /**
      * @brief 解析单个坐标分量
      */
-    i32 parseCoordinate(StringReader& reader, [[maybe_unused]] char axis)
+    i32 _parseCoordinate(StringReader& reader, [[maybe_unused]] char axis)
     {
         if (reader.canRead() && reader.peek() == '~') {
             reader.skip();
@@ -220,7 +218,7 @@ private:
         }
 
         // 如果后面没有数字，返回0（~ 或 ^ 单独出现）
-        if (!reader.canRead() || isWhitespace(reader.peek())) {
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
             return 0;
         }
 
@@ -229,7 +227,7 @@ private:
         return value;
     }
 
-    static bool isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+    static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 };
 
 /**
@@ -241,11 +239,11 @@ class Vec3ArgumentType : public ArgumentType<Vector3d> {
 public:
     [[nodiscard]] Vector3d parse(StringReader& reader) override
     {
-        f64 x = parseCoordinate(reader);
+        f64 x = _parseCoordinate(reader);
         reader.skipWhitespace();
-        f64 y = parseCoordinate(reader);
+        f64 y = _parseCoordinate(reader);
         reader.skipWhitespace();
-        f64 z = parseCoordinate(reader);
+        f64 z = _parseCoordinate(reader);
         return Vector3d(x, y, z);
     }
 
@@ -267,22 +265,23 @@ public:
     }
 
 private:
-    f64 parseCoordinate(StringReader& reader)
+    f64 _parseCoordinate(StringReader& reader)
     {
         if (reader.canRead() && reader.peek() == '~') {
             reader.skip();
         } else if (reader.canRead() && reader.peek() == '^') {
-            reader.skip(); // 局部坐标，暂时忽略
+            reader.skip();
+            // TODO: 局部坐标目前暂时忽略，后续需要实现相对于视线方向的坐标计算
         }
 
-        if (!reader.canRead() || isWhitespace(reader.peek())) {
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
             return 0.0;
         }
 
         return reader.readDouble();
     }
 
-    static bool isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+    static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 };
 
 /**
@@ -292,9 +291,9 @@ class RotationArgumentType : public ArgumentType<Vector2f> {
 public:
     [[nodiscard]] Vector2f parse(StringReader& reader) override
     {
-        f32 yaw = static_cast<f32>(parseAngle(reader));
+        f32 yaw = static_cast<f32>(_parseAngle(reader));
         reader.skipWhitespace();
-        f32 pitch = static_cast<f32>(parseAngle(reader));
+        f32 pitch = static_cast<f32>(_parseAngle(reader));
         return Vector2f(yaw, pitch);
     }
 
@@ -311,20 +310,20 @@ public:
     }
 
 private:
-    f64 parseAngle(StringReader& reader)
+    f64 _parseAngle(StringReader& reader)
     {
         if (reader.canRead() && reader.peek() == '~') {
             reader.skip();
         }
 
-        if (!reader.canRead() || isWhitespace(reader.peek())) {
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
             return 0.0;
         }
 
         return reader.readDouble();
     }
 
-    static bool isWhitespace(char c) { return c == ' ' || c == '\t'; }
+    static bool _isWhitespace(char c) { return c == ' ' || c == '\t'; }
 };
 
 } // namespace command

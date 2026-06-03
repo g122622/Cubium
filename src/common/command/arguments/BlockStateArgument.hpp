@@ -24,12 +24,13 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
+
 #include "ArgumentType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include <unordered_map>
 
 namespace mc {
 namespace command {
@@ -42,15 +43,15 @@ namespace command {
  */
 class BlockStateInput {
 public:
-    BlockStateInput() = default;
-    explicit BlockStateInput(const BlockState* state)
+    BlockStateInput() noexcept = default;
+    explicit BlockStateInput(const BlockState* state) noexcept
         : m_state(state)
     {}
 
-    [[nodiscard]] const BlockState* state() const { return m_state; }
-    [[nodiscard]] bool isValid() const { return m_state != nullptr; }
-    [[nodiscard]] const Block& getBlock() const { return m_state->getBlock(); }
-    [[nodiscard]] u32 stateId() const { return m_state ? m_state->stateId() : 0; }
+    [[nodiscard]] const BlockState* state() const noexcept { return m_state; }
+    [[nodiscard]] bool isValid() const noexcept { return m_state != nullptr; }
+    [[nodiscard]] const Block& getBlock() const noexcept { return m_state->getBlock(); }
+    [[nodiscard]] u32 stateId() const noexcept { return m_state ? m_state->stateId() : 0; }
 
 private:
     const BlockState* m_state = nullptr;
@@ -65,8 +66,6 @@ private:
  * - 方块 ID 解析（带命名空间或默认 minecraft: 命名空间）
  * - 方块状态属性解析（方括号内的 key=value 格式）
  * - 完整的错误处理（未知方块、未知属性、无效值等）
- *
- * 参考 MC 1.16.5 BlockStateParser
  */
 class BlockStateArgumentType : public ArgumentType<BlockStateInput> {
 public:
@@ -74,14 +73,14 @@ public:
     {
         i32 start = reader.getCursor();
 
-        // 1. 读取方块 ID 部分（可能包含命名空间和属性）
+        // 读取方块 ID 部分（可能包含命名空间和属性）
         std::string blockIdStr = reader.readString();
 
-        // 2. 解析方块 ID 和属性
-        return parseBlockState(blockIdStr, reader, start);
+        // 解析方块 ID 和属性
+        return _parseBlockState(blockIdStr, reader, start);
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "block_state"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "block_state"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
@@ -99,9 +98,9 @@ private:
      * @param start 开始位置
      * @return 解析后的方块状态输入
      */
-    BlockStateInput parseBlockState(const std::string& input, StringReader& reader, i32 start)
+    [[nodiscard]] BlockStateInput _parseBlockState(const std::string& input, StringReader& reader, i32 start)
     {
-        // 1. 分离方块名和属性部分
+        // 分离方块名和属性部分
         size_t bracketPos = input.find('[');
         std::string blockName;
         std::string propsStr;
@@ -119,21 +118,21 @@ private:
             }
         }
 
-        // 2. 解析 ResourceLocation
+        // 解析 ResourceLocation
         ResourceLocation location = ResourceLocation::parse(blockName);
 
-        // 3. 获取方块
+        // 获取方块
         Block* block = BlockRegistry::instance().getBlock(location);
         if (block == nullptr) {
             throw CommandException(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
         }
 
-        // 4. 获取默认状态
+        // 获取默认状态
         const BlockState* state = &block->defaultState();
 
-        // 5. 解析并应用属性
+        // 解析并应用属性
         if (!propsStr.empty()) {
-            state = applyProperties(block, state, propsStr, reader, start);
+            state = _applyProperties(block, state, propsStr, reader, start);
         }
 
         return BlockStateInput(state);
@@ -149,7 +148,7 @@ private:
      * @param start 开始位置
      * @return 应用属性后的方块状态
      */
-    const BlockState* applyProperties(const Block* block,
+    [[nodiscard]] const BlockState* _applyProperties(const Block* block,
         const BlockState* defaultState,
         const std::string& propsStr,
         StringReader& reader,

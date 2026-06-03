@@ -75,8 +75,6 @@ namespace brain {
  * - 日程(基于时间的活动切换)
  * - 活动(Activity)状态管理
  *
- * 参考 MC 1.16.5 Brain
- *
  * @tparam E 实体类型
  */
 template <typename E>
@@ -88,7 +86,7 @@ public:
     using SensorMap = std::unordered_map<std::string, std::unique_ptr<sensor::Sensor<E>>>;
     using TaskSet = std::unordered_set<std::unique_ptr<task::Task<E>>>;
     using ActivityTaskMap = std::unordered_map<schedule::Activity, TaskSet>;
-    // MC 1.16.5 使用 TreeMap 保证优先级顺序（数值小的先执行）
+    // 使用 TreeMap 保证优先级顺序（数值小的先执行）
     using PriorityTaskMap = std::map<i32, ActivityTaskMap>;
     using MemoryRequirement = std::pair<const memory::MemoryModuleTypeBase*, memory::MemoryModuleStatus>;
     using ActivityRequirementMap = std::unordered_map<schedule::Activity, std::unordered_set<MemoryRequirement>>;
@@ -98,7 +96,7 @@ public:
     /**
      * @brief 构造Brain
      */
-    Brain() = default;
+    Brain() noexcept = default;
 
     /**
      * @brief 注册内存模块类型
@@ -129,17 +127,17 @@ public:
      * @brief 设置日程
      * @param schedule 日程指针（通常指向静态日程实例）
      */
-    void setSchedule(const schedule::Schedule* schedule) { m_schedulePtr = schedule; }
+    void setSchedule(const schedule::Schedule* schedule) noexcept { m_schedulePtr = schedule; }
 
     /**
      * @brief 获取日程
      */
-    [[nodiscard]] const schedule::Schedule* getSchedule() const { return m_schedulePtr; }
+    [[nodiscard]] const schedule::Schedule* getSchedule() const noexcept { return m_schedulePtr; }
 
     /**
      * @brief 设置后备活动
      */
-    void setFallbackActivity(const schedule::Activity& activity) { m_fallbackActivity = activity; }
+    void setFallbackActivity(const schedule::Activity& activity) noexcept { m_fallbackActivity = activity; }
 
     /**
      * @brief 设置默认活动
@@ -182,17 +180,17 @@ public:
      */
     void switchTo(const schedule::Activity& activity)
     {
-        if (hasRequiredMemories(activity)) {
-            startActivity(activity);
+        if (_hasRequiredMemories(activity)) {
+            _startActivity(activity);
         } else {
-            startActivity(m_fallbackActivity);
+            _startActivity(m_fallbackActivity);
         }
     }
 
     /**
      * @brief 检查是否正在进行某活动
      */
-    [[nodiscard]] bool hasActivity(const schedule::Activity& activity) const
+    [[nodiscard]] bool hasActivity(const schedule::Activity& activity) const noexcept
     {
         return m_activities.find(activity) != m_activities.end();
     }
@@ -215,7 +213,7 @@ public:
     /**
      * @brief 检查是否有某个记忆
      */
-    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type) const
+    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type) const noexcept
     {
         return hasMemory(type, memory::MemoryModuleStatus::VALUE_PRESENT);
     }
@@ -223,13 +221,14 @@ public:
     /**
      * @brief 检查记忆状态
      *
-     * MC 1.16.5: 未注册的记忆任何状态都返回false
+     * 未注册的记忆任何状态都返回false
      */
-    [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type, memory::MemoryModuleStatus status) const
+    [[nodiscard]] bool hasMemory(
+        const memory::MemoryModuleTypeBase* type, memory::MemoryModuleStatus status) const noexcept
     {
         auto it = m_memories.find(type);
         if (it == m_memories.end()) {
-            // MC 1.16.5: 未注册的记忆返回false，即使状态是REGISTERED
+            // 未注册的记忆返回false，即使状态是REGISTERED
             return false;
         }
 
@@ -324,24 +323,23 @@ public:
     void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random)
     {
         // 更新记忆TTL
-        tickMemories();
+        _tickMemories();
 
         // 更新传感器
-        tickSensors(world, entity);
+        _tickSensors(world, entity);
 
         // 根据日程更新活动
-        updateActivity(dayTime, gameTime);
+        _updateActivity(dayTime, gameTime);
 
         // 启动符合条件的任务
-        startTasks(world, entity, gameTime, random);
+        _startTasks(world, entity, gameTime, random);
 
         // 更新运行中的任务
-        tickTasks(world, entity, gameTime);
+        _tickTasks(world, entity, gameTime);
     }
 
     /**
      * @brief 停止所有任务
-     * MC 1.16.5: 直接遍历避免临时vector分配
      */
     void stopAllTasks(IWorld* world, E* owner, i64 gameTime)
     {
@@ -359,7 +357,7 @@ public:
     /**
      * @brief 重置Brain状态
      */
-    void clear()
+    void clear() noexcept
     {
         m_memories.clear();
         m_activities.clear();
@@ -369,9 +367,8 @@ public:
 private:
     /**
      * @brief 更新记忆TTL
-     * MC 1.16.5: 使用原地删除避免临时vector分配
      */
-    void tickMemories()
+    void _tickMemories()
     {
         auto it = m_memoryTTL.begin();
         while (it != m_memoryTTL.end()) {
@@ -390,7 +387,7 @@ private:
     /**
      * @brief 更新传感器
      */
-    void tickSensors(IWorld* world, E* entity)
+    void _tickSensors(IWorld* world, E* entity)
     {
         for (auto& sensor : m_sensors) {
             sensor->tick(world, entity);
@@ -400,7 +397,7 @@ private:
     /**
      * @brief 根据日程更新活动
      */
-    void updateActivity(i32 dayTime, i64 gameTime)
+    void _updateActivity(i32 dayTime, i64 gameTime)
     {
         if (m_schedulePtr && gameTime - m_lastGameTime > 20) {
             m_lastGameTime = gameTime;
@@ -414,13 +411,13 @@ private:
     /**
      * @brief 检查是否有活动所需的记忆
      *
-     * MC 1.16.5: 如果活动没有配置记忆要求，返回 false
+     * 如果活动没有配置记忆要求，返回 false
      */
-    [[nodiscard]] bool hasRequiredMemories(const schedule::Activity& activity) const
+    [[nodiscard]] bool _hasRequiredMemories(const schedule::Activity& activity) const noexcept
     {
         auto it = m_requiredMemoryStates.find(activity);
         if (it == m_requiredMemoryStates.end()) {
-            // MC 1.16.5: 活动没有记忆要求配置时返回 false
+            // 活动没有记忆要求配置时返回 false
             return false;
         }
 
@@ -435,7 +432,7 @@ private:
     /**
      * @brief 开始活动
      */
-    void startActivity(const schedule::Activity& activity)
+    void _startActivity(const schedule::Activity& activity)
     {
         if (hasActivity(activity)) {
             return;
@@ -461,7 +458,7 @@ private:
     /**
      * @brief 启动任务
      */
-    void startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random)
+    void _startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random)
     {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
@@ -478,9 +475,8 @@ private:
 
     /**
      * @brief 更新任务
-     * MC 1.16.5: 直接遍历避免临时vector分配
      */
-    void tickTasks(IWorld* world, E* entity, i64 gameTime)
+    void _tickTasks(IWorld* world, E* entity, i64 gameTime)
     {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {

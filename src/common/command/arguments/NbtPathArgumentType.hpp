@@ -47,8 +47,6 @@ namespace command {
  * - "foo[{id:'diamond'}]" - 列表过滤器
  * - "foo{bar:1}" - 键名 + 复合过滤器
  *
- * 参考 MC 1.16.5: net.minecraft.command.arguments.NBTPathArgument
- *
  * @example
  * @code
  * // 解析路径
@@ -103,21 +101,21 @@ private:
      * @param isFirst 是否是第一个节点
      * @return 路径节点
      */
-    [[nodiscard]] std::unique_ptr<NbtPathNode> parseNode(StringReader& reader, bool isFirst);
+    [[nodiscard]] std::unique_ptr<NbtPathNode> _parseNode(StringReader& reader, bool isFirst);
 
     /**
      * @brief 解析键名
      * @param reader 字符串读取器
      * @return 键名
      */
-    [[nodiscard]] static std::string parseKeyName(StringReader& reader);
+    [[nodiscard]] static std::string _parseKeyName(StringReader& reader);
 
     /**
      * @brief 解析 NBT 列表内容
      * @param reader 字符串读取器
      * @return 列表标签
      */
-    [[nodiscard]] static std::unique_ptr<nbt::tags::tag> parseListContent(StringReader& reader);
+    [[nodiscard]] static std::unique_ptr<nbt::tags::tag> _parseListContent(StringReader& reader);
 
     /**
      * @brief 读取 NBT 未引用键名
@@ -126,7 +124,7 @@ private:
      * @param reader 字符串读取器
      * @return 读取的字符串
      */
-    [[nodiscard]] static std::string readNbtUnquotedKey(StringReader& reader);
+    [[nodiscard]] static std::string _readNbtUnquotedKey(StringReader& reader);
 
     /**
      * @brief 读取 NBT 未引用字符串值
@@ -135,7 +133,7 @@ private:
      * @param reader 字符串读取器
      * @return 读取的字符串
      */
-    [[nodiscard]] static std::string readNbtUnquotedValue(StringReader& reader);
+    [[nodiscard]] static std::string _readNbtUnquotedValue(StringReader& reader);
 };
 
 /**
@@ -143,8 +141,6 @@ private:
  *
  * 解析 Mojangson 格式的 NBT 复合标签。
  * 使用 shared_ptr 以支持存储在 std::any 中。
- *
- * 参考 MC 1.16.5: net.minecraft.command.arguments.NBTCompoundTagArgument
  */
 class NbtCompoundArgumentType : public ArgumentType<std::shared_ptr<nbt::tags::compound_tag>> {
 public:

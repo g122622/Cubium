@@ -43,8 +43,6 @@ class CommandContext;
  * @brief 参数类型基类
  *
  * 所有命令参数类型的基类，定义解析和自动补全接口。
- *
- * 参考 MC 的 ArgumentType 接口设计
  */
 template <typename T>
 class ArgumentType {

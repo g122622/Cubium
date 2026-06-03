@@ -49,7 +49,6 @@ class BeeNestDestroyedTriggerInstance;
  * @brief 进入方块触发器
  *
  * 当玩家进入方块（站在方块内）时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EnterBlockTrigger
  */
 class EnterBlockTrigger : public AbstractCriterionTrigger<EnterBlockTriggerInstance> {
 public:
@@ -101,7 +100,6 @@ private:
  * @brief 放置方块触发器
  *
  * 当玩家放置方块时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.PlacedBlockTrigger
  */
 class PlacedBlockTrigger : public AbstractCriterionTrigger<PlacedBlockTriggerInstance> {
 public:

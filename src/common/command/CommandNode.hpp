@@ -87,8 +87,6 @@ enum class RedirectModifier {
  * - 权限检查
  * - 命令执行
  * - 重定向
- *
- * 参考 MC 的 CommandNode 设计
  */
 template <typename S>
 class CommandNode {
@@ -115,8 +113,8 @@ public:
     [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
-    [[nodiscard]] const std::string& getUsageText() const { return m_usageText; }
-    void setUsageText(const std::string& text) { m_usageText = text; }
+    [[nodiscard]] const std::string& getUsageText() const noexcept { return m_usageText; }
+    void setUsageText(const std::string& text) noexcept { m_usageText = text; }
 
     /**
      * @brief Get metadata for this node.
@@ -126,7 +124,7 @@ public:
     /**
      * @brief Set metadata for this node.
      */
-    void setMetadataInfo(const Metadata& metadata)
+    void setMetadataInfo(const Metadata& metadata) noexcept
     {
         m_metadataInfo = metadata;
         if (!metadata.usage.empty()) {
@@ -138,7 +136,7 @@ public:
 
     [[nodiscard]] bool hasCommand() const noexcept { return m_command != nullptr; }
     [[nodiscard]] const CommandCallback<S>& getCommand() const noexcept { return m_command; }
-    void setCommand(CommandCallback<S> command) { m_command = std::move(command); }
+    void setCommand(CommandCallback<S> command) noexcept { m_command = std::move(command); }
 
     /**
      * @brief 检查是否携带自定义建议提供器
@@ -156,7 +154,7 @@ public:
     /**
      * @brief 设置自定义建议提供器
      */
-    void setCustomSuggestions(std::shared_ptr<ISuggestionProvider<S>> provider)
+    void setCustomSuggestions(std::shared_ptr<ISuggestionProvider<S>> provider) noexcept
     {
         m_customSuggestions = std::move(provider);
     }
@@ -164,7 +162,7 @@ public:
     // ========== 权限 ==========
 
     [[nodiscard]] const RequirementPredicate<S>& getRequirement() const noexcept { return m_requirement; }
-    void setRequirement(RequirementPredicate<S> requirement) { m_requirement = std::move(requirement); }
+    void setRequirement(RequirementPredicate<S> requirement) noexcept { m_requirement = std::move(requirement); }
 
     [[nodiscard]] bool canUse(const S& source) const { return m_requirement(source); }
 
@@ -203,7 +201,7 @@ public:
     /**
      * @brief 设置重定向目标
      */
-    void setRedirect(std::shared_ptr<CommandNode<S>> target)
+    void setRedirect(std::shared_ptr<CommandNode<S>> target) noexcept
     {
         setRedirect(std::move(target), RedirectModifier::Single);
     }
@@ -211,7 +209,7 @@ public:
     /**
      * @brief 设置重定向目标和模式
      */
-    void setRedirect(std::shared_ptr<CommandNode<S>> target, RedirectModifier modifier)
+    void setRedirect(std::shared_ptr<CommandNode<S>> target, RedirectModifier modifier) noexcept
     {
         m_redirect = std::move(target);
         m_redirectModifier = modifier;
@@ -221,14 +219,14 @@ public:
 
     // ========== 比较 ==========
 
-    virtual bool equals(const CommandNode<S>& other) const
+    virtual bool equals(const CommandNode<S>& other) const noexcept
     {
         // 简化比较：只比较重定向和类型
         return m_redirect == other.m_redirect && m_redirectModifier == other.m_redirectModifier &&
             this->getType() == other.getType();
     }
 
-    [[nodiscard]] virtual size_t hashCode() const
+    [[nodiscard]] virtual size_t hashCode() const noexcept
     {
         size_t hash = 0;
         // 简单的哈希组合
@@ -290,7 +288,7 @@ public:
         }
     }
 
-    bool equals(const CommandNode<S>& other) const override
+    bool equals(const CommandNode<S>& other) const noexcept override
     {
         if (!CommandNode<S>::equals(other)) return false;
         if (other.getType() != NodeType::Literal) return false;
@@ -391,7 +389,7 @@ public:
      */
     [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept { return m_argumentType; }
 
-    bool equals(const CommandNode<S>& other) const override
+    bool equals(const CommandNode<S>& other) const noexcept override
     {
         if (!CommandNode<S>::equals(other)) return false;
         if (other.getType() != NodeType::Argument) return false;

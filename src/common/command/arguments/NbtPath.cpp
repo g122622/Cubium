@@ -569,7 +569,7 @@ std::unique_ptr<NbtPathNode> NbtPathCompoundFilterNode::clone() const
     return std::make_unique<NbtPathCompoundFilterNode>(std::move(filterCopy));
 }
 
-bool NbtPathCompoundFilterNode::matches(const nbt::tags::compound_tag& tag) const
+bool NbtPathCompoundFilterNode::_matches(const nbt::tags::compound_tag& tag) const
 {
     if (m_filter == nullptr) {
         return true;
@@ -602,7 +602,7 @@ std::vector<nbt::tags::tag*> NbtPathCompoundFilterNode::get(nbt::tags::tag* tag)
         return result;
     }
 
-    if (matches(*compound)) {
+    if (_matches(*compound)) {
         result.push_back(compound);
     }
 
@@ -621,7 +621,7 @@ std::vector<const nbt::tags::tag*> NbtPathCompoundFilterNode::get(const nbt::tag
         return result;
     }
 
-    if (matches(*compound)) {
+    if (_matches(*compound)) {
         result.push_back(compound);
     }
 
@@ -675,7 +675,7 @@ std::unique_ptr<NbtPathNode> NbtPathListFilterNode::clone() const
     return std::make_unique<NbtPathListFilterNode>(std::move(filterCopy));
 }
 
-bool NbtPathListFilterNode::matches(const nbt::tags::compound_tag& tag) const
+bool NbtPathListFilterNode::_matches(const nbt::tags::compound_tag& tag) const
 {
     if (m_filter == nullptr) {
         return true;
@@ -710,7 +710,7 @@ std::vector<nbt::tags::tag*> NbtPathListFilterNode::get(nbt::tags::tag* tag) con
         auto element = (*list)[i];
         if (element && element->id() == nbt::TagId::Compound) {
             auto* compound = dynamic_cast<nbt::tags::compound_tag*>(element.get());
-            if (compound && matches(*compound)) {
+            if (compound && _matches(*compound)) {
                 result.push_back(element.get());
             }
         }
@@ -735,7 +735,7 @@ std::vector<const nbt::tags::tag*> NbtPathListFilterNode::get(const nbt::tags::t
         auto element = (*list)[i];
         if (element && element->id() == nbt::TagId::Compound) {
             const auto* compound = dynamic_cast<const nbt::tags::compound_tag*>(element.get());
-            if (compound && matches(*compound)) {
+            if (compound && _matches(*compound)) {
                 result.push_back(element.get());
             }
         }
@@ -761,7 +761,7 @@ i32 NbtPathListFilterNode::set(
         auto& element = list->value[i];
         if (element && element->id() == nbt::TagId::Compound) {
             auto* compound = dynamic_cast<nbt::tags::compound_tag*>(element.get());
-            if (compound && matches(*compound)) {
+            if (compound && _matches(*compound)) {
                 auto newValue = valueSupplier();
                 if (newValue) {
                     list->value[i] = std::move(newValue);
@@ -789,7 +789,7 @@ i32 NbtPathListFilterNode::remove(nbt::tags::tag* tag) const
     for (auto it = list->value.begin(); it != list->value.end();) {
         if (*it && (*it)->id() == nbt::TagId::Compound) {
             auto* compound = dynamic_cast<nbt::tags::compound_tag*>(it->get());
-            if (compound && matches(*compound)) {
+            if (compound && _matches(*compound)) {
                 it = list->value.erase(it);
                 count++;
                 continue;

@@ -55,8 +55,7 @@ Result<std::shared_ptr<ICriterionInstance>> TickTrigger::fromJson(const nlohmann
 void TickTrigger::trigger(ServerPlayer& player)
 {
     // Tick触发器对所有监听器都触发
-    // 注意：实际触发逻辑需要在服务端模块中实现，
-    // 这里需要访问 PlayerAdvancements 来触发监听器
+    // TODO: 实际触发逻辑需要访问 PlayerAdvancements 来触发监听器，
     // 服务端会在每tick调用此方法，触发器将检查所有已注册的监听器
     MC_UNUSED(player);
 }

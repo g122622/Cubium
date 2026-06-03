@@ -102,17 +102,9 @@ bool ItemDurabilityTriggerInstance::test(const ItemStack& item, i32 oldDurabilit
         return false;
     }
 
-    i32 newDurability = item.getMaxDamage() - item.getDamage();
-    if (!m_durability.test(newDurability)) {
-        return false;
-    }
-
-    i32 delta = oldDurability - newDurability;
-    if (!m_delta.test(delta)) {
-        return false;
-    }
-
-    return true;
+    const i32 newDurability = item.getMaxDamage() - item.getDamage();
+    const i32 delta = oldDurability - newDurability;
+    return m_durability.test(newDurability) && m_delta.test(delta);
 }
 
 Result<void> ItemDurabilityTriggerInstance::fromJson(const nlohmann::json& json)
@@ -187,13 +179,7 @@ EnchantedItemTriggerInstance::EnchantedItemTriggerInstance(ItemPredicate item, I
 
 bool EnchantedItemTriggerInstance::test(const ItemStack& item, i32 levels) const
 {
-    if (!m_item.test(item)) {
-        return false;
-    }
-    if (!m_levels.test(levels)) {
-        return false;
-    }
-    return true;
+    return m_item.test(item) && m_levels.test(levels);
 }
 
 Result<void> EnchantedItemTriggerInstance::fromJson(const nlohmann::json& json)

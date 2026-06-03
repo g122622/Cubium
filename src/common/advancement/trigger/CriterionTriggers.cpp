@@ -36,7 +36,7 @@
 
 namespace mc::advancement {
 
-CriterionTriggers& CriterionTriggers::instance()
+CriterionTriggers& CriterionTriggers::instance() noexcept
 {
     static CriterionTriggers instance;
     return instance;
@@ -62,12 +62,12 @@ ICriterionTriggerBase* CriterionTriggers::getTrigger(const ResourceLocation& id)
     return it != m_triggers.end() ? it->second.get() : nullptr;
 }
 
-bool CriterionTriggers::hasTrigger(const ResourceLocation& id) const
+bool CriterionTriggers::hasTrigger(const ResourceLocation& id) const noexcept
 {
     return m_triggers.find(id) != m_triggers.end();
 }
 
-std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const
+std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const noexcept
 {
     std::vector<ResourceLocation> ids;
     ids.reserve(m_triggers.size());
@@ -77,7 +77,7 @@ std::vector<ResourceLocation> CriterionTriggers::getAllTriggerIds() const
     return ids;
 }
 
-void CriterionTriggers::clear()
+void CriterionTriggers::clear() noexcept
 {
     m_triggers.clear();
 }

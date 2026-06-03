@@ -64,7 +64,6 @@ namespace command {
  * @brief 命令源接口
  *
  * 定义命令执行者的基本能力。
- * 参考 MC 的 ICommandSource 接口设计。
  *
  * 不同实现：
  * - ServerCommandSource: 服务端玩家/控制台
@@ -107,11 +106,11 @@ class SilentCommandSource : public ICommandSource {
 public:
     void sendMessage(const std::string&, const std::optional<Uuid>&) override {}
 
-    bool shouldReceiveFeedback() const override { return false; }
-    bool shouldReceiveErrors() const override { return false; }
-    bool allowLogging() const override { return false; }
+    bool shouldReceiveFeedback() const noexcept override { return false; }
+    bool shouldReceiveErrors() const noexcept override { return false; }
+    bool allowLogging() const noexcept override { return false; }
 
-    static SilentCommandSource& instance()
+    static SilentCommandSource& instance() noexcept
     {
         static SilentCommandSource s_instance;
         return s_instance;

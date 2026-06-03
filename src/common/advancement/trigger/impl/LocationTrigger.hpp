@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/LocationPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include <memory>
 
 namespace mc::advancement {
@@ -37,7 +37,6 @@ class LocationTriggerInstance;
  *
  * 当玩家位于特定位置时触发。
  * 也用于 slept_in_bed, hero_of_the_village, voluntary_exile 等。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.LocationTrigger
  */
 class LocationTrigger : public AbstractCriterionTrigger<LocationTriggerInstance> {
 public:

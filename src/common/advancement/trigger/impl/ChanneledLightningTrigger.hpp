@@ -42,7 +42,6 @@ class ChanneledLightningTriggerInstance;
  * @brief 引雷附魔触发器
  *
  * 当玩家使用引雷附魔的三叉戟召唤闪电击中实体时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.ChanneledLightningTrigger
  *
  * JSON 格式示例:
  * @code

@@ -66,8 +66,6 @@ enum class EntityAnchorType {
  * - 位置和朝向
  * - 所在世界
  * - 权限等级
- *
- * 参考 MC 的 CommandSource 类设计
  */
 class CommandSource {
 public:

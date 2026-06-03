@@ -38,7 +38,6 @@ ChanneledLightningTriggerInstance::ChanneledLightningTriggerInstance(std::vector
 
 bool ChanneledLightningTriggerInstance::test(const std::vector<const Entity*>& victims) const
 {
-    // MC 1.16.5: ChanneledLightningTrigger.Instance.test()
     // 检查所有谓词是否都能匹配到至少一个实体
     // 如果没有谓词，则匹配任意情况
     if (m_victims.empty()) {
@@ -69,7 +68,7 @@ Result<void> ChanneledLightningTriggerInstance::fromJson(const nlohmann::json& j
         return {};
     }
 
-    // MC 1.16.5 JSON 格式:
+    // JSON 格式:
     // {
     //   "victims": [
     //     { "type": "minecraft:zombie" },

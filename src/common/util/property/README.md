@@ -197,7 +197,7 @@ auto container = StateContainer<Block, BlockState>::Builder(*this)
 
 **内容**:
 - 模板类 `StateHolder<Owner, State>`（CRTP 模式）
-- 持有属性值索引映射
+- 持有当前状态的属性值索引，并借用 `StateContainer` 统一持有的属性布局
 - 提供类型安全的状态转换
 
 **核心方法**:
@@ -611,7 +611,7 @@ const BooleanProperty& lit = BlockStateProperties::LIT();
 
 1. **状态预计算**: 所有状态在 `StateContainer` 构建时预计算，运行时无动态分配
 2. **O(1) 状态转换**: 通过预计算的转换表实现常数时间状态切换
-3. **内存开销**: 状态数量 * 每个状态的属性值映射
+3. **内存开销**: 每个状态只保存属性值索引，属性布局数组由同一个 `StateContainer` 下的所有状态共享
 4. **懒加载单例**: 预定义属性按需创建，减少启动时间
 
 ---

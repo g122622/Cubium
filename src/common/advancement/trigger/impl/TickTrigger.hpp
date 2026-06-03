@@ -23,8 +23,8 @@
 
 #pragma once
 
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include <memory>
-#include "../CriterionTrigger.hpp"
 
 namespace mc::advancement {
 
@@ -57,7 +57,6 @@ public:
  * @brief Tick触发器
  *
  * 每游戏tick触发一次，用于检测持续条件。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.TickTrigger
  */
 class TickTrigger : public AbstractCriterionTrigger<TickTriggerInstance> {
 public:

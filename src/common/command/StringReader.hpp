@@ -34,12 +34,7 @@ namespace mc::command {
  * @brief 字符串读取器
  *
  * 用于命令解析的游标式字符串读取器。
- * 参考 MC 的 StringReader 设计。
- *
- * 特性：
- * - 维护当前位置游标
- * - 支持回退
- * - 提供各种类型的解析方法
+ * 支持回退操作，提供各种类型的解析方法。
  */
 class StringReader {
 public:
@@ -53,6 +48,8 @@ public:
 
     StringReader(const StringReader& other) = default;
     StringReader& operator=(const StringReader& other) = default;
+    StringReader(StringReader&& other) noexcept = default;
+    StringReader& operator=(StringReader&& other) noexcept = default;
 
     // ========== 基本访问 ==========
 
@@ -91,9 +88,9 @@ public:
         }
     }
 
-    void skip(i32 count) { m_cursor += count; }
+    void skip(i32 count) noexcept { m_cursor += count; }
 
-    void setCursor(i32 cursor) { m_cursor = cursor; }
+    void setCursor(i32 cursor) noexcept { m_cursor = cursor; }
 
     // ========== 空白处理 ==========
 
@@ -361,7 +358,7 @@ public:
      * @brief 尝试匹配字符串
      * @return 是否匹配成功
      */
-    bool tryRead(const std::string& expected)
+    bool tryRead(std::string_view expected) noexcept
     {
         if (!canRead(static_cast<i32>(expected.length()))) {
             return false;

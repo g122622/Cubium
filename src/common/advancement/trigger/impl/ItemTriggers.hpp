@@ -39,7 +39,6 @@ class FilledBucketTriggerInstance;
  * @brief 消耗物品触发器
  *
  * 当玩家消耗物品（如吃食物、喝药水）时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.ConsumeItemTrigger
  */
 class ConsumeItemTrigger : public AbstractCriterionTrigger<ConsumeItemTriggerInstance> {
 public:
@@ -61,7 +60,7 @@ class ConsumeItemTriggerInstance : public CriterionInstance<ConsumeItemTriggerIn
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:consume_item";
 
-    ConsumeItemTriggerInstance() = default;
+    ConsumeItemTriggerInstance() noexcept = default;
     explicit ConsumeItemTriggerInstance(ItemPredicate item);
 
     [[nodiscard]] bool test(const class ItemStack& item) const;
@@ -96,7 +95,7 @@ class ItemDurabilityTriggerInstance : public CriterionInstance<ItemDurabilityTri
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:item_durability_changed";
 
-    ItemDurabilityTriggerInstance() = default;
+    ItemDurabilityTriggerInstance() noexcept = default;
     ItemDurabilityTriggerInstance(ItemPredicate item, IntBounds durability, IntBounds delta);
 
     [[nodiscard]] bool test(const class ItemStack& item, i32 oldDurability) const;
@@ -133,7 +132,7 @@ class EnchantedItemTriggerInstance : public CriterionInstance<EnchantedItemTrigg
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:enchanted_item";
 
-    EnchantedItemTriggerInstance() = default;
+    EnchantedItemTriggerInstance() noexcept = default;
     EnchantedItemTriggerInstance(ItemPredicate item, IntBounds levels);
 
     [[nodiscard]] bool test(const class ItemStack& item, i32 levels) const;
@@ -169,7 +168,7 @@ class FilledBucketTriggerInstance : public CriterionInstance<FilledBucketTrigger
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:filled_bucket";
 
-    FilledBucketTriggerInstance() = default;
+    FilledBucketTriggerInstance() noexcept = default;
     explicit FilledBucketTriggerInstance(ItemPredicate item);
 
     [[nodiscard]] bool test(const class ItemStack& item) const;

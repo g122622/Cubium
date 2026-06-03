@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -49,7 +49,6 @@ class InventoryChangedTriggerInstance;
  * @brief 物品栏变化触发器
  *
  * 当玩家物品栏发生变化时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.InventoryChangeTrigger
  */
 class InventoryChangedTrigger : public AbstractCriterionTrigger<InventoryChangedTriggerInstance> {
 public:
@@ -61,7 +60,7 @@ public:
     /**
      * @brief 获取触发器ID
      */
-    [[nodiscard]] ResourceLocation getId() const override { return ResourceLocation(TRIGGER_ID); }
+    [[nodiscard]] ResourceLocation getId() const noexcept override { return ResourceLocation(TRIGGER_ID); }
 
     /**
      * @brief 从JSON反序列化实例

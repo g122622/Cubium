@@ -34,7 +34,7 @@ namespace memory {
 /**
  * @brief 基于方块坐标的位置目标
  *
- * 对齐 MC 1.16.5 BlockPosWrapper，始终使用方块中心点作为导航/注视位置。
+ * 始终使用方块中心点作为导航/注视位置。
  */
 class BlockPosTarget final : public IPositionTarget {
 public:

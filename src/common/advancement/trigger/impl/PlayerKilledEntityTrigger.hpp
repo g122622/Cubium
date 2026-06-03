@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/EntityPredicate.hpp"
-#include "../conditions/LocationPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include <memory>
 
 // 前向声明
@@ -44,7 +44,6 @@ class EntityKilledPlayerTriggerInstance;
  * @brief 玩家击杀实体触发器
  *
  * 当玩家击杀实体时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.KilledTrigger
  */
 class PlayerKilledEntityTrigger : public AbstractCriterionTrigger<PlayerKilledEntityTriggerInstance> {
 public:
@@ -85,7 +84,7 @@ class PlayerKilledEntityTriggerInstance : public CriterionInstance<PlayerKilledE
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:player_killed_entity";
 
-    PlayerKilledEntityTriggerInstance() = default;
+    PlayerKilledEntityTriggerInstance() noexcept = default;
 
     /**
      * @brief 构造实例
@@ -140,7 +139,7 @@ class EntityKilledPlayerTriggerInstance : public CriterionInstance<EntityKilledP
 public:
     static constexpr const char* TRIGGER_ID = "minecraft:entity_killed_player";
 
-    EntityKilledPlayerTriggerInstance() = default;
+    EntityKilledPlayerTriggerInstance() noexcept = default;
     EntityKilledPlayerTriggerInstance(EntityPredicate entity, DamageSourcePredicate killingBlow);
 
     /**

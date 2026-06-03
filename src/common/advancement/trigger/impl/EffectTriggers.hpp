@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include <memory>
 
 namespace mc::advancement {
@@ -38,7 +38,6 @@ class BrewedPotionTriggerInstance;
  * @brief 配方解锁触发器
  *
  * 当玩家解锁配方时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.RecipeUnlockedTrigger
  */
 class RecipeUnlockedTrigger : public AbstractCriterionTrigger<RecipeUnlockedTriggerInstance> {
 public:
@@ -73,7 +72,6 @@ private:
  * @brief 效果变化触发器
  *
  * 当玩家获得/失去效果时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.EffectsChangedTrigger
  */
 class EffectsChangedTrigger : public AbstractCriterionTrigger<EffectsChangedTriggerInstance> {
 public:
@@ -117,7 +115,6 @@ private:
  * @brief 酿造药水触发器
  *
  * 当玩家酿造药水时触发。
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.BrewedPotionTrigger
  */
 class BrewedPotionTrigger : public AbstractCriterionTrigger<BrewedPotionTriggerInstance> {
 public:

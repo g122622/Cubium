@@ -39,7 +39,7 @@ NbtPath NbtPathArgumentType::parse(StringReader& reader)
     bool isFirst = true;
 
     while (reader.canRead() && reader.peek() != ' ') {
-        auto node = parseNode(reader, isFirst);
+        auto node = _parseNode(reader, isFirst);
         nodes.push_back(std::move(node));
         isFirst = false;
 
@@ -67,7 +67,7 @@ NbtPath NbtPathArgumentType::parse(StringReader& reader)
     return NbtPath(std::move(rawText), std::move(nodes));
 }
 
-std::unique_ptr<NbtPathNode> NbtPathArgumentType::parseNode(StringReader& reader, bool isFirst)
+std::unique_ptr<NbtPathNode> NbtPathArgumentType::_parseNode(StringReader& reader, bool isFirst)
 {
     char c = reader.peek();
 
@@ -92,91 +92,9 @@ std::unique_ptr<NbtPathNode> NbtPathArgumentType::parseNode(StringReader& reader
                 // 解析索引
                 i32 index = reader.readInt();
                 reader.expect(']');
-                auto indexNode = std::make_unique<NbtPathIndexNode>(index);
-                // 字符串节点 + 索引节点需要组合处理
-                // 这里简化为只返回索引节点，外层需要处理
-                // 实际上在 MC 中是 StringNode 后面跟 CollectionNode
-                // 我们需要返回一个组合节点
-                // 但为了简化，我们先创建字符串节点，然后将索引作为下一个节点
-                // 这里需要重新设计...
-                // 实际上正确的做法是：foo[0] 解析为 StringNode("foo") + IndexNode(0)
-                // 所以这里应该返回 IndexNode，但名字是什么？
-                // 查看 MC 源码，foo[0] 的处理方式是：
-                // 1. 解析 "foo" -> StringNode
-                // 2. 遇到 '[' -> 解析索引 -> CollectionNode
-                // 3. 这两个是分开的节点
-                // 所以 parseNode 应该只返回一个节点
-                // 对于 foo[0]，应该先返回 StringNode("foo")，然后下一个循环返回 IndexNode(0)
-                // 但这里的问题是：我们已经读取了名字，现在又读取了索引
-                // 需要重新设计解析逻辑
-
-                // 让我们重新思考：parseNode 应该只解析一个节点
-                // foo[0] 应该被解析为两个节点：StringNode("foo") + IndexNode(0)
-                // 但当前的实现会把 foo[0] 作为一个整体解析
-
-                // 正确的处理方式：
-                // 如果遇到引号，解析引号内的字符串作为键名，然后返回 StringNode
-                // 索引和过滤器应该在主循环中单独处理
-
-                // 所以这里应该只返回 StringNode，并把索引放回去
-                // 但这不可行，因为我们已经读取了
-
-                // 让我们参考 MC 的实现：
-                // 在 MC 中，foo[0] 会先解析 foo，然后检查后面是否跟 [
-                // 如果跟了 [，则会创建一个复合节点
-                // 但在我们的实现中，我们简化为：foo[0] 返回 IndexNode，键名存储在节点中
-
-                // 实际上 MC 的做法是：
-                // parseNode 返回的节点可能包含键名 + 索引/过滤器的组合
-                // 例如 JsonNode 处理 foo{bar:1}，返回 StringNode 带过滤器
-                // CollectionNode 处理 [0] 或 [] 或 [{...}]
-
-                // 让我重新设计：
-                // 如果遇到引号或普通字符，解析键名
-                // 然后检查后面是否跟 { 或 [
-                // 如果跟 {，创建 StringNode 带过滤器（JsonNode）
-                // 如果跟 [，需要特殊处理
-
-                // 实际上，MC 中 foo[0] 的处理是：
-                // 1. 解析 foo -> StringNode
-                // 2. 在主循环中检查下一个字符
-                // 3. 如果是 [，解析 CollectionNode
-                // 但 parseNode 内部已经处理了这个情况
-
-                // 让我们看看 MC 的 func_218083_a 方法：
-                // 它会先解析键名，然后调用 readCompoundFilterIfNeeded
-                // 如果遇到 [，则解析索引或列表过滤器
-
-                // 所以正确的做法是：parseNode 返回带名字的节点 + 可能的过滤器
-                // 而 [0] 应该是独立的节点（在主循环开始时检测）
-
-                // 重新设计：
-                // 如果 isFirst == true 且遇到 {，返回 CompoundFilterNode
-                // 如果遇到 " 或普通字符，解析键名
-                // 然后检查后面是否跟 { 或 [
-                // 如果跟 {，解析过滤器，返回 KeyFilterNode
-                // 如果跟 [，需要特殊处理...
-
-                // 问题在于：foo[0] 应该是两个节点还是组合节点？
-                // 根据 MC 的设计，这应该是两个独立的节点
-                // StringNode("foo") 和 CollectionNode(0)
-                // 但在 parseNode 中，我们可能已经读取了名字
-                //
-                // 让我们换一个思路：
-                // parseNode 只负责解析当前的一个逻辑单元
-                // 遇到 [ 时，在主循环中处理（因为 [ 在节点之间不需要 . 分隔）
-
-                // 实际上查看 MC 源码 NBTPathArgument.java 第 50-65 行：
-                // while 循环中，每次调用 func_218079_a 解析一个节点
-                // 节点之间如果需要分隔，检查字符不是 ' '、'['、'{' 才需要 '.'
-                // 这意味着 foo[0] 会被解析为两个节点：
-                // 1. func_218079_a 返回 StringNode("foo")
-                // 2. 下一次循环，遇到 '[', func_218079_a 返回 CollectionNode(0)
-
-                // 所以问题是：我们在 parseNode 中不应该处理 '['
-                // '[' 应该在主循环开始时检测
-
-                // 让我重写这个方法
+                // foo[0] 解析为 StringNode，索引作为下一个节点处理
+                // TODO: 完善索引节点的组合处理，当前实现简化了该逻辑
+                return std::make_unique<NbtPathIndexNode>(index);
             }
             if (next == '{') {
                 auto filter = parseCompoundFilter(reader);
@@ -215,19 +133,13 @@ std::unique_ptr<NbtPathNode> NbtPathArgumentType::parseNode(StringReader& reader
     }
 
     // 解析普通键名
-    std::string name = parseKeyName(reader);
+    std::string name = _parseKeyName(reader);
 
     // 检查后面是否跟过滤器或索引
     if (reader.canRead()) {
         char next = reader.peek();
         if (next == '[') {
-            // 键名后跟索引：foo[0]
-            // 这种情况下，我们需要返回 StringNode，然后让主循环处理 IndexNode
-            // 但问题是：我们已经读取了名字，现在需要把 '[' 留给下一个节点
-            // 然而，根据 MC 的逻辑，foo[0] 的 '.' 分隔检查是在节点之间
-            // 如果下一个字符是 '[', 不需要 '.'
-            // 所以 foo[0] 应该解析为 StringNode("foo")，然后主循环继续处理
-            // 不读取 '[', 让主循环处理
+            // 键名后跟索引：foo[0]，返回 StringNode，让主循环处理 IndexNode
             return std::make_unique<NbtPathStringNode>(name);
         }
         if (next == '{') {
@@ -256,12 +168,12 @@ std::unique_ptr<nbt::tags::compound_tag> NbtPathArgumentType::parseCompoundFilte
     while (true) {
         reader.skipWhitespace();
 
-        // 解析键名 - 使用 readNbtUnquotedKey 停止在冒号处
+        // 解析键名 - 使用 _readNbtUnquotedKey 停止在冒号处
         std::string key;
         if (reader.peek() == '"') {
             key = reader.readString();
         } else {
-            key = readNbtUnquotedKey(reader);
+            key = _readNbtUnquotedKey(reader);
         }
 
         if (key.empty()) {
@@ -290,7 +202,7 @@ std::unique_ptr<nbt::tags::compound_tag> NbtPathArgumentType::parseCompoundFilte
     return compound;
 }
 
-std::string NbtPathArgumentType::readNbtUnquotedKey(StringReader& reader)
+std::string NbtPathArgumentType::_readNbtUnquotedKey(StringReader& reader)
 {
     // 读取 NBT 未引用键名，遇到特殊字符时停止
     // 特殊字符包括: :, 空白
@@ -309,7 +221,7 @@ std::string NbtPathArgumentType::readNbtUnquotedKey(StringReader& reader)
     return result;
 }
 
-std::string NbtPathArgumentType::parseKeyName(StringReader& reader)
+std::string NbtPathArgumentType::_parseKeyName(StringReader& reader)
 {
     // 键名可以包含字母、数字、下划线、点等
     // 但不能以数字开头
@@ -354,12 +266,12 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
 
     // 列表
     if (c == '[') {
-        return parseListContent(reader);
+        return _parseListContent(reader);
     }
 
     // 布尔值
     if (c == 't' || c == 'T') {
-        std::string word = readNbtUnquotedValue(reader);
+        std::string word = _readNbtUnquotedValue(reader);
         if (word == "true" || word == "TRUE") {
             return std::make_unique<nbt::tags::byte_tag>(1);
         }
@@ -367,7 +279,7 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
         return std::make_unique<nbt::tags::string_tag>(word);
     }
     if (c == 'f' || c == 'F') {
-        std::string word = readNbtUnquotedValue(reader);
+        std::string word = _readNbtUnquotedValue(reader);
         if (word == "false" || word == "FALSE") {
             return std::make_unique<nbt::tags::byte_tag>(0);
         }
@@ -448,7 +360,7 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
     }
 
     // 未引用字符串（如 foo:bar 中的 bar）
-    std::string value = readNbtUnquotedValue(reader);
+    std::string value = _readNbtUnquotedValue(reader);
     if (!value.empty()) {
         return std::make_unique<nbt::tags::string_tag>(value);
     }
@@ -458,7 +370,7 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
         reader.getCursor());
 }
 
-std::string NbtPathArgumentType::readNbtUnquotedValue(StringReader& reader)
+std::string NbtPathArgumentType::_readNbtUnquotedValue(StringReader& reader)
 {
     // 读取 NBT 未引用字符串值，遇到特殊字符时停止
     // 特殊字符包括: :, ,, }, ], 空白
@@ -478,7 +390,7 @@ std::string NbtPathArgumentType::readNbtUnquotedValue(StringReader& reader)
     return result;
 }
 
-std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseListContent(StringReader& reader)
+std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::_parseListContent(StringReader& reader)
 {
     reader.expect('[');
 

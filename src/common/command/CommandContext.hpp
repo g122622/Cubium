@@ -40,8 +40,6 @@ namespace mc::command {
  * - 命令源
  * - 解析的参数
  * - 执行路径
- *
- * 参考 MC 的 CommandContext 设计
  */
 template <typename S>
 class CommandContext {

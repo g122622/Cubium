@@ -26,9 +26,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <algorithm>
+
 #include <cmath>
-#include <random>
 #include <sstream>
 
 namespace mc {
@@ -47,12 +46,11 @@ bool FloatRange::testAngle(f32 value) const noexcept
     const f32 normalizedValue = math::wrapDegrees(value);
 
     // 获取范围边界并规范化
-    // 参考 MC 1.16.5 MinMaxBoundsWrapped.test() 的角度处理逻辑
     // min 为空时默认 0，max 为空时默认 359（规范后为 -1）
     const f32 min = m_min.has_value() ? math::wrapDegrees(m_min.value()) : 0.0f;
     const f32 max = m_max.has_value() ? math::wrapDegrees(m_max.value()) : -1.0f;
 
-    // 核心角度范围测试逻辑（参考 MC 1.16.5 EntitySelector.createRotationPredicate）
+    // 核心角度范围测试逻辑
     // 如果 min > max，说明范围跨越了 -180/180 边界，需要使用 OR 逻辑
     // 例如 [170..-170] 表示从 170 度到 -170 度（跨越正北方向）
     if (min > max) {
@@ -69,14 +67,14 @@ EntitySelector EntityArgumentType::parse(StringReader& reader)
     const i32 start = reader.getCursor();
 
     if (reader.canRead() && reader.peek() == '@') {
-        return parseSelector(reader, start);
+        return _parseSelector(reader, start);
     }
 
     const std::string name = reader.readString();
     return EntitySelector::byUsername(name);
 }
 
-EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start)
+EntitySelector EntityArgumentType::_parseSelector(StringReader& reader, i32 start)
 {
     reader.skip();
 
@@ -115,14 +113,14 @@ EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start
     }
 
     if (reader.canRead() && reader.peek() == '[') {
-        parseSelectorArguments(reader, selector);
+        _parseSelectorArguments(reader, selector);
     }
 
-    validateSelector(selector, start);
+    _validateSelector(selector, start);
     return selector;
 }
 
-void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySelector& selector)
+void EntityArgumentType::_parseSelectorArguments(StringReader& reader, EntitySelector& selector)
 {
     reader.skip();
 
@@ -132,7 +130,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
             break;
         }
 
-        const std::string paramName = readSelectorArgumentToken(reader);
+        const std::string paramName = _readSelectorArgumentToken(reader);
         reader.skipWhitespace();
         if (!reader.canRead() || reader.peek() != '=') {
             throw CommandException(CommandErrorType::EntitySelectorInvalid,
@@ -146,9 +144,9 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
         const i32 cursor = reader.getCursor();
         const std::string paramValue = reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
             ? reader.readString()
-            : readSelectorArgumentToken(reader);
+            : _readSelectorArgumentToken(reader);
 
-        applySelectorArgument(selector, paramName, paramValue, cursor);
+        _applySelectorArgument(selector, paramName, paramValue, cursor);
         reader.skipWhitespace();
         if (reader.canRead() && reader.peek() == ',') {
             reader.skip();
@@ -163,7 +161,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
     reader.skip();
 }
 
-void EntityArgumentType::applySelectorArgument(
+void EntityArgumentType::_applySelectorArgument(
     EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor)
 {
     // limit / c - 结果数量限制
@@ -183,7 +181,7 @@ void EntityArgumentType::applySelectorArgument(
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Name already set", cursor);
         }
         StringReader valueReader(value);
-        if (shouldInvertValue(valueReader)) {
+        if (_shouldInvertValue(valueReader)) {
             selector.setUsernameNegated(valueReader.getRemaining());
         } else {
             selector.setUsername(value);
@@ -194,7 +192,7 @@ void EntityArgumentType::applySelectorArgument(
     // distance - 距离范围
     if (name == "distance") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
+        FloatRange range = _parseFloatRange(valueReader);
         selector.distance() = range;
         selector.setCurrentWorldOnly(true);
         return;
@@ -203,7 +201,7 @@ void EntityArgumentType::applySelectorArgument(
     // level - 等级范围（仅玩家）
     if (name == "level") {
         StringReader valueReader(value);
-        IntRange range = parseIntRange(valueReader);
+        IntRange range = _parseIntRange(valueReader);
         selector.level() = range;
         selector.setIncludesNonPlayers(false);
         return;
@@ -265,7 +263,7 @@ void EntityArgumentType::applySelectorArgument(
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Type already set", cursor);
         }
         StringReader valueReader(value);
-        bool negated = shouldInvertValue(valueReader);
+        bool negated = _shouldInvertValue(valueReader);
         std::string typeStr = valueReader.getRemaining();
 
         // 如果是 minecraft:player 且未取反，则限制为仅玩家
@@ -279,7 +277,7 @@ void EntityArgumentType::applySelectorArgument(
     // tag - 实体标签（支持取反，可多次使用）
     if (name == "tag") {
         StringReader valueReader(value);
-        bool negated = shouldInvertValue(valueReader);
+        bool negated = _shouldInvertValue(valueReader);
         selector.addTag(valueReader.getRemaining(), negated);
         return;
     }
@@ -290,7 +288,7 @@ void EntityArgumentType::applySelectorArgument(
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Gamemode already set", cursor);
         }
         StringReader valueReader(value);
-        bool negated = shouldInvertValue(valueReader);
+        bool negated = _shouldInvertValue(valueReader);
         selector.setGameMode(valueReader.getRemaining(), negated);
         selector.setIncludesNonPlayers(false);
         return;
@@ -302,7 +300,7 @@ void EntityArgumentType::applySelectorArgument(
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Team already set", cursor);
         }
         StringReader valueReader(value);
-        bool negated = shouldInvertValue(valueReader);
+        bool negated = _shouldInvertValue(valueReader);
         selector.setTeam(valueReader.getRemaining(), negated);
         return;
     }
@@ -310,7 +308,7 @@ void EntityArgumentType::applySelectorArgument(
     // x_rotation - 俯仰角范围（pitch，-90 到 90 度）
     if (name == "x_rotation") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
+        FloatRange range = _parseFloatRange(valueReader);
         selector.xRotation() = range;
         return;
     }
@@ -318,17 +316,16 @@ void EntityArgumentType::applySelectorArgument(
     // y_rotation - 偏航角范围（yaw，-180 到 180 度）
     if (name == "y_rotation") {
         StringReader valueReader(value);
-        FloatRange range = parseFloatRange(valueReader);
+        FloatRange range = _parseFloatRange(valueReader);
         selector.yRotation() = range;
         return;
     }
 
     // nbt - NBT 数据（支持取反）
     // 格式: nbt={...} 或 nbt=!{...}
-    // 参考 MC 1.16.5 EntityOptions.register("nbt", ...)
     if (name == "nbt") {
         StringReader valueReader(value);
-        const bool negated = shouldInvertValue(valueReader);
+        const bool negated = _shouldInvertValue(valueReader);
         valueReader.skipWhitespace();
 
         // 解析 NBT 标签（Mojangson 格式）
@@ -354,7 +351,6 @@ void EntityArgumentType::applySelectorArgument(
 
     // scores - 记分板分数
     // 格式: scores={objective1=1..5,objective2=10..}
-    // 参考 MC 1.16.5 EntityOptions.register("scores", ...)
     if (name == "scores") {
         StringReader valueReader(value);
         valueReader.skipWhitespace();
@@ -369,7 +365,7 @@ void EntityArgumentType::applySelectorArgument(
             valueReader.skipWhitespace();
 
             // 读取目标名称（遇到 = 时停止）
-            const std::string objectiveName = readScoresKey(valueReader);
+            const std::string objectiveName = _readScoresKey(valueReader);
             if (objectiveName.empty()) {
                 throw CommandException(CommandErrorType::EntitySelectorInvalid, "Expected objective name", cursor);
             }
@@ -383,7 +379,7 @@ void EntityArgumentType::applySelectorArgument(
             valueReader.skipWhitespace();
 
             // 读取分数范围
-            IntRange range = parseIntRange(valueReader);
+            IntRange range = _parseIntRange(valueReader);
             selector.addScoreCondition(objectiveName, range);
 
             valueReader.skipWhitespace();
@@ -404,7 +400,6 @@ void EntityArgumentType::applySelectorArgument(
 
     // advancements - 进度
     // 格式: advancements={adv_id=true} 或 advancements={adv_id={criteria1=true,criteria2=false}}
-    // 参考 MC 1.16.5 EntityOptions.register("advancements", ...)
     if (name == "advancements") {
         StringReader valueReader(value);
         valueReader.skipWhitespace();
@@ -421,7 +416,7 @@ void EntityArgumentType::applySelectorArgument(
             // 读取进度 ID (ResourceLocation)
             // ResourceLocation 格式: namespace:path 或 path（默认 minecraft 命名空间）
             // 遇到 = 时停止
-            const std::string advancementIdStr = readAdvancementKey(valueReader);
+            const std::string advancementIdStr = _readAdvancementKey(valueReader);
             ResourceLocation advancementId = ResourceLocation::parse(advancementIdStr);
 
             valueReader.skipWhitespace();
@@ -444,7 +439,7 @@ void EntityArgumentType::applySelectorArgument(
                     valueReader.skipWhitespace();
 
                     // 读取准则名称（遇到 = 时停止）
-                    const std::string criteriaName = readCriteriaKey(valueReader);
+                    const std::string criteriaName = _readCriteriaKey(valueReader);
                     if (criteriaName.empty()) {
                         throw CommandException(
                             CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
@@ -460,7 +455,7 @@ void EntityArgumentType::applySelectorArgument(
 
                     // 读取布尔值（读取直到遇到 , 或 } 为止）
                     if (valueReader.canRead()) {
-                        std::string boolValue = readCriteriaKey(valueReader);
+                        std::string boolValue = _readCriteriaKey(valueReader);
                         if (boolValue == "true" || boolValue == "TRUE" || boolValue == "True") {
                             condition.criteriaConditions[criteriaName] = true;
                         } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
@@ -487,7 +482,7 @@ void EntityArgumentType::applySelectorArgument(
                 // 布尔值格式：true/false
                 // 读取直到遇到 , 或 } 为止
                 if (valueReader.canRead()) {
-                    std::string boolValue = readCriteriaKey(valueReader); // 复用：读取直到 = 或 , 或 }
+                    std::string boolValue = _readCriteriaKey(valueReader); // 复用：读取直到 = 或 , 或 }
                     if (boolValue == "true" || boolValue == "TRUE" || boolValue == "True") {
                         condition.isComplete = true;
                     } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
@@ -520,10 +515,9 @@ void EntityArgumentType::applySelectorArgument(
 
     // predicate - 战利品表谓词
     // 格式: predicate=namespace:predicate_name 或 predicate=!namespace:predicate_name
-    // 参考 MC 1.16.5 EntityOptions.register("predicate", ...)
     if (name == "predicate") {
         StringReader valueReader(value);
-        const bool negated = shouldInvertValue(valueReader);
+        const bool negated = _shouldInvertValue(valueReader);
         valueReader.skipWhitespace();
 
         std::string predicateStr = valueReader.readUnquotedString();
@@ -539,7 +533,7 @@ void EntityArgumentType::applySelectorArgument(
     throw CommandException(CommandErrorType::EntitySelectorInvalid, "Unknown selector argument: " + name, cursor);
 }
 
-void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 start)
+void EntityArgumentType::_validateSelector(const EntitySelector& selector, i32 start)
 {
     if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
         throw CommandException(CommandErrorType::EntitySelectorNotAllowed, "Only players can be selected here", start);
@@ -553,7 +547,7 @@ void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 st
     }
 }
 
-std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
+std::string EntityArgumentType::_readSelectorArgumentToken(StringReader& reader)
 {
     const i32 start = reader.getCursor();
 
@@ -591,7 +585,7 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::readScoresKey(StringReader& reader)
+std::string EntityArgumentType::_readScoresKey(StringReader& reader)
 {
     // 读取 scores 的目标名称，遇到 = 时停止
     // 目标名称格式：简单字符串（不含空格、等号、逗号、大括号）
@@ -609,7 +603,7 @@ std::string EntityArgumentType::readScoresKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::readAdvancementKey(StringReader& reader)
+std::string EntityArgumentType::_readAdvancementKey(StringReader& reader)
 {
     // 读取进度 ID (ResourceLocation)，遇到 = 时停止
     // ResourceLocation 格式：namespace:path 或 path（允许冒号）
@@ -627,7 +621,7 @@ std::string EntityArgumentType::readAdvancementKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::readCriteriaKey(StringReader& reader)
+std::string EntityArgumentType::_readCriteriaKey(StringReader& reader)
 {
     // 读取进度准则名称，遇到 = 时停止
     // 准则名称格式：简单字符串（允许冒号用于命名空间）
@@ -645,7 +639,7 @@ std::string EntityArgumentType::readCriteriaKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-bool EntityArgumentType::shouldInvertValue(StringReader& reader)
+bool EntityArgumentType::_shouldInvertValue(StringReader& reader)
 {
     if (reader.canRead() && reader.peek() == '!') {
         reader.skip();
@@ -654,7 +648,7 @@ bool EntityArgumentType::shouldInvertValue(StringReader& reader)
     return false;
 }
 
-FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
+FloatRange EntityArgumentType::_parseFloatRange(StringReader& reader)
 {
     FloatRange range;
 
@@ -740,7 +734,7 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader)
     return range;
 }
 
-IntRange EntityArgumentType::parseIntRange(StringReader& reader)
+IntRange EntityArgumentType::_parseIntRange(StringReader& reader)
 {
     IntRange range;
 

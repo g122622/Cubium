@@ -120,7 +120,7 @@ public:
             return static_cast<const State&>(*this);
         }
 
-        const PropertyLayout& layout = m_propertyLayouts[slotIndex];
+        const PropertyLayout& layout = propertyLayouts()[slotIndex];
         if (layout.property != &prop) {
             throw std::invalid_argument("Cannot set property " + prop.name() + " to " + prop.valueToString(value) +
                 " on " + ownerName() + ", it is not an allowed value");
@@ -166,9 +166,10 @@ public:
     [[nodiscard]] std::vector<PropertyEntry> values() const
     {
         std::vector<PropertyEntry> result;
-        result.reserve(m_propertyLayouts.size());
-        for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
-            result.push_back(PropertyEntry{m_propertyLayouts[i].property, m_valueIndices[i]});
+        const auto& layouts = propertyLayouts();
+        result.reserve(layouts.size());
+        for (size_t i = 0; i < layouts.size(); ++i) {
+            result.push_back(PropertyEntry{layouts[i].property, m_valueIndices[i]});
         }
         return result;
     }
@@ -194,11 +195,12 @@ public:
     {
         std::ostringstream ss;
         ss << ownerName();
-        if (!m_propertyLayouts.empty()) {
+        const auto& layouts = propertyLayouts();
+        if (!layouts.empty()) {
             ss << '[';
             bool first = true;
-            for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
-                const IProperty* prop = m_propertyLayouts[i].property;
+            for (size_t i = 0; i < layouts.size(); ++i) {
+                const IProperty* prop = layouts[i].property;
                 const size_t valueIndex = m_valueIndices[i];
                 if (!first) ss << ',';
                 ss << prop->name() << '=' << prop->valueToString(valueIndex);
@@ -224,7 +226,7 @@ protected:
         u32 stateId)
         : m_owner(owner)
         , m_valueIndices(std::move(valueIndices))
-        , m_propertyLayouts(propertyLayouts ? *propertyLayouts : std::vector<PropertyLayout>{})
+        , m_propertyLayouts(propertyLayouts != nullptr ? propertyLayouts : &emptyPropertyLayouts())
         , m_allStates(allStates)
         , m_stateIndex(stateId)
         , m_stateId(stateId)
@@ -240,19 +242,28 @@ protected:
      */
     [[nodiscard]] virtual std::string ownerName() const { return "Unknown"; }
 
+    [[nodiscard]] const std::vector<PropertyLayout>& propertyLayouts() const { return *m_propertyLayouts; }
+
     [[nodiscard]] size_t findPropertySlot(const IProperty& prop) const
     {
-        for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
-            if (m_propertyLayouts[i].property == &prop) {
+        const auto& layouts = propertyLayouts();
+        for (size_t i = 0; i < layouts.size(); ++i) {
+            if (layouts[i].property == &prop) {
                 return i;
             }
         }
         return kInvalidIndex;
     }
 
+    [[nodiscard]] static const std::vector<PropertyLayout>& emptyPropertyLayouts()
+    {
+        static const std::vector<PropertyLayout> layouts;
+        return layouts;
+    }
+
     const Owner* m_owner;
     std::vector<size_t> m_valueIndices;
-    std::vector<PropertyLayout> m_propertyLayouts;
+    const std::vector<PropertyLayout>* m_propertyLayouts = nullptr;
     const std::vector<State*>* m_allStates = nullptr;
     u32 m_stateIndex = 0;
     u32 m_stateId;

@@ -80,7 +80,7 @@ Result<std::shared_ptr<ICriterionInstance>> TameAnimalTrigger::fromJson(const nl
 
 void TameAnimalTrigger::trigger(ServerPlayer& player, const Entity& entity)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式之一触发检测：
     //
     // 方法1：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
@@ -186,7 +186,7 @@ Result<std::shared_ptr<ICriterionInstance>> BredAnimalsTrigger::fromJson(const n
 
 void BredAnimalsTrigger::trigger(ServerPlayer& player, const Entity& child, const Entity& parent, const Entity& partner)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式触发检测：
     //
     // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
@@ -256,7 +256,7 @@ Result<std::shared_ptr<ICriterionInstance>> SummonedEntityTrigger::fromJson(cons
 
 void SummonedEntityTrigger::trigger(ServerPlayer& player, const Entity& entity)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式触发检测：
     //
     // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
@@ -345,7 +345,7 @@ Result<std::shared_ptr<ICriterionInstance>> CuredZombieVillagerTrigger::fromJson
 
 void CuredZombieVillagerTrigger::trigger(ServerPlayer& player, const Entity& zombie, const Entity& villager)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式触发检测：
     //
     // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
@@ -435,7 +435,7 @@ Result<std::shared_ptr<ICriterionInstance>> VillagerTradeTrigger::fromJson(const
 
 void VillagerTradeTrigger::trigger(ServerPlayer& player, const Entity& villager, const ItemStack& item)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式触发检测：
     //
     // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
@@ -526,7 +526,7 @@ Result<std::shared_ptr<ICriterionInstance>> PlayerInteractedWithEntityTrigger::f
 
 void PlayerInteractedWithEntityTrigger::trigger(ServerPlayer& player, const ItemStack& item, const Entity& entity)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
     // 服务端代码应使用以下方式触发检测：
     //
     // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法

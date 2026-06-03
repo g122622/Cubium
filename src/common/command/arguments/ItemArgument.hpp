@@ -47,8 +47,8 @@ namespace command {
  */
 class ItemInput {
 public:
-    ItemInput() = default;
-    explicit ItemInput(ItemId itemId)
+    ItemInput() noexcept = default;
+    explicit ItemInput(ItemId itemId) noexcept
         : m_itemId(itemId)
     {}
 
@@ -83,8 +83,6 @@ private:
  * - minecraft:stone
  * - stone
  * - minecraft:diamond_sword
- *
- * 参考 MC 的 ItemArgument 类
  */
 class ItemArgumentType : public ArgumentType<ItemInput> {
 public:
@@ -120,16 +118,16 @@ public:
         return ItemInput(item->itemId());
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "item"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "item"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override
+    [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {
         return {"minecraft:stone", "stone", "minecraft:diamond_sword", "diamond_sword"};
     }
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ItemArgumentType> item() { return std::make_shared<ItemArgumentType>(); }
+    static std::shared_ptr<ItemArgumentType> item() noexcept { return std::make_shared<ItemArgumentType>(); }
 
     // ========== 静态获取方法 ==========
 
@@ -149,18 +147,18 @@ class ItemPredicateArgumentType : public ArgumentType<ItemInput> {
 public:
     [[nodiscard]] ItemInput parse(StringReader& reader) override
     {
-        // 与 ItemArgumentType 相同，但允许通配符等
+        // TODO: 目前与 ItemArgumentType 相同，后续需要支持通配符和物品标签
         return ItemArgumentType().parse(reader);
     }
 
-    [[nodiscard]] std::string getTypeName() const override { return "item_predicate"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "item_predicate"; }
 
-    [[nodiscard]] std::vector<std::string> getExamples() const override
+    [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {
         return {"minecraft:stone", "stone", "#minecraft:logs"};
     }
 
-    static std::shared_ptr<ItemPredicateArgumentType> itemPredicate()
+    static std::shared_ptr<ItemPredicateArgumentType> itemPredicate() noexcept
     {
         return std::make_shared<ItemPredicateArgumentType>();
     }

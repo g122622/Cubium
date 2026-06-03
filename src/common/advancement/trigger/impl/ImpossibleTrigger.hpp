@@ -36,8 +36,6 @@ class ImpossibleTriggerInstance;
  *
  * 用于创建无法自动完成的成就条件。
  * 通常用于配方解锁成就（需要手动授予）或调试目的。
- *
- * 参考 MC 1.16.5: net.minecraft.advancements.criterion.ImpossibleTrigger
  */
 class ImpossibleTrigger : public AbstractCriterionTrigger<ImpossibleTriggerInstance> {
 public:

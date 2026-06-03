@@ -2,7 +2,7 @@
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
+ * of this software and associated documentation files (the “Software”), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/math/Vector3.hpp"
-#include "../../../../world/block/BlockPos.hpp"
+#include “common/util/math/Vector3.hpp”
+#include “common/world/block/BlockPos.hpp”
 
 #include <memory>
 
@@ -38,9 +38,9 @@ namespace brain {
 namespace memory {
 
 /**
- * @brief Brain 位置目标抽象
+ * @brief Brain 位置目标抽象接口
  *
- * 对齐 MC 1.16.5 IPosWrapper，用于在记忆中统一保存“看向/走向”的目标。
+ * 用于在记忆中统一保存”看向/走向”的目标位置。
  */
 class IPositionTarget {
 public:

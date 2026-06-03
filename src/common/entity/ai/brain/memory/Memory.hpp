@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <limits>
 #include <optional>
 
@@ -37,8 +37,6 @@ namespace memory {
  * @brief 内存模块 - 存储带TTL的记忆
  *
  * @tparam T 记忆的数据类型
- *
- * 参考 MC 1.16.5 Memory
  */
 template <typename T>
 class Memory {
@@ -66,17 +64,17 @@ public:
     /**
      * @brief 获取记忆值
      */
-    [[nodiscard]] const T& getValue() const { return m_value; }
+    [[nodiscard]] const T& getValue() const noexcept { return m_value; }
 
     /**
      * @brief 获取可变记忆值
      */
-    T& getValue() { return m_value; }
+    T& getValue() noexcept { return m_value; }
 
     /**
      * @brief 每tick调用，减少TTL
      */
-    void tick()
+    void tick() noexcept
     {
         if (hasTTL()) {
             m_ttl--;
@@ -86,17 +84,17 @@ public:
     /**
      * @brief 检查记忆是否已过期
      */
-    [[nodiscard]] bool isExpired() const { return m_ttl <= 0; }
+    [[nodiscard]] bool isExpired() const noexcept { return m_ttl <= 0; }
 
     /**
      * @brief 检查是否有TTL限制
      */
-    [[nodiscard]] bool hasTTL() const { return m_ttl != std::numeric_limits<i64>::max(); }
+    [[nodiscard]] bool hasTTL() const noexcept { return m_ttl != std::numeric_limits<i64>::max(); }
 
     /**
      * @brief 获取剩余TTL
      */
-    [[nodiscard]] i64 getTTL() const { return m_ttl; }
+    [[nodiscard]] i64 getTTL() const noexcept { return m_ttl; }
 
 private:
     T m_value;

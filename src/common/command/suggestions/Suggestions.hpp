@@ -43,16 +43,22 @@ class CommandContext;
  */
 class Suggestion {
 public:
-    Suggestion(i32 start, std::string text)
+    Suggestion(i32 start, std::string text) noexcept
         : m_start(start)
         , m_text(std::move(text))
     {}
 
-    Suggestion(i32 start, std::string text, std::string tooltip)
+    Suggestion(i32 start, std::string text, std::string tooltip) noexcept
         : m_start(start)
         , m_text(std::move(text))
         , m_tooltip(std::move(tooltip))
     {}
+
+    Suggestion(const Suggestion&) = default;
+    Suggestion(Suggestion&&) noexcept = default;
+    Suggestion& operator=(const Suggestion&) = default;
+    Suggestion& operator=(Suggestion&&) noexcept = default;
+    ~Suggestion() = default;
 
     [[nodiscard]] i32 getStart() const noexcept { return m_start; }
     [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
@@ -95,8 +101,14 @@ public:
     explicit Suggestions(std::vector<Suggestion> suggestions)
         : m_suggestions(std::move(suggestions))
     {
-        sort();
+        _sort();
     }
+
+    Suggestions(const Suggestions&) = default;
+    Suggestions(Suggestions&&) noexcept = default;
+    Suggestions& operator=(const Suggestions&) = default;
+    Suggestions& operator=(Suggestions&&) noexcept = default;
+    ~Suggestions() = default;
 
     [[nodiscard]] bool isEmpty() const noexcept { return m_suggestions.empty(); }
     [[nodiscard]] size_t size() const noexcept { return m_suggestions.size(); }
@@ -118,7 +130,7 @@ public:
     static Suggestions empty() { return Suggestions(); }
 
 private:
-    void sort() { std::sort(m_suggestions.begin(), m_suggestions.end()); }
+    void _sort() { std::sort(m_suggestions.begin(), m_suggestions.end()); }
 
     std::vector<Suggestion> m_suggestions;
 };
@@ -180,7 +192,7 @@ public:
     SuggestionsBuilder& suggestAll(const Container& candidates)
     {
         for (const auto& candidate : candidates) {
-            if (startsWith(candidate, m_remaining)) {
+            if (_startsWith(candidate, m_remaining)) {
                 suggest(std::string(candidate));
             }
         }
@@ -215,7 +227,7 @@ public:
     }
 
 private:
-    static bool startsWith(std::string_view str, std::string_view prefix)
+    static bool _startsWith(std::string_view str, std::string_view prefix)
     {
         if (prefix.length() > str.length()) return false;
         for (size_t i = 0; i < prefix.length(); ++i) {

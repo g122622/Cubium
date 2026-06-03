@@ -58,7 +58,7 @@ void BlockState::cacheProperties()
     m_isLiquid = m_owner->material().isLiquid();
     m_isFlammable = m_owner->material().isFlammable();
     m_lightLevel = m_owner->lightLevel();
-    // 与 Java 版对齐：通过虚函数计算缓存值，确保子类重写生效。
+    // 通过虚函数计算缓存值，确保子类重写生效。
     m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
     m_propagatesSkylightDown = m_owner->propagatesSkylightDown(*this, nullptr, nullptr);
     m_useShapeForLightOcclusion = m_owner->useShapeForLightOcclusion(*this);
@@ -152,9 +152,10 @@ std::string BlockState::toModelKey() const
     // 按属性名排序，确保模型键稳定且与资源系统缓存键一致
     // 直接拼接字符串，避免 ostringstream 的格式化和分配开销。
     std::vector<std::pair<const IProperty*, size_t>> sortedValues;
-    sortedValues.reserve(m_propertyLayouts.size());
-    for (size_t i = 0; i < m_propertyLayouts.size(); ++i) {
-        sortedValues.emplace_back(m_propertyLayouts[i].property, m_valueIndices[i]);
+    const auto& layouts = propertyLayouts();
+    sortedValues.reserve(layouts.size());
+    for (size_t i = 0; i < layouts.size(); ++i) {
+        sortedValues.emplace_back(layouts[i].property, m_valueIndices[i]);
     }
 
     std::sort(sortedValues.begin(), sortedValues.end(), [](const auto& a, const auto& b) {

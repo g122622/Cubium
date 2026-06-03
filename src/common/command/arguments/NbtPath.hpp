@@ -355,7 +355,7 @@ private:
     /**
      * @brief 检查复合标签是否匹配过滤器
      */
-    [[nodiscard]] bool matches(const nbt::tags::compound_tag& tag) const;
+    [[nodiscard]] bool _matches(const nbt::tags::compound_tag& tag) const;
 
     std::unique_ptr<nbt::tags::compound_tag> m_filter;
 };
@@ -383,7 +383,7 @@ private:
     /**
      * @brief 检查复合标签是否匹配过滤器
      */
-    [[nodiscard]] bool matches(const nbt::tags::compound_tag& tag) const;
+    [[nodiscard]] bool _matches(const nbt::tags::compound_tag& tag) const;
 
     std::unique_ptr<nbt::tags::compound_tag> m_filter;
 };

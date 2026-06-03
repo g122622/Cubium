@@ -178,7 +178,7 @@ private:
     /**
      * @brief 执行命令节点
      */
-    i32 executeCommand(const CommandContext<S>& context, NodePtr node, StringReader& reader);
+    i32 _executeCommand(const CommandContext<S>& context, NodePtr node, StringReader& reader);
 
     RootNodePtr m_root;
 };

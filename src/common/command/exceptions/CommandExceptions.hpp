@@ -83,7 +83,6 @@ enum class CommandErrorType {
  * @brief 命令语法异常
  *
  * 用于命令解析和执行过程中的错误报告
- * 参考 MC 的 CommandSyntaxException 设计
  */
 class CommandException : public std::runtime_error {
 public:
@@ -100,6 +99,50 @@ public:
         , m_message(message)
         , m_cursor(cursor)
     {}
+
+    // 拷贝构造函数
+    CommandException(const CommandException& other)
+        : std::runtime_error(other)
+        , m_type(other.m_type)
+        , m_message(other.m_message)
+        , m_cursor(other.m_cursor)
+        , m_input(other.m_input)
+    {}
+
+    // 移动构造函数
+    CommandException(CommandException&& other) noexcept
+        : std::runtime_error(std::move(other))
+        , m_type(other.m_type)
+        , m_message(std::move(other.m_message))
+        , m_cursor(other.m_cursor)
+        , m_input(std::move(other.m_input))
+    {}
+
+    // 拷贝赋值运算符
+    CommandException& operator=(const CommandException& other)
+    {
+        if (this != &other) {
+            std::runtime_error::operator=(other);
+            m_type = other.m_type;
+            m_message = other.m_message;
+            m_cursor = other.m_cursor;
+            m_input = other.m_input;
+        }
+        return *this;
+    }
+
+    // 移动赋值运算符
+    CommandException& operator=(CommandException&& other) noexcept
+    {
+        if (this != &other) {
+            std::runtime_error::operator=(std::move(other));
+            m_type = other.m_type;
+            m_message = std::move(other.m_message);
+            m_cursor = other.m_cursor;
+            m_input = std::move(other.m_input);
+        }
+        return *this;
+    }
 
     [[nodiscard]] CommandErrorType type() const noexcept { return m_type; }
     [[nodiscard]] const std::string& message() const noexcept { return m_message; }
@@ -142,6 +185,22 @@ public:
         , m_message(message)
     {}
 
+    // 移动构造函数
+    SimpleCommandException(SimpleCommandException&& other) noexcept
+        : m_type(other.m_type)
+        , m_message(std::move(other.m_message))
+    {}
+
+    // 移动赋值运算符
+    SimpleCommandException& operator=(SimpleCommandException&& other) noexcept
+    {
+        if (this != &other) {
+            m_type = other.m_type;
+            m_message = std::move(other.m_message);
+        }
+        return *this;
+    }
+
     [[nodiscard]] CommandException create() const { return CommandException(m_type, m_message); }
 
     [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const
@@ -169,21 +228,37 @@ public:
         , m_format(format)
     {}
 
+    // 移动构造函数
+    DynamicCommandException(DynamicCommandException&& other) noexcept
+        : m_type(other.m_type)
+        , m_format(std::move(other.m_format))
+    {}
+
+    // 移动赋值运算符
+    DynamicCommandException& operator=(DynamicCommandException&& other) noexcept
+    {
+        if (this != &other) {
+            m_type = other.m_type;
+            m_format = std::move(other.m_format);
+        }
+        return *this;
+    }
+
     [[nodiscard]] CommandException create(Args... args) const
     {
-        return CommandException(m_type, formatMessage(args...));
+        return CommandException(m_type, _formatMessage(args...));
     }
 
 private:
-    std::string formatMessage(Args... args) const
+    std::string _formatMessage(Args... args) const
     {
         std::string result = m_format;
         // 简单实现：支持 {} 占位符
-        ((replaceFirst(result, "{}", std::to_string(args))), ...);
+        ((_replaceFirst(result, "{}", std::to_string(args))), ...);
         return result;
     }
 
-    static void replaceFirst(std::string& str, const std::string& from, const std::string& to)
+    static void _replaceFirst(std::string& str, const std::string& from, const std::string& to)
     {
         size_t pos = str.find(from);
         if (pos != std::string::npos) {
