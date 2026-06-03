@@ -23,6 +23,7 @@
 
 import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 import { forEachFile } from "./utils/forEachFile";
+import { TaskPool } from "./utils/taskPool";
 import { Level } from "level";
 import { stopHook } from "./hooks/stop";
 import { cmakeGuardHook } from "./hooks/cmakeGuard";
@@ -136,31 +137,58 @@ import { cmakeGuardHook } from "./hooks/cmakeGuard";
     async function main() {
         const outerLoops = 1;
         const innerLoops = 1;
+        const concurrency = 5; // 并行度
 
         for (let i = 0; i < outerLoops; i++) {
             console.log(
                 `\n========== 外层循环第 ${i + 1} / ${outerLoops} 次 ==========\n`,
             );
+
+            // 过滤出未完成的任务
+            const pendingTasks: { task: string; index: number }[] = [];
             for (let j = 0; j < tasklist.length; j++) {
-                // 检查 LevelDB：如果该任务已完成则跳过
                 if (await isTaskDone(tasklist[j])) {
                     console.log(`⏭️ [循环 ${i + 1} | 任务 ${j + 1}] 已完成，跳过: ${tasklist[j]}`);
-                    continue;
-                }
-
-                for (let k = 0; k < innerLoops; k++) {
-                    await runTask(tasklist[j], i, j, false);
-                }
-
-                // 任务执行完毕，标记为已完成
-                await markTaskDone(tasklist[j]);
-                console.log(`✅ [循环 ${i + 1} | 任务 ${j + 1}] 已标记完成: ${tasklist[j]}`);
-
-                if ((j % 30 === 0 && j !== 0) || j === tasklist.length - 1) {
-                    console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
-                    await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, j, false);
+                } else {
+                    pendingTasks.push({ task: tasklist[j], index: j });
                 }
             }
+
+            console.log(`📋 待执行任务数: ${pendingTasks.length} / ${tasklist.length}`);
+
+            // 使用 TaskPool 并行执行任务
+            const pool = new TaskPool(concurrency);
+            let completedCount = 0;
+
+            const taskFunctions = pendingTasks.map(({ task, index }) => async () => {
+                for (let k = 0; k < innerLoops; k++) {
+                    await runTask(task, i, index, false);
+                }
+                return { task, index };
+            });
+
+            await pool.runAll(taskFunctions, async (result) => {
+                if (result.success) {
+                    const { task, index } = result.value!;
+                    await markTaskDone(task);
+                    completedCount++;
+                    console.log(
+                        `✅ [循环 ${i + 1} | 任务 ${index + 1}] 已标记完成 (${completedCount}/${pendingTasks.length}): ${task}`
+                    );
+
+                    // 每30个任务后执行编译检查
+                    if (completedCount % 30 === 0 && completedCount < pendingTasks.length) {
+                        console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
+                        await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, index, false);
+                    }
+                } else {
+                    console.error(
+                        `❌ [循环 ${i + 1} | 任务 ${result.index + 1}] 执行失败:`,
+                        result.error
+                    );
+                }
+            });
+
             console.log(`\n========== 第 ${i + 1} 次循环结束 ==========\n`);
         }
 
