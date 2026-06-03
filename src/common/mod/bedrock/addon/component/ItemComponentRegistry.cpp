@@ -1,6 +1,28 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
-#include <spdlog/spdlog.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 
@@ -13,16 +35,15 @@ ItemComponentRegistry& ItemComponentRegistry::instance()
 void ItemComponentRegistry::registerComponent(const std::string& itemTypeId, ItemCustomComponent component)
 {
     if (component.name.find(':') == std::string::npos) {
-        spdlog::warn("ItemComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式",
-                      component.name);
+        spdlog::warn(
+            "ItemComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式", component.name);
     }
 
     std::unique_lock lock(m_mutex);
     m_components[itemTypeId].push_back(std::move(component));
-    updateCallbackFlags(itemTypeId);
+    _updateCallbackFlags(itemTypeId);
 
-    spdlog::info("ItemComponentRegistry: 已注册物品组件'{}'到'{}'",
-                 m_components[itemTypeId].back().name, itemTypeId);
+    spdlog::info("ItemComponentRegistry: 已注册物品组件'{}'到'{}'", m_components[itemTypeId].back().name, itemTypeId);
 }
 
 size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId, const std::string& componentName)
@@ -36,9 +57,9 @@ size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId,
 
     auto& components = it->second;
     auto originalSize = components.size();
-    components.erase(
-        std::remove_if(components.begin(), components.end(),
-            [&componentName](const ItemCustomComponent& c) { return c.name == componentName; }),
+    components.erase(std::remove_if(components.begin(),
+                         components.end(),
+                         [&componentName](const ItemCustomComponent& c) { return c.name == componentName; }),
         components.end());
 
     auto removed = originalSize - components.size();
@@ -46,7 +67,7 @@ size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId,
         m_components.erase(it);
         m_callbackFlags.erase(itemTypeId);
     } else {
-        updateCallbackFlags(itemTypeId);
+        _updateCallbackFlags(itemTypeId);
     }
 
     return removed;
@@ -184,7 +205,8 @@ bool ItemComponentRegistry::dispatchMineBlock(const std::string& itemTypeId, Ite
     return dispatched;
 }
 
-bool ItemComponentRegistry::dispatchBeforeDurabilityDamage(const std::string& itemTypeId, ItemComponentBeforeDurabilityDamageEvent& event)
+bool ItemComponentRegistry::dispatchBeforeDurabilityDamage(
+    const std::string& itemTypeId, ItemComponentBeforeDurabilityDamageEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(itemTypeId);
@@ -238,27 +260,27 @@ bool ItemComponentRegistry::dispatchConsume(const std::string& itemTypeId, ItemC
     return dispatched;
 }
 
-void ItemComponentRegistry::clear()
+void ItemComponentRegistry::clear() noexcept
 {
     std::unique_lock lock(m_mutex);
     m_components.clear();
     m_callbackFlags.clear();
 }
 
-size_t ItemComponentRegistry::registeredItemTypeCount() const
+size_t ItemComponentRegistry::registeredItemTypeCount() const noexcept
 {
     std::shared_lock lock(m_mutex);
     return m_components.size();
 }
 
-size_t ItemComponentRegistry::componentCount(const std::string& itemTypeId) const
+size_t ItemComponentRegistry::componentCount(const std::string& itemTypeId) const noexcept
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(itemTypeId);
     return it != m_components.end() ? it->second.size() : 0;
 }
 
-void ItemComponentRegistry::updateCallbackFlags(const std::string& itemTypeId)
+void ItemComponentRegistry::_updateCallbackFlags(const std::string& itemTypeId)
 {
     auto it = m_components.find(itemTypeId);
     if (it == m_components.end()) {

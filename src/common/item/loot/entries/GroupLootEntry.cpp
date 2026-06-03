@@ -32,7 +32,7 @@ namespace loot {
 // GroupLootEntry
 // ============================================================================
 
-GroupLootEntry::GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children)
+GroupLootEntry::GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children) noexcept
     : m_children(std::move(children))
 {}
 

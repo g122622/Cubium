@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -33,8 +33,6 @@ namespace loot {
  * @brief 熔炼函数
  *
  * 如果物品可以被熔炼，则返回熔炼后的物品。
- * 参考: net.minecraft.loot.functions.FurnaceSmelt
- *
  * 用于检测掉落是否可以被熔炼，如果可以则返回熔炼产物。
  */
 class FurnaceSmeltFunction : public LootFunction {

@@ -44,3 +44,31 @@ clang-format -i src\common\xxx\Foo.hpp
 注意：你被要求审查的文件可能没有上述这些问题，这种情况下你直接放行即可，你不一定必须修改代码。
 
 你只允许修改指定的文件，如果你的修改超出了指定文件的范围（比如修了指定文件的代码，但是这个修改同时影响了其他文件（待修改代码对应的测试文件不算）），此时你必须放弃修改、直接放行，并在相应代码处添加TODO注释，说明这个地方可能需要提升，但由于修改会影响其他文件，所以暂时不修改。
+
+参考：版权头：
+
+```cpp
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+```

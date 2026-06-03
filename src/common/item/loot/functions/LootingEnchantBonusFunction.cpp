@@ -46,8 +46,7 @@ ItemStack LootingEnchantBonusFunction::apply(ItemStack stack, LootContext& conte
         return stack;
     }
 
-    // MC 1.16.5: float f = (float)lootingLevel * count.generateFloat(random);
-    // stack.grow(Math.round(f));
+    // 计算掠夺附魔加成
     f32 bonus = static_cast<f32>(lootingLevel) * m_count.generateFloat(context.getRandom());
     stack.grow(math::roundTo<i32>(bonus));
 

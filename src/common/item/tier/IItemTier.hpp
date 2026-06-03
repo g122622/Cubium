@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace crafting {
@@ -51,8 +51,6 @@ namespace tier {
  *   - 4: 下界合金 - 可采集远古残骸
  * - getEnchantability(): 附魔能力，影响附魔品质
  * - getRepairMaterial(): 修复材料，用于铁砧修复
- *
- * 参考: net.minecraft.item.IItemTier
  */
 class IItemTier {
 public:

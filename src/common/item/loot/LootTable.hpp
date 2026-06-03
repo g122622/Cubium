@@ -24,10 +24,10 @@
 #pragma once
 
 #include "LootPool.hpp"
-#include "context/LootContext.hpp"
-#include "functions/LootFunctions.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "context/LootContext.hpp"
+#include "functions/LootFunctions.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -73,8 +73,8 @@ public:
     LootTable& operator=(const LootTable&) = delete;
 
     // 允许移动
-    LootTable(LootTable&&) = default;
-    LootTable& operator=(LootTable&&) = default;
+    LootTable(LootTable&&) noexcept = default;
+    LootTable& operator=(LootTable&&) noexcept = default;
 
     // ========== 池管理 ==========
 

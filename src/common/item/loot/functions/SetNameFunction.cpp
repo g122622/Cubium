@@ -22,9 +22,9 @@
  */
 
 #include "SetNameFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {

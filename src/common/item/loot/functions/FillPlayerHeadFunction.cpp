@@ -22,10 +22,10 @@
  */
 
 #include "FillPlayerHeadFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/loot/context/LootContext.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/skin/core/GameProfile.hpp"
 
 namespace mc {
@@ -41,30 +41,23 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // 参考 MC 1.16.5: net.minecraft.loot.functions.FillPlayerHead.doApply()
-    // 1. 检查物品是否是玩家头颅
-    // 2. 根据来源获取玩家实体
-    // 3. 将玩家信息写入 SkullOwner NBT 标签
-
     // 检查物品是否是玩家头颅
-    // 注意：PLAYER_HEAD 物品尚未在 Items.hpp 中定义
-    // 当 PLAYER_HEAD 定义后，取消下面的注释
+    // TODO: 当 PLAYER_HEAD 物品在 Items.hpp 中定义后，添加物品类型检查
     // if (stack.getItem() != Items::PLAYER_HEAD) {
     //     return stack;
     // }
 
-    // 根据 Source 获取玩家
+    // 根据 Source 获取玩家档案
     const skin::GameProfile* profile = nullptr;
-    skin::GameProfile tempProfile; // 用于临时存储从 Entity 构建的档案
+    skin::GameProfile tempProfile; // 用于临时存储从玩家实体构建的档案
 
     switch (m_source) {
         case CopyNameFunction::Source::This: {
-            // 从当前实体获取
+            // 从当前实体（被击杀的实体）获取玩家信息
             auto* entity = context.get<Entity>(LootParams::THIS_ENTITY);
             if (entity != nullptr) {
                 // 检查是否是玩家
                 if (auto* player = dynamic_cast<Player*>(entity)) {
-                    // 从玩家构建 GameProfile
                     auto uuidArray = skin::GameProfile::parseUUID(player->uuid());
                     tempProfile.setUUID(uuidArray);
                     tempProfile.setName(player->username());
@@ -75,7 +68,7 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
         }
 
         case CopyNameFunction::Source::Killer: {
-            // 从击杀实体获取
+            // 从击杀者实体获取玩家信息
             auto* killer = context.get<Entity>(LootParams::KILLER_ENTITY);
             if (killer != nullptr) {
                 // 检查是否是玩家
@@ -90,7 +83,7 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
         }
 
         case CopyNameFunction::Source::KillerPlayer: {
-            // 从击杀玩家获取
+            // 从击杀玩家获取玩家信息（仅当击杀者是玩家时有效）
             auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
             if (player != nullptr) {
                 auto uuidArray = skin::GameProfile::parseUUID(player->uuid());
@@ -106,7 +99,7 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
             break;
     }
 
-    // 如果获取到了有效的玩家档案，写入 SkullOwner 标签
+    // 如果获取到了有效的玩家档案，写入 SkullOwner NBT 标签
     if (profile != nullptr && profile->hasValidUUID()) {
         nlohmann::json& tag = stack.getOrCreateTag();
         tag["SkullOwner"] = profile->toJson();
@@ -115,7 +108,7 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const
+std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const noexcept
 {
     auto func = std::make_unique<FillPlayerHeadFunction>(m_source);
     for (const auto& cond : m_conditions) {

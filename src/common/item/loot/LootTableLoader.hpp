@@ -25,10 +25,10 @@
 
 #include "LootTableManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/DataPackList.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/ResourcePackList.hpp"
-#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
@@ -42,8 +42,6 @@ namespace loot {
  * 从文件系统或资源包加载 JSON 格式的掉落表并注册到 LootTableManager。
  * 路径映射遵循 MC 数据包规范：
  *   data/<namespace>/loot_tables/<path>.json -> <namespace>:<path>
- *
- * 参考: net.minecraft.loot.LootTableManager (反序列化部分)
  */
 class LootTableLoader {
 public:
@@ -51,8 +49,8 @@ public:
      * @brief 加载结果
      */
     struct LoadResult {
-        size_t successCount = 0;
-        size_t failedCount = 0;
+        Size successCount = 0;
+        Size failedCount = 0;
         std::vector<std::string> errors;
     };
 
@@ -62,7 +60,7 @@ public:
      * @param total 总文件数
      * @param currentId 当前正在处理的掉落表ID
      */
-    using ProgressCallback = std::function<void(size_t current, size_t total, const std::string& currentId)>;
+    using ProgressCallback = std::function<void(Size current, Size total, const std::string& currentId)>;
 
     /**
      * @brief 构造加载器
@@ -152,7 +150,7 @@ public:
     void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
 
 private:
-    void clearIfNeeded();
+    void _clearIfNeeded();
 
     LootTableManager& m_manager;
     LoadResult m_lastResult;

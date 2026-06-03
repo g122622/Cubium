@@ -38,11 +38,11 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/item/loot/LootPool.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
-#include "common/item/loot/LootPool.hpp"
-#include "common/item/loot/LootTable.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -271,68 +271,68 @@ private:
     // 条件解析辅助方法
     // ========================================================================
 
-    static Result<std::unique_ptr<LootCondition>> parseSilkTouchCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseFortuneCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseRandomChanceCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseRandomChanceWithLootingCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseInvertedCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseAlternativeCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseBlockStatePropertyCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseMatchToolCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseKilledByPlayerCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseEntityPropertiesCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseSurvivesExplosionCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseEntityScoresCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseLocationCheckCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseWeatherCheckCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseTimeCheckCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseDamageSourcePropertiesCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseReferenceCondition(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootCondition>> parseTableBonusCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseSilkTouchCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseFortuneCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseRandomChanceCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseRandomChanceWithLootingCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseInvertedCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseAlternativeCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseBlockStatePropertyCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseMatchToolCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseKilledByPlayerCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseEntityPropertiesCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseSurvivesExplosionCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseEntityScoresCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseLocationCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseWeatherCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseTimeCheckCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseDamageSourcePropertiesCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseReferenceCondition(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootCondition>> _parseTableBonusCondition(const nlohmann::json& json);
 
     // ========================================================================
     // 函数解析辅助方法
     // ========================================================================
 
-    static Result<std::unique_ptr<LootFunction>> parseSetCountFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseApplyBonusFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseLootingEnchantFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetDamageFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetNameFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetLoreFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseLimitCountFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseFurnaceSmeltFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseEnchantWithLevelsFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseEnchantRandomlyFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseExplosionDecayFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetNbtFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseCopyNameFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseCopyBlockStateFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseCopyNbtFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseFillPlayerHeadFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetAttributesFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetContentsFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetLootTableFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseExplorationMapFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> parseSetStewEffectFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetCountFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseApplyBonusFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseLootingEnchantFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetDamageFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetNameFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetLoreFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseLimitCountFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseFurnaceSmeltFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseEnchantWithLevelsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseEnchantRandomlyFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseExplosionDecayFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetNbtFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyNameFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyBlockStateFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyNbtFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseFillPlayerHeadFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetAttributesFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetContentsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetLootTableFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseExplorationMapFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetStewEffectFunction(const nlohmann::json& json);
 
     // ========================================================================
     // 条目解析辅助方法
     // ========================================================================
 
-    static Result<std::unique_ptr<LootEntry>> parseEmptyEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseItemEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseTableEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseTagEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseDynamicEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseAlternativesEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseSequenceEntry(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootEntry>> parseGroupEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseEmptyEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseItemEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseTableEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseTagEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseDynamicEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseAlternativesEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseSequenceEntry(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootEntry>> _parseGroupEntry(const nlohmann::json& json);
 
     /**
      * @brief 解析条目的公共属性（weight, quality, conditions, functions）
      */
-    static void parseEntryBase(LootEntry& entry, const nlohmann::json& json);
+    static void _parseEntryBase(LootEntry& entry, const nlohmann::json& json);
 };
 
 } // namespace loot

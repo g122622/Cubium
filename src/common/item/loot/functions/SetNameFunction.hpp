@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -34,7 +34,6 @@ namespace loot {
  * @brief 设置名称函数
  *
  * 设置物品的自定义名称。
- * 参考: net.minecraft.loot.functions.SetName
  */
 class SetNameFunction : public LootFunction {
 public:
@@ -47,10 +46,10 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "set_name"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "set_name"; }
 
-    [[nodiscard]] const std::string& getName() const { return m_name; }
-    [[nodiscard]] bool isReplace() const { return m_replace; }
+    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
+    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
 
 private:
     std::string m_name;

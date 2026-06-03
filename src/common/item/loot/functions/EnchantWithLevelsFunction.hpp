@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -46,14 +46,14 @@ public:
      * @param levels Enchantment level range
      * @param treasure Whether to include treasure enchantments
      */
-    explicit EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure = false);
+    explicit EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure = false) noexcept;
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "enchant_with_levels"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "enchant_with_levels"; }
 
-    [[nodiscard]] const RandomValueRange& getLevels() const { return m_levels; }
-    [[nodiscard]] bool isTreasure() const { return m_treasure; }
+    [[nodiscard]] const RandomValueRange& getLevels() const noexcept { return m_levels; }
+    [[nodiscard]] bool isTreasure() const noexcept { return m_treasure; }
 
 private:
     RandomValueRange m_levels;

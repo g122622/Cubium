@@ -23,12 +23,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
-#include "common/core/Types.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -41,8 +41,6 @@ class LootPool;
 
 /**
  * @brief 掉落条目类型
- *
- * 参考: net.minecraft.loot.LootPoolEntryType
  */
 enum class LootEntryType : u8 {
     Empty,        // 空条目
@@ -59,7 +57,6 @@ enum class LootEntryType : u8 {
  * @brief 掉落条目基类
  *
  * 定义掉落表中单个条目的基础结构。
- * 参考: net.minecraft.loot.LootEntry
  */
 class LootEntry {
 public:

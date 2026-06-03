@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -65,28 +65,28 @@ public:
      * @brief NBT操作定义
      */
     struct NbtOperation {
-        std::string sourcePath;
-        std::string targetPath;
-        Operation operation;
+        std::string sourcePath; ///< NBT源路径
+        std::string targetPath; ///< NBT目标路径
+        Operation operation;    ///< 操作类型
     };
 
     /**
      * @brief 构造复制NBT函数
      * @param source NBT来源
      */
-    explicit CopyNbtFunction(Source source);
+    explicit CopyNbtFunction(Source source) noexcept;
 
     /**
      * @brief 添加NBT操作
      */
-    void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation);
+    void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation) noexcept;
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "copy_nbt"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "copy_nbt"; }
 
-    [[nodiscard]] Source getSource() const { return m_source; }
-    [[nodiscard]] const std::vector<NbtOperation>& getOperations() const { return m_operations; }
+    [[nodiscard]] Source getSource() const noexcept { return m_source; }
+    [[nodiscard]] const std::vector<NbtOperation>& getOperations() const noexcept { return m_operations; }
 
 private:
     Source m_source;

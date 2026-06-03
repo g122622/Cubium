@@ -127,11 +127,11 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
 
     // 执行每次掷骰
     for (i32 i = 0; i < rollCount; ++i) {
-        generateRoll(poolConsumer, context);
+        _generateRoll(poolConsumer, context);
     }
 }
 
-void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const
+void LootPool::_generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const
 {
     if (m_entries.empty()) {
         spdlog::info("LootPool::generateRoll pool='{}' skipped because there are no entries", m_name);

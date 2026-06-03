@@ -1,14 +1,36 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #pragma once
 
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/component/CustomComponentParameters.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <shared_mutex>
-#include <mutex>
 #include <functional>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 
@@ -42,7 +64,8 @@ struct ItemCustomComponent {
     std::function<void(ItemComponentMineBlockEvent&, const CustomComponentParameters&)> onMineBlock;
 
     /** 耐久伤害前（可修改伤害值） */
-    std::function<void(ItemComponentBeforeDurabilityDamageEvent&, const CustomComponentParameters&)> onBeforeDurabilityDamage;
+    std::function<void(ItemComponentBeforeDurabilityDamageEvent&, const CustomComponentParameters&)>
+        onBeforeDurabilityDamage;
 
     /** 物品使用完成（蓄力完成） */
     std::function<void(ItemComponentCompleteUseEvent&, const CustomComponentParameters&)> onCompleteUse;
@@ -145,20 +168,20 @@ public:
     /**
      * @brief 清除所有已注册的组件
      */
-    void clear();
+    void clear() noexcept;
 
     /**
      * @brief 获取已注册组件的物品类型数量
      */
-    [[nodiscard]] size_t registeredItemTypeCount() const;
+    [[nodiscard]] size_t registeredItemTypeCount() const noexcept;
 
     /**
      * @brief 获取指定物品类型的组件数量
      */
-    [[nodiscard]] size_t componentCount(const std::string& itemTypeId) const;
+    [[nodiscard]] size_t componentCount(const std::string& itemTypeId) const noexcept;
 
 private:
-    ItemComponentRegistry() = default;
+    ItemComponentRegistry() noexcept = default;
 
     std::unordered_map<std::string, std::vector<ItemCustomComponent>> m_components;
 
@@ -175,7 +198,14 @@ private:
 
     std::unordered_map<std::string, CallbackFlags> m_callbackFlags;
 
-    void updateCallbackFlags(const std::string& itemTypeId);
+    /**
+     * @brief 更新指定物品类型的回调标志
+     *
+     * 遍历该物品的所有组件，设置各事件回调是否存在。
+     *
+     * @param itemTypeId 物品类型ID
+     */
+    void _updateCallbackFlags(const std::string& itemTypeId);
 
     mutable std::shared_mutex m_mutex;
 };

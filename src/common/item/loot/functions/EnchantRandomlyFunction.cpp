@@ -22,8 +22,8 @@
  */
 
 #include "EnchantRandomlyFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
@@ -42,7 +42,6 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
         return stack;
     }
 
-    // MC 1.16.5: EnchantRandomly.doApply
     math::Random& random = context.getRandom();
     const item::enchant::Enchantment* selectedEnchantment = nullptr;
 

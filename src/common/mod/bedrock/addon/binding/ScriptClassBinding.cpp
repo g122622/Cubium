@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Minecraft Reborn Project
+// SPDX-License-Identifier: MIT
+
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 
 #include <spdlog/spdlog.h>

@@ -1,9 +1,32 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #pragma once
 
-#include <string>
-#include <unordered_map>
 #include <functional>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 struct JSContext;
 struct JSModuleDef;
@@ -44,8 +67,7 @@ public:
      * @param opaque 用户数据指针（QuickJSModuleLoader实例）
      * @return 规范化后的模块名（需用js_malloc分配），失败返回NULL
      */
-    static char* moduleNormalize(JSContext* ctx, const char* module_base_name,
-                                 const char* module_name, void* opaque);
+    static char* moduleNormalize(JSContext* ctx, const char* module_base_name, const char* module_name, void* opaque);
 
     /**
      * @brief 模块加载回调（QuickJS C API签名）
@@ -70,8 +92,7 @@ public:
      *                 返回0表示成功，-1表示失败
      * @return 是否注册成功
      */
-    bool registerNativeModule(const std::string& name,
-                              std::function<int(JSContext*, JSModuleDef*)> initFunc);
+    bool registerNativeModule(const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc);
 
     /**
      * @brief 注册模块源码提供者
@@ -96,7 +117,7 @@ private:
      *
      * 先查找原生C++模块，再查找源码提供者，最后查找路径映射。
      */
-    JSModuleDef* loadModule(JSContext* ctx, const std::string& moduleName);
+    JSModuleDef* _loadModule(JSContext* ctx, const std::string& moduleName);
 
     std::unordered_map<std::string, std::function<int(JSContext*, JSModuleDef*)>> m_nativeModules;
     ModuleSourceProvider m_sourceProvider;

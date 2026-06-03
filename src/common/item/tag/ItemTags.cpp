@@ -22,7 +22,7 @@
  */
 
 #include "ItemTags.hpp"
-#include "../core/ItemRegistry.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 
 namespace mc {
 namespace item::tag {
@@ -101,7 +101,6 @@ void ItemTags::initialize()
     auto& allTags = tags();
 
     // 创建 FLOWERS 标签
-    // 参考 MC 1.16.5: ItemTags.FLOWERS
     // 包含所有小型花朵和大型花朵
     auto flowers = std::make_unique<ItemTag>(ResourceLocation("minecraft", "flowers"));
 
@@ -130,7 +129,6 @@ void ItemTags::initialize()
     allTags[flowers->getId()] = std::move(flowers);
 
     // 创建 CARPETS 标签
-    // 参考 MC 1.16.5: ItemTags.CARPETS
     // 包含所有颜色的地毯物品
     auto carpets = std::make_unique<ItemTag>(ResourceLocation("minecraft", "carpets"));
 

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
 #include "Potion.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -47,7 +47,7 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static PotionRegistry& instance();
+    static PotionRegistry& instance() noexcept;
 
     // ========== 注册 ==========
 
@@ -163,7 +163,7 @@ public:
     static const Potion* LONG_SLOW_FALLING;
 
 private:
-    PotionRegistry() = default;
+    PotionRegistry() noexcept = default;
 
     // 使用 unique_ptr 确保指针稳定，避免 vector reallocation 导致指针失效
     std::vector<std::unique_ptr<Potion>> m_potions;

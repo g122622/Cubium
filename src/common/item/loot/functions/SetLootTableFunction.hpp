@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -34,10 +34,7 @@ namespace loot {
 /**
  * @brief 设置掉落表函数
  *
- * 为容器设置战利品表。
- * 参考: net.minecraft.loot.functions.SetLootTable
- *
- * 用于生成未开封的箱子等。
+ * 为容器设置战利品表，用于生成未开封的箱子等。
  */
 class SetLootTableFunction : public LootFunction {
 public:
@@ -49,6 +46,7 @@ public:
     explicit SetLootTableFunction(const std::string& lootTableId, u64 seed = 0);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    // TODO: clone() 应该添加 noexcept 修饰符，但需要基类 LootFunction 也添加 noexcept
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
     [[nodiscard]] std::string getType() const override { return "set_loot_table"; }
 

@@ -22,18 +22,19 @@
  */
 
 #include "CopyNbtFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {
 
-CopyNbtFunction::CopyNbtFunction(Source source)
+CopyNbtFunction::CopyNbtFunction(Source source) noexcept
     : m_source(source)
 {}
 
-void CopyNbtFunction::addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation)
+void CopyNbtFunction::addOperation(
+    const std::string& sourcePath, const std::string& targetPath, Operation operation) noexcept
 {
     m_operations.push_back({sourcePath, targetPath, operation});
 }

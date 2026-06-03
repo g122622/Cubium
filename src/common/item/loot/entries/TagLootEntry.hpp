@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -34,9 +34,7 @@ namespace loot {
  *
  * 从物品标签中选择物品生成。
  * expand=true 时为标签中的每个物品各生成一次；
- * expand=false
- * 时从标签中随机选择一个物品。
- * 参考: net.minecraft.loot.TagLootEntry
+ * expand=false 时从标签中随机选择一个物品。
  */
 class TagLootEntry : public LootEntry {
 public:

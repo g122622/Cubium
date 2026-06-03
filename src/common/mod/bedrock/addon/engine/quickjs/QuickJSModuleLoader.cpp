@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
 
 #include <quickjs.h>
@@ -76,7 +99,7 @@ JSModuleDef* QuickJSModuleLoader::moduleLoader(JSContext* ctx, const char* modul
 
     auto* loader = static_cast<QuickJSModuleLoader*>(opaque);
     std::string name(module_name ? module_name : "");
-    return loader->loadModule(ctx, name);
+    return loader->_loadModule(ctx, name);
 }
 
 bool QuickJSModuleLoader::registerNativeModule(
@@ -100,7 +123,7 @@ void QuickJSModuleLoader::addModuleAlias(const std::string& alias, const std::st
     m_aliases[alias] = path;
 }
 
-JSModuleDef* QuickJSModuleLoader::loadModule(JSContext* ctx, const std::string& moduleName)
+JSModuleDef* QuickJSModuleLoader::_loadModule(JSContext* ctx, const std::string& moduleName)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 

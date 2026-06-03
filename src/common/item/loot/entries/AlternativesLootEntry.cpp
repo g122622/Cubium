@@ -70,7 +70,7 @@ bool AlternativesLootEntry::generate(std::function<void(const ItemStack&)> consu
     }
 
     // 尝试每个子条目，直到一个成功
-    for (auto& child : m_children) {
+    for (const auto& child : m_children) {
         if (child->generate(consumer, context)) {
             return true;
         }

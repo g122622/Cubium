@@ -34,11 +34,15 @@ SetCountFunction::SetCountFunction(const RandomValueRange& count, bool add)
 
 ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
 {
+    // 空物品堆直接返回
     if (stack.isEmpty()) {
         return stack;
     }
 
+    // 生成随机数量
     i32 newCount = m_count.generateInt(context.getRandom());
+
+    // 根据 add 模式决定是叠加还是替换
     if (m_add) {
         stack.grow(newCount);
     } else {
@@ -50,6 +54,7 @@ ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
 
 std::unique_ptr<LootFunction> SetCountFunction::clone() const
 {
+    // 深拷贝函数及其条件
     auto func = std::make_unique<SetCountFunction>(m_count, m_add);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());

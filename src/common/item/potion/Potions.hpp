@@ -44,7 +44,7 @@ public:
      *
      * 必须在使用任何药水前调用。
      */
-    static void initialize();
+    static void initialize() noexcept;
 
     // ========== 基础药水 ==========
 
@@ -192,7 +192,7 @@ private:
      * @param potion 药水实例
      * @return 注册后的药水指针
      */
-    static const Potion* registerPotion(const char* name, Potion potion);
+    static const Potion* _registerPotion(const char* name, Potion potion);
 };
 
 } // namespace potion

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -48,9 +48,9 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "set_nbt"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "set_nbt"; }
 
-    [[nodiscard]] const std::string& getNbtString() const { return m_nbtString; }
+    [[nodiscard]] const std::string& getNbtString() const noexcept { return m_nbtString; }
 
 private:
     std::string m_nbtString;

@@ -22,9 +22,9 @@
  */
 
 #include "PotionRegistry.hpp"
-#include "../../entity/effect/EffectInstance.hpp"
-#include "../../entity/effect/EffectType.hpp"
 #include "PotionType.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 namespace mc {
 namespace potion {
@@ -93,7 +93,7 @@ const Potion* PotionRegistry::LONG_SLOW_FALLING = nullptr;
 
 // ========== PotionRegistry 实现 ==========
 
-PotionRegistry& PotionRegistry::instance()
+PotionRegistry& PotionRegistry::instance() noexcept
 {
     static PotionRegistry registry;
     return registry;

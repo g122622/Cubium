@@ -293,7 +293,6 @@ nlohmann::json StatePropertiesPredicate::toJsonValue() const
 
 Result<StatePropertiesPredicate> StatePropertiesPredicate::fromJson(const nlohmann::json& json)
 {
-    // 参考 MC 1.16.5: StatePropertiesPredicate.deserializeProperties
     if (json.is_null() || !json.is_object()) {
         return StatePropertiesPredicate{};
     }

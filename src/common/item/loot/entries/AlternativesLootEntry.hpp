@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -33,14 +33,13 @@ namespace loot {
  * @brief 替代条目
  *
  * 尝试多个条目，直到一个成功。
- * 参考: net.minecraft.loot.AlternativesLootEntry
  */
 class AlternativesLootEntry : public LootEntry {
 public:
-    AlternativesLootEntry() = default;
+    AlternativesLootEntry() noexcept = default;
     explicit AlternativesLootEntry(std::vector<std::unique_ptr<LootEntry>> children);
 
-    [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Alternatives; }
+    [[nodiscard]] LootEntryType getType() const noexcept override { return LootEntryType::Alternatives; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
     void addChild(std::unique_ptr<LootEntry> child);

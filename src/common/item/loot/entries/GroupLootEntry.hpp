@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -37,8 +37,8 @@ namespace loot {
  */
 class GroupLootEntry : public LootEntry {
 public:
-    GroupLootEntry() = default;
-    explicit GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children);
+    GroupLootEntry() noexcept = default;
+    explicit GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children) noexcept;
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Group; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;

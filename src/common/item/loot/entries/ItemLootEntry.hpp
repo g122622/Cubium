@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -44,6 +44,8 @@ public:
      * @param weight 权重
      * @param quality 质量
      */
+    // TODO: 构造函数参数不应设置默认值（违反项目规范），
+    // 但移除默认参数会影响 LootCondition.hpp 中的示例代码，暂时保留。
     ItemLootEntry(const std::string& itemId,
         const RandomValueRange& count = RandomValueRange(1.0f, 1.0f),
         i32 weight = 1,

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -33,11 +33,10 @@ namespace loot {
  * @brief 序列条目
  *
  * 按顺序尝试所有子条目，直到一个失败。
- * 参考: net.minecraft.loot.SequenceLootEntry
  */
 class SequenceLootEntry : public LootEntry {
 public:
-    SequenceLootEntry() = default;
+    SequenceLootEntry() noexcept = default;
     explicit SequenceLootEntry(std::vector<std::unique_ptr<LootEntry>> children);
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Sequence; }

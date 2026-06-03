@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -45,15 +45,15 @@ namespace loot {
 class SetAttributesFunction : public LootFunction {
 public:
     /**
-     * @brief Attribute modifier definition
+     * @brief 属性修饰符定义
      */
     struct Modifier {
-        std::string name;               // Modifier name
-        std::string attributeId;        // Attribute ID (e.g. "minecraft:generic.attack_damage")
-        math::RandomValueRange amount;  // Value range (supports random)
-        u8 operation;                   // Operation type (0=Addition, 1=MultiplyBase, 2=MultiplyTotal)
-        std::vector<std::string> slots; // Equipment slot list (one is chosen at random)
-        std::string uuid;               // Optional UUID; if empty, randomly generated at runtime
+        std::string name;               ///< 修饰符名称
+        std::string attributeId;        ///< 属性ID（如 "minecraft:generic.attack_damage"）
+        math::RandomValueRange amount;  ///< 值范围（支持随机）
+        u8 operation;                   ///< 操作类型（0=加法, 1=乘法基础, 2=乘法总计）
+        std::vector<std::string> slots; ///< 装备槽位列表（运行时随机选择一个）
+        std::string uuid;               ///< 可选UUID；若为空则运行时随机生成
 
         Modifier() = default;
         Modifier(const std::string& n,
@@ -91,17 +91,18 @@ private:
     std::vector<Modifier> m_modifiers;
 
     /**
-     * @brief Parse slot name to EquipmentSlot enum
-     * @param slotName Slot name (e.g. "mainhand", "offhand", "feet", "legs", "chest", "head")
-     * @return EquipmentSlot enum value; returns MainHand for invalid names
+     * @brief 解析槽位名称为 EquipmentSlot 枚举值
+     * @param slotName 槽位名称（如 "mainhand", "offhand", "feet", "legs", "chest", "head"）
+     * @return EquipmentSlot 枚举值；无效名称返回 MainHand
      */
-    static i32 parseSlotName(const std::string& slotName);
+    static i32 _parseSlotName(const std::string& slotName);
 
     /**
-     * @brief Generate a random UUID
-     * @return UUID string (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+     * @brief 生成随机 UUID
+     * @param random 随机数生成器
+     * @return UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
      */
-    static std::string generateUUID(math::Random& random);
+    static std::string _generateUUID(math::Random& random);
 };
 
 } // namespace loot

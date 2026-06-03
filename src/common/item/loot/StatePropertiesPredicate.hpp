@@ -185,12 +185,12 @@ public:
     /**
      * @brief 移动构造函数
      */
-    StatePropertiesPredicate(StatePropertiesPredicate&&) = default;
+    StatePropertiesPredicate(StatePropertiesPredicate&&) noexcept = default;
 
     /**
      * @brief 移动赋值运算符
      */
-    StatePropertiesPredicate& operator=(StatePropertiesPredicate&&) = default;
+    StatePropertiesPredicate& operator=(StatePropertiesPredicate&&) noexcept = default;
 
     /**
      * @brief 检查方块状态是否匹配所有属性条件

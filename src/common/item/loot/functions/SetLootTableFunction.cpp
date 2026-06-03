@@ -22,9 +22,9 @@
  */
 
 #include "SetLootTableFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {
@@ -42,10 +42,8 @@ ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) con
         return stack;
     }
 
-    // 参考 MC 1.16.5 net.minecraft.loot.functions.SetLootTable
     // 将掉落表信息写入 BlockEntityTag 子标签
     // 结构: {BlockEntityTag: {LootTable: "minecraft:blocks/chest", LootTableSeed: 12345L}}
-
     nlohmann::json& blockEntityTag = stack.getOrCreateChildTag("BlockEntityTag");
 
     // 设置掉落表 ID

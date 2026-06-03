@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -34,21 +34,24 @@ namespace mc {
 namespace loot {
 
 /**
- * @brief Set stew effect function
+ * @brief 谜之炖菜效果设置函数
  *
- * Sets status effects on suspicious stew.
- * See: net.minecraft.loot.functions.SetStewEffect
+ * 为谜之炖菜设置状态效果的战利品函数。
+ * 当谜之炖菜被食用时，会随机应用其中一个预定义的效果。
  *
- * Used for generating suspicious stew with specific effects.
+ * 该函数支持多个效果条目，实际生效的效果从中随机选择。
+ * 效果持续时间支持随机范围。
  */
 class SetStewEffectFunction : public LootFunction {
 public:
     /**
-     * @brief Effect definition
+     * @brief 效果定义结构体
+     *
+     * 包含效果ID和持续时间范围。
      */
     struct EffectEntry {
-        std::string effectId;      // Effect ID
-        RandomValueRange duration; // Duration in seconds
+        std::string effectId;      ///< 效果ID，如 "minecraft:poison" 或 "poison"
+        RandomValueRange duration; ///< 持续时间范围（秒）
     };
 
     SetStewEffectFunction() = default;

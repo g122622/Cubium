@@ -22,9 +22,9 @@
  */
 
 #include "DynamicLootEntry.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
-#include "common/entity/inventory/IInventory.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 

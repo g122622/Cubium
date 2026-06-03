@@ -22,9 +22,9 @@
  */
 
 #include "LimitCountFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {
@@ -55,7 +55,7 @@ ItemStack LimitCountFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> LimitCountFunction::clone() const
+std::unique_ptr<LootFunction> LimitCountFunction::clone() const noexcept
 {
     auto func = std::make_unique<LimitCountFunction>(m_min, m_max);
     for (const auto& cond : m_conditions) {

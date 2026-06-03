@@ -35,20 +35,16 @@ class LootEntry;
 /**
  * @brief 设置内容物函数
  *
- * 设置容器类物品的内容物。
- * 参考: net.minecraft.loot.functions.SetContents
- *
- * 用于生成带有物品的容器（如箱子矿车）。
+ * 设置容器类物品的内容物，用于生成带有物品的容器（如箱子矿车）。
  *
  * 实现逻辑：
  * 1. 遍历所有 LootEntry，生成物品
  * 2. 将生成的物品序列化到 ItemStack 的 BlockEntityTag.Items 中
- * 3. 参考 MC 1.16.5 ItemStackHelper.saveAllItems() 格式
  */
 class SetContentsFunction : public LootFunction {
 public:
     SetContentsFunction() = default;
-    ~SetContentsFunction() override;
+    ~SetContentsFunction() noexcept override;
 
     /**
      * @brief 添加内容物条目

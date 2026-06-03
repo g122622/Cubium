@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../core/Item.hpp"
-#include "../crafting/Ingredient.hpp"
-#include "Potion.hpp"
+#include "item/core/Item.hpp"
+#include "item/crafting/Ingredient.hpp"
+#include "item/potion/Potion.hpp"
 #include <functional>
 #include <vector>
 
@@ -131,37 +131,37 @@ private:
     /**
      * @brief 添加药水容器
      */
-    static void addContainer(const Item* item);
+    static void _addContainer(const Item* item);
 
     /**
      * @brief 添加容器转换配方
      */
-    static void addContainerRecipe(const Item* input, const Item* reagent, const Item* output);
+    static void _addContainerRecipe(const Item* input, const Item* reagent, const Item* output);
 
     /**
      * @brief 添加药水类型转换配方
      */
-    static void addMix(const Potion* input, const Item* reagent, const Potion* output);
+    static void _addMix(const Potion* input, const Item* reagent, const Potion* output);
 
     /**
      * @brief 检查药水类型转换
      */
-    [[nodiscard]] static bool hasPotionConversion(const Potion* potion, const ItemStack& reagent);
+    [[nodiscard]] static bool _hasPotionConversion(const Potion* potion, const ItemStack& reagent);
 
     /**
      * @brief 检查容器转换
      */
-    [[nodiscard]] static bool hasItemConversion(const Item* item, const ItemStack& reagent);
+    [[nodiscard]] static bool _hasItemConversion(const Item* item, const ItemStack& reagent);
 
     /**
      * @brief 执行药水类型转换
      */
-    [[nodiscard]] static const Potion* doPotionConversion(const Potion* potion, const ItemStack& reagent);
+    [[nodiscard]] static const Potion* _doPotionConversion(const Potion* potion, const ItemStack& reagent);
 
     /**
      * @brief 执行容器转换
      */
-    [[nodiscard]] static const Item* doItemConversion(const Item* item, const ItemStack& reagent);
+    [[nodiscard]] static const Item* _doItemConversion(const Item* item, const ItemStack& reagent);
 };
 
 } // namespace potion

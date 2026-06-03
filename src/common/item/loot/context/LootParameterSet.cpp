@@ -23,6 +23,8 @@
 
 #include "LootParameterSet.hpp"
 
+#include <algorithm>
+
 namespace mc {
 namespace loot {
 
@@ -30,28 +32,28 @@ namespace loot {
 // LootParameterSet
 // ============================================================================
 
-bool LootParameterSet::contains(const std::string& paramId) const
+bool LootParameterSet::contains(std::string_view paramId) const noexcept
 {
-    for (const auto& id : m_requiredParams) {
-        if (id == paramId) return true;
+    // 在必需参数中查找
+    auto requiredIt = std::find_if(
+        m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    if (requiredIt != m_requiredParams.end()) {
+        return true;
     }
-    for (const auto& id : m_optionalParams) {
-        if (id == paramId) return true;
-    }
-    return false;
+
+    // 在可选参数中查找
+    auto optionalIt = std::find_if(
+        m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    return optionalIt != m_optionalParams.end();
 }
 
-bool LootParameterSet::validate(const std::vector<std::string>& providedParams) const
+bool LootParameterSet::validate(const std::vector<std::string>& providedParams) const noexcept
 {
-    // 检查所有必需参数
+    // 检查所有必需参数是否都在提供的参数中
     for (const auto& required : m_requiredParams) {
-        bool found = false;
-        for (const auto& provided : providedParams) {
-            if (required == provided) {
-                found = true;
-                break;
-            }
-        }
+        bool found = std::any_of(providedParams.begin(),
+            providedParams.end(),
+            [&required](const std::string& provided) { return required == provided; });
         if (!found) {
             return false;
         }

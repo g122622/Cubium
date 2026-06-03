@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../resource/ResourceLocation.hpp"
 #include "ItemTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -47,7 +47,6 @@ public:
      * @brief 花朵标签
      *
      * 包含所有可用于蜜蜂繁殖和授粉的花朵物品。
-     * 参考 MC 1.16.5: ItemTags.FLOWERS
      */
     static ItemTag& FLOWERS();
 
@@ -55,7 +54,6 @@ public:
      * @brief 地毯标签
      *
      * 包含所有颜色的地毯物品。
-     * 参考 MC 1.16.5: ItemTags.CARPETS
      * 用于羊驼装饰槽位判断。
      */
     static ItemTag& CARPETS();

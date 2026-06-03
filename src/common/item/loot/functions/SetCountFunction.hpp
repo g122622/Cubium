@@ -23,42 +23,62 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
 
 /**
- * @brief Set count function
+ * @brief 设置数量函数
  *
- * Sets the item stack count.
- * See: net.minecraft.loot.functions.SetCount
+ * 用于设置物品堆的数量。可以设置固定数量或随机范围。
+ * 参考: net.minecraft.loot.functions.SetCount
  *
- * Can set a fixed count or random range.
- * Extra count affected by luck can be set via the quality parameter.
+ * 通过 add 参数控制是替换原数量还是叠加到原数量上。
  */
 class SetCountFunction : public LootFunction {
 public:
     /**
-     * @brief Construct set count function
-     * @param count Count range
-     * @param add Whether to add on top of existing count (default false, replace)
+     * @brief 构造设置数量函数
+     * @param count 数量范围
+     * @param add 是否叠加到现有数量上（默认为 false，即替换）
      */
     explicit SetCountFunction(const RandomValueRange& count, bool add = false);
 
+    /**
+     * @brief 应用函数到物品堆
+     * @param stack 原始物品堆
+     * @param context 掉落上下文
+     * @return 修改后的物品堆
+     */
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+
+    /**
+     * @brief 创建函数副本
+     */
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+
+    /**
+     * @brief 获取函数类型标识
+     */
     [[nodiscard]] std::string getType() const override { return "set_count"; }
 
+    /**
+     * @brief 获取数量范围
+     */
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
+
+    /**
+     * @brief 是否叠加模式
+     */
     [[nodiscard]] bool isAdd() const { return m_add; }
 
 private:
-    RandomValueRange m_count;
-    bool m_add;
+    RandomValueRange m_count; // 数量范围
+    bool m_add;               // 是否叠加到现有数量
 };
 
 } // namespace loot

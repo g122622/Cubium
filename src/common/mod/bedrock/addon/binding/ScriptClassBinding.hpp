@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Minecraft Reborn Project
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include "common/core/Types.hpp"

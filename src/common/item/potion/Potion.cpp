@@ -22,7 +22,7 @@
  */
 
 #include "Potion.hpp"
-#include "../../entity/effect/EffectType.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 namespace mc {
 namespace potion {

@@ -28,7 +28,7 @@
 namespace mc {
 namespace loot {
 
-EnchantWithLevelsFunction::EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure)
+EnchantWithLevelsFunction::EnchantWithLevelsFunction(const RandomValueRange& levels, bool treasure) noexcept
     : m_levels(levels)
     , m_treasure(treasure)
 {}
@@ -39,7 +39,6 @@ ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context
         return stack;
     }
 
-    // MC 1.16.5: EnchantWithLevels.doApply
     // 生成随机等级并添加随机附魔
     i32 level = m_levels.generateInt(context.getRandom());
     return item::enchant::EnchantmentHelper::addRandomEnchantment(

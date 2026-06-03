@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../entity/effect/EffectInstance.hpp"
-#include "../core/ItemStack.hpp"
 #include "Potion.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <string>
 #include <vector>
 

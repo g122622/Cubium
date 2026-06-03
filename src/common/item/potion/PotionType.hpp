@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <cstddef>
 #include <functional>
 
@@ -34,7 +34,6 @@ namespace potion {
  * @brief 药水类型枚举
  *
  * 定义所有原版药水类型。
- * 参考 MC 1.16.5 Potion
  */
 enum class PotionId : u16 {
     // 基础药水

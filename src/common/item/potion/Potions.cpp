@@ -22,7 +22,7 @@
  */
 
 #include "Potions.hpp"
-#include "../../entity/effect/EffectType.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 namespace mc {
 namespace potion {
@@ -93,7 +93,7 @@ const Potion* Potions::LONG_SLOW_FALLING = nullptr;
 
 // ========== 辅助函数 ==========
 
-const Potion* Potions::registerPotion(const char* name, Potion potion)
+const Potion* Potions::_registerPotion(const char* name, Potion potion)
 {
     auto& registry = PotionRegistry::instance();
     return registry.registerPotion(ResourceLocation("minecraft", name), std::move(potion));
@@ -101,7 +101,7 @@ const Potion* Potions::registerPotion(const char* name, Potion potion)
 
 // ========== 初始化 ==========
 
-void Potions::initialize()
+void Potions::initialize() noexcept
 {
     if (s_initialized) {
         return;
@@ -111,126 +111,126 @@ void Potions::initialize()
     auto& registry = PotionRegistry::instance();
 
     // 基础药水（无效果）
-    EMPTY = registerPotion("empty", Potion());
-    WATER = registerPotion("water", Potion());
-    MUNDANE = registerPotion("mundane", Potion());
-    THICK = registerPotion("thick", Potion());
-    AWKWARD = registerPotion("awkward", Potion());
+    EMPTY = _registerPotion("empty", Potion());
+    WATER = _registerPotion("water", Potion());
+    MUNDANE = _registerPotion("mundane", Potion());
+    THICK = _registerPotion("thick", Potion());
+    AWKWARD = _registerPotion("awkward", Potion());
 
     // 夜视药水
     // 夜视 (3:00 = 3600 tick)
-    NIGHT_VISION = registerPotion(
+    NIGHT_VISION = _registerPotion(
         "night_vision", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::NightVision, 3600)}));
     // 夜视延长 (8:00 = 9600 tick)
-    LONG_NIGHT_VISION = registerPotion("long_night_vision",
+    LONG_NIGHT_VISION = _registerPotion("long_night_vision",
         Potion("night_vision", {entity::effect::EffectInstance(entity::effect::EffectType::NightVision, 9600)}));
 
     // 隐身药水
-    INVISIBILITY = registerPotion(
+    INVISIBILITY = _registerPotion(
         "invisibility", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Invisibility, 3600)}));
-    LONG_INVISIBILITY = registerPotion("long_invisibility",
+    LONG_INVISIBILITY = _registerPotion("long_invisibility",
         Potion("invisibility", {entity::effect::EffectInstance(entity::effect::EffectType::Invisibility, 9600)}));
 
     // 跳跃提升药水
-    LEAPING = registerPotion(
+    LEAPING = _registerPotion(
         "leaping", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 3600)}));
-    LONG_LEAPING = registerPotion("long_leaping",
+    LONG_LEAPING = _registerPotion("long_leaping",
         Potion("leaping", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 9600)}));
-    STRONG_LEAPING = registerPotion("strong_leaping",
+    STRONG_LEAPING = _registerPotion("strong_leaping",
         Potion("leaping", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 1800, 1)}));
 
     // 防火药水
-    FIRE_RESISTANCE = registerPotion("fire_resistance",
+    FIRE_RESISTANCE = _registerPotion("fire_resistance",
         Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 3600)}));
-    LONG_FIRE_RESISTANCE = registerPotion("long_fire_resistance",
+    LONG_FIRE_RESISTANCE = _registerPotion("long_fire_resistance",
         Potion("fire_resistance", {entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 9600)}));
 
     // 速度药水
-    SWIFTNESS = registerPotion(
+    SWIFTNESS = _registerPotion(
         "swiftness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 3600)}));
-    LONG_SWIFTNESS = registerPotion("long_swiftness",
+    LONG_SWIFTNESS = _registerPotion("long_swiftness",
         Potion("swiftness", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 9600)}));
-    STRONG_SWIFTNESS = registerPotion("strong_swiftness",
+    STRONG_SWIFTNESS = _registerPotion("strong_swiftness",
         Potion("swiftness", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 1800, 1)}));
 
     // 缓慢药水
-    SLOWNESS = registerPotion(
+    SLOWNESS = _registerPotion(
         "slowness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 1800)}));
-    LONG_SLOWNESS = registerPotion("long_slowness",
+    LONG_SLOWNESS = _registerPotion("long_slowness",
         Potion("slowness", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 4800)}));
-    STRONG_SLOWNESS = registerPotion("strong_slowness",
+    STRONG_SLOWNESS = _registerPotion("strong_slowness",
         Potion("slowness", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 400, 3)}));
 
     // 海龟大师药水 (缓慢 IV + 抗性提升 III)
-    TURTLE_MASTER = registerPotion("turtle_master",
+    TURTLE_MASTER = _registerPotion("turtle_master",
         Potion("turtle_master",
             {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 400, 3),
                 entity::effect::EffectInstance(entity::effect::EffectType::Resistance, 400, 2)}));
-    LONG_TURTLE_MASTER = registerPotion("long_turtle_master",
+    LONG_TURTLE_MASTER = _registerPotion("long_turtle_master",
         Potion("turtle_master",
             {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 800, 3),
                 entity::effect::EffectInstance(entity::effect::EffectType::Resistance, 800, 2)}));
-    STRONG_TURTLE_MASTER = registerPotion("strong_turtle_master",
+    STRONG_TURTLE_MASTER = _registerPotion("strong_turtle_master",
         Potion("turtle_master",
             {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 400, 5),
                 entity::effect::EffectInstance(entity::effect::EffectType::Resistance, 400, 3)}));
 
     // 水下呼吸药水
-    WATER_BREATHING = registerPotion("water_breathing",
+    WATER_BREATHING = _registerPotion("water_breathing",
         Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::WaterBreathing, 3600)}));
-    LONG_WATER_BREATHING = registerPotion("long_water_breathing",
+    LONG_WATER_BREATHING = _registerPotion("long_water_breathing",
         Potion("water_breathing", {entity::effect::EffectInstance(entity::effect::EffectType::WaterBreathing, 9600)}));
 
     // 瞬间治疗药水
-    HEALING = registerPotion(
+    HEALING = _registerPotion(
         "healing", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::InstantHealth, 1)}));
-    STRONG_HEALING = registerPotion("strong_healing",
+    STRONG_HEALING = _registerPotion("strong_healing",
         Potion("healing", {entity::effect::EffectInstance(entity::effect::EffectType::InstantHealth, 1, 1)}));
 
     // 瞬间伤害药水
-    HARMING = registerPotion(
+    HARMING = _registerPotion(
         "harming", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::InstantDamage, 1)}));
-    STRONG_HARMING = registerPotion("strong_harming",
+    STRONG_HARMING = _registerPotion("strong_harming",
         Potion("harming", {entity::effect::EffectInstance(entity::effect::EffectType::InstantDamage, 1, 1)}));
 
     // 中毒药水
-    POISON =
-        registerPotion("poison", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 900)}));
-    LONG_POISON = registerPotion(
+    POISON = _registerPotion(
+        "poison", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 900)}));
+    LONG_POISON = _registerPotion(
         "long_poison", Potion("poison", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 1800)}));
-    STRONG_POISON = registerPotion("strong_poison",
+    STRONG_POISON = _registerPotion("strong_poison",
         Potion("poison", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 432, 1)}));
 
     // 生命恢复药水
-    REGENERATION = registerPotion(
+    REGENERATION = _registerPotion(
         "regeneration", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900)}));
-    LONG_REGENERATION = registerPotion("long_regeneration",
+    LONG_REGENERATION = _registerPotion("long_regeneration",
         Potion("regeneration", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 1800)}));
-    STRONG_REGENERATION = registerPotion("strong_regeneration",
+    STRONG_REGENERATION = _registerPotion("strong_regeneration",
         Potion("regeneration", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 450, 1)}));
 
     // 力量药水
-    STRENGTH = registerPotion(
+    STRENGTH = _registerPotion(
         "strength", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 3600)}));
-    LONG_STRENGTH = registerPotion("long_strength",
+    LONG_STRENGTH = _registerPotion("long_strength",
         Potion("strength", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 9600)}));
-    STRONG_STRENGTH = registerPotion("strong_strength",
+    STRONG_STRENGTH = _registerPotion("strong_strength",
         Potion("strength", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 1800, 1)}));
 
     // 虚弱药水
-    WEAKNESS = registerPotion(
+    WEAKNESS = _registerPotion(
         "weakness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Weakness, 1800)}));
-    LONG_WEAKNESS = registerPotion("long_weakness",
+    LONG_WEAKNESS = _registerPotion("long_weakness",
         Potion("weakness", {entity::effect::EffectInstance(entity::effect::EffectType::Weakness, 4800)}));
 
     // 幸运药水
-    LUCK = registerPotion(
+    LUCK = _registerPotion(
         "luck", Potion("luck", {entity::effect::EffectInstance(entity::effect::EffectType::Luck, 6000)}));
 
     // 缓降药水
-    SLOW_FALLING = registerPotion(
+    SLOW_FALLING = _registerPotion(
         "slow_falling", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 1800)}));
-    LONG_SLOW_FALLING = registerPotion("long_slow_falling",
+    LONG_SLOW_FALLING = _registerPotion("long_slow_falling",
         Potion("slow_falling", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 4800)}));
 
     // 同步注册表指针

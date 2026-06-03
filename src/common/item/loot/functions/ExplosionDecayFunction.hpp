@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -33,8 +33,6 @@ namespace loot {
  * @brief 爆炸衰减函数
  *
  * 控制爆炸时物品的消失概率。
- * 参考: net.minecraft.loot.functions.ExplosionDecay
- *
  * 用于 TNT 爆炸、苦力怕爆炸等场景的掉落物处理。
  * 每个物品有 1/explosionRadius 的概率保留。
  */

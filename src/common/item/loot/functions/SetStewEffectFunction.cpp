@@ -22,11 +22,11 @@
  */
 
 #include "SetStewEffectFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/loot/context/LootContext.hpp"
-#include "common/entity/effect/EffectType.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 
 namespace mc {
 namespace loot {
@@ -42,7 +42,6 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
         return stack;
     }
 
-    // 参考 MC 1.16.5: net.minecraft.loot.functions.SetStewEffect.doApply()
     // 只对谜之炖菜生效
     if (stack.getItem() != Items::SUSPICIOUS_STEW) {
         return stack;
@@ -72,7 +71,6 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     }
 
     // 生成持续时间（秒）
-    // MC 1.16.5: duration 是 RandomValueRange，单位是秒
     // 非瞬间效果需要乘以 20 转换为 tick
     i32 durationTicks = entry.duration.generateInt(random);
     if (!entity::effect::isInstantEffect(effectType.value())) {
@@ -81,7 +79,6 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     }
 
     // 写入物品的 NBT 数据
-    // 参考 MC 1.16.5: SuspiciousStewItem.addEffect()
     // 格式: {Effects: [{EffectId: byte, EffectDuration: int}, ...]}
     nlohmann::json& tag = stack.getOrCreateTag();
 

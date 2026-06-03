@@ -22,10 +22,10 @@
  */
 
 #include "CopyNameFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/loot/context/LootContext.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 
 namespace mc {
@@ -41,7 +41,6 @@ ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const
         return stack;
     }
 
-    // 参考 MC 1.16.5 net.minecraft.loot.functions.CopyName
     // 根据来源类型从 LootContext 获取对应对象，检查是否有自定义名称，复制到物品
 
     switch (m_source) {

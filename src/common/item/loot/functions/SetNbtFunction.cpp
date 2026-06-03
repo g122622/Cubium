@@ -22,10 +22,10 @@
  */
 
 #include "SetNbtFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/util/nbt/Nbt.hpp"
-#include "common/util/assert/AssertMacros.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <sstream>
 
 namespace mc {
@@ -40,7 +40,7 @@ namespace {
 /**
  * @brief 将 NBT 标签转换为 nlohmann::json
  *
- * 参考 MC 1.16.5 的 NBT 到 JSON 转换规则：
+ * NBT 到 JSON 转换规则：
  * - 数值类型直接转换
  * - 字符串直接转换
  * - 数组转换为 JSON 数组
@@ -155,7 +155,6 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const
         return stack;
     }
 
-    // 参考 MC 1.16.5 net.minecraft.loot.functions.SetNBT.doApply
     // 1. 解析 NBT 字符串（Mojangson 格式）
     // 2. 将解析的 NBT 合并到 ItemStack 的现有标签中
 

@@ -22,16 +22,16 @@
  */
 
 #include "SetContentsFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
-#include "common/core/Types.hpp"
 #include <algorithm>
 
 namespace mc {
 namespace loot {
 
-SetContentsFunction::~SetContentsFunction() = default;
+SetContentsFunction::~SetContentsFunction() noexcept = default;
 
 void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry)
 {
@@ -42,32 +42,23 @@ void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry)
 
 ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const
 {
-    // 参考 MC 1.16.5 net.minecraft.loot.functions.SetContents.doApply()
     if (stack.isEmpty() || m_entries.empty()) {
         return stack;
     }
 
     // 收集生成的物品
-    // 参考 MC: NonNullList<ItemStack> nonnulllist = NonNullList.create();
     std::vector<ItemStack> generatedItems;
 
     // 遍历所有条目，展开并生成物品
-    // 参考 MC: this.field_215924_a.forEach((p_215921_2_) -> {
-    //     p_215921_2_.expand(context, (p_215922_2_) -> {
-    //         p_215922_2_.func_216188_a(LootTable.capStackSizes(nonnulllist::add), context);
-    //     });
-    // });
     for (const auto& entry : m_entries) {
         if (!entry) {
             continue;
         }
 
         // 使用 generate() 方法生成物品
-        // 参考 MC: ILootGenerator.func_216188_a(Consumer<ItemStack>, LootContext)
         entry->generate(
             [&generatedItems](const ItemStack& item) {
                 if (!item.isEmpty()) {
-                    // 参考 MC LootTable.capStackSizes():
                     // 如果物品数量超过最大堆叠数，需要拆分成多个堆
                     if (item.getCount() <= item.getMaxStackSize()) {
                         generatedItems.push_back(item);
@@ -93,10 +84,6 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
     }
 
     // 将物品列表序列化到 BlockEntityTag
-    // 参考 MC: CompoundNBT compoundnbt = new CompoundNBT();
-    //          ItemStackHelper.saveAllItems(compoundnbt, nonnulllist);
-    //          CompoundNBT compoundnbt1 = stack.getOrCreateTag();
-    //          compoundnbt1.put("BlockEntityTag", compoundnbt.merge(compoundnbt1.getCompound("BlockEntityTag")));
     nlohmann::json itemsArray = nlohmann::json::array();
     for (size_t i = 0; i < generatedItems.size(); ++i) {
         const ItemStack& item = generatedItems[i];
@@ -105,9 +92,6 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
         }
 
         // 序列化物品数据
-        // 参考 MC ItemStackHelper.saveAllItems():
-        // compoundnbt.putByte("Slot", (byte)i);
-        // itemstack.write(compoundnbt);
         nlohmann::json itemJson = item.toJson();
         itemJson["Slot"] = static_cast<i32>(i);
         itemsArray.push_back(std::move(itemJson));
@@ -121,8 +105,7 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
     newItemData["Items"] = std::move(itemsArray);
 
     // 合并到已有的 BlockEntityTag
-    // 参考 MC: compoundnbt.merge(compoundnbt1.getCompound("BlockEntityTag"))
-    // 注意 MC 的 merge 顺序：新数据与旧数据合并时，旧数据的同名键会覆盖新数据
+    // 注意：新数据与旧数据合并时，旧数据的同名键会覆盖新数据
     // 所以我们先创建新数据，然后用旧数据覆盖
     ItemStack::mergeJsonObjects(newItemData, blockEntityTag);
 

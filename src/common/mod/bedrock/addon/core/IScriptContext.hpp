@@ -1,12 +1,35 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #pragma once
 
-#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
-#include "common/mod/bedrock/addon/core/ScriptException.hpp"
 #include "common/mod/bedrock/addon/core/Privilege.hpp"
-#include <string>
-#include <vector>
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
+#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
 #include <functional>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 
@@ -32,8 +55,8 @@ public:
      * @param flags 执行标志
      * @return 执行结果
      */
-    [[nodiscard]] virtual ScriptResult evaluate(const std::string& source, const std::string& filename,
-                                                EvalFlags flags = EvalFlags::None) = 0;
+    [[nodiscard]] virtual ScriptResult evaluate(
+        const std::string& source, const std::string& filename, EvalFlags flags = EvalFlags::None) = 0;
 
     /**
      * @brief 作为ES6模块执行脚本
@@ -42,8 +65,7 @@ public:
      * @param filename 文件名
      * @return 执行结果
      */
-    [[nodiscard]] virtual ScriptResult evaluateModule(const std::string& source,
-                                                      const std::string& filename) = 0;
+    [[nodiscard]] virtual ScriptResult evaluateModule(const std::string& source, const std::string& filename) = 0;
 
     /**
      * @brief 调用全局函数
@@ -52,8 +74,7 @@ public:
      * @param args 参数列表
      * @return 执行结果
      */
-    [[nodiscard]] virtual ScriptResult callFunction(const std::string& name,
-                                                     const std::vector<ScriptValue>& args) = 0;
+    [[nodiscard]] virtual ScriptResult callFunction(const std::string& name, const std::vector<ScriptValue>& args) = 0;
 
     /**
      * @brief 导入模块
@@ -97,8 +118,8 @@ public:
      * @param callback 回调函数
      * @return 注册是否成功
      */
-    virtual bool registerGlobalFunction(const std::string& name,
-                                         std::function<ScriptValue(const std::vector<ScriptValue>&)> callback) = 0;
+    virtual bool registerGlobalFunction(
+        const std::string& name, std::function<ScriptValue(const std::vector<ScriptValue>&)> callback) = 0;
 
     /**
      * @brief 设置全局变量

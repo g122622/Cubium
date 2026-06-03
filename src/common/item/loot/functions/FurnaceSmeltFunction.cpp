@@ -22,11 +22,11 @@
  */
 
 #include "FurnaceSmeltFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {
@@ -37,7 +37,6 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
         return stack;
     }
 
-    // 参考 MC 1.16.5 net.minecraft.loot.functions.Smelting.doApply
     // 从 RecipeManager 查找熔炼配方
     const auto& recipeManager = crafting::RecipeManager::instance();
     const crafting::SmeltingRecipe* recipe = recipeManager.getSmeltingRecipe(stack, crafting::RecipeType::Smelting);
@@ -56,7 +55,6 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
     }
 
     // 没有找到熔炼配方，返回原始物品
-    // 注：MC 1.16.5 会记录警告日志，但本项目暂无日志系统
     MC_UNUSED(context);
     return stack;
 }

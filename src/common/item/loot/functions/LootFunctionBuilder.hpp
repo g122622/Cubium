@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "LootFunction.hpp"
 #include "ApplyBonusFunction.hpp"
 #include "CopyBlockStateFunction.hpp"
 #include "CopyNbtFunction.hpp"
@@ -34,18 +33,19 @@
 #include "FillPlayerHeadFunction.hpp"
 #include "FurnaceSmeltFunction.hpp"
 #include "LimitCountFunction.hpp"
+#include "LootFunction.hpp"
 #include "LootingEnchantBonusFunction.hpp"
 #include "SetAttributesFunction.hpp"
 #include "SetContentsFunction.hpp"
 #include "SetCountFunction.hpp"
 #include "SetDamageFunction.hpp"
 #include "SetLootTableFunction.hpp"
-#include "SetNameFunction.hpp"
 #include "SetLoreFunction.hpp"
+#include "SetNameFunction.hpp"
 #include "SetNbtFunction.hpp"
 #include "SetStewEffectFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -154,7 +154,8 @@ public:
     /**
      * @brief Create a copy NBT function
      * @param source Data source
-     * @param operations NBT path operation list (full operation parsing not yet implemented)
+     * @return Created loot function
+     * @note TODO: NBT path operation list parsing not yet implemented
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> copyNbt(CopyNbtFunction::Source source);
 

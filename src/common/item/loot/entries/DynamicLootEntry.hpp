@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -34,7 +34,6 @@ namespace loot {
  *
  * 根据动态名称从上下文中获取物品。
  * 目前仅支持 "minecraft:contents"，用于从方块实体容器中读取物品。
- * 参考: net.minecraft.loot.DynamicLootEntry
  */
 class DynamicLootEntry : public LootEntry {
 public:

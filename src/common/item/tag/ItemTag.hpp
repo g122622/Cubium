@@ -41,7 +41,6 @@ namespace item::tag {
  * @brief 物品标签
  *
  * 用于将物品分组以便配方和功能判断。
- * 参考: net.minecraft.tags.ITag
  *
  * 用法示例:
  * @code
@@ -64,14 +63,21 @@ public:
      */
     explicit ItemTag(ResourceLocation id);
 
+    // 默认的拷贝和移动操作
+    ItemTag(const ItemTag&) = default;
+    ItemTag& operator=(const ItemTag&) = default;
+    ItemTag(ItemTag&& other) noexcept = default;
+    ItemTag& operator=(ItemTag&& other) noexcept = default;
+    ~ItemTag() = default;
+
     /**
      * @brief 获取标签ID
      */
-    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+    [[nodiscard]] const ResourceLocation& getId() const noexcept { return m_id; }
 
     /**
      * @brief 添加物品到标签
-     * @param item 物品指针
+     * @param item 物品指针（不能为nullptr）
      */
     void add(const Item* item);
 
@@ -80,7 +86,7 @@ public:
      * @param item 物品指针
      * @return 是否在标签中
      */
-    [[nodiscard]] bool contains(const Item* item) const;
+    [[nodiscard]] bool contains(const Item* item) const noexcept;
 
     /**
      * @brief 检查物品堆是否在标签中
@@ -92,7 +98,7 @@ public:
     /**
      * @brief 获取标签中的所有物品
      */
-    [[nodiscard]] const std::unordered_set<const Item*>& getItems() const { return m_items; }
+    [[nodiscard]] const std::unordered_set<const Item*>& getItems() const noexcept { return m_items; }
 
     /**
      * @brief 获取标签中的所有物品（有序列表）

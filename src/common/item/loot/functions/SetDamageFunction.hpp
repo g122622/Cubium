@@ -23,28 +23,25 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
 
 /**
- * @brief Set damage function
+ * @brief 设置损坏程度函数
  *
- * Sets the durability damage level of an item.
- * See: net.minecraft.loot.functions.SetDamage
- *
- * Used for drops of damageable items like tools and weapons.
+ * 用于设置物品的耐久度损坏程度。适用于工具、武器等可损坏物品的掉落。
  */
 class SetDamageFunction : public LootFunction {
 public:
     /**
-     * @brief Construct set damage function
-     * @param durability Damage range (0.0 = undamaged, 1.0 = fully damaged)
-     * @param add Whether to add on top of existing damage (default false, replace)
+     * @brief 构造设置损坏程度函数
+     * @param durability 损坏程度范围（0.0 = 完好，1.0 = 完全损坏）
+     * @param add 是否叠加到现有损坏程度上（默认为 false，即替换）
      */
     explicit SetDamageFunction(const RandomValueRange& durability, bool add = false);
 
@@ -56,8 +53,8 @@ public:
     [[nodiscard]] bool isAdd() const { return m_add; }
 
 private:
-    RandomValueRange m_durability;
-    bool m_add;
+    RandomValueRange m_durability; // 损坏程度范围（0.0 = 完好，1.0 = 完全损坏）
+    bool m_add;                    // 是否叠加到现有损坏程度上
 };
 
 } // namespace loot

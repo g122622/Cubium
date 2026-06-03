@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "LootEntry.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
-#include "common/core/Types.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -37,15 +37,19 @@ namespace loot {
 /**
  * @brief 掉落条目构建器
  *
- * 参考: net.minecraft.loot.LootEntry.Builder
+ * 用于流式构建各种类型的掉落条目（物品、空条目、掉落表引用、标签、动态条目）。
  */
 class LootEntryBuilder {
 public:
     LootEntryBuilder() = default;
 
     // 移动构造和赋值（unique_ptr 成员需要）
-    LootEntryBuilder(LootEntryBuilder&&) = default;
-    LootEntryBuilder& operator=(LootEntryBuilder&&) = default;
+    LootEntryBuilder(LootEntryBuilder&&) noexcept = default;
+    LootEntryBuilder& operator=(LootEntryBuilder&&) noexcept = default;
+
+    // 禁止拷贝（unique_ptr 成员不可拷贝）
+    LootEntryBuilder(const LootEntryBuilder&) = delete;
+    LootEntryBuilder& operator=(const LootEntryBuilder&) = delete;
 
     /**
      * @brief 设置权重

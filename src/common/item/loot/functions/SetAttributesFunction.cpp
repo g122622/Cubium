@@ -22,10 +22,10 @@
  */
 
 #include "SetAttributesFunction.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/loot/context/LootContext.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <cstdio>
 
 namespace mc {
@@ -42,12 +42,9 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
         return stack;
     }
 
-    // 参考 MC 1.16.5: net.minecraft.loot.functions.SetAttributes.doApply()
-    // 将属性修饰符写入 ItemStack 的 AttributeModifiers 标签
-
     math::Random& random = context.getRandom();
 
-    // 直接获取或创建标签（注意：getTag() 对空对象返回 nullptr，所以必须用 getOrCreateTag）
+    // 直接获取或创建标签
     nlohmann::json& attrModifiers = stack.getOrCreateTag();
 
     // 确保 AttributeModifiers 是数组
@@ -58,19 +55,19 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
 
     for (const auto& modifier : m_modifiers) {
         // 生成或使用 UUID
-        std::string uuid = modifier.uuid.empty() ? generateUUID(random) : modifier.uuid;
+        std::string uuid = modifier.uuid.empty() ? _generateUUID(random) : modifier.uuid;
 
         // 随机选择槽位
-        i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand); // 默认主手
+        i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand);
         if (!modifier.slots.empty()) {
             size_t slotIndex = static_cast<size_t>(random.nextInt(static_cast<i32>(modifier.slots.size())));
-            equipmentSlot = parseSlotName(modifier.slots[slotIndex]);
+            equipmentSlot = _parseSlotName(modifier.slots[slotIndex]);
         }
 
         // 生成随机值
         f64 amount = static_cast<f64>(modifier.amount.generateFloat(random));
 
-        // 构建 AttributeModifiers 条目（参考 MC 1.16.5 NBT 格式）
+        // 构建 AttributeModifiers 条目
         nlohmann::json attrEntry = nlohmann::json::object();
         attrEntry["AttributeName"] = modifier.attributeId;
         attrEntry["Name"] = modifier.name;
@@ -96,9 +93,8 @@ std::unique_ptr<LootFunction> SetAttributesFunction::clone() const
     return func;
 }
 
-i32 SetAttributesFunction::parseSlotName(const std::string& slotName)
+i32 SetAttributesFunction::_parseSlotName(const std::string& slotName)
 {
-    // 参考 MC 1.16.5 EquipmentSlotType.byName()
     if (slotName == "mainhand") {
         return static_cast<i32>(EquipmentSlot::MainHand);
     } else if (slotName == "offhand") {
@@ -116,7 +112,7 @@ i32 SetAttributesFunction::parseSlotName(const std::string& slotName)
     return static_cast<i32>(EquipmentSlot::MainHand);
 }
 
-std::string SetAttributesFunction::generateUUID(math::Random& random)
+std::string SetAttributesFunction::_generateUUID(math::Random& random)
 {
     const u64 part1 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
     const u64 part2 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());

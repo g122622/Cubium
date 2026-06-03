@@ -23,11 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include "conditions/LootConditions.hpp"
 #include "entries/LootEntry.hpp"
 #include "functions/LootFunctions.hpp"
-#include "common/core/Types.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -39,7 +39,6 @@ namespace loot {
  * @brief 掉落池
  *
  * 包含多个掉落条目，按权重随机选择。
- * 参考: net.minecraft.loot.LootPool
  */
 class LootPool {
 public:
@@ -62,8 +61,8 @@ public:
     LootPool& operator=(const LootPool&) = delete;
 
     // 允许移动
-    LootPool(LootPool&&) = default;
-    LootPool& operator=(LootPool&&) = default;
+    LootPool(LootPool&&) noexcept = default;
+    LootPool& operator=(LootPool&&) noexcept = default;
 
     /**
      * @brief 创建副本
@@ -168,7 +167,7 @@ private:
     /**
      * @brief 执行一次掷骰
      */
-    void generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
+    void _generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
 
 private:
     std::string m_name;
@@ -181,8 +180,6 @@ private:
 
 /**
  * @brief 掉落池构建器
- *
- * 参考: net.minecraft.loot.LootPool.Builder
  */
 class LootPoolBuilder {
 public:

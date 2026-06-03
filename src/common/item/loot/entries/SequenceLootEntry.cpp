@@ -36,13 +36,22 @@ SequenceLootEntry::SequenceLootEntry(std::vector<std::unique_ptr<LootEntry>> chi
     : m_children(std::move(children))
 {}
 
+// ============================================================================
+// 公共方法
+// ============================================================================
+
 std::unique_ptr<LootEntry> SequenceLootEntry::clone() const
 {
+    // 深拷贝所有子条目
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;
+    clonedChildren.reserve(m_children.size());
     for (const auto& child : m_children) {
         clonedChildren.push_back(child->clone());
     }
+
     auto entry = std::make_unique<SequenceLootEntry>(std::move(clonedChildren));
+
+    // 拷贝条件和函数
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
     }
@@ -57,8 +66,13 @@ void SequenceLootEntry::addChild(std::unique_ptr<LootEntry> child)
     m_children.push_back(std::move(child));
 }
 
+// ============================================================================
+// 重写方法
+// ============================================================================
+
 void SequenceLootEntry::expand(LootContext& /*context*/, std::function<void(LootEntry&)> consumer) const
 {
+    // 序列条目直接将自身添加到候选列表
     consumer(*const_cast<SequenceLootEntry*>(this));
 }
 
@@ -70,7 +84,7 @@ bool SequenceLootEntry::generate(std::function<void(const ItemStack&)> consumer,
     }
 
     // 按顺序执行所有子条目，直到一个失败
-    for (auto& child : m_children) {
+    for (const auto& child : m_children) {
         if (!child->generate(consumer, context)) {
             return false;
         }

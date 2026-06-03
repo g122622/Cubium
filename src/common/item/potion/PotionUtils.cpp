@@ -22,14 +22,14 @@
  */
 
 #include "PotionUtils.hpp"
-#include "../../entity/effect/EffectInstance.hpp"
-#include "../../entity/effect/EffectType.hpp"
-#include "../../util/assert/AssertAll.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../Items.hpp"
-#include "../core/Item.hpp"
 #include "PotionRegistry.hpp"
 #include "Potions.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <optional>
 
 namespace mc {
@@ -472,7 +472,6 @@ u32 PotionUtils::getColor(const std::vector<entity::effect::EffectInstance>& eff
 u32 PotionUtils::getEffectColor(entity::effect::EffectType type)
 {
     // 返回各种效果的颜色 (RGB)
-    // 参考: net.minecraft.potion.Effect
     using namespace entity::effect;
     switch (type) {
         case EffectType::Speed:

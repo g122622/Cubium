@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "CopyNameFunction.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -46,7 +46,7 @@ public:
     explicit FillPlayerHeadFunction(CopyNameFunction::Source source);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "fill_player_head"; }
 
     [[nodiscard]] CopyNameFunction::Source getSource() const { return m_source; }

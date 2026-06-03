@@ -22,6 +22,8 @@
  */
 
 #include "ItemTag.hpp"
+
+#include "../../util/assert/AssertAll.hpp"
 #include "../core/Item.hpp"
 #include "../core/ItemStack.hpp"
 
@@ -34,12 +36,11 @@ ItemTag::ItemTag(ResourceLocation id)
 
 void ItemTag::add(const Item* item)
 {
-    if (item != nullptr) {
-        m_items.insert(item);
-    }
+    MC_ASSERT_RELEASE(item != nullptr);
+    m_items.insert(item);
 }
 
-bool ItemTag::contains(const Item* item) const
+bool ItemTag::contains(const Item* item) const noexcept
 {
     return m_items.find(item) != m_items.end();
 }

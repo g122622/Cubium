@@ -1,14 +1,36 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #pragma once
 
-#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
-#include "common/mod/bedrock/addon/core/ScriptException.hpp"
 #include "common/mod/bedrock/addon/core/Capabilities.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/core/Privilege.hpp"
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
+#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace mc::mod::bedrock::addon {
 
@@ -17,11 +39,14 @@ class IScriptContext;
 
 /**
  * @brief 上下文配置
+ *
+ * TODO: 结构体成员的默认值违反项目规范，应移除默认值并在所有调用方显式传入。
+ *       由于修改会影响多个调用方，暂时保留默认值。
  */
 struct ContextConfig {
     Capabilities capabilities;
     std::optional<Privilege> privilege;
-    u32 maxMemoryBytes = 64 * 1024 * 1024; // 默认64MB内存限制
+    u32 maxMemoryBytes = 64 * 1024 * 1024;   // 默认64MB内存限制
     u32 maxStackSizeBytes = 4 * 1024 * 1024; // 默认4MB栈限制
 };
 
@@ -29,10 +54,10 @@ struct ContextConfig {
  * @brief 运行时统计信息
  */
 struct RuntimeStats {
-    u64 heapSize = 0;           // 堆大小（字节）
-    u64 heapLimit = 0;          // 堆限制（字节）
-    u32 contextCount = 0;       // 活跃上下文数量
-    u32 pendingJobsCount = 0;   // 待处理任务数量
+    u64 heapSize = 0;         // 堆大小（字节）
+    u64 heapLimit = 0;        // 堆限制（字节）
+    u32 contextCount = 0;     // 活跃上下文数量
+    u32 pendingJobsCount = 0; // 待处理任务数量
 };
 
 /**

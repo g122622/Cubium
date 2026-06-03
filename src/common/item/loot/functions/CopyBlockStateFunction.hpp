@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -38,8 +38,6 @@ namespace loot {
  * @brief 复制方块状态函数
  *
  * 从被破坏的方块复制状态属性到物品。
- * 参考: net.minecraft.loot.functions.CopyBlockState
- *
  * 用于保留方块的某些状态属性（如容器的朝向）。
  */
 class CopyBlockStateFunction : public LootFunction {

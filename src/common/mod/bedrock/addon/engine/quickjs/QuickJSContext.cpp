@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSBindingContext.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
@@ -42,6 +65,65 @@ QuickJSContext::~QuickJSContext()
     }
 }
 
+QuickJSContext::QuickJSContext(QuickJSContext&& other) noexcept
+    : m_runtime(other.m_runtime)
+    , m_config(std::move(other.m_config))
+    , m_context(other.m_context)
+    , m_valid(other.m_valid)
+    , m_moduleName(std::move(other.m_moduleName))
+    , m_globalFunctions(std::move(other.m_globalFunctions))
+    , m_bindingContext(std::move(other.m_bindingContext))
+{
+    // 更新全局回调注册表中的指针
+    {
+        std::lock_guard<std::mutex> lock(s_callbackMutex);
+        auto it = s_globalCallbackRegistry.find(&other);
+        if (it != s_globalCallbackRegistry.end()) {
+            s_globalCallbackRegistry[this] = std::move(it->second);
+            s_globalCallbackRegistry.erase(it);
+        }
+    }
+
+    other.m_context = nullptr;
+    other.m_valid = false;
+}
+
+QuickJSContext& QuickJSContext::operator=(QuickJSContext&& other) noexcept
+{
+    if (this != &other) {
+        // 清理当前资源
+        {
+            std::lock_guard<std::mutex> lock(s_callbackMutex);
+            s_globalCallbackRegistry.erase(this);
+        }
+        if (m_context) {
+            JS_FreeContext(m_context);
+        }
+
+        // 移动资源
+        m_config = std::move(other.m_config);
+        m_context = other.m_context;
+        m_valid = other.m_valid;
+        m_moduleName = std::move(other.m_moduleName);
+        m_globalFunctions = std::move(other.m_globalFunctions);
+        m_bindingContext = std::move(other.m_bindingContext);
+
+        // 更新全局回调注册表中的指针
+        {
+            std::lock_guard<std::mutex> lock(s_callbackMutex);
+            auto it = s_globalCallbackRegistry.find(&other);
+            if (it != s_globalCallbackRegistry.end()) {
+                s_globalCallbackRegistry[this] = std::move(it->second);
+                s_globalCallbackRegistry.erase(it);
+            }
+        }
+
+        other.m_context = nullptr;
+        other.m_valid = false;
+    }
+    return *this;
+}
+
 bool QuickJSContext::initialize()
 {
     JSRuntime* rt = m_runtime.nativeRuntime();
@@ -70,7 +152,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
         return ScriptResult::error("Context is not valid");
     }
 
-    int evalFlags = JS_EVAL_TYPE_GLOBAL;
+    i32 evalFlags = JS_EVAL_TYPE_GLOBAL;
     if (flags & EvalFlags::Strict) {
         evalFlags |= JS_EVAL_FLAG_STRICT;
     }
@@ -82,10 +164,10 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
 
     if (JS_IsException(val)) {
         JS_FreeValue(m_context, val);
-        return exceptionToResult();
+        return _exceptionToResult();
     }
 
-    ScriptValue result = jsValueToScriptValue(val);
+    ScriptValue result = _jsValueToScriptValue(val);
     JS_FreeValue(m_context, val);
     return ScriptResult::ok(std::move(result));
 }
@@ -126,7 +208,7 @@ ScriptResult QuickJSContext::callFunction(const std::string& name, const std::ve
     }
 
     // 调用函数
-    JSValue result = JS_Call(m_context, func, JS_UNDEFINED, static_cast<int>(jsArgs.size()), jsArgs.data());
+    JSValue result = JS_Call(m_context, func, JS_UNDEFINED, static_cast<i32>(jsArgs.size()), jsArgs.data());
 
     // 释放参数
     for (auto& arg : jsArgs) {
@@ -179,11 +261,11 @@ namespace {
  *
  * 用于全局函数回调分发器中。
  */
-std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, int argc, JSValueConst* argv)
+std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, i32 argc, JSValueConst* argv)
 {
     std::vector<ScriptValue> scriptArgs;
     scriptArgs.reserve(argc);
-    for (int i = 0; i < argc; ++i) {
+    for (i32 i = 0; i < argc; ++i) {
         if (JS_IsUndefined(argv[i]) || JS_IsUninitialized(argv[i])) {
             scriptArgs.emplace_back();
         } else if (JS_IsNull(argv[i])) {

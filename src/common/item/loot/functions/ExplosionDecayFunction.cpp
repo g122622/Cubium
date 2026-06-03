@@ -22,11 +22,11 @@
  */
 
 #include "ExplosionDecayFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 
 namespace mc {
 namespace loot {
@@ -37,8 +37,7 @@ ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // MC 1.16.5: Each item has a 1/explosionRadius chance of being kept.
-    // If no explosion info is present, default to radius 1.0 (100% kept).
+    // 获取爆炸半径参数，如果没有则默认为 1.0（100% 保留）
     f32 explosionRadius = 1.0f;
     auto* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
     if (radiusParam != nullptr && *radiusParam > 0.0f) {

@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include <spdlog/spdlog.h>
 
@@ -13,16 +35,16 @@ void BlockComponentRegistry::registerComponent(const std::string& blockTypeId, B
 {
     // 验证组件名称包含命名空间前缀
     if (component.name.find(':') == std::string::npos) {
-        spdlog::warn("BlockComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式",
-                      component.name);
+        spdlog::warn(
+            "BlockComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式", component.name);
     }
 
     std::unique_lock lock(m_mutex);
     m_components[blockTypeId].push_back(std::move(component));
-    updateCallbackFlags(blockTypeId);
+    _updateCallbackFlags(blockTypeId);
 
-    spdlog::info("BlockComponentRegistry: 已注册方块组件'{}'到'{}'",
-                 m_components[blockTypeId].back().name, blockTypeId);
+    spdlog::info(
+        "BlockComponentRegistry: 已注册方块组件'{}'到'{}'", m_components[blockTypeId].back().name, blockTypeId);
 }
 
 size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeId, const std::string& componentName)
@@ -36,9 +58,9 @@ size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeI
 
     auto& components = it->second;
     auto originalSize = components.size();
-    components.erase(
-        std::remove_if(components.begin(), components.end(),
-            [&componentName](const BlockCustomComponent& c) { return c.name == componentName; }),
+    components.erase(std::remove_if(components.begin(),
+                         components.end(),
+                         [&componentName](const BlockCustomComponent& c) { return c.name == componentName; }),
         components.end());
 
     auto removed = originalSize - components.size();
@@ -46,7 +68,7 @@ size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeI
         m_components.erase(it);
         m_callbackFlags.erase(blockTypeId);
     } else {
-        updateCallbackFlags(blockTypeId);
+        _updateCallbackFlags(blockTypeId);
     }
 
     return removed;
@@ -244,7 +266,8 @@ bool BlockComponentRegistry::dispatchPlayerBreak(const std::string& blockTypeId,
     return dispatched;
 }
 
-bool BlockComponentRegistry::dispatchPlayerInteract(const std::string& blockTypeId, BlockComponentPlayerInteractEvent& event)
+bool BlockComponentRegistry::dispatchPlayerInteract(
+    const std::string& blockTypeId, BlockComponentPlayerInteractEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(blockTypeId);
@@ -262,7 +285,8 @@ bool BlockComponentRegistry::dispatchPlayerInteract(const std::string& blockType
     return dispatched;
 }
 
-bool BlockComponentRegistry::dispatchPlayerPlaceBefore(const std::string& blockTypeId, BlockComponentPlayerPlaceBeforeEvent& event)
+bool BlockComponentRegistry::dispatchPlayerPlaceBefore(
+    const std::string& blockTypeId, BlockComponentPlayerPlaceBeforeEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(blockTypeId);
@@ -281,7 +305,8 @@ bool BlockComponentRegistry::dispatchPlayerPlaceBefore(const std::string& blockT
     return dispatched && event.cancel;
 }
 
-bool BlockComponentRegistry::dispatchEntityFallOn(const std::string& blockTypeId, BlockComponentEntityFallOnEvent& event)
+bool BlockComponentRegistry::dispatchEntityFallOn(
+    const std::string& blockTypeId, BlockComponentEntityFallOnEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(blockTypeId);
@@ -335,7 +360,8 @@ bool BlockComponentRegistry::dispatchTick(const std::string& blockTypeId, BlockC
     return dispatched;
 }
 
-bool BlockComponentRegistry::dispatchRedstoneUpdate(const std::string& blockTypeId, BlockComponentRedstoneUpdateEvent& event)
+bool BlockComponentRegistry::dispatchRedstoneUpdate(
+    const std::string& blockTypeId, BlockComponentRedstoneUpdateEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(blockTypeId);
@@ -371,7 +397,8 @@ bool BlockComponentRegistry::dispatchEntity(const std::string& blockTypeId, Bloc
     return dispatched;
 }
 
-bool BlockComponentRegistry::dispatchBlockStateChange(const std::string& blockTypeId, BlockComponentBlockStateChangeEvent& event)
+bool BlockComponentRegistry::dispatchBlockStateChange(
+    const std::string& blockTypeId, BlockComponentBlockStateChangeEvent& event)
 {
     std::shared_lock lock(m_mutex);
     auto it = m_components.find(blockTypeId);
@@ -409,7 +436,7 @@ size_t BlockComponentRegistry::componentCount(const std::string& blockTypeId) co
     return it != m_components.end() ? it->second.size() : 0;
 }
 
-void BlockComponentRegistry::updateCallbackFlags(const std::string& blockTypeId)
+void BlockComponentRegistry::_updateCallbackFlags(const std::string& blockTypeId)
 {
     auto it = m_components.find(blockTypeId);
     if (it == m_components.end()) {

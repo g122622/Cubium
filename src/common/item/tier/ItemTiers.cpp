@@ -22,10 +22,10 @@
  */
 
 #include "ItemTiers.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../Items.hpp"
-#include "../core/ItemRegistry.hpp"
-#include "../crafting/Ingredient.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 namespace item {
@@ -110,7 +110,6 @@ void ItemTiers::initialize()
         woodRepair);
 
     // 石制工具 - 使用圆石或黑石修复
-    // MC 1.16.5 使用 stone_tool_materials 标签 (COBBLESTONE + BLACKSTONE)
     // 黑石在 BlockItemRegistry 中注册，通过 ItemRegistry 查找
     Item* blackstoneItem = ItemRegistry::instance().getItem(ResourceLocation("minecraft:blackstone"));
     if (blackstoneItem) {

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -45,10 +45,10 @@ public:
      * @param min 最小数量（-1 表示无下限）
      * @param max 最大数量（-1 表示无上限）
      */
-    explicit LimitCountFunction(i32 min = -1, i32 max = -1);
+    explicit LimitCountFunction(i32 min, i32 max);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "limit_count"; }
 
     [[nodiscard]] i32 getMin() const { return m_min; }

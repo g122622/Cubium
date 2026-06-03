@@ -24,8 +24,11 @@
 #pragma once
 
 #include <memory>
-#include "LootTable.hpp"
+#include <string>
 #include <unordered_map>
+#include <vector>
+
+#include "LootTable.hpp"
 
 namespace mc {
 namespace loot {
@@ -34,7 +37,6 @@ namespace loot {
  * @brief 掉落表管理器
  *
  * 管理所有注册的掉落表。
- * 参考: net.minecraft.loot.LootTableManager
  */
 class LootTableManager {
 public:
@@ -44,6 +46,10 @@ public:
     // 禁止拷贝
     LootTableManager(const LootTableManager&) = delete;
     LootTableManager& operator=(const LootTableManager&) = delete;
+
+    // 允许移动
+    LootTableManager(LootTableManager&&) noexcept = default;
+    LootTableManager& operator=(LootTableManager&&) noexcept = default;
 
     // ========== 表管理 ==========
 

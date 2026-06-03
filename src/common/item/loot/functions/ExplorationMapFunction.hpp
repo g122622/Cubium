@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/map/MapDecoration.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -67,13 +67,15 @@ public:
      * @param destination 目的地类型
      * @param zoom 地图缩放级别（默认2）
      * @param skipKnownStructures 是否跳过已发现的结构（默认true）
+     *
+     * TODO: 移除默认参数值，改为在调用处显式传参（需同步修改 LootFunctionBuilder）
      */
     explicit ExplorationMapFunction(
         Destination destination = Destination::BuriedTreasure, i32 zoom = 2, bool skipKnownStructures = true);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "exploration_map"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "exploration_map"; }
 
     [[nodiscard]] Destination getDestination() const { return m_destination; }
     [[nodiscard]] i32 getZoom() const { return m_zoom; }

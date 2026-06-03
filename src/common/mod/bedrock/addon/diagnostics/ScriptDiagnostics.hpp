@@ -39,6 +39,14 @@ public:
     ScriptDiagnostics() = default;
     ~ScriptDiagnostics() = default;
 
+    // 拷贝操作
+    ScriptDiagnostics(const ScriptDiagnostics&) = default;
+    ScriptDiagnostics& operator=(const ScriptDiagnostics&) = default;
+
+    // 移动操作
+    ScriptDiagnostics(ScriptDiagnostics&&) noexcept = default;
+    ScriptDiagnostics& operator=(ScriptDiagnostics&&) noexcept = default;
+
     /**
      * @brief 记录诊断信息
      */

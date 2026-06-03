@@ -28,10 +28,8 @@
 #include "common/resource/PackType.hpp"
 #include <filesystem>
 #include <fstream>
-#include <map>
 #include <sstream>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -42,7 +40,7 @@ LootTableLoader::LootTableLoader(LootTableManager& manager)
     : m_manager(manager)
 {}
 
-void LootTableLoader::clearIfNeeded()
+void LootTableLoader::_clearIfNeeded()
 {
     if (m_clearBeforeLoad) {
         m_manager.clear();
@@ -55,7 +53,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
     MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromResourcePacks");
 
     m_lastResult = LoadResult{};
-    clearIfNeeded();
+    _clearIfNeeded();
 
     auto listResult = packs.listResources(resource::PackType::ServerData, "", ".json");
     if (!listResult.success()) {
@@ -70,8 +68,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
         lootTableResources.push_back(path);
     }
 
-    size_t current = 0;
-    const size_t total = lootTableResources.size();
+    Size current = 0;
+    const Size total = lootTableResources.size();
     for (const auto& resourcePath : lootTableResources) {
         const std::string id = pathToLootTableId(resourcePath);
         if (callback) {
@@ -109,7 +107,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackList(
     MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromDataPackList");
 
     m_lastResult = LoadResult{};
-    clearIfNeeded();
+    _clearIfNeeded();
 
     auto listResult = dataPacks.listResources("", ".json");
     if (!listResult.success()) {
@@ -124,8 +122,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackList(
         lootTableResources.push_back(path);
     }
 
-    size_t current = 0;
-    const size_t total = lootTableResources.size();
+    Size current = 0;
+    const Size total = lootTableResources.size();
     for (const auto& resourcePath : lootTableResources) {
         const std::string id = pathToLootTableId(resourcePath);
         if (callback) {
@@ -167,7 +165,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
     }
 
     m_lastResult = LoadResult{};
-    clearIfNeeded();
+    _clearIfNeeded();
 
     // 收集所有 .json 文件
     std::vector<fs::path> jsonFiles;
@@ -182,8 +180,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
         return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + std::string(e.what()));
     }
 
-    size_t total = jsonFiles.size();
-    size_t current = 0;
+    Size total = jsonFiles.size();
+    Size current = 0;
 
     for (const auto& filePath : jsonFiles) {
         std::string id = pathToLootTableId(filePath.generic_string());
@@ -271,8 +269,8 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
     std::string genericPath = path.generic_string();
 
     // 查找 "loot_tables" 的位置
-    size_t lootTablesPos = genericPath.find("/loot_tables/");
-    size_t lootTablesTokenSize = std::string("/loot_tables/").size();
+    Size lootTablesPos = genericPath.find("/loot_tables/");
+    Size lootTablesTokenSize = std::string("/loot_tables/").size();
     if (lootTablesPos == std::string::npos) {
         lootTablesPos = genericPath.find("loot_tables/");
         lootTablesTokenSize = std::string("loot_tables/").size();
@@ -287,8 +285,8 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
         }
         if (dataPos != std::string::npos) {
             // 旧格式：data/<namespace>/loot_tables/...
-            size_t namespaceStart = dataPos == 0 ? 5 : dataPos + 6; // 跳过 "data/" 或 "/data/"
-            size_t namespaceEnd = lootTablesPos;
+            Size namespaceStart = dataPos == 0 ? 5 : dataPos + 6; // 跳过 "data/" 或 "/data/"
+            Size namespaceEnd = lootTablesPos;
             namespaceStr = genericPath.substr(namespaceStart, namespaceEnd - namespaceStart);
         } else if (lootTablesPos > 0 && genericPath[lootTablesPos] == '/') {
             // 新格式：<namespace>/loot_tables/...（相对于类型目录根）
@@ -299,7 +297,7 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
         }
 
         // 从 loot_tables/ 后面提取路径（不含 .json 扩展名）
-        size_t pathStart = lootTablesPos + lootTablesTokenSize;
+        Size pathStart = lootTablesPos + lootTablesTokenSize;
         relativePath = genericPath.substr(pathStart);
 
         // 去掉 .json 扩展名
