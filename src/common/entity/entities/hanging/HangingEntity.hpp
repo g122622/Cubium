@@ -24,11 +24,12 @@
 #pragma once
 
 #include <memory>
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../core/Entity.hpp"
 #include <string>
+
+#include "common/entity/core/Entity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -41,9 +42,7 @@ namespace entity {
 /**
  * @brief 悬挂实体基类
  *
- * 可以挂在墙上的实体（画、物品展示框、 leash knot）。
- *
- * 参考 MC 1.16.5 AbstractDecorationEntity
+ * 可以挂在墙上的实体（画、物品展示框、拴绳结）。
  */
 class HangingEntity : public Entity {
 public:
@@ -125,8 +124,6 @@ protected:
  *
  * 可以挂在墙上的装饰画。
  * 有多种尺寸。
- *
- * 参考 MC 1.16.5 PaintingEntity
  */
 class PaintingEntity : public HangingEntity {
 public:
@@ -173,8 +170,6 @@ private:
  * - 可以输出红石比较器信号（1-8，取决于物品旋转角度）
  * - 无物品时输出 0
  * - 有物品时输出 rotation % 8 + 1
- *
- * 参考 MC 1.16.5 ItemFrameEntity
  */
 class ItemFrameEntity : public HangingEntity {
 public:
@@ -231,9 +226,8 @@ public:
     /**
      * @brief 获取红石比较器模拟输出信号
      *
-     * MC 1.16.5: getAnalogOutput()
-     * - 无物品: 返回 0
-     * - 有物品: 返回 rotation % 8 + 1（范围 1-8）
+     * 无物品: 返回 0
+     * 有物品: 返回 rotation % 8 + 1（范围 1-8）
      *
      * @return 红石信号强度（0-8）
      */
@@ -242,7 +236,6 @@ public:
     /**
      * @brief 获取水平朝向（MC 方向）
      *
-     * MC 1.16.5: getHorizontalFacing()
      * 用于红石比较器检测物品展示框朝向。
      *
      * @return mc::Direction 水平朝向
@@ -265,8 +258,6 @@ private:
  * @brief 拴绳结实体
  *
  * 多条拴绳连接的点。
- *
- * 参考 MC 1.16.5 LeashKnotEntity
  */
 class LeashKnotEntity : public HangingEntity {
 public:

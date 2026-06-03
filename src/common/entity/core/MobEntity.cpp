@@ -61,12 +61,10 @@ MobEntity::~MobEntity() = default;
 
 void MobEntity::registerAttributes()
 {
-    // MC 1.16.5 MobEntity.func_233666_p_()
     // 在 LivingEntity 基础上注册和设置属性
     LivingEntity::registerAttributes();
 
-    // 注册并设置跟随范围
-    // MC 1.16.5: MobEntity 注册 FOLLOW_RANGE 并设置默认值为 16.0
+    // 注册并设置跟随范围，默认值为 16.0
     m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
@@ -169,7 +167,7 @@ void MobEntity::tick()
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
     LivingEntity::tick();
 
-    // MC 1.16.5: 空闲时间在 tick 开头递增
+    // 空闲时间在 tick 开头递增
     ++m_idleTime;
 
     // 环境声音检查
@@ -181,7 +179,7 @@ void MobEntity::tick()
         }
     }
 
-    // MC 1.16.5 updateEntityActionState() 顺序:
+    // updateEntityActionState() 顺序:
     // 1. 感知更新
     if (m_senses) {
         m_senses->tick();
@@ -201,7 +199,7 @@ void MobEntity::tick()
         // 5. AI 任务更新 (子类可重写)
         updateAITasks();
 
-        // MC 1.16.5: 每 5 tick 更新移动目标标志
+        // 每 5 tick 更新移动目标标志
         if (m_ticksExisted % 5 == 0) {
             updateMovementGoalFlags();
         }
@@ -223,7 +221,7 @@ void MobEntity::tick()
 
 void MobEntity::updateMovementGoalFlags()
 {
-    // MC 1.16.5: 根据骑乘状态更新目标标志
+    // 根据骑乘状态更新目标标志
     // 如果被骑乘，禁用 MOVE/JUMP/LOOK 标志
     bool canMove = !isBeingRidden();
 
@@ -254,7 +252,6 @@ void MobEntity::dropExperience()
 
 bool MobEntity::isInDaylight() const
 {
-    // MC 1.16.5 MobEntity.isInDaylight()
     // 检查条件：
     // 1. 世界为白天 (isDaytime)
     // 2. 不在客户端
@@ -266,19 +263,17 @@ bool MobEntity::isInDaylight() const
         return false;
     }
 
-    // MC 1.16.5: world.isDaytime()
     // dayTime < 12000 为白天
     if (!m_world->isDaytime()) {
         return false;
     }
 
-    // MC 1.16.5: getBrightness() > 0.5F
+    // getBrightness() > 0.5F
     f32 brightness = getBrightness();
     if (brightness <= 0.5f) {
         return false;
     }
 
-    // MC 1.16.5: rand.nextFloat() * 30.0F < (brightness - 0.4F) * 2.0F
     // 随机检查，亮度越高越容易触发
     math::Random rng = getRandom();
     f32 randomCheck = rng.nextFloat() * 30.0f;
@@ -287,12 +282,12 @@ bool MobEntity::isInDaylight() const
         return false;
     }
 
-    // MC 1.16.5: 获取检测位置
+    // 获取检测位置
     // 如果骑乘船，检测位置向上偏移一格
     BlockPos pos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::round(y())), static_cast<i32>(std::floor(z())));
 
-    // MC 1.16.5: 如果实体骑乘船，检测位置向上偏移一格
+    // 如果实体骑乘船，检测位置向上偏移一格
     // 原因：船在水面上，生物坐在船中位置较低，需要向上偏移才能正确检测天空可见性
     if (isRiding()) {
         EntityId vehicleId = getVehicle();
@@ -304,14 +299,11 @@ bool MobEntity::isInDaylight() const
         }
     }
 
-    // MC 1.16.5: world.canSeeSky(blockpos)
     return m_world->canSeeSky(pos);
 }
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // MC 1.16.5 MobEntity.attackEntityAsMob()
-
     // 1. 获取攻击伤害属性
     f32 attackDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
 
@@ -336,7 +328,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         }
     }
 
-    // 4. 火焰附加（在攻击前应用，MC 1.16.5 逻辑）
+    // 4. 火焰附加（在攻击前应用）
     i32 fireAspectLevel = 0;
     if (!mainHand.isEmpty()) {
         fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
@@ -347,7 +339,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
-    // MC 1.16.5: setFire 接收 ticks，1 秒 = 20 ticks
+    // setFire 接收 ticks，1 秒 = 20 ticks
     if (fireAspectLevel > 0) {
         target.setFire(20); // 1 秒 = 20 ticks
     }
@@ -372,7 +364,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
                     (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
 
                 if (knockbackStrength > 0.0f) {
-                    // MC 1.16.5 LivingEntity.applyKnockback()
+                    // LivingEntity.applyKnockback()
                     Vector3 velocity = target.velocity();
 
                     f64 knockbackX = ratioX * static_cast<f64>(knockbackStrength);
@@ -396,7 +388,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
 
         // 7. 应用火焰附加（攻击后应用完整燃烧时间）
         if (fireAspectLevel > 0) {
-            // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
+            // 火焰附加持续时间 = level * 4 秒
             target.setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
         }
 
@@ -407,7 +399,6 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         playAttackSound(target);
 
         // 10. 设置攻击者的速度（击退反作用）
-        // MC 1.16.5: this.setMotion(this.getMotion().mul(0.6D, 1.0D, 0.6D));
         setVelocity(velocity().x * 0.6f, velocity().y, velocity().z * 0.6f);
     }
 
@@ -418,7 +409,6 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
 
 ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
 {
-    // MC 1.16.5: MobEntity.processInitialInteract()
     if (!isAlive()) {
         return ActionResultType::Pass;
     }
@@ -439,7 +429,6 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
 
 ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 {
-    // MC 1.16.5: MobEntity.func_230254_b_()
     // 基类默认返回 Pass，子类可重写以处理特定交互
     return ActionResultType::Pass;
 }
@@ -454,8 +443,6 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 
     // 先调用基类实现
     LivingEntity::addAdditionalSaveData(tag);
-
-    // MC 1.16.5: MobEntity.writeAdditional()
 
     // PersistenceRequired (byte) - 是否需要持久化
     tag.put(nbt_keys::PERSISTENCE_REQUIRED, static_cast<i8>(m_persistenceRequired ? 1 : 0));
@@ -482,8 +469,6 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
 
     // 先调用基类实现
     MC_TRY(LivingEntity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: MobEntity.readAdditional()
 
     // CanPickUpLoot (byte)
     // TODO: 实现 canPickUpLoot setter

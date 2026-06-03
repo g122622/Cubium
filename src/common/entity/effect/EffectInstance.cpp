@@ -22,9 +22,9 @@
  */
 
 #include "EffectInstance.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../entities/player/Player.hpp"
 #include "EffectAttributeModifiers.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
@@ -109,7 +109,7 @@ bool EffectInstance::tick(LivingEntity& entity)
     }
 
     // 每tick执行效果逻辑
-    applyEffect(entity);
+    _applyEffect(entity);
 
     return true;
 }
@@ -190,7 +190,7 @@ void EffectInstance::remove(LivingEntity& entity)
     m_applied = false;
 }
 
-void EffectInstance::applyEffect(LivingEntity& entity)
+void EffectInstance::_applyEffect(LivingEntity& entity)
 {
     // 根据效果类型执行每tick逻辑
     switch (m_type) {
@@ -231,8 +231,7 @@ void EffectInstance::applyEffect(LivingEntity& entity)
         }
 
         case EffectType::Hunger: {
-            // MC 1.16.5: 每tick增加饥饿消耗
-            // 参考 EffectInstance.performEffect() 第455-459行
+            // 每tick增加饥饿消耗
             // exhaustion += 0.005F * (amplifier + 1)
             if (auto* player = dynamic_cast<Player*>(&entity)) {
                 player->addExhaustion(0.005f * static_cast<f32>(m_amplifier + 1));

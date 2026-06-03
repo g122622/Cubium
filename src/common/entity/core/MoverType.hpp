@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "core/Types.hpp"
 
 namespace mc::entity {
 
@@ -35,8 +35,6 @@ using mc::u8;
  *
  * 标识实体移动的来源，用于区分不同类型的移动事件。
  * 例如：活塞推动、玩家推动、自身移动等。
- *
- * 参考 MC 1.16.5 MoverType
  */
 enum class MoverType : u8 {
     Self = 0,       // 自身移动（AI、行走等）
@@ -51,7 +49,7 @@ enum class MoverType : u8 {
  * @param type 移动类型
  * @return 名称字符串
  */
-inline const char* getMoverTypeName(MoverType type)
+inline const char* getMoverTypeName(MoverType type) noexcept
 {
     switch (type) {
         case MoverType::Self:

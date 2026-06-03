@@ -51,9 +51,6 @@ IllusionerEntity::IllusionerEntity(EntityId id)
 {
     registerGoals();
     registerAttributes();
-
-    // MC 1.16.5: 幻术师生成时手持弓
-    // 在 onInitialSpawn 中设置
 }
 
 std::unique_ptr<Entity> IllusionerEntity::create(IWorld* /*world*/)
@@ -67,9 +64,6 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
         return;
     }
 
-    // MC 1.16.5: 幻术师使用弓发射箭矢
-    // 参考 IllusionerEntity.attackEntityWithRangedAttack()
-
     // 创建箭矢实体
     auto arrow = entity::ArrowEntity::createFromShooter(*this, world());
     if (arrow == nullptr) {
@@ -77,18 +71,12 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
     }
 
     // 计算发射方向
-    // MC 1.16.5: d0 = target.getPosX() - this.getPosX()
-    //           d1 = target.getPosYHeight(0.3333333333333333D) - abstractarrowentity.getPosY()
-    //           d2 = target.getPosZ() - this.getPosZ()
-    //           d3 = MathHelper.sqrt(d0 * d0 + d2 * d2)
-    //           abstractarrowentity.shoot(d0, d1 + d3 * 0.20000000298023224D, d2, 1.6F, 14 - world.difficulty * 4)
     f64 dx = target->x() - x();
     f64 dy = (target->y() + target->height() * 0.333) - (arrow->y());
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
     // 计算不精确度
-    // MC 1.16.5: 14 - difficulty * 4
     i32 difficulty = static_cast<i32>(world()->difficulty());
     f32 inaccuracy = static_cast<f32>(14 - difficulty * 4);
 
@@ -103,8 +91,6 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
         inaccuracy);
 
     // 播放射箭音效
-    // MC 1.16.5: this.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.getRNG().nextFloat() * 0.4F +
-    // 0.8F))
     math::Random rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
@@ -131,13 +117,11 @@ void IllusionerEntity::registerGoals()
     // 调用父类方法
     SpellcastingIllagerEntity::registerGoals();
 
-    // MC 1.16.5 IllusionerEntity.registerGoals()
     // 行为目标选择器 (goalSelector)
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 施法时看向目标（父类已注册 CastingSpellGoal）
-    // 注: SpellcastingIllagerEntity.CastingASpellGoal 已在父类注册
 
     // 优先级 4: 镜像法术（隐身）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::IllusionerMirrorSpellGoal>(this));
@@ -146,7 +130,6 @@ void IllusionerEntity::registerGoals()
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::IllusionerBlindnessSpellGoal>(this));
 
     // 优先级 6: 弓箭远程攻击
-    // MC 1.16.5: new RangedBowAttackGoal<>(this, 0.5D, 20, 15.0F)
     // 参数：移动速度 0.5，攻击间隔 20 ticks
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::RangedBowAttackGoal>(this, 0.5, 20, 20));
 
@@ -170,8 +153,6 @@ void IllusionerEntity::registerGoals()
 
     // 目标选择器 (targetSelector)
     // 优先级 1: 被攻击后反击并呼叫支援
-    // MC 1.16.5: new HurtByTargetGoal(this, AbstractRaiderEntity.class).setCallsForHelp()
-    // 灾厄村民互相支援
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 2: 攻击玩家（300 ticks 未见记忆）
@@ -192,7 +173,7 @@ void IllusionerEntity::registerAttributes()
 {
     SpellcastingIllagerEntity::registerAttributes();
 
-    // MC 1.16.5 幻术师属性
+    // 幻术师属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 32.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0);

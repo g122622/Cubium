@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../world/chunk/IChunk.hpp" // 包含 HeightmapType
+#include "core/Types.hpp"
+#include "util/math/Vector3.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/chunk/IChunk.hpp"
 #include <functional>
 #include <unordered_map>
 
@@ -48,8 +48,6 @@ namespace world::spawn {
  *
  * 定义实体生成的各种原因，用于决定生成规则和实体初始化行为。
  * 不同生成原因可能影响实体的初始状态和行为。
- *
- * 参考 MC 1.16.5 net.minecraft.entity.SpawnReason
  */
 enum class SpawnReason : u8 {
     /// 自然生成 - 常规的自然刷新生成
@@ -178,8 +176,6 @@ enum class SpawnReason : u8 {
  * @brief 实体生成放置类型
  *
  * 定义实体生成时需要的环境条件类型。
- *
- * 参考 MC 1.16.5 EntitySpawnPlacementRegistry.PlacementType
  */
 enum class PlacementType : u8 {
     /// 在地面上生成（需要固体方块支撑）
@@ -230,8 +226,6 @@ public:
  *
  * 管理每种实体类型的生成规则和放置条件。
  * 在区块生成和自然生成时用于验证生成位置。
- *
- * 参考 MC 1.16.5 EntitySpawnPlacementRegistry
  *
  * 使用方式：
  * @code
@@ -329,8 +323,6 @@ public:
      * @param pos 生成位置
      * @param entityTypeId 实体类型ID
      * @return 是否可以生成
-     *
-     * 参考 MC 1.16.5 canCreatureTypeSpawnAtLocation
      */
     [[nodiscard]] static bool canSpawnAtLocation(PlacementType placementType,
         const ISpawnWorldReader& world,
@@ -348,8 +340,6 @@ public:
      * @param pos 生成位置
      * @param random 随机数生成器
      * @return 是否可以生成
-     *
-     * 参考 MC 1.16.5 EntitySpawnPlacementRegistry.canSpawnEntity
      */
     [[nodiscard]] static bool canSpawnEntity(const std::string& entityTypeId,
         ISpawnWorldReader& world,
@@ -423,7 +413,7 @@ private:
      * @param entityTypeId 实体类型ID
      * @return 是否允许生成
      */
-    [[nodiscard]] static bool isValidSpawnBlock(
+    [[nodiscard]] static bool _isValidSpawnBlock(
         const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
 
     /**
@@ -434,7 +424,7 @@ private:
      * @param state 方块状态
      * @return 是否阻止生成
      */
-    [[nodiscard]] static bool blockPreventsSpawn(const BlockState* state);
+    [[nodiscard]] static bool _blockPreventsSpawn(const BlockState* state);
 };
 
 } // namespace world::spawn

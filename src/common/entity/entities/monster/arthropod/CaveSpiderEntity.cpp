@@ -49,7 +49,6 @@ void CaveSpiderEntity::registerAttributes()
     SpiderEntity::registerAttributes();
 
     // 洞穴蜘蛛的属性
-    // 参考 MC 1.16.5 洞穴蜘蛛属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
@@ -57,35 +56,31 @@ void CaveSpiderEntity::registerAttributes()
 
 bool CaveSpiderEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // MC 1.16.5 CaveSpiderEntity.attackEntityAsMob()
     // 首先调用父类方法执行基础攻击
     if (!SpiderEntity::attackEntityAsMob(target)) {
         return false;
     }
 
     // 根据难度应用中毒效果
-    if (m_world != nullptr) {
-        Difficulty difficulty = m_world->difficulty();
+    Difficulty difficulty = m_world->difficulty();
 
-        // MC 1.16.5: 简单难度无中毒，普通难度7秒，困难难度15秒
-        i32 poisonDuration = 0;
-        if (difficulty == Difficulty::Normal) {
-            poisonDuration = 7; // 7秒
-        } else if (difficulty == Difficulty::Hard) {
-            poisonDuration = 15; // 15秒
-        }
+    // 简单难度无中毒，普通难度7秒，困难难度15秒
+    i32 poisonDuration = 0;
+    if (difficulty == Difficulty::Normal) {
+        poisonDuration = 7;
+    } else if (difficulty == Difficulty::Hard) {
+        poisonDuration = 15;
+    }
 
-        if (poisonDuration > 0) {
-            // 应用中毒效果（等级0，持续时间以tick为单位）
-            // MC 1.16.5: EffectInstance(Effects.POISON, i * 20, 0)
-            target.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
-                poisonDuration * 20, // 转换为tick
-                0,                   // 等级0（中毒I）
-                false,               // 不是来自药水
-                true,                // 显示粒子
-                true                 // 显示图标
-                ));
-        }
+    if (poisonDuration > 0) {
+        // 应用中毒效果（等级0，持续时间以tick为单位）
+        target.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
+            poisonDuration * 20, // 转换为tick
+            0,                   // 等级0（中毒I）
+            false,               // 不是来自药水
+            true,                // 显示粒子
+            true                 // 显示图标
+            ));
     }
 
     return true;

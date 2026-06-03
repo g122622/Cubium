@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "AbstractIllagerEntity.hpp"
+#include <memory>
 
 // Forward declarations
 namespace mc {
@@ -47,8 +47,6 @@ namespace mc {
  * - 可以成为掠夺队长
  *
  * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity -> PillagerEntity
- *
- * 参考 MC 1.16.5 PillagerEntity
  */
 class PillagerEntity : public AbstractIllagerEntity, public entity::ICrossbowUser {
 public:
@@ -82,13 +80,11 @@ public:
 
     /**
      * @brief 获取实体宽度
-     * MC 1.16.5: 掠夺者宽度为 0.6
      */
     [[nodiscard]] f32 width() const override { return 0.6f; }
 
     /**
      * @brief 获取实体高度
-     * MC 1.16.5: 掠夺者高度为 1.95
      */
     [[nodiscard]] f32 height() const override { return 1.95f; }
 
@@ -134,8 +130,6 @@ private:
  * - "Johnny" 彩蛋：攻击所有生物
  *
  * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity -> VindicatorEntity
- *
- * 参考 MC 1.16.5 VindicatorEntity
  */
 class VindicatorEntity : public AbstractIllagerEntity {
 public:
@@ -175,13 +169,11 @@ public:
 
     /**
      * @brief 获取实体宽度
-     * MC 1.16.5: 卫道士宽度为 0.6
      */
     [[nodiscard]] f32 width() const override { return 0.6f; }
 
     /**
      * @brief 获取实体高度
-     * MC 1.16.5: 卫道士高度为 1.95
      */
     [[nodiscard]] f32 height() const override { return 1.95f; }
 

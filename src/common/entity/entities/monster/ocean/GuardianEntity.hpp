@@ -44,8 +44,6 @@ class DamageSource;
  * - 尖刺：被攻击时会伤害攻击者
  * - 游泳：在水中游泳
  * - 陆地挣扎：在陆地上会挣扎
- *
- * 参考 MC 1.16.5 GuardianEntity
  */
 class GuardianEntity : public MonsterEntity {
 public:

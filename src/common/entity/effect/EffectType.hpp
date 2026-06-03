@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
 
@@ -36,7 +36,6 @@ namespace effect {
  * @brief 效果类型枚举
  *
  * 定义所有状态效果类型。
- * 参考 MC 1.16.5 Effect
  */
 enum class EffectType : u8 {
     // 有益效果
@@ -80,17 +79,17 @@ enum class EffectType : u8 {
 /**
  * @brief 获取效果名称
  */
-[[nodiscard]] const char* getEffectName(EffectType type);
+[[nodiscard]] const char* getEffectName(EffectType type) noexcept;
 
 /**
  * @brief 检查效果是否有益
  */
-[[nodiscard]] bool isBeneficialEffect(EffectType type);
+[[nodiscard]] bool isBeneficialEffect(EffectType type) noexcept;
 
 /**
  * @brief 获取效果默认颜色
  */
-[[nodiscard]] u32 getEffectColor(EffectType type);
+[[nodiscard]] u32 getEffectColor(EffectType type) noexcept;
 
 /**
  * @brief 从数值ID获取效果类型

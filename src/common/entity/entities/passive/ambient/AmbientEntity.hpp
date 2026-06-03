@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../core/MobEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include <memory>
 
 namespace mc {
@@ -34,8 +34,6 @@ namespace mc {
  * @brief 环境生物基类
  *
  * 不主动与玩家交互的生物基类。
- *
- * 参考 MC 1.16.5 AmbientEntity
  */
 class AmbientEntity : public MobEntity {
 public:

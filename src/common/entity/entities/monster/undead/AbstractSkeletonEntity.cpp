@@ -44,12 +44,12 @@ namespace mc {
 AbstractSkeletonEntity::AbstractSkeletonEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 在构造函数中创建战斗目标（但不添加到选择器）
+    // 在构造函数中创建战斗目标（但不添加到选择器）
     // setCombatTask() 会在 onInitialSpawn() 或需要时被调用
     m_rangedAttackGoal = std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
         this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX);
 
-    // MC 1.16.5: 近战目标是一个匿名子类，在 startExecuting/resetTask 中设置 aggro 状态
+    // 近战目标是一个匿名子类，在 startExecuting/resetTask 中设置 aggro 状态
     // 当前简化实现，使用标准 MeleeAttackGoal
     m_meleeAttackGoal = std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false);
 }
@@ -58,7 +58,6 @@ AbstractSkeletonEntity::~AbstractSkeletonEntity() = default;
 
 void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
-    // MC 1.16.5 AbstractSkeletonEntity.attackEntityWithRangedAttack()
     if (target == nullptr || world() == nullptr) {
         return;
     }
@@ -69,40 +68,28 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     m_attackCooldown = ATTACK_COOLDOWN;
 
     // 创建箭矢实体
-    // MC 1.16.5: ItemStack itemstack = this.findAmmo(this.getHeldItem(ProjectileHelper.getHandWith(this, Items.BOW)));
-    //           AbstractArrowEntity abstractarrowentity = this.fireArrow(itemstack, distanceFactor);
     // 当前简化实现：直接创建普通箭矢（暂不考虑弹药和附魔）
     auto arrow = entity::ArrowEntity::createFromShooter(*this, world());
     if (arrow == nullptr) {
         return;
     }
 
-    // MC 1.16.5: 计算射击方向
-    // d0 = target.getPosX() - this.getPosX()
-    // d1 = target.getPosYHeight(0.3333333333333333D) - abstractarrowentity.getPosY()
-    // d2 = target.getPosZ() - this.getPosZ()
-    // d3 = MathHelper.sqrt(d0 * d0 + d2 * d2)
+    // 计算射击方向
     f64 dx = target->x() - x();
     f64 dy = (target->y() + target->height() * 0.3333333333333333) - arrow->y();
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // MC 1.16.5: 不精确度计算
-    // inaccuracy = 14 - world.getDifficulty().getId() * 4
+    // 不精确度计算：难度越高，不精确度越低，箭矢越精准
     // 和平/简单: 14, 普通: 10, 困难: 6
-    // 难度越高，不精确度越低，箭矢越精准
     i32 difficultyId = static_cast<i32>(world()->difficulty());
     f32 inaccuracy = static_cast<f32>(14 - difficultyId * 4);
 
-    // MC 1.16.5: 设置箭矢伤害
-    // damage = distanceFactor * 2.0 + randomGaussian * 0.25 + difficulty * 0.11
-    // 当前简化实现：基础伤害 + 蓄力加成
+    // 设置箭矢伤害：基础伤害 + 蓄力加成
     f32 damage = ARROW_DAMAGE + charge * 0.5f;
     arrow->setDamage(damage);
 
-    // MC 1.16.5: 发射箭矢
-    // abstractarrowentity.shoot(d0, d1 + d3 * 0.2, d2, 1.6F, inaccuracy)
-    // 速度固定为 1.6F，Y轴补偿 horizontalDist * 0.2 用于抛物线弹道
+    // 发射箭矢：速度固定为 1.6F，Y轴补偿 horizontalDist * 0.2 用于抛物线弹道
     constexpr f32 ARROW_VELOCITY = 1.6f;
     arrow->shoot(static_cast<f32>(dx),
         static_cast<f32>(dy + horizontalDist * 0.2),
@@ -110,13 +97,12 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
         ARROW_VELOCITY,
         inaccuracy);
 
-    // MC 1.16.5: 播放射箭音效
-    // this.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.getRNG().nextFloat() * 0.4F + 0.8F))
+    // 播放射箭音效
     math::Random rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
 
-    // MC 1.16.5: 将箭矢添加到世界
+    // 将箭矢添加到世界
     world()->spawnEntity(std::move(arrow));
 }
 
@@ -139,7 +125,6 @@ void AbstractSkeletonEntity::tick()
 
 void AbstractSkeletonEntity::setCombatTask()
 {
-    // MC 1.16.5 AbstractSkeletonEntity.setCombatTask()
     // 先移除所有战斗目标，再根据装备添加正确的目标
 
     // 移除现有的战斗目标
@@ -150,7 +135,7 @@ void AbstractSkeletonEntity::setCombatTask()
         m_goalSelector.removeGoal(m_meleeAttackGoal.get());
     }
 
-    // MC 1.16.5: 检查是否持有弓
+    // 检查是否持有弓
     // 当前简化实现：默认使用远程攻击
     // 子类可以重写此方法来选择不同的战斗目标
     //
@@ -172,7 +157,6 @@ void AbstractSkeletonEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 AbstractSkeletonEntity.registerGoals()
     // 注意：战斗目标（远程/近战）通过 setCombatTask() 添加，不在这里注册
     // 子类（如 WitherSkeletonEntity）可以重写 setCombatTask() 来选择近战
 
@@ -215,7 +199,6 @@ void AbstractSkeletonEntity::registerGoals()
 
     // 优先级 3: 攻击幼年海龟
     // TODO: 需要添加 TurtleEntity 的目标过滤（只攻击幼年海龟）
-    // MC 1.16.5: NearestAttackableTargetGoal<TurtleEntity>(this, 10, true, false, TurtleEntity.TARGET_DRY_BABY)
 }
 
 void AbstractSkeletonEntity::registerAttributes()

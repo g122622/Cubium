@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::entity {
 
@@ -35,8 +35,6 @@ using mc::u8;
  *
  * 不同的姿态影响实体的尺寸（高度）和眼睛高度。
  * 例如：蹲下时玩家变矮，游泳时玩家变得更扁平。
- *
- * 参考 MC 1.16.5 Pose
  */
 enum class EntityPose : u8 {
     Standing = 0,   // 站立 - 默认姿态

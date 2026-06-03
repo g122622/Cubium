@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+#include <memory>
 
 // Forward declarations
 namespace mc::entity::ai::goal {
@@ -38,7 +38,7 @@ namespace mc {
 /**
  * @brief 骷髅系怪物公共中间层
  *
- * 对齐 MC 1.16.5 `AbstractSkeletonEntity`，集中承载：
+ * 集中承载：
  * - 远程弓箭攻击接口
  * - 拉弓状态与攻击计时
  * - 骷髅系共通属性与基础目标注册
@@ -49,7 +49,7 @@ namespace mc {
  * - StrayEntity: 流浪者，使用弓远程攻击，不在阳光下燃烧
  * - WitherSkeletonEntity: 凋灵骷髅，使用石剑近战攻击，施加凋零效果
  *
- * MC 1.16.5 关键设计：
+ * 关键设计：
  * - registerGoals() 只注册非战斗目标（移动、看向、目标选择）
  * - setCombatTask() 根据装备动态选择战斗目标（远程/近战）
  * - 子类通过装备不同武器来影响 setCombatTask() 的选择
@@ -74,7 +74,7 @@ public:
     static constexpr i32 ATTACK_INTERVAL_MAX = 40;  // 最大攻击间隔（ticks）
     static constexpr f32 ATTACK_RADIUS = 15.0f;     // 远程攻击半径
 
-    /// 战斗目标优先级（MC 1.16.5: priority=4）
+    /// 战斗目标优先级
     static constexpr i32 COMBAT_GOAL_PRIORITY = 4;
 
     // ========== IRangedAttackMob 接口实现 ==========
@@ -97,7 +97,7 @@ public:
     /**
      * @brief 设置战斗目标
      *
-     * MC 1.16.5: 根据装备动态选择战斗目标
+     * 根据装备动态选择战斗目标：
      * - 如果持有弓，使用 RangedBowAttackGoal
      * - 否则使用 MeleeAttackGoal
      *
@@ -125,10 +125,10 @@ protected:
     // ========== 战斗目标 ==========
     /// 注意：这些目标指针在 GoalSelector 中被复制，所以需要通过原始指针操作
 
-    /// 远程攻击目标（MC 1.16.5: aiArrowAttack）
+    /// 远程攻击目标
     std::unique_ptr<entity::ai::goal::RangedBowAttackGoal> m_rangedAttackGoal;
 
-    /// 近战攻击目标（MC 1.16.5: aiAttackOnCollide）
+    /// 近战攻击目标
     std::unique_ptr<entity::ai::goal::MeleeAttackGoal> m_meleeAttackGoal;
 };
 

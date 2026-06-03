@@ -35,7 +35,7 @@ namespace effect {
 bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 {
     // 查找是否已存在相同类型的效果
-    i32 index = findEffectIndex(effect.type());
+    i32 index = _findEffectIndex(effect.type());
 
     if (index >= 0) {
         // 已存在，尝试合并
@@ -50,7 +50,7 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 
 void EffectManager::removeEffect(EffectType type, LivingEntity& entity)
 {
-    i32 index = findEffectIndex(type);
+    i32 index = _findEffectIndex(type);
     if (index >= 0) {
         m_effects[index].remove(entity);
         m_effects.erase(m_effects.begin() + index);
@@ -67,19 +67,19 @@ void EffectManager::removeAllEffects(LivingEntity& entity)
 
 const EffectInstance* EffectManager::getEffect(EffectType type) const
 {
-    i32 index = findEffectIndex(type);
+    i32 index = _findEffectIndex(type);
     return index >= 0 ? &m_effects[index] : nullptr;
 }
 
 EffectInstance* EffectManager::getEffect(EffectType type)
 {
-    i32 index = findEffectIndex(type);
+    i32 index = _findEffectIndex(type);
     return index >= 0 ? &m_effects[index] : nullptr;
 }
 
 bool EffectManager::hasEffect(EffectType type) const
 {
-    return findEffectIndex(type) >= 0;
+    return _findEffectIndex(type) >= 0;
 }
 
 i32 EffectManager::getEffectLevel(EffectType type) const
@@ -119,7 +119,7 @@ bool EffectManager::hasHarmfulEffect() const
     return false;
 }
 
-i32 EffectManager::findEffectIndex(EffectType type) const
+i32 EffectManager::_findEffectIndex(EffectType type) const
 {
     for (size_t i = 0; i < m_effects.size(); ++i) {
         if (m_effects[i].type() == type) {

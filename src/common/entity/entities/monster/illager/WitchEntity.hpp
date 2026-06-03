@@ -49,8 +49,6 @@ class EffectInstance;
  * - 生成：在沼泽小屋
  *
  * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> WitchEntity
- *
- * 参考 MC 1.16.5 WitchEntity
  */
 class WitchEntity : public AbstractRaiderEntity, public entity::IRangedAttackMob {
 public:
@@ -121,13 +119,11 @@ public:
 
     /**
      * @brief 获取实体宽度
-     * MC 1.16.5: 女巫宽度为 0.6
      */
     [[nodiscard]] f32 width() const override { return 0.6f; }
 
     /**
      * @brief 获取实体高度
-     * MC 1.16.5: 女巫高度为 1.95
      */
     [[nodiscard]] f32 height() const override { return 1.95f; }
 
@@ -141,8 +137,7 @@ public:
     /**
      * @brief 魔法伤害减免
      *
-     * MC 1.16.5: 女巫对魔法伤害有85%减免
-     * 同时免疫自己造成的伤害（药水等）
+     * 女巫对魔法伤害有85%减免，同时免疫自己造成的伤害。
      *
      * @param source 伤害来源
      * @param amount 原始伤害量
@@ -155,7 +150,6 @@ public:
     /**
      * @brief 对目标进行远程攻击（投掷药水）
      *
-     * MC 1.16.5: 女巫向目标投掷喷溅药水
      * 根据目标状态选择不同的药水类型：
      * - 对掠夺者同伴：治疗/再生药水
      * - 距离>=8且无缓慢：缓慢药水
@@ -196,64 +190,53 @@ private:
 
     /**
      * @brief 检查是否需要治疗
-     *
-     * MC 1.16.5: 生命值低于最大值时需要治疗
      */
-    [[nodiscard]] bool needsHealing() const;
+    [[nodiscard]] bool _needsHealing() const;
 
     /**
      * @brief 检查是否需要水肺药水
-     *
-     * MC 1.16.5: 眼睛在水中且无水肺效果
      */
-    [[nodiscard]] bool needsWaterBreathing() const;
+    [[nodiscard]] bool _needsWaterBreathing() const;
 
     /**
      * @brief 检查是否需要抗火药水
-     *
-     * MC 1.16.5: 正在燃烧或最后一次受到火焰伤害
      */
-    [[nodiscard]] bool needsFireResistance() const;
+    [[nodiscard]] bool _needsFireResistance() const;
 
     /**
      * @brief 检查最后一次伤害来源是否是火焰
-     *
-     * MC 1.16.5: getLastDamageSource() != null && getLastDamageSource().isFireDamage()
      */
-    [[nodiscard]] bool lastDamageSourceWasFire() const;
+    [[nodiscard]] bool _lastDamageSourceWasFire() const;
 
     /**
      * @brief 检查是否需要速度药水
-     *
-     * MC 1.16.5: 有攻击目标、无速度效果、距离超过11格
      */
-    [[nodiscard]] bool needsSwiftness() const;
+    [[nodiscard]] bool _needsSwiftness() const;
 
     /**
      * @brief 决定使用哪种药水
      *
-     * MC 1.16.5: livingTick() 中的药水决策逻辑
      * 按优先级检查：水肺 > 抗火 > 治疗 > 速度
      *
      * @return 效果类型，如果不需要药水返回空
      */
-    [[nodiscard]] std::optional<entity::effect::EffectType> decidePotionToDrink();
+    [[nodiscard]] std::optional<entity::effect::EffectType> _decidePotionToDrink();
 
     /**
      * @brief 开始喝药水
      *
-     * MC 1.16.5: 设置喝药水状态、播放音效、应用移动速度减益
+     * 设置喝药水状态、播放音效、应用移动速度减益
      *
      * @param effectType 要喝的药水效果类型
      */
-    void startDrinkingPotion(entity::effect::EffectType effectType);
+    void _startDrinkingPotion(entity::effect::EffectType effectType);
 
     /**
      * @brief 完成喝药水
      *
-     * MC 1.16.5: 应用效果、移除移动速度减益、清空状态
+     * 应用效果、移除移动速度减益、清空状态
      */
-    void finishDrinkingPotion();
+    void _finishDrinkingPotion();
 
     /**
      * @brief 应用喝药水的效果
@@ -264,12 +247,12 @@ private:
      *
      * @param effectType 效果类型
      */
-    void applyDrankPotionEffect(entity::effect::EffectType effectType);
+    void _applyDrankPotionEffect(entity::effect::EffectType effectType);
 
     /**
      * @brief 选择对目标的攻击药水类型
      *
-     * MC 1.16.5: 根据目标状态选择药水
+     * 根据目标状态选择药水：
      * - 如果目标是掠夺者同伴（AbstractRaiderEntity）：
      *   - 生命值<=4：治疗药水
      *   - 否则：再生药水
@@ -281,17 +264,15 @@ private:
      * @param target 目标实体
      * @return 药水效果类型
      */
-    [[nodiscard]] entity::effect::EffectType selectAttackPotionType(LivingEntity* target) const;
+    [[nodiscard]] entity::effect::EffectType _selectAttackPotionType(LivingEntity* target) const;
 
     /**
      * @brief 投掷药水到目标位置
      *
-     * MC 1.16.5: 创建喷溅药水实体并投掷
-     *
      * @param target 目标实体
      * @param potionType 药水效果类型
      */
-    void throwPotionAt(LivingEntity* target, entity::effect::EffectType potionType);
+    void _throwPotionAt(LivingEntity* target, entity::effect::EffectType potionType);
 
 private:
     // 药水状态
@@ -308,7 +289,7 @@ private:
     static constexpr i32 ATTACK_COOLDOWN = 60; // 3秒攻击冷却
     static constexpr i32 DRINK_DURATION = 32;  // 喝药水时间（ticks）
 
-    // 药水攻击常量 (MC 1.16.5)
+    // 药水攻击常量
     static constexpr f32 ATTACK_RADIUS = 10.0f;       // 攻击半径
     static constexpr f32 ATTACK_RADIUS_SQ = 100.0f;   // 攻击半径平方
     static constexpr f32 POTION_VELOCITY = 0.75f;     // 药水投掷速度
@@ -316,17 +297,17 @@ private:
     static constexpr f32 CLOSE_RANGE_DISTANCE = 3.0f; // 近距离阈值
     static constexpr f32 FAR_RANGE_DISTANCE = 8.0f;   // 远距离阈值
 
-    // 药水触发概率 (MC 1.16.5)
+    // 药水触发概率
     static constexpr f32 WATER_BREATHING_CHANCE = 0.15f; // 水肺药水概率 15%
     static constexpr f32 FIRE_RESISTANCE_CHANCE = 0.15f; // 抗火药水概率 15%
     static constexpr f32 HEALING_CHANCE = 0.05f;         // 治疗药水概率 5%
     static constexpr f32 SWIFTNESS_CHANCE = 0.5f;        // 速度药水概率 50%
     static constexpr f32 SWIFTNESS_DISTANCE_SQ = 121.0f; // 速度药水距离阈值 11^2
 
-    // 攻击药水选择概率 (MC 1.16.5)
+    // 攻击药水选择概率
     static constexpr f32 WEAKNESS_CHANCE = 0.25f; // 虚弱药水概率 25%
 
-    // 移动速度减益 UUID (MC 1.16.5)
+    // 移动速度减益 UUID
     static constexpr const char* DRINKING_SPEED_PENALTY_UUID = "5CD17E52-A79A-43D3-A529-90FDE04B181E";
 };
 

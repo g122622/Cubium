@@ -22,7 +22,7 @@
  */
 
 #include "AmbientEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 
 namespace mc {
 

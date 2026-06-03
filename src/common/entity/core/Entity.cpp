@@ -159,7 +159,6 @@ void Entity::removeFlag(EntityFlags flag)
 
 bool Entity::isGlowing() const
 {
-    // 参考 MC 1.16.5: Entity.isGlowing()
     // 客户端检查数据参数中的 Glowing 标志位
     // 服务端检查 m_glowing 字段
     if (m_world != nullptr && m_world->isClientSide()) {
@@ -170,7 +169,6 @@ bool Entity::isGlowing() const
 
 void Entity::setGlowing(bool glowing)
 {
-    // 参考 MC 1.16.5: Entity.setGlowing()
     // 在服务端设置字段并同步标志位
     m_glowing = glowing;
     if (m_world != nullptr && !m_world->isClientSide()) {
@@ -238,13 +236,13 @@ void Entity::setNoGravity(bool noGravity)
 // ============================================================================
 
 namespace {
-// MC 1.16.5 定义的标签数量上限
+// 标签数量上限
 constexpr size_t MAX_TAGS = 1024;
 } // namespace
 
 bool Entity::addTag(const std::string& tag)
 {
-    // MC 1.16.5: return this.tags.size() >= 1024 ? false : this.tags.add(tag);
+    // 每个实体最多1024个标签
     if (m_tags.size() >= MAX_TAGS) {
         return false;
     }
@@ -254,7 +252,6 @@ bool Entity::addTag(const std::string& tag)
 
 bool Entity::removeTag(const std::string& tag)
 {
-    // MC 1.16.5: return this.tags.remove(tag);
     return m_tags.erase(tag) > 0;
 }
 
@@ -316,24 +313,18 @@ void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pit
 
 ResourceLocation Entity::getSplashSound() const
 {
-    // MC 1.16.5: Entity.getSplashSound() -> SoundEvents.ENTITY_GENERIC_SPLASH
     return SoundEvents::ENTITY_GENERIC_SPLASH;
 }
 
 ResourceLocation Entity::getHighspeedSplashSound() const
 {
-    // MC 1.16.5: Entity.getHighspeedSplashSound() -> SoundEvents.ENTITY_GENERIC_SPLASH
     // 默认返回与普通溅水相同的声音，子类可覆盖
     return SoundEvents::ENTITY_GENERIC_SPLASH;
 }
 
 void Entity::doWaterSplashEffect()
 {
-    // 参考 MC 1.16.5 Entity.doWaterSplashEffect()
     // 确定控制者（骑乘时使用乘客的速度）
-    // MC: Entity entity = this.isBeingRidden() && this.getControllingPassenger() != null
-    //         ? this.getControllingPassenger() : this;
-
     // 获取速度向量
     Vector3 vel = velocity();
     f32 vx = vel.x;
@@ -341,8 +332,6 @@ void Entity::doWaterSplashEffect()
     f32 vz = vel.z;
 
     // 计算速度因子 f1
-    // MC: float f1 = MathHelper.sqrt(vector3d.x * vector3d.x * 0.2D
-    //         + vector3d.y * vector3d.y + vector3d.z * vector3d.z * 0.2D) * f;
     // 默认 f = 0.2F（实体自己）
     f32 f1 = std::sqrt(vx * vx * 0.2f + vy * vy + vz * vz * 0.2f) * 0.2f;
 
@@ -355,7 +344,6 @@ void Entity::doWaterSplashEffect()
     math::Random& rng = m_world->getRandom();
 
     // 根据速度选择声音并播放
-    // MC: if ((double)f1 < 0.25D) -> getSplashSound(), else -> getHighspeedSplashSound()
     // 音调: 1.0F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F
     f32 pitch = 1.0f + (rng.nextFloat() - rng.nextFloat()) * 0.4f;
 
@@ -407,7 +395,6 @@ void Entity::doWaterSplashEffect()
 
 void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
 {
-    // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
     // 默认实现使用脚下方块的声音类型播放脚步声
     // 子类可以重写以自定义声音（如蜜蜂不播放脚步声）
 
@@ -415,7 +402,7 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
         return;
     }
 
-    // MC 1.16.5: 检查上方是否有雪层
+    // 检查上方是否有雪层
     // 如果上方是雪层，则使用雪的声音类型
     const BlockState* soundState = blockState;
 
@@ -424,7 +411,7 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
     const BlockState* aboveState = m_world->getBlockState(abovePos);
     if (aboveState != nullptr && !aboveState->isAir()) {
         // 检查上方方块是否为雪层（通过材质或其他属性判断）
-        // MC 1.16.5: 如果上方是雪层且高度足够，使用雪的声音
+        // 如果上方是雪层且高度足够，使用雪的声音
         const ResourceLocation& blockLoc = aboveState->getBlock().blockLocation();
         const std::string& blockPath = blockLoc.path();
         if (blockPath.find("snow") != std::string::npos && blockPath != "snow_block") {
@@ -437,7 +424,7 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
     const BlockSoundType& soundType = soundState->getSoundType();
 
     // 播放脚步声
-    // MC 1.16.5: 音量 = soundType.volume * 0.15, 音调 = soundType.pitch * random(0.8, 1.2)
+    // 音量 = soundType.volume * 0.15, 音调 = soundType.pitch * random(0.8, 1.2)
     // 使用实体ID和tick计数器生成伪随机数
     u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
     f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f; // 0.0-1.0
@@ -476,9 +463,6 @@ void Entity::setVelocity(f32 x, f32 y, f32 z)
 
 void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward)
 {
-    // MC 1.16.5 Entity.moveRelative(float, Vector3d)
-    // 参考 Entity.java 行 1166-1180
-
     // 计算输入向量长度平方
     f32 lengthSq = strafe * strafe + vertical * vertical + forward * forward;
     if (lengthSq < 1.0E-7f) {
@@ -529,7 +513,6 @@ void Entity::tick()
     baseTick();
 
     // 处理传送门逻辑
-    // 参考 MC 1.16.5 Entity.tick() 末尾的传送门处理
     if (tickPortal()) {
         onPortalTriggered();
     }
@@ -542,7 +525,7 @@ void Entity::baseTick()
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;
 
-    // MC 1.16.5: 检查车辆是否被移除
+    // 检查车辆是否被移除
     // 如果正在骑乘且车辆已被移除，则下车
     if (isRiding()) {
         if (m_world) {
@@ -556,13 +539,11 @@ void Entity::baseTick()
     }
 
     // 更新传送冷却
-    // 参考 MC 1.16.5 Entity.baseTick() 中的 timeUntilPortal 递减
     if (m_portalCooldown > 0) {
         m_portalCooldown--;
     }
 
     // 更新骑乘冷却
-    // MC 1.16.5: rideCooldown 递减
     if (m_rideCooldown > 0) {
         m_rideCooldown--;
     }
@@ -598,20 +579,18 @@ void Entity::baseTick()
     checkOnGround();
 
     // 清除运动速度乘数
-    // 参考 MC 1.16.5 Entity.baseTick(): this.motionMultiplier = Vec3d.ZERO;
     // 每帧开始时清除，由 onEntityCollision 在需要时重新设置
     clearMotionMultiplier();
 
-    // MC 1.16.5: 如果是乘客，调用 updateRidden()
+    // 如果是乘客，调用 updateRidden()
     // 注意：这里需要子类重写以实现乘客逻辑
     // 在 Vehicle/tick() 中应该调用 updatePassengers()
 }
 
 bool Entity::tickPortal()
 {
-    // 参考 MC 1.16.5 Entity.updatePortal()
     // 关键行为：inPortal 每帧重置，由 NetherPortalBlock.onEntityCollision 重新设置
-    // 冷却递减在 baseTick() 的 decrementTimeUntilPortal() 中处理
+    // 冷却递减在 baseTick() 中处理
 
     if (!m_inPortal) {
         if (m_portalTime > 0) {
@@ -627,9 +606,9 @@ bool Entity::tickPortal()
         return false;
     }
 
-    // 递增计时并检查阈值（MC: portalCounter++ >= i）
-    // 非玩家：i=0，第一次进入时 1 >= 0 成立
-    // 玩家：i=80，第 80 tick 时 80 >= 80 成立
+    // 递增计时并检查阈值
+    // 非玩家：第一次进入时成立
+    // 玩家：需要 80 tick
     m_portalTime++;
 
     const i32 maxPortalTime = getMaxInPortalTime();
@@ -645,7 +624,6 @@ bool Entity::onPortalTriggered()
 {
     // 基类实现：默认不做任何事
     // 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑
-    // MC 1.16.5 中，此方法会调用 changeDimension
 
     // 重置传送门状态
     m_inPortal = false;
@@ -657,7 +635,6 @@ bool Entity::onPortalTriggered()
 
 bool Entity::isOnLadder() const
 {
-    // 参考 MC 1.16.5 LivingEntity.isOnLadder()
     // 检查实体碰撞箱内的方块是否为可攀爬方块
 
     if (m_world == nullptr) {
@@ -665,7 +642,6 @@ bool Entity::isOnLadder() const
     }
 
     // 检查实体碰撞箱内的方块
-    // MC 1.16.5: 检查碰撞箱覆盖的所有方块位置
     const AxisAlignedBB box = boundingBox();
 
     i32 minX = static_cast<i32>(std::floor(box.minX));
@@ -684,8 +660,6 @@ bool Entity::isOnLadder() const
                     BlockPos pos(x, y, z);
                     if (block.isLadder(*blockState, m_world, &pos, this)) {
                         // 记录攀爬位置
-                        // 注意：这里需要const_cast因为isOnLadder是const方法
-                        // MC 1.16.5: field_233624_bE_ = pos
                         const_cast<Entity*>(this)->m_lastClimbPos = pos;
                         return true;
                     }
@@ -699,7 +673,6 @@ bool Entity::isOnLadder() const
 
 void Entity::updateEnvironmentState()
 {
-    // 参考 MC 1.16.5 Entity.func_233566_aG_() 和 func_233567_aH_()
     // 需要遍历碰撞箱内的所有方块，计算流体浸入高度
 
     // 眼睛位置（用于判断眼睛是否在水下）
@@ -770,7 +743,7 @@ void Entity::updateEnvironmentState()
                         m_waterHeight = std::max(m_waterHeight, submergedHeight);
 
                         // 检查眼睛是否在水下
-                        // MC: 眼睛位置稍微下移 0.11111111 来检测
+                        // 眼睛位置稍微下移 0.11111111 来检测
                         constexpr f32 EYE_OFFSET = 0.11111111f;
                         f32 adjustedEyeY = eyeY - EYE_OFFSET;
                         if (fluidTopY > adjustedEyeY) {
@@ -798,13 +771,7 @@ void Entity::updateEnvironmentState()
 
 bool Entity::isInRain() const
 {
-    // MC 1.16.5: Entity.isInRain()
     // 检查脚底位置和碰撞盒顶部位置两个位置
-    // private boolean isInRain() {
-    //     BlockPos blockpos = this.getPosition();
-    //     return this.world.isRainingAt(blockpos) || this.world.isRainingAt(
-    //         new BlockPos((double)blockpos.getX(), this.getBoundingBox().maxY, (double)blockpos.getZ()));
-    // }
     if (m_world == nullptr) {
         return false;
     }
@@ -831,7 +798,6 @@ bool Entity::isInRain() const
 
 f32 Entity::getBrightness() const
 {
-    // MC 1.16.5: Entity.getBrightness()
     // 获取实体眼睛位置的亮度
     if (m_world == nullptr) {
         return 0.0f;
@@ -901,7 +867,7 @@ void Entity::move(f32 dx, f32 dy, f32 dz)
 void Entity::move(entity::MoverType type, const Vector3& delta)
 {
     MC_UNUSED(type);
-    // MC 1.16.5: 移动类型用于区分移动来源
+    // 移动类型用于区分移动来源
     // 目前简单委托给无碰撞版本，后续可添加碰撞检测
     move(delta.x, delta.y, delta.z);
 }
@@ -934,25 +900,20 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
 {
     Vector3 desiredMovement(dx, dy, dz);
 
-    // MC 1.16.5: noClip 检查 - 无视碰撞的实体直接移动
-    // 参考 Entity.move() 行 568-572
+    // noClip 检查 - 无视碰撞的实体直接移动
     if (m_noClip) {
         // 无碰撞模式：直接更新位置，不检测碰撞
-        // MC 1.16.5: this.setBoundingBox(this.getBoundingBox().offset(pos));
-        //            this.resetPositionToBB();
         m_position.x += dx;
         m_position.y += dy;
         m_position.z += dz;
         reapplyPosition();
 
-        // MC 1.16.5 VexEntity.move(): 即使 noClip=true 也要触发方块碰撞
-        // 参考 VexEntity.java 行 54-57
+        // 即使 noClip=true 也要触发方块碰撞
         doBlockCollisions();
         return desiredMovement;
     }
 
-    // MC 1.16.5: 应用运动速度乘数（甜浆果丛、蜘蛛网等减速效果）
-    // 参考 Entity.move() 行: if (this.motionMultiplier.x != 0.0D) { ... }
+    // 应用运动速度乘数（甜浆果丛、蜘蛛网等减速效果）
     if (m_hasMotionMultiplier) {
         desiredMovement.x *= m_motionMultiplier.x;
         desiredMovement.y *= m_motionMultiplier.y;
@@ -978,7 +939,6 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     AxisAlignedBB entityBox = boundingBox();
 
     // 使用物理引擎执行碰撞检测移动
-    // 参考MC: Entity.move() -> getAllowedMovement()
     Vector3 actualMovement = physics->moveEntity(entityBox, desiredMovement, stepHeight());
 
     // 从碰撞箱更新位置
@@ -1000,32 +960,27 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     bool wasOnGround = m_onGround;
     m_onGround = groundedByCollision || groundedByContact;
 
-    // MC 1.16.5: 落地时清空攀爬位置
-    // 参考: LivingEntity.func_233644_dn_() 在 setOnGround(true) 时清空
+    // 落地时清空攀爬位置
     if (m_onGround && !wasOnGround) {
         m_lastClimbPos = std::nullopt;
     }
 
-    // MC 1.16.5: 碰撞后速度重置
-    // 参考Entity.move() 行601-608
     // 如果某轴发生碰撞（实际移动 != 期望移动），清零该轴速度
     // 注意：使用 MC 的 MathHelper.epsilonEquals 比较，阈值约 1e-7
-    constexpr f32 EPSILON = 1.0e-7f;
-    if (std::abs(desiredMovement.x - actualMovement.x) > EPSILON) {
+    if (std::abs(desiredMovement.x - actualMovement.x) > math::EPSILON_COLLISION) {
         // X轴碰撞，清零X速度
         m_velocity.x = 0.0f;
     }
-    if (std::abs(desiredMovement.y - actualMovement.y) > EPSILON) {
+    if (std::abs(desiredMovement.y - actualMovement.y) > math::EPSILON_COLLISION) {
         // Y轴碰撞，清零Y速度
         m_velocity.y = 0.0f;
     }
-    if (std::abs(desiredMovement.z - actualMovement.z) > EPSILON) {
+    if (std::abs(desiredMovement.z - actualMovement.z) > math::EPSILON_COLLISION) {
         // Z轴碰撞，清零Z速度
         m_velocity.z = 0.0f;
     }
 
-    // MC 1.16.5: 方块碰撞回调
-    // 参考 Entity.move() 行 610-616
+    // 方块碰撞回调
     doBlockCollisionsAfterMove(actualMovement, desiredMovement);
 
     // 更新摔落距离并处理摔落伤害
@@ -1080,8 +1035,6 @@ void Entity::checkOnGround()
 
 void Entity::doBlockCollisions()
 {
-    // MC 1.16.5: Entity.doBlockCollisions()
-    // 参考: Entity.java 行 892-918
     // 遍历实体碰撞箱覆盖的所有方块，调用方块的 onEntityCollision 方法
 
     if (m_world == nullptr) {
@@ -1133,7 +1086,7 @@ void Entity::doBlockCollisions()
 
 void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vector3& desiredMovement)
 {
-    // MC 1.16.5: Entity.move() 中的方块回调处理
+    // 方块碰撞回调处理
     // 参考: Entity.java 行 610-616
 
     if (m_world == nullptr) {
@@ -1178,7 +1131,6 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     const Block& block = blockState->getBlock();
 
     // 1. onLanded 回调 - 当垂直位置发生变化时
-    // MC: if (pos.y != vector3d.y) { block.onLanded(this.world, this); }
     if (std::abs(desiredMovement.y - actualMovement.y) > 1.0e-7f) {
         // Y轴发生了碰撞，说明着陆了
         block.onLanded(*blockState, *m_world, blockPos, *this);
@@ -1203,7 +1155,6 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     }
 
     // 2. onEntityWalk 回调 - 当在地面行走时
-    // MC: if (this.onGround && !this.isSteppingCarefully()) { block.onEntityWalk(this.world, blockpos, this); }
     if (m_onGround && !isSteppingCarefully()) {
         block.onEntityWalk(*blockState, *m_world, blockPos, *this);
 
@@ -1223,7 +1174,6 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     }
 
     // 3. onInsideBlock 回调 - 遍历碰撞箱内所有方块
-    // 参考 MC 1.16.5: Entity.doBlockCollisions() 行 906-920
     AxisAlignedBB box = m_boundingBox.shrink(0.001);
     BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
         static_cast<i32>(std::floor(box.minY)),
@@ -1248,18 +1198,15 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
 
 void Entity::applyPhysics(f32 /*deltaTime*/)
 {
-    // MC 1.16.5: Entity 物理更新
+    // Entity 物理更新
     // 注意：重力应该始终应用（除非 noGravity），碰撞检测会处理停止
-    // 参考 Entity.move() 中的物理处理
 
     // 重力始终应用（除非 noGravity 标志为 true）
-    // MC 1.16.5: if (!this.hasNoGravity()) { this.setMotion(...) }
     if (!m_noGravity) {
         m_velocity.y -= physics::GRAVITY;
     }
 
     // 应用空气阻力
-    // MC 1.16.5: 空气阻力在移动后应用
     m_velocity.x *= physics::DRAG_AIR;
     m_velocity.y *= physics::DRAG_AIR;
     m_velocity.z *= physics::DRAG_AIR;
@@ -1283,21 +1230,15 @@ bool Entity::isPassenger(EntityId entityId) const
 
 bool Entity::addPassenger(Entity& passenger)
 {
-    // MC 1.16.5: Entity.addPassenger()
-
     // 检查是否已经是乘客
     if (isPassenger(passenger.id())) {
         return false;
     }
 
-    // MC 1.16.5: 如果 passenger.getRidingEntity() != this，抛出异常
-    // 这里我们改为：如果乘客正在骑乘其他实体，先停止
-    // 注意：这与MC略有不同，MC期望调用者先设置ridingEntity
-    // 我们的实现：调用者应该使用 startRiding() 而不是直接调用 addPassenger()
+    // 如果乘客正在骑乘其他实体，先停止
+    // 注意：调用者应该使用 startRiding() 而不是直接调用 addPassenger()
 
     // 循环检测：防止A骑B，B骑A等循环
-    // MC: for(Entity entity = entityIn; entity.ridingEntity != null; entity = entity.ridingEntity)
-    //     if (entity.ridingEntity == this) return false;
     if (m_world) {
         Entity* current = &passenger;
         while (current != nullptr) {
@@ -1324,16 +1265,9 @@ bool Entity::addPassenger(Entity& passenger)
     }
 
     // 设置乘客姿态为站立
-    // MC: passenger.setPose(Pose.STANDING);
     passenger.setPose(EntityPose::Standing);
 
-    // MC 1.16.5: 服务端玩家优先插入列表头部
-    // if (!this.world.isRemote && passenger instanceof PlayerEntity && !(this.getControllingPassenger() instanceof
-    // PlayerEntity)) {
-    //     this.passengers.add(0, passenger);
-    // } else {
-    //     this.passengers.add(passenger);
-    // }
+    // 服务端玩家优先插入列表头部
     bool isServerSide = m_world && !m_world->isClientSide();
     bool isPlayer = passenger.typeId() == entity::EntityTypeIdNumber::PLAYER;
     EntityId controllingId = getControllingPassenger();
@@ -1353,11 +1287,9 @@ bool Entity::addPassenger(Entity& passenger)
     passenger.setVehicle(m_id);
 
     // 设置骑乘冷却
-    // MC: passenger.rideCooldown = 60;
     passenger.m_rideCooldown = 60;
 
     // 触发回调
-    // MC: this.onAddedPassenger(passenger);
     // 子类可重写 onAddedPassenger() 来处理特殊逻辑
 
     return true;
@@ -1365,11 +1297,8 @@ bool Entity::addPassenger(Entity& passenger)
 
 void Entity::removePassenger(Entity& passenger)
 {
-    // MC 1.16.5: Entity.removePassenger()
-
     // 验证乘客是否确实骑乘此载具
     if (passenger.getVehicle() != m_id) {
-        // MC: throw new IllegalStateException("Use x.stopRiding(y), not y.removePassenger(x)");
         return;
     }
 
@@ -1379,27 +1308,21 @@ void Entity::removePassenger(Entity& passenger)
         m_passengers.erase(it);
         passenger.setVehicle(INVALID_ENTITY_ID);
 
-        // 设置骑乘冷却（MC 1.16.5: 60 tick = 3秒）
+        // 设置骑乘冷却（60 tick = 3秒）
         passenger.m_rideCooldown = 60;
 
         // 触发回调
-        // MC: this.onRemovedPassenger(passenger);
     }
 }
 
 bool Entity::startRiding(Entity& vehicle)
 {
-    // MC 1.16.5: Entity.startRiding(Entity, boolean force)
-
     // 不能骑乘自己
     if (vehicle.id() == m_id) {
         return false;
     }
 
-    // MC 1.16.5: 循环检测
-    // for(Entity entity = entityIn; entity.ridingEntity != null; entity = entity.ridingEntity) {
-    //     if (entity.ridingEntity == this) return false;
-    // }
+    // 循环检测
     if (m_world) {
         Entity* current = &vehicle;
         while (current != nullptr) {
@@ -1415,10 +1338,8 @@ bool Entity::startRiding(Entity& vehicle)
         }
     }
 
-    // MC 1.16.5: 检查是否可骑乘
-    // if (force || this.canBeRidden(entityIn) && entityIn.canFitPassenger(this))
+    // 检查是否可骑乘
     // 注意：canBeRidden() 检查的是乘客是否可以骑乘（潜行状态、冷却等）
-    // 这里我们检查乘客的 canBeRidden()，而不是车辆的
     if (!canBeRidden(vehicle)) {
         return false;
     }
@@ -1452,13 +1373,11 @@ bool Entity::startRiding(Entity& vehicle)
 
 void Entity::stopRiding()
 {
-    // MC 1.16.5: Entity.stopRiding()
     dismount();
 }
 
 void Entity::dismount()
 {
-    // MC 1.16.5: Entity.dismount()
     if (!isRiding()) {
         return;
     }
@@ -1467,8 +1386,6 @@ void Entity::dismount()
     if (m_world) {
         Entity* vehicle = m_world->getEntity(m_vehicle);
         if (vehicle != nullptr) {
-            // MC: this.ridingEntity = null;
-            //     entity.removePassenger(this);
             // 注意：先清空vehicle引用，再调用removePassenger
             m_vehicle = INVALID_ENTITY_ID;
             vehicle->removePassenger(*this);
@@ -1480,7 +1397,6 @@ void Entity::dismount()
 
 void Entity::removePassengers()
 {
-    // MC 1.16.5: Entity.removePassengers()
     // 没有世界引用时无法操作乘客
     if (m_world == nullptr) {
         return;
@@ -1498,7 +1414,6 @@ void Entity::removePassengers()
 
 bool Entity::canBeRidden(const Entity& vehicle) const
 {
-    // MC 1.16.5: Entity.canBeRidden(Entity)
     // 参数 vehicle 用于检查是否可以骑乘特定载具
     // 目前只检查基本条件，未来可扩展检查载具类型等
     MC_UNUSED(vehicle);
@@ -1508,13 +1423,11 @@ bool Entity::canBeRidden(const Entity& vehicle) const
 
 bool Entity::isRidingSameEntity(const Entity& other) const
 {
-    // MC 1.16.5: Entity.isRidingSameEntity(Entity)
     return getLowestRidingEntity() == other.getLowestRidingEntity();
 }
 
 Entity* Entity::getLowestRidingEntity()
 {
-    // MC 1.16.5: Entity.getLowestRidingEntity()
     Entity* entity = this;
     while (entity->isRiding()) {
         EntityId vehicleId = entity->getVehicle();
@@ -1537,7 +1450,6 @@ Entity* Entity::getLowestRidingEntity()
 
 const Entity* Entity::getLowestRidingEntity() const
 {
-    // MC 1.16.5: Entity.getLowestRidingEntity()
     const Entity* entity = this;
     while (entity->isRiding()) {
         EntityId vehicleId = entity->getVehicle();
@@ -1560,7 +1472,6 @@ const Entity* Entity::getLowestRidingEntity() const
 
 bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const
 {
-    // MC 1.16.5: Entity.isRidingOrBeingRiddenBy(Entity)
     // 使用迭代方式避免递归栈溢出
     if (m_world == nullptr) {
         return false;
@@ -1597,7 +1508,6 @@ bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const
 
 void Entity::detach()
 {
-    // MC 1.16.5: Entity.detach()
     // 先移除所有乘客，再下车
     if (isBeingRidden()) {
         removePassengers();
@@ -1609,7 +1519,6 @@ void Entity::detach()
 
 f64 Entity::getMountedYOffset() const
 {
-    // MC 1.16.5: Entity.getMountedYOffset() -> height * 0.75D
     return static_cast<f64>(height()) * 0.75;
 }
 
@@ -1621,7 +1530,6 @@ Vector3 Entity::getRidingPosition() const
 
 void Entity::updatePassengers()
 {
-    // MC 1.16.5: Entity.updatePassengers()
     // 效率优化：提前检查世界指针，避免在循环内重复检查
     if (m_world == nullptr) {
         return;
@@ -1641,14 +1549,11 @@ void Entity::updatePassengers()
 
 void Entity::positionRider(Entity& passenger)
 {
-    // MC 1.16.5: Entity.positionRider(Entity, MoveCallback)
-
     if (!isPassenger(passenger.id())) {
         return;
     }
 
     // 计算骑乘位置
-    // MC: double d0 = this.getPosY() + this.getMountedYOffset() + passenger.getYOffset();
     f64 y = static_cast<f64>(m_position.y) + getMountedYOffset() + passenger.getYOffset();
 
     // 设置乘客位置
@@ -1657,8 +1562,6 @@ void Entity::positionRider(Entity& passenger)
 
 void Entity::updateRidden()
 {
-    // MC 1.16.5: Entity.updateRidden()
-
     // 设置速度为零
     setVelocity(Vector3(0.0f, 0.0f, 0.0f));
 
@@ -1678,28 +1581,18 @@ void Entity::updateRidden()
 
 void Entity::updatePassengerPosition(Entity& passenger)
 {
-    // MC 1.16.5: Entity.updatePassenger(Entity)
     positionRider(passenger);
 }
 
 void Entity::applyOrientationToEntity(Entity& passenger)
 {
-    // MC 1.16.5: Entity.applyOrientationToEntity(Entity)
     // 默认实现：同步旋转
     // 子类（如BoatEntity）可以重写此方法以限制旋转范围
-
     passenger.setRotation(m_yaw, passenger.pitch());
 }
 
 bool Entity::canPassengerSteer() const
 {
-    // MC 1.16.5: Entity.canPassengerSteer()
-    // Entity entity = this.getControllingPassenger();
-    // if (entity instanceof PlayerEntity) {
-    //     return ((PlayerEntity)entity).isUser();
-    // } else {
-    //     return !this.world.isRemote;
-    // }
     EntityId controllerId = getControllingPassenger();
     if (controllerId == INVALID_ENTITY_ID) {
         return false;
@@ -1711,7 +1604,6 @@ bool Entity::canPassengerSteer() const
         if (controller != nullptr) {
             // 检查控制者是否是玩家
             if (controller->typeId() == entity::EntityTypeIdNumber::PLAYER) {
-                // MC 1.16.5: return ((PlayerEntity)entity).isUser();
                 // 玩家需要检查是否是本地玩家
                 Player* player = dynamic_cast<Player*>(controller);
                 if (player != nullptr) {
@@ -1748,7 +1640,6 @@ bool Entity::canSee(const Entity& other) const
     }
 
     // 使用射线检测检查视线是否被方块阻挡
-    // 参考 MC 1.16.5 LivingEntity.canEntityBeSeen()
     Vector3 eyePos = Vector3(x(), y() + eyeHeight(), z());
     Vector3 targetEyePos = Vector3(other.x(), other.y() + other.eyeHeight(), other.z());
 
@@ -1765,7 +1656,6 @@ bool Entity::canSee(const Entity& other) const
     BlockRaycastResult result = raycastBlocks(context, *m_world);
 
     // 如果射线没有击中方块（或击中点超出目标位置），则表示可见
-    // MC 1.16.5: 如果 rayTraceBlocks 返回 MISS 类型，表示没有方块阻挡
     return result.isMiss();
 }
 
@@ -1789,11 +1679,9 @@ bool Entity::hurt(DamageSource& source, f32 amount)
 
 bool Entity::isInvulnerableTo(DamageSource& source) const
 {
-    // 参考 MC 1.16.5 Entity.isInvulnerableTo()
     // 1. 检查实体是否处于无敌状态
     if (m_invulnerable) {
         // 虚空伤害和创造模式玩家可以绕过无敌
-        // 参考: DamageSource.bypassesInvulnerability()
         return !source.bypassesInvulnerability();
     }
     return false;
@@ -1801,7 +1689,6 @@ bool Entity::isInvulnerableTo(DamageSource& source) const
 
 bool Entity::isImmuneToFire() const
 {
-    // 参考 MC 1.16.5 Entity.isImmuneToFire()
     // 默认实现：查询实体类型的火焰免疫标志
     // 子类可以重写此方法提供运行时可变的免疫状态
     const std::string typeId = getTypeId();
@@ -1832,8 +1719,6 @@ std::string Entity::toString() const
 
 bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
 {
-    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
-
     // 保存当前位置作为备份
     f64 originalX = m_position.x;
     f64 originalY = m_position.y;
@@ -1876,7 +1761,6 @@ bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
     // 传送成功
     if (playEffects) {
         // 播放传送粒子效果
-        // MC 1.16.5: world.setEntityState(this, (byte)46)
         // 客户端收到后会播放末影人传送粒子
         if (m_world != nullptr) {
             m_world->broadcastEntityStatus(m_id, 46);
@@ -1891,8 +1775,6 @@ bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
 
 bool Entity::randomTeleport(f64 range, bool playEffects, bool avoidFluid)
 {
-    // 参考 MC 1.16.5 Entity.randomTeleport()
-
     if (m_world == nullptr) {
         return false;
     }
@@ -1918,9 +1800,8 @@ bool Entity::randomTeleport(f64 range, bool playEffects, bool avoidFluid)
         f64 targetZ = originalZ + (rng.nextDouble() - 0.5) * range * 2.0;
 
         // 限制 Y 在世界范围内
-        constexpr f64 MIN_BUILD_HEIGHT = 0.0;
-        constexpr f64 MAX_BUILD_HEIGHT = 255.0;
-        targetY = math::clamp(targetY, MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT);
+        targetY =
+            math::clamp(targetY, static_cast<f64>(world::MIN_BUILD_HEIGHT), static_cast<f64>(world::MAX_BUILD_HEIGHT));
 
         // 尝试传送
         if (attemptTeleport(targetX, targetY, targetZ, false)) {
@@ -1947,8 +1828,6 @@ bool Entity::randomTeleport(f64 range, bool playEffects, bool avoidFluid)
 
 std::optional<Vector3d> Entity::findSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
 {
-    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
-
     if (m_world == nullptr) {
         return std::nullopt;
     }
@@ -1996,8 +1875,6 @@ std::optional<Vector3d> Entity::findSafeTeleportPosition(f64 x, f64 y, f64 z, bo
 
 bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
 {
-    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
-
     if (m_world == nullptr) {
         return false;
     }
@@ -2041,18 +1918,16 @@ bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const
 
 bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
 {
-    // 参考 MC 1.16.5: Entity.isOnScoreboardTeam()
     const scoreboard::Team* myTeam = getTeam();
     if (myTeam == nullptr || team == nullptr) {
         return false;
     }
-    // MC 1.16.5: Team.isSameTeam() 通过对象引用相等性判断
+    // 通过对象引用相等性判断
     return myTeam == team;
 }
 
 bool Entity::isOnSameTeam(const Entity& other) const
 {
-    // 参考 MC 1.16.5: Entity.isOnSameTeam()
     return isOnScoreboardTeam(other.getTeam());
 }
 
@@ -2062,10 +1937,8 @@ bool Entity::isOnSameTeam(const Entity& other) const
 
 ActionResultType Entity::processInitialInteract(Player& player, Hand hand)
 {
-    // MC 1.16.5: Entity.processInitialInteract()
     // 基类默认实现：返回 Pass，表示不处理交互
     // 子类（如 MobEntity、BoatEntity、ItemFrameEntity 等）可重写此方法处理特定交互
-
     (void)player;
     (void)hand;
     return ActionResultType::Pass;
@@ -2073,10 +1946,8 @@ ActionResultType Entity::processInitialInteract(Player& player, Hand hand)
 
 ActionResultType Entity::applyPlayerInteraction(Player& player, const Vector3& hitPosition, Hand hand)
 {
-    // MC 1.16.5: Entity.applyPlayerInteraction()
     // 基类默认实现：直接调用 processInitialInteract
     // 子类（如 ArmorStandEntity）可重写此方法处理基于点击位置的交互
-
     (void)hitPosition; // 基类不使用点击位置
     return processInitialInteract(player, hand);
 }
@@ -2111,7 +1982,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     // 空气剩余 tick
     tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
 
-    // 地面标记 (MC 1.16.5: byte 0/1)
+    // 地面标记 (byte 0/1)
     tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_onGround ? 1 : 0));
 
     // 无敌标记
@@ -2168,7 +2039,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
     // 运动 (Motion)
     auto motion = nbt_helper::getDoubleList(tag, nbt_keys::MOTION);
     if (motion.size() >= 3) {
-        // MC 1.16.5: 运动分量限制在 ±10.0
+        // 运动分量限制在 ±10.0
         m_velocity.x = static_cast<f32>(std::clamp(motion[0], -10.0, 10.0));
         m_velocity.y = static_cast<f32>(std::clamp(motion[1], -10.0, 10.0));
         m_velocity.z = static_cast<f32>(std::clamp(motion[2], -10.0, 10.0));

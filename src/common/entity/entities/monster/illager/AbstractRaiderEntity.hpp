@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../entity/damage/DamageSource.hpp"
 #include "PatrollerEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 
 namespace mc {
 namespace world::village::raid {
@@ -38,15 +38,11 @@ class Raid;
  * 为所有可参与村庄袭击的实体提供统一的 Raid 关联与庆祝状态管理。
  *
  * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity
- *
- * 参考 MC 1.16.5 AbstractRaiderEntity
  */
 class AbstractRaiderEntity : public PatrollerEntity {
 public:
     /**
      * @brief 袭击者状态
-     *
-     * MC 1.16.5: 袭击者可以处于庆祝状态
      */
     enum class RaiderState : u8 {
         Neutral = 0,    // 中立

@@ -23,16 +23,16 @@
 
 #pragma once
 
-#include "../../item/core/ItemStack.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../sound/SoundCategory.hpp"
-#include "../attribute/AttributeMap.hpp"
-#include "../attribute/Attributes.hpp"
-#include "../damage/CombatTracker.hpp"
-#include "../damage/DamageSource.hpp"
-#include "../effect/EffectManager.hpp"
-#include "Entity.hpp"
+#include "common/entity/attribute/AttributeMap.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/CombatTracker.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectManager.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 
 #include <array>
 #include <memory>
@@ -74,8 +74,6 @@ enum class EquipmentSlot : u8 {
  * - swingProgress: 攻击动画
  * - renderYawOffset: 身体旋转偏移
  * - rotationYawHead: 头部旋转
- *
- * 参考 MC 1.16.5 LivingEntity
  */
 class LivingEntity : public Entity {
 public:
@@ -144,7 +142,6 @@ public:
     /**
      * @brief 受伤
      *
-     * 参考 MC 1.16.5 LivingEntity.attackEntityFrom()
      * 伤害处理流程：
      * 1. 检查无敌状态
      * 2. 检查无敌帧（允许累积伤害）
@@ -162,7 +159,6 @@ public:
     /**
      * @brief 实际受伤处理
      *
-     * 参考 MC 1.16.5 LivingEntity.damageEntity()
      * 在无敌检查通过后调用，进行实际的伤害计算：
      * 1. 护甲减伤
      * 2. 药水效果减伤
@@ -191,15 +187,12 @@ public:
      *
      * 重写 Entity::onKillCommand()，使用虚空伤害杀死实体。
      * 这确保实体会经历完整的死亡流程（触发死亡事件、掉落物品等）。
-     *
-     * 参考 MC 1.16.5 LivingEntity.onKillCommand()
      */
     void onKillCommand() override;
 
     /**
      * @brief 检查是否可以格挡伤害来源
      *
-     * 参考 MC 1.16.5 LivingEntity.canBlockDamageSource()
      * 检查实体是否正在使用盾牌格挡，以及伤害来源是否可以被格挡。
      *
      * @param source 伤害来源
@@ -210,7 +203,6 @@ public:
     /**
      * @brief 受伤时损坏护甲
      *
-     * 参考 MC 1.16.5 LivingEntity.damageArmor()
      * 默认空实现，由 Player 子类重写。
      *
      * @param source 伤害来源
@@ -220,8 +212,6 @@ public:
 
     /**
      * @brief 受伤时损坏盾牌
-     *
-     * 参考 MC 1.16.5 PlayerEntity.damageShield()
      *
      * @param amount 伤害量
      */
@@ -237,7 +227,6 @@ public:
     /**
      * @brief 检查药水效果是否可以应用
      *
-     * 参考 MC 1.16.5 LivingEntity.isPotionApplicable()
      * 子类可以重写此方法来免疫某些药水效果。
      * 例如：凋灵免疫凋零效果。
      *
@@ -249,7 +238,6 @@ public:
     /**
      * @brief 检查是否可以被药水影响
      *
-     * 参考 MC 1.16.5 LivingEntity.canBeHitWithPotion()
      * 盔甲架重写此方法返回 false，其他生物返回 true。
      *
      * @return 是否可以被药水影响
@@ -259,7 +247,6 @@ public:
     /**
      * @brief 摔落伤害处理
      *
-     * 参考 MC 1.16.5 LivingEntity.onLivingFall()
      * 子类可以重写此方法来免疫摔落伤害。
      * 例如：凋灵、末影龙免疫摔落伤害。
      *
@@ -330,7 +317,6 @@ public:
      * @brief 获取护甲槽位数组
      *
      * 返回头盔、胸甲、护腿、靴子的指针数组，用于附魔保护计算。
-     * 参考 MC 1.16.5 LivingEntity.getArmorInventoryList()
      *
      * @return 护甲槽位数组 [头盔, 胸甲, 护腿, 靴子]
      */
@@ -369,8 +355,6 @@ public:
      *
      * 用于附魔（如亡灵杀手、节肢杀手）对特定生物类型造成额外伤害。
      * 默认返回 Undefined。
-     *
-     * 参考 MC 1.16.5 LivingEntity.getCreatureAttribute()
      */
     [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const { return CreatureAttribute::Undefined; }
 
@@ -380,7 +364,6 @@ public:
      * @brief 是否可以在水下呼吸
      *
      * 亡灵生物（僵尸、骷髅等）可以在水下呼吸。
-     * 参考 MC 1.16.5 LivingEntity.canBreatheUnderwater()
      *
      * @return 如果可以在水下呼吸返回 true
      */
@@ -393,7 +376,6 @@ public:
      * @brief 减少空气供应
      *
      * 考虑水下呼吸附魔的概率性空气节约。
-     * 参考 MC 1.16.5 LivingEntity.decreaseAirSupply()
      *
      * @param currentAir 当前空气量
      * @return 减少后的空气量
@@ -402,8 +384,6 @@ public:
 
     /**
      * @brief 计算下一个空气值（恢复空气）
-     *
-     * 参考 MC 1.16.5 LivingEntity.determineNextAir()
      *
      * @param currentAir 当前空气量
      * @return 恢复后的空气量
@@ -414,7 +394,6 @@ public:
      * @brief 更新空气供应和溺水伤害
      *
      * 每tick调用，处理空气消耗和溺水伤害。
-     * 参考 MC 1.16.5 LivingEntity.baseTick() 中的空气处理逻辑
      */
     virtual void updateAirSupply();
 
@@ -432,15 +411,13 @@ public:
 
     /**
      * @brief 获取无敌帧计时器
-     *
-     * MC 1.16.5: hurtResistantTime
      */
     [[nodiscard]] i32 hurtResistantTime() const { return m_hurtResistantTime; }
 
     /**
      * @brief 设置无敌帧计时器
      *
-     * MC 1.16.5: 用于陷阱触发时设置初始无敌帧
+     * 用于陷阱触发时设置初始无敌帧。
      * @param ticks 无敌帧 tick 数
      */
     void setHurtResistantTime(i32 ticks) { m_hurtResistantTime = ticks; }
@@ -460,7 +437,6 @@ public:
     /**
      * @brief 获取最近攻击该实体的实体
      *
-     * 参考 MC 1.16.5 LivingEntity.getLastHurtBy()
      * @return 最近攻击者，无则返回nullptr
      */
     [[nodiscard]] LivingEntity* getLastHurtBy() { return m_lastHurtBy; }
@@ -469,7 +445,6 @@ public:
     /**
      * @brief 获取最近被攻击的时间戳（tick）
      *
-     * 参考 MC 1.16.5 LivingEntity.getLastHurtByTimestamp()
      * @return tick 时间戳
      */
     [[nodiscard]] i32 lastHurtByTimestamp() const { return m_lastHurtByTimestamp; }
@@ -477,7 +452,6 @@ public:
     /**
      * @brief 设置最近攻击者
      *
-     * 参考 MC 1.16.5 LivingEntity.setLastHurtBy()
      * @param attacker 攻击者
      */
     void setLastHurtBy(LivingEntity* attacker);
@@ -485,7 +459,6 @@ public:
     /**
      * @brief 获取该实体最近攻击的目标
      *
-     * 参考 MC 1.16.5 LivingEntity.getLastHurtTarget()
      * @return 最近攻击的目标，无则返回nullptr
      */
     [[nodiscard]] LivingEntity* getLastHurtTarget() { return m_lastHurtTarget; }
@@ -494,7 +467,6 @@ public:
     /**
      * @brief 获取最近攻击目标的时间戳（tick）
      *
-     * 参考 MC 1.16.5 LivingEntity.getLastHurtTargetTimestamp()
      * @return tick 时间戳
      */
     [[nodiscard]] i32 lastHurtTargetTimestamp() const { return m_lastHurtTargetTimestamp; }
@@ -502,7 +474,6 @@ public:
     /**
      * @brief 设置最近攻击的目标
      *
-     * 参考 MC 1.16.5 LivingEntity.setLastHurtTarget()
      * @param target 攻击目标
      */
     void setLastHurtTarget(LivingEntity* target);
@@ -512,7 +483,6 @@ public:
     /**
      * @brief 应用击退效果
      *
-     * 参考 MC 1.16.5 LivingEntity.applyKnockback()
      * 击退强度会被击退抗性属性降低。
      *
      * @param strength 击退强度（默认为1.0）
@@ -575,13 +545,11 @@ public:
 
     /**
      * @brief 设置头部偏航角
-     * 参考 MC 1.16.5 LivingEntity.setRotationYawHead()
      */
     void setRotationYawHead(f32 yaw) { m_rotationYawHead = yaw; }
 
     /**
      * @brief 设置头部俯仰角
-     * 参考 MC 1.16.5 LivingEntity.setRotationPitch()
      */
     void setRotationPitch(f32 pitch) { m_pitch = pitch; }
 
@@ -598,7 +566,6 @@ public:
     /**
      * @brief 获取正在挥动的手
      *
-     * MC 1.16.5: LivingEntity.swingingHand
      * 返回当前正在挥动的手（主手或副手）。
      *
      * @return 正在挥动的手，默认为主手
@@ -608,7 +575,6 @@ public:
     /**
      * @brief 挥动手臂（攻击动画）- 主手
      *
-     * MC 1.16.5: LivingEntity.swingArm()
      * 触发攻击动画，持续6 tick。
      */
     void swingArm() { swing(Hand::MainHand); }
@@ -616,14 +582,13 @@ public:
     /**
      * @brief 挥动手臂（攻击动画）- 指定手
      *
-     * MC 1.16.5: LivingEntity.swing(Hand, boolean)
      * 触发攻击动画，持续6 tick。
      *
      * @param hand 挥动的手（主手或副手）
      */
     void swing(Hand hand)
     {
-        // MC 1.16.5: 条件判断允许在动画进行到一半时重新触发
+        // 条件判断允许在动画进行到一半时重新触发
         if (!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd() / 2 || m_swingProgressInt < 0) {
             m_swingProgressInt = -1;
             m_swingInProgress = true;
@@ -634,7 +599,6 @@ public:
     /**
      * @brief 获取手臂挥动动画持续 tick 数
      *
-     * MC 1.16.5: LivingEntity.getArmSwingAnimationEnd()
      * 默认返回 6 tick，急迫效果减少，挖掘疲劳增加。
      *
      * @return 动画持续 tick 数
@@ -657,7 +621,6 @@ public:
      * @brief 执行跳跃
      *
      * 设置垂直速度为跳跃初速度。
-     * 参考 MC LivingEntity.jump()
      */
     void jump();
 
@@ -691,8 +654,6 @@ public:
 
     /**
      * @brief 获取AI移动速度
-     *
-     * 参考 MC 1.16.5 LivingEntity.getAIMoveSpeed()
      */
     [[nodiscard]] f32 aiMoveSpeed() const { return m_landMovementFactor; }
 
@@ -705,9 +666,6 @@ public:
      * @brief 执行移动（AI物理更新核心方法）
      *
      * 根据 moveStrafing 和 moveForward 计算移动向量并执行物理移动。
-     * 这是 MC LivingEntity.travel() 的核心逻辑。
-     *
-     * 参考 MC 1.16.5 LivingEntity.travel()
      *
      * @param strafing 横向移动量（左右）
      * @param vertical 垂直移动量（上下，用于飞行/游泳）
@@ -728,7 +686,6 @@ public:
      * @brief AI步进更新
      *
      * 处理AI移动逻辑，应用阻力，调用travel方法。
-     * 参考 MC 1.16.5 LivingEntity.aiStep() / livingTick()
      */
     virtual void aiStep();
 
@@ -784,7 +741,6 @@ public:
     /**
      * @brief 开始使用物品
      *
-     * MC 1.16.5: setActiveHand()
      * 设置正在使用的手和物品，开始物品使用倒计时。
      *
      * @param hand 使用的手
@@ -794,7 +750,6 @@ public:
     /**
      * @brief 停止使用物品
      *
-     * MC 1.16.5: stopActiveHand()
      * 重置使用状态，调用物品的 onPlayerStoppedUse。
      */
     void stopActiveHand();
@@ -828,7 +783,6 @@ public:
     /**
      * @brief 检查是否正在进行激流攻击（旋转攻击）
      *
-     * 参考 MC 1.16.5: LivingEntity.isSpinAttacking()
      * 通过检查 LIVING_FLAGS 的第2位（0x04）来判断。
      *
      * @return 如果正在进行激流攻击返回 true
@@ -838,7 +792,6 @@ public:
     /**
      * @brief 开始激流攻击
      *
-     * 参考 MC 1.16.5: LivingEntity.startSpinAttack()
      * 设置 SpinAttack 标志并初始化持续时间。
      * 持续时间内实体会以 SpinAttack 姿态旋转前进。
      *
@@ -849,7 +802,6 @@ public:
     /**
      * @brief 停止激流攻击
      *
-     * 参考 MC 1.16.5: LivingEntity.stopSpinAttack()
      * 清除 SpinAttack 标志。
      */
     void stopSpinAttack();
@@ -887,7 +839,6 @@ public:
      * @brief 攻击目标时调用附魔回调
      *
      * 在攻击成功后调用，触发武器附魔的效果（如节肢杀家的缓慢效果）。
-     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
      *
      * @param target 被攻击的目标实体
      */
@@ -910,7 +861,6 @@ public:
     /**
      * @brief 获取插在身上的箭矢数量
      *
-     * 参考 MC 1.16.5 LivingEntity.getArrowCountInEntity()
      * 用于渲染层（ArrowLayer）渲染插在实体身上的箭矢。
      *
      * @return 箭矢数量
@@ -920,7 +870,6 @@ public:
     /**
      * @brief 设置插在身上的箭矢数量
      *
-     * 参考 MC 1.16.5 LivingEntity.setArrowCountInEntity()
      * 当箭矢命中实体时调用以增加计数。
      *
      * @param count 箭矢数量
@@ -930,7 +879,6 @@ public:
     /**
      * @brief 更新箭矢自动脱落逻辑
      *
-     * 参考 MC 1.16.5 LivingEntity.livingTick() 中的箭矢脱落逻辑
      * 箭矢数量越多，脱落间隔越短：
      * - 1 支箭约 29 秒脱落
      * - 15 支箭约 15 秒脱落
@@ -944,8 +892,6 @@ public:
      *
      * 重写基类方法。LivingEntity 在潜行时返回 true。
      * 小心行走的实体不会触发 onEntityWalk 回调。
-     *
-     * 参考: MC 1.16.5 Entity.isSteppingCarefully()
      *
      * @return 如果实体正在潜行返回true
      */
@@ -984,7 +930,6 @@ public:
     /**
      * @brief 序列化 LivingEntity 特有数据
      *
-     * 参考 MC 1.16.5 LivingEntity.writeAdditional()
      * 写入 Health, AbsorptionAmount, HurtTime, DeathTime, HurtByTimestamp,
      * FallFlying, ActiveEffects, Attributes, HandItems, ArmorItems 等。
      */
@@ -992,8 +937,6 @@ public:
 
     /**
      * @brief 反序列化 LivingEntity 特有数据
-     *
-     * 参考 MC 1.16.5 LivingEntity.readAdditional()
      */
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
@@ -1006,7 +949,6 @@ protected:
     /**
      * @brief 更新移动动画参数
      *
-     * MC 1.16.5: func_233629_a_(LivingEntity, boolean)
      * 在 travel() 结束时调用，更新 limbSwingAmount 和 limbSwing。
      *
      * @param includeVertical 是否包含垂直位移
@@ -1038,7 +980,6 @@ protected:
     /**
      * @brief 获取摔落声音
      *
-     * 参考 MC 1.16.5: LivingEntity.getFallSound()
      * 子类可重写以提供特定摔落音效。
      *
      * @param fallHeight 摔落高度（格数）
@@ -1059,8 +1000,6 @@ protected:
     /**
      * @brief 计算护甲减伤后的伤害
      *
-     * 参考 MC 1.16.5 LivingEntity.applyArmorCalculations()
-     *
      * @param source 伤害来源
      * @param damage 原始伤害
      * @return 减伤后的伤害
@@ -1070,7 +1009,6 @@ protected:
     /**
      * @brief 计算药水效果减伤后的伤害
      *
-     * 参考 MC 1.16.5 LivingEntity.applyPotionDamageCalculations()
      * 包括抗性药水和附魔保护。
      *
      * @param source 伤害来源
@@ -1121,10 +1059,10 @@ protected:
     // 受伤无敌帧
     i32 m_hurtTime = 0;                                // 受伤无敌时间
     i32 m_maxHurtTime = 10;                            // 最大受伤无敌时间
-    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（MC 1.16.5：20 tick = 1秒）
+    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
-    i32 m_hurtResistantTime = 0;                       // 无敌帧计时器（MC 1.16.5：hurtResistantTime）
+    i32 m_hurtResistantTime = 0;                       // 无敌帧计时器
 
     // 战斗状态
     bool m_inCombat = false;       // 是否在战斗中

@@ -36,7 +36,6 @@ class LivingEntity;
 // ============================================================================
 // 保护附魔伤害类型标志位
 // 用于 ProtectionEnchantment 计算伤害减免
-// 参考 MC 1.16.5 ProtectionEnchantment
 // ============================================================================
 namespace DamageFlags {
 constexpr u32 FIRE = 0x01;       // 火焰/岩浆: InFire, OnFire, Lava, HotFloor
@@ -49,7 +48,6 @@ constexpr u32 PROJECTILE = 0x10; // 弹射物: Arrow, Trident, MobProjectile, Fi
  * @brief 伤害类型枚举
  *
  * 定义不同类型的伤害来源。
- * 参考 MC 1.16.5 DamageSource。
  */
 enum class DamageType : u8 {
     // 环境伤害
@@ -71,7 +69,7 @@ enum class DamageType : u8 {
     DragonBreath, // 龙息
     Fireworks,    // 烟花
 
-    // 新增环境伤害类型（MC 1.16.5）
+    // 新增环境伤害类型
     InWall,         // 窒息（在方块内）
     Cramming,       // 拥挤伤害（实体过多）
     Dryout,         // 干涸伤害（鱼离开水）
@@ -89,7 +87,7 @@ enum class DamageType : u8 {
     Explosion,       // 爆炸
     ExplosionPlayer, // 玩家爆炸
 
-    // 新增实体伤害类型（MC 1.16.5）
+    // 新增实体伤害类型
     Sting, // 蜜蜂蛰刺
 };
 
@@ -97,8 +95,6 @@ enum class DamageType : u8 {
  * @brief 伤害来源基类
  *
  * 定义伤害的来源和类型，用于计算伤害、死亡消息等。
- *
- * 参考 MC 1.16.5 DamageSource
  */
 class DamageSource {
 public:
@@ -138,9 +134,7 @@ public:
     /**
      * @brief 获取真正的伤害来源
      *
-     * MC 1.16.5: DamageSource.getTrueSource()
-     * 返回造成伤害的实体。这是 Target Goals (如 HurtByTargetGoal) 使用的接口。
-     * 默认实现返回 getEntity()。
+     * 返回造成伤害的实体，用于 HurtByTargetGoal 等目标选择。
      */
     [[nodiscard]] virtual Entity* getTrueSource() const { return getEntity(); }
 
@@ -151,7 +145,7 @@ public:
 
     /**
      * @brief 是否可以绕过无敌
-     * MC 1.16.5: isDamageAbsolute() - 忽略药水效果和附魔
+     * 忽略药水效果和附魔
      */
     [[nodiscard]] virtual bool bypassesInvulnerability() const { return false; }
 
@@ -197,26 +191,22 @@ public:
 
     /**
      * @brief 是否受难度缩放
-     * MC 1.16.5: isDifficultyScaled()
      */
     [[nodiscard]] virtual bool isDifficultyScaled() const { return false; }
 
     /**
      * @brief 是否是荆棘伤害
-     * MC 1.16.5: getIsThornsDamage()
      */
     [[nodiscard]] virtual bool isThornsDamage() const { return false; }
 
     /**
      * @brief 获取饥饿消耗值
-     * MC 1.16.5: getHungerDamage()
      * 玩家受伤时会消耗饱食度，默认 0.1，护甲穿透伤害为 0.0
      */
     [[nodiscard]] virtual f32 hungerDamage() const { return 0.1f; }
 
     /**
      * @brief 是否忽略药水效果和附魔
-     * MC 1.16.5: isDamageAbsolute()
      */
     [[nodiscard]] virtual bool isDamageAbsolute() const { return false; }
 
@@ -266,7 +256,7 @@ public:
         , m_hungerDamage(0.1f)
         , m_isDamageAbsolute(false)
     {
-        // MC 1.16.5: bypassesArmor 的伤害类型饥饿消耗为 0
+        // bypassesArmor 的伤害类型饥饿消耗为 0
         if (bypassesArmor()) {
             m_hungerDamage = 0.0f;
         }
@@ -420,11 +410,11 @@ public:
 
     /**
      * @brief 是否受难度缩放
-     * MC 1.16.5: 非玩家生物攻击受难度缩放
+     * 非玩家生物攻击受难度缩放
      */
     [[nodiscard]] bool isDifficultyScaled() const override
     {
-        // MC 1.16.5: 非玩家的 LivingEntity 攻击受难度缩放
+        // 非玩家的 LivingEntity 攻击受难度缩放
         return m_difficultyScaled;
     }
 
@@ -432,7 +422,6 @@ public:
 
     /**
      * @brief 设置为荆棘伤害
-     * MC 1.16.5: setIsThornsDamage()
      */
     EntityDamageSource& setThornsDamage()
     {
@@ -442,7 +431,6 @@ public:
 
     /**
      * @brief 设置受难度缩放
-     * MC 1.16.5: setDifficultyScaled()
      */
     EntityDamageSource& setDifficultyScaled()
     {
@@ -545,7 +533,7 @@ public:
 
     /**
      * @brief 获取真正的伤害来源
-     * MC 1.16.5: getTrueSource() 返回间接来源（射击者）
+     * 返回间接来源（射击者）
      */
     [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
 
@@ -726,7 +714,7 @@ inline EnvironmentalDamage wither()
 
 /**
  * @brief 创建生物攻击伤害
- * MC 1.16.5: 生物攻击受难度缩放
+ * 生物攻击受难度缩放
  */
 inline EntityDamageSource mobAttack(Entity* mob)
 {
@@ -735,7 +723,7 @@ inline EntityDamageSource mobAttack(Entity* mob)
 
 /**
  * @brief 创建玩家攻击伤害
- * MC 1.16.5: 玩家攻击不受难度缩放
+ * 玩家攻击不受难度缩放
  */
 inline EntityDamageSource playerAttack(Entity* player)
 {
@@ -744,7 +732,7 @@ inline EntityDamageSource playerAttack(Entity* player)
 
 /**
  * @brief 创建箭矢伤害
- * MC 1.16.5: 箭矢是投射物
+ * 箭矢是投射物
  */
 inline IndirectEntityDamageSource arrow(Entity* arrow, Entity* shooter, bool isPlayer = false)
 {
@@ -753,7 +741,7 @@ inline IndirectEntityDamageSource arrow(Entity* arrow, Entity* shooter, bool isP
 
 /**
  * @brief 创建三叉戟伤害
- * MC 1.16.5: 三叉戟是投射物
+ * 三叉戟是投射物
  */
 inline IndirectEntityDamageSource trident(Entity* trident, Entity* thrower, bool isPlayer = false)
 {
@@ -762,7 +750,7 @@ inline IndirectEntityDamageSource trident(Entity* trident, Entity* thrower, bool
 
 /**
  * @brief 创建荆棘伤害
- * MC 1.16.5: 荆棘伤害是魔法伤害
+ * 荆棘伤害是魔法伤害
  */
 inline EntityDamageSource thorns(Entity* owner)
 {
@@ -771,7 +759,7 @@ inline EntityDamageSource thorns(Entity* owner)
 
 /**
  * @brief 创建爆炸伤害（无来源）
- * MC 1.16.5: 爆炸伤害受难度缩放
+ * 爆炸伤害受难度缩放
  */
 inline EnvironmentalDamage explosion()
 {
@@ -780,7 +768,7 @@ inline EnvironmentalDamage explosion()
 
 /**
  * @brief 创建实体爆炸伤害
- * MC 1.16.5: 玩家爆炸伤害使用 explosion.player
+ * 玩家爆炸伤害使用 explosion.player
  */
 inline EntityDamageSource explosionPlayer(Entity* player)
 {
@@ -819,7 +807,7 @@ inline EnvironmentalDamage sweetBerryBush()
 
 /**
  * @brief 创建蜜蜂蛰刺伤害
- * MC 1.16.5: 蜜蜂蛰刺受难度缩放
+ * 蜜蜂蛰刺受难度缩放
  */
 inline EntityDamageSource sting(Entity* bee)
 {
@@ -852,7 +840,7 @@ inline EnvironmentalDamage fireworks()
 
 /**
  * @brief 创建投射物伤害
- * MC 1.16.5: 投射物受难度缩放
+ * 投射物受难度缩放
  */
 inline IndirectEntityDamageSource mobProjectile(Entity* projectile, Entity* shooter)
 {
@@ -863,7 +851,7 @@ inline IndirectEntityDamageSource mobProjectile(Entity* projectile, Entity* shoo
 
 /**
  * @brief 创建火球伤害
- * MC 1.16.5: 火球是投射物和火焰伤害
+ * 火球是投射物和火焰伤害
  */
 inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bool isPlayer = false)
 {
@@ -874,7 +862,7 @@ inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bo
 
 /**
  * @brief 创建间接魔法伤害
- * MC 1.16.5: 间接魔法伤害绕过护甲
+ * 间接魔法伤害绕过护甲
  */
 inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
 {

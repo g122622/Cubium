@@ -21,25 +21,25 @@
  *
  */
 
-#include "LivingEntity.hpp"
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
-#include "../../item/core/Item.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../physics/PhysicsConstants.hpp"
-#include "../../physics/PhysicsEngine.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/block/BlockSoundType.hpp"
-#include "../combat/CombatRules.hpp"
-#include "../damage/DamageSource.hpp"
-#include "../serialization/EntityNbtKeys.hpp"
-#include "../serialization/NbtHelper.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/CombatRules.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockSoundType.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -73,7 +73,7 @@ LivingEntity::LivingEntity(EntityId id, IWorld* world)
     : Entity(id, world)
     , m_combatTracker(this)
 {
-    // MC 1.16.5: LivingEntity 构造函数中设置 stepHeight = 0.6F
+    // 构造函数中设置 stepHeight = 0.6F
     setStepHeight(physics::STEP_HEIGHT);
 
     // 初始化装备槽
@@ -121,14 +121,13 @@ void LivingEntity::heal(f32 amount)
 
 bool LivingEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: LivingEntity.attackEntityFrom()
     // 1. 检查是否对伤害类型免疫
     if (isInvulnerableTo(source)) {
         return false;
     }
 
     // 2. 无敌帧逻辑
-    // MC 1.16.5: 如果 hurtResistantTime > 10，允许累积伤害
+    // 如果 hurtResistantTime > 10，允许累积伤害
     if (m_hurtResistantTime > 10) {
         // 已经在无敌帧内，只承受差额伤害
         if (amount <= m_lastDamage) {
@@ -152,7 +151,6 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
 
 void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: LivingEntity.damageEntity()
     if (amount <= 0.0f) {
         return;
     }
@@ -206,7 +204,6 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 9. 触发荆棘附魔（对攻击者造成反伤）
-    // MC 1.16.5: 在受伤后触发荆棘效果
     // 注意：荆棘伤害不触发无限循环，因为荆棘伤害的 isThornsDamage() 返回 true
     if (!source.isThornsDamage() && trueSource != nullptr && trueSource != this) {
         // 获取护甲槽位
@@ -238,26 +235,22 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
 bool LivingEntity::canBlockDamageSource(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: LivingEntity.canBlockDamageSource()
     // 默认返回 false，由 Player 子类重写实现盾牌格挡
     return false;
 }
 
 void LivingEntity::damageArmor(DamageSource& /*source*/, f32 /*amount*/)
 {
-    // MC 1.16.5: LivingEntity.damageArmor()
     // 默认空实现，由 Player 子类重写
 }
 
 void LivingEntity::damageShield(f32 /*amount*/)
 {
-    // MC 1.16.5: PlayerEntity.damageShield()
     // 默认空实现，由 Player 子类重写
 }
 
 f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
 {
-    // MC 1.16.5: LivingEntity.applyArmorCalculations()
     if (source.bypassesArmor()) {
         return damage;
     }
@@ -270,7 +263,6 @@ f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
 
 f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage)
 {
-    // MC 1.16.5: LivingEntity.applyPotionDamageCalculations()
     if (damage <= 0.0f) {
         return damage;
     }
@@ -285,8 +277,7 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
     }
 
     // 2. 附魔保护减伤
-    // MC 1.16.5: 遍历所有护甲槽位，计算保护附魔的 EPF 总和
-    // 参考: EnchantmentHelper.getEnchantmentModifierDamage()
+    // 遍历所有护甲槽位，计算保护附魔的 EPF 总和
     // 只有非 isDamageAbsolute 的伤害才受附魔保护影响
     if (!source.isDamageAbsolute()) {
         u32 damageTypeFlags = 0;
@@ -338,7 +329,6 @@ void LivingEntity::die(DamageSource& /*cause*/)
 
 void LivingEntity::onKillCommand()
 {
-    // MC 1.16.5 LivingEntity.onKillCommand()
     // 使用虚空伤害杀死实体，这会触发完整的死亡流程
     auto damageSource = DamageSources::outOfWorld();
     hurt(damageSource, std::numeric_limits<f32>::max());
@@ -350,7 +340,6 @@ void LivingEntity::onKillCommand()
 
 void LivingEntity::registerAttributes()
 {
-    // MC 1.16.5 LivingEntity.registerAttributes()
     // 基础属性：所有生物实体都有
     m_attributes.registerAttribute(*entity::attribute::Attributes::maxHealth());
     m_attributes.registerAttribute(*entity::attribute::Attributes::knockbackResistance());
@@ -358,7 +347,7 @@ void LivingEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
 
-    // 注意：以下属性不在 MC 1.16.5 LivingEntity 基类中注册：
+    // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
     // - FLYING_SPEED: 由需要飞行的实体注册
     // - ATTACK_DAMAGE: 由 MonsterEntity 注册
@@ -411,8 +400,6 @@ void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 
 bool LivingEntity::isInvulnerableTo(DamageSource& source) const
 {
-    // MC 1.16.5: Entity.isInvulnerableTo() + LivingEntity 检查
-
     // 1. 检查实体是否处于无敌状态
     if (Entity::isInvulnerable()) {
         // 虚空伤害可以绕过无敌
@@ -420,7 +407,7 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
     }
 
     // 2. 检查无敌帧
-    // MC 1.16.5: 当 hurtResistantTime > 0 时，大部分伤害被阻挡
+    // 当 hurtResistantTime > 0 时，大部分伤害被阻挡
     // 但虚空伤害可以绕过
     if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {
         return true;
@@ -474,7 +461,6 @@ void LivingEntity::tick()
     m_effectManager.tick(*this);
 
     // 更新无敌帧计时器
-    // MC 1.16.5: hurtResistantTime 在每 tick 递减
     if (m_hurtResistantTime > 0) {
         m_hurtResistantTime--;
     }
@@ -485,7 +471,6 @@ void LivingEntity::tick()
     }
 
     // 更新攻击动画
-    // MC 1.16.5: LivingEntity.updateArmSwingProgress()
     if (m_swingInProgress) {
         ++m_swingProgressInt;
         const i32 swingEnd = getArmSwingAnimationEnd();
@@ -502,8 +487,7 @@ void LivingEntity::tick()
     // 更新步态动画
     updateAnimation();
 
-    // MC 1.16.5: 执行 AI 步进（物理更新）
-    // 参考 LivingEntity.livingTick() -> aiStep()
+    // 执行 AI 步进（物理更新）
     aiStep();
 
     // 更新生命值
@@ -561,7 +545,6 @@ void LivingEntity::updateAnimation()
 
 i32 LivingEntity::getArmSwingAnimationEnd() const
 {
-    // MC 1.16.5: LivingEntity.getArmSwingAnimationEnd()
     // 默认 6 tick，急迫效果减少，挖掘疲劳增加
     i32 base = 6;
 
@@ -583,7 +566,6 @@ i32 LivingEntity::getArmSwingAnimationEnd() const
 
 void LivingEntity::updateTravelAnimation(bool includeVertical)
 {
-    // MC 1.16.5: LivingEntity.func_233629_a_(LivingEntity, boolean)
     // 在 travel() 结束时调用，更新肢体摆动动画
 
     // 保存上一帧的 limbSwingAmount
@@ -595,7 +577,6 @@ void LivingEntity::updateTravelAnimation(bool includeVertical)
     f64 dz = static_cast<f64>(z() - prevZ());
 
     // 计算移动距离并乘以 4（用于动画速度）
-    // MC: float f = MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2) * 4.0F
     f32 distance = static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz)) * 4.0f;
 
     // 限制最大值为 1.0
@@ -613,7 +594,7 @@ void LivingEntity::updateTravelAnimation(bool includeVertical)
 void LivingEntity::tickHealth()
 {
     // 自然回血逻辑
-    // MC 1.16.5: 生命恢复效果每 50/(level+1) tick 治疗 1 点生命
+    // 生命恢复效果每 50/(level+1) tick 治疗 1 点生命
     // 和平模式下每秒恢复 1 点生命
 
     // 检查生命恢复效果
@@ -654,24 +635,23 @@ void LivingEntity::tickDeath()
 
 void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 {
-    // MC 1.16.5: 缓降效果免疫摔落伤害
-    // 参考 LivingEntity.java: func_225503_b_ (fall 方法)
+    // 缓降效果免疫摔落伤害
     if (hasEffect(entity::effect::EffectType::SlowFalling)) {
         // 缓降效果下不受到摔落伤害
         return;
     }
 
-    // MC 1.16.5: 跳跃增强药水减少摔落距离
+    // 跳跃增强药水减少摔落距离
     // 每级跳跃增强减少 1 格有效摔落距离
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
     f32 effectiveDistance = distance - static_cast<f32>(jumpBoostLevel);
 
     // 计算摔落伤害
-    // MC 规则：摔落 > 3 格才开始受伤，每格 1 点伤害
+    // 摔落 > 3 格才开始受伤，每格 1 点伤害
     if (effectiveDistance > 3.0f) {
         f32 damage = (effectiveDistance - 3.0f) * damageMultiplier;
 
-        // MC 1.16.5: 计算摔落保护附魔减伤
+        // 计算摔落保护附魔减伤
         // 摔落保护 EPF = 羽毛落地等级 * 3
         std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
             &getEquipment(EquipmentSlot::Chest),
@@ -692,7 +672,7 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
         }
     }
 
-    // MC 1.16.5: 播放摔落音效
+    // 播放摔落音效
     // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
     playFallSound(distance);
 }
@@ -722,7 +702,6 @@ void LivingEntity::playFallSound(f32 distance)
     }
 
     // 播放脚下方块的摔落音效
-    // 参考 MC 1.16.5: LivingEntity.playFallSound()
     BlockPos landPos(static_cast<i32>(std::floor(m_position.x)),
         static_cast<i32>(std::floor(m_position.y - 0.2f)), // 脚底位置
         static_cast<i32>(std::floor(m_position.z)));
@@ -740,10 +719,9 @@ void LivingEntity::playFallSound(f32 distance)
 void LivingEntity::jump()
 {
     // 执行跳跃
-    // 参考 MC LivingEntity.jump()
     f32 jumpPower = m_jumpUpwardsMotion;
 
-    // MC 1.16.5: 跳跃增强药水效果
+    // 跳跃增强药水效果
     // 每级增加 0.1 跳跃力
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
     if (jumpBoostLevel > 0) {
@@ -753,7 +731,7 @@ void LivingEntity::jump()
     // 设置垂直速度
     m_velocity.y = jumpPower;
 
-    // MC 1.16.5: 冲刺跳跃
+    // 冲刺跳跃
     // 如果正在冲刺，添加额外的向前动量
     if (hasFlag(EntityFlags::Sprinting)) {
         // 获取朝向方向的水平分量
@@ -769,9 +747,6 @@ void LivingEntity::jump()
 
 void LivingEntity::aiStep()
 {
-    // MC 1.16.5: LivingEntity.livingTick() / aiStep()
-    // 参考 LivingEntity.java 行 2017-2245
-
     // 处理跳跃
     if (m_isJumping) {
         // 在地面时执行跳跃
@@ -789,15 +764,13 @@ void LivingEntity::aiStep()
     }
 
     // 执行 travel（物理移动）
-    // 注意：MC 1.16.5 中 aiStep() 不对输入值应用阻力
+    // 注意：aiStep() 中不对输入值应用阻力
     // 阻力是在 travel() 中应用到速度上的
     travel(m_moveStrafing, 0.0f, m_moveForward);
 }
 
 void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 {
-    // MC 1.16.5: LivingEntity.travel()
-    // 参考 LivingEntity.java 行 2056-2245
     // 正确的物理顺序：
     // 1. 计算移动因子
     // 2. moveRelative(): 速度 += 输入 * 移动因子
@@ -807,14 +780,12 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     // 6. 重置过小速度
 
     // 检查是否在梯子上
-    // MC 1.16.5: LivingEntity.java 行 2218-2241
     bool onLadder = isOnLadder();
 
     // 获取移动速度属性
     f32 moveSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
 
     // 获取脚下方块的滑度
-    // 参考 LivingEntity.java:2148-2152
     f32 slipperiness = 0.6f; // 默认滑度
     if (m_onGround && m_world != nullptr) {
         BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
@@ -830,7 +801,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     f32 moveFactor;
     if (m_onGround) {
         // 地面移动：使用滑度计算
-        // MC 公式: speed * (0.21600002F / (slipperiness^3))
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
     } else {
         // 空中移动：使用跳跃移动因子
@@ -838,7 +808,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     }
 
     // 1. 计算移动向量并添加到速度
-    // 参考 MC Entity.moveRelative()
     if (strafing != 0.0f || forward != 0.0f) {
         f32 length = std::sqrt(strafing * strafing + forward * forward);
         if (length < 1.0E-7f) {
@@ -854,7 +823,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
-        // MC 的 moveRelative 公式
+        // moveRelative 公式
         f32 moveX = normalizedStrafe * cosYaw - normalizedForward * sinYaw;
         f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
 
@@ -864,14 +833,13 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     }
 
     // 2. 应用重力或攀爬物理
-    // MC 1.16.5: LivingEntity.java 行 2218-2241 (梯子攀爬)
     if (onLadder) {
         // 在梯子上时的特殊物理
-        // MC 1.16.5: 水平速度限制为 0.15，重力被抵消
+        // 水平速度限制为 0.15，重力被抵消
 
         // 限制水平速度
         f32 horizontalSpeed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z);
-        constexpr f32 LADDER_MAX_SPEED = 0.15f; // MC 1.16.5: LivingEntity.java:2218-2221
+        constexpr f32 LADDER_MAX_SPEED = 0.15f;
         if (horizontalSpeed > LADDER_MAX_SPEED) {
             f32 scale = LADDER_MAX_SPEED / horizontalSpeed;
             m_velocity.x *= scale;
@@ -879,7 +847,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         }
 
         // 梯子上的垂直移动
-        // MC 1.16.5: LivingEntity.java:2222-2235
         // 向上爬：Y速度正（输入控制）
         // 向下滑：Y速度负（重力控制，但被限制）
         // 静止：Y速度趋近于 0（缓慢滑落）
@@ -894,7 +861,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             m_velocity.y = -physics::LADDER_SLIDE_SPEED;
         } else {
             // 不按键时，缓慢滑落
-            // MC 1.16.5: 如果在梯子上但不按键，Y速度限制为 -0.15
             if (m_velocity.y < -physics::LADDER_SPEED_MAX) {
                 m_velocity.y = -physics::LADDER_SPEED_MAX;
             }
@@ -902,13 +868,11 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 不应用正常重力（梯子上重力已被处理）
     } else if (!hasNoGravity()) {
-        // MC 1.16.5: 缓降效果处理
-        // 参考 LivingEntity.java 行 2040-2045
+        // 缓降效果处理
         f32 gravity = GRAVITY;
 
         if (hasEffect(entity::effect::EffectType::SlowFalling)) {
             // 缓降效果下重力大幅降低
-            // MC 使用属性修饰器，值从 0.08 降到 0.01
             gravity = physics::SLOW_FALLING_GRAVITY;
             // 同时重置摔落距离
             m_fallDistance = 0.0f;
@@ -925,7 +889,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     }
 
     // 4. 应用摩擦/阻力（在移动后）
-    // MC 1.16.5: LivingEntity.java 行 2151, 2167
     if (m_onGround) {
         // 地面摩擦 = slipperiness * 0.91
         f32 groundFriction = slipperiness * 0.91f;
@@ -933,18 +896,14 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         m_velocity.z *= groundFriction;
     } else if (isInWater()) {
         // 水中阻力
-        // MC 1.16.5: LivingEntity.java 行 2067-2069
         f32 waterDrag = physics::DRAG_WATER;
 
         // 海豚的恩惠效果：大幅降低水中阻力
-        // MC 1.16.5: LivingEntity.java 行 2067-2068
         if (hasEffect(entity::effect::EffectType::DolphinsGrace)) {
             waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
         }
 
         // 深度守卫附魔减少水中阻力影响
-        // MC 1.16.5: 修正后的水中阻力
-        // 参考 LivingEntity.java 行 2063-2065
         const ItemStack& boots = getEquipment(EquipmentSlot::Feet);
         if (!boots.isEmpty()) {
             i32 depthStriderLevel =
@@ -962,7 +921,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         m_velocity.z *= waterDrag;
     } else if (isInLava()) {
         // 岩浆阻力
-        // MC 1.16.5: LivingEntity.java 行 2079-2081
         m_velocity.x *= physics::DRAG_LAVA;
         m_velocity.y *= physics::DRAG_LAVA * 0.8f;
         m_velocity.z *= physics::DRAG_LAVA;
@@ -973,7 +931,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         m_velocity.z *= DRAG_AIR;
     } else {
         // 梯子上的阻力
-        // MC 1.16.5: 梯子上水平阻力为 0.91，垂直阻力也为 0.91
         m_velocity.x *= DRAG_GROUND;
         m_velocity.z *= DRAG_GROUND;
     }
@@ -1024,14 +981,13 @@ i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const
 
 void LivingEntity::setArrowCountInEntity(i32 count)
 {
-    // MC 1.16.5: LivingEntity.setArrowCountInEntity()
     m_arrowCount = std::max(0, count);
     m_dataManager.set(ARROW_COUNT_PARAM, m_arrowCount);
 }
 
 void LivingEntity::tickArrows()
 {
-    // MC 1.16.5: LivingEntity.livingTick() 中的箭矢脱落逻辑
+    // 箭矢自动脱落逻辑
     // 仅在服务端执行
     if (world() == nullptr || world()->isClientSide()) {
         return;
@@ -1059,7 +1015,6 @@ void LivingEntity::tickArrows()
 
 void LivingEntity::onAttackEntity(Entity& target)
 {
-    // MC 1.16.5: EnchantmentHelper.applyArthropodEnchantmentDamage()
     // 获取主手武器上的附魔，触发 onEntityDamaged 回调
     const ItemStack& mainHand = getMainHandItem();
     if (!mainHand.isEmpty()) {
@@ -1073,14 +1028,12 @@ void LivingEntity::onAttackEntity(Entity& target)
 
 void LivingEntity::setLastHurtBy(LivingEntity* attacker)
 {
-    // MC 1.16.5: LivingEntity.setLastHurtBy()
     m_lastHurtBy = attacker;
     m_lastHurtByTimestamp = ticksExisted();
 }
 
 void LivingEntity::setLastHurtTarget(LivingEntity* target)
 {
-    // MC 1.16.5: LivingEntity.setLastHurtTarget()
     m_lastHurtTarget = target;
     m_lastHurtTargetTimestamp = ticksExisted();
 }
@@ -1091,7 +1044,6 @@ void LivingEntity::setLastHurtTarget(LivingEntity* target)
 
 void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
 {
-    // MC 1.16.5: LivingEntity.applyKnockback()
     // 击退强度会被击退抗性降低
     strength = static_cast<f32>(static_cast<f64>(strength) *
         (1.0 - getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
@@ -1110,13 +1062,11 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     ratioZ /= length;
 
     // 计算击退速度
-    // MC 1.16.5: this.setMotion(vec3d.x / 2.0D - vec3d1.x, ...
     // 击退会减少当前水平速度的一半，然后加上击退向量
     f64 knockbackX = ratioX * static_cast<f64>(strength);
     f64 knockbackZ = ratioZ * static_cast<f64>(strength);
 
     // Y轴速度
-    // MC 1.16.5: onGround ? Math.min(0.4D, vec3d.y / 2.0D + (double)strength) : vec3d.y
     f64 newVelocityY;
     if (m_onGround) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
@@ -1133,7 +1083,7 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     m_velocity.y = static_cast<f32>(newVelocityY);
     m_velocity.z = static_cast<f32>(static_cast<f64>(m_velocity.z) / 2.0 - knockbackZ);
 
-    // 设置为空中状态（MC 1.16.5: isAirBorne = true）
+    // 设置为空中状态
     m_onGround = false;
 }
 
@@ -1143,13 +1093,7 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)
         return;
     }
 
-    // MC 1.16.5: 从攻击者位置计算击退方向
-    // 击退方向：从攻击者指向目标（目标被推开）
-    // ratioX = attacker.x - target.x（攻击者到目标的方向向量取反）
-    // 归一化后乘以 strength，最终速度 = current/2 - knockbackVec
-    // 所以如果攻击者在左边(0)，目标在右边(2)，ratioX = 0-2 = -2
-    // 归一化后 ratioX = -1，knockbackX = -1
-    // velocity.x = current/2 - (-1) = current/2 + 1，目标向右移动（正确）
+    // 从攻击者位置计算击退方向
     f64 ratioX = static_cast<f64>(attacker->position().x - m_position.x);
     f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
 
@@ -1240,7 +1184,6 @@ void LivingEntity::updateActiveItem()
 
 i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 {
-    // MC 1.16.5: LivingEntity.decreaseAirSupply()
     // 水下呼吸附魔有概率不消耗空气
     const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
     i32 respirationLevel = item::enchant::EnchantmentHelper::getRespirationLevel(helmet);
@@ -1259,14 +1202,12 @@ i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 
 i32 LivingEntity::determineNextAir(i32 currentAir) const
 {
-    // MC 1.16.5: LivingEntity.determineNextAir()
     // 每tick恢复4点空气
     return std::min(currentAir + 4, maxAir());
 }
 
 void LivingEntity::updateAirSupply()
 {
-    // MC 1.16.5: LivingEntity.baseTick() 中的空气处理逻辑
     if (!isAlive()) {
         return;
     }
@@ -1275,7 +1216,6 @@ void LivingEntity::updateAirSupply()
     bool inLava = isInLava();
 
     // 检查是否能水下呼吸
-    // MC 1.16.5: EffectUtils.canBreatheUnderwater()
     // - 水下呼吸效果 (WaterBreathing)
     // - 潮涌能量效果 (ConduitPower)
     // - 亡灵生物天生可以水下呼吸
@@ -1288,7 +1228,6 @@ void LivingEntity::updateAirSupply()
         setAir(newAir);
 
         // 空气耗尽到 -20 时触发溺水伤害
-        // MC 1.16.5: getAir() == -20 时重置为 0 并造成伤害
         if (air() <= -20) {
             setAir(0);
 
@@ -1298,8 +1237,6 @@ void LivingEntity::updateAirSupply()
                 m_drownDamageTimer = 0;
 
                 // 造成溺水伤害
-                // MC 1.16.5: attackEntityFrom(DamageSource.DROWN, 2.0F)
-                // LivingEntity 基类使用 2.0F 伤害
                 EnvironmentalDamage drownSource = DamageSources::drown();
                 hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
             }
@@ -1318,7 +1255,6 @@ void LivingEntity::updateAirSupply()
 
 bool LivingEntity::isSpinAttacking() const
 {
-    // MC 1.16.5: LivingEntity.isSpinAttacking()
     // 检查 LIVING_FLAGS 的第2位（0x04）
     // LIVING_FLAGS 位定义：
     // - 位 0 (0x01): 是否正在使用物品 (isHandActive)
@@ -1330,7 +1266,6 @@ bool LivingEntity::isSpinAttacking() const
 
 void LivingEntity::startSpinAttack(i32 duration)
 {
-    // MC 1.16.5: LivingEntity.startSpinAttack(int)
     // 设置旋转攻击持续时间和标志
     m_spinAttackDuration = duration;
 
@@ -1345,7 +1280,6 @@ void LivingEntity::startSpinAttack(i32 duration)
 
 void LivingEntity::stopSpinAttack()
 {
-    // MC 1.16.5: LivingEntity.stopSpinAttack()
     // 清除旋转攻击状态
     m_spinAttackDuration = 0;
 
@@ -1360,7 +1294,6 @@ void LivingEntity::stopSpinAttack()
 
 void LivingEntity::updateSpinAttack()
 {
-    // MC 1.16.5: LivingEntity.livingTick() 中的旋转攻击更新
     // 每tick递减持续时间，归零时停止
     if (m_spinAttackDuration > 0) {
         m_spinAttackDuration--;
@@ -1370,7 +1303,6 @@ void LivingEntity::updateSpinAttack()
             stopSpinAttack();
         } else if (isWet()) {
             // 在水中或雨中时，激流攻击会有额外的上升速度
-            // MC 1.16.5: 每tick向上移动一小段距离
             // 注意：这部分在 Player 的 travel() 中更详细实现
         }
     }
@@ -1382,7 +1314,6 @@ void LivingEntity::updateSpinAttack()
 
 bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
 {
-    // MC 1.16.5: LivingEntity.isPotionApplicable()
     // 默认实现：所有效果都可应用
     // 子类可重写此方法来免疫某些效果（如凋灵免疫凋零效果）
     MC_UNUSED(effect);
@@ -1391,7 +1322,6 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
 
 bool LivingEntity::onLivingFall(f32 distance, f32 damageMultiplier)
 {
-    // MC 1.16.5: LivingEntity.onLivingFall()
     // 默认实现：处理摔落伤害
     // 子类可重写此方法来免疫摔落伤害（如凋灵、末影龙）
     MC_UNUSED(distance);
@@ -1409,8 +1339,6 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 
     // 先调用基类实现
     Entity::addAdditionalSaveData(tag);
-
-    // MC 1.16.5: LivingEntity.writeAdditional()
 
     // Health (f32)
     tag.put(nbt_keys::HEALTH, m_health);
@@ -1475,8 +1403,6 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 
     // 先调用基类实现
     MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: LivingEntity.readAdditional()
 
     // Health (f32)
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {

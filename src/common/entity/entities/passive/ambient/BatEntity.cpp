@@ -21,12 +21,12 @@
  *
  */
 
-#include "BatEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../ai/goal/goals/special/BatGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
+#include "common/entity/entities/passive/ambient/BatEntity.hpp"
+#include "common/entity/ai/goal/goals/special/BatGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -50,8 +50,7 @@ std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/)
 
 bool BatEntity::canRest() const
 {
-    // MC 1.16.5: 检查上方是否有固体方块
-    // 参考 BatEntity.canRest() 第82-88行
+    // 检查上方是否有固体方块可以倒挂
     if (m_world == nullptr) {
         return false;
     }
@@ -62,7 +61,6 @@ bool BatEntity::canRest() const
     if (state == nullptr) {
         return false;
     }
-    // 检查方块是否是固体的（可以挂在上面的）
     return state->getBlock().isSolid(*state);
 }
 
@@ -72,30 +70,22 @@ void BatEntity::tick()
 
     // 蝙蝠的飞行行为由AI目标系统控制
     // BatRandomFlyGoal 和 BatRestGoal 处理所有行为
-    // 这里只需要处理一些状态同步
 
-    // MC 1.16.5: 蝙蝠飞行时的垂直阻尼
-    // 参考 BatEntity.tick() 第113行
-    // this.setMotion(this.getMotion().mul(1.0D, 0.6D, 1.0D));
+    // 飞行时Y轴速度保留60%（垂直阻尼效果）
     if (m_flying && !m_resting) {
-        // 飞行时Y轴速度保留60%
         math::Vector3 vel = velocity();
         setVelocity(vel.x, vel.y * 0.6f, vel.z);
     }
 
-    // 休息状态下的位置对齐
+    // 休息状态下保持静止
     if (m_resting) {
-        // 保持静止
         setVelocity(math::Vector3(0.0f, 0.0f, 0.0f));
     }
 }
 
 void BatEntity::registerGoals()
 {
-    // MC 1.16.5 蝙蝠AI目标
-    // 注意：MC原版蝙蝠实际上不使用传统AI目标系统，
-    // 而是在 updateAITasks() 中直接实现行为。
-    // 这里将其拆分为独立的Goal类以遵循项目架构风格。
+    // 蝙蝠使用独立的Goal类实现行为，遵循项目架构风格
 
     // 优先级 0: 随机飞行目标
     // 飞行时选择随机目标点，平滑转向飞行
@@ -108,11 +98,9 @@ void BatEntity::registerGoals()
 
 void BatEntity::registerAttributes()
 {
-    // 调用父类方法
     AmbientEntity::registerAttributes();
 
-    // 蝙蝠的属性
-    // 参考 MC 1.16.5 蝙蝠属性
+    // 蝙蝠属性：低生命值，固定飞行速度
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, FLY_SPEED);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, FLY_SPEED);

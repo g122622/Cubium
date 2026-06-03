@@ -55,7 +55,7 @@ void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage)
     reset();
 
     // 计算摔落后缀
-    calculateFallSuffix();
+    _calculateFallSuffix();
 
     // 创建战斗条目
     m_entries.emplace_back(source.clone(), damage, currentTime, health, m_fallSuffix, m_owner->fallDistance());
@@ -86,7 +86,7 @@ void CombatTracker::reset()
 
     i32 currentTime = m_owner->ticksExisted();
 
-    // MC 1.16.5: 如果在战斗中，300 tick 后重置；否则 100 tick 后重置
+    // 如果在战斗中，300 tick 后重置；否则 100 tick 后重置
     i32 timeout = m_inCombat ? 300 : 100;
 
     if (m_takingDamage && (!m_owner->isAlive() || (currentTime - m_lastDamageTime) > timeout)) {
@@ -135,7 +135,6 @@ Entity* CombatTracker::getLastAttacker() const
 
 Entity* CombatTracker::getBestAttacker() const
 {
-    // MC 1.16.5 CombatTracker.getBestAttacker()
     // 找到造成最多伤害的生物和玩家
     // 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
 
@@ -172,8 +171,7 @@ Entity* CombatTracker::getBestAttacker() const
         }
     }
 
-    // MC 1.16.5: 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
-    // return livingentity1 != null && f1 >= f / 3.0F ? livingentity1 : livingentity;
+    // 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
     if (bestPlayer != nullptr && playerDamage >= mobDamage / 3.0f) {
         return bestPlayer;
     }
@@ -287,15 +285,14 @@ i32 CombatTracker::getCombatDuration() const
     return m_entries.back().timestamp() - m_entries.front().timestamp();
 }
 
-void CombatTracker::calculateFallSuffix()
+void CombatTracker::_calculateFallSuffix()
 {
     if (!m_owner) {
         m_fallSuffix.clear();
         return;
     }
 
-    // MC 1.16.5: 根据攀爬位置确定摔落后缀
-    // 参考: CombatTracker.calculateFallSuffix()
+    // 根据攀爬位置确定摔落后缀
     // 如果在梯子、藤蔓、脚手架等上面摔落，后缀不同
 
     // 重置摔落后缀
@@ -320,14 +317,13 @@ void CombatTracker::calculateFallSuffix()
         const ResourceLocation& blockId = block.blockLocation();
 
         // 检查方块类型
-        // MC 1.16.5: 优先检查梯子和活板门
+        // 优先检查梯子和活板门
         if (blockId == ResourceLocation("minecraft", "ladder")) {
             m_fallSuffix = "ladder";
             return;
         }
 
         // 检查是否是活板门（通过BlockTags检查）
-        // MC 1.16.5: TRAPDOORS tag 包含所有类型的活板门
         // 由于活板门在isLadder中检查了OPEN状态，攀爬位置记录的活板门一定是打开的
         const std::string& namespace_ = blockId.namespace_();
         const std::string& path = blockId.path();
@@ -372,7 +368,7 @@ void CombatTracker::calculateFallSuffix()
     // 没有攀爬位置也不在水中，保持空后缀
 }
 
-void CombatTracker::cleanupOldEntries(i32 currentTime)
+void CombatTracker::_cleanupOldEntries(i32 currentTime)
 {
     // 移除超过战斗超时时间的条目
     auto it = std::remove_if(m_entries.begin(), m_entries.end(), [currentTime, this](const CombatEntry& entry) {
@@ -387,10 +383,10 @@ void CombatTracker::cleanupOldEntries(i32 currentTime)
     m_entries.erase(it, m_entries.end());
 
     // 重新计算最佳伤害记录
-    updateBestEntry();
+    _updateBestEntry();
 }
 
-void CombatTracker::updateBestEntry()
+void CombatTracker::_updateBestEntry()
 {
     if (m_entries.empty()) {
         m_bestEntryIndex = 0;
@@ -410,9 +406,8 @@ void CombatTracker::updateBestEntry()
     m_bestEntryIndex = bestIndex;
 }
 
-CombatEntry* CombatTracker::getBestCombatEntry()
+CombatEntry* CombatTracker::_getBestCombatEntry()
 {
-    // MC 1.16.5 CombatTracker.getBestCombatEntry()
     // 找到最佳战斗条目，用于摔落组合死亡消息
 
     if (m_entries.empty()) {

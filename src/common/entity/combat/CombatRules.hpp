@@ -40,7 +40,7 @@ public:
     /**
      * @brief 计算护甲减伤后的伤害
      *
-     * MC 1.16.5 公式:
+     * 公式:
      * f = 2 + toughness / 4
      * g = clamp(armor - damage / f, armor * 0.2, 20)
      * final = damage * (1 - g / 25)
@@ -57,7 +57,7 @@ public:
     /**
      * @brief 计算附魔保护减伤后的伤害
      *
-     * MC 1.16.5 公式:
+     * 公式:
      * f = clamp(epf, 0, 20)
      * final = damage * (1 - f / 25)
      *
@@ -72,7 +72,7 @@ public:
     /**
      * @brief 计算抗性药水减伤后的伤害
      *
-     * MC 1.16.5 公式:
+     * 公式:
      * final = damage * max(0, 1 - level * 0.2)
      *
      * 抗性药水减伤上限为 80%（抗性 V）

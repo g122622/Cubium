@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc::entity {
 
@@ -41,8 +41,6 @@ using mc::Vector3d;
  *
  * 存储实体的宽度、高度和眼睛高度，用于计算碰撞箱与视线位置。
  * 固定尺寸(fixed=true)的实体不会根据姿态变化调整尺寸。
- *
- * 参考 MC 1.21 的 EntityDimensions，但保留了当前项目的 EntitySize 命名。
  */
 class EntitySize {
 public:
@@ -53,7 +51,7 @@ public:
      * @param fixed 是否为固定尺寸
      */
     constexpr EntitySize(f32 width, f32 height, bool fixed = false)
-        : EntitySize(width, height, defaultEyeHeight(height), fixed)
+        : EntitySize(width, height, _defaultEyeHeight(height), fixed)
     {}
 
     /**
@@ -186,16 +184,16 @@ public:
     /**
      * @brief 比较操作符
      */
-    bool operator==(const EntitySize& other) const
+    [[nodiscard]] bool operator==(const EntitySize& other) const noexcept
     {
         return m_width == other.m_width && m_height == other.m_height && m_eyeHeight == other.m_eyeHeight &&
             m_fixed == other.m_fixed;
     }
 
-    bool operator!=(const EntitySize& other) const { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const EntitySize& other) const noexcept { return !(*this == other); }
 
 private:
-    [[nodiscard]] static constexpr f32 defaultEyeHeight(f32 height) { return height * 0.85f; }
+    [[nodiscard]] static constexpr f32 _defaultEyeHeight(f32 height) { return height * 0.85f; }
 
     f32 m_width;
     f32 m_height;

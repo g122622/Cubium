@@ -22,18 +22,18 @@
  */
 
 #include "MonsterEntity.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../combat/DifficultyHelper.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../../damage/DamageSource.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc {
@@ -41,7 +41,7 @@ namespace mc {
 MonsterEntity::MonsterEntity(EntityId id)
     : CreatureEntity(id)
 {
-    // MC 1.16.5: 怪物默认经验值为 5
+    // 怪物默认经验值为 5
     setExperienceValue(5);
 
     // 注册 AI 目标
@@ -50,7 +50,6 @@ MonsterEntity::MonsterEntity(EntityId id)
 
 void MonsterEntity::registerAttributes()
 {
-    // MC 1.16.5 MonsterEntity.func_234295_eP_()
     // 在 MobEntity 基础上注册 ATTACK_DAMAGE
     // 注意：MobEntity 已经设置了 FOLLOW_RANGE = 16.0
     CreatureEntity::registerAttributes();
@@ -61,19 +60,19 @@ void MonsterEntity::registerAttributes()
 
 std::optional<ResourceLocation> MonsterEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.hostile.hurt
+    // entity.hostile.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> MonsterEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.hostile.death
+    // entity.hostile.death
     return makeSoundEventId("death");
 }
 
 std::optional<ResourceLocation> MonsterEntity::getFallSound(i32 fallHeight) const
 {
-    // MC 1.16.5: 根据摔落高度返回不同声音
+    // 根据摔落高度返回不同声音
     if (fallHeight > 4) {
         return makeSoundEventId("fall.big");
     } else {
@@ -83,7 +82,7 @@ std::optional<ResourceLocation> MonsterEntity::getFallSound(i32 fallHeight) cons
 
 bool MonsterEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: 检查无敌状态
+    // 检查无敌状态
     if (isInvulnerableTo(source)) {
         return false;
     }
@@ -98,7 +97,7 @@ bool MonsterEntity::shouldAttack(LivingEntity* target) const
 
 void MonsterEntity::tick()
 {
-    // MC 1.16.5: 更新基于亮度的空闲时间
+    // 更新基于亮度的空闲时间
     updateIdleTimeBasedOnBrightness();
 
     CreatureEntity::tick();
@@ -130,11 +129,11 @@ void MonsterEntity::handleDaylightBurning()
         // 在阳光下燃烧
         m_burnTime++;
         if (m_burnTime >= 20) { // 1秒后开始燃烧
-            // MC 1.16.5: 造成火焰伤害
+            // 造成火焰伤害
             auto fireDamage = DamageSources::onFire();
             hurt(fireDamage, 1.0f);
 
-            // MC 1.16.5: 设置视觉上的燃烧效果
+            // 设置视觉上的燃烧效果
             setFire(8); // 燃烧8秒
         }
     } else {
@@ -144,7 +143,6 @@ void MonsterEntity::handleDaylightBurning()
 
 void MonsterEntity::updateIdleTimeBasedOnBrightness()
 {
-    // MC 1.16.5 MonsterEntity.func_213623_ec()
     // 如果亮度大于 0.5，增加空闲时间（用于 despawn 逻辑）
     if (!world()) {
         return;
@@ -162,9 +160,6 @@ void MonsterEntity::updateIdleTimeBasedOnBrightness()
 
 bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random)
 {
-    // MC 1.16.5 MonsterEntity.isValidLightLevel()
-    // 参考: net.minecraft.entity.monster.MonsterEntity.isValidLightLevel(IServerWorld, BlockPos, Random)
-
     // 第一阶段：快速天空光照检查
     // 如果天空光照 > random(0-31)，则太亮不能生成
     u8 skyLight = world.getSkyLight(pos);
@@ -173,7 +168,7 @@ bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::
     }
 
     // 第二阶段：综合光照检查
-    // MC 1.16.5: 在雷暴天气时使用固定的天空减暗值 10
+    // 在雷暴天气时使用固定的天空减暗值 10
     // 否则使用当前时间的天空减暗值（通过 getLight 获取）
     u8 light;
     if (world.isThundering()) {
@@ -192,7 +187,6 @@ bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::
 bool MonsterEntity::canMonsterSpawnInLight(
     IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& random)
 {
-    // MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
     // 检查难度（非和平模式）
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         return false;
@@ -203,7 +197,7 @@ bool MonsterEntity::canMonsterSpawnInLight(
         return false;
     }
 
-    // MC 1.16.5: 检查生成位置是否有效
+    // 检查生成位置是否有效
     // 检查脚下方块是否有固体支撑
     const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
     if (belowState == nullptr || belowState->isAir()) {
@@ -234,14 +228,13 @@ bool MonsterEntity::canMonsterSpawnInLight(
 bool MonsterEntity::canMonsterSpawn(
     IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& /*random*/)
 {
-    // MC 1.16.5 MonsterEntity.canMonsterSpawn()
     // 检查难度（非和平模式）
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         return false;
     }
 
     // 不检查光照等级（用于刷怪笼等）
-    // MC 1.16.5: 检查生成位置是否有效
+    // 检查生成位置是否有效
     // 检查脚下方块是否有固体支撑
     const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
     if (belowState == nullptr || belowState->isAir()) {
@@ -273,8 +266,6 @@ bool MonsterEntity::canMonsterSpawn(
 
 f32 MonsterEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
-    // MC 1.16.5: MonsterEntity.getBlockPathWeight()
-    // 参考: net.minecraft.entity.monster.MonsterEntity.getBlockPathWeight()
     // 怪物偏好黑暗环境: 返回 0.5F - 亮度
     // 亮度越高，权重越低（越不喜欢）
     const IWorld* worldPtr = this->world();

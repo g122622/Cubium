@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../MonsterEntity.hpp"
+#include "common/entity/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 
@@ -46,8 +46,6 @@ class DamageSource;
  * - 害怕猫：会被猫吓跑
  * - 雷击：被雷击中变成高压苦力怕
  * - 打火石：可用打火石点燃
- *
- * 参考 MC 1.16.5 CreeperEntity
  */
 class CreeperEntity : public MonsterEntity {
 public:
@@ -56,7 +54,7 @@ public:
      * @param id 实体ID
      */
     CreeperEntity(EntityId id);
-    ~CreeperEntity() override = default;
+    ~CreeperEntity() noexcept override = default;
 
     // 禁止拷贝
     CreeperEntity(const CreeperEntity&) = delete;
@@ -77,13 +75,11 @@ public:
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 CreeperEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 CreeperEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -91,31 +87,28 @@ public:
 
     /**
      * @brief 获取苦力怕状态
-     * MC 1.16.5: -1 = idle, 1 = igniting/fusing
+     * @return -1 = idle, 1 = igniting/fusing
      */
     [[nodiscard]] i32 getCreeperState() const;
 
     /**
      * @brief 设置苦力怕状态
-     * MC 1.16.5: -1 = idle, 1 = igniting/fusing
+     * @param state -1 = idle, 1 = igniting/fusing
      */
     void setCreeperState(i32 state);
 
     /**
      * @brief 获取点燃时间（已点燃的持续时间）
-     * MC 1.16.5: timeSinceIgnited
      */
     [[nodiscard]] i32 getTimeSinceIgnited() const { return m_timeSinceIgnited; }
 
     /**
      * @brief 获取上一次点燃时间（用于渲染插值）
-     * MC 1.16.5: lastActiveTime
      */
     [[nodiscard]] i32 getLastActiveTime() const { return m_lastActiveTime; }
 
     /**
      * @brief 获取点燃时间配置
-     * MC 1.16.5: fuseTime (默认30 ticks)
      */
     [[nodiscard]] i32 getFuseTime() const { return m_fuseTime; }
 
@@ -126,13 +119,11 @@ public:
 
     /**
      * @brief 是否已被点燃
-     * MC 1.16.5: hasIgnited()
      */
     [[nodiscard]] bool hasIgnited() const { return m_ignited; }
 
     /**
      * @brief 点燃苦力怕
-     * MC 1.16.5: ignite()
      */
     void ignite();
 
@@ -140,7 +131,6 @@ public:
 
     /**
      * @brief 是否是高压苦力怕
-     * MC 1.16.5: isCharged()
      */
     [[nodiscard]] bool isPowered() const { return m_powered; }
 
@@ -153,7 +143,6 @@ public:
 
     /**
      * @brief 引爆炸药
-     * MC 1.16.5: explode()
      */
     void explode();
 
@@ -164,7 +153,6 @@ public:
 
     /**
      * @brief 获取爆炸半径
-     * MC 1.16.5: explosionRadius (默认3，高压翻倍)
      */
     [[nodiscard]] i32 getExplosionRadius() const { return m_explosionRadius; }
 
@@ -177,13 +165,11 @@ public:
 
     /**
      * @brief 是否能够导致头颅掉落
-     * MC 1.16.5: ableToCauseSkullDrop()
      */
     [[nodiscard]] bool ableToCauseSkullDrop() const;
 
     /**
      * @brief 增加已掉落的头颅数量
-     * MC 1.16.5: incrementDroppedSkulls()
      */
     void incrementDroppedSkulls() { ++m_droppedSkulls; }
 
@@ -198,7 +184,6 @@ public:
 
     /**
      * @brief 获取眼睛高度
-     * MC 1.16.5: 1.54f * scale (成年)
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.54f; }
 
@@ -229,7 +214,7 @@ protected:
     void registerAttributes() override;
 
 private:
-    // MC 1.16.5 状态变量
+    // 状态变量
     i32 m_fuseTime = DEFAULT_FUSE_TIME;               // 点燃时间配置（可修改）
     i32 m_explosionRadius = DEFAULT_EXPLOSION_RADIUS; // 爆炸半径（可修改）
     i32 m_timeSinceIgnited = 0;                       // 已点燃时间
@@ -238,7 +223,7 @@ private:
     bool m_powered = false;                           // 是否是高压苦力怕
     i32 m_droppedSkulls = 0;                          // 已掉落的头颅数量
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr i32 DEFAULT_FUSE_TIME = 30;         // 默认点燃时间 (1.5秒)
     static constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;   // 默认爆炸半径
     static constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;  // 普通爆炸威力
@@ -247,9 +232,8 @@ private:
 
     /**
      * @brief 生成滞留药水云（如果有效果）
-     * MC 1.16.5: spawnLingeringCloud()
      */
-    void spawnLingeringCloud();
+    void _spawnLingeringCloud();
 };
 
 } // namespace mc

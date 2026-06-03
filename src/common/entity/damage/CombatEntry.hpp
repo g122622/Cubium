@@ -24,14 +24,12 @@
 /**
  * @file CombatEntry.hpp
  * @brief 战斗条目 - 记录单次伤害事件
- *
- * 参考 MC 1.16.5 CombatEntry
  */
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "DamageSource.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,14 +38,6 @@ namespace mc {
  * @brief 战斗条目
  *
  * 记录一次伤害事件的详细信息，用于生成死亡消息。
- *
- * MC 1.16.5 字段：
- * - damageSrc: 伤害来源
- * - time: 发生时间
- * - health: 受伤前生命值
- * - damageAmount: 伤害量
- * - fallSuffix: 摔落后缀
- * - fallDistance: 摔落距离
  */
 class CombatEntry {
 public:
@@ -63,9 +53,17 @@ public:
     CombatEntry(std::unique_ptr<DamageSource> source,
         f32 damage,
         i32 timestamp,
-        f32 health = 0.0f,
-        const std::string& fallSuffix = "",
-        f32 fallDistance = 0.0f);
+        f32 health,
+        const std::string& fallSuffix,
+        f32 fallDistance);
+
+    // 移动构造和移动赋值
+    CombatEntry(CombatEntry&& other) noexcept;
+    CombatEntry& operator=(CombatEntry&& other) noexcept;
+
+    // 禁止拷贝（因为持有 unique_ptr）
+    CombatEntry(const CombatEntry&) = delete;
+    CombatEntry& operator=(const CombatEntry&) = delete;
 
     /**
      * @brief 获取伤害来源

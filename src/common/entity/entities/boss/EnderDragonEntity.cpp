@@ -22,14 +22,15 @@
  */
 
 #include "EnderDragonEntity.hpp"
-#include "../../../../util/math/AxisAlignedBB.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../damage/DamageSource.hpp"
-#include "../../experience/ExperienceDropHandler.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/experience/ExperienceDropHandler.hpp"
+#include "common/util/math/AxisAlignedBB.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <cmath>
 #include <limits>
 
@@ -61,7 +62,7 @@ EnderDragonPartEntity::EnderDragonPartEntity(EntityId id)
 void EnderDragonPartEntity::tick()
 {
     Entity::tick();
-    // 部件位置由父龙的 updateDragonParts() 更新
+    // 部件位置由父龙的 _updateDragonParts() 更新
 }
 
 void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ, f32 width, f32 height)
@@ -70,9 +71,8 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
         return;
     }
 
-    // MC 1.16.5: 根据父龙的旋转计算实际位置
-    // 龙的 yaw 需要转换为弧度
-    f32 yawRad = m_parent->yaw() * (PI / 180.0f);
+    // 根据父龙的旋转计算实际位置
+    f32 yawRad = m_parent->yaw() * (math::PI / 180.0f);
     f32 sinYaw = std::sin(yawRad);
     f32 cosYaw = std::cos(yawRad);
 
@@ -99,7 +99,7 @@ std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/)
 EnderDragonEntity::EnderDragonEntity(EntityId id)
     : BossEntity(id)
 {
-    // MC 1.16.5: 初始化龙部件
+    // 初始化龙部件
     initDragonParts();
 
     // 注册属性
@@ -112,7 +112,7 @@ EnderDragonEntity::EnderDragonEntity(EntityId id)
 
 void EnderDragonEntity::initDragonParts()
 {
-    // MC 1.16.5: 创建所有龙部件
+    // 创建所有龙部件
     // 部件列表顺序：头、颈、身、尾1、尾2、尾3、左翼、右翼
 
     // 头部
@@ -166,20 +166,16 @@ void EnderDragonEntity::initDragonParts()
 
 std::optional<ResourceLocation> EnderDragonEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.ender_dragon.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> EnderDragonEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.ender_dragon.hurt
     return makeSoundEventId("hurt");
 }
 
 void EnderDragonEntity::tick()
 {
-    // MC 1.16.5 EnderDragonEntity.tick()
-
     // 更新动画时间
     m_prevAnimTime = m_animTime;
     if (isDying()) {
@@ -193,23 +189,23 @@ void EnderDragonEntity::tick()
     BossEntity::tick();
 
     // 更新龙部件位置
-    updateDragonParts();
+    _updateDragonParts();
 
     // 更新末影水晶
-    updateDragonEnderCrystal();
+    _updateDragonEnderCrystal();
 
     // 处理碰撞
-    collideWithEntities();
+    _collideWithEntities();
 
     // 死亡处理
     if (isDying()) {
-        onDeathUpdate();
+        _onDeathUpdate();
     }
 }
 
 void EnderDragonEntity::setPhase(Phase phase)
 {
-    // MC 1.16.5: 切换阶段
+    // 切换阶段
     if (phase == m_phase) {
         return;
     }
@@ -232,14 +228,12 @@ void EnderDragonEntity::setPhase(Phase phase)
 
 bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, DamageSource& source, f32 damage)
 {
-    // MC 1.16.5: attackEntityPartFrom()
     // 所有部件的伤害都传递给龙本体
-
     if (isDead() || isInvulnerableTo(source)) {
         return false;
     }
 
-    // MC 1.16.5: 头部和身体受到正常伤害，其他部位伤害减半
+    // 头部和身体受到正常伤害，其他部位伤害减半
     f32 actualDamage = damage;
     if (part) {
         EnderDragonPartEntity::Part partType = part->part();
@@ -262,9 +256,7 @@ bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, Damage
 
 void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const BlockPos& pos, DamageSource& source)
 {
-    // MC 1.16.5: onCrystalDestroyed()
     // 末影水晶被破坏时，龙会受到伤害
-
     if (isDead()) {
         return;
     }
@@ -275,7 +267,7 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
     f64 dz = z() - static_cast<f64>(pos.z);
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
-    // MC 1.16.5: 如果水晶在龙的回血范围内，对龙造成伤害
+    // 如果水晶在龙的回血范围内，对龙造成伤害
     // 回血范围大约是 32 格
     constexpr f64 HEAL_RANGE_SQ = 32.0 * 32.0;
 
@@ -286,11 +278,11 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
         }
 
         // 对龙造成伤害
-        // MC 1.16.5: 水晶被破坏时造成 10 点伤害
+        // 水晶被破坏时造成 10 点伤害
         constexpr f32 CRYSTAL_DESTRUCTION_DAMAGE = 10.0f;
 
         // 创建伤害源（使用通用伤害，因为水晶爆炸）
-        // 注意：这里简化处理，实际应该使用 DamageSources::explosion()
+        // TODO: 实际应该使用 DamageSources::explosion()
         hurt(source, CRYSTAL_DESTRUCTION_DAMAGE);
     }
 
@@ -299,14 +291,12 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
 
 void EnderDragonEntity::initPathPoints()
 {
-    // MC 1.16.5: initPathPoints()
     // 初始化末影龙飞行路径点
     // 围绕末地中心的8个路径点
-
     m_pathPoints.clear();
 
     for (i32 i = 0; i < 8; ++i) {
-        f32 angle = static_cast<f32>(i) * (PI * 2.0f / 8.0f);
+        f32 angle = static_cast<f32>(i) * (math::PI * 2.0f / 8.0f);
         m_pathPoints.emplace_back(
             static_cast<BlockCoord>(std::cos(angle) * 64.0), 64, static_cast<BlockCoord>(std::sin(angle) * 64.0));
     }
@@ -316,7 +306,7 @@ void EnderDragonEntity::initPathPoints()
 
 i32 EnderDragonEntity::getNearestPathPointIndex(f64 x, f64 y, f64 z) const
 {
-    // MC 1.16.5: 获取最近的路径点索引
+    // 获取最近的路径点索引
     if (m_pathPoints.empty()) {
         return 0;
     }
@@ -344,7 +334,7 @@ void EnderDragonEntity::registerGoals()
 {
     BossEntity::registerGoals();
 
-    // MC 1.16.5: 末影龙使用特殊的阶段系统，不使用普通AI目标
+    // 末影龙使用特殊的阶段系统，不使用普通AI目标
     // 阶段管理在 PhaseManager 中处理
 }
 
@@ -352,16 +342,16 @@ void EnderDragonEntity::registerAttributes()
 {
     BossEntity::registerAttributes();
 
-    // MC 1.16.5 EnderDragonEntity 属性
+    // 末影龙属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 200.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 256.0);
 }
 
-void EnderDragonEntity::updateDragonParts()
+void EnderDragonEntity::_updateDragonParts()
 {
-    // MC 1.16.5: 更新龙部件位置
+    // 更新龙部件位置
     // 使用环形缓冲区记录位置历史，用于颈部和尾部的平滑动画
 
     // 更新环形缓冲区
@@ -436,9 +426,9 @@ void EnderDragonEntity::updateDragonParts()
     }
 }
 
-void EnderDragonEntity::updateDragonEnderCrystal()
+void EnderDragonEntity::_updateDragonEnderCrystal()
 {
-    // MC 1.16.5: 更新末影水晶链接
+    // 更新末影水晶链接
     // 寻找最近的末影水晶用于回血
 
     IWorld* worldPtr = world();
@@ -471,15 +461,14 @@ void EnderDragonEntity::updateDragonEnderCrystal()
 
     m_closestEnderCrystal = nearestCrystal;
 
-    // MC 1.16.5: 如果附近有水晶，每秒回复 1 点生命
+    // 如果附近有水晶，每秒回复 1 点生命
     if (nearestCrystal && ticksExisted() % 20 == 0) {
         heal(1.0f);
     }
 }
 
-void EnderDragonEntity::collideWithEntities()
+void EnderDragonEntity::_collideWithEntities()
 {
-    // MC 1.16.5: collideWithEntities()
     // 检测与其他实体的碰撞
 
     IWorld* worldPtr = world();
@@ -500,9 +489,9 @@ void EnderDragonEntity::collideWithEntities()
             if (entity && entity != this && !entity->isDead()) {
                 // 只对玩家造成伤害
                 if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
-                    // MC 1.16.5: 龙碰撞造成 10 点伤害
+                    // 龙碰撞造成伤害
                     // 注意：实际伤害应该在 attackEntitiesInList 中处理
-                    attackEntitiesInList();
+                    _attackEntitiesInList();
                     break;
                 }
             }
@@ -510,9 +499,8 @@ void EnderDragonEntity::collideWithEntities()
     }
 }
 
-void EnderDragonEntity::attackEntitiesInList()
+void EnderDragonEntity::_attackEntitiesInList()
 {
-    // MC 1.16.5: attackEntitiesInList()
     // 攻击碰撞到的实体
 
     // 破坏龙路径上的方块
@@ -537,28 +525,25 @@ void EnderDragonEntity::attackEntitiesInList()
         if (entity && !entity->isDead()) {
             // 对玩家造成伤害
             if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
-                // MC 1.16.5: 龙冲撞造成伤害
-                // 这里简化处理，实际应该使用 DamageSources::mobAttack(this)
+                // TODO: 龙冲撞造成伤害，实际应该使用 DamageSources::mobAttack(this)
                 // entity->hurt(DamageSources::mobAttack(this), 10.0f);
             }
         }
     }
 
     // 破坏方块
-    destroyBlocksInAABB(dragonBox);
+    _destroyBlocksInAABB(dragonBox);
 }
 
-bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
+bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
 {
-    // MC 1.16.5: destroyBlocksInAABB()
     // 破坏区域内的方块
-
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return false;
     }
 
-    // MC 1.16.5: 龙可以破坏大多数方块，但不能破坏以下类型：
+    // 龙可以破坏大多数方块，但不能破坏以下类型：
     // - 基岩
     // - 黑曜石
     // - 末地石（部分）
@@ -585,11 +570,11 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
                     continue;
                 }
 
-                // MC 1.16.5: 检查方块是否可以被龙破坏
+                // 检查方块是否可以被龙破坏
                 const Block& block = state->getBlock();
 
                 // 跳过不可破坏的方块
-                // MC 1.16.5: 龙不能破坏基岩、黑曜石、末地传送门等
+                // 龙不能破坏基岩、黑曜石、末地传送门等
                 if (block.is(VanillaBlocks::BEDROCK) || block.is(VanillaBlocks::OBSIDIAN) ||
                     block.is(VanillaBlocks::CRYING_OBSIDIAN) || block.is(VanillaBlocks::END_PORTAL) ||
                     block.is(VanillaBlocks::END_PORTAL_FRAME)) {
@@ -598,7 +583,7 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
 
                 // 末地石有一定概率不被破坏
                 if (block.is(VanillaBlocks::END_STONE)) {
-                    // MC 1.16.5: 末地石有 50% 概率被破坏
+                    // 末地石有 50% 概率被破坏
                     math::Random rng(ticksExisted() + bx + by * 31 + bz * 961);
                     if (rng.nextFloat() > 0.5f) {
                         continue;
@@ -606,11 +591,11 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
                 }
 
                 // 破坏方块
-                // 注意：实际应该调用 world->destroyBlock(pos, false) 来触发掉落和粒子
+                // TODO: 实际应该调用 world->destroyBlock(pos, false) 来触发掉落和粒子
                 // 这里简化为直接设置为空气
                 worldPtr->setBlockState(bx, by, bz, nullptr);
 
-                // 生成粒子效果
+                // TODO: 生成粒子效果
                 // worldPtr->addParticle(ParticleTypeId::EXPLOSION, Vector3(bx + 0.5, by + 0.5, bz + 0.5), Vector3(0, 0,
                 // 0));
 
@@ -622,9 +607,8 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area)
     return destroyedAny;
 }
 
-void EnderDragonEntity::onDeathUpdate()
+void EnderDragonEntity::_onDeathUpdate()
 {
-    // MC 1.16.5: onDeathUpdate()
     m_deathTicks++;
 
     // 死亡动画
@@ -656,7 +640,7 @@ void EnderDragonEntity::onDeathUpdate()
     if (m_deathTicks >= DEATH_DURATION) {
         // 死亡完成
         // 掉落经验
-        dropExperienceAmount(XP_FIRST_KILL);
+        _dropExperienceAmount(XP_FIRST_KILL);
 
         // TODO: 生成传送门和龙蛋
         // 这需要访问世界生成系统来放置传送门结构
@@ -672,11 +656,9 @@ void EnderDragonEntity::dropExperience()
     // 它使用自定义的经验掉落逻辑，在死亡动画结束时调用
 }
 
-void EnderDragonEntity::dropExperienceAmount(i32 amount)
+void EnderDragonEntity::_dropExperienceAmount(i32 amount)
 {
-    // MC 1.16.5: dropExperience()
     // 使用 ExperienceDropHandler 生成经验球
-
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return;

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "AbstractRaiderEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -41,15 +41,13 @@ namespace mc {
  * - 参与掠夺事件
  * - 有团队协作能力
  * - 手臂姿势状态
- *
- * 参考 MC 1.16.5 AbstractIllagerEntity
  */
 class AbstractIllagerEntity : public AbstractRaiderEntity {
 public:
     /**
      * @brief 灾厄村民手臂姿势
      *
-     * MC 1.16.5: 用于客户端渲染
+     * 用于客户端渲染
      */
     enum class ArmPose : u8 {
         Crossed = 0,        // 交叉

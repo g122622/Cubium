@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../core/CreatureEntity.hpp"
-#include "../../core/Entity.hpp"
-#include "../../core/EntitySpawnPlacementRegistry.hpp"
-#include "../../interfaces/IMob.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/interfaces/IMob.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <optional>
 
 namespace mc {
@@ -55,8 +55,6 @@ using world::spawn::SpawnReason;
  * - 在阳光下可能燃烧（亡灵类）
  * - 自动攻击玩家
  * - 敌对目标选择
- *
- * 参考 MC 1.16.5 MonsterEntity
  */
 class MonsterEntity : public CreatureEntity, public entity::IMob {
 public:
@@ -82,19 +80,16 @@ public:
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 MonsterEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 MonsterEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取摔落声音
-     * 参考 MC 1.16.5 MonsterEntity.getFallSound()
      * @param fallHeight 摔落高度（格数）
      */
     [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const override;
@@ -103,7 +98,6 @@ public:
 
     /**
      * @brief 受到伤害时的处理
-     * 参考 MC 1.16.5 MonsterEntity.attackEntityFrom()
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -111,7 +105,6 @@ public:
 
     /**
      * @brief 检查光照等级是否有效（用于怪物生成）
-     * 参考 MC 1.16.5 MonsterEntity.isValidLightLevel()
      * @param world 世界
      * @param pos 位置
      * @param random 随机数生成器
@@ -121,14 +114,12 @@ public:
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（带光照检查）
-     * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
      */
     [[nodiscard]] static bool canMonsterSpawnInLight(
         IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（无光照检查）
-     * 参考 MC 1.16.5 MonsterEntity.canMonsterSpawn()
      */
     [[nodiscard]] static bool canMonsterSpawn(
         IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
@@ -137,13 +128,11 @@ public:
 
     /**
      * @brief 是否在和平模式下消失
-     * 参考 MC 1.16.5 MonsterEntity.isDespawnPeaceful()
      */
     [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
 
     /**
      * @brief 是否可以掉落战利品
-     * 参考 MC 1.16.5 MonsterEntity.canDropLoot()
      */
     [[nodiscard]] bool canDropLoot() const { return true; }
 
@@ -166,7 +155,6 @@ public:
     /**
      * @brief 获取路径权重
      *
-     * MC 1.16.5: MonsterEntity.getBlockPathWeight()
      * 返回 0.5F - 亮度，怪物偏好黑暗环境
      *
      * @param x X 坐标
@@ -196,7 +184,7 @@ protected:
     /**
      * @brief 注册默认属性
      *
-     * MC 1.16.5: MonsterEntity 在 MobEntity 基础上注册 ATTACK_DAMAGE
+     * 在 MobEntity 基础上注册 ATTACK_DAMAGE
      */
     void registerAttributes() override;
 
@@ -217,7 +205,6 @@ protected:
 
     /**
      * @brief 更新空闲时间（基于亮度）
-     * 参考 MC 1.16.5 MonsterEntity.func_213623_ec()
      */
     void updateIdleTimeBasedOnBrightness();
 };

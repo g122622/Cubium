@@ -51,11 +51,11 @@ namespace EntityUtils {
  * @return 最近的实体指针，如果没有找到返回 nullptr
  */
 template <typename T>
-T* findClosestEntity(IWorld* world,
+[[nodiscard]] T* findClosestEntity(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
-    std::function<bool(T*)> predicate = nullptr)
+    std::function<bool(T*)> predicate = nullptr) noexcept
 {
     static_assert(std::is_base_of<Entity, T>::value, "T must be derived from Entity");
 
@@ -92,11 +92,11 @@ T* findClosestEntity(IWorld* world,
  *
  * 便捷方法，等价于 findClosestEntity<LivingEntity>
  */
-inline LivingEntity* findClosestLiving(IWorld* world,
+[[nodiscard]] inline LivingEntity* findClosestLiving(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
-    std::function<bool(LivingEntity*)> predicate = nullptr)
+    std::function<bool(LivingEntity*)> predicate = nullptr) noexcept
 {
     return findClosestEntity<LivingEntity>(world, pos, range, except, predicate);
 }
@@ -113,7 +113,7 @@ inline LivingEntity* findClosestLiving(IWorld* world,
  * @return 匹配的实体列表
  */
 template <typename T>
-std::vector<T*> findEntities(IWorld* world,
+[[nodiscard]] std::vector<T*> findEntities(IWorld* world,
     const Vector3& pos,
     f32 range,
     const Entity* except = nullptr,
@@ -146,7 +146,7 @@ std::vector<T*> findEntities(IWorld* world,
  * @param rangeSq 范围的平方
  * @return 是否在范围内
  */
-inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq)
+[[nodiscard]] inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq) noexcept
 {
     return pos.distanceSquared(entity.position()) <= rangeSq;
 }
@@ -159,7 +159,7 @@ inline bool isInRange(const Entity& entity, const Vector3& pos, f32 rangeSq)
  * @param range 范围
  * @return 是否在范围内
  */
-inline bool isInRange(const Entity& a, const Entity& b, f32 range)
+[[nodiscard]] inline bool isInRange(const Entity& a, const Entity& b, f32 range) noexcept
 {
     return a.distanceSqTo(b) <= range * range;
 }
@@ -171,7 +171,7 @@ inline bool isInRange(const Entity& a, const Entity& b, f32 range)
  * @param target 目标实体
  * @return 偏航角（度），范围 [-180, 180]
  */
-inline f32 calculateYawTo(const Entity& source, const Entity& target)
+[[nodiscard]] inline f32 calculateYawTo(const Entity& source, const Entity& target) noexcept
 {
     f64 dx = target.x() - source.x();
     f64 dz = target.z() - source.z();
@@ -186,7 +186,7 @@ inline f32 calculateYawTo(const Entity& source, const Entity& target)
  * @param targetZ 目标Z坐标
  * @return 偏航角（度）
  */
-inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ)
+[[nodiscard]] inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ) noexcept
 {
     f64 dx = targetX - source.x();
     f64 dz = targetZ - source.z();
@@ -200,7 +200,7 @@ inline f32 calculateYawTo(const Entity& source, f64 targetX, f64 targetZ)
  * @param target 目标实体
  * @return 俯仰角（度），正值向下看，负值向上看
  */
-inline f32 calculatePitchTo(const Entity& source, const Entity& target)
+[[nodiscard]] inline f32 calculatePitchTo(const Entity& source, const Entity& target) noexcept
 {
     f64 dx = target.x() - source.x();
     f64 dy = (target.y() + target.eyeHeight()) - (source.y() + source.eyeHeight());

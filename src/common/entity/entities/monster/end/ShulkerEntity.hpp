@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../MonsterEntity.hpp"
+#include "entity/entities/monster/MonsterEntity.hpp"
+#include "util/Direction.hpp"
+#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 
@@ -45,8 +45,6 @@ class DamageSource;
  * - 瞬移：受到伤害时会瞬移到附近位置
  * - 附着方块：附着在方块表面，不移动
  * - 护甲加成：闭合时获得额外护甲
- *
- * 参考 MC 1.16.5 ShulkerEntity
  */
 class ShulkerEntity : public MonsterEntity {
 public:
@@ -94,7 +92,7 @@ public:
     ShulkerEntity(const ShulkerEntity&) = delete;
     ShulkerEntity& operator=(const ShulkerEntity&) = delete;
 
-    // 允许移动
+    // 禁止移动（实体不支持移动语义）
     ShulkerEntity(ShulkerEntity&&) = delete;
     ShulkerEntity& operator=(ShulkerEntity&&) = delete;
 
@@ -110,45 +108,45 @@ public:
     /**
      * @brief 获取颜色
      */
-    [[nodiscard]] ShulkerColor getColor() const { return m_color; }
+    [[nodiscard]] ShulkerColor getColor() const noexcept { return m_color; }
 
     /**
      * @brief 设置颜色
      */
-    void setColor(ShulkerColor color) { m_color = color; }
+    void setColor(ShulkerColor color) noexcept { m_color = color; }
 
     // ========== 贝壳状态 ==========
 
     /**
      * @brief 获取贝壳状态
      */
-    [[nodiscard]] ShellState getShellState() const { return m_shellState; }
+    [[nodiscard]] ShellState getShellState() const noexcept { return m_shellState; }
 
     /**
      * @brief 是否贝壳打开
      */
-    [[nodiscard]] bool isShellOpen() const { return m_shellState == ShellState::Open; }
+    [[nodiscard]] bool isShellOpen() const noexcept { return m_shellState == ShellState::Open; }
 
     /**
      * @brief 是否贝壳闭合
      */
-    [[nodiscard]] bool isShellClosed() const { return m_shellState == ShellState::Closed; }
+    [[nodiscard]] bool isShellClosed() const noexcept { return m_shellState == ShellState::Closed; }
 
     /**
      * @brief 获取开壳程度（0.0-1.0）
      * 用于渲染动画
      */
-    [[nodiscard]] f32 getPeekAmount() const { return m_peekAmount; }
+    [[nodiscard]] f32 getPeekAmount() const noexcept { return m_peekAmount; }
 
     /**
      * @brief 获取上一tick的开壳程度
      */
-    [[nodiscard]] f32 getPrevPeekAmount() const { return m_prevPeekAmount; }
+    [[nodiscard]] f32 getPrevPeekAmount() const noexcept { return m_prevPeekAmount; }
 
     /**
      * @brief 获取当前开壳tick数
      */
-    [[nodiscard]] i32 getPeekTicks() const { return m_peekTicks; }
+    [[nodiscard]] i32 getPeekTicks() const noexcept { return m_peekTicks; }
 
     /**
      * @brief 更新开壳tick数（同步护甲和音效）
@@ -171,17 +169,17 @@ public:
     /**
      * @brief 是否正在攻击
      */
-    [[nodiscard]] bool isAttacking() const { return m_attacking; }
+    [[nodiscard]] bool isAttacking() const noexcept { return m_attacking; }
 
     /**
      * @brief 设置攻击状态
      */
-    void setAttacking(bool attacking) { m_attacking = attacking; }
+    void setAttacking(bool attacking) noexcept { m_attacking = attacking; }
 
     /**
      * @brief 获取攻击冷却
      */
-    [[nodiscard]] i32 getAttackCooldown() const { return m_attackCooldown; }
+    [[nodiscard]] i32 getAttackCooldown() const noexcept { return m_attackCooldown; }
 
     /**
      * @brief 发射子弹
@@ -206,40 +204,40 @@ public:
     /**
      * @brief 获取附着方向
      */
-    [[nodiscard]] Direction getAttachmentFacing() const { return m_attachmentFacing; }
+    [[nodiscard]] Direction getAttachmentFacing() const noexcept { return m_attachmentFacing; }
 
     /**
      * @brief 设置附着方向
      */
-    void setAttachmentFacing(Direction facing) { m_attachmentFacing = facing; }
+    void setAttachmentFacing(Direction facing) noexcept { m_attachmentFacing = facing; }
 
     /**
      * @brief 获取附着位置
      */
-    [[nodiscard]] BlockPos getAttachmentPos() const { return m_attachmentPos; }
+    [[nodiscard]] BlockPos getAttachmentPos() const noexcept { return m_attachmentPos; }
 
     /**
      * @brief 设置附着位置
      */
-    void setAttachmentPos(const BlockPos& pos) { m_attachmentPos = pos; }
+    void setAttachmentPos(const BlockPos& pos) noexcept { m_attachmentPos = pos; }
 
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.5f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override { return 0.5f; }
 
     /**
      * @brief 潜影贝不会燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const noexcept override { return false; }
 
     /**
      * @brief 碰撞箱边框
      * 潜影贝的碰撞箱会根据开壳程度扩展
      */
-    [[nodiscard]] f32 getCollisionBorderSize() const override { return 0.0f; }
+    [[nodiscard]] f32 getCollisionBorderSize() const noexcept override { return 0.0f; }
 
     // ========== 音效 ==========
 
@@ -295,16 +293,16 @@ protected:
 
 private:
     // 更新贝壳状态
-    void updateShellState();
+    void _updateShellState();
 
     // 尝试瞬移到新位置
-    bool tryTeleportToNewPosition();
+    bool _tryTeleportToNewPosition();
 
     // 检查是否可以附着在指定位置的指定方向
-    [[nodiscard]] bool canAttachAt(const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] bool _canAttachAt(const BlockPos& pos, Direction facing) const;
 
     // 寻找可附着的方向
-    [[nodiscard]] std::optional<Direction> findValidFacing(const BlockPos& pos) const;
+    [[nodiscard]] std::optional<Direction> _findValidFacing(const BlockPos& pos) const;
 
     // 颜色
     ShulkerColor m_color = ShulkerColor::Purple;

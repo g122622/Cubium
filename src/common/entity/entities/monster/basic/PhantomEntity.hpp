@@ -24,10 +24,11 @@
 #pragma once
 
 #include <memory>
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../core/FlyingEntity.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/core/FlyingEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 
 namespace mc {
@@ -46,14 +47,11 @@ class DamageSource;
  * - 俯冲攻击：环绕目标后俯冲攻击
  * - 阳光燃烧：在阳光下燃烧
  * - 变体：有不同大小
- *
- * 参考 MC 1.16.5 PhantomEntity
  */
 class PhantomEntity : public FlyingEntity {
 public:
     /**
      * @brief 幻翼攻击模式
-     * MC 1.16.5: AttackPhase enum
      */
     enum class AttackPhase : u8 {
         CIRCLE, // 环绕
@@ -80,19 +78,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * MC 1.16.5: entity.phantom.ambient
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: entity.phantom.hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: entity.phantom.death
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -100,13 +95,11 @@ public:
 
     /**
      * @brief 获取幻翼大小
-     * MC 1.16.5: getPhantomSize()
      */
     [[nodiscard]] i32 getPhantomSize() const { return m_phantomSize; }
 
     /**
      * @brief 设置幻翼大小
-     * MC 1.16.5: setPhantomSize()
      */
     void setPhantomSize(i32 size);
 
@@ -131,39 +124,33 @@ public:
 
     /**
      * @brief 获取环绕位置
-     * MC 1.16.5: orbitPosition
      */
     [[nodiscard]] BlockPos orbitPosition() const { return m_orbitPosition; }
 
     /**
      * @brief 设置环绕位置
-     * MC 1.16.5: orbitPosition
      */
     void setOrbitPosition(const BlockPos& pos) { m_orbitPosition = pos; }
 
     /**
      * @brief 获取环绕偏移
-     * MC 1.16.5: orbitOffset
      */
     [[nodiscard]] Vector3 orbitOffset() const { return m_orbitOffset; }
 
     /**
      * @brief 设置环绕偏移
-     * MC 1.16.5: orbitOffset
      */
     void setOrbitOffset(const Vector3& offset) { m_orbitOffset = offset; }
 
     // ========== 属性 ==========
 
     /**
-     * @brief 获取生物类型
-     * MC 1.16.5: UNDEAD
+     * @brief 获取生物类型（亡灵）
      */
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
     /**
      * @brief 获取眼睛高度
-     * MC 1.16.5: height * 0.35F
      */
     [[nodiscard]] f32 eyeHeight() const override { return height() * 0.35f; }
 
@@ -193,7 +180,7 @@ private:
     // 环绕偏移
     Vector3 m_orbitOffset;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 BASE_ATTACK_DAMAGE = 6.0f;
     static constexpr f32 SIZE_ATTACK_BONUS = 1.0f;
     static constexpr i32 MAX_PHANTOM_SIZE = 64;

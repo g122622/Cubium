@@ -40,8 +40,6 @@ namespace entity::combat {
  * - 怪物攻击伤害调整
  * - 火焰持续时间调整
  * - 饥饿伤害限制
- *
- * 参考 MC 1.16.5 Difficulty 和相关类
  */
 class DifficultyHelper {
 public:
@@ -50,7 +48,6 @@ public:
     /**
      * @brief 获取玩家受伤的伤害倍率
      *
-     * MC 1.16.5 PlayerEntity.attackEntityFrom():
      * - Peaceful: 不受怪物伤害（由其他逻辑处理）
      * - Easy: min(damage/2 + 1, damage) - 伤害减半后加1，不超过原伤害
      * - Normal: 1.0x
@@ -68,7 +65,7 @@ public:
     /**
      * @brief 获取怪物攻击的伤害调整值
      *
-     * MC 1.16.5 中怪物攻击伤害根据难度调整：
+     * 怪物攻击伤害根据难度调整：
      * - Peaceful: 不攻击（由其他逻辑处理）
      * - Easy: -2
      * - Normal: 0
@@ -92,7 +89,7 @@ public:
     /**
      * @brief 获取饥饿伤害的最小生命值
      *
-     * MC 1.16.5 中饥饿伤害不能低于此值：
+     * 饥饿伤害不能低于此值：
      * - Peaceful: 不受饥饿伤害
      * - Easy: 10.0 (5颗心)
      * - Normal: 1.0 (半颗心)
@@ -108,7 +105,7 @@ public:
     /**
      * @brief 获取火焰燃烧的持续时间倍率
      *
-     * MC 1.16.5 中火焰持续时间受难度影响：
+     * 火焰持续时间受难度影响：
      * - Peaceful: 0.25x
      * - Easy: 0.5x
      * - Normal: 1.0x
@@ -124,7 +121,7 @@ public:
     /**
      * @brief 获取火焰蔓延的额外概率
      *
-     * MC 1.16.5 FireBlock 中火焰蔓延概率与难度相关
+     * 火焰蔓延概率与难度相关
      * 公式: (base + 40 + difficulty * 7) / (age + 30)
      *
      * @param difficulty 难度
@@ -147,7 +144,7 @@ public:
     /**
      * @brief 获取村民感染概率
      *
-     * MC 1.16.5 中僵尸杀死村民时的感染概率：
+     * 僵尸杀死村民时的感染概率：
      * - Peaceful: 0%
      * - Easy: 0%
      * - Normal: 50%
@@ -161,7 +158,6 @@ public:
     /**
      * @brief 获取袭击的波次数
      *
-     * MC 1.16.5 Raid.getWaves()
      * - Peaceful: 0
      * - Easy: 3
      * - Normal: 5
@@ -185,7 +181,6 @@ public:
     /**
      * @brief 获取区域难度基值
      *
-     * MC 1.16.5 DifficultyInstance 中使用
      * 区域难度 = 难度ID * 倍率
      *
      * @param difficulty 难度

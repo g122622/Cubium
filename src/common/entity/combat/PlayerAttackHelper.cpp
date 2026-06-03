@@ -40,7 +40,7 @@ namespace mc::entity::combat {
 
 bool PlayerAttackHelper::isCriticalHit(const Player& player)
 {
-    // MC 1.16.5 PlayerEntity.attack() 暴击条件：
+    // 暴击条件：
     // 1. 玩家正在下落（fallDistance > 0）
     // 2. 玩家不在地面
     // 3. 玩家不在水中
@@ -49,7 +49,7 @@ bool PlayerAttackHelper::isCriticalHit(const Player& player)
     // 6. 玩家没有骑乘
     // 7. 玩家不在疾跑（暴击后疾跑会被取消）
 
-    // 条件 1: fallDistance > 0（MC使用fallDistance而非velocity.y）
+    // 条件 1: fallDistance > 0
     if (player.fallDistance() <= 0.0f) {
         return false;
     }
@@ -79,7 +79,7 @@ bool PlayerAttackHelper::isCriticalHit(const Player& player)
         return false;
     }
 
-    // 条件 7: 不在疾跑（MC 1.16.5: 暴击时不能疾跑）
+    // 条件 7: 不在疾跑（暴击时不能疾跑）
     // 注意：疾跑击退和暴击是互斥的
     if (player.isSprinting()) {
         return false;
@@ -94,7 +94,6 @@ f32 PlayerAttackHelper::calculateDamage(const Player& player, f32 baseDamage, f3
 {
     f32 damage = baseDamage;
 
-    // MC 1.16.5 PlayerEntity.attack():
     // 冷却公式始终应用：damage * (0.2 + progress² * 0.8)
     // 注意：这不是仅在冷却不足时应用，而是始终应用！
     // 当 progress = 1.0 时，伤害为 100%；当 progress = 0 时，伤害为 20%
@@ -121,7 +120,6 @@ f32 PlayerAttackHelper::calculateDamage(const Player& player, f32 baseDamage, f3
 f32 PlayerAttackHelper::calculateKnockback(
     const LivingEntity& attacker, const LivingEntity& target, f32 baseKnockback, bool isSprinting, i32 knockbackLevel)
 {
-    // MC 1.16.5 击退计算
     f32 knockback = baseKnockback;
 
     // 疾跑加成
@@ -154,7 +152,6 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target, const LivingEntity
 
 void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength)
 {
-    // MC 1.16.5 LivingEntity.applyKnockback()
     // 击退抗性降低击退强度
     strength = static_cast<f32>(static_cast<f64>(strength) *
         (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
@@ -173,7 +170,6 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ra
     ratioZ /= length;
 
     // 计算击退速度
-    // MC 1.16.5: this.setMotion(vec3d.x / 2.0D - vec3d1.x, ...
     // 击退会减少当前水平速度的一半，然后加上击退向量
     f64 knockbackX = ratioX * static_cast<f64>(strength);
     f64 knockbackZ = ratioZ * static_cast<f64>(strength);
@@ -181,7 +177,7 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ra
     Vector3 velocity = target.velocity();
 
     // Y轴速度
-    // MC 1.16.5: onGround ? Math.min(0.4D, vec3d.y / 2.0D + (double)strength) : vec3d.y
+    // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
     f64 newVelocityY;
     if (target.onGround()) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
@@ -205,9 +201,7 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ra
 
 f32 PlayerAttackHelper::applyCooldown(f32 damage, f32 cooldownProgress)
 {
-    // MC 1.16.5 PlayerEntity.attack():
-    // float f2 = this.getCooledAttackStrength(0.5F);
-    // f = f * (0.2F + f2 * f2 * 0.8F);
+    // 冷却公式：damage * (0.2 + progress² * 0.8)
     // 即使冷却为 0，伤害也有 20%，而不是 0%
     // 冷却为 1 时，伤害为 100%
     // 这是一个二次函数：damage * (0.2 + progress² * 0.8)
@@ -221,7 +215,7 @@ bool PlayerAttackHelper::isCooldownReady(f32 cooldownProgress, f32 threshold)
 
 f32 PlayerAttackHelper::getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed)
 {
-    // MC 1.16.5: cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
+    // cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
     // 攻击间隔 = 20 / attackSpeed tick
     if (attackSpeed <= 0.0f) {
         return 0.0f;
@@ -246,7 +240,7 @@ bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLev
         return false;
     }
 
-    // MC 1.16.5: 火焰持续时间 = 80 * fireAspectLevel ticks (每级4秒)
+    // 火焰持续时间 = 80 * fireAspectLevel ticks (每级4秒)
     i32 duration = FIRE_ASPECT_DURATION * fireAspectLevel;
 
     // 设置目标着火
@@ -259,7 +253,7 @@ bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLev
 
 f32 PlayerAttackHelper::getSweepingDamageRatio(i32 sweepingLevel)
 {
-    // MC 1.16.5 SweepingEnchantment:
+    // 横扫之刃附魔：
     // I: 50%, II: 67%, III: 75%
     // 公式: 1 - 1/(level + 1)
     if (sweepingLevel <= 0) {
@@ -282,7 +276,7 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, Creat
     i32 sharpnessLevel =
         item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SHARPNESS);
     if (sharpnessLevel > 0) {
-        // MC 1.16.5: 锋利 I = 0.5 + level * 0.5
+        // 锋利 I = 0.5 + level * 0.5
         // 即 I=1.0, II=1.5, III=2.0, IV=2.5, V=3.0
         bonus += 0.5f + static_cast<f32>(sharpnessLevel) * 0.5f;
     }
@@ -292,7 +286,7 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, Creat
         i32 smiteLevel =
             item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SMITE);
         if (smiteLevel > 0) {
-            // MC 1.16.5: 亡灵杀手每级 +2.5
+            // 亡灵杀手每级 +2.5
             bonus += static_cast<f32>(smiteLevel) * 2.5f;
         }
     }
@@ -302,7 +296,7 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, Creat
         i32 baneLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
             weapon, &item::enchant::AllEnchantments::BANE_OF_ARTHROPODS);
         if (baneLevel > 0) {
-            // MC 1.16.5: 节肢杀手每级 +2.5
+            // 节肢杀手每级 +2.5
             bonus += static_cast<f32>(baneLevel) * 2.5f;
         }
     }

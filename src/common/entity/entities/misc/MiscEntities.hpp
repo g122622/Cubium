@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../world/block/BlockPos.hpp"
-#include "../../core/Entity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -41,8 +41,6 @@ namespace entity {
  * @brief 下落方块实体
  *
  * 沙子、砾石等方块下落时创建的实体。
- *
- * 参考 MC 1.16.5 FallingBlockEntity
  */
 class FallingBlockEntity : public Entity {
 public:
@@ -88,7 +86,6 @@ public:
     /**
      * @brief 设置是否应该掉落物品
      *
-     * MC 1.16.5: shouldDropItem
      * 默认为 true。某些特殊方块（如损坏的铁砧）可能设置为 false。
      */
     void setShouldDropItem(bool drop) { m_shouldDropItem = drop; }
@@ -97,14 +94,13 @@ public:
     /**
      * @brief 设置是否不放置方块
      *
-     * MC 1.16.5: dontSetBlock
      * 当铁砧损坏时会设置为 true，此时只调用 onBroken 回调。
      */
     void setDontSetBlock(bool dontSet) { m_dontSetBlock = dontSet; }
     [[nodiscard]] bool dontSetBlock() const { return m_dontSetBlock; }
 
 private:
-    void handleLanding();
+    void _handleLanding();
 
     /**
      * @brief 尝试放置方块
@@ -115,7 +111,7 @@ private:
      * @param hitState 落地点的方块状态
      * @return 是否成功放置
      */
-    bool tryPlaceBlock(
+    bool _tryPlaceBlock(
         IWorld* world, const BlockPos& landingPos, const BlockState* fallingState, const BlockState* hitState);
 
     /**
@@ -124,14 +120,14 @@ private:
      * @param world 世界指针
      * @param pos 掉落位置
      */
-    void dropItem(IWorld* world, const BlockPos& pos);
+    void _dropItem(IWorld* world, const BlockPos& pos);
 
     /**
      * @brief 伤害碰撞箱内的实体
      *
      * @param world 世界指针
      */
-    void hurtEntities(IWorld* world);
+    void _hurtEntities(IWorld* world);
 
     u32 m_blockId = 0;                         ///< 方块ID
     bool m_hurtEntities = false;               ///< 是否伤害实体（铁砧=true）
@@ -149,8 +145,6 @@ private:
  * @brief TNT实体
  *
  * 被激活的TNT方块，倒计时后爆炸。
- *
- * 参考 MC 1.16.5 TNTEntity
  */
 class TNTEntity : public Entity {
 public:

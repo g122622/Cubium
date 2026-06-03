@@ -43,7 +43,7 @@ namespace mc {
  * - 不燃烧：不在阳光下燃烧
  * - 节肢生物：对节肢杀手附魔免疫效果敏感
  *
- * AI 目标 (MC 1.16.5):
+ * AI 目标:
  * | 优先级 | Goal | 说明 |
  * |--------|------|------|
  * | 1 | SwimGoal | 游泳 |
@@ -53,14 +53,12 @@ namespace mc {
  * | 6 | LookAtGoal | 看向玩家 |
  * | 6 | LookRandomlyGoal | 随机看向 |
  *
- * 目标选择 (MC 1.16.5):
+ * 目标选择:
  * | 优先级 | Goal | 说明 |
  * |--------|------|------|
  * | 1 | HurtByTargetGoal | 被攻击后反击 |
  * | 2 | SpiderTargetGoal\<Player\> | 攻击玩家（黑暗条件） |
  * | 3 | SpiderTargetGoal\<IronGolem\> | 攻击铁傀儡（黑暗条件） |
- *
- * 参考 MC 1.16.5 SpiderEntity
  */
 class SpiderEntity : public MonsterEntity {
 public:

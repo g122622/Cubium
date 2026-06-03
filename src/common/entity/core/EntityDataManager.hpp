@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
 #include "DataParameter.hpp"
-#include <any>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <mutex>
 #include <unordered_map>
 #include <variant>
@@ -74,12 +73,12 @@ public:
         m_value = value;
     }
 
-    [[nodiscard]] const ValueType& value() const { return m_value; }
-    [[nodiscard]] size_t index() const { return m_value.index(); }
+    [[nodiscard]] const ValueType& value() const noexcept { return m_value; }
+    [[nodiscard]] size_t index() const noexcept { return m_value.index(); }
 
-    bool operator==(const DataValue& other) const { return m_value == other.m_value; }
+    bool operator==(const DataValue& other) const noexcept { return m_value == other.m_value; }
 
-    bool operator!=(const DataValue& other) const { return m_value != other.m_value; }
+    bool operator!=(const DataValue& other) const noexcept { return m_value != other.m_value; }
 
 private:
     ValueType m_value;
@@ -120,8 +119,6 @@ struct DataEntry {
  *     }
  * };
  * @endcode
- *
- * 参考 MC 1.16.5 EntityDataManager (DataTracker)
  */
 class EntityDataManager {
 public:
@@ -263,7 +260,7 @@ public:
 
     /**
      * @brief 清除脏标记
-     * @param id 参数ID，如果为空则清除所有
+     * @param id 参数ID，如果为 0xFFFF 则清除所有
      */
     void clearDirty(u16 id = 0xFFFF)
     {
@@ -305,8 +302,8 @@ public:
      */
     void copyFrom(const EntityDataManager& other)
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        std::lock_guard<std::mutex> otherLock(other.m_mutex);
+        // 使用 scoped_lock 避免死锁
+        std::scoped_lock lock(m_mutex, other.m_mutex);
         m_entries = other.m_entries;
     }
 

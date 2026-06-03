@@ -27,7 +27,7 @@
  */
 
 #include "CombatEntry.hpp"
-#include "../core/LivingEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include <cmath>
 #include <limits>
 
@@ -47,9 +47,30 @@ CombatEntry::CombatEntry(std::unique_ptr<DamageSource> source,
     , m_fallDistance(fallDistance)
 {}
 
+CombatEntry::CombatEntry(CombatEntry&& other) noexcept
+    : m_source(std::move(other.m_source))
+    , m_damage(other.m_damage)
+    , m_timestamp(other.m_timestamp)
+    , m_health(other.m_health)
+    , m_fallSuffix(std::move(other.m_fallSuffix))
+    , m_fallDistance(other.m_fallDistance)
+{}
+
+CombatEntry& CombatEntry::operator=(CombatEntry&& other) noexcept
+{
+    if (this != &other) {
+        m_source = std::move(other.m_source);
+        m_damage = other.m_damage;
+        m_timestamp = other.m_timestamp;
+        m_health = other.m_health;
+        m_fallSuffix = std::move(other.m_fallSuffix);
+        m_fallDistance = other.m_fallDistance;
+    }
+    return *this;
+}
+
 bool CombatEntry::isLivingSource() const
 {
-    // MC 1.16.5: return this.damageSrc.getTrueSource() instanceof LivingEntity;
     // 检查真正的伤害来源是否是 LivingEntity
     if (!m_source) {
         return false;
@@ -65,10 +86,8 @@ bool CombatEntry::isPlayerSource() const
 
 f32 CombatEntry::getDamageAmount() const
 {
-    // MC 1.16.5 CombatEntry.getDamageAmount():
-    // return this.damageSrc == DamageSource.OUT_OF_WORLD ? Float.MAX_VALUE : this.fallDistance;
-    // 注意：这里返回的是 fallDistance，不是 damage！
-    // 这个值用于计算摔落伤害与攻击伤害的关系
+    // 虚空伤害返回最大值，其他返回摔落距离
+    // 用于计算摔落伤害与攻击伤害的关系
     if (m_source && m_source->type() == DamageType::OutOfWorld) {
         return std::numeric_limits<f32>::max();
     }

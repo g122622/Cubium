@@ -22,8 +22,8 @@
  */
 
 #include "AbstractRaiderEntity.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/village/raid/Raid.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/village/raid/Raid.hpp"
 
 namespace mc {
 

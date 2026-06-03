@@ -22,17 +22,17 @@
  */
 
 #include "ExperienceOrbEntity.hpp"
-#include "../../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../core/EntityUtils.hpp"
-#include "../../experience/ExperienceManager.hpp"
-#include "../../experience/ExperienceUtils.hpp"
-#include "../../inventory/PlayerInventory.hpp"
-#include "../player/Player.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/experience/ExperienceManager.hpp"
+#include "common/entity/experience/ExperienceUtils.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -47,7 +47,7 @@ ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue)
     : Entity(EntityId(0))
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
-    initData();
+    _initData();
 }
 
 ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue)
@@ -55,7 +55,7 @@ ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
     setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    initData();
+    _initData();
 }
 
 std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/)
@@ -63,7 +63,7 @@ std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/)
     return std::make_unique<ExperienceOrbEntity>(1);
 }
 
-void ExperienceOrbEntity::initData()
+void ExperienceOrbEntity::_initData()
 {
     // 设置初始速度为随机值
     math::Random rng(static_cast<u64>(std::hash<i32>{}(static_cast<i32>(m_id))));
@@ -87,8 +87,8 @@ void ExperienceOrbEntity::tick()
         m_pickupDelay--;
     }
 
-    updateMovement();
-    followNearestPlayer();
+    _updateMovement();
+    _followNearestPlayer();
 
     if (m_age >= MAX_AGE) {
         remove();
@@ -197,7 +197,7 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player)
     }
 
     // 处理经验修补
-    if (handleMending(player)) {
+    if (_handleMending(player)) {
         // 经验修补消耗了经验，检查是否还有剩余
         if (m_xpValue <= 0) {
             remove();
@@ -206,15 +206,13 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player)
     }
 
     // 给予玩家经验
-    i32 xpGiven = giveExperienceToPlayer(player);
+    i32 xpGiven = _giveExperienceToPlayer(player);
 
     if (xpGiven > 0) {
-        // 设置玩家的拾取冷却（参考 MC 1.16.5: 2 ticks）
+        // 设置玩家的拾取冷却
         player.setXpCooldown(2);
 
-        // MC 1.16.5: 播放拾取音效
-        // world.playSound(position, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.1F, 0.5F *
-        // ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.8F))
+        // 播放拾取音效
         if (m_world != nullptr) {
             math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_age));
             f32 pitch = 0.5f * ((rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.8f);
@@ -239,7 +237,7 @@ i32 ExperienceOrbEntity::getXPSplit(i32 totalXp)
 // 私有方法
 // ============================================================================
 
-void ExperienceOrbEntity::updateMovement()
+void ExperienceOrbEntity::_updateMovement()
 {
     Vector3 vel = velocity();
 
@@ -261,7 +259,7 @@ void ExperienceOrbEntity::updateMovement()
 
     vel = velocity();
     if (onGround()) {
-        // MC 1.16.5: 获取脚下方块的实际滑度
+        // 获取脚下方块的实际滑度
         f32 slipperiness = 0.6f; // 默认滑度
         if (m_world != nullptr) {
             BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
@@ -289,14 +287,14 @@ void ExperienceOrbEntity::updateMovement()
     setVelocity(vel);
 }
 
-void ExperienceOrbEntity::followNearestPlayer()
+void ExperienceOrbEntity::_followNearestPlayer()
 {
     constexpr i32 SEARCH_INTERVAL_BASE = 20;
 
     if (m_lastSearchTick < m_tickCounter - SEARCH_INTERVAL_BASE + (static_cast<i32>(id()) % 100)) {
         if (m_trackingPlayer == nullptr || m_trackingPlayer->isRemoved() || m_trackingPlayer->isSpectator() ||
             distanceSqTo(*m_trackingPlayer) > TRACKING_RANGE * TRACKING_RANGE) {
-            m_trackingPlayer = findNearestPlayer();
+            m_trackingPlayer = _findNearestPlayer();
         }
         m_lastSearchTick = m_tickCounter;
     }
@@ -333,17 +331,15 @@ void ExperienceOrbEntity::followNearestPlayer()
     }
 }
 
-Player* ExperienceOrbEntity::findNearestPlayer() const
+Player* ExperienceOrbEntity::_findNearestPlayer() const
 {
     return EntityUtils::findClosestEntity<Player>(
         m_world, position(), TRACKING_RANGE, nullptr, [](Player* p) { return p->isAlive() && !p->isSpectator(); });
 }
 
-bool ExperienceOrbEntity::handleMending(Player& player)
+bool ExperienceOrbEntity::_handleMending(Player& player)
 {
     // 经验修补：每2点经验修复1点耐久
-    // 参考 MC 1.16.5 ExperienceOrbEntity.damageItem
-
     // 查找玩家装备中有经验修补附魔且损坏的物品
     // 检查顺序：主手、副手、头盔、胸甲、护腿、靴子
     PlayerInventory& inventory = player.inventory();
@@ -430,7 +426,7 @@ bool ExperienceOrbEntity::handleMending(Player& player)
     return true;
 }
 
-i32 ExperienceOrbEntity::giveExperienceToPlayer(Player& player)
+i32 ExperienceOrbEntity::_giveExperienceToPlayer(Player& player)
 {
     if (m_xpValue <= 0) {
         return 0;

@@ -23,8 +23,8 @@
 
 #include "PatrollerEntity.hpp"
 
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../ai/goal/goals/special/PatrolGoals.hpp"
+#include "common/entity/ai/goal/goals/special/PatrolGoals.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -61,8 +61,7 @@ void PatrollerEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5: 优先级 4，队员速度 0.7，队长速度 0.595
-    // 队长速度较慢是为了让队员能跟上
+    // 队员速度 0.7，队长速度 0.595（队长较慢以便队员跟随）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::PatrolGoal>(this, 0.7, 0.595));
 }
 

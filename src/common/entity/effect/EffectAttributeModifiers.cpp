@@ -105,6 +105,8 @@ bool hasAttributeModifiers(EffectType type)
 attribute::AttributeModifier createModifier(const EffectModifierInfo& info, i32 amplifier)
 {
     f64 amount = info.calculateAmount(amplifier);
+    // TODO: 当前实现硬编码了Speed，需要修改函数签名增加EffectType参数
+    // 以便正确生成修改器名称。当前调用方(EffectInstance.cpp)已有所需的EffectType信息。
     std::string name = std::string("effect.") + getEffectName(EffectType::Speed) + "." + std::to_string(amplifier + 1);
     return attribute::AttributeModifier(std::string(info.uuid), name, amount, info.operation);
 }

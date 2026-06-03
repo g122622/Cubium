@@ -53,21 +53,21 @@ AnimalEntity::AnimalEntity(EntityId id)
     // 注册属性
     registerAttributes();
 
-    // MC 1.16.5: 设置路径优先级
+    // 设置路径优先级
     // setPathPriority(PathNodeType.DANGER_FIRE, 16.0F);
     // setPathPriority(PathNodeType.DAMAGE_FIRE, -1.0F);
 }
 
 bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 默认检查是否为小麦
+    // 默认检查是否为小麦
     // 子类应该重写此方法来定义特定的繁殖物品
     return !itemStack.isEmpty() && itemStack.getItem() == Items::WHEAT;
 }
 
 bool AnimalEntity::canMateWith(const AnimalEntity& other) const
 {
-    // MC 1.16.5: 检查双方都是成体、都处于爱心状态、是同类
+    // 检查双方都是成体、都处于爱心状态、是同类
     if (this == &other) {
         return false;
     }
@@ -83,20 +83,20 @@ bool AnimalEntity::canMateWith(const AnimalEntity& other) const
 
 bool AnimalEntity::canBreed() const
 {
-    // MC 1.16.5: 年龄为0且不处于爱心状态
+    // 年龄为0且不处于爱心状态
     return getGrowingAge() == 0 && !isInLove();
 }
 
 void AnimalEntity::setInLove(u64 playerUuid)
 {
-    // MC 1.16.5: 设置爱心状态持续 600 ticks（30秒）
+    // 设置爱心状态持续 600 ticks（30秒）
     // 调用 AgeableEntity::setInLove() 设置计时器
     AgeableEntity::setInLove(playerUuid);
 
     // 记录喂食玩家的 UUID
     m_loveCause = playerUuid;
 
-    // MC 1.16.5: 广播状态更新（用于客户端粒子效果）
+    // 广播状态更新（用于客户端粒子效果）
     // world->setEntityState(this, static_cast<u8>(18));
 }
 
@@ -109,7 +109,7 @@ void AnimalEntity::resetInLove()
 
 i32 AnimalEntity::getExperiencePoints() const
 {
-    // MC 1.16.5: 返回 1-3 经验
+    // 返回 1-3 经验
     math::Random rng = getRandom();
     return 1 + rng.nextInt(3);
 }
@@ -120,7 +120,7 @@ void AnimalEntity::tick()
 
     updateInLove();
 
-    // MC 1.16.5: 成体时清空爱心状态
+    // 成体时清空爱心状态
     // updateAITasks() 中会检查年龄并清空爱心
 }
 
@@ -129,7 +129,7 @@ void AnimalEntity::registerGoals()
     // 调用父类方法
     AgeableEntity::registerGoals();
 
-    // MC 1.16.5: AnimalEntity 基类不注册任何 goal
+    // AnimalEntity 基类不注册任何 goal
     // 每个具体的动物子类（如 PigEntity、CowEntity）需要自己注册完整的 AI 目标列表
     //
     // 典型的动物 AI 目标结构（优先级从高到低）：
@@ -152,7 +152,6 @@ void AnimalEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 动物的基础属性
-    // 参考 MC 1.16.5 AnimalEntity 默认属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
@@ -168,7 +167,7 @@ void AnimalEntity::updateInLove()
         return;
     }
 
-    // MC 1.16.5: 成体时如果有年龄（繁殖冷却），清空爱心状态
+    // 成体时如果有年龄（繁殖冷却），清空爱心状态
     if (getGrowingAge() != 0) {
         resetLove();
         m_loveCause = 0;
@@ -183,7 +182,7 @@ void AnimalEntity::updateInLove()
 
 void AnimalEntity::spawnHeartParticles()
 {
-    // MC 1.16.5: 生成心形粒子
+    // 生成心形粒子
     if (!m_world) {
         return;
     }
@@ -201,7 +200,7 @@ void AnimalEntity::spawnHeartParticles()
 
 bool AnimalEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: 受伤时清空爱心状态（不重置繁殖冷却）
+    // 受伤时清空爱心状态（不重置繁殖冷却）
     resetInLove();
 
     return AgeableEntity::hurt(source, amount);
@@ -211,8 +210,6 @@ bool AnimalEntity::hurt(DamageSource& source, f32 amount)
 
 f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
-    // MC 1.16.5: AnimalEntity.getBlockPathWeight()
-    // 参考: net.minecraft.entity.passive.AnimalEntity.getBlockPathWeight()
     const IWorld* worldPtr = this->world();
     if (!worldPtr) {
         return 0.0f;
@@ -222,7 +219,6 @@ f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const
     const BlockState* groundBlock = worldPtr->getBlockState(pos);
 
     // 检查脚下是否为草方块
-    // MC 1.16.5: worldIn.getBlockState(pos.down()).isIn(Blocks.GRASS_BLOCK)
     if (groundBlock != nullptr && groundBlock->is(VanillaBlocks::GRASS_BLOCK)) {
         return 10.0f;
     }
@@ -244,10 +240,8 @@ void AnimalEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     AgeableEntity::addAdditionalSaveData(tag);
 
-    // MC 1.16.5: AnimalEntity.writeAdditional()
-
     // LoveCause (i64) - 爱心来源玩家的 UUID（存储为单个 i64）
-    // MC 1.16.5 实际存储为 UUIDMost/UUIDLeast，但我们的 m_loveCause 是 u64
+    // 实际存储为 UUIDMost/UUIDLeast，但我们的 m_loveCause 是 u64
     // 这里使用 "LoveCause" 键直接存储 i64 值
     if (isInLove() && m_loveCause != 0) {
         tag.put(nbt_keys::LOVE_CAUSE, static_cast<i64>(m_loveCause));
@@ -260,8 +254,6 @@ Result<void> AnimalEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 
     // 先调用基类实现
     MC_TRY(AgeableEntity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: AnimalEntity.readAdditional()
 
     // LoveCause (i64) - 读取爱心来源玩家的 UUID
     if (auto val = nbt_helper::tryGetLong(tag, nbt_keys::LOVE_CAUSE)) {

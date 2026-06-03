@@ -24,8 +24,9 @@
 #pragma once
 
 #include <memory>
-#include "../../../item/core/ItemStack.hpp"
-#include "../../core/Entity.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <random>
 
 namespace mc {
@@ -45,8 +46,6 @@ class World;
  * - 可以被其他物品实体合并
  * - 受重力和空气阻力影响
  * - 可以被玩家拾取
- *
- * 参考: net.minecraft.entity.item.ItemEntity
  */
 class ItemEntity : public Entity {
 public:
@@ -232,27 +231,27 @@ private:
      * @brief 更新物理状态
      * @param world 世界（用于检测水和熔岩）
      */
-    void updatePhysics();
+    void _updatePhysics();
 
     /**
      * @brief 更新合并检测
      */
-    void updateMerge();
+    void _updateMerge();
 
     /**
      * @brief 下沉速度（在水中）
      */
-    void applyWaterPhysics();
+    void _applyWaterPhysics();
 
     /**
      * @brief 熔岩漂浮
      */
-    void applyLavaPhysics();
+    void _applyLavaPhysics();
 
     /**
      * @brief 普通重力和阻力
      */
-    void applyNormalPhysics();
+    void _applyNormalPhysics();
 
     ItemStack m_itemStack;
     i32 m_age = 0;                            // 存活时间（ticks）

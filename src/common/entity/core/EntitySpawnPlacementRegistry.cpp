@@ -22,11 +22,11 @@
  */
 
 #include "EntitySpawnPlacementRegistry.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/Material.hpp"
-#include <spdlog/spdlog.h>
+#include "util/assert/AssertAll.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/Material.hpp"
 
 namespace mc::world::spawn {
 
@@ -145,8 +145,6 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeI
 bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
-    // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (ON_GROUND case)
-
     // 检查脚下方块是否允许生成
     const Vector3i posBelow(pos.x, pos.y - 1, pos.z);
     const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
@@ -166,13 +164,13 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     }
 
     // 检查生成位置和上方是否可以通过
-    if (!isValidSpawnBlock(world, pos, entityTypeId)) {
+    if (!_isValidSpawnBlock(world, pos, entityTypeId)) {
         return false;
     }
 
     // 检查上方位置（对于高度 > 1 的生物）
     const Vector3i posAbove(pos.x, pos.y + 1, pos.z);
-    if (!isValidSpawnBlock(world, posAbove, entityTypeId)) {
+    if (!_isValidSpawnBlock(world, posAbove, entityTypeId)) {
         return false;
     }
 
@@ -182,8 +180,6 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
-    // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_WATER case)
-
     // 当前位置必须是水
     const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
     if (!currentState) {
@@ -225,8 +221,6 @@ bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
 bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
-    // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_LAVA case)
-
     // 当前位置必须是岩浆
     const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
     if (!currentState) {
@@ -246,11 +240,9 @@ bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
     return true;
 }
 
-bool EntitySpawnPlacementRegistry::isValidSpawnBlock(
+bool EntitySpawnPlacementRegistry::_isValidSpawnBlock(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
 {
-    // 参考 MC 1.16.5 WorldEntitySpawner.isValidEmptySpawnBlock
-
     const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (!state) {
         return true; // 空气或未加载区域
@@ -262,7 +254,7 @@ bool EntitySpawnPlacementRegistry::isValidSpawnBlock(
     }
 
     // 检查方块是否阻止生成
-    if (blockPreventsSpawn(state)) {
+    if (_blockPreventsSpawn(state)) {
         return false;
     }
 
@@ -275,7 +267,7 @@ bool EntitySpawnPlacementRegistry::isValidSpawnBlock(
     return true;
 }
 
-bool EntitySpawnPlacementRegistry::blockPreventsSpawn(const BlockState* state)
+bool EntitySpawnPlacementRegistry::_blockPreventsSpawn(const BlockState* state)
 {
     if (!state) {
         return false;
@@ -297,15 +289,12 @@ namespace {
 /**
  * @brief 蝙蝠生成条件检查
  *
- * MC 1.16.5: BatEntity.canSpawn()
- * 蝙蝠只能在光照等级 < 4 的地方生成
- *
+ * 蝙蝠只能在光照等级 < 4 的地方生成。
  * 注意：光照检查需要 Random 参数，在 NaturalSpawner 中通过 MonsterEntity::isValidLightLevel() 进行
- * 这里的谓词仅做基础检查，光照检查在调用链下游处理
+ * 这里的谓词仅做基础检查，光照检查在调用链下游处理。
  */
 bool canBatSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
 {
-    // MC 1.16.5: 蝙蝠需要光照等级 < 4
     // 光照检查需要 Random 参数和 IWorld 接口，在 NaturalSpawner 中进行
     // 这里返回 true，让下游检查处理
     return true;
@@ -314,11 +303,10 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, co
 /**
  * @brief 怪物生成条件检查（带光照）
  *
- * MC 1.16.5: MonsterEntity.canMonsterSpawnInLight()
- * 怪物需要光照等级满足 isValidLightLevel() 条件
+ * 怪物需要光照等级满足 isValidLightLevel() 条件。
  */
-bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/,
-    const std::string& /*entityTypeId*/)
+bool canMonsterSpawnInLightPredicate(
+    const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
 {
     // 注意：这个谓词需要 Random 参数，但当前接口不支持
     // 光照检查应该在 NaturalSpawner 中进行，这里返回 true
@@ -329,21 +317,21 @@ bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/, const V
 /**
  * @brief 史莱姆生成条件检查
  *
- * MC 1.16.5: SlimeEntity.func_223366_c_()
- * 史莱姆需要在史莱姆区块或沼泽生物群系生成
+ * 史莱姆需要在史莱姆区块或沼泽生物群系生成。
  */
 bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
 {
-    // MC 1.16.5: 史莱姆生成条件
+    // 史莱姆生成条件：
     // 1. Y < 40 且在史莱姆区块中
     // 2. 或在沼泽生物群系中，Y 在 50-70 之间
 
     if (pos.y < 40) {
         // 检查是否在史莱姆区块
         // 史莱姆区块的判断需要世界种子，这里简化为随机种子检查
-        // 实际实现需要 SlimeChunkChecker
-        const i32 chunkX = pos.x >> 4;
-        const i32 chunkZ = pos.z >> 4;
+        // TODO: 实际实现需要 SlimeChunkChecker，使用世界种子检查是否为史莱姆区块
+        const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
+        const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
+        MC_UNUSED(chunkX, chunkZ);
         // 简化实现：暂时允许所有低位置
         return true;
     }
@@ -363,8 +351,6 @@ bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const st
 
 /**
  * @brief 岩浆怪生成条件检查
- *
- * MC 1.16.5: MagmaCubeEntity.func_223367_b_()
  */
 bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
 {
@@ -375,8 +361,7 @@ bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos
 /**
  * @brief 恶魂生成条件检查
  *
- * MC 1.16.5: GhastEntity.func_223368_b_()
- * 恶魂需要有足够的生成空间
+ * 恶魂需要有足够的生成空间。
  */
 bool canGhastSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
 {
@@ -406,8 +391,6 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     if (s_initialized) {
         return;
     }
-
-    // 参考 MC 1.16.5 EntitySpawnPlacementRegistry 静态初始化块
 
     // ========== 水生生物 ==========
     registerPlacement("minecraft:cod", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
@@ -446,42 +429,77 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:skeleton_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
 
     // ========== 怪物（带光照检查）==========
-    // MC 1.16.5: 使用 MonsterEntity::canMonsterSpawnInLight 的怪物
-    registerPlacement("minecraft:zombie", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:zombie",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:skeleton", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:skeleton",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:creeper", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:creeper",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:cave_spider", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:cave_spider",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:enderman", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:enderman",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:witch", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:witch",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:stray", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:stray",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:giant", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:giant",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:wither_skeleton", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:wither_skeleton",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:zombie_villager", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:zombie_villager",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:wither", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:wither",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:spider", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:spider",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:evoker", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:evoker",
+        PlacementType::NoRestrictions,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:illusioner", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:illusioner",
+        PlacementType::NoRestrictions,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:vex", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:vex",
+        PlacementType::NoRestrictions,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:vindicator", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:vindicator",
+        PlacementType::NoRestrictions,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:ravager", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:ravager",
+        PlacementType::NoRestrictions,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
-    registerPlacement("minecraft:pillager", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:pillager",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
 
     // ========== 特殊怪物 ==========
@@ -492,8 +510,8 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:slime", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canSlimeSpawn);
 
     // 岩浆怪：下界无特殊条件
-    registerPlacement("minecraft:magma_cube", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
-        canMagmaCubeSpawn);
+    registerPlacement(
+        "minecraft:magma_cube", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canMagmaCubeSpawn);
 
     // 恶魂：需要足够空间
     registerPlacement("minecraft:ghast", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canGhastSpawn);
@@ -508,7 +526,9 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:endermite", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
 
     // 尸壳：沙漠僵尸（需要温度检查）
-    registerPlacement("minecraft:husk", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves,
+    registerPlacement("minecraft:husk",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
 
     // 下界生物
@@ -530,7 +550,6 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:shulker", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
 
     s_initialized = true;
-    spdlog::debug("EntitySpawnPlacementRegistry: Initialized {} entity placements", s_registry.size());
 }
 
 bool EntitySpawnPlacementRegistry::isInitialized()

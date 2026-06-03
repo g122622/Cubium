@@ -22,7 +22,6 @@
 
 #include "EntityTypeIdNumber.hpp"
 #include "EntityRegistry.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace entity {
@@ -378,8 +377,6 @@ void initialize()
     PAINTING = safeGetId(registry, EntityTypes::PAINTING);
     ITEM_FRAME = safeGetId(registry, EntityTypes::ITEM_FRAME);
     LEASH_KNOT = safeGetId(registry, EntityTypes::LEASH_KNOT);
-
-    spdlog::debug("EntityTypeIdNumber initialized");
 }
 
 } // namespace EntityTypeIdNumber

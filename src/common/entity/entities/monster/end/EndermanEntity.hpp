@@ -47,8 +47,6 @@ class DamageSource;
  * - 中立：通常中立，被激怒后攻击
  * - 怕水：接触水会瞬移并受到伤害
  * - 怕雨：在雨中会瞬移并受到伤害
- *
- * 参考 MC 1.16.5 EndermanEntity
  */
 class EndermanEntity : public MonsterEntity, public entity::IAngerable {
 public:
@@ -63,7 +61,7 @@ public:
     EndermanEntity(const EndermanEntity&) = delete;
     EndermanEntity& operator=(const EndermanEntity&) = delete;
 
-    // 允许移动
+    // 禁止移动
     EndermanEntity(EndermanEntity&&) = delete;
     EndermanEntity& operator=(EndermanEntity&&) = delete;
 
@@ -77,32 +75,27 @@ public:
     // ========== 声音 ==========
 
     /**
-     * @brief 获取环境音效
-     * MC 1.16.5: entity.enderman.ambient (愤怒时), entity.enderman.scream (被注视时)
+     * @brief 获取环境音效（愤怒时返回 ambient，被注视时返回 scream）
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: entity.enderman.hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: entity.enderman.death
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取 stare sound（被注视时的声音）
-     * MC 1.16.5: entity.enderman.stare
      */
     [[nodiscard]] std::optional<ResourceLocation> getStareSound() const;
 
     /**
      * @brief 获取瞬移声音
-     * MC 1.16.5: entity.enderman.teleport
      */
     [[nodiscard]] std::optional<ResourceLocation> getTeleportSound() const;
 
@@ -157,7 +150,6 @@ public:
 
     /**
      * @brief 是否正在被玩家注视
-     * MC 1.16.5: isScreaming()
      */
     [[nodiscard]] bool isScreaming() const { return m_screaming; }
 
@@ -170,14 +162,12 @@ public:
 
     /**
      * @brief 尝试随机瞬移
-     * MC 1.16.5: teleport()
      * @return 是否成功瞬移
      */
     bool teleport();
 
     /**
      * @brief 尝试瞬移到目标附近
-     * MC 1.16.5: teleportTowards(Entity)
      */
     bool teleportToTarget();
 
@@ -190,19 +180,16 @@ public:
 
     /**
      * @brief 是否拿着方块
-     * MC 1.16.5: hasBlock()
      */
     [[nodiscard]] bool isHoldingBlock() const { return m_holdingBlock; }
 
     /**
      * @brief 获取拿着的方块状态
-     * MC 1.16.5: getHeldBlockState()
      */
     [[nodiscard]] const BlockState* getHeldBlockState() const { return m_heldBlockState; }
 
     /**
      * @brief 设置拿着的方块状态
-     * MC 1.16.5: setHeldBlockState()
      */
     void setHeldBlockState(const BlockState* state);
 
@@ -227,10 +214,7 @@ public:
 
     /**
      * @brief 检查是否在水中或雨中
-     *
-     * MC 1.16.5: Entity.isInWaterOrRainOrBubbleColumn()
      * 对于末影人，气泡柱不会造成伤害，所以只检查水和雨。
-     *
      * @return 如果在水中或雨中返回 true
      */
     [[nodiscard]] bool isInWaterOrRain() const;
@@ -240,7 +224,6 @@ public:
     /**
      * @brief 检查玩家是否正在注视末影人（应被激怒）
      *
-     * MC 1.16.5: EndermanEntity.shouldAttackPlayer()
      * 检查玩家是否正在注视末影人的眼睛：
      * 1. 检查玩家是否戴着南瓜头（南瓜头可避免激怒）
      * 2. 计算玩家视线方向与玩家到末影人向量的点积
@@ -256,7 +239,6 @@ public:
 
     /**
      * @brief 获取眼睛高度
-     * MC 1.16.5: 2.55f * scale
      */
     [[nodiscard]] f32 eyeHeight() const override { return 2.55f; }
 
@@ -272,16 +254,17 @@ public:
 
     // ========== 生命周期 ==========
 
+    /**
+     * @brief 每tick更新
+     */
     void tick() override;
 
     /**
-     * @brief 受到伤害时的处理
-     * MC 1.16.5: 攻击后瞬移
+     * @brief 受到伤害时的处理（攻击后瞬移）
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
-    // ========== MC 1.16.5 常量 ==========
-    // 这些常量用于测试和外部访问
+    // ========== 常量 ==========
 
     static constexpr i32 TELEPORT_COOLDOWN = 50;            // 瞬移冷却 (ticks)
     static constexpr i32 ANGER_DURATION = 600;              // 愤怒持续时间 (ticks)
@@ -292,9 +275,17 @@ public:
 
 protected:
     // ========== AI 目标注册 ==========
+
+    /**
+     * @brief 注册 AI 目标
+     */
     void registerGoals() override;
 
     // ========== 属性注册 ==========
+
+    /**
+     * @brief 注册实体属性
+     */
     void registerAttributes() override;
 
 private:

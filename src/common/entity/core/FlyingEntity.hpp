@@ -37,8 +37,6 @@ namespace mc {
  * - 不受重力影响
  * - 可以在空中自由移动
  * - 特殊的空中寻路逻辑
- *
- * 参考 MC 1.16.5 FlyingEntity
  */
 class FlyingEntity : public MobEntity {
 public:

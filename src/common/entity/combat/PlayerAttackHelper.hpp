@@ -140,7 +140,7 @@ public:
     /**
      * @brief 应用攻击冷却影响
      *
-     * MC 1.16.5: 冷却不足时伤害 = 原伤害 × cooldownProgress²
+     * 冷却不足时伤害 = 原伤害 × cooldownProgress²
      * 只有当 cooldownProgress >= 0.9 时才造成完整伤害
      *
      * @param damage 原始伤害
@@ -161,7 +161,7 @@ public:
     /**
      * @brief 获取攻击冷却进度
      *
-     * MC 1.16.5: cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
+     * cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
      * 结果范围 [0, 1]
      *
      * @param ticksSinceLastAttack 自上次攻击以来的 tick 数
@@ -184,7 +184,7 @@ public:
     /**
      * @brief 应用火焰附加
      *
-     * MC 1.16.5: 火焰持续时间 = 80 × fireAspectLevel ticks（每级4秒）
+     * 火焰持续时间 = 80 × fireAspectLevel ticks（每级4秒）
      * 但如果目标已经有火焰，时间延长
      *
      * @param target 目标
@@ -198,7 +198,7 @@ public:
     /**
      * @brief 计算横扫攻击伤害比例
      *
-     * MC 1.16.5: 横扫之刃附魔
+     * 横扫之刃附魔：
      * - I: 50% 伤害传递
      * - II: 67% 伤害传递
      * - III: 75% 伤害传递
@@ -227,7 +227,6 @@ public:
      * @brief 攻击后调用附魔回调
      *
      * 在攻击成功后调用，触发武器附魔的效果（如节肢杀手的缓慢效果）。
-     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
      *
      * @param attacker 攻击者
      * @param target 目标实体

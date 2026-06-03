@@ -22,13 +22,14 @@
  */
 
 #include "PhantomEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/special/PhantomGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../damage/DamageSource.hpp"
+
+#include "common/entity/ai/goal/goals/special/PhantomGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -42,14 +43,14 @@ std::unique_ptr<Entity> PhantomEntity::create(IWorld* world)
 PhantomEntity::PhantomEntity(EntityId id)
     : FlyingEntity(id)
 {
-    // MC 1.16.5: 幻翼在阳光下燃烧
+    // 幻翼在阳光下燃烧
     setExperienceValue(5);
 }
 
 void PhantomEntity::setPhantomSize(i32 size)
 {
     m_phantomSize = std::clamp(size, 0, MAX_PHANTOM_SIZE);
-    // MC 1.16.5: 更新攻击力
+    // 更新攻击力
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE,
         BASE_ATTACK_DAMAGE + static_cast<f32>(m_phantomSize) * SIZE_ATTACK_BONUS);
     refreshDimensions();
@@ -57,7 +58,7 @@ void PhantomEntity::setPhantomSize(i32 size)
 
 entity::EntitySize PhantomEntity::getDimensions(EntityPose pose) const
 {
-    // MC 1.16.5: 尺寸随幻翼大小变化
+    // 尺寸随幻翼大小变化
     f32 baseWidth = 0.9f;
     f32 baseHeight = 0.5f;
     f32 scaleFactor = 1.0f + 0.2f * static_cast<f32>(m_phantomSize);
@@ -66,29 +67,24 @@ entity::EntitySize PhantomEntity::getDimensions(EntityPose pose) const
 
 std::optional<ResourceLocation> PhantomEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.phantom.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> PhantomEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.phantom.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> PhantomEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.phantom.death
     return makeSoundEventId("death");
 }
 
 void PhantomEntity::tick()
 {
-    // MC 1.16.5 PhantomEntity.tick()
     FlyingEntity::tick();
 
-    // MC 1.16.5: 在阳光下着火8秒 (livingTick 中调用)
-    // 参考: if (this.isAlive() && this.isInDaylight()) { this.setFire(8); }
+    // 在阳光下着火8秒
     if (isAlive() && isInDaylight()) {
         setFire(8);
     }
@@ -98,11 +94,10 @@ void PhantomEntity::registerGoals()
 {
     FlyingEntity::registerGoals();
 
-    // MC 1.16.5 PhantomEntity.registerGoals()
+    // 攻击目标选择器：
     // 优先级 1: PickAttackGoal - 选择攻击阶段
     // 优先级 2: SweepAttackGoal - 俯冲攻击
     // 优先级 3: OrbitPointGoal - 环绕飞行
-    //
     // 目标选择器：
     // 优先级 1: AttackPlayerTargetGoal - 攻击玩家
 
@@ -116,9 +111,9 @@ void PhantomEntity::registerAttributes()
 {
     FlyingEntity::registerAttributes();
 
-    // MC 1.16.5 PhantomEntity 属性
+    // 幻翼属性：生命值20，移动速度0（飞行生物不使用地面速度），攻击力6，追踪距离64
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0); // 幻翼飞行，不使用地面速度
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, BASE_ATTACK_DAMAGE);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
 }
@@ -126,7 +121,7 @@ void PhantomEntity::registerAttributes()
 void PhantomEntity::updateAITasks()
 {
     FlyingEntity::updateAITasks();
-    // MC 1.16.5: 更新AI任务
+    // TODO: 实现幻翼特定的AI任务更新逻辑
 }
 
 } // namespace mc

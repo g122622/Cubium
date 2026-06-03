@@ -31,6 +31,7 @@
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "util/math/MathConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include <cmath>
@@ -40,10 +41,9 @@ namespace mc {
 EndermanEntity::EndermanEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 末影人不在阳光下燃烧
+    // 末影人不在阳光下燃烧
     setBurnsInDaylight(false);
 
-    // MC 1.16.5: EndermanEntity 构造函数中设置 stepHeight = 1.0F
     // 末影人可以走上1格高的方块
     setStepHeight(1.0f);
 
@@ -61,7 +61,7 @@ std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
 
 std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
 {
-    // MC 1.16.5: 愤怒时返回 ambient，被注视时返回 scream
+    // 愤怒时返回 ambient，被注视时返回 scream
     if (m_screaming) {
         return makeSoundEventId("scream");
     }
@@ -70,25 +70,21 @@ std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
 
 std::optional<ResourceLocation> EndermanEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.enderman.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> EndermanEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.enderman.death
     return makeSoundEventId("death");
 }
 
 std::optional<ResourceLocation> EndermanEntity::getStareSound() const
 {
-    // MC 1.16.5: entity.enderman.stare
     return makeSoundEventId("stare");
 }
 
 std::optional<ResourceLocation> EndermanEntity::getTeleportSound() const
 {
-    // MC 1.16.5: entity.enderman.teleport
     return makeSoundEventId("teleport");
 }
 
@@ -141,13 +137,11 @@ void EndermanEntity::setHeldBlockState(const BlockState* state)
 
 bool EndermanEntity::teleport()
 {
-    // MC 1.16.5 EndermanEntity.teleport()
     if (m_teleportCooldown > 0) {
         return false;
     }
 
     // 末影人瞬移范围：64 格
-    // 参考 MC 1.16.5 EndermanEntity.teleportRandomly()
     bool success = randomTeleport(TELEPORT_RANGE, true, true);
 
     if (success) {
@@ -165,7 +159,6 @@ bool EndermanEntity::teleport()
 
 bool EndermanEntity::teleportToTarget()
 {
-    // MC 1.16.5 EndermanEntity.teleportTowards()
     if (m_attackTarget == nullptr || m_teleportCooldown > 0) {
         return false;
     }
@@ -181,16 +174,16 @@ bool EndermanEntity::teleportToTarget()
     } else {
         // 如果长度太小，随机选择方向
         math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_ticksExisted));
-        f32 angle = rng.nextFloat() * 6.28318530718f;
+        f32 angle = rng.nextFloat() * math::TWO_PI;
         direction.x = std::cos(angle);
         direction.z = std::sin(angle);
     }
 
     // 目标位置：远离目标 16 格
     math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_ticksExisted));
-    f32 targetX = m_position.x + (rng.nextDouble() - 0.5) * 8.0 - direction.x * 16.0;
+    f32 targetX = m_position.x + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.x * 16.0f;
     f32 targetY = m_position.y + static_cast<f32>(rng.nextInt(16) - 8);
-    f32 targetZ = m_position.z + (rng.nextDouble() - 0.5) * 8.0 - direction.z * 16.0;
+    f32 targetZ = m_position.z + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.z * 16.0f;
 
     // 尝试瞬移
     bool success = attemptTeleport(targetX, targetY, targetZ, true);
@@ -204,7 +197,6 @@ bool EndermanEntity::teleportToTarget()
 
 bool EndermanEntity::teleportAwayFromWater()
 {
-    // MC 1.16.5: 瞬移避开水
     // 尝试多次瞬移，直到找到一个不在水中的位置
     for (i32 i = 0; i < 10; ++i) {
         if (teleport()) {
@@ -219,47 +211,37 @@ bool EndermanEntity::teleportAwayFromWater()
 
 void EndermanEntity::placeHeldBlock()
 {
-    // MC 1.16.5 EndermanEntity.placeBlock()
     // 注意：实际的放置逻辑由 EndermanPlaceBlockGoal 处理
     // 这个方法作为一个 API 入口，可以被外部调用或测试
     if (!m_holdingBlock || m_heldBlockState == nullptr) {
         return;
     }
 
-    // 委托给 AI 目标处理
-    // 实际逻辑在 EndermanGoals.cpp 的 EndermanPlaceBlockGoal::tick() 中
-    // 该方法保留作为外部接口
+    // TODO: 委托给 AI 目标处理，实际逻辑在 EndermanGoals.cpp 的 EndermanPlaceBlockGoal::tick() 中
 }
 
 void EndermanEntity::pickUpBlock()
 {
-    // MC 1.16.5 EndermanEntity.takeBlock()
     // 注意：实际的拾取逻辑由 EndermanTakeBlockGoal 处理
     // 这个方法作为一个 API 入口，可以被外部调用或测试
     if (m_holdingBlock) {
         return;
     }
 
-    // 委托给 AI 目标处理
-    // 实际逻辑在 EndermanGoals.cpp 的 EndermanTakeBlockGoal::tick() 中
-    // 该方法保留作为外部接口
+    // TODO: 委托给 AI 目标处理，实际逻辑在 EndermanGoals.cpp 的 EndermanTakeBlockGoal::tick() 中
 }
 
 bool EndermanEntity::isInWaterOrRain() const
 {
-    // MC 1.16.5: Entity.isInWaterOrRainOrBubbleColumn()
     // 对于末影人，气泡柱不会造成伤害，所以只检查水和雨
-    // 参考 Entity.isWet() = isInWater() || isInRain()
     return isInWater() || isInRain();
 }
 
 bool EndermanEntity::shouldAttackPlayer(const Player& player) const
 {
-    // MC 1.16.5: EndermanEntity.shouldAttackPlayer()
     // 检查玩家是否正在注视末影人的眼睛
 
     // 1. 检查玩家是否戴着南瓜头
-    // MC 1.16.5: ItemStack.isEnderMask()
     // 戴着南瓜头的玩家不会激怒末影人
     if (player.isWearingPumpkin()) {
         return false;
@@ -271,15 +253,12 @@ bool EndermanEntity::shouldAttackPlayer(const Player& player) const
     }
 
     // 3. 检查视线是否被方块阻挡
-    // MC 1.16.5: player.canEntityBeSeen(this)
-    // 但在 shouldAttackPlayer 中，先检查注视再检查视线
     // 注视检测已经包含了方向检测，这里只需要确认没有方块阻挡
     return player.canSee(*this);
 }
 
 void EndermanEntity::tick()
 {
-    // MC 1.16.5 EndermanEntity.tick()
     MonsterEntity::tick();
 
     // 更新瞬移冷却
@@ -305,9 +284,9 @@ void EndermanEntity::tick()
     }
 
     // 检查水/雨伤害
-    // MC 1.16.5: 在水中或雨中受到伤害并瞬移
+    // 在水中或雨中受到伤害并瞬移
     if (isInWaterOrRain()) {
-        // MC 1.16.5: 每tick在水中受到1.0伤害
+        // 每tick在水中受到1.0伤害
         auto damageSource = DamageSources::drown();
         hurt(damageSource, WATER_DAMAGE);
         teleportAwayFromWater();
@@ -318,18 +297,14 @@ void EndermanEntity::tick()
 
 bool EndermanEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5 EndermanEntity.attackEntityFrom()
-
     // 检查无敌状态
     if (isInvulnerableTo(source)) {
         return false;
     }
 
     // 投射物伤害：尝试64次随机瞬移，成功则躲避伤害
-    // MC 1.16.5: if (source instanceof IndirectEntityDamageSource)
     // 使用 isProjectile() 检测投射物伤害
     if (source.isProjectile()) {
-        // MC 1.16.5: for(int i = 0; i < 64; ++i) { if (this.teleportRandomly()) { return true; } }
         for (i32 i = 0; i < TELEPORT_PROJECTILE_ATTEMPTS; ++i) {
             if (teleport()) {
                 return true; // 成功瞬移后不受伤
@@ -343,8 +318,6 @@ bool EndermanEntity::hurt(DamageSource& source, f32 amount)
 
     if (hurtResult) {
         // 非生物伤害（摔落、窒息、岩浆等）：90%概率随机瞬移
-        // MC 1.16.5: if (!this.world.isRemote && !(source.getTrueSource() instanceof LivingEntity) &&
-        // this.rand.nextInt(10) != 0)
         if (m_world != nullptr && !m_world->isClientSide()) {
             Entity* trueSource = source.getTrueSource();
             bool isLivingSource = (trueSource != nullptr && dynamic_cast<LivingEntity*>(trueSource) != nullptr);
@@ -368,8 +341,7 @@ void EndermanEntity::registerGoals()
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 EndermanEntity.registerGoals()
-    // 优先级顺序：
+    // AI 目标优先级顺序：
     // 0: SwimGoal (父类已注册)
     // 1: EndermanStareGoal (注视玩家目标)
     // 2: MeleeAttackGoal (攻击目标)
@@ -392,7 +364,6 @@ void EndermanEntity::registerGoals()
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
 
     // 优先级 5: 避水随机行走
-    // MC 1.16.5: this.goalSelector.addGoal(5, new WaterAvoidingRandomWalkingGoal(this, 0.0D));
     m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
 
     // 优先级 7: 看向玩家（会激怒末影人）
@@ -418,14 +389,13 @@ void EndermanEntity::registerGoals()
     // 优先级 2: HurtByTargetGoal 已在父类 MonsterEntity::registerGoals() 中注册
 
     // 优先级 3: 攻击末影螨
-    // MC 1.16.5: NearestAttackableTargetGoal<>(this, EndermiteEntity.class, 10, true, false, predicate)
     // 只攻击玩家生成的末影螨（通过末影珍珠传送生成）
     m_targetSelector.addGoal(3,
         new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(this,
             true, // checkSight - 需要视线可见
             0,    // chance - 每 tick 检查
             [](const LivingEntity* entity) -> bool {
-                // MC 1.16.5: field_213627_bA - 只攻击玩家生成的末影螨
+                // 只攻击玩家生成的末影螨
                 if (entity == nullptr || !entity->isAlive()) {
                     return false;
                 }
@@ -438,7 +408,6 @@ void EndermanEntity::registerGoals()
             }));
 
     // 优先级 4: 重置愤怒
-    // MC 1.16.5: this.targetSelector.addGoal(4, new ResetAngerGoal<>(this, false));
     // 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标
     m_targetSelector.addGoal(4, new entity::ai::goal::ResetAngerGoal<EndermanEntity>(this, false));
 }
@@ -448,7 +417,7 @@ void EndermanEntity::registerAttributes()
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 EndermanEntity 属性
+    // 末影人属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);

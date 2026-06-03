@@ -30,7 +30,6 @@ namespace mc {
 DrownedEntity::DrownedEntity(EntityId id)
     : ZombieEntity(id)
 {
-    // MC 1.16.5: DrownedEntity 构造函数中设置 stepHeight = 1.0F
     // 溺尸可以走上1格高的方块
     setStepHeight(1.0f);
 
@@ -65,8 +64,7 @@ void DrownedEntity::tick()
     ZombieEntity::tick();
 
     // 在水中时的特殊行为
-    // MC 1.16.5: 溺尸在水中可以游泳，游泳状态由AI目标控制
-    // SwimGoal 会在水中自动启用游泳导航
+    // TODO: 实现溺尸水中游泳AI目标，游泳状态由AI目标控制
     (void)isInWater(); // 暂时避免未使用警告，AI目标实现后会使用
 }
 

@@ -42,13 +42,7 @@ namespace entity {
  * @brief 末影水晶实体
  *
  * 在末地生成，用于治愈末影龙。
- *
- * MC 1.16.5 对齐：
- * - innerRotation: 递增的旋转计数器，用于渲染动画
- * - showBottom: 是否显示基岩底座
- * - beamTarget: 光束指向的目标位置（末地传送门）
- *
- * 参考 MC 1.16.5 EnderCrystalEntity
+ * 具有内部旋转动画、光束指向、爆炸等特性。
  */
 class EnderCrystalEntity : public Entity {
 public:
@@ -110,15 +104,7 @@ private:
  * @brief 闪电实体
  *
  * 雷暴天气时生成的闪电。
- *
- * MC 1.16.5 对齐字段和逻辑：
- * - lightningState: 初始值为 2，每 tick 递减
- * - boltVertex: 随机种子，用于渲染闪电形状
- * - boltLivingTime: 随机 1-3，控制闪电视觉效果的"复活"次数
- * - effectOnly: 是否只有效果（不造成伤害）
- * - caster: 触发者（用于引雷附魔等）
- *
- * 参考 MC 1.16.5 LightningBoltEntity
+ * 具有闪烁效果、点燃方块、伤害实体等特性。
  */
 class LightningBoltEntity : public Entity {
 public:
@@ -178,29 +164,20 @@ private:
     /**
      * @brief 点燃周围方块
      * @param extraIgnitions 额外点燃数量（基于难度）
-     *
-     * MC 1.16.5 igniteBlocks():
-     * - 检查游戏规则 doFireTick
-     * - 在当前位置放置火焰
-     * - 根据 difficulty 决定额外点燃数量
      */
-    void igniteBlocks(i32 extraIgnitions);
+    void _igniteBlocks(i32 extraIgnitions);
 
     /**
      * @brief 伤害周围实体
-     *
-     * MC 1.16.5 伤害逻辑：
-     * - 获取 3x6x3 范围内的实体
-     * - 调用实体的 onStruckByLightning() 方法
      */
-    void damageEntities();
+    void _damageEntities();
 
     /**
      * @brief 初始化闪电状态
      */
-    void initializeState();
+    void _initializeState();
 
-    // MC 1.16.5 字段
+    // 闪电状态
     i32 m_lightningState = 2;   ///< 闪电状态，初始 2，递减控制音效和伤害
     u64 m_boltVertex = 0;       ///< 随机种子，用于渲染闪电形状
     i32 m_boltLivingTime = 1;   ///< 闪电视觉效果重复次数 (1-3)
@@ -218,17 +195,7 @@ private:
  * @brief 区域效果云实体
  *
  * 由滞留药水或苦力怕爆炸产生的效果云。
- *
- * MC 1.16.5 对齐：
- * - radius: 效果半径
- * - duration: 持续时间
- * - waitTime: 等待时间（应用效果前的延迟）
- * - reapplicationDelay: 效果重应用延迟
- * - effects: 效果列表
- * - color: 效果颜色（ARGB）
- * - owner: 拥有者（造成效果的实体）
- *
- * 参考 MC 1.16.5 AreaEffectCloudEntity
+ * 支持半径变化、持续时间、效果应用等特性。
  */
 class AreaEffectCloudEntity : public Entity {
 public:
@@ -246,7 +213,6 @@ public:
 
     /**
      * @brief 设置效果半径
-     * MC 1.16.5: setRadius()
      */
     void setRadius(f32 radius);
 
@@ -257,13 +223,11 @@ public:
 
     /**
      * @brief 设置每次应用效果时半径变化
-     * MC 1.16.5: setRadiusOnUse()
      */
     void setRadiusOnUse(f32 radiusOnUse) { m_radiusOnUse = radiusOnUse; }
 
     /**
      * @brief 设置每tick半径变化
-     * MC 1.16.5: setRadiusPerTick()
      */
     void setRadiusPerTick(f32 radiusPerTick) { m_radiusPerTick = radiusPerTick; }
 
@@ -271,14 +235,12 @@ public:
 
     /**
      * @brief 设置持续时间
-     * MC 1.16.5: setDuration()
      */
     void setDuration(i32 duration) { m_duration = duration; }
     [[nodiscard]] i32 getDuration() const { return m_duration; }
 
     /**
      * @brief 设置每次应用效果时持续时间变化
-     * MC 1.16.5: setDurationOnUse()
      */
     void setDurationOnUse(i32 durationOnUse) { m_durationOnUse = durationOnUse; }
 
@@ -286,7 +248,6 @@ public:
 
     /**
      * @brief 设置等待时间（应用效果前的延迟）
-     * MC 1.16.5: setWaitTime()
      */
     void setWaitTime(i32 waitTime) { m_waitTime = waitTime; }
     [[nodiscard]] i32 getWaitTime() const { return m_waitTime; }
@@ -295,7 +256,6 @@ public:
 
     /**
      * @brief 设置效果重应用延迟
-     * MC 1.16.5: setReapplicationDelay()
      */
     void setReapplicationDelay(i32 delay) { m_reapplicationDelay = delay; }
     [[nodiscard]] i32 getReapplicationDelay() const { return m_reapplicationDelay; }
@@ -314,7 +274,6 @@ public:
 
     /**
      * @brief 设置是否固定颜色
-     * MC 1.16.5: setColorFixed()
      */
     void setColorFixed(bool fixed) { m_colorSet = fixed; }
 
@@ -322,7 +281,6 @@ public:
 
     /**
      * @brief 添加效果实例
-     * MC 1.16.5: addEffect()
      */
     void addEffect(const effect::EffectInstance& effect);
 
@@ -340,7 +298,6 @@ public:
 
     /**
      * @brief 设置拥有者（造成效果的实体）
-     * MC 1.16.5: setOwner()
      */
     void setOwner(LivingEntity* owner);
     [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
@@ -349,7 +306,6 @@ public:
 
     /**
      * @brief 设置粒子类型
-     * MC 1.16.5: setParticle()
      * 注：当前项目粒子系统简化，此方法预留接口
      */
     void setParticleType(u32 particleType) { m_particleType = particleType; }
@@ -365,27 +321,25 @@ public:
 private:
     /**
      * @brief 应用效果到范围内的实体
-     * MC 1.16.5: affectEntities()
      */
-    void applyEffects();
+    void _applyEffects();
 
     /**
      * @brief 更新半径
      */
-    void updateRadius();
+    void _updateRadius();
 
     /**
      * @brief 更新颜色（根据效果列表自动计算）
      */
-    void updateColor();
+    void _updateColor();
 
     /**
      * @brief 计算效果颜色
-     * 参考 MC 1.16.5 PotionUtils.getPotionColorFromEffectList()
      */
-    [[nodiscard]] static u32 calculateEffectsColor(const std::vector<effect::EffectInstance>& effects);
+    [[nodiscard]] static u32 _calculateEffectsColor(const std::vector<effect::EffectInstance>& effects);
 
-    // MC 1.16.5 字段
+    // 效果配置
     std::vector<effect::EffectInstance> m_effects; ///< 效果列表
     std::map<EntityId, i32> m_reapplicationMap;    ///< 重应用延迟映射（实体ID -> 下次可应用时间）
 
@@ -406,7 +360,7 @@ private:
     LivingEntity* m_owner = nullptr; ///< 拥有者（苦力怕等）
     u32 m_particleType = 0;          ///< 粒子类型
 
-    // MC 1.16.5 默认值常量
+    // 默认值常量
     static constexpr f32 DEFAULT_RADIUS = 3.0f;
     static constexpr i32 DEFAULT_DURATION = 600;
     static constexpr i32 DEFAULT_WAIT_TIME = 20;
@@ -420,8 +374,7 @@ private:
  * @brief 盔甲架实体
  *
  * 可以展示和穿戴盔甲的实体。
- *
- * 参考 MC 1.16.5 ArmorStandEntity
+ * 支持重力、标记模式、身体部位旋转等特性。
  */
 class ArmorStandEntity : public Entity {
 public:

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
 #include "EntityType.hpp"
+#include "common/core/Result.hpp"
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -55,8 +55,6 @@ using mc::Result;
  * const EntityType* pigType = registry.getType("minecraft:pig");
  * auto pig = pigType->create(world);
  * @endcode
- *
- * 参考 MC 1.16.5 Registry.ENTITY_TYPE
  */
 class EntityRegistry {
 public:

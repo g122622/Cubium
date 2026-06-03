@@ -39,7 +39,6 @@
 namespace mc {
 
 // ==================== SpiderAttackGoal ====================
-// MC 1.16.5 SpiderEntity.AttackGoal
 // 蜘蛛专用的近战攻击目标，只在黑暗中继续攻击
 
 /**
@@ -48,8 +47,6 @@ namespace mc {
  * 继承自MeleeAttackGoal，添加了光照条件检测：
  * - 只在亮度 < 0.5F 时继续攻击
  * - 在明亮环境中有1%概率放弃目标
- *
- * 参考 MC 1.16.5 SpiderEntity.AttackGoal
  */
 class SpiderAttackGoal : public entity::ai::goal::MeleeAttackGoal {
 public:
@@ -60,16 +57,14 @@ public:
 
     [[nodiscard]] bool shouldExecute() override
     {
-        // MC 1.16.5: 检查父类条件且没有被骑乘
         return MeleeAttackGoal::shouldExecute() && !m_spider->isBeingRidden();
     }
 
     [[nodiscard]] bool shouldContinueExecuting() override
     {
-        // MC 1.16.5: 检查光照条件
+        // 检查光照条件，在明亮环境中有概率停止攻击
         f32 brightness = m_spider->getBrightness();
         if (brightness >= 0.5F && m_spider->getRandom().nextInt(100) == 0) {
-            // 在明亮环境中，有1%概率清除目标并停止攻击
             m_spider->setAttackTarget(nullptr);
             return false;
         }
@@ -77,18 +72,13 @@ public:
     }
 
 protected:
-    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const override
-    {
-        // MC 1.16.5: 4.0F + target.getWidth()
-        return 4.0F + target->width();
-    }
+    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const override { return 4.0F + target->width(); }
 
 private:
     SpiderEntity* m_spider;
 };
 
 // ==================== SpiderTargetGoal ====================
-// MC 1.16.5 SpiderEntity.TargetGoal
 // 蜘蛛专用的目标选择，只在黑暗中选择目标
 
 /**
@@ -96,8 +86,6 @@ private:
  *
  * 继承自NearestAttackableTargetGoal，添加了光照条件检测：
  * - 只在亮度 < 0.5F 时选择攻击目标
- *
- * 参考 MC 1.16.5 SpiderEntity.TargetGoal
  */
 template <typename T>
 class SpiderTargetGoal : public entity::ai::goal::NearestAttackableTargetGoal<T> {
@@ -109,7 +97,7 @@ public:
 
     [[nodiscard]] bool shouldExecute() override
     {
-        // MC 1.16.5: 只在黑暗中选择目标
+        // 只在黑暗中选择目标
         f32 brightness = m_spider->getBrightness();
         if (brightness >= 0.5F) {
             return false;
@@ -140,9 +128,7 @@ std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/)
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const
 {
-    // MC 1.16.5: 蜘蛛只在黑暗中攻击
-    // 参考 SpiderEntity.shouldAttack() 第94-101行
-    // 光照等级 < 7 时攻击（亮度阈值 = 0.5 * 15 = 7.5）
+    // 蜘蛛只在黑暗中攻击（光照等级 < 7）
     if (m_world != nullptr) {
         u8 lightLevel = m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_position.x)),
                                                         static_cast<i32>(std::floor(m_position.y)),
@@ -151,7 +137,6 @@ bool SpiderEntity::shouldAttack(LivingEntity* target) const
         if (lightLevel < 7) {
             return MonsterEntity::shouldAttack(target);
         }
-        // 在明亮处不攻击
         return false;
     }
     return MonsterEntity::shouldAttack(target);
@@ -161,9 +146,7 @@ void SpiderEntity::tick()
 {
     MonsterEntity::tick();
 
-    // MC 1.16.5: 更新攀爬状态
-    // 参考 SpiderEntity.tick() 第67-72行
-    // 蜘蛛在碰到墙壁时可以攀爬
+    // 更新攀爬状态：蜘蛛在碰到墙壁时可以攀爬
     m_climbing = collidedHorizontally();
 
     m_wasOnGround = onGround();
@@ -174,7 +157,6 @@ void SpiderEntity::registerGoals()
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 SpiderEntity.registerGoals()
     // 行为目标 (goalSelector)
     // 优先级 1: 游泳
     m_goalSelector.addGoal(1, new entity::ai::goal::SwimGoal(this));
@@ -215,7 +197,6 @@ void SpiderEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 蜘蛛的属性
-    // 参考 MC 1.16.5 蜘蛛属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);

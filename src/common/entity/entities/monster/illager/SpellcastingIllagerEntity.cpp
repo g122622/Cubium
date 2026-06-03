@@ -53,8 +53,7 @@ SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(
 
 Vector3 SpellcastingIllagerEntity::getSpellParticleColor(SpellType type)
 {
-    // 参考 MC 1.16.5 SpellcastingIllagerEntity.SpellType.particleSpeed
-    // 粒子颜色通过速度参数 (dx, dy, dz) 传递给 ENTITY_EFFECT 粒子
+    // 粒子颜色通过速度参数传递给 ENTITY_EFFECT 粒子
     switch (type) {
         case SpellType::SummonVex:
             // 召唤恼鬼 - 淡蓝白色
@@ -85,8 +84,7 @@ void SpellcastingIllagerEntity::tick()
         --m_spellTicks;
     }
 
-    // MC 1.16.5: 客户端施法粒子效果
-    // 参考 SpellcastingIllagerEntity.tick() 第83-96行
+    // 客户端施法粒子效果
     if (m_world && m_world->isClientSide() && isSpellcasting()) {
         SpellType currentSpell = spellType();
         if (currentSpell != SpellType::None) {
@@ -94,19 +92,12 @@ void SpellcastingIllagerEntity::tick()
             Vector3 particleColor = getSpellParticleColor(currentSpell);
 
             // 计算粒子位置的角度
-            // MC 1.16.5: float f = this.renderYawOffset * ((float)Math.PI / 180F)
-            //          + MathHelper.cos((float)this.ticksExisted * 0.6662F) * 0.25F;
             f32 angle =
                 renderYawOffset() * math::DEG_TO_RAD + std::cos(static_cast<f32>(ticksExisted()) * 0.6662f) * 0.25f;
             f32 cosAngle = std::cos(angle);
             f32 sinAngle = std::sin(angle);
 
             // 在实体左右两侧各生成一个粒子
-            // MC 1.16.5: this.world.addParticle(ParticleTypes.ENTITY_EFFECT,
-            //          this.getPosX() + (double)f1 * 0.6D,
-            //          this.getPosY() + 1.8D,
-            //          this.getPosZ() + (double)f2 * 0.6D,
-            //          d0, d1, d2);
             constexpr f32 lateralOffset = 0.6f; // 左右偏移
             constexpr f32 heightOffset = 1.8f;  // 头部高度偏移
 

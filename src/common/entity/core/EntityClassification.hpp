@@ -36,8 +36,6 @@ using mc::u8;
  *
  * 用于生物生成、刷怪笼和刷怪规则等系统。
  * 每种分类有不同的生成限制和生成规则。
- *
- * 参考 MC 1.16.5 EntityClassification
  */
 enum class EntityClassification : u8 {
     Monster = 0,       // 怪物（僵尸、骷髅等）- 每区块最多70个，不和平生成

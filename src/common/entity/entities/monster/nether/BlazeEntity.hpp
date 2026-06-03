@@ -47,8 +47,6 @@ class DamageSource;
  * - 火焰免疫：免疫火焰伤害
  * - 弱水：接触水会受伤
  * - 燃烧：攻击时全身冒火
- *
- * 参考 MC 1.16.5 BlazeEntity
  */
 class BlazeEntity : public MonsterEntity, public entity::IRangedAttackMob {
 public:
@@ -78,19 +76,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * MC 1.16.5: entity.blaze.ambient
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: entity.blaze.hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: entity.blaze.death
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -102,7 +97,6 @@ public:
 
     /**
      * @brief 是否正在发射火球（全身冒火）
-     * MC 1.16.5: isCharged() / isBurning()
      */
     [[nodiscard]] bool isCharged() const { return m_charging; }
 
@@ -125,15 +119,15 @@ public:
 
     /**
      * @brief 获取高度偏移
-     * MC 1.16.5: 用于悬浮行为
      */
     [[nodiscard]] f32 heightOffset() const { return m_heightOffset; }
+
+    // TODO: m_heightOffset 和 heightOffset() 目前未被使用，需要在实现烈焰人悬浮行为时启用
 
     // ========== 水敏感性 ==========
 
     /**
      * @brief 烈焰人对水敏感
-     * MC 1.16.5: isWaterSensitive() -> true
      */
     [[nodiscard]] bool isWaterSensitive() const { return true; }
 
@@ -148,7 +142,6 @@ public:
 
     /**
      * @brief 获取亮度
-     * MC 1.16.5: getBrightness() -> 1.0F
      */
     [[nodiscard]] f32 getBrightness() const { return 1.0f; }
 
@@ -156,7 +149,6 @@ public:
 
     /**
      * @brief 烈焰人免疫摔落伤害
-     * MC 1.16.5: onLivingFall() -> false
      */
     [[nodiscard]] bool canTakeFallDamage() const { return false; }
 
@@ -197,19 +189,19 @@ private:
     // 攻击状态
     bool m_charging = false;
     i32 m_fireballCount = 0;
-    i32 m_attackStep = 0; // MC 1.16.5: attackStep
-    i32 m_attackTime = 0; // MC 1.16.5: attackTime
+    i32 m_attackStep = 0; // 攻击阶段（由 BlazeFireballAttackGoal 管理）
+    i32 m_attackTime = 0; // 攻击计时器（由 BlazeFireballAttackGoal 管理）
 
-    // 悬浮高度
-    f32 m_heightOffset = 0.5f;        // MC 1.16.5: heightOffset
-    i32 m_heightOffsetUpdateTime = 0; // MC 1.16.5: heightOffsetUpdateTime
+    // 悬浮高度（TODO: 悬浮行为尚未实现）
+    f32 m_heightOffset = 0.5f;
+    i32 m_heightOffsetUpdateTime = 0;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 FIREBALL_DAMAGE = 5.0f;
-    static constexpr i32 ATTACK_CHARGE_TIME = 60; // 充能时间
-    static constexpr i32 ATTACK_COOLDOWN = 100;   // 攻击冷却
-    static constexpr i32 FIREBALL_INTERVAL = 6;   // 火球间隔
-    static constexpr i32 MAX_FIREBALLS = 3;       // 最多连发3个火球
+    static constexpr i32 ATTACK_CHARGE_TIME = 60; // 充能时间（ticks）
+    static constexpr i32 ATTACK_COOLDOWN = 100;   // 攻击冷却（ticks）
+    static constexpr i32 FIREBALL_INTERVAL = 6;   // 火球间隔（ticks）
+    static constexpr i32 MAX_FIREBALLS = 3;       // 最多连发火球数
 };
 
 } // namespace mc

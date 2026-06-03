@@ -22,28 +22,28 @@
  */
 
 #include "RavagerEntity.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/BlockRegistry.hpp"
-#include "../../../../world/block/BlockState.hpp"
-#include "../../../../world/block/BlockTags.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/RavagerGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/pathfinding/PathFinder.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../ai/pathfinding/RavagerNodeProcessor.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/player/Player.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/RavagerGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/pathfinding/RavagerNodeProcessor.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <memory>
 
 namespace mc {
@@ -51,11 +51,10 @@ namespace mc {
 RavagerEntity::RavagerEntity(EntityId id)
     : AbstractRaiderEntity(id)
 {
-    // MC 1.16.5: RavagerEntity 构造函数中设置 stepHeight = 1.0F
     // 劫掠兽可以走上1格高的方块
     setStepHeight(1.0f);
 
-    // MC 1.16.5: 创建使用 RavagerNodeProcessor 的自定义导航器
+    // 创建使用 RavagerNodeProcessor 的自定义导航器
     // 劫掠兽可以穿过树叶
     auto nodeProcessor = std::make_unique<entity::ai::pathfinding::RavagerNodeProcessor>();
     auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(std::move(nodeProcessor));
@@ -80,7 +79,7 @@ void RavagerEntity::tick()
 
     if (!isAlive()) return;
 
-    // MC 1.16.5: 更新速度属性（根据攻击状态调整）
+    // 更新速度属性（根据攻击状态调整）
     if (isMovementBlocked()) {
         // 禁止移动时速度为 0
         m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
@@ -92,29 +91,29 @@ void RavagerEntity::tick()
         m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, newSpeed);
     }
 
-    // MC 1.16.5: 碰撞时破坏树叶
+    // 碰撞时破坏树叶
     if (collidedHorizontally()) {
-        breakLeavesOnCollision();
+        _breakLeavesOnCollision();
     }
 
-    // MC 1.16.5: 更新咆哮状态
+    // 更新咆哮状态
     if (m_roarTick > 0) {
         m_roarTick--;
         if (m_roarTick == 10) {
             // 咆哮第 10 tick 时执行伤害
-            roar();
+            _roar();
         }
     }
 
-    // MC 1.16.5: 更新攻击动画
+    // 更新攻击动画
     if (m_attackTick > 0) {
         m_attackTick--;
     }
 
-    // MC 1.16.5: 更新眩晕状态
+    // 更新眩晕状态
     if (m_stunTick > 0) {
         m_stunTick--;
-        spawnStunParticles();
+        _spawnStunParticles();
 
         if (m_stunTick == 0) {
             // 眩晕结束时开始咆哮
@@ -126,13 +125,13 @@ void RavagerEntity::tick()
 
 bool RavagerEntity::isMovementBlocked() const
 {
-    // MC 1.16.5: 攻击、眩晕或咆哮时不能移动
+    // 攻击、眩晕或咆哮时不能移动
     return m_attackTick > 0 || m_stunTick > 0 || m_roarTick > 0;
 }
 
 bool RavagerEntity::canSee(const Entity& other) const
 {
-    // MC 1.16.5: 眩晕或咆哮时不能看见目标
+    // 眩晕或咆哮时不能看见目标
     if (m_stunTick > 0 || m_roarTick > 0) {
         return false;
     }
@@ -141,32 +140,32 @@ bool RavagerEntity::canSee(const Entity& other) const
 
 bool RavagerEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // MC 1.16.5: 设置攻击动画
+    // 设置攻击动画
     m_attackTick = ATTACK_DURATION;
 
-    // MC 1.16.5: 播放攻击音效
+    // 播放攻击音效
     playSound(SoundEvents::ENTITY_RAVAGER_ATTACK, 1.0f, 1.0f);
 
-    // MC 1.16.5: 调用父类攻击方法
+    // 调用父类攻击方法
     return AbstractRaiderEntity::attackEntityAsMob(target);
 }
 
 void RavagerEntity::constructKnockBackVector(LivingEntity* target)
 {
-    // MC 1.16.5: 如果正在咆哮，不做任何事
+    // 如果正在咆哮，不做任何事
     if (m_roarTick > 0) {
         return;
     }
 
     math::Random rng = getRandom();
 
-    // MC 1.16.5: 50% 概率眩晕或发射目标
+    // 50% 概率眩晕或发射目标
     if (rng.nextDouble() < STUN_CHANCE) {
         // 眩晕
         m_stunTick = STUN_DURATION;
         playSound(SoundEvents::ENTITY_RAVAGER_STUNNED, 1.0f, 1.0f);
 
-        // MC 1.16.5: 眩晕时目标与劫掠兽碰撞
+        // 眩晕时目标与劫掠兽碰撞
         if (target) {
             // 应用碰撞效果
             target->addVelocity(
@@ -174,18 +173,18 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
         }
     } else {
         // 发射目标
-        launchEntity(target);
+        _launchEntity(target);
     }
 }
 
-void RavagerEntity::roar()
+void RavagerEntity::_roar()
 {
     if (!isAlive()) return;
 
     IWorld* worldPtr = world();
     if (!worldPtr) return;
 
-    // MC 1.16.5: 获取周围 4 格内的所有 LivingEntity
+    // 获取周围 4 格内的所有 LivingEntity
     AxisAlignedBB searchBox = boundingBox().grow(ROAR_RANGE);
     std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(searchBox, this);
 
@@ -194,8 +193,7 @@ void RavagerEntity::roar()
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
         if (!living) continue;
 
-        // MC 1.16.5: 掠夺者类实体免疫咆哮伤害
-        // 但仍会被击退
+        // 掠夺者类实体免疫咆哮伤害，但仍会被击退
         if (dynamic_cast<AbstractRaiderEntity*>(living)) {
             // 掠夺者免疫伤害，但仍会被击退
         } else {
@@ -205,19 +203,19 @@ void RavagerEntity::roar()
         }
 
         // 击退所有实体
-        launchEntity(living);
+        _launchEntity(living);
     }
 
-    // MC 1.16.5: 生成咆哮粒子效果（客户端处理）
+    // 生成咆哮粒子效果（客户端处理）
     // 这里播放音效作为替代
     playSound(SoundEvents::ENTITY_RAVAGER_ROAR, 1.0f, 1.0f);
 }
 
-void RavagerEntity::launchEntity(Entity* entity)
+void RavagerEntity::_launchEntity(Entity* entity)
 {
     if (!entity) return;
 
-    // MC 1.16.5: 计算发射方向
+    // 计算发射方向
     f64 dx = entity->x() - x();
     f64 dz = entity->z() - z();
     f64 distSq = dx * dx + dz * dz;
@@ -227,7 +225,6 @@ void RavagerEntity::launchEntity(Entity* entity)
         distSq = 0.001;
     }
 
-    // MC 1.16.5: addVelocity(dx / d2 * 4.0D, 0.2D, dz / d2 * 4.0D)
     f64 invDist = 1.0 / std::sqrt(distSq);
     f64 vx = dx * invDist * LAUNCH_POWER;
     f64 vz = dz * invDist * LAUNCH_POWER;
@@ -235,9 +232,9 @@ void RavagerEntity::launchEntity(Entity* entity)
     entity->addVelocity(static_cast<f32>(vx), LAUNCH_Y_POWER, static_cast<f32>(vz));
 }
 
-void RavagerEntity::spawnStunParticles()
+void RavagerEntity::_spawnStunParticles()
 {
-    // MC 1.16.5: 眩晕时生成粒子效果
+    // 眩晕时生成粒子效果
     // 1/6 概率生成粒子
     math::Random rng = getRandom();
     if (rng.nextInt(6) != 0) return;
@@ -245,22 +242,16 @@ void RavagerEntity::spawnStunParticles()
     IWorld* worldPtr = world();
     if (!worldPtr) return;
 
-    // MC 1.16.5: 计算粒子位置
-    // getPosX() - (double)getWidth() * Math.sin((double)(renderYawOffset * ((float)Math.PI / 180F)))
-    //           + (this.rand.nextDouble() * 0.6D - 0.3D)
+    // 计算粒子位置
     f32 renderYawOffsetRad = math::toRadians(renderYawOffset());
     f64 offsetX =
         -static_cast<f64>(width()) * std::sin(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
-    // getPosY() + (double)getHeight() - 0.3D
     f64 offsetY = y() + static_cast<f64>(height()) - 0.3;
 
-    // getPosZ() + (double)getWidth() * Math.cos((double)(renderYawOffset * ((float)Math.PI / 180F)))
-    //          + (this.rand.nextDouble() * 0.6D - 0.3D)
     f64 offsetZ =
         static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
-    // MC 1.16.5: ParticleTypes.ENTITY_EFFECT
     // 颜色参数: (0.498, 0.514, 0.573) - 灰色效果粒子
     // 注：粒子效果需要客户端实现，这里暂时跳过
     // worldPtr->addParticle(ParticleTypes::ENTITY_EFFECT, x() + offsetX, offsetY, z() + offsetZ,
@@ -270,17 +261,16 @@ void RavagerEntity::spawnStunParticles()
     (void)offsetZ;
 }
 
-void RavagerEntity::breakLeavesOnCollision()
+void RavagerEntity::_breakLeavesOnCollision()
 {
     IWorld* worldPtr = world();
     if (!worldPtr || !m_canBreakBlocks) return;
 
-    // MC 1.16.5: 检查 mobGriefing 游戏规则
+    // 检查 mobGriefing 游戏规则
     if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
         return;
     }
 
-    // MC 1.16.5: getBoundingBox().grow(0.2D)
     AxisAlignedBB searchBox = boundingBox().grow(0.2);
 
     // 计算方块范围
@@ -301,9 +291,8 @@ void RavagerEntity::breakLeavesOnCollision()
 
                 if (!state) continue;
 
-                // MC 1.16.5: 只破坏树叶 (LeavesBlock)
+                // 只破坏树叶 (LeavesBlock)
                 if (BlockTags::LEAVES().contains(*state)) {
-                    // MC 1.16.5: world.destroyBlock(blockpos, true, this)
                     // 设置为空气，掉落物品
                     const BlockState* airState = BlockRegistry::instance().airState();
                     worldPtr->setBlockState(pos, airState, 3);
@@ -313,7 +302,7 @@ void RavagerEntity::breakLeavesOnCollision()
         }
     }
 
-    // MC 1.16.5: 如果没有破坏方块且在地面上，跳跃
+    // 如果没有破坏方块且在地面上，跳跃
     if (!brokeAny && onGround()) {
         jump();
     }
@@ -323,7 +312,6 @@ void RavagerEntity::registerGoals()
 {
     AbstractRaiderEntity::registerGoals();
 
-    // MC 1.16.5: RavagerEntity.registerGoals()
     // 优先级 0: 游泳
     goalSelector().addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
@@ -334,13 +322,11 @@ void RavagerEntity::registerGoals()
     goalSelector().addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.4));
 
     // 优先级 6: 看向玩家
-    // MC 1.16.5: new LookAtGoal(this, PlayerEntity.class, 6.0F)
     goalSelector().addGoal(6,
         std::make_unique<entity::ai::goal::LookAtGoal>(
             this, 6.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 10: 看向生物
-    // MC 1.16.5: new LookAtGoal(this, MobEntity.class, 8.0F)
     // 注: 原版看向 MobEntity.class，我们暂时看向所有 LivingEntity
     goalSelector().addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
@@ -352,12 +338,12 @@ void RavagerEntity::registerGoals()
     goalSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // 优先级 4: 攻击村民
-    // 注: VillagerEntity 需要实现后添加
+    // TODO: VillagerEntity 需要实现后添加
     // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
     // true));
 
     // 优先级 4: 攻击铁傀儡
-    // 注: IronGolemEntity 需要实现后添加
+    // TODO: IronGolemEntity 需要实现后添加
     // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this,
     // true));
 }
@@ -366,7 +352,6 @@ void RavagerEntity::registerAttributes()
 {
     AbstractRaiderEntity::registerAttributes();
 
-    // MC 1.16.5: RavagerEntity.func_234297_m_()
     // 注册 ATTACK_KNOCKBACK 属性（不在基类中注册）
     m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
 

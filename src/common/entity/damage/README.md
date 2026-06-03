@@ -114,12 +114,12 @@ src/common/entity/damage/
 - `getCombatDuration()` - 获取战斗时长
 - `inCombat()` - 检查是否在战斗中
 - `combatStartTime()` / `combatEndTime()` - 战斗时间查询
-- `calculateFallSuffix()` - 计算摔落后缀（私有方法）
+- `_calculateFallSuffix()` - 计算摔落后缀（私有方法）
 
 **关键常量**:
 - `COMBAT_TIMEOUT = 100` - 战斗超时时间（100 tick = 5 秒）
 
-**战斗状态管理**（MC 1.16.5）:
+**战斗状态管理**:
 - 进入战斗：受到实体伤害且当前不在战斗中
 - 战斗超时：战斗中 300 tick 无新伤害，非战斗中 100 tick
 - 战斗结束：实体死亡或超时
@@ -131,8 +131,8 @@ src/common/entity/damage/
 - 支持环境伤害消息（燃烧、溺水、摔落等）
 - 支持实体伤害消息（被击杀）
 
-**摔落后缀系统**（MC 1.16.5）:
-- `calculateFallSuffix()` - 根据攀爬方块类型确定摔落后缀
+**摔落后缀系统**:
+- `_calculateFallSuffix()` - 根据攀爬方块类型确定摔落后缀
 - 后缀类型：
   - `ladder` - 从梯子或打开的活板门摔落
   - `vines` - 从藤蔓摔落
@@ -146,9 +146,9 @@ src/common/entity/damage/
 - 落地时自动清空攀爬位置
 
 **清理机制**:
-- `cleanupOldEntries()` - 清理超过战斗超时时间的条目
-- `updateBestEntry()` - 重新计算最佳伤害记录
-- `getBestCombatEntry()` - 优先选择玩家造成的伤害
+- `_cleanupOldEntries()` - 清理超过战斗超时时间的条目
+- `_updateBestEntry()` - 重新计算最佳伤害记录
+- `_getBestCombatEntry()` - 优先选择玩家造成的伤害
 
 ## 模块关系图
 
@@ -312,7 +312,7 @@ if (entry.timestamp() < currentTime) { ... }
 
 ### 4. 战斗超时清理
 
-**问题**: `cleanupOldEntries()` 会在每次 `recordDamage()` 时调用，可能导致性能问题。
+**问题**: `_cleanupOldEntries()` 会在每次 `trackDamage()` 时调用，可能导致性能问题。
 
 **解决**: 当前实现已经优化，增量更新最佳伤害记录只在清理后重新扫描。
 

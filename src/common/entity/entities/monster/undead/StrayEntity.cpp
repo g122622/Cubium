@@ -30,7 +30,7 @@ StrayEntity::StrayEntity(EntityId id)
 {
     registerGoals();
     registerAttributes();
-    // MC 1.16.5: 在 registerGoals() 之后设置战斗目标
+    // 在 registerGoals() 之后设置战斗目标
     // 流浪者使用远程攻击（继承父类的 setCombatTask）
     setCombatTask();
 }

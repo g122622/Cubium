@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
 #include "EntityClassification.hpp"
 #include "EntitySize.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -101,8 +101,6 @@ using EntityFactory = std::function<std::unique_ptr<Entity>(IWorld*)>;
  * - 追踪距离
  * - 更新频率
  * - 各种标志
- *
- * 参考 MC 1.16.5 EntityType
  */
 class EntityType {
 public:
@@ -245,12 +243,12 @@ public:
     /**
      * @brief 移动构造函数
      */
-    EntityType(EntityType&&) = default;
+    EntityType(EntityType&&) noexcept = default;
 
     /**
      * @brief 移动赋值运算符
      */
-    EntityType& operator=(EntityType&&) = default;
+    EntityType& operator=(EntityType&&) noexcept = default;
 
     // 禁止拷贝
     EntityType(const EntityType&) = delete;

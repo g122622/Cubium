@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector2.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <functional>
 #include <variant>
 #include <vector>
@@ -50,8 +50,6 @@ using mc::Vector3i;
  *
  * 定义数据参数的类型，用于网络同步。
  * 每种类型对应不同的序列化方式。
- *
- * 参考 MC 1.16.5 DataSerializers
  */
 enum class DataSerializerType : u8 {
     Byte = 0,              // i8
@@ -91,8 +89,6 @@ enum class DataSerializerType : u8 {
  * m_dataManager.set(HEALTH, 20);
  * i32 health = m_dataManager.get(HEALTH);
  * @endcode
- *
- * 参考 MC 1.16.5 DataParameter
  */
 template <typename T>
 class DataParameter {
@@ -113,13 +109,13 @@ public:
     /**
      * @brief 获取参数类型
      */
-    [[nodiscard]] DataSerializerType type() const;
+    [[nodiscard]] DataSerializerType type() const noexcept;
 
     /**
      * @brief 比较操作符
      */
-    bool operator==(const DataParameter& other) const { return m_id == other.m_id; }
-    bool operator!=(const DataParameter& other) const { return m_id != other.m_id; }
+    [[nodiscard]] bool operator==(const DataParameter& other) const noexcept { return m_id == other.m_id; }
+    [[nodiscard]] bool operator!=(const DataParameter& other) const noexcept { return m_id != other.m_id; }
 
 private:
     u16 m_id;
@@ -127,52 +123,52 @@ private:
 
 // 类型特化：获取序列化类型
 template <>
-inline DataSerializerType DataParameter<i8>::type() const
+inline DataSerializerType DataParameter<i8>::type() const noexcept
 {
     return DataSerializerType::Byte;
 }
 template <>
-inline DataSerializerType DataParameter<i32>::type() const
+inline DataSerializerType DataParameter<i32>::type() const noexcept
 {
     return DataSerializerType::Int;
 }
 template <>
-inline DataSerializerType DataParameter<i64>::type() const
+inline DataSerializerType DataParameter<i64>::type() const noexcept
 {
     return DataSerializerType::Long;
 }
 template <>
-inline DataSerializerType DataParameter<f32>::type() const
+inline DataSerializerType DataParameter<f32>::type() const noexcept
 {
     return DataSerializerType::Float;
 }
 template <>
-inline DataSerializerType DataParameter<std::string>::type() const
+inline DataSerializerType DataParameter<std::string>::type() const noexcept
 {
     return DataSerializerType::String;
 }
 template <>
-inline DataSerializerType DataParameter<bool>::type() const
+inline DataSerializerType DataParameter<bool>::type() const noexcept
 {
     return DataSerializerType::Boolean;
 }
 template <>
-inline DataSerializerType DataParameter<Vector3i>::type() const
+inline DataSerializerType DataParameter<Vector3i>::type() const noexcept
 {
     return DataSerializerType::BlockPos;
 }
 template <>
-inline DataSerializerType DataParameter<Vector2f>::type() const
+inline DataSerializerType DataParameter<Vector2f>::type() const noexcept
 {
     return DataSerializerType::Rotation;
 }
 template <>
-inline DataSerializerType DataParameter<Vector3f>::type() const
+inline DataSerializerType DataParameter<Vector3f>::type() const noexcept
 {
     return DataSerializerType::Vector3f;
 }
 template <>
-inline DataSerializerType DataParameter<Vector3d>::type() const
+inline DataSerializerType DataParameter<Vector3d>::type() const noexcept
 {
     return DataSerializerType::Vector3f;
 }

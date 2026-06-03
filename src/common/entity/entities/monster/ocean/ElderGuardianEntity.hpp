@@ -39,8 +39,6 @@ namespace mc {
  * - 挖掘疲劳：给予附近的玩家挖掘疲劳
  * - 激光攻击：更强的激光攻击
  * - Boss血条：显示Boss血条
- *
- * 参考 MC 1.16.5 ElderGuardianEntity
  */
 class ElderGuardianEntity : public GuardianEntity {
 public:

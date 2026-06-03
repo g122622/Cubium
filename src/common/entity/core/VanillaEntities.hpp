@@ -23,89 +23,89 @@
 
 #pragma once
 
-#include "../entities/boss/EnderDragonEntity.hpp"
-#include "../entities/boss/WitherEntity.hpp"
-#include "../entities/effect/EffectEntities.hpp"
-#include "../entities/hanging/HangingEntity.hpp"
-#include "../entities/item/ItemEntity.hpp"
-#include "../entities/misc/MiscEntities.hpp"
-#include "../entities/monster/MonsterEntity.hpp"
-#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
-#include "../entities/monster/arthropod/EndermiteEntity.hpp"
-#include "../entities/monster/arthropod/SpiderEntity.hpp"
-#include "../entities/monster/basic/CreeperEntity.hpp"
-#include "../entities/monster/basic/GiantEntity.hpp"
-#include "../entities/monster/basic/PhantomEntity.hpp"
-#include "../entities/monster/basic/SlimeEntity.hpp"
-#include "../entities/monster/end/EndermanEntity.hpp"
-#include "../entities/monster/end/ShulkerEntity.hpp"
-#include "../entities/monster/illager/EvokerEntity.hpp"
-#include "../entities/monster/illager/IllagerEntities.hpp"
-#include "../entities/monster/illager/IllusionerEntity.hpp"
-#include "../entities/monster/illager/RavagerEntity.hpp"
-#include "../entities/monster/illager/VexEntity.hpp"
-#include "../entities/monster/illager/WitchEntity.hpp"
-#include "../entities/monster/nether/BlazeEntity.hpp"
-#include "../entities/monster/nether/NetherEntities.hpp"
-#include "../entities/monster/ocean/ElderGuardianEntity.hpp"
-#include "../entities/monster/ocean/GuardianEntity.hpp"
-#include "../entities/monster/undead/DrownedEntity.hpp"
-#include "../entities/monster/undead/HuskEntity.hpp"
-#include "../entities/monster/undead/SkeletonEntity.hpp"
-#include "../entities/monster/undead/StrayEntity.hpp"
-#include "../entities/monster/undead/WitherSkeletonEntity.hpp"
-#include "../entities/monster/undead/ZombieEntity.hpp"
-#include "../entities/monster/undead/ZombieVillagerEntity.hpp"
-#include "../entities/orb/ExperienceOrbEntity.hpp"
-#include "../entities/passive/ambient/AmbientEntity.hpp"
-#include "../entities/passive/ambient/BatEntity.hpp"
-#include "../entities/passive/basic/ChickenEntity.hpp"
-#include "../entities/passive/basic/CowEntity.hpp"
-#include "../entities/passive/basic/MooshroomEntity.hpp"
-#include "../entities/passive/basic/PigEntity.hpp"
-#include "../entities/passive/basic/RabbitEntity.hpp"
-#include "../entities/passive/basic/SheepEntity.hpp"
-#include "../entities/passive/fish/AbstractFishEntity.hpp"
-#include "../entities/passive/fish/CodEntity.hpp"
-#include "../entities/passive/fish/PufferfishEntity.hpp"
-#include "../entities/passive/fish/SalmonEntity.hpp"
-#include "../entities/passive/fish/TropicalFishEntity.hpp"
-#include "../entities/passive/golem/GolemEntity.hpp"
-#include "../entities/passive/golem/IronGolemEntity.hpp"
-#include "../entities/passive/golem/SnowGolemEntity.hpp"
-#include "../entities/passive/horse/AbstractHorseEntity.hpp"
-#include "../entities/passive/horse/DonkeyEntity.hpp"
-#include "../entities/passive/horse/HorseEntity.hpp"
-#include "../entities/passive/horse/LlamaEntity.hpp"
-#include "../entities/passive/horse/MuleEntity.hpp"
-#include "../entities/passive/horse/SkeletonHorseEntity.hpp"
-#include "../entities/passive/horse/TraderLlamaEntity.hpp"
-#include "../entities/passive/horse/ZombieHorseEntity.hpp"
-#include "../entities/passive/special/BeeEntity.hpp"
-#include "../entities/passive/special/FoxEntity.hpp"
-#include "../entities/passive/special/PandaEntity.hpp"
-#include "../entities/passive/special/PolarBearEntity.hpp"
-#include "../entities/passive/special/StriderEntity.hpp"
-#include "../entities/passive/special/TurtleEntity.hpp"
-#include "../entities/passive/tamable/CatEntity.hpp"
-#include "../entities/passive/tamable/OcelotEntity.hpp"
-#include "../entities/passive/tamable/ParrotEntity.hpp"
-#include "../entities/passive/tamable/WolfEntity.hpp"
-#include "../entities/passive/water/DolphinEntity.hpp"
-#include "../entities/passive/water/SquidEntity.hpp"
-#include "../entities/passive/water/WaterMobEntity.hpp"
-#include "../entities/projectile/AbstractArrowEntity.hpp"
-#include "../entities/projectile/AbstractFireballEntity.hpp"
-#include "../entities/projectile/OtherProjectiles.hpp"
-#include "../entities/projectile/ProjectileItemEntity.hpp"
-#include "../entities/projectile/TridentEntity.hpp"
-#include "../entities/vehicle/BoatEntity.hpp"
-#include "../entities/vehicle/MinecartEntity.hpp"
-#include "../entities/villager/VillagerEntity.hpp"
-#include "EntityRegistry.hpp"
-#include "EntitySpawnPlacementRegistry.hpp"
-#include "EntityType.hpp"
-#include "EntityTypeIdNumber.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/entities/boss/EnderDragonEntity.hpp"
+#include "common/entity/entities/boss/WitherEntity.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/arthropod/CaveSpiderEntity.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/monster/basic/GiantEntity.hpp"
+#include "common/entity/entities/monster/basic/PhantomEntity.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp"
+#include "common/entity/entities/monster/illager/EvokerEntity.hpp"
+#include "common/entity/entities/monster/illager/IllagerEntities.hpp"
+#include "common/entity/entities/monster/illager/IllusionerEntity.hpp"
+#include "common/entity/entities/monster/illager/RavagerEntity.hpp"
+#include "common/entity/entities/monster/illager/VexEntity.hpp"
+#include "common/entity/entities/monster/illager/WitchEntity.hpp"
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
+#include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include "common/entity/entities/monster/undead/DrownedEntity.hpp"
+#include "common/entity/entities/monster/undead/HuskEntity.hpp"
+#include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
+#include "common/entity/entities/monster/undead/StrayEntity.hpp"
+#include "common/entity/entities/monster/undead/WitherSkeletonEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/passive/ambient/AmbientEntity.hpp"
+#include "common/entity/entities/passive/ambient/BatEntity.hpp"
+#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
+#include "common/entity/entities/passive/fish/CodEntity.hpp"
+#include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
+#include "common/entity/entities/passive/fish/SalmonEntity.hpp"
+#include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "common/entity/entities/passive/golem/GolemEntity.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
+#include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp"
+#include "common/entity/entities/passive/horse/MuleEntity.hpp"
+#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
+#include "common/entity/entities/passive/special/BeeEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/entity/entities/passive/special/PolarBearEntity.hpp"
+#include "common/entity/entities/passive/special/StriderEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/passive/tamable/CatEntity.hpp"
+#include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
+#include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
+#include "common/entity/entities/passive/water/DolphinEntity.hpp"
+#include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/entity/entities/projectile/TridentEntity.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -117,8 +117,6 @@ namespace entity {
  *
  * 注册所有原版实体类型到实体注册表。
  * 必须在服务器启动时或客户端初始化时调用。
- *
- * 参考 MC 1.16.5 EntityType 注册
  */
 class VanillaEntities {
 public:
@@ -274,7 +272,7 @@ private:
         // 蜜蜂
         registry.registerType(EntityTypes::BEE,
             EntityType::Builder(&BeeEntity::create, EntityClassification::Creature)
-                .size(0.4f, 0.3f) // MC 1.16.5: 0.4 x 0.3
+                .size(0.4f, 0.3f)
                 .trackingRange(8)
                 .updateInterval(1) // 蜜蜂更新频繁
                 .canSummon(true)
@@ -283,7 +281,7 @@ private:
         // 炽足兽
         registry.registerType(EntityTypes::STRIDER,
             EntityType::Builder(&StriderEntity::create, EntityClassification::Creature)
-                .size(0.9f, 1.8f) // MC 1.16.5: 0.9 x 1.8
+                .size(0.9f, 1.8f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
@@ -331,7 +329,7 @@ private:
         registry.registerType(EntityTypes::COD,
             EntityType::Builder(&CodEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.3f)
-                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
                 .build());
@@ -340,7 +338,7 @@ private:
         registry.registerType(EntityTypes::SALMON,
             EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.4f)
-                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
                 .build());
@@ -349,7 +347,7 @@ private:
         registry.registerType(EntityTypes::PUFFERFISH,
             EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.7f)
-                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
                 .build());
@@ -358,7 +356,7 @@ private:
         registry.registerType(EntityTypes::TROPICAL_FISH,
             EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.4f)
-                .trackingRange(8) // MC 1.16.5: 鱼类追踪范围为 8
+                .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
                 .build());
@@ -596,7 +594,7 @@ private:
                 .build());
 
         // ========== Boss ==========
-        // 末影龙 - 实现不完整
+        // TODO: 末影龙实现不完整，暂未注册
         // registry.registerType(EntityTypes::ENDER_DRAGON,
         //     EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
         //         .size(16.0f, 8.0f)

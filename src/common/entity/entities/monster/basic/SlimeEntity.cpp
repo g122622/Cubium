@@ -23,6 +23,7 @@
 
 #include "SlimeEntity.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/controller/JumpController.hpp"
@@ -45,7 +46,7 @@ namespace mc {
 SlimeEntity::SlimeEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 史莱姆不在阳光下燃烧
+    // 史莱姆不在阳光下燃烧
     setBurnsInDaylight(false);
 
     // 注册 AI 目标
@@ -71,7 +72,7 @@ void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
     updateSizeAttributes();
     refreshDimensions();
 
-    // MC 1.16.5: 重置生命值
+    // 重置生命值
     if (resetHealth) {
         setHealth(maxHealth());
     }
@@ -79,7 +80,7 @@ void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
 
 std::optional<ResourceLocation> SlimeEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: 小史莱姆用 hurt_small
+    // 小史莱姆用 hurt_small
     if (isSmallSlime()) {
         return makeSoundEventId("hurt_small");
     }
@@ -89,7 +90,7 @@ std::optional<ResourceLocation> SlimeEntity::getHurtSound(DamageSource& /*source
 
 std::optional<ResourceLocation> SlimeEntity::getDeathSound() const
 {
-    // MC 1.16.5: 小史莱姆用 death_small
+    // 小史莱姆用 death_small
     if (isSmallSlime()) {
         return makeSoundEventId("death_small");
     }
@@ -99,7 +100,7 @@ std::optional<ResourceLocation> SlimeEntity::getDeathSound() const
 
 std::optional<ResourceLocation> SlimeEntity::getSquishSound() const
 {
-    // MC 1.16.5: 小史莱姆用 squish_small
+    // 小史莱姆用 squish_small
     if (isSmallSlime()) {
         return makeSoundEventId("squish_small");
     }
@@ -109,28 +110,25 @@ std::optional<ResourceLocation> SlimeEntity::getSquishSound() const
 
 void SlimeEntity::alterSquishAmount()
 {
-    // MC 1.16.5: alterSquishAmount()
     // 挤压量向 0 衰减
     m_squishAmount *= 0.6f;
 }
 
 std::optional<ResourceLocation> SlimeEntity::getJumpSound() const
 {
-    // MC 1.16.5: 跳跃音效
-    // 小史莱姆用 squish_small，大史莱姆用 squish
+    // 跳跃音效使用挤压音效
     return getSquishSound();
 }
 
 client::renderer::trident::particle::ParticleTypeId SlimeEntity::getSquishParticle() const
 {
-    // MC 1.16.5: 史莱姆使用粘液粒子
+    // 史莱姆使用粘液粒子
     return client::renderer::trident::particle::ParticleTypeId::ItemSlime;
 }
 
 i32 SlimeEntity::getJumpDelay() const
 {
-    // MC 1.16.5: getJumpDelay() - return this.rand.nextInt(20) + 10;
-    // 返回 10-29 tick (0.5-1.45秒)
+    // 返回 10-29 tick（0.5-1.45秒）
     math::Random rng = getRandom();
     return rng.nextInt(10, 29);
 }
@@ -143,7 +141,6 @@ void SlimeEntity::split()
 
 void SlimeEntity::dealDamage(LivingEntity& target)
 {
-    // MC 1.16.5: dealDamage()
     // 只有尺寸大于 1 的史莱姆才能造成伤害
     if (m_size <= 1) {
         return;
@@ -154,7 +151,7 @@ void SlimeEntity::dealDamage(LivingEntity& target)
         return;
     }
 
-    // MC 1.16.5: 伤害值等于尺寸
+    // 伤害值等于尺寸
     f32 damage = static_cast<f32>(m_size);
 
     // 对目标造成伤害
@@ -164,13 +161,12 @@ void SlimeEntity::dealDamage(LivingEntity& target)
 
 bool SlimeEntity::canDamagePlayer() const
 {
-    // MC 1.16.5: 只有尺寸大于 1 的史莱姆才能伤害玩家
+    // 只有尺寸大于 1 的史莱姆才能伤害玩家
     return m_size > 1;
 }
 
 void SlimeEntity::onCollideWithPlayer(LivingEntity& player)
 {
-    // MC 1.16.5: onCollideWithPlayer()
     if (canDamagePlayer()) {
         dealDamage(player);
     }
@@ -178,27 +174,23 @@ void SlimeEntity::onCollideWithPlayer(LivingEntity& player)
 
 f32 SlimeEntity::eyeHeight() const
 {
-    // MC 1.16.5: 0.625F * height
     return EYE_HEIGHT_FACTOR * height();
 }
 
 entity::EntitySize SlimeEntity::getDimensions(EntityPose /*pose*/) const
 {
-    // MC 1.16.5: scale by 0.255F * size
     f32 scaleFactor = SIZE_SCALE * static_cast<f32>(m_size);
     return entity::EntitySize::flexible(0.6f * scaleFactor, 0.6f * scaleFactor);
 }
 
 void SlimeEntity::dropExperience()
 {
-    // MC 1.16.5: 经验值等于尺寸
+    // 经验值等于尺寸
     MonsterEntity::dropExperience();
 }
 
 void SlimeEntity::tick()
 {
-    // MC 1.16.5 SlimeEntity.tick()
-
     // 更新挤压动画
     m_squishFactor += (m_squishAmount - m_squishFactor) * 0.5f;
     m_prevSquishFactor = m_squishFactor;
@@ -207,7 +199,7 @@ void SlimeEntity::tick()
 
     // 着地时的挤压效果
     if (onGround() && !m_wasOnGround) {
-        // MC 1.16.5: 着地时播放挤压音效和粒子
+        // 着地时播放挤压音效和粒子
         auto squishSound = getSquishSound();
         if (squishSound) {
             playSound(*squishSound, getSoundVolume(), 1.0f);
@@ -216,8 +208,7 @@ void SlimeEntity::tick()
         // 挤压量设为负值
         m_squishAmount = -0.5f;
 
-        // MC 1.16.5: 生成粒子效果
-        // 参考: SlimeEntity.tick() - for (int j = 0; j < size * 8; ++j)
+        // 生成粒子效果
         if (world() != nullptr && world()->isClientSide()) {
             math::Random& random = world()->getRandom();
             auto particleType = getSquishParticle();
@@ -225,8 +216,8 @@ void SlimeEntity::tick()
             // 粒子数量 = 尺寸 * 8
             i32 particleCount = m_size * 8;
             for (i32 j = 0; j < particleCount; ++j) {
-                // MC 1.16.5: 随机角度和半径
-                f32 angle = random.nextFloat() * 2.0f * 3.14159265f; // 0 to 2*PI
+                // 随机角度和半径
+                f32 angle = random.nextFloat() * math::TWO_PI;
                 f32 radiusFactor = random.nextFloat() * 0.5f + 0.5f; // 0.5 to 1.0
 
                 // 计算粒子位置偏移
@@ -240,7 +231,7 @@ void SlimeEntity::tick()
             }
         }
     } else if (!onGround() && m_wasOnGround) {
-        // MC 1.16.5: 离地时的挤压量
+        // 离地时的挤压量
         m_squishAmount = 1.0f;
     }
 
@@ -252,24 +243,17 @@ void SlimeEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 SlimeEntity.registerGoals()
+    // AI 目标选择器
     // 优先级 1: FloatGoal（游泳）
     // 优先级 2: AttackGoal（攻击）
     // 优先级 3: FaceRandomGoal（随机转向）
     // 优先级 5: HopGoal（跳跃）
-    //
-    // 目标选择器：
-    // 优先级 1: NearestAttackableTargetGoal<Player>（攻击玩家，高度差<=4）
-    // 优先级 3: NearestAttackableTargetGoal<IronGolem>（攻击铁傀儡）
-
-    // AI 目标选择器
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SlimeFloatGoal>(this));
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::SlimeAttackGoal>(this));
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::SlimeFaceRandomGoal>(this));
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::SlimeHopGoal>(this));
 
     // 目标选择器
-    // MC 1.16.5 SlimeEntity.registerGoals():
     // 优先级 1: 攻击玩家，距离 <= 10，需要视线，高度差 <= 4
     // 优先级 3: 攻击铁傀儡，需要视线
     m_targetSelector.addGoal(1,
@@ -277,7 +261,7 @@ void SlimeEntity::registerGoals()
             true, // checkSight
             10,   // chance
             [this](const LivingEntity* target) -> bool {
-                // MC 1.16.5: Y 轴高度差必须 <= 4.0 格
+                // Y 轴高度差必须 <= 4.0 格
                 if (target == nullptr || !target->isAlive()) {
                     return false;
                 }
@@ -293,14 +277,14 @@ void SlimeEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5: 默认尺寸为1
+    // 默认尺寸为1
     m_size = 1;
     updateSizeAttributes();
 }
 
 void SlimeEntity::updateSizeAttributes()
 {
-    // MC 1.16.5: 根据尺寸更新属性
+    // 根据尺寸更新属性
     // HP = size * size
     // Speed = 0.2 + 0.1 * size
     // AttackDamage = size
@@ -318,7 +302,7 @@ void SlimeEntity::updateSizeAttributes()
 
 void SlimeEntity::remove()
 {
-    // MC 1.16.5: 在移除前尝试分裂
+    // 在移除前尝试分裂
     // 只有尺寸大于 1 的史莱姆才会分裂
     if (canSplit()) {
         performSplit();
@@ -330,7 +314,6 @@ void SlimeEntity::remove()
 
 void SlimeEntity::performSplit()
 {
-    // MC 1.16.5: SlimeEntity.remove() 中的分裂逻辑
     // 只能在服务端执行
     if (world() == nullptr || world()->isClientSide()) {
         return;
@@ -347,7 +330,6 @@ void SlimeEntity::performSplit()
     }
 
     // 获取实体类型来创建新实例
-    // MC 1.16.5: this.getType().create(this.world)
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* slimeType = registry.getType(entity::EntityTypes::SLIME);
 
@@ -356,8 +338,7 @@ void SlimeEntity::performSplit()
         return;
     }
 
-    // MC 1.16.5: 计算分裂位置偏移
-    // f = (float)i / 4.0F  (i = size)
+    // 计算分裂位置偏移
     f32 offsetScale = static_cast<f32>(m_size) / 4.0f;
 
     // 保存当前实体的属性用于继承
@@ -367,9 +348,7 @@ void SlimeEntity::performSplit()
 
     // 生成小史莱姆
     for (i32 l = 0; l < splitCount; ++l) {
-        // MC 1.16.5: 计算每个小史莱姆的偏移位置
-        // f1 = ((float)(l % 2) - 0.5F) * f
-        // f2 = ((float)(l / 2) - 0.5F) * f
+        // 计算每个小史莱姆的偏移位置
         f32 offsetX = (static_cast<f32>(l % 2) - 0.5f) * offsetScale;
         f32 offsetZ = (static_cast<f32>(l / 2) - 0.5f) * offsetScale;
 
@@ -389,7 +368,7 @@ void SlimeEntity::performSplit()
         // 释放所有权，我们直接使用原始指针
         entity.release();
 
-        // MC 1.16.5: 继承父实体的属性
+        // 继承父实体的属性
         if (persistenceRequired) {
             smallSlime->enablePersistence();
         }
@@ -405,7 +384,7 @@ void SlimeEntity::performSplit()
         // 设置史莱姆尺寸（会自动设置生命值）
         smallSlime->setSlimeSize(newSize, true);
 
-        // MC 1.16.5: setLocationAndAngles
+        // 设置位置和旋转
         f32 spawnX = static_cast<f32>(x()) + offsetX;
         f32 spawnY = static_cast<f32>(y()) + 0.5f;
         f32 spawnZ = static_cast<f32>(z()) + offsetZ;
@@ -422,13 +401,8 @@ void SlimeEntity::performSplit()
         smallSlime->setTypeId(getTypeId());
 
         // 生成到世界中
-        // 使用 unique_ptr 包装回实体
         std::unique_ptr<Entity> slimePtr(smallSlime);
-        EntityId entityId = world()->spawnEntity(std::move(slimePtr));
-
-        if (entityId == 0) {
-            spdlog::debug("SlimeEntity: Failed to spawn small slime");
-        }
+        world()->spawnEntity(std::move(slimePtr));
     }
 }
 

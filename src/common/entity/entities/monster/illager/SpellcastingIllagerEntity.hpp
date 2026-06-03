@@ -30,7 +30,7 @@ namespace mc {
 /**
  * @brief 施法型灾厄村民公共基类
  *
- * 对齐 1.16.5 `SpellcastingIllagerEntity` 的最小公共层：
+ * 提供施法型灾厄村民的公共功能：
  * - 当前激活法术类型
  * - 法术持续 tick
  * - 服务端施法状态判定
@@ -41,7 +41,6 @@ public:
     /**
      * @brief 法术类型枚举
      *
-     * 参考 MC 1.16.5 SpellcastingIllagerEntity.SpellType
      * 每种法术类型对应不同的粒子颜色（RGB 值作为速度参数）
      */
     enum class SpellType : u8 {
@@ -56,36 +55,35 @@ public:
     SpellcastingIllagerEntity(EntityId id);
     ~SpellcastingIllagerEntity() override = default;
 
-    [[nodiscard]] bool isSpellcasting() const { return m_spellTicks > 0; }
-    [[nodiscard]] i32 spellTicks() const { return m_spellTicks; }
-    [[nodiscard]] SpellType spellType() const { return m_activeSpell; }
+    [[nodiscard]] bool isSpellcasting() const noexcept { return m_spellTicks > 0; }
+    [[nodiscard]] i32 spellTicks() const noexcept { return m_spellTicks; }
+    [[nodiscard]] SpellType spellType() const noexcept { return m_activeSpell; }
 
-    void setSpellType(SpellType spellType) { m_activeSpell = spellType; }
-    void setSpellTicks(i32 ticks) { m_spellTicks = ticks; }
+    void setSpellType(SpellType spellType) noexcept { m_activeSpell = spellType; }
+    void setSpellTicks(i32 ticks) noexcept { m_spellTicks = ticks; }
 
-    void clearSpellcasting()
+    void clearSpellcasting() noexcept
     {
         m_spellTicks = 0;
         m_activeSpell = SpellType::None;
     }
 
-    [[nodiscard]] static SpellType spellTypeFromId(i32 id);
+    [[nodiscard]] static SpellType spellTypeFromId(i32 id) noexcept;
 
     void tick() override;
 
     /**
      * @brief 获取法术类型的粒子颜色（RGB 速度参数）
      *
-     * 参考 MC 1.16.5 SpellcastingIllagerEntity.SpellType.particleSpeed
      * 粒子颜色通过速度参数 (dx, dy, dz) 传递给 ENTITY_EFFECT 粒子
      *
      * @param type 法术类型
      * @return 包含 RGB 颜色值的 Vector3（范围 0.0-1.0）
      */
-    [[nodiscard]] static Vector3 getSpellParticleColor(SpellType type);
+    [[nodiscard]] static Vector3 getSpellParticleColor(SpellType type) noexcept;
 
 protected:
-    [[nodiscard]] virtual const char* getSpellSoundId() const { return ""; }
+    [[nodiscard]] virtual const char* getSpellSoundId() const noexcept { return ""; }
 
 private:
     i32 m_spellTicks = 0;

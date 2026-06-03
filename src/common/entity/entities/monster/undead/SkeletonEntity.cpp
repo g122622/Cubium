@@ -35,7 +35,7 @@ SkeletonEntity::SkeletonEntity(EntityId id)
 {
     registerGoals();
     registerAttributes();
-    // MC 1.16.5: 在 registerGoals() 之后设置战斗目标
+    // 在 registerGoals() 之后设置战斗目标
     setCombatTask();
 }
 
@@ -61,7 +61,6 @@ void SkeletonEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     AbstractSkeletonEntity::addAdditionalSaveData(tag);
 
-    // MC 1.16.5: SkeletonEntity.writeAdditional()
     // StrayConversionTime — 流浪者转化倒计时
     if (m_strayConversionTime > 0) {
         tag.put(nbt_keys::STRAY_CONVERSION_TIME, m_strayConversionTime);
@@ -73,7 +72,6 @@ Result<void> SkeletonEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     // 先调用基类实现
     MC_TRY(AbstractSkeletonEntity::readAdditionalSaveData(tag));
 
-    // MC 1.16.5: SkeletonEntity.readAdditional()
     // StrayConversionTime
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::STRAY_CONVERSION_TIME)) {
         m_strayConversionTime = *val;

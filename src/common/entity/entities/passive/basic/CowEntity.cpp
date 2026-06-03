@@ -55,31 +55,26 @@ CowEntity::CowEntity(EntityId id)
 
 std::optional<ResourceLocation> CowEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.cow.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> CowEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.cow.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> CowEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.cow.death
     return makeSoundEventId("death");
 }
 
 std::optional<ResourceLocation> CowEntity::getStepSound() const
 {
-    // MC 1.16.5: entity.cow.step
     return makeSoundEventId("step");
 }
 
 void CowEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
 {
-    // MC 1.16.5: CowEntity.playStepSound()
     // 牛播放固定的脚步声，忽略脚下方块类型
     auto sound = getStepSound();
     if (sound) {
@@ -117,10 +112,9 @@ std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
 
 void CowEntity::registerGoals()
 {
-    // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
+    // 调用父类方法
     AgeableEntity::registerGoals();
 
-    // MC 1.16.5 CowEntity.registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
@@ -161,7 +155,7 @@ void CowEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 牛的属性
+    // 牛的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }

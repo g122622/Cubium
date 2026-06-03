@@ -22,34 +22,34 @@
  */
 
 #include "NetherEntities.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/controller/GhastMovementController.hpp"
-#include "../../../ai/goal/GoalFlag.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/GhastGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entities/projectile/AbstractFireballEntity.hpp"
-#include "../../../entities/projectile/OtherProjectiles.hpp"
-#include "../../../interfaces/ICrossbowUser.hpp"
-#include "../../../inventory/PlayerInventory.hpp"
-#include "item/Items.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/items/weapon/CrossbowItem.hpp"
+#include "common/entity/ai/controller/GhastMovementController.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/interfaces/ICrossbowUser.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -64,7 +64,7 @@ GhastEntity::GhastEntity(EntityId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
-    // MC 1.16.5: 恶魂使用自定义的飞行移动控制器
+    // 恶魂使用自定义的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::GhastMovementController>(this);
 }
 
@@ -89,7 +89,6 @@ void GhastEntity::tick()
 
 void GhastEntity::shootFireball()
 {
-    // MC 1.16.5 GhastEntity.FireballAttackGoal.tick()
     // 在充能 20 ticks 后发射火球
     IWorld* worldPtr = world();
     LivingEntity* target = attackTarget();
@@ -97,8 +96,7 @@ void GhastEntity::shootFireball()
         return;
     }
 
-    // MC 1.16.5: 计算发射方向
-    // d2, d3, d4 是从恶魂到目标的方向向量
+    // 计算发射方向
     // vector3d = this.parentEntity.getLook(1.0F)
     // 发射位置 = 恶魂位置 + lookVector * 4.0
 
@@ -117,10 +115,6 @@ void GhastEntity::shootFireball()
     const f32 fireballZ = static_cast<f32>(z() + lookZ * 4.0);
 
     // 计算到目标的方向向量
-    // MC 1.16.5:
-    // d2 = livingentity.getPosX() - (this.parentEntity.getPosX() + vector3d.x * 4.0D)
-    // d3 = livingentity.getPosYHeight(0.5D) - (0.5D + this.parentEntity.getPosYHeight(0.5D))
-    // d4 = livingentity.getPosZ() - (this.parentEntity.getPosZ() + vector3d.z * 4.0D)
     const f32 dx = static_cast<f32>(target->x() - fireballX);
     const f32 dy = static_cast<f32>(target->y() + target->eyeHeight() * 0.5 - (y() + eyeHeight() * 0.5 + 0.5));
     const f32 dz = static_cast<f32>(target->z() - fireballZ);
@@ -130,30 +124,24 @@ void GhastEntity::shootFireball()
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
-    // MC 1.16.5: 设置加速度方向
+    // 设置加速度方向
     // FireballEntity 构造函数中设置加速度
     // accelerationX/Y/Z 每tick累加到速度上
     fireball->setAcceleration(dx, dy, dz);
 
-    // MC 1.16.5: 设置爆炸威力
+    // 设置爆炸威力
     fireball->setExplosionPower(m_explosionPower);
 
     // 生成实体
     worldPtr->spawnEntity(std::move(fireball));
 
-    // MC 1.16.5: 播放发射音效
-    // world.playEvent((PlayerEntity)null, 1016, this.parentEntity.getPosition(), 0)
+    // 播放发射音效
     playSound(SoundEvents::ENTITY_GHAST_SHOOT, 1.0f, 1.0f);
 }
 
 void GhastEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
-
-    // MC 1.16.5: GhastEntity.registerGoals()
-    // goalSelector.addGoal(5, new RandomFlyGoal(this));
-    // goalSelector.addGoal(7, new LookAroundGoal(this));
-    // goalSelector.addGoal(7, new FireballAttackGoal(this));
 
     // 优先级 5: 随机飞行
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::GhastRandomFlyGoal>(this));
@@ -165,16 +153,13 @@ void GhastEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::GhastFireballAttackGoal>(this));
 
     // 目标选择器：攻击最近的玩家
-    // MC 1.16.5: targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, PlayerEntity.class, 10, true, false,
-    // ...)) 条件：玩家与恶魂的Y坐标差不超过4格
+    // 条件：玩家与恶魂的Y坐标差不超过4格
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
             true, // checkSight - 需要视线检查
             10,   // chance - 每10tick检查一次
-            [](const LivingEntity* entity) -> bool {
-                // MC 1.16.5: Math.abs(player.getPosY() - this.getPosY()) <= 4.0D
-                // 这里在 NearestAttackableTargetGoal 中检查可能不太准确
-                // 但恶魂的Y坐标检查主要影响目标选择，影响不大
+            [](const LivingEntity* /*entity*/) -> bool {
+                // Y坐标检查主要影响目标选择，在目标选择器中检查可能不太准确
                 return true;
             }));
 }
@@ -183,9 +168,7 @@ void GhastEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5: GhastEntity.func_234290_eH_()
-    // MAX_HEALTH = 10.0
-    // FOLLOW_RANGE = 100.0 (恶魂有极远的追踪范围)
+    // 恶魂有极远的追踪范围
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
@@ -201,46 +184,41 @@ std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world)
 MagmaCubeEntity::MagmaCubeEntity(EntityId id)
     : SlimeEntity(id)
 {
-    // MC 1.16.5: 岩浆怪不在阳光下燃烧
+    // 岩浆怪不在阳光下燃烧
     setBurnsInDaylight(false);
 }
 
 void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
 {
-    // MC 1.16.5 MagmaCubeEntity.setSlimeSize()
-    // 调用父类设置尺寸
+    // 调用父类设置尺寸，然后设置护甲属性 = size * 3
     SlimeEntity::setSlimeSize(size, resetHealth);
 
-    // MC 1.16.5: 设置护甲属性 = size * 3
     m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
 }
 
 bool MagmaCubeEntity::canDamagePlayer() const
 {
-    // MC 1.16.5: 小型岩浆怪也能伤害玩家（与史莱姆不同）
-    // 原版: return this.isServerWorld();
-    // 注意：isClientSide() 不是 const 方法，需要使用 const_cast
+    // 小型岩浆怪也能伤害玩家（与史莱姆不同）
     auto* nonConstWorld = const_cast<IWorld*>(world());
     return nonConstWorld != nullptr && !nonConstWorld->isClientSide();
 }
 
 f32 MagmaCubeEntity::getAttackDamage() const
 {
-    // MC 1.16.5: 攻击伤害 = 属性值 + 2.0F
+    // 攻击伤害 = 属性值 + 2.0F
     f32 baseDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
     return baseDamage + 2.0f;
 }
 
 i32 MagmaCubeEntity::getJumpDelay() const
 {
-    // MC 1.16.5: 跳跃延迟是史莱姆的 4 倍
-    // 史莱姆: 10-30 tick, 岩浆怪: 40-120 tick
+    // 跳跃延迟是史莱姆的 4 倍（史莱姆: 10-30 tick, 岩浆怪: 40-120 tick）
     return SlimeEntity::getJumpDelay() * 4;
 }
 
 std::optional<ResourceLocation> MagmaCubeEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: 小岩浆怪用 hurt_small，大岩浆怪用 hurt
+    // 小岩浆怪用 hurt_small，大岩浆怪用 hurt
     if (isSmallSlime()) {
         return SoundEvents::ENTITY_MAGMA_CUBE_HURT_SMALL;
     }
@@ -249,7 +227,7 @@ std::optional<ResourceLocation> MagmaCubeEntity::getHurtSound(DamageSource& /*so
 
 std::optional<ResourceLocation> MagmaCubeEntity::getDeathSound() const
 {
-    // MC 1.16.5: 小岩浆怪用 death_small，大岩浆怪用 death
+    // 小岩浆怪用 death_small，大岩浆怪用 death
     if (isSmallSlime()) {
         return SoundEvents::ENTITY_MAGMA_CUBE_DEATH_SMALL;
     }
@@ -258,7 +236,7 @@ std::optional<ResourceLocation> MagmaCubeEntity::getDeathSound() const
 
 std::optional<ResourceLocation> MagmaCubeEntity::getSquishSound() const
 {
-    // MC 1.16.5: 小岩浆怪用 squish_small，大岩浆怪用 squish
+    // 小岩浆怪用 squish_small，大岩浆怪用 squish
     if (isSmallSlime()) {
         return SoundEvents::ENTITY_MAGMA_CUBE_SQUISH_SMALL;
     }
@@ -267,13 +245,12 @@ std::optional<ResourceLocation> MagmaCubeEntity::getSquishSound() const
 
 std::optional<ResourceLocation> MagmaCubeEntity::getJumpSound() const
 {
-    // MC 1.16.5: 岩浆怪跳跃音效
     return SoundEvents::ENTITY_MAGMA_CUBE_JUMP;
 }
 
 client::renderer::trident::particle::ParticleTypeId MagmaCubeEntity::getSquishParticle() const
 {
-    // MC 1.16.5: 岩浆怪使用火焰粒子代替史莱姆粒子
+    // 岩浆怪使用火焰粒子代替史莱姆粒子
     return client::renderer::trident::particle::ParticleTypeId::Flame;
 }
 
@@ -281,7 +258,7 @@ void MagmaCubeEntity::registerAttributes()
 {
     SlimeEntity::registerAttributes();
 
-    // MC 1.16.5 MagmaCubeEntity: 移动速度固定为 0.2（不随尺寸变化）
+    // 移动速度固定为 0.2（不随尺寸变化）
     // 注意：父类 SlimeEntity::registerAttributes() 会设置尺寸相关属性
     // 这里需要确保护甲属性已注册
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
@@ -292,9 +269,7 @@ void MagmaCubeEntity::registerAttributes()
 
 void MagmaCubeEntity::alterSquishAmount()
 {
-    // MC 1.16.5: 挤压动画衰减更慢（0.9 vs 0.6）
-    // 史莱姆: squishAmount *= 0.6F
-    // 岩浆怪: squishAmount *= 0.9F
+    // 挤压动画衰减更慢（史莱姆: 0.6, 岩浆怪: 0.9）
     setSquishAmount(squishAmount() * 0.9f);
 }
 
@@ -309,7 +284,6 @@ void AbstractPiglinEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 AbstractPiglinEntity 基础 AI
     // 所有猪灵类实体的共同目标
 
     // 优先级 0: 游泳
@@ -331,7 +305,7 @@ PiglinEntity::PiglinEntity(EntityId id)
 
 void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
-    // MC 1.16.5: 猪灵使用弩进行远程攻击
+    // 猪灵使用弩进行远程攻击
     // charge 参数对弩不重要，弩使用固定速度
     MC_UNUSED(charge);
 
@@ -352,8 +326,7 @@ void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge
 
 void PiglinEntity::onCrossbowLoadComplete(ItemStack& crossbow)
 {
-    // MC 1.16.5: 装填完成后的处理
-    // 重置空闲时间，防止立即消失
+    // 装填完成后重置空闲时间，防止立即消失
     setIdleTime(0);
 
     MC_UNUSED(crossbow);
@@ -365,7 +338,7 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
 
     MC_UNUSED(charge);
 
-    // MC 1.16.5: 猪灵弩射击逻辑
+    // 猪灵弩射击逻辑
     // 计算弹道
     f64 dx = target->x() - x();
     f64 dz = target->z() - z();
@@ -379,7 +352,7 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
     f32 velocity = 3.15f; // 箭矢速度
 
     // 计算不精确度
-    // MC 1.16.5: inaccuracy = 14 - difficulty.getId() * 4
+    // TODO: 根据难度调整不精确度 (14 - difficulty.getId() * 4)
     // 目前简化为固定值 6（普通难度）
     f32 inaccuracy = 6.0f;
 
@@ -423,9 +396,7 @@ void PiglinEntity::registerGoals()
 {
     AbstractPiglinEntity::registerGoals();
 
-    // MC 1.16.5 PiglinEntity AI 目标
-    // 注意：猪灵使用 Brain 系统，但这里用 Goal 系统实现类似行为
-
+    // 猪灵使用 Goal 系统实现类似 Brain 系统的行为
     // 成年猪灵：持有弩时使用弩攻击
     // 幼年猪灵：不会攻击
 
@@ -439,8 +410,7 @@ void PiglinEntity::registerGoals()
         m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
     }
 
-    // 优先级 5: 避开僵尸猪灵
-    // MC 1.16.5: 猪灵害怕僵尸猪灵和僵尸疣兽
+    // 优先级 5: 避开僵尸猪灵和僵尸疣兽
     m_goalSelector.addGoal(5,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 24.0f, 1.0, 1.2, entity::ai::goal::AvoidEntityGoal::EntityPredicate([](const LivingEntity* entity) {
@@ -465,7 +435,6 @@ void PiglinEntity::registerGoals()
     // 目标选择器
     if (!m_isBaby) {
         // 优先级 2: 攻击未穿戴金装备的玩家
-        // MC 1.16.5: 猪灵攻击没有穿戴金装备的玩家
         m_targetSelector.addGoal(2,
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
                 this, true, 10, [](const LivingEntity* entity) {
@@ -484,7 +453,6 @@ void PiglinEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    // MC 1.16.5: 猪灵跟随范围
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
@@ -502,7 +470,6 @@ void PiglinBruteEntity::registerGoals()
 {
     AbstractPiglinEntity::registerGoals();
 
-    // MC 1.16.5 PiglinBruteEntity AI 目标
     // 猪灵蛮兵是纯粹的近战单位，不使用弩
 
     // 优先级 2: 近战攻击
@@ -520,8 +487,7 @@ void PiglinBruteEntity::registerGoals()
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器
-    // MC 1.16.5: 猪灵蛮兵不像普通猪灵那样检查金装备
-    // 它们直接攻击玩家
+    // 猪灵蛮兵不像普通猪灵那样检查金装备，直接攻击玩家
 
     // 优先级 2: 被攻击后反击并呼叫支援
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
@@ -534,10 +500,10 @@ void PiglinBruteEntity::registerAttributes()
 {
     AbstractPiglinEntity::registerAttributes();
 
-    // MC 1.16.5 PiglinBruteEntity 属性
+    // 猪灵蛮兵属性（金斧额外 +4 伤害）
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0); // MC 1.16.5: 基础伤害（金斧额外 +4）
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
 }
 
 // ZombifiedPiglinEntity
@@ -568,7 +534,6 @@ void ZombifiedPiglinEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 ZombifiedPiglinEntity AI 目标
     // 僵尸猪灵是中立生物，被攻击后会激怒附近所有僵尸猪灵
 
     // 优先级 2: 近战攻击
@@ -586,7 +551,7 @@ void ZombifiedPiglinEntity::registerGoals()
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器
-    // MC 1.16.5: 僵尸猪灵被攻击后会激怒并反击
+    // 僵尸猪灵被攻击后会激怒并反击
 
     // 优先级 1: 被攻击后反击并呼叫支援（激怒附近僵尸猪灵）
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
@@ -642,7 +607,6 @@ void HoglinEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 HoglinEntity AI 目标
     // 成年疣猪兽对玩家敌对，幼年疣猪兽被动
 
     // 优先级 2: 近战攻击（仅成年）
@@ -683,12 +647,12 @@ void HoglinEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
     m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
-    // MC 1.16.5 HoglinEntity 属性
+    // 成年疣猪兽属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0); // MC 1.16.5: 成年疣猪兽基础伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 // ZoglinEntity
@@ -722,7 +686,6 @@ void ZoglinEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 ZoglinEntity AI 目标
     // 僵尸疣兽对几乎所有生物敌对（除了其他僵尸疣兽和幼年生物）
 
     // 优先级 2: 近战攻击（仅成年）
@@ -742,7 +705,7 @@ void ZoglinEntity::registerGoals()
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器（仅成年）
-    // MC 1.16.5: 僵尸疣兽攻击几乎所有生物
+    // 僵尸疣兽攻击几乎所有生物
     if (!m_isBaby) {
         // 优先级 1: 被攻击后反击
         m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
@@ -773,12 +736,12 @@ void ZoglinEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
     m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
-    // MC 1.16.5 ZoglinEntity 属性
+    // 成年僵尸疣兽属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0); // MC 1.16.5: 成年僵尸疣兽基础伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 } // namespace mc

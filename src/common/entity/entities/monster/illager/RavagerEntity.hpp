@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "AbstractRaiderEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -41,8 +41,6 @@ namespace mc {
  * - 破坏方块：可以破坏树叶方块
  * - 掠夺：参与掠夺事件
  * - 骑乘：可被掠夺者骑乘
- *
- * 参考 MC 1.16.5 RavagerEntity
  */
 class RavagerEntity : public AbstractRaiderEntity {
 public:
@@ -103,7 +101,7 @@ public:
     /**
      * @brief 攻击目标实体
      *
-     * MC 1.16.5: 设置攻击动画，播放音效
+     * 设置攻击动画，播放音效
      * @param target 目标实体
      * @return 是否攻击成功
      */
@@ -112,7 +110,7 @@ public:
     /**
      * @brief 构造击退向量
      *
-     * MC 1.16.5: 攻击目标后，有 50% 概率眩晕或发射目标
+     * 攻击目标后，有 50% 概率眩晕或发射目标
      * @param target 目标实体
      */
     void constructKnockBackVector(LivingEntity* target);
@@ -170,14 +168,14 @@ public:
     /**
      * @brief 检查移动是否被阻塞
      *
-     * MC 1.16.5: 当攻击、眩晕或咆哮时不能移动
+     * 当攻击、眩晕或咆哮时不能移动
      */
     [[nodiscard]] bool isMovementBlocked() const;
 
     /**
      * @brief 检查是否能看见目标
      *
-     * MC 1.16.5: 眩晕或咆哮时不能看见目标
+     * 眩晕或咆哮时不能看见目标
      */
     [[nodiscard]] bool canSee(const Entity& other) const override;
 
@@ -191,32 +189,32 @@ private:
     /**
      * @brief 执行咆哮攻击
      *
-     * MC 1.16.5: 对周围 4 格内的实体造成 6 点伤害并击退
+     * 对周围 4 格内的实体造成 6 点伤害并击退
      * 掠夺者类实体免疫伤害
      */
-    void roar();
+    void _roar();
 
     /**
      * @brief 发射实体（击退效果）
      *
-     * MC 1.16.5: 将实体向远离劫掠兽的方向发射
+     * 将实体向远离劫掠兽的方向发射
      * @param entity 要发射的实体
      */
-    void launchEntity(Entity* entity);
+    void _launchEntity(Entity* entity);
 
     /**
      * @brief 眩晕粒子效果
      *
-     * MC 1.16.5: 眩晕时显示粒子效果
+     * 眩晕时显示粒子效果
      */
-    void spawnStunParticles();
+    void _spawnStunParticles();
 
     /**
      * @brief 破坏碰撞到的树叶方块
      *
-     * MC 1.16.5: 当水平碰撞且 mobGriefing 为 true 时破坏树叶
+     * 当水平碰撞且 mobGriefing 为 true 时破坏树叶
      */
-    void breakLeavesOnCollision();
+    void _breakLeavesOnCollision();
 
     // ========== 成员变量 ==========
 

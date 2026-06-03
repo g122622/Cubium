@@ -22,23 +22,23 @@
  */
 
 #include "CreeperEntity.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/explosion/ExplosionMode.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../serialization/EntityNbtKeys.hpp"
-#include "../../../serialization/NbtHelper.hpp"
-#include "../../effect/EffectEntities.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <memory>
 
 namespace mc {
@@ -49,7 +49,7 @@ using namespace entity::serialization;
 CreeperEntity::CreeperEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 苦力怕不在阳光下燃烧
+    // 苦力怕不在阳光下燃烧
     setBurnsInDaylight(false);
 
     // 注册 AI 目标
@@ -66,19 +66,17 @@ std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.creeper.hurt
     return SoundEvents::ENTITY_CREEPER_HURT;
 }
 
 std::optional<ResourceLocation> CreeperEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.creeper.death
     return SoundEvents::ENTITY_CREEPER_DEATH;
 }
 
 i32 CreeperEntity::getCreeperState() const
 {
-    // MC 1.16.5: -1 = idle, 1 = fusing
+    // -1 = idle, 1 = fusing
     if (m_timeSinceIgnited > 0) {
         return 1;
     }
@@ -87,7 +85,6 @@ i32 CreeperEntity::getCreeperState() const
 
 void CreeperEntity::setCreeperState(i32 state)
 {
-    // MC 1.16.5: 设置状态
     if (state > 0) {
         ignite();
     }
@@ -95,19 +92,17 @@ void CreeperEntity::setCreeperState(i32 state)
 
 void CreeperEntity::ignite()
 {
-    // MC 1.16.5: 点燃苦力怕
     m_ignited = true;
 }
 
 bool CreeperEntity::ableToCauseSkullDrop() const
 {
-    // MC 1.16.5: 只有高压苦力怕且还没掉过头颅才能导致头颅掉落
+    // 只有高压苦力怕且还没掉过头颅才能导致头颅掉落
     return m_powered && m_droppedSkulls < 1;
 }
 
 void CreeperEntity::explode()
 {
-    // MC 1.16.5 CreeperEntity.explode()
     // 只在服务端爆炸
     if (isDead()) return;
 
@@ -142,12 +137,11 @@ void CreeperEntity::explode()
     remove();
 
     // 生成滞留药水云（如果有药水效果）
-    spawnLingeringCloud();
+    _spawnLingeringCloud();
 }
 
-void CreeperEntity::spawnLingeringCloud()
+void CreeperEntity::_spawnLingeringCloud()
 {
-    // MC 1.16.5 CreeperEntity.spawnLingeringCloud()
     // 当苦力怕有药水效果时，死亡后生成滞留药水云
 
     // 获取苦力怕当前所有药水效果
@@ -166,7 +160,7 @@ void CreeperEntity::spawnLingeringCloud()
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
 
-    // MC 1.16.5 苦力怕药水云参数：
+    // 苦力怕药水云参数：
     // - 初始半径: 2.5F
     // - radiusOnUse: -0.5F（每次应用效果后缩小）
     // - waitTime: 10 ticks（0.5秒）
@@ -193,7 +187,6 @@ void CreeperEntity::spawnLingeringCloud()
 
 void CreeperEntity::tick()
 {
-    // MC 1.16.5 CreeperEntity.tick()
     if (isAlive()) {
         m_lastActiveTime = m_timeSinceIgnited;
 
@@ -204,7 +197,7 @@ void CreeperEntity::tick()
 
         i32 state = getCreeperState();
         if (state > 0 && m_timeSinceIgnited == 0) {
-            // MC 1.16.5: 开始膨胀时播放音效
+            // 开始膨胀时播放音效
             playSound(SoundEvents::ENTITY_CREEPER_PRIMED, 1.0f, 0.5f);
         }
 
@@ -230,8 +223,7 @@ void CreeperEntity::registerGoals()
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 CreeperEntity.registerGoals()
-    // 优先级顺序：
+    // AI 目标优先级顺序：
     // 0: SwimGoal (父类已注册)
     // 1: PanicGoal (父类已注册，但苦力怕不使用)
     // 2: CreeperSwellGoal - 膨胀爆炸
@@ -250,7 +242,6 @@ void CreeperEntity::registerGoals()
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::CreeperSwellGoal>(this));
 
     // 优先级 3: 避开猫和豹猫
-    // MC 1.16.5: 苦力怕害怕猫和豹猫，会在 6 格内逃跑
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             6.0f, // avoidDistance - 检测距离
@@ -259,7 +250,6 @@ void CreeperEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity) return false;
                 // 检查是否为猫或豹猫
-                // MC 1.16.5: instanceof CatEntity || instanceof OcelotEntity
                 auto type = entity->typeId();
                 return type == entity::EntityTypeIdNumber::CAT || type == entity::EntityTypeIdNumber::OCELOT;
             }));
@@ -288,7 +278,7 @@ void CreeperEntity::registerGoals()
             true, // checkSight - 需要视线
             0,    // chance - 每tick都检查
             [](const LivingEntity* entity) -> bool {
-                // MC 1.16.5: 苦力怕只攻击玩家
+                // 苦力怕只攻击玩家
                 if (!entity) return false;
                 return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
             }));
@@ -299,7 +289,6 @@ void CreeperEntity::registerAttributes()
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 CreeperEntity 属性
     // 继承自 MonsterEntity: MAX_HEALTH = 20.0
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
@@ -312,8 +301,6 @@ void CreeperEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 {
     // 先调用基类实现
     MonsterEntity::addAdditionalSaveData(tag);
-
-    // MC 1.16.5: CreeperEntity.writeAdditional()
 
     // ExplosionRadius (i32) - 爆炸半径，默认为 3
     // 只有非默认值时才保存
@@ -338,8 +325,6 @@ Result<void> CreeperEntity::readAdditionalSaveData(const nbt::tags::compound_tag
 {
     // 先调用基类实现
     MC_TRY(MonsterEntity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: CreeperEntity.readAdditional()
 
     // ExplosionRadius (i32) - 爆炸半径
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::EXPLOSION_RADIUS)) {

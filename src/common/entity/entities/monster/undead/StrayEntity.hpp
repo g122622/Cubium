@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "AbstractSkeletonEntity.hpp"
+#include "common/core/Types.hpp"
 
 #include <memory>
 
@@ -33,7 +33,10 @@ namespace mc {
 /**
  * @brief 流浪者实体
  *
- * 对齐 MC 1.16.5 `StrayEntity` 的骷髅变种层次。
+ * 流浪者是骷髅的变种，主要特征：
+ * - 使用弓箭进行远程攻击
+ * - 不在阳光下燃烧
+ * - 生成于雪原生物群系
  */
 class StrayEntity : public AbstractSkeletonEntity {
 public:

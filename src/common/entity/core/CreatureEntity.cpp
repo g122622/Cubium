@@ -22,10 +22,10 @@
  */
 
 #include "CreatureEntity.hpp"
-#include "../../core/Constants.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../ai/controller/MovementController.hpp"
-#include "../ai/pathfinding/PathNavigator.hpp"
+#include "common/core/Constants.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -55,8 +55,7 @@ bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed)
 f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const
 {
     // 默认实现：返回0表示中性权重
-    // 子类应该重写此方法来提供更准确的权重
-    // 参考 MC 1.16.5 CreatureEntity.getBlockPathWeight()
+    // TODO: 子类应该重写此方法来提供更准确的权重
     return 0.0f;
 }
 
@@ -67,8 +66,8 @@ f32 CreatureEntity::getPathWeight(const BlockPos& pos) const
 
 bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const
 {
-    // 默认实现：检查是否在有效位置
-    // 子类应该重写此方法
+    // TODO: 子类应该重写此方法提供更完整的生成条件检查
+    // 默认实现：检查是否在有效高度范围内
     return y >= static_cast<f32>(world::MIN_BUILD_HEIGHT);
 }
 

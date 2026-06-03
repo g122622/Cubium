@@ -82,7 +82,7 @@ constexpr i32 NAUSEA_DURATION = 200; // 10秒
 ZombieVillagerEntity::ZombieVillagerEntity(EntityId id)
     : ZombieEntity(id)
 {
-    // MC 1.16.5: 僵尸村民比普通僵尸慢
+    // 僵尸村民比普通僵尸慢
     // 职业随机设置（在 VanillaEntities 中设置）
 
     // 显式调用 registerData() 以注册僵尸村民特有的数据参数
@@ -194,9 +194,7 @@ void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 t
     removeEffect(entity::effect::EffectType::Weakness);
 
     // 添加力量效果（持续整个治愈时间）
-    // MC 1.16.5: 根据难度添加力量效果
-    // 简单: 无力量, 普通: 力量 I, 困难: 力量 II
-    // 参考: ZombieVillagerEntity.startConverting() - strengthLevel = max(difficultyId - 1, 0)
+    // 根据难度添加力量效果：简单无力量，普通力量I，困难力量II
     i32 strengthLevel = 0;
     if (m_world != nullptr) {
         i32 difficultyId = static_cast<i32>(m_world->difficulty());
@@ -214,10 +212,6 @@ void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 t
 
     // 广播治愈状态（客户端播放音效）
     // world()->broadcastEntityStatus(id(), static_cast<u8>(16));
-
-    spdlog::debug("ZombieVillagerEntity::startConverting: started conversion, time={} ticks, starter={}",
-        time,
-        starterUuid.empty() ? "none" : starterUuid);
 }
 
 void ZombieVillagerEntity::stopConverting()
@@ -231,8 +225,6 @@ void ZombieVillagerEntity::stopConverting()
 
     // 移除力量效果
     removeEffect(entity::effect::EffectType::Strength);
-
-    spdlog::debug("ZombieVillagerEntity::stopConverting: stopped conversion");
 }
 
 void ZombieVillagerEntity::finishConverting()
@@ -241,8 +233,6 @@ void ZombieVillagerEntity::finishConverting()
         spdlog::warn("ZombieVillagerEntity::finishConverting: world is null");
         return;
     }
-
-    spdlog::debug("ZombieVillagerEntity::finishConverting: converting to villager at ({}, {}, {})", x(), y(), z());
 
     // 创建村民实体
     auto& registry = entity::EntityRegistry::instance();
@@ -291,11 +281,9 @@ void ZombieVillagerEntity::finishConverting()
 
         if (hasBindingCurse) {
             // 绑定诅咒的装备转移到村民的对应槽位
-            // MC 1.16.5: 使用 index + 300 的槽位
             villager->setEquipment(slot, equipment);
         } else {
             // 其他装备根据掉落概率丢弃
-            // MC 1.16.5: 只有 dropChance > 1.0 的装备才会丢弃
             // 简化实现：直接丢弃所有非绑定装备
             ItemDropHelper::spawnItemAtEntity(this,
                 equipment,
@@ -339,7 +327,6 @@ void ZombieVillagerEntity::finishConverting()
     // m_world->broadcastEntityStatus(m_id, 1027);
 
     // 触发成就 CriteriaTriggers.CURED_ZOMBIE_VILLAGER
-    // 参考 MC 1.16.5: ZombieVillagerEntity.finishConverting()
     // 村庄声望更新在 AdvancementEventHandler::onCuredZombieVillager() 中处理
     if (m_world && !m_conversionStarterUuid.empty()) {
         m_world->onZombieVillagerCured(m_conversionStarterUuid, this, villager);
@@ -347,8 +334,6 @@ void ZombieVillagerEntity::finishConverting()
 
     // 移除僵尸村民
     remove();
-
-    spdlog::debug("ZombieVillagerEntity::finishConverting: successfully converted to villager id={}", newId);
 }
 
 i32 ZombieVillagerEntity::getConversionProgress() const
@@ -359,7 +344,7 @@ i32 ZombieVillagerEntity::getConversionProgress() const
 
     i32 progress = 1;
 
-    // MC 1.16.5: 在 4x4x4 范围内检测铁栏杆和床
+    // 在 4x4x4 范围内检测铁栏杆和床
     // 有 1% 的概率执行检测（每tick只有1%概率）
     math::Random rng(ticksExisted());
     if (rng.nextFloat() >= 0.01f) {
@@ -392,8 +377,7 @@ i32 ZombieVillagerEntity::getConversionProgress() const
                     }
                     ++speedupCount;
                 }
-                // MC 1.16.5: 床也和铁栏杆一样加速治愈
-                // 参考 ZombieVillagerEntity.getConversionProgress(): block instanceof BedBlock
+                // 床也和铁栏杆一样加速治愈
                 else if (blocks::BedBlock::isBed(*m_world, checkPos)) {
                     // 床同样有 30% 概率增加进度
                     if (rng.nextFloat() < SPEEDUP_CHANCE) {

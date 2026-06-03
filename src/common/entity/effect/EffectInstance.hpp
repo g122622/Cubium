@@ -48,7 +48,6 @@ namespace effect {
  * @brief 效果实例
  *
  * 表示一个实体的具体效果实例，包含等级和持续时间。
- * 参考 MC 1.16.5 EffectInstance
  */
 class EffectInstance {
 public:
@@ -86,27 +85,27 @@ public:
 
     // ========== 基本属性 ==========
 
-    [[nodiscard]] EffectType type() const { return m_type; }
-    [[nodiscard]] i32 duration() const { return m_duration; }
-    [[nodiscard]] i32 amplifier() const { return m_amplifier; }
-    [[nodiscard]] bool isAmbient() const { return m_ambient; }
-    [[nodiscard]] bool isVisible() const { return m_visible; }
-    [[nodiscard]] bool showIcon() const { return m_showIcon; }
+    [[nodiscard]] EffectType type() const noexcept { return m_type; }
+    [[nodiscard]] i32 duration() const noexcept { return m_duration; }
+    [[nodiscard]] i32 amplifier() const noexcept { return m_amplifier; }
+    [[nodiscard]] bool isAmbient() const noexcept { return m_ambient; }
+    [[nodiscard]] bool isVisible() const noexcept { return m_visible; }
+    [[nodiscard]] bool showIcon() const noexcept { return m_showIcon; }
 
     /**
      * @brief 获取效果等级（1-based，用于显示）
      */
-    [[nodiscard]] i32 getEffectLevel() const { return m_amplifier + 1; }
+    [[nodiscard]] i32 getEffectLevel() const noexcept { return m_amplifier + 1; }
 
     /**
      * @brief 检查效果是否过期
      */
-    [[nodiscard]] bool isExpired() const { return m_duration == 0; }
+    [[nodiscard]] bool isExpired() const noexcept { return m_duration == 0; }
 
     /**
      * @brief 检查效果是否永久
      */
-    [[nodiscard]] bool isPermanent() const { return m_duration < 0; }
+    [[nodiscard]] bool isPermanent() const noexcept { return m_duration < 0; }
 
     // ========== 更新 ==========
 
@@ -175,7 +174,7 @@ private:
     /**
      * @brief 执行效果的具体逻辑
      */
-    void applyEffect(LivingEntity& entity);
+    void _applyEffect(LivingEntity& entity);
 
 private:
     EffectType m_type;

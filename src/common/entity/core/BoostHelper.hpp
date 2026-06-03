@@ -27,7 +27,6 @@
 #include "EntityDataManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <memory>
 
 namespace mc {
 
@@ -45,8 +44,6 @@ class MobEntity; // MobEntity 定义在 mc 命名空间，不是 mc::entity
  * - SADDLED_PARAM: 鞍状态，由 setSaddledFromBoolean() 设置
  *
  * 客户端通过 syncFromDataManager() 从 EntityDataManager 读取数据并重置状态。
- *
- * 参考 MC 1.16.5 BoostHelper
  */
 class BoostHelper {
 public:
@@ -91,14 +88,12 @@ public:
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
     /**
      * @brief 从数据管理器同步数据
      *
-     * MC 1.16.5: func_233616_a_()
      * 在客户端调用，从 EntityDataManager 读取加速时间并重置状态。
-     *
      * 此方法应在实体注册数据参数后调用。
      */
     void syncFromDataManager()
@@ -111,8 +106,6 @@ public:
 
     /**
      * @brief 触发加速
-     *
-     * MC 1.16.5: boost(Random)
      * @tparam Random 随机数生成器类型
      * @param rng 随机数生成器
      * @return 如果成功加速返回true
@@ -126,7 +119,7 @@ public:
 
         saddledRaw = true;
         field_233611_b_ = 0;
-        // MC 1.16.5: rand.nextInt(841) + 140 -> [140, 980]
+        // 随机生成加速时间 [140, 980]
         boostTimeRaw = rng.nextInt(841) + 140;
         if (m_initialized) {
             m_manager->set(m_boostTimeParam, boostTimeRaw);
@@ -137,9 +130,8 @@ public:
     /**
      * @brief 写入NBT
      *
-     * MC 1.16.5: func_233618_a_()
      * 只保存鞍状态，加速时间不持久化（每次加载后需要重新触发加速）。
-     * NBT格式没有布尔类型，使用Byte存储布尔值（MC标准做法）。
+     * NBT格式没有布尔类型，使用Byte存储布尔值。
      *
      * @param tag NBT复合标签
      */
@@ -152,7 +144,6 @@ public:
     /**
      * @brief 从NBT读取
      *
-     * MC 1.16.5: func_233621_b_()
      * 只读取鞍状态，加速状态在加载后重置为未加速。
      *
      * @param tag NBT复合标签
@@ -172,7 +163,6 @@ public:
     /**
      * @brief 从布尔值设置鞍状态
      *
-     * MC 1.16.5: setSaddledFromBoolean(boolean)
      * 通过 EntityDataManager 同步鞍状态到客户端。
      *
      * @param saddled 是否有鞍
@@ -188,7 +178,6 @@ public:
      * @brief 获取鞍状态
      * @return 是否有鞍
      *
-     * MC 1.16.5: getSaddled()
      * 从 EntityDataManager 读取鞍状态。
      */
     [[nodiscard]] bool getSaddled() const
@@ -229,7 +218,7 @@ public:
      * 加速期间：field_233611_b_ 从 0 递增到 boostTimeRaw（包含边界值）
      * 当 field_233611_b_ > boostTimeRaw 时，加速结束
      */
-    [[nodiscard]] bool isBoosting() const { return saddledRaw && field_233611_b_ <= boostTimeRaw; }
+    [[nodiscard]] bool isBoosting() const noexcept { return saddledRaw && field_233611_b_ <= boostTimeRaw; }
 
     /**
      * @brief Tick更新
@@ -237,7 +226,7 @@ public:
      * 每tick调用以更新加速状态。
      * @return 是否需要继续加速
      */
-    bool tick()
+    bool tick() noexcept
     {
         if (saddledRaw) {
             field_233611_b_++;
@@ -250,9 +239,9 @@ public:
         return false;
     }
 
-    // 公开成员（与MC保持一致）
+    // 公开成员
     bool saddledRaw = false; ///< 原始鞍状态（加速中时为true）
-    i32 field_233611_b_ = 0; ///< 当前加速tick (MC命名: field_233611_b_)
+    i32 field_233611_b_ = 0; ///< 当前加速tick
     i32 boostTimeRaw = 0;    ///< 原始加速时间
 
 private:

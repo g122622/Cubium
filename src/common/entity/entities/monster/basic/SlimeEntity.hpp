@@ -48,8 +48,6 @@ class LivingEntity;
  * - 尺寸：有4种尺寸（微小、小、中、大）
  * - 掉落：粘液球（仅小尺寸）
  * - 生成：只在特定区块
- *
- * 参考 MC 1.16.5 SlimeEntity
  */
 class SlimeEntity : public MonsterEntity {
 public:
@@ -81,7 +79,6 @@ public:
 
     /**
      * @brief 获取环境音效
-     * MC 1.16.5: 无环境音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override
     {
@@ -90,25 +87,21 @@ public:
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: 小史莱姆用 hurt_small，大史莱姆用 hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: 小史莱姆用 death_small，大史莱姆用 death
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取挤压声音
-     * MC 1.16.5: 着地时播放
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getSquishSound() const;
 
     /**
      * @brief 获取跳跃声音
-     * MC 1.16.5: 跳跃时播放
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getJumpSound() const;
 
@@ -116,7 +109,6 @@ public:
 
     /**
      * @brief 获取着地粒子类型
-     * MC 1.16.5: 子类可重写返回不同粒子类型
      * 史莱姆返回 ITEM_SLIME，岩浆怪返回 FLAME
      */
     [[nodiscard]] virtual client::renderer::trident::particle::ParticleTypeId getSquishParticle() const;
@@ -138,13 +130,11 @@ public:
 
     /**
      * @brief 是否是小史莱姆
-     * MC 1.16.5: isSmallSlime() - size <= 1
      */
     [[nodiscard]] bool isSmallSlime() const { return m_size <= 1; }
 
     /**
      * @brief 是否可以对玩家造成伤害
-     * MC 1.16.5: canDamagePlayer() - !isSmallSlime() && isServerWorld()
      */
     [[nodiscard]] virtual bool canDamagePlayer() const;
 
@@ -175,13 +165,12 @@ public:
 
     /**
      * @brief 获取跳跃延迟
-     * MC 1.16.5: getJumpDelay() - random 10-30 ticks
+     * 返回 10-29 tick（0.5-1.45秒）
      */
     [[nodiscard]] virtual i32 getJumpDelay() const;
 
     /**
      * @brief 跳跃时是否发出声音
-     * MC 1.16.5: makesSoundOnJump() - size > 0
      */
     [[nodiscard]] bool makesSoundOnJump() const { return m_size > 0; }
 
@@ -189,16 +178,13 @@ public:
 
     /**
      * @brief 分裂成小史莱姆
-     * MC 1.16.5: 在 remove() 中调用
      * @deprecated 使用 performSplit() 替代
      */
     void split();
 
     /**
      * @brief 执行分裂逻辑
-     *
      * 在实体被移除时生成 2-4 个小史莱姆。
-     * MC 1.16.5: SlimeEntity.remove() 中的分裂逻辑
      */
     void performSplit();
 
@@ -211,7 +197,6 @@ public:
 
     /**
      * @brief 对目标造成伤害
-     * MC 1.16.5: dealDamage()
      */
     void dealDamage(LivingEntity& target);
 
@@ -219,7 +204,6 @@ public:
 
     /**
      * @brief 玩家碰撞处理
-     * MC 1.16.5: onCollideWithPlayer()
      */
     void onCollideWithPlayer(LivingEntity& player);
 
@@ -234,25 +218,22 @@ public:
 
     /**
      * @brief 获取眼睛高度
-     * MC 1.16.5: 0.625F * height
      */
     [[nodiscard]] f32 eyeHeight() const override;
 
     /**
      * @brief 获取实体尺寸
-     * MC 1.16.5: scale by 0.255F * size
      */
     [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
 
     /**
      * @brief 获取声音音量
-     * MC 1.16.5: 0.4F * size
      */
     [[nodiscard]] f32 getSoundVolume() const override { return 0.4f * static_cast<f32>(m_size); }
 
     /**
      * @brief 获取垂直面部旋转速度
-     * MC 1.16.5: 0 (史莱姆不会抬头低头)
+     * 史莱姆不会抬头低头
      */
     [[nodiscard]] f32 getVerticalFaceSpeed() const override { return 0.0f; }
 
@@ -260,7 +241,7 @@ public:
 
     /**
      * @brief 死亡时掉落经验
-     * MC 1.16.5: 经验值等于尺寸
+     * 经验值等于尺寸
      */
     void dropExperience() override;
 
@@ -268,9 +249,7 @@ public:
 
     /**
      * @brief 移除实体
-     *
      * 重写以实现史莱姆分裂逻辑。
-     * MC 1.16.5: 在 remove() 中触发分裂
      */
     void remove() override;
 
@@ -290,7 +269,6 @@ protected:
 
     /**
      * @brief 更新挤压量
-     * MC 1.16.5: alterSquishAmount()
      * 子类可重写以改变衰减速率
      */
     virtual void alterSquishAmount();
@@ -307,11 +285,14 @@ private:
     // 地面状态追踪
     bool m_wasOnGround = false;
 
-    // MC 1.16.5 常量
-    static constexpr f32 SIZE_SCALE = 0.255f;        // 尺寸缩放因子
-    static constexpr f32 EYE_HEIGHT_FACTOR = 0.625f; // 眼睛高度因子
-    static constexpr i32 SPLIT_COUNT_MIN = 2;        // 分裂最小数量
-    static constexpr i32 SPLIT_COUNT_MAX = 4;        // 分裂最大数量
+    // 尺寸缩放因子
+    static constexpr f32 SIZE_SCALE = 0.255f;
+    // 眼睛高度因子
+    static constexpr f32 EYE_HEIGHT_FACTOR = 0.625f;
+    // 分裂最小数量
+    static constexpr i32 SPLIT_COUNT_MIN = 2;
+    // 分裂最大数量
+    static constexpr i32 SPLIT_COUNT_MAX = 4;
 };
 
 } // namespace mc

@@ -22,6 +22,7 @@
  */
 
 #include "ShulkerEntity.hpp"
+
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
@@ -37,7 +38,9 @@
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -64,11 +67,9 @@ std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
 
 void ShulkerEntity::updatePeekTicks(i32 peekTicks)
 {
-    // MC 1.16.5 ShulkerEntity.updateArmorModifier()
     m_peekTicks = std::clamp(peekTicks, 0, 100);
 
     if (m_world != nullptr && !m_world->isClientSide()) {
-        // 更新护甲
         // 闭合时（peekTicks == 0）获得额外护甲
         if (m_peekTicks == 0) {
             // 添加护甲加成
@@ -106,18 +107,17 @@ void ShulkerEntity::closeShell()
 
 bool ShulkerEntity::isImmuneToDamage() const
 {
-    // MC 1.16.5: 贝壳完全闭合时免疫
+    // 贝壳完全闭合时免疫
     return m_shellState == ShellState::Closed && m_peekTicks == 0;
 }
 
 bool ShulkerEntity::teleport()
 {
-    return tryTeleportToNewPosition();
+    return _tryTeleportToNewPosition();
 }
 
-bool ShulkerEntity::tryTeleportToNewPosition()
+bool ShulkerEntity::_tryTeleportToNewPosition()
 {
-    // MC 1.16.5 ShulkerEntity.tryTeleportToNewPosition()
     // 检查AI是否禁用
     if (!m_aiEnabled || !isAlive()) {
         return true;
@@ -136,8 +136,8 @@ bool ShulkerEntity::tryTeleportToNewPosition()
         i32 targetZ = currentPos.z + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
         BlockPos targetPos(targetX, targetY, targetZ);
 
-        // 检查位置是否有效
-        if (targetPos.y <= 0) {
+        // 检查高度是否有效
+        if (targetPos.y <= world::MIN_BUILD_HEIGHT) {
             continue;
         }
 
@@ -155,7 +155,7 @@ bool ShulkerEntity::tryTeleportToNewPosition()
         }
 
         // 找到可以附着的方向
-        std::optional<Direction> facing = findValidFacing(targetPos);
+        std::optional<Direction> facing = _findValidFacing(targetPos);
         if (!facing.has_value()) {
             continue;
         }
@@ -172,9 +172,8 @@ bool ShulkerEntity::tryTeleportToNewPosition()
     return false;
 }
 
-bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
+bool ShulkerEntity::_canAttachAt(const BlockPos& pos, Direction facing) const
 {
-    // MC 1.16.5 ShulkerEntity.func_234298_a_
     if (m_world == nullptr) {
         return false;
     }
@@ -187,7 +186,7 @@ bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
         return false;
     }
 
-    // 检查方块是否是固体（简化实现）
+    // 检查方块是否是固体
     if (!attachState->blocksMovement()) {
         return false;
     }
@@ -197,11 +196,10 @@ bool ShulkerEntity::canAttachAt(const BlockPos& pos, Direction facing) const
     return !m_world->hasBlockCollision(shulkerBox);
 }
 
-std::optional<Direction> ShulkerEntity::findValidFacing(const BlockPos& pos) const
+std::optional<Direction> ShulkerEntity::_findValidFacing(const BlockPos& pos) const
 {
-    // MC 1.16.5 ShulkerEntity.func_234299_g_
     for (Direction dir : Directions::all()) {
-        if (canAttachAt(pos, dir)) {
+        if (_canAttachAt(pos, dir)) {
             return dir;
         }
     }
@@ -232,7 +230,7 @@ void ShulkerEntity::shootBullet()
     playShootSound();
 }
 
-void ShulkerEntity::updateShellState()
+void ShulkerEntity::_updateShellState()
 {
     // 更新开壳动画
     f32 targetPeek = static_cast<f32>(m_peekTicks) * 0.01f;
@@ -276,7 +274,7 @@ void ShulkerEntity::tick()
     }
 
     // 更新贝壳状态
-    updateShellState();
+    _updateShellState();
 
     // 更新攻击冷却
     if (m_attackCooldown > 0) {
@@ -291,11 +289,10 @@ void ShulkerEntity::tick()
 
 bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5 ShulkerEntity.attackEntityFrom()
     // 闭合时免疫箭矢
     if (isShellClosed()) {
         Entity* attacker = source.directSource();
-        // 检查是否是投射物（通过检查实体类型）
+        // 检查是否是投射物
         if (attacker != nullptr) {
             auto type = attacker->typeId();
             // 投射物类型：箭、三叉戟、火球等
@@ -315,10 +312,10 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
     // 调用父类受伤
     if (MonsterEntity::hurt(source, amount)) {
         // 血量低于一半时有概率瞬移
-        if (health() < maxHealth() * 0.5 && m_world != nullptr) {
+        if (health() < maxHealth() * 0.5f && m_world != nullptr) {
             math::Random& rng = m_world->getRandom();
             if (rng.nextInt(4) == 0) {
-                tryTeleportToNewPosition();
+                _tryTeleportToNewPosition();
             }
         }
         return true;
@@ -330,7 +327,6 @@ void ShulkerEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 ShulkerEntity.registerGoals()
     // 目标选择器优先级
     // 1: HurtByTargetGoal（被攻击时反击，呼唤同伴）
     // 2: AttackNearestGoal（攻击最近的玩家）
@@ -348,7 +344,7 @@ void ShulkerEntity::registerGoals()
     // TODO: DefenseAttackGoal - 攻击攻击了潜影贝的敌对生物
 
     // 行为目标
-    // LookAtGoal: 看向玩家，距离8格，概率0.02（使用过滤函数）
+    // LookAtGoal: 看向玩家，距离8格，概率0.02
     goalSelector().addGoal(
         1, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
@@ -365,7 +361,6 @@ void ShulkerEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 ShulkerEntity.func_234300_m_()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);

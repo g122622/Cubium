@@ -56,8 +56,6 @@ namespace mc {
  * - 优先级 2: 攻击玩家
  * - 优先级 3: 攻击村民
  * - 优先级 3: 攻击铁傀儡
- *
- * 参考 MC 1.16.5 IllusionerEntity
  */
 class IllusionerEntity : public SpellcastingIllagerEntity, public entity::IRangedAttackMob {
 public:
@@ -67,7 +65,7 @@ public:
      * @param id 实体ID
      */
     IllusionerEntity(EntityId id);
-    ~IllusionerEntity() override = default;
+    ~IllusionerEntity() noexcept override = default;
 
     // 禁止拷贝
     IllusionerEntity(const IllusionerEntity&) = delete;
@@ -89,10 +87,7 @@ public:
     /**
      * @brief 对目标进行远程攻击（发射箭矢）
      *
-     * MC 1.16.5: 幻术师使用弓发射箭矢
-     * - 箭矢速度: 1.6
-     * - 不精确度: 14 - difficulty * 4
-     * - 弹道补偿: horizontalDist * 0.2
+     * 箭矢速度: 1.6，不精确度: 14 - difficulty * 4，弹道补偿: horizontalDist * 0.2
      *
      * @param target 目标实体
      * @param charge 蓄力程度
@@ -147,7 +142,7 @@ private:
     // 镜像分身实体ID列表（用于客户端渲染）
     std::vector<EntityId> m_mirrorEntities;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 ARROW_VELOCITY = 1.6f; // 箭矢速度
 };
 

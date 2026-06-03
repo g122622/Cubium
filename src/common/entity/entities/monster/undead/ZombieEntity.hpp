@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -44,8 +44,6 @@ class BreakDoorGoal;
  * - 感染：杀死村民会将其转化为僵尸村民
  * - 变种：可转化为溺尸
  * - 破门：可以破坏木门
- *
- * 参考 MC 1.16.5 ZombieEntity
  */
 class ZombieEntity : public MonsterEntity {
 public:
@@ -75,25 +73,21 @@ public:
 
     /**
      * @brief 获取环境音效
-     * 参考 MC 1.16.5 ZombieEntity.getAmbientSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 ZombieEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 ZombieEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取脚步声音效
-     * 参考 MC 1.16.5 ZombieEntity.getStepSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getStepSound() const;
 
@@ -101,7 +95,6 @@ public:
 
     /**
      * @brief 播放脚步声
-     * MC 1.16.5: ZombieEntity.playStepSound() 使用固定的脚步声
      */
     void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
 
@@ -109,13 +102,11 @@ public:
 
     /**
      * @brief 是否可以破门
-     * 参考 MC 1.16.5 ZombieEntity.canBreakDoors()
      */
     [[nodiscard]] bool canBreakDoors() const { return m_canBreakDoors; }
 
     /**
      * @brief 设置破门能力
-     * 参考 MC 1.16.5 ZombieEntity.setBreakDoorsAItask()
      */
     void setBreakDoorsAbility(bool canBreak);
 
@@ -133,20 +124,16 @@ public:
 
     /**
      * @brief 开始溺水转化
-     * 参考 MC 1.16.5 ZombieEntity.startDrowning()
      */
     void startDrowning(i32 conversionTime);
 
     /**
      * @brief 是否应该溺水转化
-     * 参考 MC 1.16.5 ZombieEntity.shouldDrown()
      */
     [[nodiscard]] virtual bool shouldDrown() const { return true; }
 
     /**
      * @brief 转化为溺尸
-     *
-     * 参考 MC 1.16.5 ZombieEntity.onDrowned()
      *
      * 将当前僵尸转化为溺尸：
      * 1. 创建新的 DrownedEntity
@@ -178,7 +165,6 @@ public:
 
     /**
      * @brief 尝试召唤增援
-     * 参考 MC 1.16.5 ZombieEntity.attackEntityFrom()
      */
     void trySummonReinforcements();
 
@@ -203,7 +189,6 @@ public:
 
     /**
      * @brief 受到伤害时的处理（包含增援逻辑）
-     * 参考 MC 1.16.5 ZombieEntity.attackEntityFrom()
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -211,7 +196,7 @@ public:
      * @brief 作为生物攻击实体
      *
      * 重写以实现燃烧传递逻辑。
-     * MC 1.16.5: 燃烧的僵尸攻击时，有概率点燃目标。
+     * 燃烧的僵尸攻击时，有概率点燃目标。
      *
      * @param target 目标生物
      * @return 是否攻击成功
@@ -255,7 +240,7 @@ private:
     /**
      * @brief 更新溺水转化
      */
-    void updateDrowning();
+    void _updateDrowning();
 };
 
 } // namespace mc

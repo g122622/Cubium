@@ -34,8 +34,6 @@ namespace mc {
  * @brief 骷髅实体
  *
  * 使用弓箭进行远程攻击的亡灵怪物。
- *
- * 参考 MC 1.16.5 SkeletonEntity。
  */
 class SkeletonEntity : public AbstractSkeletonEntity {
 public:
@@ -57,7 +55,6 @@ public:
 
     /**
      * @brief 是否正在转化为流浪者
-     * MC 1.16.5: 骷髅被雷击中时开始转化为流浪者
      */
     [[nodiscard]] bool isConvertingToStray() const { return m_strayConversionTime > 0; }
 
@@ -68,7 +65,6 @@ public:
 
     /**
      * @brief 开始流浪者转化
-     * MC 1.16.5: SkeletonEntity.startStrayConversion()
      * @param conversionTime 转化时间（ticks）
      */
     void startStrayConversion(i32 conversionTime) { m_strayConversionTime = conversionTime; }
@@ -84,7 +80,6 @@ protected:
 
 private:
     /// 流浪者转化倒计时（ticks），0 表示未在转化
-    /// MC 1.16.5: SkeletonEntity.strayConversionTime
     i32 m_strayConversionTime = 0;
 };
 

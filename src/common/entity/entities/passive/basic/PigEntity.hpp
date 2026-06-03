@@ -45,8 +45,6 @@ class DamageSource;
  * 最基础的被动动物，可被骑乘（使用鞍）。
  * 实现 IRideable 接口以支持骑乘功能。
  * 实现 IEquipable 接口以支持鞍装备。
- *
- * 参考 MC 1.16.5 PigEntity
  */
 class PigEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
@@ -69,19 +67,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * 参考 MC 1.16.5 PigEntity.getAmbientSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 PigEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 PigEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -105,7 +100,6 @@ public:
 
     /**
      * @brief 获取骑乘速度
-     * 参考 MC 1.16.5 PigEntity.getMountedSpeed()
      * @return 基础速度 * 0.225F
      */
     [[nodiscard]] f32 getSteeringSpeed() const override;
@@ -118,7 +112,7 @@ public:
 
     /**
      * @brief 检查是否可以被控制方向
-     * MC 1.16.5: 猪需要玩家手持胡萝卜钓竿
+     * 猪需要玩家手持胡萝卜钓竿才能被控制
      */
     [[nodiscard]] bool canBeSteered() const override;
 
@@ -129,7 +123,6 @@ public:
 
     /**
      * @brief 处理移动
-     * MC 1.16.5: PigEntity.travel()
      * 重写以使用 IRideable::ride()
      */
     void travel(const Vector3& travelVec) override;
@@ -179,7 +172,6 @@ protected:
 
     /**
      * @brief 获取眼睛高度
-     * 参考 MC 1.16.5 PigEntity.getStandingEyeHeight()
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
 

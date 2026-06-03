@@ -36,8 +36,6 @@ class LivingEntity;
 /**
  * @brief 凋灵骷髅实体
  *
- * 对齐 MC 1.16.5 `WitherSkeletonEntity` 的骷髅变种。
- *
  * 与普通骷髅的区别：
  * - 使用石剑进行近战攻击（普通骷髅使用弓远程攻击）
  * - 攻击目标会被施加凋零效果（持续10秒）
@@ -46,7 +44,7 @@ class LivingEntity;
  * - 不会在阳光下燃烧
  * - 主动攻击猪灵
  *
- * MC 1.16.5 关键实现：
+ * 关键实现：
  * - 重写 setCombatTask() 使用近战攻击而非远程
  * - 重写 registerGoals() 添加攻击猪灵的目标
  * - 重写 attackEntityAsMob() 施加凋零效果
@@ -64,7 +62,7 @@ public:
 
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    /// 凋零效果持续时间（ticks），MC 1.16.5: 200 ticks = 10 秒
+    /// 凋零效果持续时间（ticks），200 ticks = 10 秒
     static constexpr i32 WITHER_DURATION_TICKS = 200;
 
     /**
@@ -83,7 +81,6 @@ public:
      * @brief 近战攻击实体
      *
      * 重写 MobEntity::attackEntityAsMob() 以施加凋零效果。
-     * 参考 MC 1.16.5 WitherSkeletonEntity.attackEntityAsMob()
      *
      * @param target 攻击目标
      * @return 是否攻击成功
@@ -94,18 +91,15 @@ public:
      * @brief 设置战斗目标
      *
      * 重写父类方法，凋灵骷髅始终使用近战攻击。
-     * MC 1.16.5: 凋灵骷髅装备石剑，setCombatTask() 会选择近战目标。
      */
     void setCombatTask() override;
 
     /**
      * @brief 检查是否免疫凋零效果
      *
-     * 参考 MC 1.16.5 WitherSkeletonEntity.isPotionApplicable()
      * 凋灵骷髅免疫凋零效果。
      *
-     * @param effect 效果实例
-     * @return 如果免疫该效果返回 true
+     * @return 始终返回 true
      */
     [[nodiscard]] bool isImmuneWitherEffect() const { return true; }
 

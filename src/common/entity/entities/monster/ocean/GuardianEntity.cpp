@@ -66,7 +66,6 @@ void GuardianEntity::tick()
 
     // 注意: 激光攻击由 GuardianAttackGoal AI 目标处理
     // 激光充能、目标追踪、伤害计算等逻辑都在 GuardianAttackGoal 中实现
-    // 参考 MC 1.16.5 GuardianEntity.AttackGoal
 
     // 更新尖刺动画
     m_spikeTimer++;
@@ -81,7 +80,6 @@ void GuardianEntity::registerGoals()
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 GuardianEntity.registerGoals()
     // 目标优先级说明:
     // - 优先级数字越小，优先级越高
     // - 目标选择器(targetSelector)用于选择攻击目标
@@ -92,12 +90,10 @@ void GuardianEntity::registerGoals()
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::GuardianAttackGoal>(this));
 
     // 优先级 5: 向限制区域移动
-    // MC 1.16.5: MoveTowardsRestrictionGoal(this, 1.0D)
     // 守卫者有移动限制区域（海底神殿附近）
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
 
     // 优先级 7: 随机漫步
-    // MC 1.16.5: RandomWalkingGoal(this, 1.0D, 80)
     // 80 tick 的移动间隔
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 80));
 
@@ -121,7 +117,6 @@ void GuardianEntity::registerGoals()
 
     // ========== 目标选择器 (targetSelector) ==========
     // 优先级 1: 搜索最近的可攻击目标
-    // MC 1.16.5: NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, new TargetPredicate(this))
     // 参数: 10 = 每10tick检查一次, true = 需要视线, false = 不需要近战距离
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
@@ -150,7 +145,6 @@ void GuardianEntity::registerGoals()
                 }
 
                 // 距离筛选: 必须距离 > 3 格
-                // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
                 f64 distSq = this->distanceSqTo(*candidate);
                 if (distSq <= 9.0) { // 3.0 * 3.0 = 9.0
                     return false;
@@ -166,7 +160,6 @@ void GuardianEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 守卫者的属性
-    // 参考 MC 1.16.5 守卫者属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, LASER_DAMAGE);
@@ -175,7 +168,7 @@ void GuardianEntity::registerAttributes()
 
 std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const
 {
-    // MC 1.16.5: 在水中和陆地使用不同音效
+    // 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_AMBIENT;
     }
@@ -184,7 +177,7 @@ std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const
 
 std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: 在水中和陆地使用不同音效
+    // 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_HURT;
     }
@@ -193,7 +186,7 @@ std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*sou
 
 std::optional<ResourceLocation> GuardianEntity::getDeathSound() const
 {
-    // MC 1.16.5: 在水中和陆地使用不同音效
+    // 在水中和陆地使用不同音效
     if (isInWater()) {
         return SoundEvents::ENTITY_GUARDIAN_DEATH;
     }

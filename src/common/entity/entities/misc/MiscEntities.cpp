@@ -22,23 +22,23 @@
  */
 
 #include "MiscEntities.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockRegistry.hpp"
-#include "../../../world/block/Material.hpp"
-#include "../../../world/block/blocks/FallingBlock.hpp"
-#include "../../../world/explosion/Explosion.hpp"
-#include "../../../world/explosion/ExplosionMode.hpp"
-#include "../../../world/gamerule/GameRules.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../damage/DamageSource.hpp"
-#include "../../utils/ItemDropHelper.hpp"
-#include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/Types.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/item/core/ItemStack.hpp"
+#include "common/entity/item/items/block/BlockItemRegistry.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/explosion/Explosion.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 
 namespace mc {
@@ -77,17 +77,17 @@ void FallingBlockEntity::tick()
 
     // 检查是否落地
     if (onGround()) {
-        handleLanding();
+        _handleLanding();
     }
 
-    // 超过一定时间后自动放置
-    if (m_fallTime > 600) {
+    // 超过最大下落时间后自动放置
+    if (m_fallTime > MAX_FALL_TIME) {
         m_placeBlock = true;
-        handleLanding();
+        _handleLanding();
     }
 }
 
-void FallingBlockEntity::handleLanding()
+void FallingBlockEntity::_handleLanding()
 {
     IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
@@ -95,8 +95,7 @@ void FallingBlockEntity::handleLanding()
         return;
     }
 
-    // MC 1.16.5: 获取落地点位置
-    // 落地点是实体当前所在的方块位置
+    // 获取落地点位置（落地点是实体当前所在的方块位置）
     BlockPos landingPos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
@@ -118,12 +117,12 @@ void FallingBlockEntity::handleLanding()
     // 获取落地点当前的方块状态
     const BlockState* hitState = worldPtr->getBlockState(landingPos);
 
-    // MC 1.16.5: 伤害碰撞箱内的实体
+    // 伤害碰撞箱内的实体
     if (m_hurtEntities) {
-        hurtEntities(worldPtr);
+        _hurtEntities(worldPtr);
     }
 
-    // MC 1.16.5: 如果 dontSetBlock 为 true，只调用 onBroken 回调
+    // 如果 dontSetBlock 为 true，只调用 onBroken 回调
     if (m_dontSetBlock) {
         // 调用 FallingBlock 的 onBroken 回调
         if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
@@ -133,35 +132,34 @@ void FallingBlockEntity::handleLanding()
         return;
     }
 
-    // MC 1.16.5: 尝试放置方块
+    // 尝试放置方块
     bool placed = false;
     if (m_placeBlock) {
-        placed = tryPlaceBlock(worldPtr, landingPos, fallingState, hitState);
+        placed = _tryPlaceBlock(worldPtr, landingPos, fallingState, hitState);
     }
 
-    // MC 1.16.5: 放置失败，掉落物品
+    // 放置失败，掉落物品
     if (!placed && m_shouldDropItem) {
         // 检查游戏规则 doEntityDrops
         if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
-            dropItem(worldPtr, landingPos);
+            _dropItem(worldPtr, landingPos);
         }
     }
 
     remove();
 }
 
-bool FallingBlockEntity::tryPlaceBlock(
+bool FallingBlockEntity::_tryPlaceBlock(
     IWorld* world, const BlockPos& landingPos, const BlockState* fallingState, const BlockState* hitState)
 {
     if (world == nullptr || fallingState == nullptr) {
         return false;
     }
 
-    // MC 1.16.5: 检查目标位置是否为移动中的活塞
-    // 如果是活塞推动的方块，不能放置
-    // 注意: 当前项目可能还没有实现活塞，这里暂时跳过这个检查
+    // TODO: 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
+    // 当前项目可能还没有实现活塞，这里暂时跳过这个检查
 
-    // MC 1.16.5: 检查放置条件
+    // 检查放置条件：
     // 条件1: 目标位置可替换
     // 条件2: 下方方块不可穿透
     // 条件3: 方块状态在目标位置有效
@@ -179,7 +177,6 @@ bool FallingBlockEntity::tryPlaceBlock(
     }
 
     // 检查目标位置是否可替换
-    // MC 1.16.5: blockstate.isReplaceable(new DirectionalPlaceContext(...))
     // 简化实现：检查是否为空气或可替换材质
     bool isReplaceable = false;
     if (hitState == nullptr || hitState->isAir()) {
@@ -195,30 +192,25 @@ bool FallingBlockEntity::tryPlaceBlock(
         return false;
     }
 
-    // MC 1.16.5: 检查方块是否可以在该位置放置
-    // 参考: BlockState.isValidPosition()
-    // 简化实现：大多数下落方块可以在任何位置放置
-    // 注意: 完整实现需要调用 fallingState->getBlock().isValidPosition()
+    // TODO: 检查方块是否可以在该位置放置
+    // 完整实现需要调用 fallingState->getBlock().isValidPosition()
 
-    // MC 1.16.5: 处理水浸透方块（如沙子落入水中）
+    // TODO: 处理水浸透方块（如沙子落入水中）
     // 如果方块有 waterlogged 属性且目标位置有水，设置 waterlogged = true
-    // 注意: 当前项目可能还没有完整实现水浸透属性
 
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
     bool success = world->setBlockState(landingPos, fallingState, 3);
 
     if (success) {
-        // MC 1.16.5: 调用 FallingBlock 的 onEndFalling 回调
+        // 调用 FallingBlock 的 onEndFalling 回调
         Block* block = const_cast<Block*>(&fallingState->getBlock());
         if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
             const BlockState& hitStateRef = hitState ? *hitState : *BlockRegistry::instance().airState();
             fallingBlock->onEndFalling(*world, landingPos, *fallingState, hitStateRef, *this);
         }
 
-        // MC 1.16.5: 播放放置音效
-        // world->playSound(...)
-        // 注意: 完整实现需要播放方块的放置音效
+        // TODO: 播放放置音效
 
         return true;
     }
@@ -226,7 +218,7 @@ bool FallingBlockEntity::tryPlaceBlock(
     return false;
 }
 
-void FallingBlockEntity::dropItem(IWorld* world, const BlockPos& pos)
+void FallingBlockEntity::_dropItem(IWorld* world, const BlockPos& pos)
 {
     if (world == nullptr) {
         return;
@@ -235,7 +227,6 @@ void FallingBlockEntity::dropItem(IWorld* world, const BlockPos& pos)
     // 获取方块对应的物品
     const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(m_blockId);
     if (blockItem == nullptr) {
-        // 如果方块没有对应的物品，尝试使用方块本身
         // 某些方块（如基岩）可能没有对应的物品
         return;
     }
@@ -254,13 +245,13 @@ void FallingBlockEntity::dropItem(IWorld* world, const BlockPos& pos)
         ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 
-void FallingBlockEntity::hurtEntities(IWorld* world)
+void FallingBlockEntity::_hurtEntities(IWorld* world)
 {
     if (world == nullptr) {
         return;
     }
 
-    // MC 1.16.5: 计算下落距离和伤害
+    // 计算下落距离和伤害
     f64 fallDistance = m_fallStartY - y();
     if (fallDistance <= 0) {
         return;
@@ -281,11 +272,11 @@ void FallingBlockEntity::hurtEntities(IWorld* world)
         return;
     }
 
-    // MC 1.16.5: 获取碰撞箱内的所有实体
+    // 获取碰撞箱内的所有实体
     AxisAlignedBB hurtBox = boundingBox();
     std::vector<Entity*> entities = world->getEntitiesInAABB(hurtBox, this);
 
-    // MC 1.16.5: 判断是否为铁砧
+    // 判断是否为铁砧
     Block* block = Block::getBlock(m_blockId);
     bool isAnvil = (block != nullptr && block->blockLocation().toString().find("anvil") != std::string::npos);
 
@@ -308,10 +299,8 @@ void FallingBlockEntity::hurtEntities(IWorld* world)
         }
     }
 
-    // MC 1.16.5: 铁砧损坏机制
-    // 如果是铁砧，有概率损坏
-    // 注意: 完整实现需要检查铁砧的损坏状态并更新
-    // 参考: AnvilBlock.damage()
+    // TODO: 铁砧损坏机制
+    // 如果是铁砧，有概率损坏，需要检查铁砧的损坏状态并更新
 }
 
 // ==================== TNTEntity ====================
@@ -339,12 +328,11 @@ void TNTEntity::tick()
     if (m_fuse > 0) {
         m_fuse--;
 
-        // MC 1.16.5: 客户端添加烟雾粒子效果
-        // 参考: TNTEntity.tick() - world.addParticle(ParticleTypes.SMOKE, ...)
+        // 客户端添加烟雾粒子效果
         if (world() != nullptr && world()->isClientSide()) {
             using namespace mc::client::renderer::trident::particle;
 
-            // MC 1.16.5: 在 TNT 上方随机位置生成烟雾粒子
+            // 在 TNT 上方随机位置生成烟雾粒子
             // 每帧有 1/3 概率生成粒子
             math::Random& random = world()->getRandom();
             if (random.nextInt(3) == 0) {
@@ -370,7 +358,7 @@ void TNTEntity::tick()
     // 重力
     if (!hasNoGravity()) {
         Vector3 vel = velocity();
-        vel.y -= 0.04f; // MC 1.16.5: 重力加速度
+        vel.y -= 0.04f; // 重力加速度
         setVelocity(vel);
     }
 
@@ -410,7 +398,6 @@ void TNTEntity::explode()
     if (worldPtr != nullptr) {
         // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
         // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
-        // 参考 MC 1.16.5: TNTEntity.explode()
         worldPtr->createExplosion(
             Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
             m_explosionRadius,

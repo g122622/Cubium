@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../../../core/AgeableEntity.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -38,8 +38,6 @@ class DamageSource;
  *
  * 可繁殖的动物实体基类，支持喂食、繁殖、跟随父母等行为。
  * 猪、牛、羊、鸡等动物继承此类。
- *
- * 参考 MC 1.16.5 AnimalEntity
  */
 class AnimalEntity : public AgeableEntity {
 public:
@@ -65,8 +63,7 @@ public:
      * @param itemStack 物品堆
      * @return 是否可以用于繁殖
      *
-     * MC 1.16.5: 默认检查是否为小麦
-     * 子类应该重写此方法来定义特定的繁殖物品
+     * 默认检查是否为小麦，子类应该重写此方法来定义特定的繁殖物品
      */
     [[nodiscard]] virtual bool isBreedingItem(const ItemStack& itemStack) const;
 
@@ -75,14 +72,14 @@ public:
      * @param other 另一个动物
      * @return 是否可以交配
      *
-     * MC 1.16.5: 检查双方都是成体、都处于爱心状态、是同类
+     * 检查双方都是成体、都处于爱心状态、是同类
      */
     [[nodiscard]] virtual bool canMateWith(const AnimalEntity& other) const;
 
     /**
      * @brief 检查是否可以繁殖
      *
-     * MC 1.16.5: 年龄为0且不处于爱心状态
+     * 年龄为0且不处于爱心状态。
      * 子类可重写以添加额外条件（如海龟检查是否有蛋）
      */
     [[nodiscard]] virtual bool canBreed() const;
@@ -100,7 +97,6 @@ public:
 
     /**
      * @brief 检查是否处于爱心状态
-     * MC 1.16.5: isInLove()
      *
      * 注意：继承自 AgeableEntity::isInLove()
      */
@@ -109,12 +105,12 @@ public:
     /**
      * @brief 获取喂食玩家的UUID
      */
-    [[nodiscard]] u64 getLoveCause() const { return m_loveCause; }
+    [[nodiscard]] u64 getLoveCause() const noexcept { return m_loveCause; }
 
     /**
      * @brief 设置喂食玩家
      *
-     * MC 1.16.5: 设置爱心状态并记录玩家UUID
+     * 设置爱心状态并记录玩家UUID
      */
     void setInLove(u64 playerUuid = 0);
 
@@ -130,17 +126,17 @@ public:
     /**
      * @brief 获取环境音间隔
      *
-     * MC 1.16.5: 返回 120 ticks
+     * @return 环境音间隔 ticks
      */
-    [[nodiscard]] i32 getTalkInterval() const override { return 120; }
+    [[nodiscard]] i32 getTalkInterval() const noexcept override { return 120; }
 
     /**
      * @brief 是否可以消失
      *
-     * MC 1.16.5: 动物不会消失
+     * 动物不会消失
      * @param distanceToClosestPlayer 到最近玩家的距离（未使用）
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
     {
         (void)distanceToClosestPlayer;
         return false;
@@ -149,14 +145,14 @@ public:
     /**
      * @brief 获取经验值
      *
-     * MC 1.16.5: 返回 1-3 经验
+     * @return 1-3 经验
      */
     [[nodiscard]] i32 getExperiencePoints() const;
 
     /**
      * @brief 生成爱心粒子
      *
-     * MC 1.16.5: 每10tick生成心形粒子
+     * 每10tick生成心形粒子
      */
     void spawnHeartParticles();
 
@@ -165,7 +161,6 @@ public:
     /**
      * @brief 获取路径权重
      *
-     * MC 1.16.5: AnimalEntity.getBlockPathWeight()
      * - 脚下是草方块: 返回 10.0F
      * - 否则: 返回亮度 - 0.5F
      *
@@ -185,7 +180,7 @@ public:
     /**
      * @brief 受伤处理
      *
-     * MC 1.16.5: 动物受伤时清空爱心状态
+     * 动物受伤时清空爱心状态
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -214,7 +209,7 @@ protected:
      * @brief 注册属性
      *
      * 注册动物的基础属性。子类应该调用此方法然后覆盖特定属性值。
-     * MC 1.16.5 动物默认属性：
+     * 动物默认属性：
      * - MAX_HEALTH: 10.0
      * - MOVEMENT_SPEED: 0.2
      */

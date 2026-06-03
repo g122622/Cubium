@@ -24,7 +24,8 @@
 #pragma once
 
 #include <memory>
-#include "../../../../core/Types.hpp"
+
+#include "common/core/Types.hpp"
 #include "AnimalEntity.hpp"
 
 namespace mc {
@@ -34,13 +35,11 @@ namespace mc {
  *
  * 会下蛋的被动动物，用种子繁殖。
  * 特性：不会受到摔落伤害，有翅膀拍打动画。
- *
- * 参考 MC 1.16.5 ChickenEntity
  */
 class ChickenEntity : public AnimalEntity {
 public:
     ChickenEntity(EntityId id);
-    ~ChickenEntity() override = default;
+    ~ChickenEntity() noexcept override = default;
 
     /**
      * @brief 实体工厂方法
@@ -82,25 +81,21 @@ public:
 
     /**
      * @brief 获取环境音效
-     * 参考 MC 1.16.5 ChickenEntity.getAmbientSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 ChickenEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 ChickenEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取脚步声音
-     * 参考 MC 1.16.5 ChickenEntity.playStepSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getStepSound() const;
 
@@ -139,7 +134,6 @@ protected:
 
     /**
      * @brief 播放脚步声
-     * MC 1.16.5: ChickenEntity.playStepSound() 使用固定的脚步声
      */
     void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
 

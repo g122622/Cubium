@@ -117,7 +117,7 @@ constexpr i32 EFFECT_COUNT = 32;
 // 显示名称
 // ============================================================================
 
-const char* getEffectName(EffectType type)
+const char* getEffectName(EffectType type) noexcept
 {
     switch (type) {
         case EffectType::Speed:
@@ -189,7 +189,7 @@ const char* getEffectName(EffectType type)
     }
 }
 
-bool isBeneficialEffect(EffectType type)
+bool isBeneficialEffect(EffectType type) noexcept
 {
     switch (type) {
         case EffectType::Speed:
@@ -217,9 +217,8 @@ bool isBeneficialEffect(EffectType type)
     }
 }
 
-u32 getEffectColor(EffectType type)
+u32 getEffectColor(EffectType type) noexcept
 {
-    // 参考 MC 1.16.5 效果颜色
     switch (type) {
         case EffectType::Speed:
             return 0x7CAFC6;
@@ -268,7 +267,7 @@ u32 getEffectColor(EffectType type)
         case EffectType::Saturation:
             return 0xF82423;
         case EffectType::Glowing:
-            return 0x94A061; // MC 1.16.5: 9740385 (灰绿色)
+            return 0x94A061;
         case EffectType::Levitation:
             return 0xCEFFFF;
         case EffectType::Luck:
@@ -276,11 +275,11 @@ u32 getEffectColor(EffectType type)
         case EffectType::BadLuck:
             return 0xC0A44D;
         case EffectType::SlowFalling:
-            return 0xFFFBF1; // MC 1.16.5: 16773073
+            return 0xFFFBF1;
         case EffectType::ConduitPower:
             return 0x1DC2D1;
         case EffectType::DolphinsGrace:
-            return 0x8894C6; // MC 1.16.5: 8954814
+            return 0x8894C6;
         case EffectType::BadOmen:
             return 0x0B0B0B;
         case EffectType::HeroOfTheVillage:
@@ -337,7 +336,7 @@ const char* getEffectResourceName(EffectType type) noexcept
 
 bool isInstantEffect(EffectType type) noexcept
 {
-    // MC 1.16.5: 瞬间效果包括瞬间治疗、瞬间伤害、饱和
+    // 瞬间效果包括：瞬间治疗、瞬间伤害、饱和
     return type == EffectType::InstantHealth || type == EffectType::InstantDamage || type == EffectType::Saturation;
 }
 

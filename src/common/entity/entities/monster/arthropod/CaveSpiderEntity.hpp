@@ -42,8 +42,6 @@ class LivingEntity;
  * - 小型：比普通蜘蛛更小
  * - 爬墙：可以爬墙
  * - 黑暗中敌对：继承蜘蛛的光照敏感攻击特性
- *
- * 参考 MC 1.16.5 CaveSpiderEntity
  */
 class CaveSpiderEntity : public SpiderEntity {
 public:
@@ -77,8 +75,6 @@ public:
      * - 简单难度：无中毒
      * - 普通难度：7秒中毒I
      * - 困难难度：15秒中毒I
-     *
-     * 参考 MC 1.16.5 CaveSpiderEntity.attackEntityAsMob()
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 

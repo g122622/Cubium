@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/experience/ExperienceConstants.hpp"
 #include <memory>
-#include "../../core/Entity.hpp"
-#include "../../experience/ExperienceConstants.hpp"
 
 namespace mc {
 
@@ -43,8 +43,6 @@ class Player;
  * - 被附近玩家吸引（8格范围）
  * - 可合并成更大的经验球
  * - 5分钟后消失
- *
- * 参考 MC 1.16.5 ExperienceOrbEntity
  */
 class ExperienceOrbEntity : public Entity {
 public:
@@ -224,18 +222,18 @@ private:
     /**
      * @brief 更新物理运动
      */
-    void updateMovement();
+    void _updateMovement();
 
     /**
      * @brief 追踪最近的玩家
      */
-    void followNearestPlayer();
+    void _followNearestPlayer();
 
     /**
      * @brief 查找最近的玩家
      * @return 最近的玩家指针，如果没有则返回 nullptr
      */
-    [[nodiscard]] Player* findNearestPlayer() const;
+    [[nodiscard]] Player* _findNearestPlayer() const;
 
     /**
      * @brief 处理经验修补附魔
@@ -245,7 +243,7 @@ private:
      * @param player 玩家
      * @return 是否使用了经验修补
      */
-    bool handleMending(Player& player);
+    bool _handleMending(Player& player);
 
     /**
      * @brief 给予玩家经验
@@ -253,12 +251,12 @@ private:
      * @param player 玩家
      * @return 实际给予的经验值
      */
-    i32 giveExperienceToPlayer(Player& player);
+    i32 _giveExperienceToPlayer(Player& player);
 
     /**
      * @brief 初始化数据参数
      */
-    void initData();
+    void _initData();
 
     i32 m_xpValue = 1;                  // 经验值
     i32 m_age = 0;                      // 存活时间 (ticks)

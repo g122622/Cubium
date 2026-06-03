@@ -53,8 +53,6 @@ class PathNavigator;
  *
  * 所有 AI 生物的基类，包括怪物和动物。
  * 提供 AI 目标系统、控制器、寻路等功能。
- *
- * 参考 MC 1.16.5 MobEntity
  */
 class MobEntity : public LivingEntity {
 public:
@@ -145,13 +143,13 @@ public:
 
     /**
      * @brief 检查是否处于激怒状态
-     * MC 1.16.5: 激怒状态会触发特定的渲染效果
+     * 激怒状态会触发特定的渲染效果
      */
     [[nodiscard]] bool isAggroed() const { return m_aggroed; }
 
     /**
      * @brief 设置激怒状态
-     * MC 1.16.5: 在攻击目标时设置
+     * 在攻击目标时设置
      */
     void setAggroed(bool aggroed) { m_aggroed = aggroed; }
 
@@ -164,7 +162,7 @@ public:
     /**
      * @brief 注册默认属性
      *
-     * MC 1.16.5: MobEntity 在 LivingEntity 基础上设置 FOLLOW_RANGE = 16.0
+     * 在 LivingEntity 基础上设置 FOLLOW_RANGE = 16.0
      */
     void registerAttributes() override;
 
@@ -175,8 +173,6 @@ public:
      *
      * 子类可重写此方法来添加额外的 AI 逻辑。
      * 在 goalSelector.tick() 和控制器更新之间调用。
-     *
-     * 参考 MC 1.16.5 MobEntity.updateAITasks()
      */
     virtual void updateAITasks() {}
 
@@ -184,9 +180,7 @@ public:
      * @brief 更新移动目标标志
      *
      * 根据骑乘状态更新 GoalSelector 的 MOVE/JUMP/LOOK 标志。
-     * MC 1.16.5 每 5 tick 调用一次。
-     *
-     * 参考 MC 1.16.5 MobEntity.updateMovementGoalFlags()
+     * 每 5 tick 调用一次。
      */
     void updateMovementGoalFlags();
 
@@ -225,27 +219,24 @@ public:
     /**
      * @brief 获取水平面部旋转速度
      *
-     * 参考 MC 1.16.5 MobEntity.getHorizontalFaceSpeed()
      * 用于LookController限制导航路径时的头部旋转。
-     * MC 1.16.5 默认值: 75
+     * 默认值: 75
      */
     [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const { return 75.0f; }
 
     /**
      * @brief 获取垂直面部旋转速度
      *
-     * 参考 MC 1.16.5 MobEntity.getVerticalFaceSpeed()
      * 用于LookController限制俯仰角旋转速度。
-     * MC 1.16.5 默认值: 40
+     * 默认值: 40
      */
     [[nodiscard]] virtual f32 getVerticalFaceSpeed() const { return 40.0f; }
 
     /**
      * @brief 获取面部旋转速度
      *
-     * 参考 MC 1.16.5 MobEntity.getFaceRotSpeed()
      * 用于LookController的默认偏航角旋转速度。
-     * MC 1.16.5 默认值: 10
+     * 默认值: 10
      */
     [[nodiscard]] virtual f32 getFaceRotSpeed() const { return 10.0f; }
 
@@ -297,9 +288,6 @@ public:
 
     /**
      * @brief 检查当前位置是否在家范围内
-     *
-     * MC 1.16.5: isWithinHomeDistanceCurrentPosition()
-     * @return 如果当前位置在家范围内返回 true
      */
     [[nodiscard]] bool isWithinHomeDistanceCurrentPosition() const
     {
@@ -309,7 +297,6 @@ public:
     /**
      * @brief 检查指定位置是否在家范围内
      *
-     * MC 1.16.5: isWithinHomeDistanceFromPosition(BlockPos)
      * 如果未设置家范围（maximumHomeDistance == -1.0F），总是返回 true
      *
      * @param pos 要检查的位置
@@ -320,7 +307,6 @@ public:
         if (m_maximumHomeDistance < 0.0f) {
             return true; // 未设置家范围，任何位置都允许
         }
-        // MC 1.16.5: this.homePosition.distanceSq(pos) < (double)(this.maximumHomeDistance * this.maximumHomeDistance)
         f64 dx = static_cast<f64>(m_homePosition.x - pos.x);
         f64 dy = static_cast<f64>(m_homePosition.y - pos.y);
         f64 dz = static_cast<f64>(m_homePosition.z - pos.z);
@@ -332,7 +318,6 @@ public:
     /**
      * @brief 设置家位置和范围
      *
-     * MC 1.16.5: setHomePosAndDistance(BlockPos, int)
      * @param pos 家位置
      * @param distance 家范围半径
      */
@@ -344,32 +329,24 @@ public:
 
     /**
      * @brief 获取家位置
-     *
-     * MC 1.16.5: getHomePosition()
      * @return 家位置
      */
     [[nodiscard]] const BlockPos& homePosition() const { return m_homePosition; }
 
     /**
      * @brief 获取家范围最大距离
-     *
-     * MC 1.16.5: getMaximumHomeDistance()
      * @return 家范围半径，-1 表示未设置
      */
     [[nodiscard]] f32 maximumHomeDistance() const { return m_maximumHomeDistance; }
 
     /**
      * @brief 检查是否有家范围限制
-     *
-     * MC 1.16.5: detachHome()
      * @return 如果设置了家范围限制返回 true
      */
     [[nodiscard]] bool hasHome() const { return m_maximumHomeDistance >= 0.0f; }
 
     /**
      * @brief 清除家范围限制
-     *
-     * MC 1.16.5: 将最大距离设为 -1.0F
      */
     void clearHome() { m_maximumHomeDistance = -1.0f; }
 
@@ -378,7 +355,6 @@ public:
     /**
      * @brief 检查是否需要持久化（不会消失）
      *
-     * MC 1.16.5: MobEntity.isNoDespawnRequired()
      * 当生物被命名牌命名、拾取装备等情况时，会被标记为持久化，
      * 永远不会因为距离过远而消失。
      *
@@ -389,7 +365,6 @@ public:
     /**
      * @brief 启用持久化
      *
-     * MC 1.16.5: MobEntity.enablePersistence()
      * 标记实体为持久化，使其不会被自然消失机制清除。
      * 调用场景：
      * - 命名牌命名时
@@ -401,7 +376,6 @@ public:
     /**
      * @brief 检查是否应阻止消失
      *
-     * MC 1.16.5: MobEntity.preventDespawn()
      * 当实体正在被骑乘时，不应消失。
      * 子类可以重写此方法添加额外的阻止消失条件。
      * 例如：AbstractFishEntity 在从桶放出时也应阻止消失。
@@ -413,7 +387,6 @@ public:
     /**
      * @brief 检查是否可以消失
      *
-     * MC 1.16.5: MobEntity.canDespawn(double)
      * 子类可重写此方法来自定义消失行为。
      * 例如：AnimalEntity 返回 false（动物不会自然消失）
      *
@@ -429,7 +402,6 @@ public:
     /**
      * @brief 检查在和平模式下是否应消失
      *
-     * MC 1.16.5: MobEntity.isDespawnPeaceful()
      * MonsterEntity 重写为 true。
      *
      * @return 如果在和平模式下应消失返回 true
@@ -441,7 +413,6 @@ public:
     /**
      * @brief 检查是否暴露在日光下
      *
-     * 参考 MC 1.16.5 MobEntity.isInDaylight()
      * 用于怪物燃烧（僵尸、骷髅等）和幻翼燃烧。
      *
      * 检查条件：
@@ -459,7 +430,6 @@ public:
     /**
      * @brief 作为生物攻击实体
      *
-     * MC 1.16.5 MobEntity.attackEntityAsMob()
      * 执行近战攻击，包括：
      * 1. 获取攻击伤害属性
      * 2. 应用附魔伤害加成（锋利、亡灵杀手、节肢杀手）
@@ -486,7 +456,6 @@ public:
     /**
      * @brief 处理玩家初始交互
      *
-     * MC 1.16.5: MobEntity.processInitialInteract()
      * 重写 Entity::processInitialInteract() 以处理生物特有交互：
      * 1. 检查拴绳（如果玩家手持拴绳）
      * 2. 检查命名牌
@@ -502,7 +471,6 @@ public:
     /**
      * @brief 子类实现的交互逻辑
      *
-     * MC 1.16.5: MobEntity.func_230254_b_()
      * 由 processInitialInteract() 调用，让子类处理特定交互。
      * 例如：AbstractHorseEntity 在此处理喂食、装备鞍等。
      *
@@ -517,15 +485,12 @@ public:
     /**
      * @brief 序列化 MobEntity 特有数据
      *
-     * 参考 MC 1.16.5 MobEntity.writeAdditional()
      * 写入 CanPickUpLoot, PersistenceRequired, LeftHanded, NoAI 等。
      */
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
 
     /**
      * @brief 反序列化 MobEntity 特有数据
-     *
-     * 参考 MC 1.16.5 MobEntity.readAdditional()
      */
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
@@ -555,18 +520,18 @@ protected:
 
     // AI 状态
     bool m_aiEnabled = true;
-    bool m_aggroed = false; // MC 1.16.5: 激怒状态
+    bool m_aggroed = false; // 激怒状态
     i32 m_idleTime = 0;     // 空闲时间（用于随机漫步等）
     i32 m_livingSoundTime = 0;
 
     // 经验值（死亡时掉落）
     i32 m_experienceValue = 0;
 
-    // 家范围系统 (MC 1.16.5 MobEntity)
+    // 家范围系统
     BlockPos m_homePosition;           // 家位置，默认为 (0, 0, 0)
     f32 m_maximumHomeDistance = -1.0f; // 家范围半径，-1 表示未设置
 
-    // 持久化系统 (MC 1.16.5 MobEntity)
+    // 持久化系统
     bool m_persistenceRequired = false; // 是否需要持久化（不消失）
 };
 

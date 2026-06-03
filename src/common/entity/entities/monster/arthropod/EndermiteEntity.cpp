@@ -22,18 +22,19 @@
  */
 
 #include "EndermiteEntity.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/SilverfishGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../damage/DamageSource.hpp"
+
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/SilverfishGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -49,9 +50,9 @@ std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/)
 EndermiteEntity::EndermiteEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 末影螨不在阳光下燃烧
+    // 末影螨不在阳光下燃烧
     setBurnsInDaylight(false);
-    // MC 1.16.5: 经验值 3
+    // 经验值 3
     setExperienceValue(3);
 
     // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
@@ -60,20 +61,17 @@ EndermiteEntity::EndermiteEntity(EntityId id)
 
 void EndermiteEntity::tick()
 {
-    // MC 1.16.5 EndermiteEntity.tick()
     // 同步渲染偏航角和旋转偏航角
     m_prevRenderYawOffset = m_renderYawOffset;
     m_renderYawOffset = yaw();
 
     MonsterEntity::tick();
 
-    // MC 1.16.5 EndermiteEntity.livingTick()
     // 服务端：处理消失逻辑
     // 注意：客户端粒子效果在客户端渲染器中处理
     if (!isNoDespawnRequired()) {
         m_lifetime++;
         if (m_lifetime >= DESPAWN_TIME) {
-            // MC 1.16.5: 调用 remove() 移除实体
             remove();
         }
     }
@@ -83,7 +81,6 @@ void EndermiteEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 EndermiteEntity.registerGoals()
     // 行为目标
     goalSelector().addGoal(1, new entity::ai::goal::SwimGoal(this));
     goalSelector().addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
@@ -109,7 +106,6 @@ void EndermiteEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 EndermiteEntity.func_234288_m_()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
@@ -128,9 +124,9 @@ SilverfishEntity::SilverfishEntity(EntityId id)
     : MonsterEntity(id)
     , m_summonGoal(nullptr)
 {
-    // MC 1.16.5: 蠹虫不在阳光下燃烧
+    // 蠹虫不在阳光下燃烧
     setBurnsInDaylight(false);
-    // MC 1.16.5: 经验值 5
+    // 经验值 5
     setExperienceValue(5);
 
     // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
@@ -139,7 +135,6 @@ SilverfishEntity::SilverfishEntity(EntityId id)
 
 void SilverfishEntity::tick()
 {
-    // MC 1.16.5 SilverfishEntity.tick()
     // 同步渲染偏航角和旋转偏航角
     m_prevRenderYawOffset = m_renderYawOffset;
     m_renderYawOffset = yaw();
@@ -149,14 +144,11 @@ void SilverfishEntity::tick()
 
 bool SilverfishEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5 SilverfishEntity.attackEntityFrom()
     if (isInvulnerableTo(source)) {
         return false;
     }
 
     // 如果受到实体或魔法伤害，通知召唤同伴目标
-    // MC 1.16.5: if ((source instanceof EntityDamageSource || source == DamageSource.MAGIC) &&
-    // this.summonSilverfish != null) { this.summonSilverfish.notifyHurt(); }
     if (m_summonGoal != nullptr) {
         // 检查是否是实体伤害或魔法伤害
         if (source.isEntitySource() || source.isMagic()) {
@@ -171,7 +163,6 @@ void SilverfishEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 SilverfishEntity.registerGoals()
     // 创建召唤同伴目标
     m_summonGoal = new entity::ai::goal::SilverfishSummonOthersGoal(this);
 
@@ -188,7 +179,6 @@ void SilverfishEntity::registerGoals()
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 目标选择
-    // MC 1.16.5: setCallsForHelp() - 呼唤同伴
     targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, true));
     targetSelector().addGoal(2,
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
@@ -201,7 +191,6 @@ void SilverfishEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 SilverfishEntity.func_234317_e_()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);

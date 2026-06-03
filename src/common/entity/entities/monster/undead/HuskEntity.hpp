@@ -38,8 +38,6 @@ namespace mc {
  * - 沙漠生成：在沙漠生物群系生成
  * - 不燃烧：在阳光下不燃烧
  * - 饥饿攻击：攻击会使玩家饥饿
- *
- * 参考 MC 1.16.5 HuskEntity
  */
 class HuskEntity : public ZombieEntity {
 public:

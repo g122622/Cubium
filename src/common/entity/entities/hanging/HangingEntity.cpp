@@ -22,16 +22,16 @@
  */
 
 #include "HangingEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../item/ItemEntity.hpp"
-#include "../player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -75,15 +75,11 @@ void HangingEntity::setHangingPosition(BlockPos pos, Direction direction)
 
 bool HangingEntity::isValidPosition() const
 {
-    if (!canPlaceOn()) {
-        return false;
-    }
-    return true;
+    return canPlaceOn();
 }
 
 bool HangingEntity::canPlaceOn() const
 {
-    // MC 1.16.5: AbstractDecorationEntity.canPlaceOn()
     // 检查背后的方块是否可以支撑悬挂实体
     if (m_world == nullptr) {
         return false;
@@ -198,7 +194,6 @@ PaintingEntity::PaintingEntity(BlockPos pos, Direction direction, const std::str
 
 void PaintingEntity::dropItem()
 {
-    // MC 1.16.5: PaintingEntity.dropItem()
     // 生成画作物品
     if (m_world == nullptr) {
         return;
@@ -262,7 +257,7 @@ void ItemFrameEntity::tick()
 
 void ItemFrameEntity::dropItem()
 {
-    // MC 1.16.5: 掉落展示框内的物品
+    // 掉落展示框内的物品
     if (!m_displayedItem.isEmpty() && m_world != nullptr) {
         // 生成物品实体
         math::Random& rng = m_world->getRandom();
@@ -273,7 +268,6 @@ void ItemFrameEntity::dropItem()
 
 void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
 {
-    // MC 1.16.5: setDisplayedItemWithUpdate
     if (!stack.isEmpty()) {
         // 复制物品堆并设置数量为1
         m_displayedItem = stack;
@@ -287,7 +281,6 @@ void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
 
 void ItemFrameEntity::setItemRotation(i32 rotation)
 {
-    // MC 1.16.5: setRotation
     // 旋转值限制在 0-7 范围内
     m_rotation = rotation % 8;
     if (m_rotation < 0) {
@@ -297,20 +290,19 @@ void ItemFrameEntity::setItemRotation(i32 rotation)
 
 void ItemFrameEntity::rotateItem()
 {
-    // MC 1.16.5: rotateItem - 右键交互时旋转物品
+    // 右键交互时旋转物品
     m_rotation = (m_rotation + 1) % 8;
 }
 
 i32 ItemFrameEntity::getAnalogOutput() const
 {
-    // MC 1.16.5: ItemFrameEntity.getAnalogOutput()
     // 无物品时返回 0，有物品时返回 rotation % 8 + 1
     return m_displayedItem.isEmpty() ? 0 : (m_rotation % 8 + 1);
 }
 
 mc::Direction ItemFrameEntity::getHorizontalFacing() const
 {
-    // MC 1.16.5: 将内部方向转换为 mc::Direction
+    // 将内部方向转换为 mc::Direction
     // HangingEntity::Direction: SOUTH=0, WEST=1, NORTH=2, EAST=3
     // mc::Direction: North=2, South=3, West=4, East=5
     switch (m_direction) {
@@ -364,7 +356,6 @@ void LeashKnotEntity::tick()
 
 void LeashKnotEntity::dropItem()
 {
-    // MC 1.16.5: LeashKnotEntity.dropItem()
     // 掉落拴绳物品
     if (m_world == nullptr) {
         return;

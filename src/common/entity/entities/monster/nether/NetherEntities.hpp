@@ -23,13 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/interfaces/ICrossbowUser.hpp"
+#include "common/entity/interfaces/IFlinging.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../interfaces/ICrossbowUser.hpp"
-#include "../../../interfaces/IFlinging.hpp"
-#include "../MonsterEntity.hpp"
-#include "../basic/SlimeEntity.hpp"
 
 #include <optional>
 
@@ -42,8 +42,6 @@ class DamageSource;
  * @brief 恶魂实体
  *
  * 下界的飞行敌对生物，发射火球。
- *
- * 参考 MC 1.16.5 GhastEntity
  */
 class GhastEntity : public MonsterEntity {
 public:
@@ -70,7 +68,6 @@ public:
 
     /**
      * @brief 获取火球爆炸威力
-     * MC 1.16.5: getFireballStrength()
      */
     [[nodiscard]] i32 getFireballStrength() const { return m_explosionPower; }
 
@@ -94,7 +91,7 @@ private:
     bool m_isCharging = false;
     i32 m_attackCooldown = 0;
     i32 m_chargeTime = 0;
-    i32 m_explosionPower = 1; // MC 1.16.5: explosionStrength
+    i32 m_explosionPower = 1;
 };
 
 /**
@@ -113,8 +110,6 @@ private:
  * - 发光效果（亮度始终为 1.0）
  * - 无摔落伤害
  * - 火焰粒子代替史莱姆粒子
- *
- * 参考 MC 1.16.5 MagmaCubeEntity
  */
 class MagmaCubeEntity : public SlimeEntity {
 public:
@@ -130,8 +125,7 @@ public:
 
     /**
      * @brief 设置尺寸
-     * MC 1.16.5: 重写以添加护甲属性设置
-     * 护甲 = size * 3
+     * 重写以添加护甲属性设置，护甲 = size * 3
      */
     void setSlimeSize(i32 size, bool resetHealth = true) override;
 
@@ -143,13 +137,13 @@ public:
 
     /**
      * @brief 是否可以对玩家造成伤害
-     * MC 1.16.5: 小型岩浆怪也能伤害玩家（与史莱姆不同）
+     * 小型岩浆怪也能伤害玩家（与史莱姆不同）
      */
     [[nodiscard]] bool canDamagePlayer() const override;
 
     /**
      * @brief 获取攻击伤害
-     * MC 1.16.5: 攻击伤害 = 属性值 + 2.0F
+     * 攻击伤害 = 属性值 + 2.0F
      */
     [[nodiscard]] f32 getAttackDamage() const;
 
@@ -157,7 +151,7 @@ public:
 
     /**
      * @brief 获取跳跃延迟
-     * MC 1.16.5: 返回史莱姆跳跃延迟的 4 倍（40-120 tick）
+     * 返回史莱姆跳跃延迟的 4 倍（40-120 tick）
      */
     [[nodiscard]] i32 getJumpDelay() const override;
 
@@ -172,7 +166,7 @@ public:
 
     /**
      * @brief 获取着地粒子类型
-     * MC 1.16.5: 岩浆怪使用火焰粒子
+     * 岩浆怪使用火焰粒子
      */
     [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getSquishParticle() const override;
 
@@ -181,7 +175,7 @@ protected:
 
     /**
      * @brief 更新挤压量
-     * MC 1.16.5: 挤压动画衰减更慢（0.9 vs 0.6）
+     * 挤压动画衰减更慢（史莱姆: 0.6, 岩浆怪: 0.9）
      */
     void alterSquishAmount() override;
 };
@@ -190,8 +184,6 @@ protected:
  * @brief 猪灵基类
  *
  * 猪灵和猪灵蛮兵的共同基类。
- *
- * 参考 MC 1.16.5 AbstractPiglinEntity
  */
 class AbstractPiglinEntity : public MonsterEntity {
 public:
@@ -222,8 +214,6 @@ private:
  * @brief 猪灵实体
  *
  * 下界的敌对/中立生物，可交易。
- *
- * 参考 MC 1.16.5 PiglinEntity
  */
 class PiglinEntity : public AbstractPiglinEntity, public entity::ICrossbowUser {
 public:
@@ -275,8 +265,6 @@ private:
  * @brief 猪灵蛮兵实体
  *
  * 下界堡垒的强力敌对生物。
- *
- * 参考 MC 1.16.5 PiglinBruteEntity
  */
 class PiglinBruteEntity : public AbstractPiglinEntity {
 public:
@@ -297,8 +285,6 @@ protected:
  * @brief 僵尸猪灵实体
  *
  * 下界的中立生物，被攻击后会激怒所有附近的僵尸猪灵。
- *
- * 参考 MC 1.16.5 ZombifiedPiglinEntity
  */
 class ZombifiedPiglinEntity : public MonsterEntity {
 public:
@@ -337,8 +323,6 @@ private:
  * @brief 疣猪兽实体
  *
  * 下界的敌对生物（成年）或中立生物（幼年）。
- *
- * 参考 MC 1.16.5 HoglinEntity
  */
 class HoglinEntity : public MonsterEntity, public entity::IFlinging {
 public:
@@ -385,8 +369,6 @@ private:
  * @brief 僵尸疣兽实体
  *
  * 疣猪兽在主世界的僵尸化变体。
- *
- * 参考 MC 1.16.5 ZoglinEntity
  */
 class ZoglinEntity : public MonsterEntity, public entity::IFlinging {
 public:

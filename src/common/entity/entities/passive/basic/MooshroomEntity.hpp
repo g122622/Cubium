@@ -46,8 +46,6 @@ class ItemStack;
  * - 碗交互：使用空碗获得蘑菇汤
  * - 繁殖：与普通牛相同
  * - 棕色哞菇：喂食花朵后可产出迷之炖菜
- *
- * 参考 MC 1.16.5 MooshroomEntity
  */
 class MooshroomEntity : public CowEntity, public entity::IShearable {
 public:
@@ -145,7 +143,6 @@ public:
     /**
      * @brief 被雷击时触发
      * 红色哞菇变为棕色哞菇，棕色哞菇变为红色哞菇
-     * MC 1.16.5: func_241841_a()
      */
     void onStruckByLightning() override;
 

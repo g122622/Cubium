@@ -24,26 +24,26 @@
 #include "EvokerEntity.hpp"
 #include "VexEntity.hpp"
 
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../ai/goal/GoalFlag.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/special/EvokerGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/passive/golem/IronGolemEntity.hpp"
-#include "../../../entities/villager/VillagerEntity.hpp"
-#include "../../player/Player.hpp"
-#include "../../projectile/OtherProjectiles.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/special/EvokerGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <cmath>
 
 namespace mc {
@@ -89,7 +89,6 @@ void EvokerEntity::finishCasting()
 
 void EvokerEntity::castFangsAttack()
 {
-    // MC 1.16.5 EvokerEntity.AttackSpellGoal.castSpell()
     LivingEntity* target = attackTarget();
     if (target == nullptr || m_world == nullptr) {
         return;
@@ -114,7 +113,7 @@ void EvokerEntity::castFangsAttack()
             f32 fangAngle = angle + static_cast<f32>(i) * math::PI * 0.4f;
             f32 fangX = x() + std::cos(fangAngle) * 1.5f;
             f32 fangZ = z() + std::sin(fangAngle) * 1.5f;
-            spawnFangs(fangX, fangZ, minY, maxY, fangAngle, 0);
+            _spawnFangs(fangX, fangZ, minY, maxY, fangAngle, 0);
         }
 
         // 外圈：8个尖牙，半径2.5，延迟3
@@ -122,7 +121,7 @@ void EvokerEntity::castFangsAttack()
             f32 fangAngle = angle + static_cast<f32>(i) * math::PI * 2.0f / 8.0f + 1.2566371f;
             f32 fangX = x() + std::cos(fangAngle) * 2.5f;
             f32 fangZ = z() + std::sin(fangAngle) * 2.5f;
-            spawnFangs(fangX, fangZ, minY, maxY, fangAngle, 3);
+            _spawnFangs(fangX, fangZ, minY, maxY, fangAngle, 3);
         }
     } else {
         // 远距离攻击：直线尖牙
@@ -131,14 +130,13 @@ void EvokerEntity::castFangsAttack()
             i32 delay = i; // 延迟递增
             f32 fangX = x() + std::cos(angle) * distance;
             f32 fangZ = z() + std::sin(angle) * distance;
-            spawnFangs(fangX, fangZ, minY, maxY, angle, delay);
+            _spawnFangs(fangX, fangZ, minY, maxY, angle, delay);
         }
     }
 }
 
-void EvokerEntity::spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle, i32 warmupDelay)
+void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle, i32 warmupDelay)
 {
-    // MC 1.16.5 EvokerEntity.AttackSpellGoal.spawnFangs()
     if (m_world == nullptr) {
         return;
     }
@@ -162,8 +160,7 @@ void EvokerEntity::spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle,
             // 检查当前位置是否有碰撞箱（如草、花等）
             const BlockState* currentState = m_world->getBlockState(blockPos);
             if (currentState != nullptr && !currentState->isAir()) {
-                // 获取碰撞箱的上表面高度
-                // 简化实现：假设完整方块的碰撞箱高度为1.0
+                // TODO: 获取碰撞箱的上表面高度，当前假设完整方块的碰撞箱高度为1.0
                 // 完整实现需要 VoxelShape
                 groundY = static_cast<f32>(blockPos.y);
             } else {
@@ -190,7 +187,6 @@ void EvokerEntity::spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle,
 
 void EvokerEntity::summonVex()
 {
-    // MC 1.16.5 EvokerEntity.SummonSpellGoal.castSpell()
     if (m_world == nullptr) {
         return;
     }
@@ -239,7 +235,6 @@ void EvokerEntity::tick()
 
 void EvokerEntity::registerGoals()
 {
-    // MC 1.16.5 EvokerEntity.registerGoals()
     // 优先级: 0 = 游泳, 1 = 施法时看向目标, 2 = 避开玩家, 4 = 召唤恼鬼, 5 = 尖牙攻击,
     //         6 = 唔噜噜法术（转换蓝色羊）, 8 = 随机漫步, 9 = 看向玩家, 10 = 看向生物
 
@@ -260,8 +255,7 @@ void EvokerEntity::registerGoals()
         return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
     }));
 
-    // 目标选择器
-    // MC 1.16.5: HurtByTargetGoal 会呼唤其他灾厄村民
+    // 目标选择器：HurtByTargetGoal 会呼唤其他灾厄村民
     targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
     targetSelector().addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<entity::VillagerEntity>(this, false));
@@ -271,9 +265,8 @@ void EvokerEntity::registerGoals()
 void EvokerEntity::registerAttributes()
 {
     SpellcastingIllagerEntity::registerAttributes();
-    // MC 1.16.5 EvokerEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f); // MC 1.16.5: 唤魔者移动速度
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0f);
 }
 

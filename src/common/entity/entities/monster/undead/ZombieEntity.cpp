@@ -22,25 +22,25 @@
  */
 
 #include "ZombieEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../combat/DifficultyHelper.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityType.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../serialization/EntityNbtKeys.hpp"
-#include "../../../serialization/NbtHelper.hpp"
 #include "DrownedEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -50,7 +50,7 @@ using namespace entity::serialization;
 ZombieEntity::ZombieEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 僵尸可以在阳光下燃烧
+    // 僵尸可以在阳光下燃烧
     setBurnsInDaylight(true);
 
     // 注册 AI 目标
@@ -67,31 +67,26 @@ std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/)
 
 std::optional<ResourceLocation> ZombieEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.zombie.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> ZombieEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.zombie.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> ZombieEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.zombie.death
     return makeSoundEventId("death");
 }
 
 std::optional<ResourceLocation> ZombieEntity::getStepSound() const
 {
-    // MC 1.16.5: entity.zombie.step
     return makeSoundEventId("step");
 }
 
 void ZombieEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
 {
-    // MC 1.16.5: ZombieEntity.playStepSound()
     // 僵尸播放固定的脚步声，忽略脚下方块类型
     auto sound = getStepSound();
     if (sound) {
@@ -107,7 +102,7 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
 
     m_canBreakDoors = canBreak;
 
-    // MC 1.16.5: 动态添加/移除破门目标
+    // 动态添加/移除破门目标
     // TODO: 需要 BreakDoorGoal 实现
     // if (canBreak && m_breakDoorGoal == nullptr) {
     //     m_breakDoorGoal = new BreakDoorGoal(this);
@@ -120,7 +115,7 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
 
 void ZombieEntity::startDrowning(i32 conversionTime)
 {
-    // MC 1.16.5: 开始溺水转化
+    // 开始溺水转化
     m_converting = true;
     m_conversionTime = conversionTime;
 }
@@ -134,7 +129,7 @@ void ZombieEntity::setBaby(bool baby)
     m_isBaby = baby;
     refreshDimensions();
 
-    // MC 1.16.5: 婴儿僵尸速度加成
+    // 婴儿僵尸速度加成
     if (baby) {
         // TODO: 需要属性修饰符系统支持
         // m_attributes.applyModifier(SPEED_MODIFIER_BABY);
@@ -145,7 +140,7 @@ void ZombieEntity::setBaby(bool baby)
 
 bool ZombieEntity::canSummonReinforcements() const
 {
-    // MC 1.16.5: 检查 ZOMBIE_SPAWN_REINFORCEMENTS 属性
+    // 检查 ZOMBIE_SPAWN_REINFORCEMENTS 属性
     // 属性值范围 0.0-1.0，表示召唤概率
     // TODO: 需要属性系统支持 ZOMBIE_SPAWN_REINFORCEMENTS 属性
     // return m_attributes.getValue(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
@@ -154,7 +149,7 @@ bool ZombieEntity::canSummonReinforcements() const
 
 void ZombieEntity::trySummonReinforcements()
 {
-    // MC 1.16.5: 召唤增援逻辑在 hurt() 中处理
+    // 召唤增援逻辑在 hurt() 中处理
     // 此方法为占位符
 }
 
@@ -164,7 +159,7 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
-    // MC 1.16.5: 增援召唤逻辑
+    // 增援召唤逻辑
     // 只在困难模式下有概率召唤增援
     IWorld* worldPtr = world();
     if (worldPtr && entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
@@ -180,14 +175,13 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
 
 bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // MC 1.16.5 ZombieEntity.attackEntityAsMob()
     // 首先调用父类方法进行基础攻击
     if (!MonsterEntity::attackEntityAsMob(target)) {
         return false;
     }
 
     // 燃烧传递逻辑
-    // MC 1.16.5: 如果僵尸正在燃烧，且主手为空，且目标是生物
+    // 如果僵尸正在燃烧，且主手为空，且目标是生物
     // 则有概率点燃目标
     if (isOnFire() && getMainHandItem().isEmpty()) {
         IWorld* worldPtr = world();
@@ -196,12 +190,12 @@ bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
             f32 regionalDifficulty =
                 entity::combat::DifficultyHelper::getRegionalDifficultyBase(worldPtr->difficulty());
 
-            // MC 1.16.5: 燃烧概率 = regionalDifficulty * 0.3
+            // 燃烧概率 = regionalDifficulty * 0.3
             // 区域难度 Easy=0.75, Normal=1.0, Hard=1.0
             // 所以概率大约是 22.5%, 30%, 30%
             math::Random rng = getRandom();
             if (rng.nextFloat() < regionalDifficulty * 0.3f) {
-                // MC 1.16.5: 燃烧时间 = 2 * regionalDifficulty（秒）
+                // 燃烧时间 = 2 * regionalDifficulty（秒）
                 // 区域难度 0.75 -> 1.5秒 = 30 ticks
                 // 区域难度 1.0 -> 2秒 = 40 ticks
                 i32 fireDuration = static_cast<i32>(2.0f * regionalDifficulty * 20.0f); // 转换为 ticks
@@ -217,8 +211,8 @@ void ZombieEntity::tick()
 {
     MonsterEntity::tick();
 
-    // MC 1.16.5: 更新溺水转化
-    updateDrowning();
+    // 更新溺水转化
+    _updateDrowning();
 }
 
 void ZombieEntity::registerGoals()
@@ -226,7 +220,7 @@ void ZombieEntity::registerGoals()
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 僵尸 AI 目标
+    // 僵尸 AI 目标
     // 目标选择器（行为）
     // 优先级 2: 近战攻击
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
@@ -267,12 +261,12 @@ void ZombieEntity::registerAttributes()
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 僵尸属性
+    // 僵尸属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0); // MC 1.16.5: 35 而非默认 32
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0); // 35 而非默认 32
 
     // TODO: 需要属性系统支持 ZOMBIE_SPAWN_REINFORCEMENTS 属性
     // m_attributes.registerAttribute(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
@@ -280,9 +274,7 @@ void ZombieEntity::registerAttributes()
 
 void ZombieEntity::convertToDrowned()
 {
-    // MC 1.16.5: ZombieEntity.onDrowned() -> func_234341_c_(EntityType.DROWNED)
     // 转化为溺尸
-
     IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return;
@@ -353,7 +345,6 @@ void ZombieEntity::convertToDrowned()
     }
 
     // 11. 播放转化音效
-    // MC 1.16.5: world.playEvent(null, 1040, getPosition(), 0);
     // 事件 1040 是僵尸转化为溺尸的视觉/音效事件
     playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
     worldPtr->playEvent(1040,
@@ -369,14 +360,14 @@ void ZombieEntity::convertToDrowned()
     remove();
 }
 
-void ZombieEntity::updateDrowning()
+void ZombieEntity::_updateDrowning()
 {
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return;
     }
 
-    // MC 1.16.5: 检查是否在水中
+    // 检查是否在水中
     bool inWater = isInWater();
 
     if (inWater && shouldDrown()) {
@@ -410,8 +401,6 @@ void ZombieEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     MonsterEntity::addAdditionalSaveData(tag);
 
-    // MC 1.16.5: ZombieEntity.writeAdditional()
-
     // IsBaby (byte/bool) - 是否是婴儿僵尸
     tag.put(nbt_keys::IS_BABY, static_cast<i8>(m_isBaby ? 1 : 0));
 
@@ -422,7 +411,7 @@ void ZombieEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // InWaterTime (i32) - 在水中的时间
-    // MC 1.16.5: 只有当与溺水转化相关时才保存
+    // 只有当与溺水转化相关时才保存
     if (m_inWaterTime > 0) {
         tag.put(nbt_keys::IN_WATER_TIME, m_inWaterTime);
     }
@@ -432,8 +421,6 @@ Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 {
     // 先调用基类实现
     MC_TRY(MonsterEntity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: ZombieEntity.readAdditional()
 
     // IsBaby (byte/bool) - 是否是婴儿僵尸
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::IS_BABY)) {

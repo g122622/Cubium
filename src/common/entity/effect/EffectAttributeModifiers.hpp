@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../attribute/Attribute.hpp"
-#include "../attribute/AttributeModifier.hpp"
-#include "../attribute/Attributes.hpp"
-#include "EffectType.hpp"
+#include "core/Types.hpp"
+#include "entity/attribute/Attribute.hpp"
+#include "entity/attribute/AttributeModifier.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/effect/EffectType.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -40,7 +40,6 @@ namespace effect {
  * @brief 效果属性修改器定义
  *
  * 定义每种效果对应的属性修改器。
- * 参考 MC 1.16.5 Effect.addAttributesModifier()
  */
 namespace EffectAttributeModifiers {
 

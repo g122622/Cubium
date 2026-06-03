@@ -32,8 +32,6 @@ namespace mc {
  *
  * 可移动的生物实体基类，提供寻路能力。
  * 大多数被动生物和怪物继承此类。
- *
- * 参考 MC 1.16.5 CreatureEntity
  */
 class CreatureEntity : public MobEntity {
 public:
@@ -84,8 +82,6 @@ public:
      * - 正值越高：越偏好该位置
      * - 负值：避开该位置
      * - 0：中性
-     *
-     * 参考 MC 1.16.5 CreatureEntity.getBlockPathWeight()
      *
      * @param x X 坐标
      * @param y Y 坐标

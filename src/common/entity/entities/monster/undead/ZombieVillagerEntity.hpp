@@ -53,8 +53,6 @@ namespace mc {
  * - VILLAGER_TYPE: 村民类型
  * - VILLAGER_PROFESSION: 村民职业
  * - VILLAGER_LEVEL: 村民等级
- *
- * 参考 MC 1.16.5 ZombieVillagerEntity
  */
 class ZombieVillagerEntity : public ZombieEntity {
 public:
@@ -63,7 +61,7 @@ public:
      * @param id 实体ID
      */
     ZombieVillagerEntity(EntityId id);
-    ~ZombieVillagerEntity() override = default;
+    ~ZombieVillagerEntity() noexcept override = default;
 
     // 禁止拷贝
     ZombieVillagerEntity(const ZombieVillagerEntity&) = delete;
@@ -279,13 +277,6 @@ private:
     static entity::DataParameter<i32> VILLAGER_TYPE_PARAM;
     static entity::DataParameter<i32> VILLAGER_PROFESSION_PARAM;
     static entity::DataParameter<i32> VILLAGER_LEVEL_PARAM;
-
-    // 常量
-    static constexpr i32 DEFAULT_CONVERSION_TIME = 3600;   // 3分钟（游戏时间）
-    static constexpr i32 MIN_CONVERSION_TIME = 1;          // 最小治愈时间
-    static constexpr i32 MAX_CONVERSION_TIME = 6000;       // 最大治愈时间（5分钟）
-    static constexpr f32 CONVERSION_SPEEDUP_CHANCE = 0.3f; // 铁栏杆/床加速概率
-    static constexpr i32 CONVERSION_SPEEDUP_RANGE = 4;     // 检测范围 4x4x4
 };
 
 } // namespace mc

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../core/MobEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -104,8 +104,6 @@ protected:
  * @brief 末影龙部件实体
  *
  * 末影龙的碰撞部件，用于精确碰撞检测。
- *
- * 参考 MC 1.16.5 EnderDragonPartEntity
  */
 class EnderDragonPartEntity : public Entity {
 public:
@@ -177,14 +175,11 @@ private:
  * - 末影水晶回血
  * - 飞行移动
  * - 方块破坏
- *
- * 参考 MC 1.16.5 EnderDragonEntity
  */
 class EnderDragonEntity : public BossEntity {
 public:
     /**
      * @brief 龙的阶段
-     * MC 1.16.5: PhaseType enum
      */
     enum class Phase : u8 {
         HoldingPattern,   // 盘旋
@@ -224,19 +219,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * MC 1.16.5: entity.ender_dragon.ambient
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: entity.ender_dragon.hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取声音音量
-     * MC 1.16.5: 5.0F
      */
     [[nodiscard]] f32 getSoundVolume() const override { return 5.0f; }
 
@@ -270,7 +262,6 @@ public:
 
     /**
      * @brief 获取Boss名称（显示在生命条上）
-     * MC 1.16.5: 返回自定义名称或默认名称
      */
     [[nodiscard]] std::string getBossName() const override
     {
@@ -340,19 +331,16 @@ public:
 
     /**
      * @brief 龙部件受到伤害
-     * MC 1.16.5: attackEntityPartFrom()
      */
     bool attackEntityPartFrom(EnderDragonPartEntity* part, DamageSource& source, f32 damage);
 
     /**
      * @brief 末影水晶被破坏
-     * MC 1.16.5: onCrystalDestroyed()
      */
     void onCrystalDestroyed(EnderCrystalEntity* crystal, const BlockPos& pos, DamageSource& source);
 
     /**
      * @brief 初始化路径点
-     * MC 1.16.5: initPathPoints()
      */
     void initPathPoints();
 
@@ -369,32 +357,32 @@ private:
     /**
      * @brief 更新龙部件位置
      */
-    void updateDragonParts();
+    void _updateDragonParts();
 
     /**
      * @brief 更新末影水晶
      */
-    void updateDragonEnderCrystal();
+    void _updateDragonEnderCrystal();
 
     /**
      * @brief 碰撞处理
      */
-    void collideWithEntities();
+    void _collideWithEntities();
 
     /**
      * @brief 攻击实体列表
      */
-    void attackEntitiesInList();
+    void _attackEntitiesInList();
 
     /**
      * @brief 破坏方块
      */
-    bool destroyBlocksInAABB(const AxisAlignedBB& area);
+    bool _destroyBlocksInAABB(const AxisAlignedBB& area);
 
     /**
      * @brief 死亡更新
      */
-    void onDeathUpdate();
+    void _onDeathUpdate();
 
     /**
      * @brief 掉落经验
@@ -406,7 +394,7 @@ private:
      * @brief 掉落指定数量的经验
      * @param amount 经验数量
      */
-    void dropExperienceAmount(i32 amount);
+    void _dropExperienceAmount(i32 amount);
 
     // 阶段
     Phase m_phase = Phase::HoldingPattern;
@@ -454,10 +442,12 @@ private:
     // 转向速度
     f32 m_turnSpeed = 0.0f;
 
-    // MC 1.16.5 常量
-    static constexpr i32 DEATH_DURATION = 200;  // 死亡动画持续时间（ticks）
-    static constexpr i32 XP_FIRST_KILL = 12000; // 首次击杀经验
-    static constexpr i32 XP_SUBSEQUENT = 500;   // 后续击杀经验
+    // 死亡动画持续时间（ticks）
+    static constexpr i32 DEATH_DURATION = 200;
+    // 首次击杀经验
+    static constexpr i32 XP_FIRST_KILL = 12000;
+    // 后续击杀经验
+    static constexpr i32 XP_SUBSEQUENT = 500;
 };
 
 } // namespace entity

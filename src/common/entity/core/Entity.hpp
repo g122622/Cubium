@@ -68,7 +68,6 @@ class Team;
  * @brief 实体推动反应类型
  *
  * 定义实体被活塞等推动时的反应行为。
- * 参考 MC 1.16.5 net.minecraft.block.material.PushReaction
  */
 enum class PushReaction : u8 {
     Normal,  // 正常推动
@@ -132,8 +131,6 @@ inline bool hasFlag(EntityFlags flags, EntityFlags flag)
  * - SILENT: 静音标志
  * - NO_GRAVITY: 无重力标志
  * - POSE: 姿态
- *
- * 参考 MC 1.16.5 Entity
  */
 class Entity {
 public:
@@ -308,7 +305,6 @@ public:
     /**
      * @brief 获取溅水声音
      *
-     * 参考 MC 1.16.5 Entity.getSplashSound()
      * 子类可覆盖以提供特定溅水音效。
      *
      * @return 溅水声音事件
@@ -318,7 +314,6 @@ public:
     /**
      * @brief 获取高速溅水声音
      *
-     * 参考 MC 1.16.5 Entity.getHighspeedSplashSound()
      * 当实体高速入水时播放此音效。
      * 子类可覆盖以提供特定高速溅水音效。
      *
@@ -329,7 +324,6 @@ public:
     /**
      * @brief 执行水花溅射效果
      *
-     * 参考 MC 1.16.5 Entity.doWaterSplashEffect()
      * 当实体入水时播放水花音效并生成气泡和水溅粒子。
      *
      * 实现细节：
@@ -380,7 +374,6 @@ public:
      * @brief 缩放速度向量
      * @param factor 缩放因子
      *
-     * MC 1.16.5: setMotion(getMotion().scale(factor))
      * 用于阻力计算。
      */
     void scaleVelocity(f32 factor)
@@ -393,7 +386,6 @@ public:
     /**
      * @brief 根据偏航角计算相对移动并添加到速度
      *
-     * MC 1.16.5 Entity.moveRelative(float, Vector3d)
      * 根据实体的偏航角，将相对移动向量转换为绝对移动向量，
      * 并乘以移动因子后添加到当前速度。
      *
@@ -410,15 +402,12 @@ public:
      * 当实体落地时（onGround从false变为true），
      * 会清空攀爬位置追踪。
      *
-     * 参考: MC 1.16.5 LivingEntity.setOnGround()
-     *
      * @param onGround 是否在地面上
      */
     void setOnGround(bool onGround)
     {
         if (onGround && !m_onGround) {
             // 落地时清空攀爬位置
-            // MC 1.16.5: this.field_233624_bE_ = Optional.empty();
             m_lastClimbPos = std::nullopt;
         }
         m_onGround = onGround;
@@ -434,7 +423,6 @@ public:
     /**
      * @brief 检查是否正在鞘翅飞行
      *
-     * 参考 MC 1.16.5: LivingEntity.isElytraFlying()
      * 通过检查 FallFlying 标志位（第7位）来判断。
      *
      * @return 如果正在鞘翅飞行返回 true
@@ -444,7 +432,6 @@ public:
     /**
      * @brief 检查实体是否发光
      *
-     * 参考 MC 1.16.5: Entity.isGlowing()
      * 发光效果来源：
      * 1. 发光药水效果 (StatusEffectType::GLOWING)
      * 2. 发光鱿鱼实体类型
@@ -460,7 +447,6 @@ public:
     /**
      * @brief 设置实体发光状态
      *
-     * 参考 MC 1.16.5: Entity.setGlowing()
      * 在服务端设置 m_glowing 字段并同步 Glowing 标志位。
      *
      * @param glowing 是否发光
@@ -470,7 +456,6 @@ public:
     /**
      * @brief 获取实体所属队伍
      *
-     * 参考 MC 1.16.5: Entity.getTeam()
      * 基类默认返回 nullptr。
      * ServerPlayer 子类重写此方法，通过服务器记分板获取玩家所在队伍。
      * TameableEntity 子类重写此方法，继承主人的队伍。
@@ -483,8 +468,6 @@ public:
     /**
      * @brief 检查实体是否在指定队伍中
      *
-     * 参考 MC 1.16.5: Entity.isOnScoreboardTeam()
-     *
      * @param team 要检查的队伍
      * @return true 如果实体属于该队伍
      */
@@ -493,7 +476,6 @@ public:
     /**
      * @brief 检查两个实体是否在同一队伍
      *
-     * 参考 MC 1.16.5: Entity.isOnSameTeam()
      * 用于判断友军关系（如横扫攻击排除队友）。
      *
      * @param other 另一个实体
@@ -550,7 +532,6 @@ public:
     /**
      * @brief 设置步进高度
      *
-     * 参考 MC 1.16.5 Entity.stepHeight
      * 用于设置实体可以自动步进的最大高度：
      * - 玩家/大多数生物：0.6（可走上台阶）
      * - 马、铁傀儡、末影人等：1.0（可走上完整方块）
@@ -601,7 +582,6 @@ public:
      * @brief 使用指定移动类型移动实体
      *
      * 用于区分不同来源的移动（活塞推动、玩家推动、自身移动等）。
-     * 参考 MC 1.16.5 Entity.move(MoverType, Vec3)
      *
      * @param type 移动类型
      * @param delta 移动增量
@@ -620,7 +600,6 @@ public:
     /**
      * @brief 获取实体的推动反应类型
      *
-     * 参考 MC 1.16.5 Entity.getPushReaction()
      * 子类可重写以返回不同的推动反应。
      *
      * @return 推动反应类型
@@ -693,8 +672,6 @@ public:
      *
      * 标记实体为已移除状态。子类可以重写此方法在移除前执行额外逻辑
      * （例如史莱姆分裂）。
-     *
-     * 参考 MC 1.16.5 Entity.remove()
      */
     virtual void remove() { m_removed = true; }
 
@@ -703,8 +680,6 @@ public:
      *
      * 默认实现直接调用 remove()。
      * LivingEntity 重写此方法使用虚空伤害杀死实体。
-     *
-     * 参考 MC 1.16.5 Entity.onKillCommand()
      */
     virtual void onKillCommand() { remove(); }
 
@@ -766,9 +741,6 @@ public:
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
      * 其他实体只需要 1 tick（因为基类返回 0，递增后立即满足条件）。
      *
-     * MC 1.16.5: Entity.getMaxInPortalTime() 返回 0，
-     * 检查条件为 portalCounter++ >= i，即 0 >= 0 立即满足。
-     *
      * @return 传送所需的最大时间（tick）
      */
     [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 0; }
@@ -780,8 +752,6 @@ public:
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
      * 其他实体需要约 1 tick。
      *
-     * 参考 MC 1.16.5 Entity.tickPortal()
-     *
      * @return true 如果应该触发传送
      */
     virtual bool tickPortal();
@@ -792,8 +762,6 @@ public:
      * 当实体在传送门中停留足够时间后触发。
      * 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑。
      *
-     * MC 1.16.5 中，此方法会调用 changeDimension。
-     *
      * @return true 如果传送成功
      */
     virtual bool onPortalTriggered();
@@ -802,7 +770,6 @@ public:
      * @brief 设置实体所在的传送门方块位置
      *
      * 当实体进入传送门方块时调用。
-     * 参考 MC 1.16.5 Entity.setPortal(BlockPos)
      *
      * @param pos 传送门方块位置
      */
@@ -829,7 +796,6 @@ public:
     /**
      * @brief 检查实体是否不是Boss
      *
-     * 参考 MC 1.16.5 Entity.isNonBoss()
      * Boss实体（末影龙、凋灵）不能使用传送门。
      * 默认返回 true，Boss实体覆盖返回 false。
      *
@@ -841,8 +807,6 @@ public:
 
     /**
      * @brief 尝试传送到指定位置
-     *
-     * 参考 MC 1.16.5 LivingEntity.attemptTeleport()
      *
      * 安全传送流程：
      * 1. 检查目标区块是否已加载
@@ -861,8 +825,6 @@ public:
 
     /**
      * @brief 随机传送到附近位置
-     *
-     * 参考 MC 1.16.5 Entity.randomTeleport()
      *
      * 在指定范围内随机选择位置尝试传送：
      * - 水平方向：以实体为中心，±range 格范围
@@ -925,7 +887,6 @@ public:
     /**
      * @brief 当玩家与此实体碰撞时调用
      *
-     * 参考 MC 1.16.5 Entity.onCollideWithPlayer()
      * 用于处理玩家拾取物品、经验球、箭矢等。
      * 子类可重写以实现特定的碰撞行为。
      *
@@ -942,7 +903,6 @@ public:
     /**
      * @brief 处理玩家初始交互
      *
-     * 参考 MC 1.16.5 Entity.processInitialInteract()
      * 当玩家右键点击实体时首先调用此方法。
      * 子类可重写此方法处理特定的交互行为（如骑乘、打开容器等）。
      *
@@ -957,7 +917,6 @@ public:
     /**
      * @brief 处理玩家指定位置的交互
      *
-     * 参考 MC 1.16.5 Entity.applyPlayerInteraction()
      * 当玩家右键点击实体的特定位置时调用。
      * 基类默认调用 processInitialInteract。
      * 子类可重写此方法处理基于点击位置的交互（如盔甲架装备槽）。
@@ -997,7 +956,6 @@ public:
     /**
      * @brief 检查实体是否在雨中
      *
-     * 参考 MC 1.16.5 Entity.isInRain()
      * 需要满足：世界正在下雨 + 实体位置可以看到天空 + 生物群系允许降水
      *
      * @return 如果实体在雨中返回 true
@@ -1007,8 +965,6 @@ public:
     /**
      * @brief 检查实体是否湿润
      *
-     * 参考 MC 1.16.5 Entity.isWet()
-     * MC: isWet() = isInWater() || isInRain()
      * 用于三叉戟激流附魔、末影人躲避等逻辑
      *
      * @return 如果实体在水中或雨中返回 true
@@ -1018,7 +974,6 @@ public:
     /**
      * @brief 检查眼睛是否在水下
      *
-     * 参考 MC 1.16.5 Entity.areEyesInFluid(FluidTags.WATER)
      * 用于判断是否可以游泳、是否消耗氧气等
      *
      * @return 如果眼睛位置在水方块中返回 true
@@ -1033,7 +988,6 @@ public:
     /**
      * @brief 检查是否可以游泳
      *
-     * MC 1.16.5: canSwim() = eyesInWater && inWater
      * 用于判断游泳姿态切换
      *
      * @return 如果可以游泳返回 true
@@ -1043,7 +997,6 @@ public:
     /**
      * @brief 获取实体眼睛位置的亮度
      *
-     * 参考 MC 1.16.5 Entity.getBrightness()
      * 用于判断怪物是否在阳光下燃烧等。
      *
      * @return 亮度值 (0.0 - 1.0)，如果世界不存在返回 0.0
@@ -1056,8 +1009,6 @@ public:
      * 检查实体所在位置的方块是否为可攀爬方块。
      * 可攀爬方块包括：梯子、藤蔓、脚手架。
      *
-     * 参考: MC 1.16.5 LivingEntity.isOnLadder()
-     *
      * @return 如果实体在可攀爬方块上返回 true
      */
     [[nodiscard]] virtual bool isOnLadder() const;
@@ -1067,8 +1018,6 @@ public:
      *
      * 当实体在攀爬方块（梯子、藤蔓、脚手架等）上时，
      * 记录攀爬位置。用于摔落死亡消息的生成。
-     *
-     * 参考: MC 1.16.5 LivingEntity.func_233644_dn_()
      *
      * @return 攀爬位置，如果没有攀爬则返回空
      */
@@ -1089,7 +1038,6 @@ public:
 
     /**
      * @brief 获取实体浸入水的高度
-     * MC 1.16.5: func_233571_b_(FluidTags.WATER)
      * @return 流体高度（0.0-1.0），如果不在水中返回0
      */
     [[nodiscard]] virtual f32 getFluidHeight() const { return m_fluidHeight; }
@@ -1132,16 +1080,16 @@ public:
     [[nodiscard]] i32 fire() const { return m_fire; }
 
     /**
-     * @brief 获取火焰计时器（MC 1.16.5 getFireTimer）
+     * @brief 获取火焰计时器
      *
-     * 与 fire() 功能相同，是 MC 的命名方式。
+     * 与 fire() 功能相同。
      */
     [[nodiscard]] i32 getFireTimer() const { return m_fire; }
 
     /**
      * @brief 设置着火时间
      *
-     * MC 1.16.5: 只增加燃烧时间，不会减少。
+     * 只增加燃烧时间，不会减少。
      * 如果当前燃烧时间已经大于等于传入值，则不改变。
      *
      * @param ticks 燃烧时间（tick）
@@ -1154,7 +1102,7 @@ public:
     }
 
     /**
-     * @brief 强制设置火焰计时器（MC 1.16.5 forceFireTicks）
+     * @brief 强制设置火焰计时器
      *
      * 直接设置火焰计时器值，不检查当前值。
      * 用于增加/减少火焰时间，包括设置为负值（表示短暂火焰免疫期）。
@@ -1166,7 +1114,6 @@ public:
     /**
      * @brief 检查是否免疫火焰
      *
-     * 参考 MC 1.16.5 Entity.isImmuneToFire()
      * 默认实现查询实体类型的火焰免疫标志。
      * 子类可重写以提供运行时可变的免疫状态。
      *
@@ -1206,7 +1153,6 @@ public:
     /**
      * @brief 检查是否免疫爆炸伤害
      *
-     * 参考 MC 1.16.5 Entity.isImmuneToExplosions()
      * 默认返回 false，凋灵、末影龙等实体需要重写此方法。
      *
      * @return 如果免疫爆炸返回 true
@@ -1216,7 +1162,6 @@ public:
     /**
      * @brief 受伤入口方法
      *
-     * 参考 MC 1.16.5 Entity.attackEntityFrom()
      * 处理实体受伤的通用逻辑。基类实现检查无敌状态。
      * 子类（如 LivingEntity）应重写此方法以实现具体的受伤逻辑。
      *
@@ -1228,8 +1173,6 @@ public:
 
     /**
      * @brief 检查是否对特定伤害类型免疫
-     *
-     * 参考 MC 1.16.5 Entity.isInvulnerableTo()
      *
      * @param source 伤害来源
      * @return 如果免疫该伤害类型返回 true
@@ -1319,7 +1262,6 @@ public:
     /**
      * @brief 获取实体的所有标签
      *
-     * 参考 MC 1.16.5 Entity.getTags()
      * 标签用于命令系统和数据包谓词。
      *
      * @return 标签集合的常量引用
@@ -1329,7 +1271,6 @@ public:
     /**
      * @brief 添加标签
      *
-     * 参考 MC 1.16.5 Entity.addTag()
      * 每个实体最多可以有 1024 个标签。
      *
      * @param tag 标签名称
@@ -1339,8 +1280,6 @@ public:
 
     /**
      * @brief 移除标签
-     *
-     * 参考 MC 1.16.5 Entity.removeTag()
      *
      * @param tag 标签名称
      * @return 如果成功移除返回 true（标签存在）
@@ -1372,7 +1311,6 @@ public:
     /**
      * @brief 设置运动速度乘数
      *
-     * 参考 MC 1.16.5 Entity.setMotionMultiplier(BlockState, Vector3d)
      * 用于甜浆果丛、蜘蛛网等减速效果。
      * 每帧在实体移动前，速度会乘以这个乘数。
      * 退出减速区域时自动清除。
@@ -1426,7 +1364,6 @@ public:
     /**
      * @brief 当实体被闪电击中时调用
      *
-     * MC 1.16.5: Entity.func_241841_a(ServerWorld, LightningBoltEntity)
      * 子类可以重写此方法来处理被闪电击中的特殊效果：
      * - 哞菇：红色 -> 棕色
      * - 苦力怕：变成高压苦力怕
@@ -1501,7 +1438,6 @@ public:
     /**
      * @brief 下马（核心下车逻辑）
      *
-     * MC 1.16.5: dismount()
      * 内部方法，被 stopRiding() 调用
      */
     void dismount();
@@ -1509,7 +1445,6 @@ public:
     /**
      * @brief 移除所有乘客
      *
-     * MC 1.16.5: removePassengers()
      * 从后向前遍历乘客列表并调用每个乘客的 stopRiding()
      */
     void removePassengers();
@@ -1519,7 +1454,6 @@ public:
      * @param vehicle 载具实体
      * @return 如果可以骑乘返回true
      *
-     * MC 1.16.5: canBeRidden(Entity)
      * 默认检查：不在潜行状态 + 骑乘冷却为0
      */
     [[nodiscard]] virtual bool canBeRidden(const Entity& vehicle) const;
@@ -1528,7 +1462,6 @@ public:
      * @brief 检查是否可以在水中骑乘
      * @return 如果可以在水中骑乘返回true
      *
-     * MC 1.16.5: canBeRiddenInWater()
      * 默认返回true，LivingEntity重写返回false
      */
     [[nodiscard]] virtual bool canBeRiddenInWater() const { return true; }
@@ -1537,8 +1470,6 @@ public:
      * @brief 检查是否与指定实体骑乘同一载具
      * @param other 其他实体
      * @return 如果骑乘同一载具返回true
-     *
-     * MC 1.16.5: isRidingSameEntity(Entity)
      */
     [[nodiscard]] bool isRidingSameEntity(const Entity& other) const;
 
@@ -1546,7 +1477,6 @@ public:
      * @brief 获取最底层的骑乘实体
      * @return 最底层载具的指针，如果没有骑乘返回nullptr
      *
-     * MC 1.16.5: getLowestRidingEntity()
      * 沿着骑乘链向下遍历直到找到最底层的载具
      */
     [[nodiscard]] Entity* getLowestRidingEntity();
@@ -1556,15 +1486,12 @@ public:
      * @brief 递归检查是否骑乘或被骑乘指定实体
      * @param other 目标实体
      * @return 如果存在骑乘关系返回true
-     *
-     * MC 1.16.5: isRidingOrBeingRiddenBy(Entity)
      */
     [[nodiscard]] bool isRidingOrBeingRiddenBy(const Entity& other) const;
 
     /**
      * @brief 分离所有乘客和载具
      *
-     * MC 1.16.5: detach()
      * 同时移除所有乘客并下车
      */
     void detach();
@@ -1582,7 +1509,6 @@ public:
      * @brief 获取控制乘客（通常是第一个乘客）
      * @return 控制乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
      *
-     * MC 1.16.5: getControllingPassenger()
      * 子类可重写此方法以返回不同的控制乘客
      */
     [[nodiscard]] virtual EntityId getControllingPassenger() const { return getFirstPassenger(); }
@@ -1590,8 +1516,6 @@ public:
     /**
      * @brief 检查是否可以由乘客控制方向
      * @return 如果可以被乘客控制返回true
-     *
-     * MC 1.16.5: canBeSteered()
      */
     [[nodiscard]] virtual bool canBeSteered() const { return false; }
 
@@ -1616,7 +1540,6 @@ public:
      * @brief 获取载具骑乘高度偏移
      * @return 载具顶部到乘客底部的距离
      *
-     * MC 1.16.5: getMountedYOffset()
      * 默认返回实体高度的75%
      */
     [[nodiscard]] virtual f64 getMountedYOffset() const;
@@ -1625,7 +1548,6 @@ public:
      * @brief 获取乘客Y偏移
      * @return 乘客相对于载具骑乘点的Y偏移
      *
-     * MC 1.16.5: getYOffset()
      * Entity默认返回0，Player重写返回-0.35
      */
     [[nodiscard]] virtual f64 getYOffset() const { return 0.0; }
@@ -1633,15 +1555,12 @@ public:
     /**
      * @brief 获取骑乘位置（世界坐标）
      * @return 骑乘位置的世界坐标
-     *
-     * MC 1.16.5: getRidingPosition()
      */
     [[nodiscard]] virtual Vector3 getRidingPosition() const;
 
     /**
      * @brief 更新乘客位置
      *
-     * MC 1.16.5: updatePassenger(Entity)
      * 每帧调用以更新所有乘客的位置
      */
     void updatePassengers();
@@ -1649,7 +1568,6 @@ public:
     /**
      * @brief 更新骑乘实体的状态
      *
-     * MC 1.16.5: updateRidden()
      * 当作为乘客时调用，更新位置和旋转
      */
     virtual void updateRidden();
@@ -1658,7 +1576,6 @@ public:
      * @brief 将载具的朝向应用到乘客
      * @param passenger 乘客实体
      *
-     * MC 1.16.5: applyYawToEntity() / applyOrientationToEntity()
      * 用于船等需要同步旋转的载具
      */
     virtual void applyOrientationToEntity(Entity& passenger);
@@ -1666,8 +1583,6 @@ public:
     /**
      * @brief 检查乘客是否可以控制方向
      * @return 如果乘客可以控制载具方向返回true
-     *
-     * MC 1.16.5: canPassengerSteer()
      */
     [[nodiscard]] bool canPassengerSteer() const;
 
@@ -1686,7 +1601,6 @@ public:
      * @brief 检查实体是否可以更新
      * @return 如果实体可以更新返回true
      *
-     * MC 1.16.5: canUpdate()
      * 用于控制乘客是否执行tick更新
      */
     [[nodiscard]] virtual bool canUpdate() const { return true; }
@@ -1703,8 +1617,6 @@ protected:
     /**
      * @brief 定位乘客（内部方法）
      * @param passenger 乘客实体
-     *
-     * MC 1.16.5: positionRider()
      */
     void positionRider(Entity& passenger);
 
@@ -1733,7 +1645,6 @@ public:
     /**
      * @brief 将实体完整序列化到 NBT
      *
-     * 参考 MC 1.16.5 Entity.writeWithoutTypeId()。
      * 写入位置、运动、旋转、UUID 等基类数据，然后调用 addAdditionalSaveData()。
      *
      * @param tag NBT 复合标签（输出参数）
@@ -1743,7 +1654,6 @@ public:
     /**
      * @brief 从 NBT 反序列化实体
      *
-     * 参考 MC 1.16.5 Entity.read()。
      * 读取位置、运动、旋转、UUID 等基类数据，然后调用 readAdditionalSaveData()。
      *
      * @param tag NBT 复合标签
@@ -1757,7 +1667,6 @@ public:
      * @brief 检查实体是否正在潜行
      *
      * 默认返回 false。Player 类重写此方法返回实际的潜行状态。
-     * 参考: MC 1.16.5 Entity.isSneaking()
      *
      * @return 如果实体正在潜行返回true
      */
@@ -1767,7 +1676,6 @@ public:
      * @brief 检查实体是否小心行走（潜行状态）
      *
      * 小心行走的实体不会触发 onEntityWalk 回调。
-     * 参考: MC 1.16.5 Entity.isSteppingCarefully()
      *
      * @return 如果实体正在潜行返回true
      */
@@ -1777,7 +1685,6 @@ public:
      * @brief 检查实体是否可以触发行走事件
      *
      * 某些实体（如盔甲架、船等）不会触发行走相关事件。
-     * 参考: MC 1.16.5 Entity.canTriggerWalking()
      *
      * @return 默认返回true
      */
@@ -1787,8 +1694,6 @@ public:
      * @brief 检查实体是否不触发压力板/绊线
      *
      * 某些实体（如盔甲架、蝙蝠、投射物等）不会触发压力板和绊线。
-     * 参考: MC 1.16.5 Entity.doesEntityNotTriggerPressurePlate()
-     *
      * 默认返回 false（会触发）。
      * 蝙蝠重写返回 true（蝙蝠不触发）。
      * 盔甲架、物品实体、投射物等也应该重写返回 true。
@@ -1801,7 +1706,6 @@ public:
      * @brief 播放脚步声
      *
      * 当实体在方块上行走时调用。子类可重写以自定义脚步声。
-     * MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
      *
      * 默认实现使用脚下方块的声音类型播放脚步声。
      *
@@ -1814,7 +1718,6 @@ public:
      * @brief 检查实体是否无视碰撞
      *
      * 无视碰撞的实体可以穿过方块，不会触发碰撞检测。
-     * 参考: MC 1.16.5 Entity.noClip
      *
      * @return 如果实体无视碰撞返回true
      */
@@ -1831,8 +1734,6 @@ public:
      *
      * 遍历实体碰撞箱覆盖的所有方块，调用方块的 onEntityCollision 方法。
      * 用于在 tick() 中手动触发方块碰撞检测，例如船、矿车等不触发行走的实体。
-     *
-     * 参考 MC 1.16.5: Entity.doBlockCollisions()
      */
     void doBlockCollisions();
 
@@ -1844,8 +1745,6 @@ public:
      * - onEntityWalk: 在地面上行走
      * - onInsideBlock: 实体进入方块碰撞箱
      *
-     * 参考: MC 1.16.5 Entity.move() 中的方块回调处理
-     *
      * @param actualMovement 实际移动向量
      * @param desiredMovement 期望移动向量
      */
@@ -1856,8 +1755,6 @@ public:
      *
      * 每帧遍历实体碰撞箱覆盖的所有方块时调用。
      * ServerPlayer 重写此方法触发 EnterBlockTrigger 成就。
-     *
-     * 参考 MC 1.16.5: Entity.onInsideBlock(BlockState)
      *
      * @param blockState 方块状态
      */
@@ -1951,12 +1848,10 @@ protected:
     // 重力
     bool m_noGravity = false;
 
-    // 实体标签
-    // 参考 MC 1.16.5 Entity.tags，最多1024个标签
+    // 实体标签（最多1024个标签）
     std::set<std::string> m_tags;
 
     // 运动速度乘数（用于甜浆果丛等减速效果）
-    // 参考 MC 1.16.5 Entity.motionMultiplier
     Vector3 m_motionMultiplier = Vector3(1.0f, 1.0f, 1.0f);
     bool m_hasMotionMultiplier = false;
 
@@ -1973,7 +1868,6 @@ protected:
     /**
      * @brief 序列化子类特有数据
      *
-     * 参考 MC 1.16.5 Entity.writeAdditional()。
      * 子类重写此方法添加自己的持久化数据，必须调用基类实现。
      *
      * @param tag NBT 复合标签（输出参数）
@@ -1983,7 +1877,6 @@ protected:
     /**
      * @brief 反序列化子类特有数据
      *
-     * 参考 MC 1.16.5 Entity.readAdditional()。
      * 子类重写此方法读取自己的持久化数据，必须调用基类实现。
      *
      * @param tag NBT 复合标签

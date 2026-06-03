@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 
 namespace mc {
 
 /**
  * @brief 巡逻怪物公共基类
- *
- * 对齐 1.16.5 `PatrollerEntity` 的基础巡逻状态层。
  *
  * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity
  *
@@ -42,8 +40,6 @@ namespace mc {
  * - 巡逻队长标记
  * - 巡逻中状态
  * - 随机重置巡逻目标
- *
- * 参考 MC 1.16.5 PatrollerEntity
  */
 class PatrollerEntity : public MonsterEntity {
 public:

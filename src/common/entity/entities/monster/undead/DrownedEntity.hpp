@@ -40,8 +40,6 @@ namespace mc {
  * - 水中生活：可以在水中呼吸
  * - 三叉戟：有概率手持三叉戟
  * - 溺水：玩家溺水后可能转化为溺尸
- *
- * 参考 MC 1.16.5 DrownedEntity
  */
 class DrownedEntity : public ZombieEntity {
 public:
@@ -76,7 +74,7 @@ public:
     /**
      * @brief 是否可以游泳
      */
-    [[nodiscard]] bool canSwim() const { return true; }
+    [[nodiscard]] bool canSwim() const noexcept { return true; }
 
     // ========== 装备 ==========
 

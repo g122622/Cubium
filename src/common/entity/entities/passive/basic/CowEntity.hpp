@@ -66,31 +66,26 @@ public:
 
     /**
      * @brief 获取声音音量
-     * MC 1.16.5: 牛的音量为 0.4
      */
     [[nodiscard]] f32 getSoundVolume() const override { return 0.4f; }
 
     /**
      * @brief 获取环境音效
-     * 参考 MC 1.16.5 CowEntity.getAmbientSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 CowEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 CowEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取脚步声音
-     * 参考 MC 1.16.5 CowEntity.playStepSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getStepSound() const;
 
@@ -102,7 +97,6 @@ protected:
 
     /**
      * @brief 播放脚步声
-     * MC 1.16.5: CowEntity.playStepSound() 使用固定的脚步声
      */
     void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
 

@@ -38,11 +38,10 @@ namespace effect {
  * @brief 效果管理器
  *
  * 管理实体身上的所有效果实例。
- * 参考 MC 1.16.5 LivingEntity 的效果管理
  */
 class EffectManager {
 public:
-    EffectManager() = default;
+    EffectManager() noexcept = default;
 
     // ========== 效果管理 ==========
 
@@ -125,7 +124,7 @@ private:
      * @param type 效果类型
      * @return 效果索引，如果不存在返回 -1
      */
-    [[nodiscard]] i32 findEffectIndex(EffectType type) const;
+    [[nodiscard]] i32 _findEffectIndex(EffectType type) const;
 
 private:
     std::vector<EffectInstance> m_effects;

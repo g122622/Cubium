@@ -22,6 +22,7 @@
  */
 
 #include "IllagerEntities.hpp"
+
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
@@ -45,6 +46,7 @@
 #include "sound/SoundEvents.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -64,7 +66,6 @@ PillagerEntity::PillagerEntity(EntityId id)
 
 void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
-    // MC 1.16.5: 掠夺者使用弩进行远程攻击
     // charge 参数对弩不重要，弩使用固定速度
     MC_UNUSED(charge);
 
@@ -80,14 +81,12 @@ void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 char
     }
 
     // 调用 shootCrossbow 发射弩箭
-    // MC 1.16.5: 掠夺者使用箭矢速度 1.6F
     shootCrossbow(target, crossbow, 1.0f);
 }
 
 void PillagerEntity::onCrossbowLoadComplete(ItemStack& crossbow)
 {
-    // MC 1.16.5: 装填完成后的处理
-    // 重置空闲时间，防止立即消失
+    // 装填完成后重置空闲时间，防止立即消失
     setIdleTime(0);
 
     // 装填完成时播放音效（如果需要）
@@ -101,7 +100,6 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 
     MC_UNUSED(charge);
 
-    // MC 1.16.5: 从 ICrossbowUser 默认实现移植
     // 计算弹道
     f64 dx = target->x() - x();
     f64 dz = target->z() - z();
@@ -125,13 +123,12 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
     }
 
     // 计算难度相关的不精确度
-    // MC 1.16.5: inaccuracy = 14 - difficulty.getId() * 4
     // Peaceful=0: 14, Easy=1: 10, Normal=2: 6, Hard=3: 2
     // 目前简化为固定值 6（普通难度）
     f32 inaccuracy = 6.0f;
 
     // 创建箭矢实体
-    // MC 1.16.5: 掠夺者不消耗弹药，直接创建箭矢
+    // 掠夺者不消耗弹药，直接创建箭矢
     auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));
     arrow->setWorld(m_world);
     arrow->setPosition(x(), y() + eyeHeight() - 0.15, z());
@@ -176,7 +173,6 @@ void PillagerEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
 
-    // MC 1.16.5 PillagerEntity.registerGoals()
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
@@ -208,7 +204,6 @@ void PillagerEntity::registerGoals()
     m_targetSelector.addGoal(3,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
             this, true, 10, [](const LivingEntity* entity) {
-                // 检查是否是村民
                 // TODO: 使用 VillagerEntity 类型检查
                 return entity != nullptr && entity->isAlive();
             }));
@@ -217,7 +212,6 @@ void PillagerEntity::registerGoals()
     m_targetSelector.addGoal(3,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
             this, true, 10, [](const LivingEntity* entity) {
-                // 检查是否是铁傀儡
                 // TODO: 使用 IronGolemEntity 类型检查
                 return entity != nullptr && entity->isAlive();
             }));
@@ -227,11 +221,9 @@ void PillagerEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    // MC 1.16.5 PillagerEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    // MC 1.16.5: FOLLOW_RANGE = 32.0
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
@@ -252,7 +244,6 @@ void VindicatorEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
 
-    // MC 1.16.5 VindicatorEntity.registerGoals()
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
@@ -301,12 +292,10 @@ void VindicatorEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    // MC 1.16.5 VindicatorEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    // MC 1.16.5: 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
+    // 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    // MC 1.16.5: FOLLOW_RANGE = 12.0
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
 #include "AmbientEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -44,8 +44,6 @@ namespace mc {
  * AI 目标：
  * - BatRandomFlyGoal: 随机飞行目标（优先级0）
  * - BatRestGoal: 挂墙休息目标（优先级1）
- *
- * 参考 MC 1.16.5 BatEntity
  */
 class BatEntity : public AmbientEntity {
 public:
@@ -110,8 +108,6 @@ public:
 
     /**
      * @brief 蝙蝠不触发压力板和绊线
-     *
-     * 参考 MC 1.16.5: BatEntity 是唯一重写此方法返回 true 的实体。
      * @return true 蝙蝠不触发压力板
      */
     [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }

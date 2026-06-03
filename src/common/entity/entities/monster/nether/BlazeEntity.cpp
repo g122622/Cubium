@@ -41,7 +41,7 @@ namespace mc {
 BlazeEntity::BlazeEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // MC 1.16.5: 烈焰人不在阳光下燃烧
+    // 烈焰人不在阳光下燃烧
     setBurnsInDaylight(false);
 
     // 注册 AI 目标
@@ -61,28 +61,23 @@ std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/)
 
 std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.blaze.ambient
     return SoundEvents::ENTITY_BLAZE_AMBIENT;
 }
 
 std::optional<ResourceLocation> BlazeEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.blaze.hurt
     return SoundEvents::ENTITY_BLAZE_HURT;
 }
 
 std::optional<ResourceLocation> BlazeEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.blaze.death
     return SoundEvents::ENTITY_BLAZE_DEATH;
 }
 
 void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
 {
-    // MC 1.16.5: 发射小火球
     // 此方法由 RangedAttackGoal 调用，但烈焰人使用专用的 BlazeFireballAttackGoal
-    // 所以这个方法在当前实现中不会被调用
-    // 保留以实现 IRangedAttackMob 接口
+    // 所以这个方法在当前实现中不会被调用，保留以实现 IRangedAttackMob 接口
     if (!target || !target->isAlive()) {
         return;
     }
@@ -98,15 +93,12 @@ void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charg
 
 void BlazeEntity::tick()
 {
-    // MC 1.16.5 BlazeEntity.tick()
-
     // 空中悬浮减速
     if (!onGround() && velocityY() < 0.0f) {
-        // MC 1.16.5: motion.y *= 0.6
         setVelocity(velocityX(), velocityY() * 0.6f, velocityZ());
     }
 
-    // MC 1.16.5: 客户端粒子效果和音效
+    // 客户端粒子效果和音效
     if (world() != nullptr && world()->isClientSide()) {
         math::Random& random = world()->getRandom();
 
@@ -142,7 +134,6 @@ void BlazeEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // MC 1.16.5 BlazeEntity.registerGoals()
     // 优先级 4: FireballAttackGoal（火球攻击）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::BlazeFireballAttackGoal>(this));
 
@@ -174,7 +165,7 @@ void BlazeEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // MC 1.16.5 BlazeEntity 属性
+    // 烈焰人属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
@@ -183,7 +174,6 @@ void BlazeEntity::registerAttributes()
 
 void BlazeEntity::updateAITasks()
 {
-    // MC 1.16.5: 更新 AI 任务
     // 烈焰人的 AI 任务由 BlazeFireballAttackGoal 处理
 }
 

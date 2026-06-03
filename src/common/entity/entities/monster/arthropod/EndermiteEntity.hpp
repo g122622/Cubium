@@ -24,8 +24,9 @@
 #pragma once
 
 #include <memory>
-#include "../../../../core/Types.hpp"
-#include "../MonsterEntity.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 
 namespace mc {
 
@@ -39,8 +40,6 @@ class SilverfishSummonOthersGoal;
  *
  * 末影人瞬移时有概率生成的敌对小生物。
  * 非持久化的末影螨会在约2分钟（2400 ticks）后自动消失。
- *
- * 参考 MC 1.16.5 EndermiteEntity
  */
 class EndermiteEntity : public MonsterEntity {
 public:
@@ -50,7 +49,7 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
     EndermiteEntity(EntityId id);
-    ~EndermiteEntity() override = default;
+    ~EndermiteEntity() noexcept override = default;
 
     // ========== 生命周期 ==========
 
@@ -60,13 +59,11 @@ public:
 
     /**
      * @brief 检查是否由玩家生成
-     * MC 1.16.5: isSpawnedByPlayer()
      */
     [[nodiscard]] bool isSpawnedByPlayer() const { return m_playerSpawned; }
 
     /**
      * @brief 设置是否由玩家生成
-     * MC 1.16.5: setSpawnedByPlayer()
      */
     void setSpawnedByPlayer(bool playerSpawned) { m_playerSpawned = playerSpawned; }
 
@@ -87,8 +84,6 @@ private:
  *
  * 生成于要塞的敌对小生物，可以唤起更多蠹虫。
  * 当受到伤害时会召唤周围虫蚀方块中的蠹虫。
- *
- * 参考 MC 1.16.5 SilverfishEntity
  */
 class SilverfishEntity : public MonsterEntity {
 public:
@@ -98,19 +93,17 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world);
 
     SilverfishEntity(EntityId id);
-    ~SilverfishEntity() override = default;
+    ~SilverfishEntity() noexcept override = default;
 
     // ========== 生命周期 ==========
 
     /**
      * @brief 重写tick以处理特殊行为
-     * MC 1.16.5: 同步renderYawOffset和rotationYaw
      */
     void tick() override;
 
     /**
      * @brief 重写受伤以触发召唤同伴
-     * MC 1.16.5: 受伤时通知SummonSilverfishGoal
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
@@ -120,11 +113,10 @@ public:
      * @brief 获取召唤同伴目标
      * @return 召唤同伴目标的指针
      */
-    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() { return m_summonGoal; }
+    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() noexcept { return m_summonGoal; }
 
     /**
      * @brief 通知召唤同伴目标
-     * MC 1.16.5: 当受到伤害时调用
      *
      * 这是一个便捷方法，内部调用 getSummonGoal()->notifyHurt()
      */

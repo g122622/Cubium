@@ -39,8 +39,6 @@ namespace mc {
  * - 有限生命：存活约2分钟后死亡
  * - 穿墙：可以穿过任何方块
  * - 召唤：由唤魔者召唤
- *
- * 参考 MC 1.16.5 VexEntity
  */
 class VexEntity : public MonsterEntity {
 public:

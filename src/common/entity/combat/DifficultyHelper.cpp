@@ -31,10 +31,7 @@ f32 DifficultyHelper::adjustPlayerDamage(Difficulty difficulty, f32 damage)
         case Difficulty::Peaceful:
             return 0.0f; // 和平模式下玩家不受怪物伤害（由其他逻辑处理）
         case Difficulty::Easy:
-            // MC 1.16.5 PlayerEntity.java:858-859
-            // if (this.world.getDifficulty() == Difficulty.EASY) {
-            //     amount = Math.min(amount / 2.0F + 1.0F, amount);
-            // }
+            // 伤害减半后加1，不超过原伤害
             // 例如：damage=10 -> min(5+1, 10) = 6
             return std::min(damage / 2.0f + 1.0f, damage);
         case Difficulty::Normal:
@@ -112,7 +109,7 @@ f32 DifficultyHelper::getFireDurationMultiplier(Difficulty difficulty)
 
 i32 DifficultyHelper::getFireSpreadBonus(Difficulty difficulty)
 {
-    // MC 1.16.5 FireBlock: difficulty * 7
+    // 火焰蔓延概率加成 = difficulty * 7
     return static_cast<i32>(difficulty) * 7;
 }
 
@@ -160,9 +157,7 @@ bool DifficultyHelper::allowsMobSpawning(Difficulty difficulty)
 
 f32 DifficultyHelper::getRegionalDifficultyBase(Difficulty difficulty)
 {
-    // 参考 MC 1.16.5 DifficultyInstance
-    // 区域难度 = 难度ID * 倍率，其中倍率基于多种因素计算
-    // 这里返回基值，实际区域难度需要更多因素
+    // 区域难度 = 难度ID * 倍率，这里返回基值
     switch (difficulty) {
         case Difficulty::Peaceful:
             return 0.0f;

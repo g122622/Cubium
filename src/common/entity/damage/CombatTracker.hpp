@@ -24,8 +24,6 @@
 /**
  * @file CombatTracker.hpp
  * @brief 战斗追踪器 - 记录实体的战斗历史
- *
- * 参考 MC 1.16.5 CombatTracker
  */
 
 #pragma once
@@ -46,16 +44,6 @@ class Entity;
  *
  * 记录实体受到的所有伤害事件，用于生成死亡消息和统计战斗数据。
  * 每个LivingEntity都有一个CombatTracker实例。
- *
- * MC 1.16.5 字段：
- * - fighter: 拥有此追踪器的生物
- * - combatEntries: 战斗记录列表
- * - lastDamageTime: 最后受伤时间
- * - combatStartTime: 战斗开始时间
- * - combatEndTime: 战斗结束时间
- * - inCombat: 是否在战斗中
- * - takingDamage: 是否正在受到伤害
- * - fallSuffix: 当前摔落后缀
  */
 class CombatTracker {
 public:
@@ -67,9 +55,6 @@ public:
 
     /**
      * @brief 记录伤害事件
-     *
-     * 参考 MC 1.16.5 CombatTracker.trackDamage()
-     *
      * @param source 伤害来源
      * @param health 受伤前生命值
      * @param damage 伤害值
@@ -80,7 +65,6 @@ public:
      * @brief 重置追踪器
      *
      * 清除所有记录的战斗数据，通常在重生时调用。
-     * 参考 MC 1.16.5 CombatTracker.reset()
      */
     void reset();
 
@@ -113,9 +97,6 @@ public:
 
     /**
      * @brief 获取最佳攻击者实体（用于 Target Goals）
-     *
-     * 参考 MC 1.16.5 LivingEntity.getAttackingEntity()
-     *
      * @return 最佳攻击者
      */
     [[nodiscard]] LivingEntity* getBestAttackerLiving() const;
@@ -170,35 +151,32 @@ private:
      * @brief 计算摔落后缀
      *
      * 根据方块类型确定摔落后缀（如梯子、藤蔓等）。
-     * 参考 MC 1.16.5 CombatTracker.calculateFallSuffix()
      */
-    void calculateFallSuffix();
+    void _calculateFallSuffix();
 
     /**
      * @brief 清理过期的战斗条目
      * @param currentTime 当前时间
      */
-    void cleanupOldEntries(i32 currentTime);
+    void _cleanupOldEntries(i32 currentTime);
 
     /**
      * @brief 更新最佳伤害记录
      */
-    void updateBestEntry();
+    void _updateBestEntry();
 
     /**
      * @brief 获取最佳战斗条目（复杂逻辑）
      *
-     * 参考 MC 1.16.5 CombatTracker.getBestCombatEntry()
      * 优先选择玩家造成的伤害，然后选择最大的伤害。
      */
-    [[nodiscard]] CombatEntry* getBestCombatEntry();
+    [[nodiscard]] CombatEntry* _getBestCombatEntry();
 
     LivingEntity* m_owner;              // 拥有者
     std::vector<CombatEntry> m_entries; // 战斗记录
     f32 m_totalDamage = 0.0f;           // 总承受伤害
     size_t m_bestEntryIndex = 0;        // 最佳伤害记录索引
 
-    // MC 1.16.5 新增字段
     i32 m_lastDamageTime = 0;    // 最后受伤时间
     i32 m_combatStartTime = 0;   // 战斗开始时间
     i32 m_combatEndTime = 0;     // 战斗结束时间

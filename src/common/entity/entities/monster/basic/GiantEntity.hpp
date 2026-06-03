@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,8 +40,6 @@ namespace mc {
  * - 高生命值：100点生命
  * - 无AI：没有智能行为
  * - 无生成：只能通过命令生成
- *
- * 参考 MC 1.16.5 GiantEntity
  */
 class GiantEntity : public MonsterEntity {
 public:

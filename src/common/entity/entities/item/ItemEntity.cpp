@@ -21,17 +21,18 @@
  *
  */
 
-#include "ItemEntity.hpp"
-#include "../../../../common/perfetto/TraceEvents.hpp"
-#include "../../../physics/PhysicsConstants.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/entity/EntityManager.hpp"
-#include "../../core/EntityTypeIdNumber.hpp"
-#include "../../serialization/EntityNbtKeys.hpp"
-#include "../../serialization/NbtHelper.hpp"
-#include "../player/Player.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -123,10 +124,10 @@ void ItemEntity::tick()
     }
 
     // 更新物理
-    updatePhysics();
+    _updatePhysics();
 
     // 更新合并检测
-    updateMerge();
+    _updateMerge();
 
     // 更新存活时间
     m_ticksExisted++;
@@ -179,9 +180,8 @@ void ItemEntity::setOwner(const std::string& ownerUuid, const std::string& throw
 // 物品合并
 // ============================================================================
 
-void ItemEntity::updateMerge()
+void ItemEntity::_updateMerge()
 {
-    // MC 1.16.5 ItemEntity.java 行 144-155
     // 检查是否允许合并
     if (m_itemStack.isEmpty() || isRemoved()) {
         return;
@@ -207,8 +207,7 @@ void ItemEntity::updateMerge()
         return;
     }
 
-    // MC 1.16.5: 合并检测间隔
-    // 移动时每 2 tick 检测，静止时每 40 tick 检测
+    // 合并检测间隔：移动时每 2 tick 检测，静止时每 40 tick 检测
     bool hasMoved = m_position.distanceSquared(m_prevPosition) > 0.0001f;
     i32 checkInterval = hasMoved ? 2 : 40;
     if (m_ticksExisted % checkInterval != 0) {
@@ -216,7 +215,6 @@ void ItemEntity::updateMerge()
     }
 
     // 搜索附近可合并的物品实体
-    // MC 1.16.5: grow(0.5D, 0.0D, 0.5D)
     AxisAlignedBB searchBox = m_boundingBox.expand(0.5f, 0.0f, 0.5f);
     std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
 
@@ -234,13 +232,11 @@ void ItemEntity::updateMerge()
         }
 
         // 检查所有者匹配
-        // MC 1.16.5: Objects.equals(this.getOwnerId(), other.getOwnerId())
         if (m_ownerUuid != other->m_ownerUuid) {
             continue;
         }
 
-        // 执行合并
-        // MC 1.16.5: 数量较少的合并到数量较多的
+        // 执行合并：数量较少的合并到数量较多的
         if (other->m_itemStack.getCount() < m_itemStack.getCount()) {
             // other 数量少，合并到当前实体（this）
             tryMergeWith(*other);
@@ -281,10 +277,8 @@ bool ItemEntity::tryMergeWith(ItemEntity& other)
         // 全部合并到当前实体
         m_itemStack.setCount(total);
 
-        // 合并后更新属性（MC 1.16.5 行为）
-        // 取较大的拾取延迟
+        // 合并后更新属性：取较大的拾取延迟，取较小的年龄
         m_pickupDelay = std::max(m_pickupDelay, other.m_pickupDelay);
-        // 取较小的年龄
         m_age = std::min(m_age, other.m_age);
 
         other.remove();
@@ -350,11 +344,8 @@ bool ItemEntity::canMergeWith(const ItemEntity& other) const
 // 物理更新
 // ============================================================================
 
-void ItemEntity::updatePhysics()
+void ItemEntity::_updatePhysics()
 {
-    // MC 1.16.5 ItemEntity.tick() 物理更新逻辑
-    // 参考 ItemEntity.java 行 99-144
-
     // 1. 检测环境
     bool inWater = false;
     bool inLava = false;
@@ -368,11 +359,11 @@ void ItemEntity::updatePhysics()
 
     // 2. 应用重力和阻力（仅一次）
     if (inWater) {
-        applyWaterPhysics();
+        _applyWaterPhysics();
     } else if (inLava) {
-        applyLavaPhysics();
+        _applyLavaPhysics();
     } else {
-        applyNormalPhysics();
+        _applyNormalPhysics();
     }
 
     // 3. 执行移动
@@ -383,7 +374,6 @@ void ItemEntity::updatePhysics()
         if (m_physicsEngine || m_world) {
             Vector3 actual = moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
 
-            // MC 1.16.5: ItemEntity.java 行 127-137
             // 落地反弹逻辑
             if (m_collidedVertically) {
                 if (m_velocity.y < 0.0f) {
@@ -410,7 +400,7 @@ void ItemEntity::updatePhysics()
     // 注意：不再调用 Entity::applyPhysics()，因为重力/阻力已在上面应用
 }
 
-void ItemEntity::applyNormalPhysics()
+void ItemEntity::_applyNormalPhysics()
 {
     // 使用统一物理常量
     m_velocity.y -= physics::ITEM_GRAVITY;
@@ -426,9 +416,8 @@ void ItemEntity::applyNormalPhysics()
     if (std::abs(m_velocity.z) < VELOCITY_THRESHOLD) m_velocity.z = 0.0f;
 }
 
-void ItemEntity::applyWaterPhysics()
+void ItemEntity::_applyWaterPhysics()
 {
-    // MC 1.16.5 ItemEntity.java 行 171-176
     // 水中物理：轻微浮力 + 阻力
     // 浮力：当速度小于 0.06 时，向上推 0.0005
     if (m_velocity.y < 0.06f) {
@@ -440,9 +429,8 @@ void ItemEntity::applyWaterPhysics()
     m_velocity.z *= 0.99f;
 }
 
-void ItemEntity::applyLavaPhysics()
+void ItemEntity::_applyLavaPhysics()
 {
-    // MC 1.16.5 ItemEntity.java 行 177-182
     // 岩浆中物理：浮力 + 阻力 + 着火
     // 浮力：向上推 0.0005
     m_velocity.y += 0.0005f;
@@ -451,8 +439,7 @@ void ItemEntity::applyLavaPhysics()
     m_velocity.y *= 0.95f;
     m_velocity.z *= 0.95f;
 
-    // 设置着火 - MC 1.16.5: 物品在岩浆中会被点燃
-    // 设置为着火 15 秒 = 300 ticks（与实体一致）
+    // 设置着火：物品在岩浆中会被点燃，设置为着火 15 秒 = 300 ticks
     setFire(300);
 }
 
@@ -563,8 +550,6 @@ void ItemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     Entity::addAdditionalSaveData(tag);
 
-    // MC 1.16.5: ItemEntity.writeAdditional()
-
     // Item (compound) - 物品堆 NBT
     nbt::tags::compound_tag itemTag;
     m_itemStack.toNbt(itemTag);
@@ -591,8 +576,6 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
 {
     // 先调用基类实现
     MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: ItemEntity.readAdditional()
 
     // Item (compound) - 物品堆 NBT
     const nbt::tags::compound_tag* itemTag = nbt_helper::tryGetCompound(tag, nbt_keys::ITEM);
