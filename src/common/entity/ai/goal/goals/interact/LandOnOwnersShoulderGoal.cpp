@@ -22,10 +22,11 @@
  */
 
 #include "LandOnOwnersShoulderGoal.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../entities/passive/tamable/ShoulderRidingEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
+
+#include "common/entity/entities/passive/tamable/ShoulderRidingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -40,12 +41,7 @@ LandOnOwnersShoulderGoal::LandOnOwnersShoulderGoal(ShoulderRidingEntity* entity)
 
 bool LandOnOwnersShoulderGoal::shouldExecute()
 {
-    if (m_entity == nullptr) {
-        return false;
-    }
-
-    // MC 1.16.5: 检查是否可以坐到肩膀上
-    // 条件1：未坐下（原版使用 isOrderedToSit，这里用 isSitting）
+    // 条件1：未坐下
     if (m_entity->isSitting()) {
         return false;
     }
@@ -66,20 +62,15 @@ bool LandOnOwnersShoulderGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 检查主人状态
-    // - 不是旁观者模式
-    // - 不在飞行（创造模式飞行）
-    // - 不在水中
+    // 检查主人状态：不是旁观者模式、不在飞行、不在水中
     if (m_owner->isSpectator()) {
         return false;
     }
 
-    // 检查主人是否在飞行（创造模式/旁观者模式的飞行能力）
     if (m_owner->abilities().flying) {
         return false;
     }
 
-    // 检查主人是否在水中
     if (m_owner->isInWater()) {
         return false;
     }
@@ -89,10 +80,6 @@ bool LandOnOwnersShoulderGoal::shouldExecute()
 
 bool LandOnOwnersShoulderGoal::shouldContinueExecuting()
 {
-    if (m_entity == nullptr || m_owner == nullptr) {
-        return false;
-    }
-
     // 如果已经坐到肩膀上，继续执行以维持状态
     if (m_isSittingOnShoulder) {
         return m_entity->isOnShoulder();
@@ -107,16 +94,16 @@ bool LandOnOwnersShoulderGoal::shouldContinueExecuting()
         return false;
     }
 
-    if (m_owner->isSpectator() || m_owner->abilities().flying || m_owner->isInWater()) {
+    if (m_owner == nullptr || m_owner->isSpectator() || m_owner->abilities().flying || m_owner->isInWater()) {
         return false;
     }
 
     return true;
 }
 
-bool LandOnOwnersShoulderGoal::isPreemptible() const
+bool LandOnOwnersShoulderGoal::isPreemptible() const noexcept
 {
-    // MC 1.16.5: 如果已经在肩膀上，不可被抢占
+    // 如果已经在肩膀上，不可被抢占
     return !m_isSittingOnShoulder;
 }
 
@@ -128,38 +115,27 @@ void LandOnOwnersShoulderGoal::startExecuting()
 
 void LandOnOwnersShoulderGoal::tick()
 {
-    if (m_entity == nullptr || m_owner == nullptr) {
-        return;
-    }
-
     // 如果已经坐到肩膀上，不需要再做任何事
     if (m_isSittingOnShoulder) {
         return;
     }
 
-    // MC 1.16.5: 检查是否被命令坐下
-    // 原版使用 func_233684_eK_() 即 isOrderedToSit()
-    // 这里用 isSitting() 代替
+    // 检查是否被命令坐下
     if (m_entity->isSitting()) {
         return;
     }
 
-    // MC 1.16.5: 检查是否被拴住
+    // TODO: 检查是否被拴住（拴绳系统尚未完全实现）
     // 如果实体被拴绳拴住，不能坐到肩膀上
-    // 注意：拴绳系统尚未完全实现，暂时跳过此检查
     // if (m_entity->isLeashed()) {
     //     return;
     // }
 
-    // MC 1.16.5: 检查碰撞箱是否与主人相交
-    // if (this.entity.getBoundingBox().intersects(this.owner.getBoundingBox()))
+    // 检查碰撞箱是否与主人相交
     if (m_entity->boundingBox().intersects(m_owner->boundingBox())) {
         // 尝试坐到主人肩膀上
-        // MC 1.16.5: func_213439_d() 即 setEntityOnShoulder()
         if (m_entity->mountShoulder(m_owner->playerId())) {
             m_isSittingOnShoulder = true;
-            // 成功坐到肩膀上后，实体会被从世界中移除（存储在玩家NBT中）
-            // 但在我们的实现中，只是设置状态
         }
     }
 }

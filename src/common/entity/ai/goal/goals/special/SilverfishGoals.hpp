@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../RandomWalkingGoal.hpp"
 #include "core/Types.hpp"
+#include "entity/ai/goal/Goal.hpp"
+#include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "util/Direction.hpp"
 #include <functional>
 
@@ -45,8 +45,6 @@ namespace entity::ai::goal {
  *
  * 蠹虫在没有攻击目标时，有概率进入附近的虫蚀方块。
  * 这个目标继承自 RandomWalkingGoal，但增加了藏入石头的特殊行为。
- *
- * 参考 MC 1.16.5 SilverfishEntity.HideInStoneGoal
  *
  * 行为：
  * - 只有当蠹虫没有攻击目标且导航器空闲时才执行
@@ -74,7 +72,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SilverfishHideInStoneGoal"; }
 
-    // MC 1.16.5 常量（公开用于测试）
+    // 常量（公开用于测试）
     static constexpr i32 MERGE_CHANCE = 10;
 
 private:
@@ -82,7 +80,7 @@ private:
      * @brief 检查并选择一个虫蚀方块方向
      * @return 如果找到虫蚀方块返回 true，并设置 m_facing 和 m_doMerge
      */
-    [[nodiscard]] bool checkForInfestedBlock();
+    [[nodiscard]] bool _checkForInfestedBlock();
 
     SilverfishEntity* m_silverfish;
     Direction m_facing = Direction::None; // 选中的方向
@@ -93,8 +91,6 @@ private:
  * @brief 蠹虫召唤同伴目标
  *
  * 当蠹虫受到伤害时，召唤周围虫蚀方块中的其他蠹虫。
- *
- * 参考 MC 1.16.5 SilverfishEntity.SummonSilverfishGoal
  *
  * 行为：
  * - 受伤时触发 notifyHurt()，设置 20 tick 的召唤计时器
@@ -118,7 +114,6 @@ public:
      * @brief 通知蠹虫受伤
      *
      * 当蠹虫受到伤害时调用此方法，触发召唤计时器。
-     * MC 1.16.5: notifyHurt()
      */
     void notifyHurt();
 
@@ -127,7 +122,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SilverfishSummonOthersGoal"; }
 
-    // MC 1.16.5 常量（公开用于测试）
+    // 常量（公开用于测试）
     static constexpr i32 SUMMON_DURATION = 20;
 
 private:

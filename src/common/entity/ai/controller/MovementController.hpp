@@ -47,8 +47,6 @@ enum class MoveAction : u8 {
  * @brief 移动控制器
  *
  * 控制实体的移动行为。
- *
- * 参考 MC 1.16.5 MovementController
  */
 class MovementController {
 public:
@@ -81,7 +79,6 @@ public:
 
     /**
      * @brief 检查目标位置是否可行走
-     * MC 1.16.5 func_234024_b_
      * @param x X坐标
      * @param z Z坐标
      * @return 是否可行走

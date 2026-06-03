@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../util/math/Vector3.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../Goal.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 #include <functional>
 
@@ -41,8 +41,6 @@ namespace entity::ai::goal {
  * @brief 避开实体目标
  *
  * 使生物避开特定类型的实体。
- *
- * 参考 MC 1.16.5 AvoidEntityGoal
  */
 class AvoidEntityGoal : public Goal {
 public:
@@ -79,27 +77,28 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "AvoidEntityGoal"; }
 
-protected:
+private:
     /**
      * @brief 寻找要避开的实体
      * @return 要避开的实体，如果没有则返回 nullptr
      */
-    [[nodiscard]] LivingEntity* findEntityToAvoid();
+    [[nodiscard]] LivingEntity* _findEntityToAvoid();
 
     /**
      * @brief 寻找远离实体的位置
-     * MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom
      * @return 是否找到有效位置
      */
-    [[nodiscard]] bool findEscapePosition();
+    [[nodiscard]] bool _findEscapePosition();
 
     /**
      * @brief 验证逃跑位置是否有效
-     * MC 1.16.5: 检查逃跑位置比当前位置更远离目标
+     *
+     * 检查逃跑位置比当前位置更远离目标。
+     *
      * @param escapePos 逃跑位置
      * @return 如果逃跑位置有效返回 true
      */
-    [[nodiscard]] bool isEscapePositionValid(const Vector3& escapePos) const;
+    [[nodiscard]] bool _isEscapePositionValid(const Vector3& escapePos) const;
 
     CreatureEntity* m_creature;
     f32 m_avoidDistance;
@@ -111,9 +110,8 @@ protected:
     f64 m_escapeY = 0.0;
     f64 m_escapeZ = 0.0;
 
-    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockAwayFrom 的参数
-    static constexpr i32 ESCAPE_HORIZONTAL_RANGE = 16; // 水平搜索范围
-    static constexpr i32 ESCAPE_VERTICAL_RANGE = 7;    // 垂直搜索范围
+    static constexpr i32 ESCAPE_HORIZONTAL_RANGE = 16;
+    static constexpr i32 ESCAPE_VERTICAL_RANGE = 7;
 };
 
 } // namespace entity::ai::goal

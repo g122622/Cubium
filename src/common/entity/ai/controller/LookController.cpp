@@ -22,11 +22,13 @@
  */
 
 #include "LookController.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../core/Entity.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../pathfinding/PathNavigator.hpp"
+
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
+
 #include <cmath>
 
 namespace mc::entity::ai::controller {
@@ -37,7 +39,6 @@ LookController::LookController(MobEntity* mob)
 
 void LookController::setLookPosition(f64 x, f64 y, f64 z)
 {
-    // MC 1.16.5: 使用 getFaceRotSpeed() (默认10) 而非 getHorizontalFaceSpeed() (默认75)
     if (m_mob) {
         setLookPosition(x, y, z, m_mob->getFaceRotSpeed(), m_mob->getVerticalFaceSpeed());
     } else {
@@ -57,13 +58,11 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 delt
 
 void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch)
 {
-    // MC 1.16.5: LivingEntity 使用 getPosYEye()，其他实体使用碰撞盒中心
+    // LivingEntity 使用眼睛位置，其他实体使用碰撞盒中心
     f64 eyeY;
     if (const auto* living = dynamic_cast<const LivingEntity*>(&entity)) {
-        // LivingEntity: 使用眼睛位置
         eyeY = living->y() + living->eyeHeight();
     } else {
-        // 非 LivingEntity: 使用碰撞盒中心
         const auto& box = entity.boundingBox();
         eyeY = (static_cast<f64>(box.minY) + static_cast<f64>(box.maxY)) / 2.0;
     }
@@ -74,12 +73,12 @@ void LookController::tick()
 {
     if (!m_mob) return;
 
-    // 1. 首先处理俯仰角重置（MC在tick开头处理）
+    // 首先处理俯仰角重置
     if (shouldResetPitch()) {
         m_mob->setRotationPitch(0.0f);
     }
 
-    // 2. 处理观看逻辑
+    // 处理观看逻辑
     if (m_isLooking) {
         m_isLooking = false;
 
@@ -87,31 +86,29 @@ void LookController::tick()
         f32 targetYaw = getTargetYaw();
         f32 targetPitch = getTargetPitch();
 
-        // MC 使用 rotationYawHead 而非 yaw
         f32 currentYaw = m_mob->rotationYawHead();
         f32 currentPitch = m_mob->pitch();
 
         f32 newYaw = math::clampedRotate(currentYaw, targetYaw, m_deltaLookYaw);
         f32 newPitch = math::clampedRotate(currentPitch, targetPitch, m_deltaLookPitch);
 
-        // MC 分别设置头部旋转和俯仰角
+        // 分别设置头部旋转和俯仰角
         m_mob->setRotationYawHead(newYaw);
         m_mob->setRotationPitch(newPitch);
     } else {
-        // 3. 空闲时让头部朝向身体朝向
+        // 空闲时让头部朝向身体朝向
         f32 currentYaw = m_mob->rotationYawHead();
         f32 bodyYaw = m_mob->renderYawOffset();
         f32 newYaw = math::clampedRotate(currentYaw, bodyYaw, 10.0f);
         m_mob->setRotationYawHead(newYaw);
     }
 
-    // 4. MC 1.16.5: 如果有导航路径，限制头部与身体的角度差
+    // 如果有导航路径，限制头部与身体的角度差
     auto* navigator = m_mob->navigator();
     if (navigator && !navigator->noPath()) {
         f32 currentYaw = m_mob->rotationYawHead();
         f32 bodyYaw = m_mob->renderYawOffset();
         f32 maxRotate = m_mob->getHorizontalFaceSpeed();
-        // MC 1.16.5: 使用 func_219800_b (approachTargetAngle)，结果包装到 [0, 360)
         f32 newYaw = math::approachTargetAngle(currentYaw, bodyYaw, maxRotate);
         m_mob->setRotationYawHead(newYaw);
     }
@@ -125,7 +122,6 @@ f32 LookController::getTargetYaw() const
     f64 dz = m_posZ - m_mob->z();
 
     // atan2(dz, dx) 返回弧度，转换为度数
-    // MC 使用 atan2(dz, dx) * 180/PI - 90
     f32 yaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
     return yaw;

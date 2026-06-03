@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
 #include "../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 
 namespace mc {
@@ -43,13 +43,11 @@ namespace entity::ai::goal {
  * 当动物站在草方块或草上时触发，吃草后方块变为泥土或空气，
  * 并调用吃草回调函数。
  *
- * MC 1.16.5 逻辑：
+ * 吃草逻辑：
  * 1. 概率触发（幼年 1/50，成年 1/1000）
  * 2. 检测脚下方块是否为草或草方块
  * 3. 动画计时器 40 ticks
  * 4. 第 4 tick 时执行吃草动作
- *
- * 参考 MC 1.16.5 EatGrassGoal
  */
 class EatGrassGoal : public Goal {
 public:
@@ -95,13 +93,13 @@ private:
      * @param pos 位置
      * @return 如果是草方块或草返回true
      */
-    [[nodiscard]] bool isGrassAt(IWorld* world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isGrassAt(IWorld* world, const BlockPos& pos) const;
 
     /**
      * @brief 执行吃草动作
      * 将草方块变成泥土或破坏草
      */
-    void eatGrass();
+    void _eatGrass();
 
     MobEntity* m_mob;
     IWorld* m_world = nullptr;

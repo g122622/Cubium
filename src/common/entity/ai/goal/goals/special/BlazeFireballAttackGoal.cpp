@@ -22,20 +22,21 @@
  */
 
 #include "BlazeFireballAttackGoal.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/monster/nether/BlazeEntity.hpp"
-#include "../../../../entities/projectile/AbstractFireballEntity.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../controller/MovementController.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -52,14 +53,14 @@ bool BlazeFireballAttackGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 获取攻击目标
+    // 获取攻击目标
     LivingEntity* target = m_blaze->attackTarget();
     if (target == nullptr || !target->isAlive()) {
         return false;
     }
 
     // 检查目标是否可以被攻击（存活、在同一世界等）
-    if (!isTargetValid(target)) {
+    if (!_isTargetValid(target)) {
         return false;
     }
 
@@ -74,7 +75,7 @@ bool BlazeFireballAttackGoal::shouldContinueExecuting()
     }
 
     // 检查目标是否仍然有效
-    if (!isTargetValid(m_target)) {
+    if (!_isTargetValid(m_target)) {
         return false;
     }
 
@@ -83,7 +84,7 @@ bool BlazeFireballAttackGoal::shouldContinueExecuting()
 
 void BlazeFireballAttackGoal::startExecuting()
 {
-    // MC 1.16.5: 重置攻击状态
+    // 重置攻击状态
     m_attackStep = 0;
     m_attackTime = 0;
     m_unseenTime = 0;
@@ -91,7 +92,7 @@ void BlazeFireballAttackGoal::startExecuting()
 
 void BlazeFireballAttackGoal::resetTask()
 {
-    // MC 1.16.5: 清除燃烧状态
+    // 清除燃烧状态
     m_target = nullptr;
     m_attackStep = 0;
     m_attackTime = 0;
@@ -107,8 +108,6 @@ void BlazeFireballAttackGoal::tick()
     if (m_blaze == nullptr || m_target == nullptr) {
         return;
     }
-
-    // MC 1.16.5 FireballAttackGoal.tick()
 
     // 递减攻击计时器
     if (m_attackTime > 0) {
@@ -145,9 +144,9 @@ void BlazeFireballAttackGoal::tick()
         if (moveCtrl) {
             moveCtrl->setMoveTo(m_target->x(), m_target->y(), m_target->z(), 1.0);
         }
-    } else if (distSq < getFollowDistance() * getFollowDistance() && canSee) {
+    } else if (distSq < _getFollowDistance() * _getFollowDistance() && canSee) {
         // 在火球攻击范围内且能看到目标
-        performFireballAttack(m_target, distSq);
+        _performFireballAttack(m_target, distSq);
     } else if (m_unseenTime < 5) {
         // 看不到目标但时间不长，继续追踪
         auto* moveCtrl = m_blaze->moveController();
@@ -156,14 +155,14 @@ void BlazeFireballAttackGoal::tick()
         }
     }
 
-    // MC 1.16.5: 看向目标
+    // 看向目标
     auto* lookCtrl = m_blaze->lookController();
     if (lookCtrl) {
         lookCtrl->setLookPositionWithEntity(*m_target, 10.0f, 10.0f);
     }
 }
 
-bool BlazeFireballAttackGoal::isTargetValid(LivingEntity* target) const
+bool BlazeFireballAttackGoal::_isTargetValid(LivingEntity* target) const
 {
     if (target == nullptr) {
         return false;
@@ -182,23 +181,23 @@ bool BlazeFireballAttackGoal::isTargetValid(LivingEntity* target) const
     return true;
 }
 
-f64 BlazeFireballAttackGoal::getFollowDistance() const
+f64 BlazeFireballAttackGoal::_getFollowDistance() const
 {
     if (m_blaze == nullptr) {
         return 16.0; // 默认追踪范围
     }
 
-    // MC 1.16.5: 从属性获取追踪范围
+    // 从属性获取追踪范围
     return m_blaze->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
-void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 distanceToTargetSq)
+void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 distanceToTargetSq)
 {
     if (m_blaze == nullptr || target == nullptr) {
         return;
     }
 
-    // MC 1.16.5: 计算发射方向
+    // 计算发射方向
     f64 dx = target->x() - m_blaze->x();
     f64 dy = target->y() + target->eyeHeight() - (m_blaze->y() + m_blaze->eyeHeight());
     f64 dz = target->z() - m_blaze->z();
@@ -215,7 +214,6 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
             m_attackTime = FIREBALL_INTERVAL; // 6 ticks
 
             // 计算散布
-            // MC 1.16.5: float f = MathHelper.sqrt(MathHelper.sqrt(distSq)) * 0.5F
             f32 spread = std::sqrt(static_cast<f32>(std::sqrt(distanceToTargetSq))) * 0.5f;
 
             math::Random& rng = m_blaze->world()->getRandom();
@@ -240,16 +238,14 @@ void BlazeFireballAttackGoal::performFireballAttack(LivingEntity* target, f64 di
             f64 accelY = dy;
             f64 accelZ = dz + rng.nextGaussian() * static_cast<f64>(spread);
 
-            // MC 1.16.5: 小火球使用加速度而非速度
-            // 加速度 = 方向 * 0.1
+            // 小火球使用加速度而非速度，加速度 = 方向 * 0.1
             fireball->setAcceleration(
                 static_cast<f32>(accelX * 0.1), static_cast<f32>(accelY * 0.1), static_cast<f32>(accelZ * 0.1));
 
             // 在世界中生成火球
             if (m_blaze->world()) {
-                // MC 1.16.5: 播放发射音效 (1018 = 烈焰人发射火球事件)
+                // TODO: 播放发射音效 (1018 = 烈焰人发射火球事件)
                 // world.playEvent(null, 1018, getPosition(), 0)
-                // 注意：当前项目可能需要通过音效系统播放
                 m_blaze->world()->spawnEntity(std::move(fireball));
             }
         } else {

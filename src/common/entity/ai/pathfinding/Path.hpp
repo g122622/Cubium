@@ -42,12 +42,58 @@ namespace entity::ai::pathfinding {
  * @brief 路径对象
  *
  * 表示从起点到终点的完整路径，包含所有路径点。
- *
- * 参考 MC 1.16.5 Path
  */
 class Path {
 public:
     Path() = default;
+
+    /**
+     * @brief 拷贝构造函数
+     */
+    Path(const Path& other) = default;
+
+    /**
+     * @brief 移动构造函数
+     */
+    Path(Path&& other) noexcept
+        : m_points(std::move(other.m_points))
+        , m_target(other.m_target)
+        , m_distToTarget(other.m_distToTarget)
+        , m_reachesTarget(other.m_reachesTarget)
+        , m_currentIndex(other.m_currentIndex)
+    {
+        other.m_distToTarget = 0.0f;
+        other.m_reachesTarget = false;
+        other.m_currentIndex = 0;
+    }
+
+    /**
+     * @brief 拷贝赋值运算符
+     */
+    Path& operator=(const Path& other) = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    Path& operator=(Path&& other) noexcept
+    {
+        if (this != &other) {
+            m_points = std::move(other.m_points);
+            m_target = other.m_target;
+            m_distToTarget = other.m_distToTarget;
+            m_reachesTarget = other.m_reachesTarget;
+            m_currentIndex = other.m_currentIndex;
+            other.m_distToTarget = 0.0f;
+            other.m_reachesTarget = false;
+            other.m_currentIndex = 0;
+        }
+        return *this;
+    }
+
+    /**
+     * @brief 析构函数
+     */
+    ~Path() = default;
 
     /**
      * @brief 构造函数
@@ -95,7 +141,6 @@ public:
 
     /**
      * @brief 获取目标位置
-     * MC 1.16.5: getTarget()
      */
     [[nodiscard]] const BlockPos& getTarget() const { return m_target; }
 
@@ -106,7 +151,6 @@ public:
 
     /**
      * @brief 检查是否到达目标
-     * MC 1.16.5: reachesTarget()
      */
     [[nodiscard]] bool reachesTarget() const { return m_reachesTarget; }
 
@@ -117,7 +161,6 @@ public:
 
     /**
      * @brief 获取到目标的距离
-     * MC 1.16.5: field_224773_g
      */
     [[nodiscard]] f32 getDistToTarget() const { return m_distToTarget; }
 
@@ -198,7 +241,6 @@ public:
 
     /**
      * @brief 设置路径长度（裁剪）
-     * MC 1.16.5: setCurrentPathLength()
      * @param length 新的路径长度
      */
     void setCurrentPathLength(i32 length)
@@ -210,7 +252,6 @@ public:
 
     /**
      * @brief 设置指定索引的路径点
-     * MC 1.16.5: setPoint()
      * @param index 索引
      * @param point 新的路径点
      */
@@ -223,7 +264,6 @@ public:
 
     /**
      * @brief 设置指定索引的路径点（移动语义）
-     * MC 1.16.5: setPoint()
      * @param index 索引
      * @param point 新的路径点
      */
@@ -317,7 +357,6 @@ public:
 
     /**
      * @brief 获取路径点位置的向量（考虑实体宽度）
-     * MC 1.16.5: getVectorFromIndex()
      * @param entity 实体
      * @param index 路径点索引
      * @return 位置向量
@@ -326,7 +365,6 @@ public:
 
     /**
      * @brief 获取当前位置向量
-     * MC 1.16.5: getPosition()
      * @param entity 实体
      * @return 当前目标位置向量
      */
@@ -334,7 +372,6 @@ public:
 
     /**
      * @brief 检查两个路径是否相同
-     * MC 1.16.5: isSamePath()
      * @param other 另一个路径
      */
     [[nodiscard]] bool isSamePath(const Path& other) const

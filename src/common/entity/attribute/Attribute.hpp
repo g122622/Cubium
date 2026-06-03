@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -37,8 +37,6 @@ namespace attribute {
  *
  * 定义一个可修改的属性，如最大生命值、移动速度等。
  * 每个属性有唯一的注册名称、默认值和范围限制。
- *
- * 参考 MC 1.16.5 Attribute
  */
 class Attribute {
 public:

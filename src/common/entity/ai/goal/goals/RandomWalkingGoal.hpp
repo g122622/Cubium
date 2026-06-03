@@ -38,8 +38,6 @@ namespace entity::ai::goal {
  * @brief 随机漫步目标
  *
  * 使生物随机选择一个方向并移动过去。
- *
- * 参考 MC 1.16.5 RandomWalkingGoal
  */
 class RandomWalkingGoal : public Goal {
 public:
@@ -75,7 +73,6 @@ public:
 
     /**
      * @brief 强制下次执行
-     * MC 1.16.5: makeUpdate()
      */
     void makeUpdate() { m_forceUpdate = true; }
 
@@ -84,12 +81,11 @@ public:
      */
     void setExecutionChance(i32 chance) { m_executionChance = chance; }
 
-    [[nodiscard]] std::string getTypeName() const override { return "RandomWalkingGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "RandomWalkingGoal"; }
 
 protected:
     /**
      * @brief 获取随机目标位置
-     * MC 1.16.5: RandomPositionGenerator.findRandomTarget(creature, 10, 7)
      * @param outPos 输出位置
      * @return 是否找到有效位置
      */
@@ -101,9 +97,9 @@ protected:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
     i32 m_executionChance;
-    i32 m_timeoutCounter = 0; // MC 1.16.5: 超时计数器，最大漫步时间
+    i32 m_timeoutCounter = 0; // 超时计数器，最大漫步时间
     bool m_forceUpdate = false;
-    bool m_checkIdleTime; // MC 1.16.5: 是否检查空闲时间
+    bool m_checkIdleTime; // 是否检查空闲时间
 };
 
 } // namespace entity::ai::goal

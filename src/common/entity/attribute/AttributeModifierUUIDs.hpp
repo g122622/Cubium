@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc {
@@ -33,15 +33,13 @@ namespace attribute {
 /**
  * @brief 属性修改器 UUID 常量
  *
- * 定义 MC 1.16.5 标准的属性修改器 UUID。
+ * 定义标准的属性修改器 UUID。
  * 这些 UUID 用于标识装备和状态效果提供的属性修改器。
- *
- * 参考: MC 1.16.5 Item.java, LivingEntity.java
  */
 namespace uuids {
 
 // ============================================================================
-// 装备槽位 UUID (MC 1.16.5 标准 - ArmorItem.java:28)
+// 装备槽位 UUID
 // 数组索引顺序: FEET(0), LEGS(1), CHEST(2), HEAD(3)
 // ============================================================================
 
@@ -58,7 +56,7 @@ constexpr const char* ARMOR_MODIFIER_UUID_CHEST = "9F3D476D-C118-4544-8365-64846
 constexpr const char* ARMOR_MODIFIER_UUID_HEAD = "2AD3F246-FEE1-4E67-B886-69FD380BB150";
 
 // ============================================================================
-// 武器 UUID (MC 1.16.5 标准)
+// 武器 UUID
 // ============================================================================
 
 /// 武器攻击伤害修饰器 UUID
@@ -68,7 +66,7 @@ constexpr const char* ATTACK_DAMAGE_MODIFIER_UUID = "CB3F55D3-645C-4F38-A497-9C1
 constexpr const char* ATTACK_SPEED_MODIFIER_UUID = "FA233E1C-4180-4865-B01B-BCCE9785ACA3";
 
 // ============================================================================
-// 状态效果 UUID (MC 1.16.5 标准)
+// 状态效果 UUID
 // ============================================================================
 
 /// 疾跑速度加成修饰器 UUID

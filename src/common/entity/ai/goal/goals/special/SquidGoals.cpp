@@ -22,11 +22,12 @@
  */
 
 #include "SquidGoals.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/MathConstants.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../entities/passive/water/SquidEntity.hpp"
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -43,7 +44,7 @@ SquidMoveRandomGoal::SquidMoveRandomGoal(SquidEntity* squid)
 
 bool SquidMoveRandomGoal::shouldExecute()
 {
-    // MC 1.16.5: MoveRandomGoal 始终可以执行
+    // 始终可以执行
     return true;
 }
 
@@ -53,7 +54,7 @@ void SquidMoveRandomGoal::tick()
         return;
     }
 
-    // MC 1.16.5: 获取空闲时间
+    // 获取空闲时间
     i32 idleTime = m_squid->idleTime();
 
     if (idleTime > IDLE_THRESHOLD) {
@@ -102,7 +103,7 @@ bool SquidFleeGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 检查是否在水中
+    // 检查是否在水中
     if (!m_squid->isInWater()) {
         return false;
     }
@@ -141,14 +142,13 @@ void SquidFleeGoal::tick()
     f64 dy = m_squid->y() - m_fleeTarget->y();
     f64 dz = m_squid->z() - m_fleeTarget->z();
 
-    // 检查目标位置是否是水或空气
-    // 注意：这是一个简化的检查，MC 1.16.5 检查 FluidTags.WATER 和 BlockState.isAir()
-    // 我们简化处理：假设鱿鱼只会在水中逃跑，目标位置检查主要是避免跳出水
-    // 计算 Y 分量时检查是否可能跳出水面
-    bool targetIsAir = (dy > 0) && (!m_squid->isInWater()); // 如果向上移动且不在水中，可能是跳出水
-
     // 计算到敌人的距离
     f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    // TODO: 检查目标位置是否是水或空气，当前为简化实现
+    // 需要检查 FluidTags.WATER 和 BlockState.isAir()
+    // 当前简化处理：假设鱿鱼只会在水中逃跑
+    bool targetIsAir = (dy > 0) && (!m_squid->isInWater());
 
     if (distance > 0.0) {
         // 归一化方向向量
@@ -179,12 +179,9 @@ void SquidFleeGoal::tick()
             static_cast<f32>(dx) / SPEED_SCALE, static_cast<f32>(dy) / SPEED_SCALE, static_cast<f32>(dz) / SPEED_SCALE);
     }
 
-    // 每 10 tick 的第 5 tick 产生气泡粒子
-    if (m_tickCounter % BUBBLE_INTERVAL == BUBBLE_OFFSET) {
-        // MC 1.16.5: world.addParticle(ParticleTypes.BUBBLE, ...)
-        // 注意：粒子效果在客户端产生，服务端不需要处理
-        // 客户端会在渲染时处理粒子效果
-    }
+    // TODO: 每 10 tick 的第 5 tick 产生气泡粒子
+    // 需要实现: world.addParticle(ParticleTypes.BUBBLE, ...)
+    // 粒子效果在客户端产生，服务端需要发送粒子数据包
 }
 
 } // namespace mc::entity::ai::goal

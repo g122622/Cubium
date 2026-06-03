@@ -22,17 +22,17 @@
  */
 
 #include "MovementGoals.hpp"
-#include "../../../../../util/math/MathConstants.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../../util/RandomPositionGenerator.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/util/RandomPositionGenerator.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -268,7 +268,6 @@ bool MoveTowardsTargetGoal::shouldExecute()
     }
 
     // 使用 RandomPositionGenerator 找到朝向目标的随机位置
-    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockTowards(this, 16, 7, target.getPositionVec())
     auto* world = m_creature->world();
     if (!world) return false;
 
@@ -336,12 +335,11 @@ bool MoveTowardsRestrictionGoal::shouldExecute()
 {
     if (!m_creature) return false;
 
-    // MC 1.16.5: 如果当前已在家范围内，不需要移动
+    // 如果当前已在家范围内，不需要移动
     if (m_creature->isWithinHomeDistanceCurrentPosition()) {
         return false;
     }
 
-    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockTowards
     // 向家位置生成随机目标位置
     BlockPos homePos = m_creature->homePosition();
     Vector3 homeCenter(
@@ -363,7 +361,7 @@ bool MoveTowardsRestrictionGoal::shouldContinueExecuting()
 {
     if (!m_creature) return false;
 
-    // MC 1.16.5: 当导航器还有路径时继续执行
+    // 当导航器还有路径时继续执行
     auto* nav = m_creature->navigator();
     return nav && !nav->noPath();
 }

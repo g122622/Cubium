@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../Goal.hpp"
 #include "core/Types.hpp"
+#include "entity/ai/goal/Goal.hpp"
 #include "entity/interfaces/IAngerable.hpp"
 #include <functional>
 
@@ -49,8 +49,6 @@ using TargetPredicate = std::function<bool(const LivingEntity*)>;
  *
  * 用于选择攻击目标的目标类型。
  * 与普通Goal不同，TargetGoal专门用于targetSelector。
- *
- * 参考 MC 1.16.5 TargetGoal
  */
 class TargetGoal : public Goal {
 public:
@@ -94,8 +92,6 @@ protected:
  * @brief 最近可攻击目标选择
  *
  * 选择最近的符合条件的目标进行攻击。
- *
- * 参考 MC 1.16.5 NearestAttackableTargetGoal
  */
 template <typename T>
 class NearestAttackableTargetGoal : public TargetGoal {
@@ -132,8 +128,6 @@ private:
  * @brief 被攻击后反击目标
  *
  * 当实体被攻击时，记住攻击者并反击。
- *
- * 参考 MC 1.16.5 HurtByTargetGoal
  */
 class HurtByTargetGoal : public TargetGoal {
 public:
@@ -160,8 +154,6 @@ private:
  *
  * 当驯服动物的主人被攻击时，反击攻击者。
  * 需要配合TameableEntity使用。
- *
- * 参考 MC 1.16.5 OwnerHurtByTargetGoal
  */
 class OwnerHurtByTargetGoal : public TargetGoal {
 public:
@@ -181,8 +173,6 @@ public:
  * @brief 攻击主人正在攻击的目标
  *
  * 当驯服动物的主人攻击某实体时，也攻击该实体。
- *
- * 参考 MC 1.16.5 OwnerHurtTargetGoal
  */
 class OwnerHurtTargetGoal : public TargetGoal {
 public:
@@ -203,8 +193,6 @@ public:
  *
  * 驯服动物在未驯服状态下选择攻击目标。
  * 用于狼等动物。
- *
- * 参考 MC 1.16.5 NonTamedTargetGoal
  */
 template <typename T>
 class NonTamedTargetGoal : public TargetGoal {
@@ -239,8 +227,6 @@ private:
  *
  * 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标。
  * 用于实现了 IAngerable 接口的实体（如铁傀儡、末影人等）。
- *
- * 参考 MC 1.16.5 ResetAngerGoal
  */
 template <typename T>
 class ResetAngerGoal : public Goal {
@@ -270,13 +256,13 @@ private:
      * @brief 检查是否应该对玩家复仇
      * @return 如果应该复仇则返回true
      */
-    [[nodiscard]] bool shouldGetRevengeOnPlayer() const;
+    [[nodiscard]] bool _shouldGetRevengeOnPlayer() const;
 
     /**
      * @brief 获取附近的同类实体
      * @return 同类实体列表
      */
-    [[nodiscard]] std::vector<T*> getNearbySameTypeEntities() const;
+    [[nodiscard]] std::vector<T*> _getNearbySameTypeEntities() const;
 };
 
 } // namespace entity::ai::goal

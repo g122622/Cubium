@@ -22,25 +22,25 @@
  */
 
 #include "FoxGoals.hpp"
-#include "../../../../../sound/SoundEvents.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../damage/DamageSource.hpp"
-#include "../../../../entities/monster/MonsterEntity.hpp"
-#include "../../../../entities/passive/special/FoxEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../GoalConstants.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -59,7 +59,7 @@ FoxPassiveGoal::FoxPassiveGoal(FoxEntity* fox)
 
 bool FoxPassiveGoal::shouldExecute()
 {
-    // MC 1.16.5: 激怒状态下不执行被动行为
+    // 激怒状态下不执行被动行为
     if (m_fox->isFoxAggroed()) {
         return false;
     }
@@ -68,7 +68,7 @@ bool FoxPassiveGoal::shouldExecute()
 
 bool FoxPassiveGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 激怒状态下停止被动行为
+    // 激怒状态下停止被动行为
     if (m_fox->isFoxAggroed()) {
         return false;
     }
@@ -81,7 +81,7 @@ bool FoxPassiveGoal::hasShelter() const
         return false;
     }
 
-    // MC 1.16.5: 检查是否看不到天空且路径权重 >= 0
+    // 检查是否看不到天空且路径权重 >= 0
     BlockPos pos(
         static_cast<i32>(m_fox->x()), static_cast<i32>(m_fox->boundingBox().maxY), static_cast<i32>(m_fox->z()));
     return !m_fox->world()->canSeeSky(pos) && m_fox->getPathWeight(pos.x, pos.y, pos.z) >= 0.0f;
@@ -93,7 +93,7 @@ bool FoxPassiveGoal::hasAlertableTarget() const
         return false;
     }
 
-    // MC 1.16.5: 检查周围 12 格内是否有警觉目标
+    // 检查周围 12 格内是否有警觉目标
     AxisAlignedBB searchBox = m_fox->boundingBox().expand(12.0f, 6.0f, 12.0f);
     std::vector<Entity*> nearbyEntities = m_fox->world()->getEntitiesInAABB(searchBox, m_fox);
 
@@ -129,7 +129,6 @@ bool FoxPassiveGoal::hasAlertableTarget() const
 
 bool FoxPassiveGoal::canAct() const
 {
-    // MC 1.16.5 func_213478_eo
     return !m_fox->isSitting() && !m_fox->isCrouching() && !m_fox->isSleeping() && !m_fox->isStuck() &&
         !m_fox->isFoxAggroed();
 }
@@ -380,7 +379,7 @@ void FoxPounceGoal::tick()
 
     Vector3 motion = m_fox->velocity();
 
-    // MC 1.16.5: 空中俯仰角调整
+    // 空中俯仰角调整
     if (motion.y * motion.y < 0.03 && m_fox->pitch() != 0.0f) {
         // 使用 rotLerp 进行角度插值
         f32 currentPitch = m_fox->pitch();
@@ -579,7 +578,7 @@ void FoxSleepGoal::resetTask()
 }
 
 // ============================================================================
-// FoxEatBerriesGoal - 狐狸吃浆果目标（简化实现）
+// FoxEatBerriesGoal - 狐狸吃浆果目标
 // ============================================================================
 
 FoxEatBerriesGoal::FoxEatBerriesGoal(FoxEntity* fox, f64 speed, i32 searchRange, i32 verticalSearchRange)
@@ -597,8 +596,7 @@ bool FoxEatBerriesGoal::shouldExecute()
         return false;
     }
 
-    // 简化实现：暂时返回 false
-    // 完整实现需要检测甜浆果丛
+    // TODO: 完整实现需要检测甜浆果丛
     return false;
 }
 
@@ -614,7 +612,7 @@ void FoxEatBerriesGoal::resetTask() {}
 void FoxEatBerriesGoal::tick() {}
 
 // ============================================================================
-// FoxFindItemsGoal - 狐狸寻找物品目标（简化实现）
+// FoxFindItemsGoal - 狐狸寻找物品目标
 // ============================================================================
 
 FoxFindItemsGoal::FoxFindItemsGoal(FoxEntity* fox)
@@ -625,7 +623,7 @@ FoxFindItemsGoal::FoxFindItemsGoal(FoxEntity* fox)
 
 bool FoxFindItemsGoal::shouldExecute()
 {
-    // 简化实现：暂时返回 false
+    // TODO: 完整实现需要检测附近的物品实体
     return false;
 }
 
@@ -677,7 +675,7 @@ bool FoxSitAndLookGoal::canFoxContinue()
 
 void FoxSitAndLookGoal::startExecuting()
 {
-    chooseRandomLookDirection();
+    _chooseRandomLookDirection();
 
     math::Random rng = m_fox->getRandom();
     m_lookCount = LOOK_COUNT_MIN + rng.nextInt(LOOK_COUNT_MAX - LOOK_COUNT_MIN + 1);
@@ -697,7 +695,7 @@ void FoxSitAndLookGoal::tick()
 
     if (m_lookTimer <= 0) {
         --m_lookCount;
-        chooseRandomLookDirection();
+        _chooseRandomLookDirection();
     }
 
     auto* lookController = m_fox->lookController();
@@ -710,7 +708,7 @@ void FoxSitAndLookGoal::tick()
     }
 }
 
-void FoxSitAndLookGoal::chooseRandomLookDirection()
+void FoxSitAndLookGoal::_chooseRandomLookDirection()
 {
     math::Random rng = m_fox->getRandom();
 
@@ -722,7 +720,7 @@ void FoxSitAndLookGoal::chooseRandomLookDirection()
 }
 
 // ============================================================================
-// FoxRevengeGoal - 狐狸复仇目标（简化实现）
+// FoxRevengeGoal - 狐狸复仇目标
 // ============================================================================
 
 FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
@@ -732,8 +730,7 @@ FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
 
 bool FoxRevengeGoal::shouldExecute()
 {
-    // 简化实现：暂时返回 false
-    // 完整实现需要检查信任玩家是否被攻击
+    // TODO: 完整实现需要检查信任玩家是否被攻击
     return false;
 }
 

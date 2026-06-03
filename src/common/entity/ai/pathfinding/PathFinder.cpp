@@ -47,18 +47,18 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
     }
 
     // 检查起点是否就是终点
-    if (isTargetReached(*startNode, targetX, targetY, targetZ)) {
+    if (_isTargetReached(*startNode, targetX, targetY, targetZ)) {
         Path path;
         path.addPoint(startNode->clone());
         return path;
     }
 
-    // MC 1.16.5: 设置起始节点的代价值
+    // 设置起始节点的代价值
     // totalPathDistance = 0
     // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
     // distanceToTarget = totalPathDistance + distanceToNext (即 f = g + h*1.5)
     startNode->setCostFromStart(0.0f);
-    f32 h = heuristic(*startNode, targetX, targetY, targetZ);
+    f32 h = _heuristic(*startNode, targetX, targetY, targetZ);
     startNode->setDistanceToNext(h * HEURISTIC_MULTIPLIER);
     startNode->setHeuristic(h);
     startNode->updateTotalCost();
@@ -82,13 +82,13 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
         current->setVisited(true);
 
         // 检查是否到达目标
-        if (isTargetReached(*current, targetX, targetY, targetZ)) {
+        if (_isTargetReached(*current, targetX, targetY, targetZ)) {
             m_lastSearchedNodes = searchedNodes;
             return Path::buildFromEnd(current);
         }
 
         // 记录最近的节点（如果找不到精确路径）
-        f32 currentDist = heuristic(*current, targetX, targetY, targetZ);
+        f32 currentDist = _heuristic(*current, targetX, targetY, targetZ);
         if (currentDist < bestDistance) {
             bestDistance = currentDist;
             bestNode = current;
@@ -107,18 +107,16 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
                 continue;
             }
 
-            // MC 1.16.5: 计算从起点经过当前节点到邻居的代价
-            f32 distance = getMovementCost(*current, *neighbor);
+            // 计算从起点经过当前节点到邻居的代价
+            f32 distance = _getMovementCost(*current, *neighbor);
 
-            // MC 1.16.5: field_222861_j (walkedDistance) 用于限制搜索范围
-            // pathpoint1.field_222861_j = pathpoint.field_222861_j + f
+            // walkedDistance 用于限制搜索范围
             f32 newWalkedDistance = current->walkedDistance() + distance;
 
-            // MC 1.16.5: totalPathDistance = previous.totalPathDistance + distance + costMalus
+            // totalPathDistance = previous.totalPathDistance + distance + costMalus
             f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
 
-            // MC 1.16.5: 检查 walkedDistance 是否超出搜索范围
-            // if (pathpoint1.field_222861_j < searchRange && ...)
+            // 检查 walkedDistance 是否超出搜索范围
             if (newWalkedDistance > static_cast<f32>(maxDistance)) {
                 continue;
             }
@@ -128,8 +126,8 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
                 neighbor->setParent(current);
                 neighbor->setWalkedDistance(newWalkedDistance);
                 neighbor->setCostFromStart(newCostFromStart);
-                // MC 1.16.5: distanceToNext = heuristic * HEURISTIC_MULTIPLIER
-                f32 neighborH = heuristic(*neighbor, targetX, targetY, targetZ);
+                // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
+                f32 neighborH = _heuristic(*neighbor, targetX, targetY, targetZ);
                 neighbor->setDistanceToNext(neighborH * HEURISTIC_MULTIPLIER);
                 neighbor->setHeuristic(neighborH);
                 neighbor->updateTotalCost();
@@ -174,15 +172,15 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
     }
 
     // 检查起点是否已经在范围内
-    if (isTargetReached(*startNode, targetX, targetY, targetZ, range)) {
+    if (_isTargetReached(*startNode, targetX, targetY, targetZ, range)) {
         Path path;
         path.addPoint(startNode->clone());
         return path;
     }
 
-    // MC 1.16.5: 设置起始节点代价
+    // 设置起始节点代价
     startNode->setCostFromStart(0.0f);
-    f32 h = heuristic(*startNode, targetX, targetY, targetZ);
+    f32 h = _heuristic(*startNode, targetX, targetY, targetZ);
     startNode->setDistanceToNext(h * HEURISTIC_MULTIPLIER);
     startNode->setHeuristic(h);
     startNode->updateTotalCost();
@@ -201,7 +199,7 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
         current->setVisited(true);
 
         // 检查是否在目标范围内
-        if (isTargetReached(*current, targetX, targetY, targetZ, range)) {
+        if (_isTargetReached(*current, targetX, targetY, targetZ, range)) {
             m_lastSearchedNodes = searchedNodes;
             return Path::buildFromEnd(current);
         }
@@ -217,11 +215,11 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
                 continue;
             }
 
-            // MC 1.16.5: 计算距离
-            f32 distance = getMovementCost(*current, *neighbor);
+            // 计算距离
+            f32 distance = _getMovementCost(*current, *neighbor);
             f32 newWalkedDistance = current->walkedDistance() + distance;
 
-            // MC 1.16.5: 检查 walkedDistance 是否超出搜索范围
+            // 检查 walkedDistance 是否超出搜索范围
             if (newWalkedDistance > static_cast<f32>(m_maxSearchDistance)) {
                 continue;
             }
@@ -232,7 +230,7 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
                 neighbor->setParent(current);
                 neighbor->setWalkedDistance(newWalkedDistance);
                 neighbor->setCostFromStart(newCostFromStart);
-                f32 neighborH = heuristic(*neighbor, targetX, targetY, targetZ);
+                f32 neighborH = _heuristic(*neighbor, targetX, targetY, targetZ);
                 neighbor->setDistanceToNext(neighborH * HEURISTIC_MULTIPLIER);
                 neighbor->setHeuristic(neighborH);
                 neighbor->updateTotalCost();
@@ -253,8 +251,7 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
 Path PathFinder::findPathToClosest(
     i32 startX, i32 startY, i32 startZ, const std::vector<TargetPoint>& targets, i32 maxDistance)
 {
-    // MC 1.16.5: 多目标寻路 - 使用 FlaggedPathPoint 模式
-    // 对每个目标点设置标志，搜索时只需到达任意一个目标
+    // 多目标寻路 - 对每个目标点设置标志，搜索时只需到达任意一个目标
 
     if (targets.empty()) {
         return Path();
@@ -279,17 +276,17 @@ Path PathFinder::findPathToClosest(
 
     // 检查起点是否就是某个目标
     for (const auto& target : targets) {
-        if (isTargetReached(*startNode, target.x, target.y, target.z)) {
+        if (_isTargetReached(*startNode, target.x, target.y, target.z)) {
             Path path;
             path.addPoint(startNode->clone());
             return path;
         }
     }
 
-    // MC 1.16.5: 计算到最近目标的启发式
+    // 计算到最近目标的启发式
     f32 bestHeuristic = std::numeric_limits<f32>::max();
     for (const auto& target : targets) {
-        f32 h = heuristic(*startNode, target.x, target.y, target.z);
+        f32 h = _heuristic(*startNode, target.x, target.y, target.z);
         if (h < bestHeuristic) {
             bestHeuristic = h;
         }
@@ -317,11 +314,11 @@ Path PathFinder::findPathToClosest(
 
         // 检查是否到达任意目标，同时记录最近距离（单次遍历）
         for (const auto& target : targets) {
-            if (isTargetReached(*current, target.x, target.y, target.z)) {
+            if (_isTargetReached(*current, target.x, target.y, target.z)) {
                 m_lastSearchedNodes = searchedNodes;
                 return Path::buildFromEnd(current);
             }
-            f32 currentDist = heuristic(*current, target.x, target.y, target.z);
+            f32 currentDist = _heuristic(*current, target.x, target.y, target.z);
             if (currentDist < bestDistance) {
                 bestDistance = currentDist;
                 bestNode = current;
@@ -341,21 +338,21 @@ Path PathFinder::findPathToClosest(
                 continue;
             }
 
-            // MC 1.16.5: 计算距离和行走距离
-            f32 distance = getMovementCost(*current, *neighbor);
+            // 计算距离和行走距离
+            f32 distance = _getMovementCost(*current, *neighbor);
             f32 newWalkedDistance = current->walkedDistance() + distance;
 
-            // MC 1.16.5: 检查 walkedDistance 是否超出搜索范围
+            // 检查 walkedDistance 是否超出搜索范围
             if (newWalkedDistance > static_cast<f32>(maxDistance)) {
                 continue;
             }
 
             f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
 
-            // MC 1.16.5: 计算到最近目标的启发式
+            // 计算到最近目标的启发式
             f32 bestNeighborHeuristic = std::numeric_limits<f32>::max();
             for (const auto& target : targets) {
-                f32 h = heuristic(*neighbor, target.x, target.y, target.z);
+                f32 h = _heuristic(*neighbor, target.x, target.y, target.z);
                 if (h < bestNeighborHeuristic) {
                     bestNeighborHeuristic = h;
                 }
@@ -365,7 +362,7 @@ Path PathFinder::findPathToClosest(
                 neighbor->setParent(current);
                 neighbor->setWalkedDistance(newWalkedDistance);
                 neighbor->setCostFromStart(newCostFromStart);
-                // MC 1.16.5: distanceToNext = heuristic * HEURISTIC_MULTIPLIER
+                // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
                 neighbor->setDistanceToNext(bestNeighborHeuristic * HEURISTIC_MULTIPLIER);
                 neighbor->setHeuristic(bestNeighborHeuristic);
                 neighbor->updateTotalCost();

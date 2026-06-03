@@ -22,8 +22,9 @@
  */
 
 #include "ShulkerGoals.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../entities/monster/end/ShulkerEntity.hpp"
+
+#include "common/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -44,7 +45,6 @@ ShulkerAttackGoal::ShulkerAttackGoal(ShulkerEntity* shulker)
 
 bool ShulkerAttackGoal::shouldExecute()
 {
-    // MC 1.16.5 ShulkerEntity.AttackGoal.shouldExecute()
     // 检查是否有攻击目标
     LivingEntity* target = m_shulker->attackTarget();
     if (target == nullptr || !target->isAlive()) {
@@ -63,7 +63,6 @@ bool ShulkerAttackGoal::shouldExecute()
 
 bool ShulkerAttackGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 继续执行条件
     if (m_target == nullptr || !m_target->isAlive()) {
         return false;
     }
@@ -75,14 +74,14 @@ bool ShulkerAttackGoal::shouldContinueExecuting()
 
 void ShulkerAttackGoal::startExecuting()
 {
-    // MC 1.16.5: 开始攻击时打开贝壳
+    // 开始攻击时打开贝壳
     m_shulker->openShell();
     m_shulker->setAttacking(true);
 }
 
 void ShulkerAttackGoal::resetTask()
 {
-    // MC 1.16.5: 结束时关闭贝壳
+    // 结束时关闭贝壳
     m_shulker->closeShell();
     m_shulker->setAttacking(false);
     m_target = nullptr;
@@ -90,7 +89,6 @@ void ShulkerAttackGoal::resetTask()
 
 void ShulkerAttackGoal::tick()
 {
-    // MC 1.16.5 ShulkerEntity.AttackGoal.tick()
     if (m_target == nullptr) {
         return;
     }
@@ -117,7 +115,6 @@ ShulkerPeekGoal::ShulkerPeekGoal(ShulkerEntity* shulker)
 
 bool ShulkerPeekGoal::shouldExecute()
 {
-    // MC 1.16.5 ShulkerEntity.PeekGoal.shouldExecute()
     // 只在没有攻击目标时执行
     LivingEntity* target = m_shulker->attackTarget();
     if (target != nullptr && target->isAlive()) {
@@ -141,7 +138,6 @@ bool ShulkerPeekGoal::shouldExecute()
 
 bool ShulkerPeekGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 继续执行条件
     // 有攻击目标时停止
     LivingEntity* target = m_shulker->attackTarget();
     if (target != nullptr && target->isAlive()) {
@@ -154,7 +150,7 @@ bool ShulkerPeekGoal::shouldContinueExecuting()
 
 void ShulkerPeekGoal::startExecuting()
 {
-    // MC 1.16.5: 开始张望
+    // 开始张望
     m_shulker->openShell();
 
     // 随机张望时间
@@ -170,7 +166,7 @@ void ShulkerPeekGoal::startExecuting()
 
 void ShulkerPeekGoal::resetTask()
 {
-    // MC 1.16.5: 结束时关闭贝壳
+    // 结束时关闭贝壳
     m_shulker->closeShell();
     m_peekTime = 0;
     m_totalPeekTime = 0;
@@ -178,14 +174,13 @@ void ShulkerPeekGoal::resetTask()
 
 void ShulkerPeekGoal::tick()
 {
-    // MC 1.16.5 ShulkerEntity.PeekGoal.tick()
     m_peekTime++;
 
-    // 随机看向不同方向
-    IWorld* world = m_shulker->world();
-    if (world != nullptr && m_peekTime % 20 == 0) {
+    // 每秒随机看向不同方向
+    if (m_peekTime % 20 == 0) {
+        IWorld* world = m_shulker->world();
         math::Random& rng = world->getRandom();
-        // 随机旋转视角
+        // 随机旋转视角 [-180, 180)
         f32 yaw = rng.nextFloat() * 360.0f - 180.0f;
         m_shulker->setRotation(yaw, m_shulker->pitch());
     }

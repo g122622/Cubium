@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "CreatureEntity.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -33,8 +33,6 @@ namespace mc {
  *
  * 支持幼体/成体状态的实体，可以随时间成长。
  * 用于动物（猪、牛、羊、鸡）等。
- *
- * 参考 MC 1.16.5 AgeableEntity
  */
 class AgeableEntity : public CreatureEntity {
 public:
@@ -42,7 +40,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    AgeableEntity(EntityId id);
+    AgeableEntity(EntityId id) noexcept;
     ~AgeableEntity() override = default;
 
     // 禁止拷贝

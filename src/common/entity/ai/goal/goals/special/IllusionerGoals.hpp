@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../../core/EnumSet.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../entities/monster/illager/SpellcastingIllagerEntity.hpp"
-#include "../../Goal.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
 
 namespace mc {
 
@@ -39,7 +39,6 @@ namespace entity::ai::goal {
  * @brief 幻术师法术目标基类
  *
  * 提供幻术师法术目标的基础框架，包括施法准备时间和冷却管理。
- * 参考 MC 1.16.5 SpellcastingIllagerEntity.UseSpellGoal
  */
 class IllusionerSpellGoal : public Goal {
 public:
@@ -58,25 +57,21 @@ public:
 protected:
     /**
      * @brief 获取施法准备时间
-     * MC 1.16.5: getCastWarmupTime()
      */
     [[nodiscard]] virtual i32 getCastWarmupTime() const = 0;
 
     /**
      * @brief 获取施法持续时间
-     * MC 1.16.5: getCastingTime()
      */
     [[nodiscard]] virtual i32 getCastingTime() const = 0;
 
     /**
      * @brief 获取施法冷却时间
-     * MC 1.16.5: getCastingInterval()
      */
     [[nodiscard]] virtual i32 getCastingInterval() const = 0;
 
     /**
      * @brief 执行施法
-     * MC 1.16.5: castSpell()
      */
     virtual void castSpell() = 0;
 
@@ -102,8 +97,6 @@ protected:
  * - 准备时间：20 ticks
  * - 施法时间：无
  * - 冷却时间：180 ticks (9秒)
- *
- * 参考 MC 1.16.5 IllusionerEntity.BlindnessSpellGoal
  */
 class IllusionerBlindnessSpellGoal : public IllusionerSpellGoal {
 public:
@@ -124,7 +117,6 @@ protected:
 private:
     EntityId m_lastTargetId = 0; // 上一个失明目标的实体ID
 
-    // MC 1.16.5 参数
     static constexpr i32 WARMUP_TIME = 20;         // 准备时间 20 ticks
     static constexpr i32 CASTING_TIME = 0;         // 无施法时间
     static constexpr i32 COOLDOWN = 180;           // 冷却时间 180 ticks (9秒)
@@ -142,8 +134,6 @@ private:
  * - 准备时间：20 ticks
  * - 施法时间：无
  * - 冷却时间：340 ticks (17秒)
- *
- * 参考 MC 1.16.5 IllusionerEntity.MirrorSpellGoal
  */
 class IllusionerMirrorSpellGoal : public IllusionerSpellGoal {
 public:
@@ -161,7 +151,6 @@ protected:
     [[nodiscard]] SpellcastingIllagerEntity::SpellType getSpellType() const override;
 
 private:
-    // MC 1.16.5 参数
     static constexpr i32 WARMUP_TIME = 20;             // 准备时间 20 ticks
     static constexpr i32 CASTING_TIME = 0;             // 无施法时间
     static constexpr i32 COOLDOWN = 340;               // 冷却时间 340 ticks (17秒)

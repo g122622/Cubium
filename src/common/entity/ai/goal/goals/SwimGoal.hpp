@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -37,8 +37,6 @@ namespace entity::ai::goal {
  * @brief 游泳目标
  *
  * 当实体在水中或岩浆中时，尝试向上游动。
- *
- * 参考 MC 1.16.5 SwimGoal
  */
 class SwimGoal : public Goal {
 public:

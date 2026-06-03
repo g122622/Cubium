@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -40,8 +40,6 @@ namespace entity::ai::goal {
  *
  * 使驯服动物跟随主人。
  * 当距离主人太远时会自动移动靠近。
- *
- * 参考 MC 1.16.5 FollowOwnerGoal
  */
 class FollowOwnerGoal : public Goal {
 public:
@@ -68,13 +66,13 @@ private:
      * @brief 检查主人是否存在且可跟随
      * @return 如果可以跟随返回true
      */
-    [[nodiscard]] bool canFollowOwner() const;
+    [[nodiscard]] bool _canFollowOwner() const;
 
     /**
      * @brief 传送到主人身边
      * @return 如果传送成功返回true
      */
-    bool teleportToOwner();
+    bool _teleportToOwner();
 
     TameableEntity* m_entity;
     Player* m_owner = nullptr;
@@ -92,8 +90,6 @@ private:
  *
  * 使驯服动物保持坐下状态。
  * 坐下时不会移动或跟随主人。
- *
- * 参考 MC 1.16.5 SitGoal
  */
 class SitGoal : public Goal {
 public:
@@ -120,11 +116,9 @@ private:
  * 当玩家手持食物或驯服物品时，动物会看向玩家并乞求。
  * 主要用于狼（狗）的行为。
  *
- * 行为逻辑（MC 1.16.5）：
+ * 行为逻辑：
  * - 已驯服的动物：对驯服物品（如骨头）和繁殖物品（如肉类）乞求
  * - 未驯服的动物：仅对繁殖物品乞求
- *
- * 参考 MC 1.16.5 BegGoal
  */
 class BegGoal : public Goal {
 public:
@@ -149,7 +143,7 @@ private:
      * @param player 玩家
      * @return 如果手持食物返回true
      */
-    [[nodiscard]] bool isPlayerHoldingFood(const Player* player) const;
+    [[nodiscard]] bool _isPlayerHoldingFood(const Player* player) const;
 
     TameableEntity* m_entity;
     Player* m_targetPlayer = nullptr;

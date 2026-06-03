@@ -38,8 +38,6 @@ namespace entity::ai::goal {
  * @brief 繁殖目标
  *
  * 使两只动物靠近并繁殖。
- *
- * 参考 MC 1.16.5 BreedGoal
  */
 class BreedGoal : public Goal {
 public:
@@ -74,9 +72,6 @@ protected:
     f64 m_speed;
     AnimalEntity* m_targetMate = nullptr;
     i32 m_spawnBabyDelay = 0;
-
-    static constexpr i32 SPAWN_BABY_DELAY = 60;    // 繁殖延迟（ticks）
-    static constexpr f32 MATE_SEARCH_RANGE = 8.0f; // 配偶搜索范围
 };
 
 } // namespace entity::ai::goal

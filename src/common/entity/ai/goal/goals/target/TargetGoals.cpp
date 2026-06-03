@@ -22,24 +22,24 @@
  */
 
 #include "TargetGoals.hpp"
-#include "../../../../../util/AxisAlignedBB.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/monster/arthropod/EndermiteEntity.hpp"
-#include "../../../../entities/monster/end/EndermanEntity.hpp"
-#include "../../../../entities/monster/nether/NetherEntities.hpp"
-#include "../../../../entities/passive/basic/ChickenEntity.hpp"
-#include "../../../../entities/passive/golem/IronGolemEntity.hpp"
-#include "../../../../entities/passive/special/FoxEntity.hpp"
-#include "../../../../entities/passive/special/TurtleEntity.hpp"
-#include "../../../../entities/passive/tamable/TameableEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../../entities/villager/VillagerEntity.hpp"
-#include "../../../../interfaces/IAngerable.hpp"
-#include "../../../controller/LookController.hpp"
+#include "entity/ai/controller/LookController.hpp"
+#include "entity/core/EntityUtils.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "entity/entities/monster/end/EndermanEntity.hpp"
+#include "entity/entities/monster/nether/NetherEntities.hpp"
+#include "entity/entities/passive/basic/ChickenEntity.hpp"
+#include "entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "entity/entities/passive/special/FoxEntity.hpp"
+#include "entity/entities/passive/special/TurtleEntity.hpp"
+#include "entity/entities/passive/tamable/TameableEntity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/entities/villager/VillagerEntity.hpp"
+#include "entity/interfaces/IAngerable.hpp"
+#include "util/AxisAlignedBB.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
 #include <cmath>
 #include <limits>
 #include <type_traits>
@@ -102,13 +102,12 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const
         return false;
     }
 
-    // MC 1.16.5: 检查目标是否可以被攻击
     // 不能攻击自己
     if (target == m_mob) {
         return false;
     }
 
-    // MC 1.16.5: 如果目标是玩家，检查游戏模式
+    // 如果目标是玩家，检查游戏模式
     // 创造模式和观察者模式的玩家不能被作为目标
     Player* targetPlayer = dynamic_cast<Player*>(target);
     if (targetPlayer != nullptr) {
@@ -117,8 +116,7 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const
         }
     }
 
-    // MC 1.16.5: 检查团队关系
-    // 未来工作：需要实现 Scoreboard 和 Team 系统
+    // TODO: 检查团队关系（需要实现 Scoreboard 和 Team 系统）
     // if (m_mob->isOnSameTeam(target)) {
     //     return false;
     // }
@@ -160,7 +158,7 @@ bool NearestAttackableTargetGoal<T>::shouldExecute()
 {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 概率检查
+    // 概率检查
     if (m_chance > 0) {
         math::Random rng = m_mob->getRandom();
         if (rng.nextInt(m_chance) != 0) {
@@ -171,8 +169,7 @@ bool NearestAttackableTargetGoal<T>::shouldExecute()
     IWorld* world = m_mob->world();
     if (!world) return false;
 
-    // MC 1.16.5: 使用跟踪范围作为搜索范围
-    // 参考 Entity.getAttributeValue(Attributes.FOLLOW_RANGE)
+    // 使用跟踪范围作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     f32 searchRange = static_cast<f32>(followRange);
 
@@ -239,7 +236,7 @@ bool HurtByTargetGoal::shouldExecute()
 {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 从LivingEntity获取最近攻击者
+    // 从LivingEntity获取最近攻击者
     LivingEntity* attacker = m_mob->getLastHurtBy();
     if (!attacker || !attacker->isAlive()) {
         return false;
@@ -265,7 +262,7 @@ void HurtByTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
 
-    // MC 1.16.5: 警醒盟友
+    // 警醒盟友
     if (m_alertAllies && m_mob && m_target) {
         IWorld* world = m_mob->world();
         if (!world) return;
@@ -283,8 +280,7 @@ void HurtByTargetGoal::startExecuting()
             // 不能警醒目标本身
             if (ally == m_target) continue;
 
-            // MC 1.16.5: 检查是否是同类型
-            // 使用 typeId 比较
+            // 检查是否是同类型（使用 typeId 比较）
             if (ally->typeId() == m_mob->typeId()) {
                 ally->setAttackTarget(m_target);
             }
@@ -322,7 +318,7 @@ bool OwnerHurtByTargetGoal::shouldExecute()
     Player* owner = tameable->getOwner();
     if (!owner) return false;
 
-    // MC 1.16.5: 检查主人是否有攻击者
+    // 检查主人是否有攻击者
     LivingEntity* attacker = owner->getLastHurtBy();
     if (!attacker || !attacker->isAlive()) return false;
 
@@ -332,8 +328,7 @@ bool OwnerHurtByTargetGoal::shouldExecute()
     // 检查是否适合作为目标
     if (!isSuitableTarget(attacker)) return false;
 
-    // MC 1.16.5: 使用 shouldAttackEntity 检查（狼不应该攻击苦力怕、恶魂、其他驯服动物等）
-    // 这里简化处理，直接设置目标
+    // TODO: 使用 shouldAttackEntity 检查（狼不应该攻击苦力怕、恶魂、其他驯服动物等）
     m_target = attacker;
     return true;
 }
@@ -367,7 +362,7 @@ bool OwnerHurtTargetGoal::shouldExecute()
     Player* owner = tameable->getOwner();
     if (!owner) return false;
 
-    // MC 1.16.5: 检查主人正在攻击的目标
+    // 检查主人正在攻击的目标
     LivingEntity* target = owner->getLastHurtTarget();
     if (!target || !target->isAlive()) return false;
 
@@ -377,7 +372,7 @@ bool OwnerHurtTargetGoal::shouldExecute()
     // 检查是否适合作为目标
     if (!isSuitableTarget(target)) return false;
 
-    // MC 1.16.5: 使用 shouldAttackEntity 检查
+    // TODO: 使用 shouldAttackEntity 检查
     m_target = target;
     return true;
 }
@@ -422,7 +417,7 @@ bool NonTamedTargetGoal<T>::shouldExecute()
     IWorld* world = m_mob->world();
     if (!world) return false;
 
-    // MC 1.16.5: 使用跟踪范围作为搜索范围
+    // 使用跟踪范围作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     f32 searchRange = static_cast<f32>(followRange);
 
@@ -479,19 +474,19 @@ bool ResetAngerGoal<T>::shouldExecute()
 {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 检查 UNIVERSAL_ANGER 游戏规则和复仇条件
-    // 由于当前项目没有实现 UNIVERSAL_ANGER 游戏规则，简化实现
+    // TODO: 实现检查 UNIVERSAL_ANGER 游戏规则
     // 原版逻辑：return this.field_241383_a_.world.getGameRules().getBoolean(GameRules.UNIVERSAL_ANGER) &&
-    // this.shouldGetRevengeOnPlayer(); 当前简化：直接检查是否应该复仇
-    return shouldGetRevengeOnPlayer();
+    // this.shouldGetRevengeOnPlayer();
+    // 当前简化：直接检查是否应该复仇
+    return _shouldGetRevengeOnPlayer();
 }
 
 template <typename T>
-bool ResetAngerGoal<T>::shouldGetRevengeOnPlayer() const
+bool ResetAngerGoal<T>::_shouldGetRevengeOnPlayer() const
 {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 检查复仇目标是否是玩家，并且复仇计时器更新
+    // 检查复仇目标是否是玩家，并且复仇计时器更新
     LivingEntity* revengeTarget = m_mob->getRevengeTarget();
     if (!revengeTarget) return false;
 
@@ -505,7 +500,7 @@ bool ResetAngerGoal<T>::shouldGetRevengeOnPlayer() const
 }
 
 template <typename T>
-std::vector<T*> ResetAngerGoal<T>::getNearbySameTypeEntities() const
+std::vector<T*> ResetAngerGoal<T>::_getNearbySameTypeEntities() const
 {
     std::vector<T*> result;
     if (!m_mob) return result;
@@ -513,7 +508,7 @@ std::vector<T*> ResetAngerGoal<T>::getNearbySameTypeEntities() const
     IWorld* world = m_mob->world();
     if (!world) return result;
 
-    // MC 1.16.5: 获取 FOLLOW_RANGE 属性作为搜索范围
+    // 获取 FOLLOW_RANGE 属性作为搜索范围
     f64 followRange = m_mob->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 
     // 扩展碰撞箱
@@ -543,7 +538,6 @@ void ResetAngerGoal<T>::startExecuting()
     // 更新复仇计时器
     m_revengeTimer = m_mob->getRevengeTimer();
 
-    // MC 1.16.5: func_241355_J__() 是 makeAngry() 或类似方法
     // 重置愤怒时间并开始愤怒
     m_mob->setAngry(false);
     m_mob->setAngerTime(0);
@@ -551,7 +545,7 @@ void ResetAngerGoal<T>::startExecuting()
 
     // 如果需要警醒其他同类实体
     if (m_alertOthers) {
-        auto nearbyEntities = getNearbySameTypeEntities();
+        auto nearbyEntities = _getNearbySameTypeEntities();
         for (T* other : nearbyEntities) {
             // 重置其他实体的愤怒
             other->setAngry(false);

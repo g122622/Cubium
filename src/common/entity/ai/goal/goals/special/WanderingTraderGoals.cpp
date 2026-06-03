@@ -44,7 +44,7 @@ namespace goal {
 namespace wandering_trader {
 
 // ============================================================================
-// UseItemGoal - 简化实现，待后续完善药水系统
+// UseItemGoal - TODO: 待后续完善药水系统
 // ============================================================================
 
 UseItemGoal::UseItemGoal(
@@ -97,14 +97,13 @@ void UseItemGoal::tick()
 
     // 物品使用完成
     if (m_useDuration >= ITEM_USE_DURATION) {
-        applyItemEffect();
+        _applyItemEffect();
         resetTask();
     }
 }
 
-void UseItemGoal::applyItemEffect()
+void UseItemGoal::_applyItemEffect()
 {
-    // MC 1.16.5: 应用物品效果
     // 根据物品类型决定效果：
     // - 牛奶桶：清除所有效果
     // - 药水：添加对应效果
@@ -126,8 +125,7 @@ void UseItemGoal::applyItemEffect()
     }
 
     // 药水 - 添加隐身效果（流浪商人夜间使用）
-    // 简化实现：直接添加隐身效果
-    // 完整实现应该从药水物品中读取效果
+    // TODO: 完整实现应该从药水物品中读取效果
     effect::EffectInstance invisibilityEffect(effect::EffectType::Invisibility,
         1200, // 持续时间：60秒 = 1200 ticks
         0     // 等级
@@ -197,7 +195,6 @@ void LookAtCustomerGoal::tick()
         return;
     }
 
-    // 简化实现：直接设置旋转角度
     // TODO: 使用 LookController 当其接口完善后
     f64 dx = m_customer->x() - m_mob->x();
     f64 dz = m_customer->z() - m_mob->z();
@@ -330,7 +327,7 @@ bool MoveToWanderTargetGoal::shouldExecute()
     }
 
     // 检查是否超出最大距离
-    return isOutsideDistance(target, m_maxDistance);
+    return _isOutsideDistance(target, m_maxDistance);
 }
 
 bool MoveToWanderTargetGoal::shouldContinueExecuting()
@@ -349,8 +346,8 @@ bool MoveToWanderTargetGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 简化实现：检查是否接近目标
-    return isOutsideDistance(target, 1.0);
+    // 检查是否接近目标
+    return _isOutsideDistance(target, 1.0);
 }
 
 void MoveToWanderTargetGoal::startExecuting()
@@ -362,7 +359,6 @@ void MoveToWanderTargetGoal::startExecuting()
 
     m_wanderTarget = trader->wanderTarget();
 
-    // 简化实现：设置移动目标
     // TODO: 使用 PathNavigator 当其接口完善后
 }
 
@@ -378,7 +374,6 @@ void MoveToWanderTargetGoal::resetTask()
 void MoveToWanderTargetGoal::tick()
 {
     // 导航在 startExecuting 中已设置
-    // 简化实现：检查是否接近目标
     if (m_mob == nullptr) {
         return;
     }
@@ -389,13 +384,13 @@ void MoveToWanderTargetGoal::tick()
     }
 
     BlockPos target = trader->wanderTarget();
-    if (!isOutsideDistance(target, 1.0)) {
+    if (!_isOutsideDistance(target, 1.0)) {
         // 已接近目标，完成任务
         trader->setWanderTarget(BlockPos(0, 0, 0));
     }
 }
 
-bool MoveToWanderTargetGoal::isOutsideDistance(const BlockPos& pos, f64 distance) const
+bool MoveToWanderTargetGoal::_isOutsideDistance(const BlockPos& pos, f64 distance) const
 {
     if (m_mob == nullptr) {
         return false;
@@ -409,13 +404,13 @@ bool MoveToWanderTargetGoal::isOutsideDistance(const BlockPos& pos, f64 distance
     return distSq > distance * distance;
 }
 
-Vector3 MoveToWanderTargetGoal::calculateMoveTarget(const BlockPos& target) const
+Vector3 MoveToWanderTargetGoal::_calculateMoveTarget(const BlockPos& target) const
 {
     if (m_mob == nullptr) {
         return Vector3(static_cast<f32>(target.x), static_cast<f32>(target.y), static_cast<f32>(target.z));
     }
 
-    // MC 1.16.5: 计算从当前位置到目标的方向向量，然后扩展10格
+    // 计算从当前位置到目标的方向向量，然后扩展10格
     Vector3 direction(static_cast<f32>(target.x - m_mob->x()),
         static_cast<f32>(target.y - m_mob->y()),
         static_cast<f32>(target.z - m_mob->z()));

@@ -38,8 +38,6 @@ namespace entity::ai::goal {
  *
  * 扩展基础近战攻击目标，添加劫掠兽特有的攻击范围计算。
  *
- * MC 1.16.5 参考: net.minecraft.entity.monster.RavagerEntity.AttackGoal
- *
  * 攻击范围计算：
  * - (width - 0.1) * 2.0 的平方
  * - 加上目标宽度
@@ -52,15 +50,15 @@ public:
      */
     explicit RavagerAttackGoal(RavagerEntity* ravager);
 
-    ~RavagerAttackGoal() override = default;
+    ~RavagerAttackGoal() noexcept override = default;
 
-    [[nodiscard]] std::string getTypeName() const override { return "RavagerAttackGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "RavagerAttackGoal"; }
 
 protected:
     /**
      * @brief 计算攻击距离平方
      *
-     * MC 1.16.5: (width - 0.1F) * 2.0F * (width - 0.1F) * 2.0F + target.width
+     * 劫掠兽特有的攻击范围计算：(width - 0.1) * 2 的平方 + 目标宽度
      *
      * @param target 目标实体
      * @return 攻击距离的平方

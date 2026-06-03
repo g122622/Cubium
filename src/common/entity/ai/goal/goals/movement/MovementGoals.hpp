@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -40,8 +40,6 @@ namespace entity::ai::goal {
  *
  * 与RandomWalkingGoal类似，但会避开水域。
  * 适用于大多数陆地生物。
- *
- * 参考 MC 1.16.5 WaterAvoidingRandomWalkingGoal
  */
 class WaterAvoidingRandomWalkingGoal : public Goal {
 public:
@@ -101,8 +99,6 @@ protected:
  *
  * 使实体跳跃向目标攻击。
  * 适用于蜘蛛等会跳跃攻击的生物。
- *
- * 参考 MC 1.16.5 LeapAtTargetGoal
  */
 class LeapAtTargetGoal : public Goal {
 public:
@@ -135,8 +131,6 @@ private:
  *
  * 向攻击目标移动，但不执行攻击。
  * 与MeleeAttackGoal不同，此目标只负责移动。
- *
- * 参考 MC 1.16.5 MoveTowardsTargetGoal
  */
 class MoveTowardsTargetGoal : public Goal {
 public:
@@ -171,8 +165,6 @@ private:
  *
  * 当生物离开其家范围时，向家位置移动。
  * 守卫者使用此目标来限制它们在海底神殿附近的移动。
- *
- * 参考 MC 1.16.5 MoveTowardsRestrictionGoal
  */
 class MoveTowardsRestrictionGoal : public Goal {
 public:
@@ -197,9 +189,8 @@ private:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
 
-    // MC 1.16.5 参数
-    static constexpr i32 XZ_RANGE = 16; // 水平搜索范围
-    static constexpr i32 Y_RANGE = 7;   // 垂直搜索范围
+    static constexpr i32 XZ_RANGE = 16; ///< 水平搜索范围
+    static constexpr i32 Y_RANGE = 7;   ///< 垂直搜索范围
 };
 
 } // namespace entity::ai::goal

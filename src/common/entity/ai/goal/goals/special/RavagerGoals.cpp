@@ -22,16 +22,9 @@
  */
 
 #include "RavagerGoals.hpp"
-#include "../../../../../sound/SoundEvents.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/BlockTags.hpp"
-#include "../../../../../world/gamerule/GameRules.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/monster/illager/RavagerEntity.hpp"
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/illager/RavagerEntity.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -46,10 +39,7 @@ RavagerAttackGoal::RavagerAttackGoal(RavagerEntity* ravager)
 
 f32 RavagerAttackGoal::getAttackReachSqr(LivingEntity* target) const
 {
-    // MC 1.16.5: float f = this.mob.getWidth() - 0.1F;
-    // return (double)(f * 2.0F * f * 2.0F + target.getWidth());
-    if (!m_ravager || !target) return 0.0f;
-
+    // 劫掠兽特有的攻击范围计算：(width - 0.1) * 2 的平方 + 目标宽度
     f32 f = m_ravager->width() - 0.1f;
     return f * 2.0f * f * 2.0f + target->width();
 }

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../goal/GoalConstants.hpp"
-#include "Path.hpp"
-#include "PathFinder.hpp"
+#include "core/Types.hpp"
+#include "entity/ai/goal/GoalConstants.hpp"
+#include "entity/ai/pathfinding/Path.hpp"
+#include "entity/ai/pathfinding/PathFinder.hpp"
 #include <memory>
 
 namespace mc {
@@ -43,8 +43,6 @@ namespace entity::ai::pathfinding {
  *
  * 负责计算路径、沿路径移动实体、处理路径中断等。
  * 不同移动类型（地面、飞行、游泳）有不同的实现。
- *
- * 参考 MC 1.16.5 PathNavigator
  */
 class PathNavigator {
 public:
@@ -60,6 +58,8 @@ public:
      */
     explicit PathNavigator(MobEntity* mob);
 
+    PathNavigator(PathNavigator&& other) noexcept = default;
+    PathNavigator& operator=(PathNavigator&& other) noexcept = default;
     virtual ~PathNavigator() = default;
 
     // ========== 路径计算 ==========
@@ -98,17 +98,17 @@ public:
     /**
      * @brief 检查是否有路径
      */
-    [[nodiscard]] bool hasPath() const { return m_path && !m_path->empty(); }
+    [[nodiscard]] bool hasPath() const noexcept { return m_path && !m_path->empty(); }
 
     /**
      * @brief 检查是否没有路径（用于AI目标判断）
      */
-    [[nodiscard]] bool noPath() const { return !hasPath(); }
+    [[nodiscard]] bool noPath() const noexcept { return !hasPath(); }
 
     /**
      * @brief 获取当前路径
      */
-    [[nodiscard]] const Path* getPath() const { return m_path.get(); }
+    [[nodiscard]] const Path* getPath() const noexcept { return m_path.get(); }
 
     /**
      * @brief 获取当前路径点索引
@@ -118,24 +118,24 @@ public:
     /**
      * @brief 检查路径是否完成
      */
-    [[nodiscard]] bool isDone() const { return !m_path || m_path->isFinished(); }
+    [[nodiscard]] bool isDone() const noexcept { return !m_path || m_path->isFinished(); }
 
     /**
      * @brief 检查是否正在跟随路径
      */
-    [[nodiscard]] bool isInProgress() const { return hasPath() && !isDone(); }
+    [[nodiscard]] bool isInProgress() const noexcept { return hasPath() && !isDone(); }
 
     // ========== 路径控制 ==========
 
     /**
      * @brief 清除当前路径
      */
-    void clearPath() { m_path.reset(); }
+    void clearPath() noexcept { m_path.reset(); }
 
     /**
      * @brief 停止导航
      */
-    void stop()
+    void stop() noexcept
     {
         clearPath();
         m_speed = 1.0;
@@ -159,56 +159,54 @@ public:
     /**
      * @brief 设置最大搜索距离
      */
-    void setMaxDistance(i32 distance) { m_maxDistance = distance; }
+    void setMaxDistance(i32 distance) noexcept { m_maxDistance = distance; }
 
     /**
      * @brief 设置重试间隔
      */
-    void setRetryInterval(i32 interval) { m_retryInterval = interval; }
+    void setRetryInterval(i32 interval) noexcept { m_retryInterval = interval; }
 
     /**
      * @brief 设置是否可以游泳
      */
-    void setCanSwim(bool canSwim) { m_canSwim = canSwim; }
+    void setCanSwim(bool canSwim) noexcept { m_canSwim = canSwim; }
 
     /**
      * @brief 设置是否可以开门
      */
-    void setCanOpenDoors(bool canOpenDoors) { m_canOpenDoors = canOpenDoors; }
+    void setCanOpenDoors(bool canOpenDoors) noexcept { m_canOpenDoors = canOpenDoors; }
 
     /**
      * @brief 设置是否可以通过门
      */
-    void setCanEnterDoors(bool canEnterDoors) { m_canEnterDoors = canEnterDoors; }
+    void setCanEnterDoors(bool canEnterDoors) noexcept { m_canEnterDoors = canEnterDoors; }
 
     /**
      * @brief 设置关联的实体
      */
-    void setEntity(LivingEntity* entity) { m_entity = entity; }
+    void setEntity(LivingEntity* entity) noexcept { m_entity = entity; }
 
     /**
      * @brief 设置移动速度
-     * MC 1.16.5: 设置导航器当前使用的速度
      */
-    void setSpeed(f64 speed) { m_speed = speed; }
+    void setSpeed(f64 speed) noexcept { m_speed = speed; }
 
     // ========== 调试 ==========
 
     /**
      * @brief 获取寻路器
      */
-    [[nodiscard]] PathFinder* getPathFinder() { return m_pathFinder.get(); }
+    [[nodiscard]] PathFinder* getPathFinder() noexcept { return m_pathFinder.get(); }
 
     /**
      * @brief 获取当前速度
      */
-    [[nodiscard]] f64 getSpeed() const { return m_speed; }
+    [[nodiscard]] f64 getSpeed() const noexcept { return m_speed; }
 
     /**
      * @brief 检查是否卡住
-     * MC 1.16.5: func_244428_t_
      */
-    [[nodiscard]] bool isStuck() const { return m_isStuck; }
+    [[nodiscard]] bool isStuck() const noexcept { return m_isStuck; }
 
 protected:
     std::unique_ptr<PathFinder> m_pathFinder;
@@ -224,21 +222,20 @@ protected:
     i32 m_retryTimer = 0;
     i32 m_ticksSinceLastPath = 0;
 
-    // MC 1.16.5: 卡住检测相关字段
+    // 卡住检测相关字段
     f64 m_lastPosX = 0.0;
     f64 m_lastPosY = 0.0;
     f64 m_lastPosZ = 0.0;
     i32 m_stuckTimer = 0;
-    // 使用 GoalConstants.hpp 中的常量: PATH_STUCK_THRESHOLD, PATH_STUCK_DISTANCE_THRESHOLD
 
-    // MC 1.16.5: 超时检测字段
-    i32 m_timeoutCachedNodeX = 0; // timeoutCachedNode X
-    i32 m_timeoutCachedNodeY = 0; // timeoutCachedNode Y
-    i32 m_timeoutCachedNodeZ = 0; // timeoutCachedNode Z
-    i64 m_timeoutTimer = 0;       // timeoutTimer (毫秒)
-    i64 m_lastTimeoutCheck = 0;   // lastTimeoutCheck (毫秒)
-    f64 m_timeoutLimit = 0.0;     // timeoutLimit
-    bool m_isStuck = false;       // field_244431_t
+    // 超时检测字段
+    i32 m_timeoutCachedNodeX = 0;
+    i32 m_timeoutCachedNodeY = 0;
+    i32 m_timeoutCachedNodeZ = 0;
+    i64 m_timeoutTimer = 0;
+    i64 m_lastTimeoutCheck = 0;
+    f64 m_timeoutLimit = 0.0;
+    bool m_isStuck = false;
 
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
@@ -249,50 +246,47 @@ protected:
     /**
      * @brief 沿路径移动实体
      */
-    virtual void followPath();
+    virtual void _followPath();
 
     /**
      * @brief 检查是否需要重新计算路径
      */
-    [[nodiscard]] bool shouldRecomputePath() const;
+    [[nodiscard]] bool _shouldRecomputePath() const;
 
     /**
      * @brief 检查是否到达当前路径点
      */
-    [[nodiscard]] bool isAtCurrentWaypoint() const;
+    [[nodiscard]] bool _isAtCurrentWaypoint() const;
 
     /**
      * @brief 前进到下一个路径点
      */
-    void advanceToNextWaypoint();
+    void _advanceToNextWaypoint();
 
     /**
      * @brief 计算到目标的最短距离
      */
-    [[nodiscard]] f32 getDistanceToTarget() const;
+    [[nodiscard]] f32 _getDistanceToTarget() const;
 
     /**
      * @brief 获取当前目标路径点
      */
-    [[nodiscard]] const PathPoint* getCurrentWaypoint() const;
+    [[nodiscard]] const PathPoint* _getCurrentWaypoint() const;
 
     /**
-     * @brief MC 1.16.5: 检查是否卡住并处理
-     * 对应 checkForStuck
+     * @brief 检查是否卡住并处理
      */
-    void checkForStuck();
+    void _checkForStuck();
 
     /**
-     * @brief MC 1.16.5: 修剪路径（处理锅等特殊情况）
-     * 对应 trimPath
+     * @brief 修剪路径（处理锅等特殊情况）
      */
-    void trimPath();
+    void _trimPath();
 
     /**
-     * @brief MC 1.16.5: 重置超时计时器
-     * 对应 func_234113_e_
+     * @brief 重置超时计时器
      */
-    void resetTimeout();
+    void _resetTimeout();
 };
 
 } // namespace entity::ai::pathfinding

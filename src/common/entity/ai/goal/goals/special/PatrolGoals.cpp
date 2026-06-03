@@ -22,13 +22,14 @@
  */
 
 #include "PatrolGoals.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/monster/illager/PatrollerEntity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
+
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/PatrollerEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -47,20 +48,20 @@ bool PatrolGoal::shouldExecute()
 {
     if (!m_patroller) return false;
 
-    // MC 1.16.5: 必须正在巡逻
+    // 必须正在巡逻
     if (!m_patroller->isPatrolling()) return false;
 
-    // MC 1.16.5: 没有攻击目标
+    // 没有攻击目标
     LivingEntity* attackTarget = m_patroller->attackTarget();
     if (attackTarget != nullptr) return false;
 
-    // MC 1.16.5: 没有被骑乘
+    // 没有被骑乘
     if (m_patroller->isBeingRidden()) return false;
 
-    // MC 1.16.5: 有巡逻目标
+    // 有巡逻目标
     if (!m_patroller->hasPatrolTarget()) return false;
 
-    // MC 1.16.5: 不在冷却期
+    // 不在冷却期
     IWorld* world = m_patroller->world();
     if (!world) return false;
 
@@ -89,7 +90,6 @@ bool PatrolGoal::shouldContinueExecuting()
 
 void PatrolGoal::startExecuting()
 {
-    // MC 1.16.5: PatrolGoal.startExecuting() 是空实现
     // 导航在 tick() 中处理
 }
 
@@ -103,10 +103,10 @@ void PatrolGoal::tick()
     IWorld* world = m_patroller->world();
     if (!world) return;
 
-    // MC 1.16.5: 只有在没有路径时才处理
+    // 只有在没有路径时才处理
     if (nav->noPath()) {
         // 获取附近巡逻队员
-        std::vector<PatrollerEntity*> nearbyPatrollers = getNearbyPatrollers();
+        std::vector<PatrollerEntity*> nearbyPatrollers = _getNearbyPatrollers();
 
         // 情况 1: 正在巡逻但没有队员 -> 停止巡逻
         if (m_patroller->isPatrolling() && nearbyPatrollers.empty()) {
@@ -124,22 +124,19 @@ void PatrolGoal::tick()
         f64 distSqXZ = dx * dx + dz * dz;
 
         if (isLeader && distSqXZ < ARRIVAL_THRESHOLD_SQ) {
-            // MC 1.16.5: 队长到达目标后重置巡逻目标
+            // 队长到达目标后重置巡逻目标
             m_patroller->resetPatrolTarget();
         } else {
             // 情况 3: 正常移动逻辑
-            // MC 1.16.5: 计算移动目标位置
-            // 使用巡逻目标中心点
+            // 计算移动目标位置，使用巡逻目标中心点
             Vector3 targetCenter(static_cast<f32>(patrolTarget.x) + 0.5f,
                 static_cast<f32>(patrolTarget.y) + 0.5f,
                 static_cast<f32>(patrolTarget.z) + 0.5f);
 
             Vector3 currentPos = m_patroller->position();
 
-            // MC 1.16.5: 计算移动向量
-            // vector3d = vector3d1.subtract(vector3d)
-            // vector3d = vector3d.rotateYaw(90.0F).scale(0.4D).add(vector3d)
-            // vector3d3 = vector3d.subtract(vector3d1).normalize().scale(10.0D).add(vector3d1)
+            // 计算移动向量：向目标方向前进，但带有横向偏移
+            // 这样可以让巡逻实体不完全走直线
             Vector3 toTarget = targetCenter - currentPos;
             Vector3 rotated = Vector3(-toTarget.z * 0.4f, // 旋转 90 度
                 toTarget.y,
@@ -151,7 +148,6 @@ void PatrolGoal::tick()
             // 找到地面高度
             BlockPos targetBlockPos(floorTo<i32>(moveTarget.x), floorTo<i32>(moveTarget.y), floorTo<i32>(moveTarget.z));
 
-            // MC 1.16.5: world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, blockpos)
             // 使用世界高度查询获取地面位置（不含树叶）
             i32 groundY = world->getHeight(targetBlockPos.x, targetBlockPos.z);
             BlockPos groundPos(targetBlockPos.x, groundY, targetBlockPos.z);
@@ -166,11 +162,11 @@ void PatrolGoal::tick()
                 speed);
 
             if (!moveSuccess) {
-                // MC 1.16.5: 移动失败 -> 随机移动 + 设置冷却
-                (void)moveRandomly();
+                // 移动失败 -> 随机移动 + 设置冷却
+                (void)_moveRandomly();
                 m_cooldownTime = static_cast<i64>(world->getGameTime()) + COOLDOWN_TICKS;
             } else if (isLeader) {
-                // MC 1.16.5: 队长移动成功 -> 同步目标给队员
+                // 队长移动成功 -> 同步目标给队员
                 for (PatrollerEntity* member : nearbyPatrollers) {
                     member->setPatrolTarget(groundPos);
                 }
@@ -179,7 +175,7 @@ void PatrolGoal::tick()
     }
 }
 
-std::vector<PatrollerEntity*> PatrolGoal::getNearbyPatrollers() const
+std::vector<PatrollerEntity*> PatrolGoal::_getNearbyPatrollers() const
 {
     std::vector<PatrollerEntity*> result;
 
@@ -188,7 +184,7 @@ std::vector<PatrollerEntity*> PatrolGoal::getNearbyPatrollers() const
     IWorld* world = m_patroller->world();
     if (!world) return result;
 
-    // MC 1.16.5: 获取碰撞箱扩展 16 格内的所有 PatrollerEntity
+    // 获取碰撞箱扩展 16 格内的所有 PatrollerEntity
     auto entities = world->getEntitiesInAABB(m_patroller->boundingBox().grow(NEARBY_PATROLLER_RANGE));
 
     for (Entity* entity : entities) {
@@ -199,7 +195,7 @@ std::vector<PatrollerEntity*> PatrolGoal::getNearbyPatrollers() const
         // 排除自己
         if (patroller->id() == m_patroller->id()) continue;
 
-        // MC 1.16.5: 检查 func_213634_ed() - 即 canJoinPatrol()
+        // 检查是否可以加入巡逻
         if (patroller->canJoinPatrol()) {
             result.push_back(patroller);
         }
@@ -208,7 +204,7 @@ std::vector<PatrollerEntity*> PatrolGoal::getNearbyPatrollers() const
     return result;
 }
 
-bool PatrolGoal::moveRandomly()
+bool PatrolGoal::_moveRandomly()
 {
     if (!m_patroller) return false;
 
@@ -217,7 +213,7 @@ bool PatrolGoal::moveRandomly()
 
     Random rng = m_patroller->getRandom();
 
-    // MC 1.16.5: 在当前位置 ±8 格范围内随机选择位置
+    // 在当前位置 ±8 格范围内随机选择位置
     Vector3 currentPos = m_patroller->position();
     i32 offsetX = -RANDOM_MOVE_RANGE + rng.nextInt(RANDOM_MOVE_RANGE * 2);
     i32 offsetZ = -RANDOM_MOVE_RANGE + rng.nextInt(RANDOM_MOVE_RANGE * 2);

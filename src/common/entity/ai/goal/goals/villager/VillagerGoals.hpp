@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 
 namespace mc {
@@ -45,8 +45,6 @@ namespace villager {
  *
  * 村民在夜间寻找床位并睡眠。
  * 需要先通过POI系统绑定床位。
- *
- * 参考 MC 1.16.5 SleepAtNightGoal
  */
 class SleepAtNightGoal : public Goal {
 public:
@@ -87,29 +85,29 @@ private:
     /**
      * @brief 检查是否是夜间
      */
-    [[nodiscard]] bool isNightTime() const;
+    [[nodiscard]] bool _isNightTime() const;
 
     /**
      * @brief 寻找最近的床位
      * @return 床位位置（如果找到）
      */
-    [[nodiscard]] std::optional<BlockPos> findNearestBed() const;
+    [[nodiscard]] std::optional<BlockPos> _findNearestBed() const;
 
     /**
      * @brief 移动到床位
      */
-    void moveToBed();
+    void _moveToBed();
 
     /**
      * @brief 尝试睡眠
      */
-    void trySleep();
+    void _trySleep();
 
     /**
      * @brief 检查床位是否仍然有效
      * @return 床位是否有效
      */
-    [[nodiscard]] bool isBedStillValid() const;
+    [[nodiscard]] bool _isBedStillValid() const;
 
 private:
     VillagerEntity* m_villager;
@@ -124,8 +122,6 @@ private:
  *
  * 村民在工作时间前往工作站点工作。
  * 包括补货逻辑。
- *
- * 参考 MC 1.16.5 WorkAtJobSiteGoal
  */
 class WorkAtJobSiteGoal : public Goal {
 public:
@@ -147,32 +143,32 @@ protected:
     /**
      * @brief 检查是否是工作时间
      */
-    [[nodiscard]] bool isWorkTime() const;
+    [[nodiscard]] bool _isWorkTime() const;
 
     /**
      * @brief 检查是否有工作站点
      */
-    [[nodiscard]] bool hasJobSite() const;
+    [[nodiscard]] bool _hasJobSite() const;
 
     /**
      * @brief 移动到工作站点
      */
-    void moveToJobSite();
+    void _moveToJobSite();
 
     /**
      * @brief 执行工作
      */
-    void doWork();
+    void _doWork();
 
     /**
      * @brief 检查是否需要补货
      */
-    [[nodiscard]] bool needsRestock() const;
+    [[nodiscard]] bool _needsRestock() const;
 
     /**
      * @brief 执行补货
      */
-    void restock();
+    void _restock();
 
 protected:
     VillagerEntity* m_villager;
@@ -189,8 +185,6 @@ private:
  * @brief 村民寻找工作站点目标
  *
  * 无职业村民寻找可用的工作站点。
- *
- * 参考 MC 1.16.5 FindJobSiteGoal
  */
 class LookForJobSiteGoal : public Goal {
 public:
@@ -208,7 +202,7 @@ private:
     /**
      * @brief 搜索工作站点
      */
-    void searchForJobSite();
+    void _searchForJobSite();
 
 private:
     VillagerEntity* m_villager;
@@ -222,8 +216,6 @@ private:
  * @brief 村民收集物品目标
  *
  * 村民收集地上的食物或种子等物品。
- *
- * 参考 MC 1.16.5 GatherItemsGoal
  */
 class GatherItemsGoal : public Goal {
 public:
@@ -241,17 +233,17 @@ private:
     /**
      * @brief 查找附近的物品
      */
-    void findNearbyItems();
+    void _findNearbyItems();
 
     /**
      * @brief 移动到物品
      */
-    void moveToItem();
+    void _moveToItem();
 
     /**
      * @brief 拾取物品
      */
-    void pickupItem();
+    void _pickupItem();
 
 private:
     VillagerEntity* m_villager;
@@ -264,8 +256,6 @@ private:
  * @brief 农民工作目标
  *
  * 农民特有的工作行为：种植、收获、堆肥。
- *
- * 参考 MC 1.16.5 FarmerWorkGoal
  */
 class FarmerWorkGoal : public WorkAtJobSiteGoal {
 public:
@@ -279,33 +269,33 @@ private:
     /**
      * @brief 尝试收获成熟作物
      */
-    void tryHarvest();
+    void _tryHarvest();
 
     /**
      * @brief 尝试种植作物
      */
-    void tryPlant();
+    void _tryPlant();
 
     /**
      * @brief 尝试堆肥
      */
-    void tryCompost();
+    void _tryCompost();
 
     /**
      * @brief 查找附近的农田
      * @return 农田位置（如果有）
      */
-    [[nodiscard]] std::optional<BlockPos> findFarmland() const;
+    [[nodiscard]] std::optional<BlockPos> _findFarmland() const;
 
     /**
      * @brief 检查作物是否成熟
      */
-    [[nodiscard]] bool isCropMature(BlockPos pos) const;
+    [[nodiscard]] bool _isCropMature(BlockPos pos) const;
 
     /**
      * @brief 检查是否可以种植
      */
-    [[nodiscard]] bool canPlant(BlockPos pos) const;
+    [[nodiscard]] bool _canPlant(BlockPos pos) const;
 
 private:
     i32 m_farmerWorkTicks = 0;
@@ -317,8 +307,6 @@ private:
  * @brief 村民逃避敌对目标
  *
  * 村民逃离僵尸、掠夺者等敌对生物。
- *
- * 参考 MC 1.16.5 AvoidEntityGoal
  */
 class AvoidHostileGoal : public Goal {
 public:
@@ -336,12 +324,12 @@ private:
     /**
      * @brief 查找最近的敌对生物
      */
-    void findNearestHostile();
+    void _findNearestHostile();
 
     /**
      * @brief 计算逃跑方向
      */
-    void fleeFromHostile();
+    void _fleeFromHostile();
 
 private:
     VillagerEntity* m_villager;
@@ -356,8 +344,6 @@ private:
  * @brief 村民前往床位目标
  *
  * 夜间前往床上睡觉的导航目标。
- *
- * 参考 MC 1.16.5 GoToBedGoal
  */
 class GoToBedGoal : public Goal {
 public:
@@ -382,8 +368,6 @@ private:
  * @brief 村民繁殖目标
  *
  * 村民繁殖行为，需要足够的食物和床位。
- *
- * 参考 MC 1.16.5 BreedGoal
  */
 class VillagerBreedGoal : public Goal {
 public:
@@ -401,27 +385,27 @@ private:
     /**
      * @brief 检查是否有足够的床位
      */
-    [[nodiscard]] bool hasEnoughBeds() const;
+    [[nodiscard]] bool _hasEnoughBeds() const;
 
     /**
      * @brief 检查是否愿意繁殖
      */
-    [[nodiscard]] bool isWillingToBreed() const;
+    [[nodiscard]] bool _isWillingToBreed() const;
 
     /**
      * @brief 寻找繁殖伙伴
      */
-    void findPartner();
+    void _findPartner();
 
     /**
      * @brief 移动到伙伴
      */
-    void moveToPartner();
+    void _moveToPartner();
 
     /**
      * @brief 生成幼年村民
      */
-    void spawnChild();
+    void _spawnChild();
 
 private:
     VillagerEntity* m_villager;
@@ -436,8 +420,6 @@ private:
  *
  * 村民在聚集活动期间与其他村民互动。
  * 包括流言传播和物品分享。
- *
- * 参考 MC 1.16.5 VillagerEntity.play() 和聚集行为
  */
 class CongregateGoal : public Goal {
 public:
@@ -455,17 +437,17 @@ private:
     /**
      * @brief 查找交互目标
      */
-    void findInteractionTarget();
+    void _findInteractionTarget();
 
     /**
      * @brief 传播流言
      */
-    void spreadGossip();
+    void _spreadGossip();
 
     /**
      * @brief 分享物品（农民分享食物）
      */
-    void shareItems();
+    void _shareItems();
 
 private:
     VillagerEntity* m_villager;
@@ -479,8 +461,6 @@ private:
  * @brief 村民看向实体目标
  *
  * 村民随机看向附近的实体（村民、玩家、猫等）。
- *
- * 参考 MC 1.16.5 LookAtGoal
  */
 class LookAtEntitiesGoal : public Goal {
 public:
@@ -498,7 +478,7 @@ private:
     /**
      * @brief 选择目标类型
      */
-    void selectTargetType();
+    void _selectTargetType();
 
 private:
     VillagerEntity* m_villager;
@@ -518,8 +498,6 @@ private:
  * @brief 村民分享物品目标
  *
  * 农民分享食物给其他村民。
- *
- * 参考 MC 1.16.5 ShareItemsTask
  */
 class ShareItemsGoal : public Goal {
 public:
@@ -537,17 +515,17 @@ private:
     /**
      * @brief 检查是否有多余的食物可以分享
      */
-    [[nodiscard]] bool canAbandonItems() const;
+    [[nodiscard]] bool _canAbandonItems() const;
 
     /**
      * @brief 检查目标是否需要食物
      */
-    [[nodiscard]] bool targetNeedsFood() const;
+    [[nodiscard]] bool _targetNeedsFood() const;
 
     /**
      * @brief 分享食物给目标
      */
-    void shareFoodWithTarget();
+    void _shareFoodWithTarget();
 
 private:
     VillagerEntity* m_villager;

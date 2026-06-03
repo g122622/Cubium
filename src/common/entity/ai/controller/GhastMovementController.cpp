@@ -22,10 +22,10 @@
  */
 
 #include "GhastMovementController.hpp"
-#include "../../../entity/entities/monster/nether/NetherEntities.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../world/IWorld.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::controller {
@@ -49,7 +49,6 @@ void GhastMovementController::tick()
         return;
     }
 
-    // MC 1.16.5: GhastEntity.MoveHelperController.tick()
     // 每次更新后添加随机冷却，避免频繁调整
     math::Random rng = m_ghast->getRandom();
     m_courseChangeCooldown = rng.nextInt(5) + 2; // 2-6 ticks
@@ -72,9 +71,8 @@ void GhastMovementController::tick()
 
     // 检查飞行路径是否安全（避免碰撞）
     i32 stepsToCheck = static_cast<i32>(std::ceil(distance));
-    if (isPathSafe(direction, stepsToCheck)) {
+    if (_isPathSafe(direction, stepsToCheck)) {
         // 路径安全，添加速度
-        // MC 1.16.5: setMotion(getMotion().add(vector3d.scale(0.1D)))
         Vector3 velocity = m_ghast->velocity();
         velocity.x += direction.x * 0.1f;
         velocity.y += direction.y * 0.1f;
@@ -86,9 +84,8 @@ void GhastMovementController::tick()
     }
 }
 
-bool GhastMovementController::isPathSafe(const Vector3f& direction, i32 distance) const
+bool GhastMovementController::_isPathSafe(const Vector3f& direction, i32 distance) const
 {
-    // MC 1.16.5: GhastEntity.MoveHelperController.func_220673_a()
     // 检查从当前位置到目标位置的路径是否安全
     IWorld* world = m_ghast->world();
     if (world == nullptr) {

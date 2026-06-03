@@ -23,8 +23,8 @@
 
 #include "EntitySenses.hpp"
 
-#include "../core/Entity.hpp"
-#include "../core/MobEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 
 #include <algorithm>
 

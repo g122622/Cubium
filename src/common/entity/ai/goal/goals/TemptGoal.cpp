@@ -22,17 +22,19 @@
  */
 
 #include "TemptGoal.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../controller/LookController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
-#include "../GoalConstants.hpp"
+
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "entity/ai/controller/LookController.hpp"
+#include "entity/ai/goal/GoalConstants.hpp"
+#include "entity/ai/pathfinding/PathNavigator.hpp"
+#include "entity/core/CreatureEntity.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/core/EntityUtils.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/entities/player/Player.hpp"
+
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -52,15 +54,13 @@ bool TemptGoal::shouldExecute()
 {
     if (!m_creature) return false;
 
-    // MC 1.16.5: 检查冷却
+    // 检查冷却
     if (m_delayTemptCounter > 0) {
         m_delayTemptCounter--;
         return false;
     }
 
-    // MC 1.16.5: 寻找手持诱惑物品的玩家
-    // 使用 EntityPredicate.setDistance(10.0D).allowInvulnerable().allowFriendlyFire()
-    //               .setSkipAttackChecks().setLineOfSiteRequired()
+    // 寻找手持诱惑物品的玩家
     m_temptingPlayer = findTemptingPlayer();
     return m_temptingPlayer != nullptr;
 }
@@ -69,25 +69,24 @@ bool TemptGoal::shouldContinueExecuting()
 {
     if (!m_creature || !m_temptingPlayer) return false;
 
-    // MC 1.16.5: 检查玩家是否存活
+    // 检查玩家是否存活
     if (!m_temptingPlayer->isAlive()) return false;
 
-    // MC 1.16.5: 检查玩家手持物品
+    // 检查玩家手持物品
     const ItemStack& mainHand = m_temptingPlayer->getHeldItem(Hand::MainHand);
     const ItemStack& offHand = m_temptingPlayer->getHeldItem(Hand::OffHand);
     if (!isTempting(mainHand) && !isTempting(offHand)) {
         return false;
     }
 
-    // MC 1.16.5: 检查距离
+    // 检查距离
     f64 distSq = m_creature->distanceSqTo(*m_temptingPlayer);
-    if (distSq > TEMPT_RANGE * TEMPT_RANGE) {
+    if (distSq > TEMPT_RANGE_SQ) {
         return false;
     }
 
-    // MC 1.16.5: 检查是否被玩家移动吓跑
+    // 检查是否被玩家移动吓跑
     if (m_scaredByMovement) {
-        // MC 1.16.5: 使用 36.0D（6*6）作为惊吓距离检测
         if (distSq < TEMPT_SCARE_DISTANCE_SQ) {
             // 检查玩家是否移动
             f64 playerDx = m_temptingPlayer->x() - m_targetX;
@@ -99,7 +98,7 @@ bool TemptGoal::shouldContinueExecuting()
                 return false; // 玩家移动了，停止
             }
 
-            // MC 1.16.5: 检查玩家视角变化
+            // 检查玩家视角变化
             f64 pitchDiff = std::abs(static_cast<f64>(m_temptingPlayer->pitch()) - m_prevPitch);
             f64 yawDiff = std::abs(static_cast<f64>(m_temptingPlayer->yaw()) - m_prevYaw);
 
@@ -124,7 +123,7 @@ void TemptGoal::startExecuting()
 {
     if (!m_temptingPlayer) return;
 
-    // MC 1.16.5: 记录玩家初始位置和视角
+    // 记录玩家初始位置和视角
     m_targetX = m_temptingPlayer->x();
     m_targetY = m_temptingPlayer->y();
     m_targetZ = m_temptingPlayer->z();
@@ -142,7 +141,7 @@ void TemptGoal::resetTask()
         m_creature->clearNavigation();
     }
 
-    // MC 1.16.5: 设置冷却（100 tick）
+    // 设置冷却
     m_delayTemptCounter = TEMPT_COOLDOWN;
 }
 
@@ -150,23 +149,23 @@ void TemptGoal::tick()
 {
     if (!m_creature || !m_temptingPlayer) return;
 
-    // MC 1.16.5: 使用 getHorizontalFaceSpeed() + 20 和 getVerticalFaceSpeed()
+    // 计算头部旋转速度
     f32 deltaYaw = static_cast<f32>(m_creature->getHorizontalFaceSpeed() + 20.0);
     f32 deltaPitch = static_cast<f32>(m_creature->getVerticalFaceSpeed());
 
-    // MC 1.16.5: 看向玩家（使用 LookController）
+    // 看向玩家
     if (auto* lookCtrl = m_creature->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_temptingPlayer, deltaYaw, deltaPitch);
     }
 
-    // MC 1.16.5: 使用 6.25D（2.5*2.5）作为近距离阈值
+    // 检查距离，决定是否移动
     f64 distSq = m_creature->distanceSqTo(*m_temptingPlayer);
 
     if (distSq < TEMPT_CLOSE_DISTANCE_SQ) {
         // 距离太近，停止移动
         m_creature->clearNavigation();
     } else {
-        // MC 1.16.5: 跟随玩家
+        // 跟随玩家
         if (auto* nav = m_creature->navigator()) {
             static_cast<void>(nav->moveTo(*m_temptingPlayer, m_speed));
         }
@@ -187,9 +186,7 @@ Player* TemptGoal::findTemptingPlayer()
 {
     if (!m_creature || !m_creature->world()) return nullptr;
 
-    // MC 1.16.5: 使用 EntityPredicate 搜索玩家
-    // EntityPredicate.setDistance(10.0D).allowInvulnerable().allowFriendlyFire()
-    //               .setSkipAttackChecks().setLineOfSiteRequired()
+    // 搜索附近手持诱惑物品的玩家
     return EntityUtils::findClosestEntity<Player>(
         m_creature->world(), m_creature->position(), TEMPT_RANGE, m_creature, [this](Player* playerEntity) {
             const ItemStack& mainHand = playerEntity->getHeldItem(Hand::MainHand);

@@ -56,7 +56,7 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
         return PathNodeType::Lava;
     }
 
-    // MC 1.16.5 func_237238_b_: 检查危险方块类型
+    // 检查危险方块类型
     // 获取方块状态进行更详细的检查
     const BlockState* state = m_region->getBlockState(x, y, z);
     if (state != nullptr) {
@@ -91,16 +91,16 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
     // 检查是否可行走
     if (m_region->isWalkable(x, y, z)) {
         // 检查下方是否有支撑
-        if (canStandOn(x, y - 1, z)) {
+        if (_canStandOn(x, y - 1, z)) {
             return PathNodeType::Walkable;
         }
         return PathNodeType::Open;
     }
 
     // 检查是否可以穿过（空气）
-    if (isPassable(x, y, z)) {
+    if (_isPassable(x, y, z)) {
         // 向下寻找地面
-        i32 groundY = getGroundHeight(x, y, z);
+        i32 groundY = _getGroundHeight(x, y, z);
         if (groundY < y - m_maxFallDistance) {
             return PathNodeType::DangerFall;
         }
@@ -119,7 +119,7 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
         return PathNodeType::Blocked;
     }
 
-    // MC 1.16.5 func_237232_a_: 检查相邻危险方块
+    // 检查相邻危险方块
     // 当当前位置是可行走的或开放的时，检查周围是否有危险方块
     if (type == PathNodeType::Walkable || type == PathNodeType::Open) {
         // 检查 3x3x3 相邻区域（包括上下）
@@ -144,7 +144,7 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
                         return PathNodeType::DangerCactus;
                     }
 
-                    // 甜浆果丛相邻 - DANGER_OTHER (MC 1.15+ 使用 DANGER_BERRY，但我们的枚举有这个)
+                    // 甜浆果丛相邻 - DANGER_BERRY
                     Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
                     if (sweetBerryBush != nullptr && &neighborBlock == sweetBerryBush) {
                         return PathNodeType::DangerBerry;
@@ -173,7 +173,7 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
         }
     }
 
-    // MC 1.16.5: 检查实体高度范围内的所有方块
+    // 检查实体高度范围内的所有方块
     i32 heightCount = static_cast<i32>(std::ceil(m_entityHeight));
     for (i32 dy = 1; dy <= heightCount; ++dy) {
         PathNodeType upperType = getNodeType(x, y + dy, z);
@@ -182,10 +182,10 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
         }
     }
 
-    // MC 1.16.5: 对于宽度大于0.6的实体，检查额外位置
+    // 对于宽度大于0.6的实体，检查额外位置
     // 宽实体需要检查角落碰撞
     if (m_entityWidth > 0.6f && m_entity != nullptr) {
-        // MC 1.16.5: 检查实体边界框覆盖的所有方块位置
+        // 检查实体边界框覆盖的所有方块位置
         // 计算实体边界框的最小/最大坐标
         f64 entityX = m_entity->x();
         f64 entityZ = m_entity->z();
@@ -225,7 +225,7 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
 PathPoint* WalkNodeProcessor::getStartNode(i32 x, i32 y, i32 z)
 {
     // 找到实体脚下的地面
-    i32 groundY = getGroundHeight(x, y, z);
+    i32 groundY = _getGroundHeight(x, y, z);
 
     // 如果实体在地面之上，使用实体当前Y
     if (groundY < y) {
@@ -274,26 +274,26 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
                 }
             }
 
-            addNeighbor(neighbors, nx, y, nz, type);
+            _addNeighbor(neighbors, nx, y, nz, type);
         } else if (type == PathNodeType::Open || type == PathNodeType::DangerFall) {
             // 检查是否需要跳跃
             PathNodeType upperType = getNodeType(x, y + 1, z);
-            if (upperType == PathNodeType::Walkable && canStandOn(nx, y, nz)) {
+            if (upperType == PathNodeType::Walkable && _canStandOn(nx, y, nz)) {
                 // 可以跳跃上去
-                addNeighbor(neighbors, nx, y + 1, nz, PathNodeType::Walkable);
+                _addNeighbor(neighbors, nx, y + 1, nz, PathNodeType::Walkable);
             } else if (type == PathNodeType::DangerFall && currentType == PathNodeType::Walkable) {
                 // 可以跌落
-                i32 groundY = getGroundHeight(nx, y, nz);
+                i32 groundY = _getGroundHeight(nx, y, nz);
                 if (groundY >= y - m_maxFallDistance) {
-                    addNeighbor(neighbors, nx, groundY, nz, PathNodeType::Walkable);
+                    _addNeighbor(neighbors, nx, groundY, nz, PathNodeType::Walkable);
                 }
             }
         } else if (type == PathNodeType::Blocked) {
             // 尝试跳上障碍物
-            if (currentType == PathNodeType::Walkable && canStandOn(nx, y, nz)) {
+            if (currentType == PathNodeType::Walkable && _canStandOn(nx, y, nz)) {
                 PathNodeType upperType = getNodeType(nx, y + 1, nz);
                 if (upperType == PathNodeType::Walkable || upperType == PathNodeType::Open) {
-                    addNeighbor(neighbors, nx, y + 1, nz, PathNodeType::Walkable);
+                    _addNeighbor(neighbors, nx, y + 1, nz, PathNodeType::Walkable);
                 }
             }
         }
@@ -304,12 +304,12 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
         // 向上攀爬
         PathNodeType upperType = getNodeType(x, y + 1, z);
         if (upperType == PathNodeType::Climbable) {
-            addNeighbor(neighbors, x, y + 1, z, PathNodeType::Climbable);
+            _addNeighbor(neighbors, x, y + 1, z, PathNodeType::Climbable);
         }
         // 向下攀爬
         PathNodeType lowerType = getNodeType(x, y - 1, z);
         if (lowerType == PathNodeType::Climbable) {
-            addNeighbor(neighbors, x, y - 1, z, PathNodeType::Climbable);
+            _addNeighbor(neighbors, x, y - 1, z, PathNodeType::Climbable);
         }
     }
 
@@ -318,12 +318,12 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
         // 向上游泳
         PathNodeType upperType = getNodeType(x, y + 1, z);
         if (upperType == PathNodeType::Water) {
-            addNeighbor(neighbors, x, y + 1, z, PathNodeType::Water);
+            _addNeighbor(neighbors, x, y + 1, z, PathNodeType::Water);
         }
         // 向下游泳
         PathNodeType lowerType = getNodeType(x, y - 1, z);
         if (lowerType == PathNodeType::Water) {
-            addNeighbor(neighbors, x, y - 1, z, PathNodeType::Water);
+            _addNeighbor(neighbors, x, y - 1, z, PathNodeType::Water);
         }
     }
 
@@ -349,7 +349,7 @@ std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z)
     return node;
 }
 
-bool WalkNodeProcessor::isWalkableAt(i32 x, i32 y, i32 z) const
+bool WalkNodeProcessor::_isWalkableAt(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return false;
 
@@ -357,19 +357,19 @@ bool WalkNodeProcessor::isWalkableAt(i32 x, i32 y, i32 z) const
     return m_region->isWalkable(x, y, z);
 }
 
-bool WalkNodeProcessor::canStandOn(i32 x, i32 y, i32 z) const
+bool WalkNodeProcessor::_canStandOn(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return false;
 
     // 检查脚下是否有支撑
-    return m_region->isWalkable(x, y, z) && isPassable(x, y + 1, z);
+    return m_region->isWalkable(x, y, z) && _isPassable(x, y + 1, z);
 }
 
-bool WalkNodeProcessor::isSafe(i32 x, i32 y, i32 z) const
+bool WalkNodeProcessor::_isSafe(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return false;
 
-    // MC 1.16.5: 检查位置本身和周围是否有危险
+    // 检查位置本身和周围是否有危险
     // 首先检查岩浆
     if (m_region->isLava(x, y, z)) {
         return false;
@@ -394,7 +394,6 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return false;
 
-    // MC 1.16.5 func_237233_a_:
     // 检查火焰、岩浆、岩浆块、点燃的营火等危险方块
 
     // 1. 岩浆（流体）
@@ -443,9 +442,7 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
     }
 
     // 7. 甜浆果丛（SWEET_BERRY_BUSH）
-    // 接触会造成伤害和减速（通过 ResourceLocation 查找，因为可能未在 VanillaBlocks 中注册）
-    // MC 1.16.5: 只有年龄大于0的甜浆果丛才造成伤害
-    // 参考: SweetBerryBushBlock.onEntityCollision
+    // 接触会造成伤害和减速
     // 由于甜浆果丛在 VanillaBlocks 中尚未注册，暂时通过 ResourceLocation 查找
     Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
     if (sweetBerryBush != nullptr && &block == sweetBerryBush) {
@@ -455,7 +452,7 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
     return false;
 }
 
-i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const
+i32 WalkNodeProcessor::_getGroundHeight(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return y;
 
@@ -469,7 +466,7 @@ i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const
     return world::MIN_BUILD_HEIGHT;
 }
 
-bool WalkNodeProcessor::isPassable(i32 x, i32 y, i32 z) const
+bool WalkNodeProcessor::_isPassable(i32 x, i32 y, i32 z) const
 {
     if (!m_region) return true;
 
@@ -477,7 +474,7 @@ bool WalkNodeProcessor::isPassable(i32 x, i32 y, i32 z) const
     return !m_region->isWalkable(x, y, z) || m_region->isWater(x, y, z);
 }
 
-void WalkNodeProcessor::addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type)
+void WalkNodeProcessor::_addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type)
 {
     PathPoint* node = getNode(x, y, z);
     if (node) {
@@ -487,7 +484,7 @@ void WalkNodeProcessor::addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i
     }
 }
 
-void WalkNodeProcessor::addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz)
+void WalkNodeProcessor::_addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz)
 {
     // 检查是否可以跳跃到相邻位置
     i32 x = current->x() + dx;
@@ -498,16 +495,16 @@ void WalkNodeProcessor::addJumpNeighbor(std::vector<PathPoint*>& neighbors, Path
     PathNodeType type2 = getNodeType(x, current->y() + 1, z);
 
     if (type1 == PathNodeType::Walkable && type2 == PathNodeType::Open) {
-        addNeighbor(neighbors, x, current->y() + 1, z, PathNodeType::Walkable);
+        _addNeighbor(neighbors, x, current->y() + 1, z, PathNodeType::Walkable);
     }
 }
 
-void WalkNodeProcessor::addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z)
+void WalkNodeProcessor::_addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z)
 {
     // 检查是否可以跌落到相邻位置
-    i32 groundY = getGroundHeight(x, startY, z);
+    i32 groundY = _getGroundHeight(x, startY, z);
     if (groundY >= startY - m_maxFallDistance) {
-        addNeighbor(neighbors, x, groundY, z, PathNodeType::Walkable);
+        _addNeighbor(neighbors, x, groundY, z, PathNodeType::Walkable);
     }
 }
 

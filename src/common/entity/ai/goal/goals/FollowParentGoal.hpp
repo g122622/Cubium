@@ -37,8 +37,6 @@ namespace entity::ai::goal {
  * @brief 跟随父母目标
  *
  * 幼体动物跟随成年动物。
- *
- * 参考 MC 1.16.5 FollowParentGoal
  */
 class FollowParentGoal : public Goal {
 public:

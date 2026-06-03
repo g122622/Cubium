@@ -22,11 +22,13 @@
  */
 
 #include "PandaGoals.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../entities/passive/special/PandaEntity.hpp"
+
+#include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -38,7 +40,7 @@ namespace mc::entity::ai::goal {
 PandaRollGoal::PandaRollGoal(PandaEntity* panda)
     : m_panda(panda)
 {
-    // MC 1.16.5: setMutexFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP))
+    // 互斥标志: MOVE, LOOK, JUMP
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump});
 }
 
@@ -48,8 +50,7 @@ bool PandaRollGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 条件1 - 幼年或顽皮性格
-    // if ((this.panda.isChild() || this.panda.isPlayful()) && this.panda.onGround)
+    // 条件1：幼年或顽皮性格
     if (!m_panda->isChild() && !m_panda->isPlayful()) {
         return false;
     }
@@ -59,17 +60,15 @@ bool PandaRollGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 条件2 - canPerformAction()
-    // 检查熊猫是否可以执行动作（不在打喷嚏、吃东西、躺着、打滚等状态）
+    // 条件2：检查熊猫是否可以执行动作（不在打喷嚏、吃东西、躺着、打滚等状态）
     if (!m_panda->canPerformAction()) {
         return false;
     }
 
-    // MC 1.16.5: 条件3 - 检查前方是否有悬崖或概率触发
-    // MC 1.16.5: 概率检查
+    // 条件3：检查前方是否有悬崖或概率触发
     math::Random rng = m_panda->getRandom();
-    if (isCliffInFront()) {
-        // MC 1.16.5: 如果前方是悬崖，100% 触发
+    if (_isCliffInFront()) {
+        // 如果前方是悬崖，100% 触发
         return true;
     } else if (m_panda->isPlayful()) {
         // 顽皮性格：1/60 概率
@@ -82,7 +81,6 @@ bool PandaRollGoal::shouldExecute()
 
 bool PandaRollGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: return false
     // 打滚是一次性动作，由 rollCounter 控制持续时间
     // Goal 只负责触发，PandaEntity::updateRoll() 负责物理更新
     return false;
@@ -90,14 +88,13 @@ bool PandaRollGoal::shouldContinueExecuting()
 
 void PandaRollGoal::startExecuting()
 {
-    // MC 1.16.5: this.panda.func_213576_v(true)
     // 设置打滚状态，由 tick() 中的 updateRoll() 处理物理
     m_panda->setRolling(true);
     // 初始设置为 0，由 updateRoll() 递增
     m_panda->setRollTimer(0);
 }
 
-bool PandaRollGoal::isCliffInFront() const
+bool PandaRollGoal::_isCliffInFront() const
 {
     if (m_panda == nullptr || m_panda->world() == nullptr) {
         return false;
@@ -111,9 +108,7 @@ bool PandaRollGoal::isCliffInFront() const
     const f32 sinYaw = std::sin(yawRad);
     const f32 cosYaw = std::cos(yawRad);
 
-    // MC 1.16.5: 计算前方一格的偏移
-    // if ((double)Math.abs(f1) > 0.5D) { i = (int)((float)i + f1 / Math.abs(f1)); }
-    // if ((double)Math.abs(f2) > 0.5D) { j = (int)((float)j + f2 / Math.abs(f2)); }
+    // 计算前方一格的偏移（当偏移超过0.5时才移动）
     i32 offsetX = 0;
     i32 offsetZ = 0;
     if (std::abs(sinYaw) > 0.5) {
@@ -123,8 +118,7 @@ bool PandaRollGoal::isCliffInFront() const
         offsetZ = static_cast<i32>(cosYaw / std::abs(cosYaw));
     }
 
-    // MC 1.16.5: 检查前方一格下方是否是空气
-    // this.panda.world.getBlockState(this.panda.getPosition().add(i, -1, j)).isAir()
+    // 检查前方一格下方是否是空气
     const BlockPos pandaPos(m_panda->position());
     const BlockPos checkPos(pandaPos.x + offsetX, pandaPos.y - 1, pandaPos.z + offsetZ);
 

@@ -1,11 +1,28 @@
-/**
- * @file BatGoals.cpp
- * @brief 蝙蝠专用的AI目标类实现
+/*
+ * Copyright (c) 2026 Guo Yi
  *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.BatEntity
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  */
 
 #include "BatGoals.hpp"
+
 #include "../../../../../util/assert/AssertMacros.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
@@ -65,7 +82,7 @@ bool BatRandomFlyGoal::shouldContinueExecuting()
 void BatRandomFlyGoal::startExecuting()
 {
     // 选择初始目标点
-    selectNewTarget();
+    _selectNewTarget();
     m_cooldown = 0;
 }
 
@@ -98,9 +115,9 @@ void BatRandomFlyGoal::tick()
         needNewTarget = true;
     }
 
-    // 条件2：目标不可用（非空气或Y<1）
+    // 条件2：目标不可用（非空气或低于最低建筑高度）
     if (m_hasTarget) {
-        if (!isTargetValid(m_targetPos)) {
+        if (!_isTargetValid(m_targetPos)) {
             needNewTarget = true;
         }
     }
@@ -126,12 +143,11 @@ void BatRandomFlyGoal::tick()
 
     // 选择新目标
     if (needNewTarget) {
-        selectNewTarget();
+        _selectNewTarget();
     }
 
     // 如果有有效目标，执行飞行移动
     if (m_hasTarget) {
-        // MC 1.16.5: BatEntity 第150-159行
         // 计算到目标的方向
         f32 dx = static_cast<f32>(m_targetPos.x) + 0.5f - m_bat->position().x;
         f32 dy = static_cast<f32>(m_targetPos.y) + 0.1f - m_bat->position().y;
@@ -155,7 +171,7 @@ void BatRandomFlyGoal::tick()
     }
 }
 
-void BatRandomFlyGoal::selectNewTarget()
+void BatRandomFlyGoal::_selectNewTarget()
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         m_hasTarget = false;
@@ -165,7 +181,6 @@ void BatRandomFlyGoal::selectNewTarget()
     math::Random rng = m_bat->getRandom();
     math::Vector3 currentPos = m_bat->position();
 
-    // MC 1.16.5: BatEntity 第142-148行
     // 目标点范围：
     // X: 当前位置 ±7 格
     // Y: 当前位置 -2 到 +4 格
@@ -180,7 +195,7 @@ void BatRandomFlyGoal::selectNewTarget()
 
         BlockPos candidatePos(targetX, targetY, targetZ);
 
-        if (isTargetValid(candidatePos)) {
+        if (_isTargetValid(candidatePos)) {
             m_targetPos = candidatePos;
             m_hasTarget = true;
             return;
@@ -193,7 +208,7 @@ void BatRandomFlyGoal::selectNewTarget()
     m_hasTarget = false;
 }
 
-bool BatRandomFlyGoal::isTargetValid(const BlockPos& pos) const
+bool BatRandomFlyGoal::_isTargetValid(const BlockPos& pos) const
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         return false;
@@ -201,8 +216,8 @@ bool BatRandomFlyGoal::isTargetValid(const BlockPos& pos) const
 
     IWorld* world = m_bat->world();
 
-    // Y 必须 >= 1（世界最低高度限制）
-    if (pos.y < 1) {
+    // Y 必须在有效建筑高度范围内
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -249,14 +264,13 @@ bool BatRestGoal::shouldExecute()
     }
 
     // 1/100 概率尝试休息
-    // MC 1.16.5: BatEntity 第160-162行
     math::Random rng = m_bat->getRandom();
     if (rng.nextInt(1, 100) != 1) {
         return false;
     }
 
     // 检查上方是否有固体方块
-    return canRestAtCurrentPosition();
+    return _canRestAtCurrentPosition();
 }
 
 bool BatRestGoal::shouldContinueExecuting()
@@ -271,7 +285,7 @@ bool BatRestGoal::shouldContinueExecuting()
     }
 
     // 检查是否应该停止休息
-    return !shouldStopResting();
+    return !_shouldStopResting();
 }
 
 void BatRestGoal::startExecuting()
@@ -318,7 +332,6 @@ void BatRestGoal::tick()
     }
 
     // 休息时偶尔转头
-    // MC 1.16.5: BatEntity 第125-127行
     math::Random rng = m_bat->getRandom();
     if (rng.nextInt(200) == 0) {
         // 随机选择新的转头角度
@@ -333,14 +346,13 @@ void BatRestGoal::tick()
     m_bat->setVelocity(math::Vector3(0.0f, 0.0f, 0.0f));
 }
 
-bool BatRestGoal::shouldStopResting() const
+bool BatRestGoal::_shouldStopResting() const
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         return true;
     }
 
     // 条件1：夜间唤醒
-    // MC 1.16.5: BatEntity 第129行
     i64 timeOfDay = m_bat->world()->dayTimeOfDay();
     bool isDay = timeOfDay < 12000;
     if (!isDay) {
@@ -348,7 +360,6 @@ bool BatRestGoal::shouldStopResting() const
     }
 
     // 条件2：玩家靠近（4格内）
-    // MC 1.16.5: BatEntity 第131-133行
     // 检查附近是否有玩家
     constexpr f32 PLAYER_WAKE_DISTANCE = 4.0f;
     Player* closestPlayer = m_bat->world()->getClosestPlayer(m_bat->position(), PLAYER_WAKE_DISTANCE);
@@ -357,14 +368,14 @@ bool BatRestGoal::shouldStopResting() const
     }
 
     // 条件3：失去支撑（上方不再是固体方块）
-    if (!canRestAtCurrentPosition()) {
+    if (!_canRestAtCurrentPosition()) {
         return true;
     }
 
     return false;
 }
 
-bool BatRestGoal::canRestAtCurrentPosition() const
+bool BatRestGoal::_canRestAtCurrentPosition() const
 {
     if (m_bat == nullptr || m_bat->world() == nullptr) {
         return false;

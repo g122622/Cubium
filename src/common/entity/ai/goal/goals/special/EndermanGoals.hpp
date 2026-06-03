@@ -49,8 +49,6 @@ namespace entity::ai::goal {
  * 当玩家正在注视末影人时，末影人会停止移动并注视玩家。
  * 这是末影人的特有行为，在被激怒前会先注视玩家。
  *
- * 参考 MC 1.16.5 EndermanEntity.StareGoal
- *
  * 行为：
  * - 当攻击目标是玩家且正在注视末影人时激活
  * - 停止移动，注视目标
@@ -77,7 +75,7 @@ private:
     EndermanEntity* m_enderman;
     LivingEntity* m_targetPlayer = nullptr;
 
-    // 注视距离阈值（MC 1.16.5: 256.0 = 16格的平方）
+    // 注视距离阈值（16格的平方）
     static constexpr f64 STARE_RANGE_SQ = 256.0;
 };
 
@@ -86,8 +84,6 @@ private:
  *
  * 查找正在注视末影人的玩家并激怒末影人。
  * 这是末影人的特有目标选择器，用于实现"被注视时激怒"的行为。
- *
- * 参考 MC 1.16.5 EndermanEntity.FindPlayerGoal
  *
  * 行为：
  * - 查找 10 格内正在注视末影人的玩家
@@ -141,8 +137,6 @@ private:
  *
  * 末影人将拿着的方块放置到世界中。
  *
- * 参考 MC 1.16.5 EndermanEntity.PlaceBlockGoal
- *
  * 行为：
  * - 只有当末影人拿着方块时才执行
  * - 需要 mobGriefing 游戏规则为 true
@@ -187,7 +181,7 @@ private:
 
     EndermanEntity* m_enderman;
 
-    // MC 1.16.5: 1/2000 概率执行
+    // 执行概率：1/2000 (每tick)
     static constexpr i32 PLACE_CHANCE = 2000;
 };
 
@@ -195,8 +189,6 @@ private:
  * @brief 末影人拾取方块目标
  *
  * 末影人从世界中拾取方块。
- *
- * 参考 MC 1.16.5 EndermanEntity.TakeBlockGoal
  *
  * 行为：
  * - 只有当末影人没有拿着方块时才执行
@@ -226,7 +218,7 @@ public:
 private:
     EndermanEntity* m_enderman;
 
-    // MC 1.16.5: 1/20 概率执行
+    // 执行概率：1/20 (每tick)
     static constexpr i32 TAKE_CHANCE = 20;
 };
 

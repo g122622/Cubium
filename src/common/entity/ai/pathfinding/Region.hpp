@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 // 前向声明
 namespace mc {
@@ -37,8 +37,6 @@ namespace mc::entity::ai::pathfinding {
  *
  * 提供寻路算法对世界区块的有限访问。
  * 这是一个抽象接口，允许不同实现（服务端世界、客户端世界等）。
- *
- * 参考 MC 1.16.5 IBlockReader
  */
 class Region {
 public:

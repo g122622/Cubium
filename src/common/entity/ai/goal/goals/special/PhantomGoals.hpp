@@ -1,25 +1,33 @@
-/**
- * @file PhantomGoals.hpp
- * @brief 幻翼专用的AI目标类
+/*
+ * Copyright (c) 2026 Guo Yi
  *
- * 参考 MC 1.16.5: net.minecraft.entity.monster.PhantomEntity
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * 幻翼有四个特有AI目标：
- * - PhantomAttackPlayerTargetGoal: 目标选择器，寻找玩家作为攻击目标
- * - PhantomOrbitPointGoal: 环绕飞行，在目标周围盘旋
- * - PhantomPickAttackGoal: 选择攻击阶段，在环绕和俯冲之间切换
- * - PhantomSweepAttackGoal: 俯冲攻击执行
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * 还有 PhantomMoveGoal 作为移动目标的抽象基类。
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  */
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 class PhantomEntity;
@@ -32,8 +40,6 @@ namespace entity::ai::goal {
  * @brief 幻翼目标选择器
  *
  * 寻找 64 格内的玩家作为攻击目标。
- *
- * 参考 MC 1.16.5: PhantomEntity.AttackPlayerGoal
  */
 class PhantomAttackPlayerTargetGoal : public Goal {
 public:
@@ -71,19 +77,17 @@ private:
      * @brief 搜索可攻击的玩家
      * @return 找到的玩家，如果没有返回nullptr
      */
-    Player* findAttackablePlayer();
+    [[nodiscard]] Player* _findAttackablePlayer();
 
     PhantomEntity* m_phantom;                 ///< 幻翼实体
-    i32 m_tickDelay = 20;                     ///< 搜索延迟（MC 1.16.5: 初始20，成功后60）
-    static constexpr f64 SEARCH_RANGE = 64.0; ///< 搜索范围（MC 1.16.5）
+    i32 m_tickDelay = 20;                     ///< 搜索延迟（初始20，成功后60）
+    static constexpr f64 SEARCH_RANGE = 64.0; ///< 搜索范围
 };
 
 /**
  * @brief 幻翼移动目标基类
  *
  * 提供检查目标点是否接近的辅助方法。
- *
- * 参考 MC 1.16.5: PhantomEntity.MoveGoal
  */
 class PhantomMoveGoal : public Goal {
 public:
@@ -107,8 +111,6 @@ protected:
  * @brief 幻翼环绕飞行目标
  *
  * 在目标上方环绕飞行，等待攻击机会。
- *
- * 参考 MC 1.16.5: PhantomEntity.OrbitPointGoal
  */
 class PhantomOrbitPointGoal : public PhantomMoveGoal {
 public:
@@ -145,11 +147,11 @@ private:
     /**
      * @brief 更新环绕偏移位置
      */
-    void updateOrbitOffset();
+    void _updateOrbitOffset();
 
     f32 m_orbitAngle = 0.0f;        ///< 当前环绕角度
-    f32 m_orbitRadius = 5.0f;       ///< 环绕半径（MC 1.16.5: 5.0 + random(10.0)）
-    f32 m_orbitHeightOffset = 0.0f; ///< 高度偏移（MC 1.16.5: -4.0 + random(9.0)）
+    f32 m_orbitRadius = 5.0f;       ///< 环绕半径（5.0 + random(10.0)）
+    f32 m_orbitHeightOffset = 0.0f; ///< 高度偏移（-4.0 + random(9.0)）
     f32 m_orbitDirection = 1.0f;    ///< 环绕方向（1.0或-1.0）
 };
 
@@ -157,8 +159,6 @@ private:
  * @brief 幻翼攻击阶段选择目标
  *
  * 在环绕和俯冲阶段之间切换。
- *
- * 参考 MC 1.16.5: PhantomEntity.PickAttackGoal
  */
 class PhantomPickAttackGoal : public Goal {
 public:
@@ -201,7 +201,7 @@ private:
     /**
      * @brief 设置环绕位置为目标上方
      */
-    void setOrbitPositionAboveTarget();
+    void _setOrbitPositionAboveTarget();
 
     PhantomEntity* m_phantom; ///< 幻翼实体
     i32 m_tickDelay = 0;      ///< 攻击阶段切换延迟
@@ -211,8 +211,6 @@ private:
  * @brief 幻翼俯冲攻击目标
  *
  * 执行俯冲攻击，撞击目标造成伤害。
- *
- * 参考 MC 1.16.5: PhantomEntity.SweepAttackGoal
  */
 class PhantomSweepAttackGoal : public PhantomMoveGoal {
 public:
@@ -256,7 +254,7 @@ private:
      * @brief 检查附近是否有猫（猫会驱赶幻翼）
      * @return 如果附近有猫返回false，应该停止攻击
      */
-    bool checkForCats();
+    bool _checkForCats();
 
     i32 m_catCheckTimer = 0; ///< 猫检测计时器（每20tick检测一次）
 };

@@ -22,19 +22,21 @@
  */
 
 #include "BreedGoal.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../core/AgeableEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/orb/ExperienceOrbEntity.hpp"
-#include "../../../entities/passive/basic/AnimalEntity.hpp"
-#include "../../controller/LookController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
-#include "../GoalConstants.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -52,7 +54,7 @@ bool BreedGoal::shouldExecute()
 {
     if (!m_animal) return false;
 
-    // MC 1.16.5: 检查是否处于爱心状态
+    // 检查是否处于爱心状态
     if (!m_animal->isInLove()) {
         return false;
     }
@@ -66,12 +68,11 @@ bool BreedGoal::shouldContinueExecuting()
 {
     if (!m_targetMate) return false;
 
-    // MC 1.16.5: 检查配偶是否存活且仍处于爱心状态，且未超时
+    // 检查配偶是否存活且仍处于爱心状态，且未超时
     if (!m_targetMate->isAlive()) return false;
     if (!m_targetMate->isInLove()) return false;
 
-    // MC 1.16.5: spawnBabyDelay < 60
-    return m_spawnBabyDelay < SPAWN_BABY_DELAY;
+    return m_spawnBabyDelay < constants::SPAWN_BABY_DELAY;
 }
 
 void BreedGoal::startExecuting()
@@ -92,22 +93,21 @@ void BreedGoal::tick()
 {
     if (!m_animal || !m_targetMate) return;
 
-    // MC 1.16.5: 使用 LookController 看向配偶
-    // setLookPositionWithEntity(targetMate, 10.0F, getVerticalFaceSpeed())
+    // 使用 LookController 看向配偶
     if (auto* lookCtrl = m_animal->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_targetMate, 10.0f, m_animal->getVerticalFaceSpeed());
     }
 
-    // MC 1.16.5: 使用 navigator.tryMoveToEntityLiving(targetMate, moveSpeed)
+    // 移动向配偶
     if (auto* nav = m_animal->navigator()) {
-        static_cast<void>(nav->moveTo(*m_targetMate, m_speed));
+        (void)nav->moveTo(*m_targetMate, m_speed);
     }
 
     m_spawnBabyDelay++;
 
-    // MC 1.16.5: spawnBabyDelay >= 60 && distanceSq < 9.0D
+    // 检查是否足够接近以进行繁殖
     f64 distSq = m_animal->distanceSqTo(*m_targetMate);
-    if (m_spawnBabyDelay >= SPAWN_BABY_DELAY && distSq < BREED_DISTANCE_SQ) {
+    if (m_spawnBabyDelay >= constants::SPAWN_BABY_DELAY && distSq < constants::BREED_DISTANCE_SQ) {
         spawnBaby();
     }
 }
@@ -116,23 +116,23 @@ AnimalEntity* BreedGoal::findNearbyMate()
 {
     if (!m_animal || !m_animal->world()) return nullptr;
 
-    // MC 1.16.5: 在 8 格范围内寻找配偶，使用 EntityPredicate
-    // EntityPredicate.setDistance(8.0D).allowInvulnerable().allowFriendlyFire().setLineOfSiteRequired()
-    return EntityUtils::findClosestEntity<AnimalEntity>(
-        m_animal->world(), m_animal->position(), BREED_DETECTION_RANGE, m_animal, [this](AnimalEntity* animal) {
-            return m_animal->canMateWith(*animal);
-        });
+    // 在检测范围内寻找配偶
+    return EntityUtils::findClosestEntity<AnimalEntity>(m_animal->world(),
+        m_animal->position(),
+        constants::BREED_DETECTION_RANGE,
+        m_animal,
+        [this](AnimalEntity* animal) { return m_animal->canMateWith(*animal); });
 }
 
 void BreedGoal::spawnBaby()
 {
     if (!m_animal || !m_targetMate) return;
 
-    // MC 1.16.5: 重置爱心状态
+    // 重置爱心状态
     m_animal->resetInLove();
     m_targetMate->resetInLove();
 
-    // MC 1.16.5: 设置繁殖冷却 (6000 ticks = 5分钟)
+    // 设置繁殖冷却 (6000 ticks = 5分钟)
     m_animal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
     m_targetMate->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
 
@@ -153,9 +153,7 @@ void BreedGoal::spawnBaby()
             // 设置幼体年龄
             baby->setGrowingAge(AgeableEntity::BABY_AGE);
 
-            // MC 1.16.5: 获取繁殖发起者玩家
-            // 参考 AnimalEntity.func_234177_a_()
-            // 优先从第一个动物获取 loveCause，如果为空则从第二个动物获取
+            // 获取繁殖发起者玩家（优先从第一个动物获取 loveCause，如果为空则从第二个动物获取）
             u64 loveCause = m_animal->getLoveCause();
             if (loveCause == 0) {
                 loveCause = m_targetMate->getLoveCause();
@@ -167,17 +165,16 @@ void BreedGoal::spawnBaby()
             // 生成到世界中
             world->spawnEntity(std::move(baby));
 
-            // MC 1.16.5: 触发繁殖事件（用于成就触发）
-            // 参考 CriteriaTriggers.BRED_ANIMALS.trigger(serverplayerentity, this, p_234177_2_, ageableentity)
+            // 触发繁殖事件（用于成就触发）
             if (loveCause != 0) {
                 world->onBredAnimals(static_cast<PlayerId>(loveCause), babyPtr, m_animal, m_targetMate);
             }
 
-            // MC 1.16.5: 生成爱心粒子效果
+            // 生成爱心粒子效果
             m_animal->spawnHeartParticles();
             m_targetMate->spawnHeartParticles();
 
-            // MC 1.16.5: 生成 1-7 个经验球
+            // 生成 1-7 个经验球
             i32 xpCount = 1 + rng.nextInt(7);
             for (i32 i = 0; i < xpCount; ++i) {
                 auto xpOrb =

@@ -32,8 +32,6 @@ namespace mc::entity::ai::pathfinding {
  * @brief 带标记的路径点
  *
  * 用于多目标寻路，包装PathPoint并跟踪最佳距离和前驱。
- *
- * 参考 MC 1.16.5 FlaggedPathPoint
  */
 class FlaggedPathPoint {
 public:
@@ -60,13 +58,11 @@ public:
 
     /**
      * @brief 获取最佳距离
-     * MC 1.16.5: field_224766_a
      */
     [[nodiscard]] f32 bestDistance() const { return m_bestDistance; }
 
     /**
      * @brief 获取最佳前驱
-     * MC 1.16.5: field_224767_b
      */
     [[nodiscard]] PathPoint* bestPredecessor() const { return m_bestPredecessor; }
 
@@ -83,7 +79,6 @@ public:
     /**
      * @brief 更新最佳距离和前驱
      *
-     * MC 1.16.5: updateBest
      * 如果新距离更小，则更新。
      *
      * @param distance 新距离

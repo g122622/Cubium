@@ -39,8 +39,6 @@ namespace entity::combat {
 
 /**
  * @brief 攻击类型
- *
- * 参考 MC 1.16.5 攻击类型
  */
 enum class AttackType : u8 {
     Melee,     // 近战攻击
@@ -54,8 +52,6 @@ enum class AttackType : u8 {
  * @brief 攻击上下文
  *
  * 包含攻击相关的所有信息，用于计算伤害和效果。
- *
- * 参考 MC 1.16.5 攻击相关逻辑
  */
 class AttackContext {
 public:

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -39,8 +39,6 @@ namespace entity::ai::goal {
  *
  * 使实体能够在一定距离外进行远程攻击。
  * 适用于骷髅、烈焰人等使用远程攻击的怪物。
- *
- * 参考 MC 1.16.5 RangedAttackGoal
  */
 class RangedAttackGoal : public Goal {
 public:
@@ -54,7 +52,7 @@ public:
      */
     RangedAttackGoal(MobEntity* mob, f64 speed, i32 attackIntervalMin, i32 attackIntervalMax, f32 attackRadius);
 
-    ~RangedAttackGoal() override = default;
+    ~RangedAttackGoal() noexcept override = default;
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
@@ -78,11 +76,11 @@ protected:
     i32 m_attackIntervalMin;
     i32 m_attackIntervalMax;
     f32 m_attackRadius;
-    f32 m_maxAttackDistanceSq; // MC 1.16.5: 缓存的平方距离
-    i32 m_attackTime = -1;     // MC 1.16.5: 初始值为 -1
-    i32 m_seenTime = 0;        // MC 1.16.5: 能看到目标的时间
+    f32 m_maxAttackDistanceSq; // 缓存的平方距离
+    i32 m_attackTime = -1;     // 初始值为 -1
+    i32 m_seenTime = 0;        // 能看到目标的时间
 
-    static constexpr i32 MIN_SEEN_TIME = 20; // MC 1.16.5: 停止移动前需要看到的tick数 (原版是20)
+    static constexpr i32 MIN_SEEN_TIME = 20; // 停止移动前需要看到的tick数
 };
 
 /**
@@ -90,8 +88,6 @@ protected:
  *
  * 使用弓进行远程攻击。
  * 需要实体实现IRangedAttackMob接口。
- *
- * 参考 MC 1.16.5 RangedBowAttackGoal
  */
 class RangedBowAttackGoal : public RangedAttackGoal {
 public:
@@ -104,7 +100,7 @@ public:
      */
     RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIntervalMin, i32 attackIntervalMax);
 
-    ~RangedBowAttackGoal() override = default;
+    ~RangedBowAttackGoal() noexcept override = default;
 
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
@@ -117,18 +113,15 @@ protected:
     void performAttack(LivingEntity* target, f32 charge) override;
 
 private:
-    // MC 1.16.5: 走位相关字段
     bool m_strafingClockwise = false; // 是否顺时针走位
     bool m_strafingBackwards = false; // 是否向后走位
     i32 m_strafingTime = -1;          // 走位时间计数器
 
-    static constexpr i32 STRAFE_THRESHOLD = 20; // 走位方向变化阈值（MC 1.16.5）
+    static constexpr i32 STRAFE_THRESHOLD = 20; // 走位方向变化阈值
 };
 
 /**
  * @brief 弩攻击目标状态枚举
- *
- * 参考 MC 1.16.5 RangedCrossbowAttackGoal.CrossbowState
  */
 enum class CrossbowState : u8 {
     Uncharged,    // 未装填
@@ -148,8 +141,6 @@ enum class CrossbowState : u8 {
  * - Charging: 装填弩（25 ticks基础时间）
  * - Charged: 装填完成，等待发射
  * - ReadyToAttack: 发射弩箭
- *
- * 参考 MC 1.16.5 RangedCrossbowAttackGoal
  */
 class RangedCrossbowAttackGoal : public Goal {
 public:
@@ -161,7 +152,7 @@ public:
      */
     RangedCrossbowAttackGoal(MobEntity* mob, f64 speed, f32 attackRadius);
 
-    ~RangedCrossbowAttackGoal() override = default;
+    ~RangedCrossbowAttackGoal() noexcept override = default;
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
@@ -175,32 +166,32 @@ private:
     /**
      * @brief 检查实体是否持有弩
      */
-    [[nodiscard]] bool isHoldingCrossbow() const;
+    [[nodiscard]] bool _isHoldingCrossbow() const;
 
     /**
      * @brief 检查视线并更新可见时间
      */
-    void updateSeenTime();
+    void _updateSeenTime();
 
     /**
      * @brief 处理未装填状态
      */
-    void handleUnchargedState();
+    void _handleUnchargedState();
 
     /**
      * @brief 处理装填中状态
      */
-    void handleChargingState();
+    void _handleChargingState();
 
     /**
      * @brief 处理已装填状态
      */
-    void handleChargedState();
+    void _handleChargedState();
 
     /**
      * @brief 处理准备攻击状态
      */
-    void handleReadyToAttackState();
+    void _handleReadyToAttackState();
 
     MobEntity* m_mob;
     LivingEntity* m_target = nullptr;
@@ -214,7 +205,6 @@ private:
     i32 m_cooldownTime = 0; // 装填后等待时间
     i32 m_moveCooldown = 0; // 移动冷却
 
-    // MC 1.16.5 常量
     static constexpr i32 MIN_SEEN_TIME = 5;        // 最小可见时间才开始攻击
     static constexpr i32 CHARGED_WAIT_MIN = 20;    // 装填后最小等待时间
     static constexpr i32 CHARGED_WAIT_MAX = 40;    // 装填后最大等待时间

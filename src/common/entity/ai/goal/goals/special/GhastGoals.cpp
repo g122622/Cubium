@@ -22,15 +22,15 @@
  */
 
 #include "GhastGoals.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../entities/monster/nether/NetherEntities.hpp"
-#include "../../../controller/MovementController.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/controller/MovementController.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -54,7 +54,6 @@ bool GhastRandomFlyGoal::shouldExecute()
 
     auto* moveController = m_ghast->moveController();
 
-    // MC 1.16.5: GhastEntity.RandomFlyGoal.shouldExecute()
     // 条件1: 移动控制器空闲（没有目标）
     if (!moveController->isUpdating()) {
         return true;
@@ -84,7 +83,6 @@ void GhastRandomFlyGoal::startExecuting()
         return;
     }
 
-    // MC 1.16.5: GhastEntity.RandomFlyGoal.startExecuting()
     // 在当前位置周围选择随机目标点
     math::Random rng = m_ghast->getRandom();
 
@@ -113,7 +111,7 @@ void GhastLookAroundGoal::tick()
         return;
     }
 
-    // MC 1.16.5: GhastEntity.LookAroundGoal.tick()
+    // 根据是否有攻击目标更新朝向
     LivingEntity* attackTarget = m_ghast->attackTarget();
 
     if (attackTarget == nullptr) {
@@ -156,7 +154,6 @@ bool GhastFireballAttackGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: GhastEntity.FireballAttackGoal.shouldExecute()
     // 有攻击目标时执行
     LivingEntity* target = m_ghast->attackTarget();
     return target != nullptr && target->isAlive();
@@ -174,7 +171,7 @@ void GhastFireballAttackGoal::resetTask()
         return;
     }
 
-    // MC 1.16.5: 清除攻击状态
+    // 清除攻击状态
     m_ghast->setCharging(false);
     m_target = nullptr;
 }
@@ -185,7 +182,6 @@ void GhastFireballAttackGoal::tick()
         return;
     }
 
-    // MC 1.16.5: GhastEntity.FireballAttackGoal.tick()
     m_target = m_ghast->attackTarget();
 
     if (m_target == nullptr || !m_target->isAlive()) {
@@ -201,7 +197,6 @@ void GhastFireballAttackGoal::tick()
 
         // 充能音效（第10 tick）
         if (m_attackTimer == CHARGE_SOUND_TICK && !m_ghast->isSilent()) {
-            // MC 1.16.5: world.playEvent(null, 1015, getPosition(), 0)
             // 充能音效事件 1015
             BlockPos pos(
                 static_cast<i32>(m_ghast->x()), static_cast<i32>(m_ghast->y()), static_cast<i32>(m_ghast->z()));

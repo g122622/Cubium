@@ -30,7 +30,7 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-AgeableEntity::AgeableEntity(EntityId id)
+AgeableEntity::AgeableEntity(EntityId id) noexcept
     : CreatureEntity(id)
 {}
 
@@ -160,8 +160,6 @@ void AgeableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     MobEntity::addAdditionalSaveData(tag);
 
-    // MC 1.16.5: AgeableEntity.writeAdditional()
-
     // Age (i32) - 年龄（负数=幼体，0或正数=成体）
     tag.put(nbt_keys::AGE, m_growingAge);
 
@@ -176,8 +174,6 @@ Result<void> AgeableEntity::readAdditionalSaveData(const nbt::tags::compound_tag
 {
     // 先调用基类实现
     MC_TRY(MobEntity::readAdditionalSaveData(tag));
-
-    // MC 1.16.5: AgeableEntity.readAdditional()
 
     // Age (i32) - 年龄
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {

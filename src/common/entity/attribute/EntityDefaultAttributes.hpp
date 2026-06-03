@@ -31,14 +31,14 @@ namespace attribute {
 namespace defaults {
 
 // ============================================================================
-// 玩家属性默认值 (MC 1.16.5 PlayerEntity)
+// 玩家属性默认值
 // ============================================================================
 
 namespace player {
-/// 玩家移动速度 (MC: 0.1F)
+/// 玩家移动速度
 constexpr f32 MOVEMENT_SPEED = 0.1f;
 
-/// 玩家飞行速度 (MC: 0.05F)
+/// 玩家飞行速度
 constexpr f32 FLYING_SPEED = 0.05f;
 
 /// 玩家最大生命值
@@ -52,7 +52,7 @@ constexpr f32 ATTACK_SPEED = 4.0f;
 } // namespace player
 
 // ============================================================================
-// 生物基类属性默认值 (MC 1.16.5 LivingEntity)
+// 生物基类属性默认值
 // ============================================================================
 
 namespace mob {
@@ -70,7 +70,7 @@ constexpr f32 ATTACK_DAMAGE = 2.0f;
 } // namespace mob
 
 // ============================================================================
-// 动物基类属性默认值 (MC 1.16.5 AnimalEntity)
+// 动物基类属性默认值
 // ============================================================================
 
 namespace animal {
@@ -127,14 +127,9 @@ constexpr f32 MAX_HEALTH = 10.0f;
 } // namespace fox
 
 namespace bee {
-/// MC 1.16.5 BeeEntity.registerAttributes()
-/// .createMutableAttribute(Attributes.MAX_HEALTH, 10.0D)
-/// .createMutableAttribute(Attributes.FLYING_SPEED, 0.6F)  // 注意是 0.6，不是 0.3
-/// .createMutableAttribute(Attributes.MOVEMENT_SPEED, 0.3F)
-/// .createMutableAttribute(Attributes.ATTACK_DAMAGE, 2.0D)
-/// .createMutableAttribute(Attributes.FOLLOW_RANGE, 48.0D)
+/// 蜜蜂属性
 constexpr f32 MOVEMENT_SPEED = 0.3f;
-constexpr f32 FLYING_SPEED = 0.6f; // MC 1.16.5: 0.6，不是 0.3
+constexpr f32 FLYING_SPEED = 0.6f;
 constexpr f32 MAX_HEALTH = 10.0f;
 constexpr f32 ATTACK_DAMAGE = 2.0f;
 constexpr f32 FOLLOW_RANGE = 48.0f;
@@ -161,7 +156,7 @@ constexpr f32 MAX_HEALTH = 20.0f;
 } // namespace villager
 
 // ============================================================================
-// 怪物属性默认值 (MC 1.16.5)
+// 怪物属性默认值
 // ============================================================================
 
 namespace zombie {
@@ -225,15 +220,15 @@ constexpr f32 FLYING_SPEED = 0.3f;
 } // namespace ender_dragon
 
 // ============================================================================
-// 马匹属性默认值 (MC 1.16.5 AbstractHorseEntity)
+// 马匹属性默认值
 // ============================================================================
 
 namespace horse {
-/// 马匹速度范围 (MC: 0.1127 - 0.3375)
+/// 马匹速度范围
 constexpr f32 SPEED_MIN = 0.1127f;
 constexpr f32 SPEED_MAX = 0.3375f;
 
-/// 马匹跳跃力量范围 (MC: 0.4 - 1.0)
+/// 马匹跳跃力量范围
 constexpr f32 JUMP_STRENGTH_MIN = 0.4f;
 constexpr f32 JUMP_STRENGTH_MAX = 1.0f;
 

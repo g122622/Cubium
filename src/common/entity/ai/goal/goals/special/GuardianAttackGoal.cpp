@@ -22,21 +22,22 @@
  */
 
 #include "GuardianAttackGoal.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../network/packet/EntityPackets.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../damage/DamageSource.hpp"
-#include "../../../../entities/monster/ocean/GuardianEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -50,20 +51,12 @@ GuardianAttackGoal::GuardianAttackGoal(GuardianEntity* guardian)
 
 bool GuardianAttackGoal::shouldExecute()
 {
-    if (m_guardian == nullptr) {
-        return false;
-    }
-
-    // MC 1.16.5 GuardianEntity.AttackGoal.shouldExecute():
     // 优先使用 targetSelector 设置的攻击目标
-    // LivingEntity livingentity = this.guardian.getAttackTarget();
-    // return livingentity != null && livingentity.isAlive();
-
     LivingEntity* target = m_guardian->attackTarget();
 
     // 如果没有攻击目标，尝试自己搜索
     if (target == nullptr) {
-        target = selectTarget();
+        target = _selectTarget();
     }
 
     if (target == nullptr) {
@@ -81,17 +74,17 @@ bool GuardianAttackGoal::shouldExecute()
 
 bool GuardianAttackGoal::shouldContinueExecuting()
 {
-    if (m_guardian == nullptr || m_target == nullptr) {
+    if (m_target == nullptr) {
         return false;
     }
 
     // 检查目标是否仍然有效
-    if (!isTargetValid(m_target)) {
+    if (!_isTargetValid(m_target)) {
         return false;
     }
 
     // 检查目标是否在范围内
-    // MC 1.16.5: 远古守卫者没有距离限制
+    // 远古守卫者没有距离限制
     f64 distSq = m_guardian->distanceSqTo(*m_target);
     if (!m_isElder && distSq <= 9.0) { // 3.0 * 3.0 = 9.0
         // 目标太近，停止攻击
@@ -104,20 +97,14 @@ bool GuardianAttackGoal::shouldContinueExecuting()
 
 void GuardianAttackGoal::startExecuting()
 {
-    if (m_guardian == nullptr) {
-        return;
-    }
-
-    // MC 1.16.5: tickCounter = -10
+    // tickCounter = -10，准备阶段
     m_tickCounter = -10;
 
     // 检测是否为远古守卫者
     m_isElder = (m_guardian->typeId() == entity::EntityTypeIdNumber::ELDER_GUARDIAN);
 
     // 清除路径
-    if (m_guardian->navigator() != nullptr) {
-        m_guardian->navigator()->clearPath();
-    }
+    m_guardian->navigator()->clearPath();
 
     // 看向目标
     if (m_target != nullptr) {
@@ -135,24 +122,20 @@ void GuardianAttackGoal::resetTask()
     m_target = nullptr;
     m_tickCounter = 0;
 
-    if (m_guardian != nullptr) {
-        // 清除目标实体ID
-        m_guardian->setTargetEntity(0);
-        // 清除攻击目标
-        m_guardian->setAttackTarget(nullptr);
-    }
+    // 清除目标实体ID
+    m_guardian->setTargetEntity(0);
+    // 清除攻击目标
+    m_guardian->setAttackTarget(nullptr);
 }
 
 void GuardianAttackGoal::tick()
 {
-    if (m_guardian == nullptr || m_target == nullptr) {
+    if (m_target == nullptr) {
         return;
     }
 
     // 清除路径
-    if (m_guardian->navigator() != nullptr) {
-        m_guardian->navigator()->clearPath();
-    }
+    m_guardian->navigator()->clearPath();
 
     // 看向目标
     m_guardian->lookController()->setLookPosition(m_target->x(),
@@ -169,10 +152,10 @@ void GuardianAttackGoal::tick()
         return;
     }
 
-    // MC 1.16.5: ++this.tickCounter
+    // 递增计数器
     ++m_tickCounter;
 
-    // MC 1.16.5: 当 tickCounter == 0 时，设置目标实体ID并发送状态21
+    // 当 tickCounter == 0 时，设置目标实体ID并发送状态21
     if (m_tickCounter == 0) {
         // 设置目标实体ID
         m_guardian->setTargetEntity(m_target->id());
@@ -184,12 +167,10 @@ void GuardianAttackGoal::tick()
                 m_guardian->id(), static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
         }
     } else if (m_tickCounter >= ATTACK_DURATION) {
-        // MC 1.16.5: 攻击完成，造成伤害
+        // 攻击完成，造成伤害
         f32 damage = LASER_DAMAGE;
 
         // 困难模式额外伤害
-        // 参考 MC 1.16.5 GuardianEntity.AttackGoal.tick()
-        // if (this.guardian.world.getDifficulty() == Difficulty.HARD) { f += 2.0F; }
         if (m_guardian->world() != nullptr && m_guardian->world()->difficulty() == Difficulty::Hard) {
             damage += 2.0f;
         }
@@ -199,10 +180,7 @@ void GuardianAttackGoal::tick()
             damage += ELDER_BONUS_DAMAGE;
         }
 
-        // MC 1.16.5: 使用魔法伤害 + 物理伤害
-        // livingentity.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this.guardian, this.guardian), f);
-        // livingentity.attackEntityFrom(DamageSource.causeMobDamage(this.guardian),
-        // (float)this.guardian.getAttributeValue(Attributes.ATTACK_DAMAGE));
+        // 使用魔法伤害 + 物理伤害
         auto magicDamage = DamageSources::magic();
         m_target->hurt(magicDamage, damage);
 
@@ -219,17 +197,15 @@ void GuardianAttackGoal::tick()
     }
 }
 
-LivingEntity* GuardianAttackGoal::selectTarget() const
+LivingEntity* GuardianAttackGoal::_selectTarget() const
 {
-    if (m_guardian == nullptr || m_guardian->world() == nullptr) {
+    if (m_guardian->world() == nullptr) {
         return nullptr;
     }
 
-    // MC 1.16.5: 守卫者攻击玩家和鱿鱼
-    // 参考 GuardianEntity.registerGoals() 中的 TargetPredicate
+    // 守卫者攻击玩家和鱿鱼
     // 目标类型筛选: 只攻击 Player 或 Squid
     // 距离筛选: 必须距离大于 3 格（距离平方 > 9.0）
-    //
     // 注意：主要的目标选择逻辑应该由 targetSelector 中的 NearestAttackableTargetGoal 提供
     // 此方法作为备用逻辑，直接搜索最近的有效目标
 
@@ -267,7 +243,6 @@ LivingEntity* GuardianAttackGoal::selectTarget() const
             }
 
             // 4. 距离筛选: 必须距离 > 3 格
-            // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
             f64 distSq = m_guardian->distanceSqTo(*candidate);
             if (distSq <= 9.0) { // 3.0 * 3.0 = 9.0
                 return false;
@@ -284,7 +259,7 @@ LivingEntity* GuardianAttackGoal::selectTarget() const
     return nearestTarget;
 }
 
-bool GuardianAttackGoal::isTargetValid(LivingEntity* target) const
+bool GuardianAttackGoal::_isTargetValid(LivingEntity* target) const
 {
     if (target == nullptr) {
         return false;

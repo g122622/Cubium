@@ -35,7 +35,7 @@ namespace entity::ai {
 /**
  * @brief 实体视线缓存
  *
- * 对齐 1.16.5 `EntitySenses` 的最小公共层。
+ * 缓存实体之间的可见性检测结果，避免重复计算。
  */
 class EntitySenses {
 public:

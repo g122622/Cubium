@@ -23,19 +23,19 @@
 
 #include "VexGoals.hpp"
 
-#include "../../../../../sound/SoundEvents.hpp"
-#include "../../../../../util/AxisAlignedBB.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/Block.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/monster/illager/VexEntity.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../GoalConstants.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/controller/LookController.hpp"
+#include "common/entity/ai/goal/controller/MovementController.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/VexEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -44,7 +44,7 @@ namespace mc::entity::ai::goal {
 VexChargeAttackGoal::VexChargeAttackGoal(VexEntity* vex)
     : m_vex(vex)
 {
-    // MC 1.16.5: 只占用 MOVE 标志
+    // 只占用 MOVE 标志
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
@@ -52,7 +52,7 @@ bool VexChargeAttackGoal::shouldExecute()
 {
     if (!m_vex) return false;
 
-    // MC 1.16.5: 条件检查
+    // 条件检查：
     // 1. 有攻击目标
     // 2. 移动控制器未更新
     // 3. 1/7 概率
@@ -62,19 +62,19 @@ bool VexChargeAttackGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 检查移动控制器是否未更新
+    // 检查移动控制器是否未更新
     auto* moveController = m_vex->moveController();
     if (moveController && moveController->isUpdating()) {
         return false;
     }
 
-    // MC 1.16.5: 1/7 概率
+    // 1/7 概率
     math::Random rng = m_vex->getRandom();
     if (rng.nextInt(CHARGE_PROBABILITY) != 0) {
         return false;
     }
 
-    // MC 1.16.5: 检查距离 > 2格
+    // 检查距离 > 2格
     f64 distSq = m_vex->distanceSqTo(*attackTarget);
     return distSq > MIN_CHARGE_DISTANCE_SQ;
 }
@@ -86,7 +86,7 @@ bool VexChargeAttackGoal::shouldContinueExecuting()
     auto* moveController = m_vex->moveController();
     LivingEntity* attackTarget = m_vex->attackTarget();
 
-    // MC 1.16.5: 继续条件
+    // 继续条件：
     // 1. 移动控制器正在更新
     // 2. 正在充电
     // 3. 有攻击目标且存活
@@ -101,21 +101,21 @@ void VexChargeAttackGoal::startExecuting()
     LivingEntity* attackTarget = m_vex->attackTarget();
     if (!attackTarget) return;
 
-    // MC 1.16.5: 获取目标的眼睛位置
+    // 获取目标的眼睛位置
     Vector3 targetEyePos(static_cast<f64>(attackTarget->x()),
         static_cast<f64>(attackTarget->y() + attackTarget->eyeHeight()),
         static_cast<f64>(attackTarget->z()));
 
-    // MC 1.16.5: 移动到目标眼睛位置，速度为 1.0（全速）
+    // 移动到目标眼睛位置，速度为 1.0（全速）
     auto* moveController = m_vex->moveController();
     if (moveController) {
         moveController->setMoveTo(targetEyePos.x, targetEyePos.y, targetEyePos.z, 1.0);
     }
 
-    // MC 1.16.5: 设置充电状态
+    // 设置充电状态
     m_vex->setCharging(true);
 
-    // MC 1.16.5: 播放充电音效
+    // 播放充电音效
     m_vex->playSound(SoundEvents::ENTITY_VEX_CHARGE, 1.0f, 1.0f);
 }
 
@@ -136,7 +136,7 @@ void VexChargeAttackGoal::tick()
         return;
     }
 
-    // MC 1.16.5: 使用 LookController 看向目标
+    // 使用 LookController 看向目标
     auto* lookController = m_vex->lookController();
     if (lookController) {
         lookController->setLookPositionWithEntity(*attackTarget, 30.0f, 30.0f);
@@ -149,17 +149,16 @@ void VexChargeAttackGoal::tick()
         m_attackCooldown--;
     }
 
-    // MC 1.16.5: 检查碰撞箱是否相交
-    // 如果相交，攻击目标
+    // 检查碰撞箱是否相交，如果相交则攻击目标
     AxisAlignedBB vexBox = m_vex->boundingBox();
     AxisAlignedBB targetBox = attackTarget->boundingBox();
     if (vexBox.intersects(targetBox)) {
         // 执行攻击
-        checkAndPerformAttack(attackTarget, distSq);
-        // MC 1.16.5: 攻击后停止充电
+        _checkAndPerformAttack(attackTarget, distSq);
+        // 攻击后停止充电
         m_vex->setCharging(false);
     } else if (distSq < STOP_CHASE_DISTANCE_SQ) {
-        // MC 1.16.5: 如果距离 < 3格，继续追击目标的眼睛位置
+        // 如果距离 < 3格，继续追击目标的眼睛位置
         Vector3 targetEyePos(static_cast<f64>(attackTarget->x()),
             static_cast<f64>(attackTarget->y() + attackTarget->eyeHeight()),
             static_cast<f64>(attackTarget->z()));
@@ -170,14 +169,14 @@ void VexChargeAttackGoal::tick()
     }
 }
 
-void VexChargeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 /*distSq*/)
+void VexChargeAttackGoal::_checkAndPerformAttack(LivingEntity* target, f64 /*distSq*/)
 {
     if (!m_vex || !target) return;
 
     // 检查攻击冷却
     if (m_attackCooldown > 0) return;
 
-    // MC 1.16.5: 执行攻击
+    // 执行攻击
     m_vex->attackEntityAsMob(*target);
 
     // 设置攻击冷却
@@ -189,7 +188,7 @@ void VexChargeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 /*dist
 VexMoveRandomGoal::VexMoveRandomGoal(VexEntity* vex)
     : m_vex(vex)
 {
-    // MC 1.16.5: 只占用 MOVE 标志
+    // 只占用 MOVE 标志
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
@@ -197,7 +196,7 @@ bool VexMoveRandomGoal::shouldExecute()
 {
     if (!m_vex) return false;
 
-    // MC 1.16.5: 条件检查
+    // 条件检查：
     // 1. 移动控制器未更新
     // 2. 1/7 概率
     auto* moveController = m_vex->moveController();
@@ -211,7 +210,7 @@ bool VexMoveRandomGoal::shouldExecute()
 
 bool VexMoveRandomGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 单次执行
+    // 单次执行
     return false;
 }
 
@@ -222,14 +221,14 @@ void VexMoveRandomGoal::tick()
     IWorld* world = m_vex->world();
     if (!world) return;
 
-    // MC 1.16.5: 获取绑定原点（主人的位置或当前位置）
+    // 获取绑定原点（主人的位置或当前位置）
     BlockPos origin(m_vex->position());
 
     // 尝试找到随机位置
     math::Random rng = m_vex->getRandom();
 
     for (i32 i = 0; i < 3; ++i) {
-        // MC 1.16.5: 在原点周围随机选择位置
+        // 在原点周围随机选择位置
         // 范围：X: -7~7, Y: -5~5, Z: -7~7
         i32 offsetX = rng.nextInt(WANDER_RANGE_X * 2 + 1) - WANDER_RANGE_X;
         i32 offsetY = rng.nextInt(WANDER_RANGE_Y * 2 + 1) - WANDER_RANGE_Y;
@@ -237,7 +236,7 @@ void VexMoveRandomGoal::tick()
 
         BlockPos targetPos(origin.x + offsetX, origin.y + offsetY, origin.z + offsetZ);
 
-        // MC 1.16.5: 只移动到空气方块位置
+        // 只移动到空气方块位置
         if (const BlockState* state = world->getBlockState(targetPos)) {
             if (state->isAir()) {
                 // 找到空气位置，移动到那里
@@ -249,7 +248,7 @@ void VexMoveRandomGoal::tick()
                         WANDER_SPEED);
                 }
 
-                // MC 1.16.5: 如果没有攻击目标，看向目标位置
+                // 如果没有攻击目标，看向目标位置
                 if (m_vex->attackTarget() == nullptr) {
                     auto* lookController = m_vex->lookController();
                     if (lookController) {
@@ -269,7 +268,7 @@ void VexMoveRandomGoal::tick()
 // ==================== VexCopyOwnerTargetGoal ====================
 
 VexCopyOwnerTargetGoal::VexCopyOwnerTargetGoal(VexEntity* vex)
-    : TargetGoal(vex, false) // MC 1.16.5: checkSight = false，在shouldExecute中手动检查
+    : TargetGoal(vex, false) // checkSight = false，在shouldExecute中手动检查
     , m_vex(vex)
 {}
 
@@ -277,11 +276,11 @@ bool VexCopyOwnerTargetGoal::shouldExecute()
 {
     if (!m_vex) return false;
 
-    // MC 1.16.5: 检查主人是否存在且有攻击目标
+    // 检查主人是否存在且有攻击目标
     LivingEntity* owner = m_vex->getOwner();
     if (!owner) return false;
 
-    // MC 1.16.5: 主人必须是 MobEntity 才有 attackTarget
+    // 主人必须是 MobEntity 才有 attackTarget
     MobEntity* ownerMob = dynamic_cast<MobEntity*>(owner);
     if (!ownerMob) return false;
 
@@ -290,12 +289,12 @@ bool VexCopyOwnerTargetGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 检查目标是否适合攻击（使用TargetGoal的isSuitableTarget）
+    // 检查目标是否适合攻击（使用TargetGoal的isSuitableTarget）
     if (!isSuitableTarget(ownerTarget)) {
         return false;
     }
 
-    // MC 1.16.5: 检查视线（手动检查）
+    // 检查视线（手动检查）
     if (!m_vex->canSee(*ownerTarget)) {
         return false;
     }
@@ -306,7 +305,7 @@ bool VexCopyOwnerTargetGoal::shouldExecute()
 
 void VexCopyOwnerTargetGoal::startExecuting()
 {
-    // MC 1.16.5: 设置攻击目标为主人的攻击目标
+    // 设置攻击目标为主人的攻击目标
     TargetGoal::startExecuting();
 }
 

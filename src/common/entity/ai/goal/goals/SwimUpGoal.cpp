@@ -33,6 +33,9 @@
 
 namespace mc::entity::ai::goal {
 
+// 最大游泳时间（ticks），20秒 = 400 ticks
+inline constexpr i32 MAX_SWIM_TIME_TICKS = 400;
+
 SwimUpGoal::SwimUpGoal(CreatureEntity* creature, f64 speed, i32 targetY)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
     , m_creature(creature)
@@ -45,10 +48,6 @@ SwimUpGoal::SwimUpGoal(CreatureEntity* creature, f64 speed, i32 targetY)
 
 bool SwimUpGoal::shouldExecute()
 {
-    if (m_creature == nullptr) {
-        return false;
-    }
-
     // 只在水中执行
     if (!m_creature->isInWater()) {
         return false;
@@ -89,10 +88,6 @@ bool SwimUpGoal::shouldExecute()
 
 bool SwimUpGoal::shouldContinueExecuting()
 {
-    if (m_creature == nullptr) {
-        return false;
-    }
-
     // 必须仍在水中
     if (!m_creature->isInWater()) {
         return false;
@@ -104,7 +99,7 @@ bool SwimUpGoal::shouldContinueExecuting()
     }
 
     // 如果已到达目标，停止
-    if (hasReachedTarget()) {
+    if (_hasReachedTarget()) {
         return false;
     }
 
@@ -113,12 +108,8 @@ bool SwimUpGoal::shouldContinueExecuting()
 
 void SwimUpGoal::startExecuting()
 {
-    if (m_creature == nullptr) {
-        return;
-    }
-
     m_active = true;
-    m_timeoutCounter = 400; // 最大游泳时间（20秒）
+    m_timeoutCounter = MAX_SWIM_TIME_TICKS;
 
     // 移动到目标高度
     f64 currentX = m_creature->x();
@@ -135,15 +126,10 @@ void SwimUpGoal::resetTask()
 
 void SwimUpGoal::tick()
 {
-    if (m_creature == nullptr) {
-        return;
-    }
-
     m_timeoutCounter--;
 
     // 向上游动
-    // MC 1.16.5: 在水中向上移动
-    if (m_creature->isInWater() && !hasReachedTarget()) {
+    if (m_creature->isInWater() && !_hasReachedTarget()) {
         // 添加向上的速度
         Vector3 vel = m_creature->velocity();
         vel.y = static_cast<f32>(m_speed) * 0.1f; // 向上的推力
@@ -151,12 +137,8 @@ void SwimUpGoal::tick()
     }
 }
 
-bool SwimUpGoal::hasReachedTarget() const
+bool SwimUpGoal::_hasReachedTarget() const
 {
-    if (m_creature == nullptr) {
-        return true;
-    }
-
     return m_creature->y() >= static_cast<f64>(m_targetY);
 }
 

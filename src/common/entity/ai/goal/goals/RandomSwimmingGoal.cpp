@@ -150,15 +150,13 @@ bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos)
 
     IWorld* world = m_creature->world();
 
-    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockInWater
-    // 简化实现：在当前实体附近随机选择水中的位置
+    // 在实体周围 10 格范围内随机搜索
     math::Random rng = m_creature->getRandom();
 
     f64 currentX = m_creature->x();
     f64 currentY = m_creature->y();
     f64 currentZ = m_creature->z();
 
-    // 在实体周围 10 格范围内随机搜索
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         i32 dx = rng.nextInt(20) - 10;
         i32 dy = rng.nextInt(20) - 10;

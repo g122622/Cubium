@@ -22,15 +22,16 @@
  */
 
 #include "EatGrassGoal.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/WorldEvents.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
+
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -48,20 +49,19 @@ bool EatGrassGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 概率检查
-    // 幼年动物 1/50，成年动物 1/1000
+    // 概率检查：幼年动物 1/50，成年动物 1/1000
     math::Random rng = m_mob->getRandom();
     const i32 chance = m_isChild && m_isChild() ? CHILD_CHANCE : ADULT_CHANCE;
     if (rng.nextInt(chance) != 0) {
         return false;
     }
 
-    // MC 1.16.5: 检查当前位置或下方是否有草
+    // 检查当前位置或下方是否有草
     m_world = m_mob->world();
     const BlockPos entityPos(m_mob->position());
 
     // 检查当前位置（草）
-    if (isGrassAt(m_world, entityPos)) {
+    if (_isGrassAt(m_world, entityPos)) {
         m_targetPos = entityPos;
         m_isEatingGrassBlock = false; // 是草
         return true;
@@ -88,16 +88,15 @@ void EatGrassGoal::startExecuting()
 {
     m_eatingGrassTimer = EAT_DURATION;
 
-    // MC 1.16.5: 清除导航路径
+    // 清除导航路径
     if (m_mob) {
         if (auto* nav = m_mob->navigator()) {
             nav->clearPath();
         }
     }
 
-    // MC 1.16.5: 发送动画状态给客户端
-    // 在原版中通过 world.setEntityState(entity, (byte)10) 实现
-    // 这里我们暂时跳过客户端同步，因为需要网络系统支持
+    // TODO: 发送动画状态给客户端（原版通过 world.setEntityState(entity, (byte)10) 实现）
+    // 需要网络系统支持后实现
 }
 
 void EatGrassGoal::resetTask()
@@ -107,16 +106,16 @@ void EatGrassGoal::resetTask()
 
 void EatGrassGoal::tick()
 {
-    // MC 1.16.5: 递减计时器
+    // 递减计时器
     m_eatingGrassTimer = std::max(0, m_eatingGrassTimer - 1);
 
-    // MC 1.16.5: 在第 4 tick 时执行吃草动作
+    // 在第 4 tick 时执行吃草动作
     if (m_eatingGrassTimer == EAT_TICK) {
-        eatGrass();
+        _eatGrass();
     }
 }
 
-bool EatGrassGoal::isGrassAt(IWorld* world, const BlockPos& pos) const
+bool EatGrassGoal::_isGrassAt(IWorld* world, const BlockPos& pos) const
 {
     if (!world) {
         return false;
@@ -127,20 +126,17 @@ bool EatGrassGoal::isGrassAt(IWorld* world, const BlockPos& pos) const
         return false;
     }
 
-    // MC 1.16.5: 检查是否为草（草丛/高草丛）
-    // 原版使用 BlockStateMatcher.forBlock(Blocks.GRASS)
+    // 检查是否为草（草丛/高草丛）
     return state->is(VanillaBlocks::SHORT_GRASS) || state->is(VanillaBlocks::TALL_GRASS);
 }
 
-void EatGrassGoal::eatGrass()
+void EatGrassGoal::_eatGrass()
 {
     if (!m_world || !m_mob) {
         return;
     }
 
-    // MC 1.16.5: 检查 mobGriefing 游戏规则
-    // 参考: net.minecraft.entity.ai.goal.EatGrassGoal.tick()
-    // 原版等效: world.getGameRules().getBoolean(GameRules.MOB_GRIEFING)
+    // 检查 mobGriefing 游戏规则
     const bool canGrief = m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     if (m_isEatingGrassBlock) {
@@ -148,13 +144,11 @@ void EatGrassGoal::eatGrass()
         const BlockState* currentState = m_world->getBlockState(m_targetPos);
         if (currentState != nullptr && currentState->is(VanillaBlocks::GRASS_BLOCK)) {
             if (canGrief) {
-                // MC 1.16.5: world.playEvent(2001, pos, Block.getStateId(Blocks.GRASS_BLOCK.getDefaultState()))
                 // 播放方块破坏效果（粒子 + 音效）
                 m_world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS,
                     m_targetPos,
                     static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
 
-                // MC 1.16.5: world.setBlockState(pos, Blocks.DIRT.getDefaultState(), 2)
                 // 设置为泥土，flags=2 表示通知邻居并同步客户端
                 const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
                 m_world->setBlockState(m_targetPos, dirtState, 2);
@@ -166,15 +160,15 @@ void EatGrassGoal::eatGrass()
         if (currentState != nullptr &&
             (currentState->is(VanillaBlocks::SHORT_GRASS) || currentState->is(VanillaBlocks::TALL_GRASS))) {
             if (canGrief) {
-                // MC 1.16.5: world.destroyBlock(pos, false) - 不掉落物品
+                // 不掉落物品，直接移除
                 const BlockState* airState = &VanillaBlocks::AIR->defaultState();
                 m_world->setBlockState(m_targetPos, airState, 2);
             }
         }
     }
 
-    // MC 1.16.5: 无论 mobGriefing 是否允许，都调用 eatGrassBonus
-    // 这是因为羊吃草后会获得饱食度和重新长毛
+    // 无论 mobGriefing 是否允许，都调用吃草回调
+    // 羊吃草后会获得饱食度和重新长毛
     if (m_onEatGrass) {
         m_onEatGrass();
     }

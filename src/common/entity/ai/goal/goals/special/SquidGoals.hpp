@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 
 namespace mc {
 
@@ -39,8 +39,6 @@ namespace entity::ai::goal {
  * @brief 鱿鱼随机移动目标
  *
  * 鱿鱼在水中随机游动的主要行为。
- *
- * MC 1.16.5 参考: net.minecraft.entity.passive.SquidEntity.MoveRandomGoal
  *
  * 执行条件:
  * - 始终可以执行（shouldExecute 始终返回 true）
@@ -79,7 +77,7 @@ public:
 private:
     SquidEntity* m_squid;
 
-    // MC 1.16.5 常量
+    // 行为常量
     static constexpr i32 IDLE_THRESHOLD = 100;    // 空闲tick阈值
     static constexpr i32 RANDOM_CHANCE = 50;      // 1/50概率触发新方向
     static constexpr f32 HORIZONTAL_SPEED = 0.2f; // 水平移动向量大小
@@ -91,8 +89,6 @@ private:
  * @brief 鱿鱼逃跑目标
  *
  * 当鱿鱼受到攻击时，向相反方向逃跑并产生气泡粒子。
- *
- * MC 1.16.5 参考: net.minecraft.entity.passive.SquidEntity.FleeGoal
  *
  * 执行条件:
  * - 鱿鱼必须在水中
@@ -138,7 +134,7 @@ private:
     LivingEntity* m_fleeTarget = nullptr;
     i32 m_tickCounter = 0;
 
-    // MC 1.16.5 常量
+    // 行为常量
     static constexpr f64 FLEE_DISTANCE_SQ = 100.0; // 触发逃跑的距离平方阈值 (10^2)
     static constexpr f32 BASE_FLEE_SPEED = 3.0f;   // 基础逃跑速度
     static constexpr f64 DISTANCE_THRESHOLD = 5.0; // 速度衰减开始距离

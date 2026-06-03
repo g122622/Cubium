@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "GoalFlag.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::entity::ai {
 
@@ -33,8 +33,6 @@ namespace mc::entity::ai {
  *
  * 所有AI行为（如游泳、漫步、攻击等）都继承自此类。
  * AI目标通过优先级和互斥标志进行协调。
- *
- * 参考 MC 1.16.5 Goal
  */
 class Goal {
 public:

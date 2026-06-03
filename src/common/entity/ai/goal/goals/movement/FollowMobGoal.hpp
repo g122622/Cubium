@@ -40,8 +40,6 @@ namespace entity::ai::goal {
  *
  * 使实体跟随附近的其他生物。
  * 常用于鹦鹉等会跟随其他生物的实体。
- *
- * 参考 MC 1.16.5 FollowMobGoal
  */
 class FollowMobGoal : public Goal {
 public:
@@ -69,7 +67,7 @@ private:
      * @brief 寻找附近的生物作为跟随目标
      * @return 找到的生物，如果没有则返回 nullptr
      */
-    [[nodiscard]] LivingEntity* findNearbyMob();
+    [[nodiscard]] LivingEntity* _findNearbyMob();
 
     MobEntity* m_mob;
     f64 m_speed;
@@ -78,8 +76,8 @@ private:
     LivingEntity* m_targetMob = nullptr;
     i32 m_delayCounter = 0;
 
-    // MC 1.16.5 常量
-    static constexpr i32 PATH_RECALC_INTERVAL = 10; // 路径重新计算间隔
+    // 路径重新计算间隔
+    static constexpr i32 PATH_RECALC_INTERVAL = 10;
 };
 
 } // namespace entity::ai::goal

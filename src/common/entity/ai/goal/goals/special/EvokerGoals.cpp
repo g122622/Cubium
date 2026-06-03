@@ -23,16 +23,16 @@
 
 #include "EvokerGoals.hpp"
 
-#include "../../../../../util/AxisAlignedBB.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../entities/monster/illager/EvokerEntity.hpp"
-#include "../../../../entities/passive/basic/SheepEntity.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/illager/EvokerEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace entity::ai::goal {
@@ -66,11 +66,7 @@ bool EvokerSpellGoal::shouldExecute()
     }
 
     // 正在施法时不能开始新施法
-    if (m_evoker->isSpellcasting()) {
-        return false;
-    }
-
-    return true;
+    return !m_evoker->isSpellcasting();
 }
 
 bool EvokerSpellGoal::shouldContinueExecuting()
@@ -114,7 +110,6 @@ void EvokerSpellGoal::tick()
         m_spellWarmup--;
         if (target != nullptr) {
             // 看向目标
-            // MC 1.16.5: LookController.setLookPositionWithEntity
             m_evoker->lookController()->setLookPositionWithEntity(*target, 10.0f, 10.0f);
         }
         // 当 warmup 结束时，执行施法
@@ -161,10 +156,9 @@ bool EvokerSummonSpellGoal::shouldExecute()
     }
 
     // 检查周围恼鬼数量
-    i32 vexCount = countNearbyVexes();
+    i32 vexCount = _countNearbyVexes();
 
-    // MC 1.16.5: 只有当周围恼鬼少于8个时才召唤
-    // rand.nextInt(8) + 1 > vexCount
+    // 只有当周围恼鬼少于8个时才召唤
     if (m_evoker->world() != nullptr) {
         math::Random& rng = m_evoker->world()->getRandom();
         return rng.nextInt(8) + 1 > vexCount;
@@ -178,10 +172,8 @@ void EvokerSummonSpellGoal::castSpell()
     m_evoker->summonVex();
 }
 
-i32 EvokerSummonSpellGoal::countNearbyVexes() const
+i32 EvokerSummonSpellGoal::_countNearbyVexes() const
 {
-    // MC 1.16.5: world.getTargettableEntitiesWithinAABB(VexEntity.class, predicate, evoker,
-    // evoker.getBoundingBox().grow(16.0D))
     if (m_evoker == nullptr || m_evoker->world() == nullptr) {
         return 0;
     }
@@ -238,7 +230,6 @@ void EvokerCastingSpellGoal::tick()
 
     LivingEntity* target = m_evoker->attackTarget();
     if (target != nullptr) {
-        // MC 1.16.5: LookController.setLookPositionWithEntity
         m_evoker->lookController()->setLookPositionWithEntity(*target, 10.0f, 10.0f);
     }
 }
@@ -260,7 +251,7 @@ bool EvokerWololoSpellGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 有攻击目标时不执行 Wololo
+    // 有攻击目标时不执行 Wololo
     LivingEntity* attackTarget = m_evoker->attackTarget();
     if (attackTarget != nullptr && attackTarget->isAlive()) {
         return false;
@@ -277,7 +268,7 @@ bool EvokerWololoSpellGoal::shouldExecute()
     }
 
     // 寻找蓝色羊
-    m_wololoTarget = findBlueSheep();
+    m_wololoTarget = _findBlueSheep();
     return m_wololoTarget != nullptr;
 }
 
@@ -304,7 +295,6 @@ void EvokerWololoSpellGoal::tick()
     if (m_spellWarmup > 0) {
         m_spellWarmup--;
         if (m_wololoTarget != nullptr && m_wololoTarget->isAlive()) {
-            // MC 1.16.5: LookController.setLookPositionWithEntity
             m_evoker->lookController()->setLookPositionWithEntity(*m_wololoTarget, 10.0f, 10.0f);
         }
         // 当 warmup 结束时，执行施法
@@ -323,10 +313,8 @@ void EvokerWololoSpellGoal::tick()
     }
 }
 
-SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
+SheepEntity* EvokerWololoSpellGoal::_findBlueSheep() const
 {
-    // MC 1.16.5: world.getTargettableEntitiesWithinAABB(SheepEntity.class, predicate, evoker,
-    // evoker.getBoundingBox().grow(16.0D, 4.0D, 16.0D))
     if (m_evoker == nullptr || m_evoker->world() == nullptr) {
         return nullptr;
     }
@@ -359,7 +347,7 @@ SheepEntity* EvokerWololoSpellGoal::findBlueSheep() const
         return nullptr;
     }
 
-    // MC 1.16.5: 随机选择一只蓝色羊
+    // 随机选择一只蓝色羊
     math::Random& rng = world->getRandom();
     return blueSheep[rng.nextInt(static_cast<i32>(blueSheep.size()))];
 }

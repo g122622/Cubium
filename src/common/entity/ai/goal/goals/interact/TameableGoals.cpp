@@ -22,14 +22,14 @@
  */
 
 #include "TameableGoals.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/passive/tamable/TameableEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include <cmath>
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 using namespace mc::entity::ai;
 
@@ -123,7 +123,7 @@ void FollowOwnerGoal::tick()
 
         // 如果距离过远，尝试传送
         if (distance > m_teleportDistance) {
-            teleportToOwner();
+            _teleportToOwner();
             return;
         }
 
@@ -132,7 +132,7 @@ void FollowOwnerGoal::tick()
     }
 }
 
-bool FollowOwnerGoal::canFollowOwner() const
+bool FollowOwnerGoal::_canFollowOwner() const
 {
     if (!m_entity->isTamed() || m_entity->isSitting()) {
         return false;
@@ -146,13 +146,12 @@ bool FollowOwnerGoal::canFollowOwner() const
     return true;
 }
 
-bool FollowOwnerGoal::teleportToOwner()
+bool FollowOwnerGoal::_teleportToOwner()
 {
     if (!m_owner) {
         return false;
     }
 
-    // MC 1.16.5: TameableEntity.teleportToOwner()
     // 在主人附近找一个安全的传送位置
     IWorld* worldPtr = m_entity->world();
     if (!worldPtr) {
@@ -164,7 +163,7 @@ bool FollowOwnerGoal::teleportToOwner()
     // 在主人周围尝试传送位置
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         // 随机选择主人周围的位置（距离1-3格）
-        f32 angle = random.nextFloat() * 6.28318530718f; // 2 * PI
+        f32 angle = random.nextFloat() * math::TWO_PI;
         f32 distance = 1.0f + random.nextFloat() * 2.0f;
 
         f32 targetX = m_owner->x() + std::cos(angle) * distance;
@@ -251,9 +250,7 @@ BegGoal::BegGoal(TameableEntity* entity, f32 maxDistance)
 
 bool BegGoal::shouldExecute()
 {
-    // MC 1.16.5: BegGoal.shouldExecute()
     // 查找最近的手持食物的玩家
-
     IWorld* worldPtr = m_entity->world();
     if (!worldPtr) {
         return false;
@@ -276,7 +273,7 @@ bool BegGoal::shouldExecute()
         }
 
         // 检查玩家是否手持食物
-        if (!isPlayerHoldingFood(player)) {
+        if (!_isPlayerHoldingFood(player)) {
             continue;
         }
 
@@ -302,7 +299,7 @@ bool BegGoal::shouldContinueExecuting()
         return false;
     }
 
-    return isPlayerHoldingFood(m_targetPlayer);
+    return _isPlayerHoldingFood(m_targetPlayer);
 }
 
 void BegGoal::startExecuting()
@@ -331,13 +328,12 @@ void BegGoal::tick()
     }
 }
 
-bool BegGoal::isPlayerHoldingFood(const Player* player) const
+bool BegGoal::_isPlayerHoldingFood(const Player* player) const
 {
     if (!player) {
         return false;
     }
 
-    // MC 1.16.5: BegGoal.hasTemptationItemInHand()
     // 1. 已驯服的狼对骨头乞求（isTamed() && item == BONE）
     // 2. 所有狼对繁殖物品（肉类）乞求（isBreedingItem()）
 

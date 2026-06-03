@@ -59,7 +59,7 @@ void MovementController::setMoveTo(f64 x, f64 y, f64 z, f64 speed)
     m_posY = y;
     m_posZ = z;
     m_speed = speed;
-    // MC 1.16.5: 跳跃中不应覆盖为MOVE_TO
+    // 跳跃中不应覆盖为MOVE_TO
     if (m_action != MoveAction::Jumping) {
         m_action = MoveAction::MoveTo;
     }
@@ -78,7 +78,7 @@ void MovementController::tick()
     if (!m_mob) return;
 
     if (m_action == MoveAction::Strafe) {
-        // MC 1.16.5 STRAFE 模式实现
+        // STRAFE 模式实现
         // 计算移动速度
         f32 baseSpeed = static_cast<f32>(m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
         f32 moveSpeed = static_cast<f32>(m_speed) * baseSpeed;
@@ -94,7 +94,7 @@ void MovementController::tick()
         forward = forward * f4;
         strafe = strafe * f4;
 
-        // MC 1.16.5: 基于实体偏航角进行向量旋转变换
+        // 基于实体偏航角进行向量旋转变换
         f32 yaw = m_mob->yaw() * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yaw);
         f32 cosYaw = std::cos(yaw);
@@ -103,12 +103,12 @@ void MovementController::tick()
         f32 moveX = forward * cosYaw - strafe * sinYaw;
         f32 moveZ = strafe * cosYaw + forward * sinYaw;
 
-        // MC 1.16.5: 检查目标位置是否可行走 (func_234024_b_)
+        // 检查目标位置是否可行走
         f64 targetX = m_mob->x() + moveX;
         f64 targetZ = m_mob->z() + moveZ;
 
         if (!canWalkAt(targetX, targetZ)) {
-            // MC 1.16.5: 如果检查失败，设置为向前移动
+            // 如果检查失败，设置为向前移动
             m_mob->setAIMoveSpeed(moveSpeed);
             m_mob->setMoveForward(1.0f);
             m_mob->setMoveStrafing(0.0f);
@@ -119,14 +119,14 @@ void MovementController::tick()
         }
         m_action = MoveAction::Wait;
     } else if (m_action == MoveAction::MoveTo) {
-        // MC: MOVE_TO 状态在tick开头立即转为WAIT
+        // MOVE_TO 状态在tick开头立即转为WAIT
         m_action = MoveAction::Wait;
 
         f64 dx = m_posX - m_mob->x();
         f64 dy = m_posY - m_mob->y();
         f64 dz = m_posZ - m_mob->z();
 
-        // MC 使用3D距离平方，阈值极小（2.5000003E-7F ≈ 0.0005格）
+        // 使用3D距离平方，阈值极小（2.5000003E-7F ≈ 0.0005格）
         f64 distSq = dx * dx + dy * dy + dz * dz;
         if (distSq < 2.5000003E-7) {
             // 已到达目标
@@ -138,8 +138,8 @@ void MovementController::tick()
         // 计算目标偏航角
         f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
-        // MC 1.16.5: 限制旋转速度为90度/tick
-        // MC 1.16.5 limitAngle 结果必须包装到 [0, 360)
+        // 限制旋转速度为90度/tick
+        // limitAngle 结果必须包装到 [0, 360)
         f32 currentYaw = m_mob->yaw();
         f32 newYaw = math::wrapDegreesPositive(math::clampedRotate(currentYaw, targetYaw, 90.0f));
 
@@ -152,22 +152,21 @@ void MovementController::tick()
         m_mob->setMoveForward(1.0f); // 向前移动
 
         // 检查是否需要跳跃
-        // MC 1.16.5: 跳跃有两个条件，满足其一即可
+        // 跳跃有两个条件，满足其一即可
         f64 horizontalDistSq = dx * dx + dz * dz;
         f32 entityWidth = m_mob->width();
         f32 maxDist = std::max(1.0f, entityWidth);
         bool shouldJump = false;
 
-        // MC 1.16.5 条件1: 目标位置更高且水平距离近
+        // 条件1: 目标位置更高且水平距离近
         if (dy > m_mob->stepHeight() && horizontalDistSq < static_cast<f64>(maxDist * maxDist)) {
             shouldJump = true;
         }
 
-        // MC 1.16.5 条件2: 检查实体所在位置方块的碰撞形状（门、栅栏等特殊情况）
-        // MC 1.16.5: 检查的是实体当前位置的方块，而不是前方方块
-        // 参考: MovementController.tick() 中的跳跃检测逻辑
+        // 条件2: 检查实体所在位置方块的碰撞形状（门、栅栏等特殊情况）
+        // 检查的是实体当前位置的方块，而不是前方方块
         if (!shouldJump && m_mob->world()) {
-            // MC 1.16.5: 使用实体当前位置
+            // 使用实体当前位置
             i32 blockX = floorTo<i32>(m_mob->x());
             i32 blockY = floorTo<i32>(m_mob->y());
             i32 blockZ = floorTo<i32>(m_mob->z());
@@ -184,27 +183,25 @@ void MovementController::tick()
                         shapeMaxY = std::max(shapeMaxY, static_cast<f64>(box.maxY));
                     }
 
-                    // MC 1.16.5: 检查实体是否在碰撞形状上方
+                    // 检查实体是否在碰撞形状上方
                     // 如果实体位置低于碰撞形状顶部，需要跳跃
                     f64 entityY = m_mob->y();
                     f64 shapeTopY = static_cast<f64>(blockY) + shapeMaxY;
 
                     if (entityY < shapeTopY) {
-                        // MC 1.16.5: 只检查 DOORS 和 FENCES 标签，不检查 WALLS
-                        // 参考代码: !block.isIn(BlockTags.DOORS) && !block.isIn(BlockTags.FENCES)
+                        // 只检查 DOORS 和 FENCES 标签，不检查 WALLS
                         // 使用 RTTI 检查方块类型
                         bool isDoorOrFence = false;
 
-                        // 检查门（MC: BlockTags.DOORS）
+                        // 检查门
                         if (dynamic_cast<const DoorBlock*>(&block) != nullptr) {
                             isDoorOrFence = true;
                         }
-                        // 检查栅栏（MC: BlockTags.FENCES，不包括栅栏门）
-                        // 注意：FenceGateBlock 不在 FENCES 标签中，所以栅栏门会触发跳跃
+                        // 检查栅栏（不包括栅栏门，栅栏门会触发跳跃）
                         else if (dynamic_cast<const FenceBlock*>(&block) != nullptr) {
                             isDoorOrFence = true;
                         }
-                        // MC 1.16.5: 不检查墙(WallBlock)和栅栏门(FenceGateBlock)，它们会触发跳跃
+                        // 不检查墙和栅栏门，它们会触发跳跃
 
                         if (!isDoorOrFence) {
                             shouldJump = true;
@@ -221,13 +218,13 @@ void MovementController::tick()
             m_action = MoveAction::Jumping;
         }
     } else if (m_action == MoveAction::Jumping) {
-        // MC: JUMPING 状态设置移动速度
+        // JUMPING 状态设置移动速度
         f32 moveSpeed =
             static_cast<f32>(m_speed * m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
         m_mob->setAIMoveSpeed(moveSpeed);
 
         if (m_mob->onGround()) {
-            m_action = MoveAction::Wait; // MC: 着陆后设为WAIT
+            m_action = MoveAction::Wait; // 着陆后设为WAIT
         }
     } else {
         // Wait 状态
@@ -242,7 +239,6 @@ bool MovementController::canWalkAt(f64 x, f64 z) const
         return true; // 无法检查时默认可行走
     }
 
-    // MC 1.16.5 func_234024_b_:
     // 使用 NodeProcessor.getPathNodeType 检查目标位置是否可行走
     auto* navigator = m_mob->navigator();
     if (navigator && navigator->getPathFinder()) {
@@ -257,7 +253,7 @@ bool MovementController::canWalkAt(f64 x, f64 z) const
         }
     }
 
-    // MC 1.16.5: 如果没有 NodeProcessor，默认返回 true
+    // 如果没有 NodeProcessor，默认返回 true
     return true;
 }
 

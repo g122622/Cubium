@@ -22,7 +22,7 @@
  */
 
 #include "Region.hpp"
-#include "world/block/Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc::entity::ai::pathfinding {
 

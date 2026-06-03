@@ -22,21 +22,15 @@
  */
 
 #include "BeeGoals.hpp"
-#include "../../../../../entity/core/EntityUtils.hpp"
-#include "../../../../../entity/damage/DamageSource.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/Block.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/BlockTags.hpp"
-#include "../../../../../world/block/blocks/agricultural/CropBlock.hpp"
-#include "../../../../entities/passive/special/BeeEntity.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
-#include "../../GoalConstants.hpp"
+#include "common/entity/ai/goal/controller/MovementController.hpp"
+#include "common/entity/ai/goal/pathfinding/PathNavigator.hpp"
+#include "common/entity/entities/passive/special/BeeEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace entity::ai::goal {
@@ -92,8 +86,7 @@ void BeeStingGoal::tick()
     MeleeAttackGoal::tick();
 
     // 如果攻击成功，设置蛰刺状态
-    // MC 1.16.5: 在 attackEntityAsMob 中处理
-    // 这里在 MeleeAttackGoal 的攻击回调中处理
+    // 在 MeleeAttackGoal 的攻击回调中处理
 }
 
 // ============================================================================
@@ -112,7 +105,7 @@ bool BeeEnterHiveGoal::canBeeStart()
     }
 
     // 检查是否能进入蜂巢
-    // MC 1.16.5: canEnterHive() 方法
+    // TODO: 实现完整的 canEnterHive 检查
     // 条件：stayOutOfHiveCountdown <= 0 && !pollinateGoal.isRunning() && !hasStung() && getAttackTarget() == null
     //      && (failedPollinatingTooLong() || world.isRaining() || world.isNightTime() || hasNectar())
     // 简化实现：检查距离和基本条件
@@ -200,7 +193,7 @@ bool BeePollinateGoal::canBeeStart()
     }
 
     // 寻找花朵
-    return findFlower();
+    return _findFlower();
 }
 
 bool BeePollinateGoal::canBeeContinue()
@@ -220,12 +213,12 @@ bool BeePollinateGoal::canBeeContinue()
     }
 
     // 完成授粉后有 20% 概率继续
-    if (completedPollination()) {
+    if (_completedPollination()) {
         return world != nullptr && world->getRandom().nextFloat() < 0.2f;
     }
 
     // 检查花朵是否仍然有效
-    if (m_totalTicks % 20 == 0 && !isFlower(m_bee->getFlowerPos())) {
+    if (m_totalTicks % 20 == 0 && !_isFlower(m_bee->getFlowerPos())) {
         m_bee->setFlowerPos(BlockPos::zero());
         return false;
     }
@@ -245,7 +238,7 @@ void BeePollinateGoal::startExecuting()
 void BeePollinateGoal::resetTask()
 {
     // 授粉成功
-    if (completedPollination()) {
+    if (_completedPollination()) {
         m_bee->setHasNectar(true);
     }
 
@@ -287,7 +280,7 @@ void BeePollinateGoal::tick()
     if (distSq > 1.0) {
         // 飞向花朵
         m_nextTarget = flowerCenter;
-        moveToNextTarget();
+        _moveToNextTarget();
     } else {
         // 在花朵附近徘徊授粉
         ++m_pollinationTicks;
@@ -304,7 +297,7 @@ void BeePollinateGoal::tick()
     }
 }
 
-bool BeePollinateGoal::isFlower(const BlockPos& pos) const
+bool BeePollinateGoal::_isFlower(const BlockPos& pos) const
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
@@ -331,7 +324,7 @@ bool BeePollinateGoal::isFlower(const BlockPos& pos) const
     return false;
 }
 
-bool BeePollinateGoal::findFlower()
+bool BeePollinateGoal::_findFlower()
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
@@ -347,7 +340,7 @@ bool BeePollinateGoal::findFlower()
             for (i32 dz = -5; dz <= 5; ++dz) {
                 BlockPos checkPos(centerPos.x + dx, centerPos.y + dy, centerPos.z + dz);
 
-                if (isFlower(checkPos)) {
+                if (_isFlower(checkPos)) {
                     m_bee->setFlowerPos(checkPos);
 
                     // 开始导航
@@ -364,7 +357,7 @@ bool BeePollinateGoal::findFlower()
     return false;
 }
 
-void BeePollinateGoal::moveToNextTarget()
+void BeePollinateGoal::_moveToNextTarget()
 {
     // 飞向目标位置
     if (auto* moveCtrl = m_bee->moveController()) {
@@ -399,7 +392,7 @@ bool BeeUpdateHiveGoal::canBeeContinue()
 void BeeUpdateHiveGoal::startExecuting()
 {
     // 搜索附近可用的蜂巢
-    auto hives = findNearbyFreeHives();
+    auto hives = _findNearbyFreeHives();
 
     if (!hives.empty()) {
         // 设置最近的蜂巢
@@ -410,7 +403,7 @@ void BeeUpdateHiveGoal::startExecuting()
     // m_bee->setHiveCooldown(200); // 10秒
 }
 
-std::vector<BlockPos> BeeUpdateHiveGoal::findNearbyFreeHives() const
+std::vector<BlockPos> BeeUpdateHiveGoal::_findNearbyFreeHives() const
 {
     std::vector<BlockPos> hives;
 
@@ -431,7 +424,7 @@ std::vector<BlockPos> BeeUpdateHiveGoal::findNearbyFreeHives() const
                 const BlockState* state = world->getBlockState(checkPos);
                 if (state != nullptr && BlockTags::BEEHIVES().contains(*state)) {
                     // TODO: 检查蜂巢是否有空间
-                    if (doesHiveHaveSpace(checkPos)) {
+                    if (_doesHiveHaveSpace(checkPos)) {
                         hives.push_back(checkPos);
                     }
                 }
@@ -451,7 +444,7 @@ std::vector<BlockPos> BeeUpdateHiveGoal::findNearbyFreeHives() const
     return hives;
 }
 
-bool BeeUpdateHiveGoal::doesHiveHaveSpace(const BlockPos& /*pos*/) const
+bool BeeUpdateHiveGoal::_doesHiveHaveSpace(const BlockPos& /*pos*/) const
 {
     // TODO: 检查 BeehiveBlockEntity 是否有空间
     // 目前简化返回 true
@@ -479,7 +472,7 @@ bool BeeFindHiveGoal::canBeeStart()
     // if (!m_bee->canEnterHive()) return false;
 
     // 检查是否已经在蜂巢附近
-    if (isCloseEnough(m_bee->getHivePos())) {
+    if (_isCloseEnough(m_bee->getHivePos())) {
         return false;
     }
 
@@ -499,7 +492,7 @@ bool BeeFindHiveGoal::canBeeStart()
 
 bool BeeFindHiveGoal::canBeeContinue()
 {
-    return m_bee->hasHive() && !isCloseEnough(m_bee->getHivePos());
+    return m_bee->hasHive() && !_isCloseEnough(m_bee->getHivePos());
 }
 
 void BeeFindHiveGoal::startExecuting()
@@ -545,7 +538,7 @@ void BeeFindHiveGoal::tick()
 
             if (distSq > 256.0) { // 16格
                 // 太远了，放弃
-                if (isTooFar(hivePos)) {
+                if (_isTooFar(hivePos)) {
                     resetTask();
                 } else {
                     // 尝试导航
@@ -568,7 +561,7 @@ void BeeFindHiveGoal::tick()
     }
 }
 
-bool BeeFindHiveGoal::isCloseEnough(const BlockPos& pos) const
+bool BeeFindHiveGoal::_isCloseEnough(const BlockPos& pos) const
 {
     math::Vector3 beePos = m_bee->position();
     f64 distSq = (beePos.x - pos.x - 0.5) * (beePos.x - pos.x - 0.5) +
@@ -576,7 +569,7 @@ bool BeeFindHiveGoal::isCloseEnough(const BlockPos& pos) const
     return distSq <= 4.0; // 2格距离平方
 }
 
-bool BeeFindHiveGoal::isTooFar(const BlockPos& pos) const
+bool BeeFindHiveGoal::_isTooFar(const BlockPos& pos) const
 {
     math::Vector3 beePos = m_bee->position();
     f64 distSq = (beePos.x - pos.x) * (beePos.x - pos.x) + (beePos.z - pos.z) * (beePos.z - pos.z);
@@ -736,8 +729,8 @@ void BeeFindPollinationTargetGoal::tick()
     for (i32 dy = 1; dy <= 2; ++dy) {
         BlockPos checkPos(beeBlockPos.x, beeBlockPos.y - dy, beeBlockPos.z);
 
-        if (isPollinationTarget(checkPos)) {
-            growCrop(checkPos);
+        if (_isPollinationTarget(checkPos)) {
+            _growCrop(checkPos);
             // m_bee->addCropCounter();
 
             // 检查是否达到上限
@@ -748,7 +741,7 @@ void BeeFindPollinationTargetGoal::tick()
     }
 }
 
-bool BeeFindPollinationTargetGoal::isPollinationTarget(const BlockPos& pos) const
+bool BeeFindPollinationTargetGoal::_isPollinationTarget(const BlockPos& pos) const
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
@@ -764,7 +757,7 @@ bool BeeFindPollinationTargetGoal::isPollinationTarget(const BlockPos& pos) cons
     return BlockTags::BEE_GROWABLES().contains(*state);
 }
 
-void BeeFindPollinationTargetGoal::growCrop(const BlockPos& pos)
+void BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
@@ -816,8 +809,8 @@ bool BeeWanderGoal::shouldExecute()
 
 void BeeWanderGoal::startExecuting()
 {
-    math::Vector3f target = getRandomLocation();
-    if (isValidLocation(target)) {
+    math::Vector3f target = _getRandomLocation();
+    if (_isValidLocation(target)) {
         if (auto* nav = m_bee->navigator()) {
             (void)nav->moveTo(target.x, target.y, target.z, 1.0);
         }
@@ -829,15 +822,15 @@ void BeeWanderGoal::tick()
     // 持续导航
     if (auto* nav = m_bee->navigator()) {
         if (nav->noPath()) {
-            math::Vector3f target = getRandomLocation();
-            if (isValidLocation(target)) {
+            math::Vector3f target = _getRandomLocation();
+            if (_isValidLocation(target)) {
                 (void)nav->moveTo(target.x, target.y, target.z, 1.0);
             }
         }
     }
 }
 
-math::Vector3f BeeWanderGoal::getRandomLocation()
+math::Vector3f BeeWanderGoal::_getRandomLocation()
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
@@ -877,7 +870,7 @@ math::Vector3f BeeWanderGoal::getRandomLocation()
     return math::Vector3f(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
 }
 
-bool BeeWanderGoal::isValidLocation(const math::Vector3f& /*pos*/) const
+bool BeeWanderGoal::_isValidLocation(const math::Vector3f& /*pos*/) const
 {
     // 检查位置是否在有效范围内
     // 简化实现
@@ -903,7 +896,6 @@ void BeeAngerGoal::startExecuting()
     HurtByTargetGoal::startExecuting();
 
     // 蜜蜂被攻击时会召唤附近的其他蜜蜂
-    // MC 1.16.5: 在 setRevengeTarget 中已经实现
 }
 
 // ============================================================================
@@ -918,7 +910,7 @@ BeeAttackPlayerGoal::BeeAttackPlayerGoal(BeeEntity* bee, i32 chance)
 
 bool BeeAttackPlayerGoal::shouldExecute()
 {
-    if (!canSting()) {
+    if (!_canSting()) {
         return false;
     }
 
@@ -938,7 +930,7 @@ bool BeeAttackPlayerGoal::shouldExecute()
 
 bool BeeAttackPlayerGoal::shouldContinueExecuting()
 {
-    if (!canSting()) {
+    if (!_canSting()) {
         m_target = nullptr;
         return false;
     }
@@ -966,7 +958,7 @@ void BeeAttackPlayerGoal::resetTask()
     TargetGoal::resetTask();
 }
 
-bool BeeAttackPlayerGoal::canSting() const
+bool BeeAttackPlayerGoal::_canSting() const
 {
     return m_beeEntity->isAngry() && !m_beeEntity->hasStung();
 }

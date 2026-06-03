@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -38,8 +38,6 @@ namespace entity::ai::goal {
  * @brief 恐慌逃跑目标
  *
  * 当实体受到攻击或着火时，随机逃跑。
- *
- * 参考 MC 1.16.5 PanicGoal
  */
 class PanicGoal : public Goal {
 public:
@@ -59,25 +57,27 @@ public:
     /**
      * @brief 检查是否正在逃跑
      */
-    [[nodiscard]] bool isRunning() const { return m_running; }
+    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
 
     [[nodiscard]] std::string getTypeName() const override { return "PanicGoal"; }
 
-protected:
+private:
     /**
      * @brief 寻找随机逃跑位置
      * @return 是否找到有效位置
      */
-    [[nodiscard]] bool findRandomPosition();
+    [[nodiscard]] bool _findRandomPosition();
 
     /**
      * @brief 获取最近的水源位置（着火时）
-     * MC 1.16.5: 遍历立方体区域找最近的水方块
+     *
+     * 遍历立方体区域找最近的水方块。
+     *
      * @param horizontalRange 水平搜索范围
      * @param verticalRange 垂直搜索范围
      * @return 水源方块位置，如果没有则返回 (0, 0, 0)
      */
-    [[nodiscard]] BlockPos getRandomWaterPosition(i32 horizontalRange, i32 verticalRange);
+    [[nodiscard]] BlockPos _getRandomWaterPosition(i32 horizontalRange, i32 verticalRange);
 
     CreatureEntity* m_creature;
     f64 m_speed;

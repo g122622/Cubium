@@ -39,8 +39,6 @@ namespace entity::ai::goal {
  *
  * 使水生生物在水中随机选择方向游泳。
  * 类似于 RandomWalkingGoal，但专门针对水下环境。
- *
- * 参考 MC 1.16.5 RandomSwimmingGoal
  */
 class RandomSwimmingGoal : public Goal {
 public:
@@ -68,12 +66,12 @@ public:
     /**
      * @brief 强制下次执行
      */
-    void makeUpdate() { m_forceUpdate = true; }
+    void makeUpdate() noexcept { m_forceUpdate = true; }
 
     /**
      * @brief 设置执行概率倒数
      */
-    void setExecutionChance(i32 chance) { m_executionChance = chance; }
+    void setExecutionChance(i32 chance) noexcept { m_executionChance = chance; }
 
     [[nodiscard]] std::string getTypeName() const override { return "RandomSwimmingGoal"; }
 

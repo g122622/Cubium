@@ -44,8 +44,6 @@ namespace entity::ai::goal {
  *
  * 海豚跳出水面跳跃。
  *
- * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.DolphinJumpGoal
- *
  * 执行条件:
  * - 随机概率触发 (1/chance)
  * - 检查前方跳跃路径上有足够的水
@@ -75,7 +73,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "DolphinJumpGoal"; }
 
-    // MC 1.16.5 常量 - 公开以便测试
+    // 公开以便测试
     static constexpr i32 JUMP_DISTANCES[] = {0, 1, 4, 5, 6, 7};
 
 private:
@@ -87,7 +85,7 @@ private:
      * @param scale 距离缩放
      * @return 如果该位置可以跳跃返回 true
      */
-    [[nodiscard]] bool canJumpTo(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const;
+    [[nodiscard]] bool _canJumpTo(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const;
 
     /**
      * @brief 检查指定距离处上方是否有空气
@@ -97,7 +95,7 @@ private:
      * @param scale 距离缩放
      * @return 如果上方有空气返回 true
      */
-    [[nodiscard]] bool isAirAbove(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const;
+    [[nodiscard]] bool _isAirAbove(const BlockPos& pos, i32 dx, i32 dz, i32 scale) const;
 
     DolphinEntity* m_dolphin;
     i32 m_chance;
@@ -108,8 +106,6 @@ private:
  * @brief 海豚游向宝藏目标
  *
  * 当海豚被喂食鱼后，引导玩家到附近的宝藏结构。
- *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.DolphinEntity.SwimToTreasureGoal
  *
  * 执行条件:
  * - 海豚已经得到了鱼 (hasGotFish = true)
@@ -135,7 +131,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SwimToTreasureGoal"; }
 
-    // MC 1.16.5 常量 - 公开以便测试
+    // 公开以便测试
     static constexpr i32 MIN_AIR = 100;
     static constexpr f32 ARRIVE_DISTANCE = 4.0f;
     static constexpr f32 CLOSE_TO_TARGET_DISTANCE = 12.0f;
@@ -146,7 +142,7 @@ private:
      * @param structureType 结构类型（0=沉船, 1=海底废墟）
      * @return 如果找到返回位置，否则返回空
      */
-    [[nodiscard]] std::optional<BlockPos> findStructure(i32 structureType) const;
+    [[nodiscard]] std::optional<BlockPos> _findStructure(i32 structureType) const;
 
     DolphinEntity* m_dolphin;
     bool m_failed = false;
@@ -157,8 +153,6 @@ private:
  * @brief 海豚与玩家同游目标
  *
  * 当玩家在水中游泳时，海豚会跟随玩家并给予"海豚的恩惠"效果。
- *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.DolphinEntity.SwimWithPlayerGoal
  *
  * 执行条件:
  * - 附近有正在游泳的玩家
@@ -188,7 +182,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "SwimWithPlayerGoal"; }
 
-    // MC 1.16.5 常量 - 公开以便测试
+    // 公开以便测试
     static constexpr f32 SEARCH_RADIUS = 10.0f;
     static constexpr f32 CLOSE_DISTANCE_SQ = 6.25f; // 2.5 * 2.5
     static constexpr f32 MAX_DISTANCE_SQ = 256.0f;  // 16 * 16
@@ -200,7 +194,7 @@ private:
      * @brief 查找附近正在游泳的玩家
      * @return 如果找到返回玩家指针，否则返回 nullptr
      */
-    [[nodiscard]] Player* findSwimmingPlayer() const;
+    [[nodiscard]] Player* _findSwimmingPlayer() const;
 
     DolphinEntity* m_dolphin;
     f64 m_speed;
@@ -211,8 +205,6 @@ private:
  * @brief 海豚玩物品目标
  *
  * 海豚会拾取水中的物品并扔出来玩。
- *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.DolphinEntity.PlayWithItemsGoal
  *
  * 执行条件:
  * - 冷却时间已过
@@ -237,7 +229,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "PlayWithItemsGoal"; }
 
-    // MC 1.16.5 常量 - 公开以便测试
+    // 公开以便测试
     static constexpr f32 SEARCH_RADIUS = 8.0f;
     static constexpr f32 THROW_VELOCITY = 0.3f;
     static constexpr i32 PICKUP_DELAY = 40;  // 扔出物品的拾取延迟
@@ -248,13 +240,13 @@ private:
      * @brief 扔出物品
      * @param stack 要扔出的物品堆
      */
-    void throwItem(ItemStack& stack);
+    void _throwItem(ItemStack& stack);
 
     /**
      * @brief 查找附近的物品实体
      * @return 如果找到返回物品实体，否则返回 nullptr
      */
-    [[nodiscard]] ItemEntity* findNearbyItem() const;
+    [[nodiscard]] ItemEntity* _findNearbyItem() const;
 
     DolphinEntity* m_dolphin;
     i32 m_cooldown = 0;
@@ -262,8 +254,6 @@ private:
 
 /**
  * @brief 海豚跟随船目标状态枚举
- *
- * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.BoatGoals
  */
 enum class BoatFollowState : u8 {
     GoToBoat,         // 游向船
@@ -274,8 +264,6 @@ enum class BoatFollowState : u8 {
  * @brief 海豚跟随船目标
  *
  * 当玩家驾驶船时，海豚会游向船并跟随船的行进方向。
- *
- * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.FollowBoatGoal
  *
  * 执行条件:
  * - 5格范围内有船
@@ -313,21 +301,21 @@ private:
      * @brief 查找附近正在被玩家驾驶的船
      * @return 如果找到返回船上的玩家，否则返回 nullptr
      */
-    [[nodiscard]] Player* findPlayerDrivingBoat();
+    [[nodiscard]] Player* _findPlayerDrivingBoat();
 
     /**
      * @brief 检查玩家是否正在操作船移动
      * @param player 玩家
      * @return 如果玩家正在按移动键返回 true
      */
-    [[nodiscard]] static bool isPlayerOperatingBoat(const Player& player);
+    [[nodiscard]] static bool _isPlayerOperatingBoat(const Player& player);
 
     DolphinEntity* m_dolphin;
     Player* m_player = nullptr;
     BoatFollowState m_state = BoatFollowState::GoToBoat;
     i32 m_navigationTimer = 0;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 SEARCH_RADIUS = 5.0f;                // 搜索船的范围
     static constexpr f32 GO_TO_BOAT_SPEED = 0.015f;           // 游向船的速度
     static constexpr f32 GO_IN_DIRECTION_SPEED = 0.01f;       // 跟随方向的速度

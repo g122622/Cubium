@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <vector>
 
 namespace mc {
@@ -41,8 +41,6 @@ namespace entity::ai::goal {
  *
  * 使巡逻实体（掠夺者等）向巡逻目标移动。
  * 队长负责选择巡逻目标，队员跟随队长。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.PatrollerEntity.PatrolGoal
  *
  * 执行条件:
  * - 实体正在巡逻 (isPatrolling() == true)
@@ -93,13 +91,13 @@ private:
      * @brief 获取附近的巡逻队员
      * @return 附近 16 格内的巡逻队员列表（排除自己）
      */
-    [[nodiscard]] std::vector<PatrollerEntity*> getNearbyPatrollers() const;
+    [[nodiscard]] std::vector<PatrollerEntity*> _getNearbyPatrollers() const;
 
     /**
      * @brief 随机移动到附近位置
      * @return 是否成功开始移动
      */
-    [[nodiscard]] bool moveRandomly();
+    [[nodiscard]] bool _moveRandomly();
 
     PatrollerEntity* m_patroller;
     f64 m_memberSpeed;         // 队员速度

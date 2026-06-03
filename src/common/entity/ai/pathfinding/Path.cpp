@@ -34,7 +34,6 @@ Vector3d Path::getVectorFromIndex(const Entity* entity, i32 index) const
 
     const PathPoint& point = m_points[static_cast<size_t>(index)];
 
-    // MC 1.16.5: func_224770_a
     // 如果实体宽度大于1，需要调整位置到方块中心
     if (entity && entity->width() > 1.0f) {
         // 对于宽实体，将路径点位置调整到方块中心

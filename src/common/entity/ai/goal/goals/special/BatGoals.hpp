@@ -1,20 +1,29 @@
-/**
- * @file BatGoals.hpp
- * @brief 蝙蝠专用的AI目标类
+/*
+ * Copyright (c) 2026 Guo Yi
  *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.BatEntity
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * 蝙蝠有两个特有AI目标：
- * - BatRandomFlyGoal: 随机飞行目标，选择随机目标点并平滑转向飞行
- * - BatRestGoal: 挂墙休息目标，在白天或合适位置倒挂休息
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * 注意：MC原版蝙蝠实际上不使用传统AI目标系统，而是在 updateAITasks() 中直接实现行为。
- * 但为了遵循项目的架构风格，这里将其拆分为独立的Goal类。
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  */
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
+#include "../../../../../core/Constants.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
@@ -28,12 +37,10 @@ namespace entity::ai::goal {
 /**
  * @brief 蝙蝠随机飞行目标
  *
- * 实现 MC 1.16.5 蝙蝠的飞行行为：
+ * 实现蝙蝠的飞行行为：
  * 1. 选择随机目标点（当前位置±7格X/Z，-2到+4格Y）
  * 2. 目标点不可用或到达（距离<2）或1/30概率时更换目标点
  * 3. 平滑转向朝目标点飞行
- *
- * 参考: net.minecraft.entity.passive.BatEntity 第142-159行
  */
 class BatRandomFlyGoal : public Goal {
 public:
@@ -87,14 +94,14 @@ private:
      * - Y: 当前位置 -2 到 +4 格
      * - Z: 当前位置 ±7 格
      */
-    void selectNewTarget();
+    void _selectNewTarget();
 
     /**
      * @brief 检查目标点是否有效
      * @param pos 目标位置
      * @return 目标点是空气且在有效高度范围内返回true
      */
-    bool isTargetValid(const BlockPos& pos) const;
+    bool _isTargetValid(const BlockPos& pos) const;
 
     BatEntity* m_bat;         ///< 蝙蝠实体
     BlockPos m_targetPos;     ///< 目标位置
@@ -105,13 +112,11 @@ private:
 /**
  * @brief 蝙蝠挂墙休息目标
  *
- * 实现 MC 1.16.5 蝙蝠的休息行为：
+ * 实现蝙蝠的休息行为：
  * 1. 白天时尝试挂墙休息（1/100概率/tick）
  * 2. 检查上方是否有固体方块可以倒挂
  * 3. 挂墙时偶尔转头
  * 4. 玩家靠近（4格内）或失去支撑时飞走
- *
- * 参考: net.minecraft.entity.passive.BatEntity 第125-163行
  */
 class BatRestGoal : public Goal {
 public:
@@ -167,13 +172,13 @@ private:
      * @brief 检查是否应该停止休息
      * @return 玩家靠近或失去支撑时返回true
      */
-    bool shouldStopResting() const;
+    bool _shouldStopResting() const;
 
     /**
      * @brief 检查上方是否有固体方块可以倒挂
      * @return 可以休息返回true
      */
-    bool canRestAtCurrentPosition() const;
+    bool _canRestAtCurrentPosition() const;
 
     BatEntity* m_bat;       ///< 蝙蝠实体
     i32 m_turnTimer = 0;    ///< 转头计时器

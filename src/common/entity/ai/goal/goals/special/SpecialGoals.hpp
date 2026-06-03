@@ -45,8 +45,6 @@ namespace entity::ai::goal {
  *
  * 当玩家靠近时膨胀并最终爆炸。
  *
- * MC 1.16.5 参考: net.minecraft.entity.ai.goal.CreeperSwellGoal
- *
  * 执行条件:
  * - 苦力怕已经有膨胀状态 (getCreeperState() > 0)，或者
  * - 攻击目标在 9 格距离内 (3x3 范围)
@@ -78,7 +76,6 @@ private:
     CreeperEntity* m_creeper;
     LivingEntity* m_attackTarget = nullptr;
 
-    // MC 1.16.5 常量
     static constexpr f32 SWELL_TRIGGER_DISTANCE_SQ = 9.0f; // 3.0 * 3.0
     static constexpr f32 SWELL_CANCEL_DISTANCE_SQ = 49.0f; // 7.0 * 7.0
 };
@@ -88,7 +85,7 @@ private:
  *
  * 当受到攻击或看向玩家时传送。
  *
- * 参考 MC 1.16.5 EndermanTeleportGoal
+ * TODO: 完整实现末影人传送逻辑
  */
 class EndermanTeleportGoal : public Goal {
 public:
@@ -105,8 +102,6 @@ public:
  * @brief 羊驼跟随商队目标
  *
  * 羊驼会跟随领头的羊驼形成商队。
- *
- * MC 1.16.5 参考: net.minecraft.entity.ai.goal.LlamaFollowCaravanGoal
  *
  * 执行条件:
  * - 羊驼未被拴绳且未在商队中
@@ -136,7 +131,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "LlamaFollowCaravanGoal"; }
 
-    // MC 1.16.5 常量（公开用于测试）
+    // 常量（公开用于测试）
     static constexpr f64 SEARCH_RADIUS = 9.0;            // 搜索半径
     static constexpr f64 SEARCH_HEIGHT = 4.0;            // 搜索高度
     static constexpr f64 MIN_JOIN_DISTANCE_SQ = 4.0;     // 最小加入距离平方 (2格)
@@ -151,7 +146,7 @@ private:
      * @param depth 递归深度
      * @return 如果商队头领被拴住返回 true
      */
-    [[nodiscard]] bool firstIsLeashed(const LlamaEntity* llama, i32 depth) const;
+    [[nodiscard]] bool _firstIsLeashed(const LlamaEntity* llama, i32 depth) const;
 
     LlamaEntity* m_llama;
     f32 m_speed;
@@ -164,8 +159,6 @@ private:
  *
  * 未驯服的马被骑乘时会四处乱跑，增加驯服难度。
  * 每次改变方向时有概率增加驯服进度。
- *
- * 参考 MC 1.16.5 RunAroundLikeCrazyGoal
  */
 class RunAroundLikeCrazyGoal : public Goal {
 public:
@@ -189,7 +182,7 @@ private:
      * @brief 计算疯狂跑动目标位置
      * @return 是否找到有效位置
      */
-    bool findTarget();
+    bool _findTarget();
 
     AbstractHorseEntity* m_horse;
     f64 m_speed;
@@ -205,8 +198,6 @@ private:
  * @brief 河豚膨胀目标
  *
  * 当检测到敌对生物或玩家靠近时触发膨胀行为。
- *
- * MC 1.16.5 参考: net.minecraft.entity.passive.fish.PufferfishEntity.PuffGoal
  *
  * 检测规则：
  * - 检测碰撞箱向外扩展 2 格范围内的 LivingEntity
@@ -239,25 +230,23 @@ private:
     /**
      * @brief 判断实体是否为河豚的威胁
      *
-     * MC 1.16.5 ENEMY_MATCHER 谓词：
      * - 玩家：非旁观者模式且非创造模式
      * - 其他生物：非水生生物
      *
      * @param entity 生物实体
      * @return 如果是威胁返回 true
      */
-    [[nodiscard]] static bool isEnemy(const LivingEntity* entity);
+    [[nodiscard]] static bool _isEnemy(const LivingEntity* entity);
 
     /**
      * @brief 查找附近的威胁实体
      * @return 如果找到威胁实体返回 true
      */
-    [[nodiscard]] bool findNearbyEnemy();
+    [[nodiscard]] bool _findNearbyEnemy();
 
     ::mc::PufferfishEntity* m_fish;
     LivingEntity* m_nearbyEnemy = nullptr;
 
-    // MC 1.16.5 常量
     static constexpr f32 DETECTION_RANGE = 2.0f; // 检测范围（碰撞箱向外扩展）
 };
 
@@ -265,8 +254,6 @@ private:
  * @brief 羊驼防御目标
  *
  * 羊驼攻击附近的未驯服的狼。
- *
- * MC 1.16.5 参考: net.minecraft.entity.passive.horse.LlamaEntity.DefendTargetGoal
  *
  * 这是一个内部类，用于羊驼防御狼。
  * 检测范围 16 格的 1/4（即 4 格）。
@@ -287,7 +274,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "LlamaDefendTargetGoal"; }
 
-    // MC 1.16.5 常量（公开用于测试）
+    // 常量（公开用于测试）
     static constexpr f64 TARGET_RANGE = 16.0;          // 基础检测范围
     static constexpr f64 TARGET_RANGE_MODIFIER = 0.25; // 范围修正系数（实际范围 = 16 * 0.25 = 4格）
 
@@ -300,8 +287,6 @@ private:
  * @brief 骷髅马陷阱触发目标
  *
  * 当玩家接近陷阱骷髅马时触发陷阱，生成骷髅骑手。
- *
- * MC 1.16.5 参考: net.minecraft.entity.ai.goal.TriggerSkeletonTrapGoal
  *
  * 执行条件:
  * - 骷髅马是陷阱马 (isTrap() == true)
@@ -328,7 +313,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "TriggerSkeletonTrapGoal"; }
 
-    // MC 1.16.5 常量（公开用于测试）
+    // 常量（公开用于测试）
     static constexpr f64 PLAYER_DETECTION_RANGE = 10.0;     // 玩家检测范围
     static constexpr f64 PLAYER_DETECTION_RANGE_SQ = 100.0; // 玩家检测范围平方
 

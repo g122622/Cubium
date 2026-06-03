@@ -65,11 +65,6 @@ bool CreeperSwellGoal::shouldExecute()
 {
     if (!m_creeper) return false;
 
-    // MC 1.16.5 CreeperSwellGoal.shouldExecute():
-    // LivingEntity livingentity = this.swellingCreeper.getAttackTarget();
-    // return this.swellingCreeper.getCreeperState() > 0
-    //     || livingentity != null && this.swellingCreeper.getDistanceSq(livingentity) < 9.0D;
-
     // 如果已经在膨胀状态，继续执行
     if (m_creeper->getCreeperState() > 0) {
         return true;
@@ -95,7 +90,7 @@ void CreeperSwellGoal::startExecuting()
 {
     if (!m_creeper) return;
 
-    // MC 1.16.5: 清除导航路径，停止移动
+    // 清除导航路径，停止移动
     m_creeper->clearNavigation();
 
     // 记录攻击目标
@@ -104,24 +99,13 @@ void CreeperSwellGoal::startExecuting()
 
 void CreeperSwellGoal::resetTask()
 {
-    // MC 1.16.5: 清除攻击目标引用
+    // 清除攻击目标引用
     m_attackTarget = nullptr;
 }
 
 void CreeperSwellGoal::tick()
 {
     if (!m_creeper) return;
-
-    // MC 1.16.5 CreeperSwellGoal.tick():
-    // if (this.creeperAttackTarget == null) {
-    //     this.swellingCreeper.setCreeperState(-1);
-    // } else if (this.swellingCreeper.getDistanceSq(this.creeperAttackTarget) > 49.0D) {
-    //     this.swellingCreeper.setCreeperState(-1);
-    // } else if (!this.swellingCreeper.getEntitySenses().canSee(this.creeperAttackTarget)) {
-    //     this.swellingCreeper.setCreeperState(-1);
-    // } else {
-    //     this.swellingCreeper.setCreeperState(1);
-    // }
 
     // 情况1: 攻击目标为空 -> 取消膨胀
     if (!m_attackTarget) {
@@ -168,7 +152,7 @@ RunAroundLikeCrazyGoal::RunAroundLikeCrazyGoal(AbstractHorseEntity* horse, f64 s
 
 bool RunAroundLikeCrazyGoal::shouldExecute()
 {
-    // MC 1.16.5: 只在未被驯服且被玩家骑乘时执行
+    // 只在未被驯服且被玩家骑乘时执行
     if (!m_horse) return false;
 
     // 检查是否未被驯服且被骑乘
@@ -176,7 +160,7 @@ bool RunAroundLikeCrazyGoal::shouldExecute()
     if (!m_horse->isBeingRidden()) return false;
 
     // 找到随机目标位置
-    return findTarget();
+    return _findTarget();
 }
 
 bool RunAroundLikeCrazyGoal::shouldContinueExecuting()
@@ -216,7 +200,7 @@ void RunAroundLikeCrazyGoal::tick()
 {
     if (!m_horse) return;
 
-    // MC 1.16.5: 每tick有概率增加驯服进度或甩下玩家
+    // 每tick有概率增加驯服进度或甩下玩家
     // 有 1/50 的概率执行驯服检查
     math::Random rng = m_horse->getRandom();
 
@@ -237,14 +221,11 @@ void RunAroundLikeCrazyGoal::tick()
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
         // 驯服检查
-        // MC 1.16.5: if (j > 0 && this.horseHost.getRNG().nextInt(j) < i &&
-        // !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(horseHost, (PlayerEntity)entity))
         i32 temper = m_horse->getTemper();
         i32 maxTemper = m_horse->getMaxTemper();
 
         if (maxTemper > 0 && rng.nextInt(maxTemper) < temper) {
             // 达到驯服条件
-            // MC 1.16.5: this.horseHost.setTamedBy((PlayerEntity)entity);
             m_horse->setTamedBy(player);
             return;
         }
@@ -253,9 +234,6 @@ void RunAroundLikeCrazyGoal::tick()
         m_horse->increaseTemper(5);
 
         // 甩下玩家
-        // MC 1.16.5: this.horseHost.removePassengers();
-        //            this.horseHost.makeMad();
-        //            this.horseHost.world.setEntityState(this.horseHost, (byte)6);
         m_horse->removePassengers();
         m_horse->makeMad();
 
@@ -267,11 +245,11 @@ void RunAroundLikeCrazyGoal::tick()
     }
 }
 
-bool RunAroundLikeCrazyGoal::findTarget()
+bool RunAroundLikeCrazyGoal::_findTarget()
 {
     if (!m_horse) return false;
 
-    // MC 1.16.5: 使用 RandomPositionGenerator 找随机位置
+    // 使用 RandomPositionGenerator 找随机位置
     Vector3 targetPos;
     if (util::RandomPositionGenerator::findRandomTarget(m_horse,
             5, // 水平范围
@@ -302,17 +280,12 @@ bool PuffGoal::shouldExecute()
     if (!m_fish || !m_fish->isAlive()) return false;
     if (!m_fish->world()) return false;
 
-    // MC 1.16.5 PufferfishEntity.PuffGoal.shouldExecute():
-    // List<LivingEntity> list = this.fish.world.getEntitiesWithinAABB(
-    //     LivingEntity.class, this.fish.getBoundingBox().grow(2.0D), PufferfishEntity.ENEMY_MATCHER);
-    // return !list.isEmpty();
-
-    return findNearbyEnemy();
+    return _findNearbyEnemy();
 }
 
 bool PuffGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 与 shouldExecute() 相同逻辑
+    // 与 shouldExecute() 相同逻辑
     return shouldExecute();
 }
 
@@ -320,9 +293,7 @@ void PuffGoal::startExecuting()
 {
     if (!m_fish) return;
 
-    // MC 1.16.5 PufferfishEntity.PuffGoal.startExecuting():
-    // this.fish.puffTimer = 1;
-    // this.fish.deflateTimer = 0;
+    // 开始膨胀计时器
     m_fish->startPuffTimer();
 }
 
@@ -330,29 +301,21 @@ void PuffGoal::resetTask()
 {
     if (!m_fish) return;
 
-    // MC 1.16.5 PufferfishEntity.PuffGoal.resetTask():
-    // this.fish.puffTimer = 0;
+    // 重置膨胀计时器
     m_fish->resetPuffTimer();
     m_nearbyEnemy = nullptr;
 }
 
-bool PuffGoal::isEnemy(const LivingEntity* entity)
+bool PuffGoal::_isEnemy(const LivingEntity* entity)
 {
     if (!entity) return false;
-
-    // MC 1.16.5 ENEMY_MATCHER:
-    // if (entity == null) return false;
-    // if (!(entity instanceof PlayerEntity) || !entity.isSpectator() && !((PlayerEntity)entity).isCreative()) {
-    //     return entity.getCreatureAttribute() != CreatureAttribute.WATER;
-    // }
-    // return false;
 
     // 检查是否为玩家
     if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
         // 需要使用 dynamic_cast 安全转换
         const Player* player = dynamic_cast<const Player*>(entity);
         if (player) {
-            // MC 1.16.5: 观察者模式或创造模式的玩家不是敌人
+            // 观察者模式或创造模式的玩家不是敌人
             if (player->isSpectator() || player->isCreative()) {
                 return false;
             }
@@ -360,8 +323,6 @@ bool PuffGoal::isEnemy(const LivingEntity* entity)
         return true; // 非观察者/创造模式的玩家是敌人
     }
 
-    // MC 1.16.5: 检查生物属性是否为水生
-    // 水生生物不是敌人，其他生物是敌人
     // 检查实体类型是否为水生生物
     entity::EntityTypeId type = entity->typeId();
     // 水生生物 - 不是敌人
@@ -375,7 +336,7 @@ bool PuffGoal::isEnemy(const LivingEntity* entity)
     return true;
 }
 
-bool PuffGoal::findNearbyEnemy()
+bool PuffGoal::_findNearbyEnemy()
 {
     if (!m_fish || !m_fish->world()) return false;
 
@@ -394,7 +355,7 @@ bool PuffGoal::findNearbyEnemy()
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
         if (!living) continue;
 
-        if (isEnemy(living)) {
+        if (_isEnemy(living)) {
             m_nearbyEnemy = living;
             return true;
         }
@@ -419,7 +380,6 @@ LlamaFollowCaravanGoal::LlamaFollowCaravanGoal(LlamaEntity* llama, f32 speed)
 
 bool LlamaFollowCaravanGoal::shouldExecute()
 {
-    // MC 1.16.5 LlamaFollowCaravanGoal.shouldExecute()
     // 注意: 当前实现暂时不支持拴绳功能（拴绳系统待实现）
     // 当前逻辑: 只加入已有商队链的羊驼
     if (!m_llama || m_llama->isInCaravan()) {
@@ -472,7 +432,7 @@ bool LlamaFollowCaravanGoal::shouldExecute()
     }
 
     // 检查商队长度
-    if (!firstIsLeashed(bestCandidate, 1)) {
+    if (!_firstIsLeashed(bestCandidate, 1)) {
         return false;
     }
 
@@ -483,7 +443,6 @@ bool LlamaFollowCaravanGoal::shouldExecute()
 
 bool LlamaFollowCaravanGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5 LlamaFollowCaravanGoal.shouldContinueExecuting()
     if (!m_llama || !m_llama->isInCaravan()) {
         return false;
     }
@@ -494,14 +453,14 @@ bool LlamaFollowCaravanGoal::shouldContinueExecuting()
     }
 
     // 检查商队头领是否被拴绳拴住
-    if (!firstIsLeashed(m_llama, 0)) {
+    if (!_firstIsLeashed(m_llama, 0)) {
         return false;
     }
 
     // 检查距离
     f64 distSq = m_llama->distanceSqTo(*head);
 
-    // MC 1.16.5: 如果距离超过 26 格，尝试加速
+    // 如果距离超过 26 格，尝试加速
     if (distSq > MAX_FOLLOW_DISTANCE_SQ) {
         if (m_speedModifier <= 3.0) {
             m_speedModifier *= 1.2;
@@ -537,13 +496,11 @@ void LlamaFollowCaravanGoal::resetTask()
 
 void LlamaFollowCaravanGoal::tick()
 {
-    // MC 1.16.5 LlamaFollowCaravanGoal.tick()
     if (!m_llama || !m_llama->isInCaravan()) {
         return;
     }
 
-    // MC 1.16.5: 如果被拴在拴绳桩上，不移动
-    // 注意: 当前实现暂不支持拴绳功能，跳过此检查
+    // TODO: 如果被拴在拴绳桩上，不移动（需要拴绳系统支持）
 
     LlamaEntity* head = m_llama->getCaravanHead();
     if (!head) {
@@ -553,13 +510,7 @@ void LlamaFollowCaravanGoal::tick()
     // 计算到头领的距离
     f64 dist = m_llama->distanceTo(*head);
 
-    // MC 1.16.5: 计算移动向量，保持 2 格间距
-    // Vector3d vector3d = (new Vector3d(
-    //     head.getPosX() - this.llama.getPosX(),
-    //     head.getPosY() - this.llama.getPosY(),
-    //     head.getPosZ() - this.llama.getPosZ()
-    // )).normalize().scale(Math.max(dist - 2.0D, 0.0D));
-
+    // 计算移动向量，保持 2 格间距
     f64 dx = head->x() - m_llama->x();
     f64 dy = head->y() - m_llama->y();
     f64 dz = head->z() - m_llama->z();
@@ -589,12 +540,11 @@ void LlamaFollowCaravanGoal::tick()
     }
 }
 
-bool LlamaFollowCaravanGoal::firstIsLeashed(const LlamaEntity* llama, i32 depth) const
+bool LlamaFollowCaravanGoal::_firstIsLeashed(const LlamaEntity* llama, i32 depth) const
 {
-    // MC 1.16.5 LlamaFollowCaravanGoal.firstIsLeashed()
     // 递归检查商队头领是否被拴绳拴住
     // 最大递归深度为 8（商队最多 8 只羊驼）
-    // 注意: 当前实现暂不支持拴绳功能，简化为检查商队链长度
+    // TODO: 当前实现暂不支持拴绳功能，简化为检查商队链长度
 
     if (depth > MAX_CARAVAN_LENGTH) {
         return false;
@@ -607,8 +557,7 @@ bool LlamaFollowCaravanGoal::firstIsLeashed(const LlamaEntity* llama, i32 depth)
         }
 
         // 简化实现：只要商队链长度不超过最大值就返回 true
-        // 完整实现需要检查拴绳系统
-        return firstIsLeashed(head, depth + 1);
+        return _firstIsLeashed(head, depth + 1);
     }
 
     // 如果是商队链的头部（没有头领），返回 true
@@ -630,7 +579,6 @@ LlamaDefendTargetGoal::LlamaDefendTargetGoal(LlamaEntity* llama)
 
 bool LlamaDefendTargetGoal::shouldExecute()
 {
-    // MC 1.16.5 LlamaEntity.DefendTargetGoal.shouldExecute()
     if (!m_llama || !m_llama->world()) {
         return false;
     }
@@ -652,8 +600,7 @@ bool LlamaDefendTargetGoal::shouldExecute()
             continue;
         }
 
-        // MC 1.16.5: 只攻击未驯服的狼
-        // WolfEntity::isTamed()
+        // 只攻击未驯服的狼
         WolfEntity* wolf = dynamic_cast<WolfEntity*>(entity);
         if (!wolf || !wolf->isAlive()) {
             continue;
@@ -676,7 +623,7 @@ bool LlamaDefendTargetGoal::shouldExecute()
 
 void LlamaDefendTargetGoal::startExecuting()
 {
-    // MC 1.16.5: 设置攻击目标
+    // 设置攻击目标
     if (m_llama && m_target) {
         m_llama->setAttackTarget(m_target);
     }
@@ -700,9 +647,7 @@ TriggerSkeletonTrapGoal::TriggerSkeletonTrapGoal(SkeletonHorseEntity* horse)
 
 bool TriggerSkeletonTrapGoal::shouldExecute()
 {
-    // MC 1.16.5 TriggerSkeletonTrapGoal.shouldExecute()
     // 执行条件: 陷阱马且玩家在 10 格范围内
-
     if (!m_horse || !m_horse->isAlive()) {
         return false;
     }
@@ -752,7 +697,6 @@ bool TriggerSkeletonTrapGoal::shouldExecute()
 
 void TriggerSkeletonTrapGoal::tick()
 {
-    // MC 1.16.5 TriggerSkeletonTrapGoal.tick()
     // 触发陷阱
     if (m_horse && m_horse->isAlive() && m_horse->isTrap()) {
         m_horse->triggerTrap();

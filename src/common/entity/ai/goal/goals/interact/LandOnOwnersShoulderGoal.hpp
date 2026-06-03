@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 
 namespace mc {
 
@@ -50,8 +50,6 @@ namespace entity::ai::goal {
  *
  * 当实体与主人的碰撞箱相交时，尝试坐到主人肩膀上。
  * 一旦成功坐到肩膀上，此目标不可被抢占（isPreemptible 返回 false）。
- *
- * 参考 MC 1.16.5 LandOnOwnersShoulderGoal
  */
 class LandOnOwnersShoulderGoal : public Goal {
 public:
@@ -86,7 +84,7 @@ public:
      * @brief 是否可被抢占
      * @return 如果已经在肩膀上返回 false，否则返回 true
      */
-    [[nodiscard]] bool isPreemptible() const override;
+    [[nodiscard]] bool isPreemptible() const noexcept override;
 
     /**
      * @brief 开始执行时调用

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -38,8 +38,6 @@ namespace entity::ai::controller {
  * @brief 视线控制器
  *
  * 控制实体的头部旋转，使其看向指定位置。
- *
- * 参考 MC 1.16.5 LookController
  */
 class LookController {
 public:
@@ -77,8 +75,6 @@ public:
 
     /**
      * @brief 设置看向实体
-     *
-     * 参考 MC 1.16.5 LookController.setLookPositionWithEntity()
      * @param entity 目标实体
      * @param deltaYaw 偏航角最大变化速度
      * @param deltaPitch 俯仰角最大变化速度

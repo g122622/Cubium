@@ -40,8 +40,6 @@ namespace entity::ai::goal {
  * 控制潜影贝的开壳和发射子弹行为。
  * 当攻击目标在范围内时打开贝壳并发射追踪子弹。
  *
- * MC 1.16.5 参考: net.minecraft.entity.monster.ShulkerEntity.AttackGoal
- *
  * 执行条件:
  * - 有攻击目标
  * - 攻击目标存活
@@ -73,7 +71,6 @@ private:
     ShulkerEntity* m_shulker;
     LivingEntity* m_target = nullptr;
 
-    // MC 1.16.5 常量
     static constexpr f32 ATTACK_RANGE_SQ = 400.0f; // 20.0 * 20.0
 };
 
@@ -82,8 +79,6 @@ private:
  *
  * 控制潜影贝空闲时的开壳张望行为。
  * 当没有攻击目标时，随机打开贝壳张望。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.ShulkerEntity.PeekGoal
  *
  * 执行条件:
  * - 没有攻击目标
@@ -118,11 +113,9 @@ private:
     i32 m_peekTime = 0;      // 张望时间
     i32 m_totalPeekTime = 0; // 总张望时长
 
-    // MC 1.16.5 常量
-    static constexpr i32 PEEK_PROBABILITY = 40; // 触发概率倒数 (1/40)
-    static constexpr i32 MIN_PEEK_TIME = 20;    // 最小张望时间 (1秒)
-    static constexpr i32 MAX_PEEK_TIME = 60;    // 最大张望时间 (3秒)
-    static constexpr f32 PEEK_CHANCE = 0.025f;  // 每tick触发概率
+    static constexpr i32 MIN_PEEK_TIME = 20;   // 最小张望时间 (1秒)
+    static constexpr i32 MAX_PEEK_TIME = 60;   // 最大张望时间 (3秒)
+    static constexpr f32 PEEK_CHANCE = 0.025f; // 每tick触发概率
 };
 
 } // namespace entity::ai::goal

@@ -32,7 +32,7 @@ f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness)
         return 0.0f;
     }
 
-    // MC 1.16.5 CombatRules.getDamageAfterAbsorb()
+    // 计算护甲减伤公式：
     // f = 2 + toughness / 4
     // g = clamp(armor - damage / f, armor * 0.2, 20)
     // final = damage * (1 - g / 25)
@@ -53,7 +53,7 @@ f32 CombatRules::getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtection
         return 0.0f;
     }
 
-    // MC 1.16.5 CombatRules.getDamageAfterMagicAbsorb()
+    // 附魔保护减伤公式：
     // f = clamp(epf, 0, 20)
     // final = damage * (1 - f / 25)
 
@@ -70,7 +70,7 @@ f32 CombatRules::getDamageAfterResistance(f32 damage, i32 resistanceLevel)
         return damage;
     }
 
-    // MC 1.16.5 抗性药水减伤
+    // 抗性药水减伤公式：
     // final = damage * max(0, 1 - level * 0.2)
     // 抗性 V = 80% 减伤
 

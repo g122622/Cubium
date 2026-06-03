@@ -43,16 +43,13 @@ namespace entity::ai::goal {
  * 2. 概率触发或前方是悬崖时触发
  * 3. 设置打滚状态，由 PandaEntity::updateRoll() 处理物理
  *
- * MC 1.16.5 逻辑：
- * - 优先级: 12
- * - 互斥标志: MOVE, LOOK, JUMP
- * - 不可被抢占
- * - 触发概率：
+ * 优先级: 12
+ * 互斥标志: MOVE, LOOK, JUMP
+ * 不可被抢占
+ * 触发概率：
  *   - 前方是悬崖：100%
  *   - 顽皮性格：1/60
  *   - 幼年熊猫：1/500
- *
- * 参考 MC 1.16.5 PandaEntity.RollGoal
  */
 class PandaRollGoal : public Goal {
 public:
@@ -76,11 +73,11 @@ private:
      * @brief 检查前方是否有悬崖
      * @return 如果前方一格下方是空气返回true
      */
-    [[nodiscard]] bool isCliffInFront() const;
+    [[nodiscard]] bool _isCliffInFront() const;
 
     PandaEntity* m_panda;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr i32 PLAYFUL_ROLL_CHANCE = 60; // 顽皮熊猫触发概率 1/60
     static constexpr i32 NORMAL_ROLL_CHANCE = 500; // 普通触发概率 1/500
 };

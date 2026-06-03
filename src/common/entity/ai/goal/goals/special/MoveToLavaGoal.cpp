@@ -39,6 +39,8 @@
 
 namespace mc::entity::ai::goal {
 
+using namespace MoveToBlockGoalConstants;
+
 // ============================================================================
 // MoveToBlockGoal 基类实现
 // ============================================================================
@@ -63,7 +65,7 @@ bool MoveToBlockGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 如果有延迟，递减并返回 false
+    // 如果有延迟，递减并返回 false
     if (m_runDelay > 0) {
         --m_runDelay;
         return false;
@@ -82,9 +84,9 @@ bool MoveToBlockGoal::shouldContinueExecuting()
         return false;
     }
 
-    // MC 1.16.5: 检查超时计数器和目标有效性
-    // timeoutCounter >= -maxStayTicks && timeoutCounter <= 1200 && shouldMoveTo(...)
-    return m_timeoutCounter >= -m_maxStayTicks && m_timeoutCounter <= 1200 &&
+    // 检查超时计数器和目标有效性
+    // timeoutCounter >= -maxStayTicks && timeoutCounter <= MAX_TIMEOUT && shouldMoveTo(...)
+    return m_timeoutCounter >= -m_maxStayTicks && m_timeoutCounter <= MAX_TIMEOUT &&
         shouldMoveTo(m_creature->world(), m_destinationBlock);
 }
 
@@ -100,9 +102,9 @@ void MoveToBlockGoal::startExecuting()
     // 重置超时计数器
     m_timeoutCounter = 0;
 
-    // 随机最大停留时间: 1200-2400 tick
+    // 随机最大停留时间
     math::Random rng = m_creature->getRandom();
-    m_maxStayTicks = rng.nextInt(rng.nextInt(1200) + 1200) + 1200;
+    m_maxStayTicks = rng.nextInt(rng.nextInt(MAX_STAY_RANGE) + MAX_STAY_BASE) + MAX_STAY_BASE;
 }
 
 void MoveToBlockGoal::resetTask()
@@ -144,8 +146,8 @@ void MoveToBlockGoal::tick()
 
 bool MoveToBlockGoal::shouldMove() const
 {
-    // MC 1.16.5 默认: 每 40 tick 检查一次
-    return m_timeoutCounter % 40 == 0;
+    // 默认: 每 40 tick 检查一次
+    return m_timeoutCounter % DEFAULT_MOVE_INTERVAL == 0;
 }
 
 BlockPos MoveToBlockGoal::getTargetPosition() const
@@ -162,11 +164,11 @@ f64 MoveToBlockGoal::getTargetDistanceSq() const
 i32 MoveToBlockGoal::getRunDelay()
 {
     if (m_creature == nullptr) {
-        return 200;
+        return RUN_DELAY_BASE;
     }
-    // MC 1.16.5: 200 + random(200) = 200-400 tick
+    // 200 + random(200) = 200-400 tick
     math::Random rng = m_creature->getRandom();
-    return 200 + rng.nextInt(200);
+    return RUN_DELAY_BASE + rng.nextInt(RUN_DELAY_RANGE);
 }
 
 void MoveToBlockGoal::moveToTarget()
@@ -212,7 +214,6 @@ bool MoveToBlockGoal::searchForDestination()
     // 获取 MobEntity 以检查家范围（CreatureEntity 继承自 MobEntity）
     MobEntity* mob = dynamic_cast<MobEntity*>(m_creature);
 
-    // MC 1.16.5 螺旋搜索算法
     // Y轴交替搜索：0, 1, -1, 2, -2, ...
     for (i32 y = m_verticalSearchStart; y <= yRange;) {
         // 水平螺旋搜索
@@ -223,7 +224,6 @@ bool MoveToBlockGoal::searchForDestination()
                     BlockPos checkPos(centerPos.x + dx, centerPos.y + y - 1, centerPos.z + dz);
 
                     // 检查是否在家的范围内（如果有家限制）
-                    // MC 1.16.5: this.isWithinHomeDistanceFromPosition(blockpos$mutable)
                     if (mob != nullptr && !mob->isWithinHomeDistanceFromPosition(checkPos)) {
                         continue;
                     }
@@ -254,12 +254,12 @@ bool MoveToBlockGoal::searchForDestination()
 // ============================================================================
 
 MoveToLavaGoal::MoveToLavaGoal(CreatureEntity* creature, f64 speed)
-    : MoveToBlockGoal(creature, speed, 8, 2) // MC 1.16.5: searchLength=8, verticalSearchRange=2
+    : MoveToBlockGoal(creature, speed, LAVA_SEARCH_LENGTH, LAVA_VERTICAL_SEARCH_RANGE)
 {}
 
 BlockPos MoveToLavaGoal::getTargetPosition() const
 {
-    // MC 1.16.5: 直接返回熔岩位置，不是上方
+    // 直接返回熔岩位置，不是上方
     return m_destinationBlock;
 }
 
@@ -296,9 +296,8 @@ bool MoveToLavaGoal::shouldContinueExecuting()
 
 bool MoveToLavaGoal::shouldMove() const
 {
-    // MC 1.16.5: 每 20 tick 检查一次（父类默认是 40 tick）
-    // 使炽足兽更频繁地更新导航路径
-    return m_timeoutCounter % 20 == 0;
+    // 每 20 tick 检查一次（父类默认是 40 tick），使炽足兽更频繁地更新导航路径
+    return m_timeoutCounter % LAVA_MOVE_INTERVAL == 0;
 }
 
 bool MoveToLavaGoal::shouldMoveTo(IWorld* world, const BlockPos& pos)
@@ -313,7 +312,6 @@ bool MoveToLavaGoal::shouldMoveTo(IWorld* world, const BlockPos& pos)
     }
 
     // 检查目标方块是否是熔岩
-    // MC 1.16.5: worldIn.getBlockState(pos).isIn(Blocks.LAVA)
     const fluid::FluidState* fluidState = world->getFluidState(pos);
     if (fluidState == nullptr || fluidState->isEmpty()) {
         return false;
@@ -325,7 +323,6 @@ bool MoveToLavaGoal::shouldMoveTo(IWorld* world, const BlockPos& pos)
     }
 
     // 检查上方方块是否可以通过
-    // MC 1.16.5: worldIn.getBlockState(pos.up()).allowsMovement(worldIn, pos.up(), PathType.LAND)
     BlockPos abovePos = pos.up();
     const BlockState* aboveState = world->getBlockState(abovePos);
     if (aboveState == nullptr) {

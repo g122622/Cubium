@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../world/WorldConstants.hpp"
 #include "PathNodeType.hpp"
+#include "core/Types.hpp"
+#include "world/WorldConstants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -34,8 +34,6 @@ namespace mc::entity::ai::pathfinding {
  * @brief 路径点
  *
  * 表示寻路网格中的一个节点，包含位置和寻路信息。
- *
- * 参考 MC 1.16.5 PathPoint
  */
 class PathPoint {
 public:
@@ -66,7 +64,6 @@ public:
 
     /**
      * @brief 获取从起点到当前节点的代价（g值）
-     * MC 1.16.5: totalPathDistance
      */
     [[nodiscard]] f32 costFromStart() const { return m_costFromStart; }
     void setCostFromStart(f32 cost)
@@ -77,7 +74,6 @@ public:
 
     /**
      * @brief 获取启发式代价（h值，到目标的估算代价）
-     * MC 1.16.5: distanceToTarget 实际上是 f值，但内部计算使用 h值
      */
     [[nodiscard]] f32 heuristic() const { return m_heuristic; }
     void setHeuristic(f32 h)
@@ -88,21 +84,19 @@ public:
 
     /**
      * @brief 获取总代价（f值 = g + h）
-     * MC 1.16.5: distanceToTarget 是 f值
      */
     [[nodiscard]] f32 totalCost() const { return m_totalCost; }
     void updateTotalCost() { m_totalCost = m_costFromStart + m_heuristic; }
 
     /**
      * @brief 获取到下一个路径点的距离
-     * MC 1.16.5: distanceToNext
      */
     [[nodiscard]] f32 distanceToNext() const { return m_distanceToNext; }
     void setDistanceToNext(f32 distance) { m_distanceToNext = distance; }
 
     /**
-     * @brief 获取行走距离（MC field_222861_j）
-     * MC 1.16.5: 用于追踪实际行走的距离
+     * @brief 获取行走距离
+     * 用于追踪实际行走的距离
      */
     [[nodiscard]] f32 walkedDistance() const { return m_walkedDistance; }
     void setWalkedDistance(f32 distance) { m_walkedDistance = distance; }
@@ -117,7 +111,6 @@ public:
 
     /**
      * @brief 检查是否已被分配到堆中
-     * MC 1.16.5: isAssigned() - index >= 0
      */
     [[nodiscard]] bool isAssigned() const { return m_heapIndex >= 0; }
 
@@ -125,7 +118,6 @@ public:
 
     /**
      * @brief 获取父节点（用于重建路径）
-     * MC 1.16.5: previous
      */
     [[nodiscard]] PathPoint* parent() { return m_parent; }
     [[nodiscard]] const PathPoint* parent() const { return m_parent; }
@@ -140,7 +132,6 @@ public:
 
     /**
      * @brief 计算到另一个点的直线距离（欧几里得距离）
-     * MC 1.16.5: distanceTo() 使用直线距离作为启发式函数
      */
     [[nodiscard]] f32 distanceTo(const PathPoint& other) const
     {
@@ -152,7 +143,6 @@ public:
 
     /**
      * @brief 计算到另一个点的曼哈顿距离
-     * MC 1.16.5: func_224757_c() 使用曼哈顿距离
      */
     [[nodiscard]] i32 distanceManhattan(const PathPoint& other) const
     {
@@ -192,7 +182,6 @@ public:
 
     /**
      * @brief 克隆此节点（不复制寻路状态）
-     * MC 1.16.5 clone()
      */
     [[nodiscard]] PathPoint clone() const
     {
@@ -203,18 +192,8 @@ public:
     }
 
     /**
-     * @brief 创建移动克隆（MC 1.16.5 cloneMove）
+     * @brief 创建移动克隆
      * 创建一个新位置的克隆，保留所有寻路状态字段。
-     * MC 1.16.5: 复制所有寻路状态字段，包括：
-     * - index (heapIndex)
-     * - totalPathDistance (costFromStart)
-     * - distanceToNext
-     * - distanceToTarget (totalCost)
-     * - previous (parent)
-     * - visited
-     * - field_222861_j (walkedDistance)
-     * - costMalus
-     * - nodeType
      */
     [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const
     {
@@ -234,7 +213,6 @@ public:
 
     /**
      * @brief 创建一个哈希值用于缓存
-     * MC 1.16.5 hash: y & (MAX_BUILD_HEIGHT - 1) | (x & 32767) << 8 | (z & 32767) << 24 | sign bits
      */
     [[nodiscard]] u32 hash() const
     {
@@ -254,14 +232,14 @@ private:
     i32 m_y;
     i32 m_z;
     f32 m_costMalus = 0.0f;                          // 代价惩罚（来自节点类型）
-    f32 m_costFromStart = 0.0f;                      // 从起点的代价（g值），MC: totalPathDistance
-    f32 m_heuristic = 0.0f;                          // 启发式代价（h值），MC: distanceToNext 存储启发式*1.5
-    f32 m_totalCost = 0.0f;                          // 总代价（f值 = g + h），MC: distanceToTarget
-    f32 m_walkedDistance = 0.0f;                     // MC field_222861_j: 行走距离
+    f32 m_costFromStart = 0.0f;                      // 从起点的代价（g值）
+    f32 m_heuristic = 0.0f;                          // 启发式代价（h值）
+    f32 m_totalCost = 0.0f;                          // 总代价（f值 = g + h）
+    f32 m_walkedDistance = 0.0f;                     // 行走距离
     f32 m_distanceToNext = 0.0f;                     // 到下一个路径点的距离
-    PathNodeType m_nodeType = PathNodeType::Blocked; // MC 1.16.5: 默认BLOCKED
+    PathNodeType m_nodeType = PathNodeType::Blocked; // 默认BLOCKED
     bool m_visited = false;                          // 是否已访问（在闭合列表中）
-    PathPoint* m_parent = nullptr;                   // 父节点（用于重建路径），MC 1.16.5: previous
+    PathPoint* m_parent = nullptr;                   // 父节点（用于重建路径）
     i32 m_heapIndex = -1;                            // 在堆中的索引（用于优先队列）
 };
 

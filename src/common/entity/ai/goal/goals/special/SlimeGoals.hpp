@@ -32,8 +32,6 @@ namespace mc {
 // 前向声明
 class SlimeEntity;
 class LivingEntity;
-class Player;
-class MobEntity;
 
 namespace entity::ai::goal {
 
@@ -41,8 +39,6 @@ namespace entity::ai::goal {
  * @brief 史莱姆水中漂浮目标
  *
  * 当史莱姆在水中或岩浆中时，执行跳跃以浮起。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.SlimeEntity.FloatGoal
  *
  * 执行条件:
  * - 史莱姆在水中或岩浆中
@@ -71,17 +67,14 @@ public:
 private:
     SlimeEntity* m_slime;
 
-    // MC 1.16.5 常量
-    static constexpr f32 JUMP_CHANCE = 0.8f; // 跳跃概率
-    static constexpr f64 SWIM_SPEED = 1.2;   // 游泳速度倍率
+    static constexpr f32 JUMP_CHANCE = 0.8f;
+    static constexpr f64 SWIM_SPEED = 1.2;
 };
 
 /**
  * @brief 史莱姆攻击目标
  *
  * 史莱姆面向并追逐攻击目标。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.SlimeEntity.AttackGoal
  *
  * 执行条件:
  * - 有攻击目标
@@ -118,16 +111,13 @@ private:
     LivingEntity* m_attackTarget = nullptr;
     i32 m_attackTimer = 0;
 
-    // MC 1.16.5 常量
-    static constexpr i32 ATTACK_DURATION = 300; // 攻击持续时间 (tick)
+    static constexpr i32 ATTACK_DURATION = 300;
 };
 
 /**
  * @brief 史莱姆随机转向目标
  *
  * 史莱姆在没有攻击目标时随机选择方向。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.SlimeEntity.FaceRandomGoal
  *
  * 执行条件:
  * - 没有攻击目标
@@ -159,17 +149,14 @@ private:
     f32 m_chosenDegrees = 0.0f;
     i32 m_nextRandomizeTime = 0;
 
-    // MC 1.16.5 常量
-    static constexpr i32 RANDOMIZE_TIME_MIN = 40;   // 最小随机时间
-    static constexpr i32 RANDOMIZE_TIME_RANGE = 60; // 随机时间范围 (40-99)
+    static constexpr i32 RANDOMIZE_TIME_MIN = 40;
+    static constexpr i32 RANDOMIZE_TIME_RANGE = 60;
 };
 
 /**
  * @brief 史莱姆跳跃目标
  *
  * 史莱姆持续跳跃移动。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.SlimeEntity.HopGoal
  *
  * 执行条件:
  * - 史莱姆不是骑乘状态

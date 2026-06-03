@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -41,8 +41,6 @@ namespace entity::ai::goal {
  * - 阶段1：充能（60 ticks），烈焰人进入燃烧状态
  * - 阶段2：连发火球（最多3个，每个间隔6 ticks）
  * - 阶段3：冷却（100 ticks）
- *
- * 参考 MC 1.16.5 BlazeEntity.FireballAttackGoal
  */
 class BlazeFireballAttackGoal : public Goal {
 public:
@@ -66,20 +64,20 @@ private:
      * @param target 目标实体
      * @return 是否有效
      */
-    [[nodiscard]] bool isTargetValid(LivingEntity* target) const;
+    [[nodiscard]] bool _isTargetValid(LivingEntity* target) const;
 
     /**
      * @brief 获取追踪范围
      * @return 追踪范围
      */
-    [[nodiscard]] f64 getFollowDistance() const;
+    [[nodiscard]] f64 _getFollowDistance() const;
 
     /**
      * @brief 执行火球攻击
      * @param target 目标实体
      * @param distanceToTargetSq 到目标的距离平方
      */
-    void performFireballAttack(LivingEntity* target, f64 distanceToTargetSq);
+    void _performFireballAttack(LivingEntity* target, f64 distanceToTargetSq);
 
     BlazeEntity* m_blaze;
     LivingEntity* m_target = nullptr;
@@ -87,7 +85,7 @@ private:
     i32 m_attackTime = 0; // 攻击计时器
     i32 m_unseenTime = 0; // 看不到目标的时间
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr i32 CHARGE_TIME = 60;      // 充能时间（ticks）
     static constexpr i32 FIREBALL_INTERVAL = 6; // 火球间隔（ticks）
     static constexpr i32 COOLDOWN_TIME = 100;   // 冷却时间（ticks）

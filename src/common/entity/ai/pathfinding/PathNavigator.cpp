@@ -22,15 +22,15 @@
  */
 
 #include "PathNavigator.hpp"
-#include "../../../util/TimeUtils.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../controller/MovementController.hpp"
+#include "entity/ai/controller/MovementController.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "util/TimeUtils.hpp"
+#include "util/math/MathUtils.hpp"
+#include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include <cmath>
 #include <limits>
 
@@ -62,14 +62,12 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
         return false;
     }
 
-    // MC 1.16.5: 重置卡住检测
+    // 重置卡住检测
     m_stuckTimer = 0;
     m_isStuck = false;
-    if (m_entity) {
-        m_lastPosX = m_entity->x();
-        m_lastPosY = m_entity->y();
-        m_lastPosZ = m_entity->z();
-    }
+    m_lastPosX = m_entity->x();
+    m_lastPosY = m_entity->y();
+    m_lastPosZ = m_entity->z();
 
     // 计算路径
     i32 startX = floorTo<i32>(m_entity->x());
@@ -82,8 +80,7 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
     m_path = std::make_unique<Path>(
         m_pathFinder->findPath(startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance));
 
-    // MC 1.16.5: 调用 trimPath
-    trimPath();
+    _trimPath();
 
     return hasPath();
 }
@@ -114,8 +111,7 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
     m_path = std::make_unique<Path>(
         m_pathFinder->findPathToRange(startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range)));
 
-    // MC 1.16.5: 调用 trimPath
-    trimPath();
+    _trimPath();
 
     return hasPath();
 }
@@ -141,7 +137,7 @@ void PathNavigator::tick()
         return;
     }
 
-    // MC 1.16.5: 增加 totalTicks（只在有活动路径时增加）
+    // 增加总计时
     ++m_ticksSinceLastPath;
 
     // 更新重试计时器
@@ -149,33 +145,33 @@ void PathNavigator::tick()
         --m_retryTimer;
     }
 
-    // MC 1.16.5: 沿路径移动
-    followPath();
+    // 沿路径移动
+    _followPath();
 
-    // MC 1.16.5: 卡住检测
-    checkForStuck();
+    // 卡住检测
+    _checkForStuck();
 
     // 检查是否需要重新计算
-    if (shouldRecomputePath()) {
+    if (_shouldRecomputePath()) {
         (void)recomputePath();
     }
 }
 
-void PathNavigator::followPath()
+void PathNavigator::_followPath()
 {
     if (!m_path || m_path->empty() || !m_entity) {
         return;
     }
 
-    const PathPoint* waypoint = getCurrentWaypoint();
+    const PathPoint* waypoint = _getCurrentWaypoint();
     if (!waypoint) {
         return;
     }
 
     // 检查是否到达当前路径点
-    if (isAtCurrentWaypoint()) {
-        advanceToNextWaypoint();
-        waypoint = getCurrentWaypoint();
+    if (_isAtCurrentWaypoint()) {
+        _advanceToNextWaypoint();
+        waypoint = _getCurrentWaypoint();
 
         if (!waypoint) {
             // 路径完成
@@ -194,29 +190,26 @@ void PathNavigator::followPath()
     }
 }
 
-void PathNavigator::checkForStuck()
+void PathNavigator::_checkForStuck()
 {
     if (!m_entity || !hasPath()) {
         return;
     }
 
-    // MC 1.16.5 checkForStuck: 检测卡住
-    // if (this.totalTicks - this.ticksAtLastPos > 100)
+    // 检测卡住
     if (m_ticksSinceLastPath > 100) {
         f64 dx = m_entity->x() - m_lastPosX;
         f64 dy = m_entity->y() - m_lastPosY;
         f64 dz = m_entity->z() - m_lastPosZ;
         f64 distSq = dx * dx + dy * dy + dz * dz;
 
-        // MC 1.16.5: if (positionVec3.squareDistanceTo(this.lastPosCheck) < 2.25D)
         if (distSq < 2.25) {
             m_isStuck = true;
             clearPath();
-            resetTimeout();
+            _resetTimeout();
             return;
-        } else {
-            m_isStuck = false;
         }
+        m_isStuck = false;
 
         // 更新上次位置
         m_lastPosX = m_entity->x();
@@ -225,9 +218,9 @@ void PathNavigator::checkForStuck()
         m_ticksSinceLastPath = 0;
     }
 
-    // MC 1.16.5: 超时检测
+    // 超时检测
     if (m_path && !m_path->isFinished()) {
-        const PathPoint* waypoint = getCurrentWaypoint();
+        const PathPoint* waypoint = _getCurrentWaypoint();
         if (waypoint) {
             i32 nodeX = waypoint->x();
             i32 nodeY = waypoint->y();
@@ -249,7 +242,6 @@ void PathNavigator::checkForStuck()
                 f64 dz = m_entity->z() - (nodeZ + 0.5);
                 f64 dist = std::sqrt(dx * dx + dz * dz);
 
-                // MC 1.16.5: timeoutLimit = distance / speed * 1000
                 f32 moveSpeed = 0.0f;
                 if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
                     if (auto* moveCtrl = mob->moveController()) {
@@ -261,19 +253,19 @@ void PathNavigator::checkForStuck()
                 m_lastTimeoutCheck = TimeUtils::getCurrentTimeMs();
             }
 
-            // MC 1.16.5: 如果超时超过限制的3倍，清除路径
+            // 如果超时超过限制的3倍，清除路径
             if (m_timeoutLimit > 0.0 && static_cast<f64>(m_timeoutTimer) > m_timeoutLimit * 3.0) {
-                resetTimeout();
+                _resetTimeout();
                 clearPath();
             }
         }
     }
 }
 
-void PathNavigator::trimPath()
+void PathNavigator::_trimPath()
 {
-    // MC 1.16.5: 处理锅（Cauldron）等特殊方块的路径
-    // 当实体在锅中时会调整路径点
+    // 处理炼药锅等特殊方块的路径
+    // 当实体在炼药锅中时会调整路径点
     if (!m_path || m_path->empty() || !m_entity) {
         return;
     }
@@ -301,8 +293,6 @@ void PathNavigator::trimPath()
         // 检查是否为炼药锅
         if (state != nullptr && state->is(VanillaBlocks::CAULDRON)) {
             // 炼药锅是一个凹陷的方块，实体在里面时需要将路径点上移
-            // 参考 MC 1.16.5 PathNavigator.trimPath()
-            // currentPath.setPoint(i, pathpoint.cloneMove(pathpoint.x, pathpoint.y + 1, pathpoint.z));
             PathPoint newPoint = point->cloneMove(point->x(), point->y() + 1, point->z());
             m_path->setPoint(i, newPoint);
 
@@ -316,9 +306,8 @@ void PathNavigator::trimPath()
     }
 }
 
-void PathNavigator::resetTimeout()
+void PathNavigator::_resetTimeout()
 {
-    // MC 1.16.5: func_234113_e_
     m_timeoutCachedNodeX = 0;
     m_timeoutCachedNodeY = 0;
     m_timeoutCachedNodeZ = 0;
@@ -328,7 +317,7 @@ void PathNavigator::resetTimeout()
     m_isStuck = false;
 }
 
-bool PathNavigator::shouldRecomputePath() const
+bool PathNavigator::_shouldRecomputePath() const
 {
     if (!m_path || m_path->empty()) {
         return false;
@@ -347,36 +336,36 @@ bool PathNavigator::shouldRecomputePath() const
     return false;
 }
 
-bool PathNavigator::isAtCurrentWaypoint() const
+bool PathNavigator::_isAtCurrentWaypoint() const
 {
-    const PathPoint* waypoint = getCurrentWaypoint();
+    const PathPoint* waypoint = _getCurrentWaypoint();
     if (!waypoint || !m_entity) {
         return true;
     }
 
-    // MC 1.16.5: 检查水平和垂直距离
+    // 检查水平和垂直距离
     f64 dx = waypoint->x() + 0.5 - m_entity->x();
     f64 dz = waypoint->z() + 0.5 - m_entity->z();
     f64 distSq = dx * dx + dz * dz;
 
-    // MC 1.16.5: maxDistanceToWaypoint 根据实体宽度调整
+    // maxDistanceToWaypoint 根据实体宽度调整
     f32 width = m_entity->width();
     f32 maxDist = width > 0.75f ? width / 2.0f : 0.75f - width / 2.0f;
 
-    // MC 1.16.5: 检查水平距离和垂直距离
+    // 检查水平距离和垂直距离
     f64 dy = std::abs(m_entity->y() - waypoint->y());
 
     return distSq < static_cast<f64>(maxDist * maxDist) && dy < 1.0;
 }
 
-void PathNavigator::advanceToNextWaypoint()
+void PathNavigator::_advanceToNextWaypoint()
 {
     if (m_path) {
         m_path->advance();
     }
 }
 
-f32 PathNavigator::getDistanceToTarget() const
+f32 PathNavigator::_getDistanceToTarget() const
 {
     if (!m_entity) {
         return std::numeric_limits<f32>::max();
@@ -389,7 +378,7 @@ f32 PathNavigator::getDistanceToTarget() const
     return static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz));
 }
 
-const PathPoint* PathNavigator::getCurrentWaypoint() const
+const PathPoint* PathNavigator::_getCurrentWaypoint() const
 {
     return m_path ? m_path->getCurrentTarget() : nullptr;
 }

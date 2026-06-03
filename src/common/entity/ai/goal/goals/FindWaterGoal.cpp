@@ -54,7 +54,7 @@ bool FindWaterGoal::shouldExecute()
     }
 
     // 寻找水源
-    return findWater();
+    return _findWater();
 }
 
 bool FindWaterGoal::shouldContinueExecuting()
@@ -109,7 +109,7 @@ void FindWaterGoal::tick()
     }
 }
 
-bool FindWaterGoal::findWater()
+bool FindWaterGoal::_findWater()
 {
     if (m_creature == nullptr || m_creature->world() == nullptr) {
         return false;
@@ -119,7 +119,7 @@ bool FindWaterGoal::findWater()
     BlockPos entityPos(
         static_cast<i32>(m_creature->x()), static_cast<i32>(m_creature->y()), static_cast<i32>(m_creature->z()));
 
-    // MC 1.16.5: 在实体周围搜索水源
+    // 在实体周围搜索水源
     // 搜索范围：水平方向 16 格，垂直方向 5 格
     constexpr i32 HORIZONTAL_RANGE = 16;
     constexpr i32 VERTICAL_RANGE = 5;

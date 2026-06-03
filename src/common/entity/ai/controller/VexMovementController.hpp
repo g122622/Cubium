@@ -37,8 +37,6 @@ namespace entity::ai::controller {
  *
  * 恼鬼的移动控制器直接修改velocity实现飞行，不使用传统的地面导航。
  * 这使得恼鬼能够穿墙飞行并追踪目标。
- *
- * 参考 MC 1.16.5 VexEntity.MoveHelperController
  */
 class VexMovementController : public MovementController {
 public:

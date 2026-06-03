@@ -38,8 +38,6 @@ namespace mc::entity::ai::pathfinding {
  * @brief 寻路器
  *
  * 实现 A* 算法寻找从起点到终点的最优路径。
- *
- * 参考 MC 1.16.5 PathFinder
  */
 class PathFinder {
 public:
@@ -52,6 +50,14 @@ public:
     {}
 
     ~PathFinder() = default;
+
+    // 禁止拷贝
+    PathFinder(const PathFinder&) = delete;
+    PathFinder& operator=(const PathFinder&) = delete;
+
+    // 允许移动
+    PathFinder(PathFinder&&) noexcept = default;
+    PathFinder& operator=(PathFinder&&) noexcept = default;
 
     // ========== 配置 ==========
 
@@ -135,7 +141,7 @@ public:
     [[nodiscard]] Path findPathToRange(
         i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range);
 
-    // ========== MC 1.16.5 多目标寻路 ==========
+    // ========== 多目标寻路 ==========
 
     /**
      * @brief 目标点结构（用于多目标寻路）
@@ -152,7 +158,6 @@ public:
 
     /**
      * @brief 寻找到多个目标中最近一个的路径
-     * MC 1.16.5: 寻找到多个潜在目标中最近可达的一个
      * @param startX 起点X
      * @param startY 起点Y
      * @param startZ 起点Z
@@ -186,21 +191,19 @@ private:
     // ========== 内部方法 ==========
 
     /**
-     * @brief MC 1.16.5 启发式乘数
-     * MC 1.16.5 PathFinder.func_224776_a_ 计算启发式后会乘以 1.5
-     * 存储在 distanceToNext 字段中
+     * @brief 启发式乘数
+     * 计算启发式后会乘以 1.5，存储在 distanceToNext 字段中
      */
     static constexpr f32 HEURISTIC_MULTIPLIER = 1.5f;
 
     /**
      * @brief 启发式函数：估算从当前点到目标的代价
-     * MC 1.16.5: 使用直线距离（欧几里得距离），PathPoint.distanceTo()
+     * 使用直线距离（欧几里得距离）
      *
      * 注意：此函数直接计算距离，避免创建临时对象
      */
-    [[nodiscard]] static f32 heuristic(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
+    [[nodiscard]] static f32 _heuristic(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
     {
-        // MC 1.16.5: 使用直线距离（欧几里得距离）
         f32 dx = static_cast<f32>(point.x() - targetX);
         f32 dy = static_cast<f32>(point.y() - targetY);
         f32 dz = static_cast<f32>(point.z() - targetZ);
@@ -210,7 +213,7 @@ private:
     /**
      * @brief 计算到目标的平方距离（用于比较，避免sqrt）
      */
-    [[nodiscard]] static f32 heuristicSq(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
+    [[nodiscard]] static f32 _heuristicSq(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
     {
         f32 dx = static_cast<f32>(point.x() - targetX);
         f32 dy = static_cast<f32>(point.y() - targetY);
@@ -220,16 +223,15 @@ private:
 
     /**
      * @brief 计算两点间的移动代价
-     * MC 1.16.5: 考虑对角线移动和垂直移动的实际代价
+     * 考虑对角线移动和垂直移动的实际代价
      */
-    [[nodiscard]] static f32 getMovementCost(const PathPoint& from, const PathPoint& to)
+    [[nodiscard]] static f32 _getMovementCost(const PathPoint& from, const PathPoint& to)
     {
         i32 dx = std::abs(to.x() - from.x());
         i32 dy = std::abs(to.y() - from.y());
         i32 dz = std::abs(to.z() - from.z());
 
-        // MC 1.16.5: 移动代价
-        // 水平直线 = 1.0, 水平对角线 = sqrt(2), 垂直移动 = 1.0
+        // 移动代价：水平直线 = 1.0, 水平对角线 = sqrt(2), 垂直移动 = 1.0
         constexpr f32 VERTICAL_COST = 1.0f;
 
         i32 horizMoves = dx + dz;
@@ -245,7 +247,7 @@ private:
     /**
      * @brief 检查是否到达目标
      */
-    [[nodiscard]] static bool isTargetReached(
+    [[nodiscard]] static bool _isTargetReached(
         const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ, i32 tolerance = 0)
     {
         return std::abs(point.x() - targetX) <= tolerance && std::abs(point.y() - targetY) <= tolerance &&
@@ -255,7 +257,7 @@ private:
     /**
      * @brief 检查节点是否在搜索范围内
      */
-    [[nodiscard]] bool isInSearchRange(
+    [[nodiscard]] bool _isInSearchRange(
         i32 x, i32 y, i32 z, i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ) const
     {
         // 检查节点是否在起点和终点之间的范围内

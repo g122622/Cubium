@@ -23,4 +23,4 @@
 
 #include "AdditionalGoals.hpp"
 
-// Stub implementations - goals are defined inline in header
+// TODO: 这些目标类的实现目前为空存根，待后续完善具体逻辑

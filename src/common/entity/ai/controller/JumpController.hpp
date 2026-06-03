@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -36,8 +36,6 @@ namespace entity::ai::controller {
  * @brief 跳跃控制器
  *
  * 控制实体的跳跃行为。
- *
- * 参考 MC 1.16.5 JumpController
  */
 class JumpController {
 public:
@@ -45,7 +43,7 @@ public:
      * @brief 构造函数
      * @param mob 拥有此控制器的生物
      */
-    explicit JumpController(MobEntity* mob);
+    explicit JumpController(MobEntity* mob) noexcept;
 
     /**
      * @brief 设置跳跃状态

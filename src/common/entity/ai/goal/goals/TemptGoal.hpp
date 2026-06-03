@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "entity/ai/goal/Goal.hpp"
 #include <functional>
 
 namespace mc {
@@ -40,8 +40,6 @@ namespace entity::ai::goal {
  * @brief 食物诱惑目标
  *
  * 当玩家手持特定物品时，动物会被诱惑跟随玩家。
- *
- * 参考 MC 1.16.5 TemptGoal
  */
 class TemptGoal : public Goal {
 public:
@@ -104,9 +102,6 @@ protected:
     f64 m_prevYaw = 0.0;
     i32 m_delayTemptCounter = 0;
     bool m_isRunning = false;
-
-    static constexpr f32 TEMPT_RANGE = 10.0f;  // 诱惑范围
-    static constexpr i32 TEMPT_COOLDOWN = 100; // 诱惑冷却（ticks）
 };
 
 } // namespace entity::ai::goal

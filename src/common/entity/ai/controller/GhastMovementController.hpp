@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
 #include "MovementController.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -38,8 +38,6 @@ namespace entity::ai::controller {
  *
  * 恶魂的移动控制器直接修改velocity实现飞行，不使用传统的地面导航。
  * 会检查前方碰撞以确保飞行路径安全。
- *
- * 参考 MC 1.16.5 GhastEntity.MoveHelperController
  */
 class GhastMovementController : public MovementController {
 public:
@@ -64,7 +62,7 @@ private:
      * @param distance 飞行距离
      * @return 路径安全返回true
      */
-    bool isPathSafe(const math::Vector3f& direction, i32 distance) const;
+    bool _isPathSafe(const math::Vector3f& direction, i32 distance) const;
 
     GhastEntity* m_ghast;
     i32 m_courseChangeCooldown = 0;

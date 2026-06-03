@@ -27,7 +27,6 @@
 #include "AttributeModifier.hpp"
 #include <algorithm>
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -39,8 +38,6 @@ namespace attribute {
  *
  * 管理单个属性的基础值和所有修改器。
  * 负责计算最终属性值。
- *
- * 参考 MC 1.16.5 AttributeInstance / ModifiableAttributeInstance
  */
 class AttributeInstance {
 public:
@@ -58,19 +55,19 @@ public:
     /**
      * @brief 获取属性定义
      */
-    [[nodiscard]] const Attribute& attribute() const { return m_attribute; }
+    [[nodiscard]] const Attribute& attribute() const noexcept { return m_attribute; }
 
     /**
      * @brief 获取基础值
      */
-    [[nodiscard]] f64 baseValue() const { return m_baseValue; }
+    [[nodiscard]] f64 baseValue() const noexcept { return m_baseValue; }
 
     /**
      * @brief 设置基础值
      */
     void setBaseValue(f64 value)
     {
-        m_baseValue = clamp(value);
+        m_baseValue = _clamp(value);
         m_dirty = true;
     }
 
@@ -86,7 +83,7 @@ public:
     [[nodiscard]] f64 getValue() const
     {
         if (m_dirty) {
-            m_cachedValue = computeValue();
+            m_cachedValue = _computeValue();
             m_dirty = false;
         }
         return m_cachedValue;
@@ -134,7 +131,7 @@ public:
     /**
      * @brief 获取所有修改器
      */
-    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const { return m_modifiers; }
+    [[nodiscard]] const std::vector<AttributeModifier>& modifiers() const noexcept { return m_modifiers; }
 
     /**
      * @brief 检查是否有修改器
@@ -161,18 +158,18 @@ public:
     /**
      * @brief 是否需要同步
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
 
     /**
      * @brief 标记为已同步
      */
-    void markSynced() { m_dirty = false; }
+    void markSynced() noexcept { m_dirty = false; }
 
 private:
     /**
      * @brief 计算最终值
      */
-    [[nodiscard]] f64 computeValue() const
+    [[nodiscard]] f64 _computeValue() const
     {
         f64 value = m_baseValue;
 
@@ -197,13 +194,13 @@ private:
             }
         }
 
-        return clamp(value);
+        return _clamp(value);
     }
 
     /**
      * @brief 将值限制在属性范围内
      */
-    [[nodiscard]] f64 clamp(f64 value) const
+    [[nodiscard]] f64 _clamp(f64 value) const noexcept
     {
         return std::max(m_attribute.minValue(), std::min(m_attribute.maxValue(), value));
     }

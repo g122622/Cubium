@@ -57,8 +57,6 @@ namespace wandering_trader {
  *
  * 使生物在特定条件下使用物品（如喝药水）。
  * 流浪商人使用此目标在夜间喝隐身药水、白天喝牛奶恢复可见。
- *
- * 参考 MC 1.16.5 UseItemGoal
  */
 class UseItemGoal : public Goal {
 public:
@@ -81,29 +79,21 @@ public:
 
     /**
      * @brief 检查是否应该开始执行
-     *
-     * MC 1.16.5: 检查条件函数是否返回 true
      */
     [[nodiscard]] bool shouldExecute() override;
 
     /**
      * @brief 开始执行
-     *
-     * MC 1.16.5: 设置正在使用物品状态
      */
     void startExecuting() override;
 
     /**
      * @brief 重置任务
-     *
-     * MC 1.16.5: 清除正在使用物品状态，冷却时间重置
      */
     void resetTask() override;
 
     /**
      * @brief 每tick更新
-     *
-     * MC 1.16.5: 消耗物品并应用效果
      */
     void tick() override;
 
@@ -115,7 +105,7 @@ private:
      *
      * 处理药水效果、牛奶清除效果等
      */
-    void applyItemEffect();
+    void _applyItemEffect();
 
 private:
     class MobEntity* m_mob;
@@ -134,7 +124,6 @@ private:
  * @brief 看向顾客目标
  *
  * 商人在交易时看向顾客，但不移动位置。
- * 参考 MC 1.16.5 LookAtCustomerGoal
  */
 class LookAtCustomerGoal : public Goal {
 public:
@@ -165,7 +154,6 @@ private:
  * @brief 与玩家交易目标
  *
  * 使商人实体在玩家附近时停止移动并准备交易。
- * 参考 MC 1.16.5 TradeWithPlayerGoal
  */
 class TradeWithPlayerGoal : public Goal {
 public:
@@ -194,7 +182,6 @@ private:
  * @brief 流浪商人向目标移动目标
  *
  * 流浪商人向指定的游荡目标点移动。
- * 参考 MC 1.16.5 WanderingTraderEntity.MoveToGoal
  */
 class MoveToWanderTargetGoal : public Goal {
 public:
@@ -221,14 +208,14 @@ private:
      * @param distance 距离阈值
      * @return 是否超出范围
      */
-    [[nodiscard]] bool isOutsideDistance(const BlockPos& pos, f64 distance) const;
+    [[nodiscard]] bool _isOutsideDistance(const BlockPos& pos, f64 distance) const;
 
     /**
      * @brief 计算移动目标位置
      * @param target 目标方块位置
      * @return 移动目标坐标
      */
-    Vector3 calculateMoveTarget(const BlockPos& target) const;
+    Vector3 _calculateMoveTarget(const BlockPos& target) const;
 
 private:
     class MobEntity* m_mob;

@@ -52,8 +52,6 @@ namespace entity::ai::goal {
  * - 攻击后重置冷却
  * - 不攻击玩家创建的铁傀儡的主人
  * - 不攻击苦力怕
- *
- * 参考 MC 1.16.5: net.minecraft.entity.passive.IronGolemEntity 使用 MeleeAttackGoal
  */
 class IronGolemAttackGoal : public Goal {
 public:
@@ -127,8 +125,6 @@ private:
  *
  * 铁傀儡偶尔会看向附近的村民并展示手中的罂粟花。
  * 只在白天执行，概率为 1/8000。
- *
- * 参考 MC 1.16.5 ShowVillagerFlowerGoal
  */
 class ShowVillagerFlowerGoal : public Goal {
 public:
@@ -152,8 +148,8 @@ private:
     entity::VillagerEntity* m_villager = nullptr;
     i32 m_lookTime = 0;
 
-    // MC 1.16.5 常量
-    static constexpr f32 SEARCH_RANGE = 6.0f;  // 搜索村民范围
+    // 搜索村民范围
+    static constexpr f32 SEARCH_RANGE = 6.0f;
     static constexpr f32 SEARCH_HEIGHT = 2.0f; // 搜索村民高度
     static constexpr i32 LOOK_DURATION = 400;  // 看向持续时间（ticks = 20秒）
     static constexpr i32 CHANCE = 8000;        // 执行概率倒数（1/8000）
@@ -163,9 +159,7 @@ private:
  * @brief 铁傀儡保护村庄目标选择器
  *
  * 当村民被攻击时，铁傀儡会攻击攻击者。
- *
- * 参考 MC 1.16.5: net.minecraft.entity.ai.goal.DefendVillageTargetGoal
- * 铁傀儡会记住攻击村民的实体并追击
+ * 铁傀儡会记住攻击村民的实体并追击。
  */
 class DefendVillageTargetGoal : public TargetGoal {
 public:
@@ -191,12 +185,8 @@ private:
 /**
  * @brief 铁傀儡攻击最近敌对目标选择器
  *
- * 搜索附近的敌对生物（IMob）并攻击，但不攻击苦力怕。
- *
- * 参考 MC 1.16.5: NearestAttackableTargetGoal<MobEntity>
- * 对铁傀儡的特殊限制：
- * - 不攻击苦力怕
- * - 玩家创建的铁傀儡不攻击玩家
+ * 搜索附近的敌对生物并攻击，但不攻击苦力怕。
+ * 玩家创建的铁傀儡不攻击玩家。
  */
 class IronGolemNearestAttackableTargetGoal : public TargetGoal {
 public:

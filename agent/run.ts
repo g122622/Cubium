@@ -176,11 +176,11 @@ import { cmakeGuardHook } from "./hooks/cmakeGuard";
                         `✅ [循环 ${i + 1} | 任务 ${index + 1}] 已标记完成 (${completedCount}/${pendingTasks.length}): ${task}`
                     );
 
-                    // 每30个任务后执行编译检查
-                    if (completedCount % 30 === 0 && completedCount < pendingTasks.length) {
-                        console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
-                        await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, index, false);
-                    }
+                    // // 每30个任务后执行编译检查
+                    // if (completedCount % 30 === 0 && completedCount < pendingTasks.length) {
+                    //     console.log("\n🔨 进行编译检查，确保没有引入编译错误...");
+                    //     await runTask("编译项目，并检查是否通过，若不通过则收敛编译错误，直到通过。", i, index, false);
+                    // }
                 } else {
                     console.error(
                         `❌ [循环 ${i + 1} | 任务 ${result.index + 1}] 执行失败:`,

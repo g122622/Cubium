@@ -22,10 +22,10 @@
  */
 
 #include "VexMovementController.hpp"
-#include "../../../entity/attribute/Attributes.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/monster/illager/VexEntity.hpp"
-#include "../../../util/math/MathUtils.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/illager/VexEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::controller {
@@ -39,9 +39,7 @@ void VexMovementController::tick()
 {
     if (!m_vex) return;
 
-    // MC 1.16.5 VexEntity.MoveHelperController.tick()
     // 恼鬼使用直接修改velocity的方式飞行，不使用传统导航
-
     if (m_action == MoveAction::MoveTo) {
         // 计算到目标位置的向量
         f64 dx = m_posX - m_vex->x();
@@ -49,7 +47,7 @@ void VexMovementController::tick()
         f64 dz = m_posZ - m_vex->z();
         f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-        // MC 1.16.5: 如果距离小于碰撞箱平均边长，认为已到达
+        // 如果距离小于碰撞箱平均边长，认为已到达
         // collisionBox.getAverageEdgeLength() = (width + height + width) / 3
         f32 avgEdgeLength = (m_vex->width() + m_vex->height() + m_vex->width()) / 3.0f;
 
@@ -57,11 +55,11 @@ void VexMovementController::tick()
             // 已到达目标，停止移动
             m_action = MoveAction::Wait;
 
-            // MC 1.16.5: 减速
+            // 减速
             Vector3 velocity = m_vex->velocity();
             m_vex->setVelocity(velocity * 0.5);
         } else {
-            // MC 1.16.5: 添加速度向量
+            // 添加速度向量
             // 速度因子: speed * 0.05 / distance
             f64 speedFactor = m_speed * 0.05 / distance;
 
@@ -71,7 +69,7 @@ void VexMovementController::tick()
             velocity.z += static_cast<f32>(dz * speedFactor);
             m_vex->setVelocity(velocity);
 
-            // MC 1.16.5: 更新旋转
+            // 更新旋转
             LivingEntity* attackTarget = m_vex->attackTarget();
 
             if (attackTarget == nullptr) {
@@ -87,7 +85,7 @@ void VexMovementController::tick()
                 m_vex->setRotation(yaw, m_vex->pitch());
             }
 
-            // MC 1.16.5: renderYawOffset = rotationYaw
+            // 设置渲染偏航角等于当前偏航角
             m_vex->setRenderYawOffset(m_vex->yaw());
         }
     }

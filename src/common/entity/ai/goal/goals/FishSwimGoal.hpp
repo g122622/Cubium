@@ -36,13 +36,7 @@ namespace entity::ai::goal {
  * @brief 鱼类游泳目标
  *
  * 继承自 RandomSwimmingGoal，添加了 canRandomSwim() 条件检查。
- *
- * MC 1.16.5 AbstractFishEntity.SwimGoal:
- * - 继承自 RandomSwimmingGoal(speed=1.0, chance=40)
- * - shouldExecute() 检查 fish.func_212800_dy() && super.shouldExecute()
- *
- * 对于群游鱼类（AbstractGroupFishEntity），func_212800_dy() 返回 !hasGroupLeader()，
- * 即只有在没有群首时才会自主游泳，否则跟随群首。
+ * 对于群游鱼类，只有在没有群首时才会自主游泳，否则跟随群首。
  */
 class FishSwimGoal : public RandomSwimmingGoal {
 public:

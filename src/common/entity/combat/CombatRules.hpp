@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <utility>
 
 namespace mc {
@@ -34,8 +34,6 @@ namespace entity::combat {
  *
  * 提供伤害计算相关的公式和工具方法。
  * 所有方法都是静态的，不需要实例化。
- *
- * 参考 MC 1.16.5 net.minecraft.util.CombatRules
  */
 class CombatRules {
 public:

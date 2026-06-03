@@ -5,8 +5,8 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software being
- * furnished to do subject to the following conditions:
+ * copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -43,18 +43,14 @@ FollowMobGoal::FollowMobGoal(MobEntity* mob, f64 speed, f32 minDistance, f32 max
 
 bool FollowMobGoal::shouldExecute()
 {
-    if (m_mob == nullptr) {
-        return false;
-    }
-
-    // MC 1.16.5: 寻找附近的生物
-    m_targetMob = findNearbyMob();
+    // 寻找附近的生物
+    m_targetMob = _findNearbyMob();
     return m_targetMob != nullptr;
 }
 
 bool FollowMobGoal::shouldContinueExecuting()
 {
-    if (m_mob == nullptr || m_targetMob == nullptr) {
+    if (m_targetMob == nullptr) {
         return false;
     }
 
@@ -79,14 +75,12 @@ void FollowMobGoal::startExecuting()
 void FollowMobGoal::resetTask()
 {
     m_targetMob = nullptr;
-    if (m_mob != nullptr) {
-        m_mob->clearNavigation();
-    }
+    m_mob->clearNavigation();
 }
 
 void FollowMobGoal::tick()
 {
-    if (m_mob == nullptr || m_targetMob == nullptr) {
+    if (m_targetMob == nullptr) {
         return;
     }
 
@@ -104,13 +98,13 @@ void FollowMobGoal::tick()
     }
 }
 
-LivingEntity* FollowMobGoal::findNearbyMob()
+LivingEntity* FollowMobGoal::_findNearbyMob()
 {
-    if (m_mob == nullptr || m_mob->world() == nullptr) {
+    if (m_mob->world() == nullptr) {
         return nullptr;
     }
 
-    // MC 1.16.5: 在 maxDistance 范围内寻找其他生物
+    // 在 maxDistance 范围内寻找其他生物
     // 鹦鹉会跟随附近的任何 LivingEntity（不包括自己）
     return EntityUtils::findClosestEntity<LivingEntity>(m_mob->world(),
         m_mob->position(),

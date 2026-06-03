@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../core/Types.hpp"
 #include "NodeProcessor.hpp"
 #include "PathNodeType.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -40,8 +40,6 @@ namespace entity::ai::pathfinding {
  *
  * 处理地面行走实体的路径节点生成。
  * 支持：水平移动、跳跃、跌落、攀爬。
- *
- * 参考 MC 1.16.5 WalkNodeProcessor
  */
 class WalkNodeProcessor : public NodeProcessor {
 public:
@@ -55,11 +53,10 @@ public:
     [[nodiscard]] PathPoint* getStartNode(i32 x, i32 y, i32 z) override;
     [[nodiscard]] std::vector<PathPoint*> getNeighbors(PathPoint* current) override;
 
-    // ========== MC 1.16.5 实体引用 ==========
+    // ========== 实体引用 ==========
 
     /**
      * @brief 设置关联实体
-     * MC 1.16.5: 用于获取 stepHeight 和 pathPriority
      */
     void setEntity(LivingEntity* entity) { m_entity = entity; }
 
@@ -109,7 +106,6 @@ public:
 
     /**
      * @brief 检查方块是否是危险方块（火焰、岩浆、仙人掌等）
-     * MC 1.16.5 func_237233_a_
      * @note 公开用于单元测试
      */
     [[nodiscard]] bool isDangerous(i32 x, i32 y, i32 z) const;
@@ -118,7 +114,7 @@ protected:
     [[nodiscard]] std::unique_ptr<PathPoint> createNode(i32 x, i32 y, i32 z) override;
 
 private:
-    LivingEntity* m_entity = nullptr; // MC 1.16.5: 实体引用
+    LivingEntity* m_entity = nullptr;
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
     bool m_canEnterDoors = false;
@@ -132,43 +128,42 @@ private:
     /**
      * @brief 检查位置是否可行走
      */
-    [[nodiscard]] bool isWalkableAt(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] bool _isWalkableAt(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查位置是否可以站立
      */
-    [[nodiscard]] bool canStandOn(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] bool _canStandOn(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查位置是否是安全的（没有危险方块）
-     * MC 1.16.5: 检查火焰、岩浆、仙人掌、甜浆果丛等
      */
-    [[nodiscard]] bool isSafe(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] bool _isSafe(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 获取地面高度（从指定位置向下搜索）
      */
-    [[nodiscard]] i32 getGroundHeight(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] i32 _getGroundHeight(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查方块是否可以穿过
      */
-    [[nodiscard]] bool isPassable(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] bool _isPassable(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 添加相邻节点
      */
-    void addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type);
+    void _addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 y, i32 z, PathNodeType type);
 
     /**
      * @brief 添加跳跃节点
      */
-    void addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz);
+    void _addJumpNeighbor(std::vector<PathPoint*>& neighbors, PathPoint* current, i32 dx, i32 dz);
 
     /**
      * @brief 添加跌落节点
      */
-    void addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z);
+    void _addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z);
 };
 
 } // namespace entity::ai::pathfinding

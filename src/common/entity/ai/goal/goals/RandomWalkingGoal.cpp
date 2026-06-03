@@ -54,22 +54,19 @@ RandomWalkingGoal::RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 ch
 
 bool RandomWalkingGoal::shouldExecute()
 {
-    if (!m_creature) return false;
-
-    // MC 1.16.5: 检查是否被骑乘
+    // 检查是否被骑乘
     if (m_creature->isBeingRidden()) return false;
 
     // 如果不需要强制更新，检查概率
     if (!m_forceUpdate) {
-        // MC 1.16.5: 检查空闲时间（如果 m_checkIdleTime 为 true 且空闲时间 >= 100 则不执行）
+        // 检查空闲时间（如果 m_checkIdleTime 为 true 且空闲时间 >= 100 则不执行）
         if (m_checkIdleTime && m_creature->idleTime() >= 100) return false;
 
-        // MC 1.16.5: 检查执行概率
+        // 检查执行概率
         math::Random rng = m_creature->getRandom();
         if (rng.nextInt(m_executionChance) != 0) return false;
     }
 
-    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 10, 7)
     // 获取随机位置
     Vector3 targetPos;
     if (getRandomPosition(targetPos)) {
@@ -85,49 +82,38 @@ bool RandomWalkingGoal::shouldExecute()
 
 bool RandomWalkingGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
-
-    // MC 1.16.5: 检查是否被骑乘
+    // 检查是否被骑乘
     if (m_creature->isBeingRidden()) return false;
 
-    // MC 1.16.5: 检查超时
+    // 检查超时
     if (m_timeoutCounter <= 0) return false;
 
-    // MC 1.16.5: 继续执行直到路径完成
-    // return !this.creature.getNavigator().noPath() && !this.creature.isBeingRidden();
+    // 继续执行直到路径完成
     auto* nav = m_creature->navigator();
-    if (nav) {
-        return !nav->noPath();
-    }
-
-    return false;
+    return nav && !nav->noPath();
 }
 
 void RandomWalkingGoal::startExecuting()
 {
-    if (m_creature) {
-        // MC 1.16.5: 使用 navigator.tryMoveToXYZ
-        if (auto* nav = m_creature->navigator()) {
-            static_cast<void>(nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
-        }
-        // MC 1.16.5: 初始化超时计数器
-        m_timeoutCounter = MAX_WALK_TIME;
+    // 使用 navigator.tryMoveToXYZ
+    if (auto* nav = m_creature->navigator()) {
+        static_cast<void>(nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
     }
+    // 初始化超时计数器
+    m_timeoutCounter = MAX_WALK_TIME;
 }
 
 void RandomWalkingGoal::resetTask()
 {
-    if (m_creature) {
-        // MC 1.16.5: 清除路径
-        m_creature->clearNavigation();
-    }
+    // 清除路径
+    m_creature->clearNavigation();
     // 调用父类 resetTask
     Goal::resetTask();
 }
 
 void RandomWalkingGoal::tick()
 {
-    // MC 1.16.5: 减少超时计数器
+    // 减少超时计数器
     if (m_timeoutCounter > 0) {
         --m_timeoutCounter;
     }
@@ -135,9 +121,7 @@ void RandomWalkingGoal::tick()
 
 bool RandomWalkingGoal::getRandomPosition(Vector3& outPos)
 {
-    if (!m_creature) return false;
-
-    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 10, 7)
+    // 使用 RandomPositionGenerator.findRandomTarget(creature, 10, 7)
     // xzRange=10, yRange=7 是默认参数
     return util::RandomPositionGenerator::findRandomTarget(m_creature,
         RANDOM_WALK_RANGE, // 10

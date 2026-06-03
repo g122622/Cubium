@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,8 +36,6 @@ namespace attribute {
  * @brief 属性修改器操作类型
  *
  * 定义属性修改器如何影响基础值
- *
- * 参考 MC 1.16.5 Operation
  */
 enum class Operation : u8 {
     /**
@@ -67,8 +65,6 @@ enum class Operation : u8 {
  *
  * 用于临时或永久修改属性值。
  * 每个修改器有唯一的ID、操作类型和值。
- *
- * 参考 MC 1.16.5 AttributeModifier
  */
 class AttributeModifier {
 public:

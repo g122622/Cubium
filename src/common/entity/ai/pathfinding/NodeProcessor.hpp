@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "PathNodeType.hpp"
 #include "PathPoint.hpp"
 #include "Region.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -38,13 +38,36 @@ namespace mc::entity::ai::pathfinding {
  *
  * 负责生成和缓存路径节点，计算相邻节点。
  * 不同移动类型（行走、飞行、游泳）有不同的实现。
- *
- * 参考 MC 1.16.5 NodeProcessor
  */
 class NodeProcessor {
 public:
     NodeProcessor() = default;
     virtual ~NodeProcessor() = default;
+
+    // ========== 移动语义 ==========
+
+    NodeProcessor(NodeProcessor&& other) noexcept
+        : m_region(other.m_region)
+        , m_entityWidth(other.m_entityWidth)
+        , m_entityHeight(other.m_entityHeight)
+        , m_nodeCache(std::move(other.m_nodeCache))
+        , m_openNodes(std::move(other.m_openNodes))
+    {
+        other.m_region = nullptr;
+    }
+
+    NodeProcessor& operator=(NodeProcessor&& other) noexcept
+    {
+        if (this != &other) {
+            m_region = other.m_region;
+            m_entityWidth = other.m_entityWidth;
+            m_entityHeight = other.m_entityHeight;
+            m_nodeCache = std::move(other.m_nodeCache);
+            m_openNodes = std::move(other.m_openNodes);
+            other.m_region = nullptr;
+        }
+        return *this;
+    }
 
     // ========== 配置 ==========
 

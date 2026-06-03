@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../Goal.hpp"
 #include <functional>
+#include <memory>
 #include <type_traits>
 
 namespace mc {
@@ -64,8 +64,6 @@ struct TypeFilter {
  * 1. 看向任意 LivingEntity：LookAtGoal(mob, maxDistance)
  * 2. 看向特定类型实体：LookAtGoal(mob, maxDistance, chance, TypeFilter<T>{})
  * 3. 看向自定义过滤实体：LookAtGoal(mob, maxDistance, chance, filter)
- *
- * 参考 MC 1.16.5 LookAtGoal
  */
 class LookAtGoal : public Goal {
 public:
@@ -132,7 +130,6 @@ public:
 protected:
     /**
      * @brief 寻找要看的实体
-     * MC 1.16.5: 使用 getClosestPlayer 或 getEntitiesWithinAABB
      * @return 找到的实体，如果没有返回nullptr
      */
     [[nodiscard]] virtual LivingEntity* findTarget();
@@ -163,8 +160,6 @@ LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance, TypeFilter<T
  * @brief 随机看向目标
  *
  * 使生物随机看向往某个方向。
- *
- * 参考 MC 1.16.5 LookRandomlyGoal
  */
 class LookRandomlyGoal : public Goal {
 public:
@@ -184,9 +179,9 @@ public:
 
 private:
     MobEntity* m_mob;
-    f64 m_lookX = 0.0;  // MC 1.16.5: 方向向量的 X 分量 (cos(angle))
-    f64 m_lookZ = 0.0;  // MC 1.16.5: 方向向量的 Z 分量 (sin(angle))
-    i32 m_idleTime = 0; // MC 1.16.5: idleTime
+    f64 m_lookX = 0.0;  // 方向向量的 X 分量 (cos(angle))
+    f64 m_lookZ = 0.0;  // 方向向量的 Z 分量 (sin(angle))
+    i32 m_idleTime = 0; // 剩余看向时间（ticks）
 
     static constexpr f32 RANDOM_LOOK_CHANCE = 0.02f; // 2%
     static constexpr i32 RANDOM_LOOK_MIN_TIME = 20;  // 1秒

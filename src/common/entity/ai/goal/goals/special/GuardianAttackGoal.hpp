@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 
 namespace mc {
 
@@ -41,8 +41,6 @@ namespace entity::ai::goal {
  * - 准备阶段：前 10 tick（tickCounter 从 -10 到 0）
  * - 充能动画：tickCounter 从 0 到 80（此时发送状态21触发音效）
  * - 发射阶段：80 tick 时造成伤害
- *
- * 参考 MC 1.16.5 GuardianEntity.AttackGoal
  */
 class GuardianAttackGoal : public Goal {
 public:
@@ -63,24 +61,23 @@ public:
 private:
     /**
      * @brief 选择攻击目标
-     * MC 1.16.5: 选择最近的玩家或鱿鱼
      * @return 目标实体，如果没有则返回 nullptr
      */
-    [[nodiscard]] LivingEntity* selectTarget() const;
+    [[nodiscard]] LivingEntity* _selectTarget() const;
 
     /**
      * @brief 检查目标是否有效
      * @param target 目标实体
      * @return 是否有效
      */
-    [[nodiscard]] bool isTargetValid(LivingEntity* target) const;
+    [[nodiscard]] bool _isTargetValid(LivingEntity* target) const;
 
     GuardianEntity* m_guardian;
     LivingEntity* m_target = nullptr;
-    i32 m_tickCounter = 0;  // MC 1.16.5: tickCounter
+    i32 m_tickCounter = 0;
     bool m_isElder = false; // 是否为远古守卫者
 
-    // MC 1.16.5 常量
+    // 攻击常量
     static constexpr i32 ATTACK_DURATION = 80;      // 攻击周期（ticks）
     static constexpr f32 ATTACK_RANGE = 15.0f;      // 攻击范围
     static constexpr f32 LASER_DAMAGE = 4.0f;       // 激光伤害（普通守卫者）

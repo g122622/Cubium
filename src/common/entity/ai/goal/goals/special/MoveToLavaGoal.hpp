@@ -8,7 +8,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall included in all
+ * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -37,13 +37,50 @@ class IWorld;
 
 namespace entity::ai::goal {
 
+// ============================================================================
+// 常量定义
+// ============================================================================
+
+namespace MoveToBlockGoalConstants {
+
+/// 执行延迟基础值（tick）
+constexpr i32 RUN_DELAY_BASE = 200;
+
+/// 执行延迟随机范围（tick）
+constexpr i32 RUN_DELAY_RANGE = 200;
+
+/// 最大超时时间（tick）
+constexpr i32 MAX_TIMEOUT = 1200;
+
+/// 最大停留时间基础值（tick）
+constexpr i32 MAX_STAY_BASE = 1200;
+
+/// 最大停留时间随机范围（tick）
+constexpr i32 MAX_STAY_RANGE = 1200;
+
+/// 默认重新导航间隔（tick）
+constexpr i32 DEFAULT_MOVE_INTERVAL = 40;
+
+/// 熔岩目标重新导航间隔（tick）
+constexpr i32 LAVA_MOVE_INTERVAL = 20;
+
+/// 熔岩目标水平搜索半径
+constexpr i32 LAVA_SEARCH_LENGTH = 8;
+
+/// 熔岩目标垂直搜索范围
+constexpr i32 LAVA_VERTICAL_SEARCH_RANGE = 2;
+
+} // namespace MoveToBlockGoalConstants
+
+// ============================================================================
+// 类定义
+// ============================================================================
+
 /**
  * @brief 移动到方块目标基类
  *
  * 抽象基类，提供在范围内搜索特定方块并导航移动的功能。
  * 子类只需实现 shouldMoveTo() 方法来定义目标方块条件。
- *
- * 参考 MC 1.16.5 net.minecraft.entity.ai.goal.MoveToBlockGoal
  */
 class MoveToBlockGoal : public Goal {
 public:
@@ -74,7 +111,7 @@ public:
 
     /**
      * @brief 是否应该重新导航
-     * MC 1.16.5 默认每 40 tick 检查一次
+     * 默认每 40 tick 检查一次
      */
     [[nodiscard]] virtual bool shouldMove() const;
 
@@ -102,7 +139,7 @@ protected:
 
     /**
      * @brief 获取随机执行延迟
-     * MC 1.16.5: 200 + random(200) = 200-400 tick
+     * 200 + random(200) = 200-400 tick
      */
     [[nodiscard]] i32 getRunDelay();
 
@@ -118,7 +155,7 @@ protected:
 
     /**
      * @brief 搜索目标方块
-     * MC 1.16.5 螺旋搜索算法
+     * 使用螺旋搜索算法
      */
     [[nodiscard]] bool searchForDestination();
 
@@ -136,8 +173,6 @@ protected:
  *
  * 炽足兽寻找熔岩的 AI 目标。当炽足兽离开熔岩时，
  * 会自动寻找附近的熔岩并移动过去。
- *
- * 参考 MC 1.16.5 net.minecraft.entity.passive.StriderEntity.MoveToLavaGoal
  */
 class MoveToLavaGoal : public MoveToBlockGoal {
 public:
@@ -145,10 +180,6 @@ public:
      * @brief 构造函数
      * @param creature 炽足兽实体（或其他需要寻找熔岩的生物）
      * @param speed 移动速度倍率
-     *
-     * MC 1.16.5 调用参数:
-     * - searchLength = 8 (水平搜索半径)
-     * - verticalSearchRange = 2 (垂直搜索范围)
      */
     MoveToLavaGoal(CreatureEntity* creature, f64 speed);
 
@@ -156,9 +187,7 @@ public:
 
     /**
      * @brief 获取目标方块位置
-     *
-     * MC 1.16.5: 直接返回 destinationBlock（不是上方方块）
-     * 这是与父类的重要区别！
+     * 直接返回 destinationBlock（不是上方方块），这是与父类的重要区别
      */
     [[nodiscard]] BlockPos getTargetPosition() const override;
 
@@ -182,8 +211,7 @@ public:
 
     /**
      * @brief 是否应该重新导航
-     *
-     * MC 1.16.5: 每 20 tick 检查一次（父类默认是 40 tick）
+     * 每 20 tick 检查一次（父类默认是 40 tick）
      */
     [[nodiscard]] bool shouldMove() const override;
 

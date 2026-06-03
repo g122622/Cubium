@@ -31,16 +31,6 @@ namespace mc::entity::ai::pathfinding {
  * @brief 劫掠兽节点处理器
  *
  * 继承自 WalkNodeProcessor，将树叶视为可通行。
- *
- * MC 1.16.5 参考: net.minecraft.entity.monster.RavagerEntity.Processor
- *
- * 原版代码：
- * protected PathNodeType func_215744_a(IBlockReader p_215744_1_, boolean p_215744_2_, boolean p_215744_3_, BlockPos
- * p_215744_4_, PathNodeType p_215744_5_) { return p_215744_5_ == PathNodeType.LEAVES ? PathNodeType.OPEN :
- * super.func_215744_a(...);
- * }
- *
- * 这意味着劫掠兽可以将树叶视为开放的空空间，从而穿过树叶。
  */
 class RavagerNodeProcessor : public WalkNodeProcessor {
 public:
@@ -70,6 +60,17 @@ public:
      * @return 节点类型（树叶返回 OPEN）
      */
     [[nodiscard]] PathNodeType getNodeTypeWithEntity(i32 x, i32 y, i32 z) override;
+
+private:
+    /**
+     * @brief 检查位置是否为树叶并将其视为开放空间
+     *
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param z Z 坐标
+     * @return true 如果是树叶，false 否则
+     */
+    [[nodiscard]] bool _checkLeavesAsOpen(i32 x, i32 y, i32 z) const;
 };
 
 } // namespace mc::entity::ai::pathfinding

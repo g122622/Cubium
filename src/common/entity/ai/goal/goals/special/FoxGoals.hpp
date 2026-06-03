@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../MeleeAttackGoal.hpp"
-#include "../target/TargetGoals.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -47,9 +47,6 @@ namespace entity::ai::goal {
  * @brief 狐狸被动目标基类
  *
  * 当狐狸处于激怒状态时，所有被动行为会被打断。
- * 这与 MC 1.16.5 中的 FoxEntity.BaseGoal 内部类相同。
- *
- * 参考 MC 1.16.5 FoxEntity.BaseGoal
  */
 class FoxPassiveGoal : public Goal {
 public:
@@ -99,7 +96,6 @@ protected:
  * 2. 当距离 <= 6 格时进入蹲伏状态
  * 3. 检查路径是否畅通
  *
- * 参考 MC 1.16.5 FoxEntity.FollowTargetGoal
  * 优先级: 5
  * Mutex: MOVE, LOOK
  */
@@ -124,7 +120,7 @@ private:
     FoxEntity* m_fox;
     LivingEntity* m_target = nullptr;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f64 START_FOLLOW_DISTANCE_SQ = 36.0; // 6^2 = 开始跟踪距离
     static constexpr f64 STOP_FOLLOW_DISTANCE_SQ = 36.0;  // 6^2 = 停止跟踪距离（进入蹲伏）
     static constexpr f64 APPROACH_SPEED = 1.5;            // 接近速度
@@ -142,7 +138,6 @@ private:
  * 4. 接近目标时攻击
  * 5. 落地可能卡在雪中
  *
- * 参考 MC 1.16.5 FoxEntity.PounceGoal
  * 优先级: 6
  * Mutex: MOVE, LOOK, JUMP
  */
@@ -163,7 +158,7 @@ private:
     FoxEntity* m_fox;
     LivingEntity* m_target = nullptr;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f64 POUNCE_HORIZONTAL_FACTOR = 0.8; // 水平方向扑击因子
     static constexpr f64 POUNCE_VERTICAL_FACTOR = 0.9;   // 垂直方向扑击因子
     static constexpr f32 ATTACK_DISTANCE = 2.0f;         // 攻击距离
@@ -179,7 +174,6 @@ private:
  * - 不在坐下、睡眠、蹲伏、卡住状态时执行
  * - 攻击时播放咬音效
  *
- * 参考 MC 1.16.5 FoxEntity.BiteGoal
  * 优先级: 7
  */
 class FoxBiteGoal : public MeleeAttackGoal {
@@ -204,7 +198,6 @@ private:
  *
  * 在白天或雷暴天气时寻找遮蔽处休息。
  *
- * 参考 MC 1.16.5 FoxEntity.FindShelterGoal
  * 优先级: 6
  */
 class FoxFindShelterGoal : public FoxPassiveGoal {
@@ -234,7 +227,6 @@ private:
  *
  * 狐狸在白天有遮蔽处睡觉。
  *
- * 参考 MC 1.16.5 FoxEntity.SleepGoal
  * 优先级: 7
  * Mutex: MOVE, LOOK, JUMP
  */
@@ -260,7 +252,6 @@ private:
  *
  * 狐狸寻找并吃成熟的甜浆果丛。
  *
- * 参考 MC 1.16.5 FoxEntity.EatBerriesGoal
  * 优先级: 10
  */
 class FoxEatBerriesGoal : public Goal {
@@ -279,12 +270,12 @@ private:
     /**
      * @brief 检查目标方块是否是成熟的甜浆果丛
      */
-    [[nodiscard]] bool isValidTarget(const IWorld* world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidTarget(const IWorld* world, const BlockPos& pos) const;
 
     /**
      * @brief 吃浆果逻辑
      */
-    void eatBerry();
+    void _eatBerry();
 
     FoxEntity* m_fox;
     f64 m_speed;
@@ -303,7 +294,6 @@ private:
  *
  * 狐狸捡起地上的物品（如食物）。
  *
- * 参考 MC 1.16.5 FoxEntity.FindItemsGoal
  * 优先级: 11
  * Mutex: MOVE
  */
@@ -330,7 +320,6 @@ private:
  *
  * 狐狸坐下并随机观察周围。
  *
- * 参考 MC 1.16.5 FoxEntity.SitAndLookGoal
  * 优先级: 13
  * Mutex: MOVE, LOOK
  */
@@ -350,7 +339,7 @@ private:
     /**
      * @brief 随机选择观察方向
      */
-    void chooseRandomLookDirection();
+    void _chooseRandomLookDirection();
 
     f64 m_lookX = 0.0;
     f64 m_lookZ = 0.0;
@@ -373,7 +362,6 @@ private:
  *
  * 当信任的玩家被攻击时，狐狸会攻击攻击者。
  *
- * 参考 MC 1.16.5 FoxEntity.RevengeGoal
  * 优先级: 3
  */
 class FoxRevengeGoal : public entity::ai::goal::NearestAttackableTargetGoal<LivingEntity> {

@@ -24,6 +24,8 @@
 #pragma once
 
 #include "Goal.hpp"
+#include "common/core/Types.hpp"
+
 #include <limits>
 #include <memory>
 
@@ -34,8 +36,6 @@ namespace mc::entity::ai {
  *
  * 包装一个 Goal 并添加优先级信息。
  * 优先级数值越小，优先级越高。
- *
- * 参考 MC 1.16.5 PrioritizedGoal
  */
 class PrioritizedGoal : public Goal {
 public:
@@ -44,7 +44,7 @@ public:
      * @param priority 优先级（数值越小优先级越高）
      * @param goal 被包装的目标
      */
-    PrioritizedGoal(int priority, std::unique_ptr<Goal> goal)
+    PrioritizedGoal(i32 priority, std::unique_ptr<Goal> goal)
         : m_priority(priority)
         , m_inner(std::move(goal))
         , m_running(false)
@@ -55,7 +55,7 @@ public:
      * @param priority 优先级
      * @param goal 被包装的目标（获取所有权）
      */
-    PrioritizedGoal(int priority, Goal* goal)
+    PrioritizedGoal(i32 priority, Goal* goal)
         : m_priority(priority)
         , m_inner(goal)
         , m_running(false)
@@ -63,30 +63,61 @@ public:
 
     /**
      * @brief 默认构造函数（创建DUMMY对象）
-     * MC 1.16.5: 用于GoalSelector中flagGoals的默认值
+     * 用于GoalSelector中flagGoals的默认值
      */
     PrioritizedGoal()
-        : m_priority(std::numeric_limits<int>::max())
+        : m_priority(std::numeric_limits<i32>::max())
         , m_inner(nullptr)
         , m_running(false)
     {}
+
+    /**
+     * @brief 移动构造函数
+     */
+    PrioritizedGoal(PrioritizedGoal&& other) noexcept
+        : m_priority(other.m_priority)
+        , m_inner(std::move(other.m_inner))
+        , m_running(other.m_running)
+    {
+        other.m_priority = std::numeric_limits<i32>::max();
+        other.m_running = false;
+    }
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    PrioritizedGoal& operator=(PrioritizedGoal&& other) noexcept
+    {
+        if (this != &other) {
+            m_priority = other.m_priority;
+            m_inner = std::move(other.m_inner);
+            m_running = other.m_running;
+            other.m_priority = std::numeric_limits<i32>::max();
+            other.m_running = false;
+        }
+        return *this;
+    }
+
+    // 禁用拷贝（因为持有unique_ptr）
+    PrioritizedGoal(const PrioritizedGoal&) = delete;
+    PrioritizedGoal& operator=(const PrioritizedGoal&) = delete;
 
     /**
      * @brief 是否可以被另一个目标抢占
      * @param other 要比较的目标
      * @return true 如果当前目标可以被抢占
      */
-    [[nodiscard]] bool isPreemptedBy(const PrioritizedGoal& other) const
+    [[nodiscard]] bool isPreemptedBy(const PrioritizedGoal& other) const noexcept
     {
-        // MC 1.16.5: DUMMY（空目标）总是返回true
+        // DUMMY（空目标）总是返回true
         if (!m_inner) {
             return true;
         }
-        // MC 1.16.5: 如果不可抢占，返回false
+        // 如果不可抢占，返回false
         if (!isPreemptible()) {
             return false;
         }
-        // MC 1.16.5: 如果other优先级更高（数值更小），则可被抢占
+        // 如果other优先级更高（数值更小），则可被抢占
         return other.m_priority < m_priority;
     }
 
@@ -96,7 +127,7 @@ public:
 
     [[nodiscard]] bool shouldContinueExecuting() override { return m_inner && m_inner->shouldContinueExecuting(); }
 
-    [[nodiscard]] bool isPreemptible() const override { return !m_inner || m_inner->isPreemptible(); }
+    [[nodiscard]] bool isPreemptible() const noexcept override { return !m_inner || m_inner->isPreemptible(); }
 
     void startExecuting() override
     {
@@ -128,7 +159,7 @@ public:
         }
     }
 
-    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const
+    [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const noexcept
     {
         static EnumSet<GoalFlag> emptyFlags;
         return m_inner ? m_inner->getMutexFlags() : emptyFlags;
@@ -141,35 +172,35 @@ public:
     /**
      * @brief 获取优先级
      */
-    [[nodiscard]] int getPriority() const { return m_priority; }
+    [[nodiscard]] i32 getPriority() const noexcept { return m_priority; }
 
     /**
      * @brief 是否正在运行
      */
-    [[nodiscard]] bool isRunning() const { return m_running; }
+    [[nodiscard]] bool isRunning() const noexcept { return m_running; }
 
     /**
      * @brief 获取内部目标
      */
-    [[nodiscard]] Goal* getGoal() { return m_inner.get(); }
+    [[nodiscard]] Goal* getGoal() noexcept { return m_inner.get(); }
 
     /**
      * @brief 获取内部目标（const版本）
      */
-    [[nodiscard]] const Goal* getGoal() const { return m_inner.get(); }
+    [[nodiscard]] const Goal* getGoal() const noexcept { return m_inner.get(); }
 
     /**
      * @brief 检查是否为空（DUMMY对象）
      */
-    [[nodiscard]] bool isNull() const { return m_inner == nullptr; }
+    [[nodiscard]] bool isNull() const noexcept { return m_inner == nullptr; }
 
     /**
      * @brief 相等比较
-     * MC 1.16.5: 比较内部Goal是否相同（指针比较）
+     * 比较内部Goal是否相同（指针比较）
      */
-    [[nodiscard]] bool operator==(const PrioritizedGoal& other) const
+    [[nodiscard]] bool operator==(const PrioritizedGoal& other) const noexcept
     {
-        // MC 1.16.5: 两个null比较返回false
+        // 两个null比较返回false
         if (!m_inner && !other.m_inner) {
             return false;
         }
@@ -184,10 +215,10 @@ public:
     /**
      * @brief 不等比较
      */
-    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const { return !(*this == other); }
+    [[nodiscard]] bool operator!=(const PrioritizedGoal& other) const noexcept { return !(*this == other); }
 
 private:
-    int m_priority;                // 优先级
+    i32 m_priority;                // 优先级
     std::unique_ptr<Goal> m_inner; // 内部目标
     bool m_running;                // 是否正在运行
 };

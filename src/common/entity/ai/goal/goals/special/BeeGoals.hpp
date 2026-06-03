@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../MeleeAttackGoal.hpp"
-#include "../target/TargetGoals.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -47,9 +47,6 @@ namespace entity::ai::goal {
  * @brief 蜜蜂被动目标基类
  *
  * 当蜜蜂处于愤怒状态时，所有被动行为会被打断。
- * 这与 MC 1.16.5 中的 PassiveGoal 内部类相同。
- *
- * 参考 MC 1.16.5 BeeEntity.PassiveGoal
  */
 class BeePassiveGoal : public Goal {
 public:
@@ -86,7 +83,6 @@ protected:
  * - 攻击后设置 hasStung 标志
  * - 蛰刺后蜜蜂会逐渐死亡
  *
- * 参考 MC 1.16.5 BeeEntity.StingGoal
  * 优先级: 0 (最高)
  */
 class BeeStingGoal : public MeleeAttackGoal {
@@ -115,7 +111,6 @@ private:
  * - 在蜂巢附近（2格内）
  * - 蜂巢未满
  *
- * 参考 MC 1.16.5 BeeEntity.EnterBeehiveGoal
  * 优先级: 1
  */
 class BeeEnterHiveGoal : public BeePassiveGoal {
@@ -140,7 +135,6 @@ public:
  * - 400 tick 后获得花粉
  * - 下雨时停止
  *
- * 参考 MC 1.16.5 BeeEntity.PollinateGoal
  * 优先级: 4
  * Mutex: MOVE
  */
@@ -161,16 +155,16 @@ public:
 
 private:
     /// 检查位置是否是花朵
-    [[nodiscard]] bool isFlower(const BlockPos& pos) const;
+    [[nodiscard]] bool _isFlower(const BlockPos& pos) const;
 
     /// 搜索附近的花朵
-    [[nodiscard]] bool findFlower();
+    [[nodiscard]] bool _findFlower();
 
     /// 移动到下一个目标位置
-    void moveToNextTarget();
+    void _moveToNextTarget();
 
     /// 检查是否完成授粉
-    [[nodiscard]] bool completedPollination() const { return m_pollinationTicks > 400; }
+    [[nodiscard]] bool _completedPollination() const { return m_pollinationTicks > 400; }
 
     i32 m_pollinationTicks = 0;  ///< 授粉进度
     i32 m_lastSoundTick = 0;     ///< 上次播放声音的tick
@@ -188,7 +182,6 @@ private:
  *
  * 当蜜蜂没有蜂巢时，搜索附近可用的蜂巢。
  *
- * 参考 MC 1.16.5 BeeEntity.UpdateBeehiveGoal
  * 优先级: 5
  */
 class BeeUpdateHiveGoal : public BeePassiveGoal {
@@ -203,10 +196,10 @@ public:
 
 private:
     /// 搜索附近可用的蜂巢
-    [[nodiscard]] std::vector<BlockPos> findNearbyFreeHives() const;
+    [[nodiscard]] std::vector<BlockPos> _findNearbyFreeHives() const;
 
     /// 检查蜂巢是否有空间
-    [[nodiscard]] bool doesHiveHaveSpace(const BlockPos& pos) const;
+    [[nodiscard]] bool _doesHiveHaveSpace(const BlockPos& pos) const;
 };
 
 /**
@@ -214,7 +207,6 @@ private:
  *
  * 当蜜蜂需要返回蜂巢时，导航到蜂巢位置。
  *
- * 参考 MC 1.16.5 BeeEntity.FindBeehiveGoal
  * 优先级: 5
  * Mutex: MOVE
  */
@@ -238,10 +230,10 @@ public:
 
 private:
     /// 检查是否足够靠近蜂巢
-    [[nodiscard]] bool isCloseEnough(const BlockPos& pos) const;
+    [[nodiscard]] bool _isCloseEnough(const BlockPos& pos) const;
 
     /// 检查是否太远
-    [[nodiscard]] bool isTooFar(const BlockPos& pos) const;
+    [[nodiscard]] bool _isTooFar(const BlockPos& pos) const;
 
     i32 m_ticks = 0;                       ///< 计时器
     std::vector<BlockPos> m_possibleHives; ///< 可能的蜂巢列表
@@ -256,7 +248,6 @@ private:
  *
  * 当蜜蜂长时间没有花粉时，飞向记忆中的花朵位置。
  *
- * 参考 MC 1.16.5 BeeEntity.FindFlowerGoal
  * 优先级: 6
  * Mutex: MOVE
  */
@@ -284,7 +275,6 @@ private:
  *
  * 当蜜蜂有花粉时，飞过农作物并促进其生长。
  *
- * 参考 MC 1.16.5 BeeEntity.FindPollinationTargetGoal
  * 优先级: 7
  */
 class BeeFindPollinationTargetGoal : public BeePassiveGoal {
@@ -299,10 +289,10 @@ public:
 
 private:
     /// 检查位置是否是可授粉作物
-    [[nodiscard]] bool isPollinationTarget(const BlockPos& pos) const;
+    [[nodiscard]] bool _isPollinationTarget(const BlockPos& pos) const;
 
     /// 促进作物生长
-    void growCrop(const BlockPos& pos);
+    void _growCrop(const BlockPos& pos);
 
     static constexpr i32 MAX_CROPS_GROWN = 10; ///< 每次授粉最多促进的作物数
 };
@@ -313,7 +303,6 @@ private:
  * 当没有其他任务时，蜜蜂会随机飞行。
  * 如果离蜂巢太远（22格），会飞回蜂巢方向。
  *
- * 参考 MC 1.16.5 BeeEntity.WanderGoal
  * 优先级: 8
  * Mutex: MOVE
  */
@@ -329,10 +318,10 @@ public:
 
 private:
     /// 获取随机飞行位置
-    [[nodiscard]] math::Vector3f getRandomLocation();
+    [[nodiscard]] math::Vector3f _getRandomLocation();
 
     /// 检查位置是否有效
-    [[nodiscard]] bool isValidLocation(const math::Vector3f& pos) const;
+    [[nodiscard]] bool _isValidLocation(const math::Vector3f& pos) const;
 
     BeeEntity* m_bee;
 
@@ -352,7 +341,6 @@ private:
  * 当蜜蜂被攻击时，记住攻击者并愤怒。
  * 会召唤附近的其他蜜蜂一起攻击。
  *
- * 参考 MC 1.16.5 BeeEntity.AngerGoal
  * 优先级: 1 (Target)
  */
 class BeeAngerGoal : public HurtByTargetGoal {
@@ -374,7 +362,6 @@ private:
  * 当蜜蜂愤怒时，攻击附近的玩家。
  * 只有未蛰刺过的蜜蜂才会攻击。
  *
- * 参考 MC 1.16.5 BeeEntity.AttackPlayerGoal
  * 优先级: 2 (Target)
  */
 class BeeAttackPlayerGoal : public TargetGoal {
@@ -390,7 +377,7 @@ public:
 
 private:
     /// 检查是否可以蛰刺
-    [[nodiscard]] bool canSting() const;
+    [[nodiscard]] bool _canSting() const;
 
     BeeEntity* m_beeEntity;
     LivingEntity* m_targetPlayer = nullptr;
@@ -404,7 +391,6 @@ private:
  *
  * 当愤怒时间结束后，重置愤怒状态。
  *
- * 参考 MC 1.16.5 ResetAngerGoal
  * 优先级: 3 (Target)
  */
 class BeeResetAngerGoal : public Goal {

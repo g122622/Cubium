@@ -43,8 +43,6 @@ namespace entity::ai::goal {
  *
  * 恼鬼特有的冲锋攻击AI。恼鬼会飞向目标的眼睛位置进行攻击。
  * 与普通近战攻击不同，恼鬼直接飞向目标而非寻路。
- *
- * 参考 MC 1.16.5 VexEntity.ChargeAttackGoal
  */
 class VexChargeAttackGoal : public Goal {
 public:
@@ -70,7 +68,7 @@ private:
      * @param target 目标实体
      * @param distSq 到目标的距离平方
      */
-    void checkAndPerformAttack(LivingEntity* target, f64 distSq);
+    void _checkAndPerformAttack(LivingEntity* target, f64 distSq);
 
     VexEntity* m_vex;
     LivingEntity* m_attackTarget = nullptr;
@@ -87,8 +85,6 @@ private:
  * @brief 恼鬼随机飞行目标
  *
  * 恼鬼在绑定点周围随机飞行。
- *
- * 参考 MC 1.16.5 VexEntity.MoveRandomGoal
  */
 class VexMoveRandomGoal : public Goal {
 public:
@@ -121,8 +117,6 @@ private:
  * @brief 恼鬼复制主人目标
  *
  * 当恼鬼的主人（唤魔者）有攻击目标时，恼鬼也会攻击该目标。
- *
- * 参考 MC 1.16.5 VexEntity.CopyOwnerTargetGoal
  */
 class VexCopyOwnerTargetGoal : public TargetGoal {
 public:

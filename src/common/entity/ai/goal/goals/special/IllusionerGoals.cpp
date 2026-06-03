@@ -22,15 +22,16 @@
  */
 
 #include "IllusionerGoals.hpp"
-#include "../../../../../util/assert/AssertAll.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../core/EntityUtils.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../effect/EffectInstance.hpp"
-#include "../../../../effect/EffectType.hpp"
-#include "../../../../entities/monster/illager/IllusionerEntity.hpp"
-#include "../../../controller/LookController.hpp"
+
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/illager/IllusionerEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -137,13 +138,12 @@ bool IllusionerBlindnessSpellGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 难度必须高于普通
+    // 检查难度是否为困难
     IWorld* world = m_illusioner->world();
     if (world == nullptr) {
         return false;
     }
 
-    // 检查难度是否高于普通
     Difficulty difficulty = world->difficulty();
     if (difficulty != Difficulty::Hard) {
         return false;
@@ -188,7 +188,7 @@ void IllusionerBlindnessSpellGoal::castSpell()
         return;
     }
 
-    // MC 1.16.5: 施加失明效果，持续 400 ticks (20秒)
+    // 施加失明效果，持续 400 ticks (20秒)
     entity::effect::EffectInstance blindness(entity::effect::EffectType::Blindness,
         BLINDNESS_DURATION,
         0,     // amplifier = 0 (效果等级 I)
@@ -219,7 +219,7 @@ bool IllusionerMirrorSpellGoal::shouldExecute()
         return false;
     }
 
-    // MC 1.16.5: 只有当幻术师没有隐身效果时才施法
+    // 只有当幻术师没有隐身效果时才施法
     if (m_illusioner->hasEffect(entity::effect::EffectType::Invisibility)) {
         return false;
     }
@@ -248,7 +248,7 @@ void IllusionerMirrorSpellGoal::castSpell()
         return;
     }
 
-    // MC 1.16.5: 施加隐身效果，持续 1200 ticks (60秒)
+    // 施加隐身效果，持续 1200 ticks (60秒)
     entity::effect::EffectInstance invisibility(entity::effect::EffectType::Invisibility,
         INVISIBILITY_DURATION,
         0,     // amplifier = 0 (效果等级 I)

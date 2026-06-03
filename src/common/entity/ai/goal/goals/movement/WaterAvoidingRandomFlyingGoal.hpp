@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -45,8 +45,6 @@ namespace entity::ai::goal {
  * - 飞行目标不依赖地面导航，直接设置目标位置
  * - 飞行目标可以在三维空间中选择目标点
  * - 飞行目标使用飞行移动控制器
- *
- * 参考 MC 1.16.5 WaterAvoidingRandomFlyingGoal
  */
 class WaterAvoidingRandomFlyingGoal : public Goal {
 public:
@@ -78,11 +76,6 @@ public:
 protected:
     /**
      * @brief 获取随机飞行目标位置
-     *
-     * MC 1.16.5 RandomFlyingGoal.getRandomPosition():
-     * - 使用 RandomPositionGenerator.findRandomTargetBlock(creature, 8, 4, null)
-     * - 选择随机位置后检查是否在水中
-     *
      * @return 是否找到有效位置
      */
     [[nodiscard]] bool getRandomPosition();
@@ -101,7 +94,7 @@ protected:
     i32 m_timeout = 0;
     bool m_isRunning = false;
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr i32 MAX_TIMEOUT = 600; // 最大飞行时间（30秒）
     static constexpr i32 XZ_RANGE = 8;      // 水平搜索范围
     static constexpr i32 Y_RANGE = 4;       // 垂直搜索范围

@@ -38,8 +38,6 @@ namespace attribute {
  *
  * 管理实体的所有属性实例。
  * 提供属性的注册、获取和修改功能。
- *
- * 参考 MC 1.16.5 AttributeMap / AttributeModifierMap
  */
 class AttributeMap {
 public:

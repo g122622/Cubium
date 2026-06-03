@@ -37,8 +37,6 @@ namespace entity::ai::goal {
  * @brief 向上游泳目标
  *
  * 使水生生物向水面游泳，用于补充空气或其他行为。
- *
- * 参考 MC 1.16.5 SwimUpGoal
  */
 class SwimUpGoal : public Goal {
 public:
@@ -63,7 +61,7 @@ private:
      * @brief 检查是否到达目标高度
      * @return 是否到达
      */
-    [[nodiscard]] bool hasReachedTarget() const;
+    [[nodiscard]] bool _hasReachedTarget() const;
 
     CreatureEntity* m_creature;
     f64 m_speed;

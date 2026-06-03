@@ -38,8 +38,6 @@ namespace entity::ai::goal {
  * @brief 寻找水源目标
  *
  * 当水生生物离开水后，尝试寻找最近的水源。
- *
- * 参考 MC 1.16.5 FindWaterGoal
  */
 class FindWaterGoal : public Goal {
 public:
@@ -62,7 +60,7 @@ private:
      * @brief 寻找最近的水源位置
      * @return 是否找到水源
      */
-    [[nodiscard]] bool findWater();
+    [[nodiscard]] bool _findWater();
 
     CreatureEntity* m_creature;
     f64 m_targetX = 0.0;

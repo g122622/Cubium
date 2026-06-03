@@ -22,17 +22,14 @@
  */
 
 #include "FishSwimGoal.hpp"
-#include "../../../entities/passive/fish/AbstractFishEntity.hpp"
+#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 
 namespace mc::entity::ai::goal {
 
 FishSwimGoal::FishSwimGoal(AbstractFishEntity* fish)
     : RandomSwimmingGoal(fish, 1.0, 40)
     , m_fish(fish)
-{
-    // MC 1.16.5 AbstractFishEntity.SwimGoal:
-    // super(fish, 1.0D, 40)
-}
+{}
 
 FishSwimGoal::FishSwimGoal(AbstractFishEntity* fish, f64 speed, i32 chance)
     : RandomSwimmingGoal(fish, speed, chance)
@@ -41,25 +38,15 @@ FishSwimGoal::FishSwimGoal(AbstractFishEntity* fish, f64 speed, i32 chance)
 
 bool FishSwimGoal::shouldExecute()
 {
-    // MC 1.16.5 AbstractFishEntity.SwimGoal.shouldExecute():
-    // return this.fish.func_212800_dy() && super.shouldExecute();
-    //
-    // func_212800_dy() 对应 canRandomSwim()：
-    // - AbstractFishEntity: 返回 true
-    // - AbstractGroupFishEntity: 返回 !hasGroupLeader()
-    //
     // 群游鱼类只有在没有群首时才会自主游泳
-
     if (m_fish == nullptr) {
         return false;
     }
 
-    // 检查是否可以随机游泳
     if (!m_fish->canRandomSwim()) {
         return false;
     }
 
-    // 调用父类的 shouldExecute
     return RandomSwimmingGoal::shouldExecute();
 }
 

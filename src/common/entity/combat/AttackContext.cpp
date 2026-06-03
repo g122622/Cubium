@@ -67,24 +67,20 @@ f32 AttackContext::calculateFinalDamage() const
     // 这应该在创建AttackContext时设置
     enchantDamage = m_enchantDamageBonus;
 
-    // ========== 3. 攻击冷却影响（MC 1.16.5 关键逻辑） ==========
-    // 基础伤害 × 二次冷却系数（quadratic）
-    // 附魔伤害 × 线性冷却系数（linear）- 这是MC 1.16.5的关键差异！
-    // 参考：PlayerEntity.attack() 中 f = f * (0.2 + f2*f2 * 0.8) 和 f1 = f1 * f2
+    // ========== 3. 攻击冷却影响 ==========
+    // 基础伤害 × 二次冷却系数
+    // 附魔伤害 × 线性冷却系数
     f32 quadraticCooldown = 0.2f + m_cooldownProgress * m_cooldownProgress * 0.8f;
     f32 linearCooldown = m_cooldownProgress;
     baseDamage *= quadraticCooldown;
     enchantDamage *= linearCooldown;
 
     // ========== 4. 暴击加成（只对基础伤害） ==========
-    // MC 1.16.5: 暴击倍率仅应用于基础伤害，不影响附魔伤害
-    // 参考：PlayerEntity.attack() 中 if (flag2) { f *= hitResult.getDamageModifier(); } 然后才是 f = f + f1
     if (m_critical) {
         baseDamage *= m_criticalMultiplier;
     }
 
     // ========== 5. 合并基础伤害和附魔伤害 ==========
-    // MC 1.16.5: f = f + f1（基础伤害 + 附魔伤害）
     f32 damage = baseDamage + enchantDamage;
 
     // ========== 6. 目标护甲减伤 ==========
@@ -94,15 +90,15 @@ f32 AttackContext::calculateFinalDamage() const
         f32 armorToughness =
             static_cast<f32>(m_target->attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS));
 
-        // MC 1.16.5 护甲公式:
-        // f = 2 + toughness / 4
-        // g = clamp(armor - damage / f, armor * 0.2, 20)
-        // final = damage * (1 - g / 25)
+        // 护甲公式:
+        // protectionFactor = 2 + toughness / 4
+        // effectiveArmor = clamp(armor - damage / protectionFactor, armor * 0.2, 20)
+        // final = damage * (1 - effectiveArmor / 25)
         const f32 protectionFactor = 2.0f + armorToughness / 4.0f;
         const f32 effectiveArmor = std::clamp(armor - damage / protectionFactor, armor * 0.2f, 20.0f);
         damage *= (1.0f - effectiveArmor / 25.0f);
 
-        // 抗性药水减伤（MC 1.16.5: 每级 -20%，最高 80%）
+        // 抗性药水减伤（每级 -20%，最高 80%）
         const i32 resistanceLevel = m_target->getEffectLevel(entity::effect::EffectType::Resistance);
         if (resistanceLevel > 0) {
             damage *= std::max(0.0f, 1.0f - 0.2f * static_cast<f32>(resistanceLevel));
@@ -110,8 +106,7 @@ f32 AttackContext::calculateFinalDamage() const
     }
 
     // ========== 7. 附魔保护减伤 ==========
-    // MC 1.16.5: 计算护甲附魔的 EPF (Enchantment Protection Factor)
-    // 参考: LivingEntity.applyPotionDamageCalculations() 中调用 EnchantmentHelper.getEnchantmentModifierDamage()
+    // 计算护甲附魔的 EPF (Enchantment Protection Factor)
     if (m_target && m_damageFlags != 0) {
         // 获取护甲槽位
         auto armorSlots = m_target->getArmorSlots();
@@ -169,7 +164,6 @@ void AttackContext::setDamageFlagsFromSource(const DamageSource& source)
     m_damageFlags = 0;
 
     // 根据伤害来源设置对应的标志位
-    // 参考 MC 1.16.5 ProtectionEnchantment.calcModifierDamage()
     if (source.isFire()) {
         m_damageFlags |= DamageFlags::FIRE;
     }

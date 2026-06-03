@@ -22,6 +22,7 @@
  */
 
 #include "TurtleGoals.hpp"
+#include "../../../../../core/Constants.hpp"
 #include "../../../../../item/Items.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
@@ -55,23 +56,23 @@ bool TurtleGoHomeGoal::shouldExecute()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 幼年海龟不回家
+    // 幼年海龟不回家
     if (m_turtle->isChild()) {
         return false;
     }
 
-    // MC 1.16.5: 有蛋必须回家
+    // 有蛋必须回家
     if (m_turtle->hasEgg()) {
         return m_turtle->hasHomePos();
     }
 
-    // MC 1.16.5: 1/700 概率检查
+    // 1/700 概率检查
     mc::math::Random rng = m_turtle->getRandom();
     if (rng.nextInt(RANDOM_TRIGGER_CHANCE) != 0) {
         return false;
     }
 
-    // MC 1.16.5: 距离出生地超过 64 格才触发
+    // 距离出生地超过 64 格才触发
     if (!m_turtle->hasHomePos()) {
         return false;
     }
@@ -89,7 +90,7 @@ bool TurtleGoHomeGoal::shouldContinueExecuting()
 {
     if (m_turtle == nullptr || !m_turtle->hasHomePos()) return false;
 
-    // MC 1.16.5: 距离出生地 > 7 格 AND 未放弃 AND 未超时
+    // 距离出生地 > 7 格 AND 未放弃 AND 未超时
     const BlockPos& homePos = m_turtle->getHomePos();
     f64 dx = m_turtle->x() - (homePos.x + 0.5);
     f64 dy = m_turtle->y() - homePos.y;
@@ -108,7 +109,7 @@ void TurtleGoHomeGoal::startExecuting()
     m_closeToHomeTimer = 0;
 
     // 尝试找到路径
-    if (!tryFindPathToHome()) {
+    if (!_tryFindPathToHome()) {
         m_gaveUp = true;
     }
 }
@@ -129,23 +130,24 @@ void TurtleGoHomeGoal::tick()
 
     const BlockPos& homePos = m_turtle->getHomePos();
 
-    // MC 1.16.5: 计算距离
+    // 计算距离
     f64 dx = m_turtle->x() - (homePos.x + 0.5);
     f64 dy = m_turtle->y() - homePos.y;
     f64 dz = m_turtle->z() - (homePos.z + 0.5);
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
-    // MC 1.16.5: 在 16 格范围内时增加计时器
-    bool closeToHome = distSq < 256.0; // 16 * 16
+    // 在 16 格范围内时增加计时器
+    constexpr f64 CLOSE_THRESHOLD_SQ = 256.0; // 16 * 16
+    bool closeToHome = distSq < CLOSE_THRESHOLD_SQ;
     if (closeToHome) {
         m_closeToHomeTimer++;
     }
 
-    // MC 1.16.5: 检查导航器
+    // 检查导航器
     auto* nav = m_turtle->navigator();
     if (nav && nav->noPath()) {
         // 尝试找到新路径
-        if (!tryFindPathToHome()) {
+        if (!_tryFindPathToHome()) {
             m_gaveUp = true;
         }
     }
@@ -157,13 +159,13 @@ void TurtleGoHomeGoal::tick()
     }
 }
 
-bool TurtleGoHomeGoal::tryFindPathToHome()
+bool TurtleGoHomeGoal::_tryFindPathToHome()
 {
     if (m_turtle == nullptr || !m_turtle->hasHomePos()) return false;
 
     const BlockPos& homePos = m_turtle->getHomePos();
 
-    // MC 1.16.5: 使用 RandomPositionGenerator 找到通往出生地的路径
+    // 使用 RandomPositionGenerator 找到通往出生地的路径
     Vector3 targetPos(
         static_cast<f64>(homePos.x) + 0.5, static_cast<f64>(homePos.y), static_cast<f64>(homePos.z) + 0.5);
 
@@ -176,7 +178,7 @@ bool TurtleGoHomeGoal::tryFindPathToHome()
         }
     }
 
-    // MC 1.16.5: 备用方案 - 简化实现，直接导航到目标
+    // 备用方案：直接导航到目标
     auto* nav = m_turtle->navigator();
     if (nav) {
         return nav->moveTo(targetPos.x, targetPos.y, targetPos.z, m_speed);
@@ -200,12 +202,12 @@ bool TurtleLayEggGoal::shouldExecute()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 必须有蛋
+    // 必须有蛋
     if (!m_turtle->hasEgg()) {
         return false;
     }
 
-    // MC 1.16.5: 必须有出生地且距离出生地 <= 9 格
+    // 必须有出生地且距离出生地 <= 9 格
     if (!m_turtle->hasHomePos()) {
         return false;
     }
@@ -221,14 +223,14 @@ bool TurtleLayEggGoal::shouldExecute()
     }
 
     // 搜索产卵位置
-    return findLayEggPosition();
+    return _findLayEggPosition();
 }
 
 bool TurtleLayEggGoal::shouldContinueExecuting()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 继续执行条件
+    // 继续执行条件
     if (!m_turtle->hasEgg()) return false;
     if (!m_turtle->hasHomePos()) return false;
 
@@ -284,8 +286,9 @@ void TurtleLayEggGoal::tick()
     f64 dz = m_turtle->z() - (m_targetPos.z + 0.5);
     f64 distSq = dx * dx + dz * dz; // 只检查水平距离
 
-    // MC 1.16.5: 到达目标位置且不在水中
-    if (distSq < 2.25 && !m_turtle->isInWater()) { // 1.5 * 1.5 = 2.25
+    // 到达目标位置且不在水中
+    constexpr f64 ARRIVE_THRESHOLD_SQ = 2.25; // 1.5 * 1.5 = 2.25
+    if (distSq < ARRIVE_THRESHOLD_SQ && !m_turtle->isInWater()) {
         // 开始产卵
         m_turtle->startLayEgg();
         m_foundTarget = false;
@@ -301,19 +304,19 @@ void TurtleLayEggGoal::tick()
     }
 }
 
-bool TurtleLayEggGoal::shouldMoveTo(const BlockPos& pos)
+bool TurtleLayEggGoal::_shouldMoveTo(const BlockPos& pos)
 {
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
 
     IWorld* world = m_turtle->world();
 
-    // MC 1.16.5: 检查位置上方是否为空气
+    // 检查位置上方是否为空气
     const BlockState* aboveState = world->getBlockState(pos.up());
     if (aboveState == nullptr || !aboveState->isAir()) {
         return false;
     }
 
-    // MC 1.16.5: 检查位置下方是否为沙子
+    // 检查位置下方是否为沙子
     const BlockState* belowState = world->getBlockState(pos);
     if (belowState == nullptr || !BlockTags::SAND().contains(*belowState)) {
         return false;
@@ -322,7 +325,7 @@ bool TurtleLayEggGoal::shouldMoveTo(const BlockPos& pos)
     return true;
 }
 
-bool TurtleLayEggGoal::findLayEggPosition()
+bool TurtleLayEggGoal::_findLayEggPosition()
 {
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
 
@@ -331,13 +334,13 @@ bool TurtleLayEggGoal::findLayEggPosition()
         static_cast<i32>(std::floor(m_turtle->y())),
         static_cast<i32>(std::floor(m_turtle->z())));
 
-    // MC 1.16.5: 在周围搜索合适的位置
+    // 在周围搜索合适的位置
     for (i32 dx = -SEARCH_RANGE; dx <= SEARCH_RANGE; ++dx) {
         for (i32 dy = -3; dy <= 3; ++dy) {
             for (i32 dz = -SEARCH_RANGE; dz <= SEARCH_RANGE; ++dz) {
                 BlockPos checkPos(entityPos.x + dx, entityPos.y + dy - 1, entityPos.z + dz);
 
-                if (shouldMoveTo(checkPos)) {
+                if (_shouldMoveTo(checkPos)) {
                     m_targetPos = checkPos.up(); // 目标是沙子上方的空气位置
                     m_foundTarget = true;
                     return true;
@@ -365,7 +368,7 @@ bool TurtleTravelGoal::shouldExecute()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 不在回家状态 AND 没有蛋 AND 在水中
+    // 不在回家状态 AND 没有蛋 AND 在水中
     return !m_turtle->isGoingHome() && !m_turtle->hasEgg() && m_turtle->isInWater();
 }
 
@@ -375,7 +378,7 @@ bool TurtleTravelGoal::shouldContinueExecuting()
 
     auto* nav = m_turtle->navigator();
 
-    // MC 1.16.5: 有路径 AND 未放弃 AND 不在回家 AND 不在恋爱 AND 没有蛋
+    // 有路径 AND 未放弃 AND 不在回家 AND 不在恋爱 AND 没有蛋
     return nav != nullptr && !nav->noPath() && !m_gaveUp && !m_turtle->isGoingHome() && !m_turtle->isInLove() &&
         !m_turtle->hasEgg();
 }
@@ -384,14 +387,14 @@ void TurtleTravelGoal::startExecuting()
 {
     if (m_turtle == nullptr) return;
 
-    // MC 1.16.5: 设置随机旅行目标
-    setRandomTravelPos();
+    // 设置随机旅行目标
+    _setRandomTravelPos();
 
     m_turtle->setTravelling(true);
     m_gaveUp = false;
 
     // 尝试找到路径
-    if (!tryFindPathToTravelPos()) {
+    if (!_tryFindPathToTravelPos()) {
         m_gaveUp = true;
     }
 }
@@ -411,29 +414,27 @@ void TurtleTravelGoal::tick()
 
     auto* nav = m_turtle->navigator();
 
-    // MC 1.16.5: 如果没有路径，尝试找到新路径
+    // 如果没有路径，尝试找到新路径
     if (nav && nav->noPath()) {
-        if (!tryFindPathToTravelPos()) {
+        if (!_tryFindPathToTravelPos()) {
             m_gaveUp = true;
         }
     }
 }
 
-void TurtleTravelGoal::setRandomTravelPos()
+void TurtleTravelGoal::_setRandomTravelPos()
 {
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return;
 
     mc::math::Random rng = m_turtle->getRandom();
 
-    // MC 1.16.5: 在 512 格范围内随机选择目标
+    // 在 512 格范围内随机选择目标
     i32 k = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;                   // X: -512 到 +512
     i32 l = rng.nextInt(TRAVEL_VERTICAL_RANGE * 2 + 1) - TRAVEL_VERTICAL_RANGE; // Y: -4 到 +4
     i32 i1 = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;                  // Z: -512 到 +512
 
-    // MC 1.16.5: 确保不会游到海平面以上
-    // 海平面高度 = 63
-    constexpr i32 SEA_LEVEL = 63;
-    if (static_cast<f64>(l) + m_turtle->y() > static_cast<f64>(SEA_LEVEL - 1)) {
+    // 确保不会游到海平面以上
+    if (static_cast<f64>(l) + m_turtle->y() > static_cast<f64>(world::SEA_LEVEL - 1)) {
         l = 0;
     }
 
@@ -442,11 +443,11 @@ void TurtleTravelGoal::setRandomTravelPos()
         static_cast<i32>(std::floor(m_turtle->z())) + i1);
 }
 
-bool TurtleTravelGoal::tryFindPathToTravelPos()
+bool TurtleTravelGoal::_tryFindPathToTravelPos()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 使用 RandomPositionGenerator 找到通往旅行目标的路径
+    // 使用 RandomPositionGenerator 找到通往旅行目标的路径
     Vector3 targetPos(
         static_cast<f64>(m_travelPos.x) + 0.5, static_cast<f64>(m_travelPos.y), static_cast<f64>(m_travelPos.z) + 0.5);
 
@@ -454,7 +455,7 @@ bool TurtleTravelGoal::tryFindPathToTravelPos()
     bool found = util::RandomPositionGenerator::findRandomTargetTowards(m_turtle, 16, 3, targetPos, movePos);
 
     if (found) {
-        // MC 1.16.5: 检查区域是否已加载
+        // 检查区域是否已加载
         i32 checkX = static_cast<i32>(std::floor(movePos.x));
         i32 checkZ = static_cast<i32>(std::floor(movePos.z));
         constexpr i32 CHECK_RANGE = 34;
@@ -467,7 +468,7 @@ bool TurtleTravelGoal::tryFindPathToTravelPos()
     }
 
     if (!found) {
-        // MC 1.16.5: 备用方案 - 直接导航到目标
+        // 备用方案：直接导航到目标
         movePos = targetPos;
     }
 
@@ -494,24 +495,24 @@ bool TurtleGoToWaterGoal::shouldExecute()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 幼龟不在水中时触发
+    // 幼龟不在水中时触发
     if (m_turtle->isChild() && !m_turtle->isInWater()) {
-        return findWater();
+        return _findWater();
     }
 
-    // MC 1.16.5: 成龟条件：不在回家 AND 不在水中 AND 没有蛋
+    // 成龟条件：不在回家 AND 不在水中 AND 没有蛋
     if (m_turtle->isGoingHome() || m_turtle->isInWater() || m_turtle->hasEgg()) {
         return false;
     }
 
-    return findWater();
+    return _findWater();
 }
 
 bool TurtleGoToWaterGoal::shouldContinueExecuting()
 {
     if (m_turtle == nullptr) return false;
 
-    // MC 1.16.5: 仍在陆地 AND 超时 <= 1200 AND 目标仍是水
+    // 仍在陆地 AND 超时 <= 1200 AND 目标仍是水
     if (m_turtle->isInWater()) {
         return false;
     }
@@ -552,7 +553,7 @@ void TurtleGoToWaterGoal::tick()
 
     m_timeoutCounter++;
 
-    // MC 1.16.5: 如果已经在水中，停止
+    // 如果已经在水中，停止
     if (m_turtle->isInWater()) {
         m_turtle->clearNavigation();
         m_foundWater = false;
@@ -566,7 +567,7 @@ void TurtleGoToWaterGoal::tick()
     }
 }
 
-bool TurtleGoToWaterGoal::findWater()
+bool TurtleGoToWaterGoal::_findWater()
 {
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return false;
 
@@ -575,7 +576,7 @@ bool TurtleGoToWaterGoal::findWater()
         static_cast<i32>(std::floor(m_turtle->y())),
         static_cast<i32>(std::floor(m_turtle->z())));
 
-    // MC 1.16.5: 幼龟使用更大的搜索范围
+    // 幼龟使用更大的搜索范围
     i32 horizontalRange = m_turtle->isChild() ? 2 : SEARCH_RANGE_HORIZONTAL;
 
     f64 closestDistSq = std::numeric_limits<f64>::max();
@@ -619,7 +620,7 @@ TurtleMateGoal::TurtleMateGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtleMateGoal::shouldExecute()
 {
-    // MC 1.16.5: 海龟繁殖额外条件：没有蛋
+    // 海龟繁殖额外条件：没有蛋
     if (m_turtle != nullptr && m_turtle->hasEgg()) {
         return false;
     }
@@ -637,7 +638,6 @@ TurtlePanicGoal::TurtlePanicGoal(TurtleEntity* turtle, f64 speed)
 
 bool TurtlePanicGoal::shouldExecute()
 {
-    // MC 1.16.5: 海龟恐慌目标的特殊逻辑
     // 如果正在被攻击或着火，优先找水
     return PanicGoal::shouldExecute();
 }
@@ -667,9 +667,9 @@ TurtleWanderGoal::TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance)
 
 bool TurtleWanderGoal::shouldExecute()
 {
-    // MC 1.16.5: 不在水中 AND 不在回家 AND 没有蛋
     if (m_turtle == nullptr) return false;
 
+    // 不在水中 AND 不在回家 AND 没有蛋
     if (m_turtle->isInWater()) {
         return false;
     }

@@ -22,28 +22,24 @@
  */
 
 #include "RavagerNodeProcessor.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockState.hpp"
-#include "../../../world/block/BlockTags.hpp"
+
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 
 namespace mc::entity::ai::pathfinding {
 
 PathNodeType RavagerNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
 {
-    // MC 1.16.5 RavagerEntity.Processor.func_215744_a_:
-    // 首先检查是否是树叶
-    // 如果是树叶，返回 OPEN 类型，让劫掠兽可以穿过树叶
-    if (m_region) {
-        const BlockState* state = m_region->getBlockState(x, y, z);
-        if (state != nullptr && BlockTags::LEAVES().contains(*state)) {
-            return PathNodeType::Open;
-        }
+    // 检查是否是树叶，如果是则返回 OPEN 类型，让劫掠兽可以穿过树叶
+    if (_checkLeavesAsOpen(x, y, z)) {
+        return PathNodeType::Open;
     }
 
     // 调用父类方法获取基本类型
     PathNodeType type = WalkNodeProcessor::getNodeType(x, y, z);
 
-    // 如果父类返回 Leaves（虽然目前不会发生），也转换为 Open
+    // 如果父类返回 Leaves，也转换为 Open
     if (type == PathNodeType::Leaves) {
         return PathNodeType::Open;
     }
@@ -53,12 +49,9 @@ PathNodeType RavagerNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
 
 PathNodeType RavagerNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
 {
-    // MC 1.16.5: 首先检查是否是树叶
-    if (m_region) {
-        const BlockState* state = m_region->getBlockState(x, y, z);
-        if (state != nullptr && BlockTags::LEAVES().contains(*state)) {
-            return PathNodeType::Open;
-        }
+    // 检查是否是树叶，如果是则返回 OPEN 类型
+    if (_checkLeavesAsOpen(x, y, z)) {
+        return PathNodeType::Open;
     }
 
     // 调用父类方法获取基本类型
@@ -70,6 +63,17 @@ PathNodeType RavagerNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
     }
 
     return type;
+}
+
+bool RavagerNodeProcessor::_checkLeavesAsOpen(i32 x, i32 y, i32 z) const
+{
+    if (m_region) {
+        const BlockState* state = m_region->getBlockState(x, y, z);
+        if (state != nullptr && BlockTags::LEAVES().contains(*state)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace mc::entity::ai::pathfinding

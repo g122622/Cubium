@@ -22,24 +22,23 @@
  */
 
 #include "RangedAttackGoals.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../item/Items.hpp"
-#include "../../../../../item/core/Item.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../item/core/UseAction.hpp"
-#include "../../../../../item/items/weapon/BowItem.hpp"
-#include "../../../../../item/items/weapon/CrossbowItem.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../interfaces/ICrossbowUser.hpp"
-#include "../../../../interfaces/IRangedAttackMob.hpp"
-#include "../../../controller/LookController.hpp"
-#include "../../../controller/MovementController.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/interfaces/ICrossbowUser.hpp"
+#include "common/entity/interfaces/IRangedAttackMob.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/items/weapon/BowItem.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -74,20 +73,19 @@ bool RangedAttackGoal::shouldExecute()
 
 bool RangedAttackGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: shouldExecute() || !noPath()
     return shouldExecute() || (m_mob && !m_mob->navigator()->noPath());
 }
 
 void RangedAttackGoal::startExecuting()
 {
-    // MC 1.16.5: 初始值在构造函数中不需要设置
+    // 初始值在构造函数中不需要设置
 }
 
 void RangedAttackGoal::resetTask()
 {
     m_target = nullptr;
     m_seenTime = 0;
-    m_attackTime = -1; // MC 1.16.5: 重置为 -1
+    m_attackTime = -1; // 重置为 -1
     if (m_mob) {
         m_mob->clearNavigation();
     }
@@ -97,11 +95,11 @@ void RangedAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
 
-    // MC 1.16.5: 计算到目标的距离平方
+    // 计算到目标的距离平方
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
     f32 dist = std::sqrt(static_cast<f32>(distSq));
 
-    // MC 1.16.5: 检查视线并更新 seenTime
+    // 检查视线并更新 seenTime
     bool canSee = m_mob->canSee(*m_target);
     if (canSee) {
         m_seenTime++;
@@ -109,7 +107,7 @@ void RangedAttackGoal::tick()
         m_seenTime = 0;
     }
 
-    // MC 1.16.5: 距离判定和 seenTime 判定
+    // 距离判定和 seenTime 判定
     // 如果在攻击距离内 且 能看到目标 >= 5 ticks，停止移动
     if (distSq <= static_cast<f64>(m_maxAttackDistanceSq) && m_seenTime >= MIN_SEEN_TIME) {
         m_mob->clearNavigation();
@@ -121,31 +119,31 @@ void RangedAttackGoal::tick()
         }
     }
 
-    // MC 1.16.5: 使用 LookController 看向目标，deltaYaw=30, deltaPitch=30
+    // 使用 LookController 看向目标
     if (auto* lookCtrl = m_mob->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
     }
 
-    // MC 1.16.5: 攻击计时逻辑
+    // 攻击计时逻辑
     if (--m_attackTime == 0) {
         // 攻击时间到了，检查是否能看见目标
         if (!canSee) {
             return;
         }
 
-        // MC 1.16.5: 计算蓄力程度 = sqrt(distSq) / attackRadius
+        // 计算蓄力程度 = sqrt(distSq) / attackRadius
         f32 charge = dist / m_attackRadius;
         charge = std::clamp(charge, 0.1f, 1.0f);
 
         performAttack(m_target, charge);
 
-        // MC 1.16.5: 计算下一次攻击时间
+        // 计算下一次攻击时间
         // floor(charge * (max - min) + min)
         m_attackTime =
             static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) +
                 static_cast<f32>(m_attackIntervalMin)));
     } else if (m_attackTime < 0) {
-        // MC 1.16.5: 初始化攻击时间
+        // 初始化攻击时间
         f32 charge = dist / m_attackRadius;
         m_attackTime =
             static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) +
@@ -190,7 +188,7 @@ void RangedBowAttackGoal::startExecuting()
     m_strafingClockwise = false;
     m_strafingBackwards = false;
     m_strafingTime = -1;
-    // MC 1.16.5: 设置激怒状态
+    // 设置激怒状态
     if (m_mob) {
         m_mob->setAggroed(true);
     }
@@ -202,7 +200,7 @@ void RangedBowAttackGoal::resetTask()
     m_strafingClockwise = false;
     m_strafingBackwards = false;
     m_strafingTime = -1;
-    // MC 1.16.5: 清除激怒状态并停止使用弓
+    // 清除激怒状态并停止使用弓
     if (m_mob) {
         m_mob->setAggroed(false);
         m_mob->stopActiveHand();
@@ -216,7 +214,7 @@ void RangedBowAttackGoal::tick()
     // 计算到目标的距离平方
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
 
-    // MC 1.16.5: 检查视线并更新 seeTime
+    // 检查视线并更新 seeTime
     // 原版逻辑：看得到++，看不到--，而不是简单重置
     bool canSee = m_mob->canSee(*m_target);
     bool wasSeeing = m_seenTime > 0;
@@ -229,12 +227,12 @@ void RangedBowAttackGoal::tick()
         --m_seenTime;
     }
 
-    // MC 1.16.5: 看向目标
+    // 看向目标
     if (auto* lookCtrl = m_mob->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
     }
 
-    // MC 1.16.5: 在攻击范围内且能看到目标足够久，停止移动并开始走位
+    // 在攻击范围内且能看到目标足够久，停止移动并开始走位
     if (distSq <= static_cast<f64>(m_maxAttackDistanceSq) && m_seenTime >= 20) {
         // 在攻击范围内 - 停止寻路
         m_mob->clearNavigation();
@@ -248,7 +246,7 @@ void RangedBowAttackGoal::tick()
         m_strafingTime = -1;
     }
 
-    // MC 1.16.5: 走位方向变化
+    // 走位方向变化
     if (m_strafingTime >= 20) {
         math::Random rng = m_mob->getRandom();
         // 30% 概率改变顺时针/逆时针
@@ -262,7 +260,7 @@ void RangedBowAttackGoal::tick()
         m_strafingTime = 0;
     }
 
-    // MC 1.16.5: 走位执行
+    // 走位执行
     if (m_strafingTime > -1) {
         // 根据距离调整前进/后退
         if (distSq > static_cast<f64>(m_maxAttackDistanceSq) * 0.75) {
@@ -279,7 +277,7 @@ void RangedBowAttackGoal::tick()
         }
     }
 
-    // MC 1.16.5: 弓蓄力和发射逻辑
+    // 弓蓄力和发射逻辑
     // 检查实体是否正在使用物品（蓄力中）
     if (m_mob->isUsingItem()) {
         // 正在蓄力
@@ -288,7 +286,7 @@ void RangedBowAttackGoal::tick()
             m_mob->stopActiveHand();
         } else if (canSee) {
             // 检查蓄力时间
-            // MC 1.16.5: getItemInUseMaxCount() = getUseDuration() - getItemInUseCount()
+            // getItemInUseMaxCount() = getUseDuration() - getItemInUseCount()
             const ItemStack& mainHand = m_mob->getMainHandItem();
             const Item* item = mainHand.getItem();
             i32 useDuration = item ? item->getUseDuration(mainHand) : 0;
@@ -301,7 +299,7 @@ void RangedBowAttackGoal::tick()
             }
         }
     } else if (--m_attackTime <= 0 && m_seenTime >= -60) {
-        // MC 1.16.5: 开始蓄力
+        // 开始蓄力
         // ProjectileHelper.getHandWith(entity, Items.BOW)
         // 找到持有弓的手
         const ItemStack& mainHand = m_mob->getMainHandItem();
@@ -337,8 +335,8 @@ bool RangedCrossbowAttackGoal::shouldExecute()
 {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 检查是否持有弩
-    if (!isHoldingCrossbow()) return false;
+    // 检查是否持有弩
+    if (!_isHoldingCrossbow()) return false;
 
     LivingEntity* target = m_mob->attackTarget();
     if (!target || !target->isAlive()) return false;
@@ -349,7 +347,7 @@ bool RangedCrossbowAttackGoal::shouldExecute()
 
 bool RangedCrossbowAttackGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 继续执行条件
+    // 继续执行条件
     if (!m_mob || !m_target) return false;
 
     // 目标仍然有效
@@ -360,7 +358,7 @@ bool RangedCrossbowAttackGoal::shouldContinueExecuting()
     if (distSq > static_cast<f64>(m_attackRadiusSq * 4.0f)) return false; // 2倍追踪距离
 
     // 仍持有弩
-    return isHoldingCrossbow();
+    return _isHoldingCrossbow();
 }
 
 void RangedCrossbowAttackGoal::startExecuting()
@@ -371,7 +369,7 @@ void RangedCrossbowAttackGoal::startExecuting()
     m_cooldownTime = 0;
     m_moveCooldown = 0;
 
-    // MC 1.16.5: 设置激怒状态
+    // 设置激怒状态
     if (m_mob) {
         m_mob->setAggroed(true);
     }
@@ -405,7 +403,7 @@ void RangedCrossbowAttackGoal::tick()
     if (!m_mob || !m_target) return;
 
     // 更新视线时间
-    updateSeenTime();
+    _updateSeenTime();
 
     // 看向目标
     if (auto* lookCtrl = m_mob->lookController()) {
@@ -415,7 +413,7 @@ void RangedCrossbowAttackGoal::tick()
     // 计算到目标的距离
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
 
-    // MC 1.16.5: 移动逻辑
+    // 移动逻辑
     bool shouldMove =
         (distSq > static_cast<f64>(m_attackRadiusSq) || m_seenTime < MIN_SEEN_TIME) && m_moveCooldown == 0;
 
@@ -441,21 +439,21 @@ void RangedCrossbowAttackGoal::tick()
     // 状态机处理
     switch (m_crossbowState) {
         case CrossbowState::Uncharged:
-            handleUnchargedState();
+            _handleUnchargedState();
             break;
         case CrossbowState::Charging:
-            handleChargingState();
+            _handleChargingState();
             break;
         case CrossbowState::Charged:
-            handleChargedState();
+            _handleChargedState();
             break;
         case CrossbowState::ReadyToAttack:
-            handleReadyToAttackState();
+            _handleReadyToAttackState();
             break;
     }
 }
 
-bool RangedCrossbowAttackGoal::isHoldingCrossbow() const
+bool RangedCrossbowAttackGoal::_isHoldingCrossbow() const
 {
     if (!m_mob) return false;
 
@@ -466,13 +464,13 @@ bool RangedCrossbowAttackGoal::isHoldingCrossbow() const
     return item != nullptr && item->getUseAction(mainHand) == UseAction::Crossbow;
 }
 
-void RangedCrossbowAttackGoal::updateSeenTime()
+void RangedCrossbowAttackGoal::_updateSeenTime()
 {
     if (!m_mob || !m_target) return;
 
     bool canSee = m_mob->canSee(*m_target);
 
-    // MC 1.16.5: 递增/递减而不是重置
+    // 递增/递减而不是重置
     if (canSee) {
         ++m_seenTime;
     } else {
@@ -481,9 +479,9 @@ void RangedCrossbowAttackGoal::updateSeenTime()
     }
 }
 
-void RangedCrossbowAttackGoal::handleUnchargedState()
+void RangedCrossbowAttackGoal::_handleUnchargedState()
 {
-    // MC 1.16.5: 在攻击范围内且能看到目标时开始装填
+    // 在攻击范围内且能看到目标时开始装填
     if (m_seenTime >= MIN_SEEN_TIME && m_moveCooldown == 0) {
         // 开始装填
         m_mob->setActiveHand(Hand::MainHand);
@@ -498,9 +496,9 @@ void RangedCrossbowAttackGoal::handleUnchargedState()
     }
 }
 
-void RangedCrossbowAttackGoal::handleChargingState()
+void RangedCrossbowAttackGoal::_handleChargingState()
 {
-    // MC 1.16.5: 检查装填进度
+    // 检查装填进度
     const ItemStack& mainHand = m_mob->getMainHandItem();
     const Item* item = mainHand.getItem();
 
@@ -546,18 +544,18 @@ void RangedCrossbowAttackGoal::handleChargingState()
     }
 }
 
-void RangedCrossbowAttackGoal::handleChargedState()
+void RangedCrossbowAttackGoal::_handleChargedState()
 {
-    // MC 1.16.5: 等待一段时间后进入攻击状态
+    // 等待一段时间后进入攻击状态
     --m_cooldownTime;
     if (m_cooldownTime <= 0) {
         m_crossbowState = CrossbowState::ReadyToAttack;
     }
 }
 
-void RangedCrossbowAttackGoal::handleReadyToAttackState()
+void RangedCrossbowAttackGoal::_handleReadyToAttackState()
 {
-    // MC 1.16.5: 看到目标时发射
+    // 看到目标时发射
     bool canSee = m_mob->canSee(*m_target);
     if (!canSee) {
         // 看不到目标，重置到已装填状态等待
@@ -570,7 +568,7 @@ void RangedCrossbowAttackGoal::handleReadyToAttackState()
     ItemStack& mainHand = const_cast<ItemStack&>(m_mob->getMainHandItem());
     entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
 
-    if (crossbowUser && isHoldingCrossbow()) {
+    if (crossbowUser && _isHoldingCrossbow()) {
         // 发射（shootCrossbow 内部会根据弹药类型决定速度）
         crossbowUser->shootCrossbow(m_target, mainHand, 1.0f);
 
