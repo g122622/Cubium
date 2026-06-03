@@ -308,7 +308,7 @@ private:
     void _buildCloudMaskFromTexture(const std::vector<u8>& textureData, u32 width, u32 height);
 
     /**
-     * @brief 查询指定云网格单元是否为“有云”
+     * @brief 查询指定云网格单元是否为"有云"
      *
      * 传入网格坐标（可为负），内部会按纹理尺寸循环映射。
      *

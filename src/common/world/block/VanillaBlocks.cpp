@@ -947,7 +947,7 @@ void VanillaBlocks::registerBaseBlocks()
     // 使用LiquidBlock注册，关联FlowingFluid
     // 参考: net.minecraft.block.FlowingFluidBlock
     // 视觉修正：当前渲染链路下，opacity=1 会导致海底在约 15 格深度后出现纯黑。
-    // 这里改为 opacity=0，保留不传播天空光语义，同时避免“y48 以下全黑”的断崖现象。
+    // 这里改为 opacity=0，保留不传播天空光语义，同时避免"y48 以下全黑"的断崖现象。
     {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         if (waterFluid != nullptr) {

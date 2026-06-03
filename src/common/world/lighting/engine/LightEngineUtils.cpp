@@ -71,7 +71,7 @@ const BlockState* LightEngineUtils::getBlockAndOpacity(const IChunk* chunk, i64 
         return nullptr;
     }
 
-    // 空气方块按“无方块”处理，避免误参与光照遮挡计算。
+    // 空气方块按"无方块"处理，避免误参与光照遮挡计算。
     if (state->isAir()) {
         if (opacityOut != nullptr) {
             *opacityOut = 0;

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace entity {
@@ -34,11 +34,11 @@ namespace schedule {
 /**
  * @brief 单个日程时间片的权重记录
  *
- * 对齐 MC 1.16.5 DutyTime，用于表示某个时间点开始的活动权重。
+ * 用于表示某个时间点开始的活动权重。
  */
 class DutyTime {
 public:
-    DutyTime(i32 dayTime, f32 value)
+    DutyTime(i32 dayTime, f32 value) noexcept
         : m_dayTime(dayTime)
         , m_value(value)
     {}

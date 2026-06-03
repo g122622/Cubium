@@ -22,10 +22,10 @@
  */
 
 #include "MemoryModuleType.hpp"
-#include "../../../../world/GlobalPos.hpp"
-#include "../../../../world/block/BlockPos.hpp"
 #include "IPositionTarget.hpp"
 #include "WalkTarget.hpp"
+#include "common/world/GlobalPos.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace entity {
@@ -38,7 +38,7 @@ std::unordered_map<std::string, std::unique_ptr<MemoryModuleTypeBase>> MemoryMod
 // ========== 基础类型 ==========
 const MemoryModuleType<void>* MemoryModuleTypes::DUMMY = nullptr;
 
-// ========== 位置相关 (MC 1.16.5) ==========
+// ========== 位置相关 ==========
 const MemoryModuleType<GlobalPos>* MemoryModuleTypes::HOME = nullptr;
 const MemoryModuleType<GlobalPos>* MemoryModuleTypes::JOB_SITE = nullptr;
 const MemoryModuleType<GlobalPos>* MemoryModuleTypes::POTENTIAL_JOB_SITE = nullptr;
@@ -49,7 +49,7 @@ const MemoryModuleType<BlockPos>* MemoryModuleTypes::CELEBRATE_LOCATION = nullpt
 const MemoryModuleType<BlockPos>* MemoryModuleTypes::NEAREST_REPELLENT = nullptr;
 const MemoryModuleType<std::vector<GlobalPos>>* MemoryModuleTypes::SECONDARY_JOB_SITE = nullptr;
 
-// ========== 实体列表相关 (MC 1.16.5) ==========
+// ========== 实体列表相关 ==========
 const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::MOBS = nullptr;
 const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::VISIBLE_MOBS = nullptr;
 const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::VISIBLE_VILLAGER_BABIES = nullptr;
@@ -68,27 +68,27 @@ const MemoryModuleType<Entity*>* MemoryModuleTypes::RIDE_TARGET = nullptr;
 const MemoryModuleType<MobEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS = nullptr;
 const MemoryModuleType<ItemEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM = nullptr;
 
-// ========== 移动相关 (MC 1.16.5) ==========
+// ========== 移动相关 ==========
 const MemoryModuleType<Path>* MemoryModuleTypes::PATH = nullptr;
 const MemoryModuleType<WalkTarget>* MemoryModuleTypes::WALK_TARGET = nullptr;
 const MemoryModuleType<std::shared_ptr<IPositionTarget>>* MemoryModuleTypes::LOOK_TARGET = nullptr;
 
-// ========== 门相关 (MC 1.16.5) ==========
+// ========== 门相关 ==========
 const MemoryModuleType<std::vector<GlobalPos>>* MemoryModuleTypes::INTERACTABLE_DOORS = nullptr;
 const MemoryModuleType<std::unordered_set<GlobalPos>>* MemoryModuleTypes::OPENED_DOORS = nullptr;
 
-// ========== 战斗相关 (MC 1.16.5) ==========
+// ========== 战斗相关 ==========
 const MemoryModuleType<bool>* MemoryModuleTypes::ATTACK_COOLING_DOWN = nullptr;
 const MemoryModuleType<DamageSource*>* MemoryModuleTypes::HURT_BY = nullptr;
 
-// ========== 时间相关 (MC 1.16.5) ==========
+// ========== 时间相关 ==========
 const MemoryModuleType<i64>* MemoryModuleTypes::HEARD_BELL_TIME = nullptr;
 const MemoryModuleType<i64>* MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE = nullptr;
 const MemoryModuleType<i64>* MemoryModuleTypes::LAST_SLEPT = nullptr;
 const MemoryModuleType<i64>* MemoryModuleTypes::LAST_WOKEN = nullptr;
 const MemoryModuleType<i64>* MemoryModuleTypes::LAST_WORKED_AT_POI = nullptr;
 
-// ========== 状态相关 (MC 1.16.5) ==========
+// ========== 状态相关 ==========
 const MemoryModuleType<bool>* MemoryModuleTypes::ADMIRING_ITEM = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::ADMIRING_DISABLED = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::HUNTED_RECENTLY = nullptr;
@@ -98,18 +98,18 @@ const MemoryModuleType<bool>* MemoryModuleTypes::PACIFIED = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::GOLEM_DETECTED_RECENTLY = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::UNIVERSAL_ANGER = nullptr;
 
-// ========== 计时器相关 (MC 1.16.5) ==========
+// ========== 计时器相关 ==========
 const MemoryModuleType<i32>* MemoryModuleTypes::TIME_TRYING_TO_REACH_ADMIRE_ITEM = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::DISABLE_WALK_TO_ADMIRE_ITEM = nullptr;
 
-// ========== 玩家相关 (MC 1.16.5) ==========
+// ========== 玩家相关 ==========
 const MemoryModuleType<Player*>* MemoryModuleTypes::TEMPTING_PLAYER = nullptr;
 const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTED_ITEM = nullptr;
 
-// ========== UUID 相关 (MC 1.16.5) ==========
+// ========== UUID 相关 ==========
 const MemoryModuleType<u64>* MemoryModuleTypes::ANGRY_AT = nullptr;
 
-// ========== 猪灵/猪灵相关 (MC 1.16.5) ==========
+// ========== 猪灵/疣兽相关 ==========
 const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN = nullptr;
 const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN = nullptr;
 const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = nullptr;
@@ -334,7 +334,7 @@ void MemoryModuleTypes::initialize()
     s_types["angry_at"] = std::make_unique<MemoryModuleType<u64>>("angry_at");
     ANGRY_AT = static_cast<const MemoryModuleType<u64>*>(s_types["angry_at"].get());
 
-    // ========== 猪灵/猪灵相关 (MC 1.16.5) ==========
+    // ========== 猪灵/疣兽相关 ==========
     s_types["nearest_visible_huntable_hoglin"] =
         std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_huntable_hoglin");
     NEAREST_VISIBLE_HUNTABLE_HOGLIN =

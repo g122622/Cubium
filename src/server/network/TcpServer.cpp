@@ -369,7 +369,7 @@ void TcpServer::handleSessionData(TcpSession* session)
 /**
  * @brief 将会话发送队列中的数据写入 socket。
  * @param session 会话对象
- * @note 当前实现按“整包发送”处理，若遇到部分发送会将剩余部分回退到队首。
+ * @note 当前实现按"整包发送"处理，若遇到部分发送会将剩余部分回退到队首。
  */
 void TcpServer::sendSessionData(TcpSession* session)
 {

@@ -486,7 +486,7 @@ Result<void> SkyRenderer::_createSkyDomeVBO()
 {
     // 创建天空球网格。
     // 说明：
-    // - 原先的平面天空无法区分”上半天空/下半天空”，无法实现晨昏时下半天空填充。
+    // - 原先的平面天空无法区分"上半天空/下半天空"，无法实现晨昏时下半天空填充。
     // - 使用球面后，可基于方向向量按半球分别着色并叠加日出日落扇形效果。
     constexpr f64 SKY_RADIUS = 384.0;
     constexpr i32 STACK_COUNT = 32;

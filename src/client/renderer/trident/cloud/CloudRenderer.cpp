@@ -964,7 +964,7 @@ void CloudRenderer::_buildCloudMaskFromTexture(const std::vector<u8>& textureDat
         }
     }
 
-    // 对云掩码执行一次轻量“闭运算”：填补孤立小孔，降低棋盘格/碎块观感。
+    // 对云掩码执行一次轻量"闭运算"：填补孤立小孔，降低棋盘格/碎块观感。
     std::vector<u8> smoothedMask = m_cloudMask;
     for (u32 y = 0; y < height; ++y) {
         for (u32 x = 0; x < width; ++x) {

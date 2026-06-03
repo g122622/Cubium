@@ -151,7 +151,7 @@ BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoor
 {
     auto it = m_heightmaps.find(type);
     if (it != m_heightmaps.end()) {
-        // Heightmap 内部保存的是“最高方块上方一格”的 Y，所以这里要减 1
+        // Heightmap 内部保存的是"最高方块上方一格"的 Y，所以这里要减 1
         // 才是实际的方块坐标。OceanFloorWG 也遵循同一语义。
         return it->second.getHeight(x, z) - 1;
     }

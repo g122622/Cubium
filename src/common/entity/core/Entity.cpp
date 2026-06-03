@@ -994,7 +994,7 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     m_collidedVertically = physics->collidedVertically();
 
     // 更新地面状态
-    // 优先使用”向下移动时发生垂直碰撞”的判定，避免纯接触检测抖动。
+    // 优先使用"向下移动时发生垂直碰撞"的判定，避免纯接触检测抖动。
     bool groundedByCollision = m_collidedVertically && desiredMovement.y < 0.0f;
     bool groundedByContact = physics->isOnGround(entityBox);
     bool wasOnGround = m_onGround;

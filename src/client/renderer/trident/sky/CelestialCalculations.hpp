@@ -141,7 +141,7 @@ public:
      * @return RGBA，A 通道为效果强度。若当前时刻无效果则返回全 0。
      *
      * 只在太阳接近地平线时生效。
-     * 生效曲线为”渐入 -> 峰值 -> 渐出”。
+     * 生效曲线为"渐入 -> 峰值 -> 渐出"。
      * 受天气影响衰减。
      */
     [[nodiscard]] static glm::vec4 calculateSunriseSunsetColor(

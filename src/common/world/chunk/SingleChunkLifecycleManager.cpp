@@ -195,7 +195,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
         return buildDecisionLocked();
     }
 
-    // Unknown 是唯一允许触发一次“来源解析”的状态。
+    // Unknown 是唯一允许触发一次"来源解析"的状态。
     if (m_sourceState == SourceState::Unknown) {
         m_sourceState = SourceState::ResolvingStorage;
         return buildDecisionLocked();
@@ -213,7 +213,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 邻居推进事件只允许影响“等待邻居”的执行状态，不得改写来源状态。
+    // 邻居推进事件只允许影响"等待邻居"的执行状态，不得改写来源状态。
     if (m_sourceState != SourceState::StorageMissing) {
         return buildDecisionLocked();
     }
@@ -281,7 +281,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
         return buildDecisionLocked();
     }
 
-    // 失败或取消后，保留“来源已确认缺失”的事实，只重置执行状态，允许后续重新请求。
+    // 失败或取消后，保留"来源已确认缺失"的事实，只重置执行状态，允许后续重新请求。
     m_sourceState = SourceState::StorageMissing;
     m_executionState = ExecutionState::Idle;
     clearActiveGenerationLocked();
@@ -325,7 +325,7 @@ ChunkPrimer* SingleChunkLifecycleManager::createGeneratingChunk()
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (!m_generatingChunk) {
-        // 只有真正进入生成阶段时才创建 ChunkPrimer，避免“来源解析”和“等待邻居”阶段过早分配。
+        // 只有真正进入生成阶段时才创建 ChunkPrimer，避免"来源解析"和"等待邻居"阶段过早分配。
         m_generatingChunk = std::make_unique<ChunkPrimer>(m_x, m_z);
     }
 
@@ -361,7 +361,7 @@ void SingleChunkLifecycleManager::markLoadedFromStorageReady()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     // 存档恢复完成后，真正的 ChunkData 所有权由外层缓存持有；
-    // lifecycle manager 这里只记录“来源已解析并且区块已经就绪”。
+    // lifecycle manager 这里只记录"来源已解析并且区块已经就绪"。
     m_status = &ChunkStatuses::FULL;
     m_sourceState = SourceState::Ready;
     m_executionState = ExecutionState::Idle;

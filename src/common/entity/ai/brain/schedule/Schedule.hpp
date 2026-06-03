@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "Activity.hpp"
 #include "DutyTime.hpp"
+#include "common/core/Types.hpp"
 #include <cstddef>
 #include <memory>
 #include <unordered_map>
@@ -43,7 +43,6 @@ class ScheduleDuties;
  * @brief 日程安排
  *
  * 定义实体在不同时间的活动安排
- * 参考 MC 1.16.5 Schedule
  */
 class Schedule {
 public:
@@ -55,8 +54,8 @@ public:
     Schedule& operator=(const Schedule&) = delete;
 
     // 允许移动
-    Schedule(Schedule&&) = default;
-    Schedule& operator=(Schedule&&) = default;
+    Schedule(Schedule&&) noexcept = default;
+    Schedule& operator=(Schedule&&) noexcept = default;
 
     /**
      * @brief 添加一个时间点的活动
@@ -90,12 +89,12 @@ public:
      */
     static void initialize();
 
-protected:
+private:
     friend class ScheduleBuilder;
 
-    void createDutiesFor(const Activity& activity);
-    ScheduleDuties* getDutiesFor(const Activity& activity);
-    std::vector<ScheduleDuties*> getAllDutiesExcept(const Activity& activity);
+    void _createDutiesFor(const Activity& activity);
+    ScheduleDuties* _getDutiesFor(const Activity& activity);
+    std::vector<ScheduleDuties*> _getAllDutiesExcept(const Activity& activity);
 
 private:
     std::unordered_map<Activity, std::unique_ptr<ScheduleDuties>> m_duties;
@@ -107,6 +106,15 @@ private:
 class ScheduleBuilder {
 public:
     explicit ScheduleBuilder(Schedule& schedule);
+    ~ScheduleBuilder() = default;
+
+    // 禁止拷贝
+    ScheduleBuilder(const ScheduleBuilder&) = delete;
+    ScheduleBuilder& operator=(const ScheduleBuilder&) = delete;
+
+    // 允许移动
+    ScheduleBuilder(ScheduleBuilder&&) noexcept = default;
+    ScheduleBuilder& operator=(ScheduleBuilder&&) noexcept = default;
 
     ScheduleBuilder& add(i32 dayTime, const Activity& activity);
     Schedule& build();
@@ -131,11 +139,22 @@ private:
  */
 class ScheduleDuties {
 public:
+    ScheduleDuties() = default;
+    ~ScheduleDuties() = default;
+
+    // 禁止拷贝
+    ScheduleDuties(const ScheduleDuties&) = delete;
+    ScheduleDuties& operator=(const ScheduleDuties&) = delete;
+
+    // 允许移动
+    ScheduleDuties(ScheduleDuties&&) noexcept = default;
+    ScheduleDuties& operator=(ScheduleDuties&&) noexcept = default;
+
     ScheduleDuties& addDutyTime(i32 dayTime, f32 weight);
     [[nodiscard]] f32 getWeightAt(i32 dayTime) const;
 
 private:
-    void rebuildDutyTimes();
+    void _rebuildDutyTimes();
 
     std::vector<DutyTime> m_dutyTimes;
     mutable std::size_t m_lastIndex = 0;

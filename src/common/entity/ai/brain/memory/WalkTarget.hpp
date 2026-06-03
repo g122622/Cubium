@@ -24,10 +24,9 @@
 #pragma once
 
 #include <memory>
-#include "../../../../util/assert/AssertAll.hpp"
-#include "BlockPosTarget.hpp"
 
-#include <utility>
+#include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace entity {
@@ -38,7 +37,7 @@ namespace memory {
 /**
  * @brief Brain 行走目标
  *
- * 对齐 MC 1.16.5 WalkTarget，封装位置目标、速度修正和可接受接近距离。
+ * 封装位置目标、速度修正和可接受接近距离。
  */
 class WalkTarget {
 public:
@@ -58,11 +57,11 @@ public:
         : WalkTarget(BlockPos(targetPos), speedModifier, closeEnoughDist)
     {}
 
-    [[nodiscard]] const PositionTargetPtr& getTarget() const { return m_target; }
+    [[nodiscard]] const PositionTargetPtr& getTarget() const noexcept { return m_target; }
 
-    [[nodiscard]] f32 getSpeed() const { return m_speedModifier; }
+    [[nodiscard]] f32 getSpeed() const noexcept { return m_speedModifier; }
 
-    [[nodiscard]] i32 getDistance() const { return m_closeEnoughDist; }
+    [[nodiscard]] i32 getDistance() const noexcept { return m_closeEnoughDist; }
 
 private:
     PositionTargetPtr m_target;

@@ -37,7 +37,6 @@ namespace schedule {
  * @brief 活动类型
  *
  * 定义实体的不同AI活动状态
- * 参考 MC 1.16.5 Activity
  */
 class Activity {
 public:
@@ -60,20 +59,18 @@ public:
 
     explicit Activity(const std::string& key);
 
-    [[nodiscard]] const std::string& getKey() const { return m_key; }
-    [[nodiscard]] size_t getHash() const { return m_hash; }
+    [[nodiscard]] const std::string& getKey() const noexcept { return m_key; }
+    [[nodiscard]] size_t getHash() const noexcept { return m_hash; }
 
-    bool operator==(const Activity& other) const { return m_key == other.m_key; }
-
-    bool operator!=(const Activity& other) const { return m_key != other.m_key; }
-
-    bool operator<(const Activity& other) const { return m_key < other.m_key; }
+    bool operator==(const Activity& other) const noexcept { return m_key == other.m_key; }
+    bool operator!=(const Activity& other) const noexcept { return m_key != other.m_key; }
+    bool operator<(const Activity& other) const noexcept { return m_key < other.m_key; }
 
 private:
     std::string m_key;
     size_t m_hash;
 
-    static Activity registerActivity(const std::string& key);
+    static Activity _registerActivity(const std::string& key);
 };
 
 } // namespace schedule
@@ -86,6 +83,9 @@ private:
 namespace std {
 template <>
 struct hash<mc::entity::ai::brain::schedule::Activity> {
-    size_t operator()(const mc::entity::ai::brain::schedule::Activity& activity) const { return activity.getHash(); }
+    size_t operator()(const mc::entity::ai::brain::schedule::Activity& activity) const noexcept
+    {
+        return activity.getHash();
+    }
 };
 } // namespace std

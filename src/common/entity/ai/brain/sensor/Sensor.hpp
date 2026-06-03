@@ -42,7 +42,6 @@ namespace sensor {
  * @brief 传感器基类
  *
  * 传感器负责定期更新实体的记忆模块
- * 参考 MC 1.16.5 Sensor
  *
  * @tparam E 实体类型
  */
@@ -55,7 +54,6 @@ public:
      */
     explicit Sensor(i32 interval = 20)
         : m_interval(interval)
-        , m_counter(0)
     {}
 
     virtual ~Sensor() = default;
@@ -74,8 +72,10 @@ public:
     }
 
     /**
-     * @brief 初始化counter（在首次tick时调用）
-     * MC 1.16.5: 使用实体随机数生成器初始化counter
+     * @brief 初始化计数器（在首次tick时调用）
+     *
+     * 使用实体随机数生成器初始化计数器，使传感器更新分散在不同tick执行
+     *
      * @param random 实体的随机数生成器
      */
     void initCounter(math::Random& random)
@@ -99,7 +99,7 @@ protected:
     virtual void update(IWorld* world, E* entity) = 0;
 
     i32 m_interval;
-    i32 m_counter = -1; // MC 1.16.5: -1表示未初始化，初始化时随机设置
+    i32 m_counter = -1; // -1表示未初始化，初始化时随机设置
 };
 
 } // namespace sensor

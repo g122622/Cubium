@@ -131,7 +131,7 @@ private:
      * @brief 判定方块是否可作为原版出生表面
      *
      * 当前仓库还没有完整的 `BlockTags::VALID_SPAWN`，这里先按 1.16.5 需要的语义
-     * 约束到“非流体、非树叶/植物、可阻挡移动”的表层方块。
+     * 约束到"非流体、非树叶/植物、可阻挡移动"的表层方块。
      */
     [[nodiscard]] static bool isValidSpawnSurface(const BlockState& state)
     {

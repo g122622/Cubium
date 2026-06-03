@@ -655,7 +655,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
     try {
         const i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
 
-        // 与 Moonrise 一致：light() 使用一组“全 NULL 状态”临时 nibble 作为点亮输入。
+        // 与 Moonrise 一致：light() 使用一组"全 NULL 状态"临时 nibble 作为点亮输入。
         std::vector<SWMRNibbleArray> tempNibbles(static_cast<size_t>(totalLightSections));
         std::vector<SWMRNibbleArray*> tempNibblePtrs(static_cast<size_t>(totalLightSections), nullptr);
         for (i32 i = 0; i < totalLightSections; ++i) {
@@ -675,7 +675,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         // 将临时 nibble 写入缓存（而不是直接读取 chunk 上现有 nibble）
         setNibblesForChunkInCache(chunkX, chunkZ, tempNibblePtrs.data());
 
-        // 与 Moonrise 一致：unlit 点亮流程先按“无空映射”处理，避免旧缓存干扰 initNibble。
+        // 与 Moonrise 一致：unlit 点亮流程先按"无空映射"处理，避免旧缓存干扰 initNibble。
         setEmptinessMapCache(chunkX, chunkZ, nullptr);
 
         // 计算 emptySections，并在未点亮模式下先跑一次空段处理（Moonrise light() 同构流程）

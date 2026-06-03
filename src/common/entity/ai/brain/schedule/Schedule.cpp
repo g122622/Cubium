@@ -23,7 +23,8 @@
 
 #include "Schedule.hpp"
 
-#include "../../../../util/assert/AssertAll.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <algorithm>
 #include <unordered_set>
@@ -36,12 +37,11 @@ namespace schedule {
 
 namespace {
 
-constexpr i32 DAY_LENGTH = 24000;
-
 i32 normalizeDayTime(i32 dayTime)
 {
-    const i32 normalized = dayTime % DAY_LENGTH;
-    return normalized < 0 ? normalized + DAY_LENGTH : normalized;
+    constexpr i32 dayLength = mc::game::DAY_LENGTH_TICKS;
+    const i32 normalized = dayTime % dayLength;
+    return normalized < 0 ? normalized + dayLength : normalized;
 }
 
 Schedule buildSchedule(std::initializer_list<std::pair<i32, Activity>> entries)
@@ -66,12 +66,12 @@ Schedule::Schedule() = default;
 
 Schedule& Schedule::add(i32 dayTime, const Activity& activity)
 {
-    createDutiesFor(activity);
-    for (ScheduleDuties* duties : getAllDutiesExcept(activity)) {
+    _createDutiesFor(activity);
+    for (ScheduleDuties* duties : _getAllDutiesExcept(activity)) {
         duties->addDutyTime(dayTime, 0.0f);
     }
 
-    ScheduleDuties* duties = getDutiesFor(activity);
+    ScheduleDuties* duties = _getDutiesFor(activity);
     MC_ASSERT_NOT_NULL(duties);
     duties->addDutyTime(dayTime, 1.0f);
     return *this;
@@ -99,20 +99,20 @@ Activity Schedule::getScheduledActivity(i32 dayTime) const
     return bestActivity != nullptr ? *bestActivity : Activity::IDLE;
 }
 
-void Schedule::createDutiesFor(const Activity& activity)
+void Schedule::_createDutiesFor(const Activity& activity)
 {
     if (m_duties.find(activity) == m_duties.end()) {
         m_duties.emplace(activity, std::make_unique<ScheduleDuties>());
     }
 }
 
-ScheduleDuties* Schedule::getDutiesFor(const Activity& activity)
+ScheduleDuties* Schedule::_getDutiesFor(const Activity& activity)
 {
     const auto iterator = m_duties.find(activity);
     return iterator != m_duties.end() ? iterator->second.get() : nullptr;
 }
 
-std::vector<ScheduleDuties*> Schedule::getAllDutiesExcept(const Activity& activity)
+std::vector<ScheduleDuties*> Schedule::_getAllDutiesExcept(const Activity& activity)
 {
     std::vector<ScheduleDuties*> duties;
     duties.reserve(m_duties.size());
@@ -170,15 +170,15 @@ Schedule& ScheduleBuilder::build()
     }
 
     for (const Activity& activity : activities) {
-        m_schedule.createDutiesFor(activity);
+        m_schedule._createDutiesFor(activity);
     }
 
     for (const ActivityEntry& entry : m_entries) {
-        for (ScheduleDuties* duties : m_schedule.getAllDutiesExcept(entry.m_activity)) {
+        for (ScheduleDuties* duties : m_schedule._getAllDutiesExcept(entry.m_activity)) {
             duties->addDutyTime(entry.m_dayTime, 0.0f);
         }
 
-        ScheduleDuties* duties = m_schedule.getDutiesFor(entry.m_activity);
+        ScheduleDuties* duties = m_schedule._getDutiesFor(entry.m_activity);
         MC_ASSERT_NOT_NULL(duties);
         duties->addDutyTime(entry.m_dayTime, 1.0f);
     }
@@ -189,7 +189,7 @@ Schedule& ScheduleBuilder::build()
 ScheduleDuties& ScheduleDuties::addDutyTime(i32 dayTime, f32 weight)
 {
     m_dutyTimes.emplace_back(dayTime, weight);
-    rebuildDutyTimes();
+    _rebuildDutyTimes();
     return *this;
 }
 
@@ -218,7 +218,7 @@ f32 ScheduleDuties::getWeightAt(i32 dayTime) const
     return value;
 }
 
-void ScheduleDuties::rebuildDutyTimes()
+void ScheduleDuties::_rebuildDutyTimes()
 {
     std::sort(m_dutyTimes.begin(), m_dutyTimes.end(), [](const DutyTime& lhs, const DutyTime& rhs) {
         return lhs.getDayTime() < rhs.getDayTime();

@@ -58,7 +58,7 @@ class WeatherSoundHandler;
  * @brief 音频服务
  *
  * 客户端唯一的音频入口。所有 OpenAL 调用、SoundEngine 生命周期、环境音与音乐逻辑
- * 都在独立的“音频引擎线程”内执行。
+ * 都在独立的"音频引擎线程"内执行。
  *
  * 主线程只负责投递命令，不直接接触 SoundEngine，也不直接触碰 OpenAL。
  */

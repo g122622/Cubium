@@ -220,7 +220,7 @@ glm::vec4 CelestialCalculations::calculateFogColor(f64 celestialAngle, f64 rainS
     glm::vec4 skyColor = calculateSkyColor(celestialAngle, rainStrength, thunderStrength);
     glm::vec3 fogColor = glm::vec3(skyColor);
 
-    // 雾比天空更灰一些，模拟 MC 地平线“泛白”感。
+    // 雾比天空更灰一些，模拟 MC 地平线"泛白"感。
     fogColor = glm::mix(fogColor, glm::vec3(0.70f, 0.75f, 0.80f), 0.22f);
 
     return glm::vec4(fogColor, 1.0f);

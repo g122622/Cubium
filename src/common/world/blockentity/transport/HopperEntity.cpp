@@ -45,7 +45,7 @@ namespace {
  * @param pos 漏斗方块位置。
  * @return `true` 表示漏斗可工作；`false` 表示被红石禁用。
  *
- * @note 如果当前位置不存在方块状态，或状态不包含 `ENABLED` 属性，则按“启用”处理，
+ * @note 如果当前位置不存在方块状态，或状态不包含 `ENABLED` 属性，则按"启用"处理，
  *       以保持和现有兼容逻辑一致，避免在非漏斗状态下误禁用传输。
  */
 [[nodiscard]] bool isHopperEnabledAt(IWorld& world, const BlockPos& pos)

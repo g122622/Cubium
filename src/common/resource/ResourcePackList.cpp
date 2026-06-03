@@ -53,7 +53,7 @@ std::string toLowerAscii(std::string value)
 // ============================================================================
 // 线程安全说明
 //
-// ResourcePackList 会在客户端主线程与音频线程之间共享，属于“读多写少”的场景。
+// ResourcePackList 会在客户端主线程与音频线程之间共享，属于"读多写少"的场景。
 // - 读操作（查询/遍历/读取资源）使用 std::shared_lock
 // - 写操作（增删/启用/优先级/回调注册）使用 std::unique_lock
 // - 对外返回 PackInfo 一律按值拷贝，避免暴露 vector 元素地址导致悬垂指针
@@ -67,7 +67,7 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
 {
     MC_TRACE_EVENT("client.initialization", "ResourcePackList::scanDirectory", "dir", dir.string());
 
-    // 注意：音频线程会并发读取 ResourcePackList，因此这里的“已存在检查”
+    // 注意：音频线程会并发读取 ResourcePackList，因此这里的"已存在检查"
     // 不能再返回内部元素指针给外部长期持有。我们只做布尔查询。
     if (!std::filesystem::exists(dir)) {
         spdlog::debug("Resource pack directory does not exist: {}", dir.string());
@@ -136,7 +136,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
 
     std::string normalizedPath = normalizePathKey(path);
 
-    // 先在锁内做一次“已存在”检查：如果只是更新开关/优先级，应该快速返回，
+    // 先在锁内做一次"已存在"检查：如果只是更新开关/优先级，应该快速返回，
     // 不要做昂贵的 ZIP 打开与初始化。
     {
         bool foundExisting = false;

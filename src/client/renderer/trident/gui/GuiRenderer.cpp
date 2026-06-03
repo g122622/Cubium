@@ -374,7 +374,7 @@ void GuiRenderer::fillRect(f64 x, f64 y, f64 width, f64 height, u32 color)
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点
-    // 注意：使用负UV作为”纯色矩形”标记，片段着色器将跳过纹理采样。
+    // 注意：使用负UV作为"纯色矩形"标记，片段着色器将跳过纹理采样。
     // 否则会错误地使用字体纹理alpha，导致准星/背景矩形不可见。
     // 纯色矩形使用槽位0（字体槽位），但不会采样纹理
     constexpr f64 SOLID_RECT_UV = -1.0;

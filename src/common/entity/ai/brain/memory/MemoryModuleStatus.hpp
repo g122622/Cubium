@@ -23,9 +23,7 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include <functional>
-#include <memory>
 
 namespace mc {
 namespace entity {
