@@ -1,4 +1,4 @@
-#include "common/mod/bedrock/addon/engine/QuickJSBindingContext.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 
 #include <quickjs.h>

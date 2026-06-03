@@ -14,7 +14,7 @@
 
 ```
 ScriptManager
-├── QuickJSEngine           — JS引擎
+├── QuickJSEngine (engine/quickjs/)  — JS引擎
 ├── ScriptPluginManager     — 插件管理
 ├── ScriptEventBus          — 事件桥接
 ├── ScriptScheduler         — 调度器（system.run等）
@@ -51,7 +51,7 @@ ScriptTickListener → ScriptManager
 
 ### 这个目录依赖了谁
 - `core/` — IScriptEngine等核心接口
-- `engine/` — QuickJSEngine
+- `engine/quickjs/` — QuickJSEngine
 - `plugin/` — ScriptPluginManager
 - `event/` — ScriptEventBus
 - `pack/` — BehaviorPackList

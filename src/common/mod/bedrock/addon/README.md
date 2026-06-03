@@ -120,7 +120,7 @@ modules/层和binding/层代码不应直接引用`<quickjs.h>`，应通过IScrip
 | 文件 | 状态 | 说明 |
 |------|------|------|
 | `binding/IScriptBindingContext.hpp` | ✅ 已抽象 | 引擎无关的绑定接口，含回调类型和高级注册方法 |
-| `engine/QuickJSBindingContext.cpp` | ✅ 已实现 | QuickJS后端实现，含JSCFunctionMagic trampoline |
+| `engine/quickjs/QuickJSBindingContext.cpp` | ✅ 已实现 | QuickJS后端实现，含JSCFunctionMagic trampoline |
 | `core/IScriptContext.hpp` | ✅ 已更新 | 新增bindingContext()方法 |
 | `modules/types/ScriptVec2.hpp` | ✅ 已重构 | 不再依赖quickjs.h |
 | `modules/types/ScriptVec3.hpp` | ✅ 已重构 | 不再依赖quickjs.h |

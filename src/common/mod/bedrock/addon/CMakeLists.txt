@@ -5,11 +5,11 @@ add_library(mc_bedrock_addon STATIC
     # Core (header-only, no .cpp files)
 
     # Engine - QuickJS引擎实现
-    engine/QuickJSRuntime.cpp
-    engine/QuickJSEngine.cpp
-    engine/QuickJSContext.cpp
-    engine/QuickJSBindingContext.cpp
-    engine/QuickJSModuleLoader.cpp
+    engine/quickjs/QuickJSRuntime.cpp
+    engine/quickjs/QuickJSEngine.cpp
+    engine/quickjs/QuickJSContext.cpp
+    engine/quickjs/QuickJSBindingContext.cpp
+    engine/quickjs/QuickJSModuleLoader.cpp
 
     # Binding (header-only initially, .cpp added later)
     binding/ScriptClassBinding.cpp

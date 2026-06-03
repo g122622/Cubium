@@ -1,5 +1,5 @@
-#include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <spdlog/spdlog.h>

@@ -1,7 +1,7 @@
-#include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSBindingContext.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSModuleLoader.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSBindingContext.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
 
 #include <mutex>
 #include <quickjs.h>

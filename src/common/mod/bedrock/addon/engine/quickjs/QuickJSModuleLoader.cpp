@@ -1,12 +1,13 @@
-#include "common/mod/bedrock/addon/engine/QuickJSModuleLoader.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
 
-#include <spdlog/spdlog.h>
 #include <quickjs.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 
-char* QuickJSModuleLoader::moduleNormalize(JSContext* ctx, const char* module_base_name,
-                                            const char* module_name, void* opaque) {
+char* QuickJSModuleLoader::moduleNormalize(
+    JSContext* ctx, const char* module_base_name, const char* module_name, void* opaque)
+{
     // 对于原生模块（以@开头的），直接返回模块名
     if (module_name && module_name[0] == '@') {
         auto* rt = JS_GetRuntime(ctx);
@@ -66,7 +67,8 @@ char* QuickJSModuleLoader::moduleNormalize(JSContext* ctx, const char* module_ba
     return result;
 }
 
-JSModuleDef* QuickJSModuleLoader::moduleLoader(JSContext* ctx, const char* module_name, void* opaque) {
+JSModuleDef* QuickJSModuleLoader::moduleLoader(JSContext* ctx, const char* module_name, void* opaque)
+{
     if (!opaque) {
         JS_ThrowReferenceError(ctx, "Module loader not configured");
         return nullptr;
@@ -77,32 +79,36 @@ JSModuleDef* QuickJSModuleLoader::moduleLoader(JSContext* ctx, const char* modul
     return loader->loadModule(ctx, name);
 }
 
-bool QuickJSModuleLoader::registerNativeModule(const std::string& name,
-                                                std::function<int(JSContext*, JSModuleDef*)> initFunc) {
+bool QuickJSModuleLoader::registerNativeModule(
+    const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_nativeModules[name] = std::move(initFunc);
     spdlog::info("[BedrockAddon] Registered native module: {}", name);
     return true;
 }
 
-void QuickJSModuleLoader::setModuleSourceProvider(ModuleSourceProvider provider) {
+void QuickJSModuleLoader::setModuleSourceProvider(ModuleSourceProvider provider)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_sourceProvider = std::move(provider);
 }
 
-void QuickJSModuleLoader::addModuleAlias(const std::string& alias, const std::string& path) {
+void QuickJSModuleLoader::addModuleAlias(const std::string& alias, const std::string& path)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
     m_aliases[alias] = path;
 }
 
-JSModuleDef* QuickJSModuleLoader::loadModule(JSContext* ctx, const std::string& moduleName) {
+JSModuleDef* QuickJSModuleLoader::loadModule(JSContext* ctx, const std::string& moduleName)
+{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 1. 查找原生C++模块
     auto nativeIt = m_nativeModules.find(moduleName);
     if (nativeIt != m_nativeModules.end()) {
-        JSModuleDef* m = JS_NewCModule(ctx, moduleName.c_str(),
-                                       [](JSContext* ctx, JSModuleDef* m) -> int { return 0; });
+        JSModuleDef* m =
+            JS_NewCModule(ctx, moduleName.c_str(), [](JSContext* ctx, JSModuleDef* m) -> int { return 0; });
         if (!m) {
             spdlog::error("[BedrockAddon] Failed to create native module: {}", moduleName);
             return nullptr;
@@ -127,8 +133,11 @@ JSModuleDef* QuickJSModuleLoader::loadModule(JSContext* ctx, const std::string& 
         std::string source = m_sourceProvider(resolvedName);
         if (!source.empty()) {
             // 编译JS源码为模块
-            JSValue func = JS_Eval(ctx, source.c_str(), source.size(), resolvedName.c_str(),
-                                   JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+            JSValue func = JS_Eval(ctx,
+                source.c_str(),
+                source.size(),
+                resolvedName.c_str(),
+                JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
             if (JS_IsException(func)) {
                 JS_FreeValue(ctx, func);
                 spdlog::error("[BedrockAddon] Failed to compile module: {}", resolvedName);
