@@ -3,13 +3,20 @@
 #include "common/mod/bedrock/addon/binding/IModuleBindingFactory.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
+
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
+
+class ScriptScheduler;
+class ScriptEventBus;
+class IScriptBindingContext;
 
 /**
  * @brief @minecraft/server模块绑定工厂
  *
- * 注册@minecraft/server 2.x核心API到QuickJS上下文。
+ * 注册@minecraft/server 2.x核心API到脚本上下文。
  * 提供World、System、Dimension、Entity、Player、Block、ItemStack等类的JS绑定。
  *
  * 绑定模式：
@@ -28,6 +35,15 @@ public:
     [[nodiscard]] std::vector<ModuleVersion> supportedVersions() const override;
     [[nodiscard]] std::vector<ModuleDependency> dependencies(const ModuleVersion& version) const override;
     bool registerBindings(IScriptContext& context) override;
+
+    void setScheduler(ScriptScheduler* scheduler);
+    void setEventSignals(const std::vector<EventSignalInfo>& signals);
+    void setEventBus(ScriptEventBus* eventBus);
+
+private:
+    ScriptScheduler* m_scheduler = nullptr;
+    ScriptEventBus* m_eventBus = nullptr;
+    std::vector<EventSignalInfo> m_eventSignals;
 };
 
 } // namespace mc::mod::bedrock::addon

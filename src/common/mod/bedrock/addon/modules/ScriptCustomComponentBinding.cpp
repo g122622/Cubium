@@ -1,130 +1,42 @@
-#include "ScriptCustomComponentBinding.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptCallbackHolder.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
 
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 
 // ============================================================================
-// JS回调包装器 - 将JS函数包装为C++ std::function
-// ============================================================================
-
-/**
- * @brief JS回调包装器
- *
- * 持有JS函数引用，在C++事件派发时调用JS回调。
- * 通过ScriptObjectRegistry管理生命周期。
- */
-class JSCallbackHolder {
-public:
-    JSCallbackHolder() = default;
-
-    JSCallbackHolder(JSContext* ctx, JSValue func)
-        : m_ctx(ctx)
-    {
-        m_func = JS_DupValue(ctx, func);
-    }
-
-    ~JSCallbackHolder()
-    {
-        if (m_ctx && !JS_IsUndefined(m_func)) {
-            JS_FreeValue(m_ctx, m_func);
-        }
-    }
-
-    // 不可复制
-    JSCallbackHolder(const JSCallbackHolder&) = delete;
-    JSCallbackHolder& operator=(const JSCallbackHolder&) = delete;
-
-    // 可移动
-    JSCallbackHolder(JSCallbackHolder&& other) noexcept
-        : m_ctx(other.m_ctx)
-        , m_func(other.m_func)
-    {
-        other.m_ctx = nullptr;
-        other.m_func = JS_UNDEFINED;
-    }
-
-    JSCallbackHolder& operator=(JSCallbackHolder&& other) noexcept
-    {
-        if (this != &other) {
-            if (m_ctx && !JS_IsUndefined(m_func)) {
-                JS_FreeValue(m_ctx, m_func);
-            }
-            m_ctx = other.m_ctx;
-            m_func = other.m_func;
-            other.m_ctx = nullptr;
-            other.m_func = JS_UNDEFINED;
-        }
-        return *this;
-    }
-
-    /** 调用JS回调，传入事件对象 */
-    void call(JSValue eventObj)
-    {
-        if (!m_ctx || JS_IsUndefined(m_func)) {
-            return;
-        }
-
-        JSValue ret = JS_Call(m_ctx, m_func, JS_UNDEFINED, 1, &eventObj);
-        if (JS_IsException(ret)) {
-            JSValue exc = JS_GetException(m_ctx);
-            const char* msg = JS_ToCString(m_ctx, exc);
-            spdlog::error("[BedrockAddon] JS callback threw: {}", msg ? msg : "unknown");
-            JS_FreeCString(m_ctx, msg);
-            JS_FreeValue(m_ctx, exc);
-        }
-        JS_FreeValue(m_ctx, ret);
-    }
-
-    [[nodiscard]] JSValue func() const { return m_func; }
-    [[nodiscard]] JSContext* context() const { return m_ctx; }
-
-private:
-    JSContext* m_ctx = nullptr;
-    JSValue m_func = JS_UNDEFINED;
-};
-
-// ============================================================================
 // 方块组件回调包装器
 // ============================================================================
 
-/**
- * @brief 方块自定义组件的JS回调集合
- *
- * 每个回调对应Bedrock API的一个方块组件事件。
- * 注册到BlockComponentRegistry时，将此对象作为CustomComponent的回调。
- */
 struct BlockJSCallbacks {
-    JSCallbackHolder onStepOn;
-    JSCallbackHolder onStepOff;
-    JSCallbackHolder onPlace;
-    JSCallbackHolder onPlayerBreak;
-    JSCallbackHolder onPlayerInteract;
-    JSCallbackHolder onPlayerPlaceBefore;
-    JSCallbackHolder onEntityFallOn;
-    JSCallbackHolder onRandomTick;
-    JSCallbackHolder onTick;
-    JSCallbackHolder onEntity;
-    JSCallbackHolder onBreak;
-    JSCallbackHolder onRedstoneUpdate;
-    JSCallbackHolder onBlockStateChange;
+    ScriptCallbackHolder onStepOn;
+    ScriptCallbackHolder onStepOff;
+    ScriptCallbackHolder onPlace;
+    ScriptCallbackHolder onPlayerBreak;
+    ScriptCallbackHolder onPlayerInteract;
+    ScriptCallbackHolder onPlayerPlaceBefore;
+    ScriptCallbackHolder onEntityFallOn;
+    ScriptCallbackHolder onRandomTick;
+    ScriptCallbackHolder onTick;
+    ScriptCallbackHolder onEntity;
+    ScriptCallbackHolder onBreak;
+    ScriptCallbackHolder onRedstoneUpdate;
+    ScriptCallbackHolder onBlockStateChange;
 
-    /** 是否有任何回调被设置 */
     [[nodiscard]] bool hasAnyCallback() const
     {
-        return !JS_IsUndefined(onStepOn.func()) || !JS_IsUndefined(onStepOff.func()) ||
-            !JS_IsUndefined(onPlace.func()) || !JS_IsUndefined(onPlayerBreak.func()) ||
-            !JS_IsUndefined(onPlayerInteract.func()) || !JS_IsUndefined(onPlayerPlaceBefore.func()) ||
-            !JS_IsUndefined(onEntityFallOn.func()) || !JS_IsUndefined(onRandomTick.func()) ||
-            !JS_IsUndefined(onTick.func()) || !JS_IsUndefined(onEntity.func()) || !JS_IsUndefined(onBreak.func()) ||
-            !JS_IsUndefined(onRedstoneUpdate.func()) || !JS_IsUndefined(onBlockStateChange.func());
+        return onStepOn.isValid() || onStepOff.isValid() || onPlace.isValid() || onPlayerBreak.isValid() ||
+            onPlayerInteract.isValid() || onPlayerPlaceBefore.isValid() || onEntityFallOn.isValid() ||
+            onRandomTick.isValid() || onTick.isValid() || onEntity.isValid() || onBreak.isValid() ||
+            onRedstoneUpdate.isValid() || onBlockStateChange.isValid();
     }
 };
 
@@ -132,24 +44,19 @@ struct BlockJSCallbacks {
 // 物品组件回调包装器
 // ============================================================================
 
-/**
- * @brief 物品自定义组件的JS回调集合
- */
 struct ItemJSCallbacks {
-    JSCallbackHolder onUse;
-    JSCallbackHolder onUseOn;
-    JSCallbackHolder onHitEntity;
-    JSCallbackHolder onMineBlock;
-    JSCallbackHolder onBeforeDurabilityDamage;
-    JSCallbackHolder onCompleteUse;
-    JSCallbackHolder onConsume;
+    ScriptCallbackHolder onUse;
+    ScriptCallbackHolder onUseOn;
+    ScriptCallbackHolder onHitEntity;
+    ScriptCallbackHolder onMineBlock;
+    ScriptCallbackHolder onBeforeDurabilityDamage;
+    ScriptCallbackHolder onCompleteUse;
+    ScriptCallbackHolder onConsume;
 
     [[nodiscard]] bool hasAnyCallback() const
     {
-        return !JS_IsUndefined(onUse.func()) || !JS_IsUndefined(onUseOn.func()) ||
-            !JS_IsUndefined(onHitEntity.func()) || !JS_IsUndefined(onMineBlock.func()) ||
-            !JS_IsUndefined(onBeforeDurabilityDamage.func()) || !JS_IsUndefined(onCompleteUse.func()) ||
-            !JS_IsUndefined(onConsume.func());
+        return onUse.isValid() || onUseOn.isValid() || onHitEntity.isValid() || onMineBlock.isValid() ||
+            onBeforeDurabilityDamage.isValid() || onCompleteUse.isValid() || onConsume.isValid();
     }
 };
 
@@ -157,444 +64,344 @@ struct ItemJSCallbacks {
 // 辅助函数：从JS组件对象中提取回调
 // ============================================================================
 
-/**
- * @brief 从JS对象中提取指定属性的函数值
- * @return JS_IsFunction的值，如果属性不存在或不是函数则返回JS_UNDEFINED
- */
-static JSValue extractCallback(JSContext* ctx, JSValue obj, const char* propName)
+static ScriptCallbackHolder extractCallback(IScriptBindingContext& ctx, void* obj, const char* propName)
 {
-    JSValue prop = JS_GetPropertyStr(ctx, obj, propName);
-    if (JS_IsFunction(ctx, prop)) {
-        return prop;
+    void* prop = ctx.getProperty(obj, propName);
+    ScriptCallbackHolder holder;
+    if (ctx.isFunction(prop)) {
+        holder = ScriptCallbackHolder(ctx, prop);
     }
-    JS_FreeValue(ctx, prop);
-    return JS_UNDEFINED;
+    ctx.releaseValue(prop);
+    return holder;
 }
 
 // ============================================================================
 // 注册方块自定义组件
 // ============================================================================
 
-bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue componentObj, JSContext* ctx)
+bool registerBlockCustomComponentFromJS(const std::string& typeId, void* componentObj, IScriptBindingContext& ctx)
 {
-    if (!JS_IsObject(componentObj)) {
+    if (!ctx.isObject(componentObj)) {
         spdlog::error("[BedrockAddon] registerBlockCustomComponent: component must be an object");
         return false;
     }
 
-    // 提取所有回调
     auto callbacks = std::make_shared<BlockJSCallbacks>();
 
-    // 按Bedrock API的回调名称提取
-    JSValue onStepOn = extractCallback(ctx, componentObj, "onStepOn");
-    if (!JS_IsUndefined(onStepOn)) {
-        callbacks->onStepOn = JSCallbackHolder(ctx, onStepOn);
-        JS_FreeValue(ctx, onStepOn);
-    }
-
-    JSValue onStepOff = extractCallback(ctx, componentObj, "onStepOff");
-    if (!JS_IsUndefined(onStepOff)) {
-        callbacks->onStepOff = JSCallbackHolder(ctx, onStepOff);
-        JS_FreeValue(ctx, onStepOff);
-    }
-
-    JSValue onPlace = extractCallback(ctx, componentObj, "onPlace");
-    if (!JS_IsUndefined(onPlace)) {
-        callbacks->onPlace = JSCallbackHolder(ctx, onPlace);
-        JS_FreeValue(ctx, onPlace);
-    }
-
-    JSValue onPlayerBreak = extractCallback(ctx, componentObj, "onPlayerBreak");
-    if (!JS_IsUndefined(onPlayerBreak)) {
-        callbacks->onPlayerBreak = JSCallbackHolder(ctx, onPlayerBreak);
-        JS_FreeValue(ctx, onPlayerBreak);
-    }
-
-    JSValue onPlayerInteract = extractCallback(ctx, componentObj, "onPlayerInteract");
-    if (!JS_IsUndefined(onPlayerInteract)) {
-        callbacks->onPlayerInteract = JSCallbackHolder(ctx, onPlayerInteract);
-        JS_FreeValue(ctx, onPlayerInteract);
-    }
-
-    JSValue onBeforeOnPlayerPlace = extractCallback(ctx, componentObj, "beforeOnPlayerPlace");
-    if (!JS_IsUndefined(onBeforeOnPlayerPlace)) {
-        callbacks->onPlayerPlaceBefore = JSCallbackHolder(ctx, onBeforeOnPlayerPlace);
-        JS_FreeValue(ctx, onBeforeOnPlayerPlace);
-    }
-
-    JSValue onEntityFallOn = extractCallback(ctx, componentObj, "onEntityFallOn");
-    if (!JS_IsUndefined(onEntityFallOn)) {
-        callbacks->onEntityFallOn = JSCallbackHolder(ctx, onEntityFallOn);
-        JS_FreeValue(ctx, onEntityFallOn);
-    }
-
-    JSValue onRandomTick = extractCallback(ctx, componentObj, "onRandomTick");
-    if (!JS_IsUndefined(onRandomTick)) {
-        callbacks->onRandomTick = JSCallbackHolder(ctx, onRandomTick);
-        JS_FreeValue(ctx, onRandomTick);
-    }
-
-    JSValue onTick = extractCallback(ctx, componentObj, "onTick");
-    if (!JS_IsUndefined(onTick)) {
-        callbacks->onTick = JSCallbackHolder(ctx, onTick);
-        JS_FreeValue(ctx, onTick);
-    }
-
-    JSValue onEntity = extractCallback(ctx, componentObj, "onEntity");
-    if (!JS_IsUndefined(onEntity)) {
-        callbacks->onEntity = JSCallbackHolder(ctx, onEntity);
-        JS_FreeValue(ctx, onEntity);
-    }
-
-    JSValue onBreak = extractCallback(ctx, componentObj, "onBreak");
-    if (!JS_IsUndefined(onBreak)) {
-        callbacks->onBreak = JSCallbackHolder(ctx, onBreak);
-        JS_FreeValue(ctx, onBreak);
-    }
-
-    JSValue onRedstoneUpdate = extractCallback(ctx, componentObj, "onRedstoneUpdate");
-    if (!JS_IsUndefined(onRedstoneUpdate)) {
-        callbacks->onRedstoneUpdate = JSCallbackHolder(ctx, onRedstoneUpdate);
-        JS_FreeValue(ctx, onRedstoneUpdate);
-    }
-
-    JSValue onBlockStateChange = extractCallback(ctx, componentObj, "onBlockStateChange");
-    if (!JS_IsUndefined(onBlockStateChange)) {
-        callbacks->onBlockStateChange = JSCallbackHolder(ctx, onBlockStateChange);
-        JS_FreeValue(ctx, onBlockStateChange);
-    }
+    callbacks->onStepOn = extractCallback(ctx, componentObj, "onStepOn");
+    callbacks->onStepOff = extractCallback(ctx, componentObj, "onStepOff");
+    callbacks->onPlace = extractCallback(ctx, componentObj, "onPlace");
+    callbacks->onPlayerBreak = extractCallback(ctx, componentObj, "onPlayerBreak");
+    callbacks->onPlayerInteract = extractCallback(ctx, componentObj, "onPlayerInteract");
+    callbacks->onPlayerPlaceBefore = extractCallback(ctx, componentObj, "beforeOnPlayerPlace");
+    callbacks->onEntityFallOn = extractCallback(ctx, componentObj, "onEntityFallOn");
+    callbacks->onRandomTick = extractCallback(ctx, componentObj, "onRandomTick");
+    callbacks->onTick = extractCallback(ctx, componentObj, "onTick");
+    callbacks->onEntity = extractCallback(ctx, componentObj, "onEntity");
+    callbacks->onBreak = extractCallback(ctx, componentObj, "onBreak");
+    callbacks->onRedstoneUpdate = extractCallback(ctx, componentObj, "onRedstoneUpdate");
+    callbacks->onBlockStateChange = extractCallback(ctx, componentObj, "onBlockStateChange");
 
     if (!callbacks->hasAnyCallback()) {
         spdlog::warn("[BedrockAddon] registerBlockCustomComponent: no callbacks found for {}", typeId);
     }
 
-    // 创建BlockCustomComponent并注册到BlockComponentRegistry
     BlockCustomComponent component;
     component.name = typeId;
 
-    // 为每个回调设置C++ wrapper（签名：void(EventType&, const CustomComponentParameters&)）
-    if (!JS_IsUndefined(callbacks->onStepOn.func())) {
+    if (callbacks->onStepOn.isValid()) {
         component.onStepOn = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                  BlockComponentStepOnEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onStepOn.context());
-            JS_SetPropertyStr(cb->onStepOn.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onStepOn.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onStepOn.context(), eventObj, "x", JS_NewInt32(cb->onStepOn.context(), event.blockX));
-            JS_SetPropertyStr(cb->onStepOn.context(), eventObj, "y", JS_NewInt32(cb->onStepOn.context(), event.blockY));
-            JS_SetPropertyStr(cb->onStepOn.context(), eventObj, "z", JS_NewInt32(cb->onStepOn.context(), event.blockZ));
+            auto* ctx = cb->onStepOn.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.entityId.has_value()) {
-                JS_SetPropertyStr(cb->onStepOn.context(),
-                    eventObj,
-                    "entityId",
-                    JS_NewBigUint64(cb->onStepOn.context(), *event.entityId));
+                ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
-            cb->onStepOn.call(eventObj);
-            JS_FreeValue(cb->onStepOn.context(), eventObj);
+            void* ret = cb->onStepOn.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onStepOff.func())) {
+    if (callbacks->onStepOff.isValid()) {
         component.onStepOff = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                   BlockComponentStepOffEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onStepOff.context());
-            JS_SetPropertyStr(cb->onStepOff.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onStepOff.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onStepOff.context(), eventObj, "x", JS_NewInt32(cb->onStepOff.context(), event.blockX));
-            JS_SetPropertyStr(
-                cb->onStepOff.context(), eventObj, "y", JS_NewInt32(cb->onStepOff.context(), event.blockY));
-            JS_SetPropertyStr(
-                cb->onStepOff.context(), eventObj, "z", JS_NewInt32(cb->onStepOff.context(), event.blockZ));
+            auto* ctx = cb->onStepOff.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.entityId.has_value()) {
-                JS_SetPropertyStr(cb->onStepOff.context(),
-                    eventObj,
-                    "entityId",
-                    JS_NewBigUint64(cb->onStepOff.context(), *event.entityId));
+                ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
-            cb->onStepOff.call(eventObj);
-            JS_FreeValue(cb->onStepOff.context(), eventObj);
+            void* ret = cb->onStepOff.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onPlace.func())) {
+    if (callbacks->onPlace.isValid()) {
         component.onPlace = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                 BlockComponentOnPlaceEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onPlace.context());
-            JS_SetPropertyStr(cb->onPlace.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onPlace.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onPlace.context(), eventObj, "x", JS_NewInt32(cb->onPlace.context(), event.blockX));
-            JS_SetPropertyStr(cb->onPlace.context(), eventObj, "y", JS_NewInt32(cb->onPlace.context(), event.blockY));
-            JS_SetPropertyStr(cb->onPlace.context(), eventObj, "z", JS_NewInt32(cb->onPlace.context(), event.blockZ));
-            cb->onPlace.call(eventObj);
-            JS_FreeValue(cb->onPlace.context(), eventObj);
+            auto* ctx = cb->onPlace.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onPlace.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onPlayerBreak.func())) {
+    if (callbacks->onPlayerBreak.isValid()) {
         component.onPlayerBreak = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                       BlockComponentPlayerBreakEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onPlayerBreak.context());
-            JS_SetPropertyStr(cb->onPlayerBreak.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onPlayerBreak.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onPlayerBreak.context(), eventObj, "x", JS_NewInt32(cb->onPlayerBreak.context(), event.blockX));
-            JS_SetPropertyStr(
-                cb->onPlayerBreak.context(), eventObj, "y", JS_NewInt32(cb->onPlayerBreak.context(), event.blockY));
-            JS_SetPropertyStr(
-                cb->onPlayerBreak.context(), eventObj, "z", JS_NewInt32(cb->onPlayerBreak.context(), event.blockZ));
+            auto* ctx = cb->onPlayerBreak.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.playerId.has_value()) {
-                JS_SetPropertyStr(cb->onPlayerBreak.context(),
-                    eventObj,
-                    "playerId",
-                    JS_NewBigUint64(cb->onPlayerBreak.context(), *event.playerId));
+                ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
-            cb->onPlayerBreak.call(eventObj);
-            JS_FreeValue(cb->onPlayerBreak.context(), eventObj);
+            void* ret = cb->onPlayerBreak.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onPlayerInteract.func())) {
+    if (callbacks->onPlayerInteract.isValid()) {
         component.onPlayerInteract = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                          BlockComponentPlayerInteractEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onPlayerInteract.context());
-            JS_SetPropertyStr(cb->onPlayerInteract.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onPlayerInteract.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onPlayerInteract.context(),
-                eventObj,
-                "x",
-                JS_NewInt32(cb->onPlayerInteract.context(), event.blockX));
-            JS_SetPropertyStr(cb->onPlayerInteract.context(),
-                eventObj,
-                "y",
-                JS_NewInt32(cb->onPlayerInteract.context(), event.blockY));
-            JS_SetPropertyStr(cb->onPlayerInteract.context(),
-                eventObj,
-                "z",
-                JS_NewInt32(cb->onPlayerInteract.context(), event.blockZ));
+            auto* ctx = cb->onPlayerInteract.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.playerId.has_value()) {
-                JS_SetPropertyStr(cb->onPlayerInteract.context(),
-                    eventObj,
-                    "playerId",
-                    JS_NewBigUint64(cb->onPlayerInteract.context(), *event.playerId));
+                ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
-            cb->onPlayerInteract.call(eventObj);
-            JS_FreeValue(cb->onPlayerInteract.context(), eventObj);
+            void* ret = cb->onPlayerInteract.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onPlayerPlaceBefore.func())) {
+    if (callbacks->onPlayerPlaceBefore.isValid()) {
         component.beforeOnPlayerPlace = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                             BlockComponentPlayerPlaceBeforeEvent& event,
                                             const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onPlayerPlaceBefore.context());
-            JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onPlayerPlaceBefore.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                eventObj,
-                "x",
-                JS_NewInt32(cb->onPlayerPlaceBefore.context(), event.blockX));
-            JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                eventObj,
-                "y",
-                JS_NewInt32(cb->onPlayerPlaceBefore.context(), event.blockY));
-            JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                eventObj,
-                "z",
-                JS_NewInt32(cb->onPlayerPlaceBefore.context(), event.blockZ));
+            auto* ctx = cb->onPlayerPlaceBefore.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.playerId.has_value()) {
-                JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                    eventObj,
-                    "playerId",
-                    JS_NewBigUint64(cb->onPlayerPlaceBefore.context(), *event.playerId));
+                ctx->setPropertyInt64(eventObj, "playerId", static_cast<i64>(*event.playerId));
             }
-            // cancel属性可由JS修改
-            JS_SetPropertyStr(cb->onPlayerPlaceBefore.context(),
-                eventObj,
-                "cancel",
-                JS_NewBool(cb->onPlayerPlaceBefore.context(), event.cancel));
-            cb->onPlayerPlaceBefore.call(eventObj);
+            ctx->setPropertyBool(eventObj, "cancel", event.cancel);
+            void* ret = cb->onPlayerPlaceBefore.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
             // 读取JS修改后的cancel值
-            JSValue cancelVal = JS_GetPropertyStr(cb->onPlayerPlaceBefore.context(), eventObj, "cancel");
-            event.cancel = JS_ToBool(cb->onPlayerPlaceBefore.context(), cancelVal);
-            JS_FreeValue(cb->onPlayerPlaceBefore.context(), cancelVal);
-            JS_FreeValue(cb->onPlayerPlaceBefore.context(), eventObj);
+            auto cancelVal = ctx->getPropertyBool(eventObj, "cancel");
+            if (cancelVal) {
+                event.cancel = *cancelVal;
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onEntityFallOn.func())) {
+    if (callbacks->onEntityFallOn.isValid()) {
         component.onEntityFallOn = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                        BlockComponentEntityFallOnEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onEntityFallOn.context());
-            JS_SetPropertyStr(cb->onEntityFallOn.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onEntityFallOn.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onEntityFallOn.context(), eventObj, "x", JS_NewInt32(cb->onEntityFallOn.context(), event.blockX));
-            JS_SetPropertyStr(
-                cb->onEntityFallOn.context(), eventObj, "y", JS_NewInt32(cb->onEntityFallOn.context(), event.blockY));
-            JS_SetPropertyStr(
-                cb->onEntityFallOn.context(), eventObj, "z", JS_NewInt32(cb->onEntityFallOn.context(), event.blockZ));
+            auto* ctx = cb->onEntityFallOn.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.entityId.has_value()) {
-                JS_SetPropertyStr(cb->onEntityFallOn.context(),
-                    eventObj,
-                    "entityId",
-                    JS_NewBigUint64(cb->onEntityFallOn.context(), *event.entityId));
+                ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entityId));
             }
-            JS_SetPropertyStr(cb->onEntityFallOn.context(),
-                eventObj,
-                "fallDistance",
-                JS_NewFloat64(cb->onEntityFallOn.context(), static_cast<f64>(event.fallDistance)));
-            cb->onEntityFallOn.call(eventObj);
-            JS_FreeValue(cb->onEntityFallOn.context(), eventObj);
+            ctx->setPropertyFloat(eventObj, "fallDistance", static_cast<f64>(event.fallDistance));
+            void* ret = cb->onEntityFallOn.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onRandomTick.func())) {
+    if (callbacks->onRandomTick.isValid()) {
         component.onRandomTick = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                      BlockComponentRandomTickEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onRandomTick.context());
-            JS_SetPropertyStr(cb->onRandomTick.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onRandomTick.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onRandomTick.context(), eventObj, "x", JS_NewInt32(cb->onRandomTick.context(), event.blockX));
-            JS_SetPropertyStr(
-                cb->onRandomTick.context(), eventObj, "y", JS_NewInt32(cb->onRandomTick.context(), event.blockY));
-            JS_SetPropertyStr(
-                cb->onRandomTick.context(), eventObj, "z", JS_NewInt32(cb->onRandomTick.context(), event.blockZ));
-            cb->onRandomTick.call(eventObj);
-            JS_FreeValue(cb->onRandomTick.context(), eventObj);
+            auto* ctx = cb->onRandomTick.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onRandomTick.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onTick.func())) {
+    if (callbacks->onTick.isValid()) {
         component.onTick = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                BlockComponentTickEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onTick.context());
-            JS_SetPropertyStr(cb->onTick.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onTick.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onTick.context(), eventObj, "x", JS_NewInt32(cb->onTick.context(), event.blockX));
-            JS_SetPropertyStr(cb->onTick.context(), eventObj, "y", JS_NewInt32(cb->onTick.context(), event.blockY));
-            JS_SetPropertyStr(cb->onTick.context(), eventObj, "z", JS_NewInt32(cb->onTick.context(), event.blockZ));
-            cb->onTick.call(eventObj);
-            JS_FreeValue(cb->onTick.context(), eventObj);
+            auto* ctx = cb->onTick.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onTick.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onEntity.func())) {
+    if (callbacks->onEntity.isValid()) {
         component.onEntity = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                  BlockComponentEntityEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onEntity.context());
-            JS_SetPropertyStr(cb->onEntity.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onEntity.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onEntity.context(), eventObj, "x", JS_NewInt32(cb->onEntity.context(), event.blockX));
-            JS_SetPropertyStr(cb->onEntity.context(), eventObj, "y", JS_NewInt32(cb->onEntity.context(), event.blockY));
-            JS_SetPropertyStr(cb->onEntity.context(), eventObj, "z", JS_NewInt32(cb->onEntity.context(), event.blockZ));
-            JS_SetPropertyStr(cb->onEntity.context(),
-                eventObj,
-                "entityId",
-                JS_NewBigUint64(cb->onEntity.context(), event.entitySourceId));
-            cb->onEntity.call(eventObj);
-            JS_FreeValue(cb->onEntity.context(), eventObj);
+            auto* ctx = cb->onEntity.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(event.entitySourceId));
+            void* ret = cb->onEntity.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onBreak.func())) {
+    if (callbacks->onBreak.isValid()) {
         component.onBreak = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                 BlockComponentBreakEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onBreak.context());
-            JS_SetPropertyStr(cb->onBreak.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onBreak.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onBreak.context(), eventObj, "x", JS_NewInt32(cb->onBreak.context(), event.blockX));
-            JS_SetPropertyStr(cb->onBreak.context(), eventObj, "y", JS_NewInt32(cb->onBreak.context(), event.blockY));
-            JS_SetPropertyStr(cb->onBreak.context(), eventObj, "z", JS_NewInt32(cb->onBreak.context(), event.blockZ));
+            auto* ctx = cb->onBreak.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
             if (event.entitySourceId.has_value()) {
-                JS_SetPropertyStr(cb->onBreak.context(),
-                    eventObj,
-                    "entityId",
-                    JS_NewBigUint64(cb->onBreak.context(), *event.entitySourceId));
+                ctx->setPropertyInt64(eventObj, "entityId", static_cast<i64>(*event.entitySourceId));
             }
-            cb->onBreak.call(eventObj);
-            JS_FreeValue(cb->onBreak.context(), eventObj);
+            void* ret = cb->onBreak.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onRedstoneUpdate.func())) {
+    if (callbacks->onRedstoneUpdate.isValid()) {
         component.onRedstoneUpdate = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                          BlockComponentRedstoneUpdateEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onRedstoneUpdate.context());
-            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onRedstoneUpdate.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
-                eventObj,
-                "x",
-                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockX));
-            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
-                eventObj,
-                "y",
-                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockY));
-            JS_SetPropertyStr(cb->onRedstoneUpdate.context(),
-                eventObj,
-                "z",
-                JS_NewInt32(cb->onRedstoneUpdate.context(), event.blockZ));
-            cb->onRedstoneUpdate.call(eventObj);
-            JS_FreeValue(cb->onRedstoneUpdate.context(), eventObj);
+            auto* ctx = cb->onRedstoneUpdate.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onRedstoneUpdate.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onBlockStateChange.func())) {
+    if (callbacks->onBlockStateChange.isValid()) {
         component.onBlockStateChange = [cb = std::shared_ptr<BlockJSCallbacks>(callbacks)](
                                            BlockComponentBlockStateChangeEvent& event,
                                            const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onBlockStateChange.context());
-            JS_SetPropertyStr(cb->onBlockStateChange.context(),
-                eventObj,
-                "blockTypeId",
-                JS_NewString(cb->onBlockStateChange.context(), event.blockTypeId.c_str()));
-            JS_SetPropertyStr(cb->onBlockStateChange.context(),
-                eventObj,
-                "x",
-                JS_NewInt32(cb->onBlockStateChange.context(), event.blockX));
-            JS_SetPropertyStr(cb->onBlockStateChange.context(),
-                eventObj,
-                "y",
-                JS_NewInt32(cb->onBlockStateChange.context(), event.blockY));
-            JS_SetPropertyStr(cb->onBlockStateChange.context(),
-                eventObj,
-                "z",
-                JS_NewInt32(cb->onBlockStateChange.context(), event.blockZ));
-            cb->onBlockStateChange.call(eventObj);
-            JS_FreeValue(cb->onBlockStateChange.context(), eventObj);
+            auto* ctx = cb->onBlockStateChange.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "blockTypeId", event.blockTypeId);
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onBlockStateChange.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    // 注册到全局BlockComponentRegistry
     BlockComponentRegistry::instance().registerComponent(typeId, std::move(component));
-
     spdlog::info("[BedrockAddon] Registered block custom component for '{}'", typeId);
-
     return true;
 }
 
@@ -602,305 +409,255 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
 // 注册物品自定义组件
 // ============================================================================
 
-bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue componentObj, JSContext* ctx)
+bool registerItemCustomComponentFromJS(const std::string& typeId, void* componentObj, IScriptBindingContext& ctx)
 {
-    if (!JS_IsObject(componentObj)) {
+    if (!ctx.isObject(componentObj)) {
         spdlog::error("[BedrockAddon] registerItemCustomComponent: component must be an object");
         return false;
     }
 
     auto callbacks = std::make_shared<ItemJSCallbacks>();
 
-    JSValue onUse = extractCallback(ctx, componentObj, "onUse");
-    if (!JS_IsUndefined(onUse)) {
-        callbacks->onUse = JSCallbackHolder(ctx, onUse);
-        JS_FreeValue(ctx, onUse);
-    }
-
-    JSValue onUseOn = extractCallback(ctx, componentObj, "onUseOn");
-    if (!JS_IsUndefined(onUseOn)) {
-        callbacks->onUseOn = JSCallbackHolder(ctx, onUseOn);
-        JS_FreeValue(ctx, onUseOn);
-    }
-
-    JSValue onHitEntity = extractCallback(ctx, componentObj, "onHitEntity");
-    if (!JS_IsUndefined(onHitEntity)) {
-        callbacks->onHitEntity = JSCallbackHolder(ctx, onHitEntity);
-        JS_FreeValue(ctx, onHitEntity);
-    }
-
-    JSValue onMineBlock = extractCallback(ctx, componentObj, "onMineBlock");
-    if (!JS_IsUndefined(onMineBlock)) {
-        callbacks->onMineBlock = JSCallbackHolder(ctx, onMineBlock);
-        JS_FreeValue(ctx, onMineBlock);
-    }
-
-    JSValue onBeforeDurabilityDamage = extractCallback(ctx, componentObj, "beforeDurabilityDamage");
-    if (!JS_IsUndefined(onBeforeDurabilityDamage)) {
-        callbacks->onBeforeDurabilityDamage = JSCallbackHolder(ctx, onBeforeDurabilityDamage);
-        JS_FreeValue(ctx, onBeforeDurabilityDamage);
-    }
-
-    JSValue onCompleteUse = extractCallback(ctx, componentObj, "onCompleteUse");
-    if (!JS_IsUndefined(onCompleteUse)) {
-        callbacks->onCompleteUse = JSCallbackHolder(ctx, onCompleteUse);
-        JS_FreeValue(ctx, onCompleteUse);
-    }
-
-    JSValue onConsume = extractCallback(ctx, componentObj, "onConsume");
-    if (!JS_IsUndefined(onConsume)) {
-        callbacks->onConsume = JSCallbackHolder(ctx, onConsume);
-        JS_FreeValue(ctx, onConsume);
-    }
+    callbacks->onUse = extractCallback(ctx, componentObj, "onUse");
+    callbacks->onUseOn = extractCallback(ctx, componentObj, "onUseOn");
+    callbacks->onHitEntity = extractCallback(ctx, componentObj, "onHitEntity");
+    callbacks->onMineBlock = extractCallback(ctx, componentObj, "onMineBlock");
+    callbacks->onBeforeDurabilityDamage = extractCallback(ctx, componentObj, "beforeDurabilityDamage");
+    callbacks->onCompleteUse = extractCallback(ctx, componentObj, "onCompleteUse");
+    callbacks->onConsume = extractCallback(ctx, componentObj, "onConsume");
 
     if (!callbacks->hasAnyCallback()) {
         spdlog::warn("[BedrockAddon] registerItemCustomComponent: no callbacks found for {}", typeId);
     }
 
-    // 创建ItemCustomComponent并注册
     ItemCustomComponent component;
     component.name = typeId;
 
-    if (!JS_IsUndefined(callbacks->onUse.func())) {
+    if (callbacks->onUse.isValid()) {
         component.onUse = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                               ItemComponentUseEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onUse.context());
-            JS_SetPropertyStr(cb->onUse.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onUse.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onUse.context(), eventObj, "sourceId", JS_NewBigUint64(cb->onUse.context(), event.sourceId));
-            cb->onUse.call(eventObj);
-            JS_FreeValue(cb->onUse.context(), eventObj);
+            auto* ctx = cb->onUse.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "sourceId", static_cast<i64>(event.sourceId));
+            void* ret = cb->onUse.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onUseOn.func())) {
+    if (callbacks->onUseOn.isValid()) {
         component.onUseOn = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                 ItemComponentUseOnEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onUseOn.context());
-            JS_SetPropertyStr(cb->onUseOn.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onUseOn.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(
-                cb->onUseOn.context(), eventObj, "sourceId", JS_NewBigUint64(cb->onUseOn.context(), event.sourceId));
-            JS_SetPropertyStr(cb->onUseOn.context(), eventObj, "x", JS_NewInt32(cb->onUseOn.context(), event.blockX));
-            JS_SetPropertyStr(cb->onUseOn.context(), eventObj, "y", JS_NewInt32(cb->onUseOn.context(), event.blockY));
-            JS_SetPropertyStr(cb->onUseOn.context(), eventObj, "z", JS_NewInt32(cb->onUseOn.context(), event.blockZ));
-            JS_SetPropertyStr(cb->onUseOn.context(), eventObj, "face", JS_NewInt32(cb->onUseOn.context(), event.face));
-            cb->onUseOn.call(eventObj);
-            JS_FreeValue(cb->onUseOn.context(), eventObj);
+            auto* ctx = cb->onUseOn.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "sourceId", static_cast<i64>(event.sourceId));
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            ctx->setPropertyInt(eventObj, "face", event.face);
+            void* ret = cb->onUseOn.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onHitEntity.func())) {
+    if (callbacks->onHitEntity.isValid()) {
         component.onHitEntity = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                     ItemComponentHitEntityEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onHitEntity.context());
-            JS_SetPropertyStr(cb->onHitEntity.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onHitEntity.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(cb->onHitEntity.context(),
-                eventObj,
-                "attackingEntityId",
-                JS_NewBigUint64(cb->onHitEntity.context(), event.attackingEntityId));
-            JS_SetPropertyStr(cb->onHitEntity.context(),
-                eventObj,
-                "hitEntityId",
-                JS_NewBigUint64(cb->onHitEntity.context(), event.hitEntityId));
-            cb->onHitEntity.call(eventObj);
-            JS_FreeValue(cb->onHitEntity.context(), eventObj);
+            auto* ctx = cb->onHitEntity.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "attackingEntityId", static_cast<i64>(event.attackingEntityId));
+            ctx->setPropertyInt64(eventObj, "hitEntityId", static_cast<i64>(event.hitEntityId));
+            void* ret = cb->onHitEntity.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onMineBlock.func())) {
+    if (callbacks->onMineBlock.isValid()) {
         component.onMineBlock = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                     ItemComponentMineBlockEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onMineBlock.context());
-            JS_SetPropertyStr(cb->onMineBlock.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onMineBlock.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(cb->onMineBlock.context(),
-                eventObj,
-                "sourceId",
-                JS_NewBigUint64(cb->onMineBlock.context(), event.sourceId));
-            JS_SetPropertyStr(
-                cb->onMineBlock.context(), eventObj, "x", JS_NewInt32(cb->onMineBlock.context(), event.blockX));
-            JS_SetPropertyStr(
-                cb->onMineBlock.context(), eventObj, "y", JS_NewInt32(cb->onMineBlock.context(), event.blockY));
-            JS_SetPropertyStr(
-                cb->onMineBlock.context(), eventObj, "z", JS_NewInt32(cb->onMineBlock.context(), event.blockZ));
-            cb->onMineBlock.call(eventObj);
-            JS_FreeValue(cb->onMineBlock.context(), eventObj);
+            auto* ctx = cb->onMineBlock.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "sourceId", static_cast<i64>(event.sourceId));
+            ctx->setPropertyInt(eventObj, "x", event.blockX);
+            ctx->setPropertyInt(eventObj, "y", event.blockY);
+            ctx->setPropertyInt(eventObj, "z", event.blockZ);
+            void* ret = cb->onMineBlock.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onBeforeDurabilityDamage.func())) {
+    if (callbacks->onBeforeDurabilityDamage.isValid()) {
         component.onBeforeDurabilityDamage = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                                  ItemComponentBeforeDurabilityDamageEvent& event,
                                                  const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onBeforeDurabilityDamage.context());
-            JS_SetPropertyStr(cb->onBeforeDurabilityDamage.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onBeforeDurabilityDamage.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(cb->onBeforeDurabilityDamage.context(),
-                eventObj,
-                "attackingEntityId",
-                JS_NewBigUint64(cb->onBeforeDurabilityDamage.context(), event.attackingEntityId));
-            JS_SetPropertyStr(cb->onBeforeDurabilityDamage.context(),
-                eventObj,
-                "hitEntityId",
-                JS_NewBigUint64(cb->onBeforeDurabilityDamage.context(), event.hitEntityId));
-            JS_SetPropertyStr(cb->onBeforeDurabilityDamage.context(),
-                eventObj,
-                "durabilityDamage",
-                JS_NewInt32(cb->onBeforeDurabilityDamage.context(), event.durabilityDamage));
-            cb->onBeforeDurabilityDamage.call(eventObj);
-            // 读取JS修改后的durabilityDamage值
-            JSValue dmgVal = JS_GetPropertyStr(cb->onBeforeDurabilityDamage.context(), eventObj, "durabilityDamage");
-            i32 newDmg = 0;
-            if (JS_ToInt32(cb->onBeforeDurabilityDamage.context(), &newDmg, dmgVal) == 0) {
-                event.durabilityDamage = newDmg;
+            auto* ctx = cb->onBeforeDurabilityDamage.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "attackingEntityId", static_cast<i64>(event.attackingEntityId));
+            ctx->setPropertyInt64(eventObj, "hitEntityId", static_cast<i64>(event.hitEntityId));
+            ctx->setPropertyInt(eventObj, "durabilityDamage", event.durabilityDamage);
+            void* ret = cb->onBeforeDurabilityDamage.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
             }
-            JS_FreeValue(cb->onBeforeDurabilityDamage.context(), dmgVal);
-            JS_FreeValue(cb->onBeforeDurabilityDamage.context(), eventObj);
+            // 读取JS修改后的durabilityDamage值
+            auto dmgVal = ctx->getPropertyInt(eventObj, "durabilityDamage");
+            if (dmgVal) {
+                event.durabilityDamage = *dmgVal;
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onCompleteUse.func())) {
+    if (callbacks->onCompleteUse.isValid()) {
         component.onCompleteUse = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                       ItemComponentCompleteUseEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onCompleteUse.context());
-            JS_SetPropertyStr(cb->onCompleteUse.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onCompleteUse.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(cb->onCompleteUse.context(),
-                eventObj,
-                "sourceId",
-                JS_NewBigUint64(cb->onCompleteUse.context(), event.sourceId));
-            JS_SetPropertyStr(cb->onCompleteUse.context(),
-                eventObj,
-                "useDuration",
-                JS_NewInt32(cb->onCompleteUse.context(), event.useDuration));
-            cb->onCompleteUse.call(eventObj);
-            JS_FreeValue(cb->onCompleteUse.context(), eventObj);
+            auto* ctx = cb->onCompleteUse.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "sourceId", static_cast<i64>(event.sourceId));
+            ctx->setPropertyInt(eventObj, "useDuration", event.useDuration);
+            void* ret = cb->onCompleteUse.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    if (!JS_IsUndefined(callbacks->onConsume.func())) {
+    if (callbacks->onConsume.isValid()) {
         component.onConsume = [cb = std::shared_ptr<ItemJSCallbacks>(callbacks)](
                                   ItemComponentConsumeEvent& event, const CustomComponentParameters&) {
-            JSValue eventObj = JS_NewObject(cb->onConsume.context());
-            JS_SetPropertyStr(cb->onConsume.context(),
-                eventObj,
-                "itemTypeId",
-                JS_NewString(cb->onConsume.context(), event.itemTypeId.c_str()));
-            JS_SetPropertyStr(cb->onConsume.context(),
-                eventObj,
-                "sourceId",
-                JS_NewBigUint64(cb->onConsume.context(), event.sourceId));
-            cb->onConsume.call(eventObj);
-            JS_FreeValue(cb->onConsume.context(), eventObj);
+            auto* ctx = cb->onConsume.context();
+            void* eventObj = ctx->createObject();
+            ctx->setPropertyString(eventObj, "itemTypeId", event.itemTypeId);
+            ctx->setPropertyInt64(eventObj, "sourceId", static_cast<i64>(event.sourceId));
+            void* ret = cb->onConsume.call(eventObj);
+            if (ctx->isException(ret)) {
+                void* exc = ctx->getException();
+                spdlog::error("[BedrockAddon] JS callback threw: {}", ctx->getExceptionMessage(exc));
+                ctx->releaseValue(exc);
+            }
+            ctx->releaseValue(ret);
+            ctx->releaseValue(eventObj);
         };
     }
 
-    // 注册到全局ItemComponentRegistry
     ItemComponentRegistry::instance().registerComponent(typeId, std::move(component));
-
     spdlog::info("[BedrockAddon] Registered item custom component for '{}'", typeId);
-
     return true;
-}
-
-// ============================================================================
-// JS全局方法 - BlockComponentRegistry.registerCustomComponent
-// ============================================================================
-
-static JSValue blockComponentRegistryRegister(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    if (argc < 2) {
-        return JS_ThrowTypeError(ctx, "blockComponentRegistry.registerCustomComponent requires 2 arguments");
-    }
-
-    // 第一个参数：typeId (string)
-    const char* typeIdStr = JS_ToCString(ctx, argv[0]);
-    if (!typeIdStr) {
-        return JS_ThrowTypeError(ctx, "First argument must be a string (typeId)");
-    }
-    std::string typeId(typeIdStr);
-    JS_FreeCString(ctx, typeIdStr);
-
-    // 第二个参数：component (object)
-    if (!JS_IsObject(argv[1])) {
-        return JS_ThrowTypeError(ctx, "Second argument must be an object (component)");
-    }
-
-    bool success = registerBlockCustomComponentFromJS(typeId, JS_DupValue(ctx, argv[1]), ctx);
-    if (!success) {
-        return JS_ThrowTypeError(ctx, "Failed to register block custom component for '%s'", typeId.c_str());
-    }
-
-    return JS_UNDEFINED;
-}
-
-// ============================================================================
-// JS全局方法 - ItemComponentRegistry.registerCustomComponent
-// ============================================================================
-
-static JSValue itemComponentRegistryRegister(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    if (argc < 2) {
-        return JS_ThrowTypeError(ctx, "itemComponentRegistry.registerCustomComponent requires 2 arguments");
-    }
-
-    // 第一个参数：typeId (string)
-    const char* typeIdStr = JS_ToCString(ctx, argv[0]);
-    if (!typeIdStr) {
-        return JS_ThrowTypeError(ctx, "First argument must be a string (typeId)");
-    }
-    std::string typeId(typeIdStr);
-    JS_FreeCString(ctx, typeIdStr);
-
-    // 第二个参数：component (object)
-    if (!JS_IsObject(argv[1])) {
-        return JS_ThrowTypeError(ctx, "Second argument must be an object (component)");
-    }
-
-    bool success = registerItemCustomComponentFromJS(typeId, JS_DupValue(ctx, argv[1]), ctx);
-    if (!success) {
-        return JS_ThrowTypeError(ctx, "Failed to register item custom component for '%s'", typeId.c_str());
-    }
-
-    return JS_UNDEFINED;
 }
 
 // ============================================================================
 // 导出注册函数 - 供MinecraftModuleFactory调用
 // ============================================================================
 
-void registerCustomComponentBindings(NativeModuleBuilder& builder, JSContext* ctx)
+void registerCustomComponentBindings(NativeModuleBuilder& builder)
 {
+    auto& ctx = builder.context();
+
     // 注册 BlockComponentRegistry 全局对象
-    JSValue blockRegObj = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx,
+    void* blockRegObj = ctx.createObject();
+    ctx.registerMethod(
         blockRegObj,
         "registerCustomComponent",
-        JS_NewCFunction(ctx, blockComponentRegistryRegister, "registerCustomComponent", 2));
+        [](IScriptBindingContext& cbCtx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 2) {
+                return cbCtx.throwTypeError("blockComponentRegistry.registerCustomComponent requires 2 arguments");
+            }
+
+            auto typeId = cbCtx.toString(args[0]);
+            if (!typeId) {
+                return cbCtx.throwTypeError("First argument must be a string (typeId)");
+            }
+
+            if (!cbCtx.isObject(args[1])) {
+                return cbCtx.throwTypeError("Second argument must be an object (component)");
+            }
+
+            // 保留component对象引用
+            void* componentObj = args[1];
+            cbCtx.retainValue(componentObj);
+            bool success = registerBlockCustomComponentFromJS(*typeId, componentObj, cbCtx);
+            cbCtx.releaseValue(componentObj);
+
+            if (!success) {
+                return cbCtx.throwTypeError(
+                    ("Failed to register block custom component for '" + *typeId + "'").c_str());
+            }
+
+            return cbCtx.createUndefined();
+        },
+        2);
     builder.exportValue("blockComponentRegistry", blockRegObj);
+    ctx.releaseValue(blockRegObj);
 
     // 注册 ItemComponentRegistry 全局对象
-    JSValue itemRegObj = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx,
+    void* itemRegObj = ctx.createObject();
+    ctx.registerMethod(
         itemRegObj,
         "registerCustomComponent",
-        JS_NewCFunction(ctx, itemComponentRegistryRegister, "registerCustomComponent", 2));
+        [](IScriptBindingContext& cbCtx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 2) {
+                return cbCtx.throwTypeError("itemComponentRegistry.registerCustomComponent requires 2 arguments");
+            }
+
+            auto typeId = cbCtx.toString(args[0]);
+            if (!typeId) {
+                return cbCtx.throwTypeError("First argument must be a string (typeId)");
+            }
+
+            if (!cbCtx.isObject(args[1])) {
+                return cbCtx.throwTypeError("Second argument must be an object (component)");
+            }
+
+            void* componentObj = args[1];
+            cbCtx.retainValue(componentObj);
+            bool success = registerItemCustomComponentFromJS(*typeId, componentObj, cbCtx);
+            cbCtx.releaseValue(componentObj);
+
+            if (!success) {
+                return cbCtx.throwTypeError(("Failed to register item custom component for '" + *typeId + "'").c_str());
+            }
+
+            return cbCtx.createUndefined();
+        },
+        2);
     builder.exportValue("itemComponentRegistry", itemRegObj);
+    ctx.releaseValue(itemRegObj);
 
     spdlog::info("[BedrockAddon] Registered custom component bindings for @minecraft/server");
 }

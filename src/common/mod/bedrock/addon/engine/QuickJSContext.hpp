@@ -3,7 +3,9 @@
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/core/ScriptData.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -61,6 +63,14 @@ public:
     [[nodiscard]] const std::string& moduleName() const override;
 
     /**
+     * @brief 获取脚本绑定上下文
+     *
+     * 返回引擎无关的绑定接口，modules/层应通过此接口
+     * 注册类、方法、属性、创建对象等。
+     */
+    [[nodiscard]] IScriptBindingContext& bindingContext() override;
+
+    /**
      * @brief 获取原生JSContext指针
      */
     [[nodiscard]] JSContext* jsContext() const { return m_context; }
@@ -93,6 +103,7 @@ private:
     bool m_valid = false;
     std::string m_moduleName;
     std::unordered_map<std::string, std::function<ScriptValue(const std::vector<ScriptValue>&)>> m_globalFunctions;
+    std::unique_ptr<class QuickJSBindingContext> m_bindingContext;
 
     /**
      * @brief 将ScriptException转换为ScriptResult

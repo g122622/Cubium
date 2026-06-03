@@ -31,11 +31,12 @@
 namespace mc::mod::bedrock::addon {
 
 ScriptManager::ScriptManager()
-    : m_engine(std::make_unique<QuickJSEngine>())
+    : m_engine(createScriptEngine())
     , m_pluginManager(std::make_unique<ScriptPluginManager>())
     , m_eventBus(std::make_unique<ScriptEventBus>())
     , m_watchdog(std::make_unique<ScriptWatchdog>(ScriptWatchdog::Config{}))
     , m_logger(std::make_unique<ScriptLogger>())
+    , m_scheduler(std::make_unique<ScriptScheduler>())
     , m_packList(std::make_unique<BehaviorPackList>())
 {}
 
@@ -82,6 +83,9 @@ void ScriptManager::shutdown()
 
     // 关闭事件总线
     m_eventBus->shutdown();
+
+    // 清除调度器
+    m_scheduler->clearAll();
 
     // 关闭引擎
     m_engine->shutdown();
@@ -185,6 +189,9 @@ void ScriptManager::reload()
     m_pluginManager->stopAllPlugins();
     m_pluginManager->unloadAllPlugins();
 
+    // 清除调度器
+    m_scheduler->clearAll();
+
     // 清空行为包列表
     m_packList->clear();
 
@@ -247,6 +254,16 @@ const ScriptLogger& ScriptManager::logger() const
     return *m_logger;
 }
 
+ScriptScheduler& ScriptManager::scheduler()
+{
+    return *m_scheduler;
+}
+
+const ScriptScheduler& ScriptManager::scheduler() const
+{
+    return *m_scheduler;
+}
+
 BehaviorPackList* ScriptManager::packList()
 {
     return m_packList.get();
@@ -260,8 +277,19 @@ const BehaviorPackList* ScriptManager::packList() const
 void ScriptManager::registerBuiltinModules()
 {
     // 注册 @minecraft/server 模块
-    m_engine->addModuleFactory(std::make_unique<MinecraftModuleFactory>());
+    auto minecraftFactory = std::make_unique<MinecraftModuleFactory>();
+    minecraftFactory->setScheduler(m_scheduler.get());
+    minecraftFactory->setEventBus(m_eventBus.get());
+    if (!m_eventSignals.empty()) {
+        minecraftFactory->setEventSignals(m_eventSignals);
+    }
+    m_engine->addModuleFactory(std::move(minecraftFactory));
     spdlog::info("[BedrockAddon] Registered @minecraft/server module factory");
+}
+
+void ScriptManager::setEventSignals(const std::vector<EventSignalInfo>& signals)
+{
+    m_eventSignals = signals;
 }
 
 } // namespace mc::mod::bedrock::addon

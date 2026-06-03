@@ -1,5 +1,12 @@
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 
+#include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
+#include "server/application/MinecraftServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -22,12 +29,22 @@ Result<void> ServerScriptManager::initialize()
 
     spdlog::info("[Server] Initializing script system...");
 
+    // 注入服务端事件信号定义到脚本管理器
+    auto beforeSignals = getBeforeEventSignals();
+    auto afterSignals = getAfterEventSignals();
+    beforeSignals.insert(beforeSignals.end(), afterSignals.begin(), afterSignals.end());
+    m_scriptManager->setEventSignals(beforeSignals);
+
     auto result = m_scriptManager->initialize();
     if (result.failed()) {
         return result;
     }
 
     m_initialized = true;
+
+    // 桥接游戏事件到脚本事件总线
+    m_eventBridge.initialize(event::ServerEventBus::instance(), m_scriptManager->eventBus());
+
     spdlog::info("[Server] Script system initialized");
     return Result<void>::ok();
 }
@@ -62,25 +79,27 @@ void ServerScriptManager::startPlugins()
     m_scriptManager->startPlugins();
 }
 
-void ServerScriptManager::tick()
+void ServerScriptManager::tick(u64 currentTick)
 {
     if (!m_initialized) {
         return;
     }
 
-    auto& tickListener = *m_scriptManager; // 通过ScriptManager间接调用
     // tick流程：
     // 1. 开始tick（看门狗计时）
     m_scriptManager->watchdog().beginTick();
 
-    // 2. 执行JS pending jobs和插件tick
+    // 2. 执行调度回调（system.run/runInterval/runTimeout）
+    m_scriptManager->scheduler().tick(currentTick);
+
+    // 3. 执行JS pending jobs和插件tick
     m_scriptManager->tickPlugins();
     m_scriptManager->executePendingJobs();
 
-    // 3. 刷新afterEvent队列
+    // 4. 刷新afterEvent队列
     m_scriptManager->eventBus().tick();
 
-    // 4. 结束tick（看门狗检查）
+    // 5. 结束tick（看门狗检查）
     m_scriptManager->watchdog().endTick();
     m_scriptManager->watchdog().tick(*m_scriptManager);
 }
@@ -92,6 +111,7 @@ void ServerScriptManager::shutdown()
     }
 
     spdlog::info("[Server] Shutting down script system...");
+    m_eventBridge.shutdown();
     m_scriptManager->shutdown();
     m_initialized = false;
     spdlog::info("[Server] Script system shut down");
@@ -124,6 +144,31 @@ const mc::mod::bedrock::addon::ScriptManager& ServerScriptManager::scriptManager
 void ServerScriptManager::setGlobalBehaviorPackDir(const std::string& dir)
 {
     m_globalBehaviorPackDir = dir;
+}
+
+void ServerScriptManager::setServer(MinecraftServer* server)
+{
+    if (!server) {
+        return;
+    }
+
+    auto& accessor = mc::mod::bedrock::addon::ScriptWorldAccessor::instance();
+
+    // 桥接world.sendMessage到服务器广播
+    accessor.setMessageCallback([server](const std::string& message) { server->broadcastServerMessage(message); });
+
+    // 桥接world.getAllPlayers到玩家管理器
+    accessor.setGetPlayerNamesCallback([server]() -> std::vector<std::string> {
+        std::vector<std::string> names;
+        server->playerManager().forEachPlayer(
+            [&names](const mc::server::ServerPlayerData& data) { names.push_back(data.username); });
+        return names;
+    });
+
+    // 桥接system.currentTick到服务器tick计数
+    accessor.setCurrentTickCallback([server]() -> u64 { return server->currentTick(); });
+
+    spdlog::info("[Server] ScriptWorldAccessor bridged to MinecraftServer");
 }
 
 } // namespace mc::server

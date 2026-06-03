@@ -803,6 +803,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
         ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp

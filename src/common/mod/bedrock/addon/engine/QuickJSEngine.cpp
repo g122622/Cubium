@@ -1,6 +1,6 @@
 #include "common/mod/bedrock/addon/engine/QuickJSEngine.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -8,13 +8,15 @@ namespace mc::mod::bedrock::addon {
 
 QuickJSEngine::QuickJSEngine() = default;
 
-QuickJSEngine::~QuickJSEngine() {
+QuickJSEngine::~QuickJSEngine()
+{
     if (m_initialized) {
         shutdown();
     }
 }
 
-bool QuickJSEngine::initialize() {
+bool QuickJSEngine::initialize()
+{
     if (m_initialized) {
         spdlog::warn("[BedrockAddon] QuickJSEngine already initialized");
         return true;
@@ -34,7 +36,8 @@ bool QuickJSEngine::initialize() {
     return true;
 }
 
-void QuickJSEngine::shutdown() {
+void QuickJSEngine::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -50,15 +53,18 @@ void QuickJSEngine::shutdown() {
     spdlog::info("[BedrockAddon] QuickJS engine shut down");
 }
 
-IScriptRuntime& QuickJSEngine::runtime() {
+IScriptRuntime& QuickJSEngine::runtime()
+{
     return *m_runtime;
 }
 
-const IScriptRuntime& QuickJSEngine::runtime() const {
+const IScriptRuntime& QuickJSEngine::runtime() const
+{
     return *m_runtime;
 }
 
-void QuickJSEngine::addModuleFactory(std::unique_ptr<IModuleBindingFactory> factory) {
+void QuickJSEngine::addModuleFactory(std::unique_ptr<IModuleBindingFactory> factory)
+{
     if (!factory) {
         return;
     }
@@ -70,7 +76,8 @@ void QuickJSEngine::addModuleFactory(std::unique_ptr<IModuleBindingFactory> fact
     m_moduleFactories.push_back(std::move(factory));
 }
 
-IModuleBindingFactory* QuickJSEngine::findModuleFactory(const std::string& name) const {
+IModuleBindingFactory* QuickJSEngine::findModuleFactory(const std::string& name) const
+{
     auto it = m_factoryByName.find(name);
     if (it != m_factoryByName.end()) {
         return it->second;
@@ -78,11 +85,11 @@ IModuleBindingFactory* QuickJSEngine::findModuleFactory(const std::string& name)
     return nullptr;
 }
 
-std::unique_ptr<IScriptContext> QuickJSEngine::createContext(
-    const ModuleDescriptor& descriptor,
+std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescriptor& descriptor,
     const std::vector<ModuleDependency>& dependencies,
     IDependencyLoader& loader,
-    IScriptPrinter& printer) {
+    IScriptPrinter& printer)
+{
     if (!m_initialized || !m_runtime) {
         spdlog::error("[BedrockAddon] Cannot create context: engine not initialized");
         return nullptr;
@@ -107,8 +114,7 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(
                 return nullptr;
             }
         } else {
-            spdlog::warn("[BedrockAddon] Module dependency not found: {} (required by {})", dep.name,
-                         descriptor.name);
+            spdlog::warn("[BedrockAddon] Module dependency not found: {} (required by {})", dep.name, descriptor.name);
         }
     }
 
@@ -124,8 +130,14 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(
     return context;
 }
 
-bool QuickJSEngine::isInitialized() const {
+bool QuickJSEngine::isInitialized() const
+{
     return m_initialized;
+}
+
+std::unique_ptr<IScriptEngine> createScriptEngine()
+{
+    return std::make_unique<QuickJSEngine>();
 }
 
 } // namespace mc::mod::bedrock::addon

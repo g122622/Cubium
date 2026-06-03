@@ -8,6 +8,7 @@ add_library(mc_bedrock_addon STATIC
     engine/QuickJSRuntime.cpp
     engine/QuickJSEngine.cpp
     engine/QuickJSContext.cpp
+    engine/QuickJSBindingContext.cpp
     engine/QuickJSModuleLoader.cpp
 
     # Binding (header-only initially, .cpp added later)
@@ -16,6 +17,11 @@ add_library(mc_bedrock_addon STATIC
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
     modules/ScriptCustomComponentBinding.cpp
+    modules/ScriptEventBinding.cpp
+    modules/types/ScriptWorldAccessor.cpp
+    modules/types/ScriptVec2.cpp
+    modules/types/ScriptVec3.cpp
+    modules/types/ScriptColor.cpp
 
     # Plugin - 插件管理
     plugin/PluginExecutionGroup.cpp
@@ -44,6 +50,7 @@ add_library(mc_bedrock_addon STATIC
     lifecycle/ScriptTickListener.cpp
     lifecycle/ScriptWatchdog.cpp
     lifecycle/ScriptLogger.cpp
+    lifecycle/ScriptScheduler.cpp
 
     # Component - 自定义组件
     component/BlockComponentRegistry.cpp

@@ -350,6 +350,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
     ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp

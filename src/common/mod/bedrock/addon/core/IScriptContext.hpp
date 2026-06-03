@@ -10,6 +10,8 @@
 
 namespace mc::mod::bedrock::addon {
 
+class IScriptBindingContext;
+
 /**
  * @brief 脚本上下文抽象接口
  *
@@ -73,9 +75,20 @@ public:
      *
      * @return QuickJS的JSContext*指针，或其他引擎的原生句柄
      *
-     * @warning 仅用于模块绑定层，其他代码不应使用此方法
+     * @warning 仅用于引擎实现层，modules/层不应使用此方法。
+     *          modules/层应使用bindingContext()获取引擎无关的绑定接口。
      */
     [[nodiscard]] virtual void* nativeHandle() = 0;
+
+    /**
+     * @brief 获取脚本绑定上下文
+     *
+     * 返回引擎无关的绑定接口，modules/层应通过此接口
+     * 注册类、方法、属性、创建对象等，而不直接使用QuickJS API。
+     *
+     * @return 绑定上下文引用
+     */
+    [[nodiscard]] virtual IScriptBindingContext& bindingContext() = 0;
 
     /**
      * @brief 注册一个全局回调函数

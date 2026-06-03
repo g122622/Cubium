@@ -2,11 +2,14 @@
 
 #include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+#include "server/mod/bedrock/addon/bridge/EventBridge.hpp"
 
 #include <memory>
 #include <string>
 
 namespace mc::server {
+
+class MinecraftServer;
 
 /**
  * @brief 服务端脚本管理器
@@ -58,9 +61,11 @@ public:
      * @brief 每tick调用
      *
      * 在MinecraftServer::tick()中调用，驱动脚本执行。
-     * 处理beforeEvents、pending jobs、afterEvents。
+     * 处理调度回调、beforeEvents、pending jobs、afterEvents。
+     *
+     * @param currentTick 当前服务器tick计数
      */
-    void tick();
+    void tick(u64 currentTick);
 
     /**
      * @brief 关闭脚本系统
@@ -90,8 +95,19 @@ public:
      */
     void setGlobalBehaviorPackDir(const std::string& dir);
 
+    /**
+     * @brief 设置MinecraftServer引用
+     *
+     * 注入服务器引用以桥接脚本API到游戏对象。
+     * 必须在initialize()之前或之后调用。
+     *
+     * @param server MinecraftServer指针（必须比此对象生命周期长）
+     */
+    void setServer(MinecraftServer* server);
+
 private:
     std::unique_ptr<mc::mod::bedrock::addon::ScriptManager> m_scriptManager;
+    EventBridge m_eventBridge;
     std::string m_globalBehaviorPackDir;
     bool m_initialized = false;
 };

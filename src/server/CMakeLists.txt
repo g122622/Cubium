@@ -145,6 +145,8 @@ add_executable(minecraft-server
     bossbar/CustomServerBossInfoManager.cpp
     # 脚本系统集成
     mod/bedrock/addon/ServerScriptManager.cpp
+    mod/bedrock/addon/bridge/EventBridge.cpp
+    mod/bedrock/addon/bridge/ServerEventSignals.cpp
 )
 
 target_link_libraries(minecraft-server

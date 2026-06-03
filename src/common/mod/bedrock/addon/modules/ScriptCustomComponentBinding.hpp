@@ -1,11 +1,13 @@
 #pragma once
 
+#include "common/core/Types.hpp"
+
 #include <string>
-#include <quickjs.h>
 
 namespace mc::mod::bedrock::addon {
 
 class NativeModuleBuilder;
+class IScriptBindingContext;
 
 /**
  * @brief 注册方块自定义组件到BlockComponentRegistry
@@ -14,11 +16,11 @@ class NativeModuleBuilder;
  * JS API: blockComponentRegistry.registerCustomComponent(typeId, component)
  *
  * @param typeId 方块类型ID（如"minecraft:stone"）
- * @param componentObj JS组件对象，包含onStepOn/onPlace等回调
- * @param ctx QuickJS上下文
+ * @param componentObj JS组件对象句柄，包含onStepOn/onPlace等回调
+ * @param ctx 绑定上下文
  * @return 是否注册成功
  */
-bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue componentObj, JSContext* ctx);
+bool registerBlockCustomComponentFromJS(const std::string& typeId, void* componentObj, IScriptBindingContext& ctx);
 
 /**
  * @brief 注册物品自定义组件到ItemComponentRegistry
@@ -27,11 +29,11 @@ bool registerBlockCustomComponentFromJS(const std::string& typeId, JSValue compo
  * JS API: itemComponentRegistry.registerCustomComponent(typeId, component)
  *
  * @param typeId 物品类型ID（如"minecraft:diamond_sword"）
- * @param componentObj JS组件对象，包含onUse/onHitEntity等回调
- * @param ctx QuickJS上下文
+ * @param componentObj JS组件对象句柄，包含onUse/onHitEntity等回调
+ * @param ctx 绑定上下文
  * @return 是否注册成功
  */
-bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue componentObj, JSContext* ctx);
+bool registerItemCustomComponentFromJS(const std::string& typeId, void* componentObj, IScriptBindingContext& ctx);
 
 /**
  * @brief 向@minecraft/server模块注册自定义组件绑定
@@ -39,8 +41,7 @@ bool registerItemCustomComponentFromJS(const std::string& typeId, JSValue compon
  * 导出blockComponentRegistry和itemComponentRegistry全局对象到JS模块。
  *
  * @param builder 模块构建器
- * @param ctx QuickJS上下文
  */
-void registerCustomComponentBindings(NativeModuleBuilder& builder, JSContext* ctx);
+void registerCustomComponentBindings(NativeModuleBuilder& builder);
 
 } // namespace mc::mod::bedrock::addon

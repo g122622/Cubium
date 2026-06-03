@@ -12,7 +12,7 @@ class ScriptManager;
  * 每个服务器tick调用，驱动脚本系统的执行。
  * 执行顺序：
  * 1. beginTick() - 记录tick开始
- * 2. tick() - 执行脚本tick（处理pending jobs、scheduled callbacks等）
+ * 2. tick(currentTick) - 执行调度回调、插件tick、pending jobs
  * 3. endTick() - 刷新afterEvent队列、检查看门狗
  */
 class ScriptTickListener {
@@ -30,10 +30,12 @@ public:
     /**
      * @brief 执行脚本tick
      *
-     * 处理JS引擎的pending jobs（Promise回调、setTimeout等），
-     * 驱动各插件的tick。
+     * 处理调度回调（system.run/runInterval/runTimeout）、
+     * JS引擎的pending jobs（Promise回调等）、驱动各插件的tick。
+     *
+     * @param currentTick 当前服务器tick计数
      */
-    void tick();
+    void tick(u64 currentTick);
 
     /**
      * @brief tick结束时调用

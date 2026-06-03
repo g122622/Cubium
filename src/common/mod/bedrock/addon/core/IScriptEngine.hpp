@@ -1,15 +1,15 @@
 #pragma once
 
-#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
-#include "common/mod/bedrock/addon/core/ScriptException.hpp"
-#include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
-#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
-#include "common/mod/bedrock/addon/core/ScriptData.hpp"
 #include "common/mod/bedrock/addon/core/Capabilities.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
+#include "common/mod/bedrock/addon/core/ScriptData.hpp"
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
+#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace mc::mod::bedrock::addon {
 
@@ -106,8 +106,7 @@ public:
      * @param printer 日志打印机
      * @return 新创建的脚本上下文
      */
-    [[nodiscard]] virtual std::unique_ptr<IScriptContext> createContext(
-        const ModuleDescriptor& descriptor,
+    [[nodiscard]] virtual std::unique_ptr<IScriptContext> createContext(const ModuleDescriptor& descriptor,
         const std::vector<ModuleDependency>& dependencies,
         IDependencyLoader& loader,
         IScriptPrinter& printer) = 0;
@@ -117,5 +116,15 @@ public:
      */
     [[nodiscard]] virtual bool isInitialized() const = 0;
 };
+
+/**
+ * @brief 创建默认脚本引擎实例
+ *
+ * 工厂函数，返回当前配置的引擎实现（如QuickJS）。
+ * 调用方仅依赖IScriptEngine接口，无需了解具体引擎类型。
+ *
+ * @return 脚本引擎实例
+ */
+[[nodiscard]] std::unique_ptr<IScriptEngine> createScriptEngine();
 
 } // namespace mc::mod::bedrock::addon

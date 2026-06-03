@@ -3,14 +3,17 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSEngine.hpp"
+#include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPluginManager.hpp"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 
@@ -42,7 +45,7 @@ public:
     /**
      * @brief 初始化脚本系统
      *
-     * 创建QuickJS引擎、注册模块工厂、初始化事件总线。
+     * 创建脚本引擎、注册模块工厂、初始化事件总线。
      *
      * @return 初始化结果
      */
@@ -105,8 +108,20 @@ public:
     [[nodiscard]] const ScriptWatchdog& watchdog() const;
     [[nodiscard]] ScriptLogger& logger();
     [[nodiscard]] const ScriptLogger& logger() const;
+    [[nodiscard]] ScriptScheduler& scheduler();
+    [[nodiscard]] const ScriptScheduler& scheduler() const;
     [[nodiscard]] BehaviorPackList* packList();
     [[nodiscard]] const BehaviorPackList* packList() const;
+
+    /**
+     * @brief 设置事件信号列表
+     *
+     * 注入server层定义的事件信号，用于注册world.beforeEvents/afterEvents。
+     * 必须在initialize()之前调用。
+     *
+     * @param signals 事件信号信息列表
+     */
+    void setEventSignals(const std::vector<EventSignalInfo>& signals);
 
 private:
     /**
@@ -114,13 +129,15 @@ private:
      */
     void registerBuiltinModules();
 
-    std::unique_ptr<QuickJSEngine> m_engine;
+    std::unique_ptr<IScriptEngine> m_engine;
     std::unique_ptr<ScriptPluginManager> m_pluginManager;
     std::unique_ptr<ScriptEventBus> m_eventBus;
     std::unique_ptr<ScriptWatchdog> m_watchdog;
     std::unique_ptr<ScriptLogger> m_logger;
+    std::unique_ptr<ScriptScheduler> m_scheduler;
     std::unique_ptr<BehaviorPackList> m_packList;
     std::unique_ptr<ScriptTickListener> m_tickListener;
+    std::vector<EventSignalInfo> m_eventSignals;
 
     bool m_initialized = false;
 };

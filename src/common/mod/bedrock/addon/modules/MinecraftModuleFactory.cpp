@@ -1,152 +1,29 @@
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
-#include "common/mod/bedrock/addon/binding/TypeConverter.hpp"
-#include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
+#include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
 
-#include <quickjs.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 
-// ============================================================================
-// System类方法 - 全局system对象的方法
-// ============================================================================
-
-static JSValue systemRun(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+void MinecraftModuleFactory::setScheduler(ScriptScheduler* scheduler)
 {
-    // system.run(callback) - 下一tick执行回调
-    // TODO: 集成ScriptTickListener
-    if (argc < 1 || !JS_IsFunction(ctx, argv[0])) {
-        return JS_ThrowTypeError(ctx, "system.run requires a function argument");
-    }
-    return JS_NewInt32(ctx, 0); // 返回runId
+    m_scheduler = scheduler;
 }
 
-static JSValue systemRunInterval(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+void MinecraftModuleFactory::setEventSignals(const std::vector<EventSignalInfo>& signals)
 {
-    // system.runInterval(callback, tickInterval)
-    // TODO: 集成ScriptTickListener
-    if (argc < 1 || !JS_IsFunction(ctx, argv[0])) {
-        return JS_ThrowTypeError(ctx, "system.runInterval requires a function argument");
-    }
-    return JS_NewInt32(ctx, 0);
+    m_eventSignals = signals;
 }
 
-static JSValue systemRunTimeout(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+void MinecraftModuleFactory::setEventBus(ScriptEventBus* eventBus)
 {
-    // system.runTimeout(callback, tickDelay)
-    // TODO: 集成ScriptTickListener
-    if (argc < 1 || !JS_IsFunction(ctx, argv[0])) {
-        return JS_ThrowTypeError(ctx, "system.runTimeout requires a function argument");
-    }
-    return JS_NewInt32(ctx, 0);
+    m_eventBus = eventBus;
 }
-
-static JSValue systemClearRun(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    // system.clearRun(runId)
-    // TODO: 集成ScriptTickListener
-    return JS_UNDEFINED;
-}
-
-static JSValue systemGetCurrentTick(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    // TODO: 返回当前tick
-    return JS_NewInt64(ctx, 0);
-}
-
-// ============================================================================
-// World类方法
-// ============================================================================
-
-static JSValue worldGetDimension(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    // TODO: 返回Dimension对象
-    return JS_UNDEFINED;
-}
-
-static JSValue worldGetAllPlayers(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    // TODO: 返回玩家数组
-    return JS_NewArray(ctx);
-}
-
-static JSValue worldSendMessage(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    // TODO: 实现消息发送
-    return JS_UNDEFINED;
-}
-
-// ============================================================================
-// Dimension类
-// ============================================================================
-
-static JSValue dimensionGetId(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    // TODO: 返回维度ID
-    return JS_NewString(ctx, "minecraft:overworld");
-}
-
-// ============================================================================
-// Entity类
-// ============================================================================
-
-static JSValue entityGetId(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    // TODO: 返回实体ID
-    return JS_UNDEFINED;
-}
-
-static JSValue entityGetTypeId(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    // TODO: 返回实体类型ID
-    return JS_UNDEFINED;
-}
-
-static JSValue entityGetDimension(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    return JS_UNDEFINED;
-}
-
-static JSValue entityGetLocation(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    return JS_UNDEFINED;
-}
-
-// ============================================================================
-// Player类
-// ============================================================================
-
-static JSValue playerGetName(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    // TODO: 返回玩家名
-    return JS_UNDEFINED;
-}
-
-// ============================================================================
-// ItemStack类
-// ============================================================================
-
-static JSValue itemStackGetTypeId(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    return JS_UNDEFINED;
-}
-
-static JSValue itemStackGetAmount(JSContext* ctx, JSValueConst this_val, int, JSValueConst*)
-{
-    return JS_UNDEFINED;
-}
-
-static JSValue itemStackSetAmount(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    return JS_UNDEFINED;
-}
-
-// ============================================================================
-// MinecraftModuleFactory
-// ============================================================================
 
 std::vector<ModuleVersion> MinecraftModuleFactory::supportedVersions() const
 {
@@ -155,20 +32,12 @@ std::vector<ModuleVersion> MinecraftModuleFactory::supportedVersions() const
 
 std::vector<ModuleDependency> MinecraftModuleFactory::dependencies(const ModuleVersion& version) const
 {
-    // @minecraft/server 没有外部依赖
     return {};
 }
 
 bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 {
-    auto* jsCtx = static_cast<QuickJSContext*>(&context);
-    if (!jsCtx || !jsCtx->jsContext()) {
-        spdlog::error("[BedrockAddon] MinecraftModuleFactory: invalid context");
-        return false;
-    }
-
-    JSContext* ctx = jsCtx->jsContext();
-    JSRuntime* rt = JS_GetRuntime(ctx);
+    auto& ctx = context.bindingContext();
 
     spdlog::info("[BedrockAddon] Registering @minecraft/server module bindings");
 
@@ -178,70 +47,248 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // ====== 注册类 ======
 
     // --- System类 ---
-    JSClassID systemClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue systemProto = builder.exportClass("System", systemClassId);
+    u64 systemClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* systemProto = builder.exportClass("System", systemClassId);
 
     ClassRegistrar<void> systemReg(ctx, systemClassId, systemProto);
-    systemReg.method("run", systemRun)
-        .method("runInterval", systemRunInterval)
-        .method("runTimeout", systemRunTimeout)
-        .method("clearRun", systemClearRun)
-        .readonlyProperty("currentTick", systemGetCurrentTick);
+
+    ScriptScheduler* scheduler = m_scheduler;
+
+    systemReg.method(
+        "run",
+        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("system.run requires a function argument");
+            }
+            if (!scheduler) {
+                return ctx.throwInternalError("Script scheduler not available");
+            }
+
+            // 保留回调引用（持久化到调度执行时）
+            void* callback = args[0];
+            ctx.retainValue(callback);
+            auto* ctxPtr = &ctx;
+
+            auto runId = scheduler->run([ctxPtr, callback]() {
+                void* undef = ctxPtr->createUndefined();
+                void* result = ctxPtr->callFunction0(callback, undef);
+                if (ctxPtr->isException(result)) {
+                    void* exc = ctxPtr->getException();
+                    auto msg = ctxPtr->getExceptionMessage(exc);
+                    spdlog::warn("[BedrockAddon] system.run callback error: {}", msg);
+                    ctxPtr->releaseValue(exc);
+                }
+                ctxPtr->releaseValue(result);
+                ctxPtr->releaseValue(undef);
+                ctxPtr->releaseValue(callback);
+            });
+
+            return ctx.createInt32(static_cast<i32>(runId));
+        },
+        1);
+
+    systemReg.method(
+        "runInterval",
+        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("system.runInterval requires a function argument");
+            }
+
+            u32 tickInterval = 1;
+            if (argc >= 2 && ctx.isNumber(args[1])) {
+                auto interval = ctx.toInt32(args[1]);
+                if (interval && *interval > 0) {
+                    tickInterval = static_cast<u32>(*interval);
+                }
+            }
+
+            if (!scheduler) {
+                return ctx.throwInternalError("Script scheduler not available");
+            }
+
+            void* callback = args[0];
+            ctx.retainValue(callback);
+            auto* ctxPtr = &ctx;
+
+            auto runId = scheduler->runInterval(
+                [ctxPtr, callback]() {
+                    void* undef = ctxPtr->createUndefined();
+                    void* result = ctxPtr->callFunction0(callback, undef);
+                    if (ctxPtr->isException(result)) {
+                        void* exc = ctxPtr->getException();
+                        auto msg = ctxPtr->getExceptionMessage(exc);
+                        spdlog::warn("[BedrockAddon] system.runInterval callback error: {}", msg);
+                        ctxPtr->releaseValue(exc);
+                    }
+                    ctxPtr->releaseValue(result);
+                    ctxPtr->releaseValue(undef);
+                },
+                tickInterval);
+
+            return ctx.createInt32(static_cast<i32>(runId));
+        },
+        2);
+
+    systemReg.method(
+        "runTimeout",
+        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("system.runTimeout requires a function argument");
+            }
+
+            u32 tickDelay = 1;
+            if (argc >= 2 && ctx.isNumber(args[1])) {
+                auto delay = ctx.toInt32(args[1]);
+                if (delay && *delay > 0) {
+                    tickDelay = static_cast<u32>(*delay);
+                }
+            }
+
+            if (!scheduler) {
+                return ctx.throwInternalError("Script scheduler not available");
+            }
+
+            void* callback = args[0];
+            ctx.retainValue(callback);
+            auto* ctxPtr = &ctx;
+
+            auto runId = scheduler->runTimeout(
+                [ctxPtr, callback]() {
+                    void* undef = ctxPtr->createUndefined();
+                    void* result = ctxPtr->callFunction0(callback, undef);
+                    if (ctxPtr->isException(result)) {
+                        void* exc = ctxPtr->getException();
+                        auto msg = ctxPtr->getExceptionMessage(exc);
+                        spdlog::warn("[BedrockAddon] system.runTimeout callback error: {}", msg);
+                        ctxPtr->releaseValue(exc);
+                    }
+                    ctxPtr->releaseValue(result);
+                    ctxPtr->releaseValue(undef);
+                    ctxPtr->releaseValue(callback);
+                },
+                tickDelay);
+
+            return ctx.createInt32(static_cast<i32>(runId));
+        },
+        2);
+
+    systemReg.method(
+        "clearRun",
+        [scheduler](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("system.clearRun requires a run ID argument");
+            }
+            if (!scheduler) {
+                return ctx.createUndefined();
+            }
+            auto runId = ctx.toInt32(args[0]);
+            if (!runId) {
+                return ctx.createUndefined();
+            }
+            scheduler->clearRun(static_cast<ScriptScheduler::RunId>(*runId));
+            return ctx.createUndefined();
+        },
+        1);
+
+    systemReg.readonlyProperty("currentTick", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        return ctx.createInt64(static_cast<i64>(ScriptWorldAccessor::instance().currentTick()));
+    });
 
     // --- World类 ---
-    JSClassID worldClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue worldProto = builder.exportClass("World", worldClassId);
+    u64 worldClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* worldProto = builder.exportClass("World", worldClassId);
 
     ClassRegistrar<void> worldReg(ctx, worldClassId, worldProto);
-    worldReg.method("getDimension", worldGetDimension)
-        .method("getAllPlayers", worldGetAllPlayers)
-        .method("sendMessage", worldSendMessage);
+    worldReg.method("getDimension", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        // TODO: 返回Dimension对象
+        return ctx.createUndefined();
+    });
+    worldReg.method("getAllPlayers", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        auto names = ScriptWorldAccessor::instance().getAllPlayerNames();
+        void* arr = ctx.createArray();
+        for (u32 i = 0; i < names.size(); ++i) {
+            ctx.setArrayElementString(arr, i, names[i]);
+        }
+        return arr;
+    });
+    worldReg.method("sendMessage", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        if (argc < 1 || !ctx.isString(args[0])) {
+            return ctx.throwTypeError("world.sendMessage requires a string argument");
+        }
+        auto msg = ctx.toString(args[0]);
+        if (!msg) {
+            return ctx.throwInternalError("Failed to convert message to string");
+        }
+        ScriptWorldAccessor::instance().sendMessage(*msg);
+        return ctx.createUndefined();
+    });
 
     // --- Dimension类 ---
-    JSClassID dimensionClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue dimensionProto = builder.exportClass("Dimension", dimensionClassId);
+    u64 dimensionClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* dimensionProto = builder.exportClass("Dimension", dimensionClassId);
 
     ClassRegistrar<void> dimensionReg(ctx, dimensionClassId, dimensionProto);
-    dimensionReg.readonlyProperty("id", dimensionGetId);
+    dimensionReg.readonlyProperty("id", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // TODO: 返回维度ID
+        return ctx.createString("minecraft:overworld");
+    });
 
     // --- Entity类 ---
-    JSClassID entityClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue entityProto = builder.exportClass("Entity", entityClassId);
+    u64 entityClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* entityProto = builder.exportClass("Entity", entityClassId);
 
     ClassRegistrar<void> entityReg(ctx, entityClassId, entityProto);
-    entityReg.readonlyProperty("id", entityGetId)
-        .readonlyProperty("typeId", entityGetTypeId)
-        .method("getDimension", entityGetDimension)
-        .method("getLocation", entityGetLocation);
+    entityReg.readonlyProperty("id", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // TODO: 返回实体ID
+        return ctx.createUndefined();
+    });
+    entityReg.readonlyProperty("typeId", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // TODO: 返回实体类型ID
+        return ctx.createUndefined();
+    });
+    entityReg.method("getDimension", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        return ctx.createUndefined();
+    });
+    entityReg.method("getLocation", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        return ctx.createUndefined();
+    });
 
     // --- Player类（继承Entity） ---
-    JSClassID playerClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue playerProto = builder.exportClass("Player", playerClassId);
+    u64 playerClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* playerProto = builder.exportClass("Player", playerClassId);
 
     ClassRegistrar<void> playerReg(ctx, playerClassId, playerProto);
-    playerReg.readonlyProperty("name", playerGetName);
+    playerReg.readonlyProperty("name", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // TODO: 返回玩家名
+        return ctx.createUndefined();
+    });
 
     // --- Block类 ---
-    JSClassID blockClassId = ScriptObjectRegistry::allocateClassId(rt);
-    builder.exportClass("Block", blockClassId);
+    u64 blockClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* blockProto = builder.exportClass("Block", blockClassId);
+    ctx.releaseValue(blockProto);
 
     // --- ItemStack类 ---
-    JSClassID itemStackClassId = ScriptObjectRegistry::allocateClassId(rt);
-    JSValue itemStackProto = builder.exportClass("ItemStack", itemStackClassId);
+    u64 itemStackClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* itemStackProto = builder.exportClass("ItemStack", itemStackClassId);
 
     ClassRegistrar<void> itemStackReg(ctx, itemStackClassId, itemStackProto);
-    itemStackReg.readonlyProperty("typeId", itemStackGetTypeId)
-        .property("amount", itemStackGetAmount, itemStackSetAmount);
+    itemStackReg.readonlyProperty(
+        "typeId", [](IScriptBindingContext& ctx, void* thisVal) -> void* { return ctx.createUndefined(); });
+    itemStackReg.property(
+        "amount",
+        [](IScriptBindingContext& ctx, void* thisVal) -> void* { return ctx.createUndefined(); },
+        [](IScriptBindingContext& ctx, void* thisVal, void* value) {
+            // TODO: 设置amount
+        });
 
     // ====== 注册常量 ======
 
-    // GameMode枚举
     builder.exportConst("GameModeSurvival", 0);
     builder.exportConst("GameModeCreative", 1);
     builder.exportConst("GameModeAdventure", 2);
     builder.exportConst("GameModeSpectator", 3);
 
-    // Dimension ID常量
     builder.exportConstString("MinecraftDimensionTypesOverworld", "minecraft:overworld");
     builder.exportConstString("MinecraftDimensionTypesNether", "minecraft:nether");
     builder.exportConstString("MinecraftDimensionTypesTheEnd", "minecraft:the_end");
@@ -249,25 +296,30 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // ====== 导出全局对象 ======
 
     // 创建system全局对象
-    JSValue systemObj = JS_NewObjectProtoClass(ctx, systemProto, systemClassId);
-    auto* systemData = new ScriptObjectRegistry::ObjectData{nullptr, false, "System", nullptr};
-    JS_SetOpaque(systemObj, systemData);
+    void* systemObj = ScriptObjectRegistry::wrap(ctx, systemClassId, systemProto, nullptr, false, "System");
     builder.exportValue("system", systemObj);
+    ctx.releaseValue(systemObj);
 
     // 创建world全局对象
-    JSValue worldObj = JS_NewObjectProtoClass(ctx, worldProto, worldClassId);
-    auto* worldData = new ScriptObjectRegistry::ObjectData{nullptr, false, "World", nullptr};
-    JS_SetOpaque(worldObj, worldData);
+    void* worldObj = ScriptObjectRegistry::wrap(ctx, worldClassId, worldProto, nullptr, false, "World");
     builder.exportValue("world", worldObj);
 
+    // ====== 注册事件绑定 ======
+    if (m_eventBus && !m_eventSignals.empty()) {
+        registerEventBindings(ctx, worldObj, *m_eventBus, m_eventSignals);
+    }
+
     // ====== 注册自定义组件绑定 ======
-    registerCustomComponentBindings(builder, ctx);
+    registerCustomComponentBindings(builder);
 
     // ====== 完成模块注册 ======
     if (!builder.finalize()) {
         spdlog::error("[BedrockAddon] Failed to finalize @minecraft/server module");
+        ctx.releaseValue(worldObj);
         return false;
     }
+
+    ctx.releaseValue(worldObj);
 
     spdlog::info("[BedrockAddon] @minecraft/server module bindings registered successfully");
     return true;

@@ -21,43 +21,56 @@
  *
  */
 
-#include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
-#include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+#include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
 
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 
-ScriptTickListener::ScriptTickListener(ScriptManager& manager)
-    : m_manager(manager)
-{}
-
-void ScriptTickListener::beginTick()
+ScriptWorldAccessor& ScriptWorldAccessor::instance()
 {
-    // 记录tick开始时间（看门狗用）
-    m_manager.watchdog().beginTick();
+    static ScriptWorldAccessor instance;
+    return instance;
 }
 
-void ScriptTickListener::tick(u64 currentTick)
+void ScriptWorldAccessor::sendMessage(const std::string& message)
 {
-    // 1. 执行调度回调（system.run/runInterval/runTimeout）
-    m_manager.scheduler().tick(currentTick);
-
-    // 2. 驱动插件tick（处理pending jobs、scheduled callbacks等）
-    m_manager.tickPlugins();
-
-    // 3. 驱动JS引擎的pending jobs（Promise、setTimeout等）
-    m_manager.executePendingJobs();
+    if (m_messageCallback) {
+        m_messageCallback(message);
+    } else {
+        spdlog::warn("[BedrockAddon] ScriptWorldAccessor::sendMessage: no callback registered");
+    }
 }
 
-void ScriptTickListener::endTick()
+std::vector<std::string> ScriptWorldAccessor::getAllPlayerNames()
 {
-    // 刷新afterEvent队列
-    m_manager.eventBus().tick();
+    if (m_getPlayerNamesCallback) {
+        return m_getPlayerNamesCallback();
+    }
+    return {};
+}
 
-    // 检查看门狗
-    m_manager.watchdog().endTick();
-    m_manager.watchdog().tick(m_manager);
+u64 ScriptWorldAccessor::currentTick() const
+{
+    if (m_currentTickCallback) {
+        return m_currentTickCallback();
+    }
+    return 0;
+}
+
+void ScriptWorldAccessor::setMessageCallback(std::function<void(const std::string&)> callback)
+{
+    m_messageCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetPlayerNamesCallback(std::function<std::vector<std::string>()> callback)
+{
+    m_getPlayerNamesCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setCurrentTickCallback(std::function<u64()> callback)
+{
+    m_currentTickCallback = std::move(callback);
 }
 
 } // namespace mc::mod::bedrock::addon

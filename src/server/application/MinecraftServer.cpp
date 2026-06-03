@@ -321,7 +321,7 @@ void MinecraftServer::tick()
 
     // 驱动脚本系统tick
     if (m_scriptManager && m_scriptManager->isInitialized()) {
-        m_scriptManager->tick();
+        m_scriptManager->tick(currentTick());
     }
 }
 
@@ -589,6 +589,9 @@ Result<void> MinecraftServer::initializeWorld()
 
     // 初始化脚本系统
     if (m_scriptManager) {
+        // 桥接脚本API到游戏对象
+        m_scriptManager->setServer(this);
+
         auto scriptResult = m_scriptManager->initialize();
         if (scriptResult.failed()) {
             spdlog::warn("[Server] Failed to initialize script system: {}", scriptResult.error().message());

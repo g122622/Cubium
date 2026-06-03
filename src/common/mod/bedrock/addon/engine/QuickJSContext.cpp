@@ -1,4 +1,5 @@
 #include "common/mod/bedrock/addon/engine/QuickJSContext.hpp"
+#include "common/mod/bedrock/addon/engine/QuickJSBindingContext.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSModuleLoader.hpp"
 #include "common/mod/bedrock/addon/engine/QuickJSRuntime.hpp"
 
@@ -162,6 +163,14 @@ bool QuickJSContext::isValid() const
 void* QuickJSContext::nativeHandle()
 {
     return m_context;
+}
+
+IScriptBindingContext& QuickJSContext::bindingContext()
+{
+    if (!m_bindingContext) {
+        m_bindingContext = std::make_unique<QuickJSBindingContext>(m_context);
+    }
+    return *m_bindingContext;
 }
 
 namespace {

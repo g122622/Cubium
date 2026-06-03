@@ -1,0 +1,252 @@
+#pragma once
+
+#include "common/core/Types.hpp"
+
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace mc::mod::bedrock::addon {
+
+class IScriptBindingContext;
+
+/**
+ * @brief 脚本值类型枚举
+ *
+ * 引擎无关的脚本值类型标识。
+ */
+enum class ScriptType {
+    Undefined,
+    Null,
+    Boolean,
+    Number,
+    String,
+    Object,
+    Array,
+    Function,
+};
+
+/**
+ * @brief 脚本方法回调类型
+ *
+ * 引擎无关的方法回调签名。modules/层使用此类型注册方法，
+ * 引擎实现层通过trampoline机制将其转换为引擎特定的C函数。
+ *
+ * @param ctx 绑定上下文，用于值操作
+ * @param thisVal this对象句柄
+ * @param argc 参数个数
+ * @param args 参数句柄数组
+ * @return 返回值句柄（调用者拥有所有权），或异常句柄
+ */
+using ScriptMethodCallback = std::function<void*(IScriptBindingContext&, void*, i32, void**)>;
+
+/**
+ * @brief 脚本属性getter回调类型
+ *
+ * @param ctx 绑定上下文
+ * @param thisVal this对象句柄
+ * @return 属性值句柄（调用者拥有所有权）
+ */
+using ScriptGetterCallback = std::function<void*(IScriptBindingContext&, void*)>;
+
+/**
+ * @brief 脚本属性setter回调类型
+ *
+ * @param ctx 绑定上下文
+ * @param thisVal this对象句柄
+ * @param value 新值句柄（setter不拥有所有权，如需持久化请retainValue）
+ */
+using ScriptSetterCallback = std::function<void(IScriptBindingContext&, void*, void*)>;
+
+/**
+ * @brief 脚本绑定上下文抽象接口
+ *
+ * 提供模块绑定所需的脚本引擎操作，不暴露具体引擎API。
+ * modules/层通过此接口注册类、方法、属性、创建对象、调用回调等，
+ * 无需直接依赖QuickJS或其他引擎头文件。
+ *
+ * 值句柄约定：
+ * 所有void*句柄都是引擎特定的值引用。对于QuickJS，这是JSValue*。
+ * - 创建方法返回的句柄拥有引用所有权
+ * - retainValue增加引用计数（调用后调用者拥有自己的引用）
+ * - releaseValue释放引用所有权
+ * - getProperty返回的句柄拥有引用所有权（调用者负责release）
+ * - setProperty消耗传入value的引用所有权（调用者不再需要release value）
+ *
+ * 生命周期：
+ * - 由IScriptContext创建，每个插件上下文一个实例
+ * - 引擎特定实现由engine/层提供
+ */
+class IScriptBindingContext {
+public:
+    virtual ~IScriptBindingContext() = default;
+
+    // ===== 值创建 =====
+
+    [[nodiscard]] virtual void* createUndefined() = 0;
+    [[nodiscard]] virtual void* createNull() = 0;
+    [[nodiscard]] virtual void* createBoolean(bool value) = 0;
+    [[nodiscard]] virtual void* createInt32(i32 value) = 0;
+    [[nodiscard]] virtual void* createInt64(i64 value) = 0;
+    [[nodiscard]] virtual void* createFloat64(f64 value) = 0;
+    [[nodiscard]] virtual void* createString(std::string_view value) = 0;
+    [[nodiscard]] virtual void* createObject() = 0;
+    [[nodiscard]] virtual void* createArray() = 0;
+    [[nodiscard]] virtual void* createObjectWithProto(void* proto, u64 classId) = 0;
+
+    /**
+     * @brief 创建函数值（使用引擎无关回调）
+     *
+     * 创建一个JS函数对象，当被调用时执行指定的回调。
+     *
+     * @param callback 方法回调
+     * @param name 函数名（用于调试）
+     * @param length 参数个数（用于JS的length属性）
+     * @return 函数值句柄（调用者拥有所有权）
+     */
+    [[nodiscard]] virtual void* createFunction(ScriptMethodCallback callback, const char* name, int length = 0) = 0;
+
+    /**
+     * @brief 设置构造函数关联
+     *
+     * 将构造函数与原型对象关联，使instanceof运算符正常工作。
+     *
+     * @param ctor 构造函数句柄
+     * @param proto 原型对象句柄
+     */
+    virtual void setConstructor(void* ctor, void* proto) = 0;
+
+    // ===== 值类型检查 =====
+
+    [[nodiscard]] virtual ScriptType getType(void* value) const = 0;
+    [[nodiscard]] virtual bool isUndefined(void* value) const = 0;
+    [[nodiscard]] virtual bool isFunction(void* value) const = 0;
+    [[nodiscard]] virtual bool isObject(void* value) const = 0;
+    [[nodiscard]] virtual bool isNumber(void* value) const = 0;
+    [[nodiscard]] virtual bool isString(void* value) const = 0;
+    [[nodiscard]] virtual bool isException(void* value) const = 0;
+
+    // ===== 值转换 =====
+
+    [[nodiscard]] virtual std::optional<i32> toInt32(void* value) const = 0;
+    [[nodiscard]] virtual std::optional<f64> toFloat64(void* value) const = 0;
+    [[nodiscard]] virtual std::optional<bool> toBool(void* value) const = 0;
+    [[nodiscard]] virtual std::optional<std::string> toString(void* value) const = 0;
+
+    // ===== 对象属性操作 =====
+
+    /** 设置属性（消耗value的引用所有权） */
+    virtual void setProperty(void* obj, const char* key, void* value) = 0;
+    virtual void setPropertyInt(void* obj, const char* key, i32 value) = 0;
+    virtual void setPropertyFloat(void* obj, const char* key, f64 value) = 0;
+    virtual void setPropertyBool(void* obj, const char* key, bool value) = 0;
+    virtual void setPropertyString(void* obj, const char* key, std::string_view value) = 0;
+    virtual void setPropertyNull(void* obj, const char* key) = 0;
+    virtual void setPropertyInt64(void* obj, const char* key, i64 value) = 0;
+
+    /** 获取属性（返回值拥有引用所有权，调用者负责release） */
+    [[nodiscard]] virtual void* getProperty(void* obj, const char* key) const = 0;
+    [[nodiscard]] virtual std::optional<i32> getPropertyInt(void* obj, const char* key) const = 0;
+    [[nodiscard]] virtual std::optional<f64> getPropertyFloat(void* obj, const char* key) const = 0;
+    [[nodiscard]] virtual std::optional<bool> getPropertyBool(void* obj, const char* key) const = 0;
+    [[nodiscard]] virtual std::optional<std::string> getPropertyString(void* obj, const char* key) const = 0;
+
+    virtual void setArrayElementInt(void* arr, u32 index, i32 value) = 0;
+    virtual void setArrayElementString(void* arr, u32 index, std::string_view value) = 0;
+
+    // ===== 引用管理 =====
+
+    /** 增加引用计数（用于持久化值，如回调函数） */
+    virtual void retainValue(void* value) = 0;
+    /** 减少引用计数并释放 */
+    virtual void releaseValue(void* value) = 0;
+
+    // ===== 对象opaque管理 =====
+
+    virtual void setOpaque(void* obj, void* data, u64 classId) = 0;
+    [[nodiscard]] virtual void* getOpaque(void* obj, u64 classId) const = 0;
+
+    // ===== 函数调用 =====
+
+    [[nodiscard]] virtual void* callFunction(void* func, void* thisVal, i32 argc, void** args) = 0;
+    [[nodiscard]] virtual void* callFunction0(void* func, void* thisVal) = 0;
+    [[nodiscard]] virtual void* callFunction1(void* func, void* thisVal, void* arg0) = 0;
+
+    // ===== 错误处理 =====
+
+    [[nodiscard]] virtual void* throwTypeError(const char* message) = 0;
+    [[nodiscard]] virtual void* throwInternalError(const char* message) = 0;
+    [[nodiscard]] virtual void* getException() = 0;
+    [[nodiscard]] virtual std::string getExceptionMessage(void* exception) const = 0;
+
+    // ===== 类注册 =====
+
+    [[nodiscard]] virtual u64 allocateClassId() = 0;
+
+    /**
+     * @brief 注册类定义
+     *
+     * @param classId 类ID（由allocateClassId()分配）
+     * @param className 类名
+     * @param hasFinalizer 是否需要默认的对象数据finalizer（释放ScriptObjectRegistry::ObjectData）
+     * @return 注册是否成功
+     */
+    virtual bool registerClass(u64 classId, const char* className, bool hasFinalizer = true) = 0;
+
+    [[nodiscard]] virtual void* createClassProto(u64 classId) = 0;
+
+    /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
+    virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, int length = 0) = 0;
+    /** 注册原生只读属性（nativeGetter为引擎特定的C函数指针） */
+    virtual void registerNativeReadonlyProperty(void* proto, const char* name, void* nativeGetter) = 0;
+    /** 注册原生读写属性 */
+    virtual void registerNativeProperty(void* proto, const char* name, void* nativeGetter, void* nativeSetter) = 0;
+
+    // ===== 高级方法/属性注册（引擎无关回调） =====
+
+    /**
+     * @brief 注册方法（使用引擎无关回调）
+     *
+     * 引擎实现层通过trampoline机制将ScriptMethodCallback转换为引擎特定的C函数。
+     * modules/层应优先使用此方法而非registerNativeMethod。
+     *
+     * @param proto 原型对象句柄
+     * @param name 方法名
+     * @param callback 方法回调
+     * @param length 参数个数（用于JS的length属性）
+     */
+    virtual void registerMethod(void* proto, const char* name, ScriptMethodCallback callback, int length = 0) = 0;
+
+    /**
+     * @brief 注册只读属性（使用引擎无关回调）
+     */
+    virtual void registerReadonlyProperty(void* proto, const char* name, ScriptGetterCallback getter) = 0;
+
+    /**
+     * @brief 注册读写属性（使用引擎无关回调）
+     */
+    virtual void registerProperty(
+        void* proto, const char* name, ScriptGetterCallback getter, ScriptSetterCallback setter) = 0;
+
+    // ===== 模块注册 =====
+
+    virtual bool createNativeModule(const std::string& moduleName) = 0;
+    virtual bool exportNativeFunction(const std::string& name, void* nativeFunc, int length = 0) = 0;
+    virtual bool exportNativeConst(const std::string& name, i32 value) = 0;
+    virtual bool exportNativeConstFloat(const std::string& name, f64 value) = 0;
+    virtual bool exportNativeConstString(const std::string& name, const std::string& value) = 0;
+    virtual bool exportNativeValue(const std::string& name, void* value) = 0;
+    virtual bool finalizeModule() = 0;
+
+    // ===== 全局对象 =====
+
+    [[nodiscard]] virtual void* getGlobalObject() = 0;
+
+    // ===== 上下文数据 =====
+
+    virtual void setContextData(void* data) = 0;
+    [[nodiscard]] virtual void* getContextData() const = 0;
+};
+
+} // namespace mc::mod::bedrock::addon

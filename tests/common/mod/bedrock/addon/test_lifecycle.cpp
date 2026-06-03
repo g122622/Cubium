@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+#include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/diagnostics/ScriptDiagnostics.hpp"
 #include "common/mod/bedrock/addon/diagnostics/ScriptSentryLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
